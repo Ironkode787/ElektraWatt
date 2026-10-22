@@ -5,13 +5,17 @@
 //! clipboard and the crash handler come with later work packages (WP-S2.01 part 2, FT-310).
 //!
 //! ```text
-//! elektrawatt [<project-dir>]                          the window; the project opens after the first frame
+//! elektrawatt [--no-gpu] [<project-dir>]               the window; the project opens after the first frame
 //! elektrawatt --headless --script <file|-> [--record <file.ewcmd>] [--config-dir <dir>]
 //!                                                      the same actions from a UI script, no window, no GPU
 //! elektrawatt --smoke <project-dir>                    opens read-only, draws page 1 at 36 dpi, exits
 //! ```
 //!
-//! Exit codes of the headless mode: 0 every step done, 1 a step was refused or failed, 2 a usage error.
+//! Exit codes of the headless mode: 0 every step done, 1 a step was refused or failed, 2 a usage error. The window
+//! exits with 3 when the system has no graphics adapter at all (egui's own chrome needs one; WP-S2.02 section 7.2):
+//! the message names the headless mode, the command-line tool `ew` and, on Linux, Mesa's software drivers.
+//! `--no-gpu` draws the canvas on the CPU and asks eframe for a software adapter (WARP, llvmpipe, lavapipe) for the
+//! window.
 //!
 //! The read-only resources (the sample project, the starter content, the built user guide, the third-party notices)
 //! are found next to the executable, in `share/elektrawatt` one level up, or in the source tree of a development
@@ -28,6 +32,7 @@ use eframe::egui;
 use ew_ui::app::{App, Pick, Platform, setup};
 use ew_ui::ew_viewmodel::shell::{Mode, Prompt, Resources, ShellConfig, ShellModel};
 use ew_ui::ew_viewmodel::strings;
+use ew_ui::gpu::{Flags, wgpu_configuration};
 use ew_ui::headless::{self, HeadlessArgs, ScriptSource};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -35,8 +40,8 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 /// What the command line asks for.
 #[derive(Clone, PartialEq, Eq, Debug)]
 enum Cli {
-    /// The window, with an optional project to open.
-    Gui(Option<PathBuf>),
+    /// The window, with an optional project to open, and `--no-gpu`.
+    Gui(Option<PathBuf>, bool),
     /// The headless mode.
     Headless(HeadlessArgs),
     /// The smoke run.
@@ -47,7 +52,7 @@ enum Cli {
     Help,
 }
 
-const USAGE: &str = "usage: elektrawatt [<project-dir>]\n\
+const USAGE: &str = "usage: elektrawatt [--no-gpu] [<project-dir>]\n\
        elektrawatt --headless --script <file|-> [--record <file.ewcmd>] [--config-dir <dir>]\n\
        elektrawatt --smoke <project-dir>\n\
        elektrawatt --version | --help";
@@ -60,6 +65,7 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Cli, String> {
     let mut config_dir: Option<PathBuf> = None;
     let mut smoke: Option<PathBuf> = None;
     let mut project: Option<PathBuf> = None;
+    let mut no_gpu = false;
     while let Some(arg) = args.next() {
         let text = arg.to_string_lossy().into_owned();
         let mut value = |name: &str| args.next().ok_or_else(|| format!("{name} needs a value"));
@@ -78,6 +84,7 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Cli, String> {
             "--record" => record = Some(PathBuf::from(value("--record")?)),
             "--config-dir" => config_dir = Some(PathBuf::from(value("--config-dir")?)),
             "--smoke" => smoke = Some(PathBuf::from(value("--smoke")?)),
+            "--no-gpu" => no_gpu = true,
             flag if flag.starts_with("--") => return Err(format!("unknown option {flag}")),
             _ => {
                 if project.replace(PathBuf::from(&arg)).is_some() {
@@ -85,6 +92,9 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Cli, String> {
                 }
             }
         }
+    }
+    if no_gpu && (headless || smoke.is_some()) {
+        return Err("--no-gpu is for the window (the headless and smoke modes use no GPU)".to_owned());
     }
     match (headless, script, smoke) {
         (true, Some(script), None) if project.is_none() => Ok(Cli::Headless(HeadlessArgs {
@@ -99,7 +109,7 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Cli, String> {
         (false, None, _) if config_dir.is_some() => Err("--config-dir needs --headless".to_owned()),
         (false, None, Some(dir)) if project.is_none() => Ok(Cli::Smoke(dir)),
         (false, None, Some(_)) => Err("--smoke takes one directory".to_owned()),
-        (false, None, None) => Ok(Cli::Gui(project)),
+        (false, None, None) => Ok(Cli::Gui(project, no_gpu)),
     }
 }
 
@@ -242,19 +252,61 @@ impl eframe::App for ShellApp {
     }
 }
 
-fn run_gui(initial: Option<PathBuf>) -> i32 {
+/// The exit code 3 of a host without any graphics adapter (WP-S2.02 section 7.2, decision log ID-514).
+const EXIT_NO_ADAPTER: i32 = 3;
+
+/// Whether eframe failed because no graphics adapter exists (none at all, or none the `--no-gpu` selector could
+/// take), as opposed to any other failure of the window.
+fn is_no_adapter(e: &eframe::Error) -> bool {
+    matches!(
+        e,
+        eframe::Error::Wgpu(
+            eframe::egui_wgpu::WgpuError::RequestAdapterError(_)
+                | eframe::egui_wgpu::WgpuError::CustomNativeAdapterSelectionError(_)
+        )
+    )
+}
+
+/// The one message of exit code 3 on the operating system `os` (`std::env::consts::OS`).
+fn no_adapter_message(os: &str, detail: &str) -> String {
+    let mut m = format!(
+        "error: no graphics adapter was found, so the window cannot open ({detail}).\n\
+         The headless mode needs none: elektrawatt --headless --script <file>; the command-line tool `ew` opens, \
+         checks and exports projects without a window."
+    );
+    if os == "linux" {
+        m.push_str(
+            "\nOn Linux without a GPU, Mesa's software drivers provide an adapter: llvmpipe (OpenGL) or lavapipe \
+             (Vulkan), in the distribution's Mesa packages.",
+        );
+    }
+    m
+}
+
+/// The exit code and the message of a window that could not run.
+fn gui_failure(e: &eframe::Error, os: &str) -> (i32, String) {
+    if is_no_adapter(e) {
+        (EXIT_NO_ADAPTER, no_adapter_message(os, &e.to_string()))
+    } else {
+        (1, format!("error: the window could not be opened: {e}"))
+    }
+}
+
+fn run_gui(initial: Option<PathBuf>, no_gpu: bool) -> i32 {
     let mut shell = ShellModel::new(Mode::Gui, shell_config(false));
     // The first start (and only that) shows the first-run flow, unless the user named a project to open.
     if initial.is_none() {
         shell.start_first_run_if_needed();
     }
-    let app = App::new(shell, Box::new(RfdPlatform), initial);
+    let flags = Flags { no_gpu };
+    let mut app = App::new(shell, Box::new(RfdPlatform), initial);
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_title(strings::text("window-title-start"))
             .with_inner_size([1280.0, 800.0])
             .with_min_inner_size([640.0, 400.0]),
         renderer: eframe::Renderer::Wgpu,
+        wgpu_options: wgpu_configuration(flags),
         ..eframe::NativeOptions::default()
     };
     let result = eframe::run_native(
@@ -262,14 +314,18 @@ fn run_gui(initial: Option<PathBuf>) -> i32 {
         options,
         Box::new(move |cc| {
             setup(&cc.egui_ctx);
+            // The canvas draws on eframe's device (one wgpu device, ADR-0014); without a render state it is the CPU
+            // canvas.
+            app.attach_gpu(cc.wgpu_render_state.clone(), flags);
             Ok(Box::new(ShellApp(app)))
         }),
     );
     match result {
         Ok(()) => 0,
         Err(e) => {
-            eprintln!("error: the window could not be opened: {e}");
-            1
+            let (code, message) = gui_failure(&e, std::env::consts::OS);
+            eprintln!("{message}");
+            code
         }
     }
 }
@@ -288,7 +344,7 @@ fn main() {
             println!("elektrawatt {VERSION}");
             0
         }
-        Ok(Cli::Gui(initial)) => run_gui(initial),
+        Ok(Cli::Gui(initial, no_gpu)) => run_gui(initial, no_gpu),
         Ok(Cli::Smoke(dir)) => {
             let code = headless::smoke(
                 shell_config(false),
@@ -323,8 +379,51 @@ mod tests {
 
     #[test]
     fn no_arguments_is_the_window() {
-        assert_eq!(parse(&[]), Ok(Cli::Gui(None)));
-        assert_eq!(parse(&["p.ew"]), Ok(Cli::Gui(Some(PathBuf::from("p.ew")))));
+        assert_eq!(parse(&[]), Ok(Cli::Gui(None, false)));
+        assert_eq!(parse(&["p.ew"]), Ok(Cli::Gui(Some(PathBuf::from("p.ew")), false)));
+    }
+
+    #[test]
+    fn b6_no_gpu_is_a_flag_of_the_window_only() {
+        assert_eq!(parse(&["--no-gpu"]), Ok(Cli::Gui(None, true)));
+        assert_eq!(
+            parse(&["--no-gpu", "p.ew"]),
+            Ok(Cli::Gui(Some(PathBuf::from("p.ew")), true))
+        );
+        assert!(parse(&["--no-gpu", "--headless", "--script", "s"]).is_err());
+        assert!(parse(&["--no-gpu", "--smoke", "p.ew"]).is_err());
+    }
+
+    #[test]
+    fn b6_a_missing_adapter_exits_with_code_3_and_names_the_ways_without_one() {
+        use eframe::egui_wgpu::WgpuError;
+        // The --no-gpu selector found no adapter at all (the injected failure of an empty adapter list).
+        let selector = eframe::Error::Wgpu(WgpuError::CustomNativeAdapterSelectionError(
+            "no graphics adapter was found".into(),
+        ));
+        let (code, message) = gui_failure(&selector, "windows");
+        assert_eq!(code, 3);
+        assert!(message.contains("elektrawatt --headless"), "{message}");
+        assert!(message.contains("`ew`"), "{message}");
+        assert!(
+            !message.contains("Mesa"),
+            "Mesa is named on Linux only: {message}"
+        );
+        assert_eq!(message.lines().count(), 2);
+        let (code, linux) = gui_failure(&selector, "linux");
+        assert_eq!(code, 3);
+        assert!(
+            linux.contains("Mesa") && linux.contains("llvmpipe") && linux.contains("lavapipe"),
+            "{linux}"
+        );
+        // Any other failure of the window keeps exit code 1.
+        let other = eframe::Error::Wgpu(WgpuError::NoSurfaceFormatsAvailable);
+        assert_eq!(gui_failure(&other, "linux").0, 1);
+        assert!(
+            gui_failure(&other, "linux")
+                .1
+                .starts_with("error: the window could not be opened")
+        );
     }
 
     #[test]

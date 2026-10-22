@@ -505,6 +505,13 @@ impl GpuCanvas {
         self.last = None;
     }
 
+    /// Drops the render targets (the multisampled attachments and the resolve texture): the canvas is not on
+    /// screen. The next render makes them again.
+    pub fn release_targets(&mut self) {
+        self.targets = None;
+        self.last = None;
+    }
+
     fn ensure_targets(&mut self, size: (u32, u32)) -> Result<bool, GpuError> {
         if self.targets.as_ref().is_some_and(|t| t.size == size) {
             return Ok(false);

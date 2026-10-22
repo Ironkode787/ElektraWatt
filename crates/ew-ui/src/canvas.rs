@@ -1,8 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The egui host of the page canvas (WP-S2.02 part 1, spec sections 6.2 to 6.5 and 9): the project view's page
-//! pane, drawn by `ew-render2d`'s CPU tile path.
+//! The egui host of the page canvas (WP-S2.02, spec sections 6.2 to 6.5, 7 and 9): the project view's page pane,
+//! drawn by `ew-render2d`'s GPU path where the switch rule allows ([`crate::gpu`]) and by its CPU tile path
+//! everywhere else, and as the loading state while a GPU scene prepares.
 //!
 //! Every frame, in four measured phases:
 //!
@@ -11,12 +12,15 @@
 //!    input, so a script and the window take the same path;
 //! 2. **scene**: the page content of the shell's canvas becomes a tile scene once per (revision, folio); the
 //!    previous scene's tiles stay visible for the same folio until the new ones arrive;
-//! 3. **render**: the planner's plan, finished tiles taken from the worker pool, at most 8 uploads (2 MiB) per
-//!    frame, the requests for missing tiles (a newer plan drops older waiting jobs);
-//! 4. **paint**: the surround, the paper, the tiles coarse to fine, the page bounds, the grid dots (one mesh), the
-//!    hover outline and, when View, Frame statistics is on, the statistics in the top-right corner.
+//! 3. **render**: on the GPU, the scene asked of the preparation worker and one render submitted when the view or
+//!    the scene changed (an idle frame submits nothing); on the CPU, the planner's plan, finished tiles taken from
+//!    the pool, at most 8 uploads (2 MiB) per frame, the requests for missing tiles (a newer plan drops older
+//!    waiting jobs);
+//! 4. **paint**: the surround, then the GPU texture over the sheet or the paper and the tiles coarse to fine, then
+//!    (one code path for both backends) the page bounds, the grid dots (one mesh), the hover outline and, when
+//!    View, Frame statistics is on, the statistics in the top-right corner.
 //!
-//! No raster happens on the UI thread. The canvas is one focusable AccessKit node with the role `Canvas`, named
+//! No raster and no tessellation happens on the UI thread. The canvas is one focusable AccessKit node with the role `Canvas`, named
 //! `Page <folio>, <title>` and described `<hint>, zoom <zoom>` (doc 16 section 10.1); its primitives are not
 //! exposed (the navigators are the accessible representation, FR-UI-026).
 
@@ -26,9 +30,10 @@ use std::time::{Duration, Instant};
 
 use egui::{
     Color32, ColorImage, Event as EguiEvent, Key, Mesh, MouseWheelUnit, PointerButton, Pos2, Rect, Sense,
-    TextureHandle, TextureOptions, Ui, Vec2,
+    TextureHandle, TextureId, TextureOptions, Ui, Vec2,
 };
 use ew_render_cpu::{FontBytes, FontResolver, SheetSize};
+use ew_render2d::gpu::GpuView;
 use ew_render2d::overlay::{self, GridSpec, Overlay, OverlayInput, Theme};
 use ew_render2d::pool::{Scene, TilePool, worker_count};
 use ew_render2d::stats::{FrameSample, FrameStats, Phase, now};
@@ -42,6 +47,10 @@ use ew_viewmodel::strings;
 use serde_json::json;
 
 use crate::app::Event;
+use crate::gpu::GpuHost;
+
+/// The share of the tile cache a page pane hidden behind another tab keeps (FT-356): a quarter of 256 MiB.
+pub const HIDDEN_CACHE_BYTES: u64 = DEFAULT_CACHE_BYTES / 4;
 
 /// At most this many tile textures are uploaded per frame.
 pub const MAX_UPLOADS_PER_FRAME: usize = 8;
@@ -161,8 +170,13 @@ pub struct CanvasCounters {
     pub rastered_while_cached: u64,
     /// Tiles submitted to the pool in total.
     pub tiles_requested: u64,
-    /// Frames whose last layer showed a tile of the previous revision (the canvas was not ready then).
+    /// Frames whose last layer showed a tile of the previous revision, or the GPU scene of the previous revision
+    /// (the canvas was not ready then).
     pub fallback_frames: u64,
+    /// Frames drawn with the GPU canvas.
+    pub gpu_frames: u64,
+    /// GPU renders submitted (an idle GPU frame submits none).
+    pub gpu_submits: u64,
 }
 
 /// The canvas's state between frames.
@@ -187,12 +201,31 @@ pub struct CanvasHost {
     ready: bool,
     counters: CanvasCounters,
     fonts: Arc<dyn FontResolver + Send + Sync>,
+    gpu: GpuHost,
 }
 
 impl Default for CanvasHost {
     fn default() -> CanvasHost {
         CanvasHost::new()
     }
+}
+
+/// The overlay marks both backends share: the page bounds, the grid dots, the hover and selection outlines.
+fn paint_marks(painter: &egui::Painter, origin: Pos2, ppp: f32, overlay: &Overlay, theme: &Theme) {
+    let fill = |rects: &[PxRect], c: Color| {
+        if rects.is_empty() {
+            return;
+        }
+        let mut mesh = Mesh::default();
+        for &r in rects {
+            mesh.add_colored_rect(to_points(origin, ppp, r), color32(c));
+        }
+        painter.add(mesh);
+    };
+    fill(&overlay.border, theme.border);
+    fill(&overlay.dots, theme.grid_dot);
+    fill(&overlay.hover, theme.hover);
+    fill(&overlay.selected, theme.selection);
 }
 
 /// The physical-pixel rectangle `r` of a pane at `origin` (points) as an egui rectangle in points.
@@ -207,13 +240,14 @@ fn color32(c: Color) -> Color32 {
     Color32::from_rgba_unmultiplied(c.r, c.g, c.b, c.a)
 }
 
-/// The view of the shell's canvas.
+/// The renderer's view of the shell's canvas: the pane and the pixels per point without the UI scale, so that
+/// `D = zoom × 96 × ppp / ui_scale` (FT-349; at UI scale 1, as headless, the model's own pane and ppp).
 fn view_of(c: &CanvasModel) -> View {
     View {
         centre: c.centre(),
         zoom: c.zoom(),
-        pane: c.pane(),
-        ppp: c.ppp(),
+        pane: c.native_pane(),
+        ppp: c.native_ppp(),
     }
 }
 
@@ -238,7 +272,18 @@ impl CanvasHost {
             ready: false,
             counters: CanvasCounters::default(),
             fonts: Arc::new(BundledFonts(font_bytes())),
+            gpu: GpuHost::new(),
         }
+    }
+
+    /// The GPU side of the canvas.
+    pub fn gpu(&self) -> &GpuHost {
+        &self.gpu
+    }
+
+    /// The GPU side of the canvas, to attach eframe's render state or (tests) to stand in for a device.
+    pub fn gpu_mut(&mut self) -> &mut GpuHost {
+        &mut self.gpu
     }
 
     /// Whether the last frame drew every visible tile at the wanted resolution of a settled view.
@@ -306,14 +351,21 @@ impl CanvasHost {
         let render_span = tracing::trace_span!("frame.render").entered();
         let view = view_of(canvas);
         let sheet = scene.sheet();
-        let time = ui.input(|i| i.time);
-        let plan = self.planner.plan(&view, sheet, scene.id(), time);
-        self.take_arrivals(ui.ctx(), &scene);
-        self.request(ui.ctx(), &scene, &plan);
-        if let Some(wait) = plan.settle_in {
-            ui.ctx()
-                .request_repaint_after(Duration::from_secs_f64(wait.max(0.0)));
-        }
+        let gpu = self.gpu_frame(ui.ctx(), canvas, &view);
+        let plan = if gpu.is_some() {
+            self.stop_tiles(&scene);
+            None
+        } else {
+            let time = ui.input(|i| i.time);
+            let plan = self.planner.plan(&view, sheet, scene.id(), time);
+            self.take_arrivals(ui.ctx(), &scene);
+            self.request(ui.ctx(), &scene, &plan);
+            if let Some(wait) = plan.settle_in {
+                ui.ctx()
+                    .request_repaint_after(Duration::from_secs_f64(wait.max(0.0)));
+            }
+            Some(plan)
+        };
         drop(render_span);
         let t_paint = now();
         self.sample.set(Phase::Render, t_paint - t_render);
@@ -333,15 +385,23 @@ impl CanvasHost {
             sheet_offset_nm: g.sheet_offset_nm,
         });
         let overlay = overlay::build(&OverlayInput {
-            transform: plan.transform,
+            transform: plan.as_ref().map_or_else(|| view.transform(), |p| p.transform),
             pane_px,
-            ppp: view.ppp,
+            // The overlay's marks (dot size, outline outset) follow the window's points, UI scale included.
+            ppp: canvas.ppp(),
             sheet,
             grid,
             hover: canvas.hover().map(|(_, r)| r),
             selected: &[],
         });
-        self.paint(ui, rect, ppp, &plan, &overlay, &theme);
+        match (&plan, gpu) {
+            (Some(plan), _) => self.paint(ui, rect, ppp, plan, &overlay, &theme),
+            (None, Some((texture, ready))) => {
+                self.paint_gpu(ui, rect, ppp, texture, pane_px, &overlay, &theme);
+                self.ready = ready;
+            }
+            (None, None) => {}
+        }
         if shell.frame_stats_shown() {
             self.paint_statistics(ui, rect, shell);
         }
@@ -397,6 +457,63 @@ impl CanvasHost {
         self.scene = None;
         self.previous = None;
         self.ready = false;
+        self.gpu.release_frame();
+    }
+
+    /// A page pane hidden behind another tab of the dock while its project stays open (FT-356): the pool stops, the
+    /// scene stays, and the most recently drawn tiles are kept within [`HIDDEN_CACHE_BYTES`], so that returning to
+    /// the tab draws them at once; the GPU canvas keeps its meshes and lets go of its render targets.
+    pub(crate) fn hide(&mut self) {
+        if let (Some(pool), Some(scene)) = (&self.pool, &self.scene)
+            && !self.submitted.is_empty()
+        {
+            pool.submit(&scene.scene, &[]);
+        }
+        self.submitted.clear();
+        self.arrived.clear();
+        self.cache.trim(HIDDEN_CACHE_BYTES);
+        self.ready = false;
+        self.gpu.release_frame();
+    }
+
+    /// Applies the switch rule for this frame (WP-S2.02 section 7.2) and sets the shell's backend label.
+    pub(crate) fn update_backend(&mut self, shell: &mut ShellModel) {
+        self.gpu.update(shell);
+    }
+
+    /// The GPU frame of the canvas: its texture and whether it shows the page's current revision; `None` when the
+    /// CPU draws (the switch rule, or no scene of this page yet: the CPU tiles are the loading state).
+    fn gpu_frame(
+        &mut self,
+        ctx: &egui::Context,
+        canvas: &CanvasModel,
+        view: &View,
+    ) -> Option<(TextureId, bool)> {
+        if !self.gpu.drawing() {
+            return None;
+        }
+        let (has_scene, ready) = self.gpu.sync_scene(ctx, canvas.page(), &self.fonts);
+        if !has_scene {
+            return None;
+        }
+        let target = view.pane_px_whole();
+        let (texture, outcome) = self.gpu.render(&GpuView::of(&view.transform(), target))?;
+        self.counters.gpu_frames += 1;
+        self.counters.gpu_submits += u64::from(outcome.submitted);
+        self.counters.fallback_frames += u64::from(!ready);
+        Some((texture, ready))
+    }
+
+    /// Stops the tile work while the GPU draws: the pool's queue is emptied and the waiting uploads dropped (the
+    /// cached tiles stay as the fallback).
+    fn stop_tiles(&mut self, scene: &Arc<Scene>) {
+        if let Some(pool) = &self.pool
+            && !self.submitted.is_empty()
+        {
+            pool.submit(scene, &[]);
+        }
+        self.submitted.clear();
+        self.arrived.clear();
     }
 
     /// The number of cached tiles (tests: the cache is emptied while no canvas is shown).
@@ -424,7 +541,8 @@ impl CanvasHost {
     /// The sheet point (nm) under the screen position `pos` (points), with the model's exact view.
     fn sheet_point(rect: Rect, canvas: &CanvasModel, pos: Pos2) -> (i64, i64) {
         let view = view_of(canvas);
-        let ppp = view.ppp;
+        // The window's points to physical pixels: its own pixels per point (UI scale included).
+        let ppp = canvas.ppp();
         let px = (
             f64::from(pos.x - rect.min.x) * ppp,
             f64::from(pos.y - rect.min.y) * ppp,
@@ -686,20 +804,35 @@ impl CanvasHost {
         }
         self.counters.fallback_frames += u64::from(fallback);
         self.ready = complete;
-        let fill = |rects: &[PxRect], c: Color| {
-            if rects.is_empty() {
-                return;
-            }
-            let mut mesh = Mesh::default();
-            for &r in rects {
-                mesh.add_colored_rect(to_points(origin, ppp, r), color32(c));
-            }
-            painter.add(mesh);
-        };
-        fill(&overlay.border, theme.border);
-        fill(&overlay.dots, theme.grid_dot);
-        fill(&overlay.hover, theme.hover);
-        fill(&overlay.selected, theme.selection);
+        paint_marks(&painter, origin, ppp, overlay, theme);
+    }
+
+    /// The GPU frame: the surround, the canvas texture over the sheet's rectangle (one texel per physical pixel of
+    /// the pane), then the overlay marks as on the CPU path.
+    #[allow(clippy::too_many_arguments)]
+    fn paint_gpu(
+        &self,
+        ui: &Ui,
+        rect: Rect,
+        ppp: f32,
+        texture: TextureId,
+        pane_px: (u32, u32),
+        overlay: &Overlay,
+        theme: &Theme,
+    ) {
+        let painter = ui.painter_at(rect);
+        let origin = rect.min;
+        for &r in &overlay.surround {
+            painter.rect_filled(to_points(origin, ppp, r), 0.0, color32(theme.surround));
+        }
+        let s = overlay.sheet;
+        let (w, h) = (pane_px.0.max(1) as f32, pane_px.1.max(1) as f32);
+        let uv = Rect::from_min_max(
+            Pos2::new(s.x0 as f32 / w, s.y0 as f32 / h),
+            Pos2::new(s.x1 as f32 / w, s.y1 as f32 / h),
+        );
+        painter.image(texture, to_points(origin, ppp, s), uv, Color32::WHITE);
+        paint_marks(&painter, origin, ppp, overlay, theme);
     }
 
     /// The statistics overlay: fps, the p99 of the frame and of each phase, the pending tiles and the backend.

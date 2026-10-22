@@ -20,6 +20,7 @@ use serde_json::{Value, json};
 
 use crate::canvas::{CanvasCounters, CanvasHost};
 use crate::dock::Dock;
+use crate::gpu::GpuHost;
 use crate::keys::{self, Binding};
 use crate::page_view::PageView;
 use crate::{about, first_run, menu, palette, start_page, status_bar, wizard};
@@ -176,6 +177,22 @@ impl App {
         self.canvas.stats()
     }
 
+    /// Gives the canvas eframe's wgpu render state (`None`: the CPU canvas) and the command line's flags; the
+    /// application binary calls it from eframe's creation closure (WP-S2.02 section 7.2).
+    pub fn attach_gpu(
+        &mut self,
+        render_state: Option<egui_wgpu::RenderState>,
+        flags: ew_render2d::gpu::Flags,
+    ) {
+        self.canvas.gpu_mut().attach(render_state, flags);
+    }
+
+    /// The GPU side of the canvas (tests: stand in for a device, inject a device loss).
+    #[doc(hidden)]
+    pub fn gpu_host_mut(&mut self) -> &mut GpuHost {
+        self.canvas.gpu_mut()
+    }
+
     /// Whether the image of the wizard's preview has arrived from the render worker.
     pub fn preview_ready(&self) -> bool {
         self.preview_view.is_ready()
@@ -237,6 +254,9 @@ impl App {
             });
             self.applied_theme = Some(theme);
         }
+        // The switch rule (WP-S2.02 section 7.2): the setting is effective at once, a failure moves the canvas to the
+        // CPU with one banner, and the status bar shows the result.
+        self.canvas.update_backend(&mut self.shell);
         if ctx.input(|i| i.viewport().close_requested()) && !self.shell.should_quit() {
             ctx.send_viewport_cmd(ViewportCommand::CancelClose);
             self.dispatch("app.quit", &Value::Null);
@@ -341,6 +361,12 @@ impl App {
             // The canvas's input phase includes dispatching the frame's actions (WP-S2.02 section 9).
             self.canvas
                 .end_frame(ew_render2d::stats::now() - dispatch_started, &self.shell);
+        } else if self.shell.has_project()
+            && self.shell.first_run().is_none()
+            && self.shell.wizard().is_none()
+        {
+            // The page pane is behind another tab of the dock: its tiles stay within a share of the cache (FT-356).
+            self.canvas.hide();
         } else {
             // No canvas on screen (start page, wizard, first run): its tiles and queued jobs go.
             self.canvas.release();

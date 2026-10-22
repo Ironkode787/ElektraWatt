@@ -21,6 +21,7 @@ pub mod canvas;
 pub mod dock;
 mod first_run;
 pub mod fonts;
+pub mod gpu;
 pub mod headless;
 pub mod keys;
 mod latest;

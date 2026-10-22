@@ -26,6 +26,9 @@ egui = { version = "=0.37.0", default-features = false }
 # which needs egui 0.36). The serde feature is off: the workspace files use the toolkit-neutral layout of
 # ew-viewmodel.
 egui_tiles = { version = "=0.18.0", default-features = false }
+# The canvas texture is registered with the renderer of eframe's render state (WP-S2.02 part 2, ADR-0014 as built).
+# No default features: the wgpu backends are ew-render2d's, per operating system (FT-328). Locked through eframe.
+egui-wgpu = { version = "=0.37.0", default-features = false }
 # The headless transcript.
 serde_json = "1.0.154"
 # The frame spans of the canvas (`frame`, `frame.input`, `frame.scene`, `frame.render`, `frame.paint`; WP-S2.02

@@ -405,6 +405,20 @@ impl<T> TileCache<T> {
         }
     }
 
+    /// Evicts least recently used entries until at most `max_bytes` are held, whatever frame used them: the
+    /// retention of a canvas hidden behind another tab within a share of the budget (FT-356).
+    pub fn trim(&mut self, max_bytes: u64) {
+        while self.bytes > max_bytes {
+            let Some((used, key)) = self.lru.pop_first() else {
+                break;
+            };
+            if let Some(old) = self.entries.remove(&key) {
+                debug_assert_eq!(old.used, used);
+                self.bytes -= old.bytes;
+            }
+        }
+    }
+
     /// Drops every entry whose scene is not in `keep`.
     pub fn retain_scenes(&mut self, keep: &[u64]) {
         let gone: Vec<TileKey> = self
@@ -706,6 +720,22 @@ mod tests {
         c.retain_scenes(&[2]);
         assert!(c.is_empty());
         assert_eq!(c.bytes(), 0);
+    }
+
+    #[test]
+    fn ft_356_trim_keeps_the_most_recently_used_tiles_within_a_share() {
+        let mut c: TileCache<u32> = TileCache::new(1_000);
+        for n in 0..5 {
+            c.insert(key(n), n, 100, u64::from(n));
+        }
+        c.trim(250);
+        assert_eq!((c.len(), c.bytes()), (2, 200));
+        assert!(
+            c.contains(&key(3)) && c.contains(&key(4)),
+            "the two most recently used stay"
+        );
+        c.trim(0);
+        assert!(c.is_empty());
     }
 
     #[test]

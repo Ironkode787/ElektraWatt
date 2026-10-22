@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The `canvas` bench (WP-S2.02 part 1, spec section 9): the frame cost of the page canvas under a gesture script,
-//! on the CPU tile path, without egui.
+//! The `canvas` bench (WP-S2.02, spec section 9): the frame cost of the page canvas under a gesture script, on the
+//! CPU tile path and (part 2) the GPU path, without egui.
 //!
 //! Run with `cargo bench -p ew-ui --bench canvas` (`-- --quick` takes 100 frames per scene instead of 1,000: a
 //! smoke run, not evidence). `cargo xtask perf-gate` runs it once per gate run; its values are report-only.
@@ -25,6 +25,12 @@
 //! resolution has been rastered by the pool (uploads are not capped there). That wait is outside the frame's
 //! phases. Pointer frames count into `frame.gesture.point` only.
 //!
+//! **The GPU families** (part 2): `render.pan.gpu` and `render.zoom.gpu` (with `.dense_a3`) time the GPU canvas of
+//! `ew_render2d::gpu` per frame of the same pan and zoom scripts: the render encoded and submitted, then the wait
+//! until the device has finished it, on a headless device (the default adapter, else the fallback adapter). The
+//! scene is prepared once before the script, as the window does on a worker. Without any adapter the bench prints
+//! `skipped: no adapter` instead and goes on. The GPU families never enter a hosted runner's baseline.
+//!
 //! **Output**: the title line, the header `class=GP generator_version=0 mode=…`, then per scene one `scene` line
 //! and the gate's `bench <family> median=…ms p99=…ms` lines (nearest-rank percentiles). Nothing else carries a
 //! time, and nothing is written into the repository.
@@ -37,6 +43,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use ew_render_cpu::{FontBytes, FontResolver, SheetSize};
+use ew_render2d::gpu::{GpuView, HeadlessDevice, MeshCache, prepare};
 use ew_render2d::overlay::{self, GridSpec, OverlayInput};
 use ew_render2d::pool::{Scene, TilePool, TileResult, worker_count};
 use ew_render2d::stats::{Phase, nearest_rank, now};
@@ -565,6 +572,65 @@ fn frame_lines(name: &str, suffix: &str, frames: &[FrameTimes]) {
     }
 }
 
+/// Times the GPU canvas per frame of `steps` on a fresh view of `page` (made ready by `setup`): encode, submit and
+/// wait. The scene is prepared before the first frame.
+fn run_gpu_gesture(
+    device: &HeadlessDevice,
+    page: &Arc<CanvasPage>,
+    setup: impl FnOnce(&mut CanvasModel),
+    steps: &[Step],
+) -> Vec<f64> {
+    let mut model = CanvasModel::new(Arc::clone(page), PANE, PPP);
+    setup(&mut model);
+    let fonts = BundledFonts(font_bytes());
+    let mut cache = MeshCache::default();
+    let mut canvas = device.canvas().expect("the GPU canvas initialises");
+    canvas.set_scene(Arc::new(prepare(1, &page.list, &fonts, &mut cache)));
+    let mut times = Vec::with_capacity(steps.len());
+    for step in steps {
+        match *step {
+            Step::Pan(dx, dy) => model.pan_points(dx, dy),
+            Step::ZoomTo(zoom, anchor) => model.zoom_about(zoom, anchor),
+            Step::Pointer(p) => model.set_pointer(Some(p)),
+        }
+        let view = View {
+            centre: model.centre(),
+            zoom: model.zoom(),
+            pane: model.native_pane(),
+            ppp: model.native_ppp(),
+        };
+        let started = now();
+        canvas
+            .render(&GpuView::of(&view.transform(), view.pane_px_whole()))
+            .expect("a GPU frame");
+        canvas.wait().expect("the device finishes the frame");
+        times.push(millis(now() - started));
+    }
+    times
+}
+
+/// The GPU families of `page` (`render.pan.gpu`, `render.zoom.gpu`), or nothing without a device.
+fn measure_gpu(device: Option<&HeadlessDevice>, suffix: &str, page: &Arc<CanvasPage>, counts: Counts) {
+    let Some(device) = device else {
+        return;
+    };
+    let centre = (page.sheet.0 / 2, page.sheet.1 / 2);
+    let pan = run_gpu_gesture(
+        device,
+        page,
+        |m| m.zoom_about(PAN_ZOOM, centre),
+        &pan_script(counts.pan),
+    );
+    bench_line(&format!("render.pan.gpu{suffix}"), pan);
+    let zoom = run_gpu_gesture(
+        device,
+        page,
+        |m| m.zoom_about(ZOOM_LOW, centre),
+        &zoom_script(counts.zoom, page.sheet),
+    );
+    bench_line(&format!("render.zoom.gpu{suffix}"), zoom);
+}
+
 /// Measures the three gestures on `page` and prints its lines; `suffix` ends every family name.
 fn measure_scene(label: &str, suffix: &str, page: &Arc<CanvasPage>, counts: Counts) {
     println!("scene {label} items={}", drawn_items(&page.list.items));
@@ -610,7 +676,14 @@ fn main() {
 
     let scratch = Scratch::new();
     let golden = golden_page(&scratch);
+    let device = HeadlessDevice::new();
+    match &device {
+        Some(d) => println!("gpu adapter={:?}/{:?}", d.summary.kind, d.summary.api),
+        None => println!("skipped: no adapter"),
+    }
     measure_scene("golden_a_103", "", &golden, counts);
+    measure_gpu(device.as_ref(), "", &golden, counts);
     let dense = Arc::new(dense_page(&golden));
     measure_scene("dense_a3", ".dense_a3", &dense, counts);
+    measure_gpu(device.as_ref(), ".dense_a3", &dense, counts);
 }
