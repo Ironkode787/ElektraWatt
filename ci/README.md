@@ -25,12 +25,12 @@ The job names are the GitHub status-check names to mark as required.
 | CI-PR-15 | `docs.yml` / `docs-diagrams` (ubuntu-24.04) | Renders every Mermaid block under `docs/` and in the root Markdown with mermaid-cli 12.0.0 (container image pinned by digest) and fails on any error | `python3 -I ci/render-mermaid.py --image <image@sha256:…>` (needs docker); `--extract-only` lists the blocks without docker |
 | CI-PR-10 (book) | `docs.yml` / `docs-book` (ubuntu-24.04) | The user-documentation book of `docs/book` (WP-S0.06, NFR-DOC-01, NFR-DOC-06): `cargo xtask docs-gen --check` (the generated command and rule reference pages are current); mdBook 0.5.4, installed from its pinned release archive (SHA-256 checked); `mdbook build docs/book` in an empty network namespace (the build is offline); `ci/check-book-links.py` over the built pages (relative links, anchors, and links into the repository); the built book uploaded as the artifact `user-guide`. A separate job, so that `legal-docs` stays fast | `cargo xtask docs-gen --check`; `mdbook build docs/book` (mdBook 0.5.4); `python3 -I ci/check-book-links.py target/book` |
 
-`cargo xtask ci` runs fmt, clippy, nextest and the doctests (each with the default features and with `--all-features`)
-and the nine repository checks (`check-deps`, `check-features`, `check-raw-read`, `check-build-scripts`, `check-workflows`,
-`check-licence-map`, `check-anonymisation`, `check-governance-files`, `docs-gen --check`) in sequence and prints a summary: the local mirror of the Rust part of the PR set. `check-dco` needs a revision range and is run on its own.
-`cargo xtask ci` runs fmt, clippy, nextest and the doctests (each with the default features and with `--all-features`; the default-features nextest step is labelled `nextest (no acceptance)` in the summary, and the acceptance tests run only in the `nextest-all-features` step, as in the jobs)
-and the seven repository checks (`check-deps`, `check-features`, `check-build-scripts`, `check-workflows`,
-`check-licence-map`, `check-anonymisation`, `check-governance-files`) in sequence and prints a summary: the local mirror of the Rust part of the PR set. `check-dco` needs a revision range and is run on its own.
+`cargo xtask ci` runs fmt, clippy, nextest and the doctests (each with the default features and with `--all-features`;
+the default-features nextest step is labelled `nextest (no acceptance)` in the summary, and the acceptance tests run
+only in the `nextest-all-features` step, as in the jobs) and the nine repository checks (`check-deps`,
+`check-features`, `check-raw-read`, `check-build-scripts`, `check-workflows`, `check-licence-map`,
+`check-anonymisation`, `check-governance-files`, `docs-gen --check`) in sequence and prints a summary: the local
+mirror of the Rust part of the PR set. `check-dco` needs a revision range and is run on its own.
 
 The licence-boundary check that 18 §5.2 lists under CI-PR-09 is part of `check-licence-map` and therefore runs in
 `legal-docs`, next to the licence map it shares its policy file with; the dependency-rule part of the same
