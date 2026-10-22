@@ -3,20 +3,22 @@
 
 # The nightly command fuzzer (WP-S6.02, FT-272, decision log ID-388; docs/design/18-quality-security-release.md
 # §3.6, CI-N-02): the ignored test `fuzz_long` of crates/ew-testkit/tests/command_fuzz runs EW_FUZZ_SEEDS seeds of
-# EW_FUZZ_STEPS random steps over Golden A, every one of the 36 registered commands among them, with the memo
+# EW_FUZZ_STEPS random steps over Golden A, every registered command among them, with the memo
 # oracle, the structural check, the prevent rule, `verify_derived`, the validity oracle of each command, the
 # save-and-reload round trips, the CSV table imports and the closing undo-all. The nightly body is this seeded
-# test, not a cargo-fuzz target: the repository has no `fuzz/` crate yet (that is the parser-fuzzing package,
-# doc 18 §3.12) and ID-388 chose the test form on purpose, so one generator serves the targeted test, the
-# acceptance of every command and this run.
+# test; the cargo-fuzz target that doc 18 §3.6 and FT-272 also list is deferred (FT-272; design pass): the
+# repository has no `fuzz/` crate yet (that is the parser-fuzzing package, doc 18 §3.12).
 #
-# REPORT-ONLY: the job fails only on a real fuzzer finding: a panic, an invariant or oracle violation, or a
-# round-trip mismatch. A finding is written to the findings file first (the test rewrites it after every seed)
-# and the file is uploaded with `if: always()`; the verdict step reads its `FINDINGS: n` line. A timeout, a
-# build failure or a runner that disappears is infrastructure, not a finding: the run step is bounded by its own
-# `timeout` (so the verdict step still runs), the test stops starting seeds after EW_FUZZ_BUDGET_SECS, and a
-# run that did not complete is a warning in the summary, never a red job. (A build failure of main is ci.yml's
-# to report.)
+# REPORT-ONLY in the sense that the hosted runner gives no verdict on speed; the job is RED for a real fuzzer
+# finding (a panic, an invariant or oracle violation, a round-trip mismatch) and for everything that leaves a
+# night without coverage or hides a hang: a build that fails (a nightly that does not compile covers nothing and
+# nobody would notice a green job), a seed that was running when the run step ended (a hang bounded by the step's
+# `timeout`, a stack overflow, an out-of-memory abort: a seed takes about four minutes, so one in flight at the
+# timeout is a hang, which is a finding), and a run that ends without a verdict line. A finding is written to
+# the findings file first (the test writes `running seed N` before each seed and rewrites the file after it) and
+# the file is uploaded with `if: always()`; the verdict step reads its `FINDINGS: n` and `status:` lines. The
+# run step is bounded by its own `timeout`, shorter than the job's, so that the verdict step always runs, and the
+# test stops starting seeds after EW_FUZZ_BUDGET_SECS (that is `status: budget`, a normal end).
 #
 # The seeds change every night (a range starting at the day number), so the nightly runs explore new streams;
 # the job summary names the seeds, and a finding reproduces locally with the command in the report.
@@ -115,8 +117,9 @@ jobs:
             cargo test --release -p ew-testkit --test command_fuzz --locked fuzz_long -- --ignored --nocapture \
             2>&1 | tee target/fuzz/log.txt
           exit "${PIPESTATUS[0]}"
-      # The verdict: red only for a finding. The findings file is the source: a failing test whose file has
-      # `FINDINGS: 0` (or no file) is infrastructure.
+      # The verdict. Green only when the build succeeded, the report says `complete` or `budget` and
+      # `FINDINGS: 0`. Red for a finding, a failed build, a seed in flight (`running seed N`: the run step ended
+      # during it: timeout or abort) and a missing or unfinished report.
       - name: verdict and job summary
         if: always()
         shell: bash
@@ -134,20 +137,32 @@ jobs:
             findings=""
             status="no report"
           fi
+          red=0
           if [ -n "$findings" ] && [ "$findings" -gt 0 ]; then
             echo "::error::the command fuzzer has $findings finding(s); see the job summary and the artifact fuzz-report"
-            exit 1
+            red=1
           fi
-          incomplete=0
-          [ "${{ steps.build.outcome }}" = "success" ] || incomplete=1
+          if [ "${{ steps.build.outcome }}" != "success" ]; then
+            echo "::error::the fuzzer did not build: the night has no coverage"
+            echo "The fuzzer did not build." >> "$GITHUB_STEP_SUMMARY"
+            red=1
+          fi
           case "$status" in
             complete|budget) ;;
-            *) incomplete=1 ;;
+            "running seed "*)
+              echo "::error::seed ${status#running seed } did not finish (hang, timeout or abort): a finding; the log is in the artifact fuzz-report"
+              echo "Seed ${status#running seed } was running when the run ended: a hang, a timeout or an abort (stack overflow, out of memory). That is a finding." >> "$GITHUB_STEP_SUMMARY"
+              red=1
+              ;;
+            *)
+              if [ "${{ steps.build.outcome }}" = "success" ]; then
+                echo "::error::the fuzz run ended without a verdict line (status: ${status:-none})"
+                echo "The run ended without a verdict line (status: ${status:-none})." >> "$GITHUB_STEP_SUMMARY"
+                red=1
+              fi
+              ;;
           esac
-          if [ "$incomplete" = 1 ]; then
-            echo "::warning::the fuzz run did not complete (status: ${status:-none}); this is not a finding"
-            echo "The run did not complete (status: ${status:-none}): an infrastructure problem, not a finding." >> "$GITHUB_STEP_SUMMARY"
-          fi
+          exit "$red"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:

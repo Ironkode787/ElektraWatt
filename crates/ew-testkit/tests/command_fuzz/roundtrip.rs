@@ -22,6 +22,17 @@ use ew_api::{MemoMode, Session, StoreOptions};
 use ew_derive::{DeviceTag, PageOrder, PotentialPartition};
 use ew_model::Model;
 
+/// How much of the derived data a round trip compares.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Depth {
+    /// The tags and the potential partition: cheap.
+    Sample,
+    /// And the title block of every drawn page and the page order they derive from (seconds in a debug build).
+    TitleBlock,
+    /// Every family at every key.
+    Full,
+}
+
 /// The scratch project of a run.
 pub struct Disk {
     dir: PathBuf,
@@ -53,7 +64,7 @@ impl Disk {
     }
 
     /// Saves `session` and reloads it: the findings are the error.
-    pub fn round_trip(&mut self, session: &mut Session, deep: bool) -> Result<(), String> {
+    pub fn round_trip(&mut self, session: &mut Session, depth: Depth) -> Result<(), String> {
         self.trips += 1;
         let started = std::time::Instant::now();
         let lap = |what: &str| {
@@ -85,7 +96,7 @@ impl Disk {
         let (live, back) = (session.world().model, reader.world().model);
         same_model(&live, &back)?;
         lap("models compared");
-        let r = derived_agree(session, &reader, deep);
+        let r = derived_agree(session, &reader, depth);
         lap("derived compared");
         r
     }
@@ -153,7 +164,7 @@ fn same_model(live: &Model, back: &Model) -> Result<(), String> {
 }
 
 /// The derived families of the live session and of its reload agree.
-fn derived_agree(live: &Session, back: &Session, deep: bool) -> Result<(), String> {
+fn derived_agree(live: &Session, back: &Session, depth: Depth) -> Result<(), String> {
     let (ql, qb) = (live.query(), back.query());
     for id in ql.devices().ids() {
         if *ql.get::<DeviceTag>(id) != *qb.get::<DeviceTag>(id) {
@@ -163,12 +174,21 @@ fn derived_agree(live: &Session, back: &Session, deep: bool) -> Result<(), Strin
     if *ql.get::<PotentialPartition>(()) != *qb.get::<PotentialPartition>(()) {
         return Err("the potential partition differs after the reload".to_owned());
     }
-    if deep {
+    if depth != Depth::Sample {
+        // The title block of every drawn page (the revision label among its values) and the page order.
+        for page in ql.pages().ids() {
+            let key = ew_derive::PageRef::Drawn(page);
+            if *ql.get::<ew_derive::TitleBlockValues>(key) != *qb.get::<ew_derive::TitleBlockValues>(key) {
+                return Err(format!("the title block of page {page} differs after the reload"));
+            }
+        }
         // The page order derives the generated report pages: seconds in a debug build, so the cheap round
         // trip leaves it (and every other family) to the deep one.
         if *ql.get::<PageOrder>(()) != *qb.get::<PageOrder>(()) {
             return Err("the page order differs after the reload".to_owned());
         }
+    }
+    if depth == Depth::Full {
         let sweep = ew_api::verify::sweep(&ql, Some(&qb));
         if !sweep.differences.is_empty() {
             return Err(format!(

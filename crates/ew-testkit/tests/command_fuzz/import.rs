@@ -19,6 +19,7 @@
 //! - intact tables import without findings above information and give the records of the bootstrap
 //!   (path (a)) of the golden builders.
 
+use std::collections::BTreeMap;
 use std::path::Path;
 use std::sync::OnceLock;
 
@@ -210,6 +211,29 @@ fn keys(batch: &ImportBatch) -> std::collections::BTreeSet<(String, Option<ew_id
         .collect()
 }
 
+/// Every record of a batch as JSON, without any member named `colour` at any depth, by (kind, ID).
+fn without_colours(batch: &ImportBatch) -> BTreeMap<(String, Option<ew_ids::Uuid>), Value> {
+    fn strip(v: &mut Value) {
+        match v {
+            Value::Object(m) => {
+                m.remove("colour");
+                m.values_mut().for_each(strip);
+            }
+            Value::Array(a) => a.iter_mut().for_each(strip),
+            _ => {}
+        }
+    }
+    batch
+        .records
+        .iter()
+        .map(|r| {
+            let mut v = serde_json::to_value(r).unwrap_or(Value::Null);
+            strip(&mut v);
+            ((r.kind_name().unwrap_or("?").to_owned(), r.id()), v)
+        })
+        .collect()
+}
+
 fn count(batch: &ImportBatch, code: &str) -> usize {
     batch
         .report
@@ -287,6 +311,18 @@ pub fn check(damage: &Damage, deep: bool, stats: &mut ImportStats) -> Result<(),
             if !ks.is_subset(&kl) {
                 return Err(at(
                     "the strict batch holds a record that the lenient batch lacks".to_owned()
+                ));
+            }
+            // The records both modes hold are equal apart from their colour cells.
+            let (js, jl) = (without_colours(&strict), without_colours(&lenient));
+            if let Some((k, _)) = js.iter().find(|(k, v)| jl.get(*k) != Some(*v)) {
+                return Err(at(format!(
+                    "the record {k:?} differs between strict and lenient beyond its colour cells"
+                )));
+            }
+            if strict.lib != lenient.lib {
+                return Err(at(
+                    "the library documents differ between strict and lenient".to_owned()
                 ));
             }
             // The colour cell is set to an alias only when the table has one; then strict dropped a row.

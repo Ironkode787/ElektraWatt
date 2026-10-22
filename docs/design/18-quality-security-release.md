@@ -250,7 +250,7 @@ log. `fuzz_smoke` (2 seeds × 30 steps, sampled oracle, integrity and undo-all) 
 holds by construction.
 
 *As built (cycle 17, lane B; FT-272, FT-279).* The test is now the directory `crates/ew-testkit/tests/command_fuzz/`
-(`arms.rs`, `live.rs`, `step.rs`, `roundtrip.rs`, `import.rs`, `main.rs`). **Every one of the 36 registered commands**
+(`arms.rs`, `live.rs`, `step.rs`, `roundtrip.rs`, `import.rs`, `main.rs`). **Every registered command** (36, and 37 with `revision.create`)
 has a generator arm (`ARMS`); `every_registered_command_has_a_generator_arm` compares the table with the registry and
 fails with a message that names the commands without an arm, so a command added later (the `revision.*` commands) fails
 it until its arm exists. Each arm mixes well-formed steps, which the model must commit (`Verdict::Accept` where the
@@ -265,9 +265,10 @@ golden tables intact or damaged, strict and lenient: the batch always loads into
 only in foreign colour codes, the intact tables give the records of path (a)). Not built: **macro insertion**, because
 no `macro.insert` command or macro record exists yet (FR-MAC-005). The nightly form is `fuzz_long` with
 seeds × steps from `EW_FUZZ_SEEDS` and `EW_FUZZ_STEPS` (and the cadences, the step mix, `EW_FUZZ_BUDGET_SECS` and
-`EW_FUZZ_REPORT`), run by `.github/workflows/fuzz.yml` in the release profile with debug assertions on, report-only
-(`ci/README.md`); **not** a cargo-fuzz target, because the repository has no `fuzz/` crate yet and the seeded test is
-what ID-388 chose, so one generator serves all three uses; ASan is not part of the nightly. `fuzz_smoke` takes about
+`EW_FUZZ_REPORT`), run by `.github/workflows/fuzz.yml` in the release profile with debug assertions on, red for a finding, a failed build,
+a seed that was still running when the run ended (a hang or an abort) and a missing verdict
+(`ci/README.md`); the cargo-fuzz target is deferred (FT-272; design pass), because the repository has no `fuzz/` crate
+yet; ASan is not part of the nightly. `fuzz_smoke` takes about
 17 s in a debug build.
 
 ### 3.7 Snapshots

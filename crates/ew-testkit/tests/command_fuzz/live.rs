@@ -91,6 +91,15 @@ pub struct ChannelInfo {
     pub outside: Option<(Value, u16)>,
 }
 
+pub struct RevInfo {
+    pub id: Value,
+    pub label: String,
+    /// The state in its JSON form (`open`, `released`, `withdrawn`).
+    pub state: String,
+    pub author: Option<String>,
+    pub checker: Option<String>,
+}
+
 pub struct IpInfo {
     pub function: Value,
     pub page: Value,
@@ -208,6 +217,9 @@ pub struct Live {
     pub potential_defs: Vec<Value>,
     /// The location-aspect structure nodes.
     pub locations: Vec<Value>,
+    pub revisions: Vec<RevInfo>,
+    /// Whether a revision has a release record (the `release` member of its extras).
+    pub any_release: bool,
 }
 
 fn grid_of(g: ew_units::Grid) -> (u64, u64) {
@@ -569,6 +581,21 @@ impl Live {
             conductors: q.conductors().ids().map(id_json).collect(),
             potential_defs: q.potential_defs().ids().map(id_json).collect(),
             locations,
+            revisions: q
+                .table::<ew_schema::Revision>()
+                .iter()
+                .map(|(id, r)| RevInfo {
+                    id: id_json(id),
+                    label: r.label.as_str().to_owned(),
+                    state: kind_text(&r.state),
+                    author: r.author.as_ref().map(kind_text),
+                    checker: r.checker.as_ref().map(kind_text),
+                })
+                .collect(),
+            any_release: q
+                .table::<ew_schema::Revision>()
+                .iter()
+                .any(|(_, r)| r.extra.contains_key("release")),
         }
     }
 

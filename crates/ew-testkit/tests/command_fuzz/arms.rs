@@ -184,6 +184,11 @@ pub const ARMS: &[Arm] = &[
         build: rep_set_anchor_policy,
     },
     Arm {
+        command: "revision.create",
+        weight: 3,
+        build: revision_create,
+    },
+    Arm {
         command: "rep.transform",
         weight: 4,
         build: rep_transform,
@@ -292,14 +297,61 @@ fn rep_move(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 }
 
 fn rep_transform(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
-    let rep = rng.pick(&live.reps)?;
-    Some(Step::cmd(
-        "rep.transform",
-        json!({"reps": [rep], "rotate": rng.below(4), "mirror": rng.chance(2)}),
-    ))
+    let rep = rng.pick(&live.reps)?.clone();
+    match rng.below(10) {
+        // Refused: `rotate` counts quarter turns, 0 to 3.
+        0 => Some(
+            Step::cmd(
+                "rep.transform",
+                json!({"reps": [rep], "rotate": 4, "mirror": false}),
+            )
+            .refuse(),
+        ),
+        // Refused: nothing to transform.
+        1 => Some(Step::cmd("rep.transform", json!({"reps": [], "rotate": 1})).refuse()),
+        // Refused: the representation does not exist.
+        2 => Some(Step::cmd("rep.transform", json!({"reps": [rng.uuid()], "rotate": 1})).refuse()),
+        _ => {
+            let rotate = u8::try_from(rng.below(4)).unwrap_or(0);
+            let mirror = rng.chance(2);
+            let id = rep.clone();
+            Some(
+                Step::cmd(
+                    "rep.transform",
+                    json!({"reps": [rep], "rotate": rotate, "mirror": mirror}),
+                )
+                .check(move |before, after| {
+                    let id = typed(&id).ok_or("a rep ID")?;
+                    let (b, a) = (
+                        before.reps().get(id).ok_or("the representation was not there")?,
+                        after
+                            .reps()
+                            .get(id)
+                            .ok_or("the transformed representation disappeared")?,
+                    );
+                    // The new orientation is the old one, turned, then mirrored.
+                    let mut want = b.orient.then(ew_units::Orient2::from_parts(false, rotate));
+                    if mirror {
+                        want = want.then(ew_units::Orient2::M0);
+                    }
+                    if a.orient != want {
+                        return Err(format!("orientation is {:?}, expected {want:?}", a.orient));
+                    }
+                    (a.pos == b.pos && a.page == b.page)
+                        .then_some(())
+                        .ok_or_else(|| "a transform moved the insertion point or the page".to_owned())
+                }),
+            )
+        }
+    }
 }
 
 fn fields_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    if rng.chance(7)
+        && let Some(step) = revision_fields_set(live, rng)
+    {
+        return Some(step);
+    }
     let one = |kind: &str, target: &Value, path: &str, value: Value| {
         Step::cmd(
             "fields.set",
@@ -533,6 +585,20 @@ fn connection_delete(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 }
 
 fn edit_delete(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    if rng.chance(8)
+        && let Some(r) = rng.pick(&live.revisions)
+    {
+        let target = json!({"kind": "revision", "id": r.id});
+        let step = Step::cmd("edit.delete", json!({"targets": [target]}));
+        // Only the open revision can be deleted: a released or withdrawn one is immutable (FR-REV-009).
+        return Some(if r.state == "open" {
+            step.accept()
+                .counts(&[(Table::Revisions, -1)])
+                .check(|_, after| title_block_follows(after))
+        } else {
+            step.refuse()
+        });
+    }
     if rng.chance(12) {
         let target = json!({"kind": "device", "id": rng.uuid()});
         return Some(Step::cmd("edit.delete", json!({"targets": [target]})).refuse());
@@ -621,10 +687,40 @@ fn numbering_renumber(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 fn junction_edit(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let junction = rng.pick(&live.junctions)?.clone();
     let wiring = *rng.pick(&["star", "chain", "style_default"])?;
-    Some(Step::cmd(
-        "junction.edit",
-        json!({"junction": junction, "wiring": wiring}),
-    ))
+    match rng.below(10) {
+        // Refused: the junction does not exist.
+        0 => Some(Step::cmd("junction.edit", json!({"junction": rng.uuid(), "wiring": wiring})).refuse()),
+        // Refused: a sequence must list the connections at the junction, and a new ID is none of them.
+        1 => Some(
+            Step::cmd(
+                "junction.edit",
+                json!({"junction": junction, "sequence": [rng.uuid()]}),
+            )
+            .refuse(),
+        ),
+        _ => {
+            let id = junction.clone();
+            Some(
+                Step::cmd("junction.edit", json!({"junction": junction, "wiring": wiring}))
+                    .accept()
+                    .check(move |_, after| {
+                        let j = typed(&id)
+                            .and_then(|i| after.junctions().get(i).cloned())
+                            .ok_or("the junction disappeared")?;
+                        let have = serde_json::to_value(&j.wiring).map_err(|e| e.to_string())?;
+                        // `style_default` clears the stored member.
+                        let want = if wiring == "style_default" {
+                            Value::Null
+                        } else {
+                            json!(wiring)
+                        };
+                        (have == want)
+                            .then_some(())
+                            .ok_or_else(|| format!("wiring is {have}, expected {want}"))
+                    }),
+            )
+        }
+    }
 }
 
 fn terminal_designate(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
@@ -660,13 +756,32 @@ fn terminal_designate(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         _ => {
             let strip = rng.pick(&live.strips)?;
             let (a, b) = pick2(strip, rng)?;
-            Some(Step::cmd(
-                "terminal.designate",
-                json!({"assignments": [
-                    {"terminal": a.0, "designation": b.1},
-                    {"terminal": b.0, "designation": a.1},
-                ]}),
-            ))
+            let (ta, tb, da, db) = (a.0.clone(), b.0.clone(), a.1.clone(), b.1.clone());
+            Some(
+                Step::cmd(
+                    "terminal.designate",
+                    json!({"assignments": [
+                        {"terminal": a.0, "designation": b.1},
+                        {"terminal": b.0, "designation": a.1},
+                    ]}),
+                )
+                .check(move |_, after| {
+                    let designation = |t: &Value| -> Option<Value> {
+                        let d = typed(t).and_then(|i| after.devices().get(i).cloned())?;
+                        d.aspects.terminal.as_ref().map(|t| json!(t.designation.as_str()))
+                    };
+                    // The two designations were exchanged.
+                    if designation(&ta) == Some(db.clone()) && designation(&tb) == Some(da.clone()) {
+                        Ok(())
+                    } else {
+                        Err(format!(
+                            "the designations were not exchanged: {:?} and {:?}, expected {db} and {da}",
+                            designation(&ta),
+                            designation(&tb)
+                        ))
+                    }
+                }),
+            )
         }
     }
 }
@@ -684,10 +799,14 @@ fn connection_draw(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         );
     }
     let (a, b) = pick2(functions, rng)?;
-    Some(Step::cmd(
-        "connection.draw",
-        json!({"a": cp_end(a, small_idx(rng)), "b": cp_end(b, small_idx(rng)), "page": page}),
-    ))
+    // A wire between two CPs is one new connection (no endpoint on a connection, so nothing is split).
+    Some(
+        Step::cmd(
+            "connection.draw",
+            json!({"a": cp_end(a, small_idx(rng)), "b": cp_end(b, small_idx(rng)), "page": page}),
+        )
+        .counts(&[(Table::Connections, 1)]),
+    )
 }
 
 fn potential_define(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
@@ -2220,4 +2339,251 @@ fn hex(bytes: &[u8]) -> String {
         let _ = write!(s, "{b:02x}");
         s
     })
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Revisions (doc 03 §18, FT-165): revision.create, fields.set and edit.delete on a revision
+
+/// The greatest major number among the labels of the form `V<major>.<minor>`.
+fn max_major(live: &Live) -> u32 {
+    live.revisions
+        .iter()
+        .filter_map(|r| r.label.strip_prefix('V')?.split('.').next()?.parse().ok())
+        .max()
+        .unwrap_or(0)
+}
+
+/// A label no revision has, above every major number (the order of labels is the release gate's rule).
+fn fresh_label(live: &Live, rng: &mut SplitMix64) -> String {
+    format!(
+        "V{}.{}",
+        max_major(live) + 1 + u32::try_from(rng.below(3)).unwrap_or(0),
+        rng.below(5)
+    )
+}
+
+fn role(rng: &mut SplitMix64) -> &'static str {
+    [
+        "customer",
+        "end_user",
+        "panel_builder",
+        "author",
+        "checker",
+        "engineer",
+    ][rng.below(6)]
+}
+
+/// The oracle of lane A's R5: the title block's `revision.current.label` follows the records. With an open
+/// revision, the open one is the current one (it wins over released ones), so its label is the printed one.
+/// The title block is read cold over the snapshot; a profile that does not bind the path prints nothing, which
+/// is no violation.
+fn title_block_follows(after: &ew_derive::Q) -> Result<(), String> {
+    let open: Vec<_> = after
+        .table::<ew_schema::Revision>()
+        .iter()
+        .filter(|(_, r)| r.is_open())
+        .map(|(_, r)| r.label.as_str().to_owned())
+        .collect();
+    let Some(page) = after.pages().ids().next() else {
+        return Ok(());
+    };
+    let tb = after.get::<ew_derive::TitleBlockValues>(ew_derive::PageRef::Drawn(page));
+    let printed = match tb.get("revision.current.label") {
+        Some(ew_derive::TbValue::Text(t)) => Some(t.clone()),
+        _ => None,
+    };
+    match (open.as_slice(), printed) {
+        ([label], Some(printed)) if *label != printed => Err(format!(
+            "the title block prints the revision `{printed}`, the open revision is `{label}`"
+        )),
+        _ => Ok(()),
+    }
+}
+
+fn revision_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let label = fresh_label(live, rng);
+    let open = live.revisions.iter().any(|r| r.state == "open");
+    let create = |p: Value| Step::cmd("revision.create", p);
+    match rng.below(12) {
+        // Refused: a label another revision has (EW-INV-017).
+        0 => {
+            let r = rng.pick(&live.revisions)?;
+            Some(create(json!({"label": r.label, "state": "released"})).refuse())
+        }
+        // Refused: the checker is the author's party (EW-INV-018).
+        1 => Some(
+            create(json!({"label": label, "state": "released", "author": "engineer", "checker": "engineer"}))
+                .refuse(),
+        ),
+        // Refused: a second open revision (EW-INV-016).
+        2 if open => Some(create(json!({"label": label})).refuse()),
+        // Refused: a historic released revision once a release record exists.
+        3 if live.any_release => Some(create(json!({"label": label, "state": "released"})).refuse()),
+        // Refused: two notes on one page (EW-INV-019).
+        4 => {
+            let page = rng.pick(&live.pages)?;
+            Some(
+                create(json!({"label": label, "state": "released", "page_notes": [{"page": page}, {"page": page}]}))
+                    .refuse(),
+            )
+        }
+        // Refused: a note on a page that does not exist.
+        5 => Some(
+            create(json!({"label": label, "state": "released", "page_notes": [{"page": rng.uuid()}]}))
+                .refuse(),
+        ),
+        _ => {
+            // The open revision when there is none; else a historic released one, unless a release record exists.
+            let state = if !open {
+                "open"
+            } else if !live.any_release {
+                "released"
+            } else {
+                return None;
+            };
+            let mut p = json!({"label": label, "state": state, "description": rng.word(10)});
+            if rng.chance(2) {
+                p["date"] = json!(format!(
+                    "20{}-0{}-1{}",
+                    20 + rng.below(6),
+                    1 + rng.below(9),
+                    rng.below(9)
+                ));
+            }
+            if rng.chance(2) {
+                let (a, b) = (role(rng), role(rng));
+                if a != b {
+                    p["author"] = json!(a);
+                    p["checker"] = json!(b);
+                }
+            }
+            if rng.chance(2) {
+                let n = 1 + rng.below(2);
+                let mut pages: Vec<Value> = (0..n).filter_map(|_| rng.pick(&live.pages).cloned()).collect();
+                pages.sort_by_key(Value::to_string);
+                pages.dedup();
+                p["page_notes"] = Value::Array(pages.iter().map(|g| json!({"page": g})).collect());
+            }
+            Some(
+                create(p)
+                    .counts(&[(Table::Revisions, 1)])
+                    .check(|_, after| title_block_follows(after)),
+            )
+        }
+    }
+}
+
+pub fn revision_fields_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let one = |target: &Value, path: &str, value: Value| {
+        Step::cmd(
+            "fields.set",
+            json!({"kind": "revision", "targets": [target], "path": path, "value": value}),
+        )
+    };
+    // A released or withdrawn revision is immutable (FR-REV-009, EW-INV-020).
+    if rng.chance(6) {
+        let closed: Vec<_> = live.revisions.iter().filter(|r| r.state != "open").collect();
+        let r = *rng.pick(&closed)?;
+        let path = *rng.pick(&["label", "date", "description", "page_notes", "author"])?;
+        return Some(one(&r.id, path, json!("X")).refuse());
+    }
+    let r = live.revisions.iter().find(|r| r.state == "open")?;
+    let id = r.id.clone();
+    let record = move |q: &ew_derive::Q| {
+        typed::<ew_schema::Revision>(&id).and_then(|i| q.table::<ew_schema::Revision>().get(i).cloned())
+    };
+    match rng.below(14) {
+        // Refused: the state is not settable.
+        0 => Some(one(&r.id, "state", json!("released")).refuse()),
+        // Refused: two notes on one page (EW-INV-019).
+        1 => {
+            let p = rng.pick(&live.pages)?;
+            Some(one(&r.id, "page_notes", json!([{"page": p}, {"page": p}])).refuse())
+        }
+        // Refused: a note takes no member besides `page` and `description`.
+        2 => {
+            let p = rng.pick(&live.pages)?;
+            Some(one(&r.id, "page_notes", json!([{"page": p, "bogus": 1}])).refuse())
+        }
+        // Refused: a note on a page that does not exist.
+        3 => Some(one(&r.id, "page_notes", json!([{"page": rng.uuid()}])).refuse()),
+        // Refused: a label another revision has (EW-INV-017).
+        4 => {
+            let other = live
+                .revisions
+                .iter()
+                .find(|o| o.id != r.id && o.state != "withdrawn")?;
+            Some(one(&r.id, "label", json!(other.label)).refuse())
+        }
+        // Refused: the author's party as the checker (EW-INV-018).
+        5 => {
+            let author = r.author.clone()?;
+            Some(one(&r.id, "checker", json!(author)).refuse())
+        }
+        6 => {
+            let date = format!("20{}-0{}-2{}", 20 + rng.below(6), 1 + rng.below(9), rng.below(8));
+            let want = json!(date);
+            Some(one(&r.id, "date", want.clone()).accept().check(move |_, after| {
+                let have = record(after).and_then(|r| serde_json::to_value(r.date).ok());
+                (have == Some(want.clone()))
+                    .then_some(())
+                    .ok_or_else(|| format!("date is {have:?}, expected {want}"))
+            }))
+        }
+        7 => Some(one(&r.id, "description", json!(rng.word(12))).accept()),
+        8 => Some(one(&r.id, "date", Value::Null).accept().check(move |_, after| {
+            record(after)
+                .is_some_and(|r| r.date.is_none())
+                .then_some(())
+                .ok_or_else(|| "the date is still set after null".to_owned())
+        })),
+        9 | 10 => {
+            let n = rng.below(3);
+            let mut pages: Vec<Value> = (0..n).filter_map(|_| rng.pick(&live.pages).cloned()).collect();
+            pages.sort_by_key(Value::to_string);
+            pages.dedup();
+            let notes = Value::Array(
+                pages
+                    .iter()
+                    .map(|g| json!({"page": g, "description": rng.word(6)}))
+                    .collect(),
+            );
+            Some(one(&r.id, "page_notes", notes).accept().check(move |_, after| {
+                let have: Vec<Value> = record(after)
+                    .map(|r| r.page_notes.iter().map(|n| id_json(n.page)).collect())
+                    .unwrap_or_default();
+                (have == pages)
+                    .then_some(())
+                    .ok_or_else(|| format!("the notes are on {have:?}, expected {pages:?}"))
+            }))
+        }
+        // The author, never the checker's party.
+        11 => {
+            let new = role(rng);
+            if r.checker.as_deref() == Some(new) {
+                return None;
+            }
+            Some(one(&r.id, "author", json!(new)).accept())
+        }
+        12 => {
+            let new = role(rng);
+            if r.author.as_deref() == Some(new) {
+                return None;
+            }
+            Some(one(&r.id, "checker", json!(new)).accept())
+        }
+        // A new label above every other (the order of labels is the release gate's rule); the title block
+        // prints it.
+        _ => {
+            let label = fresh_label(live, rng);
+            let want = label.clone();
+            Some(one(&r.id, "label", json!(label)).accept().check(move |_, after| {
+                let have = record(after).map(|r| r.label.as_str().to_owned());
+                if have.as_deref() != Some(want.as_str()) {
+                    return Err(format!("label is {have:?}, expected {want}"));
+                }
+                title_block_follows(after)
+            }))
+        }
+    }
 }

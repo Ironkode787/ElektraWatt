@@ -48,6 +48,7 @@ pub enum Table {
     DeviceLinks,
     PlcConfigProjects,
     Forms,
+    Revisions,
 }
 
 impl Table {
@@ -68,6 +69,7 @@ impl Table {
             Table::DeviceLinks => q.table::<ew_schema::DeviceLink>().len(),
             Table::PlcConfigProjects => q.table::<ew_schema::PlcConfigProject>().len(),
             Table::Forms => q.forms().len(),
+            Table::Revisions => q.table::<ew_schema::Revision>().len(),
         }
     }
 }
@@ -190,6 +192,7 @@ pub fn exists(q: &Q, key: (Kind, ew_schema::AnyId)) -> bool {
         Kind::Symbol => q.symbols().contains(id.cast()),
         Kind::Fndef => q.fndefs().contains(id.cast()),
         Kind::Form => q.forms().contains(id.cast()),
+        Kind::Revision => q.table::<ew_schema::Revision>().contains(id.cast()),
         // A kind no command creates (the project row, the reserved kinds): nothing to say.
         _ => true,
     }

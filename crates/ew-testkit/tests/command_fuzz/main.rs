@@ -367,35 +367,47 @@ fn apply(session: &mut Session, c: &CmdStep, stats: &mut FuzzStats) -> Result<Ap
             if c.verdict == Verdict::Accept {
                 stats.expected_accepts += 1;
             }
-            if changed {
-                let (qb, qa) = (
-                    session.query_over(&before.model),
-                    session.query_over(&after.model),
-                );
-                if let Some(key) = receipt.outcome.primary
-                    && !step::exists(&qa, key)
-                {
-                    return Err(format!(
-                        "`{}`'s primary record {key:?} does not exist after the commit",
-                        c.name
-                    ));
-                }
-                for post in &c.posts {
-                    match post {
-                        Post::Counts(deltas) => {
-                            for (table, delta) in deltas {
-                                let (b, a) = (table.count(&qb), table.count(&qa));
-                                let want = isize::try_from(b).unwrap_or(0) + delta;
-                                if isize::try_from(a).unwrap_or(0) != want {
-                                    return Err(format!(
-                                        "`{}`: {table:?} went from {b} to {a} records, expected {delta:+}",
-                                        c.name
-                                    ));
-                                }
+            let (qb, qa) = (
+                session.query_over(&before.model),
+                session.query_over(&after.model),
+            );
+            if changed
+                && let Some(key) = receipt.outcome.primary
+                && !step::exists(&qa, key)
+            {
+                return Err(format!(
+                    "`{}`'s primary record {key:?} does not exist after the commit",
+                    c.name
+                ));
+            }
+            // The checks run after a commit that changed the model, and also after an `Accept` step that
+            // committed as a no-op (it must then satisfy them too: a well-formed step that did nothing while
+            // the generator expected a change is a finding). A count that is expected to move cannot hold
+            // when the model did not change, whatever the verdict.
+            for post in &c.posts {
+                match post {
+                    Post::Counts(deltas) => {
+                        for (table, delta) in deltas {
+                            if !changed && *delta != 0 {
+                                return Err(format!(
+                                    "`{}` committed as a no-op, but {table:?} was expected to change by {delta:+}",
+                                    c.name
+                                ));
+                            }
+                            let (b, a) = (table.count(&qb), table.count(&qa));
+                            let want = isize::try_from(b).unwrap_or(0) + delta;
+                            if isize::try_from(a).unwrap_or(0) != want {
+                                return Err(format!(
+                                    "`{}`: {table:?} went from {b} to {a} records, expected {delta:+}",
+                                    c.name
+                                ));
                             }
                         }
-                        Post::Check(f) => f(&qb, &qa).map_err(|e| format!("`{}`: {e}", c.name))?,
                     }
+                    Post::Check(f) if changed || c.verdict == Verdict::Accept => {
+                        f(&qb, &qa).map_err(|e| format!("`{}`: {e}", c.name))?;
+                    }
+                    Post::Check(_) => {}
                 }
             }
             Ok(Applied { changed })
@@ -548,7 +560,12 @@ pub fn run_fuzz_with(seed: u64, steps: usize, cadence: &Cadence) -> FuzzStats {
                 Step::Redo => Ok(run_history(&mut session, false, &mut stats)),
                 Step::SaveReload => {
                     stats.round_trips += 1;
-                    disk.round_trip(&mut session, deep)
+                    let depth = if deep {
+                        roundtrip::Depth::Full
+                    } else {
+                        roundtrip::Depth::Sample
+                    };
+                    disk.round_trip(&mut session, depth)
                         .map(|()| false)
                         .map_err(|e| ("save and reload", e))
                 }
@@ -880,6 +897,69 @@ fn every_arm_commits_and_refuses_what_it_should() {
     eprintln!("{}", report("every arm", &stats));
 }
 
+/// The revision steps (`revision.create`, `fields.set` and `edit.delete` on a revision) on Golden A, many
+/// attempts with the deletions of the open revision among them: the commits and the refusals of the revision
+/// rules (EW-INV-016 to EW-INV-020, FR-REV-009) all go the way the arms say, and the title block follows.
+#[test]
+fn the_revision_steps_hold_on_golden_a() {
+    let mut session = open_session(11);
+    session.take_oracle_mismatches();
+    let fixture = Rc::new(Fixture::of(&session.query()));
+    let initial = session.world().model.clone();
+    let mut stats = FuzzStats::default();
+    let (mut committed, mut refused) = (0, 0);
+    for attempt in 0..400u64 {
+        let mut rng = SplitMix64(9_000 + attempt);
+        let live = Live::read(&session.query(), &fixture);
+        let step = match attempt % 3 {
+            0 => (arms::ARMS
+                .iter()
+                .find(|a| a.command == "revision.create")
+                .expect("an arm")
+                .build)(&live, &mut rng),
+            1 => arms::revision_fields_set(&live, &mut rng),
+            _ => {
+                // edit.delete: retry until the arm picks a revision
+                (0..30).find_map(|_| {
+                    let s = (arms::ARMS
+                        .iter()
+                        .find(|a| a.command == "edit.delete")
+                        .expect("an arm")
+                        .build)(&live, &mut rng)?;
+                    matches!(&s, Step::Cmd(c) if c.params["targets"][0]["kind"] == "revision").then_some(s)
+                })
+            }
+        };
+        let Some(Step::Cmd(c)) = step else { continue };
+        let line = serde_json::json!({"cmd": c.name, "params": c.params}).to_string();
+        let applied = apply(&mut session, &c, &mut stats).unwrap_or_else(|e| {
+            panic!(
+                "attempt {attempt}: {e}
+step: {line}"
+            )
+        });
+        if applied.changed {
+            committed += 1;
+            // Every other commit stays, so that the state moves on (the open revision is deleted and created).
+            if attempt % 2 == 0 {
+                session.undo().expect("a committed step undoes");
+            }
+        } else if c.verdict == Verdict::Refuse {
+            refused += 1;
+        }
+    }
+    while session.undo().is_ok() {}
+    assert!(
+        session.world().model.content_eq(&initial),
+        "undo-all restores Golden A"
+    );
+    eprintln!("{}", report("revision steps", &stats));
+    assert!(
+        committed >= 20 && refused >= 20,
+        "committed {committed}, refused {refused}"
+    );
+}
+
 #[test]
 fn the_generator_is_reproducible_from_the_seed() {
     let steps = |seed: u64| -> Vec<String> {
@@ -901,7 +981,7 @@ fn save_and_reload_of_golden_a_round_trips() {
     let mut session = open_session(3);
     let initial = session.world().model.clone();
     let mut disk = roundtrip::Disk::new(3);
-    disk.round_trip(&mut session, false)
+    disk.round_trip(&mut session, roundtrip::Depth::Sample)
         .unwrap_or_else(|e| panic!("the initial project: {e}"));
     let fixture = Rc::new(Fixture::of(&session.query()));
     let mut rng = SplitMix64(3);
@@ -923,7 +1003,8 @@ fn save_and_reload_of_golden_a_round_trips() {
             break;
         }
     }
-    disk.round_trip(&mut session, false)
+    // The title block is compared too (it derives the revision label, which the revision commands change).
+    disk.round_trip(&mut session, roundtrip::Depth::TitleBlock)
         .unwrap_or_else(|e| panic!("after {committed} commands: {e}"));
     while session.undo().is_ok() {}
     disk.closing(&mut session, &initial)
@@ -1094,6 +1175,19 @@ fn fuzz_long() {
         if budget.is_some_and(|b| started.elapsed() >= b) {
             status = "budget";
             break;
+        }
+        // The seed in flight is on file before it starts: a hang, a stack overflow or an abort leaves
+        // `running seed N` behind, and the workflow turns that into a failed job (a finding).
+        if let Some(p) = &report_path {
+            write_report(
+                p,
+                &format!("running seed {seed}"),
+                &seeds,
+                steps,
+                &done,
+                &findings,
+                &total,
+            );
         }
         match catch_unwind(AssertUnwindSafe(|| run_fuzz_with(seed, steps, &cadence))) {
             Ok(stats) => {
