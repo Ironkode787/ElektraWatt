@@ -39,7 +39,7 @@ DEFAULT_REPO = "Ironkode787/ElektraWatt"
 BUDGET_SECONDS = 30 * 60
 MAX_RUNS = 9  # 1 call for the run list + 1 per run = at most 10 calls
 PAUSE_SECONDS = 0.5
-JOB_ORDER = ["lint", "test-linux", "test-windows", "test-macos", "supply-chain"]
+JOB_ORDER = ["lint", "test-linux", "test-linux-default", "test-windows-build", "test-windows-1", "test-windows-2", "test-macos", "supply-chain"]
 
 
 def parse_time(text):
@@ -189,16 +189,16 @@ def selftest():
            "html_url": "https://example.invalid/runs/7"}
     jobs = [
         job("lint", "2026-10-22T10:00:00Z", "2026-10-22T10:05:00Z"),
-        job("test-windows", "2026-10-22T10:00:10Z", "2026-10-22T10:35:10Z", "cancelled"),
+        job("test-windows-1", "2026-10-22T10:00:10Z", "2026-10-22T10:35:10Z", "cancelled"),
         job("test-linux", "2026-10-22T10:00:05Z", "2026-10-22T10:21:19Z"),
         job("docs-only", None, None, "skipped"),
     ]
     row = summarize_run(run, jobs)
-    assert row["wall"] == 35 * 60 + 10 and row["cancelled"] == {"test-windows"}
+    assert row["wall"] == 35 * 60 + 10 and row["cancelled"] == {"test-windows-1"}
     assert "docs-only" not in row["durations"]
     fast = summarize_run({**run, "run_number": 6}, [job("test-linux", "2026-10-22T09:00:00Z", "2026-10-22T09:20:00Z")])
     text = render([row, fast], "o/r", "ci.yml")
-    assert "| lint | test-linux | test-windows |" in text
+    assert "| lint | test-linux | test-windows-1 |" in text
     assert "35m10s** (over)" in text and "21m14s" in text and "35m00s †" in text
     assert "median 27m35s, slowest 35m10s, fastest 20m00s; 1 of 2 runs over" in text
     assert "† cancelled" in text

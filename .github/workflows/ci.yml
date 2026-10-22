@@ -106,7 +106,7 @@ jobs:
       - name: wall clock, environment and randomness
         run: cargo xtask check-disallowed-methods
 
-  # CI-PR-02, CI-PR-03, CI-PR-04
+  # CI-PR-02, CI-PR-03, CI-PR-04 (test-linux and test-linux-default; test-windows-build, -1 and -2; test-macos)
   test-linux:
     name: test-linux
     runs-on: ubuntu-24.04
@@ -128,11 +128,11 @@ jobs:
           tool: cargo-nextest@0.9.148
       - name: cargo build
         run: cargo build --workspace --locked
+      # FT-353 (decision log ID-527): the default-features run moved to the job test-linux-default, so that the two
+      # runs, which compile separately anyway, take about 15 and 17 minutes in parallel instead of 30 in sequence.
       # The headless acceptance tests (about 2 min) and the command fuzzer's `fuzz_smoke` (15 to 19 s) run once per
-      # job, in the all-features run below: the filter is the rule of .config/nextest.toml and is kept equal to
-      # xtask's ONCE_PER_JOB_FILTER by a test (FT-268, FT-306).
-      - name: cargo nextest (without the acceptance tests and the fuzzer)
-        run: cargo nextest run --workspace --locked --profile ci -E 'not (package(ew-api) and binary(acceptance)) and not (package(ew-testkit) and binary(command_fuzz))'
+      # job, here, in the all-features run: the filter that the other jobs use is the rule of .config/nextest.toml
+      # and is kept equal to xtask's ONCE_PER_JOB_FILTER by a test (FT-268, FT-306).
       # Feature-gated code (for example ew-ids/testkit) is only compiled and tested with its feature on.
       - name: cargo nextest (all features, with the acceptance tests and the fuzzer)
         run: cargo nextest run --workspace --all-features --locked --profile ci
@@ -166,9 +166,9 @@ jobs:
       - name: cargo test --doc (all features)
         run: cargo test --doc --workspace --all-features --locked
 
-  test-windows:
-    name: test-windows
-    runs-on: windows-2025
+  test-linux-default:
+    name: test-linux-default
+    runs-on: ubuntu-24.04
     timeout-minutes: 50
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -185,13 +185,13 @@ jobs:
       - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
         with:
           tool: cargo-nextest@0.9.148
-      # Windows runs the all-features suite only (FT-330, decision log ID-482): the default-features nextest run and
-      # doctests took the job to 45:29 against the 30-minute budget (NFR-MAINT-05). The all-features run is a superset
-      # and carries the acceptance tests and the fuzzer (the filter of xtask's ONCE_PER_JOB_FILTER is used by the
-      # Linux and macOS jobs only); feature-gating errors are caught on those two.
-      # Feature-gated code (for example ew-ids/testkit) is only compiled and tested with its feature on.
-      - name: cargo nextest (all features, with the acceptance tests and the fuzzer)
-        run: cargo nextest run --workspace --all-features --locked --profile ci
+      - name: cargo build
+        run: cargo build --workspace --locked
+      # The default-features run of the Linux test (FT-353, decision log ID-527), without the headless acceptance
+      # tests and the command fuzzer, which run once per job in the all-features run of test-linux (the filter is
+      # xtask's ONCE_PER_JOB_FILTER, kept equal by a test: FT-268, FT-306).
+      - name: cargo nextest (without the acceptance tests and the fuzzer)
+        run: cargo nextest run --workspace --locked --profile ci -E 'not (package(ew-api) and binary(acceptance)) and not (package(ew-testkit) and binary(command_fuzz))'
       # Names every failed nextest case as a check-run annotation (the job log needs admin rights to read).
       - name: failed tests as annotations
         if: failure()
@@ -216,8 +216,149 @@ jobs:
               print(f"::error title=nextest {tc.get('classname')}::{tc.get('name')}::{text}")
           print(f"{n} failed test case(s) annotated")
           PY
-      # No doctest step here (FT-353, decision log ID-527): doctests are platform-neutral text and run on Linux and
-      # macOS and in `cargo xtask ci`; the step took 2 min 26 s of the 33 min 20 s of ci run 39797238020.
+
+  test-windows-build:
+    name: test-windows-build
+    runs-on: windows-2025
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      # NFR-REL-07: ICU4X_DATA_DIR swaps the ICU segmentation data at build time and changes line breaks.
+      - name: assert ICU4X_DATA_DIR is unset
+        shell: bash
+        run: test -z "${ICU4X_DATA_DIR:-}"
+      - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
+        with:
+          tool: cargo-nextest@0.9.148
+      # Windows runs the all-features suite only (FT-330, decision log ID-482) and, from FT-353 (ID-527), builds it once
+      # and runs it in two halves on the nextest archive: ci run 39797238020 took 33 min 20 s for one job. Doctests
+      # do not run on Windows (platform-neutral; Linux, macOS and `cargo xtask ci` run them). This job builds, saves
+      # the rust-cache and uploads the archive; the two run jobs only restore.
+      - name: cargo nextest archive (all features)
+        shell: bash
+        run: cargo nextest archive --workspace --all-features --locked --archive-file nextest-archive.tar.zst
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: nextest-archive-windows
+          path: nextest-archive.tar.zst
+          if-no-files-found: error
+          retention-days: 1
+
+  test-windows-1:
+    name: test-windows-1
+    needs: test-windows-build
+    runs-on: windows-2025
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          save-if: false
+      # NFR-REL-07: ICU4X_DATA_DIR swaps the ICU segmentation data at build time and changes line breaks.
+      - name: assert ICU4X_DATA_DIR is unset
+        shell: bash
+        run: test -z "${ICU4X_DATA_DIR:-}"
+      - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
+        with:
+          tool: cargo-nextest@0.9.148
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: nextest-archive-windows
+      # Half 1 of 2 of the all-features suite (FT-353). nextest partitions by test, so the acceptance tests and the
+      # command fuzzer, which belong to the all-features run unfiltered, each run once in total, in one partition.
+      - name: cargo nextest (all features, partition 1/2)
+        shell: bash
+        run: cargo nextest run --archive-file nextest-archive.tar.zst --workspace-remap . --partition count:1/2 --profile ci
+      # Names every failed nextest case as a check-run annotation (the job log needs admin rights to read).
+      - name: failed tests as annotations
+        if: failure()
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET, os
+          p = os.path.join("target", "nextest", "ci", "junit.xml")
+          if not os.path.exists(p):
+              print("::warning title=nextest::no junit.xml was written")
+              raise SystemExit(0)
+          n = 0
+          for tc in ET.parse(p).getroot().iter("testcase"):
+              f = tc.find("failure")
+              if f is None:
+                  f = tc.find("error")
+              if f is None:
+                  continue
+              n += 1
+              text = ((f.get("message") or "") + "\n" + (f.text or "")).strip()[:1500]
+              text = text.replace("%", "%25").replace("\r", "").replace("\n", "%0A")
+              print(f"::error title=nextest {tc.get('classname')}::{tc.get('name')}::{text}")
+          print(f"{n} failed test case(s) annotated")
+          PY
+
+  test-windows-2:
+    name: test-windows-2
+    needs: test-windows-build
+    runs-on: windows-2025
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          save-if: false
+      # NFR-REL-07: ICU4X_DATA_DIR swaps the ICU segmentation data at build time and changes line breaks.
+      - name: assert ICU4X_DATA_DIR is unset
+        shell: bash
+        run: test -z "${ICU4X_DATA_DIR:-}"
+      - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
+        with:
+          tool: cargo-nextest@0.9.148
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: nextest-archive-windows
+      # Half 2 of 2 of the all-features suite (FT-353). nextest partitions by test, so the acceptance tests and the
+      # command fuzzer, which belong to the all-features run unfiltered, each run once in total, in one partition.
+      - name: cargo nextest (all features, partition 2/2)
+        shell: bash
+        run: cargo nextest run --archive-file nextest-archive.tar.zst --workspace-remap . --partition count:2/2 --profile ci
+      # Names every failed nextest case as a check-run annotation (the job log needs admin rights to read).
+      - name: failed tests as annotations
+        if: failure()
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET, os
+          p = os.path.join("target", "nextest", "ci", "junit.xml")
+          if not os.path.exists(p):
+              print("::warning title=nextest::no junit.xml was written")
+              raise SystemExit(0)
+          n = 0
+          for tc in ET.parse(p).getroot().iter("testcase"):
+              f = tc.find("failure")
+              if f is None:
+                  f = tc.find("error")
+              if f is None:
+                  continue
+              n += 1
+              text = ((f.get("message") or "") + "\n" + (f.text or "")).strip()[:1500]
+              text = text.replace("%", "%25").replace("\r", "").replace("\n", "%0A")
+              print(f"::error title=nextest {tc.get('classname')}::{tc.get('name')}::{text}")
+          print(f"{n} failed test case(s) annotated")
+          PY
 
   test-macos:
     name: test-macos

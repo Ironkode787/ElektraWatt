@@ -705,9 +705,11 @@ fn ci() -> Result<bool> {
 mod tests {
     use super::{ONCE_PER_JOB_FILTER, unresolved_clippy_paths, workspace_root};
 
-    /// FT-268, FT-306, FT-330: the acceptance tests and the command fuzzer run once per job. The default-features
-    /// run carries the filter in test-linux and test-macos (test-windows has no default-features run), the
-    /// all-features run of all three jobs does not, and the nextest config documents the same filter.
+    /// FT-268, FT-306, FT-330, FT-353: the acceptance tests and the command fuzzer run once per job. The filtered
+    /// default-features run is in test-linux-default and test-macos; the unfiltered all-features run is in test-linux
+    /// and test-macos; test-windows-1 and test-windows-2 run the unfiltered all-features archive in two partitions
+    /// (nextest partitions by test, so the acceptance tests and the fuzzer run once in total). The nextest config
+    /// documents the same filter.
     #[test]
     fn the_acceptance_tests_and_the_fuzzer_run_once_per_ci_job() {
         let ci = std::fs::read_to_string(workspace_root().join(".github/workflows/ci.yml")).unwrap();
@@ -716,12 +718,14 @@ mod tests {
             .map(str::trim)
             .filter(|l| l.starts_with("run: cargo nextest run"))
             .collect();
+        let (archive, direct): (Vec<&str>, Vec<&str>) =
+            nextest_runs.iter().partition(|l| l.contains("--archive-file"));
         let (all_features, default): (Vec<&str>, Vec<&str>) =
-            nextest_runs.iter().partition(|l| l.contains("--all-features"));
+            direct.iter().partition(|l| l.contains("--all-features"));
         assert_eq!(
-            (default.len(), all_features.len()),
-            (2, 3),
-            "the filtered default-features run is in test-linux and test-macos only, the unfiltered all-features run              in test-linux, test-windows and test-macos: {nextest_runs:#?}"
+            (default.len(), all_features.len(), archive.len()),
+            (2, 2, 2),
+            "the filtered default-features run in test-linux-default and test-macos, the unfiltered all-features run in test-linux and test-macos, the two partitions of the Windows archive: {nextest_runs:#?}"
         );
         for line in default {
             assert!(line.contains(&format!("-E '{ONCE_PER_JOB_FILTER}'")), "{line}");
@@ -732,7 +736,16 @@ mod tests {
                 "the all-features run runs everything: {line}"
             );
         }
-        // FT-353: the doctests run on Linux and macOS (default features and all features), not on Windows.
+        for (k, line) in archive.iter().enumerate() {
+            assert!(!line.contains(" -E "), "the archive run runs everything: {line}");
+            assert!(
+                line.contains("--workspace-remap .")
+                    && line.contains(&format!("--partition count:{}/2", k + 1)),
+                "partition {} of 2: {line}",
+                k + 1
+            );
+        }
+        // FT-353: the doctests run in test-linux and test-macos (default features and all features), nowhere else.
         let doc_runs: Vec<&str> = ci
             .lines()
             .map(str::trim)
