@@ -105,7 +105,12 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    `plc_station` and `plc_module` and the part section `plc` in format 0.1 (cycle 13, decision log ID-333); the
    precedent is the optional `TextSlot.style` member (decision log ID-197). Applied again in cycle 14 to the optional
    member `Representation.anchor` (decision log ID-351): an optional member without cascade semantics, additive
-   within 0.1.
+   within 0.1. Applied again in cycle 18 to the members `positions` and `pin_of` of the part section `plc`, appended
+   in that order (decision log ID-464, ID-465; [PLC](../design/10-plc-and-bus.md) §2.6). `pin_of` persists a small
+   text language (a designation pattern with `{<expression in n>}` placeholders, or a list of designations); its
+   forms are part of the format contract like a member's type: a later minor may add a form only as a new variant (a
+   one-member object, kept verbatim by older readers under amendment 1), never by giving an existing string a new
+   meaning, and a reader gives no pin for a pattern it cannot expand.
 
 ## Consequences
 

@@ -1,6 +1,6 @@
 # Quality engineering, security and release
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-20: §3.16 cross-platform source rules; amended 2026-10-21, cycle-11 design pass: acceptance runner as built in §3.10, timing rule in §3.16 and §4.3, private pilot corpus in §4.1; amended 2026-10-21, cycle-12 design pass: acceptance counts and comparison against doc 20 data in §3.10; amended 2026-10-21, cycle-14 design pass: documents as built in §3.9, §3.10 and §3.16, blind drafter §3.17; amended 2026-10-22, cycle-17 design pass: the acceptance counts in §3.10, the fuzzer's coverage and nightly form in §3.6, the `fuzz_smoke` time in §3.14, CI-N-02 and CI-N-03 in §5.2) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-20: §3.16 cross-platform source rules; amended 2026-10-21, cycle-11 design pass: acceptance runner as built in §3.10, timing rule in §3.16 and §4.3, private pilot corpus in §4.1; amended 2026-10-21, cycle-12 design pass: acceptance counts and comparison against doc 20 data in §3.10; amended 2026-10-21, cycle-14 design pass: documents as built in §3.9, §3.10 and §3.16, blind drafter §3.17; amended 2026-10-22, cycle-17 design pass: the acceptance counts in §3.10, the fuzzer's coverage and nightly form in §3.6, the `fuzz_smoke` time in §3.14, CI-N-02 and CI-N-03 in §5.2; amended 2026-10-22, cycle-18 design pass: what the ordered-collection lint misses in §3.5, the pull-failure rule in §3.14, CI-PR-05 and CI-N-09 in §5.2, the image-digest rule in §5.4) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) proves its correctness, performance and security, and
 how it is built, signed, shipped and supported. It turns the architecture's "prove it in CI" principle
@@ -218,7 +218,14 @@ allowed with `#[allow(clippy::disallowed_types)]` and a one-line justification; 
 (the `lint` job and `cargo xtask ci`) compares those sites, keyed by crate and item path, with the reviewed list
 `ci/ordered-collections-allow.toml`, so a new allow is a reviewed change (`ci/README.md`). At the introduction nine
 sites in four crates allow the lint, all lookup-only; no hash container whose order reached output was found. The
-`disallowed-methods` half of the rule (wall clock, random, environment) is not built.
+`disallowed-methods` half of the rule (wall clock, random, environment) is not built: FT-317, before G-M1.
+
+*What the lint does not catch* (decision log ID-463). Group lints (`clippy::all`, `clippy::style`, `warnings`) and the
+lint keys of a manifest, in either spelling, count as allow sites, so a broad allow cannot hide a site. Three gaps
+stay and are covered by review: a hash map or set that a third-party API returns (its type is the crate's, not a
+listed path); the hash containers of `hashbrown`, `ahash`, `rustc-hash` and `dashmap` (none is a dependency today; a
+crate that adds one adds its paths to `DISALLOWED_TYPES`); and type aliases, which `disallowed-types` does not see
+through (the one alias, `Denylist` in `xtask`, is private and on the reviewed list; `ci/README.md`).
 
 A derive check in `ew-schema` rejects `f32`/`f64` fields in persisted records (ARCH §7.3).
 
@@ -459,6 +466,8 @@ fixed or triaged before the gate re-runs (decision log ID-405; the cycle-15 gate
 
 *As built (cycle 18, lane A; FT-306, FT-294, FT-295, FT-296).* The filterset of the default-features run is now `not (package(ew-api) and binary(acceptance)) and not (package(ew-testkit) and binary(command_fuzz))` (the constant `ONCE_PER_JOB_FILTER` of `xtask/src/main.rs`; the guard test of `xtask`, `.config/nextest.toml` and `ci/README.md` follow): the `command_fuzz` binary (`fuzz_smoke` and its other tests) runs in the all-features run only, so once per job and once in `cargo xtask ci`; the saving is `fuzz_smoke`'s 15 to 19 s per job, not measured on CI yet. The cycle also adds two jobs that run on every pull request in parallel with the test jobs and so do not lengthen the 30-minute wall time: `headless` (CI-PR-05, `ci.yml`: one `ew` build, a 30-minute timeout) and `verapdf` (CI-N-09, `ci.yml`: one `ew` build and an image pull, a 20-minute timeout), each about 5 minutes expected with a warm cache and not measured before their first runs; the weekly `coverage.yml` (CI-PR-13) is outside the PR set. The CI-time trend of the nightly performance report (FT-269) reads the jobs of `ci.yml`, so it lists `headless` and `verapdf` from their first runs (that is why `verapdf` is in `ci.yml`, not in `docs.yml`).
 
+*Retries in the evidence jobs (cycle 18; decision log ID-458).* The image pulls of `headless` and `verapdf` are named infrastructure steps in the sense of the first paragraph: each is tried three times with a back-off. When the third try fails, the job fails with an error saying that it has no evidence without the image; an evidence job never passes, skips or turns neutral without its evidence. A test inside such a job is never retried.
+
 ### 3.15 Test-build confirmation hook
 
 `HumanOnly` subcommands (`ew revision approve|release|withdraw`, `ew waiver add|remove`, `ew trust …`,
@@ -675,7 +684,7 @@ The PR set stays within 30 min wall time (NFR-MAINT-05); a monthly CI-duration r
 | CI-PR-02 test-linux | nextest; insta check; proptest short; oracle on GP; engine-statistics counts; acceptance (gate subset); SQL compile test; schema/fixture check; permissive-only sample reader (FR-COL-012, SC-11); forced-panic test; release fault injection, one kill point per step (§3.13); hostile corpus; the security tests of §11.5 (trust, SQL sandbox and statement gate, MCP binding, `HumanOnly`); UI-thread watchdog | Linux container (C compiler only, NFR-MAINT-09) | Merge |
 | CI-PR-03 test-windows | nextest; kittest interaction; NTFS path and permission tests | windows-2025 | Merge |
 | CI-PR-04 test-macos | nextest; kittest interaction; save and reopen on a case-sensitive APFS image | macos-15 (arm64) | Merge |
-| CI-PR-05 headless | `ew export pdf` and `ew render --page 103 --png` on GP with no display, no GPU, no system fonts and empty library directories (NFR-PLAT-04, NFR-REL-11); the PDF's SHA-256 equals that of the kittest GUI export of CI-PR-07 (FR-OUT-022, FR-EXT-001). *As built (cycle 18, FT-295; in part):* `ci.yml` job `headless` runs `ew export pdf golden/J-E-2416.ew` in a bare `ubuntu:24.04` container (image pinned by digest; `--network none`, a read-only root, no device; `ci/headless-export.sh` proves inside it that there is no display, GPU, font file or user-directory content) on one and four threads and compares both PDFs with `expected/pdf/sha256.txt`; `ew render --page 103 --png` (FT-254) and the equality with the GUI export wait for their commands and for CI-PR-07 | Linux container | Merge |
+| CI-PR-05 headless | `ew export pdf` and `ew render --page 103 --png` on GP with no display, no GPU, no system fonts and empty library directories (NFR-PLAT-04, NFR-REL-11); the PDF's SHA-256 equals that of the kittest GUI export of CI-PR-07 (FR-OUT-022, FR-EXT-001). *As built (cycle 18, FT-295; in part):* `ci.yml` job `headless` runs `ew export pdf golden/J-E-2416.ew` in a bare `ubuntu:24.04` container (image pinned by digest; `--network none`, a read-only root, no device; `ci/headless-export.sh` proves inside it that there is no display, GPU, font file or user-directory content) on one and four threads and compares both PDFs with `expected/pdf/sha256.txt`. The checks run as root with `DAC_READ_SEARCH` (the font search reads every directory and fails on any read error), and the export runs as the runner's user through `setpriv` with a cleared environment; the job keeps no other capability (decision log ID-457). `ew render --page 103 --png` (FT-254) and the equality with the GUI export wait for their commands and for CI-PR-07 | Linux container | Merge, once in the required checks after three green runs on `main` (FT-325, owner) |
 | CI-PR-06 output | Golden PNGs; PDF structure; veraPDF when `ew-scene`, `ew-export`, fonts or forms change; GPU smoke per backend where available (NFR-PLAT-02) | Linux, Windows | Merge |
 | CI-PR-07 ui-a11y | kittest flows and image snapshots; name walker; CVD renders; contrast lint; pseudo-locale; keymap reachability; 300 % | Linux (lavapipe) | Merge |
 | CI-PR-08 fuzz-smoke | 60 s per changed parser target; 60 s command fuzzer | Linux | Merge |
@@ -695,7 +704,7 @@ The PR set stays within 30 min wall time (NFR-MAINT-05); a monthly CI-duration r
 | CI-N-06 network | Network sandbox (§12.2) and listening-socket scan | Linux | Release |
 | CI-N-07 reliability | Fault injection on ext4, NTFS, APFS; kill-and-replay loop | All | Release |
 | CI-N-08 locale | Locale and time-zone matrix (NFR-I18N-03) | Linux | Release |
-| CI-N-09 pdf | veraPDF on every GP export variant; PDF/UA-1 at 1.0. *As built (cycle 18, FT-294; in part):* the job `verapdf` of `ci.yml` (on every pull request and push, not nightly) validates three exports of the golden PDF (all pages, dated by `SOURCE_DATE_EPOCH`, a page selection) against PDF/A-2b with veraPDF 1.30.3 (the `verapdf/cli` image pinned by digest, no network); `ci/verapdf-check.py` is the verdict over the XML report; AC-13's veraPDF entry of the acceptance runner reads that report through `EW_VERAPDF_REPORT`; PDF/UA-1 is not built | Linux | Release |
+| CI-N-09 pdf | veraPDF on every GP export variant; PDF/UA-1 at 1.0. *As built (cycle 18, FT-294; in part):* the job `verapdf` of `ci.yml` (on every pull request and push, not nightly) validates three exports of the golden PDF (all pages, dated by `SOURCE_DATE_EPOCH`, a page selection) against PDF/A-2b with veraPDF 1.30.3 (the `verapdf/cli` image pinned by digest, no network); `ci/verapdf-check.py` is the verdict over the XML report; AC-13's veraPDF entry of the acceptance runner reads that report through `EW_VERAPDF_REPORT` in the gate path only (the committed headless report keeps the entry `not_applicable`); the full export must equal the committed digest; PDF/UA-1 is not built (decision log ID-456) | Linux | Release; per push it blocks merge once in the required checks after three green runs on `main` (FT-325, owner) |
 | CI-N-10 private | Golden C, pilot QET projects, migration verifier; public log shows pass/fail and anonymised diffs only | Private runner | Release |
 | CI-N-11 corpora | QET corpus (24 examples at a pinned commit), DXF and EDZ corpora (14 §12) | Linux | Release |
 | CI-W-01 soak | 8 h on M (1.0) | Dedicated runner, idle window | Release |
@@ -731,6 +740,10 @@ NFR-SEC-19:
   maintainer. Windows signing authenticates through OIDC federation, so no long-lived credential exists.
 - **CI tools.** cargo-deny, cargo-vet, cargo-about and the others are installed at pinned versions with checksum
   verification.
+- **Container images** (as built, cycle 18; decision log ID-458). Every container image a workflow names is pinned
+  by `@sha256:` digest: the value of an `image:` key, of a `*_IMAGE` variable and of `docker run`, `docker pull` and
+  `docker create`; `cargo xtask check-workflows` fails on any other reference. A tool that publishes no checksum for
+  its download (veraPDF) is taken from its project's image, pinned the same way.
 - **Branch protection on `main` and `release/*`.** Required checks CI-PR-01 … CI-PR-15, no force-push, no direct
   push, one approving review by someone other than the author, and CODEOWNERS review for the paths with two named
   owners (`ew-memo`, the `Op` set, `ew-format`, `ew-derive`, NFR-MAINT-07) and for every `unsafe` change

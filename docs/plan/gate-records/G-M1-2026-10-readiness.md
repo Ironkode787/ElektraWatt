@@ -1,6 +1,6 @@
 # G-M1 readiness run
 
-**Status:** Final (readiness run; the gate is not convened; the delegated rulings of 2026-10-22 are recorded in §8 and the addendum; the owner rulings of 2026-10-22 in the second addendum) · **Date:** 2026-10-22 · **Gate:** G-M1 Spine exit ·
+**Status:** Final (readiness run; the gate is not convened; the delegated rulings of 2026-10-22 are recorded in §8 and the addendum; the owner rulings of 2026-10-22 in the second addendum; the cycle-18 delivery in the addenda of §6 and §10) · **Date:** 2026-10-22 · **Gate:** G-M1 Spine exit ·
 **Commit:** de23b55 (the cycle-16 delivery of `claude/m0-foundations`, equal to `main`) · **Scenario:** the
 cycle-based plan of record ([global plan §3.8](../01-global-plan.md#38-cycle-based-progress-view-plan-of-record-since-2026-10-20),
 decision log ID-271) · **Part of:** ElektraWatt plan, gate records
@@ -248,6 +248,13 @@ delivered concurrently by lanes A and B and are confirmed at that delivery.
 | **The pack** (GP-01 … GP-14): the landscape re-check (G-M1-27), the forecast under ruling R4, the CI evidence | — | Pack | Pack | Lead work |
 | **FT-301** the bookkeeping sweep of Appendix B | — | Follow-up (GP-07 hygiene) | Cn | 230 of 293 tasks are open, and many carry a past cycle as their due (FT-02 to FT-13 among them); their real state is not verified |
 
+**Addendum (cycle-18 delivery, 2026-10-22; decision log ID-470).** Rows whose state changed, without rewriting the
+run: **FT-294** and **FT-295** are built (the jobs `verapdf` and `headless` of `ci.yml`, ID-456, ID-457); G-M1-02 and
+G-M1-01 stay open until their first green runs on `main`, and they become required checks after three green runs
+(owner, FT-325). **FT-296** is built report-only (the weekly `coverage.yml`, ID-459); G-M1-15 waits for the owner's
+dated plan. **FT-271** is closed (ID-463); its second half, the `disallowed-methods` lint, is FT-317 (condition,
+G-M1-14).
+
 ## 7. What is not ready
 
 - **The legal basis.** None of LG-1, LG-2, LG-5 or ADR-0030 is on file; ADR-0025 and ADR-0030 are Proposed; no
@@ -312,6 +319,10 @@ and BM+7. The development side will be ready first.
 
 **Addendum (cycle-17 delivery, 2026-10-22; decision log ID-438).** Lane A confirmed: path (b)'s `unwritten` list is empty and the counts are 94 entries, 88 pass, 0 fail, 0 `not_built`, 6 `not_applicable` (D-06's grid entry under ID-422, so G-M1-08 is met: 5 of 15 H).
 Lane B confirmed: the fuzzer covers the 37 registered commands and the nightly `fuzz.yml` exists; its nights count from its first scheduled run, for G-M1-13's fuzzer part only until ASan and the rest of CI-N-02 (FT-304, FT-297) join it.
+
+**Addendum (cycle-18 delivery, 2026-10-22; decision log ID-470).** No cycle-18 row was listed here; the rows of §6 that
+cycle 18 changed (FT-294, FT-295, FT-296, FT-271) are in §6's addendum. The acceptance counts are unchanged (94
+entries, 88 pass, 0 fail, 0 `not_built`, 6 `not_applicable`).
 
 ---
 

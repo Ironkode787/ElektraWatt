@@ -1,6 +1,6 @@
 # Schematic editor
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-22, cycle 17: `revision.create`, 37 commands, §3.1) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-22, cycle 17: `revision.create`, 37 commands, §3.1; amended 2026-10-22, cycle 18: `plc.set_module_part`, 38 commands, §3.1; rows 3, 13 and 14 as built, §3.2) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) edits schematic pages: multi-line, single-line, overview,
 bus-topology, fluid and graphic pages, together with their frames, folios and sections. It covers symbol placement,
@@ -355,6 +355,18 @@ never follows a release by EW). Label format and order stay EW-REL-004's. `field
 EW-INV-020). No command changes a revision's state: `revision.approve`, `revision.release` and `revision.withdraw`
 are FT-302 (decision log ID-427 to ID-431).
 
+*As built (cycle 18, lane C; FT-277).* `plc.set_module_part` (`SetModulePart`) joins, `Edit`, `Preview`, **Bulk**,
+undoable as one step, with a committed schema; **38 commands** are registered. It sets a module's part uses (`parts`,
+the whole list as `fields.set` takes it; absent: the parts stay) and deletes the module's channels numbered at or
+above the channel count of the resulting PLC section, with their bindings, symbols and comments. Being Bulk, it always
+runs as a preview first (ADR-0008): the preview's diff lists every deleted channel and its outcome has one notice per
+channel, so committing the preview is FR-PLC-053's confirmation; normaliser N1 then creates the missing channels and
+applies the part's channel kind. Refused: a device without the `plc_module` aspect, and new `parts` in which
+`plc_module.part_use` names no entry (at `/parts`: the count would fall to 0). The same parts give an empty
+transaction. A part change of a module in the UI goes through this command; `fields.set` on `parts` never removes a
+channel and N1 names the surplus it leaves, which this command without `parts` removes ([10](10-plc-and-bus.md)
+§3.3; decision log ID-468).
+
 The table lists every registered command and the planned ones (`Cost` is the registered cost; `Bulk` commands run as
 preview jobs). The parameter schemas in `crates/ew-commands/schemas/` and the generated pages of the user guide's
 command reference are the exact form (decision log ID-403).
@@ -398,6 +410,7 @@ command reference are the exact form (decision log ID-403).
 | `project.supply.set` (`SetProjectSupply`) | path, value | Interactive | v0: `origin.source` only; the electrical members wait for an ADR-0008 amendment (FT-280; ID-396) |
 | `library.embed` (`EmbedLibraryCopies`) | copies (library documents in `lib/` JSON form) | Interactive | part, symbol, FnDef, form; copy identity and `sha256` checked; no project-local or already embedded item; the caller owns the closure (FT-274; ID-397) |
 | `revision.create` (`CreateRevision`) | label, state (`open` or historic `released`), date?, author?, checker?, description, page notes | Interactive | [03](03-domain-model.md) §18; EW-INV-016 to EW-INV-019 refused at the parameter path; no historic release after a release record (R4); the state transitions are FT-302 (ID-427, ID-431) |
+| `plc.set_module_part` (`SetModulePart`) | module, parts? | Bulk | [10](10-plc-and-bus.md) §3.3, §3.9; removes the channels at or above the new part's count with their bindings; the preview is FR-PLC-053's confirmation; refuses a non-module and a `part_use` the new parts do not name (ID-468) |
 
 ### 3.2 Normalisers that run behind the editor
 
@@ -418,15 +431,21 @@ than the page-based default (ID-48). Row 7 splits by an exact integer point-on-r
 number and W″ is new and `Unassigned`. Row 8 keeps, when a junction dissolves, the member that carries an assigned
 wire number (rows 8 and 11, FR-NUM-023); if both members carry different assigned numbers the command is rejected
 rather than losing one (ID-60). Row 12 leaves every new connection `Unassigned` until a wire-numbering scheme exists
-(WP-S1.11). The other rows arrive with their owners' work packages. The prevent hook of the validate step stays
+(WP-S1.11). The other rows arrive with their owners' work packages; the cycle-16 and cycle-18 notes of this paragraph
+give the current order. The prevent hook of the validate step stays
 unwired until WP-S1.15, so M1 accepts, for example, duplicate terminal designations; this is a documented known gap
 (ID-58). *Cycle 16:* row 3 (N1, `channel_instantiation`) runs between rows 2 and 4: a device of the transaction
 that is new with a `plc_module` aspect, gained one, or changed its parts or `part_use` gets the channels 0 … n−1 of
-its part's channel spec with v5 IDs; a channel exists when one with the same (module, number) exists, existing channels
-are kept with their authored members, a kind change is not applied (FT-276), and surplus channels are not removed
-(FR-PLC-053's confirmation is not built, FT-277). Row 5 (N-FL-2) is not a normaliser yet: its counter rule is applied
-inside `valve.add` and `assembly.attach`, and its push insert is FT-273. Rows 1, 13 and 14 (N-FL-1, N2, N3) are not
-built (FT-275).
+its part's channel spec with v5 IDs; a channel exists when one with the same (module, number) exists and existing
+channels are kept with their authored members. Row 5 (N-FL-2) is not a normaliser yet: its counter rule is applied
+inside `valve.add` and `assembly.attach`, and its push insert is FT-273. *Cycle 18 (FT-275 to FT-277; decision log
+ID-466, ID-468):* rows 13 (N2, `solenoid_binding`) and 14 (N3, `module_pin_binding`) run after row 12, so `ORDER`
+holds eight rows: 2, 3, 4, 7, 8, 12, 13, 14. Row 3 now applies the part's channel kind to existing channels (FT-276)
+and names surplus channels in a notice; it still removes none, because FR-PLC-053 removes them only through the
+preview of the Bulk command `plc.set_module_part` (§3.1; FT-277). N2 binds a declared coil to the channel the part's
+position map assigns when both are free and considers only the valves and channels the transaction touches; N3 binds
+a new channel to the pin its part's `pin_of` names ([10](10-plc-and-bus.md) §2.6, §3.3). Normaliser notices are merged
+once into the command's outcome. Row 1 (N-FL-1) is not built (FT-322).
 
 **Explicit counter edits** (FR-NUM-029; decision log ID-53). Row 4 renumbers only collisions that the edit itself
 creates by placing a new device, moving a main representation or changing a page. A `fields.set` that sets a tag's
@@ -448,8 +467,8 @@ findings.
 | 10 | **Clamp pick** | A wire ending on a terminal without a clamp gets the first free clamp of the drawn side | [08](08-connections-terminals-cables.md) §6.3 |
 | 11 | **Number transfer** | When an edit changes a physical wire's carrier connection, moves its `NumberSpec`, its `WireOverrides.ends` and `WireOverrides.length` to the new carrier and rewrites records keyed by the old wire ID (`Bond.via`) | [08](08-connections-terminals-cables.md) §5.1; end overrides [13](13-manufacturing-outputs.md) §2.3 |
 | 12 | **Online wire numbering** | New wires get the next number of the active wire-numbering scheme when online numbering is on, otherwise they stay `Unassigned` and print "?" (FR-NUM-019, FR-NUM-021) | [08](08-connections-terminals-cables.md) §5.2 |
-| 13 | **Solenoid binding** (N2 = N-FL-3) | Binds each declared solenoid's coil to the channel the part's position map assigns, if that channel is unbound; an explicit binding in the command wins | [10](10-plc-and-bus.md) §3.3 |
-| 14 | **Module pin binding** (N3) | Binds a new physical channel to the module pin of the part's channel map | [10](10-plc-and-bus.md) §3.3 |
+| 13 | **Solenoid binding** (N2 = N-FL-3) | Binds each declared solenoid's coil to the channel the part's position map assigns, if that channel is unbound and no channel binds the coil; an existing binding wins, and only the valves and channels of the transaction are considered (FR-PLC-051) | [10](10-plc-and-bus.md) §3.3 |
+| 14 | **Module pin binding** (N3) | Binds a new physical channel to the module pin whose designation the part's channel → pin map gives | [10](10-plc-and-bus.md) §3.3 |
 | 15 | **Logical-net inheritance** (N4) | A bus connection to a port without a logical net assigns the net of the other port | [10](10-plc-and-bus.md) §3.3 |
 | 16 | **Drives link** (N-FL-4) | The first tube from a valve working port to a consumer port of another device adds `DeviceLink{Drives}` | [11](11-fluid-power.md) §4.2 |
 | 17 | **Tube counter** (N-FL-5) | A new tube connection gets its counter when a line-tag scheme is active | [11](11-fluid-power.md) §4.2 |

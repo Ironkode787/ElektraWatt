@@ -1,6 +1,6 @@
 # ElektraWatt architecture specification
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-20 (G-SP outcome, §6.1 to §6.4; save order, §7.4; the memo engine as built, §2, §6.2, §6.4; incremental connectivity as built, §3, §6.3, §6.4), 2026-10-21 (orphan-collection retention, §6.2; the check engine and the prevent hook as built, §3, §5, §6.4); 2026-10-21, cycle 13 (`ew-plcaddr` v0 and `ew-sqlview` v0 as built, §3) · **Date:** 2026-10-17 · **Decided by:** chief architect, after a judge
+**Status:** Accepted · amended 2026-10-18, 2026-10-20 (G-SP outcome, §6.1 to §6.4; save order, §7.4; the memo engine as built, §2, §6.2, §6.4; incremental connectivity as built, §3, §6.3, §6.4), 2026-10-21 (orphan-collection retention, §6.2; the check engine and the prevent hook as built, §3, §5, §6.4); 2026-10-21, cycle 13 (`ew-plcaddr` v0 and `ew-sqlview` v0 as built, §3); 2026-10-22, cycle 18 (a known breach of the undo law, FT-316, §13) · **Date:** 2026-10-17 · **Decided by:** chief architect, after a judge
 panel over four competing proposals (A incremental, B ECS, C relational, D retained/object model)
 **Scope:** ElektraWatt (EW) v1:
 - Electric P8-class schematics;
@@ -1574,6 +1574,16 @@ docs = "rules/ew-pot-013"
 | **SQL compile test** | Every `.sql` file (report pack, rule packs, acceptance) is prepared against the current projection schema; an `EXPLAIN QUERY PLAN` lint flags full scans on L-sized tables |
 | **Performance and memory gate** | Synthetic S/M/L/XL projects and the XL-A estimate case (§6.7), made by replicating the golden model (G6). criterion 0.8.2 measures: open, warm-up, move, draw wire, renumber folio, profile change, BOM, full check, PDF of 500 pages, save, projection build. **Engine statistics** (hits, re-executions, cut-offs per edit) are asserted, not just timed. The memory gate covers memo bytes per family and peak RSS. A nightly job fails on > 15 % regression |
 | **Platforms** | Windows (incl. a DX12 WARP job), macOS arm64, Ubuntu; a CPU-renderer job; a network-sandbox job that fails on any unexpected connection (G12) |
+
+*Known breach of `undo(all) ∘ apply(cmds) = id` (cycle 18; decision log ID-462; FT-316, due cycle 19).* Undoing
+`library.embed` is refused when a project-local part names an embedded function definition through a `LibRef`: the
+`LibRef` keep-alive is enforced as `Policy::Forbid` inside `Model::apply`'s structural check (EW-INV-001), and undo
+applies its inverse ops through that check, although the state before the embedding is valid (a `LibRef` to an item
+the project does not embed is not dangling, NFR-REL-11). The golden build therefore undoes completely only up to its
+first command; a test pins the refusal as a known defect. The fix makes the keep-alive a delete-time prevent check of
+`edit.delete` and the purge, which undo and redo skip (§5.3), with an ADR-0009 amendment and the `ew-model` invariant
+catalogue changed accordingly. Until then the law holds for every command sequence that contains no undo of a
+`library.embed` whose copies are named by a `LibRef`.
 
 **CI pipeline.**
 - **Per PR:**

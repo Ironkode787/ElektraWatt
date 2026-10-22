@@ -1,6 +1,6 @@
 # Golden project: acceptance-test specification
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 (cycle-11 design pass 2026-10-21: Golden B as built, Golden C runnable, acceptance runner statuses; cycle-12 design pass 2026-10-21: Golden C as built, the M1 gap list at the cycle-12 counts; cycle-13 design pass 2026-10-21: the computed wire numbers, the DP row and folio 908 as built, the M1 gap list closed; cycle-14 design pass 2026-10-21: documents as built, the final wire numbers and Via notation, the cover, the exports, the freshness script, EF-15 = 10, the acceptance counts at the cycle-14 tip; cycle-17 design pass 2026-10-22: the typed revisions, the second D-05 entry and the acceptance counts at the cycle-17 tip, §22) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (cycle-11 design pass 2026-10-21: Golden B as built, Golden C runnable, acceptance runner statuses; cycle-12 design pass 2026-10-21: Golden C as built, the M1 gap list at the cycle-12 counts; cycle-13 design pass 2026-10-21: the computed wire numbers, the DP row and folio 908 as built, the M1 gap list closed; cycle-14 design pass 2026-10-21: documents as built, the final wire numbers and Via notation, the cover, the exports, the freshness script, EF-15 = 10, the acceptance counts at the cycle-14 tip; cycle-17 design pass 2026-10-22: the typed revisions, the second D-05 entry and the acceptance counts at the cycle-17 tip, §22; cycle-18 design pass 2026-10-22: the typed solenoid-position map under H1, §11.2, the library copies and the PLC normalisers as built, §22) · **Part of:** ElektraWatt design document set
 
 > **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
 
@@ -779,6 +779,14 @@ lenient import keeps it, as a foreign colour code with the quick fix "use BN" (M
 | Channel states | 8 used, 20 spare, 28 deactivated (neither bound nor claimed) |
 | EW-PLC-012 | H1: 28 findings, one per binding (EF-02). H2 ("coil 14 on channel 2p + 1"): none. Choosing H1 or H2 is a part-data edit, never code (FR-PLC-011, FR-PLC-045) |
 
+*As built (cycle 18; FT-228; decision log ID-464, ID-469).* Test input H1 is typed part data: `tables/part_plc.csv`
+gives part 533361 `positions = 4` and the map `14:2p;12:2p+1` (`PlcSection.positions`, [10](10-plc-and-bus.md) §2.6),
+so choosing H2 is the edit `14:2p+1;12:2p` of that row. The memoised `solenoid_positions` finds all 28 coils; under
+H1 no channel is claimed, so derivation step 4 leaves the states at 8 used, 20 spare and 28 deactivated and no page
+changes. Until N-FL-1 (FT-322), valve part 571334 declares solenoid 14 through the non-physical CP named 14 of its
+function definition, not through a typed `solenoids` member ([11](11-fluid-power.md) §3.1). EW-PLC-012 is not built
+yet (FT-192). The bindings stay the 28 explicit ones "as drawn": N2 never overrides an existing binding.
+
 ### 11.3 Channel map (folio 908)
 
 | Module | Byte | Bit 1 | Bit 3 | Bit 5 | Bit 7 | Bits 0, 2, 4, 6 |
@@ -1460,6 +1468,14 @@ embedding. Known defect (FT-316, due cycle 19): undoing the whole build stops at
 shell's parts name the embedded function definitions and the model refuses the undo through a structural forbid
 policy on `LibRef` links, although the state before the embedding is valid; the test pins the stop and flips to a
 full undo when FT-316 lands.
+
+*As built (cycle 18, lane C; FT-228, FT-275 to FT-277; decision log ID-464 to ID-470).* The solenoid-position map of
+part 533361 (test input H1) is typed part data, the new memoised family `solenoid_positions` feeds derivation step 4,
+and normalisers N2 and N3 and the Bulk command `plc.set_module_part` exist (38 commands). The builder keeps its 28
+explicit `plc.bind_channel` commands (§11.2), so path (b) still issues 609 commands of 25 names; the fixture changed
+only in part 533361's copy hash, the import-source hash and the manifest, and no digest changed. AC-16 sweeps 2133
+keys of 66 memoised families (cycle 17: 2037 of 65). Headless counts: **94 entries, 88 pass, 0 fail, 0 not_built,
+6 not_applicable**.
 
 ---
 

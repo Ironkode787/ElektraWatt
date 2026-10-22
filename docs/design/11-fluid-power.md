@@ -1,6 +1,6 @@
 # Fluid power
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-22, cycle-18 design pass: the interim valve-declaration rule in §3.1, N-FL-3 as built in §4.2, §4.3; decision log ID-466, ID-467, ID-469) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) represents and checks fluid power: pneumatics in v1 and
 hydraulics later. Fluid power runs on the same connection graph as the electrical schematic. It uses typed ports, valve
@@ -254,6 +254,14 @@ per declared solenoid (FR-FLU-003). Assigning the part creates both through the 
   question 5). Used valves carry no function text of their own; "Spare" stays a manual function text.
 - **`CpDesignation(idx)`** prints the port designations.
 
+**Interim declaration rule (cycle 18; decision log ID-469).** Until N-FL-1 and the typed `solenoids` of the valve
+part's fluid section (§2.6) exist (FT-322), a valve **declares** solenoid s exactly when one of its functions, in ID
+order, has a CP named s with `physical = false`: the internal coil CP of the table above, which the valve's FnDef
+copy carries (`valve.add`'s interim `fndef`, decision log ID-394). The derivation's `solenoid_positions`, step 4 of
+[10](10-plc-and-bus.md) §3.2 and N2 share this one rule (`ew_derive::coil_cp_idx`). Golden A's 571334 declares
+solenoid 14 this way. When N-FL-1 lands, the part's `solenoids` decide, the coil functions come from the part, and the
+CP rule goes.
+
 ### 3.2 Valve terminals
 
 ```mermaid
@@ -357,6 +365,13 @@ deterministic, with ties broken by ID.
 | N-FL-4 | First tube from a valve working port to a `Consumer` port of another device | Adds `DeviceLink{Drives}` unless one exists |
 | N-FL-5 | Tube connection created | Assigns the tube counter when a line-tag scheme is active |
 
+**As built (cycle 18; decision log ID-466, ID-467).** N-FL-3 is N2 of [10](10-plc-and-bus.md) §3.3, registry row 13
+in `ew-commands`: it binds a coil only when the channel the map assigns is unbound and no channel binds the coil. A
+moved valve keeps the binding of its coil (with a notice), pairs the transaction did not touch are never re-examined,
+and a rebinding is `plc.bind_channel` (FR-PLC-051 as reworded). A valve moved out of its module keeps its coil bound
+to a channel of the old module, outside that module's subtree; the move is to unbind it (FT-320). N-FL-1, N-FL-2 (as a
+normaliser), N-FL-4 and N-FL-5 are not built.
+
 ### 4.3 Commands
 
 | Command | Purpose | Undo |
@@ -380,7 +395,8 @@ N-FL-1 lands `fndef` is ignored for a part that declares solenoids and removed a
 tag of the child scheme, not frozen, whose counter equalled its old position follows the new one), and its push
 insert, with `assembly.detach`, is FT-273. `device.link{from, to, kind}` refuses a self-link and a duplicate of the same
 kind; N-FL-4 is not built. `valve.set_occupancy` and the other commands of the table are not built; the coil-to-channel
-binding is the explicit `plc.bind_channel` of [10](10-plc-and-bus.md) §3.9 until N2 (FT-275).
+binding was the explicit `plc.bind_channel` of [10](10-plc-and-bus.md) §3.9 until N2 (built in cycle 18, §4.2); the
+golden builder keeps its 28 explicit bindings, because under H1 the map and the drawing differ.
 
 ---
 

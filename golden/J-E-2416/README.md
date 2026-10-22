@@ -970,6 +970,9 @@ The headless report of this revision: 94 entries, 88 pass, 0 fail, 0 not_built, 
 grid, a UI entry of M-PP, is `not_applicable` at the headless M1 gate under decision log ID-422), 0 oracle
 mismatches (the full run adds the raster comparison as a pass). Cycle 18 (FT-278) moved the 46 non-local library
 copies from the shell to a first `library.embed` command (609 commands; the counts of the report are unchanged).
+Cycle 18 (FT-228, FT-275 to FT-277) typed the solenoid-position map of part 533361 (H1, `part_plc.csv`) and added
+normalisers N2 and N3: the builder keeps its 28 explicit `plc.bind_channel` commands, the states stay 8 used, 20 spare
+and 28 deactivated, and AC-16 sweeps 2133 keys of 66 memoised families (the new `solenoid_positions` included).
 Cycle 17 (FT-165) typed the revisions: path (b) writes every record (608 commands, the 2 revisions by `revision.create`),
 and a second D-05 entry checks that no page record holds a revision value. Folio 911 stays a placeholder whose note
 now reads "awaits the `revision_rows` query" (FT-207), which changed its text CSV, its PNG candidate, the PDF digest

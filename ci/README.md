@@ -349,14 +349,14 @@ These settings cannot be committed; a repository owner applies them under Settin
 
 - Require status checks to pass before merging, with these required checks: `lint`, `test-linux`,
   `test-windows`, `test-macos`, `supply-chain`, `legal-docs`, `docs-diagrams`, `docs-book`. Require branches to be up to
-  date before merging. `headless` and `verapdf` (cycle 18) are not on the list until their first runs on `main` are
-  green; then add them (the owner decides, because they pull images from Docker Hub). `coverage` is a weekly
+  date before merging. `headless` and `verapdf` (cycle 18) are not on the list until three runs on `main` are
+  green; then add them (the owner decides, because they pull images from Docker Hub; decision log ID-460, FT-325). `coverage` is a weekly
   report and is never a required check.
 - Block force pushes and deletions; no direct pushes (changes land through pull requests only, administrators
   included).
 - Require one approving review by someone other than the author; dismiss stale approvals on new commits.
 - Require review from Code Owners ([`.github/CODEOWNERS`](../.github/CODEOWNERS); a second named owner per
-  critical path is due by M1, gate G-M0-13).
+  critical path is no longer required, decision log ID-452).
 - Settings → Code security: enable secret scanning with push protection.
 - Settings → Actions → General: require actions to be pinned to a full-length commit SHA, and set the default
   workflow permissions to "Read repository contents".

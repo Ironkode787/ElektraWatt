@@ -1,6 +1,6 @@
 # PLC, I/O and fieldbus
 
-**Status:** Draft v0.2 · **Date:** 2026-10-21 (v0.2: cycle-13 design pass: the PLC record kinds, channels and the DP bus potential as built, §2.2–§2.4, §2.6, §2.10, §3.2, §3.3, §3.8, §5; decision log ID-333 to ID-337) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.3 · **Date:** 2026-10-22 (v0.3: cycle-18 design pass: the solenoid-position map and the pin-designation map as built, derivation step 4, N1 to N3 and `plc.set_module_part`, the FR-PLC-051 rewording, §2.4, §2.6, §2.10, §3.2, §3.3, §3.9, §4; decision log ID-464 to ID-469; v0.2: cycle-13 design pass: the PLC record kinds, channels and the DP bus potential as built, §2.2–§2.4, §2.6, §2.10, §3.2, §3.3, §3.8, §5; decision log ID-333 to ID-337) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) models PLC configuration projects, stations, modules,
 channels and fieldbus networks. It defines how EW derives addresses, symbols, function texts and targets instead of
@@ -200,6 +200,13 @@ pub struct Channel {                     // shard of its module device; id = v5(
 
 **As built (cycle 13; decision log ID-333, ID-335).** `channel` (rank 37, in the shard of its module device) is typed with `module`, `number`, `designation`, `kind`, `address` (`AddrSpec`: `auto`, the default, `manual`, `excluded`, `tbd`), `state`, `symbol`, `comment`, `binding`, `target` and the import-provenance member `source_ref`. `ChannelKind` has `di`, `do`, `ai`, `ao`, `counter`, `io_link_port` and `power_supply`; `multi_function` (§3.8) is additive. Not members of the record, and kept in `extra` until their work packages: `data_type`, `aux_pins`, `signal_range` and `safety`. Until then the data type is the part's (`ChannelSpec.data_type` in the part section, §2.6), not a channel member. **Channel IDs** are `v5(module, "channel", number)` (ADR-0004 amendment 2; `ew_ids::v5::plc_channel_id`); the golden importer maps each `channels.csv` row to that ID, not to the `v5(ns, "channels|key")` of the other golden tables, so two branches that add the same module mint the same channel IDs (decision log ID-335). `source_ref.key` still reads `channels|<label>`. Until cycle 16 channels came only from import; since then normaliser N1 of §3.3 creates them from a module's part data with the same IDs (decision log ID-399), and a channel exists when one with the same module and number exists. Link policy: a channel is deleted with its module; deleting the bound function or the target function unlinks the member. An older 0.1 build keeps channel records verbatim but does not enforce these links; a check for orphan channels is FT-229, and FT-230 tests the older-build case (decision log ID-334).
 
+**As built (cycle 18; decision log ID-464 to ID-468).** A channel's `kind` is instantiated part data: N1 restores the
+part's channel kind when the module's part changes (FT-276). Its `binding` is set by N2 (a valve coil, by the
+position map), N3 (a module pin, by `pin_of`) or `plc.bind_channel` (§3.3). The automatic designation still replaces
+only a literal `{n}` in the part's pattern; the full pattern language of §2.6 (`"X2:{n+1}"`) prints once one shared
+expander serves both (FT-318). The derivation finds a module's channels by their v5 IDs, while N1 keys them on
+(module, number); a channels-by-module index makes both agree (FT-319).
+
 ### 2.5 Addresses and address profiles
 
 Addresses are stored canonically as `PlcAddress { area: I | Q | M | PI | PQ, size: Bit | Byte | Word | DWord |
@@ -317,7 +324,35 @@ The valve part 571334 declares `solenoids = ["14"]` in its fluid section ([11](1
 - **The bus-port signal map** resolves per-core pins where a multi-line representation of the port exists. It
   answers [08](08-connections-terminals-cables.md) Open question 5 (FR-BUS-023).
 
-**As built (cycle 13; decision log ID-333).** The part section is `sections.plc` (`PlcSection`): `role` (`station` or `module`), `io` (a list of `IoRange{dir, bits, class}`), `channels` (`ChannelSpec{count, kind, data_type, designation}`), `bit_of` and `unbound` (the state of channels neither bound nor claimed; absent: spare). `bit_of` is a `MapSpec`: `MapSpec::Expr` holds the expression text of the map language (`"n"`, `"16n"`, `"2p+1"`) and `MapSpec::List` an explicit list. The schema stores the text; `ew-plcaddr` (`MapExpr`) parses it and the derivation gives an unresolved address for a map it cannot parse. Not modelled yet, and kept in `extra`: the solenoid-position map `[plc.positions]` (FT-228, with EW-PLC-012 from FT-192), the supply groups, the earth pin, the bus ports and the `meta` confidence. Golden A has one `part_plc` row, part 533361: module, `out:8`, 8 `do` channels, `Bool`, designation `{n}`, `bit_of = "n"`, `unbound = deactivated`.
+**As built (cycle 13; decision log ID-333).** The part section is `sections.plc` (`PlcSection`): `role` (`station` or `module`), `io` (a list of `IoRange{dir, bits, class}`), `channels` (`ChannelSpec{count, kind, data_type, designation}`), `bit_of` and `unbound` (the state of channels neither bound nor claimed; absent: spare). `bit_of` is a `MapSpec`: `MapSpec::Expr` holds the expression text of the map language (`"n"`, `"16n"`, `"2p+1"`) and `MapSpec::List` an explicit list. The schema stores the text; `ew-plcaddr` (`MapExpr`) parses it and the derivation gives an unresolved address for a map it cannot parse. Not modelled yet, and kept in `extra`: the solenoid-position map `[plc.positions]` (typed in cycle 18, below), the supply groups, the earth pin, the bus ports and the `meta` confidence. Golden A has one `part_plc` row, part 533361: module, `out:8`, 8 `do` channels, `Bool`, designation `{n}`, `bit_of = "n"`, `unbound = deactivated`.
+
+**As built (cycle 18; decision log ID-464, ID-465; format decisions under ADR-0011 amendments 1 and 4).** Two optional
+members are appended to `PlcSection`, in this order, additive within the unreleased format 0.1 (`schemas/0.1`
+re-blessed); a build from before keeps them in `extra`.
+
+- **`positions`** (`PositionMap{count, map: [SolenoidChannel{solenoid, channel}]}`) is `[plc.positions]` above. The
+  position index p is 0-based: the valve child at `Device.position` q sits at p = q − 1 ([11](11-fluid-power.md)
+  §3.2), and p runs over 0 … `count` − 1. `channel` is a map-language expression in `p` (`"2p"`, `"2p+1"`) or a list
+  indexed by p; an entry that does not resolve at p, or gives a number not below the channel count, assigns no
+  channel. Golden A carries test input H1 in `tables/part_plc.csv` ([20](20-golden-project.md) §11.2).
+- **`pin_of`** (`PinMap`) is the channel → pin map that §2.8 names as part data a device description lacks. It maps
+  a channel number to a pin **designation**, never to a CP index, because a designation survives a reordering of the
+  FnDef's CPs. Its persisted forms are a format contract for every reader:
+  - a **string** is a *pattern*: each `{<expression>}` is a map-language expression in `n` (`{n}`, `{n+1}`,
+    `{2n+1}`), every other character is literal; `"X2:{n+1}"` gives `X2:1` for channel 0. There is no escape for a
+    literal brace;
+  - an **array** is a list of designations, the entry at index n being the pin of channel n;
+  - a **one-member object** is a form of a newer format, kept verbatim and expanded by no reader of this format.
+
+  A pattern with an unclosed `{` or a stray `}`, an expression in `p` or one that does not parse, an overflow, a list
+  index out of range or an empty result gives **no pin**: N3 then leaves the channel unbound with a notice (§3.3).
+  The golden importer reads the column `pin_of` of `part_plc.csv` as a pattern and accepts a file without it; Golden
+  A's part 533361 has no `pin_of`, because its channels are internal (the solenoid outputs).
+
+The memoised query `solenoid_positions(module)` applies the module part's position map to its valve children: one
+slot per position and map entry, with the channel, the valve (the lowest ID when two children hold the position) and
+the valve's coil CP. Until N-FL-1, a valve declares solenoid s when one of its functions has a non-physical CP named s
+([11](11-fluid-power.md) §3.1, decision log ID-469). The part-data confidence of `[plc.meta]` is FT-323.
 
 ### 2.7 Bus model
 
@@ -415,6 +450,10 @@ configuration project or network (ARCH §6.3).
 
 **As built (cycle 13; decision log ID-333).** `ew-derive` implements `module_order(cfg)`, `module_starts(cfg)`, `channel_addresses(module)`, `channel_states(module)`, `channel_targets(module)`, `channel_texts(module)` and `plc_rows(station)` (the queries `ModuleOrder`, `ModuleStarts`, `ChannelAddresses`, `ChannelStates`, `ChannelTargets`, `ChannelTexts` and `PlcRows`), with algorithms A1 and A2 of §3.1, A3 of §3.2 (without step 4) and the direct targets of §3.5. Not built: `address_index`, `bus_segments`, `net_members` and `exchange_image`. A module reads its own channels by ID, but the per-module early cut-off of `module_starts` is not built: an edit re-runs `channel_addresses` for every module of the configuration project (FT-224; FR-PLC-012, AC-29). `plc_rows` feeds the `plc_overview` report kind (§5).
 
+**As built (cycle 18; decision log ID-464).** One family joins: `solenoid_positions(module)` (`SolenoidPositions`,
+Memo), the module part's position map applied to its valve children (§2.6), which `channel_states` reads for step 4
+(§3.2) and EW-PLC-012 is to read (FT-192); `ew verify-derived` and AC-16 sweep it (66 families).
+
 ---
 
 ## 3. Behaviour and rules
@@ -500,7 +539,15 @@ monostable 571334 declares. **Both hypotheses therefore give 8 used, 20 spare an
 ([20](20-golden-project.md) §11.2). The PLC overview lists all 56. New I/O-list blocks default to
 `state != Deactivated` and list 28 rows (FR-PLC-019, FR-PLC-023).
 
-**As built (cycle 13; decision log ID-333).** `channel_states` applies steps 1, 2, 3 and 5. Step 4 (the position map claims a channel) is not modelled, because the part section has no solenoid-position map yet (FT-228, with EW-PLC-012 from FT-192). On Golden A step 4 changes nothing under either hypothesis, so the counts above (8 used, 20 spare, 28 deactivated) hold.
+**As built (cycle 13; decision log ID-333; step 4 superseded by the cycle-18 paragraph).** `channel_states` applies steps 1, 2, 3 and 5. Step 4 (the position map claims a channel) is not modelled, because the part section has no solenoid-position map yet (FT-228, with EW-PLC-012 from FT-192). On Golden A step 4 changes nothing under either hypothesis, so the counts above (8 used, 20 spare, 28 deactivated) hold.
+
+**As built (cycle 18; FT-228; decision log ID-464).** `channel_states` applies all five steps; step 4 reads
+`solenoid_positions(module)`. "s is unbound" means that **no channel of any module** binds the coil CP, whatever that
+channel's ID: the whole channel table is read, as N2 and `plc.bind_channel` read it, so a valve moved to another
+module and a duplicate channel never make a channel `Reserved`. Only an unbound channel reaches step 4, so the case
+"bound to c" cannot arise there. On Golden A under H1 no channel is claimed and the counts stay 8 used, 20 spare and
+28 deactivated (tested under H1 and H2, memoised against cold). EW-FL-002, which step 4 names, and EW-PLC-012 are not
+built (FT-192). Step 4 scans the channel table per module; a CP → channel index is FT-319.
 
 ### 3.3 Binding and normalisers
 
@@ -509,9 +556,9 @@ their order.
 
 | Normaliser (ARCH §5.2) | Trigger | Effect |
 |---|---|---|
-| N1 channel instantiation | `PlcModule` added, or the module's part changed | Creates channels 0 … n−1 with v5 IDs from the part's `channels`. Surplus channels are removed only after a confirmation that lists their bindings, symbols and exchange records (FR-PLC-053) |
-| N2 solenoid binding | a valve child added to, or moved within, a module that has a position map; or a coil function that N-FL-1 of [11](11-fluid-power.md) creates after a valve's part changed | Binds each declared solenoid's coil CP to the channel the map assigns, if that channel is unbound; otherwise the coil stays unbound and EW-FL-002 reports it. An explicit binding in the command wins: QET import "as drawn" (A7), a macro value set of type `ChannelBinding` ([07](07-symbols-parts-macros.md) §2.7) (FR-PLC-051). This is the single implementation, in `ew-commands`; N-FL-3 in [11](11-fluid-power.md) §4.2 is a reference to it |
-| N3 module pin binding | a channel created on a module with physical pins | `binding` = the module CP given by the part's channel → pin map |
+| N1 channel instantiation | `PlcModule` added, or the module's part changed | Creates channels 0 … n−1 with v5 IDs from the part's `channels` and gives existing ones the part's channel kind. Surplus channels are removed only after a confirmation that lists their bindings, symbols and exchange records (FR-PLC-053): the preview of the Bulk command `plc.set_module_part` (§3.9); N1 itself never removes a channel and names the surplus in a notice |
+| N2 solenoid binding | a valve child added to, moved within or re-parted on a module that has a position map; a coil function added to such a valve (by N-FL-1 of [11](11-fluid-power.md) after a part change); or a channel of that module created in the same transaction | Binds each declared solenoid's coil CP to the channel the map assigns, if that channel is unbound **and no channel binds the coil**; otherwise the coil stays as it is, with a notice (an unbound coil is reported by EW-FL-002, a binding that differs from the map by EW-PLC-012). An existing binding wins: an explicit binding in the command (QET import "as drawn", A7; a macro value set of type `ChannelBinding`, [07](07-symbols-parts-macros.md) §2.7), and the earlier binding of a moved valve's coil. Pairs whose valve and channel the transaction did not touch are never re-examined; a rebinding is the explicit `plc.bind_channel` (FR-PLC-051, as reworded in cycle 18). This is the single implementation, in `ew-commands`; N-FL-3 in [11](11-fluid-power.md) §4.2 is a reference to it |
+| N3 module pin binding | a channel created on a module with physical pins | `binding` = the module CP whose designation the part's channel → pin map (`pin_of`, §2.6) gives, on the module's main function, if no other channel binds it (FR-PLC-005); otherwise the channel stays unbound with a notice |
 | N4 logical-net inheritance | a `Bus` connection joins a port without a logical net to one that has one | Assigns that net; conflicting nets are left as they are and reported (EW-BUS-010, FR-BUS-024) |
 
 **Bindings point at CPs, never at copies.** For a physical channel, `binding` is the module pin. For an internal
@@ -550,6 +597,35 @@ and its descendants and unbinds another channel on the same CP (FR-PLC-005). N1 
 number), keeps their authored members, applies no kind change (FT-276) and removes no surplus channel until
 FR-PLC-053's confirmation exists (FT-277). The channel members are not yet settable by `fields.set` (FT-226).
 Decision log ID-395, ID-399.
+
+**As built (cycle 18; FT-275 to FT-277; decision log ID-466 to ID-468).** Rows 3, 13 and 14 of the registry run;
+normaliser notices are merged once into the command's outcome.
+- **N1** (`channel_instantiation`) picks the module's PLC section by the derivation's rule (`plc_module.part_use`,
+  else the first part use whose part has a PLC section), creates the missing channels, and gives an existing channel
+  0 … count − 1 the part's channel kind with a notice, keeping its binding; a kind of a newer format is kept with a
+  notice. Surplus channels stay and are named in a notice; the derivation reads only the channels below the count.
+- **N2** (`solenoid_binding`): for the valve at position q (p = q − 1; of two children at one position the lower ID)
+  and each map entry, the channel `solenoid_channel(entry, p)` below the channel count and the coil `coil_cp_idx`
+  over the valve's functions in ID order, the same evaluation as `solenoid_positions`. A pair is considered when its
+  valve is new in the transaction, moved (parent or position), re-parted or gained a function, or when its channel is
+  new in the transaction (N1 created the channels after the valves existed). A moved valve whose coil stays bound
+  elsewhere gets a notice. Ties break by ID; modules run in ID order.
+- **N3** (`module_pin_binding`): a channel new in the transaction, unbound, on a module whose part has `pin_of`, takes
+  the CP of the main function (the lowest ID among the device's functions with role main) whose designation
+  `channel_pin(pin_of, number)` gives, searched in the part's CP pattern when it has one, else in the main function's
+  FnDef copy, the lowest index first. Channels that existed before the transaction are never touched.
+- **FR-PLC-051 as built** (decision log ID-467; the project owner (delegated) accepted the deviation and may reverse
+  it): a move keeps an earlier binding, and untouched pairs are never re-examined, so an explicit unbinding stays; a
+  rebinding is `plc.bind_channel`. FR-PLC-051 in [02b](02b-requirements-extended.md) is reworded to this.
+- **FR-PLC-053** is met through the Bulk command `plc.set_module_part{module, parts?}` (§3.9): it sets the part uses
+  and deletes the channels at or above the new count with their bindings, symbols and comments; its preview lists
+  them, so committing it is the confirmation (ADR-0008). A part change of a module in the UI goes through this
+  command; `fields.set` on `parts` stays the scripting form that never removes a channel.
+
+The golden builder keeps its 28 explicit `plc.bind_channel` commands: under H1 the map assigns coil 14 of position p
+to channel 2p, while the drawing binds it to 2p + 1, and an explicit binding wins. Not built: the confidence marker
+(FT-323), the exchange records in the surplus preview (FT-324), the unbinding when a valve leaves its module (FT-320),
+N3 after a part change (FT-321) and N-FL-1 (FT-322).
 
 ### 3.4 Symbols, designations and function texts
 
@@ -713,6 +789,7 @@ Auto modules (§8, item 10). EW-IOL-002 compares the IODD lengths with the windo
 | `plc.freeze{cfg}` | sets every derived channel address to `Manual(current)` (FR-PLC-015) | Bulk | 1.0 |
 | `plc.unlock{scope, group}` | lifts PLC ownership protection for a field group | Interactive | 1.0 |
 | `plc.bind_channel{channel, endpoint}` | binds or rebinds (§3.3) | Interactive | MVP |
+| `plc.set_module_part{module, parts?}` | changes a module's part uses and removes the channels the new part no longer has, with their bindings; the preview is FR-PLC-053's confirmation (§3.3; built in cycle 18) | Bulk (preview) | MVP |
 | `plc.set_profile{cfg, profile}` | changes rendering only; the files differ in one setting (FR-PLC-007) | Interactive | MVP |
 | `plc.apply_exchange{cfg, image, resolutions}` | applies an AML or XLSX import with its snapshot (§4.4) | Bulk (preview) | 1.0 |
 | `plc.apply_io_list{rows, resolutions}` | applies a CSV/XLSX I/O-list import (§4.7) | Bulk (preview) | MVP Should |
@@ -809,6 +886,10 @@ its documentation page (NFR-DOC-02).
 
 Every exporter implements the permissive `Exporter` contract over an `ExportView` of a snapshot fork, never blocks
 editing and records the revision it reflects (FR-EXP-001). Release-mode exports refuse a stale Class II input.
+
+*Note (cycle 18).* No exchange record exists yet (the kinds `exchange_record` and `foreign_id` of §4.2 are reserved,
+not typed). The confirmation of FR-PLC-053, the preview of `plc.set_module_part` (§3.3), therefore lists the surplus
+channels with their bindings and symbols only; it lists their exchange records once §4.2 is built (FT-324).
 
 ### 4.2 Exchange image and identity
 
