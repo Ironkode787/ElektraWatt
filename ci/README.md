@@ -52,6 +52,17 @@ feature set (CI-PR-02: expected about 15 min for `test-linux`, about 17 min for 
 Pinned action added by FT-353: `actions/download-artifact` v7.0.0 (`37930b1c2abaa49bbe596cd826c3c89aef350131`), the
 same publisher and major as the `actions/upload-artifact` v7.0.1 of the other jobs.
 
+Two lessons of the cycle-22 hotfixes to the split Windows jobs (FT-387), for every workflow that moves artefacts between jobs:
+
+- **Artefacts go to `$RUNNER_TEMP`, not into the checkout.** The tree-walking checks (`check-licence-map`,
+  `check-anonymisation`, `check-raw-read`) see every file under the working directory, so an archive or any other download
+  placed in the checkout is scanned as if it were repository content. Download and extract into `$RUNNER_TEMP` (or an
+  `actions/download-artifact` `path:` below it) and point the command at that path.
+- **No Windows paths in `${{ }}` expressions of bash `run:` steps.** The runner substitutes the expression before bash
+  parses the line, so `${{ github.workspace }}` or `${{ runner.temp }}` puts backslashes (`D:\...`) into the script, where
+  bash reads them as escapes. Use the environment variables `RUNNER_TEMP`, `RUNNER_OS`, `GITHUB_WORKSPACE` and the other
+  `RUNNER_*` and `GITHUB_*` ones (`"$RUNNER_TEMP/x"`), which bash expands as data.
+
 `cargo xtask ci` runs fmt, clippy, nextest and the doctests (each with the default features and with `--all-features`;
 the default-features nextest step is labelled `nextest (no acceptance, no fuzzer)` in the summary, and the acceptance
 tests and the command fuzzer run only in the `nextest-all-features` step, as in the jobs) and the twelve repository checks (`check-deps`,
