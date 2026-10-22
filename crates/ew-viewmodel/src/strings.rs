@@ -238,6 +238,22 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "action-wizard-reset" => "Wizard: start over",
         "action-wizard-cancel" => "Wizard: close",
         "action-wizard-finish" => "Wizard: create the basic project",
+        "action-wizard-apply-check-scheme" => "Wizard: apply the check scheme",
+        "reason-wizard-finished" => "The basic project is written; close the wizard to start another one",
+        "reason-wizard-not-finished" => "Create the basic project first",
+        "reason-check-scheme-written" => "The check scheme is applied already",
+        "reason-human-only" => {
+            "Only a person applies this, in the window: it decides what the checks report (ADR-0008)"
+        }
+        "banner-check-scheme-applied" => "The check scheme {0} was applied to {1}.",
+        "wizard-apply-check-scheme" => "Apply the check scheme",
+        "wizard-kept-apply" => "kept: apply after finishing",
+        "wizard-close" => "Close",
+        "confirm-check-scheme-title" => "Apply the check scheme",
+        "confirm-check-scheme-text" => {
+            "Apply the check scheme {0} to the basic project? The check scheme decides which rules the release gate runs and what the checks report."
+        }
+        "dialog-apply" => "Apply",
         "reason-no-journal" => "The project has no journal of an earlier session",
         "reason-no-wizard" => "The company-standard wizard is not open",
         "reason-no-first-run" => "The first-run setup is not open",

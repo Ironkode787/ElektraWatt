@@ -387,6 +387,8 @@ fn the_wizards_defaults_reproduce_the_sample_pages_and_a_choice_changes_the_prev
             ("wizard.goto", json!({"step": 9})),
             ("ui.describe", json!({})),
             ("wizard.finish", json!({ "dir": path(&basic) })),
+            // FT-336: the finished wizard stays on the review step until it is closed.
+            ("wizard.cancel", json!({})),
             ("ui.describe", json!({})),
         ],
     );
@@ -426,7 +428,7 @@ fn the_wizards_defaults_reproduce_the_sample_pages_and_a_choice_changes_the_prev
             .unwrap()
             .contains("company.ew")
     );
-    let after = describe(&steps[14]);
+    let after = describe(&steps[15]);
     assert!(after.contains("label \"Template: company.ew\""), "{after}");
     assert!(after.contains("button \"Edit company standard\""), "{after}");
     // The basic project is on disk, of kind basic, with the draft's settings.
@@ -440,6 +442,37 @@ fn the_wizards_defaults_reproduce_the_sample_pages_and_a_choice_changes_the_prev
     // The draft is gone and the settings name the new default.
     assert!(!tmp.path("config").join("wizard-draft.json").exists());
     assert!(read(&tmp.path("config"), "settings.toml").contains("company.ew"));
+}
+
+/// FT-336 ruling: the check scheme's `HumanOnly` command is never applied from a UI script: the headless mode refuses
+/// `wizard.apply_check_scheme` (confirmed or not) with the human-only reason, which the transcript records, and the
+/// run ends with exit code 1.
+#[test]
+fn a_ui_script_cannot_apply_the_check_scheme() {
+    let tmp = Tmp::new();
+    let basic = tmp.path("company.ew");
+    let out = run(
+        &tmp,
+        &[
+            ("tools.company_standard", json!({})),
+            ("wizard.finish", json!({ "dir": path(&basic) })),
+            ("wizard.apply_check_scheme", json!({ "confirm": true })),
+        ],
+    );
+    assert_eq!(
+        out.status.code(),
+        Some(1),
+        "{}",
+        String::from_utf8_lossy(&out.stdout)
+    );
+    let steps = steps_of(&out);
+    assert_eq!(steps.len(), 3);
+    assert_eq!(steps[1]["outcome"], "done");
+    let refused = &steps[2];
+    assert_eq!(refused["action"], "wizard.apply_check_scheme");
+    assert_eq!(refused["outcome"], "refused", "{refused}");
+    assert_eq!(refused["reason"], "reason-human-only", "{refused}");
+    assert!(!read(&basic, "project.jsonl").contains("\"checks\""));
 }
 
 #[test]

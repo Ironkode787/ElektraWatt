@@ -185,6 +185,12 @@ pub enum Dialog {
     /// Discard the journal of an earlier session that ended with unsaved changes (FT-313's first part): the
     /// changes in it are lost.
     ConfirmJournalDiscard,
+    /// Apply the check scheme to the finished basic project (FT-336): `project.checks.set` is `HumanOnly`, so a
+    /// person confirms it, with the scheme named and the note that it decides check outcomes.
+    ConfirmCheckScheme {
+        /// The scheme to apply (`release_scheme`).
+        scheme: String,
+    },
     /// View, Workspace, Save layout as: a name typed by the user.
     SaveWorkspace {
         /// The text of the field.
@@ -887,6 +893,7 @@ impl ShellModel {
             "help.tutorials" => self.act_tutorials(p),
             "help.first_run" => self.act_first_run_open(p),
             "help.notices" => self.open_dialog(Dialog::Notices),
+            "wizard.apply_check_scheme" => self.act_wizard_apply_check_scheme(p),
             "first_run.set" => self.act_first_run_set(p),
             "first_run.next" => self.act_first_run_step(1),
             "first_run.back" => self.act_first_run_step(-1),

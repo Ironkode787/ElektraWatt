@@ -242,13 +242,45 @@ fn the_wizard_shows_a_preview_follows_a_typed_value_and_writes_the_basic_project
     // The review lists what is written and what stays in the draft; Create asks for the directory.
     h.get_by_label("11. Review and create").click();
     settle(&mut h);
-    assert!(h.query_all_by_label("kept in the draft").count() > 0);
+    assert!(h.query_all_by_label("kept: apply after finishing").count() > 0);
     assert!(h.query_all_by_label("written to the basic project").count() > 0);
     h.get_by_label("Create the basic project...").click();
     settle(&mut h);
     assert_eq!(platform.asked.borrow().as_slice(), [Prompt::NewFolder]);
     let shell = h.state().shell();
-    assert!(shell.wizard().is_none(), "{:?}", shell.banner());
+    assert!(
+        shell.wizard().is_some_and(|w| w.finished_dir().is_some()),
+        "{:?}",
+        shell.banner()
+    );
+    assert!(
+        h.query_by_label_contains("The company standard was written to company.ew")
+            .is_some()
+    );
+    // FT-336 ruling: the check scheme is applied after finishing, by a person, after a confirmation.
+    h.get_by_label("Apply the check scheme").click();
+    settle(&mut h);
+    assert!(matches!(
+        h.state().shell().dialog(),
+        Some(Dialog::ConfirmCheckScheme { .. })
+    ));
+    assert!(
+        h.query_by_label_contains("decides which rules the release gate runs")
+            .is_some()
+    );
+    h.get_by_label("Apply").click();
+    settle(&mut h);
+    let text = std::fs::read_to_string(basic.join("project.jsonl")).unwrap();
+    assert!(
+        text.contains("\"checks\":{\"release_scheme\":\"pre-delivery\"}"),
+        "{text}"
+    );
+    assert!(h.query_all_by_label("kept: apply after finishing").count() == 0);
+    assert!(h.query_by_label("Apply the check scheme").is_none());
+    h.get_by_label("Close").click();
+    settle(&mut h);
+    let shell = h.state().shell();
+    assert!(shell.wizard().is_none());
     assert_eq!(
         shell.settings().basic_project.as_deref(),
         Some(basic.to_string_lossy().as_ref())
@@ -257,10 +289,6 @@ fn the_wizard_shows_a_preview_follows_a_typed_value_and_writes_the_basic_project
     assert!(text.contains("\"kind\":\"basic\""));
     assert!(text.contains("{page}-{letter}{counter}"));
     assert!(text.contains("eplan-style"));
-    assert!(
-        h.query_by_label_contains("The company standard was written to company.ew")
-            .is_some()
-    );
     // The start page now offers to edit it and says where new projects start.
     assert!(h.query_by_label("Edit company standard").is_some());
     assert!(h.query_by_label("Template: company.ew").is_some());

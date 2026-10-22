@@ -22,7 +22,7 @@
 //! commands of the defaults leave the sample project unchanged.
 
 use std::collections::BTreeMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use ew_api::output::{ExportOptions, ExportPages, PageSelection};
 use ew_api::{CmdLog, Session};
@@ -32,6 +32,9 @@ use crate::strings;
 use crate::wizard_data::{
     COLOUR_PROFILE_SAMPLE, COVER_FRAME, GRID_FRAME, NOGRID_FRAME, SHIPPED_FORMS, SIZE_PROFILE_SAMPLE,
 };
+
+/// The field of the check scheme, the one field `wizard.finish` keeps in the draft (FT-336).
+pub const CHECK_SCHEME_FIELD: &str = "check_scheme";
 
 /// The `$schema` of the draft file.
 pub const DRAFT_SCHEMA: &str = "ew.wizard-draft/1";
@@ -769,6 +772,7 @@ impl Draft {
             .iter()
             .map(|f| ReviewLine {
                 step: f.step,
+                key: f.key,
                 label: strings::text(f.label_key).to_owned(),
                 value: self.display_value(f),
                 written: f.written,
@@ -817,6 +821,10 @@ pub struct Wizard {
     preview: Option<Preview>,
     preview_rev: u64,
     pub(crate) error: Option<String>,
+    /// The basic project directory once `wizard.finish` wrote it; the wizard then stays on the review step.
+    pub(crate) finished: Option<PathBuf>,
+    /// Whether the confirmed `wizard.apply_check_scheme` wrote the check scheme into the finished project.
+    pub(crate) checks_written: bool,
 }
 
 /// The folio of the preview's cover page and of its sample page (the title page and folio 102 of the sample
@@ -835,7 +843,34 @@ impl Wizard {
             preview: None,
             preview_rev: 0,
             error: None,
+            finished: None,
+            checks_written: false,
         }
+    }
+
+    /// The basic project directory once the wizard has finished.
+    pub fn finished_dir(&self) -> Option<&Path> {
+        self.finished.as_deref()
+    }
+
+    /// Whether the check scheme can be applied now: the wizard has finished and the scheme is not written yet.
+    pub fn can_apply_check_scheme(&self) -> bool {
+        self.finished.is_some() && !self.checks_written
+    }
+
+    /// The review step's lines: [`Draft::review`], with the check scheme `written` once the confirmed
+    /// `wizard.apply_check_scheme` wrote it (FT-336: `project.checks.set` is `HumanOnly`, so `wizard.finish` keeps it in
+    /// the draft and the review offers to apply it after finishing).
+    pub fn review(&self) -> Vec<ReviewLine> {
+        let mut lines = self.draft.review();
+        if self.checks_written {
+            for line in &mut lines {
+                if line.key == CHECK_SCHEME_FIELD {
+                    line.written = true;
+                }
+            }
+        }
+        lines
     }
 
     /// The step on show.
@@ -945,6 +980,8 @@ pub(crate) fn run_commands(
 pub struct ReviewLine {
     /// The step of the field.
     pub step: Step,
+    /// The field's name (the `field` of `wizard.set`).
+    pub key: &'static str,
     /// The field's label.
     pub label: String,
     /// Its value as shown.

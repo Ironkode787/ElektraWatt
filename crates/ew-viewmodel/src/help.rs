@@ -154,6 +154,7 @@ pub fn context_topic(model: &ShellModel) -> &'static str {
         Some(Dialog::Shortcuts) => return "keyboard-shortcuts",
         Some(Dialog::ConfirmDiscard { .. }) => return "unsaved-changes",
         Some(Dialog::ConfirmJournalDiscard) => return "recovery",
+        Some(Dialog::ConfirmCheckScheme { .. }) => return "company-standard-wizard",
         Some(Dialog::SaveWorkspace { .. }) => return "workspaces",
         Some(Dialog::GotoPage { .. }) | None => {}
     }

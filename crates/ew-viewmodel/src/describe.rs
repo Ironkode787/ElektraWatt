@@ -267,7 +267,7 @@ fn wizard(model: &ShellModel, lines: &mut Vec<String>) {
     ));
     lines.push(format!("  label \"{}\"", strings::text(step.hint_key())));
     if step == Step::Review {
-        for line in w.draft().review() {
+        for line in w.review() {
             lines.push(format!(
                 "  review \"{}\": \"{}\" {}",
                 line.label,
@@ -310,6 +310,17 @@ fn wizard(model: &ShellModel, lines: &mut Vec<String>) {
             "wizard-preview-page"
         })
     ));
+    if w.finished_dir().is_some() {
+        // FT-336: the basic project is written; what is left is the confirmed check scheme, then Close.
+        if w.can_apply_check_scheme() {
+            lines.push(format!(
+                "  button \"{}\"",
+                strings::text("wizard-apply-check-scheme")
+            ));
+        }
+        lines.push(format!("  button \"{}\"", strings::text("wizard-close")));
+        return;
+    }
     if step != Step::Company {
         lines.push(format!("  button \"{}\"", strings::text("wizard-back")));
     }
@@ -416,6 +427,19 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
             lines.push(format!("  label \"{}\"", strings::text("confirm-text")));
             lines.push(format!("  pending {}", pending.action));
             for key in ["dialog-save", "dialog-discard", "dialog-cancel"] {
+                lines.push(format!("  button \"{}\"", strings::text(key)));
+            }
+        }
+        Some(Dialog::ConfirmCheckScheme { scheme }) => {
+            lines.push(format!(
+                "dialog \"{}\"",
+                strings::text("confirm-check-scheme-title")
+            ));
+            lines.push(format!(
+                "  label \"{}\"",
+                strings::format("confirm-check-scheme-text", &[scheme])
+            ));
+            for key in ["dialog-apply", "dialog-cancel"] {
                 lines.push(format!("  button \"{}\"", strings::text(key)));
             }
         }

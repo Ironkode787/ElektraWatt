@@ -623,12 +623,32 @@ fn the_wizard_writes_a_basic_project_that_new_projects_start_from() {
     );
     let basic = tmp.0.join("company.ew");
     done(&mut shell, "wizard.finish", json!({ "dir": path(&basic) }));
+    // FT-336: the finished wizard stays on the review step until it is closed (the check scheme is applied after
+    // finishing, by a person); its fields are no longer edited.
+    assert!(shell.banner().unwrap_or_default().contains("company.ew"));
+    let w = shell.wizard().expect("the finished wizard stays open");
+    assert_eq!(w.finished_dir(), Some(basic.as_path()));
+    assert!(w.can_apply_check_scheme());
+    assert!(matches!(
+        run(
+            &mut shell,
+            "wizard.set",
+            json!({"field": "company_name", "value": "Other"})
+        ),
+        Outcome::Refused {
+            reason_key: "reason-wizard-finished"
+        }
+    ));
+    assert!(matches!(
+        run(&mut shell, "wizard.finish", json!({ "dir": path(&basic) })),
+        Outcome::Refused { .. }
+    ));
+    done(&mut shell, "wizard.cancel", json!({}));
     assert!(shell.wizard().is_none());
     assert!(
         !tmp.0.join("config/wizard-draft.json").exists(),
         "a finished wizard leaves no draft"
     );
-    assert!(shell.banner().unwrap_or_default().contains("company.ew"));
     assert_eq!(
         shell.settings().basic_project.as_deref(),
         Some(path(&basic).as_str())
@@ -959,6 +979,91 @@ fn the_wizard_writes_the_company_the_frame_and_the_formats() {
         columns(&folio_1) > columns(&other),
         "the column labels of the grid frame"
     );
+    shell.shutdown();
+}
+
+/// FT-336 ruling: the check scheme is applied after finishing by `wizard.apply_check_scheme`, a confirmed action that
+/// submits the `HumanOnly` command `project.checks.set`; the headless mode refuses it with the human-only reason.
+#[test]
+fn the_check_scheme_is_applied_after_finishing_by_a_person_only() {
+    let tmp = Tmp::new();
+    let mut shell = tmp.shell();
+    done(&mut shell, "tools.company_standard", json!({}));
+    done(
+        &mut shell,
+        "wizard.set",
+        json!({"field": "check_scheme", "value": "full"}),
+    );
+    assert_eq!(
+        run(&mut shell, "wizard.apply_check_scheme", json!({})),
+        Outcome::Refused {
+            reason_key: "reason-wizard-not-finished"
+        }
+    );
+    let basic = tmp.0.join("company.ew");
+    done(&mut shell, "wizard.finish", json!({ "dir": path(&basic) }));
+    let review = shell.describe();
+    assert!(
+        review.contains("review \"Check scheme\": \"full\" kept"),
+        "{review}"
+    );
+    assert!(review.contains("button \"Apply the check scheme\""), "{review}");
+    for params in [json!({}), json!({"confirm": true})] {
+        assert_eq!(
+            run(&mut shell, "wizard.apply_check_scheme", params),
+            Outcome::Refused {
+                reason_key: "reason-human-only"
+            },
+            "the headless mode never applies it"
+        );
+    }
+    let text = std::fs::read_to_string(basic.join("project.jsonl")).unwrap();
+    assert!(!text.contains("\"checks\""), "{text}");
+    done(&mut shell, "wizard.cancel", json!({}));
+
+    // In the window: a confirmation that names the scheme, then the command as the person's.
+    let mut gui = tmp.gui();
+    done(&mut gui, "tools.company_standard", json!({}));
+    done(
+        &mut gui,
+        "wizard.set",
+        json!({"field": "check_scheme", "value": "full"}),
+    );
+    let window = tmp.0.join("window.ew");
+    done(&mut gui, "wizard.finish", json!({ "dir": path(&window) }));
+    done(&mut gui, "wizard.apply_check_scheme", json!({}));
+    assert_eq!(
+        gui.dialog(),
+        Some(&Dialog::ConfirmCheckScheme {
+            scheme: "full".into()
+        })
+    );
+    let dialog = gui.describe();
+    assert!(
+        dialog.contains("dialog \"Apply the check scheme\"") && dialog.contains("\"full\""),
+        "{dialog}"
+    );
+    done(&mut gui, "wizard.apply_check_scheme", json!({"confirm": true}));
+    assert_eq!(gui.dialog(), None);
+    let text = std::fs::read_to_string(window.join("project.jsonl")).unwrap();
+    assert!(
+        text.contains("\"checks\":{\"release_scheme\":\"full\"}"),
+        "{text}"
+    );
+    let review = gui.describe();
+    assert!(
+        review.contains("review \"Check scheme\": \"full\" written"),
+        "{review}"
+    );
+    assert!(!review.contains("button \"Apply the check scheme\""), "{review}");
+    assert_eq!(
+        run(&mut gui, "wizard.apply_check_scheme", json!({"confirm": true})),
+        Outcome::Refused {
+            reason_key: "reason-check-scheme-written"
+        }
+    );
+    done(&mut gui, "wizard.cancel", json!({}));
+    gui.shutdown();
     shell.shutdown();
 }
 

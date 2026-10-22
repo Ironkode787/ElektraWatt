@@ -888,6 +888,15 @@ pub static ACTIONS: &[ActionMeta] = &[
         wizard_open,
         None,
     )),
+    hidden(act(
+        "wizard.apply_check_scheme",
+        Command,
+        "action-wizard-apply-check-scheme",
+        Menu::Tools,
+        &[],
+        wizard_open,
+        None,
+    )),
 ];
 
 /// The action with this ID.

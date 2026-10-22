@@ -12,7 +12,7 @@
 use egui::{Panel, TextEdit, Ui};
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
-use ew_viewmodel::wizard::{FieldKind, FieldMeta, Step, Wizard, fields_of};
+use ew_viewmodel::wizard::{CHECK_SCHEME_FIELD, FieldKind, FieldMeta, Step, Wizard, fields_of};
 use serde_json::{Value, json};
 
 use crate::app::Event;
@@ -76,11 +76,14 @@ fn step_form(ui: &mut Ui, wizard: &Wizard, events: &mut Vec<Event>) {
             .num_columns(3)
             .striped(true)
             .show(ui, |ui| {
-                for line in wizard.draft().review() {
+                for line in wizard.review() {
                     ui.label(line.label);
                     ui.label(line.value);
+                    // FT-336: the check scheme is applied after finishing, by a person (its command is HumanOnly).
                     ui.weak(strings::text(if line.written {
                         "wizard-written"
+                    } else if line.key == CHECK_SCHEME_FIELD {
+                        "wizard-kept-apply"
                     } else {
                         "wizard-kept"
                     }));
@@ -140,6 +143,19 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, preview: &mut PageView, events: &mu
                 ui.colored_label(ui.visuals().error_fg_color, error);
             }
             ui.add_space(12.0);
+            if wizard.finished_dir().is_some() {
+                ui.horizontal(|ui| {
+                    if wizard.can_apply_check_scheme()
+                        && ui.button(strings::text("wizard-apply-check-scheme")).clicked()
+                    {
+                        events.push(Event::Action("wizard.apply_check_scheme", Value::Null));
+                    }
+                    if ui.button(strings::text("wizard-close")).clicked() {
+                        events.push(Event::Action("wizard.cancel", Value::Null));
+                    }
+                });
+                return;
+            }
             ui.horizontal(|ui| {
                 if wizard.step() != Step::Company && ui.button(strings::text("wizard-back")).clicked() {
                     events.push(Event::Action("wizard.back", Value::Null));

@@ -108,6 +108,23 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                 });
             });
         }
+        Some(Dialog::ConfirmCheckScheme { scheme }) => {
+            window("confirm-check-scheme-title").show(ctx, |ui| {
+                ui.set_max_width(420.0);
+                ui.label(strings::format("confirm-check-scheme-text", &[scheme]));
+                ui.horizontal(|ui| {
+                    if ui.button(strings::text("dialog-apply")).clicked() {
+                        events.push(Event::Action(
+                            "wizard.apply_check_scheme",
+                            serde_json::json!({ "confirm": true }),
+                        ));
+                    }
+                    if ui.button(strings::text("dialog-cancel")).clicked() {
+                        events.push(Event::Action("ui.dismiss", Value::Null));
+                    }
+                });
+            });
+        }
         Some(Dialog::ConfirmJournalDiscard) => {
             window("confirm-journal-title").show(ctx, |ui| {
                 ui.set_max_width(420.0);

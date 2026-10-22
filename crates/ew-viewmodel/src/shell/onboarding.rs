@@ -10,15 +10,18 @@
 
 use std::path::{Path, PathBuf};
 
-use ew_api::{NewProjectKind, ProjectTemplate, Session};
-use serde_json::{Map, Value};
+use ew_api::{AnyCommand, NewProjectKind, ProjectTemplate, Recovery, Session};
+use serde_json::{Map, Value, json};
 
-use super::{DocRequest, Outcome, Prompt, ShellModel, dir_name, failed, open_error_key, string_param};
+use super::{
+    Dialog, DocRequest, Mode, Outcome, Prompt, ShellModel, dir_name, failed, flag, open_error_key,
+    string_param,
+};
 use crate::first_run::{self, FirstRun, FirstRunStep, START_CHOICES};
 use crate::help;
 use crate::settings::{CANVAS_BACKENDS, KEYMAPS, LANGUAGES, ORIGINS, THEMES};
 use crate::strings;
-use crate::wizard::{DRAFT_FILE, Draft, Step, Wizard, run_commands};
+use crate::wizard::{CHECK_SCHEME_FIELD, DRAFT_FILE, Draft, Step, Wizard, run_commands};
 
 fn bool_value(v: &Value) -> Option<bool> {
     match v {
@@ -204,6 +207,10 @@ impl ShellModel {
         let (Some(path), Some(w)) = (self.draft_path(), &self.wizard) else {
             return;
         };
+        // A finished wizard has written its basic project and removed its draft.
+        if w.finished.is_some() {
+            return;
+        }
         let text = w.draft.to_json(w.step);
         let failed_text = strings::text("wizard-error-draft-write").to_owned();
         let written = path
@@ -285,6 +292,11 @@ impl ShellModel {
             }
             return Outcome::Done;
         }
+        if w.finished.is_some() {
+            return Outcome::Refused {
+                reason_key: "reason-wizard-finished",
+            };
+        }
         match w.draft.set(&field, &value) {
             Ok(()) => {
                 w.error = None;
@@ -354,6 +366,11 @@ impl ShellModel {
                 reason_key: "reason-no-wizard",
             };
         };
+        if self.wizard.as_ref().is_some_and(|w| w.finished.is_some()) {
+            return Outcome::Refused {
+                reason_key: "reason-wizard-finished",
+            };
+        }
         let dir = match string_param(p, "dir") {
             Err(e) => return e,
             Ok(Some(dir)) => PathBuf::from(dir),
@@ -373,8 +390,81 @@ impl ShellModel {
                 if let Some(path) = self.draft_path() {
                     let _ = std::fs::remove_file(path);
                 }
-                self.wizard = None;
+                // The wizard stays on the review step: the check scheme is applied after finishing, by a person
+                // (`wizard.apply_check_scheme`, FT-336).
+                if let Some(w) = &mut self.wizard {
+                    w.finished = Some(dir.clone());
+                    w.step = Step::Review;
+                    w.error = None;
+                }
                 self.banner = Some(strings::format("banner-wizard-done", &[&name]));
+                Outcome::Done
+            }
+            Err(message) => {
+                if let Some(w) = &mut self.wizard {
+                    w.error = Some(message.clone());
+                }
+                Outcome::Failed { message }
+            }
+        }
+    }
+
+    /// Applies the draft's check scheme to the finished basic project (FT-336): `project.checks.set` is `HumanOnly`
+    /// (ADR-0008 amendment 3, it decides check outcomes), so only a person in the window applies it, after a
+    /// confirmation that names the scheme. The headless mode refuses it (the human-only reason in the transcript).
+    pub(super) fn act_wizard_apply_check_scheme(&mut self, p: &Map<String, Value>) -> Outcome {
+        let Some((dir, scheme)) = self.wizard.as_ref().and_then(|w| {
+            let dir = w.finished.clone()?;
+            Some((dir, w.draft.get(CHECK_SCHEME_FIELD).to_owned()))
+        }) else {
+            return Outcome::Refused {
+                reason_key: "reason-wizard-not-finished",
+            };
+        };
+        if !self.wizard.as_ref().is_some_and(Wizard::can_apply_check_scheme) {
+            return Outcome::Refused {
+                reason_key: "reason-check-scheme-written",
+            };
+        }
+        if self.mode == Mode::Headless {
+            return Outcome::Refused {
+                reason_key: "reason-human-only",
+            };
+        }
+        if !flag(p, "confirm") {
+            return self.open_dialog(Dialog::ConfirmCheckScheme { scheme });
+        }
+        self.dialog = None;
+        let name = dir_name(&dir);
+        let written = self
+            .open_for_editing_with(&dir, Recovery::Keep)
+            .map_err(|e| strings::format("error-wizard-write", &[strings::text(open_error_key(&e))]))
+            .and_then(|(mut session, _report)| {
+                let cmd = AnyCommand {
+                    name: "project.checks.set".to_owned(),
+                    params: json!({ "release_scheme": scheme }),
+                };
+                let result = session
+                    .execute(&cmd)
+                    .map_err(|e| {
+                        strings::format("wizard-error-command", &["project.checks.set", &e.to_string()])
+                    })
+                    .and_then(|_| {
+                        session
+                            .save()
+                            .map(|_| ())
+                            .map_err(|_| strings::format("error-wizard-write", &[&name]))
+                    });
+                session.close();
+                result
+            });
+        match written {
+            Ok(()) => {
+                if let Some(w) = &mut self.wizard {
+                    w.checks_written = true;
+                    w.error = None;
+                }
+                self.banner = Some(strings::format("banner-check-scheme-applied", &[&scheme, &name]));
                 Outcome::Done
             }
             Err(message) => {
