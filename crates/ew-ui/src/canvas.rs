@@ -72,6 +72,9 @@ pub const MAX_UPLOAD_BYTES_PER_FRAME: usize = 2 * 1024 * 1024;
 /// The most canvas groups.
 const GROUPS: usize = 2;
 
+/// How far a primary press may travel before its release and still follow a link, in points.
+const CLICK_SLOP_PT: f32 = 3.0;
+
 /// The hover outline of a canvas: the hovered link's rectangle, else the hovered entity's (WP-S2.03 §6.4).
 fn hover_rect(c: &CanvasModel) -> Option<SheetRect> {
     c.hovered_link()
@@ -688,8 +691,12 @@ impl CanvasHost {
     pub(crate) fn update_backend(&mut self, shell: &mut ShellModel) {
         let (first, rest) = self.views.split_at_mut(1);
         first[0].gpu.update(shell);
+        // The second group's GPU canvas exists only while two groups are shown.
+        let needed = shell
+            .area()
+            .is_some_and(ew_viewmodel::area::CanvasArea::side_by_side);
         for v in rest {
-            if let Some(fault) = v.gpu.follow(&first[0].gpu) {
+            if let Some(fault) = v.gpu.follow(&first[0].gpu, needed) {
                 first[0].gpu.inject_fault(fault);
             }
         }
@@ -800,8 +807,13 @@ impl CanvasHost {
             }
             None => {}
         }
-        // A primary click (press and release without a drag) on a link follows it.
+        // A primary click (press and release within 3 points, WP-S2.03 §6.4) on a link follows it.
+        let near = ui.input(|i| match (i.pointer.press_origin(), i.pointer.interact_pos()) {
+            (Some(a), Some(b)) => a.distance(b) <= CLICK_SLOP_PT,
+            _ => true,
+        });
         if response.clicked_by(PointerButton::Primary)
+            && near
             && let Some(pos) = response.interact_pointer_pos()
         {
             let p = Self::sheet_point(rect, canvas, pos);

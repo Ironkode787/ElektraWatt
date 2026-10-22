@@ -162,11 +162,11 @@ impl GpuHost {
     }
 
     /// Mirrors the leader's choice for this frame: the canvas of this group is made on the leader's device when the
-    /// GPU draws and released when it does not. A failure of this group's canvas is returned for the leader (which
-    /// then records it as its fault: the CPU canvas for the rest of the session).
-    pub fn follow(&mut self, leader: &GpuHost) -> Option<GpuError> {
+    /// GPU draws and the group is `needed`, and released otherwise. A failure of this group's canvas is returned for
+    /// the leader (which then records it as its fault: the CPU canvas for the rest of the session).
+    pub fn follow(&mut self, leader: &GpuHost, needed: bool) -> Option<GpuError> {
         self.choice = leader.choice.clone();
-        if !leader.drawing() {
+        if !leader.drawing() || !needed {
             if self.canvas.is_some() {
                 self.release();
                 self.canvas = None;
