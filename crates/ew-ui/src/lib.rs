@@ -17,6 +17,7 @@ pub use ew_viewmodel;
 
 mod about;
 pub mod app;
+pub mod canvas;
 pub mod dock;
 mod first_run;
 pub mod fonts;

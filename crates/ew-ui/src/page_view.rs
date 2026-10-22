@@ -4,6 +4,9 @@
 //! The page view (WP-S2.01 part 1, spec section 5.3, decision log ID-445): the current page as the CPU renderer's
 //! image, read-only, fitted to the pane with its aspect ratio kept.
 //!
+//! Since WP-S2.02 the project view shows the page canvas ([`crate::canvas`]); this fitted image remains the
+//! company-standard wizard's live preview, and [`render_page`] the whole-page path of `view.snapshot` and `--smoke`.
+//!
 //! 1. On the UI thread, [`ShellModel::page_content`] gives the page's sheet display list through the session's memo
 //!    store (the `Session` is not `Send`).
 //! 2. One worker thread (a latest-request-wins slot, so a held Page Down key does not stack renders) runs [`render_page`] and sends the image back over a channel, tagged with

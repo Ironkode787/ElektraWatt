@@ -28,6 +28,9 @@ egui = { version = "=0.37.0", default-features = false }
 egui_tiles = { version = "=0.18.0", default-features = false }
 # The headless transcript.
 serde_json = "1.0.154"
+# The frame spans of the canvas (`frame`, `frame.input`, `frame.scene`, `frame.render`, `frame.paint`; WP-S2.02
+# section 9); already in the graph through ew-memo, no new package.
+tracing = { version = "0.1.44", default-features = false, features = ["std"] }
 # Picks the regular face among the bundled fonts by its family name and weight (already in the graph through
 # ew-render-cpu).
 skrifa = { version = "0.44.0", default-features = false, features = ["std"] }

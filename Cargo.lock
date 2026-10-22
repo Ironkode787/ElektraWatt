@@ -1630,6 +1630,7 @@ dependencies = [
  "ew-viewmodel",
  "serde_json",
  "skrifa 0.44.0",
+ "tracing",
 ]
 
 [[package]]

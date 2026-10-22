@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The egui frame over the shell model (WP-S2.01 parts 1 and 2, spec section 5.3): the menu bar, the banner, the
-//! start page, the first-run screen, the wizard, or the docked project view (the page list and the page view), the
-//! status bar, the palette and the dialogs, and the routing of keyboard shortcuts.
+//! start page, the first-run screen, the wizard, or the docked project view (the page list and the page canvas of
+//! WP-S2.02), the status bar, the palette and the dialogs, and the routing of keyboard shortcuts.
 //!
 //! The frame paints from `ShellModel`'s getters and sends everything the user does to `ShellModel::dispatch`
 //! (a menu item, a palette entry, a shortcut, a dialog answer, a file dialog's result). It names no `Session`.
@@ -18,6 +18,7 @@ use ew_viewmodel::shell::{ConfirmAnswer, Outcome, Prompt, ShellModel};
 use ew_viewmodel::strings;
 use serde_json::{Value, json};
 
+use crate::canvas::{CanvasCounters, CanvasHost};
 use crate::dock::Dock;
 use crate::keys::{self, Binding};
 use crate::page_view::PageView;
@@ -94,7 +95,8 @@ struct Deferred {
 pub struct App {
     shell: ShellModel,
     platform: Box<dyn Platform>,
-    page_view: PageView,
+    /// The page canvas of the project view (WP-S2.02).
+    canvas: CanvasHost,
     /// The page view of the wizard's preview.
     preview_view: PageView,
     dock: Dock,
@@ -113,10 +115,13 @@ pub struct App {
     applied_theme: Option<String>,
 }
 
-/// Prepares an egui context for the shell: installs the bundled fonts. Call it before the first frame (eframe's
-/// creation closure, the test harness's context setup), so that the first frame is laid out with them.
+/// Prepares an egui context for the shell: installs the bundled fonts and switches egui's own keyboard zoom off, so
+/// that Ctrl+Plus, Ctrl+Minus and Ctrl+0 reach the canvas and never the UI scale (which stays `view.ui_scale`).
+/// Call it before the first frame (eframe's creation closure, the test harness's context setup), so that the first
+/// frame is laid out with them.
 pub fn setup(ctx: &egui::Context) {
     crate::fonts::install(ctx);
+    ctx.options_mut(|o| o.zoom_with_keyboard = false);
 }
 
 impl App {
@@ -126,7 +131,7 @@ impl App {
         App {
             shell,
             platform,
-            page_view: PageView::new(),
+            canvas: CanvasHost::new(),
             preview_view: PageView::new(),
             dock,
             initial,
@@ -151,9 +156,19 @@ impl App {
         &mut self.shell
     }
 
-    /// Whether the image of the page on show has arrived from the render worker.
+    /// Whether the canvas drew every visible tile of the page on show at the wanted resolution of a settled view.
     pub fn page_view_ready(&self) -> bool {
-        self.page_view.is_ready()
+        self.canvas.is_ready()
+    }
+
+    /// The engine counters of the canvas (tests: tiles requested, rastered, uploaded; scenes built).
+    pub fn canvas_counters(&self) -> CanvasCounters {
+        self.canvas.counters()
+    }
+
+    /// The frame statistics of the canvas (WP-S2.02 section 9).
+    pub fn canvas_stats(&self) -> &ew_render2d::stats::FrameStats {
+        self.canvas.stats()
     }
 
     /// Whether the image of the wizard's preview has arrived from the render worker.
@@ -199,6 +214,7 @@ impl App {
 
     /// Paints one frame into the root `ui` of the window.
     pub fn ui(&mut self, ui: &mut Ui) {
+        let _frame = tracing::trace_span!("frame").entered();
         let ctx = ui.ctx().clone();
         // `ui_scale` is a factor on the native scale: egui's zoom factor is exactly that, and follows the window
         // to another monitor. It is set once when the setting changes.
@@ -262,6 +278,7 @@ impl App {
         }
         Panel::bottom("status-bar").show(ui, |ui| status_bar::show(ui, &self.shell, exporting));
         let mut new_layout = None;
+        let mut canvas_shown = false;
         CentralPanel::default().show(ui, |ui| {
             if self.shell.first_run().is_some() {
                 first_run::show(ui, &self.shell, &mut events);
@@ -271,13 +288,16 @@ impl App {
                 let App {
                     shell,
                     dock,
-                    page_view,
+                    canvas,
                     last_page_index,
                     ..
                 } = self;
                 dock.show(ui, &mut |ui, pane| match pane {
                     PaneKind::Pages => page_list(ui, shell, last_page_index, &mut events),
-                    PaneKind::PageView => page_view.show(ui, shell),
+                    PaneKind::PageView => {
+                        canvas.show(ui, shell, &mut events);
+                        canvas_shown = true;
+                    }
                 });
                 new_layout = dock.layout().filter(|l| l != shell.layout());
             } else {
@@ -308,8 +328,14 @@ impl App {
         if !events.is_empty() {
             ctx.request_repaint();
         }
+        let dispatch_started = ew_render2d::stats::now();
         for event in events {
             self.apply(event);
+        }
+        if canvas_shown {
+            // The canvas's input phase includes dispatching the frame's actions (WP-S2.02 section 9).
+            self.canvas
+                .end_frame(ew_render2d::stats::now() - dispatch_started, &self.shell);
         }
         self.answer_prompts(&ctx);
         self.open_documentation();

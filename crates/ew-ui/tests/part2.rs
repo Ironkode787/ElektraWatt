@@ -296,11 +296,12 @@ fn the_project_view_is_a_dock_and_a_changed_layout_becomes_the_workspace_file() 
     assert!(h.query_by_label("Page view").is_some());
     assert!(!h.state().shell().layout_pending());
 
-    // The user drags the page list onto the page view: one tab group.
+    // The user drags the page list onto the page view: one tab group. Two frames (half a second of the harness's
+    // clock): the canvas's tiles arriving for the new pane would run more frames, and the file waits one second.
     h.state_mut()
         .dock_tab_together(PaneKind::Pages, PaneKind::PageView);
-    settle(&mut h);
-    settle(&mut h);
+    h.step();
+    h.step();
     let layout = h.state().shell().layout().clone();
     assert!(matches!(layout.root, LayoutNode::Tabs { .. }), "{layout:?}");
     assert_eq!(layout.panes().len(), 2);

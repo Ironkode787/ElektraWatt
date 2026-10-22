@@ -3,8 +3,9 @@
 
 //! The headless mode (WP-S2.01 part 1, spec section 6): `elektrawatt --headless --script <file|->` runs a UI
 //! script on the same `ShellModel::dispatch` as the window, with no window, no GPU and no display, and writes a
-//! deterministic transcript. This module adds the page raster (`view.snapshot`) to the core runner of
-//! `ew_viewmodel::script`, and the smoke run of architecture section 10.1.
+//! deterministic transcript. This module adds the page raster (`view.snapshot`) and the canvas snapshot
+//! (`canvas.snapshot`, WP-S2.02 section 6.6) to the core runner of `ew_viewmodel::script`, and the smoke run of
+//! architecture section 10.1.
 //!
 //! Exit codes: 0 all steps done; 1 a step was refused or failed (the run stops there); 2 a usage error (an
 //! unreadable or malformed script, an unknown action ID).
@@ -41,15 +42,40 @@ pub struct HeadlessArgs {
     pub config_dir: Option<PathBuf>,
 }
 
-/// `view.snapshot`: the current page as a PNG at the given dpi through the page view's render path.
+/// `view.snapshot`: the current page as a PNG at the given dpi through the page view's render path; and
+/// `canvas.snapshot`: the canvas pane as it shows it (WP-S2.02 section 6.6), always on the CPU path.
 struct Snapshot;
 
 impl StepExtension for Snapshot {
     fn handle(&mut self, shell: &mut ShellModel, action: &str, params: &Value) -> Option<Outcome> {
-        if action != "view.snapshot" {
-            return None;
+        match action {
+            "view.snapshot" => Some(snapshot(shell, params)),
+            "canvas.snapshot" => Some(canvas_snapshot(shell, params)),
+            _ => None,
         }
-        Some(snapshot(shell, params))
+    }
+}
+
+fn canvas_snapshot(shell: &ShellModel, params: &Value) -> Outcome {
+    let Some(path) = params.get("path").and_then(Value::as_str) else {
+        return Outcome::Failed {
+            message: strings::format("error-missing-param", &["path"]),
+        };
+    };
+    if shell.canvas().is_none() {
+        return Outcome::Refused {
+            reason_key: "reason-no-page",
+        };
+    }
+    let (image, dpi) = match crate::canvas::snapshot_image(shell) {
+        Ok(done) => done,
+        Err(message) => return Outcome::Failed { message },
+    };
+    match std::fs::write(path, encode_png(&image, Some(dpi))) {
+        Ok(()) => Outcome::Done,
+        Err(_) => Outcome::Failed {
+            message: strings::format("error-write", &[]),
+        },
     }
 }
 
