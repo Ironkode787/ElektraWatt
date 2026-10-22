@@ -75,6 +75,7 @@
 #![deny(missing_docs)]
 
 mod anchor;
+mod asset;
 mod connect;
 mod device;
 mod error;
@@ -92,6 +93,10 @@ mod set;
 mod track;
 mod value;
 
+pub use asset::{
+    AssetError, AssetFormat, AssetRef, COMPANY_MEMBER, MAX_RASTER_BYTES, MAX_SVG_BYTES, MAX_SVG_NODES,
+    base64_decode, base64_encode, company_logo, sniff,
+};
 pub use connect::{
     AcDc, AssignedNumber, BevelSpec, Bond, BondKind, BridgeKind, BridgeSpec, BusLine, CircuitClass,
     Conductor, Connection, ConnectionKind, Junction, JunctionStyle, JunctionWiring, NumberSpec, PotentialDef,

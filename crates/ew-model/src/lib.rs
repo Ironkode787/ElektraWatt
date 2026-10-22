@@ -119,6 +119,7 @@ macro_rules! raw_read {
     };
 }
 
+mod asset;
 mod entity;
 mod error;
 mod index;
@@ -132,6 +133,7 @@ mod rev;
 #[cfg(test)]
 mod tests;
 
+pub use asset::Asset;
 pub use entity::{AnyKey, AnyRow, Entity, LibraryCopies};
 pub use error::ModelError;
 pub use index::{BaseIndexes, Bucket, EndpointKey, RevIndex};

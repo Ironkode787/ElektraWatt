@@ -12,11 +12,12 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use ew_format::ew_schema::{AnyId, FORMAT};
+use ew_format::ew_schema::{AssetFormat, AssetRef, Sha256};
 use ew_format::{
     Access as FormatAccess, FileHash, FilePath, Finding, FindingKind, Kept, Limits, LineKey, MANIFEST,
-    Manifest, PathClass, classify, hash_text, jsonl_file, sha256, unknown_record_file,
+    Manifest, OpaqueKind, PathClass, classify, hash_text, jsonl_file, sha256, unknown_record_file,
 };
-use ew_model::{AnyKey, AnyRow, Model, ModelError};
+use ew_model::{AnyKey, AnyRow, Asset, Model, ModelError};
 
 use crate::clock::{Clock, SystemClock};
 use crate::journal::{self, Journal, RecoveryInfo, ReplayError, Segment};
@@ -445,10 +446,37 @@ fn is_save_temp(path: &str) -> bool {
         PathClass::Intent { .. } => true,
         PathClass::Temp { target, .. } => matches!(
             classify(&target),
-            PathClass::Records(_) | PathClass::LibDocument { .. }
+            PathClass::Records(_)
+                | PathClass::LibDocument { .. }
+                | PathClass::Opaque(OpaqueKind::Asset { .. })
         ),
         _ => false,
     }
+}
+
+/// The asset of an opaque file `path` with `bytes` hashing to `hash`: an `assets/<sha256>.<ext>` file whose name
+/// is its hash and whose bytes sniff as the format of its extension; `None` otherwise.
+fn asset_of(path: &FilePath, hash: &[u8; 32], bytes: Option<&Vec<u8>>) -> Option<Asset> {
+    let PathClass::Opaque(OpaqueKind::Asset { sha256: named }) = classify(path.as_str()) else {
+        return None;
+    };
+    let bytes = bytes?;
+    let ext = path.as_str().rsplit_once('.')?.1;
+    let format = AssetFormat::from_ext(ext)?;
+    if named != *hash {
+        return None;
+    }
+    let (sniffed, size) = ew_format::ew_schema::sniff(bytes).ok()?;
+    (sniffed == format).then(|| {
+        Asset::new(
+            AssetRef {
+                sha256: Sha256(*hash),
+                format,
+                size,
+            },
+            bytes.as_slice(),
+        )
+    })
 }
 
 /// EW-CORE-002 for an interrupted save of generation `g` that is not applied because the manifest on disk
@@ -902,10 +930,17 @@ impl Store {
         let Some(project) = loaded.project else {
             return Err(OpenError::NoProject(findings));
         };
-        let model = match Model::from_records(project, loaded.records, loaded.lib) {
+        let mut model = match Model::from_records(project, loaded.records, loaded.lib) {
             Ok(m) => m,
             Err(error) => return Err(OpenError::Model { error, findings }),
         };
+        // The asset store (doc 05 §13.3): every asset file whose bytes match the hash in its name and the format
+        // of its extension. Others stay opaque files only (EW-CORE-015 reports a wrong hash).
+        for (path, hash) in &loaded.opaque {
+            if let Some(asset) = asset_of(path, hash, files.get(path)) {
+                model.put_asset(asset);
+            }
+        }
         if !repairable || loader_read_only || findings.iter().any(|f| f.kind.forces_read_only()) {
             self.demote(ReadOnlyReason::Integrity);
         }
@@ -1446,6 +1481,7 @@ impl Store {
             .iter()
             .map(|(p, h)| (p.clone(), FileHash::Sha256(*h)))
             .chain(self.opaque.iter().map(|(p, h)| (p.clone(), *h)))
+            .chain(plan.assets.iter().map(|(p, h)| (p.clone(), *h)))
             .collect();
         let manifest_same = self.manifest.as_ref().is_some_and(|old| {
             let mut a = old.clone();
@@ -1560,6 +1596,7 @@ impl Store {
         }
         // Commit point: generation g1 is decided.
         let manifest_hash = sha256(manifest_text.as_bytes());
+        self.opaque.extend(plan.assets);
         self.adopt(model, plan.contents, plan.disk);
         self.manifest = Some(manifest);
         self.manifest_hash = Some(manifest_hash);
@@ -1774,11 +1811,30 @@ impl Store {
                 writes.insert(path.clone(), bytes);
             }
         }
+        // The assets the records name that have no file yet (doc 05 §13.3). A save never removes an asset file.
+        let mut assets = BTreeMap::new();
+        for sha in model.referenced_assets().keys() {
+            let Some(asset) = model.asset(sha) else {
+                continue; // named but not held: nothing to write (the check reports it)
+            };
+            // `assets/<64 hex>.<ext>` is always a valid path.
+            let Ok(path) = FilePath::new(asset.reference().path()) else {
+                continue;
+            };
+            // On disk with its bytes: nothing to do. A file under that name whose bytes are not the asset's
+            // (EW-CORE-015) is replaced by the asset the model holds.
+            if self.opaque.get(&path) == Some(&FileHash::Sha256(sha.0)) {
+                continue;
+            }
+            writes.insert(path.clone(), asset.bytes().to_vec());
+            assets.insert(path, FileHash::Sha256(sha.0));
+        }
         Ok(SavePlan {
             writes,
             removes,
             disk,
             contents,
+            assets,
         })
     }
 
@@ -2002,6 +2058,8 @@ struct SavePlan {
     disk: BTreeMap<FilePath, [u8; 32]>,
     /// The new key sets of the dirty files.
     contents: BTreeMap<FilePath, BTreeSet<AnyKey>>,
+    /// The asset files this save writes, with their hashes (they join the opaque files).
+    assets: BTreeMap<FilePath, FileHash>,
 }
 
 /// The project row of an empty baseline (never written: a save writes the model's project).

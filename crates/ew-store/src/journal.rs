@@ -9,6 +9,7 @@
 //! ```text
 //! {"j":"open","v":1,"project":"…","path":"<project path>","base":231,"base_manifest":"sha256:…","app_version":"…","session":"…"}
 //! {"j":"tx","seq":17,"t":1792241530117,"cmd":"connection.set_overrides","origin":"gui","ops":[{"k":["connection","…"],"set":{…},"was":{…}}]}
+//! {"j":"tx","seq":18,"t":1792241531002,"cmd":"project.company.set","origin":"gui","ops":[…],"assets":[{"ref":{"sha256":"sha256:…","format":"svg","size":[80,20]},"b64":"PHN2Zy…"}]}
 //! {"j":"save-begin","gen":232,"writes":17,"removes":["devices/9f.jsonl"]}
 //! {"j":"save-done","gen":232}
 //! ```
@@ -17,15 +18,20 @@
 //! commit timer. A successful save starts a new segment and deletes the old one; a clean close deletes the
 //! session's segments (NFR-PRIV-05). Snapshot slots (doc 05 §8.1 "Snapshots") are not in v0: recovery
 //! replays the whole segment onto its base generation.
+//!
+//! **Assets** (FT-337). A transaction that brings assets into the model's asset store (doc 05 §13.3) journals
+//! them in `assets`, each with its reference and its bytes in base64, so that a recovery restores the bytes that
+//! its ops name. An asset whose bytes do not hash to its reference, or do not sniff as its format, is dropped on
+//! reading (its line still counts).
 
 use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
-use ew_format::ew_schema::{AnyId, Kind};
+use ew_format::ew_schema::{AnyId, AssetRef, Kind, base64_decode, base64_encode};
 use ew_format::{FilePath, hash_text, sha256};
-use ew_model::{AnyKey, AnyRow, Model};
+use ew_model::{AnyKey, AnyRow, Asset, Model};
 use serde_json::{Map, Value};
 
 use crate::rows::{row_value, value_row};
@@ -185,6 +191,8 @@ pub enum Entry {
         origin: String,
         /// The row changes.
         ops: Vec<JournalOp>,
+        /// The assets the transaction brought (absent in older segments: none).
+        assets: Vec<Asset>,
     },
     /// A save passed its commit point.
     SaveBegin {
@@ -257,6 +265,11 @@ impl Segment {
                         cmd: v.get("cmd").and_then(Value::as_str).unwrap_or("").to_owned(),
                         origin: v.get("origin").and_then(Value::as_str).unwrap_or("").to_owned(),
                         ops,
+                        assets: v
+                            .get("assets")
+                            .and_then(Value::as_array)
+                            .map(|a| a.iter().filter_map(asset_from_value).collect())
+                            .unwrap_or_default(),
                     }
                 }
                 Some("save-begin") => Entry::SaveBegin {
@@ -429,15 +442,24 @@ impl Journal {
         if ops.is_empty() {
             return Ok(());
         }
+        let assets: Vec<Value> = after
+            .assets()
+            .filter(|a| before.asset(a.sha256()).is_none())
+            .map(asset_to_value)
+            .collect::<Result<_, _>>()?;
         self.seq += 1;
-        self.append(&line(&[
+        let mut members = vec![
             ("j", "tx".into()),
             ("seq", self.seq.into()),
             ("t", crate::clock::epoch_ms(t).into()),
             ("cmd", cmd.into()),
             ("origin", origin.into()),
             ("ops", Value::Array(ops)),
-        ]))
+        ];
+        if !assets.is_empty() {
+            members.push(("assets", Value::Array(assets)));
+        }
+        self.append(&line(&members))
     }
 
     /// Journals that a save of generation `generation` passed its commit point (doc 05 §5.2 step 5).
@@ -517,6 +539,27 @@ pub struct Collision {
     pub member: String,
 }
 
+/// The journal form of an asset: `{"ref": <AssetRef>, "b64": <bytes>}`.
+fn asset_to_value(asset: &Asset) -> io::Result<Value> {
+    let reference = serde_json::to_value(asset.reference()).map_err(io::Error::other)?;
+    let mut m = Map::new();
+    m.insert("ref".into(), reference);
+    m.insert("b64".into(), Value::from(base64_encode(asset.bytes())));
+    Ok(Value::Object(m))
+}
+
+/// An asset read back from its journal form; `None` when the bytes do not hash to the reference or do not sniff
+/// as its format.
+fn asset_from_value(v: &Value) -> Option<Asset> {
+    let reference: AssetRef = serde_json::from_value(v.get("ref")?.clone()).ok()?;
+    let bytes = base64_decode(v.get("b64")?.as_str()?).ok()?;
+    if sha256(&bytes) != reference.sha256.0 {
+        return None;
+    }
+    let (format, size) = ew_format::ew_schema::sniff(&bytes).ok()?;
+    (format == reference.format && size == reference.size).then(|| Asset::new(reference, bytes))
+}
+
 /// Replays journalled transactions onto `model` (doc 05 §8.2). Each transaction becomes one batch of ops
 /// applied as a new revision on the history path (`Model::apply_history`): the journal holds committed
 /// transactions, undos and redos among them. With `check` (the base moved), every before-value is compared
@@ -531,7 +574,12 @@ pub fn replay(model: &Model, txs: &[&Entry], check: bool) -> Result<(Model, Vec<
     let mut touched = std::collections::BTreeSet::new();
     let mut collisions = Vec::new();
     for entry in txs {
-        let Entry::Tx { ops, .. } = entry else { continue };
+        let Entry::Tx { ops, assets, .. } = entry else {
+            continue;
+        };
+        for asset in assets {
+            model.put_asset(asset.clone());
+        }
         let mut batch = Vec::new();
         for op in ops {
             let key = op.key();

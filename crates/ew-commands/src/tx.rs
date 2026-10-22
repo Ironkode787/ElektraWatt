@@ -9,12 +9,13 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use ew_ids::{EntropyError, Id, IdSource, UnixTime, Uuid, V7Generator};
-use ew_model::{AnyKey, AnyRow, EndpointKey, Entity, Model, Op, Rev, RowId};
+use ew_model::{AnyKey, AnyRow, Asset, EndpointKey, Entity, Model, Op, Rev, RowId};
 use ew_schema::{
-    AnyId, Bond, Channel, Conductor, Connection, Device, Endpoint, ExternalRef, FnDef, FormDef, Function,
-    ImportLineage, Junction, Kind, LibCopy, Page, Part, PotentialDef, Project, ReportBlock, Representation,
-    Section, StructureNode, SymbolDef,
+    AnyId, AssetError, AssetRef, Bond, Channel, Conductor, Connection, Device, Endpoint, ExternalRef, FnDef,
+    FormDef, Function, ImportLineage, Junction, Kind, LibCopy, Page, Part, PotentialDef, Project,
+    ReportBlock, Representation, Section, Sha256, StructureNode, SymbolDef,
 };
+use sha2::Digest;
 
 use crate::error::CmdError;
 
@@ -276,6 +277,8 @@ pub struct TxBuilder<'a> {
     stale: BTreeSet<AnyKey>,
     /// The notices of the normalisers ([`TxBuilder::notice`]), in first-emission order, without repeats.
     notices: Vec<String>,
+    /// The assets this transaction brings ([`TxBuilder::put_asset`]), by hash.
+    assets: BTreeMap<Sha256, Asset>,
 }
 
 impl std::fmt::Debug for TxBuilder<'_> {
@@ -301,6 +304,7 @@ impl<'a> TxBuilder<'a> {
             scratch: None,
             stale: BTreeSet::new(),
             notices: Vec::new(),
+            assets: BTreeMap::new(),
         }
     }
 
@@ -761,11 +765,49 @@ impl<'a> TxBuilder<'a> {
             .collect()
     }
 
-    /// Ends the transaction: its ops, its read set and the keys it inserted.
-    pub fn finish(self) -> (Vec<Op>, ReadSet, Vec<AnyKey>) {
+    // -----------------------------------------------------------------------------------------------------
+    // Assets
+
+    /// Brings image bytes into the project's asset store (doc 05 §13.3): sniffs their format and intrinsic
+    /// size, applies the size limits ([`ew_schema::sniff`]) and hashes them. The reference it returns is what a
+    /// record stores; the bytes join the model with this transaction's ops (an asset is not an op: undo keeps
+    /// it, and the save writes the assets that records name).
+    ///
+    /// # Errors
+    ///
+    /// The [`AssetError`] of bytes that are no SVG, PNG or JPEG file, or exceed a limit.
+    pub fn put_asset(&mut self, bytes: Vec<u8>) -> Result<AssetRef, AssetError> {
+        let (format, size) = ew_schema::sniff(&bytes)?;
+        let reference = AssetRef {
+            sha256: Sha256(sha2::Sha256::digest(&bytes).into()),
+            format,
+            size,
+        };
+        self.assets
+            .entry(reference.sha256)
+            .or_insert_with(|| Asset::new(reference, bytes));
+        Ok(reference)
+    }
+
+    /// The asset with this hash, brought by this transaction or held by the base (a structural lookup: asset
+    /// bytes never change under their hash, so it is not recorded in the read set).
+    pub fn asset(&self, sha256: &Sha256) -> Option<AssetRef> {
+        self.assets
+            .get(sha256)
+            .or_else(|| self.base.asset(sha256))
+            .map(|a| *a.reference())
+    }
+
+    /// Ends the transaction: its ops, its read set, the keys it inserted and the assets it brings.
+    pub fn finish(self) -> (Vec<Op>, ReadSet, Vec<AnyKey>, Vec<Asset>) {
         let ops = self.ops();
         let inserted = self.inserted();
-        (ops, self.reads.into_inner(), inserted)
+        (
+            ops,
+            self.reads.into_inner(),
+            inserted,
+            self.assets.into_values().collect(),
+        )
     }
 }
 

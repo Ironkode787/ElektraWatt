@@ -1206,6 +1206,7 @@ fn tx_entry(before: &Model, after: &Model, keys: &[AnyKey], cmd: &str) -> Entry 
         cmd: cmd.into(),
         origin: "test".into(),
         ops,
+        assets: Vec::new(),
     }
 }
 

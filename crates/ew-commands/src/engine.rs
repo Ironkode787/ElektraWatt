@@ -25,7 +25,9 @@ use std::collections::BTreeSet;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use ew_ids::{Id, IdSource, SystemSource};
-use ew_model::{AnyKey, AnyRow, ApplyOptions, Model, Op, PreventHook, PreventViolation, Rev, invert_batch};
+use ew_model::{
+    AnyKey, AnyRow, ApplyOptions, Asset, Model, Op, PreventHook, PreventViolation, Rev, invert_batch,
+};
 use ew_schema::{Page, Representation};
 
 use crate::command::{DynCommand, Outcome};
@@ -132,6 +134,7 @@ pub struct Preview {
     outcome: Outcome,
     created: Vec<AnyKey>,
     passes: usize,
+    assets: Vec<Asset>,
 }
 
 impl Preview {
@@ -230,6 +233,8 @@ struct Prepared {
     outcome: Outcome,
     created: Vec<AnyKey>,
     passes: usize,
+    /// The assets the transaction brings (already in `candidate`).
+    assets: Vec<Asset>,
 }
 
 /// The editing engine: the current model, the history, the registry, the ID source, the prevent hook,
@@ -370,8 +375,8 @@ impl Engine {
                 outcome.notices.push(notice);
             }
         }
-        let (ops, read_set, created) = tx.finish();
-        let candidate = if ops.is_empty() {
+        let (ops, read_set, created, assets) = tx.finish();
+        let mut candidate = if ops.is_empty() {
             base.clone()
         } else {
             base.apply_with(
@@ -382,6 +387,9 @@ impl Engine {
                 },
             )?
         };
+        for asset in &assets {
+            candidate.put_asset(asset.clone());
+        }
         Ok(Prepared {
             candidate,
             ops,
@@ -389,6 +397,7 @@ impl Engine {
             outcome,
             created,
             passes,
+            assets,
         })
     }
 
@@ -406,9 +415,16 @@ impl Engine {
             outcome,
             created,
             passes,
+            assets,
             ..
         } = prepared;
         let changed = !ops.is_empty();
+        if !changed {
+            // Assets of a transaction without ops (a reference that was there already): the store keeps them.
+            for asset in assets {
+                self.model.put_asset(asset);
+            }
+        }
         let rev = if changed {
             candidate.rev()
         } else {
@@ -494,6 +510,7 @@ impl Engine {
             outcome: prepared.outcome,
             created: prepared.created,
             passes: prepared.passes,
+            assets: prepared.assets,
         })
     }
 
@@ -534,6 +551,7 @@ impl Engine {
             outcome,
             created,
             passes,
+            assets,
             ..
         } = preview;
         let base_rev = base.rev;
@@ -553,6 +571,7 @@ impl Engine {
                 outcome,
                 created,
                 passes,
+                assets,
             };
             return Ok(self.finalize(prepared, command, meta, submit));
         }
@@ -568,7 +587,10 @@ impl Engine {
                     },
                 )
             };
-            if let Ok(candidate) = applied {
+            if let Ok(mut candidate) = applied {
+                for asset in &assets {
+                    candidate.put_asset(asset.clone());
+                }
                 let prepared = Prepared {
                     candidate,
                     ops,
@@ -576,6 +598,7 @@ impl Engine {
                     outcome,
                     created,
                     passes,
+                    assets,
                 };
                 return Ok(self.finalize(prepared, command, meta, submit));
             }

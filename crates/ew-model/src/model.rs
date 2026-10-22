@@ -13,6 +13,7 @@ use ew_schema::{
     Record, ReportBlock, Representation, Revision, Section, StructureNode,
 };
 
+use crate::asset::Asset;
 use crate::entity::{AnyKey, AnyRow, Entity, LibraryCopies, get_row, put_row, same_tables};
 use crate::error::ModelError;
 use crate::index::BaseIndexes;
@@ -57,6 +58,8 @@ pub struct Model {
     /// Library documents of unknown kinds, likewise (by `$k`, then ID).
     pub(crate) unknown_lib: Arc<Vec<LibDocument>>,
     pub(crate) idx: BaseIndexes,
+    /// The asset store: content-addressed bytes, by hash (doc 05 §13.3; [`crate::Asset`]).
+    pub(crate) assets: imbl::OrdMap<ew_schema::Sha256, Asset>,
 }
 
 impl Model {
@@ -87,6 +90,7 @@ impl Model {
             unknown: Arc::new(Vec::new()),
             unknown_lib: Arc::new(Vec::new()),
             idx: BaseIndexes::default(),
+            assets: imbl::OrdMap::new(),
         }
     }
 
@@ -249,6 +253,37 @@ impl Model {
         /// Whether a row exists under the key.
         fn contains(&self, key: &AnyKey) -> bool {
             get_row(self, key).is_some()
+        }
+    }
+
+    /// The asset with this hash, if the model holds it. Not a record read: an asset's bytes never change under
+    /// its hash, so a reader needs no dependency tracking for it (doc 05 §13.3).
+    pub fn asset(&self, sha256: &ew_schema::Sha256) -> Option<&Asset> {
+        self.assets.get(sha256)
+    }
+
+    /// Every asset the model holds, in hash order.
+    pub fn assets(&self) -> impl Iterator<Item = &Asset> + '_ {
+        self.assets.values()
+    }
+
+    /// Puts an asset into the asset store. Its bytes are named by their hash, so this is not a change of the
+    /// model: no revision, no op, and putting an asset that is there already does nothing. The callers are the
+    /// commit of a transaction whose ops name the asset, the store at open and the journal replay.
+    pub fn put_asset(&mut self, asset: Asset) {
+        if !self.assets.contains_key(asset.sha256()) {
+            self.assets.insert(*asset.sha256(), asset);
+        }
+    }
+
+    raw_read! {
+        /// The assets the records name, by hash: today the company logo of the project row
+        /// ([`ew_schema::company_logo`]). The save writes these (doc 05 §13.3).
+        fn referenced_assets(&self) -> std::collections::BTreeMap<ew_schema::Sha256, ew_schema::AssetRef> {
+            ew_schema::company_logo(&self.project.value.extra)
+                .map(|r| (r.sha256, r))
+                .into_iter()
+                .collect()
         }
     }
 
