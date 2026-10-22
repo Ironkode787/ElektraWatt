@@ -294,6 +294,10 @@ criteria = "safe-to-deploy"
 version = "0.37.0"
 criteria = "safe-to-run"
 
+[[exemptions.egui_tiles]]
+version = "0.18.0"
+criteria = "safe-to-deploy"
+
 [[exemptions.either]]
 version = "1.19.0"
 criteria = "safe-to-deploy"

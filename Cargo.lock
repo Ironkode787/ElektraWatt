@@ -992,6 +992,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "egui_tiles"
+version = "0.18.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c08803282261f981e84f422b9f716450caee4c2a0301278e27aab721dff99218"
+dependencies = [
+ "ahash",
+ "egui",
+ "itertools",
+ "log",
+]
+
+[[package]]
 name = "either"
 version = "1.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1610,6 +1622,7 @@ version = "0.0.0"
 dependencies = [
  "egui",
  "egui_kittest",
+ "egui_tiles",
  "ew-render-cpu",
  "ew-render2d",
  "ew-render3d",
