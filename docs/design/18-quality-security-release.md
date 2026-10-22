@@ -246,11 +246,29 @@ finding the project did not already have, i.e. none slipped past the prevent hoo
 every step is undone and the model must equal the initial one. A failure prints the seed, the step and the command
 log. `fuzz_smoke` (2 seeds × 30 steps, sampled oracle, integrity and undo-all) runs in the targeted tests;
 `fuzz_long` is `#[ignore]`d (`EW_FUZZ_SEEDS`, `EW_FUZZ_STEPS`). A first run of 20 seeds × 200 steps (2,324 commits,
-426 undo/redo) found no defect. Not yet: save/reload round trips, macro insertion and imports in the step set.
-The fuzzer picks its targets by index into the live records, so the no-op rule of §3.3 holds by construction. Since
-cycle 16 it covers 11 of the 36 registered commands; the others (`device.place`, `ip.place`, `page.create`,
-`device.create`, `terminal.add`, `cable.create`, the cycle-15 and cycle-16 commands and the new `fields.set` paths) are
-FT-279.
+426 undo/redo) found no defect. The fuzzer picks its targets by index into the live records, so the no-op rule of §3.3
+holds by construction.
+
+*As built (cycle 17, lane B; FT-272, FT-279).* The test is now the directory `crates/ew-testkit/tests/command_fuzz/`
+(`arms.rs`, `live.rs`, `step.rs`, `roundtrip.rs`, `import.rs`, `main.rs`). **Every one of the 36 registered commands**
+has a generator arm (`ARMS`); `every_registered_command_has_a_generator_arm` compares the table with the registry and
+fails with a message that names the commands without an arm, so a command added later (the `revision.*` commands) fails
+it until its arm exists. Each arm mixes well-formed steps, which the model must commit (`Verdict::Accept` where the
+generator models every refusal rule, `Either` where prevent rules or invariants may refuse), malformed steps, which it
+must refuse without changing anything (an absent record, an off-grid position, a duplicate key, a cycle, a wrong
+hash), and after-commit checks (the counts of the records the command creates, the primary record, field values);
+`every_arm_commits_and_refuses_what_it_should` runs this validity oracle for every command on Golden A. The step set
+gained the **save-and-reload round trip** (create once, then incremental saves; a reader reopens the directory; no
+open-report finding, `Model::content_eq`, the derived families equal, every family on the deep cadence; after the
+closing undo-all a run that saved saves again and must reload the initial model) and the **CSV table import** (the
+golden tables intact or damaged, strict and lenient: the batch always loads into a model, lenient differs from strict
+only in foreign colour codes, the intact tables give the records of path (a)). Not built: **macro insertion**, because
+no `macro.insert` command or macro record exists yet (FR-MAC-005). The nightly form is `fuzz_long` with
+seeds × steps from `EW_FUZZ_SEEDS` and `EW_FUZZ_STEPS` (and the cadences, the step mix, `EW_FUZZ_BUDGET_SECS` and
+`EW_FUZZ_REPORT`), run by `.github/workflows/fuzz.yml` in the release profile with debug assertions on, report-only
+(`ci/README.md`); **not** a cargo-fuzz target, because the repository has no `fuzz/` crate yet and the seeded test is
+what ID-388 chose, so one generator serves all three uses; ASan is not part of the nightly. `fuzz_smoke` takes about
+17 s in a debug build.
 
 ### 3.7 Snapshots
 

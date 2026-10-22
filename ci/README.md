@@ -97,6 +97,45 @@ smoke run, no evidence); `--from <captured bench output>` re-reports one capture
 file per flag; repeat the flag for more files).
 `python3 -I ci/ci-times.py --dry-run` lists the API calls; `--selftest` checks its arithmetic offline.
 
+## Nightly command fuzzer (`fuzz.yml`, the test `fuzz_long`)
+
+WP-S6.02, FT-272 and FT-279, decision log ID-388 (doc 18 §3.6, CI-N-02). The nightly workflow
+[`fuzz.yml`](../.github/workflows/fuzz.yml) (schedule and `workflow_dispatch`, with `seeds`, `steps` and
+`budget_minutes` inputs) runs the ignored test `fuzz_long` of
+[`ew-testkit/tests/command_fuzz`](../crates/ew-testkit/tests/command_fuzz): `EW_FUZZ_SEEDS` seeds (a comma list or
+ranges such as `1..=40`; the schedule uses 12 seeds from a range that starts at the day number, so every night
+explores new streams) of `EW_FUZZ_STEPS` (default 200 in the workflow) random steps over Golden A. Every one of
+the registered commands is generated (the test `every_registered_command_has_a_generator_arm` fails when a
+command has no arm), next to undo and redo, save-and-reload round trips and strict and lenient CSV table imports.
+Oracles: the structural check after every changing step, the memo oracle, the prevent rule, `verify_derived`, the
+validity oracle of each command (a well-formed step must commit, a malformed one must be refused and change
+nothing, the checks of what the command created), the equality of the model and of the derived families after a
+reload, and the closing undo-all with its own save and reload. The nightly body is this seeded test and not a
+cargo-fuzz target: the repository has no `fuzz/` crate (that arrives with the parser-fuzzing package, doc 18
+§3.12), and one generator then serves the targeted test, the acceptance of every command and this run.
+
+The job builds and runs in the **release profile with debug assertions and overflow checks on**
+(`CARGO_PROFILE_RELEASE_DEBUG_ASSERTIONS`, `CARGO_PROFILE_RELEASE_OVERFLOW_CHECKS`): measured on a developer
+machine, a step takes about 1.4 s there against 10 s in the dev profile, and a seed of 150 steps takes about
+200 s. The timeout is sized from that: `budget_minutes` (default 75) stops new seeds from starting (the
+test then ends with `status: budget`, which is not a failure), the run step is bounded by `timeout` at the budget
+plus 45 minutes, and the job at 180 minutes.
+
+**Report-only**: the job is red only for a real finding (a panic, an oracle or invariant violation, a round-trip
+mismatch), never for infrastructure. The test writes the findings file `target/fuzz/findings.md` first and
+rewrites it after every seed (`status: running|complete|budget`, the line `FINDINGS: n`, each finding with its
+seed, step, oracle and the command log in the `ew.cmdlog/1` format); a seed that fails does not stop the others.
+The workflow uploads the file, the parameters and the log as the artifact `fuzz-report` (`if: always()`), copies
+the report into the job summary, and a last step turns `FINDINGS: n` with n above 0 into a failure. A build that
+fails, a timeout or a missing report is a warning in the summary. Same hardening as the other workflows: pinned
+actions, read-only token, no secrets.
+
+Locally: `EW_FUZZ_SEEDS=17 EW_FUZZ_STEPS=200 EW_FUZZ_REPORT=target/fuzz/findings.md cargo test --release -p ew-testkit
+--test command_fuzz fuzz_long -- --ignored --nocapture` (or in the dev profile for the debug checks, about seven times
+slower); the cadences of the costly oracles are `EW_FUZZ_SAMPLE_EVERY`, `EW_FUZZ_CHECK_EVERY` and
+`EW_FUZZ_VERIFY_EVERY`, the step mix `EW_FUZZ_SAVE_WEIGHT` and `EW_FUZZ_IMPORT_WEIGHT`, the wall-clock budget
+`EW_FUZZ_BUDGET_SECS`. `fuzz_smoke` (2 seeds of 30 steps) stays in the targeted tests and in `cargo xtask ci`.
+
 ## Feature bans (`cargo xtask check-features`)
 
 CI-PR-09 requires that test-only and unsafe features never reach a non-test target. `[[banned_features]]` in
@@ -143,6 +182,7 @@ maintainers switch it on once the list is committed (gate G-M0-06).
 | [`check-book-links.py`](check-book-links.py) | CI-PR-10 (book) | Link check of the built user-documentation book: no network, no plugin to pin |
 | [`perf-baseline.toml`](perf-baseline.toml) | `cargo xtask perf-gate` (nightly `perf.yml`) | The baseline medians and memory estimates per size class, the 15 % threshold, the noise floor and the runner they were taken on (WP-S6.03) |
 | [`ci-times.py`](ci-times.py) | nightly `perf.yml` | The CI-time trend of `ci.yml` against NFR-MAINT-05 (FT-269) |
+| [`../.github/workflows/fuzz.yml`](../.github/workflows/fuzz.yml) | nightly command fuzzer | The seeded `fuzz_long` run, report-only, with the findings file as artifact (WP-S6.02, FT-272) |
 
 ## Rules for the workflows
 

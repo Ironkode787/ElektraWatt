@@ -1,0 +1,160 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# The nightly command fuzzer (WP-S6.02, FT-272, decision log ID-388; docs/design/18-quality-security-release.md
+# §3.6, CI-N-02): the ignored test `fuzz_long` of crates/ew-testkit/tests/command_fuzz runs EW_FUZZ_SEEDS seeds of
+# EW_FUZZ_STEPS random steps over Golden A, every one of the 36 registered commands among them, with the memo
+# oracle, the structural check, the prevent rule, `verify_derived`, the validity oracle of each command, the
+# save-and-reload round trips, the CSV table imports and the closing undo-all. The nightly body is this seeded
+# test, not a cargo-fuzz target: the repository has no `fuzz/` crate yet (that is the parser-fuzzing package,
+# doc 18 §3.12) and ID-388 chose the test form on purpose, so one generator serves the targeted test, the
+# acceptance of every command and this run.
+#
+# REPORT-ONLY: the job fails only on a real fuzzer finding: a panic, an invariant or oracle violation, or a
+# round-trip mismatch. A finding is written to the findings file first (the test rewrites it after every seed)
+# and the file is uploaded with `if: always()`; the verdict step reads its `FINDINGS: n` line. A timeout, a
+# build failure or a runner that disappears is infrastructure, not a finding: the run step is bounded by its own
+# `timeout` (so the verdict step still runs), the test stops starting seeds after EW_FUZZ_BUDGET_SECS, and a
+# run that did not complete is a warning in the summary, never a red job. (A build failure of main is ci.yml's
+# to report.)
+#
+# The seeds change every night (a range starting at the day number), so the nightly runs explore new streams;
+# the job summary names the seeds, and a finding reproduces locally with the command in the report.
+#
+# Same hardening as ci.yml and perf.yml (§5.4, NFR-SEC-19): actions pinned by commit SHA with a version comment,
+# read-only token, no secrets.
+
+name: fuzz
+
+on:
+  schedule:
+    - cron: "47 3 * * *"
+  workflow_dispatch:
+    inputs:
+      seeds:
+        description: "Seeds: a comma list or ranges such as 1..=40 (empty: a range from the day number)"
+        type: string
+        default: ""
+      steps:
+        description: "Steps per seed"
+        type: string
+        default: "200"
+      budget_minutes:
+        description: "No new seed starts after this many minutes"
+        type: string
+        default: "75"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fuzz
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+  # The release profile with the debug-only checks switched on: about seven times the throughput of the dev
+  # profile (a measured local run: 1.4 s a step against 10 s), and the debug assertions and the overflow checks
+  # stay part of the oracle (doc 18, the rule on debug-only invariant checks in the fuzzer).
+  CARGO_PROFILE_RELEASE_DEBUG_ASSERTIONS: "true"
+  CARGO_PROFILE_RELEASE_OVERFLOW_CHECKS: "true"
+  # Keep in step with rust-toolchain.toml and ci.yml.
+  RUST_TOOLCHAIN: "1.99.0"
+
+jobs:
+  command-fuzz:
+    name: command-fuzz
+    runs-on: ubuntu-24.04
+    # Safety net only: the budget (default 75 minutes) and the step timeout below end the run well before.
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      # NFR-REL-07: ICU4X_DATA_DIR swaps the ICU segmentation data at build time and changes line breaks.
+      - name: assert ICU4X_DATA_DIR is unset
+        shell: bash
+        run: test -z "${ICU4X_DATA_DIR:-}"
+      - name: build the fuzzer
+        id: build
+        continue-on-error: true
+        shell: bash
+        run: cargo test --release -p ew-testkit --test command_fuzz --no-run --locked
+      - name: cargo test fuzz_long
+        id: fuzz
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        env:
+          INPUT_SEEDS: ${{ inputs.seeds }}
+          INPUT_STEPS: ${{ inputs.steps }}
+          INPUT_BUDGET: ${{ inputs.budget_minutes }}
+        run: |
+          mkdir -p target/fuzz
+          budget_min="${INPUT_BUDGET:-75}"
+          steps="${INPUT_STEPS:-200}"
+          seeds="${INPUT_SEEDS:-}"
+          if [ -z "$seeds" ]; then
+            # A range from the day number: a new set of 12 seeds every night.
+            base=$(( $(date -u +%s) / 86400 * 100 ))
+            seeds="${base}..=$(( base + 11 ))"
+          fi
+          echo "seeds=$seeds steps=$steps budget=${budget_min}min" | tee target/fuzz/params.txt
+          # `timeout` is the infrastructure bound (budget plus a margin for the seed in flight); the test stops
+          # starting seeds at the budget by itself.
+          EW_FUZZ_SEEDS="$seeds" \
+          EW_FUZZ_STEPS="$steps" \
+          EW_FUZZ_BUDGET_SECS="$(( budget_min * 60 ))" \
+          EW_FUZZ_REPORT="$PWD/target/fuzz/findings.md" \
+          timeout "$(( budget_min + 45 ))m" \
+            cargo test --release -p ew-testkit --test command_fuzz --locked fuzz_long -- --ignored --nocapture \
+            2>&1 | tee target/fuzz/log.txt
+          exit "${PIPESTATUS[0]}"
+      # The verdict: red only for a finding. The findings file is the source: a failing test whose file has
+      # `FINDINGS: 0` (or no file) is infrastructure.
+      - name: verdict and job summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Command fuzzer"
+            echo
+            [ -f target/fuzz/params.txt ] && echo "Parameters: \`$(cat target/fuzz/params.txt)\`" && echo
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ -f target/fuzz/findings.md ]; then
+            cat target/fuzz/findings.md >> "$GITHUB_STEP_SUMMARY"
+            findings=$(sed -n 's/^FINDINGS: \([0-9][0-9]*\)$/\1/p' target/fuzz/findings.md | head -n 1)
+            status=$(sed -n 's/^status: //p' target/fuzz/findings.md | head -n 1)
+          else
+            findings=""
+            status="no report"
+          fi
+          if [ -n "$findings" ] && [ "$findings" -gt 0 ]; then
+            echo "::error::the command fuzzer has $findings finding(s); see the job summary and the artifact fuzz-report"
+            exit 1
+          fi
+          incomplete=0
+          [ "${{ steps.build.outcome }}" = "success" ] || incomplete=1
+          case "$status" in
+            complete|budget) ;;
+            *) incomplete=1 ;;
+          esac
+          if [ "$incomplete" = 1 ]; then
+            echo "::warning::the fuzz run did not complete (status: ${status:-none}); this is not a finding"
+            echo "The run did not complete (status: ${status:-none}): an infrastructure problem, not a finding." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: fuzz-report
+          path: |
+            target/fuzz/findings.md
+            target/fuzz/params.txt
+            target/fuzz/log.txt
+          if-no-files-found: warn
+          retention-days: 90
