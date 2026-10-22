@@ -1485,6 +1485,7 @@ name = "ew-render2d"
 version = "0.0.0"
 dependencies = [
  "ew-dl",
+ "ew-render-cpu",
 ]
 
 [[package]]

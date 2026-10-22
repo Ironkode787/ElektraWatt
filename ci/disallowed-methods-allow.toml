@@ -96,6 +96,11 @@ item = "inner attribute"
 count = 1
 
 [[allow]]
+crate = "ew-render2d"
+item = "fn now"
+count = 1
+
+[[allow]]
 crate = "ew-scene"
 item = "inner attribute"
 count = 3

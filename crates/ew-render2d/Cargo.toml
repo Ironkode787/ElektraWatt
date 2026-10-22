@@ -7,7 +7,7 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license = "GPL-3.0-or-later"
-description = "wgpu 2D renderer: tessellation once per symbol, instancing, screen-space lines and a glyph atlas."
+description = "The 2D canvas renderer: the CPU tile path and the wgpu path over one display list."
 repository.workspace = true
 publish = false
 
@@ -16,3 +16,5 @@ workspace = true
 
 [dependencies]
 ew-dl = { path = "../ew-dl" }
+# The CPU tile path rasterises tiles with `render_region` (WP-S2.02 §4.1, the edge ew-render2d -> ew-render-cpu).
+ew-render-cpu = { path = "../ew-render-cpu" }
