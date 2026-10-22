@@ -2,10 +2,12 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
 # Per-PR CI set of gate G-M0 (docs/design/18-quality-security-release.md §5.2): CI-PR-01 lint,
-# CI-PR-02/03/04 tests on Linux, Windows and macOS, CI-PR-05 headless (the evidence job of G-M1-01), CI-PR-09
-# supply-chain. Job names are the required status checks (ci/README.md). Hardening per §5.4 and NFR-SEC-19: actions pinned by commit SHA with a
-# version comment (Renovate keeps them current), read-only default token, no secrets, no test retries
-# (NFR-MAINT-13; .config/nextest.toml sets retries = 0).
+# CI-PR-02/03/04 tests on Linux, Windows and macOS, CI-PR-05 headless (the evidence job of G-M1-01), CI-N-09
+# verapdf (the evidence job of G-M1-02; a nightly in the catalogue, per push here), CI-PR-09 supply-chain. Job
+# names are the required status checks (ci/README.md). Hardening per §5.4 and NFR-SEC-19: actions pinned by
+# commit SHA with a version comment (Renovate keeps them current), container images pinned by digest (checked
+# by `cargo xtask check-workflows`), read-only default token, no secrets, no test retries (NFR-MAINT-13;
+# .config/nextest.toml sets retries = 0).
 
 name: ci
 
@@ -33,6 +35,11 @@ env:
   # resolved 2026-10-22). The image has no fonts, no fontconfig, no display or GPU libraries and a glibc (2.39) as
   # new as the one of the runner that builds `ew`. Update the tag and the digest together.
   HEADLESS_IMAGE: ubuntu@sha256:68ee22004a9109b44973313b02ff7b1de250f1de0f5ecb628d73f579aaff33ac
+  # veraPDF 1.30.3: the CLI image `verapdf/cli` of the veraPDF project on Docker Hub (a self-contained Java CLI),
+  # pinned by the digest of its image manifest (resolved 2026-10-22 from the Docker Hub tag `v1.30.3`). The image is
+  # only run here, with no network, never distributed. Update the version and the digest together.
+  VERAPDF_VERSION: "1.30.3"
+  VERAPDF_IMAGE: verapdf/cli@sha256:d565095c67a083e693aebf7d1a15784007370571053fc1aa5b502665b9a78f9c
 
 jobs:
   # CI-PR-01
@@ -268,6 +275,9 @@ jobs:
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          shared-key: ew-cli
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       # NFR-REL-07: ICU4X_DATA_DIR swaps the ICU segmentation data at build time and changes line breaks.
       - name: assert ICU4X_DATA_DIR is unset
         shell: bash
@@ -275,9 +285,19 @@ jobs:
       - name: cargo build ew
         run: cargo build -p ew --locked
       - name: pull the container image
-        run: docker pull "$HEADLESS_IMAGE"
-      # The container: no network, a read-only root file system, no capabilities, no device (so no /dev/dri), the
-      # runner's user id so that the output is writable, and the three mounts that ci/headless-export.sh lists.
+        shell: bash
+        run: |
+          for attempt in 1 2 3; do
+            docker pull "$HEADLESS_IMAGE" && exit 0
+            echo "docker pull failed (attempt $attempt of 3)"
+            sleep $((attempt * 15))
+          done
+          echo "::error::docker pull of $HEADLESS_IMAGE failed three times: the job has no evidence without the image"
+          exit 1
+      # The container: no network, a read-only root file system, no device (so no /dev/dri), and no capability but
+      # the three that the script needs: it runs its checks as root (DAC_READ_SEARCH, so that the font search reads
+      # every directory) and drops to the runner's uid and gid (SETUID, SETGID; EW_UID, EW_GID) for the export. The
+      # three mounts are listed in ci/headless-export.sh.
       - name: export the golden PDF in the container
         shell: bash
         run: |
@@ -285,7 +305,8 @@ jobs:
           out="$RUNNER_TEMP/headless"
           mkdir -p "$out"
           docker run --rm --network none --read-only --tmpfs /tmp:rw,mode=1777 --cap-drop ALL \
-            --security-opt no-new-privileges --user "$(id -u):$(id -g)" \
+            --cap-add DAC_READ_SEARCH --cap-add SETUID --cap-add SETGID \
+            --security-opt no-new-privileges --env EW_UID="$(id -u)" --env EW_GID="$(id -g)" \
             --volume "$PWD/target/debug/ew:/ew:ro" \
             --volume "$PWD/golden/J-E-2416.ew:/project:ro" \
             --volume "$PWD/ci/headless-export.sh:/headless-export.sh:ro" \
@@ -306,6 +327,92 @@ jobs:
         with:
           name: headless-pdf
           path: ${{ runner.temp }}/headless
+          if-no-files-found: warn
+          retention-days: 14
+
+  # CI-N-09, FT-294. The doc 18 catalogue lists CI-N-09 as a nightly; it runs here, on every pull request and push to
+  # main, so that a PDF/A regression is caught where it is made, and so that its time enters the CI-time trend
+  # (ci/ci-times.py reads the jobs of this workflow; docs.yml also fires on edited/labeled/unlabeled events and
+  # would cancel and rebuild the job on every label change). About 5 minutes expected, not measured before its
+  # first runs; it does not lengthen the 30-minute wall time of the test jobs. Not a required check until its first
+  # runs are green (ci/README.md). The golden PDF is exported by the shipped binary (`ew export pdf`, the path that the acceptance
+  # runner's AC-15 path (c) runs in process) in three variants: the whole folio set with the model's date, the same
+  # set dated by SOURCE_DATE_EPOCH, and a page selection. veraPDF 1.30.3 (image pinned by digest, run with no
+  # network) validates each against PDF/A-2b. The Java runtime is inside the image, so the runner's JDK does not
+  # matter. The verdict is `ci/verapdf-check.py` over the XML report, not veraPDF's exit status: it fails on any
+  # non-compliant file, on a file that did not parse, on a job count that is not three and on an unreadable report.
+  # The report is uploaded as the artifact `verapdf-report`; `EW_VERAPDF_REPORT=<report.xml> cargo xtask acceptance
+  # --milestone <report.md>` makes the AC-13 entry of the acceptance report read it (the headless report, which does
+  # not set the variable, keeps the entry `not_applicable`).
+  verapdf:
+    name: verapdf
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          shared-key: ew-cli
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      # NFR-REL-07: ICU4X_DATA_DIR swaps the ICU segmentation data at build time and changes line breaks.
+      - name: assert ICU4X_DATA_DIR is unset
+        run: test -z "${ICU4X_DATA_DIR:-}"
+      - name: verapdf-check self-test
+        run: python3 -I ci/verapdf-check.py --selftest
+      - name: build ew
+        run: cargo build -p ew --locked
+      - name: export the golden PDF variants
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/pdf"
+          mkdir -p "$out"
+          ew=target/debug/ew
+          "$ew" export pdf golden/J-E-2416.ew --out "$out/golden-all.pdf"
+          SOURCE_DATE_EPOCH=1700000000 "$ew" export pdf golden/J-E-2416.ew --out "$out/golden-dated.pdf"
+          "$ew" export pdf golden/J-E-2416.ew --pages 101-106,901 --out "$out/golden-pages.pdf"
+          # The full export must be the committed digest, so that the file validated here is the file of G-M1-01.
+          echo "$(tr -d '\n' < golden/J-E-2416/expected/pdf/sha256.txt)  $out/golden-all.pdf" | sha256sum --check --strict -
+          ls -l "$out"
+      - name: pull veraPDF
+        shell: bash
+        run: |
+          for attempt in 1 2 3; do
+            docker pull "$VERAPDF_IMAGE" && exit 0
+            echo "docker pull failed (attempt $attempt of 3)"
+            sleep $((attempt * 15))
+          done
+          echo "::error::docker pull of $VERAPDF_IMAGE failed three times: the job has no evidence without the image"
+          exit 1
+      - name: validate against PDF/A-2b
+        shell: bash
+        run: |
+          set -uo pipefail
+          out="$RUNNER_TEMP/pdf"
+          # The exit status is printed and not trusted: the verdict of the next step reads the report.
+          docker run --rm --network none --cap-drop ALL --security-opt no-new-privileges \
+            --volume "$out:/data:ro" "$VERAPDF_IMAGE" --flavour 2b --format xml \
+            /data/golden-all.pdf /data/golden-dated.pdf /data/golden-pages.pdf \
+            > "$out/verapdf-report.xml" 2> "$out/verapdf-stderr.txt"
+          echo "veraPDF $VERAPDF_VERSION exit status: $?"
+          cat "$out/verapdf-stderr.txt"
+          ls -l "$out/verapdf-report.xml"
+      - name: veraPDF verdict
+        run: python3 -I ci/verapdf-check.py "$RUNNER_TEMP/pdf/verapdf-report.xml" --expect-jobs 3 --profile 2B --summary "$GITHUB_STEP_SUMMARY"
+      - name: upload the veraPDF report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: verapdf-report
+          path: |
+            ${{ runner.temp }}/pdf/verapdf-report.xml
+            ${{ runner.temp }}/pdf/verapdf-stderr.txt
+            ${{ runner.temp }}/pdf/golden-*.pdf
           if-no-files-found: warn
           retention-days: 14
 

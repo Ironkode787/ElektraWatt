@@ -52,6 +52,8 @@ jobs:
           components: llvm-tools
       # The instrumented build has its own artifacts; the cache key of the job keeps them apart from the test jobs.
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       # NFR-REL-07: ICU4X_DATA_DIR swaps the ICU segmentation data at build time and changes line breaks.
       - name: assert ICU4X_DATA_DIR is unset
         shell: bash

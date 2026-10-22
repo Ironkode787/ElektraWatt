@@ -36,7 +36,7 @@ use super::freshness;
 use super::report::{Check, Outcome, Report, fail};
 
 /// Options of a run.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub struct Options {
     /// Compare the 150 dpi PNGs of the AC-02 folios (about a minute in a debug build). Off, the PNG entry is
     /// reported as not applicable.
@@ -44,12 +44,16 @@ pub struct Options {
     /// Measure and assert the AC-17 times (a milestone run: `cargo xtask acceptance --milestone`, which sets
     /// `EW_PERF_ASSERT=1`). Off, AC-17 is reported as not applicable and no clock is read.
     pub perf: bool,
+    /// The veraPDF XML report that AC-13's veraPDF entry reads (the gate passes `EW_VERAPDF_REPORT` here; the
+    /// headless run passes `None`, so the committed report never depends on the environment).
+    pub verapdf: Option<std::path::PathBuf>,
 }
 
 /// Everything a check reads, built once per run.
 pub struct Ctx {
     pub raster: bool,
     pub perf: bool,
+    pub verapdf: Option<std::path::PathBuf>,
     pub batch: ImportBatch,
     /// Source key (`devices|-201U1`, `pages|3`, …) to record ID text.
     pub ids: BTreeMap<String, String>,
@@ -104,6 +108,7 @@ impl Ctx {
             ac16: std::cell::OnceCell::new(),
             raster: options.raster,
             perf: options.perf,
+            verapdf: options.verapdf,
             batch,
             ids,
             oracle,

@@ -12,6 +12,9 @@
 //! - No `pull_request_target` trigger (it runs fork code with a privileged token).
 //! - Every `actions/checkout` step sets `persist-credentials: false`, so later steps cannot reuse the token.
 //! - `${{ secrets.… }}` appears only in a job named `release`.
+//! - Every container image reference is pinned by `@sha256:<64 hex>` digest: the value of an `image:` key and of
+//!   an environment variable named `*_IMAGE`, and every `docker run`, `docker pull` or `docker create` command
+//!   (continuation lines joined), which must name a digest or a `$..._IMAGE` variable (checked at its definition).
 //!
 //! The parser is deliberately line-based (no YAML dependency): it understands block mappings, `- uses:` list
 //! items, comments and block scalars (`run: |`), which is all a workflow file needs here.
@@ -149,7 +152,80 @@ pub fn check_text(file: &str, text: &str) -> Vec<String> {
     check_top_level_permissions(file, &lines, &mut v);
     check_checkout_credentials(file, &lines, &mut v);
     check_secrets(file, text, &mut v);
+    check_images(file, text, &mut v);
     v
+}
+
+/// `image@sha256:<64 hex>` somewhere in `text`.
+fn digest_pinned(text: &str) -> bool {
+    text.match_indices("@sha256:").any(|(at, key)| {
+        text.get(at + key.len()..at + key.len() + 64)
+            .is_some_and(|d| is_hex(d, 64))
+    })
+}
+
+/// Whether `command` names a variable `$NAME_IMAGE` or `${NAME_IMAGE}`.
+fn names_image_variable(command: &str) -> bool {
+    command.match_indices('$').any(|(at, _)| {
+        let rest = command[at + 1..].trim_start_matches('{');
+        let name: String = rest
+            .chars()
+            .take_while(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || *c == '_')
+            .collect();
+        name.ends_with("_IMAGE")
+    })
+}
+
+/// Container images are pinned by digest: `image:` and `*_IMAGE` values must carry `@sha256:<64 hex>` (or be an
+/// `${{ env.… }}` expression, whose definition is checked itself), and a `docker run`, `docker pull` or
+/// `docker create` command must name a digest or a `$..._IMAGE` variable. Works on the raw lines, because the
+/// commands live in `run:` blocks; a command is the line with its `\` continuations joined, and counts only at
+/// the start of a shell segment (after `&&`, `||`, `;`), so a message that mentions `docker pull` is no command.
+fn check_images(file: &str, text: &str, v: &mut Vec<String>) {
+    let raw: Vec<&str> = text.lines().collect();
+    let mut i = 0;
+    while i < raw.len() {
+        let number = i + 1;
+        let trimmed = raw[i].trim();
+        i += 1;
+        if trimmed.is_empty() || trimmed.starts_with('#') {
+            continue;
+        }
+        let (content, _) = split_comment(trimmed);
+        let at = format!("{file}:{number}");
+        if let Some((key, value)) = key_value(content)
+            && (key == "image" || key.ends_with("_IMAGE"))
+            && !value.is_empty()
+            && !digest_pinned(value)
+            && !value.starts_with("${{")
+        {
+            v.push(format!(
+                "{at}: container image `{value}` ({key}) is not pinned by @sha256 digest"
+            ));
+        }
+        // The logical command line: continuation lines joined.
+        let mut command = content.trim_end().to_owned();
+        while command.ends_with('\\') && i < raw.len() {
+            command.pop();
+            command.push(' ');
+            command.push_str(split_comment(raw[i].trim()).0.trim_end());
+            i += 1;
+        }
+        let command = command.replace("&&", ";").replace("||", ";");
+        for segment in command.split(';') {
+            let segment = segment.trim_start_matches(|c: char| c == '-' || c.is_whitespace());
+            let segment = segment.strip_prefix("run:").unwrap_or(segment).trim_start();
+            let is_container_command = ["docker run ", "docker pull ", "docker create "]
+                .iter()
+                .any(|c| segment.starts_with(c));
+            if is_container_command && !digest_pinned(segment) && !names_image_variable(segment) {
+                v.push(format!(
+                    "{at}: `{}` names no image pinned by @sha256 digest or `$..._IMAGE` variable",
+                    segment.split_whitespace().take(2).collect::<Vec<_>>().join(" ")
+                ));
+            }
+        }
+    }
 }
 
 /// Index range of the step (list item) that contains `lines[at]`: from the nearest enclosing `- ` line to
@@ -470,6 +546,45 @@ mod tests {
     fn job_level_write_scope_is_allowed() {
         let text = "on: [push]\npermissions:\n  contents: read\njobs:\n  rel:\n    permissions:\n      id-token: write\n";
         assert_eq!(check_text("ci.yml", text), Vec::<String>::new());
+    }
+
+    #[test]
+    fn container_images_must_be_pinned_by_digest() {
+        let digest = "b".repeat(64);
+        // Pinned: an *_IMAGE variable, an `image:` key, and commands that name a digest or an *_IMAGE variable
+        // (also across continuation lines and after `&&`); a message that mentions `docker pull` is no command.
+        let pinned = format!(
+            "name: ci\non: [push]\npermissions:\n  contents: read\nenv:\n  A_IMAGE: ubuntu@sha256:{digest}\n  B_IMAGE: \"x/y@sha256:{digest}\"\njobs:\n  build:\n    runs-on: x\n    container:\n      image: ghcr.io/o/i@sha256:{digest}\n    steps:\n      - run: docker pull \"$A_IMAGE\" && exit 0\n      - run: |\n          docker run --rm \\\n            --volume a:b \\\n            \"${{B_IMAGE}}\" sh x\n          docker create ubuntu@sha256:{digest}\n          echo \"docker pull failed\" ; echo \"docker run x\"\n          # docker run ubuntu:24.04\n"
+        );
+        assert_eq!(check_text("ci.yml", &pinned), Vec::<String>::new());
+
+        let cases = [
+            ("env:\n  A_IMAGE: ubuntu:24.04\n", "A_IMAGE"),
+            ("env:\n  A_IMAGE: ubuntu@sha256:abc\n", "A_IMAGE"),
+            ("jobs:\n  b:\n    container:\n      image: alpine:3\n", "image"),
+            (
+                "jobs:\n  b:\n    steps:\n      - run: docker pull ubuntu:24.04\n",
+                "docker pull",
+            ),
+            (
+                "jobs:\n  b:\n    steps:\n      - run: |\n          set -e\n          docker run --rm \\\n            --network none \\\n            ubuntu:24.04 true\n",
+                "docker run",
+            ),
+            (
+                "jobs:\n  b:\n    steps:\n      - run: make && docker create alpine\n",
+                "docker create",
+            ),
+        ];
+        for (body, what) in cases {
+            let text = format!("on: [push]\npermissions:\n  contents: read\n{body}");
+            let v = check_text("ci.yml", &text);
+            assert_eq!(v.len(), 1, "{body:?}: {v:?}");
+            assert!(v[0].contains(what), "{body:?}: {v:?}");
+        }
+        // The message names the line of the command's first line.
+        let text = "on: [push]\npermissions:\n  contents: read\njobs:\n  b:\n    steps:\n      - run: |\n          docker run --rm \\\n            alpine true\n";
+        let v = check_text("ci.yml", text);
+        assert!(v[0].starts_with("ci.yml:8:"), "{v:?}");
     }
 
     /// The committed workflows pass the lint.

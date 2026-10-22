@@ -25,7 +25,7 @@ The job names are the GitHub status-check names to mark as required.
 | CI-PR-10 | `docs.yml` / `legal-docs` (ubuntu-24.04) | `docs/plan/tools/{totals,schedule,trace}.py --check` and `doccheck.py`; `reuse lint` (reuse-tool 6.2.0; NFR-LIC-01, NFR-LIC-02); `cargo xtask check-licence-map` (licence map, collective notice, crate licences and the licence boundary of the permissive layer: 19 §5.1, NFR-LIC-10, NFR-MAINT-02); `cargo xtask check-anonymisation` (NFR-PRIV-09); `cargo xtask check-governance-files` (NFR-DOC-08); rustdoc build with `-D warnings` (NFR-MAINT-08). On pull requests only: `cargo xtask check-dco` over the PR's commits (NFR-LIC-03); the LG-2 block, which fails a PR from anyone who is not an owner, member or collaborator while the plugin and design exception texts are missing from `LICENSES/` (NFR-LIC-12); and the RFC reference, which fails a PR labelled `format-major`, `api-break` or `licence` whose description does not mention `rfcs/` (NFR-DOC-09) | `python3 -I docs/plan/tools/totals.py --check` (and the other three); `python -m reuse lint`; `cargo xtask check-licence-map`, `check-anonymisation`, `check-governance-files`, `check-dco origin/main..HEAD`; `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --locked` |
 | CI-PR-15 | `docs.yml` / `docs-diagrams` (ubuntu-24.04) | Renders every Mermaid block under `docs/` and in the root Markdown with mermaid-cli 12.0.0 (container image pinned by digest) and fails on any error | `python3 -I ci/render-mermaid.py --image <image@sha256:…>` (needs docker); `--extract-only` lists the blocks without docker |
 | CI-PR-10 (book) | `docs.yml` / `docs-book` (ubuntu-24.04) | The user-documentation book of `docs/book` (WP-S0.06, NFR-DOC-01, NFR-DOC-06): `cargo xtask docs-gen --check` (the generated command and rule reference pages are current); mdBook 0.5.4, installed from its pinned release archive (SHA-256 checked); `mdbook build docs/book` in an empty network namespace (the build is offline); `ci/check-book-links.py` over the built pages (relative links, anchors, and links into the repository); the built book uploaded as the artifact `user-guide`. A separate job, so that `legal-docs` stays fast | `cargo xtask docs-gen --check`; `mdbook build docs/book` (mdBook 0.5.4); `python3 -I ci/check-book-links.py target/book` |
-| CI-N-09 | `docs.yml` / `verapdf` (ubuntu-24.04) | Builds `ew`, exports the golden PDF in three variants (all pages; dated by `SOURCE_DATE_EPOCH`; `--pages 101-106,901`) and validates each against PDF/A-2b with veraPDF 1.30.3 (the project's `verapdf/cli` image pinned by digest, run with no network); `ci/verapdf-check.py` turns the XML report into the verdict (FT-294, G-M1-02); the report uploaded as the artifact `verapdf-report`. Details: [veraPDF job](#verapdf-job-ci-n-09) | `python3 -I ci/verapdf-check.py --selftest`; with docker: `docker run --rm -v "$PWD/out:/data:ro" verapdf/cli@sha256:… --flavour 2b --format xml /data/golden-all.pdf > out/verapdf-report.xml`, then `python3 -I ci/verapdf-check.py out/verapdf-report.xml` |
+| CI-N-09 | `ci.yml` / `verapdf` (ubuntu-24.04) | Builds `ew`, exports the golden PDF in three variants (all pages; dated by `SOURCE_DATE_EPOCH`; `--pages 101-106,901`) and validates each against PDF/A-2b with veraPDF 1.30.3 (the project's `verapdf/cli` image pinned by digest, run with no network); `ci/verapdf-check.py` turns the XML report into the verdict (FT-294, G-M1-02); the report uploaded as the artifact `verapdf-report`. Details: [veraPDF job](#verapdf-job-ci-n-09) | `python3 -I ci/verapdf-check.py --selftest`; with docker: `docker run --rm -v "$PWD/out:/data:ro" verapdf/cli@sha256:… --flavour 2b --format xml /data/golden-all.pdf > out/verapdf-report.xml`, then `python3 -I ci/verapdf-check.py out/verapdf-report.xml` |
 | CI-PR-13 | `coverage.yml` / `coverage` (ubuntu-24.04; weekly and `workflow_dispatch`, not per PR) | cargo-llvm-cov 0.9.1 over the workspace tests (all features, nextest), the line coverage of `ew-model`, `ew-commands`, `ew-memo`, `ew-derive`, `ew-format` and `ew-store` against 80 % (NFR-MAINT-06); **report-only** (FT-296, G-M1-15). Details: [Coverage job](#coverage-job-ci-pr-13) | `cargo llvm-cov nextest --workspace --all-features --locked --no-report`, `cargo llvm-cov report --json --summary-only --output-path summary.json`, `python3 -I ci/coverage-summary.py summary.json` |
 
 `cargo xtask ci` runs fmt, clippy, nextest and the doctests (each with the default features and with `--all-features`;
@@ -163,7 +163,8 @@ image has glibc 2.36, and a binary built on the runner may need newer symbols. A
 remove the dependence, at the price of a second target and of a build that is not the shipped one; it is not decided.
 
 **The container.** `docker run --network none --read-only --tmpfs /tmp --cap-drop ALL --security-opt
-no-new-privileges --user <runner uid>`, with no `--device` (so no `/dev/dri`) and no `--gpus`; the mounts are the `ew`
+no-new-privileges`, with only three capabilities added back (`DAC_READ_SEARCH`, `SETUID`, `SETGID`: below), no
+`--device` (so no `/dev/dri`) and no `--gpus`; the mounts are the `ew`
 binary, the golden project (`golden/J-E-2416.ew`, read-only, which also shows that the export writes nothing into the
 project) and [`ci/headless-export.sh`](headless-export.sh), all read-only, and the output directory. The script runs
 inside and first proves that the container is bare, so that a change of image or flags cannot weaken the job unseen:
@@ -174,6 +175,11 @@ inside and first proves that the container is bare, so that a change of image or
 so there is no `EW_CONTENT_DIR`, no `SOURCE_DATE_EPOCH` and no locale. The same property is held in process by
 `bin/ew/tests/cli.rs` (`export_pdf_of_golden_a_is_the_committed_pdf`) and by AC-15 of the acceptance runner; the job
 adds the file system the process sees.
+
+The checks run as root with `DAC_READ_SEARCH`, so that the font search reads every directory of the image, and the
+script fails when `find` writes anything to stderr (an unreadable directory skipped silently would leave a hole in
+the proof); the export then drops to the runner's uid and gid with `setpriv` (`SETUID`, `SETGID`; `EW_UID`, `EW_GID`),
+so that the PDFs are the runner's and the export itself holds no capability.
 
 **What it does not cover.** `ew` is the debug build of the job's own toolchain, not a release artefact (the PDF is
 independent of the profile; the release pipeline has its own checks, CI-R). The kernel and the CPU are the runner's.
@@ -186,14 +192,16 @@ files and a writable output directory, and compare `sha256sum` of the two PDFs w
 ## veraPDF job (CI-N-09)
 
 FT-294, evidence for G-M1-02 (AC-13). The doc 18 catalogue lists CI-N-09 as a nightly; it runs as the job `verapdf` of
-[`docs.yml`](../.github/workflows/docs.yml) on every pull request and push to `main`, in parallel with the other jobs,
-so that a PDF/A regression is caught where it is made. It costs one `ew` build and a 53 MB image pull (about 5 minutes
+[`ci.yml`](../.github/workflows/ci.yml) on every pull request and push to `main`, in parallel with the other jobs,
+so that a PDF/A regression is caught where it is made. It is in `ci.yml` and not in `docs.yml`, because `docs.yml` also
+fires on edited, labeled and unlabeled events with cancel-in-progress (a label change would cancel and rebuild the
+job) and because the CI-time trend of `ci-times.py` reads the jobs of `ci.yml`. It costs one `ew` build and a 53 MB image pull (about 5 minutes
 expected; not measured before the first runs) and does not lengthen the 30-minute wall time of the test jobs.
 
 The job builds `ew`, exports the golden PDF in three variants (all 36 pages with the model's date; the same dated by
 `SOURCE_DATE_EPOCH=1700000000`; `--pages 101-106,901`), checks that the first is the committed digest, and runs
 veraPDF 1.30.3 over the three files with `--flavour 2b --format xml`. veraPDF is the project's own CLI image
-`verapdf/cli`, **pinned by the digest of the image manifest** (`VERAPDF_IMAGE` in `docs.yml`, resolved 2026-10-22 from the
+`verapdf/cli`, **pinned by the digest of the image manifest** (`VERAPDF_IMAGE` in `ci.yml`, resolved 2026-10-22 from the
 Docker Hub tag `v1.30.3`; update the version and the digest together), run with `--network none --cap-drop ALL` and the
 PDFs mounted read-only. The Java runtime is inside the image, so the runner's JDK does not matter. The image rather
 than the installer archive, because the project publishes a GPG signature for the archive and no SHA-256, and a digest
@@ -302,7 +310,7 @@ maintainers switch it on once the list is committed (gate G-M0-06).
 | [`../about.toml`](../about.toml), [`third-party-notices.hbs`](third-party-notices.hbs) | `cargo about generate` (CI-PR-09) | The cargo-about licence allowlist (the deny.toml list; the workspace's own `publish = false` crates are ignored) and the plain-text template of the third-party notice file (NFR-LIC-08). CI only generates the file, so a crate without a usable licence fails; the release pipeline (CI-R-07, WP-S6.07) ships it in every artefact |
 | [`render-mermaid.py`](render-mermaid.py) | CI-PR-15 | Mermaid extraction and rendering |
 | [`headless-export.sh`](headless-export.sh) | CI-PR-05 (`ci.yml` / `headless`) | Runs inside the headless container: proves that there is no display, GPU, font file or user directory content, then runs `ew export pdf` on one and four threads (FT-295) |
-| [`verapdf-check.py`](verapdf-check.py) | CI-N-09 (`docs.yml` / `verapdf`) | The verdict over a veraPDF XML report: PDF/A-2B, compliant, no failed parse, the job count; `--selftest` (FT-294) |
+| [`verapdf-check.py`](verapdf-check.py) | CI-N-09 (`ci.yml` / `verapdf`) | The verdict over a veraPDF XML report: PDF/A-2B, compliant, no failed parse, the job count; `--selftest` (FT-294) |
 | [`coverage-summary.py`](coverage-summary.py) | CI-PR-13 (`coverage.yml`) | The line coverage of the six core crates from a cargo-llvm-cov summary, against 80 %, report-only; `--selftest` (FT-296) |
 | [`check-book-links.py`](check-book-links.py) | CI-PR-10 (book) | Link check of the built user-documentation book: no network, no plugin to pin |
 | [`ordered-collections-allow.toml`](ordered-collections-allow.toml) | `cargo xtask check-ordered-collections` | The reviewed sites that allow the hash-container ban of the generated `clippy.toml`, by crate and item path with a count (FT-271, WP-S6.02) |
@@ -314,7 +322,13 @@ maintainers switch it on once the list is committed (gate G-M0-06).
 
 - Third-party actions are pinned by full commit SHA with a `# vX.Y.Z` comment; Renovate
   ([`.github/renovate.json`](../.github/renovate.json)) proposes updates weekly, grouped. Container images are
-  pinned by digest.
+  pinned by digest: `check-workflows` fails on an `image:` or `*_IMAGE` value, and on a `docker run`, `docker pull` or
+  `docker create` command, that names no `@sha256:<64 hex>` digest or `$..._IMAGE` variable. A job that pulls an image
+  tries the pull three times with a back-off, and a pull that still fails fails the job: an evidence job never
+  passes without its evidence.
+- Rust caches (`Swatinem/rust-cache`) of the evidence jobs and of `coverage.yml` are saved only on `main` (`save-if`),
+  and `headless` and `verapdf` share one key (`ew-cli`), so that pull requests restore the cache and never write
+  one, within the 10 GB cache limit of the repository.
 - Every workflow declares a top-level `permissions:` block with `contents: read` and no write scope; a job that
   needs more widens it for that job only. `permissions: write-all` is never used. `cargo xtask check-workflows`
   enforces these rules (NFR-SEC-19).

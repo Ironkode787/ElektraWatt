@@ -14,13 +14,6 @@
 # `api-break` or `licence` (NFR-DOC-09). The pull_request trigger includes `edited`, `labeled` and `unlabeled`
 # so that the last two re-run when a label or the description changes. Policy data: ci/README.md.
 
-# CI-N-09 (pdf), FT-294: the `verapdf` job validates the golden PDF exports of `ew export pdf` with veraPDF against
-# PDF/A-2b, as a second opinion next to krilla's in-process validation (acceptance entry AC-13). The catalogue (doc 18
-# §5.2) lists CI-N-09 as a nightly; it runs here, on every pull request and push to main, as a job of its own
-# (about 5 minutes expected, not measured before its first runs; it does not lengthen the 30-minute wall time of
-# the other jobs) so that a PDF/A regression is caught where it is made. It is not a required check until its first
-# runs are green (ci/README.md).
-
 name: docs
 
 on:
@@ -51,11 +44,6 @@ env:
   # configuration overrides.)
   DOCS_MDBOOK_VERSION: "0.5.4"
   DOCS_MDBOOK_SHA256: "3f28de05dafca9d0f2eab99c662116b0e37b89b1d96a08f8f430b9eeae958cd7"
-  # veraPDF 1.30.3: the CLI image `verapdf/cli` of the veraPDF project on Docker Hub (a self-contained Java CLI),
-  # pinned by the digest of its image manifest (resolved 2026-10-22 from the Docker Hub tag `v1.30.3`). The image is
-  # only run here, with no network, never distributed. Update the version and the digest together.
-  VERAPDF_VERSION: "1.30.3"
-  VERAPDF_IMAGE: verapdf/cli@sha256:d565095c67a083e693aebf7d1a15784007370571053fc1aa5b502665b9a78f9c
 
 jobs:
   # CI-PR-10
@@ -206,74 +194,4 @@ jobs:
           name: user-guide
           path: ${{ runner.temp }}/book
           if-no-files-found: error
-          retention-days: 14
-
-  # CI-N-09, FT-294. The golden PDF is exported by the shipped binary (`ew export pdf`, the path that the acceptance
-  # runner's AC-15 path (c) runs in process) in three variants: the whole folio set with the model's date, the same
-  # set dated by SOURCE_DATE_EPOCH, and a page selection. veraPDF 1.30.3 (image pinned by digest, run with no
-  # network) validates each against PDF/A-2b. The Java runtime is inside the image, so the runner's JDK does not
-  # matter. The verdict is `ci/verapdf-check.py` over the XML report, not veraPDF's exit status: it fails on any
-  # non-compliant file, on a file that did not parse, on a job count that is not three and on an unreadable report.
-  # The report is uploaded as the artifact `verapdf-report`; `EW_VERAPDF_REPORT=<report.xml> cargo xtask acceptance
-  # --milestone <report.md>` makes the AC-13 entry of the acceptance report read it (the headless report, which does
-  # not set the variable, keeps the entry `not_applicable`).
-  verapdf:
-    name: verapdf
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
-        with:
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-      # NFR-REL-07: ICU4X_DATA_DIR swaps the ICU segmentation data at build time and changes line breaks.
-      - name: assert ICU4X_DATA_DIR is unset
-        run: test -z "${ICU4X_DATA_DIR:-}"
-      - name: verapdf-check self-test
-        run: python3 -I ci/verapdf-check.py --selftest
-      - name: build ew
-        run: cargo build -p ew --locked
-      - name: export the golden PDF variants
-        shell: bash
-        run: |
-          set -euo pipefail
-          out="$RUNNER_TEMP/pdf"
-          mkdir -p "$out"
-          ew=target/debug/ew
-          "$ew" export pdf golden/J-E-2416.ew --out "$out/golden-all.pdf"
-          SOURCE_DATE_EPOCH=1700000000 "$ew" export pdf golden/J-E-2416.ew --out "$out/golden-dated.pdf"
-          "$ew" export pdf golden/J-E-2416.ew --pages 101-106,901 --out "$out/golden-pages.pdf"
-          # The full export must be the committed digest, so that the file validated here is the file of G-M1-01.
-          echo "$(tr -d '\n' < golden/J-E-2416/expected/pdf/sha256.txt)  $out/golden-all.pdf" | sha256sum --check --strict -
-          ls -l "$out"
-      - name: pull veraPDF
-        run: docker pull "$VERAPDF_IMAGE"
-      - name: validate against PDF/A-2b
-        shell: bash
-        run: |
-          set -uo pipefail
-          out="$RUNNER_TEMP/pdf"
-          # The exit status is printed and not trusted: the verdict of the next step reads the report.
-          docker run --rm --network none --cap-drop ALL --security-opt no-new-privileges \
-            --volume "$out:/data:ro" "$VERAPDF_IMAGE" --flavour 2b --format xml \
-            /data/golden-all.pdf /data/golden-dated.pdf /data/golden-pages.pdf \
-            > "$out/verapdf-report.xml" 2> "$out/verapdf-stderr.txt"
-          echo "veraPDF $VERAPDF_VERSION exit status: $?"
-          cat "$out/verapdf-stderr.txt"
-          ls -l "$out/verapdf-report.xml"
-      - name: veraPDF verdict
-        run: python3 -I ci/verapdf-check.py "$RUNNER_TEMP/pdf/verapdf-report.xml" --expect-jobs 3 --profile 2B --summary "$GITHUB_STEP_SUMMARY"
-      - name: upload the veraPDF report
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: verapdf-report
-          path: |
-            ${{ runner.temp }}/pdf/verapdf-report.xml
-            ${{ runner.temp }}/pdf/verapdf-stderr.txt
-            ${{ runner.temp }}/pdf/golden-*.pdf
-          if-no-files-found: warn
           retention-days: 14

@@ -8,6 +8,12 @@
 # `ew export pdf` over the golden project on one thread and on four, with every user directory pointing at an empty
 # directory and with the environment cleared. The host compares the two PDFs with `expected/pdf/sha256.txt`.
 #
+# The checks run as ROOT with CAP_DAC_READ_SEARCH (the job adds that capability and nothing else but the two it
+# needs to drop privileges), so that the font search can read every directory of the image; the export then
+# runs as the runner's uid and gid (EW_UID, EW_GID, set by the job) through `setpriv`, so that the PDFs in /out are
+# the runner's. The font search also fails when `find` writes anything to stderr: an unreadable directory would
+# otherwise be skipped silently and the proof would have a hole.
+#
 # Mounts (read-only except /out): /ew the `ew` binary, /project golden/J-E-2416.ew, /out the output directory.
 # POSIX sh only: the image has no bash.
 set -eu
@@ -28,9 +34,14 @@ done
 
 # No system fonts: no font file anywhere on the image's own file systems (the bind mounts are other file
 # systems), no font directory, no fontconfig.
+[ -n "${EW_UID:-}" ] && [ -n "${EW_GID:-}" ] || fail "EW_UID and EW_GID must name the user of the export"
+[ "$(id -u)" = 0 ] || fail "the checks must run as root, so that the font search reads every directory"
+find_errors=/tmp/find-errors.txt
+# `find` exits non-zero when it could not read a directory; its stderr is what counts, and it must be empty.
 fonts="$(find / -xdev -type f \( -iname '*.ttf' -o -iname '*.otf' -o -iname '*.ttc' -o -iname '*.otc' \
     -o -iname '*.pfb' -o -iname '*.pfa' -o -iname '*.woff' -o -iname '*.woff2' -o -iname '*.pcf' \
-    -o -iname '*.pcf.gz' \) 2>/dev/null || true)"
+    -o -iname '*.pcf.gz' \) 2>"$find_errors" || true)"
+[ ! -s "$find_errors" ] || fail "the font search could not read everything: $(head -n 5 "$find_errors")"
 [ -z "$fonts" ] || fail "font files on the image: $fonts"
 for path in /usr/share/fonts /usr/local/share/fonts /etc/fonts /usr/bin/fc-list /usr/bin/fc-cache; do
     [ ! -e "$path" ] || fail "$path exists"
@@ -40,17 +51,21 @@ done
 home=/tmp/empty-home
 for dir in home appdata state data config; do
     mkdir -p "$home/$dir"
+    chmod 0777 "$home/$dir"
 done
 for dir in "$home"/*; do
     [ -z "$(ls -A "$dir")" ] || fail "$dir is not empty"
 done
 
 echo "headless: bare container confirmed (no display, no GPU, no font file, empty user directories)"
-/ew --version
+command -v setpriv >/dev/null || fail "setpriv (util-linux) is not on the image"
+setpriv --reuid "$EW_UID" --regid "$EW_GID" --clear-groups /ew --version
 
-# `env -i` clears everything else: no EW_CONTENT_DIR, no SOURCE_DATE_EPOCH, no locale.
+# The export runs as the runner's user, not as root. `env -i` clears everything else: no EW_CONTENT_DIR, no
+# SOURCE_DATE_EPOCH, no locale.
 for threads in 1 4; do
-    env -i PATH=/usr/bin:/bin HOME="$home/home" USERPROFILE="$home/home" APPDATA="$home/appdata" \
+    setpriv --reuid "$EW_UID" --regid "$EW_GID" --clear-groups \
+        env -i PATH=/usr/bin:/bin HOME="$home/home" USERPROFILE="$home/home" APPDATA="$home/appdata" \
         LOCALAPPDATA="$home/appdata" XDG_STATE_HOME="$home/state" XDG_DATA_HOME="$home/data" \
         XDG_CONFIG_HOME="$home/config" \
         /ew export pdf /project --out "/out/golden-$threads.pdf" --threads "$threads"

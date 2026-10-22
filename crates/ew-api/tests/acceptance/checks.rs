@@ -386,21 +386,27 @@ fn list(items: impl IntoIterator<Item = String>, limit: usize) -> String {
 }
 
 /// The environment variable that names a veraPDF XML report (`verapdf --format xml`) of the golden PDF exports.
-/// The `verapdf` job of `.github/workflows/docs.yml` (CI-N-09, FT-294) writes it and uploads it as the artifact
-/// `verapdf-report`; `EW_VERAPDF_REPORT=<report.xml> cargo xtask acceptance --milestone <report.md>` makes
-/// AC-13's veraPDF entry read it. The committed headless report is made without it, so its entry stays
-/// `not_applicable` (and the ordinary test of the committed report fails when a developer has the variable set).
+/// The `verapdf` job of `.github/workflows/ci.yml` (CI-N-09, FT-294) writes the report and uploads it as the
+/// artifact `verapdf-report`; `EW_VERAPDF_REPORT=<report.xml> cargo xtask acceptance --milestone <report.md>`
+/// makes AC-13's veraPDF entry read it. Only the gate (`tests/acceptance.rs`, `gate`) reads the variable and
+/// passes the path in through [`super::runner::Options`]; the headless run passes none, so the committed
+/// headless report (and the ordinary test that compares with it) never depends on the environment.
 pub const VERAPDF_REPORT_ENV: &str = "EW_VERAPDF_REPORT";
 
-/// AC-13's veraPDF entry: the verdict of a veraPDF report when [`VERAPDF_REPORT_ENV`] names one, else not
+/// AC-13's veraPDF entry: the verdict of the veraPDF report of the run's options when there is one, else not
 /// applicable (the tool is external and is not run by the runner itself).
-fn ac13_verapdf(_: &Ctx) -> Outcome {
-    let Some(path) = std::env::var_os(VERAPDF_REPORT_ENV).filter(|v| !v.is_empty()) else {
+fn ac13_verapdf(c: &Ctx) -> Outcome {
+    verapdf_entry(c.verapdf.as_deref())
+}
+
+/// The outcome of AC-13's veraPDF entry for the report path of the run, if any.
+pub fn verapdf_entry(report: Option<&std::path::Path>) -> Outcome {
+    let Some(path) = report else {
         return na(
-            "veraPDF is an external tool that the runner does not run; the `verapdf` job of .github/workflows/docs.yml (CI-N-09) validates the exported PDFs against PDF/A-2b, and setting EW_VERAPDF_REPORT to the path of its XML report makes this entry read the result",
+            "veraPDF is an external tool that the runner does not run; the `verapdf` job of .github/workflows/ci.yml (CI-N-09) validates the exported PDFs against PDF/A-2b, and setting EW_VERAPDF_REPORT to the path of its XML report makes this entry read the result",
         );
     };
-    match std::fs::read_to_string(&path) {
+    match std::fs::read_to_string(path) {
         Ok(text) => verapdf_outcome(&text),
         Err(e) => fail(format!(
             "{VERAPDF_REPORT_ENV} names a report that cannot be read: {e}"

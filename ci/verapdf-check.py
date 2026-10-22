@@ -66,7 +66,9 @@ def check(text, expect_jobs=None, profile="2B"):
         lines.append(f"{name}: {verdict} ({profile_name})")
         if not compliant:
             errors.append(f"{name}: {report.get('statement', 'not compliant')}")
-            failed = [r for r in children(report, "ruleSummary") if r.get("status") == "failed"]
+            # The failed rules are `<rule status="failed">` in veraPDF's machine-readable report and
+            # `<ruleSummary status="failed">` in its summary form: both are read.
+            failed = [r for r in children(report, "ruleSummary") + children(report, "rule") if r.get("status") == "failed"]
             for rule in failed[:MAX_RULES]:
                 desc = " ".join((rule.findtext("description") or "").split())
                 lines.append(
@@ -146,6 +148,19 @@ def selftest():
     assert any("6.2.4.3-2 (3 checks): DeviceRGB shall only be used" in x for x in lines), lines
     assert not any("6.1.2" in x for x in lines), "a passed rule is not listed"
     assert "FAILED" in verdict_text(errors, lines)
+
+    # the `<rule>` shape of the machine-readable report: the failed rule is listed, the passed one is not
+    rule_shape = (
+        '<rule specification="ISO 19005-2:2011" clause="6.2.11.4.1" testNumber="2" status="failed" '
+        'passedChecks="0" failedChecks="2"><description>Fonts shall be embedded</description>'
+        '<check status="failed"><context>root/font</context></check></rule>'
+        '<rule specification="ISO 19005-2:2011" clause="6.1.2" testNumber="1" status="passed" passedChecks="1" failedChecks="0"/>'
+    )
+    errors, lines = check(
+        report([job(compliant="false", rules=rule_shape)], counts='compliant="0" nonCompliant="1" failedJobs="0"')
+    )
+    assert any("6.2.11.4.1-2 (2 checks): Fonts shall be embedded" in x for x in lines), lines
+    assert not any("6.1.2" in x for x in lines), "a passed rule is not listed"
 
     errors, _ = check(report([job(profile="PDF/A-1B validation profile")]))
     assert any("expected a profile with `2B`" in e for e in errors), errors

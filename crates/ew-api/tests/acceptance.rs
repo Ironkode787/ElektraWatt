@@ -63,9 +63,11 @@ fn committed_report() -> std::path::PathBuf {
 /// measurements (milestone runs only).
 #[test]
 fn the_headless_report_equals_the_committed_report() {
+    // The headless run never reads EW_VERAPDF_REPORT: the committed report does not depend on the environment.
     let report = run(Options {
         raster: false,
         perf: false,
+        verapdf: None,
     });
     assert_eq!(report.oracle_mismatches, 0, "the oracle found memo mismatches");
     let text = report.markdown();
@@ -99,6 +101,9 @@ fn gate() {
     let report = run(Options {
         raster: true,
         perf: std::env::var_os("EW_PERF_ASSERT").is_some(),
+        verapdf: std::env::var_os(checks::VERAPDF_REPORT_ENV)
+            .filter(|v| !v.is_empty())
+            .map(std::path::PathBuf::from),
     });
     let path = std::env::var_os("EW_ACCEPTANCE_REPORT").expect("EW_ACCEPTANCE_REPORT names the report file");
     std::fs::write(path, report.markdown()).expect("the report path is writable");
@@ -380,16 +385,22 @@ fn the_verapdf_entry_reads_the_report_of_the_job() {
     assert!(reason.contains("no job"), "{reason}");
 }
 
-/// Without `EW_VERAPDF_REPORT` the entry is not applicable and its reason names the job that runs the tool; the
-/// committed headless report holds this text.
+/// Without a report path the entry is not applicable and its reason names the job that runs the tool, the text
+/// that the committed headless report holds (the headless run passes no path whatever the environment says); with
+/// a path it reads the file, and an unreadable one fails.
 #[test]
 fn the_verapdf_entry_names_the_job_without_a_report() {
-    if std::env::var_os(checks::VERAPDF_REPORT_ENV).is_some() {
-        return;
-    }
+    let (status, reason) = checks::verapdf_entry(None);
+    assert_eq!(status, Status::NotApplicable);
     let committed = std::fs::read_to_string(committed_report()).unwrap();
     assert!(
-        committed.contains("| AC-13 | veraPDF cross-check of PDF/A-2b | not_applicable | veraPDF is an external tool that the runner does not run; the `verapdf` job of .github/workflows/docs.yml (CI-N-09)"),
-        "the committed report names the verapdf job"
+        committed.contains(&format!(
+            "| AC-13 | veraPDF cross-check of PDF/A-2b | not_applicable | {reason} |"
+        )),
+        "the committed report holds the entry's text: {reason}"
     );
+    assert!(reason.contains(".github/workflows/ci.yml"), "{reason}");
+    let (status, reason) = checks::verapdf_entry(Some(std::path::Path::new("no/such/verapdf-report.xml")));
+    assert_eq!(status, Status::Fail, "{reason}");
+    assert!(reason.contains("cannot be read"), "{reason}");
 }
