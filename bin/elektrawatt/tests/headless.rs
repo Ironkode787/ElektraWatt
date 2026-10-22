@@ -61,7 +61,7 @@ fn copy_dir(from: &Path, to: &Path) {
 }
 
 fn elektrawatt(tmp: &Tmp, args: &[&std::ffi::OsStr]) -> Output {
-    Command::new(env!("CARGO_BIN_EXE_elektrawatt"))
+    Command::new(bin_exe())
         .args(args)
         .env("EW_CONFIG_DIR", tmp.path("config"))
         .env_remove("SOURCE_DATE_EPOCH")
@@ -312,7 +312,7 @@ fn the_transcript_is_deterministic() {
 
     // The same script on stdin, line by line, gives the same transcript.
     let dir = tmp_c.golden("three");
-    let mut child = Command::new(env!("CARGO_BIN_EXE_elektrawatt"))
+    let mut child = Command::new(bin_exe())
         .args(["--headless", "--script", "-"])
         .env("EW_CONFIG_DIR", tmp_c.path("config"))
         .stdin(Stdio::piped())
@@ -541,7 +541,7 @@ fn a_headless_run_leaves_the_users_settings_alone() {
     let file = tmp.path("s.jsonl");
     std::fs::write(&file, &text).unwrap();
     let run = |extra: &[&std::ffi::OsStr]| {
-        Command::new(env!("CARGO_BIN_EXE_elektrawatt"))
+        Command::new(bin_exe())
             .args(["--headless", "--script"])
             .arg(&file)
             .args(extra)
@@ -569,4 +569,13 @@ fn a_headless_run_leaves_the_users_settings_alone() {
     let settings = std::fs::read_to_string(config.join("settings.toml")).unwrap();
     assert!(settings.contains("recent_projects"), "{settings}");
     assert!(listing(&home).is_empty());
+}
+
+/// The path of the `elektrawatt` binary under test. nextest sets `NEXTEST_BIN_EXE_elektrawatt` at run time (the binaries of a
+/// `--archive-file` run are unpacked elsewhere than the compile-time path, FT-353); a plain `cargo test` falls back
+/// to the compile-time path.
+fn bin_exe() -> std::path::PathBuf {
+    std::env::var_os("NEXTEST_BIN_EXE_elektrawatt")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|| std::path::PathBuf::from(env!("CARGO_BIN_EXE_elektrawatt"))) // bin-exe-fallback
 }

@@ -74,7 +74,7 @@ fn script(steps: &[(&str, Value)]) -> String {
 fn run_script(tmp: &Tmp, name: &str, text: &str) -> Output {
     let file = tmp.path(name);
     std::fs::write(&file, text).unwrap();
-    Command::new(env!("CARGO_BIN_EXE_elektrawatt"))
+    Command::new(bin_exe())
         .args(["--headless", "--script"])
         .arg(&file)
         .env("EW_CONFIG_DIR", tmp.path("config"))
@@ -414,4 +414,13 @@ fn a8_the_pointer_at_an_entity_hovers_it_in_the_transcript_and_the_describe_text
         .collect();
     assert!(at.windows(2).all(|w| w[0] < w[1]), "{canvas}");
     assert_eq!(steps[8]["state"]["canvas"]["hover"], Value::Null);
+}
+
+/// The path of the `elektrawatt` binary under test. nextest sets `NEXTEST_BIN_EXE_elektrawatt` at run time (the binaries of a
+/// `--archive-file` run are unpacked elsewhere than the compile-time path, FT-353); a plain `cargo test` falls back
+/// to the compile-time path.
+fn bin_exe() -> std::path::PathBuf {
+    std::env::var_os("NEXTEST_BIN_EXE_elektrawatt")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|| std::path::PathBuf::from(env!("CARGO_BIN_EXE_elektrawatt"))) // bin-exe-fallback
 }

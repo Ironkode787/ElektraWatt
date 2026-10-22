@@ -764,6 +764,51 @@ mod tests {
         );
     }
 
+    /// FT-353: the Windows tests run from a nextest archive, unpacked elsewhere than the compile-time path of
+    /// `env!("CARGO_BIN_EXE_<name>")`. A test starts a binary through its crate's `bin_exe()` helper (which reads
+    /// `NEXTEST_BIN_EXE_<name>` first); the only allowed `env!("CARGO_BIN_EXE_` site is the helper's fallback line,
+    /// marked `// bin-exe-fallback`.
+    #[test]
+    fn tests_start_binaries_through_the_nextest_aware_helper() {
+        fn rust_files(dir: &std::path::Path, out: &mut Vec<std::path::PathBuf>) {
+            let Ok(entries) = std::fs::read_dir(dir) else {
+                return;
+            };
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    rust_files(&path, out);
+                } else if path.extension().is_some_and(|e| e == "rs") {
+                    out.push(path);
+                }
+            }
+        }
+        let root = workspace_root();
+        let mut files = Vec::new();
+        for group in ["bin", "crates"] {
+            let Ok(entries) = std::fs::read_dir(root.join(group)) else {
+                continue;
+            };
+            for entry in entries.flatten() {
+                rust_files(&entry.path().join("tests"), &mut files);
+            }
+        }
+        assert!(!files.is_empty(), "no test sources found");
+        let mut bare = Vec::new();
+        for file in &files {
+            let text = std::fs::read_to_string(file).unwrap();
+            for (n, line) in text.lines().enumerate() {
+                if line.contains("env!(\"CARGO_BIN_EXE_") && !line.contains("// bin-exe-fallback") {
+                    bare.push(format!("{}:{}", file.display(), n + 1));
+                }
+            }
+        }
+        assert!(
+            bare.is_empty(),
+            "use the crate's bin_exe() helper (NEXTEST_BIN_EXE_<name> first, then the marked fallback): {bare:#?}"
+        );
+    }
+
     #[test]
     fn an_unresolvable_disallowed_path_is_caught() {
         let warning = "warning: `ew_model::Model::gone` does not refer to a reachable function";

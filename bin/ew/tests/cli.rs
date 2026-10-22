@@ -42,7 +42,7 @@ impl Drop for Tmp {
 }
 
 fn ew(args: &[&std::ffi::OsStr]) -> Output {
-    Command::new(env!("CARGO_BIN_EXE_ew"))
+    Command::new(bin_exe())
         .args(args)
         .env_remove("EW_CONTENT_DIR")
         .output()
@@ -634,7 +634,7 @@ fn ew_isolated_with(home: &std::path::Path, args: &[&std::ffi::OsStr], epoch: Op
         "XDG_DATA_HOME",
         "XDG_CONFIG_HOME",
     ];
-    let mut cmd = Command::new(env!("CARGO_BIN_EXE_ew"));
+    let mut cmd = Command::new(bin_exe());
     cmd.args(args)
         .env_remove("EW_CONTENT_DIR")
         .env_remove("DISPLAY")
@@ -1054,4 +1054,13 @@ fn apply_refuses_a_project_with_a_crashed_session_journal() {
     assert_eq!(o.status.code(), Some(2), "{}{}", stdout(&o), stderr(&o));
     assert!(stderr(&o).contains("ew recover"), "{}", stderr(&o));
     assert!(tree(&project) == before, "nothing is applied");
+}
+
+/// The path of the `ew` binary under test. nextest sets `NEXTEST_BIN_EXE_ew` at run time (the binaries of a
+/// `--archive-file` run are unpacked elsewhere than the compile-time path, FT-353); a plain `cargo test` falls back
+/// to the compile-time path.
+fn bin_exe() -> std::path::PathBuf {
+    std::env::var_os("NEXTEST_BIN_EXE_ew")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|| std::path::PathBuf::from(env!("CARGO_BIN_EXE_ew"))) // bin-exe-fallback
 }

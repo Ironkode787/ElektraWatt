@@ -57,7 +57,7 @@ fn script_text(steps: &[(&str, Value)]) -> String {
 fn run(tmp: &Tmp, steps: &[(&str, Value)]) -> Output {
     let file = tmp.path("script.jsonl");
     std::fs::write(&file, script_text(steps)).unwrap();
-    Command::new(env!("CARGO_BIN_EXE_elektrawatt"))
+    Command::new(bin_exe())
         .args(["--headless", "--script"])
         .arg(&file)
         .env("EW_CONFIG_DIR", tmp.path("config"))
@@ -580,4 +580,13 @@ fn the_part_two_transcripts_are_deterministic() {
     // The two runs name different temporary directories; the transcripts carry no path, so they are equal.
     assert_eq!(String::from_utf8_lossy(&first), String::from_utf8_lossy(&second));
     assert!(!String::from_utf8_lossy(&first).contains(&*a.0.to_string_lossy()));
+}
+
+/// The path of the `elektrawatt` binary under test. nextest sets `NEXTEST_BIN_EXE_elektrawatt` at run time (the binaries of a
+/// `--archive-file` run are unpacked elsewhere than the compile-time path, FT-353); a plain `cargo test` falls back
+/// to the compile-time path.
+fn bin_exe() -> std::path::PathBuf {
+    std::env::var_os("NEXTEST_BIN_EXE_elektrawatt")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|| std::path::PathBuf::from(env!("CARGO_BIN_EXE_elektrawatt"))) // bin-exe-fallback
 }

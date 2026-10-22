@@ -229,6 +229,8 @@ jobs:
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       # NFR-REL-07: ICU4X_DATA_DIR swaps the ICU segmentation data at build time and changes line breaks.
       - name: assert ICU4X_DATA_DIR is unset
         shell: bash
@@ -239,7 +241,11 @@ jobs:
       # Windows runs the all-features suite only (FT-330, decision log ID-482) and, from FT-353 (ID-527), builds it once
       # and runs it in two halves on the nextest archive: ci run 39797238020 took 33 min 20 s for one job. Doctests
       # do not run on Windows (platform-neutral; Linux, macOS and `cargo xtask ci` run them). This job builds, saves
-      # the rust-cache and uploads the archive; the two run jobs only restore.
+      # the rust-cache (on main only, as `headless` does) and uploads the archive; the two run jobs have no cache:
+      # their key would be their own job name, which never saves. The tests start the CLI binaries through
+      # `NEXTEST_BIN_EXE_<name>` (xtask guards that) because the archive is unpacked elsewhere than the compile-time
+      # path. About 36 test files use `env!("CARGO_MANIFEST_DIR")` or `CARGO_TARGET_TMPDIR`, which only works
+      # because the build and run jobs check out to the same workspace path on windows-2025.
       - name: cargo nextest archive (all features)
         shell: bash
         run: cargo nextest archive --workspace --all-features --locked --archive-file nextest-archive.tar.zst
@@ -249,6 +255,7 @@ jobs:
           path: nextest-archive.tar.zst
           if-no-files-found: error
           retention-days: 1
+          compression-level: 0
 
   test-windows-1:
     name: test-windows-1
@@ -262,9 +269,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-        with:
-          save-if: false
       # NFR-REL-07: ICU4X_DATA_DIR swaps the ICU segmentation data at build time and changes line breaks.
       - name: assert ICU4X_DATA_DIR is unset
         shell: bash
@@ -277,6 +281,10 @@ jobs:
           name: nextest-archive-windows
       # Half 1 of 2 of the all-features suite (FT-353). nextest partitions by test, so the acceptance tests and the
       # command fuzzer, which belong to the all-features run unfiltered, each run once in total, in one partition.
+      # The xtask tests run `cargo metadata`, which needs the registry sources.
+      - name: cargo fetch
+        shell: bash
+        run: cargo fetch --locked
       - name: cargo nextest (all features, partition 1/2)
         shell: bash
         run: cargo nextest run --archive-file nextest-archive.tar.zst --workspace-remap . --partition count:1/2 --profile ci
@@ -317,9 +325,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-        with:
-          save-if: false
       # NFR-REL-07: ICU4X_DATA_DIR swaps the ICU segmentation data at build time and changes line breaks.
       - name: assert ICU4X_DATA_DIR is unset
         shell: bash
@@ -332,6 +337,10 @@ jobs:
           name: nextest-archive-windows
       # Half 2 of 2 of the all-features suite (FT-353). nextest partitions by test, so the acceptance tests and the
       # command fuzzer, which belong to the all-features run unfiltered, each run once in total, in one partition.
+      # The xtask tests run `cargo metadata`, which needs the registry sources.
+      - name: cargo fetch
+        shell: bash
+        run: cargo fetch --locked
       - name: cargo nextest (all features, partition 2/2)
         shell: bash
         run: cargo nextest run --archive-file nextest-archive.tar.zst --workspace-remap . --partition count:2/2 --profile ci
