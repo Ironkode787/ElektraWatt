@@ -173,12 +173,11 @@ impl Command for BindChannel {
                     f.def
                 ));
             }
-            let endpoint = Endpoint::Cp(function, idx);
+            // the channels that hold the CP: an index lookup, not a scan of the channel table (FT-319)
             let others: Vec<Id<Channel>> = tx
-                .iter::<Channel>()
+                .channels_at_cp(function, idx)
                 .into_iter()
-                .filter(|c| c.id != self.channel && c.binding.as_ref() == Some(&endpoint))
-                .map(|c| c.id)
+                .filter(|c| *c != self.channel)
                 .collect();
             for other in others {
                 tx.update::<Channel>(other, |c| c.binding = None)?;
@@ -266,10 +265,12 @@ impl Command for SetModulePart {
         let count = module_section(tx, &dev)
             .and_then(|s| s.channels)
             .map_or(0, |c| c.count);
+        // the module's channels from the index (FT-319), not a scan of the channel table
         let mut surplus: Vec<_> = tx
-            .iter::<Channel>()
+            .channels_of_module(m)
             .into_iter()
-            .filter(|c| c.module == m && c.number >= count)
+            .filter_map(|id| tx.get::<Channel>(id))
+            .filter(|c| c.number >= count)
             .collect();
         surplus.sort_by_key(|c| (c.number, c.id));
         let mut notices = Vec::new();

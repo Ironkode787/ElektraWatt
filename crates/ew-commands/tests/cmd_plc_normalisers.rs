@@ -263,6 +263,31 @@ fn an_explicit_rebinding_after_n2_stays() {
     assert_eq!(binding(&e, 0), None);
 }
 
+/// FT-319: `plc.bind_channel` reads the CP → channel index (not the channel table), and a prepared
+/// transaction records that read: a preview made while the CP was free is re-run at commit after another
+/// channel took the CP, so FR-PLC-005 (a CP is in at most one channel) still holds.
+#[test]
+fn a_preview_of_a_binding_is_re_run_after_another_channel_took_the_cp() {
+    let mut e = engine(model_with(vec![]));
+    make_module(&mut e, MODULE_H1);
+    let (_, _, f) = add_valve(&mut e, 1, FNDEF_MONO);
+    e.execute(&bind(channel_id(DEV_102F2, 0), None)).expect("unbind");
+    let preview = e
+        .preview(&bind(channel_id(DEV_102F2, 1), Some((f, 5))))
+        .expect("preview");
+    e.execute(&bind(channel_id(DEV_102F2, 2), Some((f, 5))))
+        .expect("another channel takes the CP");
+    let r = e.commit(preview).expect("commit");
+    assert!(has_notice(&r, "FR-PLC-005"), "{:?}", r.outcome.notices);
+    assert_eq!(binding(&e, 1), Some(Endpoint::Cp(f, 5)));
+    assert_eq!(
+        binding(&e, 2),
+        None,
+        "the channel that took the CP meanwhile is unbound"
+    );
+    assert_eq!(binding(&e, 0), None);
+}
+
 /// A move within the module re-evaluates the valve: a free coil binds at the new position; a bound coil
 /// keeps its channel, with a notice (owner ruling, cycle 18; EW-PLC-012 reports the deviation from the map,
 /// doc 11 §4.2 N-FL-2).

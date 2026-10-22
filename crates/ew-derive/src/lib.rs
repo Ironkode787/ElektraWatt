@@ -49,6 +49,7 @@
 mod assembly;
 mod bom;
 mod cell;
+mod channel_index;
 mod component;
 mod cp_point;
 mod cps;
@@ -92,6 +93,7 @@ pub use cell::{
     Cell, CellOf, FrameGridOf, FrameSettings, FrameSettingsValue, FrameTypeEntry, RepAnchorCell,
     anchor_point, default_frame_grid, frame_grid,
 };
+pub use channel_index::{ChannelKeyed, ChannelsByCp, ChannelsByModule, ModuleChannelIds};
 pub use cp_point::{cp_cell, cp_point};
 pub use cps::{Cp, FunctionCps};
 // WP-S1.07 part 2: the derived-index families of the connectivity (ARCH §6.3 rule 5) and the interruption-point
@@ -201,6 +203,8 @@ pub const FAMILIES: &[(&str, Policy)] = &[
     (ChannelStates::FAMILY, ChannelStates::POLICY),
     (ChannelTargets::FAMILY, ChannelTargets::POLICY),
     (ChannelTexts::FAMILY, ChannelTexts::POLICY),
+    (ChannelsByCp::FAMILY, ChannelsByCp::POLICY),
+    (ChannelsByModule::FAMILY, ChannelsByModule::POLICY),
     (CpFlowDistanceOf::FAMILY, CpFlowDistanceOf::POLICY),
     (DefPoints::FAMILY, DefPoints::POLICY),
     (xref::DeviceBoxes::FAMILY, xref::DeviceBoxes::POLICY),
@@ -221,6 +225,7 @@ pub const FAMILIES: &[(&str, Policy)] = &[
     (IpPairingQ::FAMILY, IpPairingQ::POLICY),
     (MainFunction::FAMILY, MainFunction::POLICY),
     (MainRep::FAMILY, MainRep::POLICY),
+    (ModuleChannelIds::FAMILY, ModuleChannelIds::POLICY),
     (ModuleOrder::FAMILY, ModuleOrder::POLICY),
     (ModuleStarts::FAMILY, ModuleStarts::POLICY),
     (NumberingSettingsOf::FAMILY, NumberingSettingsOf::POLICY),

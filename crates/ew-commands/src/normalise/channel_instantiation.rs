@@ -64,16 +64,17 @@ pub(crate) fn module_part_copy(tx: &TxBuilder<'_>, dev: &Device) -> Option<Arc<L
 }
 
 /// The channels of a module by number; of two channels with one number (an import that bypassed the v5
-/// rule), the lower ID.
+/// rule), the lower ID. An index lookup (`TxBuilder::channels_of_module`), not a scan of the channel table
+/// (FT-319); `ew_derive::ModuleChannelIds` keys the derivation the same way.
 pub(crate) fn channels_by_number(tx: &TxBuilder<'_>, module: Id<Device>) -> BTreeMap<u16, Arc<Channel>> {
     let mut out: BTreeMap<u16, Arc<Channel>> = BTreeMap::new();
-    for c in tx.iter::<Channel>().into_iter().filter(|c| c.module == module) {
-        match out.get(&c.number) {
-            Some(held) if held.id <= c.id => {}
-            _ => {
-                out.insert(c.number, c);
-            }
-        }
+    // in ID order, so the first channel of a number is the lowest ID
+    for c in tx
+        .channels_of_module(module)
+        .into_iter()
+        .filter_map(|id| tx.get::<Channel>(id))
+    {
+        out.entry(c.number).or_insert(c);
     }
     out
 }

@@ -543,7 +543,7 @@ fn verify_derived_tiny_project_is_clean() {
     assert_eq!(o.status.code(), Some(0), "{}{}", stdout(&o), stderr(&o));
     let out = stdout(&o);
     assert!(
-        out.starts_with("verify-derived: 66 families, ")
+        out.starts_with("verify-derived: 69 families, ")
             && out.ends_with(" keys, 0 differences, 0 oracle mismatches\n"),
         "{out}"
     );

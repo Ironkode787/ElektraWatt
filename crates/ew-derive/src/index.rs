@@ -237,7 +237,7 @@ impl HeapBytes for IpSpec {
 
 /// The row IDs of kind `T` among the touched inputs (`memo_keys::touched` lists `Read(Row(key))` for every
 /// put row).
-fn touched_rows<T: Entity>(touched: &[MemoInput]) -> BTreeSet<RowId<T>> {
+pub(crate) fn touched_rows<T: Entity>(touched: &[MemoInput]) -> BTreeSet<RowId<T>> {
     touched
         .iter()
         .filter_map(|i| match i {

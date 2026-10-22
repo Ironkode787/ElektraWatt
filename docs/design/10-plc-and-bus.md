@@ -207,8 +207,8 @@ expand the part's pattern with one shared function, `ew_derive::expand_pattern` 
 `{<expression in n>}` of §2.6 is expanded (`"X2:{n+1}"` prints `X2:1` for channel 0), and a pattern that does not
 expand (an unclosed `{`, a stray `}`, an expression that does not parse, one in `p`, an overflow) gives no
 designation and one derivation note per module, as it gives no pin and a notice in N3. The map language has no
-subtraction, so `{n-1}` does not parse. The derivation finds a module's channels by their v5 IDs, while N1 keys them on
-(module, number); a channels-by-module index makes both agree (FT-319).
+subtraction, so `{n-1}` does not parse. Since cycle 21 the derivation finds a module's channels as N1 keys them, by (module, number) and not by their v5
+IDs: the channels-by-module index (FT-319, below). Of two channels with one number the lower ID is the channel.
 
 ### 2.5 Addresses and address profiles
 
@@ -457,6 +457,19 @@ configuration project or network (ARCH §6.3).
 Memo), the module part's position map applied to its valve children (§2.6), which `channel_states` reads for step 4
 (§3.2) and EW-PLC-012 is to read (FT-192); `ew verify-derived` and AC-16 sweep it (66 families).
 
+**As built (cycle 21; FT-319, FT-318).** Three families join, taking `ew verify-derived` and AC-16 to 69 families:
+`channels_by_module()` (`ChannelsByModule`, Memo, incremental over the channel table: every channel by (module, number,
+ID)), `module_channel_ids(module)` (`ModuleChannelIds`, Memo: one module's slice of it, the channels by number with the
+lowest ID where two share a number, read as a cut-off point) and `channels_by_cp()` (`ChannelsByCp`, Memo, incremental:
+every channel bound to a CP, by (function, CP index, ID)). A module reads its channels through its slice and then each
+row by ID, so an edit of one channel re-runs the readers of its own module only; a binding or designation edit changes
+no entry of either index and cuts off. Step 4 asks the CP → channel index whether a coil is bound, and only a module
+whose map claims a channel reads it. In a transaction, N1, N2, N3, `plc.bind_channel` and `plc.set_module_part` read
+the model's base indexes with read-your-writes (`TxBuilder::channels_of_module`, `channels_at_cp`: the generic
+referrer index of the links `Channel.module` and `Channel.binding`), because a transaction has no memoising `Q` over
+its pending state; no whole-table read of the channel table is left on a binding edit. The designation pattern has one
+expander (FT-318, §2.4).
+
 ---
 
 ## 3. Behaviour and rules
@@ -546,11 +559,13 @@ monostable 571334 declares. **Both hypotheses therefore give 8 used, 20 spare an
 
 **As built (cycle 18; FT-228; decision log ID-464).** `channel_states` applies all five steps; step 4 reads
 `solenoid_positions(module)`. "s is unbound" means that **no channel of any module** binds the coil CP, whatever that
-channel's ID: the whole channel table is read, as N2 and `plc.bind_channel` read it, so a valve moved to another
+channel's ID: the CP → channel index is read (before cycle 21 the whole channel table, as N2 and `plc.bind_channel`
+read it), so a valve moved to another
 module and a duplicate channel never make a channel `Reserved`. Only an unbound channel reaches step 4, so the case
 "bound to c" cannot arise there. On Golden A under H1 no channel is claimed and the counts stay 8 used, 20 spare and
 28 deactivated (tested under H1 and H2, memoised against cold). EW-FL-002, which step 4 names, and EW-PLC-012 are not
-built (FT-192). Step 4 scans the channel table per module; a CP → channel index is FT-319.
+built (FT-192). Since cycle 21 step 4 reads the CP → channel index instead of scanning the channel table per module
+(FT-319).
 
 ### 3.3 Binding and normalisers
 

@@ -33,14 +33,15 @@
 //!
 //! # Granularity
 //!
-//! The finest key is a module, station or configuration project (ARCH §6.3). A module reads its channels by
-//! ID (`v5(module, "channel", n)` for `n` below the part's channel count), so a channel edit invalidates
-//! its module only. Stations and device links are found by whole-table reads, cut off early by value.
+//! The finest key is a module, station or configuration project (ARCH §6.3). A module reads its channels
+//! through the channels-by-module index (`module_channel_ids(module)`, keyed on (module, number) as N1 keys
+//! them, FT-319) and then each channel row by ID, so a channel edit invalidates its module only; step 4 reads
+//! the CP → channel index. Stations and device links are found by whole-table reads, cut off early by value.
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use ew_ids::{Id, v5};
+use ew_ids::Id;
 use ew_mltext::Ident;
 use ew_plcaddr::{AddressProfile, Area, AreaIntervals, MapExpr, MapVar, Purpose, Size};
 use ew_schema::{
@@ -50,6 +51,7 @@ use ew_schema::{
 };
 
 use crate::Q;
+use crate::channel_index::{ChannelsByCp, ModuleChannelIds};
 use crate::note::DeriveNote;
 use crate::pattern::{PatternError, expand_pattern};
 use crate::query::{Policy, Query};
@@ -496,16 +498,19 @@ fn module_cfg(q: &Q, module: Id<Device>) -> Option<(Id<Device>, Id<PlcConfigProj
     Some((station, cfg))
 }
 
-/// The channel records of a module, read by ID for the numbers of the part's channel spec.
+/// The channel records of a module for the numbers of the part's channel spec, in number order: the module's
+/// slice of the channels-by-module index ([`ModuleChannelIds`], keyed on (module, number) as N1 keys the
+/// channels), then each row by ID. An edit of one channel invalidates its own module's readers only.
 fn module_channels(q: &Q, module: Id<Device>) -> Vec<Arc<Channel>> {
     let Some((_, plc)) = module_part(q, module) else {
         return Vec::new();
     };
     let count = plc.channels.as_ref().map_or(0, |c| c.count);
     let table = q.table::<Channel>();
-    (0..count)
-        .filter_map(|n| table.get(v5::plc_channel_id(module, n)).cloned())
-        .filter(|c| c.module == module)
+    q.get::<ModuleChannelIds>(module)
+        .iter()
+        .filter(|(number, _)| *number < count)
+        .filter_map(|(_, id)| table.get(*id).cloned())
         .collect()
 }
 
@@ -826,23 +831,22 @@ impl Query for ChannelStates {
         // declares s, and s is unbound or bound to c. Only an unbound channel reaches step 4, so "bound to c"
         // cannot hold there; a coil counts as bound when any channel binds it, of this module or another
         // (a valve moved by `assembly.attach` keeps its binding) and whatever its ID (review ruling, cycle
-        // 18): the whole channel table, as normaliser N2 and `plc.bind_channel` read it.
-        let bound: std::collections::BTreeSet<(Id<Function>, u16)> = q
-            .table::<Channel>()
-            .iter()
-            .filter_map(|(_, c)| match &c.binding {
-                Some(Endpoint::Cp(f, idx)) => Some((*f, *idx)),
-                _ => None,
-            })
-            .collect();
-        let claimed: std::collections::BTreeSet<u16> = slots
-            .iter()
-            .filter_map(|s| {
-                let coil = s.coil?;
-                let channel = s.channel?;
-                (!bound.contains(&(coil.function, coil.idx))).then_some(channel)
-            })
-            .collect();
+        // 18): the CP → channel index, as normaliser N2 and `plc.bind_channel` read it (FT-319). A module
+        // whose map claims nothing does not read it.
+        let claimed: std::collections::BTreeSet<u16> =
+            if slots.iter().any(|s| s.coil.is_some() && s.channel.is_some()) {
+                let bound = q.get::<ChannelsByCp>(());
+                slots
+                    .iter()
+                    .filter_map(|s| {
+                        let coil = s.coil?;
+                        let channel = s.channel?;
+                        (!bound.is_bound(coil.function, coil.idx)).then_some(channel)
+                    })
+                    .collect()
+            } else {
+                std::collections::BTreeSet::new()
+            };
         let out = channels
             .iter()
             .map(|c| {

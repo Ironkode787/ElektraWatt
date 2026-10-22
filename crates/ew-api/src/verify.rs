@@ -51,6 +51,8 @@ pub const SWEPT: &[&str] = &[
     "channel_states",
     "channel_targets",
     "channel_texts",
+    "channels_by_cp",
+    "channels_by_module",
     "cp_flow_distance",
     "cp_targets_by_page",
     "def_points",
@@ -65,6 +67,7 @@ pub const SWEPT: &[&str] = &[
     "ip_info",
     "ip_notes",
     "ip_pairing",
+    "module_channel_ids",
     "module_order",
     "module_starts",
     "page_bindings",
@@ -247,6 +250,10 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     check::<ew_derive::ChannelStates>(memo, cold, keys.devices.iter().copied(), o);
     check::<ew_derive::ChannelTargets>(memo, cold, keys.devices.iter().copied(), o);
     check::<ew_derive::ChannelTexts>(memo, cold, keys.devices.iter().copied(), o);
+    // FT-319: the channel indexes.
+    check::<ew_derive::ChannelsByModule>(memo, cold, [()], o);
+    check::<ew_derive::ChannelsByCp>(memo, cold, [()], o);
+    check::<ew_derive::ModuleChannelIds>(memo, cold, keys.devices.iter().copied(), o);
     check::<ew_derive::SolenoidPositions>(memo, cold, keys.devices.iter().copied(), o);
     check::<ew_derive::PlcRows>(memo, cold, keys.devices.iter().copied(), o);
     check::<DevicePartLines>(memo, cold, keys.devices.iter().copied(), o);

@@ -112,8 +112,6 @@ impl Normaliser for SolenoidBinding {
             return Ok(false);
         }
         let mut changed = false;
-        // the CPs some channel binds, read once when first needed
-        let mut bound: Option<BTreeSet<(Id<Function>, u16)>> = None;
         for module in modules {
             let Some(dev) = tx.get::<Device>(module) else {
                 continue;
@@ -168,16 +166,8 @@ impl Normaliser for SolenoidBinding {
                     let Some(channel) = channels.get(&number) else {
                         continue; // not instantiated: N1 creates it, and this pair runs again then
                     };
-                    let held = bound.get_or_insert_with(|| {
-                        tx.iter::<Channel>()
-                            .into_iter()
-                            .filter_map(|c| match c.binding {
-                                Some(Endpoint::Cp(f, idx)) => Some((f, idx)),
-                                _ => None,
-                            })
-                            .collect()
-                    });
-                    if held.contains(&coil) {
+                    // whether some channel binds the coil: an index lookup with read-your-writes (FT-319)
+                    if !tx.channels_at_cp(coil.0, coil.1).is_empty() {
                         // Owner ruling (cycle 18): an explicit or earlier binding of the coil wins, also
                         // after a move; a move rebinds only coils without a binding, and an explicit rebind
                         // is `plc.bind_channel` (the design pass rewords FR-PLC-051 and doc 10 §3.3). A
@@ -205,7 +195,6 @@ impl Normaliser for SolenoidBinding {
                         ));
                         continue;
                     }
-                    held.insert(coil);
                     tx.update::<Channel>(channel.id, |c| c.binding = Some(Endpoint::Cp(coil.0, coil.1)))?;
                     changed = true;
                 }

@@ -546,3 +546,194 @@ fn a_slot_of_a_newer_format_takes_no_rank() {
     );
     assert_eq!(texts(&q, M2)[0], "Q0.0");
 }
+
+// ---------------------------------------------------------------------------------------------------------
+// The channel indexes (FT-319)
+
+type IndexRead = (String, String, Vec<Vec<(u16, Id<ew_schema::Channel>)>>);
+
+/// The three index families, read for every module of the fixture.
+fn read_indexes(q: &Q) -> IndexRead {
+    (
+        format!("{:?}", q.get::<ew_derive::ChannelsByModule>(())),
+        format!("{:?}", q.get::<ew_derive::ChannelsByCp>(())),
+        [M1, M2, M3]
+            .iter()
+            .map(|m| q.get::<ew_derive::ModuleChannelIds>(id(*m)).as_ref().clone())
+            .collect(),
+    )
+}
+
+fn new_channel(n: u128, module: u128, number: u16, binding: Option<(u128, u16)>) -> ew_schema::Channel {
+    let mut v = json!({"id": uid(n), "module": uid(module), "number": number, "kind": "do"});
+    if let Some((f, idx)) = binding {
+        v["binding"] = json!({"cp": [uid(f), idx]});
+    }
+    serde_json::from_value(v).expect("a channel")
+}
+
+/// The channels of a module are found by (module, number) as N1 keys them, not by their v5 ID: a channel an
+/// import gave another ID is read, and of two channels with one number the lower ID is the channel.
+#[test]
+fn a_module_finds_its_channels_by_number_whatever_their_id() {
+    let mut fx = fixture();
+    // channel 3 of M3 carries a foreign ID, as an import that bypassed the v5 rule would leave it
+    fx.record(channel(M3, 3))["id"] = json!(uid(0xabc));
+    fx.record(0xabc)["designation"] = json!("IMPORTED");
+    let m = fx.build();
+    let q = Q::new(&m);
+    let texts = q.get::<ChannelTexts>(id(M3));
+    assert_eq!(texts.len(), 8, "the channel with the foreign ID is read");
+    assert_eq!(texts[3].0, id::<ew_schema::Channel>(0xabc));
+    assert_eq!(texts[3].1.designation.as_deref(), Some("IMPORTED"));
+    let ids = q.get::<ew_derive::ModuleChannelIds>(id(M3));
+    assert_eq!(
+        ids.iter().map(|(n, _)| *n).collect::<Vec<_>>(),
+        (0..8).collect::<Vec<u16>>()
+    );
+    assert_eq!(ids[3].1, id(0xabc));
+
+    // two channels with number 5 of M2: the lower ID wins, whatever the order of the table
+    let mut fx = fixture();
+    fx.push(
+        json!({"$k": "channel", "id": uid(1), "module": uid(M2), "number": 5, "kind": "do",
+        "designation": "LOW"}),
+    );
+    fx.push(
+        json!({"$k": "channel", "id": uid(u128::MAX), "module": uid(M2), "number": 5, "kind": "do",
+        "designation": "HIGH"}),
+    );
+    let m = fx.build();
+    let q = Q::new(&m);
+    let texts = q.get::<ChannelTexts>(id(M2));
+    assert_eq!(texts.len(), 8);
+    assert_eq!(texts[5].0, id::<ew_schema::Channel>(1));
+    assert_eq!(texts[5].1.designation.as_deref(), Some("LOW"));
+}
+
+/// The memoised index families equal a cold run after each edit of the channel table: a channel inserted,
+/// a duplicate number with a lower and a higher ID, a renumbering, a move to another module, a binding set
+/// and cleared, a deletion.
+#[test]
+fn the_channel_indexes_equal_a_cold_run_across_edits() {
+    use ew_derive::MemoStore;
+    use ew_memo::Oracle;
+    use ew_model::{AnyRow, Entity, Op};
+    use ew_schema::Channel;
+
+    let read = |q: &Q| (read_all(q), read_indexes(q));
+    let m0 = fixture().build();
+    let store = MemoStore::new(&m0);
+    store.set_oracle(Oracle::Every);
+    assert_eq!(read(&store.query()), read(&Q::new(&m0)));
+
+    let edits: Vec<(&str, Edit)> = vec![
+        (
+            "a channel beyond the part's count",
+            Box::new(|_| vec![Op::insert(AnyRow::of(new_channel(0xc0, M1, 8, None)))]),
+        ),
+        (
+            "a duplicate number with a lower ID",
+            Box::new(|_| vec![Op::insert(AnyRow::of(new_channel(1, M2, 3, Some((F2, 0)))))]),
+        ),
+        (
+            "a duplicate number with a higher ID",
+            Box::new(|_| vec![Op::insert(AnyRow::of(new_channel(u128::MAX, M2, 4, None)))]),
+        ),
+        (
+            "channel 0 of M3 renumbered beyond the count",
+            Box::new(|m| vec![update::<Channel>(m, channel(M3, 0), |v| v["number"] = json!(12))]),
+        ),
+        (
+            "channel 1 of M3 moved to M1",
+            Box::new(|m| {
+                vec![update::<Channel>(m, channel(M3, 1), |v| {
+                    v["module"] = json!(uid(M1))
+                })]
+            }),
+        ),
+        (
+            "a binding set",
+            Box::new(|m| {
+                vec![update::<Channel>(m, channel(M3, 2), |v| {
+                    v["binding"] = json!({"cp": [uid(F2), 3]})
+                })]
+            }),
+        ),
+        (
+            "that binding cleared",
+            Box::new(|m| {
+                vec![update::<Channel>(m, channel(M3, 2), |v| {
+                    v.as_object_mut().expect("object").remove("binding");
+                })]
+            }),
+        ),
+        (
+            "a channel deleted",
+            Box::new(|m| vec![Op::delete(row_of(m, Channel::key(id(channel(M2, 6)))))]),
+        ),
+        (
+            "the lower duplicate deleted",
+            Box::new(|m| vec![Op::delete(row_of(m, Channel::key(id(1))))]),
+        ),
+    ];
+    let mut model = m0;
+    for (name, edit) in &edits {
+        let ops = edit(&model);
+        let keys: Vec<ew_model::AnyKey> = ops.iter().map(Op::key).collect();
+        model = model
+            .apply_unchecked(&ops, model.rev().next())
+            .expect("the ops apply");
+        store.advance(&model, &keys);
+        let memo = read(&store.query());
+        assert_eq!(memo, read(&Q::new(&model)), "after {name}");
+        assert!(
+            store.take_mismatches().is_empty(),
+            "oracle mismatches after {name}"
+        );
+    }
+    let (_, (_, _, slices)) = read(&store.query());
+    // M3 lost channels 0 (renumbered to 12) and 1 (moved to M1)
+    assert_eq!(
+        slices[2].iter().map(|(n, _)| *n).collect::<Vec<_>>(),
+        vec![2, 3, 4, 5, 6, 7, 12]
+    );
+    // M1 has its eight, the channel moved from M3 (a second channel 1: one number once) and channel 8
+    assert_eq!(slices[0].len(), 9, "{:?}", slices[0]);
+}
+
+/// An edit of one channel re-runs its own module's families only: a symbol edit on channel 4 of M1 re-runs
+/// the readers of M1, cuts the indexes off and leaves every slice and the other modules alone (the channel
+/// table scan of step 4 used to re-run every module's states).
+#[test]
+fn a_channel_edit_re_runs_its_own_module_only() {
+    use ew_derive::MemoStore;
+    use ew_model::Op;
+    use ew_schema::Channel;
+
+    let m0 = fixture().build();
+    let store = MemoStore::new(&m0);
+    let _ = read_all(&store.query());
+    let _ = read_indexes(&store.query());
+
+    let op = update::<Channel>(&m0, channel(M1, 4), |v| v["symbol"] = json!("K4"));
+    let keys = vec![op.key()];
+    let model = m0
+        .apply_unchecked(&[op], m0.rev().next())
+        .expect("the op applies");
+    store.advance(&model, &keys);
+    let memo = (read_all(&store.query()), read_indexes(&store.query()));
+    assert_eq!(memo, (read_all(&Q::new(&model)), read_indexes(&Q::new(&model))));
+    let stats = store.commit_stats();
+    let runs = |family: &str| stats.family(family).re_executions;
+    assert_eq!(runs("channel_texts"), 1, "only M1's texts");
+    // the edited row is an input of M1's readers; no other module's reader runs
+    assert_eq!(runs("channel_states"), 1, "M1's states only");
+    assert_eq!(runs("channel_addresses"), 1, "M1's addresses only");
+    assert_eq!(runs("module_channel_ids"), 0, "no slice");
+    assert_eq!(runs("channels_by_module"), 1, "the index runs once …");
+    assert_eq!(stats.family("channels_by_module").cut_offs, 1, "… and cuts off");
+    assert_eq!(runs("channels_by_cp"), 1);
+    assert_eq!(stats.family("channels_by_cp").cut_offs, 1);
+    let _ = Op::key;
+}

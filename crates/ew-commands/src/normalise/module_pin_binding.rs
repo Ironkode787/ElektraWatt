@@ -17,8 +17,6 @@
 //!
 //! Idempotent: a second run finds each new channel bound, or meets the same notice.
 
-use std::collections::BTreeSet;
-
 use ew_ids::Id;
 use ew_schema::{Channel, Device, Endpoint, FnDef, FnRole, Function, Kind, LibCopy};
 
@@ -81,7 +79,6 @@ impl Normaliser for ModulePinBinding {
         }
         fresh.sort_by_key(|c| (c.module, c.number, c.id));
         let mut changed = false;
-        let mut bound: Option<BTreeSet<(Id<Function>, u16)>> = None;
         for c in fresh {
             let Some(dev) = tx.get::<Device>(c.module) else {
                 continue;
@@ -112,23 +109,14 @@ impl Normaliser for ModulePinBinding {
                 ));
                 continue;
             };
-            let held = bound.get_or_insert_with(|| {
-                tx.iter::<Channel>()
-                    .into_iter()
-                    .filter_map(|c| match c.binding {
-                        Some(Endpoint::Cp(f, idx)) => Some((f, idx)),
-                        _ => None,
-                    })
-                    .collect()
-            });
-            if held.contains(&(main.id, idx)) {
+            // whether some channel binds the pin: an index lookup with read-your-writes (FT-319)
+            if !tx.channels_at_cp(main.id, idx).is_empty() {
                 tx.notice(format!(
                     "channel {} of module {} stays unbound: another channel binds its pin {pin} (FR-PLC-005)",
                     c.number, c.module
                 ));
                 continue;
             }
-            held.insert((main.id, idx));
             let endpoint = Endpoint::Cp(main.id, idx);
             tx.update::<Channel>(c.id, |c| c.binding = Some(endpoint))?;
             changed = true;

@@ -197,10 +197,12 @@ fn unresolvable_maps_claim_nothing_and_an_explicit_state_wins() {
 /// The ID of a channel that is not `v5(module, "channel", number)`.
 const FOREIGN: u128 = 0xc000;
 
-/// A channel of `module` with a non-v5 ID that binds V2's coil 14.
+/// A channel of `module` with a non-v5 ID that binds V2's coil 14. Its number lies beyond the part's eight
+/// channels: a channel with a number below the count is the module's channel with that number (the lowest
+/// ID, as N1 keys them, FT-319), which this one would replace.
 fn foreign_binding(module: u128) -> Channel {
     serde_json::from_value(json!({
-        "id": uid(FOREIGN), "module": uid(module), "number": 0, "kind": "do",
+        "id": uid(FOREIGN), "module": uid(module), "number": 9, "kind": "do",
         "binding": {"cp": [uid(F2), 5]}
     }))
     .expect("a channel")

@@ -11,9 +11,9 @@ use std::sync::Arc;
 use ew_ids::{EntropyError, Id, IdSource, UnixTime, Uuid, V7Generator};
 use ew_model::{AnyKey, AnyRow, EndpointKey, Entity, Model, Op, Rev, RowId};
 use ew_schema::{
-    AnyId, Bond, Conductor, Connection, Device, ExternalRef, FnDef, FormDef, Function, ImportLineage,
-    Junction, Kind, LibCopy, Page, Part, PotentialDef, Project, ReportBlock, Representation, Section,
-    StructureNode, SymbolDef,
+    AnyId, Bond, Channel, Conductor, Connection, Device, Endpoint, ExternalRef, FnDef, FormDef, Function,
+    ImportLineage, Junction, Kind, LibCopy, Page, Part, PotentialDef, Project, ReportBlock, Representation,
+    Section, StructureNode, SymbolDef,
 };
 
 use crate::error::CmdError;
@@ -46,6 +46,26 @@ pub enum IndexRead {
     PotentialDefsAt(EndpointKey),
     /// `Bond.a`/`b` → bonds.
     BondsAt(EndpointKey),
+    /// `Channel.module` → channels (the generic referrer index of the link).
+    ChannelsOfModule(Id<Device>),
+    /// `Channel.binding` at any CP of a function → channels (the generic referrer index of the link).
+    ChannelsAtFunction(Id<Function>),
+}
+
+/// The referrers of `target` through the link `from.field`, in ID order (the generic referrer index serves
+/// the links that have no named index of their own).
+fn referrers_through(idx: &ew_model::BaseIndexes, from: Kind, field: &str, target: AnyKey) -> Vec<AnyId> {
+    let Some(link) = ew_model::LINKS
+        .iter()
+        .position(|l| l.from == from && l.field == field)
+    else {
+        return Vec::new();
+    };
+    idx.referrers()
+        .get(&target)
+        .filter(|(l, _)| *l == link)
+        .map(|(_, src)| *src)
+        .collect()
 }
 
 impl IndexRead {
@@ -76,6 +96,12 @@ impl IndexRead {
                 .map(|v| v.cast())
                 .collect(),
             IndexRead::BondsAt(e) => idx.bonds_by_endpoint().get(&e).map(|v| v.cast()).collect(),
+            IndexRead::ChannelsOfModule(m) => {
+                referrers_through(idx, Kind::Channel, "module", (Kind::Device, m.cast()))
+            }
+            IndexRead::ChannelsAtFunction(f) => {
+                referrers_through(idx, Kind::Channel, "binding.cp[0]", (Kind::Function, f.cast()))
+            }
         };
         ids
     }
@@ -491,6 +517,25 @@ impl<'a> TxBuilder<'a> {
         self.indexed::<Bond>(IndexRead::BondsAt(at), |b| {
             EndpointKey::of(&b.a) == Some(at) || EndpointKey::of(&b.b) == Some(at)
         })
+    }
+
+    /// The channels of a module, in ID order (FT-319: an index lookup, not a scan of the channel table).
+    pub fn channels_of_module(&self, module: Id<Device>) -> Vec<Id<Channel>> {
+        self.indexed::<Channel>(IndexRead::ChannelsOfModule(module), |c| c.module == module)
+    }
+
+    /// The channels bound to CP `idx` of `function`, in ID order (FT-319: an index lookup, not a scan).
+    pub fn channels_at_cp(&self, function: Id<Function>, idx: u16) -> Vec<Id<Channel>> {
+        self.indexed::<Channel>(
+            IndexRead::ChannelsAtFunction(function),
+            |c| matches!(c.binding, Some(Endpoint::Cp(f, _)) if f == function),
+        )
+        .into_iter()
+        .filter(|id| {
+            self.get::<Channel>(*id)
+                .is_some_and(|c| c.binding == Some(Endpoint::Cp(function, idx)))
+        })
+        .collect()
     }
 
     /// The next free counter for `letter` in `scope` (FR-NUM-007); see [`crate::numbering`].
