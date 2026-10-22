@@ -110,6 +110,10 @@ jobs:
   test-linux:
     name: test-linux
     runs-on: ubuntu-24.04
+    # The GPU canvas tests fail instead of skipping when no adapter is found: these runners have one (Mesa's lavapipe
+    # on Linux, WARP on Windows, Metal on macOS), so a skip here would hide a broken setup (WP-S2.02 part 2, spec section 8).
+    env:
+      EW_REQUIRE_GPU_ADAPTER: "1"
     timeout-minutes: 50
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -173,6 +177,10 @@ jobs:
   test-linux-default:
     name: test-linux-default
     runs-on: ubuntu-24.04
+    # The GPU canvas tests fail instead of skipping when no adapter is found: these runners have one (Mesa's lavapipe
+    # on Linux, WARP on Windows, Metal on macOS), so a skip here would hide a broken setup (WP-S2.02 part 2, spec section 8).
+    env:
+      EW_REQUIRE_GPU_ADAPTER: "1"
     timeout-minutes: 50
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -269,6 +277,10 @@ jobs:
     name: test-windows-1
     needs: test-windows-build
     runs-on: windows-2025
+    # The GPU canvas tests fail instead of skipping when no adapter is found: these runners have one (Mesa's lavapipe
+    # on Linux, WARP on Windows, Metal on macOS), so a skip here would hide a broken setup (WP-S2.02 part 2, spec section 8).
+    env:
+      EW_REQUIRE_GPU_ADAPTER: "1"
     timeout-minutes: 50
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -325,6 +337,10 @@ jobs:
     name: test-windows-2
     needs: test-windows-build
     runs-on: windows-2025
+    # The GPU canvas tests fail instead of skipping when no adapter is found: these runners have one (Mesa's lavapipe
+    # on Linux, WARP on Windows, Metal on macOS), so a skip here would hide a broken setup (WP-S2.02 part 2, spec section 8).
+    env:
+      EW_REQUIRE_GPU_ADAPTER: "1"
     timeout-minutes: 50
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -380,6 +396,10 @@ jobs:
   test-macos:
     name: test-macos
     runs-on: macos-15
+    # The GPU canvas tests fail instead of skipping when no adapter is found: these runners have one (Mesa's lavapipe
+    # on Linux, WARP on Windows, Metal on macOS), so a skip here would hide a broken setup (WP-S2.02 part 2, spec section 8).
+    env:
+      EW_REQUIRE_GPU_ADAPTER: "1"
     timeout-minutes: 50
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
