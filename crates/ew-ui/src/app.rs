@@ -174,6 +174,12 @@ impl App {
         self.canvas.is_ready()
     }
 
+    /// How many times the page navigator built its rows (tests: a frame without a change builds none).
+    #[doc(hidden)]
+    pub fn navigator_rebuilds(&self) -> u64 {
+        self.navigator.rebuilds()
+    }
+
     /// The engine counters of the canvas (tests: tiles requested, rastered, uploaded; scenes built).
     pub fn canvas_counters(&self) -> CanvasCounters {
         self.canvas.counters()

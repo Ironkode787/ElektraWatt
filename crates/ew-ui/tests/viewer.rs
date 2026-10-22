@@ -420,3 +420,47 @@ fn the_splitter_share_survives_a_tab_click_and_ctrl_f6() {
     );
     h.state_mut().shell_mut().shutdown();
 }
+
+/// The navigator's rows are built once per (revision, navigator state), not every frame: frames without a change
+/// build none, a collapsed node builds them again once, and the next frames again none.
+#[test]
+fn the_navigator_rows_are_built_once_per_revision_and_navigator_state() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp);
+    let built = h.state().navigator_rebuilds();
+    assert!(built >= 1, "the first frame builds the rows");
+    for _ in 0..5 {
+        h.run_ok();
+    }
+    assert_eq!(
+        h.state().navigator_rebuilds(),
+        built,
+        "frames without a change rebuild nothing"
+    );
+    let node = h
+        .state()
+        .shell()
+        .navigator_rows()
+        .into_iter()
+        .find(|r| matches!(r.kind, RowKind::Node { .. }))
+        .expect("the golden navigator has a node");
+    dispatch(&mut h, "pages.toggle", json!({"key": node.key}));
+    settle(&mut h);
+    assert_eq!(
+        h.state().navigator_rebuilds(),
+        built + 1,
+        "a collapsed node builds the rows once"
+    );
+    assert!(
+        !h.state()
+            .shell()
+            .navigator_rows()
+            .iter()
+            .any(|r| r.key == node.key && r.expanded)
+    );
+    for _ in 0..5 {
+        h.run_ok();
+    }
+    assert_eq!(h.state().navigator_rebuilds(), built + 1);
+    h.state_mut().shell_mut().shutdown();
+}

@@ -13,6 +13,8 @@
 //! `PageNavigator::accessible_name` says, with AccessKit's own `level`, `position_in_set`, `size_of_set` and
 //! `expanded` properties.
 
+use std::rc::Rc;
+
 use egui::{Key, Modifiers, PointerButton, Sense, TextEdit, Ui};
 use ew_viewmodel::navigator::{NavRow, PageNavigator, RowKind};
 use ew_viewmodel::shell::{Focus, ShellModel};
@@ -34,12 +36,51 @@ pub struct NavigatorPane {
     filter: String,
     /// The row cursor last scrolled to.
     scrolled_to: Option<String>,
+    /// The rows on show, built once per (revision, navigator state).
+    cache: Option<RowCache>,
+    /// How many times the rows were built (tests: a frame without a change builds none).
+    rebuilds: u64,
+}
+
+/// The rows on show for one (page rows, revision, navigator state).
+struct RowCache {
+    /// The fetches of the page rows (a new revision or project takes new rows) and the model's revision.
+    stamp: (u64, Option<u64>),
+    /// The navigator state the rows were built for.
+    state: PageNavigator,
+    rows: Rc<Vec<NavRow>>,
 }
 
 impl NavigatorPane {
     /// A pane with an empty filter.
     pub fn new() -> NavigatorPane {
         NavigatorPane::default()
+    }
+
+    /// How many times the navigator's rows were built (tests).
+    pub fn rebuilds(&self) -> u64 {
+        self.rebuilds
+    }
+
+    /// The rows on show: the cached ones while the page rows, the revision and the navigator state are those they
+    /// were built for, else built again (`PageNavigator::visible` walks the whole page order).
+    fn visible_rows(&mut self, shell: &ShellModel) -> Rc<Vec<NavRow>> {
+        let stamp = (shell.session_calls().page_rows, shell.revision());
+        let nav = shell.navigator();
+        if let Some(c) = &self.cache
+            && c.stamp == stamp
+            && c.state == *nav
+        {
+            return Rc::clone(&c.rows);
+        }
+        let rows = Rc::new(shell.navigator_rows());
+        self.rebuilds += 1;
+        self.cache = Some(RowCache {
+            stamp,
+            state: nav.clone(),
+            rows: Rc::clone(&rows),
+        });
+        rows
     }
 
     /// Paints the navigator of `shell` into `ui`.
@@ -57,8 +98,8 @@ impl NavigatorPane {
             events.push(Event::Action("pages.filter", json!({ "text": self.filter })));
         }
         let rows = shell.page_rows();
-        let visible = shell.navigator_rows();
-        let cursor = shell.navigator_row_key();
+        let visible = self.visible_rows(shell);
+        let cursor = nav.row_key(&visible, rows, shell.current_page());
         let current = shell.current_page();
         // The list itself: one focusable node with the role `Tree`.
         let list_rect = ui.available_rect_before_wrap();
