@@ -62,6 +62,7 @@
 
 mod cmdlog;
 pub mod import;
+mod new_project;
 pub mod output;
 pub mod verify;
 
@@ -85,6 +86,7 @@ pub use ew_reports::export::{Export, ExportError, Exported};
 /// The read-only SQL projection (`ew sql`, the acceptance SQL, ADR-0017): views, sandbox, results.
 pub use ew_sqlview as sql;
 pub use ew_store::{Access, OpenError, OpenReport, ReadOnlyReason, StoreOptions};
+pub use new_project::{NewProjectKind, ProjectTemplate};
 
 pub use ew_commands::{
     AnyCommand, Change, ChangeKind, CmdError, CommandRegistry, DerivedChange, DerivedDiff, DynCommand,
