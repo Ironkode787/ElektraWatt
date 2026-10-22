@@ -411,7 +411,12 @@ fn the_wizards_defaults_reproduce_the_sample_pages_and_a_choice_changes_the_prev
     );
     let review = describe(&steps[12]);
     assert!(
-        review.contains("review \"Company name\": \"Example Panels\" kept"),
+        review.contains("review \"Company name\": \"Example Panels\" written"),
+        "{review}"
+    );
+    // FT-336: the check scheme stays in the draft (its command is `HumanOnly`, ADR-0008 amendment 3).
+    assert!(
+        review.contains("review \"Check scheme\": \"pre-delivery\" kept"),
         "{review}"
     );
     assert!(review.contains("\" written"), "{review}");

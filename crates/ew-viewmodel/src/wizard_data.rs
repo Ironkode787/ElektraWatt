@@ -12,3 +12,21 @@ pub const COLOUR_PROFILE_SAMPLE: &str = r##"{"basis":"company_convention","basis
 
 /// The size profile "0.75/1.5": control circuits 0.75 mm2, mains circuits 1.5 mm2.
 pub const SIZE_PROFILE_SAMPLE: &str = r##"{"bond_rule":{"class_from":"non_pe_side","colour_from":"pe"},"class_rules":[{"class":"pe","select":{"ptype":["pe","pen","fe"]}},{"class":"bus","select":{"discipline":"bus"}},{"class":"analogue","select":{"analogue":true}},{"class":"mains","select":{"ac_dc":"ac","u_min":"50"}},{"class":"control","select":{}}],"key":"company.0.75-1.5","name":{"en":"0.75/1.5"},"pe_class":"highest_at_ends","rows":[{"class":"control","codes":[{"code":"DBU","order":1},{"code":"GNYE","order":5},{"code":"WH","order":2}],"csa":"0.75"},{"class":"mains","codes":[{"code":"BK","order":3},{"code":"BU","order":4},{"code":"GNYE","order":5}],"csa":"1.5"}],"verified":true}"##;
+
+/// The shipped frame and title-block forms of `content/forms` (the QElectroTech-compatible A4 landscape frames with
+/// and without the grid, the cover frame, and the title block they name), in the `lib/` JSON form that
+/// `library.embed` takes. The wizard embeds them into the basic project and names them in its frame defaults (doc
+/// 16 section 9.2, step 2; FT-336); the sample project holds the same copies.
+pub const SHIPPED_FORMS: [&str; 4] = [
+    include_str!("../../../content/forms/ew.frame.qet-a4-landscape-cover.json"),
+    include_str!("../../../content/forms/ew.frame.qet-a4-landscape-grid.json"),
+    include_str!("../../../content/forms/ew.frame.qet-a4-landscape-nogrid.json"),
+    include_str!("../../../content/forms/ew.titleblock.qet-a4.json"),
+];
+
+/// The key of the shipped cover frame.
+pub const COVER_FRAME: &str = "ew.frame.qet-a4-landscape-cover";
+/// The key of the shipped frame with the column and row grid.
+pub const GRID_FRAME: &str = "ew.frame.qet-a4-landscape-grid";
+/// The key of the shipped frame without the grid.
+pub const NOGRID_FRAME: &str = "ew.frame.qet-a4-landscape-nogrid";

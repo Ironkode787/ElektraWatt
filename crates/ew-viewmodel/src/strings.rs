@@ -375,11 +375,9 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "wizard-step-languages" => "Languages and formats",
         "wizard-step-reports" => "Reports and checks",
         "wizard-step-review" => "Review and create",
-        "wizard-hint-company" => {
-            "The panel builder's name and the notice for the title block. Kept in the draft until the project has a command for them."
-        }
+        "wizard-hint-company" => "The panel builder's name and the notice for the title block.",
         "wizard-hint-frame" => {
-            "The frame and title block of new pages. Kept in the draft until the project has a command for them."
+            "The frame and title block of new pages; the cover and the section dividers keep their own frames."
         }
         "wizard-hint-colour" => "The wire colours by voltage class and function, with a stated basis.",
         "wizard-hint-size" => "The cross section of each circuit class.",
@@ -390,11 +388,9 @@ pub fn lookup(key: &str) -> Option<&'static str> {
             "The structure nodes of new projects and their sections: one section per line, number, first-last folio, title."
         }
         "wizard-hint-revisions" => "The label of the first revision.",
-        "wizard-hint-languages" => {
-            "Source language and formats. Kept in the draft until the project has a command for them."
-        }
+        "wizard-hint-languages" => "The source language and the formats of printed dates and numbers.",
         "wizard-hint-reports" => {
-            "The check scheme of new projects. Kept in the draft until the project has a command for it."
+            "The check scheme of new projects. Kept in the draft: it decides what the release gate checks, so a person sets it in the project, not the wizard's script."
         }
         "wizard-hint-review" => "Check the choices, then write the basic project to a new directory.",
         "wizard-field-company-name" => "Company name",

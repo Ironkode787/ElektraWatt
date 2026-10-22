@@ -6,12 +6,14 @@
 //! wizard finishes, and the model commands the draft becomes.
 //!
 //! **What is written.** The wizard builds a basic project (`Project.kind = Basic`) from the built-in one, and only
-//! through model commands (`Session::run_script`). The commands that exist today write the colour profile, the
-//! size profile, the numbering schemes, the cross-reference format, the structure nodes, the sections and the
-//! first revision. The other fields (company name and notice, frame, languages and formats, check scheme) have no
-//! command yet: they are validated and kept in the draft, listed on the review step as "kept in the draft", and
-//! written when the commands exist (the follow-ups named in the decision log). A field's [`FieldMeta::written`] says
-//! which kind it is.
+//! through model commands (`Session::run_script`): the shipped frame and title-block forms (`library.embed`), the
+//! company (`project.company.set`: the panel-builder party and the title-block notice), the frame defaults
+//! (`project.frames.set`), the colour profile, the size profile, the numbering schemes and the cross-reference
+//! format (`project.settings.set`), the languages and printed formats (`project.languages.set`), the structure
+//! nodes, the sections and the first revision (FT-336). The check scheme is validated and kept in the draft, listed
+//! on the review step as "kept in the draft": its command, `project.checks.set`, is `HumanOnly` (ADR-0008
+//! amendment 3: it decides a check outcome), so a script, the wizard's included, cannot submit it. A field's
+//! [`FieldMeta::written`] says which kind it is.
 //!
 //! **Defaults are the sample project's conventions.** The draft's defaults reproduce the settings of the CC0
 //! sample project (`golden/J-E-2416.ew`): the numbering `{page}{letter}{counter}` with the strip rule
@@ -27,7 +29,9 @@ use ew_api::{CmdLog, Session};
 use serde_json::{Value, json};
 
 use crate::strings;
-use crate::wizard_data::{COLOUR_PROFILE_SAMPLE, SIZE_PROFILE_SAMPLE};
+use crate::wizard_data::{
+    COLOUR_PROFILE_SAMPLE, COVER_FRAME, GRID_FRAME, NOGRID_FRAME, SHIPPED_FORMS, SIZE_PROFILE_SAMPLE,
+};
 
 /// The `$schema` of the draft file.
 pub const DRAFT_SCHEMA: &str = "ew.wizard-draft/1";
@@ -186,7 +190,7 @@ pub static FIELDS: &[FieldMeta] = &[
         "wizard-field-company-name",
         Text,
         "",
-        false,
+        true,
     ),
     field(
         Step::Company,
@@ -194,7 +198,7 @@ pub static FIELDS: &[FieldMeta] = &[
         "wizard-field-company-notice",
         Multiline,
         "",
-        false,
+        true,
     ),
     field(
         Step::Frame,
@@ -202,7 +206,7 @@ pub static FIELDS: &[FieldMeta] = &[
         "wizard-field-frame",
         Choice(&["qet-grid", "qet-nogrid"]),
         "qet-grid",
-        false,
+        true,
     ),
     field(
         Step::Colour,
@@ -298,7 +302,7 @@ pub static FIELDS: &[FieldMeta] = &[
         "wizard-field-language",
         Choice(&["en"]),
         "en",
-        false,
+        true,
     ),
     field(
         Step::Languages,
@@ -306,7 +310,7 @@ pub static FIELDS: &[FieldMeta] = &[
         "wizard-field-date-format",
         Choice(&["dd_mm_yyyy", "iso8601"]),
         "dd_mm_yyyy",
-        false,
+        true,
     ),
     field(
         Step::Languages,
@@ -314,7 +318,7 @@ pub static FIELDS: &[FieldMeta] = &[
         "wizard-field-decimal",
         Choice(&["point", "comma"]),
         "point",
-        false,
+        true,
     ),
     field(
         Step::Reports,
@@ -631,7 +635,64 @@ impl Draft {
         })
     }
 
-    /// The settings commands of the draft, in order: what the live preview applies to the sample project.
+    /// The company command (`project.company.set`), or `None` when the draft names neither a company nor a notice.
+    fn company_command(&self) -> Option<(&'static str, Value)> {
+        let (name, notice) = (self.get("company_name"), self.get("company_notice"));
+        (!name.is_empty() || !notice.is_empty())
+            .then(|| ("project.company.set", json!({ "name": name, "notice": notice })))
+    }
+
+    /// The frame-defaults command (`project.frames.set`): the frame of the `frame` field for drawn pages, the cover
+    /// frame for title pages, the no-grid frame for the table of contents and the section dividers (doc 03 §5.1).
+    /// `None` when a shipped form does not parse.
+    fn frames_command(&self) -> Option<(&'static str, Value)> {
+        let default = match self.get("frame") {
+            "qet-nogrid" => NOGRID_FRAME,
+            _ => GRID_FRAME,
+        };
+        let (default, cover, nogrid) = (
+            shipped_form_id(default)?,
+            shipped_form_id(COVER_FRAME)?,
+            shipped_form_id(NOGRID_FRAME)?,
+        );
+        Some((
+            "project.frames.set",
+            json!({
+                "default": default,
+                "per_page_type": [
+                    { "page_type": "title_page", "form": cover },
+                    { "page_type": "table_of_contents", "form": nogrid },
+                    { "page_type": "section_divider", "form": nogrid },
+                ],
+            }),
+        ))
+    }
+
+    /// The languages and formats command (`project.languages.set`).
+    fn languages_command(&self) -> (&'static str, Value) {
+        (
+            "project.languages.set",
+            json!({
+                "source": self.get("language"),
+                "date": self.get("date_format"),
+                "decimal_separator": self.get("decimal"),
+            }),
+        )
+    }
+
+    /// The commands the live preview applies to the sample project, in order: the company, the frame defaults,
+    /// the settings, and the languages and formats. The sample project holds the shipped forms already, so the
+    /// preview embeds nothing.
+    pub fn preview_commands(&self) -> Vec<(&'static str, Value)> {
+        let mut out = Vec::new();
+        out.extend(self.company_command());
+        out.extend(self.frames_command());
+        out.extend(self.settings_commands());
+        out.push(self.languages_command());
+        out
+    }
+
+    /// The settings commands of the draft (`project.settings.set`), in order.
     pub fn settings_commands(&self) -> Vec<(&'static str, Value)> {
         let set = |member: &str, value: Value| {
             (
@@ -653,14 +714,20 @@ impl Draft {
         out
     }
 
-    /// Every command that builds the basic project from the built-in one: the settings, then the structure nodes,
-    /// the sections and the first revision.
+    /// Every command that builds the basic project from the built-in one: the embedding of the shipped forms, the
+    /// preview's commands ([`Draft::preview_commands`]), then the structure nodes, the sections and the first
+    /// revision.
     ///
     /// # Errors
     ///
     /// The reason key when the sections field does not parse.
     pub fn commands(&self) -> Result<Vec<(&'static str, Value)>, &'static str> {
-        let mut out = self.settings_commands();
+        let copies: Vec<Value> = SHIPPED_FORMS
+            .iter()
+            .filter_map(|text| serde_json::from_str(text).ok())
+            .collect();
+        let mut out = vec![("library.embed", json!({ "copies": copies }))];
+        out.extend(self.preview_commands());
         for (aspect, key) in [("function", "function_node"), ("location", "location_node")] {
             let code = self.get(key);
             if !code.is_empty() {
@@ -691,9 +758,9 @@ impl Draft {
         text
     }
 
-    /// A key that changes whenever the settings commands change: the live preview rebuilds on a new key only.
+    /// A key that changes whenever the preview's commands change: the live preview rebuilds on a new key only.
     pub fn preview_key(&self) -> String {
-        Draft::cmdlog("preview", &self.settings_commands())
+        Draft::cmdlog("preview", &self.preview_commands())
     }
 
     /// The review step's lines: each field with its value, and whether it is written or kept in the draft.
@@ -718,6 +785,18 @@ impl Draft {
             _ => v.replace('\n', "; "),
         }
     }
+}
+
+/// The copy ID of the shipped form with `key` ([`SHIPPED_FORMS`]).
+fn shipped_form_id(key: &str) -> Option<Value> {
+    SHIPPED_FORMS.iter().find_map(|text| {
+        let form: Value = serde_json::from_str(text).ok()?;
+        if form.pointer("/meta/key").and_then(Value::as_str) == Some(key) {
+            form.get("id").cloned()
+        } else {
+            None
+        }
+    })
 }
 
 /// The sample project with the draft's settings applied, for the live preview (doc 16 section 9.2: "rendered with
@@ -836,7 +915,7 @@ impl Wizard {
 fn build_preview(dir: &Path, app_version: &str, draft: &Draft) -> Result<Session, String> {
     let (mut session, _report) = Session::open_read_only(dir, app_version)
         .map_err(|_| strings::text("wizard-preview-no-sample").to_owned())?;
-    run_commands(&mut session, "wizard-preview", &draft.settings_commands())?;
+    run_commands(&mut session, "wizard-preview", &draft.preview_commands())?;
     Ok(session)
 }
 
@@ -950,9 +1029,12 @@ mod tests {
         assert_eq!(
             names,
             [
+                "library.embed",
+                "project.frames.set",
                 "project.settings.set",
                 "project.settings.set",
                 "project.settings.set",
+                "project.languages.set",
                 "structure.create_node",
                 "section.create",
                 "section.create",
@@ -960,13 +1042,28 @@ mod tests {
                 "revision.create"
             ]
         );
-        let numbering = &cmds[2].1["value"];
+        assert_eq!(
+            cmds[0].1["copies"].as_array().map(Vec::len),
+            Some(SHIPPED_FORMS.len()),
+            "every shipped form parses and is embedded"
+        );
+        let frames = &cmds[1].1;
+        assert_eq!(frames["default"], shipped_form_id(GRID_FRAME).unwrap());
+        assert_eq!(
+            frames["per_page_type"][0]["form"],
+            shipped_form_id(COVER_FRAME).unwrap()
+        );
+        assert_eq!(
+            cmds[5].1,
+            json!({"source": "en", "date": "dd_mm_yyyy", "decimal_separator": "point"})
+        );
+        let numbering = &cmds[4].1["value"];
         assert_eq!(numbering["schemes"][0]["format"], "{page}{letter}{counter}");
         assert_eq!(
             numbering["schemes"][0]["rules"][0]["format"],
             "{letter}{page}{counter}"
         );
-        let size = &cmds[1].1["value"];
+        let size = &cmds[3].1["value"];
         assert_eq!(size["key"], "company.0.75-1.5");
         assert_eq!(size["name"]["en"], "0.75/1.5");
         // The size profile with the sample's own sections is the shipped text.
@@ -993,11 +1090,28 @@ mod tests {
             2
         );
         assert_ne!(d.preview_key(), Draft::default().preview_key());
-        // A field that is only kept in the draft does not change the preview.
+        // The company, the frame and the formats are written (FT-336) and reach the preview.
+        let mut c = Draft::default();
+        c.set("company_name", "Example Panels").unwrap();
+        c.set("company_notice", "Property of Example Panels.").unwrap();
+        c.set("frame", "qet-nogrid").unwrap();
+        c.set("date_format", "iso8601").unwrap();
+        let cmds = c.commands().unwrap();
+        let company = cmds.iter().find(|(n, _)| *n == "project.company.set").unwrap();
+        assert_eq!(
+            company.1,
+            json!({"name": "Example Panels", "notice": "Property of Example Panels."})
+        );
+        let frames = cmds.iter().find(|(n, _)| *n == "project.frames.set").unwrap();
+        assert_eq!(frames.1["default"], shipped_form_id(NOGRID_FRAME).unwrap());
+        let languages = cmds.iter().find(|(n, _)| *n == "project.languages.set").unwrap();
+        assert_eq!(languages.1["date"], "iso8601");
+        assert_ne!(c.preview_key(), Draft::default().preview_key());
+        // A field that is only kept in the draft (the check scheme) does not change the preview or the commands.
         let mut e = Draft::default();
-        e.set("company_name", "Example Panels").unwrap();
-        e.set("frame", "qet-nogrid").unwrap();
+        e.set("check_scheme", "full").unwrap();
         assert_eq!(e.preview_key(), Draft::default().preview_key());
+        assert_eq!(e.commands(), Draft::default().commands());
     }
 
     #[test]
@@ -1026,7 +1140,12 @@ mod tests {
         assert_eq!(review.len(), FIELDS.len());
         let by = |label: &str| review.iter().find(|l| l.label == label).unwrap().clone();
         assert!(by(strings::text("wizard-field-xref")).written);
-        assert!(!by(strings::text("wizard-field-company-name")).written);
+        // FT-336: every field is written but the check scheme, whose command is `HumanOnly` (ADR-0008 am. 3).
+        for f in FIELDS {
+            assert_eq!(f.written, f.key != "check_scheme", "{}", f.key);
+        }
+        assert!(by(strings::text("wizard-field-company-name")).written);
+        assert!(!by(strings::text("wizard-field-check-scheme")).written);
         assert_eq!(by(strings::text("wizard-field-company-name")).value, "-");
     }
 }

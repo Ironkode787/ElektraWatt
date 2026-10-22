@@ -714,11 +714,11 @@ fn the_preview_follows_the_draft_and_the_default_draft_reproduces_the_sample() {
     let first = shell.wizard().unwrap().preview_rev();
     assert!(first > 0, "the preview was built when the wizard opened");
     assert!(shell.wizard_preview_content().is_ok());
-    // A field that is only kept in the draft does not rebuild the preview.
+    // A field that is only kept in the draft (the check scheme) does not rebuild the preview.
     done(
         &mut shell,
         "wizard.set",
-        json!({"field": "company_name", "value": "Example"}),
+        json!({"field": "check_scheme", "value": "full"}),
     );
     assert_eq!(shell.wizard().unwrap().preview_rev(), first);
     // A numbering change does.
@@ -824,6 +824,140 @@ fn the_default_draft_reproduces_the_sample_projects_folio_102() {
             sample.pages.iter().map(|p| &p.content).collect::<Vec<_>>()
         ),
         "the numbering format reaches the device tags on the page"
+    );
+    shell.shutdown();
+}
+
+/// The source texts of the shaped runs of a page output, in display-list order (the `text` member of each run).
+fn page_texts(pages: &ew_viewmodel::ew_api::output::ExportPages) -> Vec<String> {
+    let debug = format!("{:?}", pages.pages.iter().map(|p| &p.content).collect::<Vec<_>>());
+    debug
+        .split("text: \"")
+        .skip(1)
+        .filter_map(|rest| rest.split_once('"').map(|(t, _)| t.to_owned()))
+        .collect()
+}
+
+/// Folio `folio` of the project in `dir`, rendered through the page output.
+fn render_folio(dir: &Path, folio: &str) -> ew_viewmodel::ew_api::output::ExportPages {
+    let (session, _) = Session::open_read_only(dir, VERSION).expect("the project opens");
+    session
+        .export_pages(&ew_viewmodel::ew_api::output::ExportOptions {
+            pages: ew_viewmodel::ew_api::output::PageSelection::Folios(vec![folio.to_owned()]),
+            ..ew_viewmodel::ew_api::output::ExportOptions::default()
+        })
+        .expect("the folio renders")
+}
+
+/// FT-336: the wizard writes the company, the frame and the formats through their commands. The preview (the
+/// sample project's cover and folio 102 with the choices) prints the notice and the dates in the chosen format; the
+/// finished basic project holds the panel-builder party, the notice, the frame defaults with the embedded forms and
+/// the languages and formats, and its page prints the notice in the frame the wizard chose. The check scheme stays
+/// in the draft (its command is `HumanOnly`).
+#[test]
+fn the_wizard_writes_the_company_the_frame_and_the_formats() {
+    const NOTICE: &str = "Property of Example Panels";
+    let tmp = Tmp::new();
+    let mut shell = tmp.shell();
+    done(&mut shell, "tools.company_standard", json!({}));
+    // The sample's own dates print in the sample's format, dd-mm-yyyy.
+    done(
+        &mut shell,
+        "wizard.set",
+        json!({"field": "preview", "value": "cover"}),
+    );
+    let cover = page_texts(&shell.wizard_preview_content().expect("the cover"));
+    assert!(cover.iter().any(|t| t.contains("14-04-2025")), "{cover:?}");
+    for (field, value) in [
+        ("company_name", "Example Panels"),
+        ("company_notice", NOTICE),
+        ("date_format", "iso8601"),
+        ("check_scheme", "full"),
+    ] {
+        done(&mut shell, "wizard.set", json!({"field": field, "value": value}));
+    }
+    let cover = page_texts(&shell.wizard_preview_content().expect("the cover"));
+    assert!(
+        cover.iter().any(|t| t.contains("2025-04-14")),
+        "the ISO date on the cover: {cover:?}"
+    );
+    assert!(!cover.iter().any(|t| t.contains("14-04-2025")), "{cover:?}");
+    done(
+        &mut shell,
+        "wizard.set",
+        json!({"field": "preview", "value": "page"}),
+    );
+    let page = page_texts(&shell.wizard_preview_content().expect("folio 102"));
+    assert!(
+        page.iter().any(|t| t.contains(NOTICE)),
+        "the notice on folio 102: {page:?}"
+    );
+    assert!(
+        page.iter().any(|t| t.contains("2025-04-14")),
+        "the ISO date on folio 102: {page:?}"
+    );
+    // The review says what is written.
+    let review = shell.wizard().unwrap().draft().review();
+    let kept: Vec<&str> = review
+        .iter()
+        .filter(|l| !l.written)
+        .map(|l| l.label.as_str())
+        .collect();
+    assert_eq!(kept, ["Check scheme"], "{review:?}");
+    let describe = shell.describe();
+    assert!(describe.contains("kept"), "{describe}");
+
+    let grid = tmp.0.join("grid.ew");
+    done(&mut shell, "wizard.finish", json!({ "dir": path(&grid) }));
+    let text = std::fs::read_to_string(grid.join("project.jsonl")).unwrap();
+    for needle in [
+        "{\"role\":\"panel_builder\",\"name\":\"Example Panels\",\"personal_data\":true}",
+        "\"ew.company\":{\"notice\":\"Property of Example Panels\"}",
+        "\"languages\":{\"source\":\"en\"}",
+        "\"formatting\":{\"date\":\"iso8601\",\"decimal_separator\":\"point\"}",
+        "\"frames\":{\"default\":",
+    ] {
+        assert!(text.contains(needle), "{needle} in {text}");
+    }
+    assert!(
+        !text.contains("\"checks\""),
+        "the check scheme is not written: {text}"
+    );
+    assert!(
+        std::fs::read_dir(grid.join("lib/forms")).unwrap().count() == 4,
+        "the shipped forms are embedded"
+    );
+    let folio_1 = render_folio(&grid, "1");
+    assert!(
+        page_texts(&folio_1).iter().any(|t| t.contains(NOTICE)),
+        "the notice in the title block"
+    );
+
+    // The frame choice reaches the page output: the same draft with the no-grid frame draws another frame.
+    done(&mut shell, "tools.company_standard", json!({}));
+    for (field, value) in [
+        ("company_name", "Example Panels"),
+        ("company_notice", NOTICE),
+        ("date_format", "iso8601"),
+        ("frame", "qet-nogrid"),
+    ] {
+        done(&mut shell, "wizard.set", json!({"field": field, "value": value}));
+    }
+    let nogrid = tmp.0.join("nogrid.ew");
+    done(&mut shell, "wizard.finish", json!({ "dir": path(&nogrid) }));
+    let other = render_folio(&nogrid, "1");
+    assert!(page_texts(&other).iter().any(|t| t.contains(NOTICE)));
+    assert_ne!(
+        format!("{:?}", folio_1.pages[0].content),
+        format!("{:?}", other.pages[0].content),
+        "the grid frame and the no-grid frame differ"
+    );
+    // The grid frame prints its column numbers; the no-grid frame does not.
+    let columns =
+        |p: &ew_viewmodel::ew_api::output::ExportPages| page_texts(p).iter().filter(|t| *t == "16").count();
+    assert!(
+        columns(&folio_1) > columns(&other),
+        "the column labels of the grid frame"
     );
     shell.shutdown();
 }
@@ -1367,7 +1501,14 @@ fn describe_lists_the_start_page_the_wizard_and_the_project_view() {
         review.contains("review \"Cross-reference style\": \"QET style (102-A1)\" written"),
         "{review}"
     );
-    assert!(review.contains("review \"Company name\": \"-\" kept"), "{review}");
+    assert!(
+        review.contains("review \"Company name\": \"-\" written"),
+        "{review}"
+    );
+    assert!(
+        review.contains("review \"Check scheme\": \"pre-delivery\" kept"),
+        "{review}"
+    );
     assert!(
         review.contains("button \"Create the basic project...\""),
         "{review}"
