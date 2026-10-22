@@ -1334,11 +1334,6 @@ criteria = "safe-to-deploy"
 version = "0.1.12"
 criteria = "safe-to-deploy"
 
-[[exemptions.wgpu]]
-version = "30.0.1"
-criteria = "safe-to-deploy"
-notes = "Kept 2026-10-22 (cycle 20 lead audit, FT-326): not audited in this lane and covered by no imported set (Firefox audits wgpu-core, not the wgpu front end). ID-476's distribution hold stays until it is audited."
-
 [[exemptions.wide]]
 version = "0.7.33"
 criteria = "safe-to-deploy"
