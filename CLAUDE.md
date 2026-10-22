@@ -76,9 +76,11 @@ be expensive or hard to detect (data, safety, legal)? Is verification weak (no t
 - **The full suite** (`cargo xtask ci`, workspace nextest with and without `--all-features`, doctests, rustdoc,
   `cargo deny`, `cargo vet`) runs once per **cycle delivery** or **milestone delivery**, by the integrating session,
   right before the fast-forward into `main`.
-- **Performance tests** (the `#[ignore]`d release-profile tests and hostile-input timings) run only at
-  **milestone deliveries**, never in a fix round or a cycle gate. Perf claims in reports are marked
-  "not measured (milestone rule)" unless a number came from a run that was needed to develop the fix.
+- **Performance tests** (the `#[ignore]`d release-profile tests, hostile-input timings, `cargo xtask perf-gate`
+  and the G-SP re-test) do **not run during development at all** (owner's rule, 2026-10-22): not in a fix round,
+  not in a cycle gate, not at a milestone delivery. Performance criteria are assumed to pass and are addressed in
+  the release phase. Perf claims in reports are marked "not measured (owner's rule)". The nightly `perf.yml` on the
+  hosted runner stays report-only.
 
 ## Disk and build concurrency (owner's rule, 2026-10-21)
 
