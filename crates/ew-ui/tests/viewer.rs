@@ -42,6 +42,26 @@ fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
     );
 }
 
+/// The text of the grid cursor's live region (the one that is not empty: only the focused group shows a cursor here).
+fn live(h: &Harness<'_, App>) -> String {
+    h.query_all_by_label("Canvas cursor")
+        .filter_map(|n| n.value())
+        .find(|v| !v.is_empty())
+        .unwrap_or_default()
+}
+
+/// Whether an ancestor of the first node with `label` has `role` (AccessKit's own tree, WP-S2.03 §6.9).
+fn has_ancestor(h: &Harness<'_, App>, label: &str, role: egui::Role) -> bool {
+    let mut node = h.query_all_by_label(label).next().expect("the node").parent();
+    while let Some(n) = node {
+        if n.accesskit_node().role() == role {
+            return true;
+        }
+        node = n.parent();
+    }
+    false
+}
+
 /// The description of the focused group's canvas node.
 fn canvas_description(h: &Harness<'_, App>) -> String {
     let focused = h.state().shell().area().unwrap().focused;
@@ -80,11 +100,21 @@ fn v12_the_viewer_without_a_pointer() {
         canvas_description(&h)
     );
     // The cursor's live region carries the cell.
-    let live = h
-        .get_by_label("Canvas cursor")
-        .value()
-        .expect("the live region's text");
-    assert!(live.starts_with("103-A1, x "), "{live}");
+    let text = live(&h);
+    assert!(text.starts_with("103-A1, x "), "{text}");
+    // The live region is a child of the canvas node; the navigator's rows are items of its tree.
+    assert!(has_ancestor(&h, "Canvas cursor", egui::Role::Canvas));
+    let item = h
+        .get_all_by_role(egui::Role::TreeItem)
+        .next()
+        .expect("a tree item");
+    let mut up = item.parent();
+    let mut in_tree = false;
+    while let Some(n) = up {
+        in_tree |= n.accesskit_node().role() == egui::Role::Tree;
+        up = n.parent();
+    }
+    assert!(in_tree, "a navigator row is an item of the Tree node");
     // Shift+F to a link, F follows it, Alt+Left comes back.
     h.key_press_modifiers(Modifiers::SHIFT, Key::F);
     settle(&mut h);
@@ -97,8 +127,8 @@ fn v12_the_viewer_without_a_pointer() {
         .cursor_link()
         .and_then(|l| l.target.clone())
         .unwrap();
-    let live = h.get_by_label("Canvas cursor").value().unwrap();
-    assert!(live.contains(", link to "), "{live}");
+    let text = live(&h);
+    assert!(text.contains(", link to "), "{text}");
     h.key_press(Key::F);
     settle(&mut h);
     assert_eq!(folio(&h), target.folio);
@@ -186,14 +216,14 @@ fn v12_the_viewer_without_a_pointer() {
     dispatch(&mut h, "cursor.set", json!({"x_mm": 150, "y_mm": 100}));
     settle(&mut h);
     let before = canvas_description(&h);
-    let before_live = h.get_by_label("Canvas cursor").value().unwrap();
+    let before_live = live(&h);
     h.key_press(Key::ArrowRight);
     settle(&mut h);
     h.key_press_modifiers(Modifiers::SHIFT, Key::ArrowDown);
     settle(&mut h);
     let after = canvas_description(&h);
     assert_ne!(before, after);
-    assert_ne!(before_live, h.get_by_label("Canvas cursor").value().unwrap());
+    assert_ne!(before_live, live(&h));
     assert!(after.contains(", cursor "), "{after}");
     h.state_mut().shell_mut().shutdown();
 }
@@ -202,7 +232,10 @@ fn v12_the_viewer_without_a_pointer() {
 fn v10_exact_counts_of_the_multi_canvas_host() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp);
-    dispatch(&mut h, "page.goto", json!({"folio": "102"}));
+    // Every page a cross-reference of section 1 leads to is shown once, so a follow stays in the cache.
+    for folio in ["101", "106", "102"] {
+        dispatch(&mut h, "page.goto", json!({ "folio": folio }));
+    }
     dispatch(&mut h, "tab.new", json!({}));
     dispatch(&mut h, "page.goto", json!({"folio": "103"}));
     dispatch(&mut h, "view.side_by_side", json!({}));
@@ -218,6 +251,11 @@ fn v10_exact_counts_of_the_multi_canvas_host() {
     wait_for_page(&mut h);
     settle(&mut h);
     let calls = h.state().shell().session_calls();
+    // Checklist 9: the counters are live, so their equality below cannot pass vacuously.
+    assert!(
+        calls.page_content > 0 && calls.page_cells > 0 && calls.link_targets > 0 && calls.page_rows > 0,
+        "{calls:?}"
+    );
     let memo = h.state().shell().memo_totals().unwrap();
     let counters = h.state().canvas_counters();
     assert!(
@@ -227,6 +265,7 @@ fn v10_exact_counts_of_the_multi_canvas_host() {
     // 200 mixed steps between pages in the page-content cache at one revision.
     for i in 0..200 {
         let (action, params) = match i % 10 {
+            0 if i % 20 == 0 => ("nav.follow", json!({})),
             0 => ("tab.next", json!({})),
             1 => ("cursor.right", json!({})),
             2 => ("canvas.pointer", json!({"x_mm": 100 + i % 9, "y_mm": 70})),
@@ -236,6 +275,8 @@ fn v10_exact_counts_of_the_multi_canvas_host() {
             6 => ("canvas.pointer", json!({"group": 1, "x_mm": 80, "y_mm": 90})),
             7 => ("view.side_by_side", json!({})),
             8 => ("view.side_by_side", json!({})),
+            _ if i % 20 == 9 => ("nav.back", json!({})),
+            _ if i % 40 == 19 => ("nav.forward", json!({})),
             _ => ("canvas.pointer", json!({})),
         };
         let out = h.state_mut().shell_mut().dispatch(action, &params);
@@ -292,5 +333,62 @@ fn v11_hidden_canvas_tabs_keep_their_tiles_and_a_closed_page_drops_its_scene() {
     dispatch(&mut h, "tab.close", json!({}));
     settle(&mut h);
     assert_eq!(h.state().canvas_scene_count(), 1);
+    h.state_mut().shell_mut().shutdown();
+}
+
+#[test]
+fn the_splitter_share_survives_a_tab_click_and_ctrl_f6() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp);
+    dispatch(&mut h, "page.goto", json!({"folio": "102"}));
+    dispatch(&mut h, "tab.new", json!({}));
+    dispatch(&mut h, "view.side_by_side", json!({}));
+    settle(&mut h);
+    let equal = h.state().canvas_area_shares().expect("two groups");
+    assert!((equal[0] - equal[1]).abs() < 1e-3, "{equal:?}");
+    // Drag the splitter between the two canvases 120 points to the right.
+    let rects: Vec<egui::Rect> = h.get_all_by_role(egui::Role::Canvas).map(|n| n.rect()).collect();
+    let at = egui::pos2((rects[0].right() + rects[1].left()) / 2.0, rects[0].center().y);
+    h.input_mut().events.push(egui::Event::PointerMoved(at));
+    h.run_ok();
+    h.input_mut().events.push(egui::Event::PointerButton {
+        pos: at,
+        button: egui::PointerButton::Primary,
+        pressed: true,
+        modifiers: Modifiers::NONE,
+    });
+    h.run_ok();
+    for step in 1..=6 {
+        h.input_mut().events.push(egui::Event::PointerMoved(
+            at + egui::vec2(20.0 * step as f32, 0.0),
+        ));
+        h.run_ok();
+    }
+    h.input_mut().events.push(egui::Event::PointerButton {
+        pos: at + egui::vec2(120.0, 0.0),
+        button: egui::PointerButton::Primary,
+        pressed: false,
+        modifiers: Modifiers::NONE,
+    });
+    settle(&mut h);
+    let dragged = h.state().canvas_area_shares().unwrap();
+    assert!(
+        dragged[0] > dragged[1] + 0.05,
+        "the drag moved the splitter: {dragged:?}"
+    );
+    // A tab click and Ctrl+F6 change the model's version; the tree is rebuilt and the share stays.
+    let tab = h
+        .get_all_by_role(egui::Role::Tab)
+        .find(|n| !n.accesskit_node().is_selected().unwrap_or(false))
+        .expect("an inactive tab");
+    tab.click();
+    settle(&mut h);
+    h.key_press_modifiers(Modifiers::COMMAND, Key::F6);
+    settle(&mut h);
+    let kept = h.state().canvas_area_shares().unwrap();
+    assert!(
+        (kept[0] - dragged[0]).abs() < 1e-4 && (kept[1] - dragged[1]).abs() < 1e-4,
+        "{kept:?} {dragged:?}"
+    );
     h.state_mut().shell_mut().shutdown();
 }

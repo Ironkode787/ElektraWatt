@@ -567,7 +567,24 @@ fn v5_the_grid_cursor() {
     assert!(c.cursor_entity().is_some());
     let node = ew_viewmodel::status::canvas_node(&shell, 0).unwrap();
     assert!(node.description.contains(", cursor 103-"), "{}", node.description);
-    assert!(node.live.unwrap().contains(", link to 106-E1"));
+    assert!(node.live.contains(", link to 106-E1"), "{}", node.live);
+    // Without a cursor the live region stays, empty; the description says nothing of a cursor.
+    done(&mut shell, "cursor.set", json!({}));
+    let node = ew_viewmodel::status::canvas_node(&shell, 0).unwrap();
+    assert!(node.live.is_empty() && !node.description.contains("cursor"));
+    // On a page without cells the description has no cell and no double space.
+    let generated = shell
+        .page_rows()
+        .iter()
+        .find(|r| r.generated)
+        .unwrap()
+        .folio
+        .clone();
+    done(&mut shell, "page.goto", json!({ "folio": generated }));
+    done(&mut shell, "cursor.right", json!({}));
+    let node = ew_viewmodel::status::canvas_node(&shell, 0).unwrap();
+    assert!(node.description.contains(", cursor x "), "{}", node.description);
+    assert!(!node.description.contains("  "));
     shell.shutdown();
 }
 
@@ -780,14 +797,21 @@ fn v10_exact_counts_and_the_page_content_cache() {
         );
     }
     let after = shell.session_calls();
-    // Side by side on again showed the page after the focused one: allow its first show only if it was not cached.
+    // Every page the steps show (102, 103, and 106 or 103 beside them) was shown before the loop: not one call.
     assert_eq!(
-        after.link_targets - calls.link_targets,
-        after.page_content - calls.page_content
-    );
-    assert_eq!(
-        after.page_cells - calls.page_cells,
-        after.page_content - calls.page_content
+        (
+            after.page_content,
+            after.page_cells,
+            after.link_targets,
+            after.page_rows
+        ),
+        (
+            calls.page_content,
+            calls.page_cells,
+            calls.link_targets,
+            calls.page_rows
+        ),
+        "{after:?} {calls:?}"
     );
     let shown: BTreeSet<String> = shell.cached_pages().into_iter().collect();
     assert!(shown.is_superset(&["102".to_owned(), "103".to_owned()].into_iter().collect()));
@@ -864,4 +888,43 @@ fn v10_a_revision_change_empties_the_cache() {
     );
     assert_eq!(shell.canvas().unwrap().page().rev, shell.revision().unwrap());
     done(&mut shell, "app.quit", json!({"discard": true}));
+}
+
+#[test]
+fn a_tab_moved_across_the_groups_takes_its_new_groups_pane() {
+    let tmp = Tmp::new();
+    let mut shell = tmp.shell(false);
+    done(&mut shell, "page.goto", json!({"folio": "102"}));
+    done(
+        &mut shell,
+        "view.canvas_resize",
+        json!({"width": 900, "height": 700}),
+    );
+    done(&mut shell, "view.side_by_side", json!({}));
+    done(
+        &mut shell,
+        "view.canvas_resize",
+        json!({"width": 600, "height": 400, "group": 1}),
+    );
+    assert_eq!(shell.canvas_of(1).unwrap().pane(), (600.0, 400.0));
+    // tab.move: the moved tab is active in the left group, with the left group's pane.
+    done(
+        &mut shell,
+        "tab.move",
+        json!({"group": 1, "index": 0, "to_group": 0, "to_index": 1}),
+    );
+    assert_eq!(shell.area().unwrap().groups.len(), 1);
+    assert_eq!(shell.canvas_of(0).unwrap().pane(), (900.0, 700.0));
+    // Side by side off: the right group's tab joins the left group and takes its pane when shown.
+    done(&mut shell, "view.side_by_side", json!({}));
+    done(
+        &mut shell,
+        "view.canvas_resize",
+        json!({"width": 500, "height": 300, "group": 1}),
+    );
+    done(&mut shell, "view.side_by_side", json!({}));
+    let last = shell.area().unwrap().groups[0].tabs.len() - 1;
+    done(&mut shell, "tab.activate", json!({"group": 0, "index": last}));
+    assert_eq!(shell.canvas_of(0).unwrap().pane(), (900.0, 700.0));
+    shell.shutdown();
 }

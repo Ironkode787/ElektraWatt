@@ -575,6 +575,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "status-hint-link" => "Click or F: go to {0}",
         "status-hint-link-external" => "Link to another project",
         "canvas-cursor-description" => ", cursor {0} x {1} y {2} mm",
+        "canvas-cursor-description-no-cell" => ", cursor x {0} y {1} mm",
         "canvas-cursor-name" => "Canvas cursor",
         "canvas-cursor-live" => "{0}, x {1} y {2} mm",
         "canvas-cursor-live-link" => ", link to {0}",

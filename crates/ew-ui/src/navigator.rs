@@ -96,6 +96,8 @@ impl NavigatorPane {
         if let Some(i) = scroll_to {
             area = area.vertical_scroll_offset((i as f32 * ROW_HEIGHT - 2.0 * ROW_HEIGHT).max(0.0));
         }
+        // The rows are made in a scope whose AccessKit parent is the list, so they are the Tree's items (§6.9).
+        ui.scope_builder(egui::UiBuilder::new().accessibility_parent(list_id), |ui| {
         area.show_rows(ui, ROW_HEIGHT, visible.len(), |ui, range| {
             for row in &visible[range] {
                 let text = match &row.kind {
@@ -154,6 +156,7 @@ impl NavigatorPane {
                     ));
                 }
             }
+        });
         });
     }
 

@@ -507,4 +507,14 @@ fn v1_resolve_goto() {
         s.page_cells("102").unwrap().text(six.cell.as_ref().unwrap()),
         "6-A1"
     );
+    // A continuation page ("2.1") has no index of its own: with `%f`, "3-Z9" reads once, as folio 3 (the third
+    // page record after 1 and 2), and names no cell of it.
+    assert!(s.page_labels().contains(&"2.1".to_owned()));
+    assert_eq!(
+        s.resolve_goto("3-Z9"),
+        Err(GotoError::NoSuchCell {
+            folio: "3".into(),
+            cell: "Z9".into()
+        })
+    );
 }

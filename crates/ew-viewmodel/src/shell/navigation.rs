@@ -562,6 +562,17 @@ impl ShellModel {
                 _ => self.show(g, page, Arrival::Remembered),
             }
         }
+        // A tab moved across the groups (`tab.move`, side by side off) takes its new group's pane.
+        if let Some(a) = &mut self.area {
+            for group in &mut a.groups {
+                let (pane, ppp) = (group.pane, group.ppp);
+                if let Some(c) = &mut group.active_tab_mut().canvas
+                    && (c.pane() != pane || c.ppp() != ppp)
+                {
+                    c.resize(pane, ppp);
+                }
+            }
+        }
         if let (Some(Focus::Canvas(_)), Some(a)) = (self.focus, &self.area) {
             self.focus = Some(Focus::Canvas(a.focused));
         }

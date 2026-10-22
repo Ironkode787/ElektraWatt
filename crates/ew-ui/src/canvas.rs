@@ -577,7 +577,7 @@ impl CanvasHost {
     /// The accessible node of a canvas: role `Canvas`, its name and description, and the live cursor child.
     fn describe_node(
         &self,
-        ui: &Ui,
+        ui: &mut Ui,
         response: &egui::Response,
         shell: &ShellModel,
         group: usize,
@@ -593,18 +593,23 @@ impl CanvasHost {
         ui.ctx().accesskit_node_builder(response.id, |n| {
             n.set_description(description);
         });
-        if let Some(live) = node.live {
-            // The cursor's polite live region: a child of the canvas that reads its text after each move or jump.
-            let id = response.id.with("cursor");
-            let at = Rect::from_min_size(rect.min, Vec2::splat(1.0));
-            let child = ui.interact(at, id, Sense::hover());
-            let label = strings::text("canvas-cursor-name").to_owned();
-            child.widget_info(move || egui::WidgetInfo::labeled(egui::Role::Status, true, &label));
-            ui.ctx().accesskit_node_builder(id, |n| {
-                n.set_live(egui::accesskit::Live::Polite);
-                n.set_value(live);
-            });
-        }
+        // The cursor's polite live region: a child of the canvas node (made in a child Ui whose AccessKit parent is
+        // the canvas), always present and empty while no cursor shows, so a screen reader keeps following it.
+        let at = Rect::from_min_size(rect.min, Vec2::splat(1.0));
+        let child_ui = ui.new_child(
+            egui::UiBuilder::new()
+                .max_rect(at)
+                .accessibility_parent(response.id),
+        );
+        let id = response.id.with("cursor");
+        let child = child_ui.interact(at, id, Sense::hover());
+        let label = strings::text("canvas-cursor-name").to_owned();
+        child.widget_info(move || egui::WidgetInfo::labeled(egui::Role::Status, true, &label));
+        let live = node.live;
+        ui.ctx().accesskit_node_builder(id, |n| {
+            n.set_live(egui::accesskit::Live::Polite);
+            n.set_value(live);
+        });
     }
 
     /// Keeps egui's keyboard focus on the canvas while the shell's focus is there, and tells the shell when egui's

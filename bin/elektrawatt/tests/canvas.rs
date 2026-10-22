@@ -529,6 +529,7 @@ fn v7_go_to_page_or_cell_headless() {
             ("file.open", json!({ "dir": dir.to_string_lossy() })),
             ("nav.goto", json!({"text": "103-A1"})),
             ("nav.goto", json!({"text": "101"})),
+            ("view.fit_page", json!({})),
             ("command.run", preset),
             ("nav.goto", json!({"text": "/103.A1"})),
             ("app.quit", json!({"discard": true})),
@@ -553,7 +554,10 @@ fn v7_go_to_page_or_cell_headless() {
         (p101["page"].clone(), p101["canvas"]["cursor_nm"].clone()),
         (json!("101"), Value::Null)
     );
-    let eplan = &steps[5]["state"];
+    // Fitted: Home changes nothing.
+    assert_eq!(view(p101), view(&steps[4]["state"]));
+    assert_eq!(p101["canvas"]["zoom"], steps[4]["state"]["canvas"]["zoom"]);
+    let eplan = &steps[6]["state"];
     assert_eq!(eplan["page"], "103");
     assert_eq!(eplan["canvas"]["cell"], "/103.A1");
     for (text, message) in [

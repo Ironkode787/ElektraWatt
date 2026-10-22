@@ -35,9 +35,9 @@ pub struct CanvasNodeText {
     pub name: String,
     /// Its description: `<hint>, zoom <zoom>`, then `, cursor <cell> x <x> y <y> mm` while the grid cursor shows.
     pub description: String,
-    /// The polite live region's text while the cursor shows: `<cell>, x <x> y <y> mm`, then `, link to <label>`
-    /// when a link is at the cursor.
-    pub live: Option<String>,
+    /// The polite live region's text: `<cell>, x <x> y <y> mm`, then `, link to <label>` when a link is at the
+    /// cursor; empty while no cursor shows (the region stays present, so a screen reader keeps it).
+    pub live: String,
 }
 
 /// The accessible texts of group `group`'s canvas; `None` without a canvas there.
@@ -51,24 +51,27 @@ pub fn canvas_node(model: &ShellModel, group: usize) -> Option<CanvasNodeText> {
             &strings::format("status-zoom", &[&zoom_percent_text(c.zoom())]),
         ],
     );
-    let live = c.cursor().map(|(x, y)| {
-        let cell = page.cell_text((x, y));
-        description.push_str(&strings::format(
-            "canvas-cursor-description",
-            &[cell.as_deref().unwrap_or(""), &mm1(x), &mm1(y)],
-        ));
-        let mut live = match &cell {
-            Some(cell) => strings::format("canvas-cursor-live", &[cell, &mm1(x), &mm1(y)]),
-            None => strings::format("status-cursor", &[&mm1(x), &mm1(y)]),
-        };
-        if let Some(label) = c.cursor_link().and_then(crate::canvas::PageLink::label) {
-            live.push_str(&strings::format("canvas-cursor-live-link", &[&label]));
-        }
-        live
-    });
+    let live = c
+        .cursor()
+        .map(|(x, y)| {
+            let cell = page.cell_text((x, y));
+            description.push_str(&match &cell {
+                Some(cell) => strings::format("canvas-cursor-description", &[cell, &mm1(x), &mm1(y)]),
+                None => strings::format("canvas-cursor-description-no-cell", &[&mm1(x), &mm1(y)]),
+            });
+            let mut live = match &cell {
+                Some(cell) => strings::format("canvas-cursor-live", &[cell, &mm1(x), &mm1(y)]),
+                None => strings::format("status-cursor", &[&mm1(x), &mm1(y)]),
+            };
+            if let Some(label) = c.cursor_link().and_then(crate::canvas::PageLink::label) {
+                live.push_str(&strings::format("canvas-cursor-live-link", &[&label]));
+            }
+            live
+        })
+        .unwrap_or_default();
     Some(CanvasNodeText {
         name: strings::format("canvas-name", &[&page.folio, &page.title]),
-        description: description.replace("cursor  x", "cursor x"),
+        description,
         live,
     })
 }

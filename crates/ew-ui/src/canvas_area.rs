@@ -140,7 +140,9 @@ impl CanvasAreaHost {
         shell.area().map_or(0, |a| a.groups.len().saturating_sub(1))
     }
 
-    fn build(area: &CanvasArea, session: u64) -> Tree<TabPane> {
+    /// The tree of `area`; `shares` (one per group, left to right) carry the splitter's position across a rebuild
+    /// when the number of groups is unchanged (§6.2: the share is host state), else the groups share equally.
+    fn build(area: &CanvasArea, session: u64, shares: Option<&[f32]>) -> Tree<TabPane> {
         let mut tiles = Tiles::default();
         let mut groups = Vec::new();
         for g in &area.groups {
@@ -150,8 +152,25 @@ impl CanvasAreaHost {
             tabs.active = active;
             groups.push(tiles.insert_container(tabs));
         }
-        let root = tiles.insert_container(Linear::new(LinearDir::Horizontal, groups));
+        let mut linear = Linear::new(LinearDir::Horizontal, groups.clone());
+        if let Some(shares) = shares.filter(|s| s.len() == groups.len()) {
+            for (id, share) in groups.iter().zip(shares) {
+                linear.shares.set_share(*id, *share);
+            }
+        }
+        let root = tiles.insert_container(linear);
         Tree::new(Id::unique(("canvas-area", session)), root, tiles)
+    }
+
+    /// The shares of the groups of the shown tree, left to right (the splitter's position); `None` with one group.
+    pub fn shares(&self) -> Option<Vec<f32>> {
+        let tree = self.tree.as_ref()?;
+        match tree.tiles.get(tree.root()?)? {
+            Tile::Container(Container::Linear(l)) if l.children.len() > 1 => {
+                Some(l.children.iter().map(|c| l.shares[*c]).collect())
+            }
+            _ => None,
+        }
     }
 
     /// Paints the canvas area of `shell`: the tree, each group's active canvas through `canvas`; the user's input
@@ -171,7 +190,8 @@ impl CanvasAreaHost {
         };
         let key = (shell.project_epoch().unwrap_or(0), area.version());
         if self.built != Some(key) || self.tree.is_none() {
-            self.tree = Some(Self::build(area, key.0));
+            let shares = self.shares();
+            self.tree = Some(Self::build(area, key.0, shares.as_deref()));
             self.built = Some(key);
         }
         let Some(tree) = &mut self.tree else { return };

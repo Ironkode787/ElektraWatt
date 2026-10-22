@@ -198,7 +198,7 @@ impl PageCells {
         Some((row, column))
     }
 
-    /// The cell named by its labels with its indices; `None` when the page has no such row or column.
+    /// The cell at grid position `(row, column)`, with its printed labels and indices (both in range).
     fn label(&self, row: usize, column: usize) -> CellLabel {
         CellLabel {
             row: self.rows[row].clone(),
@@ -465,6 +465,15 @@ fn read_goto(
     Err(partial.into_iter().next())
 }
 
+/// The `{page_index}` of the entry at `pos` for Go to and printed cells: the xref engine's count, and `None` for a
+/// report continuation page ("2.1"), which has no page record and so no index of its own.
+fn record_index(order: &PageOrderV, pos: usize) -> Option<usize> {
+    match order.entries[pos].page {
+        PageRef::Generated { index, .. } if index > 0 => None,
+        _ => Some(page_index_of(order, pos)),
+    }
+}
+
 /// The xref engine's `{page_index}` of the entry at `pos`: the 1-based count of page records up to it, report
 /// continuation pages left out (doc 06 §2.8).
 fn page_index_of(order: &PageOrderV, pos: usize) -> usize {
@@ -541,7 +550,7 @@ fn cells_of(q: &Q, order: &PageOrderV, pos: usize) -> Option<PageCells> {
     let ip = q.get::<XrefSettingsOf>(()).ip.clone();
     Some(PageCells {
         folio: entry.folio.clone(),
-        page_index: Some(page_index_of(order, pos)),
+        page_index: record_index(order, pos),
         rows: row_labels(&frame),
         columns: column_labels(&frame),
         frame,
@@ -723,7 +732,7 @@ impl Session {
             .enumerate()
             .map(|(pos, e)| Candidate {
                 folio: &e.folio,
-                page_index: Some(page_index_of(&order, pos)),
+                page_index: record_index(&order, pos),
                 rows: cells[pos].as_ref().map_or(&none, |c| &c.rows),
                 columns: cells[pos].as_ref().map_or(&none, |c| &c.columns),
             })
@@ -805,7 +814,7 @@ impl Session {
     }
 }
 
-/// The CP destinations of a project: v5 ID â†’ (function, CP index, the page-order positions of the pages that
+/// The CP destinations of a project: v5 ID → (function, CP index, the page-order positions of the pages that
 /// hold a target of it).
 type CpDestinations = BTreeMap<Uuid, (Id<Function>, u16, Vec<usize>)>;
 

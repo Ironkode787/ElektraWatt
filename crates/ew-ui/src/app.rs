@@ -177,6 +177,12 @@ impl App {
         self.canvas.counters()
     }
 
+    /// The canvas area's group shares, left to right (tests: the splitter's position survives a tab click).
+    #[doc(hidden)]
+    pub fn canvas_area_shares(&self) -> Option<Vec<f32>> {
+        self.canvas_area.shares()
+    }
+
     /// The number of tile textures the canvas holds (tests).
     pub fn canvas_cached_tiles(&self) -> usize {
         self.canvas.cached_tiles()
