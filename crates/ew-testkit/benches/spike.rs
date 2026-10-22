@@ -62,8 +62,8 @@
 //! page.
 //!
 //! `memo.wire_props.profile` is the colour-profile edit of `profile.change.*` (no session: the project row is
-//! replaced with `Model::apply` and the store is advanced with the project row as the touched key); the store of
-//! that family is warmed on the model with the profile. The oracle of the warm-up rounds checks the partition,
+//! replaced with `Model::apply_history` and the store is advanced with the project row as the touched key);
+//! the store of that family is warmed on the model with the profile. The oracle of the warm-up rounds checks the partition,
 //! the local nets and [`ORACLE_POTENTIALS`] potentials of `wire_props_of` (each oracle check is a cold
 //! evaluation); the timed samples compare the wire properties of every potential with a cold `Q`.
 //!
@@ -742,11 +742,11 @@ fn colour_profile(rail: &str) -> Value {
 }
 
 /// `model` with the project row `old`, the one it holds, replaced by `new` (at the next revision). There is no
-/// command for project settings yet, so the change goes through `Model::apply`.
+/// command for project settings yet, so the change goes through `Model::apply_history`.
 fn put_project(model: &Model, old: &Arc<Project>, new: &Arc<Project>) -> Model {
     let key: AnyKey = (Kind::Project, old.id.cast());
     model
-        .apply(
+        .apply_history(
             &[Op::Put {
                 key,
                 before: Some(AnyRow::Project(Arc::clone(old))),

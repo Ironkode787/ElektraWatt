@@ -86,7 +86,7 @@ fn junction_sequence(ops: &[Op], j: Id<Junction>) -> Vec<Id<Connection>> {
 }
 
 fn plan_applies(m: &Model, ops: &[Op]) {
-    assert!(m.apply(ops, Rev(1)).is_ok());
+    assert!(m.apply_history(ops, Rev(1)).is_ok());
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -97,7 +97,9 @@ fn plan_applies(m: &Model, ops: &[Op]) {
 fn insert_update_delete_stamp_changed_at() {
     let m0 = mini_golden();
     let node = new_node(0x20000, LOC);
-    let m1 = m0.apply(&[Op::insert(AnyRow::of(node.clone()))], Rev(1)).unwrap();
+    let m1 = m0
+        .apply_history(&[Op::insert(AnyRow::of(node.clone()))], Rev(1))
+        .unwrap();
     let id = node.id;
     assert_eq!(m1.table::<StructureNode>().row(&id).unwrap().changed_at(), Rev(1));
     assert_eq!(m1.table::<StructureNode>().changed_at(), Rev(1));
@@ -114,7 +116,7 @@ fn insert_update_delete_stamp_changed_at() {
     node2.description = MlText::neutral("changed");
     let key = <StructureNode as Entity>::key(id);
     let m2 = m1
-        .apply(&[Op::update(m1.row(&key).unwrap(), AnyRow::of(node2))], Rev(2))
+        .apply_history(&[Op::update(m1.row(&key).unwrap(), AnyRow::of(node2))], Rev(2))
         .unwrap();
     assert_eq!(m2.table::<StructureNode>().row(&id).unwrap().changed_at(), Rev(2));
     assert_eq!(m2.table::<StructureNode>().changed_at(), Rev(2));
@@ -124,7 +126,9 @@ fn insert_update_delete_stamp_changed_at() {
     );
     assert_eq!(m2.table::<Device>().changed_at(), Rev::ZERO);
 
-    let m3 = m2.apply(&[Op::delete(m2.row(&key).unwrap())], Rev(3)).unwrap();
+    let m3 = m2
+        .apply_history(&[Op::delete(m2.row(&key).unwrap())], Rev(3))
+        .unwrap();
     assert!(m3.table::<StructureNode>().get(&id).is_none());
     assert_eq!(m3.table::<StructureNode>().changed_at(), Rev(3));
     assert_eq!(m3.rev(), Rev(3));
@@ -135,7 +139,7 @@ fn insert_update_delete_stamp_changed_at() {
 fn apply_leaves_the_original_snapshot_unchanged() {
     let m0 = mini_golden();
     let m1 = m0
-        .apply(&[Op::insert(AnyRow::of(new_node(0x20000, LOC)))], Rev(1))
+        .apply_history(&[Op::insert(AnyRow::of(new_node(0x20000, LOC)))], Rev(1))
         .unwrap();
     assert_eq!(
         m1.table::<StructureNode>().len(),
@@ -158,13 +162,13 @@ fn stale_before_is_rejected() {
     after.function_text = MlText::neutral("mine");
     let op = Op::update(AnyRow::of(other), AnyRow::of(after));
     assert_eq!(
-        m.apply(&[op], Rev(1)).unwrap_err(),
+        m.apply_history(&[op], Rev(1)).unwrap_err(),
         ModelError::StaleBefore { key }
     );
 
     let insert_existing = Op::insert(AnyRow::of(device_of(&m, DEV_101F1)));
     assert_eq!(
-        m.apply(&[insert_existing], Rev(1)).unwrap_err(),
+        m.apply_history(&[insert_existing], Rev(1)).unwrap_err(),
         ModelError::StaleBefore { key }
     );
 
@@ -172,7 +176,7 @@ fn stale_before_is_rejected() {
     let missing_key = missing.id;
     let delete_missing = Op::delete(AnyRow::of(missing));
     assert_eq!(
-        m.apply(&[delete_missing], Rev(1)).unwrap_err(),
+        m.apply_history(&[delete_missing], Rev(1)).unwrap_err(),
         ModelError::StaleBefore {
             key: dkey(missing_key)
         }
@@ -187,12 +191,12 @@ fn ops_on_the_same_key_chain_within_a_batch() {
     let mut second_after = device_of(&m, DEV_101F1);
     second_after.function_text = MlText::neutral("two");
     let second = Op::update(first.after().unwrap().clone(), AnyRow::of(second_after.clone()));
-    let m1 = m.apply(&[first.clone(), second], Rev(1)).unwrap();
+    let m1 = m.apply_history(&[first.clone(), second], Rev(1)).unwrap();
     assert_eq!(device_of(&m1, DEV_101F1), second_after);
 
     let stale_second = Op::update(m.row(&dkey(DEV_101F1)).unwrap(), AnyRow::of(second_after));
     assert_eq!(
-        m.apply(&[first, stale_second], Rev(1)).unwrap_err(),
+        m.apply_history(&[first, stale_second], Rev(1)).unwrap_err(),
         ModelError::StaleBefore { key: dkey(DEV_101F1) }
     );
 }
@@ -202,16 +206,16 @@ fn ops_on_the_same_key_chain_within_a_batch() {
 fn rev_must_increase() {
     let m = mini_golden();
     assert_eq!(
-        m.apply(&[], Rev(0)).unwrap_err(),
+        m.apply_history(&[], Rev(0)).unwrap_err(),
         ModelError::RevNotIncreasing {
             current: Rev(0),
             given: Rev(0)
         }
     );
-    let m1 = m.apply(&[], Rev(1)).unwrap();
+    let m1 = m.apply_history(&[], Rev(1)).unwrap();
     assert_eq!(m1.rev(), Rev(1));
     assert_eq!(
-        m1.apply(&[], Rev(1)).unwrap_err(),
+        m1.apply_history(&[], Rev(1)).unwrap_err(),
         ModelError::RevNotIncreasing {
             current: Rev(1),
             given: Rev(1)
@@ -231,7 +235,7 @@ fn malformed_ops_are_rejected() {
         after: Some(device_row),
     };
     assert!(matches!(
-        m.apply(&[mismatch], Rev(1)).unwrap_err(),
+        m.apply_history(&[mismatch], Rev(1)).unwrap_err(),
         ModelError::Malformed { .. }
     ));
 
@@ -242,7 +246,7 @@ fn malformed_ops_are_rejected() {
         after: None,
     };
     assert!(matches!(
-        m.apply(&[delete_project], Rev(1)).unwrap_err(),
+        m.apply_history(&[delete_project], Rev(1)).unwrap_err(),
         ModelError::Malformed { key, .. } if key == project_key
     ));
 
@@ -252,7 +256,7 @@ fn malformed_ops_are_rejected() {
         after: None,
     };
     assert!(matches!(
-        m.apply(&[reserved], Rev(1)).unwrap_err(),
+        m.apply_history(&[reserved], Rev(1)).unwrap_err(),
         ModelError::Malformed { .. }
     ));
 }
@@ -262,9 +266,9 @@ fn malformed_ops_are_rejected() {
 fn invert_batch_restores_and_stamps_a_new_rev() {
     let m0 = mini_golden();
     let plan = m0.delete_plan(&dkey(DEV_102F2)).unwrap();
-    let m1 = m0.apply(&plan, Rev(1)).unwrap();
+    let m1 = m0.apply_history(&plan, Rev(1)).unwrap();
     assert!(!m1.content_eq(&m0));
-    let m2 = m1.apply(&invert_batch(&plan), Rev(2)).unwrap();
+    let m2 = m1.apply_history(&invert_batch(&plan), Rev(2)).unwrap();
     assert!(m2.content_eq(&m0));
     assert_eq!(m2.table::<Device>().row(&DEV_102F2).unwrap().changed_at(), Rev(2));
     for f in [FN_102F2, FN_102F2_AUX] {
@@ -294,11 +298,11 @@ fn project_row_updates_and_inverts() {
         m0.row(&key).unwrap(),
         AnyRow::Project(p.clone().into()),
     )];
-    let m1 = m0.apply(&ops, Rev(1)).unwrap();
+    let m1 = m0.apply_history(&ops, Rev(1)).unwrap();
     assert_eq!(**m1.project(), p);
     assert_eq!(m1.project_row().changed_at(), Rev(1));
     assert!(!m1.content_eq(&m0));
-    let m2 = m1.apply(&invert_batch(&ops), Rev(2)).unwrap();
+    let m2 = m1.apply_history(&invert_batch(&ops), Rev(2)).unwrap();
     assert!(m2.content_eq(&m0));
     assert_eq!(m2.project_row().changed_at(), Rev(2));
 }
@@ -357,7 +361,7 @@ fn apply_unchecked_skips_the_invariants() {
     let only_fn: Vec<Op> = m.delete_plan(&fkey).unwrap();
     assert!(
         matches!(
-            m.apply(&only_fn, m.rev().next()),
+            m.apply_history(&only_fn, m.rev().next()),
             Err(ModelError::Invariant { .. })
         ),
         "a device without its main function is rejected"
@@ -366,7 +370,7 @@ fn apply_unchecked_skips_the_invariants() {
     let rest = transient.delete_plan(&dkey(DEV_102F2)).unwrap();
     let mut all = only_fn.clone();
     all.extend(rest);
-    let done = m.apply(&all, m.rev().next()).unwrap();
+    let done = m.apply_history(&all, m.rev().next()).unwrap();
     assert!(done.row(&dkey(DEV_102F2)).is_none());
     assert!(
         m.apply_unchecked(&only_fn, m.rev()).is_err(),
@@ -520,7 +524,7 @@ fn delete_plan_device_rep_keeps_device_function() {
         .delete_plan(&<Representation as Entity>::key(REP_101F1))
         .unwrap();
     assert_plan(&ops, &[removed::<Representation>(REP_101F1)]);
-    let m1 = m.apply(&ops, Rev(1)).unwrap();
+    let m1 = m.apply_history(&ops, Rev(1)).unwrap();
     assert!(m1.table::<Function>().get(&FN_101F1).is_some());
     assert!(m1.table::<Representation>().get(&REP_101F1).is_none());
 }
@@ -576,11 +580,11 @@ fn delete_plan_of_missing_or_project_key() {
 fn delete_without_plan_is_rejected() {
     let m = mini_golden();
     let rep = m.row(&<Representation as Entity>::key(REP_102F2_AUX)).unwrap();
-    assert!(m.apply(&[Op::delete(rep)], Rev(1)).is_ok());
+    assert!(m.apply_history(&[Op::delete(rep)], Rev(1)).is_ok());
 
     let dev = m.row(&dkey(DEV_102F2)).unwrap();
     assert!(matches!(
-        m.apply(&[Op::delete(dev)], Rev(1)).unwrap_err(),
+        m.apply_history(&[Op::delete(dev)], Rev(1)).unwrap_err(),
         ModelError::Invariant { id: "EW-INV-001", .. }
     ));
 }
@@ -670,10 +674,10 @@ fn lib_ref_fndef_copy_in_use_is_referenced() {
 
     let plan = m.delete_plan(&skey).unwrap();
     assert_plan(&plan, &[(skey, false)]);
-    let m1 = m.apply(&plan, Rev(1)).unwrap();
+    let m1 = m.apply_history(&plan, Rev(1)).unwrap();
     let plan = m1.delete_plan(&fkey).unwrap();
     assert_plan(&plan, &[(fkey, false)]);
-    assert!(m1.apply(&plan, Rev(2)).is_ok());
+    assert!(m1.apply_history(&plan, Rev(2)).is_ok());
 }
 
 /// An FnDef copy that an embedded part names in a function template cannot be removed by an edit until the part
@@ -705,10 +709,10 @@ fn lib_ref_part_template_fndef_in_use_is_referenced() {
 
     let plan = m.delete_plan(&pkey).unwrap();
     assert_plan(&plan, &[(pkey, false)]);
-    let m1 = m.apply(&plan, Rev(1)).unwrap();
+    let m1 = m.apply_history(&plan, Rev(1)).unwrap();
     let plan = m1.delete_plan(&fkey).unwrap();
     assert_plan(&plan, &[(fkey, false)]);
-    assert!(m1.apply(&plan, Rev(2)).is_ok());
+    assert!(m1.apply_history(&plan, Rev(2)).is_ok());
 }
 
 /// A `LibRef` to an item the project does not embed is no link: it loads, passes the integrity check and may be inserted.
@@ -720,7 +724,7 @@ fn lib_ref_unembedded_target_is_not_a_link() {
 
     let extra = symbol_using(nid(0x9301), LIBRARY_X, ITEM_Y);
     let m = mini_golden();
-    assert!(m.apply(&[Op::insert(AnyRow::of(extra))], Rev(1)).is_ok());
+    assert!(m.apply_history(&[Op::insert(AnyRow::of(extra))], Rev(1)).is_ok());
 }
 
 /// `referrers` of an embedded FnDef copy lists the symbol through the `symbol.fndef.item` link.
@@ -1018,7 +1022,7 @@ fn clone_shares_structure() {
 fn apply_shares_untouched_tables() {
     let m = mini_golden();
     let m1 = m
-        .apply(&[Op::insert(AnyRow::of(new_node(0x20000, LOC)))], Rev(1))
+        .apply_history(&[Op::insert(AnyRow::of(new_node(0x20000, LOC)))], Rev(1))
         .unwrap();
     assert!(!m.structure.rows.ptr_eq(&m1.structure.rows));
     assert!(m.devices.rows.ptr_eq(&m1.devices.rows));
@@ -1100,5 +1104,5 @@ fn prevent_hook_runs_after_structural_invariants() {
     ));
 
     // Without options the hook is not consulted.
-    assert!(m.apply(&[update], Rev(1)).is_ok());
+    assert!(m.apply_history(&[update], Rev(1)).is_ok());
 }

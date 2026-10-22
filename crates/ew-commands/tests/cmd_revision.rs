@@ -233,7 +233,7 @@ fn create_refuses_a_historic_release_after_a_release_record() {
         .expect("V2.0");
     let model: Model = e
         .model()
-        .apply(
+        .apply_history(
             &[Op::insert(AnyRow::of(released)), Op::delete(AnyRow::Revision(v2))],
             Rev(e.model().rev().0 + 1),
         )
@@ -360,7 +360,7 @@ fn a_withdrawn_revision_is_not_editable() {
     let wid = w.id;
     let model: Model = e
         .model()
-        .apply(&[Op::insert(AnyRow::of(w))], Rev(e.model().rev().0 + 1))
+        .apply_history(&[Op::insert(AnyRow::of(w))], Rev(e.model().rev().0 + 1))
         .expect("a withdrawal record");
     let mut e = engine(model);
     let err = e.execute(&set(&[wid], "description", json!("x"))).unwrap_err();

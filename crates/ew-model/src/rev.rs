@@ -74,7 +74,8 @@ pub type RowId<T> = Id<<T as Entity>::Marker>;
 
 /// All rows of one kind, in ID order, on a persistent map (O(1) clone).
 ///
-/// There is no public mutation: rows change only through [`Model::apply`](crate::Model::apply).
+/// There is no public mutation: rows change only through [`Model::apply_with`](crate::Model::apply_with)
+/// (edits) and [`Model::apply_history`](crate::Model::apply_history) (undo and redo).
 #[derive(Debug)]
 pub struct Table<T: Entity> {
     pub(crate) rows: OrdMap<RowId<T>, Row<T>>,

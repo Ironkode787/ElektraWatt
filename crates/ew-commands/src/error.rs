@@ -65,8 +65,8 @@ pub enum CmdError {
         /// The records involved.
         keys: Vec<AnyKey>,
     },
-    /// The candidate snapshot was rejected by `Model::apply_with`: a structural invariant, a forbid link, a
-    /// prevent rule or a stale op.
+    /// The candidate snapshot was rejected by `Model::apply_with`: a structural invariant, a forbid link, the
+    /// delete-time rule EW-INV-021 (a library copy that a `LibRef` names), a prevent rule or a stale op.
     Model(ModelError),
     /// Undo or redo cannot apply: there is no step, a checkpoint blocks it, or the model changed under it.
     History {

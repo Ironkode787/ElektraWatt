@@ -504,19 +504,29 @@ impl Journal {
 }
 
 /// A field whose current value differs from the journalled before-value: the base moved and both sides
-/// changed it (doc 05 §8.2 step 4; resolved in the merge panel, not in v0).
+/// changed it (doc 05 §8.2 step 4; resolved in the merge panel, not in v0). Also a library copy that the
+/// replay removes from the moved base while a record of the result still names it through a `LibRef`
+/// (the delete-time rule EW-INV-021, ADR-0009 amendment 7): the other side named the copy that this side
+/// deleted.
 #[derive(Clone, PartialEq, Debug)]
 pub struct Collision {
     /// The row.
     pub key: AnyKey,
-    /// The member (`""` for a whole-row put or delete).
+    /// The member (`""` for a whole-row put or delete); for a removed library copy, the `LibRef` link
+    /// (`kind.field`) through which a record still names it.
     pub member: String,
 }
 
 /// Replays journalled transactions onto `model` (doc 05 §8.2). Each transaction becomes one batch of ops
-/// applied as a new revision. With `check` (the base moved), every before-value is compared with the
-/// model first and differences are returned as collisions instead of being applied.
+/// applied as a new revision on the history path (`Model::apply_history`): the journal holds committed
+/// transactions, undos and redos among them. With `check` (the base moved), every before-value is compared
+/// with the model first and differences are returned as collisions instead of being applied; and the
+/// replay's net removals are judged against the moved base as an edit on it would be (EW-INV-021): a library
+/// copy of the moved base that the replay removes while a record of the result names it through a `LibRef`
+/// is a collision, not a removal. The judgement is net, so a copy that the journal embeds and an undo removes
+/// again is no collision.
 pub fn replay(model: &Model, txs: &[&Entry], check: bool) -> Result<(Model, Vec<AnyKey>), ReplayError> {
+    let base = model;
     let mut model = model.clone();
     let mut touched = std::collections::BTreeSet::new();
     let mut collisions = Vec::new();
@@ -588,13 +598,36 @@ pub fn replay(model: &Model, txs: &[&Entry], check: bool) -> Result<(Model, Vec<
         }
         let rev = ew_model::Rev(model.rev().0 + 1);
         model = model
-            .apply(&batch, rev)
+            .apply_history(&batch, rev)
             .map_err(|e| ReplayError::Invalid(e.to_string()))?;
+    }
+    if check && collisions.is_empty() {
+        collisions = lib_ref_collisions(base, &model, &touched);
     }
     if !collisions.is_empty() {
         return Err(ReplayError::Collisions(collisions));
     }
     Ok((model, touched.into_iter().collect()))
+}
+
+/// The library copies of `base` that `after` no longer holds while one of its records names them through a
+/// `LibRef` link, among the `touched` keys: one collision per copy, at its first such link.
+fn lib_ref_collisions(
+    base: &Model,
+    after: &Model,
+    touched: &std::collections::BTreeSet<AnyKey>,
+) -> Vec<Collision> {
+    touched
+        .iter()
+        .filter(|key| base.contains(key) && !after.contains(key))
+        .filter_map(|key| {
+            let (link, _) = after.referrers(key).into_iter().find(|(link, _)| link.lib_ref)?;
+            Some(Collision {
+                key: *key,
+                member: link.path(),
+            })
+        })
+        .collect()
 }
 
 /// Why a replay failed.

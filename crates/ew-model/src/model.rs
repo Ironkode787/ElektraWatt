@@ -25,8 +25,9 @@ use crate::rev::{Rev, Row, Table};
 /// One immutable snapshot of a project in memory. `Clone` is O(1): every table and index is a persistent
 /// map, rows are `Arc`s.
 ///
-/// The model changes only through [`Model::apply`]. Reading is public; the fields are crate-private (ARCH
-/// §3 rule 1).
+/// The model changes only through [`Model::apply_with`], the edit path of every command, and
+/// [`Model::apply_history`], the history path of undo and redo. Reading is public; the fields are
+/// crate-private (ARCH §3 rule 1).
 #[derive(Clone, Debug)]
 pub struct Model {
     pub(crate) rev: Rev,
@@ -305,11 +306,13 @@ impl Model {
         ///
         /// A referrer through a `forbid` link that the plan does not remove itself is
         /// [`ModelError::Referenced`]. The plan covers link policies only: other invariants (one main function
-        /// per device, for instance) are the transaction's business and are checked by [`Model::apply`].
+        /// per device, for instance) are the transaction's business and are checked by
+        /// [`Model::apply_with`].
         ///
         /// Gated by `raw-read`, like the other untracked readers: the plan carries the current rows of the
         /// removed and modified records in its ops (`before`), so it reads the model. A transaction builder
-        /// that holds the feature (`TxBuilder` in `ew-commands`) calls it; [`Model::apply`] consumes the ops.
+        /// that holds the feature (`TxBuilder` in `ew-commands`) calls it; [`Model::apply_with`] consumes the
+        /// ops.
         fn delete_plan(&self, key: &AnyKey) -> Result<Vec<Op>, ModelError> {
             self.delete_plan_many(std::slice::from_ref(key))
         }

@@ -593,9 +593,10 @@ impl Engine {
     }
 
     /// Reverts the step below the cursor by applying its inverse ops as a new revision (ARCH §5.3), on the
-    /// history path (`Model::apply`): structural invariants are checked; prevent rules are not (the restored
-    /// state passed them), nor is the model's delete-time rule EW-INV-021, so the undo of `library.embed`
-    /// restores the state before it even where records name the copies through a `LibRef` (FT-316).
+    /// history path (`Model::apply_history`): structural invariants are checked; prevent rules are not (the
+    /// restored state passed them), nor is the model's delete-time rule EW-INV-021, so the undo of
+    /// `library.embed` restores the state before it even where records name the copies through a `LibRef`
+    /// (FT-316).
     pub fn undo(&mut self) -> Result<Restored, CmdError> {
         let index = self.history.undo_index()?;
         let entry = self.history.entry(index).expect("undo index is in range");
@@ -626,9 +627,12 @@ impl Engine {
 
     fn apply_history_ops(&mut self, ops: &[Op], label: &str) -> Result<Rev, CmdError> {
         let rev = self.model.rev().next();
-        let next = self.model.apply(ops, rev).map_err(|e| CmdError::History {
-            reason: format!("the model changed under the step `{label}`: {e}"),
-        })?;
+        let next = self
+            .model
+            .apply_history(ops, rev)
+            .map_err(|e| CmdError::History {
+                reason: format!("the model changed under the step `{label}`: {e}"),
+            })?;
         let change = Change {
             rev,
             touched_keys: ops

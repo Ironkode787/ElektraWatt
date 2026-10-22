@@ -204,7 +204,8 @@ fn bump_counter(m: &ew_model::Model, counter: u32, rev: Rev) -> ew_model::Model 
     let before = m.row(&Device::key(id(0x1000))).unwrap();
     let mut after = (**before.get::<Device>().unwrap()).clone();
     after.tag.counter = Some(counter);
-    m.apply(&[Op::update(before, AnyRow::of(after))], rev).unwrap()
+    m.apply_history(&[Op::update(before, AnyRow::of(after))], rev)
+        .unwrap()
 }
 
 /// Reads carry the stamps they observed: after a commit at revision 3 the changed device row reports 3,

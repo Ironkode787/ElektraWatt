@@ -195,7 +195,7 @@ pub fn unused_folio(model: &Model, at_least: u32) -> u32 {
 
 /// Applies `ops` as the next revision and adds their keys to `keys`.
 pub fn apply(model: &Model, ops: &[Op], keys: &mut BTreeSet<AnyKey>) -> Result<Model, ModelError> {
-    let next = model.apply(ops, Rev(model.rev().0 + 1))?;
+    let next = model.apply_history(ops, Rev(model.rev().0 + 1))?;
     keys.extend(ops.iter().map(Op::key));
     Ok(next)
 }

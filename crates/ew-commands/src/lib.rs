@@ -15,11 +15,13 @@
 //! - **Transactions.** [`TxBuilder`] is a scratch snapshot with read-your-writes over the current model;
 //!   it mints IDs from an injected `IdSource` and records the [`ReadSet`] for the optimistic rebase.
 //! - **Pipeline.** [`Engine`] runs a command, the [`normalise`] registry (at most three passes), validates
-//!   the candidate with `Model::apply_with` (structural invariants, then the prevent hook), commits it,
-//!   records it in the [`History`] and appends a [`Change`] to the change feed. [`Engine::preview`] and
+//!   the candidate with `Model::apply_with` (structural invariants, the delete-time rule EW-INV-021, then
+//!   the prevent hook), commits it, records it in the [`History`] and appends a [`Change`] to the change
+//!   feed. [`Engine::preview`] and
 //!   [`Engine::commit`] split the same pipeline around a [`Preview`]. `ew_api::Session` wraps the engine.
 //! - **Undo.** One project-wide [`History`] with coalescing, bounds, marker lines and a saved marker; undo
-//!   applies inverse ops as a new revision.
+//!   applies inverse ops as a new revision on the history path (`Model::apply_history`: structural
+//!   invariants only, ARCH §5.3).
 //!
 //! Not in v0: the full numbering engine (WP-S1.11), persistence and the journal (WP-S1.09), the job pool
 //! (WP-S1.05; previews run synchronously), macros, `ApplyImport` and `edit.paste`.

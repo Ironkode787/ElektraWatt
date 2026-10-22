@@ -72,7 +72,7 @@ fn deleting_the_module_cascades_its_channels() {
     let m = plc_model();
     let ops = m.delete_plan(&key::<Device>(DEV_102G1)).unwrap();
     assert!(removes(&ops, key::<Channel>(CH)));
-    assert!(m.apply(&ops, Rev(1)).is_ok());
+    assert!(m.apply_history(&ops, Rev(1)).is_ok());
 }
 
 #[test]
@@ -82,7 +82,7 @@ fn deleting_the_bound_function_unlinks_binding_and_target() {
     let c: Channel = after(&ops, CH);
     assert_eq!((c.binding, c.target), (None, None));
     assert!(!removes(&ops, key::<Channel>(CH)));
-    assert!(m.apply(&ops, Rev(1)).is_ok());
+    assert!(m.apply_history(&ops, Rev(1)).is_ok());
 }
 
 #[test]
@@ -92,7 +92,7 @@ fn deleting_either_end_cascades_the_device_link_and_the_cpu_unlinks() {
     // -101F1 is a station: deleting it is allowed (the station names the project, not the reverse).
     let from = from.unwrap();
     assert!(removes(&from, key::<DeviceLink>(LINK)));
-    assert!(m.apply(&from, Rev(1)).is_ok());
+    assert!(m.apply_history(&from, Rev(1)).is_ok());
 
     let to = m.delete_plan(&key::<Device>(DEV_102F2)).unwrap();
     assert!(removes(&to, key::<DeviceLink>(LINK)));
@@ -100,14 +100,14 @@ fn deleting_either_end_cascades_the_device_link_and_the_cpu_unlinks() {
     assert_eq!(cfg.cpu, None);
     let c: Channel = after(&to, CH);
     assert_eq!((c.binding, c.target), (None, None));
-    assert!(m.apply(&to, Rev(1)).is_ok());
+    assert!(m.apply_history(&to, Rev(1)).is_ok());
 }
 
 #[test]
 fn a_configuration_project_named_by_a_station_cannot_be_removed() {
     let m = plc_model();
     let op = Op::delete(m.row(&key::<PlcConfigProject>(CFG)).unwrap());
-    let err = m.apply(&[op], Rev(1)).expect_err("must be rejected");
+    let err = m.apply_history(&[op], Rev(1)).expect_err("must be rejected");
     assert!(
         matches!(err, ModelError::Referenced { ref link, .. } if link == "device.plc_station.config_project"),
         "{err:?}"

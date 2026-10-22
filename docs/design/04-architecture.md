@@ -541,7 +541,8 @@ designations, or renumbering a strip, needs no two-phase rename. This fixes the 
 
 | Class | Invariants | Behaviour |
 |---|---|---|
-| **Structural** (always on) | References resolve, with generated delete policies `cascade`/`unlink`/`forbid` (from D; the `forbid` of a `LibRef` link is the delete-time rule EW-INV-021, which edits obey and undo and redo skip, ADR-0009 amendment 7); one main function per device; `Function.device` is None if and only if the kind is `Ip`; assembly graph acyclic; a placement references a device; a channel belongs to exactly one module; connection endpoints exist and differ; a representation's functions exist; a released revision has a checker who is not the author (D-34) | Reject the transaction |
+| **Structural** (always on) | References resolve, with generated delete policies `cascade`/`unlink`/`forbid` (from D; the `forbid` of a `LibRef` link is the delete-time rule below); one main function per device; `Function.device` is None if and only if the kind is `Ip`; assembly graph acyclic; a placement references a device; a channel belongs to exactly one module; connection endpoints exist and differ; a representation's functions exist; a released revision has a checker who is not the author (D-34) | Reject the transaction |
+| **Delete-time** (always on, edits only; ADR-0009 amendment 7) | An edit does not remove an embedded library copy that a record names through a `LibRef` (EW-INV-021). A state without the copy is valid, so the rule judges a removal, not a state: `Model::apply_with` (every command) and the delete plan evaluate it; the history path of undo and redo (`Model::apply_history`) and the integrity check do not. Crash recovery onto a moved base reports a removal it would make as a collision | Reject the edit (`Referenced`) |
 | **Prevent** (rule-pack configurable) | Terminal designation non-empty (D-11) and unique per strip (D-12); device tag unique within its structure scope; PLC address unique per area; at most one star source per interruption-point name and scope, and in chain mode an even count ordered by sort key (unpaired and ambiguous points are check findings); conductor colours consistent with the cable part | **Strict mode** rejects the transaction. **Lenient mode** (imports, legacy projects) turns a violation into a check message. The migration report lists every message |
 
 The enumerated catalogue (about 40 rules) lives in `ew-model/invariants.md`, with a stable ID per rule, and is
@@ -626,7 +627,8 @@ validated against the command's JSON Schema ([extensibility](17-extensibility.md
   viewport and selection. The stack survives saving, and a saved marker drives the dirty flag. Marker lines count
   towards the 500; the 256 MB counts only the rows the history alone keeps alive, by in-memory size, and one step
   larger than that is kept alone. Undo and redo run the structural invariants but not the prevent rules (ADR-0008
-  amendment 2), nor the model's delete-time rule EW-INV-021 (ADR-0009 amendment 7): they restore a committed state,
+  amendment 2), nor the model's delete-time rule EW-INV-021 (ADR-0009 amendment 7): they apply through
+  `Model::apply_history`, the history path, and restore a committed state,
   so the undo of `library.embed` removes copies that `LibRef`s name, which then name nothing again.
 - **Coalescing.** One drag is one step. Typing in one cell merges until focus leaves. A table fill-down or an Excel
   paste is one step.
@@ -1582,7 +1584,7 @@ Undoing `library.embed` was refused when a project-local part named an embedded 
 inverse ops, although the state before the embedding is valid (a `LibRef` to an item the project does not embed is
 not dangling, NFR-REL-11). Since ADR-0009 amendment 7 the keep-alive is the delete-time rule EW-INV-021: the edit path
 (`Model::apply_with`, and the delete plan of `edit.delete` and the purge) refuses the removal, and the history path of
-undo and redo (`Model::apply`, §5.3) does not evaluate it. The golden build undoes completely to its shell, and the
+undo and redo (`Model::apply_history`, §5.3) does not evaluate it. The golden build undoes completely to its shell, and the
 command fuzzer's undo-all oracle covers the shape.
 
 **CI pipeline.**

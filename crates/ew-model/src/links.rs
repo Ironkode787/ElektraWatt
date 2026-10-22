@@ -11,7 +11,7 @@
 //! - the structural invariant "references resolve" (EW-INV-001): after every batch each touched record's
 //!   links name live records, and a removed record has no referrer left (`LibRef` links aside, below);
 //! - the delete policies: [`Policy::Forbid`] makes `Model::delete_plan` refuse the removal and
-//!   [`Model::apply`](crate::Model::apply) reject a batch that removes the target anyway
+//!   [`Model::apply_with`](crate::Model::apply_with) reject a batch that removes the target anyway
 //!   ([`ModelError::Referenced`](crate::ModelError::Referenced)); [`Policy::Cascade`] and
 //!   [`Policy::Unlink`] are computed by `Model::delete_plan` (behind `raw-read`), which a transaction
 //!   includes (WP-S1.04), and `apply` only verifies the result.
@@ -26,9 +26,9 @@
 //! copy ([`Policy::Forbid`]) is therefore a **delete-time** rule, not a structural one (EW-INV-021,
 //! ADR-0009 amendment 7): an edit (`edit.delete`, the purge, any command; `Model::delete_plan` and
 //! [`Model::apply_with`](crate::Model::apply_with)) cannot remove an FnDef copy that an embedded symbol or
-//! part names, while undo and redo ([`Model::apply`](crate::Model::apply)) may, because the state they
-//! restore is valid: the undo of `library.embed` leaves the `LibRef` naming nothing, as before the
-//! embedding (FT-316). Every other forbid link stores the target's ID and is structural: its missing target
+//! part names, while undo and redo ([`Model::apply_history`](crate::Model::apply_history)) may, because the
+//! state they restore is valid: the undo of `library.embed` leaves the `LibRef` naming nothing, as before
+//! the embedding (FT-316). Every other forbid link stores the target's ID and is structural: its missing target
 //! is a dangling reference in any state, so no committed state, and no undo, can leave one. Other `LibRef`s
 //! (successors, manufacturers) are not links; see [`NOT_LINKS`].
 //!

@@ -15,7 +15,7 @@ use ew_rds::Aspect;
 use ew_schema::{
     Bond, Conductor, Connection, Device, Endpoint, ExternalRef, FnDef, FnRole, Function, FunctionKind,
     ImportLineage, Junction, Kind, LibCopy, LibDocument, Open, Page, PotentialDef, Record, ReportBlock,
-    Representation, Section, StructureNode, SymbolDef,
+    Representation, Section, StructureNode,
 };
 use ew_units::{Nm, Pt2};
 use proptest::prelude::*;
@@ -23,8 +23,8 @@ use serde_json::json;
 
 use super::fixture::{
     DEV_3W1, DEV_101F1, DEV_102F2, FNDEF_CONTACT, FNDEF_MCB, LIBRARY_X, LOC, PAGE_101, PAGE_102, conductor,
-    connection, cp, device, fndef_copy_for, function, mini_golden, mini_golden_parts, strip, structure_node,
-    symbol_using,
+    connection, cp, device, fndef_copy_for, function, mini_golden, mini_golden_parts, part_using, strip,
+    structure_node, symbol_using,
 };
 use crate::entity::{AnyKey, table_keys};
 use crate::{AnyRow, ApplyOptions, BaseIndexes, Entity, Model, ModelError, Op, Rev, invert_batch};
@@ -550,7 +550,7 @@ fn interpret_traced(start: &Model, actions: &[Action], counter: &mut u32) -> (Ve
             applied.push(false);
             continue;
         }
-        match scratch.apply(&ops, scratch.rev().next()) {
+        match scratch.apply_history(&ops, scratch.rev().next()) {
             Ok(next) => {
                 scratch = next;
                 all.extend(ops);
@@ -572,7 +572,7 @@ fn interpret(start: &Model, actions: &[Action], counter: &mut u32) -> Vec<Op> {
 fn step(m: &Model, actions: &[Action], counter: &mut u32) -> (Model, Vec<Op>) {
     let ops = interpret(m, actions, counter);
     let next = m
-        .apply(&ops, m.rev().next())
+        .apply_history(&ops, m.rev().next())
         .unwrap_or_else(|e| panic!("an interpreted batch applies in one transaction: {e:?}"));
     (next, ops)
 }
@@ -625,9 +625,9 @@ proptest! {
         let mut counter = 0;
         let ops = interpret(&m0, &actions, &mut counter);
         let r = m0.rev().next();
-        let m1 = m0.apply(&ops, r).expect("an interpreted batch applies in one transaction");
+        let m1 = m0.apply_history(&ops, r).expect("an interpreted batch applies in one transaction");
         let undo = r.next();
-        let m2 = m1.apply(&invert_batch(&ops), undo).expect("the inverse batch applies");
+        let m2 = m1.apply_history(&invert_batch(&ops), undo).expect("the inverse batch applies");
         prop_assert!(m2.content_eq(&m0));
         for op in &ops {
             let key = op.key();
@@ -669,7 +669,7 @@ proptest! {
         }
         for ops in applied.iter().rev() {
             m = m
-                .apply(&invert_batch(ops), m.rev().next())
+                .apply_history(&invert_batch(ops), m.rev().next())
                 .expect("the inverse batches apply in reverse order");
         }
         prop_assert!(m.content_eq(&start));
@@ -698,8 +698,10 @@ proptest! {
 // ---------------------------------------------------------------------------------------------------------
 // LibRef shapes: the undo of an embedding (FT-316, EW-INV-021)
 
-/// One library item of the `LibRef` property: whether a symbol embedded before the batch names it, whether
-/// the batch embeds its FnDef copy, and whether the batch embeds a new symbol that names it.
+/// One library item of the `LibRef` property: whether a record embedded before the batch names it, whether
+/// the batch embeds its FnDef copy, and whether the batch embeds a new record that names it. The naming
+/// records of an item with an even index are symbols (`symbol.fndef`), of an odd one parts
+/// (`part.function_template[].fndef`).
 #[derive(Clone, Copy, Debug)]
 struct LibRefItem {
     named_before: bool,
@@ -717,31 +719,50 @@ fn lib_ref_item() -> impl Strategy<Value = LibRefItem> {
     })
 }
 
-/// The `i`-th item of the `LibRef` property and the IDs of the symbols that name it.
-fn lib_ref_ids(i: usize) -> (Uuid, Id<SymbolDef>, Id<SymbolDef>) {
+/// The `i`-th item of the `LibRef` property and the ID numbers of the records that name it (before the batch,
+/// in the batch).
+fn lib_ref_ids(i: usize) -> (Uuid, u128, u128) {
     let n = u128::try_from(i).expect("a small index");
-    (
-        Uuid::from_u128(0x9_5000 + n),
-        Id::from_uuid(Uuid::from_u128(0x9_6000 + n)),
-        Id::from_uuid(Uuid::from_u128(0x9_7000 + n)),
-    )
+    (Uuid::from_u128(0x9_5000 + n), 0x9_6000 + n, 0x9_7000 + n)
+}
+
+/// The record with ID number `n` that names `item` for the `i`-th item: a symbol for an even `i`, a part's
+/// function template for an odd one.
+fn lib_ref_referrer(i: usize, n: u128, item: Uuid) -> LibDocument {
+    let id = Uuid::from_u128(n);
+    if i % 2 == 0 {
+        LibDocument::Symbol(symbol_using(Id::from_uuid(id), LIBRARY_X, item))
+    } else {
+        LibDocument::Part(part_using(Id::from_uuid(id), &format!("LR-{i}"), LIBRARY_X, item))
+    }
+}
+
+/// A library document as a row.
+fn lib_row(doc: LibDocument) -> AnyRow {
+    match doc {
+        LibDocument::Symbol(c) => AnyRow::of(c),
+        LibDocument::Part(c) => AnyRow::of(c),
+        LibDocument::Fndef(c) => AnyRow::of(c),
+        LibDocument::Form(c) => AnyRow::of(c),
+        LibDocument::Unknown(_) => unreachable!("the property makes no unknown document"),
+    }
 }
 
 proptest! {
     #![proptest_config(ProptestConfig { cases: 64, ..ProptestConfig::default() })]
 
     /// Doc 18 §3.3 `undo(all) ∘ apply(cmds) = id` across `LibRef` shapes (FT-316): a batch that embeds FnDef
-    /// copies and symbols naming them, some of the copies named by symbols embedded before, commits on the
-    /// edit path; its inverse on the history path restores the start, which passes the integrity check. On the
-    /// edit path the same inverse is refused exactly when it removes a copy that a symbol of the start names
-    /// (EW-INV-021), and then with `Referenced`.
+    /// copies and symbols and parts naming them, some of the copies named by records embedded before, commits
+    /// on the edit path; its inverse on the history path restores the start, which passes the integrity check,
+    /// and redo restores the batch's result. On the edit path the same inverse is refused exactly when it
+    /// removes a copy that a record of the start names (EW-INV-021), and then with `Referenced`.
     #[test]
     fn undo_of_an_embedding_restores_the_start(items in prop::collection::vec(lib_ref_item(), 1..=4)) {
         let (project, records, mut lib) = mini_golden_parts();
         for (i, it) in items.iter().enumerate() {
             let (item, before, _) = lib_ref_ids(i);
             if it.named_before {
-                lib.push(LibDocument::Symbol(symbol_using(before, LIBRARY_X, item)));
+                lib.push(lib_ref_referrer(i, before, item));
             }
         }
         let m0 = Model::from_records(project, records, lib)
@@ -753,7 +774,7 @@ proptest! {
                 ops.push(Op::insert(AnyRow::of(fndef_copy_for(LIBRARY_X, item, &["1"]))));
             }
             if it.named_in_batch {
-                ops.push(Op::insert(AnyRow::of(symbol_using(in_batch, LIBRARY_X, item))));
+                ops.push(Op::insert(lib_row(lib_ref_referrer(i, in_batch, item))));
             }
         }
         let edit = ApplyOptions::default();
@@ -763,17 +784,21 @@ proptest! {
         let undo = invert_batch(&ops);
         let refused = items.iter().any(|it| it.named_before && it.embed_fndef);
         match m1.apply_with(&undo, m1.rev().next(), &edit) {
-            Ok(_) => prop_assert!(!refused, "the edit path removed a copy a symbol of the start names"),
+            Ok(_) => prop_assert!(!refused, "the edit path removed a copy a record of the start names"),
             Err(e) => {
                 prop_assert!(refused, "the edit path refused a removal it allows: {:?}", e);
                 prop_assert!(matches!(e, ModelError::Referenced { .. }), "{:?}", e);
             }
         }
         let m2 = m1
-            .apply(&undo, m1.rev().next())
+            .apply_history(&undo, m1.rev().next())
             .expect("the history path restores the start");
         prop_assert!(m2.content_eq(&m0));
         prop_assert!(m2.integrity_check().is_ok());
+        let m3 = m2
+            .apply_history(&ops, m2.rev().next())
+            .expect("the history path redoes the batch");
+        prop_assert!(m3.content_eq(&m1));
     }
 }
 
@@ -947,7 +972,7 @@ fn shrunk_seed_fndef_copy_removed_before_aux_function() {
     for actions in &batches {
         let (ops, applied) = interpret_traced(&m, actions, &mut counter);
         m = m
-            .apply(&ops, m.rev().next())
+            .apply_history(&ops, m.rev().next())
             .expect("an interpreted batch applies in one transaction");
         assert!(BaseIndexes::rebuild(&m).same_entries(m.indexes()));
         flags.push(applied);
@@ -957,7 +982,7 @@ fn shrunk_seed_fndef_copy_removed_before_aux_function() {
     assert!(!m.table::<LibCopy<FnDef>>().contains(&FNDEF_CONTACT));
 
     let aux = function(fresh(&mut counter), DEV_101F1, FNDEF_CONTACT, FnRole::Aux);
-    match m.apply(&[Op::insert(AnyRow::of(aux))], m.rev().next()) {
+    match m.apply_history(&[Op::insert(AnyRow::of(aux))], m.rev().next()) {
         Err(ModelError::Invariant { id, .. }) => assert_eq!(id, crate::REFS_RESOLVE),
         other => panic!("an aux function naming the removed FnDef copy is rejected: {other:?}"),
     }

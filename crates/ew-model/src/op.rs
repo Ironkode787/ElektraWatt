@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The op layer (ADR-0008, ARCH §5.1): invertible row puts and [`Model::apply`].
+//! The op layer (ADR-0008, ARCH §5.1): invertible row puts, [`Model::apply_with`] (the edit path) and
+//! [`Model::apply_history`] (the history path of undo and redo).
 
 use ew_schema::Kind;
 
@@ -54,7 +55,8 @@ impl Op {
         }
     }
 
-    /// Replaces an existing row; both rows have the same key ([`Model::apply`] rejects a mismatch).
+    /// Replaces an existing row; both rows have the same key ([`Model::apply_with`] and
+    /// [`Model::apply_history`] reject a mismatch).
     pub fn update(before: AnyRow, after: AnyRow) -> Op {
         Op::Put {
             key: before.key(),
@@ -137,8 +139,9 @@ impl Model {
     /// committed, so every structural invariant holds again; a delete-time rule judges an edit's removal,
     /// not a state, and would refuse a valid restore: the undo of `library.embed` removes copies that the
     /// records of the state before it name through `LibRef` links, which then name nothing (EW-INV-021,
-    /// ADR-0009 amendment 7, FT-316). Every edit goes through [`Model::apply_with`].
-    pub fn apply(&self, ops: &[Op], rev: Rev) -> Result<Model, ModelError> {
+    /// ADR-0009 amendment 7, FT-316). Every edit goes through [`Model::apply_with`]; the name says what this
+    /// path skips, so that no edit takes it by accident.
+    pub fn apply_history(&self, ops: &[Op], rev: Rev) -> Result<Model, ModelError> {
         let (m, scope) = self.apply_rows(ops, rev)?;
         invariants::check(&m, &scope)?;
         Ok(m)
@@ -160,11 +163,11 @@ impl Model {
     ///    a violation of EW-INV-001.
     /// 5. The delete-time rule of the catalogue: removing an embedded library copy that a record still
     ///    names through a `LibRef` link is [`ModelError::Referenced`] (EW-INV-021). It holds for every edit,
-    ///    whatever [`ApplyOptions`] say, and never on the history path ([`Model::apply`]).
+    ///    whatever [`ApplyOptions`] say, and never on the history path ([`Model::apply_history`]).
     /// 6. The prevent hook, if any, checks the candidate against `self`, the base snapshot.
     ///
-    /// `apply(ops)` followed by `apply(invert_batch(ops))` restores every row value and index entry; only
-    /// the `changed_at` stamps differ.
+    /// `apply_with(ops)` followed by `apply_history(invert_batch(ops))` restores every row value and index
+    /// entry; only the `changed_at` stamps differ.
     pub fn apply_with(&self, ops: &[Op], rev: Rev, opts: &ApplyOptions<'_>) -> Result<Model, ModelError> {
         let (m, scope) = self.apply_rows(ops, rev)?;
         invariants::check(&m, &scope)?;

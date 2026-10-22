@@ -47,7 +47,7 @@ fn upd<T: Entity + Clone>(m: &Model, id: RowId<T>, f: impl FnOnce(&mut T)) -> Op
 }
 
 fn apply(m: &Model, ops: &[Op]) -> Result<Model, ModelError> {
-    m.apply(ops, Rev(1))
+    m.apply_history(ops, Rev(1))
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -217,12 +217,12 @@ fn inv021_undo_of_an_embedding_restores_the_state_before_ok() {
         "an edit may not remove the named copy"
     );
     let m2 = m1
-        .apply(&undo, m1.rev().next())
+        .apply_history(&undo, m1.rev().next())
         .expect("the undo of the embedding");
     assert!(m2.content_eq(&m0), "undo restores the state before the embedding");
     assert!(m2.integrity_check().is_ok());
     let m3 = m2
-        .apply(&embed, m2.rev().next())
+        .apply_history(&embed, m2.rev().next())
         .expect("the redo of the embedding");
     assert!(m3.content_eq(&m1));
 }
@@ -349,12 +349,12 @@ fn inv004_rep_one_device_rejected() {
 fn inv004_function_moved_rejected() {
     let m = mini_golden();
     let r = rep(nid(0x10_000), PAGE_102, vec![FN_102F2, FN_102F2_AUX]);
-    let m = m.apply(&[ins(r)], Rev(1)).unwrap();
+    let m = m.apply_history(&[ins(r)], Rev(1)).unwrap();
     let op = upd(&m, FN_102F2_AUX, |f: &mut Function| {
         f.device = Some(DEV_101F1);
         f.role = FnRole::Aux;
     });
-    rejected_by(m.apply(&[op], Rev(2)), crate::REP_ONE_DEVICE);
+    rejected_by(m.apply_history(&[op], Rev(2)), crate::REP_ONE_DEVICE);
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -592,7 +592,7 @@ fn inv015_strip_whose_parent_is_its_terminal_rejected() {
         d.parent = Some(nid(0x10_000));
         d.tag.scheme = ew_schema::TagScheme::Child;
     });
-    rejected_by(m.apply(&[op], Rev(2)), crate::INHERITANCE_ACYCLIC);
+    rejected_by(m.apply_history(&[op], Rev(2)), crate::INHERITANCE_ACYCLIC);
 }
 
 /// Review probe 2: A's parent is terminal B, B's strip is S, S's parent is A.
@@ -605,7 +605,7 @@ fn inv015_three_device_cycle_rejected() {
     let b = terminal(nid(0x10_000), DEV_X1031, 5, "5");
     let m = apply(&m, &[ins(b), ins(dev_a)]).expect("valid without the closing edge");
     let op = upd(&m, DEV_X1031, |d: &mut Device| d.parent = Some(a));
-    rejected_by(m.apply(&[op], Rev(2)), crate::INHERITANCE_ACYCLIC);
+    rejected_by(m.apply_history(&[op], Rev(2)), crate::INHERITANCE_ACYCLIC);
 }
 
 /// The integrity check of a loaded project rejects an inheritance cycle (it runs every invariant on every
@@ -740,7 +740,7 @@ fn inv011_parent_aspect_changed_rejected() {
     let op = upd(&m, FUNC_P01, |n: &mut StructureNode| {
         n.aspect = ew_schema::Open::Known(Aspect::Location);
     });
-    rejected_by(m.apply(&[op], Rev(2)), crate::STRUCTURE_SAME_ASPECT);
+    rejected_by(m.apply_history(&[op], Rev(2)), crate::STRUCTURE_SAME_ASPECT);
 }
 
 /// Changing a parent's aspect together with its children's, in one batch, is accepted.
@@ -755,7 +755,7 @@ fn inv011_parent_and_children_changed_together_ok() {
             n.aspect = ew_schema::Open::Known(Aspect::Location);
         }),
     ];
-    assert!(m.apply(&ops, Rev(2)).is_ok());
+    assert!(m.apply_history(&ops, Rev(2)).is_ok());
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -825,7 +825,7 @@ fn inv013_rep_repointed_rejected() {
     let x = nid(0x10_000);
     let m = apply(&mini_golden(), &new_ip_with_rep(0x10_000, 0x10_001)).unwrap();
     let op = upd(&m, REP_IP_101, |r: &mut Representation| r.functions = vec![x]);
-    rejected_by(m.apply(&[op], Rev(2)), crate::IP_ONE_REPRESENTATION);
+    rejected_by(m.apply_history(&[op], Rev(2)), crate::IP_ONE_REPRESENTATION);
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -878,9 +878,9 @@ fn inv014_embedded_removed_rejected() {
     let m = mini_golden();
     let b = report_block(0x10_000, None, Some(PAGE_101));
     let id = b.id;
-    let m = m.apply(&[ins(b)], Rev(1)).unwrap();
+    let m = m.apply_history(&[ins(b)], Rev(1)).unwrap();
     let op = upd(&m, id, |b: &mut ReportBlock| b.embedded = None);
-    rejected_by(m.apply(&[op], Rev(2)), crate::REPORT_BLOCK_FOLIO);
+    rejected_by(m.apply_history(&[op], Rev(2)), crate::REPORT_BLOCK_FOLIO);
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -916,7 +916,7 @@ fn with_history() -> Model {
     let m = mini_golden();
     let v1 = revision(0x60_001, "V1.0", RevisionState::Released);
     let v2 = revision(0x60_002, "V2.0", RevisionState::Open);
-    m.apply(&[ins(v1), ins(v2)], Rev(1))
+    m.apply_history(&[ins(v1), ins(v2)], Rev(1))
         .expect("the history is valid")
 }
 
@@ -925,7 +925,7 @@ fn with_history() -> Model {
 fn inv016_one_open_revision_ok() {
     let m = with_history();
     let w = revision(0x60_003, "V1.0", RevisionState::Withdrawn);
-    assert!(m.apply(&[ins(w)], Rev(2)).is_ok());
+    assert!(m.apply_history(&[ins(w)], Rev(2)).is_ok());
 }
 
 /// A second open revision is rejected.
@@ -933,7 +933,7 @@ fn inv016_one_open_revision_ok() {
 fn inv016_second_open_revision_rejected() {
     let m = with_history();
     let v3 = revision(0x60_003, "V3.0", RevisionState::Open);
-    rejected_by(m.apply(&[ins(v3)], Rev(2)), crate::ONE_OPEN_REVISION);
+    rejected_by(m.apply_history(&[ins(v3)], Rev(2)), crate::ONE_OPEN_REVISION);
 }
 
 /// Reopening a released revision while another is open is rejected.
@@ -943,7 +943,7 @@ fn inv016_reopened_revision_rejected() {
     let op = upd(&m, nid(0x60_001), |r: &mut Revision| {
         r.state = RevisionState::Open
     });
-    rejected_by(m.apply(&[op], Rev(2)), crate::ONE_OPEN_REVISION);
+    rejected_by(m.apply_history(&[op], Rev(2)), crate::ONE_OPEN_REVISION);
 }
 
 /// Distinct labels are accepted, and a withdrawal record may repeat the label of the revision it withdraws.
@@ -951,7 +951,7 @@ fn inv016_reopened_revision_rejected() {
 fn inv017_revision_label_unique_ok() {
     let m = with_history();
     let w = revision(0x60_003, "V2.0", RevisionState::Withdrawn);
-    assert!(m.apply(&[ins(w)], Rev(2)).is_ok());
+    assert!(m.apply_history(&[ins(w)], Rev(2)).is_ok());
 }
 
 /// A second revision with an existing label is rejected.
@@ -959,7 +959,10 @@ fn inv017_revision_label_unique_ok() {
 fn inv017_duplicate_label_rejected() {
     let m = with_history();
     let twin = revision(0x60_003, "V1.0", RevisionState::Released);
-    rejected_by(m.apply(&[ins(twin)], Rev(2)), crate::REVISION_LABEL_UNIQUE);
+    rejected_by(
+        m.apply_history(&[ins(twin)], Rev(2)),
+        crate::REVISION_LABEL_UNIQUE,
+    );
 }
 
 /// Relabelling the open revision to a released revision's label is rejected.
@@ -969,7 +972,7 @@ fn inv017_relabel_rejected() {
     let op = upd(&m, nid(0x60_002), |r: &mut Revision| {
         r.label = ew_mltext::Ident::from_input("V1.0").unwrap();
     });
-    rejected_by(m.apply(&[op], Rev(2)), crate::REVISION_LABEL_UNIQUE);
+    rejected_by(m.apply_history(&[op], Rev(2)), crate::REVISION_LABEL_UNIQUE);
 }
 
 /// Author and checker of different roles, or either unset, are accepted.
@@ -980,9 +983,9 @@ fn inv018_revision_four_eyes_ok() {
         r.author = Some(ew_schema::PartyRole::Engineer);
         r.checker = Some(ew_schema::PartyRole::Checker);
     });
-    let m = m.apply(&[op], Rev(2)).expect("author and checker differ");
+    let m = m.apply_history(&[op], Rev(2)).expect("author and checker differ");
     let op = upd(&m, nid(0x60_002), |r: &mut Revision| r.author = None);
-    assert!(m.apply(&[op], Rev(3)).is_ok());
+    assert!(m.apply_history(&[op], Rev(3)).is_ok());
 }
 
 /// The same party as author and checker is rejected (D-34, FR-REV-005).
@@ -993,7 +996,7 @@ fn inv018_author_is_checker_rejected() {
         r.author = Some(ew_schema::PartyRole::Engineer);
         r.checker = Some(ew_schema::PartyRole::Engineer);
     });
-    rejected_by(m.apply(&[op], Rev(2)), crate::REVISION_FOUR_EYES);
+    rejected_by(m.apply_history(&[op], Rev(2)), crate::REVISION_FOUR_EYES);
 }
 
 /// Notes on two pages are accepted, also for a page that does not exist (a page note is not a link).
@@ -1003,7 +1006,7 @@ fn inv019_page_notes_unique_ok() {
     let op = upd(&m, nid(0x60_002), |r: &mut Revision| {
         r.page_notes = vec![note(PAGE_101), note(PAGE_102), note(nid(0x60_0ff))];
     });
-    assert!(m.apply(&[op], Rev(2)).is_ok());
+    assert!(m.apply_history(&[op], Rev(2)).is_ok());
 }
 
 /// Two notes on one page are rejected.
@@ -1013,7 +1016,7 @@ fn inv019_two_notes_on_one_page_rejected() {
     let op = upd(&m, nid(0x60_002), |r: &mut Revision| {
         r.page_notes = vec![note(PAGE_101), note(PAGE_102), note(PAGE_101)];
     });
-    rejected_by(m.apply(&[op], Rev(2)), crate::REVISION_PAGE_NOTE_UNIQUE);
+    rejected_by(m.apply_history(&[op], Rev(2)), crate::REVISION_PAGE_NOTE_UNIQUE);
 }
 
 /// A released revision may be removed (the undo of its creation needs a delete), and the open revision may
@@ -1022,11 +1025,13 @@ fn inv019_two_notes_on_one_page_rejected() {
 fn inv020_released_revision_delete_ok() {
     let m = with_history();
     let op = Op::delete(m.row(&Revision::key(nid(0x60_001))).expect("V1.0"));
-    let m = m.apply(&[op], Rev(2)).expect("a released revision is removed");
+    let m = m
+        .apply_history(&[op], Rev(2))
+        .expect("a released revision is removed");
     let op = upd(&m, nid(0x60_002), |r: &mut Revision| {
         r.state = RevisionState::Released;
     });
-    assert!(m.apply(&[op], Rev(3)).is_ok());
+    assert!(m.apply_history(&[op], Rev(3)).is_ok());
 }
 
 /// An update of a released revision is rejected: a member, or its state (a withdrawal is a new record), and
@@ -1037,17 +1042,17 @@ fn inv020_released_revision_update_rejected() {
     let op = upd(&m, nid(0x60_001), |r: &mut Revision| {
         r.description = ew_mltext::MlText::neutral("rewritten");
     });
-    rejected_by(m.apply(&[op], Rev(2)), crate::REVISION_IMMUTABLE);
+    rejected_by(m.apply_history(&[op], Rev(2)), crate::REVISION_IMMUTABLE);
     let op = upd(&m, nid(0x60_001), |r: &mut Revision| {
         r.state = RevisionState::Withdrawn;
     });
-    rejected_by(m.apply(&[op], Rev(2)), crate::REVISION_IMMUTABLE);
+    rejected_by(m.apply_history(&[op], Rev(2)), crate::REVISION_IMMUTABLE);
     let w = revision(0x60_003, "V1.0", RevisionState::Withdrawn);
-    let m = m.apply(&[ins(w)], Rev(2)).expect("a withdrawal record");
+    let m = m.apply_history(&[ins(w)], Rev(2)).expect("a withdrawal record");
     let op = upd(&m, nid(0x60_003), |r: &mut Revision| {
         r.label = ew_mltext::Ident::from_input("V0.1").unwrap();
     });
-    rejected_by(m.apply(&[op], Rev(3)), crate::REVISION_IMMUTABLE);
+    rejected_by(m.apply_history(&[op], Rev(3)), crate::REVISION_IMMUTABLE);
 }
 
 /// Deleting a page that a revision notes leaves the note (history), and the integrity check of a loaded
@@ -1058,9 +1063,11 @@ fn inv016_two_open_revisions_rejected_on_load() {
     let op = upd(&m, nid(0x60_002), |r: &mut Revision| {
         r.page_notes = vec![note(PAGE_101)]
     });
-    let m = m.apply(&[op], Rev(2)).unwrap();
+    let m = m.apply_history(&[op], Rev(2)).unwrap();
     let plan = m.delete_plan(&ew_schema::Page::key(PAGE_101)).expect("a plan");
-    let after = m.apply(&plan, Rev(3)).expect("the page goes, the note stays");
+    let after = m
+        .apply_history(&plan, Rev(3))
+        .expect("the page goes, the note stays");
     let kept = after.revisions.get(&nid(0x60_002)).unwrap();
     assert_eq!(kept.page_notes.len(), 1);
 

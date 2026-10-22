@@ -12,8 +12,8 @@
 //!
 //! - [`Model`]: one immutable snapshot with a [`Table`] per entity kind ([`Entity`]), the project row,
 //!   the embedded library copies and the [`BaseIndexes`]. Built by [`Model::from_records`], changed only
-//!   by [`Model::apply_with`] (the edit path) and [`Model::apply`] (the history path of undo and redo),
-//!   which return a new snapshot.
+//!   by [`Model::apply_with`] (the edit path) and [`Model::apply_history`] (the history path of undo and
+//!   redo), which return a new snapshot.
 //! - [`Op`]: an invertible row put; [`invert_batch`] undoes a batch (applied as a new revision).
 //! - [`LINKS`]: every link field with its target kind, delete [`Policy`] and index;
 //!   `Model::delete_plan` (with `raw-read`) computes the cascade and unlink ops a removal needs.
@@ -36,10 +36,10 @@
 //!   snapshot of a transaction in progress, which runs the ops without the invariant check and returns the
 //!   resulting model, so it exposes every row); the getters of [`Table`], [`LibraryCopies`] and
 //!   [`BaseIndexes`], and `BaseIndexes::rebuild`;
-//! - always public: [`Model::from_records`], [`Model::apply`], [`Model::apply_with`],
+//! - always public: [`Model::from_records`], [`Model::apply_with`], [`Model::apply_history`],
 //!   [`Model::integrity_check`], [`Model::content_eq`], [`Model::rev`], [`Model::strictness`],
-//!   [`invert_batch`], and the declarative tables [`LINKS`] and [`RULES`]. `apply` and `apply_with`
-//!   consume ops; they return no row.
+//!   [`invert_batch`], and the declarative tables [`LINKS`] and [`RULES`]. `apply_with` and
+//!   `apply_history` consume ops; they return no row.
 //!
 //! Only `ew-derive` (the tracked read layer), `ew-commands` (a transaction reads the `before` rows of its
 //! ops) and `ew-store` (the writer) may enable it on a normal dependency edge; any crate may enable it on a
@@ -67,7 +67,7 @@
 //! # Example
 //!
 //! ```
-//! use ew_model::{AnyRow, Model, Op, Rev, invert_batch};
+//! use ew_model::{AnyRow, ApplyOptions, Model, Op, Rev, invert_batch};
 //! use ew_schema::{Project, Record};
 //!
 //! let project: Project = serde_json::from_str(
@@ -82,7 +82,8 @@
 //!
 //! let m0 = Model::from_records(project, [], []).unwrap();
 //! let ops = vec![Op::insert(AnyRow::of(node.clone()))];
-//! let m1 = m0.apply(&ops, Rev(1)).unwrap();
+//! // An edit goes through the edit path (structural invariants, the delete-time rule, prevent rules).
+//! let m1 = m0.apply_with(&ops, Rev(1), &ApplyOptions::default()).unwrap();
 //! assert_eq!(m1.rev(), Rev(1));
 //! assert!(!m1.content_eq(&m0));
 //!
@@ -94,8 +95,8 @@
 //!     assert_eq!(m1.table::<StructureNode>().row(&node.id).unwrap().changed_at(), Rev(1));
 //! }
 //!
-//! // Undo is the inverse batch, applied as a new revision.
-//! let m2 = m1.apply(&invert_batch(&ops), Rev(2)).unwrap();
+//! // Undo is the inverse batch, applied as a new revision on the history path.
+//! let m2 = m1.apply_history(&invert_batch(&ops), Rev(2)).unwrap();
 //! assert!(m2.content_eq(&m0));
 //! ```
 

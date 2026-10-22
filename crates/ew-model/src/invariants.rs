@@ -26,13 +26,14 @@ use crate::model::Model;
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum RuleClass {
     /// Holds in every committed state; always on. A violation rejects the batch, on every path
-    /// ([`Model::apply`] and [`Model::apply_with`]), and the integrity check of a loaded project reports it.
+    /// ([`Model::apply_history`] and [`Model::apply_with`]), and the integrity check of a loaded project
+    /// reports it.
     Structural,
     /// A prevent rule of the model about a removal, not about a state (ADR-0009 amendment 7): an edit may
     /// not remove what the rule protects, but a state without it is valid. Evaluated on the edit path
     /// ([`Model::apply_with`], and by the delete plan before the batch is built), always strict, never by
-    /// the history path ([`Model::apply`]: undo and redo skip prevent rules, ARCH §5.3) and never by the
-    /// integrity check.
+    /// the history path ([`Model::apply_history`]: undo and redo skip prevent rules, ARCH §5.3) and never
+    /// by the integrity check.
     DeleteTime,
 }
 
@@ -360,8 +361,8 @@ fn refs_resolve(m: &Model, scope: &Scope) -> Result<(), ModelError> {
 }
 
 /// Evaluates the delete-time rules of the catalogue (class [`RuleClass::DeleteTime`]) on the candidate of an
-/// edit: [`Model::apply_with`] calls it after [`check`], [`Model::apply`] (the history path) and the integrity
-/// check never do.
+/// edit: [`Model::apply_with`] calls it after [`check`]; [`Model::apply_history`] (the history path) and the
+/// integrity check never do.
 pub(crate) fn check_delete_time(m: &Model, scope: &Scope) -> Result<(), ModelError> {
     lib_ref_keep_alive(m, scope)
 }

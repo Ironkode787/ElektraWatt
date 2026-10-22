@@ -63,14 +63,14 @@ fn deleting_a_covered_device_removes_it_from_the_covers() {
     let config = &head.aspects.assembly.as_ref().expect("the aspect stays").configs[0];
     assert_eq!(config.covers.as_slice(), [DEV_102G1]);
     assert_eq!(config.order_code.as_str(), "51E-F13GCQP-D+H2GG");
-    assert!(m.apply(&ops, Rev(1)).is_ok());
+    assert!(m.apply_history(&ops, Rev(1)).is_ok());
 }
 
 #[test]
 fn a_configured_part_named_by_an_assembly_cannot_be_removed() {
     let m = assembly_model();
     let op = Op::delete(m.row(&key::<ew_schema::LibCopy<Part>>(PART_CONF)).unwrap());
-    let err = m.apply(&[op], Rev(1)).expect_err("must be rejected");
+    let err = m.apply_history(&[op], Rev(1)).expect_err("must be rejected");
     assert!(
         matches!(err, ModelError::Referenced { ref link, .. } if link == "device.assembly.configs[].part.copy"),
         "{err:?}"

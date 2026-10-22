@@ -12,7 +12,7 @@ structural class and for the one delete-time rule of `ew-model` (ADR-0009 amendm
 structural invariant that `ew-model` enforces, and that rule.
 
 Structural invariants are always on. They hold in every committed state. They reject a batch in
-`Model::apply` and `Model::apply_with` with `ModelError::Invariant`, or with `ModelError::Referenced` for a
+`Model::apply_with` and `Model::apply_history` with `ModelError::Invariant`, or with `ModelError::Referenced` for a
 forbid link. They are evaluated on the candidate snapshot at the end of the batch, limited to the touched keys
 and their index neighbours. Transient states inside a batch are therefore legal. `Model::integrity_check`, run
 by `Model::from_records`, evaluates them on every record.
@@ -23,7 +23,7 @@ state: a state without what it protects is valid. Two paths apply a batch:
 - the **edit path**, `Model::apply_with`, by which every command commits (and the delete plan, which a delete
   command builds its batch from): structural invariants, then the delete-time rule (always strict), then the
   prevent hook;
-- the **history path**, `Model::apply`, by which undo and redo restore a committed state: structural
+- the **history path**, `Model::apply_history`, by which undo and redo restore a committed state: structural
   invariants only (ARCH §5.3: undo and redo skip prevent rules).
 
 The integrity check never evaluates the delete-time rule.
@@ -98,7 +98,7 @@ The field-mask test `tests::field_mask` compares both lists with the JSON Schema
 
 Policies follow doc 03 §4.2. Where doc 03 is silent, the policy is forbid for master data and library copies,
 and unlink for optional cross-references. `cascade` and `unlink` are computed by `Model::delete_plan`.
-Tests for it are in `src/tests/ops.rs`. `apply` never executes them.
+Tests for it are in `src/tests/ops.rs`. `apply_with` and `apply_history` never execute them.
 
 **Ownership cascade.** Besides the link policies, `Model::delete_plan` removes an interruption-point function
 together with its last representation (EW-INV-013, doc 05 §2.2 row 32). The function's connections then cascade
@@ -115,14 +115,16 @@ exactly while the copy is embedded (`LinkDecl::lib_ref`):
   `Model::apply_with` rejects a batch that removes it anyway (EW-INV-021, a delete-time rule);
 - a `LibRef` to an item the project does not embed is not a dangling reference, so a project opens without its
   libraries (NFR-REL-11). The removal of the copy therefore leaves a valid state, and undo and redo
-  (`Model::apply`) may remove it: the undo of `library.embed` restores the state before the embedding (FT-316);
+  (`Model::apply_history`) may remove it: the undo of `library.embed` restores the state before the embedding
+  (FT-316). Crash recovery onto a moved base judges its net removals against that base the same way: a copy the
+  replay removes while a record of the result names it is a collision (`ew_store::journal::replay`);
 - a second copy minted by "keep both" (`‖ version`) is never the resolution of a `LibRef`.
 
 The decision is deterministic: the index entry depends on the row only, and the link's state on the snapshot only.
 
 **Reading the model.** The untracked read API (`Model::table`, `row`, `lib`, `indexes`, `referrers`, `delete_plan`
 and the table and index getters) is behind the cargo feature `raw-read` of `ew-model` (ARCH §3 rule 1, ADR-0002
-decision 1). `delete_plan` is part of it because its ops carry the current rows (`before`); `apply` and `apply_with`
+decision 1). `delete_plan` is part of it because its ops carry the current rows (`before`); `apply_with` and `apply_history`
 only consume ops and stay public. Only
 `ew-derive`, `ew-commands` and `ew-store` enable it on a normal dependency edge; `cargo xtask check-features`
 enforces this. Prevent rules do not read the model directly: `PreventHook::check(&Model, &Model, &[AnyKey])`

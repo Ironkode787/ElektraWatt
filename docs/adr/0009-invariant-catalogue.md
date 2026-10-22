@@ -109,19 +109,28 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    revision invariants are EW-INV-016 (at most one open revision), EW-INV-017 (labels unique among the revisions
    not withdrawn) and EW-INV-019 (one page note per page); `Revision.withdraws` is a forbid link (decision 2's first
    bullet).
-7. **The `LibRef` keep-alive is a delete-time rule, not a structural invariant** (2026-10-22, lead programmer, on
-   the project owner's delegated direction for FT-316 at cycle 19; decision log ID-462;
-   [architecture](../design/04-architecture.md) §5.3, §13; `crates/ew-model/invariants.md`). Decision 2's first
+7. **The `LibRef` keep-alive is a delete-time rule, not a structural invariant** (2026-10-22, lead programmer,
+   FT-316 at cycle 19, with the project owner's delegated rulings on its review; the design pass records the
+   ruling in the decision log; [architecture](../design/04-architecture.md) §4.6, §5.3, §13;
+   `crates/ew-model/invariants.md`). The defect was recorded by the lead designer as decision log ID-462, which
+   placed the fix as a delete-time prevent check in `edit.delete` and the purge. Decision 2's first
    bullet makes "references resolve, with generated delete policies" structural. For the two `LibRef` links
    (`symbol.fndef`, `part.function_template[].fndef`) the forbid policy is not a property of a state: a `LibRef`
    to an item the project does not embed names nothing and is valid (NFR-REL-11), so the state before
    `library.embed` is valid. Enforcing the keep-alive inside the structural check refused the undo of the
    embedding and broke `undo(all) ∘ apply(cmds) = id` (ARCH §13). The rulings:
+   - **Beyond ID-462: a model rule, not a command check.** ID-462 put the check into the two delete commands.
+     The rule is instead the model's own, EW-INV-021 below, evaluated for every writer on the edit path: a
+     command that removes a copy without the delete plan, a later command, a plugin, the replay of a journal on
+     a moved base. A check in two commands would leave each new writer to remember it, which is the class of
+     defect the structural catalogue exists to prevent (decision 2); the delete plan still refuses the removal
+     first, so `edit.delete` and the purge report it before they build a batch.
    - **Two apply paths.** The edit path, `Model::apply_with`, by which every command commits, evaluates the
      structural invariants, then the model's delete-time rule, then the prevent hook. The history path,
-     `Model::apply`, by which undo and redo restore a committed state, evaluates the structural invariants only
-     (ARCH §5.3: undo and redo skip prevent rules). `Model::delete_plan`, from which every delete command builds
-     its batch, refuses the same removal first.
+     `Model::apply_history`, by which undo and redo restore a committed state, evaluates the structural
+     invariants only (ARCH §5.3: undo and redo skip prevent rules). The history path was `Model::apply`; it is
+     renamed so that its name says what it skips, and no edit takes it by accident. `Model::delete_plan`, from
+     which every delete command builds its batch, refuses the same removal first.
    - **The rule.** A new catalogue rule, **EW-INV-021, class delete-time**: an edit does not remove an embedded
      library copy that a record still names through a `LibRef` link. The refusal is `ModelError::Referenced`,
      with the same message as before. It is the model's own rule and always strict: no strictness relaxes it,
@@ -137,6 +146,13 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
      `PartRef.copy`, `Function.def`, `Representation.symbol`, the forms of pages, report blocks and forms, and
      `Revision.withdraws`. No committed state holds a referrer without its target, so their forbid never blocks
      an undo or a redo. The per-class table is in `crates/ew-model/invariants.md` §4.
+   - **The journal on a moved base.** Crash recovery replays journalled transactions on the history path. When
+     the base moved (another writer saved), the replay's net removals are judged against the moved base as an
+     edit on it would be: a library copy of the moved base that the replay removes while a record of the result
+     names it through a `LibRef` is a collision (`ew_store::journal::Collision`, the member being the link), and
+     nothing is applied. The judgement is net, so a journal that embeds a copy and undoes the embedding is no
+     collision. Example: the journal deletes symbol S1 and the FnDef copy it named; the other writer added a
+     symbol S2 that names the copy: collision, not a removal.
    - **No format change.** The schema and the files are unchanged; a project that opened before opens the same.
      `edit.delete` takes no library copy, and the purge (`library.purge_unused`, not built) inherits the rule
      through the delete plan.

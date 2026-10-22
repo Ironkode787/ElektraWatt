@@ -18,8 +18,10 @@ use common::{
     TestProbe, edit, edit_device, fixture, mem_project, options, par_map, project_files, reopen, root, temps,
     try_reopen,
 };
-use ew_model::{AnyKey, Model};
-use ew_store::ew_format::{FindingKind, Limits, Manifest, Severity, hash_text, sha256};
+use ew_model::{AnyKey, AnyRow, ApplyOptions, Model, Op, Rev};
+use ew_store::ew_format::ew_schema::{FnDef, LibCopy, LibDocument, Sha256, SymbolDef};
+use ew_store::ew_format::{FindingKind, Limits, Manifest, Severity, hash_text, library_copy_hash, sha256};
+use ew_store::journal::{self, Collision, Entry, JournalOp, ReplayError};
 use ew_store::mem::{DirSync, Fault, MemVfs};
 use ew_store::{
     Access, BASE_MEMBER, Changes, OpenMode, OpenReport, Opened, ReadOnlyReason, SaveError, SaveReport,
@@ -1141,4 +1143,171 @@ fn vfs_trait_is_object_safe_for_the_harness() {
     // The harness hands the store an `Arc<dyn Vfs>`; keep that coupling visible.
     let vfs: Arc<dyn Vfs> = Arc::new(MemVfs::default());
     assert!(vfs.stat(Path::new("/nothing")).is_err());
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// FT-316: the `LibRef` keep-alive and the journal (EW-INV-021, ADR-0009 amendment 7)
+
+/// The library and item of the FnDef copy of the FT-316 tests, and its copy ID `lib_copy_id(LIB_316,
+/// ITEM_316)` = `v5(NS_LIBCOPY, "<library>\u{1F}<item>")`; every test checks through the referrer index that
+/// a symbol's `LibRef` to the item resolves to it.
+const LIB_316: &str = "0190f316-0000-7000-8000-00000000a001";
+const ITEM_316: &str = "0190f316-0000-7000-8000-00000000a002";
+const FNDEF_316: &str = "4370a04b-c31e-5381-b458-6669a77cc71c";
+
+/// A symbol copy (the model's first, under the ID `0190f316-…-<n>`) whose `fndef` names the FT-316 item, and
+/// that item's FnDef copy (the model's first FnDef under the FT-316 lineage); both with their true hash.
+fn lib_ref_rows(model: &Model, n: u32) -> (AnyRow, AnyRow) {
+    fn id<T: std::str::FromStr>(s: &str) -> T {
+        s.parse().unwrap_or_else(|_| panic!("an ID: {s}"))
+    }
+    let hash = |doc: LibDocument| Sha256(library_copy_hash(&doc).expect("a known kind"));
+    let (_, sym) = model
+        .table::<LibCopy<SymbolDef>>()
+        .iter()
+        .next()
+        .expect("a symbol copy");
+    let mut sym = (**sym).clone();
+    sym.id = id(&format!("0190f316-0000-7000-8000-{n:012x}"));
+    sym.item.fndef.library = id(LIB_316);
+    sym.item.fndef.item = id(ITEM_316);
+    sym.sha256 = hash(LibDocument::Symbol(sym.clone()));
+    let (_, def) = model
+        .table::<LibCopy<FnDef>>()
+        .iter()
+        .next()
+        .expect("an FnDef copy");
+    let mut def = (**def).clone();
+    (def.id, def.library_id, def.item_id) = (id(FNDEF_316), id(LIB_316), id(ITEM_316));
+    def.sha256 = hash(LibDocument::Fndef(def.clone()));
+    (AnyRow::of(sym), AnyRow::of(def))
+}
+
+/// `m` after the edit `ops` (the edit path, as a command commits).
+fn edited(m: &Model, ops: &[Op]) -> Model {
+    m.apply_with(ops, Rev(m.rev().0 + 1), &ApplyOptions::default())
+        .expect("an edit")
+}
+
+/// `m` after the undo `ops` (the history path).
+fn undone(m: &Model, ops: &[Op]) -> Model {
+    m.apply_history(ops, Rev(m.rev().0 + 1)).expect("an undo")
+}
+
+/// The journal entry of the commit `before` → `after` of `keys`.
+fn tx_entry(before: &Model, after: &Model, keys: &[AnyKey], cmd: &str) -> Entry {
+    let ops = keys
+        .iter()
+        .filter_map(|k| JournalOp::diff(*k, before.row(k).as_ref(), after.row(k).as_ref()).expect("a diff"))
+        .collect();
+    Entry::Tx {
+        seq: 1,
+        t: 0,
+        cmd: cmd.into(),
+        origin: "test".into(),
+        ops,
+    }
+}
+
+/// Crash recovery of a journal that holds an undone `library.embed`: a symbol naming an FnDef the project
+/// does not embed, the embedding of that FnDef, and its undo, which removes a copy the symbol names. The
+/// recovered copy state is the state committed before the crash; also when the embedding was saved and only
+/// the undo is journalled after the save.
+#[test]
+fn journal_recovers_an_undone_library_embed() {
+    for mode in MODES {
+        let Setup {
+            vfs, mut store, g, ..
+        } = setup(mode);
+        let (sym, def) = lib_ref_rows(&g, 1);
+        let (skey, fkey) = (sym.key(), def.key());
+        let g1 = edited(&g, &[Op::insert(sym)]);
+        let g2 = edited(&g1, &[Op::insert(def.clone())]);
+        assert_eq!(
+            g2.referrers(&fkey).len(),
+            1,
+            "the symbol's LibRef resolves to the copy"
+        );
+        let g3 = undone(&g2, &[Op::delete(def.clone())]);
+        for (before, after, key, cmd) in [
+            (&g, &g1, skey, "library.embed"),
+            (&g1, &g2, fkey, "library.embed"),
+            (&g2, &g3, fkey, "undo"),
+        ] {
+            store
+                .journal_commit(before, after, &[key], cmd, "test")
+                .expect("journal");
+        }
+        store.crash();
+        let mut o = reopen(&vfs, 2);
+        let info = o.report.recovery.clone().expect("a leftover journal");
+        assert_eq!((info.transactions, info.base_matches), (3, true), "{info:?}");
+        let rec = o
+            .store
+            .recover(&o.model)
+            .expect("the journal replays, the undo included");
+        assert!(rec.model.content_eq(&g3), "{mode:?}: not the committed state");
+        assert!(rec.model.contains(&skey) && !rec.model.contains(&fkey));
+        o.store.close();
+
+        // The embedding saved, the undo journalled after the save.
+        let Setup {
+            vfs, mut store, g, ..
+        } = setup(mode);
+        let g1 = edited(&g, &[Op::insert(lib_ref_rows(&g, 1).0)]);
+        let g2 = edited(&g1, &[Op::insert(def.clone())]);
+        let saved: BTreeSet<AnyKey> = [skey, fkey].into();
+        store
+            .save(&g2, Changes::Keys(&saved))
+            .expect("the embedding saves");
+        let g3 = undone(&g2, &[Op::delete(def.clone())]);
+        store
+            .journal_commit(&g2, &g3, &[fkey], "undo", "test")
+            .expect("journal");
+        store.crash();
+        let mut o = reopen(&vfs, 2);
+        assert!(o.model.content_eq(&g2), "{}", describe(&o.report));
+        let rec = o.store.recover(&o.model).expect("the undo replays");
+        assert!(rec.model.content_eq(&g3), "{mode:?}: the undo is not recovered");
+    }
+}
+
+/// Doc 05 §8.2 with a moved base (`check`): a journalled edit that deletes a symbol and the FnDef copy it named
+/// collides with another writer's symbol that names the same copy (EW-INV-021 against the moved base), and
+/// nothing is applied. On the base it was journalled on, the same edit replays. A journal that embeds the copy
+/// and undoes the embedding is no collision on a moved base: the judgement is net.
+#[test]
+fn replay_onto_a_moved_base_collides_on_a_removed_copy_that_a_lib_ref_names() {
+    let g = setup(DirSync::Explicit).g;
+    let (s1, def) = lib_ref_rows(&g, 1);
+    let (s2, _) = lib_ref_rows(&g, 2);
+    let b0 = edited(&g, &[Op::insert(s1.clone()), Op::insert(def.clone())]);
+    let ours = edited(&b0, &[Op::delete(s1.clone()), Op::delete(def.clone())]);
+    let deletion = tx_entry(&b0, &ours, &[s1.key(), def.key()], "test.delete");
+    let moved = edited(&b0, &[Op::insert(s2.clone())]);
+    assert_eq!(moved.referrers(&def.key()).len(), 2, "both symbols name the copy");
+    match journal::replay(&moved, &[&deletion], true) {
+        Err(ReplayError::Collisions(c)) => assert_eq!(
+            c,
+            vec![Collision {
+                key: def.key(),
+                member: "symbol.fndef.item".into()
+            }]
+        ),
+        other => panic!("expected a collision on the copy, got {other:?}"),
+    }
+    let (back, _) = journal::replay(&b0, &[&deletion], true).expect("no other writer names the copy");
+    assert!(back.content_eq(&ours));
+
+    let named = edited(&g, &[Op::insert(s1)]);
+    let embedded = edited(&named, &[Op::insert(def.clone())]);
+    let reverted = undone(&embedded, &[Op::delete(def.clone())]);
+    let txs = [
+        tx_entry(&named, &embedded, &[def.key()], "library.embed"),
+        tx_entry(&embedded, &reverted, &[def.key()], "undo"),
+    ];
+    let moved = edited(&named, &[Op::insert(s2)]);
+    let (back, _) = journal::replay(&moved, &txs.iter().collect::<Vec<_>>(), true)
+        .expect("the journal leaves the copy as the moved base has it");
+    assert!(!back.contains(&def.key()));
 }

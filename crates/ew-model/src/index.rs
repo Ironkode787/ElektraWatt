@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Base reverse indexes (ARCH §4.1, ADR-0001 decision 5): pure reverse-FK maps, each key with its own
-//! `changed_at`, maintained by [`Model::apply`](crate::Model::apply) by delta, rebuilt on load, never
-//! saved.
+//! `changed_at`, maintained by delta by [`Model::apply_with`](crate::Model::apply_with) and
+//! [`Model::apply_history`](crate::Model::apply_history), rebuilt on load, never saved.
 //!
 //! Every link of [`LINKS`] feeds exactly one index: its named index, or the generic referrer index. So
 //! every link can be followed backwards in `O(log n)`, which the delete policies and the invariant
