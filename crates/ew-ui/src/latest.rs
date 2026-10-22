@@ -83,22 +83,27 @@ mod tests {
 
     #[test]
     fn a_burst_of_requests_renders_the_first_and_the_last_only() {
-        let (tx, rx) = channel();
+        let (done_tx, done_rx) = channel();
+        let (started_tx, started_rx) = channel();
+        let (release_tx, release_rx) = channel::<()>();
         let worker = LatestWorker::new(move |n: u32| {
-            // The first request keeps the worker busy while the rest arrive.
+            // Request 0 holds the worker inside the handler until the test has sent the whole burst: no timing.
             if n == 0 {
-                thread::sleep(Duration::from_millis(150));
+                started_tx.send(()).unwrap();
+                release_rx.recv().unwrap();
             }
-            tx.send(n).unwrap();
+            done_tx.send(n).unwrap();
         });
         worker.submit(0);
-        // Let the worker take request 0 before the burst.
-        thread::sleep(Duration::from_millis(30));
+        started_rx
+            .recv_timeout(Duration::from_secs(10))
+            .expect("the worker took request 0");
         for n in 1..=50 {
             worker.submit(n);
         }
+        release_tx.send(()).unwrap();
         let mut done = Vec::new();
-        while let Ok(n) = rx.recv_timeout(Duration::from_millis(600)) {
+        while let Ok(n) = done_rx.recv_timeout(Duration::from_secs(10)) {
             done.push(n);
             if n == 50 {
                 break;
