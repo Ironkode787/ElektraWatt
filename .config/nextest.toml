@@ -13,11 +13,12 @@ fail-fast = false
 #   - the command fuzzer (crates/ew-testkit/tests/command_fuzz: `fuzz_smoke`, 15 to 19 s in a debug build, and the
 #     binary's other tests; FT-306).
 # The rule:
-#   - the first nextest run of a job (default features) skips them with the filterset
+#   - the first nextest run of the Linux and macOS jobs (default features) skips them with the filterset
 #       -E 'not (package(ew-api) and binary(acceptance)) and not (package(ew-testkit) and binary(command_fuzz))'
 #     (the constant ONCE_PER_JOB_FILTER of xtask/src/main.rs; a test of xtask keeps it equal to the filter in
 #     .github/workflows/ci.yml and to the line above);
-#   - the all-features run (`--all-features`, a superset of the default run) runs everything, so they run there.
+#   - the all-features run (`--all-features`, a superset of the default run) runs everything, so they run there;
+#     the Windows job has only this run (FT-330, decision log ID-482).
 # `cargo xtask ci` follows the same rule locally. A single crate is not affected: `cargo nextest run -p ew-api`
 # still runs the acceptance tests and `cargo nextest run -p ew-testkit` the fuzzer. `cargo xtask acceptance` runs
 # the full gate (`gate`, the raster comparison) on its own.

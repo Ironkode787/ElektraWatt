@@ -164,13 +164,10 @@ jobs:
       - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
         with:
           tool: cargo-nextest@0.9.148
-      - name: cargo build
-        run: cargo build --workspace --locked
-      # The headless acceptance tests (about 2 min) and the command fuzzer's `fuzz_smoke` (15 to 19 s) run once per
-      # job, in the all-features run below: the filter is the rule of .config/nextest.toml and is kept equal to
-      # xtask's ONCE_PER_JOB_FILTER by a test (FT-268, FT-306).
-      - name: cargo nextest (without the acceptance tests and the fuzzer)
-        run: cargo nextest run --workspace --locked --profile ci -E 'not (package(ew-api) and binary(acceptance)) and not (package(ew-testkit) and binary(command_fuzz))'
+      # Windows runs the all-features suite only (FT-330, decision log ID-482): the default-features nextest run and
+      # doctests took the job to 45:29 against the 30-minute budget (NFR-MAINT-05). The all-features run is a superset
+      # and carries the acceptance tests and the fuzzer (the filter of xtask's ONCE_PER_JOB_FILTER is used by the
+      # Linux and macOS jobs only); feature-gating errors are caught on those two.
       # Feature-gated code (for example ew-ids/testkit) is only compiled and tested with its feature on.
       - name: cargo nextest (all features, with the acceptance tests and the fuzzer)
         run: cargo nextest run --workspace --all-features --locked --profile ci
@@ -199,8 +196,6 @@ jobs:
           print(f"{n} failed test case(s) annotated")
           PY
       # nextest does not run doctests.
-      - name: cargo test --doc
-        run: cargo test --doc --workspace --locked
       - name: cargo test --doc (all features)
         run: cargo test --doc --workspace --all-features --locked
 

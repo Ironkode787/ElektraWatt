@@ -675,9 +675,9 @@ fn ci() -> Result<bool> {
 mod tests {
     use super::{ONCE_PER_JOB_FILTER, unresolved_clippy_paths, workspace_root};
 
-    /// FT-268, FT-306: the acceptance tests and the command fuzzer run once per job. The default-features run of
-    /// each of the three test jobs carries the filter, the all-features run does not, and the nextest config
-    /// documents the same filter.
+    /// FT-268, FT-306, FT-330: the acceptance tests and the command fuzzer run once per job. The default-features
+    /// run carries the filter in test-linux and test-macos (test-windows has no default-features run), the
+    /// all-features run of all three jobs does not, and the nextest config documents the same filter.
     #[test]
     fn the_acceptance_tests_and_the_fuzzer_run_once_per_ci_job() {
         let ci = std::fs::read_to_string(workspace_root().join(".github/workflows/ci.yml")).unwrap();
@@ -688,7 +688,11 @@ mod tests {
             .collect();
         let (all_features, default): (Vec<&str>, Vec<&str>) =
             nextest_runs.iter().partition(|l| l.contains("--all-features"));
-        assert_eq!((default.len(), all_features.len()), (3, 3), "{nextest_runs:#?}");
+        assert_eq!(
+            (default.len(), all_features.len()),
+            (2, 3),
+            "the filtered default-features run is in test-linux and test-macos only, the unfiltered all-features run              in test-linux, test-windows and test-macos: {nextest_runs:#?}"
+        );
         for line in default {
             assert!(line.contains(&format!("-E '{ONCE_PER_JOB_FILTER}'")), "{line}");
         }
