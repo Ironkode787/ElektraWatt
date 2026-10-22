@@ -169,6 +169,26 @@ pub const ARMS: &[Arm] = &[
         build: potential_define,
     },
     Arm {
+        command: "project.checks.set",
+        weight: 1,
+        build: project_checks_set,
+    },
+    Arm {
+        command: "project.company.set",
+        weight: 1,
+        build: project_company_set,
+    },
+    Arm {
+        command: "project.frames.set",
+        weight: 1,
+        build: project_frames_set,
+    },
+    Arm {
+        command: "project.languages.set",
+        weight: 1,
+        build: project_languages_set,
+    },
+    Arm {
         command: "project.settings.set",
         weight: 1,
         build: project_settings_set,
@@ -2330,6 +2350,240 @@ fn project_settings_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 .or_else(|| live.settings.get(member))?
                 .clone();
             Some(Step::cmd("project.settings.set", json!({"member": member, "value": value})).accept())
+        }
+    }
+}
+
+/// The check schemes `project.checks.set` takes (`ew_commands::commands::SHIPPED_CHECK_SCHEMES`).
+const CHECK_SCHEMES: [&str; 4] = ["drafting", "full", "migration", "pre-delivery"];
+
+/// The stored `checks` settings member (`None` when absent).
+fn checks_member(q: &ew_derive::Q) -> Option<Value> {
+    q.project().settings.extra.get("checks").cloned()
+}
+
+fn project_checks_set(_live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    match rng.below(6) {
+        // Refused: a scheme that does not ship.
+        0 => {
+            let member = *rng.pick(&["active_scheme", "release_scheme"])?;
+            let name = *rng.pick(&["lenient", "strict", "pre_delivery", "Full"])?;
+            Some(Step::cmd("project.checks.set", json!({ member: name })).refuse())
+        }
+        // Refused: an unknown member.
+        1 => Some(Step::cmd("project.checks.set", json!({"scheme": "full"})).refuse()),
+        _ => {
+            let mut params = serde_json::Map::new();
+            for member in ["active_scheme", "release_scheme"] {
+                if rng.chance(2) {
+                    params.insert(member.into(), json!(*rng.pick(&CHECK_SCHEMES)?));
+                }
+            }
+            let expect = params.clone();
+            Some(
+                Step::cmd("project.checks.set", Value::Object(params))
+                    .accept()
+                    .check(move |_, after| {
+                        let stored = checks_member(after);
+                        for member in ["active_scheme", "release_scheme"] {
+                            let have = stored.as_ref().and_then(|c| c.get(member));
+                            if have != expect.get(member) {
+                                return Err(format!(
+                                    "checks.{member} is {have:?}, not {:?}",
+                                    expect.get(member)
+                                ));
+                            }
+                        }
+                        Ok(())
+                    }),
+            )
+        }
+    }
+}
+
+/// The neutral name of the first panel-builder party, and the stored notice.
+fn company_of(q: &ew_derive::Q) -> (Option<String>, Option<Value>) {
+    let project = q.project();
+    let name = project
+        .parties
+        .iter()
+        .find(|p| p.role == ew_schema::PartyRole::PanelBuilder)
+        .map(|p| p.name.as_neutral().unwrap_or_default().to_owned());
+    let notice = project
+        .extra
+        .get("ew.company")
+        .and_then(|c| c.get("notice"))
+        .cloned();
+    (name, notice)
+}
+
+fn project_company_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    match rng.below(8) {
+        // Refused: no member at all, or a value of the wrong type.
+        0 => Some(Step::cmd("project.company.set", json!({})).refuse()),
+        1 => Some(Step::cmd("project.company.set", json!({"name": 5})).refuse()),
+        // Refused: the personal-data flag alone, without a panel-builder party to carry it.
+        2 if !live.has_panel_builder => {
+            Some(Step::cmd("project.company.set", json!({"personal_data": rng.chance(2)})).refuse())
+        }
+        _ => {
+            let name = if rng.chance(4) {
+                String::new()
+            } else {
+                format!("{} Panels", rng.word(6))
+            };
+            let notice = if rng.chance(3) {
+                String::new()
+            } else {
+                format!("Property of {}.", rng.word(8))
+            };
+            let mut params = json!({"name": name, "notice": notice});
+            if !name.is_empty() && rng.chance(2) {
+                params["personal_data"] = json!(rng.chance(2));
+            }
+            let party_before = live.has_panel_builder;
+            Some(
+                Step::cmd("project.company.set", params)
+                    .accept()
+                    .check(move |_, after| {
+                        let (have_name, have_notice) = company_of(after);
+                        let want_name = (party_before || !name.is_empty()).then(|| name.clone());
+                        if have_name != want_name {
+                            return Err(format!("the panel builder is {have_name:?}, not {want_name:?}"));
+                        }
+                        let want_notice = (!notice.is_empty()).then(|| json!(notice));
+                        if have_notice != want_notice {
+                            return Err(format!("the notice is {have_notice:?}, not {want_notice:?}"));
+                        }
+                        Ok(())
+                    }),
+            )
+        }
+    }
+}
+
+/// The page types a frame-defaults entry may name (every type but `report`).
+const FRAME_PAGE_TYPES: [&str; 8] = [
+    "title_page",
+    "table_of_contents",
+    "section_divider",
+    "multi_line",
+    "single_line",
+    "fluid",
+    "graphic",
+    "panel_layout",
+];
+
+fn project_frames_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let cmd = |p: Value| Step::cmd("project.frames.set", p);
+    match rng.below(10) {
+        // Refused: a form that does not exist.
+        0 => Some(cmd(json!({"default": rng.uuid()})).refuse()),
+        // Refused: an entry for report pages, or the same page type twice.
+        1 => {
+            let form = rng.pick(&live.frame_forms)?.clone();
+            Some(cmd(json!({"per_page_type": [{"page_type": "report", "form": form}]})).refuse())
+        }
+        2 => {
+            let form = rng.pick(&live.frame_forms)?.clone();
+            let t = *rng.pick(&FRAME_PAGE_TYPES)?;
+            Some(
+                cmd(json!({"per_page_type": [
+                    {"page_type": t, "form": form},
+                    {"page_type": t, "form": form},
+                ]}))
+                .refuse(),
+            )
+        }
+        // Refused: a form that is no frame (a title block).
+        3 => {
+            let form = rng.pick(&live.other_forms)?.clone();
+            Some(cmd(json!({"default": form})).refuse())
+        }
+        // Removing the frame defaults lets the built-in frames apply.
+        4 => Some(cmd(json!({})).accept().check(
+            |_, after| match after.project().settings.extra.get("frames") {
+                None => Ok(()),
+                Some(v) => Err(format!("the frame defaults are still {v}")),
+            },
+        )),
+        _ => {
+            let default = rng.pick(&live.frame_forms)?.clone();
+            let mut entries = Vec::new();
+            let mut types: Vec<&str> = FRAME_PAGE_TYPES.to_vec();
+            for _ in 0..rng.below(3) {
+                let i = rng.below(types.len());
+                let t = types.remove(i);
+                entries.push(json!({"page_type": t, "form": rng.pick(&live.frame_forms)?.clone()}));
+            }
+            let expect_default = default.clone();
+            let expect_len = entries.len();
+            Some(
+                cmd(json!({"default": default, "per_page_type": entries}))
+                    .accept()
+                    .check(move |_, after| {
+                        let frames = after.get::<ew_derive::FrameSettings>(());
+                        let default = frames.default.map(id_json);
+                        if default.as_ref() != Some(&expect_default)
+                            || frames.per_page_type.len() != expect_len
+                        {
+                            return Err(format!(
+                                "the frame defaults read back as {default:?} with {} entries",
+                                frames.per_page_type.len()
+                            ));
+                        }
+                        Ok(())
+                    }),
+            )
+        }
+    }
+}
+
+fn project_languages_set(_live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let cmd = |p: Value| Step::cmd("project.languages.set", p);
+    match rng.below(8) {
+        // Refused: translations without a source, the source as a translation, an unknown format.
+        0 => Some(cmd(json!({"translations": ["de"]})).refuse()),
+        1 => Some(cmd(json!({"source": "en", "translations": ["en"]})).refuse()),
+        2 => Some(cmd(json!({"date": "mm/dd/yyyy"})).refuse()),
+        _ => {
+            let mut params = serde_json::Map::new();
+            if !rng.chance(4) {
+                params.insert("source".into(), json!(*rng.pick(&["en", "nl", "de"])?));
+                if rng.chance(3) {
+                    params.insert("translations".into(), json!(["fr"]));
+                }
+            }
+            if !rng.chance(4) {
+                params.insert("date".into(), json!(*rng.pick(&["dd_mm_yyyy", "iso8601"])?));
+            }
+            if !rng.chance(4) {
+                params.insert("decimal_separator".into(), json!(*rng.pick(&["point", "comma"])?));
+            }
+            let expect = params.clone();
+            Some(cmd(Value::Object(params)).accept().check(move |_, after| {
+                let project = after.project();
+                let source = project.languages.as_ref().map(|l| json!(l.source));
+                let date = project.settings.formatting.date.as_ref().map(|d| json!(d));
+                let separator = project
+                    .settings
+                    .formatting
+                    .decimal_separator
+                    .as_ref()
+                    .map(|d| json!(d));
+                let want = (
+                    expect.get("source").cloned(),
+                    expect.get("date").cloned(),
+                    expect.get("decimal_separator").cloned(),
+                );
+                if (source.clone(), date.clone(), separator.clone()) != want {
+                    return Err(format!(
+                        "languages and formats read back as {:?}, not {want:?}",
+                        (source, date, separator)
+                    ));
+                }
+                Ok(())
+            }))
         }
     }
 }

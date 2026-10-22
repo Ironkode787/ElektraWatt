@@ -113,11 +113,20 @@ fn the_origin_and_context_are_recorded() {
 fn the_registry_lists_every_command() {
     let s = session(6);
     let names: Vec<&str> = s.registry().names().collect();
-    assert_eq!(names.len(), 38);
+    assert_eq!(names.len(), 42);
     assert!(names.contains(&"device.place"));
     assert!(names.contains(&"revision.create"));
     assert!(names.contains(&"project.settings.set"));
+    assert!(names.contains(&"project.company.set"));
     assert!(s.registry().get("symbol.place").is_some(), "aliases resolve");
+}
+
+/// `project.checks.set` takes the shipped check schemes of `ew-checks` and no other name: the command layer's
+/// list (it cannot depend on `ew-checks`, doc 04 §3) equals the engine's.
+#[test]
+fn the_check_scheme_command_knows_the_shipped_schemes() {
+    let engine: Vec<&str> = ew_api::checks::SCHEMES.iter().map(|s| s.name).collect();
+    assert_eq!(engine, ew_commands::commands::SHIPPED_CHECK_SCHEMES);
 }
 
 #[test]

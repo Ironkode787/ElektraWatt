@@ -222,6 +222,11 @@ pub struct Live {
     /// what `library.embed` can embed to make the `LibRef` a link (FT-316).
     pub unembedded_fndef_refs: Vec<UnembeddedRef>,
     pub forms: Vec<Value>,
+    /// The form copies a page can take as its frame (kind `frame`, `cover` or `divider`), and the others.
+    pub frame_forms: Vec<Value>,
+    pub other_forms: Vec<Value>,
+    /// Whether the project row has a panel-builder party (`project.company.set`).
+    pub has_panel_builder: bool,
     pub parts: Vec<Value>,
     pub functions: Vec<FuncInfo>,
     pub strip_infos: Vec<StripInfo>,
@@ -254,6 +259,14 @@ pub struct Live {
     pub revisions: Vec<RevInfo>,
     /// Whether a revision has a release record (the `release` member of its extras).
     pub any_release: bool,
+}
+
+/// Whether a form of this kind can be a page's frame (`project.frames.set`).
+fn is_frame_form(kind: &ew_schema::FormKind) -> bool {
+    matches!(
+        kind,
+        ew_schema::FormKind::Frame | ew_schema::FormKind::Cover | ew_schema::FormKind::Divider
+    )
 }
 
 fn grid_of(g: ew_units::Grid) -> (u64, u64) {
@@ -619,6 +632,23 @@ impl Live {
             fndefs,
             unembedded_fndef_refs,
             forms: q.forms().ids().map(id_json).collect(),
+            frame_forms: q
+                .forms()
+                .iter()
+                .filter(|(_, c)| is_frame_form(&c.item.kind))
+                .map(|(id, _)| id_json(id))
+                .collect(),
+            other_forms: q
+                .forms()
+                .iter()
+                .filter(|(_, c)| !is_frame_form(&c.item.kind))
+                .map(|(id, _)| id_json(id))
+                .collect(),
+            has_panel_builder: q
+                .project()
+                .parties
+                .iter()
+                .any(|p| p.role == ew_schema::PartyRole::PanelBuilder),
             parts: q.parts().ids().map(id_json).collect(),
             functions,
             strip_infos,

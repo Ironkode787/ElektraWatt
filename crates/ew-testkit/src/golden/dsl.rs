@@ -1088,4 +1088,59 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         self.run("project.supply.set", json!({"path": path, "value": value}))
             .map(|_| ())
     }
+
+    /// `project.company.set`: the panel builder's name, the title-block notice and the personal-data flag; an
+    /// absent (`None`) member is left as it is.
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn company(
+        &mut self,
+        name: Option<&str>,
+        notice: Option<&str>,
+        personal_data: Option<bool>,
+    ) -> Result<()> {
+        let mut p = Map::new();
+        if let Some(name) = name {
+            p.insert("name".into(), json!(name));
+        }
+        if let Some(notice) = notice {
+            p.insert("notice".into(), json!(notice));
+        }
+        if let Some(flag) = personal_data {
+            p.insert("personal_data".into(), json!(flag));
+        }
+        self.run("project.company.set", Value::Object(p)).map(|_| ())
+    }
+
+    /// `project.frames.set`: the whole frame defaults `{default?, per_page_type}` (doc 03 §5.1).
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn frame_defaults(&mut self, frames: Value) -> Result<()> {
+        self.run("project.frames.set", frames).map(|_| ())
+    }
+
+    /// `project.languages.set`: the project's languages and printed formats as one value `{source?,
+    /// translations?, date?, decimal_separator?}`; an absent member is removed.
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn languages(&mut self, languages: Value) -> Result<()> {
+        self.run("project.languages.set", languages).map(|_| ())
+    }
+
+    /// `project.checks.set`: the check schemes `{active_scheme?, release_scheme?}`. The command is `HumanOnly`
+    /// (ADR-0008 amendment 3): a sink that submits as a command log or a script is refused, so a builder script
+    /// that uses this verb does not replay with `ew apply`.
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn check_schemes(&mut self, schemes: Value) -> Result<()> {
+        self.run("project.checks.set", schemes).map(|_| ())
+    }
 }

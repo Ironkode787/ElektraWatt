@@ -378,3 +378,110 @@ fn a_copy_derives_the_page_texts_of_the_original() {
     }
     assert!(total > 1000, "{total} texts compared");
 }
+
+/// The shipped frame and title-block forms (`content/forms`), the `lib/` JSON form `library.embed` takes.
+fn shipped_forms() -> Vec<serde_json::Value> {
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../content/forms");
+    let mut names: Vec<PathBuf> = std::fs::read_dir(&dir)
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .filter(|p| p.extension().is_some_and(|e| e == "json"))
+        .collect();
+    names.sort();
+    names
+        .iter()
+        .map(|p| serde_json::from_str(&std::fs::read_to_string(p).unwrap()).unwrap())
+        .collect()
+}
+
+/// The keys of the frame form the page output gives folio 1 and of its title block.
+fn frame_of_folio_1(session: &Session) -> (Option<String>, Option<String>) {
+    let q = session.query();
+    let order = q.get::<ew_derive::PageOrder>(());
+    let entry = order.entries.first().expect("folio 1");
+    let frame = (*q.get::<ew_api::output::PageFrameOf>(entry.page)).clone();
+    let key = |f: &ew_schema::FormDef| f.meta.key.as_ref().map(|k| k.as_str().to_owned());
+    match frame {
+        None => (None, None),
+        Some(f) => (key(&f.form), f.title_block.as_deref().and_then(key)),
+    }
+}
+
+/// Runs one command, previewed and committed when it is Bulk.
+fn run_cmd(session: &mut Session, name: &str, params: serde_json::Value) {
+    let cmd = ew_api::AnyCommand {
+        name: name.into(),
+        params,
+    };
+    let bulk = session
+        .registry()
+        .get(name)
+        .is_some_and(|c| c.meta().cost == ew_commands::Cost::Bulk);
+    if bulk {
+        let p = session.preview(&cmd).unwrap();
+        session.commit(p).unwrap();
+    } else {
+        session.execute(&cmd).unwrap();
+    }
+}
+
+/// FT-336: a drawn page without a form of its own takes the frame of the frame defaults (doc 03 §5.1) in the page
+/// output, as in the cell grid; without frame defaults it keeps the no-grid frame (ID-144).
+#[test]
+fn a_page_without_a_form_takes_the_frame_defaults_in_the_page_output() {
+    let mut session =
+        Session::new_project(ProjectTemplate::Builtin, NewProjectKind::Basic, options(3)).unwrap();
+    assert_eq!(frame_of_folio_1(&session), (None, None), "no form in the project");
+    let forms = shipped_forms();
+    let id_of = |key: &str| {
+        forms
+            .iter()
+            .find(|f| f["meta"]["key"] == key)
+            .unwrap_or_else(|| panic!("{key}"))["id"]
+            .clone()
+    };
+    let (grid, cover) = (
+        id_of("ew.frame.qet-a4-landscape-grid"),
+        id_of("ew.frame.qet-a4-landscape-cover"),
+    );
+    run_cmd(
+        &mut session,
+        "library.embed",
+        serde_json::json!({ "copies": forms }),
+    );
+    let nogrid = (
+        Some("ew.frame.qet-a4-landscape-nogrid".to_owned()),
+        Some("ew.titleblock.qet-a4".to_owned()),
+    );
+    assert_eq!(frame_of_folio_1(&session), nogrid, "the no-grid frame by key");
+    run_cmd(
+        &mut session,
+        "project.frames.set",
+        serde_json::json!({ "default": grid }),
+    );
+    assert_eq!(
+        frame_of_folio_1(&session).0.as_deref(),
+        Some("ew.frame.qet-a4-landscape-grid"),
+        "the default of the frame defaults"
+    );
+    run_cmd(
+        &mut session,
+        "project.frames.set",
+        serde_json::json!({
+            "default": grid,
+            "per_page_type": [{ "page_type": "multi_line", "form": cover }],
+        }),
+    );
+    assert_eq!(
+        frame_of_folio_1(&session).0.as_deref(),
+        Some("ew.frame.qet-a4-landscape-cover"),
+        "the entry of the page's type wins over the default"
+    );
+    session.undo().unwrap();
+    session.undo().unwrap();
+    assert_eq!(
+        frame_of_folio_1(&session),
+        nogrid,
+        "undo restores the no-grid frame"
+    );
+}
