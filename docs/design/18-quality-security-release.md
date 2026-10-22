@@ -813,6 +813,7 @@ The PR set stays within 30 min wall time (NFR-MAINT-05); a monthly CI-duration r
 | CI-W-02 fuzz-maint | Corpus minimisation, coverage of fuzz targets | Linux | — |
 | CI-W-03 dependency age | Lag against the limits of NFR-MAINT-04; advisory waivers expiring within 14 days | Linux | — (issues) |
 | CI-W-04 timings | Informational Windows and macOS timings | Hosted | — |
+| CI-R-03 release-check | *As built before the release pipeline (cycle 21, FT-333; WP-S6.07 takes it over):* the job `release-check` of `.github/workflows/cli-artefact.yml` (nightly with CI-N-12, and on dispatch) builds `elektrawatt` with `cargo build -p elektrawatt --release --locked` with `PKG_CONFIG=false` and `--remap-path-prefix` for the cargo home, the rustup home and the checkout (Cargo's `trim-paths` is not stable on the pinned toolchain); `ci/release-check.sh env` first fails if `PKG_CONFIG` is not `false`, if any `PKG_CONFIG_*`, `HOST_PKG_CONFIG*` or `TARGET_PKG_CONFIG*` variable reaches the build or if `ICU4X_DATA_DIR` is set (§3.5); `ci/release-check.sh scan` then fails on any build-host path in the binary (`strings`: `/home/`, `/usr/lib/x86_64-linux-gnu`, `/opt/`, the checkout, cargo and rustup homes, the runner's temp directory), on a `NEEDED` entry for libwayland*, libxkbcommon* or libX11* (`readelf -d`; these are `dlopen`ed) and on any `Some` library directory in x11-dl's generated `config.rs` (§5.4). It uploads its Markdown report (30 days), never the binary (ID-476). Report-only: it gates nothing, red on any hit | ubuntu-24.04 | — |
 | CI-R-01 … CI-R-11 | Release pipeline (§7.4) | All | Publishing |
 
 ### 5.3 Runners and GPU-less coverage
@@ -859,9 +860,12 @@ NFR-SEC-19:
     (`cargo xtask check-vet-imports`, and `--bless` after any `cargo vet` run that fetches the sets). Only the built-in
     criteria count. The cycle-20 lead audit recorded the project's own audits of winit, zbus, zvariant, x11rb,
     x11rb-protocol, x11-dl, accesskit_windows, accesskit_unix and rfd, and delta audits of the wgpu 30.0.0 to 30.0.1
-    family and libloading 0.9.0 to 0.8.9; wgpu 30.0.1 keeps its exemption, with a dated note, until audited.
-  - *Count.* The audit took the exemptions from 485 to 384 (374 `safe-to-deploy`, 10 `safe-to-run`); lane A's egui_tiles
-    0.18.0 added one in the same cycle, so the integration tip has 385 (375 and 10).
+    family and libloading 0.9.0 to 0.8.9. The cycle-21 lead audit (FT-326) added the wgpu 30.0.1 front-end crate
+    (`safe-to-deploy`, as eframe builds it; caveat: the safe `Buffer::destroy`, and device loss in wgpu-core, ignore
+    live `BufferView`s, so code that holds a mapped view across `destroy` touches freed memory; egui-wgpu never does,
+    and ElektraWatt's own renderers must not either) and removed its exemption.
+  - *Count.* The cycle-20 audit took the exemptions from 485 to 384 (374 `safe-to-deploy`, 10 `safe-to-run`); lane A's
+    egui_tiles 0.18.0 added one in the same cycle (385); the wgpu audit of cycle 21 brings them back to 384 (374 and 10).
   - *The fuzz crate* (decision log ID-496). `fuzz/` is its own cargo workspace, a development tool that no distributed
     artefact contains, so its dependencies are outside the workspace's cargo-deny and cargo-vet runs and need no
     exemptions. The mitigation is the deep nightly's report-only job `fuzz-deny` over `fuzz/Cargo.lock` with
@@ -891,7 +895,8 @@ NFR-SEC-19:
     enables both x11-dl and x11rb; no feature keeps X11 without x11-dl), and x11-dl's build script writes the build
     machine's `pkg-config` libdir of 16 X libraries into the binary as a run-time fallback after the soname lookup.
     A distributed Linux build of `elektrawatt` therefore runs with `PKG_CONFIG=false` and no target-specific
-    `PKG_CONFIG_*` override (CI-R-03 asserts both, like `ICU4X_DATA_DIR`, with WP-S6.07: FT-333), so every libdir is `None`:
+    `PKG_CONFIG_*` override (CI-R-03 asserts both, like `ICU4X_DATA_DIR`, with WP-S6.07: FT-333; before the release
+    pipeline, the nightly job `release-check` of §5.2 asserts them and scans the binary), so every libdir is `None`:
     the binary carries no build-host path, loads the X libraries by soname only (x11-dl's first attempt anyway), and
     no world-writable build prefix can become a library-planting path on users' machines. The release build also
     runs in the digest-pinned build image, so an independent rebuild sees the same environment. No other build
