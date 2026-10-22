@@ -596,43 +596,84 @@ mod tests {
             .trim_matches('"')
     }
 
-    /// FT-297, FT-304: the nightly of the cargo-fuzz crate (`fuzz/rust-toolchain.toml`) and the one the deep
-    /// nightly installs (`NIGHTLY_TOOLCHAIN`) are the same dated toolchain, and the stable one of the deep
-    /// nightly is the workspace's.
+    /// FT-297, FT-304, FT-335: the nightly of the cargo-fuzz crate (`fuzz/rust-toolchain.toml`) and the one the deep
+    /// nightly and the per-pull-request fuzz job of `ci.yml` (CI-PR-08) install (`NIGHTLY_TOOLCHAIN`) are the same
+    /// dated toolchain, and the stable one of both workflows is the workspace's.
     #[test]
-    fn the_deep_nightly_pins_the_toolchains_of_the_repository() {
+    fn the_nightly_workflows_pin_the_toolchains_of_the_repository() {
         let root = crate::workspace_root();
         let read = |p: &str| std::fs::read_to_string(root.join(p)).unwrap_or_else(|e| panic!("{p}: {e}"));
-        let workflow = read(".github/workflows/deep-nightly.yml");
-        let nightly = setting(&workflow, "NIGHTLY_TOOLCHAIN:");
+        let pinned = setting(&read("fuzz/rust-toolchain.toml"), "channel =").to_owned();
+        let stable = setting(&read("rust-toolchain.toml"), "channel =").to_owned();
+        // the workflow, and how many of its jobs run on the nightly (each names it for rustup)
+        for (file, nightly_jobs) in [("deep-nightly.yml", 2), ("ci.yml", 1)] {
+            let workflow = read(&format!(".github/workflows/{file}"));
+            let nightly = setting(&workflow, "NIGHTLY_TOOLCHAIN:");
+            assert!(
+                nightly.starts_with("nightly-") && nightly.len() == "nightly-2026-10-08".len(),
+                "{file}: NIGHTLY_TOOLCHAIN is a dated nightly, not `{nightly}`"
+            );
+            assert_eq!(
+                pinned, nightly,
+                "fuzz/rust-toolchain.toml and NIGHTLY_TOOLCHAIN of {file} name different nightlies"
+            );
+            // The jobs that run on the nightly name it for rustup as well (the stable file of the root would
+            // otherwise be resolved, and that toolchain is not installed there).
+            let rustup: Vec<&str> = workflow
+                .lines()
+                .filter_map(|l| l.trim().strip_prefix("RUSTUP_TOOLCHAIN:"))
+                .map(|v| v.trim().trim_matches('"'))
+                .collect();
+            assert!(
+                rustup.len() >= nightly_jobs,
+                "{file}: the nightly jobs set RUSTUP_TOOLCHAIN: {rustup:?}"
+            );
+            assert!(
+                rustup.iter().all(|v| *v == nightly),
+                "{file}: RUSTUP_TOOLCHAIN of a job differs from NIGHTLY_TOOLCHAIN ({nightly}): {rustup:?}"
+            );
+            assert_eq!(
+                setting(&workflow, "RUST_TOOLCHAIN:"),
+                stable,
+                "RUST_TOOLCHAIN of {file} is not the workspace's pinned stable"
+            );
+        }
+    }
+
+    /// FT-335: the per-pull-request fuzz job (CI-PR-08) is in `ci.yml`, selects its targets with the path filter of
+    /// `ci/fuzz-smoke-targets.py`, runs on the pinned nightly and uploads what it found with `if: always()`.
+    #[test]
+    fn the_fuzz_smoke_job_is_path_filtered_and_uploads_its_findings() {
+        let workflow = std::fs::read_to_string(crate::workspace_root().join(".github/workflows/ci.yml"))
+            .expect("ci.yml")
+            .replace("\r\n", "\n");
+        let job = workflow
+            .split("\n  fuzz-smoke:\n")
+            .nth(1)
+            .expect("the job fuzz-smoke")
+            .split("\n  # CI-PR-09")
+            .next()
+            .expect("the job ends before supply-chain");
+        assert!(job.contains("ci/fuzz-smoke-targets.py"), "the path filter");
         assert!(
-            nightly.starts_with("nightly-") && nightly.len() == "nightly-2026-10-08".len(),
-            "NIGHTLY_TOOLCHAIN is a dated nightly, not `{nightly}`"
+            job.contains("--selftest"),
+            "the filter's self-test runs in the job"
         );
-        assert_eq!(
-            setting(&read("fuzz/rust-toolchain.toml"), "channel ="),
-            nightly,
-            "fuzz/rust-toolchain.toml and NIGHTLY_TOOLCHAIN of deep-nightly.yml name different nightlies"
-        );
-        // The jobs that run on the nightly name it for rustup as well (the stable file of the root would otherwise
-        // be resolved, and that toolchain is not installed there).
-        let rustup: Vec<&str> = workflow
-            .lines()
-            .filter_map(|l| l.trim().strip_prefix("RUSTUP_TOOLCHAIN:"))
-            .map(|v| v.trim().trim_matches('"'))
-            .collect();
+        assert!(job.contains("max_total_time=60"), "60 s per target");
         assert!(
-            rustup.len() >= 2,
-            "the nightly jobs set RUSTUP_TOOLCHAIN: {rustup:?}"
+            job.contains("RUSTUP_TOOLCHAIN: "),
+            "the nightly is named for rustup"
         );
+        let upload = job
+            .split("actions/upload-artifact@")
+            .nth(1)
+            .expect("an artifact upload");
         assert!(
-            rustup.iter().all(|v| *v == nightly),
-            "RUSTUP_TOOLCHAIN of a job differs from NIGHTLY_TOOLCHAIN ({nightly}): {rustup:?}"
-        );
-        assert_eq!(
-            setting(&workflow, "RUST_TOOLCHAIN:"),
-            setting(&read("rust-toolchain.toml"), "channel ="),
-            "RUST_TOOLCHAIN of deep-nightly.yml is not the workspace's pinned stable"
+            upload
+                .lines()
+                .take(3)
+                .any(|l| l.trim().starts_with("if: always()")),
+            "the crash inputs are uploaded with `if: always()`: {upload}"
         );
     }
 

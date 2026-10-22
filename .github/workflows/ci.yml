@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
 # Per-PR CI set of gate G-M0 (docs/design/18-quality-security-release.md §5.2): CI-PR-01 lint,
-# CI-PR-02/03/04 tests on Linux, Windows and macOS, CI-PR-05 headless (the evidence job of G-M1-01), CI-N-09
+# CI-PR-02/03/04 tests on Linux, Windows and macOS, CI-PR-05 headless (the evidence job of G-M1-01), CI-PR-08
+# fuzz-smoke (path-filtered, 60 s per affected cargo-fuzz target on the pinned nightly; G-M1-13), CI-N-09
 # verapdf (the evidence job of G-M1-02; a nightly in the catalogue, per push here), CI-PR-09 supply-chain. Job
 # names are the required status checks (ci/README.md). Hardening per §5.4 and NFR-SEC-19: actions pinned by
 # commit SHA with a version comment (Renovate keeps them current), container images pinned by digest (checked
@@ -40,6 +41,11 @@ env:
   # only run here, with no network, never distributed. Update the version and the digest together.
   VERAPDF_VERSION: "1.30.3"
   VERAPDF_IMAGE: verapdf/cli@sha256:d565095c67a083e693aebf7d1a15784007370571053fc1aa5b502665b9a78f9c
+  # The nightly of the fuzz-smoke job (CI-PR-08): the one of fuzz/rust-toolchain.toml and deep-nightly.yml (a test of
+  # xtask compares the three). cargo-fuzz, pinned as in deep-nightly.yml (built from source: taiki-e/install-action has
+  # no manifest for it).
+  NIGHTLY_TOOLCHAIN: "nightly-2026-10-08"
+  CARGO_FUZZ_VERSION: "0.13.2"
 
 jobs:
   # CI-PR-01
@@ -431,6 +437,199 @@ jobs:
             ${{ runner.temp }}/pdf/verapdf-stderr.txt
             ${{ runner.temp }}/pdf/golden-*.pdf
           if-no-files-found: warn
+          retention-days: 14
+
+  # CI-PR-08 (FT-335, evidence for G-M1-13): 60 s of every cargo-fuzz target of `fuzz/` that a change of the pull request
+  # can reach, on the nightly pinned in fuzz/rust-toolchain.toml, with the committed corpus as seeds. `ci/fuzz-smoke-targets.py`
+  # is the path filter (the changed paths of the pull request, or of a push, against the base; a dispatch and a push without a
+  # usable base run every target): `fuzz/` itself, `crates/ew-format`, `crates/ew-store`, `crates/ew-commands`, `crates/ew-model`
+  # and the command generator of `crates/ew-testkit`. A pull request that changes none of them runs the filter and nothing
+  # else, so the job is always there for the required check and costs seconds. RED for a finding (a crash, an out-of-memory, a
+  # leak or a timeout of one input: an artifact of libFuzzer) and for a build that fails, or a run that ends without a verdict;
+  # NOT red when the run's own bound (`timeout`) cuts a run short without a finding: that is a warning. The crash inputs are
+  # uploaded with `if: always()` and committed under fuzz/regressions/<target>/ by the person who reports the finding, never
+  # fixed in the change that finds it (fuzz/README.md). The nightly is for this job only; the other jobs use the stable one.
+  fuzz-smoke:
+    name: fuzz-smoke
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      # The repository's rust-toolchain.toml names the stable toolchain, which this job does not install; rustup takes this
+      # variable before the file. Keep equal to NIGHTLY_TOOLCHAIN (a test of xtask compares them; the variable cannot read the
+      # workflow's `env` context at job level).
+      RUSTUP_TOOLCHAIN: nightly-2026-10-08
+      # No `-D warnings` from the workflow's RUSTFLAGS: a lint that a newer nightly adds is not a finding. The debug assertions
+      # and the overflow checks stay part of every oracle (cargo-fuzz's release build adds them only with `-a`), as in
+      # deep-nightly.yml.
+      RUSTFLAGS: ""
+      CARGO_PROFILE_RELEASE_DEBUG_ASSERTIONS: "true"
+      CARGO_PROFILE_RELEASE_OVERFLOW_CHECKS: "true"
+    steps:
+      # The whole history, so that the base revision of the change is there to diff against.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: path filter self-test
+        run: python3 -I ci/fuzz-smoke-targets.py --selftest
+      - name: select the targets
+        id: select
+        shell: bash
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          base=""
+          case "$EVENT" in
+            pull_request) base="$PR_BASE" ;;
+            push) base="$PUSH_BEFORE" ;;
+          esac
+          if [ -n "$base" ] && ! printf '%s' "$base" | grep -Eq '^0+$' && git cat-file -e "$base^{commit}" 2>/dev/null; then
+            echo "changed paths against $base:"
+            git diff --name-only "$base" HEAD | sed 's/^/  /'
+            targets="$(git diff --name-only "$base" HEAD | python3 -I ci/fuzz-smoke-targets.py)"
+          else
+            echo "no base revision for a $EVENT event: every target"
+            targets="$(python3 -I ci/fuzz-smoke-targets.py --all)"
+          fi
+          echo "targets=$targets" >> "$GITHUB_OUTPUT"
+          {
+            echo "## Fuzz smoke (CI-PR-08)"
+            echo
+            if [ -n "$targets" ]; then
+              echo "Targets (name:max_len): \`$targets\`"
+            else
+              echo "No change reaches a fuzz target: nothing to run."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+      # The pinned nightly. Inside `fuzz/` rustup takes the toolchain from fuzz/rust-toolchain.toml, the same date.
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        if: steps.select.outputs.targets != ''
+        with:
+          toolchain: ${{ env.NIGHTLY_TOOLCHAIN }}
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        if: steps.select.outputs.targets != ''
+        with:
+          workspaces: fuzz
+          shared-key: ew-fuzz
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      # NFR-REL-07: ICU4X_DATA_DIR swaps the ICU segmentation data at build time and changes line breaks.
+      - name: assert ICU4X_DATA_DIR is unset
+        if: steps.select.outputs.targets != ''
+        shell: bash
+        run: test -z "${ICU4X_DATA_DIR:-}"
+      - name: install cargo-fuzz
+        if: steps.select.outputs.targets != ''
+        shell: bash
+        run: command -v cargo-fuzz >/dev/null || cargo install cargo-fuzz --version "$CARGO_FUZZ_VERSION" --locked
+      # cargo-fuzz has no `--locked`: the committed fuzz/Cargo.lock must already be complete.
+      - name: check the lock file of the fuzz crate
+        if: steps.select.outputs.targets != ''
+        shell: bash
+        run: cargo metadata --locked --format-version 1 --manifest-path fuzz/Cargo.toml > /dev/null
+      - name: build the targets
+        id: build
+        if: steps.select.outputs.targets != ''
+        continue-on-error: true
+        shell: bash
+        working-directory: fuzz
+        env:
+          TARGETS: ${{ steps.select.outputs.targets }}
+        run: |
+          set -euo pipefail
+          rustc -V
+          for pair in $TARGETS; do
+            cargo fuzz build "${pair%%:*}"
+          done
+      # 60 s per target (`-max_total_time`; libFuzzer's own limits bound one input: `-timeout=120`, `-rss_limit_mb=4096`),
+      # the committed seeds as the second corpus directory, the first being the working one. `timeout` is the bound of the
+      # run itself, a margin over the 60 s for the corpus load and the start-up; the exit code of each target goes to the
+      # results file, which the verdict reads.
+      - name: cargo fuzz run (60 s per target)
+        id: fuzz
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        working-directory: fuzz
+        env:
+          TARGETS: ${{ steps.select.outputs.targets }}
+        run: |
+          mkdir -p ../target/smoke
+          : > ../target/smoke/results.txt
+          for pair in $TARGETS; do
+            t="${pair%%:*}"
+            max_len="${pair##*:}"
+            mkdir -p "target/corpus/$t"
+            echo "== $t: 60 s, max_len $max_len"
+            set +e
+            timeout 8m cargo fuzz run "$t" "target/corpus/$t" "corpus/$t" -- \
+              -max_total_time=60 -max_len="$max_len" -timeout=120 -rss_limit_mb=4096 -print_final_stats=1 \
+              2>&1 | tee "../target/smoke/$t-log.txt"
+            code="${PIPESTATUS[0]}"
+            set -e
+            echo "$t $code" >> ../target/smoke/results.txt
+          done
+      # The verdict: green when every target built and ended with exit code 0 and no crash, out-of-memory, timeout or leak
+      # input was written. A target cut short by `timeout` (exit code 124) without such an input is a warning, not a red
+      # job. Anything else, including a missing exit code (the step ended in the middle of a target), is red.
+      - name: verdict and job summary
+        if: always() && steps.select.outputs.targets != ''
+        shell: bash
+        env:
+          TARGETS: ${{ steps.select.outputs.targets }}
+          BUILD: ${{ steps.build.outcome }}
+        run: |
+          red=0
+          if [ "$BUILD" != "success" ]; then
+            echo "::error::a fuzz target did not build: the pull request has no fuzz evidence"
+            echo "A fuzz target did not build." >> "$GITHUB_STEP_SUMMARY"
+            red=1
+          else
+            for pair in $TARGETS; do
+              t="${pair%%:*}"
+              code="$(sed -n "s/^$t //p" target/smoke/results.txt 2>/dev/null | head -n 1 || true)"
+              found="$(find "fuzz/artifacts/$t" -maxdepth 1 -type f \( -name 'crash-*' -o -name 'oom-*' -o -name 'timeout-*' -o -name 'leak-*' \) 2>/dev/null | sort || true)"
+              {
+                echo
+                echo "### \`$t\`: exit code \`${code:-none}\`"
+                if [ -n "$found" ]; then
+                  for f in $found; do
+                    echo
+                    echo "- finding \`$f\` ($(wc -c < "$f") bytes); reproduce: \`cd fuzz && cargo fuzz run $t artifacts/$t/$(basename "$f")\`"
+                    echo "  base64: \`$(head -c 1024 "$f" | base64 -w 0)\`"
+                  done
+                fi
+                if [ -f "target/smoke/$t-log.txt" ]; then
+                  echo
+                  echo '```text'
+                  tail -n 15 "target/smoke/$t-log.txt" | cut -c1-300
+                  echo '```'
+                fi
+              } >> "$GITHUB_STEP_SUMMARY"
+              if [ -n "$found" ]; then
+                echo "::error::the fuzz target $t found a crash, an out-of-memory, a timeout or a leak; the input is in the artifact fuzz-smoke and in the job summary"
+                red=1
+              elif [ "$code" = "0" ]; then
+                :
+              elif [ "$code" = "124" ]; then
+                echo "::warning::the run of the fuzz target $t was cut short by its time bound without a finding"
+              else
+                echo "::error::the fuzz target $t ended without a verdict (exit code ${code:-none}); see the log in the artifact fuzz-smoke"
+                red=1
+              fi
+            done
+          fi
+          exit "$red"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always() && steps.select.outputs.targets != ''
+        with:
+          name: fuzz-smoke
+          path: |
+            target/smoke/*
+            fuzz/artifacts/**
+          if-no-files-found: ignore
           retention-days: 14
 
   # CI-PR-09

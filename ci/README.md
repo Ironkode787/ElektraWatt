@@ -21,6 +21,7 @@ The job names are the GitHub status-check names to mark as required.
 | CI-PR-03 | `ci.yml` / `test-windows` (windows-2025) | as CI-PR-02, all-features run only: FT-330, ID-482 (no default-features build, nextest or doctest run) | as CI-PR-02, on Windows |
 | CI-PR-04 | `ci.yml` / `test-macos` (macos-15, arm64) | as CI-PR-02 | as CI-PR-02, on macOS |
 | CI-PR-05 | `ci.yml` / `headless` (ubuntu-24.04) | `cargo build -p ew --locked`; `ew export pdf golden/J-E-2416.ew` inside a bare `ubuntu:24.04` container (image pinned by digest; no network, no display, no GPU, no font file, empty user directories), on one thread and on four; both PDFs must be the committed digest of `golden/J-E-2416/expected/pdf/sha256.txt` (FT-295, G-M1-01); the PDFs uploaded as the artifact `headless-pdf`. Details: [Headless container job](#headless-container-job-ci-pr-05) | `cargo build -p ew --locked` and `docker run` as in the job (Linux and docker), or `cargo nextest run -p ew --test cli -E 'test(export_pdf_of_golden_a)'` for the same check without the container |
+| CI-PR-08 | `ci.yml` / `fuzz-smoke` (ubuntu-24.04) | 60 s of each cargo-fuzz target of [`fuzz/`](../fuzz) that the change can reach, on the pinned nightly, the committed corpus as seeds; the path filter [`fuzz-smoke-targets.py`](fuzz-smoke-targets.py) maps the changed paths to targets (FT-335, G-M1-13). Red for a finding or a failed build, a warning when the run's own bound ends a target without a finding. Details: [Fuzz smoke](#fuzz-smoke-ci-pr-08) | `python3 -I ci/fuzz-smoke-targets.py --selftest`; `git diff --name-only origin/main HEAD \| python3 -I ci/fuzz-smoke-targets.py` names the targets; then, in `fuzz/`, `cargo fuzz run <target> target/corpus/<target> corpus/<target> -- -max_total_time=60 -max_len=<n>` |
 | CI-PR-09 | `ci.yml` / `supply-chain` (ubuntu-24.04) | `cargo deny check`; `cargo audit`; `cargo vet`; `cargo xtask check-deps`, `check-features`, `check-build-scripts`, `check-vet-imports`, `check-workflows`; third-party notices with cargo-about 0.9.2 (NFR-LIC-08); MSRV check of the permissive crates with Rust 1.85.0 | `cargo deny --locked check`, `cargo audit`, `cargo vet --locked`, the five `cargo xtask` checks, `cargo about generate -o target/THIRD-PARTY-NOTICES.txt ci/third-party-notices.hbs`, and the MSRV commands below |
 | CI-PR-10 | `docs.yml` / `legal-docs` (ubuntu-24.04) | `docs/plan/tools/{totals,schedule,trace}.py --check` and `doccheck.py`; `reuse lint` (reuse-tool 6.2.0; NFR-LIC-01, NFR-LIC-02); `cargo xtask check-licence-map` (licence map, collective notice, crate licences and the licence boundary of the permissive layer: 19 §5.1, NFR-LIC-10, NFR-MAINT-02); `cargo xtask check-anonymisation` (NFR-PRIV-09); `cargo xtask check-governance-files` (NFR-DOC-08); rustdoc build with `-D warnings` (NFR-MAINT-08). On pull requests only: `cargo xtask check-dco` over the PR's commits (NFR-LIC-03); and the RFC reference, which fails a PR labelled `format-major`, `api-break` or `licence` whose description does not mention `rfcs/` (NFR-DOC-09) | `python3 -I docs/plan/tools/totals.py --check` (and the other three); `python -m reuse lint`; `cargo xtask check-licence-map`, `check-anonymisation`, `check-governance-files`, `check-dco origin/main..HEAD`; `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --locked` |
 | CI-PR-15 | `docs.yml` / `docs-diagrams` (ubuntu-24.04) | Renders every Mermaid block under `docs/` and in the root Markdown with mermaid-cli 12.0.0 (container image pinned by digest) and fails on any error | `python3 -I ci/render-mermaid.py --image <image@sha256:…>` (needs docker); `--extract-only` lists the blocks without docker |
@@ -165,7 +166,7 @@ the workflow takes as long as the longest, below two hours:
 **The nightly toolchain.** FT-304 asks for the nightly toolchain "for that job only, pinned like the stable one":
 `nightly-2026-10-08` (rustc 1.101.0-nightly), named in `fuzz/rust-toolchain.toml` (rustup applies it to every command
 run inside `fuzz/`) and in `NIGHTLY_TOOLCHAIN` of the workflow, and installed by `dtolnay/rust-toolchain` at the commit
-`ci.yml` pins. A test of `xtask` (`workflows::tests::the_deep_nightly_pins_the_toolchains_of_the_repository`) keeps these dates equal and the workflow's stable toolchain equal to `rust-toolchain.toml`'s. The date is advanced by the quarterly
+`ci.yml` pins. A test of `xtask` (`workflows::tests::the_nightly_workflows_pin_the_toolchains_of_the_repository`) keeps these dates equal, in `deep-nightly.yml` and in the `fuzz-smoke` job of `ci.yml`, and the stable toolchain of both workflows equal to `rust-toolchain.toml`'s. The date is advanced by the quarterly
 upgrade train (doc 18 §6.3). The root `rust-toolchain.toml` names the stable toolchain, which the nightly jobs do not
 install, so each of them sets `RUSTUP_TOOLCHAIN` (rustup takes it before the file; the test checks it too) and the ASan job
 also names the nightly on the command line (`cargo +nightly-…`). `ASAN_OPTIONS=detect_odr_violation=0` is set for
@@ -207,6 +208,49 @@ corpora through the targets' checks (`tests/replay.rs`), `cargo run --release --
 all with AddressSanitizer on WSL2 and without a finding: `jsonl_loader` 65,544 inputs in 7 minutes (about 155 a second),
 `migration_chain` 637 in 7 minutes (about 1.5 a second: every input opens the 842 KB golden project twice) and
 `command_sequence` 151 in 60 seconds (about 2.5 a second).
+
+## Fuzz smoke (CI-PR-08)
+
+FT-335, WP-S6.02, gate criterion G-M1-13 (doc 18 §3.12, §5.2). The job `fuzz-smoke` of [`ci.yml`](../.github/workflows/ci.yml)
+runs 60 s of each cargo-fuzz target of [`fuzz/`](../fuzz) that a change can reach. The same targets run 30 minutes each in the
+[deep nightly](#deep-nightly-deep-nightlyyml-ci-n-02-and-ci-n-03), with the same corpus and limits.
+
+**Path filter.** [`fuzz-smoke-targets.py`](fuzz-smoke-targets.py) reads the changed paths and prints the targets as
+`<target>:<max_len>` words (stdlib Python; `--all`, `--selftest`). The job takes the changed paths of a pull request against
+`github.event.pull_request.base.sha`, of a push against `github.event.before`, and runs every target for a dispatch and for a
+push without a usable base (a new branch). The mapping, by what each target reaches:
+
+| Changed path | Targets |
+|---|---|
+| `crates/ew-format/` | `jsonl_loader`, `migration_chain` |
+| `crates/ew-store/` | `migration_chain`, `command_sequence` |
+| `crates/ew-commands/`, `crates/ew-model/`, `crates/ew-testkit/tests/command_fuzz/` (the seeded command generator) | `command_sequence` |
+| `fuzz/fuzz_targets/<t>.rs`, `fuzz/corpus/<t>/`, `fuzz/regressions/<t>/` | `<t>` |
+| anything else in `fuzz/` (the harness in `src/`, `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml`, `tests/`), and `ci/fuzz-smoke-targets.py` | all three |
+| `fuzz/README.md`, `fuzz/deny.toml`, `fuzz/target/`, `fuzz/artifacts/`, `fuzz/coverage/` | none |
+
+A change that reaches no target runs the filter's self-test and the selection, then nothing: the job stays in the set of the
+required checks and costs seconds. `ci.yml` itself is not an input (a CI change would otherwise cost a build on every
+edit); exercise the job after changing it with `workflow_dispatch` of `ci.yml`, which runs every target. The job has a
+timeout of 45 minutes; the first build of the command target is the long one (the cache is saved on `main`, key `ew-fuzz`,
+shared with the deep nightly).
+
+**Toolchain and flags.** The nightly of `fuzz/rust-toolchain.toml` (`nightly-2026-10-08`), for this job only: `NIGHTLY_TOOLCHAIN`
+at the workflow level for `dtolnay/rust-toolchain`, `RUSTUP_TOOLCHAIN` at job level (rustup takes it before the repository's
+stable `rust-toolchain.toml`), cargo-fuzz 0.13.2 built from source (`CARGO_FUZZ_VERSION`). The job sets `RUSTFLAGS` empty (the
+workflow's `-D warnings` would turn a lint that a newer nightly adds into a build failure) and switches on the debug assertions
+and overflow checks of the release profile, as the deep nightly does (the oracles rely on them).
+
+**Red or green.** Red for a finding (a `crash-*`, `oom-*`, `leak-*` or `timeout-*` input in `fuzz/artifacts/<target>/`: libFuzzer
+writes a `timeout-*` when one input runs over 120 s, which is a finding), for a build that fails (no evidence), and for a run
+that ended without a verdict (a target's exit code that is neither 0 nor 124, or missing). **Not red:** exit code 124, the
+step's own `timeout 8m` cutting a target short without a finding, is a warning annotation. The verdict reads the exit code of each
+target from `target/smoke/results.txt`, which the run step writes, so it does not depend on libFuzzer's output text. The crash
+inputs and the logs are uploaded as the artifact `fuzz-smoke` with `if: always()`, and the first kilobyte of an input is in the job
+summary as base64. Triage as for the deep nightly: commit the input under `fuzz/regressions/<target>/`, report it, and fix it in
+a separate change. Same hardening as the other jobs: pinned actions, read-only token, no secrets, `persist-credentials: false`
+(the checkout takes the whole history, `fetch-depth: 0`, so that the base revision is there), event data through the
+environment. The job is not a required check yet (FT-325 and FT-284, owner).
 
 ## Nightly CLI artefact (`cli-artefact.yml`, CI-N-12)
 
@@ -519,6 +563,7 @@ again.
 | [`../about.toml`](../about.toml), [`third-party-notices.hbs`](third-party-notices.hbs) | `cargo about generate` (CI-PR-09) | The cargo-about licence allowlist (the deny.toml list; the workspace's own `publish = false` crates are ignored) and the plain-text template of the third-party notice file (NFR-LIC-08). CI only generates the file, so a crate without a usable licence fails; the release pipeline (CI-R-07, WP-S6.07) ships it in every artefact |
 | [`render-mermaid.py`](render-mermaid.py) | CI-PR-15 | Mermaid extraction and rendering |
 | [`headless-export.sh`](headless-export.sh) | CI-PR-05 (`ci.yml` / `headless`) | Runs inside the headless container: proves that there is no display, GPU, font file or user directory content, then runs `ew export pdf` on one and four threads (FT-295) |
+| [`fuzz-smoke-targets.py`](fuzz-smoke-targets.py) | CI-PR-08 (`ci.yml` / `fuzz-smoke`) | The path filter of the per-pull-request fuzz run: the changed paths to the cargo-fuzz targets they reach, with each target's `-max_len`; `--all`, `--selftest` (cross-checks the targets of `fuzz/Cargo.toml` and the matrix of `deep-nightly.yml`) (FT-335) |
 | [`verapdf-check.py`](verapdf-check.py) | CI-N-09 (`ci.yml` / `verapdf`) | The verdict over a veraPDF XML report: PDF/A-2B, compliant, no failed parse, the job count; `--selftest` (FT-294) |
 | [`coverage-summary.py`](coverage-summary.py) | CI-PR-13 (`coverage.yml`) | The line coverage of the six core crates from a cargo-llvm-cov summary, against 80 %, report-only; `--selftest` (FT-296) |
 | [`check-book-links.py`](check-book-links.py) | CI-PR-10 (book) | Link check of the built user-documentation book: no network, no plugin to pin |

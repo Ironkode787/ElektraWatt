@@ -7,7 +7,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 FT-297, FT-272 and FT-304; [doc 18](../docs/design/18-quality-security-release.md) §3.6 (the command-sequence fuzzer)
 and §3.12 (parser fuzzing); CI-N-02 and CI-N-03 of the job catalogue in §5.2; the nightly workflow is
-[`deep-nightly.yml`](../.github/workflows/deep-nightly.yml), described in [`ci/README.md`](../ci/README.md#deep-nightly-deep-nightlyyml-ci-n-02-and-ci-n-03).
+[`deep-nightly.yml`](../.github/workflows/deep-nightly.yml), described in [`ci/README.md`](../ci/README.md#deep-nightly-deep-nightlyyml-ci-n-02-and-ci-n-03); CI-PR-08 (FT-335) runs 60 s of every target that a pull request can reach in the `fuzz-smoke` job of [`ci.yml`](../.github/workflows/ci.yml) ([`ci/README.md`](../ci/README.md#fuzz-smoke-ci-pr-08)).
 
 The crate is **not a member of the cargo workspace** (the root `Cargo.toml` lists it under `exclude`, and
 `fuzz/Cargo.toml` has its own `[workspace]` table). cargo-fuzz instruments the build with LLVM sanitizer coverage and
@@ -90,8 +90,10 @@ that was fixed.
 
 ## Maintenance
 
-- The nightly is pinned by date in `rust-toolchain.toml` (and `NIGHTLY_TOOLCHAIN` of `deep-nightly.yml`; a test of xtask
-  keeps them equal) and advanced by the upgrade train (doc 18 §6.3).
+- The nightly is pinned by date in `rust-toolchain.toml` (and `NIGHTLY_TOOLCHAIN` of `deep-nightly.yml` and of `ci.yml`, for
+  the `fuzz-smoke` job; a test of xtask keeps them equal) and advanced by the upgrade train (doc 18 §6.3).
+- A new target is added to the table of `ci/fuzz-smoke-targets.py` (the path filter of CI-PR-08) and to the matrix of
+  `deep-nightly.yml`; the filter's self-test fails when the table, `Cargo.toml` and the matrix disagree.
 - A command added to the registry needs a generator arm in `crates/ew-testkit/tests/command_fuzz/arms.rs`
   (`every_registered_command_has_a_generator_arm` fails otherwise); the target picks it up without a change here.
 - The dependencies of the crate are outside the workspace's `cargo deny` and `cargo vet` runs; they are `libfuzzer-sys`
