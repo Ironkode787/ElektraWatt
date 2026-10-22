@@ -21,7 +21,7 @@ The job names are the GitHub status-check names to mark as required.
 | CI-PR-03 | `ci.yml` / `test-windows` (windows-2025) | as CI-PR-02 | as CI-PR-02, on Windows |
 | CI-PR-04 | `ci.yml` / `test-macos` (macos-15, arm64) | as CI-PR-02 | as CI-PR-02, on macOS |
 | CI-PR-05 | `ci.yml` / `headless` (ubuntu-24.04) | `cargo build -p ew --locked`; `ew export pdf golden/J-E-2416.ew` inside a bare `ubuntu:24.04` container (image pinned by digest; no network, no display, no GPU, no font file, empty user directories), on one thread and on four; both PDFs must be the committed digest of `golden/J-E-2416/expected/pdf/sha256.txt` (FT-295, G-M1-01); the PDFs uploaded as the artifact `headless-pdf`. Details: [Headless container job](#headless-container-job-ci-pr-05) | `cargo build -p ew --locked` and `docker run` as in the job (Linux and docker), or `cargo nextest run -p ew --test cli -E 'test(export_pdf_of_golden_a)'` for the same check without the container |
-| CI-PR-09 | `ci.yml` / `supply-chain` (ubuntu-24.04) | `cargo deny check`; `cargo audit`; `cargo vet`; `cargo xtask check-deps`, `check-features`, `check-build-scripts`, `check-workflows`; third-party notices with cargo-about 0.9.2 (NFR-LIC-08); MSRV check of the permissive crates with Rust 1.85.0 | `cargo deny --locked check`, `cargo audit`, `cargo vet --locked`, the four `cargo xtask` checks, `cargo about generate -o target/THIRD-PARTY-NOTICES.txt ci/third-party-notices.hbs`, and the MSRV commands below |
+| CI-PR-09 | `ci.yml` / `supply-chain` (ubuntu-24.04) | `cargo deny check`; `cargo audit`; `cargo vet`; `cargo xtask check-deps`, `check-features`, `check-build-scripts`, `check-vet-imports`, `check-workflows`; third-party notices with cargo-about 0.9.2 (NFR-LIC-08); MSRV check of the permissive crates with Rust 1.85.0 | `cargo deny --locked check`, `cargo audit`, `cargo vet --locked`, the five `cargo xtask` checks, `cargo about generate -o target/THIRD-PARTY-NOTICES.txt ci/third-party-notices.hbs`, and the MSRV commands below |
 | CI-PR-10 | `docs.yml` / `legal-docs` (ubuntu-24.04) | `docs/plan/tools/{totals,schedule,trace}.py --check` and `doccheck.py`; `reuse lint` (reuse-tool 6.2.0; NFR-LIC-01, NFR-LIC-02); `cargo xtask check-licence-map` (licence map, collective notice, crate licences and the licence boundary of the permissive layer: 19 §5.1, NFR-LIC-10, NFR-MAINT-02); `cargo xtask check-anonymisation` (NFR-PRIV-09); `cargo xtask check-governance-files` (NFR-DOC-08); rustdoc build with `-D warnings` (NFR-MAINT-08). On pull requests only: `cargo xtask check-dco` over the PR's commits (NFR-LIC-03); and the RFC reference, which fails a PR labelled `format-major`, `api-break` or `licence` whose description does not mention `rfcs/` (NFR-DOC-09) | `python3 -I docs/plan/tools/totals.py --check` (and the other three); `python -m reuse lint`; `cargo xtask check-licence-map`, `check-anonymisation`, `check-governance-files`, `check-dco origin/main..HEAD`; `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --locked` |
 | CI-PR-15 | `docs.yml` / `docs-diagrams` (ubuntu-24.04) | Renders every Mermaid block under `docs/` and in the root Markdown with mermaid-cli 12.0.0 (container image pinned by digest) and fails on any error | `python3 -I ci/render-mermaid.py --image <image@sha256:…>` (needs docker); `--extract-only` lists the blocks without docker |
 | CI-PR-10 (book) | `docs.yml` / `docs-book` (ubuntu-24.04) | The user-documentation book of `docs/book` (WP-S0.06, NFR-DOC-01, NFR-DOC-06): `cargo xtask docs-gen --check` (the generated command and rule reference pages are current); mdBook 0.5.4, installed from its pinned release archive (SHA-256 checked); `mdbook build docs/book` in an empty network namespace (the build is offline); `ci/check-book-links.py` over the built pages (relative links, anchors, and links into the repository); the built book uploaded as the artifact `user-guide`. A separate job, so that `legal-docs` stays fast | `cargo xtask docs-gen --check`; `mdbook build docs/book` (mdBook 0.5.4); `python3 -I ci/check-book-links.py target/book` |
@@ -31,8 +31,8 @@ The job names are the GitHub status-check names to mark as required.
 
 `cargo xtask ci` runs fmt, clippy, nextest and the doctests (each with the default features and with `--all-features`;
 the default-features nextest step is labelled `nextest (no acceptance, no fuzzer)` in the summary, and the acceptance
-tests and the command fuzzer run only in the `nextest-all-features` step, as in the jobs) and the eleven repository checks (`check-deps`,
-`check-features`, `check-raw-read`, `check-ordered-collections`, `check-disallowed-methods`, `check-build-scripts`, `check-workflows`, `check-licence-map`,
+tests and the command fuzzer run only in the `nextest-all-features` step, as in the jobs) and the twelve repository checks (`check-deps`,
+`check-features`, `check-raw-read`, `check-ordered-collections`, `check-disallowed-methods`, `check-build-scripts`, `check-vet-imports`, `check-workflows`, `check-licence-map`,
 `check-anonymisation`, `check-governance-files`, `docs-gen --check`) in sequence and prints a summary: the local
 mirror of the Rust part of the PR set. `check-dco` needs a revision range and is run on its own.
 
@@ -366,14 +366,33 @@ anything: the check prints a `WARNING` line and still exits 0, because supplying
 and must not block CI. `--require-entries` turns that warning into a failure; no workflow uses it yet, the
 maintainers switch it on once the list is committed (gate G-M0-06).
 
+## Supply-chain files (`check-build-scripts`, `check-vet-imports`)
+
+`ci/build-scripts.allowlist` lists the packages that may have a build script, one `name@version` per line with an
+optional `#` comment that states what the script does and does not repeat the version. The version is the exact
+string cargo reports. A new version of a listed crate, or a new crate with a build script, fails
+`cargo xtask check-build-scripts` until a reviewer has read the new `build.rs` (no network access, no download,
+writes only under `OUT_DIR`). For a version bump, run `cargo xtask check-build-scripts --bless` (alias `--write`):
+it re-versions the line in place, keeps its comment, drops entries that no package in the graph has any more, prints
+what it changed and then runs the check. The commit message names the re-reviewed crates (the `re-versioned` lines
+of the output). Bless never adds a crate: a new build-script crate needs a reviewed line written by hand, and the
+check that follows bless fails on it until then.
+
+`supply-chain/imports.lock` is written by `cargo vet` from the imported audit sets, together with the auditors'
+names, e-mail addresses and free-text notes, which the public-repository rule keeps out of the repository.
+`cargo xtask check-vet-imports` fails when the file has a `who`, `notes` or `user-name` key, a name in a `user-id`
+comment (the login alone is allowed), or an e-mail address. After any `cargo vet` run that fetches imports, run
+`cargo xtask check-vet-imports --bless` (alias `--write`): it scrubs the file, runs `cargo vet fmt` and checks
+again.
+
 ## Policy files
 
 | File | Checked by | Content |
 |---|---|---|
 | [`dep-rules.toml`](dep-rules.toml) | `cargo xtask check-deps`, `check-features` | Layers, the permitted crate-to-crate edges (the ARCH §3 graph), external-crate owners (rusqlite and `libsqlite3-sys`, egui, wgpu; glob patterns cover the hyphenated sub-crates such as `egui-winit` and `wgpu-core`), the importer rule and the `ew-import-qet` confinement (NFR-MAINT-01, ADR-0024); the banned features and crates of `check-features` (below) |
-| [`build-scripts.allowlist`](build-scripts.allowlist) | `cargo xtask check-build-scripts` | Every package with a build script in the all-features dependency graph, after review (ADR-0023, NFR-SEC-10) |
+| [`build-scripts.allowlist`](build-scripts.allowlist) | `cargo xtask check-build-scripts` | Every package with a build script in the all-features dependency graph, one `name@version` per line, after review (ADR-0023, NFR-SEC-10); a version bump of a listed crate fails until its build script is re-read and the line is blessed (below) |
 | [`../deny.toml`](../deny.toml) | `cargo deny check` | Licence allowlist (NFR-LIC-04), advisories, bans, sources |
-| [`../supply-chain/`](../supply-chain) | `cargo vet` | Audits and the exemption list frozen at the first commit (ADR-0023). No public audit sets are imported yet, because `imports.lock` would record the auditors' names and e-mail addresses (decision log ID-4; ADR-0023 amendment 3: audits name the GitHub handle; audit sets are not imported while the public-repository rule stands) |
+| [`../supply-chain/`](../supply-chain) | `cargo vet` | Audits and the exemption list frozen at the first commit (ADR-0023), and the imported audit sets in `imports.lock`, which are kept without auditor names and e-mail addresses (decision log ID-4; ADR-0023 amendments 3 and 5; `cargo xtask check-vet-imports`, below) |
 | [`licence-map.toml`](licence-map.toml) | `cargo xtask check-licence-map` | The path-to-licence map of 19 §2.1 (longest glob wins; unmapped paths fail), the files allowed to keep third-party copyright notices, where GPL-2.0 may appear, and the licence allowlist of the permissive layer's dependency closure (NFR-MAINT-02) |
 | [`../REUSE.toml`](../REUSE.toml), [`../LICENSES/`](../LICENSES) | `reuse lint`, `cargo xtask check-licence-map` | Licence annotations for the files that cannot carry an SPDX header; the licence texts |
 | [`denylist.sha256`](denylist.sha256) | `cargo xtask check-anonymisation` | SHA-256 digests of confidential word n-grams (n ≤ 3), never the tokens themselves (NFR-PRIV-09, 20 §3.5). Committed without entries: the maintainers add them (below); until then the check prints a warning and passes |

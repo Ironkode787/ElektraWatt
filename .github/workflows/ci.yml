@@ -456,6 +456,9 @@ jobs:
         run: cargo audit
       - name: cargo vet
         run: cargo vet --locked
+      # ADR-0023 amendment 5: the imported audit sets in supply-chain/imports.lock carry no auditor names or e-mail addresses.
+      - name: vet imports carry no auditor identity
+        run: cargo xtask check-vet-imports
       - name: dependency rules
         run: cargo xtask check-deps
       # ADR-0001 amendment 2 (FT-01, ID-50): no raw read of ew-model in non-test source outside its readers.

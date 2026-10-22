@@ -24,6 +24,7 @@ mod perf;
 mod raw_read;
 mod repo;
 mod symbols;
+mod vet_imports;
 mod workflows;
 
 use std::io::{BufRead, BufReader};
@@ -37,7 +38,15 @@ usage: cargo xtask <command>
 
 commands:
   check-deps           crate-dependency rules of ARCH §3 (policy: ci/dep-rules.toml)
-  check-build-scripts  every package with a build script is allowlisted (ci/build-scripts.allowlist)
+  check-build-scripts [--bless]
+                       every package with a build script is allowlisted at its version
+                       (ci/build-scripts.allowlist, one name@version per line); --bless (or --write) re-versions
+                       the entries of crates whose version changed and drops stale ones (it never adds a crate),
+                       prints what changed and then checks
+  check-vet-imports [--bless]
+                       supply-chain/imports.lock carries no auditor identity (no who, notes or user-name key, no
+                       name in a user-id comment, no e-mail address); --bless (or --write) scrubs the file, runs
+                       `cargo vet fmt` and then checks
   check-features       banned features and crates only on dev edges (ci/dep-rules.toml: banned_features)
   check-raw-read [--bless]
                        no raw read of ew-model outside its readers (ci/dep-rules.toml: raw_read): the generated
@@ -97,7 +106,30 @@ fn main() -> ExitCode {
     let command = args.first().map(String::as_str).unwrap_or("help");
     let result = match command {
         "check-deps" => run_check("check-deps", check_deps),
-        "check-build-scripts" => run_check("check-build-scripts", check_build_scripts),
+        "check-build-scripts" => match args.get(1).map(String::as_str) {
+            None => run_check("check-build-scripts", check_build_scripts),
+            Some("--bless" | "--write") => build_scripts::run_bless(&workspace_root()),
+            Some(other) => {
+                eprint!(
+                    "check-build-scripts: unknown argument `{other}`
+
+{USAGE}"
+                );
+                Ok(false)
+            }
+        },
+        "check-vet-imports" => match args.get(1).map(String::as_str) {
+            None => run_check("check-vet-imports", check_vet_imports),
+            Some("--bless" | "--write") => vet_imports::run(&workspace_root()),
+            Some(other) => {
+                eprint!(
+                    "check-vet-imports: unknown argument `{other}`
+
+{USAGE}"
+                );
+                Ok(false)
+            }
+        },
         "check-features" => run_check("check-features", check_features),
         "check-raw-read" => match args.get(1).map(String::as_str) {
             None => raw_read::run(&workspace_root(), false),
@@ -281,6 +313,10 @@ fn check_build_scripts() -> Result<Violations> {
     // All features: a build script behind a non-default feature is still part of the supply chain.
     let with_build_script = build_scripts::packages_with_build_script(&metadata_all_features(&root)?);
     Ok(build_scripts::check(&allowlist, &with_build_script))
+}
+
+fn check_vet_imports() -> Result<Violations> {
+    vet_imports::violations(&workspace_root())
 }
 
 fn check_features() -> Result<Violations> {
@@ -576,13 +612,14 @@ fn ci() -> Result<bool> {
             &["test", "--doc", "--workspace", "--all-features", "--locked"],
         ),
     ];
-    let checks: [Check; 11] = [
+    let checks: [Check; 12] = [
         ("check-deps", check_deps),
         ("check-features", check_features),
         ("check-raw-read", check_raw_read),
         ("check-ordered-collections", check_ordered_collections),
         ("check-disallowed-methods", check_disallowed_methods),
         ("check-build-scripts", check_build_scripts),
+        ("check-vet-imports", check_vet_imports),
         ("check-workflows", check_workflows),
         ("check-licence-map", check_licence_map),
         ("check-anonymisation", check_anonymisation),

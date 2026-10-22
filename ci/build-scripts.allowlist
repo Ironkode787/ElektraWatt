@@ -2,9 +2,12 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 #
 # Packages allowed to have a build script (`custom-build` target), checked by `cargo xtask
-# check-build-scripts` over the whole dependency graph (ADR-0023 decision 1, NFR-SEC-10). One crate name per
-# line. Add a name only after reading its build.rs: no network access, no binary download, writes only
-# under OUT_DIR. Downloader build scripts are banned (C-5).
+# check-build-scripts` over the whole dependency graph (ADR-0023 decision 1, NFR-SEC-10). One `name@version`
+# per line, the version exactly as cargo reports it (build metadata included); a comment may follow, and it
+# does not repeat the version. A new version of a listed crate fails the check until its build.rs is read again
+# and `cargo xtask check-build-scripts --bless` re-versions the line (same comment, same place); bless never
+# adds a crate. Add a crate only after reading its build.rs: no network access, no binary download, writes
+# only under OUT_DIR. Downloader build scripts are banned (C-5).
 #
 # Reviewed at M0 (WP-S0.01): all of these run `rustc --version` or a probe compile to set cfg flags, and at
 # most write a generated module to OUT_DIR.
@@ -13,99 +16,102 @@
 # through version_check and sets one cfg; libc 0.2.191 (via cpufeatures) runs `rustc --version`, and only on
 # FreeBSD or Emscripten targets `freebsd-version` or `emcc --version`, then sets cfg flags. Neither writes files
 # or uses the network.
-anyhow
-camino
-generic-array
-proc-macro2
-quote
-serde
-serde_core
-serde_json
-thiserror
-zmij
+anyhow@1.0.104
+camino@1.2.6
+generic-array@0.14.7
+proc-macro2@1.0.107
+quote@1.0.47
+serde@1.0.229
+serde_core@1.0.229
+serde_json@1.0.154
+thiserror@1.0.69 # re-read at cycle 20 (first version-keyed review): probe-compiles build/probe.rs into OUT_DIR/probe for one cfg flag; no network, no file outside OUT_DIR
+thiserror@2.0.21
+zmij@1.0.23
 #
 # Reviewed at WP-S1.01 (ew-units, ew-ids and their dev-dependencies). None opens a network connection or
 # downloads anything.
-getrandom # 0.4.3: emits a memory-sanitizer cfg flag only
-libc # runs `rustc --version` (and `freebsd-version` / `emcc -dumpversion` on those targets); cfg flags only
-num-traits # autocfg probe compile for one cfg flag (proptest, dev-only)
-rustversion # runs `rustc --version`, writes version.expr to OUT_DIR
-wasm-bindgen # wasm targets only in practice: version cfg via a vendored rustversion, link args for emscripten
-wasm-bindgen-shared # hashes two of its own source files into an env var; runs `git rev-parse HEAD` (local)
+getrandom@0.3.4 # memory-sanitizer cfg flag; on Windows targets runs `$RUSTC -vV` for a legacy-backend cfg; writes no file
+getrandom@0.4.3 # emits a memory-sanitizer cfg flag only
+libc@0.2.191 # runs `rustc --version` (and `freebsd-version` / `emcc -dumpversion` on those targets); cfg flags only
+num-traits@0.2.19 # autocfg probe compile for one cfg flag (proptest, dev-only)
+rustversion@1.0.23 # runs `rustc --version`, writes version.expr to OUT_DIR
+wasm-bindgen@0.2.129 # wasm targets only in practice: version cfg via a vendored rustversion, link args for emscripten
+wasm-bindgen-shared@0.2.129 # hashes two of its own source files into an env var; runs `git rev-parse HEAD` (local)
 #
 # Reviewed at WP-S3.01 (ew-dl and its dev-dependencies). Neither opens a network connection or downloads
 # anything.
-libm # 0.2.16: reads CARGO_* and TARGET env vars, emits cfg flags and rustc-env values only; writes no files
-rustix # 1.1.5 (tempfile via insta, dev-only): probe-compiles snippets with rustc into OUT_DIR, deletes the artifact, emits cfg flags
-ref-cast # 1.0.27 (schemars, WP-S1.02): runs `rustc --version` for cfg flags, writes private.rs to OUT_DIR only
+libm@0.2.16 # reads CARGO_* and TARGET env vars, emits cfg flags and rustc-env values only; writes no files
+rustix@0.38.44 # re-read at cycle 20 (first version-keyed review; in the UI graph): probe-compiles snippets with rustc into OUT_DIR, deletes the artifact, emits cfg flags
+rustix@1.1.5 # (tempfile via insta, dev-only) probe-compiles snippets with rustc into OUT_DIR, deletes the artifact, emits cfg flags
+ref-cast@1.0.27 # (schemars, WP-S1.02) runs `rustc --version` for cfg flags, writes private.rs to OUT_DIR only
 #
 # Reviewed at WP-S3.02 (ew-text: parley's ICU4X line segmentation and normalisation data). The four build
 # scripts are identical: they read the ICU4X_DATA_DIR environment variable and emit cfg flags only; they run no
 # command, write no file and open no network connection.
-icu_locale_fallback_data # 2.3.0
-icu_normalizer_data # 2.3.0
-icu_properties_data # 2.3.0
-icu_segmenter_data # 2.3.0
+icu_locale_fallback_data@2.3.0
+icu_normalizer_data@2.3.0
+icu_properties_data@2.3.0
+icu_segmenter_data@2.3.0
 #
 # Reviewed at WP-S3.04 (vello_cpu, krilla). The only new build script runs `rustc --version` and emits cfg flags;
 # it writes no file and opens no network connection.
-crc32fast # 1.5.2: reads RUSTC, runs `$RUSTC --version`, emits rustc-check-cfg / rustc-cfg lines only
+crc32fast@1.5.2 # reads RUSTC, runs `$RUSTC --version`, emits rustc-check-cfg / rustc-cfg lines only
 #
 # Reviewed at WP-S1.10 (ew-sqlview: rusqlite 0.40.2 with `bundled`). The build script compiles the vendored
 # sqlite3.c with cc into OUT_DIR and copies the pre-generated bindings (no bindgen without `buildtime_bindgen`);
 # it reads only CARGO_*/TARGET/HOST and the documented SQLITE_MAX_*/LIBSQLITE3_FLAGS variables, runs no command
 # but the C compiler cc invokes, downloads nothing and opens no network connection.
-libsqlite3-sys # 0.38.2: cc-compiles the bundled SQLite amalgamation into OUT_DIR, emits link and cfg lines
+libsqlite3-sys@0.38.2 # cc-compiles the bundled SQLite amalgamation into OUT_DIR, emits link and cfg lines
 #
 # Reviewed at WP-S2.01 part 1 (egui 0.37, eframe on wgpu, rfd 0.17.2 and their transitive crates). No build script
 # opens a network connection, downloads anything or writes outside OUT_DIR. Several are for targets the
 # application does not build on a given OS (Android, wasm, the other Windows architectures).
 # cfg flags only (cfg_aliases, version or target probes, sanitizer detection; no file written, no command but
 # `rustc --version` where noted):
-ahash # 0.8.12: version_check probe for `specialize`, target-architecture cfg
-android-activity # 0.6.1: Android only; the C++ glue is compiled only with the `game-activity` feature (off)
-async-io # 2.6.0: autocfg probe for one cfg flag
-crossbeam-utils # 0.8.23: target table lookup, cfg flags
-glutin # 0.32.3: cfg_aliases only (not in the build: only egui_glow, which is off, uses it)
-glutin-winit # 0.5.0: cfg_aliases only (as glutin)
-jni # 0.22.4: Android; Windows attach-guard cfg
-jni-macros # 0.22.4: rustc version cfg
-jni-sys # 0.3.1: cfg, and JAVA_HOME link lines only under the internal `_JNI_SYS_TEST` variable
-memoffset # 0.9.1: autocfg probes, cfg flags
-naga # 30.0.1: cfg_aliases only
-objc-sys # 0.3.5: target cfg; compiles one C file with cc only for the GNUstep and ObjFW runtimes (never on Apple targets)
-objc2 # 0.6.5: target cfg flags only
-orbclient # 0.3.55: a framework link line on macOS
-parking_lot_core # 0.9.12: sanitizer cfg
-portable-atomic # 1.15.0: reads RUSTC, runs `$RUSTC --version`, target and flag cfg lines; writes no file
-portable-atomic-util # 0.2.8: runs `$RUSTC -vV`, cfg lines only
-slotmap # 1.1.1: version_check probe, cfg lines
-unicode-general-category # 1.1.0: writes the compiled category table (category.rs) to OUT_DIR from its own source
-wayland-backend # 0.3.17: cfg lines; compiles two bundled C shims with cc only with the `log` feature (off)
-wayland-client # 0.31.15: cfg lines
-wgpu # 30.0.1: cfg_aliases only
-wgpu-core # 30.0.1: cfg_aliases only
-wgpu-hal # 30.0.1: cfg_aliases only
-winit # 0.30.13: cfg_aliases only
-wit-bindgen # 0.46.0: wasm only; copies its own static archive into OUT_DIR
-zerocopy # 0.8.63: runs `$RUSTC --version`, reads its own Cargo.toml, cfg lines only
+ahash@0.8.12 # version_check probe for `specialize`, target-architecture cfg
+android-activity@0.6.1 # Android only; the C++ glue is compiled only with the `game-activity` feature (off)
+async-io@2.6.0 # autocfg probe for one cfg flag
+crossbeam-utils@0.8.23 # target table lookup, cfg flags
+glutin@0.32.3 # cfg_aliases only (not in the build: only egui_glow, which is off, uses it)
+glutin-winit@0.5.0 # cfg_aliases only (as glutin)
+jni@0.22.4 # Android; Windows attach-guard cfg
+jni-macros@0.22.4 # rustc version cfg
+jni-sys@0.3.1 # cfg, and JAVA_HOME link lines only under the internal `_JNI_SYS_TEST` variable
+memoffset@0.9.1 # autocfg probes, cfg flags
+naga@30.0.1 # cfg_aliases only
+objc-sys@0.3.5 # target cfg; compiles one C file with cc only for the GNUstep and ObjFW runtimes (never on Apple targets)
+objc2@0.6.5 # target cfg flags only
+orbclient@0.3.55 # a framework link line on macOS
+parking_lot_core@0.9.12 # sanitizer cfg
+portable-atomic@1.15.0 # reads RUSTC, runs `$RUSTC --version`, target and flag cfg lines; writes no file
+portable-atomic-util@0.2.8 # runs `$RUSTC -vV`, cfg lines only
+slotmap@1.1.1 # version_check probe, cfg lines
+unicode-general-category@1.1.0 # writes the compiled category table (category.rs) to OUT_DIR from its own source
+wayland-backend@0.3.17 # cfg lines; compiles two bundled C shims with cc only with the `log` feature (off)
+wayland-client@0.31.15 # cfg lines
+wgpu@30.0.1 # cfg_aliases only
+wgpu-core@30.0.1 # cfg_aliases only
+wgpu-hal@30.0.1 # cfg_aliases only
+winit@0.30.13 # cfg_aliases only
+wit-bindgen@0.46.0 # wasm only; copies its own static archive into OUT_DIR
+zerocopy@0.8.63 # runs `$RUSTC --version`, reads its own Cargo.toml, cfg lines only
 # Link directives and generated bindings from the crate's own sources (no network):
-ash # 0.38.0: link lines for the Vulkan loader only with the `linked` feature (off; the loader is opened at run time)
-crunchy # 0.2.4: writes the unrolled-loop macro (lib.rs) to OUT_DIR
-glutin_egl_sys # 0.7.1: gl_generator writes the EGL bindings to OUT_DIR (not in the build, see glutin)
-glutin_glx_sys # 0.6.1: gl_generator writes the GLX bindings to OUT_DIR (not in the build, see glutin)
-glutin_wgl_sys # 0.6.1: gl_generator writes the WGL bindings to OUT_DIR; in the Windows build through wgpu-hal's `gles` feature
-khronos-egl # 6.0.0: pkg-config probe only with the `static` feature (off); in the build through wgpu-hal's `gles` feature
-khronos_api # 3.1.0: writes an include list of its own extension XML files to OUT_DIR
-rfd # 0.17.2: a link line for AppKit on macOS; on Linux only checks that exactly one backend feature (xdg-portal) is on
-smithay-client-toolkit # 0.19.2: pkg-config probe of xkbcommon only with the `xkbcommon` feature (off)
-wayland-sys # 0.31.11: pkg-config probes only without the `dlopen` feature; wgpu-hal's `gles` feature turns `dlopen` on, so none runs (`cargo xtask check-features` keeps both on)
-windows_aarch64_gnullvm # 0.52.6: a link-search line to its own bundled import library
-windows_aarch64_msvc # 0.52.6: as windows_aarch64_gnullvm
-windows_i686_gnu # 0.52.6: as windows_aarch64_gnullvm
-windows_i686_gnullvm # 0.52.6: as windows_aarch64_gnullvm
-windows_i686_msvc # 0.52.6: as windows_aarch64_gnullvm
-windows_x86_64_gnu # 0.52.6: as windows_aarch64_gnullvm
-windows_x86_64_gnullvm # 0.52.6: as windows_aarch64_gnullvm
-windows_x86_64_msvc # 0.52.6: as windows_aarch64_gnullvm
-x11-dl # 2.21.0: asks pkg-config for the libdir of 16 X libraries (an absent library or tool gives None), writes config.rs to OUT_DIR, links libdl
+ash@0.38.0+1.3.281 # link lines for the Vulkan loader only with the `linked` feature (off; the loader is opened at run time)
+crunchy@0.2.4 # writes the unrolled-loop macro (lib.rs) to OUT_DIR
+glutin_egl_sys@0.7.1 # gl_generator writes the EGL bindings to OUT_DIR (not in the build, see glutin)
+glutin_glx_sys@0.6.1 # gl_generator writes the GLX bindings to OUT_DIR (not in the build, see glutin)
+glutin_wgl_sys@0.6.1 # gl_generator writes the WGL bindings to OUT_DIR; in the Windows build through wgpu-hal's `gles` feature
+khronos-egl@6.0.0 # pkg-config probe only with the `static` feature (off); in the build through wgpu-hal's `gles` feature
+khronos_api@3.1.0 # writes an include list of its own extension XML files to OUT_DIR
+rfd@0.17.2 # a link line for AppKit on macOS; on Linux only checks that exactly one backend feature (xdg-portal) is on
+smithay-client-toolkit@0.19.2 # pkg-config probe of xkbcommon only with the `xkbcommon` feature (off)
+wayland-sys@0.31.11 # pkg-config probes only without the `dlopen` feature; wgpu-hal's `gles` feature turns `dlopen` on, so none runs (`cargo xtask check-features` keeps both on)
+windows_aarch64_gnullvm@0.52.6 # a link-search line to its own bundled import library
+windows_aarch64_msvc@0.52.6 # as windows_aarch64_gnullvm
+windows_i686_gnu@0.52.6 # as windows_aarch64_gnullvm
+windows_i686_gnullvm@0.52.6 # as windows_aarch64_gnullvm
+windows_i686_msvc@0.52.6 # as windows_aarch64_gnullvm
+windows_x86_64_gnu@0.52.6 # as windows_aarch64_gnullvm
+windows_x86_64_gnullvm@0.52.6 # as windows_aarch64_gnullvm
+windows_x86_64_msvc@0.52.6 # as windows_aarch64_gnullvm
+x11-dl@2.21.0 # asks pkg-config for the libdir of 16 X libraries (an absent library or tool gives None), writes config.rs to OUT_DIR, links libdl
