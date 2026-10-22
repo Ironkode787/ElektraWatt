@@ -2527,6 +2527,8 @@ S6 implements the test layers, gates, packaging, signing and CRA processes of [q
 | Acceptance | AC-17, NFR-PERF-20 |
 | Owner role | Release engineer |
 
+*Status (2026-10-22, cycle 16, lane B).* **Delivered in part:** the nightly workflow `perf.yml` and `cargo xtask perf-gate` over the classes S and M (the `spike` and `cold_ops` benches), a committed baseline with the 15 % median threshold, the memory estimates and the peak RSS (Linux), the engine statistics of the memo store and the CI-time trend (FT-269) in one Markdown report; report-only on the hosted runner, `EW_PERF_ASSERT` makes it fail. Not built: the dedicated BM-class runner (owner item, DEC-034), the counting allocator (the workspace forbids `unsafe`; the peak RSS of Windows and macOS waits for `ew-sysprobe`, FT-89), the bisect on red, the rolling 7-night baseline of 18 §4.4, L and XL, and the benchmarks that the two benches do not cover. Design: [18](../design/18-quality-security-release.md) §4.7.
+
 #### WP-S6.04 Security engineering and CRA readiness
 
 | Field | Value |
@@ -3153,8 +3155,8 @@ CSV and every total are unchanged. A task is closed by the commit that implement
 | FT-265 | Folio 3's manufacturer slot reads the configured part of the order code, not the device's main part | WP-S1.13; WP-S1.19 | With FT-262 | ID-374 |
 | FT-266 | A dangling cover (a covered device deleted by an older 0.1 build) opens: report it, then unlink it, instead of `Model::from_records` refusing the project; a mixed-build test as FT-230 | WP-S1.09; WP-S1.16 | With FT-229 | ID-378 |
 | FT-267 | One conversion from `ew_interop_api::QuickFixProposal` to `ew_checks::QuickFix` in `ew-api` with a shape test, and a confidence field for the alias table's proposals (GR → GY medium) | WP-S1.15 | With FT-186 | ID-376 |
-| FT-268 | The headless acceptance tests run once per CI test job (behind the all-features run or a nextest filter), not in both nextest runs | WP-S6.01; WP-S0.01 | Next CI change (cycle 16 candidate) | ID-381 |
-| FT-269 | The CI-time trend (per-job durations on the hosted runners) in the performance gate's report, against NFR-MAINT-05 | WP-S6.03 | With WP-S6.03 | ID-381 |
+| FT-268 | The headless acceptance tests run once per CI test job (behind the all-features run or a nextest filter), not in both nextest runs. **Delivered in cycle 16 (lane B):** a nextest filterset on the default-features run (`not (package(ew-api) and binary(acceptance))`), in `ci.yml`, `cargo xtask ci` and the `.config/nextest.toml` comment; about 2 min saved per job | WP-S6.01; WP-S0.01 | Next CI change (cycle 16 candidate) | ID-381 |
+| FT-269 | The CI-time trend (per-job durations on the hosted runners) in the performance gate's report, against NFR-MAINT-05. **Delivered in cycle 16 (lane B):** `ci/ci-times.py`, appended to the nightly report of `perf.yml` | WP-S6.03 | With WP-S6.03 | ID-381 |
 | FT-270 | Commands for the records that the builder DSL still lists as unwritten and no other task covers: PLC channels and their bindings, device links, the PLC configuration project and the supply origin, so path (b) builds them through commands (revisions, library embedding and the valve-terminal assembly are FT-165, FT-167 and FT-169) | WP-S1.21; WP-S1.13 | Before G-M2 | ID-384 |
 | FT-271 | The ordered-collection lint of WP-S6.02: no `HashMap` or `HashSet` iteration order reaches a persisted, exported or printed sequence (a `cargo xtask` check or a clippy `disallowed-types` list for the output crates) | WP-S6.02 | With the rest of WP-S6.02 | ID-388 |
 | FT-272 | The command fuzzer's remaining steps and form: save and reload round trips, macro insertion and imports in the step set, and a cargo-fuzz target over the same generator for the nightly run (doc 18 §3.6, CI-N-02) | WP-S6.02 | With the rest of WP-S6.02 | ID-388 |

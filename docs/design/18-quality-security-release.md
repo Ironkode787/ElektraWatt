@@ -384,6 +384,8 @@ owner. Quarantined tests keep running nightly. More than 10 quarantined tests bl
 
 **CI time budget** (2026-10-22; decision log ID-381). The per-PR budget stays 30 min wall time (NFR-MAINT-05). Measured by the GitHub jobs API at d3ecf70: the Linux test job 23 min 18 s, macOS 26 min 04 s, and the Windows job past 30 min, when its all-features nextest run hit the old 30-minute job timeout; at 95149ab, with the new guard, Windows 21 min 14 s, Linux 21 min 13 s and macOS 22 min 37 s; GitHub reports a job stopped by its timeout as "cancelled", so a cancelled test job is read as a timeout, not as a user cancel. The three test jobs have `timeout-minutes: 50` as a guard, not as the budget. The headless acceptance tests run in both nextest runs of a job (default and all features); they run once per job (FT-268), and WP-S6.03 adds the CI-time trend to its gate (FT-269).
 
+*As built (cycle 16, lane B; FT-268, FT-269).* The first nextest run of each test job, and the first nextest step of `cargo xtask ci`, skips the headless acceptance tests with the filterset `not (package(ew-api) and binary(acceptance))`; the all-features run, a superset, runs them, so they run once per job. The rule is documented in `.config/nextest.toml`, and a test of `xtask` keeps the filter of `ci.yml`, the constant of `xtask/src/main.rs` and the comment equal. The slow test `the_headless_report_equals_the_committed_report` takes 112 s in the debug build (the other ten tests of the binary 0.2 s together), so a job saves about 2 min (about 9 % of the 21-minute jobs of ID-381). The default-features run still builds the acceptance binary but no longer runs it, so the acceptance tests are only exercised against the all-features build of `ew-api`. The CI-time trend is `ci/ci-times.py`, appended to the nightly performance report (§4.7).
+
 ### 3.15 Test-build confirmation hook
 
 `HumanOnly` subcommands (`ew revision approve|release|withdraw`, `ew waiver add|remove`, `ew trust …`,
@@ -557,6 +559,16 @@ A change in these counts is a reviewed snapshot change, never a silent one.
 - **Family budgets.** Memo bytes per query family come from `ew-memo` statistics. At XL the gate enforces memos
   ≤ 300 MB, undo ≤ 256 MB and the projection ≤ 500 MB file-backed (NFR-PERF-13).
 - **Allocation counting.** The counting allocator of §3.12 checks the parser limits in the same job.
+
+### 4.7 As built: the nightly gate on the hosted runner (cycle 16, lane B; WP-S6.03)
+
+`.github/workflows/perf.yml` (nightly and `workflow_dispatch`) runs `cargo xtask perf-gate` and `ci/ci-times.py`; `ci/README.md` describes both. What exists and how it differs from §4.4 and §4.6:
+
+- **Benchmarks.** The `spike` and `cold_ops` benches of `ew-testkit` on the classes S and M, full mode, run from their executables. The gate parses the `bench …` lines (median, p99, the memo counters of the engine statistics of §4.5, as counts per family of the last commit) and the `memory:` lines.
+- **Decision.** A committed baseline (`ci/perf-baseline.toml`, class S only for now, from a developer machine: medians in ms, memory estimates, peak RSS, the threshold of 15 %, a noise floor of 0.05 ms, the runner and the mode) instead of the median of the last 7 green nightly values: a value more than 15 % above its baseline and above the noise floor is a regression; the same test applies to the memory estimates and the peak RSS. A seeded 20 % slowdown turns the comparison red in a unit test (§4.4), 10 % does not.
+- **Report-only.** The hosted runner never gates (§4.3). `EW_PERF_ASSERT` (or `--enforce`) is the one switch that makes a regression a failing exit status; the nightly job does not set it. A baseline from another runner (`EW_PERF_RUNNER`, else `hosted:<os>-<arch>`) or from the quick mode is reported as not comparable and never enforced. The report (job summary and artifact `perf-report`) carries the verdict, the regressions, the medians against the baseline, the memory table, the engine statistics and the CI-time trend of `ci.yml` against the 30-minute budget (FT-269).
+- **Memory.** The peak RSS is `VmHWM` of the bench process, polled every 50 ms, on Linux; Windows and macOS are a gap until `ew-sysprobe` (FT-89) provides `PeakWorkingSetSize` and `task_info`. There is no counting allocator, because the workspace forbids `unsafe` and `ew-testkit` has no exception; the memory gate rests on the benches' deterministic estimates and on the peak RSS. The phases of §4.6 (after open, warm-up, full check, PDF export) and the XL budgets are not measured.
+- **Not built.** The BM-class runner (an owner item, DEC-034), the bisect job on red, the budget check (`over`) of §4.4, the rolling baseline with its MAD noise, L and XL, and the benchmarks of §4.2 that the two benches do not cover (`open` to the first frame, `check.full`, `pdf.export`, `save.*`, `sql.*`).
 
 ---
 

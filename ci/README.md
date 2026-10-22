@@ -17,7 +17,7 @@ The job names are the GitHub status-check names to mark as required.
 | ID | Workflow / job | Content | Reproduce locally |
 |---|---|---|---|
 | CI-PR-01 | `ci.yml` / `lint` (ubuntu-24.04) | `cargo fmt --all --check`; `cargo clippy --workspace --all-targets --locked -- -D warnings`, and again with `--all-features` | `cargo fmt --all --check` and both clippy runs |
-| CI-PR-02 | `ci.yml` / `test-linux` (ubuntu-24.04) | `cargo build --workspace --locked`; `cargo nextest run --workspace --locked --profile ci`, and again with `--all-features` (feature-gated tests such as `ew-ids/testkit`); `cargo test --doc --workspace --locked`, and again with `--all-features` (nextest does not run doctests) | `cargo build --workspace --locked`, `cargo nextest run --workspace [--all-features] --locked` and `cargo test --doc --workspace [--all-features] --locked` |
+| CI-PR-02 | `ci.yml` / `test-linux` (ubuntu-24.04) | `cargo build --workspace --locked`; `cargo nextest run --workspace --locked --profile ci -E 'not (package(ew-api) and binary(acceptance))'`, and again with `--all-features` and no filter (feature-gated tests such as `ew-ids/testkit`; the headless acceptance tests, about 2 min, run once per job, in this second run: FT-268); `cargo test --doc --workspace --locked`, and again with `--all-features` (nextest does not run doctests) | `cargo build --workspace --locked`, `cargo nextest run --workspace --locked -E 'not (package(ew-api) and binary(acceptance))'`, `cargo nextest run --workspace --all-features --locked` and `cargo test --doc --workspace [--all-features] --locked` |
 | CI-PR-03 | `ci.yml` / `test-windows` (windows-2025) | as CI-PR-02 | as CI-PR-02, on Windows |
 | CI-PR-04 | `ci.yml` / `test-macos` (macos-15, arm64) | as CI-PR-02 | as CI-PR-02, on macOS |
 | CI-PR-09 | `ci.yml` / `supply-chain` (ubuntu-24.04) | `cargo deny check`; `cargo audit`; `cargo vet`; `cargo xtask check-deps`, `check-features`, `check-build-scripts`, `check-workflows`; third-party notices with cargo-about 0.9.2 (NFR-LIC-08); MSRV check of the permissive crates with Rust 1.85.0 | `cargo deny --locked check`, `cargo audit`, `cargo vet --locked`, the four `cargo xtask` checks, `cargo about generate -o target/THIRD-PARTY-NOTICES.txt ci/third-party-notices.hbs`, and the MSRV commands below |
@@ -28,6 +28,9 @@ The job names are the GitHub status-check names to mark as required.
 `cargo xtask ci` runs fmt, clippy, nextest and the doctests (each with the default features and with `--all-features`)
 and the nine repository checks (`check-deps`, `check-features`, `check-raw-read`, `check-build-scripts`, `check-workflows`,
 `check-licence-map`, `check-anonymisation`, `check-governance-files`, `docs-gen --check`) in sequence and prints a summary: the local mirror of the Rust part of the PR set. `check-dco` needs a revision range and is run on its own.
+`cargo xtask ci` runs fmt, clippy, nextest and the doctests (each with the default features and with `--all-features`; the acceptance tests only in the `--all-features` nextest run, as in the jobs)
+and the seven repository checks (`check-deps`, `check-features`, `check-build-scripts`, `check-workflows`,
+`check-licence-map`, `check-anonymisation`, `check-governance-files`) in sequence and prints a summary: the local mirror of the Rust part of the PR set. `check-dco` needs a revision range and is run on its own.
 
 The licence-boundary check that 18 §5.2 lists under CI-PR-09 is part of `check-licence-map` and therefore runs in
 `legal-docs`, next to the licence map it shares its policy file with; the dependency-rule part of the same
@@ -45,6 +48,37 @@ git checkout Cargo.lock   # locally: restore the committed lockfile afterwards
 ```
 
 The MSRV 1.85 applies to the permissive crates only, which are the ones the MSRV step checks. The GPL application crates follow the pinned toolchain of `rust-toolchain.toml`: `ew-export` and `ew-render-cpu` (krilla 0.8 and vello_cpu 0.3 need Rust 1.92) and every workspace crate that depends on them (`ew-api`, `ew-print`, `ew-testkit`, `ew-ui`, `ew-viewmodel` and the binaries `ew` and `elektrawatt`) declare `rust-version = "1.92"` instead of the workspace value.
+
+## Nightly performance and memory gate (`perf.yml`, `cargo xtask perf-gate`)
+
+WP-S6.03 (NFR-PERF-20, 18 §4). The nightly workflow [`perf.yml`](../.github/workflows/perf.yml) (schedule and
+`workflow_dispatch`, with a `quick` smoke input) runs `cargo xtask perf-gate`, which
+
+1. builds and runs the `spike` and `cold_ops` benches of `ew-testkit` over the generated fixture classes S and M
+   (full mode: 1,000 latency samples, median of 10 single runs), directly from their executables so that the
+   process it watches is the bench itself;
+2. compares the **medians** and the deterministic memory estimates the benches print (model rows, undo history,
+   memo values and dependency entries) with [`perf-baseline.toml`](perf-baseline.toml): a value more than 15 %
+   above its baseline is a regression (WP-S6.03), unless the change is below the noise floor of the file
+   (`noise_floor_ms`, 0.05 ms);
+3. reads the peak RSS of the bench process (`VmHWM`, polled every 50 ms; Linux only, elsewhere the report names the
+   gap until `ew-sysprobe` exists, FT-89);
+4. writes `target/perf/report.md` (verdict, regressions, medians against the baseline, memory, the engine
+   statistics of the memo store: hit, ver, push_skip, re, incr, cut) and `target/perf/baseline.candidate.toml`;
+5. [`ci-times.py`](ci-times.py) appends the CI-time trend (FT-269): the per-job durations of the last runs of
+   `ci.yml` from the public jobs API (at most 10 calls, no token), set against the 30-minute budget of NFR-MAINT-05.
+
+The report is the job summary and the artifact `perf-report`. **The job is report-only on the hosted runners**:
+they are not BM-class (DEC-034), so `EW_PERF_ASSERT` is not set and a regression does not fail the job; that
+variable is the only switch that makes `perf-gate` exit non-zero (the timing rule of 18 §3.16), next to
+`--enforce`. A baseline taken on another runner (`meta.runner`, `EW_PERF_RUNNER`, else `hosted:<os>-<arch>`) or in
+the quick mode is reported as not comparable and never enforced. **Owner item:** the dedicated BM-class runner
+(18 §4.3). When it exists, a job on it sets `EW_PERF_RUNNER=bm` and `EW_PERF_ASSERT=1`, and the baseline is
+re-blessed there with `cargo xtask perf-gate --bless` (the generator version changes it as well, 18 §4.4). The committed baseline holds class S only, taken in full mode on a developer Windows machine (runner `dev-windows-x86_64`, so the hosted nightly reports "not compared"); the M class takes over an hour in full mode and has no baseline yet.
+
+Locally: `cargo xtask perf-gate --dry-run` prints the plan; `--quick --classes S` is the smallest real run (a
+smoke run, no evidence); `--from <captured bench output>…` re-reports captured output without running anything.
+`python3 -I ci/ci-times.py --dry-run` lists the API calls; `--selftest` checks its arithmetic offline.
 
 ## Feature bans (`cargo xtask check-features`)
 
@@ -90,6 +124,8 @@ maintainers switch it on once the list is committed (gate G-M0-06).
 | [`../about.toml`](../about.toml), [`third-party-notices.hbs`](third-party-notices.hbs) | `cargo about generate` (CI-PR-09) | The cargo-about licence allowlist (the deny.toml list; the workspace's own `publish = false` crates are ignored) and the plain-text template of the third-party notice file (NFR-LIC-08). CI only generates the file, so a crate without a usable licence fails; the release pipeline (CI-R-07, WP-S6.07) ships it in every artefact |
 | [`render-mermaid.py`](render-mermaid.py) | CI-PR-15 | Mermaid extraction and rendering |
 | [`check-book-links.py`](check-book-links.py) | CI-PR-10 (book) | Link check of the built user-documentation book: no network, no plugin to pin |
+| [`perf-baseline.toml`](perf-baseline.toml) | `cargo xtask perf-gate` (nightly `perf.yml`) | The baseline medians and memory estimates per size class, the 15 % threshold, the noise floor and the runner they were taken on (WP-S6.03) |
+| [`ci-times.py`](ci-times.py) | nightly `perf.yml` | The CI-time trend of `ci.yml` against NFR-MAINT-05 (FT-269) |
 
 ## Rules for the workflows
 
@@ -129,6 +165,9 @@ These settings cannot be committed; a repository owner applies them under Settin
   until the conduct contacts exist, `CODE_OF_CONDUCT.md`) points to.
 - Settings → General: enable **require contributors to sign off on web-based commits**, so that commits made in
   the GitHub web editor carry the DCO trailer (19 §3.2).
+- **BM-class performance runner** (DEC-034, 18 §4.3): provide and own the dedicated, isolated machine, then add a
+  job on it with `EW_PERF_RUNNER=bm` and `EW_PERF_ASSERT=1` and re-bless `perf-baseline.toml` there; until then
+  `perf.yml` on the hosted runner is report-only.
 - Create the labels `format-major`, `api-break`, `licence` (RFC reference check) and `blocked:LG-2` (label for
   non-maintainer pull requests while ADR-0025 is pending).
 - **Denylist hashes** (NFR-PRIV-09): the maintainers who hold the confidential-token list run
