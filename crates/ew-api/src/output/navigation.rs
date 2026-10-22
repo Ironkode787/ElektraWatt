@@ -505,7 +505,7 @@ fn kind_rank(kind: &PageType) -> u16 {
     }
 }
 
-/// The page type's snake_case spelling (`unknown` for a value of a newer format).
+/// The page type's snake_case spelling (a string of a newer format as it is, `unknown` for any other value).
 fn kind_name(kind: &PageType) -> String {
     serde_json::to_value(kind)
         .ok()
@@ -847,6 +847,33 @@ mod tests {
 
     fn labels(v: &[&str]) -> Vec<String> {
         v.iter().map(|s| (*s).to_owned()).collect()
+    }
+
+    /// `kind_rank` is the position of the page type in the schema's declaration of `PageType` (the navigator's sort
+    /// by type): pinned against the committed schema, whose `oneOf` lists the variants in declaration order, with a
+    /// type of a newer format after the last.
+    #[test]
+    fn kind_rank_is_the_schema_declaration_order_of_the_page_type() {
+        let schema: serde_json::Value =
+            serde_json::from_str(include_str!("../../../../schemas/0.1/page.schema.json")).unwrap();
+        let names: Vec<&str> = schema["$defs"]["PageType"]["oneOf"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|v| v["const"].as_str().unwrap())
+            .collect();
+        assert_eq!(names.len(), 14, "{names:?}");
+        for (i, name) in names.iter().enumerate() {
+            let kind: PageType =
+                serde_json::from_value(serde_json::Value::String((*name).to_owned())).unwrap();
+            assert_eq!(usize::from(kind_rank(&kind)), i, "{name}");
+            assert_eq!(kind_name(&kind), *name);
+        }
+        let newer = PageType::Unknown(serde_json::Value::String("future".to_owned()));
+        assert_eq!(usize::from(kind_rank(&newer)), names.len());
+        // A string of a newer format prints as it is; a value that is no string prints `unknown`.
+        assert_eq!(kind_name(&newer), "future");
+        assert_eq!(kind_name(&PageType::Unknown(serde_json::json!(7))), "unknown");
     }
 
     #[test]

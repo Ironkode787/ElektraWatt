@@ -312,6 +312,60 @@ fn eplan(s: &mut Session) {
     run_log(s, log, "eplan.ewcmd").unwrap();
 }
 
+/// `page_index_of` is the navigator's copy of the xref engine's private `{page_index}` (the engine's function is
+/// not public, so the copy stays): with `{page_index}` in the `ip` format, the cell that `Session::link_targets`
+/// prints for a representation is the one the engine prints in the source's cross-reference text, for every link of
+/// the golden project. The count skips the continuation page 2.1 before folio 101, so the index of 101 is 6 and not 7
+/// (FR-XRF-003).
+#[test]
+fn v1_the_navigators_page_index_is_the_xref_engines() {
+    let b = batch();
+    let ids = ids_by_key(&b);
+    let mut s = golden_common::session(&b);
+    let log = concat!(
+        r#"{"$schema":"ew.cmdlog/1","label":"page-index"}"#,
+        "\n",
+        r#"{"cmd":"project.settings.set","params":{"member":"xref_format","value":{"key":"page-index","ip":"{page_index}.{row}{column}","aux_to_main":"({page_index}.{row}{column})","main_to_aux":"∞ {list}","structure":"when_different","same_page":"full","matrix":{"per_row":3,"max":9,"overflow":"…"}}}}"#,
+        "\n"
+    );
+    run_log(&mut s, log, "page-index.ewcmd").unwrap();
+    let q = s.query();
+    let order = q.get::<PageOrder>(());
+    // The order has a continuation page (a generated page with an index above 0) before the drawn pages.
+    assert!(
+        order
+            .entries
+            .iter()
+            .any(|e| matches!(e.page, ew_derive::PageRef::Generated { index, .. } if index > 0)),
+        "the golden page order has a continuation page"
+    );
+    let (mut compared, mut indices) = (0, std::collections::BTreeSet::new());
+    for (key, id) in &ids {
+        if !key.starts_with("representations|") {
+            continue;
+        }
+        let text = q.get::<XrefTextOf>(Id::from_str(id).unwrap());
+        for link in &text.links {
+            let item = &text.text[link.range.clone()];
+            let cell = s.link_targets(&[Destination::Representation(link.rep.as_uuid())])[0]
+                .clone()
+                .unwrap()
+                .cell
+                .unwrap();
+            // The IP and main-to-aux items are the cell alone; the aux-to-main item wraps it in parentheses.
+            assert!(item.contains(&cell), "{key}: {item} vs {cell}");
+            indices.insert(cell.split('.').next().unwrap().to_owned());
+            compared += 1;
+        }
+    }
+    assert!(compared >= 30, "{compared}");
+    assert!(
+        indices.contains("6"),
+        "folio 101 is the sixth page record: {indices:?}"
+    );
+    assert!(indices.len() >= 3, "{indices:?}");
+}
+
 #[test]
 fn v1_page_rows_follow_the_page_order() {
     let s = golden_common::session(&batch());
