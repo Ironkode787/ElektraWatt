@@ -1272,6 +1272,31 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
     done(&mut shell, "view.workspace_load", json!({"name": "V"}));
     texts.push(shell.describe());
     shell.shutdown();
+    // The canvas on the sample project (WP-S2.02): the statistics shown, the pointer on an entity (its hover line
+    // with the box), the grid off, the pointer gone.
+    let mut sample = tmp.gui();
+    done(&mut sample, "file.open_sample", json!({}));
+    done(&mut sample, "page.goto", json!({"folio": "103"}));
+    done(&mut sample, "view.frame_stats", json!({}));
+    let (x, y) = sample
+        .canvas()
+        .and_then(|c| {
+            c.page()
+                .entities
+                .last()
+                .map(|(_, r)| ew_viewmodel::canvas::rect_centre(*r))
+        })
+        .expect("folio 103 has entities");
+    done(
+        &mut sample,
+        "canvas.pointer",
+        json!({"x_mm": x as f64 / 1e6, "y_mm": y as f64 / 1e6}),
+    );
+    texts.push(sample.describe());
+    done(&mut sample, "view.grid", json!({}));
+    done(&mut sample, "canvas.pointer", json!({}));
+    texts.push(sample.describe());
+    sample.shutdown();
     // A wizard whose preview is not available says why.
     let mut config = tmp.config();
     config.resources.sample_dir = None;

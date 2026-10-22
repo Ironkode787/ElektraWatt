@@ -5,14 +5,15 @@
 //! element, in paint order. It is what an agent reads instead of a screenshot.
 //!
 //! Paint order: the window title, the menu bar with every entry and its enabled state (and reason), the banner,
-//! the first-run flow, the wizard, or the project view (the page list, the page view, the workspace and its
-//! layout), or the start page, the status bar, then the palette or a dialog, then the last documentation request.
+//! the first-run flow, the wizard, or the project view (the page list, the page view and its canvas lines, the
+//! workspace and its layout), or the start page, the status bar, then the palette or a dialog, then the last documentation request.
 //! Directory names appear, paths never. The structural words are fixed English machine text (decision log ID-474):
 //! [`VOCABULARY`] lists every one of them, [`FREE_TEXT_MARKERS`] the markers after which the rest of a line is user
 //! text, and a test checks that no line the describer writes uses a word that is in neither list. Quoted text is
 //! user text (a label, a name) and not part of the vocabulary.
 
 use crate::actions::{self, ActionItem, MenuEntry, PaletteRun};
+use crate::canvas::{mm3, round_tenth};
 use crate::first_run::FirstRunStep;
 use crate::page_list::PageList;
 use crate::settings::{KEYMAPS, LANGUAGES, THEMES};
@@ -77,6 +78,18 @@ pub const VOCABULARY: &[&str] = &[
     "notices:",
     "lines",
     "help:",
+    // The canvas lines (WP-S2.02 part 1, decision log ID-511): a reviewed vocabulary change.
+    "canvas",
+    "zoom",
+    "view",
+    "grid",
+    "pointer",
+    "hover",
+    "box",
+    "mm",
+    "none",
+    "backend",
+    "statistics",
 ];
 
 /// The markers after which the rest of the line is user text (a title, a banner, an error, a reason, a folio, a
@@ -316,8 +329,48 @@ fn project_view(model: &ShellModel, lines: &mut Vec<String>) {
         Some(folio) => lines.push(format!("page view: {folio}")),
         None => lines.push(format!("page view: {}", strings::text("page-no-pages"))),
     }
+    canvas_lines(model, lines);
     lines.push(format!("workspace \"{}\"", model.workspace()));
     lines.push(format!("layout: {}", model.layout().describe()));
+}
+
+/// The canvas lines after the page-view line (WP-S2.02 section 6.6): millimetres with three decimals from whole
+/// nanometres, the zoom with one decimal; the grid and backend labels are quoted user text.
+fn canvas_lines(model: &ShellModel, lines: &mut Vec<String>) {
+    let Some(c) = model.canvas() else { return };
+    let [x0, y0, x1, y1] = c.view_nm();
+    lines.push(format!(
+        "canvas zoom {:.1} % view {} {} {} {} mm",
+        round_tenth(c.zoom() * 100.0),
+        mm3(x0),
+        mm3(y0),
+        mm3(x1),
+        mm3(y1)
+    ));
+    if model.grid_on() && c.page().grid.is_some() {
+        lines.push(format!("canvas grid on \"{}\"", crate::status::grid_text(model)));
+    } else {
+        lines.push("canvas grid off".to_owned());
+    }
+    match c.pointer() {
+        Some((x, y)) => lines.push(format!("canvas pointer {} {} mm", mm3(x), mm3(y))),
+        None => lines.push("canvas pointer none".to_owned()),
+    }
+    match c.hover() {
+        Some((entity, r)) => lines.push(format!(
+            "canvas hover \"{}\" box {} {} {} {} mm",
+            entity.0,
+            mm3(r.min().x.0),
+            mm3(r.min().y.0),
+            mm3(r.max().x.0),
+            mm3(r.max().y.0)
+        )),
+        None => lines.push("canvas hover none".to_owned()),
+    }
+    lines.push(format!("canvas backend \"{}\"", model.canvas_backend().label()));
+    if model.frame_stats_shown() {
+        lines.push("canvas statistics shown".to_owned());
+    }
 }
 
 fn dialog(model: &ShellModel, lines: &mut Vec<String>) {

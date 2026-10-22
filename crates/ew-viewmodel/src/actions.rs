@@ -79,6 +79,8 @@ pub enum Submenu {
     UiScale,
     /// View, Workspace: one item per workspace, then save and reset.
     Workspace,
+    /// View, Pan: left, right, up, down.
+    Pan,
 }
 
 impl Submenu {
@@ -89,6 +91,7 @@ impl Submenu {
             Submenu::Export => "submenu-export",
             Submenu::UiScale => "submenu-ui-scale",
             Submenu::Workspace => "submenu-workspace",
+            Submenu::Pan => "submenu-pan",
         }
     }
 }
@@ -218,6 +221,22 @@ fn page_shown(m: &ShellModel) -> Result<(), &'static str> {
         Ok(())
     } else {
         Err("reason-no-page")
+    }
+}
+
+fn can_zoom_in(m: &ShellModel) -> Result<(), &'static str> {
+    has_pages(m)?;
+    match m.canvas() {
+        Some(c) if c.zoom() >= crate::canvas::ZOOM_MAX => Err("reason-zoom-max"),
+        _ => Ok(()),
+    }
+}
+
+fn can_zoom_out(m: &ShellModel) -> Result<(), &'static str> {
+    has_pages(m)?;
+    match m.canvas() {
+        Some(c) if c.zoom() <= crate::canvas::ZOOM_MIN => Err("reason-zoom-min"),
+        _ => Ok(()),
     }
 }
 
@@ -474,12 +493,93 @@ pub static ACTIONS: &[ActionMeta] = &[
         slot_sep(Menu::Page),
     ),
     act(
+        "view.zoom_in",
+        View,
+        "action-view-zoom-in",
+        Menu::View,
+        &["Ctrl+Plus", "Ctrl+Equals"],
+        can_zoom_in,
+        slot(Menu::View),
+    ),
+    act(
+        "view.zoom_out",
+        View,
+        "action-view-zoom-out",
+        Menu::View,
+        &["Ctrl+Minus"],
+        can_zoom_out,
+        slot(Menu::View),
+    ),
+    act(
+        "view.zoom_actual",
+        View,
+        "action-view-zoom-actual",
+        Menu::View,
+        &["Ctrl+0"],
+        has_pages,
+        slot(Menu::View),
+    ),
+    act(
         "view.fit_page",
         View,
         "action-view-fit-page",
         Menu::View,
         &["Home"],
-        page_shown,
+        has_pages,
+        slot(Menu::View),
+    ),
+    act(
+        "view.pan_left",
+        View,
+        "action-view-pan-left",
+        Menu::View,
+        &["Ctrl+Arrow Left"],
+        has_pages,
+        sub(Menu::View, Submenu::Pan, false),
+    ),
+    act(
+        "view.pan_right",
+        View,
+        "action-view-pan-right",
+        Menu::View,
+        &["Ctrl+Arrow Right"],
+        has_pages,
+        sub(Menu::View, Submenu::Pan, false),
+    ),
+    act(
+        "view.pan_up",
+        View,
+        "action-view-pan-up",
+        Menu::View,
+        &["Ctrl+Arrow Up"],
+        has_pages,
+        sub(Menu::View, Submenu::Pan, false),
+    ),
+    act(
+        "view.pan_down",
+        View,
+        "action-view-pan-down",
+        Menu::View,
+        &["Ctrl+Arrow Down"],
+        has_pages,
+        sub(Menu::View, Submenu::Pan, false),
+    ),
+    act(
+        "view.grid",
+        View,
+        "action-view-grid",
+        Menu::View,
+        &[],
+        has_pages,
+        slot_sep(Menu::View),
+    ),
+    act(
+        "view.frame_stats",
+        View,
+        "action-view-frame-stats",
+        Menu::View,
+        &[],
+        always,
         slot(Menu::View),
     ),
     needs_parameters(act(
@@ -606,6 +706,51 @@ pub static ACTIONS: &[ActionMeta] = &[
         Menu::View,
         &[],
         page_shown,
+        None,
+    )),
+    headless(act(
+        "canvas.snapshot",
+        View,
+        "action-canvas-snapshot",
+        Menu::View,
+        &[],
+        has_pages,
+        None,
+    )),
+    hidden(act(
+        "view.zoom_to",
+        View,
+        "action-view-zoom-to",
+        Menu::View,
+        &[],
+        has_pages,
+        None,
+    )),
+    hidden(act(
+        "view.pan",
+        View,
+        "action-view-pan",
+        Menu::View,
+        &[],
+        has_pages,
+        None,
+    )),
+    hidden(act(
+        "view.canvas_resize",
+        View,
+        "action-view-canvas-resize",
+        Menu::View,
+        &[],
+        always,
+        None,
+    )),
+    hidden(act(
+        "canvas.pointer",
+        View,
+        "action-canvas-pointer",
+        Menu::View,
+        &[],
+        has_pages,
         None,
     )),
     headless(act(
@@ -805,7 +950,11 @@ fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
         shortcut: shortcut_text(meta),
         enabled: state.is_ok(),
         reason: state.err().map(|k| strings::text(k).to_owned()),
-        checked: false,
+        checked: match meta.id {
+            "view.grid" => model.grid_on(),
+            "view.frame_stats" => model.frame_stats_shown(),
+            _ => false,
+        },
         topic: crate::help::action_topic(meta.id),
     }
 }
@@ -817,6 +966,7 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
     };
     match submenu {
         Submenu::Export => vec![item_of(meta, model)],
+        Submenu::Pan => metas.iter().map(|m| item_of(m, model)).collect(),
         Submenu::Workspace => {
             let active = model.workspace();
             let mut items = Vec::new();
@@ -976,6 +1126,7 @@ mod tests {
             Submenu::Export,
             Submenu::UiScale,
             Submenu::Workspace,
+            Submenu::Pan,
         ] {
             assert!(strings::lookup(s.label_key()).is_some());
         }

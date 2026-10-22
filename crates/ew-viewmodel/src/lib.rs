@@ -8,7 +8,8 @@
 //! The shell ([`shell::ShellModel`]) holds all application state and has one mutating entry point,
 //! [`shell::ShellModel::dispatch`], over the action registry of [`actions`]. It reaches the project only through
 //! `ew_api::Session`. The egui frame (`ew-ui`) and the headless runner ([`script`]) drive the same `dispatch`.
-//! There is no egui, wgpu or winit here.
+//! Since WP-S2.02 part 1 the shell holds the canvas model ([`canvas`]): zoom, pan, the pointer and the hover pick
+//! of the page on show. There is no egui, wgpu or winit here.
 
 #![forbid(unsafe_code)]
 
@@ -18,6 +19,7 @@ pub use ew_api;
 
 pub mod about;
 pub mod actions;
+pub mod canvas;
 pub mod describe;
 pub mod first_run;
 pub mod help;

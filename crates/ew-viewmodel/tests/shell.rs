@@ -98,7 +98,10 @@ fn the_shell_starts_on_the_start_page_and_opens_a_project() {
         status[1],
         format!("{} (1 of {})", shell.page_labels()[0], shell.page_count())
     );
-    assert_eq!(status[2], "saved");
+    // The canvas's zoom and grid fields stand between the page and the save state (WP-S2.02 section 6.5).
+    assert!(status[2].ends_with(" %"), "{status:?}");
+    assert_eq!(status[3], "QET 10 px");
+    assert_eq!(status[4], "saved");
     // The opened project is the first recent one.
     assert_eq!(shell.recent_names(), ["J-E-2416.ew"]);
     shell.shutdown();
@@ -169,7 +172,7 @@ fn edits_undo_redo_save_and_close() {
     assert!(shell.is_dirty());
     assert!(shell.can_undo());
     assert!(shell.title().starts_with("*g.ew - "), "{}", shell.title());
-    assert_eq!(shell.status_fields(false)[2], "*");
+    assert_eq!(shell.status_fields(false)[4], "*");
     assert_eq!(shell.page_count(), before.len() + 1);
     assert!(shell.page_labels().iter().any(|l| l == "999"));
     assert_eq!(shell.recorded_commands().len(), 1);
@@ -193,7 +196,7 @@ fn edits_undo_redo_save_and_close() {
 
     assert_eq!(shell.dispatch("file.save", &Value::Null), Outcome::Done);
     assert!(!shell.is_dirty());
-    assert_eq!(shell.status_fields(false)[2], "saved");
+    assert_eq!(shell.status_fields(false)[4], "saved");
     assert_eq!(shell.dispatch("file.close", &json!({})), Outcome::Done);
     assert!(!shell.has_project());
     assert_eq!(shell.title(), "ElektraWatt");
@@ -287,7 +290,7 @@ fn a_second_shell_opens_a_held_project_read_only() {
         "{:?}",
         second.banner()
     );
-    assert!(second.status_fields(false)[2].starts_with("read-only: "));
+    assert!(second.status_fields(false)[4].starts_with("read-only: "));
     assert_eq!(refused(&mut second, "file.save", json!({})), "reason-read-only");
     assert_eq!(refused(&mut second, "edit.undo", json!({})), "reason-read-only");
     assert_eq!(

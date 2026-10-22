@@ -10,6 +10,7 @@
 //! every menu item, palette entry, shortcut and dialog result and read the getters to paint or to describe, so
 //! anything the headless mode cannot do the shell does not do (spec section 6).
 
+use std::cell::Cell;
 use std::path::{Path, PathBuf};
 
 use ew_api::output::{ExportOptions, ExportPages, PageSelection};
@@ -20,6 +21,7 @@ use ew_api::{
 use serde_json::{Map, Value, json};
 
 use crate::actions::{self, ACTIONS, PaletteEntry, PaletteRun};
+use crate::canvas::{CanvasBackend, CanvasModel, HEADLESS_PANE};
 use crate::first_run::FirstRun;
 use crate::layout::Layout;
 use crate::settings::{self, Settings, UI_SCALES, scale_index};
@@ -27,6 +29,7 @@ use crate::status;
 use crate::strings;
 use crate::wizard::Wizard;
 
+mod canvas_actions;
 mod onboarding;
 mod projects;
 mod workspaces;
@@ -299,6 +302,21 @@ pub struct ShellModel {
     doc_request: Option<DocRequest>,
     /// The target of the last documentation request, kept for `ui.describe`.
     last_help: Option<String>,
+    /// The canvas of the page on show (WP-S2.02): its view and the page content it shows.
+    canvas: Option<CanvasModel>,
+    /// The canvas pane in logical points and its pixels per point, kept across pages.
+    canvas_pane: (f64, f64),
+    canvas_ppp: f64,
+    /// Whether the page grid is drawn.
+    grid_on: bool,
+    /// Whether the frame-statistics overlay is shown.
+    frame_stats: bool,
+    /// Where the canvas draws (set by the host).
+    canvas_backend: CanvasBackend,
+    /// The (revision, folio) whose content could not be built, and why.
+    canvas_error: Option<(u64, String, String)>,
+    /// How many sheet display lists the shell has built (engine-statistics tests).
+    page_content_calls: Cell<u64>,
 }
 
 /// The directory's own name, never its path.
@@ -379,6 +397,22 @@ fn clears_banner(id: &str) -> bool {
             | "help.documentation"
             | "file.discard_journal"
             | "view.snapshot"
+            // The canvas's view actions leave a banner standing: moving the pointer or resizing the window must not
+            // dismiss what the banner says (WP-S2.02 lead ruling).
+            | "view.zoom_in"
+            | "view.zoom_out"
+            | "view.zoom_actual"
+            | "view.pan_left"
+            | "view.pan_right"
+            | "view.pan_up"
+            | "view.pan_down"
+            | "view.grid"
+            | "view.frame_stats"
+            | "view.zoom_to"
+            | "view.pan"
+            | "view.canvas_resize"
+            | "canvas.pointer"
+            | "canvas.snapshot"
     )
 }
 
@@ -423,6 +457,14 @@ impl ShellModel {
             layout_changed_at: None,
             doc_request: None,
             last_help: None,
+            canvas: None,
+            canvas_pane: HEADLESS_PANE,
+            canvas_ppp: 1.0,
+            grid_on: true,
+            frame_stats: false,
+            canvas_backend: CanvasBackend::Cpu,
+            canvas_error: None,
+            page_content_calls: Cell::new(0),
         };
         model.load_active_workspace();
         model
@@ -663,6 +705,7 @@ impl ShellModel {
         let Some(p) = &self.project else {
             return Err(strings::text("reason-no-project").to_owned());
         };
+        self.page_content_calls.set(self.page_content_calls.get() + 1);
         p.session
             .export_pages(&ExportOptions {
                 pages: PageSelection::Folios(vec![folio.to_owned()]),
@@ -816,7 +859,15 @@ impl ShellModel {
         if let Err(reason_key) = (meta.enabled)(self) {
             return Outcome::Refused { reason_key };
         }
-        match meta.id {
+        let outcome = self.run_action(meta.id, p);
+        // The canvas follows the page and the revision the action left (WP-S2.02 section 6.1).
+        self.sync_canvas();
+        outcome
+    }
+
+    /// The body of [`ShellModel::dispatch`] for an enabled action.
+    fn run_action(&mut self, id: &'static str, p: &Map<String, Value>) -> Outcome {
+        match id {
             "file.new" => self.act_new(p),
             "file.open_sample" => self.act_open_sample(p),
             "file.import_qet" => self.act_import_qet(p),
@@ -855,7 +906,22 @@ impl ShellModel {
             "page.first" => self.go_to_index(0),
             "page.last" => self.go_to_index(self.page_count().saturating_sub(1)),
             "page.goto" => self.act_goto(p),
-            "view.fit_page" | "ui.describe" => Outcome::Done,
+            "view.fit_page" => self.act_fit_page(),
+            "view.zoom_in" => self.act_zoom_in(),
+            "view.zoom_out" => self.act_zoom_out(),
+            "view.zoom_actual" => self.act_zoom_actual(),
+            "view.pan_left" => self.act_pan_step(-1.0, 0.0),
+            "view.pan_right" => self.act_pan_step(1.0, 0.0),
+            "view.pan_up" => self.act_pan_step(0.0, -1.0),
+            "view.pan_down" => self.act_pan_step(0.0, 1.0),
+            "view.grid" => self.act_grid(),
+            "view.frame_stats" => self.act_frame_stats(),
+            "view.zoom_to" => self.act_zoom_to(p),
+            "view.pan" => self.act_pan(p),
+            "view.canvas_resize" => self.act_canvas_resize(p),
+            "canvas.pointer" => self.act_pointer(p),
+            "canvas.snapshot" => failed("message-no-snapshot", &[]),
+            "ui.describe" => Outcome::Done,
             "view.ui_scale" => self.act_ui_scale(p),
             "tools.palette" => self.act_palette(p),
             "help.shortcuts" => self.open_dialog(Dialog::Shortcuts),

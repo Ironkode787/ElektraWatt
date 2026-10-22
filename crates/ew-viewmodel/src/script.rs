@@ -12,8 +12,12 @@
 //! then one object per step: `step`, `action`, `outcome` (`done`, `refused` or `failed`), `reason` (the key of a
 //! refusal or null), `message` (the text of a failure or null), `state`, and for `ui.describe` the member
 //! `describe`. `state` holds, in this order: `title`, `project` (the directory name, never a path), `access`,
-//! `dirty`, `page`, `page_index` (0-based), `page_count`, `can_undo`, `can_redo`, `banner`, `status`. Nothing in it
-//! depends on time, process or location: two runs of one script on equal inputs give equal bytes.
+//! `dirty`, `page`, `page_index` (0-based), `page_count`, `can_undo`, `can_redo`, `banner`, `status`, `canvas`.
+//! `canvas` (WP-S2.02 section 6.6) is `null` while no page is shown, else an object with, in this order: `folio`,
+//! `zoom` (per cent rounded to 0.1), `view_nm` (`[x0, y0, x1, y1]`, the sheet rectangle the pane shows), `grid`
+//! (`[num_nm, den]`, `null` when off or absent), `pointer_nm` (`[x, y]` or `null`), `hover` (the entity's UUID or
+//! `null`), `backend` (the label) and `statistics` (whether the overlay is shown). Nothing in it depends on time,
+//! process or location: two runs of one script on equal inputs give equal bytes.
 //!
 //! The core runner lives here; a [`StepExtension`] adds what needs a renderer (`view.snapshot`).
 
@@ -277,6 +281,34 @@ pub fn state_json(shell: &ShellModel) -> String {
         member("can_redo", &Value::from(shell.can_redo())),
         member("banner", &opt(shell.banner())),
         member("status", &Value::from(shell.status_fields(false))),
+        format!("\"canvas\":{}", canvas_json(shell)),
+    ])
+}
+
+/// The `canvas` member of the state as JSON text, members in the documented order (see the module
+/// documentation).
+fn canvas_json(shell: &ShellModel) -> String {
+    let Some(c) = shell.canvas() else {
+        return "null".to_owned();
+    };
+    let grid = c
+        .page()
+        .grid
+        .filter(|_| shell.grid_on())
+        .map_or(Value::Null, |g| Value::from(vec![g.num_nm, g.den]));
+    let pointer = c.pointer().map_or(Value::Null, |(x, y)| Value::from(vec![x, y]));
+    let hover = c
+        .hover()
+        .map_or(Value::Null, |(e, _)| Value::from(e.0.to_string()));
+    object(vec![
+        member("folio", &Value::from(c.page().folio.as_str())),
+        member("zoom", &Value::from(crate::canvas::round_tenth(c.zoom() * 100.0))),
+        member("view_nm", &Value::from(c.view_nm().to_vec())),
+        member("grid", &grid),
+        member("pointer_nm", &pointer),
+        member("hover", &hover),
+        member("backend", &Value::from(shell.canvas_backend().label())),
+        member("statistics", &Value::from(shell.frame_stats_shown())),
     ])
 }
 
@@ -533,6 +565,7 @@ mod tests {
             "\"can_redo\"",
             "\"banner\"",
             "\"status\"",
+            "\"canvas\"",
         ];
         let state = &lines[1][lines[1].find("\"state\"").unwrap()..];
         let at: Vec<usize> = state_order.iter().map(|k| state.find(k).unwrap()).collect();
