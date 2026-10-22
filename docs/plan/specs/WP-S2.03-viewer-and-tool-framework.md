@@ -104,6 +104,19 @@ to the lead for this specification and which are recorded as taken. The design p
 | D12 | **The headless mode and `ui.describe` grow by the members and words of §6.10 and §7.9** (ID-474 extended; a reviewed transcript change, as ID-511 was) | The blind drafter navigates, follows, goes to, moves the cursor, uses Select and Measure, and reads all of it back |
 | D13 | **FT-345 and FT-356 are closed by part 1.** The cell in the status bar uses `PageCells`; hidden tabs keep their tiles within a quarter of the cache | Both waited for tabs and the cell lookup of this package |
 
+**Rulings on the design review (delegated, 2026-10-22).** The independent Opus review accepted D1 to D13 and the five
+delegated rulings after a fix round, and the owner's delegate ruled on its points:
+1. The jump view's factor of twice the fit (D7), the Shift+Arrow cell step (§6.6) and a click on a link following it
+   rather than selecting (§7.6) stand until the R0 usability round (WP-S2.12) says otherwise.
+2. FR-PAG-024's acceptance text is rewritten by the design pass to the as-built page order of 36 entries on Golden A.
+3. The 1.9 pw between the parts' 4.9 pw and the PERT stays a reserve inside WP-S2.03, drawn on for part 1 first, which
+   is broader than WP-S2.02 part 1 was; the orchestrator plans part 1 as one lane-cycle plus a fix round.
+4. egui_tiles 0.18.0 cannot refuse a drop, so rebuilding the canvas-area tree from the model after every structural
+   change (§6.2) is the design, not a fallback.
+5. V1's check that every link target's `at_nm` equals the anchor of its `Link::Target` item stops the lane when it
+   fails, for a lead ruling.
+6. FR-UI-015's acceptance and FR-UI-018's rest move out of this package (§14).
+
 ## 4. Crates and boundaries
 
 ### 4.1 Roles
@@ -138,10 +151,10 @@ to the lead for this specification and which are recorded as taken. The design p
 |---|---|---|---|
 | 1 | `ew-dl` | `pub fn DisplayList::link_sources(&self) -> Vec<(Destination, Rect)>` | For every item at any depth whose `link` is `Link::Source(d)`: `d` and the axis-aligned bounds, under the enclosing transforms, of the rectangle the PDF writer annotates (a glyph run's `layout_quad`, else the item's control-point bounds; `ew-export`'s `pdf.rs` rule); in paint order (depth first, pre-order); items without a point are left out. MIT OR Apache-2.0 headers |
 | 1 | `ew-api` | `pub struct PageRow { pub id: Uuid, pub folio: String, pub title: String, pub kind: String, pub kind_rank: u16, pub generated: bool, pub section: Option<(u32, String)>, pub function: Option<String>, pub location: Option<String>, pub qet_grid: bool }` in `output`; `pub fn Session::page_rows(&self) -> Vec<PageRow>` | One row per entry of the derived page order, in that order (the entries of `Session::page_labels`, same count and folios). `id` is `output::page_uuid` of the entry (a drawn page's ID, a divider's section ID, a generated page's v5 ID); `title` the neutral page title without the folio; `kind` the page type's snake_case spelling and `kind_rank` its position in the schema's `PageType` declaration; `generated` for report pages; `section` the section's number and neutral title (`None` for front matter); `function` and `location` the page's `=` and `+` designations as printed (`None` when unassigned); `qet_grid` when the page's connection grid is the QET grid `7_937_500/3` nm |
-| 1 | `ew-api` | `pub struct CellLabel { pub row: String, pub column: String }` (`Display`: row then column, `H15`); `pub struct PageCells` (opaque) with `pub fn cell_at(&self, sheet: (i64, i64)) -> Option<CellLabel>`, `pub fn cell_rect(&self, cell: &CellLabel) -> Option<[i64; 4]>`, `pub fn text(&self, cell: &CellLabel) -> String`, `pub fn pitch_nm(&self) -> (i64, i64)`; `pub fn Session::page_cells(&self, folio: &str) -> Option<PageCells>` | `None` when no page has that folio or the page has no frame grid. `cell_at` maps the sheet point to page coordinates by the inverse of the page frame's sheet map (`PageGrid`'s map: `page = (sheet − offset) × 10⁹ / scale_ppb`, each axis in `i128`, rounded half away from zero) and evaluates `ew_derive`'s exact rule (`cell_in_grid` with the page's connection grid and its 1 nm on-grid window, doc 06 §5.1); `None` outside the drawing area. `cell_rect` is the cell's page rectangle mapped to the sheet, each edge rounded to the nearest nm; row and column labels match ASCII case-insensitively. `text` prints the cell in the project's `ip` cross-reference format for this page (`102-H15`; `{function}` and `{location}` empty, `{page_index}` the page's position). `pitch_nm` is the column width and row height on the sheet, rounded to nm. Evaluating a `PageCells` never touches the `Session` |
-| 1 | `ew-api` | `pub struct GotoTarget { pub page: Uuid, pub folio: String, pub cell: Option<CellLabel>, pub rect_nm: Option<[i64; 4]> }`; `pub enum GotoError { Empty, NotFound, NoSuchCell { folio: String, cell: String } }`; `pub fn Session::resolve_goto(&self, text: &str) -> Result<GotoTarget, GotoError>` | `text` trimmed; empty is `Empty`. A text equal to a printed folio label is that page with no cell. Otherwise it is parsed against the project's `ip` format (`{page}` a folio label, `{row}` and `{column}` labels of the target page's frame, `{page_index}` digits naming a position, `{function}` and `{location}` any non-empty text, ignored); a parse naming an existing folio and cell gives the cell and its `cell_rect`; an existing folio with an unknown cell is `NoSuchCell`; anything else `NotFound`. FR-UI-039's examples hold: `103-A1` in the QET-style format, `/103.A1` after the EPLAN cell preset is set |
-| 1 | `ew-api` | `pub struct LinkTarget { pub page: Uuid, pub folio: String, pub at_nm: Option<(i64, i64)>, pub cell: Option<String> }`; `pub fn Session::link_targets(&self, dests: &[ew_dl::Destination]) -> Vec<Option<LinkTarget>>` | One result per input, in order. `Representation(r)` and `Cp(c)`: the page whose sheet display list holds the item `Link::Target` of that destination, `at_nm` that item's anchor in sheet nm (the point the PDF's named destination uses), `cell` the anchor's cell printed by `PageCells::text`; `Page(p)`: that page, `at_nm` and `cell` `None`. `None` when the destination is not in this project's page order (an external reference) or does not exist. The implementation may derive the page and point through `Q` (the representation's page, its anchor point, the sheet map) but must not build the display list of a page other than the targets' own; A-check V1 pins the equality with the target items |
-| 2 | `ew-api` | `pub struct PageCp { pub id: Uuid, pub label: String, pub at_nm: (i64, i64), pub grid_index: Option<(i64, i64)>, pub connected: bool }`; `pub fn Session::page_cps(&self, folio: &str) -> Vec<PageCp>` | Every connection point drawn on the page: `id` its v5 ID (`Destination::Cp`'s), `label` as `cp_label` prints it (`-102F1:2`), `at_nm` its point on the sheet (`cp_point` under the sheet map, rounded to nm), `grid_index` the index `k` of the page's connection grid when the page point lies within 1 nm of `k × g` (always, by FR-SYM-009, for symbol CPs), `connected` whether any connection ends at it. In reading order (§6.4). Empty for an unknown folio or a page without CPs |
+| 1 | `ew-api` | `pub struct CellLabel { pub row: String, pub column: String, pub row_index: u32, pub column_index: u32 }` (`Display`: row then column, `H15`; the indices are 0-based positions in the frame grid, so ordering never compares labels, which misorder `10` before `2` and custom labels); `pub struct PageCells` (opaque) with `pub fn cell_at(&self, sheet: (i64, i64)) -> Option<CellLabel>`, `pub fn cell_rect(&self, cell: &CellLabel) -> Option<[i64; 4]>`, `pub fn text(&self, cell: &CellLabel) -> String`, `pub fn pitch_nm(&self) -> (i64, i64)`; `pub fn Session::page_cells(&self, folio: &str) -> Option<PageCells>` | `None` when no page has that folio or the page has no frame grid. `cell_at` maps the sheet point to page coordinates by the inverse of the page frame's sheet map (`PageGrid`'s map: `page = (sheet − offset) × 10⁹ / scale_ppb`, each axis in `i128`, rounded half away from zero) and evaluates `ew_derive`'s exact rule (`cell_in_grid` with the page's connection grid and its 1 nm on-grid window, doc 06 §5.1); `None` outside the drawing area. `cell_rect` is the cell's page rectangle mapped to the sheet, each edge rounded to the nearest nm; row and column labels match ASCII case-insensitively. `text` prints the cell in the project's `ip` cross-reference format for this page (`102-H15`; `{function}` and `{location}` empty, `{page_index}` the page's position). `pitch_nm` is the column width and row height on the sheet, rounded to nm. Evaluating a `PageCells` never touches the `Session` |
+| 1 | `ew-api` | `pub struct GotoTarget { pub page: Uuid, pub folio: String, pub cell: Option<CellLabel>, pub rect_nm: Option<[i64; 4]> }`; `pub enum GotoError { Empty, NotFound, NoSuchCell { folio: String, cell: String } }`; `pub fn Session::resolve_goto(&self, text: &str) -> Result<GotoTarget, GotoError>` | `text` trimmed; empty is `Empty`. A text equal to a printed folio label is that page with no cell. Otherwise it is parsed against the project's `ip` format (`{page}` a folio label, `{row}` and `{column}` labels of the target page's frame, `{page_index}` decimal digits naming a 1-based position in page order, `{function}` and `{location}` any non-empty text, ignored). Because a `{row}{column}` pair without a separator, or a folio label that contains the format's separator, can parse in more than one way, the parse tries the folios in page order, matches every label exactly (row and column labels ASCII case-insensitively, folios exactly) and consumes the whole text; it is accepted only when exactly one (folio, row, column) parse exists, and two or more distinct parses are `NotFound`. A unique parse naming an existing folio and cell gives the cell and its `cell_rect`; a unique folio parse whose cell part matches no label of that page is `NoSuchCell`; anything else `NotFound`. FR-UI-039's examples hold: `103-A1` in the QET-style format, `/103.A1` after the EPLAN cell preset is set |
+| 1 | `ew-api` | `pub struct LinkTarget { pub page: Uuid, pub folio: String, pub at_nm: Option<(i64, i64)>, pub cell: Option<String> }`; `pub fn Session::link_targets(&self, dests: &[ew_dl::Destination]) -> Vec<Option<LinkTarget>>` | One result per input, in order. `Representation(r)` and `Cp(c)`: the page whose sheet display list holds the item `Link::Target` of that destination, `at_nm` that item's anchor in sheet nm (the point the PDF's named destination uses); when several pages hold a target of one destination, the first in page order wins, as the PDF writer resolves it. `cell` is `ew_derive`'s cell of the target's page point (`rep_anchor_cell` for a representation, `cp_cell` for a CP), printed exactly as the xref text of that target prints it (the project's `ip` format with the xref engine's `{function}` and `{location}` rule), with no round trip through the sheet. `Page(p)`: that page, `at_nm` and `cell` `None`. `None` when the destination is not in this project's page order (an external reference) or does not exist. **Cost:** the page lookup and the cell go through `Q` (memoised families); at most one sheet display list per distinct target page is built (the memoised page list, as `page_content` builds it), never one of another page. V1 pins the equality of `at_nm` with the target items; a mismatch stops the lane (ruling 5) |
+| 2 | `ew-api` | `pub struct PageCp { pub id: Uuid, pub label: String, pub at_nm: (i64, i64), pub grid_index: Option<(i64, i64)>, pub connected: bool }`; `pub fn Session::page_cps(&self, folio: &str) -> Vec<PageCp>` | Every connection point drawn on the page: `id` its v5 ID (`Destination::Cp`'s), `label` as `cp_label` prints it (`-102F1:2`), `at_nm` its point on the sheet (`cp_point` under the sheet map, rounded to nm), `grid_index` the index `k` of the page's connection grid when the page point lies within 1 nm of `k × g` (always, by FR-SYM-009, for symbol CPs), `connected` whether any connection ends at it. In reading order (§6.4), computed in `ew-api` with the same `column_index` and `row_index` of the CP's cell (`cp_cell`) that `CellLabel` carries. Empty for an unknown folio or a page without CPs |
 
 ## 5. Dependencies
 
@@ -169,15 +182,20 @@ revision and kept in `ShellModel`:
 **Trees.** `flat`: one level, the pages. `section`: a node per section in section-number order, front matter first under
 the node `Front matter`, then the pages. `structure`: function (`=`) nodes, location (`+`) nodes inside them, section
 nodes inside those, then the pages; a page without a `function` or `location` sits under the node `(none)` of that
-level. Node keys are stable strings (`s:<n>`, `f:<text>`, `l:<text>`, `p:<page uuid>`); nodes are ordered by their first
-page in the chosen sort. **Row text:** a page row is `<folio> <title>` with the badges `generated` and `QET grid`
+level. Node keys are stable path strings, unique in every mode because a location or section node repeats under
+different parents: in `structure` mode `f:<text>`, `f:<text>/l:<text>`, `f:<text>/l:<text>/s:<n>` (the `(none)`
+nodes as `f:-` and `l:-`, front matter as `s:front`); in `section` mode `s:<n>` and `s:front`; a page row is
+`<parent key>/p:<page uuid>`, or `p:<page uuid>` in `flat` mode. Nodes are ordered by their first page in the chosen
+sort. **Row text:** a page row is `<folio> <title>` with the badges `generated` and `QET grid`
 (FR-UI-018, FR-PAG-021: the marker on QET-grid pages) and `current` on the focused tab's page.
 
 **Keyboard** (doc 16 §5.1): Up and Down move the row cursor, Left collapses (or moves to the parent), Right expands,
 Enter opens the row's page in the focused tab (a jump, §6.3), Ctrl+Enter in a new tab; Home and End go to the first and
 last row. A click opens; a middle click opens in a new tab. Rows are drawn with egui's row virtualisation
-(`ScrollArea::show_rows`). **Accessible names:** `"<folio> <title>, page, <badges>, level n, m of k"` and for a node
-`"<label>, <section|function|location>, level n, m of k"` (doc 16 §5.1).
+(`ScrollArea::show_rows`). **Accessibility:** a page row is a `TreeItem` named `"<folio> <title>, page, <badges>"`, a
+node a `TreeItem` named `"<label>, <section|function|location>"`; the level, the position in its set, the set size and
+the expanded state are AccessKit's own properties (`level`, `position_in_set`, `size_of_set`, `expanded`), not words in
+the name, so a screen reader speaks them in its own way (doc 16 §5.1's "level n, m of k" is what they read out).
 
 Not in part 1: multi-selection, drag to reorder with the renumber preview, type-ahead, facets (§12).
 
@@ -194,9 +212,14 @@ Not in part 1: multi-selection, drag to reorder with the renumber preview, type-
 
 **Pages are kept by identity.** A tab names its page by `PageRow::id`, so a renumber that changes folios keeps the tab on
 its page; after a revision change a tab whose page no longer exists moves to the page at the same position in page order
-(clamped), as the shell does today. **Page content is shared:** `ShellModel` keeps one `Arc<CanvasPage>` per (revision,
-folio) for the tabs that show it, built once by the existing `sync_canvas` path and dropped at the end of a dispatch
-when no tab refers to it; two tabs on one page share it.
+(clamped), as the shell does today. **The page-content cache.** `ShellModel` keeps a `PageCache` of `Arc<CanvasPage>`
+keyed by (revision, folio): a `CanvasPage` holds the sheet display list, its entity rectangles, the link list with its
+resolved targets (§6.4), the `PageCells`, the `PageGrid` and, in part 2, the `page_cps`, so every `Session` call a page
+needs is made once per entry, by the existing `sync_canvas` path. At the end of each dispatch the cache keeps every
+page a tab shows plus the 8 most recently shown other pages (by a show counter) and drops the rest; a revision change
+clears it. Two tabs on one page share an entry; Back, Forward and tab switches to a page still in the cache make no
+`Session` call; the link preview of §7.8 reads its target page through the same cache. The exact counts of §8 item 3
+are counted against it.
 
 **Invariants:** at least one group and one tab while a project is open; at most two groups; at most 32 tabs over both
 groups; the focused group's active tab is the shell's current page (`current_folio`, `page_index`, `canvas()` and the
@@ -217,11 +240,16 @@ transcript's `page` keep their meaning for it, so the existing tests keep passin
 version changes (a counter bumped by every structural change, like `layout_version`): one `Tabs` container per group in a
 horizontal `Linear` container with equal shares. Tab titles are `<folio> <title>` with the badges `QET grid` and
 `generated`. A tab click dispatches `tab.activate`, a close button `tab.close` (after activating), a tab drag within or
-between the groups `tab.move`; any other structural change the tree reports (a drop that would make a third group or a
-vertical split) is discarded and the tree rebuilt from the model, so the two-group invariant always holds. Each group
-paints its active tab's canvas with that group's pane size (`view.canvas_resize` with `group`). The splitter between the
-groups has no accessible name in egui_tiles 0.18.0: the accessible-name walker's skip count adds the nested tree's
-`splitter_count()` (ID-490's rule; FT-338 names them later).
+between the groups `tab.move`. egui_tiles 0.18.0 cannot refuse a drop, so **rebuilding the tree from the model is the
+design** (ruling 4): after any structural change the tree reports, the host maps what it can onto `tab.move` and
+rebuilds the tree from `CanvasArea`, discarding a third group or a vertical split, so the two-group invariant always
+holds. A splitter drag between the groups stays in the tree (its share is host state) and reaches the model only as
+`view.canvas_resize` per group with the new pane sizes. **Keyboard:** egui_tiles' `Behavior::cycle_tabs_with_keyboard`
+defaults to true in 0.18.0 and would cycle the hovered container's tabs on Ctrl+Tab outside `dispatch`, clashing with
+`tab.next`; the canvas area's behaviour returns false, and so does the dock's in `dock.rs`. Each group paints its active
+tab's canvas with that group's pane size. The splitter between the groups has no accessible name in egui_tiles 0.18.0:
+the accessible-name walker's skip count adds the nested tree's `splitter_count()` (ID-490's rule; FT-338 names them
+later).
 
 ### 6.3 Navigation: walks, jumps, history and viewports (FR-UI-019, FR-XRF-019)
 
@@ -243,8 +271,9 @@ tab's zoom before the jump. Nothing animates (doc 16 §10.4).
 
 **The link list.** When `sync_canvas` builds a `CanvasPage` it also builds `links: Vec<PageLink { dest, rect, target:
 Option<LinkTarget> }>` from `DisplayList::link_sources` and one `Session::link_targets` call over the distinct
-destinations, in **reading order**: by the cell of the rectangle's centre (column, then row, from the page's `PageCells`;
-no cell sorts last), then by `(y, x)` of the centre, then paint order. The same order is the order of `page_cps` (§4.2).
+destinations, in **reading order**: by the cell of the rectangle's centre (`column_index`, then `row_index` of
+`PageCells::cell_at`, never the labels; no cell sorts last), then by `(y, x)` of the centre, then paint order. The same
+order, on the same indices, is the order of `page_cps` (§4.2).
 
 **Hover.** A pointer inside a link rectangle inflated by 4 points at the current zoom hovers that link (smallest area
 wins, ties to the later in paint order); a hovered link takes precedence over the entity hover of WP-S2.02 and is drawn
@@ -368,9 +397,13 @@ the grid cursor and the link hover outline.
 **AccessKit** (doc 16 §10.1; NFR-A11Y-02): each visible canvas is one focusable node, role `Canvas`, name `Page <folio>,
 <title>`, description `<hint>, zoom <zoom>` and, while the grid cursor is shown, `, cursor <cell> x <x> y <y> mm` (one
 decimal). A child node with role `Status`, name `Canvas cursor` and polite live updates carries, after each cursor move
-or jump, `<cell>, x <x> y <y> mm` followed by `, link to <label>` when a link is at the cursor. The tab strip exposes
-`TabList` and `Tab` nodes with the tab titles; the navigator `Tree` and `TreeItem` nodes with the names of §6.1. The
-walker passes after every kittest step with the extended skip count of §6.2.
+or jump, `<cell>, x <x> y <y> mm` followed by `, link to <label>` when a link is at the cursor. **Tabs:** egui_tiles
+0.18.0 draws a tab as a `Button` and names every close button "Close"; the canvas area's behaviour gives each tab the
+role `Tab` with its title as the name and the `selected` state on the active one, and names its close button
+`Close <folio>`; where egui_tiles exposes the tab bar as a node of its own, that node gets the role `TabList`, and where
+it does not, the missing `TabList` is recorded as a follow-up joined with FT-338 (the splitter names). The navigator
+exposes `Tree` and `TreeItem` nodes with the names and properties of §6.1. The walker passes after every kittest step
+with the extended skip count of §6.2.
 
 ### 6.10 The headless mode
 
@@ -556,9 +589,12 @@ B and returns to armed, keeping the overlay until the next move → `Escape` fro
 **The probe** (`tests/` only, never in the registry): a tool that on a drag of a selected representation emits
 `Transient(Ghost)`, on `Dwell(80)` `Preview` of `rep.move` by the snapped offset, on release `Commit` of the same
 command, and on `Escape` `Cancel`. The tests register it through `ShellModel::set_tool_for_tests`, which exists only
-with the cargo feature `test-tools` of `ew-viewmodel` (`#[cfg(feature = "test-tools")]`); the probe's tests are a test
-target with `required-features = ["test-tools"]`, and no binary enables the feature. WP-S2.04's move gesture follows
-the probe's pattern.
+with the cargo feature **`testkit`** of `ew-viewmodel` (`#[cfg(feature = "testkit")]`; the name the workspace already
+uses for test-only features of `ew-ids` and `ew-commands`, chosen over a new `test-tools`); the probe's tests are a test
+target with `required-features = ["testkit"]`. **Mandatory:** `ci/dep-rules.toml` gains `[[banned_features]] crate =
+"ew-viewmodel"`, `feature = "testkit"`, `allowed_kinds = ["dev"]`, so `cargo xtask check-features` fails if any
+non-dev edge (`ew-ui`, `elektrawatt`) requests it or a default feature reaches it: this is the mechanical proof of
+review item 3. WP-S2.04's move gesture follows the probe's pattern.
 
 ### 7.7 Keyboard tool input (FR-UI-015, NFR-A11Y-01)
 
@@ -581,8 +617,8 @@ every connection point with the keyboard alone.
 While the active tool `wants_hover`, a `canvas.dwell` of at least 300 ms with a hovered link sets `link_preview` to that
 link's target; any pointer move, cursor move or view action clears it. The window shows a popup next to the pointer: the
 target page's region of 320 × 200 points around `at_nm` at the jump view's zoom for that size, rendered on the tile
-pool's workers by `render_region` from the target page's content (fetched once per (revision, folio) through the
-shell's page-content cache), with the page bounds and a `cursor` crosshair at the target. Headless, the hidden action
+pool's workers by `render_region` from the target page's content (read through the page-content cache of §6.2, so
+fetched once per (revision, folio) while it stays cached), with the page bounds and a `cursor` crosshair at the target. Headless, the hidden action
 `canvas.preview_snapshot` with `path` writes the same image as PNG (refused without a preview, `reason-no-preview`).
 `canvas.dwell` itself is hidden (`ms`, a positive integer).
 
@@ -606,14 +642,15 @@ number of overlay items) and `link_preview` (the target's folio or `null`).
 canvas tool "Select" state idle hint "Click to select; drag for a rubber band"
 canvas snap cp "-102F1:2" at 255.000 172.500 mm          (or: canvas snap grid at … mm; canvas snap none)
 canvas selection 2 "<uuid>" "<uuid>"                       (or: canvas selection none)
-canvas preview ready "rep.move" tags 1 xrefs 2             (or stale, failed with error: <message>; or canvas preview none)
+canvas preview ready "rep.move" tags 1 xrefs 2             (or stale; or failed "rep.move" "<message>"; or canvas preview none)
 canvas overlay 3 label "dx 12.700 dy 0.000 mm, 12.700 mm"  (one line per label; or canvas overlay 0)
 canvas link preview "103"                                  (only while shown)
 ```
 
-The tool's label and hint are quoted user text. `VOCABULARY` gains `tool`, `state`, `idle`, `pressed`, `rubber-band`,
-`armed`, `measuring`, `hint`, `snap`, `cp`, `at`, `selection`, `stale`, `failed`, `tags`, `xrefs`, `overlay` and `label`
-(18 words; `preview`, `ready`, `none`, `grid`, `mm` and `link` exist).
+The tool's label and hint and a failed preview's message are quoted user text. `VOCABULARY` gains `tool`, `state`,
+`idle`, `pressed`, `rubber-band`, `armed`, `measuring`, `hint`, `snap`, `cp`, `at`, `selection`, `stale`, `failed`,
+`tags`, `xrefs` and `overlay` (17 words; `label`, `preview`, `ready`, `none`, `grid` and `mm` exist, and `link` comes
+with part 1), so the two parts add 44 words.
 
 ## 8. Determinism, the headless mode and exact counts
 
@@ -623,8 +660,8 @@ The tool's label and hint are quoted user text. `VOCABULARY` gains `tool`, `stat
 2. **Snapshots** stay CPU images (WP-S2.02 D4): `canvas.snapshot` with the cursor, the hover, the selection and the
    overlay (without labels), and `canvas.preview_snapshot`, are byte-identical on equal inputs per build target.
 3. **Exact counts** (NFR-PERF-20; WP-S2.02 A9's counters): after each page's first frame, pointer moves (over links
-   included), cursor moves, link and CP jumps within a page, tab switches between pages already shown at the same
-   revision, side by side on and off, Back and Forward between pages already shown, and Select and Measure events cause
+   included), cursor moves, link and CP jumps within a page, tab switches, side by side on and off, Back and Forward,
+   and Select and Measure events, all between pages still in the page-content cache of §6.2 at the same revision, cause
    0 memo re-executions, 0 further `page_content` calls, 0 further `link_targets`, `page_cells` or `page_cps` calls, and
    no tile requested twice while cached; a preview calls `Session::preview_with` exactly once per dwell that changes the
    command or the revision.
@@ -649,7 +686,7 @@ display lists (a link that is not there, a cell that differs), the lane stops an
 
 | # | Check | Where | Proves |
 |---|---|---|---|
-| V1 | Public items: `link_sources` exact under nested transforms and for a glyph run's `layout_quad`, equal to the PDF writer's annotation rectangles on folios 101 to 103; `page_rows` equals `page_labels` in count and folios on Golden A, with the generated flag, sections, `qet_grid` and `kind_rank`; `page_cells` on the QET frame: `cell_at` of the L-1 anchor gives H16, column 15 spans x 249.9 to 265.6 mm (doc 16 §3.6) at its edges, a boundary point belongs to the right and lower cell, outside the drawing area `None`, `cell_rect` round-trips through `cell_at`, `text` prints `102-H15`; `resolve_goto` for a folio, `103-A1`, `103-a1`, the three errors, and `/103.A1` after `project.settings.set` switches the `ip` format to the EPLAN cell preset (and `103-A1` then `NotFound`); `link_targets` resolves every link source of folios 101 to 103, each `at_nm` equal to the anchor of the matching `Link::Target` item, external references `None`; FR-XRF-019's "103-G6" at PE-1.1 targets folio 103 cell G6 | `ew-dl`, `ew-api` tests | §4.2 |
+| V1 | Public items: `link_sources` exact under nested transforms and for a glyph run's `layout_quad`, equal to the PDF writer's annotation rectangles on folios 101 to 103; `page_rows` equals `page_labels` in count and folios on Golden A, with the generated flag, sections, `qet_grid` and `kind_rank`; `page_cells` on the QET frame: `cell_at` of the L-1 anchor gives H16, column 15 spans x 249.9 to 265.6 mm (doc 16 §3.6) at its edges, a boundary point belongs to the right and lower cell, outside the drawing area `None`, `cell_rect` round-trips through `cell_at`, `text` prints `102-H15`, the indices order column 10 after column 2; `resolve_goto` for a folio, `103-A1`, `103-a1`, the three errors, `/103.A1` after `project.settings.set` switches the `ip` format to the EPLAN cell preset (and `103-A1` then `NotFound`), a `{page_index}` format (1-based), and an ambiguous parse (a synthetic format `{page}{row}{column}` with folios whose labels make two parses) giving `NotFound`; `link_targets` resolves every link source of folios 101 to 103, each `at_nm` equal to the anchor of the matching `Link::Target` item (a mismatch stops the lane, ruling 5) and each `cell` equal to the text the link's xref prints, also under the EPLAN preset; external references `None`; FR-XRF-019's "103-G6" at PE-1.1 targets folio 103 cell G6 | `ew-dl`, `ew-api` tests | §4.2 |
 | V2 | Canvas area: the invariants of §6.2 under every tab action (new, close, next, previous, activate, move, open, side by side on and off, focus other), the refusals, IDs never reused, the page kept by identity across a `page.renumber` on a temporary copy | `ew-viewmodel` unit tests | §6.2 |
 | V3 | History and viewports: walks record nothing; jumps record one entry; Back restores the exact viewport (a fitted one refits after a resize); Forward; the cap of 50; a vanished page skipped; the per-page memory and its cap of 64; the jump view's zoom rule | `ew-viewmodel` unit tests | §6.3 |
 | V4 | Navigator: the three modes and two sorts on Golden A against an oracle computed from `page_rows` by §6.1's rules; the filter keeps ancestors; keys stable across revisions; the row cursor keys; accessible names | `ew-viewmodel` tests | §6.1 |
@@ -658,7 +695,7 @@ display lists (a link that is not there, a cell that differs), the lane stops an
 | V7 | Headless go to (FR-UI-039): `nav.goto` `103-A1` centres A1's rectangle; `103` arrives fitted; the errors; `/103.A1` after the preset switch | `bin/elektrawatt/tests` | §6.5 |
 | V8 | Headless side by side (FR-UI-035): 102 left and 103 right, different zooms and pans per group, a pointer on each: both `view_nm` kept independently; tab switches and Back keep each tab's viewport; `canvas.snapshot` per group | `bin/elektrawatt/tests` | §6.2, §6.8 |
 | V9 | Transcript and describe: the members of §6.10 in order, the navigator, tab, focus, cursor and link lines; the vocabulary test passes with the 27 words; existing expected states updated | `ew-viewmodel` tests; `bin/elektrawatt/tests` | §6.10 |
-| V10 | Exact counts of §8 item 3 for part 1, with WP-S2.02 A9's counters and a counter per new `Session` call: 200 mixed steps over two tabs and both groups | `ew-ui` test | §8 |
+| V10 | Exact counts of §8 item 3 for part 1, with WP-S2.02 A9's counters and a counter per new `Session` call: 200 mixed steps over two tabs and both groups; the page-content cache keeps the tabs' pages plus the 8 most recently shown, Back to a page evicted from it makes exactly one `page_content` call, a revision change clears it | `ew-ui`, `ew-viewmodel` tests | §6.2, §8 |
 | V11 | FT-356: hidden scenes' tiles evicted first and least recently shown first; their total never above 64 MiB; a tile drawn this frame never evicted; returning to a hidden tab within the budget rasters no tile; closing the last tab of a page drops its scene | `ew-render2d` unit tests; `ew-ui` test | §6.8 |
 | V12 | kittest without pointer events (NFR-A11Y-01's viewing part): Ctrl+G, type `103-A1`, Enter: 103 shown and the status field reads `103-A1 · x …`; Shift+F to a link, F, Alt+Left back; Ctrl+T, Ctrl+Tab, Ctrl+W; View ▸ Side by side, Ctrl+F6; F6 to the navigator, Down, Enter; arrows move the cursor and the canvas node's description and live region change; the walker passes after each step; the two scripts of V6 and V8 twice give byte-identical transcripts | `ew-ui` tests; `bin/elektrawatt/tests` | §6.6 to §6.9, §8 |
 | V13 | Policy: `check-deps` (no new edge), `check-features`, `check-raw-read`, `check-licence-map`, `check-disallowed-methods`, `check-ordered-collections`, `reuse lint`; no new package in `Cargo.lock`; `unsafe` only in `forbid` attributes | lane | §4, §5 |
@@ -670,7 +707,7 @@ display lists (a link that is not there, a cell that differs), the lane stops an
 | # | Check | Where | Proves |
 |---|---|---|---|
 | T1 | Host: every output of §7.2 with a scripted tool; activating a tool cancels the current one; focusing the other group escapes a busy tool; the Escape chain of §7.2 (popup, tool, Select, selection) | `ew-viewmodel` tests | §7.2 |
-| T2 | Preview protocol with the probe on folio 102: drag, `Dwell(80)` gives one `preview_with`, a repeat dwell none; the derived diff in the state; a commit by another script step makes it stale; release commits with revision + 1 through `commit(preview)` in GUI mode and through `run_script` headless (the `--record` log holds the line, origin `CmdLog`); undo restores; a `HumanOnly` command is refused headless | `ew-viewmodel` tests (feature `test-tools`) | §7.3 |
+| T2 | Preview protocol with the probe on folio 102: drag, `Dwell(80)` gives one `preview_with`, a repeat dwell none; the derived diff in the state; a commit by another script step makes it stale; release commits with revision + 1 through `commit(preview)` in GUI mode and through `run_script` headless (the `--record` log holds the line, origin `CmdLog`); undo restores; a `HumanOnly` command is refused headless | `ew-viewmodel` tests (feature `testkit`) | §7.3 |
 | T3 | FR-UI-016's acceptance: the probe drags a symbol on folio 102 and Escape leaves the revision, the history cursor and the dirty flag unchanged, with no preview and an empty overlay | `ew-viewmodel` tests | §7.2, §7.3 |
 | T4 | Select: click, Shift and Ctrl clicks; left-to-right and right-to-left bands on folio 103 against an oracle over the entity rectangles; a click on a link follows; selection kept across tab changes; the selected outline drawn | `ew-viewmodel`, `ew-render2d` tests | §7.6 |
 | T5 | Snapping: grid snaps on the QET grid under the sheet map are exact grid indices (`page_nm` within 1 nm of `k × g`); a CP within 8 points wins, beyond it the grid; Alt suppresses CP snaps; `page_cps` on folio 102 contains -102F1:2 at the point the display list draws it, in reading order | `ew-api`, `ew-viewmodel` tests | §4.2, §7.5 |
@@ -680,7 +717,7 @@ display lists (a link that is not there, a cell that differs), the lane stops an
 | T9 | Escape safety (doc 16 §10.5): every registered tool cancels with Escape in every state and the revision is unchanged | `ew-viewmodel` tests | NFR-UX-07 |
 | T10 | Transcript and describe of §7.9; the 18 words; a Select-and-Measure script twice byte-identical; kittest of the same flow without pointer events, walker passing | `ew-viewmodel`, `ew-ui`, `bin/elektrawatt/tests` | §7.9, §8 |
 | T11 | Exact counts of §8 item 3 for part 2 | `ew-ui` test | §8 |
-| T12 | Part 1's V1 to V14 still pass; policy and targeted checks as V13 and V14 (adding `--features test-tools` for `ew-viewmodel`) | lane | — |
+| T12 | Part 1's V1 to V14 still pass; policy and targeted checks as V13 and V14 (adding `--features testkit` for `ew-viewmodel`); `check-features` fails on a scratch change that enables `ew-viewmodel/testkit` from `ew-ui` (the `[[banned_features]]` entry of §7.6 works; the change is not committed) | lane | §7.6 |
 
 The workspace suite, the acceptance runner and the performance runs are not run by the lanes (testing policy, ID-512);
 the integrating session runs `cargo xtask ci` at the cycle delivery.
@@ -695,8 +732,9 @@ the integrating session runs `cargo xtask ci` at the cycle delivery.
 `strings`, `describe`, `script`, `layout` (titles only)); `crates/ew-ui/**` (the canvas-area host, the navigator pane,
 the keyboard contexts, `headless.rs`, `benches/canvas.rs` only as far as the multi-canvas host changes its calls);
 `bin/elektrawatt/tests/**`. **Part 2:** additionally `crates/ew-api/src/output/navigation.rs` (`PageCp`,
-`Session::page_cps`); `crates/ew-viewmodel/src/tools/**` and its `Cargo.toml` (the `test-tools` feature, with
-`ci/dep-rules.toml`'s feature rules if `check-features` requires an entry); `crates/ew-render2d/src/overlay.rs`.
+`Session::page_cps`); `crates/ew-viewmodel/src/tools/**` and its `Cargo.toml` (the `testkit` feature);
+`ci/dep-rules.toml` (the one `[[banned_features]]` entry of §7.6, nothing else); `crates/ew-render2d/src/overlay.rs`.
+Part 1's `crates/ew-ui/**` includes `dock.rs` (`cycle_tabs_with_keyboard` false, §6.2).
 
 Read-only for the lanes: every other crate, `ci/licence-map.toml`, `deny.toml`, `supply-chain/**`, `.github/**`,
 `docs/**` (the design pass updates the documents of §14). Each lane commits on its own branch and does not merge or
@@ -714,7 +752,8 @@ push.
 | Previews on a fork job off the UI thread | Proposed follow-up with FT-251 (after a release-phase measurement, ID-512) |
 | The palette's `#` page and `:` cell prefixes over `page_rows` and `resolve_goto` | Proposed follow-up with WP-S2.08 |
 | Keymap files, presets and the keymap editor; theme tokens | WP-S2.08 |
-| Naming the dock's and the canvas area's splitter handles | FT-338 (WP-S2.08) |
+| Naming the dock's and the canvas area's splitter handles, and a `TabList` node where egui_tiles exposes none (§6.9) | FT-338, extended (WP-S2.08) |
+| FR-UI-015's acceptance (keyboard-only wiring of -102F1 to -102F2) | WP-S2.04 (ruling of §14) |
 | The GPU path, the switch rule, FT-349 | WP-S2.02 part 2 |
 | A second window, Compare and Preview tabs | WP-S2.09; 1.0 |
 
@@ -728,7 +767,8 @@ none is this package's. FT-314's harness help gains the new words of §6.10 and 
 2. **One path.** Every state change in the GUI ends in `ShellModel::dispatch`; the nested tile tree is rebuilt from the
    model, never the reverse; the only other mutation is `set_canvas_backend` (and `set_tool_for_tests` behind its
    feature).
-3. **Read-only.** No shipped action or tool commits a command in either part; the probe is unreachable from the
+3. **Read-only.** No shipped action or tool commits a command in either part; the `[[banned_features]]` entry for
+   `ew-viewmodel/testkit` is in `ci/dep-rules.toml` and `check-features` is green; the probe is unreachable from the
    binaries (the feature is off in their builds).
 4. **Exactness.** The cell rule is `ew-derive`'s, evaluated on exact rationals; snapping on grid indices; link targets
    equal the PDF's destination anchors; no float equality anywhere a decision depends on it.
@@ -751,9 +791,16 @@ multi-canvas host with the nested tree and FT-356 0.45; the navigator 0.4; links
 cell (FT-345) 0.2; the grid cursor, focus and AccessKit 0.2; transcript, describe and the headless and kittest tests 0.3.
 **Part 2, 2.4 pw:** the contract and the host 0.4; the overlay layer 0.3; the preview protocol 0.3; Select with the
 selection 0.4; snapping, `page_cps` and the indicators 0.35; keyboard tool input 0.2; Measure 0.1; the link preview
-0.15; transcript, describe and tests 0.2. The 1.9 pw between the parts' 4.9 pw and the PERT is the deferred scope of §12
-that the WBS still counts here; the design pass decides whether it stays as the package's reserve or moves with the
-proposed follow-ups.
+0.15; transcript, describe and tests 0.2. The 1.9 pw between the parts' 4.9 pw and the PERT stays a reserve inside
+WP-S2.03, drawn on for part 1 first (ruling 3 of §3); part 1 is planned as one lane-cycle plus a fix round.
+
+**Ruling (delegated): two acceptance texts move out of this package.** FR-UI-015's acceptance (a kittest flow draws a
+connection from -102F1 to -102F2 on folio 102 with the keyboard only) needs the Wire tool, and FR-UI-018's rest (the
+inline dimension readout of a drag, rubber-band connections while dragging, potential highlighting with pattern and
+colour) needs WP-S2.04's gestures and WP-S2.06's potential navigator. This package delivers FR-UI-015's grid cursor,
+connection-point jumps and Enter-as-click, and FR-UI-018's snap indicators, the per-page grid with its QET marker and the
+Measure readout; the design pass moves FR-UI-015's acceptance to WP-S2.04 and FR-UI-018's rest to WP-S2.04 (readout,
+rubber band) and WP-S2.06 (highlighting) in plan 02's requirement rows, the traceability, and doc 02b's rows.
 
 **Routing.** Both parts add public items below the shell, and part 1 changes the performance-critical tile host while
 part 2 sets the tool API that WP-S2.04 and later plugins build on (`CLAUDE.md`: the lead-programmer's), so each goes to
@@ -763,14 +810,16 @@ one lead-programmer lane at D4 (`opus`, `high`) with an Opus review. Part 2 star
 jump history per tab and not persisted; tabs and viewports in `view.json` remain the target), §3.2 (the Window menu as
 built), §3.4 (the canvas area as a nested tree, Ctrl+T and Ctrl+F6), §3.5 (Back and Forward per tab), §3.6 (the cursor
 field: the pointer, else the grid cursor, the cell in the project's `ip` format), §3.9 (as built), §4.2 (the focus
-areas and keyboard contexts), §4.5 (the tool host in `ew-viewmodel`, `ew-ui` paints), §5.1 and §5.2 (the page navigator
+areas and keyboard contexts), §4.5 (the tool host in `ew-viewmodel`, `ew-ui` paints; one active tool per window, not
+per canvas), §5.1 and §5.2 (the page navigator
 as built), §10.1 (the canvas node's cursor description and live region); doc 06 §4.1 (`ToolCx` without a `World`, the
 `Select` and `Follow` outputs, previews on the UI thread), §4.3 (a click on a link follows; the drag rows are WP-S2.04's),
 §5.7 (picking on entity rectangles until the spatial index), §6 (the jump view, Shift+Arrow, Shift+F and Ctrl+Shift+F);
 architecture §5.4 (interactive tool previews on the UI thread) and §9 (the canvas-tools row and the as-built note); doc
 18 §3.17 (what the drafter can do and read back); ADR-0014's as-built note (the nested egui_tiles tree). FR-PAG-024's
 acceptance text counts "18 folios plus 903–911", while the as-built page order of Golden A has 36 entries (doc 16 §5.2);
-the design pass reconciles the requirement's count (§10's V4 tests the as-built order).
+the design pass rewrites it to the as-built order (ruling 2 of §3; §10's V4 tests that order). Doc 02b's FR-UI-015 and
+FR-UI-018 rows, plan 02 and the traceability follow the ruling above.
 
 ---
 
