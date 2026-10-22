@@ -1,6 +1,6 @@
 # Functional requirements: core ECAD
 
-**Status:** Draft v0.2 · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.2 · **Date:** 2026-10-18 (amended 2026-10-22, cycle-22 design pass: FR-PAG-024's acceptance text follows the derived page order, decision log ID-538) · **Part of:** ElektraWatt design document set
 
 > **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
 
@@ -180,7 +180,7 @@ starting at column 0 keeps imported cross-references such as "102-A1" exact.
 | FR-PAG-021 | The system shall give each page a rational snap grid; native pages use the EW connection grid (ADR-0027) and QET-imported pages keep their 10 px grid, with the active grid shown per page. | Must | MVP | ADR-0005, ADR-0027 | A symbol on an imported page snaps in 2.6458 mm steps; on a native page in the ADR-0027 step. |
 | FR-PAG-022 | The system shall convert a QET-grid page to the native grid by a previewed command that keeps every connection and xref cell. | Could | 1.x | ADR-0027 | Converting GP folio 102 leaves all 22 IP texts unchanged. |
 | FR-PAG-023 | The system shall store a page scale (1:1, 1:5, 1:10, custom, "not to scale") and print it in the title block. | Must | MVP | REF-070, D-32 | Folio 902 at 1:10 prints "1:10"; a 70 mm wide device measures 7.0 mm on paper ±0.2 mm. |
-| FR-PAG-024 | The system shall provide a page navigator with structure, section and flat views, sorting by folio or type, filtering, multi-selection and drag-to-reorder that opens the renumber preview. | Must | MVP | EPL §2.5, §4 | GP's navigator lists 18 folios plus 903–911; dragging 106 before 103 opens the renumber preview. |
+| FR-PAG-024 | The system shall provide a page navigator with structure, section and flat views, sorting by folio or type, filtering, multi-selection and drag-to-reorder that opens the renumber preview. | Must | MVP | EPL §2.5, §4 | On Golden A the navigator lists the 36 entries of the derived page order in that order (the flat view's rows equal `Session::page_labels`); dragging 106 before 103 opens the renumber preview (the viewing part with WP-S2.03, the drag with WP-S2.06; decision log ID-538). |
 | FR-PAG-025 | The system shall create, copy, move and delete pages as previewed transactions; deleting a page removes its representations and page-owned rows and leaves affected devices unplaced unless the user chooses to delete them. | Must | MVP | ARCH §4.2, ADR-0009 | Deleting GP folio 106 lists its 12 IPs and two cable representations; -106W1 and -106W2 remain as unplaced devices; one undo restores the page. |
 | FR-PAG-026 | The system shall assign every page item to a layer (frame, symbols, wires, texts, graphics, user layers) with visibility and print flags, used by screen, print and DXF export. | Should | 1.0 | EPL §3.13 | Hiding layer "texts" hides free texts on screen and in print; DXF puts wires on the mapped layer name. |
 | FR-PAG-027 | The system shall provide a frame editor for grids and title-block cells built on the forms engine. | Must | 1.0 | VIS §9, EPL §8 | The GP frame re-created in the editor equals the shipped frame form data. |

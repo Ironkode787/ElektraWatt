@@ -1,6 +1,6 @@
 # Extensibility: CLI, scripting, SQL, plugins and agents
 
-**Status:** Draft v0.4 · **Date:** 2026-10-21 (v0.4: cycle-13 design pass: the SQL projection v0 as built, §3.4, §6.1, §6.2; v0.3: cycle-12 design pass: `ew check` as built, §3.1, §3.3; `tag:` and `folio:` references, §3.5; Session v0, §4; v0.2: cycle-11 design pass: `project.settings.set` and its exposure, §2.1, §2.3; the command log as built, §3.5; `ew import qet` as built, §3.2, §3.3) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.4 · **Date:** 2026-10-22 (cycle-22 design pass: `project.checks.set`, the first registered `HumanOnly` command, its interim CLI path and the 42 commands, §2.3, §3.3, decision log ID-545, ID-546; v0.4: cycle-13 design pass: the SQL projection v0 as built, §3.4, §6.1, §6.2; v0.3: cycle-12 design pass: `ew check` as built, §3.1, §3.3; `tag:` and `folio:` references, §3.5; Session v0, §4; v0.2: cycle-11 design pass: `project.settings.set` and its exposure, §2.1, §2.3; the command log as built, §3.5; `ew import qet` as built, §3.2, §3.3) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies every way to drive, extend or query ElektraWatt (EW) other than the GUI: the
 `ew` command-line tool, the headless `Session` API behind it, rhai formulas, rules and automation scripts, the
@@ -178,7 +178,8 @@ derivation would not apply never reaches the model. It refuses:
 - cross-sections that are not positive mm², AWG or kcmil;
 - any other member name, with `InvalidParams` at `/member` listing the settable members. The identifier set has its
   own previewed renumber (FR-NUM-014); `ip_pairing`, `formatting`, `frames`, `wire_default`, `derivation_profile` and
-  newer members are refused.
+  newer members are refused. Since cycle 22 `frames` and `formatting` have their own `Edit` commands,
+  `project.frames.set` and `project.languages.set` (§2.3; [03](03-domain-model.md) §5.1).
 
 The command is `Cost::Bulk`: the preview shows `Session::derived_diff` (changed tags and cross-reference texts;
 follow-up task FT-152 adds wire properties, BOM and TOC rows and a covered-kinds flag). It is undoable as one step.
@@ -223,8 +224,8 @@ pub enum Origin { Gui, Cli { subcommand: String }, CmdLog { file: String, sha256
 
 | Exposure | Front-ends allowed | Commands (examples) |
 |---|---|---|
-| `Edit` | GUI, CLI (`apply`), scripts, MCP, plugins, Python | `device.place` (aliases `device.place_from_part`, `symbol.place`), `connection.draw`, `fields.set`, `numbering.renumber`, `page.renumber`, `plc.readdress`, `macro.insert`, `project.settings.set`, `plugin.data.set` |
-| `HumanOnly` | GUI; a dedicated CLI subcommand confirmed on a terminal (below) | `revision.approve`, `revision.release`, `revision.withdraw`, `waiver.create` / `waiver.remove`, `scheme.set_severity` and the other `scheme.*` edits including company locks, `pack.enable` / `pack.disable`, `project.set_strictness`, completing and reopening a project (FR-REV-013, 1.0), `trust.*`, `plugin.install` / `plugin.remove`, `library.write` |
+| `Edit` | GUI, CLI (`apply`), scripts, MCP, plugins, Python | `device.place` (aliases `device.place_from_part`, `symbol.place`), `connection.draw`, `fields.set`, `numbering.renumber`, `page.renumber`, `plc.readdress`, `macro.insert`, `project.settings.set`, `project.company.set`, `project.frames.set`, `project.languages.set`, `plugin.data.set` |
+| `HumanOnly` | GUI; a dedicated CLI subcommand confirmed on a terminal (below) | `revision.approve`, `revision.release`, `revision.withdraw`, `waiver.create` / `waiver.remove`, `scheme.set_severity` and the other `scheme.*` edits including company locks, `pack.enable` / `pack.disable`, `project.checks.set` (registered, cycle 22), `project.set_strictness`, completing and reopening a project (FR-REV-013, 1.0), `trust.*`, `plugin.install` / `plugin.remove`, `library.write` |
 | `Import` | GUI import wizard, `ew import` | `ApplyImport` (plugins reach it only through the importer contract, §10) |
 | `Internal` | normalisers | CP instantiation, online numbering |
 
@@ -261,6 +262,25 @@ whitelist but keeps its own `HumanOnly` command, and extending the whitelist nee
 The exposure class is declared in `CommandMeta` and checked in the `ew-commands` commit pipeline (validate step,
 ARCH §5.2), so no front-end can bypass it; `ew-api` only sets the origin.
 
+**`project.checks.set` is the first registered `HumanOnly` command** (as built, cycle 22; decision log ID-545, ID-546).
+It writes `settings.extra.checks` = `{active_scheme?, release_scheme?}` (shipped schemes only; [03](03-domain-model.md)
+§5.1) and follows the rule above: a settings member that decides a check outcome keeps its own `HumanOnly` command. The
+sibling commands `project.company.set`, `project.frames.set` and `project.languages.set` are `Edit`. A `HumanOnly`
+command reaches the headless side only through a dedicated CLI subcommand, never through a UI script, which still
+refuses the registry action with the human-only outcome (decision log ID-443 as amended by ID-546). The CLI path as
+built is
+
+`ew project checks set [<project-dir>] [--active <scheme>] [--release <scheme>] --confirm`
+
+Without `--confirm` the subcommand exits 1, says that the scheme decides check outcomes, and changes nothing. A refused
+scheme exits 1, a usage error 2. With `--confirm` the command runs with a confirmed CLI origin and the project is saved.
+
+**This flag form is interim.** It does not yet meet the rule of this section and FR-EXT-030: typed confirmation on a
+controlling terminal, no `--yes`-style flag, exit 2 without a terminal. FT-369 brings it into conformance before or with
+FT-366, the first reader of `checks`. Until then nothing reads the scheme, so the flag cannot move a gate. FT-369 also
+verifies the `undo` refusal below. The GUI reaches the command through the wizard's confirmed step
+(`wizard.apply_check_scheme`, [16](16-ux-ui.md) §9.2).
+
 *v0* (WP-S1.04; decision log ID-42, ID-45). The engine checks the exposure first, before `run`. Its `Origin` carries
 the variants above with their identifying name only (file, script, client, plugin ID); the `sha256`, `session` and
 `version` members join when the front-ends that know them land (WP-S1.22, WP-S1.23). All 25 v0 commands (with `project.settings.set`, cycle 11, and `terminal.designate`, cycle 12) are
@@ -269,8 +289,11 @@ the variants above with their identifying name only (file, script, client, plugi
 `library.write`, and `project.supply.set`; none of them is an `ew` subcommand (the subcommand list of §3.1 is
 unchanged in cycle 16): the CLI runs them through `ew apply` (§3.5). `Origin::Cli` carries a `confirmed` flag, and a `HumanOnly` command is admitted only from `Origin::Gui`
 or from a CLI origin with `confirmed` set (FR-EXT-030; decision log ID-57); the dedicated subcommands that set it
-after the typed confirmation above arrive with the CLI work package (WP-S1.22). Before the first `HumanOnly` command
-ships, `undo` must refuse a `HumanOnly` step from a script, MCP, plugin or Python origin (§4).
+after the typed confirmation above arrive with the CLI work package (WP-S1.22). *As built (cycle 22):* 42 commands are
+registered at the cycle-22 tip, 41 `Edit` and one `HumanOnly` (`project.checks.set`, above); the four commands of FT-336
+(`project.company.set`, `project.frames.set`, `project.languages.set`, `project.checks.set`) took the count from 38 to 42.
+The first `HumanOnly` command has shipped, and `undo` must refuse a `HumanOnly` step from a script, MCP, plugin or
+Python origin (§4); FT-369 verifies that refusal.
 
 ### 2.4 Project-resident extension content and trust
 
@@ -401,6 +424,7 @@ driver exits 0 (clean), 1 (conflict records written) or 129 for a caught interna
 | | `ew diff [<from>] [<to>] [--queries …] [--json]`, `ew diff --textconv <file>` | Entity diff with derived tags | MVP | FR-COL-013 |
 | | `ew diff <a.ewpp> <b.ewpp> --wires` | Package mode: the wire change list between two production packages ([13](13-manufacturing-outputs.md) §3.5) | 1.0 | FR-MFG-004 |
 | | `ew merge-driver %O %A %B %L %P`, `ew merge resolve` | Git merge driver ([05](05-project-format-and-persistence.md) §11.1) | MVP (Should) / 1.0 | FR-COL-014 |
+| Project | `ew project checks set [<project-dir>] [--active <scheme>] [--release <scheme>] --confirm` (`HumanOnly`, §2.3; as built in cycle 22) | Sets the active and release check schemes through `project.checks.set`. Without `--confirm`: exit 1, nothing changes; a refused scheme exits 1, a usage error 2. **Interim:** the flag form does not meet FR-EXT-030 (typed confirmation on a controlling terminal, exit 2 without one); FT-369 | MVP | FR-EXT-030 |
 | Revisions | `ew revision approve --as <party>`, `ew revision release <label>`, `ew revision withdraw <label> --reason <text>` (all `HumanOnly`, §2.3); `ew archive verify\|rebuild` (1.0) | [05](05-project-format-and-persistence.md) §14, [15](15-checks-revisions-collaboration.md) §5.4–§5.10 | MVP / 1.0 | FR-REV-005, FR-REV-006 |
 | | `ew waiver list` (MVP); `ew waiver add <rule> --target <tag\|id:…> --reason <text>`, `ew waiver remove <id>` (1.0, `HumanOnly`) | Waivers without the GUI ([15](15-checks-revisions-collaboration.md) §2.5) | MVP / 1.0 | FR-CHK-009 |
 | Domain | `ew plc status <file>`; `ew mfg asbuilt <order>` (1.0); `ew mfg feedback import`, `ew mfg import-status` (1.x); `ew lib lint\|render\|pack` (1.0) | [10](10-plc-and-bus.md), [13](13-manufacturing-outputs.md), [07](07-symbols-parts-macros.md) | 1.0 / 1.x | — |

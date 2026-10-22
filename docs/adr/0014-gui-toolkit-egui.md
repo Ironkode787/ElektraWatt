@@ -1,6 +1,6 @@
 # ADR-0014: GUI toolkit: egui/eframe behind `ew-ui`, over a toolkit-agnostic `ew-viewmodel`
 
-**Status:** Accepted · amended 2026-10-18 · as-built notes 2026-10-22 (cycles 19 and 20) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18 · as-built notes 2026-10-22 (cycles 19, 20 and 22) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -84,6 +84,34 @@ eframe and egui_tiles among it, stays exempt. *Corrected at the cycle-21 design 
 30.0.1 front-end crate, exempt at cycle 20's tip (385 exemptions), was audited `safe-to-deploy` in cycle 21 with a
 caveat on mapped views across `Buffer::destroy` and device loss, which the WP-S2.02 specification's §7.1 turns into a
 rule for ElektraWatt's own renderers; its exemption is gone, leaving 384 (374 `safe-to-deploy`, 10 `safe-to-run`).
+
+## As built (cycle 22)
+
+A note, not an amendment: the decision is unchanged. WP-S2.02 part 2 (decision log ID-539 to ID-544) built the GPU
+canvas on decision 1's shared device and recorded these facts about the toolkit:
+
+- **egui-wgpu is a direct dependency of `ew-ui`** (`=0.37.0`, default features off), the version eframe already locks:
+  `ew-ui` registers the canvas's resolved texture as an egui native texture through eframe's render state. wgpu types
+  stay `ew_render2d::wgpu::…` outside `ew-render2d` (decision 2).
+- **FT-328 is closed.** The `elektrawatt` binary takes eframe's `wgpu_no_default_features` and names the backends per
+  operating system: DX12 with WARP on Windows, Metal on macOS, Vulkan and GL on Linux (the GL path stays on while
+  `wayland-sys` is in the graph, the `required_features` guard of ID-476). The Windows release binary measured
+  53,900,288 B before the GPU path, 54,407,168 B with it and every backend, and 52,502,528 B after the trim (-1.8 MiB).
+  Build time is not measured (owner's rule).
+- **One shared device, so row 8 of the switch rule helps for uncaptured errors only.** The canvas runs on eframe's
+  device, so a real device loss also ends egui's own window; the canvas's "CPU for the rest of the session" answers an
+  uncaptured error, and the handlers it installs log through `tracing` instead of swallowing egui-wgpu's errors.
+  Recovery from a real device loss belongs to FT-310 and WP-S2.11 (ID-544).
+- **Supply chain.** `lyon_tessellation`, `lyon_path`, `lyon_geom` and `float_next_after` entered the graph as four
+  dated cargo-vet exemptions (no audit written; they join FT-326 under ID-476's hold), and `termcolor` and
+  `wgpu-core-deps-wasm` left it: the exemptions rose from 384 to 387 (ID-543).
+
+*Specified, built with WP-S2.03 part 1 (ID-533):* the canvas area is a nested egui_tiles 0.18.0 tree that `ew-ui`
+rebuilds from the toolkit-neutral model after every structural change, because 0.18 cannot refuse a drop; the keyboard
+cycling of tabs (`cycle_tabs_with_keyboard`) is off, so the app's own tab keys are the only ones. The tree lives
+outside `ew.workspace/1`. *Decision 4 read with WP-S2.03 (ID-536):* the tool state machines and their host are
+toolkit-neutral and live in `ew-viewmodel`, with no `World` in their context; `ew-ui` maps pointer and keys onto tool
+events and paints the overlay. The outputs of decision 4 are unchanged.
 
 ## Consequences
 

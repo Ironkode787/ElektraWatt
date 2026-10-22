@@ -1,6 +1,6 @@
 # Quality engineering, security and release
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-20: §3.16 cross-platform source rules; amended 2026-10-21, cycle-11 design pass: acceptance runner as built in §3.10, timing rule in §3.16 and §4.3, private pilot corpus in §4.1; amended 2026-10-21, cycle-12 design pass: acceptance counts and comparison against doc 20 data in §3.10; amended 2026-10-21, cycle-14 design pass: documents as built in §3.9, §3.10 and §3.16, blind drafter §3.17; amended 2026-10-22, cycle-17 design pass: the acceptance counts in §3.10, the fuzzer's coverage and nightly form in §3.6, the `fuzz_smoke` time in §3.14, CI-N-02 and CI-N-03 in §5.2; amended 2026-10-22, cycle-18 design pass: what the ordered-collection lint misses in §3.5, the pull-failure rule in §3.14, CI-PR-05 and CI-N-09 in §5.2, the image-digest rule in §5.4; amended 2026-10-22, cycle-19 lane C: the `disallowed-methods` rule as built in §3.5, CI-N-12 and the retired LG-2 merge block in §5.2; amended 2026-10-22, cycle-19 design pass: the scan's gaps and the sites at the integration tip in §3.5, the shell's UI tests in §3.11, the CI time after cycle 18 and the Windows cut in §3.14, the headless mode for the blind drafter in §3.17, CI-PR-02 to CI-PR-04 and CI-N-12 in §5.2, the UI crates' `rust-version` in §6.2; amended 2026-10-22, cycle 20 lane C: the supply-chain bullets of §5.4 (audit imports, version-keyed build scripts, the manifest advisory hold, x11-dl and reproducible builds) and the cargo-vet and build-script rows of §10; amended 2026-10-22, cycle-20 lane B: the cargo-fuzz crate, the deep nightly and ASan as built in §3.6, §3.12 and §5.2; amended 2026-10-22, cycle-20 design pass: the ODR justification in §3.6, the fuzz crate's PR check, deny job and NCSA exception in §3.12 and §5.4, FT-330 applied in §3.14, CI-PR-01, CI-PR-08 and CI-N-02 with the proptest budget in §5.2, the exemption count at the integration tip in §5.4 and §10; decision log ID-494 to ID-500; amended 2026-10-22, cycle-21 design pass: the canvas bench families in §4.2, the owner's ruling on performance runs and the bench-failure rule in §4.3, the canvas bench in §4.7, decision log ID-512, ID-518, ID-520) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-20: §3.16 cross-platform source rules; amended 2026-10-21, cycle-11 design pass: acceptance runner as built in §3.10, timing rule in §3.16 and §4.3, private pilot corpus in §4.1; amended 2026-10-21, cycle-12 design pass: acceptance counts and comparison against doc 20 data in §3.10; amended 2026-10-21, cycle-14 design pass: documents as built in §3.9, §3.10 and §3.16, blind drafter §3.17; amended 2026-10-22, cycle-17 design pass: the acceptance counts in §3.10, the fuzzer's coverage and nightly form in §3.6, the `fuzz_smoke` time in §3.14, CI-N-02 and CI-N-03 in §5.2; amended 2026-10-22, cycle-18 design pass: what the ordered-collection lint misses in §3.5, the pull-failure rule in §3.14, CI-PR-05 and CI-N-09 in §5.2, the image-digest rule in §5.4; amended 2026-10-22, cycle-19 lane C: the `disallowed-methods` rule as built in §3.5, CI-N-12 and the retired LG-2 merge block in §5.2; amended 2026-10-22, cycle-19 design pass: the scan's gaps and the sites at the integration tip in §3.5, the shell's UI tests in §3.11, the CI time after cycle 18 and the Windows cut in §3.14, the headless mode for the blind drafter in §3.17, CI-PR-02 to CI-PR-04 and CI-N-12 in §5.2, the UI crates' `rust-version` in §6.2; amended 2026-10-22, cycle 20 lane C: the supply-chain bullets of §5.4 (audit imports, version-keyed build scripts, the manifest advisory hold, x11-dl and reproducible builds) and the cargo-vet and build-script rows of §10; amended 2026-10-22, cycle-20 lane B: the cargo-fuzz crate, the deep nightly and ASan as built in §3.6, §3.12 and §5.2; amended 2026-10-22, cycle-20 design pass: the ODR justification in §3.6, the fuzz crate's PR check, deny job and NCSA exception in §3.12 and §5.4, FT-330 applied in §3.14, CI-PR-01, CI-PR-08 and CI-N-02 with the proptest budget in §5.2, the exemption count at the integration tip in §5.4 and §10; decision log ID-494 to ID-500; amended 2026-10-22, cycle-21 design pass: the canvas bench families in §4.2, the owner's ruling on performance runs and the bench-failure rule in §4.3, the canvas bench in §4.7, decision log ID-512, ID-518, ID-520; amended 2026-10-22, cycle-22 design pass: a test's program boundary in §3.5, the `renderer` words, the `HumanOnly` refusal and the WP-S2.03 vocabulary in §3.17, the CI time after cycles 20 and 21 in §3.14, the GPU bench families and `EW_REQUIRE_GPU_ADAPTER` in §4.2, FT-353 as built, the adapter in the test jobs, the required-check names and the golden change list in §5.2, the lyon exemptions and the count of 387 in §5.4; decision log ID-537, ID-540, ID-542, ID-543, ID-546, ID-548, ID-549, ID-551) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) proves its correctness, performance and security, and
 how it is built, signed, shipped and supported. It turns the architecture's "prove it in CI" principle
@@ -248,6 +248,17 @@ the journal are persisted by design. At the integration tip of cycle 19 the list
 A's shell adds two program-boundary helpers, `env_path` in `ew-viewmodel` (`EW_CONFIG_DIR` and the platform directories, read once at
 start-up) and `dbus_env_path` in `elektrawatt` (the D-Bus variables of the portal heuristic), each also a counted
 `[[raw_read.allow]]` entry of `ci/dep-rules.toml` (decision log ID-481).
+
+*A test's program boundary* (as built, cycle 22; decision log ID-548, ID-542). The sanctioned sources of environment
+reads gain a third place beside the ID generator and the production program boundary: the boundary of a test binary,
+where the test run's own configuration enters. Two uses exist, both reviewed allow sites of
+`ci/disallowed-methods-allow.toml` on one-line helpers. (1) `bin_exe()`, one per test crate that starts a CLI binary
+(`ew` one site, `elektrawatt` three): it reads `NEXTEST_BIN_EXE_<name>` at run time, so the path follows a run from
+an archive (the Windows jobs, §5.2, CI-PR-03), and falls back to `env!("CARGO_BIN_EXE_<name>")` for
+`cargo test`, marked `// bin-exe-fallback`; a guard test of `xtask` fails on the bare `env!` form without the marker.
+(2) `adapter_required()` in the GPU tests of `ew-render2d` and `ew-ui` (one site each): it reads
+`EW_REQUIRE_GPU_ADAPTER`, the switch of §4.2 that turns a missing graphics adapter from a skip into a failure. Neither
+value reaches a persisted, exported or printed result.
 
 *What the scan misses* (cycle 19; decision log ID-481). The source scan of the four reader crates is lexical: it does
 not see a call through an alias or a re-export, a fully qualified `<SystemTime>::now`, a call produced by a macro, or a
@@ -564,6 +575,17 @@ fixed or triaged before the gate re-runs (decision log ID-405; the cycle-15 gate
 
 *The CI time after cycle 18 (decision log ID-482).* CI for the cycle-18 delivery f316d4d was green, including the first runs of `verapdf` (2 min 14 s) and `headless` (1 min 28 s), both under the five minutes expected. The test jobs took 17 min 09 s (Linux), 20 min 50 s (macOS) and 37 min 53 s (Windows): the Windows job is 7 min 53 s over the 30-minute budget and inside the 50-minute guard, up from 30 min 54 s at de23b55, while Linux and macOS stayed below their times at 95149ab. The growth is Windows-only and is attributed to the Windows all-features build and test of the cycle-18 additions (the record has no step times). From cycle 19 the UI crates add about 100 s of debug build to every test job (a clean `cargo build -p elektrawatt` takes 103 s on four jobs; not yet measured on CI). Under ID-448 the Windows test job runs only the all-features nextest run from FT-330 on; the default-features build and run stay in the Linux and macOS jobs and in `cargo xtask ci`. If the Windows job still exceeds 30 minutes, it is split into two parallel jobs. FT-330 (ID-482): the job took 45 min 29 s at the cycle-19 delivery (run 39771243693), against the 30-minute budget and the 50-minute guard; the default-features build, nextest run and doctest run are removed from it, which saves about the build and test time of that run (expected to bring the job back under 30 minutes; not yet measured). Applied in cycle 20 (decision log ID-500): the job runs the ICU4X assertion, the all-features nextest run, the annotations and the all-features doctests; the first measurement comes with the cycle-20 CI run, and if the job still exceeds 30 minutes it is split into two parallel jobs (ID-482).
 
+*The CI time after cycles 20 and 21 (decision log ID-527, ID-551; cycle 22).* The cycle-20 delivery (ci run
+39797238020) took 33 min 20 s on Windows, 30 min 23 s on Linux and 18 min 40 s on macOS; the step times are in
+`ci/README.md`, and FT-353 split the Windows and Linux jobs (§5.2). The cycle-21 delivery e28eb08 (ci run
+39824718577, docs run 39824718589, which was green) ran on the unsplit jobs: Windows 35 min 38 s, Linux 25 min 16 s,
+macOS 30 min 22 s, `headless` 1 min 45 s, `verapdf` 2 min 17 s, `lint` 3 min 19 s and `supply-chain` 3 min 36 s. Every
+test job was green; the run was red on `fuzz-smoke` only, its first hosted run (§3.6 and ID-552 record the finding;
+the job's verdict rule worked as designed). The macOS job grew by 11 min 42 s from 18 min 40 s: the canvas tests and
+the kittest flows of the cycle-21 shell now run there (the attribution is not measured per step). Windows is 5 min
+38 s over the 30-minute budget of NFR-MAINT-05, which the split answers; the first times of the split jobs come with
+the cycle-22 delivery run.
+
 *Retries in the evidence jobs (cycle 18; decision log ID-458).* The image pulls of `headless` and `verapdf` are named infrastructure steps in the sense of the first paragraph: each is tried three times with a back-off. When the third try fails, the job fails with an error saying that it has no evidence without the image; an evidence job never passes, skips or turns neutral without its evidence. A test inside such a job is never retried.
 
 ### 3.15 Test-build confirmation hook
@@ -632,6 +654,20 @@ Added 2026-10-21 (owner ruling; decision log ID-341). **Purpose.** An outside vi
   Since cycle 21 the drafter can also zoom, pan and point on the canvas and read back what it shows without a
   screenshot: the transcript's `canvas` member and the `canvas` lines of `ui.describe` (zoom and visible rectangle,
   grid, pointer, the hovered entity with its box, backend), with `canvas.snapshot` for an image (WP-S2.02 §6.6, ID-511).
+  *As built (cycle 22, WP-S2.02 part 2; decision log ID-540).* The transcript's `canvas` member gains `renderer`
+  (`auto` or `cpu`, the setting `canvas_backend`) as its last member, and `ui.describe` the line
+  `canvas renderer auto|cpu`; the three words `renderer`, `auto` and `cpu` join the vocabulary of ID-474 (so the
+  drafter's harness help of FT-314 lists them).
+  *The `HumanOnly` refusal (cycle 22, FT-336; decision log ID-546).* A UI script that dispatches the wizard's action
+  `wizard.apply_check_scheme`, or reaches `project.checks.set` (the first registered `HumanOnly` command), is refused
+  with `reason-human-only`, and the refusal is recorded in the transcript. The drafter and any other headless run
+  therefore never change the check scheme. The headless-reachable human path is the CLI subcommand
+  `ew project checks set [<project-dir>] [--active <scheme>] [--release <scheme>] --confirm`: without `--confirm` it
+  exits 1 and changes nothing. It is interim: it does not yet meet FR-EXT-030 (confirmation typed on a controlling
+  terminal, no `--yes`-style flag, exit 2 without a terminal), which FT-369 brings about before or with FT-366, the
+  first reader of the scheme.
+  *Specified for WP-S2.03 (cycle 22; decision log ID-537).* The viewer and the tool framework add 44 words to the
+  `ui.describe` vocabulary (27 in part 1, 17 in part 2; FT-314 extended); each part's as-built text follows its delivery.
 
 ---
 
@@ -681,6 +717,15 @@ count only into the last), each with the per-phase families `.<phase>` for `inpu
 `render.pan.cpu` and `render.zoom.cpu` (time until every visible tile of a frame's wanted resolution is cached); the
 dense-A3 scene's families carry the suffix `.dense_a3`. Part 2 adds `render.pan.gpu` and `render.zoom.gpu`. Report-only
 (§4.7); the first measurement is a release-phase item (FT-355).
+
+*As built (cycle 22, WP-S2.02 part 2; decision log ID-539, ID-542).* The GPU frame families of the `canvas` bench are
+`render.pan.gpu` and `render.zoom.gpu` (the dense-A3 pair with the suffix `.dense_a3`): per frame of the same pan and
+zoom scripts, the render encoded and submitted and the wait for the device. They print only when an adapter is found
+(the bench prints the adapter's kind and API); report-only, not measured (owner's rule). The GPU tests of
+`ew-render2d` (the parity test B2 among them) and `ew-ui` print `skipped: no adapter` and pass only when
+`EW_REQUIRE_GPU_ADAPTER` is not set; with `EW_REQUIRE_GPU_ADAPTER=1` a missing adapter fails them, and the CI test
+jobs that have an adapter set it (§5.2), so a broken adapter setup cannot hide as a skip. The variable is a reviewed
+allow site of the environment lint (§3.5).
 | `profile.change`, `renumber.folio` | NFR-PERF-07 | S–XL | Commit plus visible-view update |
 | `bulk.renumber.preview` | NFR-PERF-08 | S–XL | Time to preview, with a concurrent edit |
 | `check.full` | NFR-PERF-09 | S–XL | Wall time |
@@ -839,6 +884,27 @@ The PR set stays within 30 min wall time (NFR-MAINT-05); a monthly CI-duration r
 | CI-R-03 (pre-release assertion) release-check | *As built before the release pipeline (cycle 21, FT-333; WP-S6.07 takes it over):* the job `release-check` of `.github/workflows/cli-artefact.yml` (nightly with CI-N-12, and on dispatch) builds `elektrawatt` with `cargo build -p elektrawatt --release --locked` with `PKG_CONFIG=false` and `--remap-path-prefix` for the cargo home, the rustup home and the checkout (Cargo's `trim-paths` is not stable on the pinned toolchain); `ci/release-check.sh env` first fails if `PKG_CONFIG` is not `false`, if any `PKG_CONFIG_*`, `HOST_PKG_CONFIG*` or `TARGET_PKG_CONFIG*` variable reaches the build, if `ICU4X_DATA_DIR` (§3.5) or `CARGO_ENCODED_RUSTFLAGS` is set, or if a cargo configuration file of the checkout or the cargo home has an `[env]` table; `ci/release-check.sh scan` then fails on any build-host path in the binary (`strings`: `/home/`, `/usr/lib/x86_64-linux-gnu`, `/opt/`, the checkout, cargo and rustup homes, the runner's temp directory; a legitimate run-time search path passes only through the script's reviewed exception list, empty today), on a `NEEDED` entry for libwayland*, libxkbcommon*, libX11*, libxcb*, libEGL*, libGL* or libvulkan* (`readelf -d`; these are `dlopen`ed, and a hard link breaks NFR-PLAT-03's fallback chain) and on any `Some` library directory in x11-dl's generated `config.rs` (§5.4). It uploads its Markdown report (30 days), never the binary (ID-476). Report-only: it gates nothing, red on any hit | ubuntu-24.04 | — |
 | CI-R-01 … CI-R-11 | Release pipeline (§7.4) | All | Publishing |
 
+*As built (cycle 22; decision log ID-542, ID-548, ID-549, ID-551).*
+- **FT-353** (CI-PR-02, CI-PR-03) is built and CI-proven with the cycle-22 delivery run: the Windows archive split
+  (`test-windows-build` with `cargo nextest archive --all-features`, then `test-windows-1` and `test-windows-2` with
+  `--partition count:1/2` and `count:2/2`; the archive is passed with `actions/download-artifact` v7.0.0, pinned by
+  SHA) and the Linux split by feature set (`test-linux`, `test-linux-default`). The run proves what a review cannot:
+  the archive's remap on Windows paths, the junit report after the remap, the partition balance and the real times.
+  ID-482's split condition is closed.
+- **A graphics adapter in the test jobs** (WP-S2.02 part 2). The two Linux test jobs install Mesa's lavapipe
+  (`mesa-vulkan-drivers`, an apt step), so the GPU canvas tests (§4.2) run there, and every test job with an adapter
+  sets `EW_REQUIRE_GPU_ADAPTER=1`: `test-linux`, `test-linux-default` (lavapipe), `test-windows-1`, `test-windows-2`
+  (WARP) and `test-macos` (Metal). A missing adapter fails those jobs; the `headless` container, which has no GPU on
+  purpose (CI-PR-05), keeps the skip, as does a developer's host without the variable.
+- **Required checks.** FT-353 renamed and split the test jobs: `test-linux`, `test-linux-default`,
+  `test-windows-build`, `test-windows-1`, `test-windows-2` and `test-macos` replace `test-linux`, `test-windows` and
+  `test-macos` of the older list. The owner's required-check list (FT-284, FT-325, set after three green runs on
+  `main`) must use the new names; a check still required under an old name never reports and blocks every merge.
+- **The golden-table change list** (FT-300; `docs/plan/tools/golden_changes.py`, the list
+  `docs/plan/gate-records/golden-change-list.md`). Its `--check` runs at every delivery gate and not in `docs.yml`: the
+  list embeds commit hashes and a shallow checkout lacks the history. The decision log is read at HEAD on purpose, so
+  a later ID for a listed commit makes `--check` stale until `--write`.
+
 ### 5.3 Runners and GPU-less coverage
 
 - **Hosted runners.** windows-2025, macos-15 (arm64) and ubuntu-24.04 (RE §10.3; confirmed valid in
@@ -891,6 +957,15 @@ NFR-SEC-19:
     its control, and ElektraWatt's own renderers must not hold a view across `destroy`) and removed its exemption.
   - *Count.* The cycle-20 audit took the exemptions from 485 to 384 (374 `safe-to-deploy`, 10 `safe-to-run`); lane A's
     egui_tiles 0.18.0 added one in the same cycle (385); the wgpu audit of cycle 21 brings them back to 384 (374 and 10).
+    Cycle 22 (WP-S2.02 part 2; decision log ID-543) adds four and prunes one: 387 (377 `safe-to-deploy`, 10
+    `safe-to-run`; `[[exemptions.` entries of `supply-chain/config.toml`).
+  - *The GPU canvas's tessellation crates* (cycle 22; decision log ID-543, FT-326). `lyon_tessellation` 1.0.22,
+    `lyon_path` 1.0.19 and `lyon_geom` 1.0.20 (MIT OR Apache-2.0) and `float_next_after` 1.0.0 (MIT) join the graph
+    through `ew-render2d`. None has a build script and the build-script allowlist is unchanged. They are recorded as
+    four dated `safe-to-deploy` exemptions (2026-10-22), which is the form this section provides for a crate whose audit
+    is not yet written; the exemptions stand until FT-326 audits them (an "AI-performed, owner-delegated" audit under
+    the attestation rule below) and that is complete before any distributed binary (the hold of decision log ID-476).
+    The same change pruned the `termcolor` exemption, and `wgpu-core-deps-wasm` left the graph.
   - *The fuzz crate* (decision log ID-496). `fuzz/` is its own cargo workspace, a development tool that no distributed
     artefact contains, so its dependencies are outside the workspace's cargo-deny and cargo-vet runs and need no
     exemptions. The mitigation is the deep nightly's report-only job `fuzz-deny` over `fuzz/Cargo.lock` with

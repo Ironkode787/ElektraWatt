@@ -1,6 +1,6 @@
 # Project format and persistence
 
-**Status:** Draft v0.3 · **Date:** 2026-10-21 (amended 2026-10-22, cycle 19: the journal kept on a dirty exit and the shell's read-only open with the recovery banner, §8.1, §8.3, decision log ID-475; the replay on a moved base and a removed library copy that a `LibRef` still names, §8.2 step 4, ID-479; amended 2026-10-22, cycle 17: the typed `revision` kind and the open failure of old revision files that break an invariant, §10.3, decision log ID-428; v0.3, cycle 13: the member order of the flattened device aspects as built, §3.1, decision log ID-337; additive implementation of reserved kinds, §10.3, ID-334; v0.2: the persistence core as built and reviewed in cycle 8,
+**Status:** Draft v0.3 · **Date:** 2026-10-21 (amended 2026-10-22, cycle 22: the members written by the four commands of FT-336 stay in `extra`, no schema change, §10.3, §17.2, decision log ID-545, ID-547; amended 2026-10-22, cycle 19: the journal kept on a dirty exit and the shell's read-only open with the recovery banner, §8.1, §8.3, decision log ID-475; the replay on a moved base and a removed library copy that a `LibRef` still names, §8.2 step 4, ID-479; amended 2026-10-22, cycle 17: the typed `revision` kind and the open failure of old revision files that break an invariant, §10.3, decision log ID-428; v0.3, cycle 13: the member order of the flattened device aspects as built, §3.1, decision log ID-337; additive implementation of reserved kinds, §10.3, ID-334; v0.2: the persistence core as built and reviewed in cycle 8,
 ADR-0010 amendment 3, decision log ID-200 to ID-217; cycle 11: journal granularity of `project.settings.set`, Golden B1 files, ID-290) · **Part of:** ElektraWatt design document set
 
 > **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
@@ -1025,6 +1025,14 @@ kept byte for byte, but an untouched record with unknown *members* is re-emitted
 `min_reader` is written equal to `format` and `unstable` is never written (§4, §10.4); the computed values follow
 with FT-95.
 
+**As built (cycle 22; decision log ID-545, ID-547).** The four commands of FT-336 add no record kind and change no
+schema: `frames` and `checks` (in `ProjectSettings.extra`) and `ew.company` (in `Project.extra`) are existing `extra`
+members that commands now write, and the company is an ordinary `Party` of role `panel_builder`. Their stored shapes
+are in [03](03-domain-model.md) §5.1. `ew.company` is a provisional member (the basic project's company data, with the
+logo and the title-block notice; decision log ID-78), so the work package that types it must read old files that carry
+it in `extra`, written by these commands or by the importer, without a migration step. A command that writes into one of
+these members merges into the existing object, so members it does not know survive (the rule above).
+
 ### 10.4 Schemas, fixtures and development builds
 
 - **JSON Schemas** (FR-COL-012). `ew-schema` generates JSON Schema 2020-12 (schemars 1.2.3; the draft is
@@ -1498,6 +1506,7 @@ writes files, so a file that is no longer produced is removed by hand.
 | Golden B2: folio 106 → 104 | Folio 106's page file only. Two tags and 14 xref texts change in the outputs; none of them is in a file |
 | Golden B1: page-based renumbering of 10 tags | `project.jsonl` (the `numbering` settings line drops the strip rule, which renames -X1031/-X1032 without touching their records) and the shards of the devices whose `TagSpec` changes (frozen text cleared, counter set). After undo and save, every data file is byte-identical to Golden A again; only `generation` differs (AC-18) |
 | 24 V DC colour changed in the profile (AC-12) | `project.jsonl` only. No wire record stores a derived colour |
+| Company, frame defaults, languages or check scheme set by `project.company.set`, `project.frames.set`, `project.languages.set` or `project.checks.set` (cycle 22) | `project.jsonl` only: the `Party` rows, `languages` and `settings` (with the `frames` and `checks` members in `extra`) are all inside the project record |
 | W29 colour override set, then undone | Nothing, not even the manifest: step 3 of §5.2 drops the unchanged file, so the dirty set is empty |
 | Valve-manifold macro inserted on a new page | The new page file, the new devices' shards, and `lib/macros/…` if not yet embedded |
 

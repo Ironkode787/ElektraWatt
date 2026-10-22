@@ -3,10 +3,12 @@
 **Status:** specified for cycle 21 (part 1, one lead-programmer lane, D4; part 2 after part 1's delivery, one
 lead-programmer lane, D4; Opus review of each). **Part 1 delivered, as built (cycle 21; decision log ID-517 to
 ID-522):** A1 to A15 passed (§10), with the lane's rulings 1 to 7 and the review's fix round amended into §4.2, §6.1,
-§6.2, §6.3, §6.6 and §9; **part 2 open**, the next package · **Date:** 2026-10-22 (amended 2026-10-22, cycle-21 design
-pass) · **Work package:**
+§6.2, §6.3, §6.6 and §9. **WP-S2.02 is complete: part 2 delivered, as built (cycle 22; decision log ID-539 to
+ID-544):** B1 to B9 passed (§10), with the lane's rulings (ID-540), the review's fix round (ID-542) and the review's
+design items (ID-544) amended into §6.3, §7 and §8 · **Date:** 2026-10-22 (amended 2026-10-22, cycle-21 and cycle-22
+design passes) · **Work package:**
 [WP-S2.02](../02-work-packages.md#wp-s202-2d-canvas-renderer-ew-render2d-and-gpu-less-fallback) · **Decision log:**
-ID-505 to ID-511, ID-514, ID-517 to ID-522 · **Part of:** ElektraWatt plan, specifications
+ID-505 to ID-511, ID-514, ID-517 to ID-522, ID-539 to ID-544 · **Part of:** ElektraWatt plan, specifications
 
 **Purpose.** This is the closed specification of the canvas: the page view of the shell
 ([WP-S2.01](WP-S2.01-application-shell.md)) becomes a canvas that shows the current page at any zoom with pan, the
@@ -80,7 +82,7 @@ Each is a lead ruling that the owner may reverse; the decision log carries the f
 | # | Decision | Reason and trade-off | Log |
 |---|---|---|---|
 | D1 | **Two parts.** Part 1 (2.4 pw): the canvas, its view model and actions, and the CPU tile path, which is the fallback and the backend everywhere until part 2. Part 2 (2.3 pw): the GPU path, the switch rule, FT-328 | The fallback is required anyway (FR-UI-028), and everything around the backend (viewport, input, overlays, status, headless, instrumentation) is shared; building it first gives R0 and WP-S2.03 a zoomable viewer one part earlier and gives the GPU path a measured baseline | ID-505 |
-| D2 | **The GPU path's form: tessellation, not a textured quad of the CPU raster, and the first step is the CPU tiles.** Part 1's canvas is a tile pyramid of `ew-render-cpu` rasters shown as egui textures (drawn by egui's own wgpu renderer). Part 2's `ew-render2d` tessellates the display list with lyon (once per symbol and per glyph, cached by content), draws instanced with a depth-ordered paint order and screen-space minimum stroke widths into an offscreen 4× MSAA texture, and shows that texture as an egui native texture | A textured quad of the CPU raster cannot pan and zoom a dense A3 page at 60 fps on re-raster alone, so it is the loading and fallback state, not the GPU path. An offscreen texture instead of the paint callback of ADR-0015 decision 2 gives the canvas its own MSAA, one display path for both backends (an egui image), and the same code in the live view and the headless render-to-texture test. Glyphs as tessellated outlines instead of an atlas give one instanced pipeline and no atlas management at any zoom. Budget: render ≤ 5 ms p99 per frame of NFR-PERF-04 on BM; part 2 is 2.3 pw. ADR-0015 records the change as a pending amendment | ID-506 |
+| D2 | **The GPU path's form: tessellation, not a textured quad of the CPU raster, and the first step is the CPU tiles.** Part 1's canvas is a tile pyramid of `ew-render-cpu` rasters shown as egui textures (drawn by egui's own wgpu renderer). Part 2's `ew-render2d` tessellates the display list with lyon (once per symbol and per glyph, cached by content), draws instanced with a depth-ordered paint order and screen-space minimum stroke widths into an offscreen 4× MSAA texture, and shows that texture as an egui native texture | A textured quad of the CPU raster cannot pan and zoom a dense A3 page at 60 fps on re-raster alone, so it is the loading and fallback state, not the GPU path. An offscreen texture instead of the paint callback of ADR-0015 decision 2 gives the canvas its own MSAA, one display path for both backends (an egui image), and the same code in the live view and the headless render-to-texture test. Glyphs as tessellated outlines instead of an atlas give one instanced pipeline and no atlas management at any zoom. Budget: render ≤ 5 ms p99 per frame of NFR-PERF-04 on BM; part 2 is 2.3 pw. ADR-0015 recorded the change as a pending amendment, applied as amendment 10 when part 2 was built (cycle 22, ID-539) | ID-506 |
 | D3 | **The switch rule.** CPU canvas when `--no-gpu` is given, the setting asks for it, no wgpu render state exists (headless, kittest), the adapter is a software adapter other than DX12 WARP, or the GPU canvas fails to initialise or loses its device; GPU canvas otherwise, WARP included. A host with no adapter at all cannot open the window: `elektrawatt` exits 3 with a message naming `--headless`, `ew` and, on Linux, Mesa's software drivers | It follows NFR-PLAT-03's order (WARP, then the CPU renderer); egui's own chrome needs an adapter, so the CPU canvas helps where an adapter exists but is unusable for the canvas, not where none exists | ID-507 |
 | D4 | **Determinism.** The CPU path is the golden reference and stays byte-identical per build target; the canvas snapshot (`canvas.snapshot`) is always a CPU image. The GPU path is excluded from golden comparisons; a render-to-texture parity test compares it with the CPU canvas under a one-pixel-neighbourhood tolerance (§8) | MSAA and analytic coverage never agree pixel for pixel, and the GPU clamps hairlines to one pixel by design; a neighbourhood test still catches missing, misplaced or miscoloured geometry | ID-508 |
 | D5 | **Instrumentation.** A frame-statistics ring buffer (1,024 frames, p50, p99 and maximum per phase), an engine-statistics hook asserted as exact counts on every PR (pan and zoom re-execute no query), and a `canvas` bench that the nightly gate reports and never gates until a milestone run blesses its CPU families | Timings are runner-dependent and gated only on BM at milestones (doc 18 §4.3, the testing policy); counts are exact anywhere | ID-509 |
@@ -159,6 +161,16 @@ list of FT-326.
 on Windows, Metal on macOS, Vulkan and GL on Linux), the release binary size and the clean build time of `elektrawatt`
 are measured before and after and reported, and `check-features` stays green.
 
+*As built (part 2, cycle 22; decision log ID-539, ID-543).* **FT-328 is closed.** The trim is eframe's
+`wgpu_no_default_features` with the backends named per operating system (DX12 and WARP on Windows, Metal on macOS,
+Vulkan and GL on Linux with the guard of ID-476). The Windows release binary measured 53,900,288 B before part 2,
+54,407,168 B with the GPU path and every backend, and 52,502,528 B after the trim (-1.8 MiB); the clean build time is
+not measured (owner's rule). **Supply chain:** `lyon_tessellation` 1.0.22, `lyon_path` 1.0.19, `lyon_geom` 1.0.20 (MIT
+OR Apache-2.0) and `float_next_after` 1.0.0 (MIT) entered the graph, none with a build script, the allowlist unchanged.
+They are four dated `safe-to-deploy` exemptions with no audit written, which is the form doc 18 §5.4 and ID-332 ask for
+a lane; the audits that burn them down are FT-326's (the lyon family joins it) and come before any distributed binary
+(ID-476's hold). `termcolor` and `wgpu-core-deps-wasm` left the graph, so the exemptions went from 384 to 387.
+
 ## 6. Part 1: the canvas on the CPU tile path
 
 ### 6.1 The canvas model (`ew-viewmodel`)
@@ -169,7 +181,7 @@ are measured before and after and reported, and `check-features` stays green.
 |---|---|---|
 | `sheet` | `(i64, i64)` nm | The page's width and height (from `page_content`) |
 | `centre` | `(i64, i64)` nm | The sheet point at the pane's centre; clamped to the sheet rectangle `[0, w] × [0, h]` |
-| `zoom` | `f64` | The factor of paper size (1.0 = 100 %); 100 % shows 1 mm of paper as 96/25.4 logical points (CSS convention), so the page keeps its physical size across monitors (doc 16 §17 item 7). *Ruling (ID-521):* the points meant here exclude the UI scale: 100 % is 96/25.4 physical pixels per paper millimetre times the operating system's scale factor, and the UI scale enlarges only the chrome. Part 1 as built uses egui's pixels per point, which include the UI scale; part 2 divides by it (FT-349) |
+| `zoom` | `f64` | The factor of paper size (1.0 = 100 %); 100 % shows 1 mm of paper as 96/25.4 logical points (CSS convention), so the page keeps its physical size across monitors (doc 16 §17 item 7). *Ruling (ID-521):* the points meant here exclude the UI scale: 100 % is 96/25.4 physical pixels per paper millimetre times the operating system's scale factor, and the UI scale enlarges only the chrome. Part 1 as built used egui's pixels per point, which include the UI scale; part 2 divides by it (FT-349, *as built in cycle 22:* `D = zoom × 96 × ppp / ui_scale`, 1.0 headless, so no transcript or golden changed) |
 | `pane` | `(f64, f64)` points, `ppp: f64` | The pane size and pixels per point; headless default 1200 × 800 at 1.0 |
 | `pointer` | `Option<(i64, i64)>` nm | The sheet point under the pointer, `None` when the pointer is outside the pane |
 | `grid` | `Option<PageGrid>`, `grid_on: bool` | The page's grid from `Session::page_grid`, and whether it is drawn (default on) |
@@ -272,9 +284,16 @@ previous-revision fallback tile on the last layer leaves the canvas not ready (`
 false) until the new revision's tiles are in, and counts a fallback frame in the frame statistics. With no canvas on
 screen (no project, the wizard, or the pane hidden behind another tab) the host submits an empty plan and drops the
 cached scenes, so the pool does no work and no textures are held; a hidden pane's tiles are rastered again when its tab
-returns (a budgeted retention is FT-356). `TilePool::recv_timeout` (50 ms) is the blocking receive the bench uses. A
+returns (a budgeted retention is FT-356, *delivered with part 2 in cycle 22:* a hidden tab keeps its tiles within a
+quarter of the cache and frees its GPU targets; WP-S2.03 part 1 extends that budget to its tabs, ID-535). `TilePool::recv_timeout` (50 ms) is the blocking receive the bench uses. A
 commit on another page makes a new scene, because the scene key is the revision; keying it by a digest of the page's
-content is part of FT-347.
+content is part of FT-347. *As built (the review's fix round of part 2, ID-542):* the scene key is (session, revision,
+folio), not (revision, folio): the revision counter restarts with every `Project`, so two projects could share a key. The
+session is a per-shell epoch bumped at each of the three places that create a `Project` (a reload is a new session),
+carried in `CanvasPage::session`, and used by the shell's canvas and error keys, the keep-the-view rule, the CPU tile
+scene with its stand-in, and the GPU request, stand-in and accept. `CanvasHost::release` clears the frame, the request,
+the shown scene and the canvas's scene, so a project switch can never show the previous project's page as ready; a seam
+test pins both.
 
 **Wizard preview.** The wizard's live preview keeps WP-S2.01's fitted image (ID-445); `page_view.rs` remains for it
 only, and `view.snapshot` and `--smoke` keep their full-page path unchanged.
@@ -346,12 +365,17 @@ pixels on a side is rendered as `render_region` parts of at most 4096 pixels and
 
 ### 7.1 The renderer (`ew_render2d::gpu`)
 
-- **Scene preparation on a worker** (no UI-thread tessellation): the display list is walked once; every group with a
-  transform and no clip is an instance of a mesh keyed by a 128-bit content key (two SipHash passes of the group's
-  items with distinct prefixes; no equality check); every glyph is an instance of a mesh keyed by (font key, glyph ID),
-  tessellated from its skrifa outline in font units; the remaining paths form the page's static mesh. Meshes are cached
+- **Scene preparation on a worker** (no UI-thread tessellation): the display list is walked once; **every group with
+  a transform or a clip is a mesh context** (ruling of the part-2 lane, accepted by the review, ID-540): an instance of
+  a mesh keyed by a 128-bit content key (two SipHash passes of the group's items with distinct prefixes; no equality
+  check); every glyph is an instance of a mesh keyed by (font key, glyph ID),
+  tessellated from its skrifa outline in font units with a tolerance of em/2000 (ID-540); the remaining paths form the
+  page's static mesh. Meshes are cached
   across scenes, so a second preparation of the same page tessellates nothing (B3). While a scene prepares, the
-  canvas shows the CPU tiles of §6.3 (the loading state).
+  canvas shows the CPU tiles of §6.3 (the loading state). *As built:* the scene is keyed (session, revision, folio)
+  (§6.3); the previous revision of the same folio stands in while the new one prepares, and the canvas is not ready
+  until the new scene is (consistent with part 1's readiness rule). Content-keyed meshes are what part 2 delivers of
+  FT-347: re-preparing after a commit elsewhere tessellates nothing.
 - **Coordinates.** Page coordinates as `f32` micrometres (exact to 0.06 µm up to 1 m); mesh-local coordinates relative
   to the mesh origin.
 - **Fills** with lyon's fill tessellator, non-zero rule, tolerance 1 µm. **Strokes** with lyon's stroke tessellator at
@@ -360,7 +384,9 @@ pixels on a side is rendered as `render_region` parts of at most 4096 pixels and
   (architecture §8.2's screen-space lines).
 - **Paint order** by depth: every drawn item gets its depth from its paint index (later is nearer); opaque items are
   batched in any order with a depth test; items whose brush alpha is below 255 are drawn last, in paint order, with the
-  depth test and without depth writes.
+  depth test and without depth writes. *Ruling (ID-541):* translucent primitives are **exact in paint order between
+  instances and approximate inside one mesh**, where a mesh's own primitives keep the mesh's order; §8 item 3 bounds
+  the difference.
 - **LOD**: a glyph run whose em height on screen is below 2 pixels is drawn as its layout box filled with its brush at
   alpha 0.35 (the "bar"); images are skipped, as the CPU path skips them; a group clip becomes a per-instance clip
   rectangle in page coordinates tested in the fragment shader (exact for multiples of 90°, the bounding box otherwise).
@@ -368,7 +394,9 @@ pixels on a side is rendered as `render_region` parts of at most 4096 pixels and
   into a texture of the pane's physical size, which `ew-ui` registers once per size as an egui native texture through
   egui-wgpu's renderer and paints as an image under the overlays of §6.4 (the overlays stay one code path for both
   backends). The texture format is the one at which a filled rectangle reads back its authored sRGB bytes within ±1
-  through egui-wgpu's sampling (B2); the lane records which.
+  through egui-wgpu's sampling (B2). *As built:* `Rgba8Unorm`; egui-wgpu requires it for native textures and samples it
+  as gamma-space colour, so authored sRGB bytes blend in gamma space like the CPU u8 pipeline (#0072B2 reads back
+  within ±1); the filter is nearest, one texel per physical pixel.
 - **Frame.** In `App::update`, before egui paints: when the view or the scene changed, encode and submit one render;
   idle frames submit nothing (repaint on demand, doc 16 §1 rule 3).
 - **Mapped buffers** (from the cycle-21 audit of wgpu 30.0.1): wgpu-core 30.0.1's safe `Buffer::destroy` and device
@@ -377,7 +405,14 @@ pixels on a side is rendered as `render_region` parts of at most 4096 pixels and
   range is only ever held inside the scope that maps it (the map callback or the block that awaits it, as egui-wgpu
   does), copied out there, and dropped before `unmap`; this applies to the readback buffers of the render-to-texture
   tests and the bench as well as to any upload buffer. The renderer uses `Queue::write_buffer` and
-  `Queue::write_texture` for uploads, so it maps no buffer outside the readback path.
+  `Queue::write_texture` for uploads, so it maps no buffer outside the readback path. *As built:* the only mapped view
+  is in `GpuCanvas::read_back`, held inside the scope that maps it.
+- **Errors and limits** (*as built*). The GPU canvas records a device loss or an uncaptured error instead of wgpu's
+  default panic. `GpuError::Limits` (a pane larger than the device allows) ends the GPU path for the session with the
+  banner (ID-544); a per-frame CPU fallback, with `GpuHost::render` returning `None` without recording a fault, is
+  FT-363. A lyon panic is caught with `catch_unwind` and meets FT-310's panic hook (a note on FT-310, ID-544). The
+  handlers installed on eframe's shared device outlive the canvas, so they log through `tracing` and never swallow
+  egui-wgpu's own errors (ID-542).
 
 ### 7.2 The switch rule
 
@@ -392,12 +427,21 @@ Evaluated at start and on a failure, in this order; the result is set with `Shel
 | 5 | Adapter device type CPU on DX12 (WARP) | GPU | `WARP` |
 | 6 | Adapter device type CPU on another backend (llvmpipe, lavapipe and the like) | CPU | `CPU` |
 | 7 | GPU initialisation fails (pipeline creation or a validation error caught in an error scope) | CPU, with a one-time banner naming the error | `CPU` |
-| 8 | Device lost or an uncaptured error after start | CPU for the rest of the session, with a one-time banner | `CPU` |
+| 8 | Device lost or an uncaptured error after start | CPU for the rest of the session, with a one-time banner. *Note (ID-544):* there is one shared device (ADR-0014), so a real device loss also ends egui's window; this row helps for uncaptured errors only, and recovery is FT-310 and WP-S2.11 | `CPU` |
 
 The rule is one pure function `ew_render2d::gpu::choose(flags, setting, adapter: Option<AdapterSummary>, init:
 Result<(), GpuError>) -> CanvasBackend`, table-tested (B1). A host with no adapter at all fails in eframe before the
 first frame: `elektrawatt` catches the error, writes one message to stderr (it names `elektrawatt --headless`, `ew`,
 and on Linux the Mesa software drivers) and exits with code 3; the headless and smoke modes never need an adapter.
+
+*As built (part 2, cycle 22; decision log ID-539, ID-542).* The status labels are `GPU DX12`, `GPU Vulkan`, `GPU Metal`,
+`GPU GL`, `WARP` and `CPU`; the setting is `canvas_backend` (`auto` by default, or `cpu`; `settings.set` accepts it);
+`--no-gpu` gives the CPU canvas and a software adapter for the window (none: the default adapter, with a banner); an
+initialisation failure shows the one banner "The GPU canvas could not start (…)". **The exit-3 rule of the review's fix
+round:** exit code 3 follows an adapter-request or `--no-gpu` selector failure, or any other wgpu error when a fresh
+instance's enumeration counts no adapter (otherwise 1, as for every non-wgpu error). A `create_surface` failure with no
+Vulkan loader or EGL had exited 1; the fresh instance skips the backends it cannot start instead of panicking. **A
+recorded gap (FT-364):** the count honours `WGPU_BACKEND` while eframe's own instance does not.
 
 ## 8. Determinism
 
@@ -413,8 +457,19 @@ and on Linux the Mesa software drivers) and exits with code 3; the headless and 
    parity test (B2): a "clearly ink" pixel (some channel at least 128 away from white) of one image is matched when a
    pixel of the other image within its 3 × 3 neighbourhood has every channel within 128 of it; at most 1 % of the
    clearly-ink pixels of each image may be unmatched. It runs on folio 103 at `D = 150` and on the dense A3 page of §9.
+   *As built (the review's fix round, ID-542, ID-541):* the neighbourhood rule alone is lenient, so B2 adds a
+   **mean-channel-difference bound** over the whole image (folio 103: measured 0.60, bound 0.75; dense A3: measured
+   6.36, bound 8.0) and an **edge-position check** (an edge at 60.2 or 40.3 px lands on column 60 and row 40 as in the CPU
+   raster, ±0), and samples #0072B2 at the first fully covered pixel inside each edge. The dense page is overlapping
+   copies of folio 103, so its larger difference is overlap plus the approximate order of translucent primitives
+   inside one mesh (§7.1); the folio-103 bound is the sensitive check, and the dense-page bound only guards against gross
+   error.
 4. **Where it runs.** The parity test needs an adapter: on Windows it must find one (DX12 WARP), and a Windows run
-   without one stops the lane for a lead ruling; elsewhere it prints `skipped: no adapter` and passes. No GPU image
+   without one stops the lane for a lead ruling; elsewhere it prints `skipped: no adapter` and passes. *As built (ID-542):*
+   `EW_REQUIRE_GPU_ADAPTER=1` makes a missing adapter fail the GPU tests (a reviewed allow site of the environment lint,
+   doc 18 §3.5), and the CI jobs with an adapter set it: Linux installs Mesa's lavapipe (`mesa-vulkan-drivers`, commits
+   d229734 and 3012b0e) and so runs B2, Windows uses WARP, macOS Metal; the headless container job keeps
+   `skipped: no adapter`, which is printed only without the flag (doc 18 §4.2, §5.2). No GPU image
    appears in a transcript, a describe text or a golden.
 
 ## 9. Frame-time instrumentation
@@ -490,17 +545,22 @@ on temporary copies of Golden A with `EW_CONFIG_DIR` set to a temporary director
 
 **Part 2**
 
-| # | Check | Where | Proves |
-|---|---|---|---|
-| B1 | The switch rule's table, every row of §7.2, as a pure-function test; the adapter selector of `--no-gpu` on synthetic adapter lists | `ew-render2d`, `elektrawatt` tests | §7.2 |
-| B2 | Render-to-texture on a headless device: the parity rule of §8 item 3 on folio 103 at `D = 150` and on the dense A3 page; a filled #0072B2 rectangle reads back its bytes within ±1; on Windows an adapter must be found | `ew-ui` tests | §7.1, §8 |
-| B3 | Caches, exact counts: a second preparation of folio 103 tessellates no mesh; N placements of one symbol give one mesh and N instances; repeated glyphs one mesh each | `ew-render2d` tests | §7.1 |
-| B4 | LOD: at 10 % zoom the bar count equals the runs below 2 pixels; a 0.01 mm line leaves ink in the readback | `ew-render2d` tests on the headless device | §7.1 |
-| B5 | An injected initialisation failure and an injected device loss switch the canvas to CPU with one banner each, and the status shows `CPU` | `ew-ui` tests | §7.2 |
-| B6 | Exit code 3 and its message when the adapter request fails (an injected failure); `--no-gpu` gives the CPU canvas | `elektrawatt` tests | §7.2 |
-| B7 | FT-328: the per-OS backend features, the binary size and the clean build time before and after, reported; `check-features` green | lane | §5 |
-| B8 | Supply chain per §5; every mapped buffer range in the code lives inside its mapping scope (review grep for `get_mapped_range`) | lane; reviewer | §5, §7.1 |
-| B9 | Part 1's A1 to A14 still pass; the kittest flows run on the CPU canvas (no render state); the bench's GPU families compile; targeted tests and lints as A14 | lane | — |
+| # | Check | Where | Proves | Result (cycle 22) |
+|---|---|---|---|---|
+| B1 | The switch rule's table, every row of §7.2, as a pure-function test; the adapter selector of `--no-gpu` on synthetic adapter lists | `ew-render2d`, `elektrawatt` tests | §7.2 | Passed |
+| B2 | Render-to-texture on a headless device: the parity rule of §8 item 3 on folio 103 at `D = 150` and on the dense A3 page; a filled #0072B2 rectangle reads back its bytes within ±1; on Windows an adapter must be found | `ew-ui` tests | §7.1, §8 | Passed on the hardware DX12 adapter and on WARP, for folio 103 and the dense A3 page: 0 unmatched clearly-ink pixels, with the mean-channel-difference bound (0.60 against 0.75; 6.36 against 8.0), the edge-position check and #0072B2 within ±1 of the fix round (§8, ID-541, ID-542); on CI Linux with lavapipe under `EW_REQUIRE_GPU_ADAPTER=1`, the headless container `skipped: no adapter` |
+| B3 | Caches, exact counts: a second preparation of folio 103 tessellates no mesh; N placements of one symbol give one mesh and N instances; repeated glyphs one mesh each | `ew-render2d` tests | §7.1 | Passed |
+| B4 | LOD: at 10 % zoom the bar count equals the runs below 2 pixels; a 0.01 mm line leaves ink in the readback | `ew-render2d` tests on the headless device | §7.1 | Passed |
+| B5 | An injected initialisation failure and an injected device loss switch the canvas to CPU with one banner each, and the status shows `CPU` | `ew-ui` tests | §7.2 | Passed |
+| B6 | Exit code 3 and its message when the adapter request fails (an injected failure); `--no-gpu` gives the CPU canvas | `elektrawatt` tests | §7.2 | Passed |
+| B7 | FT-328: the per-OS backend features, the binary size and the clean build time before and after, reported; `check-features` green | lane | §5 | Delivered, FT-328 closed: 53,900,288 B before, 54,407,168 B with the GPU path untrimmed, 52,502,528 B trimmed (-1.8 MiB); the clean build time is not measured (owner's rule); `check-features` green (§5) |
+| B8 | Supply chain per §5; every mapped buffer range in the code lives inside its mapping scope (review grep for `get_mapped_range`) | lane; reviewer | §5, §7.1 | As built (ID-543): four lyon-family exemptions with a dated note, `termcolor` pruned, 384 to 387; the only mapped view is in `GpuCanvas::read_back` (§7.1) |
+| B9 | Part 1's A1 to A14 still pass; the kittest flows run on the CPU canvas (no render state); the bench's GPU families compile; targeted tests and lints as A14 | lane | — | Passed: A1 to A14 hold; 248 tests in the four crates with and without all-features (after the fix round); page output and acceptance 36 tests; `golden/` untouched |
+
+*Manual check of part 2 (A15's form, by the lane on Windows, reported and not gated):* the canvas with the status bar
+`GPU DX12` and with `--no-gpu` (`CPU`) is identical at fit, at 283 % and after a pan; no lock was left behind. The
+Linux and macOS looks, a real device loss, exit 3 on a host without an adapter, the MSAA resolve on GL hardware and
+`--no-gpu` choosing llvmpipe are manual-only and stay an owner item (ID-544).
 
 The workspace suite, the acceptance runner and the performance runs are not run by the lanes (testing policy); the
 integrating session runs `cargo xtask ci` at the cycle delivery.
@@ -530,7 +590,11 @@ pass updates the documents of §14). Each lane commits on its own branch and doe
 | Tabs, side by side, per-page viewports in `view.json`, jump history, back and forward, xref jumps and hover previews, go to cell | WP-S2.03 |
 | The cursor's cell in the status bar (`102-H15`) with the `Session` cell lookup that go to cell also needs | FT-345 (with WP-S2.03) |
 | The page display list off the UI thread for a cold page | FT-346 (with FT-251) |
-| Per-layer GPU buffers kept across a commit (NFR-PERF-20's PR criterion) | FT-347 (with WP-S2.04) |
+| The tile-scene digest and per-layer GPU buffers kept across a commit (NFR-PERF-20's PR criterion); the content-keyed meshes of FT-347 are delivered by part 2 | FT-347, the rest (with WP-S2.04) |
+| Optional mipmaps for the level tiles: egui-wgpu 0.37 makes one mip level and ignores `mipmap_mode`, so mipmaps would need a CPU half level, and the GPU draws motion wherever an adapter is usable; deferred | FT-354, re-dated to "if a visual defect is reported" |
+| A per-frame CPU fallback for `GpuError::Limits` instead of ending the GPU path for the session | FT-363 |
+| The exit-3 adapter count honours `WGPU_BACKEND` while eframe's instance does not | FT-364 |
+| Recovery from a real device loss on the shared device; lyon panics meeting the panic hook | FT-310, WP-S2.11 (ID-544) |
 | Placement, wiring and drawing gestures; drag overlays | WP-S2.04 |
 | Themes and their tokens, high contrast, minimum font size, UI scale to 300 %, keymap presets (the wheel and trackpad mapping may differ per preset) | WP-S2.08 |
 | Image snapshots, the watchdog, the WARP and lavapipe snapshot jobs | WP-S2.11 |
@@ -556,7 +620,7 @@ pass updates the documents of §14). Each lane commits on its own branch and doe
    texture readback buffers of the tests and the bench; uploads use `write_buffer` and `write_texture`; no `unsafe`,
    no `bytemuck` derive.
 7. **The switch rule** matches §7.2 row for row; every failure path ends on the CPU canvas with one banner; exit code 3
-   is only for a missing adapter.
+   is only for a missing adapter (an adapter-request or selector failure, or a fresh enumeration that counts none).
 8. **Accessibility.** The canvas node's role and name; the walker passes; no meaning in colour alone in the overlays
    (the hover is dashed, a selection solid).
 9. **Supply chain** (part 2). The dependency specs of §5; exemptions match the new lock entries; no audit entry by the
@@ -582,7 +646,8 @@ after part 1's delivery, so its GPU renderer is measured against a working CPU c
 (the pending amendment recorded there), architecture §3 (the `ew-render2d` row and edge), §8.2 (the offscreen texture,
 glyph meshes, the tile path) and §9; doc 16 §3.6 (the zoom field), §3.9 (the canvas as built) and §10.1; doc 18 §3.17
 (what the drafter can read back) and §4.2 (the bench families); ADR-0014's as-built note (egui-wgpu as a direct
-dependency).
+dependency). *Done at the cycle-22 design pass (ID-555):* ADR-0015 amendment 10, ADR-0014's as-built note, architecture
+§3, §5.4, §8.2 and §9, this specification, doc 16 and doc 18.
 
 ---
 

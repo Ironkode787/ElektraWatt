@@ -3,9 +3,9 @@
 **Status:** specified in cycle 22 (documents only) for two lead-programmer lanes: part 1 (the read-only viewer, D4) as a
 cycle-23 candidate, part 2 (the tool framework, D4) after part 1's delivery; Opus review of each · **Date:**
 2026-10-22 · **Work package:**
-[WP-S2.03](../02-work-packages.md#wp-s203-viewer-view-models-and-canvas-tool-framework) · **Decision log:** the
-entries the cycle-22 design pass allocates for this specification (§3) · **Part of:** ElektraWatt plan,
-specifications
+[WP-S2.03](../02-work-packages.md#wp-s203-viewer-view-models-and-canvas-tool-framework) · **Decision log:** ID-531 to
+ID-538 (the cycle-22 design pass recorded §3's decisions and rulings, corrected D8's count and amended D13 and §6.8
+after WP-S2.02 part 2 delivered FT-356) · **Part of:** ElektraWatt plan, specifications
 
 **Purpose.** This is the closed specification of the viewer and of the framework every editing tool builds on. Part 1
 turns the canvas of [WP-S2.02](WP-S2.02-canvas-renderer.md) into a viewer one can find one's way in: a page navigator,
@@ -97,12 +97,12 @@ to the lead for this specification and which are recorded as taken. The design p
 | D5 | **Ruling (delegated): the grid cursor is a canvas-model concept, with no focus of its own, announced through AccessKit.** It is state of the tab's `CanvasModel`, moved by registry actions; the canvas stays one focusable AccessKit node whose description and a polite live region carry the cursor | A focusable node per grid point would flood the accessibility tree; a model concept is equally drivable headless |
 | D6 | **The canvas area is per-project state in its own nested egui_tiles tree, not part of the workspace file.** The workspace's `page-view` pane is the canvas area; inside it `ew-ui` draws a nested `egui_tiles::Tree` built from the toolkit-neutral `CanvasArea` of `ew-viewmodel`: one or two tab groups side by side, at most 32 tabs | Tabs are project view state (doc 16 §2.5), the workspace file is user state (ID-489); keeping them apart keeps `ew.workspace/1` unchanged and deterministic. egui_tiles is already in the graph and gives the tab strip, close buttons and reordering |
 | D7 | **Navigation semantics.** Walks (Page Up, Page Down, first, last) move the tab without a history entry; jumps (follow a link, Go to, the navigator's Open, Back and Forward) record one. Each tab remembers a viewport per page; a page seen for the first time in a tab is fitted. A jump to a point centres it at `max(current zoom, 2 × the target page's fit zoom)` | Back returns "with the previous viewport" (FR-UI-019); a jump into a page shown whole would not show where it landed, and twice the fit is a page-relative rule that needs no cell size. The factor is a UX choice to validate at R0 (WP-S2.12) |
-| D8 | **Five public items below the shell**, each in its own commit with tests: part 1 `DisplayList::link_sources` (ew-dl), `Session::page_rows`, `Session::page_cells` with `PageCells`, `Session::resolve_goto` and `Session::link_targets` (ew-api); part 2 `Session::page_cps` (ew-api). No new workspace edge and no new external crate | Each is a read query over data the export path already derives; the view model evaluates the cell rule itself from `PageCells`, so a pointer move never calls the `Session` (NFR-PERF-20) |
+| D8 | **Six public items below the shell** (five in part 1, one in part 2; the heading said "five" until the cycle-22 design pass, decision log ID-535), each in its own commit with tests: part 1 `DisplayList::link_sources` (ew-dl), `Session::page_rows`, `Session::page_cells` with `PageCells`, `Session::resolve_goto` and `Session::link_targets` (ew-api); part 2 `Session::page_cps` (ew-api). No new workspace edge and no new external crate | Each is a read query over data the export path already derives; the view model evaluates the cell rule itself from `PageCells`, so a pointer move never calls the `Session` (NFR-PERF-20) |
 | D9 | **The preview command protocol is `Session::preview`, a `TxBuilder` dry run on a fork, not a preview model.** A tool's `Preview(cmd)` runs `Session::preview` on the UI thread after the pointer rests 80 ms; the semantic ghost is `Session::derived_diff` of that preview; `Commit(cmd)` commits that preview when it is fresh and its command is equal, else executes the command | ADR-0008: previews are exact because they are the real command; a separate preview model would be a second semantics that can disagree (NFR-REL-08). The transaction-read rule holds: the command reads no memoised query inside its transaction, and the derived diff reads `Q` only over the finished candidate. The `Session` is not `Send`, so the preview runs on the UI thread; a preview slower than NFR-PERF-19 moves to a fork job later (proposed task, §12) |
 | D10 | **The tool host and the tools are toolkit-neutral and live in `ew-viewmodel`; `ew-ui` paints.** Doc 16 §4.5 puts the host in `ew-ui`; doc 06 §4.1's `ToolCx` carries a `World`. Here the tool context carries the prepared page tables (display list, entity rectangles, links, cells, grid, connection points) and no `World`, and tools never call the `Session` | What the headless mode cannot do, the shell does not do (ID-443); no `ew-model` name reaches the tools (architecture §3 rule 3). Doc 16 §4.5 and doc 06 §4.1 are amended at the design pass |
 | D11 | **Timing is an input, not model state.** Pointer rest is the action `canvas.dwell` with its duration; the window host sends it after 80 ms and after 300 ms of rest, a script sends it explicitly | Transcripts stay free of time (ID-474); the 80 ms semantic ghost and the 300 ms link preview of doc 06 §4.1 and §6 are scriptable |
 | D12 | **The headless mode and `ui.describe` grow by the members and words of §6.10 and §7.9** (ID-474 extended; a reviewed transcript change, as ID-511 was) | The blind drafter navigates, follows, goes to, moves the cursor, uses Select and Measure, and reads all of it back |
-| D13 | **FT-345 and FT-356 are closed by part 1.** The cell in the status bar uses `PageCells`; hidden tabs keep their tiles within a quarter of the cache | Both waited for tabs and the cell lookup of this package |
+| D13 | **FT-345 is closed by part 1, and part 1 extends FT-356** (amended by the cycle-22 design pass, decision log ID-535). The cell in the status bar uses `PageCells`; FT-356 was delivered by WP-S2.02 part 2 for a page pane hidden behind another dock tab (ID-539), and part 1 applies the same budget, a quarter of the cache, to its hidden canvas tabs | FT-345 waited for the cell lookup of this package; FT-356's budget exists and is reused, not rebuilt |
 
 **Rulings on the design review (delegated, 2026-10-22).** The independent Opus review accepted D1 to D13 and the five
 delegated rulings after a fix round, and the owner's delegate ruled on its points:
@@ -124,7 +124,7 @@ delegated rulings after a fix round, and the owner's delegate ruled on its point
 | Crate | Layer | Part 1 adds | Part 2 adds | Workspace edges |
 |---|---|---|---|---|
 | `ew-viewmodel` | GPL | `area` (the canvas area: groups, tabs, focus), `history`, `navigator` (the page navigator model replacing `page_list`), the grid cursor and the link list in `canvas`, Go to, the new actions, status fields, transcript members and describe lines | `tools` (the `Tool` trait, `CanvasEvent`, `ToolOutput`, the host, `Selection`, `Snapper`, the Select and Measure tools), the overlay model in sheet coordinates | `ew-api` only (unchanged) |
-| `ew-render2d` | GPL | `tiles`: the hidden-scene budget of FT-356; `overlay`: the grid cursor, the link hover outline | `overlay`: the tool overlay primitives (sheet to screen, snapshot compositing) | unchanged |
+| `ew-render2d` | GPL | `tiles`: FT-356's hidden-scene budget (built in WP-S2.02 part 2) extended to several hidden scenes; `overlay`: the grid cursor, the link hover outline | `overlay`: the tool overlay primitives (sheet to screen, snapshot compositing) | unchanged |
 | `ew-dl` | permissive | `DisplayList::link_sources` (§4.2) | — | unchanged |
 | `ew-derive` | GPL | `cell_in_grid` made public for `ew-api` (visibility only, no behaviour change) | — | unchanged |
 | `ew-api` | GPL | `PageRow`, `PageCells`, `CellLabel`, `GotoTarget`, `GotoError`, `LinkTarget` in `output`; `Session::page_rows`, `page_cells`, `resolve_goto`, `link_targets` (§4.2) | `PageCp`; `Session::page_cps` | unchanged |
@@ -375,11 +375,12 @@ group's canvas dispatches `ui.focus` for that group first; the mouse's back and 
 ### 6.8 The host: several canvases over one tile pool (FT-356)
 
 `ew-ui`'s `CanvasHost` serves every visible canvas (one per group) from one `TilePool` and one `TileCache`: scenes are
-keyed by (revision, folio) as today, so two tabs on one page share tiles. Each frame the host plans the visible canvases
+keyed by (session, revision, folio) as WP-S2.02 part 2's fix round left them (decision log ID-542), so two tabs on one
+page share tiles. Each frame the host plans the visible canvases
 in the order focused group, then the other, and submits one merged plan (the focused group's tiles first in each
 priority class of WP-S2.02 §6.3), with the upload limit of 8 per frame shared.
 
-**Retention (FT-356).** A scene not drawn in the current frame is *hidden*. The cache never evicts a tile drawn in the
+**Retention (FT-356; built for one hidden pane by WP-S2.02 part 2, ID-539, and extended here).** A scene not drawn in the current frame is *hidden*. The cache never evicts a tile drawn in the
 current frame; above the 256 MiB budget it evicts hidden scenes' tiles first, least recently shown scene first, then
 visible tiles by the existing least-recently-used order; hidden scenes together keep at most 64 MiB (a quarter of the
 budget), evicted the same way. A scene no open tab shows any more (its tab closed, or a new revision for the same folio

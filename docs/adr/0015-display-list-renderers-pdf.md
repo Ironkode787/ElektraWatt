@@ -1,6 +1,6 @@
 # ADR-0015: One display-list IR; wgpu canvas plus an always-built CPU renderer; krilla PDF/A-2b; PDF as print master
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-19, 2026-10-20 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-19, 2026-10-20, 2026-10-22 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -67,7 +67,7 @@ Later: optional content (FR-OUT-023), DWG pages (FR-OUT-016) and 3D PDF (FR-OUT-
 
 ## Amendments
 
-Amendments 1 to 4 were accepted on 2026-10-18, amendments 5 to 7 on 2026-10-19. The decision text above is unchanged; these entries refine it.
+Amendments 1 to 4 were accepted on 2026-10-18, amendments 5 to 7 on 2026-10-19, amendments 8 and 9 on 2026-10-20, amendment 10 on 2026-10-22. The decision text above is unchanged; these entries refine it.
 
 1. **Print adapters, PNG export and the PDF rasteriser** (2026-10-18;
    [reports, forms and output](../design/09-reports-forms-output.md), open questions 4 and 5;
@@ -149,6 +149,36 @@ Amendments 1 to 4 were accepted on 2026-10-18, amendments 5 to 7 on 2026-10-19. 
    path's control points, exact at 0° and 90°; a free-angle text needs `QuadPoints` (follow-up task FT-122), and
    exact item ends from the shaped clusters replace the prefix re-shaping, which ignores kerning across the item
    boundary (FT-123). The golden PDF has 64 cross-reference link annotations and 96 named destinations.
+10. **The canvas's GPU path as built** (2026-10-22, cycle 22, lead ruling the owner may reverse, applied and accepted at
+    the cycle-22 design pass; decision log ID-506, ID-507, ID-539 to ID-543;
+    [WP-S2.02 specification](../plan/specs/WP-S2.02-canvas-renderer.md) §3, §7). This applies the amendment that was
+    pending since cycle 21. Decision 2 changes in two points, as built by part 2 of WP-S2.02:
+    - **An offscreen texture instead of a paint callback.** `ew-render2d` tessellates the display list with lyon
+      (fills and strokes, with the caps, joins and miter limit of `ew-dl`; dashes split first with kurbo) and draws it,
+      depth-ordered, into its own 4× multisampled offscreen texture (1× where the adapter cannot), which it resolves
+      into a pane-sized `Rgba8Unorm` texture. egui-wgpu requires that format for native textures and samples it as
+      gamma-space colour, so authored sRGB bytes blend in gamma space exactly as the CPU renderer's u8 pipeline does
+      (#0072B2 reads back within ±1). The texture is shown as an egui native texture with nearest filtering, one
+      texel per physical pixel, under the overlays that both backends share.
+    - **Glyphs as tessellated outlines, not an atlas.** A mesh is cached by content: a group by a 128-bit content key,
+      a glyph by (font, glyph ID), tessellated from its unhinted skrifa outline in font units with a tolerance of
+      em/2000. Scene preparation runs on a worker; a second preparation of the same page tessellates nothing. **Every
+      group with a transform or a clip is a mesh context** (one mesh per content key, instanced), which settles the
+      cycle-21 wording that named the transform only (ID-540).
+    - **Translucency** is exact in paint order between instances and approximate inside one mesh (ID-541): opaque
+      items are depth-tested in any order, translucent items are drawn last in paint order, and the order of
+      translucent primitives inside one mesh is the mesh's own. The parity test (WP-S2.02 §8) states its bounds
+      accordingly.
+    - **The mapped-view rule** (from the cycle-21 audit of wgpu 30.0.1; ADR-0014's as-built note): uploads use
+      `Queue::write_buffer` and `Queue::write_texture`, and the only mapped view in the renderer is the readback in
+      `GpuCanvas::read_back`, held inside the scope that maps it and dropped before `unmap`.
+    - **The CPU path stays the golden reference** (decision 3, amendment 6): `ew-render-cpu` is unchanged, no golden
+      byte changed, `canvas.snapshot` is always a CPU image, and the GPU path is compared with the CPU canvas by a
+      render-to-texture parity test under a neighbourhood tolerance, never by bytes. The backend is chosen by one
+      pure function (the switch rule, architecture §8.2); on a host without an adapter the window does not open
+      (exit code 3) and the CPU renderer remains the headless and fallback path. Supply chain: lyon_tessellation,
+      lyon_path, lyon_geom and float_next_after are cargo-vet exemptions under ID-476's hold until FT-326 audits them
+      (ID-543).
 
 ## Consequences
 
@@ -174,15 +204,8 @@ Amendments 1 to 4 were accepted on 2026-10-18, amendments 5 to 7 on 2026-10-19. 
 The page-label amendment that was pending here (from
 [reports, forms and output](../design/09-reports-forms-output.md), open question 11) is settled by amendment 5.
 
-- **The canvas's GPU path** (2026-10-22, lead ruling the owner may reverse; decision log ID-506, ID-507;
-  [WP-S2.02 specification](../plan/specs/WP-S2.02-canvas-renderer.md) §3, §7). Decision 2 changes in two points:
-  `ew-render2d` renders into its own 4× multisampled offscreen texture, shown as an egui native texture, instead of
-  drawing inside an `egui_wgpu` paint callback; and glyphs are tessellated outlines drawn instanced like symbols,
-  instead of a glyph atlas. Until a scene is tessellated, and wherever the switch rule chooses it, the canvas shows a
-  tile pyramid of `ew-render-cpu` rasters (decision 3). The amendment is applied when part 2 of WP-S2.02 is built and
-  reviewed. *Status after cycle 21 (decision log ID-517):* part 1 is built: the canvas shows the CPU tile pyramid,
-  drawn as egui textures through egui's own wgpu renderer, and is the backend everywhere until part 2; the two points
-  of decision 2 are not yet built, so the amendment stays pending.
+No amendment is pending. The GPU-path amendment that was pending from cycle 21 (decision log ID-506, ID-507) is
+applied and accepted as amendment 10.
 
 ## Alternatives considered
 

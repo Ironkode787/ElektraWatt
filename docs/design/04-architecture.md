@@ -1,6 +1,6 @@
 # ElektraWatt architecture specification
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-20 (G-SP outcome, §6.1 to §6.4; save order, §7.4; the memo engine as built, §2, §6.2, §6.4; incremental connectivity as built, §3, §6.3, §6.4), 2026-10-21 (orphan-collection retention, §6.2; the check engine and the prevent hook as built, §3, §5, §6.4); 2026-10-21, cycle 13 (`ew-plcaddr` v0 and `ew-sqlview` v0 as built, §3); 2026-10-22, cycle 18 (a known breach of the undo law, FT-316, §13); 2026-10-22, cycle 19 (the breach closed by the delete-time rule EW-INV-021 and the two apply paths, §4.6, §5.3, §13; the application shell as built, §3, §9); 2026-10-22, cycle 21 (the canvas's CPU tile path as built, §3, §8.2, §9; the transaction-read rule, §5.2) · **Date:** 2026-10-17 · **Decided by:** chief architect, after a judge
+**Status:** Accepted · amended 2026-10-18, 2026-10-20 (G-SP outcome, §6.1 to §6.4; save order, §7.4; the memo engine as built, §2, §6.2, §6.4; incremental connectivity as built, §3, §6.3, §6.4), 2026-10-21 (orphan-collection retention, §6.2; the check engine and the prevent hook as built, §3, §5, §6.4); 2026-10-21, cycle 13 (`ew-plcaddr` v0 and `ew-sqlview` v0 as built, §3); 2026-10-22, cycle 18 (a known breach of the undo law, FT-316, §13); 2026-10-22, cycle 19 (the breach closed by the delete-time rule EW-INV-021 and the two apply paths, §4.6, §5.3, §13; the application shell as built, §3, §9); 2026-10-22, cycle 21 (the canvas's CPU tile path as built, §3, §8.2, §9; the transaction-read rule, §5.2); 2026-10-22, cycle 22 (the canvas's GPU path as built, §3, §8.2, §9; the tool framework specified, §5.4, §9) · **Date:** 2026-10-17 · **Decided by:** chief architect, after a judge
 panel over four competing proposals (A incremental, B ECS, C relational, D retained/object model)
 **Scope:** ElektraWatt (EW) v1:
 - Electric P8-class schematics;
@@ -237,7 +237,7 @@ sessions (G6).
 | `ew-text` | GPL | Fonts and the memoised `shaped_text` query: one text stack for screen, pagination and paper | ew-dl, ew-units; parley 0.12.0, fontique 0.12.0, skrifa 0.44.0, harfrust 0.12.0 (through parley), sha2 0.10.9 |
 | `ew-reports` | GPL | Report-kind registry and row queries (`report_rows`), arrangement (manual selection, typed filters, natural sort, grouping), pagination into generated pages (`report_block_pages`), the report engine that `page_order` calls through `ReportPagesProvider` (decision log ID-126), value rendering; user SQL reports through the sandboxed query API of `ew-sqlview` (1.0, never links rusqlite); XLSX and CSV tables (FT-61) | ew-derive (and through its re-exports ew-schema, ew-ids, ew-mltext, ew-units; rule 7), ew-sqlview, ew-text; serde_json (the provisional profile members of the project settings, read by `profile_tables`); dev: ew-model (snapshots for the row-query tests, no `raw-read`), proptest; later: rust_xlsxwriter 0.100.0, csv 1.4.0 |
 | `ew-scene` | GPL | Model to display lists per page and layer, forms engine (frames, title blocks, report forms), text through `ew-text`, spatial index, hit-testing; PDF underlays (1.0); page layers as pure functions of a caller-filled `PageView` (rule 7) and the provisional orthogonal router `route` (decision log ID-137) | ew-reports, ew-dl, ew-text; ew-schema (symbol lowering reads `SymbolDef` records by reference), ew-units, ew-ids, ew-mltext; serde_json; rstar 0.13.0, hayro 0.8.0 (underlays, 1.0); the `ew-reports` edge is declared for report forms and not used yet; dev: sha2, insta 1.49.0, proptest |
-| `ew-render2d` | GPL | The canvas renderer, toolkit-neutral (no egui): wgpu 2D renderer (lyon tessellation once per symbol, instancing, screen-space lines; glyphs as tessellated outlines into an offscreen MSAA texture, ADR-0015's pending amendment) and the CPU tile path over `ew-render-cpu`. *As built (cycle 21, WP-S2.02 part 1; decision log ID-517):* `view`, `tiles` (the 256-pixel tile pyramid, its planner and LRU cache), `pool` (the raster workers), `overlay` (page bounds, grid dots, highlight outlines and their compositing for the headless snapshot) and `stats` (frame statistics and the one clock); the GPU path is part 2 | ew-dl, ew-render-cpu (the edge since cycle 21, ID-510); part 2: wgpu 30.0.1, lyon_tessellation 1.0.22 |
+| `ew-render2d` | GPL | The canvas renderer, toolkit-neutral (no egui): wgpu 2D renderer (lyon tessellation once per symbol, instancing, screen-space lines; glyphs as tessellated outlines into an offscreen MSAA texture, ADR-0015 amendment 10) and the CPU tile path over `ew-render-cpu`. *As built (cycle 21, WP-S2.02 part 1; decision log ID-517):* `view`, `tiles` (the 256-pixel tile pyramid, its planner and LRU cache), `pool` (the raster workers), `overlay` (page bounds, grid dots, highlight outlines and their compositing for the headless snapshot) and `stats` (frame statistics and the one clock). *As built (cycle 22, WP-S2.02 part 2; decision log ID-539, ID-540):* `gpu`, the wgpu path (scene preparation on a worker, lyon meshes keyed by content, one WGSL file, the offscreen 4× MSAA texture resolved into a pane-sized `Rgba8Unorm` texture, the switch rule as `gpu::choose`, `pub use wgpu`); the crate declares `rust-version = "1.95"` | ew-dl, ew-render-cpu (the edge since cycle 21, ID-510); wgpu 30.0.1 (one backend set per operating system: DX12, Metal, or Vulkan with GL), lyon_tessellation 1.0.22 with lyon_path, lyon_geom and float_next_after (cargo-vet exemptions until FT-326, ID-543); kurbo and skrifa already in the graph |
 | `ew-render-cpu` | GPL | vello_cpu renderer: GPU-less fallback, thumbnails, golden PNGs, banded printing | ew-dl; vello_cpu 0.3.0 (default features off: `std`, `text`, `u8_pipeline`; `Level::baseline()`), png 0.18.1; dev: ew-text, ew-units, sha2 |
 | `ew-export` | GPL | PDF (as built: PDF/A-2b with outline, `/PageLabels`, named destinations, link annotations and subset fonts; ADR-0015 amendments 5 to 7), SVG (as built in cycle 14 with no new dependency, the page phase on `par_map` with scoped std threads instead of rayon; decision log ID-344, ID-345), DXF, PNG (through `ew-render-cpu`) | ew-dl, ew-render-cpu; krilla 0.8.2 (default features off); later: krilla-svg 0.8.1, dxf 0.6.2; dev: ew-text, ew-units, sha2, uuid |
 | `ew-print` | GPL | OS print adapters with per-OS features (§8.4) | ew-export, ew-render-cpu |
@@ -252,7 +252,7 @@ sessions (G6).
 | `ew-jobs` | GPL | Scheduler, progress, cancellation, staleness tagging, adopt-if-unchanged; an empty stub so far: the export job of `ew-api` (FT-59) is synchronous and runs its page phase on `ew_export::par_map` (decision log ID-362; FT-251) | rayon |
 | `ew-api` | GPL | The `Session` facade shared by every front-end; registers the SQL and plugin rule implementations at session start; composes `.ewpp` export jobs from `ew-mfg` data, `ew-export` PDF/DXF and `ew-panel` glb; the page-output export job (cycle 15, FT-59: the page views, one memoised `page_display_list` family per layer, PDF and SVG)  dev: ew-commands/testkit, ew-derive, ew-model/raw-read, ew-render-cpu, ew-ids, ew-units, ew-mltext, png, sha2, insta (the page-output goldens of WP-S3.04), ew-testkit (the acceptance runner builds AC-15 path (b) with the builder DSL, cycle 15); | v0: ew-commands, ew-checks (the shipped prevent hook, `Session::check` and the migration scheme on imports, decision log ID-306, ID-312), ew-derive (normal edge: the Session surfaces derivation findings, tracked reads only), ew-reports (the Session installs the report engine on every `Q`, decision log ID-126), ew-model, ew-schema (no `raw-read`), ew-scene and ew-export (the export job), ew-text (the bundled fonts it shapes with and embeds) and ew-dl (the layer types; normal edges since FT-59); dev: ew-commands/testkit, ew-derive, ew-model/raw-read, ew-render-cpu, ew-ids, ew-units, ew-mltext, png, sha2, insta (the page-output goldens of WP-S3.04); eventually everything above except UI |
 | `ew-viewmodel` | GPL | Toolkit-agnostic panel models: navigator trees, table rows with edit→command mapping, property-grid rows with provenance, message lists, each with a revision stamp; the toolkit-neutral action definitions and the shell model that the GUI and the headless mode `elektrawatt --headless` both dispatch on (decision log ID-443, ID-444); as built in cycle 19: the registry, `ShellModel`, the settings file, the UI-script runner and the `ui.describe` text (ID-473, ID-474) | ew-api |
-| `ew-ui` | GPL | egui widgets, canvas host, tools (state machines), command palette, keymaps, the action registry behind every menu, the 3D transform gizmo over `ew-render3d`'s camera and pick API; as built in cycle 19: the shell frame, the CPU page view with its render worker, the palette, the bundled UI fonts and the headless runner (ID-473) | egui 0.37.0, egui_tiles 0.17.1, egui_table 0.10.0, egui_ltreeview 0.9.0, transform-gizmo-egui 0.11.0 (in cycle 19: egui 0.37.0 and skrifa 0.44.0 only; egui_kittest 0.37.0 for tests) |
+| `ew-ui` | GPL | egui widgets, canvas host, tools (state machines; specified for WP-S2.03: the tool host and the tools in `ew-viewmodel`, `ew-ui` maps input and paints, decision log ID-536), command palette, keymaps, the action registry behind every menu, the 3D transform gizmo over `ew-render3d`'s camera and pick API; as built in cycle 19: the shell frame, the CPU page view with its render worker, the palette, the bundled UI fonts and the headless runner (ID-473) | egui 0.37.0, egui_tiles 0.17.1, egui_table 0.10.0, egui_ltreeview 0.9.0, transform-gizmo-egui 0.11.0 (in cycle 19: egui 0.37.0 and skrifa 0.44.0 only; egui_kittest 0.37.0 for tests) |
 | `ew-viewer` (1.0) | GPL | The read-only `.ewpp` wiring viewer on `ew-ui` widgets, used by the `ew-wiring-viewer` binary and the "Preview package" view of the Manufacturing workspace | ew-ewpp, ew-ui, ew-render-cpu, hayro 0.8.0 (after the fidelity check) |
 | `elektrawatt` (bin) | GPL | eframe shell, native menus on macOS and Windows (egui menu bar on Linux), dialogs, clipboard, crash handler; as built in cycle 19: the window, the rfd dialogs, `--headless`, `--smoke` and the exit codes, with the egui menu bar on every OS (ID-446, ID-473) | eframe 0.37.0, egui-wgpu 0.37.0, muda 0.21.2, rfd 0.17.2, arboard 3.7.0, ew-print (in cycle 19: eframe 0.37.0 on wgpu and rfd 0.17.2 only; `rust-version` 1.95, ID-477) |
 | `ew` (bin) | GPL | CLI, `ew mcp`, merge driver, textconv, migration verifier | clap **(verify)**, rmcp 3.5.1 **(verify)**, ew-print, hayro 0.8.0 (`ew verify-migration`) |
@@ -652,6 +652,12 @@ validated against the command's JSON Schema ([extensibility](17-extensibility.md
 Accept commits the prepared transaction after the rebase check (§2). Cancel drops the fork. A QET import, a
 re-addressing run and "update parts from library" are inspected the same way, including rendered pages of the
 candidate.
+
+*Specified (cycle 22, WP-S2.03 part 2; decision log ID-536).* The preview of an interactive canvas tool is the same
+mechanism at the smallest scale: `Session::preview` runs the command as a dry run on a fork and yields the
+`DerivedDiff` that draws the semantic ghost. The `Session` is not `Send`, so each tool preview runs on the UI thread,
+after the pointer has rested for 80 ms (the action `canvas.dwell`); a fork job off the UI thread, with FT-251, is
+FT-358. The jobs above that run `preview` on the pool are unchanged.
 
 ### 5.5 Macros
 
@@ -1192,10 +1198,12 @@ flowchart LR
 
 ### 8.2 Screen
 
-- **GPU path.** `ew-render2d` draws inside an `egui_wgpu` paint callback on the shared device:
-  - symbols are tessellated once per (symbol, variant) with lyon and drawn instanced;
+- **GPU path** (as built in cycle 22, ADR-0015 amendment 10). `ew-render2d` draws on the shared device into its own
+  offscreen texture, not inside an `egui_wgpu` paint callback:
+  - symbols and groups are tessellated once per content key with lyon and drawn instanced;
   - lines are expanded to screen width in the vertex shader, so zoom never re-tessellates;
-  - text comes from a glyph atlas.
+  - text is tessellated glyph outlines, one mesh per (font, glyph), drawn instanced like symbols; there is no glyph
+    atlas.
 - **LOD.** Text under 2 px becomes a bar, hairlines clamp to 1 px, and overview zoom uses cached vello_cpu
   thumbnails keyed by display-list hash.
 - **CPU path, always built and tested** (from D). `ew-render-cpu` renders the same IR into an image shown as an egui
@@ -1210,8 +1218,41 @@ pool of worker threads, and `ew-ui` shows them as egui textures, so they reach t
 renderer; `render_region` of the full rectangle equals `render` byte for byte, and culling by `ItemBounds` never changes
 a pixel. The overlays (page bounds, the grid under the page-to-sheet map, the dashed hover outline over
 `DisplayList::entity_bounds`) are screen-space primitives of `ew-render2d`. Hit-testing is the hover placeholder over
-display-list boxes until WP-S2.03's `page_spatial_index`. The GPU path above, with the offscreen texture and glyph
-meshes of ADR-0015's pending amendment, is part 2; the thumbnails of the LOD line are not built.
+display-list boxes until WP-S2.03's `page_spatial_index`. The thumbnails of the LOD line are not built.
+
+*As built (cycle 22, WP-S2.02 part 2; decision log ID-539 to ID-544).* The GPU path is `ew_render2d::gpu`:
+- **Scene and meshes.** The page's display list is walked once on a worker; every group with a transform or a clip is a
+  mesh context (an instance of a mesh keyed by a 128-bit content key), every glyph an instance of a mesh keyed by
+  (font, glyph), and the remaining paths form the page's static mesh. Meshes outlive scenes, so a second preparation of
+  the same page tessellates nothing. The scene is keyed (session, revision, folio), where the session is a per-shell
+  epoch bumped whenever a project is created or reloaded, so a revision number of another project can never match; the
+  previous revision of the same folio stands in while a new one prepares, and until a scene is ready the canvas shows
+  the CPU tiles.
+- **Target and colour.** The canvas renders into a 4× multisampled texture (1× where the adapter cannot) and resolves
+  into a pane-sized `Rgba8Unorm` texture, which egui-wgpu samples as gamma-space colour with nearest filtering, one
+  texel per physical pixel, so authored sRGB bytes blend as the CPU renderer's u8 pipeline blends them (#0072B2 reads
+  back within ±1). Uploads use `write_buffer` and `write_texture`; the only mapped view is in `GpuCanvas::read_back`
+  (the rule of ADR-0014's as-built note).
+- **Translucency** is exact in paint order between instances and approximate inside one mesh (ID-541).
+- **The switch rule** is the pure function `gpu::choose`, table-tested, evaluated at start and on a failure. The status
+  bar labels are `GPU DX12`, `GPU Vulkan`, `GPU Metal` or `GPU GL`, `WARP` (a CPU-type adapter on DX12) and `CPU`. The
+  canvas is the CPU canvas for `--no-gpu`, for the setting `canvas_backend = cpu` (default `auto`; View ▸ Use the CPU
+  renderer for the canvas), without a wgpu render state (headless, kittest) and for a software adapter other than WARP;
+  an initialisation failure, a device lost or an uncaptured error end on the CPU canvas with one banner. `--no-gpu`
+  also asks eframe for a software adapter for the window (none: the default adapter, with a banner).
+- **Row 8 and the shared device.** There is one device (ADR-0014), so a real device loss also ends egui's window and the
+  fallback "CPU for the rest of the session" helps for uncaptured errors only; recovery is FT-310 and WP-S2.11
+  (ID-544). A pane beyond the device's limits (`GpuError::Limits`) ends the GPU path for the session with the banner; a
+  per-frame CPU fallback is FT-363.
+- **No adapter at all.** The window cannot open: `elektrawatt` writes one message to stderr (naming `elektrawatt
+  --headless`, `ew` and, on Linux, Mesa's software drivers) and exits with code 3. Exit 3 follows an adapter-request
+  or `--no-gpu` selector failure, or any other wgpu error when a fresh enumeration counts no adapter (otherwise 1); that
+  count honours `WGPU_BACKEND` while eframe's instance does not (FT-364; ID-542).
+- **The CPU path stays the golden reference.** `ew-render-cpu` and every golden byte are unchanged, `canvas.snapshot` is
+  always a CPU image, and the GPU path is checked against the CPU canvas by a render-to-texture parity test under a
+  neighbourhood rule with a mean-difference bound and an edge-position check, never by bytes (WP-S2.02 §8, §10 B2).
+  Per-layer GPU buffers across a commit and the tile-scene digest remain FT-347's (WP-S2.04); mipmaps are deferred
+  (FT-354).
 
 ### 8.3 Text and fonts
 
@@ -1278,7 +1319,7 @@ meshes of ADR-0015's pending amendment, is part 2; the thumbnails of the LOD lin
 - the proven Rerun pattern;
 - AccessKit;
 - egui_kittest for UI tests and accessible-name enforcement;
-- an ecosystem of docking, tables and trees: egui_tiles 0.17.1, egui_table 0.10.0, egui_ltreeview 0.9.0.
+- an ecosystem of docking, tables and trees: egui_tiles 0.17.1 (0.18.0 since cycle 20, decision log ID-490), egui_table 0.10.0, egui_ltreeview 0.9.0.
 
 The costs we accept:
 - **Non-native look.** Mitigated by native menus (muda) on macOS and Windows, an egui-drawn menu bar on Linux (all
@@ -1325,6 +1366,26 @@ toolkit-neutral `CanvasModel` in `ew-viewmodel` (zoom ladder, fit, pan clamp, po
 changed only through `ShellModel::dispatch` by registry actions, which the headless mode drives as well, and an `ew-ui`
 host that maps input onto those actions and paints the tiles of `ew-render2d` (§8.2). The shell is a read-only viewer
 until WP-S2.03 to WP-S2.05 add navigation, the tool framework, editing gestures and the property grid.
+
+*As built (cycle 22, WP-S2.02 part 2; decision log ID-539 to ID-544).* The canvas host also drives the GPU path of §8.2:
+at start it asks the switch rule for the backend and sets it with `ShellModel::set_canvas_backend`, it registers the
+resolved texture once per pane size as an egui native texture through egui-wgpu (a direct dependency of `ew-ui`,
+ADR-0014), paints it under the overlays that both backends share, and shows the banner of a failed start or a lost
+device. The canvas has one more setting, `canvas_backend` (View ▸ Use the CPU renderer for the canvas), and the
+transcript's `canvas` member ends with `renderer`. The UI scale enlarges the chrome only (FT-349: `D = zoom × 96 × ppp /
+ui_scale`), and a page pane hidden behind another dock tab keeps its tiles within a quarter of the cache and frees its
+GPU targets (FT-356). WP-S2.02 is complete with this part; the canvas stays read-only.
+
+*Specified (cycle 22, WP-S2.03; decision log ID-531 to ID-537; not built).* The **canvas tools row** above changes in
+one point of placement: the tool host and the tools are toolkit-neutral and live in `ew-viewmodel`, and their context
+carries the prepared page tables (display list, entity rectangles, links, cells, grid, connection points) and no
+`World`, so a tool never calls the `Session`; only the host does. `ew-ui` paints the transient overlay, maps pointer
+and keys onto tool events and runs the dwell timer. There is one active tool per window, not per canvas, and timing is
+an input (`canvas.dwell`), never model state (ID-536). Previews go through `Session::preview` (§5.4). The canvas area of
+the page-view pane is per-project state in a nested egui_tiles tree, rebuilt from the model, outside `ew.workspace/1`
+(ID-533). Part 1 of WP-S2.03 is the read-only viewer (page navigator, tabs, side by side, cross-reference jumps,
+Go to); part 2 is the tool framework with the Select and Measure tools; no shipped tool commits, so the shell stays a
+viewer until WP-S2.04 and WP-S2.05 (ID-513).
 
 ---
 

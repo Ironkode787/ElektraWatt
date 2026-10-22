@@ -1,6 +1,6 @@
 # Schematic editor
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-22, cycle 17: `revision.create`, 37 commands, §3.1; amended 2026-10-22, cycle 18: `plc.set_module_part`, 38 commands, §3.1; rows 3, 13 and 14 as built, §3.2) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-22, cycle 17: `revision.create`, 37 commands, §3.1; amended 2026-10-22, cycle 18: `plc.set_module_part`, 38 commands, §3.1; rows 3, 13 and 14 as built, §3.2; amended 2026-10-22, cycle-22 design pass: the tool contract's context and previews for WP-S2.03, §4.1, decision log ID-536) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) edits schematic pages: multi-line, single-line, overview,
 bus-topology, fluid and graphic pages, together with their frames, folios and sections. It covers symbol placement,
@@ -734,6 +734,16 @@ transform plus dashed autoconnect stubs), which costs no model work and stays in
 tags, xref texts, potential highlight and finding deltas. Commit sends the same command, so what the ghost showed is
 what the commit produces (preview + commit = execute, NFR-REL-08). A semantic ghost computed on an older revision
 carries a staleness badge and is recomputed.
+
+*Decided for WP-S2.03 (cycle 22; decision log ID-536); as-built text after part 2.* Two points of the contract above
+change. **`ToolCx` carries no `World`:** it carries the prepared page tables (the display list, the entity rectangles,
+the cross-reference links, the cell table, the grid and the connection points of the page) with the snapper and the
+selection, so no `ew-model` name reaches a tool (architecture §3 rule 3) and the same tool runs headless; a tool never
+calls the `Session`, and the tool host in `ew-viewmodel` does (doc 16 §4.5). **Previews run on the UI thread, not in
+the job pool, for now:** after the pointer has rested 80 ms (the action `canvas.dwell`, an input rather than model
+state) the host evaluates the tool's `Preview(cmd)` through `Session::preview`, a dry run on a fork, and the semantic
+ghost is that preview's derived diff; a fork job off the UI thread follows with FT-251 (FT-358). `Select` and `Follow`
+join the outputs for the Select tool's result and for a click on a link.
 
 ### 4.2 Place tool
 
