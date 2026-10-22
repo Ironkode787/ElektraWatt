@@ -159,6 +159,7 @@ pub fn snapshot_image(shell: &ShellModel, group: usize) -> Result<(ew_render_cpu
         hover: hover_rect(canvas),
         selected: &[],
         cursor: canvas.cursor(),
+        tool: &[],
     });
     overlay::composite(&mut image, &o, &theme);
     Ok((image, dpi))
@@ -288,6 +289,14 @@ fn paint_marks(painter: &egui::Painter, origin: Pos2, ppp: f32, overlay: &Overla
     fill(&overlay.dots, theme.grid_dot);
     fill(&overlay.hover, theme.hover);
     fill(&overlay.selected, theme.selection);
+    if !overlay.tool.is_empty() {
+        let mut mesh = Mesh::default();
+        for &(r, token) in &overlay.tool {
+            mesh.add_colored_rect(to_points(origin, ppp, r), color32(theme.token(token)));
+        }
+        painter.add(mesh);
+    }
+    fill(&overlay.markers, theme.snap);
     fill(&overlay.cursor, theme.cursor);
 }
 
@@ -502,6 +511,7 @@ impl CanvasHost {
             hover: hover_rect(canvas),
             selected: &[],
             cursor: canvas.cursor(),
+            tool: &[],
         });
         match (&plan, gpu) {
             (Some(plan), _) => self.paint(ui, rect, ppp, group, plan, &overlay, &theme),

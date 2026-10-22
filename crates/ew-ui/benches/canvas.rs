@@ -520,6 +520,7 @@ fn run_gesture(
             hover: model.hover().map(|(_, r)| r),
             selected: &[],
             cursor: None,
+            tool: &[],
         });
         black_box(&overlay);
         host.cache.evict(frame);

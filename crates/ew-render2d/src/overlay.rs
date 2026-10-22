@@ -1,14 +1,18 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The canvas overlays (WP-S2.02 §6.4): the surround, the page bounds, the grid dots and the hover and selection
-//! outlines, as rectangles of whole physical pixels of the pane.
+//! The canvas overlays (WP-S2.02 §6.4, WP-S2.03 §7.4): the surround, the page bounds, the grid dots, the hover and
+//! selection outlines, the tool overlay (lines, polylines, rectangles, the ghost of a drag and the snap markers) and
+//! the keyboard grid cursor, as rectangles of whole physical pixels of the pane.
 //!
 //! One code path for every backend: the egui host paints the rectangles as shapes over the tiles (the dots as one
 //! mesh), and the headless snapshot composites them into its image with integer pixel fills ([`composite`]), so
 //! the window and the snapshot agree pixel for pixel. No meaning is in colour alone: the hover is dashed, a
-//! selection solid, the keyboard grid cursor a crosshair with a gap at its centre. The paint order is the surround,
-//! the page bounds, the grid dots, the hover, the selection and last the cursor.
+//! selection solid, the keyboard grid cursor a crosshair with a gap at its centre, a snap marker a cross (grid), a
+//! ring (connection point) or a filled square (junction), a rubber band solid while it encloses and dashed while it
+//! touches. The paint order is the surround, the page bounds, the grid dots, the hover, the selection, the tool's
+//! lines and ghosts, the snap markers and last the cursor. The tool overlay's text labels are not drawn here: the
+//! window draws them as chips in its own font, and the headless snapshot leaves them out (WP-S2.03 §7.4).
 //!
 //! The theme tokens are constants here for the light and the dark theme until WP-S2.08's theme system replaces
 //! them; the sheet itself is white with its authored colours in every theme (FR-UI-043, doc 16 §11.2).
@@ -37,6 +41,14 @@ pub struct Theme {
     pub cursor: Color,
     /// The sheet (white in every theme).
     pub paper: Color,
+    /// The geometric ghost of a drag (provisional token `ghost`, #0072B2).
+    pub ghost: Color,
+    /// The snap markers (provisional token `snap`, #009E73, 3.42:1 on white; the marker's shape carries the meaning).
+    pub snap: Color,
+    /// The Measure tool's line (provisional token `measure`, #A86F00, 4.25:1).
+    pub measure: Color,
+    /// The rubber band of a selection (provisional token `rubber-band`, #0072B2).
+    pub rubber_band: Color,
 }
 
 const fn rgb(r: u8, g: u8, b: u8) -> Color {
@@ -52,6 +64,10 @@ pub const LIGHT: Theme = Theme {
     selection: rgb(0x00, 0x72, 0xB2),
     cursor: rgb(0xD5, 0x5E, 0x00),
     paper: rgb(0xFF, 0xFF, 0xFF),
+    ghost: rgb(0x00, 0x72, 0xB2),
+    snap: rgb(0x00, 0x9E, 0x73),
+    measure: rgb(0xA8, 0x6F, 0x00),
+    rubber_band: rgb(0x00, 0x72, 0xB2),
 };
 
 /// The dark theme's canvas tokens (provisional until WP-S2.08); the sheet stays white.
@@ -63,6 +79,10 @@ pub const DARK: Theme = Theme {
     selection: rgb(0x00, 0x72, 0xB2),
     cursor: rgb(0xD5, 0x5E, 0x00),
     paper: rgb(0xFF, 0xFF, 0xFF),
+    ghost: rgb(0x00, 0x72, 0xB2),
+    snap: rgb(0x00, 0x9E, 0x73),
+    measure: rgb(0xA8, 0x6F, 0x00),
+    rubber_band: rgb(0x00, 0x72, 0xB2),
 };
 
 /// The smallest spacing of grid dots on screen, in logical points: below it the drawn pitch doubles.
@@ -73,6 +93,104 @@ pub const OUTLINE_OUTSET_PT: f64 = 2.0;
 
 /// The dash of the hover outline: this many pixels on, as many off.
 pub const HOVER_DASH_PX: i64 = 4;
+
+/// The dash of a tool line: this many pixels on, as many off (WP-S2.03 §7.4).
+pub const TOOL_DASH_PX: i64 = 4;
+
+/// The colour token of a tool line (WP-S2.03 §7.4; provisional until WP-S2.08's theme).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum ToolToken {
+    /// The ghost of a drag.
+    Ghost,
+    /// A snap indication.
+    Snap,
+    /// The Measure tool.
+    Measure,
+    /// A rubber band.
+    RubberBand,
+}
+
+impl Theme {
+    /// The colour of a tool token.
+    pub fn token(&self, t: ToolToken) -> Color {
+        match t {
+            ToolToken::Ghost => self.ghost,
+            ToolToken::Snap => self.snap,
+            ToolToken::Measure => self.measure,
+            ToolToken::RubberBand => self.rubber_band,
+        }
+    }
+}
+
+/// Whether a tool line is solid or dashed ([`TOOL_DASH_PX`] on, as many off).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Dash {
+    /// Solid.
+    Solid,
+    /// Dashed.
+    Dashed,
+}
+
+/// The shape of a snap marker: a 7-pixel cross on a grid point, a 9-pixel ring on a connection point, a 7-pixel
+/// filled square on a junction.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum MarkerKind {
+    /// A grid point.
+    Grid,
+    /// A connection point.
+    Cp,
+    /// A junction.
+    Junction,
+}
+
+/// One mark of a tool's overlay in sheet nm: the toolkit-neutral form of `ew_viewmodel::tools::OverlayItem`, text
+/// labels left out.
+#[derive(Clone, PartialEq, Debug)]
+pub enum ToolMark {
+    /// A line from `a` to `b`.
+    Line {
+        /// The start.
+        a: (i64, i64),
+        /// The end.
+        b: (i64, i64),
+        /// Solid or dashed.
+        dash: Dash,
+        /// The colour token.
+        token: ToolToken,
+    },
+    /// A polyline through `points`.
+    Polyline {
+        /// The vertices.
+        points: Vec<(i64, i64)>,
+        /// Solid or dashed.
+        dash: Dash,
+        /// The colour token.
+        token: ToolToken,
+    },
+    /// The outline of a rectangle.
+    Rect {
+        /// The rectangle.
+        r: Rect,
+        /// Solid or dashed.
+        dash: Dash,
+        /// The colour token.
+        token: ToolToken,
+    },
+    /// The geometric ghost of a drag: the rectangles moved by `offset`, dashed in the ghost token.
+    Ghost {
+        /// The rectangles (entity rectangles).
+        rects: Vec<Rect>,
+        /// The displacement.
+        offset: (i64, i64),
+    },
+    /// A snap marker, in the snap token.
+    Marker {
+        /// Where.
+        at: (i64, i64),
+        /// Its shape.
+        kind: MarkerKind,
+    },
+}
 
 /// A page's connection grid on the sheet: grid point `(i, j)` of the page lies at
 /// `offset + scale × (i, j) × num_nm / den` (`scale = sheet_scale_ppb / 10⁹`).
@@ -115,6 +233,8 @@ pub struct OverlayInput<'a> {
     pub selected: &'a [Rect],
     /// The keyboard grid cursor (sheet nm), drawn above every other overlay.
     pub cursor: Option<(i64, i64)>,
+    /// The active tool's overlay (WP-S2.03 §7.4): above the selection, below the cursor; markers above lines.
+    pub tool: &'a [ToolMark],
 }
 
 /// The overlays of one frame, each a list of pixel rectangles clipped to the pane.
@@ -136,6 +256,10 @@ pub struct Overlay {
     pub selected: Vec<PxRect>,
     /// The four arms of the grid cursor's crosshair.
     pub cursor: Vec<PxRect>,
+    /// The tool's lines, rectangles and ghosts, each pixel run with its colour token, in the tool's order.
+    pub tool: Vec<(PxRect, ToolToken)>,
+    /// The tool's snap markers.
+    pub markers: Vec<PxRect>,
 }
 
 /// The sheet's rectangle on screen: with a settled transform exactly the pixels of the full-sheet raster at its
@@ -318,6 +442,41 @@ pub fn build(input: &OverlayInput<'_>) -> Overlay {
             push_clipped(&mut cursor, arm, &pane);
         }
     }
+    let mut tool = Vec::new();
+    let mut markers = Vec::new();
+    let width: i64 = if input.ppp >= 2.0 { 2 } else { 1 };
+    let t = &input.transform;
+    let screen = |p: (i64, i64)| t.to_screen((p.0 as f64, p.1 as f64));
+    for mark in input.tool {
+        let mut px = Vec::new();
+        let token = match mark {
+            ToolMark::Line { a, b, dash, token } => {
+                line_px(screen(*a), screen(*b), width, *dash, &pane, &mut px);
+                *token
+            }
+            ToolMark::Polyline { points, dash, token } => {
+                for w in points.windows(2) {
+                    line_px(screen(w[0]), screen(w[1]), width, *dash, &pane, &mut px);
+                }
+                *token
+            }
+            ToolMark::Rect { r, dash, token } => {
+                rect_px(t, *r, (0, 0), width, *dash, &pane, &mut px);
+                *token
+            }
+            ToolMark::Ghost { rects, offset } => {
+                for r in rects {
+                    rect_px(t, *r, *offset, width, Dash::Dashed, &pane, &mut px);
+                }
+                ToolToken::Ghost
+            }
+            ToolMark::Marker { at, kind } => {
+                marker_px(screen(*at), *kind, &pane, &mut markers);
+                continue;
+            }
+        };
+        tool.extend(px.into_iter().map(|r| (r, token)));
+    }
     Overlay {
         sheet,
         surround,
@@ -327,6 +486,164 @@ pub fn build(input: &OverlayInput<'_>) -> Overlay {
         hover,
         selected,
         cursor,
+        tool,
+        markers,
+    }
+}
+
+/// Appends the pixel run `r` to `out`, extending the last rectangle when `r` continues its row or its column.
+fn push_run(out: &mut Vec<PxRect>, r: PxRect) {
+    if let Some(last) = out.last_mut() {
+        let same_rows = last.y0 == r.y0 && last.y1 == r.y1;
+        let same_cols = last.x0 == r.x0 && last.x1 == r.x1;
+        if same_rows && r.x0 <= last.x1 && r.x1 >= last.x0 {
+            last.x0 = last.x0.min(r.x0);
+            last.x1 = last.x1.max(r.x1);
+            return;
+        }
+        if same_cols && r.y0 <= last.y1 && r.y1 >= last.y0 {
+            last.y0 = last.y0.min(r.y0);
+            last.y1 = last.y1.max(r.y1);
+            return;
+        }
+    }
+    out.push(r);
+}
+
+/// The parameter range `[t0, t1]` of the segment `a → b` inside `[lo, hi]` on both axes (Liang–Barsky), if any.
+fn clip_segment(a: (f64, f64), b: (f64, f64), lo: (f64, f64), hi: (f64, f64)) -> Option<(f64, f64)> {
+    let (mut t0, mut t1) = (0.0f64, 1.0f64);
+    let d = (b.0 - a.0, b.1 - a.1);
+    for (p, q) in [
+        (-d.0, a.0 - lo.0),
+        (d.0, hi.0 - a.0),
+        (-d.1, a.1 - lo.1),
+        (d.1, hi.1 - a.1),
+    ] {
+        if p == 0.0 {
+            if q < 0.0 {
+                return None;
+            }
+        } else {
+            let r = q / p;
+            if p < 0.0 {
+                t0 = t0.max(r);
+            } else {
+                t1 = t1.min(r);
+            }
+        }
+    }
+    (t0 <= t1 && t0.is_finite() && t1.is_finite()).then_some((t0, t1))
+}
+
+/// `num / den` rounded to the nearest integer, halves away from zero (`den != 0`).
+fn div_round(num: i64, den: i64) -> i64 {
+    let (q, r) = (num / den, num % den);
+    if 2 * r.abs() >= den.abs() {
+        q + num.signum() * den.signum()
+    } else {
+        q
+    }
+}
+
+/// The pixels of the line from the screen point `a` to `b` (physical pixels, unrounded): from the pixel of `a` to
+/// the pixel of `b`, one square of `width` pixels per step along the major axis, the dash counted from `a`, only
+/// the part within the pane walked and the result clipped to it.
+fn line_px(a: (f64, f64), b: (f64, f64), width: i64, dash: Dash, pane: &PxRect, out: &mut Vec<PxRect>) {
+    if !(a.0.is_finite() && a.1.is_finite() && b.0.is_finite() && b.1.is_finite()) {
+        return;
+    }
+    let (fx0, fy0) = (a.0.floor(), a.1.floor());
+    let (fx1, fy1) = (b.0.floor(), b.1.floor());
+    let m = width as f64 + 1.0;
+    let lo = (pane.x0 as f64 - m, pane.y0 as f64 - m);
+    let hi = (pane.x1 as f64 + m, pane.y1 as f64 + m);
+    let Some((t0, t1)) = clip_segment((fx0, fy0), (fx1, fy1), lo, hi) else {
+        return;
+    };
+    let steps = (fx1 - fx0).abs().max((fy1 - fy0).abs());
+    if steps >= 1e9 {
+        return;
+    }
+    let n = steps as i64;
+    let (first, last) = if n == 0 {
+        (0, 0)
+    } else {
+        (
+            ((t0 * steps).floor() as i64).max(0),
+            ((t1 * steps).ceil() as i64).min(n),
+        )
+    };
+    let (x0, y0) = (fx0 as i64, fy0 as i64);
+    let (dx, dy) = (fx1 as i64 - x0, fy1 as i64 - y0);
+    let mut run = Vec::new();
+    for i in first..=last {
+        if dash == Dash::Dashed && (i / TOOL_DASH_PX) % 2 == 1 {
+            continue;
+        }
+        let (x, y) = if n == 0 {
+            (x0, y0)
+        } else {
+            (x0 + div_round(dx * i, n), y0 + div_round(dy * i, n))
+        };
+        push_run(&mut run, PxRect::new(x, y, x + width, y + width));
+    }
+    for r in run {
+        push_clipped(out, r, pane);
+    }
+}
+
+/// The outline of the sheet rectangle `r` moved by `offset`: its four edges as lines between its corners.
+fn rect_px(
+    t: &DrawTransform,
+    r: Rect,
+    offset: (i64, i64),
+    width: i64,
+    dash: Dash,
+    pane: &PxRect,
+    out: &mut Vec<PxRect>,
+) {
+    let (a, b) = (r.min(), r.max());
+    let p = |x: i64, y: i64| {
+        t.to_screen((
+            x.saturating_add(offset.0) as f64,
+            y.saturating_add(offset.1) as f64,
+        ))
+    };
+    let (x0, y0, x1, y1) = (a.x.0, a.y.0, b.x.0, b.y.0);
+    line_px(p(x0, y0), p(x1, y0), width, dash, pane, out);
+    line_px(p(x1, y0), p(x1, y1), width, dash, pane, out);
+    line_px(p(x1, y1), p(x0, y1), width, dash, pane, out);
+    line_px(p(x0, y1), p(x0, y0), width, dash, pane, out);
+}
+
+/// The pixels of a snap marker centred on the pixel of the screen point `at`.
+fn marker_px(at: (f64, f64), kind: MarkerKind, pane: &PxRect, out: &mut Vec<PxRect>) {
+    if !(at.0.is_finite() && at.1.is_finite()) {
+        return;
+    }
+    let (px, py) = (at.0.floor() as i64, at.1.floor() as i64);
+    match kind {
+        MarkerKind::Grid => {
+            push_clipped(out, PxRect::new(px - 3, py, px + 4, py + 1), pane);
+            push_clipped(out, PxRect::new(px, py - 3, px + 1, py), pane);
+            push_clipped(out, PxRect::new(px, py + 1, px + 1, py + 4), pane);
+        }
+        MarkerKind::Cp => {
+            // The pixels whose centre lies between 3.5 and 4.5 pixels from the centre pixel's: d² in 13 ..= 20.
+            for dy in -4..=4_i64 {
+                let mut run = Vec::new();
+                for dx in -4..=4_i64 {
+                    if (13..=20).contains(&(dx * dx + dy * dy)) {
+                        push_run(&mut run, PxRect::new(px + dx, py + dy, px + dx + 1, py + dy + 1));
+                    }
+                }
+                for r in run {
+                    push_clipped(out, r, pane);
+                }
+            }
+        }
+        MarkerKind::Junction => push_clipped(out, PxRect::new(px - 3, py - 3, px + 4, py + 4), pane),
     }
 }
 
@@ -358,7 +675,7 @@ pub fn fill(image: &mut RgbaImage, r: PxRect, c: Color) {
 }
 
 /// Composites the overlays into a snapshot of the pane, in paint order: surround, page bounds, grid dots, hover,
-/// selection, and last the grid cursor's crosshair.
+/// selection, the tool's lines and ghosts, its snap markers, and last the grid cursor's crosshair.
 pub fn composite(image: &mut RgbaImage, overlay: &Overlay, theme: &Theme) {
     for &r in &overlay.surround {
         fill(image, r, theme.surround);
@@ -374,6 +691,12 @@ pub fn composite(image: &mut RgbaImage, overlay: &Overlay, theme: &Theme) {
     }
     for &r in &overlay.selected {
         fill(image, r, theme.selection);
+    }
+    for &(r, token) in &overlay.tool {
+        fill(image, r, theme.token(token));
+    }
+    for &r in &overlay.markers {
+        fill(image, r, theme.snap);
     }
     for &r in &overlay.cursor {
         fill(image, r, theme.cursor);
@@ -413,6 +736,7 @@ mod tests {
             hover,
             selected: &[],
             cursor: None,
+            tool: &[],
         }
     }
 
@@ -608,5 +932,231 @@ mod tests {
         assert_ne!(LIGHT.surround, DARK.surround);
         assert_eq!(LIGHT.paper, DARK.paper);
         assert_eq!(LIGHT.hover, rgb(0x00, 0x72, 0xB2));
+    }
+
+    // ---------------------------------------------------------------------------------------------------------------
+    // The tool overlay (WP-S2.03 §7.4, acceptance check T7)
+
+    /// The set of pixels the rectangles cover.
+    fn pixels<'a>(rects: impl IntoIterator<Item = &'a PxRect>) -> std::collections::BTreeSet<(i64, i64)> {
+        let mut out = std::collections::BTreeSet::new();
+        for r in rects {
+            for y in r.y0..r.y1 {
+                for x in r.x0..r.x1 {
+                    out.insert((x, y));
+                }
+            }
+        }
+        out
+    }
+
+    fn with_tool<'a>(view: &View, tool: &'a [ToolMark]) -> OverlayInput<'a> {
+        OverlayInput {
+            tool,
+            ..input(view, None, None)
+        }
+    }
+
+    fn px_of(t: &DrawTransform, p: (i64, i64)) -> (i64, i64) {
+        let (x, y) = t.to_screen((p.0 as f64, p.1 as f64));
+        (x.floor() as i64, y.floor() as i64)
+    }
+
+    #[test]
+    fn t7_a_line_runs_from_the_pixel_of_its_start_to_the_pixel_of_its_end() {
+        let v = view(1.0);
+        let t = v.settled_transform();
+        let (a, b) = ((100_000_000, 100_000_000), (150_000_000, 100_000_000));
+        let solid = [ToolMark::Line {
+            a,
+            b,
+            dash: Dash::Solid,
+            token: ToolToken::Measure,
+        }];
+        let o = build(&with_tool(&v, &solid));
+        assert_eq!(o.tool.len(), 1, "a horizontal line is one run");
+        let (pa, pb) = (px_of(&t, a), px_of(&t, b));
+        assert_eq!(o.tool[0].0, PxRect::new(pa.0, pa.1, pb.0 + 1, pa.1 + 1));
+        assert_eq!(o.tool[0].1, ToolToken::Measure);
+        // Dashed: 4 on, 4 off, from the start.
+        let dashed = [ToolMark::Line {
+            a,
+            b,
+            dash: Dash::Dashed,
+            token: ToolToken::RubberBand,
+        }];
+        let o = build(&with_tool(&v, &dashed));
+        assert!(o.tool.len() > 2);
+        assert_eq!(o.tool[0].0.x0, pa.0);
+        for w in o.tool.windows(2) {
+            assert_eq!(w[1].0.x0 - w[0].0.x0, 2 * TOOL_DASH_PX);
+            assert!(w[0].0.x1 - w[0].0.x0 <= TOOL_DASH_PX);
+        }
+        // A diagonal: one pixel per step of the major axis, both ends included.
+        let c = (130_000_000, 120_000_000);
+        let diagonal = [ToolMark::Line {
+            a,
+            b: c,
+            dash: Dash::Solid,
+            token: ToolToken::Measure,
+        }];
+        let o = build(&with_tool(&v, &diagonal));
+        let px = pixels(o.tool.iter().map(|(r, _)| r));
+        let pc = px_of(&t, c);
+        let steps = (pc.0 - pa.0).abs().max((pc.1 - pa.1).abs());
+        assert_eq!(px.len() as i64, steps + 1);
+        assert!(px.contains(&pa) && px.contains(&pc));
+        // At ppp 2 the lines are 2 pixels wide.
+        let hidpi = View { ppp: 2.0, ..v };
+        let o = build(&with_tool(&hidpi, &solid));
+        assert!(o.tool.iter().all(|(r, _)| r.y1 - r.y0 == 2));
+    }
+
+    #[test]
+    fn t7_rectangles_polylines_and_ghosts_map_to_the_screen() {
+        let v = view(1.0);
+        let t = v.settled_transform();
+        let r = Rect::from_points(
+            Pt2::new(Nm::from_mm(140), Nm::from_mm(100)),
+            Pt2::new(Nm::from_mm(160), Nm::from_mm(110)),
+        );
+        let rect = [ToolMark::Rect {
+            r,
+            dash: Dash::Solid,
+            token: ToolToken::RubberBand,
+        }];
+        let o = build(&with_tool(&v, &rect));
+        let px = pixels(o.tool.iter().map(|(r, _)| r));
+        let (p0, p1) = (
+            px_of(&t, (r.min().x.0, r.min().y.0)),
+            px_of(&t, (r.max().x.0, r.max().y.0)),
+        );
+        // The outline: every pixel of the four edges, nothing inside.
+        let ring = 2 * (p1.0 - p0.0 + 1) + 2 * (p1.1 - p0.1 - 1);
+        assert_eq!(px.len() as i64, ring);
+        assert!(px.contains(&p0) && px.contains(&p1));
+        assert!(!px.contains(&((p0.0 + p1.0) / 2, (p0.1 + p1.1) / 2)));
+        // A ghost is the rectangle moved by its offset, dashed in the ghost token.
+        let offset = (10_000_000, -5_000_000);
+        let ghost = [ToolMark::Ghost {
+            rects: vec![r],
+            offset,
+        }];
+        let o = build(&with_tool(&v, &ghost));
+        assert!(o.tool.iter().all(|(_, k)| *k == ToolToken::Ghost));
+        let g = pixels(o.tool.iter().map(|(r, _)| r));
+        let moved = px_of(&t, (r.min().x.0 + offset.0, r.min().y.0 + offset.1));
+        assert!(g.contains(&moved));
+        assert!(g.len() < ring as usize, "dashed");
+        // A polyline is its segments.
+        let points = vec![
+            (100_000_000, 100_000_000),
+            (120_000_000, 100_000_000),
+            (120_000_000, 90_000_000),
+        ];
+        let poly = [ToolMark::Polyline {
+            points: points.clone(),
+            dash: Dash::Solid,
+            token: ToolToken::Snap,
+        }];
+        let o = build(&with_tool(&v, &poly));
+        let px = pixels(o.tool.iter().map(|(r, _)| r));
+        for p in points {
+            assert!(px.contains(&px_of(&t, p)));
+        }
+    }
+
+    #[test]
+    fn t7_markers_are_a_cross_a_ring_and_a_square() {
+        let v = view(1.0);
+        let t = v.settled_transform();
+        let at = (148_500_000, 105_000_000);
+        let c = px_of(&t, at);
+        let mark = |kind| [ToolMark::Marker { at, kind }];
+        let grid = pixels(&build(&with_tool(&v, &mark(MarkerKind::Grid))).markers);
+        assert_eq!(grid.len(), 13, "two 7-pixel arms crossing");
+        assert!(grid.contains(&c) && grid.contains(&(c.0 - 3, c.1)) && grid.contains(&(c.0, c.1 + 3)));
+        let ring = pixels(&build(&with_tool(&v, &mark(MarkerKind::Cp))).markers);
+        assert_eq!(ring.len(), 32);
+        assert!(!ring.contains(&c), "a ring is open at its centre");
+        assert!(ring.contains(&(c.0 + 4, c.1)) && ring.contains(&(c.0, c.1 - 4)));
+        assert!(
+            ring.iter()
+                .all(|p| (p.0 - c.0).abs() <= 4 && (p.1 - c.1).abs() <= 4),
+            "9 pixels wide"
+        );
+        let square = pixels(&build(&with_tool(&v, &mark(MarkerKind::Junction))).markers);
+        assert_eq!(square.len(), 49);
+        assert!(square.contains(&c));
+        // Markers go to their own layer, never into the lines'.
+        assert!(build(&with_tool(&v, &mark(MarkerKind::Cp))).tool.is_empty());
+    }
+
+    #[test]
+    fn t7_the_tool_overlay_composites_between_the_selection_and_the_cursor() {
+        let v = view(1.0);
+        let at = (148_500_000, 105_000_000);
+        let tool = [
+            ToolMark::Line {
+                a: (140_000_000, 105_000_000),
+                b: (160_000_000, 105_000_000),
+                dash: Dash::Solid,
+                token: ToolToken::Measure,
+            },
+            ToolMark::Marker {
+                at,
+                kind: MarkerKind::Junction,
+            },
+        ];
+        let mut i = with_tool(&v, &tool);
+        let o = build(&i);
+        let mut img = white();
+        composite(&mut img, &o, &LIGHT);
+        let rgb_at = |img: &RgbaImage, p: (i64, i64)| {
+            let k = (p.1 as usize * 1200 + p.0 as usize) * 4;
+            [img.pixels[k], img.pixels[k + 1], img.pixels[k + 2]]
+        };
+        let t = v.settled_transform();
+        let c = px_of(&t, at);
+        // The marker is drawn over the measure line, in the snap token.
+        assert_eq!(rgb_at(&img, c), [0x00, 0x9E, 0x73]);
+        assert_eq!(rgb_at(&img, (c.0 + 6, c.1)), [0xA8, 0x6F, 0x00]);
+        // The cursor is drawn over the marker.
+        i.cursor = Some(at);
+        let o = build(&i);
+        let mut img = white();
+        composite(&mut img, &o, &LIGHT);
+        assert_eq!(rgb_at(&img, (c.0 + 3, c.1)), [0xD5, 0x5E, 0x00]);
+        // Twice the same input, the same pixels.
+        let mut again = white();
+        composite(&mut again, &build(&i), &LIGHT);
+        assert_eq!(img.pixels, again.pixels);
+    }
+
+    #[test]
+    fn t7_a_line_far_outside_the_pane_draws_only_what_shows() {
+        let v = view(1.0);
+        let far = [ToolMark::Line {
+            a: (-9_000_000_000_000, 105_000_000),
+            b: (9_000_000_000_000, 105_000_000),
+            dash: Dash::Dashed,
+            token: ToolToken::Measure,
+        }];
+        let o = build(&with_tool(&v, &far));
+        assert!(
+            !o.tool.is_empty() && o.tool.len() <= 1200 / 8 + 2,
+            "{}",
+            o.tool.len()
+        );
+        assert!(o.tool.iter().all(|(r, _)| r.x0 >= 0 && r.x1 <= 1200));
+        let outside = [ToolMark::Line {
+            a: (-9_000_000_000, -9_000_000_000),
+            b: (-8_000_000_000, -9_000_000_000),
+            dash: Dash::Solid,
+            token: ToolToken::Measure,
+        }];
+        assert!(build(&with_tool(&v, &outside)).tool.is_empty());
+        assert_eq!(LIGHT.token(ToolToken::Ghost), rgb(0x00, 0x72, 0xB2));
+        assert_eq!(DARK.token(ToolToken::Snap), rgb(0x00, 0x9E, 0x73));
     }
 }
