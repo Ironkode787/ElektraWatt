@@ -166,6 +166,11 @@ impl App {
         self.canvas.counters()
     }
 
+    /// The number of tile textures the canvas holds (tests).
+    pub fn canvas_cached_tiles(&self) -> usize {
+        self.canvas.cached_tiles()
+    }
+
     /// The frame statistics of the canvas (WP-S2.02 section 9).
     pub fn canvas_stats(&self) -> &ew_render2d::stats::FrameStats {
         self.canvas.stats()
@@ -336,6 +341,9 @@ impl App {
             // The canvas's input phase includes dispatching the frame's actions (WP-S2.02 section 9).
             self.canvas
                 .end_frame(ew_render2d::stats::now() - dispatch_started, &self.shell);
+        } else {
+            // No canvas on screen (start page, wizard, first run): its tiles and queued jobs go.
+            self.canvas.release();
         }
         self.answer_prompts(&ctx);
         self.open_documentation();

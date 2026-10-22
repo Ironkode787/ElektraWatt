@@ -303,7 +303,7 @@ fn a9_after_the_first_frame_view_steps_query_nothing_and_request_no_cached_tile(
     let rect = canvas_rect(&h);
     for i in 0..200usize {
         let shell = h.state_mut().shell_mut();
-        let _ = match i % 4 {
+        let _ = match i % 5 {
             0 => shell.dispatch("view.pan", &json!({"dx": 17, "dy": -9})),
             1 => shell.dispatch(
                 "view.zoom_to",
@@ -316,8 +316,12 @@ fn a9_after_the_first_frame_view_steps_query_nothing_and_request_no_cached_tile(
                     &json!({"x_mm": x as f64 / 1e6, "y_mm": y as f64 / 1e6}),
                 )
             }
+            3 => shell.dispatch(
+                "view.canvas_resize",
+                &json!({"width": 500 + (i % 3) * 100, "height": 400, "ppp": if i % 2 == 0 { 1.0 } else { 1.25 }}),
+            ),
             _ => {
-                h.hover_at(rect.center() + Vec2::new((i % 13) as f32 * 7.0, (i % 5) as f32 * 11.0));
+                h.hover_at(rect.center() + Vec2::new((i % 13) as f32 * 7.0, (i % 7) as f32 * 11.0));
                 Outcome::Done
             }
         };
@@ -331,12 +335,65 @@ fn a9_after_the_first_frame_view_steps_query_nothing_and_request_no_cached_tile(
         counters.scenes, scenes,
         "no further display list fetched for the canvas"
     );
+    // The plans asked again for tiles already cached (the zooms come back to earlier levels, the pane comes back to
+    // its size) and none of them went to the pool again or came back rasterised a second time.
+    assert!(counters.skipped_cached > 0, "{counters:?}");
     assert_eq!(
         counters.requested_while_cached, 0,
         "no tile requested while cached"
     );
+    assert_eq!(
+        counters.rastered_while_cached, 0,
+        "no tile rasterised again while cached"
+    );
     println!("{counters:?}");
     h.state_mut().shell_mut().shutdown();
+}
+
+/// After an edit the page's new revision is not ready while the previous revision's tiles stand in; it is once its
+/// own tiles are in.
+#[test]
+fn an_edit_is_not_ready_while_the_previous_revisions_tiles_stand_in() {
+    let tmp = Tmp::new();
+    let mut h = on_103(&tmp);
+    assert!(h.state().page_view_ready());
+    let before = h.state().canvas_counters();
+    let edit = json!({"cmd": "page.create", "params": {"number": 998}});
+    assert_eq!(
+        h.state_mut().shell_mut().dispatch("command.run", &json!(edit)),
+        Outcome::Done
+    );
+    // One frame: the new revision's scene is made and its tiles requested; the old ones are drawn meanwhile.
+    h.step();
+    let after = h.state().canvas_counters();
+    assert_eq!(after.scenes, before.scenes + 1, "a new revision is a new scene");
+    assert!(
+        after.fallback_frames > before.fallback_frames,
+        "the old revision stood in"
+    );
+    assert!(
+        !h.state().page_view_ready(),
+        "not ready on the old revision's tiles"
+    );
+    wait_for_page(&mut h);
+    assert!(h.state().page_view_ready());
+    let shell = h.state_mut().shell_mut();
+    assert_eq!(shell.dispatch("edit.undo", &json!({})), Outcome::Done);
+    shell.shutdown();
+}
+
+/// Without a canvas on screen the tiles go: closing the project empties the cache.
+#[test]
+fn closing_the_project_releases_the_tiles() {
+    let tmp = Tmp::new();
+    let mut h = on_103(&tmp);
+    assert!(h.state().canvas_cached_tiles() > 0);
+    assert_eq!(
+        h.state_mut().shell_mut().dispatch("file.close", &json!({})),
+        Outcome::Done
+    );
+    settle(&mut h);
+    assert_eq!(h.state().canvas_cached_tiles(), 0);
 }
 
 struct Fonts(&'static BTreeMap<FontKey, FontBytes>);

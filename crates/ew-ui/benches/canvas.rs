@@ -422,15 +422,12 @@ impl Host {
     fn wait_for(&mut self, required: &[TileKey]) {
         let started = now();
         while !required.iter().all(|k| self.rastered(k)) {
-            match self.pool.try_recv() {
+            match self.pool.recv_timeout(Duration::from_millis(50)) {
                 Some(done) => self.inbox.push_back(done),
-                None => {
-                    assert!(
-                        now() - started < TILE_WAIT_LIMIT,
-                        "the tiles of a frame did not arrive in {TILE_WAIT_LIMIT:?}"
-                    );
-                    std::thread::yield_now();
-                }
+                None => assert!(
+                    now() - started < TILE_WAIT_LIMIT,
+                    "the tiles of a frame did not arrive in {TILE_WAIT_LIMIT:?}"
+                ),
             }
         }
     }

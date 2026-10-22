@@ -34,7 +34,7 @@ use ew_render2d::pool::{Scene, TilePool, worker_count};
 use ew_render2d::stats::{FrameSample, FrameStats, Phase, now};
 use ew_render2d::tiles::{DEFAULT_CACHE_BYTES, Plan, Planner, TileCache, TileKey};
 use ew_render2d::view::{PxRect, View};
-use ew_viewmodel::canvas::{CanvasModel, zoom_in_step, zoom_out_step, zoom_percent_text};
+use ew_viewmodel::canvas::{CanvasModel, bounded_pane, zoom_in_step, zoom_out_step, zoom_percent_text};
 use ew_viewmodel::ew_api::output::ew_dl::{Color, FontKey, ew_units::Nm};
 use ew_viewmodel::ew_api::output::font_bytes;
 use ew_viewmodel::shell::ShellModel;
@@ -150,10 +150,18 @@ pub struct CanvasCounters {
     pub tiles_rastered: u64,
     /// Tile textures uploaded.
     pub tiles_uploaded: u64,
-    /// Tiles submitted to the pool while already cached (never more than 0).
+    /// Tiles of the plans' requests that were cached and so not submitted (the filter at work).
+    pub skipped_cached: u64,
+    /// Tiles submitted to the pool while already cached, counted against the plan's full requests (0 unless the
+    /// filter is broken).
     pub requested_while_cached: u64,
+    /// Tiles that arrived from the pool while their key was already cached: rasterised twice (0 unless a tile is
+    /// requested again while cached or in flight).
+    pub rastered_while_cached: u64,
     /// Tiles submitted to the pool in total.
     pub tiles_requested: u64,
+    /// Frames whose last layer showed a tile of the previous revision (the canvas was not ready then).
+    pub fallback_frames: u64,
 }
 
 /// The canvas's state between frames.
@@ -264,13 +272,15 @@ impl CanvasHost {
         self.describe_node(ui, &response, shell);
         let (pane, model_ppp) = shell.canvas_pane();
         let size = rect.size();
-        if (f64::from(size.x) - pane.0).abs() > 1e-3
-            || (f64::from(size.y) - pane.1).abs() > 1e-3
-            || (f64::from(ppp) - model_ppp).abs() > 1e-6
+        // The pane within the shell's bounds (a window wider than them shows the canvas in its top-left part).
+        let (width, height, want_ppp) = bounded_pane(f64::from(size.x), f64::from(size.y), f64::from(ppp));
+        if (width - pane.0).abs() > 1e-3
+            || (height - pane.1).abs() > 1e-3
+            || (want_ppp - model_ppp).abs() > 1e-6
         {
             events.push(Event::Action(
                 "view.canvas_resize",
-                json!({"width": size.x, "height": size.y, "ppp": ppp}),
+                json!({"width": width, "height": height, "ppp": want_ppp}),
             ));
         }
         let Some(canvas) = shell.canvas() else {
@@ -374,8 +384,28 @@ impl CanvasHost {
         }
     }
 
+    /// Lets go of the tiles while no canvas is shown (no page, the project closed, the wizard or the start page in
+    /// front): the pool's queue is emptied (a running tile finishes and is dropped) and the cached scenes go.
+    pub(crate) fn release(&mut self) {
+        if let (Some(pool), Some(scene)) = (&self.pool, &self.scene) {
+            pool.submit(&scene.scene, &[]);
+        }
+        self.cache.retain_scenes(&[]);
+        self.arrived.clear();
+        self.submitted.clear();
+        self.scene = None;
+        self.previous = None;
+        self.ready = false;
+    }
+
+    /// The number of cached tiles (tests: the cache is emptied while no canvas is shown).
+    pub fn cached_tiles(&self) -> usize {
+        self.cache.len()
+    }
+
     /// A page without a canvas: its message, or the waiting text.
     fn no_canvas(&mut self, ui: &mut Ui, rect: Rect, shell: &ShellModel) {
+        self.release();
         let text = match (shell.canvas_error(), shell.current_folio()) {
             (Some(message), _) => strings::format("message-no-canvas", &[message]),
             (None, Some(folio)) => strings::format("page-rendering", &[folio]),
@@ -541,6 +571,9 @@ impl CanvasHost {
                 if done.key.scene != scene.id() {
                     continue;
                 }
+                if self.cache.contains(&done.key) {
+                    self.counters.rastered_while_cached += 1;
+                }
                 if let Ok(image) = done.image {
                     let bytes = image.pixels.len() as u64;
                     let size = [image.width as usize, image.height as usize];
@@ -579,10 +612,16 @@ impl CanvasHost {
     /// Submits the plan's missing tiles (in its priority order) when they differ from the last submission.
     fn request(&mut self, ctx: &egui::Context, scene: &Arc<Scene>, plan: &Plan) {
         let waiting: BTreeSet<TileKey> = self.arrived.iter().map(|(k, _, _)| *k).collect();
+        let cached: BTreeSet<TileKey> = plan
+            .requests
+            .iter()
+            .filter(|k| self.cache.contains(k))
+            .copied()
+            .collect();
         let wanted: Vec<TileKey> = plan
             .requests
             .iter()
-            .filter(|k| !self.cache.contains(k) && !waiting.contains(k))
+            .filter(|k| !cached.contains(k) && !waiting.contains(k))
             .copied()
             .collect();
         if wanted == self.submitted {
@@ -592,17 +631,18 @@ impl CanvasHost {
             let ctx = ctx.clone();
             TilePool::new(worker_count(), Arc::new(move || ctx.request_repaint()))
         });
-        self.counters.requested_while_cached +=
-            wanted.iter().filter(|k| self.cache.contains(k)).count() as u64;
+        self.counters.skipped_cached += cached.len() as u64;
+        self.counters.requested_while_cached += wanted.iter().filter(|k| cached.contains(k)).count() as u64;
         self.counters.tiles_requested += wanted.len() as u64;
         pool.submit(scene, &wanted);
         self.submitted = wanted;
     }
 
-    /// The texture of `key`, or of the same tile of the previous scene of this folio.
-    fn texture(&mut self, key: TileKey) -> Option<egui::TextureId> {
+    /// The texture of `key`, or of the same tile of the previous scene of this folio (then `true`: an old revision
+    /// stands in).
+    fn texture(&mut self, key: TileKey) -> Option<(egui::TextureId, bool)> {
         if let Some(t) = self.cache.get(&key, self.frame) {
-            return Some(t.id());
+            return Some((t.id(), false));
         }
         let previous = self.previous?;
         self.cache
@@ -613,7 +653,7 @@ impl CanvasHost {
                 },
                 self.frame,
             )
-            .map(TextureHandle::id)
+            .map(|t| (t.id(), true))
     }
 
     fn paint(&mut self, ui: &Ui, rect: Rect, ppp: f32, plan: &Plan, overlay: &Overlay, theme: &Theme) {
@@ -625,18 +665,25 @@ impl CanvasHost {
         painter.rect_filled(to_points(origin, ppp, overlay.sheet), 0.0, color32(theme.paper));
         let uv = Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0));
         let mut complete = plan.settled;
+        let mut fallback = false;
         let last = plan.layers.len().saturating_sub(1);
         for (i, layer) in plan.layers.iter().enumerate() {
             for placed in layer {
                 match self.texture(placed.key) {
-                    Some(id) => {
+                    Some((id, old)) => {
                         painter.image(id, to_points(origin, ppp, placed.rect), uv, Color32::WHITE);
+                        // A tile of the previous revision on the last layer: the page on show is not drawn yet.
+                        if old && i == last {
+                            complete = false;
+                            fallback = true;
+                        }
                     }
                     None if i == last => complete = false,
                     None => {}
                 }
             }
         }
+        self.counters.fallback_frames += u64::from(fallback);
         self.ready = complete;
         let fill = |rects: &[PxRect], c: Color| {
             if rects.is_empty() {

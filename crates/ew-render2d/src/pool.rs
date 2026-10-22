@@ -273,27 +273,44 @@ impl Ord for TileJob {
 pub struct TilePool {
     pool: WorkerPool<TileJob>,
     results: Receiver<TileResult>,
+    /// The tiles sent back and not yet received: a submission skips them as it skips running jobs, so a tile that
+    /// finished between the host's receive and its next submission is never rasterised twice. A submission holds
+    /// this lock while it queues, and a worker takes it before it sends, so nothing slips between the two checks.
+    delivered: Arc<Mutex<BTreeSet<TileKey>>>,
 }
 
 impl TilePool {
     /// Starts `threads` workers; `waker` runs after every finished tile (the host asks for a repaint).
     pub fn new(threads: usize, waker: Arc<dyn Fn() + Send + Sync>) -> TilePool {
         let (tx, results): (Sender<TileResult>, Receiver<TileResult>) = channel();
+        let delivered: Arc<Mutex<BTreeSet<TileKey>>> = Arc::new(Mutex::new(BTreeSet::new()));
+        let theirs = Arc::clone(&delivered);
         let pool = WorkerPool::new(threads, move |job: TileJob| {
             let image = job.scene.render_tile(job.key);
+            // Marked delivered (under the lock a submission holds) before it is sent and before the job stops
+            // counting as running.
+            let mut marked = theirs.lock().unwrap_or_else(PoisonError::into_inner);
+            marked.insert(job.key);
             let sent = tx.send(TileResult { key: job.key, image });
+            drop(marked);
             // The receiver is gone when the canvas was dropped; nothing to wake then.
             if sent.is_ok() {
                 waker();
             }
         });
-        TilePool { pool, results }
+        TilePool {
+            pool,
+            results,
+            delivered,
+        }
     }
 
     /// Makes `keys` of `scene` (in priority order) the queue, dropping waiting jobs of earlier plans.
     pub fn submit(&self, scene: &Arc<Scene>, keys: &[TileKey]) {
+        let delivered = self.delivered.lock().unwrap_or_else(PoisonError::into_inner);
         self.pool.submit(
             keys.iter()
+                .filter(|key| !delivered.contains(key))
                 .map(|&key| TileJob {
                     key,
                     scene: Arc::clone(scene),
@@ -304,7 +321,23 @@ impl TilePool {
 
     /// A finished tile, if one is waiting.
     pub fn try_recv(&self) -> Option<TileResult> {
-        self.results.try_recv().ok()
+        let done = self.results.try_recv().ok()?;
+        self.received(done.key);
+        Some(done)
+    }
+
+    /// A finished tile, waiting at most `timeout` for one.
+    pub fn recv_timeout(&self, timeout: std::time::Duration) -> Option<TileResult> {
+        let done = self.results.recv_timeout(timeout).ok()?;
+        self.received(done.key);
+        Some(done)
+    }
+
+    fn received(&self, key: TileKey) {
+        self.delivered
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .remove(&key);
     }
 
     /// The tiles waiting or being rasterised.
@@ -379,6 +412,48 @@ mod tests {
         );
         // Nothing else comes.
         assert!(done_rx.recv_timeout(Duration::from_millis(100)).is_err());
+    }
+
+    struct NoFonts;
+
+    impl FontResolver for NoFonts {
+        fn font(&self, _: ew_dl::FontKey) -> Option<ew_render_cpu::FontBytes> {
+            None
+        }
+    }
+
+    #[test]
+    fn a_tile_sent_back_and_not_yet_received_is_not_rasterised_again() {
+        use ew_dl::ew_units::Nm;
+        let sheet = SheetSize {
+            width: Nm::from_mm(20),
+            height: Nm::from_mm(20),
+        };
+        let scene = Scene::new(1, Arc::new(DisplayList::new()), sheet, Arc::new(NoFonts));
+        let pool = TilePool::new(1, Arc::new(|| {}));
+        let key = TileKey {
+            scene: 1,
+            dpi: 96,
+            tx: 0,
+            ty: 0,
+        };
+        pool.submit(&scene, &[key]);
+        // Wait until the job has finished: it is sent back, not received.
+        for _ in 0..2000 {
+            if pool.pending() == 0 {
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(5));
+        }
+        assert_eq!(pool.pending(), 0);
+        pool.submit(&scene, &[key]);
+        assert_eq!(pool.pending(), 0, "the delivered tile is not queued again");
+        let done = pool.recv_timeout(Duration::from_secs(10)).expect("the tile");
+        assert_eq!(done.key, key);
+        assert!(pool.try_recv().is_none(), "rasterised once");
+        // Received: a new plan may ask for it again (the host's cache decides).
+        pool.submit(&scene, &[key]);
+        assert!(pool.recv_timeout(Duration::from_secs(10)).is_some());
     }
 
     #[test]
