@@ -277,6 +277,7 @@ impl HeapSize for ew_schema::Revision {
         self.label.heap_size()
             + self.description.heap_size()
             + self.page_notes.heap_size()
+            + self.withdraws.heap_size()
             + self.source_ref.heap_size()
             + self.extra.heap_size()
     }

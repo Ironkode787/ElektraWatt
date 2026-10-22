@@ -10,7 +10,9 @@ Creates `Revision {label, date, author, checker, description, state, page_notes}
 and checker are party roles (FR-PRJ-003). Rejected: a label that another revision has, other than a
 withdrawal record (EW-INV-017); state `open` while another revision is open (EW-INV-016); a checker
 equal to the author (at `/checker`, EW-INV-018); a page note on a page that does not exist (at
-`/page_notes/<i>/page`) or a second note on one page (at `/page_notes/<i>`, EW-INV-019). The label's
+`/page_notes/<i>/page`) or a second note on one page (at `/page_notes/<i>`, EW-INV-019); state
+`released` once a revision has a release record (the `release` member): a historic release precedes
+ElektraWatt's first release and never bypasses the release gate of `revision.release`. The label's
 format and order (FR-REV-002) are the release-gate and prevent rule EW-REL-004's, not this command's.
 The command never changes an existing revision. Outcome: the revision.
 

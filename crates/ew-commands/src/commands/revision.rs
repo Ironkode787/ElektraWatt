@@ -58,7 +58,9 @@ pub struct RevisionPageNote {
 /// and checker are party roles (FR-PRJ-003). Rejected: a label that another revision has, other than a
 /// withdrawal record (EW-INV-017); state `open` while another revision is open (EW-INV-016); a checker
 /// equal to the author (at `/checker`, EW-INV-018); a page note on a page that does not exist (at
-/// `/page_notes/<i>/page`) or a second note on one page (at `/page_notes/<i>`, EW-INV-019). The label's
+/// `/page_notes/<i>/page`) or a second note on one page (at `/page_notes/<i>`, EW-INV-019); state
+/// `released` once a revision has a release record (the `release` member): a historic release precedes
+/// ElektraWatt's first release and never bypasses the release gate of `revision.release`. The label's
 /// format and order (FR-REV-002) are the release-gate and prevent rule EW-REL-004's, not this command's.
 /// The command never changes an existing revision. Outcome: the revision.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
@@ -135,6 +137,15 @@ impl Command for CreateRevision {
                 ));
             }
         }
+        if state == RevisionState::Released {
+            if let Some(released) = revisions.iter().find(|r| r.extra.contains_key("release")) {
+                return tx.reject(format!(
+                    "revision {} ({}) has a release record; a historic released revision cannot follow a \
+                     release by ElektraWatt: a release goes through revision.release and its gate",
+                    released.label, released.id
+                ));
+            }
+        }
         let id: Id<Revision> = tx.mint();
         tx.insert(Revision {
             id,
@@ -146,6 +157,7 @@ impl Command for CreateRevision {
             description: self.description.clone(),
             state,
             page_notes: notes,
+            withdraws: None,
             source_ref: None,
             extra: Extra::new(),
         })?;
@@ -179,6 +191,17 @@ pub(crate) fn check_page_notes(
         }
     }
     Ok(())
+}
+
+/// A `page_notes` value of `fields.set` (`null` resets it): the members of a note are closed, as in the
+/// parameters of `revision.create`, so no unknown member reaches `PageNote.extra` through a command.
+pub(crate) fn refuse_open_page_notes(command: &str, value: &serde_json::Value) -> Result<(), CmdError> {
+    if value.is_null() {
+        return Ok(());
+    }
+    serde_json::from_value::<Vec<RevisionPageNote>>(value.clone())
+        .map(|_| ())
+        .map_err(|e| CmdError::invalid_params(command, "/value", e.to_string()))
 }
 
 /// The refusal of an edit of a revision that is not open: released and withdrawn revisions are immutable

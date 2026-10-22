@@ -394,19 +394,20 @@ fn a_historic_released_revision_needs_only_label_and_state() {
     assert!(r.date.is_none() && r.author.is_none() && r.page_notes.is_empty() && r.extra.is_empty());
 }
 
-/// The members of doc 03 §18 that later commands write (`purpose`, `sign_off`, `release`, `withdraws`,
-/// `reason`) are kept in `extra` and written after the known members in byte-wise order, nested unknown
-/// members of a page note too.
+/// The members of doc 03 §18 that later commands write (`purpose`, `sign_off`, `release`, `reason`) are kept
+/// in `extra` and written after the known members in byte-wise order, nested unknown members of a page note
+/// too; `withdraws` (the withdrawn label) is typed.
 #[test]
 fn revision_members_of_later_commands_stay_in_extra() {
     let line = fill(
-        r#"{"$k":"revision","id":"@REV_V2","label":"V2.0","state":"withdrawn","page_notes":[{"page":"@P1","cloud":true}],"purpose":"approval","reason":{"en-GB":"wrong customer"},"release":{"changed_pages":["@P1"],"generation":3},"sign_off":{"checker":"checker"},"withdraws":"@REV_V1"}"#,
+        r#"{"$k":"revision","id":"@REV_V2","label":"V2.0","state":"withdrawn","page_notes":[{"page":"@P1","cloud":true}],"withdraws":"V1.0","purpose":"approval","reason":{"en-GB":"wrong customer"},"release":{"changed_pages":["@P1"],"generation":3},"sign_off":{"checker":"checker"}}"#,
     );
     let Record::Revision(r) = assert_canonical(&line) else {
         panic!("a revision");
     };
     let keys: Vec<&str> = r.extra.keys().map(String::as_str).collect();
-    assert_eq!(keys, ["purpose", "reason", "release", "sign_off", "withdraws"]);
+    assert_eq!(keys, ["purpose", "reason", "release", "sign_off"]);
+    assert_eq!(r.withdraws.as_ref().map(|l| l.as_str()), Some("V1.0"));
     assert_eq!(
         r.page_notes[0].extra.keys().next().map(String::as_str),
         Some("cloud")

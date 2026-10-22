@@ -3646,7 +3646,7 @@ fn names_a_revision(v: &serde_json::Value) -> bool {
 /// D-05, the second clause of doc 20 §19 ("Page has no revision field"): the page schema has no revision
 /// member, no page record of the golden project keeps one among its unknown members (`extra`, where an
 /// importer keeps a per-page title-block value), and the revision history is the typed records V1.0
-/// (released) and V2.0 (open) that every title block reads (FT-165).
+/// (released) and V2.0 (open), none kept untyped (FT-165). The printed label is the first D-05 entry's.
 fn d05_no_page_revision(c: &Ctx) -> Outcome {
     let schema = ew_schema::kind_schema(ew_schema::Kind::Page).unwrap_or_default();
     let in_schema: Vec<String> = schema["properties"]
@@ -3693,7 +3693,7 @@ fn d05_no_page_revision(c: &Ctx) -> Outcome {
     }
     pass(format!(
         "the page schema has no revision member and no page record keeps one in `extra`; the revision history \
-         is the typed records {}, which every title block reads",
+         is the typed records {} and no revision record is untyped (the printed label: the entry above)",
         want.join(" and ")
     ))
 }

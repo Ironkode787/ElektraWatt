@@ -5,11 +5,13 @@
 //! `revisions.jsonl`).
 //!
 //! Implemented members are the two cases of FT-165: an open revision with label, date and state, and a
-//! historic released revision without an archive (no release record). The other members of doc 03 §18
-//! (`purpose`, `sign_off`, `release`, and on a withdrawal record `withdraws` and `reason`) arrive with the
-//! commands that write them (`revision.approve`, `revision.release`, `revision.withdraw`); until then they
-//! stay in `extra`, so a record written by a newer build keeps them through a load and a save. Typing the
-//! reserved kind is additive within format 0.1 (ADR-0011 amendment 4, decision log ID-334).
+//! historic released revision without an archive (no release record), and on a withdrawal record the
+//! label it withdraws (`withdraws`, review ruling of cycle 17: a label, where doc 03 §18 names an ID). The
+//! other members of doc 03 §18 (`purpose`, `sign_off`, `release`, and on a withdrawal record `reason`)
+//! arrive with the commands that write them (`revision.approve`, `revision.release`,
+//! `revision.withdraw`); until then they stay in `extra`, so a record written by a newer build keeps them
+//! through a load and a save. Typing the reserved kind is additive within format 0.1 (ADR-0011 amendment 4,
+//! decision log ID-334).
 
 use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
@@ -60,11 +62,15 @@ pub struct Revision {
     /// predecessor has no page digests (doc 15 §5.6).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub page_notes: Vec<PageNote>,
+    /// On a withdrawal record: the label of the released revision it withdraws (FR-REV-009). The withdrawn
+    /// record itself stays as it was (EW-INV-020); derivations leave it out.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<IdentS>")]
+    pub withdraws: Option<Ident>,
     /// Import provenance.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_ref: Option<SourceRef>,
-    /// Unknown members (`purpose`, `sign_off`, `release`, `withdraws`, `reason` until they are typed) and
-    /// plugin keys.
+    /// Unknown members (`purpose`, `sign_off`, `release`, `reason` until they are typed) and plugin keys.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
 }
@@ -87,7 +93,7 @@ pub enum RevisionState {
     Open,
     /// Released: by `revision.release`, or historic (released before the project came to EW). Immutable.
     Released,
-    /// A withdrawal record: it points to the released revision it withdraws (FR-REV-009).
+    /// A withdrawal record: it names the released revision it withdraws (`withdraws`, FR-REV-009).
     Withdrawn,
     /// A value of a newer format, kept verbatim.
     #[serde(skip)]

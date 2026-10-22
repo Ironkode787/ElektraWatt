@@ -770,6 +770,7 @@ fn revision(n: u128, label: &str, state: RevisionState) -> Revision {
         description: ew_mltext::MlText::default(),
         state,
         page_notes: Vec::new(),
+        withdraws: None,
         source_ref: None,
         extra: Default::default(),
     }
@@ -888,6 +889,40 @@ fn inv019_two_notes_on_one_page_rejected() {
     rejected_by(m.apply(&[op], Rev(2)), crate::REVISION_PAGE_NOTE_UNIQUE);
 }
 
+/// A released revision may be removed (the undo of its creation needs a delete), and the open revision may
+/// become Released (the release command, later).
+#[test]
+fn inv020_released_revision_delete_ok() {
+    let m = with_history();
+    let op = Op::delete(m.row(&Revision::key(nid(0x60_001))).expect("V1.0"));
+    let m = m.apply(&[op], Rev(2)).expect("a released revision is removed");
+    let op = upd(&m, nid(0x60_002), |r: &mut Revision| {
+        r.state = RevisionState::Released;
+    });
+    assert!(m.apply(&[op], Rev(3)).is_ok());
+}
+
+/// An update of a released revision is rejected: a member, or its state (a withdrawal is a new record), and
+/// so is an update of a withdrawal record.
+#[test]
+fn inv020_released_revision_update_rejected() {
+    let m = with_history();
+    let op = upd(&m, nid(0x60_001), |r: &mut Revision| {
+        r.description = ew_mltext::MlText::neutral("rewritten");
+    });
+    rejected_by(m.apply(&[op], Rev(2)), crate::REVISION_IMMUTABLE);
+    let op = upd(&m, nid(0x60_001), |r: &mut Revision| {
+        r.state = RevisionState::Withdrawn;
+    });
+    rejected_by(m.apply(&[op], Rev(2)), crate::REVISION_IMMUTABLE);
+    let w = revision(0x60_003, "V1.0", RevisionState::Withdrawn);
+    let m = m.apply(&[ins(w)], Rev(2)).expect("a withdrawal record");
+    let op = upd(&m, nid(0x60_003), |r: &mut Revision| {
+        r.label = ew_mltext::Ident::from_input("V0.1").unwrap();
+    });
+    rejected_by(m.apply(&[op], Rev(3)), crate::REVISION_IMMUTABLE);
+}
+
 /// Deleting a page that a revision notes leaves the note (history), and the integrity check of a loaded
 /// project with two open revisions rejects it.
 #[test]
@@ -946,14 +981,14 @@ fn has_test(source: &str, name: &str) -> bool {
         .any(|l| l == "#[test]")
 }
 
-/// Every rule of `RULES` (21 of them) has its table row in `invariants.md`; every test the row names exists
+/// Every rule of `RULES` (22 of them) has its table row in `invariants.md`; every test the row names exists
 /// as a `#[test]` function, with at least one accepting (`_ok`) and one rejecting (`rejected`/`referenced`) test.
 #[test]
 fn every_catalogue_rule_has_a_test() {
     let catalogue = include_str!("../../invariants.md");
     let invariant_tests = include_str!("invariants.rs");
     let ops_tests = include_str!("ops.rs");
-    assert_eq!(RULES.len(), 21);
+    assert_eq!(RULES.len(), 22);
     for rule in RULES {
         let names = catalogue_tests(catalogue, rule.id);
         assert!(!names.is_empty(), "{} names no tests in invariants.md", rule.id);

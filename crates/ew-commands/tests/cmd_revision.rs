@@ -191,7 +191,7 @@ fn create_refuses_a_missing_page_or_a_page_noted_twice() {
     );
 }
 
-/// The parameters take no `withdrawn` state and no unknown member.
+/// The parameters take no `withdrawn` state and no unknown member, also inside a page note.
 #[test]
 fn create_parameters_are_closed() {
     let registry = ew_commands::CommandRegistry::builtin();
@@ -199,6 +199,7 @@ fn create_parameters_are_closed() {
         json!({"label": "V1.0", "state": "withdrawn"}),
         json!({"label": "V1.0", "release": {}}),
         json!({"state": "open"}),
+        json!({"label": "V1.0", "page_notes": [{"page": PAGE_101.to_string(), "cloud": true}]}),
     ] {
         let cmd = ew_commands::AnyCommand {
             name: "revision.create".into(),
@@ -210,6 +211,40 @@ fn create_parameters_are_closed() {
             cmd.params
         );
     }
+}
+
+/// Review ruling R4 (cycle 17): once a revision has a release record (today the `release` member, written by
+/// `revision.release` later), a historic released revision is refused; an open one is still accepted.
+#[test]
+fn create_refuses_a_historic_release_after_a_release_record() {
+    let (e, v1, _) = with_history();
+    let mut released = (*revision(&e, v1)).clone();
+    released.id = Id::from_uuid(uuid(0x7002));
+    released.label = ident("V2.5");
+    released
+        .extra
+        .insert("release".into(), json!({"changed_pages": []}));
+    let v2 = e
+        .model()
+        .table::<Revision>()
+        .iter()
+        .find(|(_, r)| r.is_open())
+        .map(|(_, r)| r.clone())
+        .expect("V2.0");
+    let model: Model = e
+        .model()
+        .apply(
+            &[Op::insert(AnyRow::of(released)), Op::delete(AnyRow::Revision(v2))],
+            Rev(e.model().rev().0 + 1),
+        )
+        .expect("a project released by ElektraWatt, nothing open");
+    // Another seed: the IDs the first engine minted are taken.
+    let mut e = engine_seeded(model, 0x7e57);
+    let err = e
+        .execute(&create("V0.9", NewRevisionState::Released))
+        .unwrap_err();
+    assert!(rejected(&err), "{err:?}");
+    assert!(e.execute(&create("V3.0", NewRevisionState::Open)).is_ok());
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -272,6 +307,15 @@ fn the_state_is_not_settable_and_invariants_hold() {
         ))
         .unwrap_err();
     assert_eq!(invalid_at(missing), ("fields.set".into(), "/value/0/page".into()));
+    // A note takes no unknown member: it would land in `PageNote.extra`.
+    let unknown = e
+        .execute(&set(
+            &[v2],
+            "page_notes",
+            json!([{"page": PAGE_101.to_string(), "cloud": true}]),
+        ))
+        .unwrap_err();
+    assert_eq!(invalid_at(unknown), ("fields.set".into(), "/value".into()));
 }
 
 // ---------------------------------------------------------------------------------------------------------

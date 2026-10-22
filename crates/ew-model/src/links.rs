@@ -602,7 +602,8 @@ pub static NOT_LINKS: &[(&str, &str, &str)] = &[
     (
         "revision",
         "page_notes[].page",
-        "history: a released revision is immutable (FR-REV-009), so its notes keep naming a page that a later          revision deletes; a note on a page that does not exist selects nothing",
+        "history: a released revision is immutable (FR-REV-009), so its notes keep naming a page that a later \
+         revision deletes; a note on a page that does not exist selects nothing",
     ),
     (
         "part",

@@ -36,7 +36,8 @@ use crate::tx::TxBuilder;
 ///
 /// A revision's members are settable while it is open; a released or withdrawn revision is immutable
 /// (FR-REV-009) and refused at `/targets/<i>`. Its `state` is not settable (Open → Released is
-/// `revision.release`). A `page_notes` value names existing pages, one note per page (EW-INV-019).
+/// `revision.release`). A `page_notes` value names existing pages, one note per page (EW-INV-019), and its
+/// notes take no member other than `page` and `description`.
 pub const SETTABLE: &[(KindName, &[&str])] = &[
     (
         KindName::Device,
@@ -237,6 +238,9 @@ impl Command for SetFields {
                 KindName::ReportBlock => set_one::<ReportBlock>(tx, *t, path, value)?,
                 KindName::ExternalRef => set_one::<ExternalRef>(tx, *t, path, value)?,
                 KindName::Revision => {
+                    if path == "page_notes" {
+                        crate::commands::revision::refuse_open_page_notes(Self::NAME, value)?;
+                    }
                     set_one::<Revision>(tx, *t, path, value)?;
                     if path == "page_notes" {
                         let notes = tx.require::<Revision>(t.cast())?.page_notes.clone();

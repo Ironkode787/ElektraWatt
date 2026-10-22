@@ -80,6 +80,8 @@ pub const REVISION_LABEL_UNIQUE: &str = "EW-INV-017";
 pub const REVISION_FOUR_EYES: &str = "EW-INV-018";
 /// EW-INV-019: a revision notes each page at most once.
 pub const REVISION_PAGE_NOTE_UNIQUE: &str = "EW-INV-019";
+/// EW-INV-020: a released or withdrawn revision is not updated.
+pub const REVISION_IMMUTABLE: &str = "EW-INV-020";
 
 /// The structural catalogue in evaluation order.
 pub static RULES: &[Rule] = &[
@@ -194,6 +196,12 @@ pub static RULES: &[Rule] = &[
         class: RuleClass::Structural,
         statement: "The page notes of a revision name each page at most once",
     },
+    Rule {
+        id: REVISION_IMMUTABLE,
+        class: RuleClass::Structural,
+        statement: "A revision that was Released or Withdrawn before the batch is not updated; it may be removed \
+                    (the undo of its creation), and an open revision may become Released",
+    },
 ];
 
 /// The keys to evaluate and the rows they had before the batch.
@@ -266,7 +274,8 @@ pub(crate) fn check(m: &Model, scope: &Scope) -> Result<(), ModelError> {
     one_open_revision(m, scope)?;
     revision_label_unique(m, scope)?;
     revision_four_eyes(m, scope)?;
-    revision_page_note_unique(m, scope)
+    revision_page_note_unique(m, scope)?;
+    revision_immutable(m, scope)
 }
 
 /// EW-INV-001 with the forbid policy.
@@ -899,6 +908,33 @@ fn revision_page_note_unique(m: &Model, scope: &Scope) -> Result<(), ModelError>
                 ),
                 vec![*key],
             ));
+        }
+    }
+    Ok(())
+}
+
+/// EW-INV-020: every touched revision whose row before the batch was released or withdrawn, and which the
+/// batch did not remove, is unchanged. The integrity check has no rows before it, so it never reports this.
+fn revision_immutable(m: &Model, scope: &Scope) -> Result<(), ModelError> {
+    for key in scope.of_kind(Kind::Revision) {
+        let Some(before) = scope.before_of::<Revision>(key) else {
+            continue;
+        };
+        if !matches!(before.state, RevisionState::Released | RevisionState::Withdrawn) {
+            continue;
+        }
+        if let Some(after) = m.revisions.get(&typed(key)) {
+            if **after != **before {
+                return Err(violation(
+                    REVISION_IMMUTABLE,
+                    format!(
+                        "revision {} ({}) is not open; a released or withdrawn revision is never changed \
+                         (FR-REV-009): later edits belong to the next revision, a withdrawal is a new record",
+                        before.id, before.label
+                    ),
+                    vec![*key],
+                ));
+            }
         }
     }
     Ok(())

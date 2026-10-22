@@ -787,6 +787,7 @@ pub(crate) fn emit_revisions(cx: &mut Cx<'_>, table: Option<&Table>, parties: Op
                 _ => RevisionState::Withdrawn,
             },
             page_notes: notes,
+            withdraws: None,
             source_ref: Some(source_ref("revisions", row.key())),
             extra: Default::default(),
         }));

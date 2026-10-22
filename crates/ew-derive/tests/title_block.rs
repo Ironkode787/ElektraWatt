@@ -466,6 +466,25 @@ fn withdrawn_revision_is_never_current() {
     assert_eq!(label_of(&fx), Some(text("V1.0")));
 }
 
+/// A withdrawal record leaves the revision it withdraws released (EW-INV-020), but the title block no
+/// longer prints it: the latest revision that is not withdrawn is current.
+#[test]
+fn a_revision_named_by_a_withdrawal_record_is_never_current() {
+    let mut fx = Fx::new();
+    fx.push(
+        json!({"$k": "revision", "id": uid(1), "label": "V1.0", "date": "2025-03-03", "state": "released"}),
+    )
+    .push(
+        json!({"$k": "revision", "id": uid(2), "label": "V2.0", "date": "2025-04-14", "state": "released"}),
+    );
+    assert_eq!(label_of(&fx), Some(text("V2.0")));
+    fx.push(
+        json!({"$k": "revision", "id": uid(3), "label": "V2.0", "date": "2025-05-01",
+        "state": "withdrawn", "withdraws": "V2.0"}),
+    );
+    assert_eq!(label_of(&fx), Some(text("V1.0")));
+}
+
 /// A state of a newer format is kept verbatim by the typed record; it is not open, so it ranks with the
 /// released revisions and prints as its text.
 #[test]

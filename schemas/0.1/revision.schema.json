@@ -99,7 +99,7 @@
         },
         {
           "const": "withdrawn",
-          "description": "A withdrawal record: it points to the released revision it withdraws (FR-REV-009).",
+          "description": "A withdrawal record: it names the released revision it withdraws (`withdraws`, FR-REV-009).",
           "type": "string"
         }
       ]
@@ -212,6 +212,17 @@
     "state": {
       "$ref": "#/$defs/RevisionState",
       "description": "The state."
+    },
+    "withdraws": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Ident"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "On a withdrawal record: the label of the released revision it withdraws (FR-REV-009). The withdrawn\nrecord itself stays as it was (EW-INV-020); derivations leave it out."
     }
   },
   "required": [
