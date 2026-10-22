@@ -258,6 +258,11 @@ impl Behavior<TabPane> for AreaBehavior<'_> {
         false
     }
 
+    /// Tabs are dragged, groups are not: a group's tab bar gets no unnamed drag area of its own.
+    fn is_tile_draggable(&self, tiles: &Tiles<TabPane>, tile_id: TileId) -> bool {
+        matches!(tiles.get(tile_id), Some(Tile::Pane(_)))
+    }
+
     fn simplification_options(&self) -> SimplificationOptions {
         SimplificationOptions {
             all_panes_must_have_tabs: true,

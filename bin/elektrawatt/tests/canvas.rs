@@ -417,6 +417,261 @@ fn a8_the_pointer_at_an_entity_hovers_it_in_the_transcript_and_the_describe_text
     assert_eq!(steps[8]["state"]["canvas"]["hover"], Value::Null);
 }
 
+/// The centre (mm) of the cross-reference link on `folio` whose text sits in `source` cell and leads to `target`,
+/// read through the session as the viewer reads it (WP-S2.03 §6.4).
+fn link_centre(dir: &Path, folio: &str, source: &str, target: &str) -> (f64, f64) {
+    let (s, _) = Session::open_read_only(dir, "0.0.0-test").unwrap();
+    let list = s
+        .export_pages(&ExportOptions {
+            pages: PageSelection::Folios(vec![folio.to_owned()]),
+            ..ExportOptions::default()
+        })
+        .unwrap()
+        .pages
+        .remove(0)
+        .content;
+    let cells = s.page_cells(folio).unwrap();
+    let sources = list.link_sources();
+    let dests: Vec<_> = sources.iter().map(|(d, _)| *d).collect();
+    let targets = s.link_targets(&dests);
+    let found = sources
+        .iter()
+        .zip(&targets)
+        .find_map(|((_, r), t)| {
+            let c = rect_centre(*r);
+            let here = cells.cell_at(c).map(|cell| cells.text(&cell));
+            let to = t.as_ref().and_then(|t| t.cell.clone());
+            (here.as_deref() == Some(source) && to.as_deref() == Some(target)).then_some(c)
+        })
+        .unwrap_or_else(|| panic!("a link from {source} to {target}"));
+    s.close();
+    (found.0 as f64 / 1e6, found.1 as f64 / 1e6)
+}
+
+fn view(state: &Value) -> Value {
+    state["canvas"]["view_nm"].clone()
+}
+
+/// The follow-and-back script of V6 on `dir`.
+fn follow_script(dir: &Path) -> String {
+    let (x, y) = link_centre(dir, "102", "102-H15", "103-A1");
+    let (lx, ly) = link_centre(dir, "101", "101-H16", "102-A1");
+    script(&[
+        (
+            "file.open",
+            json!({ "dir": dir.to_string_lossy(), "read_only": true }),
+        ),
+        ("page.goto", json!({"folio": "102"})),
+        ("view.zoom_to", json!({"percent": 200})),
+        ("view.pan", json!({"dx": 40, "dy": -25})),
+        ("nav.follow", json!({"x_mm": x, "y_mm": y})),
+        ("nav.back", json!({})),
+        ("nav.forward", json!({})),
+        ("page.goto", json!({"folio": "101"})),
+        ("nav.follow", json!({"x_mm": lx, "y_mm": ly})),
+        ("nav.back", json!({})),
+        ("ui.describe", json!({})),
+        ("file.close", json!({})),
+    ])
+}
+
+fn nm4(v: &Value) -> Vec<i64> {
+    v.as_array()
+        .unwrap()
+        .iter()
+        .map(|n| n.as_i64().unwrap())
+        .collect()
+}
+
+/// V6 (FR-UI-019, AC-28's first part): follow "103-A1" at 24VDC-1 on 102, Back with the exact view, Forward; and
+/// "102-A1" from 101-H16.
+#[test]
+fn v6_follow_back_and_forward_headless() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("v6");
+    let out = run_script(&tmp, "v6.jsonl", &follow_script(&dir));
+    assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
+    let steps = transcript(&out);
+    let panned = &steps[4]["state"];
+    let followed = &steps[5]["state"];
+    assert_eq!(followed["page"], "103");
+    assert_eq!(followed["canvas"]["cell"], "103-A1");
+    let v = nm4(&view(followed));
+    let c = nm4(&followed["canvas"]["cursor_nm"]);
+    assert!(
+        ((v[0] + v[2]) / 2 - c[0]).abs() <= 1 && ((v[1] + v[3]) / 2 - c[1]).abs() <= 1,
+        "the target at the centre: {v:?} {c:?}"
+    );
+    // page.goto 102 was a jump too (from folio 1), the follow the second.
+    assert_eq!(followed["tabs"]["groups"][0][0]["back"], 2);
+    let back = &steps[6]["state"];
+    assert_eq!((back["page"].clone(), view(back)), (json!("102"), view(panned)));
+    assert_eq!(back["tabs"]["groups"][0][0]["forward"], 1);
+    assert_eq!(steps[7]["state"]["page"], "103");
+    assert_eq!(steps[9]["state"]["page"], "102");
+    assert_eq!(steps[9]["state"]["canvas"]["cell"], "102-A1");
+    assert_eq!(steps[10]["state"]["page"], "101");
+}
+
+/// V7 (FR-UI-039): Go to a cell centres it, a folio arrives, the errors, and "/103.A1" after the EPLAN preset.
+#[test]
+fn v7_go_to_page_or_cell_headless() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("v7");
+    let preset = json!({"cmd": "project.settings.set", "params": {"member": "xref_format", "value": {
+        "key": "eplan-cell", "ip": "/{page}.{row}{column}", "aux_to_main": "(/{page}.{row}{column})",
+        "main_to_aux": "∞ {list}", "structure": "when_different", "same_page": "full",
+        "matrix": {"per_row": 3, "max": 9, "overflow": "…"}}}});
+    let out = run_script(
+        &tmp,
+        "v7.jsonl",
+        &script(&[
+            ("file.open", json!({ "dir": dir.to_string_lossy() })),
+            ("nav.goto", json!({"text": "103-A1"})),
+            ("nav.goto", json!({"text": "101"})),
+            ("command.run", preset),
+            ("nav.goto", json!({"text": "/103.A1"})),
+            ("app.quit", json!({"discard": true})),
+        ]),
+    );
+    assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
+    let steps = transcript(&out);
+    let a1 = &steps[2]["state"];
+    assert_eq!(
+        (a1["page"].clone(), a1["canvas"]["cell"].clone()),
+        (json!("103"), json!("103-A1"))
+    );
+    let v = nm4(&view(a1));
+    let c = nm4(&a1["canvas"]["cursor_nm"]);
+    assert!(
+        ((v[0] + v[2]) / 2 - c[0]).abs() < 3_000_000,
+        "A1's centre at the view centre"
+    );
+    // A folio arrives: 101 is seen for the first time in the tab, so it is fitted, without a cursor.
+    let p101 = &steps[3]["state"];
+    assert_eq!(
+        (p101["page"].clone(), p101["canvas"]["cursor_nm"].clone()),
+        (json!("101"), Value::Null)
+    );
+    let eplan = &steps[5]["state"];
+    assert_eq!(eplan["page"], "103");
+    assert_eq!(eplan["canvas"]["cell"], "/103.A1");
+    for (text, message) in [
+        ("", "Type a folio or a cell."),
+        ("999-A1", "No page or cell matches \"999-A1\"."),
+        ("103-Z9", "Page 103 has no cell Z9."),
+    ] {
+        let out = run_script(
+            &tmp,
+            "v7e.jsonl",
+            &script(&[
+                (
+                    "file.open",
+                    json!({ "dir": dir.to_string_lossy(), "read_only": true }),
+                ),
+                ("nav.goto", json!({ "text": text })),
+            ]),
+        );
+        assert_eq!(out.status.code(), Some(1));
+        let steps = transcript(&out);
+        assert_eq!(steps[2]["outcome"], "failed");
+        assert_eq!(steps[2]["message"], message);
+    }
+}
+
+/// The side-by-side script of V8 on `dir`, snapshots into `out`.
+fn side_by_side_script(dir: &Path, out: &Path) -> String {
+    let p = |name: &str| out.join(name).to_string_lossy().into_owned();
+    script(&[
+        (
+            "file.open",
+            json!({ "dir": dir.to_string_lossy(), "read_only": true }),
+        ),
+        ("page.goto", json!({"folio": "102"})),
+        ("view.side_by_side", json!({})),
+        ("view.zoom_to", json!({"percent": 150, "group": 0})),
+        ("view.pan", json!({"dx": 30, "dy": 10, "group": 0})),
+        ("view.zoom_to", json!({"percent": 300, "group": 1})),
+        ("canvas.pointer", json!({"x_mm": 120, "y_mm": 90, "group": 0})),
+        ("canvas.pointer", json!({"x_mm": 60, "y_mm": 40, "group": 1})),
+        ("tab.focus_other", json!({})),
+        ("tab.new", json!({})),
+        ("page.goto", json!({"folio": "106"})),
+        ("tab.previous", json!({})),
+        ("nav.goto", json!({"text": "102-C15"})),
+        ("nav.back", json!({})),
+        ("canvas.snapshot", json!({"path": p("left.png"), "group": 0})),
+        ("canvas.snapshot", json!({"path": p("right.png"), "group": 1})),
+        ("tab.focus_other", json!({})),
+        ("ui.describe", json!({})),
+        ("file.close", json!({})),
+    ])
+}
+
+/// V8 (FR-UI-035): 102 left and 103 right with their own zooms, pans and pointers; tab switches and Back keep each
+/// tab's view; a snapshot per group.
+#[test]
+fn v8_side_by_side_headless() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("v8");
+    let out_dir = tmp.path("v8out");
+    std::fs::create_dir_all(&out_dir).unwrap();
+    let out = run_script(&tmp, "v8.jsonl", &side_by_side_script(&dir, &out_dir));
+    assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
+    let steps = transcript(&out);
+    let right = &steps[8]["state"];
+    assert_eq!(right["page"], "103");
+    assert_eq!(right["canvas"]["zoom"], 300.0);
+    assert_eq!(right["canvas"]["pointer_nm"], json!([60_000_000, 40_000_000]));
+    let left = &steps[9]["state"];
+    assert_eq!(left["page"], "102");
+    assert_eq!(left["canvas"]["zoom"], 150.0);
+    assert_eq!(
+        left["canvas"]["pointer_nm"],
+        Value::Null,
+        "a pointer on one group clears the other's"
+    );
+    let left_view = view(left);
+    // A new tab, another page, back to the first tab: its view is kept; Go to and Back restore it.
+    assert_eq!(view(&steps[12]["state"]), left_view);
+    assert_eq!(view(&steps[14]["state"]), left_view);
+    assert_eq!(steps[14]["state"]["tabs"]["groups"].as_array().unwrap().len(), 2);
+    // The right group kept its own view.
+    assert_eq!(steps[17]["state"]["canvas"]["zoom"], 300.0);
+    let describe = steps[18]["describe"].as_str().unwrap();
+    assert!(describe.contains("tabs group 1 of 2\n"), "{describe}");
+    assert!(describe.contains("tabs group 2 of 2 focused\n"), "{describe}");
+    let (lw, lh, l) = decode_rgba(&std::fs::read(out_dir.join("left.png")).unwrap());
+    let (rw, rh, r) = decode_rgba(&std::fs::read(out_dir.join("right.png")).unwrap());
+    assert_eq!((lw, lh, rw, rh), (1200, 800, 1200, 800));
+    assert_ne!(l, r);
+}
+
+/// V12: the scripts of V6 and V8 give byte-identical transcripts (and snapshots) on two runs.
+#[test]
+fn v12_the_viewer_transcripts_are_deterministic() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("v12");
+    let run_twice = |name: &str, text: &str| {
+        let a = run_script(&tmp, name, text);
+        let b = run_script(&tmp, name, text);
+        assert_eq!(a.status.code(), Some(0), "{}", stderr(&a));
+        assert_eq!(a.stdout, b.stdout, "{name}");
+    };
+    run_twice("v6.jsonl", &follow_script(&dir));
+    let out = tmp.path("v12out");
+    std::fs::create_dir_all(&out).unwrap();
+    run_twice("v8.jsonl", &side_by_side_script(&dir, &out));
+    let first = std::fs::read(out.join("left.png")).unwrap();
+    let again = run_script(&tmp, "v8.jsonl", &side_by_side_script(&dir, &out));
+    assert_eq!(again.status.code(), Some(0));
+    assert_eq!(
+        std::fs::read(out.join("left.png")).unwrap(),
+        first,
+        "snapshots are byte-identical"
+    );
+}
+
 /// The path of the `elektrawatt` binary under test. nextest sets `NEXTEST_BIN_EXE_elektrawatt` at run time (the binaries of a
 /// `--archive-file` run are unpacked elsewhere than the compile-time path, FT-353); a plain `cargo test` falls back
 /// to the compile-time path.

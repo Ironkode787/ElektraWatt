@@ -452,23 +452,30 @@ impl App {
             Some(Focus::Canvas(_)) => Context::Canvas,
             None => Context::Global,
         };
-        let passes: &[Context] = if focused == Context::Global {
-            &[Context::Global]
-        } else {
-            &[focused, Context::Global]
-        };
-        for &pass in passes {
-            for binding in self.bindings.iter().filter(|b| b.context == pass) {
-                if matches!(binding.action, "ui.dismiss" | "help.documentation")
-                    || (palette_open && binding.action != "tools.palette")
-                    || (focused == Context::Navigator && keys::is_navigator_key(&binding.shortcut))
-                {
-                    continue;
-                }
-                if ctx.input_mut(|i| i.consume_shortcut(&binding.shortcut)) {
-                    events.push(Event::Action(binding.action, Value::Null));
-                    return;
-                }
+        // One list over the focused context and the global one, most modifiers first (egui matches an extra Shift
+        // or Alt logically, so Alt+Left must be asked before Left), the focused context first on a tie.
+        let mut candidates: Vec<&Binding> = self
+            .bindings
+            .iter()
+            .filter(|b| b.context == Context::Global || b.context == focused)
+            .collect();
+        candidates.sort_by_key(|b| {
+            let m = b.shortcut.modifiers;
+            (
+                std::cmp::Reverse(usize::from(m.shift) + usize::from(m.alt) + usize::from(m.command)),
+                b.context != focused,
+            )
+        });
+        for binding in candidates {
+            if matches!(binding.action, "ui.dismiss" | "help.documentation")
+                || (palette_open && binding.action != "tools.palette")
+                || (focused == Context::Navigator && keys::is_navigator_key(&binding.shortcut))
+            {
+                continue;
+            }
+            if ctx.input_mut(|i| i.consume_shortcut(&binding.shortcut)) {
+                events.push(Event::Action(binding.action, Value::Null));
+                return;
             }
         }
     }
