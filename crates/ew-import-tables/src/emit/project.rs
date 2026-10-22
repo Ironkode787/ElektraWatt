@@ -6,12 +6,13 @@
 use std::collections::BTreeMap;
 
 use ew_ids::Id;
+use ew_mltext::{Ident, MlText};
 use ew_rds::Aspect;
 use ew_schema::{
     AnyId, Bounds, ContinuationPolicy, DateFormat, DecimalSeparator, EarthingSystem, EmbedSpec, ExternalRef,
-    Folio, Formatting, MasterData, Open, Page, PageType, Party, PartyRole, Project, ProjectKind,
-    ProjectSettings, Quantity, Record, ReportBlock, ReportKind, ReportSource, Scale, Section, Set, Slot,
-    StructureAssignment, StructureNode, SupplyOrigin, SupplySpec, Unit,
+    Folio, Formatting, MasterData, Open, Page, PageNote, PageType, Party, PartyRole, Project, ProjectKind,
+    ProjectSettings, Quantity, Record, ReportBlock, ReportKind, ReportSource, Revision, RevisionState, Scale,
+    Section, Set, Slot, StructureAssignment, StructureNode, SupplyOrigin, SupplySpec, Unit,
 };
 use ew_units::{Nm, Pt2};
 
@@ -685,8 +686,7 @@ pub(crate) fn emit_project(
     Some(())
 }
 
-/// `revisions.csv` → reserved `revision` records (doc 03 §18). The title-block query of `ew-derive` reads the
-/// reserved records leniently, so they are emitted as [`Record::Unknown`] values.
+/// `revisions.csv` → `revision` records (doc 03 §18, typed since FT-165).
 ///
 /// `key` is the label and `state` one of `open`, `released`, `withdrawn`. `author` and `checker` name a party
 /// of `parties.csv` by its key or its name; the record keeps the party's role, the only party reference form
@@ -709,6 +709,7 @@ pub(crate) fn emit_revisions(cx: &mut Cx<'_>, table: Option<&Table>, parties: Op
         }
     }
     let mut seen = BTreeMap::<String, ()>::new();
+    let mut open_seen = false;
     for row in table.rows() {
         if !fresh(&mut cx.findings, row, &seen) {
             continue;
@@ -736,10 +737,27 @@ pub(crate) fn emit_revisions(cx: &mut Cx<'_>, table: Option<&Table>, parties: Op
         };
         let author = party(&mut r, "author");
         let checker = party(&mut r, "checker");
-        let mut notes = Vec::new();
+        if author.is_some() && author == checker {
+            r.fail(
+                "columns `author` and `checker`: the same party; the checker is another party (EW-INV-018)",
+            );
+        }
+        if state == Some("open") && open_seen {
+            r.fail("column `state`: a second open revision; at most one is open (EW-INV-016)");
+        }
+        let mut notes: Vec<PageNote> = Vec::new();
         for page in r.list("changed_pages") {
             match cx.pages.get(page) {
-                Some(info) => notes.push(serde_json::json!({ "page": info.id })),
+                Some(info) if notes.iter().any(|n| n.page == info.id) => {
+                    r.fail(format!(
+                        "column `changed_pages`: page `{page}` listed twice (EW-INV-019)"
+                    ));
+                }
+                Some(info) => notes.push(PageNote {
+                    page: info.id,
+                    description: MlText::default(),
+                    extra: Default::default(),
+                }),
                 None => r.fail(format!("column `changed_pages`: unknown page `{page}`")),
             }
         }
@@ -748,33 +766,29 @@ pub(crate) fn emit_revisions(cx: &mut Cx<'_>, table: Option<&Table>, parties: Op
             continue;
         }
         let Some(state) = state else { continue };
+        let Ok(label) = Ident::from_input(row.key()) else {
+            cx.malformed(row, "column `key`: not a revision label");
+            continue;
+        };
         seen.insert(row.key().to_owned(), ());
-        let id: Id<()> = record_id("revisions", row.key());
-        let mut members = serde_json::Map::new();
-        members.insert("$k".into(), "revision".into());
-        members.insert("id".into(), serde_json::json!(id));
-        members.insert("label".into(), row.key().into());
-        members.insert("state".into(), state.into());
-        if let Some(d) = date {
-            members.insert("date".into(), serde_json::json!(d));
-        }
-        if !description.is_empty() {
-            members.insert("description".into(), serde_json::json!(description));
-        }
-        if let Some(a) = author {
-            members.insert("author".into(), a.into());
-        }
-        if let Some(c) = checker {
-            members.insert("checker".into(), c.into());
-        }
-        if !notes.is_empty() {
-            members.insert("page_notes".into(), serde_json::Value::Array(notes));
-        }
-        members.insert(
-            "source_ref".into(),
-            serde_json::json!(source_ref("revisions", row.key())),
-        );
-        cx.records
-            .push(Record::Unknown(serde_json::Value::Object(members)));
+        open_seen |= state == "open";
+        let role = |name: Option<&str>| name.and_then(|n| serde_json::from_value::<PartyRole>(n.into()).ok());
+        cx.records.push(Record::Revision(Revision {
+            id: record_id("revisions", row.key()),
+            v: 1,
+            label,
+            date,
+            author: role(author),
+            checker: role(checker),
+            description,
+            state: match state {
+                "open" => RevisionState::Open,
+                "released" => RevisionState::Released,
+                _ => RevisionState::Withdrawn,
+            },
+            page_notes: notes,
+            source_ref: Some(source_ref("revisions", row.key())),
+            extra: Default::default(),
+        }));
     }
 }

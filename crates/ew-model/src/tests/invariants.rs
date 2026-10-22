@@ -6,8 +6,8 @@
 use ew_ids::{Id, Uuid};
 use ew_rds::Aspect;
 use ew_schema::{
-    Connection, Device, FnRole, Function, IpDirection, Junction, KeyedList, PageType, PinMapEntry, Record,
-    ReportBlock, Representation, StructureNode,
+    Connection, Device, FnRole, Function, IpDirection, Junction, KeyedList, PageNote, PageType, PinMapEntry,
+    Record, ReportBlock, Representation, Revision, RevisionState, StructureNode,
 };
 use serde_json::json;
 
@@ -757,6 +757,161 @@ fn inv014_embedded_removed_rejected() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
+// EW-INV-016 … EW-INV-019: revisions
+
+fn revision(n: u128, label: &str, state: RevisionState) -> Revision {
+    Revision {
+        id: nid(n),
+        v: 1,
+        label: ew_mltext::Ident::from_input(label).expect("a label"),
+        date: None,
+        author: None,
+        checker: None,
+        description: ew_mltext::MlText::default(),
+        state,
+        page_notes: Vec::new(),
+        source_ref: None,
+        extra: Default::default(),
+    }
+}
+
+fn note(page: Id<ew_schema::Page>) -> PageNote {
+    PageNote {
+        page,
+        description: ew_mltext::MlText::default(),
+        extra: Default::default(),
+    }
+}
+
+/// Golden A's history: V1.0 released (historic), V2.0 open.
+fn with_history() -> Model {
+    let m = mini_golden();
+    let v1 = revision(0x60_001, "V1.0", RevisionState::Released);
+    let v2 = revision(0x60_002, "V2.0", RevisionState::Open);
+    m.apply(&[ins(v1), ins(v2)], Rev(1))
+        .expect("the history is valid")
+}
+
+/// One open revision among released and withdrawn ones is accepted.
+#[test]
+fn inv016_one_open_revision_ok() {
+    let m = with_history();
+    let w = revision(0x60_003, "V1.0", RevisionState::Withdrawn);
+    assert!(m.apply(&[ins(w)], Rev(2)).is_ok());
+}
+
+/// A second open revision is rejected.
+#[test]
+fn inv016_second_open_revision_rejected() {
+    let m = with_history();
+    let v3 = revision(0x60_003, "V3.0", RevisionState::Open);
+    rejected_by(m.apply(&[ins(v3)], Rev(2)), crate::ONE_OPEN_REVISION);
+}
+
+/// Reopening a released revision while another is open is rejected.
+#[test]
+fn inv016_reopened_revision_rejected() {
+    let m = with_history();
+    let op = upd(&m, nid(0x60_001), |r: &mut Revision| {
+        r.state = RevisionState::Open
+    });
+    rejected_by(m.apply(&[op], Rev(2)), crate::ONE_OPEN_REVISION);
+}
+
+/// Distinct labels are accepted, and a withdrawal record may repeat the label of the revision it withdraws.
+#[test]
+fn inv017_revision_label_unique_ok() {
+    let m = with_history();
+    let w = revision(0x60_003, "V2.0", RevisionState::Withdrawn);
+    assert!(m.apply(&[ins(w)], Rev(2)).is_ok());
+}
+
+/// A second revision with an existing label is rejected.
+#[test]
+fn inv017_duplicate_label_rejected() {
+    let m = with_history();
+    let twin = revision(0x60_003, "V1.0", RevisionState::Released);
+    rejected_by(m.apply(&[ins(twin)], Rev(2)), crate::REVISION_LABEL_UNIQUE);
+}
+
+/// Relabelling the open revision to a released revision's label is rejected.
+#[test]
+fn inv017_relabel_rejected() {
+    let m = with_history();
+    let op = upd(&m, nid(0x60_002), |r: &mut Revision| {
+        r.label = ew_mltext::Ident::from_input("V1.0").unwrap();
+    });
+    rejected_by(m.apply(&[op], Rev(2)), crate::REVISION_LABEL_UNIQUE);
+}
+
+/// Author and checker of different roles, or either unset, are accepted.
+#[test]
+fn inv018_revision_four_eyes_ok() {
+    let m = with_history();
+    let op = upd(&m, nid(0x60_002), |r: &mut Revision| {
+        r.author = Some(ew_schema::PartyRole::Engineer);
+        r.checker = Some(ew_schema::PartyRole::Checker);
+    });
+    let m = m.apply(&[op], Rev(2)).expect("author and checker differ");
+    let op = upd(&m, nid(0x60_002), |r: &mut Revision| r.author = None);
+    assert!(m.apply(&[op], Rev(3)).is_ok());
+}
+
+/// The same party as author and checker is rejected (D-34, FR-REV-005).
+#[test]
+fn inv018_author_is_checker_rejected() {
+    let m = with_history();
+    let op = upd(&m, nid(0x60_002), |r: &mut Revision| {
+        r.author = Some(ew_schema::PartyRole::Engineer);
+        r.checker = Some(ew_schema::PartyRole::Engineer);
+    });
+    rejected_by(m.apply(&[op], Rev(2)), crate::REVISION_FOUR_EYES);
+}
+
+/// Notes on two pages are accepted, also for a page that does not exist (a page note is not a link).
+#[test]
+fn inv019_page_notes_unique_ok() {
+    let m = with_history();
+    let op = upd(&m, nid(0x60_002), |r: &mut Revision| {
+        r.page_notes = vec![note(PAGE_101), note(PAGE_102), note(nid(0x60_0ff))];
+    });
+    assert!(m.apply(&[op], Rev(2)).is_ok());
+}
+
+/// Two notes on one page are rejected.
+#[test]
+fn inv019_two_notes_on_one_page_rejected() {
+    let m = with_history();
+    let op = upd(&m, nid(0x60_002), |r: &mut Revision| {
+        r.page_notes = vec![note(PAGE_101), note(PAGE_102), note(PAGE_101)];
+    });
+    rejected_by(m.apply(&[op], Rev(2)), crate::REVISION_PAGE_NOTE_UNIQUE);
+}
+
+/// Deleting a page that a revision notes leaves the note (history), and the integrity check of a loaded
+/// project with two open revisions rejects it.
+#[test]
+fn inv016_two_open_revisions_rejected_on_load() {
+    let m = with_history();
+    let op = upd(&m, nid(0x60_002), |r: &mut Revision| {
+        r.page_notes = vec![note(PAGE_101)]
+    });
+    let m = m.apply(&[op], Rev(2)).unwrap();
+    let plan = m.delete_plan(&ew_schema::Page::key(PAGE_101)).expect("a plan");
+    let after = m.apply(&plan, Rev(3)).expect("the page goes, the note stays");
+    let kept = after.revisions.get(&nid(0x60_002)).unwrap();
+    assert_eq!(kept.page_notes.len(), 1);
+
+    let (project, mut records, lib) = mini_golden_parts();
+    records.push(Record::Revision(revision(0x60_001, "V1.0", RevisionState::Open)));
+    records.push(Record::Revision(revision(0x60_002, "V2.0", RevisionState::Open)));
+    rejected_by(
+        Model::from_records(project, records, lib),
+        crate::ONE_OPEN_REVISION,
+    );
+}
+
+// ---------------------------------------------------------------------------------------------------------
 // Catalogue
 
 /// The names in backticks of the last (Tests) cell of the catalogue row of `rule`.
@@ -791,14 +946,14 @@ fn has_test(source: &str, name: &str) -> bool {
         .any(|l| l == "#[test]")
 }
 
-/// Every rule of `RULES` (16 of them) has its table row in `invariants.md`; every test the row names exists
+/// Every rule of `RULES` (21 of them) has its table row in `invariants.md`; every test the row names exists
 /// as a `#[test]` function, with at least one accepting (`_ok`) and one rejecting (`rejected`/`referenced`) test.
 #[test]
 fn every_catalogue_rule_has_a_test() {
     let catalogue = include_str!("../../invariants.md");
     let invariant_tests = include_str!("invariants.rs");
     let ops_tests = include_str!("ops.rs");
-    assert_eq!(RULES.len(), 17);
+    assert_eq!(RULES.len(), 21);
     for rule in RULES {
         let names = catalogue_tests(catalogue, rule.id);
         assert!(!names.is_empty(), "{} names no tests in invariants.md", rule.id);

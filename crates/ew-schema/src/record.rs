@@ -16,8 +16,8 @@ use crate::track::{buffer_strict, check_value_at, de_here, parse_value, raise, w
 use crate::value::Endpoint;
 use crate::{
     Bond, Channel, Conductor, Connection, Device, DeviceLink, ExternalRef, Function, ImportLineage, Junction,
-    Page, PlcConfigProject, PotentialDef, Project, ReportBlock, Representation, SchemaError, Section,
-    StructureNode,
+    Page, PlcConfigProject, PotentialDef, Project, ReportBlock, Representation, Revision, SchemaError,
+    Section, StructureNode,
 };
 
 /// `$k` first, then the record's own members in declaration order.
@@ -155,6 +155,8 @@ pub enum Record {
     DeviceLink(DeviceLink),
     /// `report_block` (45).
     ReportBlock(ReportBlock),
+    /// `revision` (60).
+    Revision(Revision),
     /// A record of a kind this reader does not implement, with its `$k`, kept verbatim.
     Unknown(Value),
 }
@@ -184,6 +186,7 @@ impl Record {
             Record::Bond(_) => Kind::Bond,
             Record::DeviceLink(_) => Kind::DeviceLink,
             Record::ReportBlock(_) => Kind::ReportBlock,
+            Record::Revision(_) => Kind::Revision,
             Record::Unknown(_) => return None,
         })
     }
@@ -217,6 +220,7 @@ impl Record {
             Record::Bond(r) => r.id.as_uuid(),
             Record::DeviceLink(r) => r.id.as_uuid(),
             Record::ReportBlock(r) => r.id.as_uuid(),
+            Record::Revision(r) => r.id.as_uuid(),
             Record::Unknown(v) => {
                 return v
                     .get("id")
@@ -235,7 +239,8 @@ impl Record {
             | Record::ImportLineage(_)
             | Record::StructureNode(_)
             | Record::Section(_)
-            | Record::ExternalRef(_) => AnchorRef::Root,
+            | Record::ExternalRef(_)
+            | Record::Revision(_) => AnchorRef::Root,
             Record::Page(r) => AnchorRef::Direct(r.id.as_uuid()),
             Record::Device(r) => AnchorRef::Direct(r.id.as_uuid()),
             Record::Function(r) => match r.device {
@@ -313,6 +318,7 @@ impl Serialize for Record {
             Record::Bond(r) => tagged(Kind::Bond, r, serializer),
             Record::DeviceLink(r) => tagged(Kind::DeviceLink, r, serializer),
             Record::ReportBlock(r) => tagged(Kind::ReportBlock, r, serializer),
+            Record::Revision(r) => tagged(Kind::Revision, r, serializer),
             Record::Unknown(v) => v.serialize(serializer),
         }
     }
@@ -394,6 +400,7 @@ impl Record {
             Kind::Bond => Record::Bond(typed(kind, map, |r: &Bond| r.v)?),
             Kind::DeviceLink => Record::DeviceLink(typed(kind, map, |r: &DeviceLink| r.v)?),
             Kind::ReportBlock => Record::ReportBlock(typed(kind, map, |r: &ReportBlock| r.v)?),
+            Kind::Revision => Record::Revision(typed(kind, map, |r: &Revision| r.v)?),
             k => return Err(SchemaError::UnknownKind(k.name().into())),
         })
     }

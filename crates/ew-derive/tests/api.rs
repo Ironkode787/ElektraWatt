@@ -326,7 +326,7 @@ impl Query for EveryAccessor {
         n += q.idx().connected_cps_of_function(id(0x1001)).len();
         n += q.symbols().len() + q.fndefs().len();
         n += usize::from(q.project().derivation_profile.as_str() == "2027.1");
-        n += q.reserved(Kind::Revision).count();
+        n += q.reserved(Kind::Waiver).count();
         n += usize::from(q.get::<DeviceTag>(id(0x1000)).is_some());
         Arc::new(n)
     }
@@ -338,7 +338,7 @@ fn query_bodies_see_only_tracked_accessors() {
     let rec = Rc::new(RecordingTracker::new());
     let q = Q::with_tracker(&m, Box::new(Rc::clone(&rec)));
     // 1 device, 1 page, 1 function, 1 rep on the page, 1 function of the device, no connected CP,
-    // 1 symbol and 1 fndef, the profile pin, no revision, the tag.
+    // 1 symbol and 1 fndef, the profile pin, no waiver, the tag.
     assert_eq!(*q.get::<EveryAccessor>(()), 9);
     let reads: Vec<DepKey> = rec
         .reads()

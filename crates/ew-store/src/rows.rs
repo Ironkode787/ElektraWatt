@@ -95,6 +95,10 @@ macro_rules! with_row {
                 let $kind = Kind::ReportBlock;
                 $body
             }
+            AnyRow::Revision($r) => {
+                let $kind = Kind::Revision;
+                $body
+            }
             AnyRow::Part($r) => {
                 let $kind = Kind::Part;
                 $body
@@ -136,6 +140,7 @@ pub(crate) fn row_record(row: &AnyRow) -> Option<Record> {
         AnyRow::Bond(r) => Record::Bond((**r).clone()),
         AnyRow::DeviceLink(r) => Record::DeviceLink((**r).clone()),
         AnyRow::ReportBlock(r) => Record::ReportBlock((**r).clone()),
+        AnyRow::Revision(r) => Record::Revision((**r).clone()),
         AnyRow::Part(_) | AnyRow::Symbol(_) | AnyRow::Fndef(_) | AnyRow::Form(_) => return None,
     })
 }
@@ -161,6 +166,7 @@ pub(crate) fn record_row(record: Record) -> Option<AnyRow> {
         Record::Bond(r) => AnyRow::of(r),
         Record::DeviceLink(r) => AnyRow::of(r),
         Record::ReportBlock(r) => AnyRow::of(r),
+        Record::Revision(r) => AnyRow::of(r),
         Record::Unknown(_) => return None,
     })
 }
@@ -288,6 +294,7 @@ pub(crate) fn all_keys(model: &Model) -> BTreeSet<AnyKey> {
     table::<Bond>(model, &mut out);
     table::<DeviceLink>(model, &mut out);
     table::<ReportBlock>(model, &mut out);
+    table::<ew_format::ew_schema::Revision>(model, &mut out);
     table::<LibCopy<Part>>(model, &mut out);
     table::<LibCopy<SymbolDef>>(model, &mut out);
     table::<LibCopy<FnDef>>(model, &mut out);

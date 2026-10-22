@@ -12,7 +12,7 @@ use ew_ids::Id;
 use ew_schema::{
     AnyId, Bond, Channel, Conductor, Connection, Device, DeviceLink, ExternalRef, FnDef, FormDef, Function,
     ImportLineage, Junction, Kind, LibCopy, Page, Part, PlcConfigProject, PotentialDef, Project, ReportBlock,
-    Representation, Section, StructureNode, SymbolDef,
+    Representation, Revision, Section, StructureNode, SymbolDef,
 };
 
 use crate::model::Model;
@@ -242,6 +242,7 @@ entities! {
     Bond: Bond, Bond, bonds;
     DeviceLink: DeviceLink, DeviceLink, device_links;
     ReportBlock: ReportBlock, ReportBlock, report_blocks;
+    Revision: Revision, Revision, revisions;
     Part: LibCopy<Part>, Part, lib.parts;
     Symbol: LibCopy<SymbolDef>, SymbolDef, lib.symbols;
     Fndef: LibCopy<FnDef>, FnDef, lib.fndefs;

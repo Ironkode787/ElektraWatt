@@ -703,11 +703,12 @@ impl Q {
     }
 
     /// The records of a reserved kind (one without a typed table in this format version, such as
-    /// `revision`), in the writer's line order. They carry no revision stamps, so the read is recorded as
+    /// `waiver`), in the writer's line order. They carry no revision stamps, so the read is recorded as
     /// the coarse [`DepKey::Reserved`] at `model.rev()`. Push invalidation touches it only when the reserved
     /// records themselves differ (a stamp change with equal content need not be pushed, `ew_memo::Db`), so a
-    /// memoised `title_block` is not re-marked by every commit; a pull verification still sees the newer stamp
-    /// and re-executes. Revisions become typed records (doc 03 §18) with their own table and stamps later.
+    /// memo that reads them is not re-marked by every commit; a pull verification still sees the newer stamp
+    /// and re-executes. Revisions are typed records with their own table and stamps since FT-165
+    /// ([`Q::table`]).
     pub fn reserved(&self, kind: Kind) -> impl Iterator<Item = &serde_json::Value> + '_ {
         self.read(DepKey::Reserved, self.model.rev());
         let name = kind.name();

@@ -26,7 +26,8 @@
 //! shard, the coarse key of every index bucket the row feeds, the whole indexes it feeds, its table, and the
 //! project row when the row is the project. The reserved records carry no stamps (their stamp is the model
 //! revision, which every commit changes); they are touched only when they differ between `before` and
-//! `after`, so a commit does not re-mark every `title_block` memo (review cycle 9, finding 4). A unit test
+//! `after`, so a commit does not re-mark every memo that reads them (review cycle 9, finding 4, when the
+//! title block still read the revisions as reserved records; they are typed since FT-165). A unit test
 //! checks the contract against `ew-model`'s own stamps: every row, bucket, index and table whose stamp a
 //! random commit changed is covered, and the reserved records are covered whenever they changed.
 
@@ -124,6 +125,7 @@ macro_rules! by_kind {
             Kind::Bond => $f::<Bond>($($arg),*),
             Kind::DeviceLink => $f::<ew_schema::DeviceLink>($($arg),*),
             Kind::ReportBlock => $f::<ReportBlock>($($arg),*),
+            Kind::Revision => $f::<ew_schema::Revision>($($arg),*),
             Kind::Part => $f::<LibCopy<Part>>($($arg),*),
             Kind::Symbol => $f::<LibCopy<SymbolDef>>($($arg),*),
             Kind::Fndef => $f::<LibCopy<FnDef>>($($arg),*),
@@ -443,7 +445,7 @@ mod tests {
     const ABSENT: u128 = 0xdead;
 
     /// The kinds with a table, in the order of the `by_kind!` macro.
-    const TABLE_KINDS: [Kind; 21] = [
+    const TABLE_KINDS: [Kind; 22] = [
         Kind::PlcConfigProject,
         Kind::ImportLineage,
         Kind::StructureNode,
@@ -461,6 +463,7 @@ mod tests {
         Kind::Bond,
         Kind::DeviceLink,
         Kind::ReportBlock,
+        Kind::Revision,
         Kind::Part,
         Kind::Symbol,
         Kind::Fndef,
@@ -1042,7 +1045,7 @@ mod tests {
         }
         let _ = q.project();
         let _ = q.profile();
-        let _ = q.reserved(Kind::Revision).count();
+        let _ = q.reserved(Kind::Waiver).count();
 
         let reads = rec.reads();
         for r in &reads {
@@ -1116,7 +1119,7 @@ mod tests {
             stamp(&m3, &DepKey::Table(Kind::Connection))
         );
         // A kind without a table answers the model's revision.
-        assert_eq!(stamp(&m3, &DepKey::Row((Kind::Revision, id(ABSENT)))), Rev(3));
+        assert_eq!(stamp(&m3, &DepKey::Row((Kind::Waiver, id(ABSENT)))), Rev(3));
     }
 
     // -------------------------------------------------------------------------------------------------

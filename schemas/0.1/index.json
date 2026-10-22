@@ -293,9 +293,9 @@
       "file": "revisions.jsonl",
       "kind": "revision",
       "rank": 60,
-      "schema": null,
-      "status": "reserved",
-      "v": null
+      "schema": "revision.schema.json",
+      "status": "implemented",
+      "v": 1
     },
     {
       "file": "waivers.jsonl",

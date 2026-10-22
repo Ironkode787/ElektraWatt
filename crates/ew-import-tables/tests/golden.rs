@@ -295,18 +295,20 @@ fn the_ratings_are_typed_technical_data() {
     assert_eq!(tech(&t55.tech_data), ["setpoint=15 DegC"]);
 }
 
-/// The revision records carry label, date, state, the author's party role and the page notes (doc 03 §18).
+/// The revision records are typed (FT-165) and carry label, date, state, the author's party role and the page
+/// notes (doc 03 §18).
 #[test]
 fn the_revisions_are_the_two_of_doc_20() {
     let b = golden();
-    let revisions: Vec<&serde_json::Value> = b
+    let revisions: Vec<serde_json::Value> = b
         .records
         .iter()
         .filter_map(|r| match r {
-            Record::Unknown(v) if v.get("$k").and_then(|k| k.as_str()) == Some("revision") => Some(v),
+            Record::Revision(v) => Some(serde_json::to_value(v).expect("a revision serialises")),
             _ => None,
         })
         .collect();
+    assert_eq!(revisions.len(), 2);
     let by_label = |l: &str| {
         revisions
             .iter()

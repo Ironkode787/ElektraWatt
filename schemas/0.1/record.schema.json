@@ -55,6 +55,9 @@
     },
     {
       "$ref": "report_block.schema.json"
+    },
+    {
+      "$ref": "revision.schema.json"
     }
   ],
   "required": [

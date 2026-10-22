@@ -10,7 +10,7 @@ use std::sync::Arc;
 use ew_schema::{
     Bond, Channel, Conductor, Connection, Device, DeviceLink, ExternalRef, Function, FunctionKind,
     ImportLineage, Junction, Kind, KindRegistry, LibDocument, Page, PlcConfigProject, PotentialDef, Project,
-    Record, ReportBlock, Representation, Section, StructureNode,
+    Record, ReportBlock, Representation, Revision, Section, StructureNode,
 };
 
 use crate::entity::{AnyKey, AnyRow, Entity, LibraryCopies, get_row, put_row, same_tables};
@@ -48,6 +48,7 @@ pub struct Model {
     pub(crate) bonds: Table<Bond>,
     pub(crate) device_links: Table<DeviceLink>,
     pub(crate) report_blocks: Table<ReportBlock>,
+    pub(crate) revisions: Table<Revision>,
     pub(crate) lib: LibraryCopies,
     /// Records of unknown or reserved kinds, kept for the writer in the line order of doc 05 §3.3; they
     /// take part in nothing else.
@@ -80,6 +81,7 @@ impl Model {
             bonds: Table::default(),
             device_links: Table::default(),
             report_blocks: Table::default(),
+            revisions: Table::default(),
             lib: LibraryCopies::default(),
             unknown: Arc::new(Vec::new()),
             unknown_lib: Arc::new(Vec::new()),
@@ -129,6 +131,7 @@ impl Model {
                 Record::Bond(r) => Some(AnyRow::of(r)),
                 Record::DeviceLink(r) => Some(AnyRow::of(r)),
                 Record::ReportBlock(r) => Some(AnyRow::of(r)),
+                Record::Revision(r) => Some(AnyRow::of(r)),
                 other => {
                     unknown.push(other);
                     None

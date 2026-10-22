@@ -358,14 +358,49 @@ fn the_current_revision_is_the_latest_and_a_checker_is_resolved() {
     );
     assert_eq!(tb.get("party.checker.name"), Some(&TbValue::Ml(ml("<checker>"))));
 
-    // Equal dates: the natural order of the label decides (V10.0 after V9.0).
+    // Equal dates: the natural order of the label decides (V10.0 after V9.0). Both are released: at most
+    // one revision is open (EW-INV-016).
     let mut fx = Fx::new();
-    fx.push(json!({"$k": "revision", "id": uid(1), "label": "V9.0", "date": "2025-01-01", "state": "open"}))
-        .push(
-            json!({"$k": "revision", "id": uid(2), "label": "V10.0", "date": "2025-01-01", "state": "open"}),
-        );
+    fx.push(
+        json!({"$k": "revision", "id": uid(1), "label": "V9.0", "date": "2025-01-01", "state": "released"}),
+    )
+    .push(
+        json!({"$k": "revision", "id": uid(2), "label": "V10.0", "date": "2025-01-01", "state": "released"}),
+    );
     let tb = block(&fx, PageRef::Drawn(id(1)));
     assert_eq!(tb.get("revision.current.label"), Some(&text("V10.0")));
+}
+
+/// The title block reads the typed revision rows (FT-165): relabelling the open revision re-derives the
+/// memoised title block, and a second read of the same snapshot is a memo hit.
+#[test]
+#[allow(clippy::disallowed_methods)] // a raw edit of the snapshot, as a commit would make it
+fn a_revision_edit_re_derives_the_memoised_title_block() {
+    use ew_model::{AnyRow, Op};
+    use ew_schema::{Kind, Revision};
+    let model = golden().build();
+    let store = ew_derive::MemoStore::new(&model);
+    let page = PageRef::Drawn(id(PAGE101));
+    let label = |store: &ew_derive::MemoStore| {
+        store
+            .query()
+            .get::<TitleBlockValues>(page)
+            .get("revision.current.label")
+            .cloned()
+    };
+    assert_eq!(label(&store), Some(text("V2.0")));
+    let key = (Kind::Revision, id::<()>(0x602));
+    let before = model.row(&key).expect("the open revision");
+    let mut rev: Revision = (**before.get::<Revision>().expect("a revision")).clone();
+    rev.label = ew_mltext::Ident::from_input("V2.1").unwrap();
+    let after = model
+        .apply_unchecked(&[Op::update(before, AnyRow::of(rev))], model.rev().next())
+        .expect("the edit applies");
+    store.advance(&after, &[key]);
+    assert_eq!(label(&store), Some(text("V2.1")));
+    let hits = store.commit_stats().family("title_block").hits;
+    assert_eq!(label(&store), Some(text("V2.1")));
+    assert_eq!(store.commit_stats().family("title_block").hits, hits + 1);
 }
 
 #[test]
@@ -426,9 +461,25 @@ fn withdrawn_revision_is_never_current() {
         json!({"$k": "revision", "id": uid(1), "label": "V1.0", "date": "2025-03-03", "state": "released"}),
     )
     .push(
-        json!({"$k": "revision", "id": uid(2), "label": "V2.0", "date": "2025-05-01", "state": "Withdrawn"}),
+        json!({"$k": "revision", "id": uid(2), "label": "V2.0", "date": "2025-05-01", "state": "withdrawn"}),
     );
     assert_eq!(label_of(&fx), Some(text("V1.0")));
+}
+
+/// A state of a newer format is kept verbatim by the typed record; it is not open, so it ranks with the
+/// released revisions and prints as its text.
+#[test]
+fn a_state_of_a_newer_format_ranks_with_the_released_revisions() {
+    let mut fx = Fx::new();
+    fx.push(
+        json!({"$k": "revision", "id": uid(1), "label": "V1.0", "date": "2025-03-03", "state": "released"}),
+    )
+    .push(
+        json!({"$k": "revision", "id": uid(2), "label": "V2.0", "date": "2025-05-01", "state": "superseded"}),
+    );
+    assert_eq!(label_of(&fx), Some(text("V2.0")));
+    let tb = block(&fx, PageRef::Drawn(id(1)));
+    assert_eq!(tb.get("revision.current.state"), Some(&text("superseded")));
 }
 
 #[test]
@@ -444,11 +495,11 @@ fn undated_revision_counts_as_newest_within_its_state() {
 #[test]
 fn last_changed_in_follows_page_notes() {
     let mut fx = golden();
+    // A note on a page that does not exist (a page deleted after the note) selects nothing.
     fx.record(0x602)["page_notes"] = json!([
-        {"page": uid(PAGE101), "note": "reworked"},
-        uid(PAGE102),
-        {"page": "not a uuid"},
-        42,
+        {"page": uid(PAGE101), "description": "reworked"},
+        {"page": uid(PAGE102)},
+        {"page": uid(0x9999)},
     ]);
     let last = |fx: &Fx, page| {
         block(fx, PageRef::Drawn(id(page)))
@@ -460,8 +511,10 @@ fn last_changed_in_follows_page_notes() {
     assert_eq!(last(&fx, PAGE103), Some(text("V1.0")));
 
     // A released revision's `changed_pages` wins over its page notes.
-    fx.record(0x601)["page_notes"] = json!([uid(PAGE103)]);
-    fx.record(0x601)["release"] = json!({"changed_pages": [uid(PAGE201)]});
+    // The release record is not typed yet: its `changed_pages` is read from `extra`; malformed entries
+    // are skipped.
+    fx.record(0x601)["page_notes"] = json!([{"page": uid(PAGE103)}]);
+    fx.record(0x601)["release"] = json!({"changed_pages": [uid(PAGE201), "not a uuid", 42]});
     assert_eq!(last(&fx, PAGE201), Some(text("V1.0")));
     assert_eq!(last(&fx, PAGE103), Some(text("V1.0")));
 

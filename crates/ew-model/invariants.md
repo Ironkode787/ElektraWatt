@@ -64,6 +64,10 @@ a row here, and that every test named in its row exists, with at least one accep
 | EW-INV-013 | Structural | A function of kind `Ip` has exactly one representation. The representation owns it: the function lives in the page of that representation (doc 05 §2.2, row 32) and `Model::delete_plan` removes it with its last representation. Evaluated at the end of the batch, so `ip.place` may create both in one transaction. | Touched functions. The functions named (`functions[]`, `pin_map[].function`) by the old and the new row of every touched representation. | `inv013_ip_with_one_rep_ok`<br>`inv013_ip_without_rep_rejected`<br>`inv013_second_rep_rejected`<br>`inv013_rep_removed_without_function_rejected`<br>`inv013_rep_repointed_rejected`<br>`ops::delete_plan_ip_representation_cascades_its_function` |
 | EW-INV-014 | Structural | A page-oriented report block (one without `embedded`) has a `first_folio` (doc 03 §6, ReportBlock; doc 09 §2.2). | Touched report blocks. | `inv014_report_block_folio_ok`<br>`inv014_embedded_without_folio_ok`<br>`inv014_report_block_folio_rejected`<br>`inv014_embedded_removed_rejected` |
 | EW-INV-015 | Structural | The device inheritance graph is acyclic. Its edges are terminal → strip (`Device.terminal.strip`) and device → parent (`Device.parent`): the edges along which `device_tag` and `structure_of` inherit designations and structure (doc 03 §8.2 steps 1, 3 and 5). EW-INV-009 covers the parent edges alone; this invariant also rejects a strip whose parent is one of its terminals, and longer mixed cycles, so that no loaded model can make a derivation recurse into itself. | Every touched device, walking both edges depth first. | `inv015_inheritance_acyclic_ok`<br>`inv015_strip_whose_parent_is_its_terminal_rejected`<br>`inv015_three_device_cycle_rejected`<br>`inv015_cycle_rejected_on_load` |
+| EW-INV-016 | Structural | At most one revision is in state `Open`: the revision that collects the current edits (doc 03 §18, doc 15 §5.1, §5.3). A released revision is never reopened; the next revision is a new record. | Every revision, when the batch touches one (a project has a handful, so the table is scanned). | `inv016_one_open_revision_ok`<br>`inv016_second_open_revision_rejected`<br>`inv016_reopened_revision_rejected`<br>`inv016_two_open_revisions_rejected_on_load` |
+| EW-INV-017 | Structural | Revision labels are unique among the revisions that are not in state `Withdrawn`: a label names one revision, its archive `<label>.ewarchive` and its tag `ew/rev/<label>` (doc 03 §18, ADR-0013). A withdrawal record may repeat the label of the revision it withdraws. | Touched revisions, against every revision. | `inv017_revision_label_unique_ok`<br>`inv017_duplicate_label_rejected`<br>`inv017_relabel_rejected` |
+| EW-INV-018 | Structural | A revision's checker, when set, is not its author (four eyes; D-34, FR-REV-005, ADR-0009 decision 2). Author and checker are party roles. That a revision released by EW has a checker at all is the release gate's (EW-REL-001); a historic released revision has neither (section 5). | Touched revisions. | `inv018_revision_four_eyes_ok`<br>`inv018_author_is_checker_rejected` |
+| EW-INV-019 | Structural | The page notes of a revision name each page at most once (FR-REV-012: one optional description per changed page). `page_notes[].page` is not a link (section 4, "Not links"): a note keeps naming a page that a later revision deletes. | Touched revisions. | `inv019_page_notes_unique_ok`<br>`inv019_two_notes_on_one_page_rejected` |
 
 ## 4. Link table and delete policies
 
@@ -168,6 +172,7 @@ Fields are written as `kind.path`. "referrers" means the generic referrer index.
 | report_block.section | section | forbid | referrers |
 | report_block.embedded.page | page | cascade | referrers |
 | report_block.source_ref.lineage | import_lineage | forbid | referrers |
+| revision.source_ref.lineage | import_lineage | forbid | referrers |
 | form.title_block | form | forbid | referrers |
 | form.continuation | form | forbid | referrers |
 | symbol.fndef.item (with `.library`) | fndef (copy `v5(NS_LIBCOPY, library ‖ item)`) | forbid, while the copy is embedded | referrers |
@@ -185,6 +190,7 @@ The following ID-valued fields are not links.
 | import_lineage.anchor.copy.of | the namespace of the original lineage, not a record ID |
 | report_block.manual.include[] / exclude[] | Kind-erased selection; a stale ID selects nothing |
 | report_block.source.sql_query.file | Asset ID of a query file |
+| revision.page_notes[].page | History: a released revision is immutable (FR-REV-009), so its notes keep naming a page that a later revision deletes; a note on a page that does not exist selects nothing |
 | library_id, item_id of part, symbol, fndef and form | Library identity of the copy, not a reference |
 | meta.status.deprecated.successor.* of part, symbol, fndef and form | `LibRef` to a library item offered by "update from library"; never resolved to an embedded copy |
 | part.manufacturer.* | `LibRef` to a manufacturer record, which has no library-copy table in v0 |
@@ -200,7 +206,9 @@ These structural invariants are known but not evaluated yet.
 |-----------|--------|-------------|
 | A placement references a device | ADR-0009 decision 2 | The layout kinds are reserved until WP-S4.01 |
 | A channel's module carries the `plc_module` aspect | ADR-0009 decision 2; doc 10 §2.4 | The `channel.module` link (cascade) makes every channel belong to exactly one existing device (EW-INV-001); that the device is a module is the orphan-channel check FT-229, not a structural invariant |
-| A released revision has a checker who is not its author (D-34) | ADR-0009 decision 2 | The revision kind is reserved |
+| A released revision has a checker who is not its author (D-34) | ADR-0009 decision 2 | The "not its author" half is EW-INV-018. The "has a checker" half does not hold for a historic released revision (Golden A's V1.0 has neither author nor checker): it applies to a revision that EW releases, which the release gate refuses without a valid sign-off (EW-REL-001, `revision.release`, not built). The design pass words ADR-0009 decision 2 accordingly (FT-165 report) |
+| A released or withdrawn revision is immutable (FR-REV-009) | doc 03 §18 | A transition rule, not a property of a snapshot: the undo of `revision.create` must remove a released record. The commands enforce it: `fields.set` refuses a revision that is not open, `edit.delete` refuses to delete one, and no command changes a revision's state (`revision.release` and `revision.withdraw` are not built) |
+| Revision labels increase in natural order and follow the project's one label format (FR-REV-002) | doc 15 §4.8 EW-REL-004 | A prevent and release-gate rule of the EW-REL pack, not a structural invariant; the label-format setting does not exist yet. The current revision of a derivation is fixed without it: the open one, else the released ones by date, natural label order and ID (`ew-derive` `title_block`) |
 | CI-02 connection kinds join CPs of the right discipline | doc 08 §3.1 | CP disciplines come from instantiated CPs, which are derived data (WP-S1.05 to WP-S1.08) |
 | CI-03 a bridge joins terminal CPs of one strip | doc 08 §3.1 | Needs the CP-to-terminal resolution of the derivation layer |
 | CI-04, second sentence: a junction has at least three connections | doc 08 §3.1 | Restored by the junction clean-up normaliser in the same transaction (WP-S1.04). A delete plan cannot dissolve junctions |

@@ -77,6 +77,9 @@ pub const GOLDEN: &[&str] = &[
     r#"{"$k":"report_block","id":"@RB_TOC","source":{"kind":"toc"},"form":"@FORM_TOC","first_folio":2,"title":{"en-GB":"Table of Contents {n}"}}"#,
     r#"{"$k":"report_block","id":"@RB_903","source":{"kind":"terminal_diagram"},"manual":{"exclude":["@DEV_X1032_1"]},"sort":[{"key":"seq"},{"key":"level","descending":true}],"group":{"key":"strip","break":"new_page"},"form":"@FORM_TOC","section":"@SEC9","first_folio":903,"continuation":"next_folio","title":{"en-GB":"Terminal Diagram {group}"},"empty":{"one_page":{"en-GB":"No entries"}}}"#,
     r#"{"$k":"report_block","id":"@RB_PD201","source":{"kind":"part_data"},"form":"@FORM_TOC","first_folio":201,"embedded":{"page":"@P201","rect":[[10000000,180000000],[120000000,270000000]]}}"#,
+    // revisions (doc 20 §4.1 U-04, doc 03 §18): a historic released one without archive, an open one
+    r#"{"$k":"revision","id":"@REV_V1","label":"V1.0","date":"2025-03-03","description":"Initial issue","state":"released","source_ref":{"lineage":"@LIN","key":"revisions|V1.0"}}"#,
+    r#"{"$k":"revision","id":"@REV_V2","label":"V2.0","date":"2025-04-14","author":"engineer","description":{"en-GB":"Changes on 101 and 106"},"state":"open","page_notes":[{"page":"@P1"},{"page":"@P103","description":{"en-GB":"Supply moved"}}]}"#,
     // import lineage (doc 14 §2.3); its namespace is checked in its own test
     r#"{"$k":"import_lineage","id":"@LIN","importer":"csv","source_name":"tables","anchor":{"fixed":"golden"},"namespace":"@PRJ","last_source_sha256":"@HASH"}"#,
 ];

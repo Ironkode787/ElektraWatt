@@ -266,7 +266,7 @@ fn unknown_enum_variants_are_kept() {
 #[test]
 fn unknown_and_reserved_kinds_are_kept() {
     for line in [
-        r#"{"$k":"revision","id":"0192f3a0-0000-7000-8000-000000000001","label":"V2.0","state":"open"}"#,
+        r#"{"$k":"waiver","id":"0192f3a0-0000-7000-8000-000000000001","reason":"accepted","rule":"EW-CORE-047"}"#,
         r#"{"$k":"hologram","beam":[1,2],"id":"0192f3a0-0000-7000-8000-000000000002"}"#,
     ] {
         let record: Record = serde_json::from_str(line).unwrap();
@@ -353,4 +353,95 @@ fn library_kinds_are_not_records_and_vice_versa() {
     let line = fill(GOLDEN[1]);
     assert!(serde_json::from_str::<LibDocument>(&line).is_err());
     assert!(serde_json::from_str::<Record>(r#"{"id":"x"}"#).is_err());
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// revision (FT-165, doc 03 §18)
+
+#[test]
+fn a_revision_is_typed_and_lives_in_the_revisions_file() {
+    let line = fill(
+        r#"{"$k":"revision","id":"@REV_V2","label":"V2.0","date":"2025-04-14","author":"engineer","checker":"checker","description":{"en-GB":"Changes on 101 and 106"},"state":"open","page_notes":[{"page":"@P1"},{"page":"@P103","description":{"en-GB":"Supply moved"}}]}"#,
+    );
+    let record = assert_canonical(&line);
+    assert_eq!(record.kind(), Some(Kind::Revision));
+    assert_eq!(record.anchor_ref(), ew_schema::AnchorRef::Root);
+    assert_eq!(
+        record.file_rule(),
+        Some(ew_schema::FileRule::RootFile("revisions.jsonl"))
+    );
+    let Record::Revision(r) = record else {
+        panic!("a revision");
+    };
+    assert_eq!(r.label.as_str(), "V2.0");
+    assert!(r.is_open());
+    assert_eq!(r.date, Some(ew_schema::Date::new(2025, 4, 14).unwrap()));
+    assert_eq!(r.author, Some(ew_schema::PartyRole::Engineer));
+    assert_eq!(r.checker, Some(ew_schema::PartyRole::Checker));
+    assert_eq!(r.page_notes.len(), 2);
+    assert!(r.page_notes[0].description.is_empty());
+    assert!(!r.page_notes[1].description.is_empty());
+}
+
+/// The historic released revision of FT-165: no date is required, no release record, no archive.
+#[test]
+fn a_historic_released_revision_needs_only_label_and_state() {
+    let line = fill(r#"{"$k":"revision","id":"@REV_V1","label":"V1.0","state":"released"}"#);
+    let Record::Revision(r) = assert_canonical(&line) else {
+        panic!("a revision");
+    };
+    assert_eq!(r.state, ew_schema::RevisionState::Released);
+    assert!(r.date.is_none() && r.author.is_none() && r.page_notes.is_empty() && r.extra.is_empty());
+}
+
+/// The members of doc 03 §18 that later commands write (`purpose`, `sign_off`, `release`, `withdraws`,
+/// `reason`) are kept in `extra` and written after the known members in byte-wise order, nested unknown
+/// members of a page note too.
+#[test]
+fn revision_members_of_later_commands_stay_in_extra() {
+    let line = fill(
+        r#"{"$k":"revision","id":"@REV_V2","label":"V2.0","state":"withdrawn","page_notes":[{"page":"@P1","cloud":true}],"purpose":"approval","reason":{"en-GB":"wrong customer"},"release":{"changed_pages":["@P1"],"generation":3},"sign_off":{"checker":"checker"},"withdraws":"@REV_V1"}"#,
+    );
+    let Record::Revision(r) = assert_canonical(&line) else {
+        panic!("a revision");
+    };
+    let keys: Vec<&str> = r.extra.keys().map(String::as_str).collect();
+    assert_eq!(keys, ["purpose", "reason", "release", "sign_off", "withdraws"]);
+    assert_eq!(
+        r.page_notes[0].extra.keys().next().map(String::as_str),
+        Some("cloud")
+    );
+    assert_eq!(r.state, ew_schema::RevisionState::Withdrawn);
+}
+
+/// A state of a newer format is newer data, kept verbatim (ADR-0011 amendment 1); the stored form is
+/// lower-case snake case, so `"Released"` is such a value too.
+#[test]
+fn a_revision_state_of_a_newer_format_is_kept_verbatim() {
+    for state in ["superseded", "Released"] {
+        let line = fill(&format!(
+            r#"{{"$k":"revision","id":"@REV_V1","label":"V1.0","state":"{state}"}}"#
+        ));
+        let Record::Revision(r) = assert_canonical(&line) else {
+            panic!("a revision");
+        };
+        assert_eq!(
+            r.state,
+            ew_schema::RevisionState::Unknown(Value::String(state.into()))
+        );
+        assert!(!r.is_open());
+    }
+}
+
+#[test]
+fn a_revision_without_label_or_state_or_with_a_bare_page_id_is_rejected() {
+    for line in [
+        r#"{"$k":"revision","id":"@REV_V1","state":"open"}"#,
+        r#"{"$k":"revision","id":"@REV_V1","label":"V1.0"}"#,
+        r#"{"$k":"revision","id":"@REV_V1","label":"V1.0","state":"open","page_notes":["@P1"]}"#,
+        r#"{"$k":"revision","id":"@REV_V1","label":"V1.0","state":"open","date":"2025-02-30"}"#,
+    ] {
+        let line = fill(line);
+        assert!(serde_json::from_str::<Record>(&line).is_err(), "accepted: {line}");
+    }
 }

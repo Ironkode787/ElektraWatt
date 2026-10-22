@@ -90,6 +90,7 @@ pub fn row_bytes(row: &AnyRow) -> usize {
         AnyRow::Bond(r) => of(&**r),
         AnyRow::DeviceLink(r) => of(&**r),
         AnyRow::ReportBlock(r) => of(&**r),
+        AnyRow::Revision(r) => of(&**r),
         AnyRow::Part(r) => of(&**r),
         AnyRow::Symbol(r) => of(&**r),
         AnyRow::Fndef(r) => of(&**r),
@@ -258,6 +259,24 @@ impl HeapSize for ew_schema::PlcConfigProject {
     fn heap_size(&self) -> usize {
         self.name.heap_size()
             + self.profile.heap_size()
+            + self.source_ref.heap_size()
+            + self.extra.heap_size()
+    }
+}
+
+// ---- revisions (doc 03 §18): enum payloads of a newer format are not counted ----
+
+impl HeapSize for ew_schema::PageNote {
+    fn heap_size(&self) -> usize {
+        self.description.heap_size() + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for ew_schema::Revision {
+    fn heap_size(&self) -> usize {
+        self.label.heap_size()
+            + self.description.heap_size()
+            + self.page_notes.heap_size()
             + self.source_ref.heap_size()
             + self.extra.heap_size()
     }

@@ -446,14 +446,91 @@ fn unknown_kind_is_kept_verbatim_with_one_ew_core_016_per_kind_and_file() {
 
 #[test]
 fn reserved_kind_is_kept_without_a_finding() {
-    let line = r#"{"$k":"revision","id":"3b9c1d72-5e48-7a06-8f13-2d6c0e9a4b51","note":"x"}"#;
-    let loaded = load_lines("revisions.jsonl", &[line]);
+    let line = r#"{"$k":"waiver","id":"3b9c1d72-5e48-7a06-8f13-2d6c0e9a4b51","note":"x"}"#;
+    let loaded = load_lines("waivers.jsonl", &[line]);
     assert!(loaded.findings.is_empty(), "{:?}", loaded.findings);
     assert_eq!(loaded.records.len(), 1);
     assert_eq!(loaded.kept.len(), 1);
     assert_eq!(loaded.kept[0].kept, Kept::UnknownKind);
     assert_eq!(loaded.kept[0].text, line.as_bytes());
     assert!(loaded.rewrite.is_empty());
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Migration of the revision kind (FT-165): typed within format 0.1 (ADR-0011 amendment 4, ID-334)
+
+/// The two revision lines of the golden fixture as the cycle-16 build wrote them: `revision` was a reserved
+/// kind, kept as an unknown record, so its members were written in byte-wise key order.
+const OLD_REVISIONS: [&str; 2] = [
+    r#"{"$k":"revision","date":"2025-03-03","description":"Initial issue","id":"4a41f813-2160-5abe-89f2-a3f019bf4268","label":"V1.0","source_ref":{"key":"revisions|V1.0","lineage":"763dd2f1-b9b8-558e-8d55-97d7304a4929"},"state":"released"}"#,
+    r#"{"$k":"revision","author":"engineer","date":"2025-04-14","description":"Changes on 101 and 106","id":"31a45c26-4b99-565c-bbac-68077de2577c","label":"V2.0","page_notes":[{"page":"71260e59-ea02-5e16-8678-401d4044d9d7"},{"page":"b57668be-b65f-5802-a9dc-3ba4c8ed9866"}],"source_ref":{"key":"revisions|V2.0","lineage":"763dd2f1-b9b8-558e-8d55-97d7304a4929"},"state":"open"}"#,
+];
+
+/// The same records in the canonical form of the typed kind: `$k`, `id`, the members in declaration order.
+const NEW_REVISIONS: [&str; 2] = [
+    r#"{"$k":"revision","id":"4a41f813-2160-5abe-89f2-a3f019bf4268","label":"V1.0","date":"2025-03-03","description":"Initial issue","state":"released","source_ref":{"lineage":"763dd2f1-b9b8-558e-8d55-97d7304a4929","key":"revisions|V1.0"}}"#,
+    r#"{"$k":"revision","id":"31a45c26-4b99-565c-bbac-68077de2577c","label":"V2.0","date":"2025-04-14","author":"engineer","description":"Changes on 101 and 106","state":"open","page_notes":[{"page":"71260e59-ea02-5e16-8678-401d4044d9d7"},{"page":"b57668be-b65f-5802-a9dc-3ba4c8ed9866"}],"source_ref":{"lineage":"763dd2f1-b9b8-558e-8d55-97d7304a4929","key":"revisions|V2.0"}}"#,
+];
+
+/// Upgrade on read: an old `revisions.jsonl` loads into typed records with every member, the only finding
+/// is the info `NonCanonical` (nothing is quarantined or kept verbatim), the file is scheduled for a rewrite,
+/// and the writer's lines are the canonical ones of the typed kind.
+#[test]
+fn an_old_revisions_file_loads_typed_and_is_rewritten_canonically() {
+    let loaded = load_lines("revisions.jsonl", &OLD_REVISIONS);
+    assert_eq!(
+        kinds(&loaded),
+        [FindingKind::NonCanonical],
+        "{:?}",
+        loaded.findings
+    );
+    assert!(loaded.kept.is_empty(), "{:?}", loaded.kept);
+    assert!(loaded.rewrite.contains(&p("revisions.jsonl")));
+    assert!(!loaded.read_only);
+    let lines: Vec<String> = loaded
+        .records
+        .iter()
+        .map(|r| {
+            assert!(matches!(r, Record::Revision(_)), "{r:?}");
+            record_line(r).unwrap()
+        })
+        .collect();
+    assert_eq!(lines, NEW_REVISIONS);
+    // The rewritten file reads back without a finding: the migration is one step.
+    let again = load_lines("revisions.jsonl", &NEW_REVISIONS);
+    assert!(again.findings.is_empty(), "{:?}", again.findings);
+    assert!(again.rewrite.is_empty());
+}
+
+/// Members a newer build writes (the release record, the sign-off) survive in `extra`; a revision line that
+/// does not parse (a page note as a bare page ID, which no writer produced) is quarantined verbatim with
+/// EW-CORE-007, never dropped.
+#[test]
+fn revision_members_of_a_newer_build_survive_and_a_broken_line_is_quarantined() {
+    let newer = r#"{"$k":"revision","id":"4a41f813-2160-5abe-89f2-a3f019bf4268","label":"V1.0","state":"released","release":{"changed_pages":[]},"sign_off":{"checker":"checker"}}"#;
+    let loaded = load_lines("revisions.jsonl", &[newer]);
+    assert!(
+        loaded.findings.iter().all(|f| f.kind == FindingKind::NewerData),
+        "{:?}",
+        loaded.findings
+    );
+    let [Record::Revision(r)] = loaded.records.as_slice() else {
+        panic!("one revision: {:?}", loaded.records);
+    };
+    assert_eq!(
+        r.extra.keys().map(String::as_str).collect::<Vec<_>>(),
+        ["release", "sign_off"]
+    );
+    assert_eq!(record_line(&loaded.records[0]).unwrap(), newer);
+
+    let broken = r#"{"$k":"revision","id":"4a41f813-2160-5abe-89f2-a3f019bf4268","label":"V1.0","page_notes":["71260e59-ea02-5e16-8678-401d4044d9d7"],"state":"open"}"#;
+    let loaded = load_lines("revisions.jsonl", &[broken]);
+    let found = of_kind(&loaded, FindingKind::SchemaViolation);
+    assert_eq!(found.len(), 1, "{:?}", loaded.findings);
+    assert_eq!(found[0].code(), Some("EW-CORE-007"));
+    assert!(loaded.records.is_empty());
+    assert_eq!(loaded.kept.len(), 1);
+    assert_eq!(loaded.kept[0].text, broken.as_bytes());
 }
 
 const MALFORMED: &str = r#"{"$k":"function","id":"1d6f3a92-7c05-5b8e-94a1-e3c2087f5d19","def":"5b9e2d70-3c41-5f8a-b6d2-19e4c7a03f58","kind":{"ip":{"direction":"source","name":" bad"}}}"#;

@@ -548,6 +548,8 @@ pub static LINKS: &[LinkDecl] = &[
     link!(ReportBlock."section" -> Section, Forbid, None, |v, out| opt(v.section, out)),
     link!(ReportBlock."embedded.page" -> Page, Cascade, None, |v, out| opt(v.embedded.as_ref().map(|e| e.page), out)),
     lineage_link!(ReportBlock),
+    // revision (`page_notes[].page` is not a link: NOT_LINKS)
+    lineage_link!(Revision),
     // library copies
     link!(Form."title_block" -> Form, Forbid, None, |v, out| opt(v.item.title_block, out)),
     link!(Form."continuation" -> Form, Forbid, None, |v, out| opt(v.item.continuation, out)),
@@ -596,6 +598,11 @@ pub static NOT_LINKS: &[(&str, &str, &str)] = &[
         "report_block",
         "source.sql_query.file",
         "the asset ID of a query file, not a record",
+    ),
+    (
+        "revision",
+        "page_notes[].page",
+        "history: a released revision is immutable (FR-REV-009), so its notes keep naming a page that a later          revision deletes; a note on a page that does not exist selects nothing",
     ),
     (
         "part",

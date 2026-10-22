@@ -16,7 +16,8 @@ use crate::kind::{FORMAT, Kind, KindStatus};
 use crate::library::{FnDef, FormDef, LibCopy, Part, SymbolDef};
 use crate::{
     Bond, Channel, Conductor, Connection, Device, DeviceLink, ExternalRef, Function, ImportLineage, Junction,
-    Page, PlcConfigProject, PotentialDef, Project, ReportBlock, Representation, Section, StructureNode,
+    Page, PlcConfigProject, PotentialDef, Project, ReportBlock, Representation, Revision, Section,
+    StructureNode,
 };
 
 /// The schema of `T`, titled and tagged as `kind`.
@@ -50,7 +51,7 @@ fn generate<T: JsonSchema>(kind: Kind) -> Value {
 /// let s = kind_schema(Kind::Page).unwrap();
 /// assert_eq!(s["title"], "page");
 /// assert_eq!(s["properties"]["$k"]["const"], "page");
-/// assert!(kind_schema(Kind::Revision).is_none());
+/// assert!(kind_schema(Kind::Waiver).is_none());
 /// ```
 pub fn kind_schema(kind: Kind) -> Option<Value> {
     Some(match kind {
@@ -72,6 +73,7 @@ pub fn kind_schema(kind: Kind) -> Option<Value> {
         Kind::Bond => generate::<Bond>(kind),
         Kind::DeviceLink => generate::<DeviceLink>(kind),
         Kind::ReportBlock => generate::<ReportBlock>(kind),
+        Kind::Revision => generate::<Revision>(kind),
         Kind::Part => generate::<LibCopy<Part>>(kind),
         Kind::Symbol => generate::<LibCopy<SymbolDef>>(kind),
         Kind::Fndef => generate::<LibCopy<FnDef>>(kind),

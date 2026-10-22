@@ -596,6 +596,7 @@ fn changed_at(m: &Model, key: &AnyKey) -> Option<Rev> {
         Kind::Channel => of::<ew_schema::Channel>(m, key),
         Kind::DeviceLink => of::<ew_schema::DeviceLink>(m, key),
         Kind::PlcConfigProject => of::<ew_schema::PlcConfigProject>(m, key),
+        Kind::Revision => of::<ew_schema::Revision>(m, key),
         Kind::PotentialDef => of::<PotentialDef>(m, key),
         Kind::Bond => of::<Bond>(m, key),
         Kind::ReportBlock => of::<ReportBlock>(m, key),

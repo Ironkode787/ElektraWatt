@@ -9,7 +9,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use ew_ids::Id;
 use ew_schema::{
-    Connection, Device, FnRole, Function, FunctionKind, Junction, Kind, Representation, StructureNode,
+    Connection, Device, FnRole, Function, FunctionKind, Junction, Kind, Representation, Revision,
+    RevisionState, StructureNode,
 };
 
 use crate::entity::{AnyKey, AnyRow, get_row, table_keys, typed};
@@ -71,6 +72,14 @@ pub const IP_ONE_REPRESENTATION: &str = "EW-INV-013";
 pub const REPORT_BLOCK_FOLIO: &str = "EW-INV-014";
 /// EW-INV-015: the device inheritance graph (terminal → strip, device → parent) is acyclic.
 pub const INHERITANCE_ACYCLIC: &str = "EW-INV-015";
+/// EW-INV-016: at most one revision is open.
+pub const ONE_OPEN_REVISION: &str = "EW-INV-016";
+/// EW-INV-017: revision labels are unique among the revisions that are not withdrawal records.
+pub const REVISION_LABEL_UNIQUE: &str = "EW-INV-017";
+/// EW-INV-018: a revision's checker is not its author.
+pub const REVISION_FOUR_EYES: &str = "EW-INV-018";
+/// EW-INV-019: a revision notes each page at most once.
+pub const REVISION_PAGE_NOTE_UNIQUE: &str = "EW-INV-019";
 
 /// The structural catalogue in evaluation order.
 pub static RULES: &[Rule] = &[
@@ -164,6 +173,27 @@ pub static RULES: &[Rule] = &[
         statement: "The device inheritance graph is acyclic: its edges are terminal to strip (the terminal aspect's \
                     strip) and device to parent, the edges along which designations and structure are inherited",
     },
+    Rule {
+        id: ONE_OPEN_REVISION,
+        class: RuleClass::Structural,
+        statement: "At most one revision is in state Open: the one that collects the current edits",
+    },
+    Rule {
+        id: REVISION_LABEL_UNIQUE,
+        class: RuleClass::Structural,
+        statement: "Revision labels are unique among the revisions that are not in state Withdrawn: a label names \
+                    one revision, its archive and its tag",
+    },
+    Rule {
+        id: REVISION_FOUR_EYES,
+        class: RuleClass::Structural,
+        statement: "A revision's checker, when set, is not its author (four eyes)",
+    },
+    Rule {
+        id: REVISION_PAGE_NOTE_UNIQUE,
+        class: RuleClass::Structural,
+        statement: "The page notes of a revision name each page at most once",
+    },
 ];
 
 /// The keys to evaluate and the rows they had before the batch.
@@ -232,7 +262,11 @@ pub(crate) fn check(m: &Model, scope: &Scope) -> Result<(), ModelError> {
     no_stored_report_page(m, scope)?;
     ip_one_representation(m, scope)?;
     report_block_folio(m, scope)?;
-    inheritance_acyclic(m, scope)
+    inheritance_acyclic(m, scope)?;
+    one_open_revision(m, scope)?;
+    revision_label_unique(m, scope)?;
+    revision_four_eyes(m, scope)?;
+    revision_page_note_unique(m, scope)
 }
 
 /// EW-INV-001 with the forbid policy.
@@ -765,6 +799,106 @@ fn inheritance_acyclic(m: &Model, scope: &Scope) -> Result<(), ModelError> {
             }
             on_path.insert(to);
             path.push((to, 0));
+        }
+    }
+    Ok(())
+}
+
+/// EW-INV-016: when a batch touches a revision, every revision (a project has a handful, so the table is
+/// scanned rather than indexed).
+fn one_open_revision(m: &Model, scope: &Scope) -> Result<(), ModelError> {
+    if scope.of_kind(Kind::Revision).next().is_none() {
+        return Ok(());
+    }
+    let open: Vec<&Revision> = m
+        .revisions
+        .iter()
+        .map(|(_, r)| &**r)
+        .filter(|r| r.is_open())
+        .collect();
+    if open.len() > 1 {
+        let labels: Vec<&str> = open.iter().map(|r| r.label.as_str()).collect();
+        return Err(violation(
+            ONE_OPEN_REVISION,
+            format!(
+                "{} revisions are open ({}); at most one revision collects the current edits",
+                open.len(),
+                labels.join(", ")
+            ),
+            open.iter().map(|r| key_of(Kind::Revision, r.id)).collect(),
+        ));
+    }
+    Ok(())
+}
+
+/// EW-INV-017: the label of every touched revision that is not a withdrawal record, against the other
+/// revisions of the table.
+fn revision_label_unique(m: &Model, scope: &Scope) -> Result<(), ModelError> {
+    for key in scope.of_kind(Kind::Revision) {
+        let Some(r) = m.revisions.get(&typed(key)) else {
+            continue;
+        };
+        if r.state == RevisionState::Withdrawn {
+            continue;
+        }
+        let twin = m
+            .revisions
+            .iter()
+            .map(|(_, o)| o)
+            .find(|o| o.id != r.id && o.state != RevisionState::Withdrawn && o.label == r.label);
+        if let Some(o) = twin {
+            return Err(violation(
+                REVISION_LABEL_UNIQUE,
+                format!(
+                    "revisions {} and {} both have the label {}; a label names one revision",
+                    r.id, o.id, r.label
+                ),
+                vec![*key, key_of(Kind::Revision, o.id)],
+            ));
+        }
+    }
+    Ok(())
+}
+
+/// EW-INV-018: touched revisions.
+fn revision_four_eyes(m: &Model, scope: &Scope) -> Result<(), ModelError> {
+    for key in scope.of_kind(Kind::Revision) {
+        let Some(r) = m.revisions.get(&typed(key)) else {
+            continue;
+        };
+        if let (Some(author), Some(checker)) = (&r.author, &r.checker) {
+            if author == checker {
+                return Err(violation(
+                    REVISION_FOUR_EYES,
+                    format!(
+                        "revision {} ({}) has the same party as author and checker; the checker must be \
+                         another party (four eyes)",
+                        r.id, r.label
+                    ),
+                    vec![*key],
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
+/// EW-INV-019: touched revisions.
+fn revision_page_note_unique(m: &Model, scope: &Scope) -> Result<(), ModelError> {
+    for key in scope.of_kind(Kind::Revision) {
+        let Some(r) = m.revisions.get(&typed(key)) else {
+            continue;
+        };
+        let mut seen = BTreeSet::new();
+        if let Some(twice) = r.page_notes.iter().find(|n| !seen.insert(n.page)) {
+            return Err(violation(
+                REVISION_PAGE_NOTE_UNIQUE,
+                format!(
+                    "revision {} ({}) has two page notes for page {}; one note per page",
+                    r.id, r.label, twice.page
+                ),
+                vec![*key],
+            ));
         }
     }
     Ok(())

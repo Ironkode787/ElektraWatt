@@ -104,6 +104,32 @@ fn a_representation_on_an_unknown_page_is_dropped() {
     assert!(representations(&b).is_empty());
 }
 
+/// The typed revisions (FT-165): a row that would break a revision invariant is dropped with one error each
+/// (a second open revision, EW-INV-016; the author as checker, EW-INV-018; a page listed twice, EW-INV-019),
+/// so the batch always loads as a model.
+#[test]
+fn a_revision_row_that_breaks_an_invariant_is_dropped() {
+    let parties = "key,role,name\neng,engineer,<engineer>\nchk,checker,<checker>\n";
+    let revisions = "key,date,state,author,checker,changed_pages\n\
+                     V1.0,2025-03-03,released,,,\n\
+                     V2.0,2025-04-14,open,eng,chk,101\n\
+                     V3.0,,open,,,\n\
+                     V4.0,,released,eng,eng,\n\
+                     V5.0,,released,,,101;101\n";
+    let b = run(&[("parties.csv", parties), ("revisions.csv", revisions)]);
+    assert_eq!(count(&b, 2, Severity::Error), 3, "{:#?}", b.report.entries);
+    let labels: Vec<&str> = b
+        .records
+        .iter()
+        .filter_map(|r| match r {
+            Record::Revision(v) => Some(v.label.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(labels.len(), 2, "{labels:?}");
+    assert!(labels.contains(&"V1.0") && labels.contains(&"V2.0"), "{labels:?}");
+}
+
 /// A repeated key in devices.csv drops the second row.
 #[test]
 fn a_duplicate_key_is_dropped() {

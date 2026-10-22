@@ -54,6 +54,8 @@ pub const IDS: &[(&str, &str)] = &[
     ("CON_W27B", "0a6d3f19-e8c2-5b74-9f05-1d8b6e2a7c30"),
     ("CON_DP", "4d9c2a67-1e0b-5c83-9f46-b8a3e5d0c172"),
     ("PLC1", "5f0e3a72-9c14-5b86-a2d7-c1e8f04b6d39"),
+    ("REV_V1", "c4e1a7d2-3b86-5f09-9d2e-7a1f0c6b3e58"),
+    ("REV_V2", "2b9f6e04-8d31-5a7c-b4e2-f05c9a3d1e76"),
     ("CH_U3_1", "a3c7e019-4d62-5f8b-9e15-07b2d8c4f6a1"),
     ("DL_Q1", "e8b41d06-2a7c-5935-8f6e-b0d3c95a1e72"),
     ("JN_J5", "d3f8b1a4-7e62-5c09-a4d7-2b9e6f1c0a58"),

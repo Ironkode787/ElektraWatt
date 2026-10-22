@@ -19,16 +19,15 @@
 //!   (doc 09 §2.6, doc 15 §5.6; the no-digest branch, page digests do not exist yet): the current open
 //!   revision if it names the page in its `page_notes`; else the latest released revision whose changed
 //!   pages contain it (`release.changed_pages` if present, else the pages of its `page_notes`); else the
-//!   first (lowest ranked) revision. `page_notes` entries are `{"page": <uuid>, ..}` objects or bare
-//!   UUID strings, `release.changed_pages` is an array of UUID strings; malformed entries are skipped.
-//! - `revision.current.*`: the reserved `revision` records (doc 03 §18). Their members are read leniently:
-//!   `id`, `label`, `date` (`"YYYY-MM-DD"`), `state` (printed as stored), `author` and `checker`. Withdrawn
-//!   records (`state` equal to `"withdrawn"`, case-insensitive) are ignored. The current revision is the
-//!   greatest by (open before any other state, undated before dated, `date`, natural order of `label`,
-//!   `id`): an open revision wins over released ones, and a missing date counts as newest within its
-//!   state. A party
-//!   reference is not yet specified by doc 03 §18; this version accepts the role string of a party
-//!   (`"engineer"`) and takes the first party with that role.
+//!   first (lowest ranked) revision. The release record is not typed yet (it comes with
+//!   `revision.release`), so `release.changed_pages` is read from the record's `extra` as an array of UUID
+//!   strings; malformed entries are skipped.
+//! - `revision.current.*`: the typed `revision` records (doc 03 §18, FT-165): `label`, `date`, `state`
+//!   (printed as its stored name; a state of a newer format as its text), `author` and `checker`.
+//!   Withdrawal records (state `withdrawn`) are ignored. The current revision is the greatest by (open
+//!   before any other state, undated before dated, `date`, natural order of `label`, `id`): the open
+//!   revision (EW-INV-016: at most one) wins over released ones, and a missing date counts as newest
+//!   within its state. Author and checker are party roles; the first party with that role gives the name.
 //!
 //! # Supply text
 //!
@@ -54,7 +53,7 @@ use std::sync::Arc;
 use ew_ids::Id;
 use ew_mltext::{MlText, NaturalKey, natural_key};
 use ew_rds::{Aspect, RdsSyntax};
-use ew_schema::{Date, Kind, Page, Party, PartyRole, Project, Scale, Sha256, SupplySpec};
+use ew_schema::{Date, Page, Party, PartyRole, Project, Revision, RevisionState, Scale, Sha256, SupplySpec};
 
 use crate::Q;
 use crate::pages::{PageOrder, PageRef, PageRefStructure, PageTitle};
@@ -211,10 +210,6 @@ const ROLES: [(&str, PartyRole); 6] = [
     ("engineer", PartyRole::Engineer),
 ];
 
-fn role_named(name: &str) -> Option<PartyRole> {
-    ROLES.iter().find(|(n, _)| *n == name).map(|(_, r)| r.clone())
-}
-
 fn party_of<'a>(project: &'a Project, role: &PartyRole) -> Option<&'a Party> {
     project.parties.iter().find(|p| p.role == *role)
 }
@@ -288,73 +283,53 @@ fn page_scope(out: &mut Out, q: &Q, project: &Project, page: PageRef) {
     );
 }
 
-/// The members of one `revision` record this query reads.
-struct RevisionView {
-    id: String,
-    label: String,
-    date: Option<Date>,
-    state: Option<String>,
-    author: Option<PartyRole>,
-    checker: Option<PartyRole>,
+/// What this query reads of one `revision` record.
+struct RevisionView<'q> {
+    rev: &'q Revision,
     /// The pages named in `page_notes`.
     noted_pages: Vec<Id<Page>>,
-    /// `release.changed_pages`, if that member is present.
+    /// `release.changed_pages`, if that member is present (the untyped release record, `extra`).
     changed_pages: Option<Vec<Id<Page>>>,
 }
 
-impl RevisionView {
-    fn read(v: &serde_json::Value) -> Option<RevisionView> {
-        let string = |k: &str| v.get(k).and_then(serde_json::Value::as_str).map(str::to_owned);
-        let party = |k: &str| v.get(k).and_then(serde_json::Value::as_str).and_then(role_named);
-        Some(RevisionView {
-            id: string("id").unwrap_or_default(),
-            label: string("label")?,
-            date: v
-                .get("date")
-                .and_then(|d| serde_json::from_value::<Date>(d.clone()).ok()),
-            state: string("state"),
-            author: party("author"),
-            checker: party("checker"),
-            noted_pages: v
-                .get("page_notes")
-                .and_then(serde_json::Value::as_array)
-                .map(|notes| {
-                    notes
-                        .iter()
-                        .filter_map(|n| page_id(n.get("page").unwrap_or(n)))
-                        .collect()
-                })
-                .unwrap_or_default(),
-            changed_pages: v
+impl<'q> RevisionView<'q> {
+    fn read(rev: &'q Revision) -> RevisionView<'q> {
+        RevisionView {
+            rev,
+            noted_pages: rev.page_notes.iter().map(|n| n.page).collect(),
+            changed_pages: rev
+                .extra
                 .get("release")
                 .and_then(|r| r.get("changed_pages"))
                 .and_then(serde_json::Value::as_array)
                 .map(|pages| pages.iter().filter_map(page_id).collect()),
-        })
-    }
-
-    fn is_withdrawn(&self) -> bool {
-        self.state
-            .as_deref()
-            .is_some_and(|s| s.eq_ignore_ascii_case("withdrawn"))
+        }
     }
 
     fn is_open(&self) -> bool {
-        self.state
-            .as_deref()
-            .is_some_and(|s| s.eq_ignore_ascii_case("open"))
+        self.rev.is_open()
     }
 
     /// Ranking: open above everything else; within a rank a missing date is newest, then the date, the
     /// natural order of the label and the id.
-    fn order_key(&self) -> (bool, bool, Option<Date>, NaturalKey, &str) {
+    fn order_key(&self) -> (bool, bool, Option<Date>, NaturalKey, Id<Revision>) {
         (
             self.is_open(),
-            self.date.is_none(),
-            self.date,
-            natural_key(&self.label),
-            &self.id,
+            self.rev.date.is_none(),
+            self.rev.date,
+            natural_key(self.rev.label.as_str()),
+            self.rev.id,
         )
+    }
+}
+
+/// The printed form of a revision state: its stored name, or a newer format's value as text.
+fn state_text(state: &RevisionState) -> Option<String> {
+    match state {
+        RevisionState::Open => Some("open".into()),
+        RevisionState::Released => Some("released".into()),
+        RevisionState::Withdrawn => Some("withdrawn".into()),
+        RevisionState::Unknown(v) => v.as_str().map(str::to_owned),
     }
 }
 
@@ -363,11 +338,12 @@ fn page_id(v: &serde_json::Value) -> Option<Id<Page>> {
     serde_json::from_value(v.clone()).ok()
 }
 
-/// The non-withdrawn revisions.
-fn live_revisions(q: &Q) -> Vec<RevisionView> {
-    q.reserved(Kind::Revision)
-        .filter_map(RevisionView::read)
-        .filter(|r| !r.is_withdrawn())
+/// The revisions that are not withdrawal records.
+fn live_revisions(q: &Q) -> Vec<RevisionView<'_>> {
+    q.table::<Revision>()
+        .iter()
+        .map(|(_, r)| RevisionView::read(r))
+        .filter(|r| r.rev.state != RevisionState::Withdrawn)
         .collect()
 }
 
@@ -376,16 +352,17 @@ fn revision_scope(out: &mut Out, q: &Q, project: &Project) {
     let Some(current) = revisions.iter().max_by_key(|r| r.order_key()) else {
         return;
     };
-    out.text("revision.current.label", &current.label);
-    if let Some(s) = &current.state {
-        out.text("revision.current.state", s);
+    let rev = current.rev;
+    out.text("revision.current.label", rev.label.as_str());
+    if let Some(s) = state_text(&rev.state) {
+        out.text("revision.current.state", &s);
     }
-    if let Some(d) = current.date {
+    if let Some(d) = rev.date {
         out.date("revision.current.date", d);
     }
     for (path, role) in [
-        ("revision.current.author.name", &current.author),
-        ("revision.current.checker.name", &current.checker),
+        ("revision.current.author.name", &rev.author),
+        ("revision.current.checker.name", &rev.checker),
     ] {
         if let Some(party) = role.as_ref().and_then(|r| party_of(project, r)) {
             out.ml(path, &party.name);
@@ -410,6 +387,6 @@ fn last_changed_scope(out: &mut Out, q: &Q, page: PageRef) {
         _ => released.or_else(|| revisions.iter().min_by_key(|r| r.order_key())),
     };
     if let Some(r) = label {
-        out.text("page.last_changed_in", &r.label);
+        out.text("page.last_changed_in", r.rev.label.as_str());
     }
 }

@@ -48,6 +48,7 @@ pub fn row_json(row: &AnyRow) -> Result<Value, CmdError> {
         AnyRow::Bond(r) => v(&**r, row),
         AnyRow::DeviceLink(r) => v(&**r, row),
         AnyRow::ReportBlock(r) => v(&**r, row),
+        AnyRow::Revision(r) => v(&**r, row),
         AnyRow::Part(r) => v(&**r, row),
         AnyRow::Symbol(r) => v(&**r, row),
         AnyRow::Fndef(r) => v(&**r, row),
@@ -89,6 +90,7 @@ pub fn model_lines(model: &Model) -> Result<Vec<(AnyKey, String)>, CmdError> {
     table::<Bond>(model, &mut out)?;
     table::<ew_schema::DeviceLink>(model, &mut out)?;
     table::<ReportBlock>(model, &mut out)?;
+    table::<ew_schema::Revision>(model, &mut out)?;
     table::<LibCopy<Part>>(model, &mut out)?;
     table::<LibCopy<SymbolDef>>(model, &mut out)?;
     table::<LibCopy<FnDef>>(model, &mut out)?;
