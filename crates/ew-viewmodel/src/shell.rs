@@ -399,6 +399,7 @@ fn clears_banner(id: &str) -> bool {
             | "view.snapshot"
             // The canvas's view actions leave a banner standing: moving the pointer or resizing the window must not
             // dismiss what the banner says (WP-S2.02 lead ruling).
+            | "view.fit_page"
             | "view.zoom_in"
             | "view.zoom_out"
             | "view.zoom_actual"

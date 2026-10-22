@@ -14,7 +14,7 @@ use std::sync::Arc;
 use serde_json::{Map, Value};
 
 use super::{Outcome, ShellModel, failed};
-use crate::canvas::{CanvasBackend, CanvasModel, CanvasPage, nm_of_mm};
+use crate::canvas::{CanvasBackend, CanvasModel, CanvasPage, nm_of_mm, pane_out_of_bounds};
 
 /// A positive finite number parameter.
 fn positive(p: &Map<String, Value>, name: &str) -> Result<f64, Outcome> {
@@ -235,6 +235,10 @@ impl ShellModel {
                 Err(e) => return e,
             },
         };
+        // The blind drafter drives this action: a pane beyond the bounds is refused, never allocated.
+        if let Some(name) = pane_out_of_bounds(width, height, ppp) {
+            return failed("error-bad-param", &[name]);
+        }
         self.canvas_pane = (width, height);
         self.canvas_ppp = ppp;
         if let Some(c) = &mut self.canvas {

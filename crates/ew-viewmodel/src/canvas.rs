@@ -54,6 +54,38 @@ pub const FIT_MARGIN_PT: f64 = 16.0;
 /// How far around an entity's rectangle the pointer still hovers it, in points.
 pub const HOVER_SLOP_PT: f64 = 4.0;
 
+/// The largest pane side in logical points `view.canvas_resize` accepts.
+pub const MAX_PANE_POINTS: f64 = 16_384.0;
+
+/// The largest pixels per point `view.canvas_resize` accepts.
+pub const MAX_PPP: f64 = 8.0;
+
+/// The largest pane side in physical pixels (points × ppp) `view.canvas_resize` accepts: it bounds the headless
+/// snapshot at 8192 × 8192 pixels (256 MiB) and the tile ranges the planner plans.
+pub const MAX_PANE_PIXELS: f64 = 8_192.0;
+
+/// Whether a pane of `width` × `height` points at `ppp` is within [`MAX_PANE_POINTS`], [`MAX_PPP`] and
+/// [`MAX_PANE_PIXELS`]: the name of the first parameter that is not, else `None`.
+pub fn pane_out_of_bounds(width: f64, height: f64, ppp: f64) -> Option<&'static str> {
+    if ppp > MAX_PPP {
+        Some("ppp")
+    } else if width > MAX_PANE_POINTS || width * ppp > MAX_PANE_PIXELS {
+        Some("width")
+    } else if height > MAX_PANE_POINTS || height * ppp > MAX_PANE_PIXELS {
+        Some("height")
+    } else {
+        None
+    }
+}
+
+/// The largest pane within the bounds of [`pane_out_of_bounds`] that fits into `width` × `height` points at `ppp`
+/// (the window's host asks for no more than that).
+pub fn bounded_pane(width: f64, height: f64, ppp: f64) -> (f64, f64, f64) {
+    let ppp = ppp.min(MAX_PPP);
+    let side = |v: f64| v.min(MAX_PANE_POINTS).min(MAX_PANE_PIXELS / ppp);
+    (side(width), side(height), ppp)
+}
+
 /// The tolerance of the ladder steps: a zoom within it of a ladder value counts as on it.
 const LADDER_EPS: f64 = 1e-9;
 

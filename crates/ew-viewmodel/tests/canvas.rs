@@ -445,6 +445,98 @@ fn a8_the_canvas_steps_run_from_a_script_and_carry_no_time() {
 }
 
 #[test]
+fn a_pane_beyond_the_bounds_is_refused_and_the_view_stays() {
+    use ew_viewmodel::canvas::{MAX_PANE_PIXELS, MAX_PANE_POINTS, MAX_PPP, bounded_pane};
+    let tmp = Tmp::new();
+    let mut shell = tmp.shell_on_103();
+    done(
+        &mut shell,
+        "view.canvas_resize",
+        json!({"width": 1200, "height": 800, "ppp": 1.0}),
+    );
+    let bad = |shell: &mut ShellModel, params: Value, name: &str| match shell
+        .dispatch("view.canvas_resize", &params)
+    {
+        Outcome::Failed { message } => assert!(message.contains(name), "{params}: {message}"),
+        other => panic!("{params}: {other:?}"),
+    };
+    bad(
+        &mut shell,
+        json!({"width": MAX_PANE_POINTS + 1.0, "height": 10, "ppp": 0.25}),
+        "width",
+    );
+    bad(
+        &mut shell,
+        json!({"width": 10, "height": MAX_PANE_POINTS + 1.0, "ppp": 0.25}),
+        "height",
+    );
+    bad(
+        &mut shell,
+        json!({"width": 100, "height": 100, "ppp": MAX_PPP + 0.5}),
+        "ppp",
+    );
+    // Within the points but beyond the pixels: 6000 points at ppp 2 is 12 000 pixels.
+    bad(
+        &mut shell,
+        json!({"width": 6000, "height": 100, "ppp": 2.0}),
+        "width",
+    );
+    bad(
+        &mut shell,
+        json!({"width": 1e300, "height": 1e300, "ppp": 1e300}),
+        "ppp",
+    );
+    assert_eq!(shell.canvas_pane(), ((1200.0, 800.0), 1.0), "nothing was taken");
+    assert_eq!(shell.canvas().unwrap().pane(), (1200.0, 800.0));
+    // The largest pane is taken; beyond 4096 pixels the snapshot stitches its regions.
+    done(
+        &mut shell,
+        "view.canvas_resize",
+        json!({"width": MAX_PANE_PIXELS / 2.0, "height": 600, "ppp": 2.0}),
+    );
+    assert_eq!(
+        bounded_pane(20_000.0, 500.0, 9.0),
+        (MAX_PANE_PIXELS / MAX_PPP, 500.0, MAX_PPP)
+    );
+    assert_eq!(bounded_pane(1200.0, 800.0, 1.0), (1200.0, 800.0, 1.0));
+    shell.shutdown();
+}
+
+#[test]
+fn the_canvas_view_actions_leave_the_banner_standing() {
+    let tmp = Tmp::new();
+    let mut shell = tmp.shell_on_103();
+    for (action, params) in [
+        ("view.zoom_in", json!({})),
+        ("view.zoom_out", json!({})),
+        ("view.zoom_actual", json!({})),
+        ("view.fit_page", json!({})),
+        ("view.pan_left", json!({})),
+        ("view.pan_right", json!({})),
+        ("view.pan_up", json!({})),
+        ("view.pan_down", json!({})),
+        ("view.grid", json!({})),
+        ("view.frame_stats", json!({})),
+        ("view.zoom_to", json!({"percent": 200})),
+        ("view.pan", json!({"dx": 5, "dy": 5})),
+        ("view.canvas_resize", json!({"width": 900, "height": 600})),
+        ("canvas.pointer", json!({"x_mm": 100, "y_mm": 100})),
+    ] {
+        shell.show_banner("Something to read");
+        done(&mut shell, action, params);
+        assert_eq!(
+            shell.banner(),
+            Some("Something to read"),
+            "{action} cleared the banner"
+        );
+    }
+    // Moving to another page is not a view of this page: it clears it, as before.
+    done(&mut shell, "page.next", json!({}));
+    assert_eq!(shell.banner(), None);
+    shell.shutdown();
+}
+
+#[test]
 fn a9_view_steps_fetch_no_page_and_re_execute_no_query() {
     let tmp = Tmp::new();
     let mut shell = tmp.shell_on_103();
