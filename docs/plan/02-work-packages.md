@@ -1554,7 +1554,7 @@ S2 builds the egui shell and every interactive tool against `World`, the queries
 | Acceptance | AC-28 |
 | Owner role | UI developer |
 
-*Status (2026-10-22, cycle 21 design pass).* **Not started; the closed specification next** (decision log ID-529): the lead designer writes it as a cycle-22 candidate, so a lane can build it in cycle 23; it builds on WP-S2.02 part 1's canvas model and hover placeholder (FT-345, the cell in the status bar, is its). The shell stays a viewer until it, WP-S2.04 and WP-S2.05 land (owner, ID-513).
+*Status (2026-10-22, cycle 22).* **Specified, cycle 22** ([closed specification](specs/WP-S2.03-viewer-and-tool-framework.md); decision log ID-529): two lead-programmer parts at D4, part 1 the read-only viewer (2.5 pw: the page navigator, tabs and two pages side by side, cross-reference jumps with Back and Forward per tab, Go to page or cell with the cell in the status bar, the keyboard grid cursor; FT-345 and FT-356) as a cycle-23 candidate, part 2 the tool framework (2.4 pw: tool state machines, the transient overlay, previews through `Session::preview`, snapping with indicators, keyboard tool input, the Select and Measure tools) after part 1's delivery. No shipped tool commits: the shell stays a viewer until WP-S2.04 and WP-S2.05 land (owner, ID-513).
 
 #### WP-S2.04 Placement, wiring and drawing tools
 
