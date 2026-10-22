@@ -264,7 +264,9 @@ jobs:
       # because the build and run jobs check out to the same workspace path on windows-2025.
       - name: cargo nextest archive (all features)
         shell: bash
-        run: cargo nextest archive --workspace --all-features --locked --archive-file ${{ runner.temp }}/nextest-archive.tar.zst
+        # The step runs in bash: a `${{ runner.temp }}` expression expands to a backslash path that bash mangles
+        # (ci run 39853048475 exited 103 at this step); the environment variable keeps its backslashes.
+        run: cargo nextest archive --workspace --all-features --locked --archive-file "$RUNNER_TEMP/nextest-archive.tar.zst"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: nextest-archive-windows
@@ -310,7 +312,7 @@ jobs:
         run: cargo fetch --locked
       - name: cargo nextest (all features, partition 1/2)
         shell: bash
-        run: cargo nextest run --archive-file ${{ runner.temp }}/nextest-archive/nextest-archive.tar.zst --workspace-remap . --partition count:1/2 --profile ci
+        run: cargo nextest run --archive-file "$RUNNER_TEMP/nextest-archive/nextest-archive.tar.zst" --workspace-remap . --partition count:1/2 --profile ci
       # Names every failed nextest case as a check-run annotation (the job log needs admin rights to read).
       - name: failed tests as annotations
         if: failure()
@@ -373,7 +375,7 @@ jobs:
         run: cargo fetch --locked
       - name: cargo nextest (all features, partition 2/2)
         shell: bash
-        run: cargo nextest run --archive-file ${{ runner.temp }}/nextest-archive/nextest-archive.tar.zst --workspace-remap . --partition count:2/2 --profile ci
+        run: cargo nextest run --archive-file "$RUNNER_TEMP/nextest-archive/nextest-archive.tar.zst" --workspace-remap . --partition count:2/2 --profile ci
       # Names every failed nextest case as a check-run annotation (the job log needs admin rights to read).
       - name: failed tests as annotations
         if: failure()
