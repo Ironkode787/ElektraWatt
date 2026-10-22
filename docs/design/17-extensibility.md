@@ -1,6 +1,6 @@
 # Extensibility: CLI, scripting, SQL, plugins and agents
 
-**Status:** Draft v0.4 · **Date:** 2026-10-22 (cycle-22 design pass: `project.checks.set`, the first registered `HumanOnly` command, its interim CLI path and the 42 commands, §2.3, §3.3, decision log ID-545, ID-546; v0.4: cycle-13 design pass: the SQL projection v0 as built, §3.4, §6.1, §6.2; v0.3: cycle-12 design pass: `ew check` as built, §3.1, §3.3; `tag:` and `folio:` references, §3.5; Session v0, §4; v0.2: cycle-11 design pass: `project.settings.set` and its exposure, §2.1, §2.3; the command log as built, §3.5; `ew import qet` as built, §3.2, §3.3) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.4 · **Date:** 2026-10-22 (cycle-22 design pass: `project.checks.set`, the first registered `HumanOnly` command, its CLI subcommand with the typed terminal confirmation (FT-369) and the 42 commands, §2.3, §3.3, decision log ID-545, ID-546; v0.4: cycle-13 design pass: the SQL projection v0 as built, §3.4, §6.1, §6.2; v0.3: cycle-12 design pass: `ew check` as built, §3.1, §3.3; `tag:` and `folio:` references, §3.5; Session v0, §4; v0.2: cycle-11 design pass: `project.settings.set` and its exposure, §2.1, §2.3; the command log as built, §3.5; `ew import qet` as built, §3.2, §3.3) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies every way to drive, extend or query ElektraWatt (EW) other than the GUI: the
 `ew` command-line tool, the headless `Session` API behind it, rhai formulas, rules and automation scripts, the
@@ -268,17 +268,18 @@ It writes `settings.extra.checks` = `{active_scheme?, release_scheme?}` (shipped
 sibling commands `project.company.set`, `project.frames.set` and `project.languages.set` are `Edit`. A `HumanOnly`
 command reaches the headless side only through a dedicated CLI subcommand, never through a UI script, which still
 refuses the registry action with the human-only outcome (decision log ID-443 as amended by ID-546). The CLI path as
-built is
+built (cycle 22, FT-369 closed; decision log ID-546) is
 
-`ew project checks set [<project-dir>] [--active <scheme>] [--release <scheme>] --confirm`
+`ew project checks set [<project-dir>] [--active <scheme>] [--release <scheme>]`
 
-Without `--confirm` the subcommand exits 1, says that the scheme decides check outcomes, and changes nothing. A refused
-scheme exits 1, a usage error 2. With `--confirm` the command runs with a confirmed CLI origin and the project is saved.
-
-**This flag form is interim.** It does not yet meet the rule of this section and FR-EXT-030: typed confirmation on a
-controlling terminal, no `--yes`-style flag, exit 2 without a terminal. FT-369 brings it into conformance before or with
-FT-366, the first reader of `checks`. Until then nothing reads the scheme, so the flag cannot move a gate. FT-369 also
-verifies the `undo` refusal below. The GUI reaches the command through the wizard's confirmed step
+and it follows the steps above. The scheme check comes first: a scheme that does not ship exits 1 without asking.
+When stdin or stdout is not a terminal (`std::io::IsTerminal`) it exits 2 with "HumanOnly: needs an interactive
+terminal" before the project is opened (no lock, no journal). On a terminal it prints the active and release schemes
+(or "back to the default") and that they decide check outcomes, then asks for the active scheme's name (the release
+scheme's if only `--release` is given): an exact match, surrounding white space aside, writes with a confirmed CLI
+origin and saves (exit 0); anything else exits 1 and changes nothing. There is no flag: no scheme, `--confirm` or
+`--yes` is a usage error (exit 2). Tests run the binary without a terminal (exit 2 with empty and with piped stdin, the
+project unchanged) and drive the prompt with an injected reader and writer, the role of the test-build hook above. The GUI reaches the command through the wizard's confirmed step
 (`wizard.apply_check_scheme`, [16](16-ux-ui.md) §9.2).
 
 *v0* (WP-S1.04; decision log ID-42, ID-45). The engine checks the exposure first, before `run`. Its `Origin` carries
@@ -293,7 +294,7 @@ after the typed confirmation above arrive with the CLI work package (WP-S1.22). 
 registered at the cycle-22 tip, 41 `Edit` and one `HumanOnly` (`project.checks.set`, above); the four commands of FT-336
 (`project.company.set`, `project.frames.set`, `project.languages.set`, `project.checks.set`) took the count from 38 to 42.
 The first `HumanOnly` command has shipped, and `undo` must refuse a `HumanOnly` step from a script, MCP, plugin or
-Python origin (§4); FT-369 verifies that refusal.
+Python origin (§4); FT-366 verifies that refusal.
 
 ### 2.4 Project-resident extension content and trust
 
@@ -424,7 +425,7 @@ driver exits 0 (clean), 1 (conflict records written) or 129 for a caught interna
 | | `ew diff [<from>] [<to>] [--queries …] [--json]`, `ew diff --textconv <file>` | Entity diff with derived tags | MVP | FR-COL-013 |
 | | `ew diff <a.ewpp> <b.ewpp> --wires` | Package mode: the wire change list between two production packages ([13](13-manufacturing-outputs.md) §3.5) | 1.0 | FR-MFG-004 |
 | | `ew merge-driver %O %A %B %L %P`, `ew merge resolve` | Git merge driver ([05](05-project-format-and-persistence.md) §11.1) | MVP (Should) / 1.0 | FR-COL-014 |
-| Project | `ew project checks set [<project-dir>] [--active <scheme>] [--release <scheme>] --confirm` (`HumanOnly`, §2.3; as built in cycle 22) | Sets the active and release check schemes through `project.checks.set`. Without `--confirm`: exit 1, nothing changes; a refused scheme exits 1, a usage error 2. **Interim:** the flag form does not meet FR-EXT-030 (typed confirmation on a controlling terminal, exit 2 without one); FT-369 | MVP | FR-EXT-030 |
+| Project | `ew project checks set [<project-dir>] [--active <scheme>] [--release <scheme>]` (`HumanOnly`, §2.3; as built in cycle 22) | Sets the active and release check schemes through `project.checks.set` after the scheme's name is typed on the controlling terminal. A scheme that does not ship exits 1 without asking; no terminal exits 2 before the project is opened; a wrong answer exits 1 and changes nothing; no scheme, `--confirm` or `--yes` is a usage error (exit 2) | MVP | FR-EXT-030 |
 | Revisions | `ew revision approve --as <party>`, `ew revision release <label>`, `ew revision withdraw <label> --reason <text>` (all `HumanOnly`, §2.3); `ew archive verify\|rebuild` (1.0) | [05](05-project-format-and-persistence.md) §14, [15](15-checks-revisions-collaboration.md) §5.4–§5.10 | MVP / 1.0 | FR-REV-005, FR-REV-006 |
 | | `ew waiver list` (MVP); `ew waiver add <rule> --target <tag\|id:…> --reason <text>`, `ew waiver remove <id>` (1.0, `HumanOnly`) | Waivers without the GUI ([15](15-checks-revisions-collaboration.md) §2.5) | MVP / 1.0 | FR-CHK-009 |
 | Domain | `ew plc status <file>`; `ew mfg asbuilt <order>` (1.0); `ew mfg feedback import`, `ew mfg import-status` (1.x); `ew lib lint\|render\|pack` (1.0) | [10](10-plc-and-bus.md), [13](13-manufacturing-outputs.md), [07](07-symbols-parts-macros.md) | 1.0 / 1.x | — |

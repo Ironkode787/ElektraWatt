@@ -679,10 +679,10 @@ Added 2026-10-21 (owner ruling; decision log ID-341). **Purpose.** An outside vi
   `wizard.apply_check_scheme`, or reaches `project.checks.set` (the first registered `HumanOnly` command), is refused
   with `reason-human-only`, and the refusal is recorded in the transcript. The drafter and any other headless run
   therefore never change the check scheme. The headless-reachable human path is the CLI subcommand
-  `ew project checks set [<project-dir>] [--active <scheme>] [--release <scheme>] --confirm`: without `--confirm` it
-  exits 1 and changes nothing. It is interim: it does not yet meet FR-EXT-030 (confirmation typed on a controlling
-  terminal, no `--yes`-style flag, exit 2 without a terminal), which FT-369 brings about before or with FT-366, the
-  first reader of the scheme.
+  `ew project checks set [<project-dir>] [--active <scheme>] [--release <scheme>]`, which asks for the scheme's name
+  on the controlling terminal; without a terminal (stdin or stdout not a terminal) it exits 2 before the project is
+  opened, and `--confirm` or `--yes` is a usage error, so neither the drafter nor a pipeline can reach it (FR-EXT-030;
+  FT-369 closed in cycle 22).
   *Specified for WP-S2.03 (cycle 22; decision log ID-537).* The viewer and the tool framework add 44 words to the
   `ui.describe` vocabulary (27 in part 1, 17 in part 2; FT-314 extended); each part's as-built text follows its delivery.
 

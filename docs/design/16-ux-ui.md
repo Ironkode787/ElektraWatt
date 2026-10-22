@@ -989,11 +989,9 @@ on the review step, whose row for the check scheme reads "kept: apply after fini
 the GUI runs the `HumanOnly` `project.checks.set` and saves, and the row then reads `written`. Headless, the same
 action is refused with `reason-human-only` and the refusal is recorded in the transcript (doc 18 §3.17; two tests pin
 both outcomes); no new `ui.describe` word is needed. **The headless-reachable human path** is the CLI subcommand `ew
-project checks set [<project-dir>] [--active <scheme>] [--release <scheme>] --confirm`, never a UI script (ID-546): it
-refuses without `--confirm` (exit 1; nothing changes) and, with it, records a confirmed origin and saves. This form is
-**interim**: it does not yet meet FR-EXT-030 (a confirmation typed on a controlling terminal, no `--yes`-style flag,
-exit 2 without a terminal), which FT-369 brings about before or with FT-366, the readers of the scheme; it is harmless
-while nothing reads the scheme.
+project checks set [<project-dir>] [--active <scheme>] [--release <scheme>]`, never a UI script (ID-546): it asks for
+the scheme's name on the controlling terminal and writes only on an exact answer; without a terminal it exits 2 and
+has no flag that skips the question (FR-EXT-030, doc 17 §2.3; FT-369 closed in cycle 22).
 
 The review step lists every field with `written` or `kept in the draft` (the check scheme with its own wording above;
 the report blocks are not offered, FT-341). The preview applies the same commands to the sample project, so the cover and
