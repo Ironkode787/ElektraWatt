@@ -133,7 +133,7 @@ to the lead for this specification and which are recorded as taken. The design p
 | D13 | **The headless mode and `ui.describe` grow by the members and words of §6.11, §7.6 and §8.8** (ID-474 extended; a reviewed transcript change, as ID-511 and ID-537 were), plus `select.set` (records by ID or by `tag:`, `folio:`, `id:`, `section:` reference) and the headless clipboard | The blind drafter edits and reads back without a screenshot; a script can select what the canvas cannot show (a device, a potential definition) |
 | D14 | **No new memoised family, no format change, no golden change.** The sheet, find and copy are plain functions over `Q`; AC-16's memo-sweep line does not change | Keeps the ID-570 re-bless rule out of this package |
 | D15 | **The chip names the profile that supplied the value.** W29's cross-section reads `0.75 mm²` with `derived · potential 24VDC-1 · size profile '0.75/1.5' · class control`, its colour `DBU` with `derived · potential 24VDC-1 · colour profile 'DBU/WH 24 V'` (Golden A's `profiles.csv`). AC-28, FR-UI-010, FR-CON-017 and doc 16 §6.2 name the colour profile on the cross-section; the design pass amends their example text | The grid shows what the derivation did (`PropSource::SizeRow` and `ColourRow`), never a summary that names the wrong source |
-| D16 | **Golden data that the requirement texts misstate.** FR-UI-020's acceptance ("16 results" on 204 to 206): Golden A has 20 devices with the function text "Spare" on 204 to 206 (-201U5 to -201U8 and -202U2, Q1 to Q4 each), 16 on 204 and 205; the oracle uses both scopes and the design pass corrects the text. FR-DEV-032's example ("Murr Elektronik") replaces a manufacturer, a field of a library part copy: found but not replaced here (D11), proposed for the part editor (§15.4) | Lanes test against the data; a requirement example that the data or the decided rules do not support is a document fix, not a lane guess |
+| D16 | **Golden data that the requirement texts misstate.** FR-UI-020's acceptance ("16 results" on 204 to 206): Golden A has 20 devices with the function text "Spare" on 204 to 206 (-201U5 to -201U8 and -202U2, Q1 to Q4 each), 16 on 204 and 205; the oracle uses both scopes and the design pass corrects the text. FR-DEV-032's example ("Murr Elektronik") replaces a manufacturer, a field of a library part copy (every part is one): found but not replaced here (D11), proposed for the part editor (§15.4). The amended example the design pass writes into FR-DEV-032 replaces an **authored device field**: a function text or an `Ident` tech-data value (FR3, FR4) | Lanes test against the data; a requirement example that the data or the decided rules do not support is a document fix, not a lane guess |
 
 ## 4. Crates, boundaries and the public items below the shell
 
@@ -142,7 +142,7 @@ to the lead for this specification and which are recorded as taken. The design p
 | Crate | Layer | Part 1 | Part 2 | Part 3 |
 |---|---|---|---|---|
 | `ew-viewmodel` | GPL | `properties.rs` (the panel model, edit buffer, policy, card, toast), `select.set`, layout pane, actions, transcript, describe | `find.rs` | `clipboard.rs`, `tools/paste.rs`, duplicate, cut |
-| `ew-api` | GPL | `output/fields.rs` (catalogue, parse, format, choices), `output/properties.rs` (the sheet), `resolve_reference` | `output/find.rs` | `output/clipboard.rs` (copy, tag list, parse) |
+| `ew-api` | GPL | `output/fields.rs` (catalogue, parse, format, choices), `output/properties.rs` (the sheet), `resolve_reference`, `command_meta` and the `CommandMeta`/`Cost`/`Exposure` re-exports | `output/find.rs` | `output/clipboard.rs` (copy, tag list, parse) |
 | `ew-commands` | GPL | — | `fields.set_many` | `edit.paste` (`commands/paste.rs`) |
 | `ew-derive` | GPL | `settings::company_codes` (pure, beside `check_member`) | — | — |
 | `ew-import-tables` | GPL | `COLOUR_ALIASES` made `pub` (visibility only) | — | — |
@@ -157,7 +157,13 @@ to the lead for this specification and which are recorded as taken. The design p
 2. **No new package** in `Cargo.lock` (`cargo tree -p elektrawatt` package count equal before and after, stated in the
    commit message). **New workspace edges, exactly:** part 1 `ew-api → ew-units` and `ew-api → ew-mltext` (path
    crates); part 2 `ew-api → regex` at the version `ew-schema` uses, `default-features = false`, features `std`,
-   `unicode-case`, `unicode-perl`. `cargo xtask check-deps` green; nothing else.
+   `unicode-case`, `unicode-perl`. `cargo xtask check-deps` green; nothing else. **Precondition (design pass, before
+   part 1 starts):** `ci/dep-rules.toml` allows `ew-api → ew-units` and `ew-api → ew-mltext` today only as dev edges,
+   and `ci/**` is read-only for lanes, so the design pass amends the `"ew-api"` entry of `ci/dep-rules.toml` (both as
+   normal edges) and architecture §3 (the `ew-api` row and the crate graph) first; a lane that finds them unamended
+   stops. The `regex` edge is an external crate already vetted and needs no owner rule; feature unification turns on
+   `unicode-case` and `unicode-perl` in `ew-schema`'s `regex` too, which is harmless (more Unicode tables, no
+   behaviour change for its patterns).
 3. **One mutation path.** Every state change of the shell is a registry action on `ShellModel::dispatch`; every model
    change is a command committed by the host path of S2.03 §7.3 (D6). The view model compiles each edit into exactly
    one command (doc 16 §2.1); `ew-ui` never builds a command.
@@ -172,9 +178,10 @@ to the lead for this specification and which are recorded as taken. The design p
 | Part | Crate | Item | Contract |
 |---|---|---|---|
 | 1 | `ew-api` | `pub enum FieldType { Text, Ident, MlText, Bool, Int { min: Option<i64>, max: Option<i64> }, Dec3, Quantity, Csa, Nm, Colour, Enum { options: Vec<String> }, Link { kind: String }, Slot, Uuid, Optional(Box<FieldType>), List(Box<FieldType>), Group(Vec<FieldNode>), Json }`; `pub struct FieldNode { pub name: String, pub ty: FieldType }` | The value types the editors know (§6.5). Built by the walker of §6.1.1 only |
-| 1 | `ew-api` | `pub enum Category { Identity, Part, Electrical, ConnectionPoints, Texts, Structure, Placement, Terminal, Cable, Plc, Assembly, Other, Extra }` (display order as declared); `pub enum EditRoute { FieldsSet { kind: String, path: String }, SettingsMember { member: String }, ReadOnly(ReadOnlyReason) }`; `pub enum ReadOnlyReason { Identity, Command { command: String, action: Option<String> }, HumanOnly { command: String, step: String }, NoCommand }`; `pub struct FieldSpec { pub kind: String, pub path: String, pub ty: FieldType, pub category: Category, pub label_key: String, pub route: EditRoute, pub identifier: bool }`; `pub fn field_catalogue(kind: &str) -> Option<std::sync::Arc<[FieldSpec]>>` | One entry per node of the kind's field tree (list items as `[]`, so `parts[].qty`), in tree order (§6.1); `None` for a reserved or unknown kind. Computed once per kind per process (a `OnceLock` table). `identifier` marks the outgoing identifiers of FR-UI-044 rule 2 (§6.6). `label_key` is `field-<kind>-<path>` with `.` and `[]` replaced by `-` |
-| 1 | `ew-api` | `pub struct PropertySheet { pub rev: u64, pub header: SheetHeader, pub sections: Vec<SheetSection>, pub missing: usize, pub read_only: Option<String>, pub languages: Vec<String> }`; `pub struct SheetHeader { pub title: String, pub items: usize, pub kinds: Vec<(String, usize)>, pub subtitle: Option<String>, pub location: Option<String>, pub findings: Vec<FindingChip> }`; `pub struct FindingChip { pub rule: String, pub severity: String, pub message: String }`; `pub struct SheetSection { pub kind: String, pub targets: Vec<Uuid>, pub rows: Vec<PropRow> }`; `pub struct PropRow { pub key: String, pub path: String, pub label_key: String, pub category: Category, pub depth: u8, pub ty: FieldType, pub value: RowValue, pub provenance: Provenance, pub actions: Vec<RowAction>, pub route: EditRoute, pub identifier: bool }`; `pub enum RowValue { One { json: serde_json::Value, text: String }, Varies { count: usize, texts: Vec<String> }, Absent }`; `pub enum Provenance { Authored, Inherited { from: String }, Derived { via: String }, Overridden { note: String }, Frozen { note: String }, Library { item: String }, Generated { block: String }, Varies { count: usize } }`; `pub enum RowAction { Edit, Clear, Override, Reset, Freeze, Unfreeze }`; `pub fn Session::property_sheet(&self, ids: &[Uuid]) -> PropertySheet` | §6.2 to §6.4 and §6.8. `ids` in any order; every UUID resolved to its record kind in the current snapshot (unknown IDs counted in `missing`). Sections in the order device, function, representation, connection, junction, page, then the other kinds by kind rank; `targets` ascending; rows in catalogue order within the categories, derived rows first in their category (§6.4). `key` is `<kind>/<row path>` with list indices (`device/parts[0].qty`) or `<kind>/derived.<name>`. `languages` are the project languages, source first (`ProjectLanguages`). Deterministic; reads memoised queries only; no new memo family |
+| 1 | `ew-api` | `pub enum Category { Identity, Part, Electrical, ConnectionPoints, Texts, Structure, Placement, Terminal, Cable, Plc, Assembly, Other, Extra }` (display order as declared); `pub enum EditRoute { FieldsSet { kind: String, path: String }, SettingsMember { member: String }, ReadOnly(ReadOnlyReason) }`; `pub enum ReadOnlyReason { Identity, Narrowed { why: String }, Command { command: String, action: Option<String> }, HumanOnly { command: String, step: String }, NoCommand }`; `pub struct FieldSpec { pub kind: String, pub path: String, pub ty: FieldType, pub category: Category, pub label_key: String, pub route: EditRoute, pub identifier: bool }`; `pub fn field_catalogue_for(registry: &CommandRegistry, kind: &str) -> Option<std::sync::Arc<[FieldSpec]>>`; `pub fn field_catalogue(kind: &str) -> Option<std::sync::Arc<[FieldSpec]>>` | One entry per node of the kind's field tree (list items as `[]`, so `parts[].qty`), in tree order (§6.1); `None` for a reserved, library or unknown kind. `field_catalogue_for` computes it for the given registry (the `HumanOnly` rule of §6.1.3 reads its `CommandMeta`); `field_catalogue` is it over the built-in registry, once per kind per process (a `OnceLock` table). `identifier` marks the outgoing identifiers of FR-UI-044 rule 2 (§6.6). `label_key` is `field-<kind>-<path>` with `.` and `[]` replaced by `-` |
+| 1 | `ew-api` | `pub struct PropertySheet { pub rev: u64, pub header: SheetHeader, pub sections: Vec<SheetSection>, pub missing: usize, pub read_only: Option<String>, pub languages: Vec<String> }`; `pub struct SheetHeader { pub title: String, pub items: usize, pub kinds: Vec<(String, usize)>, pub subtitle: Option<String>, pub location: Option<String>, pub findings: Vec<FindingChip> }`; `pub struct FindingChip { pub rule: String, pub severity: String, pub message: String }`; `pub struct SheetSection { pub kind: String, pub targets: Vec<Uuid>, pub rows: Vec<PropRow> }`; `pub struct PropRow { pub key: String, pub path: String, pub label_key: String, pub category: Category, pub depth: u8, pub ty: FieldType, pub value: RowValue, pub provenance: Provenance, pub actions: Vec<RowAction>, pub route: EditRoute, pub identifier: bool }`; `pub enum RowValue { One { json: serde_json::Value, text: String }, Varies { count: usize, texts: Vec<String> }, Absent }`; `pub enum Provenance { Authored, Inherited { from: String }, Derived { via: String }, Overridden { note: String }, Frozen { note: String }, Library { item: String }, Generated { block: String }, Varies { count: usize } }`; `pub enum RowAction { Edit, Clear, Override, Reset, Freeze, Unfreeze }`; `pub fn Session::property_sheet(&self, ids: &[Uuid]) -> PropertySheet` | §6.2 to §6.4 and §6.8. `ids` in any order; every UUID resolved to its record kind in the current snapshot (IDs that name no record of a sheet kind, unknown IDs and library copies, counted in `missing`). Sections in the order device, function, representation, connection, junction, page, then the other kinds by kind rank; `targets` ascending; rows in catalogue order within the categories, derived rows first in their category (§6.4). `key` is `<kind>/<row path>` with list indices (`device/parts[0].qty`) or `<kind>/derived.<name>`. `languages` are the project languages, source first (`ProjectLanguages`). Deterministic; reads memoised queries only; no new memo family |
 | 1 | `ew-api` | `pub struct ParsedInput { pub value: serde_json::Value, pub notes: Vec<String> }`; `pub enum InputError { Invalid(String), Ambiguous { choices: Vec<(String, serde_json::Value)> } }`; `pub fn Session::parse_field_input(&self, kind: &str, row_path: &str, text: &str) -> Result<ParsedInput, InputError>`; `pub struct FieldChoice { pub text: String, pub value: serde_json::Value, pub note: Option<String> }`; `pub fn Session::field_choices(&self, kind: &str, row_path: &str, filter: &str) -> Vec<FieldChoice>`; `pub fn format_field_value(ty: &FieldType, value: &serde_json::Value) -> String` | The parse and display rules of §6.5, the only place they live; `field_choices` lists the options of an `Enum`, `Colour`, `Link` or `Slot` field matching the case-folded `filter`, in the order of §6.5; empty for other types |
+| 1 | `ew-api` | `pub use ew_commands::{CommandMeta, Cost, Exposure}` (re-exports beside the existing `CommandRegistry`); `pub fn Session::command_meta(&self, name: &str) -> Option<CommandMeta>` | The view model reads a command's exposure and cost through these (D4's guard, rule 3 of the policy, §6.6); `None` for an unregistered name |
 | 1 | `ew-api` | `pub fn Session::resolve_reference(&self, text: &str) -> Result<Uuid, String>` | Exactly the command-log resolver of `cmdlog.rs` (`id:`, `section:`, `tag:`, `folio:`, same messages), factored into one function that `run_script` and this method share |
 | 1 | `ew-derive` | `pub fn settings::company_codes(colour_profile: &serde_json::Value) -> Vec<(String, String)>` | The company codes `(code, base IEC code)` that `check_member` accepts for that `colour_profile` value, in the profile's order; empty for a value it would refuse |
 | 1 | `ew-import-tables` | `pub const COLOUR_ALIASES` | Visibility only; the colour editor's suggestion list (§6.5) |
@@ -241,7 +248,11 @@ Every JSON object of the format carries its `extra` map flattened (doc 05 §3.1)
 schema does not list (the project's `settings.numbering`, `settings.checks`, which doc 03 calls
 `settings.extra.checks`, and the project-row member `ew.company`). They are not catalogue entries; the sheet adds them
 from the values as rows of type `Json`, with the route §6.1.3 gives their path, in byte order of their names after the
-listed members of the same object. A member name that contains a dot is one path segment, written in brackets in row
+listed members of the same object. **Rows that exist even when absent:** the project section always has the rows
+`settings.numbering`, `settings.colour_profile`, `settings.size_profile`, `settings.xref_format` (editable, §6.1.3
+step 4) and `settings.checks` (read-only, `HumanOnly`), with `RowValue::Absent` when the member is not stored, so a new
+wizard project can set its size profile from the grid; the catalogue lists these five as fixed `Json` entries of
+`project`. A member name that contains a dot is one path segment, written in brackets in row
 paths (`project/[ew.company]`).
 
 #### 6.1.2 Categories and labels
@@ -273,11 +284,15 @@ settings file (`properties.collapsed`).
 
 For a node at path `P` of kind `K`, in this order:
 1. `id`, `$v`: `ReadOnly(Identity)`.
-2. **`FieldsSet { kind: K, path: S }`** where `S` is the longest prefix of `P` (by segments, `[]` removed) that
+2. **The narrowing table** (it may make an editable path read-only, never the reverse): `revision` `author` and
+   `checker` → `ReadOnly(Narrowed { why: "decides the four-eyes sign-off (FR-REV-007, D-34)" })`. `fields.set` exposes
+   both, but they decide FR-REV-007's author-equals-checker block, so the grid shows them read-only (ruling,
+   delegated, on the review's `HumanOnly` audit); moving them to a `HumanOnly` sign-off command is a follow-up (§15.4).
+3. **`FieldsSet { kind: K, path: S }`** where `S` is the longest prefix of `P` (by segments, `[]` removed) that
    `SETTABLE` lists for `K`. A node with no such prefix but with a settable descendant is a group header (no editor).
-3. For `project`: `settings.numbering`, `settings.colour_profile`, `settings.size_profile`, `settings.xref_format`:
+4. For `project`: `settings.numbering`, `settings.colour_profile`, `settings.size_profile`, `settings.xref_format`:
    **`SettingsMember { member }`** (`project.settings.set`, which is `Bulk`: always the card, §6.6).
-4. The closed table of members other commands own (paths are JSON member paths, the flattened `extra` included):
+5. The closed table of members other commands own (paths are JSON member paths, the flattened `extra` included):
 
 | Kind and path | Reason |
 |---|---|
@@ -288,11 +303,15 @@ For a node at path `P` of kind `K`, in this order:
 | `connection` `a`, `b`, `route`; `junction` every member | `Command { command: "connection.draw" / "connection.route" / "junction.edit", action: "the canvas" }` |
 | `page` `folio` | `Command { command: "page.renumber", action: None }` |
 | `device` `parent`, `position` | `Command { command: "assembly.attach", action: None }` |
+| `project` `supply.origin.source` | `Command { command: "project.supply.set", action: None }` |
+| `representation` `anchor` | `Command { command: "rep.set_anchor_policy", action: None }` |
 
-5. Anything else: `ReadOnly(NoCommand)`.
+6. Anything else: `ReadOnly(NoCommand)`.
 
 A route whose command's `CommandMeta` exposure is `HumanOnly` is always `ReadOnly(HumanOnly)`, whatever the table
-says (computed from the registry, so a future `HumanOnly` command cannot leak into the grid).
+says (computed from the registry, so a future `HumanOnly` command cannot leak into the grid). The catalogue is
+therefore a function of a registry: `field_catalogue_for(registry, kind)` computes it for any `CommandRegistry` (PG1's
+test registry), and `field_catalogue(kind)` is that function over the built-in registry, kept in a `OnceLock`.
 
 **`identifier`** is set for `device` `tag.letter`, `tag.counter`, `tag.frozen`, `tag.scheme`, `terminal.designation`,
 `terminal.seq`; `connection` `number`; `device` `plc_module.start`, `plc_module.slot` (FR-UI-044 rule 2's outgoing
@@ -315,7 +334,8 @@ read-only with "generated by block '<title>'"); `props.project` passes the proje
 |---|---|
 | Representation | representation; function (each function it draws); device (each device of those functions) |
 | Function | function; device (when it has one) |
-| Device, connection, junction, page, project, potential definition, structure node, section, report block, external reference, revision, conductor, page item, structure box | its own kind |
+| Any other record of an implemented project kind (device, connection, junction, page, project, PLC configuration project, import lineage, structure node, section, external reference, conductor, channel, potential definition, bond, device link, report block, revision; page item and structure box once implemented) | its own kind |
+| A library copy (part, symbol, FnDef, form) or an unknown ID | none; counted in `missing` |
 
 A section is shown when **every** selected record reaches it (D8); its targets are the union of the records reached,
 deduplicated and sorted. When no section is left, the sheet has none and the grid shows "No common fields: the
@@ -408,7 +428,8 @@ the row's settable member (the route's path), replaces the edited leaf in its JS
 `One` value) and builds exactly one command: `fields.set { kind, targets: section.targets, path, value }` for
 `FieldsSet`, `project.settings.set { member, value }` for `SettingsMember`. A value equal to the current one builds no
 command and closes the editor. A row action's command is the partner write of §6.4. The command's exposure is checked
-against the registry: not `Edit` → refused `reason-human-only` (D4).
+through `Session::command_meta`: not `Edit` → refused `reason-human-only` (D4). The view model keeps, with the open
+edit, the **base value**: the settable member's JSON on every target as the sheet showed it when the edit began.
 
 **Preview, then policy.** The command goes to the host as `Preview(cmd)` (S2.03 §7.3, one `Session::preview_with`).
 The **edit policy** (`ew_viewmodel::properties::policy`, a pure function, FR-UI-044) decides on the result:
@@ -426,9 +447,13 @@ FR-UI-044's rules 3 (an invalid or ambiguous cell) and 4 (from a file) are the p
 **The inline preview card** (until WP-S2.09's tab): a strip at the top of the properties pane (and of the find pane in
 part 2): `Preview: <command> on <n> <kind plural> · <changes> changes · <tags> tags, <xrefs> cross-reference texts`
 with up to 20 lines of changed tags (`old -> new`) from the derived diff, and **Apply** (`preview.apply`, Ctrl+Enter) and
-**Cancel** (`preview.cancel`, Escape). A card whose base revision is no longer current is **stale** (badge); Apply on a
-stale card re-previews and needs a second Apply (doc 16 §7.6, §17 item 2). Apply commits through the host path; Cancel
-drops the preview. One card at a time; a new edit replaces an open card (which is cancelled).
+**Cancel** (`preview.cancel`, Escape). A card whose base revision is no longer current is **stale** (badge). **Apply on
+a stale card never re-previews the old parameters**, which would overwrite what changed since: it fetches the sheet
+again (one `property_sheet` call), and when the edited member's current JSON differs from the base value on any target
+it refuses with `reason-changed-meanwhile` ("changed meanwhile: edit again"), closes the card and leaves the row with
+the typed text in the error state; otherwise it composes the edit again on the current values, previews the rebuilt
+command and shows a fresh card that needs a second Apply (doc 16 §7.6, §17 item 2). Apply on a fresh card commits
+through the host path; Cancel drops the preview. One card at a time; a new edit replaces an open card (which is cancelled).
 
 **The toast.** After a direct commit with more than one target: `Set <label> on <n> <kind plural>` with **Undo**
 (`toast.undo`, the registry's undo) and a close button (`toast.dismiss`). In the window it disappears after 8 seconds
@@ -459,6 +484,7 @@ editor closes. Undo and redo restore the model; the grid follows the next sheet.
 | A generated page or report row | every row of that section | "generated by block '<title>'" |
 | A released or withdrawn revision | every row of that revision | "released in <label>; edits go to the open revision" (FR-REV-009) |
 | `ReadOnly(Identity)` | that row | "identity" |
+| `ReadOnly(Narrowed)` | that row | its `why` (revision author and checker: "decides the four-eyes sign-off") |
 | `ReadOnly(Command)` | that row | "changed with <action>" or "changed by <command>" |
 | `ReadOnly(HumanOnly)` | that row | "human only: decides check outcomes; change it in <step>" (D4) |
 | `ReadOnly(NoCommand)` | that row | "no command edits this member yet" |
@@ -564,9 +590,10 @@ A collapsed category lists no rows; a sheet without sections prints `properties 
 `properties`, `items`, `kinds`, `subtitle`, `location`, `finding`, `info`, `warning`, `error`, `missing`, `targets`,
 `category`, `derived`, `authored`, `inherited`, `overridden`, `frozen`, `library`, `varies`, `read-only`, `actions`,
 `edit`, `clear`, `override`, `reset`, `freeze`, `unfreeze`, `editing`, `buffer`, `choices`, `popup`, `mltext`, `card`,
-`changes`, `toast`, `undo`, and the kind words `device`, `representation`, `connection`, `project`, `potential_def`,
-`structure_node`, `external_ref`, `report_block`, `revision`, `conductor`, `page_item`, `structure_box` (48 words;
-FT-314's harness help lists them). The lines also use `page`, `section`, `row`, `focus`, `expanded`, `collapsed`,
+`changes`, `toast`, `undo`, and the kind words of every kind a section can have: `device`, `representation`,
+`connection`, `project`, `plc_config_project`, `import_lineage`, `potential_def`, `structure_node`, `external_ref`,
+`conductor`, `channel`, `bond`, `device_link`, `report_block`, `revision`, `page_item`, `structure_box` (53 words;
+FT-314's harness help lists them; a test asserts that every implemented non-library kind's name is in `VOCABULARY`). The lines also use `page`, `section`, `row`, `focus`, `expanded`, `collapsed`,
 `generated`, `none`, which exist, `stale`, `failed`, `tags`, `xrefs`, `ready` from WP-S2.03 part 2, and `function` and
 `junction` from WP-S2.04 parts 1 and 2; part 1's vocabulary test asserts that every token of these lines is in
 `VOCABULARY`, and a word that an earlier part has not added yet is added by this part, which states the new count.
@@ -647,7 +674,9 @@ and shows its page with the grid cursor on its cell (WP-S2.03's `nav.goto`), kee
 host: the card always opens (FR-UI-020, FR-DEV-032: "one previewed command"), listing the hits that change, and Apply
 commits one transaction (one undo step). After the commit the results are not re-run automatically; the pane shows
 "Replaced <n>; run again to refresh". A hit list made at another revision than the current one is stale (badge), and
-`find.replace_all` re-runs the search first.
+`find.replace_all` re-runs the search first. **A stale replace card** is not applied with its old parameters: Apply runs
+the search again with the same query (one `find` call), rebuilds `replace_command()` from the new hits and shows a
+fresh card that needs a second Apply; the card states how many hits changed ("Preview updated: 2 fewer results").
 
 ### 7.5 Freeze on several devices
 
@@ -676,8 +705,9 @@ opens the card).
 ```text
 find "Spare" replace "Reserve" regex off case off word off scope function_text folios "204" "205" "206" results 20
   result 1 folio "204" cell "204-B3" "-201U5-Q1" "Function text" "Spare" -> "Reserve"
-  result 21 folio "1" cell none "A9P52610" "Part number" "…" read-only "library copy: update from library"
   focus result 1
+find "Murrelektronik" regex off case off word off scope part_number results 1
+  result 1 folio "102" cell "<cell>" "-102F2" "Part number" "MICO 4.10 (Murrelektronik)" read-only "library copy: update from library"
 find error "<message>"                                  (or: find truncated)
 ```
 
@@ -689,6 +719,10 @@ absent, with the count stated).
 ## 8. Part 3: the clipboard
 
 ### 8.1 The fragment v1 format (D12)
+
+**One format, not two** (ruling, delegated, on the review): `#ew-fragment v1` **is** the project-fragment format of
+architecture §5.5. WP-S1.19's window and page macros extend it (new `$fragment` header members, a value set, further
+record kinds) instead of defining a second format; this package defines its first version.
 
 A fragment is UTF-8 text, LF line ends, a final LF:
 1. Line 1: exactly `#ew-fragment v1`.
@@ -726,8 +760,9 @@ From the selected IDs, on one page (else `NotOnePage`; a generated page: `Genera
 5. **Library copies:** every symbol, FnDef and part copy the records name (representations' symbols, functions' FnDefs,
    devices' parts, connections' `overrides.wire_part`); **structure nodes:** every node a record's structure
    assignment names (by ID, with its aspect, path codes and aliases).
-6. **Not copied** (listed in `skipped` by kind with counts): bonds, cables and conductors, channels, PLC and assembly
-   aspects' links outside the copy, revisions, report blocks, project records, and image items (part 5) when the
+6. **Not copied** (listed in `skipped` by kind with counts): bonds, cables and conductors, channels, device links
+   (`device_link`), PLC and assembly aspects' links outside the copy, revisions, report blocks, project records, and
+   image items (part 5) when the
    paste would be cross-project (they are copied, and refused cross-project at paste, §8.4).
 
 `Session::tag_list(ids)`: the devices reached from the IDs (§6.2's expansion), each as its displayed tag on its main
@@ -736,8 +771,13 @@ list").
 
 ### 8.3 Parsing (`parse_fragment`)
 
-The text is untrusted input. Refused: not starting with line 1 (`NotAFragment`); a `v2` or later header, or a `format`
-newer than this build's (`Newer`, "copied from a newer ElektraWatt, which writes a newer format", doc 06 §8 item 15);
+The text is untrusted input. **Versions.** Within v1, `$fragment` header members this build does not know are ignored
+(later minor additions, such as WP-S1.19's); its known members are required as §8.1 lists them. A `format` other than
+this build's, or a record whose `$v` differs from this build's schema version of its kind, is refused: newer as
+`Newer` ("copied from a newer ElektraWatt, which writes a newer format", doc 06 §8 item 15), older as `Invalid` ("copied
+from an older ElektraWatt format; open and save that project with this version first"), until WP-S1.17's migration
+chain exists and the fragment reader runs it (doc 06 §8 item 15's upgrade; a follow-up, §15.4). Refused also: not
+starting with line 1 (`NotAFragment`); a `v2` or later header (`Newer`);
 more than 4 MiB, more than 10,000 record lines, a line over 1 MiB, nesting over 64 (`TooLarge`); a line that is not
 strict JSON (`ew_schema::parse_value`), an unknown `$`-line, a record of a kind other than `device`, `function`,
 `representation`, `connection`, `junction`, `potential_def`, and `page_item` and `structure_box` once implemented, a
@@ -752,9 +792,8 @@ In one transaction, reading rows through `TxBuilder` only. **Rejected** (at the 
   page with the grid <n> mm", follow-up for mixed grids, §15.4);
 - `/at`: not a grid point of the page;
 - `/fragment/records/<i>`: a kind outside §8.3's list; a representation whose rep type the page type does not allow; a
-  mandatory reference that the fragment does not hold: a representation's functions or symbol copy, a function's FnDef
-  copy, a device's part copy, a connection's ends, a terminal's strip, a potential definition's endpoint; an image item
-  whose asset the target project does not hold;
+  **mandatory** reference (effect 4) that resolves neither inside the fragment nor through effects 1 and 2; an image
+  item whose asset the target project does not hold;
 - `/fragment/copies/<i>`: a document that `library.embed`'s `check_copy` rejects; a copy the project holds in another
   version (other `sha256`): "the project holds another version of <item>; update from library first" (the three-way
   choice of doc 06 §3.6 item 4 is a follow-up);
@@ -766,11 +805,23 @@ In one transaction, reading rows through `TxBuilder` only. **Rejected** (at the 
 2. **Structure:** each `$node` rebinds to the target node of the same aspect and the same path codes, else to the one
    node whose aliases contain the leaf code; an unmatched node clears the slots that named it (the record inherits),
    with a notice "structure <path> is not in this project: inherits the page". No node is created.
-3. **Identity:** every record gets `tx.mint()`, in (kind rank, source ID) order; every reference to a fragment record is
-   remapped; references to `$lib` copies use the held or embedded copy ID.
-4. **Optional links** to anything else are cleared with a notice: a device's `parent` outside the fragment, a
-   connection's `overrides.wire_part` without its copy, an IP function's `external` reference unless the fragment's
-   `project` is the target project and the reference exists, a structure box's `external` likewise.
+3. **Identity:** every record gets `tx.mint()`, in (kind rank, source ID) order. The references to remap are found
+   **mechanically from `ew_model::LINKS`** (every declared link of the record's kind; `NOT_LINKS` members are copied as
+   they are): a link whose target is a fragment record takes the new ID; a `LibRef` link takes the held or embedded copy
+   ID (effect 1); a structure slot takes the rebound node (effect 2). No hand list of reference members exists in the
+   code.
+4. **Mandatory and optional by the link's delete policy.** A link that resolves to nothing after step 3 is handled by
+   its `Policy` in `LINKS`: **`Unlink`** (an optional reference) is cleared exactly as a delete would clear it, with a
+   notice naming the record and the member; **`Forbid`** or **`Cascade`** (a reference the record cannot live without)
+   refuses the paste at the record's pointer. An IP function's `external` reference and a structure box's `external`
+   are kept only when the fragment's `project` is the target project and the reference exists there, else handled by
+   their policy. **The test oracle** (CB3) is the expected outcome per member, derived by hand from doc 03 and checked
+   against the mechanical rule: mandatory are a representation's functions and symbol copy, a function's FnDef copy, a
+   device's part copies, a connection's ends, a terminal's strip, a potential definition's endpoint; optional are a
+   device's `parent`, a connection's `overrides.wire_part`, the `external` references. A difference between the oracle
+   and `LINKS` stops the lane for a lead ruling. **A child device whose parent is cleared** also loses its `position`,
+   and when its `tag.scheme` is `child` that scheme is cleared too, so the target's default scheme numbers it (effect
+   6), with a notice "-<old tag> was a child of a device that was not copied".
 5. **Translation in grid steps:** `Δk = index(at) − index(anchor)` per axis on the page grid; every coordinate on the
    grid (positions, route vertices, junctions) becomes the grid point at its index plus `Δk`; any other coordinate
    (graphics, texts, box outlines off the grid) moves by `round_half_away(Δk × num / den)` (WP-S2.04's `rep.move`
@@ -866,16 +917,16 @@ lane for a lead ruling.
 
 | # | Check | Where | Proves |
 |---|---|---|---|
-| PG1 | Catalogue: `field_catalogue` for every implemented kind equals `tests/expected/field_catalogue.txt`; every `SETTABLE` path maps to a node; the `Json` fallbacks are the listed ones; a `HumanOnly` route is never editable (a test registry with a `HumanOnly` command naming a member makes that row `ReadOnly(HumanOnly)`) | `ew-api` tests | §6.1, D2, D3, D4 |
+| PG1 | Catalogue: `field_catalogue` for every implemented kind equals `tests/expected/field_catalogue.txt`; every `SETTABLE` path maps to a node; the `Json` fallbacks are the listed ones; the five project settings rows exist on a new wizard project with `Absent` values and a size profile set from the grid commits `project.settings.set`; revision `author` and `checker` are `ReadOnly(Narrowed)`; a `HumanOnly` route is never editable (`field_catalogue_for` over a test registry in which `fields.set` is registered as `HumanOnly` makes every `FieldsSet` row `ReadOnly(HumanOnly)`) | `ew-api` tests | §6.1, D2, D3, D4 |
 | PG2 | Sheet on Golden A: -101F1's representation (three sections; tag `-101F1` derived "numbering scheme '…'"; part row Library); S51 (Frozen, sign hidden); W29 on 103: cross-section `0.75 mm²` with the size-profile chip and colour `DBU` with the colour-profile chip exactly as D15; W20: cross-section Overridden "override (CDP)"; page 101: description Inherited "project description"; a representation plus a connection: no section; a deleted ID: `missing` 1 | `ew-api` tests | §6.2 to §6.4 |
 | PG3 | FR-UI-009's acceptance: selecting -101F1 and -102F1 shows `‹varies›` for the parts (2 values); typing a function text on -101F1 commits one `fields.set` and is one undo step (the history grows by one; undo restores); keystrokes alone commit nothing; Escape reverts | `ew-viewmodel` tests | §6.3, §6.6, D7 |
 | PG4 | FR-UI-010's acceptance: W29's cross-section shows its profile origin; overriding it to `1.0` shows Overridden; Reset restores the derived value and provenance; each step one undo step | `ew-viewmodel` tests | §6.4 |
 | PG5 | AC-28's W29 step (kittest, Golden A, folio 103): select W29 by a canvas click, see the chips of PG2 in the grid, change its colour to `BU` through the colour editor, undo: colour `DBU` derived again | `ew-ui` tests | AC-28 |
 | PG6 | FR-DEV-031's acceptance: `select.set` with the 20 terminal devices of -X1031 (`tag:` references in the form `Tag::short` prints, else `id:`); setting their part through the part picker is one `fields.set` with 20 targets, one undo step, and the toast reads "Set Part on 20 devices" (rule 2 does not apply: the part is not an identifier) | `ew-viewmodel` tests | §6.6, D10 |
-| PG7 | The policy: a tag-counter edit on two devices opens the card (`reason-identifiers`); Apply commits once; Cancel leaves the revision unchanged; a stale card needs a second Apply; `project.settings.set` always opens the card; a 501-target edit opens it (`reason-bulk`) | `ew-viewmodel` tests | §6.6 |
+| PG7 | The policy: a tag-counter edit on two devices opens the card (`reason-identifiers`); Apply commits once; Cancel leaves the revision unchanged; a stale card rebuilds the command from the current values and needs a second Apply, and refuses `reason-changed-meanwhile` when the edited member changed on a target (another edit committed in between); a stale replace card re-runs the search; `project.settings.set` always opens the card; a 501-target edit opens it (`reason-bulk`) | `ew-viewmodel` tests | §6.6 |
 | PG8 | Editors and refusals: every row of §6.5's table parses and formats its examples; `1,500` gives two choices; an Ident with a Cyrillic letter commits with the note; `BR` is refused with the suggestion `BN`; a counter collision on -102F1 shows the command's message naming the next free counter; a read-only row refuses `props.set` with `reason-read-only`, the checks member with `reason-human-only` | `ew-api`, `ew-viewmodel` tests | §6.5, §6.7, §6.8 |
 | PG9 | D-06's property-grid entry: on page 101, Override the description to "Control Cabinet Expansion": the row shows Overridden "override · project description is 'Expansion Control Cabinets'" and the header shows EW-CORE-023 at info; Reset removes both; each one undo step (kittest and the headless script) | `ew-ui`, `bin/elektrawatt/tests` | §11, D-06 |
-| PG10 | Transcript and describe of §6.11 with the 48 words; the scripts of PG3 to PG9 twice byte-identical; their `--record` logs replayed by `ew apply` give equal records | `ew-viewmodel`; `bin/elektrawatt/tests` | §6.11, §9 |
+| PG10 | Transcript and describe of §6.11 with the 53 words; the scripts of PG3 to PG9 twice byte-identical; their `--record` logs replayed by `ew apply` give equal records | `ew-viewmodel`; `bin/elektrawatt/tests` | §6.11, §9 |
 | PG11 | Exact counts of §9 item 4 for the grid | `ew-ui` test | §9 |
 | PG12 | Golden unchanged (the existing golden output, acceptance and AC-15 tests pass unmodified); policy and targeted checks for the changed crates (`ew-api`, `ew-derive`, `ew-import-tables`, `ew-viewmodel` with and without `testkit`, `ew-ui`, `elektrawatt`): nextest, clippy `-D warnings`, `cargo fmt --all --check`, `check-deps` (the two new edges), `check-features`, `check-raw-read`, `check-licence-map`, `reuse lint`; no new package | lane | testing policy, §4.1 |
 
@@ -886,7 +937,7 @@ lane for a lead ruling.
 | FR1 | `fields.set_many`: every rejection with its pointer; equivalence with a sequence of `fields.set` on the same records; `Bulk` above 500 targets; DSL verb and fuzzer arm | `ew-commands`, `ew-testkit` tests | §5.1 |
 | FR2 | `Session::find`: plain, case, whole word and regex matches with ranges; the order rule; the folio and selection scopes; a pattern over 1,000 characters and a non-compiling one give `error`; truncation at 10,000; derived tags and part numbers found but not replaceable with their reasons | `ew-api` tests | §7.1 |
 | FR3 | FR-UI-020's acceptance on Golden A: "Spare" in function texts on folios 204, 205, 206 lists 20 results (-201U5 to -201U8 and -202U2, Q1 to Q4), on 204 and 205 16; replacing by "Reserve" on 204 to 206 previews 20 changes in the card and commits one `fields.set_many` (one undo step); undo restores all 20 | `ew-viewmodel` tests; kittest | §7.3, §7.4, D16 |
-| FR4 | FR-DEV-032 on authored fields: a regex replace with a capture group over page titles commits as one previewed transaction; "Murrelektronik" is found as the manufacturer of MICO 4.10 and not replaceable ("library copy: update from library") | `ew-viewmodel` tests | §7.1, D16 |
+| FR4 | FR-DEV-032's amended example on authored device fields: the regex `(Spare)` replaced by `$1 (unused)` in the function texts of 204 to 206 gives "Spare (unused)" on the 20 devices, and a replace in an `Ident` tech-data value of a device on a copy (the lane adds one with `fields.set` first), each as one previewed transaction; "Murrelektronik" is found as the manufacturer of MICO 4.10 and not replaceable ("library copy: update from library") | `ew-viewmodel` tests | §7.1, D16 |
 | FR5 | Freeze on three devices of folio 102 is one `fields.set_many` through the card; each device's tag then reads Frozen with its own text | `ew-viewmodel` tests | §7.5 |
 | FR6 | Transcript, describe, the 13 words; the scripts twice byte-identical; replay; exact counts; golden unchanged; policy and targeted checks (`ew-commands`, `ew-testkit`, `ew-api` with the `regex` edge, `ew-viewmodel`, `ew-ui`, `elektrawatt`; `docs-gen --check`) | lane; tests | §7.6, §9 |
 
@@ -895,8 +946,8 @@ lane for a lead ruling.
 | # | Check | Where | Proves |
 |---|---|---|---|
 | CB1 | Fragment writing: the text of a fixed selection on Golden A is byte-equal on two runs and against a committed expected fragment (`crates/ew-api/tests/expected/fragment_102F1.txt`); the closure rules of §8.2 (a terminal brings its strip; internal connections and junctions; a selected connection with one end outside is dropped and counted) | `ew-api` tests | §8.1, §8.2 |
-| CB2 | Parsing: every refusal of §8.3 with hostile inputs (oversized, deep nesting, repeated members, unknown `$`-lines, foreign kinds, malformed records, `v2`, a newer `format`); the fuzzer feeds random text to `parse_fragment` without a panic | `ew-api` tests, fuzzer arm | §8.3 |
-| CB3 | `edit.paste`: every rejection of §8.4 with its pointer; library copy reuse, embedding and the other-version refusal; structure rebinding by path and alias and the clearing notice; the step translation exact on the QET grid (`7_937_500/3` nm) for three representations with different `k mod 3`; undo removes the records and the embedded copies in one step | `ew-commands` tests | §8.4 |
+| CB2 | Parsing: every refusal of §8.3 with hostile inputs (oversized, deep nesting, repeated members, unknown `$`-lines, foreign kinds, malformed records, `v2`, a newer and an older `format`, a record with another `$v`); an unknown `$fragment` header member is ignored; the fuzzer feeds random text to `parse_fragment` without a panic | `ew-api` tests, fuzzer arm | §8.3 |
+| CB3 | `edit.paste`: every rejection of §8.4 with its pointer; the mandatory and optional outcome of every link member equal to §8.4 effect 4's oracle (a test walks `ew_model::LINKS` for the copyable kinds); a child device whose parent is not copied (position and child scheme cleared, notice); library copy reuse, embedding and the other-version refusal; structure rebinding by path and alias and the clearing notice; the step translation exact on the QET grid (`7_937_500/3` nm) for three representations with different `k mod 3`; undo removes the records and the embedded copies in one step | `ew-commands` tests | §8.4 |
 | CB4 | FR-DEV-029's acceptance: copying -102F1 on folio 102 and pasting it on 102 yields a device whose tag is -102F3 with part A9F78116 and no connection (its wires had an end outside) | `ew-viewmodel` tests | §8.4, FR-DEV-029 |
 | CB5 | FR-UI-036's acceptance: copying T55, E55 and E56 of folio 101 into folio 1 of a new wizard project yields three new devices with new IDs, no frozen tag, tags derived by that project's scheme, the golden part copies embedded once | `bin/elektrawatt/tests` | §8.6, FR-UI-036 |
 | CB6 | FR-UI-040's acceptance with two shell models in one test (two instances): copying -102G1 and -102F1 on folio 102 in one and pasting into a new wizard project in the other inserts both devices and the connections between them; "Copy tag list" of -101F1, S51 and F55 gives `-101F1\nF55\nS51\n` | `bin/elektrawatt/tests` | §8.6, FR-UI-040 |
@@ -941,7 +992,7 @@ the generated reference pages.
 Shared append-only files (registry lists, `VOCABULARY`, transcript members, `params.rs`, fuzzer arms, DSL verbs) may
 be touched by every part and by WP-S2.04's lanes; the second to integrate rebases onto the first. Read-only for the
 lanes: every other crate, `golden/**`, `ci/**`, `deny.toml`, `supply-chain/**`, `.github/**`, `docs/**` except the
-generated reference pages. Each lane commits on its own branch and does not merge or push.
+generated reference pages; `ci/dep-rules.toml` is amended by the design pass before part 1 (§4.1 rule 2), never by a lane. Each lane commits on its own branch and does not merge or push.
 
 ## 13. Out of scope
 
@@ -997,8 +1048,10 @@ the card 0.2; freeze on several devices, tests and scripts 0.15. **Part 3, 1.5 p
 0.15; `edit.paste` 0.6; the paste tool, duplicate, cut and the clipboard glue 0.25; tests 0.25. The parts sum to
 **4.6 pw: no reserve.** The PERT predates the gaps of §2.2 (a catalogue, two commands, a format), and the cut already
 moves "Copy as image", "Paste as representation", the mixed-grid paste and the version dialog to follow-ups. A part
-that closes more than 20 % over its size triggers a re-estimate at the next design pass; the de-scope order, if one is
-needed, is "Copy tag list", then duplicate, then the freeze on several devices.
+that closes more than 20 % over its size triggers a re-estimate at the next design pass. **De-scope rule:** when a part
+is projected (at its lane's midpoint report) or found (at its review) more than 20 % over its size, the next items in
+this order leave the package for follow-ups without a further ruling, until the projection fits: "Copy tag list"
+(part 3), then duplicate (part 3), then the freeze on several devices (part 2); the lane reports which ones left.
 
 ### 15.2 Order and routing
 
@@ -1014,24 +1067,37 @@ lane-cycle plus a fix round.
 
 ### 15.3 Proposed decision-log entries (for the design pass; IDs after ID-585)
 
-1. WP-S2.05 specified in three parts with sizes, order and routing, and no reserve (D1, §15.1, §15.2).
+1. WP-S2.05 specified in three parts with sizes, order and routing, no reserve and the de-scope rule on a > 20 %
+   overrun (D1, §15.1, §15.2); the review's fix round and its eight items, ruled (delegated) as the reviewer wrote them.
 2. The four delegated rulings: schema-driven from `ew-schema` with no per-kind panels (D2); edits only what commands
    expose (D3); read-only for `HumanOnly` members, the confirmed step separate (D4); WP-S2.06 and WP-S2.09 out, with the
    inline card and the toast as stand-ins (D5).
 3. The field catalogue and property sheet as public items of `ew-api` (§4.2, §6.1 to §6.4): the walker's type table,
-   the categories, the edit routes and the other-command table, the closed derived-row table, the mixed-kind rule (D8).
-4. The commit path: preview first, the edit policy evaluated on the preview (FR-UI-044's rules), the card's stale
-   handling, the toast; one commit per field edit and no coalescing (D6, D7); multi-selection semantics (D10).
+   the categories, the edit routes, the narrowing table (revision `author` and `checker` read-only, ruling (delegated):
+   the closed table may narrow what is editable, never widen it), the other-command table, the five project settings
+   rows that exist when absent, `field_catalogue_for` over a registry, the `CommandMeta`/`Exposure` re-exports, the
+   closed derived-row table, the mixed-kind rule (D8).
+4. The commit path: preview first, the edit policy evaluated on the preview (FR-UI-044's rules), a stale card rebuilt
+   from the current revision (refused "changed meanwhile" when the edited member moved; find re-runs its search), the
+   toast; one commit per field edit and no coalescing (D6, D7); multi-selection semantics (D10).
 5. `fields.set_many` and find and replace: values computed by the caller, always previewed; library-copy fields and
    derived tags found but not replaced; the `regex` edge (D11).
-6. The fragment v1 format and `edit.paste` (D12) with the refusals (another grid, another library version), the
-   structure rebinding without creation, the numbering reset, the mint order and the grid-step translation.
-7. The headless mode, `select.set`, `resolve_reference`, the headless clipboard and the 67 describe words (48, 13, 6;
+6. The fragment v1 format and `edit.paste` (D12): **`#ew-fragment v1` is the project-fragment format of architecture
+   §5.5, which WP-S1.19's macros extend** (ruling, delegated); unknown header members ignored within v1, another
+   `format` or record `$v` refused until WP-S1.17's migration chain exists; references remapped and mandatory or
+   optional by `ew_model::LINKS` and their delete policy, with the hand list as the test oracle; a child whose parent is
+   not copied loses its child scheme; the refusals (another grid, another library version), the structure rebinding
+   without creation, the numbering reset, the mint order and the grid-step translation.
+7. The headless mode, `select.set`, `resolve_reference`, the headless clipboard and the 72 describe words (53, 13, 6;
    D13; ID-474 extended).
 8. The departures from the requirement texts: the chips name the supplying profile (D15: AC-28, FR-UI-010, FR-CON-017,
-   doc 16 §6.2); FR-UI-020's 20 and 16 results (D16); FR-DEV-032's library example (D16); doc 16 §17 item 5 made precise
-   (D8).
-9. D-06's property-grid entry: PG9 is the G-M2 evidence; the runner entry and `golden/` unchanged (§11).
+   doc 16 §6.2); FR-UI-020's 20 and 16 results (D16); FR-DEV-032's example amended to an authored device field (a
+   function text or an `Ident` tech-data value), its library example to the part editor (D16); doc 16 §17 item 5 made
+   precise (D8).
+9. D-06's property-grid entry: PG9 is the G-M2 evidence, pointed to from gates §8.2 and doc 20 §19 by the design pass;
+   the runner entry and `golden/` unchanged (§11).
+10. **Before part 1 starts:** `ci/dep-rules.toml` (the `"ew-api"` entry gains `ew-units` and `ew-mltext` as normal
+    edges) and architecture §3 (the `ew-api` row and the crate graph) are amended by the design pass (§4.1 rule 2).
 
 ### 15.4 Proposed follow-up tasks (for the design pass; FTs after FT-388)
 
@@ -1046,32 +1112,37 @@ lane-cycle plus a fix round.
 6. Copy as image (PNG through egui's `copy_image` and `ew-render-cpu`), FR-UI-040's third flavour.
 7. Settable IP members: `fields.set` gains `function` `ip.name`, `ip.direction`, `ip.sort`, `ip.star_source` (renaming an
    interruption point from the grid).
-8. A command for the project's master data (description, document title, drawing ID, parties), so the grid and the
-   wizard can edit what the title blocks print; today no command writes it.
+8. **`project.master.set`, before G-PP:** a command for the project's master data following `project.supply.set`'s
+   pattern, with one member `master` (`description`, `document_title`, `drawing_id`), so the grid and the wizard can
+   edit what the title blocks print; `parties` stay out (personal data, FR-PRJ-024); the grid's `master` rows then get
+   that route.
 9. Image items in cross-project fragments (asset bytes in the fragment, under ADR-0008 amendment 5's limits).
+10. Revision `author` and `checker` moved from `fields.set` to a `HumanOnly` sign-off command (FR-REV-007, D-34), so
+    the four-eyes roles have one confirmed path; the grid's narrowing entry then becomes a `HumanOnly` route.
+11. Fragments of an older `format` or record `$v` migrated through WP-S1.17's chain instead of refused (doc 06 §8
+    item 15).
+12. A note for the design pass, not a lane task: `COLOUR_ALIASES` made `pub` in `ew-import-tables` is acceptable (no
+    new edge); its natural home is beside `IecColour` in `ew-schema`, where a later change may move it.
 
 ### 15.5 Open questions for the owner
 
-1. **No reserve.** The parts fill the 4.6 pw PERT exactly. Accept, or allow the de-scope order of §15.1 up front?
-2. **Requirement texts.** Confirm the readings of D15 (AC-28's chip names the size profile for the cross-section) and
-   D16 (FR-UI-020: 20 results on 204 to 206; FR-DEV-032's library example moves to the part editor); the design pass
-   then amends doc 02a, doc 02b, doc 16 §6.2 and doc 20's AC-28 text.
-3. **Project master data before G-PP.** A new project's description and drawing ID have no command (§15.4 item 8); the
-   pilot's G-PP drawing may need them in its title blocks. Schedule the follow-up before G-PP, or accept the wizard's
-   defaults for the rehearsal?
+The three questions of the first version are answered (owner-confirmed with the review): the parts fill the PERT with
+no reserve and the de-scope rule of §15.1 fires on a > 20 % overrun; the readings of D15 and D16 stand and the design
+pass amends doc 02a, doc 02b, doc 16 §6.2 and doc 20's AC-28 text; `project.master.set` is scheduled before G-PP
+(§15.4 item 8). None is open.
 
 ### 15.6 Documents the design passes update
 
-Named here because D2 to D16 change or refine accepted text: doc 16 §2.1 (`PropRow` and `EditTarget` as built: the sheet,
+Named here because D2 to D16 and the fix round change or refine accepted text. **Before part 1 starts:** `ci/dep-rules.toml` (the `"ew-api"` entry) and architecture §3 (the `ew-api` row and the crate graph), §4.1 rule 2. Then: doc 16 §2.1 (`PropRow` and `EditTarget` as built: the sheet,
 the catalogue, the routes), §2.2 (the provenance variants produced; `Committed` and `Async` not produced yet), §6.1 to
 §6.3 (as built, with the chip texts, the sections and the mixed-kind rule of D8, the read-only reasons), §7.5 (the
 policy evaluated on the preview; the inline card until WP-S2.09), §17 item 5 (D8); doc 06 §3.1 (`fields.set_many` and
 `edit.paste` as built, the counts), §3.6 (the fragment v1 shape and the paste rules of D12), §3.7, §3.9 (one commit per
 field edit), §6 (the keys as built), §8 items 3, 14 and 15 (the grid refusal, the Bulk threshold, the version refusal);
 doc 17 §2.1 and §2.3 (the two commands, the counts), §3.5 (the references `select.set` shares); doc 02b FR-UI-010 and
-FR-UI-020 (D15, D16), doc 02a FR-DEV-032 (D16), FR-CON-017 (D15); doc 20 AC-28's text (D15) and §19's D-06 row (PG9 as
+FR-UI-020 (D15, D16), doc 02a FR-DEV-032 (D16: the example becomes an authored device field), FR-CON-017 (D15); doc 20 AC-28's text (D15) and §19's D-06 row (PG9 as
 the grid evidence, §11); gates §8.2 (the same pointer); doc 18 §3.17 (what the drafter can edit, find and paste, and the
-words); architecture §9 (the property-grid row as built) and §5.5 (the fragment format beside the macro format); plan 02
+words); architecture §9 (the property-grid row as built) and §5.5 (`#ew-fragment v1` is its project-fragment format, which WP-S1.19's macros extend); doc 03 §18 or doc 15 (revision `author` and `checker` read-only in the grid, the sign-off follow-up); plan 02
 (WP-S2.05's status, the follow-ups), the traceability and the glossary (property sheet, field catalogue, edit route,
 project fragment).
 
