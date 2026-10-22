@@ -572,3 +572,85 @@ fn v1_resolve_goto() {
         })
     );
 }
+
+/// Every end point of every path item of `items` on the sheet (paths under group transforms; instances are inlined).
+fn path_ends(items: &[ew_dl::Item], stack: &[ew_dl::Transform], out: &mut Vec<(i64, i64)>) {
+    for item in items {
+        match &item.kind {
+            ew_dl::ItemKind::Path(p) => {
+                let pts: Vec<_> = p.path.points().collect();
+                for q in [pts.first(), pts.last()].into_iter().flatten() {
+                    let s = stack.iter().rev().fold(*q, |a, t| t.apply(a));
+                    out.push((s.x.0, s.y.0));
+                }
+            }
+            ew_dl::ItemKind::Group(g) => {
+                let mut s = stack.to_vec();
+                s.push(g.transform.unwrap_or(ew_dl::Transform::IDENTITY));
+                path_ends(&g.items, &s, out);
+            }
+            _ => {}
+        }
+    }
+}
+
+#[test]
+fn t5_page_cps_on_folio_102() {
+    let s = golden_common::session(&batch());
+    let cps = s.page_cps("102");
+    assert!(cps.len() >= 10, "{}", cps.len());
+    // -102F1:2 is drawn where a wire of the sheet display list ends.
+    let f1 = cps.iter().find(|c| c.label == "-102F1:2").unwrap_or_else(|| {
+        panic!(
+            "-102F1:2 in {:?}",
+            cps.iter().map(|c| &c.label).collect::<Vec<_>>()
+        )
+    });
+    let mut ends = Vec::new();
+    path_ends(&sheet(&s, "102").items, &[], &mut ends);
+    assert!(
+        ends.iter()
+            .any(|e| (e.0 - f1.at_nm.0).abs() <= 1 && (e.1 - f1.at_nm.1).abs() <= 1),
+        "{:?} is no wire end",
+        f1.at_nm
+    );
+    assert!(f1.connected);
+    // FR-SYM-009: every symbol CP lies on the page's connection grid (the QET grid on 102), and the grid point
+    // maps to the CP's sheet point.
+    let grid = s.page_grid("102").unwrap();
+    assert_eq!((grid.num_nm, grid.den), (7_937_500, 3));
+    for c in &cps {
+        let (kx, ky) = c.grid_index.unwrap_or_else(|| panic!("{} on the grid", c.label));
+        let sheet = |k: i64, off: i64| {
+            off as f64 + k as f64 * 7_937_500.0 / 3.0 * f64::from(grid.sheet_scale_ppb) / 1e9
+        };
+        assert!(
+            (sheet(kx, grid.sheet_offset_nm.0) - c.at_nm.0 as f64).abs() < 2.0,
+            "{}",
+            c.label
+        );
+        assert!(
+            (sheet(ky, grid.sheet_offset_nm.1) - c.at_nm.1 as f64).abs() < 2.0,
+            "{}",
+            c.label
+        );
+    }
+    // Reading order: by the cell (column, then row, by index), then (y, x).
+    let cells = s.page_cells("102").unwrap();
+    let key = |c: &ew_api::output::PageCp| {
+        let cell = cells.cell_at(c.at_nm);
+        (
+            cell.as_ref().map_or(u32::MAX, |l| l.column_index),
+            cell.as_ref().map_or(u32::MAX, |l| l.row_index),
+            c.at_nm.1,
+            c.at_nm.0,
+        )
+    };
+    assert!(cps.windows(2).all(|w| key(&w[0]) <= key(&w[1])), "reading order");
+    // No CP twice; some CPs are free.
+    let ids: std::collections::BTreeSet<_> = cps.iter().map(|c| c.id).collect();
+    assert_eq!(ids.len(), cps.len());
+    assert!(cps.iter().any(|c| !c.connected), "a free CP on 102");
+    assert!(s.page_cps("no such folio").is_empty());
+    assert!(s.page_cps("2").is_empty(), "a generated page draws no CP");
+}

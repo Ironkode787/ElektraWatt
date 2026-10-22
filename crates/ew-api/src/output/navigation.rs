@@ -3,7 +3,8 @@
 
 //! The reads a viewer finds its way with (WP-S2.03 part 1, spec §4.2): the rows of the page navigator
 //! ([`Session::page_rows`]), a page's frame cells ([`Session::page_cells`], [`PageCells`]), Go to page or cell
-//! ([`Session::resolve_goto`]) and the targets of cross-reference links ([`Session::link_targets`]).
+//! ([`Session::resolve_goto`]) and the targets of cross-reference links ([`Session::link_targets`]); and for the
+//! canvas tools of part 2 the connection points drawn on a page ([`Session::page_cps`], [`PageCp`]).
 //!
 //! Each is a read over data the export path derives, through the session's memoising `Q`. [`PageCells`] carries
 //! what `ew_derive`'s exact cell rule needs (the frame grid, the page's connection grid, the frame's
@@ -25,11 +26,12 @@ use std::sync::Arc;
 
 use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::ew_rds::{Aspect, RdsSyntax};
-use ew_derive::ew_schema::{FrameGrid, Function, PageType, Representation};
+use ew_derive::ew_schema::{FrameGrid, Function, Page, PageType, RepType, Representation};
 use ew_derive::ew_units::{Grid, Nm, Pt2};
 use ew_derive::{
-    FrameGridOf, ItemOptions, ItemValues, PageEntry, PageOrder, PageOrderV, PageRef, PageStructure,
-    PageTitle, Q, RepAnchorCell, XrefSettingsOf, XrefToken, cell_in_grid, cp_cell, render_item,
+    CpRef, FrameGridOf, FunctionCps, ItemOptions, ItemValues, PageEntry, PageOrder, PageOrderV, PageRef,
+    PageStructure, PageTitle, Q, RepAnchorCell, XrefSettingsOf, XrefToken, cell_in_grid, cp_cell, cp_label,
+    cp_point, render_item,
 };
 use ew_dl::{Destination, DisplayList, Item, ItemKind, Link, Transform};
 
@@ -305,6 +307,22 @@ pub struct LinkTarget {
     pub cell: Option<String>,
 }
 
+/// A connection point drawn on a page (WP-S2.03 §4.2, part 2): what the canvas tools snap to and the keyboard
+/// steps through.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct PageCp {
+    /// The CP's v5 ID, `Destination::Cp`'s.
+    pub id: Uuid,
+    /// The CP as `cp_label` prints it (`-102F1:2`).
+    pub label: String,
+    /// Its point on the sheet, nm (`cp_point` under the page-to-sheet map, rounded to the nearest nm).
+    pub at_nm: (i64, i64),
+    /// The index `k` of the page's connection grid when the page point lies within 1 nm of `k × g` on both axes.
+    pub grid_index: Option<(i64, i64)>,
+    /// Whether a connection ends at it.
+    pub connected: bool,
+}
+
 /// One page as Go to reads it: its folio, its position and its frame's labels.
 struct Candidate<'a> {
     folio: &'a str,
@@ -524,17 +542,10 @@ fn aspect(q: &Q, page: PageRef, aspect: Aspect) -> Option<String> {
     (!text.is_empty()).then_some(text)
 }
 
-/// The cells of the entry at `pos` of `order` (see [`Session::page_cells`]).
-fn cells_of(q: &Q, order: &PageOrderV, pos: usize) -> Option<PageCells> {
-    let entry = &order.entries[pos];
-    let PageRef::Drawn(p) = entry.page else {
-        return None;
-    };
-    let frame = q.get::<FrameGridOf>(p).as_ref().clone()?;
-    let grid = q.pages().get(p)?.grid;
-    let form = q.get::<PageFrameOf>(entry.page);
-    let map = form
-        .as_ref()
+/// The page-to-sheet map of a page's frame form (the identity without one).
+fn sheet_map(q: &Q, page: PageRef) -> Map {
+    let form = q.get::<PageFrameOf>(page);
+    form.as_ref()
         .as_ref()
         .and_then(|f| f.form.page_to_sheet.as_ref())
         .map_or(
@@ -546,7 +557,60 @@ fn cells_of(q: &Q, order: &PageOrderV, pos: usize) -> Option<PageCells> {
                 scale_ppb: i128::from(t.scale_ppb),
                 offset: (i128::from(t.offset.x.0), i128::from(t.offset.y.0)),
             },
-        );
+        )
+}
+
+/// The index of the grid point within 1 nm of the page coordinate `p` on a grid of `num / den` nm, if any.
+fn grid_index(p: i64, num: i128, den: i128) -> Option<i64> {
+    if num <= 0 || den <= 0 {
+        return None;
+    }
+    let k = div_round(i128::from(p) * den, num);
+    ((k * num - i128::from(p) * den).abs() <= den).then(|| sat(k))
+}
+
+/// The reading-order key of a CP: its cell's column and row index, its sheet `(y, x)`, its ID.
+type ReadingKey = (u32, u32, i64, i64, Uuid);
+
+/// The function CPs a page may draw: every CP of every function its representations name (their functions and
+/// pin-map targets) and, for a strip segment, of every terminal of its strip. [`cp_point`] decides which are
+/// drawn.
+fn cp_candidates(q: &Q, page: Id<Page>) -> BTreeSet<(Id<Function>, u16)> {
+    let mut functions: BTreeSet<Id<Function>> = BTreeSet::new();
+    for rid in q.idx().reps_by_page(page) {
+        let Some(rep) = q.reps().get(rid) else { continue };
+        functions.extend(rep.functions.iter().copied());
+        functions.extend(rep.pin_map.as_slice().iter().map(|p| p.function));
+        if rep.rep_type == RepType::StripSegment
+            && let Some(strip) = rep
+                .functions
+                .first()
+                .and_then(|f| q.functions().get(*f))
+                .and_then(|f| f.device)
+        {
+            for terminal in q.idx().terminals_of_strip(strip) {
+                functions.extend(q.idx().functions_of_device(terminal));
+            }
+        }
+    }
+    let mut out = BTreeSet::new();
+    for f in functions {
+        for cp in q.get::<FunctionCps>(f).iter() {
+            out.insert((f, cp.idx));
+        }
+    }
+    out
+}
+
+/// The cells of the entry at `pos` of `order` (see [`Session::page_cells`]).
+fn cells_of(q: &Q, order: &PageOrderV, pos: usize) -> Option<PageCells> {
+    let entry = &order.entries[pos];
+    let PageRef::Drawn(p) = entry.page else {
+        return None;
+    };
+    let frame = q.get::<FrameGridOf>(p).as_ref().clone()?;
+    let grid = q.pages().get(p)?.grid;
+    let map = sheet_map(q, entry.page);
     let ip = q.get::<XrefSettingsOf>(()).ip.clone();
     Some(PageCells {
         folio: entry.folio.clone(),
@@ -811,6 +875,60 @@ impl Session {
                 }
             })
             .collect()
+    }
+
+    /// Every connection point drawn on the page labelled `folio` (WP-S2.03 §4.2, part 2), in reading order: by the
+    /// column index, then the row index of the CP's cell (`cp_cell`; a CP outside the frame grid last), then by the
+    /// sheet point's `(y, x)`, then by ID. Empty for an unknown folio, a page that is not drawn, or a page without
+    /// CPs.
+    ///
+    /// `at_nm` is `cp_point` mapped to the sheet by the frame's page-to-sheet map and rounded to the nearest nm;
+    /// `grid_index` the grid index `k` per axis when the page point lies within 1 nm of `k × g` (always, by
+    /// FR-SYM-009, for a symbol CP); `connected` whether a connection ends at the CP. Reads memoised families only;
+    /// a viewer fetches it once per (revision, folio) with the page content.
+    pub fn page_cps(&self, folio: &str) -> Vec<PageCp> {
+        let q = self.query();
+        let order = q.get::<PageOrder>(());
+        let Some(entry) = order.entries.iter().find(|e| e.folio == folio) else {
+            return Vec::new();
+        };
+        let PageRef::Drawn(page) = entry.page else {
+            return Vec::new();
+        };
+        let Some(grid) = q.pages().get(page).map(|p| p.grid) else {
+            return Vec::new();
+        };
+        let (num, den) = (i128::from(grid.num()), i128::from(grid.den()));
+        let map = sheet_map(&q, entry.page);
+        let start = q
+            .get::<FrameGridOf>(page)
+            .as_ref()
+            .as_ref()
+            .map_or(0, |f| u32::from(f.columns.start_index));
+        let mut rows: Vec<(ReadingKey, PageCp)> = Vec::new();
+        for (function, idx) in cp_candidates(&q, page) {
+            let Some(p) = cp_point(&q, function, idx, page) else {
+                continue;
+            };
+            let at_nm = (
+                map.to_sheet(i128::from(p.x.0), 1, 0),
+                map.to_sheet(i128::from(p.y.0), 1, 1),
+            );
+            let grid_index = grid_index(p.x.0, num, den).zip(grid_index(p.y.0, num, den));
+            let id: Id<()> = ew_derive::ew_ids::v5::cp_id(function, u32::from(idx));
+            let (column, row) = cp_cell(&q, function, idx, page)
+                .map_or((u32::MAX, u32::MAX), |c| (c.column.saturating_sub(start), c.row));
+            let cp = PageCp {
+                id: id.as_uuid(),
+                label: cp_label(&q, CpRef { function, idx }),
+                at_nm,
+                grid_index,
+                connected: q.idx().connections_at_cp(function, idx).next().is_some(),
+            };
+            rows.push(((column, row, at_nm.1, at_nm.0, cp.id), cp));
+        }
+        rows.sort_by_key(|r| r.0);
+        rows.into_iter().map(|(_, cp)| cp).collect()
     }
 }
 
