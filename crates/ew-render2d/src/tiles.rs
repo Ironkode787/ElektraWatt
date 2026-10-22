@@ -419,6 +419,67 @@ impl<T> TileCache<T> {
         }
     }
 
+    /// Removes `key` from both indexes.
+    fn remove(&mut self, key: &TileKey) {
+        if let Some(old) = self.entries.remove(key) {
+            self.lru.remove(&(old.used, *key));
+            self.bytes -= old.bytes;
+        }
+    }
+
+    /// The bytes held by tiles of scenes not in `visible`.
+    pub fn hidden_bytes(&self, visible: &[u64]) -> u64 {
+        self.entries
+            .iter()
+            .filter(|(k, _)| !visible.contains(&k.scene))
+            .map(|(_, e)| e.bytes)
+            .sum()
+    }
+
+    /// Evicts within the budget with hidden scenes first (FT-356, extended by WP-S2.03 §6.8): a scene not in
+    /// `visible` (the scenes drawn in frame `frame`) is hidden. First, while the hidden scenes together hold more
+    /// than `hidden_budget` bytes, the least recently used tile of the least recently shown hidden scene that has
+    /// tiles goes; then, while the cache is above its budget, hidden tiles go in the same order and after them
+    /// visible tiles by least recent use. `recency` lists scenes from least to most recently shown; a hidden scene
+    /// not in it counts as shown before every listed one (ascending scene number among such scenes). A tile used in
+    /// `frame` or later is never evicted.
+    pub fn evict_hidden_first(&mut self, frame: u64, visible: &[u64], recency: &[u64], hidden_budget: u64) {
+        let rank = |scene: u64| match recency.iter().position(|&s| s == scene) {
+            Some(p) => (1u64, p as u64),
+            None => (0, scene),
+        };
+        // Hidden tiles in eviction order: (scene rank, last used, key).
+        let mut hidden: Vec<((u64, u64), u64, TileKey)> = self
+            .entries
+            .iter()
+            .filter(|(k, e)| !visible.contains(&k.scene) && e.used < frame)
+            .map(|(k, e)| (rank(k.scene), e.used, *k))
+            .collect();
+        hidden.sort_unstable();
+        let mut held = self.hidden_bytes(visible);
+        let mut next = 0;
+        while held > hidden_budget && next < hidden.len() {
+            let key = hidden[next].2;
+            held -= self.entries[&key].bytes;
+            self.remove(&key);
+            next += 1;
+        }
+        while self.bytes > self.budget && next < hidden.len() {
+            let key = hidden[next].2;
+            self.remove(&key);
+            next += 1;
+        }
+        while self.bytes > self.budget {
+            let Some(&(used, key)) = self.lru.iter().find(|(_, k)| visible.contains(&k.scene)) else {
+                break;
+            };
+            if used >= frame {
+                break;
+            }
+            self.remove(&key);
+        }
+    }
+
     /// Drops every entry whose scene is not in `keep`.
     pub fn retain_scenes(&mut self, keep: &[u64]) {
         let gone: Vec<TileKey> = self
@@ -736,6 +797,106 @@ mod tests {
         );
         c.trim(0);
         assert!(c.is_empty());
+    }
+
+    fn skey(scene: u64, n: u32) -> TileKey {
+        TileKey {
+            scene,
+            dpi: 96,
+            tx: n,
+            ty: 0,
+        }
+    }
+
+    /// Scene 1 (visible) with 3 tiles, scenes 2 and 3 (hidden) with 3 tiles each, 100 bytes a tile, used in
+    /// frames 1 to 3.
+    fn three_scenes(budget: u64) -> TileCache<u32> {
+        let mut c: TileCache<u32> = TileCache::new(budget);
+        for scene in 1..=3 {
+            for n in 0..3 {
+                c.insert(skey(scene, n), 0, 100, u64::from(n) + 1);
+            }
+        }
+        c
+    }
+
+    #[test]
+    fn hidden_scenes_go_first_least_recently_shown_first() {
+        // Scene 1 visible; recency [3, 2]: scene 3 was shown least recently.
+        let mut c = three_scenes(10_000);
+        c.evict_hidden_first(10, &[1], &[3, 2], 400);
+        assert_eq!(c.hidden_bytes(&[1]), 400);
+        assert!(
+            !c.contains(&skey(3, 0)) && !c.contains(&skey(3, 1)),
+            "scene 3's oldest tiles went"
+        );
+        assert!(c.contains(&skey(3, 2)));
+        assert!((0..3).all(|n| c.contains(&skey(2, n))), "scene 2 is untouched");
+        assert!((0..3).all(|n| c.contains(&skey(1, n))), "no visible tile goes");
+        c.evict_hidden_first(10, &[1], &[3, 2], 100);
+        assert!(c.hidden_bytes(&[1]) <= 100);
+        assert!(
+            (0..3).all(|n| !c.contains(&skey(3, n))),
+            "scene 3 is gone before scene 2 loses any more"
+        );
+        assert_eq!((0..3).filter(|&n| c.contains(&skey(2, n))).count(), 1);
+        assert!((0..3).all(|n| c.contains(&skey(1, n))));
+    }
+
+    #[test]
+    fn hidden_bytes_end_within_the_hidden_budget() {
+        for hb in [0, 150, 300, 599, 600] {
+            let mut c = three_scenes(10_000);
+            c.evict_hidden_first(10, &[1], &[3, 2], hb);
+            assert!(c.hidden_bytes(&[1]) <= hb, "{hb}");
+        }
+    }
+
+    #[test]
+    fn over_the_total_budget_visible_tiles_go_by_use_and_the_current_frame_stays() {
+        let mut c: TileCache<u32> = TileCache::new(100);
+        for n in 0..4 {
+            c.insert(skey(1, n), 0, 100, u64::from(n) + 1);
+        }
+        c.evict_hidden_first(4, &[1], &[], 0);
+        // Tiles used in frames 1 to 3 go, oldest first; the tile used in frame 4 stays.
+        assert_eq!(c.len(), 1);
+        assert!(c.contains(&skey(1, 3)));
+        let mut c: TileCache<u32> = TileCache::new(100);
+        for n in 0..3 {
+            c.insert(skey(1, n), 0, 100, 5);
+        }
+        c.evict_hidden_first(5, &[1], &[], 0);
+        assert_eq!(c.len(), 3, "all were used in the current frame");
+        // Hidden tiles used in the current frame stay too.
+        let mut c: TileCache<u32> = TileCache::new(100);
+        c.insert(skey(2, 0), 0, 100, 5);
+        c.insert(skey(1, 0), 0, 100, 5);
+        c.evict_hidden_first(5, &[1], &[], 0);
+        assert_eq!(c.len(), 2);
+    }
+
+    #[test]
+    fn within_both_budgets_nothing_is_evicted() {
+        let mut c = three_scenes(900);
+        c.evict_hidden_first(10, &[1], &[3, 2], 600);
+        assert_eq!(c.len(), 9);
+        assert_eq!(c.bytes(), 900);
+    }
+
+    #[test]
+    fn an_unlisted_hidden_scene_goes_before_listed_ones() {
+        // Scene 3 is listed, scene 2 is not: scene 2 counts as shown before it.
+        let mut c = three_scenes(10_000);
+        c.evict_hidden_first(10, &[1], &[3], 300);
+        assert!((0..3).all(|n| !c.contains(&skey(2, n))));
+        assert!((0..3).all(|n| c.contains(&skey(3, n))));
+        // The total budget alone also takes hidden tiles before visible ones.
+        let mut c = three_scenes(600);
+        c.evict_hidden_first(10, &[1], &[3], 10_000);
+        assert_eq!(c.bytes(), 600);
+        assert!((0..3).all(|n| !c.contains(&skey(2, n))));
+        assert!((0..3).all(|n| c.contains(&skey(1, n)) && c.contains(&skey(3, n))));
     }
 
     #[test]

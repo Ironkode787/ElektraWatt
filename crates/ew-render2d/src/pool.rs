@@ -307,12 +307,19 @@ impl TilePool {
 
     /// Makes `keys` of `scene` (in priority order) the queue, dropping waiting jobs of earlier plans.
     pub fn submit(&self, scene: &Arc<Scene>, keys: &[TileKey]) {
+        let jobs: Vec<(Arc<Scene>, TileKey)> = keys.iter().map(|&key| (Arc::clone(scene), key)).collect();
+        self.submit_many(&jobs);
+    }
+
+    /// Makes `jobs` (each a scene and one of its tiles, in priority order, of one or several scenes) the queue,
+    /// dropping waiting jobs of earlier plans: the merged plan of several visible canvases (WP-S2.03 §6.8).
+    pub fn submit_many(&self, jobs: &[(Arc<Scene>, TileKey)]) {
         let delivered = self.delivered.lock().unwrap_or_else(PoisonError::into_inner);
         self.pool.submit(
-            keys.iter()
-                .filter(|key| !delivered.contains(key))
-                .map(|&key| TileJob {
-                    key,
+            jobs.iter()
+                .filter(|(_, key)| !delivered.contains(key))
+                .map(|(scene, key)| TileJob {
+                    key: *key,
                     scene: Arc::clone(scene),
                 })
                 .collect(),
@@ -454,6 +461,32 @@ mod tests {
         // Received: a new plan may ask for it again (the host's cache decides).
         pool.submit(&scene, &[key]);
         assert!(pool.recv_timeout(Duration::from_secs(10)).is_some());
+    }
+
+    #[test]
+    fn one_submission_merges_the_tiles_of_two_scenes() {
+        use ew_dl::ew_units::Nm;
+        let sheet = SheetSize {
+            width: Nm::from_mm(20),
+            height: Nm::from_mm(20),
+        };
+        let a = Scene::new(1, Arc::new(DisplayList::new()), sheet, Arc::new(NoFonts));
+        let b = Scene::new(2, Arc::new(DisplayList::new()), sheet, Arc::new(NoFonts));
+        let key = |scene: u64| TileKey {
+            scene,
+            dpi: 96,
+            tx: 0,
+            ty: 0,
+        };
+        let pool = TilePool::new(2, Arc::new(|| {}));
+        pool.submit_many(&[(Arc::clone(&a), key(1)), (Arc::clone(&b), key(2))]);
+        let mut got = BTreeSet::new();
+        for _ in 0..2 {
+            let done = pool.recv_timeout(Duration::from_secs(10)).expect("a tile");
+            assert!(done.image.is_ok());
+            got.insert(done.key);
+        }
+        assert_eq!(got, BTreeSet::from([key(1), key(2)]));
     }
 
     #[test]

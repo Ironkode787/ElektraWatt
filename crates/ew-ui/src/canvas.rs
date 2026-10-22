@@ -129,6 +129,7 @@ pub fn snapshot_image(shell: &ShellModel) -> Result<(ew_render_cpu::RgbaImage, u
         grid,
         hover: canvas.hover().map(|(_, r)| r),
         selected: &[],
+        cursor: None,
     });
     overlay::composite(&mut image, &o, &theme);
     Ok((image, dpi))
@@ -228,6 +229,7 @@ fn paint_marks(painter: &egui::Painter, origin: Pos2, ppp: f32, overlay: &Overla
     fill(&overlay.dots, theme.grid_dot);
     fill(&overlay.hover, theme.hover);
     fill(&overlay.selected, theme.selection);
+    fill(&overlay.cursor, theme.cursor);
 }
 
 /// The physical-pixel rectangle `r` of a pane at `origin` (points) as an egui rectangle in points.
@@ -395,6 +397,7 @@ impl CanvasHost {
             grid,
             hover: canvas.hover().map(|(_, r)| r),
             selected: &[],
+            cursor: None,
         });
         match (&plan, gpu) {
             (Some(plan), _) => self.paint(ui, rect, ppp, plan, &overlay, &theme),

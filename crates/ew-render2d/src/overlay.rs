@@ -7,7 +7,8 @@
 //! One code path for every backend: the egui host paints the rectangles as shapes over the tiles (the dots as one
 //! mesh), and the headless snapshot composites them into its image with integer pixel fills ([`composite`]), so
 //! the window and the snapshot agree pixel for pixel. No meaning is in colour alone: the hover is dashed, a
-//! selection solid.
+//! selection solid, the keyboard grid cursor a crosshair with a gap at its centre. The paint order is the surround,
+//! the page bounds, the grid dots, the hover, the selection and last the cursor.
 //!
 //! The theme tokens are constants here for the light and the dark theme until WP-S2.08's theme system replaces
 //! them; the sheet itself is white with its authored colours in every theme (FR-UI-043, doc 16 §11.2).
@@ -31,6 +32,9 @@ pub struct Theme {
     pub hover: Color,
     /// The solid selection outline (doc 16 §10.3).
     pub selection: Color,
+    /// The keyboard grid cursor's crosshair (provisional token `cursor`, #D55E00, 3.87:1 on white; the crosshair's
+    /// shape carries the meaning, doc 16 §10.3).
+    pub cursor: Color,
     /// The sheet (white in every theme).
     pub paper: Color,
 }
@@ -46,6 +50,7 @@ pub const LIGHT: Theme = Theme {
     grid_dot: rgb(0x9E, 0x9E, 0x9E),
     hover: rgb(0x00, 0x72, 0xB2),
     selection: rgb(0x00, 0x72, 0xB2),
+    cursor: rgb(0xD5, 0x5E, 0x00),
     paper: rgb(0xFF, 0xFF, 0xFF),
 };
 
@@ -56,6 +61,7 @@ pub const DARK: Theme = Theme {
     grid_dot: rgb(0x9E, 0x9E, 0x9E),
     hover: rgb(0x00, 0x72, 0xB2),
     selection: rgb(0x00, 0x72, 0xB2),
+    cursor: rgb(0xD5, 0x5E, 0x00),
     paper: rgb(0xFF, 0xFF, 0xFF),
 };
 
@@ -107,6 +113,8 @@ pub struct OverlayInput<'a> {
     pub hover: Option<Rect>,
     /// The selected entities' rectangles (sheet nm); nothing passes any in WP-S2.02.
     pub selected: &'a [Rect],
+    /// The keyboard grid cursor (sheet nm), drawn above every other overlay.
+    pub cursor: Option<(i64, i64)>,
 }
 
 /// The overlays of one frame, each a list of pixel rectangles clipped to the pane.
@@ -126,6 +134,8 @@ pub struct Overlay {
     pub hover: Vec<PxRect>,
     /// The bands of the selection outlines.
     pub selected: Vec<PxRect>,
+    /// The four arms of the grid cursor's crosshair.
+    pub cursor: Vec<PxRect>,
 }
 
 /// The sheet's rectangle on screen: with a settled transform exactly the pixels of the full-sheet raster at its
@@ -295,6 +305,19 @@ pub fn build(input: &OverlayInput<'_>) -> Overlay {
             &mut selected,
         );
     }
+    let mut cursor = Vec::new();
+    if let Some((cx, cy)) = input.cursor {
+        let (sx, sy) = input.transform.to_screen((cx as f64, cy as f64));
+        let (px, py) = (sx.floor() as i64, sy.floor() as i64);
+        for arm in [
+            PxRect::new(px - 8, py, px - 2, py + 1),
+            PxRect::new(px + 3, py, px + 9, py + 1),
+            PxRect::new(px, py - 8, px + 1, py - 2),
+            PxRect::new(px, py + 3, px + 1, py + 9),
+        ] {
+            push_clipped(&mut cursor, arm, &pane);
+        }
+    }
     Overlay {
         sheet,
         surround,
@@ -303,6 +326,7 @@ pub fn build(input: &OverlayInput<'_>) -> Overlay {
         dots,
         hover,
         selected,
+        cursor,
     }
 }
 
@@ -334,7 +358,7 @@ pub fn fill(image: &mut RgbaImage, r: PxRect, c: Color) {
 }
 
 /// Composites the overlays into a snapshot of the pane, in paint order: surround, page bounds, grid dots, hover,
-/// selection.
+/// selection, and last the grid cursor's crosshair.
 pub fn composite(image: &mut RgbaImage, overlay: &Overlay, theme: &Theme) {
     for &r in &overlay.surround {
         fill(image, r, theme.surround);
@@ -350,6 +374,9 @@ pub fn composite(image: &mut RgbaImage, overlay: &Overlay, theme: &Theme) {
     }
     for &r in &overlay.selected {
         fill(image, r, theme.selection);
+    }
+    for &r in &overlay.cursor {
+        fill(image, r, theme.cursor);
     }
 }
 
@@ -385,6 +412,7 @@ mod tests {
             grid,
             hover,
             selected: &[],
+            cursor: None,
         }
     }
 
@@ -482,6 +510,97 @@ mod tests {
         };
         assert_eq!(at(s.x0 + 3, s.y0), [0x00, 0x72, 0xB2]);
         assert_eq!(at(600, 300), [255, 255, 255]);
+    }
+
+    fn white() -> RgbaImage {
+        RgbaImage {
+            width: 1200,
+            height: 800,
+            pixels: vec![255; 1200 * 800 * 4],
+        }
+    }
+
+    #[test]
+    fn the_cursor_is_a_17_pixel_crosshair_with_a_5_pixel_gap() {
+        let v = view(1.0);
+        let mut i = input(&v, None, None);
+        i.cursor = Some((148_500_000, 105_000_000));
+        let o = build(&i);
+        assert_eq!(o.cursor.len(), 4);
+        let (sx, sy) = i.transform.to_screen((148_500_000.0, 105_000_000.0));
+        let (px, py) = (sx.floor() as i64, sy.floor() as i64);
+        let mut horizontal = 0;
+        let mut vertical = 0;
+        for r in &o.cursor {
+            let (w, h) = (r.x1 - r.x0, r.y1 - r.y0);
+            assert!((w, h) == (6, 1) || (w, h) == (1, 6), "{r:?}");
+            if w == 6 {
+                horizontal += 1;
+            } else {
+                vertical += 1;
+            }
+        }
+        assert_eq!((horizontal, vertical), (2, 2));
+        let covered = |x: i64, y: i64| {
+            o.cursor
+                .iter()
+                .any(|r| (r.x0..r.x1).contains(&x) && (r.y0..r.y1).contains(&y))
+        };
+        for d in -8..=8_i64 {
+            let arm = d.abs() >= 3;
+            assert_eq!(covered(px + d, py), arm, "row, offset {d}");
+            assert_eq!(covered(px, py + d), arm, "column, offset {d}");
+        }
+        assert!(!covered(px, py), "the centre pixel is empty");
+        assert!(!covered(px - 9, py) && !covered(px + 9, py));
+        assert!(!covered(px, py - 9) && !covered(px, py + 9));
+    }
+
+    #[test]
+    fn the_cursor_is_painted_over_the_hover() {
+        let v = view(1.0);
+        let r = Rect::from_points(
+            Pt2::new(Nm::from_mm(140), Nm::from_mm(100)),
+            Pt2::new(Nm::from_mm(160), Nm::from_mm(110)),
+        );
+        let mut i = input(&v, None, Some(r));
+        let base = build(&i);
+        // Put the cursor's centre on the first pixel of a hover dash: its arms run along the dash.
+        let dash = base.hover[0];
+        let (nx, ny) = i.transform.to_sheet((dash.x0 as f64 + 0.5, dash.y0 as f64 + 0.5));
+        i.cursor = Some((nx as i64, ny as i64));
+        let o = build(&i);
+        let mut img = white();
+        composite(&mut img, &o, &LIGHT);
+        let at = |x: i64, y: i64| {
+            let k = (y as usize * 1200 + x as usize) * 4;
+            [img.pixels[k], img.pixels[k + 1], img.pixels[k + 2]]
+        };
+        let mut overlaps = 0;
+        for c in &o.cursor {
+            for h in &o.hover {
+                let x = c.intersect(h);
+                if !x.is_empty() {
+                    overlaps += 1;
+                    assert_eq!(at(x.x0, x.y0), [0xD5, 0x5E, 0x00]);
+                }
+            }
+        }
+        assert!(overlaps > 0, "the cursor overlaps a hover dash");
+    }
+
+    #[test]
+    fn a_cursor_outside_the_pane_has_no_arms() {
+        let v = view(1.0);
+        let mut i = input(&v, None, None);
+        i.cursor = Some((-5_000_000_000, -5_000_000_000));
+        assert!(build(&i).cursor.is_empty());
+    }
+
+    #[test]
+    fn the_cursor_token_is_the_same_in_both_themes() {
+        assert_eq!(LIGHT.cursor, rgb(0xD5, 0x5E, 0x00));
+        assert_eq!(DARK.cursor, rgb(0xD5, 0x5E, 0x00));
     }
 
     #[test]

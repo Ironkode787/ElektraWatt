@@ -519,6 +519,7 @@ fn run_gesture(
             grid,
             hover: model.hover().map(|(_, r)| r),
             selected: &[],
+            cursor: None,
         });
         black_box(&overlay);
         host.cache.evict(frame);
