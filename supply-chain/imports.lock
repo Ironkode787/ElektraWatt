@@ -1,2 +1,1547 @@
 
 # cargo-vet imports lock
+
+[[publisher.bumpalo]]
+version = "3.20.3"
+when = "2026-05-22"
+user-id = 696
+user-login = "fitzgen"
+
+[[publisher.core-foundation]]
+version = "0.9.3"
+when = "2022-02-07"
+user-id = 5946
+user-login = "jrmuizel"
+
+[[publisher.core-graphics-types]]
+version = "0.1.1"
+when = "2020-09-15"
+user-id = 2396
+user-login = "jdm"
+
+[[publisher.euclid]]
+version = "0.22.14"
+when = "2026-03-18"
+user-id = 1281
+user-login = "nical"
+
+[[publisher.presser]]
+version = "0.3.1"
+when = "2022-10-16"
+user-id = 52553
+user-login = "embark-studios"
+
+[[publisher.unicode-normalization]]
+version = "0.1.26"
+when = "2026-10-16"
+user-id = 1139
+user-login = "Manishearth"
+
+[[publisher.unicode-segmentation]]
+version = "1.13.3"
+when = "2026-06-01"
+user-id = 1139
+user-login = "Manishearth"
+
+[[publisher.unicode-width]]
+version = "0.2.2"
+when = "2025-10-06"
+user-id = 1139
+user-login = "Manishearth"
+
+[[publisher.utf8_iter]]
+version = "1.0.4"
+when = "2023-12-01"
+user-id = 4484
+user-login = "hsivonen"
+
+[[publisher.wasip2]]
+version = "1.0.1+wasi-0.2.4"
+when = "2025-09-15"
+user-id = 1
+user-login = "alexcrichton"
+
+[[publisher.wit-bindgen]]
+version = "0.46.0"
+when = "2025-09-10"
+trusted-publisher = "github:bytecodealliance/wit-bindgen"
+
+[[audits.bytecode-alliance.wildcard-audits.bumpalo]]
+criteria = "safe-to-deploy"
+user-id = 696 # fitzgen
+start = "2019-03-16"
+end = "2026-08-21"
+
+[[audits.bytecode-alliance.wildcard-audits.wasip2]]
+criteria = "safe-to-deploy"
+user-id = 1 # alexcrichton
+start = "2025-08-10"
+end = "2026-08-21"
+
+[[audits.bytecode-alliance.wildcard-audits.wit-bindgen]]
+criteria = "safe-to-deploy"
+trusted-publisher = "github:bytecodealliance/wit-bindgen"
+start = "2025-08-13"
+end = "2027-01-08"
+
+[[audits.bytecode-alliance.audits.allocator-api2]]
+criteria = "safe-to-deploy"
+delta = "0.2.18 -> 0.2.20"
+
+[[audits.bytecode-alliance.audits.arrayref]]
+criteria = "safe-to-deploy"
+version = "0.3.6"
+
+[[audits.bytecode-alliance.audits.async-task]]
+criteria = "safe-to-deploy"
+version = "4.7.1"
+
+[[audits.bytecode-alliance.audits.atomic-waker]]
+criteria = "safe-to-deploy"
+version = "1.1.2"
+
+[[audits.bytecode-alliance.audits.block-buffer]]
+criteria = "safe-to-deploy"
+delta = "0.9.0 -> 0.10.2"
+
+[[audits.bytecode-alliance.audits.camino]]
+criteria = "safe-to-deploy"
+version = "1.1.4"
+
+[[audits.bytecode-alliance.audits.cargo_metadata]]
+criteria = "safe-to-deploy"
+version = "0.15.3"
+
+[[audits.bytecode-alliance.audits.cargo_metadata]]
+criteria = "safe-to-deploy"
+delta = "0.17.0 -> 0.18.1"
+
+[[audits.bytecode-alliance.audits.cargo_metadata]]
+criteria = "safe-to-deploy"
+delta = "0.18.1 -> 0.19.2"
+
+[[audits.bytecode-alliance.audits.codespan-reporting]]
+criteria = "safe-to-deploy"
+version = "0.11.1"
+
+[[audits.bytecode-alliance.audits.errno]]
+criteria = "safe-to-deploy"
+version = "0.3.0"
+
+[[audits.bytecode-alliance.audits.errno]]
+criteria = "safe-to-deploy"
+delta = "0.3.0 -> 0.3.1"
+
+[[audits.bytecode-alliance.audits.errno]]
+criteria = "safe-to-deploy"
+delta = "0.3.9 -> 0.3.10"
+
+[[audits.bytecode-alliance.audits.fallible-iterator]]
+criteria = "safe-to-deploy"
+delta = "0.2.0 -> 0.3.0"
+
+[[audits.bytecode-alliance.audits.foreign-types]]
+criteria = "safe-to-deploy"
+version = "0.3.2"
+
+[[audits.bytecode-alliance.audits.foreign-types-shared]]
+criteria = "safe-to-deploy"
+version = "0.1.1"
+
+[[audits.bytecode-alliance.audits.futures-core]]
+criteria = "safe-to-deploy"
+version = "0.3.27"
+
+[[audits.bytecode-alliance.audits.futures-core]]
+criteria = "safe-to-deploy"
+delta = "0.3.28 -> 0.3.31"
+
+[[audits.bytecode-alliance.audits.miniz_oxide]]
+criteria = "safe-to-deploy"
+version = "0.7.1"
+
+[[audits.bytecode-alliance.audits.miniz_oxide]]
+criteria = "safe-to-deploy"
+delta = "0.7.1 -> 0.8.0"
+
+[[audits.bytecode-alliance.audits.miniz_oxide]]
+criteria = "safe-to-deploy"
+delta = "0.8.0 -> 0.8.5"
+
+[[audits.bytecode-alliance.audits.miniz_oxide]]
+criteria = "safe-to-deploy"
+delta = "0.8.5 -> 0.8.9"
+
+[[audits.bytecode-alliance.audits.parking]]
+criteria = "safe-to-deploy"
+version = "2.2.1"
+
+[[audits.bytecode-alliance.audits.percent-encoding]]
+criteria = "safe-to-deploy"
+version = "2.2.0"
+
+[[audits.bytecode-alliance.audits.pkg-config]]
+criteria = "safe-to-deploy"
+version = "0.3.25"
+
+[[audits.bytecode-alliance.audits.pkg-config]]
+criteria = "safe-to-deploy"
+delta = "0.3.26 -> 0.3.29"
+
+[[audits.bytecode-alliance.audits.pkg-config]]
+criteria = "safe-to-deploy"
+delta = "0.3.29 -> 0.3.32"
+
+[[audits.bytecode-alliance.audits.rustc_version]]
+criteria = "safe-to-deploy"
+delta = "0.4.0 -> 0.4.1"
+
+[[audits.bytecode-alliance.audits.semver]]
+criteria = "safe-to-deploy"
+version = "1.0.17"
+
+[[audits.bytecode-alliance.audits.sha1_smol]]
+criteria = "safe-to-deploy"
+version = "1.0.1"
+
+[[audits.bytecode-alliance.audits.shlex]]
+criteria = "safe-to-deploy"
+version = "1.1.0"
+
+[[audits.bytecode-alliance.audits.tracing-core]]
+criteria = "safe-to-deploy"
+delta = "0.1.33 -> 0.1.34"
+
+[[audits.bytecode-alliance.audits.unarray]]
+criteria = "safe-to-deploy"
+version = "0.1.4"
+
+[[audits.bytecode-alliance.audits.vcpkg]]
+criteria = "safe-to-deploy"
+version = "0.2.15"
+
+[[audits.embark-studios.wildcard-audits.presser]]
+criteria = "safe-to-deploy"
+user-id = 52553 # embark-studios
+start = "2021-01-01"
+end = "2024-05-23"
+
+[[audits.embark-studios.audits.cargo_metadata]]
+criteria = "safe-to-deploy"
+delta = "0.15.3 -> 0.15.4"
+
+[[audits.embark-studios.audits.cargo_metadata]]
+criteria = "safe-to-deploy"
+delta = "0.15.4 -> 0.17.0"
+
+[[audits.embark-studios.audits.cfg_aliases]]
+criteria = "safe-to-deploy"
+version = "0.1.1"
+
+[[audits.embark-studios.audits.epaint]]
+criteria = "safe-to-deploy"
+violation = "<0.20.0"
+
+[[audits.embark-studios.audits.ndk-context]]
+criteria = "safe-to-deploy"
+version = "0.1.1"
+
+[[audits.embark-studios.audits.nohash-hasher]]
+criteria = "safe-to-deploy"
+version = "0.2.0"
+
+[[audits.embark-studios.audits.similar]]
+criteria = "safe-to-deploy"
+version = "2.2.1"
+
+[[audits.embark-studios.audits.thiserror]]
+criteria = "safe-to-deploy"
+version = "1.0.40"
+
+[[audits.embark-studios.audits.thiserror-impl]]
+criteria = "safe-to-deploy"
+version = "1.0.40"
+
+[[audits.google.audits.adler2]]
+criteria = "safe-to-deploy"
+version = "2.0.0"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.ash]]
+criteria = "safe-to-deploy"
+version = "0.37.0+1.3.209"
+aggregated-from = "https://fuchsia.googlesource.com/fuchsia/+/refs/heads/main/third_party/rust_crates/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.base64]]
+criteria = "safe-to-deploy"
+version = "0.22.1"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.bitflags]]
+criteria = "safe-to-deploy"
+version = "1.3.2"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.core-foundation-sys]]
+criteria = "safe-to-deploy"
+version = "0.8.7"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.fdeflate]]
+criteria = "safe-to-deploy"
+version = "0.3.4"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.fdeflate]]
+criteria = "safe-to-deploy"
+delta = "0.3.4 -> 0.3.5"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.fdeflate]]
+criteria = "safe-to-deploy"
+delta = "0.3.5 -> 0.3.6"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.fdeflate]]
+criteria = "safe-to-deploy"
+delta = "0.3.6 -> 0.3.7"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.foldhash]]
+criteria = "safe-to-deploy"
+version = "0.1.3"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.foldhash]]
+criteria = "safe-to-deploy"
+delta = "0.1.3 -> 0.1.4"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.foldhash]]
+criteria = "safe-to-deploy"
+delta = "0.1.4 -> 0.1.5"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.num-traits]]
+criteria = "safe-to-deploy"
+version = "0.2.19"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.quote]]
+criteria = "safe-to-deploy"
+version = "1.0.35"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.quote]]
+criteria = "safe-to-deploy"
+delta = "1.0.35 -> 1.0.36"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.quote]]
+criteria = "safe-to-deploy"
+delta = "1.0.36 -> 1.0.37"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.quote]]
+criteria = "safe-to-deploy"
+delta = "1.0.37 -> 1.0.38"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.quote]]
+criteria = "safe-to-deploy"
+delta = "1.0.38 -> 1.0.39"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.quote]]
+criteria = "safe-to-deploy"
+delta = "1.0.39 -> 1.0.40"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.rand_core]]
+criteria = "safe-to-deploy"
+version = "0.6.4"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.read-fonts]]
+criteria = "safe-to-deploy"
+version = "0.25.3"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.read-fonts]]
+criteria = "safe-to-deploy"
+delta = "0.25.3 -> 0.26.0"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.read-fonts]]
+criteria = "safe-to-deploy"
+delta = "0.26.0 -> 0.27.1"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.read-fonts]]
+criteria = "safe-to-deploy"
+delta = "0.27.1 -> 0.27.2"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.read-fonts]]
+criteria = "safe-to-deploy"
+delta = "0.27.2 -> 0.27.3"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.skrifa]]
+criteria = "safe-to-deploy"
+version = "0.19.0"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.skrifa]]
+criteria = "safe-to-deploy"
+delta = "0.19.0 -> 0.19.1"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.skrifa]]
+criteria = "safe-to-deploy"
+delta = "0.19.1 -> 0.19.2"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.skrifa]]
+criteria = "safe-to-deploy"
+delta = "0.19.2 -> 0.19.3"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.skrifa]]
+criteria = "safe-to-deploy"
+delta = "0.19.3 -> 0.20.0"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.skrifa]]
+criteria = "safe-to-deploy"
+delta = "0.20.0 -> 0.22.0"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.skrifa]]
+criteria = "safe-to-deploy"
+delta = "0.22.0 -> 0.22.1"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.skrifa]]
+criteria = "safe-to-deploy"
+delta = "0.22.1 -> 0.22.3"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.skrifa]]
+criteria = "safe-to-deploy"
+delta = "0.22.3 -> 0.23.0"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.skrifa]]
+criteria = "safe-to-deploy"
+delta = "0.23.0 -> 0.24.0"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.skrifa]]
+criteria = "safe-to-deploy"
+delta = "0.24.0 -> 0.24.1"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.skrifa]]
+criteria = "safe-to-deploy"
+delta = "0.24.1 -> 0.26.3"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.skrifa]]
+criteria = "safe-to-deploy"
+delta = "0.26.3 -> 0.26.4"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.skrifa]]
+criteria = "safe-to-deploy"
+delta = "0.26.4 -> 0.26.5"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.skrifa]]
+criteria = "safe-to-deploy"
+delta = "0.26.5 -> 0.27.0"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.skrifa]]
+criteria = "safe-to-deploy"
+delta = "0.27.0 -> 0.28.0"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.skrifa]]
+criteria = "safe-to-deploy"
+delta = "0.28.0 -> 0.28.1"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.skrifa]]
+criteria = "safe-to-deploy"
+delta = "0.28.1 -> 0.29.0"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.static_assertions]]
+criteria = "safe-to-deploy"
+version = "1.1.0"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.isrg.audits.block-buffer]]
+criteria = "safe-to-deploy"
+version = "0.9.0"
+
+[[audits.isrg.audits.rand_core]]
+criteria = "safe-to-deploy"
+delta = "0.6.4 -> 0.9.3"
+
+[[audits.isrg.audits.rand_core]]
+criteria = "safe-to-deploy"
+delta = "0.9.3 -> 0.9.5"
+
+[[audits.isrg.audits.sha2]]
+criteria = "safe-to-deploy"
+version = "0.10.2"
+
+[[audits.isrg.audits.sha2]]
+criteria = "safe-to-deploy"
+delta = "0.10.8 -> 0.10.9"
+
+[[audits.isrg.audits.thiserror]]
+criteria = "safe-to-deploy"
+delta = "1.0.40 -> 1.0.43"
+
+[[audits.isrg.audits.thiserror-impl]]
+criteria = "safe-to-deploy"
+delta = "1.0.40 -> 1.0.43"
+
+[[audits.mozilla.wildcard-audits.core-foundation]]
+criteria = "safe-to-deploy"
+user-id = 5946 # jrmuizel
+start = "2019-03-29"
+end = "2023-05-04"
+renew = false
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.wildcard-audits.core-graphics-types]]
+criteria = "safe-to-deploy"
+user-id = 2396 # jdm
+start = "2020-07-20"
+end = "2023-05-04"
+renew = false
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.wildcard-audits.euclid]]
+criteria = "safe-to-deploy"
+user-id = 1281 # nical
+start = "2019-03-14"
+end = "2027-01-15"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.wildcard-audits.unicode-normalization]]
+criteria = "safe-to-deploy"
+user-id = 1139 # Manishearth
+start = "2019-11-06"
+end = "2027-04-23"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.wildcard-audits.unicode-segmentation]]
+criteria = "safe-to-deploy"
+user-id = 1139 # Manishearth
+start = "2019-05-15"
+end = "2027-04-23"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.wildcard-audits.unicode-width]]
+criteria = "safe-to-deploy"
+user-id = 1139 # Manishearth
+start = "2019-12-05"
+end = "2026-02-01"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.wildcard-audits.utf8_iter]]
+criteria = "safe-to-deploy"
+user-id = 4484 # hsivonen
+start = "2022-04-19"
+end = "2024-06-16"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.adler2]]
+criteria = "safe-to-deploy"
+delta = "2.0.0 -> 2.0.1"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.allocator-api2]]
+criteria = "safe-to-deploy"
+version = "0.2.18"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.allocator-api2]]
+criteria = "safe-to-deploy"
+delta = "0.2.20 -> 0.2.21"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.ash]]
+criteria = "safe-to-deploy"
+delta = "0.37.0+1.3.209 -> 0.37.1+1.3.235"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.ash]]
+criteria = "safe-to-deploy"
+delta = "0.37.1+1.3.235 -> 0.37.2+1.3.238"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.ash]]
+criteria = "safe-to-deploy"
+delta = "0.37.2+1.3.238 -> 0.37.3+1.3.251"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.ash]]
+criteria = "safe-to-deploy"
+delta = "0.37.3+1.3.251 -> 0.38.0+1.3.281"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.bit-set]]
+criteria = "safe-to-deploy"
+version = "0.5.2"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.bit-set]]
+criteria = "safe-to-deploy"
+delta = "0.5.2 -> 0.5.3"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.bit-set]]
+criteria = "safe-to-deploy"
+delta = "0.5.3 -> 0.6.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.bit-set]]
+criteria = "safe-to-deploy"
+delta = "0.6.0 -> 0.8.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.bit-set]]
+criteria = "safe-to-deploy"
+delta = "0.8.0 -> 0.9.1"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.bit-set]]
+criteria = "safe-to-deploy"
+delta = "0.9.1 -> 0.10.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.bit-vec]]
+criteria = "safe-to-deploy"
+version = "0.6.3"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.bit-vec]]
+criteria = "safe-to-deploy"
+delta = "0.6.3 -> 0.7.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.bit-vec]]
+criteria = "safe-to-deploy"
+delta = "0.7.0 -> 0.8.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.bit-vec]]
+criteria = "safe-to-deploy"
+delta = "0.8.0 -> 0.9.1"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.block-buffer]]
+criteria = "safe-to-deploy"
+delta = "0.10.2 -> 0.10.3"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.block2]]
+criteria = "safe-to-deploy"
+version = "0.6.2"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.camino]]
+criteria = "safe-to-deploy"
+delta = "1.1.4 -> 1.1.9"
+aggregated-from = "https://raw.githubusercontent.com/mozilla/glean/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.camino]]
+criteria = "safe-to-deploy"
+delta = "1.1.9 -> 1.2.3"
+aggregated-from = "https://raw.githubusercontent.com/mozilla/glean/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.camino]]
+criteria = "safe-to-deploy"
+delta = "1.2.3 -> 1.2.6"
+aggregated-from = "https://raw.githubusercontent.com/mozilla/glean/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.cargo_metadata]]
+criteria = "safe-to-deploy"
+delta = "0.19.2 -> 0.23.1"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.cfg_aliases]]
+criteria = "safe-to-deploy"
+delta = "0.1.1 -> 0.2.1"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.cfg_aliases]]
+criteria = "safe-to-deploy"
+delta = "0.2.1 -> 0.2.2"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.cgl]]
+criteria = "safe-to-deploy"
+version = "0.3.2"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.codespan-reporting]]
+criteria = "safe-to-deploy"
+delta = "0.11.1 -> 0.12.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.codespan-reporting]]
+criteria = "safe-to-deploy"
+delta = "0.12.0 -> 0.13.1"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.core-foundation]]
+criteria = "safe-to-deploy"
+delta = "0.9.3 -> 0.9.4"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.core-graphics-types]]
+criteria = "safe-to-deploy"
+delta = "0.1.1 -> 0.1.2"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.core-graphics-types]]
+criteria = "safe-to-deploy"
+delta = "0.1.2 -> 0.1.3"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.core_detect]]
+criteria = "safe-to-deploy"
+version = "1.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.crunchy]]
+criteria = "safe-to-deploy"
+version = "0.2.3"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.document-features]]
+criteria = "safe-to-deploy"
+version = "0.2.8"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.document-features]]
+criteria = "safe-to-deploy"
+delta = "0.2.8 -> 0.2.9"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.document-features]]
+criteria = "safe-to-deploy"
+delta = "0.2.9 -> 0.2.10"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.document-features]]
+criteria = "safe-to-deploy"
+delta = "0.2.10 -> 0.2.11"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.errno]]
+criteria = "safe-to-deploy"
+delta = "0.3.1 -> 0.3.3"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.fallible-iterator]]
+criteria = "safe-to-deploy"
+version = "0.2.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla/glean/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.fallible-streaming-iterator]]
+criteria = "safe-to-deploy"
+version = "0.1.9"
+aggregated-from = "https://raw.githubusercontent.com/mozilla/glean/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.foldhash]]
+criteria = "safe-to-deploy"
+delta = "0.1.5 -> 0.2.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.foreign-types]]
+criteria = "safe-to-deploy"
+delta = "0.3.2 -> 0.5.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.foreign-types-shared]]
+criteria = "safe-to-deploy"
+delta = "0.1.1 -> 0.3.1"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.futures-core]]
+criteria = "safe-to-deploy"
+delta = "0.3.27 -> 0.3.28"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.futures-core]]
+criteria = "safe-to-deploy"
+delta = "0.3.31 -> 0.3.34"
+aggregated-from = "https://raw.githubusercontent.com/mozilla/cargo-vet/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.gpu-allocator]]
+criteria = "safe-to-deploy"
+version = "0.25.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.gpu-allocator]]
+criteria = "safe-to-deploy"
+delta = "0.25.0 -> 0.26.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.gpu-allocator]]
+criteria = "safe-to-deploy"
+delta = "0.26.0 -> 0.27.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.gpu-allocator]]
+criteria = "safe-to-deploy"
+delta = "0.27.0 -> 0.28.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.hashbrown]]
+criteria = "safe-to-deploy"
+delta = "0.15.5 -> 0.16.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.hashbrown]]
+criteria = "safe-to-deploy"
+delta = "0.16.0 -> 0.16.1"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.hashbrown]]
+criteria = "safe-to-deploy"
+delta = "0.16.1 -> 0.17.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.hashbrown]]
+criteria = "safe-to-deploy"
+delta = "0.17.0 -> 0.17.1"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.hex]]
+criteria = "safe-to-deploy"
+version = "0.4.3"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.libloading]]
+criteria = "safe-to-deploy"
+version = "0.9.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla/glean/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.naga]]
+criteria = "safe-to-deploy"
+version = "0.8.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.naga]]
+criteria = "safe-to-deploy"
+delta = "0.8.0 -> 0.9.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.naga]]
+criteria = "safe-to-deploy"
+delta = "0.9.0 -> 0.10.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.naga]]
+criteria = "safe-to-deploy"
+delta = "0.10.0 -> 0.11.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.naga]]
+criteria = "safe-to-deploy"
+delta = "0.11.0 -> 0.12.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.naga]]
+criteria = "safe-to-deploy"
+delta = "0.12.0 -> 0.13.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.naga]]
+criteria = "safe-to-deploy"
+delta = "0.13.0 -> 0.14.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.naga]]
+criteria = "safe-to-deploy"
+delta = "0.14.0 -> 0.19.2"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.naga]]
+criteria = "safe-to-deploy"
+delta = "0.19.2 -> 0.20.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.naga]]
+criteria = "safe-to-deploy"
+delta = "0.20.0 -> 22.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.naga]]
+criteria = "safe-to-deploy"
+delta = "22.0.0 -> 23.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.naga]]
+criteria = "safe-to-deploy"
+delta = "23.0.0 -> 23.1.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.naga]]
+criteria = "safe-to-deploy"
+delta = "23.1.0 -> 24.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.naga]]
+criteria = "safe-to-deploy"
+delta = "24.0.0 -> 25.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.naga]]
+criteria = "safe-to-deploy"
+delta = "25.0.0 -> 26.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.naga]]
+criteria = "safe-to-deploy"
+delta = "26.0.0 -> 27.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.naga]]
+criteria = "safe-to-deploy"
+delta = "27.0.0 -> 28.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.naga]]
+criteria = "safe-to-deploy"
+delta = "28.0.0 -> 29.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.naga]]
+criteria = "safe-to-deploy"
+delta = "29.0.0 -> 30.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.naga-types]]
+criteria = "safe-to-deploy"
+version = "30.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.objc2]]
+criteria = "safe-to-deploy"
+version = "0.6.3"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.objc2]]
+criteria = "safe-to-deploy"
+delta = "0.6.3 -> 0.6.5"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.objc2-core-foundation]]
+criteria = "safe-to-deploy"
+version = "0.3.2"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.objc2-core-graphics]]
+criteria = "safe-to-deploy"
+version = "0.3.2"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.objc2-encode]]
+criteria = "safe-to-deploy"
+version = "4.1.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.objc2-foundation]]
+criteria = "safe-to-deploy"
+version = "0.3.2"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.objc2-io-surface]]
+criteria = "safe-to-deploy"
+version = "0.3.2"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.objc2-metal]]
+criteria = "safe-to-deploy"
+version = "0.3.2"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.objc2-quartz-core]]
+criteria = "safe-to-deploy"
+version = "0.3.2"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.percent-encoding]]
+criteria = "safe-to-deploy"
+delta = "2.2.0 -> 2.3.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.percent-encoding]]
+criteria = "safe-to-deploy"
+delta = "2.3.0 -> 2.3.1"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.percent-encoding]]
+criteria = "safe-to-deploy"
+delta = "2.3.1 -> 2.3.2"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.pkg-config]]
+criteria = "safe-to-deploy"
+delta = "0.3.25 -> 0.3.26"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.pkg-config]]
+criteria = "safe-to-deploy"
+delta = "0.3.32 -> 0.3.34"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.quote]]
+criteria = "safe-to-deploy"
+delta = "1.0.40 -> 1.0.45"
+aggregated-from = "https://raw.githubusercontent.com/mozilla/glean/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.quote]]
+criteria = "safe-to-deploy"
+delta = "1.0.45 -> 1.0.47"
+aggregated-from = "https://raw.githubusercontent.com/mozilla/glean/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.raw-window-handle]]
+criteria = "safe-to-deploy"
+version = "0.5.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.raw-window-handle]]
+criteria = "safe-to-deploy"
+delta = "0.5.0 -> 0.5.2"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.raw-window-handle]]
+criteria = "safe-to-deploy"
+delta = "0.5.2 -> 0.6.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.raw-window-handle]]
+criteria = "safe-to-deploy"
+delta = "0.6.0 -> 0.6.2"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.raw-window-metal]]
+criteria = "safe-to-deploy"
+version = "1.1.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.read-fonts]]
+criteria = "safe-to-deploy"
+delta = "0.27.3 -> 0.41.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.rustc-hash]]
+criteria = "safe-to-deploy"
+version = "1.1.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.rustc_version]]
+criteria = "safe-to-deploy"
+version = "0.4.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla/cargo-vet/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.semver]]
+criteria = "safe-to-deploy"
+delta = "1.0.16 -> 1.0.28"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.semver]]
+criteria = "safe-to-deploy"
+delta = "1.0.17 -> 1.0.16"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.sha2]]
+criteria = "safe-to-deploy"
+delta = "0.10.2 -> 0.10.6"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.sha2]]
+criteria = "safe-to-deploy"
+delta = "0.10.6 -> 0.10.8"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.shlex]]
+criteria = "safe-to-deploy"
+delta = "1.1.0 -> 1.3.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.shlex]]
+criteria = "safe-to-deploy"
+delta = "1.3.0 -> 2.0.1"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.simdutf8]]
+criteria = "safe-to-deploy"
+version = "0.1.5"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.similar]]
+criteria = "safe-to-deploy"
+delta = "2.2.1 -> 2.7.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla/cargo-vet/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.skrifa]]
+criteria = "safe-to-deploy"
+delta = "0.29.0 -> 0.44.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.thiserror]]
+criteria = "safe-to-deploy"
+delta = "1.0.43 -> 1.0.69"
+aggregated-from = "https://raw.githubusercontent.com/mozilla/glean/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.thiserror-impl]]
+criteria = "safe-to-deploy"
+delta = "1.0.43 -> 1.0.69"
+aggregated-from = "https://raw.githubusercontent.com/mozilla/glean/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.tracing-core]]
+criteria = "safe-to-deploy"
+version = "0.1.30"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.tracing-core]]
+criteria = "safe-to-deploy"
+delta = "0.1.30 -> 0.1.33"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.tracing-core]]
+criteria = "safe-to-deploy"
+delta = "0.1.34 -> 0.1.36"
+aggregated-from = "https://raw.githubusercontent.com/mozilla/cargo-vet/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-core]]
+criteria = "safe-to-deploy"
+version = "0.12.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-core]]
+criteria = "safe-to-deploy"
+delta = "0.12.0 -> 0.13.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-core]]
+criteria = "safe-to-deploy"
+delta = "0.13.0 -> 0.14.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-core]]
+criteria = "safe-to-deploy"
+delta = "0.14.0 -> 0.15.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-core]]
+criteria = "safe-to-deploy"
+delta = "0.15.0 -> 0.16.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-core]]
+criteria = "safe-to-deploy"
+delta = "0.16.0 -> 0.17.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-core]]
+criteria = "safe-to-deploy"
+delta = "0.17.0 -> 0.18.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-core]]
+criteria = "safe-to-deploy"
+delta = "0.18.0 -> 0.19.3"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-core]]
+criteria = "safe-to-deploy"
+delta = "0.19.3 -> 0.20.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-core]]
+criteria = "safe-to-deploy"
+delta = "0.20.0 -> 22.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-core]]
+criteria = "safe-to-deploy"
+delta = "22.0.0 -> 23.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-core]]
+criteria = "safe-to-deploy"
+delta = "23.0.0 -> 23.0.1"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-core]]
+criteria = "safe-to-deploy"
+delta = "23.0.1 -> 24.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-core]]
+criteria = "safe-to-deploy"
+delta = "24.0.0 -> 25.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-core]]
+criteria = "safe-to-deploy"
+delta = "25.0.0 -> 26.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-core]]
+criteria = "safe-to-deploy"
+delta = "26.0.0 -> 27.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-core]]
+criteria = "safe-to-deploy"
+delta = "27.0.0 -> 28.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-core]]
+criteria = "safe-to-deploy"
+delta = "28.0.0 -> 29.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-core]]
+criteria = "safe-to-deploy"
+delta = "29.0.0 -> 30.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-core-deps-apple]]
+criteria = "safe-to-deploy"
+version = "25.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-core-deps-apple]]
+criteria = "safe-to-deploy"
+delta = "25.0.0 -> 26.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-core-deps-apple]]
+criteria = "safe-to-deploy"
+delta = "26.0.0 -> 27.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-core-deps-apple]]
+criteria = "safe-to-deploy"
+delta = "27.0.0 -> 28.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-core-deps-apple]]
+criteria = "safe-to-deploy"
+delta = "28.0.0 -> 29.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-core-deps-apple]]
+criteria = "safe-to-deploy"
+delta = "29.0.0 -> 30.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-core-deps-windows-linux-android]]
+criteria = "safe-to-deploy"
+version = "25.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-core-deps-windows-linux-android]]
+criteria = "safe-to-deploy"
+delta = "25.0.0 -> 26.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-core-deps-windows-linux-android]]
+criteria = "safe-to-deploy"
+delta = "26.0.0 -> 27.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-core-deps-windows-linux-android]]
+criteria = "safe-to-deploy"
+delta = "27.0.0 -> 28.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-core-deps-windows-linux-android]]
+criteria = "safe-to-deploy"
+delta = "28.0.0 -> 29.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-core-deps-windows-linux-android]]
+criteria = "safe-to-deploy"
+delta = "29.0.0 -> 30.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-hal]]
+criteria = "safe-to-deploy"
+version = "0.12.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-hal]]
+criteria = "safe-to-deploy"
+delta = "0.12.0 -> 0.13.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-hal]]
+criteria = "safe-to-deploy"
+delta = "0.13.0 -> 0.14.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-hal]]
+criteria = "safe-to-deploy"
+delta = "0.14.0 -> 0.15.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-hal]]
+criteria = "safe-to-deploy"
+delta = "0.15.0 -> 0.16.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-hal]]
+criteria = "safe-to-deploy"
+delta = "0.16.0 -> 0.17.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-hal]]
+criteria = "safe-to-deploy"
+delta = "0.17.0 -> 0.18.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-hal]]
+criteria = "safe-to-deploy"
+delta = "0.18.0 -> 0.19.3"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-hal]]
+criteria = "safe-to-deploy"
+delta = "0.19.3 -> 0.20.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-hal]]
+criteria = "safe-to-deploy"
+delta = "0.20.0 -> 22.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-hal]]
+criteria = "safe-to-deploy"
+delta = "22.0.0 -> 23.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-hal]]
+criteria = "safe-to-deploy"
+delta = "23.0.0 -> 23.0.1"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-hal]]
+criteria = "safe-to-deploy"
+delta = "23.0.1 -> 24.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-hal]]
+criteria = "safe-to-deploy"
+delta = "24.0.0 -> 25.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-hal]]
+criteria = "safe-to-deploy"
+delta = "25.0.0 -> 26.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-hal]]
+criteria = "safe-to-deploy"
+delta = "26.0.0 -> 27.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-hal]]
+criteria = "safe-to-deploy"
+delta = "27.0.0 -> 28.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-hal]]
+criteria = "safe-to-deploy"
+delta = "28.0.0 -> 29.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-hal]]
+criteria = "safe-to-deploy"
+delta = "29.0.0 -> 30.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-naga-bridge]]
+criteria = "safe-to-deploy"
+version = "28.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-naga-bridge]]
+criteria = "safe-to-deploy"
+delta = "28.0.0 -> 29.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-naga-bridge]]
+criteria = "safe-to-deploy"
+delta = "29.0.0 -> 30.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-types]]
+criteria = "safe-to-deploy"
+version = "0.12.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-types]]
+criteria = "safe-to-deploy"
+delta = "0.12.0 -> 0.13.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-types]]
+criteria = "safe-to-deploy"
+delta = "0.13.0 -> 0.14.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-types]]
+criteria = "safe-to-deploy"
+delta = "0.14.0 -> 0.15.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-types]]
+criteria = "safe-to-deploy"
+delta = "0.15.0 -> 0.16.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-types]]
+criteria = "safe-to-deploy"
+delta = "0.16.0 -> 0.17.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-types]]
+criteria = "safe-to-deploy"
+delta = "0.17.0 -> 0.18.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-types]]
+criteria = "safe-to-deploy"
+delta = "0.18.0 -> 0.19.2"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-types]]
+criteria = "safe-to-deploy"
+delta = "0.19.2 -> 0.20.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-types]]
+criteria = "safe-to-deploy"
+delta = "0.20.0 -> 22.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-types]]
+criteria = "safe-to-deploy"
+delta = "22.0.0 -> 23.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-types]]
+criteria = "safe-to-deploy"
+delta = "23.0.0 -> 24.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-types]]
+criteria = "safe-to-deploy"
+delta = "24.0.0 -> 25.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-types]]
+criteria = "safe-to-deploy"
+delta = "25.0.0 -> 26.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-types]]
+criteria = "safe-to-deploy"
+delta = "26.0.0 -> 27.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-types]]
+criteria = "safe-to-deploy"
+delta = "27.0.0 -> 28.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-types]]
+criteria = "safe-to-deploy"
+delta = "28.0.0 -> 29.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.wgpu-types]]
+criteria = "safe-to-deploy"
+delta = "29.0.0 -> 30.0.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.windows-link]]
+criteria = "safe-to-deploy"
+version = "0.1.1"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.windows-link]]
+criteria = "safe-to-deploy"
+delta = "0.1.1 -> 0.2.0"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
+[[audits.zcash.audits.arrayref]]
+criteria = "safe-to-deploy"
+delta = "0.3.6 -> 0.3.8"
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.arrayref]]
+criteria = "safe-to-deploy"
+delta = "0.3.8 -> 0.3.9"
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.block-buffer]]
+criteria = "safe-to-deploy"
+delta = "0.10.3 -> 0.10.4"
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.crunchy]]
+criteria = "safe-to-deploy"
+delta = "0.2.3 -> 0.2.4"
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.document-features]]
+criteria = "safe-to-deploy"
+delta = "0.2.11 -> 0.2.12"
+aggregated-from = "https://raw.githubusercontent.com/zcash/wallet/main/supply-chain/audits.toml"
+
+[[audits.zcash.audits.errno]]
+criteria = "safe-to-deploy"
+delta = "0.3.3 -> 0.3.8"
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.errno]]
+criteria = "safe-to-deploy"
+delta = "0.3.8 -> 0.3.9"
+aggregated-from = "https://raw.githubusercontent.com/zcash/librustzcash/main/supply-chain/audits.toml"
+
+[[audits.zcash.audits.errno]]
+criteria = "safe-to-deploy"
+delta = "0.3.10 -> 0.3.11"
+aggregated-from = "https://raw.githubusercontent.com/zcash/wallet/main/supply-chain/audits.toml"
+
+[[audits.zcash.audits.errno]]
+criteria = "safe-to-deploy"
+delta = "0.3.11 -> 0.3.13"
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.errno]]
+criteria = "safe-to-deploy"
+delta = "0.3.13 -> 0.3.14"
+aggregated-from = "https://raw.githubusercontent.com/zcash/librustzcash/main/supply-chain/audits.toml"
+
+[[audits.zcash.audits.windows-link]]
+criteria = "safe-to-deploy"
+delta = "0.2.0 -> 0.2.1"
+aggregated-from = "https://raw.githubusercontent.com/zcash/librustzcash/main/supply-chain/audits.toml"

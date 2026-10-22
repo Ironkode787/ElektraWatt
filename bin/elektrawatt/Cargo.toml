@@ -27,6 +27,13 @@ eframe = { version = "=0.37.0", default-features = false, features = ["accesskit
 # Open and Save As dialogs; the XDG-portal backend on Linux (no GTK), pollster as its executor.
 rfd = { version = "=0.17.2", default-features = false, features = ["xdg-portal"] }
 
+# Not used directly: a version floor for a transitive crate (accesskit_unix -> atspi -> zbus-lockstep ->
+# zbus_xml). zbus_xml 5.1.0 pulls quick-xml 0.38.4 (RUSTSEC-2026-0194, RUSTSEC-2026-0195), and resolver 3
+# prefers it because 5.2.1 needs Rust 1.87 while the workspace MSRV is 1.85, so without this line a
+# `cargo update` would bring the advisories back (FT-326). Remove it when the graph no longer needs the hold.
+[target.'cfg(any(target_os = "linux", target_os = "dragonfly", target_os = "freebsd", target_os = "netbsd", target_os = "openbsd"))'.dependencies]
+zbus_xml = "=5.2.1"
+
 [dev-dependencies]
 serde_json = "1.0.154"
 # tests/headless.rs: the 150 dpi snapshot against golden/J-E-2416/expected/png and the exported PDF's digest.
