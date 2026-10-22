@@ -1,6 +1,6 @@
 # ElektraWatt architecture specification
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-20 (G-SP outcome, §6.1 to §6.4; save order, §7.4; the memo engine as built, §2, §6.2, §6.4; incremental connectivity as built, §3, §6.3, §6.4), 2026-10-21 (orphan-collection retention, §6.2; the check engine and the prevent hook as built, §3, §5, §6.4); 2026-10-21, cycle 13 (`ew-plcaddr` v0 and `ew-sqlview` v0 as built, §3); 2026-10-22, cycle 18 (a known breach of the undo law, FT-316, §13); 2026-10-22, cycle 19 (the breach closed by the delete-time rule EW-INV-021 and the two apply paths, §4.6, §5.3, §13; the application shell as built, §3, §9) · **Date:** 2026-10-17 · **Decided by:** chief architect, after a judge
+**Status:** Accepted · amended 2026-10-18, 2026-10-20 (G-SP outcome, §6.1 to §6.4; save order, §7.4; the memo engine as built, §2, §6.2, §6.4; incremental connectivity as built, §3, §6.3, §6.4), 2026-10-21 (orphan-collection retention, §6.2; the check engine and the prevent hook as built, §3, §5, §6.4); 2026-10-21, cycle 13 (`ew-plcaddr` v0 and `ew-sqlview` v0 as built, §3); 2026-10-22, cycle 18 (a known breach of the undo law, FT-316, §13); 2026-10-22, cycle 19 (the breach closed by the delete-time rule EW-INV-021 and the two apply paths, §4.6, §5.3, §13; the application shell as built, §3, §9); 2026-10-22, cycle 21 (the canvas's CPU tile path as built, §3, §8.2, §9; the transaction-read rule, §5.2) · **Date:** 2026-10-17 · **Decided by:** chief architect, after a judge
 panel over four competing proposals (A incremental, B ECS, C relational, D retained/object model)
 **Scope:** ElektraWatt (EW) v1:
 - Electric P8-class schematics;
@@ -237,7 +237,7 @@ sessions (G6).
 | `ew-text` | GPL | Fonts and the memoised `shaped_text` query: one text stack for screen, pagination and paper | ew-dl, ew-units; parley 0.12.0, fontique 0.12.0, skrifa 0.44.0, harfrust 0.12.0 (through parley), sha2 0.10.9 |
 | `ew-reports` | GPL | Report-kind registry and row queries (`report_rows`), arrangement (manual selection, typed filters, natural sort, grouping), pagination into generated pages (`report_block_pages`), the report engine that `page_order` calls through `ReportPagesProvider` (decision log ID-126), value rendering; user SQL reports through the sandboxed query API of `ew-sqlview` (1.0, never links rusqlite); XLSX and CSV tables (FT-61) | ew-derive (and through its re-exports ew-schema, ew-ids, ew-mltext, ew-units; rule 7), ew-sqlview, ew-text; serde_json (the provisional profile members of the project settings, read by `profile_tables`); dev: ew-model (snapshots for the row-query tests, no `raw-read`), proptest; later: rust_xlsxwriter 0.100.0, csv 1.4.0 |
 | `ew-scene` | GPL | Model to display lists per page and layer, forms engine (frames, title blocks, report forms), text through `ew-text`, spatial index, hit-testing; PDF underlays (1.0); page layers as pure functions of a caller-filled `PageView` (rule 7) and the provisional orthogonal router `route` (decision log ID-137) | ew-reports, ew-dl, ew-text; ew-schema (symbol lowering reads `SymbolDef` records by reference), ew-units, ew-ids, ew-mltext; serde_json; rstar 0.13.0, hayro 0.8.0 (underlays, 1.0); the `ew-reports` edge is declared for report forms and not used yet; dev: sha2, insta 1.49.0, proptest |
-| `ew-render2d` | GPL | wgpu 2D renderer: lyon tessellation once per symbol, instancing, screen-space lines, glyph atlas | wgpu 30.0.1, lyon_tessellation 1.0.22 |
+| `ew-render2d` | GPL | The canvas renderer, toolkit-neutral (no egui): wgpu 2D renderer (lyon tessellation once per symbol, instancing, screen-space lines; glyphs as tessellated outlines into an offscreen MSAA texture, ADR-0015's pending amendment) and the CPU tile path over `ew-render-cpu`. *As built (cycle 21, WP-S2.02 part 1; decision log ID-517):* `view`, `tiles` (the 256-pixel tile pyramid, its planner and LRU cache), `pool` (the raster workers), `overlay` (page bounds, grid dots, highlight outlines and their compositing for the headless snapshot) and `stats` (frame statistics and the one clock); the GPU path is part 2 | ew-dl, ew-render-cpu (the edge since cycle 21, ID-510); part 2: wgpu 30.0.1, lyon_tessellation 1.0.22 |
 | `ew-render-cpu` | GPL | vello_cpu renderer: GPU-less fallback, thumbnails, golden PNGs, banded printing | ew-dl; vello_cpu 0.3.0 (default features off: `std`, `text`, `u8_pipeline`; `Level::baseline()`), png 0.18.1; dev: ew-text, ew-units, sha2 |
 | `ew-export` | GPL | PDF (as built: PDF/A-2b with outline, `/PageLabels`, named destinations, link annotations and subset fonts; ADR-0015 amendments 5 to 7), SVG (as built in cycle 14 with no new dependency, the page phase on `par_map` with scoped std threads instead of rayon; decision log ID-344, ID-345), DXF, PNG (through `ew-render-cpu`) | ew-dl, ew-render-cpu; krilla 0.8.2 (default features off); later: krilla-svg 0.8.1, dxf 0.6.2; dev: ew-text, ew-units, sha2, uuid |
 | `ew-print` | GPL | OS print adapters with per-OS features (§8.4) | ew-export, ew-render-cpu |
@@ -339,7 +339,7 @@ graph TD
   text --> dl & units
   rep --> derive & sqlv & text
   scene --> rep & dl & text & schema & units & ids & mltext
-  r2d --> dl
+  r2d --> dl & rcpu
   rcpu --> dl
   exp --> dl & rcpu
   print --> exp & rcpu
@@ -595,7 +595,11 @@ validated against the command's JSON Schema ([extensibility](17-extensibility.md
 ### 5.2 Commit pipeline (UI thread)
 
 1. **Run.** `Command::run` executes against `TxBuilder`, a scratch snapshot with read-your-writes. Handlers may
-   query it, for example for the "next free counter on page 103".
+   query it, for example for the "next free counter on page 103". **A transaction never reads the memoised queries
+   `Q`** (ADR-0008 amendment 4, decision log ID-525): they describe committed snapshots, not the pending state. An
+   index answer inside a transaction is a structural-index lookup on `TxBuilder` over the model's referrer index of a
+   link (since cycle 21 `channels_of_module` and `channels_at_cp`), with read-your-writes and recorded in the read set,
+   and a derived key is recomputed from the rows read; normalisers (step 2) follow the same rule.
 2. **Normalise** (from D). Deterministic normalisers may add ops to the same transaction, with at most three
    productive passes plus one confirming pass; non-convergence is a bug (`CmdError::Internal`, ADR-0008
    amendment 2). The registry, with the order of the editor's normalisers, is
@@ -1199,6 +1203,16 @@ flowchart LR
   CI goldens and for thumbnails. The perf gate requires ≥ 30 fps for an A4 page on it (G6).
 - **Hit-testing.** `page_spatial_index(page)` is an rstar R*-tree, followed by exact kurbo picking.
 
+*As built (cycle 21, WP-S2.02 part 1; decision log ID-517 to ID-521).* The canvas exists on the CPU path only: the
+page's sheet display list is rastered by `ew-render-cpu::render_region` into a pyramid of 256-pixel tiles (levels
+6 × 2^k dpi, scaled down by at most 2 while moving, the exact resolution once the view has been still for 150 ms) on a
+pool of worker threads, and `ew-ui` shows them as egui textures, so they reach the screen through egui's own wgpu
+renderer; `render_region` of the full rectangle equals `render` byte for byte, and culling by `ItemBounds` never changes
+a pixel. The overlays (page bounds, the grid under the page-to-sheet map, the dashed hover outline over
+`DisplayList::entity_bounds`) are screen-space primitives of `ew-render2d`. Hit-testing is the hover placeholder over
+display-list boxes until WP-S2.03's `page_spatial_index`. The GPU path above, with the offscreen texture and glyph
+meshes of ADR-0015's pending amendment, is part 2; the thumbnails of the LOD line are not built.
+
 ### 8.3 Text and fonts
 
 - **One text stack for screen and paper** in `ew-text`: parley 0.12.0, fontique 0.12.0, skrifa 0.44.0 and harfrust
@@ -1305,6 +1319,12 @@ from the table above, for part 1: the egui menu bar on every OS (muda deferred, 
 trees yet, AccessKit always on (a hard dependency of egui 0.37), no clipboard and no crash handler; the shell keeps
 the journal of a dirty session at exit ([05](05-project-format-and-persistence.md) §8.1). Its 296 new crates are
 cargo-vet exemptions until the lead's audit, which comes before any distribution (FT-326).
+
+*As built (cycle 21, WP-S2.02 part 1; decision log ID-513, ID-517).* The project view's page pane is the canvas: the
+toolkit-neutral `CanvasModel` in `ew-viewmodel` (zoom ladder, fit, pan clamp, pointer, hover pick, grid, backend label)
+changed only through `ShellModel::dispatch` by registry actions, which the headless mode drives as well, and an `ew-ui`
+host that maps input onto those actions and paints the tiles of `ew-render2d` (§8.2). The shell is a read-only viewer
+until WP-S2.03 to WP-S2.05 add navigation, the tool framework, editing gestures and the property grid.
 
 ---
 

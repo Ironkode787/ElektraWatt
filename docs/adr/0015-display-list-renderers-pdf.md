@@ -180,7 +180,9 @@ The page-label amendment that was pending here (from
   drawing inside an `egui_wgpu` paint callback; and glyphs are tessellated outlines drawn instanced like symbols,
   instead of a glyph atlas. Until a scene is tessellated, and wherever the switch rule chooses it, the canvas shows a
   tile pyramid of `ew-render-cpu` rasters (decision 3). The amendment is applied when part 2 of WP-S2.02 is built and
-  reviewed.
+  reviewed. *Status after cycle 21 (decision log ID-517):* part 1 is built: the canvas shows the CPU tile pyramid,
+  drawn as egui textures through egui's own wgpu renderer, and is the backend everywhere until part 2; the two points
+  of decision 2 are not yet built, so the amendment stays pending.
 
 ## Alternatives considered
 

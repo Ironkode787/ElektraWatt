@@ -1,6 +1,6 @@
 # ADR-0008: Transactions, undo/redo and preview-as-fork
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-21 (the first command that edits project settings) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-21 (the first command that edits project settings), 2026-10-22 (the transaction-read rule) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -65,7 +65,8 @@
 
 ## Amendments
 
-Amendments 1 and 2 were accepted on 2026-10-18, amendment 3 on 2026-10-21. The decision text above is unchanged;
+Amendments 1 and 2 were accepted on 2026-10-18, amendment 3 on 2026-10-21, amendment 4 on 2026-10-22. The decision
+text above is unchanged;
 these entries refine it.
 
 1. **Confirmation of non-undoable operations** (2026-10-18; [UX/UI](../design/16-ux-ui.md) §7–§8). Confirming every
@@ -134,6 +135,21 @@ these entries refine it.
      `fields.set` on `tag.frozen` (explicit freeze and unfreeze) and `numbering.renumber` with `include_frozen: true`,
      which unfreezes only the frozen devices its scheme can number; both are undoable, the renumber previewed. The
      renumber option `skip_frozen` is removed.
+4. **A transaction never reads the memoised queries** (2026-10-22, lead designer, on the cycle-21 channel indexes;
+   decision log ID-525; [architecture](../design/04-architecture.md) §5.2,
+   [PLC and bus](../design/10-plc-and-bus.md) §2.10). The memoised queries `Q` are computed over committed snapshots; a
+   transaction's pending state has none, so a `Q` read inside `Command::run` or a normaliser would see the base without
+   the transaction's own writes.
+   - **The rule.** A command handler or normaliser reads rows through `TxBuilder` only. Where it needs an index answer
+     (which rows refer to this one through a link), it asks `TxBuilder` for a **structural-index lookup** over
+     `ew-model`'s referrer index of that link, with read-your-writes, and recomputes any derived key it needs from the
+     rows it read. The first two lookups are `TxBuilder::channels_of_module` and `channels_at_cp` (the links
+     `Channel.module` and `Channel.binding`), used by N1, N2, N3, `plc.bind_channel` and `plc.set_module_part`.
+   - **Soundness.** Every lookup is recorded in the transaction's read set, so `ReadSet::unchanged_since` and the
+     optimistic rebase of amendment 2 see a change to a looked-up link as a conflict; a rebase test pins it.
+   - **Cost.** A lookup scans the transaction's fresh rows besides the base index, so a transaction that creates many
+     referrers and looks them up (a bulk import) is O(fresh²) within that transaction. Recorded, not measured (decision
+     log ID-512); a bulk path that shows it gets a batched lookup.
 
 ## Consequences
 

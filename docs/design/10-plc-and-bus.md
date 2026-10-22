@@ -1,6 +1,6 @@
 # PLC, I/O and fieldbus
 
-**Status:** Draft v0.3 · **Date:** 2026-10-22 (v0.3: cycle-18 design pass: the solenoid-position map and the pin-designation map as built, derivation step 4, N1 to N3 and `plc.set_module_part`, the FR-PLC-051 rewording, §2.4, §2.6, §2.10, §3.2, §3.3, §3.9, §4; decision log ID-464 to ID-469; v0.2: cycle-13 design pass: the PLC record kinds, channels and the DP bus potential as built, §2.2–§2.4, §2.6, §2.10, §3.2, §3.3, §3.8, §5; decision log ID-333 to ID-337) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.4 · **Date:** 2026-10-22 (v0.4: cycle-21 design pass: the map-language grammar as normative text, no subtraction, §2.6; decision log ID-523 to ID-525; v0.3: cycle-18 design pass: the solenoid-position map and the pin-designation map as built, derivation step 4, N1 to N3 and `plc.set_module_part`, the FR-PLC-051 rewording, §2.4, §2.6, §2.10, §3.2, §3.3, §3.9, §4; decision log ID-464 to ID-469; v0.2: cycle-13 design pass: the PLC record kinds, channels and the DP bus potential as built, §2.2–§2.4, §2.6, §2.10, §3.2, §3.3, §3.8, §5; decision log ID-333 to ID-337) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) models PLC configuration projects, stations, modules,
 channels and fieldbus networks. It defines how EW derives addresses, symbols, function texts and targets instead of
@@ -322,6 +322,25 @@ The valve part 571334 declares `solenoids = ["14"]` in its fluid section ([11](1
 - **Map language.** `bit_of` and `channel` accept `"<k>n[+<c>]"` (`"n"`, `"16n"`), `"<k>p[+<c>]"` (`"2p"`,
   `"2p+1"`) or an explicit list (`[1, 3, 5, 7]`). Analog channels use `"16n"` with `size = word`. The part
   linter rejects anything else. There is no scripting: maps are data, deterministic and safe to merge.
+  **Grammar** (normative; decision log ID-523). An expression is
+
+  ```text
+  expr   = [factor] var ["+" const]
+  var    = "n" | "p"
+  factor = decimal            ; at least 1
+  const  = decimal
+  decimal = "0" | nonzero-digit *digit      ; no sign, no leading zero, no space
+  ```
+
+  and its value is `factor × var + const` in unsigned 32-bit arithmetic, `factor` defaulting to 1 and `const` to 0;
+  an overflow is an error, never a wrap. There is **no subtraction** and no other operator: `"n-1"`, `"-n"`, `"n*2"`,
+  `"2 n"` and `"02n"` are invalid, so a part whose pins or bits count from below its channel numbers states them as an
+  explicit list. The same expressions appear inside braces in a designation pattern (`ChannelSpec.designation`,
+  `pin_of`, §2.4), where only `n` is allowed: `"X2:{n+1}"` is valid and `"X2:{n-1}"` is not. Every reader parses an
+  expression with `ew_plcaddr::MapExpr`, and a designation pattern with the one expander built on it,
+  `ew_derive::expand_pattern` (FT-318); what a reader does with an invalid one is its rule
+  (no address, no designation with a derivation note, no pin with N3's notice), and the part linter's rejection at
+  import is FT-351.
 - **Supply groups** type the card-supply CPs (FR-PLC-024) and say which channels they feed. EW-PLC-013 and EW-PLC-014
   read them (§3.10).
 - **The bus-port signal map** resolves per-core pins where a multi-line representation of the port exists. It

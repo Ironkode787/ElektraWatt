@@ -1,6 +1,6 @@
 # User experience and user interface
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-22, cycle-19 design pass: the part-1 shell and its headless mode as built, §3.9, decision log ID-473 to ID-475, ID-485; amended 2026-10-22, cycle-20 design pass: the toolkit-neutral workspace file, §2.5; the part-2 shell as built, §3.9; first run and the wizard as built, §9.1, §9.2; decision log ID-486 to ID-493, ID-504) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-22, cycle-19 design pass: the part-1 shell and its headless mode as built, §3.9, decision log ID-473 to ID-475, ID-485; amended 2026-10-22, cycle-20 design pass: the toolkit-neutral workspace file, §2.5; the part-2 shell as built, §3.9; first run and the wizard as built, §9.1, §9.2; decision log ID-486 to ID-493, ID-504; amended 2026-10-22, cycle-21 design pass: the zoom field, §3.6; the canvas as built and the viewer note, §3.9; the canvas node, §10.1; what 100 % means under the UI scale, §17; decision log ID-513, ID-517 to ID-522) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how people work with ElektraWatt (EW): the main window and its docking
 workspace, navigators, canvas tabs, the property grid with provenance, the command palette and keymaps, table
@@ -325,6 +325,7 @@ per window (FR-UI-019).
 |---|---|---|---|
 | Tool hint | "Wire: click a connection point, N: next unconnected" | — | 06 §4.1 `status_hint` |
 | Cursor | "102-H15 · x 255.0 y 172.5 mm" (sheet coordinates; column 15 spans x 249.9–265.6 mm on the golden frame, [20](20-golden-project.md) §17.1) | Go to (Ctrl+G) | FR-UI-034 |
+| Zoom | "156 %" (an integer from 10 %, one decimal below; paper zoom, §17 item 7) | — (View ▸ Zoom) | 06 §6 |
 | Grid and snap | "QET 10 px" (2.646 mm) or "4 mm"; snap on/off | grid menu | FR-UI-018, ADR-0027 |
 | Selection | "1 selected" / "3 devices" | show selection list | FR-UI-034 |
 | Findings | "E 42 W 32 I 28 (+3 pending)" | open messages | FR-UI-021, 06 §3.10 |
@@ -352,12 +353,17 @@ change"). It contains no news feed and opens no connection (NFR-PRIV-01). It mus
   [06](06-schematic-editor.md) §3.6, which remaps IDs and renumbers in the paste ghost (FR-UI-036).
 - **Windows of one project** (1.0, FR-UI-004) share its `Session`, undo stack, selection and highlights (§3.4).
 
-### 3.9 As built: the shell (cycles 19 and 20)
+### 3.9 As built: the shell (cycles 19 to 21)
 
 WP-S2.01 built a subset of this section in two parts on its
 [closed specification](../plan/specs/WP-S2.01-application-shell.md): part 1 in cycle 19 (decision log ID-473 to
-ID-475) and part 2 in cycle 20 (ID-486 to ID-493). The design text of §3.1 to §3.8 stays the target of the whole work
-package; this subsection records what exists and where it differs.
+ID-475) and part 2 in cycle 20 (ID-486 to ID-493); WP-S2.02 part 1 replaced its page view with the canvas in cycle 21
+([specification](../plan/specs/WP-S2.02-canvas-renderer.md); ID-517 to ID-522). The design text of §3.1 to §3.8 stays
+the target of the whole work package; this subsection records what exists and where it differs. **The shell is a
+viewer** (the owner's reading, ID-513): until WP-S2.03 (navigation and the tool framework), WP-S2.04 (the editing
+gestures) and WP-S2.05 (the property grid) land, it opens, creates and exports projects and shows their pages, and
+edits nothing on the canvas; a visual pass (theme, icons, toolbar, window memory, thumbnails) is FT-348, for the owner
+to schedule.
 
 | Element | As built | Differs from the design by |
 |---|---|---|
@@ -366,8 +372,8 @@ package; this subsection records what exists and where it differs.
 | Start page | New project (from the default basic project, else the built-in one), Open..., the recent projects (at most 10; an entry is dropped only when its path no longer exists), Open sample project (Golden A, read-only), Import QET project, Create company standard (Edit company standard once a default basic project is set), Tutorials (a fresh copy of the sample project in an empty directory), the language and keymap quick switches and the line "Update check: off" (part 2, ID-486) | The privacy line has no "change" link yet; one tutorial, not the tutorial pages of §13 |
 | New project | File ▸ New project (Ctrl+N) through `Session::new_project` (ID-487): the built-in basic project (the shipped defaults, one empty folio 1) or a company basic project, whose records are copied with new identities `v5(new project ID, source ID)`; the target is an empty or absent directory, checked before the open project closes (ID-488) | The project does not record which basic project it came from (`Project.basic_project`, FT-339) |
 | Project view | Docking with egui_tiles 0.18.0 (ID-490): the Schematic workspace with the panes that exist, the page list (printed folio labels; a click goes to the page) and the page view, in splits and tab groups the user rearranges; View ▸ Workspace saves, loads and resets named workspaces (§2.5, `ew.workspace/1`, ID-489), saved one second after the last change and at shutdown | The page list is not the navigator of §5; the property grid, navigators and message panels of §2.6 join with their work packages; the splitter handles have no accessible name yet (FT-338) |
-| Page view | The current page read-only, the CPU renderer's raster fitted to the pane at the largest step of 12 dpi between 36 and 200 that fits; one long-lived worker thread renders, and the latest request wins | No GPU canvas, zoom or pan (WP-S2.02, WP-S2.03) |
-| Status bar | The hint "Read-only view", the page as `<folio> (<n> of <total>)`, the save state, the render backend `CPU`, the language `EN`, and "Exporting PDF..." during an export | No cursor, grid, selection, findings or jobs fields (§3.6) |
+| Canvas (cycle 21) | The current page read-only as a canvas on the CPU tile path: 256-pixel tiles of `ew-render-cpu` shown as egui textures, a coarse level first and the exact resolution once the view has been still for 150 ms. **Zoom** 5 % to 5000 % in √2 steps around the pointer (the wheel one step per line, a pinch continuously; Ctrl+Plus or Ctrl+Equals, Ctrl+Minus, Ctrl+0 for 100 %, Home to fit with 16-point margins; View ▸ Zoom in, Zoom out, Actual size, Fit page); a fitted view refits on resize until the first zoom or pan. **Pan** with the middle button, Space and drag, trackpad scroll or Ctrl+Arrow (View ▸ Pan, one eighth of the pane). **Overlays:** the page bounds on a grey surround, the page's connection grid as dots under the frame's page-to-sheet map (View ▸ Grid; the pitch doubles below 8 points), a dashed hover outline over the entity under the pointer; View ▸ Frame statistics shows the frame rate, the p99 of each phase, the pending tiles and the backend in the corner. The canvas is one AccessKit node (§10.1). The wizard's preview keeps the fitted raster of cycle 19 | No GPU path (WP-S2.02 part 2, the backend is always `CPU`); a click selects nothing and the hover outline is a placeholder over display-list boxes (WP-S2.03); no tabs or per-page views; 100 % includes the UI scale until FT-349 (§17 item 7) |
+| Status bar | The hint "Read-only view", the page as `<folio> (<n> of <total>)`, the cursor `x 255.0 y 172.5 mm` while the pointer is over the canvas, the zoom, the grid (`QET 10 px`, a pitch in mm, or `Grid off`), the save state, the render backend `CPU`, the language `EN`, and "Exporting PDF..." during an export (cycle 21 added the cursor, zoom and grid) | No cell in the cursor field (FT-345), no snap, selection, findings or jobs fields (§3.6) |
 | Banner | One line for a read-only reason, the integrity findings of the open report, a leftover journal ([05](05-project-format-and-persistence.md) §8.3, as built) with File ▸ Discard leftover journal (a confirmation, then the editing open; FT-313's first part), or a missing file-dialog portal on Linux, with its own close button | The recovery dialog and the notification classes of §8.2 come with WP-S2.09 |
 | Palette | Ctrl+K or Ctrl+Shift+P: a case-insensitive substring search over the registry actions and the registered model commands, disabled entries last with their reason; model commands are listed but disabled until parameter forms exist | Ranking, aliases, prefixes and forms of §4.3 are WP-S2.08 |
 | Dialogs | About (version, renderer, privacy line, licence, repository, the engineering-verification disclaimer, the support status computed offline, the third-party notices; part 2), keyboard shortcuts, go to page (Ctrl+G), save workspace, the leftover-journal confirmation, and Save / Discard / Cancel when Close, Quit or Open meets unsaved changes; Open, Save As and Export PDF use the operating system's dialogs through rfd 0.17.2 (on Linux the XDG portal) | `PRIVACY.md` does not exist yet, and About says so (FT-342); a pre-1.0 build shows "pre-release build" and no support-end banner (ID-492 R5); §3.8's "Open in new window" is not offered |
@@ -992,7 +998,7 @@ aliases (NFR-UX-03) from one source file per locale.
 | Navigator | Tree, TreeItem | §5.1 | expanded, selected, level, position in set |
 | Table | Grid, Row, Cell, ColumnHeader | column label, cell value | sort state, editable, provenance as description |
 | Property grid row | Group with label and input | field label | value, unit, provenance text, error text |
-| Canvas | Canvas | "Page 102, Power Supply 2 - Control Current" | description: tool hint; child live region with the selection |
+| Canvas | Canvas | "Page 102, Power Supply 2 - Control Current" | description: tool hint; child live region with the selection. *As built (cycle 21):* one focusable node, name `Page <folio>, <page title>`, description `<hint>, zoom <zoom>`; no selection region yet (WP-S2.03) |
 | Toolbar, menu, tabs | Toolbar, MenuBar, TabList, Tab | Fluent label | shortcut as keyboard shortcut property |
 | Status bar | Status | field names | values |
 | Toasts, banners | Alert / Status | message | live polite (banners assertive once) |
@@ -1278,7 +1284,11 @@ for layout in {QWERTY-US, QWERTZ-DE, AZERTY-FR}:
    text; a field that exists on some of them is not shown as `‹varies›`.
 6. **Focus stealing:** a job finishing, an external change or a toast never takes focus or switches the page.
 7. **Mixed-DPI monitors:** moving a viewport from 100 % to 200 % re-lays out on the new scale factor; canvas zoom is
-   kept in paper units, so the page keeps its physical size.
+   kept in paper units, so the page keeps its physical size. **The UI scale does not scale the page** (decision log
+   ID-521): canvas 100 % is one paper millimetre as 96/25.4 physical pixels times the operating system's scale factor,
+   so the UI scale of §10.4 enlarges the chrome only, and a user who wants a larger page zooms. The CPU canvas of
+   cycle 21 still includes the UI scale in that factor (egui's pixels per point); part 2 of WP-S2.02 removes it
+   (FT-349).
 8. **RDP and the CPU renderer:** animations switch off and repaint is strictly on demand; the 3D tab explains why it
    is unavailable when no adapter exists (NFR-PLAT-03).
 9. **Read-only projects** (lock held, released revision, untrusted content blocked): edit actions stay visible but

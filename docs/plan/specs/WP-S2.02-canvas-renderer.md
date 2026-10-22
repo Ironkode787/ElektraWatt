@@ -1,9 +1,12 @@
 # WP-S2.02: the 2D canvas renderer and its GPU-less fallback (closed specification)
 
 **Status:** specified for cycle 21 (part 1, one lead-programmer lane, D4; part 2 after part 1's delivery, one
-lead-programmer lane, D4; Opus review of each) · **Date:** 2026-10-22 · **Work package:**
+lead-programmer lane, D4; Opus review of each). **Part 1 delivered, as built (cycle 21; decision log ID-517 to
+ID-522):** A1 to A15 passed (§10), with the lane's rulings 1 to 7 and the review's fix round amended into §4.2, §6.1,
+§6.2, §6.3, §6.6 and §9; **part 2 open**, the next package · **Date:** 2026-10-22 (amended 2026-10-22, cycle-21 design
+pass) · **Work package:**
 [WP-S2.02](../02-work-packages.md#wp-s202-2d-canvas-renderer-ew-render2d-and-gpu-less-fallback) · **Decision log:**
-ID-505 to ID-511 · **Part of:** ElektraWatt plan, specifications
+ID-505 to ID-511, ID-514, ID-517 to ID-522 · **Part of:** ElektraWatt plan, specifications
 
 **Purpose.** This is the closed specification of the canvas: the page view of the shell
 ([WP-S2.01](WP-S2.01-application-shell.md)) becomes a canvas that shows the current page at any zoom with pan, the
@@ -122,9 +125,9 @@ Each is a lead ruling that the owner may reverse; the decision log carries the f
 | Crate | Item | Contract |
 |---|---|---|
 | `ew-render-cpu` | `pub struct RegionOptions { pub dpi: u32, pub x: i64, pub y: i64, pub width: u32, pub height: u32, pub background: Color, pub surround: Color }` and `pub fn render_region(list: &DisplayList, bounds: Option<&ItemBounds>, sheet: SheetSize, options: &RegionOptions, fonts: &dyn FontResolver, geometry: Option<&dyn GeometryResolver>) -> Result<(RgbaImage, RenderReport), RenderError>` | Output pixel `(i, j)` is pixel `(x + i, y + j)` of the full-sheet raster at `dpi` where that pixel lies inside `pixel_size(sheet, dpi)`, and `surround` elsewhere; inside the sheet the background is `background`. `width` and `height` in `1..=4096`, else `RenderError::Size`. The full rectangle at `x = y = 0` gives the bytes of `render` exactly. Same single-threaded `Level::baseline()` pipeline as `render` |
-| `ew-render-cpu` | `pub struct ItemBounds` with `pub fn of(list: &DisplayList, geometry: Option<&dyn GeometryResolver>) -> ItemBounds` | The bounds of each top-level item, inflated by half its widest stroke plus 2 device pixels at the region's dpi when used; `render_region` skips a top-level item whose inflated bounds miss the region. Culling never changes a pixel (A3) |
+| `ew-render-cpu` | `pub struct ItemBounds` with `pub fn of(list: &DisplayList, geometry: Option<&dyn GeometryResolver>) -> ItemBounds` | The bounds of each top-level item, inflated by its reach: half its widest stroke times the miter limit (a miter join reaches that far) and twice the em size of a glyph run (outlines reach beyond their layout box), plus 2 device pixels at the region's dpi when used; `render_region` skips a top-level item whose inflated bounds miss the region. Culling never changes a pixel (A3). *As built (ruling 4, ID-518): the reach is wider than this row first said (half the stroke plus 2 pixels), so that no join or glyph outline can be culled* |
 | `ew-dl` | `pub fn DisplayList::entity_bounds(&self) -> Vec<(EntityRef, Rect)>` | For every item at any depth whose `entity` is set: its control-point bounds under the enclosing transforms, by the rules of `DisplayList::bounds`; in paint order (depth first, pre-order); items without a point are left out |
-| `ew-api` | `pub use ew_dl;` in `ew_api::output`; `pub struct PageGrid { pub num_nm: i64, pub den: i64 }` in `output`; `pub fn Session::page_grid(&self, folio: &str) -> Option<PageGrid>` | `PageGrid` is the page's connection grid `Page.grid` (ADR-0005, ADR-0027) as a rational pitch in nm; `None` when no page has that printed folio label |
+| `ew-api` | `pub use ew_dl;` in `ew_api::output`; `pub struct PageGrid { pub num_nm: i64, pub den: i64, pub sheet_scale_ppb: u32, pub sheet_offset_nm: (i64, i64) }` in `output`; `pub fn Session::page_grid(&self, folio: &str) -> Option<PageGrid>` | `PageGrid` is the page's connection grid `Page.grid` (ADR-0005, ADR-0027) as a rational pitch in nm, with the page-to-sheet map of the page's frame: the scale in parts per 10⁹ (`1_000_000_000` without a map) and where the page origin lands on the sheet (`(0, 0)` without a map); `None` when no page has that printed folio label. *As built (ruling 1, ID-518): the map was added because a QET frame scales and shifts the page onto the sheet, and without it the grid dots drift off the connection points; the overlay draws the dots at `offset + scale × k × pitch`* |
 
 ## 5. Dependencies and the supply chain
 
@@ -166,7 +169,7 @@ are measured before and after and reported, and `check-features` stays green.
 |---|---|---|
 | `sheet` | `(i64, i64)` nm | The page's width and height (from `page_content`) |
 | `centre` | `(i64, i64)` nm | The sheet point at the pane's centre; clamped to the sheet rectangle `[0, w] × [0, h]` |
-| `zoom` | `f64` | The factor of paper size (1.0 = 100 %); 100 % shows 1 mm of paper as 96/25.4 logical points (CSS convention), so the page keeps its physical size across monitors (doc 16 §17 item 7) |
+| `zoom` | `f64` | The factor of paper size (1.0 = 100 %); 100 % shows 1 mm of paper as 96/25.4 logical points (CSS convention), so the page keeps its physical size across monitors (doc 16 §17 item 7). *Ruling (ID-521):* the points meant here exclude the UI scale: 100 % is 96/25.4 physical pixels per paper millimetre times the operating system's scale factor, and the UI scale enlarges only the chrome. Part 1 as built uses egui's pixels per point, which include the UI scale; part 2 divides by it (FT-349) |
 | `pane` | `(f64, f64)` points, `ppp: f64` | The pane size and pixels per point; headless default 1200 × 800 at 1.0 |
 | `pointer` | `Option<(i64, i64)>` nm | The sheet point under the pointer, `None` when the pointer is outside the pane |
 | `grid` | `Option<PageGrid>`, `grid_on: bool` | The page's grid from `Session::page_grid`, and whether it is drawn (default on) |
@@ -185,7 +188,9 @@ clamped, `centre` = the sheet's centre (integer halves, toward zero). Per-page v
 **Zoom about an anchor** `a` (sheet nm): `centre' = a − (a − centre) × zoom / zoom'`, each axis rounded toward zero to
 nm, then clamped; while the clamp is inactive the anchor keeps its screen position to within 1 nm. **Pan** by
 `(dx, dy)` points moves the centre by `−d / points_per_nm`, rounded toward zero, then clamped. **Resize** keeps the
-centre and the zoom; a change of `ppp` keeps the zoom (paper units).
+centre and the zoom; a change of `ppp` keeps the zoom (paper units). *As built (ruling 2, ID-518):* a **fitted** view
+(after Home, a page change or the first frame) refits on every resize until the first zoom or pan, so a window that is
+resized right after opening still shows the whole page; after a zoom or pan, resize keeps the centre and the zoom.
 
 **Hover pick** (placeholder until WP-S2.03's `page_spatial_index`): from `entity_bounds` of the page's display list,
 computed once per (revision, folio) and kept in the model; the entries whose rectangle, inflated by 4 points at the
@@ -207,13 +212,19 @@ New registry actions (View menu unless hidden; label keys and English texts in `
 | `view.frame_stats` | View | — | always; checked while shown | — |
 | `view.zoom_to` | hidden | — | a page is shown | `percent`, optional `x_mm`, `y_mm` (the anchor; default the centre) |
 | `view.pan` | hidden | — | a page is shown | `dx`, `dy` (points) |
-| `view.canvas_resize` | hidden | — | always | `width`, `height` (points), `ppp` |
+| `view.canvas_resize` | hidden | — | always | `width`, `height` (points), `ppp`; at most `MAX_PANE_POINTS` (16,384) points and `MAX_PANE_PIXELS` (8,192) physical pixels per side and `ppp` ≤ `MAX_PPP` (8), else `error-bad-param` (fix round, ID-519) |
 | `canvas.pointer` | hidden | — | a page is shown | `x_mm`, `y_mm`, both or neither (neither: the pointer left) |
 | `canvas.snapshot` | headless only | — | a page is shown | `path` |
 
 The reason key for "no page shown" is the existing one of `page.first` if it fits, else a new `reason-no-page-shown`.
 egui's own keyboard zoom (`zoom_with_keyboard`) is switched off, so Ctrl+Plus, Ctrl+Minus and Ctrl+0 reach the canvas
 and never the UI scale (which stays `view.ui_scale`).
+
+*As built (ruling 3, ID-518; review fix 5, ID-519).* Dispatching an action normally clears the banner; the canvas's
+view actions (the zooms, `view.fit_page`, the pans, `view.grid`, `view.frame_stats`, `view.zoom_to`, `view.pan`,
+`view.canvas_resize` and `canvas.pointer`) leave it standing, because moving the pointer or resizing the window must
+not dismiss what the banner says. The window host bounds its own resize request with the same limits
+(`bounded_pane`), so an oversized window never makes a failing resize every frame.
 
 **Pointer input** (mapped by `ew-ui` onto the actions above, so the GUI and a script take the same path):
 
@@ -253,6 +264,17 @@ screen rectangle has edges rounded to physical pixels so neighbours share their 
 before it starts (a generation counter); a running job finishes and is cached if its scene is current. At most 8 tile
 uploads per frame (2 MiB); a pending tile requests a repaint when it lands. The cache holds at most 256 MiB of tile
 textures, evicts least recently used by frame counter, and never evicts a tile drawn in the current frame.
+
+*As built (the review's fix round, ID-519).* The pool marks a tile delivered before it sends it, and a submission skips
+delivered tiles under the same lock, so a tile that finishes between the host's receive and its next submission is
+never queued again; the host counts `skipped_cached`, `requested_while_cached` and `rastered_while_cached` (A9). A
+previous-revision fallback tile on the last layer leaves the canvas not ready (`is_ready()` and `page_view_ready()`
+false) until the new revision's tiles are in, and counts a fallback frame in the frame statistics. With no canvas on
+screen (no project, the wizard, or the pane hidden behind another tab) the host submits an empty plan and drops the
+cached scenes, so the pool does no work and no textures are held; a hidden pane's tiles are rastered again when its tab
+returns (a budgeted retention is FT-356). `TilePool::recv_timeout` (50 ms) is the blocking receive the bench uses. A
+commit on another page makes a new scene, because the scene key is the revision; keying it by a digest of the page's
+content is part of FT-347.
 
 **Wizard preview.** The wizard's live preview keeps WP-S2.01's fitted image (ID-445); `page_view.rs` remains for it
 only, and `view.snapshot` and `--smoke` keep their full-page path unchanged.
@@ -316,7 +338,9 @@ so backend names never enter the vocabulary). FT-314's harness help lists them.
 `dpi = round(D)` with the view origin rounded to whole pixels, `background` white and `surround` from the theme of the
 settings (light when the theme is `system`), then the overlays of §6.4 composited by `ew-render2d`; encoded with
 `encode_png(&image, Some(dpi))`. It never uses tiles or a GPU, so it is the same bytes on every run of one build
-target. `view.snapshot` (the whole page at a dpi) is unchanged.
+target. `view.snapshot` (the whole page at a dpi) is unchanged. *As built (ruling 6, ID-518):* a pane larger than 4096
+pixels on a side is rendered as `render_region` parts of at most 4096 pixels and stitched; with the bounds of
+`view.canvas_resize` (§6.2) a snapshot is at most 8,192 × 8,192 pixels (256 MiB).
 
 ## 7. Part 2: the GPU path and the switch rule
 
@@ -431,6 +455,14 @@ the gate, the CPU families enter the baseline only by a bless at a milestone run
 never enter the hosted runners' baseline. Lanes build the bench and test the gate's parsing of a captured sample; they
 do not run it (testing policy), and their reports say "not measured (milestone rule)".
 
+*As built (ruling 5, ID-518; ID-512, ID-520).* The dense-A3 scene's families carry the suffix `.dense_a3`
+(`frame.gesture.pan.dense_a3`, `render.pan.cpu.dense_a3` and so on), and pointer frames count into their own family
+`frame.gesture.point` (with its per-phase families), not into pan or zoom. Since the owner's ruling of 2026-10-22 no
+performance measurement runs during development: the first measurement and the bless of the CPU families are a
+release-phase item (FT-355), and reports say "not measured (owner's rule)". The bench waits for a frame's tiles at most
+120 s (`TILE_WAIT_LIMIT`); a crash or that limit running out fails the nightly `perf.yml` as an infrastructure failure,
+like any bench that does not run, although the values are report-only (ID-520).
+
 ## 10. Acceptance checks
 
 All tests are ordinary nextest tests in the existing three test jobs (CI-PR-02, -03, -04), without workflow changes,
@@ -438,23 +470,23 @@ on temporary copies of Golden A with `EW_CONFIG_DIR` set to a temporary director
 
 **Part 1**
 
-| # | Check | Where | Proves |
-|---|---|---|---|
-| A1 | Canvas model: the ladder values and the clamp ends; zoom in and out from an off-ladder fit; the anchor keeps its screen position within 1 nm while the clamp is inactive; fit page centres with the 16-point margins; the pan clamp; resize and `ppp` changes keep centre and zoom; the transcript numbers' formatting | `ew-viewmodel` unit tests | §6.1 |
-| A2 | Registry: the new IDs with label keys and English texts; shortcuts unique, none Ctrl+Alt; hidden actions without menu entries; refusal reasons at the zoom ends | `ew-viewmodel` tests (WP-S2.01's A1 extended) | §6.2 |
-| A3 | `render_region`: the full rectangle equals `render` byte for byte (a synthetic list and folio 103); a 3 × 3 stitch of 256-pixel regions at 192 dpi matches `render` at 192 dpi within doc 20's tolerance, reporting the largest channel difference; pixels outside the sheet are `surround`; rendering with and without `ItemBounds` gives equal bytes; `render`'s existing tests and the page-output goldens unchanged | `ew-render-cpu` tests; `cargo nextest run -p ew-api --test page_output` | §4.2, §8 |
-| A4 | Tile planner and cache: level choice and the top clamp; the visible set covers pane ∩ sheet exactly; centre-out order with its tie rule; the preview level; settled exact resolution after 150 ms (with an injected clock); shared edges, no gaps; LRU within the budget never evicting a tile of the current frame; stale jobs dropped by generation | `ew-render2d` unit tests (synthetic path-only lists) | §6.3 |
-| A5 | `entity_bounds` exact under nested transforms (0°, 90°, mirrored); on folio 103, for every entity rectangle, a pointer at its centre hovers an entity whose rectangle contains the point and whose area is not larger | `ew-dl`, `ew-viewmodel` tests | §4.2, §6.1 |
-| A6 | Headless canvas through the built binary: open, `page.goto` 103, `view.canvas_resize` 1200 × 800 at 1.0, `view.zoom_to` 156.25 %, `canvas.snapshot`: the sheet area matches the crop of `golden/J-E-2416/expected/png/103.png` within doc 20's tolerance; the surround and the page bounds are where the view says; grid dots lie at the QET 10 px pitch; with the theme `dark` the sheet pixels are byte-identical to the light run and the surround differs (FR-UI-043's MVP part) | `bin/elektrawatt/tests/headless.rs` | §6.4, §6.6, §8 |
-| A7 | Determinism: the canvas script twice gives byte-identical transcripts and snapshots | `bin/elektrawatt/tests/headless.rs` | §8 |
-| A8 | Transcript and describe: the `canvas` member and its order; the describe lines; `canvas.pointer` at an entity's centre gives that entity in `hover` and its `canvas hover` line; the vocabulary test passes with the eleven words; existing expected states updated | `ew-viewmodel` tests; `bin/elektrawatt/tests/headless.rs` | §6.6, D7 |
-| A9 | Engine statistics, exact: after the first frame of folio 103, 200 steps of pan, zoom, pointer and resize give 0 memo re-executions, 0 further `page_content` calls, and no tile requested twice while cached | `ew-ui` test | §9, NFR-PERF-20 |
-| A10 | kittest without rendering: Ctrl+Plus changes the zoom field and leaves the UI scale; Home fits; Ctrl+Arrow Right moves the view; a line-unit wheel event zooms around the pointer (its sheet point unchanged); a middle-button drag pans; View ▸ Grid shows `Grid off`; the cursor field follows the pointer; the canvas node has role `Canvas` and its name; the accessible-name walker passes after each step | `ew-ui` tests | §6.2, §6.5 |
-| A11 | `FrameStats`: nearest-rank p50 and p99 and the ring's wrap; after N kittest frames the statistics hold N samples; no time is asserted | `ew-render2d`, `ew-ui` tests | §9 |
-| A12 | The bench compiles (`cargo bench -p ew-ui --bench canvas --no-run`); `xtask`'s gate parses a captured sample of its output (a fixture), runs it once per gate and treats its families as report-only | `xtask` unit tests | §9 |
-| A13 | Policy: `cargo xtask check-deps` (the one new edge), `check-features`, `check-raw-read`, `check-licence-map`, `check-disallowed-methods` (the one clock site listed), `check-ordered-collections`; `python -m reuse lint`; no new package in `Cargo.lock`; `unsafe` appears only in `forbid` attributes | lane | §4, §5 |
-| A14 | Targeted tests and lints of the changed crates (`ew-dl`, `ew-render-cpu`, `ew-render2d`, `ew-api`, `ew-viewmodel`, `ew-ui`, `elektrawatt`, `xtask`): `cargo nextest run -p …` with and without `--all-features`, `cargo clippy -p … --all-targets --all-features -- -D warnings`, `cargo fmt --all --check`, `cargo doc -p ew-render2d -p ew-viewmodel -p ew-ui --no-deps` with `-D warnings` | lane | testing policy |
-| A15 | Manual on the lane's OS, reported and not gated: pan and zoom feel on folio 103, the settled crispness, the statistics overlay's numbers as observed | lane | — |
+| # | Check | Where | Proves | Result (cycle 21) |
+|---|---|---|---|---|
+| A1 | Canvas model: the ladder values and the clamp ends; zoom in and out from an off-ladder fit; the anchor keeps its screen position within 1 nm while the clamp is inactive; fit page centres with the 16-point margins; the pan clamp; resize and `ppp` changes keep centre and zoom; the transcript numbers' formatting | `ew-viewmodel` unit tests | §6.1 | Passed (`ew-viewmodel` unit tests) |
+| A2 | Registry: the new IDs with label keys and English texts; shortcuts unique, none Ctrl+Alt; hidden actions without menu entries; refusal reasons at the zoom ends | `ew-viewmodel` tests (WP-S2.01's A1 extended) | §6.2 | Passed |
+| A3 | `render_region`: the full rectangle equals `render` byte for byte (a synthetic list and folio 103); a 3 × 3 stitch of 256-pixel regions at 192 dpi matches `render` at 192 dpi within doc 20's tolerance, reporting the largest channel difference; pixels outside the sheet are `surround`; rendering with and without `ItemBounds` gives equal bytes; `render`'s existing tests and the page-output goldens unchanged | `ew-render-cpu` tests; `cargo nextest run -p ew-api --test page_output` | §4.2, §8 | Passed: the full rectangle byte-equal to `render`; the stitch on folio 103 at 150 and 192 dpi within tolerance, largest channel difference 1; `page_output` goldens unchanged |
+| A4 | Tile planner and cache: level choice and the top clamp; the visible set covers pane ∩ sheet exactly; centre-out order with its tie rule; the preview level; settled exact resolution after 150 ms (with an injected clock); shared edges, no gaps; LRU within the budget never evicting a tile of the current frame; stale jobs dropped by generation | `ew-render2d` unit tests (synthetic path-only lists) | §6.3 | Passed, with the fix round's test of the delivered-tile race (ID-519) |
+| A5 | `entity_bounds` exact under nested transforms (0°, 90°, mirrored); on folio 103, for every entity rectangle, a pointer at its centre hovers an entity whose rectangle contains the point and whose area is not larger | `ew-dl`, `ew-viewmodel` tests | §4.2, §6.1 | Passed |
+| A6 | Headless canvas through the built binary: open, `page.goto` 103, `view.canvas_resize` 1200 × 800 at 1.0, `view.zoom_to` 156.25 %, `canvas.snapshot`: the sheet area matches the crop of `golden/J-E-2416/expected/png/103.png` within doc 20's tolerance; the surround and the page bounds are where the view says; grid dots lie at the QET 10 px pitch; with the theme `dark` the sheet pixels are byte-identical to the light run and the surround differs (FR-UI-043's MVP part) | `bin/elektrawatt/tests/headless.rs` | §6.4, §6.6, §8 | Passed: the sheet crop matches the golden PNG with no differing pixel at the report's precision |
+| A7 | Determinism: the canvas script twice gives byte-identical transcripts and snapshots | `bin/elektrawatt/tests/headless.rs` | §8 | Passed |
+| A8 | Transcript and describe: the `canvas` member and its order; the describe lines; `canvas.pointer` at an entity's centre gives that entity in `hover` and its `canvas hover` line; the vocabulary test passes with the eleven words; existing expected states updated | `ew-viewmodel` tests; `bin/elektrawatt/tests/headless.rs` | §6.6, D7 | Passed (eleven words; the expected states updated) |
+| A9 | Engine statistics, exact: after the first frame of folio 103, 200 steps of pan, zoom, pointer and resize give 0 memo re-executions, 0 further `page_content` calls, and no tile requested twice while cached | `ew-ui` test | §9, NFR-PERF-20 | Passed after the fix round: `skipped_cached` > 0, `requested_while_cached` and `rastered_while_cached` 0, with a `view.canvas_resize` step (ID-519) |
+| A10 | kittest without rendering: Ctrl+Plus changes the zoom field and leaves the UI scale; Home fits; Ctrl+Arrow Right moves the view; a line-unit wheel event zooms around the pointer (its sheet point unchanged); a middle-button drag pans; View ▸ Grid shows `Grid off`; the cursor field follows the pointer; the canvas node has role `Canvas` and its name; the accessible-name walker passes after each step | `ew-ui` tests | §6.2, §6.5 | Passed |
+| A11 | `FrameStats`: nearest-rank p50 and p99 and the ring's wrap; after N kittest frames the statistics hold N samples; no time is asserted | `ew-render2d`, `ew-ui` tests | §9 | Passed (no time asserted) |
+| A12 | The bench compiles (`cargo bench -p ew-ui --bench canvas --no-run`); `xtask`'s gate parses a captured sample of its output (a fixture), runs it once per gate and treats its families as report-only | `xtask` unit tests | §9 | Passed: the bench compiles and the gate parses a captured sample; the bench was not run (owner's rule) |
+| A13 | Policy: `cargo xtask check-deps` (the one new edge), `check-features`, `check-raw-read`, `check-licence-map`, `check-disallowed-methods` (the one clock site listed), `check-ordered-collections`; `python -m reuse lint`; no new package in `Cargo.lock`; `unsafe` appears only in `forbid` attributes | lane | §4, §5 | Passed: one new edge, no new package (535 packages) |
+| A14 | Targeted tests and lints of the changed crates (`ew-dl`, `ew-render-cpu`, `ew-render2d`, `ew-api`, `ew-viewmodel`, `ew-ui`, `elektrawatt`, `xtask`): `cargo nextest run -p …` with and without `--all-features`, `cargo clippy -p … --all-targets --all-features -- -D warnings`, `cargo fmt --all --check`, `cargo doc -p ew-render2d -p ew-viewmodel -p ew-ui --no-deps` with `-D warnings` | lane | testing policy | Passed: 493 targeted tests (294 with default features), clippy, fmt and rustdoc clean |
+| A15 | Manual on the lane's OS, reported and not gated: pan and zoom feel on folio 103, the settled crispness, the statistics overlay's numbers as observed | lane | — | Passed by the orchestrator after integration, on Windows in a debug build on a copy of the golden fixture (ID-522); the overlay's numbers are not recorded |
 
 **Part 2**
 
@@ -530,7 +562,7 @@ pass updates the documents of §14). Each lane commits on its own branch and doe
 9. **Supply chain** (part 2). The dependency specs of §5; exemptions match the new lock entries; no audit entry by the
    lane; FT-328's numbers reported.
 10. **Instrumentation.** The phases of §9; A9's counts exact; the bench report-only and never run by the lane; perf
-    claims marked "not measured (milestone rule)".
+    claims marked "not measured (owner's rule)" (ID-512).
 11. **Scope.** Nothing of §12 half-done; deferred items named with their FT in the lane report.
 
 ## 14. Size, routing and the documents to update

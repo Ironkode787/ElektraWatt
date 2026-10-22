@@ -80,7 +80,10 @@ files are not the serialised egui_tiles tree but the toolkit-neutral `ew.workspa
 dock's splitter handles have no accessible name in 0.18.0, so amendment 2's walker skips exactly as many unnamed handles
 as the dock has splitters until they are named (FT-338). The lead's audit (FT-326, decision log ID-498) audited the
 native-boundary crates that FT-326 named or found them covered by an imported set; the rest of the graph, egui,
-eframe, egui_tiles and the wgpu 30.0.1 front-end crate among it, stays exempt (385 exemptions at the integration tip).
+eframe and egui_tiles among it, stays exempt. *Corrected at the cycle-21 design pass (decision log ID-515):* the wgpu
+30.0.1 front-end crate, exempt at cycle 20's tip (385 exemptions), was audited `safe-to-deploy` in cycle 21 with a
+caveat on mapped views across `Buffer::destroy` and device loss, which the WP-S2.02 specification's §7.1 turns into a
+rule for ElektraWatt's own renderers; its exemption is gone, leaving 384 (374 `safe-to-deploy`, 10 `safe-to-run`).
 
 ## Consequences
 
