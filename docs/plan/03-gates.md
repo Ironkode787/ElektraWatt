@@ -1,6 +1,6 @@
 # Gates
 
-**Status:** Draft v0.4 · **Date:** 2026-10-21 (v0.4: the blind drafter at G-PP and G-M2, WP-S6.13 in M-PP and the 1.0 month of the plan of record, decision log ID-341, ID-342; the Golden A info total; v0.3: the G-SP gate record of 2026-10-20 and the re-forecast) · **Part of:** ElektraWatt plan
+**Status:** Draft v0.5 · **Date:** 2026-10-22 (v0.5: open question 3 in use, the G-M1 readiness run in `gate-records/`, decision log ID-419; v0.4: the blind drafter at G-PP and G-M2, WP-S6.13 in M-PP and the 1.0 month of the plan of record, decision log ID-341, ID-342; the Golden A info total; v0.3: the G-SP gate record of 2026-10-20 and the re-forecast) · **Part of:** ElektraWatt plan
 
 **Purpose.** This document defines the gate system of ElektraWatt (EW): the decision points G-M0 … G-M6 and the
 light gate G-PP of the pilot preview, aligned with the milestones M0 … M6 and M-PP of the
@@ -1481,7 +1481,9 @@ PU pilot user, CO counsel, SL steward liaison, UX UX researcher. A role may be h
    documents and ADRs adopt the same forms when next edited.
 3. **Where gate records live.** *Recommendation:* `docs/plan/gate-records/<gate>-<yyyy-mm>.md` in the public
    repository, regenerating `ROADMAP.md` (GV-07). They contain roles, evidence links and decisions, never statements
-   themselves, names or confidential content. Owner to confirm the location.
+   themselves, names or confidential content. Owner to confirm the location. *In use since 2026-10-22:* the G-M1
+   readiness run and its pack draft are the folder's first files
+   ([G-M1-2026-10-readiness.md](gate-records/G-M1-2026-10-readiness.md); decision log ID-419, ruling R6).
 4. **Typing of criteria.** H/M/S is introduced here; the global plan's "never waived" list (§5.2) maps to H. A
    criterion's type can be changed only by a reviewed edit of this document (first row of the RACI, §9).
 5. **SC-3 window.** SC-3 closes at G-M3 if the pilot finishes three production projects within six months of 0.1.0

@@ -1,6 +1,6 @@
 # Global plan
 
-**Status:** Draft v0.10 · **Date:** 2026-10-22 (v0.10: the cycle-16 progress view, the M1 remaining list (the owner-side items, the typed revision FT-165 and the G-M1 readiness run; D-06 with M-PP) and the cycle-17 candidates, §3.8, decision log ID-407; v0.9: the cycle-15 progress view, the M1 remaining list (one not-built entry, the UI-side D-06, plus WP-S6.03, WP-S0.06 and the rest of WP-S6.02) and the cycle-16 candidates, §3.8, decision log ID-391; v0.8: the cycle-14 progress view, the M1 remaining list at six not-built entries and the cycle-15 candidates, §3.8, decision log ID-361; WP-S6.13 in M-PP and the 1.0 month of the plan of record, ID-342; v0.7: the cycle-13 progress view, the M1 gap list without fails and the cycle-14 candidates, §3.8, decision log ID-339; v0.6: the cycle-12 progress view, the M1 gap list at two fails and the cycle-13 candidates, §3.8, decision log ID-321; v0.5: the cycle-11 progress view, the M1 gap list and the cycle-12 candidates, §3.8, decision log ID-300; v0.4: the months are a human-team reference, progress is tracked in cycles, §3.8, decision log ID-271; v0.3: the G-SP re-forecast of 2026-10-20) · **Part of:** ElektraWatt plan
+**Status:** Draft v0.11 · **Date:** 2026-10-22 (v0.11: the G-M1 readiness note, §3.8, decision log ID-419 to ID-426; v0.10: the cycle-16 progress view, the M1 remaining list (the owner-side items, the typed revision FT-165 and the G-M1 readiness run; D-06 with M-PP) and the cycle-17 candidates, §3.8, decision log ID-407; v0.9: the cycle-15 progress view, the M1 remaining list (one not-built entry, the UI-side D-06, plus WP-S6.03, WP-S0.06 and the rest of WP-S6.02) and the cycle-16 candidates, §3.8, decision log ID-391; v0.8: the cycle-14 progress view, the M1 remaining list at six not-built entries and the cycle-15 candidates, §3.8, decision log ID-361; WP-S6.13 in M-PP and the 1.0 month of the plan of record, ID-342; v0.7: the cycle-13 progress view, the M1 gap list without fails and the cycle-14 candidates, §3.8, decision log ID-339; v0.6: the cycle-12 progress view, the M1 gap list at two fails and the cycle-13 candidates, §3.8, decision log ID-321; v0.5: the cycle-11 progress view, the M1 gap list and the cycle-12 candidates, §3.8, decision log ID-300; v0.4: the months are a human-team reference, progress is tracked in cycles, §3.8, decision log ID-271; v0.3: the G-SP re-forecast of 2026-10-20) · **Part of:** ElektraWatt plan
 
 **Purpose.** This is the global plan of ElektraWatt (EW). It turns the [work breakdown](02-work-packages.md) (123
 work packages, WPs, with three-point estimates and dependencies) into a capacity model, milestone dates for teams
@@ -458,7 +458,7 @@ estimates in pw stay the measure of size and of the velocity ratio of §3.7.
 **Observed throughput.** Cycles 1 to 16 (2026-10-18 to 2026-10-22) delivered the two technical M0 work packages
 and 17 of the 22 M1 work packages in whole or in large part, about 28 deliveries when a work package delivered in
 parts (WP-S1.05, WP-S1.07, WP-S3.03, WP-S3.05, WP-S6.01, WP-S7.01) counts each part, plus the QET project import
-spike pulled forward from M3, Golden C's migration report and the first `ew-checks` rule packs (WP-S1.15 and WP-S1.16a scope) in cycle 12, and the SQL projection v0 (WP-S1.10), wire numbering and the golden PLC and bus records (WP-S1.21 in part) in cycle 13, and the PDF checks, the SVG export, five rules, the exports and the freshness check in cycle 14, and the export job with `ew export pdf|svg`, `ew apply`, the typed assembly aspect with the assembly BOM and the import modes in cycle 15, with the builder DSL of AC-15 path (b) and the command fuzzer (WP-S6.01 delivered, WP-S6.02 in part), and the device tree, PLC records, supply origin and library copies through commands with AC-15 path (b) passing and the user guide with its generated reference (WP-S0.06 in part) in cycle 16: roughly **2–3 work packages per cycle**, plus the follow-up tasks of each review (293 recorded, 63 closed; Appendix B of the
+spike pulled forward from M3, Golden C's migration report and the first `ew-checks` rule packs (WP-S1.15 and WP-S1.16a scope) in cycle 12, and the SQL projection v0 (WP-S1.10), wire numbering and the golden PLC and bus records (WP-S1.21 in part) in cycle 13, and the PDF checks, the SVG export, five rules, the exports and the freshness check in cycle 14, and the export job with `ew export pdf|svg`, `ew apply`, the typed assembly aspect with the assembly BOM and the import modes in cycle 15, with the builder DSL of AC-15 path (b) and the command fuzzer (WP-S6.01 delivered, WP-S6.02 in part), and the device tree, PLC records, supply origin and library copies through commands with AC-15 path (b) passing and the user guide with its generated reference (WP-S0.06 in part) in cycle 16: roughly **2–3 work packages per cycle**, plus the follow-up tasks of each review (301 recorded after the G-M1 readiness run, 63 closed; Appendix B of the
 [work breakdown](02-work-packages.md#appendix-b-follow-up-tasks-from-the-implementation-cycles)). Owner-side items
 (legal gates, enrolments, pilot answers, approvals of goldens and downloads) do not follow the cycle pace; they are
 listed separately because they, not the agents' throughput, bound the gates.
@@ -476,6 +476,24 @@ At the observed throughput the M1 development work left after cycle 16 is about 
 not a commitment); the owner-side items decide when G-M1 can be held. The figure is re-read after every cycle from
 the table above, which the design pass of each cycle updates with the work-package statuses of the
 [work breakdown](02-work-packages.md).
+
+**G-M1 readiness (2026-10-22, at the cycle-16 delivery de23b55; decision log ID-419 to ID-426).** The readiness run
+of the [gates](03-gates.md) §3.3 finds G-M1 **not ready**: 4 of its 15 hard criteria are met (AC-14 on Linux, AC-15
+and AC-16, AC-18 and AC-20, AC-39), and 6 of the 10 must criteria are open; G-M0 has not been held. The headless
+engineering is close to done; what development still owes is gate evidence: the CI jobs the gate names and that do
+not exist (veraPDF, the headless container, coverage, the deep nightly and the fuzz targets: FT-294 to FT-297), the
+sample reader, the nightly CLI artefact and the golden change list (FT-298 to FT-300), the G-SP re-test with the XL
+benches and the in-gate seeded slowdown (FT-287, FT-288), FT-271 and the tasks due before the page approvals, about
+two cycles after cycle 17 rather than the one cycle estimated above; the remaining list above had also left out
+FT-87 to FT-92, which the run proposes to re-date to before G-PP. The owner side bounds the date: LG-5 and the G-M0
+decisions, LG-1, LG-2 with counsel (and the CC-BY-SA question, ID-383), ADR-0030 with counsel and the enrolment
+submissions, a second named code owner, and the BM-class runner (DEC-034) with seven green nights; the pilot's PNG
+approval, acknowledgement, answers and side-by-side review are the conditions. The run proposes a content-triggered
+date rule (ID-421: G-M1 within two weeks after the later of a clean repeated readiness run and the last owner-side
+hard item on file, G-M0 first) and three owner rulings (D-06's property-grid half at G-M2, G-M1-24 to -26 under the
+cycle-based plan, the second code owner). Report and pack draft:
+[G-M1-2026-10-readiness.md](gate-records/G-M1-2026-10-readiness.md),
+[G-M1-2026-10-pack-draft.md](gate-records/G-M1-2026-10-pack-draft.md).
 
 **The pilot's projects** (received 2026-10-20, decision log ID-272). Three of the pilot's QElectroTech projects,
 held privately, have 18 to 36 folios and at most 1,445 placed elements and 718 conductors: all inside class S. The
