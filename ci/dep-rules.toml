@@ -179,6 +179,13 @@ crate = "ew-commands"
 feature = "testkit"
 allowed_kinds = ["dev"]
 
+# WP-S2.03 §7.6: the probe tool's seam (`ShellModel::set_tool_for_tests`) is for tests only; the binaries never build
+# it, so no shipped path can install a tool that commits.
+[[banned_features]]
+crate = "ew-viewmodel"
+feature = "testkit"
+allowed_kinds = ["dev"]
+
 [[banned_features]]
 crate = "rhai"
 feature = "unchecked"

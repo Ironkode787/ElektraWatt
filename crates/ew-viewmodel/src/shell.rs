@@ -35,9 +35,11 @@ mod canvas_actions;
 mod navigation;
 mod onboarding;
 mod projects;
+mod tools;
 mod workspaces;
 
 pub use navigation::{Focus, RECENT_PAGES, SessionCalls};
+pub use tools::SnapIndicator;
 
 /// Who drives the shell: the window or the headless runner. They share `dispatch`; the modes differ only where a
 /// person can be asked (a dialog) and a script cannot.
@@ -342,6 +344,8 @@ pub struct ShellModel {
     page_content_calls: Cell<u64>,
     /// The project sessions opened so far (the source of [`Project`]'s epoch).
     epochs: u64,
+    /// The canvas tool host (WP-S2.03 part 2): the active tool, its overlay, the preview, the selection.
+    tools: crate::tools::ToolHost,
 }
 
 /// The directory's own name, never its path.
@@ -472,6 +476,34 @@ fn clears_banner(id: &str) -> bool {
             | "ui.focus"
             | "ui.focus_next"
             | "ui.focus_previous"
+            // The tool framework's input leaves a banner standing too (WP-S2.03 part 2): a pointer, a press, a rest or
+            // a key of the canvas must not dismiss what the banner says (a failed commit, for one).
+            | "canvas.press"
+            | "canvas.release"
+            | "canvas.dwell"
+            | "canvas.activate"
+            | "canvas.preview_snapshot"
+            | "tool.select"
+            | "tool.measure"
+            | "tool.back"
+            | "cp.next"
+            | "cp.previous"
+            | "cp.next_unconnected"
+    )
+}
+
+/// Whether dispatching `id` leaves the link hover preview standing: the rest that shows it, the describe text, the
+/// snapshots and Escape (which closes it as the topmost popup); every other action (a pointer move, a cursor move, a
+/// view action) clears it (WP-S2.03 §7.8).
+fn keeps_link_preview(id: &str) -> bool {
+    matches!(
+        id,
+        "canvas.dwell"
+            | "ui.describe"
+            | "ui.dismiss"
+            | "canvas.preview_snapshot"
+            | "canvas.snapshot"
+            | "view.snapshot"
     )
 }
 
@@ -528,6 +560,7 @@ impl ShellModel {
             canvas_error: None,
             page_content_calls: Cell::new(0),
             epochs: 0,
+            tools: crate::tools::ToolHost::new(),
         };
         model.load_active_workspace();
         model
@@ -922,9 +955,14 @@ impl ShellModel {
         if let Err(reason_key) = (meta.enabled)(self) {
             return Outcome::Refused { reason_key };
         }
+        if !keeps_link_preview(meta.id) {
+            self.tools.link_preview = None;
+        }
         let outcome = self.run_action(meta.id, p);
-        // The canvases follow the pages and the revision the action left (WP-S2.02 section 6.1, WP-S2.03 §6.2).
+        // The canvases follow the pages and the revision the action left (WP-S2.02 section 6.1, WP-S2.03 §6.2), and a
+        // busy tool is escaped when its canvas changed (WP-S2.03 §7.2).
         self.sync_views();
+        self.sync_tool_context();
         outcome
     }
 
@@ -1018,7 +1056,17 @@ impl ShellModel {
             "view.pan" => self.act_pan(p),
             "view.canvas_resize" => self.act_canvas_resize(p),
             "canvas.pointer" => self.act_pointer(p),
-            "canvas.snapshot" => failed("message-no-snapshot", &[]),
+            "canvas.snapshot" | "canvas.preview_snapshot" => failed("message-no-snapshot", &[]),
+            "canvas.press" => self.act_press(p, false),
+            "canvas.release" => self.act_press(p, true),
+            "canvas.dwell" => self.act_dwell(p),
+            "canvas.activate" => self.act_activate(),
+            "tool.back" => self.act_tool_back(),
+            "tool.select" => self.act_tool("select"),
+            "tool.measure" => self.act_tool("measure"),
+            "cp.next" => self.act_cp_step(p, tools::CpStep::Next),
+            "cp.previous" => self.act_cp_step(p, tools::CpStep::Previous),
+            "cp.next_unconnected" => self.act_cp_step(p, tools::CpStep::NextUnconnected),
             "ui.describe" => Outcome::Done,
             "view.ui_scale" => self.act_ui_scale(p),
             "tools.palette" => self.act_palette(p),
@@ -1261,6 +1309,7 @@ impl ShellModel {
         }
         self.area = None;
         self.focus = None;
+        self.reset_tools();
     }
 
     /// Ends the shell at the end of a run or of the window (also on a log-off): a clean project is closed, a dirty
@@ -1459,13 +1508,18 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// Escape: closes the palette or the dialog; with neither open it does nothing (NFR-UX-07). A banner has a
-    /// button of its own, [`ShellModel::dismiss_banner`].
+    /// Escape (NFR-UX-07, WP-S2.03 §7.2): closes the topmost popup or dialog (the palette, then a dialog, then the
+    /// link preview); with none open it sends `Escape` to the active tool, and when the tool was in its first state
+    /// a tool other than Select is replaced by Select and Select's selection is cleared. A banner has a button of its
+    /// own, [`ShellModel::dismiss_banner`].
     fn act_dismiss(&mut self) -> Outcome {
-        if self.palette.take().is_none() {
-            self.dialog = None;
+        if self.palette.take().is_some()
+            || self.dialog.take().is_some()
+            || self.tools.link_preview.take().is_some()
+        {
+            return Outcome::Done;
         }
-        Outcome::Done
+        self.dismiss_tool()
     }
 
     /// The banner's own button.
@@ -1513,8 +1567,13 @@ impl ShellModel {
             Some(v @ Value::Object(_)) => v.clone(),
             Some(_) => return failed("error-bad-param", &["params"]),
         };
-        // One command-log line through the session's own replay: reference resolution, preview and commit for bulk
-        // commands, one undo step, origin CmdLog (spec section 6.3).
+        self.run_logged(cmd, params)
+    }
+
+    /// One command-log line through the session's own replay: reference resolution, preview and commit for bulk
+    /// commands, one undo step, origin CmdLog (WP-S2.01 spec section 6.3); a committed step joins the record. The
+    /// path of `command.run` and of the tool host's headless commits (WP-S2.03 §7.3).
+    fn run_logged(&mut self, cmd: String, params: Value) -> Outcome {
         let text = format!(
             "{}\n{}\n",
             json!({"$schema": ew_api::CMDLOG_SCHEMA, "label": self.origin_file}),
@@ -1533,6 +1592,7 @@ impl ShellModel {
         let before = project.session.history().cursor();
         let result = project.session.run_script(&log, &file);
         let committed = project.session.history().cursor() > before;
+        self.count(|c| c.run_script += 1);
         let outcome = match result {
             Ok(_) => Outcome::Done,
             Err(e) => failed("error-command", &[&e.to_string()]),

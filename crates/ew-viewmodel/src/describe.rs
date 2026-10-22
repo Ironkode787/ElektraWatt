@@ -122,6 +122,24 @@ pub const VOCABULARY: &[&str] = &[
     "cell",
     "link",
     "external",
+    // The tool framework (WP-S2.03 part 2, decision log ID-537): 17 words, a reviewed vocabulary change.
+    "tool",
+    "state",
+    "idle",
+    "pressed",
+    "rubber-band",
+    "armed",
+    "measuring",
+    "hint",
+    "snap",
+    "cp",
+    "at",
+    "selection",
+    "stale",
+    "failed",
+    "tags",
+    "xrefs",
+    "overlay",
 ];
 
 /// The markers after which the rest of the line is user text (a title, a banner, an error, a reason, a folio, a
@@ -487,7 +505,17 @@ fn canvas_lines(model: &ShellModel, lines: &mut Vec<String>) {
         None => lines.push("canvas hover none".to_owned()),
     }
     match c.cursor() {
-        Some((x, y)) => lines.push(format!("canvas cursor {} {} mm{}", mm3(x), mm3(y), cell((x, y)))),
+        Some((x, y)) => {
+            let cp = c
+                .cursor_cp()
+                .map_or_else(String::new, |cp| format!(" cp \"{}\"", cp.label));
+            lines.push(format!(
+                "canvas cursor {} {} mm{}{cp}",
+                mm3(x),
+                mm3(y),
+                cell((x, y))
+            ));
+        }
         None => lines.push("canvas cursor none".to_owned()),
     }
     match c.hovered_link() {
@@ -505,6 +533,76 @@ fn canvas_lines(model: &ShellModel, lines: &mut Vec<String>) {
         lines.push("canvas statistics shown".to_owned());
     }
     lines.push(format!("canvas renderer {}", crate::script::renderer_word(model)));
+    tool_lines(model, lines);
+}
+
+/// The tool lines after the canvas lines (WP-S2.03 §7.9): the active tool, the snap indicator, the selection, the
+/// kept preview, the overlay with its labels and the link preview while shown. The tool's label and hint, a failed
+/// preview's message and the labels are quoted user text.
+fn tool_lines(model: &ShellModel, lines: &mut Vec<String>) {
+    let tool = model.tool();
+    lines.push(format!(
+        "canvas tool \"{}\" state {} hint \"{}\"",
+        crate::tools::tool_label(tool.name()),
+        tool.state(),
+        model.tool_hint()
+    ));
+    match model.snap_indicator() {
+        Some(s) => {
+            let (x, y) = s.at_nm;
+            match &s.label {
+                Some(label) => lines.push(format!(
+                    "canvas snap {} \"{label}\" at {} {} mm",
+                    s.kind.word(),
+                    mm3(x),
+                    mm3(y)
+                )),
+                None => lines.push(format!(
+                    "canvas snap {} at {} {} mm",
+                    s.kind.word(),
+                    mm3(x),
+                    mm3(y)
+                )),
+            }
+        }
+        None => lines.push("canvas snap none".to_owned()),
+    }
+    let selection = model.selection();
+    if selection.is_empty() {
+        lines.push("canvas selection none".to_owned());
+    } else {
+        let ids: Vec<String> = selection.items.iter().map(|e| format!("\"{}\"", e.0)).collect();
+        lines.push(format!(
+            "canvas selection {} {}",
+            selection.items.len(),
+            ids.join(" ")
+        ));
+    }
+    match (model.preview_state(), model.preview_status()) {
+        (Some(p), Some(status)) => match &p.result {
+            Err(message) => lines.push(format!("canvas preview failed \"{}\" \"{message}\"", p.name)),
+            Ok(_) => lines.push(format!(
+                "canvas preview {} \"{}\" tags {} xrefs {}",
+                status.word(),
+                p.name,
+                p.derived.tags.len(),
+                p.derived.xrefs.len()
+            )),
+        },
+        _ => lines.push("canvas preview none".to_owned()),
+    }
+    let overlay = model.tool_overlay();
+    let labels: Vec<&str> = overlay.labels().collect();
+    if labels.is_empty() {
+        lines.push(format!("canvas overlay {}", overlay.len()));
+    } else {
+        for label in labels {
+            lines.push(format!("canvas overlay {} label \"{label}\"", overlay.len()));
+        }
+    }
+    if let Some(lp) = model.link_preview() {
+        lines.push(format!("canvas link preview \"{}\"", lp.target.folio));
+    }
 }
 
 fn dialog(model: &ShellModel, lines: &mut Vec<String>) {

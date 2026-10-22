@@ -248,8 +248,29 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `canvas.pointer` on a group (default the focused one); the other group's pointer is cleared.
+    /// `canvas.pointer` on a group (default the focused one); the other group's pointer is cleared. With a point on
+    /// the focused group the active tool gets `PointerMove` with the optional `shift`, `ctrl` and `alt` (WP-S2.03
+    /// §7.9).
     pub(super) fn act_pointer(&mut self, p: &Map<String, Value>) -> Outcome {
+        let out = self.set_pointer_of(p);
+        if out != Outcome::Done {
+            return out;
+        }
+        match (point_mm(p), self.group_param(p)) {
+            (Ok(Some(at)), Ok(g)) => {
+                let mods = crate::tools::Mods {
+                    shift: super::flag(p, "shift"),
+                    ctrl: super::flag(p, "ctrl"),
+                    alt: super::flag(p, "alt"),
+                };
+                self.pointer_moved(g, at, mods)
+            }
+            _ => out,
+        }
+    }
+
+    /// The pointer part of `canvas.pointer`.
+    fn set_pointer_of(&mut self, p: &Map<String, Value>) -> Outcome {
         let point = match point_mm(p) {
             Ok(point) => point,
             Err(e) => return e,

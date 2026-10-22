@@ -1690,6 +1690,42 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
     // The CPU renderer setting (WP-S2.02 part 2).
     done(&mut sample, "view.cpu_canvas", json!({}));
     texts.push(sample.describe());
+    // The tool framework (WP-S2.03 part 2): Select pressed and its rubber band, Measure armed on a connection point
+    // and measuring. (The preview words `stale`, `failed`, `tags` and `xrefs` need a tool that previews, which only
+    // the test-only probe is: `tests/probe.rs` checks them.)
+    // An entity whose centre is no link (a press on a link follows it rather than selecting).
+    let (x, y) = {
+        let c = sample.canvas().unwrap();
+        c.page()
+            .entities
+            .iter()
+            .map(|(_, r)| ew_viewmodel::canvas::rect_centre(*r))
+            .find(|p| c.link_at(*p).is_none())
+            .expect("an entity off the links")
+    };
+    let at = json!({"x_mm": x as f64 / 1e6, "y_mm": y as f64 / 1e6});
+    done(&mut sample, "canvas.press", at.clone());
+    texts.push(sample.describe());
+    done(
+        &mut sample,
+        "canvas.pointer",
+        json!({"x_mm": x as f64 / 1e6 + 30.0, "y_mm": y as f64 / 1e6 + 20.0}),
+    );
+    texts.push(sample.describe());
+    done(
+        &mut sample,
+        "canvas.release",
+        json!({"x_mm": x as f64 / 1e6 + 30.0, "y_mm": y as f64 / 1e6 + 20.0}),
+    );
+    texts.push(sample.describe());
+    done(&mut sample, "tool.measure", json!({}));
+    done(&mut sample, "cp.next", json!({}));
+    texts.push(sample.describe());
+    done(&mut sample, "canvas.activate", json!({}));
+    done(&mut sample, "cp.next", json!({}));
+    texts.push(sample.describe());
+    done(&mut sample, "ui.dismiss", json!({}));
+    done(&mut sample, "ui.dismiss", json!({}));
     // The page navigator's views, sorts and a collapsed node; side by side and the focus (WP-S2.03 part 1).
     done(&mut sample, "pages.mode", json!({"mode": "flat"}));
     texts.push(sample.describe());
@@ -1727,7 +1763,10 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
     // (`disabled` without a reason cannot be reached through the registry today; `external`, a link to another
     // project, needs a cross-reference whose target is outside the page order, which Golden A does not draw.)
     assert!(
-        unused.iter().all(|w| **w == "disabled" || **w == "external"),
+        unused.iter().all(|w| matches!(
+            **w,
+            "disabled" | "external" | "stale" | "failed" | "tags" | "xrefs"
+        )),
         "words of the vocabulary no state used: {unused:?}"
     );
 }

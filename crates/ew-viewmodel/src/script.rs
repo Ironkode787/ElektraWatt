@@ -20,7 +20,10 @@
 //! `null`), `backend` (the label), `statistics` (whether the overlay is shown) and `renderer` (the `canvas_backend`
 //! setting, `auto` or `cpu`; WP-S2.02 part 2), then (WP-S2.03 part 1) `cursor_nm` (the grid cursor, `[x, y]` or
 //! `null`), `cell` (the status bar's cursor cell or `null`) and `link` (the hovered link: `{"folio", "cell"}`,
-//! `{"external": true}` or `null`). After `canvas` come `tabs` (`null` without a project, else
+//! `{"external": true}` or `null`), then (WP-S2.03 part 2) `tool` (`{"name", "state"}`), `snap` (`{"kind", "at_nm",
+//! "label"}` or `null`), `selection` (the selected entities' UUIDs in selection order), `preview` (`{"command",
+//! "state": "ready" | "stale" | "failed", "tags", "xrefs"}` or `null`), `overlay` (the number of overlay items) and
+//! `link_preview` (the link preview's target folio or `null`). After `canvas` come `tabs` (`null` without a project, else
 //! `{"focused": [g, i], "groups": [[{"id", "folio", "back", "forward"}, …], …]}`), `focus` (`navigator`, `canvas`
 //! or `null`) and `navigator` (`null`, or `{"mode", "sort", "filter", "row"}`). Nothing in it depends on time,
 //! process or location: two runs of one script on equal inputs give equal bytes.
@@ -344,7 +347,62 @@ fn canvas_json(shell: &ShellModel) -> String {
         member("cursor_nm", &cursor),
         member("cell", &cell),
         format!("\"link\":{link}"),
+        format!("\"tool\":{}", tool_json(shell)),
+        format!("\"snap\":{}", snap_json(shell)),
+        member(
+            "selection",
+            &Value::from(
+                shell
+                    .selection()
+                    .items
+                    .iter()
+                    .map(|e| e.0.to_string())
+                    .collect::<Vec<_>>(),
+            ),
+        ),
+        format!("\"preview\":{}", preview_json(shell)),
+        member("overlay", &Value::from(shell.tool_overlay().len())),
+        member(
+            "link_preview",
+            &shell
+                .link_preview()
+                .map_or(Value::Null, |lp| Value::from(lp.target.folio.as_str())),
+        ),
     ])
+}
+
+/// The `tool` member of the canvas: `{"name", "state"}`.
+fn tool_json(shell: &ShellModel) -> String {
+    let tool = shell.tool();
+    object(vec![
+        member("name", &Value::from(tool.name())),
+        member("state", &Value::from(tool.state())),
+    ])
+}
+
+/// The `snap` member of the canvas: the snap indicator `{"kind", "at_nm", "label"}` or `null`.
+fn snap_json(shell: &ShellModel) -> String {
+    match shell.snap_indicator() {
+        None => "null".to_owned(),
+        Some(s) => object(vec![
+            member("kind", &Value::from(s.kind.word())),
+            member("at_nm", &Value::from(vec![s.at_nm.0, s.at_nm.1])),
+            member("label", &s.label.as_deref().map_or(Value::Null, Value::from)),
+        ]),
+    }
+}
+
+/// The `preview` member of the canvas: `{"command", "state", "tags", "xrefs"}` or `null`.
+fn preview_json(shell: &ShellModel) -> String {
+    match (shell.preview_state(), shell.preview_status()) {
+        (Some(p), Some(status)) => object(vec![
+            member("command", &Value::from(p.name.as_str())),
+            member("state", &Value::from(status.word())),
+            member("tags", &Value::from(p.derived.tags.len())),
+            member("xrefs", &Value::from(p.derived.xrefs.len())),
+        ]),
+        _ => "null".to_owned(),
+    }
 }
 
 /// The `tabs` member as JSON text: `null` without a project, else `{"focused": [g, i], "groups": [[{"id", "folio",

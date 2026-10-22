@@ -240,7 +240,7 @@ fn the_smoke_script_runs_on_golden_a() {
     );
     assert!(describe.contains("menu File"));
     assert!(
-        describe.contains("status bar: Read-only view | 1 (1 of "),
+        describe.contains("status bar: Click to select; drag for a rubber band | 1 (1 of "),
         "{describe}"
     );
     // Transcripts carry no path.

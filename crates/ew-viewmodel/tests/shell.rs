@@ -93,7 +93,8 @@ fn the_shell_starts_on_the_start_page_and_opens_a_project() {
     assert!(shell.page_count() > 3);
     assert_eq!(shell.page_index(), 0);
     let status = shell.status_fields(false);
-    assert_eq!(status[0], "Read-only view");
+    // The hint is the active tool's (Select's; WP-S2.03 §7.2).
+    assert_eq!(status[0], "Click to select; drag for a rubber band");
     assert_eq!(
         status[1],
         format!("{} (1 of {})", shell.page_labels()[0], shell.page_count())

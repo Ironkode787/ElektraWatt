@@ -54,6 +54,24 @@ pub struct SessionCalls {
     pub link_targets: u64,
     /// `Session::resolve_goto`.
     pub resolve_goto: u64,
+    /// `Session::page_cps` (WP-S2.03 part 2).
+    pub page_cps: u64,
+    /// `Session::preview_with` (the tool host's previews, and a bulk command's preview before its commit).
+    pub preview_with: u64,
+    /// `Session::commit` of a tool's preview (the window).
+    pub commit: u64,
+    /// `Session::execute_with` of a tool's command (the window, without a fresh preview).
+    pub execute_with: u64,
+    /// `Session::run_script` (`command.run` and the tool host's headless commits).
+    pub run_script: u64,
+}
+
+/// Counts one of the shell's `Session` calls (a free function, so that a call can be counted while the project is
+/// borrowed).
+pub(super) fn bump(calls: &std::cell::Cell<SessionCalls>, f: impl FnOnce(&mut SessionCalls)) {
+    let mut c = calls.get();
+    f(&mut c);
+    calls.set(c);
 }
 
 /// The page content of the current (session, revision), by folio, with a show counter.
@@ -210,10 +228,8 @@ impl ShellModel {
         c.pointer().or(c.cursor())
     }
 
-    fn count(&self, f: impl FnOnce(&mut SessionCalls)) {
-        let mut c = self.calls.get();
-        f(&mut c);
-        self.calls.set(c);
+    pub(super) fn count(&self, f: impl FnOnce(&mut SessionCalls)) {
+        bump(&self.calls, f);
     }
 
     // -----------------------------------------------------------------------------------------------------------
@@ -226,6 +242,7 @@ impl ShellModel {
         self.cache = PageCache::default();
         self.focus = None;
         self.area = None;
+        self.reset_tools();
         let rows = match &self.project {
             Some(p) => p.session.page_rows(),
             None => return,
@@ -284,7 +301,7 @@ impl ShellModel {
     }
 
     /// The page content of `folio` at the current revision, through the cache (built once per entry).
-    fn page_for(&mut self, folio: &str) -> Result<Arc<CanvasPage>, String> {
+    pub(super) fn page_for(&mut self, folio: &str) -> Result<Arc<CanvasPage>, String> {
         let (Some(epoch), Some(rev)) = (self.project_epoch(), self.revision()) else {
             return Err(strings::text("reason-no-project").to_owned());
         };
@@ -319,8 +336,8 @@ impl ShellModel {
         }
     }
 
-    /// Builds the page content of `folio`: the sheet display list, the grid, the cells and the links with their
-    /// targets in reading order.
+    /// Builds the page content of `folio`: the sheet display list, the grid, the cells, the connection points (and
+    /// with them the snapper) and the links with their targets in reading order.
     fn build_page(&self, folio: &str, epoch: u64, rev: u64) -> Result<CanvasPage, String> {
         let pages = self.page_content(folio)?;
         let Some(first) = pages.pages.into_iter().next() else {
@@ -346,6 +363,8 @@ impl ShellModel {
         page.session = epoch;
         page.cells = project.session.page_cells(folio);
         self.count(|c| c.page_cells += 1);
+        page.set_cps(project.session.page_cps(folio));
+        self.count(|c| c.page_cps += 1);
         let sources = page.list.link_sources();
         if !sources.is_empty() {
             let dests: Vec<Destination> = sources
@@ -375,13 +394,17 @@ impl ShellModel {
 
     /// Keeps the cache's pages of every tab plus the most recently shown others.
     fn trim_cache(&mut self) {
-        let shown: BTreeSet<String> = match &self.area {
+        let mut shown: BTreeSet<String> = match &self.area {
             Some(a) => a
                 .tabs()
                 .filter_map(|(_, _, t)| self.tab_row(t).map(|r| r.folio.clone()))
                 .collect(),
             None => BTreeSet::new(),
         };
+        // The link preview's page is on show too (WP-S2.03 §7.8).
+        if let Some(lp) = self.link_preview() {
+            shown.insert(lp.target.folio.clone());
+        }
         let mut others: Vec<(u64, String)> = self
             .cache
             .pages
@@ -758,7 +781,17 @@ impl ShellModel {
             (Some(at), _) | (None, Some(at)) => c.link_at(at),
             (None, None) => c.pointer().and_then(|at| c.link_at(at)),
         };
-        let Some(link) = index.and_then(|i| c.page().links.get(i)) else {
+        match index {
+            Some(i) => self.follow_link(g, i),
+            None => Outcome::Refused {
+                reason_key: "reason-no-link",
+            },
+        }
+    }
+
+    /// Follows link `index` of group `g`'s page: a jump to its target, the cursor at the target point.
+    pub(super) fn follow_link(&mut self, g: usize, index: usize) -> Outcome {
+        let Some(link) = self.canvas_of(g).and_then(|c| c.page().links.get(index)) else {
             return Outcome::Refused {
                 reason_key: "reason-no-link",
             };
@@ -805,6 +838,7 @@ impl ShellModel {
             keys.iter().rposition(|k| *k < here).unwrap_or(keys.len() - 1)
         };
         c.put_cursor(Some(rect_centre(page.links[at].rect)));
+        self.cursor_moved(g);
         Outcome::Done
     }
 
@@ -885,6 +919,7 @@ impl ShellModel {
                 } else {
                     c.cursor_step(dx, dy);
                 }
+                self.cursor_moved(g);
                 Outcome::Done
             }
             None => Outcome::Refused {
@@ -908,6 +943,7 @@ impl ShellModel {
                     Some(at) => c.place_cursor(at),
                     None => c.put_cursor(None),
                 }
+                self.cursor_moved(g);
                 Outcome::Done
             }
             None => Outcome::Refused {

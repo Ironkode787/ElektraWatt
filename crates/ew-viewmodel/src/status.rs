@@ -4,7 +4,8 @@
 //! The status-bar model (WP-S2.01 part 1, spec section 5.3; WP-S2.02 part 1, spec section 6.5; UX/UI doc 16
 //! section 3.6).
 //!
-//! Left to right: the hint (`Read-only view`, or the hovered link's target), the page as `<folio> (<n> of <total>)`,
+//! Left to right: the hint (the active tool's status hint, or the hovered link's target while the tool shows the
+//! hover; WP-S2.03 §7.2), the page as `<folio> (<n> of <total>)`,
 //! the cursor `102-H15 · x 255.0 y 172.5 mm` (the cell where one exists, then sheet coordinates: the pointer over
 //! the focused canvas, else the grid cursor, else left out; WP-S2.03 §6.5, FT-345), the zoom `156 %`, the grid (`QET 10 px`, a pitch
 //! such as `4 mm`, or `Grid off`), the save state (`*` unsaved, `saved`, or `read-only: <reason>`), the canvas
@@ -47,7 +48,7 @@ pub fn canvas_node(model: &ShellModel, group: usize) -> Option<CanvasNodeText> {
     let mut description = strings::format(
         "canvas-description",
         &[
-            &hint_of(c),
+            &hint_of(model, c),
             &strings::format("status-zoom", &[&zoom_percent_text(c.zoom())]),
         ],
     );
@@ -66,9 +67,19 @@ pub fn canvas_node(model: &ShellModel, group: usize) -> Option<CanvasNodeText> {
             if let Some(label) = c.cursor_link().and_then(crate::canvas::PageLink::label) {
                 live.push_str(&strings::format("canvas-cursor-live-link", &[&label]));
             }
+            if let Some(cp) = c.cursor_cp() {
+                live.push_str(&strings::format("canvas-cursor-live-cp", &[&cp.label]));
+            }
             live
         })
         .unwrap_or_default();
+    // A tool's state change or a selection change is said until the cursor moves again (WP-S2.03 §7.2, §7.6); it is
+    // the focused group's.
+    let focused = model.area().map(|a| a.focused) == Some(group);
+    let live = match model.tool_announcement() {
+        Some(text) if focused => text.to_owned(),
+        _ => live,
+    };
     Some(CanvasNodeText {
         name: strings::format("canvas-name", &[&page.folio, &page.title]),
         description,
@@ -76,22 +87,24 @@ pub fn canvas_node(model: &ShellModel, group: usize) -> Option<CanvasNodeText> {
     })
 }
 
-/// The hint of one canvas: the hovered link's target, else `Read-only view`.
-fn hint_of(c: &crate::canvas::CanvasModel) -> String {
-    match c.hovered_link() {
+/// The hint of one canvas: the hovered link's target while the active tool shows the hover, else the tool's status
+/// hint (WP-S2.03 §6.4, §7.2).
+fn hint_of(model: &ShellModel, c: &crate::canvas::CanvasModel) -> String {
+    match c.hovered_link().filter(|_| model.tool().wants_hover()) {
         Some(link) => match link.label() {
             Some(label) => strings::format("status-hint-link", &[&label]),
             None => strings::text("status-hint-link-external").to_owned(),
         },
-        None => strings::text("status-hint-view").to_owned(),
+        None => model.tool_hint().to_owned(),
     }
 }
 
-/// The hint field: `Read-only view`, or the hovered link's `Click or F: go to <label>` (WP-S2.03 §6.4).
+/// The hint field: the active tool's status hint (`Click to select; drag for a rubber band`), or the hovered link's
+/// `Click or F: go to <label>` (WP-S2.03 §6.4, §7.2).
 pub fn hint(model: &ShellModel) -> String {
     match model.canvas() {
-        Some(c) => hint_of(c),
-        None => strings::text("status-hint-view").to_owned(),
+        Some(c) => hint_of(model, c),
+        None => model.tool_hint().to_owned(),
     }
 }
 

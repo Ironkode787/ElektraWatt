@@ -353,8 +353,17 @@ fn a8_the_transcript_and_the_describe_text_carry_the_canvas() {
     assert_eq!(lines[pv + 6], "canvas link none");
     assert_eq!(lines[pv + 7], "canvas backend \"CPU\"");
     assert_eq!(lines[pv + 8], "canvas renderer auto");
+    // The tool lines (WP-S2.03 part 2).
+    assert_eq!(
+        lines[pv + 9],
+        "canvas tool \"Select\" state idle hint \"Click to select; drag for a rubber band\""
+    );
+    assert_eq!(lines[pv + 10], "canvas snap none");
+    assert_eq!(lines[pv + 11], "canvas selection none");
+    assert_eq!(lines[pv + 12], "canvas preview none");
+    assert_eq!(lines[pv + 13], "canvas overlay 0");
     assert!(
-        lines[pv + 9].starts_with("workspace "),
+        lines[pv + 14].starts_with("workspace "),
         "no statistics line while off"
     );
     // The pointer at an entity's centre: that entity (or a smaller one there) in hover, its box in the describe line.

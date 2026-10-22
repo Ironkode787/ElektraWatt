@@ -32,5 +32,6 @@ pub mod settings;
 pub mod shell;
 pub mod status;
 pub mod strings;
+pub mod tools;
 pub mod wizard;
 mod wizard_data;

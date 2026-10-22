@@ -34,7 +34,9 @@ use std::sync::Arc;
 
 use ew_api::output::ew_dl::ew_units::{Nm, Rect};
 use ew_api::output::ew_dl::{Destination, DisplayList, EntityRef};
-use ew_api::output::{LinkTarget, PageCells, PageGrid, PageRow};
+use ew_api::output::{LinkTarget, PageCells, PageCp, PageGrid, PageRow};
+
+use crate::tools::Snapper;
 
 /// A page of the page order by its stable identity (`PageRow::id`), held as the page's own PDF destination
 /// (`Destination::Page`, `ew:p:<uuid>`): a renumber that changes folios keeps it (WP-S2.03 §6.2).
@@ -358,6 +360,10 @@ pub struct CanvasPage {
     pub links: Vec<PageLink>,
     /// The page's frame cells (`Session::page_cells`); `None` for a page without a frame grid.
     pub cells: Option<PageCells>,
+    /// The connection points drawn on the page in reading order (`Session::page_cps`, WP-S2.03 §7.5).
+    pub cps: Vec<PageCp>,
+    /// The page's snapper, built from its grid and connection points.
+    pub snapper: Snapper,
 }
 
 impl CanvasPage {
@@ -371,6 +377,7 @@ impl CanvasPage {
         grid: Option<PageGrid>,
     ) -> CanvasPage {
         let entities = list.entity_bounds();
+        let snapper = Snapper::new(grid.as_ref(), &[]);
         CanvasPage {
             session: 0,
             rev,
@@ -382,7 +389,33 @@ impl CanvasPage {
             grid,
             links: Vec::new(),
             cells: None,
+            cps: Vec::new(),
+            snapper,
         }
+    }
+
+    /// Sets the page's connection points and rebuilds its snapper from them.
+    pub fn set_cps(&mut self, cps: Vec<PageCp>) {
+        self.snapper = Snapper::new(self.grid.as_ref(), &cps);
+        self.cps = cps;
+    }
+
+    /// The connection point nearest to the sheet point `p` within `slop` nm (ties to the earlier in reading
+    /// order): an index into [`CanvasPage::cps`].
+    pub fn cp_near(&self, p: (i64, i64), slop: f64) -> Option<usize> {
+        let slop = if slop.is_finite() {
+            slop.max(0.0).floor().min(9.0e15) as i128
+        } else {
+            0
+        };
+        let mut best: Option<(i128, usize)> = None;
+        for (i, cp) in self.cps.iter().enumerate() {
+            let d = crate::tools::dist2(cp.at_nm, p);
+            if d <= slop * slop && best.is_none_or(|(b, _)| d < b) {
+                best = Some((d, i));
+            }
+        }
+        best.map(|(_, i)| i)
     }
 
     /// The cell text of the sheet point `p` in the project's `ip` format (`102-H15`), if the page has a cell there.
@@ -626,26 +659,15 @@ impl CanvasModel {
     /// The link whose rectangle, inflated by [`HOVER_SLOP_PT`] at the current zoom, contains `p`: the smallest area
     /// wins, ties to the later in paint order. An index into the page's links.
     pub fn link_at(&self, p: (i64, i64)) -> Option<usize> {
-        let slop = HOVER_SLOP_PT / self.points_per_nm();
-        let slop = if slop.is_finite() { slop.max(0.0) } else { 0.0 };
-        let mut best: Option<(i128, usize, usize)> = None;
-        for (i, l) in self.page.links.iter().enumerate() {
-            let (a, b) = (l.rect.min(), l.rect.max());
-            let inside =
-                |v: i64, lo: Nm, hi: Nm| v as f64 >= lo.0 as f64 - slop && v as f64 <= hi.0 as f64 + slop;
-            if !(inside(p.0, a.x, b.x) && inside(p.1, a.y, b.y)) {
-                continue;
-            }
-            let area = i128::from(b.x.0 - a.x.0) * i128::from(b.y.0 - a.y.0);
-            let better = match best {
-                None => true,
-                Some((ba, bp, _)) => area < ba || (area == ba && l.paint > bp),
-            };
-            if better {
-                best = Some((area, l.paint, i));
-            }
-        }
-        best.map(|(_, _, i)| i)
+        crate::tools::link_at(&self.page.links, p, self.points_per_nm())
+    }
+
+    /// The connection point at the grid cursor: the nearest within [`HOVER_SLOP_PT`] at the current zoom.
+    pub fn cursor_cp(&self) -> Option<&PageCp> {
+        let at = self.cursor?;
+        self.page
+            .cp_near(at, HOVER_SLOP_PT / self.points_per_nm())
+            .and_then(|i| self.page.cps.get(i))
     }
 
     /// The link under the pointer.
@@ -924,6 +946,8 @@ mod tests {
             grid: None,
             links: Vec::new(),
             cells: None,
+            cps: Vec::new(),
+            snapper: Snapper::default(),
         })
     }
 

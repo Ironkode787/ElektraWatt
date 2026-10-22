@@ -309,6 +309,15 @@ fn can_go_forward(m: &ShellModel) -> Result<(), &'static str> {
     }
 }
 
+fn has_link_preview(m: &ShellModel) -> Result<(), &'static str> {
+    has_pages(m)?;
+    if m.link_preview().is_some() {
+        Ok(())
+    } else {
+        Err("reason-no-preview")
+    }
+}
+
 fn can_discard_journal(m: &ShellModel) -> Result<(), &'static str> {
     if m.can_discard_journal() {
         Ok(())
@@ -617,6 +626,53 @@ pub static ACTIONS: &[ActionMeta] = &[
         has_pages,
         slot(Menu::Page),
     )),
+    // Keyboard tool input (WP-S2.03 §7.7): the connection points in reading order; `[` and `]` are matched as the
+    // physical keys by the window, so they need no AltGr on QWERTZ and AZERTY (doc 16 §4.4).
+    in_canvas(act(
+        "cp.next",
+        View,
+        "action-cp-next",
+        Menu::Page,
+        &["]", "Alt+N"],
+        has_pages,
+        slot_sep(Menu::Page),
+    )),
+    in_canvas(act(
+        "cp.previous",
+        View,
+        "action-cp-previous",
+        Menu::Page,
+        &["[", "Alt+Shift+N"],
+        has_pages,
+        slot(Menu::Page),
+    )),
+    in_canvas(act(
+        "cp.next_unconnected",
+        View,
+        "action-cp-next-unconnected",
+        Menu::Page,
+        &["N"],
+        has_pages,
+        slot(Menu::Page),
+    )),
+    in_canvas(act(
+        "canvas.activate",
+        View,
+        "action-canvas-activate",
+        Menu::Page,
+        &["Enter"],
+        has_pages,
+        None,
+    )),
+    in_canvas(act(
+        "tool.back",
+        View,
+        "action-tool-back",
+        Menu::Page,
+        &["Backspace"],
+        has_pages,
+        None,
+    )),
     act(
         "view.zoom_in",
         View,
@@ -786,6 +842,24 @@ pub static ACTIONS: &[ActionMeta] = &[
         Menu::Tools,
         &["Ctrl+K", "Ctrl+Shift+P"],
         always,
+        slot(Menu::Tools),
+    ),
+    act(
+        "tool.select",
+        View,
+        "action-tool-select",
+        Menu::Tools,
+        &[],
+        has_pages,
+        slot_sep(Menu::Tools),
+    ),
+    act(
+        "tool.measure",
+        View,
+        "action-tool-measure",
+        Menu::Tools,
+        &[],
+        has_pages,
         slot(Menu::Tools),
     ),
     act(
@@ -959,6 +1033,42 @@ pub static ACTIONS: &[ActionMeta] = &[
         has_pages,
         None,
     )),
+    headless(act(
+        "canvas.preview_snapshot",
+        View,
+        "action-canvas-preview-snapshot",
+        Menu::View,
+        &[],
+        has_link_preview,
+        None,
+    )),
+    hidden(in_canvas(act(
+        "canvas.press",
+        View,
+        "action-canvas-press",
+        Menu::View,
+        &[],
+        has_pages,
+        None,
+    ))),
+    hidden(in_canvas(act(
+        "canvas.release",
+        View,
+        "action-canvas-release",
+        Menu::View,
+        &[],
+        has_pages,
+        None,
+    ))),
+    hidden(in_canvas(act(
+        "canvas.dwell",
+        View,
+        "action-canvas-dwell",
+        Menu::View,
+        &[],
+        has_pages,
+        None,
+    ))),
     headless(act(
         "ui.describe",
         View,
@@ -1350,6 +1460,7 @@ fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
             "view.frame_stats" => model.frame_stats_shown(),
             "view.cpu_canvas" => model.cpu_canvas_setting(),
             "view.side_by_side" => model.area().is_some_and(crate::area::CanvasArea::side_by_side),
+            "tool.select" | "tool.measure" => meta.id.strip_prefix("tool.") == Some(model.tool().name()),
             _ => false,
         },
         topic: crate::help::action_topic(meta.id),

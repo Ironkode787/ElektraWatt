@@ -256,7 +256,10 @@ fn a10_the_canvas_is_one_named_canvas_node() {
         .description()
         .map(|d| d.to_string())
         .unwrap_or_default();
-    assert!(description.starts_with("Read-only view, zoom "), "{description}");
+    assert!(
+        description.starts_with("Click to select; drag for a rubber band, zoom "),
+        "{description}"
+    );
     assert!(description.ends_with(" %"), "{description}");
     // The walker passes (settle runs it) and a click selects nothing.
     node.click();
