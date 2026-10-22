@@ -1,18 +1,20 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The headless canvas through the built binary (WP-S2.02 part 1, acceptance checks A6, A7 and A8): no window, no
-//! GPU, no display. Every test works on a temporary copy of Golden A with `EW_CONFIG_DIR` in a temporary
-//! directory; nothing is written into the repository.
+//! The headless canvas through the built binary (WP-S2.02 part 1, acceptance checks A6, A7 and A8; the viewer of
+//! WP-S2.03 part 1, V6 to V8 and V12; the tool framework of part 2, T7, T8 and T10): no window, no GPU, no display.
+//! Every test works on a temporary copy of Golden A with `EW_CONFIG_DIR` in a temporary directory; nothing is
+//! written into the repository.
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use ew_ui::ew_viewmodel::canvas::rect_centre;
+use ew_ui::ew_viewmodel::canvas::{HOVER_SLOP_PT, pick, rect_centre};
 use ew_ui::ew_viewmodel::ew_api::Session;
 use ew_ui::ew_viewmodel::ew_api::output::ew_dl::ew_units::Rect;
 use ew_ui::ew_viewmodel::ew_api::output::{ExportOptions, PageSelection};
+use ew_ui::ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::{Value, json};
 
 const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
@@ -685,4 +687,259 @@ fn bin_exe() -> std::path::PathBuf {
     std::env::var_os("NEXTEST_BIN_EXE_elektrawatt")
         .map(std::path::PathBuf::from)
         .unwrap_or_else(|| std::path::PathBuf::from(env!("CARGO_BIN_EXE_elektrawatt"))) // bin-exe-fallback
+}
+
+// -----------------------------------------------------------------------------------------------------------------
+// The tool framework (WP-S2.03 part 2)
+
+/// How many pixels of `rgba` have exactly the colour `c`.
+fn count(rgba: &[u8], c: [u8; 3]) -> usize {
+    rgba.as_chunks::<4>()
+        .0
+        .iter()
+        .filter(|p| p[0] == c[0] && p[1] == c[1] && p[2] == c[2])
+        .count()
+}
+
+const MEASURE: [u8; 3] = [0xA8, 0x6F, 0x00];
+const SNAP: [u8; 3] = [0x00, 0x9E, 0x73];
+const CURSOR: [u8; 3] = [0xD5, 0x5E, 0x00];
+const BAND: [u8; 3] = [0x00, 0x72, 0xB2];
+
+/// Points of `folio` read through an in-process shell as the viewer reads them: a point with no entity and no link,
+/// and the centre of a link to another page.
+fn points(dir: &Path, folio: &str) -> ((f64, f64), (f64, f64)) {
+    let config = std::env::temp_dir().join(format!(
+        "ew-tools-points-{}-{}",
+        std::process::id(),
+        COUNTER.fetch_add(1, Ordering::Relaxed)
+    ));
+    let mut shell = ShellModel::new(Mode::Headless, ShellConfig::in_dir(&config, "0.0.0-test"));
+    let open = json!({"dir": dir.to_string_lossy(), "read_only": true});
+    assert_eq!(shell.dispatch("file.open", &open), Outcome::Done);
+    assert_eq!(
+        shell.dispatch("page.goto", &json!({ "folio": folio })),
+        Outcome::Done
+    );
+    let c = shell.canvas().unwrap();
+    let slop = HOVER_SLOP_PT / c.points_per_nm();
+    let (w, h) = c.sheet();
+    let mut empty = None;
+    'scan: for y in (5_000_000..h).step_by(3_000_000) {
+        for x in (5_000_000..w).step_by(3_000_000) {
+            if pick(&c.page().entities, Some((x, y)), slop).is_none() && c.link_at((x, y)).is_none() {
+                empty = Some((x, y));
+                break 'scan;
+            }
+        }
+    }
+    let link = c
+        .page()
+        .links
+        .iter()
+        .find(|l| {
+            l.target
+                .as_ref()
+                .is_some_and(|t| t.folio != folio && t.at_nm.is_some())
+        })
+        .map(|l| rect_centre(l.rect))
+        .expect("a link to another page");
+    let mm = |p: (i64, i64)| (p.0 as f64 / 1e6, p.1 as f64 / 1e6);
+    let out = (mm(empty.expect("an empty point")), mm(link));
+    shell.shutdown();
+    let _ = std::fs::remove_dir_all(&config);
+    out
+}
+
+/// T7: the snapshot composites the Measure line, its snap markers, the grid cursor and a rubber band; twice the
+/// same bytes; labels never.
+#[test]
+fn t7_the_snapshot_composites_the_tool_overlay() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("t7");
+    let (empty, _) = points(&dir, "102");
+    let out = tmp.path("t7out");
+    std::fs::create_dir_all(&out).unwrap();
+    let p = |name: &str| out.join(name).to_string_lossy().into_owned();
+    let text = script(&[
+        (
+            "file.open",
+            json!({"dir": dir.to_string_lossy(), "read_only": true}),
+        ),
+        ("page.goto", json!({"folio": "102"})),
+        ("view.zoom_to", json!({"percent": 200})),
+        ("canvas.snapshot", json!({"path": p("plain.png")})),
+        ("tool.measure", json!({})),
+        ("cp.next", json!({})),
+        ("canvas.activate", json!({})),
+        ("cp.next", json!({})),
+        ("cp.next", json!({})),
+        ("canvas.activate", json!({})),
+        ("canvas.snapshot", json!({"path": p("measure.png")})),
+        ("ui.describe", json!({})),
+        ("ui.dismiss", json!({})),
+        ("cursor.set", json!({})),
+        ("view.fit_page", json!({})),
+        ("canvas.press", json!({"x_mm": empty.0, "y_mm": empty.1})),
+        (
+            "canvas.pointer",
+            json!({"x_mm": empty.0 + 25.0, "y_mm": empty.1 + 15.0}),
+        ),
+        ("canvas.snapshot", json!({"path": p("band.png")})),
+        ("ui.dismiss", json!({})),
+        ("file.close", json!({})),
+    ]);
+    let first = run_script(&tmp, "t7.jsonl", &text);
+    assert_eq!(first.status.code(), Some(0), "{}", stderr(&first));
+    let steps = transcript(&first);
+    let describe = steps
+        .iter()
+        .find_map(|s| s["describe"].as_str())
+        .unwrap()
+        .to_owned();
+    assert!(describe.contains("canvas overlay 4 label \"dx "), "{describe}");
+    let read = |name: &str| std::fs::read(out.join(name)).unwrap();
+    let (plain, measure, band) = (read("plain.png"), read("measure.png"), read("band.png"));
+    let again = run_script(&tmp, "t7.jsonl", &text);
+    assert_eq!(again.status.code(), Some(0));
+    assert_eq!(read("measure.png"), measure, "byte-identical");
+    assert_eq!(read("band.png"), band, "byte-identical");
+    let (_, _, plain) = decode_rgba(&plain);
+    let (_, _, measure) = decode_rgba(&measure);
+    let (_, _, band) = decode_rgba(&band);
+    assert_eq!(count(&plain, MEASURE), 0);
+    assert_eq!(count(&plain, CURSOR), 0);
+    assert!(count(&measure, MEASURE) > 20, "the measure line");
+    assert!(count(&measure, SNAP) >= 32, "the snap markers");
+    assert!(count(&measure, CURSOR) >= 20, "the grid cursor");
+    assert!(count(&band, BAND) > count(&plain, BAND) + 100, "the rubber band");
+    assert_eq!(
+        count(&band, MEASURE),
+        0,
+        "the band's snapshot has no measure line"
+    );
+}
+
+/// T8: `canvas.preview_snapshot` writes the link preview (320 × 200 points), byte-identical twice; refused without
+/// a preview.
+#[test]
+fn t8_the_preview_snapshot_is_deterministic() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("t8");
+    let (_, link) = points(&dir, "101");
+    let out = tmp.path("t8out");
+    std::fs::create_dir_all(&out).unwrap();
+    let path = out.join("preview.png").to_string_lossy().into_owned();
+    let text = script(&[
+        (
+            "file.open",
+            json!({"dir": dir.to_string_lossy(), "read_only": true}),
+        ),
+        ("page.goto", json!({"folio": "101"})),
+        ("canvas.pointer", json!({"x_mm": link.0, "y_mm": link.1})),
+        ("canvas.dwell", json!({"ms": 300})),
+        ("canvas.preview_snapshot", json!({ "path": path })),
+        ("ui.describe", json!({})),
+        ("file.close", json!({})),
+    ]);
+    let first = run_script(&tmp, "t8.jsonl", &text);
+    assert_eq!(first.status.code(), Some(0), "{}", stderr(&first));
+    let steps = transcript(&first);
+    // (Line 0 of a transcript is its header: step n is line n.)
+    let folio = steps[5]["state"]["canvas"]["link_preview"]
+        .as_str()
+        .expect("the preview's folio")
+        .to_owned();
+    assert!(
+        steps[6]["describe"]
+            .as_str()
+            .unwrap()
+            .contains(&format!("canvas link preview \"{folio}\""))
+    );
+    let bytes = std::fs::read(&path).unwrap();
+    let (w, h, rgba) = decode_rgba(&bytes);
+    assert_eq!((w, h), (320, 200));
+    assert!(count(&rgba, CURSOR) >= 20, "the cursor crosshair at the target");
+    let again = run_script(&tmp, "t8.jsonl", &text);
+    assert_eq!(again.status.code(), Some(0));
+    assert_eq!(std::fs::read(&path).unwrap(), bytes, "byte-identical");
+    // Without a preview the step is refused.
+    let refused = run_script(
+        &tmp,
+        "t8b.jsonl",
+        &script(&[
+            (
+                "file.open",
+                json!({"dir": dir.to_string_lossy(), "read_only": true}),
+            ),
+            ("canvas.preview_snapshot", json!({ "path": path })),
+        ]),
+    );
+    assert_eq!(refused.status.code(), Some(1));
+    let steps = transcript(&refused);
+    assert_eq!(steps[2]["reason"], "reason-no-preview");
+}
+
+/// T10: a Select-and-Measure script twice gives byte-identical transcripts with the tool members.
+#[test]
+fn t10_a_select_and_measure_script_is_deterministic() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("t10");
+    let (empty, link) = points(&dir, "102");
+    let text = script(&[
+        (
+            "file.open",
+            json!({"dir": dir.to_string_lossy(), "read_only": true}),
+        ),
+        ("page.goto", json!({"folio": "102"})),
+        ("canvas.press", json!({"x_mm": empty.0, "y_mm": empty.1})),
+        (
+            "canvas.pointer",
+            json!({"x_mm": empty.0 + 40.0, "y_mm": empty.1 + 30.0}),
+        ),
+        (
+            "canvas.release",
+            json!({"x_mm": empty.0 + 40.0, "y_mm": empty.1 + 30.0, "shift": true}),
+        ),
+        ("ui.describe", json!({})),
+        ("canvas.pointer", json!({"x_mm": link.0, "y_mm": link.1})),
+        ("canvas.dwell", json!({"ms": 80})),
+        ("canvas.dwell", json!({"ms": 300})),
+        ("ui.describe", json!({})),
+        ("tool.measure", json!({})),
+        ("cp.next_unconnected", json!({})),
+        ("canvas.activate", json!({})),
+        ("cp.next", json!({})),
+        (
+            "canvas.pointer",
+            json!({"x_mm": empty.0, "y_mm": empty.1, "alt": true}),
+        ),
+        ("canvas.activate", json!({})),
+        ("ui.describe", json!({})),
+        ("tool.back", json!({})),
+        ("ui.dismiss", json!({})),
+        ("ui.dismiss", json!({})),
+        ("ui.describe", json!({})),
+        ("file.close", json!({})),
+    ]);
+    let a = run_script(&tmp, "t10.jsonl", &text);
+    let b = run_script(&tmp, "t10.jsonl", &text);
+    assert_eq!(a.status.code(), Some(0), "{}", stderr(&a));
+    assert_eq!(a.stdout, b.stdout, "byte-identical transcripts");
+    let steps = transcript(&a);
+    // (Line 0 of a transcript is its header: step n is line n.)
+    let canvas = |n: usize| steps[n]["state"]["canvas"].clone();
+    assert_eq!(canvas(6)["tool"], json!({"name": "select", "state": "idle"}));
+    assert!(canvas(6)["selection"].as_array().is_some_and(|s| !s.is_empty()));
+    assert!(canvas(9)["link_preview"].is_string());
+    assert_eq!(canvas(14)["tool"]["state"], "measuring");
+    assert_eq!(canvas(14)["snap"]["kind"], "cp");
+    assert_eq!(canvas(15)["snap"]["kind"], "grid", "Alt snaps to the grid");
+    assert_eq!(canvas(17)["tool"]["state"], "armed");
+    assert_eq!(canvas(17)["overlay"], 4);
+    assert_eq!(canvas(21)["tool"]["name"], "select");
+    assert_eq!(canvas(21)["selection"], json!([]), "Escape cleared the selection");
+    let text = steps[17]["describe"].as_str().unwrap();
+    assert!(text.contains("canvas tool \"Measure\" state armed"), "{text}");
+    assert!(text.contains("canvas overlay 4 label \"dx "), "{text}");
 }
