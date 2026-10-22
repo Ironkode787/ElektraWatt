@@ -1117,7 +1117,7 @@ table shows each field's state:
 | 5 Identifiers and numbering | `project.settings.set` (the numbering schemes and the cross-reference format) | — |
 | 6 Structure and sections | `structure.create_node`, `section.create` | — |
 | 7 Revisions | `revision.create` (the first revision) | — |
-| 8 Languages and formats | `project.languages.set`: the source and translation languages (`Project.languages`) and the date format and decimal separator (`settings.formatting`); nothing reads the decimal separator yet (FT-366) | — |
+| 8 Languages and formats | `project.languages.set`: the source and translation languages (`Project.languages`) and the date format and decimal separator (`settings.formatting`); the decimal separator prints in the tables of the generated pages when no output language is set (FT-366) | — |
 | 9 Reports and checks | report blocks (cycle 23, ID-572): the golden layout through `report_block.create`, each call with `form_copies` (the form and the title block the form names, embedded from the library in the same transaction; a copy already held at the same version is reused, another version is refused; one undo step removes the block and its new copies): the table of contents on folio 2, the part list on 901, **one** terminal-diagram block on 903 (a basic project has no terminal strips and one block covers all of them, so 904 and 905 are absent), and 906 to 911 (cables, wires, PLC, potentials, device tags, revisions); a title that named a strip or a device uses `{n}` | the check scheme: **kept, "apply after finishing"**, until the review step's confirmed action (below) |
 | 11 Review and create | the basic project directory; the default basic project in the user settings | — |
 

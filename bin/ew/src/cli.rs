@@ -33,9 +33,10 @@ pub const USAGE: &str = "usage:
 `import qet` exits 0 when the import completes, even with findings; `--strict` exits 1 on lost connections or
 error findings. With `--report` and no `--report-out` stdout is exactly the report; the summary goes to stderr.
 
-`check` runs a check scheme (default `pre-delivery`, mode `release`, format `text`) over a project directory
+`check` runs a check scheme (mode `release`, format `text`) over a project directory
 (default: the nearest ancestor of the current directory holding `manifest.json`) and exits 0 with no unwaived
-errors, 1 with errors, 2 on usage and open errors.
+errors, 1 with errors, 2 on usage and open errors. Without `--scheme` the scheme is the one the project names
+(`project checks set`: `--release` for mode `release`, `--active` for mode `online`), else `pre-delivery`.
 
 `sql` runs one read-only SELECT against the SQL projection of a project (the `api_v1_*` views; `ew sql schema` prints
 them) in the sandbox of doc 17 §6.2, with the query given inline or from `--file`. The result is CSV (default) or
@@ -234,8 +235,8 @@ pub enum CheckFormat {
 pub struct CheckArgs {
     /// The project directory; `None`: found from the current directory.
     pub project: Option<PathBuf>,
-    /// The scheme name (`--scheme`).
-    pub scheme: String,
+    /// The scheme name (`--scheme`); `None`: the project's scheme for the mode, else `pre-delivery`.
+    pub scheme: Option<String>,
     /// The mode (`--mode`).
     pub mode: CheckMode,
     /// The output format (`--format`).
@@ -335,7 +336,7 @@ fn parse_import_qet(mut it: impl Iterator<Item = String>) -> Result<Command, Str
 
 fn parse_check(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
     let mut project = None;
-    let mut scheme_name = "pre-delivery".to_owned();
+    let mut scheme_name = None;
     let mut mode = CheckMode::Release;
     let mut format = CheckFormat::Text;
     let mut out = None;
@@ -346,7 +347,7 @@ fn parse_check(mut it: impl Iterator<Item = String>) -> Result<Command, String> 
                 if scheme(&name).is_none() {
                     return Err(format!("unknown scheme `{name}`"));
                 }
-                scheme_name = name;
+                scheme_name = Some(name);
             }
             "--mode" => {
                 mode = match value(&mut it, "--mode")?.as_str() {
@@ -1322,16 +1323,26 @@ fn run_check(a: &CheckArgs) -> i32 {
             }
         }
     };
-    let Some(sch) = scheme(&a.scheme) else {
-        eprintln!("error: unknown scheme `{}`", a.scheme);
-        return 2;
-    };
     let (session, opened) = match ew_api::Session::open_read_only(&dir, env!("CARGO_PKG_VERSION")) {
         Ok(r) => r,
         Err(e) => {
             eprintln!("error: {}: {e}", dir.display());
             return 2;
         }
+    };
+    // `--scheme`, else the scheme the project names for the mode (FT-366), else the shipped default.
+    let sch = match &a.scheme {
+        Some(name) => scheme(name),
+        None => session
+            .project_check_scheme(a.mode)
+            .or_else(|| scheme("pre-delivery")),
+    };
+    let Some(sch) = sch else {
+        eprintln!(
+            "error: unknown scheme `{}`",
+            a.scheme.as_deref().unwrap_or("pre-delivery")
+        );
+        return 2;
     };
     // The integrity findings of opening (EW-CORE-001 … 019) join the report: in release mode the "n r"
     // errors count and set the exit code (doc 15 §4.2).
@@ -1530,7 +1541,7 @@ mod tests {
             panic!("parse failed");
         };
         assert_eq!(a.project, None);
-        assert_eq!(a.scheme, "pre-delivery");
+        assert_eq!(a.scheme, None);
         assert_eq!(a.mode, CheckMode::Release);
         assert_eq!(a.format, CheckFormat::Text);
         assert_eq!(a.out, None);
@@ -1541,7 +1552,7 @@ mod tests {
             panic!("parse failed");
         };
         assert_eq!(b.project, Some(PathBuf::from("proj")));
-        assert_eq!(b.scheme, "drafting");
+        assert_eq!(b.scheme.as_deref(), Some("drafting"));
         assert_eq!(b.mode, CheckMode::Online);
         assert_eq!(b.format, CheckFormat::Json);
         assert_eq!(b.out, Some(PathBuf::from("r.json")));

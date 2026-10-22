@@ -688,6 +688,26 @@ impl Session {
         sql::Projection::build(&self.query(), &input)
     }
 
+    /// The shipped check scheme the project names for a run in `mode` (`settings.extra.checks`, set by
+    /// `project.checks.set`, FT-366): `release_scheme` for [`checks::CheckMode::Release`] (the release gate and
+    /// `ew check`), `active_scheme` for [`checks::CheckMode::Online`]. `None` when the project names none or
+    /// names a scheme that does not ship (a newer or damaged file): the caller's default applies.
+    pub fn project_check_scheme(&self, mode: checks::CheckMode) -> Option<&'static checks::Scheme> {
+        let member = match mode {
+            checks::CheckMode::Release => "release_scheme",
+            checks::CheckMode::Online => "active_scheme",
+        };
+        let q = self.query();
+        let name = q
+            .project()
+            .settings
+            .extra
+            .get(ew_commands::commands::CHECKS_MEMBER)?
+            .get(member)?
+            .as_str()?;
+        checks::scheme(name)
+    }
+
     /// Runs the check scheme `scheme` in `mode` over the current snapshot through the session's memo store
     /// (doc 15 §3): the findings, the totals and `ew check`'s exit code ([`checks::CheckReport`]).
     pub fn check(&self, scheme: &checks::Scheme, mode: checks::CheckMode) -> checks::CheckReport {

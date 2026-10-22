@@ -17,7 +17,7 @@ use std::sync::Arc;
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{LangTag, MlText, NaturalKey, natural_key};
-use ew_derive::ew_schema::{ColourCode, ColourSpec, Device, OrderUnit, Unit};
+use ew_derive::ew_schema::{ColourCode, ColourSpec, DecimalSeparator, Device, OrderUnit, Unit};
 use ew_derive::ew_units::Dec3;
 use ew_derive::{DeviceTag, DisplayedTag, PageOrder, PageRef, Policy, Q, Query, folio_label};
 
@@ -36,7 +36,8 @@ pub enum TagForm {
 /// The context of one rendering.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct RenderOptions {
-    /// The output language; `None` prints neutral text and the "." decimal separator.
+    /// The output language; `None` prints neutral text and the decimal separator of the project's formatting
+    /// settings (the point when it sets none).
     pub lang: Option<LangTag>,
     /// The form of tags.
     pub tag_form: TagForm,
@@ -72,7 +73,7 @@ pub fn render(q: &Q, cell: &Cell, opts: &RenderOptions) -> String {
         Cell::Folios(ps) => folios(q, ps),
         Cell::CellRef(p, c) => format!("{}-{c}", folio(q, *p)),
         Cell::Qty(v, unit) => {
-            let n = decimal(*v, uses_comma(opts.lang.as_ref()));
+            let n = decimal(*v, writes_comma(q, opts.lang.as_ref()));
             match unit_symbol(unit) {
                 "" => n,
                 s => format!("{n} {s}"),
@@ -187,6 +188,18 @@ fn unit_symbol(u: &QtyUnit) -> &'static str {
             OrderUnit::Set => "set",
             OrderUnit::Unknown(_) => "",
         },
+    }
+}
+
+/// Whether a quantity prints with a decimal comma: the output language decides when there is one, else the
+/// project's `settings.formatting.decimal_separator` (FT-366; absent or `point`: the point).
+fn writes_comma(q: &Q, lang: Option<&LangTag>) -> bool {
+    match lang {
+        Some(_) => uses_comma(lang),
+        None => matches!(
+            q.project().settings.formatting.decimal_separator,
+            Some(DecimalSeparator::Comma)
+        ),
     }
 }
 

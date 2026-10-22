@@ -251,6 +251,51 @@ fn check_counts_integrity_errors_of_a_damaged_project() {
     assert!(rules.contains(&"EW-CORE-005"), "{rules:?}");
 }
 
+/// FT-366: without `--scheme`, `ew check` runs the scheme the project names in `settings.extra.checks`
+/// (`release_scheme` in the default mode `release`, `active_scheme` in mode `online`); `--scheme` still wins and a
+/// project that names none gets `pre-delivery`.
+#[test]
+fn check_uses_the_schemes_the_project_names() {
+    let t = Tmp::new();
+    let dir = t.0.join("named.ew");
+    copy_dir(std::path::Path::new(GOLDEN_A), &dir);
+    let file = dir.join("project.jsonl");
+    let text = std::fs::read_to_string(&file).unwrap();
+    let (first, rest) = text.split_once('\n').unwrap();
+    let mut record: serde_json::Value = serde_json::from_str(first).unwrap();
+    record["settings"]["checks"] = serde_json::json!({"release_scheme": "full", "active_scheme": "drafting"});
+    std::fs::write(&file, format!("{record}\n{rest}")).unwrap();
+    let scheme_of = |extra: &[&str]| {
+        let mut args: Vec<&std::ffi::OsStr> = vec![
+            "check".as_ref(),
+            dir.as_os_str(),
+            "--format".as_ref(),
+            "json".as_ref(),
+        ];
+        args.extend(extra.iter().map(|a| std::ffi::OsStr::new(*a)));
+        let o = ew(&args);
+        assert!(
+            matches!(o.status.code(), Some(0 | 1)),
+            "{}",
+            String::from_utf8_lossy(&o.stderr)
+        );
+        let v: serde_json::Value = serde_json::from_str(&stdout(&o)).unwrap();
+        v["scheme"].as_str().unwrap().to_owned()
+    };
+    assert_eq!(scheme_of(&[]), "full");
+    assert_eq!(scheme_of(&["--mode", "online"]), "drafting");
+    assert_eq!(scheme_of(&["--scheme", "migration"]), "migration");
+    // The golden project names none: the default.
+    let o = ew(&[
+        "check".as_ref(),
+        GOLDEN_A.as_ref(),
+        "--format".as_ref(),
+        "json".as_ref(),
+    ]);
+    let v: serde_json::Value = serde_json::from_str(&stdout(&o)).unwrap();
+    assert_eq!(v["scheme"], "pre-delivery");
+}
+
 #[test]
 fn check_markdown_title() {
     let o = ew(&[
