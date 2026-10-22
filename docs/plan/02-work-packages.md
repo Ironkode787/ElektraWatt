@@ -1594,6 +1594,8 @@ S2 builds the egui shell and every interactive tool against `World`, the queries
 | Acceptance | AC-28 |
 | Owner role | UI developer |
 
+*Status (2026-10-23, cycle 24).* **Specified, cycle 24** ([closed specification](specs/WP-S2.05-property-grid-find-replace-clipboard.md); decision-log entries and follow-ups to be recorded by the cycle-24 design pass): three lead-programmer parts, part 1 the field catalogue, the property sheet and the property grid (2.3 pw, D4: a schema walker over `ew_schema::kind_schema`, edit routes from `fields.set`'s settable paths, provenance with override, freeze and reset, `‹varies›` and multi-selection edits, preview-first commits with FR-UI-044's policy, an inline preview card and a toast until WP-S2.09; AC-28's W29 step and D-06's property-grid entry as M-PP evidence for G-M2), part 2 find and replace with the new command `fields.set_many` (0.8 pw, D4), part 3 the clipboard with the text project fragment `#ew-fragment v1`, the new command `edit.paste`, duplicate and cut (1.5 pw, D5); order 1 → 2, and 1 + WP-S2.04 part 1 → 3; the parts fill the PERT with no reserve. Rulings delegated by the owner: the grid is schema-driven from `ew-schema` with no per-kind panels, edits only what commands expose, stays read-only for `HumanOnly` members, and WP-S2.06 and WP-S2.09 stay out. Part 1 starts after WP-S2.03 part 2.
+
 #### WP-S2.06 Navigators and table mode
 
 | Field | Value |
