@@ -62,8 +62,9 @@ WP-S6.03 (NFR-PERF-20, 18 §4). The nightly workflow [`perf.yml`](../.github/wor
 2. compares the **medians** and the deterministic memory estimates the benches print (model rows, undo history,
    memo values and dependency entries) with [`perf-baseline.toml`](perf-baseline.toml): a value more than 15 %
    above its baseline is a regression (WP-S6.03), unless the change is below a noise floor of the file:
-   `noise_floor_ms` (0.05 ms) for the medians, `noise_floor_bytes` (16 MiB, 18 §4.4) for the memory estimates and
-   the peak RSS (entry counts have no floor). The report's "Baseline:" line prints both floors. A baseline value
+   `noise_floor_ms` (0.05 ms) for the medians, `noise_floor_bytes` (16 MiB, 18 §4.4) for the peak RSS; the memory
+   estimates and the entry counts are deterministic computations and have no floor, so a 15 % growth of a 2 MB
+   estimate is a regression. The report's "Baseline:" line prints both floors. A baseline value
    the run did not measure (a removed family) is listed under "Missing from the run" and a value the baseline
    does not have under "New in the run"; under enforcement a missing value fails the gate (re-bless), a new one
    never does;

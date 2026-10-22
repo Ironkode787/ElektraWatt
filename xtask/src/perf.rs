@@ -83,7 +83,8 @@ pub struct Meta {
     pub threshold_percent: f64,
     /// Medians that differ by less than this many milliseconds are noise.
     pub noise_floor_ms: f64,
-    /// Memory estimates and peak RSS values that differ by less than this many bytes are noise (18 §4.4: 16 MB).
+    /// Peak RSS values that differ by less than this many bytes are noise (18 §4.4: 16 MB). The memory
+    /// estimates and the entry counts are deterministic computations from the record counts and have no floor.
     pub noise_floor_bytes: u64,
     /// The runner the baseline was taken on: `EW_PERF_RUNNER`, or `hosted:<os>-<arch>`. A run on another runner
     /// is not comparable.
@@ -495,16 +496,13 @@ pub fn not_comparable(
     None
 }
 
-/// Compares the measurements with the baseline, class by class (the classes of the run). The memory estimates
-/// and the peak RSS use the byte noise floor of the baseline; the entry counts among the estimates (keys with
-/// `entries`) are no bytes and have no floor.
+/// Compares the measurements with the baseline, class by class (the classes of the run). The peak RSS uses the
+/// byte noise floor of the baseline; the memory estimates (bytes and entry counts) are deterministic and have
+/// no floor, so a 15 % growth of an estimate is a regression however small the estimate is.
 pub fn evaluate(baseline: &Baseline, measured: &BTreeMap<String, Measured>) -> Vec<ClassEval> {
     let empty = ClassBaseline::default();
-    let as_f64 = |m: &BTreeMap<String, u64>, counts: bool| -> BTreeMap<String, f64> {
-        m.iter()
-            .filter(|(k, _)| k.contains("entries") == counts)
-            .map(|(k, v)| (k.clone(), *v as f64))
-            .collect()
+    let as_f64 = |m: &BTreeMap<String, u64>| -> BTreeMap<String, f64> {
+        m.iter().map(|(k, v)| (k.clone(), *v as f64)).collect()
     };
     let t = baseline.meta.threshold_percent;
     let floor_bytes = baseline.meta.noise_floor_bytes as f64;
@@ -512,26 +510,13 @@ pub fn evaluate(baseline: &Baseline, measured: &BTreeMap<String, Measured>) -> V
         .iter()
         .map(|(class, m)| {
             let base = baseline.classes.get(class).unwrap_or(&empty);
-            let mut memory = compare(
-                &as_f64(&base.memory, false),
-                &as_f64(&m.memory, false),
-                t,
-                floor_bytes,
-            );
-            memory.extend(compare(
-                &as_f64(&base.memory, true),
-                &as_f64(&m.memory, true),
-                t,
-                0.0,
-            ));
-            memory.sort_by(|a, b| a.key.cmp(&b.key));
             ClassEval {
                 class: class.clone(),
                 medians: compare(&base.median_ms, &m.median_ms, t, baseline.meta.noise_floor_ms),
-                memory,
+                memory: compare(&as_f64(&base.memory), &as_f64(&m.memory), t, 0.0),
                 peak_rss: compare(
-                    &as_f64(&base.peak_rss_bytes, false),
-                    &as_f64(&m.peak_rss_bytes, false),
+                    &as_f64(&base.peak_rss_bytes),
+                    &as_f64(&m.peak_rss_bytes),
                     t,
                     floor_bytes,
                 ),
@@ -828,7 +813,7 @@ pub fn render_report(input: &ReportInput<'_>) -> String {
     out.push_str(&format!("- Verdict: {verdict}\n"));
     if let Some(b) = input.baseline {
         out.push_str(&format!(
-            "- Baseline: `{BASELINE_PATH}`, runner `{}`, {} mode, threshold {} %, noise floor {} ms (medians) and {} (memory estimates and peak RSS), generator version {}, taken at `{}` on {} with Rust {}\n",
+            "- Baseline: `{BASELINE_PATH}`, runner `{}`, {} mode, threshold {} %, noise floor {} ms (medians) and {} (peak RSS; the memory estimates have none), generator version {}, taken at `{}` on {} with Rust {}\n",
             b.meta.runner,
             b.meta.mode,
             b.meta.threshold_percent,
@@ -1732,7 +1717,7 @@ memory: model rows 1048576 bytes (1.0 MiB)
         assert!(enforced.contains("- Commit: `abc123`"));
         assert!(
             enforced.contains(
-                "noise floor 0.05 ms (medians) and 16.0 MiB (memory estimates and peak RSS), generator version 2, taken at `abc1234` on 2026-10-22 with Rust 1.99.0"
+                "noise floor 0.05 ms (medians) and 16.0 MiB (peak RSS; the memory estimates have none), generator version 2, taken at `abc1234` on 2026-10-22 with Rust 1.99.0"
             ),
             "{enforced}"
         );
@@ -1783,14 +1768,14 @@ memory: model rows 1048576 bytes (1.0 MiB)
         };
         assert_eq!(regressions(&evaluate(&baseline, &slowed(1.20))), 1);
         assert_eq!(regressions(&evaluate(&baseline, &slowed(1.10))), 0);
-        // memory estimates are gated by the same threshold (above the byte floor: see the memory test)
+        // memory estimates are gated by the same threshold and have no floor: doubling a 2 MB estimate is red
         let mut bigger = measured.clone();
         *bigger
             .get_mut("S")
             .unwrap()
             .memory
             .get_mut("spike:model_rows")
-            .unwrap() *= 40;
+            .unwrap() *= 2;
         assert_eq!(regressions(&evaluate(&baseline, &bigger)), 1);
     }
 
@@ -1908,7 +1893,7 @@ memory: model rows 1048576 bytes (1.0 MiB)
     }
 
     #[test]
-    fn memory_and_peak_rss_use_the_byte_floor_and_entry_counts_have_none() {
+    fn peak_rss_uses_the_byte_floor_and_the_memory_estimates_have_none() {
         const MIB: u64 = 1024 * 1024;
         let mut baseline = runner_baseline(&[]);
         baseline.classes.insert(
@@ -1943,18 +1928,18 @@ memory: model rows 1048576 bytes (1.0 MiB)
             .collect();
         assert_eq!(
             memory["spike:small"],
-            Change::Same,
-            "+300 % but only 3 MiB: under the floor"
+            Change::Regression,
+            "+300 % of a deterministic estimate: no floor hides it"
         );
         assert_eq!(
             memory["spike:large"],
             Change::Regression,
-            "+30 MiB is over the floor and 15 %"
+            "+30 % is over the threshold"
         );
         assert_eq!(
             memory["spike:memo.warm.push_index_entries"],
             Change::Regression,
-            "a count has no byte floor"
+            "a count has no floor either"
         );
         assert_eq!(
             evals[0].peak_rss[0].change,
