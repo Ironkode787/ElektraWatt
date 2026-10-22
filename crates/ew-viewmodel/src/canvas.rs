@@ -64,14 +64,20 @@ pub const MAX_PPP: f64 = 8.0;
 /// snapshot at 8192 × 8192 pixels (256 MiB) and the tile ranges the planner plans.
 pub const MAX_PANE_PIXELS: f64 = 8_192.0;
 
+/// The slack of the pixel bound: physical pixels are whole, and `points × ppp` of a pane that [`bounded_pane`]
+/// clamped to whole points can land a rounding error above [`MAX_PANE_PIXELS`] for a fractional `ppp` (1.6, 1.25),
+/// which must not refuse the host's own request.
+const PIXEL_TOLERANCE: f64 = 0.5;
+
 /// Whether a pane of `width` × `height` points at `ppp` is within [`MAX_PANE_POINTS`], [`MAX_PPP`] and
-/// [`MAX_PANE_PIXELS`]: the name of the first parameter that is not, else `None`.
+/// [`MAX_PANE_PIXELS`] (plus half a pixel): the name of the first parameter that is not, else `None`.
 pub fn pane_out_of_bounds(width: f64, height: f64, ppp: f64) -> Option<&'static str> {
+    let pixel_bound = MAX_PANE_PIXELS + PIXEL_TOLERANCE;
     if ppp > MAX_PPP {
         Some("ppp")
-    } else if width > MAX_PANE_POINTS || width * ppp > MAX_PANE_PIXELS {
+    } else if width > MAX_PANE_POINTS || width * ppp > pixel_bound {
         Some("width")
-    } else if height > MAX_PANE_POINTS || height * ppp > MAX_PANE_PIXELS {
+    } else if height > MAX_PANE_POINTS || height * ppp > pixel_bound {
         Some("height")
     } else {
         None
@@ -79,10 +85,11 @@ pub fn pane_out_of_bounds(width: f64, height: f64, ppp: f64) -> Option<&'static 
 }
 
 /// The largest pane within the bounds of [`pane_out_of_bounds`] that fits into `width` × `height` points at `ppp`
-/// (the window's host asks for no more than that).
+/// (the window's host asks for no more than that). The pixel bound is taken in whole points, so that the product
+/// with `ppp` stays within the tolerance of the check for every `ppp`.
 pub fn bounded_pane(width: f64, height: f64, ppp: f64) -> (f64, f64, f64) {
     let ppp = ppp.min(MAX_PPP);
-    let side = |v: f64| v.min(MAX_PANE_POINTS).min(MAX_PANE_PIXELS / ppp);
+    let side = |v: f64| v.min(MAX_PANE_POINTS).min((MAX_PANE_PIXELS / ppp).floor());
     (side(width), side(height), ppp)
 }
 

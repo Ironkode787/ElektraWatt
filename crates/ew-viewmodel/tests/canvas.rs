@@ -503,6 +503,32 @@ fn a_pane_beyond_the_bounds_is_refused_and_the_view_stays() {
 }
 
 #[test]
+fn the_bounded_pane_is_within_the_bounds_for_fractional_pixels_per_point() {
+    use ew_viewmodel::canvas::{MAX_PANE_PIXELS, bounded_pane, pane_out_of_bounds};
+    for ppp in [
+        1.0, 1.1, 1.25, 1.5, 1.6, 1.75, 2.0, 2.2, 2.5, 3.3, 4.0, 7.9, 8.0, 9.0,
+    ] {
+        let (width, height, ppp) = bounded_pane(100_000.0, 100_000.0, ppp);
+        assert_eq!(
+            pane_out_of_bounds(width, height, ppp),
+            None,
+            "the host's own request at ppp {ppp} ({width} × {height} points) must be accepted"
+        );
+        assert!(width == width.floor(), "whole points at ppp {ppp}: {width}");
+        assert!(
+            width * ppp <= MAX_PANE_PIXELS + 0.5,
+            "ppp {ppp}: {} pixels",
+            width * ppp
+        );
+    }
+    // A pane one whole pixel over the bound is still refused at a fractional ppp.
+    assert_eq!(
+        pane_out_of_bounds((MAX_PANE_PIXELS + 1.0) / 1.25, 10.0, 1.25),
+        Some("width")
+    );
+}
+
+#[test]
 fn the_canvas_view_actions_leave_the_banner_standing() {
     let tmp = Tmp::new();
     let mut shell = tmp.shell_on_103();

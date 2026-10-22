@@ -152,8 +152,9 @@ pub struct CanvasCounters {
     pub tiles_uploaded: u64,
     /// Tiles of the plans' requests that were cached and so not submitted (the filter at work).
     pub skipped_cached: u64,
-    /// Tiles submitted to the pool while already cached, counted against the plan's full requests (0 unless the
-    /// filter is broken).
+    /// Tiles submitted to the pool while already cached, counted against the plan's full requests. By construction
+    /// this is 0: the submission excludes the cached keys, and the counter only guards that the filter stays in
+    /// front of it. `rastered_while_cached` is the independent check (it is observed from the pool's returns).
     pub requested_while_cached: u64,
     /// Tiles that arrived from the pool while their key was already cached: rasterised twice (0 unless a tile is
     /// requested again while cached or in flight).
