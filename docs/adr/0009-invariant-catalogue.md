@@ -1,6 +1,6 @@
 # ADR-0009: Invariant catalogue: structural vs configurable prevent rules; lenient import
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-19, 2026-10-21 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-19, 2026-10-21, 2026-10-22 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -94,6 +94,21 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    mode (amendment 1) follows with FT-194. Reading the project's strictness and the import origin is FT-199. The
    base-snapshot rule is the MVP rule for every project (decision log ID-323); for `Strict` projects the target is
    restore-on-touch, where a transaction that touches a key with an existing violation must restore it (FT-210).
+6. **The released revision's checker and its immutability** (2026-10-22, project owner (delegated ruling R3), at
+   the cycle-17 design pass after the typed revision, FT-165; decision log ID-430;
+   [domain model](../design/03-domain-model.md) §18). Decision 2's last bullet, "a released revision has a checker
+   who is not its author", cannot hold for a **historic** released revision, one released before the project came
+   to EW: Golden A's V1.0 has neither author nor checker, and no check could have run on it. The structural
+   invariant therefore reads: **a revision's checker, when set, is not its author** (EW-INV-018). That a revision
+   released by EW has a checker is the release gate's (EW-REL-001, run by `revision.release`), which refuses a
+   release without a valid sign-off. **Released revisions are immutable** (FR-REV-009) is a structural invariant of
+   `ew-model` as well, **EW-INV-020**: a revision that was released or withdrawn before the batch is not updated;
+   its removal (the undo of `revision.create`), Open → Released and a new withdrawal record stay possible. It is a
+   model rule, not a command rule, so it holds for every writer (an import, a merge, a plugin). The label's format
+   and natural order stay the prevent and release-gate rule EW-REL-004, not a structural invariant. The other
+   revision invariants are EW-INV-016 (at most one open revision), EW-INV-017 (labels unique among the revisions
+   not withdrawn) and EW-INV-019 (one page note per page); `Revision.withdraws` is a forbid link (decision 2's first
+   bullet).
 
 ## Consequences
 

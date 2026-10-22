@@ -111,8 +111,8 @@ Oracles: the structural check after every changing step, the memo oracle, the pr
 validity oracle of each command (a well-formed step must commit, a malformed one must be refused and change
 nothing, the checks of what the command created), the equality of the model and of the derived families after a
 reload, and the closing undo-all with its own save and reload. The nightly body is this seeded test; the
-cargo-fuzz target that doc 18 §3.6 and FT-272 list is deferred (FT-272; design pass): the repository has no
-`fuzz/` crate yet (that arrives with the parser-fuzzing package, doc 18 §3.12).
+cargo-fuzz target that doc 18 §3.6 and FT-272 list is deferred (FT-272, decision log ID-435): the repository has no
+`fuzz/` crate yet (FT-297 creates it for the parser targets, doc 18 §3.12, and the command target joins it).
 
 The job builds and runs in the **release profile with debug assertions and overflow checks on**
 (`CARGO_PROFILE_RELEASE_DEBUG_ASSERTIONS`, `CARGO_PROFILE_RELEASE_OVERFLOW_CHECKS`): measured on a developer

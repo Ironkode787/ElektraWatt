@@ -290,6 +290,9 @@ and BM+7. The development side will be ready first.
 | B | FT-279, FT-272 the fuzzer's coverage and nightly form | The fuzzer covers the 36 registered commands; a nightly job runs it; its nights then count for G-M1-13 |
 | Orchestrator | FT-283 the first `docs-book` run on `main` | Done: green on 2026-10-22 (docs run 39706671506, 49 s) with the network-less build; O12 can be done now |
 
+**Addendum (cycle-17 delivery, 2026-10-22; decision log ID-438).** Lane A confirmed: path (b)'s `unwritten` list is empty and the counts are 94 entries, 88 pass, 0 fail, 0 `not_built`, 6 `not_applicable` (D-06's grid entry under ID-422, so G-M1-08 is met: 5 of 15 H).
+Lane B confirmed: the fuzzer covers the 37 registered commands and the nightly `fuzz.yml` exists; its nights count from its first scheduled run, for G-M1-13's fuzzer part only until ASan and the rest of CI-N-02 (FT-304, FT-297) join it.
+
 ---
 
 ## Sources

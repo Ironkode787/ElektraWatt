@@ -1,6 +1,6 @@
 # Domain model
 
-**Status:** Draft v0.1 · **Date:** 2026-10-21 (cycle 11: frozen tags change only by explicit user action, segment-less strips, the `project.settings.set` command; decision log ID-290, ID-292, ID-293; cycle 12: the colour and size profile rows and their display order, §5.1, decision log ID-319; cycle 13: the PLC kinds and `DeviceLink` as built, §7, §13, §14, decision log ID-333 to ID-335) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-21 (cycle 11: frozen tags change only by explicit user action, segment-less strips, the `project.settings.set` command; decision log ID-290, ID-292, ID-293; cycle 12: the colour and size profile rows and their display order, §5.1, decision log ID-319; cycle 13: the PLC kinds and `DeviceLink` as built, §7, §13, §14, decision log ID-333 to ID-335; 2026-10-22, cycle 17: the typed `Revision` as built and the `Revision.withdraws` forbid link, §4.2, §18, decision log ID-427 to ID-431) · **Part of:** ElektraWatt design document set
 
 > **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
 
@@ -360,6 +360,7 @@ Every link field declares a delete policy, generated into `ew-model` (arch §4.6
 | `Placement3D.device` | cascade | a placement without a device cannot exist (D-02) |
 | `Placement3D.carrier` | forbid; `DeleteCarrier` removes or re-homes its placements explicitly | [12](12-panel-layout.md) §3.6 |
 | `StructureNode` referenced by pages or devices | forbid; use the merge command (FR-PRJ-018) | |
+| `Revision.withdraws` | forbid | a withdrawn revision cannot be deleted while a withdrawal record names it: a cascade would delete history with it, an unchecked reference could dangle; linear undo removes the withdrawal record first (decision log ID-429) |
 | `Waiver.target` (fingerprint or part selector) | none; an unmatched waiver is reported (EW-CORE-081) | |
 
 **Policy by link class.** The complete list is the link table of `crates/ew-model/invariants.md` §4, which
@@ -371,7 +372,8 @@ Every link field declares a delete policy, generated into `ew-model` (arch §4.6
   `Connection.kind` and `Bond.via` are cleared; `Connection.kind = Core` reverts to `Wire`; a deleted connection
   leaves `Junction.sequence`. `PotentialDef.at` and `Bond.a`/`b` drop the record.
 - **Forbid** for master data and structure (structure nodes, sections, forms, `Device.parent`, `Terminal.strip`),
-  library copies (`Representation.symbol`, `Function.def`, `PartRef.copy`), `source_ref.lineage`, and a `LibRef`
+  library copies (`Representation.symbol`, `Function.def`, `PartRef.copy`), `source_ref.lineage`,
+  `Revision.withdraws`, and a `LibRef`
   that resolves to a copy embedded in the project: that copy cannot be deleted or purged while it is referenced
   ([05](05-project-format-and-persistence.md) §13.2). A `LibRef` into an external library is not a link.
 
@@ -2151,9 +2153,9 @@ classDiagram
   direction LR
   class Revision {
     +label: Ident
-    +date: Date
-    +author: PartyRef
-    +checker: PartyRef?
+    +date: Date?
+    +author: PartyRole?
+    +checker: PartyRole?
     +description: MlText
     +purpose: IssuePurpose?
     +state: Open or Released or Withdrawn
@@ -2202,7 +2204,14 @@ classDiagram
     +model: diff_model
     +queries: diff_query
   }
+  class PageNote {
+    <<value>>
+    +page: PageId
+    +description: MlText
+  }
+  Revision *-- PageNote
   Revision *-- ReleaseRecord
+  Revision --> Revision : withdraws
   Transmittal --> Revision
   ReleaseRecord --> AsBuiltArchive : archive
   PageChangeStatus ..> ReleaseRecord : page digests
@@ -2211,7 +2220,7 @@ classDiagram
 
 | Entity and purpose | Kind | Key attributes | Relationships, identity, lifecycle | Invariants |
 |---|---|---|---|---|
-| `Revision`: one managed project revision (FR-REV-001) | A, `revisions.jsonl` | `label` in the project's one format (V1.0, V2.0; FR-REV-002), `date`, `author`, `checker?`, `description: MlText`, `purpose?` (issue purpose, 1.0), `state`, `page_notes` (FR-REV-012), `sign_off?{checker, date, scheme, packs, waivers_ack, content_digest}` (added: the checker's approval, bound to the content digest of the saved project), `release?`; on a withdrawal record `withdraws` and `reason` (added) | Open → Released by `ReleaseRevision` after `revision.approve`; withdrawing a released revision adds a separate record in state Withdrawn that points to it (FR-REV-009). "Signed off" is an open revision whose `sign_off.content_digest` equals the current digest; a later content edit voids it ([15](15-checks-revisions-collaboration.md) §5.4) | S: released revisions immutable; the checker differs from the author (D-34, FR-REV-005) |
+| `Revision`: one managed project revision (FR-REV-001) | A, `revisions.jsonl` | `label` in the project's one format (V1.0, V2.0; FR-REV-002), `date?`, `author?` and `checker?` (party roles, FR-PRJ-003), `description: MlText`, `purpose?` (issue purpose, 1.0), `state`, `page_notes: [{page, description}]` (FR-REV-012; at most one note per page; `page` is not a link), `sign_off?{checker, date, scheme, packs, waivers_ack, content_digest}` (added: the checker's approval, bound to the content digest of the saved project), `release?`; on a withdrawal record `withdraws: RevisionId` (forbid link) and `reason` (added) | Open → Released by `ReleaseRevision` after `revision.approve`; withdrawing a released revision adds a separate record in state Withdrawn that points to it (FR-REV-009). "Signed off" is an open revision whose `sign_off.content_digest` equals the current digest; a later content edit voids it ([15](15-checks-revisions-collaboration.md) §5.4). A **historic** released revision (released before the project came to EW) has no release record and no archive | S: at most one open revision (EW-INV-016); labels unique among the revisions not withdrawn (EW-INV-017); the checker, when set, differs from the author (EW-INV-018; D-34, FR-REV-005); one note per page (EW-INV-019); a released or withdrawn revision is not updated (EW-INV-020, FR-REV-009). That a revision released by EW has a checker is the release gate's (EW-REL-001); label format and order are EW-REL-004 |
 | `ReleaseRecord` (added, inside `Revision`) | A, value | generation, release date, approval (the sign-off copied at release: checker, date, check scheme, waivers; FR-REV-020), rule-pack versions, derivation profile, archive reference with SHA-256, git tag `ew/rev/<label>`; added: `content_digest` (at generation g, after the freeze), `page_digests: Map<PageId, u128>`, `changed_pages` (frozen) | Written in the same atomic release step as the archive ([05](05-project-format-and-persistence.md) §14.1) | — |
 | `Transmittal` (added) | A, `revisions.jsonl` (rank 63, anchored to its revision) | revision, issued on, purpose, recipient role, reference, customer response | Issue and approval history towards the customer (1.0, [15](15-checks-revisions-collaboration.md) §5.9); not a content edit | — |
 | `AsBuiltArchive` (ADR-0013) | X | canonical text at the released generation, embedded libraries, PDF/A-2b, `.ewpp`, check report, SHA-256 sums (FR-REV-008); stored at `<parent>/<name>.ew-archive/<label>.ewarchive` | Loaded into a read-only `Model` for comparison (FR-REV-010, FR-REV-014) | — |
@@ -2221,6 +2230,20 @@ The title block's "Revision" cell binds to the project revision query, so every 
 Committed computations (routes, frozen numbers, report snapshots) are frozen at release (FR-REV-011). Golden A holds
 V1.0 (Released, historic, no archive) and V2.0 (Open); Golden A-R releases V2.0, and its `changed_pages` are 101 and
 106 from the page notes, because V1.0 has no digests.
+
+*As built (cycle 17; decision log ID-427 to ID-431; FT-165).* `ew-schema`'s `Revision` types `label`, `date?`,
+`author?`, `checker?`, `description`, `state` (with the `Unknown` catch-all), `page_notes`, `withdraws?` and
+`source_ref?`; `purpose`, `sign_off`, `release` and `reason` stay in `extra` until `revision.approve`,
+`revision.release` and `revision.withdraw` write them (FT-302). `date` and `author` are optional (ruling R2): an
+open revision may have neither yet, and Golden A's historic V1.0 has neither author nor checker. A page note's text
+member is `description`, like the revision's. A note is not a link to its page: a released revision is immutable, so
+its notes keep naming a page that a later revision deletes, and a note on a missing page selects nothing.
+`withdraws` is the ID of the withdrawn revision, never its label, and a forbid link (§4.2). The structural rules are
+EW-INV-016 to EW-INV-020 of `crates/ew-model/invariants.md` ([ADR-0009](../adr/0009-invariant-catalogue.md)
+amendment 6). Commands: `revision.create` (an open revision or a historic released one; refused with `state:
+released` once any revision has a release record, ruling R4), `fields.set` on the open revision and `edit.delete` of
+the open revision ([06](06-schematic-editor.md) §3.1). The title block's current revision is the open one, else the
+latest released one by date, natural label order and ID, leaving out a revision that a withdrawal record names.
 
 **Equivalents.** EPLAN: revision management, revision project `*.ell`, completed project `*.elr`, change markers
 and property comparison. QET: `indexrev` per folio, free text.

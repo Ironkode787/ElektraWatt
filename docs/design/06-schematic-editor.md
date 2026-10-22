@@ -1,6 +1,6 @@
 # Schematic editor
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-22, cycle 17: `revision.create`, 37 commands, §3.1) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) edits schematic pages: multi-line, single-line, overview,
 bus-topology, fluid and graphic pages, together with their frames, folios and sections. It covers symbol placement,
@@ -343,6 +343,18 @@ with them (decision log ID-392 to ID-399, ID-401). Two parameters of `valve.add`
 next schema version, and `letter` stays as an override. Not built: `assembly.detach` and the push insert (FT-273), the
 library-reference form of `library.embed` (FT-274), the electrical supply members (FT-280).
 
+*As built (cycle 17, lane A; FT-165).* `revision.create` (`CreateRevision`) joins, `Edit`, `Preview`, Interactive,
+undoable, with a committed schema; **37 commands** are registered. It writes the open revision or a historic released
+one (no release record, no archive) with label, date, author and checker roles, description and page notes
+([03](03-domain-model.md) §18). Refused: a label that a non-withdrawn revision has (EW-INV-017), a second open
+revision (EW-INV-016), the author as checker (at `/checker`, EW-INV-018), a note on a missing page or a second note
+on one page (EW-INV-019), and `state: released` once any revision has a release record (ruling R4: a historic release
+never follows a release by EW). Label format and order stay EW-REL-004's. `fields.set` gains the `revision` kind
+(`label`, `date`, `author`, `checker`, `description`, `page_notes`; not `state`; unknown note members refused), and
+`edit.delete` takes the open revision; both refuse a released or withdrawn revision at the target (FR-REV-009,
+EW-INV-020). No command changes a revision's state: `revision.approve`, `revision.release` and `revision.withdraw`
+are FT-302 (decision log ID-427 to ID-431).
+
 The table lists every registered command and the planned ones (`Cost` is the registered cost; `Bulk` commands run as
 preview jobs). The parameter schemas in `crates/ew-commands/schemas/` and the generated pages of the user guide's
 command reference are the exact form (decision log ID-403).
@@ -363,8 +375,8 @@ command reference are the exact form (decision log ID-403).
 | `box.black`, `box.structure` | outline, device or assignment, caption, external ref | Interactive | §2.7 |
 | `item.place` | graphic, text, image, wire marker | Interactive | §3.8 |
 | `potential.define` | endpoint, name, type, voltage, props | Interactive | FR-CON-010 |
-| `fields.set` (`SetFields`) | targets, field path, value | Interactive | property grid, multi-select |
-| `edit.delete`, `edit.paste` | selection; fragment, anchor, options | Interactive; Bulk above 500 records | §3.6 |
+| `fields.set` (`SetFields`) | targets, field path, value | Interactive | property grid, multi-select; on a revision only while it is open (FR-REV-009; ID-427) |
+| `edit.delete`, `edit.paste` | selection; fragment, anchor, options | Interactive; Bulk above 500 records | §3.6; `edit.delete` takes the open revision, never a released or withdrawn one (ID-427) |
 | `macro.insert` (`InsertMacro`) | macro, at, value set | Bulk | [07](07-symbols-parts-macros.md), FR-MAC-005 |
 | `numbering.renumber` (`RenumberDevices`) | scope, scheme, options | Bulk | FR-NUM-008, FR-NUM-009 |
 | `terminal.designate` | assignments (terminal, designation), at least one | Interactive | one transaction, swaps without temporary names; uniqueness by the prevent rule EW-TERM-002 (FR-TRM-022, [08](08-connections-terminals-cables.md) §6.8) |
@@ -385,6 +397,7 @@ command reference are the exact form (decision log ID-403).
 | `plc.bind_channel` (`BindChannel`) | channel, endpoint (CP or `null`) | Interactive | [10](10-plc-and-bus.md) §3.9; a CP of the module or its descendants; the CP's other channel is unbound (FR-PLC-005; ID-395) |
 | `project.supply.set` (`SetProjectSupply`) | path, value | Interactive | v0: `origin.source` only; the electrical members wait for an ADR-0008 amendment (FT-280; ID-396) |
 | `library.embed` (`EmbedLibraryCopies`) | copies (library documents in `lib/` JSON form) | Interactive | part, symbol, FnDef, form; copy identity and `sha256` checked; no project-local or already embedded item; the caller owns the closure (FT-274; ID-397) |
+| `revision.create` (`CreateRevision`) | label, state (`open` or historic `released`), date?, author?, checker?, description, page notes | Interactive | [03](03-domain-model.md) §18; EW-INV-016 to EW-INV-019 refused at the parameter path; no historic release after a release record (R4); the state transitions are FT-302 (ID-427, ID-431) |
 
 ### 3.2 Normalisers that run behind the editor
 

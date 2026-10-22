@@ -1,6 +1,6 @@
 # Quality engineering, security and release
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-20: §3.16 cross-platform source rules; amended 2026-10-21, cycle-11 design pass: acceptance runner as built in §3.10, timing rule in §3.16 and §4.3, private pilot corpus in §4.1; amended 2026-10-21, cycle-12 design pass: acceptance counts and comparison against doc 20 data in §3.10; amended 2026-10-21, cycle-14 design pass: documents as built in §3.9, §3.10 and §3.16, blind drafter §3.17) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-20: §3.16 cross-platform source rules; amended 2026-10-21, cycle-11 design pass: acceptance runner as built in §3.10, timing rule in §3.16 and §4.3, private pilot corpus in §4.1; amended 2026-10-21, cycle-12 design pass: acceptance counts and comparison against doc 20 data in §3.10; amended 2026-10-21, cycle-14 design pass: documents as built in §3.9, §3.10 and §3.16, blind drafter §3.17; amended 2026-10-22, cycle-17 design pass: the acceptance counts in §3.10, the fuzzer's coverage and nightly form in §3.6, the `fuzz_smoke` time in §3.14, CI-N-02 and CI-N-03 in §5.2) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) proves its correctness, performance and security, and
 how it is built, signed, shipped and supported. It turns the architecture's "prove it in CI" principle
@@ -250,8 +250,8 @@ log. `fuzz_smoke` (2 seeds × 30 steps, sampled oracle, integrity and undo-all) 
 holds by construction.
 
 *As built (cycle 17, lane B; FT-272, FT-279).* The test is now the directory `crates/ew-testkit/tests/command_fuzz/`
-(`arms.rs`, `live.rs`, `step.rs`, `roundtrip.rs`, `import.rs`, `main.rs`). **Every registered command** (36, and 37 with `revision.create`)
-has a generator arm (`ARMS`); `every_registered_command_has_a_generator_arm` compares the table with the registry and
+(`arms.rs`, `live.rs`, `step.rs`, `roundtrip.rs`, `import.rs`, `rng.rs`, `main.rs`). **Every registered command** (37,
+`revision.create` and `fields.set`/`edit.delete` on revisions included) has a generator arm (`ARMS`); `every_registered_command_has_a_generator_arm` compares the table with the registry and
 fails with a message that names the commands without an arm, so a command added later (the `revision.*` commands) fails
 it until its arm exists. Each arm mixes well-formed steps, which the model must commit (`Verdict::Accept` where the
 generator models every refusal rule, `Either` where prevent rules or invariants may refuse), malformed steps, which it
@@ -262,14 +262,19 @@ gained the **save-and-reload round trip** (create once, then incremental saves; 
 open-report finding, `Model::content_eq`, the derived families equal, every family on the deep cadence; after the
 closing undo-all a run that saved saves again and must reload the initial model) and the **CSV table import** (the
 golden tables intact or damaged, strict and lenient: the batch always loads into a model, lenient differs from strict
-only in foreign colour codes, the intact tables give the records of path (a)). Not built: **macro insertion**, because
-no `macro.insert` command or macro record exists yet (FR-MAC-005). The nightly form is `fuzz_long` with
+only in foreign colour codes, the intact tables give the records of path (a)). An Accept step that commits as a no-op meets the same after-commit checks, so an expected count change on a no-op is
+a finding; the save-and-reload comparison includes the title block's revision label. Not built: **macro insertion**,
+because no `macro.insert` command or macro record exists yet (FR-MAC-005; FT-305). The nightly form is `fuzz_long` with
 seeds × steps from `EW_FUZZ_SEEDS` and `EW_FUZZ_STEPS` (and the cadences, the step mix, `EW_FUZZ_BUDGET_SECS` and
-`EW_FUZZ_REPORT`), run by `.github/workflows/fuzz.yml` in the release profile with debug assertions on, red for a finding, a failed build,
-a seed that was still running when the run ended (a hang or an abort) and a missing verdict
-(`ci/README.md`); the cargo-fuzz target is deferred (FT-272; design pass), because the repository has no `fuzz/` crate
-yet; ASan is not part of the nightly. `fuzz_smoke` takes about
-17 s in a debug build.
+`EW_FUZZ_REPORT`), run by `.github/workflows/fuzz.yml` (03:47 UTC and on dispatch) in the release profile with debug assertions and
+overflow checks on, by default 12 seeds × 200 steps from a seed range that changes every night, with no new seed after
+75 minutes; it is red for a finding, a failed build, a seed that was still running when the run ended (a hang or an
+abort) and a missing verdict (`ci/README.md`; decision log ID-434, ID-435). In the catalogue of §5.2 it is the
+command-fuzzer part of CI-N-02, without ASan. The cargo-fuzz target over the same generator is **deferred, not
+declined** (FT-272): it is built in the `fuzz/` crate that FT-297 creates for the loader and migration-chain targets,
+where it is CI-N-03's command-sequence target. ASan on the nightly needs the nightly toolchain (FT-304, with FT-297).
+`fuzz_smoke` takes 15 to 19 s in a debug build (12.5 s before cycle 17), on the Windows test job's critical path
+(§3.14, FT-306).
 
 ### 3.7 Snapshots
 
@@ -367,6 +372,12 @@ reserved kind no command can create (FT-165, a D5 package of its own, ID-400). C
 **93 entries: 87 pass, 0 fail, 1 not_built (D-06 property grid, a UI entry of M-PP), 5 not_applicable; 0 oracle
 mismatches**: the headless M1 acceptance list is complete apart from the UI entry.
 
+*As built (cycle 17; decision log ID-433, ID-438).* `revision.create` writes the 2 revisions (FT-165), so
+`Built::unwritten` is empty and path (b) issues 608 commands. A second D-05 entry checks that no page record holds a
+revision value, and D-06's property-grid entry is `not_applicable` at the headless M1 gate (ID-422). Counts at the
+cycle-17 tip: **94 entries: 88 pass, 0 fail, 0 not_built, 6 not_applicable; 0 oracle mismatches**: no entry blocks
+the headless M1 gate.
+
 **PDF/A-2b** (decision log ID-287): AC-13's conformance passes through krilla's PDF/A-2b validator
 (`Conformance::PdfA2b`) in every run; the veraPDF cross-check of §3.9 is `not_applicable` in the headless run
 (external tool) and runs in the CI job that has veraPDF.
@@ -431,6 +442,8 @@ fixed or triaged before the gate re-runs (decision log ID-405; the cycle-15 gate
 **CI time budget** (2026-10-22; decision log ID-381). The per-PR budget stays 30 min wall time (NFR-MAINT-05). Measured by the GitHub jobs API at d3ecf70: the Linux test job 23 min 18 s, macOS 26 min 04 s, and the Windows job past 30 min, when its all-features nextest run hit the old 30-minute job timeout; at 95149ab, with the new guard, Windows 21 min 14 s, Linux 21 min 13 s and macOS 22 min 37 s; GitHub reports a job stopped by its timeout as "cancelled", so a cancelled test job is read as a timeout, not as a user cancel. The three test jobs have `timeout-minutes: 50` as a guard, not as the budget. Until cycle 16 the headless acceptance tests ran in both nextest runs of a job (default features and all features); since FT-268 they run once per job, in the all-features run only (the default-features run builds the acceptance binary and skips it through a nextest filter). WP-S6.03 adds the CI-time trend to its gate (FT-269).
 
 *As built (cycle 16, lane B; FT-268, FT-269).* The first nextest run of each test job, and the first nextest step of `cargo xtask ci`, skips the headless acceptance tests with the filterset `not (package(ew-api) and binary(acceptance))`; the all-features run, a superset, runs them, so they run once per job. The rule is documented in `.config/nextest.toml`, and a test of `xtask` keeps the filter of `ci.yml`, the constant of `xtask/src/main.rs` and the comment equal. The slow test `the_headless_report_equals_the_committed_report` takes 112 s in the debug build (the other ten tests of the binary 0.2 s together), so a job saves about 2 min (about 9 % of the 21-minute jobs of ID-381). The default-features run still builds the acceptance binary but no longer runs it, so the acceptance tests are only exercised against the all-features build of `ew-api`. The CI-time trend is `ci/ci-times.py`, appended to the nightly performance report (§4.7).
+
+*Cycle 17 (decision log ID-437).* At de23b55 the Windows test job took 30 min 54 s, 54 s over the 30-minute budget of NFR-MAINT-05 and inside the 50-minute guard. Since cycle 17 `fuzz_smoke` takes 15 to 19 s in a debug build (12.5 s before), with all 37 commands and the save-and-reload and import steps, and it runs in both nextest runs of each test job. The budget stays; running `fuzz_smoke` once per job, in the all-features run, as FT-268 did for the acceptance tests, is FT-306.
 
 ### 3.15 Test-build confirmation hook
 
@@ -661,8 +674,8 @@ The PR set stays within 30 min wall time (NFR-MAINT-05); a monthly CI-duration r
 | CI-PR-14 api-guard | The API compatibility guard of NFR-MAINT-10, implementing the CI guards of 17 §11: command-catalogue snapshot and rename test (FR-EXT-015); query output-schema snapshot; CLI `--help`, exit-code and result-schema snapshots; `api_v1` column snapshot; MCP tool-list snapshot; WIT diff against the last release (1.x); a semver check on the public API of the permissive crates (tool **verify**, e.g. cargo-semver-checks) | Linux | Merge (a reviewed snapshot change is allowed only with the label `api-change` and a release-notes entry) |
 | CI-PR-15 docs-diagrams | Path-filtered on Markdown under `docs/`, `book/` and the root: renders every Mermaid block with a pinned mermaid-cli (container image pinned by digest, never distributed) and fails on any parse or render error, because GitHub shows a broken diagram as an error box without failing anything | Linux container | Merge |
 | CI-N-01 perf | §4 gate, all classes; bisect on red | Dedicated BM runner | Release |
-| CI-N-02 deep | Full oracle; proptest 20,000 cases; command fuzzer 1 h with ASan | Linux | Release |
-| CI-N-03 fuzz | ≥ 30 min per parser target; crash triage issues | Linux (ClusterFuzzLite-style batch) | Release |
+| CI-N-02 deep | Full oracle; proptest 20,000 cases; command fuzzer 1 h with ASan. *In part since cycle 17:* the command fuzzer runs nightly as `.github/workflows/fuzz.yml` (`fuzz_long`, 12 seeds × 200 steps, 75-minute budget; §3.6, ID-435), without ASan (FT-304); the full oracle and the proptest run are FT-297 | Linux | Release |
+| CI-N-03 fuzz | ≥ 30 min per parser target; crash triage issues. Not built: the loader and migration-chain targets (FT-297) and the command-sequence cargo-fuzz target (FT-272, deferred into FT-297's `fuzz/` crate) | Linux (ClusterFuzzLite-style batch) | Release |
 | CI-N-04 digests | GP outputs from all three OSs compared (AC-14, FR-OUT-019, NFR-REL-07) | All | Release |
 | CI-N-05 gpu-less | Windows WARP flows and fps sample; lavapipe 3D smoke (from M4, 12 OQ 9) | Windows, Linux | Release |
 | CI-N-06 network | Network sandbox (§12.2) and listening-socket scan | Linux | Release |

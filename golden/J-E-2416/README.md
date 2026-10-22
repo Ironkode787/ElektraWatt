@@ -956,9 +956,9 @@ committed as golden files (doc 18 asks for none); its SHA-256 is in the AC-14 re
 change of any SVG byte shows there. The comparison runs on the platform of the run; the gate platform is Linux and
 the cross-platform digests are MVP.
 
-The headless report of this revision: 94 entries, 88 pass, 0 fail, 1 not_built (D-06's property grid, a UI entry
-of M-PP), 5 not_applicable, 0 oracle mismatches (the full run adds the raster comparison as a pass). Cycle 17
-(FT-165) typed the revisions: path (b) writes every record (608 commands, the 2 revisions by `revision.create`),
+The headless report of this revision: 94 entries, 88 pass, 0 fail, 0 not_built, 6 not_applicable (D-06's property
+grid, a UI entry of M-PP, is `not_applicable` at the headless M1 gate under decision log ID-422), 0 oracle
+mismatches (the full run adds the raster comparison as a pass). Cycle 17 (FT-165) typed the revisions: path (b) writes every record (608 commands, the 2 revisions by `revision.create`),
 and a second D-05 entry checks that no page record holds a revision value. Folio 911 stays a placeholder whose note
 now reads "awaits the `revision_rows` query" (FT-207), which changed its text CSV, its PNG candidate, the PDF digest
 and the SVG digest of AC-14. Cycle 16 closed AC-15 path (b): 606 commands built the project, both BOM exports
