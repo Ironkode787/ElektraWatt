@@ -1,0 +1,78 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# The cargo-fuzz crate of the project (FT-297, FT-272, FT-304; doc 18 §3.6, §3.12, CI-N-02, CI-N-03).
+#
+# It is NOT a member of the cargo workspace (the root Cargo.toml lists it under `exclude`): cargo-fuzz needs a
+# nightly toolchain (`rust-toolchain.toml` here pins one by date), the instrumented build must not reach
+# `cargo build --workspace` or `cargo xtask ci` on the stable toolchain, and its dependencies (libfuzzer-sys and
+# the C++ it builds) stay out of the supply-chain audit of the workspace (the crate is a development tool that is
+# never distributed). The `[workspace]` table below makes it its own workspace root. Its Cargo.lock was seeded from
+# the workspace's, so the shared dependencies resolve to the same versions as in the tested build.
+
+[package]
+name = "ew-fuzz"
+version = "0.0.0"
+edition = "2024"
+license = "GPL-3.0-or-later"
+description = "cargo-fuzz targets: the JSONL loader, the open path with old-shape records, and the command sequence."
+repository = "https://github.com/Ironkode787/ElektraWatt"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[workspace]
+
+[dependencies]
+libfuzzer-sys = "0.4.13"
+# The loader target: the permissive format crate.
+ew-format = { path = "../crates/ew-format" }
+# The open-path target: the store, the model and the in-memory file system of the fault-injection harness.
+ew-store = { path = "../crates/ew-store" }
+ew-model = { path = "../crates/ew-model" }
+# The command-sequence target includes the modules of crates/ew-testkit/tests/command_fuzz (src/lib.rs), so it has
+# the dependencies of that test.
+ew-api = { path = "../crates/ew-api" }
+ew-commands = { path = "../crates/ew-commands", features = ["testkit"] }
+ew-derive = { path = "../crates/ew-derive" }
+ew-ids = { path = "../crates/ew-ids", features = ["testkit"] }
+ew-import-tables = { path = "../crates/ew-import-tables" }
+ew-schema = { path = "../crates/ew-schema" }
+ew-testkit = { path = "../crates/ew-testkit" }
+ew-units = { path = "../crates/ew-units" }
+serde = "1.0.229"
+serde_json = "1.0.154"
+
+# The seed-corpus generator (src/bin/seed_corpus.rs); not a fuzz target.
+[[bin]]
+name = "seed_corpus"
+path = "src/bin/seed_corpus.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "jsonl_loader"
+path = "fuzz_targets/jsonl_loader.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "migration_chain"
+path = "fuzz_targets/migration_chain.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "command_sequence"
+path = "fuzz_targets/command_sequence.rs"
+test = false
+doc = false
+bench = false
+
+# Line tables for a finding's stack; overflow checks and debug assertions come from cargo-fuzz's own flags.
+[profile.release]
+debug = "line-tables-only"

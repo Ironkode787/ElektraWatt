@@ -1,0 +1,12 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: CC0-1.0
+
+# The nightly of the cargo-fuzz crate (FT-297, FT-304; doc 18 §3.12 "Toolchain"): cargo-fuzz's instrumentation and
+# AddressSanitizer (`-Zsanitizer=address`) need a nightly. It is pinned by date, like the stable toolchain of
+# the workspace (`../rust-toolchain.toml`, `1.99.0`), so a nightly regression cannot turn a night red without a
+# commit, and it is advanced by the upgrade train (doc 18 §6.3): the date here and `NIGHTLY_TOOLCHAIN` in
+# `.github/workflows/deep-nightly.yml` change together (a test of xtask keeps them equal). rustup applies this
+# file to every command run inside `fuzz/`; commands run from the repository root use the stable toolchain.
+[toolchain]
+channel = "nightly-2026-10-08"
+profile = "minimal"

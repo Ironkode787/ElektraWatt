@@ -7,6 +7,9 @@
 [workspace]
 resolver = "3"
 members = ["crates/*", "bin/*", "xtask"]
+# The cargo-fuzz crate builds on a nightly toolchain with sanitizer instrumentation and is its own workspace
+# (fuzz/Cargo.toml, FT-297): `cargo build --workspace` and `cargo xtask ci` on the stable toolchain never see it.
+exclude = ["fuzz"]
 
 [workspace.package]
 version = "0.0.0"

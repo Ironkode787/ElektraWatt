@@ -2,6 +2,12 @@
 # SPDX-License-Identifier: CC0-1.0
 
 /target
+
+# The cargo-fuzz crate (fuzz/): its build output, the crash inputs libFuzzer writes and the coverage output. A
+# finding is committed by hand under fuzz/regressions/.
+/fuzz/target
+/fuzz/artifacts
+/fuzz/coverage
 **/*.rs.bk
 .DS_Store
 
