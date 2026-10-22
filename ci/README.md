@@ -26,6 +26,7 @@ The job names are the GitHub status-check names to mark as required.
 | CI-PR-15 | `docs.yml` / `docs-diagrams` (ubuntu-24.04) | Renders every Mermaid block under `docs/` and in the root Markdown with mermaid-cli 12.0.0 (container image pinned by digest) and fails on any error | `python3 -I ci/render-mermaid.py --image <image@sha256:…>` (needs docker); `--extract-only` lists the blocks without docker |
 | CI-PR-10 (book) | `docs.yml` / `docs-book` (ubuntu-24.04) | The user-documentation book of `docs/book` (WP-S0.06, NFR-DOC-01, NFR-DOC-06): `cargo xtask docs-gen --check` (the generated command and rule reference pages are current); mdBook 0.5.4, installed from its pinned release archive (SHA-256 checked); `mdbook build docs/book` in an empty network namespace (the build is offline); `ci/check-book-links.py` over the built pages (relative links, anchors, and links into the repository); the built book uploaded as the artifact `user-guide`. A separate job, so that `legal-docs` stays fast | `cargo xtask docs-gen --check`; `mdbook build docs/book` (mdBook 0.5.4); `python3 -I ci/check-book-links.py target/book` |
 | CI-N-09 | `ci.yml` / `verapdf` (ubuntu-24.04) | Builds `ew`, exports the golden PDF in three variants (all pages; dated by `SOURCE_DATE_EPOCH`; `--pages 101-106,901`) and validates each against PDF/A-2b with veraPDF 1.30.3 (the project's `verapdf/cli` image pinned by digest, run with no network); `ci/verapdf-check.py` turns the XML report into the verdict (FT-294, G-M1-02); the report uploaded as the artifact `verapdf-report`. Details: [veraPDF job](#verapdf-job-ci-n-09) | `python3 -I ci/verapdf-check.py --selftest`; with docker: `docker run --rm -v "$PWD/out:/data:ro" verapdf/cli@sha256:… --flavour 2b --format xml /data/golden-all.pdf > out/verapdf-report.xml`, then `python3 -I ci/verapdf-check.py out/verapdf-report.xml` |
+| CI-N-12 | `cli-artefact.yml` / `cli-artefact` (ubuntu-24.04, windows-2025, macos-15; nightly and `workflow_dispatch`) | `cargo build -p ew --release --locked` and a smoke test (`ew --version`, `ew --help`) per platform; uploads `ew-<os>-<arch>-unsigned-dev-<short sha>` (the program, `LICENSE.md` and a README that says "unsigned development build, not a release") with 90-day retention; no signing, no release, no secret (FT-299, G-M1-22). Details: [CLI artefact](#nightly-cli-artefact-cli-artefactyml-ci-n-12) | `cargo build -p ew --release --locked`; `target/release/ew --version` |
 | CI-PR-13 | `coverage.yml` / `coverage` (ubuntu-24.04; weekly and `workflow_dispatch`, not per PR) | cargo-llvm-cov 0.9.1 over the workspace tests (all features, nextest), the line coverage of `ew-model`, `ew-commands`, `ew-memo`, `ew-derive`, `ew-format` and `ew-store` against 80 % (NFR-MAINT-06); **report-only** (FT-296, G-M1-15). Details: [Coverage job](#coverage-job-ci-pr-13) | `cargo llvm-cov nextest --workspace --all-features --locked --no-report`, `cargo llvm-cov report --json --summary-only --output-path summary.json`, `python3 -I ci/coverage-summary.py summary.json` |
 
 `cargo xtask ci` runs fmt, clippy, nextest and the doctests (each with the default features and with `--all-features`;
@@ -142,6 +143,25 @@ Locally: `EW_FUZZ_SEEDS=17 EW_FUZZ_STEPS=200 EW_FUZZ_REPORT=target/fuzz/findings
 slower); the cadences of the costly oracles are `EW_FUZZ_SAMPLE_EVERY`, `EW_FUZZ_CHECK_EVERY` and
 `EW_FUZZ_VERIFY_EVERY`, the step mix `EW_FUZZ_SAVE_WEIGHT` and `EW_FUZZ_IMPORT_WEIGHT`, the wall-clock budget
 `EW_FUZZ_BUDGET_SECS`. `fuzz_smoke` (2 seeds of 30 steps, 15 to 19 s in a debug build) stays in the targeted tests (`cargo nextest run -p ew-testkit`) and runs once per CI test job and in `cargo xtask ci`, in the all-features nextest run (the default-features run skips the `command_fuzz` binary: FT-306, decision log ID-437).
+
+## Nightly CLI artefact (`cli-artefact.yml`, CI-N-12)
+
+FT-299, WP-S6.02, gate criterion G-M1-22 (doc 18 §5.2). The nightly workflow
+[`cli-artefact.yml`](../.github/workflows/cli-artefact.yml) (schedule and `workflow_dispatch`) builds the `ew`
+command-line program with `cargo build -p ew --release --locked` on ubuntu-24.04 (x86_64), windows-2025 (x86_64)
+and macos-15 (aarch64), runs `ew --version` and `ew --help` as a smoke test and uploads one artefact per
+platform, named `ew-<os>-<arch>-unsigned-dev-<short sha>`. An artefact holds the program, `LICENSE.md` and a
+`README.md` copied from [`cli-artefact-README.md`](cli-artefact-README.md) (it states that the archive is an
+`unsigned development build, not a release`) with the commit, runner, toolchain and the SHA-256 of the program
+appended. Retention is 90 days.
+
+What it deliberately does not do: sign or notarise anything, create a tag or a release, publish the binary
+anywhere, or use a secret (the signing identities are a release item of WP-S6.07 and the owner's; publishing waits
+for the owner's decision on the CC-BY-SA symbols, decision log ID-383, accepted as a distribution fact on
+2026-10-22). The three platform jobs do not stop each other (`fail-fast: false`). The upload is not `if: always()`:
+a failed build leaves no artefact to keep, and the job summary step, which is, says so. The first scheduled run is
+the evidence for G-M1-22's nightly part; the `m1` release-notes skeleton is
+[`docs/release-notes/m1-draft.md`](../docs/release-notes/m1-draft.md).
 
 ## Headless container job (CI-PR-05)
 

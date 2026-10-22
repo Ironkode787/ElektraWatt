@@ -76,6 +76,7 @@ set. The project has no code yet; the documents are the product of the design ph
 | [05 Traceability](plan/05-traceability.md) | Generated report: requirements, ACs, defects to WPs; gaps |
 | [06 Decision log](plan/06-decision-log.md) | Decided items (user decisions, Accepted ADRs) and open questions |
 | [Gate records](plan/gate-records/G-M1-2026-10-readiness.md) | Dated readiness runs, pack drafts and gate records; first: the G-M1 readiness run of 2026-10-22 |
+| [Release notes](release-notes/m1-draft.md) | Drafts of the release notes of source tags and releases; first: the `m1` skeleton (FT-299) |
 
 ### 2.3 adr/
 
