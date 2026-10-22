@@ -1,6 +1,6 @@
 # Reports, forms and page output
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-22, cycle-19 design pass: the shell's PDF export as built, §4.3, decision log ID-485) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-22, cycle-19 design pass: the shell's PDF export as built, §4.3, decision log ID-485; amended 2026-10-22, cycle-20 design pass: the export still synchronous after WP-S2.01 part 2, §4.3, ID-504) · **Part of:** ElektraWatt design document set
 
 > **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
 
@@ -779,7 +779,8 @@ the dify tolerance (§4.4); veraPDF validates PDF/A-2b; hayro rasterises the PDF
 `file.export_pdf` call `Session::export_pdf` with the default options, the exporter of `ew export pdf`: on Golden A the
 shell's PDF has the committed digest of `expected/pdf/sha256.txt` (a test of `bin/elektrawatt`). In part 1 the export
 runs synchronously on the UI thread, with "Exporting PDF..." in the status bar; the job with progress and cancel is
-FT-313.
+FT-313. WP-S2.01 part 2 (cycle 20; decision log ID-486, ID-504) left the export as it was: FT-313's first part, the
+discard of a leftover journal, landed, and the export job with progress and cancel remains, with WP-S2.09.
 
 **Budgets.** Paginating every block cold takes S/M ≤ 3 s, L ≤ 15 s and XL ≤ 60 s, golden 903–911 within 1 s
 (NFR-PERF-10).

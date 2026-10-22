@@ -221,6 +221,13 @@ prose files is NFR-DOC-08.
 | LR-11 | Fixtures from third parties (QET examples, vendor AML or GSDML samples) are fetched by CI at a pinned commit into the cache and never committed ([14](14-interop.md) OQ8). Own test files are CC0-1.0 (L8), including `crates/*/tests/fixtures/` inside GPL crates; the licence map gives that path its own, longer rule than the crate's row. | `.gitignore` plus the licence-map check (unknown files fail) |
 | LR-12 | Nothing confidential is committed: no customer or person identifiers, no reference PDF, no local paths. | Anonymisation guard (`ci/denylist.sha256`, NFR-PRIV-09, [20](20-golden-project.md) §3.5, AC-39) |
 
+*Development-only crates* (2026-10-22, decision log ID-496). NFR-LIC-04's allowlist governs the application's
+dependencies. The cargo-fuzz crate `fuzz/` is its own cargo workspace that no distributed artefact contains; its
+`fuzz/deny.toml` uses the same allowlist (an `xtask` test keeps them equal) plus one per-crate exception, NCSA for
+libfuzzer-sys (`(MIT OR Apache-2.0) AND NCSA`, LLVM's libFuzzer runtime), checked report-only by the deep nightly's
+`fuzz-deny` job ([18](18-quality-security-release.md) §5.4). The allowlist itself is unchanged, and a crate that ships
+may not use the exception.
+
 ### 3.2 Contributions under the DCO, and what this means for relicensing
 
 - **Mechanics.**

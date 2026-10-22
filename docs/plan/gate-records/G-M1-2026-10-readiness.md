@@ -1,6 +1,6 @@
 # G-M1 readiness run
 
-**Status:** Final (readiness run; the gate is not convened; the delegated rulings of 2026-10-22 are recorded in §8 and the addendum; the owner rulings of 2026-10-22 in the second addendum; the cycle-18 delivery in the addenda of §6 and §10; the cycle-19 delivery in the addendum of §6) · **Date:** 2026-10-22 · **Gate:** G-M1 Spine exit ·
+**Status:** Final (readiness run; the gate is not convened; the delegated rulings of 2026-10-22 are recorded in §8 and the addendum; the owner rulings of 2026-10-22 in the second addendum; the cycle-18 delivery in the addenda of §6 and §10; the cycle-19 and cycle-20 deliveries in the addenda of §6) · **Date:** 2026-10-22 · **Gate:** G-M1 Spine exit ·
 **Commit:** de23b55 (the cycle-16 delivery of `claude/m0-foundations`, equal to `main`) · **Scenario:** the
 cycle-based plan of record ([global plan §3.8](../01-global-plan.md#38-cycle-based-progress-view-plan-of-record-since-2026-10-20),
 decision log ID-271) · **Part of:** ElektraWatt plan, gate records
@@ -267,6 +267,20 @@ of 11 applicable hard criteria met (G-M1-01, -03, -04, -06, -07, -08) and 5 open
 -11, -12, -24); of 7 applicable must criteria 2 are met (G-M1-10, -14), 1 is met with conditions (G-M1-09) and 4 are
 open (G-M1-13, -17, -22, -23). The verdict stays **not ready**. The acceptance counts are unchanged (94 entries, 88
 pass, 0 fail, 0 `not_built`, 6 `not_applicable`).
+
+**Addendum (cycle-20 delivery, 2026-10-22; decision log ID-502).** Rows whose state changed, without rewriting the
+run: **FT-297** and **FT-304** are built and closed (decision log ID-494 to ID-497): the deep nightly
+`.github/workflows/deep-nightly.yml` runs CI-N-02 (the full memo oracle on every read over Golden A and Golden B, the
+20,000-case proptest run, `fuzz_long` under AddressSanitizer) and CI-N-03 (the cargo-fuzz targets for the JSONL loader,
+the migration chain and the command sequence, 30 minutes each under ASan) every night. **G-M1-13** therefore has its
+nightly parts built: its seven nights of CI-N-02 count from the deep nightly's first scheduled run, which this pass has
+not read; CI-PR-08, the 60-s fuzz run per pull request, is not built (FT-335), and "no open crash" is judged over those
+nights, so G-M1-13 stays **open**. **The G-SP re-test**: class S was re-run on the developer machine, informational
+(ID-501): every median within noise of the baseline, NFR-PERF-05 met at S on the incremental commit path, the cold path
+still over (ID-218); class M, which G-M1-11 needs, was not run. FT-298, FT-300, the page tasks and the owner side are
+unchanged. **Recount:** unchanged (6 of 11 applicable hard criteria met; of 7 applicable must criteria 2 met, 1 met
+with conditions, 4 open). The verdict stays **not ready**. The acceptance counts are unchanged (94 entries, 88 pass,
+0 fail, 0 `not_built`, 6 `not_applicable`).
 
 ## 7. What is not ready
 

@@ -1,6 +1,6 @@
 # WP-S2.01 part 1: the application shell (closed specification)
 
-**Status:** Delivered (part 1, cycle 19; superseded by the code and the work package's status line; deviations as built in decision log ID-473 to ID-477: AccessKit always on, `rust-version` 1.95, the optional `read_only` and `query` parameters, `ui.dismiss`, the journal kept on a dirty exit, headless configuration isolation) · specified for cycle 19 (one programmer lane, D3; Opus review) · **Date:** 2026-10-22 · **Work package:**
+**Status:** Delivered (part 2, cycle 20, from the part-2 list of §9 and its follow-up tasks: FT-307, FT-308, FT-309, FT-311, FT-312, FT-313's journal discard and FT-327, with FT-310 deferred; deviations as built in decision log ID-486 to ID-493: egui_tiles 0.18.0, the toolkit-neutral workspace file, the wizard writing only existing commands, the empty-directory rule, the `SaveError` re-export) · Delivered (part 1, cycle 19; superseded by the code and the work package's status line; deviations as built in decision log ID-473 to ID-477: AccessKit always on, `rust-version` 1.95, the optional `read_only` and `query` parameters, `ui.dismiss`, the journal kept on a dirty exit, headless configuration isolation) · specified for cycle 19 (one programmer lane, D3; Opus review) · **Date:** 2026-10-22 · **Work package:**
 [WP-S2.01](../02-work-packages.md#wp-s201-application-shell-first-run-and-company-standard-wizard-ui) · **Decision
 log:** ID-440 to ID-449 · **Part of:** ElektraWatt plan, specifications
 

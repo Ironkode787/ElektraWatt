@@ -15,7 +15,7 @@ belongs there.
 | `src/SUMMARY.md` | the table of contents; the entries below `reference/commands/index.md` and `reference/rules/index.md` are generated |
 | `src/introduction.md` | what the guide is and how it is organised |
 | `src/tutorials/` | lessons: [a first headless run on the golden project](src/tutorials/headless-workflow.md) |
-| `src/how-to/` | task guides: [using the application window](src/how-to/application-window.md), the target of F1 |
+| `src/how-to/` | task guides: [using the application window](src/how-to/application-window.md), the target of F1 (no build bundles the built guide with the application yet; decision log ID-492) |
 | `src/reference/` | exact facts; `commands/` and `rules/` are **generated** |
 | `src/explanation/` | background; links the design documents |
 

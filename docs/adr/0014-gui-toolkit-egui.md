@@ -1,6 +1,6 @@
 # ADR-0014: GUI toolkit: egui/eframe behind `ew-ui`, over a toolkit-agnostic `ew-viewmodel`
 
-**Status:** Accepted · amended 2026-10-18 · as-built note 2026-10-22 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18 · as-built notes 2026-10-22 (cycles 19 and 20) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -69,6 +69,18 @@ menu bar is drawn with egui on every OS until FT-310 (amendment 1 stays the targ
 crates that name egui declare `rust-version = "1.95"` (decision 5). Only `ew-ui` and `elektrawatt` name egui or
 eframe, and neither depends on wgpu directly (decision 2). The accessible-name walker of amendment 2 runs after every
 kittest flow. The UI graph adds 296 crates, all cargo-vet exemptions until the lead's audit (FT-326).
+
+## As built (cycle 20)
+
+A note, not an amendment: the decision is unchanged. WP-S2.01 part 2 (decision log ID-486 to ID-493) added docking with
+**egui_tiles 0.18.0, not the 0.17.1 of the context table**: 0.17.1 needs egui 0.36, and 0.18.0 is the release for egui
+0.37, the version of decision 1 (ID-490). It is pinned `=0.18.0` with default features off, so no serde: the workspace
+files are not the serialised egui_tiles tree but the toolkit-neutral `ew.workspace/1` that `ew-viewmodel` owns and
+`ew-ui` converts (ID-489; [UX/UI](../design/16-ux-ui.md) §2.5), which keeps egui behind `ew-ui` as rule 3 asks. The
+dock's splitter handles have no accessible name in 0.18.0, so amendment 2's walker skips exactly as many unnamed handles
+as the dock has splitters until they are named (FT-338). The lead's audit (FT-326, decision log ID-498) audited the
+native-boundary crates that FT-326 named or found them covered by an imported set; the rest of the graph, egui,
+eframe, egui_tiles and the wgpu 30.0.1 front-end crate among it, stays exempt (385 exemptions at the integration tip).
 
 ## Consequences
 

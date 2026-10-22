@@ -1,6 +1,6 @@
 # User experience and user interface
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-22, cycle-19 design pass: the part-1 shell and its headless mode as built, §3.9, decision log ID-473 to ID-475, ID-485) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-22, cycle-19 design pass: the part-1 shell and its headless mode as built, §3.9, decision log ID-473 to ID-475, ID-485; amended 2026-10-22, cycle-20 design pass: the toolkit-neutral workspace file, §2.5; the part-2 shell as built, §3.9; first run and the wizard as built, §9.1, §9.2; decision log ID-486 to ID-493, ID-504) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how people work with ElektraWatt (EW): the main window and its docking
 workspace, navigators, canvas tabs, the property grid with provenance, the command palette and keymaps, table
@@ -190,7 +190,7 @@ a display (ID-443).
 |---|---|---|---|
 | User settings: UI language, theme, scale, minimum font size, reduce motion, keymap preset, first-run answers, update-check opt-in, recent projects, default basic project, user display name | OS configuration directory, `elektrawatt/settings.toml` | TOML with `version` | Unknown keys preserved; an unreadable file yields defaults, a `.bad-<n>` copy and a banner (FR-UI-049) |
 | Keymaps | `elektrawatt/keymaps/<name>.toml` | TOML (§4.4) | Import and export (FR-UI-013) |
-| Workspaces | `elektrawatt/workspaces/<name>.json` | serialised egui_tiles tree plus pane configs | FR-UI-002 |
+| Workspaces | `elektrawatt/workspaces/<name>.json` | JSON `ew.workspace/1`: a toolkit-neutral tree of panes, tab groups and splits with integer shares, members sorted, no floating point, so a layout saved twice is the same bytes; `ew-ui` converts it to and from egui_tiles (amended 2026-10-22, decision log ID-489: the serialised egui_tiles tree keeps its tiles in a hash map and would tie a user file to one toolkit) | FR-UI-002 |
 | Per-project view state: open tabs, viewport per page, jump history (last 50), last selection, navigator expansion and filters, table column layouts, active workspace, highlight sets | `<name>.ew/.ew/u-<hash>/view.json`, `<hash>` from `user@host` ([05](05-project-format-and-persistence.md) §1) | JSON | git-ignored; per user, so users of a shared folder do not overwrite each other; never project data (FR-UI-033) |
 | Policy (MSI deployments) | registry policy keys | — | update check off (NFR-PRIV-03) |
 
@@ -352,35 +352,46 @@ change"). It contains no news feed and opens no connection (NFR-PRIV-01). It mus
   [06](06-schematic-editor.md) §3.6, which remaps IDs and renumbers in the paste ghost (FR-UI-036).
 - **Windows of one project** (1.0, FR-UI-004) share its `Session`, undo stack, selection and highlights (§3.4).
 
-### 3.9 As built: the part-1 shell (cycle 19)
+### 3.9 As built: the shell (cycles 19 and 20)
 
-WP-S2.01 part 1 built a subset of this section on its
-[closed specification](../plan/specs/WP-S2.01-application-shell.md) (decision log ID-473 to ID-475). The design text
-of §3.1 to §3.8 stays the target of the whole work package; this subsection records what exists and where it differs.
+WP-S2.01 built a subset of this section in two parts on its
+[closed specification](../plan/specs/WP-S2.01-application-shell.md): part 1 in cycle 19 (decision log ID-473 to
+ID-475) and part 2 in cycle 20 (ID-486 to ID-493). The design text of §3.1 to §3.8 stays the target of the whole work
+package; this subsection records what exists and where it differs.
 
 | Element | As built | Differs from the design by |
 |---|---|---|
-| Window | `elektrawatt [<project-dir>]`: eframe 0.37.0 on the wgpu renderer, 1280 × 800 at start; the title `<directory name> - ElektraWatt`, with `*` while unsaved | No toolbar (§3.3), no docking or workspaces (§3.4, FT-309), no canvas tabs (§3.5) |
-| Menus | Drawn with egui on every OS from the toolkit-neutral registry of `ew-viewmodel`: File, Edit, View, Page, Tools, Help, each entry with its accelerator text; a disabled entry shows its reason as a tooltip | Six menus of §3.2's twelve; muda on macOS and Windows is deferred (decision log ID-446, FT-310) |
-| Start page | Open..., the recent projects (at most 10; an entry is dropped only when its path no longer exists) and the line "Update check: off" | New project, the sample project, QET import, the company standard, tutorials and the quick switches are FT-307, FT-308 and FT-312; the privacy line has no "change" link yet |
-| Project view | A fixed layout: the page list (printed folio labels; a click goes to the page), the page view, the status bar | The page list is not the navigator of §5 |
+| Window | `elektrawatt [<project-dir>]`: eframe 0.37.0 on the wgpu renderer, 1280 × 800 at start; the title `<directory name> - ElektraWatt`, with `*` while unsaved | No toolbar (§3.3), no canvas tabs (§3.5) |
+| Menus | Drawn with egui on every OS from the toolkit-neutral registry of `ew-viewmodel`: File, Edit, View, Page, Tools, Help, each entry with its accelerator text; a disabled entry shows its reason as a tooltip, and an entry with a documentation topic ends its tooltip with "F1: learn more" | Six menus of §3.2's twelve; muda on macOS and Windows is deferred (decision log ID-446, FT-310) |
+| Start page | New project (from the default basic project, else the built-in one), Open..., the recent projects (at most 10; an entry is dropped only when its path no longer exists), Open sample project (Golden A, read-only), Import QET project, Create company standard (Edit company standard once a default basic project is set), Tutorials (a fresh copy of the sample project in an empty directory), the language and keymap quick switches and the line "Update check: off" (part 2, ID-486) | The privacy line has no "change" link yet; one tutorial, not the tutorial pages of §13 |
+| New project | File ▸ New project (Ctrl+N) through `Session::new_project` (ID-487): the built-in basic project (the shipped defaults, one empty folio 1) or a company basic project, whose records are copied with new identities `v5(new project ID, source ID)`; the target is an empty or absent directory, checked before the open project closes (ID-488) | The project does not record which basic project it came from (`Project.basic_project`, FT-339) |
+| Project view | Docking with egui_tiles 0.18.0 (ID-490): the Schematic workspace with the panes that exist, the page list (printed folio labels; a click goes to the page) and the page view, in splits and tab groups the user rearranges; View ▸ Workspace saves, loads and resets named workspaces (§2.5, `ew.workspace/1`, ID-489), saved one second after the last change and at shutdown | The page list is not the navigator of §5; the property grid, navigators and message panels of §2.6 join with their work packages; the splitter handles have no accessible name yet (FT-338) |
 | Page view | The current page read-only, the CPU renderer's raster fitted to the pane at the largest step of 12 dpi between 36 and 200 that fits; one long-lived worker thread renders, and the latest request wins | No GPU canvas, zoom or pan (WP-S2.02, WP-S2.03) |
 | Status bar | The hint "Read-only view", the page as `<folio> (<n> of <total>)`, the save state, the render backend `CPU`, the language `EN`, and "Exporting PDF..." during an export | No cursor, grid, selection, findings or jobs fields (§3.6) |
-| Banner | One line for a read-only reason, the integrity findings of the open report, a leftover journal ([05](05-project-format-and-persistence.md) §8.3, as built) or a missing file-dialog portal on Linux, with its own close button | The notification classes of §8.2 come with WP-S2.09 |
+| Banner | One line for a read-only reason, the integrity findings of the open report, a leftover journal ([05](05-project-format-and-persistence.md) §8.3, as built) with File ▸ Discard leftover journal (a confirmation, then the editing open; FT-313's first part), or a missing file-dialog portal on Linux, with its own close button | The recovery dialog and the notification classes of §8.2 come with WP-S2.09 |
 | Palette | Ctrl+K or Ctrl+Shift+P: a case-insensitive substring search over the registry actions and the registered model commands, disabled entries last with their reason; model commands are listed but disabled until parameter forms exist | Ranking, aliases, prefixes and forms of §4.3 are WP-S2.08 |
-| Dialogs | About (version, "Page view: CPU renderer", the privacy line, the licence, the repository), keyboard shortcuts, go to page (Ctrl+G), and Save / Discard / Cancel when Close, Quit or Open meets unsaved changes; Open, Save As and Export PDF use the operating system's dialogs through rfd 0.17.2 (on Linux the XDG portal) | The complete About and F1 are FT-311; §3.8's "Open in new window" is not offered |
-| Keyboard | Routing: a focused text field, then the topmost popup or dialog, then the shell's shortcuts; Escape closes the topmost popup or dialog (the registry action `ui.dismiss`) and otherwise does nothing; on macOS `Ctrl` reads `Cmd` | No keymap presets or files (§4.4, WP-S2.08) |
+| Dialogs | About (version, renderer, privacy line, licence, repository, the engineering-verification disclaimer, the support status computed offline, the third-party notices; part 2), keyboard shortcuts, go to page (Ctrl+G), save workspace, the leftover-journal confirmation, and Save / Discard / Cancel when Close, Quit or Open meets unsaved changes; Open, Save As and Export PDF use the operating system's dialogs through rfd 0.17.2 (on Linux the XDG portal) | `PRIVACY.md` does not exist yet, and About says so (FT-342); a pre-1.0 build shows "pre-release build" and no support-end banner (ID-492 R5); §3.8's "Open in new window" is not offered |
+| Help | F1 resolves the context in §13's order as far as the shell has contexts (wizard, first run, palette, dialog, project view, start page, else the guide's home) and opens the topic's page of the user guide in the system browser (on Windows through `rundll32 url.dll,FileProtocolHandler`, no shell; ID-492 R8); the anchors are tested against the book | No build bundles the built guide yet, so without one F1 shows a banner (ID-492 R6); no property-row, finding or tool contexts yet |
+| Onboarding | First run (§9.1) and the company-standard wizard (§9.2), as built in §9 | See §9 |
+| Keyboard | Routing: a focused text field, then the topmost popup or dialog, then the shell's shortcuts; Escape closes the topmost popup or dialog (the registry action `ui.dismiss`) and otherwise does nothing; on macOS `Ctrl` reads `Cmd` | No keymap files (§4.4, WP-S2.08); the quick switch stores the preset |
 | Fonts and scale | The bundled faces of `ew-text` (Noto Sans, with Noto Sans Math as the last fallback) are the only UI fonts; UI scale 1.0, 1.25, 1.5 or 2.0 through egui's zoom factor | Up to 300 % (§10.4) later |
-| Exit | A clean project is closed at exit; a dirty one keeps its journal, and the next open is read-only with the recovery banner (decision log ID-475) | The recovery dialog and the discard are FT-313 |
+| Exit | A clean project is closed at exit; a dirty one keeps its journal, and the next open is read-only with the recovery banner (decision log ID-475) | The recovery dialog is the rest of FT-313 (WP-S2.09) |
 
-**The headless mode** (decision log ID-474). `elektrawatt --headless --script <file|->` runs the same registry actions
-on the same shell model with no window, no GPU and no display, and writes a deterministic transcript: the script is
-JSON Lines `ew.uiscript/1`, the transcript JSON Lines `ew.uitranscript/1` with the observable state after each step,
-`ui.describe` returns the visible UI as text for agents (its structural words are fixed machine text) and
-`view.snapshot` a PNG; `--record` keeps the committed model commands as an `ew.cmdlog/1` log, and a headless run uses no
-user settings unless `EW_CONFIG_DIR` or `--config-dir` names a directory. Whatever the headless mode cannot do, the
-shell does not do (decision log ID-443). `elektrawatt --smoke <project-dir>` opens a project read-only, draws its first
-page and exits.
+**The headless mode** (decision log ID-474, ID-493). `elektrawatt --headless --script <file|->` runs the same registry
+actions on the same shell model with no window, no GPU and no display, and writes a deterministic transcript: the
+script is JSON Lines `ew.uiscript/1`, the transcript JSON Lines `ew.uitranscript/1` with the observable state after
+each step, `ui.describe` returns the visible UI as text for agents and `view.snapshot` a PNG; `--record` keeps the
+committed model commands as an `ew.cmdlog/1` log, and a headless run uses no user settings unless `EW_CONFIG_DIR` or
+`--config-dir` names a directory. The structural words of `ui.describe` are fixed machine text, listed in full in
+`ew-viewmodel`'s `describe.rs` (`VOCABULARY`, with `FREE_TEXT_MARKERS` for the markers after which a line is user text)
+and checked by a test; quoted text is user text, including the option lists of a choice, every dialog-text line and an
+unavailable preview's reason. The hidden actions `settings.set`, `first_run.*` and `wizard.*` let a script drive the
+first run and the wizard. Whatever the headless mode cannot do, the shell does not do (decision log ID-443).
+`elektrawatt --smoke <project-dir>` opens a project read-only, draws its first page and exits.
+
+**Resources.** The sample project, the content packs and the built guide are found next to the executable, in
+`share/elektrawatt` one level up, or in the source tree of a development build; `EW_SAMPLE_DIR`, `EW_CONTENT_DIR` and
+`EW_DOCS_DIR` override them, and a missing one disables only the feature that needs it (ID-492 R6).
 
 ---
 
@@ -875,6 +886,13 @@ flowchart LR
 - Every step can be skipped and rerun from Help ▸ First-run setup. The whole flow works offline; under the network
   sandbox it makes no connection attempt (FR-UI-030).
 
+*As built (cycle 20, WP-S2.01 part 2; decision log ID-486).* The five steps exist as drawn, each skippable, and Help ▸
+First-run setup reruns them. The answers are settings written as given (`language`, `comes_from`, `update_check`,
+`theme`, `ui_scale`); step 2 sets the keymap preset (KiCad-like for KiCad users, EW otherwise), which takes effect with
+the keymap files of WP-S2.08; the flow opens no connection. Not yet: the secondary palette labels and tips of step 2
+(§9.4, WP-S2.08) and the `PRIVACY.md` link of step 3 (the file does not exist yet, FT-342). The headless mode drives the
+flow through `first_run.*`.
+
 ### 9.2 Company-standard wizard
 
 The wizard turns company conventions into a **basic project** from which new projects are created (FR-PRJ-009,
@@ -900,6 +918,32 @@ The wizard keeps a draft in the user configuration directory until it finishes. 
 the basic project itself. Existing projects keep the copy they were created from; applying later company changes
 to an existing project is a previewed command planned for 1.x. NFR-UX-08 is met when Golden A reproduces from the
 shipped defaults plus the pilot's basic project made with this wizard.
+
+*As built (cycle 20, WP-S2.01 part 2; decision log ID-486, ID-491, ID-492).* Ten steps (1 to 9 and 11; step 10 is
+1.0), each with its fields validated as typed; the draft `ew.wizard-draft/1` lives in the configuration directory until
+the wizard finishes; the live preview renders the cover and folio 102 of the sample project with the current choices
+on a fork. The defaults are the sample project's conventions (numbering `{page}{letter}{counter}`, strips
+`{letter}{page}{counter}`, the colour profile "DBU/WH 24 V", the size profile "0.75/1.5", the QET-style
+cross-reference format, `=P01`, sections 1, 2 and 9); a numbering format must contain `{page}`, `{letter}` and
+`{counter}` until the numbering engine of WP-S1.11 (ID-492 R2). **What the wizard writes** (ID-491): `wizard.finish`
+needs an empty or absent directory (ID-488) and builds a basic project from the built-in one through registered
+commands only, in one script:
+
+| Step | Written now, by | Kept in the draft until |
+|---|---|---|
+| 1 Company | — | a party and notice command (FT-336); the logo asset store (FT-337) |
+| 2 Frame and title block | — | a frame-defaults command (FT-336) |
+| 3 Colour profile | `project.settings.set` | — (the shipped EN 60204-1 and IEC 60445 profiles are FT-337) |
+| 4 Size profile | `project.settings.set` | — |
+| 5 Identifiers and numbering | `project.settings.set` (the numbering schemes and the cross-reference format) | — |
+| 6 Structure and sections | `structure.create_node`, `section.create` | — |
+| 7 Revisions | `revision.create` (the first revision) | — |
+| 8 Languages and formats | — | a languages and formatting command (FT-336) |
+| 9 Reports and checks | — | the check scheme: a check-scheme command (FT-336); report blocks: a `report_block.create` that embeds the definition from the library (FT-341), so the step offers none yet |
+| 11 Review and create | the basic project directory; the default basic project in the user settings | — |
+
+The review step lists every field with `written` or `kept in the draft`. A test checks that the settings commands of
+the defaults leave the sample project unchanged.
 
 ### 9.3 Glossary and aliases
 
