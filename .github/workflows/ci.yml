@@ -126,6 +126,10 @@ jobs:
       - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
         with:
           tool: cargo-nextest@0.9.148
+      # Mesa's software Vulkan driver (lavapipe): the GPU canvas's parity test (WP-S2.02 part 2, spec section 8 item 4)
+      # needs an adapter; without one the test prints `skipped: no adapter` and passes, which proves nothing on Linux.
+      - name: install Mesa's lavapipe for the GPU canvas tests
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends mesa-vulkan-drivers
       - name: cargo build
         run: cargo build --workspace --locked
       # FT-353 (decision log ID-527): the default-features run moved to the job test-linux-default, so that the two
@@ -185,6 +189,10 @@ jobs:
       - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
         with:
           tool: cargo-nextest@0.9.148
+      # Mesa's software Vulkan driver (lavapipe): the GPU canvas's parity test (WP-S2.02 part 2, spec section 8 item 4)
+      # needs an adapter; without one the test prints `skipped: no adapter` and passes, which proves nothing on Linux.
+      - name: install Mesa's lavapipe for the GPU canvas tests
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends mesa-vulkan-drivers
       - name: cargo build
         run: cargo build --workspace --locked
       # The default-features run of the Linux test (FT-353, decision log ID-527), without the headless acceptance
