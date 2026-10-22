@@ -16,6 +16,7 @@ mod docs_gen;
 mod features;
 mod governance;
 mod licence;
+mod perf;
 mod raw_read;
 mod repo;
 mod symbols;
@@ -61,6 +62,13 @@ commands:
                        Markdown report and a JUnit file (target/nextest/ci/junit.xml) and exits non-zero when an
                        entry fails or is not built (crates/ew-api/tests/acceptance.rs); --milestone runs the
                        release profile with EW_PERF_ASSERT=1 so that AC-17 is measured
+  perf-gate [--classes S,M] [--quick] [--report <file>] [--baseline <file>] [--from <bench-output>]...
+            [--bless] [--enforce] [--dry-run]
+                       the performance and memory gate of WP-S6.03 (nightly, .github/workflows/perf.yml): runs
+                       the ew-testkit benches over the fixture classes, compares the medians and the memory
+                       estimates with ci/perf-baseline.toml (15 % threshold), reads the peak RSS (Linux) and
+                       writes a Markdown report; it fails on a regression only with EW_PERF_ASSERT set or
+                       --enforce (the hosted runners are report-only); --bless writes the baseline
   ci                   fmt, clippy and nextest (default and all features), doctests and the repository checks
                        above (except check-dco), with a summary
   help                 this text
@@ -141,6 +149,7 @@ fn main() -> ExitCode {
                 Ok(false)
             }
         },
+        "perf-gate" => perf::run(&args[1..]),
         "ci" => ci(),
         "help" | "-h" | "--help" => {
             print!("{USAGE}");
@@ -448,6 +457,12 @@ fn run_echoing_stderr(command: &mut Command) -> Result<(std::process::ExitStatus
     Ok((child.wait()?, captured))
 }
 
+/// The nextest filterset of the first (default-features) run of a CI test job: the headless acceptance tests of
+/// `crates/ew-api/tests/acceptance.rs` (about 2 min) run in the all-features run only, so once per job
+/// (FT-268, decision log ID-381). `.config/nextest.toml` documents the rule and `.github/workflows/ci.yml` repeats
+/// the filter; a test below keeps the three equal.
+const ACCEPTANCE_ONCE_FILTER: &str = "not (package(ew-api) and binary(acceptance))";
+
 /// Runs the local mirror of the per-PR CI set and prints a summary. Every step runs, even after a failure,
 /// so one invocation shows everything that needs fixing.
 fn ci() -> Result<bool> {
@@ -478,7 +493,18 @@ fn ci() -> Result<bool> {
                 "warnings",
             ],
         ),
-        ("nextest", &["nextest", "run", "--workspace", "--locked"]),
+        // The headless acceptance tests run once, in the all-features run below (FT-268).
+        (
+            "nextest",
+            &[
+                "nextest",
+                "run",
+                "--workspace",
+                "--locked",
+                "-E",
+                ACCEPTANCE_ONCE_FILTER,
+            ],
+        ),
         (
             "nextest-all-features",
             &["nextest", "run", "--workspace", "--all-features", "--locked"],
@@ -548,7 +574,36 @@ fn ci() -> Result<bool> {
 
 #[cfg(test)]
 mod tests {
-    use super::unresolved_clippy_paths;
+    use super::{ACCEPTANCE_ONCE_FILTER, unresolved_clippy_paths, workspace_root};
+
+    /// FT-268: the acceptance tests run once per job. The default-features run of each of the three test jobs
+    /// carries the filter, the all-features run does not, and the nextest config documents the same filter.
+    #[test]
+    fn the_acceptance_tests_run_once_per_ci_job() {
+        let ci = std::fs::read_to_string(workspace_root().join(".github/workflows/ci.yml")).unwrap();
+        let nextest_runs: Vec<&str> = ci
+            .lines()
+            .map(str::trim)
+            .filter(|l| l.starts_with("run: cargo nextest run"))
+            .collect();
+        let (all_features, default): (Vec<&str>, Vec<&str>) =
+            nextest_runs.iter().partition(|l| l.contains("--all-features"));
+        assert_eq!((default.len(), all_features.len()), (3, 3), "{nextest_runs:#?}");
+        for line in default {
+            assert!(line.contains(&format!("-E '{ACCEPTANCE_ONCE_FILTER}'")), "{line}");
+        }
+        for line in all_features {
+            assert!(
+                !line.contains(" -E "),
+                "the all-features run runs everything: {line}"
+            );
+        }
+        let config = std::fs::read_to_string(workspace_root().join(".config/nextest.toml")).unwrap();
+        assert!(
+            config.contains(&format!("-E '{ACCEPTANCE_ONCE_FILTER}'")),
+            "the nextest config documents the filter"
+        );
+    }
 
     #[test]
     fn an_unresolvable_disallowed_path_is_caught() {

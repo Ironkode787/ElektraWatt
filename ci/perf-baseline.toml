@@ -1,0 +1,120 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# The baseline of the performance and memory gate (`cargo xtask perf-gate`, WP-S6.03, ci/README.md).
+# Written by `cargo xtask perf-gate --bless`; the nightly job uploads the same text as
+# `baseline.candidate.toml` next to its report. Re-bless on the BM-class runner (an owner item,
+# decision log DEC-034): a baseline from another runner is only informational.
+
+[meta]
+threshold_percent = 15.0
+noise_floor_ms = 0.05
+runner = "dev-windows-x86_64"
+mode = "full"
+note = "class S only, full mode, on a developer Windows machine (not BM-class): informational; re-bless on the BM-class runner"
+
+[classes.S.median_ms]
+"cold_ops:connection.draw.commit" = 0.014
+"cold_ops:model.build" = 8.729
+"cold_ops:numbering.renumber.commit" = 0.452
+"cold_ops:numbering.renumber.preview" = 5.57
+"cold_ops:page.renumber" = 0.412
+"cold_ops:page.renumber.folio" = 0.022
+"cold_ops:page.renumber.folio.commit" = 0.003
+"cold_ops:page.renumber.folio.preview" = 0.019
+"cold_ops:rep.move.commit" = 0.025
+"spike:connectivity.cold" = 8.997
+"spike:connectivity.device_tags_all" = 0.924
+"spike:connectivity.local_nets_all" = 2.008
+"spike:connectivity.partition_given_stitch" = 4.449
+"spike:connectivity.partition_given_stitch_tags" = 4.459
+"spike:connectivity.stitch_given_nets" = 2.406
+"spike:connectivity.wire_props_all" = 12.151
+"spike:folio.renumber.derive" = 0.091
+"spike:folio.renumber.tags" = 0.068
+"spike:memo.composite.move" = 1.458
+"spike:memo.composite.move.derive" = 1.418
+"spike:memo.composite.wire" = 1.519
+"spike:memo.composite.wire.derive" = 1.496
+"spike:memo.local_nets.move" = 0.816
+"spike:memo.local_nets.move.derive" = 0.789
+"spike:memo.local_nets.wire" = 0.857
+"spike:memo.local_nets.wire.derive" = 0.84
+"spike:memo.partition.hit" = 0.002
+"spike:memo.partition.move" = 1.12
+"spike:memo.partition.move.derive" = 1.083
+"spike:memo.partition.unrelated" = 0.848
+"spike:memo.partition.unrelated.derive" = 0.768
+"spike:memo.partition.wire" = 1.164
+"spike:memo.partition.wire.derive" = 1.141
+"spike:memo.wire_props.move" = 2.173
+"spike:memo.wire_props.move.derive" = 2.131
+"spike:memo.wire_props.profile" = 1.896
+"spike:memo.wire_props.wire" = 3.239
+"spike:memo.wire_props.wire.derive" = 3.209
+"spike:move.commit" = 0.046
+"spike:move.commit_potentials" = 7.991
+"spike:move.potentials" = 7.939
+"spike:open.session_from_records" = 8.7
+"spike:page.renumber.folio" = 0.022
+"spike:profile.change.affected" = 0.396
+"spike:profile.change.all" = 19.176
+"spike:wire.commit" = 0.027
+"spike:wire.commit_potentials" = 7.896
+"spike:wire.potentials" = 7.869
+
+[classes.S.memory]
+"cold_ops:model_rows" = 2160123
+"cold_ops:undo.connection.draw.commit" = 56
+"cold_ops:undo.numbering.renumber" = 280545
+"cold_ops:undo.page.renumber" = 33738
+"cold_ops:undo.page.renumber.folio" = 675
+"cold_ops:undo.rep.move.commit" = 504
+"spike:memo.baseline.bond_index.value_bytes" = 32
+"spike:memo.baseline.bond_paths.value_bytes" = 48
+"spike:memo.baseline.bond_vias.value_bytes" = 24
+"spike:memo.baseline.def_points.value_bytes" = 1000
+"spike:memo.baseline.device_tag.value_bytes" = 28728
+"spike:memo.baseline.drawn_page_order.value_bytes" = 80
+"spike:memo.baseline.end_class.value_bytes" = 192
+"spike:memo.baseline.flow_notes.value_bytes" = 24
+"spike:memo.baseline.function_links.value_bytes" = 98496
+"spike:memo.baseline.ip_functions.value_bytes" = 29420
+"spike:memo.baseline.ip_info.value_bytes" = 45868
+"spike:memo.baseline.ip_notes.value_bytes" = 24
+"spike:memo.baseline.ip_pairing.value_bytes" = 107382
+"spike:memo.baseline.page_ids.value_bytes" = 1632
+"spike:memo.baseline.page_local_nets.value_bytes" = 309872
+"spike:memo.baseline.page_order.value_bytes" = 80
+"spike:memo.baseline.pageless_links.value_bytes" = 96
+"spike:memo.baseline.physical_wires_of.value_bytes" = 2613812
+"spike:memo.baseline.potential_attrs.value_bytes" = 173752
+"spike:memo.baseline.potential_flow_bfs.value_bytes" = 225496
+"spike:memo.baseline.potential_name.value_bytes" = 112028
+"spike:memo.baseline.potential_partition.value_bytes" = 727057
+"spike:memo.baseline.profile_row_for.value_bytes" = 1728
+"spike:memo.baseline.push_index_entries" = 48263
+"spike:memo.baseline.rail_bonds.value_bytes" = 128
+"spike:memo.baseline.rail_terminals.value_bytes" = 32
+"spike:memo.baseline.settings_member.value_bytes" = 168
+"spike:memo.baseline.value_bytes_total" = 6123835
+"spike:memo.baseline.wire_default_props.value_bytes" = 208
+"spike:memo.baseline.wire_profile_notes.value_bytes" = 168
+"spike:memo.baseline.wire_profiles.value_bytes" = 640
+"spike:memo.baseline.wire_props_of.value_bytes" = 1334484
+"spike:memo.baseline.xref_text.value_bytes" = 311136
+"spike:model_rows" = 2160123
+"spike:undo.folio.renumber" = 675
+"spike:undo.memo.composite.move" = 1456
+"spike:undo.memo.composite.wire" = 680
+"spike:undo.memo.local_nets.move" = 1456
+"spike:undo.memo.local_nets.wire" = 680
+"spike:undo.memo.partition.move" = 1456
+"spike:undo.memo.partition.unrelated" = 1026
+"spike:undo.memo.partition.wire" = 680
+"spike:undo.memo.wire_props.move" = 1456
+"spike:undo.memo.wire_props.wire" = 680
+"spike:undo.move" = 504
+"spike:undo.wire" = 56
+
+[classes.S.peak_rss_bytes]
