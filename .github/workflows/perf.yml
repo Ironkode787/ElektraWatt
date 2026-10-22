@@ -10,6 +10,8 @@
 # `classes` input, hence the long timeout. The report is the job summary and the artifact `perf-report`, next to
 # a candidate baseline; it is written even when a bench fails (a "Bench failures" section), and a bench that
 # does not run fails the job whatever EW_PERF_ASSERT says (an infrastructure failure, not a performance verdict).
+# The ew-ui `canvas` bench (WP-S2.02) runs once per gate run, class GP, report-only; a crash of it or its 120-s
+# tile wait running out still fails the job as such an infrastructure failure (decision log ID-520).
 #
 # REPORT-ONLY on the hosted runners: they are not BM-class (a dedicated, isolated machine, decision log DEC-034;
 # the BM runner is an owner item), so the job does not set EW_PERF_ASSERT, the one switch that makes a regression

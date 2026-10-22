@@ -87,7 +87,8 @@ commands:
   perf-gate [--classes S,M] [--quick] [--report <file>] [--baseline <file>] [--from <bench-output>]...
             [--bless] [--enforce] [--dry-run]
                        the performance and memory gate of WP-S6.03 (nightly, .github/workflows/perf.yml): runs
-                       the ew-testkit benches over the fixture classes (--classes, default S,M), compares the
+                       the ew-testkit benches over the fixture classes (--classes, default S,M) and the ew-ui
+                       canvas bench once per gate run (class GP, report-only), compares the
                        medians and the memory estimates with ci/perf-baseline.toml (15 % threshold, 16 MiB
                        memory floor), reads the peak RSS (Linux) and writes a Markdown report; it fails on a
                        regression or a baseline value missing from the run only with EW_PERF_ASSERT set or

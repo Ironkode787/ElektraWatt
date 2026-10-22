@@ -65,7 +65,9 @@ WP-S6.03 (NFR-PERF-20, 18 §4). The nightly workflow [`perf.yml`](../.github/wor
    (`--classes`, default `S,M` on the command line; **the nightly run measures class S only**, because the class M
    baseline does not exist yet and M takes over an hour in full mode; a manual dispatch can choose `S,M`)
    (full mode: 1,000 latency samples, median of 10 single runs), directly from their executables so that the
-   process it watches is the bench itself;
+   process it watches is the bench itself; and the `canvas` bench of `ew-ui` (WP-S2.02, 18 §4.2) once per gate run,
+   class GP, report-only (its families never fail the gate; a crash or its 120-s tile wait running out is a bench
+   failure, item 4);
 2. compares the **medians** and the deterministic memory estimates the benches print (model rows, undo history,
    memo values and dependency entries) with [`perf-baseline.toml`](perf-baseline.toml): a value more than 15 %
    above its baseline is a regression (WP-S6.03), unless the change is below a noise floor of the file:
