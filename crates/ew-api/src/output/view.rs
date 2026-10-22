@@ -263,12 +263,27 @@ impl Query for PageBindingsOf {
                     full: full.clone(),
                     displayed: displayed.clone(),
                 },
-                TbValue::Asset(h) => BoundValue::Asset(AssetRef::new(h.0, ew_dl::ImageFormat::Png)),
+                TbValue::Asset(r) => BoundValue::Asset(asset_ref(r)),
             };
             // `title_block(page)` names valid placeholder paths; a path the form layer refuses stays unbound.
             let _ = b.set(path, v);
         }
         Arc::new(b)
+    }
+}
+
+/// The form layer's reference of an asset: the record's reference, hash, format and intrinsic size (doc 05 §13.3:
+/// readers trust it and never sniff).
+fn asset_ref(r: &ew_schema::AssetRef) -> AssetRef {
+    let format = match r.format {
+        ew_schema::AssetFormat::Svg => ew_dl::ImageFormat::Svg,
+        ew_schema::AssetFormat::Png => ew_dl::ImageFormat::Png,
+        ew_schema::AssetFormat::Jpeg => ew_dl::ImageFormat::Jpeg,
+    };
+    let base = AssetRef::new(r.sha256.0, format);
+    match r.size {
+        Some((w, h)) => base.with_size(w, h),
+        None => base,
     }
 }
 

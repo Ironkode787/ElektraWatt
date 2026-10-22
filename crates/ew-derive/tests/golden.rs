@@ -324,7 +324,11 @@ fn shared() -> Vec<(&'static str, TbValue)> {
         ("project.supply", text("1 x 230 VAC + N + PE, 50 Hz")),
         (
             "project.logo",
-            TbValue::Asset(logo().parse().expect("logo digest")),
+            TbValue::Asset(ew_schema::AssetRef {
+                sha256: logo().parse().expect("logo digest"),
+                format: ew_schema::AssetFormat::Png,
+                size: None,
+            }),
         ),
         ("project.notice", ml_value("<confidentiality notice>")),
         ("revision.current.label", text("V2.0")),

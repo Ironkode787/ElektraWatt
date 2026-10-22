@@ -21,9 +21,10 @@ use std::path::{Path, PathBuf};
 use ew_derive::ew_ids::{Id, IdSource, Uuid, V7Generator, v5};
 use ew_derive::ew_mltext::MlText;
 use ew_derive::ew_units::Grid;
+use ew_model::{Asset, Model};
 use ew_schema::{
-    Extra, Folio, Page, PageType, Project, ProjectKind, ProjectSettings, Record, SchemaError,
-    StructureAssignment,
+    AssetFormat, AssetRef, Extra, Folio, Page, PageType, Project, ProjectKind, ProjectSettings, Record,
+    SchemaError, StructureAssignment,
 };
 use ew_store::OpenError;
 use ew_store::ew_format::{self, EntryKind, Limits, Manifest};
@@ -95,14 +96,22 @@ impl Session {
             Some(ids) => V7Generator::new(ByRef(ids.as_mut())).next(),
             None => Id::new_v7(),
         };
-        let (project, records, lib) = match template {
-            ProjectTemplate::Builtin => builtin(id, kind),
+        let (project, records, lib, assets) = match template {
+            ProjectTemplate::Builtin => {
+                let (project, records, lib) = builtin(id, kind);
+                (project, records, lib, Vec::new())
+            }
             ProjectTemplate::Directory(dir) => from_directory(dir, id, kind)?,
         };
-        Session::from_records(project, records, lib, options).map_err(|error| OpenError::Model {
+        let mut model = Model::from_records(project, records, lib).map_err(|error| OpenError::Model {
             error,
             findings: Vec::new(),
-        })
+        })?;
+        // The basic project's assets (its company logo) come along unchanged: they are named by content.
+        for asset in assets {
+            model.put_asset(asset);
+        }
+        Ok(Session::new(model, options))
     }
 }
 
@@ -190,9 +199,13 @@ fn list_files(root: &Path) -> Result<BTreeMap<String, EntryKind>, OpenError> {
     Ok(out)
 }
 
+/// The records, library documents and assets of a basic project directory.
+type Template = (Project, Vec<Record>, Vec<ew_schema::LibDocument>, Vec<Asset>);
+
 /// Reads the typed records of a project directory without opening a store: no lock, no journal. A directory whose
-/// files the format reader could not read in full is an error, not a partial template.
-fn read_records(dir: &Path) -> Result<(Project, Vec<Record>, Vec<ew_schema::LibDocument>), OpenError> {
+/// files the format reader could not read in full is an error, not a partial template. Its assets are the asset
+/// files whose bytes match their name and sniff as the format of their extension (doc 05 §13.3).
+fn read_records(dir: &Path) -> Result<Template, OpenError> {
     let limits = Limits::default();
     let listing = list_files(dir)?;
     let manifest_path = dir.join("manifest.json");
@@ -223,7 +236,33 @@ fn read_records(dir: &Path) -> Result<(Project, Vec<Record>, Vec<ew_schema::LibD
     let Some(project) = loaded.project else {
         return Err(OpenError::NoProject(findings));
     };
-    Ok((project, loaded.records, loaded.lib))
+    let assets = loaded
+        .opaque
+        .iter()
+        .filter_map(|(path, hash)| template_asset(path.as_str(), hash, files.get(path)?))
+        .collect();
+    Ok((project, loaded.records, loaded.lib, assets))
+}
+
+/// The asset of the file `path` with `bytes` hashing to `hash`, when it is an asset file of a known format whose name
+/// is its hash.
+fn template_asset(path: &str, hash: &[u8; 32], bytes: &[u8]) -> Option<Asset> {
+    let ew_format::PathClass::Opaque(ew_format::OpaqueKind::Asset { sha256 }) = ew_format::classify(path)
+    else {
+        return None;
+    };
+    let format = AssetFormat::from_ext(path.rsplit_once('.')?.1)?;
+    let (sniffed, size) = ew_schema::sniff(bytes).ok()?;
+    (sha256 == *hash && sniffed == format).then(|| {
+        Asset::new(
+            AssetRef {
+                sha256: ew_schema::Sha256(*hash),
+                format,
+                size,
+            },
+            bytes,
+        )
+    })
 }
 
 /// The most unsorted sets one record may need put in order again.
@@ -258,12 +297,8 @@ fn read_back(mut value: Value) -> Result<Record, OpenError> {
 }
 
 /// Copies a basic project directory into a new project: new project ID, new record IDs, the requested kind.
-fn from_directory(
-    dir: &Path,
-    new_id: Id<Project>,
-    kind: NewProjectKind,
-) -> Result<(Project, Vec<Record>, Vec<ew_schema::LibDocument>), OpenError> {
-    let (project, records, lib) = read_records(dir)?;
+fn from_directory(dir: &Path, new_id: Id<Project>, kind: NewProjectKind) -> Result<Template, OpenError> {
+    let (project, records, lib, assets) = read_records(dir)?;
     let json = |r: &Record| {
         serde_json::to_value(r)
             .map_err(|e| OpenError::Format(format!("a record of the basic project cannot be copied: {e}")))
@@ -312,7 +347,7 @@ fn from_directory(
     };
     project.id = new_id;
     project.kind = kind_of(kind);
-    Ok((project, out, lib))
+    Ok((project, out, lib, assets))
 }
 
 /// Replaces every string (and object key) that is a mapped UUID. Arrays keep their order.

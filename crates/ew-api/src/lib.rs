@@ -83,6 +83,8 @@ pub use ew_checks as checks;
 pub use ew_derive::{BomMode, DeriveNote, MemoStore, Mismatch, NoteSeverity};
 /// The row sources of `ew export cables|bom` (doc 17 §3.3): what to export and why it could not.
 pub use ew_reports::export::{Export, ExportError, Exported};
+/// Assets (doc 05 §13.3): the reference a record stores, the sniffer and the base64 form of command parameters.
+pub use ew_schema::{AssetError, AssetFormat, AssetRef, Sha256, base64_encode, sniff as sniff_asset};
 /// The read-only SQL projection (`ew sql`, the acceptance SQL, ADR-0017): views, sandbox, results.
 pub use ew_sqlview as sql;
 pub use ew_store::{Access, OpenError, OpenReport, ReadOnlyReason, SaveError, StoreOptions};
@@ -355,6 +357,15 @@ impl Session {
         options: SessionOptions,
     ) -> Result<Session, ModelError> {
         Ok(Session::new(Model::from_records(project, records, lib)?, options))
+    }
+
+    /// The bytes of the asset with this hash, with its reference, if the project holds it (doc 05 §13.3: renderers
+    /// resolve an image's bytes by hash).
+    pub fn asset(&self, sha256: &ew_schema::Sha256) -> Option<(AssetRef, Arc<[u8]>)> {
+        self.engine
+            .model()
+            .asset(sha256)
+            .map(|a| (*a.reference(), Arc::clone(a.bytes())))
     }
 
     /// The current snapshot, O(1).

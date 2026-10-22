@@ -287,7 +287,11 @@ fn logo_and_notice_come_from_the_provisional_company_data() {
     let tb = block(&fx, PageRef::Drawn(id(PAGE101)));
     assert_eq!(
         tb.get("project.logo"),
-        Some(&TbValue::Asset(common::sha(7).parse().expect("digest")))
+        Some(&TbValue::Asset(ew_schema::AssetRef {
+            sha256: common::sha(7).parse().expect("digest"),
+            format: ew_schema::AssetFormat::Png,
+            size: None,
+        }))
     );
     assert_eq!(tb.get("project.notice"), Some(&TbValue::Ml(ml("<notice>"))));
 

@@ -45,8 +45,9 @@
 //!
 //! `project.logo` and `project.notice` (the basic project's company data, doc 07 §2.8, ID-40) have no
 //! record member yet. **Provisional** source until that decision is made: `Project.extra["ew.company"]`,
-//! an object `{"logo": "sha256:<64 hex>", "notice": <MlText JSON>}`. Each member is parsed on its own; a
-//! missing or malformed member leaves its path absent.
+//! an object `{"logo": <AssetRef>, "notice": <MlText JSON>}` (`logo` also in its earlier form, a bare
+//! `"sha256:<64 hex>"`, read as a PNG of unknown size: [`ew_schema::company_logo`]). Each member is parsed on its
+//! own; a missing or malformed member leaves its path absent.
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -54,7 +55,7 @@ use std::sync::Arc;
 use ew_ids::Id;
 use ew_mltext::{MlText, NaturalKey, natural_key};
 use ew_rds::{Aspect, RdsSyntax};
-use ew_schema::{Date, Page, Party, PartyRole, Project, Revision, RevisionState, Scale, Sha256, SupplySpec};
+use ew_schema::{Date, Page, Party, PartyRole, Project, Revision, RevisionState, Scale, SupplySpec};
 
 use crate::Q;
 use crate::pages::{PageOrder, PageRef, PageRefStructure, PageTitle};
@@ -76,8 +77,8 @@ pub enum TbValue {
         /// The displayed tag.
         displayed: String,
     },
-    /// An image asset by content hash (the logo); prints no text.
-    Asset(Sha256),
+    /// An image asset by its reference (hash, format, intrinsic size: the logo); prints no text.
+    Asset(ew_schema::AssetRef),
 }
 
 /// The values of every path of the profile's title-block binding set that has a value on one page.
@@ -169,13 +170,10 @@ fn project_scope(out: &mut Out, project: &Project) {
         out.text("project.supply", &supply_text(s));
     }
     // `project.control_voltage` and `project.consumption`: no canonical text form of `Quantity` yet.
-    if let Some(company) = project.extra.get("ew.company") {
-        if let Some(logo) = company
-            .get("logo")
-            .and_then(|v| serde_json::from_value::<Sha256>(v.clone()).ok())
-        {
-            out.0.insert("project.logo".to_owned(), TbValue::Asset(logo));
-        }
+    if let Some(logo) = ew_schema::company_logo(&project.extra) {
+        out.0.insert("project.logo".to_owned(), TbValue::Asset(logo));
+    }
+    if let Some(company) = project.extra.get(ew_schema::COMPANY_MEMBER) {
         if let Some(notice) = company
             .get("notice")
             .and_then(|v| serde_json::from_value::<MlText>(v.clone()).ok())
