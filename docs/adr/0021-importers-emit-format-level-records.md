@@ -107,7 +107,11 @@ Accepted on 2026-10-18 ([14](../design/14-interop.md) §2.1–§2.4, open questi
 is unchanged; these entries refine it.
 
 1. **Assets in the batch** (2026-10-18). `ImportBatch` carries `assets: Vec<AssetBlob>`: content-addressed logos
-   and images, written by the host to `assets/<sha256>.<ext>`.
+   and images, written by the host to `assets/<sha256>.<ext>`. *As built (cycle 23, FT-337; decision log ID-573):* the
+   host side exists: the project's content-addressed asset store, which a transaction fills through
+   `TxBuilder::put_asset` (ADR-0008 amendment 5) and a save writes through the save protocol without ever removing a
+   file ([project format](../design/05-project-format-and-persistence.md) §13.3). `ApplyImport` will put a batch's
+   assets the same way; no importer emits assets yet.
 2. **Lineage and import runs** (2026-10-18; ADR-0004 amendment 1). Imported records carry
    `source_ref{lineage, key}`, and their IDs are `v5(namespace, source_key)` with the namespace anchored on an
    `ImportLineage` (the QET project UUID, or the SHA-256 of the lineage's first imported file). `ImportLineage`

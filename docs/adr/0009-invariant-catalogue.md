@@ -1,6 +1,6 @@
 # ADR-0009: Invariant catalogue: structural vs configurable prevent rules; lenient import
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-19, 2026-10-21, 2026-10-22 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-19, 2026-10-21, 2026-10-22, 2026-10-23 (specified: two invariants for page items and structure boxes) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -161,6 +161,21 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
 
    The golden build now undoes completely, to the shell (607 steps); the command fuzzer's `library.embed` arm
    builds the shape, and the undo-all oracle undoes it.
+8. **Page items and structure boxes** (2026-10-23, lead designer, specified for WP-S2.04 part 4a; decision log
+   ID-566; [domain model](../design/03-domain-model.md) §4.2, §6; [project format](../design/05-project-format-and-persistence.md)
+   §2.2). Two structural invariants join the `ew-model` catalogue with the next numbers (decision 5) when part 4a types
+   the reserved kinds `page_item` and `structure_box`:
+   - **EW-INV-022:** the `page` of a page item or a structure box exists. The link is a cascade: deleting a page
+     deletes its page items and structure boxes in the same plan (FR-PAG-025).
+   - **EW-INV-023:** every connection that a wire marker lists exists and lies on the marker's page. The delete policy
+     is unlink: a deleted connection leaves the list, and a marker left without connections is deleted in the same
+     plan. `StructureBox.external` is an unlink link as well (deleting the external reference clears it).
+   - **Older files are reported, not refused.** A build from before part 4a keeps `page_item` records verbatim and does
+     not enforce these links (ADR-0011 amendment 4), so a project can arrive with a marker that lists a deleted
+     connection or one on another page. Opening it is a **load finding** that names the marker and the connection;
+     the derivation and the drawing ignore the stale entry and the next edit of the marker writes a clean list. This
+     differs from amendment 6's open failure, because a stale list loses no data and the record stays editable.
+   Until part 4a both numbers are reserved; `crates/ew-model/invariants.md` gains them with the part.
 
 ## Consequences
 

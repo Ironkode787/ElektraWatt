@@ -1,6 +1,6 @@
 # ADR-0008: Transactions, undo/redo and preview-as-fork
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-21 (the first command that edits project settings), 2026-10-22 (the transaction-read rule) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-21 (the first command that edits project settings), 2026-10-22 (the transaction-read rule), 2026-10-23 (a transaction carries assets) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -65,7 +65,8 @@
 
 ## Amendments
 
-Amendments 1 and 2 were accepted on 2026-10-18, amendment 3 on 2026-10-21, amendment 4 on 2026-10-22. The decision
+Amendments 1 and 2 were accepted on 2026-10-18, amendment 3 on 2026-10-21, amendment 4 on 2026-10-22, amendment 5 on
+2026-10-23. The decision
 text above is unchanged;
 these entries refine it.
 
@@ -150,6 +151,22 @@ these entries refine it.
    - **Cost.** A lookup scans the transaction's fresh rows besides the base index, so a transaction that creates many
      referrers and looks them up (a bulk import) is O(fresh²) within that transaction. Recorded, not measured (decision
      log ID-512); a bulk path that shows it gets a batched lookup.
+5. **A transaction carries assets beside its ops** (2026-10-23, project owner (delegated), on FT-337 as built; decision
+   log ID-573 to ID-575; [project format](../design/05-project-format-and-persistence.md) §8.1, §13.3,
+   [architecture](../design/04-architecture.md) §3 rule 1). Image bytes are content-addressed and immutable, so they are
+   not rows and not ops.
+   - **Commit.** `TxBuilder::put_asset(bytes)` sniffs, checks the limits, hashes and returns the `AssetRef` a record
+     stores; the bytes join the model's asset store with the transaction's ops at commit. Putting a held asset does
+     nothing.
+   - **Undo keeps assets.** Undo and redo move references, never bytes: the model keeps every asset it was given for the
+     session, so undoing a logo change restores the reference with its bytes. A save never removes an asset file
+     (cleanup is an explicit, previewed purge, FT-380).
+   - **Dirty and journal.** A transaction whose only content is an asset (no ops) still marks the project dirty and is
+     journalled; the journal carries every asset the model after the transaction names unless it is on disk or already
+     in the segment (base64 at the 512 KiB logo bound; side files later, FT-381). A damaged journal asset is a recovery
+     finding (EW-CORE-015), not a refused replay.
+   - **Freshness.** Asset presence can change without a revision, so no memoised query reads it (ARCH §3 rule 1; the one
+     named exception `Q::logo_asset` until FT-382 makes the restriction mechanical).
 
 ## Consequences
 

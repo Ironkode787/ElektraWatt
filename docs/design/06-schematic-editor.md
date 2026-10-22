@@ -1,6 +1,6 @@
 # Schematic editor
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-22, cycle 17: `revision.create`, 37 commands, §3.1; amended 2026-10-22, cycle 18: `plc.set_module_part`, 38 commands, §3.1; rows 3, 13 and 14 as built, §3.2; amended 2026-10-22, cycle-22 design pass: the tool contract's context and previews for WP-S2.03, §4.1, decision log ID-536) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-22, cycle 17: `revision.create`, 37 commands, §3.1; amended 2026-10-22, cycle 18: `plc.set_module_part`, 38 commands, §3.1; rows 3, 13 and 14 as built, §3.2; amended 2026-10-22, cycle-22 design pass: the tool contract's context and previews for WP-S2.03, §4.1, decision log ID-536; amended 2026-10-23, cycle-23 design pass: WP-S2.03 part 1 as built, §4.1, §4.3, §5.7, §6, decision log ID-556, ID-557, ID-560; the decisions of WP-S2.04's specification as notes, §3.2, §3.9, §5.2, §5.4, §5.7, decision log ID-561 to ID-564, ID-567, ID-568) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) edits schematic pages: multi-line, single-line, overview,
 bus-topology, fluid and graphic pages, together with their frames, folios and sections. It covers symbol placement,
@@ -476,6 +476,17 @@ findings.
 Auto-routing (§5.4) is not a normaliser: it runs inside `connection.draw` and `rep.move` themselves, so a script
 gets the same route as the mouse.
 
+*Decided for WP-S2.04 (cycle 23; decision log ID-564); as-built text after part 2.* The last paragraph above is
+amended. **Routing is one pure function, `ew_commands::route::auto_route`, re-exported by `ew-api`, and the tools call it;
+the commands do not.** The Wire tool computes its ghost with it and passes the result as the `route` of
+`connection.draw`, which **stores the route it is given and stays unchanged**: an empty route stays route-less and is
+drawn provisionally by `ew-scene`, so every connection of Golden A (none has a stored route) and its derived output are
+untouched. `rep.move` keeps moving the route's vertices by `geometry::follow_end` (WP-S2.04 §5.2); a re-solve of a moved connection
+stays FT-18. A script therefore gets the mouse's route by calling the same function and passing the result, not by a
+command that routes. **Normaliser 7 (connection split) works on routes**, so it splits a connection that has a stored
+route, which every connection drawn with the Wire tool has; a route-less connection has no route to test, and the
+route editor's first edit stores its drawn polyline (WP-S2.04 §8.4). The as-built text follows each part's delivery.
+
 ### 3.3 Placing symbols and assigning devices
 
 `PlaceSymbol.target` decides which device the new representation belongs to:
@@ -659,6 +670,14 @@ One user gesture is one transaction (ARCH §5.3, G3). The history panel names ea
 
 Escape cancels any tool without a model change (FR-UI-016, NFR-UX-07).
 
+*Decided for WP-S2.04 (cycle 23; decision log ID-568); as-built text after part 2.* The "Coalescing" column above is not
+built in WP-S2.04: **there is no undo coalescing**, so each keyboard nudge, each rotate press and each junction reorder
+is one undo step, in the window and headless alike. Headless commits go through `run_script`, which carries no
+coalescing key, and equal undo stacks in the two front ends weigh more than the merging; FT-372 restores the merging
+for the window and for headless together (a key that `run_script` also carries), before G-PP or with WP-S2.05. The other
+rows are unchanged: a drag, a placement with its autoconnect connections and a wire with bend clicks are one transaction
+each.
+
 ### 3.10 Online checks while drawing
 
 Online rules are memoised queries `checks(scope)` over page, potential, strip and station scopes, so a wire edit
@@ -745,6 +764,13 @@ state) the host evaluates the tool's `Preview(cmd)` through `Session::preview`, 
 ghost is that preview's derived diff; a fork job off the UI thread follows with FT-251 (FT-358). `Select` and `Follow`
 join the outputs for the Select tool's result and for a click on a link.
 
+*As built (cycle 23, WP-S2.03 part 1 delivered; decision log ID-556).* Part 1 builds no tool: the `Tool` trait, `ToolCx`
+(without a `World`, as decided above), the tool host, the overlay layer and the previews are **part 2**, which is next,
+so this section is still the target. What part 1 prepares for them below the shell is the per-page content that a
+tool's context will read: the display list, the entity rectangles, the cross-reference links with their resolved
+targets, the cell table and the grid, fetched once per (epoch, revision) and page (doc 16 §2.5). The connection points
+of the page (`page_cps`) join it in part 2.
+
 ### 4.2 Place tool
 
 ```mermaid
@@ -780,6 +806,13 @@ Outputs: `Floating` emits `Transient`; `Previewing` emits `Preview(PlaceSymbol)`
 | Dragging | Escape | Idle | `Cancel` |
 | RubberBand | release | Idle | selection change; left-to-right selects enclosed objects, right-to-left touched objects |
 | any | double-click on a text slot | TextEdit | inline editor; `Commit(fields.set)` on Enter or focus loss |
+
+*As built (cycle 23, WP-S2.03 part 1; decision log ID-556).* The one row of this table that exists after part 1 is the
+click on a cross-reference: a primary press and release within 3 points on a link follows it, and F follows the link at
+the grid cursor, else under the pointer. Both are the shell's action `nav.follow`, because the Select tool is part 2;
+nothing is selected and nothing is committed. The drag rows (`rep.move` on release, the route edit by segment) are
+WP-S2.04's, and its merged Select table (WP-S2.04 §7.3, decision log ID-561) replaces the drag rows above when
+they are built.
 
 ### 4.4 Wire tool
 
@@ -879,6 +912,13 @@ proposals(rep_ghost):
   PQ-27).
 - **Cost:** one spatial-index ray per free CP, O(CPs · log n), well inside the frame budget.
 
+*Decided for WP-S2.04 (cycle 23; decision log ID-562, ID-561); as-built text after part 2.* The "On move"
+bullet is narrowed. The proposals are computed in `ew-viewmodel` from the prepared page tables (not from a spatial
+index) and drawn as dashed overlay stubs, on placement and, during a move, **shown only: a move never adds a
+connection in WP-S2.04**, and the action `tool.connect_on_move` (C) is refused with `reason-connect-on-place`.
+Committing the proposals of a move, and the sticky wire, are FT-373, after WP-S2.04 part 2. Placement is unchanged: the
+accepted proposals become the `connect` hints of the committed `device.place`, and Alt at the commit sends none.
+
 ### 5.3 Splitting a connection
 
 Dropping a symbol with two facing CPs onto connection W (between A and B) replaces W by W′ (A → c1) and
@@ -902,6 +942,19 @@ New connections and the route parts touched by a move are routed on the connecti
 
 Routes are stored as nm vertices (FR-CON-007). Wire crossings render as plain crossings or hops by project setting
 (FR-CON-031).
+
+*Decided for WP-S2.04 (cycle 23; decision log ID-564); as-built text after part 2.* The router is the pure function
+`ew_commands::route::auto_route` (re-exported by `ew-api`), called by the Wire tool for its ghost and for the route it
+passes to `connection.draw`; it is not run inside the commands (§3.2). Two points of the list above change. **Step 3's
+tie-break is the whole move sequence**, not the first turn: among the paths of least cost the router returns the least by
+(bends, length, move sequence), the sequence being the list of unit moves from the first stub to the last, each ranked
+right, down, left, up and compared move by move, so the result is deterministic (NFR-REL-07) and independent of the
+order of the obstacles. **Step 2's bounds are fixed:** the search area is the bounding box of both ends grown by 4 grid
+steps and clipped to the page's drawing area; the obstacles are the bodies of every representation on the page except
+those of the two ends, inflated by one grid step; a stub into an obstacle is allowed; without a path inside the area
+the result is the provisional L route of `ew-scene`. Step 4 (a user-edited route keeps its interior vertices and only
+the segments next to a moved CP are re-solved) is not built in WP-S2.04: a move shifts the route's vertices with the
+moved CPs (`rep.move`, §5.7), and the re-solve stays FT-18.
 
 ### 5.5 Physical wires behind junctions and IPs
 
@@ -938,6 +991,23 @@ never leave the connection grid in any tool. All snapping works on grid indices,
 rejects a position off the page's connection grid (`Page.grid`, ADR-0027) and a route with a point off the grid or
 an end that does not meet its CP. GUI tools snap before they issue the command, so they never meet the rejection.
 
+*As built (cycle 23, WP-S2.03 part 1; decision log ID-556, ID-563).* Picking is on the display list's entity
+rectangles, as in WP-S2.02's hover, until the spatial index: `page_spatial_index` with exact kurbo picking and the
+per-tool priorities of the list above are FT-359, narrowed to that and the rich announcement. Part 1 adds one pick: a
+cross-reference link, found in the link rectangle inflated by 4 points at the current zoom, the smallest area winning
+and the later in paint order breaking a tie; a link wins over the entity under it. Snapping with its indicators is
+WP-S2.03 part 2, and the Alt rules of the tools are WP-S2.04's.
+
+*Decided for WP-S2.04 (cycle 23; decision log ID-567); as-built text after part 1.* **Moves are in grid steps.**
+`rep.move` gains `steps: [kx, ky]`: each moved representation's position becomes the grid point at its index plus the
+steps, exactly, per axis, and the tools always send `steps`, computed from the pointer's page displacement as
+`k = round(displacement × den / num)`. A uniform nm delta cannot keep several representations on `round(k·g)` on the QET
+grid (WP-S1.04's D3 refuses them), and grid indices are this section's rule. `steps` and a non-zero `delta` are mutually
+exclusive, `steps` with `page` (a cross-page move) is rejected, and a representation whose position is off the grid
+cannot be moved by steps. A route vertex on the grid moves by the same steps, and a CP-exact coordinate moves with its
+CP (`follow_end` with the moving CP's own displacement). The member is absent from every logged command that does not
+use it (`skip_serializing_if`), so the existing command logs serialise unchanged.
+
 ---
 
 ## 6. UI and UX touchpoints
@@ -959,6 +1029,25 @@ an end that does not meet its CP. GUI tools snap before they issue the command, 
 - **Display language.** Each canvas view renders `MlText` (function texts, page titles, free texts) in a display
   language chosen per view; a missing translation falls back to the source text and is marked (FR-I18N-005).
   Identifiers never change with the language.
+
+*As built (cycle 23, WP-S2.03 part 1; decision log ID-556, ID-557, ID-558, ID-560).* The viewer implements this list
+except the hover preview of a cross-reference (WP-S2.03 part 2) and the snap mode, the selection count and the running
+jobs in the status bar (the fields are in doc 16 §3.6). **Tabs:** at most 32 over one or two groups, each tab with its
+own history and a viewport per page. **Following:** a click or F on a cross-reference jumps to its target page in the
+same tab and centres the target point at no less than twice the zoom that fits the target page (the previous zoom if it
+is larger, the jump view); Alt+← and Alt+→ restore the exact previous view of the tab's history, a fitted view
+refitting. Page Up and Page Down walk the page order and add no history entry. **Go to** (Ctrl+G) takes a folio, which
+opens the page, or a cell in the project's xref format ("103-A1"), which opens the page with the cell's centre shown and
+the grid cursor on it; a target that lacks a non-empty row part or a non-empty column part is read as a page name, so
+"103-A" is "not found" rather than "no such cell", because folios can carry hyphenated suffixes (ID-558). **The grid
+cursor** (`CanvasModel.cursor`, a sheet point on the page's connection grid): the arrow keys move it one grid step
+(without a cursor it appears at the grid point nearest to the view centre), Shift+Arrow moves it by one cell (the page's
+column width or row height, then the nearest grid point; ten grid steps on a page without cells), and after each move the
+view pans by the least amount that brings it inside the pane inset by 10 % of each side, the zoom never changing.
+Shift+F and Ctrl+Shift+F put the cursor on the next or previous cross-reference in reading order (by cell, then
+position), so a keyboard user reaches every link. The cursor is a crosshair over every other overlay, and the canvas
+announces the cursor's cell, its position and a link at it (doc 16 §10.1). Selecting by pointer, and the connection-point
+jumps with `]`, `[` and N, wait for part 2.
 
 **Panels the editor drives** ([16](16-ux-ui.md) owns their layout): the page navigator, where drag to reorder opens
 the renumber preview (FR-PAG-024); the device navigator with unplaced functions as drag sources; the IP and potential

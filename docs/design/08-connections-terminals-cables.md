@@ -1,6 +1,6 @@
 # Connections, terminals and cables
 
-**Status:** Draft v0.1 · **Date:** 2026-10-21 (cycle 11: page token of segment-less strips as built, decision log ID-293; cycle 12: EW-TERM-002 as built, §6.8, and the cover size note, §4.2; cycle 13: the orientation of segment-only terminals, §3.8, the numbering order and the golden numbers as built, §5.2, and the segment wording, §6.7) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-23 (cycle 23: the shipped colour profiles and their limits as built, §4.3, decision log ID-577; the marker mode as a project setting for WP-S2.04, §4.5, ID-568; 2026-10-21: cycle 11: page token of segment-less strips as built, decision log ID-293; cycle 12: EW-TERM-002 as built, §6.8, and the cover size note, §4.2; cycle 13: the orientation of segment-only terminals, §3.8, the numbering order and the golden numbers as built, §5.2, and the segment wording, §6.7) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) turns drawn connections into electrical meaning. It covers
 connection points, connections and junctions, the three connectivity levels (net, signal, potential) with stable
@@ -583,6 +583,26 @@ Size profiles for the standards ship as data with `verified = false` until they 
 copies. The company size profile is the golden one: Control 0.75 mm², Mains 1.5 mm², PE by class. NFPA 79 is
 data-only at 1.x. Its rule pack is Later, as [vision](00-vision-and-scope.md) §9 says for UL 508A and NFPA 79.
 
+*As built (cycle 23; decision log ID-577; FT-337).* Two of the columns of the table above ship as data in
+`content/profiles/colour/`: **"EN 60204-1 machine"** (`ew.colour.en60204-1-machine.json`) and **"IEC 60445
+installation"** (`ew.colour.iec60445-installation.json`), which the company-standard wizard offers at step 3
+([16](16-ux-ui.md) §9.2) and writes through `project.settings.set` (`colour_profile`). They are **our own tables**,
+taken from this section, **citing only the standard and the clause** (`basis: "standard"`, `standards`, the codes of
+IEC 60757); no text, table or figure of a standard was copied (NFR-COMP-05), the group, function and colour names are
+the project's own words, and both ship `verified: false`, with the rows marked (verify) saying so in their function
+text, until a reviewed change checks them against licensed copies. Findings that depend on them carry the "unverified
+data" marker (above). No size profile ships: the wizard's step 4 has a default, not a choice of shipped profiles, and FT-337 named
+colour profiles only (ID-577).
+- **What a selector cannot express.** A profile row selects by potential type, AC or DC, voltage range and the
+  analogue flag, **not by circuit class**. The AC control row of EN 60204-1 (red) therefore applies to a potential
+  typed `signal` on AC; an AC control line typed `L` takes the line row and stays **black instead of red** (the
+  built-in default, which knows the circuit class, would print red). The **excepted circuits in orange** have no
+  selector and are left out of the profile. Both gaps close when a selector can name the circuit class (FT-388, with the
+  verification of the shipped tables).
+- **The wizard's default stays the sample's convention** ("DBU/WH 24 V"; lead ruling, decision log ID-577), not EN 60204-1,
+  until the shipped profiles are verified and a profile can select by circuit class: a company default over a standard
+  whose shipped table would print such a line black.
+
 ### 4.4 Company codes
 
 - **What a company code is.** It is declared by its profile with a base IEC 60757 code and a shade (DBU = BU,
@@ -617,6 +637,15 @@ data-only at 1.x. Its rule pack is Later, as [vision](00-vision-and-scope.md) §
   - "Move override to profile". It is offered when at least five wires of one (type, voltage, class) key carry the
     same override. It proposes a profile row, as a previewed command.
 - **Reset to derived** removes the level-7 value (FR-CON-025).
+
+*Decided for WP-S2.04 (decision log ID-568; specified, not built).* The marker mode is a **project setting**,
+`settings.extra.drawing.marker_mode` (`all`, `deviations`, `explicit` or `none`), set by `project.drawing.set`
+([17](17-extensibility.md) §2.1); **absent means the rule as built** (a connection shows a marker when its
+`WireOverrides.show_marker` is set), so Golden A's output stays byte-equal and the four modes are values a project opts
+into. The group marker text follows FR-CON-039 (spec §10.2 item 4): the distinct effective cross-sections of the
+listed connections in list order joined by `/`, then one colour code per connection in list order, each as the
+per-connection marker prints it, separated by spaces (`2.5 BK BU`, `1.5 DBU DBU WH WH`); a connection listed by a
+wire marker item draws no marker of its own. The per-page mode of FR-CON-024 is not decided here: it is FT-375.
 
 ### 4.6 Units
 

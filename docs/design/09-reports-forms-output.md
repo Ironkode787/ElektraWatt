@@ -1,6 +1,6 @@
 # Reports, forms and page output
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-22, cycle-22 design pass: the stored frame defaults, the notice member and the frame fall-through rule as built, §2.6, §2.7, decision log ID-545, ID-547; amended 2026-10-22, cycle-19 design pass: the shell's PDF export as built, §4.3, decision log ID-485; amended 2026-10-22, cycle-20 design pass: the export still synchronous after WP-S2.01 part 2, §4.3, ID-504) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-23, cycle-23 design pass: `report_block.create` with `form_copies` and the wizard's golden layout in §2.2, the logo reference in §2.6, decision log ID-572, ID-573, ID-576; amended 2026-10-22, cycle-22 design pass: the stored frame defaults, the notice member and the frame fall-through rule as built, §2.6, §2.7, decision log ID-545, ID-547; amended 2026-10-22, cycle-19 design pass: the shell's PDF export as built, §4.3, decision log ID-485; amended 2026-10-22, cycle-20 design pass: the export still synchronous after WP-S2.01 part 2, §4.3, ID-504) · **Part of:** ElektraWatt design document set
 
 > **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
 
@@ -158,6 +158,23 @@ drawn `TitlePage` page whose frame is a `Cover` form, not a block.
 **Block sets.** The company basic project carries the standard set of page blocks (EPLAN's report templates); the
 company-standard wizard copies it into new projects (FR-PRJ-010). Because pages are derived, there is no
 "update reports" step: editing a block's filter, sort or form re-paginates on the next read.
+
+**Creating a block with its form (as built, cycle 23; decision log ID-572, ID-573).** `report_block.create` ([17](17-extensibility.md)
+§2.1) gains `form_copies: [libdoc]`: the library documents of the block's form and of the title block that form
+names. A project holds a form as an embedded copy ([05](05-project-format-and-persistence.md) §13.2), and a form copy
+without its title block breaks EW-INV-001, so the two travel together. They are checked by the rules of
+`library.embed` (one shared check) and embedded in the same transaction through transaction lookups only, so the
+derivation is never read during the command (ID-525 kept); a held copy of the same version (the same `sha256`) is
+reused, a copy of another version is refused with "update from library" (FR-PRT-014). One undo step removes the block
+and the copies it embedded; a reused held copy stays. **The wizard's golden layout** (16 §9.2 step 9) is written
+through this command: the contents page on folio 2, the parts list on 901, **one** terminal-diagram block at 903
+(over every strip; its pages continue as 903.1, 903.2), the cable overview at 906, the wire list at 907, the PLC
+overview at 908, the potential overview at 909, the device-tag overview at 910 and the revision overview at 911.
+Golden A's terminal diagrams on 903, 904 and 905 are three blocks, each selecting one strip; a basic project has no
+strip, so 904 and 905 are absent and one block covers all. A block title that names a strip or a device (`{strip}`,
+`{device}` above) would stay as written without a selection, so the wizard's titles count pages with `{n}` instead
+("Terminal Diagram {n}", "Partlist {n}"). Not built: `report_block.delete` and `report_block.set`, and an editable
+block list in the wizard (FT-385, before G-PP); a block is created once and not changed or removed through a command.
 
 ### 2.3 `RowSet`: one row source for every consumer
 
@@ -348,6 +365,15 @@ that names a copy the project does not hold falls through to the next rule, iden
 output (`ew_derive::frame_form_of`; the check finding is FT-368). A page without its own form takes the frame defaults
 in the page output (`PageFrameOf`), as the cell grid already did. The golden project is unchanged: it sets no frame
 defaults.
+
+**The logo (as built, cycle 23; decision log ID-573, ID-576).** `{project.logo}` reads the reference stored by
+`project.company.set` ([17](17-extensibility.md) §2.1): `Project.extra["ew.company"].logo` is
+`{sha256, format, size}` (the bare `"sha256:…"` form of cycle 22 is still read), and the bytes are an asset of the
+project's asset store ([05](05-project-format-and-persistence.md) §13.3), at most 512 KiB (`MAX_LOGO_BYTES`). A title
+block's logo cell takes the image by that reference, and the display list places it (so the wizard's preview shows the
+logo on the sample's cover), but **no renderer draws image items yet**: the CPU renderer, the PDF writer and the SVG
+writer skip them, so a logo is placed and not printed (FT-384; an SVG is drawn only after the sanitising of FT-383,
+18 §11.1 TM-18). A raster logo (PNG, JPEG) prints rasterised once drawn, an SVG as vectors.
 
 **The current revision** is the project's open revision; without one, its newest released revision. Withdrawn
 revisions and the `Withdrawn` records that point to them are ignored, and among several candidates of the same state

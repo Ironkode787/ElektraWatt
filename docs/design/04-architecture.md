@@ -1,6 +1,6 @@
 # ElektraWatt architecture specification
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-20 (G-SP outcome, §6.1 to §6.4; save order, §7.4; the memo engine as built, §2, §6.2, §6.4; incremental connectivity as built, §3, §6.3, §6.4), 2026-10-21 (orphan-collection retention, §6.2; the check engine and the prevent hook as built, §3, §5, §6.4); 2026-10-21, cycle 13 (`ew-plcaddr` v0 and `ew-sqlview` v0 as built, §3); 2026-10-22, cycle 18 (a known breach of the undo law, FT-316, §13); 2026-10-22, cycle 19 (the breach closed by the delete-time rule EW-INV-021 and the two apply paths, §4.6, §5.3, §13; the application shell as built, §3, §9); 2026-10-22, cycle 21 (the canvas's CPU tile path as built, §3, §8.2, §9; the transaction-read rule, §5.2); 2026-10-22, cycle 22 (the canvas's GPU path as built, §3, §8.2, §9; the tool framework specified, §5.4, §9) · **Date:** 2026-10-17 · **Decided by:** chief architect, after a judge
+**Status:** Accepted · amended 2026-10-18, 2026-10-20 (G-SP outcome, §6.1 to §6.4; save order, §7.4; the memo engine as built, §2, §6.2, §6.4; incremental connectivity as built, §3, §6.3, §6.4), 2026-10-21 (orphan-collection retention, §6.2; the check engine and the prevent hook as built, §3, §5, §6.4); 2026-10-21, cycle 13 (`ew-plcaddr` v0 and `ew-sqlview` v0 as built, §3); 2026-10-22, cycle 18 (a known breach of the undo law, FT-316, §13); 2026-10-22, cycle 19 (the breach closed by the delete-time rule EW-INV-021 and the two apply paths, §4.6, §5.3, §13; the application shell as built, §3, §9); 2026-10-22, cycle 21 (the canvas's CPU tile path as built, §3, §8.2, §9; the transaction-read rule, §5.2); 2026-10-22, cycle 22 (the canvas's GPU path as built, §3, §8.2, §9; the tool framework specified, §5.4, §9); 2026-10-23, cycle 23 (asset reads and the read gate, §3 rule 1; a transaction's assets, §5.2; the viewer as built and WP-S2.04's tool rules, §5.4, §9) · **Date:** 2026-10-17 · **Decided by:** chief architect, after a judge
 panel over four competing proposals (A incremental, B ECS, C relational, D retained/object model)
 **Scope:** ElektraWatt (EW) v1:
 - Electric P8-class schematics;
@@ -391,6 +391,18 @@ graph TD
    `raw-read` only as a dev-dependency. Rows do not leave by another route either: the normal public surface of
    `ew-commands` carries no row, and its diffs, preview ops and history entries are summaries (op kind, record kind,
    key, changed field paths); full ops exist only under its dev-only `testkit` feature (ADR-0001 amendment 3).
+   *Asset reads (cycle 23, FT-337; decision log ID-575, lead ruling).* `Model::put_asset` and `Model::asset` sit
+   **outside** the raw-read gate: bytes under a SHA-256 never change, so reading the bytes of a known hash is no
+   freshness hazard, and the page output and the title block need them without `raw-read`. Asset **presence**, in
+   contrast, can change without a revision (an asset arrives at open, or with a transaction whose only content is the
+   asset), so **no memoised query may read asset presence**. The one exception is `Q::logo_asset` (the format and size
+   of a bare-hash logo reference, [project format](05-project-format-and-persistence.md) §10.3), safe today only because
+   an asset becomes present only at open or through `project.company.set`, which also changes the project row. A future
+   op-less `put_asset` path would break that argument, so the restriction is made **mechanical** by FT-382: a
+   `check-raw-read` rule that fails when non-test source of `ew-derive` reaches the model's asset accessors outside
+   an allowlisted site, with `Q::logo_asset` as the only `[[raw_read.allow]]`-style entry and its reason. If a second
+   memoised reader is ever needed, asset presence becomes a tracked input of the memo engine (ADR-0002) instead of a
+   second exception. Trade-off: one named exception until a guard exists, against gating bytes that cannot go stale.
 2. **SQLite.** Only `ew-sqlview` and `ew-library` link rusqlite. `ew-reports` runs user SQL through the sandboxed
    query API of `ew-sqlview`, and importers receive SQLite content only as a `TableImage` (§10.6).
 3. **UI toolkit and GPU.** Only `ew-ui`, `ew-viewer`, the app binary and the `ew-wiring-viewer` binary know egui.
@@ -599,7 +611,11 @@ validated against the command's JSON Schema ([extensibility](17-extensibility.md
    `Q`** (ADR-0008 amendment 4, decision log ID-525): they describe committed snapshots, not the pending state. An
    index answer inside a transaction is a structural-index lookup on `TxBuilder` over the model's referrer index of a
    link (since cycle 21 `channels_of_module` and `channels_at_cp`), with read-your-writes and recorded in the read set,
-   and a derived key is recomputed from the rows read; normalisers (step 2) follow the same rule.
+   and a derived key is recomputed from the rows read; normalisers (step 2) follow the same rule. *Example
+   (WP-S2.04, decision log ID-567):* a command whose input depends on derived data takes it from the caller, so
+   `ip.arrange` receives the new order that the tool computed (by name or by derived potential name) and reads no
+   memoised query. *Assets (cycle 23, ADR-0008 amendment 5):* a handler may add image bytes through
+   `TxBuilder::put_asset`; they join the model's asset store with the ops at commit and are not ops.
 2. **Normalise** (from D). Deterministic normalisers may add ops to the same transaction, with at most three
    productive passes plus one confirming pass; non-convergence is a bug (`CmdError::Internal`, ADR-0008
    amendment 2). The registry, with the order of the editor's normalisers, is
@@ -658,6 +674,11 @@ mechanism at the smallest scale: `Session::preview` runs the command as a dry ru
 `DerivedDiff` that draws the semantic ghost. The `Session` is not `Send`, so each tool preview runs on the UI thread,
 after the pointer has rested for 80 ms (the action `canvas.dwell`); a fork job off the UI thread, with FT-251, is
 FT-358. The jobs above that run `preview` on the pool are unchanged.
+
+*Decided for WP-S2.04 (cycle 23; decision log ID-562).* Every editing tool previews through `Session::preview` of the
+very command it would commit; there is no second preview model, and the autoconnect ghosts are overlay items until the
+commit (their hints reach the model only inside the committed `device.place`). WP-S2.03 part 1, the viewer, runs no
+preview (ID-556).
 
 ### 5.5 Macros
 
@@ -1386,6 +1407,19 @@ the page-view pane is per-project state in a nested egui_tiles tree, rebuilt fro
 (ID-533). Part 1 of WP-S2.03 is the read-only viewer (page navigator, tabs, side by side, cross-reference jumps,
 Go to); part 2 is the tool framework with the Select and Measure tools; no shipped tool commits, so the shell stays a
 viewer until WP-S2.04 and WP-S2.05 (ID-513).
+
+*As built (cycle 23, WP-S2.03 part 1; decision log ID-556 to ID-560).* **The shell is a viewer with navigation** and
+stays read-only until WP-S2.04 (ID-513's note updated). The project view's Pages pane is a navigator (flat, by
+section or by structure; sorted by folio or type; a filter), the canvas area holds at most 32 tabs in one or two
+groups, a click or F on a cross-reference follows it, Alt+Left and Alt+Right walk a per-tab history that restores the
+exact view, Ctrl+G goes to a folio or a cell, the status bar shows the cursor's cell (`102-H15 · x … mm`, FT-345) and
+the arrow keys move a grid cursor announced through the canvas node and a polite live region. Below the shell the
+public items are in `ew_api::output::navigation` (`DisplayList::link_sources`, `page_rows`, `page_cells`,
+`resolve_goto`, `link_targets`; `ew_derive::cell_in_grid` public), and the link rectangles equal the PDF writer's
+annotations to 0.01 pt. The view models fetch each page's content once per (epoch, revision) and keep the tabs' pages
+plus eight most recently used, cleared on a revision change; tabs hold `PageId` values, not UUIDs (ID-557). With two
+groups the second gets its own GPU canvas on the leader's device; with one, the canvases' scenes go to `ew-render2d`
+in one merged submission (`submit_many`, latest request wins; ID-558). No timers drive the model.
 
 ---
 

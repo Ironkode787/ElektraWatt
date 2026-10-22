@@ -1,6 +1,6 @@
 # ADR-0014: GUI toolkit: egui/eframe behind `ew-ui`, over a toolkit-agnostic `ew-viewmodel`
 
-**Status:** Accepted · amended 2026-10-18 · as-built notes 2026-10-22 (cycles 19, 20 and 22) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18 · as-built notes 2026-10-22 (cycles 19, 20 and 22), 2026-10-23 (cycle 23) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -112,6 +112,25 @@ cycling of tabs (`cycle_tabs_with_keyboard`) is off, so the app's own tab keys a
 outside `ew.workspace/1`. *Decision 4 read with WP-S2.03 (ID-536):* the tool state machines and their host are
 toolkit-neutral and live in `ew-viewmodel`, with no `World` in their context; `ew-ui` maps pointer and keys onto tool
 events and paints the overlay. The outputs of decision 4 are unchanged.
+
+## As built (cycle 23)
+
+A note, not an amendment: the decision is unchanged. WP-S2.03 part 1, the read-only viewer (decision log ID-556 to
+ID-560), built the canvas area as ID-533 specified it:
+
+- **The nested egui_tiles tree.** At most 32 canvas tabs in one or two groups, the limit enforced in the
+  toolkit-neutral model; `ew-ui` rebuilds the egui_tiles 0.18.0 tree from that model after every structural change and
+  carries the splitter shares across a rebuild when the group count is unchanged (host state). Only tabs are draggable in
+  the canvas area, because a tab bar's unnamed drag node would otherwise count as an unnamed widget (ID-558).
+  `cycle_tabs_with_keyboard` stays off.
+- **A second GPU canvas on the shared device.** While two groups show, the second group gets its own GPU canvas on the
+  leader's device, shared through the render-state clone and released when the groups collapse; with one group the
+  canvases' scenes are merged into one submission (`ew-render2d`'s `submit_many`, latest request wins). Decision 1's
+  one device holds; no test covers the second canvas without a device (ID-558).
+- **Accessibility.** The canvas's live region and the navigator's tree items are parented through egui's
+  `UiBuilder::accessibility_parent`, asserted in kittest. egui_tiles 0.18.0 exposes no tab-bar node, so the `TabList`
+  role is not set: it joins FT-338 with the splitter names (amendment 2's walker counts the canvas area's splitter).
+- **No new dependency.** The view models stay free of `uuid`: tabs hold `PageId` values (ID-557).
 
 ## Consequences
 

@@ -1,6 +1,6 @@
 # Extensibility: CLI, scripting, SQL, plugins and agents
 
-**Status:** Draft v0.4 · **Date:** 2026-10-22 (cycle-22 design pass: `project.checks.set`, the first registered `HumanOnly` command, its CLI subcommand with the typed terminal confirmation (FT-369) and the 42 commands, §2.3, §3.3, decision log ID-545, ID-546; v0.4: cycle-13 design pass: the SQL projection v0 as built, §3.4, §6.1, §6.2; v0.3: cycle-12 design pass: `ew check` as built, §3.1, §3.3; `tag:` and `folio:` references, §3.5; Session v0, §4; v0.2: cycle-11 design pass: `project.settings.set` and its exposure, §2.1, §2.3; the command log as built, §3.5; `ew import qet` as built, §3.2, §3.3) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.4 · **Date:** 2026-10-23 (cycle-23 design pass: the amended `report_block.create` (`form_copies`) and `project.company.set` (`logo`) and the specified catalogue of WP-S2.04, §2.1, §2.3, decision log ID-567, ID-572 to ID-574; 2026-10-22: cycle-22 design pass: `project.checks.set`, the first registered `HumanOnly` command, its CLI subcommand with the typed terminal confirmation (FT-369) and the 42 commands, §2.3, §3.3, decision log ID-545, ID-546; v0.4: cycle-13 design pass: the SQL projection v0 as built, §3.4, §6.1, §6.2; v0.3: cycle-12 design pass: `ew check` as built, §3.1, §3.3; `tag:` and `folio:` references, §3.5; Session v0, §4; v0.2: cycle-11 design pass: `project.settings.set` and its exposure, §2.1, §2.3; the command log as built, §3.5; `ew import qet` as built, §3.2, §3.3) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies every way to drive, extend or query ElektraWatt (EW) other than the GUI: the
 `ew` command-line tool, the headless `Session` API behind it, rhai formulas, rules and automation scripts, the
@@ -187,6 +187,38 @@ Only the project record changes; topology stays identical. The journal records i
 of the project record ([05](05-project-format-and-persistence.md) §8.1), so `set` and `was` carry the whole `settings`
 value (settings are small). `params_version` 1, stability `Preview`.
 
+**Two amended commands** (as built, cycle 23, the lane of FT-341 and FT-337; decision log ID-572, ID-573,
+ID-574). The count stays 42; both amendments add an optional member, so a command log written before them replays
+unchanged.
+- **`report_block.create` gains `form_copies: [libdoc]`.** The block's form is a library item, and a project holds it
+  as an embedded copy ([05](05-project-format-and-persistence.md) §13.2). `form_copies` carries the library documents
+  (the `lib/` JSON form of `library.embed`) of the form **and of the title block the form names**: without the title
+  block the copy would break EW-INV-001. Each document is checked by the rules of `library.embed` through one shared
+  check (`check_copy`: kind form, the copy's identity, not a project-local item, the hash of its item, not listed
+  twice; errors at `/form_copies/i`), and `form` must be one of them (else invalid at `/form`). A copy the project does
+  not hold is embedded **in the same transaction** through the transaction's own lookups only, never a derived query
+  (ID-525 kept); a held copy of the same version (the same `sha256`) is reused; another version is refused with a
+  message that names "update from library" (FR-PRT-014), a previewed command of its own. One undo step removes the
+  block and the copies it embedded; a reused held copy stays. The member is omitted when empty
+  (`skip_serializing_if`).
+- **`project.company.set` gains `logo`.** The base64 text (standard alphabet, padded) of an SVG, PNG or JPEG file;
+  an empty string removes the logo, an absent member keeps it. The bytes join the project's asset store
+  (05 §13.3) and `ew.company.logo` of the project row becomes the reference `{sha256, format, size}` (a bare hash from
+  before is still read). `MAX_LOGO_BYTES` is 512 KiB (`ew-schema`, re-exported by `ew-api`): the base64 string is
+  checked on its length before decoding and the bytes again after, and the string stays under `MAX_PARAM_STRING`
+  (1 MiB per string, the parameter limit at the end of this section) because 512 KiB is 699,052 characters in base64. A raster logo yields a notice that it prints
+  rasterised (D-07). The command stays `Edit`, `Bulk` and undoable in one step; undo keeps the asset in the store.
+  No renderer draws the logo yet (FT-384).
+
+**Specified, not built: the catalogue of WP-S2.04** (decision log ID-567; the specification
+`docs/plan/specs/WP-S2.04-placement-wiring-drawing-tools.md`, "Specified, cycle 23"). When its parts land, the
+catalogue grows from 42 to 50 commands, all `Edit`: `rep.exchange_symbol`, `project.drawing.set` (the pattern of
+`project.settings.set`), `connection.draw_to_ip`, `ip.arrange`, `box.reshape`, `box.structure`, `item.place` and
+`marker.place`, with additive members on `device.place`, `box.black`, `rep.move` (`steps`, `items`), `edit.delete` and
+`fields.set`. **Every new optional member is `skip_serializing_if`**, so the 609-command log of AC-15 and the golden
+bytes stay unchanged; the only change allowed under `golden/` is the re-bless rule of ID-570. None of the
+eight is registered in this version; the counts in §2.3 stay 42 until a part lands.
+
 **Parameter schemas are the client contract** (FR-EXT-015; decision log ID-56). They reject unknown tags of open
 enums, which records keep for forward compatibility (ARCH §7.6): a client learns of a new value from the catalogue,
 never by sending it. Before validation, a parameter document is limited to 4 MiB, a nesting depth of 64, 1,048,576
@@ -293,6 +325,8 @@ or from a CLI origin with `confirmed` set (FR-EXT-030; decision log ID-57); the 
 after the typed confirmation above arrive with the CLI work package (WP-S1.22). *As built (cycle 22):* 42 commands are
 registered at the cycle-22 tip, 41 `Edit` and one `HumanOnly` (`project.checks.set`, above); the four commands of FT-336
 (`project.company.set`, `project.frames.set`, `project.languages.set`, `project.checks.set`) took the count from 38 to 42.
+*Cycle 23:* the count is still 42; the two amended commands of §2.1 add optional members only, and WP-S2.04 specifies
+eight more (42 to 50), none built.
 The first `HumanOnly` command has shipped, and `undo` must refuse a `HumanOnly` step from a script, MCP, plugin or
 Python origin (§4); FT-366 verifies that refusal.
 

@@ -6,8 +6,9 @@ the owner's delegate ruled) for six lead-programmer parts: part 1 (place and arr
 and commands, D5), part 4b (their tools and the G-PP rehearsal, D4) and part 5 (images, D4, after FT-337); every part
 after WP-S2.03 part 2's delivery; Opus review of each ·
 **Date:** 2026-10-22 · **Work package:**
-[WP-S2.04](../02-work-packages.md#wp-s204-placement-wiring-and-drawing-tools) · **Decision log:** to be allocated by the
-cycle-23 design pass (the IDs continue after ID-555; §17.3 lists the entries) · **Part of:** ElektraWatt plan,
+[WP-S2.04](../02-work-packages.md#wp-s204-placement-wiring-and-drawing-tools) · **Decision log:** ID-561 to ID-571 (the
+cycle-23 design pass recorded §17.3's entries; §17.4's follow-ups are FT-372 to FT-379; doc 03 §5 and §6 and doc 05
+§2.2 carry §10.1's shapes since that pass, so part 4a's precondition of §17.2 is met) · **Part of:** ElektraWatt plan,
 specifications
 
 **Purpose.** This is the closed specification of the first editing package. It turns the viewer and tool framework of

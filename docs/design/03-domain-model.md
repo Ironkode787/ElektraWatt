@@ -1,6 +1,6 @@
 # Domain model
 
-**Status:** Draft v0.1 · **Date:** 2026-10-21 (cycle 11: frozen tags change only by explicit user action, segment-less strips, the `project.settings.set` command; decision log ID-290, ID-292, ID-293; cycle 12: the colour and size profile rows and their display order, §5.1, decision log ID-319; cycle 13: the PLC kinds and `DeviceLink` as built, §7, §13, §14, decision log ID-333 to ID-335; 2026-10-22, cycle 17: the typed `Revision` as built and the `Revision.withdraws` forbid link, §4.2, §18, decision log ID-427 to ID-431; 2026-10-22, cycle 22: the stored shapes written by the four commands of FT-336 and the frame fall-through rule, §5.1, §19, decision log ID-545 to ID-547) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-21 (cycle 11: frozen tags change only by explicit user action, segment-less strips, the `project.settings.set` command; decision log ID-290, ID-292, ID-293; cycle 12: the colour and size profile rows and their display order, §5.1, decision log ID-319; cycle 13: the PLC kinds and `DeviceLink` as built, §7, §13, §14, decision log ID-333 to ID-335; 2026-10-22, cycle 17: the typed `Revision` as built and the `Revision.withdraws` forbid link, §4.2, §18, decision log ID-427 to ID-431; 2026-10-22, cycle 22: the stored shapes written by the four commands of FT-336 and the frame fall-through rule, §5.1, §19, decision log ID-545 to ID-547; 2026-10-23, cycle 23: the `StructureBox` and `PageItem` shapes specified for WP-S2.04 part 4a with their two invariants and their derivation, §4.2, §5, §6, §8.2, decision log ID-566; the `settings.extra.drawing` member, §5.1, ID-567, ID-568; the company logo reference as built, §5.1, ID-573) · **Part of:** ElektraWatt design document set
 
 > **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
 
@@ -118,7 +118,7 @@ records of this document; the owning feature document gives the behaviour.
 |---|---|---|---|
 | Value types | `Angle2` for free texts and graphics; `ColourCode::Foreign(Ident)`, lenient mode only | §3 | [14](14-interop.md) |
 | Library items | `ItemMeta{key, licence, sources, as_of, confidence, status}` (no `version`: the document's own `version` member, [05](05-project-format-and-persistence.md) §13.2), `foreign_terms`, `LibRef{library, item, version_req}`, manufacturer copies; `SymbolCp.fn_cp`; three-level FnDef category; `FnFlags.n_isolation`; `CpDef.source_output`, `CpDef.optional`; `Part.free_props`; `PartCopy.sections.fluid` | §6, §7 | [07](07-symbols-parts-macros.md), [08](08-connections-terminals-cables.md), [11](11-fluid-power.md) |
-| Representations and page items | `Representation.box` (black boxes), `Representation.arrangement`; `PageItem::WireMarker{connections}`, `FreeText` role `PathFunction`, `MacroBox`, `SurfaceView`, `ModelView`, `Dimension`, `Underlay` (1.0) | §6 | [06](06-schematic-editor.md), [07](07-symbols-parts-macros.md), [12](12-panel-layout.md), [14](14-interop.md) |
+| Representations and page items | `Representation.box` (black boxes), `Representation.arrangement`; `PageItem::WireMarker{connections, at, angle, fields}`, `FreeText` role `PathFunction`, `MacroBox`, `SurfaceView`, `ModelView`, `Dimension`, `Underlay` (1.0) | §6 | [06](06-schematic-editor.md), [07](07-symbols-parts-macros.md), [12](12-panel-layout.md), [14](14-interop.md) |
 | Macros | `ValueSet{name, values}`, `MacroInstance`, `PlaceholderGroup` | §7 | [07](07-symbols-parts-macros.md) |
 | Report blocks and forms | `ReportBlock.source = SqlQuery{api, file}`, `manual`, `continuation`, `title`, `empty`; `FormDef.page_to_sheet`, `FormDef.continuation`; `EmbedSpec.overflow` withdrawn (overflow follows the cells' policy, [09](09-reports-forms-output.md) §3.4) | §6 | [09](09-reports-forms-output.md) |
 | Connections and potentials | `ConnectionKind` payloads `Bridge(BridgeSpec)`, `Bus(BusLine)`, `SingleLine{conductors}` (1.0); `PotentialDef.ptype` optional, `env.earthing`; `ClampKey`; `WireOverrides.length`, `WireOverrides.ends`; `Strip.groups`, `Strip.field_side`; `Junction.fitting` | §9, §11, §15 | [08](08-connections-terminals-cables.md), [12](12-panel-layout.md), [13](13-manufacturing-outputs.md) |
@@ -353,6 +353,8 @@ Every link field declares a delete policy, generated into `ew-model` (arch §4.6
 | An interruption-point function's representation (deleted alone or with its page) | cascade: the IP function is deleted, and the connections at its CP with it | an IP function has no device and is owned by its page (ADR-0009 amendment 3); EW-INV-013: a function of kind `Ip` has exactly one representation |
 | `Representation.page`, page-owned rows | cascade | deleting a page leaves its devices unplaced unless the user deletes them |
 | `Connection.a/b` (CP or junction) | cascade | a connection never dangles |
+| `PageItem.page`, `StructureBox.page` (specified for WP-S2.04 part 4a) | cascade | deleting a page deletes its page items and structure boxes (FR-PAG-025; EW-INV-022, §6) |
+| A connection listed by a `WireMarker` (specified for WP-S2.04 part 4a) | unlink: the connection leaves the marker's list, and a marker left without connections is deleted in the same plan | EW-INV-023, §6: every listed connection exists and lies on the marker's page |
 | `Terminal.strip` | forbid | a strip with terminals cannot be deleted alone |
 | `Conductor.cable` | cascade; `Connection.kind = Core` reverts to `Wire` | the drawn wire survives |
 | `Channel.module` | cascade, after confirmation when channels are placed or exchanged | |
@@ -366,11 +368,12 @@ Every link field declares a delete policy, generated into `ew-model` (arch §4.6
 **Policy by link class.** The complete list is the link table of `crates/ew-model/invariants.md` §4, which
 `ew-model` implements; the classes are:
 - **Cascade** for page-owned rows (`Representation.page`, `Connection.page`, `Junction.page`, an embedded
-  `ReportBlock`'s page, and an IP function with its representation) and for `Function.device`. A connection
+  `ReportBlock`'s page, `PageItem.page` and `StructureBox.page` once WP-S2.04 part 4a implements them, and an IP
+  function with its representation) and for `Function.device`. A connection
   cascades with either endpoint, a representation with any of its functions, a conductor with its cable.
 - **Unlink** for optional cross-references: `SupplySpec.origin.source`, `IpSpec.external`, the bus cable of a
   `Connection.kind` and `Bond.via` are cleared; `Connection.kind = Core` reverts to `Wire`; a deleted connection
-  leaves `Junction.sequence`. `PotentialDef.at` and `Bond.a`/`b` drop the record.
+  leaves `Junction.sequence` and, from part 4a, the list of every wire marker (§6). `PotentialDef.at` and `Bond.a`/`b` drop the record.
 - **Forbid** for master data and structure (structure nodes, sections, forms, `Device.parent`, `Terminal.strip`),
   library copies (`Representation.symbol`, `Function.def`, `PartRef.copy`), `source_ref.lineage`,
   `Revision.withdraws`, and a `LibRef`
@@ -479,9 +482,10 @@ classDiagram
   class StructureBox {
     +page: PageId
     +outline: Vec~Pt2~
+    +style: dotted or dash_dot
     +assigns: StructureAssignment
     +external: ExternalRefId?
-    +caption: MlText
+    +caption: MlText?
   }
   class ExternalRef {
     +project: Ident?
@@ -510,11 +514,28 @@ classDiagram
 | `UserPropDef` (added): a project-local property definition (FR-PRJ-007) | A, inside `Project.user_prop_defs`, keyed by `key` | `key: Ident` (snake_case, unique in the project); `label: MlText`; `value_kind: Text \| Number \| Bool \| Date \| Enum{options: Vec<Ident>} \| Quantity{unit: Unit}`; `scope`: a set of `Project \| Page \| Device \| Function \| Connection`; later appended: `default`, `category`, `personal_data: bool` (FR-PRJ-024, 1.0) and the part scope | Values live on the records of a scope as `user_props: Vec<UserPropValue{key, value}>`, keyed by `key`. `value` is encoded like a tech value ([05](05-project-format-and-persistence.md) §3.2): a `Quantity` object, an `MlText` for Text, otherwise a string read by the definition's kind (`Dec3` for Number, `"true"` or `"false"`, the enum option, `"YYYY-MM-DD"`). Implemented with WP-S1.12; until then `user_prop_defs` and `user_props` stay in `extra` | P: a value's key is defined, the definition's scope includes the record's kind, and the value parses as the definition's kind |
 | `StructureNode`: one identifier in one aspect tree | A, `structure.jsonl` | `aspect`; `code: Ident` (atomic, FR-PRJ-017); `aliases: Vec<Ident>` (added); `parent?`; `description: MlText`; `order: u32` (defines sort order, FR-PRJ-012) | Pages, devices, layout spaces and external refs point to nodes. UUIDv7. Rename and merge are previewed commands (FR-PRJ-018) | S: parent has the same aspect; tree acyclic. P: code unique among siblings. Chk EW-RDS-002 (FR-CHK-027): a code with prefix characters, such as "J-E-2416", is reported as info in the `drafting` and `full` schemes, not in `pre-delivery` |
 | `StructureAssignment`: which node a page or device belongs to, per aspect | A, value on `Page`, `Device`, `StructureBox` | one slot per aspect: `Inherit \| None \| Node(StructureNodeId)` | Device resolution: explicit slot, else the structure box around its main representation, else the page of its main representation (FR-PRJ-019) | — |
-| `StructureBox` (added): dotted or dash-dot box that assigns a structure | A, page-owned | `outline: Vec<Pt2>`, line style, `caption: MlText`, `assigns`, `external?` | Containment of a representation's anchor point is derived (FR-PRJ-020) | — |
+| `StructureBox` (added): dotted or dash-dot box that assigns a structure | A, page-owned (rank 44, page file, [05](05-project-format-and-persistence.md) §2.2) | `page`, `outline: Vec<Pt2>` (at least 3 vertices), `style: dotted \| dash_dot`, `caption?: MlText`, `assigns: StructureAssignment`, `external?: ExternalRefId`; shape specified for WP-S2.04 part 4a (below; decision log ID-566) | Containment of a representation's anchor point is derived (FR-PRJ-020). Deleted with its page (EW-INV-022) | S: its page exists (EW-INV-022, §6) |
 | `ExternalRef`: a target in another project or cabinet | A | `project?`, `location: StructureNodeId` (+J-E-206), `device: Ident` ("JE-N1000-03"), `connection?: Ident` ("L") | Used by external connection points (§10), cable ends (FR-CBL-015) and external bus partners (§14) | Chk: stale when the referenced project is available and the target changed (FR-PRJ-022) |
 | `Comment`: review note | A, `comments.jsonl` | `anchor: EntityRef \| (PageId, Pt2)`, `author`, `status: Open \| Resolved`, `text: MlText`; added: `kind: Note \| Issue`, `revision?`, `parent?` (thread), `resolved?{by, date}` ([15](15-checks-revisions-collaboration.md) §6.7) | Anchored by UUID, so it survives renumbering (FR-COL-018) | — |
 | `ImportLineage` (added): the identity anchor of one imported source | A, `project.jsonl` | `importer` ("qet"), `source_name` (file name, no path), `anchor: QetProjectUuid \| FirstImportSha256 \| Copy{of, n} \| Fixed(label)`, `namespace: Uuid` (derived from the anchor, [14](14-interop.md) §2.3), `last_source_sha256`, `last_run` | Re-importing into the lineage keeps the IDs of unchanged source keys (FR-IMP-002, FR-IMP-040) | — |
 | `ImportRun` (added): one persisted import | A, `imports/<run-uuid>.jsonl` | `lineage`, importer and version, source info, `as_of`, options digest, report entries and stats, `record_hashes` (the re-import base), acknowledged entries | Written in the import transaction; never conflicts with project data; import-only facts (EW-IMP findings such as a font substitution) stay visible after the import (FR-IMP-041) | — |
+
+**`StructureBox` shape (specified for WP-S2.04 part 4a; decision log ID-566).** The record of the reserved kind
+`structure_box` (rank 44, [05](05-project-format-and-persistence.md) §2.2), exactly as WP-S2.04 §10.1 words it:
+
+| Member | Type and encoding | Rules |
+|---|---|---|
+| `page` | `PageId` | required; the page must exist (EW-INV-022) |
+| `outline` | `[Pt2]` in absolute page nm | at least 3 vertices; the vertices need not lie on the connection grid |
+| `style` | `"dotted"` or `"dash_dot"` | required; the drawing's dash patterns are WP-S2.04 §10.3 |
+| `caption` | `MlText`, optional | printed above the outline's top-left vertex |
+| `assigns` | `StructureAssignment`: one slot per aspect, `Inherit`, `None` or `Node(id)`, encoded as the structure slots of [05](05-project-format-and-persistence.md) §3.2 | a node must exist and have the aspect of its slot (checked by `box.structure` and `fields.set`) |
+| `external` | `ExternalRefId`, optional | the external point the box stands for; printed in the caption as the external xref texts print it (§6, derivation); delete policy unlink: deleting the `ExternalRef` clears the member (ID-566) |
+
+The earlier text of this section already names the box, its outline, line style, caption, `assigns` and `external`; the
+shape adds the stored `page`, makes `style` a two-valued enumeration and `caption` optional. Which representation a box
+encloses is derived, never stored (§6, derivation; FR-PRJ-019, FR-PRJ-020). Commands: `box.structure`, `fields.set`,
+`rep.move` (`items`) and `edit.delete` (WP-S2.04 §5).
 
 **Aspects and their signs.** Signs and sub-level separators are project settings (FR-PRJ-016); the defaults follow
 EN 81346 and EPLAN's identifier blocks:
@@ -656,12 +677,22 @@ schema change: each member below already existed and is still kept in `extra` wh
 |---|---|---|
 | `project.frames.set` | `settings.extra.frames` | `{default?: Id<FormDef>, per_page_type: [{page_type, form}]}` as `FrameDefaults` above, entries sorted by page type. `per_page_type` is always written, `[]` when empty. The command merges into the existing object (unknown members are kept) and refuses a non-object value. Each form must be an embedded copy of kind frame, cover or divider; a `report` form and a duplicate page type are refused |
 | `project.checks.set` | `settings.extra.checks` | `{active_scheme?, release_scheme?}`, shipped schemes only (an `ew-api` test pins the accepted list against `ew_checks::SCHEMES`). This is the start of `CheckSettings` (§19), not all of it. Nothing reads it yet (FT-366) |
-| `project.company.set` | the first `Party` of role `panel_builder` in `Project.parties` (added if absent); `Project.extra["ew.company"].notice` | The party's `name` and `personal_data` (true by default, matching the golden panel builder; NFR-PRIV-06; nothing reads it yet). The title-block notice text is the provisional `notice` member of `ew.company`, which the `title_block` member of the shim already reads (decision log ID-78); the logo in the same member is kept |
+| `project.company.set` | the first `Party` of role `panel_builder` in `Project.parties` (added if absent); `Project.extra["ew.company"].notice` and `.logo` | The party's `name` and `personal_data` (true by default, matching the golden panel builder; NFR-PRIV-06; nothing reads it yet). The title-block notice text is the provisional `notice` member of `ew.company`, which the `title_block` member of the shim already reads (decision log ID-78). *As built (cycle 23; decision log ID-573):* `logo` is an asset reference, `ew.company.logo = {sha256, format, size}` (`format` `svg`, `png` or `jpeg`, `size` `[w, h]` absent when unknown); the command takes the image as base64 (SVG, PNG or JPEG, at most 512 KiB, `MAX_LOGO_BYTES`; empty removes it), and the bytes join the project's asset store, `assets/<sha256>.<ext>` ([05](05-project-format-and-persistence.md) §13.3). The earlier bare form, `"logo": "sha256:…"`, is still read and kept on re-save, taking its format and size from the held asset ([05](05-project-format-and-persistence.md) §10.3) |
 | `project.languages.set` | `Project.languages{source, translations}` and `settings.formatting{date, decimal_separator}` | The typed members, sent whole; `tag_case` is untouched. Nothing reads `decimal_separator` yet (FT-366) |
 
+**`settings.extra.drawing` (specified for WP-S2.04; decision log ID-567, ID-568).** The presentation settings of the
+drawing, kept in `ProjectSettings.extra` like `frames` and `checks` (no schema change): an object
+`{"crossings"?: "plain" | "hops", "marker_mode"?: "all" | "deviations" | "explicit" | "none"}`. `crossings` (part 2,
+FR-CON-031) says how crossing wires are drawn; absent means `plain`. `marker_mode` (part 4a, FR-CON-024) selects which
+wire markers print; **absent means the as-built rule**, a marker where the connection's `show_marker` is set, and the
+modes are defined in §6 (derivation; WP-S2.04 §10.2 item 3). The command `project.drawing.set` writes the member
+(`Edit`, undoable): it merges into the existing object, keeps members it does not know and takes `null` to remove a
+member; it refuses a `drawing` member that is not an object, an unknown value and a call that gives no member.
+`crossings` is presentation only (no derived diff); `marker_mode` is read by the derivation, so changing it changes the
+derived marker texts. The per-page marker mode of FR-CON-024 is FT-375.
+
 Not shaped here, and kept in `extra` until their work packages: `checks` (WP-S1.15), `fluid` ([11](11-fluid-power.md)),
-`mfg` ([13](13-manufacturing-outputs.md)), the marker mode of [08](08-connections-terminals-cables.md) §4.5, text
-styles and export schemes (WP-S3.02, WP-S3.04).
+`mfg` ([13](13-manufacturing-outputs.md)), text styles and export schemes (WP-S3.02, WP-S3.04).
 
 ---
 
@@ -748,7 +779,7 @@ classDiagram
   class PageItem {
     +page: PageId
     +kind: Graphic, FreeText, Image, WireMarker, MacroBox, SurfaceView, ModelView, Dimension, Underlay
-    +layer: LayerRef
+    +layer: Ident?
   }
   class ReportBlock {
     +source: Kind or SqlQuery
@@ -789,8 +820,58 @@ classDiagram
 | `FormDef`: frame, title block, cover, report form or label | L, `lib/forms/` | frame: sheet size, margins, `columns{count, start_index, width: Grid, labels}`, `rows{count, labels, skip_io, height: Grid}`, header bands, title-block form, grid and no-grid variants; cells with typed placeholders (FR-REP-032/033); `page_to_sheet?: SheetTransform` (uniform integer scale and offset, QET-compatible frames only, FR-PAG-029); `continuation?: FormRef` (the "next form" of report pages, FR-REP-032) | Assigned by project default, page-type default, or page override (FR-PAG-018) | S: placeholders valid for the form kind (FR-REP-034) |
 | `Representation` (the symbol instance): one drawing of one or more functions | A, page-owned | `functions`, `page`, `symbol: Id<SymbolDef>` and `variant: u8` (default 0: the stored contact-image or CP variant; orientation variants A–H are derived), two members as in [05](05-project-format-and-persistence.md) §3.5, because the variant is chosen per placement while `symbol` names the one embedded copy that every placement shares, `pos: Pt2`, `orient: Orient2`, `rep_type: MultiLine \| SingleLine \| Overview \| Fluid \| Topology \| ContactImage \| StripSegment \| Graphic` (default `MultiLine`), `pin_map` (symbol CP → function CP), `text_slots` (overrides only: slot index, `pos` in symbol coordinates before the orientation is applied, angle, visibility; decision log ID-106), `arrangement?` (named slot set of the symbol, FR-SYM-012), `box?: BoxSpec{outline: Vec<Pt2>, cps: Vec<(idx, Pt2, Dir4)>, inner: Vec<Primitive>}` (black boxes drawn with the built-in symbol `ew.gen.blackbox`; part box macros fill it on placement), `assembly_view?` (added; superseded in cycle 15 by the members' own overview representations with derived break marks, decision log ID-373), `anchor?: AnchorPolicy` (added, cycle 14: a per-representation override of the symbol copy's anchor policy, FR-SYM-010; absent follows the copy's policy; decision log ID-351) | One function has 0..n representations; with none it is unplaced (FR-DEV-003). UUIDv7. Panel fronts are not stored: `panel_front_reps(dev)` derives them from placements (§16), and a PanelLayout page hosts one `SurfaceView` | S: its functions exist and belong to one device (IPs excepted); each symbol CP maps to at most one function CP |
 | `SymbolDef`: graphics plus CP geometry | L, `lib/symbols/` | `meta: ItemMeta` (below); primitives in nm; `cps: Vec<SymbolCp{idx, fn_cp, pos, dir, discipline}>` on the connection grid, where `fn_cp` is the FnDef CP the symbol draws (a symbol may draw a subset); text slots and named `arrangements`; anchor policy (origin, label, centre, named point; FR-SYM-010); `fndef: LibRef`; `rep_type` (including `PanelFront` for 2D front graphics); variants A–H plus contact-image and CP variants | Representations reference it; geometry is memoised at library durability | Chk (FR-SYM-020): CPs on grid, unique indices, anchor defined; `fn_cp` exists in the FnDef |
-| `PageItem` (added): page content without electrical meaning | A, page-owned (rank 43 of [05](05-project-format-and-persistence.md) §2.2) | `kind: Graphic{shape, stroke, dash, fill, angle: Angle2} \| FreeText{text: MlText or bound property, role: Plain \| PathFunction{columns}, angle: Angle2} \| Image{asset sha256} \| WireMarker{connections: Vec<ConnectionId>, fields} \| MacroBox{outline, key, kind, rep_type, variant, target_library, generated?: LibRef} \| SurfaceView{surface, side, datum_at, clip?, label_mode, layers} \| ModelView \| Dimension \| Underlay{asset sha256, page, transform, opacity}`; `layer` | A wire marker only displays the overrides of its connections, in the listed order (a group "1.5 DBU DBU WH WH" over four); it carries no data of its own. A `PathFunction` text is the automatic function text of the functions in its column range (FR-DEV-011). A macro box frames the content that "Generate macros" saves as a macro version (FR-MAC-013); inserting a macro never inserts its box. `SurfaceView`, `ModelView` and `Dimension` belong to layout pages (§16, 1.0 for the last two); an `Underlay` (1.0) is read by no engineering query | — |
+| `PageItem` (added): page content without electrical meaning | A, page-owned (rank 43 of [05](05-project-format-and-persistence.md) §2.2) | `kind`, an externally tagged object: `graphic` \| `free_text` \| `wire_marker` (shapes specified for WP-S2.04 part 4a) \| `image` (part 5) \| `macro_box{outline, key, kind, rep_type, variant, target_library, generated?: LibRef}` \| `surface_view{surface, side, datum_at, clip?, label_mode, layers}` \| `model_view` \| `dimension` \| `underlay{asset sha256, page, transform, opacity}` (the last five are later and stay unknown variants until typed); `layer?: Ident`; the shapes are in the table below (decision log ID-566) | A wire marker only displays the overrides of its connections, in the listed order (a group "1.5 DBU DBU WH WH" over four); its own data is only that list, its position `at`, its `angle` and the shown `fields`. A `PathFunction` text (a follow-up, FT-376) is the automatic function text of the functions in its column range (FR-DEV-011). A macro box frames the content that "Generate macros" saves as a macro version (FR-MAC-013); inserting a macro never inserts its box. `SurfaceView`, `ModelView` and `Dimension` belong to layout pages (§16, 1.0 for the last two); an `Underlay` (1.0) is read by no engineering query | — |
 | `ReportBlock`: a report placed in the page order | A, `report-blocks.jsonl`; an embedded block lives in the file of its page | `source: Kind(ReportKind) \| SqlQuery{api: "v1", file}` (`{"kind": "wire_list"}`; the SQL lives in `reports/<uuid>.sql`), `manual` (include and exclude entity IDs, FR-REP-027), `sort: Vec<SortKey{key, descending}>`, `group?{key, break}`, `form: Id<FormDef>`, `section?`, `first_folio?` (required for page-oriented blocks, ignored when `embedded` is set), `continuation: SubPage \| NextFolio` (default SubPage: 907, 907.1 …; FR-PAG-030), `title` (format with `{n}`, `{count}`, `{group}`), `empty: OmitPages \| OnePage(text)`, `embedded?{page, rect}`; later appended: `params` and `filter` (WP-S3.03, [09](09-reports-forms-output.md) §2.2) | Its pages are derived (`report_pages(block)`, IDs v5) and join `page_order()` (FR-REP-001) | S: a page-oriented block has `first_folio`. Chk: folio collision with a drawn page (FR-REP-041) |
+
+**`PageItem` shapes, invariants and derivation (specified for WP-S2.04 part 4a, `image` for part 5; decision log
+ID-566).** The record of the reserved kind `page_item` (rank 43, [05](05-project-format-and-persistence.md) §2.2) is
+`{"$k": "page_item", "id", "v", "page": PageId, "layer"?: Ident, "kind": <variant>}`, the variant an externally tagged
+object (`{"graphic": {…}}`). The shapes are exactly those of WP-S2.04 §10.1; positions are page nm (`Pt2`), lengths `Nm`:
+
+| Variant | Members | Rules |
+|---|---|---|
+| `graphic` | `shape`: one of `{"line": {"a": Pt2, "b": Pt2}}`, `{"polyline": {"points": [Pt2]}}`, `{"rect": {"min": Pt2, "max": Pt2}}`, `{"circle": {"centre": Pt2, "r": Nm}}`, `{"arc": {"centre": Pt2, "r": Nm, "start": Angle2, "sweep": Angle2}}`, `{"polygon": {"points": [Pt2]}}`; `stroke?`: `{"width": Nm}`; `dash?`: `"solid"`, `"dashed"`, `"dotted"` or `"dash_dot"`; `fill?`: `bool` | no `angle`: a shape carries its own geometry. Drawn in the page's wire stroke unless `stroke` is set; an absent `dash` is `solid` and an absent `fill` is `false` (ID-566). Degenerate shapes (a zero-length line, a polyline or polygon with fewer than two or three distinct points, a radius of 0) are refused by the commands |
+| `free_text` | `text`: `MlText`; `bind?`: `Ident`; `at`: `Pt2`; `angle?`: `Angle2`, one of 0, 90000, 180000, 270000; `style?`: `Ident` (default `text.normal`); `align?`: `"left"`, `"centre"` or `"right"` | `bind` names one of six bindable names: `project.description`, `project.document_title`, `project.drawing_id`, `page.title`, `page.folio`, `page.full_name`; the commands refuse another name and an empty `text` without `bind`. The role `path_function` of the earlier text is FT-376 and is kept verbatim as an unknown member until then. `angle` is an `Angle2` (10⁻³ degree, default 0 omitted, [05](05-project-format-and-persistence.md) §3.2) restricted to 0, 90000, 180000 and 270000 (decision log ID-566) |
+| `wire_marker` | `connections`: `[ConnectionId]`; `at`: `Pt2`; `angle?`: `Angle2`, 0 or 90000 (ID-566); `fields`: `["csa", "colour"]` | `marker.place` lists at least one connection, distinct, in printed order, all on the page. A group is changed by deleting and placing it (`fields.set` cannot edit `connections`) |
+| `image` (part 5) | `asset`: `"sha256:…"`; `rect`: `[Pt2, Pt2]` | placed through the asset store ([05](05-project-format-and-persistence.md) §13.3); until part 5 an `image` item is kept verbatim as an unknown variant |
+| any other variant | `macro_box`, `surface_view`, `model_view`, `dimension`, `underlay`, and variants of a newer format | `PageItemKind::Unknown(Value)`, kept verbatim and round-tripped byte for byte ([05](05-project-format-and-persistence.md) §10.3) |
+
+*Departures from the earlier text of this section* (`Graphic{shape, stroke, dash, fill, angle}`, `FreeText{text or
+bound property, role, angle}`, `WireMarker{connections, fields}`, `Image{asset}`): **`Graphic` has no `angle`**;
+**`FreeText` gains `bind`** beside `text` (the earlier "text or bound property" becomes two members) and its `angle` is
+one of four values; **`WireMarker` gains `at` and `angle`**, which position the group; **`Image` has `rect`**. `layer`
+is optional.
+
+*Two new structural invariants* (decision log ID-566; numbered EW-INV-022 and EW-INV-023 in the catalogue of
+[ADR-0009](../adr/0009-invariant-catalogue.md), the next free numbers after EW-INV-021):
+- **EW-INV-022:** the `page` of a page item or a structure box exists. Deleting a page deletes them (cascade,
+  FR-PAG-025).
+- **EW-INV-023:** every connection a wire marker lists exists and lies on the marker's page. The delete policy: a deleted
+  connection leaves the list, and a marker left empty is deleted in the same plan.
+
+A build from before part 4a keeps `page_item` records verbatim and does not enforce that delete link, so a project can
+arrive with a marker that lists a deleted connection or one on another page. On load this is **reported, not refused**:
+a load finding names the marker and the connection, the derivation and the drawing ignore the stale entry, and the next
+edit of the marker writes a clean list ([05](05-project-format-and-persistence.md) §2.2).
+
+*Derivation (WP-S2.04 §10.2).* `rep_structure_box(rep)` is the innermost structure box on the representation's page
+whose outline contains the point that `rep_anchor_cell` uses (an exact even-odd test in `i128`, the boundary inside;
+innermost by absolute shoelace area, ties by box ID). `structure_of(device)` gains a step between its steps 1 and 3
+(§8.2 step 5): an inherited aspect of a device that is neither a terminal nor a child-tag device takes the slot of the box
+around its main representation when the box's `assigns` has a node or `none` for that aspect (`SlotSource::StructureBox`),
+else the page's. `ip_structure(function)` is an IP function's structure, its representation's box's slots over its page's;
+every reader of an IP's structure (the pairing scope `location` and the xref `{function}` and `{location}` tokens)
+reads it. Golden A has no structure box and no `ip_pairing` setting, so no golden output changes. A bound free text prints
+the value that the title block prints for that placeholder on its page (`title_block`'s resolver). Wire markers follow
+`marker_mode` of §5.1: with it absent a connection shows a marker when `show_marker` is set; `all` shows every wire;
+`deviations` a wire with an effective cross-section or colour set at levels 3 to 7, cores excepted
+([08](08-connections-terminals-cables.md) §4.5); `explicit` a level-7 cross-section or colour; `none` no marker. A
+connection that a wire marker lists draws no marker of its own; the item draws the group whenever at least one of its
+connections would show a marker in the mode. The group text is the distinct effective cross-sections of the listed
+connections in list order joined by `/`, then one colour code per connection in list order, separated by spaces: `2.5 BK
+BU`, `1.5 DBU DBU WH WH`. A structure box's caption is the caption text and, when `external` is set, ` (<external>)` with
+the external reference printed as the external xref texts print it: `External Connection (J-E-206 / JE-N1000-03)`.
+`rep_structure_box` and `ip_structure` are new memoised families.
 
 **Derived from pages.** `page_order()` sorts sections, then folios by natural order, including generated pages.
 From it come Prev/Next (empty on the first and last page, FR-PAG-013), the TOC rows with "Location (+)"
@@ -1120,8 +1201,10 @@ derived:
    the main representation, else the main representation's page. A slot left `Inherit` on a `Child`-scheme device
    takes its parent's resolved slot (`=P01+J-E-2416-201U3-Q1`), and an unplaced device with a parent takes the
    parent's. A page's own slots inherit from nothing: `Inherit`, `None` or an unknown slot leaves that aspect of the
-   page empty. Structure boxes (FR-PRJ-020) have no record kind in format 0.x yet; when they arrive they apply after
-   the explicit slot, as this step says (decision log ID-85). The combined inheritance graph (terminal → strip,
+   page empty. Structure boxes (FR-PRJ-020) have no record kind in format 0.x yet; they are specified for WP-S2.04 part 4a (§5, §6;
+   decision log ID-566), and then apply after the explicit slot, as this step says (decision log ID-85): the slot of the
+   box around the main representation (`SlotSource::StructureBox`) is taken for a device that is neither a terminal nor a
+   child-tag device. The combined inheritance graph (terminal → strip,
    `Child`-scheme device → parent, unplaced device → parent) is acyclic, a structural invariant of `ew-model`
    (ADR-0009 amendment 4).
 6. **Full tag** = rendered structure + "-" + product designation. **Displayed tag on page p** omits each aspect

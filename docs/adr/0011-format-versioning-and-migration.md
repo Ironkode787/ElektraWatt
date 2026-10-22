@@ -1,6 +1,6 @@
 # ADR-0011: Format versioning, per-kind migration and format-change windows
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-21 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-21 (amendment 4 annotated as applied again on 2026-10-23) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -110,7 +110,12 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    text language (a designation pattern with `{<expression in n>}` placeholders, or a list of designations); its
    forms are part of the format contract like a member's type: a later minor may add a form only as a new variant (a
    one-member object, kept verbatim by older readers under amendment 1), never by giving an existing string a new
-   meaning, and a reader gives no pin for a pattern it cannot expand.
+   meaning, and a reader gives no pin for a pattern it cannot expand. Applied again in cycle 23, as a specification for
+   WP-S2.04 part 4a (decision log ID-566), to the reserved kinds `page_item` (rank 43) and `structure_box` (rank 44),
+   both owned by their page's file: typed within the unreleased format 0.1, `schemas/0.1` re-blessed, no format or `$v`
+   bump, every `page_item` variant the reader does not type kept as `Unknown(Value)`. They add cascade and unlink links
+   (ADR-0009 amendment 8), which an older 0.1 build does not enforce; because no format is released, the newer build
+   reports a stale wire-marker entry as a load finding instead of raising `min_reader`.
 
 ## Consequences
 

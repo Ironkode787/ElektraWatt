@@ -1,6 +1,6 @@
 # Project format and persistence
 
-**Status:** Draft v0.3 · **Date:** 2026-10-21 (amended 2026-10-22, cycle 22: the members written by the four commands of FT-336 stay in `extra`, no schema change, §10.3, §17.2, decision log ID-545, ID-547; amended 2026-10-22, cycle 19: the journal kept on a dirty exit and the shell's read-only open with the recovery banner, §8.1, §8.3, decision log ID-475; the replay on a moved base and a removed library copy that a `LibRef` still names, §8.2 step 4, ID-479; amended 2026-10-22, cycle 17: the typed `revision` kind and the open failure of old revision files that break an invariant, §10.3, decision log ID-428; v0.3, cycle 13: the member order of the flattened device aspects as built, §3.1, decision log ID-337; additive implementation of reserved kinds, §10.3, ID-334; v0.2: the persistence core as built and reviewed in cycle 8,
+**Status:** Draft v0.3 · **Date:** 2026-10-21 (amended 2026-10-23, cycle 23: the asset store as built and the rule that a save never removes an asset file, §13.3; the asset temps, the journal's assets and the logo reference form, §2.1, §8.1, §10.3, §17.2; `page_item` and `structure_box` specified and implemented additively under ADR-0011 amendment 4, §2.2, §10.3, decision log ID-566, ID-573 to ID-575; amended 2026-10-22, cycle 22: the members written by the four commands of FT-336 stay in `extra`, no schema change, §10.3, §17.2, decision log ID-545, ID-547; amended 2026-10-22, cycle 19: the journal kept on a dirty exit and the shell's read-only open with the recovery banner, §8.1, §8.3, decision log ID-475; the replay on a moved base and a removed library copy that a `LibRef` still names, §8.2 step 4, ID-479; amended 2026-10-22, cycle 17: the typed `revision` kind and the open failure of old revision files that break an invariant, §10.3, decision log ID-428; v0.3, cycle 13: the member order of the flattened device aspects as built, §3.1, decision log ID-337; additive implementation of reserved kinds, §10.3, ID-334; v0.2: the persistence core as built and reviewed in cycle 8,
 ADR-0010 amendment 3, decision log ID-200 to ID-217; cycle 11: journal granularity of `project.settings.set`, Golden B1 files, ID-290) · **Part of:** ElektraWatt design document set
 
 > **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
@@ -142,8 +142,9 @@ Optional directories and files are absent in the golden project:
 None of the rule, report, script or job content runs until the user trusts the project (NFR-SEC-05, §13.4).
 
 **Temps, orphans and strays** (2026-10-20, ADR-0010 amendment 3; decision log ID-203, ID-214). The save protocol's
-own temps ("our temps") are the intents `manifest.json.tmp-<g>` and the `.tmp-<g>` files of record files and
-library documents; an editing open deletes or rolls forward only those (§5.3, §6.1). Every other file that the
+own temps ("our temps") are the intents `manifest.json.tmp-<g>` and the `.tmp-<g>` files of record files, library
+documents and assets (`assets/<sha256>.<ext>.tmp-<g>`, as built in cycle 23, decision log ID-573); an editing open
+deletes or rolls forward only those (§5.3, §6.1). Every other file that the
 manifest does not list is left alone: with a manifest present it is never read, never deleted and reported as
 EW-CORE-004 (§6.2). A save that needs the path of such a file first moves it aside to
 `<stem>.unlisted-<g>[-<n>].<ext>` (§5.2), a **stray** name that the application never reads, writes or deletes.
@@ -180,6 +181,42 @@ rule**. Ranks are never reused or renumbered.
 | — | `plc_profile` (library copy, 1.0) | `lib/plc-profiles/<id>.json` (§3.4) | own ID |
 | — | `machine_profile`, `label_profile` (library copies, 1.0) | `lib/profiles/<id>.toml`, the TOML source form; the `schema` key tells the kinds apart | own ID |
 | 255 | `conflict` | file of its target | target |
+
+**`page_item` and `structure_box`** (specified 2026-10-23, WP-S2.04 §10.1; decision log ID-566). Both kinds have had
+their rank and ownership since the registry was written: `page_item` is rank 43 and `structure_box` rank 44, each
+owned by the page file of its `page` member. In `ew-schema` both are `KindStatus::Reserved`, so a record of either
+kind is kept verbatim as a reserved kind (§10.3) **until WP-S2.04 part 4a implements them**, which makes them
+`Implemented`. Their typed tables are additive within format 0.1 on the basis of ADR-0011 amendment 4 (decision log
+ID-334, §10.3 rule 2), which applies again: `schemas/0.1` is re-blessed, with no format bump and no `$v` bump, and an
+older 0.1 build keeps the records verbatim. The shapes below are those of WP-S2.04 §10.1; the domain model's
+[03](03-domain-model.md) §5 (`StructureBox`) and §6 (`PageItem`) carry the fields. Illustrative records, on folio 101
+of the golden project (Golden A has neither kind; IDs shortened, the connection is W7):
+
+```json
+{"$k":"page_item","id":"…","v":1,"page":"8e41c0d2-1b7f-5a39-a6c4-0f5e2d913b7a","kind":{"wire_marker":{"connections":["b29e4f17-8d63-5a0c-9f71-3c6a2e8d05b1"],"at":[90000000,24000000],"fields":["csa","colour"]}}}
+{"$k":"page_item","id":"…","v":1,"page":"8e41c0d2-1b7f-5a39-a6c4-0f5e2d913b7a","kind":{"graphic":{"shape":{"rect":{"min":[20000000,40000000],"max":[80000000,64000000]}},"dash":"dashed"}}}
+{"$k":"structure_box","id":"…","v":1,"page":"8e41c0d2-1b7f-5a39-a6c4-0f5e2d913b7a","outline":[[20000000,40000000],[80000000,40000000],[80000000,64000000],[20000000,64000000]],"style":"dotted","caption":"External Connection","assigns":{"location":"a41f6c2d-8e05-5d97-b3c1-5f2e8a7d9c60"}}
+```
+
+- **`page_item`:** `{"$k", "id", "v", "page", "layer"?: Ident, "kind": <variant>}`, the variant an externally tagged
+  object: `graphic`, `free_text` or `wire_marker`. Their members, enumerations and defaults are in
+  [03](03-domain-model.md) §6. Any other variant (`macro_box`, `surface_view`, `model_view`, `dimension`, `underlay`,
+  and `image` until WP-S2.04 part 5) is kept verbatim as `PageItemKind::Unknown(Value)` (§10.3 rule 3) and round-trips
+  byte for byte, as does a variant of a newer format.
+- **`structure_box`:** `{"$k", "id", "v", "page", "outline": [Pt2] (at least 3), "style": "dotted" | "dash_dot",
+  "caption"?: MlText, "assigns": StructureAssignment, "external"?: IdS}` ([03](03-domain-model.md) §5).
+- **Links and invariants.** The `page` of either kind is a cascade link (deleting a page deletes its items and boxes,
+  FR-PAG-025), and the connections a wire marker lists are held by two new structural invariants of ADR-0009
+  (EW-INV-022 and EW-INV-023, [03](03-domain-model.md) §6): a deleted connection leaves the list, and a marker left
+  empty is deleted in the same plan. `StructureBox.external` (an `ExternalRef` ID) is an unlink
+  link: deleting the reference clears the member (lead ruling, decision log ID-566).
+- **Load finding.** A build from before part 4a keeps `page_item` records verbatim and does not enforce that delete
+  link, so a project can arrive with a wire marker that lists a deleted connection or a connection on another page.
+  This is **reported, not refused**: a load finding that names the marker and the connection, among the other load
+  findings of `Session::load_findings` (a derivation finding, not an integrity rule of §6.3). The stale entry is ignored
+  by the derivation and the drawing, and the project opens; the next edit of that marker writes a clean list.
+- **Migration test.** A page file that holds both kinds and an unknown `page_item` variant is read and written back byte
+  for byte (an unknown variant is `Unknown(Value)`, written back unchanged, §10.3).
 
 Channel IDs are `v5(module, "channel", number)` ([10](10-plc-and-bus.md) §2.4, ADR-0004 amendment 2), so a channel
 keeps its file and line position however often its module is re-addressed.
@@ -863,6 +900,7 @@ base generation). The example records W20's colour change from DBU to BU
 ```json
 {"j":"open","v":1,"project":"3f2b8c1e-…","path":"<canonical project path>","base":231,"base_manifest":"sha256:…","app_version":"ElektraWatt 1.0.0","session":"01a14728-…"}
 {"j":"tx","seq":17,"t":1792241530117,"cmd":"connection.set_overrides","origin":"gui","ops":[{"k":["connection","5e07c3b9-…"],"set":{"overrides":{"colour":["BU"]}},"was":{"overrides":{"colour":["DBU"]}}}]}
+{"j":"tx","seq":18,"t":1792241531002,"cmd":"project.company.set","origin":"gui","ops":[…],"assets":[{"ref":{"sha256":"sha256:…","format":"svg","size":[80,20]},"b64":"PHN2Zy…"}]}
 {"j":"snap","seq":40,"slot":1}
 {"j":"save-begin","gen":232,"writes":17,"removes":["devices/9f.jsonl"]}
 {"j":"save-done","gen":232}
@@ -873,6 +911,24 @@ base generation). The example records W20's colour change from DBU to BU
     whole records.
   - Field diffs are per top-level member of a record. `project.settings.set` (decision log ID-290) therefore journals the whole `settings` value of the project record in `set` and `was`, not only the edited member; settings are a few kilobytes, so per-member paths are not planned.
   - Undo and redo are journalled as the transactions they are.
+  - **Assets** (as built in cycle 23, FT-337; decision log ID-573 to ID-575). A `tx` line carries in `assets`, each as
+    `{"ref": <AssetRef>, "b64": <base64 of the bytes>}`, every asset that the model after the transaction names
+    (`Model::referenced_assets`, today the company logo, §10.3) unless its file is on disk with that hash or an earlier
+    line of the segment carried it. The second condition is a per-segment set, reset when a segment starts, to which a
+    hash is added only after its line is appended; after a save's commit point the saved assets count as on disk, which
+    is safe because a roll-forward restores them from their temps (§5.3). A recovery therefore restores the bytes of
+    every asset its replayed model names, also after a save started a new segment and an undo named an older asset again
+    (set logo X, set logo Y, save, undo, crash).
+  - A transaction without row changes that brings such an asset is journalled with an empty `ops` (a logo whose file was
+    lost, picked again), and an asset that arrives in a transaction without ops marks the project dirty
+    (`Session::is_dirty`; cleared when a save succeeds), so that the unsaved-changes dialog and the recovery see it.
+  - An asset whose bytes do not hash to its `ref` or do not sniff as its format is dropped when the segment is read and
+    **counted per line**. The recovery reports the count as EW-CORE-015 (§6.3) in the findings of the recovery result,
+    and the next save's report carries it too; it does not force a read-only open, and the line's other ops are
+    replayed.
+  - The base64 form is acceptable at the logo bound (512 KiB, §13.3: a line of about 683 KiB). Larger rasters and
+    meshes (`glb`) will use side files, `journal/<segment>.assets/<sha256>`, synced before the transaction line that
+    names them (FT-381, before images above that bound).
   - `t` (epoch ms) and the absolute `path` serve only the recovery dialog. The journal is not project data and
     never leaves the user-only state directory (NFR-PRIV-05).
 - **Durability.** Group commit syncs every entry within 1 s of its commit (NFR-REL-02). It also syncs at once on
@@ -1011,7 +1067,7 @@ amendment 1):
 1. **New members** are optional with a default, are **appended** after the existing members of their kind, and
    carry `since = "1.n"`, which feeds `min_reader`.
 2. **New kinds** take a new rank and declare their ownership.
-   *As built (cycle 13; decision log ID-334, ADR-0011 amendment 4).* A kind that the registry already reserves with a rank and ownership (§2.2), and a device aspect or part section that this document already names, may get its typed table within the current unreleased 0.x format: no format bump, no `$v` bump, and `schemas/0.1` is re-blessed. This is additive. An older 0.1 build keeps such records verbatim (a reserved kind, ID-206) or their members in `extra`, but it does not enforce their links: an older build that deletes a module leaves its channels dangling (FT-229 reports them, FT-230 tests that case). *Cycle 15 (decision log ID-378):* the typed assembly aspect adds the unlink cascade of `configs[].covers[]` and the forbid link of `configs[].part.copy`. An older 0.1 build that deletes a covered device leaves a dangling cover, and `Model::from_records` then refuses the project (`OpenError::Model`); the current build must open it, report the dangling cover and then unlink it (FT-266, the analogue of FT-229 and FT-230). Exposure is nil: no earlier build wrote covers. *Cycle 17 (decision log ID-428, FT-165):* the reserved kind `revision` (rank 60, `revisions.jsonl`) is typed. A `revisions.jsonl` of an earlier build opens as typed records with every member kept, is reported not canonical (info) and is rewritten at the next save; one whose revisions break EW-INV-016, EW-INV-018 or EW-INV-019 fails to open with `OpenError::Model`, accepted for the unreleased 0.1 because no released build wrote revisions. After a format release, typing a reserved kind that adds cascade links or other semantics an older reader must apply is a minor bump that raises `min_reader`; typing without such semantics stays additive. Precedent: FT-84, decision log ID-197.
+   *As built (cycle 13; decision log ID-334, ADR-0011 amendment 4).* A kind that the registry already reserves with a rank and ownership (§2.2), and a device aspect or part section that this document already names, may get its typed table within the current unreleased 0.x format: no format bump, no `$v` bump, and `schemas/0.1` is re-blessed. This is additive. An older 0.1 build keeps such records verbatim (a reserved kind, ID-206) or their members in `extra`, but it does not enforce their links: an older build that deletes a module leaves its channels dangling (FT-229 reports them, FT-230 tests that case). *Cycle 15 (decision log ID-378):* the typed assembly aspect adds the unlink cascade of `configs[].covers[]` and the forbid link of `configs[].part.copy`. An older 0.1 build that deletes a covered device leaves a dangling cover, and `Model::from_records` then refuses the project (`OpenError::Model`); the current build must open it, report the dangling cover and then unlink it (FT-266, the analogue of FT-229 and FT-230). Exposure is nil: no earlier build wrote covers. *Cycle 17 (decision log ID-428, FT-165):* the reserved kind `revision` (rank 60, `revisions.jsonl`) is typed. A `revisions.jsonl` of an earlier build opens as typed records with every member kept, is reported not canonical (info) and is rewritten at the next save; one whose revisions break EW-INV-016, EW-INV-018 or EW-INV-019 fails to open with `OpenError::Model`, accepted for the unreleased 0.1 because no released build wrote revisions. After a format release, typing a reserved kind that adds cascade links or other semantics an older reader must apply is a minor bump that raises `min_reader`; typing without such semantics stays additive. Precedent: FT-84, decision log ID-197. *Cycle 23 (decision log ID-566):* the rule applies again to the reserved kinds `page_item` and `structure_box` (§2.2). An older 0.1 build keeps their records verbatim and does not enforce their delete links (the cascade of a deleted page, the wire marker's connection list), so the current build opens a project whose marker lists a deleted connection or one on another page, reports it and ignores the stale entry; it neither refuses the project nor rewrites the record.
 3. **Enums.** Every persisted enum has an `Unknown(serde_json::Value)` catch-all, so adding a variant is additive.
    Derivations treat `Unknown` conservatively: an unknown connection kind joins no net and is drawn grey and dashed.
    It blocks release where it affects outputs, as here (EW-CORE-016).
@@ -1043,6 +1099,15 @@ are in [03](03-domain-model.md) §5.1. `ew.company` is a provisional member (the
 logo and the title-block notice; decision log ID-78), so the work package that types it must read old files that carry
 it in `extra`, written by these commands or by the importer, without a migration step. A command that writes into one of
 these members merges into the existing object, so members it does not know survive (the rule above).
+
+**As built (cycle 23; decision log ID-573).** The logo of the provisional `ew.company` member is an asset reference:
+`"logo": {"sha256": "sha256:<64 hex>", "format": "svg" | "png" | "jpeg", "size": [w, h]}`, with `size` absent when the
+intrinsic size is unknown, written by `project.company.set` and naming the file `assets/<sha256>.<ext>` (ext `svg`,
+`png` or `jpg`, §13.3). The earlier form, a bare `"logo": "sha256:<64 hex>"` (read before the asset store existed as a
+PNG of unknown size), is still read, and it is kept byte for byte on re-save: the command rewrites the `logo` member only
+when it sets or removes the logo. A bare reference takes its format and size from the held asset when the title block
+reads it (`Q::logo_asset`), so a bare hash that names an SVG file prints as SVG. The new `logo` object is an existing
+`extra` member's value, not a schema change, like the other members of this paragraph.
 
 ### 10.4 Schemas, fixtures and development builds
 
@@ -1344,16 +1409,70 @@ Libraries are `.ewlib` text directories in the project format at every tier
 
 ### 13.3 Assets
 
-- **Naming.** `assets/<sha256>.<ext>`, with `ext` ∈ {svg, png, jpg} at MVP and `glb` from 1.0 (opt-in embeddable
-  meshes, [12](12-panel-layout.md) §6.2; ADR-0010 amendment 2). Raster images are at most 16 MiB; SVG files at most
-  8 MiB and 100,000 nodes, read by usvg with external references disabled ([14](14-interop.md) §11).
-- **Lifetime.** The model keeps an asset's bytes while any record or undo entry references them. A save writes newly
-  referenced files and deletes unreferenced ones, so undoing an image deletion restores the file at the next save.
+*As built (cycle 23, FT-337; decision log ID-573 to ID-576; ADR-0021 amendment 1).* The asset store below exists in
+`ew-model`, `ew-commands` and `ew-store`; where a bullet says "as built" it states the code, and the rest is design.
+
+- **Naming.** `assets/<sha256>.<ext>`, with `ext` ∈ {svg, png, jpg} at MVP (the format names in JSON are `svg`, `png`,
+  `jpeg`) and `glb` from 1.0 (opt-in embeddable meshes, [12](12-panel-layout.md) §6.2; ADR-0010 amendment 2). Raster
+  images are at most 16 MiB; SVG files at most 8 MiB and 100,000 elements. *As built* the limits are applied by the
+  sniffer (below), which counts SVG elements textually and decodes nothing; reading SVG with usvg and external
+  references disabled ([14](14-interop.md) §11) arrives with the renderers' image support (FT-384, decision log ID-576).
+- **The store in the model (as built).** The model keeps image bytes by hash in an asset store beside its tables
+  (`Model::asset`, `Model::assets`, `Model::put_asset`). Assets are not rows and not ops: putting an asset the model
+  already holds does nothing, and no revision is made. A transaction brings its assets through
+  `TxBuilder::put_asset(bytes)`, which sniffs the format and the intrinsic size from the headers (magic bytes; no
+  decoding and no new dependency), applies the limits above, hashes the bytes and returns the `AssetRef` that a record
+  stores; the bytes join the model with the transaction's ops at its commit. **Undo and redo keep assets:** the model
+  keeps every asset it was given for the session, so undoing a logo change brings the reference back with its bytes.
+  Bytes under a hash never change, so reading them by hash is no freshness hazard and sits outside the raw-read gate;
+  the **presence** of an asset can change without a revision, so no memoised query may read it, with one named
+  exception, `Q::logo_asset`, which is safe today only because an asset becomes present at open or through
+  `project.company.set`, which also changes the project row (decision log ID-575; FT-382 makes the rule mechanical, a
+  `check-raw-read` rule with that query as its one allowlisted site).
+- **What a save writes (as built).** The assets the records name (`Model::referenced_assets`: today the company logo
+  of the project row, §10.3) that have no file on disk with that hash, through the **full save protocol** of §5: a temp
+  `assets/<sha256>.<ext>.tmp-<g>` (`create_new`, `sync_all`), named in the intent manifest, the directory syncs, the
+  renames after the commit point; a roll-forward (§5.3) completes asset renames like any other. The manifest lists each
+  asset as a `FileHash::Sha256` in its sorted `files` map (§4). A file under an asset's name whose bytes differ
+  (EW-CORE-015) is replaced by the asset the model holds; an asset a record names but the model does not hold writes
+  nothing. **Save As and a new project write every asset the model holds**, not only the named ones, because kept
+  unknown members and lines may name assets that no known record names (the flag is reset even when that save fails). A
+  new project made from a basic project carries the template's assets unchanged (they are named by content), and its
+  first save writes them.
+- **Open (as built).** Every file under `assets/` whose name is its SHA-256 and whose bytes sniff as the format of its
+  extension is loaded into the model. Any other asset file stays an opaque file listed in the manifest, never rewritten
+  or deleted; EW-CORE-015 reports bytes that do not match the hash in the name (§6.3).
+- **Lifetime (amended 2026-10-23; decision log ID-574).** **A save never removes an asset file.** The model keeps the
+  bytes of every asset it holds while the session lasts; a save writes the named assets that have no file and deletes
+  none. EW cannot know every reference: kept unknown members and lines (§10.3) and future kinds that name assets (`glb`
+  meshes, images in forms, `image` page items) may name a file that no known record does, so deleting on save could
+  destroy a file that a newer writer's record still uses, and a hidden deletion is a model change, as with library
+  copies (§13.2: saving never removes a copy). The earlier rule, that a save deletes unreferenced asset files, is
+  withdrawn. Cleanup is the **explicit, previewed purge command** (FT-380, before the first release): it deletes only
+  asset files whose hash appears in no project file, the kept lines included, and in no undo entry; it is refused in
+  read-only sessions and while lines are quarantined; and the deletions go through the save protocol's removal list
+  (§5.2 step 8).
 - **Format and size** (decision log ID-61). When an asset is imported, the asset store sniffs its magic bytes and
   records its format (PNG, JPEG or SVG) and its intrinsic size (PNG `IHDR`, JPEG `SOF`, SVG `viewBox` or
   `width`/`height`). Readers such as the forms layer trust the resulting `AssetRef {sha256, format, size}` and never
-  sniff; an asset without a known size fills its cell's inset area instead of being fitted.
-- **SVG** is rendered by EW's own pipeline and never executed.
+  sniff; an asset without a known size fills its cell's inset area instead of being fitted. *As built* (`ew_schema::sniff`,
+  the asset store's one entry): a PNG must start with its `IHDR` chunk and a JPEG must reach a start-of-frame marker, and a
+  zero dimension or a cut-short header is `AssetError::Damaged`; an SVG is recognised by its root element `svg` after an
+  optional byte-order mark, XML declaration, comments and a doctype, and takes its size from the root's `viewBox`, else
+  `width` and `height` (a percentage gives none); other bytes are `UnknownFormat`.
+- **The logo bound** (decision log ID-574). `ew_schema::MAX_LOGO_BYTES` is **512 KiB** (re-exported by `ew-api`). The
+  logo travels as base64 inside the command parameter of `project.company.set` and inside a journal line (§8.1), and the
+  base64 JSON string must stay under the command layer's `MAX_PARAM_STRING` of 1 MiB: 512 KiB is 699,052 base64
+  characters. The bound is checked on the text length before decoding and again on the bytes; the wizard checks the file
+  size before and after reading. Base64 in the journal is acceptable at this bound; larger rasters and meshes need the
+  side files of §8.1 (FT-381).
+- **SVG** is rendered by EW's own pipeline and never executed. *As built, no renderer draws images yet* (the CPU
+  renderer, the PDF writer and the SVG writer skip them: the logo is placed in the display lists and not drawn;
+  FT-384). **Sniffing is not sanitising** (decision log ID-576): the sniffer reads the root element only. An SVG with a
+  DOCTYPE internal subset is refused today only because the sniffer ends a declaration at its first `>`. Before any
+  renderer draws an SVG it is parsed and normalised through usvg, which rejects or normalises DOCTYPE internal subsets,
+  `<script>`, `on*` attributes, `foreignObject` and external hrefs (FT-383, with a threat-model row in
+  [18](18-quality-security-release.md) §11).
 - **STEP** files are not embedded by default (open question 8). `PartCopy` references `sha256(STEP)`; meshes live in
   the OS cache, and without the STEP file the 3D view shows the part's bounding box.
 
@@ -1517,7 +1636,7 @@ writes files, so a file that is no longer produced is removed by hand.
 | Golden B2: folio 106 → 104 | Folio 106's page file only. Two tags and 14 xref texts change in the outputs; none of them is in a file |
 | Golden B1: page-based renumbering of 10 tags | `project.jsonl` (the `numbering` settings line drops the strip rule, which renames -X1031/-X1032 without touching their records) and the shards of the devices whose `TagSpec` changes (frozen text cleared, counter set). After undo and save, every data file is byte-identical to Golden A again; only `generation` differs (AC-18) |
 | 24 V DC colour changed in the profile (AC-12) | `project.jsonl` only. No wire record stores a derived colour |
-| Company, frame defaults, languages or check scheme set by `project.company.set`, `project.frames.set`, `project.languages.set` or `project.checks.set` (cycle 22) | `project.jsonl` only: the `Party` rows, `languages` and `settings` (with the `frames` and `checks` members in `extra`) are all inside the project record |
+| Company, frame defaults, languages or check scheme set by `project.company.set`, `project.frames.set`, `project.languages.set` or `project.checks.set` (cycle 22) | `project.jsonl` only: the `Party` rows, `languages` and `settings` (with the `frames` and `checks` members in `extra`) are all inside the project record. Exception (cycle 23, decision log ID-573): a company logo also writes `assets/<sha256>.<ext>` at the first save that finds no file with that hash, and the manifest lists it (§13.3) |
 | W29 colour override set, then undone | Nothing, not even the manifest: step 3 of §5.2 drops the unchanged file, so the dirty set is empty |
 | Valve-manifold macro inserted on a new page | The new page file, the new devices' shards, and `lib/macros/…` if not yet embedded |
 

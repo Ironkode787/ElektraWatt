@@ -1,8 +1,11 @@
 # WP-S2.03: the viewer, its view models and the canvas tool framework (closed specification)
 
 **Status:** specified in cycle 22 (documents only) for two lead-programmer lanes: part 1 (the read-only viewer, D4) as a
-cycle-23 candidate, part 2 (the tool framework, D4) after part 1's delivery; Opus review of each · **Date:**
-2026-10-22 · **Work package:**
+cycle-23 candidate, part 2 (the tool framework, D4) after part 1's delivery; Opus review of each. **Part 1 delivered,
+as built (cycle 23; decision log ID-556 to ID-560):** V1 to V14 passed (§10) and V15's manual look passed for the
+navigator, Go to, the grid cursor, Back, side by side and the link follow, with the lane's rulings, the review's fix
+round and the design items recorded in §6.11. **Part 2 is next** (the tool framework, §7) · **Date:**
+2026-10-22 (amended 2026-10-23, cycle-23 design pass) · **Work package:**
 [WP-S2.03](../02-work-packages.md#wp-s203-viewer-view-models-and-canvas-tool-framework) · **Decision log:** ID-531 to
 ID-538 (the cycle-22 design pass recorded §3's decisions and rulings, corrected D8's count and amended D13 and §6.8
 after WP-S2.02 part 2 delivered FT-356) · **Part of:** ElektraWatt plan, specifications
@@ -443,6 +446,40 @@ A collapsed node ends in `collapsed` and its rows are not listed; the navigator 
 `VOCABULARY` gains `navigator`, `mode`, `flat`, `section`, `structure`, `sort`, `folio`, `type`, `filter`, `row`,
 `level`, `expanded`, `collapsed`, `current`, `generated`, `badge`, `cursor`, `tab`, `group`, `focused`, `history`,
 `back`, `forward`, `focus`, `cell`, `link` and `external` (27 words; ID-474, ID-493); FT-314's harness help lists them.
+
+### 6.11 As built (cycle 23)
+
+Part 1 was built by a lead-programmer lane in six commits plus a review fix round (9453fd8 and 62b92c1 below the
+shell, 9904793 in `ew-render2d`, c53b48a the viewer, af52dff the tests, 23cca2e and aa32fa3 the fixes) and a test
+follow-up; the Opus review accepted it after fixes. Where it departs from §6, **this section wins for part 2**:
+
+| # | As built | Decision log |
+|---|---|---|
+| 1 | Tabs hold `PageId` (`Destination::Page(uuid)`), not `Uuid`, so `ew-viewmodel` has no `uuid` dependency; the field is private | ID-557 |
+| 2 | File ▸ Close project moves to Ctrl+Shift+W, because Ctrl+W closes a tab (doc 16 keymap); on macOS the tab keys stay Control-based | ID-557 |
+| 3 | `{page_index}` is the cross-reference engine's page count (page records, not continuation pages); a continuation page has `page_index: None` | ID-557 |
+| 4 | The transcript's `navigator.row` is `null` while the row cursor follows the current page (fresh projects' random page UUIDs would differ between runs) | ID-557 |
+| 5 | The new members of the transcript's `canvas` come after `renderer`, which ID-540 put last (§6.10 said after `statistics`) | ID-557 |
+| 6 | `list` is dropped from the describe vocabulary: §6.10's 27 words are added and one removed (+27/−1 under ID-474) | ID-557 |
+| 7 | `NoSuchCell` needs a non-empty row part and column part, so `103-A` gives `NotFound` (kept by the lead: a target that does not split into both parts is read as a page name) | ID-558 |
+| 8 | The ambiguous-parse check is a unit test with synthetic frames, because Golden A's letter rows and digit columns split one way only | ID-558 |
+| 9 | `ew-render2d/src/pool.rs` gained `submit_many` for the merged multi-scene plan (a file outside §11); `submit` delegates to it under the same lock and delivered filter, so latest-request-wins holds | ID-558 |
+| 10 | The second group gets its own GPU canvas on the leader's device, made only while two groups show and released on collapse; no test runs it without a device | ID-558 |
+| 11 | Only tabs are draggable in the canvas area (a tab bar's unnamed drag node otherwise) | ID-558 |
+
+**Fix round** (ID-559): splitter shares carried across a tree rebuild when the group count is unchanged (host state,
+§6.2); continuation pages `page_index: None`; AccessKit parenting through `UiBuilder::accessibility_parent`, asserted in
+kittest; V10 with exact counts, counters above zero and navigation steps, V7 "arrives fitted"; a tab moved across groups
+resized to its group's pane; a string key for the no-cell status. The test follow-up made V11 deterministic (the
+returned-to hidden tab draws complete in its first frame, not a delivery-timed tile count) and V10 assert that
+`nav.next_link`, follow, back and forward each succeed at least once. **Rule for part 2's tests:** a tile-count
+assertion must not depend on delivery timing.
+
+**Design items** (ID-560): the navigator's row cursor stays pinned after jumps made elsewhere and the rows are rebuilt
+on every call (FT-371); the mouse back and forward buttons act on the focused group, not the hovered one (FT-371);
+`kind_rank` is hard-coded and `page_index_of` copies the cross-reference engine's private function, both pinned by
+tests; `requested_while_cached` is a known tautology; `TabList` joins FT-338; the `canvas link external` line is
+unreachable on Golden A (the vocabulary test allows it); doc 16 §3.6's column edge is 265.525 mm, not 265.6 mm.
 
 ## 7. Part 2: the tool framework
 

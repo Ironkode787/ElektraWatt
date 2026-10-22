@@ -1,6 +1,6 @@
 # Quality engineering, security and release
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-20: §3.16 cross-platform source rules; amended 2026-10-21, cycle-11 design pass: acceptance runner as built in §3.10, timing rule in §3.16 and §4.3, private pilot corpus in §4.1; amended 2026-10-21, cycle-12 design pass: acceptance counts and comparison against doc 20 data in §3.10; amended 2026-10-21, cycle-14 design pass: documents as built in §3.9, §3.10 and §3.16, blind drafter §3.17; amended 2026-10-22, cycle-17 design pass: the acceptance counts in §3.10, the fuzzer's coverage and nightly form in §3.6, the `fuzz_smoke` time in §3.14, CI-N-02 and CI-N-03 in §5.2; amended 2026-10-22, cycle-18 design pass: what the ordered-collection lint misses in §3.5, the pull-failure rule in §3.14, CI-PR-05 and CI-N-09 in §5.2, the image-digest rule in §5.4; amended 2026-10-22, cycle-19 lane C: the `disallowed-methods` rule as built in §3.5, CI-N-12 and the retired LG-2 merge block in §5.2; amended 2026-10-22, cycle-19 design pass: the scan's gaps and the sites at the integration tip in §3.5, the shell's UI tests in §3.11, the CI time after cycle 18 and the Windows cut in §3.14, the headless mode for the blind drafter in §3.17, CI-PR-02 to CI-PR-04 and CI-N-12 in §5.2, the UI crates' `rust-version` in §6.2; amended 2026-10-22, cycle 20 lane C: the supply-chain bullets of §5.4 (audit imports, version-keyed build scripts, the manifest advisory hold, x11-dl and reproducible builds) and the cargo-vet and build-script rows of §10; amended 2026-10-22, cycle-20 lane B: the cargo-fuzz crate, the deep nightly and ASan as built in §3.6, §3.12 and §5.2; amended 2026-10-22, cycle-20 design pass: the ODR justification in §3.6, the fuzz crate's PR check, deny job and NCSA exception in §3.12 and §5.4, FT-330 applied in §3.14, CI-PR-01, CI-PR-08 and CI-N-02 with the proptest budget in §5.2, the exemption count at the integration tip in §5.4 and §10; decision log ID-494 to ID-500; amended 2026-10-22, cycle-21 design pass: the canvas bench families in §4.2, the owner's ruling on performance runs and the bench-failure rule in §4.3, the canvas bench in §4.7, decision log ID-512, ID-518, ID-520; amended 2026-10-22, cycle-22 design pass: a test's program boundary in §3.5, the `renderer` words, the `HumanOnly` refusal and the WP-S2.03 vocabulary in §3.17, the CI time after cycles 20 and 21 in §3.14, the GPU bench families and `EW_REQUIRE_GPU_ADAPTER` in §4.2, FT-353 as built, the adapter in the test jobs, the required-check names and the golden change list in §5.2, the lyon exemptions and the count of 387 in §5.4, the first `fuzz-smoke` finding in §3.12; decision log ID-537, ID-540, ID-542, ID-543, ID-546, ID-548, ID-549, ID-551, ID-552) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-20: §3.16 cross-platform source rules; amended 2026-10-21, cycle-11 design pass: acceptance runner as built in §3.10, timing rule in §3.16 and §4.3, private pilot corpus in §4.1; amended 2026-10-21, cycle-12 design pass: acceptance counts and comparison against doc 20 data in §3.10; amended 2026-10-21, cycle-14 design pass: documents as built in §3.9, §3.10 and §3.16, blind drafter §3.17; amended 2026-10-22, cycle-17 design pass: the acceptance counts in §3.10, the fuzzer's coverage and nightly form in §3.6, the `fuzz_smoke` time in §3.14, CI-N-02 and CI-N-03 in §5.2; amended 2026-10-22, cycle-18 design pass: what the ordered-collection lint misses in §3.5, the pull-failure rule in §3.14, CI-PR-05 and CI-N-09 in §5.2, the image-digest rule in §5.4; amended 2026-10-22, cycle-19 lane C: the `disallowed-methods` rule as built in §3.5, CI-N-12 and the retired LG-2 merge block in §5.2; amended 2026-10-22, cycle-19 design pass: the scan's gaps and the sites at the integration tip in §3.5, the shell's UI tests in §3.11, the CI time after cycle 18 and the Windows cut in §3.14, the headless mode for the blind drafter in §3.17, CI-PR-02 to CI-PR-04 and CI-N-12 in §5.2, the UI crates' `rust-version` in §6.2; amended 2026-10-22, cycle 20 lane C: the supply-chain bullets of §5.4 (audit imports, version-keyed build scripts, the manifest advisory hold, x11-dl and reproducible builds) and the cargo-vet and build-script rows of §10; amended 2026-10-22, cycle-20 lane B: the cargo-fuzz crate, the deep nightly and ASan as built in §3.6, §3.12 and §5.2; amended 2026-10-22, cycle-20 design pass: the ODR justification in §3.6, the fuzz crate's PR check, deny job and NCSA exception in §3.12 and §5.4, FT-330 applied in §3.14, CI-PR-01, CI-PR-08 and CI-N-02 with the proptest budget in §5.2, the exemption count at the integration tip in §5.4 and §10; decision log ID-494 to ID-500; amended 2026-10-22, cycle-21 design pass: the canvas bench families in §4.2, the owner's ruling on performance runs and the bench-failure rule in §4.3, the canvas bench in §4.7, decision log ID-512, ID-518, ID-520; amended 2026-10-22, cycle-22 design pass: a test's program boundary in §3.5, the `renderer` words, the `HumanOnly` refusal and the WP-S2.03 vocabulary in §3.17, the CI time after cycles 20 and 21 in §3.14, the GPU bench families and `EW_REQUIRE_GPU_ADAPTER` in §4.2, FT-353 as built, the adapter in the test jobs, the required-check names and the golden change list in §5.2, the lyon exemptions and the count of 387 in §5.4, the first `fuzz-smoke` finding in §3.12; decision log ID-537, ID-540, ID-542, ID-543, ID-546, ID-548, ID-549, ID-551, ID-552; amended 2026-10-23, cycle-23 design pass: the viewer's headless actions and the transcript's `navigator` member in §3.17, the viewer's kittest flows in §3.11, the tile-count rule in §3.14, the CI time with the split proven, the two CI hotfixes and their lessons and the first Linux B2 proof in §3.14 and §5.2, the SVG row TM-18 in §11.1, `PRIVACY.md`, the stored-data table and the lock row in §12.1; decision log ID-556, ID-557, ID-559, ID-560, ID-576, ID-579 to ID-582) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) proves its correctness, performance and security, and
 how it is built, signed, shipped and supported. It turns the architecture's "prove it in CI" principle
@@ -496,6 +496,14 @@ tests of the render worker, the keys and the fonts) and `elektrawatt` (12: the h
 watchdog and the other jobs of this list are WP-S2.11. The macOS build and kittest run first on CI at the cycle-19
 delivery.
 
+*As built (cycle 23, WP-S2.03 part 1; decision log ID-556, ID-559).* The viewer adds three kittest flows and four
+headless checks (V6, V7, V8, V12) whose transcripts and snapshots are byte-identical between runs (§3.17). V10 is the
+exact counts of the multi-canvas host while a script runs `nav.next_link` and then follows, goes back and goes forward
+(each must succeed at least once, not only run); V11 is the retention of hidden canvas tabs (FT-356): a tab returned
+to draws complete in its first frame; V12 is the viewer without a pointer (Go to, links, Back, tabs, side by side, the
+navigator and the grid cursor with its AccessKit announcement), with the accessible-name walker after every step. A
+kittest assertion on tiles follows the rule of §3.14: it never counts tiles by delivery timing.
+
 ### 3.12 Parser fuzzing and hostile input
 
 - **Targets.** Every target listed in 14 §11 (`qet_project`, `qetz`, `edz_7z`, `edz_zip`, `dxf`, `table_xlsx` …),
@@ -582,6 +590,18 @@ owner. Quarantined tests keep running nightly. More than 10 quarantined tests bl
 flaky: its committed regression seed (§3.3) replays the counterexample first on every run and platform, and the cause is
 fixed or triaged before the gate re-runs (decision log ID-405; the cycle-15 gate's counterexample was a generator gap).
 
+*Tile-count assertions (rule, cycle 23; decision log ID-559).* A test that counts the tiles of a canvas (or of the page
+pool) must not depend on delivery timing: tiles reach the cache when the render worker's results arrive, which a
+loaded runner or a full parallel run delays, so an assertion such as "N tiles are cached after M frames" passes alone
+and fails under load. Two kinds of tile assertion are allowed: a **structural** one (the frame the pane draws is
+complete in its first frame because the pane's content is already cached, or a bound that holds whatever has been
+delivered, such as "never more than the share") and one that **waits for a condition** with a bounded number of
+frames and fails with the state it reached (never a sleep and never a wall-clock bound, §3.16). Origin: the lane that
+built the viewer saw two load-dependent tests flake under a full parallel run, the kittest flow V11 (a tab returned to
+after another tab was shown) and `ft_356_a_page_pane_behind_another_tab_keeps_its_tiles_within_a_share`; V11 now
+asserts that the returned-to hidden tab draws complete in its first frame, which is deterministic, and the other
+follows the same rule (§3.11).
+
 **CI time budget** (2026-10-22; decision log ID-381). The per-PR budget stays 30 min wall time (NFR-MAINT-05). Measured by the GitHub jobs API at d3ecf70: the Linux test job 23 min 18 s, macOS 26 min 04 s, and the Windows job past 30 min, when its all-features nextest run hit the old 30-minute job timeout; at 95149ab, with the new guard, Windows 21 min 14 s, Linux 21 min 13 s and macOS 22 min 37 s; GitHub reports a job stopped by its timeout as "cancelled", so a cancelled test job is read as a timeout, not as a user cancel. The three test jobs have `timeout-minutes: 50` as a guard, not as the budget. Until cycle 16 the headless acceptance tests ran in both nextest runs of a job (default features and all features); since FT-268 they run once per job, in the all-features run only (the default-features run builds the acceptance binary and skips it through a nextest filter). WP-S6.03 adds the CI-time trend to its gate (FT-269).
 
 *As built (cycle 16, lane B; FT-268, FT-269).* The first nextest run of each test job, and the first nextest step of `cargo xtask ci`, skips the headless acceptance tests with the filterset `not (package(ew-api) and binary(acceptance))`; the all-features run, a superset, runs them, so they run once per job. The rule is documented in `.config/nextest.toml`, and a test of `xtask` keeps the filter of `ci.yml`, the constant of `xtask/src/main.rs` and the comment equal. The slow test `the_headless_report_equals_the_committed_report` takes 112 s in the debug build (the other ten tests of the binary 0.2 s together), so a job saves about 2 min (about 9 % of the 21-minute jobs of ID-381). The default-features run still builds the acceptance binary but no longer runs it, so the acceptance tests are only exercised against the all-features build of `ew-api`. The CI-time trend is `ci/ci-times.py`, appended to the nightly performance report (§4.7).
@@ -602,6 +622,19 @@ the job's verdict rule worked as designed). The macOS job grew by 11 min 42 s fr
 the kittest flows of the cycle-21 shell now run there (the attribution is not measured per step). Windows is 5 min
 38 s over the 30-minute budget of NFR-MAINT-05, which the split answers; the first times of the split jobs come with
 the cycle-22 delivery run.
+
+*The CI time with the split proven (decision log ID-582; cycle 23).* The first run of the split (run 39846775852) was
+red in `test-windows-1` through the archive's place in the checkout, the next in `test-windows-build` through a
+backslash path in a bash step (§5.2, ID-580, ID-581); the run of 8b19a12 (39857566843) was green with every job under
+the 30 minutes per job: `test-windows-build` 21 min 53 s, `test-windows-1` 7 min 51 s, `test-windows-2` 10 min 58 s, `test-linux`
+28 min 53 s, `test-linux-default` 23 min 11 s, `test-macos` 24 min 25 s. Counted as a chain, the Windows jobs need 32 min 51 s of job time (the two partitions start
+when the build job ends: 21:53 plus the longer partition, 10:58). **Lead ruling (ID-582):** NFR-MAINT-05 says "within
+30 min wall time", so the budget is the wall time of the pull request's checks, which is its longest chain of jobs;
+per-job times are the diagnostic. ID-482's split condition is closed (the split is built and green), but the Windows
+chain is still 2 min 51 s over the budget and `test-linux` (28:53) is at its edge: FT-387 takes the next levers: the
+build job's step times (build, archive, upload) from the jobs API first, then the cheapest cut they show (whether pull
+requests hit `main`'s rust-cache, a slimmer archive); dropping `test-linux`'s default-features doctest step, which
+`cargo xtask ci` keeps; a second split only if those do not suffice.
 
 *Retries in the evidence jobs (cycle 18; decision log ID-458).* The image pulls of `headless` and `verapdf` are named infrastructure steps in the sense of the first paragraph: each is tried three times with a back-off. When the third try fails, the job fails with an error saying that it has no evidence without the image; an evidence job never passes, skips or turns neutral without its evidence. A test inside such a job is never retried.
 
@@ -685,6 +718,21 @@ Added 2026-10-21 (owner ruling; decision log ID-341). **Purpose.** An outside vi
   FT-369 closed in cycle 22).
   *Specified for WP-S2.03 (cycle 22; decision log ID-537).* The viewer and the tool framework add 44 words to the
   `ui.describe` vocabulary (27 in part 1, 17 in part 2; FT-314 extended); each part's as-built text follows its delivery.
+  *As built (cycle 23, WP-S2.03 part 1; decision log ID-556, ID-557, ID-559, ID-560).* The viewer's actions are all
+  headless, so the drafter can do everything a user can on the read-only shell and read it back without a screenshot:
+  tabs (`tab.new`, `tab.close`, `tab.next`, `tab.previous`, `tab.focus_other`, and the scripted `tab.activate`,
+  `tab.move`, `tab.open`), side by side (`view.side_by_side`), the link follow (`nav.next_link`, `nav.previous_link`,
+  `nav.follow`), history (`nav.back`, `nav.forward`), Go to a folio or a cell (`nav.goto`) and the grid cursor
+  (`cursor.left` to `cursor.cell_down`, `cursor.set`). The transcript's `state` ends with `tabs` (the focused group and
+  index, and per group each tab's `id`, `folio`, `back` and `forward`), `focus` and `navigator` (`null`, or `mode`,
+  `sort`, `filter` and `row`); the canvas members `cursor_nm`, `cell` and `link` follow `renderer`, and `link` is
+  `{"external": true}` for an external link. **`navigator.row` is `null` while the row cursor follows the current
+  page**, and holds the row key only after the cursor was moved: a fresh project's pages carry random UUIDs, so a key
+  taken from the current page would differ between two runs of one script and break the byte equality of transcripts
+  (ID-557). The vocabulary of ID-474 grew by 27 words and lost one: **"list" is dropped** (+27/−1; part 2's
+  17 words are still to come). The `ui.describe` line `link external` is
+  unreachable on Golden A, which has no external link; the vocabulary test allows it (ID-560). The scripted checks
+  V10 and V11 are described in §3.11.
 
 ---
 
@@ -921,6 +969,41 @@ The PR set stays within 30 min wall time (NFR-MAINT-05); a monthly CI-duration r
   `docs/plan/gate-records/golden-change-list.md`). Its `--check` runs at every delivery gate and not in `docs.yml`: the
   list embeds commit hashes and a shallow checkout lacks the history. The decision log is read at HEAD on purpose, so
   a later ID for a listed commit makes `--check` stale until `--write`.
+
+*As built (cycle 23; decision log ID-580, ID-581, ID-582).* The first runs of the FT-353 split found two defects in
+`ci.yml`, both fixed on `main` as hotfixes (§3.16, ID-382) and both CI-only:
+- **Hotfix 1, 7c295c4 (ID-580).** The run jobs downloaded `nextest-archive.tar.zst` into the workspace root, where the
+  xtask test `licence::tests::real_repository_passes` (the licence-map walk of the working tree) flagged it as an
+  unmapped path, and `test-windows-1` went red (run 39846775852). The archive now lives in the runner's temporary
+  directory: the build job writes it there, the upload takes it from there, and the run jobs download it to
+  `<temp>/nextest-archive` and point `--archive-file` at that.
+- **Hotfix 2, 8b19a12 (ID-581).** `test-windows-build` then failed at `cargo nextest archive` with exit code 103
+  (run 39853048475): every `run:` step of `ci.yml` is bash, and the expression `${{ runner.temp }}` expands to a path
+  with backslashes, which bash treats as escapes. The three bash steps use the environment variable `$RUNNER_TEMP`
+  (its value keeps the backslashes, because the shell reads a variable, not source text); the inputs of an action
+  (`path:` of the upload and download steps) keep the expression, because the runner expands it without a shell.
+- **Two lessons.** (a) **The tree walkers see anything downloaded into the checkout.** The licence-map check, the
+  anonymisation guard and the raw-read scan (and any later walker of the working tree) take every file under the
+  workspace as repository content, so a job puts downloaded or generated artefacts (archives, reports, images) under
+  `$RUNNER_TEMP`, never under the workspace root. (b) **`${{ }}` expressions in bash `run:` steps carry no Windows
+  paths.** A path that reaches a shell comes from the `RUNNER_*` or `GITHUB_*` environment variables (`RUNNER_TEMP`,
+  `GITHUB_WORKSPACE`, `GITHUB_STEP_SUMMARY`), quoted; expressions are for action inputs and for values that are not
+  paths (an event field, a matrix key). The first lesson is a candidate for the job-level check of `check-workflows`.
+- **The split is CI-proven (ID-582).** CI run 39857566843 for 8b19a12 was green in every job: `test-windows-build`
+  21:53 (archive and upload), `test-windows-1` 7:51, `test-windows-2` 10:58, `test-linux` 28:53,
+  `test-linux-default` 23:11, `test-macos` 24:25, `lint` 3:04, `supply-chain` 2:11, `headless` 1:19, `verapdf` 1:36 and
+  `fuzz-smoke` 0:09 (no changed targets, so the filter ran and nothing else); the docs run 39857566882 was green. Every
+  job is under 30 minutes, but NFR-MAINT-05 counts wall time, so the critical path is the Windows chain, build 21:53
+  plus the longer partition 10:58 = 32:51, 2:51 over the budget, with `test-linux` at 28:53 next (lead ruling, ID-582,
+  §3.14). ID-482's split condition is closed; FT-387 takes the next levers (the build job's step times
+  first, then the cheapest cut they show; dropping `test-linux`'s default-features doctest step; a second split only
+  if needed). The earlier runs gave `test-linux` 31:26 and 27:40, `test-linux-default` 16:40 and
+  19:50 and `test-macos` 26:52 and 26:34. These are CI job times, not product performance measurements (ID-512).
+- **First Linux proof of B2.** The Linux test jobs set `EW_REQUIRE_GPU_ADAPTER=1`, under which a missing adapter fails
+  the GPU tests instead of skipping them (§4.2), and `test-linux` and `test-linux-default` were green in this run and
+  in the two before it; the GPU parity tests therefore ran on Mesa's lavapipe. The Windows partitions (WARP) and
+  `test-macos` (Metal) carry the same flag. The job log itself was not read (it needs admin rights); the proof is the
+  flag and the green verdict.
 
 ### 5.3 Runners and GPU-less coverage
 
@@ -1379,6 +1462,7 @@ flowchart LR
 | TM-15 | Signing-key compromise | Incident runbook (§11.4) | Tabletop exercise |
 | TM-16 | User-configured external converter (ODA File Converter for DWG, 1.0) fed a hostile file, or a converter path planted by a received project | The converter path is a user setting, never read from a project; it runs as a separate process on a copy in a temporary directory with a 120 s timeout, and its output is parsed under the DXF limits (14 §11) | Hostile-corpus test with a stub converter that hangs and one that writes a DXF bomb |
 | TM-17 | Unexpected process spawn by a dependency: rfd 0.17.2 starts `zenity` from `PATH` when the XDG desktop portal call fails (no portal service, malformed response), so a same-user process that controls `PATH` or plants a `zenity` earlier on it runs code when the user opens a file dialog. Low risk: it needs same-user access, which already allows more | The portal first (the shell checks for a session bus before calling rfd); a future rfd feature set without the zenity fallback, or a check that the portal answers, removes the spawn (FT-332). The cycle-20 audit records it in rfd's audit note | Review; FT-332 |
+| TM-18 | A hostile SVG in the asset store (`assets/`, the company logo and later image items; ID-576). *Sniffing is not sanitising:* `ew-schema` recognises an SVG by its root element and takes its size from the header (an 8 MiB limit, 512 KiB for the logo), but it does not parse or clean the document. A DOCTYPE with an internal subset (entity expansion, a billion-laughs variant), `<script>`, `on*` event attributes, `foreignObject` and external `href`s (a file, a network address) would reach whatever draws the file. Today the DOCTYPE case is refused only by accident of the sniffer (`svg_root` stops at the first `>`, which ends inside an internal subset, so such a root is not found), not by a rule | **No renderer draws SVG today** (the CPU renderer, the PDF writer and the SVG writer skip image items, so the logo is placed in the display lists and not drawn; FT-384): the bytes are stored and hashed only. **Before any renderer draws SVG** the file is rejected or normalised through `usvg` in `ew-scene` (default features off: no text, no system fonts; the tree becomes `ew-dl` paths; no `resvg`; admission with the cargo-deny and cargo-vet audit, ID-576): DOCTYPE internal subsets, `<script>`, `on*` attributes, `foreignObject` and external hrefs are refused or dropped, and an SVG is never handed to a web view or an OS renderer (FT-383) | Not built; FT-383 adds the hostile-SVG corpus entries and the test that each of the five constructs is refused or removed |
 
 ### 11.2 `unsafe` and native code
 
@@ -1451,6 +1535,34 @@ network rules by §12.2:
 
 There are no other flows: no telemetry or analytics, no install ID (NFR-PRIV-02), no font, symbol or part downloads,
 no licence check and no AI or translation service (NFR-PRIV-08). Changing this table requires an ADR (NFR-PRIV-07).
+
+*As built (cycle 23; decision log ID-579).* `PRIVACY.md` at the repository root now exists (FT-342 closed), with the
+CC-BY-4.0 header of `SECURITY.md`, and the About dialog and the first-run privacy step each have a "Privacy
+(PRIVACY.md)" button that opens it. It has two tables. The network flows above are in it with an "In this version"
+column that says NOT IMPLEMENTED for every row (no flow is built: the update-check setting is stored and sends
+nothing), so NFR-PRIV-07 is met for this version's flows and is re-checked whenever a flow is built; the document also
+states that there is no telemetry and describes the network sandbox of §12.2 as the design, not as proven (CI-N-06 is
+not built). The second table is what EW **stores on the computer**, which this section did not list:
+
+| Item | Purpose | Location | Retention | Content worth knowing |
+|---|---|---|---|---|
+| Settings (including the recent-projects list) | Preferences; the list of recently opened projects | Per-user OS configuration directory | Until deleted | Project directory names and paths in the recent list |
+| Workspace layouts | Panes and docks | Per-user OS configuration directory | Until deleted | None about projects |
+| Crash journal (`journal/`) | Recovery of unsaved work | Per-user OS state directory, user-only permissions | Removed on a clean close; leftovers pruned after 30 days (NFR-PRIV-05) | **Project content, and the bytes of an asset such as the logo** (the journal carries each transaction's new assets in base64, ID-574, ID-578) |
+| `.~ew.lock` | Who holds the project (05 §7) | In the project directory | Removed on close; `.~ew.lock.stale-*` after a takeover | **The OS user name and the host name** (and process ID and times) |
+| The project directory with its `assets/` | The project itself; image bytes by hash (05 §13.3) | Where the user saved it | Until the user deletes it; a save never removes an asset file (ID-574) | The project's content; the logo file |
+
+Each row in `PRIVACY.md` also says how to delete it. Two rulings (ID-579):
+- **`.~ew.lock` is kept as it is.** It holds the OS user name and the host name, written into the project directory:
+  that is its purpose, because a colleague who finds the project locked sees who holds it and from where (05 §7). The
+  lock is not project data and is ignored by the marked block of the project's `.gitignore` (05 §11.1), but a project directory committed to a
+  public repository (a copied folder, an added-everything commit) must not carry a live lock: the guidance is to
+  close the project first and to keep `.~ew.lock*` in `.gitignore`. There is no scrubbing task.
+- **The privacy link opens the repository's web URL** (`blob/main/PRIVACY.md`), with the URL in a banner when the
+  opener fails, while 16 describes the opener as `file://` only: the web link is a documented exception, because no
+  build bundles `PRIVACY.md` yet. FT-386 bundles `PRIVACY.md` and the user guide with the build, opens them locally
+  and removes the exception, before the first distributed build. Opening the web page is the user's click on a link,
+  not a flow of EW (the "Help and community links" row).
 
 ### 12.2 Network sandbox (CI-N-06)
 

@@ -1,6 +1,6 @@
 # Glossary
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-23, cycle 23: the entries asset store, page item and starter library, and the structure box and wire marker entries brought up to the WP-S2.04 specification, decision log ID-566, ID-573) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This glossary fixes the meaning of every domain and project term that the ElektraWatt (EW) document set
 uses: IEC 81346 aspects and prefixes, EPLAN and QElectroTech (QET) vocabulary, EW-specific concepts such as
@@ -25,7 +25,7 @@ the palette aliases ([16](16-ux-ui.md) §9.3, FR-UI-045, NFR-DOC-05) are generat
 
 ## 1. How to read this document
 
-- The glossary (§2) has 319 entries in alphabetical order, ignoring signs and case. A term written with a
+- The glossary (§2) has 322 entries in alphabetical order, ignoring signs and case. A term written with a
   leading dot or backtick is listed under its first letter.
 - **EPLAN** names the nearest EPLAN Electric P8 concept, following [eplan-features](../research/eplan-features.md).
   **QElectroTech** names the nearest QET concept, following [interop](14-interop.md) §4. A dash means that the
@@ -91,6 +91,7 @@ The IEC 81346 prefixes that appear in tags:
 | **Assembly (aspect)** | A device aspect for a configured product with child devices, for example a valve terminal with its order code (`AssemblyConfig`) and a BOM basis of assembly or components. | Part assembly, module overview | — | [03 §7](03-domain-model.md), [11 §3.2](11-fluid-power.md) |
 | **Assembly mode (BOM)** | A bill-of-materials mode that lists configured assemblies by order code instead of every child component (the other mode is component mode). | Parts list with assemblies | — | [20 §14.2](20-golden-project.md) |
 | **Assembly view** | The overview of a device assembly, drawn by the overview representations of the assembly device and its children, such as the valve terminal on folios 201 and 202. Its break marks are derived from the members' pages (decision log ID-373), so it cannot drift (D-10). | Overview representation of a device assembly | — | [03 §6](03-domain-model.md), [11 §5.5](11-fluid-power.md) |
+| **Asset store** | The content-addressed store of image bytes in a project: files `assets/<sha256>.<ext>` (SVG, PNG or JPEG; `glb` meshes from 1.0), kept in the model by hash and named by records through an `AssetRef {sha256, format, size}`, as the company logo is. A save writes the assets that records name and never removes an asset file; unreferenced files go only through the explicit, previewed purge command (FT-380). | — | — | [05 §13.3](05-project-format-and-persistence.md) |
 | **Atomic code token** | A structure code that the parser never splits at prefix characters, so "J-E-2416" is not read as "+J", "-E", "-2416". The parser matches the longest known code first. | — | — | [03 §8.4](03-domain-model.md) |
 | **Authored (kind A)** | Classification of a fact decided by a human, or by an importer acting for one. It is stored as a record and changed only by commands. | — | — | [03 §1.1](03-domain-model.md) |
 | **Autoconnect** | An editing aid that proposes explicit connections between nearby connection points. In EW it never has model semantics: moving a symbol does not silently rewire. | Autoconnect (a model semantic in EPLAN) | Conductor auto-creation between terminals | [06 §5.2](06-schematic-editor.md), [ADR-0007](../adr/0007-explicit-connections-and-autoconnect.md) |
@@ -358,6 +359,7 @@ The IEC 81346 prefixes that appear in tags:
 |---|---|---|---|---|
 | **Page change status** | A derived state per page (unchanged, changed, new) relative to the last released revision. | Revision marker on page | — | [15 §5.6](15-checks-revisions-collaboration.md) |
 | **Page (`Page`)** | A drawing or report sheet with a type, folio label, section, title, description, structure assignment and form. | Page | Folio | [03 §6](03-domain-model.md), [06 §2.3](06-schematic-editor.md) |
+| **Page item (`PageItem`)** | A record of kind `page_item` that puts content on one page without electrical meaning: a graphic (line, polyline, rectangle, circle, arc, polygon), a free text that is plain or bound to a title-block value, or a wire marker group; later images, macro boxes and views. Specified for WP-S2.04 part 4a; the kind stays reserved until then. | Graphic elements and texts (Insert ▸ Graphic, Text) | Shapes and independent texts | [03 §6](03-domain-model.md), [05 §2.2](05-project-format-and-persistence.md) |
 | **Page type** | The type that governs what a page contains: MultiLine, SingleLine, Overview, AssemblyOverview, BusTopology, Fluid, Graphic, TitlePage, PanelLayout, TableOfContents, SectionDivider, Report. | Page type | — | [06 §2.2](06-schematic-editor.md) |
 | **Panel macro** | A macro of a mountable part with 3D box or STEP geometry, placed on a mounting surface. | Panel macro | — | [12 §6.3](12-panel-layout.md) |
 | **Part** | A catalogue item in a library with technical, commercial and layout data. Inside a project it is always a `PartCopy` reached through a `PartRef`, and parts attach only to devices. | Part (Data Portal, master data) | Element info "manufacturer reference" | [07 §2.5](07-symbols-parts-macros.md), [03 §1.2](03-domain-model.md) |
@@ -444,11 +446,12 @@ The IEC 81346 prefixes that appear in tags:
 | **SQL projection (`ew-sqlview`)** | A read-only SQLite view of the model with versioned `api_v1_*` views for user reports, rules, MCP and tests; never a write path. | Report/SQL queries in the form generator | — | [04 §10.2](04-architecture.md), [ADR-0017](../adr/0017-read-only-sql-projection-api-v1.md) |
 | **Stale badge** | A visual mark on Class II results ("810 mm, re-routing…", "as of revision n") whose inputs changed. | — | — | [ADR-0003](../adr/0003-freshness-contract.md), [16 §8.3](16-ux-ui.md) |
 | **Star pairing and chain pairing** | Two modes of pairing interruption points: one source with many sinks, or a chain of partners. | Interruption point partners | Folio report pairs | [06 §2.8](06-schematic-editor.md), [03 §10](03-domain-model.md) |
+| **Starter library** | The symbols and function definitions that ship with the application (`content/symbols`, `content/fndefs`), compiled into `ew_library::starter`. A new project holds no symbol copies, so the symbol picker lists the starter symbols too, and placing one embeds it with its FnDef as its own undo step first (WP-S2.04 D8). | The symbol library delivered with the software | The built-in element collection | [WP-S2.04](../plan/specs/WP-S2.04-placement-wiring-drawing-tools.md) D8, [07](07-symbols-parts-macros.md) |
 | **STEP** | ISO 10303 CAD exchange (AP214, AP242); used for 3D parts and ECAD-to-MCAD export. | STEP import and export | — | [12 §6.2](12-panel-layout.md) |
 | **STEP worker (`ew-step-worker`)** | An out-of-process program using OCCT that tessellates STEP files and returns meshes over a defined protocol; results are cached by content hash (freshness Class III). | — | — | [04 §8.6](04-architecture.md), [ADR-0016](../adr/0016-3d-renderer-wgpu-and-out-of-process-step-worker.md) |
 | **Strict mode** | A project mode that rejects prevent-rule violations at commit; the default for native projects. | — | — | [15 §3.5](15-checks-revisions-collaboration.md) |
 | **Strip (`Strip`)** | A device aspect for a terminal strip, holding terminals, level and label modes, and accessories. | Terminal strip | Terminal strip | [03 §11](03-domain-model.md), [08 §6.1](08-connections-terminals-cables.md) |
-| **Structure box (`StructureBox`)** | An outline on a page that assigns structure slots to representations inside it. | Structure box, location box | Dotted shape without semantics | [03 §5](03-domain-model.md), [06 §2.7](06-schematic-editor.md) |
+| **Structure box (`StructureBox`)** | A dotted or dash-dot outline on a page (at least three vertices, optional caption and external reference) that assigns structure slots to the representations whose anchor point lies inside it; the innermost box wins. An interruption point's structure comes from the box around it through `ip_structure`. Specified for WP-S2.04 part 4a; the kind stays reserved until then. | Structure box, location box | Dotted shape without semantics | [03 §5](03-domain-model.md), [03 §6](03-domain-model.md), [05 §2.2](05-project-format-and-persistence.md), [06 §2.7](06-schematic-editor.md) |
 | **Structure node (`StructureNode`)** | One identifier in one aspect tree: code, aliases, description, order. Identifiers are picked from the list, not typed. | Structure identifier | Plant/location strings | [03 §5](03-domain-model.md) |
 | **Sub-base** | A valve terminal module (-201U3 … -201U8) carrying `PlcModule` and child valves. | Valve terminal module | — | [11 §3.2](11-fluid-power.md) |
 | **Surface feature (`SurfaceFeature`)** | A hole, cut-out or slot on a mounting surface derived from placements and part data. | Drilling pattern | — | [12 §10](12-panel-layout.md) |
@@ -496,7 +499,7 @@ The IEC 81346 prefixes that appear in tags:
 |---|---|---|---|---|
 | **Waiver** | A reviewed, expiring exemption of one finding, created by a `HumanOnly` command; the finding stays recorded. | Check suppression | — | [15 §2.5](15-checks-revisions-collaboration.md) |
 | **Wire end** | One termination of a wire: locus (device tag and connection point), level and clamp. | Connection end | — | [13 §2.1](13-manufacturing-outputs.md) |
-| **Wire marker** | The page item that shows the content of a CDP: colour, size, number. | Connection definition point symbol | Conductor text | [03 §1.2](03-domain-model.md) |
+| **Wire marker** | The page item that shows the content of a CDP: colour, size, number. As the `wire_marker` variant it lists connections and has a position and an angle, and prints one group text such as "2.5 BK BU" (specified for WP-S2.04 part 4a). | Connection definition point symbol | Conductor text | [03 §1.2](03-domain-model.md), [03 §6](03-domain-model.md) |
 | **Wire number** | The identifier of a wire, derived by a scheme (for example from the From end) or frozen. | Connection number | Conductor number | [08 §5](08-connections-terminals-cables.md) |
 | **Wire type key** | The machine's identity of a wire stock: cross-section plus colour (plus part), such as "0.75 DBU". | Wire type | — | [13 §2.1](13-manufacturing-outputs.md) |
 | **Wire-property inheritance** | The chain from project defaults through profile rules, potential definition and net to connection overrides that fixes colour and size, each with provenance. | Connection properties by potential | Conductor properties | [08 §4.1](08-connections-terminals-cables.md) |
