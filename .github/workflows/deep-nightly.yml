@@ -22,6 +22,8 @@
 #   asan-command-fuzz  the seeded command fuzzer `fuzz_long` of `ew-testkit` (the test fuzz.yml runs) built with
 #                      `-Zsanitizer=address` on the same nightly: FT-304, CI-N-02's "command fuzzer 1 h with ASan".
 #                      The nightly is for the fuzz jobs and this job only; every other job uses the stable toolchain.
+#                      The dispatch input `asan_odr_level1` runs this job with `ASAN_OPTIONS=detect_odr_violation=1` (FT-343,
+#                      default off): the trial of ODR level 1, whose verdict is the job's.
 #
 # The jobs are independent and run in parallel, so the workflow takes as long as the longest job, below two hours:
 # asan-command-fuzz builds in about 15 minutes, starts no seed after 55 minutes and a seed in flight finishes within
@@ -67,6 +69,10 @@ on:
         description: "No new seed of fuzz_long under ASan starts after this many minutes"
         type: string
         default: "55"
+      asan_odr_level1:
+        description: "Trial of FT-343: run asan-command-fuzz with ASAN_OPTIONS=detect_odr_violation=1 (default off: =0, the suppression of the false positive of SQLite's merged tables)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -523,6 +529,11 @@ jobs:
           INPUT_SEEDS: ${{ inputs.asan_seeds }}
           INPUT_STEPS: ${{ inputs.asan_steps }}
           INPUT_BUDGET: ${{ inputs.asan_budget_minutes }}
+          # FT-343: level 1 of the ODR check reports only size mismatches, so SQLite's two equal `aiOff` tables stay silent
+          # while a real second SQLite copy of another version would still be caught. A dispatch run with `asan_odr_level1`
+          # is the trial; a nightly (no input) and a dispatch without it keep the workflow's `detect_odr_violation=0`. The
+          # expression yields one of two literals; nothing of the input reaches a script.
+          ASAN_OPTIONS: ${{ inputs.asan_odr_level1 && 'detect_odr_violation=1' || 'detect_odr_violation=0' }}
         run: |
           mkdir -p target/fuzz
           budget_min="${INPUT_BUDGET:-55}"
@@ -533,7 +544,7 @@ jobs:
             base=$(( $(date -u +%s) / 86400 * 100 + 50 ))
             seeds="${base}..=$(( base + 11 ))"
           fi
-          echo "seeds=$seeds steps=$steps budget=${budget_min}min sanitizer=address" | tee target/fuzz/params.txt
+          echo "seeds=$seeds steps=$steps budget=${budget_min}min sanitizer=address ASAN_OPTIONS=$ASAN_OPTIONS" | tee target/fuzz/params.txt
           # `timeout` is the infrastructure bound (the budget plus a margin for the seed in flight); the test stops
           # starting seeds at the budget by itself.
           EW_FUZZ_SEEDS="$seeds" \

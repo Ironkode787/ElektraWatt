@@ -352,7 +352,10 @@ real second SQLite copy would be a data-integrity defect (two copies with separa
 `nm` shows the two read-only symbols `aiOff.4` and `aiOff.13` at one address, `Cargo.lock` and `fuzz/Cargo.lock` hold
 one `libsqlite3-sys` 0.38.2 each, and the binary has one `sqlite3_open`. Level 1 (`detect_odr_violation=1`) reports only
 size mismatches, so it would keep the equal tables silent and still catch a second copy of another version; a trial on
-a dispatch run is FT-343.
+a dispatch run is FT-343. *As built (cycle 21, FT-343).* The dispatch input `asan_odr_level1` (boolean, default off) of
+`deep-nightly.yml` sets `ASAN_OPTIONS=detect_odr_violation=1` for the `asan-command-fuzz` job's test step; a nightly and a
+dispatch without it keep `=0`. The trial's verdict is the job's (an `ERROR: AddressSanitizer: odr-violation` is red); adopting
+level 1 for the nightly is a change of the workflow's `ASAN_OPTIONS` once a dispatch run is clean.
 
 ### 3.7 Snapshots
 

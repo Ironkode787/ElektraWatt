@@ -640,6 +640,46 @@ mod tests {
         }
     }
 
+    /// FT-343: the `detect_odr_violation=1` trial is a dispatch input of the deep nightly that defaults to off; the
+    /// workflow keeps `=0` (the suppression of the proven false positive, ID-495), and only the step of the
+    /// `asan-command-fuzz` job reads the input, through an expression that yields one of two literals.
+    #[test]
+    fn the_odr_trial_is_a_dispatch_input_that_defaults_to_off() {
+        let workflow =
+            std::fs::read_to_string(crate::workspace_root().join(".github/workflows/deep-nightly.yml"))
+                .expect("deep-nightly.yml")
+                .replace("\r\n", "\n");
+        assert_eq!(setting(&workflow, "ASAN_OPTIONS:"), "detect_odr_violation=0");
+        let input = workflow
+            .split("      asan_odr_level1:\n")
+            .nth(1)
+            .expect("the dispatch input asan_odr_level1");
+        let block: Vec<&str> = input.lines().take_while(|l| l.starts_with("        ")).collect();
+        assert!(block.iter().any(|l| l.trim() == "type: boolean"), "{block:?}");
+        assert!(block.iter().any(|l| l.trim() == "default: false"), "{block:?}");
+        let reads: Vec<&str> = workflow
+            .lines()
+            .filter(|l| l.contains("inputs.asan_odr_level1"))
+            .map(str::trim)
+            .collect();
+        assert_eq!(
+            reads,
+            [
+                "ASAN_OPTIONS: ${{ inputs.asan_odr_level1 && 'detect_odr_violation=1' || 'detect_odr_violation=0' }}"
+            ],
+            "one read of the input, as an environment value"
+        );
+        // that read sits in the asan-command-fuzz job
+        let job = workflow
+            .split("\n  asan-command-fuzz:\n")
+            .nth(1)
+            .expect("the job asan-command-fuzz");
+        assert!(
+            job.contains("inputs.asan_odr_level1"),
+            "the read is in asan-command-fuzz"
+        );
+    }
+
     /// FT-335: the per-pull-request fuzz job (CI-PR-08) is in `ci.yml`, selects its targets with the path filter of
     /// `ci/fuzz-smoke-targets.py`, runs on the pinned nightly and uploads what it found with `if: always()`.
     #[test]

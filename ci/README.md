@@ -153,7 +153,7 @@ slower); the cadences of the costly oracles are `EW_FUZZ_SAMPLE_EVERY`, `EW_FUZZ
 FT-297, FT-304 and FT-272, WP-S6.02, gate criterion G-M1-13 (doc 18 §3.6, §3.12, §5.2). The workflow
 [`deep-nightly.yml`](../.github/workflows/deep-nightly.yml) (schedule 06:07 UTC, after `perf.yml` at 02:17, `fuzz.yml`
 at 03:47 and `cli-artefact.yml` at 04:37, and `workflow_dispatch` with the inputs `fuzz_minutes`, `proptest_cases`,
-`asan_seeds`, `asan_steps` and `asan_budget_minutes`) has four kinds of job, which run in parallel on ubuntu-24.04, so
+`asan_seeds`, `asan_steps`, `asan_budget_minutes` and `asan_odr_level1`) has four kinds of job, which run in parallel on ubuntu-24.04, so
 the workflow takes as long as the longest, below two hours:
 
 | Job | What it runs | Budget |
@@ -174,6 +174,16 @@ the sanitized test binary (cargo-fuzz sets it itself). The ODR report for `aiOff
 bundled SQLite's C code, not a second copy (one `libsqlite3-sys` 0.38.2 in both lock files, one `sqlite3_open` in the binary):
 `sqlite3.c` has two identical function-local `aiOff` tables (FTS3 and FTS5 case folders, lines 212454 and 267267), the linker
 merges them into one address and the check sees two globals there.
+
+**The ODR level-1 trial (FT-343).** The dispatch input `asan_odr_level1` (boolean, default off) runs `asan-command-fuzz`
+with `ASAN_OPTIONS=detect_odr_violation=1`: level 1 reports only size mismatches, so SQLite's two equal `aiOff` tables stay
+silent while a real second SQLite copy of another version would still be caught (doc 18 §3.6). The input reaches the job as
+an environment value (`ASAN_OPTIONS: ${{ inputs.asan_odr_level1 && 'detect_odr_violation=1' || 'detect_odr_violation=0' }}`,
+one of two literals, nothing interpolated into a script) and only the test step of that job reads it; the nightly and a
+dispatch without the input keep `=0`. The parameters file of the job's artifact records the value, and the job's verdict is
+the trial's: an AddressSanitizer report (`ERROR: AddressSanitizer: odr-violation`) is red and printed in the job summary. If a
+dispatch run is clean, adopting level 1 for the nightly is a change of the workflow-level `ASAN_OPTIONS` and of this text. A
+test of `xtask` (`workflows::tests::the_odr_trial_is_a_dispatch_input_that_defaults_to_off`) keeps the default off.
 
 **Red or green.** As `fuzz.yml`: red only for a real finding (a failed test or oracle, a crash, an out-of-memory, a
 timeout of one input, a leak, an AddressSanitizer report), a failed build and a hang. Every job writes a status file
