@@ -12,16 +12,21 @@
 //! ```
 //!
 //! Exit codes of the headless mode: 0 every step done, 1 a step was refused or failed, 2 a usage error.
+//!
+//! The read-only resources (the sample project, the starter content, the built user guide, the third-party notices)
+//! are found next to the executable, in `share/elektrawatt` one level up, or in the source tree of a development
+//! build; `EW_SAMPLE_DIR`, `EW_CONTENT_DIR` and `EW_DOCS_DIR` override the first three. A missing one disables only
+//! the feature that needs it.
 
 #![forbid(unsafe_code)]
 
 use std::ffi::OsString;
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use eframe::egui;
 use ew_ui::app::{App, Pick, Platform, setup};
-use ew_ui::ew_viewmodel::shell::{Mode, Prompt, ShellConfig, ShellModel};
+use ew_ui::ew_viewmodel::shell::{Mode, Prompt, Resources, ShellConfig, ShellModel};
 use ew_ui::ew_viewmodel::strings;
 use ew_ui::headless::{self, HeadlessArgs, ScriptSource};
 
@@ -102,9 +107,10 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Cli, String> {
 struct RfdPlatform;
 
 /// An environment variable as a path, `None` when unset or empty.
-// Program boundary: portal availability heuristic.
+// Program boundary: the portal's session bus (`DBUS_SESSION_BUS_ADDRESS`, `XDG_RUNTIME_DIR`) and the directories of
+// the application's resources (`EW_SAMPLE_DIR`, `EW_CONTENT_DIR`, `EW_DOCS_DIR`) are read once at start-up.
 #[allow(clippy::disallowed_methods)]
-fn dbus_env_path(name: &str) -> Option<PathBuf> {
+fn env_path(name: &str) -> Option<PathBuf> {
     std::env::var_os(name)
         .filter(|v| !v.is_empty())
         .map(PathBuf::from)
@@ -119,10 +125,7 @@ fn session_bus_present(address: Option<PathBuf>, runtime_dir: Option<PathBuf>) -
 impl Platform for RfdPlatform {
     fn pick(&mut self, prompt: Prompt) -> Pick {
         if cfg!(target_os = "linux")
-            && !session_bus_present(
-                dbus_env_path("DBUS_SESSION_BUS_ADDRESS"),
-                dbus_env_path("XDG_RUNTIME_DIR"),
-            )
+            && !session_bus_present(env_path("DBUS_SESSION_BUS_ADDRESS"), env_path("XDG_RUNTIME_DIR"))
         {
             return Pick::Unavailable;
         }
@@ -133,6 +136,10 @@ impl Platform for RfdPlatform {
             Prompt::NewFolder => rfd::FileDialog::new()
                 .set_title(strings::text("prompt-save-as-title"))
                 .pick_folder(),
+            Prompt::OpenQet => rfd::FileDialog::new()
+                .set_title(strings::text("prompt-open-qet-title"))
+                .add_filter("QElectroTech", &["qet"])
+                .pick_file(),
             Prompt::SavePdf => rfd::FileDialog::new()
                 .set_title(strings::text("prompt-export-title"))
                 .set_file_name(strings::text("prompt-pdf-name"))
@@ -141,6 +148,81 @@ impl Platform for RfdPlatform {
         };
         picked.map_or(Pick::Cancelled, Pick::Path)
     }
+
+    fn open_url(&mut self, url: &str) -> bool {
+        open_in_browser(url)
+    }
+}
+
+/// Opens `url` (a `file://` URL of the installed user guide) with the system's opener: a user action, no network
+/// traffic. The opener is the one of the platform; its failure is reported to the caller.
+fn open_in_browser(url: &str) -> bool {
+    let mut command = if cfg!(target_os = "windows") {
+        let mut c = std::process::Command::new("cmd");
+        c.args(["/C", "start", ""]).arg(url);
+        c
+    } else if cfg!(target_os = "macos") {
+        let mut c = std::process::Command::new("open");
+        c.arg(url);
+        c
+    } else {
+        let mut c = std::process::Command::new("xdg-open");
+        c.arg(url);
+        c
+    };
+    command.spawn().is_ok()
+}
+
+/// The first of `candidates` that is a directory.
+fn first_dir(candidates: impl IntoIterator<Item = PathBuf>) -> Option<PathBuf> {
+    candidates.into_iter().find(|p| p.is_dir())
+}
+
+/// Finds the application's read-only resources (decision log: part 2 of WP-S2.01). Each has an environment
+/// override (`EW_SAMPLE_DIR`, `EW_CONTENT_DIR`, `EW_DOCS_DIR`) and then the places an installation or a development
+/// build has it, relative to the executable: next to it, in `share/elektrawatt` one level up, and, in a build from
+/// the source tree (`target/<profile>/elektrawatt`), the repository's own directories. A resource that is not
+/// found disables only the feature that needs it.
+fn locate_resources(exe: Option<&Path>) -> Resources {
+    let exe_dir = exe.and_then(Path::parent).map(Path::to_path_buf);
+    let near = |rel: &str| -> Vec<PathBuf> {
+        let Some(dir) = &exe_dir else {
+            return Vec::new();
+        };
+        vec![
+            dir.join(rel),
+            dir.join("..").join("share").join("elektrawatt").join(rel),
+        ]
+    };
+    let tree = |rel: &str| -> Option<PathBuf> { exe_dir.as_ref().map(|d| d.join("../..").join(rel)) };
+    let find_dir = |var: &str, rel: &str, tree_rel: &str| -> Option<PathBuf> {
+        env_path(var)
+            .or_else(|| first_dir(near(rel)))
+            .or_else(|| first_dir(tree(tree_rel)))
+            .map(|p| p.canonicalize().unwrap_or(p))
+    };
+    let notices = exe_dir.as_ref().map(|d| d.join("THIRD-PARTY-NOTICES.txt"));
+    Resources {
+        sample_dir: find_dir("EW_SAMPLE_DIR", "samples/J-E-2416.ew", "golden/J-E-2416.ew"),
+        content_dir: find_dir("EW_CONTENT_DIR", "content", "content"),
+        docs_dir: find_dir("EW_DOCS_DIR", "docs", "target/book"),
+        notices_file: notices.filter(|p| p.is_file()),
+    }
+}
+
+/// The path of this executable, `None` when the system does not say.
+fn current_exe() -> Option<PathBuf> {
+    std::env::current_exe().ok()
+}
+
+/// The configuration of the environment with the resources of this installation.
+fn shell_config(isolated: bool) -> ShellConfig {
+    let config = if isolated {
+        ShellConfig::isolated_from_env(VERSION)
+    } else {
+        ShellConfig::from_env(VERSION)
+    };
+    config.with_resources(locate_resources(current_exe().as_deref()))
 }
 
 /// The eframe application: the shell frame of `ew-ui`.
@@ -159,7 +241,11 @@ impl eframe::App for ShellApp {
 }
 
 fn run_gui(initial: Option<PathBuf>) -> i32 {
-    let shell = ShellModel::new(Mode::Gui, ShellConfig::from_env(VERSION));
+    let mut shell = ShellModel::new(Mode::Gui, shell_config(false));
+    // The first start (and only that) shows the first-run flow, unless the user named a project to open.
+    if initial.is_none() {
+        shell.start_first_run_if_needed();
+    }
     let app = App::new(shell, Box::new(RfdPlatform), initial);
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
@@ -203,7 +289,7 @@ fn main() {
         Ok(Cli::Gui(initial)) => run_gui(initial),
         Ok(Cli::Smoke(dir)) => {
             let code = headless::smoke(
-                ShellConfig::from_env(VERSION),
+                shell_config(false),
                 &dir,
                 &mut std::io::stdout(),
                 &mut std::io::stderr(),
@@ -214,7 +300,7 @@ fn main() {
         Ok(Cli::Headless(args)) => {
             let stdin = std::io::stdin();
             headless::run(
-                ShellConfig::isolated_from_env(VERSION),
+                shell_config(true),
                 &args,
                 &mut stdin.lock(),
                 &mut std::io::stdout(),

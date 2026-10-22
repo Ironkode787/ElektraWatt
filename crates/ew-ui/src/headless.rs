@@ -67,12 +67,18 @@ fn snapshot(shell: &ShellModel, params: &Value) -> Outcome {
             None => return failed("error-bad-param", &["dpi"]),
         },
     };
-    let Some(folio) = shell.current_folio() else {
-        return Outcome::Refused {
-            reason_key: "reason-no-page",
+    // With the wizard open the page on show is its preview page (cover or folio 102 of the sample project).
+    let content = if shell.wizard().is_some() {
+        shell.wizard_preview_content()
+    } else {
+        let Some(folio) = shell.current_folio() else {
+            return Outcome::Refused {
+                reason_key: "reason-no-page",
+            };
         };
+        shell.page_content(folio)
     };
-    let pages = match shell.page_content(folio) {
+    let pages = match content {
         Ok(p) => p,
         Err(message) => return Outcome::Failed { message },
     };

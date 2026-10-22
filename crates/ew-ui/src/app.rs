@@ -1,24 +1,27 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The egui frame over the shell model (WP-S2.01 part 1, spec section 5.3): the menu bar, the banner, the start
-//! page or the page list with the page view, the status bar, the palette and the dialogs, and the routing of
-//! keyboard shortcuts.
+//! The egui frame over the shell model (WP-S2.01 parts 1 and 2, spec section 5.3): the menu bar, the banner, the
+//! start page, the first-run screen, the wizard, or the docked project view (the page list and the page view), the
+//! status bar, the palette and the dialogs, and the routing of keyboard shortcuts.
 //!
 //! The frame paints from `ShellModel`'s getters and sends everything the user does to `ShellModel::dispatch`
 //! (a menu item, a palette entry, a shortcut, a dialog answer, a file dialog's result). It names no `Session`.
 //! `ew-ui` does not depend on eframe: the application binary calls [`App::ui`] from its `eframe::App`.
 
 use std::path::PathBuf;
+use std::time::Duration;
 
-use egui::{CentralPanel, Key, Modifiers, Panel, ScrollArea, Ui, ViewportCommand};
+use egui::{CentralPanel, Key, Modifiers, Panel, ScrollArea, ThemePreference, Ui, ViewportCommand};
+use ew_viewmodel::layout::PaneKind;
 use ew_viewmodel::shell::{ConfirmAnswer, Outcome, Prompt, ShellModel};
 use ew_viewmodel::strings;
 use serde_json::{Value, json};
 
+use crate::dock::Dock;
 use crate::keys::{self, Binding};
 use crate::page_view::PageView;
-use crate::{about, menu, palette, start_page, status_bar};
+use crate::{about, first_run, menu, palette, start_page, status_bar, wizard};
 
 /// What the user did in one frame, applied after the frame is painted.
 #[derive(Clone, Debug)]
@@ -39,6 +42,8 @@ pub(crate) enum Event {
     GotoText(String),
     /// Go in the go-to-page dialog.
     GotoGo(String),
+    /// The save-layout field changed.
+    WorkspaceText(String),
     /// The banner's own button.
     DismissBanner,
 }
@@ -54,10 +59,17 @@ pub enum Pick {
     Unavailable,
 }
 
-/// The operating system's file dialogs, which the application binary provides (`rfd`) and tests replace.
+/// The operating system's file dialogs and browser, which the application binary provides (`rfd` and the system's
+/// opener) and tests replace.
 pub trait Platform {
-    /// Asks the user for a path: a project directory, a new directory or a PDF file.
+    /// Asks the user for a path: a project directory, a new directory, a PDF file or a QElectroTech file.
     fn pick(&mut self, prompt: Prompt) -> Pick;
+
+    /// Opens a `file://` URL of the installed user guide in the system browser (a user action; no network traffic);
+    /// `false` when it could not be opened.
+    fn open_url(&mut self, _url: &str) -> bool {
+        false
+    }
 }
 
 /// A platform whose dialogs are always cancelled.
@@ -83,6 +95,9 @@ pub struct App {
     shell: ShellModel,
     platform: Box<dyn Platform>,
     page_view: PageView,
+    /// The page view of the wizard's preview.
+    preview_view: PageView,
+    dock: Dock,
     initial: Option<PathBuf>,
     bindings: Vec<Binding>,
     title: String,
@@ -94,6 +109,8 @@ pub struct App {
     /// The `ui_scale` last given to egui: the zoom is set when the setting changes, not every frame, so that
     /// egui's own zoom keys keep working in between.
     applied_scale: Option<f32>,
+    /// The theme last given to egui.
+    applied_theme: Option<String>,
 }
 
 /// Prepares an egui context for the shell: installs the bundled fonts. Call it before the first frame (eframe's
@@ -105,10 +122,13 @@ pub fn setup(ctx: &egui::Context) {
 impl App {
     /// A frame over `shell`; `initial` is a project to open after the first frame.
     pub fn new(shell: ShellModel, platform: Box<dyn Platform>, initial: Option<PathBuf>) -> App {
+        let dock = Dock::new(shell.layout(), shell.layout_version());
         App {
             shell,
             platform,
             page_view: PageView::new(),
+            preview_view: PageView::new(),
+            dock,
             initial,
             bindings: keys::bindings(),
             title: String::new(),
@@ -117,6 +137,7 @@ impl App {
             last_page_index: None,
             deferred: None,
             applied_scale: None,
+            applied_theme: None,
         }
     }
 
@@ -133,6 +154,22 @@ impl App {
     /// Whether the image of the page on show has arrived from the render worker.
     pub fn page_view_ready(&self) -> bool {
         self.page_view.is_ready()
+    }
+
+    /// Whether the image of the wizard's preview has arrived from the render worker.
+    pub fn preview_ready(&self) -> bool {
+        self.preview_view.is_ready()
+    }
+
+    /// The panes of the dock tree in layout order (tests).
+    pub fn dock_panes(&self) -> Vec<PaneKind> {
+        self.dock.panes()
+    }
+
+    /// Puts `pane` into the tab group of `target`, as a drag of its title onto the other pane does (tests).
+    #[doc(hidden)]
+    pub fn dock_tab_together(&mut self, pane: PaneKind, target: PaneKind) {
+        self.dock.tab_together(pane, target);
     }
 
     fn dispatch(&mut self, action: &'static str, params: &Value) {
@@ -159,6 +196,15 @@ impl App {
             ctx.set_zoom_factor(scale);
             self.applied_scale = Some(scale);
         }
+        let theme = self.shell.settings().theme.clone();
+        if self.applied_theme.as_deref() != Some(theme.as_str()) {
+            ctx.set_theme(match theme.as_str() {
+                "light" => ThemePreference::Light,
+                "dark" => ThemePreference::Dark,
+                _ => ThemePreference::System,
+            });
+            self.applied_theme = Some(theme);
+        }
         if ctx.input(|i| i.viewport().close_requested()) && !self.shell.should_quit() {
             ctx.send_viewport_cmd(ViewportCommand::CancelClose);
             self.dispatch("app.quit", &Value::Null);
@@ -177,6 +223,11 @@ impl App {
         if let Some(dir) = self.initial.take() {
             self.dispatch("file.open", &json!({ "dir": dir.to_string_lossy() }));
         }
+        if self.dock.version() != self.shell.layout_version() {
+            self.dock = Dock::new(self.shell.layout(), self.shell.layout_version());
+        }
+        // The preview is built from the draft before the frame reads it (a no-op while it is current).
+        self.shell.wizard_prepare_preview();
 
         let mut events: Vec<Event> = Vec::new();
         self.route_keys(&ctx, &mut events);
@@ -185,8 +236,13 @@ impl App {
         Panel::top("menu-bar").show(ui, |ui| menu::show(ui, &self.shell, &mut events));
         if let Some(banner) = self.shell.banner() {
             Panel::top("banner").show(ui, |ui| {
-                ui.horizontal(|ui| {
+                ui.horizontal_wrapped(|ui| {
                     ui.label(banner);
+                    if self.shell.can_discard_journal()
+                        && ui.button(strings::text("action-file-discard-journal")).clicked()
+                    {
+                        events.push(Event::Action("file.discard_journal", Value::Null));
+                    }
                     if ui.button(strings::text("banner-dismiss")).clicked() {
                         events.push(Event::DismissBanner);
                     }
@@ -194,15 +250,25 @@ impl App {
             });
         }
         Panel::bottom("status-bar").show(ui, |ui| status_bar::show(ui, &self.shell, exporting));
-        if self.shell.has_project() {
-            Panel::left("page-list")
-                .resizable(true)
-                .default_size(140.0)
-                .show(ui, |ui| self.page_list(ui, &mut events));
-        }
+        let mut new_layout = None;
         CentralPanel::default().show(ui, |ui| {
-            if self.shell.has_project() {
-                self.page_view.show(ui, &self.shell);
+            if self.shell.first_run().is_some() {
+                first_run::show(ui, &self.shell, &mut events);
+            } else if self.shell.wizard().is_some() {
+                wizard::show(ui, &self.shell, &mut self.preview_view, &mut events);
+            } else if self.shell.has_project() {
+                let App {
+                    shell,
+                    dock,
+                    page_view,
+                    last_page_index,
+                    ..
+                } = self;
+                dock.show(ui, &mut |ui, pane| match pane {
+                    PaneKind::Pages => page_list(ui, shell, last_page_index, &mut events),
+                    PaneKind::PageView => page_view.show(ui, shell),
+                });
+                new_layout = dock.layout().filter(|l| l != shell.layout());
             } else {
                 start_page::show(ui, &self.shell, &mut events);
             }
@@ -223,6 +289,10 @@ impl App {
             &mut events,
         );
         self.dialog_was_open = dialog_open;
+        // F1 resolves the context (a hovered menu item has taken the key already).
+        if ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::F1)) {
+            events.push(Event::Action("help.documentation", Value::Null));
+        }
 
         if !events.is_empty() {
             ctx.request_repaint();
@@ -231,6 +301,17 @@ impl App {
             self.apply(event);
         }
         self.answer_prompts(&ctx);
+        self.open_documentation();
+
+        // The layout the user made is the shell's; it is written a second after the last change.
+        let now = ctx.input(|i| i.time);
+        if let Some(layout) = new_layout {
+            self.shell.set_layout(layout, now);
+        }
+        self.shell.persist_layout_if_due(now);
+        if self.shell.layout_pending() {
+            ctx.request_repaint_after(Duration::from_millis(250));
+        }
 
         let title = self.shell.title();
         if title != self.title {
@@ -242,27 +323,9 @@ impl App {
         }
     }
 
-    fn page_list(&mut self, ui: &mut Ui, events: &mut Vec<Event>) {
-        ui.heading(strings::text("pages-title"));
-        let list = ew_viewmodel::page_list::PageList::of(&self.shell);
-        let moved = self.last_page_index != list.current;
-        self.last_page_index = list.current;
-        ScrollArea::vertical().show(ui, |ui| {
-            for (i, label) in list.labels.iter().enumerate() {
-                let selected = list.current == Some(i);
-                let response = ui.selectable_label(selected, label.as_str());
-                if selected && moved {
-                    response.scroll_to_me(None);
-                }
-                if response.clicked() {
-                    events.push(Event::Action("page.goto", json!({ "folio": label })));
-                }
-            }
-        });
-    }
-
     /// The shell's shortcuts. Routing order: a focused text field, then an open popup or dialog, then the
-    /// shortcuts; Escape closes the topmost popup or dialog and otherwise does nothing.
+    /// shortcuts; Escape closes the topmost popup or dialog and otherwise does nothing. F1 is handled at the end of
+    /// the frame, in every state.
     fn route_keys(&mut self, ctx: &egui::Context, events: &mut Vec<Event>) {
         let palette_open = self.shell.palette().is_some();
         let dialog_open = self.shell.dialog().is_some();
@@ -275,7 +338,9 @@ impl App {
             return;
         }
         for binding in &self.bindings {
-            if binding.action == "ui.dismiss" || (palette_open && binding.action != "tools.palette") {
+            if matches!(binding.action, "ui.dismiss" | "help.documentation")
+                || (palette_open && binding.action != "tools.palette")
+            {
                 continue;
             }
             if ctx.input_mut(|i| i.consume_shortcut(&binding.shortcut)) {
@@ -305,6 +370,7 @@ impl App {
             }
             Event::GotoText(text) => self.shell.set_goto_text(&text),
             Event::GotoGo(folio) => self.dispatch("page.goto", &json!({ "folio": folio })),
+            Event::WorkspaceText(text) => self.shell.set_workspace_text(&text),
             Event::DismissBanner => self.shell.dismiss_banner(),
         }
     }
@@ -338,4 +404,37 @@ impl App {
             }
         }
     }
+
+    /// The documentation page F1 asked for: opened in the system browser when the user guide is installed, else a
+    /// banner says it is not.
+    fn open_documentation(&mut self) {
+        while let Some(request) = self.shell.take_doc_request() {
+            let opened = request
+                .url
+                .as_deref()
+                .is_some_and(|url| self.platform.open_url(url));
+            if !opened {
+                self.shell.show_banner(strings::text("doc-missing"));
+            }
+        }
+    }
+}
+
+/// The page list pane: the printed folio labels, the current one selected; a click is `page.goto`.
+fn page_list(ui: &mut Ui, shell: &ShellModel, last_index: &mut Option<usize>, events: &mut Vec<Event>) {
+    let list = ew_viewmodel::page_list::PageList::of(shell);
+    let moved = *last_index != list.current;
+    *last_index = list.current;
+    ScrollArea::vertical().show(ui, |ui| {
+        for (i, label) in list.labels.iter().enumerate() {
+            let selected = list.current == Some(i);
+            let response = ui.selectable_label(selected, label.as_str());
+            if selected && moved {
+                response.scroll_to_me(None);
+            }
+            if response.clicked() {
+                events.push(Event::Action("page.goto", json!({ "folio": label })));
+            }
+        }
+    });
 }

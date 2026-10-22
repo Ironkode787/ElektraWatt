@@ -143,7 +143,21 @@ impl PageView {
             return;
         };
         let folio = folio.to_owned();
-        self.refresh_content(shell, rev, &folio);
+        self.show_source(ui, rev, &folio, &|folio| shell.page_content(folio));
+    }
+
+    /// Paints the page `folio` of a source whose content has revision `rev` (any number that changes when the
+    /// content does); `fetch` gives the display list on the UI thread (phase 1). The wizard's preview is such a
+    /// source.
+    pub fn show_source(
+        &mut self,
+        ui: &mut Ui,
+        rev: u64,
+        folio: &str,
+        fetch: &dyn Fn(&str) -> Result<ExportPages, String>,
+    ) {
+        let folio = folio.to_owned();
+        self.refresh_content(fetch, rev, &folio);
         if let Some((_, _, message)) = self.failed.as_ref().filter(|(r, f, _)| *r == rev && *f == folio) {
             ui.label(message.as_str());
             return;
@@ -193,7 +207,12 @@ impl PageView {
     }
 
     /// Phase 1 for the current page, once per `(revision, folio)`.
-    fn refresh_content(&mut self, shell: &ShellModel, rev: u64, folio: &str) {
+    fn refresh_content(
+        &mut self,
+        fetch: &dyn Fn(&str) -> Result<ExportPages, String>,
+        rev: u64,
+        folio: &str,
+    ) {
         let current = self
             .content
             .as_ref()
@@ -205,7 +224,7 @@ impl PageView {
         if current || failed {
             return;
         }
-        match shell.page_content(folio) {
+        match fetch(folio) {
             Ok(pages) => {
                 self.content = Some(Content {
                     rev,

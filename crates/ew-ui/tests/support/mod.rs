@@ -17,9 +17,10 @@ use egui::Vec2;
 use egui_kittest::Harness;
 use egui_kittest::kittest::NodeT as _;
 use ew_ui::app::{App, Pick, Platform, setup};
-use ew_ui::ew_viewmodel::shell::{Mode, Prompt, ShellConfig, ShellModel};
+use ew_ui::ew_viewmodel::shell::{Mode, Prompt, Resources, ShellConfig, ShellModel};
 
 const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
+const CONTENT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../content");
 
 static COUNTER: AtomicU32 = AtomicU32::new(0);
 
@@ -36,6 +37,16 @@ impl Tmp {
 
     pub fn config(&self) -> ShellConfig {
         ShellConfig::in_dir(&self.0.join("config"), "0.0.0-test")
+    }
+
+    /// The configuration with the sample project and the starter content of the source tree as resources.
+    pub fn config_with_resources(&self) -> ShellConfig {
+        self.config().with_resources(Resources {
+            sample_dir: Some(PathBuf::from(GOLDEN_A)),
+            content_dir: Some(PathBuf::from(CONTENT)),
+            docs_dir: None,
+            notices_file: None,
+        })
     }
 
     /// A copy of Golden A in this directory.
@@ -70,6 +81,8 @@ fn copy_dir(from: &Path, to: &Path) {
 pub struct Scripted {
     pub answers: Rc<RefCell<VecDeque<Pick>>>,
     pub asked: Rc<RefCell<Vec<Prompt>>>,
+    /// The URLs the frame asked the system browser to open.
+    pub opened: Rc<RefCell<Vec<String>>>,
 }
 
 impl Platform for Scripted {
@@ -77,11 +90,20 @@ impl Platform for Scripted {
         self.asked.borrow_mut().push(prompt);
         self.answers.borrow_mut().pop_front().unwrap_or(Pick::Cancelled)
     }
+
+    fn open_url(&mut self, url: &str) -> bool {
+        self.opened.borrow_mut().push(url.to_owned());
+        true
+    }
 }
 
 /// A harness around the application frame: no wgpu, no snapshot, fonts installed before the first pass.
 pub fn harness<'a>(tmp: &Tmp, platform: Scripted, initial: Option<PathBuf>) -> Harness<'a, App> {
-    let shell = ShellModel::new(Mode::Gui, tmp.config());
+    harness_with(ShellModel::new(Mode::Gui, tmp.config()), platform, initial)
+}
+
+/// A harness around the frame of a shell the test made itself (resources, a first-run flow already started).
+pub fn harness_with<'a>(shell: ShellModel, platform: Scripted, initial: Option<PathBuf>) -> Harness<'a, App> {
     let app = App::new(shell, Box::new(platform), initial);
     Harness::builder()
         .with_size(Vec2::new(1000.0, 700.0))
@@ -109,6 +131,19 @@ pub fn wait_for_page(harness: &mut Harness<'_, App>) {
     panic!("the page image did not arrive");
 }
 
+/// Waits (bounded) for the render worker's image of the wizard's preview.
+#[track_caller]
+pub fn wait_for_preview(harness: &mut Harness<'_, App>) {
+    for _ in 0..600 {
+        harness.run_ok();
+        if harness.state().preview_ready() {
+            return;
+        }
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    panic!("the preview image did not arrive");
+}
+
 /// The accessible-name walker: every visible AccessKit node a user can reach (an input role, or one that takes the
 /// keyboard focus) has a name, a label or a placeholder. Read-only text is no input.
 #[track_caller]
@@ -122,6 +157,12 @@ pub fn assert_named(harness: &Harness<'_, App>) {
         let reachable = egui::accessibility::is_input(node.role())
             || node.data().supports_action(egui::accesskit::Action::Focus);
         if !reachable {
+            continue;
+        }
+        // The one exception: the splitter handles of the dock are egui_tiles' own `interact` areas, which publish
+        // neither a role nor a name (upstream; the dock's panes, titles and tabs are named). A keyboard user moves
+        // panes through View, Workspace instead.
+        if node.role() == egui::accesskit::Role::Unknown {
             continue;
         }
         let named = node.label().is_some_and(|l| !l.trim().is_empty())

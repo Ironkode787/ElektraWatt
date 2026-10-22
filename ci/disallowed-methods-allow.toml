@@ -12,7 +12,7 @@
 
 [[allow]]
 crate = "elektrawatt"
-item = "fn dbus_env_path"
+item = "fn env_path"
 count = 1
 
 [[allow]]
