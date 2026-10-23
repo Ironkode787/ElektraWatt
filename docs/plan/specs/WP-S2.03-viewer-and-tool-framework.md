@@ -4,11 +4,14 @@
 cycle-23 candidate, part 2 (the tool framework, D4) after part 1's delivery; Opus review of each. **Part 1 delivered,
 as built (cycle 23; decision log ID-556 to ID-560):** V1 to V14 passed (§10) and V15's manual look passed for the
 navigator, Go to, the grid cursor, Back, side by side and the link follow, with the lane's rulings, the review's fix
-round and the design items recorded in §6.11. **Part 2 is next** (the tool framework, §7) · **Date:**
-2026-10-22 (amended 2026-10-23, cycle-23 design pass) · **Work package:**
+round and the design items recorded in §6.11. **Part 2 delivered, as built (cycle 24; decision log ID-586 to
+ID-590):** T1 to T12 passed (§10), the review's fix round and a re-check fix applied, the window check passed, with the
+lane's rulings, the lead's rulings and the follow-ups recorded in §7.10. **Status: Delivered (parts 1 and 2); WP-S2.03
+is complete** · **Date:** 2026-10-22 (amended 2026-10-23, cycle-23 design pass; 2026-10-24, cycle-24 design pass) · **Work package:**
 [WP-S2.03](../02-work-packages.md#wp-s203-viewer-view-models-and-canvas-tool-framework) · **Decision log:** ID-531 to
 ID-538 (the cycle-22 design pass recorded §3's decisions and rulings, corrected D8's count and amended D13 and §6.8
-after WP-S2.02 part 2 delivered FT-356) · **Part of:** ElektraWatt plan, specifications
+after WP-S2.02 part 2 delivered FT-356); ID-556 to ID-560 (part 1 as built); ID-586 to ID-590 (part 2 as built) ·
+**Part of:** ElektraWatt plan, specifications
 
 **Purpose.** This is the closed specification of the viewer and of the framework every editing tool builds on. Part 1
 turns the canvas of [WP-S2.02](WP-S2.02-canvas-renderer.md) into a viewer one can find one's way in: a page navigator,
@@ -688,7 +691,48 @@ canvas link preview "103"                                  (only while shown)
 The tool's label and hint and a failed preview's message are quoted user text. `VOCABULARY` gains `tool`, `state`,
 `idle`, `pressed`, `rubber-band`, `armed`, `measuring`, `hint`, `snap`, `cp`, `at`, `selection`, `stale`, `failed`,
 `tags`, `xrefs` and `overlay` (17 words; `label`, `preview`, `ready`, `none`, `grid` and `mm` exist, and `link` comes
-with part 1), so the two parts add 44 words.
+with part 1), so the two parts add 44 words. *As built (§7.10):* `junction` joins as well, so part 2 adds 18 words and
+the two parts 45.
+
+### 7.10 As built (cycle 24)
+
+Part 2 was built by a lead-programmer lane in five commits (ebd1bf4 `Session::page_cps` below the shell, 14e2022 the
+overlay primitives in `ew-render2d`, 2434ed4 the framework with Select and Measure in `ew-viewmodel`, 0b82296 the
+window's overlay, pointer mapping, dwell timer and link preview popup in `ew-ui`, d0ddd7c the headless tests) plus the
+review's fix round (22a6da7) and a re-check fix (54b4ff8); the Opus review accepted it after fixes. The contract of
+§7.1 is built exactly (no `World` in `ToolCx`; `Select` and `Follow` outputs); the host keeps `PreviewState` and the
+commit paths of §7.3, counted in `SessionCalls` (`preview_with`, `commit`, `execute_with`, `run_script`, `page_cps`).
+T1 to T12 pass (T7's ghost is proven in `ew-render2d` unit tests only, because the probe cannot reach the binary); 474
+tests without features and 481 with all features in the changed crates; `golden/` untouched; `Cargo.lock` unchanged;
+performance not measured (owner's rule). Where it departs from or refines §7, **this section wins for WP-S2.04 and
+WP-S2.05**:
+
+| # | As built or ruled | Decision log |
+|---|---|---|
+| 1 | The status hint is announced only when its text changes; "n selected" wins in the same step and stays until the cursor moves; an identical text is not re-announced; Measure's readout is announced on Press and Activate (fix round) | ID-587, ID-588 |
+| 2 | A busy tool is escaped (overlay, preview and link preview cleared) on any change of focused group, tab or page | ID-587 |
+| 3 | `canvas.activate` is refused without a grid cursor; the host sends `CursorMove` before `Activate` and on tool activation | ID-587 |
+| 4 | An entity with several rectangles is enclosed only if all are inside the band, touched if any is; a click on empty canvas clears the selection (Shift keeps it) | ID-587 |
+| 5 | The transcript's `snap` is read from the overlay's last marker; `Marker` is unchanged | ID-587 |
+| 6 | **Interim:** the preview chips sit in the canvas's top-left corner (the derived diff has no positions); by tag position later (FT-389) | ID-587 |
+| 7 | A commit is refused on a read-only project (`reason-read-only`); tool commits join the `--record` steps; a preview still runs and shows as ready (a preview is a read) | ID-587, ID-589 |
+| 8 | `canvas.preview_snapshot` is headless-only like `canvas.snapshot` | ID-587 |
+| 9 | The headless tests live in `bin/elektrawatt/tests/canvas.rs` (a new test file would need an allow-list change) | ID-587 |
+| 10 | **Pointer rule:** presses and releases come from egui's pointer-button events in order with their own positions and modifiers (a tap in one frame clicks); a press is the tool's only when the canvas's widget response got the primary button (egui's widget hit test), so the splitter's grab zone starts no band | ID-588 |
+| 11 | Under a tool that does not want hover (Measure) the hover outline and the link hover and preview are not drawn, but the transcript's `hover` and describe's `canvas hover` still report the entity: the transcript is the model's truth | ID-589 |
+| 12 | The describe vocabulary grows by 18 words in part 2 (`junction` added to §7.9's 17), 45 for the package | ID-588 |
+
+**Fix round** (ID-588): taps and slow frames no longer lose a click; Measure's readout reaches a screen reader; T11
+asserts non-vacuously in both crates (the ID-559 precedent); the physical-key route of `[` and `]` is tested with a
+QWERTZ event; t8 and the primary-button test tightened; the unused `status-hint-view` string removed. **Window check**
+(T-level, ID-590): passed for the Tools menu, click and band selection with the 2-pixel outline, the hover outline,
+Measure's markers and readout, and the link preview popup under the GPU backend; a touchpad tap, the 300 ms timing,
+Narrator and the bracket keys on German and French layouts stay owner checks.
+
+**Design items** (ID-589): one integer scale factor for overlay marks (FT-391; markers are fixed at 7 and 9 pixels
+today while lines double at ppp ≥ 2); the popup's AccessKit node (FT-390); a group hidden while a press is held
+(FT-392); the chips by tag position (FT-389); `selected_rects` and the band selection are O(n·m), not measured (owner's
+rule).
 
 ## 8. Determinism, the headless mode and exact counts
 

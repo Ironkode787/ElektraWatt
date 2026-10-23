@@ -1,6 +1,6 @@
 # ElektraWatt architecture specification
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-20 (G-SP outcome, §6.1 to §6.4; save order, §7.4; the memo engine as built, §2, §6.2, §6.4; incremental connectivity as built, §3, §6.3, §6.4), 2026-10-21 (orphan-collection retention, §6.2; the check engine and the prevent hook as built, §3, §5, §6.4); 2026-10-21, cycle 13 (`ew-plcaddr` v0 and `ew-sqlview` v0 as built, §3); 2026-10-22, cycle 18 (a known breach of the undo law, FT-316, §13); 2026-10-22, cycle 19 (the breach closed by the delete-time rule EW-INV-021 and the two apply paths, §4.6, §5.3, §13; the application shell as built, §3, §9); 2026-10-22, cycle 21 (the canvas's CPU tile path as built, §3, §8.2, §9; the transaction-read rule, §5.2); 2026-10-22, cycle 22 (the canvas's GPU path as built, §3, §8.2, §9; the tool framework specified, §5.4, §9); 2026-10-23, cycle 23 (asset reads and the read gate, §3 rule 1; a transaction's assets, §5.2; the viewer as built and WP-S2.04's tool rules, §5.4, §9) · **Date:** 2026-10-17 · **Decided by:** chief architect, after a judge
+**Status:** Accepted · amended 2026-10-18, 2026-10-20 (G-SP outcome, §6.1 to §6.4; save order, §7.4; the memo engine as built, §2, §6.2, §6.4; incremental connectivity as built, §3, §6.3, §6.4), 2026-10-21 (orphan-collection retention, §6.2; the check engine and the prevent hook as built, §3, §5, §6.4); 2026-10-21, cycle 13 (`ew-plcaddr` v0 and `ew-sqlview` v0 as built, §3); 2026-10-22, cycle 18 (a known breach of the undo law, FT-316, §13); 2026-10-22, cycle 19 (the breach closed by the delete-time rule EW-INV-021 and the two apply paths, §4.6, §5.3, §13; the application shell as built, §3, §9); 2026-10-22, cycle 21 (the canvas's CPU tile path as built, §3, §8.2, §9; the transaction-read rule, §5.2); 2026-10-22, cycle 22 (the canvas's GPU path as built, §3, §8.2, §9; the tool framework specified, §5.4, §9); 2026-10-23, cycle 23 (asset reads and the read gate, §3 rule 1; a transaction's assets, §5.2; the viewer as built and WP-S2.04's tool rules, §5.4, §9); 2026-10-24, cycle 24 (the `ew-api` edges to `ew-units` and `ew-mltext` made normal for WP-S2.05, §3; the tool framework as built, §5.4, §9; `#ew-fragment v1` as the project-fragment format, §5.5; the property grid's chip text, §9) · **Date:** 2026-10-17 · **Decided by:** chief architect, after a judge
 panel over four competing proposals (A incremental, B ECS, C relational, D retained/object model)
 **Scope:** ElektraWatt (EW) v1:
 - Electric P8-class schematics;
@@ -250,7 +250,7 @@ sessions (G6).
 | `ew-import-tables` | GPL | The golden CSV bootstrap behind `ew import csv`, the round-trip table reader and translation tables; reused by `ew-testkit`; the bootstrap importer TablesImporter reads a directory of tables (ADR-0021 amendment 6) | ew-interop-api, ew-schema, ew-units, ew-ids, ew-mltext, ew-rds (as ew-import-qet); serde, serde_json, sha2; an own bounded RFC-4180 reader (no csv crate yet); later: csv, calamine (round-trip reader) |
 | `ew-script`, `ew-plugin-host` | GPL | rhai automation bindings over queries and commands (profile from `ew-rhai`); WIT world and host on the wasmtime LTS line current at plugin launch (48.x in development), plugin export roles (§10.4), plugin rule implementations registered into `ew-checks`, the `secret-get` capability (v1.x) | ew-rhai; wasmtime LTS, wit-bindgen 0.63.0 |
 | `ew-jobs` | GPL | Scheduler, progress, cancellation, staleness tagging, adopt-if-unchanged; an empty stub so far: the export job of `ew-api` (FT-59) is synchronous and runs its page phase on `ew_export::par_map` (decision log ID-362; FT-251) | rayon |
-| `ew-api` | GPL | The `Session` facade shared by every front-end; registers the SQL and plugin rule implementations at session start; composes `.ewpp` export jobs from `ew-mfg` data, `ew-export` PDF/DXF and `ew-panel` glb; the page-output export job (cycle 15, FT-59: the page views, one memoised `page_display_list` family per layer, PDF and SVG)  dev: ew-commands/testkit, ew-derive, ew-model/raw-read, ew-render-cpu, ew-ids, ew-units, ew-mltext, png, sha2, insta (the page-output goldens of WP-S3.04), ew-testkit (the acceptance runner builds AC-15 path (b) with the builder DSL, cycle 15); | v0: ew-commands, ew-checks (the shipped prevent hook, `Session::check` and the migration scheme on imports, decision log ID-306, ID-312), ew-derive (normal edge: the Session surfaces derivation findings, tracked reads only), ew-reports (the Session installs the report engine on every `Q`, decision log ID-126), ew-model, ew-schema (no `raw-read`), ew-scene and ew-export (the export job), ew-text (the bundled fonts it shapes with and embeds) and ew-dl (the layer types; normal edges since FT-59); dev: ew-commands/testkit, ew-derive, ew-model/raw-read, ew-render-cpu, ew-ids, ew-units, ew-mltext, png, sha2, insta (the page-output goldens of WP-S3.04); eventually everything above except UI |
+| `ew-api` | GPL | The `Session` facade shared by every front-end; registers the SQL and plugin rule implementations at session start; composes `.ewpp` export jobs from `ew-mfg` data, `ew-export` PDF/DXF and `ew-panel` glb; the page-output export job (cycle 15, FT-59: the page views, one memoised `page_display_list` family per layer, PDF and SVG)  dev: ew-commands/testkit, ew-derive, ew-model/raw-read, ew-render-cpu, ew-ids, ew-units, ew-mltext, png, sha2, insta (the page-output goldens of WP-S3.04), ew-testkit (the acceptance runner builds AC-15 path (b) with the builder DSL, cycle 15); | v0: ew-commands, ew-checks (the shipped prevent hook, `Session::check` and the migration scheme on imports, decision log ID-306, ID-312), ew-derive (normal edge: the Session surfaces derivation findings, tracked reads only), ew-reports (the Session installs the report engine on every `Q`, decision log ID-126), ew-model, ew-schema (no `raw-read`), ew-scene and ew-export (the export job), ew-text (the bundled fonts it shapes with and embeds) and ew-dl (the layer types; normal edges since FT-59), ew-units and ew-mltext (normal edges since cycle 24, dev edges before: the property grid's field parser and formatter of WP-S2.05 part 1 name the integer value types and the multi-language text, decision log ID-600), and from WP-S2.05 part 2 the external crate regex (find, at `ew-schema`'s version, no new package); dev: ew-commands/testkit, ew-derive, ew-model/raw-read, ew-render-cpu, ew-ids, png, sha2, insta (the page-output goldens of WP-S3.04); eventually everything above except UI |
 | `ew-viewmodel` | GPL | Toolkit-agnostic panel models: navigator trees, table rows with edit→command mapping, property-grid rows with provenance, message lists, each with a revision stamp; the toolkit-neutral action definitions and the shell model that the GUI and the headless mode `elektrawatt --headless` both dispatch on (decision log ID-443, ID-444); as built in cycle 19: the registry, `ShellModel`, the settings file, the UI-script runner and the `ui.describe` text (ID-473, ID-474) | ew-api |
 | `ew-ui` | GPL | egui widgets, canvas host, tools (state machines; specified for WP-S2.03: the tool host and the tools in `ew-viewmodel`, `ew-ui` maps input and paints, decision log ID-536), command palette, keymaps, the action registry behind every menu, the 3D transform gizmo over `ew-render3d`'s camera and pick API; as built in cycle 19: the shell frame, the CPU page view with its render worker, the palette, the bundled UI fonts and the headless runner (ID-473) | egui 0.37.0, egui_tiles 0.17.1, egui_table 0.10.0, egui_ltreeview 0.9.0, transform-gizmo-egui 0.11.0 (in cycle 19: egui 0.37.0 and skrifa 0.44.0 only; egui_kittest 0.37.0 for tests) |
 | `ew-viewer` (1.0) | GPL | The read-only `.ewpp` wiring viewer on `ew-ui` widgets, used by the `ew-wiring-viewer` binary and the "Preview package" view of the Manufacturing workspace | ew-ewpp, ew-ui, ew-render-cpu, hayro 0.8.0 (after the fidelity check) |
@@ -353,7 +353,7 @@ graph TD
   itab --> iapi & schema & units & ids & mltext & rds
   script --> cmd & rhai
   plug --> cmd & sqlv & checks
-  api --> store & cmd & derive & checks & sqlv & lib & scene & exp & plc & panel & mfg & imp & icat & itab & script & plug & jobs & model & schema & rep & text & dl
+  api --> store & cmd & derive & checks & sqlv & lib & scene & exp & plc & panel & mfg & imp & icat & itab & script & plug & jobs & model & schema & rep & text & dl & units & mltext
   vm --> api
   ui --> vm & r2d & rcpu & r3d
   viewer --> ewpp & ui & rcpu
@@ -365,7 +365,7 @@ graph TD
   testkit -. dev .-> api & cmd & derive
   api -. dev .-> testkit
   derive -. dev .-> cmd
-  api -. dev .-> rcpu & ids & units & mltext
+  api -. dev .-> rcpu & ids
   rcpu -. dev .-> text & units
   exp -. dev .-> text & units
   rep -. dev .-> model
@@ -680,12 +680,30 @@ very command it would commit; there is no second preview model, and the autoconn
 commit (their hints reach the model only inside the committed `device.place`). WP-S2.03 part 1, the viewer, runs no
 preview (ID-556).
 
+*As built (cycle 24, WP-S2.03 part 2; decision log ID-586, ID-589).* The tool host in `ew-viewmodel` runs a tool's
+`Preview` through `Session::preview_with` on the UI thread, once per changed command or revision, keeps it as
+`PreviewState` with the derived diff as the semantic ghost and marks it stale when the revision moves on; a commit in
+the window takes `Session::commit` of a fresh equal preview, else `Session::execute_with`, and headless the one-line
+command log of `Session::run_script`, so the exposure rules and `--record` apply unchanged. A preview also runs on a
+read-only project (a preview is a read; only the commit is refused). The fork job off the UI thread stays FT-358; its
+cost is not measured (owner's rule). The shipped tools, Select and Measure, preview nothing; the probe that does is
+test-only (`ew-viewmodel` feature `testkit`).
+
 ### 5.5 Macros
 
 - **Command macros** are recorded command logs, exported as parameterisable rhai.
 - **Window and page macros** are project fragments in the same JSONL format. `InsertMacro{macro, at, value_set}`
   remaps IDs, rebinds structure identifiers and lets the normalisers number the new devices. Folios 203–206 become
   one typical with four value sets.
+
+*Ruled (cycle 24, WP-S2.05 D12; decision log ID-596).* **The project-fragment format of this section is the text
+format `#ew-fragment v1`** that WP-S2.05 part 3 builds for the clipboard: a header line, then the records in the
+canonical JSONL of §7.3 with their library copies. Copy, cut, paste, duplicate and, later, WP-S1.19's window and page
+macros use this one format; macros extend it (value sets, parameters) within its version rules rather than define a
+second one. Within v1 unknown header members are ignored; another `format` or a record of another `$v` is refused
+until WP-S1.17's migration chain exists (FT-403). `edit.paste` takes the whole fragment as its parameters, so a paste
+replays from the command log; references are remapped and judged by `ew_model::LINKS` and their delete policy.
+Trade-off: one format to keep stable across versions and instances, against a macro format free to diverge.
 
 ---
 
@@ -1363,7 +1381,7 @@ instead, so a later chrome swap replaces only `ew-ui`.
 |---|---|
 | Layout | Canvas in the centre. Left dock: page, device, terminal, cable, PLC and potential navigators. Right dock: property grid. Bottom dock: messages, search results, table editors. Saved **workspaces**: Schematic, PLC, Fluid, Panel 3D, Manufacturing. egui viewports for second monitors |
 | Navigators and tables | Virtualised to 100k rows. Fill-down, pattern fill and paste from Excel compile to **one** command. Generic Excel round trip of any table keyed by its `id` column, with a diff preview (from C) |
-| Property grid | Schema-driven from `ew-schema` metadata (type, unit, enum options, Fluent label key). Values show their provenance (*"0.75 mm² · from potential 24VDC-1 via profile 'DBU/WH 24 V'"*), an override marker and "reset to derived"; `‹varies›` for multi-selection |
+| Property grid | Schema-driven from `ew-schema` metadata (type, unit, enum options, Fluent label key). Values show their provenance (*"0.75 mm² · potential 24VDC-1 · size profile '0.75/1.5' · class control"*; the chip names the profile that supplied the value, decision log ID-598), an override marker and "reset to derived"; `‹varies›` for multi-selection |
 | Canvas tools | State machines returning `Transient(overlay)`, `Preview(command)` or `Commit(command)`, with the command as a boxed `DynCommand` (§5.1). Drags use a GPU transform overlay. Semantic ghosts (autoconnect, paste with renumber) use a fork. Commits happen on mouse release |
 | Keyboard-first | Command palette over every `Command`; keymap presets "EW", "KiCad-like" and "EPLAN-like"; grid-step cursor; "next connection point" and "next unconnected point"; back/forward over xref jumps; native macOS menu bar via muda 0.21.2 |
 | Accessibility (G8) | No meaning in colour alone: wire colours always shown with their IEC 60757 code, GNYE striped, highlights as Okabe–Ito colour plus pattern, severities as icon plus colour. Full keyboard operation. AccessKit names enforced: an `ew-ui` test helper walks the AccessKit tree after every kittest flow and fails on any unnamed focusable node. The selected object's description is exposed as a live region. High-contrast theme; UI scale to 300 % |
@@ -1420,6 +1438,21 @@ annotations to 0.01 pt. The view models fetch each page's content once per (epoc
 plus eight most recently used, cleared on a revision change; tabs hold `PageId` values, not UUIDs (ID-557). With two
 groups the second gets its own GPU canvas on the leader's device; with one, the canvases' scenes go to `ew-render2d`
 in one merged submission (`submit_many`, latest request wins; ID-558). No timers drive the model.
+
+*As built (cycle 24, WP-S2.03 part 2; decision log ID-586 to ID-589). WP-S2.03 is complete.* The **canvas tools row**
+is built as specified for cycle 22: the contract (`CanvasEvent`, `ToolOutput` with `Select` and `Follow`, `trait
+Tool`, `ToolCx` with the prepared page, the snapper and the selection, no `World`), the toolkit-neutral overlay, the
+snapper on grid indices and the selection live in `ew_viewmodel::tools`, with one active tool per window acting on the
+focused group's canvas; previews and commits as in §5.4; `Session::page_cps` is the sixth public item below the shell
+(fetched once per revision and folio with the page content). `ew-ui` paints the overlay in screen space through
+`ew-render2d` (lines, bands, ghosts and snap markers, the 2-pixel selection outline; labels and the semantic ghost as
+chrome chips, never in a snapshot), takes the primary button's presses and releases from egui's pointer-button events
+in order behind egui's widget hit test, measures the pointer's rest and sends `canvas.dwell` after 80 and 300 ms, and
+shows the 320 × 200 point link preview popup from the same tile pool. The shipped tools are Select (clicks, bands that
+enclose or touch, a click on a link follows it) and Measure (snapped to connection points or, with Alt, to the grid;
+the readout `dx … dy … mm, d mm`); neither previews nor commits, so the shell stays read-only until WP-S2.04 (ID-513).
+Open from this part: the preview chips' position (FT-389), the popup's AccessKit node (FT-390), one scale rule for
+overlay marks (FT-391) and a group hidden while a press is held (FT-392). No new edge or package.
 
 ---
 

@@ -1,6 +1,6 @@
 # Schematic editor
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-22, cycle 17: `revision.create`, 37 commands, §3.1; amended 2026-10-22, cycle 18: `plc.set_module_part`, 38 commands, §3.1; rows 3, 13 and 14 as built, §3.2; amended 2026-10-22, cycle-22 design pass: the tool contract's context and previews for WP-S2.03, §4.1, decision log ID-536; amended 2026-10-23, cycle-23 design pass: WP-S2.03 part 1 as built, §4.1, §4.3, §5.7, §6, decision log ID-556, ID-557, ID-560; the decisions of WP-S2.04's specification as notes, §3.2, §3.9, §5.2, §5.4, §5.7, decision log ID-561 to ID-564, ID-567, ID-568) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-22, cycle 17: `revision.create`, 37 commands, §3.1; amended 2026-10-22, cycle 18: `plc.set_module_part`, 38 commands, §3.1; rows 3, 13 and 14 as built, §3.2; amended 2026-10-22, cycle-22 design pass: the tool contract's context and previews for WP-S2.03, §4.1, decision log ID-536; amended 2026-10-23, cycle-23 design pass: WP-S2.03 part 1 as built, §4.1, §4.3, §5.7, §6, decision log ID-556, ID-557, ID-560; the decisions of WP-S2.04's specification as notes, §3.2, §3.9, §5.2, §5.4, §5.7, decision log ID-561 to ID-564, ID-567, ID-568; amended 2026-10-24, cycle-24 design pass: WP-S2.03 part 2 as built, the tool contract, the Select and Measure tools, picking and snapping, §4.1, §4.3, §4.5, §5.7, §6, decision log ID-586 to ID-589) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) edits schematic pages: multi-line, single-line, overview,
 bus-topology, fluid and graphic pages, together with their frames, folios and sections. It covers symbol placement,
@@ -765,11 +765,21 @@ ghost is that preview's derived diff; a fork job off the UI thread follows with 
 join the outputs for the Select tool's result and for a click on a link.
 
 *As built (cycle 23, WP-S2.03 part 1 delivered; decision log ID-556).* Part 1 builds no tool: the `Tool` trait, `ToolCx`
-(without a `World`, as decided above), the tool host, the overlay layer and the previews are **part 2**, which is next,
-so this section is still the target. What part 1 prepares for them below the shell is the per-page content that a
+(without a `World`, as decided above), the tool host, the overlay layer and the previews were **part 2**, delivered in
+cycle 24 (below); until then this section was the target. What part 1 prepares for them below the shell is the per-page content that a
 tool's context will read: the display list, the entity rectangles, the cross-reference links with their resolved
 targets, the cell table and the grid, fetched once per (epoch, revision) and page (doc 16 §2.5). The connection points
-of the page (`page_cps`) join it in part 2.
+of the page (`page_cps`) joined it in part 2.
+
+*As built (cycle 24, WP-S2.03 part 2; decision log ID-586 to ID-589).* The contract is built as decided above. The
+events are `CanvasEvent`, with `Mods` and `Button`. The
+outputs are `ToolOutput`, including `Select` (the Select tool's result) and `Follow` (a click on a link). The trait
+`Tool` has `name`, `state`, `on_event`, `status_hint` and `wants_hover`. `ToolCx` is `{ page, points_per_nm, pane,
+snapper, selection }` and has no `World`. A tool returns one output per event, and its overlay is made of the items
+`Line`, `Polyline`, `Rect`, `Ghost`, `Marker` and `Label`. The page's connection points and their snapper are fetched
+once per (revision, folio) with the page content. Previews run on the UI thread through `Session::preview_with` after
+the 80 ms dwell action (`canvas.dwell`); the fork job off the UI thread stays FT-358. The host, the commit paths and the
+preview rules are in doc 16 §4.5. The only tools shipped are Select and Measure, and neither previews nor commits.
 
 ### 4.2 Place tool
 
@@ -814,6 +824,17 @@ nothing is selected and nothing is committed. The drag rows (`rep.move` on relea
 WP-S2.04's, and its merged Select table (WP-S2.04 §7.3, decision log ID-561) replaces the drag rows above when
 they are built.
 
+*As built (cycle 24, WP-S2.03 part 2; decision log ID-586, ID-587, ID-589).* The Select tool is the default tool and has
+three states: idle, pressed and rubber-band. A click (press and release within 3 points) selects the entity under the
+pointer, Shift adds it and Ctrl toggles it. A left-to-right drag draws a solid band that selects what it encloses, a
+right-to-left drag a dashed band that selects what it touches; an entity with several rectangles is enclosed only if all
+of them are inside the band and touched if any one is. A click on empty canvas clears the selection (Shift keeps it).
+A click on a link follows it (the `Follow` output; the 3-point slope above), which replaces the shell action of cycle
+23 for the pointer; F stays the shell's action. Activate (Enter, `canvas.activate`) is
+a press and a release at the grid cursor, so a keyboard user selects as the pointer does. Escape leaves the band, then
+returns to Select, then clears the selection (the chain is in doc 16 §4.2). The drag-move rows are not built: they
+remain WP-S2.04 part 1's, with the probe tool (tests only) as the pattern.
+
 ### 4.4 Wire tool
 
 ```mermaid
@@ -850,6 +871,13 @@ stateDiagram-v2
 | Route edit | Grip selected → Dragging segment (stays orthogonal) → Committed | `connection.route` |
 | Measure | Armed → Measuring | none (transient) |
 | Pan, zoom | — | none |
+
+*As built (cycle 24, WP-S2.03 part 2; decision log ID-586, ID-589).* **Measure** (Tools ▸ Measure) goes from armed to
+measuring on a press (or Activate at the grid cursor) and shows a line from the first point to the pointer with the
+readout chip `dx … dy … mm, d mm`. Its points snap to a connection point within 8 points, or to the grid while Alt is
+held. It never previews and never commits, and it does not want hover, so the entity hover outline and the link hover
+and preview are not drawn under it. The readout is announced through the canvas's live region on Press and on Activate
+(doc 16 §4.5).
 
 ---
 
@@ -995,8 +1023,20 @@ an end that does not meet its CP. GUI tools snap before they issue the command, 
 rectangles, as in WP-S2.02's hover, until the spatial index: `page_spatial_index` with exact kurbo picking and the
 per-tool priorities of the list above are FT-359, narrowed to that and the rich announcement. Part 1 adds one pick: a
 cross-reference link, found in the link rectangle inflated by 4 points at the current zoom, the smallest area winning
-and the later in paint order breaking a tie; a link wins over the entity under it. Snapping with its indicators is
-WP-S2.03 part 2, and the Alt rules of the tools are WP-S2.04's.
+and the later in paint order breaking a tie; a link wins over the entity under it. Snapping with its indicators was
+WP-S2.03 part 2 (delivered in cycle 24, below), and the Alt rules of the tools are WP-S2.04's.
+
+*As built (cycle 24, WP-S2.03 part 2; decision log ID-586, ID-587, ID-589).* **Picking** is still on WP-S2.02's entity
+rectangles, inflated by 4 points: the smallest area containing the point wins. `selected_rects` and the band
+selection are O(n·m) over entities and rectangles, and are not measured (owner's rule). **Snapping** follows the specification of WP-S2.03: `Snapper::snap` returns `{at_nm, page_nm,
+grid_index, kind, label}`; a connection point within 8 points wins unless Alt is held, else the point snaps to the grid
+on grid indices in i128, and `page_nm` lies on the page's connection grid. The indicators are overlay markers: a ring
+for a connection point (9 pixels), a cross for a grid point (7 pixels) and a square for a junction. **The mark scale**
+(lead ruling, ID-589; implemented by FT-391): today the markers are fixed at 7 and 9 pixels while lines double at a
+scale of 2 or more. The rule is one integer overlay factor `s = max(1, floor(ppp))` for every tool mark: lines `s`
+pixels wide, dashes 4s on and 4s off, the grid cross and the junction square 6s+1 pixels, the connection-point ring
+8s+1 pixels, so that marks keep a centre pixel and their proportions and snapshots stay pixel-exact; the selection
+outline is 2s pixels. Until FT-391 the as-built sizes hold.
 
 *Decided for WP-S2.04 (cycle 23; decision log ID-567); as-built text after part 1.* **Moves are in grid steps.**
 `rep.move` gains `steps: [kx, ky]`: each moved representation's position becomes the grid point at its index plus the
@@ -1031,8 +1071,8 @@ use it (`skip_serializing_if`), so the existing command logs serialise unchanged
   Identifiers never change with the language.
 
 *As built (cycle 23, WP-S2.03 part 1; decision log ID-556, ID-557, ID-558, ID-560).* The viewer implements this list
-except the hover preview of a cross-reference (WP-S2.03 part 2) and the snap mode, the selection count and the running
-jobs in the status bar (the fields are in doc 16 §3.6). **Tabs:** at most 32 over one or two groups, each tab with its
+except the hover preview of a cross-reference (delivered in cycle 24, below) and the snap mode, the selection count and
+the running jobs in the status bar (the fields are in doc 16 §3.6). **Tabs:** at most 32 over one or two groups, each tab with its
 own history and a viewport per page. **Following:** a click or F on a cross-reference jumps to its target page in the
 same tab and centres the target point at no less than twice the zoom that fits the target page (the previous zoom if it
 is larger, the jump view); Alt+← and Alt+→ restore the exact previous view of the tab's history, a fitted view
@@ -1047,7 +1087,9 @@ view pans by the least amount that brings it inside the pane inset by 10 % of ea
 Shift+F and Ctrl+Shift+F put the cursor on the next or previous cross-reference in reading order (by cell, then
 position), so a keyboard user reaches every link. The cursor is a crosshair over every other overlay, and the canvas
 announces the cursor's cell, its position and a link at it (doc 16 §10.1). Selecting by pointer, and the connection-point
-jumps with `]`, `[` and N, wait for part 2.
+jumps with `]`, `[` and N, were part 2's and were delivered in cycle 24 (§4.3, §5.7; keys in doc 16 §4.4). The 300 ms
+hover preview of a link is a 320 × 200 point popup beside the pointer while the active tool wants hover (Select yes,
+Measure no), as built in doc 16 §4.5.
 
 **Panels the editor drives** ([16](16-ux-ui.md) owns their layout): the page navigator, where drag to reorder opens
 the renumber preview (FR-PAG-024); the device navigator with unplaced functions as drag sources; the IP and potential

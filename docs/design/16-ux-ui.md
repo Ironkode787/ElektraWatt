@@ -1,6 +1,6 @@
 # User experience and user interface
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-22, cycle-19 design pass: the part-1 shell and its headless mode as built, §3.9, decision log ID-473 to ID-475, ID-485; amended 2026-10-22, cycle-20 design pass: the toolkit-neutral workspace file, §2.5; the part-2 shell as built, §3.9; first run and the wizard as built, §9.1, §9.2; decision log ID-486 to ID-493, ID-504; amended 2026-10-22, cycle-21 design pass: the zoom field, §3.6; the canvas as built and the viewer note, §3.9; the canvas node, §10.1; what 100 % means under the UI scale, §17; decision log ID-513, ID-517 to ID-522; amended 2026-10-22, cycle-22 design pass: the GPU canvas, its switch rule, the status bar's backend field and the UI scale as built, §3.6, §3.9, §17; the wizard's fields as built with the confirmed check-scheme step, §9.2; the rulings of WP-S2.03's specification (Back and Forward per tab, the canvas area, the tool host), §2.5, §3.4, §3.5, §4.5; decision log ID-532, ID-533, ID-536, ID-539 to ID-542, ID-544 to ID-547; amended 2026-10-23, cycle-23 design pass: WP-S2.03 part 1 as built, the viewer's tabs, navigator, links, Go to and grid cursor, §2.5, §3.2, §3.4 to §3.6, §3.9, §4.2, §4.4, §4.5, §5.1, §5.2, §10.1, decision log ID-556 to ID-560; the wizard's logo, shipped colour profiles and golden report blocks as built and its colour default, §9.2, ID-572 to ID-578; `PRIVACY.md` and its link, the web-URL exception of the opener, §3.9, §9.1, §13, ID-579) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-22, cycle-19 design pass: the part-1 shell and its headless mode as built, §3.9, decision log ID-473 to ID-475, ID-485; amended 2026-10-22, cycle-20 design pass: the toolkit-neutral workspace file, §2.5; the part-2 shell as built, §3.9; first run and the wizard as built, §9.1, §9.2; decision log ID-486 to ID-493, ID-504; amended 2026-10-22, cycle-21 design pass: the zoom field, §3.6; the canvas as built and the viewer note, §3.9; the canvas node, §10.1; what 100 % means under the UI scale, §17; decision log ID-513, ID-517 to ID-522; amended 2026-10-22, cycle-22 design pass: the GPU canvas, its switch rule, the status bar's backend field and the UI scale as built, §3.6, §3.9, §17; the wizard's fields as built with the confirmed check-scheme step, §9.2; the rulings of WP-S2.03's specification (Back and Forward per tab, the canvas area, the tool host), §2.5, §3.4, §3.5, §4.5; decision log ID-532, ID-533, ID-536, ID-539 to ID-542, ID-544 to ID-547; amended 2026-10-23, cycle-23 design pass: WP-S2.03 part 1 as built, the viewer's tabs, navigator, links, Go to and grid cursor, §2.5, §3.2, §3.4 to §3.6, §3.9, §4.2, §4.4, §4.5, §5.1, §5.2, §10.1, decision log ID-556 to ID-560; the wizard's logo, shipped colour profiles and golden report blocks as built and its colour default, §9.2, ID-572 to ID-578; `PRIVACY.md` and its link, the web-URL exception of the opener, §3.9, §9.1, §13, ID-579; amended 2026-10-24, cycle-24 design pass: WP-S2.03 part 2 as built, the tool host, Select and Measure, the Escape chain, the pointer rule, the keys and the live region, §3.6, §4.2, §4.4 to §4.6, §10.1, decision log ID-586 to ID-590; the provenance chip names its profile, §6.2, §18.1, ID-598; the mixed-selection rule, §17, ID-593; the check scheme's selection for `ew check`, §9.2, ID-602) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how people work with ElektraWatt (EW): the main window and its docking
 workspace, navigators, canvas tabs, the property grid with provenance, the command palette and keymaps, table
@@ -411,6 +411,10 @@ the project. The page field is `<folio> (<n> of <total>)` of the focused tab. Th
 page and revision with its other content (§2.5), not per frame. The exact edge between columns 15
 and 16 of the golden frame is 265.525 mm, not the rounded 265.6 mm (ID-560).
 
+*As built (cycle 24, WP-S2.03 part 2; decision log ID-586, ID-587).* The hint field shows the active tool's status
+hint (Select: `Click to select; drag for a rubber band`), and while a link preview shows (§4.5) it reads `Click or F: go
+to <target>`.
+
 ### 3.7 Start page
 
 With no project open the window shows: recent projects, **New project from basic project** (the default basic
@@ -443,7 +447,7 @@ edits nothing on the canvas; a visual pass (theme, icons, toolbar, window memory
 to schedule. *Updated in cycle 23 (WP-S2.03 part 1 delivered; ID-556):* the shell now **navigates**: canvas tabs in one
 or two groups, the page navigator, cross-reference links, Back and Forward, Go to page or cell and a keyboard grid
 cursor (§3.2 to §3.6, §4.2, §5.2, §10.1). It stays **read-only** until WP-S2.04 brings the editing gestures; the tool
-framework (WP-S2.03 part 2) is next.
+framework (WP-S2.03 part 2) was delivered in cycle 24 (§4.2, §4.5, §4.6).
 
 | Element | As built | Differs from the design by |
 |---|---|---|
@@ -527,8 +531,9 @@ Key events go to the first consumer in this order:
 Single-key bindings without modifiers (W, R, M) are inactive while a text field has focus. Each window has one
 focused pane, shown by a 2 px focus ring in the `focus` token (§11) and announced through AccessKit.
 
-*As built (cycle 23, WP-S2.03 part 1; decision log ID-556, ID-560).* Steps 3 and 4 are not reachable yet: there is no
-active tool before WP-S2.03 part 2, and the page navigator takes its keys through its own context. Every registry action
+*As built (cycle 23, WP-S2.03 part 1; decision log ID-556, ID-560).* Steps 3 and 4 were not reachable in cycle 23: there
+was no active tool before WP-S2.03 part 2 (step 3 is reachable since cycle 24, below), and the page navigator takes its
+keys through its own context. Every registry action
 has a **context**: `global` (every action that existed before), `canvas` (the grid-cursor actions, F, Shift+F and
 Ctrl+Shift+F) and `navigator` (its row keys). The window binds a context's chords only while the model's focus is in
 that context, and single keys never fire while a text field has focus. The model's `Focus` is the navigator or a canvas
@@ -542,6 +547,20 @@ FT-371. The navigator's row cursor follows the focused tab's page until the user
 moves it with the arrow keys, and then stays on the row the user chose while that row is shown, also after a jump made
 from the canvas or a link; making it follow such jumps is FT-371. The transcript's `navigator.row` is `null` while the
 cursor follows the current page (ID-557).
+
+*As built (cycle 24, WP-S2.03 part 2; decision log ID-586, ID-587, ID-589).* Step 3 is reachable: the active tool of the
+focused canvas takes the keys of the `canvas` context (§4.4) and the pointer events (§4.5). A click on a link is now
+the Select tool's `Follow` output; F stays the shell action `nav.follow` (above). **The Escape chain** runs in this
+order: a popup or dialog, then the link preview, then the tool's own step, then back to Select, then clearing the
+selection; with nothing open Escape reaches the tool through `ui.dismiss`. A busy tool is escaped (its overlay,
+preview and link preview cleared) on any change of the focused group, tab or page. **The pointer rule:** the canvas
+takes the primary button's presses and releases from egui's pointer-button events in order, each with its own position
+and modifiers, so a press and a release in one frame (a touchpad tap, a slow frame) still click. A press counts as the
+tool's only when the canvas's widget response got the primary button (egui's widget hit test), so the splitter's grab
+area between two groups (about 5 points into each pane) never starts a band. The middle button and Space+drag still
+pan, and a primary press focuses its group first. A group hidden while a press is held (side by side turned off, or
+its last tab closed by keyboard) is FT-392. The two FT-371 items above (mouse back and forward on the hovered group;
+the navigator row following jumps) are still open.
 
 ### 4.3 Command palette
 
@@ -624,6 +643,12 @@ alt = "Alt+N"                  # second binding for keyboards without that key; 
 - **Keymap editor** (Tools ▸ Keymap): search actions, record a chord, show conflicts and shadowing (§15.5), reset
   per action, import and export. A keymap file from a newer version keeps unknown action IDs and marks them unused.
 
+*As built (cycle 24, WP-S2.03 part 2; decision log ID-586, ID-587).* The canvas context gains `]` and `[` (`cp.next`,
+`cp.previous`), matched as physical keys so that they need no AltGr on QWERTZ and AZERTY, with Alt+N and Alt+Shift+N
+as the alternatives; N (`cp.next_unconnected`); Enter (`canvas.activate`, a click at the grid cursor, refused without a
+grid cursor); and Backspace (`tool.back`). Tools ▸ Select (`tool.select`) and Tools ▸ Measure (`tool.measure`) have no
+default keys. Checking `]` and `[` on German and French layouts is an owner item, not covered by the automated checks.
+
 ### 4.5 Tool host
 
 Tools are the state machines of [06](06-schematic-editor.md) §4. The host in `ew-ui` keeps one active tool per
@@ -634,7 +659,7 @@ region: "Wire: routing from -102F1:2. Click a connection point; Backspace remove
 Tool options (Place: variant A–H, representation type, autoconnect; Wire: orthogonal, sticky) sit in a strip
 above the canvas, never in a dialog. Layout and 3D tools ([12](12-panel-layout.md) §12) use the same contract.
 
-*Decided for WP-S2.03 (cycle 22; decision log ID-536); as-built text after part 2.* The tool host and the tools live in
+*Decided for WP-S2.03 (cycle 22; decision log ID-536); as-built text for part 2 follows below (cycle 24).* The tool host and the tools live in
 **`ew-viewmodel`**, toolkit-neutral and drivable headless; `ew-ui` only paints (the overlay, the status hint and the
 live region). The host keeps **one active tool per window**, acting on the focused group's canvas, not one per canvas:
 activating another tool cancels the current one, and focusing the other group sends Escape to a tool that is not in
@@ -643,11 +668,44 @@ on the UI thread after the pointer has rested 80 ms (the action `canvas.dwell`, 
 fork job off the UI thread is FT-358; and tools receive the prepared page tables and no `World` (doc 06 §4.1). The
 shipped Select and Measure tools commit nothing: the shell stays a viewer until WP-S2.04 (ID-532).
 
-*Cycle 23 (WP-S2.03 part 1 delivered; decision log ID-556).* Part 1 builds no tool host: the tool framework is part 2,
-which is next, and its specification above is unchanged. What part 1 added for it is the canvas area (§3.4), the focus
-areas with their keyboard contexts (§4.2), the grid cursor (§10.1) and the per-page content cache that part 2's
-`page_cps` and tool context will extend (§2.5). Until part 2, a click on a link and F are handled by the shell's own
-actions `nav.follow` and its siblings, not by a tool's `Follow` output.
+*Cycle 23 (WP-S2.03 part 1 delivered; decision log ID-556).* Part 1 builds no tool host: the tool framework is part 2
+(delivered in cycle 24, below), and its specification above is unchanged. What part 1 added for it is the canvas area
+(§3.4), the focus areas with their keyboard contexts (§4.2), the grid cursor (§10.1) and the per-page content cache that
+part 2's `page_cps` and tool context extend (§2.5). In cycle 23 a click on a link and F were handled by the shell's own
+actions `nav.follow` and its siblings, not by a tool's `Follow` output; since cycle 24 a click is the Select tool's
+`Follow` output.
+
+*As built (cycle 24, WP-S2.03 part 2; decision log ID-586 to ID-589).* The host is in `ew-viewmodel` (the shell), with
+one active tool per window acting on the focused group's canvas; Select is the default tool. It handles the tool's
+output as follows: overlay items go to the canvas overlay, `Select` replaces the selection, `Follow` navigates the
+focused group, and a preview or commit goes to the session (one output per event). **Previews** run on the UI thread
+through `Session::preview_with`, once per changed command or revision, with the derived diff as the semantic ghost and
+a stale state when the revision moves on; the fork job off the UI thread is FT-358. **Commits** in the window go
+through `Session::commit` of a fresh equal preview, else `Session::execute_with`; headless they go through
+`Session::run_script`, the `command.run` path, where a `HumanOnly` command is refused and `--record` holds the line. A
+commit is refused on a read-only project (`reason-read-only`). A tool's preview does run on a read-only project and
+shows as ready, since a preview is a read; only the commit is refused, and no extra badge shows (ruling, ID-589). The
+shipped Select and Measure tools neither preview nor commit: the shell stays read-only until WP-S2.04 (ID-513).
+
+The window measures the pointer's rest and sends the hidden action `canvas.dwell` after 80 ms and after 300 ms, so no
+timing lives in the model. At 300 ms over a link, while the tool wants hover (Select yes, Measure no), a preview popup of
+the target page opens next to the pointer (320 × 200 points, drawn from the same tile pool and page-content cache, with
+the page bounds and a crosshair at the target); any pointer move, cursor move or view action closes it, and the status
+hint reads `Click or F: go to <target>` (§3.6). Headless, `canvas.preview_snapshot` (`path`) writes the popup's image as
+a PNG, as `canvas.snapshot` does for the page, and is refused without a preview. Under Measure the entity hover
+outline and the link hover and preview are not drawn, while the transcript's `hover` member and describe's `canvas
+hover` line still report the entity under the pointer: the transcript reports the model's truth, the tool only decides
+what is drawn (ruling, ID-589).
+
+**The status hint and its announcement.** The canvas node's polite live region (§10.1) announces the active tool's hint
+only when its text changes. "<n> selected" wins in the same step and stays until the cursor moves; an identical text
+(for example a second `1 selected`) is not announced again. Measure's readout is announced on Press and on Activate
+(NFR-A11Y-01).
+
+**Preview chips.** The semantic ghost (the `before -> after` texts and the stale badge) shows as chips in the canvas's
+top-left corner, because the derived diff carries no positions. This is an interim rule (ID-587): placing the chips by
+the tag's position once WP-S2.04's page tables exist is FT-389. The chips must not cover the statistics panel. The link
+preview popup has no AccessKit node yet (FT-390; the status hint already names the target).
 
 ### 4.6 Selection
 
@@ -660,6 +718,13 @@ actions `nav.follow` and its siblings, not by a tool's `Follow` output.
   -102F2".
 - The selection survives page switches. Undo restores the selection of its entry. Entities removed by undo or an
   external change are dropped with a status message.
+
+*As built (cycle 24, WP-S2.03 part 2; decision log ID-586, ID-589).* Click selects, Shift adds and Ctrl toggles. A
+left-to-right drag draws a solid band that selects what it encloses; a right-to-left drag draws a dashed band that
+selects what it touches. An entity with several rectangles is enclosed only if all of them are inside the band and
+touched if any is. A click on empty canvas clears the selection (Shift keeps it). Selected items carry a 2-pixel solid
+blue outline (#0072B2). The live region says `<n> selected`. Not built: the rich announcement above, Ctrl+A, and undo
+restoring the selection; they are follow-ups of WP-S2.04 and WP-S2.05 (specification WP-S2.03 §12).
 
 ### 4.7 Context menus
 
@@ -794,18 +859,19 @@ Selection is synchronised both ways (FR-UI-007; algorithm in §15.3):
 A row shows its label, value, unit, a provenance chip and its actions:
 
 ```text
-Cross-section  0.75 mm²   f derived · from potential 24VDC-1 via profile 'DBU/WH 24 V'     [Override] [Why?]
-Cross-section  1.5 mm²    <> override (CDP) · derived would be 0.75 mm²                     [Reset to derived]
-Tag            S51        lock frozen (sign hidden) · rule gives -101S1                     [Unfreeze…]
+Cross-section  0.75 mm²   f derived · potential 24VDC-1 · size profile '0.75/1.5' · class control  [Override] [Why?]
+Colour         DBU        f derived · potential 24VDC-1 · colour profile 'DBU/WH 24 V'
+Cross-section  1.5 mm²    <> override (CDP) · derived would be 0.75 mm²                            [Reset to derived]
+Tag            S51        lock frozen (sign hidden) · rule gives -101S1                            [Unfreeze…]
 Address        Q0.1       f derived · module -201U3 start Q0 (auto, slot 1) + channel 1 (533361: channel n → bit n)
-Length         810 mm     pin committed rev 212 · stale: re-route pending                   [Re-route…]
-Part           2904602    book library 'ew-parts' v3 · update available                     [Update…]
+Length         810 mm     pin committed rev 212 · stale: re-route pending                          [Re-route…]
+Part           2904602    book library 'ew-parts' v3 · update available                            [Update…]
 ```
 
 | Provenance | Value style | Chip text | Actions | Domain kind |
 |---|---|---|---|---|
 | Authored | normal | none | edit, clear | A |
-| Inherited | italic, secondary text | "from profile 'DBU/WH 24 V'", "from company scheme" | override, go to source | A (scheme) |
+| Inherited | italic, secondary text | "from colour profile 'DBU/WH 24 V'", "from company scheme" | override, go to source | A (scheme) |
 | Derived | italic, secondary text, `f` icon | `derived · <rule or source>` | override or freeze where allowed, Why? | D |
 | Overridden | normal, override marker | "override · derived would be …" | reset to derived; "move override to profile" when equal (06 OQ8) | A over D |
 | Frozen | normal, lock icon | "frozen · rule gives …" | unfreeze (previewed) | F |
@@ -814,6 +880,9 @@ Part           2904602    book library 'ew-parts' v3 · update available        
 | Async | normal, clock icon | "as of rev n" | re-run | Class II |
 | Generated | read-only | "generated by block 'Wire list'" | go to block, go to source row (FR-REP-042) | D |
 | Varies | `‹varies›` | "3 values" (listed on hover) | set all | — |
+
+The chip names the profile that supplied the value: the cross-section from the size profile, the colour from the colour
+profile (amended in cycle 24, WP-S2.05 D15; decision log ID-598).
 
 Every state is distinguished by icon and text, not by colour (FR-UI-025). The examples above are the golden
 values: W29 (FR-UI-010, AC-28), W20 with its CDP, frozen S51 (Golden B maps it to -101S1), Q0.1 from
@@ -1164,6 +1233,10 @@ step is the designed path, so FT-336 is closed in full.** The rest of the cycle'
 - **Open:** `report_block.delete` and `report_block.set`, and an editable list of report blocks in the wizard instead of
   the fixed golden layout, are FT-385 (before G-PP); the title-block cell mapping is FT-365.
 
+*Decided for the check scheme's selection (cycle 24; decision log ID-602; FT-366).* `ew check` without `--scheme` uses
+the project's `release_scheme` in mode `release` and `active_scheme` in mode `online`, else `pre-delivery`. A project
+that names a scheme this build does not ship gets `pre-delivery` with a notice on stderr (FT-405).
+
 ## 10. Accessibility
 
 ### 10.1 AccessKit tree
@@ -1199,8 +1272,13 @@ its title with the selected state on the active tab, and its close button is nam
 every close button "Close"); the Pages navigator is a `Tree` of `TreeItem` nodes (§5.2). egui_tiles 0.18.0 exposes no
 node for a tab bar, so the `TabList` role is not set; it joins FT-338 with the splitter names, and the accessible-name
 walker still skips exactly the splitters of the dock and of the canvas area (ID-490). The walker passes after each
-step of the viewer's kittest flows. Not yet: the selection announcement (the Select tool, WP-S2.03 part 2) and the
-`TabList`.
+step of the viewer's kittest flows. Not yet in cycle 23: the selection announcement (the Select tool, delivered in
+cycle 24, below) and the `TabList`.
+
+*As built (cycle 24, WP-S2.03 part 2; decision log ID-586, ID-587).* The canvas node's live region now also carries the
+active tool's status hint, announced only when its text changes; `<n> selected`, which wins in the same step and stays
+until the cursor moves; and Measure's readout, announced on Press and on Activate (§4.5; NFR-A11Y-01). The link preview
+popup has no node yet (FT-390; the status hint already names the target).
 
 ### 10.2 Keyboard
 
@@ -1476,7 +1554,11 @@ for layout in {QWERTY-US, QWERTZ-DE, AZERTY-FR}:
 4. **Long identifiers and German strings** in narrow panels are ellipsised in the middle ("=P01+J-E…-102G1"); the
    full text is in the tooltip and the accessible name. The pseudo-locale catches truncation in CI.
 5. **Mixed-kind multi-selection** (terminals and wires) shows only fields common to all kinds, for example function
-   text; a field that exists on some of them is not shown as `‹varies›`.
+   text; a field that exists on some of them is not shown as `‹varies›`. *Decided for WP-S2.05 (cycle 24, D8; decision
+   log ID-593):* the property grid builds its sections by record kind, and a mixed selection shows only the sections
+   every selected entity reaches: a representation reaches its representation, its functions and their devices, and a
+   function reaches its device. The targets of a section are deduplicated, so two representations of one device edit
+   the device once.
 6. **Focus stealing:** a job finishing, an external change or a toast never takes focus or switches the page.
 7. **Mixed-DPI monitors:** moving a viewport from 100 % to 200 % re-lays out on the new scale factor; canvas zoom is
    kept in paper units, so the page keeps its physical size. **The UI scale does not scale the page** (decision log
@@ -1510,8 +1592,8 @@ for layout in {QWERTY-US, QWERTZ-DE, AZERTY-FR}:
    903 … 911) carry the generated badge ([20](20-golden-project.md) §5).
 2. **Messages.** The status bar reads "E 42 W 32 I 28" and the panel lists one waived finding (EF-19, waiver W-1 on
    -XPE). F8 jumps to EF-01, EW-POT-013 on T55 at folio 101; F1 opens the rule page; "Waive…" needs a reason.
-3. **Provenance.** Selecting W29 on folio 102 shows "0.75 mm² · from potential 24VDC-1 via profile 'DBU/WH 24 V'"
-   (AC-28); W20 shows "1.5 mm² · override (CDP) · derived would be 0.75 mm²"; S51 shows its frozen tag and the
+3. **Provenance.** Selecting W29 on folio 102 shows "0.75 mm² · potential 24VDC-1 · size profile '0.75/1.5' · class
+   control" and the colour "DBU · colour profile 'DBU/WH 24 V'" (ID-598; AC-28); W20 shows "1.5 mm² · override (CDP) · derived would be 0.75 mm²"; S51 shows its frozen tag and the
    rule value -101S1 (FR-NUM-010).
 4. **Navigation.** On folio 101, F on "102-A1" at L-1 (101-H16) opens folio 102 at A1; Alt+← returns with the
    previous viewport (FR-UI-019, AC-28). Ctrl+G with "103-A1" opens folio 103 at A1, where 24VDC-1 from 102-H15

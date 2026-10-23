@@ -4,9 +4,11 @@
 property sheet and the property grid, D4), part 2 (find and replace with `fields.set_many`, D4) and part 3 (the
 clipboard: project fragments, `edit.paste`, duplicate and cut, D5); part 1 after WP-S2.03 part 2's delivery, part 2
 after part 1, part 3 after part 1 and WP-S2.04 part 1; Opus review of each ·
-**Date:** 2026-10-23 · **Work package:**
+**Date:** 2026-10-23 (recorded 2026-10-24 by the cycle-24 design pass) · **Work package:**
 [WP-S2.05](../02-work-packages.md#wp-s205-property-grid-provenance-find-and-replace-clipboard) · **Decision log:**
-the entries of §15.3, to be numbered by the cycle-24 design pass (after ID-585; follow-ups after FT-388) · **Part of:**
+ID-591 to ID-600, the ten entries of §15.3 in order (follow-ups FT-393 to FT-403, the eleven of §15.4 in order; item
+12 is a note in ID-593); §4.1 rule 2's precondition is met: `ci/dep-rules.toml` and architecture §3 carry the
+`ew-api` edges to `ew-units` and `ew-mltext` as normal edges (ID-600) · **Part of:**
 ElektraWatt plan, specifications
 
 **Purpose.** This is the closed specification of the package that lets a user read and change every value of what
@@ -161,7 +163,7 @@ to the lead for this specification and which are recorded as taken. The design p
    part 1 starts):** `ci/dep-rules.toml` allows `ew-api → ew-units` and `ew-api → ew-mltext` today only as dev edges,
    and `ci/**` is read-only for lanes, so the design pass amends the `"ew-api"` entry of `ci/dep-rules.toml` (both as
    normal edges) and architecture §3 (the `ew-api` row and the crate graph) first; a lane that finds them unamended
-   stops. The `regex` edge is an external crate already vetted and needs no owner rule; feature unification turns on
+   stops. *Met by the cycle-24 design pass (ID-600).* The `regex` edge is an external crate already vetted and needs no owner rule; feature unification turns on
    `unicode-case` and `unicode-perl` in `ew-schema`'s `regex` too, which is harmless (more Unicode tables, no
    behaviour change for its patterns).
 3. **One mutation path.** Every state change of the shell is a registry action on `ShellModel::dispatch`; every model
@@ -1133,7 +1135,7 @@ pass amends doc 02a, doc 02b, doc 16 §6.2 and doc 20's AC-28 text; `project.mas
 
 ### 15.6 Documents the design passes update
 
-Named here because D2 to D16 and the fix round change or refine accepted text. **Before part 1 starts:** `ci/dep-rules.toml` (the `"ew-api"` entry) and architecture §3 (the `ew-api` row and the crate graph), §4.1 rule 2. Then: doc 16 §2.1 (`PropRow` and `EditTarget` as built: the sheet,
+Named here because D2 to D16 and the fix round change or refine accepted text. **Before part 1 starts:** `ci/dep-rules.toml` (the `"ew-api"` entry) and architecture §3 (the `ew-api` row and the crate graph), §4.1 rule 2 (done in cycle 24, ID-600, with the requirement texts of D15 and D16, architecture §5.5 and §9's chip, gates §8.2, doc 20's AC-28 and §19, doc 16 §6.2, §17 item 5 and §18.1, and doc 15 §5.4). Then: doc 16 §2.1 (`PropRow` and `EditTarget` as built: the sheet,
 the catalogue, the routes), §2.2 (the provenance variants produced; `Committed` and `Async` not produced yet), §6.1 to
 §6.3 (as built, with the chip texts, the sections and the mixed-kind rule of D8, the read-only reasons), §7.5 (the
 policy evaluated on the preview; the inline card until WP-S2.09), §17 item 5 (D8); doc 06 §3.1 (`fields.set_many` and

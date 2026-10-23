@@ -1,6 +1,6 @@
 # Checks, revisions and collaboration
 
-**Status:** Draft v0.5 · **Date:** 2026-10-21 (v0.5: the cycle-14 rules EW-NUM-001, EW-CORE-023, EW-CORE-053, EW-POT-002 and EW-CORE-065 as built, the release gate of scheme content, decision log ID-349, ID-353, ID-354; v0.4: the check engine as built in cycle 12, decision log ID-305 to ID-313: scope deviations, EW-CORE-051/052 split, waiver semantics, the migration scheme on imports; v0.3: EW-IMP-122 and EW-IMP-123 added, the interim lenient checks of imports; v0.2: EW-CORE-019 added; EW-CORE-004 and -016 clarified) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.6 · **Date:** 2026-10-24 (v0.6: the scheme slots' first reader, `ew check`, and the unshipped-scheme notice, §2.4, decision log ID-602; revision author and checker read-only in the property grid, §5.4, decision log ID-593; v0.5: the cycle-14 rules EW-NUM-001, EW-CORE-023, EW-CORE-053, EW-POT-002 and EW-CORE-065 as built, the release gate of scheme content, decision log ID-349, ID-353, ID-354; v0.4: the check engine as built in cycle 12, decision log ID-305 to ID-313: scope deviations, EW-CORE-051/052 split, waiver semantics, the migration scheme on imports; v0.3: EW-IMP-122 and EW-IMP-123 added, the interim lenient checks of imports; v0.2: EW-CORE-019 added; EW-CORE-004 and -016 clarified) · **Part of:** ElektraWatt design document set
 
 > **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
 
@@ -204,6 +204,16 @@ lower its severity. The scheme editor shows the lock and the effective value (FR
 
 **Two scheme slots.** The project names an `active_scheme` for online checking (default `drafting`) and a
 `release_scheme` for the gate (default `pre-delivery`). The shipped schemes are listed in §4.9.
+
+*As built (cycle 24, FT-366; decision log ID-602).* The slots are stored by `project.checks.set` in
+`settings.extra.checks` ([03](03-domain-model.md) §5.1), and the first reader is `ew check`: without `--scheme` it runs
+the project's `release_scheme` in mode `release` and its `active_scheme` in mode `online`, and `pre-delivery` when the
+slot is empty (`Session::project_check_scheme`). A slot naming a scheme this build does not ship (written by a newer
+version or by hand; `project.checks.set` accepts shipped schemes only) also falls back to `pre-delivery`; **lead
+ruling:** `ew check` then prints a notice on stderr naming the scheme and the fallback, with the exit status unchanged
+(FT-405), because a silent fallback hides that the run is weaker or different from the one the project asks for. The
+release gate does not read the slots yet; when it does, it refuses an unshipped `release_scheme` instead of falling
+back. The message panel's online checks do not read `active_scheme` yet either.
 
 ### 2.5 Findings, fingerprints and waivers
 
@@ -1050,6 +1060,10 @@ content_digest SHA-256 over the sorted (path, sha256) entries of the saved manif
                excluding revisions.jsonl and comments.jsonl (.ew/ and .~ew.* are never in the manifest)
 ```
 
+- **Who is author and checker** (cycle 24, WP-S2.05; decision log ID-593). The revision's `author` and `checker`
+  members decide this precondition and EW-REL-001, so the property grid shows them **read-only** although
+  `fields.set` can still write them today (the grid's narrowing table may narrow what is editable, never widen it). A
+  `HumanOnly` sign-off command that alone sets them, so the four-eyes roles have one confirmed path, is FT-402.
 - **Saved state only.** Approval needs the write lock and no unsaved edits; the dialog saves first. The digest is
   therefore a pure function of one generation, and the checker approves exactly what `ew check` and the PDF of that
   generation show.
