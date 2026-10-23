@@ -320,3 +320,87 @@ fn a_kill_at_every_call_of_a_purge_leaves_the_old_or_the_new_generation() {
         );
     }
 }
+
+/// `text` with every character of `hex` spelled as a JSON escape `\u00XX`.
+fn escaped(hex: &str) -> String {
+    hex.chars().map(|c| format!("\\u{:04x}", c as u32)).collect()
+}
+
+/// Review fix 2: a record line may spell a hash with JSON escapes (the loader accepts it and rewrites it at the
+/// next save); the text scan of the file misses it, so the purge also reads the model: the named logo (B) and an
+/// unknown member's escaped hash (A, in a structure node) both keep their files.
+#[test]
+fn a_hash_spelled_with_json_escapes_keeps_its_asset() {
+    let (vfs, [a, b, _, _]) = four_assets(DirSync::Explicit);
+    let files = project_files(&vfs, &root());
+    let project = String::from_utf8(files["project.jsonl"].clone()).unwrap();
+    let plain = format!("sha256:{}", hex(&b));
+    assert!(project.contains(&plain));
+    let project = project.replace(&plain, &format!("sha256:{}", escaped(&hex(&b))));
+    vfs.put(&join(&root(), "project.jsonl"), project.as_bytes());
+    let structure = String::from_utf8(files["structure.jsonl"].clone()).unwrap();
+    let first = structure.lines().next().unwrap();
+    let tagged = first.replacen(
+        '{',
+        &format!("{{\"x.future\":\"sha256:{}\",", escaped(&hex(&a))),
+        1,
+    );
+    let structure = structure.replacen(first, &tagged, 1);
+    vfs.put(&join(&root(), "structure.jsonl"), structure.as_bytes());
+    let o = reopen(&vfs, 2);
+    assert_eq!(o.report.access, Access::Edit, "{:?}", o.report.findings);
+    assert_eq!(
+        o.model.referenced_assets().keys().copied().collect::<Vec<_>>(),
+        [*b.sha256()],
+        "the loader decodes the escaped logo"
+    );
+    let plan = o.store.purge_plan(&BTreeSet::new()).unwrap();
+    assert!(plan.remove.is_empty(), "nothing goes: {plan:?}");
+}
+
+/// Review fix 3: an asset file rewritten after the open (the manifest unchanged) no longer holds the asset of its
+/// name; the purge re-hashes it and leaves it alone.
+#[test]
+fn an_asset_file_rewritten_behind_the_manifest_is_left_alone() {
+    let (vfs, [a, _, _, _]) = four_assets(DirSync::Explicit);
+    let o = reopen(&vfs, 2);
+    let path = a.reference().path();
+    assert_eq!(
+        o.store.purge_plan(&BTreeSet::new()).unwrap().remove[0]
+            .path
+            .as_str(),
+        path
+    );
+    vfs.put(
+        &join(&root(), &path),
+        b"<svg xmlns=\"http://www.w3.org/2000/svg\"/>",
+    );
+    let plan = o.store.purge_plan(&BTreeSet::new()).unwrap();
+    assert!(plan.remove.is_empty(), "{plan:?}");
+    assert_eq!(plan.kept, 4);
+}
+
+/// Review fix 9: files are scanned in chunks; a mention that straddles two chunks of a large foreign file still keeps
+/// its asset, and a mention further on in it too.
+#[test]
+fn a_mention_across_a_chunk_boundary_of_a_large_file_keeps_its_asset() {
+    let (vfs, [a, _, c, _]) = four_assets(DirSync::Explicit);
+    let chunk = 1 << 20;
+    let mut big = vec![b' '; chunk - 30];
+    big.extend_from_slice(hex(&c).as_bytes());
+    big.resize(3 * chunk + 17, b'.');
+    big.extend_from_slice(hex(&a).as_bytes());
+    big.push(b'\n');
+    vfs.put(&join(&root(), "notes.txt"), &big);
+    let o = reopen(&vfs, 2);
+    let plan = o.store.purge_plan(&BTreeSet::new()).unwrap();
+    assert!(plan.remove.is_empty(), "{plan:?}");
+    // Without the mentions, both go.
+    vfs.put(&join(&root(), "notes.txt"), &vec![b'x'; 3 * chunk]);
+    let plan = o.store.purge_plan(&BTreeSet::new()).unwrap();
+    let mut gone: Vec<String> = plan.remove.iter().map(|f| f.path.as_str().to_owned()).collect();
+    gone.sort();
+    let mut want = vec![a.reference().path(), c.reference().path()];
+    want.sort();
+    assert_eq!(gone, want);
+}

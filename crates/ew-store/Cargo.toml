@@ -22,6 +22,9 @@ ew-format = { path = "../ew-format" }
 ew-model = { path = "../ew-model", features = ["raw-read"] }
 # The lock record and the journal lines (doc 05 §7.1, §8.1); rows as JSON for the journal's field diffs.
 serde_json = "1.0.154"
+# The asset purge hashes asset files while it streams them (FT-380 review fix 9; already in the graph through
+# ew-format).
+sha2 = { workspace = true }
 
 [dev-dependencies]
 proptest = { version = "1.12.0", default-features = false, features = ["std"] }

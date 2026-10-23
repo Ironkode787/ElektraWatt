@@ -33,6 +33,14 @@ pub struct Stat {
 pub trait Vfs: Send + Sync + fmt::Debug {
     /// The whole content of a regular file.
     fn read(&self, path: &Path) -> io::Result<Vec<u8>>;
+    /// Up to `len` bytes of a regular file from byte `offset` (fewer at its end, none past it): the chunked reads of
+    /// a scan that must not hold a whole file in memory (the asset purge, FT-380). The default reads the whole file.
+    fn read_at(&self, path: &Path, offset: u64, len: usize) -> io::Result<Vec<u8>> {
+        let all = self.read(path)?;
+        let start = usize::try_from(offset).unwrap_or(usize::MAX).min(all.len());
+        let end = start.saturating_add(len).min(all.len());
+        Ok(all[start..end].to_vec())
+    }
     /// The kind, size and modification time of a path, without following a link; `NotFound` when absent.
     fn stat(&self, path: &Path) -> io::Result<Stat>;
     /// The entries of a directory with their kinds (links not followed), sorted by name; `NotFound` when
@@ -100,6 +108,20 @@ impl Vfs for OsVfs {
             return Err(io::Error::new(io::ErrorKind::InvalidInput, "not a regular file"));
         }
         fs::read(path)
+    }
+
+    fn read_at(&self, path: &Path, offset: u64, len: usize) -> io::Result<Vec<u8>> {
+        use std::io::{Read, Seek, SeekFrom};
+        let meta = fs::symlink_metadata(path)?;
+        if !meta.file_type().is_file() {
+            return Err(io::Error::new(io::ErrorKind::InvalidInput, "not a regular file"));
+        }
+        let mut file = fs::File::open(path)?;
+        file.seek(SeekFrom::Start(offset))?;
+        let mut out = Vec::with_capacity(len.min(1 << 20));
+        file.take(u64::try_from(len).unwrap_or(u64::MAX))
+            .read_to_end(&mut out)?;
+        Ok(out)
     }
 
     fn stat(&self, path: &Path) -> io::Result<Stat> {

@@ -4,14 +4,18 @@
 //! The asset purge (doc 05 §13.3, FT-380, decision log ID-574): the explicit, previewed removal of asset files that
 //! nothing names. A save never removes an asset file; this is the only path that does.
 //!
-//! **The rule.** An asset file `assets/<sha256>.<ext>` that the manifest lists, whose bytes hash to its name, goes when
-//! its hash appears in **no project file** and in none of the hashes the caller keeps (the session's undo and redo
+//! **The rule.** An asset file `assets/<sha256>.<ext>` that the manifest lists, whose bytes hash to its name **at the
+//! time of the purge** (re-hashed: a file rewritten behind the manifest's back is left alone), goes when no record of
+//! the model names it (`Model::referenced_assets`), no record as the next save writes it and no kept line decoded
+//! mentions it (a hash a line spells with JSON `\u00XX` escapes counts), and its hash appears in **no project file**
+//! and in none of the hashes the caller keeps (the session's undo and redo
 //! entries, `ew_commands::History::asset_mentions`). "Appears" is textual and conservative
 //! ([`ew_schema::sha256_mentions`]: 64 hex digits, either case), over every file below the project root that the
 //! walk reaches: record files (kept unknown kinds, unknown members, malformed and quarantined lines included, as they
 //! are on disk), library documents, opaque files (other assets included; an asset's mention of itself does not
 //! count), stray and foreign files, and the manifest's members other than its `files` list. The manifest's `files`
-//! list names every asset and does not count.
+//! list names every asset and does not count. Files are read in chunks of 1 MiB with a 63-byte overlap, so a large
+//! foreign file is never held whole.
 //!
 //! **Refusals.** A read-only session; quarantined lines (a line EW cannot read might name an asset in a form the scan
 //! misses only if it is not text, so the purge waits for the repair); unsaved steps in the journal or a model that is
@@ -141,6 +145,43 @@ impl fmt::Display for PurgeError {
 
 impl std::error::Error for PurgeError {}
 
+/// The bytes a scan reads at a time ([`scan_file`]).
+pub(crate) const SCAN_CHUNK: usize = 1 << 20;
+
+/// The SHA-256 mentions of the file at `path` (and, when `hash`, the SHA-256 of its bytes), read in chunks of
+/// [`SCAN_CHUNK`] so that a large file is never held whole (review fix 9): each chunk is scanned after the last 63
+/// bytes of the one before it, so a hash that straddles two chunks is found.
+fn scan_file(
+    vfs: &dyn crate::Vfs,
+    path: &std::path::Path,
+    hash: bool,
+) -> io::Result<(BTreeSet<Sha256>, Option<[u8; 32]>)> {
+    use sha2::Digest as _;
+    const CARRY: usize = 63;
+    let mut found = BTreeSet::new();
+    let mut hasher = hash.then(sha2::Sha256::new);
+    let mut carry: Vec<u8> = Vec::new();
+    let mut offset = 0u64;
+    loop {
+        let chunk = vfs.read_at(path, offset, SCAN_CHUNK)?;
+        if chunk.is_empty() {
+            break;
+        }
+        offset += chunk.len() as u64;
+        if let Some(h) = &mut hasher {
+            h.update(&chunk);
+        }
+        carry.extend_from_slice(&chunk);
+        sha256_mentions(&carry, &mut found);
+        let keep = carry.len().min(CARRY);
+        carry.drain(..carry.len() - keep);
+        if chunk.len() < SCAN_CHUNK {
+            break;
+        }
+    }
+    Ok((found, hasher.map(|h| h.finalize().into())))
+}
+
 impl Store {
     /// The refusals of a purge that do not need the disk scan (module documentation).
     fn purge_refusal(&self) -> Option<PurgeError> {
@@ -204,8 +245,27 @@ impl Store {
         if candidates.is_empty() {
             return Ok(PurgePlan::default());
         }
-        // The mentions: every file the walk reaches, as on disk.
+        // The mentions: what the model's records name, every record as the next save writes it (decoded: a hash a
+        // line spells with JSON escapes counts), every kept line decoded, and every file the walk reaches as on disk.
         let mut named: BTreeSet<Sha256> = keep.clone();
+        named.extend(self.base.referenced_assets().into_keys());
+        let rendered = self.render_all(&self.base).map_err(|e| PurgeError::Io {
+            path: "the records".to_owned(),
+            error: io::Error::other(e.to_string()),
+        })?;
+        for bytes in rendered.values() {
+            sha256_mentions(bytes, &mut named);
+        }
+        for lines in self.kept.values() {
+            for (_, line) in lines {
+                if let Ok(value) = serde_json::from_slice::<serde_json::Value>(line) {
+                    sha256_mentions(value.to_string().as_bytes(), &mut named);
+                }
+            }
+        }
+        // The actual hash of each candidate's bytes now: an asset file rewritten behind the manifest's back is
+        // not the asset of its name any more and is left alone.
+        let mut actual: BTreeMap<String, [u8; 32]> = BTreeMap::new();
         if let Some(m) = &self.manifest {
             let mut extra = m.extra.clone();
             extra.remove(BASE_MEMBER);
@@ -229,23 +289,27 @@ impl Store {
                 | PathClass::Ignored => continue,
                 _ => {}
             }
-            let bytes = vfs
-                .read(&join(&self.root, path))
-                .map_err(|error| PurgeError::Io {
+            let asset = match classify(path) {
+                PathClass::Opaque(OpaqueKind::Asset { sha256 }) => Some(sha256),
+                _ => None,
+            };
+            let (mut found, hash) =
+                scan_file(vfs, &join(&self.root, path), asset.is_some()).map_err(|error| PurgeError::Io {
                     path: path.clone(),
                     error,
                 })?;
-            let mut found = BTreeSet::new();
-            sha256_mentions(&bytes, &mut found);
             // An asset file's mention of its own hash does not keep it.
-            if let PathClass::Opaque(OpaqueKind::Asset { sha256 }) = classify(path) {
+            if let Some(sha256) = asset {
                 found.remove(&Sha256(sha256));
+            }
+            if let Some(hash) = hash {
+                actual.insert(path.clone(), hash);
             }
             named.extend(found);
         }
         let mut plan = PurgePlan::default();
         for (path, sha) in candidates {
-            if named.contains(&sha) {
+            if named.contains(&sha) || actual.get(path.as_str()) != Some(&sha.0) {
                 plan.kept += 1;
                 continue;
             }

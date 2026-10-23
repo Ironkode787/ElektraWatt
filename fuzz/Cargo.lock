@@ -592,6 +592,7 @@ dependencies = [
  "ew-format",
  "ew-model",
  "serde_json",
+ "sha2",
 ]
 
 [[package]]

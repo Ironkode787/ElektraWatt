@@ -1595,6 +1595,7 @@ dependencies = [
  "ew-model",
  "proptest",
  "serde_json",
+ "sha2",
 ]
 
 [[package]]
