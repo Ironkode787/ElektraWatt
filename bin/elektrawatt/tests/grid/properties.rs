@@ -282,8 +282,39 @@ fn pg10_the_pilot_script_is_deterministic_and_replays() {
     let record = tmp.path("pilot.ewcmd");
     let out_a = run(&tmp, "a.jsonl", &script(&pilot_steps(&a)), Some(&record));
     let steps = all_done(&out_a);
-    let out_b = run(&tmp, "b.jsonl", &script(&pilot_steps(&b)), None);
+    // FT-422: no UUID in a transcript line. The second run names a record the transcript has printed by its alias: a
+    // `select.set` `ids` step whose record an earlier line printed gets `@n` instead of the UUID; the transcripts stay
+    // byte-identical and its `--record` log holds the same UUIDs (ID-630 (c)).
+    let text_a = String::from_utf8_lossy(&out_a.stdout).into_owned();
+    super::support::assert_no_uuid(&text_a);
+    let lines_a: Vec<&str> = text_a.lines().skip(1).collect();
+    let mut steps_b = pilot_steps(&b);
+    let mut aliased = Vec::new();
+    for (i, (action, params)) in steps_b.iter_mut().enumerate() {
+        let Some(id) = params["ids"].get(0).and_then(Value::as_str).map(str::to_owned) else {
+            continue;
+        };
+        assert_eq!(*action, "select.set");
+        let alias = steps[i]["state"]["canvas"]["selection"][0]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        assert!(ew_ui::ew_viewmodel::alias::is_alias(&alias), "{alias}");
+        if lines_a[..i].iter().any(|l| l.contains(&format!("\"{alias}\""))) {
+            *params = json!({ "ids": [alias] });
+            aliased.push(id);
+        }
+    }
+    assert!(aliased.contains(&W29.to_owned()), "{aliased:?}");
+    assert!(aliased.contains(&DEF_24VDC_1.to_owned()), "{aliased:?}");
+    let record_b = tmp.path("pilot-b.ewcmd");
+    let out_b = run(&tmp, "b.jsonl", &script(&steps_b), Some(&record_b));
     all_done(&out_b);
+    assert_eq!(
+        std::fs::read_to_string(&record).unwrap(),
+        std::fs::read_to_string(&record_b).unwrap(),
+        "an alias in the input records the UUID it names"
+    );
     // The transcripts name the project directories, which are the same name in both.
     assert_eq!(
         String::from_utf8_lossy(&out_a.stdout).replace("a.ew", "x.ew"),

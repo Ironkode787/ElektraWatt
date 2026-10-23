@@ -21,6 +21,9 @@ mod grid_properties;
 #[path = "grid/find.rs"]
 mod grid_find;
 
+/// The folio-script support; here for its UUID check (FT-422).
+mod support;
+
 const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
 const EXPECTED: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/expected");
 
