@@ -398,3 +398,40 @@ fn tag_and_folio_references_name_exactly_one_device_or_drawn_page() {
     }
     assert_eq!(err.exit_code(), 2);
 }
+
+// WP-S2.05 part 2
+/// A command whose cost depends on its parameters (`fields.set_many` above 500 targets) runs from a command log as
+/// preview and commit, one undo step, like a command that is bulk by its metadata.
+#[test]
+fn a_set_many_above_500_targets_runs_from_a_log_as_one_step() {
+    let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew");
+    let mut s = Session::open_read_only(&dir, "ElektraWatt test").unwrap().0;
+    let q = s.query();
+    let devices: Vec<String> = q.devices().ids().map(|d| d.as_uuid().to_string()).collect();
+    let reps: Vec<String> = q.reps().ids().map(|r| r.as_uuid().to_string()).collect();
+    let functions: Vec<String> = q.functions().ids().map(|f| f.as_uuid().to_string()).collect();
+    let connections: Vec<String> = q.connections().ids().map(|c| c.as_uuid().to_string()).collect();
+    let pages: Vec<String> = q.pages().ids().map(|p| p.as_uuid().to_string()).collect();
+    let nodes: Vec<String> = q
+        .table::<ew_schema::StructureNode>()
+        .ids()
+        .map(|n| n.as_uuid().to_string())
+        .collect();
+    drop(q);
+    let total = devices.len() + reps.len() + functions.len() + connections.len() + pages.len() + nodes.len();
+    assert!(total > 500, "{total}");
+    let edits = serde_json::json!({"edits": [
+        {"kind": "device", "targets": devices, "path": "process_tag", "value": "P-1"},
+        {"kind": "function", "targets": functions, "path": "cp_overrides", "value": null},
+        {"kind": "connection", "targets": connections, "path": "overrides.show_marker", "value": null},
+        {"kind": "page", "targets": pages, "path": "description_override", "value": "Bulk"},
+        {"kind": "structure_node", "targets": nodes, "path": "description", "value": "Bulk"},
+        {"kind": "representation", "targets": reps, "path": "arrangement", "value": null}]});
+    let line = serde_json::json!({"cmd": "fields.set_many", "params": edits}).to_string();
+    let before = s.history().entries().len();
+    let receipts = s
+        .run_script(&log(&[&line]), "big.ewcmd")
+        .expect("the line commits");
+    assert_eq!(receipts.len(), 1);
+    assert_eq!(s.history().entries().len(), before + 1, "one undo step");
+}

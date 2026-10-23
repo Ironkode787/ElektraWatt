@@ -1185,6 +1185,7 @@ dependencies = [
  "flate2",
  "insta",
  "png",
+ "regex",
  "serde_json",
  "sha2",
 ]

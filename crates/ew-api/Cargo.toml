@@ -57,6 +57,9 @@ sha2 = { workspace = true }
 # multi-language text (normal edges since cycle 24, decision log ID-600).
 ew-units = { path = "../ew-units" }
 ew-mltext = { path = "../ew-mltext" }
+# Find and replace (WP-S2.05 part 2, `output::find`, §4.1 rule 2): regular expressions, at the version ew-schema uses,
+# with the Unicode case folding and Perl classes a search pattern needs.
+regex = { version = "1.13.1", default-features = false, features = ["std", "unicode-case", "unicode-perl"] }
 
 [dev-dependencies]
 ew-commands = { path = "../ew-commands", features = ["testkit"] }

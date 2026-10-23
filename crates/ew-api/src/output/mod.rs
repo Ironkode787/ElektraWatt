@@ -36,6 +36,8 @@
 
 mod editing;
 mod fields;
+// WP-S2.05 part 2
+mod find;
 mod layers;
 mod navigation;
 mod properties;
@@ -65,6 +67,8 @@ pub use fields::{
     Category, EditRoute, FieldChoice, FieldNode, FieldReadOnly, FieldSpec, FieldType, InputError,
     ParsedInput, field_catalogue, field_catalogue_for, format_field_value,
 };
+// WP-S2.05 part 2
+pub use find::{FindField, FindHit, FindQuery, FindResults};
 pub use layers::{
     FrameLayer, LabelsLayer, PageLayer, SymbolsLayer, TablesLayer, WiresLayer, page_kind, page_layer,
     page_scene, page_view,
