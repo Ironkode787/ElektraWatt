@@ -363,6 +363,7 @@ impl Scen {
         let k = i % self.handles.load_reps.len();
         (
             MoveReps {
+                steps: None,
                 reps: vec![self.handles.load_reps[k]],
                 delta: self.delta,
                 page: None,

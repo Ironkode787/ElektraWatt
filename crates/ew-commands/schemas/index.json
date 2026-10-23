@@ -324,6 +324,17 @@
     {
       "aliases": [],
       "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "project.drawing.set",
+      "params_version": 1,
+      "schema": "project.drawing.set.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
       "cost": "bulk",
       "exposure": "edit",
       "name": "project.frames.set",
@@ -362,6 +373,17 @@
       "name": "project.supply.set",
       "params_version": 1,
       "schema": "project.supply.set.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "rep.exchange_symbol",
+      "params_version": 1,
+      "schema": "rep.exchange_symbol.schema.json",
       "stability": "preview",
       "undoable": true
     },

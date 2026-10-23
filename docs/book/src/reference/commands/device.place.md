@@ -13,6 +13,15 @@ target requires.
 - `existing_function`: the function must exist and must not be an interruption point (`ip.place`).
 - `join_device`: a new function of the device with the given role (a second main function is rejected
   by EW-INV-002).
+- `from_part` (FR-UI-017, FR-DEV-017): a device `{tag: {letter, counter: none}, parts: [the part, quantity
+  1]}` and one function per entry of the part copy's `function_template`, in template order (def: the entry's
+  FnDef copy, which must be embedded; role main for `main`, else auxiliary; kind `black_box` when the FnDef's
+  contact kind is `black_box`, else normal; the CPs follow from the template, doc 03 §7); the representation
+  draws entry `template`, the others stay unplaced. The symbol's FnDef must be entry `template`'s, and that
+  entry must not be a black box (`box.black` places those).
+- `new_terminal` (AC-28): one terminal of the strip, created as `terminal.add` creates it (the strip's letter,
+  structure and the sequence number as counter; the next sequence number when `seq` is absent) with its main
+  function `{def: the symbol's FnDef}`, then placed.
 - Every hint creates a wire `{a: the hint's CP, b: to, page}` without a route; the hint's symbol CP is
   mapped to a function CP as the derived pin map does (`(functions[0], fn_cp)`); an unknown symbol CP
   is rejected. A hint ending at a junction appends the wire to the junction's sequence; a hint ending
@@ -22,6 +31,10 @@ target requires.
   reported as a notice instead of failing the command.
 - The effective `rep_type` must be one the page's type allows (doc 06 §2.2, `allowed_rep_types`);
   else the placement is rejected with the list of allowed types.
+
+Rejected besides: a missing part copy or template index; a template without exactly one main entry (a device
+has one main function); a template FnDef that is not embedded (embed it
+first); a strip that is not a strip; a designation or sequence number the strip uses already.
 
 Online numbering (normaliser #4) gives a new device its counter; a symbol dropped onto a wire splits it
 (normaliser #7). Outcome: the representation. Alias `symbol.place`.
@@ -148,6 +161,22 @@ One of the following forms:
    | Name | Type | Required | Default | Description |
    |---|---|---|---|---|
    | `join_device` | object { `device`: [`CmdUuid`](#cmduuid), `fndef?`: [`CmdUuid`](#cmduuid) or `null`, `role?`: [`FnRole`](#fnrole) } | yes |  |  |
+
+4. **Form 4**: A new device made from a part copy (part-first placement; FR-UI-017, FR-DEV-017, WP-S2.04 D9): the device `{tag: {letter, counter: none}, parts: [the part, quantity 1]}` and one function per entry of the part's `function_template`; the representation draws entry `template`, the others stay unplaced.
+
+   Shape: object { `from_part`: object { `letter`: [`CmdIdent`](#cmdident), `part`: [`CmdUuid`](#cmduuid), `template`: integer (format `uint16`, min 0, max 65535) } }
+
+   | Name | Type | Required | Default | Description |
+   |---|---|---|---|---|
+   | `from_part` | object { `letter`: [`CmdIdent`](#cmdident), `part`: [`CmdUuid`](#cmduuid), `template`: integer (format `uint16`, min 0, max 65535) } | yes |  |  |
+
+5. **Form 5**: One new terminal of an existing strip, created as `terminal.add` creates it and placed (`device.place` only; AC-28, WP-S2.04 D9).
+
+   Shape: object { `new_terminal`: object { `designation`: [`CmdIdent`](#cmdident), `seq?`: integer (format `uint32`, min 0) or `null`, `strip`: [`CmdUuid`](#cmduuid) } }
+
+   | Name | Type | Required | Default | Description |
+   |---|---|---|---|---|
+   | `new_terminal` | object { `designation`: [`CmdIdent`](#cmdident), `seq?`: integer (format `uint32`, min 0) or `null`, `strip`: [`CmdUuid`](#cmduuid) } | yes |  |  |
 
 ### CmdIdent
 

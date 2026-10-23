@@ -1,0 +1,37 @@
+{
+  "$defs": {
+    "Crossings": {
+      "description": "How crossing wires are drawn (FR-CON-031).",
+      "oneOf": [
+        {
+          "const": "plain",
+          "description": "Plain crossings (the default).",
+          "type": "string"
+        },
+        {
+          "const": "hops",
+          "description": "The wire of the rule hops over the other.",
+          "type": "string"
+        }
+      ]
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`project.drawing.set` (`SetDrawing`): writes the drawing settings `settings.extra.drawing` (doc 03 §5.1).\n\nThe given members are merged into the object: a value sets the member, `null` removes it; members of the\nobject this command does not know are kept. An object left empty is removed. `crossings` (`plain` or `hops`,\nFR-CON-031) chooses how crossing wires are drawn; absent means plain. Presentation only: no derived value\nchanges (the drawing of crossings reads it). Rejected: a `drawing` member of the project settings that is not an\nobject (a newer or damaged format; the command never overwrites it); an unknown value (invalid); no member\ngiven (invalid at the root). Interactive. Outcome: none.",
+  "properties": {
+    "crossings": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Crossings"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "How crossing wires are drawn: `plain` or `hops`; `null` removes the member (plain)."
+    }
+  },
+  "title": "project.drawing.set",
+  "type": "object"
+}

@@ -4,7 +4,7 @@
 
 A command is the one way to change a project (`Command` → `Transaction` → `Op`). The same command runs from the user interface, from a command log replayed by `ew apply`, from scripts and from the Session API. Each page below gives the command's registry entry, its parameters with types and constraints, and the exit codes of `ew apply`.
 
-43 commands, from the parameter schemas in [`crates/ew-commands/schemas`](https://github.com/Ironkode787/ElektraWatt/tree/main/crates/ew-commands/schemas). The catalogue of the command registry is [doc 17 §2.1](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md#21-command-registry).
+45 commands, from the parameter schemas in [`crates/ew-commands/schemas`](https://github.com/Ironkode787/ElektraWatt/tree/main/crates/ew-commands/schemas). The catalogue of the command registry is [doc 17 §2.1](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md#21-command-registry).
 
 | Command | Summary | Cost | Exposure | Stability |
 |---|---|---|---|---|
@@ -37,11 +37,13 @@ A command is the one way to change a project (`Command` → `Transaction` → `O
 | [`project.assets.purge`](project.assets.purge.md) | `project.assets.purge` (`PurgeAssets`): deletes the project's asset files (`assets/<sha256>.<ext>`) that nothing names (doc 05 §13.3, FT-380). | bulk | human_only | preview |
 | [`project.checks.set`](project.checks.set.md) | `project.checks.set` (`SetCheckSchemes`): names the project's check schemes (doc 03 §15 `CheckSettings`): the online scheme of the message panel (`active_scheme`, default `drafting`) and the scheme of the release gate and `ew check` (`release_scheme`, default `pre-delivery`, doc 15 §3.2). | interactive | human_only | preview |
 | [`project.company.set`](project.company.set.md) | `project.company.set` (`SetCompany`): sets the company of the project, the panel builder (doc 16 §9.2 step 1). | bulk | edit | preview |
+| [`project.drawing.set`](project.drawing.set.md) | `project.drawing.set` (`SetDrawing`): writes the drawing settings `settings.extra.drawing` (doc 03 §5.1). | interactive | edit | preview |
 | [`project.frames.set`](project.frames.set.md) | `project.frames.set` (`SetFrameDefaults`): sets the frame defaults of the project (doc 03 §5.1 `FrameDefaults`, FR-PAG-018): the frame form of a drawn page whose `form` is unset is the entry of its page type, else `default`; a section divider takes the entry of `section_divider`; generated report pages keep the form of their block. | bulk | edit | preview |
 | [`project.languages.set`](project.languages.set.md) | `project.languages.set` (`SetProjectLanguages`): sets the project's languages and its printed formats as one value, the four fields of the wizard's step 8 (doc 16 §9.2). | bulk | edit | preview |
 | [`project.settings.set`](project.settings.set.md) | `project.settings.set` (`SetProjectSettings`): sets one member of the project settings. | bulk | edit | preview |
 | [`project.supply.set`](project.supply.set.md) | `project.supply.set` (`SetProjectSupply`): sets one member of the project's supply; in v0 only its origin, the external reference the supply comes from ("J-E-206-L", doc 20 §4.2). | interactive | edit | preview |
-| [`rep.move`](rep.move.md) | moves representations by a delta, optionally to another page (doc 06 §3.4). Moves never change connectivity (FR-CON-004). | interactive | edit | preview |
+| [`rep.exchange_symbol`](rep.exchange_symbol.md) | `rep.exchange_symbol` (`ExchangeSymbol`, FR-SYM-022): the representation's `symbol` becomes `symbol`, `variant` 0, its orientation, position and functions kept. | interactive | edit | preview |
+| [`rep.move`](rep.move.md) | moves representations by a delta or by grid steps, optionally (by a delta) to another page (doc 06 §3.4, §5.7). Moves never change connectivity (FR-CON-004). | interactive | edit | preview |
 | [`rep.set_anchor_policy`](rep.set_anchor_policy.md) | sets the cross-reference anchor policy of representations (FR-SYM-010; the quick fix of MF-13, doc 07 §3.6). | interactive | edit | preview |
 | [`rep.transform`](rep.transform.md) | rotates, mirrors or changes the variant of representations about their insertion point (doc 06 §3.4). | interactive | edit | preview |
 | [`report_block.create`](report_block.create.md) | a report block (doc 03 §6, doc 09 §2.2). | interactive | edit | preview |

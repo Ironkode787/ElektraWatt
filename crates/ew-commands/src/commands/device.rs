@@ -10,16 +10,18 @@ use std::sync::Arc;
 use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
 use ew_schema::{
-    AnchorPolicy, BoxSpec, Connection, ConnectionKind, Device, DeviceAspects, DeviceKind, Endpoint, Extra,
-    FnDef, FnRole, Function, FunctionKind, Junction, JunctionStyle, Kind, LibCopy, NumberSpec, Page,
-    PageType, PartUse, RepType, Representation, Strip, StructureAssignment, SymbolDef, TagSpec,
+    AnchorPolicy, BoxSpec, Connection, ConnectionKind, ContactKind, Device, DeviceAspects, DeviceKind,
+    Endpoint, Extra, FnDef, FnRole, Function, FunctionKind, Junction, JunctionStyle, Kind, LibCopy,
+    NumberSpec, Page, PageType, Part, PartRef, PartUse, RepType, Representation, Strip, StructureAssignment,
+    SymbolDef, TagSpec,
 };
-use ew_units::{Orient2, Pt2};
+use ew_units::{Dec3, Grid, Nm, Orient2, Pt2};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::command::{Command, Outcome};
 use crate::commands::common::EndpointParam;
+use crate::commands::terminal::{TerminalSpec, insert_terminal, strip_usage};
 use crate::error::CmdError;
 use crate::geometry::{
     OutOfRange, add, follow_end, rep_cps_checked, require_on_grid, require_split_point, sub, translate,
@@ -143,6 +145,32 @@ pub enum PlaceTarget {
         #[serde(default = "aux")]
         role: FnRole,
     },
+    /// A new device made from a part copy (part-first placement; FR-UI-017, FR-DEV-017, WP-S2.04 D9): the device
+    /// `{tag: {letter, counter: none}, parts: [the part, quantity 1]}` and one function per entry of the part's
+    /// `function_template`; the representation draws entry `template`, the others stay unplaced.
+    FromPart {
+        /// The part copy.
+        #[schemars(with = "UuidS")]
+        part: Id<Part>,
+        /// The 0-based index of the template entry the representation draws.
+        template: u16,
+        /// The letter code of the new device.
+        #[schemars(with = "IdentS")]
+        letter: Ident,
+    },
+    /// One new terminal of an existing strip, created as `terminal.add` creates it and placed (`device.place`
+    /// only; AC-28, WP-S2.04 D9).
+    NewTerminal {
+        /// The strip device.
+        #[schemars(with = "UuidS")]
+        strip: Id<Device>,
+        /// The terminal's designation, unique within the strip.
+        #[schemars(with = "IdentS")]
+        designation: Ident,
+        /// The sequence number; default one more than the highest in the strip.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        seq: Option<u32>,
+    },
 }
 
 fn aux() -> FnRole {
@@ -171,6 +199,15 @@ pub struct ConnectHint {
 /// - `existing_function`: the function must exist and must not be an interruption point (`ip.place`).
 /// - `join_device`: a new function of the device with the given role (a second main function is rejected
 ///   by EW-INV-002).
+/// - `from_part` (FR-UI-017, FR-DEV-017): a device `{tag: {letter, counter: none}, parts: [the part, quantity
+///   1]}` and one function per entry of the part copy's `function_template`, in template order (def: the entry's
+///   FnDef copy, which must be embedded; role main for `main`, else auxiliary; kind `black_box` when the FnDef's
+///   contact kind is `black_box`, else normal; the CPs follow from the template, doc 03 §7); the representation
+///   draws entry `template`, the others stay unplaced. The symbol's FnDef must be entry `template`'s, and that
+///   entry must not be a black box (`box.black` places those).
+/// - `new_terminal` (AC-28): one terminal of the strip, created as `terminal.add` creates it (the strip's letter,
+///   structure and the sequence number as counter; the next sequence number when `seq` is absent) with its main
+///   function `{def: the symbol's FnDef}`, then placed.
 /// - Every hint creates a wire `{a: the hint's CP, b: to, page}` without a route; the hint's symbol CP is
 ///   mapped to a function CP as the derived pin map does (`(functions[0], fn_cp)`); an unknown symbol CP
 ///   is rejected. A hint ending at a junction appends the wire to the junction's sequence; a hint ending
@@ -180,6 +217,10 @@ pub struct ConnectHint {
 ///   reported as a notice instead of failing the command.
 /// - The effective `rep_type` must be one the page's type allows (doc 06 §2.2, `allowed_rep_types`);
 ///   else the placement is rejected with the list of allowed types.
+///
+/// Rejected besides: a missing part copy or template index; a template without exactly one main entry (a device
+/// has one main function); a template FnDef that is not embedded (embed it
+/// first); a strip that is not a strip; a designation or sequence number the strip uses already.
 ///
 /// Online numbering (normaliser #4) gives a new device its counter; a symbol dropped onto a wire splits it
 /// (normaliser #7). Outcome: the representation. Alias `symbol.place`.
@@ -256,6 +297,22 @@ impl Command for PlaceSymbol {
                 tx.require::<Device>(*device)?;
                 let def = place_fndef(tx, &symbol, *fndef)?;
                 insert_function(tx, Some(*device), def, role.clone())?
+            }
+            PlaceTarget::FromPart {
+                part,
+                template,
+                letter,
+            } => {
+                let symbol_def = place_fndef(tx, &symbol, None)?;
+                insert_from_part(tx, *part, *template, letter, PartEntry::Normal(symbol_def))?
+            }
+            PlaceTarget::NewTerminal {
+                strip,
+                designation,
+                seq,
+            } => {
+                let def = place_fndef(tx, &symbol, None)?;
+                insert_new_terminal(tx, *strip, designation, *seq, def)?
             }
         };
         let rep: Id<Representation> = tx.mint();
@@ -439,7 +496,7 @@ pub fn allowed_rep_types(page: &PageType) -> Option<&'static [RepType]> {
 
 /// Rejects a representation type the page's type does not allow, with the list of allowed types. An
 /// unknown representation type is not refused.
-fn check_rep_type(tx: &TxBuilder<'_>, page: &Page, rep_type: &RepType) -> Result<(), CmdError> {
+pub(crate) fn check_rep_type(tx: &TxBuilder<'_>, page: &Page, rep_type: &RepType) -> Result<(), CmdError> {
     let Some(allowed) = allowed_rep_types(&page.kind) else {
         return Ok(());
     };
@@ -465,18 +522,30 @@ fn zero() -> Pt2 {
     Pt2::ORIGIN
 }
 
-/// `rep.move`: moves representations by a delta, optionally to another page (doc 06 §3.4). Moves never
-/// change connectivity (FR-CON-004).
+/// `rep.move`: moves representations by a delta or by grid steps, optionally (by a delta) to another page (doc 06
+/// §3.4, §5.7). Moves never change connectivity (FR-CON-004).
 ///
-/// Every representation's `pos` moves by `delta`; with `page`, its `page` becomes `page`. Routes follow:
-/// for each connection with an endpoint CP drawn by a moved representation (a CP of one of its functions,
-/// the connection on the representation's old page), if both ends are drawn by moved representations
-/// the whole route translates by `delta`; otherwise the route end at the moved endpoint follows
-/// (`geometry::follow_end`: the end vertex moves by `delta`, its neighbour keeps the segment orthogonal).
-/// A cross-page move also moves every connection whose both ends move to the new page; a connection with
-/// only one end on a moved representation (or ending at a junction) is rejected, because the IP-pair
-/// replacement of FR-CON-043 is not in v0. Online numbering renumbers a main representation's device whose
-/// page-based tag collides on the new page (FR-NUM-029). Outcome: none. Coalesce one drag with a key.
+/// **By a delta.** Every representation's `pos` moves by `delta`; with `page`, its `page` becomes `page`. Routes
+/// follow: for each connection with an endpoint CP drawn by a moved representation (a CP of one of its functions,
+/// the connection on the representation's old page), if both ends are drawn by moved representations the whole
+/// route translates by `delta`; otherwise the route end at the moved endpoint follows (`geometry::follow_end`: the
+/// end vertex moves by `delta`, its neighbour keeps the segment orthogonal). A cross-page move also moves every
+/// connection whose both ends move to the new page; a connection with only one end on a moved representation (or
+/// ending at a junction) is rejected, because the IP-pair replacement of FR-CON-043 is not in v0. Online numbering
+/// renumbers a main representation's device whose page-based tag collides on the new page (FR-NUM-029).
+///
+/// **By grid steps** (`steps: [kx, ky]`, WP-S2.04 D13; what the canvas tools send). Each representation's position
+/// becomes the grid point at its grid index plus the steps, exactly, per axis (`Grid::at(Grid::snap(x) + k)`), so
+/// several representations stay on the grid even where a uniform nm delta cannot keep them there (the QET grid
+/// `7_937_500/3` nm). A representation whose position is not on the grid cannot be moved by steps (rejected, named).
+/// Routes follow: a connection with an end drawn by a moved representation has that end follow its CP's own
+/// displacement (`follow_end`); a connection with both ends moved keeps its shape vertex by vertex: an end vertex
+/// becomes its CP's new position, an interior coordinate equal to the old coordinate of an end CP moves with that
+/// CP, a coordinate on the grid moves by the same number of steps, and any other coordinate (the router of FT-18
+/// re-solves those later) by `round_half_away(k × num / den)` on that axis. `steps` is exclusive with a non-zero
+/// `delta` and with `page`: the tools never move across pages, and a script's cross-page move keeps `delta`.
+///
+/// Outcome: none. Coalesce one drag with a key.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct MoveReps {
@@ -491,6 +560,180 @@ pub struct MoveReps {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<UuidS>")]
     pub page: Option<Id<Page>>,
+    /// Grid steps `[kx, ky]` on the page's connection grid, instead of `delta` (WP-S2.04 D13).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub steps: Option<[i64; 2]>,
+}
+
+/// `round(k × num / den)`, halves away from zero, saturating (the nm length of `k` grid steps).
+fn steps_nm(grid: Grid, k: i64) -> i64 {
+    let num = i128::from(k) * i128::from(grid.num());
+    let den = i128::from(grid.den());
+    let q = num / den;
+    let r = num % den;
+    let v = if 2 * r.abs() >= den { q + num.signum() } else { q };
+    i64::try_from(v).unwrap_or(if v < 0 { i64::MIN } else { i64::MAX })
+}
+
+/// The grid position `k` steps from the grid position `x`; `None` on overflow.
+fn step_axis(grid: Grid, x: Nm, k: i64) -> Option<Nm> {
+    grid.at(grid.snap(x).checked_add(k)?)
+}
+
+impl MoveReps {
+    /// The step move (see the type's documentation).
+    fn run_steps(&self, tx: &mut TxBuilder<'_>, steps: [i64; 2]) -> Result<Outcome, CmdError> {
+        if self.delta != Pt2::ORIGIN {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/steps",
+                "give either `steps` or a non-zero `delta`, not both",
+            ));
+        }
+        if self.page.is_some() {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/steps",
+                "a move to another page takes `delta`; `steps` moves on the representations' own page",
+            ));
+        }
+        let ids: BTreeSet<Id<Representation>> = self.reps.iter().copied().collect();
+        let mut reps: Vec<Arc<Representation>> = Vec::new();
+        let mut moved: Vec<Representation> = Vec::new();
+        // The displacement of every moved representation, by ID.
+        let mut shift: BTreeMap<Id<Representation>, Pt2> = BTreeMap::new();
+        for id in &ids {
+            let rep = tx.require::<Representation>(*id)?;
+            let grid = tx.require::<Page>(rep.page)?.grid;
+            if !crate::geometry::point_on_grid(grid, rep.pos) {
+                return tx.reject(format!(
+                    "representation {id} at [{}, {}] is not on the connection grid of its page, so it cannot be \
+                     moved by grid steps; move it onto the grid with `delta` first",
+                    rep.pos.x.0, rep.pos.y.0
+                ));
+            }
+            let (Some(x), Some(y)) = (
+                step_axis(grid, rep.pos.x, steps[0]),
+                step_axis(grid, rep.pos.y, steps[1]),
+            ) else {
+                return tx.reject(format!(
+                    "`/steps` moves representation {id} outside the drawable range; move it less far"
+                ));
+            };
+            let mut next = (*rep).clone();
+            next.pos = Pt2::new(x, y);
+            require_on_grid(tx, next.page, next.pos, "/steps")?;
+            if rep_cps_checked(tx, &next).is_err() {
+                return tx.reject(format!(
+                    "`/steps` moves a connection point of representation {id} outside the drawable range; move \
+                     it less far"
+                ));
+            }
+            let Ok(d) = sub(next.pos, rep.pos) else {
+                return tx.reject(format!("`/steps` moves representation {id} too far"));
+            };
+            shift.insert(*id, d);
+            reps.push(rep);
+            moved.push(next);
+        }
+        let mut connections: BTreeSet<Id<Connection>> = BTreeSet::new();
+        for rep in &reps {
+            for f in drawn_functions(rep) {
+                connections.extend(tx.connections_of_function(f));
+            }
+        }
+        // The moved representation drawing an endpoint CP on `page`, with its displacement and the CP's old point.
+        let end_of = |tx: &TxBuilder<'_>, e: &Endpoint, page: Id<Page>| -> Option<(Pt2, Pt2)> {
+            let Endpoint::Cp(f, idx) = e else { return None };
+            reps.iter()
+                .filter(|r| r.page == page && drawn_functions(r).contains(f))
+                .find_map(|r| {
+                    let at = crate::geometry::rep_cps(tx, r)
+                        .into_iter()
+                        .find(|c| c.function == *f && c.idx == *idx)?
+                        .pos;
+                    Some((shift[&r.id], at))
+                })
+        };
+        let mut changed: Vec<Connection> = Vec::new();
+        for cid in connections {
+            let c = tx.require::<Connection>(cid)?;
+            let Some(page) = c.page else {
+                continue;
+            };
+            let (a, b) = (end_of(tx, &c.a, page), end_of(tx, &c.b, page));
+            if a.is_none() && b.is_none() {
+                continue;
+            }
+            let grid = tx.require::<Page>(page)?.grid;
+            let mut next = (*c).clone();
+            let followed = match (a, b) {
+                (Some((da, pa)), Some((db, pb))) => {
+                    step_route(&mut next.route, grid, steps, (da, pa), (db, pb))
+                }
+                (Some((da, _)), None) => follow_end(&mut next.route, true, da),
+                (None, Some((db, _))) => follow_end(&mut next.route, false, db),
+                (None, None) => Ok(()),
+            };
+            if followed.is_err() {
+                return tx.reject(format!(
+                    "`/steps` moves the route of connection {cid} outside the drawable range; move it less far"
+                ));
+            }
+            changed.push(next);
+        }
+        for c in changed {
+            tx.put(c);
+        }
+        for rep in moved {
+            tx.put(rep);
+        }
+        Ok(Outcome::default())
+    }
+}
+
+/// The route of a connection whose both ends move by grid steps (see [`MoveReps`]): the end vertices become their
+/// CPs' new positions; an interior coordinate equal to an end CP's old coordinate moves with that CP (end `a`
+/// first), one on the grid by the steps, any other by the steps' rounded nm length. On [`OutOfRange`] the route is
+/// unchanged.
+fn step_route(
+    route: &mut [Pt2],
+    grid: Grid,
+    steps: [i64; 2],
+    a: (Pt2, Pt2),
+    b: (Pt2, Pt2),
+) -> Result<(), OutOfRange> {
+    let n = route.len();
+    let axis = |x: Nm, k: i64, ca: Nm, da: Nm, cb: Nm, db: Nm| -> Result<Nm, OutOfRange> {
+        let v = if x == ca {
+            x.0.checked_add(da.0)
+        } else if x == cb {
+            x.0.checked_add(db.0)
+        } else if crate::geometry::on_grid(grid, x) {
+            step_axis(grid, x, k).map(|v| v.0)
+        } else {
+            x.0.checked_add(steps_nm(grid, k))
+        };
+        v.map(Nm)
+            .filter(|v| crate::geometry::in_range(*v))
+            .ok_or(OutOfRange)
+    };
+    let mut next = Vec::with_capacity(n);
+    for (i, v) in route.iter().enumerate() {
+        let p = if i == 0 && v.x == a.1.x && v.y == a.1.y {
+            add(*v, a.0)?
+        } else if i + 1 == n && v.x == b.1.x && v.y == b.1.y {
+            add(*v, b.0)?
+        } else {
+            Pt2::new(
+                axis(v.x, steps[0], a.1.x, a.0.x, b.1.x, b.0.x)?,
+                axis(v.y, steps[1], a.1.y, a.0.y, b.1.y, b.0.y)?,
+            )
+        };
+        next.push(p);
+    }
+    route.copy_from_slice(&next);
+    Ok(())
 }
 
 impl Command for MoveReps {
@@ -503,6 +746,9 @@ impl Command for MoveReps {
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         if self.reps.is_empty() {
             return tx.reject("give at least one representation to move");
+        }
+        if let Some(steps) = self.steps {
+            return self.run_steps(tx, steps);
         }
         let target_page = match self.page {
             Some(page) => Some(tx.require::<Page>(page)?),
@@ -787,7 +1033,9 @@ impl Command for SetAnchorPolicy {
 ///   `{tag: {letter, counter: none}, kind}` and its main black-box function; `join_device` a black-box
 ///   function of the device with the given role (default auxiliary; a second main function is rejected by
 ///   EW-INV-002); `existing_function` another representation of an existing function, which must be of kind
-///   `black_box` (else rejected with a hint to use `device.place`).
+///   `black_box` (else rejected with a hint to use `device.place`); `from_part` the device and every template
+///   function of the part as in `device.place`, the representation drawing entry `template`, which must be a
+///   black box; `new_terminal` is invalid here.
 /// - The black box's CPs are derived, not stored on the function: the part's CP pattern (the
 ///   template-origin rule of doc 03 §7) or the box CPs.
 ///
@@ -883,6 +1131,18 @@ impl Command for PlaceBlackBox {
                 let def = place_fndef(tx, &symbol, *fndef)?;
                 insert_function_of_kind(tx, Some(*device), def, role.clone(), FunctionKind::BlackBox)?
             }
+            PlaceTarget::FromPart {
+                part,
+                template,
+                letter,
+            } => insert_from_part(tx, *part, *template, letter, PartEntry::BlackBox)?,
+            PlaceTarget::NewTerminal { .. } => {
+                return Err(CmdError::invalid_params(
+                    Self::NAME,
+                    "/target/new_terminal",
+                    "a black box is no terminal; place a terminal with `device.place`",
+                ));
+            }
         };
         let rep: Id<Representation> = tx.mint();
         let record = Representation {
@@ -974,6 +1234,165 @@ fn insert_function_of_kind(
         source_ref: None,
         extra: Extra::new(),
     })
+}
+
+/// What the placed entry of a `from_part` target must be.
+enum PartEntry {
+    /// A normal function whose FnDef is the symbol's.
+    Normal(Id<FnDef>),
+    /// A black box (`box.black`).
+    BlackBox,
+}
+
+/// The device and template functions of a `from_part` target (see [`PlaceSymbol`]): returns the function of entry
+/// `template`. Checks everything before it writes.
+fn insert_from_part(
+    tx: &mut TxBuilder<'_>,
+    part: Id<Part>,
+    template: u16,
+    letter: &Ident,
+    placed: PartEntry,
+) -> Result<Id<Function>, CmdError> {
+    let copy = tx.require::<LibCopy<Part>>(part)?;
+    let number = copy.item.part_number.as_str().to_owned();
+    let entries = copy.item.function_template.clone();
+    if entries.is_empty() {
+        return tx.reject(format!(
+            "part {number} has no function template; place a symbol with a `new_device` target"
+        ));
+    }
+    if usize::from(template) >= entries.len() {
+        return tx.reject(format!(
+            "part {number} has no template entry {template}; it has {} (0 to {})",
+            entries.len(),
+            entries.len() - 1
+        ));
+    }
+    // Every entry's FnDef must be embedded; the kinds follow their contact kinds.
+    let mut defs: Vec<(Id<FnDef>, FunctionKind)> = Vec::new();
+    for (i, e) in entries.iter().enumerate() {
+        let def: Id<FnDef> = ew_ids::v5::lib_copy_id(e.fndef.library.as_uuid(), e.fndef.item.as_uuid());
+        let Some(fndef) = tx.get::<LibCopy<FnDef>>(def) else {
+            return tx.reject(format!(
+                "the function definition of template entry {i} of part {number} is not embedded in the project; \
+                 embed it first (`library.embed`)"
+            ));
+        };
+        let kind = if fndef.item.contact_kind == ContactKind::BlackBox {
+            FunctionKind::BlackBox
+        } else {
+            FunctionKind::Normal
+        };
+        defs.push((def, kind));
+    }
+    // A device has exactly one main function (EW-INV-002): a template without or with several main entries is
+    // refused here, naming the part, rather than by the invariant at the end of the transaction.
+    let mains = entries.iter().filter(|e| e.main).count();
+    if mains != 1 {
+        return tx.reject(format!(
+            "the function template of part {number} has {mains} main entries; a device made from it needs \
+             exactly one"
+        ));
+    }
+    let (def, kind) = defs[usize::from(template)].clone();
+    match placed {
+        PartEntry::Normal(symbol_def) => {
+            if kind == FunctionKind::BlackBox {
+                return tx.reject(format!(
+                    "template entry {template} of part {number} is a black box; place it with `box.black`"
+                ));
+            }
+            if symbol_def != def {
+                return tx.reject(format!(
+                    "the symbol draws another function definition than template entry {template} of part \
+                     {number}; pick a symbol of that entry's function definition"
+                ));
+            }
+        }
+        PartEntry::BlackBox => {
+            if kind != FunctionKind::BlackBox {
+                return tx.reject(format!(
+                    "template entry {template} of part {number} is not a black box; place it with `device.place`"
+                ));
+            }
+        }
+    }
+    let device: Id<Device> = tx.mint();
+    tx.insert(Device {
+        id: device,
+        v: 1,
+        tag: TagSpec::new(letter.clone(), None),
+        kind: None,
+        parent: None,
+        position: None,
+        structure: StructureAssignment::default(),
+        parts: vec![PartUse {
+            part: PartRef {
+                copy: part,
+                variant: None,
+                extra: Extra::new(),
+            },
+            qty: Dec3::ONE,
+            extra: Extra::new(),
+        }],
+        function_text: MlText::default(),
+        process_tag: None,
+        tech_data: Default::default(),
+        state: Default::default(),
+        source_ref: None,
+        aspects: DeviceAspects::default(),
+        extra: Extra::new(),
+    })?;
+    let mut placed_fn = None;
+    for (i, (e, (def, kind))) in entries.iter().zip(defs).enumerate() {
+        let role = if e.main { FnRole::Main } else { FnRole::Aux };
+        let f = insert_function_of_kind(tx, Some(device), def, role, kind)?;
+        if i == usize::from(template) {
+            placed_fn = Some(f);
+        }
+    }
+    placed_fn.ok_or_else(|| CmdError::internal("the template entry was not created"))
+}
+
+/// The terminal of a `new_terminal` target (see [`PlaceSymbol`]): returns its main function.
+fn insert_new_terminal(
+    tx: &mut TxBuilder<'_>,
+    strip_id: Id<Device>,
+    designation: &Ident,
+    seq: Option<u32>,
+    def: Id<FnDef>,
+) -> Result<Id<Function>, CmdError> {
+    let strip = tx.require::<Device>(strip_id)?;
+    if strip.aspects.strip.is_none() {
+        return tx.reject("the device is not a terminal strip; pick a device with the strip aspect");
+    }
+    let (designations, seqs) = strip_usage(tx, strip_id);
+    if designations.contains(designation) {
+        return tx.reject(format!(
+            "designation {} is already used in the strip; choose another",
+            designation.as_str()
+        ));
+    }
+    let seq = match seq {
+        Some(seq) => {
+            if seqs.contains(&seq) {
+                return tx.reject(format!(
+                    "sequence number {seq} is already used in the strip; choose another"
+                ));
+            }
+            seq
+        }
+        None => seqs.last().copied().unwrap_or(0).saturating_add(1),
+    };
+    let spec = TerminalSpec {
+        designation: designation.clone(),
+        seq: Some(seq),
+        function_text: MlText::default(),
+        levels: Vec::new(),
+        rail_bonded: false,
+    };
+    let (_, function) = insert_terminal(tx, strip_id, &strip, def, &spec, seq)?;
+    Ok(function)
 }
 
 /// Inserts the device of a `new_device` placement target: `{tag: {letter, counter: none}, kind}`.

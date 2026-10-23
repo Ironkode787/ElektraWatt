@@ -19,6 +19,7 @@ use ew_schema::Kind;
 /// `rep.move` of `REP_102F2` by `dx` millimetres times ten.
 fn mv(dx: i64) -> MoveReps {
     MoveReps {
+        steps: None,
         reps: vec![REP_102F2],
         delta: pt(dx * G, 0),
         page: None,
@@ -231,6 +232,7 @@ fn a_failed_command_leaves_the_history_alone() {
     let mut e = engine(golden_model());
     moves(&mut e, 1);
     let bad = MoveReps {
+        steps: None,
         reps: vec![],
         delta: pt(0, 0),
         page: None,

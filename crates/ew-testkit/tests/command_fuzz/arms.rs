@@ -18,7 +18,7 @@
 
 use serde_json::{Value, json};
 
-use super::live::{Live, PageInfo, id_json, id_text};
+use super::live::{Live, PageInfo, PartTemplate, StripInfo, SymInfo, id_json, id_text};
 use super::rng::SplitMix64;
 use super::step::{Step, Table, typed};
 
@@ -184,6 +184,11 @@ pub const ARMS: &[Arm] = &[
         build: project_company_set,
     },
     Arm {
+        command: "project.drawing.set",
+        weight: 1,
+        build: project_drawing_set,
+    },
+    Arm {
         command: "project.frames.set",
         weight: 1,
         build: project_frames_set,
@@ -202,6 +207,11 @@ pub const ARMS: &[Arm] = &[
         command: "project.supply.set",
         weight: 2,
         build: project_supply_set,
+    },
+    Arm {
+        command: "rep.exchange_symbol",
+        weight: 3,
+        build: rep_exchange_symbol,
     },
     Arm {
         command: "rep.move",
@@ -298,6 +308,48 @@ fn letter(rng: &mut SplitMix64) -> &'static str {
 
 fn rep_move(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let rep = rng.pick(&live.reps)?.clone();
+    match rng.below(8) {
+        // Refused: grid steps beside a non-zero delta.
+        0 => {
+            let p = json!({"reps": [rep], "delta": [MOVE_UNIT, 0], "steps": [1, 0]});
+            return Some(Step::cmd("rep.move", p).refuse());
+        }
+        // Refused: grid steps with a target page (a move to another page takes a delta).
+        1 => {
+            let page = rng.pick(&live.pages)?;
+            let p = json!({"reps": [rep], "steps": [1, -1], "page": page});
+            return Some(Step::cmd("rep.move", p).refuse());
+        }
+        // Grid steps: the representation lands on the grid point at its grid index plus the steps. Either: a
+        // representation off the grid, or a route that cannot follow, is refused.
+        2 | 3 => {
+            let steps = [rng.range(-2, 2), rng.range(-2, 2)];
+            let rep_id = rep.clone();
+            return Some(
+                Step::cmd("rep.move", json!({"reps": [rep], "steps": steps})).check(move |before, after| {
+                    let id = typed(&rep_id).ok_or("a rep ID")?;
+                    let (Some(b), Some(a)) = (before.reps().get(id), after.reps().get(id)) else {
+                        return Err("the moved representation disappeared".into());
+                    };
+                    let grid = after
+                        .pages()
+                        .get(a.page)
+                        .ok_or("the page of the representation")?
+                        .grid;
+                    let at = |x: ew_units::Nm, k: i64| grid.at(grid.snap(x) + k);
+                    if a.page == b.page
+                        && Some(a.pos.x) == at(b.pos.x, steps[0])
+                        && Some(a.pos.y) == at(b.pos.y, steps[1])
+                    {
+                        Ok(())
+                    } else {
+                        Err("the representation is not at its grid index plus the steps".into())
+                    }
+                }),
+            );
+        }
+        _ => {}
+    }
     let (mut k, mut m) = (rng.range(-2, 2), rng.range(-2, 2));
     if k == 0 && m == 0 {
         k = 1;
@@ -371,6 +423,103 @@ fn rep_transform(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                         .then_some(())
                         .ok_or_else(|| "a transform moved the insertion point or the page".to_owned())
                 }),
+            )
+        }
+    }
+}
+
+fn rep_exchange_symbol(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let rep = rng.pick(&live.rep_infos)?;
+    let fits_page = |s: &&SymInfo| allowed(&rep.page_kind).contains(&s.rep_type.as_str());
+    match rng.below(12) {
+        // Refused: the representation does not exist.
+        0 => {
+            let symbol = rng.pick(&live.symbols)?;
+            let p = json!({"rep": rng.uuid(), "symbol": symbol.id});
+            Some(Step::cmd("rep.exchange_symbol", p).refuse())
+        }
+        // Refused: the symbol does not exist.
+        1 => Some(
+            Step::cmd(
+                "rep.exchange_symbol",
+                json!({"rep": rep.id, "symbol": rng.uuid()}),
+            )
+            .refuse(),
+        ),
+        // Refused: an interruption point keeps its symbol.
+        2 => {
+            let ips: Vec<_> = live.rep_infos.iter().filter(|r| r.ip).collect();
+            let ip = *rng.pick(&ips)?;
+            let symbol = rng.pick(&live.symbols)?;
+            Some(Step::cmd("rep.exchange_symbol", json!({"rep": ip.id, "symbol": symbol.id})).refuse())
+        }
+        // Refused: a representation type the page does not allow.
+        3 => {
+            let wrong: Vec<_> = live.symbols.iter().filter(|s| !fits_page(s)).collect();
+            let symbol = *rng.pick(&wrong)?;
+            Some(Step::cmd("rep.exchange_symbol", json!({"rep": rep.id, "symbol": symbol.id})).refuse())
+        }
+        // Refused: an explicit CP map that names a symbol CP the symbol does not have.
+        4 => {
+            let symbol = rng.pick(&live.symbols)?;
+            let p = json!({"rep": rep.id, "symbol": symbol.id,
+                "pin_map": [{"symbol_cp": 60_000, "function_cp": 0}]});
+            Some(Step::cmd("rep.exchange_symbol", p).refuse())
+        }
+        // Refused: an explicit CP map that maps a symbol CP twice.
+        5 => {
+            let symbol = rng.pick(&live.symbols)?;
+            let p = json!({"rep": rep.id, "symbol": symbol.id,
+                "pin_map": [{"symbol_cp": 0, "function_cp": 0}, {"symbol_cp": 0, "function_cp": 1}]});
+            Some(Step::cmd("rep.exchange_symbol", p).refuse())
+        }
+        // The symbol of another function definition or of the same one. Either: a connected function CP that the
+        // new symbol does not draw, and a symbol CP that has no counterpart by designation, are refused (the
+        // generator does not model the CPs).
+        _ => {
+            if rep.ip {
+                return None;
+            }
+            let any: Vec<&SymInfo> = live.symbols.iter().filter(fits_page).collect();
+            let same: Vec<&SymInfo> = any
+                .iter()
+                .copied()
+                .filter(|s| s.fndef.as_ref() == Some(&rep.fndef))
+                .collect();
+            let symbol = if rng.chance(3) || same.is_empty() {
+                *rng.pick(&any)?
+            } else {
+                *rng.pick(&same)?
+            };
+            let mut p = json!({"rep": rep.id, "symbol": symbol.id});
+            if rng.chance(5) {
+                let cp = rng.pick(&symbol.cps)?;
+                p["pin_map"] = json!([{"symbol_cp": cp, "function_cp": 0}]);
+            }
+            let (rep_id, symbol_id) = (rep.id.clone(), symbol.id.clone());
+            Some(
+                Step::cmd("rep.exchange_symbol", p)
+                    .counts(&[
+                        (Table::Reps, 0),
+                        (Table::Functions, 0),
+                        (Table::Devices, 0),
+                        (Table::Connections, 0),
+                    ])
+                    .check(move |before, after| {
+                        let id = typed(&rep_id).ok_or("a rep ID")?;
+                        let new = typed(&symbol_id).ok_or("a symbol ID")?;
+                        let (Some(b), Some(a)) = (before.reps().get(id), after.reps().get(id)) else {
+                            return Err("the representation disappeared".into());
+                        };
+                        (a.symbol == new
+                            && a.variant == 0
+                            && (a.pos, a.orient, a.page) == (b.pos, b.orient, b.page)
+                            && a.functions == b.functions)
+                            .then_some(())
+                            .ok_or_else(|| {
+                                "the representation is not the old one with the new symbol".to_owned()
+                            })
+                    }),
             )
         }
     }
@@ -890,10 +1039,50 @@ fn on_page(page: &PageInfo, rng: &mut SplitMix64) -> Value {
     Live::grid_pos(page, rng.range(2, 38), rng.range(2, 24))
 }
 
+/// A part copy whose function-template entries are all embedded and that has exactly one main entry (`one_main`; or
+/// does not), with one of its entries that is a black box (or not) and that entry's function-definition copy.
+fn template_entry<'a>(
+    live: &'a Live,
+    rng: &mut SplitMix64,
+    black: bool,
+    one_main: bool,
+) -> Option<(&'a PartTemplate, usize, &'a Value)> {
+    let candidates: Vec<(&PartTemplate, usize)> = live
+        .part_templates
+        .iter()
+        .filter(|t| t.entries.iter().all(Option::is_some) && (t.mains == 1) == one_main)
+        .flat_map(|t| {
+            t.entries
+                .iter()
+                .enumerate()
+                .filter(move |(_, e)| e.as_ref().is_some_and(|(_, bb)| *bb == black))
+                .map(move |(i, _)| (t, i))
+        })
+        .collect();
+    let (t, i) = *rng.pick(&candidates)?;
+    let (fndef, _) = t.entries[i].as_ref()?;
+    Some((t, i, fndef))
+}
+
+/// A designation that no terminal of the strip has.
+fn fresh_designation(strip: &StripInfo, rng: &mut SplitMix64) -> String {
+    loop {
+        let d = format!("Z{}", rng.below(10_000));
+        if !strip.terminals.iter().any(|(_, t)| *t == d) {
+            break d;
+        }
+    }
+}
+
+/// The `from_part` target of a part copy's entry.
+fn from_part_target(part: &Value, template: usize, letter: &str) -> Value {
+    json!({"from_part": {"part": part, "template": template, "letter": letter}})
+}
+
 fn device_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let pages = pages_taking_reps(live);
     let page = *rng.pick(&pages)?;
-    let fits: Vec<_> = live
+    let fits: Vec<&SymInfo> = live
         .symbols
         .iter()
         .filter(|s| allowed(&page.kind).contains(&s.rep_type.as_str()))
@@ -901,7 +1090,147 @@ fn device_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let symbol = *rng.pick(&fits)?;
     let pos = on_page(page, rng);
     let base = |target: Value| json!({"page": page.id, "symbol": symbol.id, "pos": pos, "target": target});
-    match rng.below(20) {
+    match rng.below(26) {
+        // A new device made from a part copy (FR-UI-017): a function per template entry, the placed entry drawn.
+        20 => {
+            let (t, i, fndef) = template_entry(live, rng, false, true)?;
+            let same: Vec<&SymInfo> = fits
+                .iter()
+                .copied()
+                .filter(|s| s.fndef.as_ref() == Some(fndef))
+                .collect();
+            let symbol = *rng.pick(&same)?;
+            let mut p = base(from_part_target(&t.part, i, letter(rng)));
+            p["symbol"] = symbol.id.clone();
+            let entries = isize::try_from(t.entries.len()).unwrap_or(1);
+            Some(Step::cmd("device.place", p).accept().counts(&[
+                (Table::Reps, 1),
+                (Table::Functions, entries),
+                (Table::Devices, 1),
+                (Table::Connections, 0),
+            ]))
+        }
+        // Refused: a `from_part` target that cannot be made.
+        21 => {
+            let target = match rng.below(6) {
+                // The part copy does not exist.
+                0 => from_part_target(&json!(rng.uuid()), 0, "K"),
+                // A template index out of range.
+                1 => {
+                    let t = rng.pick(&live.part_templates)?;
+                    from_part_target(&t.part, t.entries.len() + rng.below(3), "K")
+                }
+                // A black-box entry belongs to `box.black`.
+                2 => {
+                    let (t, i, _) = template_entry(live, rng, true, true)?;
+                    from_part_target(&t.part, i, "K")
+                }
+                // The symbol draws another function definition than the entry's.
+                3 => {
+                    let (t, i, fndef) = template_entry(live, rng, false, true)?;
+                    let other: Vec<&SymInfo> = fits
+                        .iter()
+                        .copied()
+                        .filter(|s| s.fndef.as_ref() != Some(fndef))
+                        .collect();
+                    let other = *rng.pick(&other)?;
+                    let mut p = base(from_part_target(&t.part, i, "K"));
+                    p["symbol"] = other.id.clone();
+                    return Some(Step::cmd("device.place", p).refuse());
+                }
+                // A template entry whose function definition the project does not embed.
+                4 => {
+                    let t = live
+                        .part_templates
+                        .iter()
+                        .find(|t| t.entries.iter().any(Option::is_none))?;
+                    from_part_target(&t.part, 0, "K")
+                }
+                // A template without exactly one main entry: the device would not have exactly one main function
+                // (EW-INV-002), so the invariant refuses it.
+                _ => {
+                    let (t, i, _) = template_entry(live, rng, false, false)?;
+                    from_part_target(&t.part, i, "K")
+                }
+            };
+            Some(Step::cmd("device.place", base(target)).refuse())
+        }
+        // A new terminal of a strip (AC-28), drawn with a terminal symbol.
+        22 | 23 => {
+            let strip = rng.pick(&live.strip_infos)?;
+            let terminal = live.term_fndef.as_ref()?;
+            let same: Vec<&SymInfo> = fits
+                .iter()
+                .copied()
+                .filter(|s| s.fndef.as_ref() == Some(terminal))
+                .collect();
+            let symbol = *rng.pick(&same)?;
+            let designation = fresh_designation(strip, rng);
+            let mut target = json!({"strip": strip.id, "designation": designation});
+            let mut seq = None;
+            if rng.chance(3) {
+                let highest = strip.seqs.iter().next_back().copied().unwrap_or(0);
+                let next = highest + 1 + u32::try_from(rng.below(4)).unwrap_or(0);
+                target["seq"] = json!(next);
+                seq = Some(next);
+            }
+            let mut p = base(json!({"new_terminal": target}));
+            p["symbol"] = symbol.id.clone();
+            let strip_id = strip.id.clone();
+            Some(
+                Step::cmd("device.place", p)
+                    .accept()
+                    .counts(&[
+                        (Table::Reps, 1),
+                        (Table::Functions, 1),
+                        (Table::Devices, 1),
+                        (Table::Connections, 0),
+                    ])
+                    .check(move |before, after| {
+                        let strip = typed(&strip_id).ok_or("a strip ID")?;
+                        let have = |q: &ew_derive::Q| -> std::collections::BTreeMap<String, u32> {
+                            q.idx()
+                                .terminals_of_strip(strip)
+                                .filter_map(|t| q.devices().get(t).and_then(|d| d.aspects.terminal.clone()))
+                                .map(|t| (t.designation.as_str().to_owned(), t.seq))
+                                .collect()
+                        };
+                        let (b, a) = (have(before), have(after));
+                        let new = a
+                            .get(&designation)
+                            .ok_or("the new terminal is not in the strip")?;
+                        let want = seq.unwrap_or(b.values().max().copied().unwrap_or(0) + 1);
+                        (*new == want && a.len() == b.len() + 1)
+                            .then_some(())
+                            .ok_or_else(|| {
+                                format!("the new terminal has sequence number {new}, expected {want}")
+                            })
+                    }),
+            )
+        }
+        // Refused: a `new_terminal` target that cannot be made.
+        24 | 25 => {
+            let strip = rng.pick(&live.strip_infos)?;
+            let target = match rng.below(3) {
+                // A designation the strip has.
+                0 => {
+                    let (_, d) = rng.pick(&strip.terminals)?;
+                    json!({"strip": strip.id, "designation": d})
+                }
+                // Not a strip.
+                1 => {
+                    let d = rng.pick(&live.plain_devices)?;
+                    json!({"strip": d, "designation": "Z1"})
+                }
+                // A sequence number the strip has.
+                _ => {
+                    let seqs: Vec<u32> = strip.seqs.iter().copied().collect();
+                    let seq = *rng.pick(&seqs)?;
+                    json!({"strip": strip.id, "designation": fresh_designation(strip, rng), "seq": seq})
+                }
+            };
+            Some(Step::cmd("device.place", base(json!({"new_terminal": target}))).refuse())
+        }
         // Refused: the page does not exist.
         18 => {
             let mut p = base(json!({"new_device": {"letter": "K"}}));
@@ -1064,7 +1393,38 @@ fn box_black(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let n = i64::try_from(page.grid.0).unwrap_or(1);
     let target = json!({"new_device": {"letter": "A", "fndef": def}});
     let mut p = json!({"page": page.id, "symbol": symbol, "pos": on_page(page, rng), "target": target});
-    match rng.below(10) {
+    match rng.below(15) {
+        // Refused: a template without exactly one main entry (EW-INV-002: the device needs exactly one main
+        // function).
+        14 => {
+            let (t, i, _) = template_entry(live, rng, true, false)?;
+            p["target"] = from_part_target(&t.part, i, "A");
+            Some(Step::cmd("box.black", p).refuse())
+        }
+        // A black-box entry of a part copy: the device with a function per template entry, the entry drawn.
+        10 | 11 => {
+            let (t, i, _) = template_entry(live, rng, true, true)?;
+            p["target"] = from_part_target(&t.part, i, "A");
+            let entries = isize::try_from(t.entries.len()).unwrap_or(1);
+            Some(Step::cmd("box.black", p).accept().counts(&[
+                (Table::Reps, 1),
+                (Table::Functions, entries),
+                (Table::Devices, 1),
+            ]))
+        }
+        // Refused: an entry that is no black box belongs to `device.place`.
+        12 => {
+            let (t, i, _) = template_entry(live, rng, false, true)?;
+            p["target"] = from_part_target(&t.part, i, "A");
+            Some(Step::cmd("box.black", p).refuse())
+        }
+        // Refused: a black box is no terminal.
+        13 => {
+            let strip = rng.pick(&live.strip_infos)?;
+            p["target"] =
+                json!({"new_terminal": {"strip": strip.id, "designation": fresh_designation(strip, rng)}});
+            Some(Step::cmd("box.black", p).refuse())
+        }
         // Refused: an outline of fewer than three points.
         0 => {
             p["box"] = json!({"outline": [[0, 0], [4 * n, 0]]});
@@ -2569,6 +2929,43 @@ fn project_company_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 }
 
 /// The page types a frame-defaults entry may name (every type but `report`).
+fn project_drawing_set(_live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    match rng.below(8) {
+        // Refused: no member given.
+        0 => Some(Step::cmd("project.drawing.set", json!({})).refuse()),
+        // Refused: an unknown value, a value of the wrong type, an unknown member.
+        1 => Some(Step::cmd("project.drawing.set", json!({"crossings": "loops"})).refuse()),
+        2 => Some(Step::cmd("project.drawing.set", json!({"crossings": rng.below(9)})).refuse()),
+        3 => Some(
+            Step::cmd(
+                "project.drawing.set",
+                json!({"crossings": "hops", "shadows": true}),
+            )
+            .refuse(),
+        ),
+        _ => {
+            let value = [json!("plain"), json!("hops"), Value::Null][rng.below(3)].clone();
+            let want = value.clone();
+            Some(
+                Step::cmd("project.drawing.set", json!({"crossings": value}))
+                    .accept()
+                    .check(move |_, after| {
+                        let drawing = after.project().settings.extra.get("drawing").cloned();
+                        let crossings = drawing.as_ref().and_then(|d| d.get("crossings")).cloned();
+                        match (&want, &crossings, &drawing) {
+                            (Value::Null, None, None) => Ok(()),
+                            (Value::Null, None, Some(Value::Object(m))) if !m.is_empty() => Ok(()),
+                            (w, Some(c), _) if !w.is_null() && w == c => Ok(()),
+                            _ => Err(format!(
+                                "the drawing settings are {drawing:?} after setting `crossings` to {want}"
+                            )),
+                        }
+                    }),
+            )
+        }
+    }
+}
+
 const FRAME_PAGE_TYPES: [&str; 8] = [
     "title_page",
     "table_of_contents",

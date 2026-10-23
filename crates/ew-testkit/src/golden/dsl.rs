@@ -24,8 +24,9 @@ use ew_ids::Id;
 use ew_model::AnyKey;
 use ew_schema::{
     AnyId, Bond, Channel, Conductor, Connection, ConnectionKind, Device, DeviceLink, Endpoint, ExternalRef,
-    FnDef, FnRole, Function, FunctionKind, IpSpec, Junction, Kind, LibDocument, Page, PlcConfigProject,
+    FnDef, FnRole, Function, FunctionKind, IpSpec, Junction, Kind, LibDocument, Page, Part, PlcConfigProject,
     PotentialDef, Record, ReportBlock, Representation, Revision, RevisionState, Section, StructureNode,
+    SymbolDef,
 };
 use ew_units::Pt2;
 use serde_json::{Map, Value, json};
@@ -1193,5 +1194,110 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
     /// The command's error.
     pub fn check_schemes(&mut self, schemes: Value) -> Result<()> {
         self.run("project.checks.set", schemes).map(|_| ())
+    }
+
+    /// `device.place` (or `box.black` with `black_box`) with a `from_part` target (FR-UI-017; WP-S2.04 D9): a new
+    /// device of the part copy `part` with the letter `letter` and one function per entry of its function template;
+    /// the representation draws entry `template`, the others stay unplaced. Returns the representation and the
+    /// functions the command created, in template order.
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    #[allow(clippy::too_many_arguments)]
+    pub fn place_from_part(
+        &mut self,
+        page: Id<Page>,
+        symbol: Id<SymbolDef>,
+        pos: Pt2,
+        part: Id<Part>,
+        template: u16,
+        letter: &str,
+        black_box: bool,
+    ) -> Result<(Id<Representation>, Vec<Id<Function>>)> {
+        let target = json!({"from_part": {"part": part, "template": template, "letter": letter}});
+        let name = if black_box { "box.black" } else { "device.place" };
+        let (rep, done) = self.primary::<Representation>(
+            name,
+            json!({"page": page, "symbol": symbol, "pos": pos, "target": target}),
+        )?;
+        Ok((rep, Self::created::<Function>(&done, Kind::Function)))
+    }
+
+    /// `device.place` with a `new_terminal` target (AC-28; WP-S2.04 D9): one new terminal of the strip `strip`
+    /// with the designation `designation` (the sequence number `seq`, or one more than the highest when absent),
+    /// created as `terminal.add` creates it, with the symbol's function definition, and placed. Returns the
+    /// representation and the terminal device.
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn place_new_terminal(
+        &mut self,
+        page: Id<Page>,
+        symbol: Id<SymbolDef>,
+        pos: Pt2,
+        strip: Id<Device>,
+        designation: &str,
+        seq: Option<u32>,
+    ) -> Result<(Id<Representation>, Option<Id<Device>>)> {
+        let mut terminal = json!({"strip": strip, "designation": designation});
+        if let Some(seq) = seq {
+            terminal["seq"] = json!(seq);
+        }
+        let (rep, done) = self.primary::<Representation>(
+            "device.place",
+            json!({"page": page, "symbol": symbol, "pos": pos, "target": {"new_terminal": terminal}}),
+        )?;
+        Ok((rep, Self::created::<Device>(&done, Kind::Device).first().copied()))
+    }
+
+    /// `rep.move` by grid steps `[kx, ky]` on the page's connection grid (WP-S2.04 D13): each representation lands on
+    /// the grid point at its grid index plus the steps, and the routes follow.
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn move_steps(&mut self, reps: &[Id<Representation>], steps: [i64; 2]) -> Result<()> {
+        self.run("rep.move", json!({"reps": reps, "steps": steps}))
+            .map(|_| ())
+    }
+
+    /// `rep.exchange_symbol` (FR-SYM-022): the representation `rep` is drawn by the symbol copy `symbol` from now
+    /// on. `pin_map` lists `(symbol CP, function CP)` pairs; `None` derives the map (by index for the same
+    /// function definition, else by designation).
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn exchange_symbol(
+        &mut self,
+        rep: Id<Representation>,
+        symbol: Id<SymbolDef>,
+        pin_map: Option<&[(u16, u16)]>,
+    ) -> Result<()> {
+        let mut p = json!({"rep": rep, "symbol": symbol});
+        if let Some(map) = pin_map {
+            p["pin_map"] = Value::Array(
+                map.iter()
+                    .map(|(symbol_cp, function_cp)| json!({"symbol_cp": symbol_cp, "function_cp": function_cp}))
+                    .collect(),
+            );
+        }
+        self.run("rep.exchange_symbol", p).map(|_| ())
+    }
+
+    /// `project.drawing.set` (FR-CON-031): how crossing wires are drawn. `crossings`: `None` leaves the setting as
+    /// it is, `Some(Some("plain" | "hops"))` sets it, `Some(None)` removes it (plain).
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn drawing(&mut self, crossings: Option<Option<&str>>) -> Result<()> {
+        let mut p = Map::new();
+        if let Some(value) = crossings {
+            p.insert("crossings".into(), value.map_or(Value::Null, |c| json!(c)));
+        }
+        self.run("project.drawing.set", Value::Object(p)).map(|_| ())
     }
 }

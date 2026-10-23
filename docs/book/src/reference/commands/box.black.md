@@ -18,7 +18,9 @@ drawn with the black-box symbol and its page geometry.
   `{tag: {letter, counter: none}, kind}` and its main black-box function; `join_device` a black-box
   function of the device with the given role (default auxiliary; a second main function is rejected by
   EW-INV-002); `existing_function` another representation of an existing function, which must be of kind
-  `black_box` (else rejected with a hint to use `device.place`).
+  `black_box` (else rejected with a hint to use `device.place`); `from_part` the device and every template
+  function of the part as in `device.place`, the representation drawing entry `template`, which must be a
+  black box; `new_terminal` is invalid here.
 - The black box's CPs are derived, not stored on the function: the part's CP pattern (the
   template-origin rule of doc 03 §7) or the box CPs.
 
@@ -133,6 +135,22 @@ One of the following forms:
    | Name | Type | Required | Default | Description |
    |---|---|---|---|---|
    | `join_device` | object { `device`: [`CmdUuid`](#cmduuid), `fndef?`: [`CmdUuid`](#cmduuid) or `null`, `role?`: [`FnRole`](#fnrole) } | yes |  |  |
+
+4. **Form 4**: A new device made from a part copy (part-first placement; FR-UI-017, FR-DEV-017, WP-S2.04 D9): the device `{tag: {letter, counter: none}, parts: [the part, quantity 1]}` and one function per entry of the part's `function_template`; the representation draws entry `template`, the others stay unplaced.
+
+   Shape: object { `from_part`: object { `letter`: [`CmdIdent`](#cmdident), `part`: [`CmdUuid`](#cmduuid), `template`: integer (format `uint16`, min 0, max 65535) } }
+
+   | Name | Type | Required | Default | Description |
+   |---|---|---|---|---|
+   | `from_part` | object { `letter`: [`CmdIdent`](#cmdident), `part`: [`CmdUuid`](#cmduuid), `template`: integer (format `uint16`, min 0, max 65535) } | yes |  |  |
+
+5. **Form 5**: One new terminal of an existing strip, created as `terminal.add` creates it and placed (`device.place` only; AC-28, WP-S2.04 D9).
+
+   Shape: object { `new_terminal`: object { `designation`: [`CmdIdent`](#cmdident), `seq?`: integer (format `uint32`, min 0) or `null`, `strip`: [`CmdUuid`](#cmduuid) } }
+
+   | Name | Type | Required | Default | Description |
+   |---|---|---|---|---|
+   | `new_terminal` | object { `designation`: [`CmdIdent`](#cmdident), `seq?`: integer (format `uint32`, min 0) or `null`, `strip`: [`CmdUuid`](#cmduuid) } | yes |  |  |
 
 ### CmdIdent
 

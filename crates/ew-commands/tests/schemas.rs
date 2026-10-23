@@ -75,7 +75,7 @@ fn every_schema_is_a_json_schema_document() {
         );
     }
     let names: Vec<&str> = registry.names().collect();
-    assert_eq!(names.len(), 43, "the v0 command set has 43 commands");
+    assert_eq!(names.len(), 45, "the v0 command set has 45 commands");
     assert_eq!(
         files.len(),
         names.len() + 1,
@@ -92,5 +92,5 @@ fn every_schema_is_a_json_schema_document() {
         assert_eq!(schema["title"], *name, "{file}");
     }
     let index: Value = serde_json::from_str(&files["index.json"]).expect("valid JSON");
-    assert_eq!(index["commands"].as_array().expect("commands array").len(), 43);
+    assert_eq!(index["commands"].as_array().expect("commands array").len(), 45);
 }

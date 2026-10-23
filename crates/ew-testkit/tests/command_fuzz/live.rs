@@ -59,6 +59,27 @@ pub struct FnDefInfo {
     pub id: Value,
 }
 
+/// A representation, for `rep.exchange_symbol`.
+pub struct RepInfo {
+    pub id: Value,
+    /// The page type of its page in its JSON form.
+    pub page_kind: String,
+    /// The embedded-or-not copy ID of its first function's definition.
+    pub fndef: Value,
+    /// Whether its first function is an interruption point.
+    pub ip: bool,
+}
+
+/// A part copy with a function template, for the `from_part` target: per entry, the FnDef copy and whether it is a
+/// black box, `None` when the project does not embed the entry's FnDef.
+pub struct PartTemplate {
+    pub part: Value,
+    pub entries: Vec<Option<(Value, bool)>>,
+    /// The number of entries flagged `main`: a device needs exactly one main function (EW-INV-002), so a template
+    /// with none or several cannot be placed whole.
+    pub mains: usize,
+}
+
 /// A function definition that a live `LibRef` names but the project does not embed.
 pub struct UnembeddedRef {
     /// The `LibRef`'s library and item.
@@ -217,6 +238,10 @@ pub struct Live {
     /// (symbol, function definition) pairs of the black boxes drawn now.
     pub bb_syms: Vec<(Value, Value)>,
     pub fndefs: Vec<FnDefInfo>,
+    /// Every representation whose first function exists.
+    pub rep_infos: Vec<RepInfo>,
+    /// The part copies with a non-empty function template.
+    pub part_templates: Vec<PartTemplate>,
     /// Every `LibRef` of a symbol or a part's function template whose function definition the project does
     /// not embed (it names nothing), outside the project's own library, by `(library, item)` without repeats:
     /// what `library.embed` can embed to make the `LibRef` a link (FT-316).
@@ -449,6 +474,44 @@ impl Live {
             .iter()
             .map(|(id, _)| FnDefInfo { id: id_json(id) })
             .collect();
+        let rep_infos: Vec<RepInfo> = q
+            .reps()
+            .iter()
+            .filter_map(|(id, r)| {
+                let f = q.functions().get(*r.functions.first()?)?;
+                let page = q.pages().get(r.page)?;
+                Some(RepInfo {
+                    id: id_json(id),
+                    page_kind: kind_text(&page.kind),
+                    fndef: id_json(f.def),
+                    ip: matches!(f.kind, FunctionKind::Ip(_)),
+                })
+            })
+            .collect();
+        let part_templates: Vec<PartTemplate> = q
+            .parts()
+            .iter()
+            .filter(|(_, p)| !p.item.function_template.is_empty())
+            .map(|(id, p)| PartTemplate {
+                part: id_json(id),
+                mains: p.item.function_template.iter().filter(|t| t.main).count(),
+                entries: p
+                    .item
+                    .function_template
+                    .iter()
+                    .map(|t| {
+                        let copy: ew_ids::Id<ew_schema::FnDef> =
+                            ew_ids::v5::lib_copy_id(t.fndef.library.as_uuid(), t.fndef.item.as_uuid());
+                        q.fndefs().get(copy).map(|d| {
+                            (
+                                id_json(copy),
+                                d.item.contact_kind == ew_schema::ContactKind::BlackBox,
+                            )
+                        })
+                    })
+                    .collect(),
+            })
+            .collect();
         let symbols: Vec<SymInfo> = q
             .symbols()
             .iter()
@@ -630,6 +693,8 @@ impl Live {
             ip_syms,
             bb_syms,
             fndefs,
+            rep_infos,
+            part_templates,
             unembedded_fndef_refs,
             forms: q.forms().ids().map(id_json).collect(),
             frame_forms: q

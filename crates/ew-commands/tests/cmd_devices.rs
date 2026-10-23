@@ -547,6 +547,7 @@ fn place_undo_restores_bytes() {
 
 fn mv(reps: Vec<ew_ids::Id<Representation>>, delta: Pt2) -> MoveReps {
     MoveReps {
+        steps: None,
         reps,
         delta,
         page: None,
@@ -605,6 +606,7 @@ fn move_across_pages_moves_wires_with_both_ends_and_renumbers() {
     let new_dev: ew_ids::Id<Device> = created(&placed, Kind::Device)[0];
     assert_eq!(row(&e, new_dev).tag.counter, Some(1));
     e.execute(&MoveReps {
+        steps: None,
         reps: vec![REP_101F1, REP_IP_101],
         delta: pt0(),
         page: Some(PAGE_102),
@@ -629,6 +631,7 @@ fn move_across_pages_moves_wires_with_both_ends_and_renumbers() {
 fn move_across_pages_rejects_a_wire_with_one_end_left_behind() {
     let mut e = engine(golden_model());
     let cmd = MoveReps {
+        steps: None,
         reps: vec![REP_101F1],
         delta: pt0(),
         page: Some(PAGE_102),
@@ -636,6 +639,7 @@ fn move_across_pages_rejects_a_wire_with_one_end_left_behind() {
     rejected(e.execute(&cmd));
     // A wire to a junction stays behind as well.
     let cmd = MoveReps {
+        steps: None,
         reps: vec![REP_102G1],
         delta: pt0(),
         page: Some(PAGE_101),
@@ -650,6 +654,7 @@ fn move_rejects_empty_lists_and_unknown_references() {
     rejected(e.execute(&mv(vec![], pt(G, 0))));
     not_found(e.execute(&mv(vec![id(0x999)], pt(G, 0))));
     not_found(e.execute(&MoveReps {
+        steps: None,
         reps: vec![REP_102F2],
         delta: pt0(),
         page: Some(id(0x998)),

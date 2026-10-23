@@ -147,14 +147,7 @@ impl Command for AddTerminals {
         if self.terminals.is_empty() {
             return tx.reject("give at least one terminal to add");
         }
-        let mut designations: BTreeSet<Ident> = BTreeSet::new();
-        let mut seqs: BTreeSet<u32> = BTreeSet::new();
-        for id in tx.terminals_of_strip(self.strip) {
-            if let Some(t) = tx.get::<Device>(id).and_then(|d| d.aspects.terminal.clone()) {
-                designations.insert(t.designation);
-                seqs.insert(t.seq);
-            }
-        }
+        let (mut designations, mut seqs) = strip_usage(tx, self.strip);
         let mut next = seqs.last().copied().unwrap_or(0).saturating_add(1);
         let mut first = None;
         for spec in &self.terminals {
@@ -177,46 +170,7 @@ impl Command for AddTerminals {
                     "sequence number {seq} is already used in the strip; choose another"
                 ));
             }
-            let device: Id<Device> = tx.mint();
-            tx.insert(Device {
-                id: device,
-                v: 1,
-                tag: TagSpec::new(strip.tag.letter.clone(), Some(seq)),
-                kind: Some(DeviceKind::Terminal),
-                parent: None,
-                position: None,
-                structure: strip.structure.clone(),
-                parts: Vec::new(),
-                function_text: spec.function_text.clone(),
-                process_tag: None,
-                tech_data: Default::default(),
-                state: Default::default(),
-                source_ref: None,
-                aspects: DeviceAspects {
-                    terminal: Some(Terminal {
-                        strip: self.strip,
-                        seq,
-                        designation: spec.designation.clone(),
-                        levels: spec.levels.clone(),
-                        rail_bonded: spec.rail_bonded,
-                        extra: Extra::new(),
-                    }),
-                    ..DeviceAspects::default()
-                },
-                extra: Extra::new(),
-            })?;
-            let function: Id<Function> = tx.mint();
-            tx.insert(Function {
-                id: function,
-                v: 1,
-                device: Some(device),
-                def: self.fndef,
-                role: FnRole::Main,
-                kind: FunctionKind::Normal,
-                cp_overrides: Default::default(),
-                source_ref: None,
-                extra: Extra::new(),
-            })?;
+            let (device, _) = insert_terminal(tx, self.strip, &strip, self.fndef, spec, seq)?;
             first.get_or_insert(device);
         }
         Ok(Outcome {
@@ -225,6 +179,74 @@ impl Command for AddTerminals {
             notices: Vec::new(),
         })
     }
+}
+
+/// The designations and sequence numbers the terminals of `strip` use.
+pub(crate) fn strip_usage(tx: &TxBuilder<'_>, strip: Id<Device>) -> (BTreeSet<Ident>, BTreeSet<u32>) {
+    let mut designations: BTreeSet<Ident> = BTreeSet::new();
+    let mut seqs: BTreeSet<u32> = BTreeSet::new();
+    for id in tx.terminals_of_strip(strip) {
+        if let Some(t) = tx.get::<Device>(id).and_then(|d| d.aspects.terminal.clone()) {
+            designations.insert(t.designation);
+            seqs.insert(t.seq);
+        }
+    }
+    (designations, seqs)
+}
+
+/// Inserts one terminal of `strip` as `terminal.add` creates it: a device `{tag: {letter: the strip's letter,
+/// counter: seq}, kind: terminal, structure: the strip's structure, function_text, terminal: {strip, seq,
+/// designation, levels, rail_bonded}}` and its main function `{def: fndef}`. The caller checks the designation and
+/// the sequence number. Returns the device and the function.
+pub(crate) fn insert_terminal(
+    tx: &mut TxBuilder<'_>,
+    strip_id: Id<Device>,
+    strip: &Device,
+    fndef: Id<FnDef>,
+    spec: &TerminalSpec,
+    seq: u32,
+) -> Result<(Id<Device>, Id<Function>), CmdError> {
+    let device: Id<Device> = tx.mint();
+    tx.insert(Device {
+        id: device,
+        v: 1,
+        tag: TagSpec::new(strip.tag.letter.clone(), Some(seq)),
+        kind: Some(DeviceKind::Terminal),
+        parent: None,
+        position: None,
+        structure: strip.structure.clone(),
+        parts: Vec::new(),
+        function_text: spec.function_text.clone(),
+        process_tag: None,
+        tech_data: Default::default(),
+        state: Default::default(),
+        source_ref: None,
+        aspects: DeviceAspects {
+            terminal: Some(Terminal {
+                strip: strip_id,
+                seq,
+                designation: spec.designation.clone(),
+                levels: spec.levels.clone(),
+                rail_bonded: spec.rail_bonded,
+                extra: Extra::new(),
+            }),
+            ..DeviceAspects::default()
+        },
+        extra: Extra::new(),
+    })?;
+    let function: Id<Function> = tx.mint();
+    tx.insert(Function {
+        id: function,
+        v: 1,
+        device: Some(device),
+        def: fndef,
+        role: FnRole::Main,
+        kind: FunctionKind::Normal,
+        cp_overrides: Default::default(),
+        source_ref: None,
+        extra: Extra::new(),
+    })?;
+    Ok((device, function))
 }
 
 /// One conductor of `cable.create` and `conductor.add`.

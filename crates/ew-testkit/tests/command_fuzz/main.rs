@@ -947,6 +947,96 @@ fn every_arm_commits_and_refuses_what_it_should() {
     eprintln!("{}", report("every arm", &stats));
 }
 
+/// The placement and arrangement steps of WP-S2.04 on Golden A: the `from_part` and `new_terminal` targets of
+/// `device.place`, the `from_part` target of `box.black`, `rep.move` by grid steps, `rep.exchange_symbol` and
+/// `project.drawing.set` are all generated, and each kind commits at least once and is refused at least once where
+/// the arm builds refusals (the verdicts are checked by `apply`; each committed step is undone).
+#[test]
+fn the_placement_and_arrangement_steps_commit_and_refuse_on_golden_a() {
+    let mut session = open_session(13);
+    session.take_oracle_mismatches();
+    let fixture = Rc::new(Fixture::of(&session.query()));
+    let initial = session.world().model.clone();
+    let mut stats = FuzzStats::default();
+    let mut committed: BTreeMap<&'static str, usize> = BTreeMap::new();
+    let mut refused: BTreeMap<&'static str, usize> = BTreeMap::new();
+    for (command, attempts) in [
+        ("device.place", 400u64),
+        ("box.black", 200),
+        ("rep.move", 120),
+        ("rep.exchange_symbol", 200),
+        ("project.drawing.set", 40),
+    ] {
+        let arm = ARMS.iter().find(|a| a.command == command).expect("an arm");
+        for attempt in 0..attempts {
+            let mut rng = SplitMix64::new(50_000 + attempt);
+            let live = Live::read(&session.query(), &fixture);
+            let Some(Step::Cmd(c)) = (arm.build)(&live, &mut rng) else {
+                continue;
+            };
+            let kind = ["from_part", "new_terminal", "steps", "pin_map"]
+                .iter()
+                .find(|k| c.params.to_string().contains(&format!("\"{k}\"")))
+                .map_or(command, |k| match (command, *k) {
+                    ("device.place", "from_part") => "device.place from_part",
+                    ("device.place", "new_terminal") => "device.place new_terminal",
+                    ("box.black", "from_part") => "box.black from_part",
+                    ("rep.move", "steps") => "rep.move steps",
+                    _ => command,
+                });
+            let applied = apply(&mut session, &c, &mut stats).unwrap_or_else(|e| {
+                panic!(
+                    "`{command}` attempt {attempt}: {e}\nstep: {}",
+                    Step::Cmd(CmdStep {
+                        name: c.name,
+                        params: c.params.clone(),
+                        verdict: c.verdict,
+                        posts: Vec::new(),
+                    })
+                    .line()
+                )
+            });
+            if applied.changed {
+                *committed.entry(kind).or_default() += 1;
+                session.undo().expect("a committed step undoes");
+                assert!(
+                    session.world().model.content_eq(&initial),
+                    "undo restores Golden A: {kind}"
+                );
+            } else if !applied.ok {
+                *refused.entry(kind).or_default() += 1;
+            }
+        }
+    }
+    eprintln!("committed {committed:?}\nrefused {refused:?}");
+    for kind in [
+        "device.place from_part",
+        "device.place new_terminal",
+        "box.black from_part",
+        "rep.move steps",
+        "rep.exchange_symbol",
+        "project.drawing.set",
+    ] {
+        assert!(
+            committed.get(kind).copied().unwrap_or(0) >= 1,
+            "no committed `{kind}` step: {committed:?}"
+        );
+    }
+    for kind in [
+        "device.place from_part",
+        "device.place new_terminal",
+        "box.black from_part",
+        "rep.move steps",
+        "rep.exchange_symbol",
+        "project.drawing.set",
+    ] {
+        assert!(
+            refused.get(kind).copied().unwrap_or(0) >= 1,
+            "no refused `{kind}` step: {refused:?}"
+        );
+    }
+}
+
 /// The revision steps (`revision.create`, `fields.set` and `edit.delete` on a revision) on Golden A, many
 /// attempts with the deletions of the open revision among them: the commits and the refusals of the revision
 /// rules (EW-INV-016 to EW-INV-020, FR-REV-009) all go the way the arms say, and the title block follows.

@@ -702,6 +702,7 @@ fn moving_a_load_updates_the_routes_of_its_wires() {
     let mut with_routes = 0;
     for rep in load_reps.iter().take(30) {
         let cmd = MoveReps {
+            steps: None,
             reps: vec![*rep],
             delta,
             page: None,

@@ -112,6 +112,7 @@ fn place_device(
 
 fn move_reps(reps: Vec<Id<Representation>>, delta: Pt2) -> MoveReps {
     MoveReps {
+        steps: None,
         reps,
         delta,
         page: None,
@@ -305,6 +306,7 @@ fn f3_moving_onto_a_colliding_page_renumbers_the_moved_device() {
     let mut e = engine(model);
     let stayed_before = row(&e, stayed);
     e.execute(&MoveReps {
+        steps: None,
         reps: vec![id(0x1201)],
         delta: pt(0, 0),
         page: Some(PAGE_102),

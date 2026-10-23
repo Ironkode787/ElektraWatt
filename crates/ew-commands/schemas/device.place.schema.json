@@ -299,6 +299,79 @@
             "join_device"
           ],
           "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A new device made from a part copy (part-first placement; FR-UI-017, FR-DEV-017, WP-S2.04 D9): the device\n`{tag: {letter, counter: none}, parts: [the part, quantity 1]}` and one function per entry of the part's\n`function_template`; the representation draws entry `template`, the others stay unplaced.",
+          "properties": {
+            "from_part": {
+              "additionalProperties": false,
+              "properties": {
+                "letter": {
+                  "$ref": "#/$defs/CmdIdent",
+                  "description": "The letter code of the new device."
+                },
+                "part": {
+                  "$ref": "#/$defs/CmdUuid",
+                  "description": "The part copy."
+                },
+                "template": {
+                  "description": "The 0-based index of the template entry the representation draws.",
+                  "format": "uint16",
+                  "maximum": 65535,
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "part",
+                "template",
+                "letter"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "from_part"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "One new terminal of an existing strip, created as `terminal.add` creates it and placed (`device.place`\nonly; AC-28, WP-S2.04 D9).",
+          "properties": {
+            "new_terminal": {
+              "additionalProperties": false,
+              "properties": {
+                "designation": {
+                  "$ref": "#/$defs/CmdIdent",
+                  "description": "The terminal's designation, unique within the strip."
+                },
+                "seq": {
+                  "description": "The sequence number; default one more than the highest in the strip.",
+                  "format": "uint32",
+                  "minimum": 0,
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "strip": {
+                  "$ref": "#/$defs/CmdUuid",
+                  "description": "The strip device."
+                }
+              },
+              "required": [
+                "strip",
+                "designation"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "new_terminal"
+          ],
+          "type": "object"
         }
       ]
     },
@@ -355,7 +428,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "`device.place` (`PlaceSymbol`, doc 06 §3.3): places a symbol and creates the device and function as the\ntarget requires.\n\n- The page and the symbol copy must exist. The representation is `{functions: [f], page, symbol,\n  variant, pos, orient, rep_type}`; `rep_type` defaults to the symbol's.\n- `new_device`: a device `{tag: {letter, counter: none}, kind}` and a main function `{def}`; `def` is\n  `fndef` or the FnDef copy `v5(NS_LIBCOPY, library ‖ item)` of the symbol's `fndef` reference, which\n  must be embedded (else rejected with a hint to pass `fndef`).\n- `existing_function`: the function must exist and must not be an interruption point (`ip.place`).\n- `join_device`: a new function of the device with the given role (a second main function is rejected\n  by EW-INV-002).\n- Every hint creates a wire `{a: the hint's CP, b: to, page}` without a route; the hint's symbol CP is\n  mapped to a function CP as the derived pin map does (`(functions[0], fn_cp)`); an unknown symbol CP\n  is rejected. A hint ending at a junction appends the wire to the junction's sequence; a hint ending\n  on a point of a connection (`HintTarget::Split`) puts a new junction there, splits the connection at\n  it (as `connection.draw` does) and ends the wire at the junction (the point must be on the page's\n  connection grid). A hint whose function, junction or connection no longer exists is dropped and\n  reported as a notice instead of failing the command.\n- The effective `rep_type` must be one the page's type allows (doc 06 §2.2, `allowed_rep_types`);\n  else the placement is rejected with the list of allowed types.\n\nOnline numbering (normaliser #4) gives a new device its counter; a symbol dropped onto a wire splits it\n(normaliser #7). Outcome: the representation. Alias `symbol.place`.",
+  "description": "`device.place` (`PlaceSymbol`, doc 06 §3.3): places a symbol and creates the device and function as the\ntarget requires.\n\n- The page and the symbol copy must exist. The representation is `{functions: [f], page, symbol,\n  variant, pos, orient, rep_type}`; `rep_type` defaults to the symbol's.\n- `new_device`: a device `{tag: {letter, counter: none}, kind}` and a main function `{def}`; `def` is\n  `fndef` or the FnDef copy `v5(NS_LIBCOPY, library ‖ item)` of the symbol's `fndef` reference, which\n  must be embedded (else rejected with a hint to pass `fndef`).\n- `existing_function`: the function must exist and must not be an interruption point (`ip.place`).\n- `join_device`: a new function of the device with the given role (a second main function is rejected\n  by EW-INV-002).\n- `from_part` (FR-UI-017, FR-DEV-017): a device `{tag: {letter, counter: none}, parts: [the part, quantity\n  1]}` and one function per entry of the part copy's `function_template`, in template order (def: the entry's\n  FnDef copy, which must be embedded; role main for `main`, else auxiliary; kind `black_box` when the FnDef's\n  contact kind is `black_box`, else normal; the CPs follow from the template, doc 03 §7); the representation\n  draws entry `template`, the others stay unplaced. The symbol's FnDef must be entry `template`'s, and that\n  entry must not be a black box (`box.black` places those).\n- `new_terminal` (AC-28): one terminal of the strip, created as `terminal.add` creates it (the strip's letter,\n  structure and the sequence number as counter; the next sequence number when `seq` is absent) with its main\n  function `{def: the symbol's FnDef}`, then placed.\n- Every hint creates a wire `{a: the hint's CP, b: to, page}` without a route; the hint's symbol CP is\n  mapped to a function CP as the derived pin map does (`(functions[0], fn_cp)`); an unknown symbol CP\n  is rejected. A hint ending at a junction appends the wire to the junction's sequence; a hint ending\n  on a point of a connection (`HintTarget::Split`) puts a new junction there, splits the connection at\n  it (as `connection.draw` does) and ends the wire at the junction (the point must be on the page's\n  connection grid). A hint whose function, junction or connection no longer exists is dropped and\n  reported as a notice instead of failing the command.\n- The effective `rep_type` must be one the page's type allows (doc 06 §2.2, `allowed_rep_types`);\n  else the placement is rejected with the list of allowed types.\n\nRejected besides: a missing part copy or template index; a template without exactly one main entry (a device\nhas one main function); a template FnDef that is not embedded (embed it\nfirst); a strip that is not a strip; a designation or sequence number the strip uses already.\n\nOnline numbering (normaliser #4) gives a new device its counter; a symbol dropped onto a wire splits it\n(normaliser #7). Outcome: the representation. Alias `symbol.place`.",
   "properties": {
     "connect": {
       "description": "Accepted autoconnect hints.",
