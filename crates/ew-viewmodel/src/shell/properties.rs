@@ -190,7 +190,15 @@ impl ShellModel {
             self.props.error = None;
             self.props.choices = None;
             self.props.popup = None;
-            self.props.card = None;
+            // The grid's card goes; a replace card is the find pane's and does not follow the selection (WP-S2.05 part 2).
+            if self
+                .props
+                .card
+                .as_ref()
+                .is_some_and(|c| matches!(c.origin, CardOrigin::Properties))
+            {
+                self.props.card = None;
+            }
             self.props.row = None;
             self.props.notes.clear();
         }

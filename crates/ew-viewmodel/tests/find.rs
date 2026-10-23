@@ -419,6 +419,10 @@ fn fr6_describe_lines_and_the_fourteen_words() {
         with_card.contains("card ready \"fields.set_many\" targets 20 changes 20"),
         "{with_card}"
     );
+    // A selection change keeps the replace card (it is the find pane's, not the grid's).
+    done(&mut shell, "select.set", json!({"refs": ["tag:-101F1"]}));
+    assert_eq!(state(&shell)["card"]["origin"], "find");
+    done(&mut shell, "ui.focus", json!({"area": "find"}));
     // Escape on the replace card closes it; the next gives the focus back.
     done(&mut shell, "ui.dismiss", json!({}));
     assert_eq!(state(&shell)["card"], Value::Null);
