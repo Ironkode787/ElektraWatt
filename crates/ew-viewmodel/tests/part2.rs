@@ -1777,6 +1777,116 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
     done(&mut sample, "ui.focus", json!({"area": "navigator"}));
     done(&mut sample, "cursor.right", json!({}));
     texts.push(sample.describe());
+    // The property grid (WP-S2.05 part 1): a read-only sheet, then on a writable copy a device with derived, inherited
+    // and library rows, a frozen tag, a wire with its chips, an edit with its buffer, an error, choices, the popups, a
+    // collapsed category, the card, the toast, a page with an overridden description and its finding, a gone record.
+    done(&mut sample, "select.set", json!({"refs": ["tag:-101F1"]}));
+    texts.push(sample.describe());
+    done(
+        &mut sample,
+        "file.save_as",
+        json!({ "dir": path(&tmp.0.join("copy.ew")) }),
+    );
+    done(&mut sample, "props.focus", json!({}));
+    texts.push(sample.describe());
+    done(&mut sample, "select.set", json!({"refs": ["tag:S51"]}));
+    texts.push(sample.describe());
+    done(
+        &mut sample,
+        "select.set",
+        json!({"ids": ["9eb2d865-fca4-59b1-87bf-c073d7190ceb"]}),
+    );
+    texts.push(sample.describe());
+    done(
+        &mut sample,
+        "props.action",
+        json!({"row": "connection/derived.csa", "action": "override"}),
+    );
+    done(&mut sample, "props.input", json!({"text": "1,500"}));
+    texts.push(sample.describe());
+    done(&mut sample, "props.commit", json!({}));
+    texts.push(sample.describe());
+    done(&mut sample, "props.choose", json!({"index": 1}));
+    done(
+        &mut sample,
+        "props.action",
+        json!({"row": "connection/derived.colour", "action": "override"}),
+    );
+    done(&mut sample, "props.input", json!({"text": "BR"}));
+    let _ = run(&mut sample, "props.commit", json!({}));
+    texts.push(sample.describe());
+    done(&mut sample, "props.cancel", json!({}));
+    done(&mut sample, "props.row", json!({"to": "connection/derived.csa"}));
+    done(&mut sample, "props.row_menu", json!({}));
+    texts.push(sample.describe());
+    done(&mut sample, "ui.dismiss", json!({}));
+    done(
+        &mut sample,
+        "select.set",
+        json!({"refs": ["tag:-101F1", "tag:-102F1"]}),
+    );
+    done(
+        &mut sample,
+        "props.mltext",
+        json!({"row": "device/function_text"}),
+    );
+    texts.push(sample.describe());
+    done(&mut sample, "ui.dismiss", json!({}));
+    done(
+        &mut sample,
+        "props.category",
+        json!({"category": "part", "expanded": false}),
+    );
+    done(
+        &mut sample,
+        "props.set",
+        json!({"row": "device/function_text", "value": "Spare"}),
+    );
+    texts.push(sample.describe());
+    done(&mut sample, "select.set", json!({"refs": ["tag:-102F1"]}));
+    texts.push(sample.describe());
+    done(
+        &mut sample,
+        "select.set",
+        json!({"refs": ["tag:-101F1", "tag:-102F1"]}),
+    );
+    done(
+        &mut sample,
+        "props.set",
+        json!({"row": "device/tag.counter", "value": "9"}),
+    );
+    texts.push(sample.describe());
+    done(
+        &mut sample,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-102F2"}],
+            "path": "function_text", "value": "x"}}),
+    );
+    texts.push(sample.describe());
+    done(&mut sample, "preview.cancel", json!({}));
+    done(&mut sample, "select.set", json!({"ids": []}));
+    done(&mut sample, "page.goto", json!({"folio": "101"}));
+    done(
+        &mut sample,
+        "props.action",
+        json!({"row": "page/derived.description", "action": "override"}),
+    );
+    done(
+        &mut sample,
+        "props.input",
+        json!({"text": "Control Cabinet Expansion"}),
+    );
+    done(&mut sample, "props.commit", json!({}));
+    texts.push(sample.describe());
+    done(&mut sample, "props.project", json!({}));
+    texts.push(sample.describe());
+    done(&mut sample, "select.set", json!({"refs": ["tag:-101F1"]}));
+    done(
+        &mut sample,
+        "command.run",
+        json!({"cmd": "edit.delete", "params": {"targets": [{"kind": "device", "id": {"ref": "tag:-101F1"}}]}}),
+    );
+    texts.push(sample.describe());
     sample.shutdown();
     // A wizard whose preview is not available says why.
     let mut config = tmp.config();
@@ -1818,10 +1928,40 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
     // project, needs a cross-reference whose target is outside the page order, which Golden A does not draw.)
     // The 28 words of WP-S2.04 part 1 need a writable project: `tests/place.rs` reaches each of them.
     let part1 = ew_viewmodel::describe::PLACE_WORDS;
+    // (The property grid's kind words of kinds this sequence does not select — a representation and its functions are
+    // selected by a canvas click in `tests/properties.rs` and the kittest flows — and a warning or error finding.)
     assert!(
         unused.iter().all(|w| matches!(
             **w,
-            "disabled" | "external" | "stale" | "failed" | "tags" | "xrefs" | "junction"
+            "disabled"
+                | "external"
+                | "stale"
+                | "failed"
+                | "tags"
+                | "xrefs"
+                | "junction"
+                | "warning"
+                | "error"
+                | "plc_config_project"
+                | "import_lineage"
+                | "potential_def"
+                | "structure_node"
+                | "external_ref"
+                | "conductor"
+                | "channel"
+                | "bond"
+                | "device_link"
+                | "report_block"
+                | "revision"
+                | "page_item"
+                | "structure_box"
+                | "inherited"
+                | "frozen"
+                | "library"
+                | "derived"
+                | "missing"
+                | "representation"
+                | "function"
         ) || part1.contains(*w)),
         "words of the vocabulary no state used: {unused:?}"
     );
@@ -1886,7 +2026,7 @@ fn describe_lists_the_start_page_the_wizard_and_the_project_view() {
     let view = shell.describe();
     assert!(view.contains("workspace \"Schematic\""), "{view}");
     assert!(
-        view.contains("layout: split horizontal [\"Pages\" 20%, \"Page view\" 80%]"),
+        view.contains("layout: split horizontal [\"Pages\" 16%, \"Page view\" 64%, \"Properties\" 20%]"),
         "{view}"
     );
     done(&mut shell, "help.about", json!({}));

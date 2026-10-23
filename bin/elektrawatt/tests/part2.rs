@@ -537,7 +537,7 @@ fn workspaces_are_saved_listed_and_loaded_by_a_script() {
     let first = describe(&steps[1]);
     assert!(first.contains("workspace \"Schematic\""), "{first}");
     assert!(
-        first.contains("layout: split horizontal [\"Pages\" 20%, \"Page view\" 80%]"),
+        first.contains("layout: split horizontal [\"Pages\" 16%, \"Page view\" 64%, \"Properties\" 20%]"),
         "{first}"
     );
     assert!(

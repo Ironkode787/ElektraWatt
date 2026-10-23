@@ -319,9 +319,22 @@ fn the_project_view_is_a_dock_and_a_changed_layout_becomes_the_workspace_file() 
     let dir = tmp.golden("g.ew");
     let mut h = harness_with(gui_shell(&tmp), Scripted::default(), Some(dir));
     settle(&mut h);
-    assert_eq!(h.state().dock_panes(), [PaneKind::Pages, PaneKind::PageView]);
+    assert_eq!(
+        h.state().dock_panes(),
+        [PaneKind::Pages, PaneKind::PageView, PaneKind::Properties]
+    );
     assert!(h.query_by_label("Pages").is_some());
     assert!(h.query_by_label("Page view").is_some());
+    assert!(h.query_all_by_label("Properties").next().is_some());
+    // View ▸ Properties closes the property grid (WP-S2.05): the two-pane layout this test drags. (A tab group nested
+    // in a split shows egui_tiles' unnamed tab-bar area, which the name walker counts with the splitters, FT-338.)
+    h.state_mut()
+        .shell_mut()
+        .dispatch("props.show", &serde_json::json!({"on": false}));
+    settle(&mut h);
+    assert_eq!(h.state().dock_panes(), [PaneKind::Pages, PaneKind::PageView]);
+    h.state_mut().shell_mut().persist_layout_if_due(1.0e9);
+    let _ = std::fs::remove_file(tmp.0.join("config/workspaces/Schematic.json"));
     assert!(!h.state().shell().layout_pending());
 
     // The user drags the page list onto the page view: one tab group. Two frames (half a second of the harness's
@@ -382,7 +395,10 @@ fn the_project_view_is_a_dock_and_a_changed_layout_becomes_the_workspace_file() 
     settle(&mut h);
     settle(&mut h);
     assert_eq!(h.state().shell().layout(), &Layout::schematic());
-    assert_eq!(h.state().dock_panes(), [PaneKind::Pages, PaneKind::PageView]);
+    assert_eq!(
+        h.state().dock_panes(),
+        [PaneKind::Pages, PaneKind::PageView, PaneKind::Properties]
+    );
     // The reset was written to the active workspace's file, "Tabbed"; Schematic still has the tabs the user made.
     done(
         h.state_mut().shell_mut(),

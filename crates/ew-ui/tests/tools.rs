@@ -432,6 +432,9 @@ fn t8_the_window_reports_the_rest_and_shows_the_popup() {
 fn t11_exact_counts_of_tool_events_in_the_window() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "103");
+    // The property grid fetches a sheet per selection change (WP-S2.05, its counts in `tests/properties.rs`): closed
+    // here, so that the tool events alone are counted.
+    dispatch(&mut h, "props.show", json!({"on": false}));
     dispatch(&mut h, "tab.new", json!({}));
     dispatch(&mut h, "page.goto", json!({"folio": "102"}));
     settle(&mut h);

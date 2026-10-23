@@ -165,9 +165,10 @@ fn v12_the_viewer_without_a_pointer() {
     let a = h.state().shell().area().unwrap();
     assert_eq!((a.groups.len(), a.focused), (2, 1));
     assert_eq!(h.get_all_by_role(egui::Role::Canvas).count(), 2);
+    // The dock's two splitters (pages | page view | properties, WP-S2.05) and the canvas area's.
     assert_eq!(
         h.state().splitter_count(),
-        2,
+        3,
         "the dock's splitter and the canvas area's"
     );
     h.key_press_modifiers(Modifiers::COMMAND, Key::F6);

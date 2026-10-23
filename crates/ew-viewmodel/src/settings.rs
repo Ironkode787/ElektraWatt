@@ -68,6 +68,9 @@ pub struct Settings {
     pub workspace: String,
     /// The canvas renderer, one of [`CANVAS_BACKENDS`].
     pub canvas_backend: String,
+    /// The property grid's collapsed categories, `<kind>/<category>` (`device/identity`), sorted (`[properties]
+    /// collapsed`, WP-S2.05 §6.1.2).
+    pub properties_collapsed: Vec<String>,
     /// Keys this version does not know, kept and written back.
     extra: toml::Table,
 }
@@ -86,6 +89,7 @@ impl Default for Settings {
             basic_project: None,
             workspace: DEFAULT_WORKSPACE.to_owned(),
             canvas_backend: CANVAS_BACKENDS[0].to_owned(),
+            properties_collapsed: Vec::new(),
             extra: toml::Table::new(),
         }
     }
@@ -153,6 +157,27 @@ impl Settings {
         let workspace = take_string(&mut table, "workspace")?
             .filter(|v| valid_workspace_name(v))
             .unwrap_or_else(|| DEFAULT_WORKSPACE.to_owned());
+        // `[properties] collapsed`: a list of texts; other members of the table are kept.
+        let mut properties_collapsed: Vec<String> = Vec::new();
+        if let Some(toml::Value::Table(props)) = table.get_mut("properties") {
+            match props.remove("collapsed") {
+                None => {}
+                Some(toml::Value::Array(items)) => {
+                    for v in items {
+                        match v {
+                            toml::Value::String(s) => properties_collapsed.push(s),
+                            _ => return None,
+                        }
+                    }
+                }
+                Some(_) => return None,
+            }
+            if props.is_empty() {
+                table.remove("properties");
+            }
+        }
+        properties_collapsed.sort();
+        properties_collapsed.dedup();
         let mut settings = Settings {
             recent_projects: Vec::new(),
             ui_scale: if scale_index(ui_scale).is_some() {
@@ -169,6 +194,7 @@ impl Settings {
             basic_project,
             workspace,
             canvas_backend,
+            properties_collapsed,
             extra: table,
         };
         // The list is normalised on read: no duplicates, at most MAX_RECENT, first occurrence wins.
@@ -219,6 +245,23 @@ impl Settings {
             None => {
                 table.remove("basic_project");
             }
+        }
+        // Written only when a category is collapsed, so an untouched settings file keeps its bytes.
+        if !self.properties_collapsed.is_empty() {
+            let mut props = match table.remove("properties") {
+                Some(toml::Value::Table(t)) => t,
+                _ => toml::Table::new(),
+            };
+            props.insert(
+                "collapsed".to_owned(),
+                toml::Value::Array(
+                    self.properties_collapsed
+                        .iter()
+                        .map(|k| toml::Value::String(k.clone()))
+                        .collect(),
+                ),
+            );
+            table.insert("properties".to_owned(), toml::Value::Table(props));
         }
         // A table of plain values always serialises.
         toml::to_string(&table).unwrap_or_default()

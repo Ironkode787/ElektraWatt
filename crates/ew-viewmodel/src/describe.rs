@@ -17,6 +17,7 @@ use crate::canvas::PageId;
 use crate::canvas::{mm3, round_tenth};
 use crate::first_run::FirstRunStep;
 use crate::navigator::RowKind;
+use crate::properties::{Provenance, RowValue};
 use crate::settings::{KEYMAPS, LANGUAGES, THEMES};
 use crate::shell::{Dialog, Focus, ShellModel};
 use crate::strings;
@@ -172,6 +173,61 @@ pub const VOCABULARY: &[&str] = &[
     "dragging",
     "moving",
     "readout",
+    // The property grid (WP-S2.05 part 1, §6.11; ID-474 extended): 53 words, a reviewed vocabulary change
+    // (`function` is WP-S2.04 part 1's word above).
+    "properties",
+    "items",
+    "kinds",
+    "subtitle",
+    "location",
+    "finding",
+    "info",
+    "warning",
+    "error",
+    "missing",
+    "targets",
+    "category",
+    "derived",
+    "authored",
+    "inherited",
+    "overridden",
+    "frozen",
+    "library",
+    "varies",
+    "read-only",
+    "actions",
+    "edit",
+    "clear",
+    "override",
+    "reset",
+    "freeze",
+    "unfreeze",
+    "editing",
+    "buffer",
+    "choices",
+    "popup",
+    "mltext",
+    "card",
+    "changes",
+    "toast",
+    "undo",
+    "device",
+    "representation",
+    "connection",
+    "project",
+    "plc_config_project",
+    "import_lineage",
+    "potential_def",
+    "structure_node",
+    "external_ref",
+    "conductor",
+    "channel",
+    "bond",
+    "device_link",
+    "report_block",
+    "revision",
+    "page_item",
+    "structure_box",
 ];
 
 /// The 28 words WP-S2.04 part 1 adds to [`VOCABULARY`] (§7.7).
@@ -489,12 +545,226 @@ fn tab_lines(model: &ShellModel, lines: &mut Vec<String>) {
     match model.focus() {
         Some(Focus::Navigator) => lines.push("focus navigator".to_owned()),
         Some(Focus::Canvas(g)) => lines.push(format!("focus canvas group {}", g + 1)),
+        Some(Focus::Properties) => lines.push("focus properties".to_owned()),
         None => {}
     }
 }
 
+/// A user text of the property grid's lines as the describe text quotes it: a double quote becomes a single one (the
+/// quoting stays unambiguous) and a hyphenated UUID becomes `‹id›` (no UUID in the describe text, WP-S2.05 §9 item 5).
+fn user(text: &str) -> String {
+    let b = text.as_bytes();
+    let is_uuid = |w: &[u8]| {
+        w.iter().enumerate().all(|(k, c)| match k {
+            8 | 13 | 18 | 23 => *c == b'-',
+            _ => c.is_ascii_hexdigit(),
+        })
+    };
+    let mut out = String::with_capacity(text.len());
+    let mut i = 0;
+    while i < b.len() {
+        if i + 36 <= b.len() && is_uuid(&b[i..i + 36]) {
+            out.push_str("‹id›");
+            i += 36;
+            continue;
+        }
+        let ch = text[i..].chars().next().unwrap_or(' ');
+        out.push(if ch == '"' { '\'' } else { ch });
+        i += ch.len_utf8();
+    }
+    out
+}
+
+/// The provenance of a row in the describe text: its word and quoted chip text (UUIDs left out, §9 item 5).
+fn provenance_words(p: &Provenance) -> String {
+    match p {
+        Provenance::Authored => "authored".to_owned(),
+        Provenance::Inherited { from } => format!("inherited \"{}\"", user(from)),
+        Provenance::Derived { via } => format!("derived \"{}\"", user(via)),
+        Provenance::Overridden { note } => format!("overridden \"{}\"", user(note)),
+        Provenance::Frozen { note } => format!("frozen \"{}\"", user(note)),
+        // `<library>/<item> v<version>`: the version only, the IDs are UUIDs.
+        Provenance::Library { item } => format!(
+            "library \"{}\"",
+            user(item.rsplit_once(' ').map_or(item.as_str(), |(_, v)| v))
+        ),
+        Provenance::Generated { block } => format!("generated \"{}\"", user(block)),
+        Provenance::Varies { .. } => String::new(),
+    }
+}
+
+/// The property grid's lines (WP-S2.05 §6.11), after the navigator's; none while the pane is closed.
+fn properties_lines(model: &ShellModel, lines: &mut Vec<String>) {
+    let props = model.properties();
+    let (true, Some(sheet)) = (model.properties_shown(), props.sheet()) else {
+        return;
+    };
+    let kinds: Vec<String> = sheet
+        .header
+        .kinds
+        .iter()
+        .map(|(k, n)| format!("{k} {n}"))
+        .collect();
+    let kinds = if kinds.is_empty() {
+        String::new()
+    } else {
+        format!(" kinds {}", kinds.join(" "))
+    };
+    lines.push(format!(
+        "properties \"{}\" items {}{kinds}",
+        user(&sheet.header.title),
+        sheet.header.items
+    ));
+    match (&sheet.header.subtitle, &sheet.header.location) {
+        (Some(s), Some(l)) => lines.push(format!(
+            "properties subtitle \"{}\" location \"{}\"",
+            user(s),
+            user(l)
+        )),
+        (Some(s), None) => lines.push(format!("properties subtitle \"{}\"", user(s))),
+        (None, Some(l)) => lines.push(format!("properties location \"{}\"", user(l))),
+        (None, None) => {}
+    }
+    for f in &sheet.header.findings {
+        lines.push(format!(
+            "properties finding {} \"{}\" \"{}\"",
+            f.severity,
+            user(&f.rule),
+            user(&f.message)
+        ));
+    }
+    if let Some(r) = &sheet.read_only {
+        lines.push(format!("properties read-only \"{}\"", user(r)));
+    }
+    if sheet.missing > 0 {
+        lines.push(format!("properties missing {}", sheet.missing));
+    }
+    if sheet.sections.is_empty() {
+        let reason = if sheet.missing > 0 && sheet.header.items == 0 {
+            strings::text("props-gone-title").to_owned()
+        } else if sheet.header.items == 0 {
+            strings::text("props-empty").to_owned()
+        } else {
+            let kinds: Vec<String> = sheet.header.kinds.iter().map(|(k, _)| k.clone()).collect();
+            strings::format("props-none", &[&kinds.join(", ")])
+        };
+        lines.push(format!("properties none \"{}\"", user(&reason)));
+    }
+    let collapsed = model.properties_collapsed();
+    for section in &sheet.sections {
+        lines.push(format!(
+            "  section {} targets {}",
+            section.kind,
+            section.targets.len()
+        ));
+        for (category, rows) in crate::properties::categories(section) {
+            let key = crate::properties::collapse_key(&section.kind, category);
+            let shut = collapsed.contains(&key);
+            lines.push(format!(
+                "  category \"{}\" {}",
+                strings::text(&format!("category-{}", category.word())),
+                if shut { "collapsed" } else { "expanded" }
+            ));
+            if shut {
+                continue;
+            }
+            for row in rows {
+                lines.push(row_line(sheet, section, row));
+            }
+        }
+    }
+    if let Some(row) = model.properties_row() {
+        lines.push(format!("  focus row \"{}\"", user(&row)));
+    }
+    if let Some(e) = props.edit() {
+        lines.push(format!(
+            "  editing \"{}\" buffer \"{}\"",
+            user(&e.row),
+            user(&e.buffer)
+        ));
+    }
+    if let Some((row, message)) = props.error() {
+        lines.push(format!("  error \"{}\" \"{}\"", user(row), user(message)));
+    }
+    if let Some(c) = props.choices() {
+        let texts: Vec<String> = c.items.iter().map(|(t, _)| format!("\"{}\"", user(t))).collect();
+        lines.push(format!(
+            "  choices \"{}\" {} {}",
+            user(&c.row),
+            c.items.len(),
+            texts.join(" ")
+        ));
+    }
+    if let Some(p) = props.popup() {
+        lines.push(format!("  popup {} \"{}\"", p.word(), user(p.row())));
+    }
+    if let (Some(card), Some(rev)) = (props.card(), model.revision()) {
+        match &card.preview.result {
+            Err(message) => lines.push(format!(
+                "card failed \"{}\" \"{}\"",
+                user(&card.preview.name),
+                user(message)
+            )),
+            Ok(_) => lines.push(format!(
+                "card {} \"{}\" targets {} changes {} tags {} xrefs {}",
+                card.preview.status(rev).word(),
+                user(&card.preview.name),
+                card.targets,
+                card.changes,
+                card.preview.derived.tags.len(),
+                card.preview.derived.xrefs.len()
+            )),
+        }
+    }
+    if let Some(t) = props.toast() {
+        lines.push(format!(
+            "toast \"{}\"{}",
+            user(&t.text),
+            if t.undo { " undo" } else { "" }
+        ));
+    }
+}
+
+/// One row's line: key, label, value, provenance, read-only reason, actions.
+fn row_line(
+    sheet: &crate::properties::PropertySheet,
+    section: &crate::properties::SheetSection,
+    row: &crate::properties::PropRow,
+) -> String {
+    let label = crate::properties::row_label(section, row);
+    let mut line = format!("    row \"{}\" \"{}\"", user(&row.key), user(&label));
+    if crate::properties::is_header(section, row) {
+        line.push_str(" group");
+        return line;
+    }
+    match &row.value {
+        RowValue::One { text, .. } => line.push_str(&format!(" \"{}\"", user(text))),
+        RowValue::Varies { count, texts } => {
+            line.push_str(&format!(" varies {count}"));
+            for t in texts {
+                line.push_str(&format!(" \"{}\"", user(t)));
+            }
+        }
+        RowValue::Absent => line.push_str(" none"),
+    }
+    let prov = provenance_words(&row.provenance);
+    if !prov.is_empty() {
+        line.push(' ');
+        line.push_str(&prov);
+    }
+    if let Some(reason) = crate::properties::read_only_reason(sheet, section, row) {
+        line.push_str(&format!(" read-only \"{}\"", user(&reason)));
+    }
+    if !row.actions.is_empty() {
+        let words: Vec<&str> = row.actions.iter().map(|a| a.word()).collect();
+        line.push_str(&format!(" actions {}", words.join(" ")));
+    }
+    line
+}
+
 fn project_view(model: &ShellModel, lines: &mut Vec<String>) {
     navigator_lines(model, lines);
+    properties_lines(model, lines);
     tab_lines(model, lines);
     match model.current_folio() {
         Some(folio) => lines.push(format!("page view: {folio}")),

@@ -27,6 +27,7 @@ pub mod help;
 pub mod history;
 pub mod layout;
 pub mod navigator;
+pub mod properties;
 pub mod script;
 pub mod settings;
 pub mod shell;

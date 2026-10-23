@@ -12,8 +12,9 @@
 //! twice is the same bytes. This is not the serialised egui_tiles tree that doc 16 section 2.5 names: that tree
 //! keeps its tiles in a hash map, whose order would reach the file.
 //!
-//! The panes of the Schematic workspace that exist today are the page list and the page view; the property grid,
-//! the navigators and the message panels join with their work packages (WP-S2.03 to WP-S2.09).
+//! The panes of the Schematic workspace that exist today are the page list, the page view and the property grid
+//! (WP-S2.05); the navigators and the message panels join with their work packages (WP-S2.06 to WP-S2.09). A saved
+//! workspace without the property grid loads as saved; View ▸ Properties adds it to the right.
 
 use serde_json::{Map, Value, json};
 
@@ -29,17 +30,20 @@ pub enum PaneKind {
     Pages,
     /// The page view (the canvas).
     PageView,
+    /// The property grid (WP-S2.05).
+    Properties,
 }
 
 impl PaneKind {
     /// Every pane kind.
-    pub const ALL: [PaneKind; 2] = [PaneKind::Pages, PaneKind::PageView];
+    pub const ALL: [PaneKind; 3] = [PaneKind::Pages, PaneKind::PageView, PaneKind::Properties];
 
     /// The name in a workspace file.
     pub fn key(self) -> &'static str {
         match self {
             PaneKind::Pages => "pages",
             PaneKind::PageView => "page-view",
+            PaneKind::Properties => "properties",
         }
     }
 
@@ -53,6 +57,7 @@ impl PaneKind {
         match self {
             PaneKind::Pages => "pane-pages",
             PaneKind::PageView => "pane-page-view",
+            PaneKind::Properties => "pane-properties",
         }
     }
 }
@@ -129,17 +134,90 @@ pub struct Layout {
 }
 
 impl Layout {
-    /// The Schematic workspace: the page list on the left (a fifth of the width), the page view in the centre
-    /// (doc 16 section 2.6; its other docks come with their panels).
+    /// The Schematic workspace: the page list on the left, the page view in the centre, the property grid on the right
+    /// (shares 200 : 800 : 250, written in thousandths as the dock reads them back; doc 16 section 2.6; its other docks
+    /// come with their panels).
     pub fn schematic() -> Layout {
         Layout {
             root: LayoutNode::Split {
                 dir: SplitDir::Horizontal,
                 children: vec![
-                    (200, LayoutNode::Pane(PaneKind::Pages)),
-                    (800, LayoutNode::Pane(PaneKind::PageView)),
+                    (160, LayoutNode::Pane(PaneKind::Pages)),
+                    (640, LayoutNode::Pane(PaneKind::PageView)),
+                    (200, LayoutNode::Pane(PaneKind::Properties)),
                 ],
             },
+        }
+    }
+
+    /// The layout with the property grid on the right (View ▸ Properties): appended to a horizontal root split,
+    /// else the root and the grid side by side (800 : 250). Unchanged when the grid is in it.
+    pub fn with_properties(&self) -> Layout {
+        if self.panes().contains(&PaneKind::Properties) {
+            return self.clone();
+        }
+        let root = match &self.root {
+            LayoutNode::Split {
+                dir: SplitDir::Horizontal,
+                children,
+            } => {
+                let mut children = children.clone();
+                children.push((200, LayoutNode::Pane(PaneKind::Properties)));
+                LayoutNode::Split {
+                    dir: SplitDir::Horizontal,
+                    children,
+                }
+            }
+            other => LayoutNode::Split {
+                dir: SplitDir::Horizontal,
+                children: vec![
+                    (800, other.clone()),
+                    (200, LayoutNode::Pane(PaneKind::Properties)),
+                ],
+            },
+        };
+        Layout { root }
+    }
+
+    /// The layout without `pane`: a container left with one child is replaced by it, an empty one goes. The page view
+    /// is never removed.
+    pub fn without(&self, pane: PaneKind) -> Layout {
+        fn strip(n: &LayoutNode, pane: PaneKind) -> Option<LayoutNode> {
+            match n {
+                LayoutNode::Pane(p) if *p == pane => None,
+                LayoutNode::Pane(p) => Some(LayoutNode::Pane(*p)),
+                LayoutNode::Tabs { children, active } => {
+                    let kept: Vec<LayoutNode> = children.iter().filter_map(|c| strip(c, pane)).collect();
+                    match kept.len() {
+                        0 => None,
+                        1 => kept.into_iter().next(),
+                        n => Some(LayoutNode::Tabs {
+                            children: kept,
+                            active: (*active).min(n - 1),
+                        }),
+                    }
+                }
+                LayoutNode::Split { dir, children } => {
+                    let kept: Vec<(u32, LayoutNode)> = children
+                        .iter()
+                        .filter_map(|(s, c)| strip(c, pane).map(|c| (*s, c)))
+                        .collect();
+                    match kept.len() {
+                        0 => None,
+                        1 => kept.into_iter().next().map(|(_, c)| c),
+                        _ => Some(LayoutNode::Split {
+                            dir: *dir,
+                            children: kept,
+                        }),
+                    }
+                }
+            }
+        }
+        if pane == PaneKind::PageView {
+            return self.clone();
+        }
+        Layout {
+            root: strip(&self.root, pane).unwrap_or(LayoutNode::Pane(PaneKind::PageView)),
         }
     }
 
@@ -353,7 +431,38 @@ mod tests {
         assert_eq!(back.to_json("Schematic"), text, "the same bytes twice");
         assert_eq!(
             layout.describe(),
-            "split horizontal [\"Pages\" 20%, \"Page view\" 80%]"
+            "split horizontal [\"Pages\" 16%, \"Page view\" 64%, \"Properties\" 20%]"
+        );
+    }
+
+    #[test]
+    fn the_property_grid_is_added_and_removed() {
+        let full = Layout::schematic();
+        let bare = full.without(PaneKind::Properties);
+        assert_eq!(bare.panes(), [PaneKind::Pages, PaneKind::PageView]);
+        assert_eq!(bare.with_properties(), full);
+        assert_eq!(full.with_properties(), full);
+        assert_eq!(full.without(PaneKind::PageView), full);
+        let tabbed = Layout {
+            root: LayoutNode::Tabs {
+                children: vec![
+                    LayoutNode::Pane(PaneKind::PageView),
+                    LayoutNode::Pane(PaneKind::Properties),
+                ],
+                active: 1,
+            },
+        };
+        assert_eq!(
+            tabbed.without(PaneKind::Properties).root,
+            LayoutNode::Pane(PaneKind::PageView)
+        );
+        assert_eq!(
+            Layout {
+                root: LayoutNode::Pane(PaneKind::PageView)
+            }
+            .with_properties()
+            .panes(),
+            [PaneKind::PageView, PaneKind::Properties]
         );
     }
 
@@ -412,7 +521,7 @@ mod tests {
                 r#"{"tabs":[{"pane":"page-view"},{"pane":"page-view"}]}"#,
                 "appears twice",
             ),
-            (r#"{"pane":"properties"}"#, "unknown pane"),
+            (r#"{"pane":"find"}"#, "unknown pane"),
             (r#"{"pane":"pages","extra":1}"#, "unknown member"),
             (r#"{"tabs":[]}"#, "empty"),
             (

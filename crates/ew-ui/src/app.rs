@@ -376,6 +376,8 @@ impl App {
                 } = self;
                 dock.show(ui, &mut |ui, pane| match pane {
                     PaneKind::Pages => navigator.show(ui, shell, &mut events),
+                    // The property grid's pane is drawn from the next change on (WP-S2.05 part 1).
+                    PaneKind::Properties => {}
                     PaneKind::PageView => {
                         canvas_area.show(ui, shell, canvas, &mut events);
                         *area_splitters = canvas_area.splitter_count(shell);
@@ -492,6 +494,7 @@ impl App {
         let focused = match self.shell.focus() {
             Some(Focus::Navigator) => Context::Navigator,
             Some(Focus::Canvas(_)) => Context::Canvas,
+            Some(Focus::Properties) => Context::Properties,
             None => Context::Global,
         };
         if focused == Context::Canvas && !palette_open {

@@ -184,6 +184,18 @@ impl ShellModel {
         if layout != self.layout {
             self.layout = layout;
             self.layout_changed_at = Some(now);
+            // A pane dragged out or in: the property grid fetches or drops its sheet (WP-S2.05 §6.9).
+            self.sync_properties();
+        }
+    }
+
+    /// Replaces the layout by the shell's own change (View ▸ Properties): the frame rebuilds its tree and the change is
+    /// written like any other.
+    pub(super) fn replace_layout(&mut self, layout: Layout) {
+        if layout != self.layout {
+            self.layout = layout;
+            self.layout_version += 1;
+            self.layout_changed_at = Some(f64::NEG_INFINITY);
         }
     }
 

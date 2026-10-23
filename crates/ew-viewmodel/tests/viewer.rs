@@ -711,13 +711,17 @@ fn v9_the_transcript_members_and_describe_lines() {
     assert!(nav < tabs && tabs < pv);
     assert!(!d.contains("page list"));
     assert_eq!(state(&shell)["focus"], "navigator");
-    // F6 cycles navigator, group 1, group 2.
+    // F6 cycles navigator, group 1, group 2 and the property grid (WP-S2.05: in the Schematic workspace).
     done(&mut shell, "ui.focus_next", json!({}));
     assert_eq!(shell.focus(), Some(Focus::Canvas(0)));
     done(&mut shell, "ui.focus_next", json!({}));
     assert_eq!(shell.focus(), Some(Focus::Canvas(1)));
     done(&mut shell, "ui.focus_next", json!({}));
+    assert_eq!(shell.focus(), Some(Focus::Properties));
+    done(&mut shell, "ui.focus_next", json!({}));
     assert_eq!(shell.focus(), Some(Focus::Navigator));
+    done(&mut shell, "ui.focus_previous", json!({}));
+    assert_eq!(shell.focus(), Some(Focus::Properties));
     done(&mut shell, "ui.focus_previous", json!({}));
     assert_eq!(shell.focus(), Some(Focus::Canvas(1)));
     // The Window menu lists the focused group's tabs.

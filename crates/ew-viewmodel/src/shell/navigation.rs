@@ -38,6 +38,8 @@ pub enum Focus {
     Navigator,
     /// The canvas of a group.
     Canvas(usize),
+    /// The property grid (WP-S2.05).
+    Properties,
 }
 
 /// How many times the shell has asked the `Session` for each of the viewer's reads (the exact-count tests, spec
@@ -70,6 +72,8 @@ pub struct SessionCalls {
     pub execute_with: u64,
     /// `Session::run_script` (`command.run` and the tool host's headless commits).
     pub run_script: u64,
+    /// `Session::property_sheet` (WP-S2.05 part 1).
+    pub property_sheet: u64,
 }
 
 /// Counts one of the shell's `Session` calls (a free function, so that a call can be counted while the project is
@@ -1114,6 +1118,10 @@ impl ShellModel {
                 self.focus = Some(Focus::Navigator);
                 Outcome::Done
             }
+            "properties" => {
+                self.focus = Some(Focus::Properties);
+                Outcome::Done
+            }
             "canvas" => {
                 let g = match self.group_param(p) {
                     Ok(g) => g,
@@ -1129,11 +1137,13 @@ impl ShellModel {
         }
     }
 
-    /// F6 (`step` 1) and Shift+F6 (`step` −1): navigator, canvas group 1, canvas group 2, cyclic.
+    /// F6 (`step` 1) and Shift+F6 (`step` −1): navigator, canvas group 1, canvas group 2, then the property grid while
+    /// its pane is in the layout, cyclic.
     pub(super) fn act_focus_cycle(&mut self, step: isize) -> Outcome {
         let groups = self.area.as_ref().map_or(0, |a| a.groups.len());
         let ring: Vec<Focus> = std::iter::once(Focus::Navigator)
             .chain((0..groups).map(Focus::Canvas))
+            .chain(self.properties_shown().then_some(Focus::Properties))
             .collect();
         let here = self
             .focus

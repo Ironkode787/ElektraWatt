@@ -605,6 +605,9 @@ fn t10_the_transcript_and_describe_members_of_the_tools() {
 fn t11_tool_events_on_a_cached_page_make_no_session_call() {
     let tmp = Tmp::new("tools-t11");
     let mut shell = tmp.shell("103");
+    // The property grid fetches a sheet per selection change (WP-S2.05 §9 item 4, its own exact counts in
+    // `tests/properties.rs`): closed here, so that the tool events alone are counted.
+    done(&mut shell, "props.show", json!({"on": false}));
     done(&mut shell, "page.goto", json!({"folio": "102"}));
     done(&mut shell, "tab.new", json!({}));
     done(&mut shell, "page.goto", json!({"folio": "103"}));

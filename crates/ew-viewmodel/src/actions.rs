@@ -117,6 +117,8 @@ pub enum Context {
     Canvas,
     /// While the page navigator has the focus.
     Navigator,
+    /// While the property grid has the focus (WP-S2.05).
+    Properties,
 }
 
 /// Where an action sits in the menu bar.
@@ -438,6 +440,27 @@ const fn in_navigator(mut a: ActionMeta) -> ActionMeta {
     a
 }
 
+const fn in_properties(mut a: ActionMeta) -> ActionMeta {
+    a.context = Context::Properties;
+    a
+}
+
+/// The property grid's actions need a project; the grid's own controls also need the pane.
+fn grid_shown(m: &ShellModel) -> Result<(), &'static str> {
+    project_open(m)?;
+    if m.properties_shown() {
+        Ok(())
+    } else {
+        Err("reason-no-sheet")
+    }
+}
+
+/// A grid action that may commit: a writable project with the pane shown.
+fn grid_writable(m: &ShellModel) -> Result<(), &'static str> {
+    writable(m)?;
+    grid_shown(m)
+}
+
 use ActionKind::{Command, View};
 
 /// The registry: the part-1 actions of the spec, section 5.2, in menu order, then the headless-only ones.
@@ -557,6 +580,26 @@ pub static ACTIONS: &[ActionMeta] = &[
         Menu::Edit,
         &["Ctrl+Shift+Z", "Ctrl+Y"],
         can_redo,
+        slot(Menu::Edit),
+    ),
+    // Edit, Properties of selection (E and Alt+Enter on the canvas) and Project properties: the shell has no Project
+    // menu yet, so the project's properties sit beside the selection's (WP-S2.05 §6.10, lane ruling).
+    in_canvas(act(
+        "props.focus",
+        View,
+        "action-props-focus",
+        Menu::Edit,
+        &["E", "Alt+Enter"],
+        project_open,
+        slot_sep(Menu::Edit),
+    )),
+    act(
+        "props.project",
+        View,
+        "action-props-project",
+        Menu::Edit,
+        &[],
+        project_open,
         slot(Menu::Edit),
     ),
     act(
@@ -821,6 +864,16 @@ pub static ACTIONS: &[ActionMeta] = &[
         &[],
         always,
         slot(Menu::View),
+    ),
+    // The property grid (WP-S2.05 part 1, spec §6.10).
+    act(
+        "props.show",
+        View,
+        "action-props-show",
+        Menu::View,
+        &[],
+        project_open,
+        slot_sep(Menu::View),
     ),
     needs_parameters(act(
         "view.ui_scale",
@@ -1570,6 +1623,161 @@ pub static ACTIONS: &[ActionMeta] = &[
         wizard_open,
         None,
     )),
+    // The property grid's own controls (WP-S2.05 part 1, spec §6.10): the window and the headless mode dispatch them.
+    hidden(act(
+        "select.set",
+        View,
+        "action-select-set",
+        Menu::Edit,
+        &[],
+        project_open,
+        None,
+    )),
+    hidden(in_properties(act(
+        "props.row",
+        View,
+        "action-props-row",
+        Menu::Edit,
+        &[],
+        grid_shown,
+        None,
+    ))),
+    hidden(in_properties(act(
+        "props.category",
+        View,
+        "action-props-category",
+        Menu::Edit,
+        &[],
+        grid_shown,
+        None,
+    ))),
+    hidden(in_properties(act(
+        "props.edit",
+        View,
+        "action-props-edit",
+        Menu::Edit,
+        // Enter is the canvas's `canvas.activate`: the grid's own Enter is the pane's key (§6.9).
+        &["F2"],
+        grid_shown,
+        None,
+    ))),
+    hidden(in_properties(act(
+        "props.input",
+        View,
+        "action-props-input",
+        Menu::Edit,
+        &[],
+        grid_shown,
+        None,
+    ))),
+    hidden(in_properties(act(
+        "props.commit",
+        Command,
+        "action-props-commit",
+        Menu::Edit,
+        &[],
+        grid_writable,
+        None,
+    ))),
+    hidden(in_properties(act(
+        "props.cancel",
+        View,
+        "action-props-cancel",
+        Menu::Edit,
+        &[],
+        grid_shown,
+        None,
+    ))),
+    hidden(act(
+        "props.set",
+        Command,
+        "action-props-set",
+        Menu::Edit,
+        &[],
+        grid_writable,
+        None,
+    )),
+    hidden(in_properties(act(
+        "props.choose",
+        Command,
+        "action-props-choose",
+        Menu::Edit,
+        &[],
+        grid_shown,
+        None,
+    ))),
+    hidden(in_properties(act(
+        "props.row_menu",
+        View,
+        "action-props-row-menu",
+        Menu::Edit,
+        &["Shift+F10"],
+        grid_shown,
+        None,
+    ))),
+    hidden(in_properties(act(
+        "props.action",
+        Command,
+        "action-props-action",
+        Menu::Edit,
+        &[],
+        grid_shown,
+        None,
+    ))),
+    hidden(in_properties(act(
+        "props.list",
+        Command,
+        "action-props-list",
+        Menu::Edit,
+        &[],
+        grid_writable,
+        None,
+    ))),
+    hidden(in_properties(act(
+        "props.mltext",
+        Command,
+        "action-props-mltext",
+        Menu::Edit,
+        &["Shift+Enter"],
+        grid_shown,
+        None,
+    ))),
+    hidden(in_properties(act(
+        "preview.apply",
+        Command,
+        "action-preview-apply",
+        Menu::Edit,
+        &["Ctrl+Enter"],
+        grid_writable,
+        None,
+    ))),
+    hidden(in_properties(act(
+        "preview.cancel",
+        View,
+        "action-preview-cancel",
+        Menu::Edit,
+        &[],
+        grid_shown,
+        None,
+    ))),
+    hidden(act(
+        "toast.undo",
+        Command,
+        "action-toast-undo",
+        Menu::Edit,
+        &[],
+        writable,
+        None,
+    )),
+    hidden(act(
+        "toast.dismiss",
+        View,
+        "action-toast-dismiss",
+        Menu::Edit,
+        &[],
+        project_open,
+        None,
+    )),
 ];
 
 /// The action with this ID.
@@ -1646,6 +1854,10 @@ fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
             "view.frame_stats" => model.frame_stats_shown(),
             "view.cpu_canvas" => model.cpu_canvas_setting(),
             "view.side_by_side" => model.area().is_some_and(crate::area::CanvasArea::side_by_side),
+            "props.show" => model
+                .layout()
+                .panes()
+                .contains(&crate::layout::PaneKind::Properties),
             "tool.select" | "tool.measure" => meta.id.strip_prefix("tool.") == Some(model.tool().name()),
             _ => false,
         },

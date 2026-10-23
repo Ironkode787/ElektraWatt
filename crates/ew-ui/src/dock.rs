@@ -228,7 +228,10 @@ mod tests {
         let layout = Layout::schematic();
         let dock = Dock::new(&layout, 0);
         assert_eq!(dock.layout().as_ref(), Some(&layout));
-        assert_eq!(dock.panes(), [PaneKind::Pages, PaneKind::PageView]);
+        assert_eq!(
+            dock.panes(),
+            [PaneKind::Pages, PaneKind::PageView, PaneKind::Properties]
+        );
     }
 
     #[test]
@@ -297,9 +300,12 @@ mod tests {
         let mut dock = Dock::new(&Layout::schematic(), 0);
         dock.tab_together(PaneKind::Pages, PaneKind::PageView);
         let layout = dock.layout().unwrap();
-        assert_eq!(layout.panes().len(), 2, "no pane is lost or doubled: {layout:?}");
+        assert_eq!(layout.panes().len(), 3, "no pane is lost or doubled: {layout:?}");
+        let LayoutNode::Split { children, .. } = &layout.root else {
+            panic!("the property grid stays beside the tab group: {layout:?}");
+        };
         assert!(
-            matches!(layout.root, LayoutNode::Tabs { .. }),
+            matches!(children[0].1, LayoutNode::Tabs { .. }),
             "both panes share one tab group: {layout:?}"
         );
         // And the result is a layout the workspace file can hold.

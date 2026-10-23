@@ -36,6 +36,7 @@ mod editing;
 mod navigation;
 mod onboarding;
 mod projects;
+mod properties;
 mod tools;
 mod workspaces;
 
@@ -347,6 +348,8 @@ pub struct ShellModel {
     epochs: u64,
     /// The canvas tool host (WP-S2.03 part 2): the active tool, its overlay, the preview, the selection.
     tools: crate::tools::ToolHost,
+    /// The property grid (WP-S2.05 part 1): the sheet, the row cursor, the edit, the card and the toast.
+    props: crate::properties::PropertiesState,
 }
 
 /// The directory's own name, never its path.
@@ -509,6 +512,27 @@ fn clears_banner(id: &str) -> bool {
             | "text.input"
             | "edit.delete_selection"
             | "rep.exchange"
+            // The property grid's actions (WP-S2.05 §6.10): a failed edit shows under its field, not in the banner.
+            | "props.show"
+            | "props.focus"
+            | "props.project"
+            | "select.set"
+            | "props.row"
+            | "props.category"
+            | "props.edit"
+            | "props.input"
+            | "props.commit"
+            | "props.cancel"
+            | "props.set"
+            | "props.choose"
+            | "props.row_menu"
+            | "props.action"
+            | "props.list"
+            | "props.mltext"
+            | "preview.apply"
+            | "preview.cancel"
+            | "toast.undo"
+            | "toast.dismiss"
     )
 }
 
@@ -581,6 +605,7 @@ impl ShellModel {
             page_content_calls: Cell::new(0),
             epochs: 0,
             tools: crate::tools::ToolHost::new(),
+            props: crate::properties::PropertiesState::default(),
         };
         model.load_active_workspace();
         model
@@ -978,12 +1003,18 @@ impl ShellModel {
         if !keeps_link_preview(meta.id) {
             self.tools.link_preview = None;
         }
+        // The toast stays until it is dismissed or replaced by the next committing action (WP-S2.05 §6.6).
+        if meta.kind == actions::ActionKind::Command && !meta.id.starts_with("toast.") {
+            self.props.toast = None;
+        }
         let outcome = self.run_action(meta.id, p);
         // The canvases follow the pages and the revision the action left (WP-S2.02 section 6.1, WP-S2.03 §6.2), and a
-        // busy tool is escaped when its canvas changed (WP-S2.03 §7.2).
+        // busy tool is escaped when its canvas changed (WP-S2.03 §7.2); the property grid fetches its sheet when its
+        // key changed (WP-S2.05 §9 item 4).
         self.sync_views();
         self.sync_tool_context();
         self.after_commit();
+        self.sync_properties();
         outcome
     }
 
@@ -1110,6 +1141,26 @@ impl ShellModel {
             },
             "edit.delete_selection" => self.act_delete_selection(),
             "rep.exchange" => self.act_rep_exchange(p),
+            "props.show" => self.act_props_show(p),
+            "props.focus" => self.act_props_focus(),
+            "props.project" => self.act_props_project(),
+            "select.set" => self.act_select_set(p),
+            "props.row" => self.act_props_row(p),
+            "props.category" => self.act_props_category(p),
+            "props.edit" => self.act_props_edit(p),
+            "props.input" => self.act_props_input(p),
+            "props.commit" => self.act_props_commit(),
+            "props.cancel" => self.act_props_cancel(),
+            "props.set" => self.act_props_set(p),
+            "props.choose" => self.act_props_choose(p),
+            "props.row_menu" => self.act_props_row_menu(p),
+            "props.action" => self.act_props_action(p),
+            "props.list" => self.act_props_list(p),
+            "props.mltext" => self.act_props_mltext(p),
+            "preview.apply" => self.act_preview_apply(),
+            "preview.cancel" => self.act_preview_cancel(),
+            "toast.undo" => self.act_toast_undo(),
+            "toast.dismiss" => self.act_toast_dismiss(),
             "ui.describe" => Outcome::Done,
             "view.ui_scale" => self.act_ui_scale(p),
             "tools.palette" => self.act_palette(p),
@@ -1353,6 +1404,7 @@ impl ShellModel {
         self.area = None;
         self.focus = None;
         self.reset_tools();
+        self.props = crate::properties::PropertiesState::default();
     }
 
     /// Ends the shell at the end of a run or of the window (also on a log-off): a clean project is closed, a dirty
@@ -1562,6 +1614,9 @@ impl ShellModel {
             || self.tools.link_preview.take().is_some()
         {
             return Outcome::Done;
+        }
+        if let Some(outcome) = self.dismiss_properties() {
+            return outcome;
         }
         self.dismiss_tool()
     }

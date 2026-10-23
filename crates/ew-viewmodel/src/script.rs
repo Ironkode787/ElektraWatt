@@ -27,9 +27,13 @@
 //! `{"kind": "place", "symbol", "variant", "rep_type", "at_nm", "target", "tag", "hints"}`, `{"kind": "move",
 //! "count", "steps"}` or `{"kind": "exchange", "symbol", "unmapped"}`) and `picker` (`null` or `{"mode", "filter",
 //! "rows", "row"}`). After `canvas` come `tabs` (`null` without a project, else
-//! `{"focused": [g, i], "groups": [[{"id", "folio", "back", "forward"}, …], …]}`), `focus` (`navigator`, `canvas`
-//! or `null`) and `navigator` (`null`, or `{"mode", "sort", "filter", "row"}`). Nothing in it depends on time,
-//! process or location: two runs of one script on equal inputs give equal bytes.
+//! `{"focused": [g, i], "groups": [[{"id", "folio", "back", "forward"}, …], …]}`), `focus` (`navigator`, `canvas`,
+//! `properties` or `null`) and `navigator` (`null`, or `{"mode", "sort", "filter", "row"}`), then (WP-S2.05 part 1)
+//! `properties` (`null` without a project or while the pane is closed, else `{"title", "items", "kinds", "sections":
+//! [{"kind", "targets", "rows"}, …], "missing", "row", "editing", "buffer", "error": {"row", "message"} | null,
+//! "choices", "popup", "read_only"}`), `card` (`null` or `{"command", "state", "targets", "changes", "tags", "xrefs",
+//! "origin"}`) and `toast` (`null` or `{"text", "undo"}`); no UUID appears in these three. Nothing in it depends on
+//! time, process or location: two runs of one script on equal inputs give equal bytes.
 //!
 //! The core runner lives here; a [`StepExtension`] adds what needs a renderer (`view.snapshot`).
 
@@ -301,10 +305,91 @@ pub fn state_json(shell: &ShellModel) -> String {
                 None => Value::Null,
                 Some(Focus::Navigator) => Value::from("navigator"),
                 Some(Focus::Canvas(_)) => Value::from("canvas"),
+                Some(Focus::Properties) => Value::from("properties"),
             },
         ),
         format!("\"navigator\":{}", navigator_json(shell)),
+        format!("\"properties\":{}", properties_json(shell)),
+        format!("\"card\":{}", card_json(shell)),
+        format!("\"toast\":{}", toast_json(shell)),
     ])
+}
+
+/// The `properties` member (WP-S2.05 §6.11): `null` without a project or while the pane is closed.
+fn properties_json(shell: &ShellModel) -> String {
+    let props = shell.properties();
+    let (true, Some(sheet)) = (shell.properties_shown(), props.sheet()) else {
+        return "null".to_owned();
+    };
+    let kinds: Vec<String> = sheet
+        .header
+        .kinds
+        .iter()
+        .map(|(k, n)| member(k, &Value::from(*n)))
+        .collect();
+    let sections: Vec<String> = sheet
+        .sections
+        .iter()
+        .map(|s| {
+            object(vec![
+                member("kind", &Value::from(s.kind.as_str())),
+                member("targets", &Value::from(s.targets.len())),
+                member("rows", &Value::from(s.rows.len())),
+            ])
+        })
+        .collect();
+    let opt = |s: Option<&str>| s.map_or(Value::Null, Value::from);
+    let error = match props.error() {
+        None => "null".to_owned(),
+        Some((row, message)) => object(vec![
+            member("row", &Value::from(row)),
+            member("message", &Value::from(message)),
+        ]),
+    };
+    object(vec![
+        member("title", &Value::from(sheet.header.title.as_str())),
+        member("items", &Value::from(sheet.header.items)),
+        format!("\"kinds\":{}", object(kinds)),
+        format!("\"sections\":[{}]", sections.join(",")),
+        member("missing", &Value::from(sheet.missing)),
+        member("row", &opt(shell.properties_row().as_deref())),
+        member("editing", &opt(props.edit().map(|e| e.row.as_str()))),
+        member("buffer", &opt(props.edit().map(|e| e.buffer.as_str()))),
+        format!("\"error\":{error}"),
+        member(
+            "choices",
+            &Value::from(props.choices().map_or(0, |c| c.items.len())),
+        ),
+        member("popup", &opt(props.popup().map(crate::properties::Popup::word))),
+        member("read_only", &opt(sheet.read_only.as_deref())),
+    ])
+}
+
+/// The `card` member: the inline preview card or `null`.
+fn card_json(shell: &ShellModel) -> String {
+    let (Some(card), Some(rev)) = (shell.properties().card(), shell.revision()) else {
+        return "null".to_owned();
+    };
+    object(vec![
+        member("command", &Value::from(card.preview.name.as_str())),
+        member("state", &Value::from(card.preview.status(rev).word())),
+        member("targets", &Value::from(card.targets)),
+        member("changes", &Value::from(card.changes)),
+        member("tags", &Value::from(card.preview.derived.tags.len())),
+        member("xrefs", &Value::from(card.preview.derived.xrefs.len())),
+        member("origin", &Value::from("properties")),
+    ])
+}
+
+/// The `toast` member: the toast or `null`.
+fn toast_json(shell: &ShellModel) -> String {
+    match shell.properties().toast() {
+        None => "null".to_owned(),
+        Some(t) => object(vec![
+            member("text", &Value::from(t.text.as_str())),
+            member("undo", &Value::from(t.undo)),
+        ]),
+    }
 }
 
 /// The `canvas` member of the state as JSON text, members in the documented order (see the module
