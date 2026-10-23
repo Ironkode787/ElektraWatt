@@ -705,11 +705,25 @@ fn ci() -> Result<bool> {
 mod tests {
     use super::{ONCE_PER_JOB_FILTER, unresolved_clippy_paths, workspace_root};
 
+    /// The six slowest test binaries of the all-features run (FT-387): `test-windows-1` runs exactly these, so the
+    /// acceptance tests and the command fuzzer run there and nowhere else; `test-windows-2` and `test-windows-3` run
+    /// the complement of this set, half each by test count. `ci/README.md` (CI-PR-03) records the durations the set was
+    /// chosen from; a binary that moves in or out of the set is a change to that table and to `ci.yml`.
+    const WINDOWS_SLOW_BINARIES: [&str; 6] = [
+        "ew-api::acceptance",
+        "ew-api::page_output",
+        "ew-store::fault_injection",
+        "ew-testkit::command_fuzz",
+        "ew-testkit::golden_dsl",
+        "ew-viewmodel::part2",
+    ];
+
     /// FT-268, FT-306, FT-330, FT-353, FT-387: the acceptance tests and the command fuzzer run once per job. The filtered
     /// default-features run is in test-linux-default and test-macos; the unfiltered all-features run is in test-linux
-    /// and test-macos; test-windows-1, test-windows-2 and test-windows-3 run the unfiltered all-features archive in three partitions
-    /// (nextest partitions by test, so the acceptance tests and the fuzzer run once in total). The nextest config
-    /// documents the same filter.
+    /// and test-macos; test-windows-1, test-windows-2 and test-windows-3 run the all-features archive in three
+    /// disjoint parts that together cover every test: part 1 is the `WINDOWS_SLOW_BINARIES` set (which contains the
+    /// acceptance tests and the fuzzer), parts 2 and 3 are the complement of that set split by `count:1/2` and
+    /// `count:2/2`. The nextest config documents the same filter.
     #[test]
     fn the_acceptance_tests_and_the_fuzzer_run_once_per_ci_job() {
         let ci = std::fs::read_to_string(workspace_root().join(".github/workflows/ci.yml")).unwrap();
@@ -736,13 +750,43 @@ mod tests {
                 "the all-features run runs everything: {line}"
             );
         }
-        for (k, line) in archive.iter().enumerate() {
-            assert!(!line.contains(" -E "), "the archive run runs everything: {line}");
+        // FT-387: part 1 is the slow set, parts 2 and 3 the complement halved by count; together a complete and
+        // disjoint cover, and the acceptance tests and the fuzzer (both in the slow set) run in part 1 only.
+        for needle in ["ew-api::acceptance", "ew-testkit::command_fuzz"] {
             assert!(
-                line.contains("--workspace-remap .")
-                    && line.contains(&format!("--partition count:{}/3", k + 1)),
-                "partition {} of 3: {line}",
+                WINDOWS_SLOW_BINARIES.contains(&needle),
+                "{needle} belongs to the slow set"
+            );
+        }
+        let slow = WINDOWS_SLOW_BINARIES
+            .map(|binary| format!("binary_id(={binary})"))
+            .join(" or ");
+        let expected = [
+            (format!("-E '{slow}'"), None),
+            (format!("-E 'not ({slow})'"), Some("--partition count:1/2")),
+            (format!("-E 'not ({slow})'"), Some("--partition count:2/2")),
+        ];
+        for (k, (line, (filter, partition))) in archive.iter().zip(&expected).enumerate() {
+            assert!(
+                line.contains("--workspace-remap .") && line.contains(filter.as_str()),
+                "part {} of 3 runs the filter {filter}: {line}",
                 k + 1
+            );
+            match partition {
+                Some(partition) => assert!(line.contains(partition), "part {} of 3: {line}", k + 1),
+                None => assert!(
+                    !line.contains("--partition"),
+                    "part 1 of 3 is not partitioned: {line}"
+                ),
+            }
+        }
+        // Every name in the slow set is a test binary that exists, so a rename cannot silently empty part 1.
+        for binary in WINDOWS_SLOW_BINARIES {
+            let (krate, name) = binary.split_once("::").unwrap();
+            let tests = workspace_root().join("crates").join(krate).join("tests");
+            assert!(
+                tests.join(format!("{name}.rs")).is_file() || tests.join(name).join("main.rs").is_file(),
+                "{binary} is not a test binary of {krate}"
             );
         }
         // FT-353: the doctests run in test-linux and test-macos (default features and all features), nowhere else.

@@ -18,7 +18,7 @@ The job names are the GitHub status-check names to mark as required.
 |---|---|---|---|
 | CI-PR-01 | `ci.yml` / `lint` (ubuntu-24.04) | `cargo fmt --all --check`; `cargo clippy --workspace --all-targets --locked -- -D warnings`, and again with `--all-features` (the generated `clippy.toml` also bans the std hash containers, FT-271, and the wall clock, environment and randomness, FT-317, below); `cargo xtask check-ordered-collections` and `cargo xtask check-disallowed-methods` | `cargo fmt --all --check`, both clippy runs, `cargo xtask check-ordered-collections` and `check-disallowed-methods` |
 | CI-PR-02 | `ci.yml` / `test-linux` and `test-linux-default` (ubuntu-24.04), split by feature set since FT-353 (ID-527): `test-linux` runs the all-features part and both doctest runs, `test-linux-default` the filtered default-features run, in parallel; each builds first, after installing Mesa's lavapipe (`mesa-vulkan-drivers`) so that the GPU canvas's parity test runs instead of skipping (WP-S2.02 part 2) | `cargo build --workspace --locked`; `cargo nextest run --workspace --locked --profile ci -E 'not (package(ew-api) and binary(acceptance)) and not (package(ew-testkit) and binary(command_fuzz))'`, and again with `--all-features` and no filter (feature-gated tests such as `ew-ids/testkit`; the headless acceptance tests, about 2 min, and the command fuzzer's `fuzz_smoke`, 15 to 19 s, run once per job, in this second run: FT-268, FT-306); `cargo test --doc --workspace --locked`, and again with `--all-features` (nextest does not run doctests) | `cargo build --workspace --locked`, `cargo nextest run --workspace --locked -E 'not (package(ew-api) and binary(acceptance)) and not (package(ew-testkit) and binary(command_fuzz))'`, `cargo nextest run --workspace --all-features --locked` and `cargo test --doc --workspace [--all-features] --locked` |
-| CI-PR-03 | `ci.yml` / `test-windows-build`, `test-windows-1`, `test-windows-2`, `test-windows-3` (windows-2025) | all-features run only (FT-330, ID-482), split since FT-353 (ID-527), in three run jobs since FT-387 (the cycle-24 delivery run's chain was 20:01 + 10:00 = 30:01, ID-582's reading): `test-windows-build` runs `cargo nextest archive --workspace --all-features --locked --archive-file "$RUNNER_TEMP/nextest-archive.tar.zst"` (the archive lives outside the checkout, which the licence-map walk would otherwise flag), saves the rust-cache and uploads the archive (`actions/upload-artifact`); `test-windows-1`, `test-windows-2` and `test-windows-3` download it (`actions/download-artifact`, no cache save) and run `cargo nextest run --archive-file "$RUNNER_TEMP/nextest-archive/nextest-archive.tar.zst" --workspace-remap . --partition count:1/3`, `count:2/3` and `count:3/3` with `--profile ci`, no filter (together a complete, disjoint cover of the tests by construction). nextest partitions by test, so the acceptance tests and the command fuzzer run once in total, in one partition. No default-features build or nextest run, no doctest run (doctests run in `test-linux`, `test-macos` and `cargo xtask ci`) | `cargo nextest run --workspace --all-features --locked` (the three parts together) |
+| CI-PR-03 | `ci.yml` / `test-windows-build`, `test-windows-1`, `test-windows-2`, `test-windows-3` (windows-2025) | all-features run only (FT-330, ID-482), split since FT-353 (ID-527), in three run jobs since FT-387 (the cycle-24 delivery run's chain was 20:01 + 10:00 = 30:01, ID-582's reading; the cycle-25 run's 16:20 + 14:54 = 31:14, which balanced the parts by time instead of by test count): `test-windows-build` runs `cargo nextest archive --workspace --all-features --locked --archive-file "$RUNNER_TEMP/nextest-archive.tar.zst"` (the archive lives outside the checkout, which the licence-map walk would otherwise flag), saves the rust-cache and uploads the archive (`actions/upload-artifact`); `test-windows-1`, `test-windows-2` and `test-windows-3` download it (`actions/download-artifact`, no cache save) and run `cargo nextest run --archive-file "$RUNNER_TEMP/nextest-archive/nextest-archive.tar.zst" --workspace-remap .` with `--profile ci` and these filters: part 1 `-E 'binary_id(=ew-api::acceptance) or binary_id(=ew-api::page_output) or binary_id(=ew-store::fault_injection) or binary_id(=ew-testkit::command_fuzz) or binary_id(=ew-testkit::golden_dsl) or binary_id(=ew-viewmodel::part2)'`, parts 2 and 3 `-E 'not (` the same six `)'` with `--partition count:1/2` and `count:2/2` (together a complete, disjoint cover of every test binary: the six, and the complement halved). The acceptance tests and the command fuzzer are in the six, so they run once in total, in part 1. No default-features build or nextest run, no doctest run (doctests run in `test-linux`, `test-macos` and `cargo xtask ci`) | `cargo nextest run --workspace --all-features --locked` (the three parts together) |
 | CI-PR-04 | `ci.yml` / `test-macos` (macos-15, arm64) | as CI-PR-02 | as CI-PR-02, on macOS |
 | CI-PR-05 | `ci.yml` / `headless` (ubuntu-24.04) | `cargo build -p ew --locked`; `ew export pdf golden/J-E-2416.ew` inside a bare `ubuntu:24.04` container (image pinned by digest; no network, no display, no GPU, no font file, empty user directories), on one thread and on four; both PDFs must be the committed digest of `golden/J-E-2416/expected/pdf/sha256.txt` (FT-295, G-M1-01); the PDFs uploaded as the artifact `headless-pdf`. Details: [Headless container job](#headless-container-job-ci-pr-05) | `cargo build -p ew --locked` and `docker run` as in the job (Linux and docker), or `cargo nextest run -p ew --test cli -E 'test(export_pdf_of_golden_a)'` for the same check without the container |
 | CI-PR-08 | `ci.yml` / `fuzz-smoke` (ubuntu-24.04) | 60 s of each cargo-fuzz target of [`fuzz/`](../fuzz) that the change can reach, on the pinned nightly, the committed corpus as seeds; the path filter [`fuzz-smoke-targets.py`](fuzz-smoke-targets.py) maps the changed paths to targets through the dependency closure of each target ([`fuzz-smoke-targets.toml`](fuzz-smoke-targets.toml); FT-335, G-M1-13). Red for a finding (the `::error::` annotation names the target and the class: `crash`, `oom`, `timeout` or `leak`, FT-370), a failed build or a run without a verdict (a target that outlives its time bound included). Details: [Fuzz smoke](#fuzz-smoke-ci-pr-08) | `python3 -I ci/fuzz-smoke-targets.py --selftest`; `git diff --name-only origin/main HEAD \| python3 -I ci/fuzz-smoke-targets.py` names the targets; then, in `fuzz/`, `cargo fuzz run <target> target/corpus/<target> corpus/<target> -- -max_total_time=60 -max_len=<n>` |
@@ -62,6 +62,44 @@ nextest install, download, `cargo fetch`; the step times are not recorded), each
 seen (21:53) would still give 28:53. This is a projection, not a measurement: the next delivery run records the real
 times. Nothing is skipped, filtered or run in release mode; the archive and the tests are the same. The next levers, if
 the chain is over again, are a fourth part and, in the build job, the cache save moved out of the job's critical path.
+
+The third run job did not balance the parts (FT-387, the next lever). The cycle-25 delivery run (39914507884, on `main`) had
+`test-windows-build` 16:20 and the run jobs 12:22, 14:54 and 7:46, a chain of 16:20 + 14:54 = **31:14**: nextest's
+`count:N/3` deals the tests out one by one in the order of the list, so it balances the number of tests (1113, 1114, 1113),
+not the time, and the few binaries that hold most of the time (one test of `ew-api::memo_oracle` alone takes about
+4 minutes of a full local run) landed in the second part. The test durations of a full local all-features run, summed per
+binary (seconds, a relative weight only: that run used many cores at once, the runner has four), 3340 tests in 201
+binaries, 3221 s in all:
+
+| Test binary | tests | sum (s) | longest test (s) | part |
+|---|---|---|---|---|
+| `ew-api::memo_oracle` | 5 | 378 | 235 | 2 or 3 |
+| `ew-testkit::command_fuzz` | 9 | 296 | 76 | 1 |
+| `ew-store::fault_injection` | 20 | 249 | 69 | 1 |
+| `ew-api::acceptance` | 13 | 205 | 203 | 1 |
+| `ew-api::page_output` | 23 | 173 | 114 | 1 |
+| `ew-store::purge` | 8 | 102 | 89 | 2 or 3 |
+| `ew-testkit::spike_memo` | 1 | 97 | 97 | 2 or 3 |
+| `ew-testkit::golden_dsl` | 7 | 96 | 38 | 1 |
+| `ew-derive::incremental_partition` | 3 | 92 | 92 | 2 or 3 |
+| `ew-api::checks` | 5 | 78 | 76 | 2 or 3 |
+| `ew-viewmodel::part2` | 32 | 64 | 22 | 1 |
+
+The split taken: part 1 is the six binaries marked 1 (104 tests, 1083 s), parts 2 and 3 the other 195 binaries by
+`count:1/2` and `count:2/2` (1618 tests each, 1065 s and 1073 s); the six were chosen by trying every subset of the sixteen
+slowest binaries. `--partition hash:N/3` was weighed and rejected: it deals tests out at random, so the heavy binaries'
+tests land wherever the hash puts them (one emulated hash on these durations gives parts of about 9:00, 13:55 and
+11:50), the result cannot be predicted offline and changes whenever a test is added; explicit binaries are stable and
+leave only the rare re-balance by hand. Projection, **not a measurement**, from a fit of the cycle-25 run (a job takes
+about 0:45 plus 2.4 times the list-scheduled time of the durations above on four threads, which reproduces 12:22, 14:54
+and 7:46 within 4 %): parts of about 11:35, 11:27 and 11:29, so the chain is about 16:20 + 11:35 = **27:55** against
+31:14. If the build job's 16:20 grows or the parts drift apart, re-run the per-binary sums on a fresh full run and move
+binaries between part 1 and the complement; the guard test in `xtask` checks that the three filters are complementary
+and that the acceptance tests and the fuzzer are in part 1. The next delivery run records the real times.
+
+**Lesson: partition by time, not by count.** `--partition count:N/M` equalises the number of tests; when a handful of
+binaries hold most of the run time, name them with `binary_id(=crate::binary)` in one part and split the complement by
+count, and keep every part either an explicit set or `not (that set)` so that the cover stays complete and disjoint.
 
 Two lessons of the cycle-22 hotfixes to the split Windows jobs (FT-387), for every workflow that moves artefacts between jobs:
 

@@ -110,7 +110,7 @@ jobs:
       - name: wall clock, environment and randomness
         run: cargo xtask check-disallowed-methods
 
-  # CI-PR-02, CI-PR-03, CI-PR-04 (test-linux and test-linux-default; test-windows-build, -1 and -2; test-macos)
+  # CI-PR-02, CI-PR-03, CI-PR-04 (test-linux and test-linux-default; test-windows-build, -1, -2 and -3; test-macos)
   test-linux:
     name: test-linux
     runs-on: ubuntu-24.04
@@ -311,15 +311,17 @@ jobs:
           # Outside the checkout: the licence-map test walks the working tree and flagged the archive in the first
           # split run (ci run 39846775852, test-windows-1).
           path: ${{ runner.temp }}/nextest-archive
-      # Part 1 of 3 of the all-features suite (FT-353). nextest partitions by test, so the acceptance tests and the
-      # command fuzzer, which belong to the all-features run unfiltered, each run once in total, in one partition.
+      # Part 1 of 3 of the all-features suite (FT-353, FT-387): the six slowest test binaries, named by `binary_id`; they hold
+      # the acceptance tests and the command fuzzer, so those run once in total, here. Parts 2 and 3 run every other binary,
+      # `count:1/2` and `count:2/2` of the complement, so the three parts are a complete and disjoint cover. The slow set was
+      # chosen from the per-binary durations of a full run (`ci/README.md`, CI-PR-03): `count:N/3` took 12:22, 14:54 and 7:46.
       # The xtask tests run `cargo metadata`, which needs the registry sources.
       - name: cargo fetch
         shell: bash
         run: cargo fetch --locked
       - name: cargo nextest (all features, partition 1/3)
         shell: bash
-        run: cargo nextest run --archive-file "$RUNNER_TEMP/nextest-archive/nextest-archive.tar.zst" --workspace-remap . --partition count:1/3 --profile ci
+        run: cargo nextest run --archive-file "$RUNNER_TEMP/nextest-archive/nextest-archive.tar.zst" --workspace-remap . -E 'binary_id(=ew-api::acceptance) or binary_id(=ew-api::page_output) or binary_id(=ew-store::fault_injection) or binary_id(=ew-testkit::command_fuzz) or binary_id(=ew-testkit::golden_dsl) or binary_id(=ew-viewmodel::part2)' --profile ci
       # Names every failed nextest case as a check-run annotation (the job log needs admin rights to read).
       - name: failed tests as annotations
         if: failure()
@@ -374,15 +376,15 @@ jobs:
           # Outside the checkout: the licence-map test walks the working tree and flagged the archive in the first
           # split run (ci run 39846775852, test-windows-1).
           path: ${{ runner.temp }}/nextest-archive
-      # Part 2 of 3 of the all-features suite (FT-353). nextest partitions by test, so the acceptance tests and the
-      # command fuzzer, which belong to the all-features run unfiltered, each run once in total, in one partition.
+      # Part 2 of 3 of the all-features suite (FT-353, FT-387): every binary except the six of part 1, the first half of them by
+      # test count (`count:1/2`); part 3 takes the second half. The acceptance tests and the command fuzzer are in part 1 only.
       # The xtask tests run `cargo metadata`, which needs the registry sources.
       - name: cargo fetch
         shell: bash
         run: cargo fetch --locked
       - name: cargo nextest (all features, partition 2/3)
         shell: bash
-        run: cargo nextest run --archive-file "$RUNNER_TEMP/nextest-archive/nextest-archive.tar.zst" --workspace-remap . --partition count:2/3 --profile ci
+        run: cargo nextest run --archive-file "$RUNNER_TEMP/nextest-archive/nextest-archive.tar.zst" --workspace-remap . -E 'not (binary_id(=ew-api::acceptance) or binary_id(=ew-api::page_output) or binary_id(=ew-store::fault_injection) or binary_id(=ew-testkit::command_fuzz) or binary_id(=ew-testkit::golden_dsl) or binary_id(=ew-viewmodel::part2))' --partition count:1/2 --profile ci
       # Names every failed nextest case as a check-run annotation (the job log needs admin rights to read).
       - name: failed tests as annotations
         if: failure()
@@ -437,15 +439,15 @@ jobs:
           # Outside the checkout: the licence-map test walks the working tree and flagged the archive in the first
           # split run (ci run 39846775852, test-windows-1).
           path: ${{ runner.temp }}/nextest-archive
-      # Part 3 of 3 of the all-features suite (FT-353). nextest partitions by test, so the acceptance tests and the
-      # command fuzzer, which belong to the all-features run unfiltered, each run once in total, in one partition.
+      # Part 3 of 3 of the all-features suite (FT-353, FT-387): every binary except the six of part 1, the second half of them by
+      # test count (`count:2/2`); part 2 takes the first half. The acceptance tests and the command fuzzer are in part 1 only.
       # The xtask tests run `cargo metadata`, which needs the registry sources.
       - name: cargo fetch
         shell: bash
         run: cargo fetch --locked
       - name: cargo nextest (all features, partition 3/3)
         shell: bash
-        run: cargo nextest run --archive-file "$RUNNER_TEMP/nextest-archive/nextest-archive.tar.zst" --workspace-remap . --partition count:3/3 --profile ci
+        run: cargo nextest run --archive-file "$RUNNER_TEMP/nextest-archive/nextest-archive.tar.zst" --workspace-remap . -E 'not (binary_id(=ew-api::acceptance) or binary_id(=ew-api::page_output) or binary_id(=ew-store::fault_injection) or binary_id(=ew-testkit::command_fuzz) or binary_id(=ew-testkit::golden_dsl) or binary_id(=ew-viewmodel::part2))' --partition count:2/2 --profile ci
       # Names every failed nextest case as a check-run annotation (the job log needs admin rights to read).
       - name: failed tests as annotations
         if: failure()
