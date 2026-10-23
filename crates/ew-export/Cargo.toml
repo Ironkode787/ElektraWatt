@@ -20,16 +20,15 @@ ew-render-cpu = { path = "../ew-render-cpu" }
 # PDF/A-2b writer (ARCH §3, §8.4; ADR-0015 decision 5). Default features off: no built-in shaper (glyphs come shaped
 # from ew-text). `raster-images` on for PNG and JPEG image items (FT-406, decision log ID-605); it brings krilla's
 # png, zune-jpeg, gif, image-webp and imagesize decoders. Only PNG and JPEG reach krilla, after ew-render-cpu has
-# decoded them within its MAX_IMAGE_PIXELS; krilla's GIF and WebP paths are never called.
+# decoded them within its MAX_IMAGE_PIXELS; krilla's GIF and WebP paths are never called (`check-disallowed-methods`).
+# The versions of the decoders are governed by the committed lockfile with `--locked`, cargo-deny and cargo-vet.
 krilla = { version = "0.8.2", default-features = false, features = ["raster-images"] }
-# Not used directly: pins the two decoders `raster-images` admits to the versions their cargo-vet audits cover
-# (licence `MIT OR Apache-2.0` for these exact versions; no build scripts). Their features come from krilla.
-gif = { version = "=0.14.2", default-features = false }
-image-webp = { version = "=0.2.4", default-features = false }
 
 [dev-dependencies]
 ew-text = { path = "../ew-text" }
 ew-units = { path = "../ew-units" }
 sha2 = { workspace = true }
+# PNG variants for the image tests (palette with tRNS, 16-bit, greyscale); already in the graph.
+png = "0.18.1"
 # Destination IDs of the test pages.
 uuid = { version = "1.26", default-features = false }

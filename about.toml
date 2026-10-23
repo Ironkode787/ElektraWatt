@@ -24,3 +24,22 @@ accepted = [
 # The workspace's own crates are `publish = false`; they are not third-party components and are left out of the
 # notice file (their licences are checked by `cargo xtask check-licence-map`).
 private = { ignore = true }
+
+# color_quant 1.1.0 (through gif, krilla's `raster-images`, FT-406) declares MIT and ships only the MIT licence file,
+# but its src/lib.rs header also carries the 1994 NeuQuant permission notice, whose one condition is that the notice
+# stays intact. cargo-about reads licence files only, so the header (the crate's MIT notice and the NeuQuant notice)
+# is added from the crate source here; the checksum pins the extracted text (a new version must be read again).
+[color_quant.clarify]
+license = "MIT"
+
+[[color_quant.clarify.files]]
+path = "LICENSE"
+license = "MIT"
+checksum = "592dc80f1a865d20d61a2006a2d29ce34a2bc28cd7e868ab300fdeed6da154ca"
+
+[[color_quant.clarify.files]]
+path = "src/lib.rs"
+license = "MIT"
+start = "NeuQuant Neural-Net Quantization Algorithm"
+end = "this copyright notice remain intact."
+checksum = "67732f0b6970617387b62d984d47368b7af6c5b3075809d96ad9e7dffc0f81e3"

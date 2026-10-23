@@ -1279,9 +1279,8 @@ dependencies = [
  "ew-render-cpu",
  "ew-text",
  "ew-units",
- "gif",
- "image-webp",
  "krilla",
+ "png",
  "sha2",
  "uuid",
 ]

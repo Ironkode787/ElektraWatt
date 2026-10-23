@@ -158,6 +158,10 @@ const ENV_REASON: &str = "no environment access in model, derive, format or expo
 /// The reason clippy prints with a source of randomness.
 const RANDOM_REASON: &str = "no randomness in model, derive, format or export paths (doc 18 §3.5, determinism; FT-317): ew-ids is the one ID generator, tests seed a generator; allow with a one-line justification that reviewed the site";
 
+/// The reason clippy prints with a call of krilla's GIF or WebP image constructors (FT-406 review): the cargo-vet audits
+/// of gif 0.14.2, image-webp 0.2.4 and imagesize 0.14.0 rest on these paths never being reached.
+const KRILLA_DECODER_REASON: &str = "krilla's GIF and WebP decoders are audited as unreachable (FT-406, supply-chain/audits.toml): only PNG and JPEG reach krilla, after ew_render_cpu::decode_image; a new format needs a decision and a new audit";
+
 /// The randomly keyed hasher of the std hash containers, the generator of their iteration order: a `disallowed-types`
 /// entry after [`DISALLOWED_TYPES`] (FT-317). The one use, the session ID of the lock, is a justified site.
 pub const RANDOM_STATE: &str = "std::hash::RandomState";
@@ -185,8 +189,10 @@ pub const OPTIONAL_METHODS: [(&str, &str); 5] = [
 /// `Uuid::now_v7` (`uuid` has the `v5` feature only) and `rand::random`, `rand::rng` and `rand::random_range`
 /// (`rand` 0.10 without its `thread_rng` feature, which only `proptest` loads). A crate that enables a generator
 /// feature adds its path here. `check-disallowed-methods` (`ordered.rs`) keeps the allow sites reviewed and
-/// scans the reader crates, which opt out of the whole lint, lexically, and its table names those paths too.
-pub const DISALLOWED_METHODS: [(&str, &str); 11] = [
+/// scans the reader crates, which opt out of the whole lint, lexically, and its table names those paths too. The last
+/// two entries are not about determinism: krilla's GIF and WebP image constructors, whose decoders the cargo-vet
+/// audits assume unreachable (FT-406).
+pub const DISALLOWED_METHODS: [(&str, &str); 13] = [
     ("std::time::SystemTime::now", CLOCK_REASON),
     ("std::time::Instant::now", CLOCK_REASON),
     ("std::env::var", ENV_REASON),
@@ -198,6 +204,8 @@ pub const DISALLOWED_METHODS: [(&str, &str); 11] = [
     ("getrandom::fill_uninit", RANDOM_REASON),
     ("getrandom::u32", RANDOM_REASON),
     ("getrandom::u64", RANDOM_REASON),
+    ("krilla::image::Image::from_gif", KRILLA_DECODER_REASON),
+    ("krilla::image::Image::from_webp", KRILLA_DECODER_REASON),
 ];
 
 /// The lint the guard rests on (the item of every suppression finding).

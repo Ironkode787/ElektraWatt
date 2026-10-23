@@ -136,7 +136,7 @@ pub const METHODS: Rule = Rule {
 /// The functions that the lexical scan of the reader crates looks for: the path segment before the call and
 /// the functions that are banned on it (the list of `raw_read::DISALLOWED_METHODS`, plus the generators that
 /// the workspace's feature sets do not compile today).
-const CALLS: [(&str, &[&str]); 7] = [
+const CALLS: [(&str, &[&str]); 8] = [
     ("SystemTime", &["now"]),
     ("Instant", &["now"]),
     ("env", &["var", "var_os", "vars", "vars_os"]),
@@ -147,6 +147,8 @@ const CALLS: [(&str, &[&str]); 7] = [
         &["random", "rng", "thread_rng", "random_range", "random_bool"],
     ),
     ("Uuid", &["new_v4", "now_v7"]),
+    // krilla's GIF and WebP image constructors (FT-406): their decoders are audited as unreachable.
+    ("Image", &["from_gif", "from_webp"]),
 ];
 
 /// Whether `lint` (a lint path as written in an attribute) switches the ban of `rule` off: the lint itself and
