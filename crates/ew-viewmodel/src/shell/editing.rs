@@ -427,7 +427,7 @@ impl ShellModel {
         };
         let Some(&row) = picker.rows.get(picker.row) else {
             return Outcome::Refused {
-                reason_key: "reason-no-row",
+                reason_key: "reason-no-picker-row",
             };
         };
         if let Some(reason_key) = picker.disabled(row) {

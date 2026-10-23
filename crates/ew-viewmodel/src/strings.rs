@@ -97,7 +97,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "reason-designation-needed" => "Give the terminal's designation",
         "reason-ip-exchange" => "An interruption point keeps its symbol",
         "reason-no-next-rep-type" => "No other symbol draws this function on this page",
-        "reason-no-row" => "The picker shows no row",
+        "reason-no-picker-row" => "The picker shows no row",
         "reason-not-editable" => "Symbols are placed on drawn pages of a project that can be changed",
         "banner-host-commit" => "{0} failed: {1}",
         "tool-strip-new" => "New strip",

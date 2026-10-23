@@ -8,7 +8,7 @@
 
 mod support;
 
-use egui::{Key, Modifiers, PointerButton, Pos2};
+use egui::{Key, Modifiers};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
@@ -56,38 +56,6 @@ fn row(h: &Harness<'_, App>, key: &str) -> (String, Provenance) {
     (text, r.provenance.clone())
 }
 
-/// The window position of the sheet point `p` on the focused canvas.
-fn screen(h: &Harness<'_, App>, p: (i64, i64)) -> Pos2 {
-    let bounds = h
-        .get_all_by_role(egui::Role::Canvas)
-        .next()
-        .expect("the canvas node")
-        .accesskit_node()
-        .raw_bounds()
-        .expect("bounds");
-    let c = h.state().shell().canvas().unwrap();
-    let k = c.points_per_nm();
-    Pos2::new(
-        bounds.x0 as f32 + ((p.0 - c.centre().0) as f64 * k + c.pane().0 / 2.0) as f32,
-        bounds.y0 as f32 + ((p.1 - c.centre().1) as f64 * k + c.pane().1 / 2.0) as f32,
-    )
-}
-
-/// A primary press and release at `pos`.
-fn tap(h: &mut Harness<'_, App>, pos: Pos2) {
-    h.event(egui::Event::PointerMoved(pos));
-    for pressed in [true, false] {
-        h.event(egui::Event::PointerButton {
-            pos,
-            button: PointerButton::Primary,
-            pressed,
-            modifiers: Modifiers::NONE,
-        });
-    }
-    h.run_ok();
-    h.run_ok();
-}
-
 /// Moves the grid's row cursor with the arrow keys until it is on `key` (bounded).
 fn row_to(h: &mut Harness<'_, App>, key: &str) {
     press(h, Key::Home);
@@ -116,19 +84,9 @@ fn type_into_field(h: &mut Harness<'_, App>, label: &str, text: &str) {
 fn pg5_ac28_w29_colour_through_the_editor_and_undo() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "103");
-    // W29 by a canvas click on its rectangle.
-    let rect = {
-        let c = h.state().shell().canvas().unwrap();
-        c.page()
-            .entities
-            .iter()
-            .find(|(e, _)| e.0.to_string() == W29)
-            .map(|(_, r)| *r)
-            .expect("W29 is drawn on 103")
-    };
-    let centre = ew_ui::ew_viewmodel::canvas::rect_centre(rect);
-    let pos = screen(&h, centre);
-    tap(&mut h, pos);
+    // W29 through `select.set` (the canvas picks by geometry since WP-S2.04 part 1, and the centre of a wire's
+    // rectangle need not lie on the wire).
+    dispatch(&mut h, "select.set", json!({"ids": [W29]}));
     settle(&mut h);
     let selected: Vec<String> = h
         .state()

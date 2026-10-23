@@ -2083,11 +2083,18 @@ mod tests {
 
     #[test]
     fn shortcuts_are_unique_and_never_ctrl_alt_letter() {
-        let mut seen: Vec<&str> = Vec::new();
+        // Unique within a shell context (WP-S2.01 A1; a context's binding may shadow a global one, WP-S2.03
+        // §6.6): Shift+Enter finishes a tool in the canvas and opens the multilingual popup in the property grid.
+        let mut seen: Vec<(Context, &str)> = Vec::new();
         for a in ACTIONS {
             for s in a.shortcut {
-                assert!(!seen.contains(s), "shortcut {s} is bound twice");
-                seen.push(s);
+                let clash = seen.iter().any(|(c, k)| k == s && *c == a.context);
+                assert!(
+                    !clash,
+                    "shortcut {s} is bound twice in the {:?} context",
+                    a.context
+                );
+                seen.push((a.context, s));
                 let parts: Vec<&str> = s.split('+').collect();
                 let key = parts.last().unwrap();
                 let alt = parts.contains(&"Alt");

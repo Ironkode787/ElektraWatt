@@ -131,10 +131,15 @@ fn a2_the_canvas_actions_are_in_the_registry_with_their_menus_and_reasons() {
     assert_eq!(keys("view.zoom_actual"), ["Ctrl+0"]);
     assert_eq!(keys("view.fit_page"), ["Home"]);
     assert_eq!(keys("view.pan_right"), ["Ctrl+Arrow Right"]);
-    // No shortcut is bound twice and none is Ctrl+Alt (the registry test of WP-S2.01 covers the rest).
-    let all: Vec<&str> = ACTIONS.iter().flat_map(|a| a.shortcut.iter().copied()).collect();
-    for (i, s) in all.iter().enumerate() {
-        assert!(!all[i + 1..].contains(s), "{s}");
+    // No shortcut is bound twice within a shell context (WP-S2.01 A1; a context's binding may shadow a global
+    // one, WP-S2.03 §6.6) and none is Ctrl+Alt (the registry test of WP-S2.01 covers the rest).
+    let all: Vec<(actions::Context, &str)> = ACTIONS
+        .iter()
+        .flat_map(|a| a.shortcut.iter().map(move |s| (a.context, *s)))
+        .collect();
+    for (i, (c, s)) in all.iter().enumerate() {
+        let clash = all[i + 1..].iter().any(|(c2, s2)| s2 == s && c2 == c);
+        assert!(!clash, "{s}");
         assert!(!(s.contains("Ctrl") && s.contains("Alt")), "{s}");
     }
     // View holds the pan submenu, and the grid and statistics items are checked while on.
