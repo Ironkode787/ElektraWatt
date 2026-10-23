@@ -23,7 +23,10 @@
 //! `{"external": true}` or `null`), then (WP-S2.03 part 2) `tool` (`{"name", "state"}`), `snap` (`{"kind", "at_nm",
 //! "label"}` or `null`), `selection` (the selected entities' UUIDs in selection order), `preview` (`{"command",
 //! "state": "ready" | "stale" | "failed", "tags", "xrefs"}` or `null`), `overlay` (the number of overlay items) and
-//! `link_preview` (the link preview's target folio or `null`). After `canvas` come `tabs` (`null` without a project, else
+//! `link_preview` (the link preview's target folio or `null`), then (WP-S2.04 part 1, §7.7) `ghost` (`null`, or
+//! `{"kind": "place", "symbol", "variant", "rep_type", "at_nm", "target", "tag", "hints"}`, `{"kind": "move",
+//! "count", "steps"}` or `{"kind": "exchange", "symbol", "unmapped"}`) and `picker` (`null` or `{"mode", "filter",
+//! "rows", "row"}`). After `canvas` come `tabs` (`null` without a project, else
 //! `{"focused": [g, i], "groups": [[{"id", "folio", "back", "forward"}, …], …]}`), `focus` (`navigator`, `canvas`
 //! or `null`) and `navigator` (`null`, or `{"mode", "sort", "filter", "row"}`). Nothing in it depends on time,
 //! process or location: two runs of one script on equal inputs give equal bytes.
@@ -368,7 +371,64 @@ fn canvas_json(shell: &ShellModel) -> String {
                 .link_preview()
                 .map_or(Value::Null, |lp| Value::from(lp.target.folio.as_str())),
         ),
+        format!("\"ghost\":{}", ghost_json(shell)),
+        format!("\"picker\":{}", picker_json(shell)),
     ])
+}
+
+/// The `ghost` member of the canvas (WP-S2.04 §7.7): `null`, or `{"kind": "place", "symbol", "variant",
+/// "rep_type", "at_nm", "target", "tag", "hints"}`, `{"kind": "move", "count", "steps"}` or `{"kind": "exchange",
+/// "symbol", "unmapped"}`.
+fn ghost_json(shell: &ShellModel) -> String {
+    use crate::tools::Ghost;
+    match shell.tool_ghost() {
+        None => "null".to_owned(),
+        Some(Ghost::Place {
+            symbol,
+            variant,
+            rep_type,
+            at_nm,
+            target,
+            tag,
+            hints,
+            ..
+        }) => object(vec![
+            member("kind", &Value::from("place")),
+            member("symbol", &Value::from(symbol)),
+            member("variant", &Value::from(variant.to_string())),
+            member("rep_type", &Value::from(rep_type)),
+            member(
+                "at_nm",
+                &at_nm.map_or(Value::Null, |(x, y)| Value::from(vec![x, y])),
+            ),
+            member("target", &Value::from(target)),
+            member("tag", &tag.map_or(Value::Null, Value::from)),
+            member("hints", &Value::from(hints)),
+        ]),
+        Some(Ghost::Move { count, steps, .. }) => object(vec![
+            member("kind", &Value::from("move")),
+            member("count", &Value::from(count)),
+            member("steps", &Value::from(vec![steps.0, steps.1])),
+        ]),
+        Some(Ghost::Exchange { symbol, unmapped }) => object(vec![
+            member("kind", &Value::from("exchange")),
+            member("symbol", &Value::from(symbol)),
+            member("unmapped", &Value::from(unmapped)),
+        ]),
+    }
+}
+
+/// The `picker` member of the canvas (WP-S2.04 §7.7): `null`, or `{"mode", "filter", "rows", "row"}`.
+fn picker_json(shell: &ShellModel) -> String {
+    match shell.picker() {
+        None => "null".to_owned(),
+        Some(p) => object(vec![
+            member("mode", &Value::from(p.mode.word())),
+            member("filter", &Value::from(p.filter.as_str())),
+            member("rows", &Value::from(p.rows.len())),
+            member("row", &Value::from(p.row)),
+        ]),
+    }
 }
 
 /// The `tool` member of the canvas: `{"name", "state"}`.

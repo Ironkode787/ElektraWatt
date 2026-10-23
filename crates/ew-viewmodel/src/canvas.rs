@@ -34,7 +34,7 @@ use std::sync::Arc;
 
 use ew_api::output::ew_dl::ew_units::{Nm, Rect};
 use ew_api::output::ew_dl::{Destination, DisplayList, EntityRef};
-use ew_api::output::{LinkTarget, PageCells, PageCp, PageGrid, PageRow};
+use ew_api::output::{LinkTarget, PageCells, PageCp, PageGrid, PageRow, PageTables};
 
 use crate::tools::Snapper;
 
@@ -364,6 +364,22 @@ pub struct CanvasPage {
     pub cps: Vec<PageCp>,
     /// The page's snapper, built from its grid and connection points.
     pub snapper: Snapper,
+    /// The records drawn on the page as tables, in page nm (`Session::page_tables`, WP-S2.04 §6.2): empty for a
+    /// page that is not drawn.
+    pub tables: Arc<PageTables>,
+}
+
+/// The tables of a page that holds no record.
+pub fn empty_tables(folio: &str) -> PageTables {
+    PageTables {
+        folio: folio.to_owned(),
+        page: Default::default(),
+        grid: (1_000_000, 1),
+        reps: Vec::new(),
+        cps: Vec::new(),
+        connections: Vec::new(),
+        junctions: Vec::new(),
+    }
 }
 
 impl CanvasPage {
@@ -391,6 +407,7 @@ impl CanvasPage {
             cells: None,
             cps: Vec::new(),
             snapper,
+            tables: Arc::new(empty_tables(folio)),
         }
     }
 
@@ -948,6 +965,7 @@ mod tests {
             cells: None,
             cps: Vec::new(),
             snapper: Snapper::default(),
+            tables: Arc::new(empty_tables("103")),
         })
     }
 

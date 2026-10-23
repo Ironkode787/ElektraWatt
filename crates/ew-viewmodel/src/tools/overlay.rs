@@ -10,7 +10,33 @@
 //! font, `ui.describe` lists them, and `canvas.snapshot` leaves them out. The tokens are provisional (WP-S2.08's
 //! theme replaces them); the shapes carry the meaning (NFR-A11Y-03).
 
+use std::sync::Arc;
+
+use ew_api::geometry::orient_point;
 use ew_api::output::ew_dl::ew_units::Rect;
+
+use super::Snapper;
+
+/// The sheet points of an [`OverlayItem::Paths`] item on the page whose snapper is `snapper`: each vertex oriented,
+/// translated to the origin's page point and mapped by the page-to-sheet map.
+pub fn paths_on_sheet(
+    paths: &[Vec<(i64, i64)>],
+    transform: (u8, (i64, i64)),
+    snapper: &Snapper,
+) -> Vec<Vec<(i64, i64)>> {
+    let (o, origin) = transform;
+    paths
+        .iter()
+        .map(|line| {
+            line.iter()
+                .map(|p| {
+                    let q = orient_point(o, *p);
+                    snapper.page_to_sheet((origin.0.saturating_add(q.0), origin.1.saturating_add(q.1)))
+                })
+                .collect()
+        })
+        .collect()
+}
 
 /// The colour token of a line (provisional: `ghost` #0072B2, `snap` #009E73, `measure` #A86F00, `rubber-band`
 /// #0072B2).
@@ -137,6 +163,15 @@ pub enum OverlayItem {
         at: (i64, i64),
         /// Its shape.
         kind: MarkerKind,
+    },
+    /// Polylines in page nm relative to an origin, under an orientation (`0..=7`, A to H) and translated to an
+    /// absolute page point (WP-S2.04 §6.3): a symbol's outline while it floats. Drawn as dashed lines in the
+    /// `ghost` token, composited by the headless snapshot like `Ghost`; [`paths_on_sheet`] gives the sheet points.
+    Paths {
+        /// The polylines, relative to the origin, at orientation A.
+        paths: Arc<[Vec<(i64, i64)>]>,
+        /// The orientation and the absolute page point of the origin.
+        transform: (u8, (i64, i64)),
     },
     /// A text chip (the Measure readout; later a ghost's predicted tag): drawn by the window, listed by
     /// `ui.describe`, never composited into `canvas.snapshot`.

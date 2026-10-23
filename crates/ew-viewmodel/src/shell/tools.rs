@@ -32,8 +32,10 @@ use crate::canvas::{CanvasModel, CanvasPage, PageId, reading_key};
 use crate::strings;
 use crate::tools::{
     Button, CanvasEvent, LINK_PREVIEW_DWELL_MS, LINK_PREVIEW_PANE, LinkPreview, MarkerKind, Mods, Overlay,
-    PreviewState, PreviewStatus, Selection, Tool, ToolCx, ToolOutput, tool_label, tool_named,
+    PreviewInfo, PreviewState, PreviewStatus, Selection, SelectionChange, Tool, ToolCx, ToolOutput,
+    tool_label, tool_named,
 };
+use ew_api::output::ew_dl::EntityRef;
 
 /// A connection-point step of the keyboard (§7.7).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -231,7 +233,7 @@ impl ShellModel {
     }
 
     /// Announces the active tool and its hint through the live region.
-    fn announce_tool(&mut self) {
+    pub(super) fn announce_tool(&mut self) {
         let label = tool_label(self.tools.tool.name());
         self.tools.announcement = Some(strings::format(
             "announce-tool",
@@ -242,7 +244,16 @@ impl ShellModel {
     /// Hands `ev` to the active tool and acts on its output (§7.2).
     pub(super) fn send_tool(&mut self, ev: &CanvasEvent) -> Outcome {
         match self.run_tool(ev) {
-            Some(out) => self.apply_tool_output(out),
+            Some(out) => {
+                let out = self.apply_tool_output(out);
+                // The place tool says what it floats after a key or a cursor move (WP-S2.04 §7.2).
+                if self.tools.tool.name() == "place"
+                    && matches!(ev, CanvasEvent::Key(_) | CanvasEvent::CursorMove { .. })
+                {
+                    self.announce_place();
+                }
+                out
+            }
             None => Outcome::Refused {
                 reason_key: "reason-no-page",
             },
@@ -262,9 +273,35 @@ impl ShellModel {
                 Outcome::Done
             }
             ToolOutput::Commit(cmd) => {
+                self.tools.before_commit = self.canvas().map(|c| Arc::clone(&c.page().tables));
                 let out = self.run_commit(cmd.as_ref());
                 self.tools.overlay = Overlay::default();
                 self.tools.preview = None;
+                // After Select commits a move or a transform, the selection is the moved representations (one
+                // selection change, no command; WP-S2.04 §6.4 item 3).
+                if out == Outcome::Done
+                    && self.tools.tool.name() == "select"
+                    && matches!(cmd.name(), "rep.move" | "rep.transform")
+                    && let Ok(params) = cmd.to_json()
+                {
+                    let reps: Vec<EntityRef> = params["reps"]
+                        .as_array()
+                        .into_iter()
+                        .flatten()
+                        .filter_map(|v| {
+                            let id = v.as_str()?;
+                            self.canvas()?
+                                .page()
+                                .entities
+                                .iter()
+                                .find(|(e, _)| e.0.to_string() == id)
+                                .map(|(e, _)| *e)
+                        })
+                        .collect();
+                    if !reps.is_empty() && self.tools.selection.apply(&SelectionChange::Replace(reps)) {
+                        self.announce_selection();
+                    }
+                }
                 out
             }
             ToolOutput::Cancel => {
@@ -287,7 +324,7 @@ impl ShellModel {
     }
 
     /// Announces the selection's size through the live region.
-    fn announce_selection(&mut self) {
+    pub(super) fn announce_selection(&mut self) {
         self.tools.announcement = Some(strings::format(
             "announce-selected",
             &[&self.tools.selection.items.len().to_string()],
@@ -353,6 +390,20 @@ impl ShellModel {
             Err(_) => Default::default(),
         };
         self.count(|c| c.preview_with += 1);
+        // What the tool may show of its preview (WP-S2.04: the predicted tag, the unmapped CPs).
+        let info = PreviewInfo {
+            ok: result.is_ok(),
+            tags: derived
+                .tags
+                .iter()
+                .map(|c| (c.before.clone(), c.after.clone()))
+                .collect(),
+            notices: result
+                .as_ref()
+                .map(|p| p.outcome().notices.clone())
+                .unwrap_or_default(),
+            message: result.as_ref().err().map(ToString::to_string),
+        };
         self.tools.preview = Some(PreviewState {
             base_rev: rev,
             command: json,
@@ -360,12 +411,15 @@ impl ShellModel {
             result: result.map_err(|e| e.to_string()),
             derived,
         });
+        if let Some(overlay) = self.tools.tool.on_preview(&info) {
+            self.tools.overlay = overlay;
+        }
     }
 
     /// `Commit(cmd)` (§7.3): in the window `Session::commit` of a fresh, equal preview, else `Session::execute_with`
     /// (a preview and its commit for a bulk command); headless a one-line command log through `Session::run_script`,
     /// exactly `command.run`'s path, so the exposure rules and `--record` apply.
-    fn run_commit(&mut self, cmd: &dyn DynCommand) -> Outcome {
+    pub(super) fn run_commit(&mut self, cmd: &dyn DynCommand) -> Outcome {
         if !self.is_writable() {
             return Outcome::Refused {
                 reason_key: if self.has_project() {
@@ -417,7 +471,12 @@ impl ShellModel {
             }
         };
         let outcome = match result {
-            Ok(_) => {
+            Ok(receipt) => {
+                self.tools.last_primary = receipt
+                    .outcome
+                    .primary
+                    .and_then(|k| serde_json::to_value(k.1).ok())
+                    .and_then(|v| v.as_str().map(str::to_owned));
                 self.record.undone.clear();
                 self.record.steps.push(RecordedCommand {
                     cmd: name,

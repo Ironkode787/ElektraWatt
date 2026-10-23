@@ -143,6 +143,42 @@ pub const VOCABULARY: &[&str] = &[
     "overlay",
     // A snap marker's kind (`canvas snap junction …`), printed by `MarkerKind::word` (the review of part 2).
     "junction",
+    // Place and arrange (WP-S2.04 part 1, §7.7): 28 words, a reviewed vocabulary change (ID-474 extended).
+    "picker",
+    "rows",
+    "symbol",
+    "part",
+    "function",
+    "main",
+    "embedded",
+    "starter",
+    "ghost",
+    "place",
+    "variant",
+    "rep",
+    "target",
+    "new",
+    "join",
+    "existing",
+    "terminal",
+    "strip",
+    "letter",
+    "tag",
+    "move",
+    "steps",
+    "exchange",
+    "unmapped",
+    "floating",
+    "dragging",
+    "moving",
+    "readout",
+];
+
+/// The 28 words WP-S2.04 part 1 adds to [`VOCABULARY`] (§7.7).
+pub const PLACE_WORDS: &[&str] = &[
+    "picker", "rows", "symbol", "part", "function", "main", "embedded", "starter", "ghost", "place",
+    "variant", "rep", "target", "new", "join", "existing", "terminal", "strip", "letter", "tag", "move",
+    "steps", "exchange", "unmapped", "floating", "dragging", "moving", "readout",
 ];
 
 /// The markers after which the rest of the line is user text (a title, a banner, an error, a reason, a folio, a
@@ -605,6 +641,81 @@ fn tool_lines(model: &ShellModel, lines: &mut Vec<String>) {
     }
     if let Some(lp) = model.link_preview() {
         lines.push(format!("canvas link preview \"{}\"", lp.target.folio));
+    }
+    ghost_lines(model, lines);
+}
+
+/// The lines of WP-S2.04 §7.7 after the tool lines: the picker while open (one line, then one line per row; the
+/// current row ends with `current`) and what the active tool floats or drags.
+fn ghost_lines(model: &ShellModel, lines: &mut Vec<String>) {
+    if let Some(p) = model.picker() {
+        lines.push(format!(
+            "canvas picker filter \"{}\" rows {}",
+            p.filter,
+            p.rows.len()
+        ));
+        for (i, row) in p.rows.iter().enumerate() {
+            let mut line = format!("  {}", p.row_line(*row));
+            if i == p.row {
+                line.push_str(" current");
+            }
+            lines.push(line);
+        }
+    }
+    match model.tool_ghost() {
+        None => {}
+        Some(crate::tools::Ghost::Place {
+            symbol,
+            variant,
+            rep_type,
+            at_nm,
+            target,
+            letter,
+            strip,
+            tag,
+            ..
+        }) => {
+            let mut line =
+                format!("canvas ghost place symbol \"{symbol}\" variant \"{variant}\" rep \"{rep_type}\"");
+            if let Some((x, y)) = at_nm {
+                line.push_str(&format!(" at {} {} mm", mm3(x), mm3(y)));
+            }
+            // Another representation of an existing function reads `target existing`.
+            let target = if target == "function" { "existing" } else { target };
+            line.push_str(&format!(" target {target}"));
+            if let Some(l) = letter {
+                line.push_str(&format!(" letter \"{l}\""));
+            }
+            if let Some(st) = strip {
+                line.push_str(&format!(" strip \"{st}\""));
+            }
+            if let Some(t) = tag {
+                line.push_str(&format!(" tag \"{t}\""));
+            }
+            lines.push(line);
+        }
+        Some(crate::tools::Ghost::Move {
+            count,
+            steps,
+            readout,
+        }) => lines.push(format!(
+            "canvas ghost move {count} steps {} {} readout \"{readout}\"",
+            steps.0, steps.1
+        )),
+        Some(crate::tools::Ghost::Exchange { symbol, unmapped }) => {
+            let list = if unmapped.is_empty() {
+                "none".to_owned()
+            } else {
+                unmapped
+                    .iter()
+                    .map(|u| format!("\"{u}\""))
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            };
+            lines.push(format!(
+                "canvas ghost exchange symbol \"{symbol}\" unmapped {list}"
+            ));
+        }
     }
 }
 

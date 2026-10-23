@@ -32,8 +32,9 @@ fn dash(d: tools::Dash) -> Dash {
     }
 }
 
-/// The overlay's marks for `ew-render2d` (labels left out: the window draws them as chips).
-pub fn marks(overlay: &Overlay) -> Vec<ToolMark> {
+/// The overlay's marks for `ew-render2d` (labels left out: the window draws them as chips); `snapper` is the page's,
+/// which maps a floating outline (`Paths`, page nm) to the sheet (WP-S2.04 §6.3).
+pub fn marks(overlay: &Overlay, snapper: &tools::Snapper) -> Vec<ToolMark> {
     overlay
         .items
         .iter()
@@ -67,6 +68,9 @@ pub fn marks(overlay: &Overlay) -> Vec<ToolMark> {
                         tools::MarkerKind::Junction => MarkerKind::Junction,
                     },
                 },
+                OverlayItem::Paths { paths, transform } => ToolMark::Paths {
+                    paths: tools::paths_on_sheet(paths, *transform, snapper),
+                },
                 OverlayItem::Label { .. } => return None,
             })
         })
@@ -75,11 +79,46 @@ pub fn marks(overlay: &Overlay) -> Vec<ToolMark> {
 
 /// The marks the canvas of `group` shows: the active tool's overlay on the focused group only.
 pub fn marks_of(shell: &ShellModel, group: usize) -> Vec<ToolMark> {
-    if shell.area().map(|a| a.focused) == Some(group) {
-        marks(shell.tool_overlay())
+    if shell.area().map(|a| a.focused) == Some(group)
+        && let Some(c) = shell.canvas_of(group)
+    {
+        marks(shell.tool_overlay(), &c.page().snapper)
     } else {
         Vec::new()
     }
+}
+
+/// The tool strip's text (WP-S2.04 §6.4 item 4): the active tool's label and what it floats or drags, as the
+/// transcript's `ghost` member says it; `None` for Select at rest.
+pub fn tool_strip_text(shell: &ShellModel) -> Option<String> {
+    let tool = shell.tool();
+    let label = tools::tool_label(tool.name());
+    let detail = match shell.tool_ghost() {
+        None if tool.name() == "select" => return None,
+        None => strings::text(tool.status_hint()).to_owned(),
+        Some(tools::Ghost::Place {
+            symbol,
+            variant,
+            target,
+            letter,
+            strip,
+            tag,
+            ..
+        }) => {
+            let mut parts = vec![symbol, variant.to_string(), target.to_owned()];
+            parts.extend(letter);
+            parts.extend(strip);
+            parts.extend(tag);
+            parts.join(" · ")
+        }
+        Some(tools::Ghost::Move { readout, .. }) => readout,
+        Some(tools::Ghost::Exchange { symbol, unmapped }) => {
+            let mut parts = vec![symbol];
+            parts.extend(unmapped);
+            parts.join(" · ")
+        }
+    };
+    Some(format!("{label}: {detail}"))
 }
 
 /// A text chip: the text on the panel colour with a thin frame, its anchor point at `at` (points).

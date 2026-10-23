@@ -165,9 +165,11 @@ impl Tool for MeasureTool {
                 None => ToolOutput::None,
             },
             CanvasEvent::Escape | CanvasEvent::Back => self.back(),
-            CanvasEvent::Press { .. } | CanvasEvent::Release { .. } | CanvasEvent::Dwell { .. } => {
-                ToolOutput::None
-            }
+            CanvasEvent::Press { .. }
+            | CanvasEvent::Release { .. }
+            | CanvasEvent::Dwell { .. }
+            | CanvasEvent::Key(_)
+            | CanvasEvent::Text(_) => ToolOutput::None,
         }
     }
 

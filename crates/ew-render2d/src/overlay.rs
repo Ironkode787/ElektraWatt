@@ -183,6 +183,12 @@ pub enum ToolMark {
         /// The displacement.
         offset: (i64, i64),
     },
+    /// A floating symbol's outline (WP-S2.04 §6.3): polylines in sheet nm, drawn as dashed lines in the ghost token
+    /// (1 pixel, 2 at `ppp ≥ 2`).
+    Paths {
+        /// The polylines.
+        paths: Vec<Vec<(i64, i64)>>,
+    },
     /// A snap marker, in the snap token.
     Marker {
         /// Where.
@@ -467,6 +473,14 @@ pub fn build(input: &OverlayInput<'_>) -> Overlay {
             ToolMark::Ghost { rects, offset } => {
                 for r in rects {
                     rect_px(t, *r, *offset, width, Dash::Dashed, &pane, &mut px);
+                }
+                ToolToken::Ghost
+            }
+            ToolMark::Paths { paths } => {
+                for line in paths {
+                    for w in line.windows(2) {
+                        line_px(screen(w[0]), screen(w[1]), width, Dash::Dashed, &pane, &mut px);
+                    }
                 }
                 ToolToken::Ghost
             }
@@ -1061,9 +1075,33 @@ mod tests {
         }];
         let o = build(&with_tool(&v, &poly));
         let px = pixels(o.tool.iter().map(|(r, _)| r));
-        for p in points {
+        for p in points.clone() {
             assert!(px.contains(&px_of(&t, p)));
         }
+        // A floating outline (WP-S2.04 §6.3) is its polylines, dashed in the ghost token: fewer pixels than solid.
+        let paths = [ToolMark::Paths {
+            paths: vec![
+                points.clone(),
+                vec![(90_000_000, 80_000_000), (90_000_000, 120_000_000)],
+            ],
+        }];
+        let o = build(&with_tool(&v, &paths));
+        assert!(o.tool.iter().all(|(_, k)| *k == ToolToken::Ghost));
+        let dashed = pixels(o.tool.iter().map(|(r, _)| r));
+        assert!(
+            dashed.contains(&px_of(&t, points[0])),
+            "a dash starts at the first vertex"
+        );
+        assert!(dashed.len() < px.len() + 200, "{}", dashed.len());
+        let solid_vertical = 40_000_000.0 * t.px_per_nm();
+        let vertical: Vec<_> = dashed
+            .iter()
+            .filter(|p| p.0 == px_of(&t, (90_000_000, 0)).0)
+            .collect();
+        assert!(
+            (vertical.len() as f64) < solid_vertical * 0.75,
+            "the vertical line is dashed"
+        );
     }
 
     #[test]

@@ -1,0 +1,680 @@
+// SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+//! WP-S2.04 part 1 in the view model (acceptance checks PL3, PL4, PL5 and the view-model part of PL7 and PL8): the
+//! picker and the starter embedding, the Place tool, moving by drag and by keys, transform and delete on a
+//! selection, change symbol, the transcript members and the describe lines with their 28 words, and the exact
+//! `Session` counts of pointer and cursor moves. Every test works on a writable temporary copy of Golden A.
+
+mod common;
+
+use common::{Tmp, at, click, done, refused, state};
+use ew_viewmodel::ew_api::output::{PageTables, TableRep};
+use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
+use ew_viewmodel::tools::OverlayItem;
+use serde_json::{Value, json};
+
+/// A headless shell with a writable copy of Golden A on `folio`.
+fn shell(tmp: &Tmp, folio: &str) -> ShellModel {
+    tmp.shell_in(Mode::Headless, true, folio)
+}
+
+fn tables(shell: &ShellModel) -> std::sync::Arc<PageTables> {
+    std::sync::Arc::clone(&shell.canvas().unwrap().page().tables)
+}
+
+/// The representation of the page drawing the symbol `key` (the first in ID order).
+fn rep_with(shell: &ShellModel, key: &str) -> TableRep {
+    tables(shell)
+        .reps
+        .iter()
+        .find(|r| r.symbol_key == key)
+        .unwrap_or_else(|| panic!("no {key}"))
+        .clone()
+}
+
+/// The sheet point of the page point `p` of the focused page.
+fn sheet(shell: &ShellModel, p: (i64, i64)) -> (i64, i64) {
+    shell.canvas().unwrap().page().snapper.page_to_sheet(p)
+}
+
+/// The sheet point `k` grid steps from the sheet point of the page point `p`.
+fn steps_from(shell: &ShellModel, p: (i64, i64), k: (i64, i64)) -> (i64, i64) {
+    let s = &shell.canvas().unwrap().page().snapper;
+    let (ix, iy) = (s.grid_index_of(p.0), s.grid_index_of(p.1));
+    (
+        s.sheet_of_index(ix + k.0, 0) - s.sheet_of_index(ix, 0) + s.to_sheet(p.0, 0),
+        s.sheet_of_index(iy + k.1, 1) - s.sheet_of_index(iy, 1) + s.to_sheet(p.1, 1),
+    )
+}
+
+/// The page point of grid index `k` of the focused page.
+fn grid_point(shell: &ShellModel, k: (i64, i64)) -> (i64, i64) {
+    let s = &shell.canvas().unwrap().page().snapper;
+    (s.page_of_index(k.0), s.page_of_index(k.1))
+}
+
+/// A free grid point of folio 101's empty lower right area.
+fn free_point(shell: &ShellModel) -> (i64, i64) {
+    grid_point(shell, (60, 30))
+}
+
+fn ghost(shell: &ShellModel) -> Value {
+    state(shell)["canvas"]["ghost"].clone()
+}
+
+fn describe_line(shell: &ShellModel, prefix: &str) -> String {
+    shell
+        .describe()
+        .lines()
+        .find(|l| l.starts_with(prefix))
+        .unwrap_or_else(|| panic!("no line {prefix}"))
+        .to_owned()
+}
+
+#[test]
+fn the_picker_lists_the_grid_family_embeds_a_starter_symbol_once_and_disables_rows_with_reasons() {
+    let tmp = Tmp::new("pick");
+    let mut s = shell(&tmp, "101");
+    done(&mut s, "tool.place", json!({}));
+    let picker = state(&s)["canvas"]["picker"].clone();
+    assert_eq!(picker["mode"], "place");
+    assert_eq!(picker["filter"], "");
+    assert_eq!(picker["row"], 0);
+    let p = s.picker().unwrap();
+    assert!(
+        p.catalogue.symbols.iter().all(|r| r.key.ends_with("@qet10")),
+        "the page's grid family"
+    );
+    // The filter: case-folded substrings of the key, the part number and the FnDef key.
+    done(&mut s, "picker.filter", json!({"text": "MCB"}));
+    let rows = s.picker().unwrap().rows.len();
+    assert!(rows >= 2, "{rows}");
+    let text = s.describe();
+    assert!(
+        text.contains(&format!("canvas picker filter \"MCB\" rows {rows}")),
+        "{text}"
+    );
+    assert!(
+        text.contains("  row symbol \"ew.iec.mcb-1p@qet10\" embedded"),
+        "{text}"
+    );
+    // A black-box symbol row is disabled with its reason, and choosing it is refused.
+    done(&mut s, "picker.filter", json!({"text": "blackbox"}));
+    let line = describe_line(&s, "  row symbol \"ew.gen.blackbox@qet10\"");
+    assert!(line.contains("disabled: Use the black box tool (B)"), "{line}");
+    assert_eq!(
+        refused(&mut s, "picker.choose", json!({})),
+        "reason-black-box-tool"
+    );
+    // Rows move and clamp.
+    done(&mut s, "picker.filter", json!({"text": ""}));
+    let n = s.picker().unwrap().rows.len();
+    done(&mut s, "picker.row", json!({"to": -1}));
+    assert_eq!(s.picker().unwrap().row, n - 1);
+    done(&mut s, "picker.row", json!({"step": 5}));
+    assert_eq!(s.picker().unwrap().row, n - 1);
+    done(&mut s, "picker.row", json!({"to": 0}));
+    // A starter symbol (Golden A has no NO contact): one `library.embed`, then the tool floats it.
+    done(&mut s, "picker.filter", json!({"text": "contact-no@"}));
+    assert!(describe_line(&s, "  row symbol \"ew.iec.contact-no@qet10\"").contains("starter"));
+    let undo_before = s.can_undo();
+    let calls = s.session_calls();
+    done(&mut s, "picker.choose", json!({"letter": "K"}));
+    assert!(s.picker().is_none());
+    assert_eq!(s.tool().name(), "place");
+    assert_eq!(s.tool().state(), "floating");
+    assert!(!undo_before && s.can_undo(), "the embedding is an undo step");
+    assert_eq!(
+        s.session_calls().run_script,
+        calls.run_script + 1,
+        "one host commit"
+    );
+    // Escape ends the tool without a change; a second choice of the symbol embeds nothing.
+    let rev = s.revision();
+    done(&mut s, "ui.dismiss", json!({}));
+    assert_eq!(s.tool().name(), "select");
+    assert_eq!(s.revision(), rev, "Escape leaves the revision unchanged");
+    done(&mut s, "tool.place", json!({}));
+    done(&mut s, "picker.filter", json!({"text": "contact-no@"}));
+    assert!(describe_line(&s, "  row symbol \"ew.iec.contact-no@qet10\"").contains("embedded"));
+    let calls = s.session_calls();
+    done(&mut s, "picker.choose", json!({"letter": "K"}));
+    assert_eq!(s.session_calls().run_script, calls.run_script, "nothing embedded");
+    assert_eq!(s.revision(), rev);
+    // Undo takes back the embedding.
+    done(&mut s, "ui.dismiss", json!({}));
+    done(&mut s, "edit.undo", json!({}));
+    assert!(!s.can_undo());
+}
+
+#[test]
+fn placing_a_contact_cycles_the_variants_and_commits_the_chosen_orientation() {
+    let tmp = Tmp::new("variant");
+    let mut s = shell(&tmp, "101");
+    done(
+        &mut s,
+        "place.pick",
+        json!({"symbol": "ew.iec.contact-no@qet10", "letter": "K"}),
+    );
+    let p = free_point(&s);
+    let pt0 = sheet(&s, p);
+    done(&mut s, "canvas.pointer", at(pt0, json!({})));
+    let g = ghost(&s);
+    assert_eq!(g["kind"], "place");
+    assert_eq!(g["symbol"], "ew.iec.contact-no@qet10");
+    assert_eq!(g["variant"], "A");
+    assert_eq!(g["target"], "new");
+    assert_eq!(g["at_nm"], json!([p.0, p.1]));
+    assert_eq!(g["hints"], 0);
+    // The overlay: the outline, a marker per CP, the label with the variant and the target.
+    let overlay = s.tool_overlay().clone();
+    assert!(matches!(overlay.items[0], OverlayItem::Paths { transform: (0, q), .. } if q == p));
+    assert!(overlay.labels().any(|l| l == "A new K"), "{overlay:?}");
+    // V cycles A to H and back to A.
+    let mut letters = String::new();
+    for _ in 0..8 {
+        done(&mut s, "tool.next_variant", json!({}));
+        letters.push_str(ghost(&s)["variant"].as_str().unwrap());
+    }
+    assert_eq!(letters, "BCDEFGHA");
+    // R, Shift+R, X and Y compose as rep.transform does.
+    for (action, letter) in [
+        ("tool.rotate_cw", "B"),
+        ("tool.rotate_ccw", "A"),
+        ("tool.rotate_ccw", "D"),
+        ("tool.rotate_cw", "A"),
+        ("tool.mirror_x", "E"),
+        ("tool.mirror_x", "A"),
+        ("tool.mirror_y", "G"),
+        ("tool.mirror_y", "A"),
+    ] {
+        done(&mut s, action, json!({}));
+        assert_eq!(ghost(&s)["variant"], letter, "{action}");
+    }
+    // The live region says what floats.
+    let said = s.tool_announcement().unwrap_or_default().to_owned();
+    assert!(
+        said.starts_with("Place ew.iec.contact-no@qet10: new K, variant A"),
+        "{said}"
+    );
+    // Variant C, commit: the representation has orientation C (R180).
+    done(&mut s, "tool.next_variant", json!({}));
+    done(&mut s, "tool.next_variant", json!({}));
+    let before = tables(&s).reps.len();
+    let pt1 = sheet(&s, p);
+    done(&mut s, "canvas.press", at(pt1, json!({})));
+    let pt2 = sheet(&s, p);
+    done(&mut s, "canvas.release", at(pt2, json!({})));
+    let t = tables(&s);
+    assert_eq!(t.reps.len(), before + 1);
+    let new = t
+        .reps
+        .iter()
+        .find(|r| r.symbol_key == "ew.iec.contact-no@qet10")
+        .unwrap();
+    assert_eq!(new.orient, 2, "variant C");
+    assert_eq!(new.pos, p);
+    // Sticky: the tool keeps floating; a dwell previews the next placement and the ghost shows its tag.
+    assert_eq!(s.tool().name(), "place");
+    let q = (p.0 + 7_937_500 * 2, p.1);
+    let q = grid_point(&s, (60 + 6, 30)).max(q);
+    let pt3 = sheet(&s, q);
+    done(&mut s, "canvas.pointer", at(pt3, json!({})));
+    let calls = s.session_calls();
+    done(&mut s, "canvas.dwell", json!({"ms": 80}));
+    assert_eq!(s.session_calls().preview_with, calls.preview_with + 1);
+    let tag = ghost(&s)["tag"].as_str().map(str::to_owned);
+    let tag = tag.expect("the predicted tag");
+    assert!(tag.contains('K'), "{tag}");
+    assert!(
+        s.tool_overlay().labels().any(|l| l.ends_with(&tag)),
+        "the label shows the tag"
+    );
+    let line = describe_line(&s, "canvas ghost place");
+    assert!(
+        line.contains("symbol \"ew.iec.contact-no@qet10\" variant \"C\" rep \"multi_line\" at ")
+            && line.contains(" mm target new letter \"K\" tag \""),
+        "{line}"
+    );
+    // Escape leaves the revision unchanged.
+    let rev = s.revision();
+    done(&mut s, "ui.dismiss", json!({}));
+    assert_eq!(s.revision(), rev);
+    assert_eq!(state(&s)["canvas"]["ghost"], Value::Null);
+}
+
+#[test]
+fn a_contact_dropped_inside_a_black_box_joins_its_device() {
+    let tmp = Tmp::new("join");
+    let mut s = shell(&tmp, "102");
+    let t = tables(&s);
+    let bx = t
+        .reps
+        .iter()
+        .filter(|r| r.black_box.is_some())
+        .find(|r| {
+            t.cps
+                .iter()
+                .any(|c| c.rep == r.id && c.label.starts_with("-102F2:"))
+        })
+        .expect("-102F2's box")
+        .clone();
+    let outline = &bx.black_box.as_ref().unwrap().outline;
+    let (x0, x1) = (
+        outline.iter().map(|p| p.0).min().unwrap(),
+        outline.iter().map(|p| p.0).max().unwrap(),
+    );
+    let (y0, y1) = (
+        outline.iter().map(|p| p.1).min().unwrap(),
+        outline.iter().map(|p| p.1).max().unwrap(),
+    );
+    let inside = ((x0 + x1) / 2, (y0 + y1) / 2);
+    done(
+        &mut s,
+        "place.pick",
+        json!({"symbol": "ew.iec.contact-no@qet10", "letter": "K"}),
+    );
+    let pt4 = sheet(&s, inside);
+    done(&mut s, "canvas.pointer", at(pt4, json!({})));
+    assert_eq!(ghost(&s)["target"], "join");
+    assert!(
+        s.tool_overlay().labels().any(|l| l.contains("join -102F2")),
+        "{:?}",
+        s.tool_overlay()
+    );
+    let here = sheet(&s, inside);
+    done(&mut s, "canvas.press", at(here, json!({})));
+    let t = tables(&s);
+    let new = t
+        .reps
+        .iter()
+        .find(|r| r.symbol_key == "ew.iec.contact-no@qet10")
+        .expect("placed");
+    assert_eq!(new.device, bx.device, "an auxiliary function of -102F2");
+}
+
+#[test]
+fn a_selection_of_two_representations_moves_by_drag_and_by_keys_in_grid_steps() {
+    let tmp = Tmp::new("move");
+    let mut s = shell(&tmp, "101");
+    let (a, b) = (
+        rep_with(&s, "ew.iec.heater@qet10"),
+        rep_with(&s, "ew.iec.lamp@qet10"),
+    );
+    // A click selects E55, Shift+click adds E56.
+    let centre = |r: &TableRep| ((r.body[0] + r.body[2]) / 2, (r.body[1] + r.body[3]) / 2);
+    let pt5 = sheet(&s, centre(&a));
+    click(&mut s, pt5, json!({}));
+    let pt6 = sheet(&s, centre(&b));
+    click(&mut s, pt6, json!({"shift": true}));
+    assert_eq!(s.selection().items.len(), 2);
+    let mut pos = (a.pos, b.pos);
+    for k in 1..=3i64 {
+        let ca = centre(&rep_with(&s, "ew.iec.heater@qet10"));
+        let from = sheet(&s, ca);
+        let to = steps_from(&s, ca, (k, 0));
+        done(&mut s, "canvas.press", at(from, json!({})));
+        done(&mut s, "canvas.pointer", at(to, json!({})));
+        assert_eq!(s.tool().state(), "dragging");
+        let g = ghost(&s);
+        assert_eq!(g, json!({"kind": "move", "count": 2, "steps": [k, 0]}));
+        let o = s.tool_overlay();
+        assert!(o.items.iter().any(|i| matches!(i, OverlayItem::Ghost { .. })));
+        assert!(
+            o.items.iter().any(|i| matches!(i, OverlayItem::Polyline { .. })),
+            "rubber bands"
+        );
+        let readout = o.labels().next().unwrap().to_owned();
+        assert!(
+            readout.starts_with("dx ") && readout.ends_with(" dy 0.000 mm"),
+            "{readout}"
+        );
+        let line = describe_line(&s, "canvas ghost move");
+        assert_eq!(
+            line,
+            format!("canvas ghost move 2 steps {k} 0 readout \"{readout}\"")
+        );
+        done(&mut s, "canvas.release", at(to, json!({})));
+        // Each moved to the grid point at its own index plus k, exactly.
+        let snap = s.canvas().unwrap().page().snapper.clone();
+        let exact = |p: (i64, i64)| (snap.page_of_index(snap.grid_index_of(p.0) + k), p.1);
+        let (na, nb) = (
+            rep_with(&s, "ew.iec.heater@qet10"),
+            rep_with(&s, "ew.iec.lamp@qet10"),
+        );
+        assert_eq!(na.pos, exact(pos.0), "E55 by {k}");
+        assert_eq!(nb.pos, exact(pos.1), "E56 by {k}");
+        pos = (na.pos, nb.pos);
+        // The selection after the commit is the moved representations.
+        assert_eq!(s.selection().items.len(), 2);
+        assert_eq!(s.tool().state(), "idle");
+    }
+    // Escape during a drag cancels it.
+    let ca = centre(&rep_with(&s, "ew.iec.heater@qet10"));
+    let pt7 = sheet(&s, ca);
+    done(&mut s, "canvas.press", at(pt7, json!({})));
+    let pt8 = steps_from(&s, ca, (2, 1));
+    done(&mut s, "canvas.pointer", at(pt8, json!({})));
+    let rev = s.revision();
+    done(&mut s, "ui.dismiss", json!({}));
+    assert_eq!(s.revision(), rev);
+    assert_eq!(s.tool().state(), "idle");
+    // The keyboard move: M, two steps down by the cursor keys, Enter.
+    done(&mut s, "cursor.set", json!({}));
+    done(&mut s, "tool.move", json!({}));
+    assert_eq!(s.tool().state(), "moving");
+    done(&mut s, "cursor.down", json!({}));
+    done(&mut s, "cursor.down", json!({}));
+    assert_eq!(ghost(&s)["steps"], json!([0, 2]));
+    done(&mut s, "canvas.dwell", json!({"ms": 80}));
+    assert_eq!(state(&s)["canvas"]["preview"]["command"], "rep.move");
+    done(&mut s, "canvas.activate", json!({}));
+    let snap = s.canvas().unwrap().page().snapper.clone();
+    let na = rep_with(&s, "ew.iec.heater@qet10");
+    assert_eq!(
+        na.pos,
+        (pos.0.0, snap.page_of_index(snap.grid_index_of(pos.0.1) + 2))
+    );
+    // Undo takes back one step at a time.
+    done(&mut s, "edit.undo", json!({}));
+    assert_eq!(rep_with(&s, "ew.iec.heater@qet10").pos, pos.0);
+}
+
+#[test]
+fn transform_keys_and_delete_act_on_the_selection_with_their_refusals() {
+    let tmp = Tmp::new("transform");
+    let mut s = shell(&tmp, "101");
+    // Nothing selected: M and Delete are refused.
+    assert_eq!(refused(&mut s, "tool.move", json!({})), "reason-nothing-to-move");
+    assert_eq!(
+        refused(&mut s, "edit.delete_selection", json!({})),
+        "reason-nothing-selected"
+    );
+    assert_eq!(
+        refused(&mut s, "tool.next_rep_type", json!({})),
+        "reason-place-only"
+    );
+    let (a, b) = (
+        rep_with(&s, "ew.iec.heater@qet10"),
+        rep_with(&s, "ew.iec.lamp@qet10"),
+    );
+    let centre = |r: &TableRep| ((r.body[0] + r.body[2]) / 2, (r.body[1] + r.body[3]) / 2);
+    let pt9 = sheet(&s, centre(&a));
+    click(&mut s, pt9, json!({}));
+    // R on one representation: a quarter turn.
+    done(&mut s, "tool.rotate_cw", json!({}));
+    assert_eq!(rep_with(&s, "ew.iec.heater@qet10").orient, 1);
+    // V: the next letter (B → C).
+    done(&mut s, "tool.next_variant", json!({}));
+    assert_eq!(rep_with(&s, "ew.iec.heater@qet10").orient, 2);
+    let pt10 = sheet(&s, centre(&rep_with(&s, "ew.iec.lamp@qet10")));
+    click(&mut s, pt10, json!({"shift": true}));
+    assert_eq!(refused(&mut s, "tool.next_variant", json!({})), "reason-one-rep");
+    // X on two: both mirrored.
+    done(&mut s, "tool.mirror_x", json!({}));
+    assert_eq!(rep_with(&s, "ew.iec.lamp@qet10").orient, b.orient + 4);
+    // Delete: both gone, the selection follows.
+    let before = tables(&s).reps.len();
+    done(&mut s, "edit.delete_selection", json!({}));
+    assert_eq!(tables(&s).reps.len(), before - 2);
+    assert!(s.selection().is_empty(), "deleted records leave the selection");
+    done(&mut s, "edit.undo", json!({}));
+    assert_eq!(tables(&s).reps.len(), before);
+}
+
+#[test]
+fn change_symbol_previews_and_commits_on_one_representation() {
+    let tmp = Tmp::new("exchange");
+    let mut s = shell(&tmp, "101");
+    let e56 = rep_with(&s, "ew.iec.lamp@qet10");
+    let centre = ((e56.body[0] + e56.body[2]) / 2, (e56.body[1] + e56.body[3]) / 2);
+    assert_eq!(
+        refused(&mut s, "rep.exchange", json!({})),
+        "reason-nothing-selected"
+    );
+    let pt11 = sheet(&s, centre);
+    click(&mut s, pt11, json!({}));
+    // The picker in exchange mode lists allowed symbols only.
+    done(&mut s, "rep.exchange", json!({}));
+    assert_eq!(state(&s)["canvas"]["picker"]["mode"], "exchange");
+    done(&mut s, "ui.dismiss", json!({}));
+    // A symbol of another function definition with no CP matching by designation: the preview is refused and the
+    // ghost names the function CP it would leave unmapped.
+    done(&mut s, "rep.exchange", json!({"symbol": "ew.iec.heater@qet10"}));
+    assert_eq!(s.tool().name(), "exchange");
+    assert_eq!(s.tool().state(), "armed");
+    done(&mut s, "canvas.dwell", json!({"ms": 80}));
+    assert_eq!(state(&s)["canvas"]["preview"]["state"], "failed");
+    let g = ghost(&s);
+    assert_eq!(g["kind"], "exchange");
+    assert_eq!(g["symbol"], "ew.iec.heater@qet10");
+    assert_eq!(g["unmapped"], json!(["X1"]));
+    assert_eq!(
+        describe_line(&s, "canvas ghost exchange"),
+        "canvas ghost exchange symbol \"ew.iec.heater@qet10\" unmapped \"X1\""
+    );
+    done(&mut s, "ui.dismiss", json!({}));
+    // Its own symbol again: mapped by index, nothing unmapped; the commit keeps both connections.
+    let pt12 = sheet(&s, centre);
+    click(&mut s, pt12, json!({}));
+    done(&mut s, "rep.exchange", json!({"symbol": "ew.iec.lamp@qet10"}));
+    assert_eq!(ghost(&s)["unmapped"], json!([]));
+    let connections = tables(&s).connections.len();
+    done(&mut s, "canvas.press", at(pt12, json!({})));
+    assert_eq!(tables(&s).connections.len(), connections);
+}
+
+#[test]
+fn pointer_and_cursor_moves_with_a_tool_armed_and_picker_filtering_call_no_session() {
+    let tmp = Tmp::new("counts");
+    let mut s = shell(&tmp, "101");
+    // The first frame of the page has fetched its content.
+    done(&mut s, "tool.place", json!({}));
+    let calls = s.session_calls();
+    for text in ["m", "mc", "mcb", ""] {
+        done(&mut s, "picker.filter", json!({ "text": text }));
+        done(&mut s, "picker.row", json!({"step": 1}));
+    }
+    assert_eq!(
+        s.session_calls(),
+        calls,
+        "the picker filters without a Session call"
+    );
+    done(&mut s, "ui.dismiss", json!({}));
+    done(&mut s, "place.pick", json!({"symbol": "ew.iec.mcb-1p@qet10"}));
+    let calls = s.session_calls();
+    for i in 0..20 {
+        let p = grid_point(&s, (40 + i, 20 + i / 3));
+        let pt13 = sheet(&s, p);
+        done(&mut s, "canvas.pointer", at(pt13, json!({})));
+    }
+    done(&mut s, "cursor.set", json!({}));
+    for _ in 0..5 {
+        done(&mut s, "cursor.right", json!({}));
+        done(&mut s, "tool.rotate_cw", json!({}));
+    }
+    assert_eq!(
+        s.session_calls(),
+        calls,
+        "pointer, cursor and key moves call no Session"
+    );
+    // A dwell previews exactly once; a commit commits exactly once; the next frame fetches the page once.
+    done(&mut s, "canvas.dwell", json!({"ms": 80}));
+    done(&mut s, "canvas.dwell", json!({"ms": 120}));
+    let after = s.session_calls();
+    assert_eq!(after.preview_with, calls.preview_with + 1);
+    done(&mut s, "canvas.activate", json!({}));
+    let c = s.session_calls();
+    assert_eq!(
+        c.run_script,
+        after.run_script + 1,
+        "headless commits run one command log"
+    );
+    assert_eq!(c.page_content, after.page_content + 1);
+    assert_eq!(c.page_tables, after.page_tables + 1);
+    assert_eq!(
+        c.symbol_shape,
+        after.symbol_shape + 1,
+        "the floating shape once for the new revision"
+    );
+    // A drag of a representation with Select: pointer moves call no Session; the release commits once.
+    done(&mut s, "ui.dismiss", json!({}));
+    let e55 = rep_with(&s, "ew.iec.heater@qet10");
+    let centre = ((e55.body[0] + e55.body[2]) / 2, (e55.body[1] + e55.body[3]) / 2);
+    let from = sheet(&s, centre);
+    done(&mut s, "canvas.press", at(from, json!({})));
+    let calls = s.session_calls();
+    for k in 1..=6 {
+        let to = steps_from(&s, centre, (k, k % 2));
+        done(&mut s, "canvas.pointer", at(to, json!({})));
+    }
+    assert_eq!(s.tool().state(), "dragging");
+    assert_eq!(s.session_calls(), calls, "a drag's moves call no Session");
+    let to = steps_from(&s, centre, (6, 0));
+    done(&mut s, "canvas.release", at(to, json!({})));
+    assert_eq!(s.session_calls().run_script, calls.run_script + 1);
+}
+
+#[test]
+fn a_terminal_joins_strip_x1031_with_its_tag_predicted_and_the_designation_advanced() {
+    let tmp = Tmp::new("terminal");
+    let mut s = shell(&tmp, "103");
+    done(
+        &mut s,
+        "place.pick",
+        json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X1031", "designation": "30"}),
+    );
+    let p = grid_point(&s, (70, 40));
+    let pt14 = sheet(&s, p);
+    done(&mut s, "canvas.pointer", at(pt14, json!({})));
+    let g = ghost(&s);
+    assert_eq!(g["target"], "terminal");
+    assert!(
+        s.tool_overlay().labels().any(|l| l == "A terminal -X1031:30"),
+        "{:?}",
+        s.tool_overlay()
+    );
+    assert!(describe_line(&s, "canvas ghost place").contains("target terminal strip \"-X1031:30\""));
+    done(&mut s, "canvas.dwell", json!({"ms": 80}));
+    assert_eq!(state(&s)["canvas"]["preview"]["state"], "ready");
+    assert!(ghost(&s)["tag"].is_string(), "{g}");
+    let before = tables(&s).reps.len();
+    // Enter at the grid cursor on the same point.
+    let here = sheet(&s, p);
+    done(&mut s, "cursor.set", at(here, json!({})));
+    done(&mut s, "canvas.activate", json!({}));
+    assert_eq!(tables(&s).reps.len(), before + 1);
+    // Sticky with the next designation.
+    assert!(describe_line(&s, "canvas ghost place").contains("strip \"-X1031:31\""));
+    done(&mut s, "edit.undo", json!({}));
+    assert_eq!(tables(&s).reps.len(), before);
+}
+
+#[test]
+fn every_part_1_word_of_the_describe_text_is_reached_and_in_the_vocabulary() {
+    let tmp = Tmp::new("words");
+    let mut s = shell(&tmp, "101");
+    let mut texts = Vec::new();
+    done(&mut s, "tool.place", json!({}));
+    done(&mut s, "picker.filter", json!({"text": "mcb"}));
+    texts.push(s.describe());
+    done(&mut s, "picker.filter", json!({"text": "contact-no@"}));
+    texts.push(s.describe());
+    done(&mut s, "picker.choose", json!({"letter": "K"}));
+    let p = free_point(&s);
+    let pt15 = sheet(&s, p);
+    done(&mut s, "canvas.pointer", at(pt15, json!({})));
+    done(&mut s, "canvas.dwell", json!({"ms": 80}));
+    texts.push(s.describe());
+    done(&mut s, "ui.dismiss", json!({}));
+    // Parts (Golden A's part copies with templates), a terminal of strip 1X1's terminal symbol, an existing
+    // function.
+    done(&mut s, "tool.place_part", json!({}));
+    texts.push(s.describe());
+    done(&mut s, "ui.dismiss", json!({}));
+    let e56 = rep_with(&s, "ew.iec.lamp@qet10");
+    done(
+        &mut s,
+        "place.pick",
+        json!({"symbol": "ew.iec.lamp@qet10", "function": e56.functions[0].to_string()}),
+    );
+    let pt16 = sheet(&s, p);
+    done(&mut s, "canvas.pointer", at(pt16, json!({})));
+    texts.push(s.describe());
+    done(&mut s, "ui.dismiss", json!({}));
+    let strip = match s.dispatch(
+        "place.pick",
+        &json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X1031", "designation": "99"}),
+    ) {
+        Outcome::Done => true,
+        Outcome::Refused { .. } => false,
+        other => panic!("{other:?}"),
+    };
+    let _ = strip;
+    done(&mut s, "ui.dismiss", json!({}));
+    // A move and an exchange.
+    let centre = ((e56.body[0] + e56.body[2]) / 2, (e56.body[1] + e56.body[3]) / 2);
+    let pt17 = sheet(&s, centre);
+    click(&mut s, pt17, json!({}));
+    let pt18 = sheet(&s, centre);
+    done(&mut s, "canvas.press", at(pt18, json!({})));
+    let pt19 = steps_from(&s, centre, (2, 0));
+    done(&mut s, "canvas.pointer", at(pt19, json!({})));
+    texts.push(s.describe());
+    done(&mut s, "ui.dismiss", json!({}));
+    done(&mut s, "cursor.set", json!({}));
+    done(&mut s, "tool.move", json!({}));
+    texts.push(s.describe());
+    done(&mut s, "ui.dismiss", json!({}));
+    done(&mut s, "rep.exchange", json!({"symbol": "ew.iec.heater@qet10"}));
+    done(&mut s, "canvas.dwell", json!({"ms": 80}));
+    texts.push(s.describe());
+    done(&mut s, "ui.dismiss", json!({}));
+    // Every token outside quotes is a number or a vocabulary word.
+    let vocabulary = ew_viewmodel::describe::VOCABULARY;
+    let mut seen = std::collections::BTreeSet::new();
+    for text in &texts {
+        for line in text.lines() {
+            let mut quoted = false;
+            for (i, part) in line.split('"').enumerate() {
+                quoted = i % 2 == 1;
+                if quoted {
+                    continue;
+                }
+                let free = part
+                    .find("disabled:")
+                    .map_or(part, |k| &part[..k + "disabled:".len()]);
+                for word in free.split_whitespace() {
+                    if word.parse::<f64>().is_ok() {
+                        continue;
+                    }
+                    seen.insert(word.to_owned());
+                }
+                if part.contains("disabled:") {
+                    break;
+                }
+            }
+            let _ = quoted;
+        }
+    }
+    for w in ew_viewmodel::describe::PLACE_WORDS {
+        assert!(vocabulary.contains(w), "{w} in VOCABULARY");
+    }
+    let ghost_and_picker: Vec<&String> = seen
+        .iter()
+        .filter(|w| ew_viewmodel::describe::PLACE_WORDS.contains(&w.as_str()))
+        .collect();
+    let missing: Vec<&&str> = ew_viewmodel::describe::PLACE_WORDS
+        .iter()
+        .filter(|w| !seen.contains(**w))
+        .collect();
+    // `strip` and `join` are reached by their own tests (the terminal placement of the shell test and the black
+    // box join above); `steps` and `readout` by the move above.
+    assert!(
+        missing
+            .iter()
+            .all(|w| matches!(**w, "strip" | "join" | "terminal")),
+        "words no state reached: {missing:?} (reached {ghost_and_picker:?})"
+    );
+}

@@ -1,32 +1,46 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Select tool (`select`; WP-S2.03 §7.6, doc 06 §4.3 without the drag-move rows, which are WP-S2.04's).
+//! The Select tool (`select`; WP-S2.03 §7.6 with WP-S2.04 §7.3's drag rows and keyboard move and §7.4's
+//! transforms; doc 06 §4.3).
 //!
-//! | State | Event | Next | Output |
+//! A press is classified by the pick of WP-S2.04 §6.6 in this order: a link; a **movable** entity (a
+//! representation); any other entity (a connection, a junction); empty canvas.
+//!
+//! | State | Event (condition) | Next | Output |
 //! |---|---|---|---|
 //! | idle | press on a link | idle | `Follow` on release within 3 points |
-//! | idle | press on an entity | pressed | `None` |
+//! | idle | press on a movable entity | pressed (movable) | `None` |
+//! | idle | press on another entity | pressed (other) | `None` |
 //! | idle | press on empty canvas | rubber-band | `Transient` (the band) |
-//! | pressed | release within 3 points | idle | `Select`: replace with the entity; Shift adds; Ctrl toggles |
-//! | pressed | move beyond 3 points | rubber-band | `Transient` |
+//! | pressed (either) | release within 3 points | idle | `Select`: replace with the entity; Shift adds; Ctrl toggles |
+//! | pressed (movable) | move beyond 3 points | dragging | `Transient`: the ghost of the moved entities' rectangles offset by the step displacement, rubber bands and the readout; the moved set is the selection's representations when the pressed entity is selected, else the pressed entity alone |
+//! | pressed (other) | move beyond 3 points | rubber-band | `Transient` |
 //! | rubber-band | move | rubber-band | `Transient`: solid while the drag goes right (encloses), dashed left (touches) |
 //! | rubber-band | release | idle | `Select`: left to right the entities inside the band, right to left those that touch it; Shift adds |
+//! | dragging | move | dragging | `Transient`; steps `k = round(page displacement × den / num)` per axis |
+//! | dragging | `Dwell { ms ≥ 80 }` | dragging | `Preview(rep.move {reps, steps})` when the steps are not zero |
+//! | dragging | release | idle | `Commit(rep.move {reps, steps})` when the steps are not zero, else `Select` (as a click) |
+//! | dragging or moving | `Escape` | idle | `Cancel` |
+//! | idle with representations selected | [`SelectTool::start_move`] (M) | moving | `Transient`; the host puts the grid cursor on the primary entity's insertion point first |
+//! | moving | `CursorMove` | moving | steps = the cursor's grid displacement since M; `Transient` |
+//! | moving | `Dwell`, `Activate` | moving, idle | as dragging: `Preview`, `Commit` (zero steps: `Cancel`) |
+//! | idle with representations selected | `Key(RotateCw, RotateCcw, MirrorX, MirrorY, NextVariant)` | idle | `Commit(rep.transform …)` (§7.4; V on exactly one) |
 //! | any | `Activate` | idle | as a press and release at the grid cursor |
 //! | any | `Escape` | idle | `Cancel`, or `None` from idle |
 //!
-//! Picking uses WP-S2.02's entity rectangles: the smallest containing the point inflated by 4 points, ties to the
-//! later in paint order. An entity may have several rectangles (nested items of one record): it lies inside a band
-//! when all of them do, and touches it when one of them does; a band selects in paint order of each entity's first
-//! rectangle. A release on empty canvas within 3 points is a click on nothing: it clears the selection (Shift keeps
-//! it). A press on a link that moves beyond 3 points is dropped.
+//! Connections and junctions in a selection are never moved. Picking uses WP-S2.02's entity rectangles (an entity
+//! may have several: it lies inside a band when all do, and touches it when one does) plus the exact segment
+//! distance of connections (§6.6). A release on empty canvas within 3 points clears the selection (Shift keeps it).
 
 use ew_api::output::ew_dl::ew_units::Rect;
 use ew_api::output::ew_dl::{Destination, EntityRef};
 
+use super::move_keys::{move_command, move_overlay, moved_set, readout, steps_between};
+use super::transform::{selected_reps, transform_command};
 use super::{
-    Button, CanvasEvent, Mods, Overlay, OverlayItem, SelectionChange, Style, Token, Tool, ToolCx, ToolOutput,
-    rect_of,
+    Button, CanvasEvent, EntityKind, Ghost, Mods, Overlay, OverlayItem, SelectionChange, Style, Token, Tool,
+    ToolCx, ToolKey, ToolOutput, entity_kind, rect_of,
 };
 
 /// How far a press may travel and still be a click, in screen points.
@@ -46,12 +60,29 @@ enum State {
         entity: EntityRef,
         at: (i64, i64),
         mods: Mods,
+        movable: bool,
     },
     /// A rubber band from `from` to `to`.
     Band {
         from: (i64, i64),
         to: (i64, i64),
         mods: Mods,
+    },
+    /// A drag of movable entities by grid steps.
+    Dragging {
+        pressed: EntityRef,
+        mods: Mods,
+        moved: Vec<EntityRef>,
+        from: (i64, i64),
+        steps: (i64, i64),
+        readout: String,
+    },
+    /// The keyboard move (M): the grid cursor's displacement since entry.
+    Moving {
+        moved: Vec<EntityRef>,
+        from: (i64, i64),
+        steps: (i64, i64),
+        readout: String,
     },
 }
 
@@ -146,13 +177,41 @@ impl SelectTool {
         })
     }
 
+    /// Starts the keyboard move (M, WP-S2.04 §7.3) of the selection's representations from the grid cursor and
+    /// answers its first overlay; `None` (and nothing changes) without representations selected, without a grid
+    /// cursor or in another state than idle.
+    pub fn start_move(&mut self, cx: &ToolCx<'_>) -> Option<ToolOutput> {
+        if self.state != State::Idle {
+            return None;
+        }
+        let moved = selected_reps(cx.selection, cx.page);
+        let from = self.cursor?;
+        if moved.is_empty() {
+            return None;
+        }
+        let out = ToolOutput::Transient(move_overlay(cx, &moved, (0, 0)));
+        self.state = State::Moving {
+            moved,
+            from,
+            steps: (0, 0),
+            readout: readout(cx, (0, 0)),
+        };
+        Some(out)
+    }
+
     fn press(&mut self, at: (i64, i64), mods: Mods, cx: &ToolCx<'_>) -> ToolOutput {
         if let Some(link) = cx.link_at(at) {
             self.state = State::Link { dest: link.dest, at };
             return ToolOutput::None;
         }
-        if let Some(entity) = cx.entity_at(at) {
-            self.state = State::Pressed { entity, at, mods };
+        if let Some(entity) = cx.pick(at) {
+            let movable = entity_kind(&cx.page.tables, entity) == Some(EntityKind::Rep);
+            self.state = State::Pressed {
+                entity,
+                at,
+                mods,
+                movable,
+            };
             return ToolOutput::None;
         }
         self.state = State::Band {
@@ -178,6 +237,7 @@ impl SelectTool {
                 entity,
                 at: from,
                 mods: pressed,
+                ..
             } => {
                 let held = Mods {
                     shift: pressed.shift || mods.shift,
@@ -199,21 +259,58 @@ impl SelectTool {
                 };
                 SelectTool::finish_band(from, at, held, cx)
             }
+            State::Dragging {
+                pressed,
+                mods: held,
+                moved,
+                from,
+                ..
+            } => {
+                let steps = steps_between(cx, from, at);
+                if steps == (0, 0) {
+                    SelectTool::click_entity(pressed, held)
+                } else {
+                    ToolOutput::Commit(move_command(&moved, steps))
+                }
+            }
+            moving @ State::Moving { .. } => {
+                self.state = moving;
+                ToolOutput::None
+            }
         }
     }
 
     fn moved(&mut self, at: (i64, i64), cx: &ToolCx<'_>) -> ToolOutput {
         match self.state.clone() {
-            State::Idle => ToolOutput::None,
+            State::Idle | State::Moving { .. } => ToolOutput::None,
             State::Link { at: from, .. } => {
                 if !cx.within(from, at, CLICK_SLOP_PT) {
                     self.state = State::Idle;
                 }
                 ToolOutput::None
             }
-            State::Pressed { at: from, mods, .. } => {
+            State::Pressed {
+                entity,
+                at: from,
+                mods,
+                movable,
+            } => {
                 if cx.within(from, at, CLICK_SLOP_PT) {
                     return ToolOutput::None;
+                }
+                if movable {
+                    let moved = moved_set(cx, entity);
+                    let steps = steps_between(cx, from, at);
+                    let out = ToolOutput::Transient(move_overlay(cx, &moved, steps));
+                    self.state = State::Dragging {
+                        pressed: entity,
+                        mods,
+                        moved,
+                        from,
+                        steps,
+                        readout: readout(cx, steps),
+                    };
+                    return out;
                 }
                 self.state = State::Band { from, to: at, mods };
                 SelectTool::band(from, at)
@@ -222,6 +319,46 @@ impl SelectTool {
                 self.state = State::Band { from, to: at, mods };
                 SelectTool::band(from, at)
             }
+            State::Dragging {
+                pressed,
+                mods,
+                moved,
+                from,
+                ..
+            } => {
+                let steps = steps_between(cx, from, at);
+                let out = ToolOutput::Transient(move_overlay(cx, &moved, steps));
+                self.state = State::Dragging {
+                    pressed,
+                    mods,
+                    moved,
+                    from,
+                    steps,
+                    readout: readout(cx, steps),
+                };
+                out
+            }
+        }
+    }
+
+    fn key(&mut self, key: ToolKey, cx: &ToolCx<'_>) -> ToolOutput {
+        if self.state != State::Idle {
+            return ToolOutput::None;
+        }
+        let reps = selected_reps(cx.selection, cx.page);
+        let orient = match reps.as_slice() {
+            [one] => cx
+                .page
+                .tables
+                .reps
+                .iter()
+                .find(|r| r.id == one.0)
+                .map(|r| r.orient),
+            _ => None,
+        };
+        match transform_command(key, &reps, orient) {
+            Some(cmd) => ToolOutput::Commit(cmd),
+            None => ToolOutput::None,
         }
     }
 }
@@ -236,31 +373,55 @@ impl Tool for SelectTool {
             State::Idle | State::Link { .. } => "idle",
             State::Pressed { .. } => "pressed",
             State::Band { .. } => "rubber-band",
+            State::Dragging { .. } => "dragging",
+            State::Moving { .. } => "moving",
         }
     }
 
     fn on_event(&mut self, ev: &CanvasEvent, cx: &ToolCx<'_>) -> ToolOutput {
-        match *ev {
+        match ev {
             CanvasEvent::Press {
                 at,
                 button: Button::Primary,
                 mods,
             } => {
+                if matches!(self.state, State::Moving { .. }) {
+                    return ToolOutput::None;
+                }
                 self.state = State::Idle;
-                self.press(at, mods, cx)
+                self.press(*at, *mods, cx)
             }
             CanvasEvent::Release {
                 at,
                 button: Button::Primary,
                 mods,
-            } => self.release(at, mods, cx),
+            } => self.release(*at, *mods, cx),
             CanvasEvent::Press { .. } | CanvasEvent::Release { .. } => ToolOutput::None,
-            CanvasEvent::PointerMove { at, .. } => self.moved(at, cx),
+            CanvasEvent::PointerMove { at, .. } => self.moved(*at, cx),
             CanvasEvent::CursorMove { at } => {
-                self.cursor = Some(at);
+                self.cursor = Some(*at);
+                if let State::Moving { moved, from, .. } = self.state.clone() {
+                    let steps = steps_between(cx, from, *at);
+                    let out = ToolOutput::Transient(move_overlay(cx, &moved, steps));
+                    self.state = State::Moving {
+                        moved,
+                        from,
+                        steps,
+                        readout: readout(cx, steps),
+                    };
+                    return out;
+                }
                 ToolOutput::None
             }
             CanvasEvent::Activate => {
+                if let State::Moving { moved, steps, .. } = self.state.clone() {
+                    self.state = State::Idle;
+                    return if steps == (0, 0) {
+                        ToolOutput::Cancel
+                    } else {
+                        ToolOutput::Commit(move_command(&moved, steps))
+                    };
+                }
                 let Some(at) = self.cursor else {
                     return ToolOutput::None;
                 };
@@ -270,6 +431,14 @@ impl Tool for SelectTool {
                     other => other,
                 }
             }
+            CanvasEvent::Dwell { ms } if *ms >= super::PREVIEW_DWELL_MS => match &self.state {
+                State::Dragging { moved, steps, .. } | State::Moving { moved, steps, .. }
+                    if *steps != (0, 0) =>
+                {
+                    ToolOutput::Preview(move_command(moved, *steps))
+                }
+                _ => ToolOutput::None,
+            },
             CanvasEvent::Escape => {
                 if self.state == State::Idle {
                     ToolOutput::None
@@ -278,15 +447,45 @@ impl Tool for SelectTool {
                     ToolOutput::Cancel
                 }
             }
-            CanvasEvent::Dwell { .. } | CanvasEvent::Back => ToolOutput::None,
+            CanvasEvent::Key(key) => self.key(*key, cx),
+            CanvasEvent::Dwell { .. } | CanvasEvent::Back | CanvasEvent::Text(_) => ToolOutput::None,
         }
     }
 
     fn status_hint(&self) -> &'static str {
-        "hint-select"
+        match self.state {
+            State::Dragging { .. } | State::Moving { .. } => "hint-select-move",
+            _ => "hint-select",
+        }
     }
 
     fn wants_hover(&self) -> bool {
         true
+    }
+
+    fn ghost(&self) -> Option<Ghost> {
+        match &self.state {
+            State::Dragging {
+                moved,
+                steps,
+                readout,
+                ..
+            }
+            | State::Moving {
+                moved,
+                steps,
+                readout,
+                ..
+            } => Some(Ghost::Move {
+                count: moved.len(),
+                steps: *steps,
+                readout: readout.clone(),
+            }),
+            _ => None,
+        }
+    }
+
+    fn as_any_mut(&mut self) -> Option<&mut dyn std::any::Any> {
+        Some(self)
     }
 }

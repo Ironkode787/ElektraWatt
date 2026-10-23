@@ -17,14 +17,32 @@
 //! through `Session::run_script`), the Escape chain and the keyboard tool input (the grid cursor as the tool's
 //! keyboard pointer, the connection-point jumps, Enter as a click, Backspace as the tool's step back). Every input
 //! is a registry action on `ShellModel::dispatch`.
+//!
+//! **WP-S2.04 part 1** adds the tool keys and typed text ([`CanvasEvent::Key`], [`CanvasEvent::Text`]), the page
+//! tables in the page content ([`CanvasPage::tables`]), the floating outline ([`OverlayItem::Paths`]), the fine
+//! snap ([`Snapper::snap_fine`]), the typed selection and the connection pick ([`selection_kinds`],
+//! [`ToolCx::pick`]), what a tool floats or drags ([`Ghost`], the transcript's `ghost`) and the host's preview
+//! hand-back ([`Tool::on_preview`]); and the tools of place and arrange: the picker ([`Picker`]), the Place tool
+//! ([`PlaceTool`]), Select's drag rows and keyboard move ([`move_keys`]), transforms and delete on a selection
+//! ([`transform`]) and change symbol ([`ExchangeTool`]).
 
+mod exchange;
 mod host;
 mod measure;
+pub mod move_keys;
 mod overlay;
+mod picker;
+mod place;
 mod select;
 mod snap;
+pub mod transform;
+
+pub use exchange::ExchangeTool;
+pub use picker::{Picker, PickerMode, PickerRow};
+pub use place::{ORIENT_NAMES, PlaceTarget, PlaceTool, inside_polygon, next_designation};
 
 pub use ew_api::DynCommand;
+use ew_api::output::PageTables;
 use ew_api::output::ew_dl::ew_units::{Nm, Rect};
 use ew_api::output::ew_dl::{Destination, EntityRef};
 
@@ -33,9 +51,9 @@ pub use host::{
     LINK_PREVIEW_DWELL_MS, LINK_PREVIEW_PANE, LinkPreview, PREVIEW_DWELL_MS, PreviewState, PreviewStatus,
 };
 pub use measure::{MeasureTool, distance_nm, measure_label};
-pub use overlay::{Anchor, Dash, MarkerKind, Overlay, OverlayItem, Style, Token};
+pub use overlay::{Anchor, Dash, MarkerKind, Overlay, OverlayItem, Style, Token, paths_on_sheet};
 pub use select::{CLICK_SLOP_PT, SelectTool, band_selection};
-pub use snap::{CP_SNAP_PT, Snap, SnapKind, Snapper};
+pub use snap::{CP_SNAP_PT, FineKind, Snap, SnapKind, Snapper};
 
 use crate::canvas::{CanvasPage, HOVER_SLOP_PT, PageLink};
 use crate::strings;
@@ -104,6 +122,95 @@ pub enum CanvasEvent {
     Back,
     /// Escape.
     Escape,
+    /// A tool key (WP-S2.04 §6.1): a registry action of the key sends it to the active tool.
+    Key(ToolKey),
+    /// Text typed into the tool (`text.input`, WP-S2.04 §6.1).
+    Text(String),
+}
+
+/// The tool keys (WP-S2.04 §6.1): each is a registry action whose handler sends [`CanvasEvent::Key`] to the active
+/// tool.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum ToolKey {
+    /// R: a quarter turn clockwise.
+    RotateCw,
+    /// Shift+R: a quarter turn counter-clockwise.
+    RotateCcw,
+    /// X: mirror about the vertical axis.
+    MirrorX,
+    /// Y: mirror about the horizontal axis.
+    MirrorY,
+    /// V: the next orientation variant (A to H).
+    NextVariant,
+    /// Shift+V: the next representation type drawing the same function definition.
+    NextRepType,
+    /// Tab: the next autoconnect proposal (part 2).
+    NextProposal,
+    /// C: commit the proposals while moving (part 2).
+    ConnectOnMove,
+    /// D: the interruption point's direction (part 3).
+    ToggleDirection,
+    /// P: end the wire in an interruption point (part 3).
+    EndInIp,
+    /// The interruption point's star toggle (part 3).
+    ToggleStar,
+    /// Shift+Enter or a double click: finish the gesture.
+    Finish,
+}
+
+/// What the host learned from a tool's preview (§7.3), handed to [`Tool::on_preview`].
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct PreviewInfo {
+    /// Whether the command was accepted.
+    pub ok: bool,
+    /// The derived tags it changes, `(before, after)`.
+    pub tags: Vec<(String, String)>,
+    /// The command's notices.
+    pub notices: Vec<String>,
+    /// The refusal's message.
+    pub message: Option<String>,
+}
+
+/// What a tool floats or drags (WP-S2.04 §7.7): the transcript's `ghost`, the describe text's `canvas ghost` line.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum Ghost {
+    /// The place tool's floating symbol.
+    Place {
+        /// The symbol's key.
+        symbol: String,
+        /// The variant letter `A` to `H`.
+        variant: char,
+        /// The representation type (`multi_line`).
+        rep_type: String,
+        /// The insertion point on the page, nm; `None` before the first pointer or cursor move.
+        at_nm: Option<(i64, i64)>,
+        /// The target's word: `new`, `join`, `function`, `part`, `terminal`.
+        target: &'static str,
+        /// The letter of a new device.
+        letter: Option<String>,
+        /// The strip and designation of a new terminal (`1X1:3`).
+        strip: Option<String>,
+        /// The predicted tag of a fresh preview.
+        tag: Option<String>,
+        /// The accepted autoconnect hints (part 2).
+        hints: usize,
+    },
+    /// A move of the selection in grid steps.
+    Move {
+        /// How many representations move.
+        count: usize,
+        /// The grid steps.
+        steps: (i64, i64),
+        /// The readout (`dx 7.938 dy 0.000 mm`).
+        readout: String,
+    },
+    /// A symbol exchange.
+    Exchange {
+        /// The new symbol's key.
+        symbol: String,
+        /// The designations of the function CPs left unmapped.
+        unmapped: Vec<String>,
+    },
 }
 
 /// A change of the selection (the Select tool's result; no command).
@@ -165,6 +272,24 @@ pub trait Tool {
 
     /// Whether the hover, the link hover and the link preview are shown while the tool is active.
     fn wants_hover(&self) -> bool;
+
+    /// What the tool floats or drags; `None` while it holds nothing (WP-S2.04 §7.7).
+    fn ghost(&self) -> Option<Ghost> {
+        None
+    }
+
+    /// The host ran the tool's preview (§7.3): the tool may answer a new overlay (the predicted tag, the CPs a
+    /// symbol exchange leaves unmapped).
+    fn on_preview(&mut self, info: &PreviewInfo) -> Option<Overlay> {
+        let _ = info;
+        None
+    }
+
+    /// The tool as `Any`, for host duties that need its concrete type (the place tool's next representation type);
+    /// `None` for a tool without such duties.
+    fn as_any_mut(&mut self) -> Option<&mut dyn std::any::Any> {
+        None
+    }
 }
 
 /// What a tool sees of the canvas (spec §7.1): the prepared page, never a `World`.
@@ -193,6 +318,59 @@ impl ToolCx<'_> {
     /// in paint order (WP-S2.02's hover pick).
     pub fn entity_at(&self, at: (i64, i64)) -> Option<EntityRef> {
         crate::canvas::pick(&self.page.entities, Some(at), self.nm_of_points(HOVER_SLOP_PT)).map(|(e, _)| e)
+    }
+
+    /// The entity under `at` by WP-S2.04 §6.6: the smallest entity rectangle containing it inflated by 4 points
+    /// (ties to the later in paint order) among the entities that are no connection; else the connection whose
+    /// drawn polyline passes within 4 points of it by exact integer distance (ties by the smaller distance, then by
+    /// ID). Without page tables, the rectangle pick of [`ToolCx::entity_at`].
+    pub fn pick(&self, at: (i64, i64)) -> Option<EntityRef> {
+        let tables = &self.page.tables;
+        if tables.connections.is_empty() {
+            return self.entity_at(at);
+        }
+        let wires: std::collections::BTreeSet<_> = tables.connections.iter().map(|c| c.id).collect();
+        let others: Vec<(EntityRef, Rect)> = self
+            .page
+            .entities
+            .iter()
+            .filter(|(e, _)| !wires.contains(&e.0))
+            .copied()
+            .collect();
+        if let Some((e, _)) = crate::canvas::pick(&others, Some(at), self.nm_of_points(HOVER_SLOP_PT)) {
+            return Some(e);
+        }
+        self.connection_at(at).map(|(e, _)| e)
+    }
+
+    /// The connection whose drawn polyline (the page tables', mapped to the sheet) passes within 4 points of `at`,
+    /// with the squared distance in sheet nm²: exact in `i128`, ties by the smaller distance, then by ID.
+    pub fn connection_at(&self, at: (i64, i64)) -> Option<(EntityRef, i128)> {
+        let r = self.nm_of_points(HOVER_SLOP_PT).floor().min(9.0e15) as i128;
+        let mut best: Option<(i128, EntityRef)> = None;
+        for c in &self.page.tables.connections {
+            let pts: Vec<(i64, i64)> = c
+                .polyline
+                .iter()
+                .map(|p| self.snapper.page_to_sheet(*p))
+                .collect();
+            let d = match pts.as_slice() {
+                [] => continue,
+                [p] => dist2(*p, at),
+                _ => pts
+                    .windows(2)
+                    .map(|w| segment_dist2(at, w[0], w[1]))
+                    .min()
+                    .unwrap_or(i128::MAX),
+            };
+            if d <= r * r {
+                let e = EntityRef(c.id);
+                if best.is_none_or(|(bd, be)| d < bd || (d == bd && e.0 < be.0)) {
+                    best = Some((d, e));
+                }
+            }
+        }
+        best.map(|(d, e)| (e, d))
     }
 
     /// The page's link under `at` ([`link_at`]).
@@ -323,6 +501,76 @@ pub const TOOLS: [&str; 2] = ["select", "measure"];
 pub fn rect_of(a: (i64, i64), b: (i64, i64)) -> Rect {
     use ew_api::output::ew_dl::ew_units::Pt2;
     Rect::from_points(Pt2::new(Nm(a.0), Nm(a.1)), Pt2::new(Nm(b.0), Nm(b.1)))
+}
+
+/// The squared distance from `p` to the segment `a`–`b`, rounded up to a whole nm² (exact comparison: the
+/// perpendicular case divides the squared cross product by the squared length, rounding up, so that a point is
+/// within `r` exactly when the result is at most `r²`).
+pub fn segment_dist2(p: (i64, i64), a: (i64, i64), b: (i64, i64)) -> i128 {
+    let (px, py) = (i128::from(p.0), i128::from(p.1));
+    let (ax, ay) = (i128::from(a.0), i128::from(a.1));
+    let (bx, by) = (i128::from(b.0), i128::from(b.1));
+    let (dx, dy) = (bx - ax, by - ay);
+    let len2 = dx * dx + dy * dy;
+    if len2 == 0 {
+        return dist2(p, a);
+    }
+    let t = (px - ax) * dx + (py - ay) * dy;
+    if t <= 0 {
+        return dist2(p, a);
+    }
+    if t >= len2 {
+        return dist2(p, b);
+    }
+    let cross = (px - ax) * dy - (py - ay) * dx;
+    let c2 = cross * cross;
+    c2 / len2 + i128::from(c2 % len2 != 0)
+}
+
+/// The kind of a selected entity, resolved by the page tables (WP-S2.04 §6.6, D14); page items and structure boxes
+/// join with part 4a.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum EntityKind {
+    /// A representation (movable).
+    Rep,
+    /// A connection.
+    Connection,
+    /// A junction.
+    Junction,
+}
+
+impl EntityKind {
+    /// The record kind's name as `edit.delete` takes it.
+    pub fn kind_name(self) -> &'static str {
+        match self {
+            EntityKind::Rep => "representation",
+            EntityKind::Connection => "connection",
+            EntityKind::Junction => "junction",
+        }
+    }
+}
+
+/// The kind of `e` on the page of `tables`; `None` for an entity the tables do not hold (the frame, the texts of a
+/// generated page).
+pub fn entity_kind(tables: &PageTables, e: EntityRef) -> Option<EntityKind> {
+    if tables.reps.iter().any(|r| r.id == e.0) {
+        Some(EntityKind::Rep)
+    } else if tables.connections.iter().any(|c| c.id == e.0) {
+        Some(EntityKind::Connection)
+    } else if tables.junctions.iter().any(|j| j.id == e.0) {
+        Some(EntityKind::Junction)
+    } else {
+        None
+    }
+}
+
+/// The selection resolved by the page tables (§6.6): each entity the tables hold with its kind, in selection order.
+pub fn selection_kinds(selection: &Selection, tables: &PageTables) -> Vec<(EntityRef, EntityKind)> {
+    selection
+        .items
+        .iter()
+        .filter_map(|e| entity_kind(tables, *e).map(|k| (*e, k)))
+        .collect()
 }
 
 /// The squared distance of two sheet points in `i128`.

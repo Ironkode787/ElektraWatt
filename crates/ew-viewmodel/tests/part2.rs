@@ -1724,15 +1724,24 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
     // and measuring. (The preview words `stale`, `failed`, `tags` and `xrefs` need a tool that previews, which only
     // the test-only probe is: `tests/probe.rs` checks them; `junction`, a snap marker kind, comes with WP-S2.04's
     // Wire tool and is checked above.)
-    // An entity whose centre is no link (a press on a link follows it rather than selecting).
+    // An entity whose centre is no link (a press on a link follows it rather than selecting) and that is no
+    // representation (a press on a representation drags it since WP-S2.04; on another entity it starts a band).
     let (x, y) = {
         let c = sample.canvas().unwrap();
-        c.page()
-            .entities
+        let page = c.page();
+        page.tables
+            .connections
             .iter()
-            .map(|(_, r)| ew_viewmodel::canvas::rect_centre(*r))
-            .find(|p| c.link_at(*p).is_none())
-            .expect("an entity off the links")
+            .filter_map(|w| {
+                let (a, b) = (w.polyline.first()?, w.polyline.get(1)?);
+                Some(page.snapper.page_to_sheet(((a.0 + b.0) / 2, (a.1 + b.1) / 2)))
+            })
+            .find(|p| {
+                c.link_at(*p).is_none()
+                    && ew_viewmodel::canvas::pick(&page.entities, Some(*p), 1.0)
+                        .is_none_or(|(e, _)| !page.tables.reps.iter().any(|r| r.id == e.0))
+            })
+            .expect("a wire off the links and the symbols")
     };
     let at = json!({"x_mm": x as f64 / 1e6, "y_mm": y as f64 / 1e6});
     done(&mut sample, "canvas.press", at.clone());
@@ -1807,11 +1816,13 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
     let unused: Vec<&&str> = allowed.iter().filter(|w| !seen.contains(**w)).collect();
     // (`disabled` without a reason cannot be reached through the registry today; `external`, a link to another
     // project, needs a cross-reference whose target is outside the page order, which Golden A does not draw.)
+    // The 28 words of WP-S2.04 part 1 need a writable project: `tests/place.rs` reaches each of them.
+    let part1 = ew_viewmodel::describe::PLACE_WORDS;
     assert!(
         unused.iter().all(|w| matches!(
             **w,
             "disabled" | "external" | "stale" | "failed" | "tags" | "xrefs" | "junction"
-        )),
+        ) || part1.contains(*w)),
         "words of the vocabulary no state used: {unused:?}"
     );
 }

@@ -47,6 +47,15 @@ pub struct Snap {
     pub label: Option<String>,
 }
 
+/// What a fine snap places (WP-S2.04 §6.5).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum FineKind {
+    /// A graphic's point.
+    Graphic,
+    /// A text's anchor.
+    Text,
+}
+
 /// How far a connection point attracts the pointer, in screen points.
 pub const CP_SNAP_PT: f64 = 8.0;
 
@@ -203,6 +212,53 @@ impl Snapper {
             kind: SnapKind::Cp,
             label: Some(cp.label.clone()),
         })
+    }
+
+    /// The sheet coordinate of the page coordinate `p` on `axis`: `offset + round(p × scale_ppb / 10⁹)`.
+    pub fn to_sheet(&self, p: i64, axis: usize) -> i64 {
+        sat(self.off(axis) + div_round(i128::from(p) * self.scale, 1_000_000_000))
+    }
+
+    /// The sheet point of the page point `p`.
+    pub fn page_to_sheet(&self, p: (i64, i64)) -> (i64, i64) {
+        (self.to_sheet(p.0, 0), self.to_sheet(p.1, 1))
+    }
+
+    /// The page point of the sheet point `s`.
+    pub fn sheet_to_page(&self, s: (i64, i64)) -> (i64, i64) {
+        (self.to_page(s.0, 0), self.to_page(s.1, 1))
+    }
+
+    /// Whether the page's connection grid is the QET grid `7_937_500/3` nm.
+    pub fn is_qet(&self) -> bool {
+        (self.num, self.den) == (7_937_500, 3)
+    }
+
+    /// The grid index of the page coordinate `p` (`round(p × den / num)`, halves away from zero).
+    pub fn grid_index_of(&self, p: i64) -> i64 {
+        self.index(p)
+    }
+
+    /// The fine snap of graphics and texts (WP-S2.04 §6.5, doc 06 §2.4): the nearest point of the fine grid, on a
+    /// QET-grid page `793_750/3` nm (1 px) for both, elsewhere 500 000 nm for graphics and 1 000 000 nm for texts;
+    /// with `alt` the exact page point of the pointer. Returns the sheet point and the page point, computed on
+    /// grid indices in `i128`.
+    pub fn snap_fine(&self, at: (i64, i64), kind: FineKind, alt: bool) -> ((i64, i64), (i64, i64)) {
+        let page = self.sheet_to_page(at);
+        if alt {
+            return (self.page_to_sheet(page), page);
+        }
+        let (num, den): (i128, i128) = if self.is_qet() {
+            (793_750, 3)
+        } else {
+            match kind {
+                FineKind::Graphic => (500_000, 1),
+                FineKind::Text => (1_000_000, 1),
+            }
+        };
+        let snap = |p: i64| sat(div_round(div_round(i128::from(p) * den, num) * num, den));
+        let page = (snap(page.0), snap(page.1));
+        (self.page_to_sheet(page), page)
     }
 
     /// Snaps the sheet point `at` (WP-S2.03 §7.5): unless `alt` is held, the connection point nearest to it within

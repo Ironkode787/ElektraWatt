@@ -56,6 +56,12 @@ pub struct SessionCalls {
     pub resolve_goto: u64,
     /// `Session::page_cps` (WP-S2.03 part 2).
     pub page_cps: u64,
+    /// `Session::page_tables` (WP-S2.04 §6.2), fetched with the page content.
+    pub page_tables: u64,
+    /// `Session::symbol_shape` (WP-S2.04 §6.2): once per symbol copy per revision while a tool holds a shape.
+    pub symbol_shape: u64,
+    /// `Session::place_catalogue` (the picker, WP-S2.04 §7.1): once per (revision, folio) while it is open.
+    pub place_catalogue: u64,
     /// `Session::preview_with` (the tool host's previews, and a bulk command's preview before its commit).
     pub preview_with: u64,
     /// `Session::commit` of a tool's preview (the window).
@@ -365,6 +371,10 @@ impl ShellModel {
         self.count(|c| c.page_cells += 1);
         page.set_cps(project.session.page_cps(folio));
         self.count(|c| c.page_cps += 1);
+        if let Some(tables) = project.session.page_tables(folio) {
+            page.tables = Arc::new(tables);
+        }
+        self.count(|c| c.page_tables += 1);
         let sources = page.list.link_sources();
         if !sources.is_empty() {
             let dests: Vec<Destination> = sources

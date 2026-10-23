@@ -32,6 +32,7 @@ use crate::strings;
 use crate::wizard::Wizard;
 
 mod canvas_actions;
+mod editing;
 mod navigation;
 mod onboarding;
 mod projects;
@@ -489,6 +490,25 @@ fn clears_banner(id: &str) -> bool {
             | "cp.next"
             | "cp.previous"
             | "cp.next_unconnected"
+            // The place-and-arrange actions (WP-S2.04 §7.6) leave it standing too.
+            | "tool.place"
+            | "tool.place_part"
+            | "place.pick"
+            | "picker.filter"
+            | "picker.row"
+            | "picker.choose"
+            | "strip.new"
+            | "tool.rotate_cw"
+            | "tool.rotate_ccw"
+            | "tool.mirror_x"
+            | "tool.mirror_y"
+            | "tool.next_variant"
+            | "tool.next_rep_type"
+            | "tool.move"
+            | "tool.finish"
+            | "text.input"
+            | "edit.delete_selection"
+            | "rep.exchange"
     )
 }
 
@@ -963,6 +983,7 @@ impl ShellModel {
         // busy tool is escaped when its canvas changed (WP-S2.03 §7.2).
         self.sync_views();
         self.sync_tool_context();
+        self.after_commit();
         outcome
     }
 
@@ -1067,6 +1088,28 @@ impl ShellModel {
             "cp.next" => self.act_cp_step(p, tools::CpStep::Next),
             "cp.previous" => self.act_cp_step(p, tools::CpStep::Previous),
             "cp.next_unconnected" => self.act_cp_step(p, tools::CpStep::NextUnconnected),
+            "tool.place" => self.act_open_picker(crate::tools::PickerMode::Place),
+            "tool.place_part" => self.act_open_picker(crate::tools::PickerMode::Parts),
+            "place.pick" => self.act_place_pick(p),
+            "picker.filter" => self.act_picker_filter(p),
+            "picker.row" => self.act_picker_row(p),
+            "picker.choose" => self.act_picker_choose(p),
+            "strip.new" => self.act_strip_new(p),
+            "tool.rotate_cw" => self.act_tool_key(crate::tools::ToolKey::RotateCw),
+            "tool.rotate_ccw" => self.act_tool_key(crate::tools::ToolKey::RotateCcw),
+            "tool.mirror_x" => self.act_tool_key(crate::tools::ToolKey::MirrorX),
+            "tool.mirror_y" => self.act_tool_key(crate::tools::ToolKey::MirrorY),
+            "tool.next_variant" => self.act_tool_key(crate::tools::ToolKey::NextVariant),
+            "tool.next_rep_type" => self.act_tool_key(crate::tools::ToolKey::NextRepType),
+            "tool.move" => self.act_tool_move(),
+            "tool.finish" => self.send_tool(&crate::tools::CanvasEvent::Key(crate::tools::ToolKey::Finish)),
+            "text.input" => match string_param(p, "text") {
+                Ok(Some(t)) => self.send_tool(&crate::tools::CanvasEvent::Text(t.to_owned())),
+                Ok(None) => failed("error-missing-param", &["text"]),
+                Err(e) => e,
+            },
+            "edit.delete_selection" => self.act_delete_selection(),
+            "rep.exchange" => self.act_rep_exchange(p),
             "ui.describe" => Outcome::Done,
             "view.ui_scale" => self.act_ui_scale(p),
             "tools.palette" => self.act_palette(p),
@@ -1515,6 +1558,7 @@ impl ShellModel {
     fn act_dismiss(&mut self) -> Outcome {
         if self.palette.take().is_some()
             || self.dialog.take().is_some()
+            || self.tools.picker.take().is_some()
             || self.tools.link_preview.take().is_some()
         {
             return Outcome::Done;
@@ -1594,7 +1638,14 @@ impl ShellModel {
         let committed = project.session.history().cursor() > before;
         self.count(|c| c.run_script += 1);
         let outcome = match result {
-            Ok(_) => Outcome::Done,
+            Ok(receipts) => {
+                if let Some(primary) = receipts.last().and_then(|r| r.outcome.primary) {
+                    self.tools.last_primary = serde_json::to_value(primary.1)
+                        .ok()
+                        .and_then(|v| v.as_str().map(str::to_owned));
+                }
+                Outcome::Done
+            }
             Err(e) => failed("error-command", &[&e.to_string()]),
         };
         if committed && outcome == Outcome::Done {

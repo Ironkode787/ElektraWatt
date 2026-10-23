@@ -36,6 +36,8 @@ pub enum Menu {
     Edit,
     /// View.
     View,
+    /// Insert: the symbols, parts and strips to place (WP-S2.04).
+    Insert,
     /// Page.
     Page,
     /// Tools.
@@ -48,10 +50,11 @@ pub enum Menu {
 
 impl Menu {
     /// The menus in menu-bar order.
-    pub const ALL: [Menu; 7] = [
+    pub const ALL: [Menu; 8] = [
         Menu::File,
         Menu::Edit,
         Menu::View,
+        Menu::Insert,
         Menu::Page,
         Menu::Tools,
         Menu::Window,
@@ -64,6 +67,7 @@ impl Menu {
             Menu::File => "menu-file",
             Menu::Edit => "menu-edit",
             Menu::View => "menu-view",
+            Menu::Insert => "menu-insert",
             Menu::Page => "menu-page",
             Menu::Tools => "menu-tools",
             Menu::Window => "menu-window",
@@ -306,6 +310,25 @@ fn can_go_forward(m: &ShellModel) -> Result<(), &'static str> {
     match m.area() {
         Some(a) if a.current().history.forward_len() > 0 => Ok(()),
         _ => Err("reason-history-empty"),
+    }
+}
+
+/// A drawn page of a project that can be changed is on show (the editing tools of WP-S2.04 §7.6).
+fn editable_page(m: &ShellModel) -> Result<(), &'static str> {
+    has_pages(m)?;
+    writable(m)?;
+    match m.canvas() {
+        Some(c) if !c.page().tables.page.is_nil() => Ok(()),
+        _ => Err("reason-not-editable"),
+    }
+}
+
+/// The picker is open (WP-S2.04 §7.1).
+fn picker_open(m: &ShellModel) -> Result<(), &'static str> {
+    if m.picker().is_some() {
+        Ok(())
+    } else {
+        Err("reason-no-picker")
     }
 }
 
@@ -862,6 +885,169 @@ pub static ACTIONS: &[ActionMeta] = &[
         has_pages,
         slot(Menu::Tools),
     ),
+    // Place and arrange (WP-S2.04 part 1, §7.6): the Insert menu, the transform keys, Move, Delete, Change symbol.
+    in_canvas(act(
+        "tool.place",
+        Command,
+        "action-tool-place",
+        Menu::Insert,
+        &["I"],
+        editable_page,
+        slot(Menu::Insert),
+    )),
+    in_canvas(act(
+        "tool.place_part",
+        Command,
+        "action-tool-place-part",
+        Menu::Insert,
+        &["Shift+I"],
+        editable_page,
+        slot(Menu::Insert),
+    )),
+    act(
+        "strip.new",
+        Command,
+        "action-strip-new",
+        Menu::Insert,
+        &[],
+        editable_page,
+        slot_sep(Menu::Insert),
+    ),
+    hidden(in_canvas(act(
+        "place.pick",
+        Command,
+        "action-place-pick",
+        Menu::Insert,
+        &[],
+        editable_page,
+        None,
+    ))),
+    hidden(act(
+        "picker.filter",
+        View,
+        "action-picker-filter",
+        Menu::Insert,
+        &[],
+        picker_open,
+        None,
+    )),
+    hidden(act(
+        "picker.row",
+        View,
+        "action-picker-row",
+        Menu::Insert,
+        &[],
+        picker_open,
+        None,
+    )),
+    hidden(act(
+        "picker.choose",
+        Command,
+        "action-picker-choose",
+        Menu::Insert,
+        &[],
+        picker_open,
+        None,
+    )),
+    in_canvas(act(
+        "tool.rotate_cw",
+        Command,
+        "action-tool-rotate-cw",
+        Menu::Edit,
+        &["R"],
+        editable_page,
+        slot_sep(Menu::Edit),
+    )),
+    in_canvas(act(
+        "tool.rotate_ccw",
+        Command,
+        "action-tool-rotate-ccw",
+        Menu::Edit,
+        &["Shift+R"],
+        editable_page,
+        slot(Menu::Edit),
+    )),
+    in_canvas(act(
+        "tool.mirror_x",
+        Command,
+        "action-tool-mirror-x",
+        Menu::Edit,
+        &["X"],
+        editable_page,
+        slot(Menu::Edit),
+    )),
+    in_canvas(act(
+        "tool.mirror_y",
+        Command,
+        "action-tool-mirror-y",
+        Menu::Edit,
+        &["Y"],
+        editable_page,
+        slot(Menu::Edit),
+    )),
+    in_canvas(act(
+        "tool.next_variant",
+        Command,
+        "action-tool-next-variant",
+        Menu::Edit,
+        &["V"],
+        editable_page,
+        slot(Menu::Edit),
+    )),
+    in_canvas(act(
+        "tool.next_rep_type",
+        View,
+        "action-tool-next-rep-type",
+        Menu::Edit,
+        &["Shift+V"],
+        editable_page,
+        slot(Menu::Edit),
+    )),
+    in_canvas(act(
+        "tool.move",
+        Command,
+        "action-tool-move",
+        Menu::Edit,
+        &["M"],
+        editable_page,
+        slot(Menu::Edit),
+    )),
+    in_canvas(act(
+        "edit.delete_selection",
+        Command,
+        "action-edit-delete-selection",
+        Menu::Edit,
+        &["Delete"],
+        editable_page,
+        slot(Menu::Edit),
+    )),
+    in_canvas(act(
+        "rep.exchange",
+        Command,
+        "action-rep-exchange",
+        Menu::Edit,
+        &[],
+        editable_page,
+        slot(Menu::Edit),
+    )),
+    hidden(in_canvas(act(
+        "tool.finish",
+        View,
+        "action-tool-finish",
+        Menu::Edit,
+        &["Shift+Enter"],
+        has_pages,
+        None,
+    ))),
+    hidden(in_canvas(act(
+        "text.input",
+        View,
+        "action-text-input",
+        Menu::Edit,
+        &[],
+        has_pages,
+        None,
+    ))),
     act(
         "tools.company_standard",
         Command,

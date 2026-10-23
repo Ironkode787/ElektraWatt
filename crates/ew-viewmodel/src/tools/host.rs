@@ -5,11 +5,15 @@
 //! selection, the link preview and the live-region announcement. The shell drives it (`ShellModel`'s tool actions);
 //! only the shell calls the `Session`.
 
-use ew_api::output::LinkTarget;
+use std::collections::BTreeMap;
+use std::sync::Arc;
+
+use ew_api::output::ew_dl::EntityRef;
+use ew_api::output::{LinkTarget, PageTables, PlaceCatalogue, SymbolShape};
 use ew_api::{DerivedDiff, Preview};
 use serde_json::Value;
 
-use super::{Overlay, SelectTool, Selection, Tool};
+use super::{Overlay, Picker, SelectTool, Selection, Tool};
 use crate::canvas::CanvasModel;
 
 /// The pane of the link hover preview, in logical points (WP-S2.03 §7.8).
@@ -20,6 +24,9 @@ pub const PREVIEW_DWELL_MS: u32 = 80;
 
 /// How long the pointer rests on a link before its target is previewed, in milliseconds (doc 06 §6).
 pub const LINK_PREVIEW_DWELL_MS: u32 = 300;
+
+/// The symbol shapes of one revision, by copy ID text.
+pub type ShapeCache = BTreeMap<String, Arc<SymbolShape>>;
 
 /// The kept preview of a tool's command (spec §7.3): the real command run on a fork by `Session::preview_with`.
 #[derive(Debug)]
@@ -99,6 +106,22 @@ pub(crate) struct ToolHost {
     pub context: Option<(usize, u32, crate::canvas::PageId)>,
     /// The connection point the last `cp.*` step put the cursor on: (session, revision, folio, index).
     pub last_cp: Option<(u64, u64, String, usize)>,
+    /// The picker popup (WP-S2.04 §7.1, §6.4), while open.
+    pub picker: Option<Picker>,
+    /// The representation a picker in exchange mode changes the symbol of.
+    pub exchange_rep: Option<EntityRef>,
+    /// The letter `place.pick` or the window gave for the next placement.
+    pub pick_letter: Option<String>,
+    /// The place catalogue of (session, revision, folio), fetched once while the picker needs it.
+    pub catalogue: Option<((u64, u64, String), Arc<PlaceCatalogue>)>,
+    /// The symbol shapes of (session, revision), by copy ID text, fetched once per copy (§6.2).
+    pub shapes: Option<((u64, u64), ShapeCache)>,
+    /// The strip the last `strip.new` created (its ID), the default strip of a terminal placement.
+    pub last_strip: Option<String>,
+    /// The primary record of the host's or a tool's last commit (its ID text).
+    pub last_primary: Option<String>,
+    /// The page tables before the last commit, for dropping deleted records from the selection (§6.4 item 3).
+    pub before_commit: Option<Arc<PageTables>>,
 }
 
 impl ToolHost {
@@ -113,6 +136,14 @@ impl ToolHost {
             announcement: None,
             context: None,
             last_cp: None,
+            picker: None,
+            exchange_rep: None,
+            pick_letter: None,
+            catalogue: None,
+            shapes: None,
+            last_strip: None,
+            last_primary: None,
+            before_commit: None,
         }
     }
 }
