@@ -794,6 +794,8 @@ fn derived(
             false,
         ),
     };
+    // A derived row offers its partner's writes only where the grid can make them (§6.3: a read-only row has none).
+    let actions = if route.is_editable() { actions } else { Vec::new() };
     Built {
         row: PropRow {
             key: format!("{kind}/derived.{name}"),
@@ -1750,6 +1752,40 @@ mod tests {
         assert_eq!(json_at(&v, "parts[0].qty"), Some(&Value::from("1")));
         assert_eq!(json_at(&v, "[ew.company].a"), Some(&Value::from(1)));
         assert_eq!(json_at(&v, "parts[1]"), None);
+    }
+
+    /// §6.3: a derived row whose authored partner the grid cannot write offers no action.
+    #[test]
+    fn a_derived_row_with_a_read_only_partner_has_no_action() {
+        let built = derived(
+            "device",
+            "tag",
+            Some(("tag.frozen", EditRoute::ReadOnly(ReadOnlyReason::NoCommand), true)),
+            Category::Identity,
+            FieldType::Ident,
+            RowValue::Absent,
+            Provenance::Authored,
+            vec![RowAction::Freeze, RowAction::Unfreeze],
+        );
+        assert!(built.row.actions.is_empty());
+        let built = derived(
+            "device",
+            "tag",
+            Some((
+                "tag.frozen",
+                EditRoute::FieldsSet {
+                    kind: "device".into(),
+                    path: "tag.frozen".into(),
+                },
+                true,
+            )),
+            Category::Identity,
+            FieldType::Ident,
+            RowValue::Absent,
+            Provenance::Authored,
+            vec![RowAction::Freeze],
+        );
+        assert_eq!(built.row.actions, [RowAction::Freeze]);
     }
 
     #[test]

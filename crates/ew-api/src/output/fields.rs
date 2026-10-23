@@ -1381,10 +1381,20 @@ pub(crate) fn parse_input(
                     None => Err(invalid(format!("the project has no part copy `{id}`"))),
                 };
             }
-            let hits: Vec<&(String, String, String)> = copies
+            let mut hits: Vec<&(String, String, String)> = copies
                 .iter()
                 .filter(|(_, pn, _)| pn.eq_ignore_ascii_case(t))
                 .collect();
+            // The display form `<part number> (<manufacturer>)` parses back.
+            if hits.is_empty()
+                && let Some((pn, rest)) = t.rsplit_once(" (")
+                && let Some(mfr) = rest.strip_suffix(')')
+            {
+                hits = copies
+                    .iter()
+                    .filter(|(_, p, m)| p.eq_ignore_ascii_case(pn) && m.eq_ignore_ascii_case(mfr))
+                    .collect();
+            }
             match hits.as_slice() {
                 [one] => plain(serde_json::json!({ "copy": one.0 })),
                 [] => Err(invalid(format!("the project has no part `{t}`"))),
@@ -1542,6 +1552,8 @@ pub(crate) fn generic_path(row_path: &str) -> String {
 
 #[cfg(test)]
 mod tests {
+    use serde_json::json;
+
     use super::*;
 
     struct Cx;
@@ -1574,7 +1586,6 @@ mod tests {
         };
         assert_eq!(choices[0], ("1.5 (decimal)".to_owned(), Value::from("1.5")));
         assert_eq!(choices[1], ("1500 (thousands)".to_owned(), Value::from("1500")));
-        assert!(matches!(parse(FieldType::Dec3, "1.5000"), Ok(_) | Err(_)));
         assert!(matches!(parse(FieldType::Dec3, "x"), Err(InputError::Invalid(_))));
     }
 
@@ -1769,6 +1780,104 @@ mod tests {
         assert_eq!(generic_path("[ew.company]"), "[ew.company]");
         assert_eq!(label_key("device", "parts[].qty"), "field-device-parts--qty");
         assert_eq!(label_key("device", "tag.letter"), "field-device-tag-letter");
+    }
+
+    impl DisplayCx for Cx {
+        fn part_text(&self, copy: &str) -> Option<String> {
+            self.part_copies()
+                .into_iter()
+                .find(|(c, _, _)| c == copy)
+                .map(|(_, pn, m)| format!("{pn} ({m})"))
+        }
+        fn part_number(&self, copy: &str) -> Option<String> {
+            self.part_copies()
+                .into_iter()
+                .find(|(c, _, _)| c == copy)
+                .map(|(_, pn, _)| pn)
+        }
+        fn node_text(&self, node: &str) -> Option<String> {
+            self.slot_nodes("")
+                .into_iter()
+                .find(|(n, _, _)| n == node)
+                .map(|(_, p, _)| p)
+        }
+    }
+
+    /// Format then parse gives the value back, for every editable value type (an untouched editor commits nothing,
+    /// but a display text must also parse back where it is retyped). A three-decimal number with at most three
+    /// integer digits is ambiguous by design (doc 16 §6.3): its decimal reading is the value.
+    #[test]
+    fn every_editable_type_round_trips_through_its_display_text() {
+        let opt = |t: FieldType| FieldType::Optional(Box::new(t));
+        let cases: Vec<(FieldType, Value)> = vec![
+            (FieldType::Text, json!("24 V distribution")),
+            (FieldType::Ident, json!("-101F1")),
+            (FieldType::MlText, json!("Expansion Control Cabinets")),
+            (FieldType::Bool, json!(true)),
+            (FieldType::Bool, json!(false)),
+            (
+                FieldType::Int {
+                    min: Some(0),
+                    max: None,
+                },
+                json!(42),
+            ),
+            (
+                FieldType::Int {
+                    min: Some(-10),
+                    max: Some(10),
+                },
+                json!(-3),
+            ),
+            (FieldType::Dec3, json!("0.75")),
+            (FieldType::Dec3, json!("1500")),
+            (FieldType::Dec3, json!("12.345")),
+            (FieldType::Quantity, json!({"value": "20", "unit": "A"})),
+            (FieldType::Quantity, json!({"value": "0.75", "unit": "mm2"})),
+            (FieldType::Quantity, json!({"value": "40", "unit": "degC"})),
+            (FieldType::Quantity, json!({"value": "3", "unit": "piece"})),
+            (FieldType::Csa, json!("0.75")),
+            (FieldType::Csa, json!({"awg": 18})),
+            (FieldType::Csa, json!({"awg": -1})),
+            (FieldType::Csa, json!({"kcmil": "250"})),
+            (FieldType::Nm, json!(12_500_000)),
+            (FieldType::Nm, json!(2_645_833)),
+            (FieldType::Nm, json!(-1_000_000)),
+            (FieldType::Colour, json!(["BU"])),
+            (FieldType::Colour, json!(["GN", "YE"])),
+            (FieldType::Colour, json!(["DBU"])),
+            (FieldType::Colour, json!(["DBU", "WH"])),
+            (
+                FieldType::Enum {
+                    options: vec!["used".into(), "spare".into()],
+                },
+                json!("spare"),
+            ),
+            (FieldType::Link { kind: "part".into() }, json!({"copy": "c2"})),
+            (FieldType::Slot, json!("n1")),
+            (FieldType::Slot, json!("none")),
+            (opt(FieldType::Ident), json!("F1")),
+            (opt(FieldType::Dec3), json!("2.5")),
+            (FieldType::Json, json!({"a": [1, 2], "b": "x"})),
+            (FieldType::List(Box::new(FieldType::Text)), json!(["a", "b"])),
+        ];
+        for (ty, value) in cases {
+            let shown = format_with(&Cx, &ty, &value);
+            // Json and containers are edited as their whole JSON text, not as their (cut) display text.
+            let text = if matches!(ty.inner(), FieldType::Json | FieldType::List(_)) {
+                value.to_string()
+            } else {
+                shown.clone()
+            };
+            let back = match parse_input(&Cx, &ty, "location", &text) {
+                Ok(p) => p.value,
+                Err(InputError::Ambiguous { choices }) => choices[0].1.clone(),
+                Err(e) => panic!("{} {value} shown as {shown:?}: {e:?}", ty.word()),
+            };
+            assert_eq!(back, value, "{} shown as {shown:?}", ty.word());
+        }
+        // An optional value's empty text is absent.
+        assert_eq!(parse(opt(FieldType::Ident), "").unwrap(), Value::Null);
     }
 
     #[test]
