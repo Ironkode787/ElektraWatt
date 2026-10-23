@@ -8,7 +8,7 @@ after WP-S2.03 part 2's delivery; Opus review of each ·
 **Date:** 2026-10-22 · **Work package:**
 [WP-S2.04](../02-work-packages.md#wp-s204-placement-wiring-and-drawing-tools) · **Decision log:** ID-561 to ID-571 (the
 cycle-23 design pass recorded §17.3's entries; §17.4's follow-ups are FT-372 to FT-379; doc 03 §5 and §6 and doc 05
-§2.2 carry §10.1's shapes since that pass, so part 4a's precondition of §17.2 is met; **part 1 delivered in cycle 25**, recorded as ID-625 with its thirteen rulings, the integration rules ID-628 and the window check ID-629; follow-ups FT-421 to FT-426, of which FT-423 is due before part 2 integrates and FT-421 before part 2's delivery) · **Part of:** ElektraWatt plan,
+§2.2 carry §10.1's shapes since that pass, so part 4a's precondition of §17.2 is met; **part 1 delivered in cycle 25**, recorded as ID-625 with its thirteen rulings, the integration rules ID-628 and the window check ID-629; follow-ups FT-421 to FT-426, of which FT-423 is due before part 2 integrates and FT-421 before part 2's delivery; **part 2 delivered in cycle 26**, recorded as ID-635 with its nine rulings, the fix round and the window-check rules, FT-421 and FT-423 closed, FT-424 in part, the integration ID-638 and the window checks ID-639; follow-ups FT-434 and FT-437, FT-374 amended; parts 3 and 4a next) · **Part of:** ElektraWatt plan,
 specifications
 
 **Purpose.** This is the closed specification of the first editing package. It turns the viewer and tool framework of
@@ -307,6 +307,8 @@ model converts to sheet nm (§4.2).
 4. **Tool strip.** `ew-ui` draws one row above the canvas with the active tool's options as read-only text plus the
    toggles the actions of each part list (doc 16 §4.5); headless, the same is in the `ghost` member.
 
+*Amended in cycle 26 (as built in part 2's window-check fixes, 553951d; decision log ID-635).* 5. **A page or tab change** (Ctrl+G, the navigator, a tab or group switch) ends Wire, Edit route, Place and Change symbol and Select takes over, the selection kept (WP-S2.03 §7.6): an editing tool works on one page. 6. **The tool strip's row is always reserved**, also for Select at rest, which shows a hint there: the canvas is one row shorter at rest, and a strip that appears when a gesture starts never moves the page view under the pointer (the window check found a 25 px shift that turned a horizontal drag into a diagonal one). 7. **An undo or redo** drops the tool's overlay and preview of the revision it leaves. 8. **A ready preview that changes no tag and no cross-reference text paints no chip** (a route edit, a move, a Wire draw that changes only potentials or wire numbers); the readout and the strip carry it. 9. A refused key writes its reason in the status bar until the next canvas input (C, §8.3).
+
 ### 6.5 Snapping additions
 
 `Snapper` gains `snap_fine(at, kind, alt) -> (sheet_nm, page_nm)` for graphics and texts (doc 06 §2.4): on a QET-grid
@@ -496,6 +498,8 @@ rule (the corner from the ends' own coordinates). Output: the full vertex list, 
 interior vertices on the grid, the ends exact. Pure, integer-only, `i128` where products occur; a unit-test table
 covers straight, L, Z, obstacle detours, the fallback and the tie rule.
 
+*As built (cycle 26; decision log ID-635).* The search is an exact backward Dijkstra over (grid node, heading) from the end and a forward walk from the start that takes the lowest-ranked move staying on a least path, not A*; it returns the path this section defines (ruling 7). **Size limit:** the search area holds at most `MAX_NODES` = 262,144 grid nodes (2^18; an A0 sheet at a 2.5 mm grid has 160,412), and a larger area falls back to the L route, as does an index at the edge of `i64` (`checked_add`); the backward search stops once its distance passes the start's, which leaves the result unchanged. A corner next to an end takes that end's coordinate, so a connection point up to 1 nm off a rational grid stays valid for `require_route`. After a fixed bend the router has no incoming direction and can double back over the last segment (FT-437).
+
 ### 8.2 The Wire tool (`wire`; doc 06 §4.4, FR-UI-015, FR-CON-001, FR-CON-006)
 
 **Targets** in priority order within 8 screen points (doc 06 §5.7, Wire row): a CP of the page tables (of a compatible
@@ -521,6 +525,8 @@ is exactly the ghost. Ends: a CP → `cp`, a junction → `junction`, a segment 
 `kind` is the page type's wire kind (doc 06 §2.2). **Keyboard wiring** is the S2.03 grid cursor with `]`, `[`, `N` and
 Enter; the live region announces `Wire: routing from <label>. Click a connection point; Backspace removes the last bend;
 Escape cancels` (doc 16 §4.5).
+
+*As built (cycle 26; decision log ID-635).* `kind` is sent per page type: none (a wire) on MultiLine pages, `overview` on SingleLine, Overview and AssemblyOverview pages; elsewhere `tool.wire` is disabled with `reason-no-wire-kind` ("The Wire tool does not draw this page type's connections yet") until the `Bus` and `Fluid` kinds are drawn (FT-434). Each fixed bend keeps a copy of the fixed vertices, so Backspace after a bend that continues straight restores the earlier bend. A segment target that two wires share at one point goes to the wire drawn last, which is the larger ID (one wire per command; the two halves of a split meet only at their junction). The route cache is keyed by the revision. The headless `canvas.activate {alt}` is a click with Alt held at the grid cursor, and Ctrl+Enter in the canvas context (`canvas.activate_alt`) is its window twin; Alt+Enter stays Properties of selection.
 
 ### 8.3 Autoconnect proposals (FR-CON-003, FR-CON-008; doc 06 §5.2)
 
@@ -555,6 +561,8 @@ on one selected connection: Tab cycles the movable segments, the grid cursor's r
 Enter commits. On a route-less connection the first edit (pointer or keyboard) starts from its drawn `polyline`, so
 the commit stores it with the moved segment (the remedy of §8.3 item 3).
 
+*As built (cycle 26; decision log ID-635).* The first and last segments of a route never move: on an L-shaped wire, which has only those two (every route-less wire of Golden A draws as an L), a press is therefore a press on another entity, a rubber band, and neither the pointer nor `tool.route_edit` (which cycles only movable segments) can change it; bend insertion is FT-374 (this specification's §17.4 item 3). A moved segment is tidied of duplicate and collinear vertices before the commit. Edit ▸ Edit route is disabled until exactly one connection is selected ("Select exactly one connection").
+
 ### 8.5 The junction sequence editor (FR-CON-005)
 
 `junction.open` (Enter on exactly one selected junction, or Edit ▸ Junction sequence…) opens a popup: the style
@@ -564,6 +572,8 @@ change commits `junction.edit` immediately (one undo step each, D11): `junction.
 (Alt+Up and Alt+Down on the focused row) reorders, `junction.style` with `style` (and R on a bevel cycles its
 orientation), `junction.wiring` with `wiring`. The popup refreshes from the next page tables and closes with
 `ui.dismiss`.
+
+*As built (cycle 26; decision log ID-635).* `junction.open` acts on exactly one selected junction and is disabled otherwise ("Select exactly one junction"); Edit ▸ Junction sequence… likewise. A script selects the junction first (`select.set`, or its alias `@n`, FT-422) and then sends `junction.open`: **the headless coordinate form `junction.open {x_mm, y_mm}` that the lane first built (its ruling 3) is withdrawn** ([[HASH-A3]] removes it). A junction is named by its frame cell (`C11`); junctions sharing a cell are `C11#1`, `C11#2`, numbered by position (y, then x), ties by ID, because the IDs one transaction mints are not in creation order. The popup's wires come from `Session::junction_wires` (number and both end labels).
 
 ### 8.6 Crossings as hops (FR-CON-031)
 
@@ -589,7 +599,7 @@ absent: plain, so Golden A's output is byte-equal. The PDF uses the same display
 | `project.crossings` | Project ▸ Drawing (checked) | — | global | optional `on` |
 
 **Transcript:** `canvas` gains `route` (`null` or `{"from": "<label>", "bends": n, "points": n, "end": "<label>" or
-null}`) after `picker`, and `junction_editor` (`null` or `{"junction": "<uuid>", "style": "bevel", "wiring": "chain",
+null}`) after `picker`, and `junction_editor` (`null` or `{"junction": "<cell>" (as built: the frame cell, `C11` or `C11#2`; ID-630, ID-635), "style": "bevel", "wiring": "chain",
 "sequence": ["+#1", "-102F1:1", "+#2"]}`); `ghost.hints` counts the proposals.
 
 ```text
@@ -607,6 +617,7 @@ part 1 integrates first, its `page.describe` has already added `wire`, `->`, `ro
 `wiring`, `star`, `chain` and `sequence`, and this part adds the other **11**; it states the count it adds.
 *Corrected in the cycle-25 design pass (ID-632):* `junction` is a word since WP-S2.03 part 2 (a snap marker's kind), so this part adds
 **21** words alone and **10** after WP-S6.13 part 1; WP-S2.05 part 1's 53 words change neither figure, nor §9.6's 5 and §10.7's 12.
+*As built (cycle 26; decision log ID-635, ID-638):* part 2 added the **21** words (`WIRE_WORDS`; WP-S6.13 part 1 had not integrated), so `VOCABULARY` is 227 with WP-S2.05 part 2's 14, and 10 actions: the nine of the table above (the three popup actions counted singly) and `canvas.activate_alt` (Ctrl+Enter, canvas, hidden); `project.crossings` sits in Tools ("Show crossings as hops", checked), because the shell has no Project menu (doc 16 §3.2).
 
 ## 9. Part 3: interruption points and black boxes
 
@@ -891,8 +902,8 @@ support (a record, a geometry, a box that is not there) stops the lane for a lea
 | WR1 | Router table tests (§8.1) and determinism under permuted obstacle order | `ew-commands` tests | §8.1 |
 | WR2 | Wire tool: the state table; ends on CP, junction, segment (a junction created and the segment split) and empty grid refused; bends and Backspace; the committed route equal to the ghost; FR-CON-006's acceptance (two wires drawn to -102F1:1 on a copy listed in drawing order in the page tables) | `ew-viewmodel` tests | §8.2 |
 | WR3 | FR-UI-015's acceptance: kittest without pointer events on Golden A folio 102 draws a connection from -102F1:2 to -102F2:24VDC#1 (grid cursor, `]`, `[`, `N`, Enter): exactly one new connection with those two endpoints, revision + 1, the walker passing after every step | `ew-ui` tests | §8.2 |
-| WR4 | Autoconnect: proposals on Golden A where the geometry gives facing free CPs (folio 101's S51 over 1X1 in a copy where W4 and W5 were deleted) equal the deleted connections' endpoints; FR-CON-003's acceptance (a contact dropped between two aligned wire ends previews two connections; Alt commits none); Tab cycling; a move never adds a connection | `ew-viewmodel` tests | §8.3 |
-| WR5 | FR-CON-008's acceptance: W13 given a route by the route editor, then a contact inserted: two connections, W13's ID and number on the F55:2 side, the same overrides on both, the new part printing `?` with online wire numbering off | `ew-viewmodel`, `ew-api` tests | §8.3, §8.4 |
+| WR4 | Autoconnect: proposals on Golden A where the geometry gives facing free CPs (folio 101's S51 over 1X1 in a copy where W4 and W5 were deleted) equal the deleted connections' endpoints (*amended in cycle 26, ID-635 ruling 1:* that example gives no facing free CPs under doc 06 §5.2, which is the authority, so the check runs on a constructed pair: two contacts placed one above the other with facing free CPs in a copy, a third dropped between them proposes two connections); FR-CON-003's acceptance (a contact dropped between two aligned wire ends previews two connections; Alt commits none); Tab cycling; a move never adds a connection | `ew-viewmodel` tests | §8.3 |
+| WR5 | FR-CON-008's acceptance: W13 given a route by the route editor, then a contact inserted: two connections, W13's ID and number on the F55:2 side, the same overrides on both, the new part printing `?` with online wire numbering off (*amended in cycle 26, ID-635:* W13 keeps its ID and its printed number on its side, the new half is unassigned, and on Golden A, which derives a number for every wire, it prints the next derived number, 101.18; `?` only with rule numbering off) | `ew-viewmodel`, `ew-api` tests | §8.3, §8.4 |
 | WR6 | FR-CON-007's acceptance: a segment of a connection on folio 102 dragged, saved, reopened: the same route to the nm | `bin/elektrawatt/tests` | §8.4 |
 | WR7 | FR-CON-005's acceptance: the junction editor of J1 on folio 101 lists the F55:2 member before E55:L and E56:X2 and the physical wires W13 and W14; a reorder on J4 commits one `junction.edit` and the wires follow; style and wiring toggles | `ew-viewmodel`, `ew-api` tests | §8.5 |
 | WR8 | FR-CON-031's acceptance: `crossings` hops changes folio 103's display list only by the hop arcs (every crossing of the rule hopped), the derived diff is empty and no connection changes; absent and `plain` give Golden A's bytes | `ew-scene`, `ew-api` tests | §8.6 |

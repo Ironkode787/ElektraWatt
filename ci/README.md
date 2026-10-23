@@ -97,6 +97,10 @@ and 7:46 within 4 %): parts of about 11:35, 11:27 and 11:29, so the chain is abo
 binaries between part 1 and the complement; the guard test in `xtask` checks that the three filters are complementary
 and that the acceptance tests and the fuzzer are in part 1. The next delivery run records the real times.
 
+**Measured** (FT-387 closed, decision log ID-633): run 39985050322 on `main` had `test-windows-build` 10:49 and the
+parts 8:13, 5:37 and 9:35, a chain of 10:49 + 9:35 = **20:24** (31:14 before), under the 30-minute budget. In the same
+run `test-macos` took 30:04, four seconds over as a chain of one job; its levers are FT-438.
+
 **Lesson: partition by time, not by count.** `--partition count:N/M` equalises the number of tests; when a handful of
 binaries hold most of the run time, name them with `binary_id(=crate::binary)` in one part and split the complement by
 count, and keep every part either an explicit set or `not (that set)` so that the cover stays complete and disjoint.

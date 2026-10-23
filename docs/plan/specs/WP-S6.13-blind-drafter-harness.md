@@ -10,7 +10,10 @@ every run ·
 **Date:** 2026-10-24 · **Work package:**
 [WP-S6.13](../02-work-packages.md#wp-s613-blind-drafter-gate-agent-harness-personas-and-prompt) · **Decision log:**
 ID-610 to ID-619, the ten entries of §12.3 in order (follow-ups FT-408 to FT-416, the nine of §12.4 in order); the fix
-round ID-621 to ID-624 (follow-up FT-420) ·
+round ID-621 to ID-624 (follow-up FT-420); **cycle 26:** the alias `@n` landed (FT-422, ID-640), so part 1's
+normaliser does not rewrite UUIDs and only guards against a raw one, which fails the replay comparison naming the line
+(ID-630 (d)); the shell's UUID-keyed orders go first (FT-439), so that an alias names the same record in every replay;
+**part 1 is a cycle-27 candidate** after FT-439, with FT-415's licence rows, a programmer lane at D3 per §12.2 (ID-641) ·
 **Part of:** ElektraWatt plan, specifications
 
 **Purpose.** This is the closed specification of the blind drafter's harness: the tool through which an agent that

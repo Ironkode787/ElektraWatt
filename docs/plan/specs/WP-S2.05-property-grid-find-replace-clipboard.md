@@ -8,7 +8,7 @@ after part 1, part 3 after part 1 and WP-S2.04 part 1; Opus review of each ·
 [WP-S2.05](../02-work-packages.md#wp-s205-property-grid-provenance-find-and-replace-clipboard) · **Decision log:**
 ID-591 to ID-600, the ten entries of §15.3 in order (follow-ups FT-393 to FT-403, the eleven of §15.4 in order; item
 12 is a note in ID-593); §4.1 rule 2's precondition is met: `ci/dep-rules.toml` and architecture §3 carry the
-`ew-api` edges to `ew-units` and `ew-mltext` as normal edges (ID-600); **part 1 delivered in cycle 25**, recorded as ID-626 with its twelve rulings and lane B's last fix, the integration rules ID-628 and the alias grammar ID-630; follow-ups FT-427 to FT-429 · **Part of:**
+`ew-api` edges to `ew-units` and `ew-mltext` as normal edges (ID-600); **part 1 delivered in cycle 25**, recorded as ID-626 with its twelve rulings and lane B's last fix, the integration rules ID-628 and the alias grammar ID-630; follow-ups FT-427 to FT-429; **part 2 delivered in cycle 26**, recorded as ID-634 with its twelve rulings, the `run_script` Bulk rule, the regex edge and the window check's focus fix, FT-427 closed, the integration ID-638 and the window checks ID-639; follow-ups FT-431 to FT-433 and FT-435; part 3 (the clipboard) next · **Part of:**
 ElektraWatt plan, specifications
 
 **Purpose.** This is the closed specification of the package that lets a user read and change every value of what
@@ -165,7 +165,10 @@ to the lead for this specification and which are recorded as taken. The design p
    normal edges) and architecture §3 (the `ew-api` row and the crate graph) first; a lane that finds them unamended
    stops. *Met by the cycle-24 design pass (ID-600).* The `regex` edge is an external crate already vetted and needs no owner rule; feature unification turns on
    `unicode-case` and `unicode-perl` in `ew-schema`'s `regex` too, which is harmless (more Unicode tables, no
-   behaviour change for its patterns).
+   behaviour change for its patterns). *Amended in cycle 26 (as built; decision log ID-634):* the premise "no new
+   package" held for `Cargo.lock` but not for the shipped graph: `ew-schema` uses `regex` as a dev-dependency only,
+   so the runtime edge brings `regex`, `regex-automata` and `regex-syntax` into `cargo tree -p elektrawatt` (288 to
+   291 packages); accepted, with their cargo-vet criteria raised to `safe-to-deploy` (doc 18 §5.4; FT-435).
 3. **One mutation path.** Every state change of the shell is a registry action on `ShellModel::dispatch`; every model
    change is a command committed by the host path of S2.03 §7.3 (D6). The view model compiles each edit into exactly
    one command (doc 16 §2.1); `ew-ui` never builds a command.
@@ -722,6 +725,10 @@ find error "<message>"                                  (or: find truncated)
 `focus`, `error`, `read-only`, which exist after part 1, and `->`, `tag` and `text` from WP-S2.04 (added by this part if
 absent, with the count stated).
 
+### 7.7 As built (cycle 26; decision log ID-634, ID-639)
+
+Part 2 is built as §7.1 to §7.6 say, with these settlements. **Search:** a row path is `<member>.<lang>` and orders naturally (`tech_data[2]` before `tech_data[10]`); empty `fields` means all five; a search error ends the step done, with the message in the pane and the transcript; "In selection" without a selection is refused. **Replace:** one `fields.set_many` per replace (members merged per record, grouped per (kind, path, value), no-ops dropped); only frozen tags are replaced (their product part); the replaced text is NFC-normalised, and a replacement that would recompose with its neighbours (`=` followed by a combining slash becoming `≠`) is refused; a refusal names its entry "on <subject> (<path>): …". **The card** opens **inside the find pane** ("Preview: replace 20 results on 20 records · 0 tags, 0 cross-reference texts"), counts only the hits that change, survives a selection change (a jump to a result or a canvas click) and is dropped whenever the pane is not shown (`find.close`, which is hidden, a workspace reset or load, a dock layout change). After Apply no toast follows (§6.6 gives the toast to direct commits); the results show `[stale]` and the note "Replaced <n>; run again to refresh"; an automatic re-run was weighed and not adopted (it costs a `find` call that §9 does not count, and the badge says what changed). The card and toast describe lines follow the find lines, so a replace card shows with the grid closed. **Keys:** Ctrl+Enter in the find context replaces, and with a card open (also from a focused field) applies it; **Tab and Shift+Tab move between the pane's fields**: a find field that takes the keyboard focus makes the pane the shell's focus (the window check found Tab in the search field reaching the canvas chord `tool.next_proposal` instead of "Replace with"; fixed by 7019087 and c4b60ce with two kittests). **Place:** the pane sits below the page view in the Schematic workspace, not across doc 16's full-width bottom dock. **macOS:** Ctrl+H on every OS until the per-platform keymap (⌘H hides an application on macOS; FT-431). **Counts:** `VOCABULARY` +14 (the 13 words of §7.6 and `text`, which WP-S2.04 had not added), 12 actions (§7.6's rows counted singly and the hidden `find.close`); the `run_script` Bulk rule of doc 17 §3.5 makes a log line of `fields.set_many` above 500 targets one previewed commit. **Not reached by the find** (FT-432): terminal designations, potential names, wire numbers (§7.1's subject "wire number" has no field), structure descriptions and `page_item` texts. The result list is built for every hit in each frame (FT-433).
+
 ## 8. Part 3: the clipboard
 
 ### 8.1 The fragment v1 format (D12)
@@ -951,7 +958,7 @@ lane for a lead ruling.
 | FR3 | FR-UI-020's acceptance on Golden A: "Spare" in function texts on folios 204, 205, 206 lists 20 results (-201U5 to -201U8 and -202U2, Q1 to Q4), on 204 and 205 16; replacing by "Reserve" on 204 to 206 previews 20 changes in the card and commits one `fields.set_many` (one undo step); undo restores all 20 | `ew-viewmodel` tests; kittest | §7.3, §7.4, D16 |
 | FR4 | FR-DEV-032's amended example on authored device fields: the regex `(Spare)` replaced by `$1 (unused)` in the function texts of 204 to 206 gives "Spare (unused)" on the 20 devices, and a replace in an `Ident` tech-data value of a device on a copy (the lane adds one with `fields.set` first), each as one previewed transaction; "Murrelektronik" is found as the manufacturer of MICO 4.10 and not replaceable ("library copy: update from library") | `ew-viewmodel` tests | §7.1, D16 |
 | FR5 | Freeze on three devices of folio 102 is one `fields.set_many` through the card; each device's tag then reads Frozen with its own text | `ew-viewmodel` tests | §7.5 |
-| FR6 | Transcript, describe, the 13 words; the scripts twice byte-identical; replay; exact counts; golden unchanged; policy and targeted checks (`ew-commands`, `ew-testkit`, `ew-api` with the `regex` edge, `ew-viewmodel`, `ew-ui`, `elektrawatt`; `docs-gen --check`) | lane; tests | §7.6, §9 |
+| FR6 | Transcript, describe, the 13 words (as built 14 with `text`, ID-634); the scripts twice byte-identical; replay; exact counts; golden unchanged; policy and targeted checks (`ew-commands`, `ew-testkit`, `ew-api` with the `regex` edge, `ew-viewmodel`, `ew-ui`, `elektrawatt`; `docs-gen --check`) | lane; tests | §7.6, §9 |
 
 ### 10.3 Part 3
 

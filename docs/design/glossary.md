@@ -1,6 +1,6 @@
 # Glossary
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-24, cycle 25: the entries edit route, field catalogue, ID alias and property sheet, decision log ID-626, ID-630; amended 2026-10-23, cycle 23: the entries asset store, page item and starter library, and the structure box and wire marker entries brought up to the WP-S2.04 specification, decision log ID-566, ID-573) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-24, cycle 26: the entries hop, junction ordinal and wire kind per page type, and the ID alias as built, decision log ID-635, ID-640; amended 2026-10-24, cycle 25: the entries edit route, field catalogue, ID alias and property sheet, decision log ID-626, ID-630; amended 2026-10-23, cycle 23: the entries asset store, page item and starter library, and the structure box and wire marker entries brought up to the WP-S2.04 specification, decision log ID-566, ID-573) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This glossary fixes the meaning of every domain and project term that the ElektraWatt (EW) document set
 uses: IEC 81346 aspects and prefixes, EPLAN and QElectroTech (QET) vocabulary, EW-specific concepts such as
@@ -249,13 +249,14 @@ The IEC 81346 prefixes that appear in tags:
 | Term | Definition | EPLAN | QElectroTech | Defined in |
 |---|---|---|---|---|
 | **Hole table** | A list of drilling positions and sizes per mounting surface. | Drilling list | — | [13 §9.2](13-manufacturing-outputs.md) |
+| **Hop** | A crossing of two connections drawn as a half circle on the horizontal segment instead of a plain cross, when the project's drawing setting `crossings` is `hops` (FR-CON-031); presentation only, nothing in the model changes (decision log ID-635). | — | — | [06 §5.4](06-schematic-editor.md) |
 | **Hostile input limits** | Size, depth and time limits applied to every imported file, backed by fuzzing. | — | — | [14 §11](14-interop.md) |
 
 ### I
 
 | Term | Definition | EPLAN | QElectroTech | Defined in |
 |---|---|---|---|---|
-| **ID alias (`@n`)** | The one spelling of a record ID in the shell's machine text (transcripts and `ui.describe`): `@` and a number counted from 1 in order of first appearance in a session. The model, the window and the recorded command log keep real UUIDs, and an action parameter that takes an ID also takes the alias (decision log ID-630, FT-422). | — | — | [18 §3.17](18-quality-security-release.md) |
+| **ID alias (`@n`)** | The one spelling of a record ID in the shell's machine text (transcripts and `ui.describe`): `@` and a number counted from 1 in order of first appearance in a session. The model, the window and the recorded command log keep real UUIDs, and an action parameter that takes an ID also takes the alias (decision log ID-630, FT-422). As built in cycle 26 (ID-640): the table is reset only at the start of a script run, an unknown alias fails the step naming it, and `id:@n` resolves where a reference with `id:` is accepted. | — | — | [18 §3.17](18-quality-security-release.md) |
 | **Ident (`Ident`)** | An NFC-normalised identifier string for tags, folio labels, terminal names and part numbers; never translated, checked for confusables, and sorted in natural order. | Identifier | Label text | [03 §3.3](03-domain-model.md) |
 | **Identifier set (letter-code set)** | A data table in `ew-rds` mapping function categories to letter codes. Shipped sets: EN 81346-2:2009 single letters (default), IEC 81346-2:2019 two-letter classes, IEC 60750 legacy. | DT letter code table | — | [ADR-0026](../adr/0026-default-device-tag-identifier-set.md) |
 | **IEC 60617** | The graphical-symbol standard that starter symbols follow. | IEC symbols | IEC symbols | [07](07-symbols-parts-macros.md) |
@@ -279,6 +280,7 @@ The IEC 81346 prefixes that appear in tags:
 |---|---|---|---|---|
 | **JSON Lines (JSONL)** | A text format with one JSON record per line. | — | — | [05 §3](05-project-format-and-persistence.md) |
 | **Junction** | A T-node on a drawn connection with a style and a wiring mode (Star or Chain) that fixes the order of the physical wires behind it. | Junction point | Conductor junction | [08 §3.2](08-connections-terminals-cables.md) |
+| **Junction ordinal** | The `#n` suffix that names one of several junctions sharing a frame cell in the shell's text (`C11#1`, `C11#2`), numbered by position, top to bottom then left to right, ties by ID; a junction alone in its cell is named by the cell (decision log ID-635). | — | — | [WP-S2.04 spec §8.5](../plan/specs/WP-S2.04-placement-wiring-drawing-tools.md) |
 | **Junction style** | The visual style of a T-node junction, Dot or Bevel (the wiring mode Star or Chain is a separate property). | Junction point | Conductor junction | [08 §2.1](08-connections-terminals-cables.md) |
 
 ### K
@@ -503,6 +505,7 @@ The IEC 81346 prefixes that appear in tags:
 |---|---|---|---|---|
 | **Waiver** | A reviewed, expiring exemption of one finding, created by a `HumanOnly` command; the finding stays recorded. | Check suppression | — | [15 §2.5](15-checks-revisions-collaboration.md) |
 | **Wire end** | One termination of a wire: locus (device tag and connection point), level and clamp. | Connection end | — | [13 §2.1](13-manufacturing-outputs.md) |
+| **Wire kind per page type** | The connection kind the Wire tool draws on a page, fixed by its page type: a `Wire` on multi-line pages, an `Overview` connection on single-line, overview and assembly-overview pages, and nothing yet on bus-topology and fluid pages, whose `Bus` and `Fluid` kinds are not drawn (decision log ID-635, FT-434). | — | — | [06 §2.2](06-schematic-editor.md) |
 | **Wire marker** | The page item that shows the content of a CDP: colour, size, number. As the `wire_marker` variant it lists connections and has a position and an angle, and prints one group text such as "2.5 BK BU" (specified for WP-S2.04 part 4a). | Connection definition point symbol | Conductor text | [03 §1.2](03-domain-model.md), [03 §6](03-domain-model.md) |
 | **Wire number** | The identifier of a wire, derived by a scheme (for example from the From end) or frozen. | Connection number | Conductor number | [08 §5](08-connections-terminals-cables.md) |
 | **Wire type key** | The machine's identity of a wire stock: cross-section plus colour (plus part), such as "0.75 DBU". | Wire type | — | [13 §2.1](13-manufacturing-outputs.md) |

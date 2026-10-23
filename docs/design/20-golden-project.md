@@ -1,6 +1,6 @@
 # Golden project: acceptance-test specification
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 (cycle-11 design pass 2026-10-21: Golden B as built, Golden C runnable, acceptance runner statuses; cycle-12 design pass 2026-10-21: Golden C as built, the M1 gap list at the cycle-12 counts; cycle-13 design pass 2026-10-21: the computed wire numbers, the DP row and folio 908 as built, the M1 gap list closed; cycle-14 design pass 2026-10-21: documents as built, the final wire numbers and Via notation, the cover, the exports, the freshness script, EF-15 = 10, the acceptance counts at the cycle-14 tip; cycle-17 design pass 2026-10-22: the typed revisions, the second D-05 entry and the acceptance counts at the cycle-17 tip, §22; cycle-18 design pass 2026-10-22: the typed solenoid-position map under H1, §11.2, the library copies and the PLC normalisers as built, §22; cycle-24 design pass 2026-10-24: AC-28's W29 chip names the size profile, §21, and D-06's property-grid evidence is WP-S2.05's test PG9, §19, decision log ID-598, ID-599; cycle-25 design pass 2026-10-24: PG9 built and passing, §19, decision log ID-626) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (cycle-11 design pass 2026-10-21: Golden B as built, Golden C runnable, acceptance runner statuses; cycle-12 design pass 2026-10-21: Golden C as built, the M1 gap list at the cycle-12 counts; cycle-13 design pass 2026-10-21: the computed wire numbers, the DP row and folio 908 as built, the M1 gap list closed; cycle-14 design pass 2026-10-21: documents as built, the final wire numbers and Via notation, the cover, the exports, the freshness script, EF-15 = 10, the acceptance counts at the cycle-14 tip; cycle-17 design pass 2026-10-22: the typed revisions, the second D-05 entry and the acceptance counts at the cycle-17 tip, §22; cycle-18 design pass 2026-10-22: the typed solenoid-position map under H1, §11.2, the library copies and the PLC normalisers as built, §22; cycle-24 design pass 2026-10-24: AC-28's W29 chip names the size profile, §21, and D-06's property-grid evidence is WP-S2.05's test PG9, §19, decision log ID-598, ID-599; cycle-25 design pass 2026-10-24: PG9 built and passing, §19, decision log ID-626; cycle-26 design pass 2026-10-24: AC-16's sweep at 2232 keys of 70 memoised families, §22, decision log ID-635) · **Part of:** ElektraWatt design document set
 
 > **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
 
@@ -1476,6 +1476,11 @@ explicit `plc.bind_channel` commands (§11.2), so path (b) still issues 609 comm
 only in part 533361's copy hash, the import-source hash and the manifest, and no digest changed. AC-16 sweeps 2133
 keys of 66 memoised families (cycle 17: 2037 of 65). Headless counts: **94 entries, 88 pass, 0 fail, 0 not_built,
 6 not_applicable**.
+
+*AC-16's sweep since then.* 2231 keys of 69 families after cycle 21's channel indexes (decision log ID-524), and
+**2232 keys of 70 memoised families** after cycle 26, whose wiring package added the family `drawing_settings`
+(WP-S2.04 part 2; ID-635): the one line of `expected/acceptance_headless.md` that changed, a reviewed golden change
+that waits for the owner's acknowledgement with the generated change list (ID-638). The headless counts are unchanged.
 
 ---
 
