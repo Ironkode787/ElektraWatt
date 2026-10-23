@@ -53,6 +53,10 @@ ew-dl = { path = "../ew-dl" }
 # The export job: the PDF document ID hashes the export input (doc 09 §4.3 rule 2); the seal test of the
 # compiled-in generic symbols.
 sha2 = { workspace = true }
+# The property grid's field parser and formatter (WP-S2.05 part 1, `output::fields`): the integer value types and the
+# multi-language text (normal edges since cycle 24, decision log ID-600).
+ew-units = { path = "../ew-units" }
+ew-mltext = { path = "../ew-mltext" }
 
 [dev-dependencies]
 ew-commands = { path = "../ew-commands", features = ["testkit"] }
@@ -61,8 +65,6 @@ ew-model = { path = "../ew-model", features = ["raw-read"] }
 # tests/page_output.rs: page display lists, PNG and PDF of the golden folios (WP-S3.04).
 ew-render-cpu = { path = "../ew-render-cpu" }
 ew-ids = { path = "../ew-ids" }
-ew-units = { path = "../ew-units" }
-ew-mltext = { path = "../ew-mltext" }
 png = "0.18.1"
 # tests/page_output.rs: inflates the PDF content streams to read the line widths (doc 20 §17.4).
 flate2 = "1.1.10"

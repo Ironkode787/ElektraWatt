@@ -35,8 +35,10 @@
 //! `<digest>` the [`content_digest`] of the pages and the bundled fonts.
 
 mod editing;
+mod fields;
 mod layers;
 mod navigation;
+mod properties;
 mod view;
 
 use std::collections::BTreeMap;
@@ -59,11 +61,18 @@ pub use editing::{
 /// architecture §3 rule 7).
 pub use ew_dl;
 pub use ew_export::{Parallelism, PdfDate, PdfReport, SvgFile, SvgReport, svg_file_name};
+pub use fields::{
+    Category, EditRoute, FieldChoice, FieldNode, FieldSpec, FieldType, InputError, ParsedInput,
+    ReadOnlyReason, field_catalogue, field_catalogue_for, format_field_value,
+};
 pub use layers::{
     FrameLayer, LabelsLayer, PageLayer, SymbolsLayer, TablesLayer, WiresLayer, page_kind, page_layer,
     page_scene, page_view,
 };
 pub use navigation::{CellLabel, GotoError, GotoTarget, LinkTarget, PageCells, PageCp, PageRow};
+pub use properties::{
+    FindingChip, PropRow, PropertySheet, Provenance, RowAction, RowValue, SheetHeader, SheetSection,
+};
 pub use view::{
     CpTargetsByPage, FrameForms, GENERIC_SYMBOL_SEALS, GENERIC_SYMBOLS_PROFILE, GenericSymbols, NOGRID_FRAME,
     PageBindingsOf, PageConnectionsOf, PageCpTargetsOf, PageEmbeddedOf, PageFrameOf, PageGridOf,

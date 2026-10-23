@@ -100,6 +100,9 @@ pub use ew_commands::{
     EntityChange, History, HistoryLimits, IdSource, ModelDiff, Origin, Preview, Receipt, Restored, Submit,
     TxContext, World,
 };
+/// A command's registered metadata, its cost and its exposure class (WP-S2.05 §4.2): the property grid's guard that
+/// builds only `Edit` commands and its edit policy read them through [`Session::command_meta`].
+pub use ew_commands::{CommandMeta, Cost, Exposure};
 
 use ew_commands::commands::PurgeAssets;
 use ew_commands::{Command as _, Engine, EngineOptions};
@@ -511,6 +514,12 @@ impl Session {
     /// The command registry: names, metadata and parameter schemas.
     pub fn registry(&self) -> &CommandRegistry {
         self.engine.registry()
+    }
+
+    /// The registered metadata of the command named `name` (a canonical name or an alias); `None` for an
+    /// unregistered name.
+    pub fn command_meta(&self, name: &str) -> Option<CommandMeta> {
+        self.registry().get(name).map(|e| *e.meta())
     }
 
     /// Marks the current state as saved (the store calls this after a save, WP-S1.09).

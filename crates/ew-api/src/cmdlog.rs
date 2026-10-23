@@ -324,70 +324,85 @@ impl Session {
         Ok(receipts)
     }
 
+    /// The record a command-log reference names in the current model (`id:<uuid>`, `section:<number>`, `tag:<tag>`,
+    /// `folio:<label>`; see the module documentation), with the messages of a replay that cannot resolve it. The
+    /// resolver of [`Session::run_script`], shared with the property grid's `select.set` (WP-S2.05 §4.2).
+    ///
+    /// # Errors
+    ///
+    /// The reason the reference names no record, or more than one.
+    pub fn resolve_reference(&self, text: &str) -> Result<ew_derive::ew_ids::Uuid, String> {
+        self.reference_target(text).map(|id| id.as_uuid())
+    }
+
+    /// [`Session::resolve_reference`] as the record's ID.
+    fn reference_target(&self, text: &str) -> Result<AnyId, String> {
+        match text.split_once(':') {
+            Some(("id", uuid)) => {
+                let id: AnyId = serde_json::from_value(Value::String(uuid.to_owned()))
+                    .map_err(|_| format!("`{text}`: not a UUID"))?;
+                if !record_exists(&self.query(), id) {
+                    return Err(format!("`{text}`: the project has no such record"));
+                }
+                Ok(id)
+            }
+            Some(("section", number)) => {
+                let number: u16 = number
+                    .parse()
+                    .map_err(|_| format!("`{text}`: a section number is a whole number"))?;
+                let q = self.query();
+                q.sections()
+                    .iter()
+                    .find(|(_, s)| s.number == number)
+                    .map(|(id, _)| id.cast())
+                    .ok_or_else(|| format!("`{text}`: the project has no section {number}"))
+            }
+            Some(("tag", tag)) => {
+                let q = self.query();
+                unique(
+                    q.devices().ids().filter(|id| {
+                        q.get::<DeviceTag>(*id)
+                            .as_ref()
+                            .as_ref()
+                            .is_some_and(|t| t.full == tag || t.short() == tag)
+                    }),
+                    text,
+                    "device prints this tag",
+                )
+                .map(|id| id.cast())
+            }
+            Some(("folio", label)) => {
+                let q = self.query();
+                let order = q.get::<PageOrder>(());
+                unique(
+                    order.entries.iter().filter_map(|e| match e.page {
+                        PageRef::Drawn(id) if e.folio == label => Some(id),
+                        _ => None,
+                    }),
+                    text,
+                    "drawn page has this folio label",
+                )
+                .map(|id| id.cast())
+            }
+            _ => Err(format!(
+                "`{text}`: v0 resolves `section:<number>`, `id:<uuid>`, `tag:<tag>` and `folio:<label>` only"
+            )),
+        }
+    }
+
     /// `params` with every `{"ref": …}` replaced by what it names in the current model; `Err` with the
     /// reason a reference cannot be resolved.
     fn resolve_refs(&self, params: &Value) -> Result<Value, String> {
-        let reference = |message: String| message;
         match params {
             Value::Object(map) if map.len() == 1 && map.contains_key("ref") => {
                 let Some(text) = map["ref"].as_str() else {
-                    return Err(reference("`ref` is a text `<kind>:<value>`".into()));
+                    return Err("`ref` is a text `<kind>:<value>`".into());
                 };
+                let id = self.reference_target(text)?;
                 match text.split_once(':') {
-                    Some(("id", uuid)) => {
-                        let id: AnyId = serde_json::from_value(Value::String(uuid.to_owned()))
-                            .map_err(|_| reference(format!("`{text}`: not a UUID")))?;
-                        if !record_exists(&self.query(), id) {
-                            return Err(reference(format!("`{text}`: the project has no such record")));
-                        }
-                        Ok(Value::String(uuid.to_owned()))
-                    }
-                    Some(("section", number)) => {
-                        let number: u16 = number.parse().map_err(|_| {
-                            reference(format!("`{text}`: a section number is a whole number"))
-                        })?;
-                        let q = self.query();
-                        let id = q
-                            .sections()
-                            .iter()
-                            .find(|(_, s)| s.number == number)
-                            .map(|(id, _)| id)
-                            .ok_or_else(|| {
-                                reference(format!("`{text}`: the project has no section {number}"))
-                            })?;
-                        serde_json::to_value(id).map_err(|e| reference(format!("`{text}`: {e}")))
-                    }
-                    Some(("tag", tag)) => {
-                        let q = self.query();
-                        let found = unique(
-                            q.devices().ids().filter(|id| {
-                                q.get::<DeviceTag>(*id)
-                                    .as_ref()
-                                    .as_ref()
-                                    .is_some_and(|t| t.full == tag || t.short() == tag)
-                            }),
-                            text,
-                            "device prints this tag",
-                        )?;
-                        serde_json::to_value(found).map_err(|e| reference(format!("`{text}`: {e}")))
-                    }
-                    Some(("folio", label)) => {
-                        let q = self.query();
-                        let order = q.get::<PageOrder>(());
-                        let found = unique(
-                            order.entries.iter().filter_map(|e| match e.page {
-                                PageRef::Drawn(id) if e.folio == label => Some(id),
-                                _ => None,
-                            }),
-                            text,
-                            "drawn page has this folio label",
-                        )?;
-                        serde_json::to_value(found).map_err(|e| reference(format!("`{text}`: {e}")))
-                    }
-                    _ => Err(reference(format!(
-                        "`{text}`: v0 resolves `section:<number>`, `id:<uuid>`, `tag:<tag>` and \
-                         `folio:<label>` only"
-                    ))),
+                    // An `id:` reference stands for its own text, as written.
+                    Some(("id", uuid)) => Ok(Value::String(uuid.to_owned())),
+                    _ => serde_json::to_value(id).map_err(|e| format!("`{text}`: {e}")),
                 }
             }
             Value::Object(map) => map
