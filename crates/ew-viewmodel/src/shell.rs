@@ -873,12 +873,23 @@ impl ShellModel {
         crate::alias::alias_text(&mut self.aliases.borrow_mut(), text)
     }
 
-    /// The session's ID aliases.
-    pub fn aliases(&self) -> std::cell::Ref<'_, crate::alias::AliasTable> {
-        self.aliases.borrow()
+    /// The UUID text (lower case) that alias `@n` names in this run, if the table holds it.
+    pub fn alias_uuid(&self, n: usize) -> Option<String> {
+        self.aliases.borrow().uuid(n).map(str::to_owned)
     }
 
-    /// Starts a new alias table: a headless run starts one, and so does every new, opened or imported project.
+    /// The alias number of `uuid` in this run, if it has been printed.
+    pub fn alias_number(&self, uuid: &str) -> Option<usize> {
+        self.aliases.borrow().number_of(uuid)
+    }
+
+    /// How many aliases this run has printed.
+    pub fn alias_count(&self) -> usize {
+        self.aliases.borrow().len()
+    }
+
+    /// Starts a new alias table: each headless script run starts one; a project opened or created within a run keeps
+    /// the run's table (ID-630 (b)).
     pub fn reset_aliases(&mut self) {
         self.aliases.get_mut().clear();
     }

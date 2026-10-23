@@ -93,12 +93,8 @@ fn select_set_takes_an_alias_and_refuses_an_unknown_one_naming_it() {
         "{describe}"
     );
     // The second-aliased record: what `@2` names in the table.
-    let second = shell.aliases().uuid(2).unwrap().to_owned();
-    assert!(
-        shell.aliases().len() < 9,
-        "the table holds {}",
-        shell.aliases().len()
-    );
+    let second = shell.alias_uuid(2).unwrap();
+    assert!(shell.alias_count() < 9, "the table holds {}", shell.alias_count());
     // A new run starts a new table (the table lives for one script run): `@2` before anything printed names nothing.
     let more = run(&mut shell, &[("select.set", json!({"ids": ["@2"]}))]);
     assert_eq!(step(&more[1])["outcome"], "failed", "{}", more[1]);
@@ -121,7 +117,7 @@ fn select_set_takes_an_alias_and_refuses_an_unknown_one_naming_it() {
         no_uuid(l);
     }
     assert_eq!(
-        shell.aliases().uuid(2),
+        shell.alias_uuid(2).as_deref(),
         Some(second.as_str()),
         "the same numbering"
     );
@@ -221,7 +217,7 @@ fn a_command_reference_alias_is_recorded_as_its_uuid() {
         no_uuid(l);
     }
     assert_eq!(step(&lines[2])["state"]["canvas"]["selection"], json!(["@1"]));
-    let device = shell.aliases().uuid(1).unwrap().to_owned();
+    let device = shell.alias_uuid(1).unwrap();
     assert_eq!(step(&lines[3])["outcome"], "done", "{}", lines[3]);
     let refused = step(&lines[4]);
     assert_eq!(refused["outcome"], "failed");
@@ -234,6 +230,159 @@ fn a_command_reference_alias_is_recorded_as_its_uuid() {
     assert!(log.contains(&format!("{{\"ref\":\"id:{device}\"}}")), "{log}");
     assert!(!log.contains("\"@"), "{log}");
     assert_eq!(shell.recorded_commands().len(), 1);
+    shell.shutdown();
+}
+
+/// The table lives for the whole script run (ID-630 (b)): a project opened or created mid-run keeps the numbering, so
+/// an earlier alias still names its record (or names a record the new project lacks, refused); `run_stream` and `run`
+/// each start a fresh table.
+#[test]
+fn the_table_lives_for_the_run_across_projects() {
+    let tmp = Tmp::new("alias-run");
+    let (mut shell, dir) = shell(&tmp);
+    let new_dir = tmp.0.join("new.ew").to_string_lossy().into_owned();
+    let lines = run(
+        &mut shell,
+        &[
+            ("file.open", json!({"dir": dir, "read_only": true})),
+            ("select.set", json!({"refs": ["tag:-101F1"]})),
+            ("file.open", json!({"dir": dir, "read_only": true})),
+            ("select.set", json!({"refs": ["tag:-102F1"]})),
+            ("select.set", json!({"ids": ["@1"]})),
+            ("file.new", json!({ "dir": new_dir })),
+            ("select.set", json!({"ids": ["@1"]})),
+        ],
+    );
+    for l in &lines {
+        no_uuid(l);
+    }
+    assert_eq!(step(&lines[2])["state"]["canvas"]["selection"], json!(["@1"]));
+    let device = shell.alias_uuid(1).unwrap();
+    // After the reopen the next record gets the next number, and `@1` is still -101F1.
+    assert_eq!(step(&lines[4])["state"]["canvas"]["selection"], json!(["@2"]));
+    let again = step(&lines[5]);
+    assert_eq!(again["outcome"], "done", "{again}");
+    assert_eq!(again["state"]["canvas"]["selection"], json!(["@1"]));
+    // In a new project `@1` still means -101F1, which that project lacks: refused by the resolver, naming `id:@1`.
+    let gone = step(&lines[7]);
+    assert_eq!(gone["outcome"], "failed", "{gone}");
+    let message = gone["message"].as_str().unwrap();
+    assert!(message.contains("id:@1"), "{message}");
+    assert_eq!(shell.alias_uuid(1).as_deref(), Some(device.as_str()));
+    // A streamed run starts a fresh table.
+    let input = [
+        "{\"$schema\":\"ew.uiscript/1\",\"label\":\"stream\"}".to_owned(),
+        json!({"action": "select.set", "params": {"ids": ["@1"]}}).to_string(),
+    ];
+    let mut out = Vec::new();
+    script::run_stream(
+        &mut shell,
+        &mut NoExtension,
+        &mut input.into_iter().map(Ok),
+        &mut |l| {
+            out.push(l.to_owned());
+            Ok(())
+        },
+    )
+    .unwrap();
+    assert_eq!(shell.alias_count(), 0);
+    assert_eq!(
+        step(&out[1])["message"],
+        "No record has the alias `@1` in this session."
+    );
+    shell.shutdown();
+}
+
+/// A `Failed` message of `command.run` that names a UUID prints its alias.
+#[test]
+fn a_failed_command_message_prints_the_alias() {
+    let tmp = Tmp::new("alias-failed");
+    let (mut shell, dir) = shell(&tmp);
+    let missing = "00000000-0000-0000-0000-0000000000aa";
+    let lines = run(
+        &mut shell,
+        &[
+            ("file.open", json!({ "dir": dir })),
+            (
+                "command.run",
+                json!({"cmd": "fields.set", "params": {"kind": "device",
+                    "targets": [{"ref": format!("id:{missing}")}], "path": "function_text", "value": "x"}}),
+            ),
+        ],
+    );
+    let failed = step(&lines[2]);
+    assert_eq!(failed["outcome"], "failed", "{failed}");
+    let message = failed["message"].as_str().unwrap();
+    no_uuid(message);
+    let n = shell.alias_number(missing).expect("the UUID was printed");
+    assert!(message.contains(&format!("id:@{n}")), "{message}");
+    shell.shutdown();
+}
+
+/// Ruling 9 (fix round): a link field's value typed back as `id:@n` resolves to `id:<uuid>`; free text with `@n` in
+/// it stays text; `select.set` `refs` and a command reference take `id:@n` too.
+#[test]
+fn a_typed_link_value_and_references_take_the_id_form() {
+    let tmp = Tmp::new("alias-typed");
+    let (mut shell, dir) = shell(&tmp);
+    // A part copy of the project, read from the copy itself.
+    let copy = {
+        let (s, _) =
+            ew_viewmodel::ew_api::Session::open_read_only(std::path::Path::new(&dir), "test").unwrap();
+        let q = s.query();
+        let id = q.parts().iter().last().map(|(id, _)| id.to_string()).unwrap();
+        drop(q);
+        drop(s);
+        id
+    };
+    let lines = run(
+        &mut shell,
+        &[
+            ("file.open", json!({ "dir": dir })),
+            ("select.set", json!({ "ids": [copy] })),
+            ("select.set", json!({"refs": ["tag:-101F1"]})),
+            (
+                "props.set",
+                json!({"row": "device/parts[0].part", "value": "id:@1"}),
+            ),
+            (
+                "props.set",
+                json!({"row": "device/function_text", "value": "see id:@1 here"}),
+            ),
+            ("select.set", json!({"refs": ["id:@1"]})),
+            ("select.set", json!({"refs": ["tag:-101F1"]})),
+            (
+                "command.run",
+                json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "id:@2"}],
+                    "path": "function_text", "value": "by id form"}}),
+            ),
+            (
+                "props.set",
+                json!({"row": "device/parts[0].part", "value": "id:@9"}),
+            ),
+        ],
+    );
+    for l in &lines {
+        no_uuid(l);
+    }
+    assert_eq!(step(&lines[2])["state"]["canvas"]["selection"], json!(["@1"]));
+    assert_eq!(step(&lines[3])["state"]["canvas"]["selection"], json!(["@2"]));
+    for i in [4, 5, 6, 8] {
+        assert_eq!(step(&lines[i])["outcome"], "done", "{}", lines[i]);
+    }
+    assert_eq!(step(&lines[6])["state"]["canvas"]["selection"], json!(["@1"]));
+    let unknown = step(&lines[9]);
+    assert_eq!(unknown["outcome"], "failed");
+    assert_eq!(
+        unknown["message"],
+        "No record has the alias `@9` in this session."
+    );
+    // The record: the part as the copy's UUID, the free text as typed, the command's reference as `id:<uuid>`.
+    let device = shell.alias_uuid(2).unwrap();
+    let log = script::record_log(&shell);
+    assert!(log.contains(&format!("\"copy\":\"{copy}\"")), "{log}");
+    assert!(log.contains("\"see id:@1 here\""), "{log}");
+    assert!(log.contains(&format!("{{\"ref\":\"id:{device}\"}}")), "{log}");
     shell.shutdown();
 }
 

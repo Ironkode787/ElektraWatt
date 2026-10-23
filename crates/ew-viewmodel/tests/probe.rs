@@ -600,6 +600,19 @@ fn t9_the_probe_cancels_with_escape_in_every_state_and_t10_the_preview_words() {
     done(&mut shell, "canvas.dwell", json!({"ms": 80}));
     assert_eq!(state(&shell)["canvas"]["preview"]["state"], "failed");
     texts.push(shell.describe());
+    // FT-422: the failed preview's message names the missing record by its alias, never its UUID.
+    let failed = texts
+        .last()
+        .unwrap()
+        .lines()
+        .find(|l| l.starts_with("canvas preview failed "))
+        .unwrap()
+        .to_owned();
+    assert_eq!(ew_viewmodel::alias::find_uuid(&failed), None, "{failed}");
+    let n = shell
+        .alias_number("00000000-0000-0000-0000-000000000001")
+        .expect("the record's ID was printed");
+    assert!(failed.contains(&format!("@{n}")), "{failed}");
     let words: std::collections::BTreeSet<&str> = texts
         .iter()
         .flat_map(|t| t.lines())

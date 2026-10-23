@@ -9,13 +9,14 @@
 //! **Printing.** Every hyphenated UUID the shell writes into a transcript line (`state`, `buffer`, `error`, `message`)
 //! or into the describe text is printed as its alias, minted or stable alike ([`alias_text`]). The table is numbered
 //! in the order of first appearance in that output, so one script on equal inputs prints the same aliases (ID-474's
-//! byte equality). It belongs to the shell model, lives for one session (in the headless mode, the script run; a new,
-//! opened or imported project starts a new table) and is stored nowhere. The model, the window's widgets and the
-//! `--record` log keep real UUIDs.
+//! byte equality). It belongs to the shell model, lives for one session — in the headless mode the whole script run,
+//! across any project it opens or creates, so an earlier `@n` never names another record — and is stored nowhere.
+//! The model, the window's widgets and the `--record` log keep real UUIDs.
 //!
 //! **Input.** Where an action parameter takes a UUID or a reference ([`resolve_params`]), `@n` resolves through the
-//! same table before anything else reads the parameter; an alias the table does not hold is refused naming it, and
-//! `--record` writes the resolved UUID because the action only ever sees it.
+//! same table before anything else reads the parameter; a reference (`select.set` `refs`, a command's `{"ref": …}`)
+//! and a typed property value also take `id:@n`, the form the printer gives a link field. An alias the table does not
+//! hold is refused naming it, and `--record` writes the resolved UUID because the action only ever sees it.
 
 use serde_json::{Map, Value};
 
@@ -143,6 +144,26 @@ fn resolve_whole(table: &AliasTable, token: &str) -> Result<Option<String>, Stri
         .ok_or_else(|| token.to_owned())
 }
 
+/// `text` resolved when, trimmed, it is a whole `id:@n` reference (the form the printer gives a link field's `id:<uuid>`):
+/// `id:<uuid>`; `Ok(None)` for any other text, also one that merely contains `@n`; `Err` with the alias when the table
+/// does not hold it.
+fn resolve_id_ref(table: &AliasTable, text: &str) -> Result<Option<String>, String> {
+    match text.trim().strip_prefix("id:") {
+        Some(token) if is_alias(token) => resolve(table, token)
+            .map(|u| Some(format!("id:{u}")))
+            .ok_or_else(|| token.to_owned()),
+        _ => Ok(None),
+    }
+}
+
+/// A command-log reference text resolved: `@n` or `id:@n` becomes `id:<uuid>`; `Ok(None)` for any other text.
+fn resolve_ref_text(table: &AliasTable, text: &str) -> Result<Option<String>, String> {
+    match resolve_whole(table, text)? {
+        Some(u) => Ok(Some(format!("id:{u}"))),
+        None => resolve_id_ref(table, text),
+    }
+}
+
 /// Whether `c` continues a word, so that an `@` after it or a digit run before it is no alias boundary.
 fn word_char(c: char) -> bool {
     c.is_alphanumeric() || matches!(c, '_' | '-' | '.' | '@')
@@ -180,15 +201,13 @@ fn resolve_embedded(table: &AliasTable, text: &str) -> Result<Option<String>, St
     Ok(changed.then_some(out))
 }
 
-/// `value` with every command-log reference `{"ref": "@n"}` inside it replaced by `{"ref": "id:<uuid>"}`.
+/// `value` with every command-log reference `{"ref": "@n"}` or `{"ref": "id:@n"}` inside it replaced by
+/// `{"ref": "id:<uuid>"}`.
 fn resolve_refs(table: &AliasTable, value: &Value) -> Result<Option<Value>, String> {
     match value {
-        Value::Object(map)
-            if map.len() == 1 && map.get("ref").and_then(Value::as_str).is_some_and(is_alias) =>
-        {
-            let token = map["ref"].as_str().unwrap_or_default();
-            let uuid = resolve(table, token).ok_or_else(|| token.to_owned())?;
-            Ok(Some(serde_json::json!({ "ref": format!("id:{uuid}") })))
+        Value::Object(map) if map.len() == 1 && map.get("ref").is_some_and(Value::is_string) => {
+            let text = map["ref"].as_str().unwrap_or_default();
+            Ok(resolve_ref_text(table, text)?.map(|r| serde_json::json!({ "ref": r })))
         }
         Value::Object(map) => {
             let mut out: Option<Map<String, Value>> = None;
@@ -219,8 +238,11 @@ pub enum ParamForm {
     Whole,
     /// A list of UUID texts: each `"@3"` becomes the UUID.
     List,
-    /// A list of command-log reference texts (`tag:…`, `id:…`): each `"@3"` becomes `id:<uuid>`.
+    /// A list of command-log reference texts (`tag:…`, `id:…`): each `"@3"` or `"id:@3"` becomes `id:<uuid>`.
     RefList,
+    /// A field value typed into the property grid: only a whole `id:@3` (trimmed) becomes `id:<uuid>`, the form the
+    /// printer gives a link field's value; free text that merely contains `@3` stays text.
+    IdRef,
     /// A text with UUIDs inside it (a navigator row key, `s:1/p:@3`).
     Embedded,
     /// Command parameters, whose command-log references `{"ref": "@3"}` resolve to `{"ref": "id:<uuid>"}`.
@@ -239,6 +261,8 @@ pub const ALIAS_PARAMS: &[(&str, &str, ParamForm)] = &[
     ("pages.toggle", "key", ParamForm::Embedded),
     ("pages.row", "key", ParamForm::Embedded),
     ("pages.open", "key", ParamForm::Embedded),
+    ("props.input", "text", ParamForm::IdRef),
+    ("props.set", "value", ParamForm::IdRef),
     ("command.run", "params", ParamForm::CommandRefs),
 ];
 
@@ -258,14 +282,18 @@ pub fn resolve_params(
         let new = match (form, value) {
             (ParamForm::Whole, Value::String(s)) => resolve_whole(table, s)?.map(Value::String),
             (ParamForm::Embedded, Value::String(s)) => resolve_embedded(table, s)?.map(Value::String),
+            (ParamForm::IdRef, Value::String(s)) => resolve_id_ref(table, s)?.map(Value::String),
             (ParamForm::List | ParamForm::RefList, Value::Array(items)) => {
-                let prefix = if *form == ParamForm::RefList { "id:" } else { "" };
                 let mut list: Option<Vec<Value>> = None;
                 for (i, v) in items.iter().enumerate() {
-                    if let Some(s) = v.as_str()
-                        && let Some(u) = resolve_whole(table, s)?
-                    {
-                        list.get_or_insert_with(|| items.clone())[i] = Value::String(format!("{prefix}{u}"));
+                    let Some(s) = v.as_str() else { continue };
+                    let new = if *form == ParamForm::RefList {
+                        resolve_ref_text(table, s)?
+                    } else {
+                        resolve_whole(table, s)?
+                    };
+                    if let Some(u) = new {
+                        list.get_or_insert_with(|| items.clone())[i] = Value::String(u);
                     }
                 }
                 list.map(Value::Array)
@@ -314,6 +342,19 @@ mod tests {
         assert_eq!(alias_text(&mut t, plain), plain);
         assert_eq!(find_uuid(plain), None);
         assert_eq!(find_uuid(&format!("id:{A}")), Some((3, A)));
+    }
+
+    /// The printer matches a UUID anywhere, without a word boundary, so that no UUID can escape: a digit or a letter
+    /// glued to it stays glued to the alias (`<uuid>5` prints `@25`, which reads as another alias; accepted, because a
+    /// UUID run into other text is no output the shell writes, and an escaped UUID would be a defect).
+    #[test]
+    fn the_printer_matches_a_uuid_without_a_boundary() {
+        let mut t = AliasTable::new();
+        t.number(B);
+        assert_eq!(alias_text(&mut t, &format!("{A}5 x{B}y")), "@25 x@1y");
+        assert_eq!(alias_text(&mut t, &format!("p:{A}/l:-")), "p:@2/l:-");
+        // A longer hexadecimal run with the UUID's shape inside it: the first 36 characters that match are replaced.
+        assert_eq!(alias_text(&mut t, &format!("0{B}")), "0@1");
     }
 
     #[test]
@@ -404,5 +445,76 @@ mod tests {
         );
         let p = obj(json!({"cmd": "x", "params": {"id": {"ref": "@2"}}}));
         assert_eq!(resolve_params(&t, "command.run", &p), Err("@2".to_owned()));
+    }
+
+    /// The `id:@n` form: a command reference `{"ref": "id:@n"}`.
+    #[test]
+    fn a_command_reference_takes_the_id_form() {
+        let mut t = AliasTable::new();
+        t.number(A);
+        let p = obj(json!({"cmd": "x", "params": {"t": [{"ref": "id:@1"}, {"ref": "id:x@1"}]}}));
+        assert_eq!(
+            resolve_params(&t, "command.run", &p).unwrap().unwrap()["params"],
+            json!({"t": [{"ref": format!("id:{A}")}, {"ref": "id:x@1"}]})
+        );
+        let p = obj(json!({"cmd": "x", "params": {"id": {"ref": "id:@3"}}}));
+        assert_eq!(resolve_params(&t, "command.run", &p), Err("@3".to_owned()));
+    }
+
+    /// The `id:@n` form: a `select.set` reference.
+    #[test]
+    fn a_reference_list_takes_the_id_form() {
+        let mut t = AliasTable::new();
+        t.number(A);
+        let p = obj(json!({"refs": ["id:@1", "tag:@1", "folio:101"]}));
+        assert_eq!(
+            resolve_params(&t, "select.set", &p).unwrap().unwrap(),
+            obj(json!({"refs": [format!("id:{A}"), "tag:@1", "folio:101"]}))
+        );
+        assert_eq!(
+            resolve_params(&t, "select.set", &obj(json!({"refs": ["id:@2"]}))),
+            Err("@2".to_owned())
+        );
+        // `ids` takes bare UUIDs and aliases only: `id:@1` is left for the action to refuse.
+        assert_eq!(
+            resolve_params(&t, "select.set", &obj(json!({"ids": ["id:@1"]}))),
+            Ok(None)
+        );
+    }
+
+    /// The `id:@n` form: a typed property value (`props.input` `text`, `props.set` `value`) resolves only as a whole,
+    /// trimmed; free text that contains `@n` stays text.
+    #[test]
+    fn a_typed_value_resolves_only_as_a_whole_id_reference() {
+        let mut t = AliasTable::new();
+        t.number(A);
+        for action in ["props.input", "props.set"] {
+            let name = if action == "props.input" { "text" } else { "value" };
+            let resolved = resolve_params(&t, action, &obj(json!({ name: "  id:@1 " })))
+                .unwrap()
+                .unwrap();
+            assert_eq!(resolved[name], json!(format!("id:{A}")), "{action}");
+            for text in [
+                "@1",
+                "id:@1 x",
+                "see id:@1",
+                "id:@01",
+                "id:@1a",
+                "mail@1",
+                "id: @1",
+            ] {
+                assert_eq!(
+                    resolve_params(&t, action, &obj(json!({ name: text }))),
+                    Ok(None),
+                    "{text}"
+                );
+            }
+            assert_eq!(
+                resolve_params(&t, action, &obj(json!({ name: "id:@4" }))),
+                Err("@4".to_owned())
+            );
+            // A non-text value is the action's to judge.
+            assert_eq!(resolve_params(&t, action, &obj(json!({ name: 2 }))), Ok(None));
+        }
     }
 }

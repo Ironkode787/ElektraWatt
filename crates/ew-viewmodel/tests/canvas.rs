@@ -386,7 +386,7 @@ fn a8_the_transcript_and_the_describe_text_carry_the_canvas() {
     let describe = shell.describe();
     let hover_line = describe.lines().find(|l| l.starts_with("canvas hover ")).unwrap();
     // The entity as its alias `@n`, a value token, never its UUID (FT-422).
-    let alias = shell.aliases().number_of(&hovered.0.to_string()).unwrap();
+    let alias = shell.alias_number(&hovered.0.to_string()).unwrap();
     assert!(
         hover_line.starts_with(&format!("canvas hover @{alias} box ")),
         "{hover_line}"
