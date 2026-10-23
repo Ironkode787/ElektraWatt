@@ -29,6 +29,10 @@ pub struct DecodedImage {
 /// image has more than [`MAX_IMAGE_PIXELS`]. A 16-bit PNG is reduced to 8 bits; a greyscale or CMYK JPEG is converted
 /// to RGB by the decoder. The decoders run inside `catch_unwind` (it works with `panic = "unwind"`, the workspace
 /// profiles' setting), so hostile bytes give `None`, never a panic.
+///
+/// Deliberate limitations (ruled): EXIF orientation is ignored here and in the PDF writer, so a JPEG prints as its
+/// stored pixel grid on both paths; an embedded ICC profile is ignored here, while krilla embeds it in the PDF (a
+/// recorded difference in v0).
 pub fn decode_image(format: ImageFormat, bytes: &[u8]) -> Option<DecodedImage> {
     let decode = || match format {
         ImageFormat::Png => decode_png(bytes),
@@ -47,7 +51,7 @@ pub fn jpeg_is_cmyk(bytes: &[u8]) -> bool {
     use zune_jpeg::zune_core::colorspace::ColorSpace;
 
     let probe = || {
-        let mut decoder = JpegDecoder::new(ZCursor::new(bytes));
+        let mut decoder = JpegDecoder::new_with_options(ZCursor::new(bytes), jpeg_options());
         decoder.decode_headers().ok()?;
         decoder.input_colorspace()
     };
@@ -55,6 +59,17 @@ pub fn jpeg_is_cmyk(bytes: &[u8]) -> bool {
         catch_unwind(AssertUnwindSafe(probe)).ok().flatten(),
         Some(ColorSpace::CMYK | ColorSpace::YCCK)
     )
+}
+
+/// The zune-jpeg options of every JPEG read here: sides up to `u16::MAX` (the pixel bound is checked separately), strict
+/// mode (a premature end of the entropy-coded data is an error, not a grey fill), RGB output (expanded to RGBA here:
+/// zune-jpeg 0.5.15 writes a CMYK image into an RGBA buffer three bytes per pixel, so its RGBA output of CMYK is wrong).
+fn jpeg_options() -> zune_jpeg::zune_core::options::DecoderOptions {
+    zune_jpeg::zune_core::options::DecoderOptions::default()
+        .set_max_width(usize::from(u16::MAX))
+        .set_max_height(usize::from(u16::MAX))
+        .set_strict_mode(true)
+        .jpeg_set_out_colorspace(zune_jpeg::zune_core::colorspace::ColorSpace::RGB)
 }
 
 /// The checked side lengths of a `w × h` image: both in `1..=u16::MAX`, at most [`MAX_IMAGE_PIXELS`] in all.
@@ -97,15 +112,8 @@ fn decode_jpeg(bytes: &[u8]) -> Option<DecodedImage> {
     use zune_jpeg::JpegDecoder;
     use zune_jpeg::zune_core::bytestream::ZCursor;
     use zune_jpeg::zune_core::colorspace::ColorSpace;
-    use zune_jpeg::zune_core::options::DecoderOptions;
 
-    let options = DecoderOptions::default()
-        .set_max_width(usize::from(u16::MAX))
-        .set_max_height(usize::from(u16::MAX))
-        // A premature end of the entropy-coded data is an error, not a grey fill.
-        .set_strict_mode(true)
-        .jpeg_set_out_colorspace(ColorSpace::RGBA);
-    let mut decoder = JpegDecoder::new_with_options(ZCursor::new(bytes), options);
+    let mut decoder = JpegDecoder::new_with_options(ZCursor::new(bytes), jpeg_options());
     decoder.decode_headers().ok()?;
     let (w, h) = decoder.dimensions()?;
     let (width, height) = checked_size(u64::try_from(w).ok()?, u64::try_from(h).ok()?)?;

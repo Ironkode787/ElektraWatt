@@ -831,8 +831,6 @@ impl Writer<'_> {
     }
 }
 
-/// An `ew-dl` transform as a krilla transform in pt: the linear part from [`Transform::to_affine`]
-/// (exact for quarter turns), the translation through integer milli-pt.
 /// The krilla image of a PNG or JPEG image item, or `None` when the bytes are empty, the format is SVG or the bytes do
 /// not decode with [`decode_image`] (the CPU renderer's decoder and pixel bound). The original bytes go to krilla
 /// (`interpolate` off: PDF/A forbids it), so a JPEG stays DCT-compressed and a PNG keeps its bit depth; a CMYK JPEG
@@ -856,6 +854,8 @@ fn raster(format: ImageFormat, bytes: &Arc<[u8]>) -> Option<Image> {
     (image.size() == size).then_some(image)
 }
 
+/// An `ew-dl` transform as a krilla transform in pt: the linear part from [`Transform::to_affine`]
+/// (exact for quarter turns), the translation through integer milli-pt.
 fn transform(t: Transform) -> kg::Transform {
     let c = t.to_affine().as_coeffs();
     kg::Transform::from_row(

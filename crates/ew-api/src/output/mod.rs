@@ -516,10 +516,15 @@ pub fn export_pages_with(
         };
         (page, report)
     });
-    // The images that could not be drawn (bytes not held, a refused SVG) are page findings, after the scene's.
+    // The images that could not be drawn (bytes not held, a refused SVG, PNG or JPEG bytes that do not decode) are page
+    // findings, after the scene's: no silent loss (decision log ID-620). The raster check uses the renderers' own
+    // decoder, once per asset of the export.
+    let mut decodes: BTreeMap<[u8; 32], bool> = BTreeMap::new();
     let mut pages = Vec::with_capacity(resolved.len());
     for (page, report) in resolved {
-        findings.extend(report.issues.into_iter().map(|issue| PageFindingAt {
+        let mut issues = report.issues;
+        undecodable_rasters(&page.content.items, &mut decodes, &mut issues);
+        findings.extend(issues.into_iter().map(|issue| PageFindingAt {
             folio: page.label.clone(),
             finding: PageFinding::Image(issue),
         }));
@@ -534,6 +539,35 @@ pub fn export_pages_with(
         pages,
         findings,
     })
+}
+
+/// Adds an [`ImageProblem::Undecodable`](ew_scene::images::ImageProblem::Undecodable) issue for every PNG or JPEG item
+/// of `items` (groups included, in list order) whose bytes are held but do not decode with the renderers' decoder
+/// ([`ew_export::ew_render_cpu::decode_image`]); `decodes` caches the verdict per asset hash.
+fn undecodable_rasters(
+    items: &[ew_dl::Item],
+    decodes: &mut BTreeMap<[u8; 32], bool>,
+    issues: &mut Vec<ew_scene::images::ImageIssue>,
+) {
+    for item in items {
+        match &item.kind {
+            ew_dl::ItemKind::Group(g) => undecodable_rasters(&g.items, decodes, issues),
+            ew_dl::ItemKind::Image(img)
+                if !img.image.bytes.is_empty() && img.image.format != ew_dl::ImageFormat::Svg =>
+            {
+                let ok = *decodes.entry(img.image.sha256).or_insert_with(|| {
+                    ew_export::ew_render_cpu::decode_image(img.image.format, &img.image.bytes).is_some()
+                });
+                if !ok {
+                    issues.push(ew_scene::images::ImageIssue {
+                        sha256: img.image.sha256,
+                        problem: ew_scene::images::ImageProblem::Undecodable(img.image.format),
+                    });
+                }
+            }
+            _ => {}
+        }
+    }
 }
 
 /// The PDF of an export over `q` (phase 3: [`ew_export::pdf`] with the bundled fonts).

@@ -180,3 +180,34 @@ fn logos_that_cannot_be_drawn_are_page_findings() {
     let found = image_findings(&export_pages(&s.query(), &cover()).unwrap().findings);
     assert_eq!(found, [("1".to_owned(), ImageProblem::Missing)]);
 }
+
+/// Review item 1 (FT-406): a JPEG logo that passes the store's sniff (its `SOF` header is intact) but whose data is cut
+/// does not vanish silently: the export reports it as a page finding of the cover (`ImageProblem::Undecodable`) and
+/// the PDF writer skips it.
+#[test]
+fn a_raster_logo_that_does_not_decode_is_a_page_finding() {
+    use ew_scene::images::ImageProblem;
+    use ew_scene::page::PageFinding;
+    let jpeg = red_blue_jpeg();
+    let cut = &jpeg[..jpeg.len() - 12];
+    let mut s = golden();
+    set_logo(&mut s, cut);
+    let pdf = s.export_pdf(&cover()).unwrap();
+    let found: Vec<(String, ImageProblem, String)> = pdf
+        .findings
+        .iter()
+        .filter_map(|f| match &f.finding {
+            PageFinding::Image(issue) => Some((f.folio.clone(), issue.problem.clone(), issue.to_string())),
+            _ => None,
+        })
+        .collect();
+    assert!(
+        matches!(
+            found.as_slice(),
+            [(folio, ImageProblem::Undecodable(ew_dl::ImageFormat::Jpeg), message)]
+                if folio == "1" && message.contains("JPEG bytes do not decode")
+        ),
+        "{found:?}"
+    );
+    assert_eq!((pdf.report.images, pdf.report.skipped_images), (0, 1));
+}

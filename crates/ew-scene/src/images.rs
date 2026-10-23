@@ -253,6 +253,10 @@ pub enum ImageProblem {
     Missing,
     /// The SVG is refused by the rejecter or by usvg: the item is dropped.
     Refused(SvgError),
+    /// The PNG or JPEG bytes are held but do not decode within the renderers' pixel bound (a corrupt or truncated
+    /// file, a declared size above the bound, an unsupported variant): the item is left, and renderers skip it. The
+    /// export job adds this after resolving, with the renderers' decoder (FT-406; the sniffer reads headers only).
+    Undecodable(ImageFormat),
 }
 
 /// An image item that is not drawn, by its asset's hash.
@@ -273,6 +277,15 @@ impl std::fmt::Display for ImageIssue {
                 "the image sha256:{hex} is not drawn: the project does not hold its bytes"
             ),
             ImageProblem::Refused(e) => write!(f, "the image sha256:{hex} is not drawn: {e}"),
+            ImageProblem::Undecodable(format) => write!(
+                f,
+                "the image sha256:{hex} is not drawn: its {} bytes do not decode (corrupt, truncated, unsupported or                  larger than 16 Mi pixels); export it again as a plain PNG or baseline JPEG",
+                match format {
+                    ImageFormat::Png => "PNG",
+                    ImageFormat::Jpeg => "JPEG",
+                    ImageFormat::Svg => "SVG",
+                }
+            ),
         }
     }
 }

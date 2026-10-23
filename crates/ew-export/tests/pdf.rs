@@ -9,6 +9,10 @@
 // EW_PDF_DUMP names a file that the test writes the PDF to for inspection; it never changes the compared bytes.
 #![allow(clippy::disallowed_methods)]
 
+// The JPEG fixtures of the renderer's tests: built from fixed coefficients, the same bytes on every platform.
+#[path = "../../ew-render-cpu/tests/common/jpeg.rs"]
+mod jpeg;
+
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
@@ -534,4 +538,106 @@ fn hostile_images_are_skipped_never_a_panic() {
     assert_eq!((out.report.images, out.report.skipped_images), (0, 8));
     assert_eq!(count(&out.bytes, "/Subtype/Image"), 0);
     assert_eq!(out.report.fonts.len(), 1, "the text is drawn");
+}
+
+/// A PNG of `w × h` pixels with the given colour type, depth and raw image data, optionally a palette and `tRNS`.
+fn png_raw(
+    w: u32,
+    h: u32,
+    color: png::ColorType,
+    depth: png::BitDepth,
+    data: &[u8],
+    palette: Option<(&[u8], &[u8])>,
+) -> Vec<u8> {
+    let mut out = Vec::new();
+    let mut enc = png::Encoder::new(&mut out, w, h);
+    enc.set_color(color);
+    enc.set_depth(depth);
+    if let Some((plte, trns)) = palette {
+        enc.set_palette(plte.to_vec());
+        enc.set_trns(trns.to_vec());
+    }
+    let mut writer = enc.write_header().unwrap();
+    writer.write_image_data(data).unwrap();
+    writer.finish().unwrap();
+    out
+}
+
+/// Review item 3: the JPEG and PNG variants a logo comes in all print in the PDF/A-2b: greyscale, 4:2:0 and progressive
+/// JPEGs unchanged (DCT); a CMYK JPEG as its decoded RGB pixels (PDF/A has no CMYK output intent here, and the export
+/// must not fail); a palette PNG with `tRNS` (a soft mask), a 16-bit PNG (16 bits per component kept) and a greyscale
+/// PNG.
+#[test]
+fn every_jpeg_and_png_variant_prints() {
+    use jpeg::Layout;
+    let jpegs = [
+        jpeg::baseline(Layout::Grey, 32, 16),
+        jpeg::baseline(Layout::Ycbcr420, 32, 16),
+        jpeg::progressive(Layout::Ycbcr420, 32, 16),
+        jpeg::baseline(Layout::Cmyk, 32, 16),
+    ];
+    let palette = png_raw(
+        4,
+        1,
+        png::ColorType::Indexed,
+        png::BitDepth::Eight,
+        &[0, 1, 2, 1],
+        Some((&[255, 0, 0, 0, 255, 0, 0, 0, 255], &[255, 0, 128])),
+    );
+    let sixteen = png_raw(
+        2,
+        1,
+        png::ColorType::Rgb,
+        png::BitDepth::Sixteen,
+        &[0xff, 0xff, 0, 0, 0, 0, 0, 0, 0x80, 0x00, 0xff, 0xff],
+        None,
+    );
+    let grey = png_raw(
+        3,
+        1,
+        png::ColorType::Grayscale,
+        png::BitDepth::Eight,
+        &[0, 128, 255],
+        None,
+    );
+    let mut items = Vec::new();
+    for (i, bytes) in jpegs.iter().enumerate() {
+        let x = 10 + 40 * i as i64;
+        items.push(image(
+            40 + i as u8,
+            ew_dl::ImageFormat::Jpeg,
+            bytes,
+            mm(x, 10),
+            mm(x + 32, 26),
+        ));
+    }
+    for (i, bytes) in [&palette, &sixteen, &grey].into_iter().enumerate() {
+        let x = 10 + 40 * i as i64;
+        items.push(image(
+            50 + i as u8,
+            ew_dl::ImageFormat::Png,
+            bytes,
+            mm(x, 60),
+            mm(x + 30, 70),
+        ));
+    }
+    let out = pdf(&[page(1, "1", None, items)], &options(), &fonts(), None).unwrap();
+    assert_eq!((out.report.images, out.report.skipped_images), (7, 0));
+    let b = &out.bytes;
+    assert_eq!(
+        count(b, "/Filter/DCTDecode"),
+        3,
+        "grey, 4:2:0 and progressive JPEGs unchanged"
+    );
+    for bytes in &jpegs[..3] {
+        assert!(b.windows(bytes.len()).any(|w| w == bytes.as_slice()));
+    }
+    let cmyk = &jpegs[3];
+    assert!(
+        !b.windows(cmyk.len()).any(|w| w == cmyk.as_slice()),
+        "the CMYK JPEG is not embedded as such"
+    );
+    assert_eq!(count(b, "/SMask"), 1, "the palette PNG's tRNS");
+    assert_eq!(count(b, "/BitsPerComponent 16"), 1, "the 16-bit PNG");
+    assert_eq!(count(b, "/Subtype/Image"), 8, "seven images and one soft mask");
 }
