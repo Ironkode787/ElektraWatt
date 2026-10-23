@@ -59,6 +59,7 @@ pub const SWEPT: &[&str] = &[
     "device_part_lines",
     "device_tag",
     "devices_by_structure",
+    "drawing_settings",
     "drawn_page_order",
     "end_class",
     "flow_notes",
@@ -259,6 +260,8 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     check::<DevicePartLines>(memo, cold, keys.devices.iter().copied(), o);
     check::<DeviceTag>(memo, cold, keys.devices.iter().copied(), o);
     check::<DevicesByStructure>(memo, cold, [()], o);
+    // WP-S2.04 part 2: the drawing settings (crossings as hops).
+    check::<ew_derive::DrawingSettingsQ>(memo, cold, [()], o);
     check::<DrawnPageOrder>(memo, cold, [()], o);
     check::<EndClass>(
         memo,

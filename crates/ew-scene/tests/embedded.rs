@@ -89,6 +89,7 @@ fn view(embedded: Vec<EmbeddedView>) -> PageView {
         embedded,
         break_marks: Vec::new(),
         cp_targets: Vec::new(),
+        crossings: Default::default(),
     }
 }
 

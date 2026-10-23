@@ -100,6 +100,7 @@ use crate::embedded::{EmbeddedView, lower_embedded};
 use crate::forms::{
     BoxSpec, FormFinding, FrameGeometry, PageBindings, SheetMap, lower_form, ml_text, place, split_align,
 };
+use crate::hops::{Crossings, hop_path, hops};
 use crate::route::{RouteEnd, connection_polyline};
 use crate::symbol::{self, TextSource};
 use crate::table::{TableFinding, TableView, lower_table};
@@ -296,6 +297,9 @@ pub struct PageView {
     /// its coil, doc 10 §5): each gets a named destination ([`Destination::Cp`]) at its drawn position, else
     /// at its representation's position (a CP the symbol does not draw, such as the internal coil 14).
     pub cp_targets: Vec<CpTarget>,
+    /// How crossing wires are drawn (FR-CON-031, WP-S2.04 §8.6): the project's drawing setting; the default draws
+    /// them plain, byte-equal to a project without the setting.
+    pub crossings: Crossings,
 }
 
 /// A connection point that is a link destination on its page (see [`PageView::cp_targets`]).
@@ -739,6 +743,8 @@ impl Builder<'_> {
         let cps = cp_map(view);
         let page = page_rect(view);
         let stroke = wire_stroke(view.grid);
+        // The drawn polylines in connection-ID order (the hop rule of `crate::hops` reads them all first).
+        let mut drawn: Vec<(Id<Connection>, Vec<Pt2>)> = Vec::new();
         for cv in sorted_connections(view) {
             let c = &cv.connection;
             let Some(pts) = polyline_of(view, &cps, c, page) else {
@@ -750,10 +756,18 @@ impl Builder<'_> {
             if pts.len() < 2 {
                 continue;
             }
-            self.push(
-                Item::path(Path::polyline(&pts), Some(stroke.clone()), None)
-                    .with_entity(EntityRef(c.id.as_uuid())),
-            );
+            drawn.push((c.id, pts));
+        }
+        let hopped = match view.crossings {
+            Crossings::Plain => Vec::new(),
+            Crossings::Hops => hops(&drawn.iter().map(|(_, p)| p.clone()).collect::<Vec<_>>()),
+        };
+        for (k, (id, pts)) in drawn.iter().enumerate() {
+            let path = match hopped.get(k) {
+                Some(h) if !h.is_empty() => hop_path(pts, h),
+                _ => Path::polyline(pts),
+            };
+            self.push(Item::path(path, Some(stroke.clone()), None).with_entity(EntityRef(id.as_uuid())));
         }
         let mut junctions: Vec<&JunctionView> = view.junctions.iter().collect();
         junctions.sort_by_key(|j| j.junction.id);

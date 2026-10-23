@@ -633,6 +633,7 @@ fn hostile_view() -> PageView {
         embedded: Vec::new(),
         break_marks: Vec::new(),
         cp_targets: Vec::new(),
+        crossings: Default::default(),
     }
 }
 

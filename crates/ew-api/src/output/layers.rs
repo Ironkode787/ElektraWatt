@@ -25,9 +25,10 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use ew_derive::ew_ids::Id;
-use ew_derive::{PageEntry, PageRef, Policy, Q, Query};
+use ew_derive::{DrawingSettingsQ, PageEntry, PageRef, Policy, Q, Query};
 use ew_dl::{DisplayList, Layer, SymbolGeomId};
 use ew_scene::forms::{PageBindings, SheetMap};
+use ew_scene::hops::Crossings;
 use ew_scene::page::{DEFAULT_SHEET, PageFinding, PageKind, PageScene, PageView, RepView, page_display_list};
 use ew_schema::PageType;
 
@@ -64,6 +65,16 @@ fn base_view(page: PageRef) -> PageView {
         embedded: Vec::new(),
         break_marks: Vec::new(),
         cp_targets: Vec::new(),
+        crossings: Crossings::Plain,
+    }
+}
+
+/// How the project draws crossing wires (`drawing_settings`, WP-S2.04 §8.6).
+fn crossings(q: &Q) -> Crossings {
+    if q.get::<DrawingSettingsQ>(()).hops {
+        Crossings::Hops
+    } else {
+        Crossings::Plain
     }
 }
 
@@ -119,6 +130,7 @@ fn layer_view(q: &Q, page: PageRef, layer: Layer) -> Option<PageView> {
             v.reps = (*q.get::<PageRepsOf>(p)).clone();
             v.connections = (*q.get::<PageConnectionsOf>(p)).clone();
             v.junctions = (*q.get::<PageJunctionsOf>(p)).clone();
+            v.crossings = crossings(q);
         }
         Layer::Labels => {
             let p = drawn?;
@@ -282,6 +294,7 @@ pub fn page_view(q: &Q, entry: &PageEntry) -> PageView {
             v.cp_targets = (*q.get::<PageCpTargetsOf>(p)).clone();
             v.break_marks = page_break_marks(q, p);
             v.embedded = (*q.get::<PageEmbeddedOf>(p)).clone();
+            v.crossings = crossings(q);
         }
         _ => v.table = (*q.get::<PageTableOf>(page)).clone(),
     }

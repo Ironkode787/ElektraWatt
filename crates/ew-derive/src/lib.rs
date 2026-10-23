@@ -141,7 +141,10 @@ pub use profile::{
 };
 pub use q::{Cycle, Diagnostics, IdxView, Q, TableView};
 pub use query::{Changes, Policy, Query};
-pub use settings::{Member, SettingsMember, check_member as check_settings_member, company_codes};
+pub use settings::{
+    DrawingSettings, DrawingSettingsQ, Member, SettingsMember, check_member as check_settings_member,
+    company_codes,
+};
 pub use stitch::{
     EdgeKind, IpGroup, IpInfo, Level, PairMode, ShortSource, StitchEdge, StitchGraph, StitchGraphQ,
     StitchNode,
@@ -212,6 +215,7 @@ pub const FAMILIES: &[(&str, Policy)] = &[
     (DeviceTag::FAMILY, DeviceTag::POLICY),
     (DevicesByStructure::FAMILY, DevicesByStructure::POLICY),
     (DisplayedTag::FAMILY, DisplayedTag::POLICY),
+    (DrawingSettingsQ::FAMILY, DrawingSettingsQ::POLICY),
     (DrawnPageOrder::FAMILY, DrawnPageOrder::POLICY),
     (EndClass::FAMILY, EndClass::POLICY),
     (FlowNotes::FAMILY, FlowNotes::POLICY),

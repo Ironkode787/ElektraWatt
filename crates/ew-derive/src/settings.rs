@@ -196,6 +196,39 @@ impl Query for SettingsMember {
     }
 }
 
+/// The drawing settings of the project: the member `drawing` of `ProjectSettings.extra` (WP-S2.04 D16, §8.6),
+/// typed. Absent, not an object, or a member of an unknown value: the as-built defaults.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
+pub struct DrawingSettings {
+    /// `crossings: "hops"`: crossing wires are drawn as hops (FR-CON-031); else plain.
+    pub hops: bool,
+}
+
+/// `drawing_settings()`: the project's [`DrawingSettings`] (WP-S2.04 part 2, §8.6). Policy Memo: a cut-off point
+/// over the project row, so an edit of another settings member leaves the readers (the wires layer of every page)
+/// valid.
+#[derive(Debug)]
+pub struct DrawingSettingsQ;
+
+impl Query for DrawingSettingsQ {
+    type Key = ();
+    type Value = DrawingSettings;
+    const FAMILY: &'static str = "drawing_settings";
+    const POLICY: Policy = Policy::Memo;
+
+    fn run(q: &Q, _: &()) -> Arc<DrawingSettings> {
+        let project = q.project();
+        let hops = project
+            .settings
+            .extra
+            .get("drawing")
+            .and_then(|d| d.get("crossings"))
+            .and_then(Value::as_str)
+            == Some("hops");
+        Arc::new(DrawingSettings { hops })
+    }
+}
+
 /// The value of member `m`, read as a cut-off point (see the module documentation).
 pub(crate) fn member(q: &Q, m: Member) -> Arc<Option<Value>> {
     q.get_value_part::<SettingsMember>(m)
