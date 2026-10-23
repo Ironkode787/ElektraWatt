@@ -256,8 +256,9 @@ impl ShellModel {
     // The view state of an opened project
 
     /// Sets up the view state of the project just installed: its page rows, one tab on the first page, the canvas
-    /// focused, the navigator reset, the cache emptied.
+    /// focused, the navigator reset, the cache emptied, the ID aliases started anew (FT-422).
     pub(super) fn install_view(&mut self) {
+        self.reset_aliases();
         self.navigator = PageNavigator::new();
         self.cache = PageCache::default();
         self.focus = None;

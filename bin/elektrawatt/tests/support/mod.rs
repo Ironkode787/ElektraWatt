@@ -26,6 +26,44 @@ use serde_json::{Value, json};
 /// The committed fixture of Golden A.
 pub const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
 
+/// The first match in `text` of the UUID pattern `[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}`, if any: the
+/// check that no record ID reaches a transcript line or a describe text, which print the alias `@n` instead (FT-422,
+/// decision log ID-630). Written here on its own, not with the printer's scanner, so that the two check each other.
+pub fn first_uuid(text: &str) -> Option<&str> {
+    const GROUPS: [usize; 5] = [8, 4, 4, 4, 12];
+    let b = text.as_bytes();
+    'start: for i in 0..b.len() {
+        let mut j = i;
+        for (g, n) in GROUPS.iter().enumerate() {
+            if g > 0 {
+                if b.get(j) != Some(&b'-') {
+                    continue 'start;
+                }
+                j += 1;
+            }
+            for _ in 0..*n {
+                if !b.get(j).is_some_and(u8::is_ascii_hexdigit) {
+                    continue 'start;
+                }
+                j += 1;
+            }
+        }
+        // ASCII from `i` to `j`, so both are character boundaries.
+        return Some(&text[i..j]);
+    }
+    None
+}
+
+/// Asserts that no line of `transcript` holds a UUID, naming the step and the UUID when one does.
+#[track_caller]
+pub fn assert_no_uuid(transcript: &str) {
+    for (n, line) in transcript.lines().enumerate() {
+        if let Some(uuid) = first_uuid(line) {
+            panic!("transcript line {n} holds the UUID {uuid}: {line}");
+        }
+    }
+}
+
 /// The records of a JSON Lines file.
 fn lines(path: &Path) -> Vec<Value> {
     std::fs::read_to_string(path)

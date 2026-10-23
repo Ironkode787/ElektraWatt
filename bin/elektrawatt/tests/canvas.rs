@@ -385,17 +385,29 @@ fn a8_the_pointer_at_an_entity_hovers_it_in_the_transcript_and_the_describe_text
         .as_str()
         .expect("an entity is hovered")
         .to_owned();
+    // The entity as its alias `@n`, never its UUID (FT-422, ID-630); the describe line names it with its box, which
+    // identifies the entity of the page.
+    assert!(ew_ui::ew_viewmodel::alias::is_alias(&hover), "{hover}");
+    let describe = steps[7]["describe"].as_str().unwrap();
+    let line = describe
+        .lines()
+        .find(|l| l.starts_with(&format!("canvas hover {hover} box ")))
+        .unwrap_or_else(|| panic!("{describe}"));
+    let mm3 = ew_ui::ew_viewmodel::canvas::mm3;
     let hovered = entities
         .iter()
-        .find(|(e, _)| e.0.to_string() == hover)
+        .find(|(_, r)| {
+            line.ends_with(&format!(
+                "box {} {} {} {} mm",
+                mm3(r.min().x.0),
+                mm3(r.min().y.0),
+                mm3(r.max().x.0),
+                mm3(r.max().y.0)
+            ))
+        })
         .expect("the hover is an entity of the page");
     let area = |r: &Rect| i128::from(r.max().x.0 - r.min().x.0) * i128::from(r.max().y.0 - r.min().y.0);
     assert!(area(&hovered.1) <= area(&rect), "{hover} vs {}", entity.0);
-    let describe = steps[7]["describe"].as_str().unwrap();
-    assert!(
-        describe.contains(&format!("canvas hover \"{hover}\" box ")),
-        "{describe}"
-    );
     assert!(describe.contains("canvas statistics shown"), "{describe}");
     assert!(describe.contains("canvas zoom 400.0 % view "), "{describe}");
     // The member's order in the step's own bytes.
@@ -1226,6 +1238,8 @@ mod folio_scripts {
             );
         }
         assert_eq!(transcripts[0], transcripts[1], "two runs, one transcript");
+        // FT-422: no UUID in any transcript member or describe text.
+        super::support::assert_no_uuid(&transcripts[0]);
         // The oracle of §13.6: 17 representations, each the golden symbol at the golden point and orientation.
         let golden: Vec<(String, (i64, i64), u8)> = {
             let mut v: Vec<_> = golden_reps(101)
@@ -1329,6 +1343,12 @@ mod folio_scripts {
         let tags = typed_tag_steps(101, &placed);
         let (wiring, commits) = wiring_steps(101, map);
         assert_eq!(commits, 19, "15 plain wires and 2 per junction");
+        // The reference to the first device the tag steps type (a tag the placements print, no ID).
+        let first_tag = tags[0].1["params"]["targets"][0]["ref"].clone();
+        assert!(
+            first_tag.as_str().is_some_and(|t| t.starts_with("tag:")),
+            "{first_tag}"
+        );
         // The full script, twice.
         let mut transcripts = Vec::new();
         let mut records = Vec::new();
@@ -1340,6 +1360,12 @@ mod folio_scripts {
                 ("page.goto", json!({"folio": "101"})),
             ]);
             script.extend(placements.iter().cloned());
+            // FT-422: a device the script placed (its ID minted, so different in each run) selected and cleared: the
+            // transcript names it by its alias, the same in both runs.
+            script.extend(steps(&[
+                ("select.set", json!({"refs": [first_tag.clone()]})),
+                ("select.set", json!({"ids": []})),
+            ]));
             script.extend(tags.iter().cloned());
             script.extend(wiring.iter().cloned());
             script.extend(steps(&[
@@ -1371,6 +1397,22 @@ mod folio_scripts {
             );
         }
         assert_eq!(transcripts[0], transcripts[1], "two runs, one transcript");
+        // FT-422: no UUID in any transcript member or describe text, and the minted device's alias in both runs.
+        super::support::assert_no_uuid(&transcripts[0]);
+        let selected: Vec<Value> = transcripts[0]
+            .lines()
+            .skip(1)
+            .map(|l| serde_json::from_str::<Value>(l).unwrap())
+            .filter(|s| s["action"] == "select.set")
+            .map(|s| s["state"]["canvas"]["selection"].clone())
+            .collect();
+        assert_eq!(selected.len(), 2, "{selected:?}");
+        let alias = selected[0][0].as_str().unwrap_or_default();
+        assert!(
+            ew_ui::ew_viewmodel::alias::is_alias(alias),
+            "the selection prints an alias: {selected:?}"
+        );
+        assert_eq!(selected[1], json!([]));
         // The oracle of §13.6.
         let golden = golden_wiring(101);
         assert_eq!(golden.counts, (21, 2));

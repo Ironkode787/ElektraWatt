@@ -356,6 +356,8 @@ pub struct ShellModel {
     props: crate::properties::PropertiesState,
     /// The find pane (WP-S2.05 part 2): the query, the results, the cursor and the note.
     find: crate::find::FindState,
+    /// The ID aliases `@n` of this session's machine text (FT-422, ID-630); never stored.
+    aliases: std::cell::RefCell<crate::alias::AliasTable>,
 }
 
 /// The directory's own name, never its path.
@@ -638,6 +640,7 @@ impl ShellModel {
             tools: crate::tools::ToolHost::new(),
             props: crate::properties::PropertiesState::default(),
             find: crate::find::FindState::default(),
+            aliases: std::cell::RefCell::new(crate::alias::AliasTable::new()),
         };
         model.load_active_workspace();
         model
@@ -863,6 +866,23 @@ impl ShellModel {
         &self.record.steps
     }
 
+    /// `text` with every UUID printed as its alias `@n` (FT-422, ID-630): the machine text of the transcript and of
+    /// `ui.describe`. A UUID first seen here gets the next number (printing is an observation, so it takes `&self`; the
+    /// table is a cell like the call counters).
+    pub fn alias_text(&self, text: &str) -> String {
+        crate::alias::alias_text(&mut self.aliases.borrow_mut(), text)
+    }
+
+    /// The session's ID aliases.
+    pub fn aliases(&self) -> std::cell::Ref<'_, crate::alias::AliasTable> {
+        self.aliases.borrow()
+    }
+
+    /// Starts a new alias table: a headless run starts one, and so does every new, opened or imported project.
+    pub fn reset_aliases(&mut self) {
+        self.aliases.get_mut().clear();
+    }
+
     /// Names the script file for the origin of model commands (`Origin::CmdLog { file }`).
     pub fn set_origin_file(&mut self, name: &str) {
         self.origin_file = name.to_owned();
@@ -1032,6 +1052,12 @@ impl ShellModel {
         if let Err(reason_key) = (meta.enabled)(self) {
             return Outcome::Refused { reason_key };
         }
+        // An alias `@n` in a parameter that takes a UUID or a reference resolves before the action reads it (FT-422).
+        let resolved = match crate::alias::resolve_params(&self.aliases.borrow(), meta.id, p) {
+            Ok(r) => r,
+            Err(alias) => return failed("error-unknown-alias", &[&alias]),
+        };
+        let p = resolved.as_ref().unwrap_or(p);
         if !keeps_link_preview(meta.id) {
             self.tools.link_preview = None;
         }

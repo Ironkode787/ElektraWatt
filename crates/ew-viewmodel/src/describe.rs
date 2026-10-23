@@ -10,7 +10,9 @@
 //! Directory names appear, paths never. The structural words are fixed English machine text (decision log ID-474):
 //! [`VOCABULARY`] lists every one of them, [`FREE_TEXT_MARKERS`] the markers after which the rest of a line is user
 //! text, and a test checks that no line the describer writes uses a word that is in neither list. Quoted text is
-//! user text (a label, a name) and not part of the vocabulary.
+//! user text (a label, a name) and not part of the vocabulary. A record ID is printed as its alias `@n`, a value token
+//! like a number (decision log ID-630, FT-422; [`crate::alias`]): the hovered entity and the selection unquoted, an
+//! ID inside a quoted text inside the quotes; no UUID reaches the text.
 
 use crate::actions::{self, ActionItem, MenuEntry, PaletteRun};
 use crate::canvas::PageId;
@@ -23,8 +25,9 @@ use crate::shell::{Dialog, Focus, ShellModel};
 use crate::strings;
 use crate::wizard::{FieldKind, Step, fields_of};
 
-/// The structural words of the describe text: the tokens of a line once the quoted texts, the numbers, the action
-/// IDs (they contain a dot), the shortcuts and the punctuation `( ) [ ] , | %` are taken out. A token with a colon
+/// The structural words of the describe text: the tokens of a line once the quoted texts, the numbers, the ID aliases
+/// `@n` (value tokens like numbers, ID-630), the action IDs (they contain a dot), the shortcuts and the punctuation
+/// `( ) [ ] , | %` are taken out. A token with a colon
 /// keeps it. A change here is a reviewed transcript change (decision log ID-474).
 pub const VOCABULARY: &[&str] = &[
     "title:",
@@ -635,9 +638,9 @@ fn tab_lines(model: &ShellModel, lines: &mut Vec<String>) {
 }
 
 /// A user text of the property grid's lines as the describe text quotes it: a double quote becomes a single one (the
-/// quoting stays unambiguous) and a hyphenated UUID becomes `‹id›` (no UUID in the describe text, WP-S2.05 §9 item 5).
+/// quoting stays unambiguous). A UUID in it is printed as its alias `@n` with the rest of the text (FT-422).
 fn user(text: &str) -> String {
-    crate::properties::mask_uuids(text).replace('"', "'")
+    text.replace('"', "'")
 }
 
 /// The provenance of a row in the describe text: its word and quoted chip text (UUIDs left out, §9 item 5).
@@ -953,7 +956,7 @@ fn canvas_lines(model: &ShellModel, lines: &mut Vec<String>) {
     }
     match c.hover() {
         Some((entity, r)) => lines.push(format!(
-            "canvas hover \"{}\" box {} {} {} {} mm",
+            "canvas hover {} box {} {} {} {} mm",
             entity.0,
             mm3(r.min().x.0),
             mm3(r.min().y.0),
@@ -1029,7 +1032,8 @@ fn tool_lines(model: &ShellModel, lines: &mut Vec<String>) {
     if selection.is_empty() {
         lines.push("canvas selection none".to_owned());
     } else {
-        let ids: Vec<String> = selection.items.iter().map(|e| format!("\"{}\"", e.0)).collect();
+        // The IDs as value tokens, which the printer turns into aliases `@n` (FT-422).
+        let ids: Vec<String> = selection.items.iter().map(|e| e.0.to_string()).collect();
         lines.push(format!(
             "canvas selection {} {}",
             selection.items.len(),
@@ -1277,7 +1281,8 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
     }
 }
 
-/// The text of the visible user interface of `model`, lines separated by `\n`, without a final newline.
+/// The text of the visible user interface of `model`, lines separated by `\n`, without a final newline, with record IDs
+/// as UUIDs: [`ShellModel::describe`] and the transcript print them as aliases `@n` (FT-422).
 pub fn describe(model: &ShellModel) -> String {
     let mut lines: Vec<String> = vec![format!("title: {}", model.title())];
     for menu in actions::menu_model(model) {
@@ -1342,9 +1347,11 @@ pub fn describe(model: &ShellModel) -> String {
 }
 
 impl ShellModel {
-    /// The visible user interface as text, one line per element in paint order (`ui.describe`).
+    /// The visible user interface as text, one line per element in paint order (`ui.describe`), every record ID
+    /// printed as its alias `@n` (FT-422, ID-630).
     pub fn describe(&self) -> String {
-        describe(self)
+        let text = describe(self);
+        self.alias_text(&text)
     }
 }
 

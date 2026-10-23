@@ -385,10 +385,13 @@ fn a8_the_transcript_and_the_describe_text_carry_the_canvas() {
     assert_eq!(s["canvas"]["pointer_nm"], json!([x, y]));
     let describe = shell.describe();
     let hover_line = describe.lines().find(|l| l.starts_with("canvas hover ")).unwrap();
+    // The entity as its alias `@n`, a value token, never its UUID (FT-422).
+    let alias = shell.aliases().number_of(&hovered.0.to_string()).unwrap();
     assert!(
-        hover_line.contains(&format!("\"{}\" box ", hovered.0)),
+        hover_line.starts_with(&format!("canvas hover @{alias} box ")),
         "{hover_line}"
     );
+    assert!(!describe.contains(&hovered.0.to_string()));
     assert!(hover_line.ends_with(&format!("{} mm", ew_viewmodel::canvas::mm3(hr.max().y.0))));
     if hovered == entity {
         assert_eq!(hr, r);

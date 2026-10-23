@@ -19,6 +19,8 @@ pub use ew_api;
 
 pub mod about;
 pub mod actions;
+// FT-422 (ID-630): the ID alias `@n`.
+pub mod alias;
 pub mod area;
 pub mod canvas;
 pub mod describe;

@@ -780,8 +780,10 @@ fn structural_tokens(line: &str) -> Vec<String> {
             words.push(token.to_owned());
             break;
         }
-        let number =
-            token.parse::<f64>().is_ok() || (token.chars().all(|c| !c.is_alphanumeric()) && token != "->");
+        // An ID alias `@n` is a value token like a number (ID-630).
+        let number = token.parse::<f64>().is_ok()
+            || ew_viewmodel::alias::is_alias(token)
+            || (token.chars().all(|c| !c.is_alphanumeric()) && token != "->");
         if !number {
             words.push(token.to_owned());
         }

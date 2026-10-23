@@ -109,31 +109,6 @@ pub fn has_options(ty: &FieldType) -> bool {
     ) || matches!(ty.inner(), FieldType::Link { kind } if kind == "part")
 }
 
-/// `text` with every hyphenated UUID replaced by `‹id›` (no UUID in the transcript or the describe text, WP-S2.05 §9
-/// item 5).
-pub fn mask_uuids(text: &str) -> String {
-    let b = text.as_bytes();
-    let is_uuid = |w: &[u8]| {
-        w.iter().enumerate().all(|(k, c)| match k {
-            8 | 13 | 18 | 23 => *c == b'-',
-            _ => c.is_ascii_hexdigit(),
-        })
-    };
-    let mut out = String::with_capacity(text.len());
-    let mut i = 0;
-    while i < b.len() {
-        if i + 36 <= b.len() && is_uuid(&b[i..i + 36]) {
-            out.push_str("‹id›");
-            i += 36;
-            continue;
-        }
-        let ch = text[i..].chars().next().unwrap_or(' ');
-        out.push(ch);
-        i += ch.len_utf8();
-    }
-    out
-}
-
 /// A popup of the grid.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Popup {

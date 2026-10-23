@@ -1579,6 +1579,8 @@ fn structural_words(line: &str, shortcut_keys: &[String]) -> Vec<String> {
             break;
         }
         let skip = token.chars().all(|c| c.is_ascii_digit())
+            // An ID alias `@n` is a value token like a number (ID-630).
+            || ew_viewmodel::alias::is_alias(token)
             || token.starts_with('#')
             || token.contains('.')
             || token.contains('+')
@@ -1922,6 +1924,19 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
             }
         }
     }
+    // No UUID reaches the describe text: the hovered entity and the selection print as aliases `@n`, value tokens
+    // that the word check above skips (FT-422, ID-630).
+    for text in &texts {
+        assert_eq!(ew_viewmodel::alias::find_uuid(text), None, "{text}");
+    }
+    assert!(
+        texts
+            .iter()
+            .flat_map(|t| t.lines())
+            .any(|l| l.starts_with("canvas selection ")
+                && l.split_whitespace().any(ew_viewmodel::alias::is_alias)),
+        "a selection line with an alias"
+    );
     // The states above reach most of the vocabulary: a word that nothing emits is a stale entry or a missed state.
     let unused: Vec<&&str> = allowed.iter().filter(|w| !seen.contains(**w)).collect();
     // (`disabled` without a reason cannot be reached through the registry today; `external`, a link to another

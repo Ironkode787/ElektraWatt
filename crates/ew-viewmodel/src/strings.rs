@@ -264,6 +264,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "error-unknown-action" => "Unknown action `{0}`.",
         "error-missing-param" => "Missing parameter `{0}`.",
         "error-bad-param" => "Parameter `{0}` is not valid.",
+        "error-unknown-alias" => "No record has the alias `{0}` in this session.",
         "error-params-object" => "The parameters are a JSON object.",
         "error-open" => "Cannot open {0}: {1}.",
         "error-save" => "Saving failed: {0}.",

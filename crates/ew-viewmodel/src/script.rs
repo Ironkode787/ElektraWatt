@@ -16,12 +16,12 @@
 //! `focus`, `navigator`.
 //! `canvas` (WP-S2.02 section 6.6) is `null` while no page is shown, else an object with, in this order: `folio`,
 //! `zoom` (per cent rounded to 0.1), `view_nm` (`[x0, y0, x1, y1]`, the sheet rectangle the pane shows), `grid`
-//! (`[num_nm, den]`, `null` when off or absent), `pointer_nm` (`[x, y]` or `null`), `hover` (the entity's UUID or
+//! (`[num_nm, den]`, `null` when off or absent), `pointer_nm` (`[x, y]` or `null`), `hover` (the entity's alias or
 //! `null`), `backend` (the label), `statistics` (whether the overlay is shown) and `renderer` (the `canvas_backend`
 //! setting, `auto` or `cpu`; WP-S2.02 part 2), then (WP-S2.03 part 1) `cursor_nm` (the grid cursor, `[x, y]` or
 //! `null`), `cell` (the status bar's cursor cell or `null`) and `link` (the hovered link: `{"folio", "cell"}`,
 //! `{"external": true}` or `null`), then (WP-S2.03 part 2) `tool` (`{"name", "state"}`), `snap` (`{"kind", "at_nm",
-//! "label"}` or `null`), `selection` (the selected entities' UUIDs in selection order), `preview` (`{"command",
+//! "label"}` or `null`), `selection` (the selected entities' aliases in selection order), `preview` (`{"command",
 //! "state": "ready" | "stale" | "failed", "tags", "xrefs"}` or `null`), `overlay` (the number of overlay items) and
 //! `link_preview` (the link preview's target folio or `null`), then (WP-S2.04 part 1, §7.7) `ghost` (`null`, or
 //! `{"kind": "place", "symbol", "variant", "rep_type", "at_nm", "target", "tag", "hints"}`, `{"kind": "move",
@@ -36,12 +36,18 @@
 //! `properties` (`null` without a project or while the pane is closed, else `{"title", "items", "kinds", "sections":
 //! [{"kind", "targets", "rows"}, …], "missing", "row", "editing", "buffer", "error": {"row", "message"} | null,
 //! "choices", "highlight" (the highlighted choice's index or null), "popup", "read_only"}`), `card` (`null` or `{"command", "state", "targets", "changes", "tags", "xrefs",
-//! "origin"}`) and `toast` (`null` or `{"text", "undo"}`); no UUID appears in these three; then (WP-S2.05 part 2) `find`
+//! "origin"}`) and `toast` (`null` or `{"text", "undo"}`); then (WP-S2.05 part 2) `find`
 //! (`null` while the find pane is closed, else `{"text", "replace" (the replacement, or null outside find and
 //! replace), "regex", "match_case", "whole_word", "in_selection", "fields", "folios", "results" (the number of hits, or
 //! null before a search), "truncated", "error", "row" (1-based, or null), "stale", "note"}`); the card's `origin` is
 //! `find` for a replace, and `focus` may be `find`. Nothing in it depends on time, process or location: two runs of one
 //! script on equal inputs give equal bytes.
+//!
+//! **Record IDs** (decision log ID-630, FT-422). No UUID reaches a transcript line: every UUID of a step's line
+//! (`state`, `message`, `describe`, a buffer or an error) is printed as its alias `@n` ([`crate::alias`]), numbered in
+//! the order of first appearance in this run's output; a run starts a new table, and so does a new, opened or imported
+//! project. A script may write `@n` wherever an action parameter takes a UUID or a reference
+//! ([`crate::alias::ALIAS_PARAMS`]); `--record` writes the resolved UUID.
 //!
 //! The core runner lives here; a [`StepExtension`] adds what needs a renderer (`view.snapshot`).
 
@@ -342,7 +348,7 @@ fn find_json(shell: &ShellModel) -> String {
         .map(|x| Value::from(crate::find::field_word(*x)))
         .collect();
     let folios: Vec<Value> = f.folios().iter().map(|x| Value::from(x.as_str())).collect();
-    let opt = |s: Option<&str>| s.map_or(Value::Null, |t| Value::from(crate::properties::mask_uuids(t)));
+    let opt = |s: Option<&str>| s.map_or(Value::Null, Value::from);
     object(vec![
         member("text", &Value::from(f.text())),
         member(
@@ -399,7 +405,7 @@ fn properties_json(shell: &ShellModel) -> String {
         None => "null".to_owned(),
         Some((row, message)) => object(vec![
             member("row", &Value::from(row)),
-            member("message", &Value::from(crate::properties::mask_uuids(message))),
+            member("message", &Value::from(message)),
         ]),
     };
     object(vec![
@@ -412,9 +418,9 @@ fn properties_json(shell: &ShellModel) -> String {
         member("editing", &opt(props.edit().map(|e| e.row.as_str()))),
         member(
             "buffer",
-            &props.edit().map_or(Value::Null, |e| {
-                Value::from(crate::properties::mask_uuids(&e.buffer))
-            }),
+            &props
+                .edit()
+                .map_or(Value::Null, |e| Value::from(e.buffer.as_str())),
         ),
         format!("\"error\":{error}"),
         member(
@@ -747,10 +753,11 @@ pub fn run_step(
         format!("\"state\":{}", state_json(shell)),
     ];
     if step.action == "ui.describe" && outcome == Outcome::Done {
-        members.push(member("describe", &Value::from(shell.describe())));
+        members.push(member("describe", &Value::from(crate::describe::describe(shell))));
     }
+    // Every UUID of the line becomes its alias `@n`, numbered in the order of first appearance in the output (FT-422).
     StepResult {
-        line: object(members),
+        line: shell.alias_text(&object(members)),
         ok: outcome == Outcome::Done,
     }
 }
@@ -769,6 +776,7 @@ pub fn run(
     steps: &[Step],
     sink: &mut dyn FnMut(&str) -> io::Result<()>,
 ) -> io::Result<RunEnd> {
+    shell.reset_aliases();
     sink(&transcript_header(&shell.config().app_version.clone()))?;
     for (i, step) in steps.iter().enumerate() {
         let result = run_step(shell, ext, i + 1, step);
@@ -798,6 +806,7 @@ pub fn run_stream(
     lines: &mut dyn Iterator<Item = io::Result<String>>,
     sink: &mut dyn FnMut(&str) -> io::Result<()>,
 ) -> io::Result<RunEnd> {
+    shell.reset_aliases();
     sink(&transcript_header(&shell.config().app_version.clone()))?;
     let mut parser = ScriptParser::new();
     let mut number = 0;
