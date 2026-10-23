@@ -539,6 +539,14 @@ impl ShellModel {
             None => Outcome::Done,
             Some(ToolOutput::None) => {
                 if self.tools.tool.name() != "select" {
+                    // The gesture is over (WP-S2.04 part 2, window check): the grid cursor it was driven with goes
+                    // with it, so no crosshair stays at the last connection point.
+                    if matches!(
+                        self.tools.tool.name(),
+                        "wire" | "route_edit" | "place" | "exchange"
+                    ) {
+                        self.hide_cursor();
+                    }
                     if let Some(select) = tool_named("select") {
                         self.activate_tool(select);
                     }
@@ -549,6 +557,15 @@ impl ShellModel {
             }
             Some(out) => self.apply_tool_output(out),
         }
+    }
+
+    /// Hides the grid cursor of the focused canvas (`cursor.set` without parameters).
+    pub(super) fn hide_cursor(&mut self) {
+        let g = self.area.as_ref().map_or(0, |a| a.focused);
+        if let Some(c) = self.canvas_mut(g) {
+            c.put_cursor(None);
+        }
+        self.tools.last_cp = None;
     }
 
     /// The grid cursor of group `g` moved: the active tool learns it when `g` is the focused group (§7.7).

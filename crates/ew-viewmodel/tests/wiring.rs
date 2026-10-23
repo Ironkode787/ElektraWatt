@@ -1042,3 +1042,27 @@ fn junction_and_route_entries_name_what_to_select_and_undo_drops_the_marks() {
     );
     assert!(s.preview_state().is_none(), "and its preview");
 }
+
+/// Window check (r23): after the keyboard wiring of folio 103 (W, `]`, Enter, `]`, `]`, Enter, Escape) no crosshair and
+/// no snap mark stay at the last connection point, and after Ctrl+Z none either.
+#[test]
+fn escape_and_undo_leave_no_cursor_and_no_mark_after_keyboard_wiring() {
+    let tmp = Tmp::new("marks");
+    let mut s = shell(&tmp, "103");
+    done(&mut s, "tool.wire", json!({}));
+    done(&mut s, "cp.next", json!({}));
+    done(&mut s, "canvas.activate", json!({}));
+    done(&mut s, "cp.next", json!({}));
+    done(&mut s, "cp.next", json!({}));
+    done(&mut s, "canvas.activate", json!({}));
+    done(&mut s, "ui.dismiss", json!({}));
+    assert_eq!(s.tool().name(), "select");
+    assert_eq!(canvas(&s)["cursor_nm"], Value::Null, "no grid cursor");
+    assert!(s.tool_overlay().is_empty(), "no snap mark");
+    assert!(s.snap_indicator().is_none());
+    // Undo, with the cursor shown again: it goes, and no mark stands.
+    done(&mut s, "cp.next", json!({}));
+    done(&mut s, "edit.undo", json!({}));
+    assert_eq!(canvas(&s)["cursor_nm"], Value::Null);
+    assert!(s.tool_overlay().is_empty());
+}

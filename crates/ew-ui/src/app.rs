@@ -461,8 +461,16 @@ impl App {
             }
         }
         let dispatch_started = ew_render2d::stats::now();
+        // The window repaints after an action that changed the model or the tool's marks without pointer motion
+        // (an undo, a key-driven commit, a gesture's release; WP-S2.04 part 2, window check): once at once, and once
+        // shortly after, when the page's new tiles have had time to arrive.
+        let marks_before = (self.shell.revision(), self.shell.tool_overlay().len());
         for event in events {
             self.apply(event);
+        }
+        if (self.shell.revision(), self.shell.tool_overlay().len()) != marks_before {
+            ctx.request_repaint();
+            ctx.request_repaint_after(Duration::from_millis(100));
         }
         if canvas_shown {
             // The canvas's input phase includes dispatching the frame's actions (WP-S2.02 section 9).
