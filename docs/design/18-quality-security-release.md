@@ -763,15 +763,20 @@ below).
 - **The ID alias as built (cycle 26, FT-422; decision log ID-630).** Every UUID the shell writes into a transcript line
   (`state`, `message`, a buffer, an error) or into the describe text is printed as `@n`: `@` and a decimal number from 1
   without a leading zero, numbered in the order of first appearance in the run's output (`ew_viewmodel::alias`). The
-  table lives in the shell model for one run, starts anew with a new, opened or imported project, and is stored
-  nowhere; the model, the window and the `--record` log keep real UUIDs. The describe text prints the hovered entity
-  and the selection as bare value tokens (`canvas hover @4 box …`, `canvas selection 2 @1 @2`), which the ID-474 token
-  test skips like numbers, so the vocabulary is unchanged. A script writes `@n` back where an action parameter takes a
-  UUID or a reference: `select.set` `ids` and `refs`, `place.pick` `symbol`, `part`, `function` and `strip`,
-  `rep.exchange` `symbol`, the navigator's `key` (`p:@3`), and a command-log reference `{"ref": "@3"}` inside
-  `command.run` (written `{"ref": "id:<uuid>"}` to the record); an alias the table does not hold fails the step with
-  "No record has the alias `@9` in this session." Because minted IDs no longer reach the output, a script that selects
-  a record it created still gives byte-identical transcripts on two runs (the folio-101 wiring test proves it).
+  table lives in the shell model for the whole script run, across every project the run opens or creates (so an
+  earlier `@3` never names another record), and is stored nowhere; the model, the window and the `--record` log keep
+  real UUIDs. The describe text prints the hovered entity and the selection as bare value tokens
+  (`canvas hover @4 box …`, `canvas selection 2 @1 @2`), which the ID-474 token test skips like numbers, so the
+  vocabulary is unchanged. A script writes `@n` back where an action parameter takes a UUID or a reference:
+  `select.set` `ids` and `refs`, `place.pick` `symbol`, `part`, `function` and `strip`, `rep.exchange` `symbol`, the
+  navigator's `key` (`p:@3`), and a command-log reference `{"ref": "@3"}` inside `command.run` (written
+  `{"ref": "id:<uuid>"}` to the record). A reference (`refs`, `{"ref": …}`) also takes `id:@3`, and so does a typed
+  property value (`props.input` `text`, `props.set` `value`) when it is exactly `id:@3` after trimming, the form the
+  printer gives a link field; free text that merely contains `@3` stays text. An alias the table does not hold fails
+  the step with "No record has the alias `@9` in this session." Because minted IDs no longer reach the output, a script
+  that selects a record it created by a label or by a single alias gives byte-identical transcripts on two runs (the
+  folio-101 wiring test proves it); output still ordered by UUID (sorted ID lists, a property sheet's targets) can
+  order two minted records differently between runs, a follow-up of the design pass.
 - **Specified (cycle 25, WP-S6.13; decision log ID-610 to ID-619, the fix round ID-621 to ID-624).** The
   [closed specification](../plan/specs/WP-S6.13-blind-drafter-harness.md) turns this section into a harness in three
   parts. `cargo xtask blind` lives in `xtask` and drives the built binaries as processes (no new edge); a run folder
