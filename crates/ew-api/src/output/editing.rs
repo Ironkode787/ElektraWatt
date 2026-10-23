@@ -21,13 +21,14 @@ use std::sync::{Arc, OnceLock};
 use ew_derive::ew_ids::{Id, Uuid, v5};
 use ew_derive::ew_rds::IdentifierSet;
 use ew_derive::ew_schema::{
-    ConnectionKind, ContactKind, Dir4, Endpoint, FnDef, Function, FunctionKind, IpDirection, JunctionStyle,
-    JunctionWiring, LibCopy, LibDocument, LibRef, Page, Part, RepType, Representation, SymbolDef,
+    ConnectionKind, ContactKind, Device, Dir4, Endpoint, FnDef, Function, FunctionKind, IpDirection,
+    JunctionStyle, JunctionWiring, LibCopy, LibDocument, LibRef, Page, Part, RepType, Representation,
+    SymbolDef,
 };
 use ew_derive::ew_units::{Nm, Orient2, Pt2, Rect};
 use ew_derive::{
-    CpRef, FunctionCps, PageOrder, PageRef, PotentialNameOf, PotentialPartition, Q, cp_label, cp_point,
-    manufacturer_name,
+    CpRef, DisplayedTag, FunctionCps, PageOrder, PageRef, PotentialNameOf, PotentialPartition, Q, cp_label,
+    cp_point, manufacturer_name,
 };
 use ew_dl::{ItemKind, PathEl};
 use ew_library::starter::{self, StarterKind};
@@ -59,6 +60,23 @@ pub struct PlaceCatalogue {
     pub symbols: Vec<CatalogueSymbol>,
     /// The embedded part copies with a function template, by part number.
     pub parts: Vec<CataloguePart>,
+    /// Every terminal strip of the project, by its tag as the page prints it (FT-421): the strip chooser of a
+    /// terminal placement (§7.1).
+    pub strips: Vec<CatalogueStrip>,
+}
+
+/// A terminal strip of the place catalogue (FT-421): what a terminal placement adds to.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct CatalogueStrip {
+    /// The strip device's ID.
+    pub id: Uuid,
+    /// The strip's tag as the page prints it (`-X1031`, `1X1`; `displayed_tag`).
+    pub tag: String,
+    /// The next free decimal designation: one more than the largest decimal designation of its terminals, `1`
+    /// without one.
+    pub next_designation: String,
+    /// The sequence number `terminal.add` would give the next terminal: one more than the largest, `1` without one.
+    pub next_seq: u32,
 }
 
 /// A symbol row of the place catalogue.
@@ -373,6 +391,7 @@ impl Session {
         Some(PlaceCatalogue {
             symbols: rows.into_iter().map(|(r, _)| r).collect(),
             parts,
+            strips: strips_of(&q, page_id),
         })
     }
 
@@ -399,6 +418,42 @@ impl Session {
         }
         Some(serde_json::json!({ "copies": copies }))
     }
+}
+
+/// Every terminal strip of the project with its tag as `page` prints it and the next designation and sequence
+/// number (FT-421), by tag, ties by ID.
+fn strips_of(q: &Q, page: Id<Page>) -> Vec<CatalogueStrip> {
+    // The largest decimal designation and sequence number of each strip's terminals.
+    let mut used: BTreeMap<Id<Device>, (u64, u32)> = BTreeMap::new();
+    for (_, d) in q.devices().iter() {
+        if let Some(t) = &d.aspects.terminal {
+            let e = used.entry(t.strip).or_insert((0, 0));
+            let designation = t.designation.as_str();
+            if !designation.is_empty()
+                && designation.bytes().all(|b| b.is_ascii_digit())
+                && let Ok(n) = designation.parse::<u64>()
+            {
+                e.0 = e.0.max(n);
+            }
+            e.1 = e.1.max(t.seq);
+        }
+    }
+    let mut out: Vec<CatalogueStrip> = q
+        .devices()
+        .iter()
+        .filter(|(_, d)| d.aspects.strip.is_some())
+        .map(|(id, _)| {
+            let (designation, seq) = used.get(&id).copied().unwrap_or((0, 0));
+            CatalogueStrip {
+                id: id.as_uuid(),
+                tag: q.get::<DisplayedTag>((id, page)).as_ref().clone(),
+                next_designation: designation.saturating_add(1).to_string(),
+                next_seq: seq.saturating_add(1),
+            }
+        })
+        .collect();
+    out.sort_by(|a, b| a.tag.cmp(&b.tag).then(a.id.cmp(&b.id)));
+    out
 }
 
 /// The `id` of a starter document's JSON text.

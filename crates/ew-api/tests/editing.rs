@@ -301,3 +301,50 @@ fn the_page_tables_of_folios_101_to_103_match_the_golden_tables_and_the_scene() 
     assert!(ips.contains(&"L-1"), "{ips:?}");
     assert!(s.page_tables("no such folio").is_none());
 }
+
+/// FT-421: the catalogue lists every terminal strip of the project by its printed tag, with the next free decimal
+/// designation and the next sequence number as `terminal.add` would take them; a new strip has none used.
+#[test]
+fn the_catalogue_lists_the_strips_with_their_next_designation_and_sequence_number() {
+    let s = golden();
+    let cat = s.place_catalogue("103").unwrap();
+    let strip = |tag: &str| {
+        cat.strips
+            .iter()
+            .find(|r| r.tag == tag)
+            .unwrap_or_else(|| panic!("{tag} in {:?}", cat.strips))
+    };
+    let x1031 = strip("-X1031");
+    assert_eq!((x1031.next_designation.as_str(), x1031.next_seq), ("21", 21));
+    let x1032 = strip("-X1032");
+    assert_eq!((x1032.next_designation.as_str(), x1032.next_seq), ("6", 6));
+    // 1X1's terminals are 1, 2 and PE (sequence 3): the next decimal designation is 3, the next sequence number 4.
+    let x1 = strip("1X1");
+    assert_eq!((x1.next_designation.as_str(), x1.next_seq), ("3", 4));
+    let tags: Vec<&str> = cat.strips.iter().map(|r| r.tag.as_str()).collect();
+    let mut sorted = tags.clone();
+    sorted.sort();
+    assert_eq!(tags, sorted, "by tag");
+    // The ID is the strip device's.
+    let q = s.query();
+    assert!(
+        q.devices()
+            .get(Id::<Device>::from_uuid(x1031.id))
+            .is_some_and(|d| d.aspects.strip.is_some())
+    );
+    drop(q);
+    // A new strip in a new project: nothing used yet.
+    let mut s = fresh();
+    let folio = s.page_labels()[0].clone();
+    assert!(s.place_catalogue(&folio).unwrap().strips.is_empty());
+    s.execute(&AnyCommand {
+        name: "device.create".into(),
+        params: serde_json::json!({"letter": "X", "counter": 7, "strip": {}}),
+    })
+    .unwrap();
+    let cat = s.place_catalogue(&folio).unwrap();
+    assert_eq!(cat.strips.len(), 1);
+    assert_eq!(cat.strips[0].next_designation, "1");
+    assert_eq!(cat.strips[0].next_seq, 1);
+    assert!(cat.strips[0].tag.contains("X7"), "{}", cat.strips[0].tag);
+}

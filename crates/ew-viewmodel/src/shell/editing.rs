@@ -22,8 +22,9 @@ use serde_json::{Map, Value, json};
 use super::{Outcome, ShellModel, failed, string_param};
 use crate::strings;
 use crate::tools::{
-    CanvasEvent, EntityKind, ExchangeTool, Ghost, Picker, PickerMode, PickerRow, PlaceTarget, PlaceTool,
-    SelectTool, SelectionChange, Tool, ToolCx, ToolKey, ToolOutput, entity_kind, selection_kinds, transform,
+    CanvasEvent, EntityKind, ExchangeTool, Ghost, PendingTerminal, Picker, PickerMode, PickerRow,
+    PlaceTarget, PlaceTool, SelectTool, SelectionChange, Tool, ToolCx, ToolKey, ToolOutput, entity_kind,
+    selection_kinds, transform,
 };
 
 /// What a choice of the picker or a `place.pick` arms.
@@ -182,74 +183,12 @@ impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // Arming
 
-    /// The strip of a terminal placement: `param` (an ID, or a tag of a strip whose segment the page draws), else
-    /// the strip the last `strip.new` created, else the first strip whose segment the page draws. `(ID, tag)`: the
-    /// tag the page prints (a segment's CP label, or a terminal of the strip placed in this session), `None` while
-    /// nothing prints it (fix round, item 3: never a guessed tag).
-    fn resolve_strip(&self, param: Option<&str>) -> Option<(String, Option<String>)> {
-        let c = self.canvas()?;
-        let tables = &c.page().tables;
-        // The strips whose segments the page draws, with the tag their CPs print.
-        let strips: Vec<(String, String)> = tables
-            .reps
+    /// The catalogue strip named by `param`: its ID, or its tag as the page prints it (FT-421).
+    fn catalogue_strip(cat: &PlaceCatalogue, param: &str) -> Option<usize> {
+        cat.strips
             .iter()
-            .filter(|r| r.rep_type == "strip_segment")
-            .filter_map(|r| {
-                let device = r.device?;
-                let tag = tables
-                    .cps
-                    .iter()
-                    .find(|cp| cp.rep == r.id)
-                    .and_then(|cp| cp.label.split_once(':').map(|(t, _)| t.to_owned()))?;
-                Some((device.to_string(), tag))
-            })
-            .collect();
-        let known = |id: &str| {
-            strips
-                .iter()
-                .find(|(s, _)| s == id)
-                .map(|(_, t)| t.clone())
-                .or_else(|| self.tools.strip_tags.get(id).cloned())
-        };
-        match param {
-            Some(p) if p.len() == 36 && p.chars().filter(|c| *c == '-').count() == 4 => {
-                Some((p.to_owned(), known(p)))
-            }
-            Some(tag) => strips
-                .iter()
-                .find(|(_, t)| t == tag)
-                .map(|(id, t)| (id.clone(), Some(t.clone())))
-                .or_else(|| {
-                    self.tools
-                        .strip_tags
-                        .iter()
-                        .find(|(_, t)| *t == tag)
-                        .map(|(id, t)| (id.clone(), Some(t.clone())))
-                }),
-            None => match &self.tools.last_strip {
-                Some(id) => Some((id.clone(), known(id))),
-                None => strips.into_iter().next().map(|(id, t)| (id, Some(t))),
-            },
-        }
-    }
-
-    /// The next free decimal designation of the terminals of the strip with `tag` the page draws (`1` without one or
-    /// while the strip's tag is not known).
-    fn next_free_designation(&self, tag: Option<&str>) -> String {
-        let (Some(c), Some(tag)) = (self.canvas(), tag) else {
-            return "1".to_owned();
-        };
-        let prefix = format!("{tag}:");
-        let max = c
-            .page()
-            .tables
-            .cps
-            .iter()
-            .filter_map(|cp| cp.label.strip_prefix(&prefix))
-            .filter_map(|rest| rest.split('/').next()?.parse::<u64>().ok())
-            .max()
-            .unwrap_or(0);
-        (max + 1).to_string()
+            .position(|st| st.id.to_string() == param)
+            .or_else(|| cat.strips.iter().position(|st| st.tag == param))
     }
 
     /// Arms the Place tool (or, in exchange mode, the change-symbol tool) for `pick` of `cat`; `p` holds the
@@ -324,19 +263,36 @@ impl ShellModel {
                     Ok(v) => v,
                     Err(e) => return e,
                 };
-                let Some((strip, strip_tag)) = self.resolve_strip(strip) else {
+                if cat.strips.is_empty() {
+                    return Outcome::Refused {
+                        reason_key: "reason-no-strip",
+                    };
+                }
+                // Without a strip the picker asks for one (FT-421): its strip chooser.
+                let Some(strip) = strip else {
+                    let folio = self.current_folio().unwrap_or_default().to_owned();
+                    let pending = PendingTerminal {
+                        symbol: row.key.clone(),
+                        params: p.clone(),
+                    };
+                    self.palette = None;
+                    self.tools.picker = Some(Picker::strips(&folio, Arc::clone(&cat), pending));
+                    return Outcome::Done;
+                };
+                let Some(i) = Self::catalogue_strip(&cat, strip) else {
                     return Outcome::Refused {
                         reason_key: "reason-no-strip",
                     };
                 };
+                let st = &cat.strips[i];
                 let designation = match string_param(p, "designation") {
                     Ok(Some(d)) => d.to_owned(),
-                    Ok(None) => self.next_free_designation(strip_tag.as_deref()),
+                    Ok(None) => st.next_designation.clone(),
                     Err(e) => return e,
                 };
                 PlaceTarget::Terminal {
-                    strip,
-                    strip_tag,
+                    strip: st.id.to_string(),
+                    strip_tag: st.tag.clone(),
                     designation,
                 }
             }
@@ -458,11 +414,27 @@ impl ShellModel {
         if let Some(reason_key) = picker.disabled(row) {
             return Outcome::Refused { reason_key };
         }
-        let (mode, cat) = (picker.mode, Arc::clone(&picker.catalogue));
+        let (mode, cat, pending) = (picker.mode, Arc::clone(&picker.catalogue), picker.pending.clone());
         match (mode, row) {
             (PickerMode::Exchange, PickerRow::Symbol(i)) => self.arm_exchange(cat, i),
             (_, PickerRow::Symbol(i)) => self.arm(cat, Pick::Symbol(i), p),
             (_, PickerRow::PartFn(a, b)) => self.arm(cat, Pick::PartFn(a, b), p),
+            // The strip chooser (FT-421): the pending terminal placement with the chosen strip.
+            (_, PickerRow::Strip(i)) => {
+                let Some(pending) = pending else {
+                    return Outcome::Refused {
+                        reason_key: "reason-no-picker-row",
+                    };
+                };
+                let Some(symbol) = cat.symbols.iter().position(|r| r.key == pending.symbol) else {
+                    return Outcome::Refused {
+                        reason_key: "reason-unknown-symbol",
+                    };
+                };
+                let mut params = pending.params.clone();
+                params.insert("strip".into(), Value::from(cat.strips[i].id.to_string()));
+                self.arm(cat, Pick::Symbol(symbol), &params)
+            }
         }
     }
 
@@ -525,16 +497,36 @@ impl ShellModel {
         self.arm(cat, pick, p)
     }
 
-    /// `strip.new {letter}` (§7.6): a host commit of `device.create` with the strip aspect; the new strip becomes the
-    /// default strip of terminal placements.
+    /// `strip.new {letter}` (§7.6): a host commit of `device.create` with the strip aspect. While the picker's strip
+    /// chooser is open it lists the new strip, which becomes its current row (FT-421).
     pub(super) fn act_strip_new(&mut self, p: &Map<String, Value>) -> Outcome {
         let letter = match string_param(p, "letter") {
             Ok(v) => v.unwrap_or("X").to_owned(),
             Err(e) => return e,
         };
         let out = self.host_commit("device.create", json!({"letter": letter, "strip": {}}));
-        if out == Outcome::Done {
-            self.tools.last_strip = self.tools.last_primary.clone();
+        if out != Outcome::Done {
+            return out;
+        }
+        let pending = self
+            .tools
+            .picker
+            .as_ref()
+            .filter(|p| p.mode == PickerMode::Strip)
+            .and_then(|p| p.pending.clone());
+        if let Some(pending) = pending {
+            self.sync_views();
+            if let Some(cat) = self.catalogue() {
+                let folio = self.current_folio().unwrap_or_default().to_owned();
+                let mut picker = Picker::strips(&folio, Arc::clone(&cat), pending);
+                let new = self.tools.last_primary.clone();
+                if let Some(i) = picker.rows.iter().position(
+                    |r| matches!(r, PickerRow::Strip(k) if Some(cat.strips[*k].id.to_string()) == new),
+                ) {
+                    picker.row = i;
+                }
+                self.tools.picker = Some(picker);
+            }
         }
         out
     }
@@ -774,8 +766,8 @@ impl ShellModel {
     /// hold leaves the selection; the place tool's shape is read again for a new revision.
     pub(super) fn after_commit(&mut self) {
         self.refresh_place_shape();
+        self.refresh_strip_tag();
         self.cancel_stale_move();
-        self.learn_strip_tag();
         let Some(before) = self.tools.before_commit.take() else {
             return;
         };
@@ -824,17 +816,14 @@ impl ShellModel {
         }
     }
 
-    /// After a terminal of a strip whose tag nothing on the page printed was placed, its CP label (`<strip
-    /// tag>:<designation>`) gives the tag: the place tool's label and later placements use it (fix round, item 3).
-    fn learn_strip_tag(&mut self) {
-        let Some(primary) = self.tools.last_primary.clone() else {
-            return;
-        };
+    /// The strip tag of a terminal placement after a new revision (FT-421): read from the place catalogue (cached per
+    /// revision, so a dispatch that changes nothing reads nothing), because a new strip prints its tag only once its
+    /// first terminal numbers it.
+    fn refresh_strip_tag(&mut self) {
         let strip = self
             .with_tool(|t, _| {
                 t.as_any_mut()
                     .and_then(|a| a.downcast_mut::<PlaceTool>())
-                    .filter(|p| p.strip_tag_unknown())
                     .and_then(|p| match p.target() {
                         PlaceTarget::Terminal { strip, .. } => Some(strip.clone()),
                         _ => None,
@@ -842,16 +831,15 @@ impl ShellModel {
             })
             .flatten();
         let Some(strip) = strip else { return };
-        let tag = self.canvas().and_then(|c| {
-            c.page()
-                .tables
-                .cps
-                .iter()
-                .find(|cp| cp.rep.to_string() == primary)
-                .and_then(|cp| cp.label.split_once(':').map(|(t, _)| t.to_owned()))
-        });
-        let Some(tag) = tag else { return };
-        self.tools.strip_tags.insert(strip, tag.clone());
+        let Some(cat) = self.catalogue() else { return };
+        let Some(tag) = cat
+            .strips
+            .iter()
+            .find(|st| st.id.to_string() == strip)
+            .map(|st| st.tag.clone())
+        else {
+            return;
+        };
         let _ = self.with_tool(|t, _| {
             if let Some(p) = t.as_any_mut().and_then(|a| a.downcast_mut::<PlaceTool>()) {
                 p.set_strip_tag(tag);

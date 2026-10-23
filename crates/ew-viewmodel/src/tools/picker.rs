@@ -10,6 +10,11 @@
 //! A row is disabled with a reason when the page's type does not allow the symbol's representation type, when the
 //! symbol draws a black box (placed by part 3's black box tool) or when a template function has no symbol on the
 //! page. In exchange mode (§7.5) only the allowed symbol rows are listed.
+//!
+//! **The strip chooser** (FT-421). Choosing a terminal symbol without a strip turns the picker into its strip mode:
+//! one row per strip of the project (the catalogue's `strips`, by tag), each with the next free designation the
+//! placement proposes (`row strip "-X1031" terminal "21"`); the filter matches the tag; Enter arms the Place tool with
+//! that strip.
 
 use std::sync::Arc;
 
@@ -24,6 +29,8 @@ pub enum PickerMode {
     Parts,
     /// Edit ▸ Change symbol: allowed symbols only.
     Exchange,
+    /// The strip chooser of a terminal placement (FT-421): the project's strips.
+    Strip,
 }
 
 impl PickerMode {
@@ -32,6 +39,7 @@ impl PickerMode {
         match self {
             PickerMode::Place | PickerMode::Parts => "place",
             PickerMode::Exchange => "exchange",
+            PickerMode::Strip => "strip",
         }
     }
 }
@@ -43,6 +51,18 @@ pub enum PickerRow {
     Symbol(usize),
     /// A template function: the part's and the function's indices in the catalogue.
     PartFn(usize, usize),
+    /// A strip of the strip chooser: an index into the catalogue's strips.
+    Strip(usize),
+}
+
+/// The terminal placement a strip chooser was opened for: the terminal symbol and the parameters of the choice that
+/// opened it (`letter`, `designation`).
+#[derive(Clone, PartialEq, Debug)]
+pub struct PendingTerminal {
+    /// The terminal symbol's key (its row is looked up again in the catalogue the choice is made with).
+    pub symbol: String,
+    /// The parameters of the choice (an explicit `designation` wins over the strip's next one).
+    pub params: serde_json::Map<String, serde_json::Value>,
 }
 
 /// The picker's state.
@@ -60,6 +80,8 @@ pub struct Picker {
     pub folio: String,
     /// The visible rows under the filter.
     pub rows: Vec<PickerRow>,
+    /// The terminal placement of the strip chooser.
+    pub pending: Option<PendingTerminal>,
 }
 
 impl Picker {
@@ -72,8 +94,16 @@ impl Picker {
             catalogue,
             folio: folio.to_owned(),
             rows: Vec::new(),
+            pending: None,
         };
         p.refilter();
+        p
+    }
+
+    /// The strip chooser for the terminal placement `pending` (FT-421).
+    pub fn strips(folio: &str, catalogue: Arc<PlaceCatalogue>, pending: PendingTerminal) -> Picker {
+        let mut p = Picker::new(PickerMode::Strip, folio, catalogue);
+        p.pending = Some(pending);
         p
     }
 
@@ -82,6 +112,16 @@ impl Picker {
         let f = self.filter.to_lowercase();
         let hit = |s: &str| f.is_empty() || s.to_lowercase().contains(&f);
         let mut rows = Vec::new();
+        if self.mode == PickerMode::Strip {
+            for (i, strip) in self.catalogue.strips.iter().enumerate() {
+                if hit(&strip.tag) {
+                    rows.push(PickerRow::Strip(i));
+                }
+            }
+            self.rows = rows;
+            self.row = 0;
+            return;
+        }
         if self.mode != PickerMode::Parts {
             for (i, s) in self.catalogue.symbols.iter().enumerate() {
                 if self.mode == PickerMode::Exchange && !s.allowed {
@@ -154,11 +194,13 @@ impl Picker {
                     None
                 }
             }
+            PickerRow::Strip(_) => None,
         }
     }
 
-    /// The describe line of a row (without its indentation): `row symbol "<key>" embedded` or
-    /// `row part "<number>" function <n> of <count> "<fndef>" [main]`, then ` disabled: <reason>`.
+    /// The describe line of a row (without its indentation): `row symbol "<key>" embedded`,
+    /// `row part "<number>" function <n> of <count> "<fndef>" [main]` or `row strip "<tag>" terminal "<next>"`, then
+    /// ` disabled: <reason>`.
     pub fn row_line(&self, row: PickerRow) -> String {
         let mut line = match row {
             PickerRow::Symbol(i) => {
@@ -179,6 +221,13 @@ impl Picker {
                     part.functions.len(),
                     f.fndef_key,
                     if f.main { " main" } else { "" }
+                )
+            }
+            PickerRow::Strip(i) => {
+                let strip = &self.catalogue.strips[i];
+                format!(
+                    "row strip \"{}\" terminal \"{}\"",
+                    strip.tag, strip.next_designation
                 )
             }
         };

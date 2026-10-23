@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The picker popup (WP-S2.04 §7.1): what can be placed on the focused page, a filter field, one row per symbol
-//! and per template function, disabled rows with their reasons. Up, Down, Home and End move the row (`picker.row`),
+//! and per template function (or, choosing a terminal, one per strip: FT-421), disabled rows with their reasons. Up, Down, Home and End move the row (`picker.row`),
 //! Enter chooses (`picker.choose`), typing filters (`picker.filter`), Escape closes it (`ui.dismiss`, the topmost
 //! popup). Every change is a registry action, so the headless mode drives the same model.
 
@@ -45,6 +45,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
     let title = match picker.mode {
         PickerMode::Exchange => strings::text("picker-title-exchange"),
         PickerMode::Place | PickerMode::Parts => strings::text("picker-title"),
+        PickerMode::Strip => strings::text("picker-title-strip"),
     };
     Window::new(title)
         .id(Id::unique("place-picker"))
@@ -102,6 +103,10 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                                 text.push_str(strings::text("picker-main"));
                             }
                             text
+                        }
+                        PickerRow::Strip(k) => {
+                            let st = &picker.catalogue.strips[k];
+                            strings::format("picker-strip-row", &[&st.tag, &st.next_designation])
                         }
                     };
                     ui.horizontal(|ui| {

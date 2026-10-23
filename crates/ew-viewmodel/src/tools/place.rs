@@ -66,9 +66,8 @@ pub enum PlaceTarget {
     Terminal {
         /// The strip device.
         strip: String,
-        /// The strip's tag as the page prints it (the label's, `1X1`); `None` while nothing on the page prints it
-        /// (a strip `strip.new` just made: the host reads it from the first terminal's CP label).
-        strip_tag: Option<String>,
+        /// The strip's tag as the page prints it (the label's, `1X1`; the place catalogue's, FT-421).
+        strip_tag: String,
         /// The terminal's designation.
         designation: String,
     },
@@ -257,7 +256,7 @@ impl PlaceTool {
                 "terminal",
                 strings::format(
                     "place-target-terminal",
-                    &[&self.strip_label(strip_tag), &self.designation_label(designation)],
+                    &[strip_tag, &self.designation_label(designation)],
                 ),
             ),
         }
@@ -350,33 +349,22 @@ impl PlaceTool {
         ToolOutput::Commit(cmd)
     }
 
-    /// The label of a strip tag (`(new strip)` while unknown).
-    fn strip_label(&self, tag: &Option<String>) -> String {
-        tag.clone()
-            .unwrap_or_else(|| strings::text("strip-tag-unknown").to_owned())
-    }
-
     /// The label of the designation (`?` while the tool asks for the next one).
     fn designation_label(&self, d: &str) -> String {
         if self.ask { "?".to_owned() } else { d.to_owned() }
+    }
+
+    /// The tag of the strip of a `new_terminal` target, as the page prints it now (FT-421).
+    pub fn set_strip_tag(&mut self, tag: String) {
+        if let PlaceTarget::Terminal { strip_tag, .. } = &mut self.target {
+            *strip_tag = tag;
+        }
     }
 
     /// Whether a `new_terminal` target waits for the next designation (§7.2: after a commit with a designation that
     /// is not decimal digits the next commit asks again; `text.input` or a new `place.pick` gives it).
     pub fn needs_designation(&self) -> bool {
         self.ask
-    }
-
-    /// The tag of the strip of a `new_terminal` target, once the page prints it.
-    pub fn set_strip_tag(&mut self, tag: String) {
-        if let PlaceTarget::Terminal { strip_tag, .. } = &mut self.target {
-            *strip_tag = Some(tag);
-        }
-    }
-
-    /// Whether the target is a `new_terminal` whose strip's tag is not known yet.
-    pub fn strip_tag_unknown(&self) -> bool {
-        matches!(&self.target, PlaceTarget::Terminal { strip_tag: None, .. })
     }
 }
 
@@ -453,11 +441,7 @@ impl Tool for PlaceTool {
                 strip_tag,
                 designation,
                 ..
-            } => Some(format!(
-                "{}:{}",
-                self.strip_label(strip_tag),
-                self.designation_label(designation)
-            )),
+            } => Some(format!("{strip_tag}:{}", self.designation_label(designation))),
             _ => None,
         };
         let (target, letter) = match &self.target {

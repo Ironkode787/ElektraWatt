@@ -38,7 +38,7 @@ mod snap;
 pub mod transform;
 
 pub use exchange::ExchangeTool;
-pub use picker::{Picker, PickerMode, PickerRow};
+pub use picker::{PendingTerminal, Picker, PickerMode, PickerRow};
 pub use place::{ORIENT_NAMES, PlaceTarget, PlaceTool, inside_polygon, next_designation};
 
 pub use ew_api::DynCommand;

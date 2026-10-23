@@ -774,37 +774,67 @@ fn a_refused_commit_keeps_the_designation_and_a_non_decimal_one_asks_again() {
     assert_eq!(tables(&s).reps.len(), count + 1);
 }
 
+/// FT-421: a terminal symbol without a strip opens the picker's strip chooser (every strip of the project by tag, the
+/// next free designation proposed); a strip made while it is open is listed and current; the tag comes from the model.
 #[test]
-fn a_new_strip_shows_its_real_tag_once_its_first_terminal_prints_it() {
-    let tmp = Tmp::new("newstrip");
-    let mut s = shell(&tmp, "101");
-    done(&mut s, "strip.new", json!({"letter": "X"}));
+fn a_terminal_symbol_asks_for_its_strip_and_proposes_the_next_designation() {
+    let tmp = Tmp::new("strips");
+    let mut s = shell(&tmp, "103");
+    done(&mut s, "place.pick", json!({"symbol": "ew.iec.terminal@qet10"}));
+    let picker = state(&s)["canvas"]["picker"].clone();
+    assert_eq!(picker["mode"], "strip");
+    let text = s.describe();
+    assert!(text.contains("  row strip \"-X1031\" terminal \"21\""), "{text}");
+    assert!(text.contains("  row strip \"-X1032\" terminal \"6\""), "{text}");
+    done(&mut s, "picker.filter", json!({"text": "1032"}));
+    assert_eq!(s.picker().unwrap().rows.len(), 1);
+    done(&mut s, "picker.choose", json!({}));
+    assert!(s.picker().is_none());
+    assert_eq!(s.tool().name(), "place");
+    let here = sheet(&s, grid_point(&s, (82, 40)));
+    done(&mut s, "canvas.pointer", at(here, json!({})));
+    let line = describe_line(&s, "canvas ghost place");
+    assert!(line.contains("strip \"-X1032:6\""), "{line}");
+    done(&mut s, "ui.dismiss", json!({}));
+    // A new strip while the chooser is open: listed, current, and its tag is the model's.
     done(
         &mut s,
         "place.pick",
         json!({"symbol": "ew.iec.terminal@qet10", "designation": "1"}),
     );
-    let p = free_point(&s);
-    let here = sheet(&s, p);
+    let before = s.picker().unwrap().rows.len();
+    done(&mut s, "strip.new", json!({"letter": "X"}));
+    let p = s.picker().expect("the chooser stays open");
+    assert_eq!(p.rows.len(), before + 1);
+    let ew_viewmodel::tools::PickerRow::Strip(k) = p.rows[p.row] else {
+        panic!("a strip row")
+    };
+    let tag = p.catalogue.strips[k].tag.clone();
+    assert_eq!(p.catalogue.strips[k].next_designation, "1");
+    done(&mut s, "picker.choose", json!({}));
     done(&mut s, "canvas.pointer", at(here, json!({})));
-    // No guessed tag while nothing on the page prints the strip's.
-    assert!(describe_line(&s, "canvas ghost place").contains("strip \"(new strip):1\""));
+    let line = describe_line(&s, "canvas ghost place");
+    assert!(line.contains(&format!("strip \"{tag}:1\"")), "{line}");
     done(&mut s, "canvas.press", at(here, json!({})));
-    // The placed terminal's CP label prints the strip's tag; the tool and the next designation use it.
+    // The first terminal numbers the strip: its CP label prints the strip's tag, which the tool reads from the model
+    // after the commit; the next placement proposes designation 2.
     let t = tables(&s);
     let placed = t
         .reps
         .iter()
-        .find(|r| r.symbol_key == "ew.iec.terminal@qet10" && r.pos == p)
+        .find(|r| r.symbol_key == "ew.iec.terminal@qet10" && r.pos == grid_point(&s, (82, 40)))
         .expect("placed");
-    let tag = t
+    let label = t
         .cps
         .iter()
         .find(|c| c.rep == placed.id)
-        .and_then(|c| c.label.split_once(':').map(|(t, _)| t.to_owned()))
+        .map(|c| c.label.clone())
         .expect("a CP label");
+    let (numbered, rest) = label.split_once(':').expect("tag:designation");
+    assert!(rest.starts_with('1'), "{label}");
+    assert_ne!(numbered, tag, "numbered by its first terminal");
     let line = describe_line(&s, "canvas ghost place");
-    assert!(line.contains(&format!("strip \"{tag}:2\"")), "{line}");
+    assert!(line.contains(&format!("strip \"{numbered}:2\"")), "{line}");
 }
 
 #[test]
