@@ -246,8 +246,39 @@ fn path(p: &usvg::Path, opacity: f64, map: &Map, out: &mut SvgItems) {
 /// The bytes of an asset by its SHA-256, `None` when the caller does not hold it.
 pub type AssetBytes<'a> = dyn Fn(&[u8; 32]) -> Option<Arc<[u8]>> + 'a;
 
+/// Why an image item of a list is not drawn as it should be.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum ImageProblem {
+    /// The caller does not hold the asset's bytes: the item is left, and renderers skip it.
+    Missing,
+    /// The SVG is refused by the rejecter or by usvg: the item is dropped.
+    Refused(SvgError),
+}
+
+/// An image item that is not drawn, by its asset's hash.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct ImageIssue {
+    /// The SHA-256 of the asset.
+    pub sha256: [u8; 32],
+    /// What is wrong.
+    pub problem: ImageProblem,
+}
+
+impl std::fmt::Display for ImageIssue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let hex: String = self.sha256.iter().map(|b| format!("{b:02x}")).collect();
+        match &self.problem {
+            ImageProblem::Missing => write!(
+                f,
+                "the image sha256:{hex} is not drawn: the project does not hold its bytes"
+            ),
+            ImageProblem::Refused(e) => write!(f, "the image sha256:{hex} is not drawn: {e}"),
+        }
+    }
+}
+
 /// What [`resolve_images`] did.
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct ImageReport {
     /// SVG images replaced by their paths.
     pub vector: usize,
@@ -257,6 +288,8 @@ pub struct ImageReport {
     pub missing: usize,
     /// SVG images refused by the rejecter or by usvg (dropped from the list).
     pub refused: usize,
+    /// The missing and refused images, in list order (the export job reports them as page findings).
+    pub issues: Vec<ImageIssue>,
 }
 
 /// `list` with its image items resolved from `assets` (the bytes of an asset by its SHA-256, `None` when the project
@@ -300,6 +333,10 @@ fn resolve_items(items: &[Item], assets: &AssetBytes<'_>, report: &mut ImageRepo
                 };
                 let Some(bytes) = bytes else {
                     report.missing += 1;
+                    report.issues.push(ImageIssue {
+                        sha256: img.image.sha256,
+                        problem: ImageProblem::Missing,
+                    });
                     out.push(item.clone());
                     continue;
                 };
@@ -312,7 +349,13 @@ fn resolve_items(items: &[Item], assets: &AssetBytes<'_>, report: &mut ImageRepo
                             group.link = item.link;
                             out.push(group);
                         }
-                        Err(_) => report.refused += 1,
+                        Err(e) => {
+                            report.refused += 1;
+                            report.issues.push(ImageIssue {
+                                sha256: img.image.sha256,
+                                problem: ImageProblem::Refused(e),
+                            });
+                        }
                     },
                     ImageFormat::Png | ImageFormat::Jpeg => {
                         report.raster += 1;
@@ -444,7 +487,11 @@ mod tests {
                 vector: 1,
                 raster: 1,
                 missing: 1,
-                refused: 0
+                refused: 0,
+                issues: vec![ImageIssue {
+                    sha256: [3; 32],
+                    problem: ImageProblem::Missing
+                }],
             }
         );
         let ItemKind::Group(g) = &out.items[0].kind else {

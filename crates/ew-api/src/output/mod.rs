@@ -473,7 +473,7 @@ pub fn export_pages_with(
             }
         })
         .collect();
-    let findings = phase1
+    let mut findings: Vec<PageFindingAt> = phase1
         .iter()
         .flat_map(|p| {
             p.scene.findings.iter().map(|f| PageFindingAt {
@@ -483,15 +483,29 @@ pub fn export_pages_with(
         })
         .collect();
     // Phase 2, the page phase: every sheet list on its own, collected by page index.
-    let pages = par_map(&phase1, options.parallelism, |_, p| PdfPage {
-        destination: page_destination(p.entry.page),
-        label: p.entry.folio.clone(),
-        title: p.title.clone(),
-        section: p.section.clone(),
-        width: p.scene.sheet_width,
-        height: p.scene.sheet_height,
-        content: ew_scene::images::resolve_images(&p.scene.sheet_list(), &|sha| assets.get(sha)).0,
+    let resolved = par_map(&phase1, options.parallelism, |_, p| {
+        let (content, report) =
+            ew_scene::images::resolve_images(&p.scene.sheet_list(), &|sha| assets.get(sha));
+        let page = PdfPage {
+            destination: page_destination(p.entry.page),
+            label: p.entry.folio.clone(),
+            title: p.title.clone(),
+            section: p.section.clone(),
+            width: p.scene.sheet_width,
+            height: p.scene.sheet_height,
+            content,
+        };
+        (page, report)
     });
+    // The images that could not be drawn (bytes not held, a refused SVG) are page findings, after the scene's.
+    let mut pages = Vec::with_capacity(resolved.len());
+    for (page, report) in resolved {
+        findings.extend(report.issues.into_iter().map(|issue| PageFindingAt {
+            folio: page.label.clone(),
+            finding: PageFinding::Image(issue),
+        }));
+        pages.push(page);
+    }
     let labels: Option<Vec<String>> = match options.pages {
         PageSelection::All => None,
         PageSelection::Folios(_) => Some(pages.iter().map(|p| p.label.clone()).collect()),

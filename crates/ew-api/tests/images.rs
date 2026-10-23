@@ -89,3 +89,37 @@ fn a_png_logo_is_embedded_by_the_svg_writer_and_counted_by_the_pdf_writer() {
         "the PDF writer does not embed rasters yet"
     );
 }
+
+/// Review fix 8: an image the export cannot draw is reported, not dropped silently: a logo whose SVG usvg refuses (an
+/// unbalanced document the store admits), and a logo whose bytes the export was not given (the free function, which
+/// holds no asset bytes), each as a page finding of the cover.
+#[test]
+fn logos_that_cannot_be_drawn_are_page_findings() {
+    use ew_api::output::{PageFindingAt, export_pages};
+    use ew_scene::images::ImageProblem;
+    use ew_scene::page::PageFinding;
+    let image_findings = |findings: &[PageFindingAt]| -> Vec<(String, ImageProblem)> {
+        findings
+            .iter()
+            .filter_map(|f| match &f.finding {
+                PageFinding::Image(issue) => Some((f.folio.clone(), issue.problem.clone())),
+                _ => None,
+            })
+            .collect()
+    };
+    let mut s = golden();
+    assert!(image_findings(&s.export_pages(&cover()).unwrap().findings).is_empty());
+    set_logo(
+        &mut s,
+        br#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4"><g><rect width="4" height="4"/></svg>"#,
+    );
+    let found = image_findings(&s.export_pages(&cover()).unwrap().findings);
+    assert!(
+        matches!(found.as_slice(), [(folio, ImageProblem::Refused(_))] if folio == "1"),
+        "{found:?}"
+    );
+    let mut s = golden();
+    set_logo(&mut s, &red_png(2, 2));
+    let found = image_findings(&export_pages(&s.query(), &cover()).unwrap().findings);
+    assert_eq!(found, [("1".to_owned(), ImageProblem::Missing)]);
+}

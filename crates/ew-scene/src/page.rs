@@ -360,6 +360,9 @@ pub enum PageFinding {
     },
     /// A finding of the report table.
     Table(TableFinding),
+    /// An image item the export job could not draw: its bytes are not held, or its SVG is refused (FT-384; the
+    /// job adds these after resolving the sheet list, `crate::images::resolve_images`).
+    Image(crate::images::ImageIssue),
 }
 
 /// One layer of one page: the display list in page coordinates, the symbol geometry its instances name,
