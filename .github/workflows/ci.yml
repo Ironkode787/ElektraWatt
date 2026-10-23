@@ -29,6 +29,10 @@ env:
   CARGO_TERM_COLOR: always
   RUSTFLAGS: "-D warnings"
   CARGO_INCREMENTAL: "0"
+  # Line tables only, as every local build has since 2026-10-21 (panics keep file and line; the debug info loses most
+  # of its size). The cycle-25 delivery run (39914507884) filled the Linux runner's disk in test-linux's doctest build,
+  # which compiles the workspace a second time with the default features.
+  CARGO_PROFILE_DEV_DEBUG: "line-tables-only"
   # Keep in step with rust-toolchain.toml and the workspace rust-version in Cargo.toml.
   RUST_TOOLCHAIN: "1.99.0"
   RUST_MSRV: "1.85.0"
