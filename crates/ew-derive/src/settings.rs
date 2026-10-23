@@ -140,6 +140,30 @@ pub fn check_member(member: Member, value: &Value) -> Result<(), String> {
     }
 }
 
+/// The company colour codes that [`check_member`] accepts for the `colour_profile` value `colour_profile`, as
+/// `(code, base IEC 60757 code)` in the order the profile's `codes` declare them (doc 08 §4.5: `("DBU", "BU")`);
+/// empty for a value [`check_member`] would refuse, and for a profile that declares none (WP-S2.05 §4.2: the
+/// property grid's colour editor accepts exactly these besides the IEC codes).
+pub fn company_codes(colour_profile: &Value) -> Vec<(String, String)> {
+    if check_member(Member::ColourProfile, colour_profile).is_err() {
+        return Vec::new();
+    }
+    colour_profile
+        .get("codes")
+        .and_then(Value::as_array)
+        .map(|codes| {
+            codes
+                .iter()
+                .filter_map(|c| {
+                    let code = c.get("code")?.as_str()?;
+                    let base = c.get("base")?.as_str()?;
+                    Some((code.to_owned(), base.to_owned()))
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 /// `settings_member(m)`: the member's value as JSON, `None` when absent. The pinned derivation profile is its
 /// key as a JSON string; `ip_pairing` is its typed value written as JSON. Policy Memo: a cut-off point, not a
 /// cost saving (ARCH §6.4).
@@ -205,6 +229,27 @@ mod tests {
             assert_eq!(Member::from_name(m.name()), Some(m));
         }
         assert_eq!(Member::from_name("identifier_set"), None);
+    }
+
+    #[test]
+    fn company_codes_are_the_declared_ones_of_an_accepted_profile() {
+        let profile = json!({"key": "k", "codes": [
+            {"code": "DBU", "base": "BU", "shade": "dark"},
+            {"code": "LGN", "base": "GN"}
+        ], "rows": [{"colour": ["DBU"]}]});
+        assert_eq!(
+            company_codes(&profile),
+            [
+                ("DBU".to_owned(), "BU".to_owned()),
+                ("LGN".to_owned(), "GN".to_owned())
+            ]
+        );
+        assert!(company_codes(&json!({"key": "k", "rows": []})).is_empty());
+        // A value check_member refuses (an IEC code declared as a company code) has none.
+        let bad = json!({"key": "k", "codes": [{"code": "BU", "base": "BU"}], "rows": []});
+        assert!(check_member(Member::ColourProfile, &bad).is_err());
+        assert!(company_codes(&bad).is_empty());
+        assert!(company_codes(&Value::Null).is_empty());
     }
 
     #[test]

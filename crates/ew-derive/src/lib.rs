@@ -141,7 +141,7 @@ pub use profile::{
 };
 pub use q::{Cycle, Diagnostics, IdxView, Q, TableView};
 pub use query::{Changes, Policy, Query};
-pub use settings::{Member, SettingsMember, check_member as check_settings_member};
+pub use settings::{Member, SettingsMember, check_member as check_settings_member, company_codes};
 pub use stitch::{
     EdgeKind, IpGroup, IpInfo, Level, PairMode, ShortSource, StitchEdge, StitchGraph, StitchGraphQ,
     StitchNode,

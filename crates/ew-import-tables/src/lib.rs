@@ -73,6 +73,9 @@ pub use csv::TableLimits;
 pub use ew_interop_api;
 pub use import::TablesImporter;
 pub use library::{BUILTIN_LIBRARY, BuiltinLibrary, LibraryError};
+/// The foreign colour notations and their IEC 60757 codes (doc 14 §4.12; the property grid's colour suggestions, WP-S2.05
+/// §4.2).
+pub use table::COLOUR_ALIASES;
 
 /// The importer ID, also `ImportLineage.importer` and the first component of the lineage namespace name
 /// (`csv␟fixed␟golden`, doc 14 §2.3).

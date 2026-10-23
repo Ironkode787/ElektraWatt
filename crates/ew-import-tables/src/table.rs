@@ -532,8 +532,8 @@ pub(crate) fn parse_dec3(s: &str) -> Result<Dec3, String> {
         .map_err(|e| format!("`{s}` is not a decimal: {e}"))
 }
 
-/// The foreign colour notations of doc 14 §4.12 and the IEC 60757 codes they stand for.
-const COLOUR_ALIASES: [(&str, IecColour); 7] = [
+/// The foreign colour notations of doc 14 §4.12 and the IEC 60757 codes they stand for (`BR` for `BN`, D-17).
+pub const COLOUR_ALIASES: [(&str, IecColour); 7] = [
     ("BR", IecColour::Bn),
     ("SW", IecColour::Bk),
     ("BL", IecColour::Bu),
