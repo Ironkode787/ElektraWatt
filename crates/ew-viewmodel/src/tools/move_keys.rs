@@ -122,6 +122,17 @@ pub fn move_overlay(cx: &ToolCx<'_>, moved: &[EntityRef], steps: (i64, i64)) -> 
             style: Style::dashed(Token::RubberBand),
         });
     }
+    // The autoconnect proposals of the moved CPs (WP-S2.04 §8.3): shown, never committed by a move.
+    let found = move_proposals(cx, moved, steps);
+    for p in &found.list {
+        if let super::autoconnect::ProposalTarget::Cp { at, .. } = &p.target {
+            items.push(OverlayItem::Line {
+                a: cx.snapper.page_to_sheet(p.cp.at),
+                b: cx.snapper.page_to_sheet(*at),
+                style: Style::dashed(Token::Ghost),
+            });
+        }
+    }
     let label_at = rects
         .iter()
         .copied()
@@ -152,6 +163,25 @@ pub fn grid_point_of(grid: (i64, i64), v: i64) -> i64 {
     let k = div_round_toward_zero(i128::from(v) * den, num);
     let p = div_round_toward_zero(k * num, den);
     i64::try_from(p).unwrap_or(if p < 0 { i64::MIN } else { i64::MAX })
+}
+
+/// The autoconnect proposals of the free CPs of `moved` displaced by `steps` (WP-S2.04 §8.3): shown during a move,
+/// never committed by it.
+pub fn move_proposals(
+    cx: &ToolCx<'_>,
+    moved: &[EntityRef],
+    steps: (i64, i64),
+) -> super::autoconnect::Proposals {
+    let tables = &cx.page.tables;
+    let delta = |rep: EntityRef| {
+        moved
+            .contains(&rep)
+            .then(|| tables.reps.iter().find(|r| r.id == rep.0))
+            .flatten()
+            .map(|r| rep_delta(cx, r.pos, steps))
+    };
+    let ghost = super::autoconnect::moved_cps(tables, &delta);
+    super::autoconnect::proposals(&ghost, tables, moved, super::wire::drawing_area(cx), 0)
 }
 
 /// `geometry::follow_ends` of `ew-commands` on a page polyline (FT-423): end `a` moves by `da`, end `b` by `db`

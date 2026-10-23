@@ -40,6 +40,8 @@ mod onboarding;
 mod projects;
 mod properties;
 mod tools;
+// WP-S2.04 part 2: the wiring tools' host duties.
+mod wiring;
 mod workspaces;
 
 pub use navigation::{Focus, RECENT_PAGES, SessionCalls};
@@ -516,6 +518,17 @@ fn clears_banner(id: &str) -> bool {
             | "text.input"
             | "edit.delete_selection"
             | "rep.exchange"
+            // WP-S2.04 part 2 (wiring, §8.7) leaves it standing too. Begin.
+            | "tool.wire"
+            | "tool.next_proposal"
+            | "tool.connect_on_move"
+            | "tool.route_edit"
+            | "junction.open"
+            | "junction.member"
+            | "junction.style"
+            | "junction.wiring"
+            | "project.crossings"
+            // WP-S2.04 part 2. End.
             // The property grid's actions (WP-S2.05 §6.10): a failed edit shows under its field, not in the banner.
             | "props.show"
             | "props.focus"
@@ -1032,6 +1045,8 @@ impl ShellModel {
         self.sync_views();
         self.sync_tool_context();
         self.after_commit();
+        // WP-S2.04 part 2: the junction editor follows the revision and the page.
+        self.sync_junction_editor();
         self.sync_properties();
         self.sync_find();
         outcome
@@ -1160,6 +1175,19 @@ impl ShellModel {
             },
             "edit.delete_selection" => self.act_delete_selection(),
             "rep.exchange" => self.act_rep_exchange(p),
+            // WP-S2.04 part 2 (wiring, §8.7). Begin.
+            "tool.wire" => self.act_tool_wire(),
+            "tool.next_proposal" => self.send_proposal_key(),
+            "tool.connect_on_move" => Outcome::Refused {
+                reason_key: "reason-connect-on-place",
+            },
+            "tool.route_edit" => self.act_route_edit(),
+            "junction.open" => self.act_junction_open(p),
+            "junction.member" => self.act_junction_member(p),
+            "junction.style" => self.act_junction_style(p),
+            "junction.wiring" => self.act_junction_wiring(p),
+            "project.crossings" => self.act_crossings(p),
+            // WP-S2.04 part 2. End.
             "props.show" => self.act_props_show(p),
             "props.focus" => self.act_props_focus(),
             "props.project" => self.act_props_project(),
@@ -1643,6 +1671,7 @@ impl ShellModel {
         if self.palette.take().is_some()
             || self.dialog.take().is_some()
             || self.tools.picker.take().is_some()
+            || self.tools.junction_editor.take().is_some()
             || self.tools.link_preview.take().is_some()
         {
             return Outcome::Done;

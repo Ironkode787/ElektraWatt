@@ -105,6 +105,44 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         // WP-S2.04 part 2 (wiring; the strip chooser of FT-421). Begin.
         "picker-title-strip" => "Choose a terminal strip",
         "picker-strip-row" => "{0}  next terminal {1}",
+        "action-tool-wire" => "Connection",
+        "action-tool-next-proposal" => "Next autoconnect proposal",
+        "action-tool-connect-on-move" => "Connect while moving",
+        "action-tool-route-edit" => "Edit route",
+        "action-junction-open" => "Junction sequence...",
+        "action-junction-member" => "Move a junction member",
+        "action-junction-style" => "Junction style",
+        "action-junction-wiring" => "Junction wiring",
+        "action-project-crossings" => "Show crossings as hops",
+        "tool-wire" => "Wire",
+        "tool-route_edit" => "Edit route",
+        "hint-wire-armed" => "Click or Enter on a connection point, a junction or a wire to start",
+        "hint-wire-routing" => "Click a connection point; Backspace removes the last bend; Escape cancels",
+        "hint-route-edit" => "Tab picks the segment, the arrow keys move it, Enter commits; Escape cancels",
+        "hint-place-needs-route" => "Give this wire a route first (Edit route)",
+        "announce-wire-routing" => {
+            "Wire: routing from {0}. Click a connection point; Backspace removes the last bend; Escape cancels"
+        }
+        "wire-readout" => "{0} mm",
+        "reason-connect-on-place" => {
+            "Proposals connect when a symbol is placed; a move never adds a connection"
+        }
+        "reason-one-connection" => "Select exactly one connection",
+        "reason-one-junction" => "Select exactly one junction",
+        "reason-no-junction-editor" => "The junction sequence editor is not open",
+        "reason-junction-member" => "No such member position",
+        "junction-title" => "Junction {0}",
+        "junction-style" => "Style",
+        "junction-style-dot" => "Dot",
+        "junction-style-bevel" => "Bevel",
+        "junction-wiring" => "Wiring",
+        "junction-wiring-star" => "Star",
+        "junction-wiring-chain" => "Chain",
+        "junction-wiring-default" => "Style default",
+        "junction-sequence" => "Sequence (Alt+Up, Alt+Down)",
+        "junction-wires" => "Physical wires",
+        "junction-wire-row" => "{0}: {1} to {2}",
+        "junction-orient" => "Orientation {0} (R)",
         // WP-S2.04 part 2. End.
         "tool-select" => "Select",
         "tool-measure" => "Measure",

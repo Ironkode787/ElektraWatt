@@ -258,6 +258,13 @@ impl ShellModel {
                 {
                     self.announce_place();
                 }
+                // The Wire tool says where it routes from once it starts (WP-S2.04 §8.2).
+                if self.tools.tool.name() == "wire"
+                    && self.tools.tool.state() == "routing"
+                    && matches!(ev, CanvasEvent::Press { .. } | CanvasEvent::Activate)
+                {
+                    self.announce_wire();
+                }
                 out
             }
             None => Outcome::Refused {
@@ -655,8 +662,12 @@ impl ShellModel {
         self.send_tool(&CanvasEvent::Dwell { ms })
     }
 
-    /// `canvas.activate` (Enter): `Activate` to the tool, at the grid cursor.
+    /// `canvas.activate` (Enter): `Activate` to the tool, at the grid cursor; with Select idle and exactly one junction
+    /// selected, the junction sequence editor opens instead (WP-S2.04 §8.5).
     pub(super) fn act_activate(&mut self) -> Outcome {
+        if let Some(out) = self.enter_opens_junction() {
+            return out;
+        }
         let Some(at) = self.canvas().and_then(CanvasModel::cursor) else {
             return Outcome::Refused {
                 reason_key: "reason-no-cursor",

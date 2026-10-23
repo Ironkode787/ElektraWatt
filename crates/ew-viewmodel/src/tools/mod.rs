@@ -25,21 +25,33 @@
 //! hand-back ([`Tool::on_preview`]); and the tools of place and arrange: the picker ([`Picker`]), the Place tool
 //! ([`PlaceTool`]), Select's drag rows and keyboard move ([`move_keys`]), transforms and delete on a selection
 //! ([`transform`]) and change symbol ([`ExchangeTool`]).
+//!
+//! **WP-S2.04 part 2** adds wiring: the Wire tool ([`WireTool`]) with the router of `ew_api::routing`, the
+//! autoconnect proposals of a floating or dragged symbol ([`autoconnect`]), route edit (Select's segment drag and
+//! [`RouteEditTool`]) and the junction sequence editor ([`JunctionEditor`]); a tool's route reaches the transcript
+//! through [`Tool::route_info`].
 
+pub mod autoconnect;
 mod exchange;
 mod host;
+mod junction_editor;
 mod measure;
 pub mod move_keys;
 mod overlay;
 mod picker;
 mod place;
+pub mod route_edit;
 mod select;
 mod snap;
 pub mod transform;
+pub mod wire;
 
 pub use exchange::ExchangeTool;
+pub use junction_editor::{JunctionEditor, JunctionMember};
 pub use picker::{PendingTerminal, Picker, PickerMode, PickerRow};
 pub use place::{ORIENT_NAMES, PlaceTarget, PlaceTool, inside_polygon, next_designation};
+pub use route_edit::RouteEditTool;
+pub use wire::{WireTarget, WireTool};
 
 pub use ew_api::DynCommand;
 use ew_api::output::PageTables;
@@ -158,6 +170,20 @@ pub enum ToolKey {
     Finish,
 }
 
+/// The route a tool is drawing (WP-S2.04 §8.7): the transcript's `route` member and the describe text's `canvas
+/// route` line.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct RouteInfo {
+    /// The start's label (`-102F1:2`, `@C11` for a junction or a point on a wire).
+    pub from: String,
+    /// The bends fixed by a click on the grid.
+    pub bends: usize,
+    /// The vertices of the routed ghost.
+    pub points: usize,
+    /// The label of the target under the point, `None` on the grid.
+    pub end: Option<String>,
+}
+
 /// What the host learned from a tool's preview (§7.3), handed to [`Tool::on_preview`].
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct PreviewInfo {
@@ -192,8 +218,11 @@ pub enum Ghost {
         strip: Option<String>,
         /// The predicted tag of a fresh preview.
         tag: Option<String>,
-        /// The accepted autoconnect hints (part 2).
+        /// The autoconnect proposals (part 2; a split counts once); none while Alt suppresses them.
         hints: usize,
+        /// The proposals as the describe text names them: the ghost CP's designation in quotes (two for a split) and
+        /// the target CP's label (`None` for a split).
+        proposals: Vec<(String, Option<String>)>,
     },
     /// A move of the selection in grid steps.
     Move {
@@ -203,6 +232,8 @@ pub enum Ghost {
         steps: (i64, i64),
         /// The readout (`dx 7.938 dy 0.000 mm`).
         readout: String,
+        /// The autoconnect proposals of the moved CPs (part 2, §8.3): shown, never committed by a move.
+        proposals: Vec<(String, Option<String>)>,
     },
     /// A symbol exchange.
     Exchange {
@@ -288,6 +319,11 @@ pub trait Tool {
     /// The host committed the tool's command (`done`) or the commit failed (fix round of WP-S2.04 part 1, item 2).
     fn on_commit(&mut self, done: bool) {
         let _ = done;
+    }
+
+    /// The route the tool is drawing (WP-S2.04 §8.7); `None` while it draws none.
+    fn route_info(&self) -> Option<RouteInfo> {
+        None
     }
 
     /// The tool as `Any`, for host duties that need its concrete type (the place tool's next representation type);
@@ -495,6 +531,7 @@ pub fn tool_named(name: &str) -> Option<Box<dyn Tool>> {
     match name {
         "select" => Some(Box::new(SelectTool::new())),
         "measure" => Some(Box::new(MeasureTool::new())),
+        "wire" => Some(Box::new(WireTool::new())),
         _ => None,
     }
 }

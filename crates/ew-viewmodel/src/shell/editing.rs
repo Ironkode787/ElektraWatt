@@ -306,7 +306,10 @@ impl ShellModel {
             }
         };
         self.tools.picker = None;
-        self.activate_tool(Box::new(PlaceTool::new(shape, target)));
+        let autoconnect = self.page_autoconnects();
+        self.activate_tool(Box::new(
+            PlaceTool::new(shape, target).with_autoconnect(autoconnect),
+        ));
         Outcome::Done
     }
 
@@ -368,6 +371,7 @@ impl ShellModel {
         };
         let folio = self.current_folio().unwrap_or_default().to_owned();
         self.palette = None;
+        self.tools.junction_editor = None;
         self.tools.picker = Some(Picker::new(mode, &folio, cat));
         Outcome::Done
     }
@@ -535,6 +539,9 @@ impl ShellModel {
     /// refused `reason-one-rep` and Shift+V `reason-place-only`; with Place, Shift+V is the host's (the next
     /// catalogue symbol drawing the same function definition).
     pub(super) fn act_tool_key(&mut self, key: ToolKey) -> Outcome {
+        if matches!(key, ToolKey::NextProposal | ToolKey::ConnectOnMove) {
+            return self.send_tool(&CanvasEvent::Key(key));
+        }
         if self.tools.tool.name() == "select" {
             let reps = self.canvas().map_or(0, |c| {
                 selection_kinds(&self.tools.selection, &c.page().tables)

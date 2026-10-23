@@ -13,7 +13,7 @@ use ew_api::output::{LinkTarget, PageTables, PlaceCatalogue, SymbolShape};
 use ew_api::{DerivedDiff, Preview};
 use serde_json::Value;
 
-use super::{Overlay, Picker, SelectTool, Selection, Tool};
+use super::{JunctionEditor, Overlay, Picker, SelectTool, Selection, Tool};
 use crate::canvas::CanvasModel;
 
 /// The pane of the link hover preview, in logical points (WP-S2.03 §7.8).
@@ -120,6 +120,8 @@ pub(crate) struct ToolHost {
     pub last_primary: Option<String>,
     /// The page tables before the last commit, for dropping deleted records from the selection (§6.4 item 3).
     pub before_commit: Option<Arc<PageTables>>,
+    /// The junction sequence editor popup (WP-S2.04 part 2, §8.5), while open.
+    pub junction_editor: Option<JunctionEditor>,
 }
 
 impl ToolHost {
@@ -141,6 +143,7 @@ impl ToolHost {
             shapes: None,
             last_primary: None,
             before_commit: None,
+            junction_editor: None,
         }
     }
 }

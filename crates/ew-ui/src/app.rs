@@ -55,6 +55,8 @@ pub(crate) enum Event {
     DismissBanner,
     /// The privacy button of the About dialog and of the first-run privacy step: `PRIVACY.md` in the system browser.
     OpenPrivacy,
+    /// The junction sequence editor's focused row (WP-S2.04 part 2; a view change of the popup).
+    JunctionRow(usize),
 }
 
 /// What a file dialog came back with.
@@ -419,6 +421,7 @@ impl App {
             &mut events,
         );
         self.picker_was_open = picker_open;
+        crate::junction::show(&ctx, &self.shell, &mut events);
         let dialog_open = self.shell.dialog().is_some();
         about::show(
             &ctx,
@@ -504,7 +507,9 @@ impl App {
     fn route_keys(&mut self, ctx: &egui::Context, events: &mut Vec<Event>) {
         let palette_open = self.shell.palette().is_some();
         let dialog_open = self.shell.dialog().is_some();
-        let picker_open = self.shell.picker().is_some();
+        // The junction sequence editor is a popup like the picker (WP-S2.04 part 2): Escape closes it, its own keys
+        // stay with it.
+        let picker_open = self.shell.picker().is_some() || self.shell.junction_editor().is_some();
         let overlay = palette_open || dialog_open || picker_open;
         if overlay && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
             events.push(Event::Action("ui.dismiss", Value::Null));
@@ -623,6 +628,7 @@ impl App {
             Event::GotoGo(text) => self.dispatch("nav.goto", &json!({ "text": text })),
             Event::WorkspaceText(text) => self.shell.set_workspace_text(&text),
             Event::DismissBanner => self.shell.dismiss_banner(),
+            Event::JunctionRow(row) => self.shell.set_junction_row(row),
             Event::OpenPrivacy => {
                 if !self.platform.open_url(ew_viewmodel::about::PRIVACY_URL) {
                     let text = strings::format("privacy-open-failed", &[ew_viewmodel::about::PRIVACY_URL]);

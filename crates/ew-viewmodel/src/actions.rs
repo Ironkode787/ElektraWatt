@@ -345,6 +345,16 @@ fn editable_page(m: &ShellModel) -> Result<(), &'static str> {
 }
 
 /// The picker is open (WP-S2.04 §7.1).
+/// The junction sequence editor is open on a project that can be changed (WP-S2.04 part 2, §8.5).
+fn junction_editor_open(m: &ShellModel) -> Result<(), &'static str> {
+    writable(m)?;
+    if m.junction_editor().is_some() {
+        Ok(())
+    } else {
+        Err("reason-no-junction-editor")
+    }
+}
+
 fn picker_open(m: &ShellModel) -> Result<(), &'static str> {
     if m.picker().is_some() {
         Ok(())
@@ -1187,6 +1197,90 @@ pub static ACTIONS: &[ActionMeta] = &[
         has_pages,
         None,
     ))),
+    // WP-S2.04 part 2 (wiring, §8.7): the Wire tool, the proposals' Tab, route edit, the junction sequence editor and
+    // the crossings setting. Begin.
+    in_canvas(act(
+        "tool.wire",
+        Command,
+        "action-tool-wire",
+        Menu::Insert,
+        &["W"],
+        editable_page,
+        slot_sep(Menu::Insert),
+    )),
+    hidden(in_canvas(act(
+        "tool.next_proposal",
+        View,
+        "action-tool-next-proposal",
+        Menu::Edit,
+        &["Tab"],
+        editable_page,
+        None,
+    ))),
+    hidden(in_canvas(act(
+        "tool.connect_on_move",
+        Command,
+        "action-tool-connect-on-move",
+        Menu::Edit,
+        &["C"],
+        editable_page,
+        None,
+    ))),
+    in_canvas(act(
+        "tool.route_edit",
+        Command,
+        "action-tool-route-edit",
+        Menu::Edit,
+        &[],
+        editable_page,
+        slot_sep(Menu::Edit),
+    )),
+    in_canvas(act(
+        "junction.open",
+        View,
+        "action-junction-open",
+        Menu::Edit,
+        &[],
+        editable_page,
+        slot(Menu::Edit),
+    )),
+    hidden(act(
+        "junction.member",
+        Command,
+        "action-junction-member",
+        Menu::Edit,
+        &[],
+        junction_editor_open,
+        None,
+    )),
+    hidden(act(
+        "junction.style",
+        Command,
+        "action-junction-style",
+        Menu::Edit,
+        &[],
+        junction_editor_open,
+        None,
+    )),
+    hidden(act(
+        "junction.wiring",
+        Command,
+        "action-junction-wiring",
+        Menu::Edit,
+        &[],
+        junction_editor_open,
+        None,
+    )),
+    act(
+        "project.crossings",
+        Command,
+        "action-project-crossings",
+        Menu::Tools,
+        &[],
+        writable,
+        slot_sep(Menu::Tools),
+    ),
+    // WP-S2.04 part 2. End.
     act(
         "tools.company_standard",
         Command,
@@ -2027,6 +2121,9 @@ fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
                 .panes()
                 .contains(&crate::layout::PaneKind::Properties),
             "tool.select" | "tool.measure" => meta.id.strip_prefix("tool.") == Some(model.tool().name()),
+            // WP-S2.04 part 2.
+            "tool.wire" => model.tool().name() == "wire",
+            "project.crossings" => model.crossings_hops(),
             _ => false,
         },
         topic: crate::help::action_topic(meta.id),

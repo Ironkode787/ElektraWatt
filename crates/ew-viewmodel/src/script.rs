@@ -26,7 +26,11 @@
 //! `link_preview` (the link preview's target folio or `null`), then (WP-S2.04 part 1, §7.7) `ghost` (`null`, or
 //! `{"kind": "place", "symbol", "variant", "rep_type", "at_nm", "target", "tag", "hints"}`, `{"kind": "move",
 //! "count", "steps"}` or `{"kind": "exchange", "symbol", "unmapped"}`) and `picker` (`null` or `{"mode", "filter",
-//! "rows", "row"}`). After `canvas` come `tabs` (`null` without a project, else
+//! "rows", "row"}`; `mode` also `strip`, the strip chooser), then (WP-S2.04 part 2, §8.7) `route` (`null` or
+//! `{"from", "bends", "points", "end"}`: the labels of the Wire tool's start and target, the bends fixed by clicks,
+//! the vertices of the ghost) and `junction_editor` (`null` or `{"junction", "style", "wiring", "sequence"}`: the
+//! junction named by its frame cell, never its UUID, and the members by their far endpoints' labels). After `canvas`
+//! come `tabs` (`null` without a project, else
 //! `{"focused": [g, i], "groups": [[{"id", "folio", "back", "forward"}, …], …]}`), `focus` (`navigator`, `canvas`,
 //! `properties` or `null`) and `navigator` (`null`, or `{"mode", "sort", "filter", "row"}`), then (WP-S2.05 part 1)
 //! `properties` (`null` without a project or while the pane is closed, else `{"title", "items", "kinds", "sections":
@@ -522,7 +526,37 @@ fn canvas_json(shell: &ShellModel) -> String {
         ),
         format!("\"ghost\":{}", ghost_json(shell)),
         format!("\"picker\":{}", picker_json(shell)),
+        // WP-S2.04 part 2.
+        format!("\"route\":{}", route_json(shell)),
+        format!("\"junction_editor\":{}", junction_editor_json(shell)),
     ])
+}
+
+/// The `route` member of the canvas (WP-S2.04 §8.7): `null`, or `{"from", "bends", "points", "end"}`.
+fn route_json(shell: &ShellModel) -> String {
+    match shell.tool().route_info() {
+        None => "null".to_owned(),
+        Some(r) => object(vec![
+            member("from", &Value::from(r.from)),
+            member("bends", &Value::from(r.bends)),
+            member("points", &Value::from(r.points)),
+            member("end", &r.end.map_or(Value::Null, Value::from)),
+        ]),
+    }
+}
+
+/// The `junction_editor` member of the canvas (WP-S2.04 §8.7): `null`, or `{"junction" (its frame cell), "style",
+/// "wiring", "sequence"}`.
+fn junction_editor_json(shell: &ShellModel) -> String {
+    match shell.junction_editor() {
+        None => "null".to_owned(),
+        Some(e) => object(vec![
+            member("junction", &Value::from(e.cell.as_str())),
+            member("style", &Value::from(e.style.as_str())),
+            member("wiring", &Value::from(e.wiring.as_str())),
+            member("sequence", &Value::from(e.sequence_labels())),
+        ]),
+    }
 }
 
 /// The `ghost` member of the canvas (WP-S2.04 §7.7): `null`, or `{"kind": "place", "symbol", "variant",

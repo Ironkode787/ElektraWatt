@@ -32,6 +32,8 @@ mod menu;
 pub mod navigator;
 pub mod page_view;
 mod palette;
+// WP-S2.04 part 2: the junction sequence editor popup.
+mod junction;
 mod picker;
 pub mod properties;
 mod start_page;

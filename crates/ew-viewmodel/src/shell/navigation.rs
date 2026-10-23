@@ -82,6 +82,8 @@ pub struct SessionCalls {
     // WP-S2.05 part 2
     /// `Session::find`: `find.run`, and a replace or a stale replace card that runs the search again.
     pub find: u64,
+    /// `Session::junction_wires` (WP-S2.04 part 2, §8.5): once per (revision, junction) while the editor is open.
+    pub junction_wires: u64,
 }
 
 /// Counts one of the shell's `Session` calls (a free function, so that a call can be counted while the project is

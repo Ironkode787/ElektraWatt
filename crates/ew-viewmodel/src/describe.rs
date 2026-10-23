@@ -244,6 +244,29 @@ pub const VOCABULARY: &[&str] = &[
     "result",
     "truncated",
     "text",
+    // Wiring (WP-S2.04 part 2, §8.7; ID-474 extended): 21 words, a reviewed vocabulary change (`junction` is WP-S2.03
+    // part 2's word above, ID-632).
+    "route",
+    "from",
+    "end",
+    "bends",
+    "points",
+    "proposals",
+    "->",
+    "style",
+    "wiring",
+    "sequence",
+    "wire",
+    "segment",
+    "routing",
+    "crossings",
+    "plain",
+    "hops",
+    "dot",
+    "bevel",
+    "star",
+    "chain",
+    "connect",
 ];
 
 /// The 14 words WP-S2.05 part 2 adds to [`VOCABULARY`] (§7.6).
@@ -262,6 +285,31 @@ pub const FIND_WORDS: &[&str] = &[
     "result",
     "truncated",
     "text",
+];
+
+/// The 21 words WP-S2.04 part 2 adds to [`VOCABULARY`] (§8.7, ID-632: `junction` is a word since WP-S2.03 part 2).
+pub const WIRE_WORDS: &[&str] = &[
+    "route",
+    "from",
+    "end",
+    "bends",
+    "points",
+    "proposals",
+    "->",
+    "style",
+    "wiring",
+    "sequence",
+    "wire",
+    "segment",
+    "routing",
+    "crossings",
+    "plain",
+    "hops",
+    "dot",
+    "bevel",
+    "star",
+    "chain",
+    "connect",
 ];
 
 /// The 28 words WP-S2.04 part 1 adds to [`VOCABULARY`] (§7.7).
@@ -1044,6 +1092,7 @@ fn ghost_lines(model: &ShellModel, lines: &mut Vec<String>) {
             letter,
             strip,
             tag,
+            proposals,
             ..
         }) => {
             let mut line =
@@ -1064,15 +1113,26 @@ fn ghost_lines(model: &ShellModel, lines: &mut Vec<String>) {
                 line.push_str(&format!(" tag \"{t}\""));
             }
             lines.push(line);
+            // WP-S2.04 part 2 (§8.7): the autoconnect proposals while the ghost has any.
+            if !proposals.is_empty() {
+                lines.push(proposals_line(&proposals));
+            }
         }
         Some(crate::tools::Ghost::Move {
             count,
             steps,
             readout,
-        }) => lines.push(format!(
-            "canvas ghost move {count} steps {} {} readout \"{readout}\"",
-            steps.0, steps.1
-        )),
+            proposals,
+        }) => {
+            lines.push(format!(
+                "canvas ghost move {count} steps {} {} readout \"{readout}\"",
+                steps.0, steps.1
+            ));
+            // WP-S2.04 part 2 (§8.3): a move shows its proposals and connects none.
+            if !proposals.is_empty() {
+                lines.push(format!("{} connect none", proposals_line(&proposals)));
+            }
+        }
         Some(crate::tools::Ghost::Exchange { symbol, unmapped }) => {
             let list = if unmapped.is_empty() {
                 "none".to_owned()
@@ -1087,6 +1147,53 @@ fn ghost_lines(model: &ShellModel, lines: &mut Vec<String>) {
                 "canvas ghost exchange symbol \"{symbol}\" unmapped {list}"
             ));
         }
+    }
+    wiring_lines(model, lines);
+}
+
+/// `canvas proposals <n> "<cp>" -> "<target>" …` (a split: `"<cp>" "<cp>" -> segment`).
+fn proposals_line(proposals: &[(String, Option<String>)]) -> String {
+    let mut line = format!("canvas proposals {}", proposals.len());
+    for (cp, target) in proposals {
+        match target {
+            Some(t) => line.push_str(&format!(" {cp} -> \"{t}\"")),
+            None => line.push_str(&format!(" {cp} -> segment")),
+        }
+    }
+    line
+}
+
+/// The lines of WP-S2.04 part 2 (§8.7): the route the Wire tool draws, the junction sequence editor while open (one
+/// line, then one line per physical wire) and the crossings setting when it draws hops.
+fn wiring_lines(model: &ShellModel, lines: &mut Vec<String>) {
+    if let Some(r) = model.tool().route_info() {
+        let mut line = format!(
+            "canvas route from \"{}\" bends {} points {}",
+            r.from, r.bends, r.points
+        );
+        if let Some(end) = &r.end {
+            line.push_str(&format!(" end \"{end}\""));
+        }
+        lines.push(line);
+    }
+    if let Some(e) = model.junction_editor() {
+        let sequence: Vec<String> = e.sequence_labels().iter().map(|l| format!("\"{l}\"")).collect();
+        lines.push(format!(
+            "canvas junction \"{}\" style {} wiring {} sequence {}",
+            e.cell,
+            e.style,
+            e.wiring,
+            sequence.join(" ")
+        ));
+        for w in &e.wires {
+            lines.push(format!(
+                "  wire \"{}\" from \"{}\" end \"{}\"",
+                w.label, w.from, w.to
+            ));
+        }
+    }
+    if let Some(word) = model.crossings_word() {
+        lines.push(format!("canvas crossings {word}"));
     }
 }
 

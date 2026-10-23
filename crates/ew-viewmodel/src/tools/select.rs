@@ -4,12 +4,17 @@
 //! The Select tool (`select`; WP-S2.03 §7.6 with WP-S2.04 §7.3's drag rows and keyboard move and §7.4's
 //! transforms; doc 06 §4.3).
 //!
-//! A press is classified by the pick of WP-S2.04 §6.6 in this order: a link; a **movable** entity (a
-//! representation); any other entity (a connection, a junction); empty canvas.
+//! A press is classified by the pick of WP-S2.04 §6.6 in this order: a link; a segment of a **selected** connection
+//! that is neither its first nor its last segment (part 2, §8.4); a **movable** entity (a representation); any other
+//! entity (a connection, a junction); empty canvas.
 //!
 //! | State | Event (condition) | Next | Output |
 //! |---|---|---|---|
 //! | idle | press on a link | idle | `Follow` on release within 3 points |
+//! | idle | press on a segment of a selected connection (not its first or last) | dragging (segment) | `None` |
+//! | dragging (segment) | move | dragging (segment) | `Transient`: the route with the segment moved perpendicular to itself in grid steps, its neighbours stretched, the readout |
+//! | dragging (segment) | `Dwell { ms ≥ 80 }` | dragging (segment) | `Preview(connection.route)` when moved |
+//! | dragging (segment) | release | idle | `Commit(connection.route {connection, route})` when moved, else `Select` (as a click on the connection) |
 //! | idle | press on a movable entity | pressed (movable) | `None` |
 //! | idle | press on another entity | pressed (other) | `None` |
 //! | idle | press on empty canvas | rubber-band | `Transient` (the band) |
@@ -37,7 +42,9 @@ use ew_api::output::ew_dl::ew_units::Rect;
 use ew_api::output::ew_dl::{Destination, EntityRef};
 
 use super::move_keys::{move_command, move_overlay, moved_set, readout, steps_between};
+use super::route_edit::{moved_route, route_command, segment_at, segment_overlay, segment_steps};
 use super::transform::{selected_reps, transform_command};
+use super::wire::PageGridMap;
 use super::{
     Button, CanvasEvent, EntityKind, Ghost, Mods, Overlay, OverlayItem, SelectionChange, Style, Token, Tool,
     ToolCx, ToolKey, ToolOutput, entity_kind, rect_of,
@@ -77,6 +84,16 @@ enum State {
         steps: (i64, i64),
         readout: String,
     },
+    /// A drag of a segment of a selected connection (WP-S2.04 §8.4).
+    Segment {
+        connection: EntityRef,
+        mods: Mods,
+        /// The connection's deduplicated polyline and the dragged segment's index.
+        line: Vec<(i64, i64)>,
+        seg: usize,
+        from: (i64, i64),
+        steps: i64,
+    },
     /// The keyboard move (M): the grid cursor's displacement since entry.
     Moving {
         moved: Vec<EntityRef>,
@@ -95,6 +112,8 @@ pub struct SelectTool {
     /// The selection's generation and the page's revision when a drag or the keyboard move began: a change of
     /// either makes the pending move stale (fix round of WP-S2.04 part 1, item 11).
     origin: (u64, u64),
+    /// The autoconnect proposals of the moved CPs at the current steps, as the describe text names them (shown only).
+    proposals: Vec<(String, Option<String>)>,
 }
 
 impl Default for SelectTool {
@@ -144,7 +163,14 @@ impl SelectTool {
             state: State::Idle,
             cursor: None,
             origin: (0, 0),
+            proposals: Vec::new(),
         }
+    }
+
+    /// The overlay of a move of `moved` by `steps`; the proposals of the moved CPs are kept for the ghost (shown only).
+    fn move_out(&mut self, cx: &ToolCx<'_>, moved: &[EntityRef], steps: (i64, i64)) -> ToolOutput {
+        self.proposals = super::move_keys::move_proposals(cx, moved, steps).lines();
+        ToolOutput::Transient(move_overlay(cx, moved, steps))
     }
 
     /// The band overlay from `from` to `to`.
@@ -187,6 +213,7 @@ impl SelectTool {
     pub fn pending_move_stale(&self, cx: &ToolCx<'_>) -> bool {
         let moved = match &self.state {
             State::Dragging { moved, .. } | State::Moving { moved, .. } => moved,
+            State::Segment { .. } => return self.origin.1 != cx.page.rev,
             _ => return false,
         };
         self.origin != (cx.selection.generation, cx.page.rev)
@@ -207,7 +234,7 @@ impl SelectTool {
         if moved.is_empty() {
             return None;
         }
-        let out = ToolOutput::Transient(move_overlay(cx, &moved, (0, 0)));
+        let out = self.move_out(cx, &moved, (0, 0));
         self.origin = (cx.selection.generation, cx.page.rev);
         self.state = State::Moving {
             moved,
@@ -221,6 +248,18 @@ impl SelectTool {
     fn press(&mut self, at: (i64, i64), mods: Mods, cx: &ToolCx<'_>) -> ToolOutput {
         if let Some(link) = cx.link_at(at) {
             self.state = State::Link { dest: link.dest, at };
+            return ToolOutput::None;
+        }
+        if let Some((connection, line, seg)) = segment_at(cx, at) {
+            self.origin = (cx.selection.generation, cx.page.rev);
+            self.state = State::Segment {
+                connection,
+                mods,
+                line,
+                seg,
+                from: at,
+                steps: 0,
+            };
             return ToolOutput::None;
         }
         if let Some(entity) = cx.pick(at) {
@@ -296,12 +335,47 @@ impl SelectTool {
                 self.state = moving;
                 ToolOutput::None
             }
+            State::Segment {
+                connection,
+                mods: held,
+                line,
+                seg,
+                from,
+                ..
+            } => {
+                let k = segment_steps(cx, &line, seg, from, at);
+                let grid = PageGridMap::new(cx.page.tables.grid);
+                match moved_route(&line, seg, k, grid).filter(|_| k != 0) {
+                    Some(route) => ToolOutput::Commit(route_command(connection, &route)),
+                    None => SelectTool::click_entity(connection, held),
+                }
+            }
         }
     }
 
     fn moved(&mut self, at: (i64, i64), cx: &ToolCx<'_>) -> ToolOutput {
         match self.state.clone() {
             State::Idle | State::Moving { .. } => ToolOutput::None,
+            State::Segment {
+                connection,
+                mods,
+                line,
+                seg,
+                from,
+                ..
+            } => {
+                let steps = segment_steps(cx, &line, seg, from, at);
+                let out = ToolOutput::Transient(segment_overlay(cx, &line, seg, steps));
+                self.state = State::Segment {
+                    connection,
+                    mods,
+                    line,
+                    seg,
+                    from,
+                    steps,
+                };
+                out
+            }
             State::Link { at: from, .. } => {
                 if !cx.within(from, at, CLICK_SLOP_PT) {
                     self.state = State::Idle;
@@ -320,7 +394,7 @@ impl SelectTool {
                 if movable {
                     let moved = moved_set(cx, entity);
                     let steps = steps_between(cx, from, at);
-                    let out = ToolOutput::Transient(move_overlay(cx, &moved, steps));
+                    let out = self.move_out(cx, &moved, steps);
                     self.origin = (cx.selection.generation, cx.page.rev);
                     self.state = State::Dragging {
                         pressed: entity,
@@ -347,7 +421,7 @@ impl SelectTool {
                 ..
             } => {
                 let steps = steps_between(cx, from, at);
-                let out = ToolOutput::Transient(move_overlay(cx, &moved, steps));
+                let out = self.move_out(cx, &moved, steps);
                 self.state = State::Dragging {
                     pressed,
                     mods,
@@ -393,7 +467,7 @@ impl Tool for SelectTool {
             State::Idle | State::Link { .. } => "idle",
             State::Pressed { .. } => "pressed",
             State::Band { .. } => "rubber-band",
-            State::Dragging { .. } => "dragging",
+            State::Dragging { .. } | State::Segment { .. } => "dragging",
             State::Moving { .. } => "moving",
         }
     }
@@ -422,7 +496,7 @@ impl Tool for SelectTool {
                 self.cursor = Some(*at);
                 if let State::Moving { moved, from, .. } = self.state.clone() {
                     let steps = steps_between(cx, from, *at);
-                    let out = ToolOutput::Transient(move_overlay(cx, &moved, steps));
+                    let out = self.move_out(cx, &moved, steps);
                     self.state = State::Moving {
                         moved,
                         from,
@@ -457,6 +531,19 @@ impl Tool for SelectTool {
                 {
                     ToolOutput::Preview(move_command(moved, *steps))
                 }
+                State::Segment {
+                    connection,
+                    line,
+                    seg,
+                    steps,
+                    ..
+                } if *steps != 0 => {
+                    let grid = PageGridMap::new(cx.page.tables.grid);
+                    match moved_route(line, *seg, *steps, grid) {
+                        Some(route) => ToolOutput::Preview(route_command(*connection, &route)),
+                        None => ToolOutput::None,
+                    }
+                }
                 _ => ToolOutput::None,
             },
             CanvasEvent::Escape => {
@@ -474,7 +561,7 @@ impl Tool for SelectTool {
 
     fn status_hint(&self) -> &'static str {
         match self.state {
-            State::Dragging { .. } | State::Moving { .. } => "hint-select-move",
+            State::Dragging { .. } | State::Moving { .. } | State::Segment { .. } => "hint-select-move",
             _ => "hint-select",
         }
     }
@@ -500,6 +587,7 @@ impl Tool for SelectTool {
                 count: moved.len(),
                 steps: *steps,
                 readout: readout.clone(),
+                proposals: self.proposals.clone(),
             }),
             _ => None,
         }

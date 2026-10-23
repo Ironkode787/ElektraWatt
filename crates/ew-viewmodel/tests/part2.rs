@@ -1928,6 +1928,8 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
     // project, needs a cross-reference whose target is outside the page order, which Golden A does not draw.)
     // The 28 words of WP-S2.04 part 1 need a writable project: `tests/place.rs` reaches each of them.
     let part1 = ew_viewmodel::describe::PLACE_WORDS;
+    // The 21 words of WP-S2.04 part 2 need wiring on a writable project: `tests/wiring.rs` reaches each of them.
+    let wiring = ew_viewmodel::describe::WIRE_WORDS;
     // (The property grid's kind words of kinds this sequence does not select — a representation and its functions are
     // selected by a canvas click in `tests/properties.rs` and the kittest flows — and a warning or error finding.)
     assert!(
@@ -1964,7 +1966,8 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
                 | "function"
         ) || part1.contains(*w)
             // WP-S2.05 part 2: the find words need the find pane: `tests/find.rs` reaches them.
-            || ew_viewmodel::describe::FIND_WORDS.contains(*w)),
+            || ew_viewmodel::describe::FIND_WORDS.contains(*w)
+            || wiring.contains(*w)),
         "words of the vocabulary no state used: {unused:?}"
     );
 }

@@ -20,18 +20,25 @@
 //! page (even-odd, the boundary inside; the innermost by area, ties by ID) becomes `join_device {device: the box's
 //! device, role: aux}` (doc 06 §2.7). A `new_terminal` target advances its designation after each commit when it is
 //! decimal digits.
+//!
+//! **Autoconnect** (WP-S2.04 part 2, §8.3): on a page whose type autoconnects, every move of the ghost computes the
+//! proposals of its free CPs from the page tables ([`super::autoconnect`]) and draws them as dashed stubs; Tab
+//! ([`ToolKey::NextProposal`]) cycles each ray to its next hit. They become the `connect` hints of the committed
+//! `device.place` (a split of a routed wire sends none: normaliser 7 splits it); a press with Alt held, or a move with
+//! Alt held, sends and shows none (FR-CON-003).
 
 use std::sync::Arc;
 
 use ew_api::AnyCommand;
-use ew_api::geometry::{orient_point, orient_then, variant_letter};
+use ew_api::geometry::{orient_dir, orient_point, orient_then, variant_letter};
 use ew_api::output::SymbolShape;
 use ew_api::output::ew_dl::EntityRef;
 use serde_json::{Value, json};
 
+use super::autoconnect::{GhostCp, ProposalTarget, Proposals, proposals};
 use super::{
-    Anchor, Button, CanvasEvent, Ghost, MarkerKind, Overlay, OverlayItem, PreviewInfo, Tool, ToolCx, ToolKey,
-    ToolOutput,
+    Anchor, Button, CanvasEvent, Ghost, MarkerKind, Overlay, OverlayItem, PreviewInfo, Style, Token, Tool,
+    ToolCx, ToolKey, ToolOutput,
 };
 use crate::strings;
 
@@ -90,6 +97,14 @@ pub struct PlaceTool {
     word: &'static str,
     /// Whether a `new_terminal` target waits for its next designation.
     ask: bool,
+    /// Whether the page's type autoconnects (doc 06 §2.2).
+    autoconnect: bool,
+    /// How many times Tab was pressed since the ghost last moved.
+    cycle: usize,
+    /// The proposals at the current point.
+    proposals: Proposals,
+    /// Whether Alt was held at the last move (no proposal is shown or sent).
+    suppressed: bool,
 }
 
 /// Whether `p` lies inside the polygon (even-odd rule, the boundary inside), exactly in `i128`.
@@ -157,7 +172,54 @@ impl PlaceTool {
             last: Overlay::default(),
             word: "",
             ask: false,
+            autoconnect: false,
+            cycle: 0,
+            proposals: Proposals::default(),
+            suppressed: false,
         }
+    }
+
+    /// The tool with autoconnect on or off (the page type's, doc 06 §2.2).
+    pub fn with_autoconnect(mut self, on: bool) -> PlaceTool {
+        self.autoconnect = on;
+        self
+    }
+
+    /// The proposals at the current point (empty while suppressed).
+    pub fn proposals(&self) -> &Proposals {
+        &self.proposals
+    }
+
+    /// The ghost's CPs at the insertion point `pos` (page nm).
+    fn ghost_cps(&self, pos: (i64, i64)) -> Vec<GhostCp> {
+        self.shape
+            .cps
+            .iter()
+            .map(|cp| {
+                let o = orient_point(self.orient, cp.at);
+                GhostCp {
+                    symbol_cp: cp.symbol_cp,
+                    designation: cp.designation.clone(),
+                    at: (pos.0 + o.0, pos.1 + o.1),
+                    dir: orient_dir(self.orient, cp.dir),
+                    connected: false,
+                }
+            })
+            .collect()
+    }
+
+    /// Recomputes the proposals at the current point.
+    fn propose(&mut self, cx: &ToolCx<'_>) {
+        self.proposals = match self.at {
+            Some((_, pos)) if self.autoconnect && !self.suppressed => proposals(
+                &self.ghost_cps(pos),
+                &cx.page.tables,
+                &[],
+                super::wire::drawing_area(cx),
+                self.cycle,
+            ),
+            _ => Proposals::default(),
+        };
     }
 
     /// The floating symbol's shape.
@@ -262,22 +324,28 @@ impl PlaceTool {
         }
     }
 
-    /// The command at the current point; `None` while the tool asks for a designation.
-    fn command(&self, cx: &ToolCx<'_>) -> Option<Box<AnyCommand>> {
+    /// The command at the current point, with the proposals as hints unless `alt`; `None` while the tool asks for
+    /// a designation.
+    fn command(&self, cx: &ToolCx<'_>, alt: bool) -> Option<Box<AnyCommand>> {
         if self.ask {
             return None;
         }
         let (_, pos) = self.at?;
         let (target, _, _) = self.effective_target(cx, pos);
+        let mut params = json!({
+            "page": cx.page.tables.page.to_string(),
+            "symbol": self.shape.copy.to_string(),
+            "pos": [pos.0, pos.1],
+            "orient": ORIENT_NAMES[usize::from(self.orient % 8)],
+            "target": target,
+        });
+        let hints = if alt { Vec::new() } else { self.proposals.hints() };
+        if !hints.is_empty() {
+            params["connect"] = Value::Array(hints);
+        }
         Some(Box::new(AnyCommand {
             name: "device.place".into(),
-            params: json!({
-                "page": cx.page.tables.page.to_string(),
-                "symbol": self.shape.copy.to_string(),
-                "pos": [pos.0, pos.1],
-                "orient": ORIENT_NAMES[usize::from(self.orient % 8)],
-                "target": target,
-            }),
+            params,
         }))
     }
 
@@ -313,10 +381,36 @@ impl PlaceTool {
             text: self.label(cx, pos),
             anchor: Anchor::Above,
         });
+        // The proposals: a dashed stub from the ghost CP to its target; a split's two stubs one grid step long.
+        let step = super::wire::PageGridMap::new(cx.page.tables.grid).step();
+        let stub = |at: (i64, i64), dir: ew_api::geometry::Dir| {
+            let v = dir.vector();
+            OverlayItem::Line {
+                a: cx.snapper.page_to_sheet(at),
+                b: cx.snapper.page_to_sheet((at.0 + v.0 * step, at.1 + v.1 * step)),
+                style: Style::dashed(Token::Ghost),
+            }
+        };
+        for p in &self.proposals.list {
+            match &p.target {
+                ProposalTarget::Cp { at, .. } => items.push(OverlayItem::Line {
+                    a: cx.snapper.page_to_sheet(p.cp.at),
+                    b: cx.snapper.page_to_sheet(*at),
+                    style: Style::dashed(Token::Ghost),
+                }),
+                ProposalTarget::Split { other, .. } => {
+                    items.push(stub(p.cp.at, p.cp.dir));
+                    if let Some(o) = self.ghost_cps(pos).iter().find(|c| c.symbol_cp == other.0) {
+                        items.push(stub(o.at, o.dir));
+                    }
+                }
+            }
+        }
         Overlay::new(items)
     }
 
     fn transient(&mut self, cx: &ToolCx<'_>) -> ToolOutput {
+        self.propose(cx);
         let o = self.overlay(cx);
         if let Some((_, pos)) = self.at {
             self.word = self.effective_target(cx, pos).1;
@@ -325,12 +419,14 @@ impl PlaceTool {
         ToolOutput::Transient(o)
     }
 
-    fn moved(&mut self, at: (i64, i64), cx: &ToolCx<'_>) -> ToolOutput {
+    fn moved(&mut self, at: (i64, i64), alt: bool, cx: &ToolCx<'_>) -> ToolOutput {
         let s = cx.snapper.snap_grid(at);
         let next = Some((s.at_nm, s.page_nm));
         if next != self.at {
             self.tag = None;
+            self.cycle = 0;
         }
+        self.suppressed = alt;
         self.at = next;
         self.transient(cx)
     }
@@ -338,11 +434,12 @@ impl PlaceTool {
     fn turn(&mut self, rotate: u8, mirror: bool, cx: &ToolCx<'_>) -> ToolOutput {
         self.orient = orient_then(self.orient, rotate, mirror);
         self.tag = None;
+        self.cycle = 0;
         self.transient(cx)
     }
 
-    fn commit(&mut self, cx: &ToolCx<'_>) -> ToolOutput {
-        let Some(cmd) = self.command(cx) else {
+    fn commit(&mut self, cx: &ToolCx<'_>, alt: bool) -> ToolOutput {
+        let Some(cmd) = self.command(cx, alt || self.suppressed) else {
             return ToolOutput::None;
         };
         self.tag = None;
@@ -379,7 +476,8 @@ impl Tool for PlaceTool {
 
     fn on_event(&mut self, ev: &CanvasEvent, cx: &ToolCx<'_>) -> ToolOutput {
         match ev {
-            CanvasEvent::PointerMove { at, .. } | CanvasEvent::CursorMove { at } => self.moved(*at, cx),
+            CanvasEvent::PointerMove { at, mods } => self.moved(*at, mods.alt, cx),
+            CanvasEvent::CursorMove { at } => self.moved(*at, false, cx),
             CanvasEvent::Key(ToolKey::RotateCw) => self.turn(1, false, cx),
             CanvasEvent::Key(ToolKey::RotateCcw) => self.turn(3, false, cx),
             CanvasEvent::Key(ToolKey::MirrorX) => self.turn(0, true, cx),
@@ -387,21 +485,27 @@ impl Tool for PlaceTool {
             CanvasEvent::Key(ToolKey::NextVariant) => {
                 self.orient = (self.orient + 1) % 8;
                 self.tag = None;
+                self.cycle = 0;
                 self.transient(cx)
             }
-            CanvasEvent::Dwell { ms } if *ms >= super::PREVIEW_DWELL_MS => match self.command(cx) {
+            CanvasEvent::Key(ToolKey::NextProposal) => {
+                self.cycle = self.cycle.wrapping_add(1);
+                self.tag = None;
+                self.transient(cx)
+            }
+            CanvasEvent::Dwell { ms } if *ms >= super::PREVIEW_DWELL_MS => match self.command(cx, false) {
                 Some(cmd) => ToolOutput::Preview(cmd),
                 None => ToolOutput::None,
             },
             CanvasEvent::Press {
                 at,
                 button: Button::Primary,
-                ..
+                mods,
             } => {
-                let _ = self.moved(*at, cx);
-                self.commit(cx)
+                let _ = self.moved(*at, mods.alt, cx);
+                self.commit(cx, mods.alt)
             }
-            CanvasEvent::Activate => self.commit(cx),
+            CanvasEvent::Activate => self.commit(cx, false),
             CanvasEvent::Text(text) => match &mut self.target {
                 PlaceTarget::Terminal { designation, .. } if !text.trim().is_empty() => {
                     *designation = text.trim().to_owned();
@@ -428,7 +532,11 @@ impl Tool for PlaceTool {
     }
 
     fn status_hint(&self) -> &'static str {
-        "hint-place"
+        if self.proposals.needs_route {
+            "hint-place-needs-route"
+        } else {
+            "hint-place"
+        }
     }
 
     fn wants_hover(&self) -> bool {
@@ -462,7 +570,8 @@ impl Tool for PlaceTool {
             letter,
             strip,
             tag: self.tag.clone(),
-            hints: 0,
+            hints: self.proposals.list.len(),
+            proposals: self.proposals.lines(),
         })
     }
 

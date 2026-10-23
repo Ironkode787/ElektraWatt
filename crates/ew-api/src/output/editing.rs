@@ -496,7 +496,7 @@ pub struct SymbolShape {
 }
 
 /// One connection point of a [`SymbolShape`].
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ShapeCp {
     /// The symbol's CP index.
     pub symbol_cp: u16,
@@ -506,6 +506,9 @@ pub struct ShapeCp {
     pub at: (i64, i64),
     /// The direction a wire leaves it at R0.
     pub dir: Dir,
+    /// The designation of the FnDef CP it draws (`13`, `A1`; FT-424), empty when the symbol's FnDef is not embedded
+    /// or has no such CP.
+    pub designation: String,
 }
 
 /// A schema direction as a [`Dir`] (an unknown direction reads `Up`).
@@ -629,7 +632,15 @@ fn flatten(els: &[PathEl], tol: f64, out: &mut Vec<Vec<(i64, i64)>>) {
 }
 
 /// The shape of a symbol document.
-fn shape_of(copy: Uuid, def: &SymbolDef) -> SymbolShape {
+fn shape_of(q: &Q, copy: Uuid, def: &SymbolDef) -> SymbolShape {
+    let fndef = q.fndefs().get(fndef_copy(&def.fndef)).cloned();
+    let designation = |fn_cp: u16| {
+        fndef
+            .as_ref()
+            .and_then(|d| d.item.cps.iter().find(|c| c.idx == fn_cp))
+            .map(|c| c.designation.as_str().to_owned())
+            .unwrap_or_default()
+    };
     let geometry = ew_scene::symbol::lower(def, Orient2::R0);
     let mut outline = Vec::new();
     let mut bounds: Option<Rect> = None;
@@ -653,6 +664,7 @@ fn shape_of(copy: Uuid, def: &SymbolDef) -> SymbolShape {
                 fn_cp: cp.fn_cp,
                 at: pt(cp.pos),
                 dir: dir_of(&cp.dir),
+                designation: designation(cp.fn_cp),
             })
             .collect(),
         body,
@@ -670,7 +682,7 @@ impl Session {
     pub fn symbol_shape(&self, copy: Uuid) -> Option<SymbolShape> {
         let q = self.query();
         let symbol = q.symbols().get(Id::from_uuid(copy))?.clone();
-        Some(shape_of(copy, &symbol.item))
+        Some(shape_of(&q, copy, &symbol.item))
     }
 }
 
@@ -990,7 +1002,7 @@ impl Session {
                 .or_insert_with(|| {
                     q.symbols()
                         .get(rep.symbol)
-                        .map(|s| shape_of(rep.symbol.as_uuid(), &s.item))
+                        .map(|s| shape_of(&q, rep.symbol.as_uuid(), &s.item))
                 })
                 .clone();
             let o = orient_index(rep.orient);
