@@ -31,8 +31,10 @@ use std::collections::BinaryHeap;
 
 use ew_units::{Grid, Nm};
 
-/// The largest search area, in grid nodes, beyond which the router falls back to the L route.
-pub const MAX_NODES: usize = 4_000_000;
+/// The largest search area, in grid nodes, beyond which the router falls back to the L route: 2¹⁸ = 262 144, an A0
+/// sheet (1189 × 841 mm) at a 2.5 mm grid (476 × 337 = 160 412 nodes) with room to spare (fix round of WP-S2.04
+/// part 2, item 3: the distance table is five states per node).
+pub const MAX_NODES: usize = 262_144;
 
 /// The cost of a bend, in steps.
 pub const BEND_COST: u32 = 4;
@@ -194,8 +196,15 @@ fn search(req: &RouteRequest) -> Option<Vec<(i64, i64)>> {
     let idx = |x: i64| grid.snap(Nm(x));
     let s = (idx(from.at.0), idx(from.at.1));
     let t = (idx(to.at.0), idx(to.at.1));
-    let stub = |p: (i64, i64), d: Option<Heading>| d.map(|d| (p.0 + d.step().0, p.1 + d.step().1));
-    let (s1, t1) = (stub(s, from.dir), stub(t, to.dir));
+    // The stub node one step along a CP end's direction (`None` without a direction); an index at the edge of `i64`
+    // has none, and the router falls back.
+    let stub = |p: (i64, i64), d: Option<Heading>| -> Option<Option<(i64, i64)>> {
+        match d {
+            None => Some(None),
+            Some(d) => Some(Some((p.0.checked_add(d.step().0)?, p.1.checked_add(d.step().1)?))),
+        }
+    };
+    let (s1, t1) = (stub(s, from.dir)?, stub(t, to.dir)?);
     // The bounds: the area's nearest indices, extended to the ends and their stubs.
     let (ax0, ax1) = (req.area[0].min(req.area[2]), req.area[0].max(req.area[2]));
     let (ay0, ay1) = (req.area[1].min(req.area[3]), req.area[1].max(req.area[3]));
@@ -245,7 +254,14 @@ fn search(req: &RouteRequest) -> Option<Vec<(i64, i64)>> {
         }
     }
     let goal = space.node(t)?;
-    // The backward Dijkstra: the least (cost, bends) from every state to the second end.
+    // The state the forward walk starts from: the first end's stub with its heading, else the first end.
+    let start_state = match (from.dir, s1) {
+        (Some(d), Some(p)) => state(space.node(p)?, Some(d)),
+        _ => state(space.node(s)?, None),
+    };
+    // The backward Dijkstra: the least (cost, bends) from every state to the second end. It stops once the popped
+    // distance exceeds the start state's: every state the forward walk can step to on a least path is settled by
+    // then, and an unsettled state's tentative distance is too large to match, so the result is the same.
     const INF: (u32, u32) = (u32::MAX, u32::MAX);
     let mut dist: Vec<(u32, u32)> = vec![INF; nodes * 5];
     let mut heap: BinaryHeap<Reverse<((u32, u32), usize)>> = BinaryHeap::new();
@@ -270,6 +286,9 @@ fn search(req: &RouteRequest) -> Option<Vec<(i64, i64)>> {
         (lo.0 + x, lo.1 + y)
     };
     while let Some(Reverse((d, st))) = heap.pop() {
+        if d > dist[start_state] {
+            break;
+        }
         if d > dist[st] {
             continue;
         }
@@ -625,6 +644,33 @@ mod tests {
                 assert!(g.snap_point(Nm(c)) == Some(Nm(c)) || ends.contains(&c), "{v:?}");
             }
         }
+    }
+
+    #[test]
+    fn an_area_over_the_node_cap_falls_back_to_the_l_route() {
+        // 1 mm grid, an area of 600 × 600 = 360 000 nodes (> 262 144).
+        let mut big = req(
+            end(0, 0, Some(Heading::Right)),
+            end(10, 10, Some(Heading::Up)),
+            vec![],
+        );
+        big.area = [-300 * MM, -300 * MM, 300 * MM, 300 * MM];
+        assert_eq!(auto_route(&big), l_route(big.from, big.to));
+        // Ends at the edge of `i64` give no stub: the fallback too.
+        let edge = RouteRequest {
+            from: RouteEnd {
+                at: (i64::MAX, 0),
+                dir: Some(Heading::Right),
+            },
+            to: RouteEnd {
+                at: (0, 0),
+                dir: None,
+            },
+            obstacles: vec![],
+            grid: (1, 1),
+            area: [0, 0, 1, 1],
+        };
+        assert_eq!(auto_route(&edge), l_route(edge.from, edge.to));
     }
 
     #[test]
