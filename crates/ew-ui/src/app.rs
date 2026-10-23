@@ -26,6 +26,7 @@ use crate::gpu::GpuHost;
 use crate::keys::{self, Binding};
 use crate::navigator::NavigatorPane;
 use crate::page_view::PageView;
+use crate::properties::PropertiesPane;
 use crate::{about, first_run, menu, palette, start_page, status_bar, wizard};
 
 /// What the user did in one frame, applied after the frame is painted.
@@ -107,6 +108,11 @@ pub struct App {
     canvas_area: CanvasAreaHost,
     /// The page navigator pane (WP-S2.03).
     navigator: NavigatorPane,
+    /// The property grid pane (WP-S2.05).
+    properties: PropertiesPane,
+    /// The toast on show and when the window first painted it: it goes after 8 seconds measured by the window, never
+    /// by the model (WP-S2.05 §6.6).
+    toast_since: Option<(u64, std::time::Instant)>,
     /// The canvas area's splitter handles on screen in the last frame.
     area_splitters: usize,
     /// The page view of the wizard's preview.
@@ -147,6 +153,8 @@ impl App {
             canvas: CanvasHost::new(),
             canvas_area: CanvasAreaHost::new(),
             navigator: NavigatorPane::new(),
+            properties: PropertiesPane::new(),
+            toast_since: None,
             area_splitters: 0,
             preview_view: PageView::new(),
             dock,
@@ -371,13 +379,13 @@ impl App {
                     canvas,
                     canvas_area,
                     navigator,
+                    properties,
                     area_splitters,
                     ..
                 } = self;
                 dock.show(ui, &mut |ui, pane| match pane {
                     PaneKind::Pages => navigator.show(ui, shell, &mut events),
-                    // The property grid's pane is drawn from the next change on (WP-S2.05 part 1).
-                    PaneKind::Properties => {}
+                    PaneKind::Properties => properties.show(ui, shell, &mut events),
                     PaneKind::PageView => {
                         canvas_area.show(ui, shell, canvas, &mut events);
                         *area_splitters = canvas_area.splitter_count(shell);
@@ -424,6 +432,23 @@ impl App {
         }
         if !events.is_empty() {
             ctx.request_repaint();
+        }
+        // The toast's timeout is the window's (WP-S2.05 §6.6): 8 seconds after the frame that first showed it.
+        let serial = self.shell.properties().toast().map(|t| t.serial);
+        match (serial, self.toast_since) {
+            (None, _) => self.toast_since = None,
+            (Some(s), Some((t, since))) if s == t => {
+                if since.elapsed() >= Duration::from_secs(8) {
+                    events.push(Event::Action("toast.dismiss", Value::Null));
+                    self.toast_since = None;
+                } else {
+                    ctx.request_repaint_after(Duration::from_millis(500));
+                }
+            }
+            (Some(s), _) => {
+                self.toast_since = Some((s, ew_render2d::stats::now()));
+                ctx.request_repaint_after(Duration::from_millis(500));
+            }
         }
         let dispatch_started = ew_render2d::stats::now();
         for event in events {
@@ -542,6 +567,9 @@ impl App {
             if matches!(binding.action, "ui.dismiss" | "help.documentation")
                 || (palette_open && binding.action != "tools.palette")
                 || (focused == Context::Navigator && keys::is_navigator_key(&binding.shortcut))
+                || (focused == Context::Properties
+                    && binding.context != Context::Properties
+                    && crate::properties::is_grid_key(&binding.shortcut))
             {
                 continue;
             }

@@ -31,6 +31,7 @@ pub mod navigator;
 pub mod page_view;
 mod palette;
 mod picker;
+pub mod properties;
 mod start_page;
 mod status_bar;
 pub mod tool_view;
