@@ -18,7 +18,7 @@
 //! | `Glyphs` | the glyphs of the shaped run in its font, subset-embedded (CID, Identity-H) with ToUnicode from the run's text, so extraction keeps real spaces (FR-OUT-008); `.notdef` glyphs are dropped (PDF/A forbids them) |
 //! | `Group` | a transform and a clip path |
 //! | `Instance` | the resolved geometry under the instance transform; unresolved: skipped and counted |
-//! | `Image` | skipped and counted (the IR carries placeholder bytes until assets reach the scene) |
+//! | `Image` | PNG and JPEG: an image XObject stretched over the item's rectangle (top-left corner at `rect.min()`, the pixel grid mapped onto the rectangle, as the CPU renderer draws it), through krilla's `raster-images` (FT-406). The bytes must first decode with [`ew_render_cpu::decode_image`] within its pixel bound, so an image the CPU renderer cannot draw is not embedded either; a JPEG is embedded unchanged (DCT) unless it holds CMYK samples, a PNG keeps its bit depth and alpha (a soft mask); when krilla refuses the bytes the decoded pixels are embedded instead. Undrawable images, images without bytes and SVG image items (the export job turns SVG into paths first) are skipped and counted |
 //! | [`PdfOptions`] | Info and XMP: title, description, keywords, language, creator, producer, authors (empty = omitted, FR-OUT-025), creation date, document ID |
 //!
 //! # Determinism (doc 09 §4.3)
@@ -41,17 +41,17 @@ use std::sync::Arc;
 use ew_dl::ew_units::{Nm, Pt2, Rect};
 use ew_dl::num::nm_to_milli_pt;
 use ew_dl::{
-    Brush, Cap, Destination, DisplayList, FontKey, GeometryResolver, Item, ItemKind, Join, Link,
-    MAX_INSTANCE_DEPTH, MITER_LIMIT, PathEl, ShapedRun, Stroke, Transform,
+    Brush, Cap, Destination, DisplayList, FontKey, GeometryResolver, ImageFormat, ImageItem, Item, ItemKind,
+    Join, Link, MAX_INSTANCE_DEPTH, MITER_LIMIT, PathEl, ShapedRun, Stroke, Transform,
 };
-use ew_render_cpu::{FontResolver, monochrome};
-use krilla::Document;
+use ew_render_cpu::{FontResolver, decode_image, jpeg_is_cmyk, monochrome};
 use krilla::SerializeSettings;
 use krilla::annotation::{Annotation, LinkAnnotation, Target};
 use krilla::color::rgb;
 use krilla::configure::{Archival, ConfigurationBuilder};
 use krilla::destination::{NamedDestination, XyzDestination};
 use krilla::geom::{self as kg, PathBuilder, Point};
+use krilla::image::Image;
 use krilla::metadata::{DateTime, Metadata};
 use krilla::num::NormalizedF32;
 use krilla::outline::{Outline, OutlineNode};
@@ -59,6 +59,7 @@ use krilla::page::{PageLabel, PageSettings};
 use krilla::paint::{Fill, FillRule, LineCap, LineJoin, StrokeDash};
 use krilla::surface::Surface;
 use krilla::text::{Font, GlyphId, KrillaGlyph};
+use krilla::{Data, Document};
 
 /// One page of a PDF export.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -184,9 +185,11 @@ impl PdfOptions {
 pub struct PdfReport {
     /// Fonts the resolver did not have; their runs were not drawn.
     pub missing_fonts: Vec<FontKey>,
-    /// Images not drawn. An SVG asset reaches the writer as paths (FT-384); a PNG or JPEG image is not embedded
-    /// yet: krilla's image support is its `raster-images` feature, which brings decoders this crate does not
-    /// depend on (a dependency decision of FT-384, open).
+    /// PNG and JPEG images drawn, counted per drawn occurrence (FT-406).
+    pub images: usize,
+    /// Images not drawn, counted per occurrence: bytes that do not decode as a PNG or JPEG within
+    /// [`ew_render_cpu::MAX_IMAGE_PIXELS`], an image without its bytes, an SVG image item (an SVG asset reaches the
+    /// writer as paths, FT-384).
     pub skipped_images: usize,
     /// Symbol instances the resolver could not resolve.
     pub unresolved_instances: usize,
@@ -274,6 +277,17 @@ pub fn pdf(
     fonts: &dyn FontResolver,
     geometry: Option<&dyn GeometryResolver>,
 ) -> Result<PdfOutput, PdfError> {
+    write(pages, options, fonts, geometry, true)
+}
+
+/// [`pdf`], with the content streams left uncompressed when `compress` is off (the unit tests read them).
+fn write(
+    pages: &[PdfPage],
+    options: &PdfOptions,
+    fonts: &dyn FontResolver,
+    geometry: Option<&dyn GeometryResolver>,
+    compress: bool,
+) -> Result<PdfOutput, PdfError> {
     if pages.is_empty() {
         return Err(PdfError::NoPages);
     }
@@ -312,8 +326,9 @@ pub fn pdf(
         }
     };
 
-    let mut document = Document::new_with(settings(options.conformance)?);
+    let mut document = Document::new_with(settings(options.conformance, compress)?);
     let mut font_cache: BTreeMap<FontKey, Option<Font>> = BTreeMap::new();
+    let mut image_cache: BTreeMap<[u8; 32], Option<Image>> = BTreeMap::new();
     let mut missing: BTreeSet<FontKey> = BTreeSet::new();
     let mut used: BTreeSet<FontKey> = BTreeSet::new();
     for (index, (page, list)) in pages.iter().zip(&contents).enumerate() {
@@ -330,6 +345,7 @@ pub fn pdf(
                 fonts,
                 geometry,
                 font_cache: &mut font_cache,
+                image_cache: &mut image_cache,
                 missing: &mut missing,
                 used: &mut used,
                 report: &mut report,
@@ -385,7 +401,7 @@ pub fn pdf(
     Ok(PdfOutput { bytes, report })
 }
 
-fn settings(conformance: Conformance) -> Result<SerializeSettings, PdfError> {
+fn settings(conformance: Conformance, compress: bool) -> Result<SerializeSettings, PdfError> {
     let builder = ConfigurationBuilder::new();
     let builder = match conformance {
         Conformance::PdfA2b => builder.with_archival_validator(Archival::A2_B),
@@ -396,6 +412,7 @@ fn settings(conformance: Conformance) -> Result<SerializeSettings, PdfError> {
         configuration,
         // Every page is built by this writer; nothing needs tagging until tagged PDF (WP-S3.14).
         enable_tagging: false,
+        compress_content_streams: compress,
         ..SerializeSettings::default()
     })
 }
@@ -619,6 +636,9 @@ struct Writer<'a> {
     fonts: &'a dyn FontResolver,
     geometry: Option<&'a dyn GeometryResolver>,
     font_cache: &'a mut BTreeMap<FontKey, Option<Font>>,
+    /// The krilla images of this export by content hash (`None`: not drawable), so a logo repeated on every page is
+    /// decoded once and embedded once.
+    image_cache: &'a mut BTreeMap<[u8; 32], Option<Image>>,
     missing: &'a mut BTreeSet<FontKey>,
     used: &'a mut BTreeSet<FontKey>,
     report: &'a mut PdfReport,
@@ -641,7 +661,7 @@ impl Writer<'_> {
             match &item.kind {
                 ItemKind::Path(p) => self.path(surface, &p.path.els, p.stroke.as_ref(), p.fill),
                 ItemKind::Glyphs(run) => self.glyphs(surface, run),
-                ItemKind::Image(_) => self.report.skipped_images += 1,
+                ItemKind::Image(img) => self.image(surface, img),
                 ItemKind::Instance(inst) => {
                     let geom = (depth < MAX_INSTANCE_DEPTH)
                         .then(|| self.geometry.and_then(|g| g.geometry(inst.symbol)))
@@ -712,6 +732,29 @@ impl Writer<'_> {
             surface.set_stroke(Some(stroke_of(s)));
             surface.draw_path(&path);
         }
+    }
+
+    /// A PNG or JPEG image stretched over its rectangle in the current coordinates (see the module documentation);
+    /// anything else is counted as skipped. A degenerate rectangle draws nothing and counts nothing, as in the CPU
+    /// renderer.
+    fn image(&mut self, surface: &mut Surface<'_>, img: &ImageItem) {
+        let image = self
+            .image_cache
+            .entry(img.image.sha256)
+            .or_insert_with(|| raster(img.image.format, &img.image.bytes))
+            .clone();
+        let Some(image) = image else {
+            self.report.skipped_images += 1;
+            return;
+        };
+        let (min, max) = (img.rect.min(), img.rect.max());
+        let Some(size) = kg::Size::from_wh(pt(max.x - min.x), pt(max.y - min.y)) else {
+            return;
+        };
+        surface.push_transform(&kg::Transform::from_translate(pt(min.x), pt(min.y)));
+        surface.draw_image(image, size);
+        surface.pop();
+        self.report.images += 1;
     }
 
     fn font(&mut self, key: FontKey) -> Option<Font> {
@@ -790,6 +833,29 @@ impl Writer<'_> {
 
 /// An `ew-dl` transform as a krilla transform in pt: the linear part from [`Transform::to_affine`]
 /// (exact for quarter turns), the translation through integer milli-pt.
+/// The krilla image of a PNG or JPEG image item, or `None` when the bytes are empty, the format is SVG or the bytes do
+/// not decode with [`decode_image`] (the CPU renderer's decoder and pixel bound). The original bytes go to krilla
+/// (`interpolate` off: PDF/A forbids it), so a JPEG stays DCT-compressed and a PNG keeps its bit depth; a CMYK JPEG
+/// (which PDF/A would refuse without a CMYK output intent) and bytes krilla's own header parse refuses are embedded as
+/// the decoded RGBA pixels instead. A krilla image whose size differs from the decoded one is not used either.
+///
+/// krilla decodes a PNG again when the document is serialised (a failure there would fail the whole export); it uses
+/// the same `png` crate and limits that have just decoded the full frame, and the transformations that differ (16-bit
+/// reduction, alpha expansion) cannot fail, so an image that passes here is serialised.
+fn raster(format: ImageFormat, bytes: &Arc<[u8]>) -> Option<Image> {
+    let decoded = decode_image(format, bytes)?;
+    let size = (u32::from(decoded.width), u32::from(decoded.height));
+    let data: Arc<dyn AsRef<[u8]> + Send + Sync> = Arc::new(Arc::clone(bytes));
+    let typed = match format {
+        ImageFormat::Png => Image::from_png(Data::from(data), false).ok(),
+        ImageFormat::Jpeg if !jpeg_is_cmyk(bytes) => Image::from_jpeg(Data::from(data), false).ok(),
+        ImageFormat::Jpeg => None,
+        ImageFormat::Svg => return None,
+    };
+    let image = typed.unwrap_or_else(|| Image::from_rgba8(decoded.rgba, size.0, size.1));
+    (image.size() == size).then_some(image)
+}
+
 fn transform(t: Transform) -> kg::Transform {
     let c = t.to_affine().as_coeffs();
     kg::Transform::from_row(
@@ -881,5 +947,61 @@ mod tests {
         };
         assert_eq!(anchor(&item), Some(run.to_parent(Pt2::ORIGIN)));
         assert_eq!(anchor(&item), Some(at(10, 20)));
+    }
+
+    /// An opaque 2 × 1 PNG (red, blue), synthetic.
+    fn png_2x1() -> Vec<u8> {
+        ew_render_cpu::encode_png(
+            &ew_render_cpu::RgbaImage {
+                width: 2,
+                height: 1,
+                pixels: vec![255, 0, 0, 255, 0, 0, 255, 255],
+            },
+            None,
+        )
+    }
+
+    /// FT-406: an image is drawn in its rectangle as the CPU renderer draws it, top-left corner at `rect.min()` and
+    /// the unit square scaled to the rectangle, inside the group transform; read from an uncompressed content stream.
+    #[test]
+    fn an_image_is_placed_over_its_rectangle_inside_the_group_transform() {
+        let at = |x: i64, y: i64| Pt2::new(Nm::from_mm(x), Nm::from_mm(y));
+        let png = png_2x1();
+        let image = Item::image(
+            Arc::new(ew_dl::ImageData {
+                sha256: [7; 32],
+                format: ImageFormat::Png,
+                bytes: Arc::from(png.as_slice()),
+            }),
+            Rect::from_points(at(10, 20), at(50, 40)),
+        );
+        let moved = Item::group(Some(Transform::from_translation(at(100, 0))), None, vec![image]);
+        let page = PdfPage {
+            destination: Destination::Page(uuid::Uuid::from_u128(1)),
+            label: "1".to_owned(),
+            title: "1".to_owned(),
+            section: None,
+            width: Nm::from_mm(297),
+            height: Nm::from_mm(210),
+            content: DisplayList { items: vec![moved] },
+        };
+        let mut options = PdfOptions::new(PdfDate::ymd(2026, 1, 1));
+        options.conformance = Conformance::None;
+        let fonts: std::collections::BTreeMap<FontKey, ew_render_cpu::FontBytes> =
+            std::collections::BTreeMap::new();
+        let out = write(&[page], &options, &fonts, None, false).unwrap();
+        assert_eq!((out.report.images, out.report.skipped_images), (1, 0));
+        let text = String::from_utf8_lossy(&out.bytes);
+        // krilla folds the transforms into one matrix in PDF space (y up, the A4 landscape page 595.276 pt high): the
+        // unit square scaled to 40 mm × 20 mm (113.386 pt × 56.693 pt), its lower-left corner at x = 100 + 10 mm
+        // (311.811 pt) and y = 210 − 40 mm (481.89 pt). The positive height puts the image's first row at the top of
+        // the rectangle, as in the CPU renderer.
+        assert!(
+            text.contains("q 113.386 0 0 56.693 311.811 481.89 cm/x0 Do"),
+            "{}",
+            text.find("stream")
+                .map_or("", |i| &text[i..(i + 120).min(text.len())])
+        );
+        assert!(text.contains("/Subtype/Image/Filter/FlateDecode/Width 2/Height 1"));
     }
 }

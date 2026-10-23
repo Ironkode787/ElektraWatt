@@ -1,9 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The company logo through the export job (FT-384): an SVG logo reaches every writer as vector paths (no image item
-//! is left to skip); a PNG logo is embedded by the SVG writer as an `<image>` and counted as skipped by the PDF writer
-//! (krilla's raster support is a dependency decision still open). Golden A's fixture with placeholder logos.
+//! The company logo through the export job (FT-384, FT-406): an SVG logo reaches every writer as vector paths (no image
+//! item is left to skip); a PNG or JPEG logo is embedded by the SVG writer as an `<image>` and by the PDF writer as an
+//! image XObject (the JPEG unchanged). Golden A's fixture with placeholder logos, in a read-only session (a test copy:
+//! nothing is written back).
 
 use std::path::Path;
 
@@ -68,9 +69,38 @@ fn an_svg_logo_is_drawn_as_paths_by_every_writer() {
     );
 }
 
+/// A 16 × 8 baseline JPEG (4:4:4, all quantisers 1, DC-only blocks, written by hand): the left 8 × 8 block red, the
+/// right one blue.
+fn red_blue_jpeg() -> Vec<u8> {
+    let mut b = vec![0xff, 0xd8, 0xff, 0xdb, 0x00, 0x84, 0x00];
+    b.extend([1u8; 64]);
+    b.push(0x01);
+    b.extend([1u8; 64]);
+    b.extend_from_slice(&[
+        0xff, 0xc0, 0x00, 0x11, 0x08, 0x00, 0x08, 0x00, 0x10, 0x03, 0x01, 0x11, 0x00, 0x02, 0x11, 0x01, 0x03,
+        0x11, 0x01, 0xff, 0xc4, 0x00, 0x1f, 0x00, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a,
+        0x0b, 0xff, 0xc4, 0x00, 0x14, 0x10, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xda, 0x00, 0x0c, 0x03, 0x01, 0x00, 0x02, 0x00, 0x03, 0x00,
+        0x00, 0x3f, 0x00, 0x92, 0xfa, 0x54, 0xea, 0xfe, 0x12, 0x87, 0x5d, 0x50, 0x5b, 0x5f, 0x7f, 0xff, 0xd9,
+    ]);
+    b
+}
+
+fn count(hay: &[u8], needle: &[u8]) -> usize {
+    hay.windows(needle.len()).filter(|w| *w == needle).count()
+}
+
 #[test]
-fn a_png_logo_is_embedded_by_the_svg_writer_and_counted_by_the_pdf_writer() {
+fn a_png_logo_is_embedded_by_the_svg_writer_and_the_pdf_writer() {
     let mut s = golden();
+    let plain = s.export_pdf(&cover()).unwrap();
+    assert_eq!((plain.report.images, plain.report.skipped_images), (0, 0));
+    assert_eq!(
+        count(&plain.bytes, b"/Subtype/Image"),
+        0,
+        "the golden cover has no raster"
+    );
     let png = red_png(8, 2);
     set_logo(&mut s, &png);
     let svg = s.export_svg(&cover()).unwrap();
@@ -84,10 +114,37 @@ fn a_png_logo_is_embedded_by_the_svg_writer_and_counted_by_the_pdf_writer() {
         "the PNG's bytes embedded"
     );
     let pdf = s.export_pdf(&cover()).unwrap();
-    assert_eq!(
-        pdf.report.skipped_images, 1,
-        "the PDF writer does not embed rasters yet"
+    assert_eq!((pdf.report.images, pdf.report.skipped_images), (1, 0));
+    assert_eq!(count(&pdf.bytes, b"/Subtype/Image"), 1, "one image XObject");
+    assert_eq!(count(&pdf.bytes, b"/Width 8/Height 2"), 1, "the PNG's size");
+    assert!(
+        !pdf.findings
+            .iter()
+            .any(|f| matches!(f.finding, ew_scene::page::PageFinding::Image(_))),
+        "no image finding"
     );
+}
+
+/// FT-406: a JPEG logo prints on the golden cover in the PDF, embedded unchanged (DCT); the SVG writer embeds it too.
+#[test]
+fn a_jpeg_logo_is_printed_on_the_cover_in_the_pdf() {
+    let mut s = golden();
+    let jpeg = red_blue_jpeg();
+    set_logo(&mut s, &jpeg);
+    let pdf = s.export_pdf(&cover()).unwrap();
+    assert_eq!((pdf.report.images, pdf.report.skipped_images), (1, 0));
+    assert_eq!(count(&pdf.bytes, b"/Subtype/Image"), 1);
+    assert_eq!(
+        count(&pdf.bytes, b"/Filter/DCTDecode/Width 16/Height 8"),
+        1,
+        "the JPEG unchanged"
+    );
+    assert_eq!(count(&pdf.bytes, &jpeg), 1, "the JPEG's own bytes");
+    let svg = s.export_svg(&cover()).unwrap();
+    assert_eq!((svg.report.images, svg.report.skipped_images), (1, 0));
+    assert!(svg.files[0].text.contains("data:image/jpeg;base64,"));
+    // The same export twice: equal bytes.
+    assert_eq!(s.export_pdf(&cover()).unwrap().bytes, pdf.bytes);
 }
 
 /// Review fix 8: an image the export cannot draw is reported, not dropped silently: a logo whose SVG usvg refuses (an

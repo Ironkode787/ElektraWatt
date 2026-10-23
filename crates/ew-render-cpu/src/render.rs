@@ -16,6 +16,7 @@ use vello_cpu::peniko::{Blob, Fill, FontData};
 use vello_cpu::{Level, Pixmap, RenderContext, RenderSettings, Resources};
 
 use crate::fonts::FontResolver;
+use crate::image::{DecodedImage, decode_image};
 
 /// Nanometres per inch.
 const NM_PER_INCH: i128 = 25_400_000;
@@ -94,9 +95,10 @@ impl std::fmt::Display for RenderError {
 impl std::error::Error for RenderError {}
 
 /// What the renderer skipped (never a panic): fonts the resolver did not have, unresolved instances,
-/// and images it does not draw: a JPEG (no JPEG decoder in this renderer's dependency graph), an image without its
-/// bytes (the export job resolves them from the asset store, FT-384), and bytes that do not decode as a PNG within
-/// `MAX_IMAGE_PIXELS` (a private constant, 16 Mi pixels). A PNG image is decoded with `png` and drawn stretched over its rectangle.
+/// and images it does not draw: an image without its bytes (the export job resolves them from the asset store,
+/// FT-384), an SVG image item (the export job turns SVG into paths first), and bytes that do not decode as a PNG or a
+/// JPEG within [`MAX_IMAGE_PIXELS`](crate::MAX_IMAGE_PIXELS) ([`decode_image`](crate::decode_image)). A PNG or JPEG
+/// image is drawn stretched over its rectangle.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct RenderReport {
     /// The fonts of skipped glyph runs, sorted and deduplicated.
@@ -108,52 +110,17 @@ pub struct RenderReport {
     pub skipped_images: usize,
 }
 
-/// The most pixels a decoded image may have (16 Mi pixels, 64 MiB as RGBA): a larger PNG is skipped, so that a small
-/// file cannot decompress into an unbounded buffer.
-pub const MAX_IMAGE_PIXELS: u64 = 16 * 1024 * 1024;
-
-/// The pixmap of PNG `bytes` (premultiplied RGBA8), or `None` when they do not decode, a side exceeds the pixmap's
-/// `u16` range or the image has more than [`MAX_IMAGE_PIXELS`].
-fn decode_png(bytes: &[u8]) -> Option<Pixmap> {
-    let mut decoder = png::Decoder::new(std::io::Cursor::new(bytes));
-    decoder.set_transformations(png::Transformations::normalize_to_color8() | png::Transformations::ALPHA);
-    decoder.set_limits(png::Limits {
-        bytes: usize::try_from(MAX_IMAGE_PIXELS * 4).unwrap_or(usize::MAX),
-    });
-    let mut reader = decoder.read_info().ok()?;
-    let (w, h) = (reader.info().width, reader.info().height);
-    if u64::from(w) * u64::from(h) > MAX_IMAGE_PIXELS {
-        return None;
-    }
-    let (w16, h16) = (u16::try_from(w).ok()?, u16::try_from(h).ok()?);
-    let mut buf = vec![0u8; reader.output_buffer_size()?];
-    reader.next_frame(&mut buf).ok()?;
-    let (color, depth) = reader.output_color_type();
-    if depth != png::BitDepth::Eight {
-        return None;
-    }
-    let rgba: Vec<u8> = match color {
-        png::ColorType::Rgba => buf,
-        png::ColorType::GrayscaleAlpha => buf
-            .as_chunks::<2>()
-            .0
-            .iter()
-            .flat_map(|&[g, a]| [g, g, g, a])
-            .collect(),
-        _ => return None,
-    };
-    if rgba.len() != usize::from(w16) * usize::from(h16) * 4 {
-        return None;
-    }
-    Some(Pixmap::from_parts(
-        rgba,
-        w16,
-        h16,
+/// The pixmap of a decoded image (straight alpha, as `vello_cpu` expects with `ImageAlphaType::Alpha`).
+fn pixmap(img: DecodedImage) -> Pixmap {
+    Pixmap::from_parts(
+        img.rgba,
+        img.width,
+        img.height,
         vello_cpu::PixelMetadata {
             may_have_transparency: true,
             alpha_type: vello_cpu::peniko::ImageAlphaType::Alpha,
         },
-    ))
+    )
 }
 
 /// The pixel size of `sheet` at `dpi`: `(w_nm × dpi + 12_700_000) / 25_400_000` in integer arithmetic
@@ -620,7 +587,7 @@ struct Painter<'a> {
     missing: BTreeSet<FontKey>,
     unresolved_instances: usize,
     skipped_images: usize,
-    /// The decoded PNG images of this call, by content hash (`None`: they do not decode).
+    /// The decoded PNG and JPEG images of this call, by content hash (`None`: they do not decode).
     images: BTreeMap<[u8; 32], Option<std::sync::Arc<Pixmap>>>,
 }
 
@@ -689,14 +656,16 @@ impl Painter<'_> {
         }
     }
 
-    /// A PNG image stretched over its rectangle (the pixel grid mapped onto it); anything else is counted as skipped
-    /// ([`RenderReport::skipped_images`]).
+    /// A PNG or JPEG image stretched over its rectangle (the pixel grid mapped onto it); anything else is counted as
+    /// skipped ([`RenderReport::skipped_images`]).
     fn image(&mut self, img: &ImageItem, cur: Affine) {
         let pixmap = match img.image.format {
-            ImageFormat::Png if !img.image.bytes.is_empty() => self
+            ImageFormat::Png | ImageFormat::Jpeg if !img.image.bytes.is_empty() => self
                 .images
                 .entry(img.image.sha256)
-                .or_insert_with(|| decode_png(&img.image.bytes).map(std::sync::Arc::new))
+                .or_insert_with(|| {
+                    decode_image(img.image.format, &img.image.bytes).map(|d| std::sync::Arc::new(pixmap(d)))
+                })
                 .clone(),
             _ => None,
         };

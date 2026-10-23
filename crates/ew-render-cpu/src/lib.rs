@@ -19,18 +19,21 @@
 //! snapshot of WP-S2.02), skipping top-level items whose [`ItemBounds`] miss it; its full rectangle is
 //! [`render`]'s bytes.
 //!
-//! [`encode_png`] writes deterministic PNG bytes; [`monochrome`] and [`render_monochrome`] give the
+//! [`decode_image`] decodes the PNG and JPEG bytes of image items within [`MAX_IMAGE_PIXELS`] (the PDF writer checks
+//! with it too). [`encode_png`] writes deterministic PNG bytes; [`monochrome`] and [`render_monochrome`] give the
 //! black-and-grey form for monochrome output (FR-OUT-011).
 
 #![forbid(unsafe_code)]
 
 mod fonts;
+mod image;
 mod mono;
 mod png;
 mod render;
 
 pub use crate::png::encode_png;
 pub use fonts::{FontBytes, FontResolver};
+pub use image::{DecodedImage, MAX_IMAGE_PIXELS, decode_image, jpeg_is_cmyk};
 pub use mono::{monochrome, render_monochrome};
 pub use render::{
     ItemBounds, RegionOptions, RenderError, RenderOptions, RenderReport, RgbaImage, SheetSize, pixel_size,

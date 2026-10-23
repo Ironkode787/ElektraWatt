@@ -8,7 +8,7 @@ mod common;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use common::{Lcg, a4, bundled_fonts, is_dark, mm, pixel, sha256, text_run};
+use common::{Lcg, a4, bundled_fonts, is_dark, mm, pixel, red_blue_jpeg, sha256, text_run};
 use ew_dl::{
     Brush, Color, DashPattern, DisplayList, FontKey, Item, Path, Pen, ShapedRun, Stroke, SymbolGeomId,
     Transform,
@@ -427,8 +427,8 @@ fn image_item(sha: u8, format: ew_dl::ImageFormat, bytes: &[u8]) -> Item {
     )
 }
 
-/// FT-384: a PNG image is decoded and stretched over its rectangle (a 2 × 1 image: red left, blue right); a JPEG (no
-/// decoder in this renderer's graph), an image without bytes and bytes that do not decode are counted, not drawn.
+/// FT-384: a PNG image is decoded and stretched over its rectangle (a 2 × 1 image: red left, blue right); a truncated
+/// JPEG, an image without bytes and bytes that do not decode are counted, not drawn.
 #[test]
 fn png_images_are_drawn_and_the_rest_counted() {
     let png = png_bytes(2, 1, &[255, 0, 0, 255, 0, 0, 255, 255]);
@@ -465,6 +465,41 @@ fn png_images_are_drawn_and_the_rest_counted() {
         items: vec![image_item(3, ew_dl::ImageFormat::Png, &huge)],
     };
     assert_eq!(render_a4(&list, 72).1.skipped_images, 1);
+}
+
+/// FT-406: a JPEG image is decoded with zune-jpeg and stretched over its rectangle like a PNG (a 16 × 8 image: red
+/// left, blue right); a JPEG cut inside its data and one whose header declares more than `MAX_IMAGE_PIXELS` are
+/// counted, not drawn.
+#[test]
+fn jpeg_images_are_drawn_with_the_png_placement() {
+    let jpeg = red_blue_jpeg();
+    let list = DisplayList {
+        items: vec![image_item(4, ew_dl::ImageFormat::Jpeg, &jpeg)],
+    };
+    let (img, report) = render_a4(&list, 72);
+    assert_eq!(report.skipped_images, 0);
+    let (l, r) = (pixel(&img, 50, 80), pixel(&img, 120, 80));
+    assert!(
+        l[0] > 240 && l[1] < 16 && l[2] < 16,
+        "the left half is red: {l:?}"
+    );
+    assert!(
+        r[0] < 16 && r[1] < 16 && r[2] > 240,
+        "the right half is blue: {r:?}"
+    );
+    assert_eq!(pixel(&img, 20, 80), [255, 255, 255, 255], "outside the rectangle");
+    assert_eq!(pixel(&img, 50, 150), [255, 255, 255, 255], "below the rectangle");
+    let mut huge = jpeg.clone();
+    let sof = huge.windows(2).position(|w| w == [0xff, 0xc0]).unwrap();
+    huge[sof + 5..sof + 9].copy_from_slice(&[0x20, 0x00, 0x20, 0x00]);
+    for bytes in [&jpeg[..jpeg.len() - 12], &huge[..]] {
+        let list = DisplayList {
+            items: vec![image_item(5, ew_dl::ImageFormat::Jpeg, bytes)],
+        };
+        let (img, report) = render_a4(&list, 72);
+        assert_eq!(report.skipped_images, 1);
+        assert_eq!(pixel(&img, 50, 80), [255, 255, 255, 255]);
+    }
 }
 
 #[test]

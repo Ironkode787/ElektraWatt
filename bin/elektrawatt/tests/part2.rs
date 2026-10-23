@@ -631,10 +631,11 @@ fn bin_exe() -> std::path::PathBuf {
         .unwrap_or_else(|| std::path::PathBuf::from(env!("CARGO_BIN_EXE_elektrawatt"))) // bin-exe-fallback
 }
 
-/// FT-384: the company logo is visible on the cover. The wizard's preview of the cover (the sample's folio 1 with the
-/// draft applied, rendered through the page view's CPU path) shows an SVG logo as dark vector paths and a PNG logo as
-/// its pixels in the title block, where the cover without a logo is light; the project the wizard writes and a new
-/// project made from it print the logo on folio 1 too. Placeholder logos only (a black rectangle, a red PNG).
+/// FT-384, FT-406: the company logo is visible on the cover. The wizard's preview of the cover (the sample's folio 1
+/// with the draft applied, rendered through the page view's CPU path) shows an SVG logo as dark vector paths and a PNG
+/// and a JPEG logo as their pixels in the title block, where the cover without a logo is light; the project the wizard
+/// writes and a new project made from it print the logo on folio 1 too. Placeholder logos only (a black rectangle, a
+/// red PNG, a red-and-blue JPEG); the PDF of a PNG and a JPEG logo on the cover is `ew-api`'s `tests/images.rs`.
 #[test]
 fn the_company_logo_is_visible_on_the_cover() {
     let tmp = Tmp::new();
@@ -655,11 +656,30 @@ fn the_company_logo_is_visible_on_the_cover() {
         w.finish().unwrap();
         std::fs::write(&png, bytes).unwrap();
     }
+    // A 16 × 8 baseline JPEG (4:4:4, all quantisers 1, DC-only blocks, written by hand): left half red, right half blue.
+    let jpeg = tmp.path("logo.jpg");
+    {
+        let mut b = vec![0xff, 0xd8, 0xff, 0xdb, 0x00, 0x84, 0x00];
+        b.extend([1u8; 64]);
+        b.push(0x01);
+        b.extend([1u8; 64]);
+        b.extend_from_slice(&[
+            0xff, 0xc0, 0x00, 0x11, 0x08, 0x00, 0x08, 0x00, 0x10, 0x03, 0x01, 0x11, 0x00, 0x02, 0x11, 0x01,
+            0x03, 0x11, 0x01, 0xff, 0xc4, 0x00, 0x1f, 0x00, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+            0x08, 0x09, 0x0a, 0x0b, 0xff, 0xc4, 0x00, 0x14, 0x10, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xda, 0x00, 0x0c, 0x03, 0x01,
+            0x00, 0x02, 0x00, 0x03, 0x00, 0x00, 0x3f, 0x00, 0x92, 0xfa, 0x54, 0xea, 0xfe, 0x12, 0x87, 0x5d,
+            0x50, 0x5b, 0x5f, 0x7f, 0xff, 0xd9,
+        ]);
+        std::fs::write(&jpeg, b).unwrap();
+    }
     let basic = tmp.path("logo-company.ew");
     let job = tmp.path("job.ew");
-    let (with_svg, with_png, job_cover) = (
+    let (with_svg, with_png, with_jpeg, job_cover) = (
         tmp.path("cover-svg.png"),
         tmp.path("cover-png.png"),
+        tmp.path("cover-jpeg.png"),
         tmp.path("job-1.png"),
     );
     run_ok(
@@ -677,6 +697,11 @@ fn the_company_logo_is_visible_on_the_cover() {
                 json!({"field": "company_logo", "value": path(&png)}),
             ),
             ("view.snapshot", json!({"path": path(&with_png), "dpi": 150})),
+            (
+                "wizard.set",
+                json!({"field": "company_logo", "value": path(&jpeg)}),
+            ),
+            ("view.snapshot", json!({"path": path(&with_jpeg), "dpi": 150})),
             (
                 "wizard.set",
                 json!({"field": "company_logo", "value": path(&svg)}),
@@ -712,6 +737,12 @@ fn the_company_logo_is_visible_on_the_cover() {
     assert!(
         png_pixels > 300,
         "the PNG logo on the preview's cover: {png_pixels} red pixels"
+    );
+    let blue = |p: &[u8]| p[2] > 200 && p[0] < 60 && p[1] < 60;
+    let (jpeg_red, jpeg_blue) = (newly(&with_jpeg, &red), newly(&with_jpeg, &blue));
+    assert!(
+        jpeg_red > 100 && jpeg_blue > 100,
+        "the JPEG logo on the preview's cover: {jpeg_red} red and {jpeg_blue} blue pixels"
     );
     // The new project's folio 1 differs from the sample's cover elsewhere, so its logo is looked for where the
     // preview drew it: the pixels the SVG logo darkened are dark there too.

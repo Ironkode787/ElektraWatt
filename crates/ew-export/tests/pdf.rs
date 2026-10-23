@@ -415,3 +415,123 @@ fn the_report_lists_the_embedded_fonts_sorted_and_unique() {
     assert_eq!(out.report.missing_fonts, vec![ghost]);
     assert!(out.report.fonts.windows(2).all(|w| w[0] < w[1]));
 }
+
+/// A 16 × 8 baseline JPEG (4:4:4, all quantisers 1, DC-only blocks, written by hand): the left 8 × 8 block red, the
+/// right one blue.
+fn red_blue_jpeg() -> Vec<u8> {
+    let mut b = vec![0xff, 0xd8, 0xff, 0xdb, 0x00, 0x84, 0x00];
+    b.extend([1u8; 64]);
+    b.push(0x01);
+    b.extend([1u8; 64]);
+    b.extend_from_slice(&[
+        0xff, 0xc0, 0x00, 0x11, 0x08, 0x00, 0x08, 0x00, 0x10, 0x03, 0x01, 0x11, 0x00, 0x02, 0x11, 0x01, 0x03,
+        0x11, 0x01, 0xff, 0xc4, 0x00, 0x1f, 0x00, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a,
+        0x0b, 0xff, 0xc4, 0x00, 0x14, 0x10, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xda, 0x00, 0x0c, 0x03, 0x01, 0x00, 0x02, 0x00, 0x03, 0x00,
+        0x00, 0x3f, 0x00, 0x92, 0xfa, 0x54, 0xea, 0xfe, 0x12, 0x87, 0x5d, 0x50, 0x5b, 0x5f, 0x7f, 0xff, 0xd9,
+    ]);
+    b
+}
+
+/// A PNG of `w × h` pixels of one RGBA colour (synthetic).
+fn png_of(w: u32, h: u32, rgba: [u8; 4]) -> Vec<u8> {
+    ew_export::ew_render_cpu::encode_png(
+        &ew_export::ew_render_cpu::RgbaImage {
+            width: w,
+            height: h,
+            pixels: rgba.repeat((w * h) as usize),
+        },
+        None,
+    )
+}
+
+fn image(sha: u8, format: ew_dl::ImageFormat, bytes: &[u8], from: Pt2, to: Pt2) -> Item {
+    Item::image(
+        Arc::new(ew_dl::ImageData {
+            sha256: [sha; 32],
+            format,
+            bytes: Arc::from(bytes),
+        }),
+        Rect::from_points(from, to),
+    )
+}
+
+/// FT-406: PNG and JPEG images are embedded as image XObjects in the PDF/A-2b; the JPEG unchanged (DCT), the opaque PNG
+/// without a soft mask, the translucent one with one; an image repeated on two pages is embedded once; equal input
+/// gives equal bytes.
+#[test]
+fn png_and_jpeg_images_are_embedded() {
+    let jpeg = red_blue_jpeg();
+    let opaque = png_of(3, 2, [0, 128, 0, 255]);
+    let translucent = png_of(2, 2, [0, 0, 255, 128]);
+    let first = vec![
+        image(1, ew_dl::ImageFormat::Jpeg, &jpeg, mm(10, 10), mm(50, 30)),
+        image(2, ew_dl::ImageFormat::Png, &opaque, mm(60, 10), mm(90, 30)),
+        image(3, ew_dl::ImageFormat::Png, &translucent, mm(100, 10), mm(120, 30)),
+    ];
+    let second = vec![image(
+        1,
+        ew_dl::ImageFormat::Jpeg,
+        &jpeg,
+        mm(200, 150),
+        mm(240, 170),
+    )];
+    let pages = [page(1, "1", None, first), page(2, "2", None, second)];
+    let out = pdf(&pages, &options(), &fonts(), None).unwrap();
+    assert_eq!((out.report.images, out.report.skipped_images), (4, 0));
+    let b = &out.bytes;
+    assert_eq!(
+        count(b, "/Subtype/Image"),
+        4,
+        "three images and one soft mask, the JPEG once"
+    );
+    assert_eq!(
+        count(b, "/Filter/DCTDecode/Width 16/Height 8"),
+        1,
+        "the JPEG unchanged"
+    );
+    assert!(
+        b.windows(jpeg.len()).any(|w| w == jpeg.as_slice()),
+        "the JPEG's own bytes"
+    );
+    assert_eq!(count(b, "/SMask"), 1, "only the translucent PNG has a soft mask");
+    assert!(contains(b, "/Width 3/Height 2"));
+    assert_eq!(pdf(&pages, &options(), &fonts(), None).unwrap().bytes, out.bytes);
+}
+
+/// FT-406: hostile image bytes are counted as skipped and the rest of the PDF is written, never a panic: a JPEG cut
+/// inside its data, a JPEG and a PNG whose headers declare more than `MAX_IMAGE_PIXELS`, a GIF and a WebP that claim to
+/// be a PNG or a JPEG, an image item without bytes and an SVG image item.
+#[test]
+fn hostile_images_are_skipped_never_a_panic() {
+    let jpeg = red_blue_jpeg();
+    let mut huge_jpeg = jpeg.clone();
+    let sof = huge_jpeg.windows(2).position(|w| w == [0xff, 0xc0]).unwrap();
+    huge_jpeg[sof + 5..sof + 9].copy_from_slice(&[0x20, 0x00, 0x20, 0x00]);
+    let mut huge_png = png_of(1, 1, [0, 0, 0, 255]);
+    huge_png[16..24].copy_from_slice(&[0, 0, 0x13, 0x88, 0, 0, 0x13, 0x88]);
+    let gif = b"GIF89a\x02\x00\x01\x00\x80\x00\x00\xff\x00\x00\x00\x00\xff,\x00\x00\x00\x00\x02\x00\x01\x00\x00\x02\x02\x44\x01\x00;";
+    let webp = b"RIFF\x1a\x00\x00\x00WEBPVP8L\x0d\x00\x00\x00\x2f\x00\x00\x00\x10\x07\x10\x11\x11\x88\x88\xfe\x07\x00";
+    use ew_dl::ImageFormat::{Jpeg, Png, Svg};
+    let cases: [(ew_dl::ImageFormat, &[u8]); 8] = [
+        (Jpeg, &jpeg[..jpeg.len() - 12]),
+        (Jpeg, &huge_jpeg),
+        (Png, &huge_png),
+        (Png, gif),
+        (Jpeg, webp),
+        (Png, &[]),
+        (Svg, b"<svg xmlns='http://www.w3.org/2000/svg'/>"),
+        (Jpeg, b"\xff\xd8\xff"),
+    ];
+    let items: Vec<Item> = cases
+        .iter()
+        .enumerate()
+        .map(|(i, (format, bytes))| image(10 + i as u8, *format, bytes, mm(10, 10), mm(50, 30)))
+        .chain([text("still written", mm(10, 100))])
+        .collect();
+    let out = pdf(&[page(1, "1", None, items)], &options(), &fonts(), None).unwrap();
+    assert_eq!((out.report.images, out.report.skipped_images), (0, 8));
+    assert_eq!(count(&out.bytes, "/Subtype/Image"), 0);
+    assert_eq!(out.report.fonts.len(), 1, "the text is drawn");
+}
