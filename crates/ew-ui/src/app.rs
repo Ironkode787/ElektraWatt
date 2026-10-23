@@ -116,6 +116,8 @@ pub struct App {
     bindings: Vec<Binding>,
     title: String,
     palette_was_open: bool,
+    /// Whether the picker was open in the previous frame (its filter field takes the focus when it opens).
+    picker_was_open: bool,
     dialog_was_open: bool,
     /// An action that waits one frame so that the status bar can show it running (the PDF export).
     deferred: Option<Deferred>,
@@ -152,6 +154,7 @@ impl App {
             bindings: keys::bindings(),
             title: String::new(),
             palette_was_open: false,
+            picker_was_open: false,
             dialog_was_open: false,
             deferred: None,
             applied_scale: None,
@@ -340,6 +343,14 @@ impl App {
             });
         }
         Panel::bottom("status-bar").show(ui, |ui| status_bar::show(ui, &self.shell, exporting));
+        // The tool strip (WP-S2.04 §6.4 item 4): the active tool's options as read-only text, above the canvas.
+        if self.shell.has_project()
+            && let Some(text) = crate::tool_view::tool_strip_text(&self.shell)
+        {
+            Panel::top("tool-strip").show(ui, |ui| {
+                ui.horizontal(|ui| ui.label(text));
+            });
+        }
         let mut new_layout = None;
         let mut canvas_shown = false;
         let project_view =
@@ -384,6 +395,14 @@ impl App {
             &mut events,
         );
         self.palette_was_open = palette_open;
+        let picker_open = self.shell.picker().is_some();
+        crate::picker::show(
+            &ctx,
+            &self.shell,
+            picker_open && !self.picker_was_open,
+            &mut events,
+        );
+        self.picker_was_open = picker_open;
         let dialog_open = self.shell.dialog().is_some();
         about::show(
             &ctx,
@@ -452,12 +471,13 @@ impl App {
     fn route_keys(&mut self, ctx: &egui::Context, events: &mut Vec<Event>) {
         let palette_open = self.shell.palette().is_some();
         let dialog_open = self.shell.dialog().is_some();
-        let overlay = palette_open || dialog_open;
+        let picker_open = self.shell.picker().is_some();
+        let overlay = palette_open || dialog_open || picker_open;
         if overlay && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
             events.push(Event::Action("ui.dismiss", Value::Null));
             return;
         }
-        if dialog_open || (ctx.text_edit_focused() && !palette_open) {
+        if dialog_open || picker_open || (ctx.text_edit_focused() && !palette_open) {
             return;
         }
         if !palette_open

@@ -30,6 +30,7 @@ mod menu;
 pub mod navigator;
 pub mod page_view;
 mod palette;
+mod picker;
 mod start_page;
 mod status_bar;
 pub mod tool_view;

@@ -281,7 +281,13 @@ struct GroupView {
     drawn: bool,
     /// Whether the primary button went down on this canvas and has not come up yet (its release is the tool's).
     pressed: bool,
+    /// The time and position of the last primary press: a second one within [`DOUBLE_CLICK`] and 4 points is a
+    /// double click, `tool.finish` (WP-S2.04 §6.1; measured by the window, never by the model).
+    last_press: Option<(std::time::Instant, Pos2)>,
 }
+
+/// The double-click interval of the window (WP-S2.04 §6.1): the common platform default.
+pub const DOUBLE_CLICK: std::time::Duration = std::time::Duration::from_millis(500);
 
 impl GroupView {
     fn new(gpu: GpuHost) -> GroupView {
@@ -294,6 +300,7 @@ impl GroupView {
             gpu,
             drawn: false,
             pressed: false,
+            last_press: None,
         }
     }
 }
@@ -994,6 +1001,16 @@ impl CanvasHost {
                     point_with(Self::sheet_point(rect, canvas, pos), m),
                 ));
                 self.views[group].pressed = true;
+                let now = ew_render2d::stats::now();
+                let double = self.views[group]
+                    .last_press
+                    .is_some_and(|(t, p)| now.duration_since(t) <= DOUBLE_CLICK && p.distance(pos) <= 4.0);
+                if double {
+                    events.push(Event::Action("tool.finish", json!({})));
+                    self.views[group].last_press = None;
+                } else {
+                    self.views[group].last_press = Some((now, pos));
+                }
             } else if self.views[group].pressed {
                 events.push(Event::Action(
                     "canvas.release",
