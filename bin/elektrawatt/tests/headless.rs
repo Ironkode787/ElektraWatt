@@ -13,6 +13,10 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 
+/// The property grid's headless checks (WP-S2.05 part 1, PG9 and PG10).
+#[path = "grid/properties.rs"]
+mod grid_properties;
+
 const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
 const EXPECTED: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/expected");
 
