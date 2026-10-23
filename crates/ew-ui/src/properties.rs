@@ -17,8 +17,8 @@
 
 use egui::{Key, Modifiers, RichText, Sense, TextEdit, Ui, Vec2};
 use ew_viewmodel::properties::{
-    PropRow, PropertySheet, RowValue, SheetSection, categories, chip_text, collapse_key, is_header,
-    read_only_reason, row_label, value_text,
+    ChoiceKind, FieldType, PropRow, PropertySheet, RowAction, RowValue, SheetSection, categories, chip_text,
+    collapse_key, is_header, read_only_reason, row_label, value_text,
 };
 use ew_viewmodel::shell::{Focus, ShellModel};
 use ew_viewmodel::strings;
@@ -76,7 +76,11 @@ impl PropertiesPane {
         let pane_name = strings::text("pane-properties").to_owned();
         pane.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Group, true, &pane_name));
         let ours = shell.focus() == Some(Focus::Properties);
-        let editing = props.edit().is_some() && props.choices().is_none() && props.popup().is_none();
+        // A field is being typed into (its own keys), unless choices wait for a number key or a popup is open; a choice
+        // editor's options keep the field focused (Up, Down and Enter are the field's).
+        let options = props.choices().is_some_and(|c| c.kind == ChoiceKind::Options);
+        let editing =
+            props.edit().is_some() && (props.choices().is_none() || options) && props.popup().is_none();
         if ours && !editing && !pane.has_focus() && !ui.ctx().text_edit_focused() && shell.dialog().is_none()
         {
             pane.request_focus();
@@ -215,6 +219,14 @@ impl PropertiesPane {
         } else if pressed(Modifiers::NONE, Key::Enter) {
             if shell.properties().card().is_none() {
                 events.push(Event::Action("props.edit", json!({})));
+            }
+        } else if pressed(Modifiers::NONE, Key::Space) {
+            // Space toggles a boolean row's checkbox.
+            if let Some((key, on)) = row.as_deref().and_then(|k| bool_row(shell, k)) {
+                events.push(Event::Action(
+                    "props.set",
+                    json!({"row": key, "value": if on { "no" } else { "yes" }}),
+                ));
             }
         } else if pressed(Modifiers::NONE, Key::Insert) {
             events.push(Event::Action("props.list", json!({"row": row, "op": "add"})));
@@ -391,9 +403,25 @@ impl PropertiesPane {
         if editing {
             self.editor(&mut child, shell, row, &label, events);
         } else {
-            let shown = child.label(middle(&value));
-            if value.chars().count() > MAX_SHOWN {
-                shown.on_hover_text(&value);
+            if let (FieldType::Bool, true) = (row.ty.inner(), row.actions.contains(&RowAction::Edit)) {
+                // A checkbox (§6.5): a click sets the other value.
+                let mut on = matches!(&row.value, RowValue::One { json, .. } if json.as_bool() == Some(true));
+                let was = on;
+                let response = child.checkbox(&mut on, "");
+                let name = label.clone();
+                response.widget_info(|| egui::WidgetInfo::selected(egui::Role::CheckBox, true, was, &name));
+                if on != was {
+                    events.push(Event::Action("ui.focus", json!({"area": "properties"})));
+                    events.push(Event::Action(
+                        "props.set",
+                        json!({"row": row.key, "value": if on { "yes" } else { "no" }}),
+                    ));
+                }
+            } else {
+                let shown = child.label(middle(&value));
+                if value.chars().count() > MAX_SHOWN {
+                    shown.on_hover_text(&value);
+                }
             }
             if !chip.is_empty() {
                 child.label(RichText::new(middle(&chip)).small());
@@ -414,11 +442,39 @@ impl PropertiesPane {
             ui.label(RichText::new(e).italics());
         }
         if let Some(c) = props.choices().filter(|c| c.row == row.key) {
-            for (i, (text, _)) in c.items.iter().enumerate() {
-                if ui.button(text).clicked() {
-                    events.push(Event::Action("props.choose", json!({ "index": i })));
-                }
-            }
+            // The options of a choice editor (a combo for enums and colours, a filtered picker for parts and structure
+            // nodes) and the readings of an ambiguous number: a list box, Up and Down move the highlight, Enter or a
+            // click chooses (§6.5, §6.9).
+            let list_id = ui.scope_id().with(("prop-choices", &row.key));
+            let list_rect = ui.available_rect_before_wrap();
+            let list = ui.interact(
+                egui::Rect::from_min_size(list_rect.min, Vec2::new(list_rect.width(), 1.0)),
+                list_id,
+                Sense::hover(),
+            );
+            let list_name = strings::format("props-options", &[&label]);
+            list.widget_info(|| egui::WidgetInfo::labeled(egui::Role::ListBox, true, &list_name));
+            ui.scope_builder(egui::UiBuilder::new().accessibility_parent(list_id), |ui| {
+                egui::ScrollArea::vertical()
+                    .id_salt(("prop-choices-scroll", &row.key))
+                    .max_height(ROW_HEIGHT * 8.0)
+                    .show(ui, |ui| {
+                        for (i, (text, _)) in c.items.iter().enumerate() {
+                            let selected = c.index == Some(i);
+                            let response = ui.add(egui::Button::selectable(selected, text));
+                            let name = text.clone();
+                            response.widget_info(|| {
+                                egui::WidgetInfo::selected(egui::Role::ListBoxOption, true, selected, &name)
+                            });
+                            if selected {
+                                response.scroll_to_me(None);
+                            }
+                            if response.clicked() {
+                                events.push(Event::Action("props.choose", json!({ "index": i })));
+                            }
+                        }
+                    });
+            });
         }
         match props.popup() {
             Some(ew_viewmodel::properties::Popup::Actions { row: r, index }) if *r == row.key => {
@@ -462,6 +518,22 @@ impl PropertiesPane {
         }
         let shift_enter = ui.input(|i| i.modifiers.shift && i.key_pressed(Key::Enter));
         let escape = ui.input(|i| i.key_pressed(Key::Escape));
+        // A choice editor's options: Up and Down move the highlight; Enter then chooses it.
+        let choices = shell.properties().choices().filter(|c| c.row == row.key);
+        let highlighted = choices.is_some_and(|c| c.index.is_some());
+        if choices.is_some() {
+            if ui
+                .ctx()
+                .input_mut(|i| i.consume_key(Modifiers::NONE, Key::ArrowDown))
+            {
+                events.push(Event::Action("props.choose", json!({"step": 1})));
+            } else if ui
+                .ctx()
+                .input_mut(|i| i.consume_key(Modifiers::NONE, Key::ArrowUp))
+            {
+                events.push(Event::Action("props.choose", json!({"step": -1})));
+            }
+        }
         let response = ui.add(
             TextEdit::singleline(&mut self.buffer)
                 .desired_width(f32::INFINITY)
@@ -481,6 +553,8 @@ impl PropertiesPane {
                 events.push(Event::Action("props.cancel", json!({})));
             } else if shift_enter {
                 events.push(Event::Action("props.mltext", json!({"row": row.key})));
+            } else if highlighted {
+                events.push(Event::Action("props.choose", json!({})));
             } else {
                 events.push(Event::Action("props.commit", json!({})));
             }
@@ -526,6 +600,17 @@ impl PropertiesPane {
     }
 }
 
+/// The focused row's key and value when it is an editable boolean (Space toggles it).
+fn bool_row(shell: &ShellModel, key: &str) -> Option<(String, bool)> {
+    let sheet = shell.properties().sheet()?;
+    let (_, row) = ew_viewmodel::properties::find_row(sheet, key)?;
+    if !matches!(row.ty.inner(), FieldType::Bool) || !row.actions.contains(&RowAction::Edit) {
+        return None;
+    }
+    let on = matches!(&row.value, RowValue::One { json, .. } if json.as_bool() == Some(true));
+    Some((row.key.clone(), on))
+}
+
 /// Whether `s` is one of the grid's own keys (the arrows, Home, End, Enter, Insert, Delete), which a global chord must
 /// not take while the grid has the focus.
 pub fn is_grid_key(s: &egui::KeyboardShortcut) -> bool {
@@ -542,6 +627,7 @@ pub fn is_grid_key(s: &egui::KeyboardShortcut) -> bool {
             | Key::Enter
             | Key::Insert
             | Key::Delete
+            | Key::Space
     );
     (plain && grid) || alt_arrow
 }

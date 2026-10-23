@@ -438,7 +438,7 @@ impl App {
         match (serial, self.toast_since) {
             (None, _) => self.toast_since = None,
             (Some(s), Some((t, since))) if s == t => {
-                if since.elapsed() >= Duration::from_secs(8) {
+                if ew_render2d::stats::now() - since >= Duration::from_secs(8) {
                     events.push(Event::Action("toast.dismiss", Value::Null));
                     self.toast_since = None;
                 } else {
