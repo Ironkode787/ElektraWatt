@@ -243,6 +243,12 @@ impl ShellModel {
 
     /// Hands `ev` to the active tool and acts on its output (§7.2).
     pub(super) fn send_tool(&mut self, ev: &CanvasEvent) -> Outcome {
+        // A place tool that asks for the next designation refuses a click or Enter with the reason (WP-S2.04 §7.2).
+        if matches!(ev, CanvasEvent::Press { .. } | CanvasEvent::Activate) && self.place_needs_designation() {
+            return Outcome::Refused {
+                reason_key: "reason-designation-needed",
+            };
+        }
         match self.run_tool(ev) {
             Some(out) => {
                 let out = self.apply_tool_output(out);
@@ -275,6 +281,7 @@ impl ShellModel {
             ToolOutput::Commit(cmd) => {
                 self.tools.before_commit = self.canvas().map(|c| Arc::clone(&c.page().tables));
                 let out = self.run_commit(cmd.as_ref());
+                self.tools.tool.on_commit(out == Outcome::Done);
                 self.tools.overlay = Overlay::default();
                 self.tools.preview = None;
                 // After Select commits a move or a transform, the selection is the moved representations (one

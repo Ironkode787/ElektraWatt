@@ -439,8 +439,9 @@ fn change_symbol_previews_and_commits_on_one_representation() {
     done(&mut s, "rep.exchange", json!({}));
     assert_eq!(state(&s)["canvas"]["picker"]["mode"], "exchange");
     done(&mut s, "ui.dismiss", json!({}));
-    // A symbol of another function definition with no CP matching by designation: the preview is refused and the
-    // ghost names the function CP it would leave unmapped.
+    // A symbol of another function definition with no CP matching by designation: the preview is refused because a
+    // symbol CP would draw a function CP by no decision of the map's (ruling 5), which leaves no CP unmapped: the
+    // ghost names none (fix round, item 4).
     done(&mut s, "rep.exchange", json!({"symbol": "ew.iec.heater@qet10"}));
     assert_eq!(s.tool().name(), "exchange");
     assert_eq!(s.tool().state(), "armed");
@@ -449,10 +450,10 @@ fn change_symbol_previews_and_commits_on_one_representation() {
     let g = ghost(&s);
     assert_eq!(g["kind"], "exchange");
     assert_eq!(g["symbol"], "ew.iec.heater@qet10");
-    assert_eq!(g["unmapped"], json!(["X1"]));
+    assert_eq!(g["unmapped"], json!([]));
     assert_eq!(
         describe_line(&s, "canvas ghost exchange"),
-        "canvas ghost exchange symbol \"ew.iec.heater@qet10\" unmapped \"X1\""
+        "canvas ghost exchange symbol \"ew.iec.heater@qet10\" unmapped none"
     );
     done(&mut s, "ui.dismiss", json!({}));
     // Its own symbol again: mapped by index, nothing unmapped; the commit keeps both connections.
@@ -571,11 +572,43 @@ fn a_terminal_joins_strip_x1031_with_its_tag_predicted_and_the_designation_advan
     assert_eq!(tables(&s).reps.len(), before);
 }
 
+/// The structural tokens of a describe or transcript line: every token outside quotes up to a free-text marker
+/// (which counts, the rest of the line being user text), numbers and punctuation left out.
+fn structural_tokens(line: &str) -> Vec<String> {
+    let mut outside = String::new();
+    let mut quoted = false;
+    for c in line.chars() {
+        if c == '"' {
+            quoted = !quoted;
+            outside.push(' ');
+        } else if !quoted {
+            outside.push(c);
+        }
+    }
+    let outside = outside.replace(['(', ')', '[', ']', ',', '|', '%'], " ");
+    let mut words = Vec::new();
+    for token in outside.split_whitespace() {
+        if ew_viewmodel::describe::FREE_TEXT_MARKERS.contains(&token) {
+            words.push(token.to_owned());
+            break;
+        }
+        let number = token.parse::<f64>().is_ok() || token.chars().all(|c| !c.is_alphanumeric());
+        if !number {
+            words.push(token.to_owned());
+        }
+    }
+    words
+}
+
+/// §7.7's token check over real output: every structural token of the canvas lines is a vocabulary word or a
+/// free-text marker, and the states below reach every one of part 1's 28 words. Each step must succeed.
 #[test]
 fn every_part_1_word_of_the_describe_text_is_reached_and_in_the_vocabulary() {
     let tmp = Tmp::new("words");
+    let mut texts: Vec<String> = Vec::new();
+    // Folio 101: the picker (symbols and parts with a main template entry), a starter symbol floating with its
+    // predicted tag, another representation of an existing function, a drag and the keyboard move, change symbol.
     let mut s = shell(&tmp, "101");
-    let mut texts = Vec::new();
     done(&mut s, "tool.place", json!({}));
     done(&mut s, "picker.filter", json!({"text": "mcb"}));
     texts.push(s.describe());
@@ -583,13 +616,11 @@ fn every_part_1_word_of_the_describe_text_is_reached_and_in_the_vocabulary() {
     texts.push(s.describe());
     done(&mut s, "picker.choose", json!({"letter": "K"}));
     let p = free_point(&s);
-    let pt15 = sheet(&s, p);
-    done(&mut s, "canvas.pointer", at(pt15, json!({})));
+    let here = sheet(&s, p);
+    done(&mut s, "canvas.pointer", at(here, json!({})));
     done(&mut s, "canvas.dwell", json!({"ms": 80}));
     texts.push(s.describe());
     done(&mut s, "ui.dismiss", json!({}));
-    // Parts (Golden A's part copies with templates), a terminal of strip 1X1's terminal symbol, an existing
-    // function.
     done(&mut s, "tool.place_part", json!({}));
     texts.push(s.describe());
     done(&mut s, "ui.dismiss", json!({}));
@@ -599,28 +630,15 @@ fn every_part_1_word_of_the_describe_text_is_reached_and_in_the_vocabulary() {
         "place.pick",
         json!({"symbol": "ew.iec.lamp@qet10", "function": e56.functions[0].to_string()}),
     );
-    let pt16 = sheet(&s, p);
-    done(&mut s, "canvas.pointer", at(pt16, json!({})));
+    done(&mut s, "canvas.pointer", at(here, json!({})));
     texts.push(s.describe());
     done(&mut s, "ui.dismiss", json!({}));
-    let strip = match s.dispatch(
-        "place.pick",
-        &json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X1031", "designation": "99"}),
-    ) {
-        Outcome::Done => true,
-        Outcome::Refused { .. } => false,
-        other => panic!("{other:?}"),
-    };
-    let _ = strip;
-    done(&mut s, "ui.dismiss", json!({}));
-    // A move and an exchange.
     let centre = ((e56.body[0] + e56.body[2]) / 2, (e56.body[1] + e56.body[3]) / 2);
-    let pt17 = sheet(&s, centre);
-    click(&mut s, pt17, json!({}));
-    let pt18 = sheet(&s, centre);
-    done(&mut s, "canvas.press", at(pt18, json!({})));
-    let pt19 = steps_from(&s, centre, (2, 0));
-    done(&mut s, "canvas.pointer", at(pt19, json!({})));
+    let c = sheet(&s, centre);
+    click(&mut s, c, json!({}));
+    done(&mut s, "canvas.press", at(c, json!({})));
+    let to = steps_from(&s, centre, (2, 0));
+    done(&mut s, "canvas.pointer", at(to, json!({})));
     texts.push(s.describe());
     done(&mut s, "ui.dismiss", json!({}));
     done(&mut s, "cursor.set", json!({}));
@@ -628,53 +646,238 @@ fn every_part_1_word_of_the_describe_text_is_reached_and_in_the_vocabulary() {
     texts.push(s.describe());
     done(&mut s, "ui.dismiss", json!({}));
     done(&mut s, "rep.exchange", json!({"symbol": "ew.iec.heater@qet10"}));
-    done(&mut s, "canvas.dwell", json!({"ms": 80}));
     texts.push(s.describe());
     done(&mut s, "ui.dismiss", json!({}));
-    // Every token outside quotes is a number or a vocabulary word.
+    s.shutdown();
+    // Folio 103: a terminal of strip -X1031 (`terminal`, `strip`).
+    let tmp3 = Tmp::new("words3");
+    let mut s = shell(&tmp3, "103");
+    done(
+        &mut s,
+        "place.pick",
+        json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X1031", "designation": "30"}),
+    );
+    let p = grid_point(&s, (70, 40));
+    let here = sheet(&s, p);
+    done(&mut s, "canvas.pointer", at(here, json!({})));
+    texts.push(s.describe());
+    s.shutdown();
+    // Folio 102: a contact inside -102F2's box (`join`).
+    let tmp2 = Tmp::new("words2");
+    let mut s = shell(&tmp2, "102");
+    let t = tables(&s);
+    let bx = t
+        .reps
+        .iter()
+        .filter(|r| r.black_box.is_some())
+        .find(|r| {
+            t.cps
+                .iter()
+                .any(|c| c.rep == r.id && c.label.starts_with("-102F2:"))
+        })
+        .expect("-102F2's box")
+        .clone();
+    let o = &bx.black_box.as_ref().unwrap().outline;
+    let mid = (
+        (o.iter().map(|p| p.0).min().unwrap() + o.iter().map(|p| p.0).max().unwrap()) / 2,
+        (o.iter().map(|p| p.1).min().unwrap() + o.iter().map(|p| p.1).max().unwrap()) / 2,
+    );
+    done(
+        &mut s,
+        "place.pick",
+        json!({"symbol": "ew.iec.contact-no@qet10", "letter": "K"}),
+    );
+    let here = sheet(&s, mid);
+    done(&mut s, "canvas.pointer", at(here, json!({})));
+    texts.push(s.describe());
+    s.shutdown();
+    // Every structural token of the canvas lines (the lines of WP-S2.03 and WP-S2.04's tools) is in the
+    // vocabulary or a free-text marker.
     let vocabulary = ew_viewmodel::describe::VOCABULARY;
+    let markers = ew_viewmodel::describe::FREE_TEXT_MARKERS;
     let mut seen = std::collections::BTreeSet::new();
     for text in &texts {
-        for line in text.lines() {
-            let mut quoted = false;
-            for (i, part) in line.split('"').enumerate() {
-                quoted = i % 2 == 1;
-                if quoted {
-                    continue;
-                }
-                let free = part
-                    .find("disabled:")
-                    .map_or(part, |k| &part[..k + "disabled:".len()]);
-                for word in free.split_whitespace() {
-                    if word.parse::<f64>().is_ok() {
-                        continue;
-                    }
-                    seen.insert(word.to_owned());
-                }
-                if part.contains("disabled:") {
-                    break;
-                }
+        for line in text
+            .lines()
+            .filter(|l| l.starts_with("canvas ") || l.starts_with("  row "))
+        {
+            for token in structural_tokens(line) {
+                assert!(
+                    vocabulary.contains(&token.as_str()) || markers.contains(&token.as_str()),
+                    "`{token}` is no vocabulary word; line: {line}"
+                );
+                seen.insert(token);
             }
-            let _ = quoted;
         }
     }
-    for w in ew_viewmodel::describe::PLACE_WORDS {
-        assert!(vocabulary.contains(w), "{w} in VOCABULARY");
-    }
-    let ghost_and_picker: Vec<&String> = seen
-        .iter()
-        .filter(|w| ew_viewmodel::describe::PLACE_WORDS.contains(&w.as_str()))
-        .collect();
     let missing: Vec<&&str> = ew_viewmodel::describe::PLACE_WORDS
         .iter()
         .filter(|w| !seen.contains(**w))
         .collect();
-    // `strip` and `join` are reached by their own tests (the terminal placement of the shell test and the black
-    // box join above); `steps` and `readout` by the move above.
-    assert!(
-        missing
-            .iter()
-            .all(|w| matches!(**w, "strip" | "join" | "terminal")),
-        "words no state reached: {missing:?} (reached {ghost_and_picker:?})"
+    assert!(missing.is_empty(), "words no state reached: {missing:?}");
+}
+
+#[test]
+fn a_refused_commit_keeps_the_designation_and_a_non_decimal_one_asks_again() {
+    let tmp = Tmp::new("designation");
+    let mut s = shell(&tmp, "103");
+    let p = grid_point(&s, (70, 40));
+    let here = sheet(&s, p);
+    // Designation 1 is used in -X1031: the commit is refused and the designation stays 1.
+    done(
+        &mut s,
+        "place.pick",
+        json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X1031", "designation": "1"}),
     );
+    done(&mut s, "canvas.pointer", at(here, json!({})));
+    let before = tables(&s).reps.len();
+    assert!(matches!(
+        s.dispatch("canvas.press", &at(here, json!({}))),
+        Outcome::Failed { .. }
+    ));
+    assert_eq!(tables(&s).reps.len(), before);
+    assert!(
+        describe_line(&s, "canvas ghost place").contains("strip \"-X1031:1\""),
+        "kept"
+    );
+    done(&mut s, "ui.dismiss", json!({}));
+    // A decimal designation advances after the commit.
+    done(
+        &mut s,
+        "place.pick",
+        json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X1031", "designation": "30"}),
+    );
+    done(&mut s, "canvas.press", at(here, json!({})));
+    assert!(describe_line(&s, "canvas ghost place").contains("strip \"-X1031:31\""));
+    done(&mut s, "ui.dismiss", json!({}));
+    // A designation that is not decimal digits: after the commit the tool asks again; a click is refused until
+    // `text.input` gives the next one.
+    done(
+        &mut s,
+        "place.pick",
+        json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X1031", "designation": "PE7"}),
+    );
+    let q = grid_point(&s, (76, 40));
+    let there = sheet(&s, q);
+    done(&mut s, "canvas.press", at(there, json!({})));
+    assert!(describe_line(&s, "canvas ghost place").contains("strip \"-X1031:?\""));
+    let count = tables(&s).reps.len();
+    assert_eq!(
+        refused(&mut s, "canvas.press", at(there, json!({}))),
+        "reason-designation-needed"
+    );
+    assert_eq!(tables(&s).reps.len(), count);
+    done(&mut s, "text.input", json!({"text": "PE8"}));
+    let r = grid_point(&s, (82, 40));
+    let yonder = sheet(&s, r);
+    done(&mut s, "canvas.press", at(yonder, json!({})));
+    assert_eq!(tables(&s).reps.len(), count + 1);
+}
+
+#[test]
+fn a_new_strip_shows_its_real_tag_once_its_first_terminal_prints_it() {
+    let tmp = Tmp::new("newstrip");
+    let mut s = shell(&tmp, "101");
+    done(&mut s, "strip.new", json!({"letter": "X"}));
+    done(
+        &mut s,
+        "place.pick",
+        json!({"symbol": "ew.iec.terminal@qet10", "designation": "1"}),
+    );
+    let p = free_point(&s);
+    let here = sheet(&s, p);
+    done(&mut s, "canvas.pointer", at(here, json!({})));
+    // No guessed tag while nothing on the page prints the strip's.
+    assert!(describe_line(&s, "canvas ghost place").contains("strip \"(new strip):1\""));
+    done(&mut s, "canvas.press", at(here, json!({})));
+    // The placed terminal's CP label prints the strip's tag; the tool and the next designation use it.
+    let t = tables(&s);
+    let placed = t
+        .reps
+        .iter()
+        .find(|r| r.symbol_key == "ew.iec.terminal@qet10" && r.pos == p)
+        .expect("placed");
+    let tag = t
+        .cps
+        .iter()
+        .find(|c| c.rep == placed.id)
+        .and_then(|c| c.label.split_once(':').map(|(t, _)| t.to_owned()))
+        .expect("a CP label");
+    let line = describe_line(&s, "canvas ghost place");
+    assert!(line.contains(&format!("strip \"{tag}:2\"")), "{line}");
+}
+
+#[test]
+fn a_page_type_without_symbol_tools_refuses_the_editing_actions() {
+    let tmp = Tmp::new("pagetype");
+    let mut s = shell(&tmp, "1");
+    let kind = s.page_rows()[s.page_index()].kind.clone();
+    assert_eq!(kind, "title_page", "folio 1 is the title page");
+    for action in [
+        "tool.place",
+        "tool.place_part",
+        "strip.new",
+        "tool.move",
+        "edit.delete_selection",
+    ] {
+        assert_eq!(
+            refused(&mut s, action, json!({})),
+            "reason-page-type-no-symbols",
+            "{action}"
+        );
+    }
+    assert_eq!(
+        refused(&mut s, "place.pick", json!({"symbol": "ew.iec.mcb-1p@qet10"})),
+        "reason-page-type-no-symbols"
+    );
+}
+
+/// A pending keyboard move does not survive Delete or undo (fix round, item 11): Delete cancels the move first and
+/// deletes; two undos bring the representation back with no ghost, no pending move, no preview and no banner.
+#[test]
+fn a_pending_keyboard_move_is_cancelled_by_delete_and_undo() {
+    let tmp = Tmp::new("pending");
+    let mut s = shell(&tmp, "101");
+    let e55 = rep_with(&s, "ew.iec.heater@qet10");
+    let centre = ((e55.body[0] + e55.body[2]) / 2, (e55.body[1] + e55.body[3]) / 2);
+    let c = sheet(&s, centre);
+    click(&mut s, c, json!({}));
+    done(&mut s, "cursor.set", json!({}));
+    done(&mut s, "tool.move", json!({}));
+    done(&mut s, "cursor.right", json!({}));
+    done(&mut s, "canvas.dwell", json!({"ms": 80}));
+    assert_eq!(s.tool().state(), "moving");
+    assert_eq!(state(&s)["canvas"]["preview"]["command"], "rep.move");
+    let before = tables(&s).reps.len();
+    done(&mut s, "edit.delete_selection", json!({}));
+    assert_eq!(tables(&s).reps.len(), before - 1, "deleted");
+    assert_eq!(s.tool().state(), "idle", "the move is cancelled");
+    assert_eq!(ghost(&s), Value::Null);
+    assert_eq!(state(&s)["canvas"]["preview"], Value::Null);
+    assert!(s.tool_overlay().is_empty());
+    done(&mut s, "edit.undo", json!({}));
+    assert_eq!(tables(&s).reps.len(), before);
+    assert!(matches!(
+        s.dispatch("edit.undo", &json!({})),
+        Outcome::Done | Outcome::Refused { .. }
+    ));
+    assert_eq!(ghost(&s), Value::Null);
+    assert_eq!(s.tool().state(), "idle");
+    assert_eq!(state(&s)["canvas"]["preview"], Value::Null);
+    assert_eq!(s.banner(), None, "no banner");
+    // A move pending while an undo changes the page is cancelled too.
+    let e56 = rep_with(&s, "ew.iec.lamp@qet10");
+    let c = sheet(
+        &s,
+        ((e56.body[0] + e56.body[2]) / 2, (e56.body[1] + e56.body[3]) / 2),
+    );
+    click(&mut s, c, json!({}));
+    done(&mut s, "tool.rotate_cw", json!({}));
+    done(&mut s, "tool.move", json!({}));
+    done(&mut s, "cursor.down", json!({}));
+    assert_eq!(s.tool().state(), "moving");
+    done(&mut s, "edit.undo", json!({}));
+    assert_eq!(s.tool().state(), "idle");
+    assert_eq!(ghost(&s), Value::Null);
+    assert!(s.tool_overlay().is_empty());
 }

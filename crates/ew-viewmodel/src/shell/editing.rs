@@ -45,6 +45,15 @@ impl ShellModel {
         self.tools.picker.as_ref()
     }
 
+    /// Whether the active place tool waits for the next terminal designation (§7.2).
+    pub(super) fn place_needs_designation(&mut self) -> bool {
+        self.tools
+            .tool
+            .as_any_mut()
+            .and_then(|a| a.downcast_mut::<PlaceTool>())
+            .is_some_and(|p| p.needs_designation())
+    }
+
     /// What the active tool floats or drags (WP-S2.04 §7.7).
     pub fn tool_ghost(&self) -> Option<Ghost> {
         self.tools.tool.ghost()
@@ -174,8 +183,10 @@ impl ShellModel {
     // Arming
 
     /// The strip of a terminal placement: `param` (an ID, or a tag of a strip whose segment the page draws), else
-    /// the strip the last `strip.new` created, else the first strip whose segment the page draws. `(ID, tag)`.
-    fn resolve_strip(&self, param: Option<&str>) -> Option<(String, String)> {
+    /// the strip the last `strip.new` created, else the first strip whose segment the page draws. `(ID, tag)`: the
+    /// tag the page prints (a segment's CP label, or a terminal of the strip placed in this session), `None` while
+    /// nothing prints it (fix round, item 3: never a guessed tag).
+    fn resolve_strip(&self, param: Option<&str>) -> Option<(String, Option<String>)> {
         let c = self.canvas()?;
         let tables = &c.page().tables;
         // The strips whose segments the page draws, with the tag their CPs print.
@@ -193,25 +204,39 @@ impl ShellModel {
                 Some((device.to_string(), tag))
             })
             .collect();
+        let known = |id: &str| {
+            strips
+                .iter()
+                .find(|(s, _)| s == id)
+                .map(|(_, t)| t.clone())
+                .or_else(|| self.tools.strip_tags.get(id).cloned())
+        };
         match param {
             Some(p) if p.len() == 36 && p.chars().filter(|c| *c == '-').count() == 4 => {
-                let tag = strips
-                    .iter()
-                    .find(|(id, _)| id == p)
-                    .map_or_else(|| p.to_owned(), |(_, t)| t.clone());
-                Some((p.to_owned(), tag))
+                Some((p.to_owned(), known(p)))
             }
-            Some(tag) => strips.into_iter().find(|(_, t)| t == tag),
+            Some(tag) => strips
+                .iter()
+                .find(|(_, t)| t == tag)
+                .map(|(id, t)| (id.clone(), Some(t.clone())))
+                .or_else(|| {
+                    self.tools
+                        .strip_tags
+                        .iter()
+                        .find(|(_, t)| *t == tag)
+                        .map(|(id, t)| (id.clone(), Some(t.clone())))
+                }),
             None => match &self.tools.last_strip {
-                Some(id) => Some((id.clone(), "X".to_owned())),
-                None => strips.into_iter().next(),
+                Some(id) => Some((id.clone(), known(id))),
+                None => strips.into_iter().next().map(|(id, t)| (id, Some(t))),
             },
         }
     }
 
-    /// The next free decimal designation of the terminals of the strip with `tag` the page draws (`1` without one).
-    fn next_free_designation(&self, tag: &str) -> String {
-        let Some(c) = self.canvas() else {
+    /// The next free decimal designation of the terminals of the strip with `tag` the page draws (`1` without one or
+    /// while the strip's tag is not known).
+    fn next_free_designation(&self, tag: Option<&str>) -> String {
+        let (Some(c), Some(tag)) = (self.canvas(), tag) else {
             return "1".to_owned();
         };
         let prefix = format!("{tag}:");
@@ -306,7 +331,7 @@ impl ShellModel {
                 };
                 let designation = match string_param(p, "designation") {
                     Ok(Some(d)) => d.to_owned(),
-                    Ok(None) => self.next_free_designation(&strip_tag),
+                    Ok(None) => self.next_free_designation(strip_tag.as_deref()),
                     Err(e) => return e,
                 };
                 PlaceTarget::Terminal {
@@ -664,6 +689,7 @@ impl ShellModel {
     /// `edit.delete_selection` (Delete, §7.4): `edit.delete` with every entity of the selection the page tables
     /// resolve.
     pub(super) fn act_delete_selection(&mut self) -> Outcome {
+        self.cancel_pending_move();
         let cmd = self
             .canvas()
             .and_then(|c| transform::delete_command(&self.tools.selection, c.page()));
@@ -748,6 +774,8 @@ impl ShellModel {
     /// hold leaves the selection; the place tool's shape is read again for a new revision.
     pub(super) fn after_commit(&mut self) {
         self.refresh_place_shape();
+        self.cancel_stale_move();
+        self.learn_strip_tag();
         let Some(before) = self.tools.before_commit.take() else {
             return;
         };
@@ -765,6 +793,70 @@ impl ShellModel {
         if kept != self.tools.selection.items && self.tools.selection.apply(&SelectionChange::Replace(kept)) {
             self.announce_selection();
         }
+    }
+
+    /// A pending drag or keyboard move whose selection changed or whose representations are gone is escaped at the end
+    /// of the dispatch that changed them (fix round, item 11): its ghost, readout and preview go.
+    fn cancel_stale_move(&mut self) {
+        let stale = self
+            .with_tool(|t, cx| {
+                t.as_any_mut()
+                    .and_then(|a| a.downcast_mut::<SelectTool>())
+                    .is_some_and(|s| s.pending_move_stale(cx))
+            })
+            .unwrap_or(false);
+        if stale {
+            // The tool's answer is `Cancel`; the host's part of it follows.
+            let _ = self.with_tool(|t, cx| t.on_event(&CanvasEvent::Escape, cx));
+            self.tools.overlay = crate::tools::Overlay::default();
+            self.tools.preview = None;
+            self.announce_tool();
+        }
+    }
+
+    /// Cancels a pending keyboard move or drag before Delete acts on the selection (§7.4: Delete deletes; the move is
+    /// a gesture not yet committed, so it goes first).
+    fn cancel_pending_move(&mut self) {
+        if matches!(self.tools.tool.state(), "moving" | "dragging") {
+            let _ = self.with_tool(|t, cx| t.on_event(&CanvasEvent::Escape, cx));
+            self.tools.overlay = crate::tools::Overlay::default();
+            self.tools.preview = None;
+        }
+    }
+
+    /// After a terminal of a strip whose tag nothing on the page printed was placed, its CP label (`<strip
+    /// tag>:<designation>`) gives the tag: the place tool's label and later placements use it (fix round, item 3).
+    fn learn_strip_tag(&mut self) {
+        let Some(primary) = self.tools.last_primary.clone() else {
+            return;
+        };
+        let strip = self
+            .with_tool(|t, _| {
+                t.as_any_mut()
+                    .and_then(|a| a.downcast_mut::<PlaceTool>())
+                    .filter(|p| p.strip_tag_unknown())
+                    .and_then(|p| match p.target() {
+                        PlaceTarget::Terminal { strip, .. } => Some(strip.clone()),
+                        _ => None,
+                    })
+            })
+            .flatten();
+        let Some(strip) = strip else { return };
+        let tag = self.canvas().and_then(|c| {
+            c.page()
+                .tables
+                .cps
+                .iter()
+                .find(|cp| cp.rep.to_string() == primary)
+                .and_then(|cp| cp.label.split_once(':').map(|(t, _)| t.to_owned()))
+        });
+        let Some(tag) = tag else { return };
+        self.tools.strip_tags.insert(strip, tag.clone());
+        let _ = self.with_tool(|t, _| {
+            if let Some(p) = t.as_any_mut().and_then(|a| a.downcast_mut::<PlaceTool>()) {
+                p.set_strip_tag(tag);
+            }
+        });
     }
 
     /// The place tool's shape after a new revision (§12 item 4): read once again through the per-revision cache, so

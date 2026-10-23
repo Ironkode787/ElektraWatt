@@ -118,6 +118,8 @@ pub(crate) struct ToolHost {
     pub shapes: Option<((u64, u64), ShapeCache)>,
     /// The strip the last `strip.new` created (its ID), the default strip of a terminal placement.
     pub last_strip: Option<String>,
+    /// The tags of strips learned from the CP labels of terminals placed in this session, by strip ID.
+    pub strip_tags: BTreeMap<String, String>,
     /// The primary record of the host's or a tool's last commit (its ID text).
     pub last_primary: Option<String>,
     /// The page tables before the last commit, for dropping deleted records from the selection (§6.4 item 3).
@@ -142,6 +144,7 @@ impl ToolHost {
             catalogue: None,
             shapes: None,
             last_strip: None,
+            strip_tags: BTreeMap::new(),
             last_primary: None,
             before_commit: None,
         }

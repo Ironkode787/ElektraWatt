@@ -51,20 +51,23 @@ pub struct ExchangeTool {
     unmapped: Vec<u16>,
 }
 
-/// The function CP indices a message names (`function CP 3 …`), in order.
-fn named_cps(text: &str) -> Vec<u16> {
-    let mut out = Vec::new();
-    let mut rest = text;
-    while let Some(i) = rest.find("function CP ") {
-        rest = &rest[i + "function CP ".len()..];
-        let digits: String = rest.chars().take_while(char::is_ascii_digit).collect();
-        if let Ok(n) = digits.parse::<u16>()
-            && !out.contains(&n)
-        {
-            out.push(n);
-        }
-    }
-    out
+/// The function CP a notice of `rep.exchange_symbol` names as no longer drawn (`function CP 3 is no longer drawn
+/// by this representation`); `None` for any other text.
+fn unmapped_notice(text: &str) -> Option<u16> {
+    let rest = text.strip_prefix("function CP ")?;
+    let (n, tail) = rest.split_once(' ')?;
+    (tail == "is no longer drawn by this representation").then(|| n.parse().ok())?
+}
+
+/// The function CP the connected-CP refusal of `rep.exchange_symbol` names (`… function CP 1 is connected on this
+/// page and the new symbol does not draw it …`); `None` for any other refusal (an unmatched symbol CP that would
+/// draw a function CP is not an unmapped CP).
+fn connected_refusal(text: &str) -> Option<u16> {
+    let at = text.find("function CP ")?;
+    let rest = &text[at + "function CP ".len()..];
+    let (n, tail) = rest.split_once(' ')?;
+    tail.starts_with("is connected on this page and the new symbol does not draw it")
+        .then(|| n.parse().ok())?
 }
 
 impl ExchangeTool {
@@ -198,14 +201,11 @@ impl Tool for ExchangeTool {
         if self.same_def {
             return None;
         }
-        let mut named: Vec<u16> = Vec::new();
-        for text in info.notices.iter().chain(info.message.iter()) {
-            for n in named_cps(text) {
-                if !named.contains(&n) {
-                    named.push(n);
-                }
-            }
-        }
+        // Only the command's structured notices and its connected-CP refusal name unmapped CPs (fix round, item 4;
+        // the design pass replaces the reading with the command's own map, computed from the shapes).
+        let mut named: Vec<u16> = info.notices.iter().filter_map(|t| unmapped_notice(t)).collect();
+        named.extend(info.message.as_deref().and_then(connected_refusal));
+        named.dedup();
         self.unmapped = named;
         Some(self.overlay())
     }
@@ -216,11 +216,25 @@ mod tests {
     use super::*;
 
     #[test]
-    fn the_cps_a_message_names_are_read_in_order() {
+    fn only_the_structured_notices_and_the_connected_refusal_name_unmapped_cps() {
         assert_eq!(
-            named_cps("function CP 1 is connected on this page; function CP 3 is no longer drawn"),
-            vec![1, 3]
+            unmapped_notice("function CP 3 is no longer drawn by this representation"),
+            Some(3)
         );
-        assert!(named_cps("nothing").is_empty());
+        assert_eq!(unmapped_notice("the override of text slot 2 is dropped"), None);
+        assert_eq!(
+            connected_refusal(
+                "rejected: function CP 1 is connected on this page and the new symbol does not draw it; pick a                  symbol that draws it or give `pin_map`"
+            ),
+            Some(1)
+        );
+        // The refusal of an unmatched symbol CP names a function CP it would draw, which is no unmapped CP.
+        assert_eq!(
+            connected_refusal(
+                "connection point 0 of the new symbol has no counterpart by designation and would draw function                  CP 0; give `pin_map`"
+            ),
+            None
+        );
+        assert_eq!(connected_refusal("nothing"), None);
     }
 }

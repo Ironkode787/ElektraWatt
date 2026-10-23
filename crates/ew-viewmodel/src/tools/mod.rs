@@ -285,6 +285,11 @@ pub trait Tool {
         None
     }
 
+    /// The host committed the tool's command (`done`) or the commit failed (fix round of WP-S2.04 part 1, item 2).
+    fn on_commit(&mut self, done: bool) {
+        let _ = done;
+    }
+
     /// The tool as `Any`, for host duties that need its concrete type (the place tool's next representation type);
     /// `None` for a tool without such duties.
     fn as_any_mut(&mut self) -> Option<&mut dyn std::any::Any> {

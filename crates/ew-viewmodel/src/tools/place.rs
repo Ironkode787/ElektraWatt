@@ -66,8 +66,9 @@ pub enum PlaceTarget {
     Terminal {
         /// The strip device.
         strip: String,
-        /// The strip's tag (the label's, `1X1`).
-        strip_tag: String,
+        /// The strip's tag as the page prints it (the label's, `1X1`); `None` while nothing on the page prints it
+        /// (a strip `strip.new` just made: the host reads it from the first terminal's CP label).
+        strip_tag: Option<String>,
         /// The terminal's designation.
         designation: String,
     },
@@ -88,6 +89,8 @@ pub struct PlaceTool {
     last: Overlay,
     /// The target's word at the current point (`join` inside a black box).
     word: &'static str,
+    /// Whether a `new_terminal` target waits for its next designation.
+    ask: bool,
 }
 
 /// Whether `p` lies inside the polygon (even-odd rule, the boundary inside), exactly in `i128`.
@@ -154,6 +157,7 @@ impl PlaceTool {
             tag: None,
             last: Overlay::default(),
             word: "",
+            ask: false,
         }
     }
 
@@ -251,13 +255,19 @@ impl PlaceTool {
             } => (
                 json!({"new_terminal": {"strip": strip, "designation": designation}}),
                 "terminal",
-                strings::format("place-target-terminal", &[strip_tag, designation]),
+                strings::format(
+                    "place-target-terminal",
+                    &[&self.strip_label(strip_tag), &self.designation_label(designation)],
+                ),
             ),
         }
     }
 
-    /// The command at the current point.
+    /// The command at the current point; `None` while the tool asks for a designation.
     fn command(&self, cx: &ToolCx<'_>) -> Option<Box<AnyCommand>> {
+        if self.ask {
+            return None;
+        }
         let (_, pos) = self.at?;
         let (target, _, _) = self.effective_target(cx, pos);
         Some(Box::new(AnyCommand {
@@ -336,13 +346,37 @@ impl PlaceTool {
         let Some(cmd) = self.command(cx) else {
             return ToolOutput::None;
         };
-        if let PlaceTarget::Terminal { designation, .. } = &mut self.target
-            && let Some(next) = next_designation(designation)
-        {
-            *designation = next;
-        }
         self.tag = None;
         ToolOutput::Commit(cmd)
+    }
+
+    /// The label of a strip tag (`(new strip)` while unknown).
+    fn strip_label(&self, tag: &Option<String>) -> String {
+        tag.clone()
+            .unwrap_or_else(|| strings::text("strip-tag-unknown").to_owned())
+    }
+
+    /// The label of the designation (`?` while the tool asks for the next one).
+    fn designation_label(&self, d: &str) -> String {
+        if self.ask { "?".to_owned() } else { d.to_owned() }
+    }
+
+    /// Whether a `new_terminal` target waits for the next designation (§7.2: after a commit with a designation that
+    /// is not decimal digits the next commit asks again; `text.input` or a new `place.pick` gives it).
+    pub fn needs_designation(&self) -> bool {
+        self.ask
+    }
+
+    /// The tag of the strip of a `new_terminal` target, once the page prints it.
+    pub fn set_strip_tag(&mut self, tag: String) {
+        if let PlaceTarget::Terminal { strip_tag, .. } = &mut self.target {
+            *strip_tag = Some(tag);
+        }
+    }
+
+    /// Whether the target is a `new_terminal` whose strip's tag is not known yet.
+    pub fn strip_tag_unknown(&self) -> bool {
+        matches!(&self.target, PlaceTarget::Terminal { strip_tag: None, .. })
     }
 }
 
@@ -380,7 +414,28 @@ impl Tool for PlaceTool {
                 self.commit(cx)
             }
             CanvasEvent::Activate => self.commit(cx),
+            CanvasEvent::Text(text) => match &mut self.target {
+                PlaceTarget::Terminal { designation, .. } if !text.trim().is_empty() => {
+                    *designation = text.trim().to_owned();
+                    self.ask = false;
+                    self.transient(cx)
+                }
+                _ => ToolOutput::None,
+            },
             _ => ToolOutput::None,
+        }
+    }
+
+    fn on_commit(&mut self, done: bool) {
+        // The designation advances only after the host committed (fix round, item 2): a refused commit keeps it.
+        if !done {
+            return;
+        }
+        if let PlaceTarget::Terminal { designation, .. } = &mut self.target {
+            match next_designation(designation) {
+                Some(next) => *designation = next,
+                None => self.ask = true,
+            }
         }
     }
 
@@ -398,7 +453,11 @@ impl Tool for PlaceTool {
                 strip_tag,
                 designation,
                 ..
-            } => Some(format!("{strip_tag}:{designation}")),
+            } => Some(format!(
+                "{}:{}",
+                self.strip_label(strip_tag),
+                self.designation_label(designation)
+            )),
             _ => None,
         };
         let (target, letter) = match &self.target {

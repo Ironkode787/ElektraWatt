@@ -92,6 +92,9 @@ pub struct SelectTool {
     state: State,
     /// The grid cursor as the last `CursorMove` placed it.
     cursor: Option<(i64, i64)>,
+    /// The selection's generation and the page's revision when a drag or the keyboard move began: a change of
+    /// either makes the pending move stale (fix round of WP-S2.04 part 1, item 11).
+    origin: (u64, u64),
 }
 
 impl Default for SelectTool {
@@ -140,6 +143,7 @@ impl SelectTool {
         SelectTool {
             state: State::Idle,
             cursor: None,
+            origin: (0, 0),
         }
     }
 
@@ -177,6 +181,20 @@ impl SelectTool {
         })
     }
 
+    /// Whether a pending drag or keyboard move no longer stands (fix round of WP-S2.04 part 1, item 11): the
+    /// selection changed under it, the page's revision changed (a delete, an undo, a redo, another commit) or one of
+    /// its representations is gone. The host then escapes it, so no stale representation reaches a preview.
+    pub fn pending_move_stale(&self, cx: &ToolCx<'_>) -> bool {
+        let moved = match &self.state {
+            State::Dragging { moved, .. } | State::Moving { moved, .. } => moved,
+            _ => return false,
+        };
+        self.origin != (cx.selection.generation, cx.page.rev)
+            || moved
+                .iter()
+                .any(|e| !cx.page.tables.reps.iter().any(|r| r.id == e.0))
+    }
+
     /// Starts the keyboard move (M, WP-S2.04 §7.3) of the selection's representations from the grid cursor and
     /// answers its first overlay; `None` (and nothing changes) without representations selected, without a grid
     /// cursor or in another state than idle.
@@ -190,6 +208,7 @@ impl SelectTool {
             return None;
         }
         let out = ToolOutput::Transient(move_overlay(cx, &moved, (0, 0)));
+        self.origin = (cx.selection.generation, cx.page.rev);
         self.state = State::Moving {
             moved,
             from,
@@ -302,6 +321,7 @@ impl SelectTool {
                     let moved = moved_set(cx, entity);
                     let steps = steps_between(cx, from, at);
                     let out = ToolOutput::Transient(move_overlay(cx, &moved, steps));
+                    self.origin = (cx.selection.generation, cx.page.rev);
                     self.state = State::Dragging {
                         pressed: entity,
                         mods,

@@ -101,6 +101,8 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "reason-not-editable" => "Symbols are placed on drawn pages of a project that can be changed",
         "banner-host-commit" => "{0} failed: {1}",
         "tool-strip-new" => "New strip",
+        "strip-tag-unknown" => "(new strip)",
+        "reason-page-type-no-symbols" => "This page type takes no symbols or wires",
         "tool-select" => "Select",
         "tool-measure" => "Measure",
         "hint-select" => "Click to select; drag for a rubber band",

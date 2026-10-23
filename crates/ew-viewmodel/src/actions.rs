@@ -319,6 +319,23 @@ fn can_go_forward(m: &ShellModel) -> Result<(), &'static str> {
 fn editable_page(m: &ShellModel) -> Result<(), &'static str> {
     has_pages(m)?;
     writable(m)?;
+    // The page types without wire or symbol tools (doc 06 §2.2: title page, panel layout, model view, external
+    // document; the generated table of contents, dividers and reports are not drawn pages at all).
+    let kind = m.page_rows().get(m.page_index()).map(|r| r.kind.as_str());
+    if matches!(
+        kind,
+        Some(
+            "title_page"
+                | "panel_layout"
+                | "model_view"
+                | "external_document"
+                | "table_of_contents"
+                | "section_divider"
+                | "report"
+        )
+    ) {
+        return Err("reason-page-type-no-symbols");
+    }
     match m.canvas() {
         Some(c) if !c.page().tables.page.is_nil() => Ok(()),
         _ => Err("reason-not-editable"),
