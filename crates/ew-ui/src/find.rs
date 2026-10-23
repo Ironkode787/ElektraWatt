@@ -109,13 +109,20 @@ impl FindPane {
             Self::card(ui, shell, events);
             ui.horizontal_wrapped(|ui| {
                 let name = strings::text("find-text").to_owned();
-                let response = Self::field(ui, &mut self.text, &name, events, "find.text", card);
+                let response = Self::field(ui, &mut self.text, &name, events, "find.text", (card, ours));
                 if arrived {
                     response.request_focus();
                 }
                 if f.replace_mode() {
                     let name = strings::text("find-replacement").to_owned();
-                    Self::field(ui, &mut self.replacement, &name, events, "find.replacement", card);
+                    Self::field(
+                        ui,
+                        &mut self.replacement,
+                        &name,
+                        events,
+                        "find.replacement",
+                        (card, ours),
+                    );
                 }
                 if ui.button(strings::text("find-run")).clicked() {
                     events.push(Event::Action("find.run", json!({})));
@@ -169,6 +176,7 @@ impl FindPane {
                         .hint_text(&name),
                 );
                 response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &name));
+                Self::report_focus(&response, ours, events);
                 if response.changed() {
                     let folios: Vec<&str> = self
                         .folios
@@ -185,6 +193,14 @@ impl FindPane {
         });
     }
 
+    /// A field that gains the focus (a click, Tab) makes the pane the shell's focus, so the canvas's own keys (Tab for
+    /// the wire proposals) are not offered while the user types here.
+    fn report_focus(response: &egui::Response, ours: bool, events: &mut Vec<Event>) {
+        if response.gained_focus() && !ours {
+            events.push(Event::Action("ui.focus", json!({"area": "find"})));
+        }
+    }
+
     /// A text field labelled `name` whose changes go to `action`; Enter runs the search, Ctrl+Enter replaces.
     fn field(
         ui: &mut Ui,
@@ -192,9 +208,10 @@ impl FindPane {
         name: &str,
         events: &mut Vec<Event>,
         action: &'static str,
-        card: bool,
+        (card, ours): (bool, bool),
     ) -> egui::Response {
         let response = ui.add(TextEdit::singleline(text).desired_width(220.0).hint_text(name));
+        Self::report_focus(&response, ours, events);
         let label = name.to_owned();
         response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &label));
         if response.changed() {

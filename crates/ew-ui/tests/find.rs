@@ -196,3 +196,64 @@ fn fr3_ctrl_enter_in_a_focused_field_builds_then_applies() {
         "applying a fresh card runs no search"
     );
 }
+
+/// Types `text` as keyboard input into whatever has the focus (no accessibility action that moves the focus).
+fn type_keys(h: &mut Harness<'_, App>, text: &str) {
+    h.event(egui::Event::Text(text.to_owned()));
+    settle(h);
+}
+
+/// Tab in the search field moves the focus to "Replace with" and Shift+Tab back (keyboard parity, WP-S2.05 part 2).
+#[test]
+fn fr3_tab_and_shift_tab_move_between_the_find_fields() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "204");
+    h.key_press_modifiers(Modifiers::COMMAND, Key::H);
+    settle(&mut h);
+    type_keys(&mut h, "Spare");
+    h.key_press(Key::Tab);
+    settle(&mut h);
+    type_keys(&mut h, "Reserve");
+    let f = h.state().shell().find_state();
+    assert_eq!(f.text(), "Spare");
+    assert_eq!(f.replacement(), "Reserve");
+    h.key_press_modifiers(Modifiers::SHIFT, Key::Tab);
+    settle(&mut h);
+    type_keys(&mut h, "X");
+    let f = h.state().shell().find_state();
+    assert_eq!(f.text(), "SpareX");
+    assert_eq!(f.replacement(), "Reserve");
+}
+
+/// A click into the search field while the shell's focus is on the canvas hands the focus to the pane, so Tab moves
+/// to "Replace with" and does not reach the canvas's `tool.next_proposal` (a chord of the canvas context).
+#[test]
+fn fr3_tab_after_a_click_into_the_field_stays_in_the_pane() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "204");
+    h.key_press_modifiers(Modifiers::COMMAND, Key::H);
+    settle(&mut h);
+    // Leave the field (egui's focus on a button), then give the canvas the shell's focus: the canvas takes egui's.
+    h.get_all_by_role(egui::Role::Button)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Find"))
+        .expect("the Find button")
+        .focus();
+    settle(&mut h);
+    dispatch(&mut h, "ui.focus", json!({"area": "canvas", "group": 0}));
+    settle(&mut h);
+    assert_eq!(h.state().shell().focus(), Some(Focus::Canvas(0)));
+    let field = h
+        .get_all_by_role(egui::Role::TextInput)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Find"))
+        .expect("the Find field");
+    field.click();
+    settle(&mut h);
+    assert_eq!(h.state().shell().focus(), Some(Focus::Find));
+    type_keys(&mut h, "Spare");
+    h.key_press(Key::Tab);
+    settle(&mut h);
+    type_keys(&mut h, "Reserve");
+    let f = h.state().shell().find_state();
+    assert_eq!(f.text(), "Spare");
+    assert_eq!(f.replacement(), "Reserve");
+}
