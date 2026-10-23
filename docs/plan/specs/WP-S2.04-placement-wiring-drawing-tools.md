@@ -600,7 +600,9 @@ canvas crossings hops                                   (only when set)
 
 `VOCABULARY` gains `route`, `from`, `end`, `bends`, `points`, `proposals`, `->`, `junction`, `style`, `wiring`,
 `sequence`, `wire`, `segment`, `routing`, `crossings`, `plain`, `hops`, `dot`, `bevel`, `star`, `chain` and `connect`
-(22 words; `->` is the token between a proposal's quoted CP and its quoted target).
+(22 words; `->` is the token between a proposal's quoted CP and its quoted target). *Cycle 25 (ID-621):* if WP-S6.13
+part 1 integrates first, its `page.describe` has already added `wire`, `->`, `route`, `bends`, `style`, `dot`, `bevel`,
+`wiring`, `star`, `chain` and `sequence`, and this part adds the other **11**; it states the count it adds.
 
 ## 9. Part 3: interruption points and black boxes
 
@@ -690,7 +692,8 @@ canvas ghost box outline 4 cps 7
 ```
 
 `VOCABULARY` gains `ip`, `name`, `direction`, `source`, `undirected`, `outline`, `cps`, `arrange`, `by` and `potential`
-(10 words).
+(10 words). *Cycle 25 (ID-621):* if WP-S6.13 part 1 integrates first, it has already added `ip`, `direction`,
+`source`, `undirected` and `potential`, and this part adds the other **5**; it states the count it adds.
 
 ## 10. Part 4: page items, wire markers and structure boxes
 
@@ -814,7 +817,16 @@ canvas ghost box outline 4
 
 `VOCABULARY` gains `text`, `graphic`, `line`, `polyline`, `rect`, `circle`, `arc`, `polygon`, `marker`,
 `connections`, `typing`, `drawing` and `crossing` (13 words; `item` and `box` exist already, and `outline` comes with
-part 3, which integrates before part 4b).
+part 3, which integrates before part 4b). *Cycle 25 (ID-621):* if WP-S6.13 part 1 integrated first, `connections` is
+there already and this part adds **12**; if WP-S6.13 part 1 integrates after part 4a, this part also adds
+`page.describe`'s item and box lines with `boxes` and `unknown` (WP-S6.13 §5.5.3).
+
+**Strip bridges (FT-411, hosted here by the cycle-25 ruling ID-622; 0.2 pw from WP-S2.04's reserve).** The action
+`strip.bridge` (Edit ▸ Bridge terminals, context canvas, no parameters; signature `""`) is enabled when the selection is
+exactly two terminal representations of one strip whose terminals are not yet bridged to each other, and commits
+through the host the existing page-less `connection.draw` between the two terminals, with the endpoints a golden bridge uses (doc 20 §8.3; the lane reads them from Golden A's bridge connections and stops if they differ by terminal type) (one undo step); a range
+such as BR1 (-X1031 1 to 4) is drawn as three such steps. Disabled with its reason otherwise (`reason-bridge-selection`).
+It adds no describe word. Checked by PI10.
 
 ## 11. Part 5: images
 
@@ -910,6 +922,7 @@ PI1 to PI6 and PI8 belong to part 4a, PI7, PI9 and the G-PP rehearsal of §13.6 
 | PI7 | Tools: Text (with binding and edit), Graphic (every shape, Back, finish), Marker (crossing order, fields), Structure box; move and delete of items and boxes with representations in one command | `ew-viewmodel` tests | §10.5 |
 | PI8 | Commands and amendments with every rejection; DSL verbs and fuzzer arms; the catalogue at 50 commands | `ew-commands`, `ew-testkit` tests | §5 |
 | PI9 | Transcript, describe, the 13 words; the folio-101 structure-box and marker steps of §13.6 twice byte-identical; replay; exact counts; golden unchanged; policy and targeted checks, including `check-licence-map` for the touched permissive-boundary crates | lane; tests | §10.7, §12 |
+| PI10 | FT-411: on the folio-103 demo variant, bridging -X1031:1 to :4 by three `strip.bridge` steps gives one potential over the four terminals (24VDC-1) and three page-less connections; a selection of two terminals of different strips or of one terminal is refused with `reason-bridge-selection`; each step one undo step | `ew-viewmodel` tests; the demo script | FT-411 |
 
 ### 13.5 Part 5
 
@@ -1056,7 +1069,8 @@ editor with `junction_wires` 0.3; crossings with the command and the scene 0.3; 
 and compatibility 0.45; derivation (containment, `ip_structure`, bound texts, marker modes, group text) 0.4; drawing
 and PDF 0.35; commands and amendments 0.4. **Part 4b, 0.9 pw:** the four tools and the text popup 0.6; tests, the
 G-PP rehearsal and the folio-103 demo variant 0.3. **Part 5, 0.5 pw.** The parts sum to 9.7 pw; the **0.6 pw**
-between them and the PERT is the reserve inside WP-S2.04, drawn on for part 4a first. The reserve is thin because the PERT predates the gaps of §2.2 (two record kinds, eight commands,
+between them and the PERT is the reserve inside WP-S2.04, drawn on for part 4a first; 0.2 pw of it goes to FT-411's
+strip bridges in part 4b (cycle 25, ID-622). The reserve is thin because the PERT predates the gaps of §2.2 (two record kinds, eight commands,
 the router); a part that closes more than 20 % over its size triggers a re-estimate at the next design pass.
 
 ### 17.2 Order and routing
