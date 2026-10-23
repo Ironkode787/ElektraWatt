@@ -98,6 +98,9 @@ planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "e
   "ew-reports",
   # The export job (FT-59): the bundled fonts of ew-text and the display-list types of ew-dl.
   "ew-text", "ew-dl",
+  # WP-S2.05 part 1 (§4.1 rule 2; decision log ID-600): the field parser and formatter of the property grid
+  # name the integer value types and the multi-language text. Normal edges since cycle 24, dev edges before.
+  "ew-units", "ew-mltext",
 ]
 "ew-viewmodel" = ["ew-api"]
 "ew-ui" = ["ew-viewmodel", "ew-render2d", "ew-render-cpu", "ew-render3d"]
@@ -126,7 +129,7 @@ planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "e
 # tables (the importer may not depend on the model, so the test lives in ew-api). Its page-output test (WP-S3.04)
 # renders the PNGs of the golden folios (ew-text and ew-dl are normal edges since the export job, FT-59). The
 # acceptance runner builds AC-15's path (b) with the golden builder DSL of ew-testkit (WP-S6.01).
-"ew-api" = ["ew-derive", "ew-render-cpu", "ew-ids", "ew-units", "ew-mltext", "ew-testkit"]
+"ew-api" = ["ew-derive", "ew-render-cpu", "ew-ids", "ew-testkit"]
 # The renderer's and the PDF writer's tests shape their text with the bundled fonts (WP-S3.04).
 "ew-render-cpu" = ["ew-text", "ew-units"]
 "ew-export" = ["ew-text", "ew-units"]
