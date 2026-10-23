@@ -663,7 +663,39 @@ impl ShellModel {
     }
 
     /// `canvas.activate` (Enter): `Activate` to the tool, at the grid cursor; with Select idle and exactly one junction
-    /// selected, the junction sequence editor opens instead (WP-S2.04 §8.5).
+    /// selected, the junction sequence editor opens instead (WP-S2.04 §8.5). With `alt` (headless; WP-S2.04 part 2) it
+    /// is a click with Alt held at the grid cursor (a press and a release): the keyboard's way to place a symbol without
+    /// its autoconnect proposals (FR-CON-003) or to fix a wire's bend without object snaps.
+    pub(super) fn act_activate_with(&mut self, p: &Map<String, Value>) -> Outcome {
+        if !flag(p, "alt") {
+            return self.act_activate();
+        }
+        let Some(at) = self.canvas().and_then(CanvasModel::cursor) else {
+            return Outcome::Refused {
+                reason_key: "reason-no-cursor",
+            };
+        };
+        let mods = Mods {
+            alt: true,
+            ..Mods::default()
+        };
+        let _ = self.send_tool(&CanvasEvent::CursorMove { at });
+        let out = self.send_tool(&CanvasEvent::Press {
+            at,
+            button: Button::Primary,
+            mods,
+        });
+        if out != Outcome::Done {
+            return out;
+        }
+        self.send_tool(&CanvasEvent::Release {
+            at,
+            button: Button::Primary,
+            mods,
+        })
+    }
+
+    /// `canvas.activate` without parameters (see [`ShellModel::act_activate_with`]).
     pub(super) fn act_activate(&mut self) -> Outcome {
         if let Some(out) = self.enter_opens_junction() {
             return out;

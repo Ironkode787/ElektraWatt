@@ -9,7 +9,8 @@
 //! page tables, a junction, a point on a connection segment (the grid point of the segment nearest to the pointer;
 //! a coordinate of the segment that is off the grid is the segment's own, the CP-exact coordinate
 //! `require_split_point` accepts), else the grid point. Alt suppresses the object snaps. Ties by the smaller
-//! distance, then by ID.
+//! distance, then by ID: the smaller for a CP or a junction; for a segment the later in paint order (the larger ID,
+//! the wire drawn last, on top), as WP-S2.02's pick breaks a tie.
 //!
 //! | State | Event | Next | Output |
 //! |---|---|---|---|
@@ -285,7 +286,7 @@ pub fn resolve_target(cx: &ToolCx<'_>, at: (i64, i64), alt: bool) -> WireTarget 
                 continue;
             };
             let id = EntityRef(c.id);
-            if best.is_none_or(|(bd, bid, _)| d < bd || (d == bd && id < bid)) {
+            if best.is_none_or(|(bd, bid, _)| d < bd || (d == bd && id > bid)) {
                 best = Some((d, id, p));
             }
         }

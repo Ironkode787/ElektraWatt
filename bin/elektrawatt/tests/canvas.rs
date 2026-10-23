@@ -1286,4 +1286,196 @@ mod folio_scripts {
         assert!(functions.len() >= 17);
         s.close();
     }
+
+    /// WP-S2.04 part 2's share of §13.6 (WR9): folio 101 placed, its golden tags typed (`fields.set` through `command.run`
+    /// on `tag:` references), its 21 connections and 2 junctions drawn with the Wire tool from the keyboard; two runs give
+    /// byte-identical transcripts; the oracle: 17 representations, 21 drawn connections and 2 junctions, every
+    /// connection's end labels and every junction's sequence (by far-end labels) as on Golden A; the `--record` log
+    /// replayed on the start gives the same wiring and the same devices and functions, IDs aside.
+    #[test]
+    fn folio_101_is_wired_by_a_generated_script_twice_identically_and_replays() {
+        use super::support::{golden_wiring, typed_tag_steps, wiring_oracle, wiring_steps};
+        let tmp = Tmp::new();
+        let job = start(&tmp);
+        let (session, _) = Session::open_read_only(&job, "test").unwrap();
+        let grid = session.page_grid("101").expect("page 101");
+        let map = SheetMap {
+            scale_ppb: i128::from(grid.sheet_scale_ppb),
+            offset: (
+                i128::from(grid.sheet_offset_nm.0),
+                i128::from(grid.sheet_offset_nm.1),
+            ),
+        };
+        let q = session.query();
+        let strip = q
+            .devices()
+            .iter()
+            .find(|(_, d)| d.aspects.strip.is_some())
+            .map(|(id, _)| id.to_string())
+            .expect("the start project's strip");
+        drop(q);
+        drop(session);
+        let (placements, runs) = placement_steps(101, map, &strip);
+        // Phase A: the placements alone, to learn the tags they print.
+        let placed = tmp.path("p").join("folio.ew");
+        copy_dir(&job, &placed);
+        let mut script = steps(&[
+            ("file.open", json!({ "dir": path(&placed) })),
+            ("page.goto", json!({"folio": "101"})),
+        ]);
+        script.extend(placements.iter().cloned());
+        script.extend(steps(&[("file.save", json!({})), ("file.close", json!({}))]));
+        all_done(&run(&tmp, "p.jsonl", &script, Some(&tmp.path("p.ewcmd"))));
+        let tags = typed_tag_steps(101, &placed);
+        let (wiring, commits) = wiring_steps(101, map);
+        assert_eq!(commits, 19, "15 plain wires and 2 per junction");
+        // The full script, twice.
+        let mut transcripts = Vec::new();
+        let mut records = Vec::new();
+        for n in ["a", "b"] {
+            let dir = tmp.path(n).join("folio.ew");
+            copy_dir(&job, &dir);
+            let mut script = steps(&[
+                ("file.open", json!({ "dir": path(&dir) })),
+                ("page.goto", json!({"folio": "101"})),
+            ]);
+            script.extend(placements.iter().cloned());
+            script.extend(tags.iter().cloned());
+            script.extend(wiring.iter().cloned());
+            script.extend(steps(&[
+                ("ui.describe", json!({})),
+                ("file.save", json!({})),
+                ("file.close", json!({})),
+            ]));
+            let record = tmp.path(&format!("{n}.ewcmd"));
+            let out = run(&tmp, &format!("{n}.jsonl"), &script, Some(&record));
+            all_done(&out);
+            let text = String::from_utf8(out.stdout).unwrap();
+            assert!(
+                !text.contains(&*tmp.0.to_string_lossy()),
+                "a path in the transcript"
+            );
+            transcripts.push(text);
+            records.push(record);
+        }
+        if let Some((a, b)) = transcripts[0]
+            .lines()
+            .zip(transcripts[1].lines())
+            .find(|(a, b)| a != b)
+        {
+            let at = a.bytes().zip(b.bytes()).position(|(x, y)| x != y).unwrap_or(0);
+            panic!(
+                "two runs, two transcripts: first difference at {at}: {} | {}",
+                &a[at.saturating_sub(120)..(at + 80).min(a.len())],
+                &b[at.saturating_sub(120)..(at + 80).min(b.len())]
+            );
+        }
+        assert_eq!(transcripts[0], transcripts[1], "two runs, one transcript");
+        // The oracle of §13.6.
+        let golden = golden_wiring(101);
+        assert_eq!(golden.counts, (21, 2));
+        let (scripted, _) = Session::open_read_only(&tmp.path("a").join("folio.ew"), "test").unwrap();
+        let tables = scripted.page_tables("101").unwrap();
+        assert_eq!(tables.reps.len(), 17, "representations on 101");
+        let wired = wiring_oracle(&tables);
+        assert_eq!(wired.counts, (21, 2), "drawn connections and junctions on 101");
+        assert_eq!(wired.sequences, golden.sequences, "every junction sequence");
+        assert_eq!(wired.pairs, golden.pairs, "every connection end labels");
+        assert_eq!(wired.sequences, golden.sequences, "every junction's sequence");
+        // Every drawn connection carries the route the Wire tool showed.
+        assert!(tables.connections.iter().all(|c| c.stored_route));
+        // The steps a later part owns: the six interruption points (the IP tool is part 3's) and the typed tags.
+        assert_eq!(runs, 6);
+        assert!(!tags.is_empty());
+        // `--record` replayed on a third copy of the start.
+        let replay = tmp.path("c").join("folio.ew");
+        copy_dir(&job, &replay);
+        let log = CmdLog::parse(&std::fs::read_to_string(&records[0]).unwrap()).unwrap();
+        let names: Vec<&str> = log.commands().map(|c| c.name.as_str()).collect();
+        assert_eq!(
+            names.iter().filter(|n| **n == "connection.draw").count(),
+            19,
+            "{names:?}"
+        );
+        let mut store = ew_ui::ew_viewmodel::ew_api::StoreOptions::new("test");
+        store.state_dir = Some(tmp.path("state"));
+        let (mut s, _) = Session::open(
+            &replay,
+            store,
+            ew_ui::ew_viewmodel::ew_api::SessionOptions::default(),
+            ew_ui::ew_viewmodel::ew_api::Recovery::Keep,
+        )
+        .unwrap();
+        // The log names the functions and connections the session minted (a new project's IDs are random, FT-416):
+        // each `connection.draw` end is mapped to the replay's record at the same place before it runs (a CP by its
+        // point and index, a wire by its connection point end), every other line replays as recorded.
+        let a_tables = scripted.page_tables("101").unwrap();
+        for cmd in log.commands() {
+            let mut cmd = cmd.clone();
+            if cmd.name == "connection.draw" {
+                let now = s.page_tables("101").unwrap();
+                let map_cp = |f: &str, idx: u64| -> String {
+                    let at = a_tables
+                        .cps
+                        .iter()
+                        .find(|c| c.function.to_string() == f && u64::from(c.idx) == idx)
+                        .expect("a CP of the run")
+                        .at;
+                    now.cps
+                        .iter()
+                        .find(|c| c.at == at && u64::from(c.idx) == idx)
+                        .expect("the CP of the replay")
+                        .function
+                        .to_string()
+                };
+                for end in ["a", "b"] {
+                    let e = &mut cmd.params[end];
+                    if let Some(cp) = e.get_mut("cp") {
+                        let f = map_cp(cp["function"].as_str().unwrap(), cp["idx"].as_u64().unwrap());
+                        cp["function"] = Value::from(f);
+                    } else if let Some(on) = e.get_mut("on_connection") {
+                        let id = on["connection"].as_str().unwrap().to_owned();
+                        let w = a_tables
+                            .connections
+                            .iter()
+                            .find(|c| c.id.to_string() == id)
+                            .expect("the wire");
+                        let ew_ui::ew_viewmodel::ew_api::output::TableEnd::Cp { function, idx } = w.a else {
+                            panic!("the split wire starts at a CP");
+                        };
+                        let f = map_cp(&function.to_string(), u64::from(idx));
+                        let mapped = now
+                            .connections
+                            .iter()
+                            .find(|c| {
+                                matches!(c.a, ew_ui::ew_viewmodel::ew_api::output::TableEnd::Cp { function, idx: i }
+                                    if function.to_string() == f && i == idx)
+                            })
+                            .expect("the wire of the replay")
+                            .id;
+                        on["connection"] = Value::from(mapped.to_string());
+                    }
+                }
+            }
+            // One line through `run_script`, the replay's own path (references resolved there).
+            let line = json!({"cmd": cmd.name, "params": cmd.params});
+            let one = CmdLog::parse(&format!("{{\"$schema\":\"ew.cmdlog/1\"}}\n{line}\n")).unwrap();
+            s.run_script(&one, "a.ewcmd")
+                .unwrap_or_else(|e| panic!("{}: {e:?}", cmd.name));
+        }
+        let replayed = s.page_tables("101").unwrap();
+        assert_eq!(wiring_oracle(&replayed), wired, "the replay's wiring");
+        let routes = |t: &ew_ui::ew_viewmodel::ew_api::output::PageTables| {
+            let mut r: Vec<Vec<(i64, i64)>> = t.connections.iter().map(|c| c.polyline.clone()).collect();
+            r.sort();
+            r
+        };
+        assert_eq!(
+            routes(&replayed),
+            routes(&tables),
+            "the replay's routes: the router never runs on replay"
+        );
+        assert_eq!(records_of(&s), records_of(&scripted));
+        s.close();
+    }
 }

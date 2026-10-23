@@ -1146,7 +1146,7 @@ impl ShellModel {
             "canvas.press" => self.act_press(p, false),
             "canvas.release" => self.act_press(p, true),
             "canvas.dwell" => self.act_dwell(p),
-            "canvas.activate" => self.act_activate(),
+            "canvas.activate" => self.act_activate_with(p),
             "tool.back" => self.act_tool_back(),
             "tool.select" => self.act_tool("select"),
             "tool.measure" => self.act_tool("measure"),
