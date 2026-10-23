@@ -225,6 +225,7 @@ dependencies = [
  "ew-jobs",
  "ew-library",
  "ew-mfg",
+ "ew-mltext",
  "ew-model",
  "ew-panel",
  "ew-plc",
@@ -236,6 +237,7 @@ dependencies = [
  "ew-sqlview",
  "ew-store",
  "ew-text",
+ "ew-units",
  "serde_json",
  "sha2",
 ]
