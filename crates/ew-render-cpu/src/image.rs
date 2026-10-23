@@ -26,7 +26,7 @@ pub struct DecodedImage {
 
 /// The pixels of PNG or JPEG `bytes`, or `None` when the format is SVG (drawn as paths, never decoded here), the bytes
 /// do not decode completely (a truncated JPEG is refused, not padded: it must end its last scan with the EOI marker,
-/// see [`has_eoi_after_last_scan`]), a side is zero or exceeds `u16::MAX`, or the
+/// see `has_eoi_after_last_scan`), a side is zero or exceeds `u16::MAX`, or the
 /// image has more than [`MAX_IMAGE_PIXELS`]. A 16-bit PNG is reduced to 8 bits; a greyscale or CMYK JPEG is converted
 /// to RGB by the decoder. The decoders run inside `catch_unwind` (it works with `panic = "unwind"`, the workspace
 /// profiles' setting), so hostile bytes give `None`, never a panic.
