@@ -1,6 +1,6 @@
 # G-M1 readiness run
 
-**Status:** Final (readiness run; the gate is not convened; the delegated rulings of 2026-10-22 are recorded in §8 and the addendum; the owner rulings of 2026-10-22 in the second addendum; the cycle-18 delivery in the addenda of §6 and §10; the cycle-19, cycle-20, cycle-21, cycle-22 and cycle-23 deliveries in the addenda of §6; the owner's performance ruling of 2026-10-22 in the fourth addendum, the rows of §4 and §7) · **Date:** 2026-10-22 · **Gate:** G-M1 Spine exit ·
+**Status:** Final (readiness run; the gate is not convened; the delegated rulings of 2026-10-22 are recorded in §8 and the addendum; the owner rulings of 2026-10-22 in the second addendum; the cycle-18 delivery in the addenda of §6 and §10; the cycle-19, cycle-20, cycle-21, cycle-22, cycle-23 and cycle-24 deliveries in the addenda of §6; the owner's performance ruling of 2026-10-22 in the fourth addendum, the rows of §4 and §7) · **Date:** 2026-10-22 · **Gate:** G-M1 Spine exit ·
 **Commit:** de23b55 (the cycle-16 delivery of `claude/m0-foundations`, equal to `main`) · **Scenario:** the
 cycle-based plan of record ([global plan §3.8](../01-global-plan.md#38-cycle-based-progress-view-plan-of-record-since-2026-10-20),
 decision log ID-271) · **Part of:** ElektraWatt plan, gate records
@@ -326,6 +326,18 @@ its job names. The lead read NFR-MAINT-05's "within 30 min wall time" as the pul
 Windows chain (32:51) is over and goes to FT-387. NFR-MAINT-05 is not a G-M1 criterion of this report, so the recount
 does not move; it is G-M0-04's wall-time clause, which the Windows chain does not meet today (G-M0 is not held; FT-387
 is due before it). **G-M1-09** waits on the owner's acknowledgement only (O9); **G-M1-13** stays **open** (seven nights
+counted from lane F's fix, ID-552). FT-298, the page tasks and the owner side are unchanged. **Recount:** unchanged (6
+of 11 applicable hard criteria met, 3 assumed pass, 2 open; of 7 applicable must criteria 2 met, 1 met with
+conditions, 4 open). The verdict stays **not ready**. The acceptance counts are unchanged (94 entries, 88 pass, 0
+fail, 0 `not_built`, 6 `not_applicable`).
+
+**Addendum (cycle-24 delivery, 2026-10-24; decision log ID-607).** No M1 row changed state: cycle 24 built M-PP work
+(WP-S2.03 part 2, the tool framework, which completes WP-S2.03), specified WP-S2.05 and closed FT-366 and FT-370. The
+cycle-23 delivery's CI run 39866735085 was green in every job, and its Windows chain (17:34 + 9:46 = 27:20) is under
+the 30-minute wall time of NFR-MAINT-05 as read under ID-582, so **G-M0-04's wall-time clause is met in that run**
+(ID-606); the chain varies with the cache and FT-387's levers stay listed. NFR-MAINT-05 is not a G-M1 criterion of this
+report, so the recount does not move. D-06's property-grid entry keeps its G-M2 gating; its evidence will be WP-S2.05's
+test PG9 (ID-599). **G-M1-09** waits on the owner's acknowledgement only (O9); **G-M1-13** stays **open** (seven nights
 counted from lane F's fix, ID-552). FT-298, the page tasks and the owner side are unchanged. **Recount:** unchanged (6
 of 11 applicable hard criteria met, 3 assumed pass, 2 open; of 7 applicable must criteria 2 met, 1 met with
 conditions, 4 open). The verdict stays **not ready**. The acceptance counts are unchanged (94 entries, 88 pass, 0
