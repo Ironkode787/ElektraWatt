@@ -8,7 +8,7 @@ after WP-S2.03 part 2's delivery; Opus review of each ·
 **Date:** 2026-10-22 · **Work package:**
 [WP-S2.04](../02-work-packages.md#wp-s204-placement-wiring-and-drawing-tools) · **Decision log:** ID-561 to ID-571 (the
 cycle-23 design pass recorded §17.3's entries; §17.4's follow-ups are FT-372 to FT-379; doc 03 §5 and §6 and doc 05
-§2.2 carry §10.1's shapes since that pass, so part 4a's precondition of §17.2 is met) · **Part of:** ElektraWatt plan,
+§2.2 carry §10.1's shapes since that pass, so part 4a's precondition of §17.2 is met; **part 1 delivered in cycle 25**, recorded as ID-625 with its thirteen rulings, the integration rules ID-628 and the window check ID-629; follow-ups FT-421 to FT-426, of which FT-423 is due before part 2 integrates and FT-421 before part 2's delivery) · **Part of:** ElektraWatt plan,
 specifications
 
 **Purpose.** This is the closed specification of the first editing package. It turns the viewer and tool framework of
@@ -212,6 +212,8 @@ checks it (a CP end's vertex equals the CP's position exactly).
 
 No other item below the shell is added. In particular `PageCp` (S2.03) is not changed; the page tables carry the richer
 rows beside it.
+
+*As built (cycle 25, part 1; decision log ID-625).* Part 1's items are built as the table says, with one addition and two follow-ups: `ew-api` re-exports `ew_commands`' `allowed_rep_types` (both crates GPL; ruling 2), which `place_catalogue` and the tools use for `allowed`. **FT-421:** `PlaceCatalogue` gains `strips` (`id`, `tag`, `next_designation`, `next_seq`), the source of §7.1's strip chooser that this table omitted (a specification defect: §4.1 rule 1 kept the lane from adding it), due before part 2's delivery. **FT-424:** `ShapeCp` gains `designation`, and `rep.exchange_symbol`'s map derivation becomes a public pure function the exchange tool calls with both shapes, with part 2.
 
 ## 5. Commands
 
@@ -603,6 +605,8 @@ canvas crossings hops                                   (only when set)
 (22 words; `->` is the token between a proposal's quoted CP and its quoted target). *Cycle 25 (ID-621):* if WP-S6.13
 part 1 integrates first, its `page.describe` has already added `wire`, `->`, `route`, `bends`, `style`, `dot`, `bevel`,
 `wiring`, `star`, `chain` and `sequence`, and this part adds the other **11**; it states the count it adds.
+*Corrected in the cycle-25 design pass (ID-632):* `junction` is a word since WP-S2.03 part 2 (a snap marker's kind), so this part adds
+**21** words alone and **10** after WP-S6.13 part 1; WP-S2.05 part 1's 53 words change neither figure, nor §9.6's 5 and §10.7's 12.
 
 ## 9. Part 3: interruption points and black boxes
 
@@ -985,6 +989,7 @@ the integrating session runs `cargo xtask ci` at the cycle delivery.
 
 ## 14. Files owned
 
+*Cycle 25 (ID-625 ruling 1):* `project.drawing.set` and its new `commands/drawing.rs` were built in part 1 at the orchestrator's request; part 2 keeps `crates/ew-derive/src/settings.rs` (`drawing_settings`), the read of the member.
 **Part 1:** `crates/ew-library/src/{lib.rs,starter.rs}` and tests; `crates/ew-api/src/output/{mod.rs,editing.rs}`, a
 new `crates/ew-api/src/geometry.rs`, `crates/ew-api/src/lib.rs` (the methods only) and tests; `crates/ew-commands/src/commands/{device.rs,mod.rs}`,
 a new `commands/exchange.rs`, `crates/ew-commands/src/geometry.rs` (the step move), `schemas/**`, `tests/**`;

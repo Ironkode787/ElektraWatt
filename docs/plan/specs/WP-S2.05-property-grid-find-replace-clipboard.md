@@ -8,7 +8,7 @@ after part 1, part 3 after part 1 and WP-S2.04 part 1; Opus review of each ·
 [WP-S2.05](../02-work-packages.md#wp-s205-property-grid-provenance-find-and-replace-clipboard) · **Decision log:**
 ID-591 to ID-600, the ten entries of §15.3 in order (follow-ups FT-393 to FT-403, the eleven of §15.4 in order; item
 12 is a note in ID-593); §4.1 rule 2's precondition is met: `ci/dep-rules.toml` and architecture §3 carry the
-`ew-api` edges to `ew-units` and `ew-mltext` as normal edges (ID-600) · **Part of:**
+`ew-api` edges to `ew-units` and `ew-mltext` as normal edges (ID-600); **part 1 delivered in cycle 25**, recorded as ID-626 with its twelve rulings and lane B's last fix, the integration rules ID-628 and the alias grammar ID-630; follow-ups FT-427 to FT-429 · **Part of:**
 ElektraWatt plan, specifications
 
 **Purpose.** This is the closed specification of the package that lets a user read and change every value of what
@@ -326,6 +326,8 @@ commits it, and the reviewer reads the list of settable paths that fall back to 
 `function cp_overrides`, `representation text_slots`, `report_block` members whose types are mixed, the four project
 settings members). A test also asserts that every path of `SETTABLE` maps to a node of the catalogue.
 
+*As built (cycle 25; decision log ID-626).* The list above was a prediction; the expected catalogue file is the record. At the integration tip it has 19 kinds and 406 nodes, 167 editable, and the editable `Json` fallbacks are section `folio_range`, page `scale`, device `cable.length`, `plc_module.slot`, `plc_module.start.input` and `plc_module.start.output`, `tag.scheme` and `tech_data[].value`, representation `text_slots[].pos`, connection `kind` and `number`, report block `empty`, and the four project settings members (`settings.numbering`, `settings.colour_profile`, `settings.size_profile`, `settings.xref_format`). Typed editors for them are FT-429. Since WP-S2.04 part 1 registered `project.drawing.set`, step 5's `settings.drawing` row has the `Command` route (ID-625).
+
 ### 6.2 Targets, sections and the empty selection
 
 `Session::property_sheet(ids)` resolves each ID to its record; the view model passes the window's `Selection.items`,
@@ -557,7 +559,9 @@ expected state in the existing tests gains them):
 | `card` | `null` or `{"command": "fields.set", "state": "ready" or "stale" or "failed", "targets": n, "changes": n, "tags": n, "xrefs": n, "origin": "properties"}` |
 | `toast` | `null` or `{"text": "Set Function text on 12 devices", "undo": true}` |
 
-No UUID appears in these members (row keys are kind and path; ID-557's rule).
+No UUID appears in these members (row keys are kind and path; ID-557's rule). *As built (cycle 25, lane B's last fix; ID-626):*
+`properties` also carries `highlight`, the highlighted option of an open choice list as an index or `null`, and the describe text's
+choices line ends with `selected <i>`; `selected` was a word already, so the 53 words stand.
 
 **`ui.describe`** gains, after the navigator lines (texts in quotes are user text or labels):
 
@@ -907,7 +911,11 @@ canvas ghost paste records 7 at 254.000 101.600 mm dropped 1
    (headless), or none more until Apply; `find.run` makes exactly one `find` call and typing in the find pane none;
    `edit.paste_clip` makes exactly one `parse_fragment` call, ghost moves 0 `Session` calls, and a dwell that changes
    the anchor or the revision one `preview_with`. With the pane closed, 0 `property_sheet` calls.
-5. **No time values, paths, process IDs or UUIDs** in transcripts or describe text of this package.
+5. **No time values, paths, process IDs or UUIDs** in transcripts or describe text of this package. *Cycle 25 (ID-630):* part 1 masks
+   UUIDs as `‹id›`; the one grammar is the alias `@n` (FT-422), which replaces the mask when it lands.
+
+*As built (cycle 25, lane B's last fix; ID-626):* item 4's counts include `field_choices`: each changed buffer text in a choice editor
+makes one lookup, counted by `SessionCalls::field_choices`, and moving the highlight makes none.
 
 ## 10. Acceptance checks
 
@@ -923,7 +931,7 @@ lane for a lead ruling.
 | PG2 | Sheet on Golden A: -101F1's representation (three sections; tag `-101F1` derived "numbering scheme '…'"; part row Library); S51 (Frozen, sign hidden); W29 on 103: cross-section `0.75 mm²` with the size-profile chip and colour `DBU` with the colour-profile chip exactly as D15; W20: cross-section Overridden "override (CDP)"; page 101: description Inherited "project description"; a representation plus a connection: no section; a deleted ID: `missing` 1 | `ew-api` tests | §6.2 to §6.4 |
 | PG3 | FR-UI-009's acceptance: selecting -101F1 and -102F1 shows `‹varies›` for the parts (2 values); typing a function text on -101F1 commits one `fields.set` and is one undo step (the history grows by one; undo restores); keystrokes alone commit nothing; Escape reverts | `ew-viewmodel` tests | §6.3, §6.6, D7 |
 | PG4 | FR-UI-010's acceptance: W29's cross-section shows its profile origin; overriding it to `1.0` shows Overridden; Reset restores the derived value and provenance; each step one undo step | `ew-viewmodel` tests | §6.4 |
-| PG5 | AC-28's W29 step (kittest, Golden A, folio 103): select W29 by a canvas click, see the chips of PG2 in the grid, change its colour to `BU` through the colour editor, undo: colour `DBU` derived again | `ew-ui` tests | AC-28 |
+| PG5 | AC-28's W29 step (kittest, Golden A, folio 103): select W29 through `select.set` (amended at the integration, ID-628: the canvas picks by geometry since WP-S2.04 part 1, and the centre of a wire's rectangle need not lie on the wire), see the chips of PG2 in the grid, change its colour to `BU` through the colour editor, undo: colour `DBU` derived again | `ew-ui` tests | AC-28 |
 | PG6 | FR-DEV-031's acceptance: `select.set` with the 20 terminal devices of -X1031 (`tag:` references in the form `Tag::short` prints, else `id:`); setting their part through the part picker is one `fields.set` with 20 targets, one undo step, and the toast reads "Set Part on 20 devices" (rule 2 does not apply: the part is not an identifier) | `ew-viewmodel` tests | §6.6, D10 |
 | PG7 | The policy: a tag-counter edit on two devices opens the card (`reason-identifiers`); Apply commits once; Cancel leaves the revision unchanged; a stale card rebuilds the command from the current values and needs a second Apply, and refuses `reason-changed-meanwhile` when the edited member changed on a target (another edit committed in between); a stale replace card re-runs the search; `project.settings.set` always opens the card; a 501-target edit opens it (`reason-bulk`) | `ew-viewmodel` tests | §6.6 |
 | PG8 | Editors and refusals: every row of §6.5's table parses and formats its examples; `1,500` gives two choices; an Ident with a Cyrillic letter commits with the note; `BR` is refused with the suggestion `BN`; a counter collision on -102F1 shows the command's message naming the next free counter; a read-only row refuses `props.set` with `reason-read-only`, the checks member with `reason-human-only` | `ew-api`, `ew-viewmodel` tests | §6.5, §6.7, §6.8 |

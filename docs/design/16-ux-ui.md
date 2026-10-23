@@ -1,6 +1,6 @@
 # User experience and user interface
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-22, cycle-19 design pass: the part-1 shell and its headless mode as built, §3.9, decision log ID-473 to ID-475, ID-485; amended 2026-10-22, cycle-20 design pass: the toolkit-neutral workspace file, §2.5; the part-2 shell as built, §3.9; first run and the wizard as built, §9.1, §9.2; decision log ID-486 to ID-493, ID-504; amended 2026-10-22, cycle-21 design pass: the zoom field, §3.6; the canvas as built and the viewer note, §3.9; the canvas node, §10.1; what 100 % means under the UI scale, §17; decision log ID-513, ID-517 to ID-522; amended 2026-10-22, cycle-22 design pass: the GPU canvas, its switch rule, the status bar's backend field and the UI scale as built, §3.6, §3.9, §17; the wizard's fields as built with the confirmed check-scheme step, §9.2; the rulings of WP-S2.03's specification (Back and Forward per tab, the canvas area, the tool host), §2.5, §3.4, §3.5, §4.5; decision log ID-532, ID-533, ID-536, ID-539 to ID-542, ID-544 to ID-547; amended 2026-10-23, cycle-23 design pass: WP-S2.03 part 1 as built, the viewer's tabs, navigator, links, Go to and grid cursor, §2.5, §3.2, §3.4 to §3.6, §3.9, §4.2, §4.4, §4.5, §5.1, §5.2, §10.1, decision log ID-556 to ID-560; the wizard's logo, shipped colour profiles and golden report blocks as built and its colour default, §9.2, ID-572 to ID-578; `PRIVACY.md` and its link, the web-URL exception of the opener, §3.9, §9.1, §13, ID-579; amended 2026-10-24, cycle-24 design pass: WP-S2.03 part 2 as built, the tool host, Select and Measure, the Escape chain, the pointer rule, the keys and the live region, §3.6, §4.2, §4.4 to §4.6, §10.1, decision log ID-586 to ID-590; the provenance chip names its profile, §6.2, §18.1, ID-598; the mixed-selection rule, §17, ID-593; the check scheme's selection for `ew check`, §9.2, ID-602) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-22, cycle-19 design pass: the part-1 shell and its headless mode as built, §3.9, decision log ID-473 to ID-475, ID-485; amended 2026-10-22, cycle-20 design pass: the toolkit-neutral workspace file, §2.5; the part-2 shell as built, §3.9; first run and the wizard as built, §9.1, §9.2; decision log ID-486 to ID-493, ID-504; amended 2026-10-22, cycle-21 design pass: the zoom field, §3.6; the canvas as built and the viewer note, §3.9; the canvas node, §10.1; what 100 % means under the UI scale, §17; decision log ID-513, ID-517 to ID-522; amended 2026-10-22, cycle-22 design pass: the GPU canvas, its switch rule, the status bar's backend field and the UI scale as built, §3.6, §3.9, §17; the wizard's fields as built with the confirmed check-scheme step, §9.2; the rulings of WP-S2.03's specification (Back and Forward per tab, the canvas area, the tool host), §2.5, §3.4, §3.5, §4.5; decision log ID-532, ID-533, ID-536, ID-539 to ID-542, ID-544 to ID-547; amended 2026-10-23, cycle-23 design pass: WP-S2.03 part 1 as built, the viewer's tabs, navigator, links, Go to and grid cursor, §2.5, §3.2, §3.4 to §3.6, §3.9, §4.2, §4.4, §4.5, §5.1, §5.2, §10.1, decision log ID-556 to ID-560; the wizard's logo, shipped colour profiles and golden report blocks as built and its colour default, §9.2, ID-572 to ID-578; `PRIVACY.md` and its link, the web-URL exception of the opener, §3.9, §9.1, §13, ID-579; amended 2026-10-24, cycle-24 design pass: WP-S2.03 part 2 as built, the tool host, Select and Measure, the Escape chain, the pointer rule, the keys and the live region, §3.6, §4.2, §4.4 to §4.6, §10.1, decision log ID-586 to ID-590; the provenance chip names its profile, §6.2, §18.1, ID-598; the mixed-selection rule, §17, ID-593; the check scheme's selection for `ew check`, §9.2, ID-602; amended 2026-10-24, cycle-25 design pass: WP-S2.04 part 1 and WP-S2.05 part 1 as built, the property sheet and its provenance, the Insert menu, the keys and the tool strip, the property grid, its editors and its preview policy, the mixed-selection rule as built, §2.1, §2.2, §3.2, §4.4, §4.5, §6.1 to §6.3, §7.5, §17, decision log ID-625 to ID-630) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how people work with ElektraWatt (EW): the main window and its docking
 workspace, navigators, canvas tabs, the property grid with provenance, the command palette and keymaps, table
@@ -117,6 +117,8 @@ pub struct EditTarget { entities: SmallVec<[EntityRef; 1]>, field: FieldPath }  
   `Command` (FR-UI-008, FR-UI-009); `ew-ui` never builds commands itself. Headless tests of this mapping run
   without egui (ARCH §13).
 
+*As built (cycle 25, WP-S2.05 part 1; decision log ID-626).* The contract above is built in two layers. Below the shell, `ew_api::output` has the **field catalogue** (`field_catalogue(kind)`, one `FieldNode` per schema node from one walker over `ew_schema::kind_schema`: 19 kinds, 406 nodes, 167 editable; `crates/ew-api/tests/expected/field_catalogue.txt` is its record) and the **property sheet** (`Session::property_sheet`: a header, one section per record kind that every selected record reaches, rows with `key`, `path`, `label_key`, `category`, `ty`, `value` (one value, `Varies` with up to eight texts, or `Absent`), `provenance`, `actions`, `route` and `identifier`). The `EditTarget` of the sketch is the row's **edit route**: `FieldsSet { kind, path }` (compiles to one `fields.set` over the section's targets), `SettingsMember { member }` (one `project.settings.set`) or `ReadOnly(reason)`; no other command is ever built by the grid, and a route whose command is `HumanOnly` is read-only whatever the tables say. `Session::parse_field_input`, `field_choices`, `command_meta` and `resolve_reference` serve the editors, the exposure check and `select.set`. In `ew-viewmodel` the panel model turns a sheet into rows, the edit buffer, the preview card and the toast, and compiles every edit into exactly one command, as above.
+
 ### 2.2 Provenance
 
 Every value the UI shows carries a `Provenance`. Its variants map onto the kinds of the
@@ -138,6 +140,8 @@ pub enum Provenance {
 
 The `via` chain is the short form of `ew query --explain` (FR-EXT-005); for wire properties it names the winning
 level of the seven-level chain of [03](03-domain-model.md) §9.5.
+
+*As built (cycle 25, WP-S2.05 part 1; decision log ID-626).* The sheet produces `Authored`, `Inherited` ("from colour profile …", "project description"), `Derived` (with its chip text), `Overridden`, `Frozen`, `Library` (the chip shows only the item and its version), `Generated` and `Varies`; each carries its chip text as a string, not the typed `via` chain sketched above. `Committed` and `Async` are not produced yet (routes and Class II results have no grid rows before WP-S2.04 part 2 and the jobs panel). The derived tag's row shows the product designation, which is what Freeze writes (ruling 6).
 
 ### 2.3 Selection
 
@@ -289,6 +293,8 @@ by section, by structure) and two sort orders (by folio, by type). **Page** gain
 ▸ Close project moves from Ctrl+W to Ctrl+Shift+W**, because Ctrl+W now closes a tab (ID-557; §4.4). The hidden action
 `page.goto` (a folio only) stays for scripts. A refused tab or history action names its reason ("32 tabs are open", "The last tab
 stays open", "The tab group has one tab", "Only one tab group is shown", "No page to return to").
+
+*As built (cycle 25, WP-S2.04 part 1 and WP-S2.05 part 1; decision log ID-625, ID-626).* The menu bar has eight menus: File, Edit, View, **Insert**, Page, Tools, Window and Help, Insert standing between View and Page as in the table. **Insert** holds Symbol… (I), Device from part… (Shift+I) and, after a separator, Terminal strip…; the rest of its row arrives with WP-S2.04's later parts. **Edit** gains Properties of selection (E, Alt+Enter) and Project properties (`props.project`; there is no Project menu yet, so it sits in Edit, ruling 4), and, after a separator, Rotate clockwise (R), Rotate counter-clockwise (Shift+R), Mirror left to right (X), Mirror top to bottom (Y), Next variant (V), Next representation type (Shift+V), Move (M), Delete (Delete) and Change symbol…. **View** gains Properties, which shows the property grid in the Schematic workspace. The Project menu's "Drawing" item of WP-S2.04 part 2 needs that menu first; until it exists the crossings setting is reached through `project.drawing.set`.
 
 **Platform behaviour.**
 - **macOS:** muda 0.21.2 global menu bar with the standard application menu (About, Settings… ⌘,, Services, Hide,
@@ -649,6 +655,8 @@ as the alternatives; N (`cp.next_unconnected`); Enter (`canvas.activate`, a clic
 grid cursor); and Backspace (`tool.back`). Tools ▸ Select (`tool.select`) and Tools ▸ Measure (`tool.measure`) have no
 default keys. Checking `]` and `[` on German and French layouts is an owner item, not covered by the automated checks.
 
+*As built (cycle 25, WP-S2.04 part 1 and WP-S2.05 part 1; decision log ID-625, ID-626, ID-628).* The canvas keys of part 1 are in [06](06-schematic-editor.md) §6. The property grid has its own keyboard context: F2 edits the row, Shift+F10 opens the row menu (the Menu key is not reported by egui, FT-428), Shift+Enter opens the multi-language editor and Ctrl+Enter applies the preview card; the pane itself takes the arrows, Home, End, Enter (Override on a derived row), Space (a checkbox) and the keys that start an edit, and F6 moves the focus between the page navigator, the canvas groups and the grid. **Shortcuts are unique per shell context** (WP-S2.01 A1): one chord may be bound in two contexts, and a context's binding shadows a global one, which is §15.5's rule; Shift+Enter is "finish the tool" on the canvas and "multi-language editor" in the grid. The registry tests check uniqueness per context and keep the Ctrl+Alt+letter ban (ID-628).
+
 ### 4.5 Tool host
 
 Tools are the state machines of [06](06-schematic-editor.md) §4. The host in `ew-ui` keeps one active tool per
@@ -706,6 +714,8 @@ only when its text changes. "<n> selected" wins in the same step and stays until
 top-left corner, because the derived diff carries no positions. This is an interim rule (ID-587): placing the chips by
 the tag's position once WP-S2.04's page tables exist is FT-389. The chips must not cover the statistics panel. The link
 preview popup has no AccessKit node yet (FT-390; the status hint already names the target).
+
+*As built (cycle 25, WP-S2.04 part 1; decision log ID-625).* The first committing tools ship: **Place** (armed from the picker, a dashed outline with connection-point marks and a label with the variant letter, the target and, after the 80 ms preview, the predicted tag; it stays armed after a placement; Escape disarms), the **keyboard move** (M) and Select's **drag rows** (a ghost, rubber bands and the readout `dx … dy … mm`, in grid steps), the **transforms** and Delete on a selection, and **Change symbol** (the exchange ghost names the unmapped connection points from the command's notices, an interim until FT-424). The **tool strip** above the canvas shows, as read-only text, the active tool's label and what it floats or drags as the transcript's `ghost` says it (Place: the symbol, the variant letter, the target, the letter or strip and the predicted tag; "(new strip)" until the first terminal prints a new strip's tag, FT-421); the options themselves are set by keys and hidden actions, and nothing is shown for Select at rest. A **double click** finishes the active tool: its second press is sent as `tool.finish` and its release dropped, measured by the window on egui's input clock with egui's 0.5 s interval (the platform's interval is FT-426); no timing reaches the model. A pending move is cancelled when the selection, the revision or one of its representations changes, and Delete cancels it before deleting. Previews, commits and the read-only refusal are as above; a preview's chips stay in the top-left corner until FT-389.
 
 ### 4.6 Selection
 
@@ -854,6 +864,8 @@ Selection is synchronised both ways (FR-UI-007; algorithm in §15.3):
   user properties, Extra (unknown fields, read-only). They come from `ew-schema` metadata (type, unit, enum options,
   Fluent label key; FR-UI-009). Collapse states persist per entity kind.
 
+*As built (cycle 25, WP-S2.05 part 1; decision log ID-626).* The **Properties** pane (View ▸ Properties; Edit ▸ Properties of selection moves the focus to it) shows the selection, or the page on show when nothing is selected. The header carries the title (a record's tag, wire number, folio and title or name; for several records `<n> <kinds>`), the device's function text, the main location as folio and cell, and the finding chips of the drafting scheme on the shown records (rule, severity, message). Below it, one **section per record kind** (a representation reaches its representation, its functions and their devices), each with collapsible categories by the specification's table: Identity, Part, Electrical, Connection points, Texts, Structure, Placement, Terminal, Cable, PLC, Assembly, Other and Extra; Manufacturing and user properties have no members yet. Labels are English from `ew_viewmodel::strings` (an exact entry, else the humanised last path segment); Fluent keys come with WP-S2.08. Collapse states persist per kind and category. Rows are named AccessKit groups (label, then value, chip, read-only reason and error as the description), and a long value is ellipsised in the middle with the whole text in its tooltip.
+
 ### 6.2 Rows and provenance
 
 A row shows its label, value, unit, a provenance chip and its actions:
@@ -884,6 +896,8 @@ Part           2904602    book library 'ew-parts' v3 · update available        
 The chip names the profile that supplied the value: the cross-section from the size profile, the colour from the colour
 profile (amended in cycle 24, WP-S2.05 D15; decision log ID-598).
 
+*As built (cycle 25; decision log ID-626).* The chips are a glyph and words, never colour alone, and D15's golden chips match (W29's cross-section and colour name their profiles; W20's override; S51 frozen; page 101's description inherited from the project). The `Committed` and `Async` rows and the "Why?" action are not built (§2.2, FT-393); a row's actions are the ones its route allows (edit, clear, override, reset, freeze, unfreeze, set all), and a read-only row has none.
+
 Every state is distinguished by icon and text, not by colour (FR-UI-025). The examples above are the golden
 values: W29 (FR-UI-010, AC-28), W20 with its CDP, frozen S51 (Golden B maps it to -101S1), Q0.1 from
 [10](10-plc-and-bus.md) §6, and a 1.0 routed length.
@@ -901,6 +915,8 @@ values: W29 (FR-UI-010, AC-28), W20 with its CDP, frozen S51 (Golden B maps it t
   a derived tag offers "Freeze as 'S51'" or "Change numbering rule…" and never edits silently.
 - **Read-only reasons** are stated in place: "generated", "defined at -102F2:Out1 (potential definition) · Go to",
   `project locked by <user>@<host>`, "released in V1.0; edits go to the open revision".
+
+*As built (cycle 25, WP-S2.05 part 1; decision log ID-626).* **Commit:** Enter, Tab or leaving the field commits; typing commits nothing, Escape reverts, and Enter without a change writes nothing, so a display form that does not parse (a part's "number (manufacturer)") is never written back. One edit is one command and one undo step (no coalescing is needed). **Routes:** a row is edited through `fields.set` on its settable path or through one `project.settings.set` member; every other row is read-only and says why: the record's identity; another command ("set on the canvas", the wizard, a named command); a `HumanOnly` command (`settings.checks`: the wizard's check-scheme step); "no command yet"; or the narrowing table (revision `author` and `checker`, which decide the four-eyes sign-off, [15](15-checks-revisions-collaboration.md) §5.4). A read-only project offers no action on any row. **Override and freeze** as above; Enter on a derived row is Override. **Multi-language text:** the field edits the source language (the project's first language, else the object's first, which is the alphabetically first key when the project names no languages); committing writes that language inside the stored object and keeps the others, and an emptied text removes only that language; Shift+Enter opens the per-language editor. **Typed editors:** enums, colours, part references and structure slots list their options (`Session::field_choices`) in a list box under the field, filtered by what is typed (Up and Down move the highlight while the field keeps the focus; Enter or a click chooses, and the field's focus loss commits nothing while the pointer is on the list, lane B's last fix); a boolean is a named checkbox; an ambiguous number ("1,500") offers its two readings. The editable values the schema types only as JSON (the catalogue file lists them) are edited as JSON text until FT-429. **Refusals** show the command's message under the field with the typed text kept; a refusal at a target names it by its label, and pages by folio.
 
 **Typed editors.**
 
@@ -973,6 +989,8 @@ the bulk preview opens (FR-UI-044):
    on more than one entity;
 3. a cell failed validation or was ambiguous;
 4. it comes from an external file (Excel round trip, FR-EXP-004).
+
+*As built for the property grid (cycle 25, WP-S2.05 part 1; decision log ID-626).* The policy is evaluated on the command's preview (one `preview_with` per commit): rule 1 by the preview's target count (`reason-bulk`, more than 500) and by the command's cost (`project.settings.set` is `Bulk` and always shows the card, `reason-bulk-command`), rule 2 by the route's identifier flag on more than one target, including a leaf below an identifier member (`reason-identifiers`); rule 3 applies to tables (WP-S2.06) and rule 4 to imports. Until WP-S2.09's bulk-preview tab exists the preview is an **inline card** in the pane (Apply with Ctrl+Enter, Cancel, up to 20 changed tags, a stale badge); a stale card rebuilds the command from the current values and needs a second Apply, and refuses with "Changed meanwhile: edit again" when the edited member changed on a target. A direct commit on several records shows the toast ("Set Part on 20 devices · Undo"), which closes after 8 s measured on the window's clock (never in the transcript).
 
 ### 7.6 Bulk preview
 
@@ -1558,7 +1576,7 @@ for layout in {QWERTY-US, QWERTZ-DE, AZERTY-FR}:
    log ID-593):* the property grid builds its sections by record kind, and a mixed selection shows only the sections
    every selected entity reaches: a representation reaches its representation, its functions and their devices, and a
    function reaches its device. The targets of a section are deduplicated, so two representations of one device edit
-   the device once.
+   the device once. *Built so in cycle 25 (ID-626):* a representation and a connection share no section, and the grid says so instead of guessing a common field; "Set all" on a `‹varies›` list reads the first target once more.
 6. **Focus stealing:** a job finishing, an external change or a toast never takes focus or switches the page.
 7. **Mixed-DPI monitors:** moving a viewport from 100 % to 200 % re-lays out on the new scale factor; canvas zoom is
    kept in paper units, so the page keeps its physical size. **The UI scale does not scale the page** (decision log

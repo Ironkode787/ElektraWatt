@@ -1,6 +1,6 @@
 # Schematic editor
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-22, cycle 17: `revision.create`, 37 commands, §3.1; amended 2026-10-22, cycle 18: `plc.set_module_part`, 38 commands, §3.1; rows 3, 13 and 14 as built, §3.2; amended 2026-10-22, cycle-22 design pass: the tool contract's context and previews for WP-S2.03, §4.1, decision log ID-536; amended 2026-10-23, cycle-23 design pass: WP-S2.03 part 1 as built, §4.1, §4.3, §5.7, §6, decision log ID-556, ID-557, ID-560; the decisions of WP-S2.04's specification as notes, §3.2, §3.9, §5.2, §5.4, §5.7, decision log ID-561 to ID-564, ID-567, ID-568; amended 2026-10-24, cycle-24 design pass: WP-S2.03 part 2 as built, the tool contract, the Select and Measure tools, picking and snapping, §4.1, §4.3, §4.5, §5.7, §6, decision log ID-586 to ID-589) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-22, cycle 17: `revision.create`, 37 commands, §3.1; amended 2026-10-22, cycle 18: `plc.set_module_part`, 38 commands, §3.1; rows 3, 13 and 14 as built, §3.2; amended 2026-10-22, cycle-22 design pass: the tool contract's context and previews for WP-S2.03, §4.1, decision log ID-536; amended 2026-10-23, cycle-23 design pass: WP-S2.03 part 1 as built, §4.1, §4.3, §5.7, §6, decision log ID-556, ID-557, ID-560; the decisions of WP-S2.04's specification as notes, §3.2, §3.9, §5.2, §5.4, §5.7, decision log ID-561 to ID-564, ID-567, ID-568; amended 2026-10-24, cycle-24 design pass: WP-S2.03 part 2 as built, the tool contract, the Select and Measure tools, picking and snapping, §4.1, §4.3, §4.5, §5.7, §6, decision log ID-586 to ID-589; amended 2026-10-24, cycle-25 design pass: WP-S2.04 part 1 and WP-S2.05 part 1 as built, the page-type refusal text, 45 commands, undo granularity and the keys as built, §2.2, §3.1, §3.9, §6, decision log ID-625 to ID-628) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) edits schematic pages: multi-line, single-line, overview,
 bus-topology, fluid and graphic pages, together with their frames, folios and sections. It covers symbol placement,
@@ -121,6 +121,8 @@ its wires twice in the wire list. The tool palette changes with the page type, s
 on a graphic page.
 
 *Owner ruling (2026-10-22; decision log ID-385, amending ID-55).* The reference drawings place cable markers and black boxes as graphics on multi-line and bus-topology pages and draw the CPX blocks multi-line on the fluid pages, so the table offers those combinations; every other combination is still refused at placement. The builder DSL of AC-15 path (b) found the restriction (the "(a) ≠ (b)" gap class, [18](18-quality-security-release.md) §3.10).
+
+*As built (cycle 25, WP-S2.04 part 1; decision log ID-625 ruling 11).* The editing tools refuse a page whose type takes no symbols or wires (TitlePage, PanelLayout, ModelView, ExternalDocument and the generated pages) with the text "This page type takes no symbols or wires" (`reason-page-type-no-symbols`); the table above gave no wording. A page type that takes symbols offers in the picker only the symbols whose representation type it allows; the others are listed disabled with their reason.
 
 ### 2.3 Folios, sections and page names
 
@@ -367,6 +369,8 @@ transaction. A part change of a module in the UI goes through this command; `fie
 channel and N1 names the surplus it leaves, which this command without `parts` removes ([10](10-plc-and-bus.md)
 §3.3; decision log ID-468).
 
+*As built (cycles 22 to 25).* The commands 39 to 43 are project-level and are described in [17](17-extensibility.md) §2.1 and §2.3: `project.company.set`, `project.frames.set`, `project.languages.set`, the `HumanOnly` `project.checks.set` (cycle 22) and the `HumanOnly` `project.assets.purge` (cycle 24). **Cycle 25 (WP-S2.04 part 1; decision log ID-625):** `rep.exchange_symbol` and `project.drawing.set` join, both `Edit`, `Preview`, Interactive and undoable, so **45 commands** are registered (43 `Edit`, two `HumanOnly`). `rep.exchange_symbol` derives the pin map from the function definition or by designation, takes an explicit `pin_map`, and refuses a symbol connection point the map leaves unmatched whose index names a function connection point; routes at the representation follow (`follow_end`). `project.drawing.set` writes `settings.extra.drawing` with `crossings` ([03](03-domain-model.md) §5.1); nothing reads it before WP-S2.04 part 2. `device.place` and `box.black` gain the target `from_part` (a device and one function per template entry of a part copy, the drawn entry placed; a template without exactly one main entry is refused, EW-INV-002), `device.place` gains `new_terminal` (a terminal created as `terminal.add` creates it, then placed), and `rep.move` gains `steps` (grid-step moves, §5.7: a route coordinate equal to an end connection point moves with it, and two end points on one coordinate whose grid indices differ in k mod 3 keep the segment's axis with a jog at the grid point nearest its middle). Every new optional member is `skip_serializing_if`, so existing logs serialise unchanged. The other commands that WP-S2.04 specifies (`connection.draw_to_ip`, `ip.arrange`, `box.reshape`, `box.structure`, `item.place`, `marker.place`) arrive with its later parts.
+
 The table lists every registered command and the planned ones (`Cost` is the registered cost; `Bulk` commands run as
 preview jobs). The parameter schemas in `crates/ew-commands/schemas/` and the generated pages of the user guide's
 command reference are the exact form (decision log ID-403).
@@ -377,8 +381,9 @@ command reference are the exact form (decision log ID-403).
 | `page.copy`, `page.move`, `page.delete` | pages, target section or folio | Bulk | delete leaves devices unplaced unless chosen (FR-PAG-025) |
 | `page.renumber` | scope, start, step, keep_gaps | Bulk | FR-PAG-007; Golden B2 |
 | `device.place` (`PlaceSymbol`) | page, symbol, pos, orient, rep_type, target, autoconnect hints | Interactive | §3.3; part-first placement is `target = FromPart`; `device.place_from_part` and `symbol.place` are `CommandMeta.aliases` ([17](17-extensibility.md) §2.1), and the journal records `device.place` |
-| `rep.move`, `rep.transform` | reps, delta or page; rotate, mirror, variant | Interactive | routes follow (FR-CON-004) |
-| `rep.exchange_symbol` | rep, symbol, CP mapping | Interactive | FR-SYM-022 |
+| `rep.move`, `rep.transform` | reps, delta or page, or `steps` (cycle 25); rotate, mirror, variant | Interactive | routes follow (FR-CON-004); `steps` moves by whole grid steps and is refused with `page` or a non-zero `delta` (ID-625) |
+| `rep.exchange_symbol` | rep, symbol, `pin_map?` | Interactive | FR-SYM-022; built in cycle 25 (ID-625): orientation kept, variant 0, text-slot overrides kept where the new symbol has the slot; refused: a connected function CP the new map does not draw, an unmatched symbol CP that names a function CP, an IP representation, a rep type the page does not allow |
+| `project.drawing.set` | `crossings?` (`plain` or `hops`); `marker_mode?` (WP-S2.04 part 4a) | Interactive | built in cycle 25 with `crossings` ([03](03-domain-model.md) §5.1; ID-625); presentation only |
 | `rep.set_anchor_policy` | reps, anchor (origin, graphic centre, slot, named point) | Interactive | FR-SYM-010; the MF-13 quick fix of EW-CORE-053 (D-14). As built (cycle 14; decision log ID-351): it writes `Representation.anchor`, a per-representation override of the policy of the symbol copy (null resets it to the copy's policy); it does not touch the symbol copy, so other representations of the same copy keep their policy |
 | `connection.draw` (`Connect`) | a, b (CP, junction or point on a connection), route, kind | Interactive | §4.4 |
 | `connection.route` | connection, route | Interactive | FR-CON-007 |
@@ -677,6 +682,8 @@ coalescing key, and equal undo stacks in the two front ends weigh more than the 
 for the window and for headless together (a key that `run_script` also carries), before G-PP or with WP-S2.05. The other
 rows are unchanged: a drag, a placement with its autoconnect connections and a wire with bend clicks are one transaction
 each.
+
+*As built (cycle 25, WP-S2.04 part 1 and WP-S2.05 part 1; decision log ID-625, ID-626).* A placement is one transaction; placing a starter symbol first embeds it with its function definition as its own undo step (`library.embed`), so the first placement of a starter symbol is two steps and the next is one. A drag, each keyboard move (M, then the arrow keys and Enter), each rotate, mirror or variant press and each exchange is one step, with no coalescing. **A property edit is one commit:** the grid writes nothing while keys are typed and commits one `fields.set` (or one `project.settings.set` member, from its preview card) when the field is left or Enter is pressed, so the row "Edit one property field" holds without coalescing; a multi-selection edit is one command with every target; Enter without a change writes nothing. A commit on several records shows a toast whose Undo takes back that one step.
 
 ### 3.10 Online checks while drawing
 
@@ -1138,6 +1145,8 @@ KiCad-like preset (M, R, W, E), the table is a proposal, validated in the M2 usa
 KiCad-like column must be checked against KiCad's own hotkey list before it ships, in particular the rotation
 direction of R and which of X and Y mirrors horizontally **(verify)**; where KiCad differs, the preset follows
 KiCad.
+
+*As built (cycle 25, WP-S2.04 part 1 and WP-S2.05 part 1; decision log ID-625, ID-626, ID-628).* The EW preset now binds, in the canvas context, I (Insert ▸ Symbol, the picker), Shift+I (Insert ▸ Device from part), M (keyboard move: the arrow keys move by grid steps, Enter commits, Escape cancels), R and Shift+R, X and Y, V and Shift+V (on the Place ghost and on a selection), Delete (the selection; a pending move is cancelled first), Shift+Enter (finish the active tool, also a double click) and E or Alt+Enter (Properties of selection: the focus moves to the property grid); the picker takes Up, Down, Home, End and Enter itself. In the property grid's context the registry binds F2 (edit the row), Shift+F10 (the row menu; egui reports no Menu key, FT-428), Shift+Enter (the multi-language editor) and Ctrl+Enter (apply the preview card), and the pane itself takes the arrows, Home, End, Enter, Space (toggle a checkbox) and the keys that start an edit; Escape stays the global dismiss. A chord is unique within its shell context, so Shift+Enter means "finish" on the canvas and "multi-language editor" in the grid (ID-628). Edit ▸ Change symbol has no default key. W, P, B, T, L and Shift+W follow with WP-S2.04's later parts; Ctrl+F and Ctrl+H with WP-S2.05 part 2; the KiCad-like preset with WP-S2.08.
 
 **Accessibility.** Every tool is operable from the keyboard (NFR-A11Y-01). The selected object is announced as a live
 region ("-102G1, power supply 24 V DC, 7 connection points, 9 wires"; FR-UI-026, NFR-A11Y-02), and the navigators

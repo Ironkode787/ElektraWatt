@@ -1,6 +1,6 @@
 # Domain model
 
-**Status:** Draft v0.1 · **Date:** 2026-10-21 (cycle 11: frozen tags change only by explicit user action, segment-less strips, the `project.settings.set` command; decision log ID-290, ID-292, ID-293; cycle 12: the colour and size profile rows and their display order, §5.1, decision log ID-319; cycle 13: the PLC kinds and `DeviceLink` as built, §7, §13, §14, decision log ID-333 to ID-335; 2026-10-22, cycle 17: the typed `Revision` as built and the `Revision.withdraws` forbid link, §4.2, §18, decision log ID-427 to ID-431; 2026-10-22, cycle 22: the stored shapes written by the four commands of FT-336 and the frame fall-through rule, §5.1, §19, decision log ID-545 to ID-547; 2026-10-23, cycle 23: the `StructureBox` and `PageItem` shapes specified for WP-S2.04 part 4a with their two invariants and their derivation, §4.2, §5, §6, §8.2, decision log ID-566; the `settings.extra.drawing` member, §5.1, ID-567, ID-568; the company logo reference as built, §5.1, ID-573) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-21 (cycle 11: frozen tags change only by explicit user action, segment-less strips, the `project.settings.set` command; decision log ID-290, ID-292, ID-293; cycle 12: the colour and size profile rows and their display order, §5.1, decision log ID-319; cycle 13: the PLC kinds and `DeviceLink` as built, §7, §13, §14, decision log ID-333 to ID-335; 2026-10-22, cycle 17: the typed `Revision` as built and the `Revision.withdraws` forbid link, §4.2, §18, decision log ID-427 to ID-431; 2026-10-22, cycle 22: the stored shapes written by the four commands of FT-336 and the frame fall-through rule, §5.1, §19, decision log ID-545 to ID-547; 2026-10-23, cycle 23: the `StructureBox` and `PageItem` shapes specified for WP-S2.04 part 4a with their two invariants and their derivation, §4.2, §5, §6, §8.2, decision log ID-566; the `settings.extra.drawing` member, §5.1, ID-567, ID-568; the company logo reference as built, §5.1, ID-573; 2026-10-24, cycle 25: `project.drawing.set` registered, §5.1, ID-625; revision author and checker read-only in the property grid, §18, ID-626) · **Part of:** ElektraWatt design document set
 
 > **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
 
@@ -688,6 +688,8 @@ wire markers print; **absent means the as-built rule**, a marker where the conne
 modes are defined in §6 (derivation; WP-S2.04 §10.2 item 3). The command `project.drawing.set` writes the member
 (`Edit`, undoable): it merges into the existing object, keeps members it does not know and takes `null` to remove a
 member; it refuses a `drawing` member that is not an object, an unknown value and a call that gives no member.
+*As built (cycle 25, WP-S2.04 part 1; decision log ID-625):* `project.drawing.set` is registered with `crossings`; nothing reads the member
+until part 2's derivation, and `marker_mode` comes with part 4a.
 `crossings` is presentation only (no derived diff); `marker_mode` is read by the derivation, so changing it changes the
 derived marker texts. The per-page marker mode of FR-CON-024 is FT-375.
 
@@ -2347,6 +2349,8 @@ amendment 6). Commands: `revision.create` (an open revision or a historic releas
 released` once any revision has a release record, ruling R4), `fields.set` on the open revision and `edit.delete` of
 the open revision ([06](06-schematic-editor.md) §3.1). The title block's current revision is the open one, else the
 latest released one by date, natural label order and ID, leaving out a revision that a withdrawal record names.
+*Property grid (cycle 25, WP-S2.05 part 1; decision log ID-593, ID-626):* `author` and `checker` show read-only in the grid, because they
+decide the four-eyes sign-off, although `fields.set` can still write them ([15](15-checks-revisions-collaboration.md) §5.4; FT-402).
 
 **Equivalents.** EPLAN: revision management, revision project `*.ell`, completed project `*.elr`, change markers
 and property comparison. QET: `indexrev` per folio, free text.

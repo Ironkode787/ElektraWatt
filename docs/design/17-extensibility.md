@@ -1,6 +1,6 @@
 # Extensibility: CLI, scripting, SQL, plugins and agents
 
-**Status:** Draft v0.4 · **Date:** 2026-10-24 (cycle-24 design pass: `project.assets.purge`, `HumanOnly`, and its confirmed CLI, 43 commands, §2.1, §2.3, §3.3, decision log ID-605; `ew check`'s scheme from the project, §3.3, decision log ID-602; the undo and redo `HumanOnly` gap and its fix route, §2.3, §4, decision log ID-603; 2026-10-23: cycle-23 design pass: the amended `report_block.create` (`form_copies`) and `project.company.set` (`logo`) and the specified catalogue of WP-S2.04, §2.1, §2.3, decision log ID-567, ID-572 to ID-574; 2026-10-22: cycle-22 design pass: `project.checks.set`, the first registered `HumanOnly` command, its CLI subcommand with the typed terminal confirmation (FT-369) and the 42 commands, §2.3, §3.3, decision log ID-545, ID-546; v0.4: cycle-13 design pass: the SQL projection v0 as built, §3.4, §6.1, §6.2; v0.3: cycle-12 design pass: `ew check` as built, §3.1, §3.3; `tag:` and `folio:` references, §3.5; Session v0, §4; v0.2: cycle-11 design pass: `project.settings.set` and its exposure, §2.1, §2.3; the command log as built, §3.5; `ew import qet` as built, §3.2, §3.3) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.4 · **Date:** 2026-10-24 (cycle-25 design pass: `rep.exchange_symbol` and `project.drawing.set` registered by WP-S2.04 part 1, 45 commands, §2.1, §2.3; the references that `select.set` shares, §3.5; decision log ID-625, ID-626, ID-630; cycle-24 design pass: `project.assets.purge`, `HumanOnly`, and its confirmed CLI, 43 commands, §2.1, §2.3, §3.3, decision log ID-605; `ew check`'s scheme from the project, §3.3, decision log ID-602; the undo and redo `HumanOnly` gap and its fix route, §2.3, §4, decision log ID-603; 2026-10-23: cycle-23 design pass: the amended `report_block.create` (`form_copies`) and `project.company.set` (`logo`) and the specified catalogue of WP-S2.04, §2.1, §2.3, decision log ID-567, ID-572 to ID-574; 2026-10-22: cycle-22 design pass: `project.checks.set`, the first registered `HumanOnly` command, its CLI subcommand with the typed terminal confirmation (FT-369) and the 42 commands, §2.3, §3.3, decision log ID-545, ID-546; v0.4: cycle-13 design pass: the SQL projection v0 as built, §3.4, §6.1, §6.2; v0.3: cycle-12 design pass: `ew check` as built, §3.1, §3.3; `tag:` and `folio:` references, §3.5; Session v0, §4; v0.2: cycle-11 design pass: `project.settings.set` and its exposure, §2.1, §2.3; the command log as built, §3.5; `ew import qet` as built, §3.2, §3.3) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies every way to drive, extend or query ElektraWatt (EW) other than the GUI: the
 `ew` command-line tool, the headless `Session` API behind it, rhai formulas, rules and automation scripts, the
@@ -229,6 +229,8 @@ bytes stay unchanged; the only change allowed under `golden/` is the re-bless ru
 eight is registered in this version; the counts in §2.3 stay 43 (42 before FT-380's purge, cycle 24) until a part
 lands.
 
+*As built (cycle 25, WP-S2.04 part 1; decision log ID-625).* Two of the eight are registered: **`rep.exchange_symbol`** and **`project.drawing.set`** (with `crossings`; built in part 1 at the orchestrator's request, read by the derivation from part 2), both `Edit`, `Preview`, Interactive and undoable, so **45 commands** are registered. The additive members `from_part` (`device.place`, `box.black`), `new_terminal` (`device.place`) and `steps` (`rep.move`) are built; every new optional member is `skip_serializing_if`, and AC-15's 609-command log and the golden bytes are unchanged. Each new command has its committed schema, its reference page, a DSL verb and a fuzzer arm ([06](06-schematic-editor.md) §3.1). The other six arrive with WP-S2.04's parts 2 to 4a, which would make 51.
+
 **Parameter schemas are the client contract** (FR-EXT-015; decision log ID-56). They reject unknown tags of open
 enums, which records keep for forward compatibility (ARCH §7.6): a client learns of a new value from the catalogue,
 never by sending it. Before validation, a parameter document is limited to 4 MiB, a nesting depth of 64, 1,048,576
@@ -337,7 +339,7 @@ registered at the cycle-22 tip, 41 `Edit` and one `HumanOnly` (`project.checks.s
 (`project.company.set`, `project.frames.set`, `project.languages.set`, `project.checks.set`) took the count from 38 to 42.
 *Cycle 23:* the count is still 42; the two amended commands of §2.1 add optional members only, and WP-S2.04 specifies
 eight more (42 to 50), none built. *Cycle 24:* `project.assets.purge` makes 43, **41 `Edit` and two `HumanOnly`**
-(`project.checks.set` and `project.assets.purge`, ID-620), so WP-S2.04's eight would make 51 (FT-380, ID-605).
+(`project.checks.set` and `project.assets.purge`, ID-620), so WP-S2.04's eight would make 51 (FT-380, ID-605). *Cycle 25:* `rep.exchange_symbol` and `project.drawing.set` make **45, 43 `Edit` and two `HumanOnly`** (ID-625).
 The first `HumanOnly` command has shipped, and `undo` must refuse a `HumanOnly` step from a script, MCP, plugin or
 Python origin (§4). *Cycle 24 (FT-366's verification; decision log ID-603):* it does **not** yet: `Engine::undo` and
 `Session::undo` take no origin and the exposure check lives only in command dispatch, so a scripted undo or redo can
@@ -574,6 +576,7 @@ file)`; the `ew apply` subcommand is built since cycle 15 (FT-156, see Semantics
   designation with its sign. `folio:<label>` resolves to the one drawn page with that folio label. Matching is exact
   against the then-current model. No match, or several matches, stops the replay with exit 2 (`CmdLogError::Reference`)
   and reports `committed`. `structure:<code>` is not built (FT-171).
+  *Shared with the UI (cycle 25, WP-S2.05 part 1; decision log ID-626, ID-630).* The resolver is public as `Session::resolve_reference`, and the shell's hidden action `select.set` uses it: `refs` takes the same `tag:`, `folio:`, `section:` and `id:` forms (`id:` once the record exists), `ids` takes bare UUIDs, and the result replaces the selection; a reference that names no record or several fails the step with the replay's message. The property grid's acceptance flows select through it (PG5 and PG6; the canvas picks by geometry, ID-628), and once FT-422 lands both also take the alias `@n` that the headless output prints, resolved before this resolver (ID-630).
 - **Exposure.** Every line is looked up and checked against the command registry before the first line runs. A
   `HumanOnly` command anywhere in the log refuses the whole replay with exit 2, so a log can never approve, release,
   waive or trust (§2.3, FR-EXT-030). Golden A-R's sign-off is therefore a terminal step after the overlay, not a log
