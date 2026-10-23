@@ -108,6 +108,12 @@ pub const ARMS: &[Arm] = &[
         weight: 8,
         build: fields_set,
     },
+    // WP-S2.05 part 2
+    Arm {
+        command: "fields.set_many",
+        weight: 3,
+        build: fields_set_many,
+    },
     Arm {
         command: "ip.continue",
         weight: 2,
@@ -742,6 +748,58 @@ fn fields_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                     .refuse(),
                 )
             }
+        }
+    }
+}
+
+// WP-S2.05 part 2
+/// `fields.set_many`: one function text per device (distinct devices, one entry each), checked afterwards; refused: no
+/// entry, a (target, path) pair in two entries, and an entry `fields.set` would refuse (a path that is not settable).
+fn fields_set_many(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let entry = |device: &Value, value: &str| json!({"kind": "device", "targets": [device], "path": "function_text", "value": value});
+    match rng.below(8) {
+        0 => Some(Step::cmd("fields.set_many", json!({"edits": []})).refuse()),
+        1 => {
+            let d = rng.pick(&live.plain_devices)?;
+            Some(
+                Step::cmd(
+                    "fields.set_many",
+                    json!({"edits": [entry(d, "A"), entry(d, "B")]}),
+                )
+                .refuse(),
+            )
+        }
+        2 => {
+            let d = rng.pick(&live.plain_devices)?;
+            let bad = json!({"kind": "device", "targets": [d], "path": "parent", "value": null});
+            Some(Step::cmd("fields.set_many", json!({"edits": [entry(d, "A"), bad]})).refuse())
+        }
+        _ => {
+            let n = 1 + rng.below(3);
+            let mut devices: Vec<Value> = (0..n)
+                .filter_map(|_| rng.pick(&live.plain_devices).cloned())
+                .collect();
+            devices.sort_by_key(Value::to_string);
+            devices.dedup();
+            if devices.is_empty() {
+                return None;
+            }
+            let texts: Vec<String> = devices.iter().map(|_| rng.word(8)).collect();
+            let edits: Vec<Value> = devices.iter().zip(&texts).map(|(d, t)| entry(d, t)).collect();
+            let expect: Vec<(Value, String)> = devices.into_iter().zip(texts).collect();
+            Some(
+                Step::cmd("fields.set_many", json!({ "edits": edits })).check(move |_, after| {
+                    for (d, text) in &expect {
+                        let got = typed(d)
+                            .and_then(|id| after.devices().get(id).cloned())
+                            .map(|dev| serde_json::to_value(&dev.function_text).unwrap_or(Value::Null));
+                        if got != Some(json!(text)) {
+                            return Err(format!("the function text of {d} is {got:?}, not `{text}`"));
+                        }
+                    }
+                    Ok(())
+                }),
+            )
         }
     }
 }

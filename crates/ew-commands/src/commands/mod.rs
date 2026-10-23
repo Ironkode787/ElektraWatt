@@ -51,6 +51,7 @@
 //! | `project.assets.purge` | [`PurgeAssets`] | Bulk; not undoable (a marker line), confirmation `Destructive`; exposure `HumanOnly` |
 //! | `rep.exchange_symbol` | [`ExchangeSymbol`] | Interactive |
 //! | `project.drawing.set` | [`SetDrawing`] | Interactive |
+//! | `fields.set_many` | [`SetManyFields`] | Interactive; Bulk above 500 targets |
 //!
 //! Every command is of stability `Preview` and undoable except `project.assets.purge`, a marker line whose file side
 //! (deleting asset files nothing names) runs in the session (ADR-0008 amendment 1, FT-380); every one is of exposure
@@ -96,7 +97,7 @@ pub use device::{
 pub use drawing::{Crossings, DRAWING_MEMBER, SetDrawing};
 pub use edit::{BULK_ABOVE, DeleteSelection};
 pub use exchange::{ExchangePin, ExchangeSymbol};
-pub use fields::{ASPECTS, SETTABLE, SetFields};
+pub use fields::{ASPECTS, SET_MANY_MAX_EDITS, SETTABLE, SetFields, SetManyFields};
 pub use frames::{FRAMES_MEMBER, FrameForPageType, SetFrameDefaults};
 pub use languages::SetProjectLanguages;
 pub use library::{EmbedLibraryCopies, library_copy_hash};
@@ -161,4 +162,6 @@ pub fn register_all(r: &mut CommandRegistry) {
     r.register::<PurgeAssets>();
     r.register::<ExchangeSymbol>();
     r.register::<SetDrawing>();
+    // WP-S2.05 part 2
+    r.register::<SetManyFields>();
 }

@@ -1,7 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `fields.set` (`SetFields`): the property grid's command, also over a multi-selection (doc 06 §3.1, §3.7).
+//! `fields.set` (`SetFields`): the property grid's command, also over a multi-selection (doc 06 §3.1, §3.7); and
+//! `fields.set_many` (`SetManyFields`, WP-S2.05 part 2): one value per target set, the command of find and replace and
+//! of "freeze" on several devices, one transaction of `fields.set` steps.
 
 use std::collections::BTreeSet;
 
@@ -18,7 +20,7 @@ use serde_json::{Map, Value};
 use crate::command::{Command, Outcome};
 use crate::commands::common::KindName;
 use crate::error::CmdError;
-use crate::meta::CommandMeta;
+use crate::meta::{CommandMeta, Cost};
 use crate::proxy::UuidS;
 use crate::tx::TxBuilder;
 
@@ -179,6 +181,14 @@ impl Command for SetFields {
     }
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        self.apply(tx)?;
+        Ok(Outcome::default())
+    }
+}
+
+impl SetFields {
+    /// The edit of [`SetFields`] on `tx`, with `fields.set`'s pointers (`fields.set_many` prefixes them).
+    fn apply(&self, tx: &mut TxBuilder<'_>) -> Result<(), CmdError> {
         if self.targets.is_empty() {
             return Err(CmdError::invalid_params(
                 Self::NAME,
@@ -257,6 +267,93 @@ impl Command for SetFields {
             for t in &self.targets {
                 refuse_foreign_covers(tx, t.cast())?;
             }
+        }
+        Ok(())
+    }
+}
+
+// WP-S2.05 part 2 ------------------------------------------------------------------------------------------------
+
+/// The most entries one `fields.set_many` takes.
+pub const SET_MANY_MAX_EDITS: usize = 10_000;
+
+/// `fields.set_many` (`SetManyFields`, WP-S2.05 part 2; FR-DEV-032, FR-UI-020): sets one value per (kind, targets,
+/// path) entry, the entries in the given order, in **one** transaction (one undo step).
+///
+/// Each entry is applied exactly as `fields.set` with those parameters would be: the same [`SETTABLE`] paths, the same
+/// per-kind checks (closed revisions, aspects, assembly covers, the tag-collision refusal) and the same rejections,
+/// their JSON Pointer prefixed by `/edits/<i>`. The caller computes every value (find and replace computes the
+/// replaced texts, "freeze" each device's own product designation): the command searches nothing and reads no derived
+/// value, so a command log replays it exactly. Rejected with [`CmdError::InvalidParams`] at `/edits`: no entry, or
+/// more than 10,000 entries; at `/edits/<j>/targets/<k>`: a (target, path) pair that an earlier entry already names.
+/// Cost: `Bulk` when the entries name more than 500 targets in total (`BULK_ABOVE`, as `edit.delete`),
+/// else interactive. Outcome: none.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct SetManyFields {
+    /// The entries, each the parameters of one `fields.set` (1 to 10,000).
+    pub edits: Vec<SetFields>,
+}
+
+impl Command for SetManyFields {
+    const NAME: &'static str = "fields.set_many";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn cost(&self, _model: &ew_model::Model) -> Cost {
+        let targets: usize = self.edits.iter().map(|e| e.targets.len()).sum();
+        if targets > crate::commands::BULK_ABOVE {
+            Cost::Bulk
+        } else {
+            Cost::Interactive
+        }
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        if self.edits.is_empty() {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/edits",
+                "give at least one entry",
+            ));
+        }
+        if self.edits.len() > SET_MANY_MAX_EDITS {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/edits",
+                format!(
+                    "{} entries are more than the {SET_MANY_MAX_EDITS} one command takes",
+                    self.edits.len()
+                ),
+            ));
+        }
+        // One (target, path) pair per command: a later entry naming it again is refused before anything is applied.
+        let mut pairs: BTreeSet<(AnyId, &str)> = BTreeSet::new();
+        for (j, e) in self.edits.iter().enumerate() {
+            let mut own = BTreeSet::new();
+            for (k, t) in e.targets.iter().enumerate() {
+                // A target twice within one entry is `fields.set`'s own refusal, at its own pointer below.
+                if own.insert(*t) && !pairs.insert((*t, e.path.as_str())) {
+                    return Err(CmdError::invalid_params(
+                        Self::NAME,
+                        format!("/edits/{j}/targets/{k}"),
+                        format!(
+                            "an earlier entry already sets `{}` on this target; give each (target, path) once",
+                            e.path
+                        ),
+                    ));
+                }
+            }
+        }
+        for (i, e) in self.edits.iter().enumerate() {
+            e.apply(tx).map_err(|err| match err {
+                CmdError::InvalidParams { path, message, .. } => {
+                    CmdError::invalid_params(Self::NAME, format!("/edits/{i}{path}"), message)
+                }
+                other => other,
+            })?;
         }
         Ok(Outcome::default())
     }

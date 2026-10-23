@@ -153,7 +153,7 @@ fn rejected_commands_change_nothing() {
 #[test]
 fn every_v0_command_is_an_edit_command_but_the_check_schemes() {
     let r = ew_commands::CommandRegistry::builtin();
-    assert_eq!(r.names().count(), 45);
+    assert_eq!(r.names().count(), 46);
     for c in r.commands() {
         // ADR-0008 amendment 3: the release scheme decides a check outcome, so its command is `HumanOnly`; the asset
         // purge deletes files that do not come back (owner ruling, 2026-10-23).

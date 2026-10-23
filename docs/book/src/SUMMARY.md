@@ -30,6 +30,7 @@
     - [`edit.delete`](reference/commands/edit.delete.md)
     - [`external_ref.create`](reference/commands/external_ref.create.md)
     - [`fields.set`](reference/commands/fields.set.md)
+    - [`fields.set_many`](reference/commands/fields.set_many.md)
     - [`ip.continue`](reference/commands/ip.continue.md)
     - [`ip.place`](reference/commands/ip.place.md)
     - [`junction.edit`](reference/commands/junction.edit.md)

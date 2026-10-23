@@ -267,6 +267,23 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         .map(|_| ())
     }
 
+    // WP-S2.05 part 2
+    /// `fields.set_many` (WP-S2.05 part 2): one transaction of `fields.set` entries, each `(kind, targets, path,
+    /// value)`, in the given order (one value per target set: find and replace, freezing several tags).
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn set_many(&mut self, edits: &[(&str, &[AnyId], &str, Value)]) -> Result<()> {
+        let edits: Vec<Value> = edits
+            .iter()
+            .map(|(kind, targets, path, value)| {
+                json!({"kind": kind, "targets": targets, "path": path, "value": value})
+            })
+            .collect();
+        self.run("fields.set_many", json!({ "edits": edits })).map(|_| ())
+    }
+
     /// `fields.set` of each remaining member of `rest` that is in `settable`; the others are noted as not
     /// written under `<kind>.<member>`.
     fn set_rest(&mut self, kind: &str, id: AnyId, rest: Map<String, Value>, settable: &[&str]) -> Result<()> {
@@ -1299,5 +1316,40 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
             p.insert("crossings".into(), value.map_or(Value::Null, |c| json!(c)));
         }
         self.run("project.drawing.set", Value::Object(p)).map(|_| ())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // WP-S2.05 part 2
+    /// `set_many` issues one `fields.set_many` with the entries in order.
+    #[test]
+    fn set_many_issues_one_command_with_the_entries_in_order() {
+        let mut seen: Vec<(String, Value)> = Vec::new();
+        let mut sink = |name: &str, params: Value| {
+            seen.push((name.to_owned(), params));
+            Ok(Done::default())
+        };
+        let a = AnyId::from_uuid(ew_ids::Uuid::from_u128(1));
+        let b = AnyId::from_uuid(ew_ids::Uuid::from_u128(2));
+        let mut builder = Builder::new(&mut sink);
+        builder
+            .set_many(&[
+                ("device", &[a], "function_text", json!("Spare")),
+                ("page", &[b], "title", json!("Main")),
+            ])
+            .unwrap();
+        assert_eq!(builder.script().len(), 1);
+        drop(builder);
+        assert_eq!(seen.len(), 1);
+        assert_eq!(seen[0].0, "fields.set_many");
+        assert_eq!(
+            seen[0].1,
+            json!({"edits": [
+                {"kind": "device", "targets": [a], "path": "function_text", "value": "Spare"},
+                {"kind": "page", "targets": [b], "path": "title", "value": "Main"}]})
+        );
     }
 }

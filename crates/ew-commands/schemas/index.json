@@ -161,6 +161,17 @@
       "confirmation": "none",
       "cost": "interactive",
       "exposure": "edit",
+      "name": "fields.set_many",
+      "params_version": 1,
+      "schema": "fields.set_many.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
       "name": "ip.continue",
       "params_version": 1,
       "schema": "ip.continue.schema.json",
