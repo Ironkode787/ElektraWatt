@@ -27,7 +27,8 @@ pub struct JunctionMember {
 pub struct JunctionEditor {
     /// The junction.
     pub junction: EntityRef,
-    /// The frame cell it lies in (the transcript's and the describe text's name for it; no UUID reaches either).
+    /// Its name (the frame cell, `#n` when the cell holds several; [`junction_name`]): the transcript's and the
+    /// describe text's, no UUID reaches either.
     pub cell: String,
     /// `dot` or `bevel`.
     pub style: String,
@@ -45,6 +46,25 @@ pub struct JunctionEditor {
     pub wires: Vec<JunctionWire>,
     /// The (session, revision) the editor was read at.
     pub rev: (u64, u64),
+}
+
+/// The name of junction `j` in the transcript and the describe text: the frame cell it lies in, with `#n` (its
+/// place in ID order) when the cell holds several junctions (`C11#2`); no UUID (`@n` comes with FT-422).
+pub fn junction_name(tables: &PageTables, j: EntityRef, cell_of: &dyn Fn((i64, i64)) -> String) -> String {
+    let Some(row) = tables.junctions.iter().find(|x| x.id == j.0) else {
+        return String::new();
+    };
+    let cell = cell_of(row.at);
+    let same: Vec<&ew_api::output::TableJunction> = tables
+        .junctions
+        .iter()
+        .filter(|x| cell_of(x.at) == cell)
+        .collect();
+    if same.len() < 2 {
+        return cell;
+    }
+    let n = same.iter().position(|x| x.id == j.0).map_or(0, |i| i + 1);
+    format!("{cell}#{n}")
 }
 
 /// The label of the far end of connection `c` seen from junction `j`: the CP's label, or `@` and the cell of another
@@ -66,11 +86,7 @@ fn far_label(
             .iter()
             .find(|c| c.function == function && c.idx == idx)
             .map_or_else(String::new, |c| c.label.clone()),
-        TableEnd::Junction { id } => tables
-            .junctions
-            .iter()
-            .find(|x| x.id == id)
-            .map_or_else(String::new, |x| format!("@{}", cell_of(x.at))),
+        TableEnd::Junction { id } => format!("@{}", junction_name(tables, EntityRef(id), cell_of)),
     }
 }
 
@@ -103,7 +119,7 @@ impl JunctionEditor {
             .collect();
         Some(JunctionEditor {
             junction: j,
-            cell: cell_of(row_j.at),
+            cell: junction_name(tables, j, cell_of),
             style: row_j.style.clone(),
             bevel_orient: row_j.bevel_orient,
             wiring: row_j.wiring.clone(),
@@ -149,5 +165,53 @@ impl JunctionEditor {
     /// The labels of the members, in wiring order.
     pub fn sequence_labels(&self) -> Vec<String> {
         self.members.iter().map(|m| m.label.clone()).collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ew_api::output::TableJunction;
+
+    fn id<T: std::str::FromStr>(n: u128) -> T
+    where
+        T::Err: std::fmt::Debug,
+    {
+        format!("{n:032x}").parse().unwrap()
+    }
+
+    fn junction(n: u128, at: (i64, i64)) -> TableJunction {
+        TableJunction {
+            id: id(n),
+            at,
+            style: "dot".into(),
+            bevel_orient: 0,
+            wiring: "star".into(),
+            explicit_wiring: false,
+            sequence: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn two_junctions_in_one_cell_are_numbered_in_id_order() {
+        let tables = PageTables {
+            folio: "1".into(),
+            page: id(1),
+            grid: (1, 1),
+            reps: Vec::new(),
+            cps: Vec::new(),
+            connections: Vec::new(),
+            junctions: vec![junction(2, (0, 0)), junction(3, (5, 0)), junction(4, (50, 0))],
+        };
+        let cell = |p: (i64, i64)| {
+            if p.0 < 10 {
+                "C11".to_owned()
+            } else {
+                "C12".to_owned()
+            }
+        };
+        assert_eq!(junction_name(&tables, EntityRef(id(2)), &cell), "C11#1");
+        assert_eq!(junction_name(&tables, EntityRef(id(3)), &cell), "C11#2");
+        assert_eq!(junction_name(&tables, EntityRef(id(4)), &cell), "C12");
     }
 }

@@ -129,6 +129,31 @@ fn wr3_fr_ui_015_a_connection_drawn_from_the_keyboard_alone() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// Ctrl+Enter in the canvas is a click with Alt held at the grid cursor: a placement sends no autoconnect hint.
+#[test]
+fn ctrl_enter_places_without_autoconnect() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "101");
+    dispatch(
+        &mut h,
+        "place.pick",
+        json!({"symbol": "ew.iec.contact-no@qet10", "letter": "K"}),
+    );
+    settle(&mut h);
+    press(&mut h, Key::ArrowRight);
+    let reps = h.state().shell().canvas().unwrap().page().tables.reps.len();
+    let before = connections(&h).len();
+    h.key_press_modifiers(Modifiers::COMMAND, Key::Enter);
+    settle(&mut h);
+    assert_eq!(
+        h.state().shell().canvas().unwrap().page().tables.reps.len(),
+        reps + 1,
+        "placed"
+    );
+    assert_eq!(connections(&h).len(), before, "no autoconnect wire");
+    h.state_mut().shell_mut().shutdown();
+}
+
 #[test]
 fn the_junction_editor_popup_reorders_with_alt_down_and_closes_with_escape() {
     let tmp = Tmp::new();

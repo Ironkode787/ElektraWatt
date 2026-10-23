@@ -106,6 +106,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "picker-title-strip" => "Choose a terminal strip",
         "picker-strip-row" => "{0}  next terminal {1}",
         "action-tool-wire" => "Connection",
+        "action-canvas-activate-alt" => "Click with Alt at the grid cursor",
         "action-tool-next-proposal" => "Next autoconnect proposal",
         "action-tool-connect-on-move" => "Connect while moving",
         "action-tool-route-edit" => "Edit route",
@@ -129,6 +130,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         }
         "reason-one-connection" => "Select exactly one connection",
         "reason-one-junction" => "Select exactly one junction",
+        "reason-no-wire-kind" => "The Wire tool does not draw this page type's connections yet",
         "reason-no-junction-editor" => "The junction sequence editor is not open",
         "reason-junction-member" => "No such member position",
         "junction-title" => "Junction {0}",

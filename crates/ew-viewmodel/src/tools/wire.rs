@@ -9,8 +9,9 @@
 //! page tables, a junction, a point on a connection segment (the grid point of the segment nearest to the pointer;
 //! a coordinate of the segment that is off the grid is the segment's own, the CP-exact coordinate
 //! `require_split_point` accepts), else the grid point. Alt suppresses the object snaps. Ties by the smaller
-//! distance, then by ID: the smaller for a CP or a junction; for a segment the later in paint order (the larger ID,
-//! the wire drawn last, on top), as WP-S2.02's pick breaks a tie.
+//! distance, then by ID: the smaller for a CP or a junction; for a segment the larger connection ID, which is the
+//! later in paint order (connections paint in ID order, so the one on top) and, for the time-ordered UUIDv7 IDs a
+//! session mints, the wire drawn last; WP-S2.02's pick breaks a tie the same way.
 //!
 //! | State | Event | Next | Output |
 //! |---|---|---|---|
@@ -26,8 +27,10 @@
 //! | armed | `Escape` | — | `None` (the host returns to Select) |
 //!
 //! The committed route is the fixed vertices joined with the router's route from the last fixed vertex to the end,
-//! exactly the ghost (the router never runs on replay). The connection kind is a wire (the multi-line page's kind,
-//! doc 06 §2.2; `connection.draw`'s default).
+//! exactly the ghost (the router never runs on replay). The connection kind is the page type's (doc 06 §2.2), given
+//! by the host ([`WireTool::with_kind`]): a wire on a multi-line page (`connection.draw`'s default, so no `kind` is
+//! sent), `overview` on single-line, overview and assembly-overview pages; on the other page types the host refuses
+//! `tool.wire` until their kinds are drawn (fix round of WP-S2.04 part 2, item 1).
 
 use ew_api::AnyCommand;
 use ew_api::geometry::Dir;
@@ -137,12 +140,20 @@ impl WireTarget {
         }
     }
 
-    /// The label the transcript and the live region use: a CP's label; a junction or a split point `@` and the
-    /// frame cell it lies in (`@C11`); a grid point `None`.
+    /// The label the transcript and the live region use: a CP's label; a junction `@` and its name (`@C11`, `@C11#2`
+    /// when the cell holds several); a split point `@` and its cell; a grid point `None`.
     pub fn label(&self, cx: &ToolCx<'_>) -> Option<String> {
         match self {
             WireTarget::Cp { label, .. } => Some(label.clone()),
-            WireTarget::Junction { at, .. } | WireTarget::Segment { at, .. } => {
+            WireTarget::Junction { id, .. } => {
+                let cell_of =
+                    |p: (i64, i64)| cx.page.cell_text(cx.snapper.page_to_sheet(p)).unwrap_or_default();
+                Some(format!(
+                    "@{}",
+                    super::junction_name(&cx.page.tables, *id, &cell_of)
+                ))
+            }
+            WireTarget::Segment { at, .. } => {
                 let cell = cx
                     .page
                     .cell_text(cx.snapper.page_to_sheet(*at))
@@ -308,7 +319,7 @@ fn on_axis(grid: PageGridMap, v: i64, lo: i64, hi: i64) -> Option<i64> {
 }
 
 /// Removes consecutive duplicate vertices and interior vertices collinear with their neighbours; the ends stay.
-fn clean(pts: Vec<(i64, i64)>) -> Vec<(i64, i64)> {
+pub(super) fn clean(pts: Vec<(i64, i64)>) -> Vec<(i64, i64)> {
     let mut out: Vec<(i64, i64)> = Vec::with_capacity(pts.len());
     for p in pts {
         if out.last() == Some(&p) {
@@ -343,8 +354,9 @@ enum State {
         start: WireTarget,
         /// The fixed vertices from the start (the start's point first).
         fixed: Vec<(i64, i64)>,
-        /// The length of `fixed` before each bend.
-        marks: Vec<usize>,
+        /// `fixed` as it was before each bend (Backspace restores it; a bend that continues straight is cleaned out
+        /// of `fixed`, so a length would not do).
+        marks: Vec<Vec<(i64, i64)>>,
         /// The target under the point.
         end: Option<WireTarget>,
         /// The ghost route from the start to the end target's point.
@@ -352,8 +364,9 @@ enum State {
     },
 }
 
-/// The key of a computed route: the last fixed vertex with its leaving direction and the end with its direction.
-type RouteKey = ((i64, i64), Option<Dir>, (i64, i64), Option<Dir>);
+/// The key of a computed route: the page content's revision, the last fixed vertex with its leaving direction and the
+/// end with its direction.
+type RouteKey = (u64, (i64, i64), Option<Dir>, (i64, i64), Option<Dir>);
 
 /// The Wire tool.
 #[derive(Clone, Debug)]
@@ -365,6 +378,8 @@ pub struct WireTool {
     routes: u64,
     /// The labels of the start and the end, for the transcript.
     labels: (Option<String>, Option<String>),
+    /// The JSON value of `connection.draw`'s `kind` for the page type; `None` for a wire (the default).
+    kind: Option<&'static str>,
 }
 
 impl Default for WireTool {
@@ -381,7 +396,14 @@ impl WireTool {
             cache: None,
             routes: 0,
             labels: (None, None),
+            kind: None,
         }
+    }
+
+    /// The tool drawing connections of `kind` (`connection.draw`'s JSON value; `None` for a wire).
+    pub fn with_kind(mut self, kind: Option<&'static str>) -> WireTool {
+        self.kind = kind;
+        self
     }
 
     /// How many times the router ran since the tool was made.
@@ -406,7 +428,7 @@ impl WireTool {
         skip: [Option<EntityRef>; 2],
         to: &WireTarget,
     ) -> Vec<(i64, i64)> {
-        let key: RouteKey = (from, from_dir, to.at(), to.dir());
+        let key: RouteKey = (cx.page.rev, from, from_dir, to.at(), to.dir());
         if let Some((k, r)) = &self.cache
             && *k == key
         {
@@ -518,14 +540,18 @@ impl WireTool {
             return None;
         };
         let end = end.as_ref().filter(|e| e.is_end() && !e.same_end(start))?;
+        let mut params = json!({
+            "a": start.endpoint()?,
+            "b": end.endpoint()?,
+            "page": cx.page.tables.page.to_string(),
+            "route": route.iter().map(|p| vec![p.0, p.1]).collect::<Vec<_>>(),
+        });
+        if let Some(kind) = self.kind {
+            params["kind"] = Value::from(kind);
+        }
         Some(Box::new(AnyCommand {
             name: "connection.draw".into(),
-            params: json!({
-                "a": start.endpoint()?,
-                "b": end.endpoint()?,
-                "page": cx.page.tables.page.to_string(),
-                "route": route.iter().map(|p| vec![p.0, p.1]).collect::<Vec<_>>(),
-            }),
+            params,
         }))
     }
 
@@ -601,7 +627,7 @@ impl WireTool {
                 }
                 // A bend: the route so far to the grid point becomes fixed.
                 let route = self.full_route(cx, &start, &fixed, &target);
-                marks.push(fixed.len());
+                marks.push(fixed);
                 fixed = route.clone();
                 self.state = State::Routing {
                     start,
@@ -667,15 +693,13 @@ impl Tool for WireTool {
             CanvasEvent::Back => match self.state.clone() {
                 State::Routing {
                     start,
-                    mut fixed,
                     mut marks,
                     end,
                     ..
                 } => {
-                    let Some(len) = marks.pop() else {
+                    let Some(fixed) = marks.pop() else {
                         return ToolOutput::None;
                     };
-                    fixed.truncate(len.max(1));
                     let route = match &end {
                         Some(t) => self.full_route(cx, &start, &fixed, t),
                         None => fixed.clone(),

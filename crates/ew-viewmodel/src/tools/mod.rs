@@ -47,7 +47,7 @@ pub mod transform;
 pub mod wire;
 
 pub use exchange::ExchangeTool;
-pub use junction_editor::{JunctionEditor, JunctionMember};
+pub use junction_editor::{JunctionEditor, JunctionMember, junction_name};
 pub use picker::{PendingTerminal, Picker, PickerMode, PickerRow};
 pub use place::{ORIENT_NAMES, PlaceTarget, PlaceTool, inside_polygon, next_designation};
 pub use route_edit::RouteEditTool;

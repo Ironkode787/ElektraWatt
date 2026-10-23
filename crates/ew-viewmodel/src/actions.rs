@@ -345,6 +345,12 @@ fn editable_page(m: &ShellModel) -> Result<(), &'static str> {
 }
 
 /// The picker is open (WP-S2.04 §7.1).
+/// An editable page whose type has a connection kind the Wire tool draws (WP-S2.04 part 2, fix round item 1).
+fn wire_page(m: &ShellModel) -> Result<(), &'static str> {
+    editable_page(m)?;
+    m.wire_kind().map(|_| ())
+}
+
 /// The junction sequence editor is open on a project that can be changed (WP-S2.04 part 2, §8.5).
 fn junction_editor_open(m: &ShellModel) -> Result<(), &'static str> {
     writable(m)?;
@@ -1205,9 +1211,20 @@ pub static ACTIONS: &[ActionMeta] = &[
         "action-tool-wire",
         Menu::Insert,
         &["W"],
-        editable_page,
+        wire_page,
         slot_sep(Menu::Insert),
     )),
+    // Ctrl+Enter: a click with Alt held at the grid cursor (a placement without its autoconnect proposals, a bend
+    // without object snaps), the keyboard's twin of `canvas.activate {alt}` (fix round; per-context chords, ID-628).
+    hidden(in_canvas(act(
+        "canvas.activate_alt",
+        View,
+        "action-canvas-activate-alt",
+        Menu::Page,
+        &["Ctrl+Enter"],
+        has_pages,
+        None,
+    ))),
     hidden(in_canvas(act(
         "tool.next_proposal",
         View,

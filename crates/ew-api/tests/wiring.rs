@@ -136,3 +136,19 @@ fn wr8_crossings_as_hops_change_only_the_wires_by_the_hop_arcs() {
     .unwrap();
     assert_eq!(layers(&s, page), before);
 }
+
+/// Fix round (FT-421 follow-up): the next designation keeps the width of a zero-padded one (`05` is followed by
+/// `06`, not `6`).
+#[test]
+fn the_next_designation_keeps_the_width_of_a_padded_one() {
+    let mut s = golden_session();
+    let terminal = s.resolve_reference("tag:-X1032:5").expect("-X1032:5");
+    s.execute(&AnyCommand {
+        name: "terminal.designate".into(),
+        params: json!({"assignments": [{"terminal": terminal.to_string(), "designation": "05"}]}),
+    })
+    .unwrap();
+    let cat = s.place_catalogue("103").unwrap();
+    let x1032 = cat.strips.iter().find(|r| r.tag == "-X1032").unwrap();
+    assert_eq!(x1032.next_designation, "06");
+}

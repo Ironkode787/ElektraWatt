@@ -27,7 +27,7 @@ use ew_derive::ew_schema::{
 };
 use ew_derive::ew_units::{Nm, Orient2, Pt2, Rect};
 use ew_derive::{
-    CpRef, DisplayedTag, FunctionCps, PageOrder, PageRef, PhysicalWiresOf, PotentialNameOf,
+    CpRef, DeviceTag, DisplayedTag, FunctionCps, PageOrder, PageRef, PhysicalWiresOf, PotentialNameOf,
     PotentialPartition, Q, WireNumbers, cp_label, cp_point, manufacturer_name,
 };
 use ew_dl::{ItemKind, PathEl};
@@ -424,19 +424,21 @@ impl Session {
 /// Every terminal strip of the project with its tag as `page` prints it and the next designation and sequence
 /// number (FT-421), by tag, ties by ID.
 fn strips_of(q: &Q, page: Id<Page>) -> Vec<CatalogueStrip> {
-    // The largest decimal designation and sequence number of each strip's terminals.
-    let mut used: BTreeMap<Id<Device>, (u64, u32)> = BTreeMap::new();
+    // The largest decimal designation (with the width of its widest spelling, so `01` is followed by `02`) and the
+    // largest sequence number of each strip's terminals.
+    let mut used: BTreeMap<Id<Device>, (u64, usize, u32)> = BTreeMap::new();
     for (_, d) in q.devices().iter() {
         if let Some(t) = &d.aspects.terminal {
-            let e = used.entry(t.strip).or_insert((0, 0));
+            let e = used.entry(t.strip).or_insert((0, 0, 0));
             let designation = t.designation.as_str();
             if !designation.is_empty()
                 && designation.bytes().all(|b| b.is_ascii_digit())
                 && let Ok(n) = designation.parse::<u64>()
+                && (n > e.0 || (n == e.0 && designation.len() > e.1))
             {
-                e.0 = e.0.max(n);
+                (e.0, e.1) = (n, designation.len());
             }
-            e.1 = e.1.max(t.seq);
+            e.2 = e.2.max(t.seq);
         }
     }
     let mut out: Vec<CatalogueStrip> = q
@@ -444,11 +446,22 @@ fn strips_of(q: &Q, page: Id<Page>) -> Vec<CatalogueStrip> {
         .iter()
         .filter(|(_, d)| d.aspects.strip.is_some())
         .map(|(id, _)| {
-            let (designation, seq) = used.get(&id).copied().unwrap_or((0, 0));
+            let (designation, width, seq) = used.get(&id).copied().unwrap_or((0, 0, 0));
+            // The tag as the page prints it; a strip the page shows nothing of yet prints its short tag.
+            let shown = q.get::<DisplayedTag>((id, page)).as_ref().clone();
+            let tag = if shown.is_empty() {
+                q.get::<DeviceTag>(id)
+                    .as_ref()
+                    .as_ref()
+                    .map(|t| t.short())
+                    .unwrap_or_default()
+            } else {
+                shown
+            };
             CatalogueStrip {
                 id: id.as_uuid(),
-                tag: q.get::<DisplayedTag>((id, page)).as_ref().clone(),
-                next_designation: designation.saturating_add(1).to_string(),
+                tag,
+                next_designation: format!("{:0width$}", designation.saturating_add(1), width = width),
                 next_seq: seq.saturating_add(1),
             }
         })

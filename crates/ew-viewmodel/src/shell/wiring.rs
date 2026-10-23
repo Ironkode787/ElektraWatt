@@ -52,6 +52,15 @@ impl ShellModel {
         }
     }
 
+    /// The ghost route of the active Wire tool while it routes (page nm); `None` for another tool.
+    pub fn wire_ghost_route(&mut self) -> Option<Vec<(i64, i64)>> {
+        self.tools
+            .tool
+            .as_any_mut()
+            .and_then(|a| a.downcast_mut::<WireTool>())
+            .and_then(|w| w.ghost_route().map(<[(i64, i64)]>::to_vec))
+    }
+
     /// How many times the active Wire tool ran the router (the exact-count tests, §12 item 4); `None` for another
     /// tool.
     pub fn wire_route_calls(&mut self) -> Option<u64> {
@@ -73,10 +82,27 @@ impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // The Wire tool and the route editor
 
-    /// `tool.wire` (W, §8.7): arms the Wire tool.
+    /// The connection kind the Wire tool draws on the focused page (doc 06 §2.2): `Ok(None)` a wire on a multi-line
+    /// page, `Ok(Some("overview"))` on a single-line (the MVP kind), overview or assembly-overview page; refused on
+    /// a bus-topology or fluid page (their `Bus` and `Fluid` kinds are not drawn by this package) and on every page
+    /// type whose Wire tool creates nothing (fix round of WP-S2.04 part 2, item 1).
+    pub fn wire_kind(&self) -> Result<Option<&'static str>, &'static str> {
+        match self.page_rows().get(self.page_index()).map(|r| r.kind.as_str()) {
+            Some("multi_line") => Ok(None),
+            Some("single_line" | "overview" | "assembly_overview") => Ok(Some("overview")),
+            _ => Err("reason-no-wire-kind"),
+        }
+    }
+
+    /// `tool.wire` (W, §8.7): arms the Wire tool with the page type's connection kind.
     pub(super) fn act_tool_wire(&mut self) -> Outcome {
-        self.activate_tool(Box::new(WireTool::new()));
-        Outcome::Done
+        match self.wire_kind() {
+            Ok(kind) => {
+                self.activate_tool(Box::new(WireTool::new().with_kind(kind)));
+                Outcome::Done
+            }
+            Err(reason_key) => Outcome::Refused { reason_key },
+        }
     }
 
     /// `tool.route_edit` (§8.4): the keyboard route editor of exactly one selected connection.

@@ -41,7 +41,9 @@ pub fn movable_segments(line: &[(i64, i64)]) -> Vec<usize> {
 }
 
 /// The polyline with segment `seg` moved by `k` grid steps perpendicular to itself (a horizontal segment's y, a
-/// vertical one's x, each from its own grid index); `None` for a segment that is not axis-parallel.
+/// vertical one's x, each from its own grid index), tidied: a segment moved onto a neighbour's coordinate leaves no
+/// duplicate or collinear vertex (fix round of WP-S2.04 part 2, item 5; the ends stay); `None` for a segment that is
+/// not axis-parallel.
 pub fn moved_route(line: &[(i64, i64)], seg: usize, k: i64, grid: PageGridMap) -> Option<Vec<(i64, i64)>> {
     let (a, b) = (*line.get(seg)?, *line.get(seg + 1)?);
     let mut out = line.to_vec();
@@ -56,7 +58,7 @@ pub fn moved_route(line: &[(i64, i64)], seg: usize, k: i64, grid: PageGridMap) -
     } else {
         return None;
     }
-    Some(out)
+    Some(super::wire::clean(out))
 }
 
 /// Whether segment `seg` of `line` is horizontal.
@@ -282,6 +284,13 @@ mod tests {
         assert_eq!(
             moved_route(&u, 1, -2, g),
             Some(vec![(0, 0), (0, 3), (10, 3), (10, 0)])
+        );
+        // Moved onto the first end's coordinate: the duplicate and the collinear vertex go, the ends stay.
+        assert_eq!(moved_route(&z, 1, -5, g), Some(vec![(0, 0), (0, 10), (10, 10)]));
+        let w = vec![(0, 0), (5, 0), (5, 10), (8, 10), (8, 20)];
+        assert_eq!(
+            moved_route(&w, 2, 10, g),
+            Some(vec![(0, 0), (5, 0), (5, 20), (8, 20)])
         );
     }
 }

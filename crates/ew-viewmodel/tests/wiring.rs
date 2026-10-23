@@ -263,6 +263,71 @@ fn wr2_bends_back_junction_and_segment_ends_and_an_empty_grid_start() {
     );
 }
 
+/// Fix round item 2: Backspace after two collinear bends removes only the last one (the earlier bend, cleaned out of
+/// the straight route, comes back).
+#[test]
+fn backspace_after_two_collinear_bends_keeps_the_first() {
+    let tmp = Tmp::new("bends");
+    let mut s = shell(&tmp, "102");
+    done(&mut s, "tool.wire", json!({}));
+    let start = cp(&s, "-102F2:13");
+    enter_at(&mut s, start.at);
+    // Bends straight above the CP, on rows no wire runs along.
+    let (b1, b2) = (grid_point(&s, (56, 33)), grid_point(&s, (56, 32)));
+    enter_at(&mut s, b1);
+    enter_at(&mut s, b2);
+    assert_eq!(canvas(&s)["route"]["bends"], 2);
+    done(&mut s, "tool.back", json!({}));
+    assert_eq!(canvas(&s)["route"]["bends"], 1);
+    let aside = grid_point(&s, (60, 32));
+    cursor(&mut s, aside);
+    let ghost = s.wire_ghost_route().expect("routing");
+    assert!(
+        ghost.contains(&(start.at.0, b1.1)),
+        "the first bend stays: {ghost:?}"
+    );
+    assert!(
+        !ghost.contains(&(start.at.0, b2.1)),
+        "the second bend is gone: {ghost:?}"
+    );
+}
+
+/// Fix round item 1: the Wire tool draws the page type's connection kind (doc 06 §2.2): refused on a bus-topology
+/// page (folio 3), `overview` on an assembly overview (folio 201, whose overview symbols draw no connection points in
+/// Golden A, so the kind is read from the host), a wire (no `kind` sent) on a multi-line page.
+#[test]
+fn the_wire_tool_draws_the_page_types_kind_or_is_refused() {
+    let tmp = Tmp::new("kinds");
+    let mut s = shell(&tmp, "3");
+    assert_eq!(refused(&mut s, "tool.wire", json!({})), "reason-no-wire-kind");
+    assert!(
+        s.describe()
+            .contains("item tool.wire \"Connection\" [W] disabled: ")
+    );
+    done(&mut s, "page.goto", json!({"folio": "201"}));
+    assert_eq!(s.wire_kind(), Ok(Some("overview")));
+    done(&mut s, "tool.wire", json!({}));
+    assert_eq!(s.tool().name(), "wire");
+    done(&mut s, "ui.dismiss", json!({}));
+    done(&mut s, "page.goto", json!({"folio": "203"}));
+    assert_eq!(
+        refused(&mut s, "tool.wire", json!({})),
+        "reason-no-wire-kind",
+        "a fluid page"
+    );
+    done(&mut s, "page.goto", json!({"folio": "102"}));
+    assert_eq!(s.wire_kind(), Ok(None));
+    done(&mut s, "view.zoom_actual", json!({}));
+    done(&mut s, "tool.wire", json!({}));
+    let t = tables(&s);
+    let (a, b) = (cp(&s, "-102F2:13"), cp(&s, "-102F2:14"));
+    enter_at(&mut s, a.at);
+    enter_at(&mut s, b.at);
+    let new = new_connections(&t, &tables(&s));
+    assert_eq!(new.len(), 1);
+    assert_eq!(new[0].kind, "wire");
+}
+
 #[test]
 fn fr_con_006_two_wires_to_one_cp_are_listed_in_drawing_order() {
     let tmp = Tmp::new("order");
@@ -325,11 +390,10 @@ fn wr4_a_contact_between_two_facing_free_cps_proposes_two_connections_and_alt_co
     // A above, B below, the ghost between them.
     let before = tables(&s).connections.len();
     done(&mut s, "canvas.activate", json!({}));
-    // B with Alt: its CP 0 would autoconnect to A's CP 1.
+    // B with Alt (Ctrl+Enter, the keyboard's Alt click): its CP 0 would autoconnect to A's CP 1.
     let pb = grid_point(&s, (60, 38 + 3 * span + 2));
     cursor(&mut s, pb);
-    let q = sheet(&s, pb);
-    done(&mut s, "canvas.press", at(q, json!({"alt": true})));
+    done(&mut s, "canvas.activate_alt", json!({}));
     assert_eq!(tables(&s).connections.len(), before, "nothing to connect yet");
     let mid = grid_point(&s, (60, 38 + span + 1));
     cursor(&mut s, mid);
@@ -412,6 +476,14 @@ fn wr5_a_route_given_by_the_route_editor_and_a_contact_inserted_split_the_wire()
         .clone();
     assert!(!w13.stored_route);
     let drawn = line(&w13);
+    // An override first, so the split shows it copied (FR-CON-008).
+    done(
+        &mut s,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {
+            "kind": "connection", "targets": [w13.id.to_string()], "path": "overrides.csa", "value": "1.5"
+        }}),
+    );
     done(&mut s, "select.set", json!({"ids": [w13.id.to_string()]}));
     done(&mut s, "tool.route_edit", json!({}));
     assert_eq!(s.tool().name(), "route_edit");
@@ -457,6 +529,44 @@ fn wr5_a_route_given_by_the_route_editor_and_a_contact_inserted_split_the_wire()
     let new = new_connections(&before, &after);
     assert_eq!(new.len(), 1);
     assert_eq!(end_label(&after, &new[0].b), "E55:L");
+    // The records: W13's number spec stays on the kept side, both halves carry the override, the new half's number is
+    // unassigned. (Golden A prints connection-oriented numbers derived for every wire, so the new half prints the
+    // next derived number, not `?`: `?` is the text of an unassigned number with online wire numbering off.)
+    done(&mut s, "file.save", json!({}));
+    let (session, _) =
+        ew_viewmodel::ew_api::Session::open_read_only(&tmp.0.join("J-E-2416.ew"), "test").unwrap();
+    let q = session.query();
+    let rec = |id: &str| {
+        let (_, c) = q
+            .connections()
+            .iter()
+            .find(|(cid, _)| cid.to_string() == id)
+            .expect("the connection");
+        serde_json::to_value(&**c).unwrap()
+    };
+    let (kept, half) = (rec(&w13.id.to_string()), rec(&new[0].id.to_string()));
+    assert_eq!(kept["overrides"], json!({"csa": "1.5"}), "{kept}");
+    assert_eq!(
+        half["overrides"], kept["overrides"],
+        "the same overrides on both halves"
+    );
+    assert_eq!(
+        kept.get("number"),
+        None,
+        "W13's number spec is kept (unassigned, as Golden A's)"
+    );
+    assert_eq!(half.get("number"), None, "the new half is unnumbered");
+    drop(q);
+    let printed = |id: &str| session.property_sheet(&[id.parse().unwrap()]).header.title;
+    let (kept_number, half_number) = (printed(&w13.id.to_string()), printed(&new[0].id.to_string()));
+    assert!(
+        kept_number.starts_with("101."),
+        "W13 prints a number: {kept_number}"
+    );
+    assert!(
+        half_number.starts_with("101.") && half_number != kept_number,
+        "{half_number}"
+    );
 }
 
 #[test]

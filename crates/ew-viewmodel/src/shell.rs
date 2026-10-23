@@ -520,6 +520,7 @@ fn clears_banner(id: &str) -> bool {
             | "rep.exchange"
             // WP-S2.04 part 2 (wiring, §8.7) leaves it standing too. Begin.
             | "tool.wire"
+            | "canvas.activate_alt"
             | "tool.next_proposal"
             | "tool.connect_on_move"
             | "tool.route_edit"
@@ -1177,6 +1178,11 @@ impl ShellModel {
             "rep.exchange" => self.act_rep_exchange(p),
             // WP-S2.04 part 2 (wiring, §8.7). Begin.
             "tool.wire" => self.act_tool_wire(),
+            "canvas.activate_alt" => {
+                let mut alt = p.clone();
+                alt.insert("alt".into(), Value::Bool(true));
+                self.act_activate_with(&alt)
+            }
             "tool.next_proposal" => self.send_proposal_key(),
             "tool.connect_on_move" => Outcome::Refused {
                 reason_key: "reason-connect-on-place",
