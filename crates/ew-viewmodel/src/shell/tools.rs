@@ -668,6 +668,10 @@ impl ShellModel {
         if let Some(out) = self.enter_opens_junction() {
             return out;
         }
+        // The keyboard route editor commits without a grid cursor (its segment stays where it is).
+        if self.tools.tool.name() == "route_edit" && self.canvas().and_then(CanvasModel::cursor).is_none() {
+            return self.send_tool(&CanvasEvent::Activate);
+        }
         let Some(at) = self.canvas().and_then(CanvasModel::cursor) else {
             return Outcome::Refused {
                 reason_key: "reason-no-cursor",
