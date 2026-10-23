@@ -27,6 +27,7 @@ pub const USAGE: &str = "usage:
   ew export svg [<project-dir>] --out <dir> [--pages <folios>] [--threads <n>]
   ew apply [<project-dir>] <file.ewcmd> [--preview] [--one-step]
   ew project checks set [<project-dir>] [--active <scheme>] [--release <scheme>]
+  ew project assets purge [<project-dir>] [--preview]
   ew verify-derived [<project-dir>]
   ew help | --help | -h
 
@@ -70,6 +71,13 @@ release one) on a controlling terminal; there is no `--yes` flag. Without a term
 an interactive terminal) before the project is opened. Exit 0 when written and saved, 1 for a scheme that does
 not ship or an answer that is not the name, 2 on usage, terminal, open and save errors.
 
+`project assets purge` deletes the project's asset files (`assets/<sha256>.<ext>`) whose hash no project file
+mentions (kept lines and unknown members included) through the save protocol (`project.assets.purge`, doc 05
+section 13.3): it lists each file that goes, then removes them; `--preview` lists them and changes nothing. A save
+never removes an asset file; this is the explicit clean-up. Refused while the project has unsaved changes of a
+crashed session, quarantined lines or an incomplete save, and in a read-only session. Exit 0 when purged (or
+nothing to purge, or previewed), 1 when the purge is refused, 2 on usage, open and save errors.
+
 `verify-derived` opens a project with the memo oracle on, recomputes every derived value cold and compares it with
 the memoised one: exit 0 with no difference, 1 with differences, 2 on usage and open errors.";
 
@@ -100,6 +108,17 @@ pub enum Command {
     Apply(ApplyArgs),
     /// Name the project's check schemes (`project checks set`, a human-only command).
     ChecksSet(ChecksSetArgs),
+    /// Delete the asset files nothing names (`project assets purge`).
+    AssetsPurge(AssetsPurgeArgs),
+}
+
+/// The arguments of `ew project assets purge`.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct AssetsPurgeArgs {
+    /// The project directory; `None`: found from the current directory.
+    pub project: Option<PathBuf>,
+    /// List what would go and change nothing.
+    pub preview: bool,
 }
 
 /// The arguments of `ew project checks set`.
@@ -284,7 +303,8 @@ pub fn parse<I: IntoIterator<Item = String>>(args: I) -> Result<Command, String>
         "apply" => parse_apply(it),
         "project" => match (it.next().as_deref(), it.next().as_deref()) {
             (Some("checks"), Some("set")) => parse_checks_set(it),
-            _ => Err("`project` takes `checks set`".to_owned()),
+            (Some("assets"), Some("purge")) => parse_assets_purge(it),
+            _ => Err("`project` takes `checks set` or `assets purge`".to_owned()),
         },
         "verify-derived" => parse_verify(it),
         other => Err(format!("unknown command `{other}`")),
@@ -515,6 +535,22 @@ fn parse_checks_set(mut it: impl Iterator<Item = String>) -> Result<Command, Str
     Ok(Command::ChecksSet(args))
 }
 
+fn parse_assets_purge(it: impl Iterator<Item = String>) -> Result<Command, String> {
+    let mut args = AssetsPurgeArgs {
+        project: None,
+        preview: false,
+    };
+    for a in it {
+        match a.as_str() {
+            "--preview" => args.preview = true,
+            opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
+            _ if args.project.is_none() => args.project = Some(PathBuf::from(a)),
+            _ => return Err(format!("unexpected argument `{a}`")),
+        }
+    }
+    Ok(Command::AssetsPurge(args))
+}
+
 fn parse_verify(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
     let mut project = None;
     for a in it.by_ref() {
@@ -685,6 +721,7 @@ pub fn run(cmd: Command) -> i32 {
         Command::ExportPages(a) => run_export_pages(&a),
         Command::Apply(a) => run_apply(&a),
         Command::ChecksSet(a) => run_checks_set(&a),
+        Command::AssetsPurge(a) => run_assets_purge(&a),
         Command::SqlSchema => {
             print!("{}", ew_api::sql::schema::schema_text());
             0
@@ -1145,6 +1182,64 @@ fn run_checks_set(a: &ChecksSetArgs) -> i32 {
         Err(e) => {
             eprintln!("error: the save failed: {e:?}");
             2
+        }
+    };
+    session.close();
+    code
+}
+
+/// `ew project assets purge`: the asset purge of doc 05 section 13.3 (`project.assets.purge`, FT-380) over a project
+/// opened for writing: the preview's list, then the purge of exactly the listed files.
+fn run_assets_purge(a: &AssetsPurgeArgs) -> i32 {
+    let Some(dir) = project_dir(a.project.as_ref()) else {
+        return 2;
+    };
+    let origin = ew_api::Origin::Cli {
+        subcommand: "project assets purge".to_owned(),
+        confirmed: false,
+    };
+    let mut session = match open_for_writing(&dir, origin) {
+        Ok(s) => s,
+        Err(code) => return code,
+    };
+    let refused = |e: &ew_api::PurgeError| match e {
+        ew_api::PurgeError::Io { .. } | ew_api::PurgeError::Save(_) => 2,
+        _ => 1,
+    };
+    let plan = match session.purge_preview() {
+        Ok(plan) => plan,
+        Err(e) => {
+            eprintln!("error: {e}; nothing was removed");
+            session.close();
+            return refused(&e);
+        }
+    };
+    for f in &plan.remove {
+        println!("remove {} ({} bytes)", f.path.as_str(), f.len);
+    }
+    let verb = if a.preview { "would remove" } else { "removes" };
+    eprintln!(
+        "purge: {verb} {} asset file(s), {} bytes; {} kept (named)",
+        plan.remove.len(),
+        plan.bytes(),
+        plan.kept
+    );
+    if a.preview || plan.remove.is_empty() {
+        session.close();
+        return 0;
+    }
+    let code = match session.purge_assets(Some(&plan.hashes())) {
+        Ok((done, report)) => {
+            println!(
+                "removed {} asset file(s); generation {}",
+                done.remove.len(),
+                report.generation
+            );
+            0
+        }
+        Err(e) => {
+            eprintln!("error: {e}");
+            refused(&e)
         }
     };
     session.close();
@@ -1906,5 +2001,32 @@ mod checks_set_tests {
                 release: None,
             }))
         );
+    }
+}
+
+#[cfg(test)]
+mod assets_purge_tests {
+    use super::*;
+
+    #[test]
+    fn assets_purge_parses_its_directory_and_preview_flag() {
+        let parse = |a: &[&str]| parse(a.iter().map(|s| (*s).to_owned()));
+        assert_eq!(
+            parse(&["project", "assets", "purge"]),
+            Ok(Command::AssetsPurge(AssetsPurgeArgs {
+                project: None,
+                preview: false,
+            }))
+        );
+        assert_eq!(
+            parse(&["project", "assets", "purge", "p.ew", "--preview"]),
+            Ok(Command::AssetsPurge(AssetsPurgeArgs {
+                project: Some(PathBuf::from("p.ew")),
+                preview: true,
+            }))
+        );
+        assert!(parse(&["project", "assets", "purge", "a", "b"]).is_err());
+        assert!(parse(&["project", "assets", "purge", "--yes"]).is_err());
+        assert!(parse(&["project", "assets"]).is_err());
     }
 }

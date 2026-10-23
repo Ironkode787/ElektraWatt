@@ -1178,3 +1178,83 @@ fn bin_exe() -> std::path::PathBuf {
         .map(std::path::PathBuf::from)
         .unwrap_or_else(|| std::path::PathBuf::from(env!("CARGO_BIN_EXE_ew"))) // bin-exe-fallback
 }
+
+/// FT-380: `ew project assets purge` lists the asset files nothing names and deletes them through the save protocol;
+/// `--preview` lists them and changes nothing; a second run has nothing to purge; an unknown option is a usage error.
+#[test]
+fn project_assets_purge_previews_then_removes_the_unnamed_asset_files() {
+    const X: &[u8] = br#"<svg viewBox="0 0 8 2"><rect width="8" height="2"/></svg>"#;
+    const Y: &[u8] = br#"<svg viewBox="0 0 3 3"><circle r="1"/></svg>"#;
+    let t = Tmp::new();
+    let home = t.0.join("home");
+    let dir = tiny_project(&t);
+    // The logo X, saved, then Y, saved: X's file is left behind (a save never removes an asset file).
+    let mut store = ew_api::StoreOptions::new("test");
+    store.state_dir = None;
+    let (mut session, _) = ew_api::Session::open(
+        &dir,
+        store,
+        ew_api::SessionOptions::default(),
+        ew_api::Recovery::Keep,
+    )
+    .unwrap();
+    for logo in [X, Y] {
+        let cmd = ew_api::AnyCommand {
+            name: "project.company.set".into(),
+            params: serde_json::json!({ "logo": ew_api::base64_encode(logo) }),
+        };
+        let p = session.preview(&cmd).unwrap();
+        session.commit(p).unwrap();
+        session.save().unwrap();
+    }
+    session.close();
+    let assets = |dir: &std::path::Path| -> Vec<String> {
+        let mut names: Vec<String> = std::fs::read_dir(dir.join("assets"))
+            .unwrap()
+            .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+            .collect();
+        names.sort();
+        names
+    };
+    assert_eq!(assets(&dir).len(), 2);
+    let purge = |extra: &[&str]| {
+        let mut args: Vec<&std::ffi::OsStr> = vec![
+            "project".as_ref(),
+            "assets".as_ref(),
+            "purge".as_ref(),
+            dir.as_os_str(),
+        ];
+        args.extend(extra.iter().map(|a| std::ffi::OsStr::new(*a)));
+        ew_isolated(&home, &args)
+    };
+    let o = purge(&["--preview"]);
+    assert_eq!(o.status.code(), Some(0), "{}{}", stdout(&o), stderr(&o));
+    let listed: Vec<String> = stdout(&o).lines().map(str::to_owned).collect();
+    assert_eq!(listed.len(), 1, "{listed:?}");
+    assert!(
+        listed[0].starts_with("remove assets/") && listed[0].contains(".svg ("),
+        "{listed:?}"
+    );
+    assert!(
+        stderr(&o).contains("would remove 1 asset file(s)"),
+        "{}",
+        stderr(&o)
+    );
+    assert_eq!(assets(&dir).len(), 2, "the preview changes nothing");
+
+    let o = purge(&[]);
+    assert_eq!(o.status.code(), Some(0), "{}{}", stdout(&o), stderr(&o));
+    assert!(stdout(&o).contains("removed 1 asset file(s)"), "{}", stdout(&o));
+    let left = assets(&dir);
+    assert_eq!(left.len(), 1);
+    assert_eq!(std::fs::read(dir.join("assets").join(&left[0])).unwrap(), Y);
+    assert!(!dir.join(".~ew.lock").exists());
+
+    let o = purge(&[]);
+    assert_eq!(o.status.code(), Some(0), "{}{}", stdout(&o), stderr(&o));
+    assert!(stdout(&o).is_empty(), "{}", stdout(&o));
+    assert!(stderr(&o).contains("removes 0 asset file(s)"), "{}", stderr(&o));
+
+    let o = purge(&["--all"]);
+    assert_eq!(o.status.code(), Some(2), "{}", stderr(&o));
+}

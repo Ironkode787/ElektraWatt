@@ -355,6 +355,8 @@ fn oracle_verify(session: &Session) -> Result<(), String> {
 struct Applied {
     /// The revision moved.
     changed: bool,
+    /// The command committed (also as a marker line or a no-op).
+    ok: bool,
 }
 
 /// The kind of a refusal, for the report; `None` for the ones that are the backstop of the model.
@@ -437,7 +439,7 @@ fn apply(session: &mut Session, c: &CmdStep, stats: &mut FuzzStats) -> Result<Ap
                     Post::Check(_) => {}
                 }
             }
-            Ok(Applied { changed })
+            Ok(Applied { changed, ok: true })
         }
         Err(e) => {
             *stats.refused.entry(c.name.to_owned()).or_default() += 1;
@@ -468,7 +470,10 @@ fn apply(session: &mut Session, c: &CmdStep, stats: &mut FuzzStats) -> Result<Ap
             if after.rev != before.rev || !after.model.content_eq(&before.model) {
                 return Err(format!("`{}` was refused ({e:?}) but changed the model", c.name));
             }
-            Ok(Applied { changed: false })
+            Ok(Applied {
+                changed: false,
+                ok: false,
+            })
         }
     }
 }
@@ -911,7 +916,12 @@ fn every_arm_commits_and_refuses_what_it_should() {
             .line();
             let applied = apply(&mut session, &c, &mut stats)
                 .unwrap_or_else(|e| panic!("arm `{}` attempt {attempt}: {e}\nstep: {line}", arm.command));
-            if applied.changed {
+            // A non-undoable command (`project.assets.purge`) never moves the revision: its committed marker line
+            // counts.
+            let marker = session.registry().get(c.name).is_some_and(|e| !e.meta().undoable);
+            if marker && applied.ok {
+                committed += 1;
+            } else if applied.changed {
                 committed += 1;
                 session.undo().expect("a committed step undoes");
                 assert!(

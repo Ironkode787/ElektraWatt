@@ -428,9 +428,72 @@ pub fn company_logo(extra: &Extra) -> Option<AssetRef> {
     }
 }
 
+/// Every SHA-256 that `bytes` mention as text: each run of 64 consecutive hexadecimal digits (either case) inside a
+/// run of ASCII hex digits, so a run of 70 digits mentions its seven 64-digit windows. This is the conservative
+/// "appears in a file" test of the asset purge (doc 05 §13.3, FT-380): any form a writer may use to name an asset
+/// (`sha256:<hex>`, a bare hash, `assets/<hex>.svg`, upper-case hex of a newer writer) contains the 64 digits, so an
+/// asset whose hash is not in the returned set is named by no such text. It over-approximates (a random hex run in a
+/// file keeps an asset), never under-approximates.
+pub fn sha256_mentions(bytes: &[u8], out: &mut std::collections::BTreeSet<Sha256>) {
+    const DIGITS: usize = 64;
+    let nibble = |c: u8| -> Option<u8> {
+        match c {
+            b'0'..=b'9' => Some(c - b'0'),
+            b'a'..=b'f' => Some(c - b'a' + 10),
+            b'A'..=b'F' => Some(c - b'A' + 10),
+            _ => None,
+        }
+    };
+    let mut start = 0;
+    while start < bytes.len() {
+        if nibble(bytes[start]).is_none() {
+            start += 1;
+            continue;
+        }
+        let mut end = start;
+        while end < bytes.len() && nibble(bytes[end]).is_some() {
+            end += 1;
+        }
+        if end - start >= DIGITS {
+            for at in start..=end - DIGITS {
+                let mut hash = [0u8; 32];
+                for (i, b) in hash.iter_mut().enumerate() {
+                    let hi = nibble(bytes[at + 2 * i]).unwrap_or(0);
+                    let lo = nibble(bytes[at + 2 * i + 1]).unwrap_or(0);
+                    *b = (hi << 4) | lo;
+                }
+                out.insert(Sha256(hash));
+            }
+        }
+        start = end;
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn mentions_find_every_64_digit_window_in_either_case() {
+        let mut out = std::collections::BTreeSet::new();
+        let hex = "ab".repeat(32);
+        let text = format!("x sha256:{hex} y assets/{}.svg z", hex.to_uppercase());
+        sha256_mentions(text.as_bytes(), &mut out);
+        assert_eq!(out.into_iter().collect::<Vec<_>>(), [Sha256([0xab; 32])]);
+        // 63 digits mention nothing; 66 digits mention three windows.
+        let mut out = std::collections::BTreeSet::new();
+        sha256_mentions("1".repeat(63).as_bytes(), &mut out);
+        assert!(out.is_empty());
+        sha256_mentions(format!("01{}", "2".repeat(64)).as_bytes(), &mut out);
+        assert_eq!(out.len(), 3);
+        // Binary bytes around a hash do not hide it.
+        let mut out = std::collections::BTreeSet::new();
+        let mut bytes = vec![0u8, 0xff, b'g'];
+        bytes.extend_from_slice("cd".repeat(32).as_bytes());
+        bytes.push(0x80);
+        sha256_mentions(&bytes, &mut out);
+        assert!(out.contains(&Sha256([0xcd; 32])));
+    }
 
     /// A PNG signature and `IHDR` of `w × h` (the rest of the file does not matter to the sniffer).
     fn png(w: u32, h: u32) -> Vec<u8> {

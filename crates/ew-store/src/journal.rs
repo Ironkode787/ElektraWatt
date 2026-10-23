@@ -353,6 +353,8 @@ pub struct Journal {
     seq: u64,
     /// The assets journalled in the current segment (reset when a segment starts).
     journalled: std::collections::BTreeSet<Sha256>,
+    /// The `tx` lines of the current segment (reset when a segment starts): unsaved steps.
+    segment_txs: u64,
 }
 
 impl Journal {
@@ -378,12 +380,19 @@ impl Journal {
             segment: None,
             seq: 0,
             journalled: std::collections::BTreeSet::new(),
+            segment_txs: 0,
         }
     }
 
     /// The journal directory.
     pub fn dir(&self) -> &Path {
         &self.dir
+    }
+
+    /// The transactions journalled since the current segment started (the last save or the open): the unsaved
+    /// steps a recovery would replay. The asset purge requires none (doc 05 §13.3, FT-380).
+    pub fn unsaved_steps(&self) -> u64 {
+        self.segment_txs
     }
 
     fn append(&self, text: &str) -> io::Result<()> {
@@ -426,6 +435,7 @@ impl Journal {
             parent = dir.parent();
         }
         self.journalled.clear();
+        self.segment_txs = 0;
         let old = self.segment.replace(path);
         if let Some(old) = old {
             if Some(&old) != self.segment.as_ref() {
@@ -484,6 +494,7 @@ impl Journal {
             members.push(("assets", Value::Array(assets)));
         }
         self.append(&line(&members))?;
+        self.segment_txs += 1;
         self.journalled.extend(carried.iter().map(|a| *a.sha256()));
         Ok(())
     }

@@ -1194,4 +1194,20 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
     pub fn check_schemes(&mut self, schemes: Value) -> Result<()> {
         self.run("project.checks.set", schemes).map(|_| ())
     }
+
+    /// `project.assets.purge`: deletes the project's asset files that nothing names (FT-380; doc 05 §13.3), all of
+    /// them (`assets: None`) or the listed hashes (`sha256:<64 hex>`, as the session's preview listed them). The
+    /// command is a non-undoable marker whose file side runs in the session: a session with unsaved changes refuses it,
+    /// and one without a project directory has nothing to purge.
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn purge_assets(&mut self, assets: Option<&[String]>) -> Result<()> {
+        let params = match assets {
+            None => json!({}),
+            Some(list) => json!({ "assets": list }),
+        };
+        self.run("project.assets.purge", params).map(|_| ())
+    }
 }

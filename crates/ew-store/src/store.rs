@@ -29,6 +29,10 @@ use crate::rows::{
 };
 use crate::vfs::{EntryKind, OsVfs, Vfs, is_transient, join};
 
+mod purge;
+
+pub use purge::{PurgeError, PurgeFile, PurgePlan};
+
 /// How long a read-only opener waits for a save in progress (doc 05 §6.1, §6.4: 200 ms steps, 5 s).
 pub const READ_ONLY_WAIT: Duration = Duration::from_secs(5);
 /// The poll step of that wait.
@@ -560,6 +564,9 @@ pub struct Store {
     /// Whether the next save writes every asset the model holds, not only the named ones (Save As: kept lines
     /// and unknown members may name assets that no known record names).
     all_assets: bool,
+    /// The files that hold quarantined lines (EW-CORE-005, EW-CORE-007), kept verbatim: the asset purge is refused
+    /// while there are any (doc 05 §13.3, FT-380).
+    quarantined: BTreeSet<FilePath>,
     journal: Option<Journal>,
     leftovers: Vec<Segment>,
     recovery: Option<RecoveryInfo>,
@@ -663,6 +670,7 @@ impl Store {
             pending_removes: Vec::new(),
             notes: Vec::new(),
             all_assets: false,
+            quarantined: BTreeSet::new(),
             journal: None,
             leftovers: Vec::new(),
             recovery: None,
@@ -738,9 +746,12 @@ impl Store {
                             let Ok(p) = FilePath::new(path.clone()) else {
                                 continue;
                             };
+                            // An asset file is in `removes` only when the purge removed it.
                             let owned = matches!(
                                 classify(p.as_str()),
-                                PathClass::Records(_) | PathClass::LibDocument { .. }
+                                PathClass::Records(_)
+                                    | PathClass::LibDocument { .. }
+                                    | PathClass::Opaque(OpaqueKind::Asset { .. })
                             );
                             if owned
                                 && !m.files.contains_key(&p)
@@ -973,6 +984,9 @@ impl Store {
             .map(|(p, h)| (p, FileHash::Sha256(h)))
             .collect();
         for line in loaded.kept {
+            if matches!(line.kept, Kept::Quarantined) {
+                self.quarantined.insert(line.file.clone());
+            }
             match line.kept {
                 Kept::UnknownKind | Kept::Quarantined => {
                     self.kept
@@ -1216,9 +1230,12 @@ impl Store {
         // rename, while the old manifest still names them.
         if let Some(old) = &old {
             for path in old.files.keys() {
+                // An asset file leaves a manifest only through the purge (a save never removes one).
                 let owned = matches!(
                     classify(path.as_str()),
-                    PathClass::Records(_) | PathClass::LibDocument { .. }
+                    PathClass::Records(_)
+                        | PathClass::LibDocument { .. }
+                        | PathClass::Opaque(OpaqueKind::Asset { .. })
                 );
                 if owned && !intent.files.contains_key(path) {
                     let _ = vfs.remove_file(&join(&self.root, path.as_str()));
@@ -1386,6 +1403,7 @@ impl Store {
             pending_removes: Vec::new(),
             notes: Vec::new(),
             all_assets: false,
+            quarantined: BTreeSet::new(),
             journal: None,
             leftovers: Vec::new(),
             recovery: None,
@@ -1424,6 +1442,19 @@ impl Store {
     /// [`SaveError`]: before the commit point nothing on disk changed; after it the generation is decided
     /// and completes by roll-forward.
     pub fn save(&mut self, model: &Model, changes: Changes<'_>) -> Result<SaveReport, SaveError> {
+        self.save_with(model, changes, &BTreeSet::new())
+    }
+
+    /// [`Store::save`] that also removes the opaque files `drop` (the asset purge, doc 05 §13.3): they leave the
+    /// manifest of the new generation, are journalled in `save-begin{removes}` and deleted in step 8 with the
+    /// save's other removals, so a crash completes their removal by roll-forward or leaves the old generation.
+    /// A path of `drop` that is not an opaque file of the baseline is ignored.
+    fn save_with(
+        &mut self,
+        model: &Model,
+        changes: Changes<'_>,
+        drop: &BTreeSet<FilePath>,
+    ) -> Result<SaveReport, SaveError> {
         if let Access::ReadOnly(reason) = &self.access {
             return Err(SaveError::ReadOnly(reason.clone()));
         }
@@ -1470,7 +1501,13 @@ impl Store {
         }
 
         // Step 3: serialise the dirty files.
-        let plan = self.plan(model, changes)?;
+        let mut plan = self.plan(model, changes)?;
+        let drop: BTreeSet<FilePath> = drop
+            .iter()
+            .filter(|p| self.opaque.contains_key(*p) && !plan.writes.contains_key(*p))
+            .cloned()
+            .collect();
+        plan.removes.extend(drop.iter().cloned());
         let g = self.generation;
         let g1 = g + 1;
         let mut manifest = Manifest::new(
@@ -1494,7 +1531,12 @@ impl Store {
             .disk
             .iter()
             .map(|(p, h)| (p.clone(), FileHash::Sha256(*h)))
-            .chain(self.opaque.iter().map(|(p, h)| (p.clone(), *h)))
+            .chain(
+                self.opaque
+                    .iter()
+                    .filter(|(p, _)| !drop.contains(*p))
+                    .map(|(p, h)| (p.clone(), *h)),
+            )
             .chain(plan.assets.iter().map(|(p, h)| (p.clone(), *h)))
             .collect();
         let manifest_same = self.manifest.as_ref().is_some_and(|old| {
@@ -1610,6 +1652,7 @@ impl Store {
         }
         // Commit point: generation g1 is decided.
         let manifest_hash = sha256(manifest_text.as_bytes());
+        self.opaque.retain(|p, _| !drop.contains(p));
         self.opaque.extend(plan.assets);
         self.adopt(model, plan.contents, plan.disk);
         self.manifest = Some(manifest);

@@ -89,7 +89,9 @@ pub use ew_schema::{
 };
 /// The read-only SQL projection (`ew sql`, the acceptance SQL, ADR-0017): views, sandbox, results.
 pub use ew_sqlview as sql;
-pub use ew_store::{Access, OpenError, OpenReport, ReadOnlyReason, SaveError, StoreOptions};
+pub use ew_store::{
+    Access, OpenError, OpenReport, PurgeError, PurgeFile, PurgePlan, ReadOnlyReason, SaveError, StoreOptions,
+};
 pub use new_project::{NewProjectKind, ProjectTemplate};
 
 pub use ew_commands::{
@@ -98,7 +100,8 @@ pub use ew_commands::{
     TxContext, World,
 };
 
-use ew_commands::{Engine, EngineOptions};
+use ew_commands::commands::PurgeAssets;
+use ew_commands::{Command as _, Engine, EngineOptions};
 
 /// Options of a session.
 pub struct SessionOptions {
@@ -436,12 +439,17 @@ impl Session {
 
     /// Prepares a command on a fork of the current snapshot: the candidate model, its ops, the read set,
     /// the entity and field diff and the affected pages. Nothing is committed. Synchronous in v0.
+    ///
+    /// `project.assets.purge` is refused here already when the purge would be refused (its file list is
+    /// [`Session::purge_preview`]).
     pub fn preview(&mut self, cmd: &dyn DynCommand) -> Result<Preview, CmdError> {
+        self.purge_gate(cmd.name())?;
         self.engine.preview(cmd)
     }
 
     /// [`Session::preview`] with an explicit submission.
     pub fn preview_with(&mut self, cmd: &dyn DynCommand, submit: Submit) -> Result<Preview, CmdError> {
+        self.purge_gate(cmd.name())?;
         self.engine.preview_with(cmd, submit)
     }
 
@@ -454,7 +462,13 @@ impl Session {
     }
 
     /// Commits a preview after the rebase check; re-runs the command if its reads changed.
+    ///
+    /// The preview of `project.assets.purge` runs the purge ([`Session::purge_assets`] with the listed hashes) and
+    /// commits the command's marker line only when the files are removed.
     pub fn commit(&mut self, preview: Preview) -> Result<Receipt, CmdError> {
+        if preview.command().name == PurgeAssets::NAME {
+            return self.commit_purge(preview);
+        }
         let before = self.engine.model().clone();
         let name = preview.command().name.clone();
         let result = self.engine.commit(preview);
@@ -807,6 +821,128 @@ impl Session {
         match &mut self.persistence {
             Some(p) => p.store.heartbeat(),
             None => Ok(LockState::NotHeld),
+        }
+    }
+
+    // ---------------------------------------------------------------------------------------------------------
+    // The asset purge (FT-380)
+
+    /// What `project.assets.purge` would delete now (the preview, doc 05 §13.3): the asset files of the project
+    /// directory whose hash no project file and no undo or redo entry of this session mentions. A session without a
+    /// project directory has no asset files: its plan is empty.
+    ///
+    /// # Errors
+    ///
+    /// [`PurgeError`]: a read-only session, unsaved changes, quarantined lines, a crashed session's journal, an
+    /// incomplete save, an external change, an unreadable file.
+    pub fn purge_preview(&self) -> Result<PurgePlan, PurgeError> {
+        let Some(p) = self.persistence.as_ref() else {
+            return Ok(PurgePlan::default());
+        };
+        if self.is_dirty() || !p.unsaved.is_empty() || p.recovered {
+            return Err(PurgeError::Unsaved);
+        }
+        let keep = self.undo_assets()?;
+        p.store.purge_plan(&keep)
+    }
+
+    /// Runs the asset purge (doc 05 §13.3, FT-380): deletes the files of [`Session::purge_preview`], or only those of
+    /// `only` (every one must still be purgeable, else [`PurgeError::Stale`] and nothing goes), through the save
+    /// protocol, and records `project.assets.purge` as a marker line in the history. The model does not change.
+    ///
+    /// # Errors
+    ///
+    /// The refusals of [`Session::purge_preview`], [`PurgeError::Stale`], and [`PurgeError::Save`] when the save
+    /// fails (an incomplete save above the old generation removed the files: the marker is recorded then too).
+    pub fn purge_assets(
+        &mut self,
+        only: Option<&BTreeSet<ew_schema::Sha256>>,
+    ) -> Result<(PurgePlan, SaveReport), PurgeError> {
+        self.purge_files(only)
+            .map(|(plan, report, _marker)| (plan, report))
+    }
+
+    /// The purge and its marker line; the receipt is the marker's (`Err` only if the engine refused the marker, which
+    /// commits no ops; the files are removed then all the same).
+    #[allow(clippy::type_complexity)]
+    fn purge_files(
+        &mut self,
+        only: Option<&BTreeSet<ew_schema::Sha256>>,
+    ) -> Result<(PurgePlan, SaveReport, Result<Receipt, CmdError>), PurgeError> {
+        let dirty = self.is_dirty();
+        let keep = self.undo_assets()?;
+        let model = self.engine.model().clone();
+        let before = self.persistence.as_ref().map_or(0, |p| p.store.generation());
+        let result = match self.persistence.as_mut() {
+            // No project directory: no asset files, nothing to purge.
+            None => match only {
+                Some(listed) if !listed.is_empty() => {
+                    Err(PurgeError::Stale(listed.iter().copied().collect()))
+                }
+                _ => Ok((PurgePlan::default(), SaveReport::default())),
+            },
+            Some(p) if dirty || !p.unsaved.is_empty() || p.recovered => Err(PurgeError::Unsaved),
+            Some(p) => p.store.purge(&model, &keep, only),
+        };
+        // The files that went (or go by roll-forward, after the commit point of an incomplete save).
+        let listed = match &result {
+            Ok((plan, _)) => plan.hashes(),
+            Err(PurgeError::Save(SaveError::Incomplete { generation, .. })) if *generation > before => {
+                only.cloned().unwrap_or_default()
+            }
+            Err(_) => {
+                return result.map(|(plan, report)| (plan, report, Err(CmdError::internal("unreachable"))));
+            }
+        };
+        // The marker line, with the files that went as the command's parameters.
+        let cmd = AnyCommand {
+            name: PurgeAssets::NAME.to_owned(),
+            params: serde_json::json!({
+                "assets": listed.iter().map(ToString::to_string).collect::<Vec<_>>()
+            }),
+        };
+        let receipt = self
+            .engine
+            .preview(&cmd)
+            .and_then(|preview| self.engine.commit(preview));
+        result.map(|(plan, report)| (plan, report, receipt))
+    }
+
+    /// The asset hashes the undo and redo entries mention (kept by the purge).
+    fn undo_assets(&self) -> Result<BTreeSet<ew_schema::Sha256>, PurgeError> {
+        self.engine
+            .history()
+            .asset_mentions()
+            .map_err(|e| PurgeError::Io {
+                path: "the undo history".to_owned(),
+                error: std::io::Error::other(e.to_string()),
+            })
+    }
+
+    /// Refuses the preview of `project.assets.purge` when the purge would be refused.
+    fn purge_gate(&self, name: &str) -> Result<(), CmdError> {
+        if name != PurgeAssets::NAME {
+            return Ok(());
+        }
+        self.purge_preview().map(|_| ()).map_err(|e| CmdError::Rejected {
+            source: PurgeAssets::NAME.to_owned(),
+            reason: e.to_string(),
+        })
+    }
+
+    /// [`Session::commit`] of a `project.assets.purge` preview: the purge with the listed hashes.
+    fn commit_purge(&mut self, preview: Preview) -> Result<Receipt, CmdError> {
+        let rejected = |reason: String| CmdError::Rejected {
+            source: PurgeAssets::NAME.to_owned(),
+            reason,
+        };
+        let cmd: PurgeAssets = serde_json::from_value(preview.command().params.clone())
+            .map_err(|e| CmdError::invalid_params(PurgeAssets::NAME, "", e.to_string()))?;
+        let listed = cmd.listed()?;
+        drop(preview);
+        match self.purge_files(listed.as_ref()) {
+            Ok((_, _, receipt)) => receipt,
+            Err(e) => Err(rejected(e.to_string())),
         }
     }
 

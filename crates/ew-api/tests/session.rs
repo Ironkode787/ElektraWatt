@@ -113,7 +113,8 @@ fn the_origin_and_context_are_recorded() {
 fn the_registry_lists_every_command() {
     let s = session(6);
     let names: Vec<&str> = s.registry().names().collect();
-    assert_eq!(names.len(), 42);
+    assert_eq!(names.len(), 43);
+    assert!(names.contains(&"project.assets.purge"));
     assert!(names.contains(&"device.place"));
     assert!(names.contains(&"revision.create"));
     assert!(names.contains(&"project.settings.set"));

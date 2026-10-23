@@ -290,6 +290,17 @@
     },
     {
       "aliases": [],
+      "confirmation": "destructive",
+      "cost": "bulk",
+      "exposure": "edit",
+      "name": "project.assets.purge",
+      "params_version": 1,
+      "schema": "project.assets.purge.schema.json",
+      "stability": "preview",
+      "undoable": false
+    },
+    {
+      "aliases": [],
       "confirmation": "none",
       "cost": "interactive",
       "exposure": "human_only",

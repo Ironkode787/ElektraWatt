@@ -169,6 +169,11 @@ pub const ARMS: &[Arm] = &[
         build: potential_define,
     },
     Arm {
+        command: "project.assets.purge",
+        weight: 1,
+        build: project_assets_purge,
+    },
+    Arm {
         command: "project.checks.set",
         weight: 1,
         build: project_checks_set,
@@ -2461,6 +2466,29 @@ fn company_of(q: &ew_derive::Q) -> (Option<String>, Option<Value>) {
 fn placeholder_logo(w: u32, h: u32) -> Vec<u8> {
     format!(r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}"><rect width="{w}" height="{h}"/></svg>"#)
         .into_bytes()
+}
+
+/// `project.assets.purge` (FT-380): a non-undoable marker whose file side runs in the session. Every purgeable asset
+/// (`{}`) commits as a marker when the session is saved (a session without a project directory has nothing to purge)
+/// and is refused while it has unsaved changes; the model never changes. A listed hash that is no purgeable asset, and
+/// a malformed one, are refused.
+fn project_assets_purge(_live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    // The checks of an `Either` step run only when the revision moved, which a purge must never do.
+    let unchanged = |_: &ew_derive::Q, _: &ew_derive::Q| Err("the purge moved the revision".to_owned());
+    match rng.below(4) {
+        0 => {
+            let hex: String = (0..32).map(|_| format!("{:02x}", rng.below(256))).collect();
+            Some(
+                Step::cmd(
+                    "project.assets.purge",
+                    json!({"assets": [format!("sha256:{hex}")]}),
+                )
+                .refuse(),
+            )
+        }
+        1 => Some(Step::cmd("project.assets.purge", json!({"assets": [rng.word(8)]})).refuse()),
+        _ => Some(Step::cmd("project.assets.purge", json!({})).check(unchanged)),
+    }
 }
 
 fn project_company_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {

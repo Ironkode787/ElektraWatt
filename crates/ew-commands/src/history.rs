@@ -214,6 +214,29 @@ impl History {
         self.cursor
     }
 
+    /// Every asset hash that an undo or redo entry may bring back: the SHA-256 texts mentioned in the JSON of the
+    /// `before` and `after` rows of every op of every entry ([`ew_schema::sha256_mentions`]: any 64 hex digits, so
+    /// a bare hash, a reference of a newer writer or an unknown member counts). The asset purge keeps the files of
+    /// these hashes ("in no undo entry", doc 05 §13.3, FT-380), so that an undo never names an asset whose file a
+    /// purge deleted. An over-approximation by design. O(the rows the history keeps).
+    ///
+    /// # Errors
+    ///
+    /// [`CmdError::Internal`] for a row without a JSON form.
+    pub fn asset_mentions(&self) -> Result<std::collections::BTreeSet<ew_schema::Sha256>, CmdError> {
+        let mut out = std::collections::BTreeSet::new();
+        for entry in &self.entries {
+            for op in &entry.tx.ops {
+                let Op::Put { before, after, .. } = op;
+                for row in [before, after].into_iter().flatten() {
+                    let text = crate::rows::row_json(row)?.to_string();
+                    ew_schema::sha256_mentions(text.as_bytes(), &mut out);
+                }
+            }
+        }
+        Ok(out)
+    }
+
     /// The estimated size in bytes of what the history alone keeps alive: the `before` rows of every entry
     /// and the `after` rows of the entries at and above the cursor (module doc).
     pub fn bytes(&self) -> usize {

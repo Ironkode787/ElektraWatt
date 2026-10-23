@@ -42,6 +42,7 @@
     - [`plc.config_project.create`](reference/commands/plc.config_project.create.md)
     - [`plc.set_module_part`](reference/commands/plc.set_module_part.md)
     - [`potential.define`](reference/commands/potential.define.md)
+    - [`project.assets.purge`](reference/commands/project.assets.purge.md)
     - [`project.checks.set`](reference/commands/project.checks.set.md)
     - [`project.company.set`](reference/commands/project.company.set.md)
     - [`project.frames.set`](reference/commands/project.frames.set.md)

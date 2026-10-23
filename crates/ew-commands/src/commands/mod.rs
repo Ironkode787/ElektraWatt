@@ -48,11 +48,14 @@
 //! | `project.frames.set` | [`SetFrameDefaults`] | Bulk |
 //! | `project.languages.set` | [`SetProjectLanguages`] | Bulk |
 //! | `project.checks.set` | [`SetCheckSchemes`] | Interactive; exposure `HumanOnly` |
+//! | `project.assets.purge` | [`PurgeAssets`] | Bulk; not undoable (a marker line), confirmation `Destructive` |
 //!
-//! Every command is undoable and of stability `Preview`; every one is of exposure class `Edit` except
-//! `project.checks.set`, which is `HumanOnly` (ADR-0008 amendment 3: it decides a check outcome).
+//! Every command is of stability `Preview` and undoable except `project.assets.purge`, a marker line whose file side
+//! (deleting asset files nothing names) runs in the session (ADR-0008 amendment 1, FT-380); every one is of exposure
+//! class `Edit` except `project.checks.set`, which is `HumanOnly` (ADR-0008 amendment 3: it decides a check outcome).
 
 mod assembly;
+mod assets;
 mod checks;
 pub mod common;
 mod company;
@@ -73,6 +76,7 @@ mod supply;
 mod terminal;
 
 pub use assembly::{AddValve, AttachChildren, ChildSpec, LinkDevices};
+pub use assets::PurgeAssets;
 pub use checks::{CHECKS_MEMBER, SHIPPED_CHECK_SCHEMES, SetCheckSchemes};
 pub use common::{EndpointParam, KindName, TargetRef};
 pub use company::{COMPANY_MEMBER, SetCompany};
@@ -147,4 +151,5 @@ pub fn register_all(r: &mut CommandRegistry) {
     r.register::<SetFrameDefaults>();
     r.register::<SetProjectLanguages>();
     r.register::<SetCheckSchemes>();
+    r.register::<PurgeAssets>();
 }

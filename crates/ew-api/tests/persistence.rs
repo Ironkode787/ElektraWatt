@@ -292,3 +292,81 @@ fn a_failed_retry_keeps_the_newer_edits_dirty() {
     assert_eq!(lines(&r), expected);
     r.close();
 }
+
+/// `project.assets.purge {assets}` through the generic preview and commit path.
+fn purge_cmd(listed: &[ew_api::Sha256]) -> AnyCommand {
+    AnyCommand {
+        name: "project.assets.purge".into(),
+        params: serde_json::json!({
+            "assets": listed.iter().map(ToString::to_string).collect::<Vec<_>>()
+        }),
+    }
+}
+
+/// FT-380, end to end: an asset file that the undo history of the session still names is kept; a fresh session
+/// purges it through the command's preview and commit (the files leave the manifest and the disk, the history gets a
+/// marker line, the session stays clean); a dirty session refuses the preview; a session without a project directory
+/// has nothing to purge.
+#[test]
+fn the_session_purges_asset_files_nothing_names() {
+    const X: &[u8] = br#"<svg viewBox="0 0 8 2"><rect width="8" height="2"/></svg>"#;
+    const Y: &[u8] = br#"<svg viewBox="0 0 3 3"><circle r="1"/></svg>"#;
+    let state = temp("state");
+    let (mut s, dir) = created(&state);
+    set_logo(&mut s, X);
+    s.save().unwrap();
+    set_logo(&mut s, Y);
+    // Unsaved: refused, at the preview already.
+    assert!(matches!(s.purge_preview(), Err(ew_api::PurgeError::Unsaved)));
+    let err = s.preview(&purge_cmd(&[])).unwrap_err();
+    assert!(matches!(err, ew_api::CmdError::Rejected { .. }), "{err:?}");
+    s.save().unwrap();
+    // X is no longer named, but the undo entry of the logo change names it.
+    let plan = s.purge_preview().unwrap();
+    assert!(plan.remove.is_empty(), "{plan:?}");
+    assert_eq!(plan.kept, 2);
+    s.close();
+
+    let (mut s, _) = Session::open(&dir, store_options(&state), options(14), Recovery::Keep).unwrap();
+    let plan = s.purge_preview().unwrap();
+    assert_eq!(plan.remove.len(), 1, "{plan:?}");
+    let x = plan.remove[0].sha256;
+    let path = dir.join(plan.remove[0].path.as_str());
+    assert!(path.exists());
+    let rev = s.world().rev;
+    let p = s.preview(&purge_cmd(&[x])).unwrap();
+    assert_eq!(p.outcome().notices.len(), 1);
+    s.commit(p).unwrap();
+    assert!(!path.exists(), "the file is deleted");
+    let manifest = std::fs::read_to_string(dir.join("manifest.json")).unwrap();
+    assert!(
+        !manifest.contains(&x.to_string()["sha256:".len()..]),
+        "{manifest}"
+    );
+    assert_eq!(s.world().rev, rev, "the model does not change");
+    assert!(!s.is_dirty());
+    assert_eq!(
+        s.history().entries().last().map(|e| e.label()),
+        Some("project.assets.purge")
+    );
+    // The preview is stale now: committing it again purges nothing and is refused.
+    let p = s.preview(&purge_cmd(&[x])).unwrap();
+    let err = s.commit(p).unwrap_err();
+    assert!(matches!(err, ew_api::CmdError::Rejected { .. }), "{err:?}");
+    assert!(s.purge_preview().unwrap().remove.is_empty());
+    s.close();
+    // Y, the logo, is still there and loads.
+    let (s, report) = Session::open(&dir, store_options(&state), options(15), Recovery::Keep).unwrap();
+    assert!(report.findings.is_empty(), "{:?}", report.findings);
+    assert!(s.world().model.assets().any(|a| &**a.bytes() == Y));
+    s.close();
+
+    // Without a project directory: nothing to purge, the marker is recorded.
+    let project = serde_json::from_str(PROJECT).unwrap();
+    let mut m = Session::from_records(project, [], [], options(16)).unwrap();
+    assert!(m.purge_preview().unwrap().remove.is_empty());
+    let p = m.preview(&purge_cmd(&[])).unwrap();
+    m.commit(p).unwrap();
+    let _ = std::fs::remove_dir_all(&dir);
+    let _ = std::fs::remove_dir_all(&state);
+}

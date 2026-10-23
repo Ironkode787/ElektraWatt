@@ -631,3 +631,93 @@ fn checks_set_takes_shipped_schemes_only_and_only_from_a_human() {
     }
     assert_eq!(settings_member(&e, "checks"), None);
 }
+
+/// FT-380: `project.assets.purge` is a Bulk `Edit` command with a destructive confirmation and no undo; in the engine
+/// (which owns no project directory) it commits a transparent marker line: no revision, no change of the model, and
+/// an undo passes over it to the step below.
+#[test]
+fn assets_purge_is_a_transparent_non_undoable_marker() {
+    let registry = CommandRegistry::builtin();
+    let meta = registry.get("project.assets.purge").expect("registered").meta();
+    assert_eq!((meta.cost, meta.exposure), (Cost::Bulk, Exposure::Edit));
+    assert!(!meta.undoable);
+    assert_eq!(meta.confirmation, ew_commands::Confirmation::Destructive);
+
+    let mut e = engine(golden_model());
+    commit(
+        &mut e,
+        &any("project.company.set", json!({"name": "Example Panels"})),
+    );
+    let rev = e.model().rev();
+    let listed = format!("sha256:{}", "ab".repeat(32));
+    let p = e
+        .preview(&any("project.assets.purge", json!({ "assets": [listed] })))
+        .unwrap();
+    assert_eq!(p.op_count(), 0);
+    assert_eq!(
+        p.outcome().notices,
+        [format!("removes the asset file of {listed}")]
+    );
+    e.commit(p).unwrap();
+    assert_eq!(e.model().rev(), rev, "a marker makes no revision");
+    let top = e.history().entries().last().expect("the marker line");
+    assert_eq!(top.label(), "project.assets.purge");
+    assert!(!top.is_step() && !top.is_barrier(), "a transparent marker");
+    // Undo passes over the marker and reverts the company name.
+    e.undo().unwrap();
+    assert!(
+        !e.model()
+            .project()
+            .parties
+            .iter()
+            .any(|p| p.role == PartyRole::PanelBuilder)
+    );
+}
+
+#[test]
+fn assets_purge_refuses_malformed_and_repeated_hashes() {
+    let mut e = engine(golden_model());
+    let (path, _) = invalid(
+        &mut e,
+        &any("project.assets.purge", json!({"assets": ["sha256:AB"]})),
+    );
+    assert_eq!(path, "/assets/0");
+    let h = format!("sha256:{}", "cd".repeat(32));
+    let (path, message) = invalid(&mut e, &any("project.assets.purge", json!({ "assets": [h, h] })));
+    assert_eq!(path, "/assets/1");
+    assert!(message.contains("twice"), "{message}");
+    let (path, _) = invalid(&mut e, &any("project.assets.purge", json!({"all": true})));
+    assert_eq!(path, "/all", "unknown members are refused");
+}
+
+/// FT-380: the history names every asset its entries could bring back, the redo branch included.
+#[test]
+fn the_history_names_the_assets_of_its_entries() {
+    let mut e = engine(golden_model());
+    assert!(e.history().asset_mentions().unwrap().is_empty());
+    commit(
+        &mut e,
+        &any(
+            "project.company.set",
+            json!({"logo": ew_schema::base64_encode(LOGO_SVG)}),
+        ),
+    );
+    let first = ew_schema::company_logo(&e.model().project().extra)
+        .unwrap()
+        .sha256;
+    commit(
+        &mut e,
+        &any(
+            "project.company.set",
+            json!({"logo": ew_schema::base64_encode(&logo_png())}),
+        ),
+    );
+    let second = ew_schema::company_logo(&e.model().project().extra)
+        .unwrap()
+        .sha256;
+    let named = e.history().asset_mentions().unwrap();
+    assert!(named.contains(&first) && named.contains(&second), "{named:?}");
+    e.undo().unwrap();
+    let named = e.history().asset_mentions().unwrap();
+    assert!(named.contains(&second), "the redo branch is named too");
+}

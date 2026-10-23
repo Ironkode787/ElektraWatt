@@ -15,6 +15,8 @@
 //!   `sync_all`, the durable intent manifest, directory syncs, `save-begin` in the journal, renames, the
 //!   manifest rename, removals, `save-done`. Only the files of the dirty set are serialised, files equal to
 //!   their hash are dropped, and an unchanged project writes nothing (NFR-REL-04, NFR-REL-16).
+//! - **Purge** ([`Store::purge`]): the explicit, previewed removal of asset files that no project file and no undo
+//!   entry names, through the save protocol's removal list (doc 05 §13.3, FT-380).
 //! - **Lock** ([`lock`]): `.~ew.lock` with heartbeat, stale detection, read-only sessions and the takeover
 //!   rename without replacement (doc 05 §7).
 //! - **Journal** ([`journal`]): field-level diffs of every commit in the OS state directory, replayed onto
@@ -49,8 +51,8 @@ mod vfs;
 pub use clock::{Clock, ManualClock, SystemClock};
 pub use lock::{HEARTBEAT, Identity, LockInfo, LockRecord, OsProbe, ProcessProbe, ProcessState, STALE_AFTER};
 pub use store::{
-    Access, BASE_MEMBER, Changes, LockState, OpenError, OpenMode, OpenReport, Opened, READ_ONLY_POLL,
-    READ_ONLY_WAIT, RENAME_BACKOFF, ReadOnlyReason, RecoverError, Recovered, SaveError, SaveReport, SaveStep,
-    Store, StoreOptions, default_state_dir,
+    Access, BASE_MEMBER, Changes, LockState, OpenError, OpenMode, OpenReport, Opened, PurgeError, PurgeFile,
+    PurgePlan, READ_ONLY_POLL, READ_ONLY_WAIT, RENAME_BACKOFF, ReadOnlyReason, RecoverError, Recovered,
+    SaveError, SaveReport, SaveStep, Store, StoreOptions, default_state_dir,
 };
 pub use vfs::{EntryKind, OsVfs, Stat, Vfs, is_transient, join};
