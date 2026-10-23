@@ -70,6 +70,9 @@ pub struct EditBuffer {
     pub row: String,
     /// The text as typed.
     pub buffer: String,
+    /// The text the editor opened with when it showed the stored value: committing it unchanged writes nothing (the
+    /// display form of a value need not parse back, a part's `<part number> (<manufacturer>)`).
+    pub initial: Option<String>,
 }
 
 /// What the choices under a field are for.
@@ -79,6 +82,9 @@ pub enum ChoiceKind {
     Ambiguous,
     /// The switch between a neutral text and languages (FR-I18N-001): each value is the member's whole new value.
     MlTextSwitch,
+    /// The options of a choice editor (§6.5): an enum's words, the colour codes, the part copies, the structure nodes
+    /// of a slot's aspect, filtered by the buffer (`Session::field_choices`); each value is the leaf's.
+    Options,
 }
 
 /// The choices under a field.
@@ -90,6 +96,42 @@ pub struct Choices {
     pub items: Vec<(String, Value)>,
     /// What they are for.
     pub kind: ChoiceKind,
+    /// The highlighted item (Up, Down), if any.
+    pub index: Option<usize>,
+}
+
+/// Whether a value type has a choice editor with options (§6.5: a combo for enums and colours, a picker for part
+/// copies and structure nodes).
+pub fn has_options(ty: &FieldType) -> bool {
+    matches!(
+        ty.inner(),
+        FieldType::Enum { .. } | FieldType::Colour | FieldType::Slot
+    ) || matches!(ty.inner(), FieldType::Link { kind } if kind == "part")
+}
+
+/// `text` with every hyphenated UUID replaced by `‹id›` (no UUID in the transcript or the describe text, WP-S2.05 §9
+/// item 5).
+pub fn mask_uuids(text: &str) -> String {
+    let b = text.as_bytes();
+    let is_uuid = |w: &[u8]| {
+        w.iter().enumerate().all(|(k, c)| match k {
+            8 | 13 | 18 | 23 => *c == b'-',
+            _ => c.is_ascii_hexdigit(),
+        })
+    };
+    let mut out = String::with_capacity(text.len());
+    let mut i = 0;
+    while i < b.len() {
+        if i + 36 <= b.len() && is_uuid(&b[i..i + 36]) {
+            out.push_str("‹id›");
+            i += 36;
+            continue;
+        }
+        let ch = text[i..].chars().next().unwrap_or(' ');
+        out.push(ch);
+        i += ch.len_utf8();
+    }
+    out
 }
 
 /// A popup of the grid.

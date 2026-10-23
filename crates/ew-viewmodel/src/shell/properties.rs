@@ -34,19 +34,19 @@ use crate::properties::{
 use crate::strings;
 use crate::tools::PreviewState;
 
-/// The message of a command refusal as the grid shows it (§6.7): no UUID, the parameter path's target named.
-fn refusal_text(e: &CmdError, section: Option<&SheetSection>, title: &str) -> String {
+/// The message of a command refusal as the grid shows it (§6.7): a parameter path `/targets/<i>` names the target by
+/// its label (`label(i)`, "on -101F1: …").
+fn refusal_text(e: &CmdError, label: &dyn Fn(usize) -> String) -> String {
     match e {
-        CmdError::InvalidParams { path, message, .. } => match path.strip_prefix("/targets/") {
-            Some(i) if section.is_some_and(|s| s.targets.len() == 1) || i.is_empty() => {
-                strings::format("props-refused-on", &[title, message])
+        CmdError::InvalidParams { path, message, .. } => {
+            match path
+                .strip_prefix("/targets/")
+                .and_then(|i| i.parse::<usize>().ok())
+            {
+                Some(i) => strings::format("props-refused-on", &[&label(i), message]),
+                None => message.clone(),
             }
-            Some(i) => strings::format(
-                "props-refused-on-target",
-                &[&i.parse::<usize>().map_or(0, |n| n + 1).to_string(), message],
-            ),
-            None => message.clone(),
-        },
+        }
         CmdError::Rejected { reason, .. } => reason.clone(),
         CmdError::Prevented { rule, finding, .. } => format!("{rule}: {finding}"),
         CmdError::NotFound { .. } => strings::text("props-gone").to_owned(),
@@ -80,10 +80,27 @@ fn replace_uuids(text: &str, name: &dyn Fn(&str) -> String) -> String {
 }
 
 impl ShellModel {
-    /// A command refusal as the grid shows it: [`refusal_text`] with page IDs as folios and other IDs left out.
-    fn refusal(&self, e: &CmdError, section: Option<&SheetSection>, title: &str) -> String {
+    /// A command refusal as the grid shows it: [`refusal_text`] with the target named by its label (the header's title
+    /// for one target, else the title of that record's own sheet: one `Session::property_sheet` call, on a refusal
+    /// only), page IDs as folios and other IDs left out.
+    fn refusal(&self, e: &CmdError, section: Option<&SheetSection>) -> String {
         let rows = self.page_rows();
-        replace_uuids(&refusal_text(e, section, title), &|u| {
+        let label = |i: usize| -> String {
+            let target = section.and_then(|s| s.targets.get(i).copied());
+            let single = section.is_some_and(|s| s.targets.len() == 1);
+            match (target, &self.project) {
+                (Some(_), _) if single => self
+                    .props
+                    .sheet()
+                    .map_or(String::new(), |s| s.header.title.clone()),
+                (Some(t), Some(p)) => {
+                    bump(&self.calls, |c| c.property_sheet += 1);
+                    p.session.property_sheet(&[t]).header.title
+                }
+                _ => strings::format("props-target-n", &[&(i + 1).to_string()]),
+            }
+        };
+        replace_uuids(&refusal_text(e, &label), &|u| {
             rows.iter()
                 .find(|r| r.id.to_string() == u)
                 .map_or_else(|| strings::text("props-a-record").to_owned(), |r| r.folio.clone())
@@ -197,6 +214,14 @@ impl ShellModel {
         let uuids: Vec<_> = ids.iter().map(|e| e.0).collect();
         let mut sheet = p.session.property_sheet(&uuids);
         sheet.read_only = self.read_only_reason().map(str::to_owned);
+        // A read-only project's rows offer nothing (§6.3, §6.8).
+        if sheet.read_only.is_some() {
+            for s in &mut sheet.sections {
+                for r in &mut s.rows {
+                    r.actions.clear();
+                }
+            }
+        }
         sheet
     }
 
@@ -441,10 +466,13 @@ impl ShellModel {
         if let Some(reason_key) = self.props_refusal(&section, &row, action) {
             return Outcome::Refused { reason_key };
         }
+        let shown = buffer.is_none();
         let buffer = match buffer {
             Some(b) => b,
-            None => match &row.value {
-                RowValue::One { json, text } => {
+            None => match (&row.value, self.mltext_object(&section, &row)) {
+                // A multi-language value edits its source language's text inside the object (§6.5).
+                (_, Some(object)) => self.source_text(&object),
+                (RowValue::One { json, text }, None) => {
                     if row.ty.is_container() || matches!(row.ty.inner(), crate::properties::FieldType::Json) {
                         json.to_string()
                     } else {
@@ -452,19 +480,84 @@ impl ShellModel {
                     }
                 }
                 // "Set all" (doc 16 §6.2): the first target's value of a list or group.
-                RowValue::Varies { .. } if row.ty.is_container() => self.first_target_json(&section, &row),
+                (RowValue::Varies { .. }, None) if row.ty.is_container() => {
+                    self.first_target_json(&section, &row)
+                }
                 _ => String::new(),
             },
         };
         self.props.row = Some(key.to_owned());
         self.props.edit = Some(EditBuffer {
             row: key.to_owned(),
+            initial: shown.then(|| buffer.clone()),
             buffer,
         });
         self.props.error = None;
         self.props.choices = None;
         self.props.popup = None;
+        // A choice editor lists its options (§6.5).
+        if crate::properties::has_options(&row.ty) {
+            self.props.choices = self.options(&section, &row, "", key);
+        }
         Outcome::Done
+    }
+
+    /// The options of a choice editor for `row` matching `filter` (`Session::field_choices`).
+    fn options(&self, section: &SheetSection, row: &PropRow, filter: &str, key: &str) -> Option<Choices> {
+        let p = self.project.as_ref()?;
+        let items: Vec<(String, Value)> = p
+            .session
+            .field_choices(&section.kind, &row.path, filter)
+            .into_iter()
+            .map(|c| (c.text, c.value))
+            .collect();
+        Some(Choices {
+            row: key.to_owned(),
+            items,
+            kind: ChoiceKind::Options,
+            index: None,
+        })
+    }
+
+    /// The stored language object of a multi-language row, if its value is one: the row's own value, or a derived
+    /// row's authored partner's.
+    fn mltext_object(&self, section: &SheetSection, row: &PropRow) -> Option<serde_json::Map<String, Value>> {
+        if !matches!(row.ty.inner(), crate::properties::FieldType::MlText) {
+            return None;
+        }
+        let value = if is_derived(row) {
+            self.props_find(&format!("{}/{}", section.kind, row.path))
+                .map(|(_, r)| r.value)?
+        } else {
+            row.value.clone()
+        };
+        match value {
+            RowValue::One {
+                json: Value::Object(m),
+                ..
+            } => Some(m),
+            _ => None,
+        }
+    }
+
+    /// The project's source language (the sheet's first language), else the object's first.
+    fn source_language(&self, object: &serde_json::Map<String, Value>) -> String {
+        self.props
+            .sheet()
+            .and_then(|s| s.languages.first().cloned())
+            .or_else(|| object.keys().next().cloned())
+            .unwrap_or_else(|| "en".to_owned())
+    }
+
+    /// The source language's text of a language object.
+    fn source_text(&self, object: &serde_json::Map<String, Value>) -> String {
+        let lang = self.source_language(object);
+        object
+            .get(&lang)
+            .or_else(|| object.values().next())
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_owned()
     }
 
     /// The JSON text of `row` on the section's first target: one sheet of that record (`props.edit` of a `‹varies›`
@@ -502,10 +595,22 @@ impl ShellModel {
             }
         }
         if let Some(e) = &mut self.props.edit {
-            e.buffer = text;
+            e.buffer.clone_from(&text);
         }
         self.props.error = None;
+        // A choice editor filters its options by the buffer; other choices go.
+        let options = self
+            .props
+            .choices
+            .as_ref()
+            .is_some_and(|c| c.kind == ChoiceKind::Options);
         self.props.choices = None;
+        if options
+            && let Some(row_key) = self.props.edit.as_ref().map(|e| e.row.clone())
+            && let Some((section, row)) = self.props_find(&row_key)
+        {
+            self.props.choices = self.options(&section, &row, &text, &row_key);
+        }
         Outcome::Done
     }
 
@@ -525,6 +630,10 @@ impl ShellModel {
                 reason_key: "reason-not-editing",
             };
         };
+        // The stored value's text committed unchanged: nothing to write (its display form need not parse back).
+        if edit.initial.as_deref() == Some(edit.buffer.as_str()) {
+            return self.act_props_cancel();
+        }
         self.commit_text(&edit.row, &edit.buffer, None)
     }
 
@@ -558,6 +667,14 @@ impl ShellModel {
         let Some((section, row)) = self.props_find(key) else {
             return failed("error-no-row", &[key]);
         };
+        if self
+            .props
+            .choices
+            .as_ref()
+            .is_some_and(|c| c.kind == ChoiceKind::Options)
+        {
+            self.props.choices = None;
+        }
         let Some(project) = &self.project else {
             return Outcome::Refused {
                 reason_key: "reason-no-project",
@@ -578,6 +695,7 @@ impl ShellModel {
                     row: key.to_owned(),
                     items: choices,
                     kind: ChoiceKind::Ambiguous,
+                    index: None,
                 });
                 return Outcome::Done;
             }
@@ -586,7 +704,28 @@ impl ShellModel {
                 return Outcome::Failed { message };
             }
         };
-        self.commit_value(key, parsed.value, text.to_owned(), parsed.notes)
+        // A language object: the text replaces the source language's and the other languages stay (§6.5); an empty
+        // text removes the source language, and with it the last one the value.
+        let value = match (self.mltext_object(&section, &row), parsed.value) {
+            (Some(mut object), v @ (Value::String(_) | Value::Null)) => {
+                let lang = self.source_language(&object);
+                match v {
+                    Value::String(t) if !t.is_empty() => {
+                        object.insert(lang, Value::String(t));
+                    }
+                    _ => {
+                        object.remove(&lang);
+                    }
+                }
+                if object.is_empty() {
+                    Value::Null
+                } else {
+                    Value::Object(object)
+                }
+            }
+            (_, v) => v,
+        };
+        self.commit_value(key, value, text.to_owned(), parsed.notes)
     }
 
     /// Compiles the leaf `value` of row `key` into exactly one command and runs the commit path (§6.6).
@@ -723,17 +862,19 @@ impl ShellModel {
             Err(_) => Default::default(),
         };
         let changes = result.as_ref().map_or(0, |p| p.diff().len());
-        let identifier = self.props_find(&row).is_some_and(|(_, r)| r.identifier);
+        // The edited row or its settable member is an outgoing identifier (`plc_module.start.input` is below
+        // `plc_module.start`).
+        let member_key = member_path(&edit.route).map(|m| format!("{}/{m}", edit.kind));
+        let identifier = self.props_find(&row).is_some_and(|(_, r)| r.identifier)
+            || member_key
+                .and_then(|k| self.props_find(&k))
+                .is_some_and(|(_, r)| r.identifier);
         let targets = edit.targets.len().max(1);
         let decision = policy(targets, identifier, derived.tags.len(), meta.cost, result.is_ok());
-        let title = self
-            .props
-            .sheet()
-            .map_or(String::new(), |s| s.header.title.clone());
         let section = self.props_find(&row).map(|(s, _)| s);
         match (decision, result) {
             (Decision::Error, Err(e)) => {
-                let message = self.refusal(&e, section.as_ref(), &title);
+                let message = self.refusal(&e, section.as_ref());
                 self.props.error = Some((row, message.clone()));
                 self.props.card = None;
                 Outcome::Failed { message }
@@ -759,7 +900,7 @@ impl ShellModel {
                         base_rev: rev,
                         command: edit.params.clone(),
                         name: edit.name.clone(),
-                        result: result.map_err(|e| self.refusal(&e, section.as_ref(), &title)),
+                        result: result.map_err(|e| self.refusal(&e, section.as_ref())),
                         derived,
                     },
                     targets: edit.targets.len(),
@@ -813,13 +954,9 @@ impl ShellModel {
                     Outcome::Done
                 }
                 Err(e) => {
-                    let title = self
-                        .props
-                        .sheet()
-                        .map_or(String::new(), |s| s.header.title.clone());
                     let section = self.props_find(&edit.row).map(|(s, _)| s);
                     Outcome::Failed {
-                        message: self.refusal(&e, section.as_ref(), &title),
+                        message: self.refusal(&e, section.as_ref()),
                     }
                 }
             };
@@ -856,15 +993,41 @@ impl ShellModel {
         outcome
     }
 
-    /// `props.choose`: `index` of the choices under a field (an ambiguous reading, the multi-language switch) or of
-    /// the row's actions popup.
+    /// `props.choose`: `index` of the choices under a field (an ambiguous reading, the multi-language switch, a choice
+    /// editor's options) or of the row's actions popup commits it; `step` (±1) moves the choices' highlight (Up,
+    /// Down); with neither the highlighted choice is committed, else the buffer (Enter in a choice editor).
     pub(super) fn act_props_choose(&mut self, p: &Map<String, Value>) -> Outcome {
-        let Some(index) = p
-            .get("index")
-            .and_then(Value::as_u64)
-            .and_then(|i| usize::try_from(i).ok())
-        else {
-            return failed("error-missing-param", &["index"]);
+        if let Some(step) = p.get("step") {
+            let Some(step) = step.as_i64() else {
+                return failed("error-bad-param", &["step"]);
+            };
+            let Some(c) = &mut self.props.choices else {
+                return Outcome::Refused {
+                    reason_key: "reason-no-choices",
+                };
+            };
+            if c.items.is_empty() {
+                return Outcome::Done;
+            }
+            let last = c.items.len() as i64 - 1;
+            let at = match c.index {
+                None if step > 0 => 0,
+                None => last,
+                Some(i) => (i as i64 + step).clamp(0, last),
+            };
+            c.index = Some(at as usize);
+            return Outcome::Done;
+        }
+        let index = match p.get("index") {
+            Some(v) => match v.as_u64().and_then(|i| usize::try_from(i).ok()) {
+                Some(i) => i,
+                None => return failed("error-bad-param", &["index"]),
+            },
+            None => match self.props.choices.as_ref().and_then(|c| c.index) {
+                Some(i) => i,
+                None if self.props.edit.is_some() => return self.act_props_commit(),
+                None => return failed("error-missing-param", &["index"]),
+            },
         };
         if let Some(Popup::Actions { row, .. }) = self.props.popup.clone() {
             let Some((_, r)) = self.props_find(&row) else {
@@ -891,8 +1054,9 @@ impl ShellModel {
             .as_ref()
             .map_or_else(String::new, |e| e.buffer.clone());
         match choices.kind {
-            ChoiceKind::Ambiguous => self.commit_value(&choices.row, value, typed, Vec::new()),
-            ChoiceKind::MlTextSwitch => self.commit_value(&choices.row, value, typed, Vec::new()),
+            ChoiceKind::Ambiguous | ChoiceKind::MlTextSwitch | ChoiceKind::Options => {
+                self.commit_value(&choices.row, value, typed, Vec::new())
+            }
         }
     }
 
@@ -962,10 +1126,7 @@ impl ShellModel {
         self.props.row = Some(key.to_owned());
         match action {
             RowAction::Edit => self.begin_edit(key, RowAction::Edit, None),
-            RowAction::Override => {
-                let text = crate::properties::value_text(&row);
-                self.begin_edit(key, RowAction::Override, Some(text))
-            }
+            RowAction::Override => self.begin_edit(key, RowAction::Override, None),
             RowAction::Clear | RowAction::Reset | RowAction::Unfreeze => {
                 self.commit_value(key, Value::Null, String::new(), Vec::new())
             }
@@ -1149,6 +1310,7 @@ impl ShellModel {
                     row: key,
                     items: choices,
                     kind: ChoiceKind::MlTextSwitch,
+                    index: None,
                 });
                 Outcome::Done
             }
@@ -1192,6 +1354,7 @@ impl ShellModel {
             self.props.edit = Some(EditBuffer {
                 row: edit.row.clone(),
                 buffer: edit.typed.clone(),
+                initial: None,
             });
             return Outcome::Refused {
                 reason_key: "reason-changed-meanwhile",
@@ -1255,5 +1418,102 @@ impl ShellModel {
         }
         self.focus = self.area.as_ref().map(|a| Focus::Canvas(a.focused));
         Some(Outcome::Done)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    use serde_json::json;
+
+    use super::*;
+    use crate::properties::EditRoute;
+
+    fn copy_dir(from: &Path, to: &Path) {
+        std::fs::create_dir_all(to).unwrap();
+        for entry in std::fs::read_dir(from).unwrap() {
+            let entry = entry.unwrap();
+            let target = to.join(entry.file_name());
+            if entry.file_type().unwrap().is_dir() {
+                copy_dir(&entry.path(), &target);
+            } else {
+                std::fs::copy(entry.path(), target).unwrap();
+            }
+        }
+    }
+
+    /// D4: the grid never builds a command whose exposure is not `Edit`. A pending edit naming the `HumanOnly`
+    /// `project.checks.set` (no row routes there, so only a forged edit can) is refused before any preview.
+    #[test]
+    fn a_human_only_command_is_refused_before_its_preview() {
+        let mut shell = ShellModel::for_tests();
+        let dir = std::env::temp_dir().join(format!("ew-d4-{}", std::process::id()));
+        let golden = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew");
+        copy_dir(&golden, &dir);
+        assert_eq!(
+            shell.dispatch("file.open", &json!({ "dir": dir.to_string_lossy() })),
+            Outcome::Done
+        );
+        let before = shell.session_calls();
+        let edit = PendingEdit {
+            row: "project/settings.checks".into(),
+            kind: "project".into(),
+            targets: Vec::new(),
+            route: EditRoute::SettingsMember {
+                member: "checks".into(),
+            },
+            path: "settings.checks".into(),
+            leaf: None,
+            base: None,
+            name: "project.checks.set".into(),
+            params: json!({"release_scheme": "pre-delivery"}),
+            typed: String::new(),
+            label: "Checks".into(),
+        };
+        assert_eq!(
+            shell.run_edit(edit, false),
+            Outcome::Refused {
+                reason_key: "reason-human-only"
+            }
+        );
+        let after = shell.session_calls();
+        assert_eq!(after.preview_with, before.preview_with, "no preview");
+        assert_eq!(after.commit, before.commit);
+        assert_eq!(after.run_script, before.run_script);
+        // §6.7: a refusal at `/targets/<i>` names that target by its label, also among several targets.
+        assert_eq!(
+            shell.dispatch("select.set", &json!({"refs": ["tag:-101F1", "tag:-102F1"]})),
+            Outcome::Done
+        );
+        let section = shell.props.sheet().unwrap().sections[0].clone();
+        let err = CmdError::invalid_params("fields.set", "/targets/1", "refused");
+        let labels: Vec<String> = section
+            .targets
+            .iter()
+            .map(|t| {
+                shell
+                    .project
+                    .as_ref()
+                    .unwrap()
+                    .session
+                    .property_sheet(&[*t])
+                    .header
+                    .title
+            })
+            .collect();
+        assert_eq!(
+            shell.refusal(&err, Some(&section)),
+            format!("on {}: refused", labels[1])
+        );
+        assert!(labels.iter().all(|l| l.starts_with('-')), "{labels:?}");
+        assert_eq!(
+            refusal_text(&CmdError::invalid_params("fields.set", "/value", "bad"), &|_| {
+                String::new()
+            }),
+            "bad"
+        );
+        shell.shutdown();
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

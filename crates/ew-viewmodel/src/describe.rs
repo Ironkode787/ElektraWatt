@@ -553,26 +553,7 @@ fn tab_lines(model: &ShellModel, lines: &mut Vec<String>) {
 /// A user text of the property grid's lines as the describe text quotes it: a double quote becomes a single one (the
 /// quoting stays unambiguous) and a hyphenated UUID becomes `‹id›` (no UUID in the describe text, WP-S2.05 §9 item 5).
 fn user(text: &str) -> String {
-    let b = text.as_bytes();
-    let is_uuid = |w: &[u8]| {
-        w.iter().enumerate().all(|(k, c)| match k {
-            8 | 13 | 18 | 23 => *c == b'-',
-            _ => c.is_ascii_hexdigit(),
-        })
-    };
-    let mut out = String::with_capacity(text.len());
-    let mut i = 0;
-    while i < b.len() {
-        if i + 36 <= b.len() && is_uuid(&b[i..i + 36]) {
-            out.push_str("‹id›");
-            i += 36;
-            continue;
-        }
-        let ch = text[i..].chars().next().unwrap_or(' ');
-        out.push(if ch == '"' { '\'' } else { ch });
-        i += ch.len_utf8();
-    }
-    out
+    crate::properties::mask_uuids(text).replace('"', "'")
 }
 
 /// The provenance of a row in the describe text: its word and quoted chip text (UUIDs left out, §9 item 5).
@@ -1137,5 +1118,82 @@ impl ShellModel {
     /// The visible user interface as text, one line per element in paint order (`ui.describe`).
     pub fn describe(&self) -> String {
         describe(self)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The record kinds of the format (doc 05 §2.2), by their `$k` names: the 53 of `ew_schema::Kind::ALL`.
+    const KINDS: [&str; 53] = [
+        "project",
+        "plc_config_project",
+        "logical_net",
+        "physical_net",
+        "medium",
+        "import_lineage",
+        "structure_node",
+        "section",
+        "external_ref",
+        "page",
+        "device",
+        "function",
+        "representation",
+        "connection",
+        "junction",
+        "conductor",
+        "channel",
+        "potential_def",
+        "net_def",
+        "medium_def",
+        "bond",
+        "device_link",
+        "page_item",
+        "structure_box",
+        "report_block",
+        "macro_instance",
+        "placeholder_group",
+        "layout_space",
+        "enclosure",
+        "mounting_surface",
+        "carrier",
+        "placement",
+        "route_override",
+        "committed_route",
+        "routing_path",
+        "surface_feature",
+        "revision",
+        "waiver",
+        "comment",
+        "transmittal",
+        "exchange_record",
+        "foreign_id",
+        "import_run",
+        "conflict",
+        "part",
+        "symbol",
+        "fndef",
+        "form",
+        "macro",
+        "manufacturer",
+        "plc_profile",
+        "machine_profile",
+        "label_profile",
+    ];
+
+    /// WP-S2.05 §6.11: every implemented non-library kind (one the property grid has a catalogue for) names its
+    /// section in the describe text, so its name is in the vocabulary; so are the two kinds of WP-S2.04 part 4a.
+    #[test]
+    fn every_kind_a_section_can_have_is_in_the_vocabulary() {
+        let sheet_kinds: Vec<&str> = KINDS
+            .iter()
+            .copied()
+            .filter(|k| ew_api::output::field_catalogue(k).is_some())
+            .collect();
+        assert_eq!(sheet_kinds.len(), 19, "{sheet_kinds:?}");
+        for k in sheet_kinds.iter().chain(&["page_item", "structure_box"]) {
+            assert!(VOCABULARY.contains(k), "`{k}` is not in VOCABULARY");
+        }
     }
 }

@@ -343,7 +343,7 @@ fn properties_json(shell: &ShellModel) -> String {
         None => "null".to_owned(),
         Some((row, message)) => object(vec![
             member("row", &Value::from(row)),
-            member("message", &Value::from(message)),
+            member("message", &Value::from(crate::properties::mask_uuids(message))),
         ]),
     };
     object(vec![
@@ -354,7 +354,12 @@ fn properties_json(shell: &ShellModel) -> String {
         member("missing", &Value::from(sheet.missing)),
         member("row", &opt(shell.properties_row().as_deref())),
         member("editing", &opt(props.edit().map(|e| e.row.as_str()))),
-        member("buffer", &opt(props.edit().map(|e| e.buffer.as_str()))),
+        member(
+            "buffer",
+            &props.edit().map_or(Value::Null, |e| {
+                Value::from(crate::properties::mask_uuids(&e.buffer))
+            }),
+        ),
         format!("\"error\":{error}"),
         member(
             "choices",
