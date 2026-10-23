@@ -98,10 +98,18 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `find.close`: the pane leaves the layout; its focus goes back to the canvas.
+    /// `find.close`: the pane leaves the layout; its focus goes back to the canvas. A replace card made by the pane
+    /// goes with it, since no pane would draw it and Ctrl+Enter in the property grid would apply it unseen.
     pub(super) fn act_find_close(&mut self) -> Outcome {
         let layout = self.layout.without(PaneKind::Find);
         self.replace_layout(layout);
+        if self
+            .props
+            .card()
+            .is_some_and(|c| matches!(c.origin, CardOrigin::Find { .. }))
+        {
+            self.props.card = None;
+        }
         if self.focus == Some(Focus::Find) {
             self.focus = self.area.as_ref().map(|a| Focus::Canvas(a.focused));
         }
@@ -325,7 +333,7 @@ impl ShellModel {
         let Some(rev) = self.revision() else {
             return Outcome::Done;
         };
-        let hits = results.hits.iter().filter(|h| h.after.is_some()).count();
+        let hits = results.changes();
         let edits = params["edits"].as_array().cloned().unwrap_or_default();
         let targets: Vec<String> = edits
             .iter()
@@ -472,7 +480,7 @@ impl ShellModel {
         let Some(results) = self.run_find(query.clone()) else {
             return Outcome::Done;
         };
-        let now = results.hits.iter().filter(|h| h.after.is_some()).count();
+        let now = results.changes();
         let outcome = self.preview_replace(&results, query, true);
         self.find.note = Some(updated_note(hits, now));
         outcome

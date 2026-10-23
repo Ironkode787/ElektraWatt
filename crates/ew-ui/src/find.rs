@@ -6,8 +6,8 @@
 //!
 //! **Input.** Every gesture is a registry action (`find.*`, `preview.*`); the pane builds no command. In the text,
 //! the replacement and the folio fields Enter runs the search (`find.run`; typing alone does not search) and
-//! Ctrl+Enter replaces (`find.replace_all`, or Apply when the replace card is open). While the pane has the shell's
-//! focus and no field is edited: Up, Down, Home and End move the result cursor, Enter shows the result (`find.jump`),
+//! Ctrl+Enter replaces (`find.replace_all` builds the card, the next one applies it as `preview.apply`).
+//! While the pane has the shell's focus and no field is edited: Up, Down, Home and End move the result cursor, Enter shows the result (`find.jump`),
 //! Ctrl+Enter replaces or applies, Escape goes back to the canvas (closing the card first).
 //!
 //! **Accessibility.** The pane is a `Group` named "Find and replace"; the fields are text inputs and the toggles check
@@ -50,6 +50,14 @@ pub fn result_line(hit: &FindHit) -> String {
         (None, Ok(())) => {}
     }
     line
+}
+
+/// Whether the replace card of the find pane is open.
+fn has_find_card(shell: &ShellModel) -> bool {
+    shell
+        .properties()
+        .card()
+        .is_some_and(|c| matches!(c.origin, CardOrigin::Find { .. }))
 }
 
 impl FindPane {
@@ -96,17 +104,18 @@ impl FindPane {
             self.replacement = f.replacement().to_owned();
             self.folios = f.folios().join(", ");
         }
+        let card = has_find_card(shell);
         ui.scope_builder(egui::UiBuilder::new().accessibility_parent(pane_id), |ui| {
             Self::card(ui, shell, events);
             ui.horizontal_wrapped(|ui| {
                 let name = strings::text("find-text").to_owned();
-                let response = Self::field(ui, &mut self.text, &name, events, "find.text");
+                let response = Self::field(ui, &mut self.text, &name, events, "find.text", card);
                 if arrived {
                     response.request_focus();
                 }
                 if f.replace_mode() {
                     let name = strings::text("find-replacement").to_owned();
-                    Self::field(ui, &mut self.replacement, &name, events, "find.replacement");
+                    Self::field(ui, &mut self.replacement, &name, events, "find.replacement", card);
                 }
                 if ui.button(strings::text("find-run")).clicked() {
                     events.push(Event::Action("find.run", json!({})));
@@ -169,7 +178,7 @@ impl FindPane {
                         .collect();
                     events.push(Event::Action("find.folios", json!({ "folios": folios })));
                 }
-                Self::enter_keys(ui, &response, events);
+                Self::enter_keys(ui, &response, events, card);
             });
             Self::status(ui, shell);
             Self::results(ui, shell, events);
@@ -183,6 +192,7 @@ impl FindPane {
         name: &str,
         events: &mut Vec<Event>,
         action: &'static str,
+        card: bool,
     ) -> egui::Response {
         let response = ui.add(TextEdit::singleline(text).desired_width(220.0).hint_text(name));
         let label = name.to_owned();
@@ -190,18 +200,20 @@ impl FindPane {
         if response.changed() {
             events.push(Event::Action(action, json!({ "text": text.as_str() })));
         }
-        Self::enter_keys(ui, &response, events);
+        Self::enter_keys(ui, &response, events, card);
         response
     }
 
-    /// Enter in a field runs the search; Ctrl+Enter replaces (or applies the open replace card).
-    fn enter_keys(ui: &Ui, response: &egui::Response, events: &mut Vec<Event>) {
+    /// Enter in a field runs the search; Ctrl+Enter replaces: the first builds the card (`find.replace_all`), the
+    /// next applies it (`preview.apply`), as with no field focused and in `app.rs`.
+    fn enter_keys(ui: &Ui, response: &egui::Response, events: &mut Vec<Event>, card: bool) {
         if response.has_focus()
             && ui
                 .ctx()
                 .input_mut(|i| i.consume_key(Modifiers::COMMAND, Key::Enter))
         {
-            events.push(Event::Action("find.replace_all", json!({})));
+            let action = if card { "preview.apply" } else { "find.replace_all" };
+            events.push(Event::Action(action, json!({})));
         } else if response.lost_focus() && ui.input(|i| i.key_pressed(Key::Enter)) {
             events.push(Event::Action("find.run", json!({})));
         }
@@ -210,10 +222,7 @@ impl FindPane {
     /// The pane's keys while it has the focus and no field is edited.
     fn keys(ui: &Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         let pressed = |m: Modifiers, k: Key| ui.ctx().input_mut(|i| i.consume_key(m, k));
-        let card = shell
-            .properties()
-            .card()
-            .is_some_and(|c| matches!(c.origin, CardOrigin::Find { .. }));
+        let card = has_find_card(shell);
         if pressed(Modifiers::COMMAND, Key::Enter) {
             let action = if card { "preview.apply" } else { "find.replace_all" };
             events.push(Event::Action(action, json!({})));

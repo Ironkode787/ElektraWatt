@@ -510,3 +510,52 @@ fn structural_words(line: &str, shortcut_keys: &[String]) -> Vec<String> {
     }
     words
 }
+
+/// Closing the pane drops its replace card: no pane draws it, so `preview.apply` (Ctrl+Enter in the property grid)
+/// must not be able to apply a replace the user cannot see. A grid-origin card survives the close.
+#[test]
+fn closing_the_find_pane_drops_its_replace_card() {
+    let tmp = Tmp::new("find-close-card");
+    let mut shell = writable(&tmp, "204");
+    spare(&mut shell, &["204", "205", "206"], "Reserve");
+    done(&mut shell, "find.replace_all", json!({}));
+    assert_eq!(state(&shell)["card"]["origin"], "find");
+    let rev = shell.revision();
+    done(&mut shell, "find.close", json!({}));
+    assert_eq!(state(&shell)["card"], Value::Null);
+    // Nothing is left for the grid's Apply to commit.
+    let _ = shell.dispatch("preview.apply", &json!({}));
+    assert_eq!(shell.revision(), rev, "no replace is applied unseen");
+    shell.shutdown();
+}
+
+/// The card's `changes` counts the hits a replace changes, not every hit with a replacement: after 204's texts are
+/// "Reserve", the regular expression `^(Spare|Reserve)` finds those too, and the card counts only the Spare ones.
+#[test]
+fn the_card_counts_only_the_hits_that_change() {
+    let tmp = Tmp::new("find-card-changes");
+    let mut shell = writable(&tmp, "204");
+    spare(&mut shell, &["204"], "Reserve");
+    let first = results(&shell);
+    assert!(first > 0);
+    done(&mut shell, "find.replace_all", json!({}));
+    done(&mut shell, "preview.apply", json!({}));
+    done(&mut shell, "find.option", json!({"option": "regex", "on": true}));
+    done(
+        &mut shell,
+        "find.option",
+        json!({"option": "match_case", "on": true}),
+    );
+    done(&mut shell, "find.text", json!({"text": "^(Spare|Reserve)"}));
+    done(
+        &mut shell,
+        "find.folios",
+        json!({"folios": ["204", "205", "206"]}),
+    );
+    done(&mut shell, "find.run", json!({}));
+    let all = results(&shell);
+    assert!(all > first, "the Reserve texts of 204 are found as well: {all}");
+    done(&mut shell, "find.replace_all", json!({}));
+    assert_eq!(state(&shell)["card"]["changes"], all - first);
+    shell.shutdown();
+}

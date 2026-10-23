@@ -147,3 +147,52 @@ fn fr3_find_and_replace_from_the_keyboard() {
     settle(&mut h);
     assert!(matches!(h.state().shell().focus(), Some(Focus::Canvas(_))));
 }
+
+/// Ctrl+Enter with a text field focused does what it does with none: the first builds the replace card, the second
+/// applies it (it must not rebuild the card).
+#[test]
+fn fr3_ctrl_enter_in_a_focused_field_builds_then_applies() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "204");
+    h.key_press_modifiers(Modifiers::COMMAND, Key::H);
+    settle(&mut h);
+    dispatch(&mut h, "find.fields", json!({"fields": ["function_text"]}));
+    dispatch(&mut h, "find.folios", json!({"folios": ["204", "205", "206"]}));
+    dispatch(&mut h, "find.replacement", json!({"text": "Reserve"}));
+    settle(&mut h);
+    let field = h
+        .get_all_by_role(egui::Role::TextInput)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Find"))
+        .expect("the Find field");
+    field.type_text("Spare");
+    settle(&mut h);
+    assert!(h.ctx.text_edit_focused(), "the field keeps the focus");
+    let steps = h.state().shell().recorded_commands().len();
+    h.key_press_modifiers(Modifiers::COMMAND, Key::Enter);
+    settle(&mut h);
+    let card = h
+        .state()
+        .shell()
+        .properties()
+        .card()
+        .expect("the first builds the card");
+    assert_eq!(card.changes, 20);
+    assert_eq!(
+        h.state().shell().recorded_commands().len(),
+        steps,
+        "nothing applied yet"
+    );
+    let calls = h.state().shell().session_calls();
+    h.key_press_modifiers(Modifiers::COMMAND, Key::Enter);
+    settle(&mut h);
+    assert!(
+        h.state().shell().properties().card().is_none(),
+        "the second applies it"
+    );
+    assert_eq!(h.state().shell().recorded_commands().len(), steps + 1);
+    assert_eq!(
+        h.state().shell().session_calls().find,
+        calls.find,
+        "applying a fresh card runs no search"
+    );
+}
