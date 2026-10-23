@@ -1043,10 +1043,11 @@ fn junction_and_route_entries_name_what_to_select_and_undo_drops_the_marks() {
     assert!(s.preview_state().is_none(), "and its preview");
 }
 
-/// Window check (r23): after the keyboard wiring of folio 103 (W, `]`, Enter, `]`, `]`, Enter, Escape) no crosshair and
-/// no snap mark stay at the last connection point, and after Ctrl+Z none either.
+/// Window check (r23): after the keyboard wiring of folio 103 (W, `]`, Enter, `]`, `]`, Enter, Escape) and after Ctrl+Z no
+/// tool mark stands; the keyboard grid cursor stays where it was (WP-S2.03 §7.7: a keyboard user's position does not
+/// vanish when a tool ends or a step is undone).
 #[test]
-fn escape_and_undo_leave_no_cursor_and_no_mark_after_keyboard_wiring() {
+fn escape_and_undo_leave_no_tool_mark_and_keep_the_grid_cursor() {
     let tmp = Tmp::new("marks");
     let mut s = shell(&tmp, "103");
     done(&mut s, "tool.wire", json!({}));
@@ -1055,14 +1056,13 @@ fn escape_and_undo_leave_no_cursor_and_no_mark_after_keyboard_wiring() {
     done(&mut s, "cp.next", json!({}));
     done(&mut s, "cp.next", json!({}));
     done(&mut s, "canvas.activate", json!({}));
+    let cursor_at = canvas(&s)["cursor_nm"].clone();
     done(&mut s, "ui.dismiss", json!({}));
     assert_eq!(s.tool().name(), "select");
-    assert_eq!(canvas(&s)["cursor_nm"], Value::Null, "no grid cursor");
-    assert!(s.tool_overlay().is_empty(), "no snap mark");
+    assert!(s.tool_overlay().is_empty(), "no snap mark or ghost");
     assert!(s.snap_indicator().is_none());
-    // Undo, with the cursor shown again: it goes, and no mark stands.
-    done(&mut s, "cp.next", json!({}));
+    assert_eq!(canvas(&s)["cursor_nm"], cursor_at, "the grid cursor stays");
     done(&mut s, "edit.undo", json!({}));
-    assert_eq!(canvas(&s)["cursor_nm"], Value::Null);
-    assert!(s.tool_overlay().is_empty());
+    assert!(s.tool_overlay().is_empty(), "no mark after the undo");
+    assert_eq!(canvas(&s)["cursor_nm"], cursor_at, "the grid cursor stays");
 }

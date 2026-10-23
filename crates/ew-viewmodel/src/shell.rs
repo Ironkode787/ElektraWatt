@@ -1656,8 +1656,6 @@ impl ShellModel {
                 // and the preview go; the next pointer or cursor move draws them again.
                 self.tools.overlay = crate::tools::Overlay::default();
                 self.tools.preview = None;
-                // The grid cursor may stand on a connection point the step removed: it goes too.
-                self.hide_cursor();
                 Outcome::Done
             }
             Err(e) => failed("error-command", &[&e.to_string()]),
@@ -1683,8 +1681,6 @@ impl ShellModel {
                 // and the preview go; the next pointer or cursor move draws them again.
                 self.tools.overlay = crate::tools::Overlay::default();
                 self.tools.preview = None;
-                // The grid cursor may stand on a connection point the step removed: it goes too.
-                self.hide_cursor();
                 Outcome::Done
             }
             Err(e) => failed("error-command", &[&e.to_string()]),
