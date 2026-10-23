@@ -501,7 +501,26 @@ fn route_edit_drags_a_middle_segment_of_a_selected_connection() {
         line(&moved),
         vec![pts[0], (pts[0].0, new_row), (pts[2].0, new_row), pts[2]]
     );
+    // WR6 (FR-CON-007): saved and reopened, the route is the same to the nm.
+    let dragged = line(&moved);
+    done(&mut s, "file.save", json!({}));
+    done(&mut s, "file.close", json!({}));
+    let dir = tmp.0.join("J-E-2416.ew");
+    done(&mut s, "file.open", json!({"dir": dir.to_string_lossy()}));
+    done(&mut s, "page.goto", json!({"folio": "102"}));
+    let reopened = tables(&s)
+        .connections
+        .iter()
+        .find(|c| c.id == w.id)
+        .unwrap()
+        .clone();
+    assert_eq!(
+        line(&reopened),
+        dragged,
+        "the same route after a save and a reopen"
+    );
     // A press on the first segment of the selected connection is no segment drag: a click selects.
+    done(&mut s, "select.set", json!({"ids": [w.id.to_string()]}));
     let first = sheet(&s, (pts[0].0, (pts[0].1 + new_row) / 2));
     done(&mut s, "canvas.press", at(first, json!({})));
     assert_eq!(s.tool().state(), "pressed");

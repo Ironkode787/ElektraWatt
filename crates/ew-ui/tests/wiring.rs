@@ -3,7 +3,7 @@
 
 //! WP-S2.04 part 2 in the window without rendering (acceptance checks WR3 and WR10's window part): FR-UI-015's
 //! keyboard wiring on folio 102 (W, `]`, `[`, Enter) with exactly one new connection and one revision, the junction
-//! sequence editor popup driven by its keys, and the exact `Session` counts of the Wire tool in the window. The
+//! sequence editor popup driven by its keys, and the exact `Session` reads of the Wire tool in the window. The
 //! accessible-name walker runs after every step.
 
 mod support;
@@ -170,7 +170,8 @@ fn wr10_the_wire_tool_reads_nothing_while_the_cursor_moves_in_the_window() {
     assert_eq!(after.page_tables, calls.page_tables);
     assert_eq!(after.page_cps, calls.page_cps);
     assert_eq!(after.symbol_shape, calls.symbol_shape);
-    assert_eq!(after.preview_with, calls.preview_with);
+    // (Previews are not counted here: the window's dwell timer may fire between frames on a slow machine, a wall-clock
+    // matter ID-559 keeps out of the assertions; the view-model test counts them with the dwell as an action.)
     assert_eq!(
         after.commit + after.execute_with,
         calls.commit + calls.execute_with

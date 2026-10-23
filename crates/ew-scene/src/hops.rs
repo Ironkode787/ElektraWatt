@@ -5,7 +5,7 @@
 //! horizontal wire segment that properly crosses a vertical segment of another connection is drawn interrupted
 //! with a half circle above the crossing.
 //!
-//! # The rule ([`hop_paths`])
+//! # The rule ([`hops`], [`hop_path`])
 //!
 //! A crossing is *proper* when the point is interior to both segments (no shared end point, so a junction or a
 //! connection point there is never hopped) and the segments belong to different connections. For every horizontal
