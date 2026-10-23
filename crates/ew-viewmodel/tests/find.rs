@@ -529,6 +529,24 @@ fn closing_the_find_pane_drops_its_replace_card() {
     shell.shutdown();
 }
 
+/// A workspace reset removes the pane too (the schematic layout has no find pane): the card goes with it and
+/// `preview.apply` writes nothing.
+#[test]
+fn resetting_the_workspace_drops_the_find_card() {
+    let tmp = Tmp::new("find-reset-card");
+    let mut shell = writable(&tmp, "204");
+    spare(&mut shell, &["204", "205", "206"], "Reserve");
+    done(&mut shell, "find.replace_all", json!({}));
+    assert_eq!(state(&shell)["card"]["origin"], "find");
+    let rev = shell.revision();
+    done(&mut shell, "view.workspace_reset", json!({}));
+    assert!(!shell.find_shown());
+    assert_eq!(state(&shell)["card"], Value::Null);
+    let _ = shell.dispatch("preview.apply", &json!({}));
+    assert_eq!(shell.revision(), rev, "no replace is applied unseen");
+    shell.shutdown();
+}
+
 /// The card's `changes` counts the hits a replace changes, not every hit with a replacement: after 204's texts are
 /// "Reserve", the regular expression `^(Spare|Reserve)` finds those too, and the card counts only the Spare ones.
 #[test]

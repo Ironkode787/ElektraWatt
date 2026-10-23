@@ -186,6 +186,7 @@ impl ShellModel {
             self.layout_changed_at = Some(now);
             // A pane dragged out or in: the property grid fetches or drops its sheet (WP-S2.05 §6.9).
             self.sync_properties();
+            self.sync_find();
         }
     }
 

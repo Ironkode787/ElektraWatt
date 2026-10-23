@@ -1124,7 +1124,7 @@ NFR-SEC-19:
     features off; its licence for this version is Apache-2.0 OR MIT), svgtypes 0.16.1, simplecss 0.2.2, data-url
     0.3.2, imagesize 0.15.0 and pico-args 0.5.0 (MIT and/or Apache-2.0) join the graph through `ew-scene`, about
     279 KB of source, none with a build script. They carry **six "AI-performed, owner-delegated" `safe-to-deploy`
-    audits**, so the exemption count stays **387**; the owner confirms and owns these audits as with the earlier ones
+    audits**, so the exemption count stayed 387 at that point (the regex family below brings it to 386); the owner confirms and owns these audits as with the earlier ones
     (an owner item).
   - *The regex family* (cycle 26, WP-S2.05 part 2 fix round). `regex` 1.13.1 became a normal dependency of `ew-api`
     (`Session::find`), so it and `aho-corasick` 1.1.5, `regex-automata` 0.4.18 and `regex-syntax` 0.8.11 ship and need

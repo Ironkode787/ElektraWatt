@@ -48,6 +48,17 @@ impl ShellModel {
             self.find.row = None;
             self.find.note = None;
         }
+        // A replace card lives only while the pane that draws it is in the layout: whichever path removed the pane
+        // (find.close, a workspace reset or load, a dock drag) ends here, so Ctrl+Enter in the property grid cannot
+        // apply it unseen.
+        if !self.find_shown()
+            && self
+                .props
+                .card()
+                .is_some_and(|c| matches!(c.origin, CardOrigin::Find { .. }))
+        {
+            self.props.card = None;
+        }
     }
 
     /// The query the pane holds now: the replacement only in find-and-replace mode, the selection's records with "in
@@ -103,13 +114,6 @@ impl ShellModel {
     pub(super) fn act_find_close(&mut self) -> Outcome {
         let layout = self.layout.without(PaneKind::Find);
         self.replace_layout(layout);
-        if self
-            .props
-            .card()
-            .is_some_and(|c| matches!(c.origin, CardOrigin::Find { .. }))
-        {
-            self.props.card = None;
-        }
         if self.focus == Some(Focus::Find) {
             self.focus = self.area.as_ref().map(|a| Focus::Canvas(a.focused));
         }
@@ -460,6 +464,9 @@ impl ShellModel {
         let Some(rev) = self.revision() else {
             return Outcome::Done;
         };
+        if !self.find_shown() {
+            return Outcome::Done;
+        }
         let CardOrigin::Find { query, hits } = card.origin.clone() else {
             return Outcome::Done;
         };
