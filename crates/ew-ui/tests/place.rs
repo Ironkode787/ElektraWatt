@@ -8,8 +8,6 @@
 
 mod support;
 
-use std::time::Duration;
-
 use egui::{Key, Modifiers, Pos2};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
@@ -83,22 +81,15 @@ fn pl6_a_terminal_joins_x1031_from_the_keyboard_with_the_predicted_tag_after_the
     let ghost = h.state().shell().tool_ghost().expect("a ghost");
     assert!(format!("{ghost:?}").contains("terminal"), "{ghost:?}");
     // The window's dwell timer previews the command after 80 ms of rest; the ghost then shows the predicted tag.
-    let started = ew_render2d::stats::now();
-    let tag = loop {
-        h.run_ok();
-        if let Some(ew_ui::ew_viewmodel::tools::Ghost::Place { tag: Some(t), .. }) =
-            h.state().shell().tool_ghost()
-        {
-            break t;
-        }
-        assert!(
-            started.elapsed() < Duration::from_secs(5),
-            "no preview after the rest"
-        );
-        std::thread::sleep(Duration::from_millis(20));
+    // The rest is the action `canvas.dwell` (D11): dispatched as the window's dwell timer dispatches it, so the test
+    // reads no clock and sleeps nowhere (fix round, item 6; ID-559).
+    dispatch(&mut h, "canvas.dwell", json!({"ms": 80}));
+    settle(&mut h);
+    let Some(ew_ui::ew_viewmodel::tools::Ghost::Place { tag: Some(tag), .. }) =
+        h.state().shell().tool_ghost()
+    else {
+        panic!("no predicted tag after the rest");
     };
-    // (The test never dispatches `canvas.dwell`: the window's own timer did, after the cursor rested; no timing is
-    // asserted, the cycle-23 lesson.)
     assert!(h.state().shell().session_calls().preview_with >= 1);
     assert!(
         h.state()
@@ -234,5 +225,31 @@ fn pl8_exact_counts_of_place_move_and_the_picker_in_the_window() {
         opened,
         "the picker filters without a Session call"
     );
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// A double click with the Place tool places once: its second press is `tool.finish`, never a second press (fix
+/// round, item 8). The four button events arrive in one frame, so no clock and no sleep decide the double click.
+#[test]
+fn a_double_click_with_the_place_tool_places_once() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "101");
+    dispatch(&mut h, "place.pick", json!({"symbol": "ew.iec.mcb-1p@qet10"}));
+    settle(&mut h);
+    let before = reps(&h);
+    let (w, hh) = h.state().shell().canvas().unwrap().sheet();
+    let pos = screen(&h, (w * 3 / 4, hh * 3 / 4));
+    h.event(egui::Event::PointerMoved(pos));
+    for pressed in [true, false, true, false] {
+        h.event(egui::Event::PointerButton {
+            pos,
+            button: egui::PointerButton::Primary,
+            pressed,
+            modifiers: Modifiers::NONE,
+        });
+    }
+    settle(&mut h);
+    assert_eq!(reps(&h), before + 1, "one placement per double click");
+    assert_eq!(h.state().shell().tool().name(), "place");
     h.state_mut().shell_mut().shutdown();
 }
