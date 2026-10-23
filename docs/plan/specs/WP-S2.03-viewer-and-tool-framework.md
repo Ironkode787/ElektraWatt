@@ -688,6 +688,9 @@ canvas overlay 3 label "dx 12.700 dy 0.000 mm, 12.700 mm"  (one line per label; 
 canvas link preview "103"                                  (only while shown)
 ```
 
+*As built since cycle 26 (FT-422, decision log ID-630):* the selection is printed as aliases, unquoted
+(`canvas selection 2 @1 @2`), and the transcript's `selection` member holds the aliases (`["@1", "@2"]`), never UUIDs.
+
 The tool's label and hint and a failed preview's message are quoted user text. `VOCABULARY` gains `tool`, `state`,
 `idle`, `pressed`, `rubber-band`, `armed`, `measuring`, `hint`, `snap`, `cp`, `at`, `selection`, `stale`, `failed`,
 `tags`, `xrefs` and `overlay` (17 words; `label`, `preview`, `ready`, `none`, `grid` and `mm` exist, and `link` comes

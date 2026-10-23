@@ -911,8 +911,10 @@ canvas ghost paste records 7 at 254.000 101.600 mm dropped 1
    (headless), or none more until Apply; `find.run` makes exactly one `find` call and typing in the find pane none;
    `edit.paste_clip` makes exactly one `parse_fragment` call, ghost moves 0 `Session` calls, and a dwell that changes
    the anchor or the revision one `preview_with`. With the pane closed, 0 `property_sheet` calls.
-5. **No time values, paths, process IDs or UUIDs** in transcripts or describe text of this package. *Cycle 25 (ID-630):* part 1 masks
-   UUIDs as `‹id›`; the one grammar is the alias `@n` (FT-422), which replaces the mask when it lands.
+5. **No time values, paths, process IDs or UUIDs** in transcripts or describe text of this package. *As built (cycle 26,
+   FT-422; ID-630):* every UUID of a transcript line and of the describe text is printed as its alias `@n` (numbered by
+   first appearance in the run's output, the table in the shell model); `select.set` and the other UUID-valued action
+   parameters take `@n` back. Part 1's mask `‹id›` is gone.
 
 *As built (cycle 25, lane B's last fix; ID-626):* item 4's counts include `field_choices`: each changed buffer text in a choice editor
 makes one lookup, counted by `SessionCalls::field_choices`, and moving the highlight makes none.

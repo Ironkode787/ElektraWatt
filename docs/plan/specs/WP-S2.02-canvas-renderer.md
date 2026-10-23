@@ -349,6 +349,9 @@ canvas backend "CPU"
 canvas statistics shown                                      (only while the overlay is on)
 ```
 
+*As built since cycle 26 (FT-422, decision log ID-630):* the hovered entity is printed as its alias, unquoted
+(`canvas hover @4 box …`), and the transcript's `hover` member holds the alias (`"@4"`), never the UUID.
+
 `VOCABULARY` gains `canvas`, `zoom`, `view`, `grid`, `pointer`, `hover`, `box`, `mm`, `none`, `backend` and
 `statistics` (ID-474, ID-493: a reviewed vocabulary change; the grid label and the backend label are quoted user text,
 so backend names never enter the vocabulary). FT-314's harness help lists them.
