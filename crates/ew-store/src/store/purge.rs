@@ -17,7 +17,8 @@
 //! list names every asset and does not count. Files are read in chunks of 1 MiB with a 63-byte overlap, so a large
 //! foreign file is never held whole.
 //!
-//! **Refusals.** A read-only session; quarantined lines (a line EW cannot read might name an asset in a form the scan
+//! **Refusals.** The purge, not its plan: a read-only session (the plan, a preview, also works in a read-only session,
+//! so `ew project assets purge --preview` runs beside an open editor and changes nothing on disk). Both: quarantined lines (a line EW cannot read might name an asset in a form the scan
 //! misses only if it is not text, so the purge waits for the repair); unsaved steps in the journal or a model that is
 //! not the saved one (purge only a saved, journal-free session); a leftover journal of a crashed session (its unsaved
 //! steps may name an asset whose bytes it did not journal because the file was on disk); an incomplete save; a
@@ -185,9 +186,6 @@ fn scan_file(
 impl Store {
     /// The refusals of a purge that do not need the disk scan (module documentation).
     fn purge_refusal(&self) -> Option<PurgeError> {
-        if let Access::ReadOnly(reason) = &self.access {
-            return Some(PurgeError::ReadOnly(reason.clone()));
-        }
         if let Some(g) = self.pending {
             return Some(PurgeError::Incomplete(g));
         }
@@ -339,6 +337,9 @@ impl Store {
         keep: &BTreeSet<Sha256>,
         only: Option<&BTreeSet<Sha256>>,
     ) -> Result<(PurgePlan, SaveReport), PurgeError> {
+        if let Access::ReadOnly(reason) = &self.access {
+            return Err(PurgeError::ReadOnly(reason.clone()));
+        }
         let mut plan = self.purge_plan(keep)?;
         if let Some(only) = only {
             let found = plan.hashes();

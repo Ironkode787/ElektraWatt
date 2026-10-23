@@ -179,6 +179,11 @@ impl Preview {
         &self.command
     }
 
+    /// The origin the preview was submitted from (its exposure was judged by it).
+    pub fn origin(&self) -> &Origin {
+        &self.submit.origin
+    }
+
     /// The command's outcome.
     pub fn outcome(&self) -> &Outcome {
         &self.outcome

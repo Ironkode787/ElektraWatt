@@ -34,7 +34,9 @@ pub trait Vfs: Send + Sync + fmt::Debug {
     /// The whole content of a regular file.
     fn read(&self, path: &Path) -> io::Result<Vec<u8>>;
     /// Up to `len` bytes of a regular file from byte `offset` (fewer at its end, none past it): the chunked reads of
-    /// a scan that must not hold a whole file in memory (the asset purge, FT-380). The default reads the whole file.
+    /// a scan that must not hold a whole file in memory (the asset purge, FT-380). The default reads the whole file
+    /// for every call, so a chunked scan through it is quadratic in the file's size: acceptable for the in-memory
+    /// test file system, which uses it; [`OsVfs`] overrides it with a seek and a bounded read.
     fn read_at(&self, path: &Path, offset: u64, len: usize) -> io::Result<Vec<u8>> {
         let all = self.read(path)?;
         let start = usize::try_from(offset).unwrap_or(usize::MAX).min(all.len());

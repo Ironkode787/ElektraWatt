@@ -794,7 +794,7 @@ impl Scan {
         if self.css_comments > 64 || self.drop_shadows > 16 || (self.css_marker && self.markers) {
             return Some(SvgHazard::TooComplex);
         }
-        if chain_cycle(&self.chains) {
+        if chain_hazard(&self.chains) {
             return Some(SvgHazard::TooComplex);
         }
         // The graph: node k, plus the style-sheet node (index n) whose edges go to every style-sheet target.
@@ -872,29 +872,39 @@ impl Scan {
     }
 }
 
-/// Whether the `href` chains of gradients, patterns and filters (id to target) hold a cycle: each id has at most one
-/// link, so a walk from every id that meets an id of its own walk is a cycle (linear in the number of ids).
-fn chain_cycle(chains: &std::collections::BTreeMap<String, String>) -> bool {
-    // 0: not seen, 1: on the current walk, 2: known to end.
-    let mut state: std::collections::BTreeMap<&str, u8> = std::collections::BTreeMap::new();
+/// Whether the `href` chains of gradients, patterns and filters (id to target) hold a cycle or a chain of more than
+/// [`MAX_SVG_REF_DEPTH`] elements: the parser walks a chain once per attribute of each element on it (without
+/// recursion), so a long cycle-free chain costs the square of its length (review round 2), and a cycle that returns
+/// to neither end never ends (review fix 5). Each id has at most one link: one walk per id, each id finished once
+/// with the length of its chain, so the whole check is linear in the number of ids.
+fn chain_hazard(chains: &std::collections::BTreeMap<String, String>) -> bool {
+    // The length (elements, itself included) of the chain from each finished id; `None` while on the current walk.
+    let mut length: std::collections::BTreeMap<&str, Option<usize>> = std::collections::BTreeMap::new();
     for start in chains.keys() {
         let mut walk: Vec<&str> = Vec::new();
         let mut at = start.as_str();
-        loop {
-            match state.get(at).copied().unwrap_or(0) {
-                1 => return true,
-                2 => break,
-                _ => {}
+        // The length of the chain after the walk's last element.
+        let tail = loop {
+            match length.get(at) {
+                Some(None) => return true,
+                Some(Some(n)) => break *n,
+                None => {}
             }
-            state.insert(at, 1);
+            length.insert(at, None);
             walk.push(at);
             match chains.get(at) {
                 Some(next) => at = next.as_str(),
-                None => break,
+                // The last element of the chain (its target, or an id without a link): one more element.
+                None => break 0,
             }
-        }
-        for id in walk {
-            state.insert(id, 2);
+        };
+        let mut n = tail;
+        for id in walk.into_iter().rev() {
+            n += 1;
+            if n > MAX_SVG_REF_DEPTH {
+                return true;
+            }
+            length.insert(id, Some(n));
         }
     }
     false
@@ -1525,6 +1535,32 @@ mod tests {
         for text in &fine {
             assert_eq!(svg_hazard(text.as_bytes()), None, "{text}");
         }
+    }
+
+    /// Review round 2: a cycle-free gradient chain longer than `MAX_SVG_REF_DEPTH` is refused (usvg walks it once per
+    /// attribute of each gradient, so its work grows with the square of the chain); a shorter one passes.
+    #[test]
+    fn long_gradient_chains_are_refused() {
+        let chain = |n: usize| {
+            let mut svg = String::from(r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4">"#);
+            svg.push_str(r#"<linearGradient id="g0"><stop offset="0"/></linearGradient>"#);
+            for k in 1..n {
+                svg.push_str(&format!(r##"<linearGradient id="g{k}" href="#g{}"/>"##, k - 1));
+            }
+            svg.push_str(&format!(
+                r##"<rect width="4" height="4" fill="url(#g{})"/></svg>"##,
+                n - 1
+            ));
+            svg
+        };
+        assert_eq!(MAX_SVG_REF_DEPTH, 32);
+        assert_eq!(
+            svg_hazard(chain(33).as_bytes()),
+            Some(SvgHazard::TooComplex),
+            "33 gradients"
+        );
+        assert_eq!(svg_hazard(chain(31).as_bytes()), None, "31 gradients");
+        assert_eq!(svg_hazard(chain(32).as_bytes()), None, "32 gradients, the bound");
     }
 
     #[test]

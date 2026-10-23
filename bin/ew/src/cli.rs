@@ -1238,12 +1238,23 @@ fn run_assets_purge_with(
     let Some(dir) = project_dir(a.project.as_ref()) else {
         return 2;
     };
-    // The confirmed origin is used only after the word is typed: nothing is submitted before.
-    let origin = ew_api::Origin::Cli {
-        subcommand: "project assets purge".to_owned(),
-        confirmed: !a.preview,
+    // The preview is a reader: no lock, no roll-forward, no journal, nothing written, so it runs beside an open
+    // editor. The purge opens for writing with the confirmed origin, used only after the word is typed.
+    let opened = if a.preview {
+        ew_api::Session::open_reader(&dir, env!("CARGO_PKG_VERSION"), "project assets purge")
+            .map(|(s, _)| s)
+            .map_err(|e| {
+                eprintln!("error: {}: {e}", dir.display());
+                2
+            })
+    } else {
+        let origin = ew_api::Origin::Cli {
+            subcommand: "project assets purge".to_owned(),
+            confirmed: true,
+        };
+        open_for_writing_with(&dir, origin, store)
     };
-    let mut session = match open_for_writing_with(&dir, origin, store) {
+    let mut session = match opened {
         Ok(s) => s,
         Err(code) => return code,
     };
@@ -2163,6 +2174,24 @@ mod assets_purge_tests {
             "{shown}"
         );
         assert_eq!(assets(&dir), 2, "the preview changes nothing");
+        // The preview is a reader: it runs while an editor holds the project's lock, and leaves the lock alone.
+        let (editor, _) = ew_api::Session::open(
+            &dir,
+            store(),
+            ew_api::SessionOptions::default(),
+            ew_api::Recovery::Keep,
+        )
+        .unwrap();
+        let lock = std::fs::read(dir.join(".~ew.lock")).unwrap();
+        let (code, shown) = purge(&dir, true, false, "");
+        assert_eq!(code, 0, "{shown}");
+        assert!(shown.starts_with("remove assets/"), "{shown}");
+        assert_eq!(
+            std::fs::read(dir.join(".~ew.lock")).unwrap(),
+            lock,
+            "the editor's lock is untouched"
+        );
+        editor.close();
 
         let (code, shown) = purge(&dir, false, false, "purge\n");
         assert_eq!(code, 2, "off a terminal");

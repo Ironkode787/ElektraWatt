@@ -181,10 +181,12 @@ fn a_purge_is_refused_unless_the_session_is_saved_and_clean() {
     let (vfs, _) = four_assets(DirSync::Explicit);
     // Read-only: another session holds the lock.
     let held = reopen(&vfs, 2);
-    let other = Store::open(&root(), options(&vfs, 3)).expect("opens read-only");
+    let mut other = Store::open(&root(), options(&vfs, 3)).expect("opens read-only");
     assert!(matches!(other.report.access, Access::ReadOnly(_)));
+    // The plan is a preview: it works read-only; the purge does not.
+    assert_eq!(other.store.purge_plan(&BTreeSet::new()).unwrap().remove.len(), 1);
     assert!(matches!(
-        other.store.purge_plan(&BTreeSet::new()),
+        other.store.purge(&other.model, &BTreeSet::new(), None),
         Err(PurgeError::ReadOnly(_))
     ));
     drop(other);

@@ -950,6 +950,16 @@ impl Session {
         let cmd: PurgeAssets = serde_json::from_value(preview.command().params.clone())
             .map_err(|e| CmdError::invalid_params(PurgeAssets::NAME, "", e.to_string()))?;
         let listed = cmd.listed()?;
+        // `HumanOnly`, judged by the preview's own origin too (the session's is judged in `purge_files`), so that the
+        // guard does not rest on the engine refusing a non-human preview before it exists.
+        let exposure = <PurgeAssets as ew_commands::Command>::meta().exposure;
+        if !exposure.allows(preview.origin()) {
+            return Err(CmdError::Exposure {
+                command: PurgeAssets::NAME.into(),
+                exposure,
+                origin: preview.origin().clone(),
+            });
+        }
         drop(preview);
         match self.purge_files(listed.as_ref()) {
             Ok((_, _, receipt)) => receipt,
