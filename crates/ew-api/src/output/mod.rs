@@ -55,8 +55,8 @@ use ew_scene::page::PageFinding;
 use sha2::{Digest, Sha256};
 
 pub use editing::{
-    CataloguePart, CatalogueStrip, CatalogueSymbol, CatalogueTemplateFn, OUTLINE_TOLERANCE_NM, PageTables,
-    PlaceCatalogue, ShapeCp, SymbolShape, TableBox, TableConnection, TableCp, TableEnd, TableIp,
+    CataloguePart, CatalogueStrip, CatalogueSymbol, CatalogueTemplateFn, JunctionWire, OUTLINE_TOLERANCE_NM,
+    PageTables, PlaceCatalogue, ShapeCp, SymbolShape, TableBox, TableConnection, TableCp, TableEnd, TableIp,
     TableJunction, TableRep,
 };
 /// The display-list IR the pages of an export are made of ([`ExportPages`]' `content`), re-exported so that the

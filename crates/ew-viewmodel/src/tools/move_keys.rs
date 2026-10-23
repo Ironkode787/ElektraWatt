@@ -110,7 +110,7 @@ pub fn move_overlay(cx: &ToolCx<'_>, moved: &[EntityRef], steps: (i64, i64)) -> 
     };
     for c in &tables.connections {
         let (da, db) = (end_delta(&c.a), end_delta(&c.b));
-        let snap = |v: i64| cx.snapper.page_of_index(cx.snapper.grid_index_of(v));
+        let snap = |v: i64| grid_point_of(cx.snapper.grid(), v);
         let line: Vec<(i64, i64)> = match (da, db) {
             (None, None) => continue,
             // Both ends moved: drawn translated (§6.7).
@@ -136,6 +136,22 @@ pub fn move_overlay(cx: &ToolCx<'_>, moved: &[EntityRef], steps: (i64, i64)) -> 
         });
     }
     Overlay::new(items)
+}
+
+/// `num / den` rounded to the nearest integer, exact ties toward zero (`den > 0`): `ew_units::Grid`'s rule.
+fn div_round_toward_zero(num: i128, den: i128) -> i128 {
+    let q = num / den;
+    let r = num % den;
+    if 2 * r.abs() > den { q + num.signum() } else { q }
+}
+
+/// The grid coordinate nearest the page coordinate `v` on the grid `(num, den)`, exactly as `ew_units::Grid::snap_point`
+/// computes it (ties toward zero), so a dog-leg drawn here lands where the command puts it.
+pub fn grid_point_of(grid: (i64, i64), v: i64) -> i64 {
+    let (num, den) = (i128::from(grid.0.max(1)), i128::from(grid.1.max(1)));
+    let k = div_round_toward_zero(i128::from(v) * den, num);
+    let p = div_round_toward_zero(k * num, den);
+    i64::try_from(p).unwrap_or(if p < 0 { i64::MIN } else { i64::MAX })
 }
 
 /// `geometry::follow_ends` of `ew-commands` on a page polyline (FT-423): end `a` moves by `da`, end `b` by `db`

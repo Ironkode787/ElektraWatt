@@ -65,6 +65,8 @@ pub mod geometry;
 pub mod import;
 mod new_project;
 pub mod output;
+// WP-S2.04 part 2: the router the canvas tools call (§4.3, §8.1).
+pub mod routing;
 pub mod verify;
 
 use std::collections::BTreeSet;

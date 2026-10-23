@@ -348,3 +348,38 @@ fn the_catalogue_lists_the_strips_with_their_next_designation_and_sequence_numbe
     assert_eq!(cat.strips[0].next_seq, 1);
     assert!(cat.strips[0].tag.contains("X7"), "{}", cat.strips[0].tag);
 }
+
+/// WP-S2.04 §4.3 (part 2): the physical wires through a junction, for the junction sequence editor (WR7). On folio
+/// 101 of Golden A, J1 carries the wires from F55:2 to E55:L and to E56:X2 (golden W13 and W14), J2 those from
+/// F55:N#2 to T55:5 and to S56:13 (W15, W16); each prints its derived number.
+#[test]
+fn the_physical_wires_through_a_junction_name_their_numbers_and_ends() {
+    let s = golden();
+    let tables = s.page_tables("101").unwrap();
+    assert_eq!(tables.junctions.len(), 2);
+    let mut seen = Vec::new();
+    for j in &tables.junctions {
+        let wires = s.junction_wires(j.id);
+        let mut ends: Vec<String> = wires
+            .iter()
+            .map(|w| {
+                assert!(w.label.starts_with("101."), "{w:?}");
+                let mut pair = [w.from.clone(), w.to.clone()];
+                pair.sort();
+                pair.join(" ")
+            })
+            .collect();
+        ends.sort();
+        seen.push(ends.join(" | "));
+    }
+    seen.sort();
+    assert_eq!(
+        seen,
+        vec![
+            "E55:L F55:2 | E56:X2 F55:2".to_owned(),
+            "F55:N#2 S56:13 | F55:N#2 T55:5".to_owned()
+        ]
+    );
+    // An unknown junction has none.
+    assert!(s.junction_wires(Uuid::from_u128(7)).is_empty());
+}

@@ -22,16 +22,17 @@ use ew_derive::ew_ids::{Id, Uuid, v5};
 use ew_derive::ew_rds::IdentifierSet;
 use ew_derive::ew_schema::{
     ConnectionKind, ContactKind, Device, Dir4, Endpoint, FnDef, Function, FunctionKind, IpDirection,
-    JunctionStyle, JunctionWiring, LibCopy, LibDocument, LibRef, Page, Part, RepType, Representation,
-    SymbolDef,
+    Junction, JunctionStyle, JunctionWiring, LibCopy, LibDocument, LibRef, Page, Part, RepType,
+    Representation, SymbolDef,
 };
 use ew_derive::ew_units::{Nm, Orient2, Pt2, Rect};
 use ew_derive::{
-    CpRef, DisplayedTag, FunctionCps, PageOrder, PageRef, PotentialNameOf, PotentialPartition, Q, cp_label,
-    cp_point, manufacturer_name,
+    CpRef, DisplayedTag, FunctionCps, PageOrder, PageRef, PhysicalWiresOf, PotentialNameOf,
+    PotentialPartition, Q, WireNumbers, cp_label, cp_point, manufacturer_name,
 };
 use ew_dl::{ItemKind, PathEl};
 use ew_library::starter::{self, StarterKind};
+use ew_model::EndpointKey;
 use ew_scene::forms::FrameGeometry;
 use ew_scene::page::DEFAULT_SHEET;
 use ew_scene::route::{RouteEnd, connection_polyline};
@@ -1148,6 +1149,51 @@ impl Session {
             connections,
             junctions,
         })
+    }
+}
+
+// -------------------------------------------------------------------------------------------------------------------
+// The physical wires through a junction (WP-S2.04 part 2, §4.3, §8.5)
+
+/// One physical wire through a junction, as the junction sequence editor lists it.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct JunctionWire {
+    /// The printed wire number (`W13`, `102.5`), `?` while it has none.
+    pub label: String,
+    /// The CP label of the wire's first end (`-102G1:+#1`).
+    pub from: String,
+    /// The CP label of its second end.
+    pub to: String,
+}
+
+impl Session {
+    /// The physical wires through `junction` (`physical_wires_of` of its potential, the wires whose path passes the
+    /// junction, doc 06 §5.5), in wire order: the printed number and the CP labels of both ends. Empty for an unknown
+    /// junction or one on no potential. Reads memoised families only.
+    pub fn junction_wires(&self, junction: Uuid) -> Vec<JunctionWire> {
+        let q = self.query();
+        let j: Id<Junction> = Id::from_uuid(junction);
+        if q.junctions().get(j).is_none() {
+            return Vec::new();
+        }
+        let partition = q.get::<PotentialPartition>(());
+        let Some(potential) = partition.potential_at(EndpointKey::Junction(j)).map(|p| p.id) else {
+            return Vec::new();
+        };
+        let wires = q.get::<PhysicalWiresOf>(potential);
+        let numbers = q.get::<WireNumbers>(());
+        wires
+            .wires
+            .iter()
+            .filter(|w| w.junctions.contains(&j))
+            .map(|w| JunctionWire {
+                label: numbers
+                    .number(w.id)
+                    .map_or_else(|| "?".to_owned(), |n| n.label.clone()),
+                from: cp_label(&q, w.ends[0].cp),
+                to: cp_label(&q, w.ends[1].cp),
+            })
+            .collect()
     }
 }
 

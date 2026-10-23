@@ -76,6 +76,7 @@ pub mod normalise;
 pub mod numbering;
 mod proxy;
 mod registry;
+pub mod route;
 #[cfg(feature = "testkit")]
 pub mod rows;
 #[cfg(not(feature = "testkit"))]
