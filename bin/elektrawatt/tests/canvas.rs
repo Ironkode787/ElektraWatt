@@ -1133,6 +1133,35 @@ mod folio_scripts {
         out
     }
 
+    /// The devices and functions of a session as canonical JSON with their IDs left out (§12 item 2: equal records,
+    /// IDs aside): a device's record without its `id`; a function's without its `id` and with its device replaced by
+    /// that device's canonical text. Sorted.
+    fn records_of(s: &Session) -> (Vec<String>, Vec<String>) {
+        let q = s.query();
+        let mut device_text = std::collections::BTreeMap::new();
+        let mut devices = Vec::new();
+        for (id, d) in q.devices().iter() {
+            let mut v = serde_json::to_value(&**d).unwrap();
+            v.as_object_mut().unwrap().remove("id");
+            let text = v.to_string();
+            device_text.insert(id.to_string(), text.clone());
+            devices.push(text);
+        }
+        let mut functions = Vec::new();
+        for (_, f) in q.functions().iter() {
+            let mut v = serde_json::to_value(&**f).unwrap();
+            let o = v.as_object_mut().unwrap();
+            o.remove("id");
+            if let Some(Value::String(d)) = o.get("device").cloned() {
+                o.insert("device".into(), Value::String(device_text[&d].clone()));
+            }
+            functions.push(v.to_string());
+        }
+        devices.sort();
+        functions.sort();
+        (devices, functions)
+    }
+
     #[test]
     fn folio_101_is_placed_by_a_generated_script_twice_identically_and_replays() {
         let tmp = Tmp::new();
@@ -1246,6 +1275,15 @@ mod folio_scripts {
             replayed, placed,
             "the replay's records equal the scripted session's"
         );
+        // The devices (tags, parts, terminal aspects) and functions too, IDs aside (fix round, item 7).
+        let (scripted, _) = Session::open_read_only(&tmp.path("a").join("folio.ew"), "test").unwrap();
+        let (devices, functions) = records_of(&scripted);
+        assert_eq!(records_of(&s), (devices.clone(), functions.clone()));
+        assert!(
+            devices.iter().filter(|d| d.contains("\"terminal\":{")).count() >= 3,
+            "the terminals"
+        );
+        assert!(functions.len() >= 17);
         s.close();
     }
 }
