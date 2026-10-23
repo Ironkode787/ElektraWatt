@@ -373,7 +373,9 @@ project's asset store ([05](05-project-format-and-persistence.md) §13.3), at mo
 block's logo cell takes the image by that reference, and the display list places it (so the wizard's preview shows the
 logo on the sample's cover). *As built (cycle 24; FT-383, FT-384, decision log ID-605):* SVG logos are drawn as vector paths by the CPU renderer, the PDF writer, the SVG writer and the viewer (the export job resolves them before any writer runs); PNG is drawn on the CPU path; the SVG writer embeds PNG and JPEG; JPEG on the CPU path and rasters in the PDF are FT-406; an SVG is
 drawn only after `svg_hazard`'s checks (18 §11.1 TM-18), in usvg's drawn subset ([05](05-project-format-and-persistence.md)
-§13.3). A raster logo (PNG, JPEG) prints rasterised, an SVG as vectors.
+§13.3). A raster logo (PNG, JPEG) prints rasterised, an SVG as vectors. An image that an export cannot draw (a missing
+asset, or one the sniff refuses) is reported as `PageFinding::Image` in the export's findings, never dropped silently
+(ID-620).
 
 **The current revision** is the project's open revision; without one, its newest released revision. Withdrawn
 revisions and the `Withdrawn` records that point to them are ignored, and among several candidates of the same state

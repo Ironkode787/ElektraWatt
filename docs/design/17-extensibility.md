@@ -1,6 +1,6 @@
 # Extensibility: CLI, scripting, SQL, plugins and agents
 
-**Status:** Draft v0.4 · **Date:** 2026-10-24 (cycle-24 design pass: `project.assets.purge` and its CLI, 43 commands, §2.1, §2.3, §3.3, decision log ID-605; `ew check`'s scheme from the project, §3.3, decision log ID-602; the undo and redo `HumanOnly` gap and its fix route, §2.3, §4, decision log ID-603; 2026-10-23: cycle-23 design pass: the amended `report_block.create` (`form_copies`) and `project.company.set` (`logo`) and the specified catalogue of WP-S2.04, §2.1, §2.3, decision log ID-567, ID-572 to ID-574; 2026-10-22: cycle-22 design pass: `project.checks.set`, the first registered `HumanOnly` command, its CLI subcommand with the typed terminal confirmation (FT-369) and the 42 commands, §2.3, §3.3, decision log ID-545, ID-546; v0.4: cycle-13 design pass: the SQL projection v0 as built, §3.4, §6.1, §6.2; v0.3: cycle-12 design pass: `ew check` as built, §3.1, §3.3; `tag:` and `folio:` references, §3.5; Session v0, §4; v0.2: cycle-11 design pass: `project.settings.set` and its exposure, §2.1, §2.3; the command log as built, §3.5; `ew import qet` as built, §3.2, §3.3) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.4 · **Date:** 2026-10-24 (cycle-24 design pass: `project.assets.purge`, `HumanOnly`, and its confirmed CLI, 43 commands, §2.1, §2.3, §3.3, decision log ID-605; `ew check`'s scheme from the project, §3.3, decision log ID-602; the undo and redo `HumanOnly` gap and its fix route, §2.3, §4, decision log ID-603; 2026-10-23: cycle-23 design pass: the amended `report_block.create` (`form_copies`) and `project.company.set` (`logo`) and the specified catalogue of WP-S2.04, §2.1, §2.3, decision log ID-567, ID-572 to ID-574; 2026-10-22: cycle-22 design pass: `project.checks.set`, the first registered `HumanOnly` command, its CLI subcommand with the typed terminal confirmation (FT-369) and the 42 commands, §2.3, §3.3, decision log ID-545, ID-546; v0.4: cycle-13 design pass: the SQL projection v0 as built, §3.4, §6.1, §6.2; v0.3: cycle-12 design pass: `ew check` as built, §3.1, §3.3; `tag:` and `folio:` references, §3.5; Session v0, §4; v0.2: cycle-11 design pass: `project.settings.set` and its exposure, §2.1, §2.3; the command log as built, §3.5; `ew import qet` as built, §3.2, §3.3) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies every way to drive, extend or query ElektraWatt (EW) other than the GUI: the
 `ew` command-line tool, the headless `Session` API behind it, rhai formulas, rules and automation scripts, the
@@ -210,11 +210,14 @@ unchanged.
   rasterised (D-07). The command stays `Edit`, `Bulk` and undoable in one step; undo keeps the asset in the store.
   Since cycle 24 the renderers draw an SVG logo, and the CPU path a PNG one (FT-384; [05](05-project-format-and-persistence.md) §13.3).
 
-**`project.assets.purge`** (as built, cycle 24, FT-380; decision log ID-605): the 43rd command. Exposure `Edit`, cost
-`Bulk`, a **non-undoable marker line** (ADR-0008 amendment 1) with a `Destructive` confirmation in the GUI; the file
-side runs in the `Session` (`purge_preview` lists, `purge_assets` deletes through the save protocol's removal list),
-under the rules of [05](05-project-format-and-persistence.md) §13.3. On the command line it is
-`ew project assets purge` (§3.3).
+**`project.assets.purge`** (as built, cycle 24, FT-380 and lane C's fix round; decision log ID-605, ID-620): the 43rd
+command. Exposure **`HumanOnly`** (owner ruling, ID-620: `Confirmation::Destructive` is metadata only, so as `Edit` it
+could have run from `ew apply`, MCP or a plugin), cost `Bulk`, a **non-undoable marker line** (ADR-0008 amendment 1);
+the file side runs in the `Session` (`purge_preview` lists, `purge_assets` deletes through the save protocol's removal
+list), which checks its own origin before touching any file (`PurgeError::HumanOnly`), under the rules of
+[05](05-project-format-and-persistence.md) §13.3. On the command line it is `ew project assets purge` (§3.3); the GUI
+step is FT-417. The builder DSL has no verb for it; the fuzzer keeps its arm (one arm per registered command), because
+the fuzz session submits as the GUI, which `HumanOnly` admits, as for `project.checks.set`.
 
 **Specified, not built: the catalogue of WP-S2.04** (decision log ID-567; the specification
 `docs/plan/specs/WP-S2.04-placement-wiring-drawing-tools.md`, "Specified, cycle 23"). When its parts land, the
@@ -333,8 +336,8 @@ after the typed confirmation above arrive with the CLI work package (WP-S1.22). 
 registered at the cycle-22 tip, 41 `Edit` and one `HumanOnly` (`project.checks.set`, above); the four commands of FT-336
 (`project.company.set`, `project.frames.set`, `project.languages.set`, `project.checks.set`) took the count from 38 to 42.
 *Cycle 23:* the count is still 42; the two amended commands of §2.1 add optional members only, and WP-S2.04 specifies
-eight more (42 to 50), none built. *Cycle 24:* `project.assets.purge` makes 43 (42 `Edit` and one `HumanOnly`), so
-WP-S2.04's eight would make 51 (FT-380, ID-605).
+eight more (42 to 50), none built. *Cycle 24:* `project.assets.purge` makes 43, **41 `Edit` and two `HumanOnly`**
+(`project.checks.set` and `project.assets.purge`, ID-620), so WP-S2.04's eight would make 51 (FT-380, ID-605).
 The first `HumanOnly` command has shipped, and `undo` must refuse a `HumanOnly` step from a script, MCP, plugin or
 Python origin (§4). *Cycle 24 (FT-366's verification; decision log ID-603):* it does **not** yet: `Engine::undo` and
 `Session::undo` take no origin and the exposure check lives only in command dispatch, so a scripted undo or redo can
@@ -471,7 +474,7 @@ driver exits 0 (clean), 1 (conflict records written) or 129 for a caught interna
 | | `ew diff [<from>] [<to>] [--queries …] [--json]`, `ew diff --textconv <file>` | Entity diff with derived tags | MVP | FR-COL-013 |
 | | `ew diff <a.ewpp> <b.ewpp> --wires` | Package mode: the wire change list between two production packages ([13](13-manufacturing-outputs.md) §3.5) | 1.0 | FR-MFG-004 |
 | | `ew merge-driver %O %A %B %L %P`, `ew merge resolve` | Git merge driver ([05](05-project-format-and-persistence.md) §11.1) | MVP (Should) / 1.0 | FR-COL-014 |
-| Project | `ew project assets purge [<project-dir>] [--preview]` (as built in cycle 24, FT-380; decision log ID-605) | Lists (`--preview`) or deletes the asset files no project file and no undo entry names, through `project.assets.purge` and the save protocol's removal list ([05](05-project-format-and-persistence.md) §13.3). **Ruling (orchestrator):** the deleting form confirms like the `HumanOnly` CLI path of §2.3: a word typed on a terminal, no yes-flag, exit 2 off a terminal (the lane's fix round) | MVP | FR-EXT-030 |
+| Project | `ew project assets purge [<project-dir>] [--preview]` (`HumanOnly`, §2.3; as built in cycle 24, FT-380 and lane C's fix round; decision log ID-605, ID-620) | Deletes, through `project.assets.purge` and the save protocol's removal list, the asset files that no record, no project file and no undo entry names ([05](05-project-format-and-persistence.md) §13.3). It checks for a terminal first and exits 2 without one, before the project is opened; it prints the file list and asks for the typed word `purge`; a wrong word exits 1 and deletes nothing; there is no yes-flag. `--preview` only lists and needs no terminal | MVP | FR-EXT-030 |
 | Project | `ew project checks set [<project-dir>] [--active <scheme>] [--release <scheme>]` (`HumanOnly`, §2.3; as built in cycle 22) | Sets the active and release check schemes through `project.checks.set` after the scheme's name is typed on the controlling terminal. A scheme that does not ship exits 1 without asking; no terminal exits 2 before the project is opened; a wrong answer exits 1 and changes nothing; no scheme, `--confirm` or `--yes` is a usage error (exit 2) | MVP | FR-EXT-030 |
 | Revisions | `ew revision approve --as <party>`, `ew revision release <label>`, `ew revision withdraw <label> --reason <text>` (all `HumanOnly`, §2.3); `ew archive verify\|rebuild` (1.0) | [05](05-project-format-and-persistence.md) §14, [15](15-checks-revisions-collaboration.md) §5.4–§5.10 | MVP / 1.0 | FR-REV-005, FR-REV-006 |
 | | `ew waiver list` (MVP); `ew waiver add <rule> --target <tag\|id:…> --reason <text>`, `ew waiver remove <id>` (1.0, `HumanOnly`) | Waivers without the GUI ([15](15-checks-revisions-collaboration.md) §2.5) | MVP / 1.0 | FR-CHK-009 |

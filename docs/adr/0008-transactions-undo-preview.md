@@ -1,6 +1,6 @@
 # ADR-0008: Transactions, undo/redo and preview-as-fork
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-21 (the first command that edits project settings), 2026-10-22 (the transaction-read rule), 2026-10-23 (a transaction carries assets), 2026-10-24 (amendment 3's `HumanOnly` rule covers undo and redo, and amendment 5's purge as a marker line, notes) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-21 (the first command that edits project settings), 2026-10-22 (the transaction-read rule), 2026-10-23 (a transaction carries assets), 2026-10-24 (amendment 3's `HumanOnly` rule covers undo and redo, and amendment 5's purge as a `HumanOnly` marker line, notes) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -170,10 +170,16 @@ these entries refine it.
      nothing.
    - **Undo keeps assets.** Undo and redo move references, never bytes: the model keeps every asset it was given for the
      session, so undoing a logo change restores the reference with its bytes. A save never removes an asset file
-     (cleanup is an explicit, previewed purge, FT-380). *Note (2026-10-24, decision log ID-605):* the purge is built as
-     `project.assets.purge`, a `Bulk`, **non-undoable marker line** in the sense of amendment 1 (it deletes files, not
-     rows), exposure `Edit` with a `Destructive` confirmation in the GUI; it refuses while any undo or redo entry, any
-     project file or an unsaved step names the hash, so no undo can need a purged asset.
+     (cleanup is an explicit, previewed purge, FT-380). *Note (2026-10-24, project owner (delegated) on lane C's
+     review; decision log ID-605, ID-620):* the purge is built as `project.assets.purge`, a `Bulk`, **non-undoable
+     marker line** in the sense of amendment 1 (it deletes files, not rows), and it is **`HumanOnly`** in the sense of
+     amendment 3, not `Edit` with a `Destructive` confirmation: `Confirmation::Destructive` is metadata that no
+     dispatch path enforces, so `ew apply`, MCP and plugins could otherwise purge unattended, against the "explicit,
+     previewed purge" of [project format](../design/05-project-format-and-persistence.md) §13.3. The `Session` checks
+     the origin itself before it touches any file (`PurgeError::HumanOnly`); the CLI confirms with a typed word
+     ([extensibility](../design/17-extensibility.md) §3.3); the GUI step is FT-417. It refuses while any undo or redo
+     entry, any project file, any record as the next save would write it or an unsaved step names the hash, and it
+     re-hashes each file before deleting it, so no undo can need a purged asset.
    - **Dirty and journal.** A transaction whose only content is an asset (no ops) still marks the project dirty and is
      journalled; the journal carries every asset the model after the transaction names unless it is on disk or already
      in the segment (base64 at the 512 KiB logo bound; side files later, FT-381). A damaged journal asset is a recovery
