@@ -118,7 +118,19 @@ pub struct FindResults {
     command: Option<Value>,
 }
 
+impl FindHit {
+    /// Whether a replace changes this hit's string: it has an `after` that differs from `before`.
+    pub fn changes(&self) -> bool {
+        self.after.as_deref().is_some_and(|after| after != self.before)
+    }
+}
+
 impl FindResults {
+    /// How many hits a replace changes ([`FindHit::changes`]); the replace card's count.
+    pub fn changes(&self) -> usize {
+        self.hits.iter().filter(|h| h.changes()).count()
+    }
+
     /// The parameters of the one `fields.set_many` that writes every replaceable hit's `after` (§7.1): one entry per
     /// (kind, path, value) holding every record that gets that value, entries ordered by (kind rank, path, first
     /// target ID); hits on one record and member are merged into one value first. `None` when no hit has `after`,
@@ -292,7 +304,7 @@ impl Matcher {
     }
 }
 
-/// `text` with each matched range replaced by its replacement.
+/// `text` with each matched range replaced by its replacement, in NFC (the replacement text is as typed).
 fn replaced(text: &str, matches: &[((usize, usize), String)]) -> String {
     let mut out = String::with_capacity(text.len());
     let mut at = 0;
@@ -302,7 +314,7 @@ fn replaced(text: &str, matches: &[((usize, usize), String)]) -> String {
         at = *e;
     }
     out.push_str(&text[at..]);
-    out
+    ew_mltext::to_nfc(&out).into_owned()
 }
 
 /// The NFC strings of a multi-language value with their language (`None` for the neutral text), languages in byte
@@ -597,7 +609,7 @@ impl Session {
                 None if matches.iter().any(|((s, e), _)| *s < c.span.0 || *e > c.span.1) => {
                     Err(match c.target {
                         Some(Target::Frozen) => {
-                            "the match reaches into the structure prefix: change the structure"
+                            "the match reaches into the structure prefix or the :cp suffix: change the structure"
                         }
                         _ => "the match reaches into the key: edit it in the property grid",
                     }
@@ -605,10 +617,25 @@ impl Session {
                 }
                 None => Ok(()),
             };
-            let after = match (replace, &replaceable) {
+            let mut after = match (replace, &replaceable) {
                 (Some(_), Ok(())) => Some(replaced(&c.text, &matches)),
                 _ => None,
             };
+            // NFC may recompose the replacement with the unchanged text beside the stored part (`=` and a combining
+            // slash make `≠`); such a replace would write a different part than the one shown.
+            let mut replaceable = replaceable;
+            if let Some(a) = &after
+                && !(a.starts_with(&c.text[..c.span.0])
+                    && a.len() >= c.span.0 + (c.text.len() - c.span.1)
+                    && a.ends_with(&c.text[c.span.1..]))
+            {
+                replaceable = Err(
+                    "the replacement would merge with the part of the string that is not stored: \
+                     edit it in the property grid"
+                        .to_owned(),
+                );
+                after = None;
+            }
             let hit = FindHit {
                 record: c.record,
                 kind: c.kind.name().to_owned(),
@@ -637,6 +664,7 @@ impl Session {
                 .then_with(|| cell_key(a).cmp(&cell_key(b)))
                 .then_with(|| ew_mltext::natural_cmp(&a.subject, &b.subject))
                 .then_with(|| a.subject.cmp(&b.subject))
+                .then_with(|| ew_mltext::natural_cmp(&ha.row_path, &hb.row_path))
                 .then_with(|| ha.row_path.cmp(&hb.row_path))
                 .then_with(|| a.record.cmp(&b.record))
         });
@@ -792,6 +820,13 @@ mod tests {
         .unwrap();
         let hits = re.run("Spare", false, Some("$1 (unused)"));
         assert_eq!(replaced("Spare", &hits), "Spare (unused)");
+    }
+
+    /// The replaced string is NFC: a combining mark in the replacement composes with the character before it.
+    #[test]
+    fn the_replaced_string_is_in_nfc() {
+        let hits = [((4, 5), "\u{301}".to_owned())];
+        assert_eq!(replaced("Cafe-", &hits), "Caf\u{e9}");
     }
 
     /// §7.1: beyond the cap the hits are the first `cap` in order, `truncated` is set and replace is refused.

@@ -28,7 +28,9 @@
 //! failing command; such targets need `id:<uuid>`.
 //!
 //! **Semantics.** Each line commits as its own transaction with origin [`Origin::CmdLog`]: an interactive
-//! command through `execute`, a bulk one as `preview` and `commit`, so every line is one undo step. Before the
+//! command through `execute`, a command that is bulk by its cost for these parameters (a command whose registry
+//! cost is `Bulk`, or one that `execute` refuses as needing a preview, such as `edit.delete` or `fields.set_many`
+//! above 500 targets) as `preview` and `commit`, so every line is one undo step. Before the
 //! first line runs, every command is looked up and checked against its exposure class (a `HumanOnly` command
 //! anywhere refuses the whole log). A failing line stops the replay and leaves the earlier lines committed.
 
@@ -126,7 +128,9 @@ impl CmdLogError {
     /// line that a prevent rule or the command's own domain rule refused ([`CmdError::Prevented`],
     /// [`CmdError::Rejected`]); 2 for everything that could not complete: a malformed log, an unresolvable
     /// reference, a refused command (unknown, exposure), and a failing line whose error is a usage error
-    /// (invalid parameters, a missing record, a bulk command without preview) or an internal error.
+    /// (invalid parameters, a missing record) or an internal error. A line that is bulk by its cost for its
+    /// parameters is no usage error: it runs as preview then commit (one undo step), never refused for lack of a
+    /// preview.
     pub fn exit_code(&self) -> u8 {
         match self {
             CmdLogError::Failed {

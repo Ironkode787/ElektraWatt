@@ -352,3 +352,144 @@ fn a_technical_value_is_replaced_in_its_list() {
     assert!(key.hits[0].replaceable.is_err());
     assert_eq!(key.replace_command(), None);
 }
+
+/// A device of Golden A with `tech_data` set to `items` (JSON), by its tag.
+fn device_with_tech_data(s: &mut Session, tag: &str, items: Value) -> ew_derive::ew_ids::Uuid {
+    let found = s.find(&FindQuery {
+        fields: vec![FindField::Tag],
+        match_case: true,
+        whole_word: true,
+        ..query(tag)
+    });
+    let device = found.hits.iter().find(|h| h.subject == tag).unwrap().record;
+    let set = AnyCommand {
+        name: "fields.set".into(),
+        params: json!({"kind": "device", "targets": [device.to_string()], "path": "tech_data", "value": items}),
+    };
+    s.execute(&set).expect("tech data");
+    device
+}
+
+/// The replaced string is NFC (the replacement is as typed): a combining mark composes with the letter before it.
+#[test]
+fn the_replacement_is_taken_in_nfc() {
+    let s = golden();
+    let r = s.find(&FindQuery {
+        replace: Some("Cafe\u{301}".into()),
+        ..spare(&["204"])
+    });
+    assert!(!r.hits.is_empty());
+    assert!(
+        r.hits.iter().all(|h| h.after.as_deref() == Some("Caf\u{e9}")),
+        "{:?}",
+        r.hits[0]
+    );
+    let cmd = r.replace_command().unwrap();
+    assert_eq!(cmd["edits"][0]["value"], "Caf\u{e9}");
+}
+
+/// A replacement that NFC would merge with the unchanged `key=` is not written: `=` and a combining slash are `≠`.
+#[test]
+fn a_replacement_that_merges_with_the_key_is_refused() {
+    let mut s = golden();
+    let device = device_with_tech_data(&mut s, "-101F1", json!([{"key": "curve", "value": "C"}]));
+    let r = s.find(&FindQuery {
+        within: vec![device],
+        fields: vec![FindField::Property],
+        replace: Some("\u{338}".into()),
+        match_case: true,
+        ..query("C")
+    });
+    assert_eq!(r.hits.len(), 1);
+    assert!(r.hits[0].replaceable.is_err(), "{:?}", r.hits[0]);
+    assert_eq!(r.hits[0].after, None);
+    assert_eq!(r.replace_command(), None);
+}
+
+/// The refusal for a match that reaches past the stored text names the structure prefix and the `:cp` suffix (a
+/// frozen tag shown with its sign: "-K9" holds "K9").
+#[test]
+fn a_match_in_the_structure_prefix_names_prefix_and_cp() {
+    let mut s = golden();
+    let found = s.find(&FindQuery {
+        fields: vec![FindField::Tag],
+        match_case: true,
+        whole_word: true,
+        ..query("-101F1")
+    });
+    let device = found.hits.iter().find(|h| h.subject == "-101F1").unwrap().record;
+    let freeze = AnyCommand {
+        name: "fields.set".into(),
+        params: json!({"kind": "device", "targets": [device.to_string()], "path": "tag.frozen",
+            "value": {"text": "K9", "sign": "shown"}}),
+    };
+    s.execute(&freeze).expect("a frozen tag");
+    let r = s.find(&FindQuery {
+        within: vec![device],
+        fields: vec![FindField::Tag],
+        replace: Some("+".into()),
+        ..query("-K")
+    });
+    assert_eq!(r.hits.len(), 1, "{:?}", r.hits);
+    assert_eq!(r.hits[0].before, "-K9");
+    assert_eq!(
+        r.hits[0].replaceable,
+        Err("the match reaches into the structure prefix or the :cp suffix: change the structure".into())
+    );
+}
+
+/// Row paths sort in natural order (`tech_data[2]` before `tech_data[10]`).
+#[test]
+fn row_paths_sort_in_natural_order() {
+    let mut s = golden();
+    let items: Vec<Value> = (0..12)
+        .map(|i| json!({"key": ((b'a' + i) as char).to_string(), "value": "x"}))
+        .collect();
+    let device = device_with_tech_data(&mut s, "-101F1", Value::Array(items));
+    let r = s.find(&FindQuery {
+        within: vec![device],
+        fields: vec![FindField::Property],
+        ..query("x")
+    });
+    let paths: Vec<&str> = r.hits.iter().map(|h| h.row_path.as_str()).collect();
+    let expected: Vec<String> = (0..12).map(|i| format!("tech_data[{i}].value")).collect();
+    assert_eq!(paths, expected.iter().map(String::as_str).collect::<Vec<_>>());
+}
+
+/// `changes` counts the hits whose string a replace changes: a replacement equal to the text changes nothing, and a
+/// mixed search counts only the hits that differ.
+#[test]
+fn changes_count_only_hits_that_differ() {
+    let mut s = golden();
+    let same = s.find(&FindQuery {
+        replace: Some("Spare".into()),
+        match_case: true,
+        ..spare(&["204", "205", "206"])
+    });
+    assert_eq!(same.hits.len(), 20);
+    assert!(same.hits.iter().all(|h| h.after.is_some() && !h.changes()));
+    assert_eq!(same.changes(), 0);
+    assert_eq!(same.replace_command(), None);
+    // 204's texts become "Reserve"; then the search `^(Spare|Reserve)` finds those and the Spare ones of 205 and 206.
+    let to_reserve = s.find(&FindQuery {
+        replace: Some("Reserve".into()),
+        ..spare(&["204"])
+    });
+    let n = to_reserve.hits.len();
+    commit(&mut s, to_reserve.replace_command().unwrap());
+    let mixed = s.find(&FindQuery {
+        text: "^(Spare|Reserve)".into(),
+        regex: true,
+        match_case: true,
+        fields: vec![FindField::FunctionText],
+        folios: vec!["204".into(), "205".into(), "206".into()],
+        replace: Some("Reserve".into()),
+        ..FindQuery::default()
+    });
+    assert!(mixed.hits.len() >= 20, "{}", mixed.hits.len());
+    assert_eq!(
+        mixed.changes(),
+        mixed.hits.len() - n,
+        "the hits already Reserve do not change"
+    );
+}
