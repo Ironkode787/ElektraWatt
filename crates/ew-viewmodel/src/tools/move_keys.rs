@@ -10,9 +10,9 @@
 //! its own index plus `k`, which the command computes exactly.
 //!
 //! **Rubber bands** (§6.7). A connection with exactly one end on a moved representation is drawn from the moved
-//! CP's new position along its polyline as `geometry::follow_end` moves it (the end vertex by the CP's own
-//! displacement, its neighbour keeping the segment orthogonal); a connection with both ends moved is drawn
-//! translated.
+//! CP's new position along its polyline as `geometry::follow_end` moves it ([`follow_polyline`]: the end vertex by
+//! the CP's own displacement, the far end fixed, a dog-leg where a segment cannot follow; FT-423); a connection with
+//! both ends moved is drawn translated.
 
 use std::collections::BTreeSet;
 
@@ -110,11 +110,12 @@ pub fn move_overlay(cx: &ToolCx<'_>, moved: &[EntityRef], steps: (i64, i64)) -> 
     };
     for c in &tables.connections {
         let (da, db) = (end_delta(&c.a), end_delta(&c.b));
+        let snap = |v: i64| cx.snapper.page_of_index(cx.snapper.grid_index_of(v));
         let line: Vec<(i64, i64)> = match (da, db) {
             (None, None) => continue,
+            // Both ends moved: drawn translated (§6.7).
             (Some(d), Some(_)) => c.polyline.iter().map(|p| (p.0 + d.0, p.1 + d.1)).collect(),
-            (Some(d), None) => follow_end(&c.polyline, true, d),
-            (None, Some(d)) => follow_end(&c.polyline, false, d),
+            _ => follow_polyline(&c.polyline, &snap, da, db),
         };
         items.push(OverlayItem::Polyline {
             points: line.iter().map(|p| cx.snapper.page_to_sheet(*p)).collect(),
@@ -137,30 +138,61 @@ pub fn move_overlay(cx: &ToolCx<'_>, moved: &[EntityRef], steps: (i64, i64)) -> 
     Overlay::new(items)
 }
 
-/// `geometry::follow_end` on a page polyline: the end vertex moves by `d`, its neighbour follows on the axis that
-/// keeps their segment horizontal or vertical.
-fn follow_end(route: &[(i64, i64)], at_start: bool, d: (i64, i64)) -> Vec<(i64, i64)> {
+/// `geometry::follow_ends` of `ew-commands` on a page polyline (FT-423): end `a` moves by `da`, end `b` by `db`
+/// (equal displacements translate); the far end never moves; a segment that keeps its axis stays, an interior
+/// neighbour whose other segment is perpendicular follows on the moved axis, else a dog-leg at the grid coordinate
+/// nearest the middle keeps both segments' axes. `snap` maps a page coordinate to the nearest grid coordinate. The
+/// committed `rep.move` stores exactly this polyline (a test pins it).
+pub fn follow_polyline(
+    route: &[(i64, i64)],
+    snap: &dyn Fn(i64) -> i64,
+    da: Option<(i64, i64)>,
+    db: Option<(i64, i64)>,
+) -> Vec<(i64, i64)> {
     let mut r = route.to_vec();
-    let n = r.len();
-    if n == 0 {
-        return r;
-    }
-    let (end, next) = if at_start {
-        (0, 1)
-    } else {
-        (n - 1, n.wrapping_sub(2))
-    };
-    let old = r[end];
-    r[end] = (old.0 + d.0, old.1 + d.1);
-    if n >= 2 {
-        let nb = r[next];
-        if nb.1 == old.1 && nb.0 != old.0 {
-            r[next] = (nb.0, r[end].1);
-        } else if nb.0 == old.0 && nb.1 != old.1 {
-            r[next] = (r[end].0, nb.1);
+    match (da, db) {
+        (Some(a), Some(b)) if a == b => r.iter().map(|p| (p.0 + a.0, p.1 + a.1)).collect(),
+        _ => {
+            if let Some(a) = da {
+                follow_start(&mut r, snap, a);
+            }
+            if let Some(b) = db {
+                r.reverse();
+                follow_start(&mut r, snap, b);
+                r.reverse();
+            }
+            r.dedup();
+            r
         }
     }
-    r
+}
+
+/// [`follow_polyline`] at the first vertex.
+fn follow_start(r: &mut Vec<(i64, i64)>, snap: &dyn Fn(i64) -> i64, d: (i64, i64)) {
+    let Some(&old) = r.first() else { return };
+    let new = (old.0 + d.0, old.1 + d.1);
+    r[0] = new;
+    if r.len() < 2 || d == (0, 0) {
+        return;
+    }
+    let nb = r[1];
+    let horizontal = old.1 == nb.1 && old.0 != nb.0;
+    let vertical = old.0 == nb.0 && old.1 != nb.1;
+    let keeps = (horizontal && new.1 == nb.1) || (vertical && new.0 == nb.0);
+    if !(keeps || !(horizontal || vertical)) {
+        let perpendicular = r
+            .get(2)
+            .is_some_and(|m| (horizontal && nb.0 == m.0) || (vertical && nb.1 == m.1));
+        if perpendicular {
+            r[1] = if horizontal { (nb.0, new.1) } else { (new.0, nb.1) };
+        } else if horizontal {
+            let xm = snap(new.0 + (nb.0 - new.0) / 2);
+            r.splice(1..1, [(xm, new.1), (xm, nb.1)]);
+        } else {
+            let ym = snap(new.1 + (nb.1 - new.1) / 2);
+            r.splice(1..1, [(new.0, ym), (nb.0, ym)]);
+        }
+    }
 }
 
 /// `rep.move {reps, steps}`.

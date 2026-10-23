@@ -18,7 +18,7 @@ use serde::{Deserialize, Serialize};
 use crate::command::{Command, Outcome};
 use crate::commands::device::check_rep_type;
 use crate::error::CmdError;
-use crate::geometry::{follow_end, rep_cps_checked, sub, translate};
+use crate::geometry::{follow_ends, rep_cps_checked, sub};
 use crate::meta::CommandMeta;
 use crate::proxy::UuidS;
 use crate::tx::TxBuilder;
@@ -273,12 +273,7 @@ impl Command for ExchangeSymbol {
                 continue;
             }
             let mut route = c.route.clone();
-            let followed = match (da, db) {
-                (Some(a), Some(b)) if a == b => translate(&mut route, a),
-                _ => da
-                    .map_or(Ok(()), |a| follow_end(&mut route, true, a))
-                    .and_then(|()| db.map_or(Ok(()), |b| follow_end(&mut route, false, b))),
-            };
+            let followed = follow_ends(&mut route, page.grid, da, db);
             if followed.is_err() {
                 return tx.reject(format!(
                     "the exchange moves the route of connection {cid} outside the drawable range"

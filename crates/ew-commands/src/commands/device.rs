@@ -24,7 +24,8 @@ use crate::commands::common::EndpointParam;
 use crate::commands::terminal::{TerminalSpec, insert_terminal, strip_usage};
 use crate::error::CmdError;
 use crate::geometry::{
-    OutOfRange, add, follow_end, rep_cps_checked, require_on_grid, require_split_point, sub, translate,
+    OutOfRange, add, follow_end, follow_ends, rep_cps_checked, require_on_grid, require_split_point, sub,
+    translate,
 };
 use crate::meta::CommandMeta;
 use crate::proxy::{IdentS, MlTextS, Orient2S, Pt2S, UuidS};
@@ -673,8 +674,8 @@ impl MoveReps {
                 (Some((da, pa)), Some((db, pb))) => {
                     step_route(&mut next.route, grid, steps, (da, pa), (db, pb))
                 }
-                (Some((da, _)), None) => follow_end(&mut next.route, true, da),
-                (None, Some((db, _))) => follow_end(&mut next.route, false, db),
+                (Some((da, _)), None) => follow_end(&mut next.route, grid, true, da),
+                (None, Some((db, _))) => follow_end(&mut next.route, grid, false, db),
                 (None, None) => Ok(()),
             };
             if followed.is_err() {
@@ -848,7 +849,8 @@ impl Command for MoveReps {
             let followed = if a && b {
                 translate(&mut next.route, self.delta)
             } else {
-                follow_end(&mut next.route, a, self.delta)
+                let grid = tx.require::<Page>(page)?.grid;
+                follow_end(&mut next.route, grid, a, self.delta)
             };
             if followed.is_err() {
                 return tx.reject(format!(
@@ -963,12 +965,8 @@ impl Command for TransformReps {
             };
             let (da, db) = (end(&c.a), end(&c.b));
             let mut next = (*c).clone();
-            let followed = match (da, db) {
-                (Some(a), Some(b)) if a == b => translate(&mut next.route, a),
-                _ => da
-                    .map_or(Ok(()), |a| follow_end(&mut next.route, true, a))
-                    .and_then(|()| db.map_or(Ok(()), |b| follow_end(&mut next.route, false, b))),
-            };
+            let grid = tx.require::<Page>(page)?.grid;
+            let followed = follow_ends(&mut next.route, grid, da, db);
             if followed.is_err() {
                 return tx.reject(format!(
                     "the transform moves the route of connection {cid} outside the drawable range"

@@ -36,8 +36,8 @@
 //! `Options { routes: false }` ([`project_with`], [`emit_with`]) leaves every route empty and changes nothing
 //! else: the records are equal to the default ones except for the `route` fields, and the IDs are the same.
 //! `rep.move` of a representation moves the route ends of its attached wires with it
-//! (`geometry::follow_end`: the end vertex moves by the delta and its neighbour keeps the segment
-//! orthogonal; both ends moved: the route translates) and never rejects because of a route unless a
+//! (`geometry::follow_end`: the end vertex moves by the delta, the far end stays and a segment that cannot
+//! follow gets a dog-leg on the grid; both ends moved: the route translates) and never rejects because of a route unless a
 //! coordinate would leave the drawable range. The share of routed signal wires differs per class (about 54 %
 //! for S, 87 % for M, 81 % for L and 32 % for XL, because the load-ending wires dominate in the smaller
 //! classes), so comparisons of move latency across classes must account for it, or use

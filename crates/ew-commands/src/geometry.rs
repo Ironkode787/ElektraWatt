@@ -179,30 +179,96 @@ pub fn split_route(route: &[Pt2], at: Pt2) -> Option<(Vec<Pt2>, Vec<Pt2>)> {
     Some((first, second))
 }
 
-/// Moves the route end next to a moved endpoint and keeps the adjacent segment orthogonal (the v0
-/// stand-in for re-solving the route parts next to a moved CP, doc 06 §5.4). `at_start` selects the first
-/// vertex (endpoint `a`), otherwise the last (endpoint `b`). The end vertex moves by `delta`; its
-/// neighbour follows on the axis that keeps their segment horizontal or vertical. On [`OutOfRange`] the
-/// route is unchanged.
-pub fn follow_end(route: &mut [Pt2], at_start: bool, delta: Pt2) -> Result<(), OutOfRange> {
-    let n = route.len();
-    if n == 0 {
+/// Moves the route end next to a moved endpoint (the v0 stand-in for re-solving the route parts next to a moved CP,
+/// doc 06 §5.4). `at_start` selects the first vertex (endpoint `a`), otherwise the last (endpoint `b`). The end
+/// vertex moves by `delta`; the far end never moves (FT-423). Every segment that was horizontal or vertical stays
+/// so:
+///
+/// - when the end's segment keeps its axis after the move, nothing else changes;
+/// - else, when the neighbour is an interior vertex whose other segment is perpendicular to the end's segment (or
+///   has no length), the neighbour follows on the moved axis (its other segment stays perpendicular);
+/// - else (the neighbour is the far end, as on a straight two-vertex route, or its other segment is collinear) a
+///   dog-leg is inserted: two vertices at the grid coordinate nearest the middle between the moved end and the
+///   neighbour, so the end's segment leaves along its old axis and meets the neighbour along it.
+///
+/// A segment that was neither horizontal nor vertical keeps only its moved end. Consecutive equal vertices are
+/// merged. On [`OutOfRange`] the route is unchanged.
+pub fn follow_end(route: &mut Vec<Pt2>, grid: Grid, at_start: bool, delta: Pt2) -> Result<(), OutOfRange> {
+    if at_start {
+        follow_ends(route, grid, Some(delta), None)
+    } else {
+        follow_ends(route, grid, None, Some(delta))
+    }
+}
+
+/// Moves both route ends: end `a` by `da` and end `b` by `db` (each by [`follow_end`]'s rule, end `a` first); equal
+/// displacements translate the whole route. The far end of each step stays where the other displacement put it,
+/// so every end that met its CP before meets the CP's new position after (FT-423). On [`OutOfRange`] the route is
+/// unchanged.
+pub fn follow_ends(
+    route: &mut Vec<Pt2>,
+    grid: Grid,
+    da: Option<Pt2>,
+    db: Option<Pt2>,
+) -> Result<(), OutOfRange> {
+    let mut next = route.clone();
+    match (da, db) {
+        (Some(a), Some(b)) if a == b => translate(&mut next, a)?,
+        _ => {
+            if let Some(a) = da {
+                follow_start(&mut next, grid, a)?;
+            }
+            if let Some(b) = db {
+                next.reverse();
+                follow_start(&mut next, grid, b)?;
+                next.reverse();
+            }
+            next.dedup();
+        }
+    }
+    *route = next;
+    Ok(())
+}
+
+/// The grid coordinate nearest the middle of `a` and `b`.
+fn mid_on_grid(grid: Grid, a: Nm, b: Nm) -> Result<Nm, OutOfRange> {
+    grid.snap_point(Nm(a.0 + (b.0 - a.0) / 2)).ok_or(OutOfRange)
+}
+
+/// [`follow_end`] at the first vertex.
+fn follow_start(route: &mut Vec<Pt2>, grid: Grid, d: Pt2) -> Result<(), OutOfRange> {
+    let Some(&old) = route.first() else {
+        return Ok(());
+    };
+    let new = add(old, d)?;
+    route[0] = new;
+    if route.len() < 2 || d == Pt2::ORIGIN {
         return Ok(());
     }
-    let (end, next) = if at_start {
-        (0, 1)
+    let nb = route[1];
+    let horizontal = old.y == nb.y && old.x != nb.x;
+    let vertical = old.x == nb.x && old.y != nb.y;
+    let keeps = (horizontal && new.y == nb.y) || (vertical && new.x == nb.x);
+    if keeps || !(horizontal || vertical) {
+        return Ok(());
+    }
+    // The neighbour's other segment stays vertical (horizontal) when the neighbour moves along it, also when it has no
+    // length yet (the other end's step left two equal vertices).
+    let perpendicular = route
+        .get(2)
+        .is_some_and(|m| (horizontal && nb.x == m.x) || (vertical && nb.y == m.y));
+    if perpendicular {
+        route[1] = if horizontal {
+            Pt2::new(nb.x, new.y)
+        } else {
+            Pt2::new(new.x, nb.y)
+        };
+    } else if horizontal {
+        let xm = mid_on_grid(grid, new.x, nb.x)?;
+        route.splice(1..1, [Pt2::new(xm, new.y), Pt2::new(xm, nb.y)]);
     } else {
-        (n - 1, n.wrapping_sub(2))
-    };
-    let old = route[end];
-    route[end] = add(old, delta)?;
-    if n >= 2 {
-        let neighbour = route[next];
-        if neighbour.y == old.y && neighbour.x != old.x {
-            route[next] = Pt2::new(neighbour.x, route[end].y);
-        } else if neighbour.x == old.x && neighbour.y != old.y {
-            route[next] = Pt2::new(route[end].x, neighbour.y);
-        }
+        let ym = mid_on_grid(grid, new.y, nb.y)?;
+        route.splice(1..1, [Pt2::new(new.x, ym), Pt2::new(nb.x, ym)]);
     }
     Ok(())
 }

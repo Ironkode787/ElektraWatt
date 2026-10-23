@@ -733,10 +733,12 @@ fn transform_makes_the_route_follow_the_moved_cp() {
     let mut e = engine(two_cp_golden());
     e.execute(&transform(vec![REP_102F2], 1, false)).unwrap();
     assert_eq!(row(&e, REP_102F2).orient, Orient2::R90);
-    // CP 1 at (0, 10 mm) turns to (-10 mm, 0): a displacement of (-10 mm, -10 mm).
+    // CP 1 at (0, 10 mm) turns to (-10 mm, 0): a displacement of (-10 mm, -10 mm). The far end stays (FT-423), so the
+    // vertical segment keeps its axis with a dog-leg at the grid y nearest the middle.
+    let ym = grid().snap_point(ew_units::Nm(3 * MM10 / 2)).expect("in range").0;
     assert_eq!(
         row(&e, id::<Connection>(0x4101)).route,
-        vec![pt(-MM10, 0), pt(-MM10, 3 * MM10)]
+        vec![pt(-MM10, 0), pt(-MM10, ym), pt(0, ym), pt(0, 3 * MM10)]
     );
 }
 

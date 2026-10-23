@@ -179,10 +179,10 @@ fn end_pos(q: &Q, e: &Endpoint, page: Id<Page>) -> Pt2 {
     }
 }
 
-/// An orthogonal route between two points with at least one bend at each end, so that a moved end can follow its
-/// CP without detaching the other (`follow_end` keeps the neighbouring vertex orthogonal, which on a straight
-/// two-vertex route would move the far end): one bend when the points are not aligned, else a U-shaped detour three
-/// grid steps away. Every bend shares a coordinate with an end or lies on the grid.
+/// An orthogonal route between two points with at least one bend at each end, so that a moved end follows its CP by
+/// moving its neighbour (`follow_end`; a straight two-vertex route would take a dog-leg instead, FT-423): one bend
+/// when the points are not aligned, else a U-shaped detour three grid steps away. Every bend shares a coordinate with
+/// an end or lies on the grid.
 fn l_route(a: Pt2, b: Pt2) -> Vec<Pt2> {
     let g = grid();
     let beyond = |x: Nm| g.at(g.snap(x) + 3).expect("on the grid");

@@ -25,6 +25,7 @@ use ew_schema::{
     Record, Representation, SlotKind, SlotOverride, SymbolCp, SymbolDef, TemplateFn, TextSlot,
 };
 use ew_units::{Nm, Orient2, Pt2};
+use proptest::prelude::*;
 use serde_json::{Value, json};
 
 // ---------------------------------------------------------------------------------------------------------
@@ -834,11 +835,20 @@ fn move_by_steps_makes_a_route_with_one_moved_end_follow_that_end() {
         e.execute(&steps_cmd(vec![REP_102G1], steps)).unwrap();
         let new_pos = stepped(g1, steps);
         let d = p(Nm(new_pos.x.0 - g1.x.0), Nm(new_pos.y.0 - g1.y.0));
-        // `follow_end` at the start: the end vertex moves by the CP's displacement, the horizontal neighbour keeps
-        // the segment orthogonal.
+        // `follow_end` at the start: the end vertex moves by the CP's displacement and the far end stays (FT-423): a
+        // horizontal move keeps the straight segment, a vertical one adds a dog-leg at the grid coordinate nearest
+        // the middle.
         let end = p(Nm(old[0].x.0 + d.x.0), Nm(old[0].y.0 + d.y.0));
-        let expected = vec![end, p(old[1].x, end.y)];
+        let expected = if end.y == old[1].y {
+            vec![end, old[1]]
+        } else {
+            let xm = grid()
+                .snap_point(Nm(end.x.0 + (old[1].x.0 - end.x.0) / 2))
+                .expect("in range");
+            vec![end, p(xm, end.y), p(xm, old[1].y), old[1]]
+        };
         assert_eq!(row(&e, CON_C).route, expected, "{steps:?}");
+        assert_eq!(row(&e, CON_C).route.last(), old.last(), "the far end stays");
         assert_eq!(
             row(&e, CON_A).route.len(),
             4,
@@ -1187,6 +1197,32 @@ fn route_of(e: &Engine, c: Id<ew_schema::Connection>) -> Vec<Pt2> {
     row(e, c).route.clone()
 }
 
+/// The route a moved end `new` takes to a far end `far` that stays (FT-423): a dog-leg at the grid coordinate nearest
+/// the middle, keeping the old segment's axis (`horizontal`) at both ends; from `new` to `far`.
+fn dog_leg(new: Pt2, far: Pt2, horizontal: bool) -> Vec<Pt2> {
+    let g = grid();
+    let mut r = if horizontal {
+        let x = g
+            .snap_point(Nm(new.x.0 + (far.x.0 - new.x.0) / 2))
+            .expect("in range");
+        vec![new, p(x, new.y), p(x, far.y), far]
+    } else {
+        let y = g
+            .snap_point(Nm(new.y.0 + (far.y.0 - new.y.0) / 2))
+            .expect("in range");
+        vec![new, p(new.x, y), p(far.x, y), far]
+    };
+    r.dedup();
+    r
+}
+
+/// [`dog_leg`] from the far end to the moved end (the moved end is end `b`).
+fn dog_leg_to(far: Pt2, new: Pt2, horizontal: bool) -> Vec<Pt2> {
+    let mut r = dog_leg(new, far, horizontal);
+    r.reverse();
+    r
+}
+
 #[test]
 fn exchange_to_a_symbol_of_the_same_fndef_keeps_the_pin_map_empty() {
     let mut e = engine(exchange_model(|_| {}));
@@ -1262,13 +1298,14 @@ fn exchange_to_another_fndef_maps_by_designation() {
     // Routes follow: function CP 0 is now drawn by symbol CP 1 at (10 mm, 10 mm), function CP 1 by symbol CP 0 at
     // (10 mm, 0).
     let l = l_at();
+    // The far ends (CPs nothing draws) stay where they are, with a dog-leg (FT-423).
     assert_eq!(
         route_of(&e, CON_L0),
-        vec![pt(0, l.y.0 + MM10), pt(l.x.0 + MM10, l.y.0 + MM10)]
+        dog_leg_to(pt(0, l.y.0), pt(l.x.0 + MM10, l.y.0 + MM10), true)
     );
     assert_eq!(
         route_of(&e, CON_L1),
-        vec![pt(l.x.0 + MM10, l.y.0), pt(8 * G, l.y.0)]
+        dog_leg(pt(l.x.0 + MM10, l.y.0), pt(8 * G, l.y.0 + MM10), true)
     );
     // The loop's ends move apart: each follows its own CP.
     assert_eq!(
@@ -1294,7 +1331,7 @@ fn exchange_matches_designations_ignoring_ascii_case() {
     let m = m_at();
     assert_eq!(
         route_of(&e, CON_M0),
-        vec![pt(m.x.0 + MM10, m.y.0), pt(m.x.0 + MM10, 2 * G)]
+        dog_leg(pt(m.x.0 + MM10, m.y.0), pt(m.x.0, 2 * G), false)
     );
 }
 
@@ -1311,13 +1348,14 @@ fn exchange_with_an_explicit_pin_map_stores_it_and_moves_the_routes() {
     assert_eq!(rep.pin_map.as_slice(), &[entry(0, FN_L, 1), entry(1, FN_L, 0)]);
     // Function CP 0 is drawn by symbol CP 1 at (10 mm, 10 mm), function CP 1 by symbol CP 0 at (10 mm, 0).
     let l = l_at();
+    // The far ends (CPs nothing draws) stay where they are, with a dog-leg (FT-423).
     assert_eq!(
         route_of(&e, CON_L0),
-        vec![pt(0, l.y.0 + MM10), pt(l.x.0 + MM10, l.y.0 + MM10)]
+        dog_leg_to(pt(0, l.y.0), pt(l.x.0 + MM10, l.y.0 + MM10), true)
     );
     assert_eq!(
         route_of(&e, CON_L1),
-        vec![pt(l.x.0 + MM10, l.y.0), pt(8 * G, l.y.0)]
+        dog_leg(pt(l.x.0 + MM10, l.y.0), pt(8 * G, l.y.0 + MM10), true)
     );
     // A partial map: the symbol CP it leaves out would draw its index default, function CP 1, by no decision of
     // the map's: refused as the derived map refuses it (fix round, item 5), and nothing is written.
@@ -1639,4 +1677,225 @@ fn device_place_with_an_old_target_serialises_as_before() {
         serde_json::from_value(json!({"new_terminal": {"strip": DEV_X1031.to_string(), "designation": "9"}}))
             .unwrap();
     assert_eq!(back, new_terminal(DEV_X1031, "9", None));
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// FT-423: route ends stay on their connection points
+
+const CON_P1: Id<ew_schema::Connection> = id(0x4301);
+const CON_P2: Id<ew_schema::Connection> = id(0x4302);
+const CON_P3: Id<ew_schema::Connection> = id(0x4303);
+
+/// The position of function CP `(function, idx)` as drawn on `page` (the smallest representation ID drawing it), as
+/// `geometry::cp_position` computes it; `None` when nothing on the page draws it.
+fn drawn_cp(e: &Engine, function: Id<Function>, idx: u16, page: Id<ew_schema::Page>) -> Option<Pt2> {
+    let model = e.model();
+    let mut reps: Vec<&std::sync::Arc<Representation>> = model
+        .table::<Representation>()
+        .iter()
+        .map(|(_, r)| r)
+        .filter(|r| r.page == page && r.functions.contains(&function))
+        .collect();
+    reps.sort_by_key(|r| r.id);
+    reps.into_iter().find_map(|r| {
+        let symbol = model.table::<ew_schema::LibCopy<SymbolDef>>().get(&r.symbol)?;
+        symbol.item.cps.iter().find_map(|cp| {
+            let (f, i) = match r.pin_map.get(&cp.idx) {
+                Some(m) => (m.function, m.idx),
+                None => (*r.functions.first()?, cp.fn_cp),
+            };
+            let o = r.orient.apply(cp.pos);
+            (f == function && i == idx).then(|| Pt2::new(Nm(r.pos.x.0 + o.x.0), Nm(r.pos.y.0 + o.y.0)))
+        })
+    })
+}
+
+/// An orthogonal route from `a` to `b` of shape `shape`: 0 an L with the corner at `(b.x, a.y)`, 1 at `(a.x, b.y)`, 2
+/// a Z through the grid x nearest the middle, 3 a Z through the grid y nearest the middle.
+fn shaped_route(a: Pt2, b: Pt2, shape: u8) -> Vec<Pt2> {
+    let g = grid();
+    let mid = |u: Nm, v: Nm| g.snap_point(Nm(u.0 + (v.0 - u.0) / 2)).expect("in range");
+    let mut r = match shape {
+        0 => vec![a, p(b.x, a.y), b],
+        1 => vec![a, p(a.x, b.y), b],
+        2 => {
+            let x = mid(a.x, b.x);
+            vec![a, p(x, a.y), p(x, b.y), b]
+        }
+        _ => {
+            let y = mid(a.y, b.y);
+            vec![a, p(a.x, y), p(b.x, y), b]
+        }
+    };
+    r.dedup();
+    r
+}
+
+/// The exchange model (whose lamp `REP_L` has a wire looping between its two CPs) with `REP_102F2`, `REP_T1` and
+/// `REP_102G1` drawn by `SYM_TWO` at the grid indices `at` and three wires between their CPs routed by `shapes`.
+fn follow_model(at: [(i64, i64); 3], shapes: [u8; 3]) -> Model {
+    exchange_model(|records| {
+        let reps = [REP_102F2, REP_T1, REP_102G1];
+        for rec in records.iter_mut() {
+            if let Record::Representation(r) = rec {
+                if let Some(i) = reps.iter().position(|id| *id == r.id) {
+                    r.symbol = SYM_TWO;
+                    r.pos = gp(at[i].0, at[i].1);
+                    r.orient = Orient2::R0;
+                }
+            }
+        }
+        // SYM_TWO: CP 0 at the insertion point, CP 1 10 mm below it.
+        let cp_at = |i: usize, idx: u16| {
+            let o = gp(at[i].0, at[i].1);
+            if idx == 0 { o } else { p(o.x, Nm(o.y.0 + MM10)) }
+        };
+        let wires = [
+            (CON_P1, (FN_102F2, 0usize, 1u16), (FN_T1, 1usize, 0u16)),
+            (CON_P2, (FN_102G1, 2, 0), (FN_102F2, 0, 0)),
+            (CON_P3, (FN_T1, 1, 1), (FN_102G1, 2, 1)),
+        ];
+        for (k, (cid, (fa, ra, ia), (fb, rb, ib))) in wires.into_iter().enumerate() {
+            let mut w = connection(cid, Some(PAGE_102), cp(fa, ia), cp(fb, ib));
+            w.route = shaped_route(cp_at(ra, ia), cp_at(rb, ib), shapes[k]);
+            records.push(Record::Connection(w));
+        }
+    })
+}
+
+/// One edit of the property test.
+#[derive(Clone, Debug)]
+enum FollowOp {
+    Steps(Vec<Id<Representation>>, [i64; 2]),
+    Delta(Vec<Id<Representation>>, [i64; 2]),
+    Transform(Vec<Id<Representation>>, u8, bool),
+    Exchange(Id<SymbolDef>),
+}
+
+fn follow_reps() -> impl Strategy<Value = Vec<Id<Representation>>> {
+    (1u8..16).prop_map(|mask| {
+        [REP_102F2, REP_T1, REP_102G1, REP_L]
+            .into_iter()
+            .enumerate()
+            .filter(|(i, _)| mask & (1 << i) != 0)
+            .map(|(_, r)| r)
+            .collect()
+    })
+}
+
+fn follow_op() -> impl Strategy<Value = FollowOp> {
+    prop_oneof![
+        (follow_reps(), -4i64..=4, -4i64..=4).prop_map(|(r, x, y)| FollowOp::Steps(r, [x, y])),
+        (follow_reps(), -2i64..=2, -2i64..=2).prop_map(|(r, x, y)| FollowOp::Delta(r, [x * G, y * G])),
+        (follow_reps(), 0u8..4, any::<bool>()).prop_map(|(r, rot, m)| FollowOp::Transform(r, rot, m)),
+        prop_oneof![Just(SYM_SHIFT), Just(SYM_SAME), Just(SYM_TWO)].prop_map(FollowOp::Exchange),
+    ]
+}
+
+fn run_follow_op(e: &mut Engine, op: &FollowOp) {
+    // A rejection (a moved CP off the page's range, an exchange the map refuses) changes nothing; only accepted edits
+    // are checked.
+    let _ = match op {
+        FollowOp::Steps(reps, steps) => e.execute(&steps_cmd(reps.clone(), *steps)).map(|_| ()),
+        FollowOp::Delta(reps, d) => e
+            .execute(&MoveReps {
+                reps: reps.clone(),
+                delta: pt(d[0], d[1]),
+                page: None,
+                steps: None,
+            })
+            .map(|_| ()),
+        FollowOp::Transform(reps, rotate, mirror) => e
+            .execute(&ew_commands::commands::TransformReps {
+                reps: reps.clone(),
+                rotate: *rotate,
+                mirror: *mirror,
+                variant: None,
+            })
+            .map(|_| ()),
+        FollowOp::Exchange(symbol) => e.execute(&exchange(REP_L, *symbol)).map(|_| ()),
+    };
+}
+
+/// Every stored route on folio 102 starts and ends on the connection points its ends are drawn at, and every route
+/// that was orthogonal stays so.
+fn check_routes(
+    e: &Engine,
+    orthogonal: &std::collections::BTreeSet<Id<ew_schema::Connection>>,
+) -> Result<(), String> {
+    for (id, c) in e.model().table::<ew_schema::Connection>().iter() {
+        if c.page != Some(PAGE_102) || c.route.is_empty() {
+            continue;
+        }
+        for (end, v) in [(&c.a, c.route[0]), (&c.b, *c.route.last().expect("a vertex"))] {
+            if let ew_schema::Endpoint::Cp(f, idx) = end {
+                if let Some(at) = drawn_cp(e, *f, *idx, PAGE_102) {
+                    if at != v {
+                        return Err(format!(
+                            "connection {id}: route end {v:?} is not its CP {at:?}: {:?}",
+                            c.route
+                        ));
+                    }
+                }
+            }
+        }
+        if orthogonal.contains(id) {
+            if let Some(w) = c.route.windows(2).find(|w| w[0].x != w[1].x && w[0].y != w[1].y) {
+                return Err(format!(
+                    "connection {id}: diagonal segment {w:?} in {:?}",
+                    c.route
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig { cases: 64, failure_persistence: None, ..ProptestConfig::default() })]
+
+    /// FT-423: after any `rep.move` (by `delta` or by `steps`), `rep.transform` or `rep.exchange_symbol`, every
+    /// stored route still starts and ends on its connection points (the far end of a two-vertex route is never
+    /// pulled off its CP; two moved ends, followed one after the other, both meet their CPs).
+    #[test]
+    fn route_ends_stay_on_their_connection_points(
+        at in proptest::collection::vec((2i64..60, 2i64..60), 3),
+        shapes in proptest::collection::vec(0u8..4, 3),
+        ops in proptest::collection::vec(follow_op(), 1..5),
+    ) {
+        let at = [at[0], at[1], at[2]];
+        prop_assume!(at[0] != at[1] && at[1] != at[2] && at[0] != at[2]);
+        let mut e = engine(follow_model(at, [shapes[0], shapes[1], shapes[2]]));
+        let orthogonal: std::collections::BTreeSet<_> = e
+            .model()
+            .table::<ew_schema::Connection>()
+            .iter()
+            .filter(|(_, c)| c.route.windows(2).all(|w| w[0].x == w[1].x || w[0].y == w[1].y))
+            .map(|(id, _)| *id)
+            .collect();
+        prop_assert_eq!(check_routes(&e, &orthogonal), Ok(()));
+        for op in &ops {
+            run_follow_op(&mut e, op);
+            prop_assert_eq!(check_routes(&e, &orthogonal), Ok(()), "after {:?}", op);
+        }
+    }
+}
+
+#[test]
+fn a_two_vertex_route_moved_at_one_end_keeps_its_far_end_with_a_dog_leg() {
+    // A straight horizontal wire between two representations (CP 1 of `REP_T1` to CP 1 of `REP_102G1`); the first
+    // moves one grid step down.
+    let mut e = engine(follow_model([(10, 40), (30, 10), (50, 10)], [0, 0, 0]));
+    let before = row(&e, CON_P3).route.clone();
+    assert_eq!(before.len(), 2, "straight: {before:?}");
+    e.execute(&steps_cmd(vec![REP_T1], [0, 1])).unwrap();
+    let after = row(&e, CON_P3).route.clone();
+    assert_eq!(after.last(), before.last(), "the far end stays on its CP");
+    assert_eq!(after.len(), 4, "a dog-leg: {after:?}");
+    assert!(ew_commands::geometry::on_grid(grid(), after[1].x));
+    assert_eq!(after[1].x, after[2].x);
+    // The exchange that moves both CPs of the lamp by different displacements keeps the loop on both CPs.
+    e.execute(&exchange(REP_L, SYM_SAME)).unwrap();
+    let orthogonal = [CON_P1, CON_P2, CON_P3, CON_LOOP].into_iter().collect();
+    assert_eq!(check_routes(&e, &orthogonal), Ok(()));
 }
