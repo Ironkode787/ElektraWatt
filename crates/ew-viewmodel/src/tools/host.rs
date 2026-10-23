@@ -122,6 +122,9 @@ pub(crate) struct ToolHost {
     pub before_commit: Option<Arc<PageTables>>,
     /// The junction sequence editor popup (WP-S2.04 part 2, §8.5), while open.
     pub junction_editor: Option<JunctionEditor>,
+    /// The reason key of a canvas key the host refused (C, connect on move): the status bar shows its text in place of
+    /// the tool's hint until the next canvas input (WP-S2.04 part 2, window check).
+    pub notice: Option<&'static str>,
 }
 
 impl ToolHost {
@@ -144,6 +147,7 @@ impl ToolHost {
             last_primary: None,
             before_commit: None,
             junction_editor: None,
+            notice: None,
         }
     }
 }

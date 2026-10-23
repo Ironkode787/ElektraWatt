@@ -1184,9 +1184,13 @@ impl ShellModel {
                 self.act_activate_with(&alt)
             }
             "tool.next_proposal" => self.send_proposal_key(),
-            "tool.connect_on_move" => Outcome::Refused {
-                reason_key: "reason-connect-on-place",
-            },
+            "tool.connect_on_move" => {
+                // Refused in this package (§8.3); the status bar says why, the window has no other trace of a key.
+                self.tools.notice = Some("reason-connect-on-place");
+                Outcome::Refused {
+                    reason_key: "reason-connect-on-place",
+                }
+            }
             "tool.route_edit" => self.act_route_edit(),
             "junction.open" => self.act_junction_open(p),
             "junction.member" => self.act_junction_member(p),
@@ -1611,6 +1615,10 @@ impl ShellModel {
                     self.record.undone.push(step);
                 }
                 self.refresh();
+                // The tool's marks belong to the revision undone or redone (WP-S2.04 part 2, window check): the overlay
+                // and the preview go; the next pointer or cursor move draws them again.
+                self.tools.overlay = crate::tools::Overlay::default();
+                self.tools.preview = None;
                 Outcome::Done
             }
             Err(e) => failed("error-command", &[&e.to_string()]),
@@ -1632,6 +1640,10 @@ impl ShellModel {
                     self.record.steps.push(step);
                 }
                 self.refresh();
+                // The tool's marks belong to the revision undone or redone (WP-S2.04 part 2, window check): the overlay
+                // and the preview go; the next pointer or cursor move draws them again.
+                self.tools.overlay = crate::tools::Overlay::default();
+                self.tools.preview = None;
                 Outcome::Done
             }
             Err(e) => failed("error-command", &[&e.to_string()]),

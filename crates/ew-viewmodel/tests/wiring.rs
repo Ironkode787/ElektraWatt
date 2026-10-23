@@ -810,8 +810,8 @@ fn wr9_every_part_2_word_is_reached_and_in_the_vocabulary() {
         .find(|j| j.wiring == "chain")
         .unwrap()
         .clone();
-    let q = sheet(&s, j.at);
-    done(&mut s, "junction.open", at(q, json!({})));
+    done(&mut s, "select.set", json!({"ids": [j.id.to_string()]}));
+    done(&mut s, "junction.open", json!({}));
     texts.push(s.describe());
     // Star and dot.
     done(&mut s, "junction.style", json!({"style": "dot"}));
@@ -984,4 +984,47 @@ fn the_rubber_band_of_a_move_is_the_route_rep_move_stores() {
         .map(|p| sheet(&s, *p))
         .collect();
     assert_eq!(band, stored);
+}
+
+/// Window check, items 7 and 3: Edit ▸ Junction sequence… and Edit ▸ Edit route are disabled with the reason naming what
+/// to select; an undo drops the tool's marks (overlay and preview) of the revision it leaves.
+#[test]
+fn junction_and_route_entries_name_what_to_select_and_undo_drops_the_marks() {
+    let tmp = Tmp::new("window");
+    let mut s = shell(&tmp, "102");
+    let text = s.describe();
+    assert!(
+        text.contains("item junction.open \"Junction sequence...\" disabled: Select exactly one junction"),
+        "{text}"
+    );
+    assert!(text.contains("item tool.route_edit \"Edit route\" disabled: Select exactly one connection"));
+    let w = tables(&s).connections[0].id;
+    done(&mut s, "select.set", json!({"ids": [w.to_string()]}));
+    assert_eq!(refused(&mut s, "junction.open", json!({})), "reason-one-junction");
+    let j = tables(&s).junctions[0].id;
+    done(&mut s, "select.set", json!({"ids": [j.to_string()]}));
+    assert!(
+        s.describe()
+            .contains("item junction.open \"Junction sequence...\" enabled")
+    );
+    // A placement with the floating ghost, then an undo: no overlay and no preview stand.
+    done(
+        &mut s,
+        "place.pick",
+        json!({"symbol": "ew.iec.mcb-1p@qet10", "letter": "F"}),
+    );
+    let p = grid_point(&s, (20, 60));
+    cursor(&mut s, p);
+    done(&mut s, "canvas.dwell", json!({"ms": 80}));
+    done(&mut s, "canvas.activate_alt", json!({}));
+    let q = grid_point(&s, (24, 60));
+    cursor(&mut s, q);
+    done(&mut s, "canvas.dwell", json!({"ms": 80}));
+    assert!(!s.tool_overlay().is_empty() && s.preview_state().is_some());
+    done(&mut s, "edit.undo", json!({}));
+    assert!(
+        s.tool_overlay().is_empty(),
+        "the overlay of the undone revision goes"
+    );
+    assert!(s.preview_state().is_none(), "and its preview");
 }

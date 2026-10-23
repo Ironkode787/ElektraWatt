@@ -350,6 +350,26 @@ fn wire_page(m: &ShellModel) -> Result<(), &'static str> {
     m.wire_kind().map(|_| ())
 }
 
+/// An editable page with exactly one connection selected (Edit ▸ Edit route; WP-S2.04 part 2, window check).
+fn one_connection(m: &ShellModel) -> Result<(), &'static str> {
+    editable_page(m)?;
+    if m.one_connection_selected() {
+        Ok(())
+    } else {
+        Err("reason-one-connection")
+    }
+}
+
+/// An editable page with exactly one junction selected (Edit ▸ Junction sequence…; WP-S2.04 part 2, window check).
+fn one_junction(m: &ShellModel) -> Result<(), &'static str> {
+    editable_page(m)?;
+    if m.one_junction_selected() {
+        Ok(())
+    } else {
+        Err("reason-one-junction")
+    }
+}
+
 /// The junction sequence editor is open on a project that can be changed (WP-S2.04 part 2, §8.5).
 fn junction_editor_open(m: &ShellModel) -> Result<(), &'static str> {
     writable(m)?;
@@ -1249,7 +1269,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         "action-tool-route-edit",
         Menu::Edit,
         &[],
-        editable_page,
+        one_connection,
         slot_sep(Menu::Edit),
     )),
     in_canvas(act(
@@ -1258,7 +1278,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         "action-junction-open",
         Menu::Edit,
         &[],
-        editable_page,
+        one_junction,
         slot(Menu::Edit),
     )),
     hidden(act(

@@ -203,3 +203,169 @@ fn wr10_the_wire_tool_reads_nothing_while_the_cursor_moves_in_the_window() {
     );
     h.state_mut().shell_mut().shutdown();
 }
+
+/// The window position (points) of the page point `p` on the focused canvas.
+fn screen_of_page(h: &Harness<'_, App>, p: (i64, i64)) -> egui::Pos2 {
+    use egui_kittest::kittest::{NodeT as _, Queryable};
+    let bounds = h
+        .get_all_by_role(egui::Role::Canvas)
+        .next()
+        .expect("the canvas node")
+        .accesskit_node()
+        .raw_bounds()
+        .expect("bounds");
+    let c = h.state().shell().canvas().unwrap();
+    let s = c.page().snapper.page_to_sheet(p);
+    let k = c.points_per_nm();
+    egui::Pos2::new(
+        bounds.x0 as f32 + ((s.0 - c.centre().0) as f64 * k + c.pane().0 / 2.0) as f32,
+        bounds.y0 as f32 + ((s.1 - c.centre().1) as f64 * k + c.pane().1 / 2.0) as f32,
+    )
+}
+
+/// A primary-button drag from `a` to `b` in `n` pointer steps, each followed by a frame.
+fn drag(h: &mut Harness<'_, App>, a: egui::Pos2, b: egui::Pos2, n: usize) {
+    let button = |pos: egui::Pos2, pressed: bool| egui::Event::PointerButton {
+        pos,
+        button: egui::PointerButton::Primary,
+        pressed,
+        modifiers: Modifiers::NONE,
+    };
+    h.event(egui::Event::PointerMoved(a));
+    h.step();
+    h.event(button(a, true));
+    h.step();
+    for i in 1..=n {
+        h.event(egui::Event::PointerMoved(a + (b - a) * (i as f32 / n as f32)));
+        h.step();
+    }
+    h.event(button(b, false));
+    settle(h);
+}
+
+/// Window check, item 1: a page change ends Edit route (an editing tool works on one page); Select takes over and the
+/// strip says so. The selection survives the page change (WP-S2.03 §7.6).
+#[test]
+fn a_page_change_ends_edit_route_and_select_takes_over() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "103");
+    let w = connections(&h)[0].id;
+    dispatch(&mut h, "select.set", json!({"ids": [w.to_string()]}));
+    dispatch(&mut h, "tool.route_edit", json!({}));
+    settle(&mut h);
+    assert_eq!(h.state().shell().tool().name(), "route_edit");
+    dispatch(&mut h, "page.goto", json!({"folio": "101"}));
+    settle(&mut h);
+    wait_for_page(&mut h);
+    assert_eq!(h.state().shell().tool().name(), "select");
+    assert!(
+        ew_ui::tool_view::tool_strip_text(h.state().shell()).is_some_and(|t| t.starts_with("Select: ")),
+        "the strip shows Select's hint"
+    );
+    assert_eq!(
+        h.state().shell().selection().items.len(),
+        1,
+        "the selection survives"
+    );
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// Window check, item 2: the tool strip always holds its row, so a gesture never moves the page view: a horizontal
+/// drag of a representation by about two grid steps changes only its x.
+#[test]
+fn a_horizontal_drag_moves_a_representation_along_x_only() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "102");
+    assert!(
+        ew_ui::tool_view::tool_strip_text(h.state().shell()).is_some(),
+        "the strip at rest"
+    );
+    let rep = h
+        .state()
+        .shell()
+        .canvas()
+        .unwrap()
+        .page()
+        .tables
+        .reps
+        .iter()
+        .find(|r| r.symbol_key == "ew.iec.mcb-1p@qet10")
+        .unwrap()
+        .clone();
+    let centre = ((rep.body[0] + rep.body[2]) / 2, (rep.body[1] + rep.body[3]) / 2);
+    let a = screen_of_page(&h, centre);
+    let step = screen_of_page(&h, (centre.0 + 2 * 2_645_833, centre.1)).x - a.x;
+    drag(&mut h, a, a + egui::Vec2::new(step, 0.0), 6);
+    let moved = h
+        .state()
+        .shell()
+        .canvas()
+        .unwrap()
+        .page()
+        .tables
+        .reps
+        .iter()
+        .find(|r| r.id == rep.id)
+        .unwrap()
+        .clone();
+    assert_ne!(moved.pos.0, rep.pos.0, "moved along x");
+    assert_eq!(moved.pos.1, rep.pos.1, "not along y");
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// Window check, item 5: at 58 % a press on the middle segment of a selected connection drags it (4 points around the
+/// 1-pixel wire), it does not start a rubber band.
+#[test]
+fn a_segment_drag_at_58_percent_moves_the_middle_segment() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "102");
+    let w = connections(&h)
+        .into_iter()
+        .find(|c| c.polyline.last().is_some_and(|p| p.1 == 13_229_167) && c.polyline[0].0 == 121_708_333)
+        .expect("-102G1:PE to PE-1.2");
+    let (a, b) = (w.polyline[0], *w.polyline.last().unwrap());
+    let row = 21_166_667; // grid row 8 (8 × 7 937 500 / 3, rounded)
+    let route = json!([[a.0, a.1], [a.0, row], [b.0, row], [b.0, b.1]]);
+    dispatch(
+        &mut h,
+        "command.run",
+        json!({"cmd": "connection.route", "params": {"connection": w.id.to_string(), "route": route}}),
+    );
+    dispatch(&mut h, "select.set", json!({"ids": [w.id.to_string()]}));
+    dispatch(&mut h, "view.zoom_to", json!({"percent": 58}));
+    settle(&mut h);
+    let rev = h.state().shell().revision();
+    let on = screen_of_page(&h, ((a.0 + b.0) / 2, row));
+    drag(&mut h, on, on + egui::Vec2::new(0.0, 20.0), 5);
+    assert_eq!(
+        h.state().shell().revision(),
+        rev.map(|r| r + 1),
+        "one connection.route"
+    );
+    let now = connections(&h).into_iter().find(|c| c.id == w.id).unwrap();
+    assert!(
+        now.polyline.iter().all(|p| p.1 != row),
+        "the middle segment moved: {:?}",
+        now.polyline
+    );
+    assert_eq!(
+        h.state().shell().selection().items.len(),
+        1,
+        "the selection stays"
+    );
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// Window check, item 6: C (connect on move) is refused in this package; the status bar says why.
+#[test]
+fn c_shows_why_it_does_not_connect_while_moving() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "102");
+    press(&mut h, Key::C);
+    let fields = h.state().shell().status_fields(false);
+    assert!(
+        fields[0].starts_with("Proposals connect when a symbol is placed"),
+        "{fields:?}"
+    );
+    h.state_mut().shell_mut().shutdown();
+}

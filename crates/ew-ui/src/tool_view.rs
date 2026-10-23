@@ -89,12 +89,12 @@ pub fn marks_of(shell: &ShellModel, group: usize) -> Vec<ToolMark> {
 }
 
 /// The tool strip's text (WP-S2.04 §6.4 item 4): the active tool's label and what it floats or drags, as the
-/// transcript's `ghost` member says it; `None` for Select at rest.
+/// transcript's `ghost` member says it. Select at rest shows its hint too, so the strip always holds its row: a strip
+/// that appeared with a gesture would move the page view under the pointer (WP-S2.04 part 2, window check).
 pub fn tool_strip_text(shell: &ShellModel) -> Option<String> {
     let tool = shell.tool();
     let label = tools::tool_label(tool.name());
     let detail = match shell.tool_ghost() {
-        None if tool.name() == "select" => return None,
         None => strings::text(tool.status_hint()).to_owned(),
         Some(tools::Ghost::Place {
             symbol,
@@ -169,6 +169,15 @@ pub fn paint_preview(ui: &Ui, rect: Rect, shell: &ShellModel) {
     let (Some(p), Some(status)) = (shell.preview_state(), shell.preview_status()) else {
         return;
     };
+    // A ready preview that changes no tag and no cross-reference text says nothing a chip should stand for (a route
+    // edit, a move): the tool's readout and strip carry it (WP-S2.04 part 2, window check).
+    if status == PreviewStatus::Ready
+        && p.result.is_ok()
+        && p.derived.tags.is_empty()
+        && p.derived.xrefs.is_empty()
+    {
+        return;
+    }
     let mut lines = vec![match (&p.result, status) {
         (Err(message), _) => strings::format("preview-chip-failed", &[&p.name, message]),
         (_, PreviewStatus::Stale) => strings::format("preview-chip-stale", &[&p.name]),

@@ -29,6 +29,27 @@ impl ShellModel {
         self.tools.junction_editor.as_ref()
     }
 
+    /// The text of a canvas key the host refused, shown in place of the tool's hint until the next canvas input.
+    pub fn tool_notice(&self) -> Option<&'static str> {
+        self.tools.notice.map(strings::text)
+    }
+
+    /// Exactly one junction is selected on the focused page (`junction.open`'s condition, §8.5).
+    pub fn one_junction_selected(&self) -> bool {
+        self.canvas().is_some_and(|c| {
+            let kinds = selection_kinds(&self.tools.selection, &c.page().tables);
+            matches!(kinds.as_slice(), [(_, EntityKind::Junction)])
+        })
+    }
+
+    /// Exactly one connection is selected on the focused page (`tool.route_edit`'s condition, §8.4).
+    pub fn one_connection_selected(&self) -> bool {
+        self.canvas().is_some_and(|c| {
+            let kinds = selection_kinds(&self.tools.selection, &c.page().tables);
+            matches!(kinds.as_slice(), [(_, EntityKind::Connection)])
+        })
+    }
+
     /// Whether the project draws crossings as hops (`settings.extra.drawing.crossings`, WP-S2.04 §8.6).
     pub fn crossings_hops(&self) -> bool {
         self.crossings_word() == Some("hops")
@@ -197,8 +218,8 @@ impl ShellModel {
         JunctionEditor::read(&tables, j, &cell_of, wires, rev, row)
     }
 
-    /// `junction.open` (§8.5): the editor of exactly one selected junction, or (headless, `x_mm` and `y_mm`) of the
-    /// junction within 8 points of that sheet point, the selection unchanged.
+    /// `junction.open` (§8.5): the editor of exactly one selected junction (the registry disables it otherwise, naming
+    /// what to select); headless, `x_mm` and `y_mm` name the junction within 8 points of that sheet point instead.
     pub(super) fn act_junction_open(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(c) = self.canvas() else {
             return Outcome::Refused {

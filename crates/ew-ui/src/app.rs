@@ -357,7 +357,8 @@ impl App {
             });
         }
         Panel::bottom("status-bar").show(ui, |ui| status_bar::show(ui, &self.shell, exporting));
-        // The tool strip (WP-S2.04 §6.4 item 4): the active tool's options as read-only text, above the canvas.
+        // The tool strip (WP-S2.04 §6.4 item 4): the active tool's options as read-only text, above the canvas; shown
+        // for every tool (Select's hint at rest), so its row never comes and goes during a gesture.
         if self.shell.has_project()
             && let Some(text) = crate::tool_view::tool_strip_text(&self.shell)
         {

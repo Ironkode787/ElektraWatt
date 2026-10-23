@@ -95,7 +95,10 @@ fn hint_of(model: &ShellModel, c: &crate::canvas::CanvasModel) -> String {
             Some(label) => strings::format("status-hint-link", &[&label]),
             None => strings::text("status-hint-link-external").to_owned(),
         },
-        None => model.tool_hint().to_owned(),
+        None => match model.tool_notice() {
+            Some(notice) => notice.to_owned(),
+            None => model.tool_hint().to_owned(),
+        },
     }
 }
 

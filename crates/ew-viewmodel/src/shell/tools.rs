@@ -190,6 +190,17 @@ impl ShellModel {
         self.tools.link_preview = None;
         self.tools.announcement = None;
         self.tools.last_cp = None;
+        // An editing tool (Wire, Edit route, Place, Change symbol) works on one page (WP-S2.04 part 2, window-check
+        // ruling): a page or tab change ends it and Select takes over. The selection survives (WP-S2.03 §7.6).
+        if matches!(
+            self.tools.tool.name(),
+            "wire" | "route_edit" | "place" | "exchange"
+        ) && let Some(select) = tool_named("select")
+        {
+            self.tools.tool = select;
+            self.tools.junction_editor = None;
+            self.announce_tool();
+        }
     }
 
     /// The page, zoom and pane of the focused canvas.
@@ -243,6 +254,8 @@ impl ShellModel {
 
     /// Hands `ev` to the active tool and acts on its output (§7.2).
     pub(super) fn send_tool(&mut self, ev: &CanvasEvent) -> Outcome {
+        // A refused key's notice stands in the status bar until the next canvas input (WP-S2.04 part 2).
+        self.tools.notice = None;
         // A place tool that asks for the next designation refuses a click or Enter with the reason (WP-S2.04 §7.2).
         if matches!(ev, CanvasEvent::Press { .. } | CanvasEvent::Activate) && self.place_needs_designation() {
             return Outcome::Refused {
