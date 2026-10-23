@@ -65,12 +65,6 @@ the chain is over again, are a fourth part and, in the build job, the cache save
 
 Two lessons of the cycle-22 hotfixes to the split Windows jobs (FT-387), for every workflow that moves artefacts between jobs:
 
-A third lesson, from the cycle-25 delivery run (39914507884): `test-linux` builds the workspace twice (all features for
-nextest, the default features for the doctests) in one `target`, and with full debug info the second build ran the runner's
-disk dry ("No space left on device" while linking `ew-model`). The workflow env now sets `CARGO_PROFILE_DEV_DEBUG` to
-`line-tables-only`, as every local build has since 2026-10-21; a job that adds a third feature set to one `target` must
-check the free disk first.
-
 - **Artefacts go to `$RUNNER_TEMP`, not into the checkout.** The tree-walking checks (`check-licence-map`,
   `check-anonymisation`, `check-raw-read`) see every file under the working directory, so an archive or any other download
   placed in the checkout is scanned as if it were repository content. Download and extract into `$RUNNER_TEMP` (or an
@@ -79,6 +73,12 @@ check the free disk first.
   parses the line, so `${{ github.workspace }}` or `${{ runner.temp }}` puts backslashes (`D:\...`) into the script, where
   bash reads them as escapes. Use the environment variables `RUNNER_TEMP`, `RUNNER_OS`, `GITHUB_WORKSPACE` and the other
   `RUNNER_*` and `GITHUB_*` ones (`"$RUNNER_TEMP/x"`), which bash expands as data.
+
+A third lesson, from the cycle-25 delivery run (39914507884): `test-linux` builds the workspace twice (all features for
+nextest, the default features for the doctests) in one `target`, and with full debug info the second build ran the runner's
+disk dry ("No space left on device" while linking `ew-model`). The workflow env now sets `CARGO_PROFILE_DEV_DEBUG` to
+`line-tables-only`, as every local build has since 2026-10-21; a job that adds a third feature set to one `target` must
+check the free disk first.
 
 `cargo xtask ci` runs fmt, clippy, nextest and the doctests (each with the default features and with `--all-features`;
 the default-features nextest step is labelled `nextest (no acceptance, no fuzzer)` in the summary, and the acceptance
