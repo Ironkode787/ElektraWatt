@@ -77,6 +77,17 @@
 //! nothing fails. Packages whose normal dependencies cannot reach the gated crate are not scanned (they cannot
 //! name its readers).
 //!
+//! # Asset presence (FT-382)
+//!
+//! `[raw_read.asset_presence]` (decision log ID-575, ARCH §3 rule 1): the bytes under an asset hash never change, so
+//! `Model::asset`'s bytes sit outside the read gate; but whether the model holds an asset changes without a revision,
+//! so no memoised query may read it. In the non-test source of the listed packages (`ew-derive`, whose `Q` holds the
+//! model; reader crates included), a method call `.<accessor>(` or a path `::<accessor>` of the listed accessors
+//! (`asset`, `assets`, `has_asset`) is a finding unless the innermost function around it has an
+//! `[[raw_read.asset_presence.allow]]` entry (path, function, reason). `Q::logo_asset` is the one entry; an entry that
+//! matches nothing fails. A second reader is not allowlisted: asset presence then becomes a tracked input of the memo
+//! engine (ADR-0002).
+//!
 //! # Test code
 //!
 //! Test code is exempt from the lexical rules, as the feature rule's dev exemption is. That means files under
@@ -242,6 +253,39 @@ pub struct RawReadPolicy {
     /// Reviewed false positives.
     #[serde(default)]
     pub allow: Vec<Allow>,
+    /// The asset-presence rule of FT-382 (`[raw_read.asset_presence]`).
+    #[serde(default)]
+    pub asset_presence: Option<AssetPresencePolicy>,
+}
+
+/// The asset-presence rule (FT-382, decision log ID-575, ARCH §3 rule 1): the bytes of an asset are outside the read
+/// gate (they never change under a hash), but **whether** the model holds an asset can change without a revision, so
+/// no memoised query may read it. The rule is lexical: in the non-test source of `packages` (the crate whose
+/// memoised queries can reach the model, `ew-derive`), a method call `.<accessor>(` or a path `::<accessor>` of one of
+/// `accessors` is a finding, unless the innermost function around it is an allowlisted site. The listed packages are
+/// scanned even when they are reader crates (those opt out of clippy's list, not of this rule).
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AssetPresencePolicy {
+    /// The packages whose source is scanned.
+    pub packages: Vec<String>,
+    /// The model's asset accessors (`asset`, `assets`, `has_asset`).
+    pub accessors: Vec<String>,
+    /// The named exceptions: one function each.
+    #[serde(default)]
+    pub allow: Vec<AssetAllow>,
+}
+
+/// One allowlisted reader of asset presence: a function of a file.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AssetAllow {
+    /// The file, relative to the workspace root, with forward slashes.
+    pub path: String,
+    /// The function whose body may call the accessors.
+    pub function: String,
+    /// Why the read cannot go stale.
+    pub reason: String,
 }
 
 /// One reviewed false positive.
@@ -1139,6 +1183,113 @@ pub fn scan_source(path: &str, text: &str, policy: &RawReadPolicy) -> Vec<Violat
     v
 }
 
+/// The item of an asset-presence finding: `asset_presence:<function>` (`<top level>` outside a function), so that
+/// an allow entry names its function.
+fn asset_item(function: Option<&str>) -> String {
+    format!("asset_presence:{}", function.unwrap_or("<top level>"))
+}
+
+/// The violations of the asset-presence rule (FT-382) in one source file: every `.<accessor>(` and `::<accessor>`
+/// outside test code, named by the innermost function around it ([`asset_item`]).
+pub fn asset_presence_violations(path: &str, text: &str, rule: &AssetPresencePolicy) -> Vec<Violation> {
+    let p = Parsed::new(text);
+    let exempt = exempt_mask(&p);
+    // The function bodies: `fn <name>` to the first `{` after it, and on to its matching `}`.
+    let mut bodies: Vec<(usize, usize, String)> = Vec::new();
+    for k in fn_decls(&p, 0, p.toks.len()) {
+        let Some(name) = p.ident(k + 1) else { continue };
+        let mut j = k + 2;
+        while j < p.toks.len() && !p.is_p(j, '{') && !p.is_p(j, ';') {
+            j += 1;
+        }
+        if p.is_p(j, '{') {
+            if let Some(close) = p.pair[j] {
+                bodies.push((j, close, name.to_owned()));
+            }
+        }
+    }
+    let innermost = |i: usize| -> Option<&str> {
+        bodies
+            .iter()
+            .filter(|(open, close, _)| *open < i && i < *close)
+            .min_by_key(|(open, close, _)| close - open)
+            .map(|(_, _, name)| name.as_str())
+    };
+    let mut v = Vec::new();
+    for (i, &skip) in exempt.iter().enumerate().skip(1) {
+        if skip {
+            continue;
+        }
+        let Some(name) = p.ident(i) else { continue };
+        if !rule.accessors.iter().any(|a| a == name) {
+            continue;
+        }
+        let call = p.is_p(i - 1, '.') && p.is_p(i + 1, '(');
+        let path_ref = i >= 2 && p.is_p(i - 1, ':') && p.is_p(i - 2, ':');
+        if !(call || path_ref) {
+            continue;
+        }
+        let function = innermost(i);
+        v.push(Violation::new(
+            path,
+            p.line(i),
+            &asset_item(function),
+            format!(
+                "reads asset presence (`{name}`) in {}: whether the model holds an asset changes without a \
+                 revision, so no memoised query may read it (FT-382, decision log ID-575, ARCH §3 rule 1); read the \
+                 bytes outside the queries, or make asset presence a tracked input of the memo engine (ADR-0002) \
+                 instead of a second exception",
+                function.map_or_else(|| "top-level code".to_owned(), |f| format!("`{f}`"))
+            ),
+        ));
+    }
+    v
+}
+
+/// Applies the asset-presence allowlist: drops the findings of an allowed function, and reports entries without a
+/// reason and entries that suppressed nothing.
+fn apply_asset_allow(violations: Vec<Violation>, allow: &[AssetAllow]) -> Vec<Violation> {
+    let mut used = vec![0usize; allow.len()];
+    let mut out: Vec<Violation> = violations
+        .into_iter()
+        .filter(|v| {
+            let hit = allow
+                .iter()
+                .position(|a| a.path == v.path && asset_item(Some(&a.function)) == v.item);
+            if let Some(k) = hit {
+                used[k] += 1;
+            }
+            hit.is_none()
+        })
+        .collect();
+    for (a, used) in allow.iter().zip(used) {
+        let item = asset_item(Some(&a.function));
+        if a.reason.trim().is_empty() {
+            out.push(Violation::new(
+                POLICY_FILE,
+                1,
+                &item,
+                format!(
+                    "asset-presence allow entry for `{}` in `{}` has no reason",
+                    a.function, a.path
+                ),
+            ));
+        }
+        if used == 0 {
+            out.push(Violation::new(
+                POLICY_FILE,
+                1,
+                &item,
+                format!(
+                    "stale asset-presence allow entry: `{}` in `{}` reads no asset accessor; remove it",
+                    a.function, a.path
+                ),
+            ));
+        }
+    }
+    out
+}
+
 /// The `allow(...)` and `expect(...)` lists inside the attribute `a` (the attribute itself, or a `cfg_attr`
 /// that wraps one) that name a lint of [`SUPPRESSING`].
 fn suppressions(p: &Parsed, a: &Attr, path: &str, v: &mut Vec<Violation>) {
@@ -1679,6 +1830,29 @@ fn collect(policy: &RawReadPolicy, packages: &[SourcePackage], ws: Option<&Works
         found.extend(lint_violations("Cargo.toml", &ws.root_manifest, true));
     }
     let mut violations = apply_allow(found, &policy.allow);
+    // FT-382: the asset-presence rule over its packages, the reader crates included.
+    if let Some(rule) = &policy.asset_presence {
+        let mut presence = Vec::new();
+        for pkg in packages.iter().filter(|p| rule.packages.contains(&p.name)) {
+            for (path, text) in &pkg.files {
+                if is_test_path(&pkg.dir, path) || modules.contains(path) {
+                    continue;
+                }
+                presence.extend(asset_presence_violations(path, text, rule));
+            }
+        }
+        for name in &rule.packages {
+            if !packages.iter().any(|p| &p.name == name) {
+                presence.push(Violation::new(
+                    POLICY_FILE,
+                    1,
+                    "asset_presence",
+                    format!("[raw_read.asset_presence] names `{name}`, which is not a workspace package"),
+                ));
+            }
+        }
+        violations.extend(apply_asset_allow(presence, &rule.allow));
+    }
     if let Some(ws) = ws {
         violations.extend(config_violations(policy, packages, &gated, ws));
     }
@@ -3070,5 +3244,102 @@ disallowed-types = [
             "{:#?}",
             out.violations
         );
+    }
+
+    // -----------------------------------------------------------------------------------------------------
+    // Asset presence (FT-382)
+
+    const DERIVE_Q: &str = "crates/ew-derive/src/q.rs";
+
+    fn asset_policy(allow: &str) -> RawReadPolicy {
+        toml::from_str(&format!(
+            r#"
+            crate = "ew-model"
+            feature = "raw-read"
+            macro = "raw_read"
+            readers = ["ew-model", "ew-derive", "ew-commands", "ew-store"]
+            exempt_packages = ["xtask"]
+
+            [asset_presence]
+            packages = ["ew-derive"]
+            accessors = ["asset", "assets", "has_asset"]
+            {allow}
+            "#
+        ))
+        .expect("test policy parses")
+    }
+
+    const LOGO_ALLOW: &str = r#"
+            [[asset_presence.allow]]
+            path = "crates/ew-derive/src/q.rs"
+            function = "logo_asset"
+            reason = "the named exception"
+    "#;
+
+    fn derive_run(policy: &RawReadPolicy, src: &str) -> Vec<String> {
+        let derive = package(
+            "ew-derive",
+            &[(DERIVE_Q, src)],
+            manifest(
+                "ew-derive",
+                vec![dep("ew-model", Kind::Normal, &["raw-read"])],
+                &[],
+            ),
+            "",
+        );
+        check_packages(policy, &[model_package(), derive]).violations
+    }
+
+    #[test]
+    fn the_allowlisted_logo_asset_site_passes() {
+        let src = "impl Q {\n    pub fn logo_asset(&self, h: &Sha256) -> Option<AssetRef> {\n        self.model.asset(h).map(|a| *a.reference())\n    }\n}\n";
+        assert_eq!(derive_run(&asset_policy(LOGO_ALLOW), src), Vec::<String>::new());
+    }
+
+    #[test]
+    fn a_seeded_read_of_asset_presence_in_a_query_fails() {
+        // A memoised query that asks whether the logo is held: the answer can change without a revision.
+        let src = "impl Q {\n    pub fn logo_asset(&self, h: &Sha256) -> Option<AssetRef> {\n        self.model.asset(h).map(|a| *a.reference())\n    }\n}\n\nfn title_block(q: &Q) -> bool {\n    q.model.assets().count() > 0 || ew_model::Model::has_asset(&q.model, &H)\n}\n";
+        let out = derive_run(&asset_policy(LOGO_ALLOW), src);
+        assert_eq!(out.len(), 2, "{out:#?}");
+        assert!(
+            out[0]
+                .starts_with("crates/ew-derive/src/q.rs:8: reads asset presence (`assets`) in `title_block`"),
+            "{out:#?}"
+        );
+        assert!(out[1].contains("(`has_asset`) in `title_block`"), "{out:#?}");
+        assert!(out.iter().all(|v| v.contains("FT-382")), "{out:#?}");
+    }
+
+    #[test]
+    fn test_code_fields_and_other_names_are_not_asset_reads() {
+        let src = "struct Store { assets: Vec<u8> }\nfn count(s: &Store) -> usize { s.assets.len() + asset_count() }\n#[cfg(test)]\nmod tests {\n    fn t(m: &Model) { m.asset(&H); }\n}\n";
+        assert_eq!(derive_run(&asset_policy(""), src), Vec::<String>::new());
+    }
+
+    #[test]
+    fn a_stale_asset_presence_entry_fails() {
+        let out = derive_run(&asset_policy(LOGO_ALLOW), "fn nothing() {}\n");
+        assert_eq!(out.len(), 1, "{out:#?}");
+        assert!(
+            out[0].contains("stale asset-presence allow entry: `logo_asset`"),
+            "{out:#?}"
+        );
+    }
+
+    #[test]
+    fn the_repository_names_logo_asset_as_the_one_asset_presence_exception() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
+        let text = std::fs::read_to_string(root.join(POLICY_FILE)).expect("the policy file");
+        let file: toml::Value = toml::from_str(&text).expect("the policy parses");
+        let policy: RawReadPolicy = file["raw_read"].clone().try_into().expect("the raw_read section");
+        let rule = policy.asset_presence.expect("the FT-382 rule is configured");
+        assert_eq!(rule.packages, ["ew-derive"]);
+        let sites: Vec<(&str, &str)> = rule
+            .allow
+            .iter()
+            .map(|a| (a.path.as_str(), a.function.as_str()))
+            .collect();
+        assert_eq!(sites, [("crates/ew-derive/src/q.rs", "logo_asset")]);
     }
 }

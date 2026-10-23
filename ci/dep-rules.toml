@@ -329,3 +329,18 @@ reason = "the helpers class_var and timer_start of the bench harness; reviewed i
 # item = "raw_read!"                      # "raw_read!", "raw-read" or "disallowed_methods"
 # reason = "a third-party macro that is not ew-model's"
 # count = 1                             # optional: exactly this many findings in the file; one more fails
+
+# Asset presence (FT-382, decision log ID-575, ARCH §3 rule 1). The bytes under an asset hash never change, so reading
+# them is no freshness hazard and sits outside the read gate; whether the model HOLDS an asset can change without a
+# revision, so no memoised query may read it. In the non-test source of `packages` (the crate whose queries can reach
+# the model; the reader crates are scanned too), a call `.asset(`, `.assets(`, `.has_asset(` or a path `::asset`,
+# `::assets`, `::has_asset` is a finding unless the innermost function around it is listed below. A second reader is
+# not added here: asset presence then becomes a tracked input of the memo engine (ADR-0002, ID-575).
+[raw_read.asset_presence]
+packages = ["ew-derive"]
+accessors = ["asset", "assets", "has_asset"]
+
+[[raw_read.asset_presence.allow]]
+path = "crates/ew-derive/src/q.rs"
+function = "logo_asset"
+reason = "Q::logo_asset, the one named exception of ID-575: the format and size of a bare-hash logo; recorded as a read of the project row, safe while an asset becomes present only at open or through project.company.set, which changes that row"
