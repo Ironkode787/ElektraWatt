@@ -266,6 +266,60 @@ fn a_press_and_its_release_in_one_frame_still_click() {
 }
 
 #[test]
+fn a_press_on_the_splitter_between_the_groups_is_no_tool_input() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "103");
+    dispatch(&mut h, "view.side_by_side", json!({}));
+    settle(&mut h);
+    wait_for_page(&mut h);
+    settle(&mut h);
+    let canvases: Vec<_> = h
+        .get_all_by_role(egui::Role::Canvas)
+        .map(|n| n.accesskit_node().raw_bounds().expect("bounds"))
+        .collect();
+    assert_eq!(canvases.len(), 2);
+    let (left, right) = if canvases[0].x0 < canvases[1].x0 {
+        (canvases[0], canvases[1])
+    } else {
+        (canvases[1], canvases[0])
+    };
+    // Inside the left canvas, 2 points from its edge: within the splitter's grab area between the groups.
+    let y = ((left.y0 + left.y1) / 2.0) as f32;
+    let from = Pos2::new(left.x1 as f32 - 2.0, y);
+    assert!(from.x < right.x0 as f32);
+    let before = h.state().shell().selection().clone();
+    h.event(egui::Event::PointerMoved(from));
+    h.run_ok();
+    h.event(egui::Event::PointerButton {
+        pos: from,
+        button: PointerButton::Primary,
+        pressed: true,
+        modifiers: Modifiers::NONE,
+    });
+    h.run_ok();
+    let to = from - egui::Vec2::new(60.0, 40.0);
+    h.event(egui::Event::PointerMoved(to));
+    h.run_ok();
+    assert_ne!(h.state().shell().tool().state(), "rubber-band", "no band");
+    assert!(h.state().shell().tool_overlay().is_empty());
+    h.event(egui::Event::PointerButton {
+        pos: to,
+        button: PointerButton::Primary,
+        pressed: false,
+        modifiers: Modifiers::NONE,
+    });
+    h.run_ok();
+    settle(&mut h);
+    assert_eq!(
+        h.state().shell().selection(),
+        &before,
+        "the selection is unchanged"
+    );
+    assert_eq!(h.state().shell().tool().state(), "idle");
+    h.state_mut().shell_mut().shutdown();
+}
+
+#[test]
 fn the_physical_bracket_key_steps_the_connection_points() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "102");

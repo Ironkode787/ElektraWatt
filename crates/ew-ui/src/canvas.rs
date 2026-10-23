@@ -975,11 +975,14 @@ impl CanvasHost {
                 })
                 .collect()
         });
-        let layer = ui.layer_id();
+        // A press is the canvas's only when egui's widget hit test gave it the button (a splitter's grab area reaching
+        // into the pane takes its own presses); the positions still come from the events.
+        let hit = response.is_pointer_button_down_on()
+            || response.clicked_by(PointerButton::Primary)
+            || response.drag_started_by(PointerButton::Primary);
         for (pos, down, m) in buttons {
             if down {
-                let ours = rect.contains(pos) && ui.ctx().layer_id_at(pos).is_none_or(|l| l == layer);
-                if !ours || space {
+                if !hit || !rect.contains(pos) || space {
                     continue;
                 }
                 events.push(Event::Action(
