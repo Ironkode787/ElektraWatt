@@ -277,15 +277,18 @@ impl std::fmt::Display for ImageIssue {
                 "the image sha256:{hex} is not drawn: the project does not hold its bytes"
             ),
             ImageProblem::Refused(e) => write!(f, "the image sha256:{hex} is not drawn: {e}"),
-            ImageProblem::Undecodable(format) => write!(
-                f,
-                "the image sha256:{hex} is not drawn: its {} bytes do not decode (corrupt, truncated, unsupported or                  larger than 16 Mi pixels); export it again as a plain PNG or baseline JPEG",
-                match format {
+            ImageProblem::Undecodable(format) => {
+                let format = match format {
                     ImageFormat::Png => "PNG",
                     ImageFormat::Jpeg => "JPEG",
                     ImageFormat::Svg => "SVG",
-                }
-            ),
+                };
+                write!(
+                    f,
+                    "the image sha256:{hex} is not drawn: its {format} bytes do not decode (corrupt, truncated, \
+                     unsupported or larger than 16 Mi pixels); export it again as a plain PNG or baseline JPEG"
+                )
+            }
         }
     }
 }

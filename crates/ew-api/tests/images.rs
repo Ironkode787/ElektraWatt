@@ -201,13 +201,30 @@ fn a_raster_logo_that_does_not_decode_is_a_page_finding() {
             _ => None,
         })
         .collect();
-    assert!(
-        matches!(
-            found.as_slice(),
-            [(folio, ImageProblem::Undecodable(ew_dl::ImageFormat::Jpeg), message)]
-                if folio == "1" && message.contains("JPEG bytes do not decode")
-        ),
-        "{found:?}"
+    let hex: String = <sha2::Sha256 as sha2::Digest>::digest(cut)
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect();
+    let message = format!(
+        "the image sha256:{hex} is not drawn: its JPEG bytes do not decode (corrupt, truncated, unsupported or larger \
+         than 16 Mi pixels); export it again as a plain PNG or baseline JPEG"
+    );
+    assert_eq!(
+        found,
+        [(
+            "1".to_owned(),
+            ImageProblem::Undecodable(ew_dl::ImageFormat::Jpeg),
+            message
+        )]
     );
     assert_eq!((pdf.report.images, pdf.report.skipped_images), (0, 1));
+    // The SVG of the same export does not carry the bytes either (the PDF writer's rule), and reports the same finding.
+    let svg = s.export_svg(&cover()).unwrap();
+    assert_eq!((svg.report.images, svg.report.skipped_images), (0, 1));
+    assert!(!svg.files[0].text.contains("<image"), "no <image> in the SVG");
+    assert!(
+        svg.findings
+            .iter()
+            .any(|f| matches!(&f.finding, PageFinding::Image(i) if i.problem == ImageProblem::Undecodable(ew_dl::ImageFormat::Jpeg)))
+    );
 }

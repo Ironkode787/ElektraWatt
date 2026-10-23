@@ -38,7 +38,7 @@ use ew_dl::{
     Brush, Cap, Destination, DisplayList, FontKey, GeometryResolver, ImageFormat, ImageItem, Item, ItemKind,
     Join, Link, MAX_INSTANCE_DEPTH, MITER_LIMIT, PathEl, ShapedRun, Stroke, Transform,
 };
-use ew_render_cpu::monochrome;
+use ew_render_cpu::{decode_image, monochrome};
 
 use crate::PdfPage;
 use crate::parallel::{Parallelism, par_map};
@@ -206,6 +206,12 @@ pub fn svg(
         pages.iter().map(|p| &p.content).collect()
     };
     let files: Vec<String> = pages.iter().map(|p| svg_file_name(&p.label)).collect();
+    // The PDF writer's rule: a PNG or JPEG is embedded only if its bytes decode with the CPU renderer's decoder within
+    // its pixel bound, decided once per asset (the export job has withdrawn the bytes of those it found undecodable).
+    let mut rasters = BTreeMap::new();
+    for list in &contents {
+        drawable_rasters(&list.items, &mut rasters);
+    }
     // Pass 1: which link targets each page actually draws (an id is written only on a drawn element, so a
     // target whose item draws nothing, such as an empty path, an image or an unresolved instance, is not
     // one). Ids do not depend on links, so the pass writes with no destinations and keeps only the ids.
@@ -215,6 +221,7 @@ pub fn svg(
         files: &files,
         faces: &options.faces,
         geometry,
+        rasters: &rasters,
     };
     let drawn = par_map(pages, parallelism, |i, page| probe.page(i, page, contents[i]).2);
     // Where every destination is: pages by their own destination, link targets on the first page in page
@@ -234,6 +241,7 @@ pub fn svg(
         files: &files,
         faces: &options.faces,
         geometry,
+        rasters: &rasters,
     };
     let written = par_map(pages, parallelism, |i, page| ctx.page(i, page, contents[i]));
     let mut report = SvgReport::default();
@@ -250,6 +258,23 @@ struct Ctx<'a> {
     files: &'a [String],
     faces: &'a BTreeMap<FontKey, SvgFace>,
     geometry: Option<&'a (dyn GeometryResolver + Sync)>,
+    /// Whether the PNG or JPEG bytes of an asset decode ([`drawable_rasters`]).
+    rasters: &'a BTreeMap<[u8; 32], bool>,
+}
+
+/// Records for every PNG or JPEG image item of `items` (groups included) with bytes whether they decode with
+/// [`decode_image`], once per asset hash.
+fn drawable_rasters(items: &[Item], out: &mut BTreeMap<[u8; 32], bool>) {
+    for item in items {
+        match &item.kind {
+            ItemKind::Group(g) => drawable_rasters(&g.items, out),
+            ItemKind::Image(img) if !img.image.bytes.is_empty() && img.image.format != ImageFormat::Svg => {
+                out.entry(img.image.sha256)
+                    .or_insert_with(|| decode_image(img.image.format, &img.image.bytes).is_some());
+            }
+            _ => {}
+        }
+    }
 }
 
 impl Ctx<'_> {
@@ -582,9 +607,14 @@ fn transform_attr(t: Transform) -> String {
 
 impl PageWriter<'_> {
     /// A PNG or JPEG image as an `<image>` stretched over its rectangle, its bytes embedded as a `data:` URL in base64
-    /// (the file stays self-contained, as the pages' fonts are); anything else is counted as skipped.
+    /// (the file stays self-contained, as the pages' fonts are); anything else, and bytes that do not decode (the PDF
+    /// writer's rule, [`drawable_rasters`]), is counted as skipped.
     fn image(&mut self, img: &ImageItem, id: &str) -> bool {
         let bytes = &img.image.bytes;
+        if self.ctx.rasters.get(&img.image.sha256) != Some(&true) {
+            self.report.skipped_images += 1;
+            return false;
+        }
         let mime = match img.image.format {
             ImageFormat::Png if bytes.starts_with(b"\x89PNG\r\n\x1a\n") => "image/png",
             ImageFormat::Jpeg if bytes.starts_with(&[0xff, 0xd8, 0xff]) => "image/jpeg",

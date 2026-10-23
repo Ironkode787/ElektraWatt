@@ -6,6 +6,10 @@
 //!
 //! No XML parser is in the dependency graph, so the checks read the documents textually.
 
+// The JPEG fixtures of the renderer's tests: built from fixed coefficients, the same bytes on every platform.
+#[path = "../../ew-render-cpu/tests/common/jpeg.rs"]
+mod jpeg;
+
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
@@ -429,30 +433,41 @@ fn image_item(sha: u8, format: ew_dl::ImageFormat, bytes: &[u8]) -> Item {
     )
 }
 
-/// FT-384: PNG and JPEG images are written as `<image>` elements with their bytes embedded in base64, stretched over
-/// their rectangle; an image without bytes, an SVG image (which reaches the writer as paths) and bytes whose magic
-/// number is not their format's are counted as skipped.
+/// FT-384, FT-406: PNG and JPEG images are written as `<image>` elements with their bytes embedded in base64,
+/// stretched over their rectangle; an image without bytes, an SVG image (which reaches the writer as paths), bytes
+/// whose magic number is not their format's and bytes that carry the magic number but do not decode (the PDF writer's
+/// rule: a cut JPEG, a PNG header with nothing after it) are counted as skipped and not embedded.
 #[test]
 fn png_and_jpeg_images_are_embedded() {
-    let png = b"\x89PNG\r\n\x1a\nrest";
-    let jpeg = [0xff, 0xd8, 0xff, 0xe0, 1, 2];
+    let png = ew_export::ew_render_cpu::encode_png(
+        &ew_export::ew_render_cpu::RgbaImage {
+            width: 2,
+            height: 1,
+            pixels: vec![255, 0, 0, 255, 0, 0, 255, 255],
+        },
+        None,
+    );
+    let jpeg = jpeg::baseline(jpeg::Layout::Ycbcr420, 16, 16);
+    let cut = &jpeg[..jpeg.len() - 12];
     let (doc, report) = one(
         vec![
-            image_item(1, ew_dl::ImageFormat::Png, png),
+            image_item(1, ew_dl::ImageFormat::Png, &png),
             image_item(2, ew_dl::ImageFormat::Jpeg, &jpeg),
             image_item(3, ew_dl::ImageFormat::Png, &[]),
             image_item(4, ew_dl::ImageFormat::Svg, b"<svg/>"),
-            image_item(5, ew_dl::ImageFormat::Jpeg, png),
+            image_item(5, ew_dl::ImageFormat::Jpeg, &png),
+            image_item(6, ew_dl::ImageFormat::Jpeg, cut),
+            image_item(7, ew_dl::ImageFormat::Png, b"\x89PNG\r\n\x1a\nrest"),
         ],
         &options(),
     );
-    assert_eq!((report.images, report.skipped_images), (2, 3));
+    assert_eq!((report.images, report.skipped_images), (2, 5));
     assert!(
         doc.contains(
-            "<image x=\"10\" y=\"20\" width=\"40\" height=\"10\" preserveAspectRatio=\"none\" href=\"data:image/png;base64,iVBORw0KGgpyZXN0\"/>"
+            "<image x=\"10\" y=\"20\" width=\"40\" height=\"10\" preserveAspectRatio=\"none\" href=\"data:image/png;base64,iVBORw0KGgo"
         ),
         "{doc}"
     );
-    assert!(doc.contains("href=\"data:image/jpeg;base64,/9j/4AEC\""), "{doc}");
+    assert_eq!(count(&doc, "href=\"data:image/jpeg;base64,/9j/"), 1, "{doc}");
     assert_eq!(count(&doc, "<image "), 2);
 }

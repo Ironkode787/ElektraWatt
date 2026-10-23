@@ -25,7 +25,8 @@ pub struct DecodedImage {
 }
 
 /// The pixels of PNG or JPEG `bytes`, or `None` when the format is SVG (drawn as paths, never decoded here), the bytes
-/// do not decode completely (a truncated JPEG is refused, not padded), a side is zero or exceeds `u16::MAX`, or the
+/// do not decode completely (a truncated JPEG is refused, not padded: it must end its last scan with the EOI marker,
+/// see [`has_eoi_after_last_scan`]), a side is zero or exceeds `u16::MAX`, or the
 /// image has more than [`MAX_IMAGE_PIXELS`]. A 16-bit PNG is reduced to 8 bits; a greyscale or CMYK JPEG is converted
 /// to RGB by the decoder. The decoders run inside `catch_unwind` (it works with `panic = "unwind"`, the workspace
 /// profiles' setting), so hostile bytes give `None`, never a panic.
@@ -108,11 +109,24 @@ fn decode_png(bytes: &[u8]) -> Option<DecodedImage> {
     finish(width, height, rgba)
 }
 
+/// Whether JPEG `bytes` hold an EOI marker (`FF D9`) after the start of their last scan (`FF DA`). Neither marker can
+/// occur inside entropy-coded data (an `FF` there is stuffed as `FF 00`; restart markers are `FF D0`–`FF D7`), so a
+/// file cut anywhere after its last scan header lacks it. zune-jpeg 0.5.15 checks for a premature end of the data only
+/// at the start of an MCU row, even in strict mode, and decodes a cut inside the last row with zero bits; this check
+/// refuses such a file. Bytes after the EOI marker are allowed.
+fn has_eoi_after_last_scan(bytes: &[u8]) -> bool {
+    let last_scan = bytes.windows(2).rposition(|w| w == [0xff, 0xda]);
+    last_scan.is_some_and(|i| bytes[i..].windows(2).any(|w| w == [0xff, 0xd9]))
+}
+
 fn decode_jpeg(bytes: &[u8]) -> Option<DecodedImage> {
     use zune_jpeg::JpegDecoder;
     use zune_jpeg::zune_core::bytestream::ZCursor;
     use zune_jpeg::zune_core::colorspace::ColorSpace;
 
+    if !has_eoi_after_last_scan(bytes) {
+        return None;
+    }
     let mut decoder = JpegDecoder::new_with_options(ZCursor::new(bytes), jpeg_options());
     decoder.decode_headers().ok()?;
     let (w, h) = decoder.dimensions()?;

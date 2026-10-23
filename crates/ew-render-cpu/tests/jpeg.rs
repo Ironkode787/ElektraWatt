@@ -78,8 +78,45 @@ fn decoded_jpeg_pixels_are_the_same_on_every_platform() {
         .iter()
         .map(|b| format!("{b:02x}"))
         .collect();
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    let simd = if std::arch::is_x86_feature_detected!("avx2") {
+        "AVX2 detected"
+    } else {
+        "no AVX2"
+    };
+    #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
+    let simd = "not x86";
     assert_eq!(
         hash,
-        "db1b8a8b89a985e795dba87445653ae3ae1099ed0f27bbfe4c362a43d175a8b0"
+        "db1b8a8b89a985e795dba87445653ae3ae1099ed0f27bbfe4c362a43d175a8b0",
+        "decoded JPEG pixels on {} ({simd})",
+        std::env::consts::ARCH
     );
+}
+
+/// A JPEG cut anywhere in its last bytes is refused. zune-jpeg 0.5.15 checks for a premature end of the entropy-coded
+/// data only at the start of an MCU row, even in strict mode, so a cut inside the last row decoded "successfully"
+/// with zero bits; `decode_image` therefore requires the EOI marker after the last scan.
+#[test]
+fn a_jpeg_cut_in_its_last_mcu_row_is_refused() {
+    for layout in [Layout::Grey, Layout::Ycbcr420, Layout::Cmyk] {
+        for (w, h) in [(16u16, 16u16), (48, 32)] {
+            let whole = baseline(layout, w, h);
+            assert!(decode_image(ImageFormat::Jpeg, &whole).is_some());
+            let decoded: Vec<usize> = (1..60)
+                .filter(|cut| decode_image(ImageFormat::Jpeg, &whole[..whole.len() - cut]).is_some())
+                .collect();
+            assert!(
+                decoded.is_empty(),
+                "{layout:?} {w}x{h} decodes when cut by {decoded:?} bytes"
+            );
+            // Bytes after the EOI marker (some writers append them) do not matter.
+            let mut trailing = whole.clone();
+            trailing.extend_from_slice(b"\0\0trailer");
+            assert!(
+                decode_image(ImageFormat::Jpeg, &trailing).is_some(),
+                "{layout:?} with trailing bytes"
+            );
+        }
+    }
 }

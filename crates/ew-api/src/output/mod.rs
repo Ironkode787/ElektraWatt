@@ -521,9 +521,9 @@ pub fn export_pages_with(
     // decoder, once per asset of the export.
     let mut decodes: BTreeMap<[u8; 32], bool> = BTreeMap::new();
     let mut pages = Vec::with_capacity(resolved.len());
-    for (page, report) in resolved {
+    for (mut page, report) in resolved {
         let mut issues = report.issues;
-        undecodable_rasters(&page.content.items, &mut decodes, &mut issues);
+        undecodable_rasters(&mut page.content.items, &mut decodes, &mut issues);
         findings.extend(issues.into_iter().map(|issue| PageFindingAt {
             folio: page.label.clone(),
             finding: PageFinding::Image(issue),
@@ -543,15 +543,17 @@ pub fn export_pages_with(
 
 /// Adds an [`ImageProblem::Undecodable`](ew_scene::images::ImageProblem::Undecodable) issue for every PNG or JPEG item
 /// of `items` (groups included, in list order) whose bytes are held but do not decode with the renderers' decoder
-/// ([`ew_export::ew_render_cpu::decode_image`]); `decodes` caches the verdict per asset hash.
+/// ([`ew_export::ew_render_cpu::decode_image`]), and withdraws that item's bytes, so that no writer embeds them (the
+/// SVG writer would otherwise copy them unchanged) and none decodes them again; `decodes` caches the verdict per asset
+/// hash, once per export.
 fn undecodable_rasters(
-    items: &[ew_dl::Item],
+    items: &mut [ew_dl::Item],
     decodes: &mut BTreeMap<[u8; 32], bool>,
     issues: &mut Vec<ew_scene::images::ImageIssue>,
 ) {
     for item in items {
-        match &item.kind {
-            ew_dl::ItemKind::Group(g) => undecodable_rasters(&g.items, decodes, issues),
+        match &mut item.kind {
+            ew_dl::ItemKind::Group(g) => undecodable_rasters(&mut g.items, decodes, issues),
             ew_dl::ItemKind::Image(img)
                 if !img.image.bytes.is_empty() && img.image.format != ew_dl::ImageFormat::Svg =>
             {
@@ -562,6 +564,11 @@ fn undecodable_rasters(
                     issues.push(ew_scene::images::ImageIssue {
                         sha256: img.image.sha256,
                         problem: ew_scene::images::ImageProblem::Undecodable(img.image.format),
+                    });
+                    img.image = Arc::new(ew_dl::ImageData {
+                        sha256: img.image.sha256,
+                        format: img.image.format,
+                        bytes: Arc::from(&[][..]),
                     });
                 }
             }
