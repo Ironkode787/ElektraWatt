@@ -6,6 +6,8 @@
 //! Every test works on a temporary copy of Golden A with `EW_CONFIG_DIR` in a temporary directory; nothing is
 //! written into the repository.
 
+mod support;
+
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -942,4 +944,308 @@ fn t10_a_select_and_measure_script_is_deterministic() {
     let text = steps[17]["describe"].as_str().unwrap();
     assert!(text.contains("canvas tool \"Measure\" state armed"), "{text}");
     assert!(text.contains("canvas overlay 4 label \"dx "), "{text}");
+}
+
+/// WP-S2.04 part 1 through the built binary (acceptance check PL7 and part 1's share of §13.6): folio 101's
+/// representations placed by a UI script generated from Golden A's records on a new project made by the
+/// company-standard wizard, with the oracle of §13.6 (17 representations, each the golden symbol at the golden
+/// insertion point and orientation), two runs giving byte-identical transcripts, and the `--record` log replayed
+/// by the session's command-log replay (what `ew apply` runs) giving equal records.
+mod folio_scripts {
+    use std::path::{Path, PathBuf};
+    use std::process::{Command, Output, Stdio};
+    use std::sync::atomic::{AtomicU32, Ordering};
+
+    use ew_ui::ew_viewmodel::ew_api::{CmdLog, Session};
+    use serde_json::{Value, json};
+
+    use super::bin_exe;
+    use super::support::{SheetMap, golden_reps, placement_steps};
+
+    const CONTENT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../content");
+
+    static COUNTER: AtomicU32 = AtomicU32::new(0);
+
+    /// A fresh temporary directory, removed on drop.
+    struct Tmp(PathBuf);
+
+    impl Tmp {
+        fn new() -> Tmp {
+            let n = COUNTER.fetch_add(1, Ordering::Relaxed);
+            let dir = std::env::temp_dir().join(format!("ew-place-test-{}-{n}", std::process::id()));
+            std::fs::create_dir_all(&dir).unwrap();
+            Tmp(dir)
+        }
+
+        fn path(&self, name: &str) -> PathBuf {
+            self.0.join(name)
+        }
+    }
+
+    impl Drop for Tmp {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+
+    fn copy_dir(from: &Path, to: &Path) {
+        std::fs::create_dir_all(to).unwrap();
+        for entry in std::fs::read_dir(from).unwrap() {
+            let entry = entry.unwrap();
+            let target = to.join(entry.file_name());
+            if entry.file_type().unwrap().is_dir() {
+                copy_dir(&entry.path(), &target);
+            } else {
+                std::fs::copy(entry.path(), target).unwrap();
+            }
+        }
+    }
+
+    fn path(p: &Path) -> String {
+        p.to_string_lossy().into_owned()
+    }
+
+    fn script_text(steps: &[(String, Value)]) -> String {
+        let mut text = String::from("{\"$schema\":\"ew.uiscript/1\",\"label\":\"folio script\"}\n");
+        for (action, params) in steps {
+            text.push_str(&json!({"action": action, "params": params}).to_string());
+            text.push('\n');
+        }
+        text
+    }
+
+    /// Runs a script headless (with the content of the source tree), optionally recording the committed commands.
+    fn run(tmp: &Tmp, name: &str, steps: &[(String, Value)], record: Option<&Path>) -> Output {
+        let file = tmp.path(name);
+        std::fs::write(&file, script_text(steps)).unwrap();
+        let mut cmd = Command::new(bin_exe());
+        cmd.args(["--headless", "--script"]).arg(&file);
+        if let Some(r) = record {
+            cmd.arg("--record").arg(r);
+        }
+        // The start's runs share one configuration (the wizard's company standard is the default template of `file.new`);
+        // a folio run has its own, so that its recent-projects list depends on nothing before it.
+        let config = if record.is_some() {
+            tmp.path(&format!("config-{name}"))
+        } else {
+            tmp.path("config")
+        };
+        cmd.env("EW_CONFIG_DIR", config)
+            .env("EW_CONTENT_DIR", CONTENT)
+            .env_remove("EW_SAMPLE_DIR")
+            .env_remove("EW_DOCS_DIR")
+            .env_remove("SOURCE_DATE_EPOCH")
+            .stdin(Stdio::null())
+            .output()
+            .unwrap()
+    }
+
+    /// Every step of a transcript was done.
+    #[track_caller]
+    fn all_done(out: &Output) {
+        let text = String::from_utf8(out.stdout.clone()).unwrap();
+        assert_eq!(
+            out.status.code(),
+            Some(0),
+            "{}\n{text}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        for line in text.lines().skip(1) {
+            let step: Value = serde_json::from_str(line).unwrap();
+            assert_eq!(step["outcome"], "done", "{step}");
+        }
+    }
+
+    fn steps(list: &[(&str, Value)]) -> Vec<(String, Value)> {
+        list.iter().map(|(a, p)| ((*a).to_owned(), p.clone())).collect()
+    }
+
+    /// The `library.embed` parameters of starter documents of the content tree.
+    fn embed(files: &[&str]) -> Value {
+        let copies: Vec<Value> = files
+            .iter()
+            .map(|f| {
+                serde_json::from_str(&std::fs::read_to_string(Path::new(CONTENT).join(f)).unwrap()).unwrap()
+            })
+            .collect();
+        json!({ "copies": copies })
+    }
+
+    /// The start of §13.6 for folio 101: a new project made by the company-standard wizard with its defaults, page
+    /// 101 (multi-line, the QET grid), strip `X` for the folio's terminals and the interruption-point symbols that
+    /// `command.run` `ip.place` names (the Place tool embeds the symbols it places itself). Saved and closed.
+    fn start(tmp: &Tmp) -> PathBuf {
+        let company = tmp.path("company.ew");
+        all_done(&run(
+            tmp,
+            "wizard.jsonl",
+            &steps(&[
+                ("tools.company_standard", json!({})),
+                ("wizard.finish", json!({ "dir": path(&company) })),
+            ]),
+            None,
+        ));
+        let job = tmp.path("start.ew");
+        all_done(&run(
+            tmp,
+            "start.jsonl",
+            &steps(&[
+                ("file.new", json!({ "dir": path(&job) })),
+                (
+                    "command.run",
+                    json!({"cmd": "page.create", "params": {
+                        "number": 101, "title": "Power Supply 1 - Main Current", "kind": "multi_line",
+                        "grid": {"num": 7_937_500, "den": 3},
+                    }}),
+                ),
+                (
+                    "command.run",
+                    json!({"cmd": "device.create", "params": {"letter": "X", "counter": 1, "strip": {}}}),
+                ),
+                (
+                    "command.run",
+                    json!({"cmd": "library.embed", "params": embed(&[
+                        "symbols/qet10/ew.gen.ip@qet10.json",
+                        "fndefs/ew.fn.ip.json",
+                        "symbols/qet10/ew.gen.external-arrow@qet10.json",
+                        "fndefs/ew.fn.external-arrow.json",
+                    ])}),
+                ),
+                ("file.save", json!({})),
+                ("file.close", json!({})),
+            ]),
+            None,
+        ));
+        job
+    }
+
+    /// The representations of folio 101 of the project at `dir`: (symbol key, insertion point, orientation), sorted.
+    fn reps_of(dir: &Path) -> Vec<(String, (i64, i64), u8)> {
+        let (s, _) = Session::open_read_only(dir, "test").unwrap();
+        let mut out: Vec<_> = s
+            .page_tables("101")
+            .unwrap()
+            .reps
+            .iter()
+            .map(|r| (r.symbol_key.clone(), r.pos, r.orient))
+            .collect();
+        out.sort();
+        out
+    }
+
+    #[test]
+    fn folio_101_is_placed_by_a_generated_script_twice_identically_and_replays() {
+        let tmp = Tmp::new();
+        let job = start(&tmp);
+        // The page's sheet map and the strip's ID, read from the start project.
+        let (session, _) = Session::open_read_only(&job, "test").unwrap();
+        let grid = session.page_grid("101").expect("page 101");
+        let map = SheetMap {
+            scale_ppb: i128::from(grid.sheet_scale_ppb),
+            offset: (
+                i128::from(grid.sheet_offset_nm.0),
+                i128::from(grid.sheet_offset_nm.1),
+            ),
+        };
+        let q = session.query();
+        let strip = q
+            .devices()
+            .iter()
+            .find(|(_, d)| d.aspects.strip.is_some())
+            .map(|(id, _)| id.to_string())
+            .expect("the start project's strip");
+        drop(q);
+        drop(session);
+        let (placements, runs) = placement_steps(101, map, &strip);
+        // Two copies of the start: two runs of the same script give byte-identical transcripts.
+        let mut transcripts = Vec::new();
+        let mut records = Vec::new();
+        for n in ["a", "b"] {
+            let dir = tmp.path(n).join("folio.ew");
+            copy_dir(&job, &dir);
+            let mut script = steps(&[
+                ("file.open", json!({ "dir": path(&dir) })),
+                ("page.goto", json!({"folio": "101"})),
+            ]);
+            script.extend(placements.iter().cloned());
+            script.extend(steps(&[
+                ("ui.describe", json!({})),
+                ("file.save", json!({})),
+                ("file.close", json!({})),
+            ]));
+            let record = tmp.path(&format!("{n}.ewcmd"));
+            let out = run(&tmp, &format!("{n}.jsonl"), &script, Some(&record));
+            all_done(&out);
+            let text = String::from_utf8(out.stdout).unwrap();
+            assert!(
+                !text.contains(&*tmp.0.to_string_lossy()),
+                "a path in the transcript"
+            );
+            transcripts.push(text);
+            records.push(record);
+        }
+        if let Some((a, b)) = transcripts[0]
+            .lines()
+            .zip(transcripts[1].lines())
+            .find(|(a, b)| a != b)
+        {
+            let at = a.bytes().zip(b.bytes()).position(|(x, y)| x != y).unwrap_or(0);
+            panic!(
+                "two runs, two transcripts: first difference at {at}: {} | {}",
+                &a[at.saturating_sub(120)..(at + 80).min(a.len())],
+                &b[at.saturating_sub(120)..(at + 80).min(b.len())]
+            );
+        }
+        assert_eq!(transcripts[0], transcripts[1], "two runs, one transcript");
+        // The oracle of §13.6: 17 representations, each the golden symbol at the golden point and orientation.
+        let golden: Vec<(String, (i64, i64), u8)> = {
+            let mut v: Vec<_> = golden_reps(101)
+                .into_iter()
+                .map(|r| (r.symbol, r.pos, r.orient))
+                .collect();
+            v.sort();
+            v
+        };
+        assert_eq!(golden.len(), 17);
+        let placed = reps_of(&tmp.path("a").join("folio.ew"));
+        assert_eq!(placed.len(), 17, "representations on 101");
+        assert_eq!(placed, golden);
+        // The steps a later part owns: the six interruption points (the IP tool is part 3's).
+        assert_eq!(runs, 6);
+        // `--record` replayed on a third copy of the start (the session's command-log replay, `ew apply`'s path) gives
+        // the same representations.
+        let replay = tmp.path("c").join("folio.ew");
+        copy_dir(&job, &replay);
+        let log = CmdLog::parse(&std::fs::read_to_string(&records[0]).unwrap()).unwrap();
+        let names: Vec<&str> = log.commands().map(|c| c.name.as_str()).collect();
+        assert_eq!(
+            names.iter().filter(|n| **n == "device.place").count(),
+            11,
+            "{names:?}"
+        );
+        assert_eq!(names.iter().filter(|n| **n == "ip.place").count(), 6);
+        let mut store = ew_ui::ew_viewmodel::ew_api::StoreOptions::new("test");
+        store.state_dir = Some(tmp.path("state"));
+        let (mut s, _) = Session::open(
+            &replay,
+            store,
+            ew_ui::ew_viewmodel::ew_api::SessionOptions::default(),
+            ew_ui::ew_viewmodel::ew_api::Recovery::Keep,
+        )
+        .unwrap();
+        s.run_script(&log, "a.ewcmd").unwrap();
+        let mut replayed: Vec<_> = s
+            .page_tables("101")
+            .unwrap()
+            .reps
+            .iter()
+            .map(|r| (r.symbol_key.clone(), r.pos, r.orient))
+            .collect();
+        replayed.sort();
+        assert_eq!(
+            replayed, placed,
+            "the replay's records equal the scripted session's"
+        );
+        s.close();
+    }
 }
