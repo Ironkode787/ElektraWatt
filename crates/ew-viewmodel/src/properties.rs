@@ -16,7 +16,7 @@ use std::sync::Arc;
 use ew_api::Cost;
 use ew_api::output::ew_dl::EntityRef;
 pub use ew_api::output::{
-    Category, EditRoute, FieldType, PropRow, PropertySheet, Provenance, ReadOnlyReason, RowAction, RowValue,
+    Category, EditRoute, FieldReadOnly, FieldType, PropRow, PropertySheet, Provenance, RowAction, RowValue,
     SheetSection,
 };
 use serde_json::Value;
@@ -391,16 +391,16 @@ pub fn read_only_reason(sheet: &PropertySheet, section: &SheetSection, row: &Pro
 }
 
 /// The text of a read-only reason.
-pub fn reason_text(reason: &ReadOnlyReason) -> String {
+pub fn reason_text(reason: &FieldReadOnly) -> String {
     match reason {
-        ReadOnlyReason::Identity => strings::text("props-ro-identity").to_owned(),
-        ReadOnlyReason::Narrowed { why } => why.clone(),
-        ReadOnlyReason::Command {
+        FieldReadOnly::Identity => strings::text("props-ro-identity").to_owned(),
+        FieldReadOnly::Narrowed { why } => why.clone(),
+        FieldReadOnly::Command {
             action: Some(action), ..
         } => strings::format("props-ro-action", &[action]),
-        ReadOnlyReason::Command { command, .. } => strings::format("props-ro-command", &[command]),
-        ReadOnlyReason::HumanOnly { step, .. } => strings::format("props-ro-human-only", &[step]),
-        ReadOnlyReason::NoCommand => strings::text("props-ro-no-command").to_owned(),
+        FieldReadOnly::Command { command, .. } => strings::format("props-ro-command", &[command]),
+        FieldReadOnly::HumanOnly { step, .. } => strings::format("props-ro-human-only", &[step]),
+        FieldReadOnly::NoCommand => strings::text("props-ro-no-command").to_owned(),
     }
 }
 

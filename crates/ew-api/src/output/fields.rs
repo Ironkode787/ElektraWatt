@@ -299,12 +299,13 @@ pub enum EditRoute {
         member: String,
     },
     /// Not editable in the grid.
-    ReadOnly(ReadOnlyReason),
+    ReadOnly(FieldReadOnly),
 }
 
-/// Why a field is read-only in the grid (§6.8).
+/// Why a field is read-only in the grid (§6.8). Named apart from the crate root's `ReadOnlyReason` of a read-only
+/// project (FT-427).
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub enum ReadOnlyReason {
+pub enum FieldReadOnly {
     /// The record's identity (`id`, `$v`).
     Identity,
     /// A settable path the grid shows read-only (the narrowing table).
@@ -336,13 +337,13 @@ impl EditRoute {
         match self {
             EditRoute::FieldsSet { path, .. } => format!("fields.set:{path}"),
             EditRoute::SettingsMember { member } => format!("settings:{member}"),
-            EditRoute::ReadOnly(ReadOnlyReason::Identity) => "read-only:identity".into(),
-            EditRoute::ReadOnly(ReadOnlyReason::Narrowed { .. }) => "read-only:narrowed".into(),
-            EditRoute::ReadOnly(ReadOnlyReason::Command { command, .. }) => format!("read-only:{command}"),
-            EditRoute::ReadOnly(ReadOnlyReason::HumanOnly { command, .. }) => {
+            EditRoute::ReadOnly(FieldReadOnly::Identity) => "read-only:identity".into(),
+            EditRoute::ReadOnly(FieldReadOnly::Narrowed { .. }) => "read-only:narrowed".into(),
+            EditRoute::ReadOnly(FieldReadOnly::Command { command, .. }) => format!("read-only:{command}"),
+            EditRoute::ReadOnly(FieldReadOnly::HumanOnly { command, .. }) => {
                 format!("read-only:human-only:{command}")
             }
-            EditRoute::ReadOnly(ReadOnlyReason::NoCommand) => "read-only:no-command".into(),
+            EditRoute::ReadOnly(FieldReadOnly::NoCommand) => "read-only:no-command".into(),
         }
     }
 
@@ -582,12 +583,9 @@ const OTHER_COMMANDS: &[(&str, &str, &str, Option<&str>)] = &[
         "project.languages.set",
         Some("the company-standard wizard"),
     ),
-    (
-        "project",
-        "settings.drawing",
-        "project.drawing.set",
-        Some("Project ▸ Drawing"),
-    ),
+    // No menu edits the crossings setting yet (doc 16 §3.2: the Project menu's "Drawing" item needs that menu first), so
+    // the reason names the command (cycle-25 review note).
+    ("project", "settings.drawing", "project.drawing.set", None),
     ("representation", "pos", "rep.move", Some("the canvas")),
     ("representation", "orient", "rep.transform", Some("the canvas")),
     ("representation", "page", "rep.move", Some("the canvas")),
@@ -624,25 +622,25 @@ fn settable_form(path: &str) -> String {
 /// unregistered).
 pub(crate) fn route_of(kind: &str, path: &str, exposure: &dyn Fn(&str) -> Option<Exposure>) -> EditRoute {
     let human = |command: &str, step: &str| {
-        EditRoute::ReadOnly(ReadOnlyReason::HumanOnly {
+        EditRoute::ReadOnly(FieldReadOnly::HumanOnly {
             command: command.to_owned(),
             step: step.to_owned(),
         })
     };
     // A route through `command`: no command when unregistered, read-only when `HumanOnly`.
     let through = |command: &str, step: Option<&str>, route: EditRoute| match exposure(command) {
-        None => EditRoute::ReadOnly(ReadOnlyReason::NoCommand),
+        None => EditRoute::ReadOnly(FieldReadOnly::NoCommand),
         Some(Exposure::Edit) => route,
         Some(Exposure::HumanOnly) => human(command, step.unwrap_or(HUMAN_STEP)),
-        Some(_) => EditRoute::ReadOnly(ReadOnlyReason::NoCommand),
+        Some(_) => EditRoute::ReadOnly(FieldReadOnly::NoCommand),
     };
     // 1. Identity.
     if path == "id" || path == "$v" {
-        return EditRoute::ReadOnly(ReadOnlyReason::Identity);
+        return EditRoute::ReadOnly(FieldReadOnly::Identity);
     }
     // 2. The narrowing table.
     if let Some((_, _, why)) = NARROWED.iter().find(|(k, p, _)| *k == kind && under(path, p)) {
-        return EditRoute::ReadOnly(ReadOnlyReason::Narrowed {
+        return EditRoute::ReadOnly(FieldReadOnly::Narrowed {
             why: (*why).to_owned(),
         });
     }
@@ -687,14 +685,14 @@ pub(crate) fn route_of(kind: &str, path: &str, exposure: &dyn Fn(&str) -> Option
         return through(
             command,
             *action,
-            EditRoute::ReadOnly(ReadOnlyReason::Command {
+            EditRoute::ReadOnly(FieldReadOnly::Command {
                 command: (*command).to_owned(),
                 action: action.map(str::to_owned),
             }),
         );
     }
     // 6. Nothing.
-    EditRoute::ReadOnly(ReadOnlyReason::NoCommand)
+    EditRoute::ReadOnly(FieldReadOnly::NoCommand)
 }
 
 /// A member name as a path segment: in brackets when it contains a dot (`[ew.company]`).
@@ -1758,7 +1756,7 @@ mod tests {
                 if let EditRoute::FieldsSet { .. } = n.route {
                     editable += 1;
                     assert!(
-                        matches!(&g.route, EditRoute::ReadOnly(ReadOnlyReason::HumanOnly { command, .. })
+                        matches!(&g.route, EditRoute::ReadOnly(FieldReadOnly::HumanOnly { command, .. })
                             if command == "fields.set"),
                         "{} {}: {:?}",
                         g.kind,

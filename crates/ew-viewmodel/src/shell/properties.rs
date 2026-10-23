@@ -266,7 +266,7 @@ impl ShellModel {
         if read_only_reason(sheet, section, row).is_some()
             && matches!(
                 row.route,
-                crate::properties::EditRoute::ReadOnly(crate::properties::ReadOnlyReason::HumanOnly { .. })
+                crate::properties::EditRoute::ReadOnly(crate::properties::FieldReadOnly::HumanOnly { .. })
             )
         {
             return Some("reason-human-only");

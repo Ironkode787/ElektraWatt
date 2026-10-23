@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The property grid in the window without rendering (WP-S2.05 part 1, acceptance checks PG5, PG9 and the window half
-//! of PG11): AC-28's W29 step (a canvas click, the chips, the colour through the editor, undo), D-06's property-grid
+//! of PG11): AC-28's W29 step (W29 chosen through `select.set`, the chips, the colour through the editor, undo), D-06's property-grid
 //! entry from the keyboard alone (override the description of folio 101, see the finding, reset, undo), the exact
 //! counts of the window host, and the accessible-name walker after every step.
 

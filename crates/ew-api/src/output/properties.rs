@@ -37,9 +37,9 @@ use ew_schema::{
 use serde_json::Value;
 
 use super::fields::{
-    Category, DisplayCx, EditRoute, FIXED_SETTINGS, FieldChoice, FieldSpec, FieldType, InputError, ParseCx,
-    ParsedInput, ReadOnlyReason, catalogue_kind, choices, field_catalogue, format_with, route_of, segment,
-    spec_of,
+    Category, DisplayCx, EditRoute, FIXED_SETTINGS, FieldChoice, FieldReadOnly, FieldSpec, FieldType,
+    InputError, ParseCx, ParsedInput, catalogue_kind, choices, field_catalogue, format_with, route_of,
+    segment, spec_of,
 };
 use crate::Session;
 use crate::checks;
@@ -623,7 +623,7 @@ impl SectionCx<'_, '_> {
         let value = row_value(self.cx, &spec.ty, &values);
         let mut route = spec.route.clone();
         if let Some(why) = &self.closed {
-            route = EditRoute::ReadOnly(ReadOnlyReason::Narrowed { why: why.clone() });
+            route = EditRoute::ReadOnly(FieldReadOnly::Narrowed { why: why.clone() });
         }
         let provenance = match (&value, self.generated) {
             (_, Some(block)) => Provenance::Generated {
@@ -790,7 +790,7 @@ fn derived(
         Some((path, route, identifier)) => (path.to_owned(), route, identifier),
         None => (
             format!("derived.{name}"),
-            EditRoute::ReadOnly(ReadOnlyReason::NoCommand),
+            EditRoute::ReadOnly(FieldReadOnly::NoCommand),
             false,
         ),
     };
@@ -1651,11 +1651,8 @@ fn row_type(kind: &str, row_path: &str) -> Option<FieldType> {
     if let Some(spec) = spec_of(&catalogue, row_path) {
         return Some(spec.ty.clone());
     }
-    // A derived row's partner below a settable member (`overrides.flags.shielded`) or an unlisted member.
-    match (kind, row_path) {
-        ("connection", "overrides.flags.shielded" | "overrides.flags.twisted") => Some(FieldType::Bool),
-        _ => Some(FieldType::Json),
-    }
+    // An unlisted member (a derived row's partner such as `overrides.flags.shielded` is a catalogue node, FT-427).
+    Some(FieldType::Json)
 }
 
 /// `<folio>-<cell>` of a device's main representation.
@@ -1760,7 +1757,7 @@ mod tests {
         let built = derived(
             "device",
             "tag",
-            Some(("tag.frozen", EditRoute::ReadOnly(ReadOnlyReason::NoCommand), true)),
+            Some(("tag.frozen", EditRoute::ReadOnly(FieldReadOnly::NoCommand), true)),
             Category::Identity,
             FieldType::Ident,
             RowValue::Absent,

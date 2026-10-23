@@ -62,8 +62,8 @@ pub use editing::{
 pub use ew_dl;
 pub use ew_export::{Parallelism, PdfDate, PdfReport, SvgFile, SvgReport, svg_file_name};
 pub use fields::{
-    Category, EditRoute, FieldChoice, FieldNode, FieldSpec, FieldType, InputError, ParsedInput,
-    ReadOnlyReason, field_catalogue, field_catalogue_for, format_field_value,
+    Category, EditRoute, FieldChoice, FieldNode, FieldReadOnly, FieldSpec, FieldType, InputError,
+    ParsedInput, field_catalogue, field_catalogue_for, format_field_value,
 };
 pub use layers::{
     FrameLayer, LabelsLayer, PageLayer, SymbolsLayer, TablesLayer, WiresLayer, page_kind, page_layer,
