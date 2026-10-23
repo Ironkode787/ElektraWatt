@@ -17,6 +17,10 @@ use sha2::{Digest, Sha256};
 #[path = "grid/properties.rs"]
 mod grid_properties;
 
+/// Find and replace headless (WP-S2.05 part 2, FR3 to FR6).
+#[path = "grid/find.rs"]
+mod grid_find;
+
 const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
 const EXPECTED: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/expected");
 

@@ -11,6 +11,10 @@ use std::sync::atomic::{AtomicU32, Ordering};
 #[path = "../../elektrawatt/tests/grid/pilot_log.rs"]
 mod pilot_log;
 
+/// The find-and-replace script's command log (WP-S2.05 part 2), recorded by `bin/elektrawatt/tests/grid/find.rs`.
+#[path = "../../elektrawatt/tests/grid/find_log.rs"]
+mod find_log;
+
 const CONTENT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../content");
 const LOST: &str = r#"<project version="0.100" title="T"><diagram order="1" folio="1" title="P"><elements/><conductors><conductor terminal1="999" terminal2="998"/></conductors></diagram></project>"#;
 const PROJECT: &str = r#"<project version="0.100" title="T"><diagram order="1" folio="1" title="P"><elements/><conductors/></diagram></project>"#;
@@ -1291,6 +1295,42 @@ fn the_property_grid_pilot_log_replays_through_ew_apply() {
     let (mut replayed, _) = ew_api::Session::open_read_only(&fresh, "test").unwrap();
     replayed
         .run_script(&ew_api::CmdLog::parse(&text).unwrap(), "pilot.ewcmd")
+        .unwrap();
+    let (saved, _) = ew_api::Session::open_read_only(&project, "test").unwrap();
+    let diff = replayed.diff_from(&saved.world()).unwrap();
+    assert!(diff.model.is_empty(), "{:?}", diff.model);
+}
+
+// WP-S2.05 part 2
+/// FR6 (§9 item 2): the find-and-replace script's `--record` log (`find_log.rs`: three `fields.set_many` lines, which
+/// the headless test of `elektrawatt` proves is the record of its script) applied with `ew apply` gives the same records
+/// as the same log replayed in-process.
+#[test]
+fn the_find_and_replace_log_replays_through_ew_apply() {
+    let t = Tmp::new();
+    let home = t.0.join("home");
+    let project = golden_copy(&t);
+    let log = t.0.join("find.ewcmd");
+    let text = format!(
+        "{{\"$schema\":\"ew.cmdlog/1\",\"label\":\"find\"}}
+{}",
+        find_log::FIND_LOG
+    );
+    std::fs::write(&log, &text).unwrap();
+    let applied = ew_isolated(&home, &["apply".as_ref(), project.as_os_str(), log.as_os_str()]);
+    assert_eq!(applied.status.code(), Some(0), "{}", stderr(&applied));
+    let lines = find_log::FIND_LOG.lines().count();
+    assert_eq!(lines, 3);
+    assert!(
+        stdout(&applied).contains(&format!("applied {lines} of {lines} lines; saved")),
+        "{}",
+        stdout(&applied)
+    );
+    let fresh = t.0.join("fresh.ew");
+    copy_dir(std::path::Path::new(GOLDEN_A), &fresh);
+    let (mut replayed, _) = ew_api::Session::open_read_only(&fresh, "test").unwrap();
+    replayed
+        .run_script(&ew_api::CmdLog::parse(&text).unwrap(), "find.ewcmd")
         .unwrap();
     let (saved, _) = ew_api::Session::open_read_only(&project, "test").unwrap();
     let diff = replayed.diff_from(&saved.world()).unwrap();
