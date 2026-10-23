@@ -476,6 +476,15 @@ fn wr5_a_route_given_by_the_route_editor_and_a_contact_inserted_split_the_wire()
         .clone();
     assert!(!w13.stored_route);
     let drawn = line(&w13);
+    // W13's printed number before the insert.
+    let number_before = {
+        let (golden, _) =
+            ew_viewmodel::ew_api::Session::open_read_only(&tmp.0.join("J-E-2416.ew"), "test").unwrap();
+        golden
+            .property_sheet(&[w13.id.to_string().parse().unwrap()])
+            .header
+            .title
+    };
     // An override first, so the split shows it copied (FR-CON-008).
     done(
         &mut s,
@@ -559,6 +568,7 @@ fn wr5_a_route_given_by_the_route_editor_and_a_contact_inserted_split_the_wire()
     drop(q);
     let printed = |id: &str| session.property_sheet(&[id.parse().unwrap()]).header.title;
     let (kept_number, half_number) = (printed(&w13.id.to_string()), printed(&new[0].id.to_string()));
+    assert_eq!(kept_number, number_before, "W13's number stays on the kept side");
     assert!(
         kept_number.starts_with("101."),
         "W13 prints a number: {kept_number}"

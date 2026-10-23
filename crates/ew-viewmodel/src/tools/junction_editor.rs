@@ -48,18 +48,21 @@ pub struct JunctionEditor {
     pub rev: (u64, u64),
 }
 
-/// The name of junction `j` in the transcript and the describe text: the frame cell it lies in, with `#n` (its
-/// place in ID order) when the cell holds several junctions (`C11#2`); no UUID (`@n` comes with FT-422).
+/// The name of junction `j` in the transcript and the describe text: the frame cell it lies in, with `#n` when the
+/// cell holds several junctions (`C11#2`), numbered by position (y, then x; ties by ID). Not by ID alone: the IDs one
+/// transaction mints are not in creation order (UUIDv7's random bits within one timestamp), so two runs of one script
+/// could swap the numbers (ID-474's byte equality). No UUID (`@n` comes with FT-422).
 pub fn junction_name(tables: &PageTables, j: EntityRef, cell_of: &dyn Fn((i64, i64)) -> String) -> String {
     let Some(row) = tables.junctions.iter().find(|x| x.id == j.0) else {
         return String::new();
     };
     let cell = cell_of(row.at);
-    let same: Vec<&ew_api::output::TableJunction> = tables
+    let mut same: Vec<&ew_api::output::TableJunction> = tables
         .junctions
         .iter()
         .filter(|x| cell_of(x.at) == cell)
         .collect();
+    same.sort_by_key(|x| (x.at.1, x.at.0, x.id));
     if same.len() < 2 {
         return cell;
     }
@@ -213,5 +216,23 @@ mod tests {
         assert_eq!(junction_name(&tables, EntityRef(id(2)), &cell), "C11#1");
         assert_eq!(junction_name(&tables, EntityRef(id(3)), &cell), "C11#2");
         assert_eq!(junction_name(&tables, EntityRef(id(4)), &cell), "C12");
+    }
+
+    #[test]
+    fn junctions_in_one_cell_are_numbered_by_position_not_by_id() {
+        // The larger ID lies left of the smaller one, and a third lies above both.
+        let tables = PageTables {
+            folio: "1".into(),
+            page: id(1),
+            grid: (1, 1),
+            reps: Vec::new(),
+            cps: Vec::new(),
+            connections: Vec::new(),
+            junctions: vec![junction(2, (5, 3)), junction(3, (0, 3)), junction(4, (9, 1))],
+        };
+        let cell = |_: (i64, i64)| "C11".to_owned();
+        assert_eq!(junction_name(&tables, EntityRef(id(4)), &cell), "C11#1");
+        assert_eq!(junction_name(&tables, EntityRef(id(3)), &cell), "C11#2");
+        assert_eq!(junction_name(&tables, EntityRef(id(2)), &cell), "C11#3");
     }
 }

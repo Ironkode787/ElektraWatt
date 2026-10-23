@@ -344,7 +344,6 @@ fn editable_page(m: &ShellModel) -> Result<(), &'static str> {
     }
 }
 
-/// The picker is open (WP-S2.04 §7.1).
 /// An editable page whose type has a connection kind the Wire tool draws (WP-S2.04 part 2, fix round item 1).
 fn wire_page(m: &ShellModel) -> Result<(), &'static str> {
     editable_page(m)?;
@@ -361,6 +360,7 @@ fn junction_editor_open(m: &ShellModel) -> Result<(), &'static str> {
     }
 }
 
+/// The picker is open (WP-S2.04 §7.1).
 fn picker_open(m: &ShellModel) -> Result<(), &'static str> {
     if m.picker().is_some() {
         Ok(())
