@@ -61,6 +61,7 @@
 #![forbid(unsafe_code)]
 
 mod cmdlog;
+pub mod geometry;
 pub mod import;
 mod new_project;
 pub mod output;

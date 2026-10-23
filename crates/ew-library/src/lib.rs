@@ -5,3 +5,5 @@
 //! SQLite FTS5 index per user, and embedding used items into projects.
 
 #![forbid(unsafe_code)]
+
+pub mod starter;

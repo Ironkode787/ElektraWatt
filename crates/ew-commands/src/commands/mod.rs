@@ -87,7 +87,7 @@ pub use connection::{
 };
 pub use device::{
     ConnectHint, CreateDevice, MoveReps, PlaceBlackBox, PlaceSymbol, PlaceTarget, SetAnchorPolicy,
-    TransformReps,
+    TransformReps, allowed_rep_types,
 };
 pub use edit::{BULK_ABOVE, DeleteSelection};
 pub use fields::{ASPECTS, SETTABLE, SetFields};

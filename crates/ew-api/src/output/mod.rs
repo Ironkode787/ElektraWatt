@@ -34,6 +34,7 @@
 //! rule 2: a hash of the export input), `<pages>` being `all` or the selected folio labels joined by `,` and
 //! `<digest>` the [`content_digest`] of the pages and the bundled fonts.
 
+mod editing;
 mod layers;
 mod navigation;
 mod view;
@@ -49,6 +50,10 @@ use ew_export::{PdfError, PdfOptions, PdfPage, SvgError, SvgFace, SvgOptions, pa
 use ew_scene::page::PageFinding;
 use sha2::{Digest, Sha256};
 
+pub use editing::{
+    CataloguePart, CatalogueSymbol, CatalogueTemplateFn, OUTLINE_TOLERANCE_NM, PageTables, PlaceCatalogue,
+    ShapeCp, SymbolShape, TableBox, TableConnection, TableCp, TableEnd, TableIp, TableJunction, TableRep,
+};
 /// The display-list IR the pages of an export are made of ([`ExportPages`]' `content`), re-exported so that the
 /// shell names its types (`DisplayList`, `EntityRef`, `Rect`) without a workspace edge to `ew-dl` (WP-S2.02 §4.2;
 /// architecture §3 rule 7).
