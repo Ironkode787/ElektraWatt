@@ -705,9 +705,9 @@ fn ci() -> Result<bool> {
 mod tests {
     use super::{ONCE_PER_JOB_FILTER, unresolved_clippy_paths, workspace_root};
 
-    /// FT-268, FT-306, FT-330, FT-353: the acceptance tests and the command fuzzer run once per job. The filtered
+    /// FT-268, FT-306, FT-330, FT-353, FT-387: the acceptance tests and the command fuzzer run once per job. The filtered
     /// default-features run is in test-linux-default and test-macos; the unfiltered all-features run is in test-linux
-    /// and test-macos; test-windows-1 and test-windows-2 run the unfiltered all-features archive in two partitions
+    /// and test-macos; test-windows-1, test-windows-2 and test-windows-3 run the unfiltered all-features archive in three partitions
     /// (nextest partitions by test, so the acceptance tests and the fuzzer run once in total). The nextest config
     /// documents the same filter.
     #[test]
@@ -724,8 +724,8 @@ mod tests {
             direct.iter().partition(|l| l.contains("--all-features"));
         assert_eq!(
             (default.len(), all_features.len(), archive.len()),
-            (2, 2, 2),
-            "the filtered default-features run in test-linux-default and test-macos, the unfiltered all-features run in test-linux and test-macos, the two partitions of the Windows archive: {nextest_runs:#?}"
+            (2, 2, 3),
+            "the filtered default-features run in test-linux-default and test-macos, the unfiltered all-features run in test-linux and test-macos, the three partitions of the Windows archive: {nextest_runs:#?}"
         );
         for line in default {
             assert!(line.contains(&format!("-E '{ONCE_PER_JOB_FILTER}'")), "{line}");
@@ -740,8 +740,8 @@ mod tests {
             assert!(!line.contains(" -E "), "the archive run runs everything: {line}");
             assert!(
                 line.contains("--workspace-remap .")
-                    && line.contains(&format!("--partition count:{}/2", k + 1)),
-                "partition {} of 2: {line}",
+                    && line.contains(&format!("--partition count:{}/3", k + 1)),
+                "partition {} of 3: {line}",
                 k + 1
             );
         }
