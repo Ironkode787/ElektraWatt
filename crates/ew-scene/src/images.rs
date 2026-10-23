@@ -500,4 +500,27 @@ mod tests {
             ]
         );
     }
+
+    /// Review fix 5: a cycle in a gradient `href` chain that returns to neither end (`g1 -> g2 -> g3 -> g2`, no
+    /// gradient with stops) makes usvg's chain walk run forever, which `catch_unwind` cannot stop. Proved on a worker
+    /// thread given 3 seconds (it is left spinning; nextest runs each test in its own process); the rejecter refuses
+    /// the document before usvg sees it.
+    #[test]
+    fn a_gradient_href_cycle_hangs_usvg_and_is_refused_before_it() {
+        const SVG: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4"><linearGradient id="g1" href="#g2"/><linearGradient id="g2" href="#g3"/><linearGradient id="g3" href="#g2"/><rect width="4" height="4" fill="url(#g1)"/></svg>"##;
+        assert_eq!(
+            svg_items(SVG.as_bytes(), rect(0, 0, 4, 4)),
+            Err(SvgError::Hazard(ew_schema::SvgHazard::TooComplex))
+        );
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let parsed = usvg::Tree::from_str(SVG, &options()).is_ok();
+            let _ = tx.send(parsed);
+        });
+        assert_eq!(
+            rx.recv_timeout(std::time::Duration::from_secs(3)),
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout),
+            "usvg finished on the gradient cycle"
+        );
+    }
 }

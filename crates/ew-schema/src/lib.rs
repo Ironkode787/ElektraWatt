@@ -95,8 +95,8 @@ mod value;
 
 pub use asset::{
     AssetError, AssetFormat, AssetRef, COMPANY_MEMBER, MAX_LOGO_BYTES, MAX_RASTER_BYTES, MAX_SVG_BYTES,
-    MAX_SVG_DEPTH, MAX_SVG_EXPANSION, MAX_SVG_NODES, MAX_SVG_NUMBER, SvgHazard, base64_decode, base64_encode,
-    company_logo, sha256_mentions, sniff, svg_hazard,
+    MAX_SVG_DEPTH, MAX_SVG_EXPANSION, MAX_SVG_NODES, MAX_SVG_NUMBER, MAX_SVG_REF_DEPTH, SvgHazard,
+    base64_decode, base64_encode, company_logo, sha256_mentions, sniff, svg_hazard,
 };
 pub use connect::{
     AcDc, AssignedNumber, BevelSpec, Bond, BondKind, BridgeKind, BridgeSpec, BusLine, CircuitClass,

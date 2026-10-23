@@ -413,6 +413,9 @@ pub const MAX_SVG_DEPTH: usize = 64;
 /// The most elements an SVG asset may expand to through its references (`use`, clip paths, masks, patterns,
 /// markers, filters), counted with multiplicity (FT-384 audit: usvg converts a referenced subtree once per reference).
 pub const MAX_SVG_EXPANSION: u64 = 200_000;
+/// The longest chain of references an SVG asset may have (`use` of an element that holds a `use`, a clip path whose
+/// content references a mask, and so on): the parser recurses once per link and allows 1024 (FT-384 review fix 6).
+pub const MAX_SVG_REF_DEPTH: usize = 32;
 /// The largest magnitude of a number in an attribute or a style sheet of an SVG asset (FT-384 audit: huge arc radii
 /// and filter values make the parser allocate without bound or panic).
 pub const MAX_SVG_NUMBER: f64 = 1.0e9;
@@ -461,7 +464,11 @@ pub fn svg_hazard(bytes: &[u8]) -> Option<SvgHazard> {
     while i < b.len() {
         if b[i] != b'<' {
             let end = find(i, "<").unwrap_or(b.len());
-            if let Some(h) = scan.text(&lower[i..end]) {
+            // The parser decodes character references in character data: check what it will read.
+            let Some(text) = decode_refs(&lower[i..end]) else {
+                return Some(SvgHazard::Malformed);
+            };
+            if let Some(h) = scan.text(&text) {
                 return Some(h);
             }
             i = end;
@@ -543,7 +550,7 @@ pub fn svg_hazard(bytes: &[u8]) -> Option<SvgHazard> {
             "feconvolvematrix" => return Some(SvgHazard::Unsupported),
             _ => {}
         }
-        let mut attrs: Vec<(&str, &str)> = Vec::new();
+        let mut attrs: Vec<(&str, String)> = Vec::new();
         let mut self_closing = false;
         loop {
             while j < b.len() && b[j].is_ascii_whitespace() {
@@ -585,7 +592,12 @@ pub fn svg_hazard(bytes: &[u8]) -> Option<SvgHazard> {
                 value = &lower[j + 1..end];
                 j = end + 1;
             }
-            if let Some(h) = attribute_hazard(attr, value) {
+            // The parser decodes character and entity references in attribute values (review fix 4):
+            // `A1&#48;&#48;…` is a huge number and `transform&#45;origin` the property it spells.
+            let Some(value) = decode_refs(value) else {
+                return Some(SvgHazard::Malformed);
+            };
+            if let Some(h) = attribute_hazard(attr, &value) {
                 return Some(h);
             }
             attrs.push((local_name(attr), value));
@@ -617,6 +629,9 @@ struct Scan {
     /// The comments in style sheets.
     css_comments: usize,
     drop_shadows: usize,
+    /// The `href` of each gradient, pattern and filter with an id: the parser follows these chains until a link
+    /// returns to the current or the first element, so any other cycle in them never ends (review fix 5).
+    chains: std::collections::BTreeMap<String, String>,
 }
 
 /// A frame of the reference walk: the node, its edges (target, count) and the next edge to follow.
@@ -626,7 +641,7 @@ type Frame = (usize, Vec<(usize, u64)>, usize);
 const CSS_NODE: &str = "\u{0}css";
 
 impl Scan {
-    fn open(&mut self, name: &str, attrs: &[(&str, &str)], self_closing: bool) -> Option<SvgHazard> {
+    fn open(&mut self, name: &str, attrs: &[(&str, String)], self_closing: bool) -> Option<SvgHazard> {
         if self.open.len() >= MAX_SVG_DEPTH {
             return Some(SvgHazard::TooComplex);
         }
@@ -638,6 +653,18 @@ impl Scan {
             .iter()
             .find(|(a, _)| *a == "id")
             .map(|(_, v)| v.trim().to_owned());
+        if let (Some(id), true) = (
+            &id,
+            matches!(name, "lineargradient" | "radialgradient" | "pattern" | "filter"),
+        ) {
+            let href = attrs
+                .iter()
+                .find(|(a, _)| *a == "href")
+                .and_then(|(_, v)| v.trim().strip_prefix('#'));
+            if let Some(target) = href {
+                self.chains.insert(id.clone(), target.trim().to_owned());
+            }
+        }
         let node = match id {
             Some(id) if !matches!(name, "lineargradient" | "radialgradient" | "stop") && !id.is_empty() => {
                 let k = self.nodes.len();
@@ -650,10 +677,11 @@ impl Scan {
         self.open.push((name.to_owned(), node));
         self.count_element();
         for (attr, value) in attrs {
+            let value = value.as_str();
             if *attr == "transform-origin" {
                 return Some(SvgHazard::Unsupported);
             }
-            if let Some(h) = numbers(value) {
+            if let (false, Some(h)) = (matches!(*attr, "id" | "class" | "href"), numbers(value)) {
                 return Some(h);
             }
             if *attr == "d" && close_run(value) > 16 {
@@ -766,6 +794,9 @@ impl Scan {
         if self.css_comments > 64 || self.drop_shadows > 16 || (self.css_marker && self.markers) {
             return Some(SvgHazard::TooComplex);
         }
+        if chain_cycle(&self.chains) {
+            return Some(SvgHazard::TooComplex);
+        }
         // The graph: node k, plus the style-sheet node (index n) whose edges go to every style-sheet target.
         let n = self.nodes.len();
         let index = |id: &str| -> Option<usize> {
@@ -794,6 +825,7 @@ impl Scan {
         let size = |k: usize| -> u64 { if k == n { 0 } else { self.nodes[k].0 } };
         // Iterative depth-first walk: a grey node met again is a cycle; a black node's cost is final.
         let mut cost: Vec<Option<u64>> = vec![None; n + 1];
+        let mut depth = vec![0usize; n + 1];
         let mut grey = vec![false; n + 1];
         for root in 0..=n {
             if cost[root].is_some() {
@@ -821,6 +853,12 @@ impl Scan {
                 if total > MAX_SVG_EXPANSION {
                     return Some(SvgHazard::TooComplex);
                 }
+                // The longest chain of references from this node (the style-sheet node is no link of its own).
+                let below = out.iter().map(|(j, _)| depth[*j]).max().unwrap_or(0);
+                depth[k] = below + usize::from(k != n);
+                if depth[k] > MAX_SVG_REF_DEPTH {
+                    return Some(SvgHazard::TooComplex);
+                }
                 cost[k] = Some(total);
                 grey[k] = false;
                 stack.pop();
@@ -832,6 +870,69 @@ impl Scan {
         });
         (total > MAX_SVG_EXPANSION).then_some(SvgHazard::TooComplex)
     }
+}
+
+/// Whether the `href` chains of gradients, patterns and filters (id to target) hold a cycle: each id has at most one
+/// link, so a walk from every id that meets an id of its own walk is a cycle (linear in the number of ids).
+fn chain_cycle(chains: &std::collections::BTreeMap<String, String>) -> bool {
+    // 0: not seen, 1: on the current walk, 2: known to end.
+    let mut state: std::collections::BTreeMap<&str, u8> = std::collections::BTreeMap::new();
+    for start in chains.keys() {
+        let mut walk: Vec<&str> = Vec::new();
+        let mut at = start.as_str();
+        loop {
+            match state.get(at).copied().unwrap_or(0) {
+                1 => return true,
+                2 => break,
+                _ => {}
+            }
+            state.insert(at, 1);
+            walk.push(at);
+            match chains.get(at) {
+                Some(next) => at = next.as_str(),
+                None => break,
+            }
+        }
+        for id in walk {
+            state.insert(id, 2);
+        }
+    }
+    false
+}
+
+/// `text` with its character references (`&#48;`, `&#x30;`) and the five predefined entities (`&lt;`, `&gt;`,
+/// `&amp;`, `&quot;`, `&apos;`) decoded, in ASCII lower case, as the parser will read it; `None` for any other
+/// reference or one that names no character (the parser refuses those).
+fn decode_refs(text: &str) -> Option<String> {
+    if !text.contains('&') {
+        return Some(text.to_owned());
+    }
+    let mut out = String::with_capacity(text.len());
+    let mut rest = text;
+    while let Some(k) = rest.find('&') {
+        out.push_str(&rest[..k]);
+        rest = &rest[k + 1..];
+        let end = rest.find(';').filter(|e| *e <= 12)?;
+        let name = &rest[..end];
+        let c = match name {
+            "lt" => '<',
+            "gt" => '>',
+            "amp" => '&',
+            "quot" => '"',
+            "apos" => '\'',
+            _ => {
+                let code = match name.strip_prefix("#x") {
+                    Some(hex) => u32::from_str_radix(hex, 16).ok()?,
+                    None => name.strip_prefix('#')?.parse::<u32>().ok()?,
+                };
+                char::from_u32(code)?
+            }
+        };
+        out.push(c);
+        rest = &rest[end + 1..];
+    }
+    out.push_str(rest);
+    Some(out.to_ascii_lowercase())
 }
 
 /// The ids of the `url(#id)` references in `text` (lower case).
@@ -852,14 +953,16 @@ fn url_targets(text: &str) -> Vec<String> {
 }
 
 /// [`SvgHazard::HugeNumber`] when `text` has a number beyond [`MAX_SVG_NUMBER`] (or one that is not finite): a
-/// number begins with a digit or a `.` that does not follow a letter, a digit, `_`, `-` of a name, or `#` (a colour).
+/// number begins with a digit or a `.` that does not follow a digit, a `.`, `_` or `#` (a colour). A letter before it
+/// does not hide it: path data writes a command letter right before its number (`A1e30`); the attributes that hold
+/// names (`id`, `class`, `href`) are not read as numbers.
 fn numbers(text: &str) -> Option<SvgHazard> {
     let b = text.as_bytes();
     let mut i = 0;
     while i < b.len() {
         let c = b[i];
         let starts = (c.is_ascii_digit() || c == b'.')
-            && (i == 0 || !(b[i - 1].is_ascii_alphanumeric() || matches!(b[i - 1], b'_' | b'#' | b'.')));
+            && (i == 0 || !(b[i - 1].is_ascii_digit() || matches!(b[i - 1], b'_' | b'#' | b'.')));
         if !starts {
             i += 1;
             continue;
@@ -1347,6 +1450,81 @@ mod tests {
 </svg>
 "##;
         assert_eq!(svg_hazard(text.as_bytes()), None);
+    }
+
+    /// Review fixes 4 to 6: character references decoded before the checks (the parser decodes them), cycles in the
+    /// `href` chains of gradients (the parser's chain walk never ends on them), and long reference chains (the parser
+    /// recurses once per link).
+    #[test]
+    fn decoded_references_gradient_chains_and_long_chains_are_refused() {
+        const NS: &str = r#"xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink""#;
+        let zeros = "&#48;".repeat(10);
+        let mut chain = format!(r#"<svg {NS} viewBox="0 0 4 4"><defs><path id="u0" d="M0 0 H1"/>"#);
+        for k in 1..1000 {
+            chain.push_str(&format!(r##"<use id="u{k}" href="#u{}"/>"##, k - 1));
+        }
+        chain.push_str(r##"</defs><use href="#u999"/></svg>"##);
+        let cases: Vec<(&str, String, SvgHazard)> = vec![
+            (
+                "a huge arc radius spelled with character references",
+                format!(r#"<svg {NS} viewBox="0 0 4 4"><path d="M0 0 A1{zeros} 1{zeros} 0 1 1 1 0"/></svg>"#),
+                SvgHazard::HugeNumber,
+            ),
+            (
+                "a huge number in hexadecimal references",
+                format!(r#"<svg {NS} viewBox="0 0 4 4"><path d="M0 0 A&#x31;e30 1 0 1 1 1 0"/></svg>"#),
+                SvgHazard::HugeNumber,
+            ),
+            (
+                "transform-origin spelled with a reference in a style attribute",
+                format!(
+                    r#"<svg {NS} viewBox="0 0 4 4"><rect width="1" height="1" style="transform&#45;origin: -"/></svg>"#
+                ),
+                SvgHazard::Unsupported,
+            ),
+            (
+                "transform-origin spelled with a reference in a style sheet",
+                format!(
+                    r#"<svg {NS} viewBox="0 0 4 4"><style>rect {{ transform&#x2d;origin: - }}</style></svg>"#
+                ),
+                SvgHazard::Unsupported,
+            ),
+            (
+                "an unknown entity reference",
+                format!(r#"<svg {NS} viewBox="0 0 4 4"><rect width="&bogus;"/></svg>"#),
+                SvgHazard::Malformed,
+            ),
+            (
+                "a gradient href cycle that returns to neither end",
+                format!(
+                    r##"<svg {NS} viewBox="0 0 4 4"><linearGradient id="g1" href="#g2"/><linearGradient id="g2" xlink:href="#g3"/><radialGradient id="g3" href="#g2"/><rect width="4" height="4" fill="url(#g1)"/></svg>"##
+                ),
+                SvgHazard::TooComplex,
+            ),
+            ("a chain of a thousand use links", chain, SvgHazard::TooComplex),
+        ];
+        for (what, text, hazard) in &cases {
+            assert_eq!(svg_hazard(text.as_bytes()), Some(*hazard), "{what}");
+        }
+        // What stays allowed: an ordinary gradient chain, a short use chain, references in text.
+        let mut short = format!(r#"<svg {NS} viewBox="0 0 4 4"><defs><path id="u0" d="M0 0 H1"/>"#);
+        for k in 1..MAX_SVG_REF_DEPTH - 2 {
+            short.push_str(&format!(r##"<use id="u{k}" href="#u{}"/>"##, k - 1));
+        }
+        short.push_str(&format!(
+            r##"</defs><use href="#u{}"/></svg>"##,
+            MAX_SVG_REF_DEPTH - 3
+        ));
+        let fine = [
+            format!(
+                r##"<svg {NS} viewBox="0 0 4 4"><linearGradient id="a"><stop offset="0"/></linearGradient><linearGradient id="b" href="#a"/><linearGradient id="c" href="#b"/><rect width="4" height="4" fill="url(#c)"/></svg>"##
+            ),
+            short,
+            format!(r#"<svg {NS} viewBox="0 0 4 4"><text>A &amp; B &#169; 2026</text></svg>"#),
+        ];
+        for text in &fine {
+            assert_eq!(svg_hazard(text.as_bytes()), None, "{text}");
+        }
     }
 
     #[test]
