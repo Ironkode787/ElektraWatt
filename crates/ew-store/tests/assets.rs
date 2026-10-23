@@ -331,3 +331,27 @@ fn a_new_project_writes_its_assets() {
         Some(LOGO_Y)
     );
 }
+
+/// FT-383: an asset file on disk whose SVG the rejecter refuses (a script, synthetic) is not loaded into the asset
+/// store: it stays an opaque file of the manifest, so no renderer can read it.
+#[test]
+fn an_open_does_not_load_a_hostile_svg_asset() {
+    use ew_store::ew_format::FileHash;
+    let hostile: &[u8] =
+        br#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4"><script>x()</script></svg>"#;
+    assert!(sniff(hostile).is_err());
+    let (vfs, root) = mem_project(DirSync::Explicit);
+    let hex: String = sha256(hostile).iter().map(|b| format!("{b:02x}")).collect();
+    let path = format!("assets/{hex}.svg");
+    vfs.put(&ew_store::join(&root, &path), hostile);
+    // List it in the manifest, as a writer that admitted it would have.
+    let mut m = manifest(&vfs);
+    m.files.insert(
+        ew_store::ew_format::FilePath::new(path.clone()).unwrap(),
+        FileHash::Sha256(sha256(hostile)),
+    );
+    vfs.put(&ew_store::join(&root, "manifest.json"), m.to_text().as_bytes());
+    let o = Store::open(&root, options(&vfs, 1)).expect("the project opens");
+    assert_eq!(o.model.assets().count(), 0, "the hostile SVG is not an asset");
+    assert!(manifest(&vfs).files.keys().any(|p| p.as_str() == path));
+}

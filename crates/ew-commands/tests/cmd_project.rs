@@ -721,3 +721,27 @@ fn the_history_names_the_assets_of_its_entries() {
     let named = e.history().asset_mentions().unwrap();
     assert!(named.contains(&second), "the redo branch is named too");
 }
+
+/// FT-383: a hostile SVG logo (synthetic) never reaches the asset store: the command refuses it at `/logo` with the
+/// rejecter's reason, and the model holds no new asset.
+#[test]
+fn company_set_refuses_a_hostile_svg_logo() {
+    let mut e = engine(golden_model());
+    let before = e.model().assets().count();
+    for svg in [
+        r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4" onload="x()"/>"#,
+        r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4"><script>x()</script></svg>"#,
+        r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4"><image href="file:///etc/hostname"/></svg>"#,
+    ] {
+        let (path, message) = invalid(
+            &mut e,
+            &any(
+                "project.company.set",
+                json!({"logo": ew_schema::base64_encode(svg.as_bytes())}),
+            ),
+        );
+        assert_eq!(path, "/logo");
+        assert!(message.contains("the SVG file is refused"), "{message}");
+    }
+    assert_eq!(e.model().assets().count(), before);
+}

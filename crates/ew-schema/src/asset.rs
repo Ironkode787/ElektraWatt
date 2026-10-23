@@ -8,7 +8,12 @@
 //!   forms layer trust it and never sniff the bytes.
 //! - [`sniff`]: what the asset store does once, when bytes are imported: it reads the magic bytes and the
 //!   intrinsic size (PNG `IHDR`, JPEG `SOF`, SVG `viewBox` or `width`/`height`) and applies the size limits. It
-//!   decodes no image and renders nothing.
+//!   decodes no image and renders nothing. An SVG must also pass [`svg_hazard`].
+//! - [`svg_hazard`]: the conservative pre-parse rejecter of SVG assets (FT-383, doc 18 §11 TM-18): sniffing is not
+//!   sanitising, so every SVG the store admits is first scanned for a DOCTYPE internal subset, entity declarations,
+//!   scripts and event attributes, `foreignObject`, and references that leave the document; any of them refuses the
+//!   asset before a parser or a renderer sees it.
+//! - [`sha256_mentions`]: the asset hashes a text mentions (the asset purge, FT-380).
 //! - [`base64_encode`] and [`base64_decode`]: the standard alphabet with padding (RFC 4648 §4), the encoding of
 //!   asset bytes inside JSON (command parameters, journal lines).
 //! - [`company_logo`]: the logo of the provisional company member `Project.extra["ew.company"]` (doc 09 §2.6,
@@ -119,6 +124,48 @@ pub enum AssetError {
     Damaged(AssetFormat),
     /// Text that is not base64 (standard alphabet, padded).
     Base64,
+    /// An SVG file with content that is refused before any parser or renderer reads it ([`svg_hazard`]).
+    UnsafeSvg(SvgHazard),
+}
+
+/// Why an SVG asset is refused before any parser or renderer reads it ([`svg_hazard`]; FT-383, doc 18 §11 TM-18).
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub enum SvgHazard {
+    /// The file is not UTF-8 text.
+    NotUtf8,
+    /// A DOCTYPE with an internal subset (`<!DOCTYPE svg [ ... ]>`): entity expansion, external entities.
+    DoctypeSubset,
+    /// An entity declaration (`<!ENTITY`).
+    Entity,
+    /// A script: a `script`, `handler` or `listener` element, or a `javascript:` URL.
+    Script,
+    /// An event attribute (`onload`, `onclick`, any attribute whose name begins with `on`).
+    EventAttribute,
+    /// A `foreignObject` element (HTML inside the drawing).
+    ForeignObject,
+    /// A reference that leaves the document: an `href` that is not a fragment (`#id`) of this document (an external
+    /// file, a URL, an embedded `data:` resource), a CSS `url()` or `@import` that is not a fragment, an
+    /// `xml-stylesheet` processing instruction, or an `iframe`, `embed`, `object` or XInclude `include` element.
+    ExternalReference,
+    /// Markup the scanner cannot follow (an unclosed comment, CDATA section, processing instruction, tag or
+    /// attribute value, an unknown declaration): refused rather than guessed.
+    Malformed,
+}
+
+impl SvgHazard {
+    /// What the hazard is, in words.
+    pub const fn describe(self) -> &'static str {
+        match self {
+            SvgHazard::NotUtf8 => "it is not UTF-8 text",
+            SvgHazard::DoctypeSubset => "it has a DOCTYPE with an internal subset",
+            SvgHazard::Entity => "it declares an entity",
+            SvgHazard::Script => "it has a script",
+            SvgHazard::EventAttribute => "it has an event attribute",
+            SvgHazard::ForeignObject => "it has a foreignObject element",
+            SvgHazard::ExternalReference => "it references something outside the document",
+            SvgHazard::Malformed => "its markup cannot be followed",
+        }
+    }
 }
 
 impl fmt::Display for AssetError {
@@ -133,6 +180,12 @@ impl fmt::Display for AssetError {
             AssetError::TooManyNodes => write!(f, "the SVG file has more than {MAX_SVG_NODES} elements"),
             AssetError::Damaged(format) => write!(f, "the {} header is damaged or cut short", format.ext()),
             AssetError::Base64 => f.write_str("not base64 text (standard alphabet, padded)"),
+            AssetError::UnsafeSvg(h) => write!(
+                f,
+                "the SVG file is refused: {} (scripts, entities, foreign content and external references are not \
+                 allowed in a drawing's images)",
+                h.describe()
+            ),
         }
     }
 }
@@ -168,6 +221,11 @@ pub fn sniff(bytes: &[u8]) -> Result<(AssetFormat, Option<(u32, u32)>), AssetErr
     }
     if format == AssetFormat::Svg && svg_elements(bytes) > MAX_SVG_NODES {
         return Err(AssetError::TooManyNodes);
+    }
+    if format == AssetFormat::Svg {
+        if let Some(hazard) = svg_hazard(bytes) {
+            return Err(AssetError::UnsafeSvg(hazard));
+        }
     }
     Ok((format, size.filter(|(w, h)| *w > 0 && *h > 0)))
 }
@@ -339,6 +397,204 @@ fn svg_elements(bytes: &[u8]) -> usize {
         .count()
 }
 
+/// The first reason to refuse an SVG file before any parser or renderer reads it, or `None` (FT-383, doc 05 §13.3,
+/// doc 18 §11 TM-18). Sniffing is not sanitising: the sniffer reads only the root element, so this scanner reads the
+/// whole document as markup (comments skipped, CDATA read as text) and refuses, conservatively (ASCII case is ignored,
+/// so `<SCRIPT` counts):
+///
+/// - a DOCTYPE with an internal subset, and any entity declaration ([`SvgHazard::DoctypeSubset`],
+///   [`SvgHazard::Entity`]); a DOCTYPE with only an external identifier (`PUBLIC "-//W3C//DTD SVG 1.1//EN" "…"`, as
+///   drawing programs write it) passes, because no reader of EW fetches it;
+/// - `script`, `handler` and `listener` elements and `javascript:` text ([`SvgHazard::Script`]);
+/// - attributes whose local name begins with `on` ([`SvgHazard::EventAttribute`]);
+/// - `foreignObject` elements ([`SvgHazard::ForeignObject`]);
+/// - every `href` (any prefix) that is not a fragment `#…` of the document, CSS `url(…)` that is not a fragment and
+///   `@import`, in attributes and in text (style sheets), `xml-stylesheet` processing instructions, and `iframe`,
+///   `embed`, `object` and `include` elements ([`SvgHazard::ExternalReference`]); an embedded `data:` image counts
+///   as such a reference (EW draws an SVG asset's paths, not images inside it);
+/// - text that is not UTF-8, and markup it cannot follow ([`SvgHazard::NotUtf8`], [`SvgHazard::Malformed`]).
+///
+/// Linear in the length of the file. The drawing pipeline parses an admitted SVG with external references disabled
+/// besides (FT-384), so this is the first of two guards, not the only one.
+pub fn svg_hazard(bytes: &[u8]) -> Option<SvgHazard> {
+    let Ok(text) = std::str::from_utf8(bytes) else {
+        return Some(SvgHazard::NotUtf8);
+    };
+    // ASCII lower case keeps every byte offset.
+    let lower = text.to_ascii_lowercase();
+    if lower.contains("<!entity") {
+        return Some(SvgHazard::Entity);
+    }
+    let b = lower.as_bytes();
+    let find = |from: usize, needle: &str| lower[from..].find(needle).map(|k| from + k);
+    let mut i = 0;
+    while i < b.len() {
+        if b[i] != b'<' {
+            let end = find(i, "<").unwrap_or(b.len());
+            if let Some(h) = text_hazard(&lower[i..end]) {
+                return Some(h);
+            }
+            i = end;
+            continue;
+        }
+        let rest = &lower[i..];
+        if rest.starts_with("<!--") {
+            let Some(end) = find(i + 4, "-->") else {
+                return Some(SvgHazard::Malformed);
+            };
+            i = end + 3;
+            continue;
+        }
+        if rest.starts_with("<![cdata[") {
+            let Some(end) = find(i + 9, "]]>") else {
+                return Some(SvgHazard::Malformed);
+            };
+            if let Some(h) = text_hazard(&lower[i + 9..end]) {
+                return Some(h);
+            }
+            i = end + 3;
+            continue;
+        }
+        if rest.starts_with("<!doctype") {
+            let mut j = i + 9;
+            let mut quote = None;
+            loop {
+                let Some(&c) = b.get(j) else {
+                    return Some(SvgHazard::Malformed);
+                };
+                match (quote, c) {
+                    (Some(q), c) if c == q => quote = None,
+                    (Some(_), _) => {}
+                    (None, b'"' | b'\'') => quote = Some(c),
+                    (None, b'[') => return Some(SvgHazard::DoctypeSubset),
+                    (None, b'>') => break,
+                    (None, _) => {}
+                }
+                j += 1;
+            }
+            i = j + 1;
+            continue;
+        }
+        if rest.starts_with("<!") {
+            return Some(SvgHazard::Malformed);
+        }
+        if rest.starts_with("<?") {
+            let Some(end) = find(i + 2, "?>") else {
+                return Some(SvgHazard::Malformed);
+            };
+            let target = lower[i + 2..end]
+                .split(|c: char| c.is_whitespace())
+                .next()
+                .unwrap_or("");
+            if target == "xml-stylesheet" {
+                return Some(SvgHazard::ExternalReference);
+            }
+            i = end + 2;
+            continue;
+        }
+        if rest.starts_with("</") {
+            let Some(end) = find(i, ">") else {
+                return Some(SvgHazard::Malformed);
+            };
+            i = end + 1;
+            continue;
+        }
+        // A start tag: its name, then its attributes up to `>`.
+        let mut j = i + 1;
+        while j < b.len() && !(b[j].is_ascii_whitespace() || b[j] == b'>' || b[j] == b'/') {
+            j += 1;
+        }
+        let name = &lower[i + 1..j];
+        match local_name(name) {
+            "script" | "handler" | "listener" => return Some(SvgHazard::Script),
+            "foreignobject" => return Some(SvgHazard::ForeignObject),
+            "iframe" | "embed" | "object" | "include" => return Some(SvgHazard::ExternalReference),
+            _ => {}
+        }
+        loop {
+            while j < b.len() && b[j].is_ascii_whitespace() {
+                j += 1;
+            }
+            match b.get(j) {
+                None => return Some(SvgHazard::Malformed),
+                Some(b'>') => {
+                    j += 1;
+                    break;
+                }
+                Some(b'/') => {
+                    j += 1;
+                    continue;
+                }
+                Some(_) => {}
+            }
+            let start = j;
+            while j < b.len() && !(b[j].is_ascii_whitespace() || matches!(b[j], b'=' | b'>' | b'/')) {
+                j += 1;
+            }
+            let attr = &lower[start..j];
+            while j < b.len() && b[j].is_ascii_whitespace() {
+                j += 1;
+            }
+            let mut value = "";
+            if b.get(j) == Some(&b'=') {
+                j += 1;
+                while j < b.len() && b[j].is_ascii_whitespace() {
+                    j += 1;
+                }
+                let Some(&q) = b.get(j).filter(|q| matches!(q, b'"' | b'\'')) else {
+                    return Some(SvgHazard::Malformed);
+                };
+                let Some(end) = lower[j + 1..].find(char::from(q)).map(|k| j + 1 + k) else {
+                    return Some(SvgHazard::Malformed);
+                };
+                value = &lower[j + 1..end];
+                j = end + 1;
+            }
+            if let Some(h) = attribute_hazard(attr, value) {
+                return Some(h);
+            }
+        }
+        i = j;
+    }
+    None
+}
+
+/// The local part of an XML name (`xlink:href` gives `href`).
+fn local_name(name: &str) -> &str {
+    name.rsplit(':').next().unwrap_or(name)
+}
+
+/// The hazard of one attribute (lower-case name and value), if any.
+fn attribute_hazard(name: &str, value: &str) -> Option<SvgHazard> {
+    let local = local_name(name);
+    if local.starts_with("on") {
+        return Some(SvgHazard::EventAttribute);
+    }
+    if local == "href" && !value.trim_start().starts_with('#') {
+        return Some(SvgHazard::ExternalReference);
+    }
+    text_hazard(value)
+}
+
+/// The hazard of text (lower case): character data, a CDATA section or an attribute value, read as CSS too.
+fn text_hazard(text: &str) -> Option<SvgHazard> {
+    if text.contains("javascript:") {
+        return Some(SvgHazard::Script);
+    }
+    if text.contains("@import") {
+        return Some(SvgHazard::ExternalReference);
+    }
+    let mut rest = text;
+    while let Some(k) = rest.find("url(") {
+        rest = &rest[k + 4..];
+        let target = rest.trim_start().trim_start_matches(['"', '\'']).trim_start();
+        if !target.starts_with('#') {
+            return Some(SvgHazard::ExternalReference);
+        }
+    }
+    None
+}
+
 const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 /// Base64 of `bytes`: the standard alphabet with padding, no line breaks (RFC 4648 §4).
@@ -472,6 +728,156 @@ pub fn sha256_mentions(bytes: &[u8], out: &mut std::collections::BTreeSet<Sha256
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// FT-383: hostile SVG documents (synthetic, no artwork) are refused by the store's one entry, each for its reason.
+    #[test]
+    fn hostile_svgs_are_refused_before_any_reader() {
+        const NS: &str = r#"xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink""#;
+        let cases: Vec<(&str, String, SvgHazard)> = vec![
+            (
+                "external entity (XXE) whose subset hides a root",
+                format!(
+                    r#"<!DOCTYPE svg [<!ENTITY x SYSTEM "file:///etc/hostname"><svg {NS} viewBox="0 0 4 4">]><svg {NS}>&x;</svg>"#
+                ),
+                SvgHazard::Entity,
+            ),
+            (
+                "billion laughs",
+                format!(
+                    r#"<?xml version="1.0"?><!DOCTYPE lolz [<!ENTITY lol "lol"><!ENTITY lol2 "&lol;&lol;">]><svg {NS}>&lol2;</svg>"#
+                ),
+                SvgHazard::Entity,
+            ),
+            (
+                "an empty internal subset",
+                format!(r#"<!DOCTYPE svg [ ]><svg {NS} viewBox="0 0 4 4"/>"#),
+                SvgHazard::DoctypeSubset,
+            ),
+            (
+                "a script element",
+                format!(r#"<svg {NS} viewBox="0 0 4 4"><script>alert(1)</script></svg>"#),
+                SvgHazard::Script,
+            ),
+            (
+                "a prefixed script element in CDATA",
+                format!(
+                    r#"<svg {NS} xmlns:s="http://www.w3.org/2000/svg" viewBox="0 0 4 4"><s:SCRIPT><![CDATA[x()]]></s:SCRIPT></svg>"#
+                ),
+                SvgHazard::Script,
+            ),
+            (
+                "an onload attribute on the root",
+                format!(r#"<svg {NS} viewBox="0 0 4 4" onload="alert(1)"/>"#),
+                SvgHazard::EventAttribute,
+            ),
+            (
+                "an event attribute without quotes around its spacing",
+                format!(r#"<svg {NS} viewBox="0 0 4 4"><rect width="1" height="1" onClick = 'x()'/></svg>"#),
+                SvgHazard::EventAttribute,
+            ),
+            (
+                "a javascript: link",
+                format!(
+                    r##"<svg {NS} viewBox="0 0 4 4"><a xlink:href="#x" title="javascript:x()"><rect width="1" height="1"/></a></svg>"##
+                ),
+                SvgHazard::Script,
+            ),
+            (
+                "foreignObject",
+                format!(
+                    r#"<svg {NS} viewBox="0 0 4 4"><foreignObject width="4" height="4"><p>x</p></foreignObject></svg>"#
+                ),
+                SvgHazard::ForeignObject,
+            ),
+            (
+                "an external image",
+                format!(
+                    r#"<svg {NS} viewBox="0 0 4 4"><image href="https://example.invalid/a.png" width="4" height="4"/></svg>"#
+                ),
+                SvgHazard::ExternalReference,
+            ),
+            (
+                "a use of another file",
+                format!(r#"<svg {NS} viewBox="0 0 4 4"><use xlink:href="other.svg#a"/></svg>"#),
+                SvgHazard::ExternalReference,
+            ),
+            (
+                "an embedded data: image",
+                format!(
+                    r#"<svg {NS} viewBox="0 0 4 4"><image href="data:image/png;base64,AAAA" width="4" height="4"/></svg>"#
+                ),
+                SvgHazard::ExternalReference,
+            ),
+            (
+                "an xml-stylesheet instruction",
+                format!(r#"<?xml-stylesheet type="text/css" href="evil.css"?><svg {NS} viewBox="0 0 4 4"/>"#),
+                SvgHazard::ExternalReference,
+            ),
+            (
+                "a style sheet import",
+                format!(r#"<svg {NS} viewBox="0 0 4 4"><style>@import url(evil.css);</style></svg>"#),
+                SvgHazard::ExternalReference,
+            ),
+            (
+                "an external paint server",
+                format!(
+                    r#"<svg {NS} viewBox="0 0 4 4"><rect width="4" height="4" fill="url( 'https://example.invalid/p.svg#g')"/></svg>"#
+                ),
+                SvgHazard::ExternalReference,
+            ),
+            (
+                "an unclosed comment",
+                format!(r#"<svg {NS} viewBox="0 0 4 4"><!-- <script>"#),
+                SvgHazard::Malformed,
+            ),
+            (
+                "an unclosed attribute value",
+                format!(r#"<svg {NS} viewBox="0 0 4 4"><rect width="4/></svg>"#),
+                SvgHazard::Malformed,
+            ),
+        ];
+        for (what, text, hazard) in &cases {
+            assert_eq!(svg_hazard(text.as_bytes()), Some(*hazard), "{what}");
+            match sniff(text.as_bytes()) {
+                Err(AssetError::UnsafeSvg(h)) => assert_eq!(h, *hazard, "{what}"),
+                // The sniffer already refuses a document whose root it cannot find (a DOCTYPE subset).
+                Err(AssetError::UnknownFormat) => {}
+                other => panic!("{what}: the store admits it: {other:?}"),
+            }
+        }
+        // Not UTF-8 after an SVG root.
+        let mut bytes = format!(r#"<svg {NS} viewBox="0 0 4 4"><text>"#).into_bytes();
+        bytes.extend_from_slice(&[0xff, 0xfe]);
+        bytes.extend_from_slice(b"</text></svg>");
+        assert_eq!(sniff(&bytes), Err(AssetError::UnsafeSvg(SvgHazard::NotUtf8)));
+        assert!(
+            AssetError::UnsafeSvg(SvgHazard::Script)
+                .to_string()
+                .contains("it has a script")
+        );
+    }
+
+    /// FT-383: what drawing programs write passes: an external DOCTYPE identifier, comments (also ones that mention
+    /// a script), local fragment references, paint servers and styles.
+    #[test]
+    fn ordinary_svgs_pass_the_rejecter() {
+        let text = r##"<?xml version="1.0" encoding="UTF-8"?>
+<!-- Generator: a drawing program; <script> in a comment is no script -->
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" viewBox="0 0 80 20">
+  <defs>
+    <linearGradient id="g"><stop offset="0" stop-color="#123456"/></linearGradient>
+    <style type="text/css"><![CDATA[ .a { fill: url(#g); opacity: 0.5 } ]]></style>
+    <path id="r" d="M0 0 H10 V10 Z"/>
+  </defs>
+  <rect class="a" width="80" height="20" fill="url(#g)" clip-path="url( '#c' )"/>
+  <use xlink:href="#r" x="5"/>
+  <a href="#r"><text x="1" y="15">Example &amp; Co</text></a>
+</svg>
+"##;
+        assert_eq!(svg_hazard(text.as_bytes()), None);
+        assert_eq!(sniff(text.as_bytes()), Ok((AssetFormat::Svg, Some((80, 20)))));
+    }
 
     #[test]
     fn mentions_find_every_64_digit_window_in_either_case() {
