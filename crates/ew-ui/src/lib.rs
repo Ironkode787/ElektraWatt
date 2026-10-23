@@ -20,6 +20,8 @@ pub mod app;
 pub mod canvas;
 pub mod canvas_area;
 pub mod dock;
+// WP-S2.05 part 2
+pub mod find;
 mod first_run;
 pub mod fonts;
 pub mod gpu;

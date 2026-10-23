@@ -228,6 +228,40 @@ pub const VOCABULARY: &[&str] = &[
     "revision",
     "page_item",
     "structure_box",
+    // Find and replace (WP-S2.05 part 2, §7.6; ID-474 extended): 13 words and `text`, which no earlier part added,
+    // so 14, a reviewed vocabulary change.
+    "find",
+    "replace",
+    "regex",
+    "case",
+    "word",
+    "scope",
+    "function_text",
+    "property",
+    "part_number",
+    "folios",
+    "results",
+    "result",
+    "truncated",
+    "text",
+];
+
+/// The 14 words WP-S2.05 part 2 adds to [`VOCABULARY`] (§7.6).
+pub const FIND_WORDS: &[&str] = &[
+    "find",
+    "replace",
+    "regex",
+    "case",
+    "word",
+    "scope",
+    "function_text",
+    "property",
+    "part_number",
+    "folios",
+    "results",
+    "result",
+    "truncated",
+    "text",
 ];
 
 /// The 28 words WP-S2.04 part 1 adds to [`VOCABULARY`] (§7.7).
@@ -546,6 +580,8 @@ fn tab_lines(model: &ShellModel, lines: &mut Vec<String>) {
         Some(Focus::Navigator) => lines.push("focus navigator".to_owned()),
         Some(Focus::Canvas(g)) => lines.push(format!("focus canvas group {}", g + 1)),
         Some(Focus::Properties) => lines.push("focus properties".to_owned()),
+        // WP-S2.05 part 2
+        Some(Focus::Find) => lines.push("focus find".to_owned()),
         None => {}
     }
 }
@@ -681,6 +717,85 @@ fn properties_lines(model: &ShellModel, lines: &mut Vec<String>) {
     if let Some(p) = props.popup() {
         lines.push(format!("  popup {} \"{}\"", p.word(), user(p.row())));
     }
+}
+
+// WP-S2.05 part 2
+/// The find pane's lines (§7.6), after the property grid's; none while the pane is closed.
+fn find_lines(model: &ShellModel, lines: &mut Vec<String>) {
+    if !model.find_shown() {
+        return;
+    }
+    let f = model.find_state();
+    let onoff = |b: bool| if b { "on" } else { "off" };
+    let (regex, case, word, selection) = f.options();
+    let mut line = format!("find \"{}\"", user(f.text()));
+    if f.replace_mode() {
+        line.push_str(&format!(" replace \"{}\"", user(f.replacement())));
+    }
+    line.push_str(&format!(
+        " regex {} case {} word {}",
+        onoff(regex),
+        onoff(case),
+        onoff(word)
+    ));
+    if selection {
+        line.push_str(" selection on");
+    }
+    let scope: Vec<&str> = f.fields().iter().map(|x| crate::find::field_word(*x)).collect();
+    line.push_str(&format!(" scope {}", scope.join(" ")));
+    if !f.folios().is_empty() {
+        let folios: Vec<String> = f.folios().iter().map(|x| format!("\"{}\"", user(x))).collect();
+        line.push_str(&format!(" folios {}", folios.join(" ")));
+    }
+    let results = f.results();
+    if let Some(r) = results {
+        line.push_str(&format!(" results {}", r.hits.len()));
+        if f.stale(model.revision()) {
+            line.push_str(" stale");
+        }
+    }
+    lines.push(line);
+    if let Some(r) = results {
+        if let Some(e) = &r.error {
+            lines.push(format!("find error \"{}\"", user(e)));
+        }
+        if r.truncated {
+            lines.push("find truncated".to_owned());
+        }
+        for (i, hit) in r.hits.iter().enumerate() {
+            let mut l = format!("  result {}", i + 1);
+            if let Some(folio) = &hit.folio {
+                l.push_str(&format!(" folio \"{}\"", user(folio)));
+            }
+            if let Some(cell) = &hit.cell {
+                l.push_str(&format!(" cell \"{}\"", user(cell)));
+            }
+            l.push_str(&format!(
+                " \"{}\" \"{}\" \"{}\"",
+                user(&hit.subject),
+                user(&crate::find::hit_label(hit)),
+                user(&hit.before)
+            ));
+            match (&hit.after, &hit.replaceable) {
+                (Some(after), _) => l.push_str(&format!(" -> \"{}\"", user(after))),
+                (None, Err(why)) => l.push_str(&format!(" read-only \"{}\"", user(why))),
+                (None, Ok(())) => {}
+            }
+            lines.push(l);
+        }
+    }
+    if let Some(row) = f.row() {
+        lines.push(format!("  focus result {}", row + 1));
+    }
+    if let Some(note) = f.note() {
+        lines.push(format!("find status \"{}\"", user(note)));
+    }
+}
+
+/// The inline preview card and the toast (WP-S2.05 §6.11), after the panes' lines: the card of the property grid or of
+/// the find pane's replace.
+fn card_and_toast_lines(model: &ShellModel, lines: &mut Vec<String>) {
+    let props = model.properties();
     if let (Some(card), Some(rev)) = (props.card(), model.revision()) {
         match &card.preview.result {
             Err(message) => lines.push(format!(
@@ -748,6 +863,9 @@ fn row_line(
 fn project_view(model: &ShellModel, lines: &mut Vec<String>) {
     navigator_lines(model, lines);
     properties_lines(model, lines);
+    // WP-S2.05 part 2
+    find_lines(model, lines);
+    card_and_toast_lines(model, lines);
     tab_lines(model, lines);
     match model.current_folio() {
         Some(folio) => lines.push(format!("page view: {folio}")),

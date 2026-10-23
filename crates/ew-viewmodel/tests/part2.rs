@@ -1962,7 +1962,9 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
                 | "missing"
                 | "representation"
                 | "function"
-        ) || part1.contains(*w)),
+        ) || part1.contains(*w)
+            // WP-S2.05 part 2: the find words need the find pane: `tests/find.rs` reaches them.
+            || ew_viewmodel::describe::FIND_WORDS.contains(*w)),
         "words of the vocabulary no state used: {unused:?}"
     );
 }

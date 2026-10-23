@@ -40,6 +40,9 @@ pub enum Focus {
     Canvas(usize),
     /// The property grid (WP-S2.05).
     Properties,
+    // WP-S2.05 part 2
+    /// The find pane.
+    Find,
 }
 
 /// How many times the shell has asked the `Session` for each of the viewer's reads (the exact-count tests, spec
@@ -76,6 +79,9 @@ pub struct SessionCalls {
     pub property_sheet: u64,
     /// `Session::field_choices`: a choice editor opened or its filter typed (WP-S2.05 part 1).
     pub field_choices: u64,
+    // WP-S2.05 part 2
+    /// `Session::find`: `find.run`, and a replace or a stale replace card that runs the search again.
+    pub find: u64,
 }
 
 /// Counts one of the shell's `Session` calls (a free function, so that a call can be counted while the project is
@@ -1124,6 +1130,11 @@ impl ShellModel {
                 self.focus = Some(Focus::Properties);
                 Outcome::Done
             }
+            // WP-S2.05 part 2
+            "find" => {
+                self.focus = Some(Focus::Find);
+                Outcome::Done
+            }
             "canvas" => {
                 let g = match self.group_param(p) {
                     Ok(g) => g,
@@ -1139,13 +1150,15 @@ impl ShellModel {
         }
     }
 
-    /// F6 (`step` 1) and Shift+F6 (`step` −1): navigator, canvas group 1, canvas group 2, then the property grid while
-    /// its pane is in the layout, cyclic.
+    /// F6 (`step` 1) and Shift+F6 (`step` −1): navigator, canvas group 1, canvas group 2, then the property grid and the
+    /// find pane while their panes are in the layout, cyclic.
     pub(super) fn act_focus_cycle(&mut self, step: isize) -> Outcome {
         let groups = self.area.as_ref().map_or(0, |a| a.groups.len());
         let ring: Vec<Focus> = std::iter::once(Focus::Navigator)
             .chain((0..groups).map(Focus::Canvas))
             .chain(self.properties_shown().then_some(Focus::Properties))
+            // WP-S2.05 part 2
+            .chain(self.find_shown().then_some(Focus::Find))
             .collect();
         let here = self
             .focus

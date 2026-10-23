@@ -27,9 +27,9 @@ use serde_json::{Map, Value, json};
 use super::navigation::{Focus, bump};
 use super::{Mode, Outcome, RecordedCommand, ShellModel, failed, string_param};
 use crate::properties::{
-    Card, ChoiceKind, Choices, Decision, EditBuffer, PendingEdit, Popup, PropRow, PropertiesState,
-    PropertySheet, RowAction, RowValue, SheetKey, SheetSection, Toast, compose, find_row, is_derived,
-    item_default, kind_plural, member_path, policy, read_only_reason, visible_rows,
+    Card, CardOrigin, ChoiceKind, Choices, Decision, EditBuffer, PendingEdit, Popup, PropRow,
+    PropertiesState, PropertySheet, Provenance, RowAction, RowValue, SheetKey, SheetSection, Toast, compose,
+    find_row, is_derived, item_default, kind_plural, member_path, policy, read_only_reason, visible_rows,
 };
 use crate::strings;
 use crate::tools::PreviewState;
@@ -55,7 +55,7 @@ fn refusal_text(e: &CmdError, label: &dyn Fn(usize) -> String) -> String {
 }
 
 /// `text` with every hyphenated UUID replaced by `name(uuid)` (no UUID reaches the transcript, §9 item 5).
-fn replace_uuids(text: &str, name: &dyn Fn(&str) -> String) -> String {
+pub(super) fn replace_uuids(text: &str, name: &dyn Fn(&str) -> String) -> String {
     let b = text.as_bytes();
     let is_uuid = |w: &[u8]| {
         w.len() == 36
@@ -908,6 +908,7 @@ impl ShellModel {
                     changes,
                     reason,
                     edit,
+                    origin: CardOrigin::Properties,
                 });
                 self.props.edit = None;
                 self.props.error = None;
@@ -926,44 +927,53 @@ impl ShellModel {
         }
     }
 
-    /// Commits a kept, fresh preview of `edit`: the window `Session::commit`; headless a one-line command log through
-    /// `Session::run_script` (`command.run`'s path: exposure, `--record`). A commit with several targets shows the
+    /// Commits a kept, fresh preview of the command `name` with `params`: the window `Session::commit`; headless a
+    /// one-line command log through `Session::run_script` (`command.run`'s path: exposure, `--record`). A refusal
+    /// names a target of `section` by its label (§6.7).
+    pub(super) fn commit_kept(
+        &mut self,
+        state: PreviewState,
+        name: &str,
+        params: &Value,
+        section: Option<&SheetSection>,
+    ) -> Outcome {
+        if self.mode == Mode::Headless {
+            drop(state);
+            return self.run_logged(name.to_owned(), params.clone());
+        }
+        let calls = &self.calls;
+        let Some(project) = &mut self.project else {
+            return Outcome::Done;
+        };
+        let result = match state.result {
+            Ok(preview) => {
+                bump(calls, |c| c.commit += 1);
+                project.session.commit(preview)
+            }
+            Err(message) => return Outcome::Failed { message },
+        };
+        let outcome = match result {
+            Ok(_) => {
+                self.record.undone.clear();
+                self.record.steps.push(RecordedCommand {
+                    cmd: name.to_owned(),
+                    params: params.clone(),
+                });
+                Outcome::Done
+            }
+            Err(e) => Outcome::Failed {
+                message: self.refusal(&e, section),
+            },
+        };
+        self.refresh();
+        outcome
+    }
+
+    /// Commits a kept, fresh preview of `edit` ([`ShellModel::commit_kept`]); a commit with several targets shows the
     /// toast.
     fn commit_edit(&mut self, state: PreviewState, edit: &PendingEdit) -> Outcome {
-        let outcome = if self.mode == Mode::Headless {
-            drop(state);
-            self.run_logged(edit.name.clone(), edit.params.clone())
-        } else {
-            let calls = &self.calls;
-            let Some(project) = &mut self.project else {
-                return Outcome::Done;
-            };
-            let result = match state.result {
-                Ok(preview) => {
-                    bump(calls, |c| c.commit += 1);
-                    project.session.commit(preview)
-                }
-                Err(message) => return Outcome::Failed { message },
-            };
-            let outcome = match result {
-                Ok(_) => {
-                    self.record.undone.clear();
-                    self.record.steps.push(RecordedCommand {
-                        cmd: edit.name.clone(),
-                        params: edit.params.clone(),
-                    });
-                    Outcome::Done
-                }
-                Err(e) => {
-                    let section = self.props_find(&edit.row).map(|(s, _)| s);
-                    Outcome::Failed {
-                        message: self.refusal(&e, section.as_ref()),
-                    }
-                }
-            };
-            self.refresh();
-            outcome
-        };
+        let section = self.props_find(&edit.row).map(|(s, _)| s);
+        let outcome = self.commit_kept(state, &edit.name, &edit.params, section.as_ref());
         match &outcome {
             Outcome::Done => {
                 self.props.edit = None;
@@ -1131,6 +1141,10 @@ impl ShellModel {
             RowAction::Clear | RowAction::Reset | RowAction::Unfreeze => {
                 self.commit_value(key, Value::Null, String::new(), Vec::new())
             }
+            // WP-S2.05 part 2 (§7.5): one `fields.set_many` entry per device, each with its own product designation.
+            RowAction::Freeze if section.kind == "device" && section.targets.len() > 1 => {
+                self.freeze_devices(&section, &row)
+            }
             RowAction::Freeze => {
                 let value = match (&row.value, section.kind.as_str()) {
                     (
@@ -1152,6 +1166,70 @@ impl ShellModel {
                 self.commit_value(key, value, String::new(), Vec::new())
             }
         }
+    }
+
+    // WP-S2.05 part 2
+    /// Freeze on a device section with several targets (§7.5): every device whose tag is not frozen gets
+    /// `tag.frozen` ← `{"text": <its product designation>, "sign": "shown"}`, all in one `fields.set_many` through the
+    /// preview and the policy (rule 2 opens the card). Each device's product designation is the derived tag row of its
+    /// own sheet: one `Session::property_sheet` call per device, on this action only (as "set all", ruling 7).
+    fn freeze_devices(&mut self, section: &SheetSection, row: &PropRow) -> Outcome {
+        let Some(project) = &self.project else {
+            return Outcome::Refused {
+                reason_key: "reason-no-project",
+            };
+        };
+        let mut edits = Vec::new();
+        for t in &section.targets {
+            bump(&self.calls, |c| c.property_sheet += 1);
+            let sheet = project.session.property_sheet(&[*t]);
+            let Some((_, tag)) = find_row(&sheet, "device/derived.tag") else {
+                continue;
+            };
+            match (&tag.value, &tag.provenance) {
+                (_, Provenance::Frozen { .. }) => {}
+                (
+                    RowValue::One {
+                        json: Value::String(product),
+                        ..
+                    },
+                    _,
+                ) if !product.is_empty() => {
+                    edits.push(
+                        json!({"kind": "device", "targets": [t.to_string()], "path": "tag.frozen",
+                        "value": {"text": product, "sign": "shown"}}),
+                    );
+                }
+                _ => {}
+            }
+        }
+        if edits.is_empty() {
+            let message = strings::text("props-cannot-freeze").to_owned();
+            self.props.error = Some((row.key.clone(), message.clone()));
+            return Outcome::Failed { message };
+        }
+        // The base of a stale card's check: the member as the sheet shows it now.
+        let base = match self.props_find("device/tag.frozen").map(|(_, r)| r.value) {
+            Some(RowValue::One { json, .. }) => Some(json),
+            Some(RowValue::Varies { .. }) => Some(Value::String("‹varies›".into())),
+            _ => None,
+        };
+        let edit = PendingEdit {
+            row: row.key.clone(),
+            kind: section.kind.clone(),
+            // The section's targets, so that a stale card's check compares like with like.
+            targets: section.targets.iter().map(ToString::to_string).collect(),
+            route: row.route.clone(),
+            path: "tag.frozen".to_owned(),
+            leaf: None,
+            base,
+            name: "fields.set_many".to_owned(),
+            params: json!({ "edits": edits }),
+            typed: String::new(),
+            label: crate::properties::row_label(section, row),
+        };
+        self.props.notes.clear();
+        self.run_edit(edit, false)
     }
 
     /// `props.list`: `row` and `op` (`add` on a list row; `remove`, `up`, `down` on an item row).
@@ -1325,6 +1403,10 @@ impl ShellModel {
                 reason_key: "reason-no-card",
             };
         };
+        // WP-S2.05 part 2: a replace card is the find pane's (§7.4).
+        if matches!(card.origin, CardOrigin::Find { .. }) {
+            return self.apply_find_card(card);
+        }
         let Some(rev) = self.revision() else {
             return Outcome::Done;
         };
@@ -1360,6 +1442,10 @@ impl ShellModel {
             return Outcome::Refused {
                 reason_key: "reason-changed-meanwhile",
             };
+        }
+        // WP-S2.05 part 2: a freeze on several devices is built again from the current sheet (a second Apply).
+        if edit.name == "fields.set_many" {
+            return self.row_action(&edit.row, RowAction::Freeze);
         }
         let Some((section, row)) = self.props_find(&edit.row) else {
             return failed("error-no-row", &[&edit.row]);

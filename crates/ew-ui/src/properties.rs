@@ -277,6 +277,10 @@ impl PropertiesPane {
         let (Some(card), Some(rev)) = (shell.properties().card(), shell.revision()) else {
             return;
         };
+        // A replace card is the find pane's (WP-S2.05 part 2).
+        if !matches!(card.origin, ew_viewmodel::properties::CardOrigin::Properties) {
+            return;
+        }
         egui::Frame::group(ui.style()).show(ui, |ui| {
             let kind = card.edit.kind.clone();
             let mut line = strings::format(

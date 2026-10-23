@@ -32,8 +32,12 @@
 //! `properties` (`null` without a project or while the pane is closed, else `{"title", "items", "kinds", "sections":
 //! [{"kind", "targets", "rows"}, …], "missing", "row", "editing", "buffer", "error": {"row", "message"} | null,
 //! "choices", "highlight" (the highlighted choice's index or null), "popup", "read_only"}`), `card` (`null` or `{"command", "state", "targets", "changes", "tags", "xrefs",
-//! "origin"}`) and `toast` (`null` or `{"text", "undo"}`); no UUID appears in these three. Nothing in it depends on
-//! time, process or location: two runs of one script on equal inputs give equal bytes.
+//! "origin"}`) and `toast` (`null` or `{"text", "undo"}`); no UUID appears in these three; then (WP-S2.05 part 2) `find`
+//! (`null` while the find pane is closed, else `{"text", "replace" (the replacement, or null outside find and
+//! replace), "regex", "match_case", "whole_word", "in_selection", "fields", "folios", "results" (the number of hits, or
+//! null before a search), "truncated", "error", "row" (1-based, or null), "stale", "note"}`); the card's `origin` is
+//! `find` for a replace, and `focus` may be `find`. Nothing in it depends on time, process or location: two runs of one
+//! script on equal inputs give equal bytes.
 //!
 //! The core runner lives here; a [`StepExtension`] adds what needs a renderer (`view.snapshot`).
 
@@ -306,12 +310,60 @@ pub fn state_json(shell: &ShellModel) -> String {
                 Some(Focus::Navigator) => Value::from("navigator"),
                 Some(Focus::Canvas(_)) => Value::from("canvas"),
                 Some(Focus::Properties) => Value::from("properties"),
+                // WP-S2.05 part 2
+                Some(Focus::Find) => Value::from("find"),
             },
         ),
         format!("\"navigator\":{}", navigator_json(shell)),
         format!("\"properties\":{}", properties_json(shell)),
         format!("\"card\":{}", card_json(shell)),
         format!("\"toast\":{}", toast_json(shell)),
+        // WP-S2.05 part 2
+        format!("\"find\":{}", find_json(shell)),
+    ])
+}
+
+// WP-S2.05 part 2
+/// The `find` member (§7.6): `null` while the find pane is closed.
+fn find_json(shell: &ShellModel) -> String {
+    if !shell.find_shown() {
+        return "null".to_owned();
+    }
+    let f = shell.find_state();
+    let (regex, match_case, whole_word, in_selection) = f.options();
+    let results = f.results();
+    let words: Vec<Value> = f
+        .fields()
+        .iter()
+        .map(|x| Value::from(crate::find::field_word(*x)))
+        .collect();
+    let folios: Vec<Value> = f.folios().iter().map(|x| Value::from(x.as_str())).collect();
+    let opt = |s: Option<&str>| s.map_or(Value::Null, |t| Value::from(crate::properties::mask_uuids(t)));
+    object(vec![
+        member("text", &Value::from(f.text())),
+        member(
+            "replace",
+            &if f.replace_mode() {
+                Value::from(f.replacement())
+            } else {
+                Value::Null
+            },
+        ),
+        member("regex", &Value::from(regex)),
+        member("match_case", &Value::from(match_case)),
+        member("whole_word", &Value::from(whole_word)),
+        member("in_selection", &Value::from(in_selection)),
+        member("fields", &Value::from(words)),
+        member("folios", &Value::from(folios)),
+        member(
+            "results",
+            &results.map_or(Value::Null, |r| Value::from(r.hits.len())),
+        ),
+        member("truncated", &Value::from(results.is_some_and(|r| r.truncated))),
+        member("error", &opt(results.and_then(|r| r.error.as_deref()))),
+        member("row", &f.row().map_or(Value::Null, |r| Value::from(r + 1))),
+        member("stale", &Value::from(f.stale(shell.revision()))),
+        member("note", &opt(f.note())),
     ])
 }
 
@@ -389,7 +441,7 @@ fn card_json(shell: &ShellModel) -> String {
         member("changes", &Value::from(card.changes)),
         member("tags", &Value::from(card.preview.derived.tags.len())),
         member("xrefs", &Value::from(card.preview.derived.xrefs.len())),
-        member("origin", &Value::from("properties")),
+        member("origin", &Value::from(card.origin.word())),
     ])
 }
 

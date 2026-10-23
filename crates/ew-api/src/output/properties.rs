@@ -1129,7 +1129,9 @@ impl Session {
                 if any_frozen {
                     actions.push(RowAction::Unfreeze);
                 }
-                if !all_frozen && devices.len() == 1 {
+                // Freeze on several devices is one `fields.set_many` with each device's own product designation (part 2,
+                // §7.5).
+                if !all_frozen {
                     actions.push(RowAction::Freeze);
                 }
                 out.push(derived(

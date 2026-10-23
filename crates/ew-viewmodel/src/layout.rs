@@ -32,11 +32,18 @@ pub enum PaneKind {
     PageView,
     /// The property grid (WP-S2.05).
     Properties,
+    /// The find pane (WP-S2.05 part 2): opened by Ctrl+F or Ctrl+H below the page view.
+    Find,
 }
 
 impl PaneKind {
     /// Every pane kind.
-    pub const ALL: [PaneKind; 3] = [PaneKind::Pages, PaneKind::PageView, PaneKind::Properties];
+    pub const ALL: [PaneKind; 4] = [
+        PaneKind::Pages,
+        PaneKind::PageView,
+        PaneKind::Properties,
+        PaneKind::Find,
+    ];
 
     /// The name in a workspace file.
     pub fn key(self) -> &'static str {
@@ -44,6 +51,7 @@ impl PaneKind {
             PaneKind::Pages => "pages",
             PaneKind::PageView => "page-view",
             PaneKind::Properties => "properties",
+            PaneKind::Find => "find",
         }
     }
 
@@ -58,6 +66,7 @@ impl PaneKind {
             PaneKind::Pages => "pane-pages",
             PaneKind::PageView => "pane-page-view",
             PaneKind::Properties => "pane-properties",
+            PaneKind::Find => "pane-find",
         }
     }
 }
@@ -177,6 +186,39 @@ impl Layout {
             },
         };
         Layout { root }
+    }
+
+    // WP-S2.05 part 2
+    /// The layout with the find pane below the page view (Ctrl+F, Ctrl+H; the bottom dock of doc 16 §3.4): the page
+    /// view's place becomes a vertical split of the page view and the find pane (750 : 250). Unchanged when the find
+    /// pane is in it.
+    pub fn with_find(&self) -> Layout {
+        fn put(n: &LayoutNode) -> LayoutNode {
+            match n {
+                LayoutNode::Pane(PaneKind::PageView) => LayoutNode::Split {
+                    dir: SplitDir::Vertical,
+                    children: vec![
+                        (750, LayoutNode::Pane(PaneKind::PageView)),
+                        (250, LayoutNode::Pane(PaneKind::Find)),
+                    ],
+                },
+                LayoutNode::Pane(p) => LayoutNode::Pane(*p),
+                LayoutNode::Tabs { children, active } => LayoutNode::Tabs {
+                    children: children.iter().map(put).collect(),
+                    active: *active,
+                },
+                LayoutNode::Split { dir, children } => LayoutNode::Split {
+                    dir: *dir,
+                    children: children.iter().map(|(s, c)| (*s, put(c))).collect(),
+                },
+            }
+        }
+        if self.panes().contains(&PaneKind::Find) {
+            return self.clone();
+        }
+        Layout {
+            root: put(&self.root),
+        }
     }
 
     /// The layout without `pane`: a container left with one child is replaced by it, an empty one goes. The page view
@@ -508,6 +550,19 @@ mod tests {
         assert_eq!(back.describe(), "tabs [\"Page view\", \"Pages\" (shown)]");
     }
 
+    // WP-S2.05 part 2
+    #[test]
+    fn the_find_pane_goes_below_the_page_view_and_round_trips() {
+        let full = Layout::schematic().with_find();
+        assert_eq!(
+            full.describe(),
+            "split horizontal [\"Pages\" 16%, split vertical [\"Page view\" 75%, \"Find and replace\" 25%] 64%, \"Properties\" 20%]"
+        );
+        assert_eq!(full.with_find(), full, "added once");
+        assert_eq!(Layout::parse(&full.to_json("Find")).unwrap().1, full);
+        assert_eq!(full.without(PaneKind::Find), Layout::schematic());
+    }
+
     #[test]
     fn bad_files_are_refused_with_a_reason() {
         let page_view = r#"{"pane":"page-view"}"#;
@@ -521,7 +576,8 @@ mod tests {
                 r#"{"tabs":[{"pane":"page-view"},{"pane":"page-view"}]}"#,
                 "appears twice",
             ),
-            (r#"{"pane":"find"}"#, "unknown pane"),
+            // The message panel is not a pane yet (WP-S2.09); `find` is one since WP-S2.05 part 2.
+            (r#"{"pane":"messages"}"#, "unknown pane"),
             (r#"{"pane":"pages","extra":1}"#, "unknown member"),
             (r#"{"tabs":[]}"#, "empty"),
             (

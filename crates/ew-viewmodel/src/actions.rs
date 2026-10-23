@@ -119,6 +119,8 @@ pub enum Context {
     Navigator,
     /// While the property grid has the focus (WP-S2.05).
     Properties,
+    /// While the find pane has the focus (WP-S2.05 part 2).
+    Find,
 }
 
 /// Where an action sits in the menu bar.
@@ -478,6 +480,44 @@ fn grid_writable(m: &ShellModel) -> Result<(), &'static str> {
     grid_shown(m)
 }
 
+// WP-S2.05 part 2
+const fn in_find(mut a: ActionMeta) -> ActionMeta {
+    a.context = Context::Find;
+    a
+}
+
+/// The find pane's own controls need the pane.
+fn find_shown(m: &ShellModel) -> Result<(), &'static str> {
+    project_open(m)?;
+    if m.find_shown() {
+        Ok(())
+    } else {
+        Err("reason-no-find")
+    }
+}
+
+/// A replace: a writable project with the find pane shown.
+fn find_writable(m: &ShellModel) -> Result<(), &'static str> {
+    writable(m)?;
+    find_shown(m)
+}
+
+/// The card's buttons: the card sits in the property grid or the find pane, so one of them is shown.
+fn card_shown(m: &ShellModel) -> Result<(), &'static str> {
+    project_open(m)?;
+    if m.properties_shown() || m.find_shown() {
+        Ok(())
+    } else {
+        Err("reason-no-sheet")
+    }
+}
+
+/// Apply on the card: a writable project with the property grid or the find pane shown.
+fn card_writable(m: &ShellModel) -> Result<(), &'static str> {
+    writable(m)?;
+    card_shown(m)
+}
+
 use ActionKind::{Command, View};
 
 /// The registry: the part-1 actions of the spec, section 5.2, in menu order, then the headless-only ones.
@@ -619,6 +659,35 @@ pub static ACTIONS: &[ActionMeta] = &[
         project_open,
         slot(Menu::Edit),
     ),
+    // WP-S2.05 part 2: Edit, Find..., Find and replace... and Replace all (§7.6). macOS's ⌥⌘F (doc 16 §4.4) needs a
+    // per-platform binding: `Ctrl+Alt+F` would be a Ctrl+Alt+letter chord, which NFR-I18N-06 forbids.
+    act(
+        "find.open",
+        View,
+        "action-find-open",
+        Menu::Edit,
+        &["Ctrl+F"],
+        project_open,
+        slot_sep(Menu::Edit),
+    ),
+    act(
+        "find.open_replace",
+        View,
+        "action-find-open-replace",
+        Menu::Edit,
+        &["Ctrl+H"],
+        project_open,
+        slot(Menu::Edit),
+    ),
+    in_find(act(
+        "find.replace_all",
+        Command,
+        "action-find-replace-all",
+        Menu::Edit,
+        &["Ctrl+Enter"],
+        find_writable,
+        slot(Menu::Edit),
+    )),
     act(
         "page.next",
         View,
@@ -1765,7 +1834,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         "action-preview-apply",
         Menu::Edit,
         &["Ctrl+Enter"],
-        grid_writable,
+        card_writable,
         None,
     ))),
     hidden(in_properties(act(
@@ -1774,7 +1843,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         "action-preview-cancel",
         Menu::Edit,
         &[],
-        grid_shown,
+        card_shown,
         None,
     ))),
     hidden(act(
@@ -1795,6 +1864,88 @@ pub static ACTIONS: &[ActionMeta] = &[
         project_open,
         None,
     )),
+    // WP-S2.05 part 2: the find pane's own controls (§7.6); the pane handles Enter, Up and Down itself.
+    hidden(in_find(act(
+        "find.close",
+        View,
+        "action-find-close",
+        Menu::Edit,
+        &[],
+        find_shown,
+        None,
+    ))),
+    hidden(in_find(act(
+        "find.text",
+        View,
+        "action-find-text",
+        Menu::Edit,
+        &[],
+        find_shown,
+        None,
+    ))),
+    hidden(in_find(act(
+        "find.replacement",
+        View,
+        "action-find-replacement",
+        Menu::Edit,
+        &[],
+        find_shown,
+        None,
+    ))),
+    hidden(in_find(act(
+        "find.option",
+        View,
+        "action-find-option",
+        Menu::Edit,
+        &[],
+        find_shown,
+        None,
+    ))),
+    hidden(in_find(act(
+        "find.fields",
+        View,
+        "action-find-fields",
+        Menu::Edit,
+        &[],
+        find_shown,
+        None,
+    ))),
+    hidden(in_find(act(
+        "find.folios",
+        View,
+        "action-find-folios",
+        Menu::Edit,
+        &[],
+        find_shown,
+        None,
+    ))),
+    hidden(in_find(act(
+        "find.run",
+        View,
+        "action-find-run",
+        Menu::Edit,
+        &[],
+        find_shown,
+        None,
+    ))),
+    hidden(in_find(act(
+        "find.row",
+        View,
+        "action-find-row",
+        Menu::Edit,
+        &[],
+        find_shown,
+        None,
+    ))),
+    hidden(in_find(act(
+        "find.jump",
+        View,
+        "action-find-jump",
+        Menu::Edit,
+        &[],
+        find_shown,
+        None,
+    ))),
 ];
 
 /// The action with this ID.

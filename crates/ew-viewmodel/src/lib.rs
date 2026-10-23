@@ -22,6 +22,8 @@ pub mod actions;
 pub mod area;
 pub mod canvas;
 pub mod describe;
+// WP-S2.05 part 2
+pub mod find;
 pub mod first_run;
 pub mod help;
 pub mod history;

@@ -195,6 +195,31 @@ pub struct PendingEdit {
     pub label: String,
 }
 
+// WP-S2.05 part 2
+/// Where a card was opened: the property grid, or the find pane's replace (the transcript's `origin`).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum CardOrigin {
+    /// An edit of the property grid.
+    Properties,
+    /// A replace of the find pane: the query whose hits it writes, so that a stale card runs it again (§7.4).
+    Find {
+        /// The query.
+        query: crate::find::FindQuery,
+        /// The number of hits the replace writes.
+        hits: usize,
+    },
+}
+
+impl CardOrigin {
+    /// The transcript's word (`properties`, `find`).
+    pub fn word(&self) -> &'static str {
+        match self {
+            CardOrigin::Properties => "properties",
+            CardOrigin::Find { .. } => "find",
+        }
+    }
+}
+
 /// The inline preview card (§6.6).
 #[derive(Debug)]
 pub struct Card {
@@ -204,10 +229,12 @@ pub struct Card {
     pub edit: PendingEdit,
     /// The number of targets.
     pub targets: usize,
-    /// The number of changed records.
+    /// The number of changed records (a replace: the number of replaced hits, §7.2).
     pub changes: usize,
     /// Why the card opened (`reason-identifiers`).
     pub reason: &'static str,
+    /// Where it was opened (WP-S2.05 part 2).
+    pub origin: CardOrigin,
 }
 
 /// The toast after a direct commit with several targets (§6.6).

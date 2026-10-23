@@ -33,6 +33,8 @@ use crate::wizard::Wizard;
 
 mod canvas_actions;
 mod editing;
+// WP-S2.05 part 2
+mod find;
 mod navigation;
 mod onboarding;
 mod projects;
@@ -350,6 +352,8 @@ pub struct ShellModel {
     tools: crate::tools::ToolHost,
     /// The property grid (WP-S2.05 part 1): the sheet, the row cursor, the edit, the card and the toast.
     props: crate::properties::PropertiesState,
+    /// The find pane (WP-S2.05 part 2): the query, the results, the cursor and the note.
+    find: crate::find::FindState,
 }
 
 /// The directory's own name, never its path.
@@ -533,6 +537,19 @@ fn clears_banner(id: &str) -> bool {
             | "preview.cancel"
             | "toast.undo"
             | "toast.dismiss"
+            // The find pane's actions (WP-S2.05 §7.6): an error shows in the pane.
+            | "find.open"
+            | "find.open_replace"
+            | "find.close"
+            | "find.text"
+            | "find.replacement"
+            | "find.option"
+            | "find.fields"
+            | "find.folios"
+            | "find.run"
+            | "find.row"
+            | "find.jump"
+            | "find.replace_all"
     )
 }
 
@@ -606,6 +623,7 @@ impl ShellModel {
             epochs: 0,
             tools: crate::tools::ToolHost::new(),
             props: crate::properties::PropertiesState::default(),
+            find: crate::find::FindState::default(),
         };
         model.load_active_workspace();
         model
@@ -1015,6 +1033,7 @@ impl ShellModel {
         self.sync_tool_context();
         self.after_commit();
         self.sync_properties();
+        self.sync_find();
         outcome
     }
 
@@ -1161,6 +1180,19 @@ impl ShellModel {
             "preview.cancel" => self.act_preview_cancel(),
             "toast.undo" => self.act_toast_undo(),
             "toast.dismiss" => self.act_toast_dismiss(),
+            // WP-S2.05 part 2
+            "find.open" => self.act_find_open(false),
+            "find.open_replace" => self.act_find_open(true),
+            "find.close" => self.act_find_close(),
+            "find.text" => self.act_find_text(p, false),
+            "find.replacement" => self.act_find_text(p, true),
+            "find.option" => self.act_find_option(p),
+            "find.fields" => self.act_find_fields(p),
+            "find.folios" => self.act_find_folios(p),
+            "find.run" => self.act_find_run(),
+            "find.row" => self.act_find_row(p),
+            "find.jump" => self.act_find_jump(),
+            "find.replace_all" => self.act_find_replace_all(),
             "ui.describe" => Outcome::Done,
             "view.ui_scale" => self.act_ui_scale(p),
             "tools.palette" => self.act_palette(p),
@@ -1616,6 +1648,10 @@ impl ShellModel {
             return Outcome::Done;
         }
         if let Some(outcome) = self.dismiss_properties() {
+            return outcome;
+        }
+        // WP-S2.05 part 2
+        if let Some(outcome) = self.dismiss_find() {
             return outcome;
         }
         self.dismiss_tool()

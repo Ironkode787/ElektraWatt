@@ -22,6 +22,7 @@ use serde_json::{Value, json};
 use crate::canvas::{CanvasCounters, CanvasHost};
 use crate::canvas_area::CanvasAreaHost;
 use crate::dock::Dock;
+use crate::find::FindPane;
 use crate::gpu::GpuHost;
 use crate::keys::{self, Binding};
 use crate::navigator::NavigatorPane;
@@ -110,6 +111,8 @@ pub struct App {
     navigator: NavigatorPane,
     /// The property grid pane (WP-S2.05).
     properties: PropertiesPane,
+    /// The find pane (WP-S2.05 part 2).
+    find: FindPane,
     /// The toast on show and when the window first painted it: it goes after 8 seconds measured by the window, never
     /// by the model (WP-S2.05 §6.6).
     toast_since: Option<(u64, std::time::Instant)>,
@@ -154,6 +157,7 @@ impl App {
             canvas_area: CanvasAreaHost::new(),
             navigator: NavigatorPane::new(),
             properties: PropertiesPane::new(),
+            find: FindPane::new(),
             toast_since: None,
             area_splitters: 0,
             preview_view: PageView::new(),
@@ -380,12 +384,14 @@ impl App {
                     canvas_area,
                     navigator,
                     properties,
+                    find,
                     area_splitters,
                     ..
                 } = self;
                 dock.show(ui, &mut |ui, pane| match pane {
                     PaneKind::Pages => navigator.show(ui, shell, &mut events),
                     PaneKind::Properties => properties.show(ui, shell, &mut events),
+                    PaneKind::Find => find.show(ui, shell, &mut events),
                     PaneKind::PageView => {
                         canvas_area.show(ui, shell, canvas, &mut events);
                         *area_splitters = canvas_area.splitter_count(shell);
@@ -520,6 +526,7 @@ impl App {
             Some(Focus::Navigator) => Context::Navigator,
             Some(Focus::Canvas(_)) => Context::Canvas,
             Some(Focus::Properties) => Context::Properties,
+            Some(Focus::Find) => Context::Find,
             None => Context::Global,
         };
         if focused == Context::Canvas && !palette_open {
@@ -570,11 +577,25 @@ impl App {
                 || (focused == Context::Properties
                     && binding.context != Context::Properties
                     && crate::properties::is_grid_key(&binding.shortcut))
+                // WP-S2.05 part 2: the find pane's own keys (the arrows, Home, End, Enter) stay with it.
+                || (focused == Context::Find
+                    && binding.context != Context::Find
+                    && crate::properties::is_grid_key(&binding.shortcut))
             {
                 continue;
             }
             if ctx.input_mut(|i| i.consume_shortcut(&binding.shortcut)) {
-                events.push(Event::Action(binding.action, Value::Null));
+                // WP-S2.05 part 2: Ctrl+Enter in the find pane applies its open replace card.
+                let replace_card =
+                    self.shell.properties().card().is_some_and(|c| {
+                        matches!(c.origin, ew_viewmodel::properties::CardOrigin::Find { .. })
+                    });
+                let action = if binding.action == "find.replace_all" && replace_card {
+                    "preview.apply"
+                } else {
+                    binding.action
+                };
+                events.push(Event::Action(action, Value::Null));
                 return;
             }
         }
