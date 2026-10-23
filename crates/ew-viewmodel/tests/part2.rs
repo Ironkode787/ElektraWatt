@@ -998,6 +998,35 @@ fn the_wizard_writes_the_company_the_frame_and_the_formats() {
     shell.shutdown();
 }
 
+/// The vector logos of a page output (FT-384): the groups that an SVG image became, clipped to the image's rectangle,
+/// whose paths are filled; the placeholder logo is one filled rectangle over its whole view box, so its path bounds
+/// equal the clip.
+fn vector_logos(pages: &ew_viewmodel::ew_api::output::ExportPages) -> usize {
+    use ew_viewmodel::ew_api::output::ew_dl::{Item, ItemKind};
+    fn walk(items: &[Item], out: &mut usize) {
+        for item in items {
+            if let ItemKind::Group(group) = &item.kind {
+                let filled_to_clip = group.clip.is_some()
+                    && !group.items.is_empty()
+                    && group.items.iter().all(|i| match &i.kind {
+                        ItemKind::Path(p) => p.fill.is_some() && p.path.bounds() == group.clip,
+                        _ => false,
+                    });
+                if filled_to_clip {
+                    *out += 1;
+                } else {
+                    walk(&group.items, out);
+                }
+            }
+        }
+    }
+    let mut out = 0;
+    for page in &pages.pages {
+        walk(&page.content.items, &mut out);
+    }
+    out
+}
+
 /// The images of a page output, by content hash and format, in display-list order.
 fn page_images(
     pages: &ew_viewmodel::ew_api::output::ExportPages,
@@ -1057,12 +1086,12 @@ fn the_wizard_writes_the_logo_the_shipped_profile_and_the_report_blocks() {
     ] {
         done(&mut shell, "wizard.set", json!({"field": field, "value": value}));
     }
-    // The preview: the sample's cover with the logo in its title block.
+    // The preview: the sample's cover with the logo in its title block, drawn as vector paths (FT-384).
     let cover = shell.wizard_preview_content().expect("the cover");
-    let images = page_images(&cover);
+    assert_eq!(vector_logos(&cover), 1, "the logo on the preview's cover");
     assert!(
-        images.iter().any(|(_, f)| *f == ImageFormat::Svg),
-        "the logo on the preview's cover: {images:?}"
+        !page_images(&cover).iter().any(|(_, f)| *f == ImageFormat::Svg),
+        "no SVG image item is left for a renderer to skip"
     );
     // The review: every field is written but the check scheme.
     let review = shell.wizard().unwrap().review();
@@ -1082,10 +1111,11 @@ fn the_wizard_writes_the_logo_the_shipped_profile_and_the_report_blocks() {
     assert_eq!(std::fs::read(&asset).unwrap(), LOGO, "the asset holds the file");
     let manifest = std::fs::read_to_string(basic.join("manifest.json")).unwrap();
     assert!(manifest.contains(&format!("assets/{hex}.svg")), "{manifest}");
-    // The title block of folio 1 draws it.
+    // The title block of folio 1 draws it, as vector paths.
     let folio_1 = render_folio(&basic, "1");
-    assert!(
-        page_images(&folio_1).contains(&(sha, ImageFormat::Svg)),
+    assert_eq!(
+        vector_logos(&folio_1),
+        1,
         "the logo in the title block of folio 1"
     );
     let (session, _) = Session::open_read_only(&basic, VERSION).unwrap();
@@ -1130,7 +1160,7 @@ fn the_wizard_writes_the_logo_the_shipped_profile_and_the_report_blocks() {
         std::fs::read(job.join("assets").join(format!("{hex}.svg"))).unwrap(),
         LOGO
     );
-    assert!(page_images(&render_folio(&job, "1")).contains(&(sha, ImageFormat::Svg)));
+    assert_eq!(vector_logos(&render_folio(&job, "1")), 1);
     shell.shutdown();
 }
 

@@ -15,7 +15,10 @@
 //! 1. on the session's thread, through its memoising `Q`: `page_order`, the page selection, and for every
 //!    selected page its memoised layers assembled into a page scene ([`page_scene`]);
 //! 2. the page phase on [`ew_export::par_map`] (scoped `std` threads, results by page index, decision log ID-344):
-//!    each page's layers mapped onto its sheet with their symbol instances inlined, the one list every writer draws;
+//!    each page's layers mapped onto its sheet with their symbol instances inlined, the one list every writer draws,
+//!    and its image items resolved from the project's asset bytes ([`ExportAssets`], FT-384: an SVG asset becomes
+//!    vector paths through `ew_scene::images`, a PNG or JPEG image gets its bytes); this phase is not a memoised
+//!    query, so reading which assets the project holds here is outside the read rule of FT-382;
 //! 3. the writer: [`ew_export::pdf`] (PDF/A-2b, outline, `/PageLabels`, named destinations, links, subset fonts)
 //!    or [`ew_export::svg`] (one `<label>.svg` per page), with the bundled fonts only ([`font_bytes`]).
 //!
@@ -186,6 +189,40 @@ pub struct ExportOptions {
     pub monochrome: bool,
     /// The creation date (the release context, a scheme date or `SOURCE_DATE_EPOCH`); `None`: the model's.
     pub date: Option<PdfDate>,
+}
+
+/// The asset bytes an export draws its image items with, by SHA-256 (FT-384): a snapshot of the project's asset
+/// store, taken by the [`Session`] export methods. The free functions [`export_pages`], [`export_pdf`] and
+/// [`export_svg`] take a [`Q`] only, which holds no asset bytes: they draw no image ([`ExportAssets::default`]);
+/// [`export_pages_with`] takes the bytes.
+#[derive(Clone, Default)]
+pub struct ExportAssets {
+    bytes: BTreeMap<[u8; 32], Arc<[u8]>>,
+}
+
+impl ExportAssets {
+    /// The bytes of every asset the model holds.
+    pub fn of(model: &ew_model::Model) -> ExportAssets {
+        ExportAssets {
+            bytes: model
+                .assets()
+                .map(|a| (a.sha256().0, Arc::clone(a.bytes())))
+                .collect(),
+        }
+    }
+
+    /// The bytes of the asset with this hash, if held.
+    pub fn get(&self, sha256: &[u8; 32]) -> Option<Arc<[u8]>> {
+        self.bytes.get(sha256).cloned()
+    }
+}
+
+impl fmt::Debug for ExportAssets {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ExportAssets")
+            .field("assets", &self.bytes.len())
+            .finish()
+    }
 }
 
 /// A page finding with the folio it was found on.
@@ -405,6 +442,19 @@ struct Phase1 {
 ///
 /// [`OutputError::Selection`] when the selection names a folio the page order does not have.
 pub fn export_pages(q: &Q, options: &ExportOptions) -> Result<ExportPages, OutputError> {
+    export_pages_with(q, options, &ExportAssets::default())
+}
+
+/// [`export_pages`] with the asset bytes its image items are drawn with ([`ExportAssets`]).
+///
+/// # Errors
+///
+/// [`OutputError::Selection`] when the selection names a folio the page order does not have.
+pub fn export_pages_with(
+    q: &Q,
+    options: &ExportOptions,
+    assets: &ExportAssets,
+) -> Result<ExportPages, OutputError> {
     let order = q.get::<PageOrder>(());
     let picked = options.pages.resolve(&order)?;
     if picked.is_empty() {
@@ -440,7 +490,7 @@ pub fn export_pages(q: &Q, options: &ExportOptions) -> Result<ExportPages, Outpu
         section: p.section.clone(),
         width: p.scene.sheet_width,
         height: p.scene.sheet_height,
-        content: p.scene.sheet_list(),
+        content: ew_scene::images::resolve_images(&p.scene.sheet_list(), &|sha| assets.get(sha)).0,
     });
     let labels: Option<Vec<String>> = match options.pages {
         PageSelection::All => None,
@@ -459,7 +509,20 @@ pub fn export_pages(q: &Q, options: &ExportOptions) -> Result<ExportPages, Outpu
 ///
 /// [`OutputError`] for a selection the page order does not have or pages the writer refuses.
 pub fn export_pdf(q: &Q, options: &ExportOptions) -> Result<PdfExport, OutputError> {
-    let pages = export_pages(q, options)?;
+    export_pdf_with(q, options, &ExportAssets::default())
+}
+
+/// [`export_pdf`] with the asset bytes of the image items.
+///
+/// # Errors
+///
+/// [`OutputError`] for a selection the page order does not have or pages the writer refuses.
+pub fn export_pdf_with(
+    q: &Q,
+    options: &ExportOptions,
+    assets: &ExportAssets,
+) -> Result<PdfExport, OutputError> {
+    let pages = export_pages_with(q, options, assets)?;
     let out = ew_export::pdf(&pages.pages, &pages.options, font_bytes(), None).map_err(OutputError::Pdf)?;
     Ok(PdfExport {
         bytes: out.bytes,
@@ -475,7 +538,20 @@ pub fn export_pdf(q: &Q, options: &ExportOptions) -> Result<PdfExport, OutputErr
 ///
 /// [`OutputError`] for a selection the page order does not have or pages the writer refuses.
 pub fn export_svg(q: &Q, options: &ExportOptions) -> Result<SvgExport, OutputError> {
-    let pages = export_pages(q, options)?;
+    export_svg_with(q, options, &ExportAssets::default())
+}
+
+/// [`export_svg`] with the asset bytes of the image items.
+///
+/// # Errors
+///
+/// [`OutputError`] for a selection the page order does not have or pages the writer refuses.
+pub fn export_svg_with(
+    q: &Q,
+    options: &ExportOptions,
+    assets: &ExportAssets,
+) -> Result<SvgExport, OutputError> {
+    let pages = export_pages_with(q, options, assets)?;
     let out = ew_export::svg(
         &pages.pages,
         &svg_options(options.monochrome),
@@ -537,7 +613,12 @@ impl Session {
     ///
     /// [`OutputError::Selection`] when the selection names a folio the page order does not have.
     pub fn export_pages(&self, options: &ExportOptions) -> Result<ExportPages, OutputError> {
-        export_pages(&self.query(), options)
+        export_pages_with(&self.query(), options, &self.export_assets())
+    }
+
+    /// The asset bytes of the current snapshot, for the image items of an export ([`ExportAssets`]).
+    pub fn export_assets(&self) -> ExportAssets {
+        ExportAssets::of(self.engine.model())
     }
 
     /// The PDF of the current snapshot (`ew export pdf`, doc 09 §4.2): the export job of this module through the
@@ -547,7 +628,7 @@ impl Session {
     ///
     /// [`OutputError`] for a selection the page order does not have or pages the writer refuses.
     pub fn export_pdf(&self, options: &ExportOptions) -> Result<PdfExport, OutputError> {
-        export_pdf(&self.query(), options)
+        export_pdf_with(&self.query(), options, &self.export_assets())
     }
 
     /// The SVG set of the current snapshot (`ew export svg`, doc 09 §4.4), one file per page.
@@ -556,7 +637,7 @@ impl Session {
     ///
     /// [`OutputError`] for a selection the page order does not have or pages the writer refuses.
     pub fn export_svg(&self, options: &ExportOptions) -> Result<SvgExport, OutputError> {
-        export_svg(&self.query(), options)
+        export_svg_with(&self.query(), options, &self.export_assets())
     }
 }
 

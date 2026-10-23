@@ -20,6 +20,7 @@
 
 pub mod embedded;
 pub mod forms;
+pub mod images;
 pub mod page;
 pub mod route;
 pub mod symbol;

@@ -150,6 +150,14 @@ pub enum SvgHazard {
     /// Markup the scanner cannot follow (an unclosed comment, CDATA section, processing instruction, tag or
     /// attribute value, an unknown declaration): refused rather than guessed.
     Malformed,
+    /// Structure the parser cannot bear (FT-384 audit): nesting deeper than [`MAX_SVG_DEPTH`], a cycle of references,
+    /// an expansion through references beyond [`MAX_SVG_EXPANSION`], a marker inside a marker, an over-complex style
+    /// sheet, a long run of close-path commands.
+    TooComplex,
+    /// A number beyond [`MAX_SVG_NUMBER`] in an attribute or a style sheet.
+    HugeNumber,
+    /// A construct that panics the parser (`transform-origin`, `feConvolveMatrix`; FT-384 audit).
+    Unsupported,
 }
 
 impl SvgHazard {
@@ -164,6 +172,9 @@ impl SvgHazard {
             SvgHazard::ForeignObject => "it has a foreignObject element",
             SvgHazard::ExternalReference => "it references something outside the document",
             SvgHazard::Malformed => "its markup cannot be followed",
+            SvgHazard::TooComplex => "its structure is too deep, too complex or cyclic",
+            SvgHazard::HugeNumber => "it has a number too large to draw",
+            SvgHazard::Unsupported => "it uses transform-origin or feConvolveMatrix",
         }
     }
 }
@@ -397,6 +408,15 @@ fn svg_elements(bytes: &[u8]) -> usize {
         .count()
 }
 
+/// The deepest element nesting an SVG asset may have (the parser recurses per level; FT-384 audit).
+pub const MAX_SVG_DEPTH: usize = 64;
+/// The most elements an SVG asset may expand to through its references (`use`, clip paths, masks, patterns,
+/// markers, filters), counted with multiplicity (FT-384 audit: usvg converts a referenced subtree once per reference).
+pub const MAX_SVG_EXPANSION: u64 = 200_000;
+/// The largest magnitude of a number in an attribute or a style sheet of an SVG asset (FT-384 audit: huge arc radii
+/// and filter values make the parser allocate without bound or panic).
+pub const MAX_SVG_NUMBER: f64 = 1.0e9;
+
 /// The first reason to refuse an SVG file before any parser or renderer reads it, or `None` (FT-383, doc 05 §13.3,
 /// doc 18 §11 TM-18). Sniffing is not sanitising: the sniffer reads only the root element, so this scanner reads the
 /// whole document as markup (comments skipped, CDATA read as text) and refuses, conservatively (ASCII case is ignored,
@@ -412,10 +432,19 @@ fn svg_elements(bytes: &[u8]) -> usize {
 ///   `@import`, in attributes and in text (style sheets), `xml-stylesheet` processing instructions, and `iframe`,
 ///   `embed`, `object` and `include` elements ([`SvgHazard::ExternalReference`]); an embedded `data:` image counts
 ///   as such a reference (EW draws an SVG asset's paths, not images inside it);
-/// - text that is not UTF-8, and markup it cannot follow ([`SvgHazard::NotUtf8`], [`SvgHazard::Malformed`]).
+/// - text that is not UTF-8, and markup it cannot follow ([`SvgHazard::NotUtf8`], [`SvgHazard::Malformed`]);
+/// - what the parser's audit found it cannot bear (FT-384; the cargo-vet audit of usvg 0.48.1 and its dependencies,
+///   2026-10-23): nesting deeper than [`MAX_SVG_DEPTH`]; a cycle of references between elements (`url(#…)` and
+///   `href="#…"`, through descendants and through style-sheet rules, any length); an expansion through references
+///   beyond [`MAX_SVG_EXPANSION`]; a marker reference inside a marker; a style sheet with selectors of more than six
+///   compound parts or 32 groups, more than 64 comments or more than 64 KiB; more than 16 `drop-shadow(` functions;
+///   a run of more than 16 close-path commands in path data ([`SvgHazard::TooComplex`]); a number beyond
+///   [`MAX_SVG_NUMBER`] in an attribute or a style sheet ([`SvgHazard::HugeNumber`]); and the two constructs that
+///   panic the parser, `transform-origin` and `feConvolveMatrix` ([`SvgHazard::Unsupported`]).
 ///
-/// Linear in the length of the file. The drawing pipeline parses an admitted SVG with external references disabled
-/// besides (FT-384), so this is the first of two guards, not the only one.
+/// Linear in the length of the file (the reference graph is walked once). The drawing pipeline parses an admitted SVG
+/// with external references disabled and inside `catch_unwind` besides (FT-384), so this is the first of two guards,
+/// not the only one.
 pub fn svg_hazard(bytes: &[u8]) -> Option<SvgHazard> {
     let Ok(text) = std::str::from_utf8(bytes) else {
         return Some(SvgHazard::NotUtf8);
@@ -425,13 +454,14 @@ pub fn svg_hazard(bytes: &[u8]) -> Option<SvgHazard> {
     if lower.contains("<!entity") {
         return Some(SvgHazard::Entity);
     }
+    let mut scan = Scan::default();
     let b = lower.as_bytes();
     let find = |from: usize, needle: &str| lower[from..].find(needle).map(|k| from + k);
     let mut i = 0;
     while i < b.len() {
         if b[i] != b'<' {
             let end = find(i, "<").unwrap_or(b.len());
-            if let Some(h) = text_hazard(&lower[i..end]) {
+            if let Some(h) = scan.text(&lower[i..end]) {
                 return Some(h);
             }
             i = end;
@@ -449,7 +479,7 @@ pub fn svg_hazard(bytes: &[u8]) -> Option<SvgHazard> {
             let Some(end) = find(i + 9, "]]>") else {
                 return Some(SvgHazard::Malformed);
             };
-            if let Some(h) = text_hazard(&lower[i + 9..end]) {
+            if let Some(h) = scan.text(&lower[i + 9..end]) {
                 return Some(h);
             }
             i = end + 3;
@@ -496,6 +526,7 @@ pub fn svg_hazard(bytes: &[u8]) -> Option<SvgHazard> {
             let Some(end) = find(i, ">") else {
                 return Some(SvgHazard::Malformed);
             };
+            scan.close();
             i = end + 1;
             continue;
         }
@@ -504,13 +535,16 @@ pub fn svg_hazard(bytes: &[u8]) -> Option<SvgHazard> {
         while j < b.len() && !(b[j].is_ascii_whitespace() || b[j] == b'>' || b[j] == b'/') {
             j += 1;
         }
-        let name = &lower[i + 1..j];
-        match local_name(name) {
+        let name = local_name(&lower[i + 1..j]);
+        match name {
             "script" | "handler" | "listener" => return Some(SvgHazard::Script),
             "foreignobject" => return Some(SvgHazard::ForeignObject),
             "iframe" | "embed" | "object" | "include" => return Some(SvgHazard::ExternalReference),
+            "feconvolvematrix" => return Some(SvgHazard::Unsupported),
             _ => {}
         }
+        let mut attrs: Vec<(&str, &str)> = Vec::new();
+        let mut self_closing = false;
         loop {
             while j < b.len() && b[j].is_ascii_whitespace() {
                 j += 1;
@@ -522,10 +556,11 @@ pub fn svg_hazard(bytes: &[u8]) -> Option<SvgHazard> {
                     break;
                 }
                 Some(b'/') => {
+                    self_closing = true;
                     j += 1;
                     continue;
                 }
-                Some(_) => {}
+                Some(_) => self_closing = false,
             }
             let start = j;
             while j < b.len() && !(b[j].is_ascii_whitespace() || matches!(b[j], b'=' | b'>' | b'/')) {
@@ -553,10 +588,322 @@ pub fn svg_hazard(bytes: &[u8]) -> Option<SvgHazard> {
             if let Some(h) = attribute_hazard(attr, value) {
                 return Some(h);
             }
+            attrs.push((local_name(attr), value));
+        }
+        if let Some(h) = scan.open(name, &attrs, self_closing) {
+            return Some(h);
         }
         i = j;
     }
+    scan.finish()
+}
+
+/// The state of [`svg_hazard`]'s structural checks: the open elements, the reference graph and the style sheet.
+#[derive(Default)]
+struct Scan {
+    /// The open elements: local name and graph node (an element with an `id`, gradients and stops excepted).
+    open: Vec<(String, Option<usize>)>,
+    /// The graph node of each id.
+    ids: std::collections::BTreeMap<String, usize>,
+    /// Per node: the elements of its subtree, and its references (target id, count).
+    nodes: Vec<(u64, std::collections::BTreeMap<String, u64>)>,
+    /// References outside any node, and the elements of the document.
+    top: (u64, std::collections::BTreeMap<String, u64>),
+    /// The ids the style sheets reference (applied, conservatively, from every element with a `class`).
+    css_targets: std::collections::BTreeSet<String>,
+    /// Whether a style sheet names a marker property, and whether the document has a `marker` element.
+    css_marker: bool,
+    markers: bool,
+    /// The comments in style sheets.
+    css_comments: usize,
+    drop_shadows: usize,
+}
+
+/// A frame of the reference walk: the node, its edges (target, count) and the next edge to follow.
+type Frame = (usize, Vec<(usize, u64)>, usize);
+
+/// The node standing for "the rules of the style sheets", referenced by every element with a `class`.
+const CSS_NODE: &str = "\u{0}css";
+
+impl Scan {
+    fn open(&mut self, name: &str, attrs: &[(&str, &str)], self_closing: bool) -> Option<SvgHazard> {
+        if self.open.len() >= MAX_SVG_DEPTH {
+            return Some(SvgHazard::TooComplex);
+        }
+        let in_marker = self.open.iter().any(|(n, _)| n == "marker");
+        if name == "marker" {
+            self.markers = true;
+        }
+        let id = attrs
+            .iter()
+            .find(|(a, _)| *a == "id")
+            .map(|(_, v)| v.trim().to_owned());
+        let node = match id {
+            Some(id) if !matches!(name, "lineargradient" | "radialgradient" | "stop") && !id.is_empty() => {
+                let k = self.nodes.len();
+                self.nodes.push((0, std::collections::BTreeMap::new()));
+                self.ids.insert(id, k);
+                Some(k)
+            }
+            _ => None,
+        };
+        self.open.push((name.to_owned(), node));
+        self.count_element();
+        for (attr, value) in attrs {
+            if *attr == "transform-origin" {
+                return Some(SvgHazard::Unsupported);
+            }
+            if let Some(h) = numbers(value) {
+                return Some(h);
+            }
+            if *attr == "d" && close_run(value) > 16 {
+                return Some(SvgHazard::TooComplex);
+            }
+            if *attr == "style" && value.contains("transform-origin") {
+                return Some(SvgHazard::Unsupported);
+            }
+            if in_marker && (attr.starts_with("marker") || (*attr == "style" && value.contains("marker"))) {
+                return Some(SvgHazard::TooComplex);
+            }
+            self.drop_shadows += value.matches("drop-shadow(").count();
+            if *attr == "href" {
+                if let Some(target) = value.trim().strip_prefix('#') {
+                    self.reference(target.trim());
+                }
+            }
+            for target in url_targets(value) {
+                self.reference(&target);
+            }
+            if *attr == "class" {
+                self.reference(CSS_NODE);
+            }
+        }
+        if self_closing {
+            self.close();
+        }
+        None
+    }
+
+    fn close(&mut self) {
+        self.open.pop();
+    }
+
+    /// One more element in every open node's subtree and in the document.
+    fn count_element(&mut self) {
+        self.top.0 += 1;
+        for (_, node) in &self.open {
+            if let Some(k) = node {
+                self.nodes[*k].0 += 1;
+            }
+        }
+    }
+
+    /// A reference to `target` from the innermost element: an edge from every open node, or from the document.
+    fn reference(&mut self, target: &str) {
+        let mut any = false;
+        for (_, node) in &self.open {
+            if let Some(k) = node {
+                *self.nodes[*k].1.entry(target.to_owned()).or_insert(0) += 1;
+                any = true;
+            }
+        }
+        if !any {
+            *self.top.1.entry(target.to_owned()).or_insert(0) += 1;
+        }
+    }
+
+    /// Character data: the text checks, and inside `style` the style-sheet checks.
+    fn text(&mut self, text: &str) -> Option<SvgHazard> {
+        if let Some(h) = text_hazard(text) {
+            return Some(h);
+        }
+        if self.open.last().is_none_or(|(n, _)| n != "style") {
+            return None;
+        }
+        if text.len() > 64 * 1024 {
+            return Some(SvgHazard::TooComplex);
+        }
+        if text.contains("transform-origin") {
+            return Some(SvgHazard::Unsupported);
+        }
+        if let Some(h) = numbers(text) {
+            return Some(h);
+        }
+        self.css_comments += text.matches("/*").count();
+        self.drop_shadows += text.matches("drop-shadow(").count();
+        if text.contains("marker") {
+            self.css_marker = true;
+        }
+        self.css_targets.extend(url_targets(text));
+        // Rule preludes: the text before each `{` back to the previous `}`.
+        let mut rest = text;
+        while let Some(open) = rest.find('{') {
+            let prelude = rest[..open].rsplit('}').next().unwrap_or("");
+            let groups: Vec<&str> = prelude.split(',').collect();
+            if groups.len() > 32 {
+                return Some(SvgHazard::TooComplex);
+            }
+            for g in groups {
+                let parts = g
+                    .split(|c: char| c.is_whitespace() || matches!(c, '>' | '+' | '~'))
+                    .filter(|p| !p.is_empty())
+                    .count();
+                if parts > 6 {
+                    return Some(SvgHazard::TooComplex);
+                }
+            }
+            rest = &rest[open + 1..];
+            match rest.find('}') {
+                Some(close) => rest = &rest[close + 1..],
+                None => break,
+            }
+        }
+        None
+    }
+
+    /// The checks that need the whole document: style-sheet totals, marker rules, cycles and the expansion.
+    fn finish(self) -> Option<SvgHazard> {
+        if self.css_comments > 64 || self.drop_shadows > 16 || (self.css_marker && self.markers) {
+            return Some(SvgHazard::TooComplex);
+        }
+        // The graph: node k, plus the style-sheet node (index n) whose edges go to every style-sheet target.
+        let n = self.nodes.len();
+        let index = |id: &str| -> Option<usize> {
+            if id == CSS_NODE {
+                Some(n)
+            } else {
+                self.ids.get(id).copied()
+            }
+        };
+        let css_edges: Vec<(usize, u64)> = self
+            .css_targets
+            .iter()
+            .filter_map(|t| index(t))
+            .map(|k| (k, 1))
+            .collect();
+        let edges = |k: usize| -> Vec<(usize, u64)> {
+            if k == n {
+                return css_edges.clone();
+            }
+            self.nodes[k]
+                .1
+                .iter()
+                .filter_map(|(t, c)| index(t).map(|j| (j, *c)))
+                .collect()
+        };
+        let size = |k: usize| -> u64 { if k == n { 0 } else { self.nodes[k].0 } };
+        // Iterative depth-first walk: a grey node met again is a cycle; a black node's cost is final.
+        let mut cost: Vec<Option<u64>> = vec![None; n + 1];
+        let mut grey = vec![false; n + 1];
+        for root in 0..=n {
+            if cost[root].is_some() {
+                continue;
+            }
+            let mut stack: Vec<Frame> = vec![(root, edges(root), 0)];
+            grey[root] = true;
+            while let Some((k, out, at)) = stack.last_mut() {
+                if let Some(&(j, _)) = out.get(*at) {
+                    *at += 1;
+                    if grey[j] {
+                        return Some(SvgHazard::TooComplex);
+                    }
+                    if cost[j].is_none() {
+                        grey[j] = true;
+                        let e = edges(j);
+                        stack.push((j, e, 0));
+                    }
+                    continue;
+                }
+                let k = *k;
+                let total = out.iter().fold(size(k), |acc, (j, c)| {
+                    acc.saturating_add(c.saturating_mul(cost[*j].unwrap_or(0)))
+                });
+                if total > MAX_SVG_EXPANSION {
+                    return Some(SvgHazard::TooComplex);
+                }
+                cost[k] = Some(total);
+                grey[k] = false;
+                stack.pop();
+            }
+        }
+        let total = self.top.1.iter().fold(self.top.0, |acc, (t, c)| {
+            let k = index(t);
+            acc.saturating_add(c.saturating_mul(k.and_then(|k| cost[k]).unwrap_or(0)))
+        });
+        (total > MAX_SVG_EXPANSION).then_some(SvgHazard::TooComplex)
+    }
+}
+
+/// The ids of the `url(#id)` references in `text` (lower case).
+fn url_targets(text: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut rest = text;
+    while let Some(k) = rest.find("url(") {
+        rest = &rest[k + 4..];
+        let target = rest.trim_start().trim_start_matches(['"', '\'']).trim_start();
+        if let Some(id) = target.strip_prefix('#') {
+            let end = id
+                .find(|c: char| matches!(c, ')' | '"' | '\'') || c.is_whitespace())
+                .unwrap_or(id.len());
+            out.push(id[..end].to_owned());
+        }
+    }
+    out
+}
+
+/// [`SvgHazard::HugeNumber`] when `text` has a number beyond [`MAX_SVG_NUMBER`] (or one that is not finite): a
+/// number begins with a digit or a `.` that does not follow a letter, a digit, `_`, `-` of a name, or `#` (a colour).
+fn numbers(text: &str) -> Option<SvgHazard> {
+    let b = text.as_bytes();
+    let mut i = 0;
+    while i < b.len() {
+        let c = b[i];
+        let starts = (c.is_ascii_digit() || c == b'.')
+            && (i == 0 || !(b[i - 1].is_ascii_alphanumeric() || matches!(b[i - 1], b'_' | b'#' | b'.')));
+        if !starts {
+            i += 1;
+            continue;
+        }
+        let mut j = i;
+        while j < b.len() && (b[j].is_ascii_digit() || b[j] == b'.') {
+            j += 1;
+        }
+        if j < b.len() && b[j] == b'e' {
+            let mut k = j + 1;
+            if k < b.len() && matches!(b[k], b'+' | b'-') {
+                k += 1;
+            }
+            if k < b.len() && b[k].is_ascii_digit() {
+                while k < b.len() && b[k].is_ascii_digit() {
+                    k += 1;
+                }
+                j = k;
+            }
+        }
+        if let Ok(v) = text[i..j].parse::<f64>() {
+            if !v.is_finite() || v.abs() > MAX_SVG_NUMBER {
+                return Some(SvgHazard::HugeNumber);
+            }
+        }
+        i = j.max(i + 1);
+    }
     None
+}
+
+/// The longest run of close-path commands (`z`, separated by white space or commas) in path data.
+fn close_run(d: &str) -> usize {
+    let (mut best, mut run) = (0, 0);
+    for c in d.chars() {
+        match c {
+            'z' => {
+                run += 1;
+                best = best.max(run);
+            }
+            c if c.is_whitespace() || c == ',' => {}
+            _ => run = 0,
+        }
+    }
+    best
 }
 
 /// The local part of an XML name (`xlink:href` gives `href`).
@@ -877,6 +1224,129 @@ mod tests {
 "##;
         assert_eq!(svg_hazard(text.as_bytes()), None);
         assert_eq!(sniff(text.as_bytes()), Ok((AssetFormat::Svg, Some((80, 20)))));
+    }
+
+    /// FT-384: what the cargo-vet audit of usvg 0.48.1 and its dependencies found the parser cannot bear (stack
+    /// overflow, exponential expansion, panics) is refused before the parser runs (synthetic documents).
+    #[test]
+    fn svgs_the_parser_cannot_bear_are_refused() {
+        const NS: &str = r#"xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink""#;
+        let deep = format!(
+            r#"<svg {NS} viewBox="0 0 4 4">{}{}</svg>"#,
+            "<g>".repeat(MAX_SVG_DEPTH),
+            "</g>".repeat(MAX_SVG_DEPTH)
+        );
+        let mut bomb = format!(r#"<svg {NS} viewBox="0 0 4 4"><defs><path id="l0" d="M0 0 H1"/>"#);
+        for level in 1..8 {
+            bomb.push_str(&format!(r#"<g id="l{level}">"#));
+            for _ in 0..10 {
+                bomb.push_str(&format!(r##"<use href="#l{}"/>"##, level - 1));
+            }
+            bomb.push_str("</g>");
+        }
+        bomb.push_str(r##"</defs><use href="#l7"/></svg>"##);
+        let cases: Vec<(&str, String, SvgHazard)> = vec![
+            ("nesting beyond the limit", deep, SvgHazard::TooComplex),
+            (
+                "a three-element clip-path cycle",
+                format!(
+                    r##"<svg {NS} viewBox="0 0 4 4"><clipPath id="a" clip-path="url(#b)"><rect width="1" height="1"/></clipPath><clipPath id="b" clip-path="url(#c)"><rect width="1" height="1"/></clipPath><clipPath id="c"><rect width="1" height="1" clip-path="url(#a)"/></clipPath></svg>"##
+                ),
+                SvgHazard::TooComplex,
+            ),
+            (
+                "a pattern cycle through a style-sheet class",
+                format!(
+                    r##"<svg {NS} viewBox="0 0 4 4"><style>.p {{ fill: url(#pat) }}</style><pattern id="pat" width="1" height="1"><rect class="p" width="1" height="1"/></pattern></svg>"##
+                ),
+                SvgHazard::TooComplex,
+            ),
+            ("a use expansion bomb", bomb, SvgHazard::TooComplex),
+            (
+                "a marker inside a marker",
+                format!(
+                    r##"<svg {NS} viewBox="0 0 4 4"><marker id="m"><path d="M0 0 L1 1 L2 0" marker-mid="url(#n)"/></marker><marker id="n"><path d="M0 0 L1 1"/></marker></svg>"##
+                ),
+                SvgHazard::TooComplex,
+            ),
+            (
+                "a huge arc radius",
+                format!(r#"<svg {NS} viewBox="0 0 4 4"><path d="M0 0 A1e30 1e30 0 1 1 1 0"/></svg>"#),
+                SvgHazard::HugeNumber,
+            ),
+            (
+                "a filter value beyond f32",
+                format!(
+                    r#"<svg {NS} viewBox="0 0 4 4"><filter id="f"><feMorphology radius="1e39"/></filter></svg>"#
+                ),
+                SvgHazard::HugeNumber,
+            ),
+            (
+                "transform-origin",
+                format!(
+                    r#"<svg {NS} viewBox="0 0 4 4"><rect width="1" height="1" transform-origin="-"/></svg>"#
+                ),
+                SvgHazard::Unsupported,
+            ),
+            (
+                "feConvolveMatrix",
+                format!(
+                    r#"<svg {NS} viewBox="0 0 4 4"><filter id="f"><feConvolveMatrix order="65536 65536"/></filter></svg>"#
+                ),
+                SvgHazard::Unsupported,
+            ),
+            (
+                "a descendant selector of twenty parts",
+                format!(
+                    r#"<svg {NS} viewBox="0 0 4 4"><style>g {} {{ fill: red }}</style></svg>"#,
+                    "* ".repeat(19)
+                ),
+                SvgHazard::TooComplex,
+            ),
+            (
+                "a selector group of forty",
+                format!(
+                    r#"<svg {NS} viewBox="0 0 4 4"><style>{} {{ fill: red }}</style></svg>"#,
+                    vec!["a"; 40].join(",")
+                ),
+                SvgHazard::TooComplex,
+            ),
+            (
+                "a run of close-path commands",
+                format!(
+                    r#"<svg {NS} viewBox="0 0 4 4"><path d="M0 0 H1 {}"/></svg>"#,
+                    "Z".repeat(40)
+                ),
+                SvgHazard::TooComplex,
+            ),
+        ];
+        for (what, text, hazard) in &cases {
+            assert_eq!(svg_hazard(text.as_bytes()), Some(*hazard), "{what}");
+        }
+    }
+
+    /// FT-384: a drawing-program logo with an `id` on the root, classes, clip paths through `use`, gradients and
+    /// colours whose hex digits look like exponents passes the structural checks.
+    #[test]
+    fn a_drawing_program_logo_passes_the_structural_checks() {
+        let text = r##"<?xml version="1.0" encoding="utf-8"?>
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 120 30" style="enable-background:new 0 0 120 30;" xml:space="preserve">
+<style type="text/css">
+	.st0{clip-path:url(#SVGID_2_);fill:url(#SVGID_3_);}
+	.st1{fill:#1E9E3F;}
+</style>
+<g>
+	<defs><rect id="SVGID_1_" width="120" height="30"/></defs>
+	<clipPath id="SVGID_2_"><use xlink:href="#SVGID_1_" style="overflow:visible;"/></clipPath>
+	<linearGradient id="SVGID_3_" gradientUnits="userSpaceOnUse" x1="0" y1="15" x2="120" y2="15">
+		<stop offset="0" style="stop-color:#0B5E2E"/><stop offset="1" style="stop-color:#1E9E3F"/>
+	</linearGradient>
+	<rect class="st0" width="120" height="30"/>
+	<path class="st1" d="M10.5,5.2c1.2-0.4,2.5,0.1,3,1.3l4.2,9.8c0.5,1.2-0.1,2.5-1.3,3L6.6,23.5Z M30 5 h10 v20 z"/>
+</g>
+</svg>
+"##;
+        assert_eq!(svg_hazard(text.as_bytes()), None);
     }
 
     #[test]

@@ -24,6 +24,10 @@ ew-mltext = { path = "../ew-mltext" }
 ew-ids = { path = "../ew-ids" }
 # `extra` members (layout hints such as `ew.frame.line_width`) are `serde_json::Value`s.
 serde_json = "1.0.154"
+# SVG assets parsed, normalised and turned into display-list paths (FT-384; decision log ID-576: usvg yes, resvg
+# no). Default features off: no text shaping, no system fonts, no svgz, no writer; external files and images are
+# never resolved (the resolvers are set to nothing). Licence `Apache-2.0 OR MIT` for this exact version.
+usvg = { version = "=0.48.1", default-features = false }
 
 [dev-dependencies]
 sha2 = { workspace = true }

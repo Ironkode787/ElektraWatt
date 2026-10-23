@@ -13,6 +13,18 @@ criteria = "safe-to-deploy"
 version = "0.35.0"
 notes = "AI-performed, owner-delegated (2026-10-22), cycle 20 lead audit. Library read fully: UIA COM providers (refcounts, VARIANT/SAFEARRAY/BSTR, free-threaded), window subclassing. Discretion: as_impl assumes in-process text ranges are AccessKit's; UIA client input can abort (same session)."
 
+[[audits.data-url]]
+who = "Ironkode787"
+criteria = "safe-to-deploy"
+version = "0.3.2"
+notes = "AI-performed, owner-delegated (2026-10-23), cycle 24 lane C lead audit. Read all src (3 files) and the base64 table generator. No unsafe; no_std+alloc; no fs/net/env; no deps, no build.rs. Linear base64 and percent decoding, output no larger than input; only the MIME parameter de-duplication is O(p^2). Reached by usvg for every data: href (ElektraWatt refuses data: hrefs before usvg)."
+
+[[audits.imagesize]]
+who = "Ironkode787"
+criteria = "safe-to-deploy"
+version = "0.15.0"
+notes = "AI-performed, owner-delegated (2026-10-23), cycle 24 lane C lead audit. Read all src (29 files). No unsafe, no deps, no build.rs. File access only in the public size(path) helper (File::open), which usvg never calls; bounded reads, forward seeks, capped buffers. Not reached with usvg's image resolvers returning None."
+
 [[audits.libloading]]
 who = "Ironkode787"
 criteria = "safe-to-deploy"
@@ -31,11 +43,35 @@ criteria = "safe-to-deploy"
 delta = "30.0.0 -> 30.0.1"
 notes = "AI-performed, owner-delegated (2026-10-22), cycle 20 lead audit. Version bump only; no source change."
 
+[[audits.pico-args]]
+who = "Ironkode787"
+criteria = "safe-to-deploy"
+version = "0.5.0"
+notes = "AI-performed, owner-delegated (2026-10-23), cycle 24 lane C lead audit. Read src/lib.rs. forbid(unsafe_code); no deps, no build.rs; the only environment access is std::env::args_os in from_env, its purpose; no fs/net. Compiled as a usvg dependency but used only by usvg's CLI binary, which is not built."
+
 [[audits.rfd]]
 who = "Ironkode787"
 criteria = "safe-to-deploy"
 version = "0.17.2"
 notes = "AI-performed, owner-delegated (2026-10-22), cycle 20 lead audit: xdg-portal (dlopen libdbus, zenity fallback from PATH), Windows COM, macOS. Caveat, not built for ElektraWatt: gtk3 format-string UB (message_dialog.rs:112), wasm innerHTML title."
+
+[[audits.simplecss]]
+who = "Ironkode787"
+criteria = "safe-to-deploy"
+version = "0.2.2"
+notes = "AI-performed, owner-delegated (2026-10-23), cycle 24 lane C lead audit. Read all src (3 files). No unsafe; no fs/net/env; no build.rs; log only. DoS only: exponential descendant-selector matching, selector-group x declaration clone growth, O(n^2) error positions, recursion on comment runs; ElektraWatt's SVG rejecter caps selectors, groups, comments and style-sheet size before parsing."
+
+[[audits.svgtypes]]
+who = "Ironkode787"
+criteria = "safe-to-deploy"
+version = "0.16.1"
+notes = "AI-performed, owner-delegated (2026-10-23), cycle 24 lane C lead audit. Read all src (21 files). forbid(unsafe_code), no_std; no fs/net/env/clock; no build.rs. DoS only: transform-origin '-' reaches unreachable!(), huge arc radii grow the curve buffer without bound, Z-run recursion, O(n^2) error positions; ElektraWatt's SVG rejecter refuses transform-origin, numbers above 1e9 and close-path runs."
+
+[[audits.usvg]]
+who = "Ironkode787"
+criteria = "safe-to-deploy"
+version = "0.48.1"
+notes = "AI-performed, owner-delegated (2026-10-23), cycle 24 lane C lead audit, default features off. Read all src (19.4k lines). forbid(unsafe_code); no build.rs/proc-macro/links. Only I/O: the default image resolver's std::fs::read (parser/image.rs:90), replaced by resolvers returning None; no net/env/clock. DoS caveats (bugs, not malice): 3-cycles of clip/mask/pattern references, deep nesting, marker and mask expansion, panics on huge filter values; ElektraWatt refuses those before parsing and contains panics."
 
 [[audits.wgpu]]
 who = "Ironkode787"
