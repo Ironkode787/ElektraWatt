@@ -7,6 +7,10 @@ use std::path::PathBuf;
 use std::process::{Command, Output};
 use std::sync::atomic::{AtomicU32, Ordering};
 
+/// The property grid pilot's command log (WP-S2.05 part 1), recorded by `bin/elektrawatt/tests/grid/properties.rs`.
+#[path = "../../elektrawatt/tests/grid/pilot_log.rs"]
+mod pilot_log;
+
 const CONTENT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../content");
 const LOST: &str = r#"<project version="0.100" title="T"><diagram order="1" folio="1" title="P"><elements/><conductors><conductor terminal1="999" terminal2="998"/></conductors></diagram></project>"#;
 const PROJECT: &str = r#"<project version="0.100" title="T"><diagram order="1" folio="1" title="P"><elements/><conductors/></diagram></project>"#;
@@ -1257,4 +1261,38 @@ fn project_assets_purge_previews_and_is_refused_off_a_terminal() {
 
     let o = purge(&["--all"]);
     assert_eq!(o.status.code(), Some(2), "{}", stderr(&o));
+}
+
+/// WP-S2.05 part 1, PG10 (§9 item 2): the property grid pilot's `--record` log (`pilot_log.rs`, which the headless
+/// test of `elektrawatt` proves is the record of its script and replays in-process to the records the script saved)
+/// applied with `ew apply` gives the same records as that in-process replay: the spec's replay path.
+#[test]
+fn the_property_grid_pilot_log_replays_through_ew_apply() {
+    let t = Tmp::new();
+    let home = t.0.join("home");
+    let project = golden_copy(&t);
+    let log = t.0.join("pilot.ewcmd");
+    let text = format!(
+        "{{\"$schema\":\"ew.cmdlog/1\",\"label\":\"pilot\"}}\n{}",
+        pilot_log::PILOT_LOG
+    );
+    std::fs::write(&log, &text).unwrap();
+    let applied = ew_isolated(&home, &["apply".as_ref(), project.as_os_str(), log.as_os_str()]);
+    assert_eq!(applied.status.code(), Some(0), "{}", stderr(&applied));
+    let lines = pilot_log::PILOT_LOG.lines().count();
+    assert!(
+        stdout(&applied).contains(&format!("applied {lines} of {lines} lines; saved")),
+        "{}",
+        stdout(&applied)
+    );
+    // The same log in-process on a fresh copy.
+    let fresh = t.0.join("fresh.ew");
+    copy_dir(std::path::Path::new(GOLDEN_A), &fresh);
+    let (mut replayed, _) = ew_api::Session::open_read_only(&fresh, "test").unwrap();
+    replayed
+        .run_script(&ew_api::CmdLog::parse(&text).unwrap(), "pilot.ewcmd")
+        .unwrap();
+    let (saved, _) = ew_api::Session::open_read_only(&project, "test").unwrap();
+    let diff = replayed.diff_from(&saved.world()).unwrap();
+    assert!(diff.model.is_empty(), "{:?}", diff.model);
 }

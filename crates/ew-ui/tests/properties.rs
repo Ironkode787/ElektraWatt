@@ -131,7 +131,20 @@ fn pg5_ac28_w29_colour_through_the_editor_and_undo() {
         h.state().shell().properties().edit().is_some(),
         "the editor is open"
     );
+    // The colour editor: a combo of the IEC codes and the project's company codes, filtered by the typed text; Down
+    // highlights the first, Enter chooses it.
+    assert!(
+        h.get_all_by_role(egui::Role::ListBox).next().is_some(),
+        "the colour editor lists its options"
+    );
     type_into_field(&mut h, "Colour", "BU");
+    let options: Vec<String> = h
+        .get_all_by_role(egui::Role::ListBoxOption)
+        .filter_map(|n| n.accesskit_node().label())
+        .collect();
+    assert_eq!(options.first().map(String::as_str), Some("BU"), "{options:?}");
+    assert!(options.iter().all(|o| o.contains("BU")), "{options:?}");
+    press(&mut h, Key::ArrowDown);
     press(&mut h, Key::Enter);
     assert_eq!(
         row(&h, "connection/derived.colour"),
@@ -292,4 +305,30 @@ fn pg11_the_window_fetches_a_sheet_once_per_key() {
     settle(&mut h);
     assert!(h.state().shell().properties().toast().is_some());
     assert!(h.query_by_label("Undo").is_some(), "the toast's Undo");
+}
+
+/// The checkbox of a boolean row (§6.5) from the keyboard: Space on the focused row sets the other value; undo
+/// restores it.
+#[test]
+fn a_boolean_row_is_a_checkbox() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "102");
+    dispatch(&mut h, "select.set", json!({"refs": ["tag:-X1031:1"]}));
+    settle(&mut h);
+    assert!(
+        h.get_all_by_role(egui::Role::CheckBox)
+            .any(|n| n.accesskit_node().label().as_deref() == Some("Rail bonded")),
+        "the boolean row is a named checkbox"
+    );
+    dispatch(&mut h, "props.focus", json!({}));
+    settle(&mut h);
+    row_to(&mut h, "device/terminal.rail_bonded");
+    let before = row(&h, "device/terminal.rail_bonded").0;
+    press(&mut h, Key::Space);
+    let after = row(&h, "device/terminal.rail_bonded").0;
+    assert_ne!(before, after);
+    assert_eq!(after, if before == "yes" { "no" } else { "yes" });
+    h.key_press_modifiers(Modifiers::COMMAND, Key::Z);
+    settle(&mut h);
+    assert_eq!(row(&h, "device/terminal.rail_bonded").0, before);
 }

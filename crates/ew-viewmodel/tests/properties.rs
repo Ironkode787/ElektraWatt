@@ -157,28 +157,29 @@ fn pg6_twenty_terminals_get_a_part_in_one_command() {
     let sheet = shell.properties().sheet().unwrap();
     assert_eq!(sheet.sections.len(), 1);
     assert_eq!(sheet.sections[0].targets.len(), 20);
-    // A part of the project other than the terminals' own.
+    // The part picker: Enter on the part row lists the project's part copies; typing filters them; Down and Enter
+    // pick one (a part number of the project other than the terminals' own).
     let current = text(&shell, "device/parts[0].part");
-    let project = shell.properties().sheet().unwrap();
-    let _ = project;
-    let choices: Vec<String> = {
-        let sheet = shell.properties().sheet().unwrap();
-        let _ = sheet;
-        Vec::new()
-    };
-    let _ = choices;
-    let before = steps(&shell);
-    // The part picker: a part number of the project (the strip's own part, else any other).
     let other = if current.starts_with("A9F78116") {
         "A9P52610"
     } else {
         "A9F78116"
     };
-    done(
-        &mut shell,
-        "props.set",
-        json!({"row": "device/parts[0].part", "value": other}),
+    let before = steps(&shell);
+    done(&mut shell, "props.focus", json!({}));
+    done(&mut shell, "props.edit", json!({"row": "device/parts[0].part"}));
+    let options = shell.properties().choices().expect("the picker's options");
+    assert!(options.items.len() >= 2, "{:?}", options.items);
+    assert_eq!(state(&shell)["properties"]["choices"], options.items.len());
+    done(&mut shell, "props.input", json!({ "text": other }));
+    let options = shell.properties().choices().expect("the filtered options");
+    assert!(
+        !options.items.is_empty() && options.items.iter().all(|(t, _)| t.starts_with(other)),
+        "{:?}",
+        options.items
     );
+    done(&mut shell, "props.choose", json!({"step": 1}));
+    done(&mut shell, "props.choose", json!({}));
     assert_eq!(steps(&shell), before + 1, "one fields.set");
     let step = shell.recorded_commands().last().unwrap();
     assert_eq!(step.cmd, "fields.set");
@@ -485,5 +486,258 @@ fn pg11_exact_counts_of_the_grid() {
     done(&mut shell, "page.goto", json!({"folio": "103"}));
     done(&mut shell, "select.set", json!({"refs": ["tag:-101F1"]}));
     assert_eq!(calls(&shell), n);
+    shell.shutdown();
+}
+
+/// The stored JSON of row `key`.
+fn json_of(shell: &ShellModel, key: &str) -> Value {
+    let sheet = shell.properties().sheet().expect("a sheet");
+    match &find_row(sheet, key)
+        .unwrap_or_else(|| panic!("no row {key}"))
+        .1
+        .value
+    {
+        RowValue::One { json, .. } => json.clone(),
+        RowValue::Absent => Value::Null,
+        other => panic!("{key}: {other:?}"),
+    }
+}
+
+/// §6.5: a multi-language text edits its source language's text inside the object and keeps the other languages;
+/// an untouched editor commits nothing (the display text `Hallo [+1]` is never written back).
+#[test]
+fn a_multilingual_text_keeps_its_other_languages() {
+    let tmp = Tmp::new("props-ml");
+    let mut shell = writable(&tmp, "101");
+    done(
+        &mut shell,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-101F1"}],
+            "path": "function_text", "value": {"de": "Verteilung", "en": "Distribution"}}}),
+    );
+    done(&mut shell, "select.set", json!({"refs": ["tag:-101F1"]}));
+    assert_eq!(text(&shell, "device/function_text"), "Verteilung [+1]");
+    // Golden A names no project languages: the object's first language is the source.
+    let before = steps(&shell);
+    done(&mut shell, "props.edit", json!({"row": "device/function_text"}));
+    assert_eq!(shell.properties().edit().unwrap().buffer, "Verteilung");
+    done(&mut shell, "props.commit", json!({}));
+    assert_eq!(
+        steps(&shell),
+        before,
+        "Enter on an untouched field writes nothing"
+    );
+    assert_eq!(
+        json_of(&shell, "device/function_text"),
+        json!({"de": "Verteilung", "en": "Distribution"})
+    );
+    done(&mut shell, "props.edit", json!({"row": "device/function_text"}));
+    done(&mut shell, "props.input", json!({"text": "Verteilung 24 V"}));
+    done(&mut shell, "props.commit", json!({}));
+    assert_eq!(steps(&shell), before + 1);
+    assert_eq!(
+        json_of(&shell, "device/function_text"),
+        json!({"de": "Verteilung 24 V", "en": "Distribution"})
+    );
+    // An emptied source text removes that language only.
+    done(
+        &mut shell,
+        "props.set",
+        json!({"row": "device/function_text", "value": ""}),
+    );
+    assert_eq!(
+        json_of(&shell, "device/function_text"),
+        json!({"en": "Distribution"})
+    );
+    shell.shutdown();
+}
+
+/// Enter on an untouched part row (display text `<part number> (<manufacturer>)`) writes nothing; the choice editors
+/// list their options and pick by the keyboard (§6.5).
+#[test]
+fn choice_editors_list_options_and_untouched_rows_write_nothing() {
+    let tmp = Tmp::new("props-options");
+    let mut shell = writable(&tmp, "101");
+    done(&mut shell, "select.set", json!({"refs": ["tag:-101F1"]}));
+    let before = steps(&shell);
+    done(&mut shell, "props.edit", json!({"row": "device/parts[0].part"}));
+    done(&mut shell, "props.commit", json!({}));
+    assert_eq!(steps(&shell), before, "an untouched part row commits nothing");
+    assert!(shell.properties().edit().is_none());
+    // The state combo: its four words, Down twice and Enter picks the second.
+    done(&mut shell, "props.edit", json!({"row": "device/state"}));
+    let options: Vec<String> = shell
+        .properties()
+        .choices()
+        .expect("the combo's options")
+        .items
+        .iter()
+        .map(|(t, _)| t.clone())
+        .collect();
+    assert_eq!(options, ["used", "spare", "reserved", "not_fitted"]);
+    done(&mut shell, "props.choose", json!({"step": 1}));
+    done(&mut shell, "props.choose", json!({"step": 1}));
+    done(&mut shell, "props.choose", json!({}));
+    assert_eq!(text(&shell, "device/state"), "spare");
+    assert_eq!(steps(&shell), before + 1);
+    // A slot picker filtered by the typed text.
+    done(
+        &mut shell,
+        "props.edit",
+        json!({"row": "device/structure.location"}),
+    );
+    let all = shell.properties().choices().expect("the nodes").items.len();
+    assert!(all >= 1);
+    let d = shell.describe();
+    assert!(d.contains("  choices \"device/structure.location\""), "{d}");
+    done(&mut shell, "props.cancel", json!({}));
+    shell.shutdown();
+}
+
+/// §6.3, §6.8: a read-only project's rows offer no action; `props.set` is refused.
+#[test]
+fn a_read_only_project_offers_no_action() {
+    let tmp = Tmp::new("props-ro");
+    let mut shell = tmp.shell("101");
+    done(&mut shell, "select.set", json!({"refs": ["tag:-101F1"]}));
+    let sheet = shell.properties().sheet().unwrap();
+    assert!(sheet.read_only.is_some());
+    assert!(
+        sheet
+            .sections
+            .iter()
+            .flat_map(|s| &s.rows)
+            .all(|r| r.actions.is_empty()),
+        "no row offers an action"
+    );
+    assert!(
+        !shell.describe().contains(" actions "),
+        "no actions in the describe text"
+    );
+    assert_eq!(
+        refused(
+            &mut shell,
+            "props.set",
+            json!({"row": "device/function_text", "value": "x"})
+        ),
+        "reason-read-only"
+    );
+    shell.shutdown();
+}
+
+/// PG1's wizard-project case: a new project has the five project settings rows with absent values, and a size
+/// profile set from the grid commits `project.settings.set` through the card.
+#[test]
+fn pg1_a_new_project_sets_its_size_profile_from_the_grid() {
+    let tmp = Tmp::new("props-new");
+    let mut shell = ShellModel::new(
+        Mode::Headless,
+        ew_viewmodel::shell::ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
+    let dir = tmp.0.join("new.ew");
+    done(&mut shell, "file.new", json!({ "dir": dir.to_string_lossy() }));
+    done(&mut shell, "props.project", json!({}));
+    let sheet = shell.properties().sheet().expect("a sheet");
+    assert_eq!(sheet.sections[0].kind, "project");
+    for member in [
+        "numbering",
+        "colour_profile",
+        "size_profile",
+        "xref_format",
+        "checks",
+    ] {
+        let (_, row) = find_row(sheet, &format!("project/settings.{member}"))
+            .unwrap_or_else(|| panic!("the row of settings.{member}"));
+        if member == "size_profile" || member == "checks" {
+            assert_eq!(row.value, RowValue::Absent, "{member}");
+        }
+    }
+    // Golden A's size profile, from its project file.
+    let golden =
+        std::fs::read_to_string(std::path::Path::new(common::GOLDEN_A).join("project.jsonl")).unwrap();
+    let size = golden
+        .lines()
+        .map(|l| serde_json::from_str::<Value>(l).unwrap())
+        .find(|r| r["$k"] == "project")
+        .unwrap()["settings"]["size_profile"]
+        .clone();
+    done(
+        &mut shell,
+        "props.set",
+        json!({"row": "project/settings.size_profile", "value": size.to_string()}),
+    );
+    assert_eq!(shell.properties().card().unwrap().reason, "reason-bulk-command");
+    done(&mut shell, "preview.apply", json!({}));
+    assert_eq!(
+        shell.recorded_commands().last().unwrap().cmd,
+        "project.settings.set"
+    );
+    assert_eq!(json_of(&shell, "project/settings.size_profile"), size);
+    shell.shutdown();
+}
+
+/// PG7's bulk rule through the shell: an edit of 501 targets opens the card (`reason-bulk`).
+#[test]
+fn pg7_an_edit_of_501_targets_opens_the_card() {
+    use ew_viewmodel::ew_api::{AnyCommand, Session, StoreOptions};
+    let tmp = Tmp::new("props-501");
+    // A copy of Golden A with 501 devices more, made through the session (no hand-edited file).
+    let (mut session, _) = Session::open_read_only(std::path::Path::new(common::GOLDEN_A), "test").unwrap();
+    let mut ids: Vec<String> = Vec::new();
+    for _ in 0..501 {
+        let receipt = session
+            .execute(&AnyCommand {
+                name: "device.create".into(),
+                params: json!({"letter": "K"}),
+            })
+            .unwrap();
+        ids.extend(receipt.created.iter().map(|k| k.1.as_uuid().to_string()));
+    }
+    ids.truncate(501);
+    let dir = tmp.0.join("bulk.ew");
+    let mut fresh = Session::new(session.world().model.clone(), Default::default());
+    fresh.create(&dir, StoreOptions::new("test")).unwrap();
+    fresh.close();
+    let mut shell = ShellModel::new(
+        Mode::Headless,
+        ew_viewmodel::shell::ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
+    done(&mut shell, "file.open", json!({ "dir": dir.to_string_lossy() }));
+    done(&mut shell, "select.set", json!({ "ids": ids }));
+    assert_eq!(shell.properties().sheet().unwrap().sections[0].targets.len(), 501);
+    let rev = shell.revision();
+    done(
+        &mut shell,
+        "props.set",
+        json!({"row": "device/function_text", "value": "bulk"}),
+    );
+    let card = shell.properties().card().expect("the card");
+    assert_eq!(card.reason, "reason-bulk");
+    assert_eq!(card.targets, 501);
+    assert_eq!(shell.revision(), rev, "nothing committed before Apply");
+    done(&mut shell, "preview.cancel", json!({}));
+    shell.shutdown();
+}
+
+/// FR-UI-044 rule 2 by the settable member: a leaf below an identifier member (`plc_module.start.input` below
+/// `plc_module.start`) on several targets opens the card.
+#[test]
+fn a_leaf_below_an_identifier_member_opens_the_card() {
+    let tmp = Tmp::new("props-ident");
+    let mut shell = writable(&tmp, "201");
+    done(
+        &mut shell,
+        "select.set",
+        json!({"refs": ["tag:-201U5", "tag:-201U7"]}),
+    );
+    let rev = shell.revision();
+    done(
+        &mut shell,
+        "props.set",
+        json!({"row": "device/plc_module.start.input", "value": "\"excluded\""}),
+    );
+    let card = shell.properties().card().expect("the card");
+    assert_eq!(card.reason, "reason-identifiers");
+    assert_eq!(shell.revision(), rev);
     shell.shutdown();
 }

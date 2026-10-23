@@ -20,6 +20,14 @@ const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-24
 /// W29 on folio 103 and W20 on 102 (`connections|W29`, `connections|W20`), the potential definition 24VDC-1.
 const W29: &str = "9eb2d865-fca4-59b1-87bf-c073d7190ceb";
 const DEF_24VDC_1: &str = "51b0b676-8978-50af-91cc-cde58ea478d9";
+/// W20 on folio 102 (`connections|W20`), -101F1's representation, the interruption point PE-1.2 on 102.
+const W20: &str = "1c5963b7-6c34-53d6-8fa6-9d02d4629711";
+const REP_101F1: &str = "7b76f7a3-8966-50ed-a194-36d38ac1c0a1";
+const IP_PE_1_2: &str = "6198cbd3-a6a2-569c-8284-2d39ba05bfae";
+
+/// The pilot's command log as `--record` writes it after its header: the constant `PILOT_LOG` of
+/// `tests/grid/pilot_log.rs`, which `bin/ew/tests/cli.rs` includes and replays through `ew apply`.
+const PILOT_LOG_FILE: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/grid/pilot_log.rs");
 
 static COUNTER: AtomicU32 = AtomicU32::new(0);
 
@@ -163,7 +171,7 @@ fn pilot_steps(dir: &Path) -> Vec<(&'static str, Value)> {
         ("select.set", json!({"ids": [DEF_24VDC_1]})),
         (
             "props.set",
-            json!({"row": "potential_def/voltage", "value": "24.0"}),
+            json!({"row": "potential_def/voltage", "value": "26.4"}),
         ),
         ("ui.describe", json!({})),
         // Page 101: its title and the description override (D-06), then reset.
@@ -181,6 +189,84 @@ fn pilot_steps(dir: &Path) -> Vec<(&'static str, Value)> {
             "props.action",
             json!({"row": "page/derived.description", "action": "reset"}),
         ),
+        // The rest of §6.12: -101F1's part quantity and technical data; -102F1's function text, letter and counter;
+        // the other frozen tags of EF-15; a terminal's designation; W29's colour and W20's cross-section reset; the
+        // name of 24VDC-1; a representation's arrangement and text slots; an interruption point read-only.
+        ("select.set", json!({"refs": ["tag:-101F1"]})),
+        ("props.set", json!({"row": "device/parts[0].qty", "value": "2"})),
+        (
+            "props.set",
+            json!({"row": "device/tech_data", "value": "[{\"key\":\"curve\",\"value\":\"C\"}]"}),
+        ),
+        ("select.set", json!({"refs": ["tag:-102F1"]})),
+        (
+            "props.set",
+            json!({"row": "device/function_text", "value": "Supply 24 V"}),
+        ),
+        ("props.set", json!({"row": "device/tag.letter", "value": "Q"})),
+        ("props.set", json!({"row": "device/tag.counter", "value": "9"})),
+        ("select.set", json!({"refs": ["tag:F55"]})),
+        (
+            "props.action",
+            json!({"row": "device/derived.tag", "action": "unfreeze"}),
+        ),
+        ("select.set", json!({"refs": ["tag:T55"]})),
+        (
+            "props.action",
+            json!({"row": "device/derived.tag", "action": "unfreeze"}),
+        ),
+        ("select.set", json!({"refs": ["tag:E55"]})),
+        (
+            "props.action",
+            json!({"row": "device/derived.tag", "action": "unfreeze"}),
+        ),
+        ("select.set", json!({"refs": ["tag:S56"]})),
+        (
+            "props.action",
+            json!({"row": "device/derived.tag", "action": "unfreeze"}),
+        ),
+        ("select.set", json!({"refs": ["tag:E56"]})),
+        (
+            "props.action",
+            json!({"row": "device/derived.tag", "action": "unfreeze"}),
+        ),
+        ("select.set", json!({"refs": ["tag:1X1"]})),
+        (
+            "props.action",
+            json!({"row": "device/derived.tag", "action": "unfreeze"}),
+        ),
+        ("select.set", json!({"refs": ["tag:-X1031:20"]})),
+        (
+            "props.set",
+            json!({"row": "device/terminal.designation", "value": "20A"}),
+        ),
+        ("select.set", json!({"ids": [W29]})),
+        (
+            "props.action",
+            json!({"row": "connection/derived.colour", "action": "reset"}),
+        ),
+        ("select.set", json!({"ids": [W20]})),
+        (
+            "props.action",
+            json!({"row": "connection/derived.csa", "action": "reset"}),
+        ),
+        ("select.set", json!({"ids": [DEF_24VDC_1]})),
+        (
+            "props.set",
+            json!({"row": "potential_def/name", "value": "24VDC-1A"}),
+        ),
+        ("select.set", json!({"ids": [REP_101F1]})),
+        (
+            "props.set",
+            json!({"row": "representation/arrangement", "value": "B"}),
+        ),
+        (
+            "props.set",
+            json!({"row": "representation/text_slots", "value": "[{\"slot\":0,\"visible\":false}]"}),
+        ),
+        ("select.set", json!({"ids": [IP_PE_1_2]})),
+        ("ui.describe", json!({})),
+        ("select.set", json!({"ids": []})),
         ("file.save", json!({})),
         ("ui.describe", json!({})),
     ]
@@ -230,7 +316,7 @@ fn pg10_the_pilot_script_is_deterministic_and_replays() {
     );
     let d = describe(25);
     assert!(
-        d.contains("row \"potential_def/voltage\" \"Voltage\" \"24\" authored"),
+        d.contains("row \"potential_def/voltage\" \"Voltage\" \"26.4\" authored"),
         "{d}"
     );
     let d = describe(32);
@@ -258,6 +344,94 @@ fn pg10_the_pilot_script_is_deterministic_and_replays() {
     let (saved, _) = Session::open_read_only(&a, "test").unwrap();
     let diff = replayed.diff_from(&saved.world()).unwrap();
     assert!(diff.model.is_empty(), "{:?}", diff.model);
+    // The record is the committed pilot log (after its header), which `ew apply` replays in `bin/ew/tests/cli.rs`:
+    // the spec's path (§9 item 2) without a second binary in this package's tests. A missing file is written.
+    let recorded = std::fs::read_to_string(&record).unwrap();
+    let body: String = recorded.lines().skip(1).map(|l| format!("{l}\n")).collect();
+    if !Path::new(PILOT_LOG_FILE).exists() {
+        let source = format!(
+            "// SPDX-{}: 2026 The ElektraWatt contributors\n// SPDX-{}: GPL-3.0-or-later\n\n\
+             //! The pilot's grid edits on folios 101 to 103 (WP-S2.05 part 1, §6.12) as `--record` writes them after its\n\
+             //! header: generated by `tests/grid/properties.rs`, replayed through `ew apply` by `bin/ew/tests/cli.rs`.\n\n\
+             /// The command log's lines after the header.\n#[allow(dead_code)]\npub const PILOT_LOG: &str = r##\"{body}\"##;\n",
+            "FileCopyrightText", "License-Identifier"
+        );
+        std::fs::write(PILOT_LOG_FILE, source).unwrap();
+    }
+    let committed = std::fs::read_to_string(PILOT_LOG_FILE)
+        .unwrap()
+        .replace("\r\n", "\n");
+    let committed_body = committed
+        .split_once("r##\"")
+        .and_then(|(_, rest)| rest.split_once("\"##"))
+        .map(|(b, _)| b.to_owned())
+        .unwrap_or_default();
+    assert_eq!(body, committed_body, "the record is tests/grid/pilot_log.rs");
+    // Every row of §6.12 was edited: the commands touch these paths.
+    let paths: Vec<String> = log
+        .commands()
+        .map(|c| {
+            format!(
+                "{} {}",
+                c.params["kind"].as_str().unwrap_or(""),
+                c.params["path"].as_str().unwrap_or("")
+            )
+        })
+        .collect();
+    for want in [
+        "device function_text",
+        "device parts",
+        "device tech_data",
+        "device state",
+        "device tag.frozen",
+        "device tag.letter",
+        "device tag.counter",
+        "device terminal.designation",
+        "connection overrides.csa",
+        "connection overrides.colour",
+        "page title",
+        "page description_override",
+        "potential_def name",
+        "potential_def voltage",
+        "representation text_slots",
+        "representation arrangement",
+    ] {
+        assert!(paths.iter().any(|p| p == want), "{want}: {paths:?}");
+    }
+    // The interruption point's members are read-only (no command edits them yet; §6.12, a follow-up).
+    let ip = steps
+        .iter()
+        .filter_map(|s| s["describe"].as_str())
+        .find(|d| d.contains("  section function targets 1"))
+        .expect("the interruption point's sheet");
+    assert!(
+        ip.contains("row \"function/kind\"") && ip.contains("read-only \"no command edits this member yet\""),
+        "{ip}"
+    );
+}
+
+/// §6.12: a counter collision on -102F1 is refused with the next free counter; the run stops at that step.
+#[test]
+fn pg8_a_counter_collision_stops_the_script_with_its_remedy() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("collision.ew");
+    let steps = vec![
+        ("file.open", json!({ "dir": dir.to_string_lossy() })),
+        ("select.set", json!({"refs": ["tag:-102F1"]})),
+        ("props.set", json!({"row": "device/tag.counter", "value": "2"})),
+    ];
+    let out = run(&tmp, "collision.jsonl", &script(&steps), None);
+    assert_eq!(out.status.code(), Some(1));
+    let t = transcript(&out);
+    let last = t.last().unwrap();
+    assert_eq!(last["outcome"], "failed");
+    let message = last["message"].as_str().unwrap();
+    assert!(message.contains("next free counter"), "{message}");
+    assert!(
+        !message.contains('-') || !message.contains("4aa43308"),
+        "no page ID: {message}"
+    );
+    assert_eq!(last["state"]["properties"]["error"]["row"], "device/tag.counter");
 }
 
 /// PG9: D-06's property-grid entry headless — the override of folio 101's description shows as Overridden with the
