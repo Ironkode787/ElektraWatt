@@ -96,7 +96,7 @@ impl std::error::Error for RenderError {}
 /// What the renderer skipped (never a panic): fonts the resolver did not have, unresolved instances,
 /// and images it does not draw: a JPEG (no JPEG decoder in this renderer's dependency graph), an image without its
 /// bytes (the export job resolves them from the asset store, FT-384), and bytes that do not decode as a PNG within
-/// [`MAX_IMAGE_PIXELS`]. A PNG image is decoded with `png` and drawn stretched over its rectangle.
+/// `MAX_IMAGE_PIXELS` (a private constant, 16 Mi pixels). A PNG image is decoded with `png` and drawn stretched over its rectangle.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct RenderReport {
     /// The fonts of skipped glyph runs, sorted and deduplicated.
