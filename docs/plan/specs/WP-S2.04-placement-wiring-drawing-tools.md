@@ -573,7 +573,7 @@ change commits `junction.edit` immediately (one undo step each, D11): `junction.
 orientation), `junction.wiring` with `wiring`. The popup refreshes from the next page tables and closes with
 `ui.dismiss`.
 
-*As built (cycle 26; decision log ID-635).* `junction.open` acts on exactly one selected junction and is disabled otherwise ("Select exactly one junction"); Edit ▸ Junction sequence… likewise. A script selects the junction first (`select.set`, or its alias `@n`, FT-422) and then sends `junction.open`: **the headless coordinate form `junction.open {x_mm, y_mm}` that the lane first built (its ruling 3) is withdrawn** ([[HASH-A3]] removes it). A junction is named by its frame cell (`C11`); junctions sharing a cell are `C11#1`, `C11#2`, numbered by position (y, then x), ties by ID, because the IDs one transaction mints are not in creation order. The popup's wires come from `Session::junction_wires` (number and both end labels).
+*As built (cycle 26; decision log ID-635).* `junction.open` acts on exactly one selected junction and is disabled otherwise ("Select exactly one junction"); Edit ▸ Junction sequence… likewise. A script selects the junction first (`select.set`, or its alias `@n`, FT-422) and then sends `junction.open`: **the headless coordinate form `junction.open {x_mm, y_mm}` that the lane first built (its ruling 3) is withdrawn** (a further commit of the fix round removes it). A junction is named by its frame cell (`C11`); junctions sharing a cell are `C11#1`, `C11#2`, numbered by position (y, then x), ties by ID, because the IDs one transaction mints are not in creation order. The popup's wires come from `Session::junction_wires` (number and both end labels).
 
 ### 8.6 Crossings as hops (FR-CON-031)
 
