@@ -89,8 +89,8 @@ be expensive or hard to detect (data, safety, legal)? Is verification weak (no t
   not override them in a lane; a full-debuginfo build is a deliberate, one-off choice.
 - A lane's worktree `target` is deleted the moment its work is integrated and re-verified (`cmd //c "rmdir /s /q
   <worktree>	arget"` when `rm -rf` fails on stale incremental entries); the main checkout's `target` is cleaned
-  after every gate. The orchestrator keeps at least 150 GB free before a gate and never lets a third lane build while
-  two are building.
+  after every gate. The orchestrator keeps at least 150 GB free before a gate and never lets a fourth lane build while
+  three are building (three builders since the owner's ruling of 2026-10-24; two before that).
 - Agents never delete anything outside their own worktree; if the disk runs short they stop and report.
 
 ## Repository rules
