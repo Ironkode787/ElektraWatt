@@ -332,3 +332,41 @@ fn a_boolean_row_is_a_checkbox() {
     settle(&mut h);
     assert_eq!(row(&h, "device/terminal.rail_bonded").0, before);
 }
+
+/// An option of a choice editor picked with the mouse (§6.5): the click on `BU` in the colour list chooses it,
+/// although the field loses the focus to the click.
+#[test]
+fn a_choice_editor_option_is_picked_with_the_mouse() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "103");
+    dispatch(&mut h, "select.set", json!({ "ids": [W29] }));
+    settle(&mut h);
+    dispatch(&mut h, "props.focus", json!({}));
+    settle(&mut h);
+    row_to(&mut h, "connection/derived.colour");
+    press(&mut h, Key::Enter);
+    // "B" alone is no colour: a commit of the field instead of the click would fail.
+    type_into_field(&mut h, "Colour", "B");
+    let before = h.state().shell().recorded_commands().len();
+    h.get_all_by_role(egui::Role::ListBoxOption)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("BU"))
+        .expect("the option BU")
+        .click();
+    settle(&mut h);
+    settle(&mut h);
+    assert_eq!(
+        h.state().shell().recorded_commands().len(),
+        before + 1,
+        "one commit: {:?}",
+        h.state().shell().properties().error()
+    );
+    assert_eq!(
+        row(&h, "connection/derived.colour"),
+        (
+            "BU".to_owned(),
+            Provenance::Overridden {
+                note: "override (CDP)".into()
+            }
+        )
+    );
+}

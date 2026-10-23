@@ -669,8 +669,10 @@ fn properties_lines(model: &ShellModel, lines: &mut Vec<String>) {
     }
     if let Some(c) = props.choices() {
         let texts: Vec<String> = c.items.iter().map(|(t, _)| format!("\"{}\"", user(t))).collect();
+        // The highlighted choice (Up, Down) by its index: `selected <i>`.
+        let highlight = c.index.map_or_else(String::new, |i| format!(" selected {i}"));
         lines.push(format!(
-            "  choices \"{}\" {} {}",
+            "  choices \"{}\" {} {}{highlight}",
             user(&c.row),
             c.items.len(),
             texts.join(" ")

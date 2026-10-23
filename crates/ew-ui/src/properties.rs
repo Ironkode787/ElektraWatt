@@ -47,6 +47,9 @@ pub struct PropertiesPane {
     editing: Option<String>,
     /// The multi-language popup's texts by language (`None`: neutral).
     mltext: Vec<(Option<String>, String)>,
+    /// The options list box of the row being edited and where it was drawn in the last frame: a pointer press on it
+    /// takes the field's focus, and that focus loss must not commit the buffer before the click chooses.
+    choices_rect: Option<(String, egui::Rect)>,
 }
 
 /// `text` ellipsised in the middle at [`MAX_SHOWN`] characters.
@@ -459,6 +462,7 @@ impl PropertiesPane {
                     .id_salt(("prop-choices-scroll", &row.key))
                     .max_height(ROW_HEIGHT * 8.0)
                     .show(ui, |ui| {
+                        let top = ui.min_rect().min;
                         for (i, (text, _)) in c.items.iter().enumerate() {
                             let selected = c.index == Some(i);
                             let response = ui.add(egui::Button::selectable(selected, text));
@@ -473,8 +477,12 @@ impl PropertiesPane {
                                 events.push(Event::Action("props.choose", json!({ "index": i })));
                             }
                         }
+                        let rect = egui::Rect::from_min_max(top, ui.min_rect().max);
+                        self.choices_rect = Some((row.key.clone(), ui.clip_rect().intersect(rect)));
                     });
             });
+        } else if self.choices_rect.as_ref().is_some_and(|(r, _)| *r == row.key) {
+            self.choices_rect = None;
         }
         match props.popup() {
             Some(ew_viewmodel::properties::Popup::Actions { row: r, index }) if *r == row.key => {
@@ -546,6 +554,15 @@ impl PropertiesPane {
         }
         if response.changed() {
             events.push(Event::Action("props.input", json!({ "text": self.buffer })));
+        }
+        // A pointer press on the options takes the field's focus: the click chooses, the focus loss commits nothing.
+        let on_options = ui.input(|i| i.pointer.interact_pos()).is_some_and(|p| {
+            self.choices_rect
+                .as_ref()
+                .is_some_and(|(r, rect)| *r == row.key && rect.contains(p))
+        });
+        if response.lost_focus() && on_options && !escape {
+            return;
         }
         if response.lost_focus() {
             self.editing = None;

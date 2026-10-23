@@ -74,6 +74,8 @@ pub struct SessionCalls {
     pub run_script: u64,
     /// `Session::property_sheet` (WP-S2.05 part 1).
     pub property_sheet: u64,
+    /// `Session::field_choices`: a choice editor opened or its filter typed (WP-S2.05 part 1).
+    pub field_choices: u64,
 }
 
 /// Counts one of the shell's `Session` calls (a free function, so that a call can be counted while the project is

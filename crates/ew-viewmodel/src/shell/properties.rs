@@ -505,6 +505,7 @@ impl ShellModel {
     /// The options of a choice editor for `row` matching `filter` (`Session::field_choices`).
     fn options(&self, section: &SheetSection, row: &PropRow, filter: &str, key: &str) -> Option<Choices> {
         let p = self.project.as_ref()?;
+        bump(&self.calls, |c| c.field_choices += 1);
         let items: Vec<(String, Value)> = p
             .session
             .field_choices(&section.kind, &row.path, filter)

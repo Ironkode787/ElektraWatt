@@ -31,7 +31,7 @@
 //! `properties` or `null`) and `navigator` (`null`, or `{"mode", "sort", "filter", "row"}`), then (WP-S2.05 part 1)
 //! `properties` (`null` without a project or while the pane is closed, else `{"title", "items", "kinds", "sections":
 //! [{"kind", "targets", "rows"}, …], "missing", "row", "editing", "buffer", "error": {"row", "message"} | null,
-//! "choices", "popup", "read_only"}`), `card` (`null` or `{"command", "state", "targets", "changes", "tags", "xrefs",
+//! "choices", "highlight" (the highlighted choice's index or null), "popup", "read_only"}`), `card` (`null` or `{"command", "state", "targets", "changes", "tags", "xrefs",
 //! "origin"}`) and `toast` (`null` or `{"text", "undo"}`); no UUID appears in these three. Nothing in it depends on
 //! time, process or location: two runs of one script on equal inputs give equal bytes.
 //!
@@ -364,6 +364,13 @@ fn properties_json(shell: &ShellModel) -> String {
         member(
             "choices",
             &Value::from(props.choices().map_or(0, |c| c.items.len())),
+        ),
+        member(
+            "highlight",
+            &props
+                .choices()
+                .and_then(|c| c.index)
+                .map_or(Value::Null, Value::from),
         ),
         member("popup", &opt(props.popup().map(crate::properties::Popup::word))),
         member("read_only", &opt(sheet.read_only.as_deref())),
