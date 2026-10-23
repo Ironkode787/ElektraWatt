@@ -1,6 +1,6 @@
 # Project format and persistence
 
-**Status:** Draft v0.3 · **Date:** 2026-10-21 (amended 2026-10-23, cycle 23: the asset store as built and the rule that a save never removes an asset file, §13.3; the asset temps, the journal's assets and the logo reference form, §2.1, §8.1, §10.3, §17.2; `page_item` and `structure_box` specified and implemented additively under ADR-0011 amendment 4, §2.2, §10.3, decision log ID-566, ID-573 to ID-575; amended 2026-10-22, cycle 22: the members written by the four commands of FT-336 stay in `extra`, no schema change, §10.3, §17.2, decision log ID-545, ID-547; amended 2026-10-22, cycle 19: the journal kept on a dirty exit and the shell's read-only open with the recovery banner, §8.1, §8.3, decision log ID-475; the replay on a moved base and a removed library copy that a `LibRef` still names, §8.2 step 4, ID-479; amended 2026-10-22, cycle 17: the typed `revision` kind and the open failure of old revision files that break an invariant, §10.3, decision log ID-428; v0.3, cycle 13: the member order of the flattened device aspects as built, §3.1, decision log ID-337; additive implementation of reserved kinds, §10.3, ID-334; v0.2: the persistence core as built and reviewed in cycle 8,
+**Status:** Draft v0.3 · **Date:** 2026-10-21 (amended 2026-10-24, cycle 24: the purge command, the SVG hazard checks, the drawn image subset and the mechanical asset-presence guard as built, §13.3, decision log ID-605; amended 2026-10-23, cycle 23: the asset store as built and the rule that a save never removes an asset file, §13.3; the asset temps, the journal's assets and the logo reference form, §2.1, §8.1, §10.3, §17.2; `page_item` and `structure_box` specified and implemented additively under ADR-0011 amendment 4, §2.2, §10.3, decision log ID-566, ID-573 to ID-575; amended 2026-10-22, cycle 22: the members written by the four commands of FT-336 stay in `extra`, no schema change, §10.3, §17.2, decision log ID-545, ID-547; amended 2026-10-22, cycle 19: the journal kept on a dirty exit and the shell's read-only open with the recovery banner, §8.1, §8.3, decision log ID-475; the replay on a moved base and a removed library copy that a `LibRef` still names, §8.2 step 4, ID-479; amended 2026-10-22, cycle 17: the typed `revision` kind and the open failure of old revision files that break an invariant, §10.3, decision log ID-428; v0.3, cycle 13: the member order of the flattened device aspects as built, §3.1, decision log ID-337; additive implementation of reserved kinds, §10.3, ID-334; v0.2: the persistence core as built and reviewed in cycle 8,
 ADR-0010 amendment 3, decision log ID-200 to ID-217; cycle 11: journal granularity of `project.settings.set`, Golden B1 files, ID-290) · **Part of:** ElektraWatt design document set
 
 > **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
@@ -1415,8 +1415,9 @@ Libraries are `.ewlib` text directories in the project format at every tier
 - **Naming.** `assets/<sha256>.<ext>`, with `ext` ∈ {svg, png, jpg} at MVP (the format names in JSON are `svg`, `png`,
   `jpeg`) and `glb` from 1.0 (opt-in embeddable meshes, [12](12-panel-layout.md) §6.2; ADR-0010 amendment 2). Raster
   images are at most 16 MiB; SVG files at most 8 MiB and 100,000 elements. *As built* the limits are applied by the
-  sniffer (below), which counts SVG elements textually and decodes nothing; reading SVG with usvg and external
-  references disabled ([14](14-interop.md) §11) arrives with the renderers' image support (FT-384, decision log ID-576).
+  sniffer (below), which counts SVG elements textually; since cycle 24 an SVG is also parsed by `ew_schema::svg_hazard`
+  inside the sniff (FT-383) and drawn through usvg with external references refused ([14](14-interop.md) §11; FT-384,
+  decision log ID-576, ID-605).
 - **The store in the model (as built).** The model keeps image bytes by hash in an asset store beside its tables
   (`Model::asset`, `Model::assets`, `Model::put_asset`). Assets are not rows and not ops: putting an asset the model
   already holds does nothing, and no revision is made. A transaction brings its assets through
@@ -1427,8 +1428,9 @@ Libraries are `.ewlib` text directories in the project format at every tier
   Bytes under a hash never change, so reading them by hash is no freshness hazard and sits outside the raw-read gate;
   the **presence** of an asset can change without a revision, so no memoised query may read it, with one named
   exception, `Q::logo_asset`, which is safe today only because an asset becomes present at open or through
-  `project.company.set`, which also changes the project row (decision log ID-575; FT-382 makes the rule mechanical, a
-  `check-raw-read` rule with that query as its one allowlisted site).
+  `project.company.set`, which also changes the project row (decision log ID-575). The rule is mechanical since cycle
+  24 (FT-382, ID-605): `check-raw-read`'s `[raw_read.asset_presence]` flags the asset accessors in non-test `ew-derive`
+  source, with that query as its one allowlisted site.
 - **What a save writes (as built).** The assets the records name (`Model::referenced_assets`: today the company logo
   of the project row, §10.3) that have no file on disk with that hash, through the **full save protocol** of §5: a temp
   `assets/<sha256>.<ext>.tmp-<g>` (`create_new`, `sync_all`), named in the intent manifest, the directory syncs, the
@@ -1451,7 +1453,15 @@ Libraries are `.ewlib` text directories in the project format at every tier
   withdrawn. Cleanup is the **explicit, previewed purge command** (FT-380, before the first release): it deletes only
   asset files whose hash appears in no project file, the kept lines included, and in no undo entry; it is refused in
   read-only sessions and while lines are quarantined; and the deletions go through the save protocol's removal list
-  (§5.2 step 8).
+  (§5.2 step 8). *As built (cycle 24, FT-380; decision log ID-605):* the command is `project.assets.purge` (`Edit`,
+  `Bulk`, a non-undoable marker line of ADR-0008 amendment 1, a `Destructive` confirmation in the GUI), with the file
+  side in the `Session` (`purge_preview`, `purge_assets`) and the CLI `ew project assets purge [<dir>] [--preview]`.
+  An asset file goes only if its bytes match its name and no file in the project directory mentions its hash (any 64
+  hex digits in any case: record files with kept and quarantined lines, stray and foreign files, the manifest apart
+  from its file list) and no undo or redo entry does. It is refused when the session is read-only, has quarantined
+  lines, unsaved journal steps or edits, a crashed session's pending journal, an incomplete save, or a manifest changed
+  on disk; if a hash the preview listed is no longer purgeable, nothing is removed. Roll-forward and the journal's
+  removals finish a purged asset's deletion after a crash.
 - **Format and size** (decision log ID-61). When an asset is imported, the asset store sniffs its magic bytes and
   records its format (PNG, JPEG or SVG) and its intrinsic size (PNG `IHDR`, JPEG `SOF`, SVG `viewBox` or
   `width`/`height`). Readers such as the forms layer trust the resulting `AssetRef {sha256, format, size}` and never
@@ -1466,13 +1476,15 @@ Libraries are `.ewlib` text directories in the project format at every tier
   characters. The bound is checked on the text length before decoding and again on the bytes; the wizard checks the file
   size before and after reading. Base64 in the journal is acceptable at this bound; larger rasters and meshes need the
   side files of §8.1 (FT-381).
-- **SVG** is rendered by EW's own pipeline and never executed. *As built, no renderer draws images yet* (the CPU
-  renderer, the PDF writer and the SVG writer skip them: the logo is placed in the display lists and not drawn;
-  FT-384). **Sniffing is not sanitising** (decision log ID-576): the sniffer reads the root element only. An SVG with a
-  DOCTYPE internal subset is refused today only because the sniffer ends a declaration at its first `>`. Before any
-  renderer draws an SVG it is parsed and normalised through usvg, which rejects or normalises DOCTYPE internal subsets,
-  `<script>`, `on*` attributes, `foreignObject` and external hrefs (FT-383, with a threat-model row in
-  [18](18-quality-security-release.md) §11).
+- **SVG** is rendered by EW's own pipeline and never executed. **Sniffing is not sanitising** (decision log ID-576),
+  so *as built (cycle 24; FT-383, FT-384, decision log ID-605)* `ew_schema::svg_hazard` runs inside the sniff and
+  refuses DOCTYPE internal subsets, entities, scripts, `on*` attributes, `foreignObject`, any `href` that is not
+  `#…` (embedded `data:` images too, until FT-407), nesting deeper than 64, reference cycles, expansion past 200,000
+  elements, markers inside markers, numbers above 1e9, overly complex CSS, `transform-origin` and `feConvolveMatrix`;
+  the parse runs inside `catch_unwind` (threat-model row TM-18, [18](18-quality-security-release.md) §11). An accepted
+  SVG is parsed by usvg 0.48.1 in `ew-scene` and drawn as `ew-dl` paths. **What renders:** SVG logos are drawn as vector paths by the CPU renderer, the PDF writer, the SVG writer and the viewer (the export job resolves them before any writer runs); PNG is drawn on the CPU path; the SVG writer embeds PNG and JPEG; JPEG on the CPU path and rasters in the PDF are FT-406. The
+  golden PDF bytes are unchanged. **The drawn SVG subset:** gradients are drawn in their mean colour, even-odd fills as
+  non-zero; text, embedded images, clip paths, masks and filters are not drawn.
 - **STEP** files are not embedded by default (open question 8). `PartCopy` references `sha256(STEP)`; meshes live in
   the OS cache, and without the STEP file the 3D view shows the part's bounding box.
 

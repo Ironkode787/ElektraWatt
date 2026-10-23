@@ -1222,8 +1222,8 @@ step is the designed path, so FT-336 is closed in full.** The rest of the cycle'
   choose the logo again", `wizard-notice-logo-gone`). The 512 KiB bound keeps the command's base64 text under the
   1 MiB parameter-string limit (ID-574).
 - **The preview** shows the logo on the sample project's cover: the title block places it in the display list by its
-  reference, but **no renderer draws images yet**, so nothing appears; drawing image items in the CPU, PDF and SVG
-  renderers is FT-384 (ID-576).
+  reference; since cycle 24 an SVG or PNG logo appears (the CPU path draws both; FT-384, ID-605), while a JPEG logo
+  waits for FT-406's decoder.
 - **The colour default** stays the sample project's convention, "DBU/WH 24 V", and not "EN 60204-1 machine" (ID-577):
   the shipped profiles are our own tables, unverified, and a profile cannot yet select by circuit class, so an
   AC control line typed `L` would print black instead of red under the shipped EN 60204-1 table (doc 08 §4.3). The

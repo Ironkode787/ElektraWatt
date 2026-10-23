@@ -1,6 +1,6 @@
 # Reports, forms and page output
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-23, cycle-23 design pass: `report_block.create` with `form_copies` and the wizard's golden layout in §2.2, the logo reference in §2.6, decision log ID-572, ID-573, ID-576; amended 2026-10-22, cycle-22 design pass: the stored frame defaults, the notice member and the frame fall-through rule as built, §2.6, §2.7, decision log ID-545, ID-547; amended 2026-10-22, cycle-19 design pass: the shell's PDF export as built, §4.3, decision log ID-485; amended 2026-10-22, cycle-20 design pass: the export still synchronous after WP-S2.01 part 2, §4.3, ID-504) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-24, cycle-24 design pass: which renderers draw the logo, §2.6, decision log ID-605; amended 2026-10-23, cycle-23 design pass: `report_block.create` with `form_copies` and the wizard's golden layout in §2.2, the logo reference in §2.6, decision log ID-572, ID-573, ID-576; amended 2026-10-22, cycle-22 design pass: the stored frame defaults, the notice member and the frame fall-through rule as built, §2.6, §2.7, decision log ID-545, ID-547; amended 2026-10-22, cycle-19 design pass: the shell's PDF export as built, §4.3, decision log ID-485; amended 2026-10-22, cycle-20 design pass: the export still synchronous after WP-S2.01 part 2, §4.3, ID-504) · **Part of:** ElektraWatt design document set
 
 > **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
 
@@ -371,9 +371,9 @@ defaults.
 `{sha256, format, size}` (the bare `"sha256:…"` form of cycle 22 is still read), and the bytes are an asset of the
 project's asset store ([05](05-project-format-and-persistence.md) §13.3), at most 512 KiB (`MAX_LOGO_BYTES`). A title
 block's logo cell takes the image by that reference, and the display list places it (so the wizard's preview shows the
-logo on the sample's cover), but **no renderer draws image items yet**: the CPU renderer, the PDF writer and the SVG
-writer skip them, so a logo is placed and not printed (FT-384; an SVG is drawn only after the sanitising of FT-383,
-18 §11.1 TM-18). A raster logo (PNG, JPEG) prints rasterised once drawn, an SVG as vectors.
+logo on the sample's cover). *As built (cycle 24; FT-383, FT-384, decision log ID-605):* SVG logos are drawn as vector paths by the CPU renderer, the PDF writer, the SVG writer and the viewer (the export job resolves them before any writer runs); PNG is drawn on the CPU path; the SVG writer embeds PNG and JPEG; JPEG on the CPU path and rasters in the PDF are FT-406; an SVG is
+drawn only after `svg_hazard`'s checks (18 §11.1 TM-18), in usvg's drawn subset ([05](05-project-format-and-persistence.md)
+§13.3). A raster logo (PNG, JPEG) prints rasterised, an SVG as vectors.
 
 **The current revision** is the project's open revision; without one, its newest released revision. Withdrawn
 revisions and the `Withdrawn` records that point to them are ignored, and among several candidates of the same state
