@@ -1192,7 +1192,7 @@ impl ShellModel {
                 }
             }
             "tool.route_edit" => self.act_route_edit(),
-            "junction.open" => self.act_junction_open(p),
+            "junction.open" => self.act_junction_open(),
             "junction.member" => self.act_junction_member(p),
             "junction.style" => self.act_junction_style(p),
             "junction.wiring" => self.act_junction_wiring(p),

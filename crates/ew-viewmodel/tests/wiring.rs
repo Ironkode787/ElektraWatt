@@ -992,6 +992,12 @@ fn the_rubber_band_of_a_move_is_the_route_rep_move_stores() {
 fn junction_and_route_entries_name_what_to_select_and_undo_drops_the_marks() {
     let tmp = Tmp::new("window");
     let mut s = shell(&tmp, "102");
+    // Headless: without a selection `junction.open` is refused with the reason naming what to select.
+    assert_eq!(refused(&mut s, "junction.open", json!({})), "reason-one-junction");
+    assert_eq!(
+        ew_viewmodel::strings::text("reason-one-junction"),
+        "Select exactly one junction"
+    );
     let text = s.describe();
     assert!(
         text.contains("item junction.open \"Junction sequence...\" disabled: Select exactly one junction"),
@@ -1007,6 +1013,12 @@ fn junction_and_route_entries_name_what_to_select_and_undo_drops_the_marks() {
         s.describe()
             .contains("item junction.open \"Junction sequence...\" enabled")
     );
+    done(&mut s, "junction.open", json!({}));
+    assert!(
+        s.junction_editor().is_some(),
+        "one junction selected: the editor opens"
+    );
+    done(&mut s, "ui.dismiss", json!({}));
     // A placement with the floating ghost, then an undo: no overlay and no preview stand.
     done(
         &mut s,

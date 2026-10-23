@@ -15,7 +15,6 @@ use std::sync::Arc;
 use ew_api::output::ew_dl::EntityRef;
 use serde_json::{Map, Value, json};
 
-use super::canvas_actions::point_mm;
 use super::{Outcome, ShellModel, failed, flag, string_param};
 use crate::strings;
 use crate::tools::{CanvasEvent, EntityKind, JunctionEditor, RouteEditTool, Tool, WireTool, selection_kinds};
@@ -219,50 +218,25 @@ impl ShellModel {
     }
 
     /// `junction.open` (§8.5): the editor of exactly one selected junction (the registry disables it otherwise, naming
-    /// what to select); headless, `x_mm` and `y_mm` name the junction within 8 points of that sheet point instead.
-    pub(super) fn act_junction_open(&mut self, p: &Map<String, Value>) -> Outcome {
+    /// what to select). A script selects the junction first (`select.set` with its ID).
+    pub(super) fn act_junction_open(&mut self) -> Outcome {
         let Some(c) = self.canvas() else {
             return Outcome::Refused {
                 reason_key: "reason-no-page",
             };
         };
         let tables = Arc::clone(&c.page().tables);
-        let junction = match point_mm(p) {
-            Err(e) => return e,
-            Ok(Some(at)) => {
-                let page = c.page();
-                let reach = c.points_per_nm();
-                let r = if reach > 0.0 {
-                    (crate::tools::CP_SNAP_PT / reach).floor().min(9.0e15) as i128
-                } else {
-                    0
-                };
-                tables
-                    .junctions
-                    .iter()
-                    .map(|j| (crate::tools::dist2(page.snapper.page_to_sheet(j.at), at), j.id))
-                    .filter(|(d, _)| *d <= r * r)
-                    .min()
-                    .map(|(_, id)| EntityRef(id))
-            }
-            Ok(None) => {
-                let js: Vec<EntityRef> = selection_kinds(&self.tools.selection, &tables)
-                    .into_iter()
-                    .filter(|(_, k)| *k == EntityKind::Junction)
-                    .map(|(e, _)| e)
-                    .collect();
-                match js.as_slice() {
-                    [one] => Some(*one),
-                    _ => None,
-                }
-            }
-        };
-        let Some(j) = junction else {
+        let js: Vec<EntityRef> = selection_kinds(&self.tools.selection, &tables)
+            .into_iter()
+            .filter(|(_, k)| *k == EntityKind::Junction)
+            .map(|(e, _)| e)
+            .collect();
+        let [j] = js.as_slice() else {
             return Outcome::Refused {
                 reason_key: "reason-one-junction",
             };
         };
-        match self.read_junction_editor(j, 0) {
+        match self.read_junction_editor(*j, 0) {
             Some(e) => {
                 self.palette = None;
                 self.tools.picker = None;
@@ -427,7 +401,7 @@ impl ShellModel {
         let tables = Arc::clone(&self.canvas()?.page().tables);
         let kinds = selection_kinds(&self.tools.selection, &tables);
         match kinds.as_slice() {
-            [(_, EntityKind::Junction)] => Some(self.act_junction_open(&Map::new())),
+            [(_, EntityKind::Junction)] => Some(self.act_junction_open()),
             _ => None,
         }
     }
