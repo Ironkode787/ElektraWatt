@@ -43,6 +43,7 @@ pub struct ExchangePin {
 ///   ASCII case-insensitively, the designation of the CP of the new symbol's FnDef that the symbol CP draws. A
 ///   symbol CP with no counterpart keeps the index default (`fn_cp`), which must name no CP of the function, so
 ///   it draws no CP of the function; one whose default names a CP of the function is refused (pass `pin_map`).
+///   The same holds for a symbol CP an explicit `pin_map` leaves out (invalid at `/pin_map`).
 /// - **Text slots.** Overrides whose slot index the new symbol has are kept; the others are dropped with a notice.
 /// - **Routes** of the connections on the representation's page at its CPs follow each CP's displacement
 ///   (`geometry::follow_end`; a connection with both ends on the representation translates when both ends move
@@ -141,6 +142,20 @@ impl Command for ExchangeSymbol {
                         idx: e.function_cp,
                         extra: Extra::new(),
                     });
+                }
+                // A symbol CP the map leaves out keeps its index default, which must name no CP of the function
+                // (the rule of the derived map).
+                for (symbol_cp, fn_cp) in &symbol_cps {
+                    if !seen.contains(symbol_cp) && own_cps.iter().any(|(c, _)| c == fn_cp) {
+                        return Err(CmdError::invalid_params(
+                            Self::NAME,
+                            "/pin_map",
+                            format!(
+                                "connection point {symbol_cp} of the new symbol is not in the map and would draw \
+                                 function CP {fn_cp}; map it"
+                            ),
+                        ));
+                    }
                 }
             }
             None if new_def == function.def => {}

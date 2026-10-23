@@ -878,6 +878,94 @@ fn move_by_steps_keeps_the_shape_of_a_route_whose_both_ends_move() {
     }
 }
 
+/// A symbol of FnDef `ITEM_X` whose CP 0 lies one grid step less than 10 mm below its insertion point.
+const SYM_OFFSET: Id<SymbolDef> = id(0x6c);
+
+/// Two end CPs on one coordinate whose representations' y indices differ in `k mod 3` (fix round, item 10):
+/// `REP_102F2` (SYM_TWO, CP 1 at 10 mm) at y index 6 and `REP_T1` (SYM_OFFSET, CP 0 at 10 mm − one step) at y
+/// index 7 put both CPs on y = at(6) + 10 mm; a horizontal wire joins them.
+fn level_model() -> (Model, Pt2, Pt2) {
+    let step1 = grid_at(1).0;
+    let offset = LibDocument::Symbol({
+        let LibDocument::Symbol(c) = symbol_of(
+            SYM_OFFSET,
+            ITEM_X,
+            vec![
+                cp_lib(0, 0, pt(0, MM10 - step1), Dir4::Up),
+                cp_lib(1, 1, pt(0, 2 * MM10), Dir4::Down),
+            ],
+            vec![],
+        ) else {
+            unreachable!("a symbol")
+        };
+        c
+    });
+    let a = p(grid_at(4), Nm(grid_at(6).0 + MM10));
+    let b = p(grid_at(12), Nm(grid_at(7).0 + MM10 - step1));
+    assert_eq!(a.y, b.y, "both CPs on one coordinate");
+    let (project, mut records, _) = mini_golden_parts();
+    for rec in records.iter_mut() {
+        if let Record::Representation(r) = rec {
+            if r.id == REP_102F2 {
+                r.symbol = SYM_TWO;
+                r.pos = gp(4, 6);
+            }
+            if r.id == REP_T1 {
+                r.symbol = SYM_OFFSET;
+                r.pos = gp(12, 7);
+            }
+        }
+    }
+    let mut wire = connection(CON_A, Some(PAGE_102), cp(FN_102F2, 1), cp(FN_T1, 0));
+    wire.route = vec![a, b];
+    records.push(Record::Connection(wire));
+    let mut lib = library();
+    lib.extend(extra_library());
+    lib.push(offset);
+    (
+        Model::from_records(project, records, lib).expect("valid model"),
+        a,
+        b,
+    )
+}
+
+#[test]
+fn two_end_cps_on_one_coordinate_keep_an_orthogonal_route_when_both_move_by_steps() {
+    let mut parted = 0;
+    for steps in [[0, 1], [0, 2], [1, 1], [0, -1]] {
+        let (model, _, _) = level_model();
+        let mut e = engine(model);
+        let (f2, t1) = (row(&e, REP_102F2).pos, row(&e, REP_T1).pos);
+        e.execute(&steps_cmd(vec![REP_102F2, REP_T1], steps)).unwrap();
+        let a = p(stepped(f2, steps).x, Nm(stepped(f2, steps).y.0 + MM10));
+        let t = stepped(t1, steps);
+        let b = p(t.x, Nm(t.y.0 + MM10 - grid_at(1).0));
+        let route = row(&e, CON_A).route.clone();
+        assert_eq!(route.first(), Some(&a), "{steps:?}");
+        assert_eq!(route.last(), Some(&b), "{steps:?}");
+        for w in route.windows(2) {
+            assert!(
+                w[0].x == w[1].x || w[0].y == w[1].y,
+                "a diagonal segment {w:?} for {steps:?}"
+            );
+        }
+        if a.y != b.y {
+            // It reproduces: the CPs part by 1 nm, so the route keeps its axis with a jog on the grid.
+            assert_eq!((b.y.0 - a.y.0).abs(), 1, "{steps:?}");
+            parted += 1;
+            assert_eq!(route.len(), 4, "{steps:?}: {route:?}");
+            assert!(ew_commands::geometry::on_grid(grid(), route[1].x));
+        }
+        // The stored route is one `connection.route` accepts (every vertex on the grid or CP-exact).
+        e.execute(&ew_commands::commands::RouteConnection {
+            connection: CON_A,
+            route: route.clone(),
+        })
+        .expect("a valid route");
+    }
+    assert!(parted >= 1, "the case reproduces for some steps");
+}
+
 #[test]
 fn the_same_move_as_one_nm_delta_is_refused() {
     let g = grid();
@@ -1231,15 +1319,17 @@ fn exchange_with_an_explicit_pin_map_stores_it_and_moves_the_routes() {
         route_of(&e, CON_L1),
         vec![pt(l.x.0 + MM10, l.y.0), pt(8 * G, l.y.0)]
     );
-    // A partial map: the symbol CP it leaves out draws its index default.
+    // A partial map: the symbol CP it leaves out would draw its index default, function CP 1, by no decision of
+    // the map's: refused as the derived map refuses it (fix round, item 5), and nothing is written.
     let mut e = engine(exchange_model(|_| {}));
+    let before = lines(e.model());
     let cmd = ExchangeSymbol {
         rep: REP_L,
         symbol: SYM_SHIFT,
         pin_map: Some(vec![pin(0, 0)]),
     };
-    e.execute(&cmd).expect("rep.exchange_symbol");
-    assert_eq!(row(&e, REP_L).pin_map.as_slice(), &[entry(0, FN_L, 0)]);
+    invalid_at(e.execute(&cmd), "/pin_map");
+    assert_eq!(lines(e.model()), before);
 }
 
 #[test]

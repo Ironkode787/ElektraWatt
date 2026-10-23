@@ -12,6 +12,7 @@ its orientation, position and functions kept.
   ASCII case-insensitively, the designation of the CP of the new symbol's FnDef that the symbol CP draws. A
   symbol CP with no counterpart keeps the index default (`fn_cp`), which must name no CP of the function, so
   it draws no CP of the function; one whose default names a CP of the function is refused (pass `pin_map`).
+  The same holds for a symbol CP an explicit `pin_map` leaves out (invalid at `/pin_map`).
 - **Text slots.** Overrides whose slot index the new symbol has are kept; the others are dropped with a notice.
 - **Routes** of the connections on the representation's page at its CPs follow each CP's displacement
   (`geometry::follow_end`; a connection with both ends on the representation translates when both ends move

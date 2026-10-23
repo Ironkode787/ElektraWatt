@@ -542,7 +542,9 @@ fn zero() -> Pt2 {
 /// displacement (`follow_end`); a connection with both ends moved keeps its shape vertex by vertex: an end vertex
 /// becomes its CP's new position, an interior coordinate equal to the old coordinate of an end CP moves with that
 /// CP, a coordinate on the grid moves by the same number of steps, and any other coordinate (the router of FT-18
-/// re-solves those later) by `round_half_away(k × num / den)` on that axis. `steps` is exclusive with a non-zero
+/// re-solves those later) by `round_half_away(k × num / den)` on that axis; a horizontal or vertical segment whose
+/// two coordinates part by 1 nm (two end CPs on one coordinate whose representations' grid indices differ in
+/// `k mod 3`) keeps its axis with a jog at the grid point nearest its middle. `steps` is exclusive with a non-zero
 /// `delta` and with `page`: the tools never move across pages, and a script's cross-page move keeps `delta`.
 ///
 /// Outcome: none. Coalesce one drag with a key.
@@ -694,10 +696,10 @@ impl MoveReps {
 
 /// The route of a connection whose both ends move by grid steps (see [`MoveReps`]): the end vertices become their
 /// CPs' new positions; an interior coordinate equal to an end CP's old coordinate moves with that CP (end `a`
-/// first), one on the grid by the steps, any other by the steps' rounded nm length. On [`OutOfRange`] the route is
-/// unchanged.
+/// first), one on the grid by the steps, any other by the steps' rounded nm length; a segment whose two coordinates
+/// part by the moves keeps its axis with a jog. On [`OutOfRange`] the route is unchanged.
 fn step_route(
-    route: &mut [Pt2],
+    route: &mut Vec<Pt2>,
     grid: Grid,
     steps: [i64; 2],
     a: (Pt2, Pt2),
@@ -732,7 +734,35 @@ fn step_route(
         };
         next.push(p);
     }
-    route.copy_from_slice(&next);
+    // Two coordinates that were equal can part by 1 nm (two CPs on one coordinate whose representations' grid
+    // indices differ in `k mod 3` move by displacements that differ by 1 nm): such a segment would turn diagonal.
+    // It keeps its axis with a jog at the grid point nearest its middle (fix round of WP-S2.04 part 1, item 10):
+    // every new vertex has the jog's grid coordinate on one axis and an end's coordinate on the other.
+    let mut out: Vec<Pt2> = Vec::with_capacity(next.len() + 4);
+    for i in 0..n {
+        out.push(next[i]);
+        if i + 1 == n {
+            break;
+        }
+        let (o0, o1, p0, p1) = (route[i], route[i + 1], next[i], next[i + 1]);
+        let horizontal = o0.y == o1.y && o0.x != o1.x && p0.y != p1.y;
+        let vertical = o0.x == o1.x && o0.y != o1.y && p0.x != p1.x;
+        if horizontal {
+            let xm = grid
+                .snap_point(Nm(p0.x.0 + (p1.x.0 - p0.x.0) / 2))
+                .ok_or(OutOfRange)?;
+            out.push(Pt2::new(xm, p0.y));
+            out.push(Pt2::new(xm, p1.y));
+        } else if vertical {
+            let ym = grid
+                .snap_point(Nm(p0.y.0 + (p1.y.0 - p0.y.0) / 2))
+                .ok_or(OutOfRange)?;
+            out.push(Pt2::new(p0.x, ym));
+            out.push(Pt2::new(p1.x, ym));
+        }
+    }
+    out.dedup();
+    *route = out;
     Ok(())
 }
 

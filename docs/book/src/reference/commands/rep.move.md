@@ -22,7 +22,9 @@ Routes follow: a connection with an end drawn by a moved representation has that
 displacement (`follow_end`); a connection with both ends moved keeps its shape vertex by vertex: an end vertex
 becomes its CP's new position, an interior coordinate equal to the old coordinate of an end CP moves with that
 CP, a coordinate on the grid moves by the same number of steps, and any other coordinate (the router of FT-18
-re-solves those later) by `round_half_away(k × num / den)` on that axis. `steps` is exclusive with a non-zero
+re-solves those later) by `round_half_away(k × num / den)` on that axis; a horizontal or vertical segment whose
+two coordinates part by 1 nm (two end CPs on one coordinate whose representations' grid indices differ in
+`k mod 3`) keeps its axis with a jog at the grid point nearest its middle. `steps` is exclusive with a non-zero
 `delta` and with `page`: the tools never move across pages, and a script's cross-page move keeps `delta`.
 
 Outcome: none. Coalesce one drag with a key.
