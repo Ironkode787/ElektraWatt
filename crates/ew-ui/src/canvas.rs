@@ -41,8 +41,8 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use egui::{
-    Color32, ColorImage, Event as EguiEvent, Key, Mesh, MouseWheelUnit, PointerButton, Pos2, Rect, Sense,
-    TextureHandle, TextureId, TextureOptions, Ui, Vec2,
+    Color32, ColorImage, Event as EguiEvent, Key, Mesh, Modifiers, MouseWheelUnit, PointerButton, Pos2, Rect,
+    Sense, TextureHandle, TextureId, TextureOptions, Ui, Vec2,
 };
 use ew_render_cpu::{FontBytes, FontResolver, SheetSize};
 use ew_render2d::gpu::GpuView;
@@ -908,9 +908,8 @@ impl CanvasHost {
         events: &mut Vec<Event>,
     ) {
         let mm = |p: (i64, i64)| (p.0 as f64 / 1e6, p.1 as f64 / 1e6);
-        let mods = ui.input(|i| i.modifiers);
-        // The point of an input action with the modifiers that are held (left out when not held).
-        let point = |p: (i64, i64)| {
+        // The point of an input action with the modifiers `mods` (left out when not held).
+        let point_with = |p: (i64, i64), mods: Modifiers| {
             let (x, y) = mm(p);
             let mut v = json!({"x_mm": x, "y_mm": y, "group": group});
             for (name, held) in [("shift", mods.shift), ("ctrl", mods.command), ("alt", mods.alt)] {
@@ -920,15 +919,9 @@ impl CanvasHost {
             }
             v
         };
+        let mods = ui.input(|i| i.modifiers);
+        let point = |p: (i64, i64)| point_with(p, mods);
         let space = ui.input(|i| i.key_down(Key::Space));
-        // A primary press focuses the group first; the back and forward buttons walk the history.
-        let pressed_here = response.is_pointer_button_down_on() && ui.input(|i| i.pointer.primary_pressed());
-        if pressed_here {
-            events.push(Event::Action(
-                "ui.focus",
-                json!({"area": "canvas", "group": group}),
-            ));
-        }
         if response.hovered() {
             let (back, forward) = ui.input(|i| {
                 (
@@ -964,27 +957,47 @@ impl CanvasHost {
             }
             None => {}
         }
-        // The primary button is the tool's (WP-S2.03 §7.9): its press on this canvas and its release, wherever it
-        // happens; Space with the primary button pans instead.
-        if pressed_here
-            && !space
-            && let Some(pos) = ui.input(|i| i.pointer.press_origin()).or(hover)
-        {
-            events.push(Event::Action(
-                "canvas.press",
-                point(Self::sheet_point(rect, canvas, pos)),
-            ));
-            self.views[group].pressed = true;
-        }
-        if self.views[group].pressed
-            && ui.input(|i| i.pointer.primary_released())
-            && let Some(pos) = ui.input(|i| i.pointer.latest_pos())
-        {
-            events.push(Event::Action(
-                "canvas.release",
-                point(Self::sheet_point(rect, canvas, pos)),
-            ));
-            self.views[group].pressed = false;
+        // The primary button is the tool's (WP-S2.03 §7.9): its presses on this canvas and its releases, wherever they
+        // happen, taken from the button events in order with their own positions and modifiers, so a press and its
+        // release in one frame (a touchpad tap, a slow frame) are both seen. A press focuses the group first; Space
+        // with the primary button pans instead.
+        let buttons: Vec<(Pos2, bool, Modifiers)> = ui.input(|i| {
+            i.events
+                .iter()
+                .filter_map(|e| match e {
+                    EguiEvent::PointerButton {
+                        pos,
+                        button: PointerButton::Primary,
+                        pressed,
+                        modifiers,
+                    } => Some((*pos, *pressed, *modifiers)),
+                    _ => None,
+                })
+                .collect()
+        });
+        let layer = ui.layer_id();
+        for (pos, down, m) in buttons {
+            if down {
+                let ours = rect.contains(pos) && ui.ctx().layer_id_at(pos).is_none_or(|l| l == layer);
+                if !ours || space {
+                    continue;
+                }
+                events.push(Event::Action(
+                    "ui.focus",
+                    json!({"area": "canvas", "group": group}),
+                ));
+                events.push(Event::Action(
+                    "canvas.press",
+                    point_with(Self::sheet_point(rect, canvas, pos), m),
+                ));
+                self.views[group].pressed = true;
+            } else if self.views[group].pressed {
+                events.push(Event::Action(
+                    "canvas.release",
+                    point_with(Self::sheet_point(rect, canvas, pos), m),
+                ));
+                self.views[group].pressed = false;
+            }
         }
         let Some(pos) = hover else {
             self.views[group].wheel_lines = 0.0;

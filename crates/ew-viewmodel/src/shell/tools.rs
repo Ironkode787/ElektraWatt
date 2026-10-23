@@ -217,6 +217,16 @@ impl ShellModel {
         if after != before {
             self.announce_tool();
         }
+        // A click that produces a readout (Measure's distance) says it: the result reaches a screen reader, not only
+        // the pixels and `ui.describe` (NFR-A11Y-01).
+        if matches!(ev, CanvasEvent::Press { .. } | CanvasEvent::Activate)
+            && let ToolOutput::Transient(o) = &out
+        {
+            let labels: Vec<&str> = o.labels().collect();
+            if !labels.is_empty() {
+                self.tools.announcement = Some(labels.join("; "));
+            }
+        }
         Some(out)
     }
 

@@ -122,7 +122,8 @@ pub const VOCABULARY: &[&str] = &[
     "cell",
     "link",
     "external",
-    // The tool framework (WP-S2.03 part 2, decision log ID-537): 17 words, a reviewed vocabulary change.
+    // The tool framework (WP-S2.03 part 2, decision log ID-537): 18 words, a reviewed vocabulary change (§7.9's 17
+    // and `junction`).
     "tool",
     "state",
     "idle",
@@ -140,6 +141,8 @@ pub const VOCABULARY: &[&str] = &[
     "tags",
     "xrefs",
     "overlay",
+    // A snap marker's kind (`canvas snap junction …`), printed by `MarkerKind::word` (the review of part 2).
+    "junction",
 ];
 
 /// The markers after which the rest of the line is user text (a title, a banner, an error, a reason, a folio, a

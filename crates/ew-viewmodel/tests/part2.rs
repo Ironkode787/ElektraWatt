@@ -1692,7 +1692,8 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
     texts.push(sample.describe());
     // The tool framework (WP-S2.03 part 2): Select pressed and its rubber band, Measure armed on a connection point
     // and measuring. (The preview words `stale`, `failed`, `tags` and `xrefs` need a tool that previews, which only
-    // the test-only probe is: `tests/probe.rs` checks them.)
+    // the test-only probe is: `tests/probe.rs` checks them; `junction`, a snap marker kind, comes with WP-S2.04's
+    // Wire tool and is checked above.)
     // An entity whose centre is no link (a press on a link follows it rather than selecting).
     let (x, y) = {
         let c = sample.canvas().unwrap();
@@ -1746,6 +1747,20 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
     texts.push(no_sample.describe());
 
     let allowed = ew_viewmodel::describe::VOCABULARY;
+    // Every word the tool lines print for a marker, a snap or a preview status is in the vocabulary, reached or not.
+    use ew_viewmodel::tools::{MarkerKind, PreviewStatus, SnapKind};
+    for word in [
+        MarkerKind::Grid.word(),
+        MarkerKind::Cp.word(),
+        MarkerKind::Junction.word(),
+        SnapKind::Grid.word(),
+        SnapKind::Cp.word(),
+        PreviewStatus::Ready.word(),
+        PreviewStatus::Stale.word(),
+        PreviewStatus::Failed.word(),
+    ] {
+        assert!(allowed.contains(&word), "{word}");
+    }
     let mut seen = std::collections::BTreeSet::new();
     for text in &texts {
         for line in text.lines() {
@@ -1765,7 +1780,7 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
     assert!(
         unused.iter().all(|w| matches!(
             **w,
-            "disabled" | "external" | "stale" | "failed" | "tags" | "xrefs"
+            "disabled" | "external" | "stale" | "failed" | "tags" | "xrefs" | "junction"
         )),
         "words of the vocabulary no state used: {unused:?}"
     );

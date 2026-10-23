@@ -204,7 +204,6 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "page-no-pages" => "The project has no pages.",
 
         // The status bar.
-        "status-hint-view" => "Read-only view",
         "status-hint-start" => "No project open",
         "status-page" => "{0} ({1} of {2})",
         "status-saved" => "saved",

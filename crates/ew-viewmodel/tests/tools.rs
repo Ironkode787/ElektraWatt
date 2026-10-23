@@ -14,7 +14,7 @@ use common::{Tmp, at, click, done, empty_point, entity_points, refused, state};
 use ew_viewmodel::canvas::reading_key;
 use ew_viewmodel::ew_api::output::ew_dl::EntityRef;
 use ew_viewmodel::ew_api::output::ew_dl::ew_units::Rect;
-use ew_viewmodel::shell::{Mode, ShellModel};
+use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::tools::{SnapKind, measure_label};
 use serde_json::{Value, json};
 
@@ -617,6 +617,11 @@ fn t11_tool_events_on_a_cached_page_make_no_session_call() {
     let points = entity_points(shell.canvas().unwrap());
     let empty = empty_point(shell.canvas().unwrap());
     let mut ran = 0;
+    // Checklist 9: every kind of step must also succeed, so the equalities below cannot pass vacuously.
+    let rev = shell.revision();
+    let generation = shell.selection().generation;
+    let mut ok = std::collections::BTreeMap::<&str, u32>::new();
+    let mut measuring = false;
     for i in 0..120usize {
         let p = points[i % points.len()].1;
         let steps: Vec<(&str, Value)> = match i % 12 {
@@ -656,10 +661,36 @@ fn t11_tool_events_on_a_cached_page_make_no_session_call() {
                 ),
                 "{action}: {out:?}"
             );
+            if out == ew_viewmodel::shell::Outcome::Done {
+                *ok.entry(action).or_default() += 1;
+            }
+            measuring |= shell.tool().state() == "measuring";
             ran += 1;
         }
     }
     assert!(ran > 200);
+    for action in [
+        "canvas.press",
+        "canvas.release",
+        "canvas.pointer",
+        "cp.next",
+        "cp.previous",
+        "cp.next_unconnected",
+        "canvas.activate",
+        "tab.next",
+        "tool.measure",
+        "tool.select",
+        "canvas.dwell",
+        "ui.dismiss",
+    ] {
+        assert!(
+            ok.get(action).copied().unwrap_or(0) >= 1,
+            "{action} succeeded: {ok:?}"
+        );
+    }
+    assert!(shell.selection().generation > generation, "the selection changed");
+    assert!(measuring, "Measure reached measuring");
+    assert_eq!(shell.revision(), rev, "the revision never changed");
     let after = shell.session_calls();
     assert_eq!(after.page_content, calls.page_content, "{after:?}");
     assert_eq!(after.page_cells, calls.page_cells);
@@ -667,7 +698,5 @@ fn t11_tool_events_on_a_cached_page_make_no_session_call() {
     assert_eq!(after.link_targets, calls.link_targets);
     assert_eq!(after.preview_with, 0, "no shipped tool previews");
     assert_eq!(shell.memo_totals().unwrap().1, memo.1, "no memo re-execution");
-    assert_eq!(shell.revision(), Some(shell.revision().unwrap()));
-    let _ = Mode::Headless;
     shell.shutdown();
 }

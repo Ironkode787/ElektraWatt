@@ -14,7 +14,7 @@ use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
 use ew_ui::ew_viewmodel::shell::Outcome;
-use ew_ui::ew_viewmodel::tools::measure_label;
+use ew_ui::ew_viewmodel::tools::{Dash, OverlayItem, band_selection, measure_label, rect_of};
 use serde_json::{Value, json};
 use support::{Scripted, Tmp, harness, settle, wait_for_page};
 
@@ -49,6 +49,38 @@ fn live(h: &Harness<'_, App>) -> String {
 fn press(h: &mut Harness<'_, App>, key: Key) {
     h.key_press(key);
     settle(h);
+}
+
+/// The window position (points) of the sheet point `p` on the focused canvas, from the canvas's view.
+fn screen(h: &Harness<'_, App>, p: (i64, i64)) -> Pos2 {
+    let bounds = h
+        .get_all_by_role(egui::Role::Canvas)
+        .next()
+        .expect("the canvas node")
+        .accesskit_node()
+        .raw_bounds()
+        .expect("bounds");
+    let c = h.state().shell().canvas().unwrap();
+    let k = c.points_per_nm();
+    Pos2::new(
+        bounds.x0 as f32 + ((p.0 - c.centre().0) as f64 * k + c.pane().0 / 2.0) as f32,
+        bounds.y0 as f32 + ((p.1 - c.centre().1) as f64 * k + c.pane().1 / 2.0) as f32,
+    )
+}
+
+/// A primary press and release at `pos`, both delivered before one frame (a touchpad tap, a slow frame).
+fn tap(h: &mut Harness<'_, App>, pos: Pos2) {
+    h.event(egui::Event::PointerMoved(pos));
+    for pressed in [true, false] {
+        h.event(egui::Event::PointerButton {
+            pos,
+            button: PointerButton::Primary,
+            pressed,
+            modifiers: Modifiers::NONE,
+        });
+    }
+    h.run_ok();
+    h.run_ok();
 }
 
 #[test]
@@ -88,7 +120,8 @@ fn t6_t10_select_and_measure_from_the_keyboard_alone() {
         .map(str::to_owned)
         .collect();
     assert_eq!(labels, vec![measure_label(a, b)]);
-    assert_eq!(live(&h), "Measure: Click or Enter at the first point");
+    // The readout reaches a screen reader: the live region says it (NFR-A11Y-01).
+    assert_eq!(live(&h), measure_label(a, b));
     // `[` walks back; Backspace steps the tool back; Escape returns to Select.
     press(&mut h, Key::OpenBracket);
     press(&mut h, Key::Enter);
@@ -147,6 +180,7 @@ fn t10_the_primary_button_is_the_tools_input() {
     let to = Pos2::new(x0 + (x1 - x0) * 0.6, y0 + (y1 - y0) * 0.6);
     h.event(egui::Event::PointerMoved(from));
     h.run_ok();
+    let from_nm = h.state().shell().canvas().unwrap().pointer().unwrap();
     h.event(egui::Event::PointerButton {
         pos: from,
         button: PointerButton::Primary,
@@ -157,11 +191,15 @@ fn t10_the_primary_button_is_the_tools_input() {
     h.event(egui::Event::PointerMoved(to));
     h.run_ok();
     h.run_ok();
-    let state = h.state().shell().tool().state();
-    assert!(state == "rubber-band" || state == "pressed", "{state}");
-    if state == "rubber-band" {
-        assert_eq!(h.state().shell().tool_overlay().len(), 1, "the band");
-    }
+    assert_eq!(h.state().shell().tool().state(), "rubber-band");
+    assert!(
+        matches!(
+            h.state().shell().tool_overlay().items.as_slice(),
+            [OverlayItem::Rect { style, .. }] if style.dash == Dash::Solid
+        ),
+        "the enclosing band"
+    );
+    let to_nm = h.state().shell().canvas().unwrap().pointer().unwrap();
     h.event(egui::Event::PointerButton {
         pos: to,
         button: PointerButton::Primary,
@@ -173,6 +211,99 @@ fn t10_the_primary_button_is_the_tools_input() {
     settle(&mut h);
     assert_eq!(h.state().shell().tool().state(), "idle");
     assert!(h.state().shell().tool_overlay().is_empty());
+    // The selection is what the band from the press to the release encloses.
+    let page = std::sync::Arc::clone(h.state().shell().canvas().unwrap().page());
+    let expected = band_selection(&page.entities, rect_of(from_nm, to_nm), true);
+    assert!(!expected.is_empty(), "the band encloses something");
+    assert_eq!(h.state().shell().selection().items, expected);
+    h.state_mut().shell_mut().shutdown();
+}
+
+#[test]
+fn a_press_and_its_release_in_one_frame_still_click() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "103");
+    // An entity whose centre is no link and picks it.
+    let (entity, p) = {
+        let c = h.state().shell().canvas().unwrap();
+        let slop = ew_ui::ew_viewmodel::canvas::HOVER_SLOP_PT / c.points_per_nm();
+        c.page()
+            .entities
+            .iter()
+            .map(|(e, r)| (*e, ew_ui::ew_viewmodel::canvas::rect_centre(*r)))
+            .find(|(e, p)| {
+                c.link_at(*p).is_none()
+                    && ew_ui::ew_viewmodel::canvas::pick(&c.page().entities, Some(*p), slop).map(|x| x.0)
+                        == Some(*e)
+            })
+            .expect("an entity off the links")
+    };
+    let pos = screen(&h, p);
+    tap(&mut h, pos);
+    settle(&mut h);
+    assert_eq!(h.state().shell().selection().items, vec![entity], "a tap selects");
+    // A tap on a link follows it.
+    let link = h
+        .state()
+        .shell()
+        .canvas()
+        .unwrap()
+        .page()
+        .links
+        .iter()
+        .find(|l| l.target.as_ref().is_some_and(|t| t.folio != "103"))
+        .unwrap()
+        .clone();
+    let pos = screen(&h, ew_ui::ew_viewmodel::canvas::rect_centre(link.rect));
+    tap(&mut h, pos);
+    settle(&mut h);
+    assert_eq!(
+        h.state().shell().current_folio(),
+        Some(link.target.unwrap().folio.as_str()),
+        "a tap follows"
+    );
+    h.state_mut().shell_mut().shutdown();
+}
+
+#[test]
+fn the_physical_bracket_key_steps_the_connection_points() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "102");
+    // QWERTZ: the key right of P is `+` logically and `]` physically.
+    let bracket = |h: &mut Harness<'_, App>| {
+        h.event(egui::Event::Key {
+            key: Key::Plus,
+            physical_key: Some(Key::CloseBracket),
+            pressed: true,
+            repeat: false,
+            modifiers: Modifiers::NONE,
+        });
+        h.run_ok();
+        h.run_ok();
+    };
+    let cps = h.state().shell().canvas().unwrap().page().cps.clone();
+    let zoom = h.state().shell().canvas().unwrap().zoom();
+    bracket(&mut h);
+    let first = h
+        .state()
+        .shell()
+        .canvas()
+        .unwrap()
+        .cursor()
+        .expect("cp.next placed the cursor");
+    let i = cps.iter().position(|c| c.at_nm == first).expect("on a CP");
+    bracket(&mut h);
+    assert_eq!(
+        h.state().shell().canvas().unwrap().cursor(),
+        Some(cps[(i + 1) % cps.len()].at_nm),
+        "the next CP"
+    );
+    assert_eq!(
+        h.state().shell().canvas().unwrap().zoom(),
+        zoom,
+        "not a zoom-in by the logical `+`"
+    );
+    settle(&mut h);
     h.state_mut().shell_mut().shutdown();
 }
 
@@ -229,10 +360,7 @@ fn t8_the_window_reports_the_rest_and_shows_the_popup() {
         "not before 300 ms of rest"
     );
     let after = h.state().shell().session_calls();
-    assert!(
-        after.page_content <= calls.page_content + 1,
-        "the target page once"
-    );
+    assert_eq!(after.page_content, calls.page_content + 1, "the target page once");
     // The popup draws from the tile pool: its scene joins the host's while it shows.
     for _ in 0..5 {
         h.run_ok();
@@ -267,6 +395,10 @@ fn t11_exact_counts_of_tool_events_in_the_window() {
     let counters = h.state().canvas_counters();
     assert!(counters.tiles_requested > 0 && counters.scenes > 0);
     let at = |x: i64, y: i64| json!({"x_mm": x, "y_mm": y});
+    // Checklist 9: every kind of step must also succeed, so the equalities below cannot pass vacuously.
+    let generation = h.state().shell().selection().generation;
+    let mut ok = std::collections::BTreeMap::<&str, u32>::new();
+    let mut measuring = false;
     for i in 0..150i64 {
         let (action, params) = match i % 15 {
             0 => ("canvas.press", at(60 + i % 7, 80)),
@@ -290,11 +422,39 @@ fn t11_exact_counts_of_tool_events_in_the_window() {
             matches!(out, Outcome::Done | Outcome::Refused { .. }),
             "{action}: {out:?}"
         );
+        if out == Outcome::Done {
+            *ok.entry(action).or_default() += 1;
+        }
+        measuring |= h.state().shell().tool().state() == "measuring";
         if i % 10 == 0 {
             h.run_ok();
         }
     }
     settle(&mut h);
+    for action in [
+        "canvas.press",
+        "canvas.release",
+        "canvas.pointer",
+        "cp.next",
+        "cp.previous",
+        "cp.next_unconnected",
+        "canvas.activate",
+        "tab.next",
+        "tool.measure",
+        "tool.select",
+        "canvas.dwell",
+        "ui.dismiss",
+    ] {
+        assert!(
+            ok.get(action).copied().unwrap_or(0) >= 1,
+            "{action} succeeded: {ok:?}"
+        );
+    }
+    assert!(
+        h.state().shell().selection().generation > generation,
+        "the selection changed"
+    );
+    assert!(measuring, "Measure reached measuring");
     let after = h.state().shell().session_calls();
     assert_eq!(after.page_content, calls.page_content, "{after:?}");
     assert_eq!(after.page_cells, calls.page_cells);
