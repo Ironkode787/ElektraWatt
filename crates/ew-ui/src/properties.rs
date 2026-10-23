@@ -551,6 +551,12 @@ impl PropertiesPane {
                 .desired_width(f32::INFINITY)
                 .hint_text(label),
         );
+        crate::focus::report_focus(
+            &response,
+            shell.focus() == Some(Focus::Properties),
+            "properties",
+            events,
+        );
         let name = label.to_owned();
         response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &name));
         if fresh {

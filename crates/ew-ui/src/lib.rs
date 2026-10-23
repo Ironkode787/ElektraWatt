@@ -23,6 +23,7 @@ pub mod dock;
 // WP-S2.05 part 2
 pub mod find;
 mod first_run;
+mod focus;
 pub mod fonts;
 pub mod gpu;
 pub mod headless;

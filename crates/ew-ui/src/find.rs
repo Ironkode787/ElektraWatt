@@ -193,12 +193,9 @@ impl FindPane {
         });
     }
 
-    /// A field that gains the focus (a click, Tab) makes the pane the shell's focus, so the canvas's own keys (Tab for
-    /// the wire proposals) are not offered while the user types here.
+    /// A field that gains the focus (a click, Tab) makes the pane the shell's focus (see `focus.rs`).
     fn report_focus(response: &egui::Response, ours: bool, events: &mut Vec<Event>) {
-        if response.gained_focus() && !ours {
-            events.push(Event::Action("ui.focus", json!({"area": "find"})));
-        }
+        crate::focus::report_focus(response, ours, "find", events);
     }
 
     /// A text field labelled `name` whose changes go to `action`; Enter runs the search, Ctrl+Enter replaces.
