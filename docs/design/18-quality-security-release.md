@@ -1126,6 +1126,15 @@ NFR-SEC-19:
     279 KB of source, none with a build script. They carry **six "AI-performed, owner-delegated" `safe-to-deploy`
     audits**, so the exemption count stays **387**; the owner confirms and owns these audits as with the earlier ones
     (an owner item).
+  - *The regex family* (cycle 26, WP-S2.05 part 2 fix round). `regex` 1.13.1 became a normal dependency of `ew-api`
+    (`Session::find`), so it and `aho-corasick` 1.1.5, `regex-automata` 0.4.18 and `regex-syntax` 0.8.11 ship and need
+    `safe-to-deploy`; their exemptions were `safe-to-run`. No import the policy allows covers these versions (the
+    imported sets audit older versions and have no base for the deltas), so: `regex-syntax` carries an "AI-performed,
+    owner-delegated" delta audit 0.8.5 to 0.8.11 over google's imported full audit of 0.8.5 (the whole delta read;
+    `forbid(unsafe_code)`), and its exemption is removed; `aho-corasick`, `regex` and `regex-automata` are **raised to
+    `safe-to-deploy` exemptions, not audited line by line** (about 21k, 11k and 66k lines, 227, 1 and 57 `unsafe` sites;
+    no build script, no file, network, process, environment or FFI use in `src`). **Owner item:** confirm these three
+    or audit them before any distributed binary. The exemptions are now **386** (380 `safe-to-deploy`, 6 `safe-to-run`).
   - *The fuzz crate* (decision log ID-496). `fuzz/` is its own cargo workspace, a development tool that no distributed
     artefact contains, so its dependencies are outside the workspace's cargo-deny and cargo-vet runs and need no
     exemptions. The mitigation is the deep nightly's report-only job `fuzz-deny` over `fuzz/Cargo.lock` with

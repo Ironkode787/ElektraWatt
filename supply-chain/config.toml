@@ -52,7 +52,8 @@ criteria = "safe-to-deploy"
 
 [[exemptions.aho-corasick]]
 version = "1.1.5"
-criteria = "safe-to-run"
+criteria = "safe-to-deploy"
+notes = "WP-S2.05 part 2 fix round (2026-10-23): a normal dependency of ew-api (Session::find), so it ships and needs safe-to-deploy; raised from safe-to-run. NOT audited line by line (20.9k lines, 227 unsafe sites incl. Teddy SIMD, not read); no build script, no fs/net/process/env/FFI in src. The owner confirms or audits it before any distributed binary (FT-326 list). No allowed import covers this version."
 
 [[exemptions.android-activity]]
 version = "0.6.1"
@@ -984,15 +985,13 @@ criteria = "safe-to-deploy"
 
 [[exemptions.regex]]
 version = "1.13.1"
-criteria = "safe-to-run"
+criteria = "safe-to-deploy"
+notes = "WP-S2.05 part 2 fix round (2026-10-23): a normal dependency of ew-api (Session::find), so it ships and needs safe-to-deploy; raised from safe-to-run. NOT audited line by line (11.1k lines, one unsafe marker impl in pattern.rs, not read); no build script, no fs/net/process/env/FFI in src. The owner confirms or audits it before any distributed binary (FT-326 list). No allowed import covers this version."
 
 [[exemptions.regex-automata]]
 version = "0.4.18"
-criteria = "safe-to-run"
-
-[[exemptions.regex-syntax]]
-version = "0.8.11"
-criteria = "safe-to-run"
+criteria = "safe-to-deploy"
+notes = "WP-S2.05 part 2 fix round (2026-10-23): a normal dependency of ew-api (Session::find), so it ships and needs safe-to-deploy; raised from safe-to-run. NOT audited line by line (65.9k lines, 57 unsafe sites incl. DFA from-bytes, lazy and pool, not read); no build script, no fs/net/process/env/FFI in src. The owner confirms or audits it before any distributed binary (FT-326 list). No allowed import covers this version."
 
 [[exemptions.renderdoc-sys]]
 version = "1.1.0"

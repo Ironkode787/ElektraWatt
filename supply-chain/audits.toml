@@ -49,6 +49,12 @@ criteria = "safe-to-deploy"
 version = "0.5.0"
 notes = "AI-performed, owner-delegated (2026-10-23), cycle 24 lane C lead audit. Read src/lib.rs. forbid(unsafe_code); no deps, no build.rs; the only environment access is std::env::args_os in from_env, its purpose; no fs/net. Compiled as a usvg dependency but used only by usvg's CLI binary, which is not built."
 
+[[audits.regex-syntax]]
+who = "Ironkode787"
+criteria = "safe-to-deploy"
+delta = "0.8.5 -> 0.8.11"
+notes = "AI-performed, owner-delegated (2026-10-23), WP-S2.05 part 2 fix round. Delta over the imported full audit of 0.8.5 (safe-to-deploy, ub-risk-0), read in full (about 640 diff lines, every non-doc hunk): inline format arguments, an interval-set push that inserts by binary search and splices instead of re-sorting, a negated-class fix in the translator (is_negated), and a docsrs cfg rename. forbid(unsafe_code) kept; no new dependency, no build.rs, no fs/net/env."
+
 [[audits.rfd]]
 who = "Ironkode787"
 criteria = "safe-to-deploy"
