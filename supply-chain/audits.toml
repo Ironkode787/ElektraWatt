@@ -13,11 +13,35 @@ criteria = "safe-to-deploy"
 version = "0.35.0"
 notes = "AI-performed, owner-delegated (2026-10-22), cycle 20 lead audit. Library read fully: UIA COM providers (refcounts, VARIANT/SAFEARRAY/BSTR, free-threaded), window subclassing. Discretion: as_impl assumes in-process text ranges are AccessKit's; UIA client input can abort (same session)."
 
+[[audits.color_quant]]
+who = "Ironkode787"
+criteria = "safe-to-deploy"
+version = "1.1.0"
+notes = "AI-performed, owner-delegated (2026-10-23), cycle 25 lane D lead audit (FT-406). Read all src (2 files, 443 lines; 6.6 KB crate). No unsafe, no deps, no build.rs, no I/O. NeuQuant colour quantiser used only by gif's encoder (Frame::from_rgba*), never by decoding. Licence MIT; src/lib.rs also carries the 1994 NeuQuant permission notice (permissive, keep the notice intact)."
+
 [[audits.data-url]]
 who = "Ironkode787"
 criteria = "safe-to-deploy"
 version = "0.3.2"
 notes = "AI-performed, owner-delegated (2026-10-23), cycle 24 lane C lead audit. Read all src (3 files) and the base64 table generator. No unsafe; no_std+alloc; no fs/net/env; no deps, no build.rs. Linear base64 and percent decoding, output no larger than input; only the MIME parameter de-duplication is O(p^2). Reached by usvg for every data: href (ElektraWatt refuses data: hrefs before usvg)."
+
+[[audits.gif]]
+who = "Ironkode787"
+criteria = "safe-to-deploy"
+version = "0.14.2"
+notes = "AI-performed, owner-delegated (2026-10-23), cycle 25 lane D lead audit (FT-406), krilla raster-images. Read all src (7 files, 2.9k lines) and benches (38.7 KB crate). forbid(unsafe_code), no_std+alloc; deps weezl (in graph) and color_quant (encoder only); no build.rs; fs only in doc examples and benches. 50 MB per-frame memory limit by default. DoS caveat: StreamingDecoder::update spins if fed data after the trailer (the Trailer state consumes nothing); Decoder stops at the trailer. Reached only through krilla Image::from_gif, which ElektraWatt never calls."
+
+[[audits.image-webp]]
+who = "Ironkode787"
+criteria = "safe-to-deploy"
+version = "0.2.4"
+notes = "AI-performed, owner-delegated (2026-10-23), cycle 25 lane D lead audit (FT-406), krilla raster-images. Read all src (14 files, 7.6k lines; src/mod.rs is stale and not compiled; 68.5 KB crate). forbid(unsafe_code); deps byteorder-lite, quick-error (in graph); no build.rs, no fs/net/env. DoS caveats (bugs): memory limit usize::MAX, so ICCP/EXIF/XMP reads allocate the declared chunk size (to 4 GiB) before reading; VP8 allocates planes from the header size (about 400 MB) before data; the animated canvas size w*h*4 is computed in u32 and can overflow into a slice panic. Reached only through krilla Image::from_webp, which ElektraWatt never calls."
+
+[[audits.imagesize]]
+who = "Ironkode787"
+criteria = "safe-to-deploy"
+version = "0.14.0"
+notes = "AI-performed, owner-delegated (2026-10-23), cycle 25 lane D lead audit (FT-406), the version krilla raster-images pins beside usvg's 0.15.0. Read all src (25 files, 1.6k lines) and the bench (22.7 KB crate). No unsafe, no deps, no build.rs. File access only in the public size(path) helper (File::open); krilla calls blob_size only. Bounded reads, capped line buffers, chunk walks that always advance. Reached only through krilla Image::from_gif's size probe, never called by ElektraWatt."
 
 [[audits.imagesize]]
 who = "Ironkode787"

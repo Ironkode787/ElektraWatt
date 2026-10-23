@@ -21,6 +21,9 @@ ew-dl = { path = "../ew-dl" }
 vello_cpu = { version = "0.3.0", default-features = false, features = ["std", "text", "u8_pipeline"] }
 # PNG encoding with fixed settings (FR-OUT-014; already in the graph through vello_cpu's tree).
 png = "0.18.1"
+# JPEG image items (FT-406, decision log ID-605): the version already in the graph through tiff, image and krilla
+# (licence `MIT OR Apache-2.0 OR Zlib`, no build script); a new edge, no new package.
+zune-jpeg = { version = "=0.5.15", default-features = false, features = ["std"] }
 # Validates a font file when it is first resolved (the version vello_cpu's glyph stack uses).
 skrifa = { version = "0.44.0", default-features = false, features = ["std"] }
 
