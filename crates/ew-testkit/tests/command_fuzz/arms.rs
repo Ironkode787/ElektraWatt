@@ -2468,7 +2468,8 @@ fn placeholder_logo(w: u32, h: u32) -> Vec<u8> {
         .into_bytes()
 }
 
-/// `project.assets.purge` (FT-380): a non-undoable marker whose file side runs in the session. Every purgeable asset
+/// `project.assets.purge` (FT-380): a non-undoable, `HumanOnly` marker whose file side runs in the session (the
+/// fuzzer's session submits as the GUI, which `HumanOnly` accepts). Every purgeable asset
 /// (`{}`) commits as a marker when the session is saved (a session without a project directory has nothing to purge)
 /// and is refused while it has unsaved changes; the model never changes. A listed hash that is no purgeable asset, and
 /// a malformed one, are refused.

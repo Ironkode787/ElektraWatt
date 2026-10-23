@@ -370,3 +370,105 @@ fn the_session_purges_asset_files_nothing_names() {
     let _ = std::fs::remove_dir_all(&dir);
     let _ = std::fs::remove_dir_all(&state);
 }
+
+/// Owner ruling (2026-10-23): `project.assets.purge` is `HumanOnly`. A session that submits as a command log, a script,
+/// or an unconfirmed CLI may preview the files (`purge_preview`), but neither the command nor `purge_assets` deletes
+/// one; the GUI and a confirmed CLI may.
+#[test]
+fn only_a_human_origin_purges() {
+    const X: &[u8] = br#"<svg viewBox="0 0 8 2"><rect width="8" height="2"/></svg>"#;
+    const Y: &[u8] = br#"<svg viewBox="0 0 3 3"><circle r="1"/></svg>"#;
+    let state = temp("state");
+    let (mut s, dir) = created(&state);
+    set_logo(&mut s, X);
+    s.save().unwrap();
+    set_logo(&mut s, Y);
+    s.save().unwrap();
+    s.close();
+    for origin in [
+        ew_api::Origin::CmdLog {
+            file: "a.ewcmd".into(),
+        },
+        ew_api::Origin::Script { name: "s".into() },
+        ew_api::Origin::Cli {
+            subcommand: "apply".into(),
+            confirmed: false,
+        },
+    ] {
+        let options = SessionOptions {
+            origin: origin.clone(),
+            ..options(17)
+        };
+        let (mut s, _) = Session::open(&dir, store_options(&state), options, Recovery::Keep).unwrap();
+        let plan = s.purge_preview().unwrap();
+        assert_eq!(plan.remove.len(), 1, "{origin:?}: the preview lists the file");
+        let path = dir.join(plan.remove[0].path.as_str());
+        let err = s.preview(&purge_cmd(&[plan.remove[0].sha256])).unwrap_err();
+        assert!(
+            matches!(err, ew_api::CmdError::Exposure { .. }),
+            "{origin:?}: {err:?}"
+        );
+        assert!(matches!(s.purge_assets(None), Err(ew_api::PurgeError::HumanOnly)));
+        assert!(path.exists(), "{origin:?}: nothing is deleted");
+        s.close();
+    }
+    let confirmed = SessionOptions {
+        origin: ew_api::Origin::Cli {
+            subcommand: "project assets purge".into(),
+            confirmed: true,
+        },
+        ..options(18)
+    };
+    let (mut s, _) = Session::open(&dir, store_options(&state), confirmed, Recovery::Keep).unwrap();
+    let (plan, _) = s.purge_assets(None).unwrap();
+    assert_eq!(plan.remove.len(), 1);
+    assert!(!dir.join(plan.remove[0].path.as_str()).exists());
+    s.close();
+    let _ = std::fs::remove_dir_all(&dir);
+    let _ = std::fs::remove_dir_all(&state);
+}
+
+/// Review fix 7: a purge whose save passes its commit point and then fails (antivirus holds `manifest.json`) has
+/// decided the removal; its marker line names the files of the plan, not an empty list.
+#[test]
+fn an_incomplete_purge_records_the_plans_files() {
+    const X: &[u8] = br#"<svg viewBox="0 0 8 2"><rect width="8" height="2"/></svg>"#;
+    const Y: &[u8] = br#"<svg viewBox="0 0 3 3"><circle r="1"/></svg>"#;
+    let vfs = Arc::new(MemVfs::new(DirSync::Explicit));
+    vfs.put_dir(Path::new("/state"));
+    let root = PathBuf::from("/p");
+    let mem_options = |pid: u32| {
+        let mut o = store_options(Path::new("/state"));
+        o.vfs = Arc::clone(&vfs) as Arc<dyn Vfs>;
+        o.clock = Arc::new(ManualClock::fixed());
+        o.identity.pid = pid;
+        o
+    };
+    let project = serde_json::from_str(PROJECT).unwrap();
+    let mut s = Session::from_records(project, [], [], options(23)).unwrap();
+    s.create(&root, mem_options(1)).unwrap();
+    set_logo(&mut s, X);
+    s.save().unwrap();
+    set_logo(&mut s, Y);
+    s.save().unwrap();
+    s.close();
+    let (mut s, _) = Session::open(&root, mem_options(2), options(24), Recovery::Keep).unwrap();
+    let plan = s.purge_preview().unwrap();
+    assert_eq!(plan.remove.len(), 1);
+    vfs.hold(&root.join("manifest.json"), 1000);
+    match s.purge_assets(None) {
+        Err(ew_api::PurgeError::Save {
+            error: SaveError::Incomplete { .. },
+            plan: decided,
+        }) => assert_eq!(decided, plan),
+        other => panic!("expected an incomplete save, got {other:?}"),
+    }
+    let marker = s.history().entries().last().expect("the marker line");
+    assert_eq!(marker.label(), "project.assets.purge");
+    assert_eq!(
+        marker.command().params,
+        serde_json::json!({ "assets": [plan.remove[0].sha256.to_string()] })
+    );
+    vfs.hold(&root.join("manifest.json"), 0);
+    s.close();
+}

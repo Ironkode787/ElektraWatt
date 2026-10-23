@@ -48,11 +48,12 @@
 //! | `project.frames.set` | [`SetFrameDefaults`] | Bulk |
 //! | `project.languages.set` | [`SetProjectLanguages`] | Bulk |
 //! | `project.checks.set` | [`SetCheckSchemes`] | Interactive; exposure `HumanOnly` |
-//! | `project.assets.purge` | [`PurgeAssets`] | Bulk; not undoable (a marker line), confirmation `Destructive` |
+//! | `project.assets.purge` | [`PurgeAssets`] | Bulk; not undoable (a marker line), confirmation `Destructive`; exposure `HumanOnly` |
 //!
 //! Every command is of stability `Preview` and undoable except `project.assets.purge`, a marker line whose file side
 //! (deleting asset files nothing names) runs in the session (ADR-0008 amendment 1, FT-380); every one is of exposure
-//! class `Edit` except `project.checks.set`, which is `HumanOnly` (ADR-0008 amendment 3: it decides a check outcome).
+//! class `Edit` except `project.checks.set`, which is `HumanOnly` (ADR-0008 amendment 3: it decides a check outcome),
+//! and `project.assets.purge`, which is `HumanOnly` because deleted files do not come back (owner ruling, 2026-10-23).
 
 mod assembly;
 mod assets;

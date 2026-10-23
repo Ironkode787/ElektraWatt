@@ -632,14 +632,14 @@ fn checks_set_takes_shipped_schemes_only_and_only_from_a_human() {
     assert_eq!(settings_member(&e, "checks"), None);
 }
 
-/// FT-380: `project.assets.purge` is a Bulk `Edit` command with a destructive confirmation and no undo; in the engine
+/// FT-380: `project.assets.purge` is a Bulk `HumanOnly` command with a destructive confirmation and no undo; in the engine
 /// (which owns no project directory) it commits a transparent marker line: no revision, no change of the model, and
 /// an undo passes over it to the step below.
 #[test]
 fn assets_purge_is_a_transparent_non_undoable_marker() {
     let registry = CommandRegistry::builtin();
     let meta = registry.get("project.assets.purge").expect("registered").meta();
-    assert_eq!((meta.cost, meta.exposure), (Cost::Bulk, Exposure::Edit));
+    assert_eq!((meta.cost, meta.exposure), (Cost::Bulk, Exposure::HumanOnly));
     assert!(!meta.undoable);
     assert_eq!(meta.confirmation, ew_commands::Confirmation::Destructive);
 

@@ -1179,10 +1179,11 @@ fn bin_exe() -> std::path::PathBuf {
         .unwrap_or_else(|| std::path::PathBuf::from(env!("CARGO_BIN_EXE_ew"))) // bin-exe-fallback
 }
 
-/// FT-380: `ew project assets purge` lists the asset files nothing names and deletes them through the save protocol;
-/// `--preview` lists them and changes nothing; a second run has nothing to purge; an unknown option is a usage error.
+/// FT-380: `ew project assets purge --preview` lists the asset files nothing names and changes nothing; the purge
+/// itself is human-only (owner ruling, 2026-10-23) and exits 2 off a terminal with nothing deleted; an unknown option is
+/// a usage error.
 #[test]
-fn project_assets_purge_previews_then_removes_the_unnamed_asset_files() {
+fn project_assets_purge_previews_and_is_refused_off_a_terminal() {
     const X: &[u8] = br#"<svg viewBox="0 0 8 2"><rect width="8" height="2"/></svg>"#;
     const Y: &[u8] = br#"<svg viewBox="0 0 3 3"><circle r="1"/></svg>"#;
     let t = Tmp::new();
@@ -1242,18 +1243,17 @@ fn project_assets_purge_previews_then_removes_the_unnamed_asset_files() {
     );
     assert_eq!(assets(&dir).len(), 2, "the preview changes nothing");
 
+    // The purge itself is human-only: without a terminal (stdout captured here) it exits 2 before opening the
+    // project, and nothing is deleted. The typed confirmation is a unit test with an injected reader and writer.
     let o = purge(&[]);
-    assert_eq!(o.status.code(), Some(0), "{}{}", stdout(&o), stderr(&o));
-    assert!(stdout(&o).contains("removed 1 asset file(s)"), "{}", stdout(&o));
-    let left = assets(&dir);
-    assert_eq!(left.len(), 1);
-    assert_eq!(std::fs::read(dir.join("assets").join(&left[0])).unwrap(), Y);
-    assert!(!dir.join(".~ew.lock").exists());
-
-    let o = purge(&[]);
-    assert_eq!(o.status.code(), Some(0), "{}{}", stdout(&o), stderr(&o));
-    assert!(stdout(&o).is_empty(), "{}", stdout(&o));
-    assert!(stderr(&o).contains("removes 0 asset file(s)"), "{}", stderr(&o));
+    assert_eq!(o.status.code(), Some(2), "{}{}", stdout(&o), stderr(&o));
+    assert!(
+        stderr(&o).contains("HumanOnly: needs an interactive terminal"),
+        "{}",
+        stderr(&o)
+    );
+    assert_eq!(assets(&dir).len(), 2, "nothing is deleted off a terminal");
+    assert!(!dir.join(".~ew.lock").exists(), "the project was not opened");
 
     let o = purge(&["--all"]);
     assert_eq!(o.status.code(), Some(2), "{}", stderr(&o));

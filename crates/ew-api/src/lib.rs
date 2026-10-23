@@ -298,6 +298,8 @@ pub struct Session {
     changes: Vec<Change>,
     /// The origin's name for the journal.
     origin: String,
+    /// The origin of the session's own submissions (the exposure of `project.assets.purge` is judged by it).
+    submit_origin: Origin,
 }
 
 impl std::fmt::Debug for Session {
@@ -331,6 +333,7 @@ impl Session {
             }
         };
         Session {
+            submit_origin: options.origin.clone(),
             load_findings,
             reports,
             memo,
@@ -869,6 +872,13 @@ impl Session {
         &mut self,
         only: Option<&BTreeSet<ew_schema::Sha256>>,
     ) -> Result<(PurgePlan, SaveReport, Result<Receipt, CmdError>), PurgeError> {
+        // `HumanOnly` (owner ruling, 2026-10-23): judged before any file is touched, by the session's origin.
+        if !<PurgeAssets as ew_commands::Command>::meta()
+            .exposure
+            .allows(&self.submit_origin)
+        {
+            return Err(PurgeError::HumanOnly);
+        }
         let dirty = self.is_dirty();
         let keep = self.undo_assets()?;
         let model = self.engine.model().clone();
@@ -887,9 +897,10 @@ impl Session {
         // The files that went (or go by roll-forward, after the commit point of an incomplete save).
         let listed = match &result {
             Ok((plan, _)) => plan.hashes(),
-            Err(PurgeError::Save(SaveError::Incomplete { generation, .. })) if *generation > before => {
-                only.cloned().unwrap_or_default()
-            }
+            Err(PurgeError::Save {
+                error: SaveError::Incomplete { generation, .. },
+                plan,
+            }) if *generation > before => plan.hashes(),
             Err(_) => {
                 return result.map(|(plan, report)| (plan, report, Err(CmdError::internal("unreachable"))));
             }

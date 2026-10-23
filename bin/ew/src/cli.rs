@@ -73,10 +73,13 @@ not ship or an answer that is not the name, 2 on usage, terminal, open and save 
 
 `project assets purge` deletes the project's asset files (`assets/<sha256>.<ext>`) whose hash no project file
 mentions (kept lines and unknown members included) through the save protocol (`project.assets.purge`, doc 05
-section 13.3): it lists each file that goes, then removes them; `--preview` lists them and changes nothing. A save
-never removes an asset file; this is the explicit clean-up. Refused while the project has unsaved changes of a
-crashed session, quarantined lines or an incomplete save, and in a read-only session. Exit 0 when purged (or
-nothing to purge, or previewed), 1 when the purge is refused, 2 on usage, open and save errors.
+section 13.3). A save never removes an asset file; this is the explicit clean-up, and deleted files do not come back,
+so the command is human-only (doc 17 section 2.3): it prints the files that would go and asks the person to type
+`purge` on a controlling terminal; there is no `--yes` flag. Without a terminal it exits 2 before the project is
+opened. `--preview` lists the files and changes nothing (no terminal needed). Refused while the project has unsaved
+changes of a crashed session, quarantined lines or an incomplete save, and in a read-only session. Exit 0 when
+purged (or nothing to purge, or previewed), 1 when the purge is refused or not confirmed, 2 on usage, terminal, open
+and save errors.
 
 `verify-derived` opens a project with the memo oracle on, recomputes every derived value cold and compares it with
 the memoised one: exit 0 with no difference, 1 with differences, 2 on usage and open errors.";
@@ -1094,11 +1097,19 @@ fn run_apply(a: &ApplyArgs) -> i32 {
 /// Opens the project in `dir` for writing with `origin`: refused (exit 2) when it opens read-only or a crashed
 /// session left unsaved changes in its journal, which a new save would hide (doc 05 section 8.3).
 fn open_for_writing(dir: &Path, origin: ew_api::Origin) -> Result<ew_api::Session, i32> {
+    open_for_writing_with(dir, origin, ew_api::StoreOptions::new(env!("CARGO_PKG_VERSION")))
+}
+
+/// [`open_for_writing`] with the store options given.
+fn open_for_writing_with(
+    dir: &Path,
+    origin: ew_api::Origin,
+    store: ew_api::StoreOptions,
+) -> Result<ew_api::Session, i32> {
     let options = ew_api::SessionOptions {
         origin,
         ..ew_api::SessionOptions::default()
     };
-    let store = ew_api::StoreOptions::new(env!("CARGO_PKG_VERSION"));
     let (session, opened) = match ew_api::Session::open(dir, store, options, ew_api::Recovery::Keep) {
         Ok(r) => r,
         Err(e) => {
@@ -1188,22 +1199,56 @@ fn run_checks_set(a: &ChecksSetArgs) -> i32 {
     code
 }
 
-/// `ew project assets purge`: the asset purge of doc 05 section 13.3 (`project.assets.purge`, FT-380) over a project
-/// opened for writing: the preview's list, then the purge of exactly the listed files.
+/// The word a person types to confirm `ew project assets purge`.
+const PURGE_WORD: &str = "purge";
+
+/// `ew project assets purge`: the asset purge of doc 05 section 13.3 (`project.assets.purge`, FT-380), a `HumanOnly`
+/// command (owner ruling, 2026-10-23): the preview's list, then, after the word typed on a controlling terminal, the
+/// purge of exactly the listed files. `--preview` needs no terminal; without one the purge itself exits 2 before the
+/// project is opened.
 fn run_assets_purge(a: &AssetsPurgeArgs) -> i32 {
+    use std::io::IsTerminal;
+    let terminal = std::io::stdin().is_terminal() && std::io::stdout().is_terminal();
+    let mut input = std::io::stdin().lock();
+    let mut output = std::io::stdout().lock();
+    run_assets_purge_with(
+        a,
+        terminal,
+        &mut input,
+        &mut output,
+        ew_api::StoreOptions::new(env!("CARGO_PKG_VERSION")),
+    )
+}
+
+/// [`run_assets_purge`] with the terminal test, the reader, the writer and the store options injected (unit tests).
+fn run_assets_purge_with(
+    a: &AssetsPurgeArgs,
+    terminal: bool,
+    input: &mut dyn std::io::BufRead,
+    output: &mut dyn std::io::Write,
+    store: ew_api::StoreOptions,
+) -> i32 {
+    if !a.preview && !terminal {
+        eprintln!(
+            "error: HumanOnly: needs an interactive terminal (`project assets purge` is confirmed by typing \
+             `{PURGE_WORD}`; `--preview` lists the files without one); nothing was removed"
+        );
+        return 2;
+    }
     let Some(dir) = project_dir(a.project.as_ref()) else {
         return 2;
     };
+    // The confirmed origin is used only after the word is typed: nothing is submitted before.
     let origin = ew_api::Origin::Cli {
         subcommand: "project assets purge".to_owned(),
-        confirmed: false,
+        confirmed: !a.preview,
     };
-    let mut session = match open_for_writing(&dir, origin) {
+    let mut session = match open_for_writing_with(&dir, origin, store) {
         Ok(s) => s,
         Err(code) => return code,
     };
     let refused = |e: &ew_api::PurgeError| match e {
-        ew_api::PurgeError::Io { .. } | ew_api::PurgeError::Save(_) => 2,
+        ew_api::PurgeError::Io { .. } | ew_api::PurgeError::Save { .. } | ew_api::PurgeError::HumanOnly => 2,
         _ => 1,
     };
     let plan = match session.purge_preview() {
@@ -1214,10 +1259,14 @@ fn run_assets_purge(a: &AssetsPurgeArgs) -> i32 {
             return refused(&e);
         }
     };
-    for f in &plan.remove {
-        println!("remove {} ({} bytes)", f.path.as_str(), f.len);
-    }
+    let listing: String = plan
+        .remove
+        .iter()
+        .map(|f| format!("remove {} ({} bytes)\n", f.path.as_str(), f.len))
+        .collect();
     let verb = if a.preview { "would remove" } else { "removes" };
+    let _ = output.write_all(listing.as_bytes());
+    let _ = output.flush();
     eprintln!(
         "purge: {verb} {} asset file(s), {} bytes; {} kept (named)",
         plan.remove.len(),
@@ -1228,9 +1277,27 @@ fn run_assets_purge(a: &AssetsPurgeArgs) -> i32 {
         session.close();
         return 0;
     }
+    let prompt = format!(
+        "Deleted asset files do not come back by undo. Type `{PURGE_WORD}` to delete the {} file(s) above, anything \
+         else to abort: ",
+        plan.remove.len()
+    );
+    let mut answer = String::new();
+    let confirmed = output
+        .write_all(prompt.as_bytes())
+        .and_then(|()| output.flush())
+        .is_ok()
+        && input.read_line(&mut answer).is_ok()
+        && answer.trim() == PURGE_WORD;
+    if !confirmed {
+        eprintln!("error: not confirmed; nothing was removed");
+        session.close();
+        return 1;
+    }
     let code = match session.purge_assets(Some(&plan.hashes())) {
         Ok((done, report)) => {
-            println!(
+            let _ = writeln!(
+                output,
                 "removed {} asset file(s); generation {}",
                 done.remove.len(),
                 report.generation
@@ -2028,5 +2095,102 @@ mod assets_purge_tests {
         assert!(parse(&["project", "assets", "purge", "a", "b"]).is_err());
         assert!(parse(&["project", "assets", "purge", "--yes"]).is_err());
         assert!(parse(&["project", "assets"]).is_err());
+    }
+
+    /// A saved project in a fresh directory whose first logo's asset file nothing names any more (the logo was
+    /// replaced and saved, and the session that did it is closed).
+    fn project_with_an_unnamed_asset(tag: &str) -> PathBuf {
+        let n = std::process::id();
+        let dir = std::env::temp_dir().join(format!("ew-cli-purge-{tag}-{n}"));
+        let _ = std::fs::remove_dir_all(&dir);
+        let project = serde_json::from_str(
+            r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1"}"#,
+        )
+        .unwrap();
+        let mut session =
+            ew_api::Session::from_records(project, [], [], ew_api::SessionOptions::default()).unwrap();
+        session.create(&dir, store()).unwrap();
+        for logo in [
+            &br#"<svg viewBox="0 0 8 2"><rect width="8" height="2"/></svg>"#[..],
+            &br#"<svg viewBox="0 0 3 3"><circle r="1"/></svg>"#[..],
+        ] {
+            let cmd = ew_api::AnyCommand {
+                name: "project.company.set".into(),
+                params: serde_json::json!({ "logo": ew_api::base64_encode(logo) }),
+            };
+            let p = session.preview(&cmd).unwrap();
+            session.commit(p).unwrap();
+            session.save().unwrap();
+        }
+        session.close();
+        dir
+    }
+
+    fn store() -> ew_api::StoreOptions {
+        let mut o = ew_api::StoreOptions::new("test");
+        o.state_dir = None;
+        o
+    }
+
+    fn assets(dir: &Path) -> usize {
+        std::fs::read_dir(dir.join("assets")).unwrap().count()
+    }
+
+    /// Runs the subcommand on `dir` with `terminal` and the typed `answer`; the exit code and what it printed.
+    fn purge(dir: &Path, preview: bool, terminal: bool, answer: &str) -> (i32, String) {
+        let args = AssetsPurgeArgs {
+            project: Some(dir.to_path_buf()),
+            preview,
+        };
+        let mut input = std::io::Cursor::new(answer.as_bytes().to_vec());
+        let mut output = Vec::new();
+        let code = run_assets_purge_with(&args, terminal, &mut input, &mut output, store());
+        (code, String::from_utf8(output).unwrap())
+    }
+
+    /// Owner ruling (2026-10-23): the purge is human-only. Each path: the preview (no terminal needed, nothing
+    /// changes), off a terminal (exit 2, nothing deleted), a wrong word (exit 1, nothing deleted), the typed word
+    /// (exit 0, the listed file deleted after the list was shown).
+    #[test]
+    fn the_purge_needs_the_typed_word_on_a_terminal() {
+        let dir = project_with_an_unnamed_asset("typed");
+        assert_eq!(assets(&dir), 2);
+
+        let (code, shown) = purge(&dir, true, false, "");
+        assert_eq!(code, 0);
+        assert!(
+            shown.starts_with("remove assets/") && shown.lines().count() == 1,
+            "{shown}"
+        );
+        assert_eq!(assets(&dir), 2, "the preview changes nothing");
+
+        let (code, shown) = purge(&dir, false, false, "purge\n");
+        assert_eq!(code, 2, "off a terminal");
+        assert!(shown.is_empty(), "{shown}");
+        assert_eq!(assets(&dir), 2);
+
+        for wrong in ["", "\n", "y\n", "yes\n", "Purge\n", "purge it\n"] {
+            let (code, shown) = purge(&dir, false, true, wrong);
+            assert_eq!(code, 1, "{wrong:?} must abort");
+            assert!(
+                shown.contains("remove assets/"),
+                "the list comes before the prompt: {shown}"
+            );
+            assert!(
+                shown.contains("Type `purge` to delete the 1 file(s) above"),
+                "{shown}"
+            );
+            assert_eq!(assets(&dir), 2, "{wrong:?}: nothing is deleted");
+        }
+
+        let (code, shown) = purge(&dir, false, true, "  purge \r\n");
+        assert_eq!(code, 0, "{shown}");
+        assert!(shown.contains("removed 1 asset file(s)"), "{shown}");
+        assert_eq!(assets(&dir), 1);
+        // Nothing left: no prompt.
+        let (code, shown) = purge(&dir, false, true, "");
+        assert_eq!(code, 0);
+        assert!(!shown.contains("Type `purge`"), "{shown}");
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

@@ -292,7 +292,7 @@
       "aliases": [],
       "confirmation": "destructive",
       "cost": "bulk",
-      "exposure": "edit",
+      "exposure": "human_only",
       "name": "project.assets.purge",
       "params_version": 1,
       "schema": "project.assets.purge.schema.json",

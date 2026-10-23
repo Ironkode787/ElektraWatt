@@ -92,9 +92,17 @@ pub enum PurgeError {
         /// The error.
         error: io::Error,
     },
-    /// The save that removes the files failed ([`SaveError::Incomplete`] above the old generation: the removal is
-    /// decided and completes by roll-forward).
-    Save(SaveError),
+    /// The save that removes the files failed ([`SaveError::Incomplete`] above the old generation: the removal of
+    /// `plan`'s files is decided and completes by roll-forward).
+    Save {
+        /// The save's error.
+        error: SaveError,
+        /// The files the save was to remove.
+        plan: PurgePlan,
+    },
+    /// The purge is human-only (`project.assets.purge` is `HumanOnly`, owner ruling 2026-10-23) and the session's
+    /// origin is not a human's: the GUI, or `ew project assets purge` confirmed on a terminal. Nothing was removed.
+    HumanOnly,
 }
 
 impl fmt::Display for PurgeError {
@@ -122,7 +130,11 @@ impl fmt::Display for PurgeError {
             PurgeError::Io { path, error } => {
                 write!(f, "cannot read {path} ({error}); nothing was removed")
             }
-            PurgeError::Save(e) => e.fmt(f),
+            PurgeError::Save { error, .. } => error.fmt(f),
+            PurgeError::HumanOnly => f.write_str(
+                "the purge is human-only: confirm it in ElektraWatt or with `ew project assets purge` on a terminal; \
+                 nothing was removed",
+            ),
         }
     }
 }
@@ -286,9 +298,9 @@ impl Store {
             ));
         }
         let drop: BTreeSet<FilePath> = plan.remove.iter().map(|f| f.path.clone()).collect();
-        let report = self
-            .save_with(model, Changes::Keys(&BTreeSet::new()), &drop)
-            .map_err(PurgeError::Save)?;
-        Ok((plan, report))
+        match self.save_with(model, Changes::Keys(&BTreeSet::new()), &drop) {
+            Ok(report) => Ok((plan, report)),
+            Err(error) => Err(PurgeError::Save { error, plan }),
+        }
     }
 }

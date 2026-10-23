@@ -24,7 +24,10 @@ purge, the marker is recorded).
   command is refused (nothing deleted) when one of them is no longer purgeable (named again, already gone): the
   commit then never deletes a file the preview did not show. Absent: every purgeable file at the commit.
 
-The outcome's notices name the listed hashes. Exposure `Edit`.
+The outcome's notices name the listed hashes. Exposure `HumanOnly` (ADR-0008 amendment 3; owner ruling,
+2026-10-23): a confirmation is metadata only, so a command log, a script, MCP or a plugin could otherwise delete
+files unattended; the purge is reachable from the GUI's confirmed step and from `ew project assets purge`, which
+asks for a typed word on a terminal.
 
 ## Registry entry
 
@@ -34,7 +37,7 @@ The outcome's notices name the listed hashes. Exposure `Edit`.
 | Parameters version | 1 |
 | Cost | bulk |
 | Undoable | no |
-| Exposure | edit |
+| Exposure | human_only |
 | Stability | preview |
 | Confirmation | destructive |
 | Aliases | none |
@@ -59,3 +62,5 @@ A command runs as one line of a command log replayed by `ew apply` ([doc 17 §3.
 The codes of every subcommand are in [doc 17 §3.2](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md#32-exit-codes).
 
 This is a bulk command: a log line runs it as a preview first and commits the previewed result ([doc 17 §3.5](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md#35-command-logs-ewcmd)).
+
+Exposure class `human_only`: [doc 17 §2.3](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md#23-origins-and-exposure-classes) says whether a command log may run it.
