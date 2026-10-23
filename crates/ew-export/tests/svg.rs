@@ -417,3 +417,42 @@ fn ten_thousand_paths_are_written() {
     assert_eq!(count(&doc, "<path"), 10_000);
     assert!(doc.ends_with("</svg>\n"));
 }
+
+fn image_item(sha: u8, format: ew_dl::ImageFormat, bytes: &[u8]) -> Item {
+    Item::image(
+        Arc::new(ew_dl::ImageData {
+            sha256: [sha; 32],
+            format,
+            bytes: Arc::from(bytes),
+        }),
+        Rect::from_points(mm(10, 20), mm(50, 30)),
+    )
+}
+
+/// FT-384: PNG and JPEG images are written as `<image>` elements with their bytes embedded in base64, stretched over
+/// their rectangle; an image without bytes, an SVG image (which reaches the writer as paths) and bytes whose magic
+/// number is not their format's are counted as skipped.
+#[test]
+fn png_and_jpeg_images_are_embedded() {
+    let png = b"\x89PNG\r\n\x1a\nrest";
+    let jpeg = [0xff, 0xd8, 0xff, 0xe0, 1, 2];
+    let (doc, report) = one(
+        vec![
+            image_item(1, ew_dl::ImageFormat::Png, png),
+            image_item(2, ew_dl::ImageFormat::Jpeg, &jpeg),
+            image_item(3, ew_dl::ImageFormat::Png, &[]),
+            image_item(4, ew_dl::ImageFormat::Svg, b"<svg/>"),
+            image_item(5, ew_dl::ImageFormat::Jpeg, png),
+        ],
+        &options(),
+    );
+    assert_eq!((report.images, report.skipped_images), (2, 3));
+    assert!(
+        doc.contains(
+            "<image x=\"10\" y=\"20\" width=\"40\" height=\"10\" preserveAspectRatio=\"none\" href=\"data:image/png;base64,iVBORw0KGgpyZXN0\"/>"
+        ),
+        "{doc}"
+    );
+    assert!(doc.contains("href=\"data:image/jpeg;base64,/9j/4AEC\""), "{doc}");
+    assert_eq!(count(&doc, "<image "), 2);
+}

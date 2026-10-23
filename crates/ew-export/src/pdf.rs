@@ -184,7 +184,9 @@ impl PdfOptions {
 pub struct PdfReport {
     /// Fonts the resolver did not have; their runs were not drawn.
     pub missing_fonts: Vec<FontKey>,
-    /// Images not drawn yet.
+    /// Images not drawn. An SVG asset reaches the writer as paths (FT-384); a PNG or JPEG image is not embedded
+    /// yet: krilla's image support is its `raster-images` feature, which brings decoders this crate does not
+    /// depend on (a dependency decision of FT-384, open).
     pub skipped_images: usize,
     /// Symbol instances the resolver could not resolve.
     pub unresolved_instances: usize,

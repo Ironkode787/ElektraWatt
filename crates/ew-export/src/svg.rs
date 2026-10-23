@@ -35,8 +35,8 @@ use std::fmt::{self, Write as _};
 
 use ew_dl::ew_units::{Nm, Pt2};
 use ew_dl::{
-    Brush, Cap, Destination, DisplayList, FontKey, GeometryResolver, Item, ItemKind, Join, Link,
-    MAX_INSTANCE_DEPTH, MITER_LIMIT, PathEl, ShapedRun, Stroke, Transform,
+    Brush, Cap, Destination, DisplayList, FontKey, GeometryResolver, ImageFormat, ImageItem, Item, ItemKind,
+    Join, Link, MAX_INSTANCE_DEPTH, MITER_LIMIT, PathEl, ShapedRun, Stroke, Transform,
 };
 use ew_render_cpu::monochrome;
 
@@ -85,7 +85,10 @@ pub struct SvgReport {
     pub missing_fonts: Vec<FontKey>,
     /// `.notdef` glyphs dropped.
     pub dropped_notdef_glyphs: usize,
-    /// Images not drawn yet.
+    /// Images written: PNG and JPEG as `<image>` elements with their bytes embedded (FT-384).
+    pub images: usize,
+    /// Images not drawn: without bytes, of another format (an SVG asset reaches the writer as paths), or with bytes
+    /// whose magic number is not their format's.
     pub skipped_images: usize,
     /// Symbol instances the resolver could not resolve.
     pub unresolved_instances: usize,
@@ -100,6 +103,7 @@ impl SvgReport {
         self.missing_fonts.sort();
         self.missing_fonts.dedup();
         self.dropped_notdef_glyphs += o.dropped_notdef_glyphs;
+        self.images += o.images;
         self.skipped_images += o.skipped_images;
         self.unresolved_instances += o.unresolved_instances;
     }
@@ -333,10 +337,7 @@ impl PageWriter<'_> {
         let drawn = match &item.kind {
             ItemKind::Path(p) => self.path(&p.path.els, p.stroke.as_ref(), p.fill, &id, link.is_some()),
             ItemKind::Glyphs(run) => self.glyphs(run, &id),
-            ItemKind::Image(_) => {
-                self.report.skipped_images += 1;
-                false
-            }
+            ItemKind::Image(img) => self.image(img, &id),
             ItemKind::Instance(inst) => {
                 let geom = (depth < MAX_INSTANCE_DEPTH)
                     .then(|| self.ctx.geometry.and_then(|g| g.geometry(inst.symbol)))
@@ -577,6 +578,56 @@ fn transform_attr(t: Transform) -> String {
         mm(t.translate.x),
         mm(t.translate.y)
     )
+}
+
+impl PageWriter<'_> {
+    /// A PNG or JPEG image as an `<image>` stretched over its rectangle, its bytes embedded as a `data:` URL in base64
+    /// (the file stays self-contained, as the pages' fonts are); anything else is counted as skipped.
+    fn image(&mut self, img: &ImageItem, id: &str) -> bool {
+        let bytes = &img.image.bytes;
+        let mime = match img.image.format {
+            ImageFormat::Png if bytes.starts_with(b"\x89PNG\r\n\x1a\n") => "image/png",
+            ImageFormat::Jpeg if bytes.starts_with(&[0xff, 0xd8, 0xff]) => "image/jpeg",
+            _ => {
+                self.report.skipped_images += 1;
+                return false;
+            }
+        };
+        let r = img.rect;
+        let _ = writeln!(
+            self.out,
+            "<image{id} x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" preserveAspectRatio=\"none\" href=\"data:{mime};base64,{}\"/>",
+            mm(r.min().x),
+            mm(r.min().y),
+            mm(r.max().x - r.min().x),
+            mm(r.max().y - r.min().y),
+            base64(bytes)
+        );
+        self.report.images += 1;
+        true
+    }
+}
+
+/// Base64 of `bytes` (RFC 4648 section 4: the standard alphabet, padded, no line breaks).
+fn base64(bytes: &[u8]) -> String {
+    const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = String::with_capacity(bytes.len().div_ceil(3) * 4);
+    for chunk in bytes.chunks(3) {
+        let b = [
+            chunk[0],
+            chunk.get(1).copied().unwrap_or(0),
+            chunk.get(2).copied().unwrap_or(0),
+        ];
+        let n = (u32::from(b[0]) << 16) | (u32::from(b[1]) << 8) | u32::from(b[2]);
+        for (i, shift) in [18u32, 12, 6, 0].into_iter().enumerate() {
+            if i <= chunk.len() {
+                out.push(char::from(ALPHABET[((n >> shift) & 63) as usize]));
+            } else {
+                out.push('=');
+            }
+        }
+    }
+    out
 }
 
 /// A point as `x y` in mm.

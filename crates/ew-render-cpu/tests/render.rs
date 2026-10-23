@@ -404,22 +404,67 @@ fn cyclic_instances_terminate() {
     assert_eq!(report.unresolved_instances, 1);
 }
 
+/// A PNG of `w × h` RGBA pixels (synthetic).
+fn png_bytes(w: u32, h: u32, rgba: &[u8]) -> Vec<u8> {
+    let mut out = Vec::new();
+    let mut enc = png::Encoder::new(&mut out, w, h);
+    enc.set_color(png::ColorType::Rgba);
+    enc.set_depth(png::BitDepth::Eight);
+    let mut writer = enc.write_header().unwrap();
+    writer.write_image_data(rgba).unwrap();
+    writer.finish().unwrap();
+    out
+}
+
+fn image_item(sha: u8, format: ew_dl::ImageFormat, bytes: &[u8]) -> Item {
+    Item::image(
+        Arc::new(ew_dl::ImageData {
+            sha256: [sha; 32],
+            format,
+            bytes: Arc::from(bytes),
+        }),
+        Rect::from_points(mm(10, 10), mm(50, 50)),
+    )
+}
+
+/// FT-384: a PNG image is decoded and stretched over its rectangle (a 2 × 1 image: red left, blue right); a JPEG (no
+/// decoder in this renderer's graph), an image without bytes and bytes that do not decode are counted, not drawn.
 #[test]
-fn images_are_counted_not_drawn() {
-    let image = ew_dl::ImageData {
-        sha256: [1; 32],
-        format: ew_dl::ImageFormat::Png,
-        bytes: Arc::from(&b"\x89PNG"[..]),
-    };
+fn png_images_are_drawn_and_the_rest_counted() {
+    let png = png_bytes(2, 1, &[255, 0, 0, 255, 0, 0, 255, 255]);
     let list = DisplayList {
-        items: vec![Item::image(
-            Arc::new(image),
-            Rect::from_points(mm(10, 10), mm(50, 50)),
-        )],
+        items: vec![image_item(1, ew_dl::ImageFormat::Png, &png)],
     };
     let (img, report) = render_a4(&list, 72);
-    assert_eq!(report.skipped_images, 1);
-    assert_eq!(pixel(&img, 50, 50), [255, 255, 255, 255]);
+    assert_eq!(report.skipped_images, 0);
+    // 10 mm to 50 mm at 72 dpi: pixels 28 to 142; the halves meet at 85.
+    assert_eq!(pixel(&img, 50, 80), [255, 0, 0, 255], "the left pixel");
+    assert_eq!(pixel(&img, 120, 80), [0, 0, 255, 255], "the right pixel");
+    assert_eq!(pixel(&img, 20, 80), [255, 255, 255, 255], "outside the rectangle");
+    assert_eq!(pixel(&img, 50, 150), [255, 255, 255, 255], "below the rectangle");
+    for (format, bytes) in [
+        (ew_dl::ImageFormat::Jpeg, &[0xff, 0xd8, 0xff, 0xe0][..]),
+        (ew_dl::ImageFormat::Png, &[][..]),
+        (
+            ew_dl::ImageFormat::Png,
+            &[0x89, 0x50, 0x4e, 0x47, 13, 10, 0x1a, 10, 0x78][..],
+        ),
+    ] {
+        let list = DisplayList {
+            items: vec![image_item(2, format, bytes)],
+        };
+        let (img, report) = render_a4(&list, 72);
+        assert_eq!(report.skipped_images, 1, "{format:?}");
+        assert_eq!(pixel(&img, 50, 80), [255, 255, 255, 255]);
+    }
+    // A PNG larger than the pixel bound is skipped (its header alone says so).
+    let mut huge = png_bytes(1, 1, &[0, 0, 0, 255]);
+    huge[16..20].copy_from_slice(&5_000u32.to_be_bytes());
+    huge[20..24].copy_from_slice(&5_000u32.to_be_bytes());
+    let list = DisplayList {
+        items: vec![image_item(3, ew_dl::ImageFormat::Png, &huge)],
+    };
+    assert_eq!(render_a4(&list, 72).1.skipped_images, 1);
 }
 
 #[test]

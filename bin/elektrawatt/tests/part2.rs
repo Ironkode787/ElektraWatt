@@ -630,3 +630,101 @@ fn bin_exe() -> std::path::PathBuf {
         .map(std::path::PathBuf::from)
         .unwrap_or_else(|| std::path::PathBuf::from(env!("CARGO_BIN_EXE_elektrawatt"))) // bin-exe-fallback
 }
+
+/// FT-384: the company logo is visible on the cover. The wizard's preview of the cover (the sample's folio 1 with the
+/// draft applied, rendered through the page view's CPU path) shows an SVG logo as dark vector paths and a PNG logo as
+/// its pixels in the title block, where the cover without a logo is light; the project the wizard writes and a new
+/// project made from it print the logo on folio 1 too. Placeholder logos only (a black rectangle, a red PNG).
+#[test]
+fn the_company_logo_is_visible_on_the_cover() {
+    let tmp = Tmp::new();
+    let svg = tmp.path("logo.svg");
+    std::fs::write(
+        &svg,
+        br#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 10"><rect width="40" height="10"/></svg>"#,
+    )
+    .unwrap();
+    let png = tmp.path("logo.png");
+    {
+        let mut bytes = Vec::new();
+        let mut enc = png::Encoder::new(&mut bytes, 8, 2);
+        enc.set_color(png::ColorType::Rgba);
+        enc.set_depth(png::BitDepth::Eight);
+        let mut w = enc.write_header().unwrap();
+        w.write_image_data(&[255, 0, 0, 255].repeat(16)).unwrap();
+        w.finish().unwrap();
+        std::fs::write(&png, bytes).unwrap();
+    }
+    let basic = tmp.path("logo-company.ew");
+    let job = tmp.path("job.ew");
+    let (with_svg, with_png, job_cover) = (
+        tmp.path("cover-svg.png"),
+        tmp.path("cover-png.png"),
+        tmp.path("job-1.png"),
+    );
+    run_ok(
+        &tmp,
+        &[
+            ("tools.company_standard", json!({})),
+            (
+                "wizard.set",
+                json!({"field": "company_logo", "value": path(&svg)}),
+            ),
+            ("wizard.set", json!({"field": "preview", "value": "cover"})),
+            ("view.snapshot", json!({"path": path(&with_svg), "dpi": 150})),
+            (
+                "wizard.set",
+                json!({"field": "company_logo", "value": path(&png)}),
+            ),
+            ("view.snapshot", json!({"path": path(&with_png), "dpi": 150})),
+            (
+                "wizard.set",
+                json!({"field": "company_logo", "value": path(&svg)}),
+            ),
+            ("wizard.goto", json!({"step": 9})),
+            ("wizard.finish", json!({ "dir": path(&basic) })),
+            ("wizard.cancel", json!({})),
+            ("file.new", json!({ "dir": path(&job) })),
+            ("page.first", json!({})),
+            ("view.snapshot", json!({"path": path(&job_cover), "dpi": 150})),
+        ],
+    );
+    let committed = std::fs::read(Path::new(EXPECTED).join("png/1.png")).unwrap();
+    let (_, _, plain) = decode_rgba(&committed);
+    let newly = |file: &Path, hit: &dyn Fn(&[u8]) -> bool| -> usize {
+        let (_, _, img) = decode_rgba(&std::fs::read(file).unwrap());
+        assert_eq!(img.len(), plain.len(), "{}: the cover's size", file.display());
+        img.as_chunks::<4>()
+            .0
+            .iter()
+            .zip(plain.as_chunks::<4>().0)
+            .filter(|(p, q)| hit(&p[..]) && q[..3].iter().all(|c| *c > 200))
+            .count()
+    };
+    let dark = |p: &[u8]| p[..3].iter().all(|c| *c < 80);
+    let red = |p: &[u8]| p[0] > 200 && p[1] < 60 && p[2] < 60;
+    let svg_pixels = newly(&with_svg, &dark);
+    assert!(
+        svg_pixels > 300,
+        "the SVG logo on the preview's cover: {svg_pixels} dark pixels"
+    );
+    let png_pixels = newly(&with_png, &red);
+    assert!(
+        png_pixels > 300,
+        "the PNG logo on the preview's cover: {png_pixels} red pixels"
+    );
+    // The new project's folio 1 differs from the sample's cover elsewhere, so its logo is looked for where the
+    // preview drew it: the pixels the SVG logo darkened are dark there too.
+    let (width, _, svg_img) = decode_rgba(&std::fs::read(&with_svg).unwrap());
+    let (_, _, job_img) = decode_rgba(&std::fs::read(&job_cover).unwrap());
+    let logo: Vec<usize> = (0..plain.len() / 4)
+        .filter(|&k| dark(&svg_img[4 * k..4 * k + 4]) && plain[4 * k..4 * k + 3].iter().all(|c| *c > 200))
+        .collect();
+    assert!(width > 0);
+    let job_pixels = logo.iter().filter(|&&k| dark(&job_img[4 * k..4 * k + 4])).count();
+    assert!(
+        job_pixels * 10 >= logo.len() * 9,
+        "the logo on folio 1 of a new project from the basic project: {job_pixels} of {} pixels",
+        logo.len()
+    );
+}
