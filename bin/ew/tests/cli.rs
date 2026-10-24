@@ -1470,6 +1470,8 @@ fn the_page_item_commands_replay_through_ew_apply() {
     let saved_tables = saved.page_tables("101").unwrap();
     assert_eq!(saved_tables.items.len(), 3);
     assert_eq!(saved_tables.structure_boxes.len(), 1);
+}
+
 const GOLDEN_PARTS: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../../golden/J-E-2416/tables/parts.csv"
