@@ -36,6 +36,14 @@ fn inputs(dir: &str) -> Vec<(String, Vec<u8>)> {
 fn the_loader_seeds_pass_and_reach_the_round_trip() {
     let seeds = inputs("corpus/jsonl_loader");
     assert!(seeds.len() >= 8, "the loader's seed corpus is missing");
+    // WP-S2.04 part 4a: the page items and the structure box read typed (an unknown variant verbatim) and
+    // round-trip.
+    let items = seeds
+        .iter()
+        .find(|(n, _)| n == "page-items")
+        .map(|(_, b)| loader::check(b))
+        .expect("the page-items seed");
+    assert!(items.round_tripped && items.valid, "{items:?}");
     let mut round_tripped = 0;
     let mut valid = 0;
     for (name, bytes) in &seeds {

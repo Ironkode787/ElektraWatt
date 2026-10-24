@@ -113,6 +113,86 @@ fn loader_seeds(dir: &Path) {
             None,
         ),
     );
+    // WP-S2.04 part 4a: the smallest page with page items of every typed variant, a variant kept verbatim and a
+    // structure box appended in line order (the page items, rank 43, then the box, rank 44, after the page's own
+    // records), next to the project and the structure.
+    let page_path = smallest("pages/");
+    let page_bytes = file(page_path);
+    let page_id = page_path
+        .trim_start_matches("pages/")
+        .trim_end_matches(".jsonl")
+        .to_owned();
+    // Line order (doc 05 §3.3): the items and the box go after the records of lower rank and before the page's
+    // embedded report blocks (rank 45) and anything ranked after them.
+    let later = |line: &[u8]| {
+        let k = serde_json::from_slice::<serde_json::Value>(line)
+            .ok()
+            .and_then(|v| v.get("$k").and_then(|k| k.as_str().map(str::to_owned)));
+        matches!(
+            k.as_deref(),
+            Some("report_block" | "macro_instance" | "placeholder_group")
+        )
+    };
+    let lines: Vec<&[u8]> = page_bytes
+        .split(|b| *b == b'\n')
+        .filter(|l| !l.is_empty())
+        .collect();
+    let mut with_items = Vec::new();
+    for line in lines.iter().filter(|l| !later(l)) {
+        with_items.extend_from_slice(line);
+        with_items.push(b'\n');
+    }
+    for line in page_item_lines(&page_id) {
+        with_items.extend_from_slice(line.as_bytes());
+        with_items.push(b'\n');
+    }
+    for line in lines.iter().filter(|l| later(l)) {
+        with_items.extend_from_slice(line);
+        with_items.push(b'\n');
+    }
+    write(
+        dir,
+        "page-items",
+        &loader::encode(
+            computed,
+            &[
+                ("project.jsonl", file("project.jsonl")),
+                ("structure.jsonl", file("structure.jsonl")),
+                (page_path, &with_items),
+            ],
+            None,
+        ),
+    );
+}
+
+/// The page items and the structure box of the `page-items` seed, in line order, on page `page`.
+fn page_item_lines(page: &str) -> Vec<String> {
+    let item = |n: u8, kind: &str| {
+        format!(
+            r#"{{"$k":"page_item","id":"5a0c1e2d-3b4f-5a61-8000-0000000000{n:02x}","page":"{page}","kind":{kind}}}"#
+        )
+    };
+    vec![
+        item(
+            1,
+            r#"{"graphic":{"shape":{"polyline":{"points":[[0,0],[1000000,0],[1000000,2000000]]}},"dash":"dashed"}}"#,
+        ),
+        item(
+            2,
+            r#"{"free_text":{"text":"40x60","at":[50800000,30480000],"angle":90000}}"#,
+        ),
+        item(
+            3,
+            r#"{"free_text":{"bind":"page.folio","at":[10000000,10000000],"align":"right"}}"#,
+        ),
+        item(
+            4,
+            r#"{"macro_box":{"key":"m1","outline":[[0,0],[1000000,0],[1000000,1000000]]}}"#,
+        ),
+        format!(
+            r#"{{"$k":"structure_box","id":"5a0c1e2d-3b4f-5a61-8000-000000000005","page":"{page}","outline":[[0,0],[60000000,0],[60000000,30000000],[0,30000000]],"style":"dash_dot","caption":"Box","assigns":{{}}}}"#
+        ),
+    ]
 }
 
 fn open_path_seeds(dir: &Path) {
