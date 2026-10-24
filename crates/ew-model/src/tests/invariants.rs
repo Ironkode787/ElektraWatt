@@ -1122,7 +1122,7 @@ fn every_catalogue_rule_has_a_test() {
     let catalogue = include_str!("../../invariants.md");
     let invariant_tests = include_str!("invariants.rs");
     let ops_tests = include_str!("ops.rs");
-    assert_eq!(RULES.len(), 23);
+    assert_eq!(RULES.len(), 25);
     for rule in RULES {
         let names = catalogue_tests(catalogue, rule.id);
         assert!(!names.is_empty(), "{} names no tests in invariants.md", rule.id);
@@ -1151,4 +1151,137 @@ fn every_catalogue_rule_has_a_test() {
             rule.id
         );
     }
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// EW-INV-022 and EW-INV-023 (WP-S2.04 part 4a, ADR-0009 amendment 8)
+
+/// A graphic and a structure box on an existing page are accepted.
+#[test]
+fn inv022_items_and_boxes_on_their_page_ok() {
+    let m = mini_golden();
+    let ops = [
+        ins(super::fixture::graphic_line(nid(0x43_000), PAGE_101)),
+        ins(super::fixture::structure_box(
+            nid(0x44_000),
+            PAGE_101,
+            Some(LOC),
+            None,
+        )),
+    ];
+    assert!(edit(&m, &ops).is_ok());
+}
+
+/// A page item or a structure box on a page that does not exist is rejected, through the page link of EW-INV-001.
+#[test]
+fn inv022_item_on_missing_page_rejected() {
+    let m = mini_golden();
+    rejected_by(
+        edit(&m, &[ins(super::fixture::graphic_line(nid(0x43_000), nid(0x39)))]),
+        crate::REFS_RESOLVE,
+    );
+    rejected_by(
+        edit(
+            &m,
+            &[ins(super::fixture::structure_box(
+                nid(0x44_000),
+                nid(0x39),
+                None,
+                None,
+            ))],
+        ),
+        crate::REFS_RESOLVE,
+    );
+}
+
+/// A wire marker listing connections of its own page is accepted.
+#[test]
+fn inv023_marker_on_its_page_ok() {
+    let m = mini_golden();
+    let marker = super::fixture::wire_marker(nid(0x43_000), PAGE_102, vec![CON_W22, CON_W27]);
+    assert!(edit(&m, &[ins(marker)]).is_ok());
+}
+
+/// A wire marker listing a connection that does not exist is rejected.
+#[test]
+fn inv023_missing_connection_rejected() {
+    let m = mini_golden();
+    let marker = super::fixture::wire_marker(nid(0x43_000), PAGE_102, vec![CON_W22, nid(0x4ff)]);
+    rejected_by(edit(&m, &[ins(marker)]), crate::MARKER_CONNECTIONS);
+}
+
+/// A wire marker listing a connection of another page is rejected.
+#[test]
+fn inv023_connection_on_another_page_rejected() {
+    let m = mini_golden();
+    let marker = super::fixture::wire_marker(nid(0x43_000), PAGE_101, vec![CON_W22]);
+    rejected_by(edit(&m, &[ins(marker)]), crate::MARKER_CONNECTIONS);
+}
+
+/// A connection moved to another page while a marker lists it is rejected.
+#[test]
+fn inv023_connection_moved_off_its_page_rejected() {
+    let m = mini_golden();
+    let marker = super::fixture::wire_marker(nid(0x43_000), PAGE_102, vec![CON_W22]);
+    let m = edit(&m, &[ins(marker)]).expect("a marker");
+    let op = upd(&m, CON_W22, |c: &mut Connection| c.page = Some(PAGE_101));
+    rejected_by(edit(&m, &[op]), crate::MARKER_CONNECTIONS);
+}
+
+/// A project whose wire marker lists a deleted connection and one of another page (an older build kept the record
+/// verbatim) loads: the integrity check does not judge the list (a load finding reports it); an edit that keeps the
+/// stale entries and one that drops them both commit, and so do their undo and redo.
+#[test]
+fn inv023_stale_list_loads_and_edits_keep_it_ok() {
+    let mut records: Vec<Record> = Vec::new();
+    let base = mini_golden();
+    let marker = super::fixture::wire_marker(nid(0x43_000), PAGE_102, vec![CON_W22, nid(0x4ff), CON_W11A_ID]);
+    records.push(Record::PageItem(marker.clone()));
+    let m = reload_with(&base, records);
+    let moved = upd(&m, marker.id, |i: &mut ew_schema::PageItem| {
+        if let ew_schema::PageItemKind::WireMarker(w) = &mut i.kind {
+            w.at = ew_units::Pt2::new(ew_units::Nm(0), ew_units::Nm(0));
+        }
+    });
+    let m1 = edit(&m, std::slice::from_ref(&moved)).expect("an edit that keeps the stale entries");
+    let undone = m1
+        .apply_history(&invert_batch(&[moved]), m1.rev().next())
+        .expect("undo");
+    assert!(undone.content_eq(&m));
+    let cleaned = upd(&m, marker.id, |i: &mut ew_schema::PageItem| {
+        if let ew_schema::PageItemKind::WireMarker(w) = &mut i.kind {
+            w.connections = vec![CON_W22];
+        }
+    });
+    let m2 = edit(&m, std::slice::from_ref(&cleaned)).expect("an edit that writes a clean list");
+    assert!(
+        m2.apply_history(&invert_batch(&[cleaned]), m2.rev().next())
+            .is_ok(),
+        "undo restores the stale list"
+    );
+}
+
+/// An edit that adds a stale entry to a list is rejected, also when the list held stale entries already.
+#[test]
+fn inv023_added_stale_entry_rejected() {
+    let base = mini_golden();
+    let marker = super::fixture::wire_marker(nid(0x43_000), PAGE_102, vec![CON_W22, nid(0x4ff)]);
+    let m = reload_with(&base, vec![Record::PageItem(marker.clone())]);
+    let op = upd(&m, marker.id, |i: &mut ew_schema::PageItem| {
+        if let ew_schema::PageItemKind::WireMarker(w) = &mut i.kind {
+            w.connections.push(nid(0x4fe));
+        }
+    });
+    rejected_by(edit(&m, &[op]), crate::MARKER_CONNECTIONS);
+}
+
+/// The ID of `CON_W11A`, a connection of page 101.
+const CON_W11A_ID: Id<Connection> = super::fixture::CON_W11A;
+
+/// The mini golden project plus `extra` records, loaded through `Model::from_records` (the integrity check of an
+/// open).
+fn reload_with(_base: &Model, extra: Vec<Record>) -> Model {
+    let (project, mut records, lib) = super::fixture::mini_golden_parts();
+    records.extend(extra);
+    Model::from_records(project, records, lib).expect("a stale list is not an integrity violation")
 }

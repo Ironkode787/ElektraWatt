@@ -10,8 +10,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use ew_ids::Id;
 use ew_schema::{
-    Connection, Device, FnRole, Function, FunctionKind, Junction, Kind, Representation, Revision,
-    RevisionState, StructureNode,
+    Connection, Device, FnRole, Function, FunctionKind, Junction, Kind, PageItem, PageItemKind,
+    Representation, Revision, RevisionState, StructureNode,
 };
 
 use crate::entity::{AnyKey, AnyRow, get_row, table_keys, typed};
@@ -95,6 +95,11 @@ pub const REVISION_IMMUTABLE: &str = "EW-INV-020";
 /// EW-INV-021 (delete-time): an edit does not remove an embedded library copy that a record names through a
 /// `LibRef` link.
 pub const LIB_REF_KEEP_ALIVE: &str = "EW-INV-021";
+/// EW-INV-022: the page of a page item or a structure box exists (WP-S2.04 part 4a, ADR-0009 amendment 8).
+pub const ITEM_PAGE_EXISTS: &str = "EW-INV-022";
+/// EW-INV-023: every connection a wire marker lists exists and lies on the marker's page (WP-S2.04 part 4a,
+/// ADR-0009 amendment 8).
+pub const MARKER_CONNECTIONS: &str = "EW-INV-023";
 
 /// The catalogue in evaluation order: the structural invariants, then the delete-time rule.
 pub static RULES: &[Rule] = &[
@@ -218,6 +223,22 @@ pub static RULES: &[Rule] = &[
                     (the undo of its creation), and an open revision may become Released",
     },
     Rule {
+        id: ITEM_PAGE_EXISTS,
+        class: RuleClass::Structural,
+        statement: "The page of a page item or a structure box exists: the cascade links page_item.page and \
+                    structure_box.page, reported through EW-INV-001; Model::delete_plan deletes a page's items and \
+                    boxes with it (FR-PAG-025)",
+    },
+    Rule {
+        id: MARKER_CONNECTIONS,
+        class: RuleClass::Structural,
+        statement: "Every connection a wire marker lists exists and lies on the marker's page. The edit path judges \
+                    the entries a batch adds to a marker's list and the markers of a connection whose page a batch \
+                    changes; a deleted connection leaves the list (unlink) and a marker left empty is deleted in \
+                    the same plan. A loaded file's stale entry is a load finding, not a violation (ADR-0009 \
+                    amendment 8), so neither the integrity check nor the history path judges the lists",
+    },
+    Rule {
         id: LIB_REF_KEEP_ALIVE,
         class: RuleClass::DeleteTime,
         statement: "An edit does not remove an embedded library copy that a record still names through a LibRef \
@@ -233,6 +254,8 @@ pub(crate) struct Scope {
     pub(crate) keys: BTreeSet<AnyKey>,
     /// The row of each touched key before the batch (`None`: it did not exist).
     pub(crate) before: BTreeMap<AnyKey, Option<AnyRow>>,
+    /// The batch is an edit ([`Model::apply_with`]): the rules that judge what an edit adds (EW-INV-023) run.
+    pub(crate) edit: bool,
 }
 
 impl Scope {
@@ -249,6 +272,7 @@ impl Scope {
         Scope {
             keys,
             before: BTreeMap::new(),
+            edit: false,
         }
     }
 
@@ -297,7 +321,9 @@ pub(crate) fn check(m: &Model, scope: &Scope) -> Result<(), ModelError> {
     revision_label_unique(m, scope)?;
     revision_four_eyes(m, scope)?;
     revision_page_note_unique(m, scope)?;
-    revision_immutable(m, scope)
+    revision_immutable(m, scope)?;
+    // EW-INV-022 is the page links' half of EW-INV-001 (above).
+    marker_connections(m, scope)
 }
 
 /// EW-INV-001 with the forbid policy.
@@ -313,7 +339,7 @@ fn refs_resolve(m: &Model, scope: &Scope) -> Result<(), ModelError> {
                 for (_, link) in links_from(key.0) {
                     for t in link.targets_of(&row) {
                         let target = (link.to, t.id());
-                        if get_row(m, &target).is_none() && !link.lib_ref {
+                        if get_row(m, &target).is_none() && !link.lib_ref && !link.load_tolerant {
                             return Err(violation(
                                 REFS_RESOLVE,
                                 format!(
@@ -990,6 +1016,95 @@ fn revision_immutable(m: &Model, scope: &Scope) -> Result<(), ModelError> {
                         before.id, before.label
                     ),
                     vec![*key],
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
+/// The connections a page item lists, when it is a wire marker.
+fn marker_list(item: &PageItem) -> Option<&[Id<Connection>]> {
+    match &item.kind {
+        PageItemKind::WireMarker(m) => Some(&m.connections),
+        _ => None,
+    }
+}
+
+/// EW-INV-023, on the edit path only (see [`MARKER_CONNECTIONS`]): for every touched wire marker, each entry the
+/// batch added (absent from the marker's row before the batch) names an existing connection on the marker's page;
+/// for every touched connection whose page the batch changed, every marker listing it is on its new page.
+fn marker_connections(m: &Model, scope: &Scope) -> Result<(), ModelError> {
+    if !scope.edit {
+        return Ok(());
+    }
+    for key in scope.of_kind(Kind::PageItem) {
+        let Some(item) = m.page_items.get(&typed(key)) else {
+            continue;
+        };
+        let Some(list) = marker_list(item) else {
+            continue;
+        };
+        let before: BTreeSet<Id<Connection>> = scope
+            .before_of::<PageItem>(key)
+            .and_then(|b| marker_list(b))
+            .map(|l| l.iter().copied().collect())
+            .unwrap_or_default();
+        for c in list.iter().filter(|c| !before.contains(c)) {
+            let ck = key_of(Kind::Connection, *c);
+            match m.connections.get(c) {
+                None => {
+                    return Err(violation(
+                        MARKER_CONNECTIONS,
+                        format!(
+                            "wire marker {} lists connection {c}, which does not exist",
+                            item.id
+                        ),
+                        vec![*key, ck],
+                    ));
+                }
+                Some(conn) if conn.page != Some(item.page) => {
+                    return Err(violation(
+                        MARKER_CONNECTIONS,
+                        format!(
+                            "wire marker {} on page {} lists connection {c}, which is not drawn on that page",
+                            item.id, item.page
+                        ),
+                        vec![*key, ck],
+                    ));
+                }
+                Some(_) => {}
+            }
+        }
+    }
+    let Some(link) = LINKS
+        .iter()
+        .position(|l| l.from == Kind::PageItem && l.to == Kind::Connection)
+    else {
+        return Ok(());
+    };
+    for key in scope.of_kind(Kind::Connection) {
+        let Some(conn) = m.connections.get(&typed(key)) else {
+            continue;
+        };
+        let moved = scope
+            .before_of::<Connection>(key)
+            .is_some_and(|b| b.page != conn.page);
+        if !moved {
+            continue;
+        }
+        for src in m.referrers_via(link, key) {
+            let Some(item) = m.page_items.get(&src.cast()) else {
+                continue;
+            };
+            if conn.page != Some(item.page) {
+                return Err(violation(
+                    MARKER_CONNECTIONS,
+                    format!(
+                        "connection {} moved off page {}, where wire marker {} lists it",
+                        conn.id, item.page, item.id
+                    ),
+                    vec![*key, key_of(Kind::PageItem, item.id)],
                 ));
             }
         }

@@ -169,7 +169,8 @@ impl Model {
     /// `apply_with(ops)` followed by `apply_history(invert_batch(ops))` restores every row value and index
     /// entry; only the `changed_at` stamps differ.
     pub fn apply_with(&self, ops: &[Op], rev: Rev, opts: &ApplyOptions<'_>) -> Result<Model, ModelError> {
-        let (m, scope) = self.apply_rows(ops, rev)?;
+        let (m, mut scope) = self.apply_rows(ops, rev)?;
+        scope.edit = true;
         invariants::check(&m, &scope)?;
         invariants::check_delete_time(&m, &scope)?;
         if let Some(hook) = opts.prevent {

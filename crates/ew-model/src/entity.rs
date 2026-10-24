@@ -11,8 +11,8 @@ use std::sync::Arc;
 use ew_ids::Id;
 use ew_schema::{
     AnyId, Bond, Channel, Conductor, Connection, Device, DeviceLink, ExternalRef, FnDef, FormDef, Function,
-    ImportLineage, Junction, Kind, LibCopy, Page, Part, PlcConfigProject, PotentialDef, Project, ReportBlock,
-    Representation, Revision, Section, StructureNode, SymbolDef,
+    ImportLineage, Junction, Kind, LibCopy, Page, PageItem, Part, PlcConfigProject, PotentialDef, Project,
+    ReportBlock, Representation, Revision, Section, StructureBox, StructureNode, SymbolDef,
 };
 
 use crate::model::Model;
@@ -241,6 +241,8 @@ entities! {
     PotentialDef: PotentialDef, PotentialDef, potential_defs;
     Bond: Bond, Bond, bonds;
     DeviceLink: DeviceLink, DeviceLink, device_links;
+    PageItem: PageItem, PageItem, page_items;
+    StructureBox: StructureBox, StructureBox, structure_boxes;
     ReportBlock: ReportBlock, ReportBlock, report_blocks;
     Revision: Revision, Revision, revisions;
     Part: LibCopy<Part>, Part, lib.parts;

@@ -91,6 +91,14 @@ macro_rules! with_row {
                 let $kind = Kind::DeviceLink;
                 $body
             }
+            AnyRow::PageItem($r) => {
+                let $kind = Kind::PageItem;
+                $body
+            }
+            AnyRow::StructureBox($r) => {
+                let $kind = Kind::StructureBox;
+                $body
+            }
             AnyRow::ReportBlock($r) => {
                 let $kind = Kind::ReportBlock;
                 $body
@@ -139,6 +147,8 @@ pub(crate) fn row_record(row: &AnyRow) -> Option<Record> {
         AnyRow::PotentialDef(r) => Record::PotentialDef((**r).clone()),
         AnyRow::Bond(r) => Record::Bond((**r).clone()),
         AnyRow::DeviceLink(r) => Record::DeviceLink((**r).clone()),
+        AnyRow::PageItem(r) => Record::PageItem((**r).clone()),
+        AnyRow::StructureBox(r) => Record::StructureBox((**r).clone()),
         AnyRow::ReportBlock(r) => Record::ReportBlock((**r).clone()),
         AnyRow::Revision(r) => Record::Revision((**r).clone()),
         AnyRow::Part(_) | AnyRow::Symbol(_) | AnyRow::Fndef(_) | AnyRow::Form(_) => return None,
@@ -165,6 +175,8 @@ pub(crate) fn record_row(record: Record) -> Option<AnyRow> {
         Record::PotentialDef(r) => AnyRow::of(r),
         Record::Bond(r) => AnyRow::of(r),
         Record::DeviceLink(r) => AnyRow::of(r),
+        Record::PageItem(r) => AnyRow::of(r),
+        Record::StructureBox(r) => AnyRow::of(r),
         Record::ReportBlock(r) => AnyRow::of(r),
         Record::Revision(r) => AnyRow::of(r),
         Record::Unknown(_) => return None,

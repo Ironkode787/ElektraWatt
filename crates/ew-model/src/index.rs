@@ -14,8 +14,8 @@ use std::ops::{RangeBounds, RangeInclusive};
 
 use ew_ids::Id;
 use ew_schema::{
-    AnyId, Bond, Conductor, Connection, Device, Endpoint, Function, Junction, Kind, Page, PotentialDef,
-    Representation, Section, StructureNode,
+    AnyId, Bond, Conductor, Connection, Device, Endpoint, Function, Junction, Kind, Page, PageItem,
+    PotentialDef, Representation, Section, StructureBox, StructureNode,
 };
 use imbl::{OrdMap, OrdSet};
 
@@ -205,6 +205,8 @@ pub struct BaseIndexes {
     pub(crate) pages_by_section: RevIndex<Id<Section>, Id<Page>>,
     pub(crate) potential_defs_by_endpoint: RevIndex<EndpointKey, Id<PotentialDef>>,
     pub(crate) bonds_by_endpoint: RevIndex<EndpointKey, Id<Bond>>,
+    pub(crate) page_items_by_page: RevIndex<Id<Page>, Id<PageItem>>,
+    pub(crate) structure_boxes_by_page: RevIndex<Id<Page>, Id<StructureBox>>,
     pub(crate) referrers: RevIndex<AnyKey, (LinkId, AnyId)>,
 }
 
@@ -363,6 +365,20 @@ impl BaseIndexes {
     }
 
     raw_read! {
+        /// `PageItem.page` → page items.
+        fn page_items_by_page(&self) -> &RevIndex<Id<Page>, Id<PageItem>> {
+            &self.page_items_by_page
+        }
+    }
+
+    raw_read! {
+        /// `StructureBox.page` → structure boxes.
+        fn structure_boxes_by_page(&self) -> &RevIndex<Id<Page>, Id<StructureBox>> {
+            &self.structure_boxes_by_page
+        }
+    }
+
+    raw_read! {
         /// The generic referrer index of every link without a named index: target key →
         /// `(link position in LINKS, referrer ID)`.
         fn referrers(&self) -> &RevIndex<AnyKey, (LinkId, AnyId)> {
@@ -405,6 +421,10 @@ impl BaseIndexes {
                     .potential_defs_by_endpoint
                     .same_entries(&other.potential_defs_by_endpoint)
                 && self.bonds_by_endpoint.same_entries(&other.bonds_by_endpoint)
+                && self.page_items_by_page.same_entries(&other.page_items_by_page)
+                && self
+                    .structure_boxes_by_page
+                    .same_entries(&other.structure_boxes_by_page)
                 && self.referrers.same_entries(&other.referrers)
         }
     }
@@ -537,6 +557,24 @@ impl BaseIndexes {
                 IndexName::BondsByEndpoint => {
                     put(&mut self.bonds_by_endpoint, key.ep(), src.cast(), insert, rev)
                 }
+                IndexName::PageItemsByPage => {
+                    put(
+                        &mut self.page_items_by_page,
+                        key.id().cast(),
+                        src.cast(),
+                        insert,
+                        rev,
+                    );
+                }
+                IndexName::StructureBoxesByPage => {
+                    put(
+                        &mut self.structure_boxes_by_page,
+                        key.id().cast(),
+                        src.cast(),
+                        insert,
+                        rev,
+                    );
+                }
             },
             IxEntry::Referrer(target, link, src) => {
                 put(&mut self.referrers, target, (link, src), insert, rev)
@@ -587,6 +625,8 @@ impl BaseIndexes {
             Some(IndexName::PagesBySection) => ids(&self.pages_by_section, &t.cast()),
             Some(IndexName::PotentialDefsByEndpoint) => eps(&self.potential_defs_by_endpoint, target),
             Some(IndexName::BondsByEndpoint) => eps(&self.bonds_by_endpoint, target),
+            Some(IndexName::PageItemsByPage) => ids(&self.page_items_by_page, &t.cast()),
+            Some(IndexName::StructureBoxesByPage) => ids(&self.structure_boxes_by_page, &t.cast()),
         }
     }
 }

@@ -446,3 +446,138 @@ fn a_revision_without_label_or_state_or_with_a_bare_page_id_is_rejected() {
         assert!(serde_json::from_str::<Record>(&line).is_err(), "accepted: {line}");
     }
 }
+
+// ---------------------------------------------------------------------------------------------------------
+// Page items and structure boxes (WP-S2.04 part 4a, §10.1; acceptance PI1)
+
+/// Every typed page-item variant and every graphic shape round-trips byte for byte, defaults omitted; the
+/// structure box with all its members too.
+#[test]
+fn every_page_item_variant_and_shape_round_trips_byte_for_byte() {
+    use ew_schema::{GraphicShape, LineDash, PageItemKind};
+    let shapes = [
+        r#"{"line":{"a":[0,0],"b":[10000000,0]}}"#,
+        r#"{"polyline":{"points":[[0,0],[1000000,0],[1000000,1000000]]}}"#,
+        r#"{"rect":{"min":[0,0],"max":[2000000,1000000]}}"#,
+        r#"{"circle":{"centre":[5000000,5000000],"r":2500000}}"#,
+        r#"{"arc":{"centre":[5000000,5000000],"r":2500000,"sweep":90000}}"#,
+        r#"{"polygon":{"points":[[0,0],[1000000,0],[0,1000000]]}}"#,
+    ];
+    for shape in shapes {
+        let line = fill(&format!(
+            r#"{{"$k":"page_item","id":"@PI_RECT","page":"@P101","kind":{{"graphic":{{"shape":{shape},"dash":"dotted"}}}}}}"#
+        ));
+        let Record::PageItem(item) = assert_canonical(&line) else {
+            panic!("a page item: {line}");
+        };
+        let PageItemKind::Graphic(g) = &item.kind else {
+            panic!("a graphic: {line}");
+        };
+        assert!(!matches!(g.shape, GraphicShape::Unknown(_)), "{line}");
+        assert_eq!(g.dash, LineDash::Dotted);
+        assert!(!g.fill && g.stroke.is_none());
+    }
+    // Defaults are not written: a solid dash, no fill, angle 0, an empty text.
+    let verbose = fill(
+        r#"{"$k":"page_item","id":"@PI_TEXT","page":"@P101","kind":{"free_text":{"text":"","bind":"page.folio","at":[0,0],"angle":0}}}"#,
+    );
+    assert_eq!(
+        round_trip(&verbose),
+        fill(
+            r#"{"$k":"page_item","id":"@PI_TEXT","page":"@P101","kind":{"free_text":{"bind":"page.folio","at":[0,0]}}}"#
+        )
+    );
+    let solid = fill(
+        r#"{"$k":"page_item","id":"@PI_RECT","page":"@P101","kind":{"graphic":{"shape":{"line":{"a":[0,0],"b":[1,0]}},"dash":"solid","fill":false}}}"#,
+    );
+    assert_eq!(
+        round_trip(&solid),
+        fill(
+            r#"{"$k":"page_item","id":"@PI_RECT","page":"@P101","kind":{"graphic":{"shape":{"line":{"a":[0,0],"b":[1,0]}}}}}"#
+        )
+    );
+    let mut seen = 0;
+    for template in GOLDEN
+        .iter()
+        .filter(|t| t.contains("\"page_item\"") || t.contains("\"structure_box\""))
+    {
+        let record = assert_canonical(&fill(template));
+        assert!(matches!(record.kind(), Some(Kind::PageItem | Kind::StructureBox)));
+        assert_eq!(record.file_rule(), Some(ew_schema::FileRule::PageFile));
+        assert!(record.anchor().is_some(), "anchored on its page");
+        seen += 1;
+    }
+    assert_eq!(seen, 6);
+}
+
+/// A variant this format does not type (`image` until part 5, `macro_box`, a newer format's) is kept verbatim as
+/// `PageItemKind::Unknown` and written back byte for byte; so is an unknown shape, dash and box style (doc 05
+/// §10.3).
+#[test]
+fn an_unknown_page_item_variant_is_kept_verbatim() {
+    use ew_schema::{BoxStyle, GraphicShape, LineDash, PageItemKind};
+    for (template, name) in [
+        (
+            r#"{"$k":"page_item","id":"@PI_MACRO","page":"@P101","kind":{"macro_box":{"key":"m1","outline":[[0,0],[1000000,0],[1000000,1000000]]}}}"#,
+            "macro_box",
+        ),
+        (
+            r#"{"$k":"page_item","id":"@PI_MACRO","page":"@P101","kind":{"image":{"asset":"@HASH","rect":[[0,0],[1000000,1000000]]}}}"#,
+            "image",
+        ),
+        (
+            r#"{"$k":"page_item","id":"@PI_MACRO","page":"@P101","kind":"divider"}"#,
+            "divider",
+        ),
+    ] {
+        let line = fill(template);
+        let Record::PageItem(item) = serde_json::from_str::<Record>(&line).unwrap() else {
+            panic!("a page item: {line}");
+        };
+        assert!(matches!(item.kind, PageItemKind::Unknown(_)), "{line}");
+        assert_eq!(item.kind.name(), Some(name));
+        assert_eq!(serde_json::to_string(&Record::PageItem(item)).unwrap(), line);
+    }
+    let shape = fill(
+        r#"{"$k":"page_item","id":"@PI_RECT","page":"@P101","kind":{"graphic":{"shape":{"spline":{"points":[[0,0]]}},"dash":"zigzag"}}}"#,
+    );
+    let Record::PageItem(item) = assert_canonical(&shape) else {
+        panic!("a page item");
+    };
+    let PageItemKind::Graphic(g) = &item.kind else {
+        panic!("a graphic");
+    };
+    assert!(matches!(g.shape, GraphicShape::Unknown(_)));
+    assert!(matches!(g.dash, LineDash::Unknown(_)));
+    let boxed = fill(
+        r#"{"$k":"structure_box","id":"@SBOX_206","page":"@P101","outline":[[0,0],[1,0],[1,1]],"style":"wavy","assigns":{}}"#,
+    );
+    let Record::StructureBox(b) = assert_canonical(&boxed) else {
+        panic!("a structure box");
+    };
+    assert!(matches!(b.style, BoxStyle::Unknown(_)));
+}
+
+/// A malformed known variant is refused by the strict reader and kept verbatim by the loader (EW-CORE-017), and a
+/// missing required member is refused.
+#[test]
+fn malformed_page_items_and_boxes_are_refused() {
+    let malformed = fill(
+        r#"{"$k":"page_item","id":"@PI_MARKER","page":"@P102","kind":{"wire_marker":{"at":[0,0],"connections":"x","fields":[]}}}"#,
+    );
+    assert!(serde_json::from_str::<Record>(&malformed).is_err());
+    let (record, found) = Record::load(ew_schema::parse_value(&malformed).unwrap()).unwrap();
+    assert_eq!(found.len(), 1);
+    assert_eq!(serde_json::to_string(&record).unwrap(), malformed);
+    for template in [
+        // no page
+        r#"{"$k":"page_item","id":"@PI_RECT","kind":{"graphic":{"shape":{"line":{"a":[0,0],"b":[1,0]}}}}}"#,
+        // no style
+        r#"{"$k":"structure_box","id":"@SBOX_206","page":"@P101","outline":[[0,0],[1,0],[1,1]],"assigns":{}}"#,
+        // no fields
+        r#"{"$k":"page_item","id":"@PI_MARKER","page":"@P102","kind":{"wire_marker":{"connections":[],"at":[0,0]}}}"#,
+    ] {
+        let line = fill(template);
+        assert!(serde_json::from_str::<Record>(&line).is_err(), "accepted: {line}");
+    }
+}

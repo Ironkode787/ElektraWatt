@@ -86,6 +86,13 @@ pub const IDS: &[(&str, &str)] = &[
     ("ITEM_SYM", "4c9e1a73-8d2f-5b06-9e5c-a1f7d3b0e862"),
     ("ITEM_FN", "7a3e0c58-2b91-5d4f-8c6a-e0b9f2d5a147"),
     ("ITEM_FRAME", "9e1b5d04-6c83-5a2f-b7e9-3d0a8c6f1b25"),
+    ("PI_MARKER", "212caa08-8e1c-5035-99d6-a96b43f999c3"),
+    ("PI_RECT", "5d207a62-5b46-5457-870d-cf4cbd0fbd2a"),
+    ("PI_ARC", "9c951b56-13b8-541d-9053-7689582a72fb"),
+    ("PI_TEXT", "15553778-a402-5572-82af-7e5bca97c2c7"),
+    ("PI_BOUND", "b7c53116-8a71-568c-833a-1ef6d905f5e8"),
+    ("PI_MACRO", "59412d8d-df0f-53ae-96fc-18a1138f1665"),
+    ("SBOX_206", "274b901c-9398-577d-9140-25447dc0b705"),
 ];
 
 /// A fixed SHA-256 for library-copy fixtures.

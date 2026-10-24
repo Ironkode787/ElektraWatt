@@ -98,6 +98,8 @@ pub fn record_file(record: &Record, anchors: &dyn Anchors) -> Result<FilePath, F
         },
         Record::Representation(r) => FilePath::page(r.page.cast()),
         Record::Junction(r) => FilePath::page(r.page.cast()),
+        Record::PageItem(r) => FilePath::page(r.page.cast()),
+        Record::StructureBox(r) => FilePath::page(r.page.cast()),
         Record::Conductor(r) => FilePath::shard(r.cable.cast()),
         Record::Channel(r) => FilePath::shard(r.module.cast()),
         Record::DeviceLink(r) => FilePath::shard(r.from.cast()),

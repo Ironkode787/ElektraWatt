@@ -9,8 +9,8 @@ use std::sync::Arc;
 
 use ew_schema::{
     Bond, Channel, Conductor, Connection, Device, DeviceLink, ExternalRef, Function, FunctionKind,
-    ImportLineage, Junction, Kind, KindRegistry, LibDocument, Page, PlcConfigProject, PotentialDef, Project,
-    Record, ReportBlock, Representation, Revision, Section, StructureNode,
+    ImportLineage, Junction, Kind, KindRegistry, LibDocument, Page, PageItem, PlcConfigProject, PotentialDef,
+    Project, Record, ReportBlock, Representation, Revision, Section, StructureBox, StructureNode,
 };
 
 use crate::asset::Asset;
@@ -49,6 +49,8 @@ pub struct Model {
     pub(crate) potential_defs: Table<PotentialDef>,
     pub(crate) bonds: Table<Bond>,
     pub(crate) device_links: Table<DeviceLink>,
+    pub(crate) page_items: Table<PageItem>,
+    pub(crate) structure_boxes: Table<StructureBox>,
     pub(crate) report_blocks: Table<ReportBlock>,
     pub(crate) revisions: Table<Revision>,
     pub(crate) lib: LibraryCopies,
@@ -84,6 +86,8 @@ impl Model {
             potential_defs: Table::default(),
             bonds: Table::default(),
             device_links: Table::default(),
+            page_items: Table::default(),
+            structure_boxes: Table::default(),
             report_blocks: Table::default(),
             revisions: Table::default(),
             lib: LibraryCopies::default(),
@@ -135,6 +139,8 @@ impl Model {
                 Record::PotentialDef(r) => Some(AnyRow::of(r)),
                 Record::Bond(r) => Some(AnyRow::of(r)),
                 Record::DeviceLink(r) => Some(AnyRow::of(r)),
+                Record::PageItem(r) => Some(AnyRow::of(r)),
+                Record::StructureBox(r) => Some(AnyRow::of(r)),
                 Record::ReportBlock(r) => Some(AnyRow::of(r)),
                 Record::Revision(r) => Some(AnyRow::of(r)),
                 other => {

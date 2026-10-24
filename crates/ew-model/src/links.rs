@@ -32,6 +32,13 @@
 //! is a dangling reference in any state, so no committed state, and no undo, can leave one. Other `LibRef`s
 //! (successors, manufacturers) are not links; see [`NOT_LINKS`].
 //!
+//! One link is **load-tolerant** ([`LinkDecl::load_tolerant`]): `page_item.kind.wire_marker.connections[]`, the
+//! connections a wire marker lists (EW-INV-023, ADR-0009 amendment 8). A build from before WP-S2.04 part 4a kept
+//! page items verbatim and did not enforce the link, so a loaded project can hold a marker that lists a deleted
+//! connection or one on another page: that is a load finding, not a refusal (doc 05 §2.2). Its missing target is
+//! therefore not judged by EW-INV-001; EW-INV-023 judges the entries an edit adds. Its removal half is an ordinary
+//! unlink link: a deleted connection leaves the list, and a marker left empty is deleted in the same plan.
+//!
 //! [`NOT_LINKS`] lists every other ID-valued member of the persisted schema with the reason it is not a
 //! link. The field-mask test checks `LINKS ∪ NOT_LINKS ∪ {every kind's own id}` against the JSON Schemas
 //! in `schemas/0.1`, so adding an ID field to a record without declaring it fails CI.
@@ -40,7 +47,7 @@ use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use ew_ids::Id;
-use ew_schema::{AnyId, ConnectionKind, Endpoint, FunctionKind, Kind, LibRef, Slot, SourceRef};
+use ew_schema::{AnyId, ConnectionKind, Endpoint, FunctionKind, Kind, LibRef, PageItemKind, Slot, SourceRef};
 
 use crate::entity::{AnyKey, AnyRow};
 
@@ -88,6 +95,10 @@ pub enum IndexName {
     PotentialDefsByEndpoint,
     /// `Bond.a`/`b` → bonds, keyed by endpoint.
     BondsByEndpoint,
+    /// `PageItem.page` → page items.
+    PageItemsByPage,
+    /// `StructureBox.page` → structure boxes.
+    StructureBoxesByPage,
 }
 
 /// One link occurrence in a record: the target ID, and for a CP endpoint the CP index.
@@ -134,6 +145,10 @@ pub struct LinkDecl {
     /// [`ModelError::Referenced`](crate::ModelError::Referenced) (the delete-time rule EW-INV-021, which
     /// undo and redo skip).
     pub lib_ref: bool,
+    /// A load-tolerant link (module documentation): a listed target that does not exist is not a violation of
+    /// EW-INV-001 (EW-INV-023 judges the entries an edit adds, a loaded file's stale entry is a load finding);
+    /// a removed target with a referrer left is, as for every unlink link.
+    pub load_tolerant: bool,
     pub(crate) targets: TargetsFn,
     pub(crate) unlink: Option<UnlinkFn>,
 }
@@ -166,6 +181,7 @@ impl std::fmt::Debug for LinkDecl {
             .field("policy", &self.policy)
             .field("index", &self.index)
             .field("lib_ref", &self.lib_ref)
+            .field("load_tolerant", &self.load_tolerant)
             .finish()
     }
 }
@@ -248,6 +264,7 @@ macro_rules! link {
             policy: Policy::$policy,
             index: $index,
             lib_ref: false,
+            load_tolerant: false,
             targets: |row, $out| {
                 if let AnyRow::$from($v) = row {
                     $body
@@ -269,6 +286,7 @@ macro_rules! fndef_lib_ref_link {
             policy: Policy::Forbid,
             index: None,
             lib_ref: true,
+            load_tolerant: false,
             targets: |row, $out| {
                 if let AnyRow::$from($v) = row {
                     $body
@@ -308,6 +326,46 @@ macro_rules! slot_links {
 
 const PAGE_SLOTS: [LinkDecl; 7] = slot_links!(Page);
 const DEVICE_SLOTS: [LinkDecl; 7] = slot_links!(Device);
+
+/// The seven slots of a structure box's `assigns`: forbid, as the structure slots of pages and devices.
+const BOX_SLOTS: [LinkDecl; 7] = [
+    link!(StructureBox."assigns.functional_assignment" -> StructureNode, Forbid, None,
+        |v, out| slot(&v.assigns.functional_assignment, out)),
+    link!(StructureBox."assigns.function" -> StructureNode, Forbid, None, |v, out| slot(&v.assigns.function, out)),
+    link!(StructureBox."assigns.installation_site" -> StructureNode, Forbid, None,
+        |v, out| slot(&v.assigns.installation_site, out)),
+    link!(StructureBox."assigns.location" -> StructureNode, Forbid, None, |v, out| slot(&v.assigns.location, out)),
+    link!(StructureBox."assigns.document_kind" -> StructureNode, Forbid, None,
+        |v, out| slot(&v.assigns.document_kind, out)),
+    link!(StructureBox."assigns.user_defined" -> StructureNode, Forbid, None,
+        |v, out| slot(&v.assigns.user_defined, out)),
+    link!(StructureBox."assigns.type" -> StructureNode, Forbid, None, |v, out| slot(&v.assigns.type_, out)),
+];
+
+/// `page_item.kind.wire_marker.connections[]` (EW-INV-023): unlink, load-tolerant; a marker left without
+/// connections is dropped (deleted in the same plan).
+const MARKER_CONNECTIONS: LinkDecl = LinkDecl {
+    load_tolerant: true,
+    ..link!(PageItem."kind.wire_marker.connections[]" -> Connection, Unlink, None,
+    |v, out| {
+        if let PageItemKind::WireMarker(m) = &v.kind {
+            for c in &m.connections {
+                id(*c, out);
+            }
+        }
+    },
+    Some(|row, del| {
+        let AnyRow::PageItem(item) = row else { return Some(row.clone()) };
+        let mut item = (**item).clone();
+        if let PageItemKind::WireMarker(m) = &mut item.kind {
+            m.connections.retain(|c| !gone(del, Kind::Connection, *c));
+            if m.connections.is_empty() {
+                return None;
+            }
+        }
+        Some(AnyRow::PageItem(Arc::new(item)))
+    }))
+};
 
 /// Drops the referrer (a definition or bond at a removed endpoint).
 const DROP: Option<UnlinkFn> = Some(|_, _| None);
@@ -554,6 +612,27 @@ pub static LINKS: &[LinkDecl] = &[
     link!(DeviceLink."from" -> Device, Cascade, None, |v, out| id(v.from, out)),
     link!(DeviceLink."to" -> Device, Cascade, None, |v, out| id(v.to, out)),
     lineage_link!(DeviceLink),
+    // page_item (WP-S2.04 part 4a; EW-INV-022, EW-INV-023)
+    link!(PageItem."page" -> Page, Cascade, Some(I::PageItemsByPage), |v, out| id(v.page, out)),
+    MARKER_CONNECTIONS,
+    // structure_box (WP-S2.04 part 4a; EW-INV-022)
+    link!(StructureBox."page" -> Page, Cascade, Some(I::StructureBoxesByPage), |v, out| id(v.page, out)),
+    BOX_SLOTS[0],
+    BOX_SLOTS[1],
+    BOX_SLOTS[2],
+    BOX_SLOTS[3],
+    BOX_SLOTS[4],
+    BOX_SLOTS[5],
+    BOX_SLOTS[6],
+    link!(StructureBox."external" -> ExternalRef, Unlink, None, |v, out| opt(v.external, out),
+    Some(|row, del| {
+        let AnyRow::StructureBox(b) = row else { return Some(row.clone()) };
+        let mut b = (**b).clone();
+        if b.external.is_some_and(|e| gone(del, Kind::ExternalRef, e)) {
+            b.external = None;
+        }
+        Some(AnyRow::StructureBox(Arc::new(b)))
+    })),
     // report_block
     link!(ReportBlock."form" -> Form, Forbid, None, |v, out| id(v.form, out)),
     link!(ReportBlock."section" -> Section, Forbid, None, |v, out| opt(v.section, out)),

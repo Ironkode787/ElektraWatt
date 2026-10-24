@@ -1106,3 +1106,127 @@ fn prevent_hook_runs_after_structural_invariants() {
     // Without options the hook is not consulted.
     assert!(m.apply_history(&[update], Rev(1)).is_ok());
 }
+
+// ---------------------------------------------------------------------------------------------------------
+// Page items and structure boxes (WP-S2.04 part 4a; EW-INV-022, EW-INV-023)
+
+/// The mini golden project with a line and a structure box on page 101 and two wire markers on page 102: one
+/// listing W22 and W27, one listing W22 alone; the box stands for an external reference at `LOC`.
+fn with_items() -> Model {
+    let (project, mut records, lib) = mini_golden_parts();
+    records.push(Record::ExternalRef(external_ref(nid(0x4600), LOC)));
+    records.push(Record::PageItem(graphic_line(nid(0x4300), PAGE_101)));
+    records.push(Record::StructureBox(structure_box(
+        nid(0x4400),
+        PAGE_101,
+        Some(LOC),
+        Some(nid(0x4600)),
+    )));
+    records.push(Record::PageItem(wire_marker(
+        nid(0x4301),
+        PAGE_102,
+        vec![CON_W22, CON_W27],
+    )));
+    records.push(Record::PageItem(wire_marker(
+        nid(0x4302),
+        PAGE_102,
+        vec![CON_W22],
+    )));
+    Model::from_records(project, records, lib).expect("valid")
+}
+
+/// Deleting a page deletes its page items and structure boxes with it (FR-PAG-025, EW-INV-022).
+#[test]
+fn delete_plan_page_cascades_items_and_boxes() {
+    let m = with_items();
+    let ops = m.delete_plan(&<Page as Entity>::key(PAGE_101)).unwrap();
+    assert_plan(
+        &ops,
+        &[
+            removed::<Page>(PAGE_101),
+            removed::<Representation>(REP_101F1),
+            removed::<Representation>(REP_IP_101),
+            removed::<Function>(FN_IP_101),
+            removed::<Connection>(CON_W11A),
+            removed::<ew_schema::PageItem>(nid(0x4300)),
+            removed::<ew_schema::StructureBox>(nid(0x4400)),
+        ],
+    );
+    plan_applies(&m, &ops);
+}
+
+/// Deleting a connection takes it out of every wire marker's list, and a marker left without connections is
+/// deleted in the same plan (EW-INV-023).
+#[test]
+fn delete_plan_connection_unlinks_markers_and_drops_an_empty_one() {
+    let m = with_items();
+    let ops = m.delete_plan(&<Connection as Entity>::key(CON_W22)).unwrap();
+    let mut expected = vec![
+        modified::<ew_schema::PageItem>(nid(0x4301)),
+        removed::<ew_schema::PageItem>(nid(0x4302)),
+        removed::<Connection>(CON_W22),
+    ];
+    // W22 ends at junction J5: its sequence loses the entry (unlink).
+    expected.push(modified::<Junction>(J5));
+    assert_plan(&ops, &expected);
+    let after = m
+        .apply_with(&ops, Rev(1), &ApplyOptions::default())
+        .expect("the plan commits");
+    let marker = after
+        .table::<ew_schema::PageItem>()
+        .get(&nid(0x4301))
+        .expect("the marker stays");
+    let ew_schema::PageItemKind::WireMarker(w) = &marker.kind else {
+        panic!("a marker");
+    };
+    assert_eq!(w.connections, vec![CON_W27]);
+}
+
+/// Deleting the external reference a structure box stands for clears the box's `external` (unlink); a structure
+/// node a box assigns cannot be deleted under it (forbid, like a page's or a device's slot).
+#[test]
+fn delete_plan_external_ref_unlinks_a_box_and_its_node_is_referenced() {
+    let m = with_items();
+    let ops = m
+        .delete_plan(&<ew_schema::ExternalRef as Entity>::key(nid(0x4600)))
+        .unwrap();
+    assert_plan(
+        &ops,
+        &[
+            modified::<ew_schema::StructureBox>(nid(0x4400)),
+            removed::<ew_schema::ExternalRef>(nid(0x4600)),
+        ],
+    );
+    let after = m
+        .apply_with(&ops, Rev(1), &ApplyOptions::default())
+        .expect("commits");
+    assert_eq!(
+        after
+            .table::<ew_schema::StructureBox>()
+            .get(&nid(0x4400))
+            .map(|b| b.external),
+        Some(None)
+    );
+    let err = after
+        .delete_plan(&<StructureNode as Entity>::key(LOC))
+        .unwrap_err();
+    assert!(matches!(err, ModelError::Referenced { .. }), "{err:?}");
+}
+
+/// The page indexes of the two kinds follow inserts and deletes, and equal a rebuild.
+#[test]
+fn page_item_and_box_indexes_follow_their_pages() {
+    let m = with_items();
+    let idx = m.indexes();
+    assert_eq!(idx.page_items_by_page().get(&PAGE_101).count(), 1);
+    assert_eq!(idx.page_items_by_page().get(&PAGE_102).count(), 2);
+    assert_eq!(idx.structure_boxes_by_page().get(&PAGE_101).count(), 1);
+    let ops = m.delete_plan(&<Page as Entity>::key(PAGE_101)).unwrap();
+    let after = m.apply_history(&ops, Rev(1)).unwrap();
+    assert_eq!(after.indexes().page_items_by_page().get(&PAGE_101).count(), 0);
+    assert_eq!(
+        after.indexes().structure_boxes_by_page().get(&PAGE_101).count(),
+        0
+    );
+    assert!(BaseIndexes::rebuild(&after).same_entries(after.indexes()));
+}

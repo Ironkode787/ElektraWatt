@@ -80,6 +80,14 @@ pub const GOLDEN: &[&str] = &[
     // revisions (doc 20 §4.1 U-04, doc 03 §18): a historic released one without archive, an open one
     r#"{"$k":"revision","id":"@REV_V1","label":"V1.0","date":"2025-03-03","description":"Initial issue","state":"released","source_ref":{"lineage":"@LIN","key":"revisions|V1.0"}}"#,
     r#"{"$k":"revision","id":"@REV_V2","label":"V2.0","date":"2025-04-14","author":"engineer","description":{"en-GB":"Changes on 101 and 106"},"state":"open","page_notes":[{"page":"@P1"},{"page":"@P103","description":{"en-GB":"Supply moved"}}]}"#,
+    // page items and a structure box (doc 03 §5, §6; WP-S2.04 §10.1): every typed variant and shape kind, a
+    // bound text (an unknown variant is `records::an_unknown_page_item_variant_is_kept_verbatim`)
+    r#"{"$k":"page_item","id":"@PI_MARKER","page":"@P102","kind":{"wire_marker":{"connections":["@CON_W20","@CON_W29"],"at":[90000000,24000000],"angle":90000,"fields":["csa","colour"]}}}"#,
+    r#"{"$k":"page_item","id":"@PI_RECT","page":"@P101","layer":"notes","kind":{"graphic":{"shape":{"rect":{"min":[20000000,40000000],"max":[80000000,64000000]}},"stroke":{"width":500000},"dash":"dashed","fill":true}}}"#,
+    r#"{"$k":"page_item","id":"@PI_ARC","page":"@P101","kind":{"graphic":{"shape":{"arc":{"centre":[30000000,30000000],"r":5000000,"start":90000,"sweep":-180000}}}}}"#,
+    r#"{"$k":"page_item","id":"@PI_TEXT","page":"@P101","kind":{"free_text":{"text":"40x60","at":[50800000,30480000],"angle":90000,"style":"text.small","align":"centre"}}}"#,
+    r#"{"$k":"page_item","id":"@PI_BOUND","page":"@P1","kind":{"free_text":{"bind":"project.description","at":[20000000,20000000]}}}"#,
+    r#"{"$k":"structure_box","id":"@SBOX_206","page":"@P101","outline":[[0,140000000],[60000000,140000000],[60000000,170000000],[0,170000000]],"style":"dotted","caption":"External Connection","assigns":{"location":"@LOC_JE206"},"external":"@EXT_L"}"#,
     // import lineage (doc 14 §2.3); its namespace is checked in its own test
     r#"{"$k":"import_lineage","id":"@LIN","importer":"csv","source_name":"tables","anchor":{"fixed":"golden"},"namespace":"@PRJ","last_source_sha256":"@HASH"}"#,
 ];

@@ -89,6 +89,8 @@ pub fn row_bytes(row: &AnyRow) -> usize {
         AnyRow::PotentialDef(r) => of(&**r),
         AnyRow::Bond(r) => of(&**r),
         AnyRow::DeviceLink(r) => of(&**r),
+        AnyRow::PageItem(r) => of(&**r),
+        AnyRow::StructureBox(r) => of(&**r),
         AnyRow::ReportBlock(r) => of(&**r),
         AnyRow::Revision(r) => of(&**r),
         AnyRow::Part(r) => of(&**r),
@@ -340,6 +342,56 @@ impl HeapSize for ew_schema::PlcSection {
 impl HeapSize for Bond {
     fn heap_size(&self) -> usize {
         self.source_ref.heap_size() + self.extra.heap_size()
+    }
+}
+
+// ---- Page items and structure boxes (WP-S2.04 part 4a) ----
+
+impl HeapSize for ew_schema::PageItem {
+    fn heap_size(&self) -> usize {
+        self.layer.heap_size() + self.kind.heap_size() + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for ew_schema::PageItemKind {
+    fn heap_size(&self) -> usize {
+        match self {
+            ew_schema::PageItemKind::Graphic(g) => g.heap_size(),
+            ew_schema::PageItemKind::FreeText(t) => {
+                t.text.heap_size() + t.bind.heap_size() + t.style.heap_size() + t.extra.heap_size()
+            }
+            ew_schema::PageItemKind::WireMarker(m) => {
+                m.connections.capacity() * std::mem::size_of::<Id<Connection>>()
+                    + m.fields.capacity() * std::mem::size_of::<ew_schema::MarkerField>()
+                    + m.extra.heap_size()
+            }
+            ew_schema::PageItemKind::Unknown(v) => v.heap_size(),
+        }
+    }
+}
+
+impl HeapSize for ew_schema::Graphic {
+    fn heap_size(&self) -> usize {
+        let shape = match &self.shape {
+            ew_schema::GraphicShape::Polyline(p) | ew_schema::GraphicShape::Polygon(p) => {
+                p.points.heap_size() + p.extra.heap_size()
+            }
+            ew_schema::GraphicShape::Line(l) => l.extra.heap_size(),
+            ew_schema::GraphicShape::Rect(r) => r.extra.heap_size(),
+            ew_schema::GraphicShape::Circle(c) => c.extra.heap_size(),
+            ew_schema::GraphicShape::Arc(a) => a.extra.heap_size(),
+            ew_schema::GraphicShape::Unknown(v) => v.heap_size(),
+        };
+        shape + self.stroke.as_ref().map_or(0, |s| s.extra.heap_size()) + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for ew_schema::StructureBox {
+    fn heap_size(&self) -> usize {
+        self.outline.heap_size()
+            + self.caption.heap_size()
+            + self.assigns.heap_size()
+            + self.extra.heap_size()
     }
 }
 

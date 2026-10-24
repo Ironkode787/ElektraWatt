@@ -731,3 +731,95 @@ fn mini_golden_loads() {
     assert_eq!(m.table::<Connection>().len(), 8);
     assert_eq!(m.indexes().functions_by_device().get(&DEV_102F2).count(), 2);
 }
+
+// ---------------------------------------------------------------------------------------------------------
+// Page items and structure boxes (WP-S2.04 part 4a)
+
+/// A wire marker on `page` listing `connections`.
+pub(crate) fn wire_marker(
+    item_id: Id<ew_schema::PageItem>,
+    page: Id<Page>,
+    connections: Vec<Id<Connection>>,
+) -> ew_schema::PageItem {
+    ew_schema::PageItem {
+        id: item_id,
+        v: 1,
+        page,
+        layer: None,
+        kind: ew_schema::PageItemKind::WireMarker(ew_schema::WireMarker {
+            connections,
+            at: Pt2::new(Nm(10_000_000), Nm(10_000_000)),
+            angle: ew_units::Angle2::ZERO,
+            fields: vec![ew_schema::MarkerField::Csa, ew_schema::MarkerField::Colour],
+            extra: Extra::new(),
+        }),
+        extra: Extra::new(),
+    }
+}
+
+/// A line graphic on `page`.
+pub(crate) fn graphic_line(item_id: Id<ew_schema::PageItem>, page: Id<Page>) -> ew_schema::PageItem {
+    ew_schema::PageItem {
+        id: item_id,
+        v: 1,
+        page,
+        layer: None,
+        kind: ew_schema::PageItemKind::Graphic(ew_schema::Graphic {
+            shape: ew_schema::GraphicShape::Line(ew_schema::ShapeLine {
+                a: Pt2::new(Nm(0), Nm(0)),
+                b: Pt2::new(Nm(10_000_000), Nm(0)),
+                extra: Extra::new(),
+            }),
+            stroke: None,
+            dash: ew_schema::LineDash::Solid,
+            fill: false,
+            extra: Extra::new(),
+        }),
+        extra: Extra::new(),
+    }
+}
+
+/// A dotted structure box on `page` assigning `location`, standing for `external`.
+pub(crate) fn structure_box(
+    box_id: Id<ew_schema::StructureBox>,
+    page: Id<Page>,
+    location: Option<Id<StructureNode>>,
+    external: Option<Id<ew_schema::ExternalRef>>,
+) -> ew_schema::StructureBox {
+    ew_schema::StructureBox {
+        id: box_id,
+        v: 1,
+        page,
+        outline: vec![
+            Pt2::new(Nm(0), Nm(0)),
+            Pt2::new(Nm(50_000_000), Nm(0)),
+            Pt2::new(Nm(50_000_000), Nm(30_000_000)),
+            Pt2::new(Nm(0), Nm(30_000_000)),
+        ],
+        style: ew_schema::BoxStyle::Dotted,
+        caption: Some(MlText::neutral("External Connection")),
+        assigns: StructureAssignment {
+            location: location.map(Slot::Node),
+            ..StructureAssignment::default()
+        },
+        external,
+        extra: Extra::new(),
+    }
+}
+
+/// An external reference to device `JE-N1000-03` at `location`.
+pub(crate) fn external_ref(
+    ext_id: Id<ew_schema::ExternalRef>,
+    location: Id<StructureNode>,
+) -> ew_schema::ExternalRef {
+    ew_schema::ExternalRef {
+        id: ext_id,
+        v: 1,
+        project: None,
+        location,
+        device: Ident::from_input("JE-N1000-03").expect("an ident"),
+        connection: None,
+        source_ref: None,
+        extra: Extra::new(),
+    }
+}

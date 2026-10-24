@@ -54,6 +54,12 @@
       "$ref": "device_link.schema.json"
     },
     {
+      "$ref": "page_item.schema.json"
+    },
+    {
+      "$ref": "structure_box.schema.json"
+    },
+    {
       "$ref": "report_block.schema.json"
     },
     {

@@ -181,17 +181,17 @@
       "file": "pages/<page>.jsonl",
       "kind": "page_item",
       "rank": 43,
-      "schema": null,
-      "status": "reserved",
-      "v": null
+      "schema": "page_item.schema.json",
+      "status": "implemented",
+      "v": 1
     },
     {
       "file": "pages/<page>.jsonl",
       "kind": "structure_box",
       "rank": 44,
-      "schema": null,
-      "status": "reserved",
-      "v": null
+      "schema": "structure_box.schema.json",
+      "status": "implemented",
+      "v": 1
     },
     {
       "file": "report-blocks.jsonl or pages/<page>.jsonl",

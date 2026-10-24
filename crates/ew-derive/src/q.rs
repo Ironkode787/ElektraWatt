@@ -13,8 +13,8 @@ use ew_ids::Id;
 use ew_model::{EndpointKey, Entity, IndexName, Model, Rev, RevIndex, RowId, Table};
 use ew_schema::{
     Bond, Conductor, Connection, Device, ExternalRef, FnDef, FormDef, Function, Junction, Kind, LibCopy,
-    Page, Part, PotentialDef, Project, Record, ReportBlock, Representation, Section, StructureNode,
-    SymbolDef,
+    Page, PageItem, Part, PotentialDef, Project, Record, ReportBlock, Representation, Section, StructureBox,
+    StructureNode, SymbolDef,
 };
 
 use crate::memo_keys::{self, MemoInput, PartKey};
@@ -691,6 +691,16 @@ impl Q {
         self.table()
     }
 
+    /// Page items (graphics, free texts, wire markers and the variants kept verbatim).
+    pub fn page_items(&self) -> TableView<'_, PageItem> {
+        self.table()
+    }
+
+    /// Structure boxes.
+    pub fn structure_boxes(&self) -> TableView<'_, StructureBox> {
+        self.table()
+    }
+
     /// Embedded part copies.
     pub fn parts(&self) -> TableView<'_, LibCopy<Part>> {
         self.table()
@@ -997,6 +1007,24 @@ impl<'q> IdxView<'q> {
             self.indexes().bonds_by_endpoint(),
             &at,
             IxKey::Endpoint(at),
+        )
+    }
+
+    /// The page items of a page.
+    pub fn page_items_by_page(&self, page: Id<Page>) -> impl Iterator<Item = Id<PageItem>> + 'q {
+        self.by_id(
+            IndexName::PageItemsByPage,
+            self.indexes().page_items_by_page(),
+            page,
+        )
+    }
+
+    /// The structure boxes of a page.
+    pub fn structure_boxes_by_page(&self, page: Id<Page>) -> impl Iterator<Item = Id<StructureBox>> + 'q {
+        self.by_id(
+            IndexName::StructureBoxesByPage,
+            self.indexes().structure_boxes_by_page(),
+            page,
         )
     }
 }

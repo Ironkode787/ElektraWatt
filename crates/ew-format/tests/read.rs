@@ -921,3 +921,75 @@ fn findings_are_capped_with_one_truncated() {
     // Every line is kept, whether or not its finding was listed.
     assert_eq!(loaded.kept.len(), 10);
 }
+
+// ---------------------------------------------------------------------------------------------------------
+// Page items and structure boxes (WP-S2.04 part 4a): typed within format 0.1 (ADR-0011 amendment 4, ID-334)
+
+/// A page file with both kinds, every typed page-item variant and an unknown variant, in the canonical form of the
+/// typed kinds and in line order (doc 05 §3.3: the page, then the page items, then the structure box).
+const ITEM_LINES: [&str; 6] = [
+    PAGE,
+    r#"{"$k":"page_item","id":"5a0c1e2d-3b4f-5a61-8000-000000000001","page":"8e41c0d2-1b7f-5a39-a6c4-0f5e2d913b7a","kind":{"graphic":{"shape":{"polyline":{"points":[[0,0],[1000000,0],[1000000,2000000]]}},"stroke":{"width":350000},"dash":"dash_dot"}}}"#,
+    r#"{"$k":"page_item","id":"5a0c1e2d-3b4f-5a61-8000-000000000002","page":"8e41c0d2-1b7f-5a39-a6c4-0f5e2d913b7a","kind":{"free_text":{"text":"40x60","at":[50800000,30480000],"align":"right"}}}"#,
+    r#"{"$k":"page_item","id":"5a0c1e2d-3b4f-5a61-8000-000000000003","page":"8e41c0d2-1b7f-5a39-a6c4-0f5e2d913b7a","kind":{"wire_marker":{"connections":["b29e4f17-8d63-5a0c-9f71-3c6a2e8d05b1"],"at":[90000000,24000000],"fields":["csa","colour"]}}}"#,
+    r#"{"$k":"page_item","id":"5a0c1e2d-3b4f-5a61-8000-000000000004","page":"8e41c0d2-1b7f-5a39-a6c4-0f5e2d913b7a","kind":{"macro_box":{"key":"m1","outline":[[0,0],[1000000,0],[1000000,1000000]]}}}"#,
+    r#"{"$k":"structure_box","id":"5a0c1e2d-3b4f-5a61-8000-000000000005","page":"8e41c0d2-1b7f-5a39-a6c4-0f5e2d913b7a","outline":[[20000000,40000000],[80000000,40000000],[80000000,64000000],[20000000,64000000]],"style":"dash_dot","caption":"External Connection","assigns":{"location":"a41f6c2d-8e05-5d97-b3c1-5f2e8a7d9c60"}}"#,
+];
+
+/// The migration test of WP-S2.04 §10.1: a page file holding both kinds and an unknown `page_item` variant reads
+/// without a finding (typed records, the unknown variant kept as `PageItemKind::Unknown`) and its lines are written
+/// back byte for byte: nothing is quarantined, kept aside or scheduled for a rewrite.
+#[test]
+fn a_page_file_with_page_items_and_a_structure_box_round_trips_byte_for_byte() {
+    use ew_format::ew_schema::PageItemKind;
+    let loaded = load_lines(PAGE_FILE, &ITEM_LINES);
+    assert!(loaded.findings.is_empty(), "{:?}", loaded.findings);
+    assert!(loaded.kept.is_empty(), "{:?}", loaded.kept);
+    assert!(loaded.rewrite.is_empty());
+    assert_eq!(loaded.records.len(), ITEM_LINES.len());
+    let lines: Vec<String> = loaded.records.iter().map(|r| record_line(r).unwrap()).collect();
+    assert_eq!(lines, ITEM_LINES);
+    let unknown = loaded
+        .records
+        .iter()
+        .any(|r| matches!(r, Record::PageItem(i) if matches!(i.kind, PageItemKind::Unknown(_))));
+    assert!(unknown, "the macro box is kept as an unknown variant");
+    assert!(
+        loaded
+            .records
+            .iter()
+            .any(|r| matches!(r, Record::StructureBox(_)))
+    );
+}
+
+/// The same records as the cycle-26 build wrote them: `page_item` and `structure_box` were reserved kinds, kept
+/// as unknown records, so every object's members were written in byte-wise key order. This build reads them typed,
+/// reports the file as not canonical (info) and schedules its rewrite in the canonical member order of the typed
+/// kinds (the revision precedent, FT-165); a newer build's file read by the cycle-26 reader is the reserved-kind
+/// path, kept line for line (`reserved_kind_is_kept_without_a_finding`).
+#[test]
+fn page_items_written_by_an_older_build_load_typed_and_are_rewritten_canonically() {
+    let old: Vec<String> = ITEM_LINES
+        .iter()
+        .map(|l| {
+            let v: serde_json::Value = serde_json::from_str(l).unwrap();
+            serde_json::to_string(&v).unwrap()
+        })
+        .collect();
+    assert_ne!(
+        old[1], ITEM_LINES[1],
+        "the byte-wise order differs from the typed one"
+    );
+    let old_refs: Vec<&str> = old.iter().map(String::as_str).collect();
+    let loaded = load_lines(PAGE_FILE, &old_refs);
+    assert_eq!(
+        kinds(&loaded),
+        [FindingKind::NonCanonical],
+        "{:?}",
+        loaded.findings
+    );
+    assert!(loaded.kept.is_empty(), "{:?}", loaded.kept);
+    assert!(loaded.rewrite.contains(&p(PAGE_FILE)));
+    let lines: Vec<String> = loaded.records.iter().map(|r| record_line(r).unwrap()).collect();
+    assert_eq!(lines, ITEM_LINES);
+}

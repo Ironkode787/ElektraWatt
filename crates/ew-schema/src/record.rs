@@ -16,8 +16,8 @@ use crate::track::{buffer_strict, check_value_at, de_here, parse_value, raise, w
 use crate::value::Endpoint;
 use crate::{
     Bond, Channel, Conductor, Connection, Device, DeviceLink, ExternalRef, Function, ImportLineage, Junction,
-    Page, PlcConfigProject, PotentialDef, Project, ReportBlock, Representation, Revision, SchemaError,
-    Section, StructureNode,
+    Page, PageItem, PlcConfigProject, PotentialDef, Project, ReportBlock, Representation, Revision,
+    SchemaError, Section, StructureBox, StructureNode,
 };
 
 /// `$k` first, then the record's own members in declaration order.
@@ -153,6 +153,10 @@ pub enum Record {
     Bond(Bond),
     /// `device_link` (42).
     DeviceLink(DeviceLink),
+    /// `page_item` (43).
+    PageItem(PageItem),
+    /// `structure_box` (44).
+    StructureBox(StructureBox),
     /// `report_block` (45).
     ReportBlock(ReportBlock),
     /// `revision` (60).
@@ -185,6 +189,8 @@ impl Record {
             Record::PotentialDef(_) => Kind::PotentialDef,
             Record::Bond(_) => Kind::Bond,
             Record::DeviceLink(_) => Kind::DeviceLink,
+            Record::PageItem(_) => Kind::PageItem,
+            Record::StructureBox(_) => Kind::StructureBox,
             Record::ReportBlock(_) => Kind::ReportBlock,
             Record::Revision(_) => Kind::Revision,
             Record::Unknown(_) => return None,
@@ -219,6 +225,8 @@ impl Record {
             Record::PotentialDef(r) => r.id.as_uuid(),
             Record::Bond(r) => r.id.as_uuid(),
             Record::DeviceLink(r) => r.id.as_uuid(),
+            Record::PageItem(r) => r.id.as_uuid(),
+            Record::StructureBox(r) => r.id.as_uuid(),
             Record::ReportBlock(r) => r.id.as_uuid(),
             Record::Revision(r) => r.id.as_uuid(),
             Record::Unknown(v) => {
@@ -249,6 +257,8 @@ impl Record {
             },
             Record::Representation(r) => AnchorRef::Direct(r.page.as_uuid()),
             Record::Junction(r) => AnchorRef::Direct(r.page.as_uuid()),
+            Record::PageItem(r) => AnchorRef::Direct(r.page.as_uuid()),
+            Record::StructureBox(r) => AnchorRef::Direct(r.page.as_uuid()),
             Record::Connection(r) => match r.page {
                 Some(p) => AnchorRef::Direct(p.as_uuid()),
                 None => endpoint_anchor(&r.a),
@@ -317,6 +327,8 @@ impl Serialize for Record {
             Record::PotentialDef(r) => tagged(Kind::PotentialDef, r, serializer),
             Record::Bond(r) => tagged(Kind::Bond, r, serializer),
             Record::DeviceLink(r) => tagged(Kind::DeviceLink, r, serializer),
+            Record::PageItem(r) => tagged(Kind::PageItem, r, serializer),
+            Record::StructureBox(r) => tagged(Kind::StructureBox, r, serializer),
             Record::ReportBlock(r) => tagged(Kind::ReportBlock, r, serializer),
             Record::Revision(r) => tagged(Kind::Revision, r, serializer),
             Record::Unknown(v) => v.serialize(serializer),
@@ -399,6 +411,8 @@ impl Record {
             Kind::PotentialDef => Record::PotentialDef(typed(kind, map, |r: &PotentialDef| r.v)?),
             Kind::Bond => Record::Bond(typed(kind, map, |r: &Bond| r.v)?),
             Kind::DeviceLink => Record::DeviceLink(typed(kind, map, |r: &DeviceLink| r.v)?),
+            Kind::PageItem => Record::PageItem(typed(kind, map, |r: &PageItem| r.v)?),
+            Kind::StructureBox => Record::StructureBox(typed(kind, map, |r: &StructureBox| r.v)?),
             Kind::ReportBlock => Record::ReportBlock(typed(kind, map, |r: &ReportBlock| r.v)?),
             Kind::Revision => Record::Revision(typed(kind, map, |r: &Revision| r.v)?),
             k => return Err(SchemaError::UnknownKind(k.name().into())),

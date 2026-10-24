@@ -88,6 +88,8 @@ a row here, and that every test named in its row exists, with at least one accep
 | EW-INV-018 | Structural | A revision's checker, when set, is not its author (four eyes; D-34, FR-REV-005, ADR-0009 decision 2). Author and checker are party roles. That a revision released by EW has a checker at all is the release gate's (EW-REL-001); a historic released revision has neither (section 5). | Touched revisions. | `inv018_revision_four_eyes_ok`<br>`inv018_author_is_checker_rejected` |
 | EW-INV-019 | Structural | The page notes of a revision name each page at most once (FR-REV-012: one optional description per changed page). `page_notes[].page` is not a link (section 4, "Not links"): a note keeps naming a page that a later revision deletes. | Touched revisions. | `inv019_page_notes_unique_ok`<br>`inv019_two_notes_on_one_page_rejected` |
 | EW-INV-020 | Structural | A revision that was `Released` or `Withdrawn` before the batch is not updated (FR-REV-009, doc 03 §18: released revisions are immutable; later edits belong to the next revision, and a withdrawal is a new record that names the withdrawn revision in `withdraws`, a forbid link). Removing it stays possible (the undo of `revision.create` deletes the record), so does an open revision becoming `Released` (the release command, not built) and a new withdrawal record. `fields.set` and `edit.delete` refuse a closed revision before the model does, with a message at the target. | Touched revisions whose row before the batch was released or withdrawn and that the batch did not remove. The integrity check has no rows before it and never reports this rule. | `inv020_released_revision_delete_ok`<br>`inv020_released_revision_update_rejected` |
+| EW-INV-022 | Structural | The page of a page item or a structure box exists (WP-S2.04 part 4a, ADR-0009 amendment 8). It is the half of EW-INV-001 for the cascade links `page_item.page` and `structure_box.page` (a violation is reported as EW-INV-001), and `Model::delete_plan` deletes a page's items and boxes with it (FR-PAG-025). | The outgoing links of every touched page item and structure box; the referrers of a removed page. | `inv022_items_and_boxes_on_their_page_ok`<br>`inv022_item_on_missing_page_rejected`<br>`ops::delete_plan_page_cascades_items_and_boxes` |
+| EW-INV-023 | Structural | Every connection a wire marker lists exists and lies on the marker's page (WP-S2.04 part 4a, ADR-0009 amendment 8). The link `page_item.kind.wire_marker.connections[]` is unlink and **load-tolerant** (section 4): a deleted connection leaves the list and a marker left empty is deleted in the same plan, while a listed connection that is missing or on another page is judged by this rule, not by EW-INV-001. A build from before part 4a kept page items verbatim and did not enforce the link, so a loaded project can hold a stale entry: that is a load finding (`Session::load_findings`), not a violation, the derivation and the drawing ignore the entry, and the next edit of the marker may keep it or write a clean list. Therefore the rule judges what an **edit** adds: `Model::apply_with` only; the history path restores committed states (the undo of a cleaning edit restores the stale entries) and the integrity check has no rows before it. | Edit path only. Every touched wire marker: the entries absent from its row before the batch. Every touched connection whose page the batch changed: the markers listing it (generic referrer index). | `inv023_marker_on_its_page_ok`<br>`inv023_stale_list_loads_and_edits_keep_it_ok`<br>`inv023_missing_connection_rejected`<br>`inv023_connection_on_another_page_rejected`<br>`inv023_connection_moved_off_its_page_rejected`<br>`inv023_added_stale_entry_rejected`<br>`ops::delete_plan_connection_unlinks_markers_and_drops_an_empty_one` |
 | EW-INV-021 | Delete-time | An edit does not remove an embedded library copy that a record still names through a `LibRef` link (`symbol.fndef`, `part.function_template[].fndef`; section 4): the removal is `ModelError::Referenced`, the refusal of a forbid link, whatever the project's strictness. A state without the copy is valid (the `LibRef` names nothing, NFR-REL-11), so the history path does not evaluate the rule: the undo of `library.embed` restores the state before the embedding (FT-316, ADR-0009 amendment 7), and redo embeds again. `Model::delete_plan` refuses the same removal before a delete command (`edit.delete`, the purge) builds its batch, with the same error. | Every key the batch removed (it existed before the batch and not after it), with its referrers through each `LibRef` link (generic referrer index). Edit path only. | `inv021_unnamed_copy_removed_by_an_edit_ok`<br>`inv021_undo_of_an_embedding_restores_the_state_before_ok`<br>`inv021_named_copy_removed_by_an_edit_referenced`<br>`ops::lib_ref_fndef_copy_in_use_is_referenced`<br>`ops::lib_ref_part_template_fndef_in_use_is_referenced` |
 
 ## 4. Link table and delete policies
@@ -121,6 +123,13 @@ exactly while the copy is embedded (`LinkDecl::lib_ref`):
 - a second copy minted by "keep both" (`‖ version`) is never the resolution of a `LibRef`.
 
 The decision is deterministic: the index entry depends on the row only, and the link's state on the snapshot only.
+
+**The load-tolerant link** (`LinkDecl::load_tolerant`, WP-S2.04 part 4a). `page_item.kind.wire_marker.connections[]`
+is an ordinary unlink link for removals: deleting a connection takes it out of every marker's list, and a marker left
+empty is dropped (deleted in the same plan); a batch that removes a listed connection without the plan is EW-INV-001.
+Its presence half is EW-INV-023's: a listed connection that does not exist, or lies on another page, is judged for
+the entries an edit adds, never on load, because a build from before part 4a kept the records verbatim and a stale
+entry is a load finding (ADR-0009 amendment 8).
 
 **Reading the model.** The untracked read API (`Model::table`, `row`, `lib`, `indexes`, `referrers`, `delete_plan`
 and the table and index getters) is behind the cargo feature `raw-read` of `ew-model` (ARCH §3 rule 1, ADR-0002
@@ -193,6 +202,11 @@ Fields are written as `kind.path`. "referrers" means the generic referrer index.
 | bond.source_ref.lineage | import_lineage | forbid | referrers |
 | device_link.from / device_link.to | device | cascade | referrers |
 | device_link.source_ref.lineage | import_lineage | forbid | referrers |
+| page_item.page | page | cascade | page_items_by_page |
+| page_item.kind.wire_marker.connections[] | connection | unlink (entry removed; a marker left empty is dropped), load-tolerant (EW-INV-023) | referrers |
+| structure_box.page | page | cascade | structure_boxes_by_page |
+| structure_box.assigns.* (seven slots) | structure_node | forbid | referrers |
+| structure_box.external | external_ref | unlink (cleared) | referrers |
 | report_block.form | form | forbid | referrers |
 | report_block.section | section | forbid | referrers |
 | report_block.embedded.page | page | cascade | referrers |
@@ -214,7 +228,7 @@ state after it is right. Every forbid link stores its target's ID, except the tw
 | Forbid links | Target | Ruling | Why |
 |-------|--------|--------|-----|
 | `source_ref.lineage` of the 18 kinds that carry it | import_lineage | structural | A stored ID; the lineage anchors the identity (the v5 namespace) of its records |
-| structure_node.parent, external_ref.location, page.structure.* and device.structure.* (seven slots each) | structure_node | structural | Stored IDs; structure and designations derive along them (doc 03 §4.2: merged, never deleted under its users) |
+| structure_node.parent, external_ref.location, page.structure.*, device.structure.* and structure_box.assigns.* (seven slots each) | structure_node | structural | Stored IDs; structure and designations derive along them (doc 03 §4.2: merged, never deleted under its users) |
 | page.folio.section, report_block.section | section | structural | Stored IDs; folios and report placement derive from them |
 | device.parent, device.terminal.strip | device | structural | Stored IDs; the device and inheritance graphs (EW-INV-007, EW-INV-009, EW-INV-015) |
 | device.plc_station.config_project | plc_config_project | structural | A stored ID; the station's addressing derives from it |

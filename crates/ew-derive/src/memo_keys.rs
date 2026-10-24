@@ -36,8 +36,8 @@ use ew_memo::Durability;
 use ew_model::{AnyKey, AnyRow, EndpointKey, Entity, IndexName, Model, Rev, RevIndex, Row};
 use ew_schema::{
     AnyId, Bond, Conductor, Connection, Device, Endpoint, ExternalRef, FnDef, FormDef, Function,
-    ImportLineage, Junction, Kind, LibCopy, Page, Part, PotentialDef, ReportBlock, Representation, Section,
-    StructureNode, SymbolDef,
+    ImportLineage, Junction, Kind, LibCopy, Page, PageItem, Part, PotentialDef, ReportBlock, Representation,
+    Section, StructureBox, StructureNode, SymbolDef,
 };
 
 use crate::potentials::PotentialId;
@@ -124,6 +124,8 @@ macro_rules! by_kind {
             Kind::PotentialDef => $f::<PotentialDef>($($arg),*),
             Kind::Bond => $f::<Bond>($($arg),*),
             Kind::DeviceLink => $f::<ew_schema::DeviceLink>($($arg),*),
+            Kind::PageItem => $f::<PageItem>($($arg),*),
+            Kind::StructureBox => $f::<StructureBox>($($arg),*),
             Kind::ReportBlock => $f::<ReportBlock>($($arg),*),
             Kind::Revision => $f::<ew_schema::Revision>($($arg),*),
             Kind::Part => $f::<LibCopy<Part>>($($arg),*),
@@ -135,12 +137,15 @@ macro_rules! by_kind {
     };
 }
 
-/// The page a row is drawn on: a representation's, a connection's (when it has one) and a junction's.
+/// The page a row is drawn on: a representation's, a connection's (when it has one), a junction's, a page item's
+/// and a structure box's.
 fn page_of(row: &AnyRow) -> Option<Id<Page>> {
     match row {
         AnyRow::Representation(r) => Some(r.page),
         AnyRow::Connection(c) => c.page,
         AnyRow::Junction(j) => Some(j.page),
+        AnyRow::PageItem(i) => Some(i.page),
+        AnyRow::StructureBox(b) => Some(b.page),
         _ => None,
     }
 }
@@ -157,9 +162,10 @@ fn endpoint_shard_id(e: &EndpointKey) -> AnyId {
 /// documentation). `Page`, `Shard`, `IndexShard` and `Part` inputs are their own coarse key.
 ///
 /// - `Read(Row((kind, id)))`: `Page(p)` for a present representation (its `page`), a present connection
-///   with `page: Some(p)` and a present junction (its `page`); `Shard(kind, shard(id))` otherwise (other
-///   kinds, page-less connections, absent rows).
-/// - `Read(IndexKey(name, key))`: `Page(p)` for `RepsByPage`, `ConnectionsByPage` and `JunctionsByPage`;
+///   with `page: Some(p)`, a present junction, page item or structure box (its `page`); `Shard(kind, shard(id))`
+///   otherwise (other kinds, page-less connections, absent rows).
+/// - `Read(IndexKey(name, key))`: `Page(p)` for `RepsByPage`, `ConnectionsByPage`, `JunctionsByPage`,
+///   `PageItemsByPage` and `StructureBoxesByPage`;
 ///   `IndexShard(name, s)` otherwise, where `s` is the shard of the key's ID, of the function of a `Cp`
 ///   endpoint, or of the junction of a `Junction` endpoint.
 /// - `Read(Table(_))`, `Read(Index(_))`, `Read(Project)`, `Read(Reserved)`: themselves.
@@ -171,7 +177,11 @@ pub(crate) fn coarse(model: &Model, input: &MemoInput) -> MemoInput {
         },
         MemoInput::Read(DepKey::IndexKey(name, key)) => match (name, key) {
             (
-                IndexName::RepsByPage | IndexName::ConnectionsByPage | IndexName::JunctionsByPage,
+                IndexName::RepsByPage
+                | IndexName::ConnectionsByPage
+                | IndexName::JunctionsByPage
+                | IndexName::PageItemsByPage
+                | IndexName::StructureBoxesByPage,
                 IxKey::Id(id),
             ) => MemoInput::Page(id.cast()),
             (name, IxKey::Id(id)) => MemoInput::IndexShard(*name, shard(*id)),
@@ -218,6 +228,10 @@ fn index_key_stamp(model: &Model, name: IndexName, key: IxKey) -> Rev {
             bucket_stamp(ix.potential_defs_by_endpoint(), &e)
         }
         (IndexName::BondsByEndpoint, IxKey::Endpoint(e)) => bucket_stamp(ix.bonds_by_endpoint(), &e),
+        (IndexName::PageItemsByPage, IxKey::Id(id)) => bucket_stamp(ix.page_items_by_page(), &id.cast()),
+        (IndexName::StructureBoxesByPage, IxKey::Id(id)) => {
+            bucket_stamp(ix.structure_boxes_by_page(), &id.cast())
+        }
         _ => model.rev(),
     }
 }
@@ -239,6 +253,8 @@ fn index_stamp(model: &Model, name: IndexName) -> Rev {
         IndexName::PagesBySection => ix.pages_by_section().changed_at(),
         IndexName::PotentialDefsByEndpoint => ix.potential_defs_by_endpoint().changed_at(),
         IndexName::BondsByEndpoint => ix.bonds_by_endpoint().changed_at(),
+        IndexName::PageItemsByPage => ix.page_items_by_page().changed_at(),
+        IndexName::StructureBoxesByPage => ix.structure_boxes_by_page().changed_at(),
     }
 }
 

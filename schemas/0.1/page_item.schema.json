@@ -1,0 +1,540 @@
+{
+  "$defs": {
+    "Angle2": {
+      "description": "An angle in 10^-3 degree, counter-clockwise on the sheet, within the i32 range (doc 05 §3.2).",
+      "maximum": 2147483647,
+      "minimum": -2147483648,
+      "type": "integer"
+    },
+    "FreeText": {
+      "additionalProperties": true,
+      "description": "A free text (doc 03 §6, FR-SYM-024): `text`, or with `bind` the value the title block prints for that\nplaceholder on the page (one of six bindable names, checked by the commands); `angle` one of 0, 90000,\n180000 or 270000; `style` a text style (absent: `text.normal`); `align` the horizontal alignment at `at`\n(absent: left).",
+      "properties": {
+        "align": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TextAlign"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The horizontal alignment at `at`; absent: left."
+        },
+        "angle": {
+          "$ref": "#/$defs/Angle2",
+          "description": "The angle; default 0."
+        },
+        "at": {
+          "$ref": "#/$defs/Pt2",
+          "description": "The anchor point."
+        },
+        "bind": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The bound property (`project.description`, `page.folio`, …); absent: the text is printed."
+        },
+        "style": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The text style; absent: `text.normal`."
+        },
+        "text": {
+          "$ref": "#/$defs/MlText",
+          "description": "The text; empty (omitted) for a bound text."
+        }
+      },
+      "required": [
+        "at"
+      ],
+      "type": "object"
+    },
+    "Graphic": {
+      "additionalProperties": true,
+      "description": "A graphic without electrical meaning (doc 03 §6): a shape that carries its own geometry (no `angle`), drawn in\nthe page's wire stroke unless `stroke` is set; an absent `dash` is solid and an absent `fill` is false (ID-566).",
+      "properties": {
+        "dash": {
+          "$ref": "#/$defs/LineDash",
+          "description": "The dash pattern; default solid."
+        },
+        "fill": {
+          "description": "Whether a closed shape (rectangle, circle, polygon) is filled; default not.",
+          "type": "boolean"
+        },
+        "shape": {
+          "$ref": "#/$defs/GraphicShape",
+          "description": "The shape."
+        },
+        "stroke": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GraphicStroke"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The stroke; absent: the page's wire stroke."
+        }
+      },
+      "required": [
+        "shape"
+      ],
+      "type": "object"
+    },
+    "GraphicShape": {
+      "description": "The shape of a graphic, absolute in page nanometres.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "A straight line from `a` to `b`.",
+          "properties": {
+            "line": {
+              "$ref": "#/$defs/ShapeLine"
+            }
+          },
+          "required": [
+            "line"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "An open polyline.",
+          "properties": {
+            "polyline": {
+              "$ref": "#/$defs/ShapePoints"
+            }
+          },
+          "required": [
+            "polyline"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "An axis-parallel rectangle.",
+          "properties": {
+            "rect": {
+              "$ref": "#/$defs/ShapeRect"
+            }
+          },
+          "required": [
+            "rect"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A circle.",
+          "properties": {
+            "circle": {
+              "$ref": "#/$defs/ShapeCircle"
+            }
+          },
+          "required": [
+            "circle"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A circular arc.",
+          "properties": {
+            "arc": {
+              "$ref": "#/$defs/ShapeArc"
+            }
+          },
+          "required": [
+            "arc"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A closed polygon.",
+          "properties": {
+            "polygon": {
+              "$ref": "#/$defs/ShapePoints"
+            }
+          },
+          "required": [
+            "polygon"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "GraphicStroke": {
+      "additionalProperties": true,
+      "description": "The stroke of a graphic: its width.",
+      "properties": {
+        "width": {
+          "$ref": "#/$defs/Nm",
+          "description": "The stroke width."
+        }
+      },
+      "required": [
+        "width"
+      ],
+      "type": "object"
+    },
+    "Ident": {
+      "description": "An identifier: non-empty, one line (no control character U+0000 to U+001F or U+007F to U+009F), without leading or trailing white space (the Unicode White_Space set); interior spaces are allowed (doc 05 §3.2). JSON Schema cannot express Unicode Normalization Form C; the reader rejects non-NFC text.",
+      "minLength": 1,
+      "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
+      "type": "string"
+    },
+    "LineDash": {
+      "description": "The dash pattern of a graphic or a structure box line.",
+      "oneOf": [
+        {
+          "const": "solid",
+          "description": "Solid (the default).",
+          "type": "string"
+        },
+        {
+          "const": "dashed",
+          "description": "Dashed.",
+          "type": "string"
+        },
+        {
+          "const": "dotted",
+          "description": "Dotted.",
+          "type": "string"
+        },
+        {
+          "const": "dash_dot",
+          "description": "Dash-dot.",
+          "type": "string"
+        }
+      ]
+    },
+    "MarkerField": {
+      "description": "A field a wire marker shows.",
+      "oneOf": [
+        {
+          "const": "csa",
+          "description": "The cross-section.",
+          "type": "string"
+        },
+        {
+          "const": "colour",
+          "description": "The colour codes.",
+          "type": "string"
+        }
+      ]
+    },
+    "MlText": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "additionalProperties": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minProperties": 1,
+          "propertyNames": {
+            "pattern": "^(?:[a-z]{2,3}(?:-[a-z]{3}){0,3}|[a-z]{4,8})(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}|[0-9]{3}))?(?:-(?:[a-z0-9]{5,8}|[0-9][a-z0-9]{3}))*(?:-[a-wy-z0-9](?:-[a-z0-9]{2,8})+)*(?:-x(?:-[a-z0-9]{1,8})+)?$",
+            "type": "string"
+          },
+          "type": "object"
+        }
+      ],
+      "description": "Multilingual text: a neutral string, or an object keyed by canonical BCP 47 tags with non-empty string values (doc 05 §3.2). JSON Schema cannot express that all text is NFC or that the keys are in ascending byte order; the reader rejects both."
+    },
+    "Nm": {
+      "description": "A length in nanometres (doc 05 §3.2). Written without fraction or exponent; JSON Schema cannot tell 5 from 5.0, the reader rejects the latter.",
+      "maximum": 9007199254740991,
+      "minimum": -9007199254740991,
+      "type": "integer"
+    },
+    "PageItemKind": {
+      "description": "The variant of a page item: `{\"graphic\": {…}}`, `{\"free_text\": {…}}` or `{\"wire_marker\": {…}}`.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "A line, polyline, rectangle, circle, arc or polygon (FR-SYM-023).",
+          "properties": {
+            "graphic": {
+              "$ref": "#/$defs/Graphic"
+            }
+          },
+          "required": [
+            "graphic"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A free text, plain or bound to a project or page property (FR-SYM-024).",
+          "properties": {
+            "free_text": {
+              "$ref": "#/$defs/FreeText"
+            }
+          },
+          "required": [
+            "free_text"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "The group marker of several connections (FR-CON-023, FR-CON-039).",
+          "properties": {
+            "wire_marker": {
+              "$ref": "#/$defs/WireMarker"
+            }
+          },
+          "required": [
+            "wire_marker"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "Pt2": {
+      "description": "A point [x, y] in nanometres, y downwards (doc 05 §3.2).",
+      "items": false,
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      ],
+      "type": "array"
+    },
+    "ShapeArc": {
+      "additionalProperties": true,
+      "description": "A circular arc: centre, radius, start angle and signed sweep (`Angle2`, counter-clockwise positive in the\nmathematical sense of the page's y-down frame: a positive sweep turns from +x towards −y).",
+      "properties": {
+        "centre": {
+          "$ref": "#/$defs/Pt2",
+          "description": "Centre."
+        },
+        "r": {
+          "$ref": "#/$defs/Nm",
+          "description": "Radius."
+        },
+        "start": {
+          "$ref": "#/$defs/Angle2",
+          "description": "Start angle; default 0."
+        },
+        "sweep": {
+          "$ref": "#/$defs/Angle2",
+          "description": "Sweep angle."
+        }
+      },
+      "required": [
+        "centre",
+        "r",
+        "sweep"
+      ],
+      "type": "object"
+    },
+    "ShapeCircle": {
+      "additionalProperties": true,
+      "description": "A circle.",
+      "properties": {
+        "centre": {
+          "$ref": "#/$defs/Pt2",
+          "description": "Centre."
+        },
+        "r": {
+          "$ref": "#/$defs/Nm",
+          "description": "Radius."
+        }
+      },
+      "required": [
+        "centre",
+        "r"
+      ],
+      "type": "object"
+    },
+    "ShapeLine": {
+      "additionalProperties": true,
+      "description": "A straight line.",
+      "properties": {
+        "a": {
+          "$ref": "#/$defs/Pt2",
+          "description": "Start."
+        },
+        "b": {
+          "$ref": "#/$defs/Pt2",
+          "description": "End."
+        }
+      },
+      "required": [
+        "a",
+        "b"
+      ],
+      "type": "object"
+    },
+    "ShapePoints": {
+      "additionalProperties": true,
+      "description": "The points of a polyline or polygon, in order.",
+      "properties": {
+        "points": {
+          "description": "The points.",
+          "items": {
+            "$ref": "#/$defs/Pt2"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "points"
+      ],
+      "type": "object"
+    },
+    "ShapeRect": {
+      "additionalProperties": true,
+      "description": "An axis-parallel rectangle by two corners.",
+      "properties": {
+        "max": {
+          "$ref": "#/$defs/Pt2",
+          "description": "The opposite corner."
+        },
+        "min": {
+          "$ref": "#/$defs/Pt2",
+          "description": "One corner (the smaller coordinates, by the commands)."
+        }
+      },
+      "required": [
+        "min",
+        "max"
+      ],
+      "type": "object"
+    },
+    "TextAlign": {
+      "description": "The horizontal alignment of a free text at its anchor point.",
+      "oneOf": [
+        {
+          "const": "left",
+          "description": "The text starts at the point.",
+          "type": "string"
+        },
+        {
+          "const": "centre",
+          "description": "The text is centred on the point.",
+          "type": "string"
+        },
+        {
+          "const": "right",
+          "description": "The text ends at the point.",
+          "type": "string"
+        }
+      ]
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    },
+    "WireMarker": {
+      "additionalProperties": true,
+      "description": "The group marker of several connections (doc 03 §6, doc 08 §4.5, FR-CON-039): it stores only the list of its\nconnections in printed order, its position and angle (0 or 90000) and the fields it shows; the text is derived\nfrom the connections' effective values. Every listed connection exists and lies on the marker's page\n(EW-INV-023); a deleted connection leaves the list, and an empty marker is deleted with it.",
+      "properties": {
+        "angle": {
+          "$ref": "#/$defs/Angle2",
+          "description": "The angle; default 0."
+        },
+        "at": {
+          "$ref": "#/$defs/Pt2",
+          "description": "The anchor point of the group."
+        },
+        "connections": {
+          "description": "The connections, in printed order.",
+          "items": {
+            "$ref": "#/$defs/Uuid"
+          },
+          "type": "array"
+        },
+        "fields": {
+          "description": "The fields shown, `[\"csa\", \"colour\"]`.",
+          "items": {
+            "$ref": "#/$defs/MarkerField"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "connections",
+        "at",
+        "fields"
+      ],
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "description": "Page content without electrical meaning (doc 03 §6, rank 43): a graphic, a free text, a wire marker, or a\nvariant this format keeps verbatim. It lives in its page's file and is deleted with its page (EW-INV-022).",
+  "properties": {
+    "$k": {
+      "const": "page_item",
+      "description": "The kind name; always the first member."
+    },
+    "$v": {
+      "description": "Per-kind schema version `$v`, omitted when 1.",
+      "format": "uint16",
+      "maximum": 65535,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "id": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The record ID."
+    },
+    "kind": {
+      "$ref": "#/$defs/PageItemKind",
+      "description": "What the item is."
+    },
+    "layer": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Ident"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "A drawing layer name (page layers are FR-PAG-026, 1.0); absent: none."
+    },
+    "page": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The page."
+    }
+  },
+  "required": [
+    "$k",
+    "id",
+    "page",
+    "kind"
+  ],
+  "title": "page_item",
+  "type": "object"
+}
