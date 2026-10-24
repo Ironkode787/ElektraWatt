@@ -33,7 +33,7 @@ SPDX-License-Identifier = "MIT OR Apache-2.0"
 # ew-checks and the expected page texts of ew-viewmodel's `page.describe` tests (GPL-3.0-or-later, like the crates);
 # JSON and the expected texts cannot carry a header (the texts are compared byte for byte).
 [[annotations]]
-path = ["crates/ew-commands/schemas/**", "crates/ew-checks/catalogue/**", "crates/ew-viewmodel/tests/expected/**"]
+path = ["crates/ew-commands/schemas/**", "crates/ew-checks/catalogue/**", "crates/ew-viewmodel/tests/expected/**", "crates/ew-api/tests/expected/**"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
 SPDX-License-Identifier = "GPL-3.0-or-later"
