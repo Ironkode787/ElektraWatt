@@ -215,6 +215,7 @@ pub fn stop(root: &Path, run: &Run, backend: &mut dyn Backend, reason: &str) -> 
         }
         j.clean_before_epilogue = dirty.map(|d| !d);
         j.child_exit = code;
+        j.golden_changed = golden.is_err();
     })?;
     let mut md = String::new();
     let _ = writeln!(md, "# Run {}\n", rj.run);
@@ -424,5 +425,10 @@ mod tests {
         assert!(err.to_string().contains("golden/ changed"), "{err}");
         let report = std::fs::read_to_string(f.run.path("out/report.md")).unwrap();
         assert!(report.contains("golden/ unchanged: NO"), "{report}");
+        // The run is marked, and `bless` refuses it.
+        assert!(f.run.load().unwrap().golden_changed);
+        let err = crate::blind::replay::bless(&root, &f.run, "x", "none").unwrap_err();
+        assert!(err.to_string().contains("golden/ changed"), "{err}");
+        assert!(!root.join("tools/blind/recordings/x").exists());
     }
 }

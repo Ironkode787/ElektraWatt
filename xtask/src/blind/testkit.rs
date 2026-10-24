@@ -55,6 +55,7 @@ pub fn new_run_json(id: &str, kind: Kind) -> RunJson {
         stale: None,
         clean_before_epilogue: None,
         child_exit: None,
+        golden_changed: false,
     }
 }
 
@@ -81,4 +82,39 @@ pub fn test_run(tmp: &Tmp) -> Run {
     std::fs::write(run.path("turns.jsonl"), format!("{}\n", turns_header())).unwrap();
     run.save(&new_run_json("r1", Kind::Free)).unwrap();
     run
+}
+
+/// A stopped drafter run holding a project (`work/project/marker.txt`) and a check run of it, side by side in one
+/// folder as `start --kind check --of drafter` makes them; the check run's work folder is empty.
+pub fn check_pair(tmp: &Tmp) -> (Run, Run) {
+    let runs = tmp.0.join("runs");
+    let drafter = Run {
+        dir: runs.join("drafter"),
+    };
+    std::fs::create_dir_all(drafter.path("work/project")).unwrap();
+    std::fs::write(drafter.path("work/project/marker.txt"), "the drafter's project").unwrap();
+    drafter.save(&new_run_json("drafter", Kind::Gate)).unwrap();
+    let check = Run {
+        dir: runs.join("check"),
+    };
+    std::fs::create_dir_all(check.path(".harness")).unwrap();
+    std::fs::write(
+        check.path("prelude.uiscript"),
+        format!(
+            "{}\n{}\n",
+            script_header("check prelude"),
+            step_line("file.open", &json!({"dir": "project"}))
+        ),
+    )
+    .unwrap();
+    std::fs::write(
+        check.path("steps.uiscript"),
+        format!("{}\n", script_header("steps")),
+    )
+    .unwrap();
+    std::fs::write(check.path("turns.jsonl"), format!("{}\n", turns_header())).unwrap();
+    let mut rj = new_run_json("check", Kind::Check);
+    rj.of = Some("drafter".to_owned());
+    check.save(&rj).unwrap();
+    (drafter, check)
 }

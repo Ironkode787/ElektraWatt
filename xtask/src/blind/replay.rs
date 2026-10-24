@@ -79,7 +79,7 @@ pub struct Inputs {
     pub epilogue: String,
     /// The epilogue's range in `steps.uiscript`, if the run had one.
     pub epilogue_range: Option<[u32; 2]>,
-    /// The run's own transcript lines, when at hand (for R3).
+    /// The run's own transcript lines, normalised with its folder, when at hand (for R3).
     pub transcript: Option<Vec<String>>,
     /// Why the recording is stale, if it is.
     pub stale: Option<String>,
@@ -130,10 +130,14 @@ pub fn load_inputs(dir: &Path) -> Result<Inputs> {
             .lines()
             .map(serde_json::from_str)
             .collect::<std::result::Result<Vec<Value>, _>>()?;
-        let mut all = prelude.clone();
-        all.extend(steps.clone());
         let epilogue = range.map_or_else(String::new, |r| epilogue_text(&steps, &lines, prelude.len(), r));
-        (outcomes, epilogue, Some(lines))
+        // The run's own lines are normalised like the replay's: with this run folder's path.
+        let norm = Normaliser::new(dir);
+        (
+            outcomes,
+            epilogue,
+            Some(lines.iter().map(|l| norm.text(l)).collect()),
+        )
     };
     Ok(Inputs {
         prelude,
@@ -281,10 +285,8 @@ pub fn replay_once(root: &Path, exe: &Path, inputs: &Inputs) -> Result<Replayed>
             .push("the recording has an epilogue text and no epilogue".to_owned());
     }
     if let Some(own) = &inputs.transcript {
-        let n = Normaliser::new(Path::new("."));
-        let theirs: Vec<String> = own.iter().map(|l| n.text(l)).collect();
-        let differing = theirs.iter().zip(&result.lines).filter(|(a, b)| a != b).count()
-            + theirs.len().abs_diff(result.lines.len());
+        let differing = own.iter().zip(&result.lines).filter(|(a, b)| a != b).count()
+            + own.len().abs_diff(result.lines.len());
         result.r3 = Some(differing);
     }
     let _ = std::fs::remove_dir_all(&dir);
@@ -384,6 +386,12 @@ pub fn bless(root: &Path, run: &Run, name: &str, ci: &str) -> Result<PathBuf> {
         bail!("--ci is pr, nightly or none");
     }
     let rj = run.load()?;
+    if rj.golden_changed {
+        bail!(
+            "run `{}`: golden/ changed during the run (D16); it is not blessed",
+            rj.run
+        );
+    }
     if matches!(rj.end.as_deref(), Some("lost" | "diverged")) {
         bail!(
             "run `{}` ended `{}`: it is not blessed",

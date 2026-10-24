@@ -95,13 +95,42 @@ impl Flags {
     }
 }
 
-/// The reference of a run (the copy in the run folder) or, from the repository, the committed one.
-fn load_reference(run: Option<&Run>, root: &Path) -> Result<Reference> {
-    let path = match run {
-        Some(r) if r.path(".harness/reference/actions.txt").is_file() => {
-            r.path(".harness/reference/actions.txt")
-        }
-        _ => root.join("tools/blind/reference/actions.txt"),
+/// The subcommands an agent may run from the run's copy of the harness; every other one is the orchestrator's.
+pub const AGENT_COMMANDS: [&str; 8] = [
+    "help", "do", "look", "note", "handback", "report", "resume", "serve",
+];
+
+/// The run whose copy of the harness is `exe`: `<dir>/bin/xtask` beside `<dir>/run.json`.
+pub fn copy_of(exe: Option<&Path>) -> Option<Run> {
+    exe.and_then(Path::parent)
+        .filter(|p| p.file_name().is_some_and(|n| n == "bin"))
+        .and_then(Path::parent)
+        .filter(|d| d.join("run.json").is_file())
+        .map(|d| Run { dir: d.to_path_buf() })
+}
+
+/// The refusal of `command` when it is run from a run's copy: the copy knows no repository (isolation, ID-621), so only
+/// the agent's commands and the keeper's own `serve` run there (`--help` and `-h` are `help`).
+pub fn refused_in_copy(command: &str, from_copy: bool) -> Option<String> {
+    let command = if matches!(command, "--help" | "-h") {
+        "help"
+    } else {
+        command
+    };
+    (from_copy && !AGENT_COMMANDS.contains(&command))
+        .then(|| format!("harness: {command} is the orchestrator's"))
+}
+
+/// The reference of a run (the copy in the run folder) or, from the repository, the committed one. A run's copy of the
+/// harness (`repo` is `None`) never falls back to the repository.
+fn load_reference(run: Option<&Run>, repo: Option<&Path>) -> Result<Reference> {
+    let own = run
+        .map(|r| r.path(".harness/reference/actions.txt"))
+        .filter(|p| p.is_file());
+    let path = match (own, repo) {
+        (Some(p), _) => p,
+        (None, Some(root)) => root.join("tools/blind/reference/actions.txt"),
+        (None, None) => bail!("the run's copy of the action reference is missing"),
     };
     filter::parse_reference(
         &std::fs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?,
@@ -150,10 +179,17 @@ pub fn run(args: &[String], root: &Path) -> Result<bool> {
     };
     let rest = args[1..].to_vec();
     let exe = std::env::current_exe().ok();
+    // The run's copy of the harness knows no repository: it runs the agent's commands only, from its own folder.
+    let copy = copy_of(exe.as_deref());
+    if let Some(refusal) = refused_in_copy(command, copy.is_some()) {
+        println!("{refusal}");
+        return Ok(false);
+    }
+    let repo: Option<&Path> = if copy.is_some() { None } else { Some(root) };
     let locate = |arg: &str, out: Option<&str>| run::locate(arg, out.map(Path::new), exe.as_deref());
     match command {
         "help" | "--help" | "-h" => {
-            print!("{}", help_text(root, exe.as_deref())?);
+            print!("{}", help_text(repo, copy.as_ref())?);
             Ok(true)
         }
         "serve" => keeper::serve_command(&rest),
@@ -195,7 +231,7 @@ pub fn run(args: &[String], root: &Path) -> Result<bool> {
             let run_arg = rest.next().context("do needs the run")?;
             let run = locate(&run_arg, out.as_deref())?;
             check_stateless_flag(&run, stateless_flag)?;
-            let reference = load_reference(Some(&run), root)?;
+            let reference = load_reference(Some(&run), repo)?;
             let first = rest.next().context("do needs an action or `-` for a batch")?;
             let steps: Vec<StepIn> = if first == "-" {
                 let mut text = String::new();
@@ -443,6 +479,8 @@ pub fn resume(run: &Run) -> Result<String> {
             Err(e) => return Err(e).with_context(|| format!("deleting {}", p.display())),
         }
     }
+    // A check run's project is a copy in `work/`: it goes back with it.
+    start::reseed_check_project(run)?;
     match keeper::spawn_keeper(run, true, keeper::DEFAULT_IDLE_MINUTES) {
         Ok(_) => {
             run.update(|j| {
@@ -467,17 +505,13 @@ pub fn resume(run: &Run) -> Result<String> {
 }
 
 /// The text of `help`: the harness help, the vocabulary and the actions, and what the copied binaries print.
-fn help_text(root: &Path, exe: Option<&Path>) -> Result<String> {
-    let run = exe
-        .and_then(Path::parent)
-        .filter(|p| p.file_name().is_some_and(|n| n == "bin"))
-        .and_then(Path::parent)
-        .filter(|d| d.join("run.json").is_file())
-        .map(|d| Run { dir: d.to_path_buf() });
-    let read = |own: &str, repo: &str| -> Result<String> {
-        let path = match &run {
-            Some(r) if r.path(own).is_file() => r.path(own),
-            _ => root.join(repo),
+fn help_text(repo: Option<&Path>, run: Option<&Run>) -> Result<String> {
+    let read = |own: &str, rel: &str| -> Result<String> {
+        let own = run.map(|r| r.path(own)).filter(|p| p.is_file());
+        let path = match (own, repo) {
+            (Some(p), _) => p,
+            (None, Some(root)) => root.join(rel),
+            (None, None) => bail!("the run's copy of {rel} is missing"),
         };
         Ok(std::fs::read_to_string(&path)
             .with_context(|| format!("reading {}", path.display()))?
@@ -494,7 +528,7 @@ fn help_text(root: &Path, exe: Option<&Path>) -> Result<String> {
         ".harness/reference/actions.txt",
         "tools/blind/reference/actions.txt",
     )?);
-    if let Some(r) = &run {
+    if let Some(r) = run {
         for (title, name, args) in [
             ("elektrawatt --help", "elektrawatt", ["--help"]),
             ("ew help", "ew", ["help"]),
@@ -507,4 +541,111 @@ fn help_text(root: &Path, exe: Option<&Path>) -> Result<String> {
         }
     }
     Ok(out)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::blind::testkit::{Tmp, test_run};
+
+    /// ID-621: the run's copy of the harness runs the agent's commands only.
+    #[test]
+    fn a_runs_copy_refuses_the_orchestrators_subcommands() {
+        for sub in [
+            "stop",
+            "bless",
+            "selftest",
+            "start",
+            "compose",
+            "replay",
+            "bless-oracle",
+            "check-task",
+            "nonsense",
+        ] {
+            assert_eq!(
+                refused_in_copy(sub, true),
+                Some(format!("harness: {sub} is the orchestrator's")),
+                "{sub}"
+            );
+            assert_eq!(refused_in_copy(sub, false), None, "{sub} from the repository");
+        }
+        for sub in AGENT_COMMANDS.iter().chain(&["--help", "-h"]) {
+            assert_eq!(refused_in_copy(sub, true), None, "{sub}");
+        }
+    }
+
+    #[test]
+    fn a_copy_is_the_executable_beside_a_run_json() {
+        let tmp = Tmp::new("copy-of");
+        let run = test_run(&tmp);
+        std::fs::create_dir_all(run.path("bin")).unwrap();
+        let exe = run.path("bin/xtask.exe");
+        assert_eq!(copy_of(Some(&exe)).map(|r| r.dir), Some(run.dir.clone()));
+        // The build's own xtask (target/debug) and a bin folder without a run.json are no copy.
+        assert!(copy_of(Some(&tmp.0.join("target/debug/xtask.exe"))).is_none());
+        std::fs::create_dir_all(tmp.0.join("other/bin")).unwrap();
+        assert!(copy_of(Some(&tmp.0.join("other/bin/xtask.exe"))).is_none());
+        assert!(copy_of(None).is_none());
+    }
+
+    /// `resume` deletes `work/` and gives a check run its project back before the keeper replays the prelude.
+    #[test]
+    fn resume_puts_a_check_runs_project_back() {
+        let tmp = Tmp::new("resume-check");
+        let (_drafter, check) = crate::blind::testkit::check_pair(&tmp);
+        std::fs::create_dir_all(check.path("work")).unwrap();
+        std::fs::write(check.path("work/leftover.txt"), "x").unwrap();
+        // There is no copied harness in the fixture, so the keeper cannot start: the folder is what is checked.
+        assert!(resume(&check).is_err());
+        assert!(check.path("work/project/marker.txt").is_file());
+        assert!(!check.path("work/leftover.txt").exists());
+    }
+
+    /// ID-621: from a copy, the help and the reference come from the run folder and never from a repository.
+    #[test]
+    fn a_copy_reads_its_own_files_and_never_falls_back_to_the_repository() {
+        let tmp = Tmp::new("copy-help");
+        let run = test_run(&tmp);
+        // A repository that has the files, and a run folder that does not: the copy must fail, not read the repository.
+        let repo = tmp.0.join("repo");
+        for (rel, text) in [
+            ("tools/blind/HELP.md", "repo help\n"),
+            ("tools/blind/reference/vocabulary.txt", "# v\n"),
+            (
+                "tools/blind/reference/actions.txt",
+                "a View \"x\" menu none shortcut none context global params \"\"\n",
+            ),
+        ] {
+            let p = repo.join(rel);
+            std::fs::create_dir_all(p.parent().unwrap()).unwrap();
+            std::fs::write(p, text).unwrap();
+        }
+        assert!(help_text(None, Some(&run)).is_err());
+        assert!(load_reference(Some(&run), None).is_err());
+        // The orchestrator, with the repository, reads the repository's.
+        assert!(help_text(Some(&repo), None).unwrap().starts_with("repo help"));
+        assert!(load_reference(None, Some(&repo)).unwrap().find("a").is_some());
+        // With its own files the copy reads them, and says so in its output.
+        std::fs::create_dir_all(run.path(".harness/reference")).unwrap();
+        std::fs::write(run.path(".harness/HELP.md"), "own help\n").unwrap();
+        std::fs::write(run.path(".harness/reference/vocabulary.txt"), "# own\n").unwrap();
+        std::fs::write(
+            run.path(".harness/reference/actions.txt"),
+            "b View \"y\" menu none shortcut none context global params \"\"\n",
+        )
+        .unwrap();
+        let text = help_text(None, Some(&run)).unwrap();
+        assert!(
+            text.starts_with("own help") && text.contains("# own") && !text.contains("repo help"),
+            "{text}"
+        );
+        assert!(load_reference(Some(&run), None).unwrap().find("b").is_some());
+        // Even with a repository at hand, the run's own file wins.
+        assert!(
+            load_reference(Some(&run), Some(&repo))
+                .unwrap()
+                .find("a")
+                .is_none()
+        );
+    }
 }

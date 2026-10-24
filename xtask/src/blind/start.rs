@@ -94,6 +94,31 @@ fn copy_file(from: &Path, to: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Copies the stopped drafter run's project into the check run's `work/project`.
+fn seed_from(drafter: &Run, run: &Run) -> Result<()> {
+    let project = drafter.path("work/project");
+    if !project.is_dir() {
+        bail!("run `{}` has no project to check", drafter.dir.display());
+    }
+    copy_dir(&project, &run.path("work/project"))
+}
+
+/// Puts a check run's copy of the drafter's project back after `work/` was deleted (`resume`, a stateless call): the
+/// check prelude opens `project`. A run of another kind needs nothing.
+///
+/// # Errors
+///
+/// The drafter run or its project is gone.
+pub fn reseed_check_project(run: &Run) -> Result<()> {
+    let rj = run.load()?;
+    if rj.kind != "check" {
+        return Ok(());
+    }
+    let of = rj.of.context("a check run names its drafter")?;
+    let drafter = super::run::locate(&of, run.dir.parent(), None)?;
+    seed_from(&drafter, run)
+}
+
 /// The parts of `start` the tests reach: everything but the keeper. `version` reads `elektrawatt --version`.
 ///
 /// # Errors
@@ -180,11 +205,7 @@ pub fn prepare(root: &Path, a: &StartArgs, version: &dyn Fn(&Path) -> Result<Str
         if !drafter.path("out/report.md").exists() {
             bail!("run `{of}` is not stopped: `stop` it first");
         }
-        let project = drafter.path("work/project");
-        if !project.is_dir() {
-            bail!("run `{of}` has no project to check");
-        }
-        copy_dir(&project, &run.path("work/project"))?;
+        seed_from(&drafter, &run)?;
         format!(
             "{}\n{}\n",
             script_header("check prelude"),
@@ -228,6 +249,7 @@ pub fn prepare(root: &Path, a: &StartArgs, version: &dyn Fn(&Path) -> Result<Str
         stale: None,
         clean_before_epilogue: None,
         child_exit: None,
+        golden_changed: false,
     };
     run.save(&json)?;
     Ok(run)
@@ -395,6 +417,26 @@ mod tests {
             prepare(&root, &check, &|_| Ok("0".to_owned())).is_err(),
             "a check run needs --of"
         );
+    }
+
+    /// A check run's project is a copy of the drafter's in `work/`: it comes back after `work/` was deleted.
+    #[test]
+    fn a_check_runs_project_is_put_back() {
+        let tmp = Tmp::new("start-reseed");
+        let (_drafter, check) = crate::blind::testkit::check_pair(&tmp);
+        assert!(!check.path("work/project").exists());
+        reseed_check_project(&check).unwrap();
+        assert_eq!(
+            std::fs::read_to_string(check.path("work/project/marker.txt")).unwrap(),
+            "the drafter's project"
+        );
+        // A run of another kind needs nothing; a drafter that is gone is an error.
+        let plain_tmp = Tmp::new("start-reseed-plain");
+        let plain = crate::blind::testkit::test_run(&plain_tmp);
+        reseed_check_project(&plain).unwrap();
+        assert!(!plain.path("work/project").exists());
+        std::fs::remove_dir_all(tmp.0.join("runs/drafter")).unwrap();
+        assert!(reseed_check_project(&check).is_err());
     }
 
     /// BD10: `golden/` is hashed at the start and compared at the stop; a changed byte fails the run.

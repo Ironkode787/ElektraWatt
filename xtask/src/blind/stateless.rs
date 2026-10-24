@@ -56,6 +56,8 @@ impl<'a> Stateless<'a> {
     fn begin(&mut self) -> Result<()> {
         remove_inside(self.run, "work")?;
         remove_inside(self.run, "config")?;
+        // A check run's project is a copy in `work/`: it goes back with it.
+        super::start::reseed_check_project(self.run)?;
         let (mut product, header) = self.spawner.spawn(self.run)?;
         let prelude = parse_script(&std::fs::read_to_string(self.run.path("prelude.uiscript"))?)?;
         let mut all = prelude.clone();
@@ -198,6 +200,22 @@ mod tests {
             err.downcast_ref::<crate::blind::session::Diverged>().is_some(),
             "{err}"
         );
+    }
+
+    /// A check run's project is a copy in `work/`: a stateless call deletes `work/` and puts the copy back, so the
+    /// check prelude's `file.open dir=project` finds it (fix round).
+    #[test]
+    fn a_check_run_keeps_its_project_across_the_replays() {
+        let tmp = Tmp::new("stateless-check");
+        let (_drafter, check) = crate::blind::testkit::check_pair(&tmp);
+        std::fs::create_dir_all(check.path("work")).unwrap();
+        std::fs::write(check.path("work/leftover.txt"), "x").unwrap();
+        let spawner = FakeSpawner::default();
+        let mut backend = Stateless::new(&check, &spawner);
+        backend.execute(&step("help.about")).unwrap();
+        assert!(check.path("work/project/marker.txt").is_file());
+        assert!(!check.path("work/leftover.txt").exists(), "work/ was reset");
+        backend.end_call().unwrap();
     }
 
     #[test]

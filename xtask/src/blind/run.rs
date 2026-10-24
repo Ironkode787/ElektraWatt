@@ -284,6 +284,9 @@ pub struct RunJson {
     /// After `stop`: the exit code of the product.
     #[serde(default)]
     pub child_exit: Option<i32>,
+    /// After `stop`: whether `golden/` changed during the run (D16); such a run is never blessed.
+    #[serde(default)]
+    pub golden_changed: bool,
 }
 
 /// What a step the product did not do looked like (the broken rule of §5.2.2 item 4).
@@ -609,6 +612,7 @@ mod tests {
             stale: None,
             clean_before_epilogue: None,
             child_exit: None,
+            golden_changed: false,
         };
         run.save(&json).unwrap();
         assert_eq!(run.load().unwrap(), json);
