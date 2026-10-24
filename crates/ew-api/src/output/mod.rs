@@ -34,6 +34,8 @@
 //! rule 2: a hash of the export input), `<pages>` being `all` or the selected folio labels joined by `,` and
 //! `<digest>` the [`content_digest`] of the pages and the bundled fonts.
 
+// WP-S2.05 part 3
+mod clipboard;
 mod editing;
 mod fields;
 // WP-S2.05 part 2
@@ -54,6 +56,11 @@ use ew_export::{PdfError, PdfOptions, PdfPage, SvgError, SvgFace, SvgOptions, pa
 use ew_scene::page::PageFinding;
 use sha2::{Digest, Sha256};
 
+// WP-S2.05 part 3
+pub use clipboard::{
+    CopiedFragment, CopyError, FRAGMENT_HEADER, FRAGMENT_MAX_BYTES, FRAGMENT_MAX_DEPTH, FRAGMENT_MAX_LINE,
+    FragmentError, ParsedFragment, parse_fragment,
+};
 pub use editing::{
     CataloguePart, CatalogueStrip, CatalogueSymbol, CatalogueTemplateFn, JunctionWire, OUTLINE_TOLERANCE_NM,
     PageTables, PlaceCatalogue, ShapeCp, SymbolShape, TableBox, TableConnection, TableCp, TableEnd, TableIp,
