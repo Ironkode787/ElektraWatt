@@ -616,6 +616,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         // FT-410: the parts table import.
         "reason-parts-import" => "An import is previewed first",
         "error-parts-import" => "Parts table refused: {0}",
+        "banner-part-imported" => "Imported 1 part from {2} ({1} skipped).",
         "banner-parts-imported" => "Imported {0} parts from {2} ({1} skipped).",
         "parts-card-title" => "Import parts",
         "parts-card-line" => "{0}: {1} created, {2} skipped, {3} errors",

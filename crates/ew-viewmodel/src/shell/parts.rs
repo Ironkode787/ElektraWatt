@@ -151,8 +151,13 @@ impl ShellModel {
             let Card { preview, edit, .. } = card;
             let outcome = self.commit_kept(preview, &edit.name, &edit.params, None);
             if outcome == Outcome::Done {
+                let key = if created == 1 {
+                    "banner-part-imported"
+                } else {
+                    "banner-parts-imported"
+                };
                 self.banner = Some(strings::format(
-                    "banner-parts-imported",
+                    key,
                     &[&created.to_string(), &skipped.to_string(), &source],
                 ));
             }

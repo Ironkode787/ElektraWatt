@@ -133,6 +133,13 @@ pub(crate) fn emit(
         if !fresh(&mut cx.findings, row, &keys) {
             continue;
         }
+        // Into a project the key becomes the copy's `ItemMeta.key`: refuse it here, with its row.
+        if cx.part_source.is_some()
+            && let Err(e) = parse_ident(row.key())
+        {
+            cx.malformed(row, &format!("column `key`: {e}"));
+            continue;
+        }
         let mut r = row.reader();
         let manufacturer = r.req_ident("manufacturer");
         let part_number = r.req_ident("part_number");

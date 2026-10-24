@@ -7,7 +7,7 @@
 
 use std::path::Path;
 
-use ew_api::import::{PARTS_IMPORT, read_parts_tables};
+use ew_api::import::{ImportError, PARTS_IMPORT, PartsReadError, read_parts_tables};
 use ew_api::{AnyCommand, Session, SessionOptions};
 
 fn session() -> Session {
@@ -62,4 +62,25 @@ fn the_golden_parts_table_imports_into_a_new_project_once() {
     let mut sorted = numbers.clone();
     sorted.sort_unstable();
     assert_eq!(numbers, sorted, "part-number order (FT-439)");
+}
+
+#[test]
+fn a_parts_table_above_the_size_limit_is_refused_before_it_is_read() {
+    let dir = std::env::temp_dir().join(format!("ew-parts-limit-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("parts.csv");
+    let limit = ew_import_tables::TableLimits::default().max_file_bytes;
+    let file = std::fs::File::create(&path).unwrap();
+    file.set_len(limit + 1).unwrap();
+    drop(file);
+    let project = session().query().project().id.as_uuid();
+    let result = read_parts_tables(&path, project);
+    std::fs::remove_dir_all(&dir).unwrap();
+    assert!(
+        matches!(
+            result,
+            Err(PartsReadError::Import(ImportError::LimitExceeded { .. }))
+        ),
+        "{result:?}"
+    );
 }

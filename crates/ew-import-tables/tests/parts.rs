@@ -149,6 +149,21 @@ fn a_bad_row_refuses_the_whole_import_with_its_pointer() {
 }
 
 #[test]
+fn a_key_that_is_not_an_identifier_is_refused_with_its_pointer() {
+    // A control character inside the key (a tab): `Ident` refuses it, so the copy's key cannot be set.
+    let text = "key,manufacturer,part_number\nA,Acme,A1\nB\tC,Acme,B1\n";
+    let e = parse(text, &[], project()).unwrap_err();
+    let ImportError::Malformed { message, line } = &e else {
+        panic!("{e}")
+    };
+    assert_eq!(*line, Some(3));
+    assert!(
+        message.starts_with("parts.csv, row `B\tC`: column `key`:"),
+        "{message}"
+    );
+}
+
+#[test]
 fn a_child_row_of_an_unknown_part_is_refused() {
     let cps = "key,part,idx,designation\nX:0,X,0,1\n".to_owned();
     let e = parse(

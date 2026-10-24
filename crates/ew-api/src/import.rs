@@ -320,7 +320,19 @@ pub fn read_parts_tables(
         p.file_name()
             .map_or_else(|| "parts.csv".to_owned(), |n| n.to_string_lossy().into_owned())
     };
-    let read = |p: &Path| std::fs::read_to_string(p).map_err(|e| PartsReadError::Io(name(p), e));
+    let read = |p: &Path| {
+        let limit = ew_import_tables::TableLimits::default().max_file_bytes;
+        let len = std::fs::metadata(p)
+            .map_err(|e| PartsReadError::Io(name(p), e))?
+            .len();
+        if len > limit {
+            return Err(PartsReadError::Import(ImportError::LimitExceeded {
+                what: format!("file size of {}", name(p)),
+                limit,
+            }));
+        }
+        std::fs::read_to_string(p).map_err(|e| PartsReadError::Io(name(p), e))
+    };
     let parts = read(path)?;
     let dir = path.parent().unwrap_or_else(|| Path::new("."));
     let mut texts: Vec<(&'static str, String)> = Vec::new();
