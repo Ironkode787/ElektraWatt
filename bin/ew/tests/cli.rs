@@ -1401,3 +1401,73 @@ fn the_find_and_replace_log_replays_through_ew_apply() {
     let diff = replayed.diff_from(&saved.world()).unwrap();
     assert!(diff.model.is_empty(), "{:?}", diff.model);
 }
+
+// WP-S2.04 part 4a
+/// The part-4a commands replay through `ew apply` (§12 item 2): a log of `project.drawing.set` (`marker_mode`),
+/// `box.structure`, `item.place`, `marker.place` and `rep.move` on a copy of Golden A applies every line and saves
+/// the records the same log gives in-process.
+#[test]
+fn the_page_item_commands_replay_through_ew_apply() {
+    let t = Tmp::new();
+    let home = t.0.join("home");
+    let project = golden_copy(&t);
+    let (golden, _) = ew_api::Session::open_read_only(&project, "test").unwrap();
+    let tables = golden.page_tables("101").unwrap();
+    let page = tables.page.to_string();
+    let wires: Vec<String> = tables
+        .connections
+        .iter()
+        .filter(|c| c.kind == "wire")
+        .take(2)
+        .map(|c| c.id.to_string())
+        .collect();
+    let rep = tables.reps[0].id.to_string();
+    drop(golden);
+    let header = "{\"$schema\":\"ew.cmdlog/1\",\"label\":\"items\"}";
+    let mut lines = vec![
+        serde_json::json!({"cmd": "project.drawing.set", "params": {"marker_mode": "explicit"}}),
+        serde_json::json!({"cmd": "box.structure", "params": {"page": page,
+            "outline": [[0, 0], [10_000_000, 0], [10_000_000, 10_000_000]], "style": "dotted", "caption": "Box",
+            "assigns": {}}}),
+        serde_json::json!({"cmd": "item.place", "params": {"page": page,
+            "kind": {"free_text": {"text": "40x60", "at": [50_800_000, 30_480_000]}}}}),
+        serde_json::json!({"cmd": "item.place", "params": {"page": page,
+            "kind": {"graphic": {"shape": {"line": {"a": [0, 0], "b": [10_000_000, 0]}}, "dash": "dashed"}}}}),
+        serde_json::json!({"cmd": "marker.place", "params": {"page": page, "connections": wires,
+            "at": [60_000_000, 40_000_000]}}),
+    ];
+    let text = |lines: &[serde_json::Value]| {
+        let mut out = String::from(header);
+        for l in lines {
+            out.push('\n');
+            out.push_str(&l.to_string());
+        }
+        out.push('\n');
+        out
+    };
+    // A minted record cannot be named by a later line (no reference names a page item), so `rep.move`'s `items`
+    // is replayed by `ew-commands`' tests; here the representation moves alone after the items are placed.
+    lines.push(serde_json::json!({"cmd": "rep.move", "params": {"reps": [rep], "delta": [7_937_500, 0]}}));
+    let text = text(&lines);
+    let log = t.0.join("items.ewcmd");
+    std::fs::write(&log, &text).unwrap();
+    let applied = ew_isolated(&home, &["apply".as_ref(), project.as_os_str(), log.as_os_str()]);
+    assert_eq!(applied.status.code(), Some(0), "{}", stderr(&applied));
+    assert!(
+        stdout(&applied).contains("applied 6 of 6 lines; saved"),
+        "{}",
+        stdout(&applied)
+    );
+    let fresh = t.0.join("fresh.ew");
+    copy_dir(std::path::Path::new(GOLDEN_A), &fresh);
+    let (mut replayed, _) = ew_api::Session::open_read_only(&fresh, "test").unwrap();
+    replayed
+        .run_script(&ew_api::CmdLog::parse(&text).unwrap(), "items.ewcmd")
+        .unwrap();
+    let (saved, _) = ew_api::Session::open_read_only(&project, "test").unwrap();
+    let diff = replayed.diff_from(&saved.world()).unwrap();
+    assert!(diff.model.is_empty(), "{:?}", diff.model);
+    let saved_tables = saved.page_tables("101").unwrap();
+    assert_eq!(saved_tables.items.len(), 3);
+    assert_eq!(saved_tables.structure_boxes.len(), 1);
+}

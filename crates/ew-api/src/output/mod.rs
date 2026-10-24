@@ -64,7 +64,7 @@ pub use clipboard::{
 pub use editing::{
     CataloguePart, CatalogueStrip, CatalogueSymbol, CatalogueTemplateFn, JunctionWire, OUTLINE_TOLERANCE_NM,
     PageTables, PlaceCatalogue, ShapeCp, SymbolShape, TableBox, TableConnection, TableCp, TableEnd, TableIp,
-    TableJunction, TableRep,
+    TableItem, TableJunction, TableRep, TableStructureBox,
 };
 /// The display-list IR the pages of an export are made of ([`ExportPages`]' `content`), re-exported so that the
 /// shell names its types (`DisplayList`, `EntityRef`, `Rect`) without a workspace edge to `ew-dl` (WP-S2.02 §4.2;
@@ -88,7 +88,8 @@ pub use properties::{
 pub use view::{
     CpTargetsByPage, FrameForms, GENERIC_SYMBOL_SEALS, GENERIC_SYMBOLS_PROFILE, GenericSymbols, NOGRID_FRAME,
     PageBindingsOf, PageConnectionsOf, PageCpTargetsOf, PageEmbeddedOf, PageFrameOf, PageGridOf,
-    PageJunctionsOf, PageRepsOf, PageSlotsOf, PageTableOf, generic_symbols, page_destination, page_uuid,
+    PageJunctionsOf, PageRepsOf, PageSlotsOf, PageTableOf, generic_symbols, page_boxes, page_destination,
+    page_items, page_uuid,
 };
 
 use crate::Session;

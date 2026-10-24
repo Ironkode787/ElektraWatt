@@ -28,7 +28,7 @@ use ew_derive::ew_schema::{
 use ew_derive::ew_units::{Nm, Orient2, Pt2, Rect};
 use ew_derive::{
     CpRef, DeviceTag, DisplayedTag, FunctionCps, PageOrder, PageRef, PhysicalWiresOf, PotentialNameOf,
-    PotentialPartition, Q, WireNumbers, cp_label, cp_point, manufacturer_name,
+    PotentialPartition, Q, WireNumbers, box_caption, cp_label, cp_point, live_connections, manufacturer_name,
 };
 use ew_dl::{ItemKind, PathEl};
 use ew_library::starter::{self, StarterKind};
@@ -726,6 +726,149 @@ pub struct PageTables {
     pub connections: Vec<TableConnection>,
     /// The junctions of the page, by point (y, then x), then ID.
     pub junctions: Vec<TableJunction>,
+    /// The page items of the page (WP-S2.04 part 4a), by position: the top of their bounds, then the left, then ID.
+    pub items: Vec<TableItem>,
+    /// The structure boxes of the page (WP-S2.04 part 4a), by position: their top-left vertex (the smallest `y`,
+    /// then `x`), then ID.
+    pub structure_boxes: Vec<TableStructureBox>,
+}
+
+/// A page-item row of the page tables (WP-S2.04 part 4a).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct TableItem {
+    /// The item's ID.
+    pub id: Uuid,
+    /// `graphic`, `free_text`, `wire_marker`, or `unknown` for a variant this build keeps verbatim (`image` until
+    /// part 5).
+    pub kind: String,
+    /// Its bounds `[x0, y0, x1, y1]`: a graphic's shape (a circle or an arc by its full circle), a drawn text or
+    /// marker group by its drawn items, else its anchor point; an unknown variant `[0, 0, 0, 0]`.
+    pub bounds: [i64; 4],
+    /// A wire marker's live connections (existing, on this page) in printed order; empty for the other kinds.
+    pub connections: Vec<Uuid>,
+}
+
+/// A structure-box row of the page tables (WP-S2.04 part 4a).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct TableStructureBox {
+    /// The box's ID.
+    pub id: Uuid,
+    /// The outline's vertices, absolute.
+    pub outline: Vec<(i64, i64)>,
+    /// `dotted`, `dash_dot`, or `unknown`.
+    pub style: String,
+    /// The printed caption (the caption and the external reference, `ew_derive::box_caption`).
+    pub caption: String,
+}
+
+/// The bounds of points, `[x0, y0, x1, y1]`; `None` for none.
+fn bounds_of(points: impl IntoIterator<Item = (i64, i64)>) -> Option<[i64; 4]> {
+    points.into_iter().fold(None, |acc, (x, y)| {
+        Some(match acc {
+            None => [x, y, x, y],
+            Some([x0, y0, x1, y1]) => [x0.min(x), y0.min(y), x1.max(x), y1.max(y)],
+        })
+    })
+}
+
+/// The bounds of a graphic's shape (a circle or an arc by its full circle).
+fn shape_bounds(shape: &ew_derive::ew_schema::GraphicShape) -> Option<[i64; 4]> {
+    use ew_derive::ew_schema::GraphicShape as S;
+    let round = |c: Pt2, r: Nm| {
+        let c = pt(c);
+        bounds_of([
+            (c.0.saturating_sub(r.0), c.1.saturating_sub(r.0)),
+            (c.0.saturating_add(r.0), c.1.saturating_add(r.0)),
+        ])
+    };
+    match shape {
+        S::Line(l) => bounds_of([pt(l.a), pt(l.b)]),
+        S::Polyline(p) | S::Polygon(p) => bounds_of(p.points.iter().map(|p| pt(*p))),
+        S::Rect(r) => bounds_of([pt(r.min), pt(r.max)]),
+        S::Circle(c) => round(c.centre, c.r),
+        S::Arc(a) => round(a.centre, a.r),
+        S::Unknown(_) => None,
+    }
+}
+
+/// The page items of a page as table rows, by position (see [`PageTables::items`]).
+fn item_rows(q: &Q, page: Id<Page>) -> Vec<TableItem> {
+    use ew_derive::ew_schema::PageItemKind as K;
+    let page_ref = PageRef::Drawn(page);
+    let drawn: Vec<(ew_dl::EntityRef, Rect)> = [ew_dl::Layer::Symbols, ew_dl::Layer::Labels]
+        .into_iter()
+        .flat_map(|l| super::layers::page_layer(q, page_ref, l).list.entity_bounds())
+        .collect();
+    let drawn_bounds = |id: Uuid| {
+        drawn
+            .iter()
+            .filter(|(e, _)| e.0 == id)
+            .map(|(_, r)| r)
+            .flat_map(|r| [pt(r.min()), pt(r.max())])
+            .collect::<Vec<_>>()
+    };
+    let items = q.page_items();
+    let mut ids: Vec<_> = q.idx().page_items_by_page(page).collect();
+    ids.sort();
+    let mut rows: Vec<TableItem> = ids
+        .into_iter()
+        .filter_map(|id| items.get(id).cloned())
+        .map(|item| {
+            let id = item.id.as_uuid();
+            let (kind, bounds) = match &item.kind {
+                K::Graphic(g) => ("graphic", shape_bounds(&g.shape)),
+                K::FreeText(t) => ("free_text", bounds_of(drawn_bounds(id)).or(bounds_of([pt(t.at)]))),
+                K::WireMarker(m) => (
+                    "wire_marker",
+                    bounds_of(drawn_bounds(id)).or(bounds_of([pt(m.at)])),
+                ),
+                K::Unknown(_) => ("unknown", None),
+            };
+            TableItem {
+                id,
+                kind: kind.to_owned(),
+                bounds: bounds.unwrap_or([0; 4]),
+                connections: live_connections(q, &item)
+                    .iter()
+                    .map(|c| c.id.as_uuid())
+                    .collect(),
+            }
+        })
+        .collect();
+    rows.sort_by_key(|r| (r.bounds[1], r.bounds[0], r.id));
+    rows
+}
+
+/// The structure boxes of a page as table rows, by position (see [`PageTables::structure_boxes`]).
+fn box_rows(q: &Q, page: Id<Page>) -> Vec<TableStructureBox> {
+    use ew_derive::ew_schema::BoxStyle;
+    let boxes = q.structure_boxes();
+    let mut ids: Vec<_> = q.idx().structure_boxes_by_page(page).collect();
+    ids.sort();
+    let mut rows: Vec<TableStructureBox> = ids
+        .into_iter()
+        .filter_map(|id| boxes.get(id).cloned())
+        .map(|b| TableStructureBox {
+            id: b.id.as_uuid(),
+            outline: b.outline.iter().map(|p| pt(*p)).collect(),
+            style: match b.style {
+                BoxStyle::Dotted => "dotted",
+                BoxStyle::DashDot => "dash_dot",
+                BoxStyle::Unknown(_) => "unknown",
+            }
+            .to_owned(),
+            caption: box_caption(q, &b),
+        })
+        .collect();
+    let top_left = |r: &TableStructureBox| {
+        r.outline
+            .iter()
+            .map(|(x, y)| (*y, *x))
+            .min()
+            .unwrap_or((i64::MAX, i64::MAX))
+    };
+    rows.sort_by_key(|r| (top_left(r), r.id));
+    rows
 }
 
 /// A representation row of the page tables.
@@ -990,7 +1133,8 @@ fn table_end(e: &Endpoint) -> Option<TableEnd> {
 
 impl Session {
     /// Every record drawn on the page labelled `folio`, in page nm, each list in the order of [`PageTables`]
-    /// (WP-S2.04 §4.3, FT-439); `None` for an unknown folio or a page that is not drawn.
+    /// (WP-S2.04 §4.3, FT-439; the page items and structure boxes of part 4a by position); `None` for an unknown
+    /// folio or a page that is not drawn.
     ///
     /// A representation's `body` is its symbol shape's body under its orientation, translated; a black box's
     /// outline and CPs are absolute. A CP's `at` is `cp_point` (for a symbol CP the position
@@ -1198,6 +1342,8 @@ impl Session {
             cps,
             connections,
             junctions,
+            items: item_rows(&q, page_id),
+            structure_boxes: box_rows(&q, page_id),
         })
     }
 }

@@ -205,6 +205,8 @@ mod tests {
             cps: Vec::new(),
             connections: Vec::new(),
             junctions: vec![junction(2, (0, 0)), junction(3, (5, 0)), junction(4, (50, 0))],
+            items: Vec::new(),
+            structure_boxes: Vec::new(),
         };
         let cell = |p: (i64, i64)| {
             if p.0 < 10 {
@@ -229,6 +231,8 @@ mod tests {
             cps: Vec::new(),
             connections: Vec::new(),
             junctions: vec![junction(2, (5, 3)), junction(3, (0, 3)), junction(4, (9, 1))],
+            items: Vec::new(),
+            structure_boxes: Vec::new(),
         };
         let cell = |_: (i64, i64)| "C11".to_owned();
         assert_eq!(junction_name(&tables, EntityRef(id(4)), &cell), "C11#1");

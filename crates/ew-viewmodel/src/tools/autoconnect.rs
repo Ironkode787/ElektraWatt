@@ -403,6 +403,8 @@ mod tests {
             cps: Vec::new(),
             connections: Vec::new(),
             junctions: Vec::new(),
+            items: Vec::new(),
+            structure_boxes: Vec::new(),
         }
     }
 
