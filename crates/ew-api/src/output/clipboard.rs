@@ -9,22 +9,27 @@
 //! final LF: line 1 `#ew-fragment v1`; line 2 the header `{"$fragment": {"format", "project", "grid": [num, den],
 //! "page_kind", "anchor": [x, y], "ghost": [[x0, y0, x1, y1], …]}}`; then one canonical record line per record, one
 //! `{"$lib": <libdoc>}` line per library copy and one `{"$node": {"id", "aspect", "path", "aliases"}}` line per
-//! structure node. Another application sees JSON Lines after one comment line (FR-UI-040).
+//! structure node. The record kinds a fragment carries are devices, functions, representations, connections,
+//! junctions, potential definitions, page items and structure boxes. Another application sees JSON Lines after one
+//! comment line (FR-UI-040).
 //! Within v1 the `$fragment` header is open (a member this version does not know is ignored, room for later minor
 //! additions such as WP-S1.19's macros), while a `$node` line's members are closed (`id`, `aspect`, `path`,
 //! `aliases`; any other is refused).
 //!
 //! **Order** (§9 item 3; FT-439's rule that machine text is not ordered by UUID): records by (kind rank, position,
 //! ID): a representation's insertion point (x, then y), a junction's point, a function's and a device's first copied
-//! representation, a connection's and a potential definition's end; library copies by (kind, part number or key,
-//! ID); nodes by (aspect, path, ID). `edit.paste` mints the new IDs in (kind rank, fragment order), so the online
+//! representation, a connection's and a potential definition's end, a page item's anchor point (a graphic's first
+//! point, a text's or marker's `at`), a structure box's first outline vertex; library copies by (kind, part number or
+//! key, ID); nodes by (aspect, path, ID). `edit.paste` mints the new IDs in (kind rank, fragment order), so the online
 //! numbering, which numbers new devices in ID order, numbers the copies by position.
 //!
 //! **What a copy drops** (§8.2 item 6): an import lineage (`source_ref`: a pasted record is new, not imported), a
 //! PLC station aspect (its configuration project is not copied), a cable core (the copy is a plain wire), a bus
-//! line's cable, an assembly cover outside the copy and a junction's sequence entries outside the copy. Bonds,
-//! cables and conductors are listed in [`CopiedFragment::skipped`]. The fragment's records keep their source IDs;
-//! it is data, not machine text, so the shell's ID alias does not apply to it.
+//! line's cable, an assembly cover outside the copy and a junction's sequence entries outside the copy. A page item
+//! of a kind this version does not know is dropped as `page_item`, and a wire marker that keeps none of its copied
+//! connections as `wire_marker`. Bonds, cables and conductors are listed in [`CopiedFragment::skipped`]. The
+//! fragment's records keep their source IDs; it is data, not machine text, so the shell's ID alias does not apply to
+//! it.
 
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
@@ -35,8 +40,9 @@ use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::{PageOrder, PageRef, Q};
 use ew_model::EndpointKey;
 use ew_schema::{
-    Connection, ConnectionKind, Device, Endpoint, Function, Junction, Kind, LibDocument, Page, PotentialDef,
-    Record, Representation, Slot, StructureNode,
+    Connection, ConnectionKind, Device, Endpoint, Function, GraphicShape, Junction, Kind, LibDocument, Page,
+    PageItem, PageItemKind, PotentialDef, Record, Representation, Slot, StructureAssignment, StructureBox,
+    StructureNode,
 };
 use serde_json::{Value, json};
 
@@ -65,14 +71,15 @@ pub struct CopiedFragment {
     pub copies: usize,
     /// How many selected connections were dropped because an end lies outside the copy.
     pub dropped_connections: usize,
-    /// What was reached but not copied, by kind (`bond`, `cable`, `conductor`, `plc_station`), in name order.
+    /// What was reached but not copied, by kind (`bond`, `cable`, `conductor`, `page_item`, `plc_station`,
+    /// `wire_marker`), in name order.
     pub skipped: Vec<(String, usize)>,
 }
 
 /// Why a selection is not copied.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum CopyError {
-    /// Nothing copyable is selected: no representation.
+    /// Nothing copyable is selected: no representation, page item or structure box.
     Empty,
     /// The selection spans several pages.
     NotOnePage,
@@ -255,7 +262,7 @@ pub fn parse_fragment(text: &str) -> Result<ParsedFragment, FragmentError> {
                     line_no,
                     &format!(
                         "a record of kind {k} is not pasted (only devices, functions, representations, connections, \
-                         junctions and potential definitions)"
+                         junctions, potential definitions, page items and structure boxes)"
                     ),
                 ));
             };
@@ -469,9 +476,8 @@ fn named_copies(record: &Record, out: &mut BTreeSet<(Kind, Uuid)>) {
     }
 }
 
-/// The structure nodes a device names.
-fn named_nodes(d: &Device) -> Vec<Id<StructureNode>> {
-    let s = &d.structure;
+/// The structure nodes a structure assignment names.
+fn named_nodes(s: &StructureAssignment) -> Vec<Id<StructureNode>> {
     [
         &s.functional_assignment,
         &s.function,
@@ -487,6 +493,33 @@ fn named_nodes(d: &Device) -> Vec<Id<StructureNode>> {
         _ => None,
     })
     .collect()
+}
+
+/// The anchor point a page item orders by: a graphic's first point, a text's or marker's `at`.
+fn page_item_pos(item: &PageItem) -> PosKey {
+    match &item.kind {
+        PageItemKind::Graphic(g) => match &g.shape {
+            GraphicShape::Line(l) => Some((l.a.x.0, l.a.y.0)),
+            GraphicShape::Polyline(p) | GraphicShape::Polygon(p) => p.points.first().map(|p| (p.x.0, p.y.0)),
+            GraphicShape::Rect(r) => Some((r.min.x.0, r.min.y.0)),
+            GraphicShape::Circle(c) => Some((c.centre.x.0, c.centre.y.0)),
+            GraphicShape::Arc(a) => Some((a.centre.x.0, a.centre.y.0)),
+            GraphicShape::Unknown(_) => None,
+        },
+        PageItemKind::FreeText(t) => Some((t.at.x.0, t.at.y.0)),
+        PageItemKind::WireMarker(m) => Some((m.at.x.0, m.at.y.0)),
+        PageItemKind::Unknown(_) => None,
+    }
+}
+
+/// The bounds of a structure box's outline, `[x0, y0, x1, y1]`; `None` for an empty outline.
+fn outline_bounds(b: &StructureBox) -> Option<[i64; 4]> {
+    b.outline.iter().fold(None, |acc, p| {
+        Some(match acc {
+            None => [p.x.0, p.y.0, p.x.0, p.y.0],
+            Some([x0, y0, x1, y1]) => [x0.min(p.x.0), y0.min(p.y.0), x1.max(p.x.0), y1.max(p.y.0)],
+        })
+    })
 }
 
 /// The largest grid point not greater than `v`.
@@ -507,15 +540,18 @@ fn drawn(r: &Representation) -> impl Iterator<Item = Id<Function>> + '_ {
 }
 
 impl Session {
-    /// The selection `ids` as a fragment (spec §8.2): the representations, connections and junctions it names on one
-    /// page, closed over what they need; [`CopyError::Empty`] without a representation, [`CopyError::NotOnePage`]
-    /// across pages, [`CopyError::Generated`] when no ID names a stored record of these kinds and some names none at
-    /// all (generated content). Equal selections on equal snapshots give byte-equal text.
+    /// The selection `ids` as a fragment (spec §8.2): the representations, connections, junctions, page items and
+    /// structure boxes it names on one page, closed over what they need; [`CopyError::Empty`] without a
+    /// representation, page item or structure box, [`CopyError::NotOnePage`] across pages, [`CopyError::Generated`]
+    /// when no ID names a stored record of these kinds and some names none at all (generated content). Equal
+    /// selections on equal snapshots give byte-equal text.
     pub fn copy_fragment(&self, ids: &[Uuid]) -> Result<CopiedFragment, CopyError> {
         let q = self.query();
         let mut reps: BTreeSet<Id<Representation>> = BTreeSet::new();
         let mut sel_conns: BTreeSet<Id<Connection>> = BTreeSet::new();
         let mut junctions: BTreeSet<Id<Junction>> = BTreeSet::new();
+        let mut sel_items: BTreeSet<Id<PageItem>> = BTreeSet::new();
+        let mut sel_boxes: BTreeSet<Id<StructureBox>> = BTreeSet::new();
         let mut pages: BTreeSet<Id<Page>> = BTreeSet::new();
         let mut unknown = false;
         for u in ids {
@@ -528,6 +564,12 @@ impl Session {
             } else if let Some(j) = q.junctions().get(Id::from_uuid(*u)) {
                 junctions.insert(j.id);
                 pages.insert(j.page);
+            } else if let Some(i) = q.page_items().get(Id::from_uuid(*u)) {
+                sel_items.insert(i.id);
+                pages.insert(i.page);
+            } else if let Some(b) = q.structure_boxes().get(Id::from_uuid(*u)) {
+                sel_boxes.insert(b.id);
+                pages.insert(b.page);
             } else if !self.names_record(&q, *u) {
                 unknown = true;
             }
@@ -573,7 +615,7 @@ impl Session {
         if !cables.is_empty() {
             skipped.insert("cable".into(), cables.len());
         }
-        if reps.is_empty() {
+        if reps.is_empty() && sel_items.is_empty() && sel_boxes.is_empty() {
             return Err(CopyError::Empty);
         }
         let mut functions: BTreeSet<Id<Function>> = BTreeSet::new();
@@ -636,6 +678,47 @@ impl Session {
             .map(|c| c.id)
             .collect();
         let dropped_connections = sel_conns.iter().filter(|c| !connections.contains(c)).count();
+        // 4. Selected page items: graphics and free texts as they are, a wire marker only with its copied connections;
+        //    an unknown variant and a marker left without a connection are counted, not copied.
+        let mut items: Vec<PageItem> = Vec::new();
+        let mut unknown_items = 0usize;
+        let mut emptied_markers = 0usize;
+        for id in &sel_items {
+            let Some(item) = q.page_items().get(*id) else {
+                continue;
+            };
+            match &item.kind {
+                PageItemKind::Graphic(_) | PageItemKind::FreeText(_) => items.push((**item).clone()),
+                PageItemKind::WireMarker(m) => {
+                    let kept: Vec<Id<Connection>> = m
+                        .connections
+                        .iter()
+                        .copied()
+                        .filter(|c| connections.contains(c))
+                        .collect();
+                    if kept.is_empty() {
+                        emptied_markers += 1;
+                    } else {
+                        let mut item = (**item).clone();
+                        if let PageItemKind::WireMarker(marker) = &mut item.kind {
+                            marker.connections = kept;
+                        }
+                        items.push(item);
+                    }
+                }
+                PageItemKind::Unknown(_) => unknown_items += 1,
+            }
+        }
+        if unknown_items > 0 {
+            skipped.insert("page_item".into(), unknown_items);
+        }
+        if emptied_markers > 0 {
+            skipped.insert("wire_marker".into(), emptied_markers);
+        }
+        let boxes: Vec<StructureBox> = sel_boxes
+            .iter()
+            .filter_map(|b| q.structure_boxes().get(*b).map(|b| (**b).clone()))
+            .collect();
         // Potential definitions at copied endpoints; bonds there are not copied.
         let mut potentials: Vec<std::sync::Arc<PotentialDef>> = q
             .potential_defs()
@@ -774,6 +857,22 @@ impl Session {
             );
             lines.push((key, Record::PotentialDef(p)));
         }
+        for item in &items {
+            let key = (
+                rank(Kind::PageItem),
+                key_of(page_item_pos(item)),
+                item.id.as_uuid(),
+            );
+            lines.push((key, Record::PageItem(item.clone())));
+        }
+        for b in &boxes {
+            let key = (
+                rank(Kind::StructureBox),
+                key_of(b.outline.first().map(|p| (p.x.0, p.y.0))),
+                b.id.as_uuid(),
+            );
+            lines.push((key, Record::StructureBox(b.clone())));
+        }
         if conductors > 0 {
             skipped.insert("conductor".into(), conductors);
         }
@@ -786,8 +885,10 @@ impl Session {
         let mut nodes: BTreeSet<Id<StructureNode>> = BTreeSet::new();
         for (_, r) in &lines {
             named_copies(r, &mut named);
-            if let Record::Device(d) = r {
-                nodes.extend(named_nodes(d));
+            match r {
+                Record::Device(d) => nodes.extend(named_nodes(&d.structure)),
+                Record::StructureBox(b) => nodes.extend(named_nodes(&b.assigns)),
+                _ => {}
             }
         }
         let mut libs: Vec<((Kind, String, Uuid), String)> = Vec::new();
@@ -845,7 +946,8 @@ impl Session {
             node_lines.push(((aspect, path, n.as_uuid()), line));
         }
         node_lines.sort_by(|a, b| a.0.cmp(&b.0));
-        // The anchor and the ghost from the page tables' bodies.
+        // The anchor and the ghost from the copied representations' bodies, the page items' bounds and the boxes'
+        // outlines.
         let folio = q
             .get::<PageOrder>(())
             .entries
@@ -860,6 +962,15 @@ impl Session {
                     let t = tables.as_ref()?.reps.iter().find(|t| t.id == rep.id.as_uuid())?;
                     Some(t.body)
                 }
+                Record::PageItem(item) => {
+                    let t = tables
+                        .as_ref()?
+                        .items
+                        .iter()
+                        .find(|t| t.id == item.id.as_uuid())?;
+                    Some(t.bounds)
+                }
+                Record::StructureBox(b) => outline_bounds(b),
                 _ => None,
             })
             .collect();

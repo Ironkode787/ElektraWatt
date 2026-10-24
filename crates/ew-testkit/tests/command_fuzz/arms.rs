@@ -1006,9 +1006,10 @@ fn fields_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 
 // WP-S2.05 part 3
 /// `edit.paste`: a fragment of one new device with its main function drawn by an embedded symbol on a page that takes
-/// it, pasted at a grid point of that page (the copies are held, so nothing is embedded); refused: no record, another
-/// grid, a point off the grid, a record of a kind that is not pasted, and a representation whose function is not in
-/// the fragment (a mandatory reference).
+/// it, pasted at a grid point of that page (the copies are held, so nothing is embedded), with a free-text page item
+/// on the source page; refused: no record, another grid, a point off the grid, a record of a kind that is not pasted,
+/// and a representation whose function is not in the fragment (a mandatory reference). The boundary case pastes a
+/// wire marker that names a connection outside the fragment: the marker is left out, the paste succeeds.
 fn edit_paste(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let pages = pages_taking_reps(live);
     let page = *rng.pick(&pages)?;
@@ -1027,13 +1028,15 @@ fn edit_paste(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     // The representation's own type is the symbol's (the default, multi-line, is not taken by every page type).
     let rep = json!({"$k": "representation", "id": r, "functions": [f], "page": page.id, "symbol": symbol.id,
         "rep_type": symbol.rep_type, "pos": anchor});
+    let item = json!({"$k": "page_item", "id": rng.uuid(), "page": page.id,
+        "kind": {"free_text": {"text": "40x60", "at": anchor}}});
     let fragment = |records: Vec<Value>, grid: (u64, u64)| {
         json!({"format": "0.1", "project": live.fixture.project_id, "grid": [grid.0, grid.1],
             "page_kind": page.kind, "anchor": anchor, "records": records, "copies": [], "nodes": []})
     };
     let params = |at: &Value, fragment: Value| json!({"page": page.id, "at": at, "fragment": fragment});
-    let all = || vec![device.clone(), function.clone(), rep.clone()];
-    match rng.below(10) {
+    let all = || vec![device.clone(), function.clone(), rep.clone(), item.clone()];
+    match rng.below(11) {
         0 => Some(Step::cmd("edit.paste", params(&at, fragment(Vec::new(), page.grid))).refuse()),
         1 => {
             let other = if page.grid == (4_000_000, 1) {
@@ -1058,6 +1061,32 @@ fn edit_paste(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             )
             .refuse(),
         ),
+        5 => {
+            // The marker names a connection that is in neither the fragment nor the project: the reference is
+            // cleared, the marker is left out, and the paste still commits.
+            let marker = json!({"$k": "page_item", "id": rng.uuid(), "page": page.id,
+                "kind": {"wire_marker": {"connections": [rng.uuid()], "at": anchor, "fields": ["csa"]}}});
+            Some(
+                Step::cmd(
+                    "edit.paste",
+                    params(
+                        &at,
+                        fragment(
+                            vec![device.clone(), function.clone(), rep.clone(), marker],
+                            page.grid,
+                        ),
+                    ),
+                )
+                .accept()
+                .counts(&[
+                    (Table::Reps, 1),
+                    (Table::Functions, 1),
+                    (Table::Devices, 1),
+                    (Table::Connections, 0),
+                    (Table::PageItems, 0),
+                ]),
+            )
+        }
         _ => Some(
             Step::cmd("edit.paste", params(&at, fragment(all(), page.grid)))
                 .accept()
@@ -1066,6 +1095,7 @@ fn edit_paste(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                     (Table::Functions, 1),
                     (Table::Devices, 1),
                     (Table::Connections, 0),
+                    (Table::PageItems, 1),
                 ]),
         ),
     }

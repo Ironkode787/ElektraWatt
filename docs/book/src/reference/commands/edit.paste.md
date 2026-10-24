@@ -9,27 +9,33 @@ FR-UI-036, FR-UI-040), in one transaction (one undo step removes the records and
 symbols; `/fragment/format` another project format; `/fragment/grid` a page connection grid other than the
 fragment's; `/at` a point that is not a grid point of the page; `/fragment/anchor` an anchor off the grid;
 `/fragment/records` none or more than 10,000; `/fragment/records/<i>` a record that does not read, of a kind
-outside device, function, representation, connection, junction and potential definition, of another schema
-version, listed twice, a representation off the grid or of a representation type the page does not take, or a
-mandatory reference that resolves to nothing; `/fragment/copies/<i>` a copy that `library.embed` refuses, listed
-twice, or one the project holds in another version; `/fragment/nodes/<i>` a node listed twice or without a path.
+outside device, function, representation, connection, junction, potential definition, page item and structure
+box, of another schema version, listed twice, a representation off the grid or of a representation type the page
+does not take, or a mandatory reference that resolves to nothing; `/fragment/copies/<i>` a copy that
+`library.embed` refuses, listed twice, or one the project holds in another version; `/fragment/nodes/<i>` a node
+listed twice or without a path.
 
 **Effects.** (1) A library copy the project holds with the same `sha256` is reused, any other is embedded. (2)
 Each structure node rebinds to the project's node of the same aspect and path, else to the one node of that
 aspect whose aliases hold the leaf code; an unmatched node clears the slots naming it (the record inherits),
 with a notice; no node is created. (3) Every record gets a minted ID, in (kind rank, fragment order), and loses
-its import lineage (`source_ref`: a pasted record is new, not imported); the references are found from `ew_model::LINKS`: one to a fragment record takes its new ID, one to a library copy
-stays (effect 1), a structure slot takes the rebound node, a page reference the target page, a function's
-`kind.ip.external` stays only in its own project. (4) A reference that resolves to nothing is cleared when it
+its import lineage (`source_ref`: a pasted record is new, not imported); the references are found from
+`ew_model::LINKS`: one to a fragment record takes its new ID, one to a library copy stays (effect 1), a page
+item's or a structure box's `page` and every other page reference take the target page, a wire marker's
+connections take the pasted connections' IDs, a structure box's `assigns` rebinds as a device's slots do, and an
+`external` reference stays only in its own project. (4) A reference that resolves to nothing is cleared when it
 can be: a `Cascade` link never can; otherwise the member holding it, or the optional object directly around it
 (never a member of the record itself other than the reference), is removed when the record still reads
 without it, with a notice; else the paste is refused. A child device whose parent is cleared also loses its
 `position`, and a `child` tag scheme. (5) Translation in grid steps: `Δk = index(at) − index(anchor)` per
 axis; a grid coordinate becomes the grid point at its index plus `Δk`, any other moves by
-`round_half_away(Δk × num / den)`; routes follow their ends as `rep.move`'s `steps` move them. (6) Frozen tags
+`round_half_away(Δk × num / den)`; routes follow their ends as `rep.move`'s `steps` move them, and a page
+item's points and a structure box's outline vertices move by the same rule. (6) Frozen tags
 are cleared and wire numbers become unassigned; tag counters are cleared and the copies that take part in
 page-based numbering get the next free counter of their main page's scope in fragment order (the online-numbering
-rule), so the tags follow the fragment's position order and not the minted IDs.
+rule), so the tags follow the fragment's position order and not the minted IDs. (7) A page item of a kind this
+version does not know is left out before any ID is minted, and a wire marker whose connection list is empty
+after effect 4 is not inserted, each with a notice.
 
 Cost: `Bulk` above 500 records. Outcome: the first pasted representation; the notices name every cleared
 reference and unmatched structure node.
@@ -79,7 +85,7 @@ the library copies and the structure nodes. The ghost rectangles of the text for
 
 | Name | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `anchor` | [`CmdPt2`](#cmdpt2) | yes |  | The anchor: the minimum corner of the copied representations' bodies, snapped down to the grid. |
+| `anchor` | [`CmdPt2`](#cmdpt2) | yes |  | The anchor: the minimum corner of the copied representations' bodies, the page items' bounds and the structure boxes' outlines, snapped down to the grid. |
 | `copies` | array of any JSON value | no | `[]` | The library copies the records name, in the `lib/` JSON form `library.embed` takes. |
 | `format` | string | yes |  | The project format of the records (`0.1`). |
 | `grid` | array of integer (format `uint64`, min 0) (at least 2 item(s), at most 2 item(s)) | yes |  | The source page's connection grid `[num, den]` in nanometres. |

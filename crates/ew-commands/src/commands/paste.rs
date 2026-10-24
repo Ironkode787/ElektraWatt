@@ -12,8 +12,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use ew_ids::{Id, Uuid};
 use ew_model::{LINKS, LinkDecl, Policy};
 use ew_schema::{
-    Connection, Device, Endpoint, Junction, Kind, LibDocument, NumberSpec, Page, PageType, Record,
-    Representation, StructureNode, TagScheme,
+    Connection, Device, Endpoint, GraphicShape, Junction, Kind, LibDocument, NumberSpec, Page, PageItemKind,
+    PageType, Record, Representation, StructureNode, TagScheme,
 };
 use ew_units::{Grid, Nm, Pt2};
 use schemars::JsonSchema;
@@ -33,15 +33,16 @@ use crate::tx::TxBuilder;
 /// The most records one fragment (and so one paste) may hold (spec §8.3, §8.4).
 pub const PASTE_MAX_RECORDS: usize = 10_000;
 
-/// The record kinds a fragment may carry (spec §8.3; `page_item` and `structure_box` join once they are
-/// implemented).
-pub const PASTE_KINDS: [Kind; 6] = [
+/// The record kinds a fragment may carry (spec §8.3).
+pub const PASTE_KINDS: [Kind; 8] = [
     Kind::Device,
     Kind::Function,
     Kind::Representation,
     Kind::Connection,
     Kind::Junction,
     Kind::PotentialDef,
+    Kind::PageItem,
+    Kind::StructureBox,
 ];
 
 /// One structure node a fragment's records name (spec §8.1 item 5): its source ID, aspect, the codes of its
@@ -75,7 +76,8 @@ pub struct Fragment {
     pub grid: [u64; 2],
     /// The source page's type (`multi_line`).
     pub page_kind: String,
-    /// The anchor: the minimum corner of the copied representations' bodies, snapped down to the grid.
+    /// The anchor: the minimum corner of the copied representations' bodies, the page items' bounds and the
+    /// structure boxes' outlines, snapped down to the grid.
     #[schemars(with = "Pt2S")]
     pub anchor: Pt2,
     /// The records, canonical record objects (`$k` first), in fragment order.
@@ -95,27 +97,33 @@ pub struct Fragment {
 /// symbols; `/fragment/format` another project format; `/fragment/grid` a page connection grid other than the
 /// fragment's; `/at` a point that is not a grid point of the page; `/fragment/anchor` an anchor off the grid;
 /// `/fragment/records` none or more than 10,000; `/fragment/records/<i>` a record that does not read, of a kind
-/// outside device, function, representation, connection, junction and potential definition, of another schema
-/// version, listed twice, a representation off the grid or of a representation type the page does not take, or a
-/// mandatory reference that resolves to nothing; `/fragment/copies/<i>` a copy that `library.embed` refuses, listed
-/// twice, or one the project holds in another version; `/fragment/nodes/<i>` a node listed twice or without a path.
+/// outside device, function, representation, connection, junction, potential definition, page item and structure
+/// box, of another schema version, listed twice, a representation off the grid or of a representation type the page
+/// does not take, or a mandatory reference that resolves to nothing; `/fragment/copies/<i>` a copy that
+/// `library.embed` refuses, listed twice, or one the project holds in another version; `/fragment/nodes/<i>` a node
+/// listed twice or without a path.
 ///
 /// **Effects.** (1) A library copy the project holds with the same `sha256` is reused, any other is embedded. (2)
 /// Each structure node rebinds to the project's node of the same aspect and path, else to the one node of that
 /// aspect whose aliases hold the leaf code; an unmatched node clears the slots naming it (the record inherits),
 /// with a notice; no node is created. (3) Every record gets a minted ID, in (kind rank, fragment order), and loses
-/// its import lineage (`source_ref`: a pasted record is new, not imported); the references are found from `ew_model::LINKS`: one to a fragment record takes its new ID, one to a library copy
-/// stays (effect 1), a structure slot takes the rebound node, a page reference the target page, a function's
-/// `kind.ip.external` stays only in its own project. (4) A reference that resolves to nothing is cleared when it
+/// its import lineage (`source_ref`: a pasted record is new, not imported); the references are found from
+/// `ew_model::LINKS`: one to a fragment record takes its new ID, one to a library copy stays (effect 1), a page
+/// item's or a structure box's `page` and every other page reference take the target page, a wire marker's
+/// connections take the pasted connections' IDs, a structure box's `assigns` rebinds as a device's slots do, and an
+/// `external` reference stays only in its own project. (4) A reference that resolves to nothing is cleared when it
 /// can be: a `Cascade` link never can; otherwise the member holding it, or the optional object directly around it
 /// (never a member of the record itself other than the reference), is removed when the record still reads
 /// without it, with a notice; else the paste is refused. A child device whose parent is cleared also loses its
 /// `position`, and a `child` tag scheme. (5) Translation in grid steps: `Δk = index(at) − index(anchor)` per
 /// axis; a grid coordinate becomes the grid point at its index plus `Δk`, any other moves by
-/// `round_half_away(Δk × num / den)`; routes follow their ends as `rep.move`'s `steps` move them. (6) Frozen tags
+/// `round_half_away(Δk × num / den)`; routes follow their ends as `rep.move`'s `steps` move them, and a page
+/// item's points and a structure box's outline vertices move by the same rule. (6) Frozen tags
 /// are cleared and wire numbers become unassigned; tag counters are cleared and the copies that take part in
 /// page-based numbering get the next free counter of their main page's scope in fragment order (the online-numbering
-/// rule), so the tags follow the fragment's position order and not the minted IDs.
+/// rule), so the tags follow the fragment's position order and not the minted IDs. (7) A page item of a kind this
+/// version does not know is left out before any ID is minted, and a wire marker whose connection list is empty
+/// after effect 4 is not inserted, each with a notice.
 ///
 /// Cost: `Bulk` above 500 records. Outcome: the first pasted representation; the notices name every cleared
 /// reference and unmatched structure node.
@@ -292,6 +300,29 @@ fn step_point(grid: Grid, p: Pt2, k: [i64; 2]) -> Result<Pt2, OutOfRange> {
     ))
 }
 
+/// Effect 5 on a graphic: every shape point moves, a radius and an arc's angles stay.
+fn step_shape(grid: Grid, shape: &mut GraphicShape, steps: [i64; 2]) -> Result<(), OutOfRange> {
+    match shape {
+        GraphicShape::Line(l) => {
+            l.a = step_point(grid, l.a, steps)?;
+            l.b = step_point(grid, l.b, steps)?;
+        }
+        GraphicShape::Polyline(p) | GraphicShape::Polygon(p) => {
+            for p in &mut p.points {
+                *p = step_point(grid, *p, steps)?;
+            }
+        }
+        GraphicShape::Rect(r) => {
+            r.min = step_point(grid, r.min, steps)?;
+            r.max = step_point(grid, r.max, steps)?;
+        }
+        GraphicShape::Circle(c) => c.centre = step_point(grid, c.centre, steps)?,
+        GraphicShape::Arc(a) => a.centre = step_point(grid, a.centre, steps)?,
+        GraphicShape::Unknown(_) => {}
+    }
+    Ok(())
+}
+
 /// The SHA-256 a held library copy row claims.
 fn held_sha(row: &ew_model::AnyRow) -> Option<ew_schema::Sha256> {
     use ew_model::AnyRow;
@@ -328,6 +359,9 @@ struct Plan {
     /// Whether the fragment comes from the target project.
     same_project: bool,
 }
+
+/// A fragment record to paste: its index in the fragment, its kind and its source ID.
+type RecordAt = (usize, Kind, Uuid);
 
 impl PasteFragment {
     fn invalid(at: impl Into<String>, message: impl Into<String>) -> CmdError {
@@ -423,8 +457,10 @@ impl PasteFragment {
         Ok((page, grid, [kx, ky]))
     }
 
-    /// Reads the records: kind, schema version, distinct IDs. Returns each record's kind and source ID.
-    fn records(&self) -> Result<Vec<(Kind, Uuid)>, CmdError> {
+    /// Reads the records: kind, schema version, distinct IDs. Returns each record's fragment index, kind and source
+    /// ID; a page item of a kind this version does not know is left out here (before any ID is minted), with its
+    /// notice.
+    fn records(&self) -> Result<(Vec<RecordAt>, Vec<String>), CmdError> {
         let records = &self.fragment.records;
         if records.is_empty() {
             return Err(Self::invalid("/fragment/records", "the fragment holds no record"));
@@ -439,6 +475,7 @@ impl PasteFragment {
             ));
         }
         let mut out = Vec::with_capacity(records.len());
+        let mut notices = Vec::new();
         let mut seen = BTreeSet::new();
         for (i, v) in records.iter().enumerate() {
             let at = format!("/fragment/records/{i}");
@@ -448,7 +485,7 @@ impl PasteFragment {
                     &at,
                     format!(
                         "a record of kind {} is not pasted (only devices, functions, representations, connections, \
-                         junctions and potential definitions)",
+                         junctions, potential definitions, page items and structure boxes)",
                         record.kind_name().unwrap_or("?")
                     ),
                 ));
@@ -467,9 +504,15 @@ impl PasteFragment {
             if !seen.insert(id) {
                 return Err(Self::invalid(&at, "the record is listed twice"));
             }
-            out.push((kind, id));
+            if let Record::PageItem(item) = &record
+                && matches!(item.kind, PageItemKind::Unknown(_))
+            {
+                notices.push("a page item of a kind this version does not know was left out".to_owned());
+                continue;
+            }
+            out.push((i, kind, id));
         }
-        Ok(out)
+        Ok((out, notices))
     }
 
     /// Checks the library copies (effect 1): the held set and the documents to embed.
@@ -641,17 +684,21 @@ impl Command for PasteFragment {
                 ),
             ));
         }
-        let keys = self.records()?;
+        let (keys, skipped_items) = self.records()?;
         let (page, grid, steps) = self.place(tx)?;
         let (copies, embed) = self.copies(tx)?;
         let nodes = self.nodes(tx)?;
+        let mut notices: Vec<String> = Vec::new();
+        for text in skipped_items {
+            notice(text, &mut notices);
+        }
         // Effect 3: minted IDs in (kind rank, fragment order).
         let mut order: Vec<usize> = (0..keys.len()).collect();
-        order.sort_by_key(|&i| (keys[i].0.rank(), i));
+        order.sort_by_key(|&i| (keys[i].1.rank(), keys[i].0));
         let mut ids = BTreeMap::new();
         for &i in &order {
             let new: Id<()> = tx.mint();
-            ids.insert(keys[i], new.as_uuid());
+            ids.insert((keys[i].1, keys[i].2), new.as_uuid());
         }
         let plan = Plan {
             ids,
@@ -659,13 +706,12 @@ impl Command for PasteFragment {
             nodes,
             same_project: self.fragment.project.as_uuid() == tx.project().id.as_uuid(),
         };
-        let mut notices: Vec<String> = Vec::new();
         // Effects 3 and 4 on each record's JSON, then the typed record.
         let mut typed: Vec<(usize, Record)> = Vec::with_capacity(keys.len());
         for &i in &order {
-            let (kind, old) = keys[i];
-            let at = format!("/fragment/records/{i}");
-            let mut v = self.fragment.records[i].clone();
+            let (record_index, kind, old) = keys[i];
+            let at = format!("/fragment/records/{record_index}");
+            let mut v = self.fragment.records[record_index].clone();
             drop_lineage(&mut v);
             if let Some(id) = v.get_mut("id") {
                 *id = Value::from(plan.ids[&(kind, old)].hyphenated().to_string());
@@ -717,6 +763,16 @@ impl Command for PasteFragment {
                 }
             }
             let mut record = Record::from_value(v).map_err(|e| Self::invalid(&at, e.to_string()))?;
+            // Effect 7: a marker whose connections were all cleared is not inserted.
+            if let Record::PageItem(item) = &record
+                && item.kind.wire_marker().is_some_and(|m| m.connections.is_empty())
+            {
+                notice(
+                    "a wire marker whose wires were not copied was left out".to_owned(),
+                    &mut notices,
+                );
+                continue;
+            }
             match &mut record {
                 Record::Device(d) => {
                     if parent_cleared {
@@ -753,7 +809,7 @@ impl Command for PasteFragment {
                 }
                 _ => {}
             }
-            typed.push((i, record));
+            typed.push((record_index, record));
         }
         // Effect 1: the copies the project does not hold, in this transaction.
         for doc in embed {
@@ -773,7 +829,8 @@ impl Command for PasteFragment {
                 LibDocument::Unknown(_) => unreachable!("refused by check_copy"),
             }
         }
-        // Effect 5: representations and junctions by grid steps; routes follow their ends.
+        // Effect 5: representations, junctions, page items and structure boxes by grid steps; routes follow their
+        // ends.
         let too_far = |i: usize| {
             Self::invalid(
                 format!("/fragment/records/{i}"),
@@ -796,6 +853,23 @@ impl Command for PasteFragment {
                     let before = j.at;
                     j.at = step_point(grid, j.at, steps).map_err(|_| too_far(*i))?;
                     moved_junctions.insert(j.id, (before, j.at));
+                }
+                Record::PageItem(item) => match &mut item.kind {
+                    PageItemKind::Graphic(g) => {
+                        step_shape(grid, &mut g.shape, steps).map_err(|_| too_far(*i))?;
+                    }
+                    PageItemKind::FreeText(t) => {
+                        t.at = step_point(grid, t.at, steps).map_err(|_| too_far(*i))?;
+                    }
+                    PageItemKind::WireMarker(m) => {
+                        m.at = step_point(grid, m.at, steps).map_err(|_| too_far(*i))?;
+                    }
+                    PageItemKind::Unknown(_) => unreachable!("unknown page item kinds are left out"),
+                },
+                Record::StructureBox(b) => {
+                    for p in &mut b.outline {
+                        *p = step_point(grid, *p, steps).map_err(|_| too_far(*i))?;
+                    }
                 }
                 _ => {}
             }
@@ -854,6 +928,8 @@ impl Command for PasteFragment {
                 Record::Connection(r) => (Kind::Connection, tx.insert::<Connection>(r)?.cast()),
                 Record::Junction(r) => (Kind::Junction, tx.insert(r)?.cast()),
                 Record::PotentialDef(r) => (Kind::PotentialDef, tx.insert(r)?.cast()),
+                Record::PageItem(r) => (Kind::PageItem, tx.insert(r)?.cast()),
+                Record::StructureBox(r) => (Kind::StructureBox, tx.insert(r)?.cast()),
                 _ => unreachable!("refused by the kind check"),
             };
             if key.0 == Kind::Representation {
@@ -909,6 +985,13 @@ mod tests {
             json!({"$k": "potential_def", "id": A, "at": {"cp": [B, 0]}, "name": "P", "props": {"wire_part": {"copy": D}},
                 "source_ref": {"lineage": E, "key": "k"}}),
             json!({"$k": "potential_def", "id": A, "at": {"junction": B}, "name": "P"}),
+            json!({"$k": "page_item", "id": A, "page": C,
+                "kind": {"wire_marker": {"connections": [B], "at": [0, 0], "fields": ["csa"]}}}),
+            json!({"$k": "structure_box", "id": A, "page": C,
+                "outline": [[0, 0], [1, 0], [0, 1]], "style": "dotted",
+                "assigns": {"functional_assignment": C, "function": C, "installation_site": C,
+                    "location": C, "document_kind": C, "user_defined": C, "type": C},
+                "external": F}),
         ]
     }
 
@@ -921,7 +1004,8 @@ mod tests {
     /// the paste drops `source_ref`, a pasted record is new, not imported), a strip accessory's part (mandatory like a part use), an assembly configuration's part and covers (optional), the PLC
     /// station's configuration project (mandatory: copy drops the aspect), a cable core or bus cable (mandatory and
     /// optional: copy makes a core a plain wire), a junction's sequence entries (optional), a function's device
-    /// (mandatory: copy brings it).
+    /// (mandatory: copy brings it), a wire marker's connections (optional: a marker left empty is dropped) and a
+    /// structure box's assigns and external (optional, as a device's slots and an external reference).
     const ORACLE: &[(&str, Option<bool>)] = &[
         ("device.parent", Some(false)),
         ("device.parts[].part.copy", Some(true)),
@@ -963,6 +1047,17 @@ mod tests {
         ("potential_def.at.junction", Some(true)),
         ("potential_def.props.wire_part.copy", Some(false)),
         ("potential_def.source_ref.lineage", None),
+        ("page_item.kind.wire_marker.connections[]", Some(false)),
+        ("page_item.page", Some(true)),
+        ("structure_box.assigns.document_kind", Some(false)),
+        ("structure_box.assigns.functional_assignment", Some(false)),
+        ("structure_box.assigns.function", Some(false)),
+        ("structure_box.assigns.installation_site", Some(false)),
+        ("structure_box.assigns.location", Some(false)),
+        ("structure_box.assigns.type", Some(false)),
+        ("structure_box.assigns.user_defined", Some(false)),
+        ("structure_box.external", Some(false)),
+        ("structure_box.page", Some(true)),
     ];
 
     /// CB3: the mechanical rule (the link's policy, then whether the record reads without the reference) agrees

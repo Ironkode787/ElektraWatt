@@ -5,9 +5,12 @@
 //! CB4 to CB6): the fragment `Session::copy_fragment` writes (byte-equal, against a committed file, the closure rules),
 //! `parse_fragment`'s refusals of hostile text, and `edit.paste` (every rejection at its pointer, the child device, the
 //! library copies, the structure rebinding, the exact grid-step translation, one undo step). The LINKS oracle of CB3 is
-//! the unit test `mandatory_and_optional_follow_the_oracle_for_every_link` of `ew-commands`.
+//! the unit test `mandatory_and_optional_follow_the_oracle_for_every_link` of `ew-commands`. The page-item and
+//! structure-box cases (FT-452) run on the golden batch, so that a record of an unknown page-item variant can be added.
 
-use std::collections::BTreeSet;
+mod golden_common;
+
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 use ew_api::output::{CopyError, FragmentError, parse_fragment};
@@ -16,7 +19,7 @@ use ew_api::{
 };
 use ew_commands::testkit::seeded_ids;
 use ew_ids::{Id, Uuid};
-use ew_schema::{Device, Kind, TagScheme};
+use ew_schema::{Connection, Device, Kind, Page, PageItem, PageItemKind, Slot, StructureBox, TagScheme};
 use ew_units::{Grid, Nm};
 use serde_json::{Value, json};
 
@@ -119,6 +122,39 @@ fn created(r: &Receipt, kind: Kind) -> Vec<Uuid> {
 
 fn device(s: &Session, id: Uuid) -> Device {
     (**s.query().devices().get(Id::from_uuid(id)).expect("the device")).clone()
+}
+
+/// The ID of the golden batch record `key` (`pages|101`, `connections|W4`).
+fn id<T>(ids: &BTreeMap<String, String>, key: &str) -> Id<T> {
+    ids.get(key)
+        .unwrap_or_else(|| panic!("no record {key}"))
+        .parse()
+        .unwrap_or_else(|_| panic!("{key} is an ID"))
+}
+
+/// Runs a command and returns its receipt.
+fn run(s: &mut Session, name: &str, params: Value) -> Receipt {
+    s.execute(&AnyCommand {
+        name: name.into(),
+        params,
+    })
+    .unwrap_or_else(|e| panic!("{name}: {e}"))
+}
+
+fn page_item(s: &Session, id: Uuid) -> PageItem {
+    (**s.query()
+        .page_items()
+        .get(Id::from_uuid(id))
+        .expect("the page item"))
+    .clone()
+}
+
+fn structure_box(s: &Session, id: Uuid) -> StructureBox {
+    (**s.query()
+        .structure_boxes()
+        .get(Id::from_uuid(id))
+        .expect("the structure box"))
+    .clone()
 }
 
 /// Whether `EW_BLESS=1` asks the golden-text tests to rewrite their expected files (WP-S6.13).
@@ -742,4 +778,254 @@ fn cb3_the_numbering_follows_the_fragment_order_not_the_minted_ids() {
     assert_eq!(e.len(), 2);
     assert!(e[0].trim_end().ends_with("E1"), "{a:?}");
     assert!(e[1].trim_end().ends_with("E2"), "{a:?}");
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// FT-452: page items and structure boxes in the fragment
+
+/// FT-452: a free text alone copies (no representation is needed) and pastes by the same grid steps.
+#[test]
+fn cb_items_a_free_text_alone_copies_and_pastes_by_grid_steps() {
+    let batch = golden_common::batch();
+    let ids = golden_common::ids_by_key(&batch);
+    let mut s = golden_common::session(&batch);
+    let page: Id<Page> = id(&ids, "pages|101");
+    let at = [QET.at(20).unwrap().0, QET.at(12).unwrap().0];
+    let placed = run(
+        &mut s,
+        "item.place",
+        json!({"page": page.to_string(), "kind": {"free_text": {"text": "40x60", "at": at}}}),
+    );
+    let item = placed.outcome.primary.expect("the item").1.as_uuid();
+    let copied = s.copy_fragment(&[item]).expect("a free text alone copies");
+    assert_eq!(copied.records, 1, "one page item record");
+    assert!(copied.skipped.is_empty(), "{:?}", copied.skipped);
+    let frag = parse_fragment(&copied.text).expect("the copy reads").params;
+    let receipt = paste(&mut s, "102", at_steps(&frag, (2, 0)), &frag).expect("pasted");
+    let new = created(&receipt, Kind::PageItem);
+    assert_eq!(new.len(), 1);
+    let item = page_item(&s, new[0]);
+    assert_eq!(item.page, Id::from_uuid(page_of(&s, "102")));
+    let PageItemKind::FreeText(t) = &item.kind else {
+        panic!("a free text")
+    };
+    assert_eq!(t.text.as_neutral(), Some("40x60"));
+    assert_eq!(
+        (t.at.x.0, t.at.y.0),
+        (QET.at(22).unwrap().0, QET.at(12).unwrap().0),
+        "the paste moves it by exactly two grid steps to the right"
+    );
+}
+
+/// FT-452: a marker keeps the copied connections only (W4 joins 1X1:1 and S51:2; W5 ends at 1X1:2, which is not
+/// copied), and a marker without either wire is left out of the fragment and counted.
+#[test]
+fn cb_items_a_marker_keeps_the_copied_wires_only() {
+    let batch = golden_common::batch();
+    let ids = golden_common::ids_by_key(&batch);
+    let mut s = golden_common::session(&batch);
+    let page: Id<Page> = id(&ids, "pages|101");
+    let w4: Id<Connection> = id(&ids, "connections|W4");
+    let w5: Id<Connection> = id(&ids, "connections|W5");
+    let marker = run(
+        &mut s,
+        "marker.place",
+        json!({"page": page.to_string(), "connections": [w4.to_string(), w5.to_string()],
+            "at": [QET.at(30).unwrap().0, QET.at(20).unwrap().0]}),
+    );
+    let marker_id = marker.outcome.primary.expect("the marker").1.as_uuid();
+    let mut selected = reps_of(&s, "101", &["S51"]);
+    let terminal = s
+        .page_tables("101")
+        .unwrap()
+        .reps
+        .iter()
+        .find(|r| {
+            r.device.is_some_and(|d| {
+                s.tag_list(&[d])
+                    == "1X1:1
+"
+            })
+        })
+        .expect("1X1:1 on 101")
+        .id;
+    selected.push(terminal);
+    selected.push(marker_id);
+    let frag = fragment(&s, &selected);
+    let copied_marker = frag["records"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["$k"] == "page_item")
+        .expect("the copied marker");
+    assert_eq!(
+        copied_marker["kind"]["wire_marker"]["connections"],
+        json!([w4.to_string()]),
+        "W4 only"
+    );
+    let receipt = paste(&mut s, "101", at_steps(&frag, (0, 4)), &frag).expect("pasted");
+    let new_connections = created(&receipt, Kind::Connection);
+    assert_eq!(new_connections.len(), 1, "the copy of W4 only");
+    let new_marker = created(&receipt, Kind::PageItem);
+    assert_eq!(new_marker.len(), 1);
+    let PageItemKind::WireMarker(m) = &page_item(&s, new_marker[0]).kind else {
+        panic!("a marker")
+    };
+    assert_eq!(
+        m.connections.iter().map(|c| c.as_uuid()).collect::<Vec<_>>(),
+        new_connections,
+        "the pasted marker lists the pasted copy"
+    );
+    // Without either wire the marker keeps no connection: it is not copied and counted.
+    let alone = s
+        .copy_fragment(&[marker_id])
+        .expect("a selected page item is not Empty");
+    assert_eq!(alone.records, 0);
+    assert_eq!(alone.skipped, vec![("wire_marker".to_owned(), 1)]);
+    assert!(!alone.text.contains(&marker_id.to_string()));
+}
+
+/// FT-452: a page item of an unknown variant is counted by a copy and left out by a paste, with a notice.
+#[test]
+fn cb_items_an_unknown_page_item_is_skipped_on_copy_and_on_paste() {
+    let batch = golden_common::batch();
+    let ids = golden_common::ids_by_key(&batch);
+    let unknown = Uuid::from_u128(0x0192_f3a0_0000_7000_8000_0000_0000_a001);
+    let page: Id<Page> = id(&ids, "pages|101");
+    let mut s = golden_common::session_with(&batch, |_, records| {
+        let item: PageItem = serde_json::from_value(json!({
+            "id": unknown.to_string(),
+            "page": page.to_string(),
+            "kind": {"macro_box": {"name": "later"}}
+        }))
+        .expect("the unknown page item reads");
+        records.push(ew_schema::Record::PageItem(item));
+    });
+    let copied = s
+        .copy_fragment(&[unknown])
+        .expect("a selected page item is not Empty");
+    assert_eq!(copied.records, 0);
+    assert_eq!(copied.skipped, vec![("page_item".to_owned(), 1)]);
+    // The paste half, from a fragment text written by hand that holds the same variant.
+    let header = json!({"$fragment": {
+        "format": "0.1",
+        "project": s.query().project().id.as_uuid().hyphenated().to_string(),
+        "grid": [QET.num(), QET.den()],
+        "page_kind": "multi_line",
+        "anchor": [QET.at(20).unwrap().0, QET.at(20).unwrap().0],
+        "ghost": []
+    }});
+    let record = json!({"$k": "page_item", "id": unknown.to_string(), "page": page.to_string(),
+        "kind": {"macro_box": {"name": "later"}}});
+    let text = format!("#ew-fragment v1\n{header}\n{record}\n");
+    let frag = parse_fragment(&text)
+        .expect("the hand-made fragment reads")
+        .params;
+    let before = s.query().page_items().len();
+    let receipt = paste(&mut s, "102", at_steps(&frag, (0, 0)), &frag).expect("the paste succeeds");
+    assert_eq!(s.query().page_items().len(), before, "the unknown item is absent");
+    assert!(
+        created(&receipt, Kind::PageItem).is_empty(),
+        "the unknown item is not inserted"
+    );
+    assert!(
+        receipt
+            .outcome
+            .notices
+            .iter()
+            .any(|n| n == "a page item of a kind this version does not know was left out"),
+        "{:?}",
+        receipt.outcome.notices
+    );
+}
+
+/// FT-452: a structure box keeps its `external` in its own project only; its location rebinds as a device's slots
+/// do and clears with the node notice otherwise.
+#[test]
+fn cb_items_a_structure_box_keeps_its_external_in_its_own_project_only() {
+    let batch = golden_common::batch();
+    let ids = golden_common::ids_by_key(&batch);
+    let mut s = golden_common::session(&batch);
+    let page: Id<Page> = id(&ids, "pages|101");
+    let (location, external) = {
+        let q = s.query();
+        let location = q
+            .structure_nodes()
+            .iter()
+            .find(|(_, n)| n.code.as_str() == "J-E-206")
+            .map(|(id, _)| id.as_uuid())
+            .expect("the J-E-206 location node");
+        let external = q
+            .external_refs()
+            .iter()
+            .next()
+            .map(|(id, _)| id.as_uuid())
+            .expect("an external reference of Golden A");
+        (location, external)
+    };
+    let outline = [
+        [QET.at(10).unwrap().0, QET.at(10).unwrap().0],
+        [QET.at(20).unwrap().0, QET.at(10).unwrap().0],
+        [QET.at(20).unwrap().0, QET.at(15).unwrap().0],
+        [QET.at(10).unwrap().0, QET.at(15).unwrap().0],
+    ];
+    let placed = run(
+        &mut s,
+        "box.structure",
+        json!({
+            "page": page.to_string(),
+            "outline": outline,
+            "style": "dotted",
+            "caption": "External Connection",
+            "assigns": {"location": location.to_string()},
+            "external": external.to_string(),
+        }),
+    );
+    let box_id = placed.outcome.primary.expect("the box").1.as_uuid();
+    let copied = s.copy_fragment(&[box_id]).expect("a structure box alone copies");
+    assert_eq!(copied.records, 1, "one structure box record");
+    let frag = parse_fragment(&copied.text).expect("the copy reads").params;
+    let receipt = paste(&mut s, "101", at_steps(&frag, (2, 0)), &frag).expect("pasted");
+    let pasted = structure_box(&s, created(&receipt, Kind::StructureBox)[0]);
+    assert_eq!(pasted.external, Some(Id::from_uuid(external)));
+    assert_eq!(pasted.assigns.location, Some(Slot::Node(Id::from_uuid(location))));
+    // Into a wizard project: no such external reference and no such location node.
+    let mut w = wizard(41);
+    let receipt = paste(&mut w, "1", at_steps(&frag, (0, 0)), &frag).expect("pasted into the wizard");
+    let pasted = structure_box(&w, created(&receipt, Kind::StructureBox)[0]);
+    assert_eq!(pasted.external, None);
+    assert_eq!(pasted.assigns.location, None);
+    assert!(
+        receipt
+            .outcome
+            .notices
+            .iter()
+            .any(|n| n == "structure location J-E-206 is not in this project: inherits the page"),
+        "{:?}",
+        receipt.outcome.notices
+    );
+    assert!(
+        receipt
+            .outcome
+            .notices
+            .iter()
+            .any(|n| n.contains("external") && n.contains("cleared")),
+        "{:?}",
+        receipt.outcome.notices
+    );
+    // With the node in the target the location rebinds; the external still stays cleared.
+    let node = run(
+        &mut w,
+        "structure.create_node",
+        json!({"aspect": "location", "code": "J-E-206"}),
+    )
+    .outcome
+    .primary
+    .expect("the node")
+    .1
+    .as_uuid();
+    let receipt = paste(&mut w, "1", at_steps(&frag, (0, 4)), &frag).expect("pasted again");
+    let pasted = structure_box(&w, created(&receipt, Kind::StructureBox)[0]);
+    assert_eq!(pasted.external, None);
+    assert_eq!(pasted.assigns.location, Some(Slot::Node(Id::from_uuid(node))));
 }
