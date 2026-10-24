@@ -136,15 +136,15 @@ fn ib2_the_ip_tool_proposes_names_by_series_and_direction_and_d_and_star_toggle(
     done(&mut s, "tool.ip", json!({}));
     assert_eq!(s.tool().name(), "ip");
     assert_eq!(s.tool().state(), "floating");
-    // A point in the left quarter of 103 proposes `target`; typing 24VDC-1, which the four 24VDC targets of 103 use,
-    // gives the first unused name of the series.
+    // A point in the left quarter of 103 proposes `target`; a typed name stays as typed even where the four 24VDC
+    // targets of 103 use it (fix round, item 4: a star's second target shares its name on purpose).
     let left = grid_point(&s, (20, 40));
     cursor(&mut s, left);
     done(&mut s, "ip.name", json!({"text": "24VDC-1"}));
     let ghost = canvas(&s)["ghost"].clone();
     assert_eq!(ghost["kind"], "ip");
     assert_eq!(ghost["direction"], "target");
-    assert_eq!(ghost["name"], "24VDC-5", "{ghost}");
+    assert_eq!(ghost["name"], "24VDC-1", "{ghost}");
     assert_eq!(ghost["star"], false);
     assert_eq!(ghost["at_nm"], json!([left.0, left.1]));
     // In the right quarter it is a source, and no source of 103 has the name yet.
@@ -163,7 +163,7 @@ fn ib2_the_ip_tool_proposes_names_by_series_and_direction_and_d_and_star_toggle(
     // D cycles source → target → undirected; the star toggles.
     done(&mut s, "tool.ip_direction", json!({}));
     assert_eq!(canvas(&s)["ghost"]["direction"], "target");
-    assert_eq!(canvas(&s)["ghost"]["name"], "24VDC-5");
+    assert_eq!(canvas(&s)["ghost"]["name"], "24VDC-1", "typed: no series");
     done(&mut s, "tool.ip_direction", json!({}));
     assert_eq!(canvas(&s)["ghost"]["direction"], "undirected");
     done(&mut s, "tool.star_source", json!({}));
@@ -191,6 +191,10 @@ fn ib2_the_ip_tool_proposes_names_by_series_and_direction_and_d_and_star_toggle(
     assert_eq!(canvas(&s)["ghost"]["direction"], "source");
     assert_eq!(canvas(&s)["ghost"]["star"], false);
     assert_eq!(canvas(&s)["ghost"]["name"], "24VDC-1");
+    // In the left quarter the remembered name is a proposal: the four 24VDC targets of 103 use the series up to 4.
+    cursor(&mut s, left);
+    assert_eq!(canvas(&s)["ghost"]["direction"], "target");
+    assert_eq!(canvas(&s)["ghost"]["name"], "24VDC-5");
     // Escape ends the tool without a change.
     let rev = s.revision();
     done(&mut s, "ui.dismiss", json!({}));
@@ -371,6 +375,30 @@ fn ib3_continue_on_page_103_places_the_paired_ip_at_the_default_position() {
     assert_eq!(continued.symbol, original.symbol);
 }
 
+/// The cross-reference text (`102-A1`) that the source IP `name` on 101 prints for its partner on 102: the target cell
+/// of 101's link nearest to that IP. Returns to 102.
+fn xref_of_partner(s: &mut ShellModel, name: &str) -> String {
+    done(s, "page.goto", json!({"folio": "101"}));
+    let rep = ip(&tables(s), name, "source");
+    let at = sheet(s, rep.pos);
+    let cell = s
+        .canvas()
+        .unwrap()
+        .page()
+        .links
+        .iter()
+        .filter(|l| l.target.as_ref().is_some_and(|t| t.folio == "102"))
+        .min_by_key(|l| {
+            let c = ew_viewmodel::canvas::rect_centre(l.rect);
+            let (dx, dy) = (i128::from(c.0 - at.0), i128::from(c.1 - at.1));
+            dx * dx + dy * dy
+        })
+        .and_then(|l| l.target.as_ref().and_then(|t| t.cell.clone()))
+        .expect("the partner's link");
+    done(s, "page.goto", json!({"folio": "102"}));
+    cell
+}
+
 #[test]
 fn ib4_arrange_by_name_puts_l1_in_the_upper_slot() {
     let tmp = Tmp::new("arrange");
@@ -378,17 +406,22 @@ fn ib4_arrange_by_name_puts_l1_in_the_upper_slot() {
     let t = tables(&s);
     let (l1, n1) = (ip(&t, "L-1", "target"), ip(&t, "N-1", "target"));
     assert!(l1.pos.1 < n1.pos.1, "on Golden A L-1 is above N-1");
-    // N-1 moved above L-1 (four grid steps up: two above L-1).
+    // N-1 moved above L-1 (four grid steps up: two above L-1) and into the next column, so that the two slots lie in
+    // different cells and the partners' cross-reference texts on 101 tell them apart.
     let rev = s.revision();
     done(
         &mut s,
         "command.run",
-        json!({"cmd": "rep.move", "params": {"reps": [n1.id.to_string()], "steps": [0, -4]}}),
+        json!({"cmd": "rep.move", "params": {"reps": [n1.id.to_string()], "steps": [10, -4]}}),
     );
     assert_eq!(s.revision(), rev.map(|r| r + 1));
     let t = tables(&s);
     let (l1, n1) = (ip(&t, "L-1", "target"), ip(&t, "N-1", "target"));
     assert!(n1.pos.1 < l1.pos.1);
+    let before = xref_of_partner(&mut s, "L-1");
+    let n_before = xref_of_partner(&mut s, "N-1");
+    assert!(before.starts_with("102-"), "{before}");
+    assert_ne!(before, n_before, "two cells");
     let l1_fn = ew_viewmodel::ew_api::output::ew_dl::EntityRef(l1.functions[0]);
     // Fewer than two selected: refused.
     select_ids(&mut s, &[l1.id.to_string()]);
@@ -407,6 +440,10 @@ fn ib4_arrange_by_name_puts_l1_in_the_upper_slot() {
     for (_, _, end) in ends_at(&t, l1_fn) {
         assert_eq!(end, cp_at);
     }
+    // The partner L-1 on 101 prints the new place of L-1 on 102 (FR-XRF-013: the cross-reference follows).
+    let after = xref_of_partner(&mut s, "L-1");
+    assert_ne!(after, before, "the partner's cross-reference text changes");
+    assert_eq!(after, n_before, "L-1's partner now names N-1's former cell");
     // By potential with the chain order: one more commit.
     let rev = s.revision();
     done(
@@ -547,6 +584,11 @@ fn check_widened(s: &ShellModel, before: &TableRep, connected: usize) {
     for c in &b1.cps {
         assert!(on_outline(&b1.outline, c.1), "CP {} at {:?}", c.0, c.1);
     }
+    // The CPs of the top and bottom edges stay where they were (the re-projection's anchor, fix round item 3).
+    for (idx, p, _) in &b0.cps {
+        let q = b1.cps.iter().find(|c| c.0 == *idx).unwrap().1;
+        assert_eq!(q, *p, "CP {idx} stays");
+    }
     let f = ew_viewmodel::ew_api::output::ew_dl::EntityRef(after.functions[0]);
     let ends = ends_at(&t, f);
     assert_eq!(ends.len(), connected, "all connected");
@@ -565,7 +607,7 @@ fn ib6_widening_g1_by_two_grid_steps_keeps_its_cps_on_the_outline_and_connected(
     let f = ew_viewmodel::ew_api::output::ew_dl::EntityRef(before.functions[0]);
     let connected = ends_at(&t, f).len();
     assert_eq!(before.black_box.as_ref().unwrap().cps.len(), 7);
-    assert!(connected >= 1);
+    assert_eq!(connected, 7, "Golden A connects all seven CPs of -102G1");
     // The grips need exactly one black box selected.
     assert_eq!(
         refused(&mut s, "box.grip", json!({"grip": 5})),

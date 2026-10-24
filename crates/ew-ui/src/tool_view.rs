@@ -155,6 +155,10 @@ pub(crate) fn ip_fields(
 ) {
     ui.label(strings::text("action-ip-name"));
     let edit = ui.add(egui::TextEdit::singleline(name).desired_width(120.0));
+    // Named for assistive technology (and the tests); while it has the focus the canvas keys (P, D, B …) stay with it
+    // (`app.rs`, the `text_edit_focused` gate of the key routing).
+    let label = strings::text("action-ip-name").to_owned();
+    edit.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &label));
     if edit.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) && !name.trim().is_empty() {
         events.push(crate::app::Event::Action(
             "ip.name",

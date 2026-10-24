@@ -312,8 +312,13 @@ impl Tool for BlackBoxTool {
     fn ghost(&self) -> Option<Ghost> {
         let outline = match self.state {
             State::Outline { first, at } => {
-                // Without the grid the count is the rectangle's, or none while it has no area.
-                if first.1 == at.1 { 0 } else { 4 }
+                // The rectangle's four vertices, or none while it has no area (no height, or no width and no CP to
+                // widen it; the corners are grid points, so equal coordinates are equal grid indices).
+                if first.1 == at.1 || (first.0 == at.0 && self.cps().is_empty()) {
+                    0
+                } else {
+                    4
+                }
             }
             State::Armed { .. } => 0,
         };
@@ -408,8 +413,13 @@ pub fn reshape_by_grip(
             return Err("reason-grip-not-axis");
         }
     }
-    if signed_area2(&out) == 0 {
+    let (before, after) = (signed_area2(outline), signed_area2(&out));
+    if after == 0 {
         return Err("reason-box-too-small");
+    }
+    // A grip never turns the box inside out (its CPs would then point inwards; fix round, item 6).
+    if before.signum() != after.signum() {
+        return Err("reason-box-inside-out");
     }
     Ok(out)
 }
@@ -601,6 +611,9 @@ mod tests {
             vec![(0, 0), (14, 0), (14, 5), (0, 5)]
         );
         assert_eq!(reshape_by_grip(&r, 5, (0, 0)), Err("reason-box-too-small"));
+        // The right edge past the left one would turn the box inside out.
+        assert_eq!(reshape_by_grip(&r, 5, (-4, 0)), Err("reason-box-inside-out"));
+        assert_eq!(reshape_by_grip(&r, 2, (-3, 7)), Err("reason-box-inside-out"));
         assert_eq!(reshape_by_grip(&r, 8, (0, 0)), Err("reason-no-grip"));
         // A triangle: a vertex alone; its diagonal edge refuses.
         let t = vec![(0, 0), (10, 0), (10, 5)];

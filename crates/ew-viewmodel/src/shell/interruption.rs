@@ -76,6 +76,9 @@ impl IpDir {
     }
 }
 
+/// The sort key of an arranged IP: its potential name, its name, its function ID and its position (y, x).
+type ArrangeKey = (Option<String>, String, String, (i64, i64));
+
 /// The interruption points of a page that a selection holds: their table rows, in selection order.
 fn selected_ips<'t>(model: &ShellModel, tables: &'t PageTables) -> Vec<&'t TableRep> {
     selection_kinds(model.selection(), tables)
@@ -302,17 +305,27 @@ impl ShellModel {
         let external = match p.get("external") {
             None => return failed("error-missing-param", &["external"]),
             Some(Value::Null) => None,
+            Some(Value::String(s)) if s.is_empty() => None,
             Some(Value::String(s)) => {
                 let s = s.strip_prefix("id:").unwrap_or(s);
-                let found = self
-                    .external_choices()
-                    .into_iter()
-                    .find(|(id, label)| id.eq_ignore_ascii_case(s) || label == s);
-                match found {
-                    Some((id, label)) => Some(IpExternal { id, label }),
-                    None => {
+                let choices = self.external_choices();
+                // By ID first; by printed text only when exactly one reference prints it (fix round, item 7).
+                let by_id = choices.iter().find(|(id, _)| id.eq_ignore_ascii_case(s));
+                let by_text: Vec<&(String, String)> =
+                    choices.iter().filter(|(_, label)| label == s).collect();
+                match (by_id, by_text.as_slice()) {
+                    (Some((id, label)), _) | (None, [(id, label)]) => Some(IpExternal {
+                        id: id.clone(),
+                        label: label.clone(),
+                    }),
+                    (None, []) => {
                         return Outcome::Refused {
                             reason_key: "reason-no-external",
+                        };
+                    }
+                    (None, _) => {
+                        return Outcome::Refused {
+                            reason_key: "reason-external-ambiguous",
                         };
                     }
                 }
@@ -466,7 +479,7 @@ impl ShellModel {
 
     /// `ip.arrange_selected {by?, chain_order?}` (Edit ▸ Arrange interruption points): the selected interruption points
     /// of the page (at least two) sorted by the natural order of their names (`by: name`, the default) or of their
-    /// derived potential names, then their names (`by: potential`; one without a potential last), ties by function ID,
+    /// derived potential names, then their names (`by: potential`; one without a potential last), ties by position (y, x), then ID,
     /// committed as `ip.arrange {ips, set_sort: chain_order}` (D12).
     pub(super) fn act_ip_arrange(&mut self, p: &Map<String, Value>) -> Outcome {
         let by_potential = match string_param(p, "by") {
@@ -487,7 +500,7 @@ impl ShellModel {
                 reason_key: "reason-select-ips",
             };
         }
-        let mut keyed: Vec<(Option<String>, String, String)> = ips
+        let mut keyed: Vec<ArrangeKey> = ips
             .iter()
             .filter_map(|r| {
                 let f = r.functions.first()?;
@@ -508,7 +521,7 @@ impl ShellModel {
                 } else {
                     None
                 };
-                Some((potential, name, f.to_string()))
+                Some((potential, name, f.to_string(), (r.pos.1, r.pos.0)))
             })
             .collect();
         keyed.sort_by(|a, b| {
@@ -519,6 +532,8 @@ impl ShellModel {
                 (None, None) => Ordering::Equal,
             };
             pot.then_with(|| natural_cmp(&a.1, &b.1))
+                // Ties by the current position (y, x), then by ID (FT-439: no UUID-keyed order first).
+                .then_with(|| a.3.cmp(&b.3))
                 .then_with(|| a.2.cmp(&b.2))
         });
         let mut params = json!({ "ips": keyed.iter().map(|k| k.2.clone()).collect::<Vec<_>>() });

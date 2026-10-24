@@ -15,10 +15,10 @@
 //! | floating | `Press` primary or `Activate` | floating | `Commit(ip.place …)`; sticky |
 //! | floating | `Escape` | — | `None` (the host returns to Select) |
 //!
-//! **The name** is the typed one, else (not for an external point) the derived potential name of the page's CP that
-//! lies exactly under the ghost's CP, else the last name this tool or the Wire tool's P committed, else `IP`; then,
-//! while an interruption point of the same direction on the page already has it, the next name of its numbered series
-//! ([`next_in_series`]: `24VDC-1` → `24VDC-2`, `L` → `L-1`). **The direction** is the one D chose, else `target` for
+//! **The name** is the typed one, unchanged; else a proposal: (not for an external point) the derived potential name
+//! of the page's CP that lies exactly under the ghost's CP, else the last name this tool or the Wire tool's P
+//! committed, else `IP`; then, while an interruption point of the same direction on the page already has the
+//! proposal, the next name of its numbered series ([`next_in_series`]: `24VDC-1` → `24VDC-2`, `L` → `L-1`). **The direction** is the one D chose, else `target` for
 //! an external point, else `source` in the right or bottom quarter of the page's drawing area and `target` in the left
 //! or top quarter ([`quarter_direction`]: the horizontal quarters first), else the last committed one. After a commit
 //! the typed name, the chosen direction and the star are cleared, and the committed name and direction are
@@ -321,6 +321,11 @@ impl IpTool {
 
     /// The name at the insertion point `pos` with direction `direction`.
     fn name(&self, cx: &ToolCx<'_>, pos: Option<(i64, i64)>, direction: IpDir) -> String {
+        // A typed name is the user's: the series rule never changes it (a second target of a star source shares the
+        // name on purpose; fix round, item 4).
+        if let Some(typed) = &self.typed {
+            return typed.clone();
+        }
         let tables = &cx.page.tables;
         let potential = if self.external.is_some() {
             None
@@ -328,10 +333,7 @@ impl IpTool {
             pos.and_then(|p| self.cp_at(p))
                 .and_then(|c| potential_at(tables, c))
         };
-        let base = self
-            .typed
-            .clone()
-            .or(potential)
+        let base = potential
             .or_else(|| self.memory.last_name.clone())
             .unwrap_or_else(|| "IP".to_owned());
         unused_name(&base, direction, tables)
