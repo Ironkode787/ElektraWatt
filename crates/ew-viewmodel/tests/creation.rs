@@ -270,7 +270,7 @@ fn structure_designations_are_refused_when_unknown_wrong_or_ambiguous() {
     );
     assert_eq!(
         m,
-        "2 nodes share the designation \"X\": @1 (under A), @2 (under B).          Give the alias of one of them instead."
+        "2 nodes share the designation \"X\": @1 (under A), @2 (under B). Give the alias of one of them instead."
     );
     // The aliases the refusal printed are the nodes: the next step names one as the parent.
     done(
@@ -279,9 +279,13 @@ fn structure_designations_are_refused_when_unknown_wrong_or_ambiguous() {
         json!({"kind": "location", "designation": "Y", "parent": "@2"}),
     );
     // Another aspect's sign is refused naming both, in the designation, the parent and the location.
-    let wrong = "\"=P01\" starts with =, the sign of the function aspect, but this node is in the location aspect.";
+    let wrong =
+        "\"=P01\" starts with =, the sign of the function aspect, but this node is in the location aspect.";
     for (action, params) in [
-        ("structure.new", json!({"kind": "location", "designation": "=P01"})),
+        (
+            "structure.new",
+            json!({"kind": "location", "designation": "=P01"}),
+        ),
         (
             "structure.new",
             json!({"kind": "location", "designation": "Z", "parent": "=P01"}),
@@ -300,7 +304,11 @@ fn structure_designations_are_refused_when_unknown_wrong_or_ambiguous() {
         "\"==P01\" starts with ==, the sign of the functional assignment aspect, but this node is in the function aspect."
     );
     assert_eq!(
-        failed(&mut shell, "structure.new", json!({"kind": "location", "designation": "+"})),
+        failed(
+            &mut shell,
+            "structure.new",
+            json!({"kind": "location", "designation": "+"})
+        ),
         "Missing parameter `designation`."
     );
     let m = failed(
@@ -572,7 +580,11 @@ fn a_structure_node_leaves_an_armed_place_tool_and_its_preview_alone() {
     done(&mut s, "canvas.pointer", at(sheet, json!({})));
     done(&mut s, "canvas.dwell", json!({"ms": 80}));
     assert_eq!(s.tool().name(), "place");
-    assert_eq!(s.preview_status(), Some(PreviewStatus::Ready), "the ghost's preview");
+    assert_eq!(
+        s.preview_status(),
+        Some(PreviewStatus::Ready),
+        "the ghost's preview"
+    );
     // Escape closes the dialog and nothing else: the tool stays armed.
     done(&mut s, "structure.new", json!({}));
     assert!(matches!(s.dialog(), Some(Dialog::Form(_))));
@@ -586,7 +598,7 @@ fn a_structure_node_leaves_an_armed_place_tool_and_its_preview_alone() {
     done(
         &mut s,
         "structure.new",
-        json!({"kind": "location", "designation": "J-E-206"}),
+        json!({"kind": "location", "designation": "J-E-999"}),
     );
     assert_ne!(s.revision(), rev);
     assert_eq!(s.tool().name(), "place");

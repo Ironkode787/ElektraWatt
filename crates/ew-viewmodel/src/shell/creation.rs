@@ -415,10 +415,12 @@ impl ShellModel {
                 cands.sort();
                 let list: Vec<String> = cands
                     .iter()
-                    .map(|(path, id)| match path.len().checked_sub(2).and_then(|i| path.get(i)) {
-                        Some(parent) => strings::format("node-candidate-under", &[id, parent]),
-                        None => strings::format("node-candidate-top", &[id]),
-                    })
+                    .map(
+                        |(path, id)| match path.len().checked_sub(2).and_then(|i| path.get(i)) {
+                            Some(parent) => strings::format("node-candidate-under", &[id, parent]),
+                            None => strings::format("node-candidate-top", &[id]),
+                        },
+                    )
                     .collect();
                 Err(self.alias_text(&strings::format(
                     "error-ambiguous-node",
