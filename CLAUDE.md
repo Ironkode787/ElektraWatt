@@ -5,10 +5,12 @@ for electrical control-cabinet design. Currently in the design phase: see `docs/
 
 ## Model routing policy (quota)
 
-Use the cheapest model that can do the task well. Three tiers, each with project subagents in `.claude/agents/`:
+Use the cheapest model that can do the task well. Three Claude tiers, each with project subagents in
+`.claude/agents/`, and an external DeepSeek coder that does not draw on the Claude quota:
 
 | Tier | Model | Subagents | Use for |
 |---|---|---|---|
+| Coder (external) | DeepSeek V4 Pro / Flash in the DeepSeek harness | — (bridge `.claude/deepseek/dsh-task.py`) | Code with a closed spec at D1–D3, in its own worktree; Claude reviews, commits and merges (see "DeepSeek coder (dsh)") |
 | Lead | Opus | `lead-designer`, `lead-programmer` | Open decisions: architecture, ADRs, domain-model and file-format changes, cross-document conflicts, estimation/planning, judging alternatives; core/critical code (ew-model, ew-commands, ew-memo, ew-derive, ew-format/ew-store, concurrency, FFI/STEP worker, public & plugin APIs, perf-critical rendering); hard debugging; final review |
 | Worker | Sonnet | `designer`, `programmer` | Well-defined work with a closed spec: write/update a doc section to an outline, apply decided resolutions, write an ADR for a made decision; implement a specified command/query/importer step/report/UI panel/CLI subcommand, tests, bug fixes with a known repro; research and literature sweeps |
 | Mechanical | Haiku | `boilerplate`, `scout` (read-only search) | No judgment needed: scaffolding from a template, Cargo.toml edits, licence/REUSE headers, renames and ID-map find-and-replace, fmt/trivial lint fixes, fixtures, CHANGELOG/README, link and Mermaid fixes; repository searches and lookups (`scout`) |
@@ -43,6 +45,34 @@ Rules:
    renames, count bumps, licence headers, re-blessing (`boilerplate`, Haiku). The orchestrator writes this into every
    lead brief, and the lead's report lists what it delegated and to which tier; a lead that delegated nothing says why.
    Reviews of D2–D3 lanes and of fix rounds with closed items go to Sonnet; Opus reviews stay for D4–D5 lanes.
+
+## DeepSeek coder (dsh)
+
+The DeepSeek harness (`dsh`, npm `@deepseek-ai/dsh`, developer preview) codes; Claude Code orchestrates. dsh bills the
+owner's DeepSeek key (`~/.dsh/.env`), not the Claude quota. The bridge `.claude/deepseek/dsh-task.py` runs
+`dsh --profile headless` in a worktree of its own; the coder reads `.claude/deepseek/AGENTS.md` (scope, git rules,
+testing policy, public-repo rules, report format) instead of this file.
+
+- **Routing.** Implementation with a closed spec at D1–D3 goes to DeepSeek by default: `--model flash` for D1,
+  `--model pro` (DeepSeek V4 Pro, the default) for D2–D3. D4–D5 code, open design questions and docs stay with the
+  Claude tiers; `programmer`/`boilerplate` take over when dsh is unavailable or a task fails there twice.
+- **Run a round** from the main session with Bash `run_in_background` (a round takes minutes to tens of minutes; the
+  notification arrives on exit). Write the brief to a file (goal, files owned, references, acceptance checks), then
+  `python .claude/deepseek/dsh-task.py start <name> --task-file <brief> [--base <ref>] [--model pro|flash]`. It
+  creates `.claude/worktrees/ds-<name>` on branch `ds/<name>` and prints the outcome, tokens, the changes against the
+  base and the coder's `## Report`. `show <name>` re-prints a summary (also mid-round); `list` lists the runs.
+- **Review** the report, then the diff (`git -C <worktree> diff <base>` and the untracked files listed), and re-run the
+  brief's acceptance checks in the worktree before accepting: the coder's check results are claims, not proof.
+  Review delegation follows rule 7. For revisions write the findings to a file and run `resume <name> --task-file
+  <fixes>` (same dsh session); after three rounds hand the worktree to `programmer` or `lead-programmer`.
+- **Integrate**: commit in the worktree in the project's message style with the line `Coded by DeepSeek <model> via
+  dsh (run <name>).` above the trailers, merge `ds/<name>` into the working branch, then `remove <name>` (deletes
+  the worktree with its `target` and the branch).
+- **Limits.** The coder never commits, pushes or leaves its worktree. A round that builds counts as one of the two
+  builders. `--sandbox workspace` (default) confines its file writes to the worktree (dsh's Windows ACL sandbox;
+  reads and network stay open; cargo builds and tests work under it); `--sandbox full` lifts it. A resumed session
+  keeps the sandbox it started with, and approval prompts are always refused (headless has nobody to ask). Workflow
+  agents cannot wait out a round (the 10-minute foreground limit), so rounds are started from the main session.
 
 ## Effort by difficulty (dynamic routing)
 

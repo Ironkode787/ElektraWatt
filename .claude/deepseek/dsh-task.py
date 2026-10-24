@@ -39,8 +39,8 @@ SANDBOXES = {'workspace': 'workspace-write', 'full': 'danger-full-access'}
 CARGO_ENV = {'CARGO_PROFILE_DEV_DEBUG': 'line-tables-only', 'CARGO_INCREMENTAL': '0', 'CARGO_BUILD_JOBS': '4'}
 NAME_RE = re.compile(r'^[a-z0-9][a-z0-9-]{0,47}$')
 REPORT_LINES = 150
-FOOTER = ('\n\n---\nYou are running in a git worktree prepared for this task. Follow .claude/deepseek/CODER.md '
-          '(the instructions loaded for this project) and end with the `## Report` it describes.\n')
+FOOTER = ('\n\n---\nYou are running in a git worktree prepared for this task. Follow your instructions (the '
+          'ElektraWatt coder brief) and end with the `## Report` they describe.\n')
 
 
 def die(msg: str, code: int = 2) -> None:
@@ -87,10 +87,14 @@ def dsh_command() -> list[str]:
     return [exe]
 
 
+def dsh_home() -> Path:
+    return Path(os.environ.get('DSH_HOME') or Path.home() / '.dsh')
+
+
 def check_api_key() -> None:
     if os.environ.get('DEEPSEEK_API_KEY'):
         return
-    env_file = Path(os.environ.get('DSH_HOME') or Path.home() / '.dsh') / '.env'
+    env_file = dsh_home() / '.env'
     if env_file.exists() and re.search(r'^\s*DEEPSEEK_API_KEY\s*=\s*\S', env_file.read_text(encoding='utf-8'),
                                        re.M):
         return
@@ -116,26 +120,30 @@ def run_round(state: dict, task: str, args: argparse.Namespace) -> int:
     wt = Path(state['worktree'])
     n = len(state['rounds']) + 1
     model = MODELS.get(args.model, args.model)
-    if not (wt / '.claude' / 'deepseek' / 'CODER.md').exists():
-        # The base predates the coder brief, so dsh cannot load it from the worktree: send it with the task.
-        task = (HERE / 'CODER.md').read_text(encoding='utf-8') + '\n\n# Task\n\n' + task
     task += FOOTER
     (rdir / f'task-{n}.md').write_text(task, encoding='utf-8')
-    overlay = rdir / f'model-{n}.patch.yml'
+    sandbox = SANDBOXES[args.sandbox]
+    overlay = rdir / f'run-{n}.patch.yml'
+    # Model and permissions for this round. Nobody answers approval prompts in headless mode, so the one preset
+    # pairs the sandbox with the `never` policy: a call that would need approval is refused and the coder adapts.
+    # A resumed session keeps the permissions it was created with.
     overlay.write_text(f'- id: agent-default-model\n  config:\n    provider: {PROVIDER}\n    model: {model}\n'
-                       + (f'    reasoningEffort: {args.effort}\n' if args.effort else ''), encoding='utf-8')
+                       + (f'    reasoningEffort: {args.effort}\n' if args.effort else '')
+                       + f'- id: approval\n  config:\n    policy: never\n'
+                       f'- id: permission\n  config:\n    presets:\n      unattended:\n        sandbox: {sandbox}\n'
+                       f'        approval: never\n    defaultPreset: unattended\n', encoding='utf-8')
     cmd = [*dsh_command(), '--profile', 'headless', '--patch', str(HERE / 'headless.patch.yml'),
-           '--patch', str(overlay), '--json', '--permission-mode', SANDBOXES[args.sandbox],
-           '--approval-policy', 'never']
+           '--patch', str(overlay), '--json']
     if state.get('session_id'):
         cmd += ['--session-id', state['session_id']]
     cmd.append('-')
-    env = dict(os.environ)
+    # DSH_AGENTS_HOME makes dsh load this directory's AGENTS.md (the coder brief) as its user-global instructions.
+    env = dict(os.environ, DSH_PERMISSION_MODE=sandbox, DSH_AGENTS_HOME=str(HERE))
     for key, value in CARGO_ENV.items():
         env.setdefault(key, value)
 
     events, stderr = rdir / f'events-{n}.jsonl', rdir / f'stderr-{n}.log'
-    rnd = {'round': n, 'model': model, 'effort': args.effort, 'sandbox': SANDBOXES[args.sandbox],
+    rnd = {'round': n, 'model': model, 'effort': args.effort, 'sandbox': sandbox,
            'started': datetime.datetime.now().isoformat(timespec='seconds'), 'status': 'running'}
     state['rounds'].append(rnd)
     t0 = time.monotonic()
@@ -185,11 +193,14 @@ def parse_events(path: Path) -> dict:
             for key, value in (ev.get('usage') or {}).items():
                 if isinstance(value, int):
                     info['tokens'][key] += value
+        elif kind == 'status' and ev.get('phase') == 'turn_end':
+            info['reason'] = ev.get('reason')
         elif kind == 'text':
             info['last_text'] = ev.get('text')
         elif kind == 'final':
+            # dsh 0.2.1-rc.2 writes `reason: null` here even after a completed turn; keep the turn_end reason then.
             info['session'] = ev.get('sessionId') or info['session']
-            info['reason'], info['final'] = ev.get('reason'), ev.get('text')
+            info['reason'], info['final'] = ev.get('reason') or info['reason'], ev.get('text')
         elif kind == 'error':
             info['error'] = ev.get('message') or json.dumps(ev)[:500]
     return info
@@ -268,6 +279,8 @@ def cmd_resume(args: argparse.Namespace) -> int:
         die('the first round recorded no dsh session; start a new run instead')
     if any(r['status'] == 'running' for r in state['rounds']):
         die('a round is still marked running; wait for it (or clear it with `show` once its process has exited)')
+    # dsh keeps a resumed session's permissions; record the sandbox it really runs under.
+    args.sandbox = {v: k for k, v in SANDBOXES.items()}[state['rounds'][0]['sandbox']]
     return run_round(state, read_task(args.task_file), args)
 
 
@@ -316,6 +329,12 @@ def cmd_remove(args: argparse.Namespace) -> int:
         git('worktree', 'remove', '--force', str(wt), cwd=root)
         if not args.keep_branch and state['branch'].startswith('ds/'):
             git('branch', '-D', state['branch'], cwd=root, check=False)
+    if state.get('session_id'):
+        # dsh keeps each session's log under $DSH_HOME/sessions/<encoded worktree path>/<session id>.
+        for session in (dsh_home() / 'sessions').glob(f"*/{state['session_id']}"):
+            shutil.rmtree(session)
+            if not any(session.parent.iterdir()):
+                session.parent.rmdir()
     shutil.rmtree(run_dir(args.name))
     print(f"removed run {args.name}" + ('' if wt.parent == root / '.claude' / 'worktrees'
                                        else f' (left the caller-owned worktree {wt} in place)'))
