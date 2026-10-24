@@ -224,6 +224,7 @@ fn examples() -> Vec<(&'static str, Value)> {
             json!({"page": PAGE_101.to_string(), "at": [0, 0], "fragment": {"format": "0.1",
                 "project": PAGE_101.to_string(), "grid": [7_937_500, 3], "page_kind": "multi_line", "anchor": [0, 0],
                 "records": [], "copies": [], "nodes": []}}),
+        ),
         // WP-S2.04 part 3
         (
             "connection.draw_to_ip",
@@ -240,6 +241,7 @@ fn examples() -> Vec<(&'static str, Value)> {
             json!({"rep": REP_102F2.to_string(),
                 "outline": [[0, 0], [31_750_000, 0], [31_750_000, 23_812_500], [0, 23_812_500]],
                 "cps": [{"idx": 0, "pos": [7_937_500, 0], "dir": "up"}]}),
+        ),
         // WP-S2.04 part 4a
         (
             "box.structure",

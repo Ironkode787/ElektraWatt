@@ -1586,7 +1586,6 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         assert_eq!(seen[3].1["caption"], json!("Box"));
         assert_eq!(seen[4].1, json!({"reps": [], "items": [c], "delta": [1, 2]}));
     }
-
 }
 
 #[cfg(test)]

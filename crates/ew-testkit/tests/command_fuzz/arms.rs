@@ -58,6 +58,7 @@ pub const ARMS: &[Arm] = &[
         command: "box.reshape",
         weight: 3,
         build: box_reshape,
+    },
     // WP-S2.04 part 4a
     Arm {
         command: "box.structure",
