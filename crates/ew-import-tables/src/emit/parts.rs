@@ -300,7 +300,10 @@ pub(crate) fn emit(
         manufacturer_extra.insert("key".into(), serde_json::Value::String(manufacturer.to_string()));
         let mut meta = ItemMeta {
             key: parse_ident(&key).ok(),
-            sources: vec![format!("golden.table:{}", source_key("parts", &key))],
+            sources: vec![match &cx.part_source {
+                Some(file) => file.clone(),
+                None => format!("golden.table:{}", source_key("parts", &key)),
+            }],
             ..ItemMeta::default()
         };
         if test_data {

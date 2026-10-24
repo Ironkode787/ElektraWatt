@@ -282,7 +282,7 @@ impl TablesImporter {
     }
 }
 
-fn limit_error(e: &CsvError) -> Option<&'static str> {
+pub(crate) fn limit_error(e: &CsvError) -> Option<&'static str> {
     match e {
         CsvError::TooLarge { .. } => Some("file size"),
         CsvError::TooManyRows { .. } => Some("row count"),
@@ -293,7 +293,7 @@ fn limit_error(e: &CsvError) -> Option<&'static str> {
     }
 }
 
-fn limit_value(e: &CsvError) -> u64 {
+pub(crate) fn limit_value(e: &CsvError) -> u64 {
     match e {
         CsvError::TooLarge { limit } => *limit,
         CsvError::TooManyRows { limit }
@@ -304,7 +304,7 @@ fn limit_value(e: &CsvError) -> u64 {
     }
 }
 
-fn error_line(e: &CsvError) -> Option<u32> {
+pub(crate) fn error_line(e: &CsvError) -> Option<u32> {
     match e {
         CsvError::TooManyColumns { line, .. }
         | CsvError::CellTooLong { line, .. }

@@ -35,6 +35,11 @@
 //! | `revisions` | the reserved `revision` records |
 //! | `colour_profile`, `size_profile` | the `colour_profile` and `size_profile` members of the project settings (doc 03 §5.1; `emit/profiles.rs`) |
 //!
+//! # Parts into an existing project
+//!
+//! [`parse_parts_tables`] reads a `parts.csv` and its sibling tables strictly into the same project-local part copies
+//! for the `parts.import` command (FT-410; [`parts`]).
+//!
 //! # Hostile input (doc 14 §11)
 //!
 //! At most [`MAX_TABLE_FILES`] files, their sum within `ImportContext::limits.max_input_bytes` (64 MiB for
@@ -64,6 +69,7 @@ mod emit;
 pub mod ids;
 mod import;
 mod library;
+pub mod parts;
 mod schema;
 mod table;
 
@@ -73,6 +79,7 @@ pub use csv::TableLimits;
 pub use ew_interop_api;
 pub use import::TablesImporter;
 pub use library::{BUILTIN_LIBRARY, BuiltinLibrary, LibraryError};
+pub use parts::{PARTS_FILE, SiblingTables, parse_parts_tables};
 /// The foreign colour notations and their IEC 60757 codes (doc 14 §4.12; the property grid's colour suggestions, WP-S2.05
 /// §4.2).
 pub use table::COLOUR_ALIASES;

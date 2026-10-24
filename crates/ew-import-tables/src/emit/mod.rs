@@ -168,6 +168,10 @@ pub(crate) struct Cx<'l> {
     pub(crate) connections: BTreeMap<String, ConnInfo>,
     /// `plc_config_projects` keys (registered before the devices, whose station aspects name them).
     pub(crate) plc_projects: BTreeMap<String, Id<PlcConfigProject>>,
+    /// The provenance of a part copy (`meta.sources`) when the parts are imported into an existing project
+    /// ([`crate::parts::parse_parts_tables`]): the file's base name; `None` for the bootstrap, whose copies carry
+    /// `golden.table:parts|{key}`.
+    pub(crate) part_source: Option<String>,
 }
 
 impl<'l> Cx<'l> {
@@ -192,6 +196,7 @@ impl<'l> Cx<'l> {
             conductors: BTreeMap::new(),
             connections: BTreeMap::new(),
             plc_projects: BTreeMap::new(),
+            part_source: None,
         }
     }
 
