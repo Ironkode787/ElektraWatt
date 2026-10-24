@@ -619,10 +619,9 @@ fn reshape_with_cps_replaces_the_outline_and_the_cps_and_routes_follow() {
 }
 
 #[test]
-fn reshape_without_cps_widening_keeps_top_cps_and_moves_bottom_cps_with_the_edge() {
+fn reshape_without_cps_widening_keeps_top_and_bottom_cps_where_they_are() {
     let mut e = engine(standard_box());
     let before = lines(e.model());
-    let two_steps = grid_at(2).0;
     let outline = rect(20, 12);
     let r = e.execute(&reshape(outline.clone(), None)).expect("box.reshape");
     assert!(r.outcome.notices.is_empty(), "{:?}", r.outcome.notices);
@@ -633,11 +632,10 @@ fn reshape_without_cps_widening_keeps_top_cps_and_moves_bottom_cps_with_the_edge
     let top = cp_of(&spec, 2);
     assert_eq!(top.pos, pt(2 * G, 0));
     assert_eq!(top.dir, Dir4::Up);
-    // The bottom edge runs right to left from the (moved) right vertex: CP 6 keeps its 2 G offset from it, so it
-    // moves right by the two grid steps the box grew.
+    // The bottom edge runs right to left from the moved right vertex; its left vertex kept its x, so it is the anchor
+    // and CP 6 stays where it is (fix round, item 3).
     let bottom = cp_of(&spec, 6);
-    assert_eq!(bottom.pos, pt(grid_at(14).0, grid_at(12).0));
-    assert_eq!(bottom.pos.x.0 - 4 * G, two_steps);
+    assert_eq!(bottom.pos, pt(4 * G, grid_at(12).0));
     assert_eq!(bottom.dir, Dir4::Down);
     // Every CP lies on the outline and on the grid (absolute positions).
     for c in &spec.cps {
@@ -653,6 +651,12 @@ fn reshape_without_cps_widening_keeps_top_cps_and_moves_bottom_cps_with_the_edge
     assert!(orthogonal(&w29), "{w29:?}");
     e.undo().expect("undo");
     assert_eq!(lines(e.model()), before);
+    // A corner drag (the bottom-right corner two steps right and two down): the bottom CP keeps its x and follows its
+    // edge down; the top CP stays.
+    e.execute(&reshape(rect(20, 14), None)).expect("box.reshape");
+    let spec = box_of(&e);
+    assert_eq!(cp_of(&spec, 6).pos, pt(4 * G, grid_at(14).0));
+    assert_eq!(cp_of(&spec, 2).pos, pt(2 * G, 0));
 }
 
 #[test]

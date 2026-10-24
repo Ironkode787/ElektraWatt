@@ -642,23 +642,95 @@ impl Builder<'_> {
         }
     }
 
+    /// The representations' symbols. **A black box drawn with its stored outline** (WP-S2.04 part 3, FR-DEV-039): when
+    /// `Representation.box` is set and its outline differs from the symbol's rectangle (its first `rect` primitive),
+    /// the rectangle is replaced by the outline as a closed polygon in the rectangle's stroke and fill, under a geometry
+    /// key of its own (`SymbolGeomId.extra`: a 16-bit value derived from the outline, probed upwards past a key that
+    /// holds other geometry), so it is never shared with another box of that symbol. A box whose outline equals the
+    /// rectangle keeps the symbol's own instance (Golden A's four boxes: the output is byte-equal). The text slots stay
+    /// where the symbol puts them (a follow-up moves them with a wider box).
     fn symbols(&mut self, view: &PageView) {
+        /// The black-box symbol of `rep` with its rectangle replaced by the stored outline; `None` when the
+        /// representation has no box, the symbol no rectangle, or the outline is that rectangle.
+        fn boxed(def: &SymbolDef, rep: &Representation) -> Option<SymbolDef> {
+            let b = rep.box_.as_ref()?;
+            let (i, r) = def.graphics.iter().enumerate().find_map(|(i, p)| match p {
+                ew_schema::Primitive::Rect(r) => Some((i, r)),
+                _ => None,
+            })?;
+            let (a, c) = (r.rect.0.min(), r.rect.0.max());
+            let rect = [
+                Pt2::new(a.x, a.y),
+                Pt2::new(c.x, a.y),
+                Pt2::new(c.x, c.y),
+                Pt2::new(a.x, c.y),
+            ];
+            if b.outline.as_slice() == rect.as_slice() || b.outline.len() < 3 {
+                return None;
+            }
+            let mut d = def.clone();
+            d.graphics[i] = ew_schema::Primitive::Polygon(ew_schema::PolygonPrim {
+                points: b.outline.clone(),
+                closed: true,
+                stroke: r.stroke.clone(),
+                fill: r.fill.clone(),
+                extra: Default::default(),
+            });
+            Some(d)
+        }
+        /// A 16-bit value of an outline (FNV-1a over its coordinates, folded).
+        fn outline_key(outline: &[Pt2]) -> u16 {
+            let mut h: u32 = 0x811c_9dc5;
+            for p in outline {
+                for v in [p.x.0, p.y.0] {
+                    for b in v.to_le_bytes() {
+                        h ^= u32::from(b);
+                        h = h.wrapping_mul(0x0100_0193);
+                    }
+                }
+            }
+            ((h >> 16) ^ (h & 0xffff)) as u16
+        }
         for rv in sorted_reps(view) {
             let rep = &rv.rep;
             let Some(def) = &rv.symbol else {
                 self.out.findings.push(PageFinding::MissingSymbol { rep: rep.id });
                 continue;
             };
-            let key = SymbolGeomId {
-                symbol: rep.symbol.as_uuid(),
-                variant: rep.orient,
-                extra: None,
+            let outlined = boxed(def, rep);
+            let lowered = symbol::lower(outlined.as_ref().unwrap_or(def), rep.orient);
+            let key = match &outlined {
+                None => {
+                    let key = SymbolGeomId {
+                        symbol: rep.symbol.as_uuid(),
+                        variant: rep.orient,
+                        extra: None,
+                    };
+                    self.out
+                        .geometry
+                        .entry(key)
+                        .or_insert_with(|| Arc::new(lowered.graphics.clone()));
+                    key
+                }
+                Some(_) => {
+                    let mut k = outline_key(&rep.box_.as_ref().map_or(Vec::new(), |b| b.outline.clone()));
+                    loop {
+                        let key = SymbolGeomId {
+                            symbol: rep.symbol.as_uuid(),
+                            variant: rep.orient,
+                            extra: Some(k),
+                        };
+                        match self.out.geometry.get(&key) {
+                            Some(g) if **g == lowered.graphics => break key,
+                            Some(_) => k = k.wrapping_add(1),
+                            None => {
+                                self.out.geometry.insert(key, Arc::new(lowered.graphics.clone()));
+                                break key;
+                            }
+                        }
+                    }
+                }
             };
-            let lowered = symbol::lower(def, rep.orient);
-            self.out
-                .geometry
-                .entry(key)
-                .or_insert_with(|| Arc::new(lowered.graphics.clone()));
             let entity = EntityRef(rep.id.as_uuid());
             self.push(
                 Item::instance(key, Transform::from_translation(rep.pos))

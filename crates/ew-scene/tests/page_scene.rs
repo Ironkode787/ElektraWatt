@@ -797,3 +797,72 @@ fn break_marks_close_the_overview_at_the_symbol_bounds() {
     assert_eq!(lines[0].1[0].x, pos.x + bounds.min().x - BREAK_GAP);
     assert_eq!(lines[1].1[0].x, pos.x + bounds.max().x + BREAK_GAP);
 }
+
+/// The x extent of a geometry's path points.
+fn x_extent(list: &ew_dl::DisplayList) -> (i64, i64) {
+    let xs: Vec<i64> = list
+        .items
+        .iter()
+        .filter_map(|i| match &i.kind {
+            ItemKind::Path(p) => Some(p.path.els.iter().filter_map(|e| match e {
+                PathEl::MoveTo(q) | PathEl::LineTo(q) => Some(q.x.0),
+                _ => None,
+            })),
+            _ => None,
+        })
+        .flatten()
+        .collect();
+    (*xs.iter().min().unwrap(), *xs.iter().max().unwrap())
+}
+
+/// WP-S2.04 part 3 (FR-DEV-039): a black box whose stored outline is not the symbol's rectangle draws that outline
+/// under a geometry key of its own; a box equal to the rectangle keeps the symbol's instance; two equal widened boxes
+/// share one geometry and two different ones do not.
+#[test]
+fn a_widened_black_box_draws_its_stored_outline_under_its_own_geometry_key() {
+    let bb = symbol(BLACKBOX);
+    let boxed = |n: u128, x: i64, w: i64| -> RepView {
+        let r: Representation = serde_json::from_value(json!({
+            "id": uuid(n), "functions": [uuid(n + 0x100)], "page": uuid(PAGE),
+            "symbol": bb.id.as_uuid().hyphenated().to_string(), "pos": [g(x), g(10)],
+            "box": {"outline": [[0, 0], [g(w), 0], [g(w), g(6)], [0, g(6)]]},
+        }))
+        .unwrap();
+        RepView {
+            rep: Arc::new(r),
+            symbol: Some(bb.def.clone()),
+            slots: Vec::new(),
+            terminals: Vec::new(),
+        }
+    };
+    let v = bare(
+        vec![
+            boxed(0x61, 10, 10),
+            boxed(0x62, 30, 12),
+            boxed(0x63, 50, 12),
+            boxed(0x64, 70, 14),
+        ],
+        Vec::new(),
+    );
+    let symbols = page_display_list(&v, Layer::Symbols, bundled());
+    let keys: Vec<ew_dl::SymbolGeomId> = symbols
+        .list
+        .items
+        .iter()
+        .filter_map(|i| match &i.kind {
+            ItemKind::Instance(inst) => Some(inst.symbol),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(keys.len(), 4);
+    // The 10 × 6 box is the symbol's own rectangle: the symbol's instance, as Golden A's boxes draw.
+    assert_eq!(keys[0].extra, None);
+    assert_eq!(x_extent(&symbols.geometry[&keys[0]]), (0, g(10)));
+    // The widened boxes: their own keys, their outlines' extent; equal outlines share one geometry.
+    assert!(keys[1].extra.is_some());
+    assert_eq!(keys[1], keys[2]);
+    assert_ne!(keys[1], keys[3]);
+    assert_eq!(x_extent(&symbols.geometry[&keys[1]]), (0, g(12)));
+    assert_eq!(x_extent(&symbols.geometry[&keys[3]]), (0, g(14)));
+    assert_eq!(symbols.geometry.len(), 3);
+}

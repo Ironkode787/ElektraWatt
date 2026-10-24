@@ -10,9 +10,11 @@ and its connection points with `cps`, or re-projects them onto the new outline.
 - **With `cps`** the box's CPs are replaced: function CP indices distinct, each CP on the grid in absolute terms
   and on the outline (on an edge `v(i) v(i+1)`, the outline closed).
 - **Without `cps`** every CP is re-projected (doc 06 §8 item 13): it keeps the index of the edge it lay on (the
-  first edge containing it, in outline order) and its offset from that edge's first vertex (measured along the
-  edge's axis), clamped to the new edge's length and snapped to the grid point along the edge nearest to it
-  (ties toward the edge's first vertex); its direction is kept. A CP whose edge index no longer exists, or that
+  first edge containing it, in outline order) and its offset from the edge's anchor (measured along the edge's
+  axis), clamped to the new edge's length and snapped to the grid point along the edge nearest to it (ties toward
+  the anchor); its direction is kept. The anchor is the endpoint whose coordinate along the edge did not change,
+  the first vertex when both or neither kept it (so the CPs of a rectangle's bottom edge stay where they are when
+  its right edge or a corner moves). A CP whose edge index no longer exists, or that
   lay on no edge, moves to the nearest grid point on the nearest remaining edge (ties by the smaller edge index)
   and leaves along that edge's outward normal, listed as a notice. On an edge that is neither horizontal nor
   vertical the grid point is the edge's first vertex (polygon outlines are a follow-up, WP-S2.04 §17.4 item 6),
