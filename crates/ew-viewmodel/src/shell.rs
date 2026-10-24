@@ -42,6 +42,8 @@ mod find;
 mod interruption;
 mod navigation;
 mod onboarding;
+// FT-410
+mod parts;
 mod projects;
 mod properties;
 mod tools;
@@ -231,6 +233,8 @@ pub enum Prompt {
     SavePdf,
     /// An existing QElectroTech project file (Import).
     OpenQet,
+    /// An existing parts table, `parts.csv` (Import, Parts table).
+    OpenPartsTable,
 }
 
 /// A request to the window to open a page of the user guide in the system browser (F1).
@@ -1144,6 +1148,7 @@ impl ShellModel {
             "file.new" => self.act_new(p),
             "file.open_sample" => self.act_open_sample(p),
             "file.import_qet" => self.act_import_qet(p),
+            "parts.import" => self.act_parts_import(p),
             "file.discard_journal" => self.act_discard_journal(p),
             "view.workspace_load" => self.act_workspace_load(p),
             "view.workspace_save" => self.act_workspace_save(p),

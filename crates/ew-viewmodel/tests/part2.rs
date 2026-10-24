@@ -1994,6 +1994,8 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
             || ew_viewmodel::describe::FIND_WORDS.contains(*w)
             // WP-S2.05 part 3: the clipboard's words need a copy: `tests/clipboard.rs` reaches them.
             || ew_viewmodel::describe::CLIP_WORDS.contains(*w)
+            // FT-410: the parts import card's words: `tests/parts_import.rs` reaches them.
+            || ew_viewmodel::describe::IMPORT_WORDS.contains(*w)
             || wiring.contains(*w)
             // WP-S6.13 part 1: the page text's words are `page.describe`'s: `tests/page_describe.rs` reaches them.
             || ew_viewmodel::describe::PAGE_WORDS.contains(*w)

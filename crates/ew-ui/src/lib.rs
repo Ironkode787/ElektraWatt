@@ -33,6 +33,8 @@ mod menu;
 pub mod navigator;
 pub mod page_view;
 mod palette;
+// FT-410: the parts table import card.
+mod parts_card;
 // WP-S2.04 part 2: the junction sequence editor popup.
 mod junction;
 mod picker;

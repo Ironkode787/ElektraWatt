@@ -458,6 +458,7 @@ impl App {
         );
         self.picker_was_open = picker_open;
         crate::junction::show(&ctx, &self.shell, &mut events);
+        crate::parts_card::show(&ctx, &self.shell, &mut events);
         let dialog_open = self.shell.dialog().is_some();
         about::show(
             &ctx,
@@ -574,6 +575,14 @@ impl App {
             && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape))
         {
             events.push(Event::Action("ui.dismiss", Value::Null));
+            return;
+        }
+        // FT-410: Ctrl+Enter applies an open parts import card from anywhere (the card is a window of its own).
+        if !palette_open
+            && self.shell.import_card_open()
+            && ctx.input_mut(|i| i.consume_key(Modifiers::COMMAND, Key::Enter))
+        {
+            events.push(Event::Action("preview.apply", Value::Null));
             return;
         }
         // The focused context's chords first, then the global ones (WP-S2.03 §6.6); while the navigator has the

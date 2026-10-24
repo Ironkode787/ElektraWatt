@@ -171,7 +171,8 @@ pub struct PendingEdit {
 }
 
 // WP-S2.05 part 2
-/// Where a card was opened: the property grid, or the find pane's replace (the transcript's `origin`).
+/// Where a card was opened: the property grid, the find pane's replace, or the parts table import (the transcript's
+/// `origin`).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum CardOrigin {
     /// An edit of the property grid.
@@ -183,14 +184,25 @@ pub enum CardOrigin {
         /// The number of hits the replace writes.
         hits: usize,
     },
+    /// File, Import, Parts table (FT-410): the card of `parts.import`, a window of its own that no selection change
+    /// and no pane of the layout ends; it goes with the project.
+    Import {
+        /// The base name of the chosen table (`parts.csv`).
+        source: String,
+        /// The copies the command creates.
+        created: usize,
+        /// The copies it skips: their key exists already.
+        skipped: usize,
+    },
 }
 
 impl CardOrigin {
-    /// The transcript's word (`properties`, `find`).
+    /// The transcript's word (`properties`, `find`, `import`).
     pub fn word(&self) -> &'static str {
         match self {
             CardOrigin::Properties => "properties",
             CardOrigin::Find { .. } => "find",
+            CardOrigin::Import { .. } => "import",
         }
     }
 }

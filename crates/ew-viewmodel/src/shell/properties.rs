@@ -1410,6 +1410,10 @@ impl ShellModel {
         if matches!(card.origin, CardOrigin::Find { .. }) {
             return self.apply_find_card(card);
         }
+        // FT-410: an import card is the parts table's (`parts.import`).
+        if matches!(card.origin, CardOrigin::Import { .. }) {
+            return self.apply_import_card(card);
+        }
         let Some(rev) = self.revision() else {
             return Outcome::Done;
         };

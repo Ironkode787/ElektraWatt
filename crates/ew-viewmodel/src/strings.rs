@@ -19,6 +19,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "menu-help" => "Help",
         "submenu-open-recent" => "Open recent",
         "submenu-export" => "Export",
+        "submenu-import" => "Import",
         "submenu-ui-scale" => "UI scale",
         "menu-no-recent" => "(none)",
         "scale-100" => "100 %",
@@ -391,6 +392,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "action-file-new" => "New project...",
         "action-file-open-sample" => "Open sample project",
         "action-file-import-qet" => "Import QElectroTech project...",
+        "action-parts-import" => "Parts table...",
         "action-file-discard-journal" => "Discard unsaved changes of the earlier session...",
         "action-view-workspace-load" => "Load workspace",
         "action-view-workspace-save" => "Save layout as...",
@@ -611,6 +613,12 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "reason-find-no-results" => "No result is listed",
         "reason-find-no-selection" => "Nothing is selected",
         "reason-find-replace" => "A replace is previewed first",
+        // FT-410: the parts table import.
+        "reason-parts-import" => "An import is previewed first",
+        "error-parts-import" => "Parts table refused: {0}",
+        "banner-parts-imported" => "Imported {0} parts from {2} ({1} skipped).",
+        "parts-card-title" => "Import parts",
+        "parts-card-line" => "{0}: {1} created, {2} skipped, {3} errors",
         "error-find-field" => "There is no find field {0}",
         "error-find-option" => "There is no find option {0}",
         // WP-S2.05 part 3: the clipboard.
@@ -687,6 +695,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
             "The user guide is not installed with this build; build it with mdbook (docs/book) and install it next to the application."
         }
         "prompt-open-qet-title" => "Open a QElectroTech project",
+        "prompt-open-parts-title" => "Import parts table",
         "prompt-new-project-title" => "Create the project in a new directory",
         "prompt-basic-project-title" => "Write the basic project to a new directory",
 

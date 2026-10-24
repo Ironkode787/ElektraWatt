@@ -3,6 +3,7 @@ file.open Command "Open..." menu "File" shortcut "Ctrl+O" context global params 
 file.open_recent Command "Open recent project" menu "File ▸ Open recent" shortcut none context global needs-parameters params "index:uint, discard?:bool"
 file.open_sample Command "Open sample project" menu "File" shortcut none context global params "discard?:bool"
 file.import_qet Command "Import QElectroTech project..." menu "File" shortcut none context global params "file?:path, dir?:path, discard?:bool"
+parts.import Command "Parts table..." menu "File ▸ Import" shortcut none context global params "path?:path"
 file.save Command "Save" menu "File" shortcut "Ctrl+S" context global params ""
 file.save_as Command "Save as..." menu "File" shortcut "Ctrl+Shift+S" context global params "dir?:path"
 file.discard_journal Command "Discard unsaved changes of the earlier session..." menu "File" shortcut none context global params "confirm?:bool"

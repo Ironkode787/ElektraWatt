@@ -301,6 +301,10 @@ pub const VOCABULARY: &[&str] = &[
     "cps",
     "arrange",
     "by",
+    // The parts table import's card (FT-410): 3 words, a reviewed vocabulary change.
+    "created",
+    "skipped",
+    "errors",
 ];
 
 /// The 10 words of WP-S2.04 §9.6, of which part 3 adds the last 5 to [`VOCABULARY`] (WP-S6.13 part 1 added the
@@ -322,6 +326,10 @@ pub const IP_WORDS: &[&str] = &[
 // WP-S2.05 part 3
 /// The 6 words WP-S2.05 part 3 adds to [`VOCABULARY`] (§8.8): the `clipboard` line and the paste ghost's line.
 pub const CLIP_WORDS: &[&str] = &["clipboard", "fragment", "records", "copies", "paste", "dropped"];
+
+/// The 3 words FT-410 adds to [`VOCABULARY`]: the import card's line `card ready "parts.import" created 29 skipped 0
+/// errors 0`.
+pub const IMPORT_WORDS: &[&str] = &["created", "skipped", "errors"];
 
 /// The 14 words WP-S2.05 part 2 adds to [`VOCABULARY`] (§7.6).
 pub const FIND_WORDS: &[&str] = &[
@@ -924,15 +932,23 @@ fn card_and_toast_lines(model: &ShellModel, lines: &mut Vec<String>) {
                 user(&card.preview.name),
                 user(message)
             )),
-            Ok(_) => lines.push(format!(
-                "card {} \"{}\" targets {} changes {} tags {} xrefs {}",
-                card.preview.status(rev).word(),
-                user(&card.preview.name),
-                card.targets,
-                card.changes,
-                card.preview.derived.tags.len(),
-                card.preview.derived.xrefs.len()
-            )),
+            Ok(_) => match &card.origin {
+                // FT-410: the parts table import's card counts the part copies, not records, tags or texts.
+                crate::properties::CardOrigin::Import { created, skipped, .. } => lines.push(format!(
+                    "card {} \"{}\" created {created} skipped {skipped} errors 0",
+                    card.preview.status(rev).word(),
+                    user(&card.preview.name),
+                )),
+                _ => lines.push(format!(
+                    "card {} \"{}\" targets {} changes {} tags {} xrefs {}",
+                    card.preview.status(rev).word(),
+                    user(&card.preview.name),
+                    card.targets,
+                    card.changes,
+                    card.preview.derived.tags.len(),
+                    card.preview.derived.xrefs.len()
+                )),
+            },
         }
     }
     if let Some(t) = props.toast() {

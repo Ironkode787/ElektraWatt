@@ -83,6 +83,8 @@ pub enum Submenu {
     OpenRecent,
     /// File, Export.
     Export,
+    /// File, Import (FT-410): the parts table.
+    Import,
     /// View, UI scale: one item per scale.
     UiScale,
     /// View, Workspace: one item per workspace, then save and reset.
@@ -99,6 +101,7 @@ impl Submenu {
         match self {
             Submenu::OpenRecent => "submenu-open-recent",
             Submenu::Export => "submenu-export",
+            Submenu::Import => "submenu-import",
             Submenu::UiScale => "submenu-ui-scale",
             Submenu::Workspace => "submenu-workspace",
             Submenu::Pan => "submenu-pan",
@@ -588,17 +591,18 @@ fn find_writable(m: &ShellModel) -> Result<(), &'static str> {
     find_shown(m)
 }
 
-/// The card's buttons: the card sits in the property grid or the find pane, so one of them is shown.
+/// The card's buttons: the card sits in the property grid or the find pane, so one of them is shown; an import card
+/// (FT-410) is a window of its own and needs neither.
 fn card_shown(m: &ShellModel) -> Result<(), &'static str> {
     project_open(m)?;
-    if m.properties_shown() || m.find_shown() {
+    if m.properties_shown() || m.find_shown() || m.import_card_open() {
         Ok(())
     } else {
         Err("reason-no-sheet")
     }
 }
 
-/// Apply on the card: a writable project with the property grid or the find pane shown.
+/// Apply on the card: a writable project with the property grid or the find pane shown, or an import card open.
 fn card_writable(m: &ShellModel) -> Result<(), &'static str> {
     writable(m)?;
     card_shown(m)
@@ -683,6 +687,19 @@ pub static ACTIONS: &[ActionMeta] = &[
             &[],
             always,
             slot(Menu::File),
+        ),
+    ),
+    // FT-410: File, Import, Parts table...
+    with_params(
+        "path?:path",
+        act(
+            "parts.import",
+            Command,
+            "action-parts-import",
+            Menu::File,
+            &[],
+            writable,
+            sub(Menu::File, Submenu::Import, false),
         ),
     ),
     act(
@@ -2848,7 +2865,7 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
         return Vec::new();
     };
     match submenu {
-        Submenu::Export => vec![item_of(meta, model)],
+        Submenu::Export | Submenu::Import => vec![item_of(meta, model)],
         Submenu::PageNavigator => {
             let nav = model.navigator();
             let mut items = Vec::new();
@@ -3050,6 +3067,7 @@ mod tests {
         for s in [
             Submenu::OpenRecent,
             Submenu::Export,
+            Submenu::Import,
             Submenu::UiScale,
             Submenu::Workspace,
             Submenu::Pan,
