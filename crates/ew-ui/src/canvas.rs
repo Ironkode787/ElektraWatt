@@ -52,7 +52,7 @@ use ew_render2d::stats::{FrameSample, FrameStats, Phase, now};
 use ew_render2d::tiles::{DEFAULT_CACHE_BYTES, Plan, Planner, TileCache, TileKey};
 use ew_render2d::view::{PxRect, View};
 use ew_viewmodel::canvas::{
-    CanvasModel, CanvasPage, bounded_pane, zoom_in_step, zoom_out_step, zoom_percent_text,
+    CanvasModel, CanvasPage, Viewport, bounded_pane, zoom_in_step, zoom_out_step, zoom_percent_text,
 };
 use ew_viewmodel::ew_api::output::ew_dl::ew_units::Rect as SheetRect;
 use ew_viewmodel::ew_api::output::ew_dl::{Color, FontKey, ew_units::Nm};
@@ -285,6 +285,13 @@ struct GroupView {
     /// [`DOUBLE_CLICK_S`] and 4 points is a double click, `tool.finish` (WP-S2.04 §6.1; measured by the window's input
     /// clock, never by the model; a test harness steps that clock, so a double click is decided without a sleep).
     last_press: Option<(f64, Pos2)>,
+    /// The page (session, folio) of the previous frame: a page change suppresses the pointer replay, a view or model
+    /// change on the same page sends it again from the pointer's screen position.
+    page: Option<(u64, String)>,
+    /// The page model of the previous frame, with [`GroupView::page`].
+    model: Option<usize>,
+    /// The view of the previous frame, with [`GroupView::page`].
+    view: Option<Viewport>,
 }
 
 /// The double-click interval of the window in seconds (WP-S2.04 §6.1): the common platform default.
@@ -302,6 +309,9 @@ impl GroupView {
             drawn: false,
             pressed: false,
             last_press: None,
+            page: None,
+            model: None,
+            view: None,
         }
     }
 }
@@ -314,8 +324,9 @@ struct PopupView {
     drawn: bool,
 }
 
-/// What rests: the pointer's and the grid cursor's sheet points.
-type RestKey = (Option<(i64, i64)>, Option<(i64, i64)>);
+/// What rests: the pointer's and the grid cursor's sheet points, and the view (a zoom, pan or fit under a stationary
+/// pointer is not a rest and starts the dwell again).
+type RestKey = (Option<(i64, i64)>, Option<(i64, i64)>, Viewport);
 
 /// The pointer's or the cursor's rest on the focused canvas (D11): since when, and which dwells were sent.
 struct Rest {
@@ -952,14 +963,28 @@ impl CanvasHost {
                 .then(|| ui.input(|i| i.pointer.latest_pos()))
                 .flatten()
         });
-        // The pointer: `canvas.pointer` when its sheet point changed, without a point when it left.
+        // The pointer follows movement, and a view change on the same page replays it from the pointer's screen
+        // position (zoom, pan, fit, Home). A page load or change does not: its pointer starts unknown, so no dashed
+        // hover outline is chosen from a position the page never saw (round 3, item 5; round 5, R2).
+        let model = Arc::as_ptr(canvas.page()) as usize;
+        let page = (canvas.page().session, canvas.page().folio.clone());
+        let view = canvas.viewport();
+        let same_page = self.views[group].page.as_ref() == Some(&page);
+        let view_changed =
+            same_page && (self.views[group].view != Some(view) || self.views[group].model != Some(model));
+        self.views[group].page = Some(page);
+        self.views[group].model = Some(model);
+        self.views[group].view = Some(view);
+        let moved = ui.input(|i| i.events.iter().any(|e| matches!(e, EguiEvent::PointerMoved(_))));
+        // The pointer: `canvas.pointer` when it moved or its view changed, without a point when it left.
         match tracked {
-            Some(pos) => {
+            Some(pos) if moved || view_changed => {
                 let p = Self::sheet_point(rect, canvas, pos);
-                if canvas.pointer() != Some(p) {
+                if view_changed || canvas.pointer() != Some(p) {
                     events.push(Event::Action("canvas.pointer", point(p)));
                 }
             }
+            Some(_) => {}
             None if canvas.pointer().is_some() => {
                 events.push(Event::Action("canvas.pointer", json!({"group": group})));
             }
@@ -1013,6 +1038,11 @@ impl CanvasHost {
                     "canvas.press",
                     point_with(Self::sheet_point(rect, canvas, pos), m),
                 ));
+                // A press clears the hover outline but keeps the pointer at the press point: a tool ghost and the
+                // dwell follow a stationary pointer (R2).
+                let mut pointer = point_with(Self::sheet_point(rect, canvas, pos), m);
+                pointer["clear_hover"] = json!(true);
+                events.push(Event::Action("canvas.pointer", pointer));
                 self.views[group].pressed = true;
             } else if self.views[group].pressed {
                 events.push(Event::Action(
@@ -1020,6 +1050,10 @@ impl CanvasHost {
                     point_with(Self::sheet_point(rect, canvas, pos), m),
                 ));
                 self.views[group].pressed = false;
+                // The release ends the gesture's hover outline, but the pointer stays where it is (R2).
+                let mut pointer = point_with(Self::sheet_point(rect, canvas, pos), m);
+                pointer["clear_hover"] = json!(true);
+                events.push(Event::Action("canvas.pointer", pointer));
                 // The drag ends here; its band goes with the release's answer. Paint the frame after it rather than
                 // leaving the band on screen until the pointer moves again (window check, item 5).
                 ui.ctx().request_repaint();
@@ -1102,7 +1136,14 @@ impl CanvasHost {
     /// The pointer's or the grid cursor's rest on the focused canvas (D11): `canvas.dwell` once after 80 ms and once
     /// after 300 ms without a move, measured with `ew_render2d::stats::now`; nothing timed reaches the model.
     fn dwell(&mut self, ui: &Ui, canvas: &CanvasModel, group: usize, events: &mut Vec<Event>) {
-        let key = (canvas.pointer(), canvas.cursor());
+        // Input this frame means it has not rested since; a queued pointer or view action would otherwise let the
+        // previous state's rest clock fire a link preview (or a tool preview) for a pointer that just moved or a view
+        // that just changed.
+        if !events.is_empty() {
+            self.rest = None;
+            return;
+        }
+        let key = (canvas.pointer(), canvas.cursor(), canvas.viewport());
         let at = now();
         let fresh = !matches!(&self.rest, Some(r) if r.group == group && r.key == key);
         if fresh {
@@ -1114,7 +1155,7 @@ impl CanvasHost {
             });
         }
         let Some(rest) = &mut self.rest else { return };
-        if key == (None, None) {
+        if key.0.is_none() && key.1.is_none() {
             return;
         }
         let waited = at.saturating_duration_since(rest.since);

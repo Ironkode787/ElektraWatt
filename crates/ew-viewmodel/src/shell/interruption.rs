@@ -244,6 +244,7 @@ impl ShellModel {
         };
         if key == ToolKey::ToggleStar && external {
             self.tools.notice = Some(strings::text("reason-external-never-pairs").to_owned());
+            self.tools.notice_sticky = false;
             return Outcome::Refused {
                 reason_key: "reason-external-never-pairs",
             };

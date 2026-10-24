@@ -9,12 +9,12 @@ mod support;
 
 use std::time::Duration;
 
-use egui::{Key, Modifiers, PointerButton, Pos2};
+use egui::{Key, Modifiers, MouseWheelSource, MouseWheelUnit, PointerButton, Pos2, TouchPhase, Vec2};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
 use ew_ui::ew_viewmodel::shell::Outcome;
-use ew_ui::ew_viewmodel::tools::{Dash, OverlayItem, band_selection, measure_label, rect_of};
+use ew_ui::ew_viewmodel::tools::{Dash, Ghost, OverlayItem, Token, band_selection, measure_label, rect_of};
 use serde_json::{Value, json};
 use support::{Scripted, Tmp, harness, settle, wait_for_page};
 
@@ -26,6 +26,17 @@ fn on_golden(tmp: &Tmp, folio: &str) -> Harness<'static, App> {
     dispatch(&mut h, "page.goto", json!({ "folio": folio }));
     settle(&mut h);
     wait_for_page(&mut h);
+    settle(&mut h);
+    h
+}
+
+/// A harness on a folio without waiting for its tiles: the dashed overlays are model state and are painted before the
+/// page image arrives.
+fn quick_golden(tmp: &Tmp, folio: &str) -> Harness<'static, App> {
+    let dir = tmp.golden("g.ew");
+    let mut h = harness(tmp, Scripted::default(), Some(dir));
+    settle(&mut h);
+    dispatch(&mut h, "page.goto", json!({ "folio": folio }));
     settle(&mut h);
     h
 }
@@ -66,6 +77,22 @@ fn screen(h: &Harness<'_, App>, p: (i64, i64)) -> Pos2 {
         bounds.x0 as f32 + ((p.0 - c.centre().0) as f64 * k + c.pane().0 / 2.0) as f32,
         bounds.y0 as f32 + ((p.1 - c.centre().1) as f64 * k + c.pane().1 / 2.0) as f32,
     )
+}
+
+/// The sheet point under the window point `pos` on the focused canvas, the inverse of [`screen`].
+fn sheet_at_screen(h: &Harness<'_, App>, pos: Pos2) -> (i64, i64) {
+    let bounds = h
+        .get_all_by_role(egui::Role::Canvas)
+        .next()
+        .expect("the canvas node")
+        .accesskit_node()
+        .raw_bounds()
+        .expect("bounds");
+    let c = h.state().shell().canvas().unwrap();
+    let k = c.points_per_nm();
+    let x = (f64::from(pos.x - bounds.x0 as f32) - c.pane().0 / 2.0) / k + c.centre().0 as f64;
+    let y = (f64::from(pos.y - bounds.y0 as f32) - c.pane().1 / 2.0) / k + c.centre().1 as f64;
+    (x.round() as i64, y.round() as i64)
 }
 
 /// A primary press and release at `pos`, both delivered before one frame (a touchpad tap, a slow frame).
@@ -528,6 +555,201 @@ fn t11_exact_counts_of_tool_events_in_the_window() {
     assert_eq!(
         c.rastered_while_cached, 0,
         "no tile rasterised twice while cached"
+    );
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// The dashed rectangles the canvas can paint: a rubber-band tool mark or the dashed hover outline. Both must be
+/// absent on a page that was just loaded or changed and after a release, until the pointer moves again.
+#[track_caller]
+fn assert_no_dashed_rectangle(h: &Harness<'_, App>) {
+    let shell = h.state().shell();
+    let bands = shell
+        .tool_overlay()
+        .items
+        .iter()
+        .filter(|i| matches!(i, OverlayItem::Rect { style, .. } if style.token == Token::RubberBand))
+        .count();
+    assert_eq!(bands, 0, "a band mark in the tool overlay");
+    let canvas = shell.canvas().expect("a canvas");
+    assert!(canvas.hover().is_none(), "a dashed hover outline");
+    assert!(canvas.hovered_link().is_none(), "a dashed link hover outline");
+}
+
+/// Ctrl+G, a folio, Enter: the go-to dialog's path.
+fn goto_by_key(h: &mut Harness<'_, App>, folio: &str) {
+    h.key_press_modifiers(Modifiers::COMMAND, Key::G);
+    h.run_ok();
+    h.get_all_by_role(egui::Role::TextInput)
+        .find(|n| n.accesskit_node().data().placeholder() == Some("Folio or cell"))
+        .expect("the go-to field")
+        .type_text(folio);
+    h.run_ok();
+    h.key_press(Key::Enter);
+    h.run_ok();
+}
+
+/// Window check, item 5: a page loaded without pointer input paints no dashed rectangle before the pointer moves.
+#[test]
+fn a_page_change_without_pointer_input_paints_no_dashed_rectangle() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let mut h = harness(&tmp, Scripted::default(), Some(dir));
+    settle(&mut h);
+    // The pointer is over the canvas, but the go-to page change itself sends no pointer event.
+    h.event(egui::Event::PointerMoved(Pos2::new(500.0, 350.0)));
+    h.run_ok();
+    goto_by_key(&mut h, "102");
+    h.run_ok();
+    assert_eq!(h.state().shell().current_folio(), Some("102"));
+    assert_no_dashed_rectangle(&h);
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// Window check, item 5: a page change after a hover, with no pointer event after it, paints no dashed rectangle.
+#[test]
+fn a_page_change_after_a_hover_paints_no_dashed_rectangle() {
+    let tmp = Tmp::new();
+    let mut h = quick_golden(&tmp, "102");
+    h.event(egui::Event::PointerMoved(Pos2::new(500.0, 350.0)));
+    settle(&mut h);
+    assert!(
+        h.state().shell().canvas().unwrap().hover().is_some(),
+        "the hover before the page change"
+    );
+    goto_by_key(&mut h, "101");
+    h.run_ok();
+    assert_eq!(h.state().shell().current_folio(), Some("101"));
+    assert_no_dashed_rectangle(&h);
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// Window check, item 5: after a band drag's release no dashed rectangle remains without a further mouse move.
+#[test]
+fn a_band_release_without_pointer_movement_paints_no_dashed_rectangle() {
+    let tmp = Tmp::new();
+    let mut h = quick_golden(&tmp, "102");
+    let (w, hh) = h.state().shell().canvas().unwrap().sheet();
+    let from = screen(&h, (w / 5, hh / 5));
+    let to = screen(&h, (w * 3 / 5, hh * 3 / 5));
+    h.event(egui::Event::PointerMoved(from));
+    settle(&mut h);
+    h.event(egui::Event::PointerButton {
+        pos: from,
+        button: PointerButton::Primary,
+        pressed: true,
+        modifiers: Modifiers::NONE,
+    });
+    h.run_ok();
+    h.event(egui::Event::PointerMoved(to));
+    h.run_ok();
+    h.event(egui::Event::PointerButton {
+        pos: to,
+        button: PointerButton::Primary,
+        pressed: false,
+        modifiers: Modifiers::NONE,
+    });
+    h.run_ok();
+    h.run_ok();
+    assert_eq!(h.state().shell().tool().state(), "idle");
+    assert_no_dashed_rectangle(&h);
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// R2: a click without moving keeps the pointer known, so the Place tool's ghost is drawn again at it.
+#[test]
+fn a_stationary_click_keeps_the_place_ghost() {
+    let tmp = Tmp::new();
+    let mut h = quick_golden(&tmp, "103");
+    dispatch(&mut h, "place.pick", json!({"symbol": "ew.iec.mcb-1p@qet10"}));
+    settle(&mut h);
+    assert_eq!(h.state().shell().tool().name(), "place");
+    let (w, hh) = h.state().shell().canvas().unwrap().sheet();
+    let pos = screen(&h, (w / 2, hh / 2));
+    h.event(egui::Event::PointerMoved(pos));
+    settle(&mut h);
+    let Some(Ghost::Place {
+        at_nm: Some(before), ..
+    }) = h.state().shell().tool_ghost()
+    else {
+        panic!("the place ghost before the click");
+    };
+    // Press and release at the same point, with no PointerMoved between or after.
+    for pressed in [true, false] {
+        h.event(egui::Event::PointerButton {
+            pos,
+            button: PointerButton::Primary,
+            pressed,
+            modifiers: Modifiers::NONE,
+        });
+    }
+    h.step();
+    let Some(Ghost::Place {
+        at_nm: Some(after), ..
+    }) = h.state().shell().tool_ghost()
+    else {
+        panic!("the place ghost after the click");
+    };
+    assert_eq!(after, before, "the ghost stays at the pointer");
+    assert!(
+        !h.state().shell().tool_overlay().is_empty(),
+        "the ghost is still drawn after the click"
+    );
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// R2: a view change with a stationary pointer replays the pointer from its screen position, so ghosts and the hover
+/// outline follow the new view.
+#[test]
+fn a_view_change_with_a_stationary_pointer_replays_the_pointer() {
+    let tmp = Tmp::new();
+    let mut h = quick_golden(&tmp, "102");
+    let (w, hh) = h.state().shell().canvas().unwrap().sheet();
+    let pos = screen(&h, (w / 2, hh / 2));
+    h.event(egui::Event::PointerMoved(pos));
+    settle(&mut h);
+    let before = h
+        .state()
+        .shell()
+        .canvas()
+        .unwrap()
+        .pointer()
+        .expect("the pointer on the canvas");
+    // A trackpad pan (a Point-unit wheel) moves the view under the stationary pointer.
+    h.event(egui::Event::MouseWheel {
+        unit: MouseWheelUnit::Point,
+        delta: Vec2::new(80.0, 40.0),
+        phase: TouchPhase::Move,
+        source: MouseWheelSource::Wheel,
+        modifiers: Modifiers::NONE,
+    });
+    h.step();
+    h.step();
+    let after = h
+        .state()
+        .shell()
+        .canvas()
+        .unwrap()
+        .pointer()
+        .expect("the pointer after the view change");
+    assert_ne!(after, before, "the view moved the sheet under the pointer");
+    assert_eq!(
+        after,
+        sheet_at_screen(&h, pos),
+        "the pointer is replayed from its screen position"
+    );
+    assert!(
+        h.state().shell().canvas().unwrap().hover().is_some(),
+        "the hover outline is chosen again on the new view"
+    );
+    // A fit (Home) is the same view change: the pointer is replayed from the same screen point again.
+    dispatch(&mut h, "view.fit_page", json!({}));
+    h.step();
+    h.step();
+    assert_eq!(
+        h.state().shell().canvas().unwrap().pointer().unwrap(),
+        sheet_at_screen(&h, pos),
+        "the pointer follows the fit too"
     );
     h.state_mut().shell_mut().shutdown();
 }

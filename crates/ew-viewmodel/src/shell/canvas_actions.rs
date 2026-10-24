@@ -256,6 +256,11 @@ impl ShellModel {
         if out != Outcome::Done {
             return out;
         }
+        // A press or release clears the hover outline but keeps the pointer point (the tool ghost and the dwell follow
+        // the stationary pointer). The next move or view change chooses the outline again.
+        if super::flag(p, "clear_hover") {
+            let _ = self.with_canvas(p, CanvasModel::clear_hover);
+        }
         match (point_mm(p), self.group_param(p)) {
             (Ok(Some(at)), Ok(g)) => {
                 let mods = crate::tools::Mods {

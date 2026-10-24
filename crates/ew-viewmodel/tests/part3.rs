@@ -894,3 +894,99 @@ fn ip_external_refuses_a_printed_text_two_references_share_and_takes_an_id() {
     done(&mut s, "ip.external", json!({"external": ""}));
     assert_eq!(canvas(&s)["ghost"]["external"], Value::Null);
 }
+
+#[test]
+fn a_refused_grip_drag_keeps_its_notice_through_dwell_and_release() {
+    let tmp = Tmp::new("grip-notice");
+    let mut s = shell(&tmp, "102");
+    let before = g1(&tables(&s));
+    select_ids(&mut s, &[before.id.to_string()]);
+    let grips = s.tool_overlay().clone();
+    let b = before.black_box.as_ref().unwrap();
+    let mid = ew_viewmodel::tools::black_box::grip_points(&b.outline)[5];
+    let from = sheet(&s, mid);
+    let k = index_of(&s, mid);
+    let left = index_of(&s, b.outline[0]).0;
+    let inward = sheet(&s, grid_point(&s, (k.0 - 1, k.1)));
+    let to = sheet(&s, grid_point(&s, (left - 2, k.1)));
+    done(&mut s, "canvas.press", at(from, json!({})));
+    assert_eq!(
+        refused(&mut s, "canvas.pointer", at(to, json!({}))),
+        "reason-box-inside-out",
+        "one move straight inside out"
+    );
+    assert_eq!(
+        s.status_fields(false)[0],
+        "A grip cannot pass the opposite side of the black box"
+    );
+    // A valid move in the same drag ends the refusal and brings the reshape ghost back (R1).
+    done(&mut s, "canvas.pointer", at(inward, json!({})));
+    assert_eq!(
+        s.status_fields(false)[0],
+        "Release, click or Enter to move; Escape cancels",
+        "the valid move clears the notice and shows the drag hint"
+    );
+    assert!(!s.tool_overlay().is_empty(), "the ghost is back");
+    assert_ne!(s.tool_overlay(), &grips, "the reshape ghost, not the grips");
+    // Inside out again sets it again; the dwell is a pointer rest in the refused drag and must not clear it.
+    assert_eq!(
+        refused(&mut s, "canvas.pointer", at(to, json!({}))),
+        "reason-box-inside-out"
+    );
+    let _ = s.dispatch("canvas.dwell", &json!({"ms": 80}));
+    assert_eq!(
+        refused(&mut s, "canvas.release", at(to, json!({}))),
+        "reason-box-inside-out"
+    );
+    assert_eq!(
+        s.status_fields(false)[0],
+        "A grip cannot pass the opposite side of the black box",
+        "the notice stays after the release"
+    );
+    // A hover is still the same gesture: it keeps the notice (only the next press, key, page or tool change clears it).
+    let elsewhere = sheet(&s, (0, 0));
+    done(&mut s, "canvas.pointer", at(elsewhere, json!({})));
+    assert_eq!(
+        s.status_fields(false)[0],
+        "A grip cannot pass the opposite side of the black box",
+        "the notice stays over the hover"
+    );
+    // The next primary press clears it like every other refused canvas input.
+    done(&mut s, "canvas.press", at(elsewhere, json!({})));
+    assert_eq!(
+        s.status_fields(false)[0],
+        "Click to select; drag for a rubber band"
+    );
+}
+
+#[test]
+fn a_refused_grip_drag_leaves_no_band_on_the_next_hover() {
+    let tmp = Tmp::new("grip-no-band");
+    let mut s = shell(&tmp, "102");
+    let before = g1(&tables(&s));
+    select_ids(&mut s, &[before.id.to_string()]);
+    let b = before.black_box.as_ref().unwrap();
+    let mid = ew_viewmodel::tools::black_box::grip_points(&b.outline)[5];
+    let from = sheet(&s, mid);
+    let k = index_of(&s, mid);
+    let left = index_of(&s, b.outline[0]).0;
+    let to = sheet(&s, grid_point(&s, (left - 2, k.1)));
+    done(&mut s, "canvas.press", at(from, json!({})));
+    assert_eq!(
+        refused(&mut s, "canvas.pointer", at(to, json!({}))),
+        "reason-box-inside-out"
+    );
+    assert_eq!(
+        refused(&mut s, "canvas.release", at(to, json!({}))),
+        "reason-box-inside-out"
+    );
+    // The next hover must not turn the stale press into a band.
+    let elsewhere = sheet(&s, (0, 0));
+    done(&mut s, "canvas.pointer", at(elsewhere, json!({})));
+    assert_eq!(s.tool().state(), "idle");
+    let band = s.tool_overlay().items.iter().any(|i| {
+        matches!(i, ew_viewmodel::tools::OverlayItem::Rect { style, .. }
+            if style.token == ew_viewmodel::tools::Token::RubberBand)
+    });
+    assert!(!band, "the hover draws no band");
+}

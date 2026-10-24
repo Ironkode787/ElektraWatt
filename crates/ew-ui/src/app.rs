@@ -136,6 +136,9 @@ pub struct App {
     dialog_was_open: bool,
     /// An action that waits one frame so that the status bar can show it running (the PDF export).
     deferred: Option<Deferred>,
+    /// Frames still owed after a native dialog returned: the window has just regained focus and one immediate repaint
+    /// can be swallowed (the stale menu after a modal dialog). Two scheduled frames make the answer visible.
+    prompt_repaints: u8,
     /// The `ui_scale` last given to egui: the zoom is set when the setting changes, not every frame, so that
     /// egui's own zoom keys keep working in between.
     applied_scale: Option<f32>,
@@ -181,6 +184,7 @@ impl App {
             picker_was_open: false,
             dialog_was_open: false,
             deferred: None,
+            prompt_repaints: 0,
             applied_scale: None,
             applied_theme: None,
             request_paste: false,
@@ -353,6 +357,10 @@ impl App {
         if let Some(dir) = self.initial.take() {
             self.dispatch("file.open", &json!({ "dir": dir.to_string_lossy() }));
         }
+        // The native dialogs are answered at the start of a frame, so the menu is already closed and the card is in the
+        // shell before this frame paints; waiting until the end would need another frame that a modal dialog may swallow
+        // (W3).
+        self.answer_prompts(&ctx);
         if self.dock.version() != self.shell.layout_version() {
             self.dock = Dock::new(self.shell.layout(), self.shell.layout_version());
         }
@@ -530,7 +538,6 @@ impl App {
             // No canvas on screen (start page, wizard, first run): its tiles and queued jobs go.
             self.canvas.release();
         }
-        self.answer_prompts(&ctx);
         self.open_documentation();
 
         // The layout the user made is the shell's; it is written a second after the last change.
@@ -541,6 +548,14 @@ impl App {
         self.shell.persist_layout_if_due(now);
         if self.shell.layout_pending() {
             ctx.request_repaint_after(Duration::from_millis(250));
+        }
+
+        // The dialog answer's first frame is painted now; the deferred frames (30 ms, then 120 ms) are what the real
+        // window shows after it regains focus.
+        if self.prompt_repaints > 0 {
+            self.prompt_repaints -= 1;
+            let after = if self.prompt_repaints == 0 { 120 } else { 30 };
+            ctx.request_repaint_after(Duration::from_millis(after));
         }
 
         let title = self.shell.title();
@@ -735,18 +750,21 @@ impl App {
         }
     }
 
-    /// The file dialogs the shell asked for: their answers are dispatched like any other input.
+    /// The file dialogs the shell asked for: their answers are dispatched like any other input. A native dialog blocks
+    /// the event loop without an egui event; the menu it was opened from must be closed here, and the repaired frame
+    /// must be requested (W3).
     fn answer_prompts(&mut self, ctx: &egui::Context) {
         while let Some(request) = self.shell.take_prompt() {
-            // A native dialog blocks the event loop and returns no egui event: without this request the frame after it
-            // is not painted until the pointer moves (the File menu stayed drawn, the import card appeared late).
             let pick = self.platform.pick(request.prompt);
-            ctx.request_repaint();
             let path = match pick {
                 Pick::Path(path) => path,
-                Pick::Cancelled => continue,
+                Pick::Cancelled => {
+                    self.prompt_answered(ctx);
+                    continue;
+                }
                 Pick::Unavailable => {
                     self.shell.show_banner(strings::text("banner-no-file-dialog"));
+                    self.prompt_answered(ctx);
                     continue;
                 }
             };
@@ -762,11 +780,24 @@ impl App {
                     params: Value::Object(params),
                     painted: false,
                 });
-                ctx.request_repaint();
             } else {
                 self.dispatch(request.action, &Value::Object(params));
             }
+            self.prompt_answered(ctx);
         }
+    }
+
+    /// The menu state after a modal dialog: close every popup and request the frames that paint the result.
+    fn prompt_answered(&mut self, ctx: &egui::Context) {
+        // `ui.close()` ran in the modal frame, but a menu click's frame cannot repaint while the dialog blocks; the
+        // popup memory is cleared here so the frame that paints the answer already shows the menu closed.
+        egui::Popup::close_all(ctx);
+        // "Stale menu after a modal native dialog until the mouse moved": the frame that answers the dialog is painted
+        // while the window has just regained focus, and one request made in it does not reach the screen. Paint now and
+        // schedule the next frame; the end of that frame schedules the one after it (R6).
+        ctx.request_repaint();
+        ctx.request_repaint_after(Duration::from_millis(30));
+        self.prompt_repaints = 2;
     }
 
     /// The documentation page F1 asked for: opened in the system browser when the user guide is installed, else a

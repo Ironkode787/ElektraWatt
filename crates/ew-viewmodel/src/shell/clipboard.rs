@@ -199,6 +199,7 @@ impl ShellModel {
         // check, item 3).
         if let Some(reason) = self.paste_page_reason() {
             self.tools.notice = Some(reason);
+            self.tools.notice_sticky = false;
             return Outcome::Refused {
                 reason_key: "reason-paste-page-kind",
             };

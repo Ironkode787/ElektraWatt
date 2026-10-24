@@ -1277,6 +1277,7 @@ impl ShellModel {
             "tool.connect_on_move" => {
                 // Refused in this package (§8.3); the status bar says why, the window has no other trace of a key.
                 self.tools.notice = Some(strings::text("reason-connect-on-place").to_owned());
+                self.tools.notice_sticky = false;
                 Outcome::Refused {
                     reason_key: "reason-connect-on-place",
                 }

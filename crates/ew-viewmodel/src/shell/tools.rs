@@ -190,6 +190,9 @@ impl ShellModel {
         self.tools.link_preview = None;
         self.tools.announcement = None;
         self.tools.last_cp = None;
+        // A page or tab change ends the gesture a sticky refusal belonged to.
+        self.tools.notice = None;
+        self.tools.notice_sticky = false;
         // An editing tool (Wire, Edit route, Place, Change symbol) works on one page (WP-S2.04 part 2, window-check
         // ruling): a page or tab change ends it and Select takes over. The selection survives (WP-S2.03 §7.6).
         if matches!(
@@ -254,8 +257,22 @@ impl ShellModel {
 
     /// Hands `ev` to the active tool and acts on its output (§7.2).
     pub(super) fn send_tool(&mut self, ev: &CanvasEvent) -> Outcome {
-        // A refused key's notice stands in the status bar until the next canvas input (WP-S2.04 part 2).
-        self.tools.notice = None;
+        // A refused key's notice stands in the status bar until the next canvas input (WP-S2.04 part 2). A tool
+        // refusal is sticky for the rest of its gesture: its release keeps it and the post-release hover keeps it, so
+        // the user reads it after the gesture; the next primary press, key press, page change or tool change clears it
+        // (window re-check W1). While the tool is still busy a move or a dwell clears it first: a valid move ends the
+        // refusal and brings the ghost back, and a refused one sets the notice again at once (round 5, R1).
+        let idle = self.tools.tool.state() == "idle";
+        let keeps = self.tools.notice_sticky
+            && match ev {
+                CanvasEvent::Release { .. } => true,
+                CanvasEvent::PointerMove { .. } | CanvasEvent::Dwell { .. } => idle,
+                _ => false,
+            };
+        if !keeps {
+            self.tools.notice = None;
+            self.tools.notice_sticky = false;
+        }
         // A place tool that asks for the next designation refuses a click or Enter with the reason (WP-S2.04 §7.2).
         if matches!(ev, CanvasEvent::Press { .. } | CanvasEvent::Activate) && self.place_needs_designation() {
             return Outcome::Refused {
@@ -349,6 +366,7 @@ impl ShellModel {
                 self.tools.overlay = Overlay::default();
                 self.tools.preview = None;
                 self.tools.notice = Some(strings::text(reason_key).to_owned());
+                self.tools.notice_sticky = true;
                 Outcome::Refused { reason_key }
             }
             ToolOutput::Select(change) => {
@@ -535,6 +553,9 @@ impl ShellModel {
         }
         self.tools.overlay = Overlay::default();
         self.tools.preview = None;
+        // A tool change ends the gesture a sticky refusal belonged to.
+        self.tools.notice = None;
+        self.tools.notice_sticky = false;
         self.tools.tool = tool;
         self.announce_tool();
         if let Some(at) = self.canvas().and_then(CanvasModel::cursor) {

@@ -123,8 +123,12 @@ pub(crate) struct ToolHost {
     /// The junction sequence editor popup (WP-S2.04 part 2, §8.5), while open.
     pub junction_editor: Option<JunctionEditor>,
     /// The text of a canvas key the host or a tool refused (C, connect on move; an inside-out grip): the status bar
-    /// shows it in place of the tool's hint until the next canvas input (WP-S2.04 part 2, window check).
+    /// shows it in place of the tool's hint until the next canvas input (WP-S2.04 part 2, window check). A tool's
+    /// refusal is sticky for the rest of its gesture, so a dwell or the release cannot wipe it before it is read.
     pub notice: Option<String>,
+    /// Whether `notice` is a tool refusal that survives the gesture's dwell, moves and release: the next primary
+    /// press, key press, page change or tool change clears it.
+    pub notice_sticky: bool,
     // WP-S2.05 part 3
     /// The paste tool committed: at the end of the dispatch Select takes over with the pasted representations selected.
     pub pasted: bool,
@@ -157,6 +161,7 @@ impl ToolHost {
             before_commit: None,
             junction_editor: None,
             notice: None,
+            notice_sticky: false,
             pasted: false,
             ip_memory: IpMemory::default(),
             black_box_pick: false,

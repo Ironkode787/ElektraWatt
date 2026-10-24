@@ -557,6 +557,13 @@ impl CanvasModel {
         self.hover
     }
 
+    /// Drops the hover outline while keeping the pointer's sheet point (a press or a release ends the hover; the next
+    /// pointer move or view change chooses it again).
+    pub fn clear_hover(&mut self) {
+        self.hover = None;
+        self.hover_link = None;
+    }
+
     /// Whether the view is the fit of the page and no zoom or pan has happened since.
     pub fn is_fitted(&self) -> bool {
         self.fitted
