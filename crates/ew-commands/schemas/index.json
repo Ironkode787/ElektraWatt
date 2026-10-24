@@ -49,6 +49,17 @@
       "confirmation": "none",
       "cost": "interactive",
       "exposure": "edit",
+      "name": "box.structure",
+      "params_version": 1,
+      "schema": "box.structure.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
       "name": "cable.create",
       "params_version": 1,
       "schema": "cable.create.schema.json",
@@ -238,6 +249,17 @@
       "confirmation": "none",
       "cost": "interactive",
       "exposure": "edit",
+      "name": "item.place",
+      "params_version": 1,
+      "schema": "item.place.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
       "name": "junction.edit",
       "params_version": 1,
       "schema": "junction.edit.schema.json",
@@ -252,6 +274,17 @@
       "name": "library.embed",
       "params_version": 1,
       "schema": "library.embed.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "marker.place",
+      "params_version": 1,
+      "schema": "marker.place.schema.json",
       "stability": "preview",
       "undoable": true
     },
