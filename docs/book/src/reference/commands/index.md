@@ -4,7 +4,7 @@
 
 A command is the one way to change a project (`Command` → `Transaction` → `Op`). The same command runs from the user interface, from a command log replayed by `ew apply`, from scripts and from the Session API. Each page below gives the command's registry entry, its parameters with types and constraints, and the exit codes of `ew apply`.
 
-50 commands, from the parameter schemas in [`crates/ew-commands/schemas`](https://github.com/Ironkode787/ElektraWatt/tree/main/crates/ew-commands/schemas). The catalogue of the command registry is [doc 17 §2.1](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md#21-command-registry).
+51 commands, from the parameter schemas in [`crates/ew-commands/schemas`](https://github.com/Ironkode787/ElektraWatt/tree/main/crates/ew-commands/schemas). The catalogue of the command registry is [doc 17 §2.1](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md#21-command-registry).
 
 | Command | Summary | Cost | Exposure | Stability |
 |---|---|---|---|---|
@@ -35,6 +35,7 @@ A command is the one way to change a project (`Command` → `Transaction` → `O
 | [`page.create`](page.create.md) | a new drawn page (FR-PAG-005, doc 06 §5.6). | interactive | edit | preview |
 | [`page.delete`](page.delete.md) | removes pages with everything they own (FR-PAG-025, doc 06 §3.4). | bulk | edit | preview |
 | [`page.renumber`](page.renumber.md) | renumbers folio numbers (FR-PAG-007). References are by ID, so every xref, tag and TOC row follows without further ops. | bulk | edit | preview |
+| [`parts.import`](parts.import.md) | `parts.import` (`ImportParts`, FT-410): creates project-local part copies, the one command that does (a copy of another library is embedded with `library.embed`, which refuses project-local items). | bulk | edit | preview |
 | [`plc.bind_channel`](plc.bind_channel.md) | `plc.bind_channel` (`BindChannel`, doc 10 §3.3, §3.9 `plc.bind_channel{channel, endpoint}`): binds a channel to its signal CP, rebinds it, or unbinds it (FR-PLC-020). | interactive | edit | preview |
 | [`plc.config_project.create`](plc.config_project.create.md) | `plc.config_project.create` (`CreatePlcConfigProject`): a configuration project, the target PLC-software project that scopes address and symbol uniqueness (doc 10 §2.2, FR-PLC-002). | interactive | edit | preview |
 | [`plc.set_module_part`](plc.set_module_part.md) | `plc.set_module_part` (`SetModulePart`, FR-PLC-053, doc 10 §3.3 N1, §8 item 3): changes a module's part and removes the channels the new part no longer has, after the confirmation that lists them. | bulk | edit | preview |
