@@ -112,6 +112,12 @@ pub fn tool_strip_text(shell: &ShellModel) -> Option<String> {
             parts.join(" · ")
         }
         Some(tools::Ghost::Move { readout, .. }) => readout,
+        // WP-S2.05 part 3: the paste tool's label and its hint.
+        Some(tools::Ghost::Paste { records, .. }) => format!(
+            "{} · {}",
+            strings::format("label-paste", &[&records.to_string()]),
+            strings::text(tool.status_hint())
+        ),
         Some(tools::Ghost::Exchange { symbol, unmapped }) => {
             let mut parts = vec![symbol];
             parts.extend(unmapped);

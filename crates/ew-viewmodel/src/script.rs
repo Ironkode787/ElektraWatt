@@ -40,7 +40,9 @@
 //! (`null` while the find pane is closed, else `{"text", "replace" (the replacement, or null outside find and
 //! replace), "regex", "match_case", "whole_word", "in_selection", "fields", "folios", "results" (the number of hits, or
 //! null before a search), "truncated", "error", "row" (1-based, or null), "stale", "note"}`); the card's `origin` is
-//! `find` for a replace, and `focus` may be `find`. Nothing in it depends on time, process or location: two runs of one
+//! `find` for a replace, and `focus` may be `find`; then (WP-S2.05 part 3) `clipboard` (`null` while empty, else
+//! `{"kind": "fragment", "records", "copies"}` or `{"kind": "text", "lines"}`), and the canvas `ghost` may be
+//! `{"kind": "paste", "records", "at_nm", "dropped"}`. Nothing in it depends on time, process or location: two runs of one
 //! script on equal inputs give equal bytes.
 //!
 //! **Record IDs** (decision log ID-630, FT-422). No UUID reaches a transcript line: every UUID of a step's line
@@ -333,7 +335,28 @@ pub fn state_json(shell: &ShellModel) -> String {
         format!("\"toast\":{}", toast_json(shell)),
         // WP-S2.05 part 2
         format!("\"find\":{}", find_json(shell)),
+        // WP-S2.05 part 3
+        format!("\"clipboard\":{}", clipboard_json(shell)),
     ])
+}
+
+// WP-S2.05 part 3
+/// The `clipboard` member (§8.8): `null` while empty, `{"kind": "fragment", "records", "copies"}` or `{"kind": "text",
+/// "lines"}`. Never the text: a fragment holds real record IDs (data, not machine text).
+fn clipboard_json(shell: &ShellModel) -> String {
+    use crate::clipboard::ClipKind;
+    match shell.clipboard().kind() {
+        None => "null".to_owned(),
+        Some(ClipKind::Fragment { records, copies }) => object(vec![
+            member("kind", &Value::from("fragment")),
+            member("records", &Value::from(*records)),
+            member("copies", &Value::from(*copies)),
+        ]),
+        Some(ClipKind::Text { lines }) => object(vec![
+            member("kind", &Value::from("text")),
+            member("lines", &Value::from(*lines)),
+        ]),
+    }
 }
 
 // WP-S2.05 part 2
@@ -601,6 +624,20 @@ fn ghost_json(shell: &ShellModel) -> String {
             member("kind", &Value::from("move")),
             member("count", &Value::from(count)),
             member("steps", &Value::from(vec![steps.0, steps.1])),
+        ]),
+        // WP-S2.05 part 3
+        Some(Ghost::Paste {
+            records,
+            at_nm,
+            dropped,
+        }) => object(vec![
+            member("kind", &Value::from("paste")),
+            member("records", &Value::from(records)),
+            member(
+                "at_nm",
+                &at_nm.map_or(Value::Null, |(x, y)| Value::from(vec![x, y])),
+            ),
+            member("dropped", &Value::from(dropped)),
         ]),
         Some(Ghost::Exchange { symbol, unmapped }) => object(vec![
             member("kind", &Value::from("exchange")),

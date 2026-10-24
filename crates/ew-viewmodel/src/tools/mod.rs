@@ -38,6 +38,8 @@ mod junction_editor;
 mod measure;
 pub mod move_keys;
 mod overlay;
+// WP-S2.05 part 3
+mod paste;
 mod picker;
 mod place;
 pub mod route_edit;
@@ -48,6 +50,8 @@ pub mod wire;
 
 pub use exchange::ExchangeTool;
 pub use junction_editor::{JunctionEditor, JunctionMember, junction_name};
+// WP-S2.05 part 3
+pub use paste::PasteTool;
 pub use picker::{PendingTerminal, Picker, PickerMode, PickerRow};
 pub use place::{ORIENT_NAMES, PlaceTarget, PlaceTool, inside_polygon, next_designation};
 pub use route_edit::RouteEditTool;
@@ -234,6 +238,16 @@ pub enum Ghost {
         readout: String,
         /// The autoconnect proposals of the moved CPs (part 2, §8.3): shown, never committed by a move.
         proposals: Vec<(String, Option<String>)>,
+    },
+    // WP-S2.05 part 3
+    /// The paste tool's floating fragment (§8.8).
+    Paste {
+        /// The fragment's records.
+        records: usize,
+        /// The anchor's page point, nm; `None` before the first pointer or cursor move.
+        at_nm: Option<(i64, i64)>,
+        /// The connections the copy dropped.
+        dropped: usize,
     },
     /// A symbol exchange.
     Exchange {

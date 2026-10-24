@@ -194,7 +194,7 @@ impl ShellModel {
         // ruling): a page or tab change ends it and Select takes over. The selection survives (WP-S2.03 §7.6).
         if matches!(
             self.tools.tool.name(),
-            "wire" | "route_edit" | "place" | "exchange"
+            "wire" | "route_edit" | "place" | "exchange" | "paste"
         ) && let Some(select) = tool_named("select")
         {
             self.tools.tool = select;
@@ -304,6 +304,8 @@ impl ShellModel {
                 self.tools.tool.on_commit(out == Outcome::Done);
                 self.tools.overlay = Overlay::default();
                 self.tools.preview = None;
+                // WP-S2.05 part 3: a committed paste returns to Select with the pasted representations selected.
+                self.tools.pasted = out == Outcome::Done && self.tools.tool.name() == "paste";
                 // After Select commits a move or a transform, the selection is the moved representations (one
                 // selection change, no command; WP-S2.04 §6.4 item 3).
                 if out == Outcome::Done
@@ -708,8 +710,11 @@ impl ShellModel {
         if let Some(out) = self.enter_opens_junction() {
             return out;
         }
-        // The keyboard route editor commits without a grid cursor (its segment stays where it is).
-        if self.tools.tool.name() == "route_edit" && self.canvas().and_then(CanvasModel::cursor).is_none() {
+        // The keyboard route editor commits without a grid cursor (its segment stays where it is), and so does the paste
+        // tool (its ghost stays where duplicate or the pointer put it; WP-S2.05 part 3).
+        if matches!(self.tools.tool.name(), "route_edit" | "paste")
+            && self.canvas().and_then(CanvasModel::cursor).is_none()
+        {
             return self.send_tool(&CanvasEvent::Activate);
         }
         let Some(at) = self.canvas().and_then(CanvasModel::cursor) else {

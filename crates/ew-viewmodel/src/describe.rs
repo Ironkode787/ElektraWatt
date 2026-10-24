@@ -286,7 +286,19 @@ pub const VOCABULARY: &[&str] = &[
     "source",
     "undirected",
     "potential",
+    // The clipboard (WP-S2.05 part 3, §8.8; ID-474 extended): the 6 words of `CLIP_WORDS`, a reviewed vocabulary change
+    // (`lines`, `none`, `at`, `mm`, `text` and `ghost` are older).
+    "clipboard",
+    "fragment",
+    "records",
+    "copies",
+    "paste",
+    "dropped",
 ];
+
+// WP-S2.05 part 3
+/// The 6 words WP-S2.05 part 3 adds to [`VOCABULARY`] (§8.8): the `clipboard` line and the paste ghost's line.
+pub const CLIP_WORDS: &[&str] = &["clipboard", "fragment", "records", "copies", "paste", "dropped"];
 
 /// The 14 words WP-S2.05 part 2 adds to [`VOCABULARY`] (§7.6).
 pub const FIND_WORDS: &[&str] = &[
@@ -952,6 +964,8 @@ fn project_view(model: &ShellModel, lines: &mut Vec<String>) {
     // WP-S2.05 part 2
     find_lines(model, lines);
     card_and_toast_lines(model, lines);
+    // WP-S2.05 part 3: what the clipboard holds, never its text.
+    lines.push(model.clipboard().describe_line());
     tab_lines(model, lines);
     match model.current_folio() {
         Some(folio) => lines.push(format!("page view: {folio}")),
@@ -1171,6 +1185,19 @@ fn ghost_lines(model: &ShellModel, lines: &mut Vec<String>) {
             if !proposals.is_empty() {
                 lines.push(format!("{} connect none", proposals_line(&proposals)));
             }
+        }
+        // WP-S2.05 part 3 (§8.8)
+        Some(crate::tools::Ghost::Paste {
+            records,
+            at_nm,
+            dropped,
+        }) => {
+            let mut line = format!("canvas ghost paste records {records}");
+            if let Some((x, y)) = at_nm {
+                line.push_str(&format!(" at {} {} mm", mm3(x), mm3(y)));
+            }
+            line.push_str(&format!(" dropped {dropped}"));
+            lines.push(line);
         }
         Some(crate::tools::Ghost::Exchange { symbol, unmapped }) => {
             let list = if unmapped.is_empty() {

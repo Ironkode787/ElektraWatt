@@ -574,6 +574,23 @@ fn card_writable(m: &ShellModel) -> Result<(), &'static str> {
     card_shown(m)
 }
 
+// WP-S2.05 part 3
+/// Copy and Copy tag list: a page is shown and something is selected (a read-only project copies too).
+fn selection_shown(m: &ShellModel) -> Result<(), &'static str> {
+    page_shown(m)?;
+    if m.selection().is_empty() {
+        Err("reason-nothing-selected")
+    } else {
+        Ok(())
+    }
+}
+
+/// Cut and Duplicate: an editable page with something selected.
+fn selection_editable(m: &ShellModel) -> Result<(), &'static str> {
+    editable_page(m)?;
+    selection_shown(m)
+}
+
 use ActionKind::{Command, View};
 
 /// The registry: the part-1 actions of the spec, section 5.2, in menu order, then the headless-only ones.
@@ -1369,6 +1386,68 @@ pub static ACTIONS: &[ActionMeta] = &[
         editable_page,
         slot(Menu::Edit),
     )),
+    // WP-S2.05 part 3: the clipboard (§8.8). The chords are the canvas's: a text field of the property grid or the find
+    // pane keeps egui's own copy and paste, and the window routes no chord while a text field has the keyboard.
+    in_canvas(act(
+        "edit.cut",
+        Command,
+        "action-edit-cut",
+        Menu::Edit,
+        &["Ctrl+X"],
+        selection_editable,
+        slot_sep(Menu::Edit),
+    )),
+    in_canvas(act(
+        "edit.copy",
+        View,
+        "action-edit-copy",
+        Menu::Edit,
+        &["Ctrl+C"],
+        selection_shown,
+        slot(Menu::Edit),
+    )),
+    with_params(
+        "text?:text",
+        in_canvas(act(
+            "edit.paste_clip",
+            Command,
+            "action-edit-paste-clip",
+            Menu::Edit,
+            &["Ctrl+V"],
+            editable_page,
+            slot(Menu::Edit),
+        )),
+    ),
+    in_canvas(act(
+        "edit.duplicate",
+        Command,
+        "action-edit-duplicate",
+        Menu::Edit,
+        &["Ctrl+D"],
+        selection_editable,
+        slot(Menu::Edit),
+    )),
+    in_canvas(act(
+        "edit.copy_tags",
+        View,
+        "action-edit-copy-tags",
+        Menu::Edit,
+        &[],
+        selection_shown,
+        slot(Menu::Edit),
+    )),
+    with_params(
+        "text:text",
+        headless(act(
+            "clipboard.text",
+            View,
+            "action-clipboard-text",
+            Menu::Edit,
+            &[],
+            always,
+            None,
+        )),
+    ),
     with_params(
         "symbol?:text",
         in_canvas(act(

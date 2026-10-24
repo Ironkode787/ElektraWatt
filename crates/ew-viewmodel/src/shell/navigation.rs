@@ -84,6 +84,13 @@ pub struct SessionCalls {
     pub find: u64,
     /// `Session::junction_wires` (WP-S2.04 part 2, §8.5): once per (revision, junction) while the editor is open.
     pub junction_wires: u64,
+    // WP-S2.05 part 3
+    /// `Session::copy_fragment`: `edit.copy`, `edit.cut`, `edit.duplicate`.
+    pub copy_fragment: u64,
+    /// `parse_fragment`: `edit.paste_clip` and `edit.duplicate`.
+    pub parse_fragment: u64,
+    /// `Session::tag_list`: `edit.copy_tags`.
+    pub tag_list: u64,
 }
 
 /// Counts one of the shell's `Session` calls (a free function, so that a call can be counted while the project is

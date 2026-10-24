@@ -34,6 +34,8 @@ use crate::wizard::Wizard;
 mod canvas_actions;
 // FT-408 and FT-409
 mod creation;
+// WP-S2.05 part 3
+mod clipboard;
 mod editing;
 // WP-S2.05 part 2
 mod find;
@@ -364,6 +366,9 @@ pub struct ShellModel {
     props: crate::properties::PropertiesState,
     /// The find pane (WP-S2.05 part 2): the query, the results, the cursor and the note.
     find: crate::find::FindState,
+    // WP-S2.05 part 3
+    /// The clipboard (§8.7): the headless clipboard, and what a copy hands the window.
+    clip: crate::clipboard::ClipboardState,
     /// The ID aliases `@n` of this session's machine text (FT-422, ID-630); never stored.
     aliases: std::cell::RefCell<crate::alias::AliasTable>,
     /// The source of new record IDs for the sessions the shell opens or creates: `None` (the system clock and OS
@@ -667,6 +672,7 @@ impl ShellModel {
             tools: crate::tools::ToolHost::new(),
             props: crate::properties::PropertiesState::default(),
             find: crate::find::FindState::default(),
+            clip: crate::clipboard::ClipboardState::default(),
             aliases: std::cell::RefCell::new(crate::alias::AliasTable::new()),
             id_source: None,
         };
@@ -1296,6 +1302,13 @@ impl ShellModel {
             "find.row" => self.act_find_row(p),
             "find.jump" => self.act_find_jump(),
             "find.replace_all" => self.act_find_replace_all(),
+            // WP-S2.05 part 3
+            "edit.copy" => self.act_copy(),
+            "edit.cut" => self.act_cut(),
+            "edit.paste_clip" => self.act_paste_clip(p),
+            "edit.duplicate" => self.act_duplicate(),
+            "edit.copy_tags" => self.act_copy_tags(),
+            "clipboard.text" => self.act_clipboard_text(p),
             "ui.describe" => Outcome::Done,
             // WP-S6.13 part 1
             "page.describe" => self.act_page_describe(p),

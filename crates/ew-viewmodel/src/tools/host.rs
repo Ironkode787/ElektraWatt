@@ -125,6 +125,9 @@ pub(crate) struct ToolHost {
     /// The reason key of a canvas key the host refused (C, connect on move): the status bar shows its text in place of
     /// the tool's hint until the next canvas input (WP-S2.04 part 2, window check).
     pub notice: Option<&'static str>,
+    // WP-S2.05 part 3
+    /// The paste tool committed: at the end of the dispatch Select takes over with the pasted representations selected.
+    pub pasted: bool,
 }
 
 impl ToolHost {
@@ -148,6 +151,7 @@ impl ToolHost {
             before_commit: None,
             junction_editor: None,
             notice: None,
+            pasted: false,
         }
     }
 }

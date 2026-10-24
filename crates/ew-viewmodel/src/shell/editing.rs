@@ -114,7 +114,7 @@ impl ShellModel {
     }
 
     /// The tool context of the focused canvas, for host duties that call a tool directly.
-    fn with_tool<R>(&mut self, f: impl FnOnce(&mut dyn Tool, &ToolCx<'_>) -> R) -> Option<R> {
+    pub(super) fn with_tool<R>(&mut self, f: impl FnOnce(&mut dyn Tool, &ToolCx<'_>) -> R) -> Option<R> {
         let c = self.canvas()?;
         let (page, ppn, pane) = (Arc::clone(c.page()), c.points_per_nm(), c.pane());
         let host = &mut self.tools;
@@ -772,6 +772,8 @@ impl ShellModel {
     /// The after-commit duties (§6.4 item 3), at the end of a dispatch: a committed record the page tables no longer
     /// hold leaves the selection; the place tool's shape is read again for a new revision.
     pub(super) fn after_commit(&mut self) {
+        // WP-S2.05 part 3
+        self.after_paste();
         self.refresh_place_shape();
         self.refresh_strip_tag();
         self.cancel_stale_move();
