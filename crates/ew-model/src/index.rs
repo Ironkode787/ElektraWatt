@@ -10,6 +10,7 @@
 //! "references resolve" rely on.
 
 use std::collections::BTreeSet;
+use std::fmt;
 use std::ops::{RangeBounds, RangeInclusive};
 
 use ew_ids::Id;
@@ -19,6 +20,7 @@ use ew_schema::{
 };
 use imbl::{OrdMap, OrdSet};
 
+use crate::diff::ContentDiff;
 use crate::entity::{AnyKey, AnyRow};
 use crate::links::{IndexName, LINKS, LinkId, Target, links_from};
 use crate::rev::Rev;
@@ -131,6 +133,41 @@ impl<K: Ord + Clone, V: Ord + Clone> RevIndex<K, V> {
                 .iter()
                 .zip(other.map.iter())
                 .all(|((ka, ba), (kb, bb))| ka == kb && ba.set == bb.set)
+    }
+
+    /// The first key, in key order, whose values differ between two indexes (`changed_at` stamps ignored), with
+    /// the `Debug` text of the key and of each index's values under it (empty when that index lacks the key);
+    /// `None` exactly when [`crate::RevIndex::same_entries`] holds.
+    pub(crate) fn first_difference(&self, other: &Self) -> Option<(String, Vec<String>, Vec<String>)>
+    where
+        K: fmt::Debug,
+        V: fmt::Debug,
+    {
+        let mut a = self.map.iter().peekable();
+        let mut b = other.map.iter().peekable();
+        let values = |bucket: &Bucket<V>| bucket.values().map(|v| format!("{v:?}")).collect::<Vec<String>>();
+        loop {
+            match (a.peek(), b.peek()) {
+                (Some((ka, ba)), Some((kb, bb))) => match ka.cmp(kb) {
+                    std::cmp::Ordering::Less => {
+                        return Some((format!("{ka:?}"), values(ba), Vec::new()));
+                    }
+                    std::cmp::Ordering::Greater => {
+                        return Some((format!("{kb:?}"), Vec::new(), values(bb)));
+                    }
+                    std::cmp::Ordering::Equal => {
+                        if ba.set != bb.set {
+                            return Some((format!("{ka:?}"), values(ba), values(bb)));
+                        }
+                        a.next();
+                        b.next();
+                    }
+                },
+                (Some((ka, ba)), None) => return Some((format!("{ka:?}"), values(ba), Vec::new())),
+                (None, Some((kb, bb))) => return Some((format!("{kb:?}"), Vec::new(), values(bb))),
+                (None, None) => return None,
+            }
+        }
     }
 
     pub(crate) fn insert(&mut self, key: K, v: V, rev: Rev) {
@@ -427,6 +464,44 @@ impl BaseIndexes {
                     .same_entries(&other.structure_boxes_by_page)
                 && self.referrers.same_entries(&other.referrers)
         }
+    }
+
+    /// The first index entry that differs between two index sets: the indexes in the order `same_entries`
+    /// compares them, each in key order; `None` exactly when `same_entries` holds.
+    pub(crate) fn first_difference(&self, other: &BaseIndexes) -> Option<ContentDiff> {
+        macro_rules! check {
+            ($($field:ident),* $(,)?) => {
+                $(
+                    if let Some((key, first, second)) = self.$field.first_difference(&other.$field) {
+                        return Some(ContentDiff::Index {
+                            index: stringify!($field),
+                            key,
+                            first,
+                            second,
+                        });
+                    }
+                )*
+            };
+        }
+        check!(
+            functions_by_device,
+            reps_by_page,
+            reps_by_function,
+            connections_by_page,
+            connections_by_endpoint,
+            junctions_by_page,
+            terminals_by_strip,
+            conductors_by_cable,
+            structure_children,
+            device_children,
+            pages_by_section,
+            potential_defs_by_endpoint,
+            bonds_by_endpoint,
+            page_items_by_page,
+            structure_boxes_by_page,
+            referrers,
+        );
+        None
     }
 
     /// Applies the delta of one row change: removes the entries of `before` that `after` lacks and adds

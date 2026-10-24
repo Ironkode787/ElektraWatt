@@ -9,6 +9,7 @@ use std::sync::Arc;
 use ew_ids::Id;
 use imbl::OrdMap;
 
+use crate::diff::Presence;
 use crate::entity::Entity;
 
 /// A model revision: monotonic on the main line (ARCH §4.1).
@@ -175,6 +176,31 @@ impl<T: Entity> Table<T> {
                     .all(|((ia, ra), (ib, rb))| {
                         ia == ib && (Arc::ptr_eq(&ra.value, &rb.value) || ra.value == rb.value)
                     })
+        }
+    }
+
+    /// The first ID, in ID order, whose row differs between the two tables or that one table lacks (`changed_at`
+    /// stamps ignored); `None` exactly when both tables hold the same IDs with equal records.
+    pub(crate) fn first_difference(&self, other: &Table<T>) -> Option<(RowId<T>, Presence)> {
+        let mut a = self.rows.iter().peekable();
+        let mut b = other.rows.iter().peekable();
+        loop {
+            match (a.peek(), b.peek()) {
+                (Some((ia, ra)), Some((ib, rb))) => match ia.cmp(ib) {
+                    std::cmp::Ordering::Less => return Some((**ia, Presence::FirstOnly)),
+                    std::cmp::Ordering::Greater => return Some((**ib, Presence::SecondOnly)),
+                    std::cmp::Ordering::Equal => {
+                        if !(Arc::ptr_eq(&ra.value, &rb.value) || ra.value == rb.value) {
+                            return Some((**ia, Presence::Both));
+                        }
+                        a.next();
+                        b.next();
+                    }
+                },
+                (Some((ia, _)), None) => return Some((**ia, Presence::FirstOnly)),
+                (None, Some((ib, _))) => return Some((**ib, Presence::SecondOnly)),
+                (None, None) => return None,
+            }
         }
     }
 

@@ -675,6 +675,21 @@ proptest! {
         prop_assert!(m.content_eq(&start));
     }
 
+    /// `content_diff` is `None` exactly when `content_eq` holds, both ways, after a batch and after its undo.
+    #[test]
+    fn content_diff_agrees_with_content_eq(actions in batch()) {
+        let m0 = mini_golden();
+        let mut counter = 0;
+        let (m1, ops) = step(&m0, &actions, &mut counter);
+        prop_assert_eq!(m1.content_diff(&m0).is_none(), m1.content_eq(&m0));
+        prop_assert_eq!(m0.content_diff(&m1).is_none(), m0.content_eq(&m1));
+        prop_assert!(m1.content_diff(&m1.clone()).is_none());
+        let m2 = m1
+            .apply_history(&invert_batch(&ops), m1.rev().next())
+            .expect("the inverse batch applies");
+        prop_assert_eq!(m2.content_diff(&m0), None);
+    }
+
     /// NFR-REL-07 order independence: the order of the records and library documents on load, unknown
     /// records included, changes neither the model nor its canonical content.
     #[test]

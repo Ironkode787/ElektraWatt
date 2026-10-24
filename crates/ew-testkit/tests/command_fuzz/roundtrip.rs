@@ -6,8 +6,9 @@
 //! opened again by a reader (no lock, one generation, the way `ew check` opens a project), and
 //!
 //! - the reader's open report holds no integrity finding (a saved project passes the checks of loading);
-//! - the reloaded model equals the live one record for record (`Model::content_eq`; on a mismatch the first
-//!   differing row is named);
+//! - the reloaded model equals the live one record for record (`Model::content_eq`; on a mismatch
+//!   `Model::content_diff` names the first difference: a row, an unknown record or library document, or an
+//!   index entry);
 //! - the derived families agree: a sample of tags, the potential partition and the page order always, every
 //!   family at every key (`ew_api::verify::sweep` of the live memoised read against the reader's cold one) on
 //!   the deep cadence.
@@ -16,11 +17,12 @@
 //! at all: the incremental save of the reverted entities (deleted files, restored rows) must give back the
 //! initial model.
 
+use std::fmt::Write as _;
 use std::path::PathBuf;
 
 use ew_api::{MemoMode, Session, StoreOptions};
 use ew_derive::{DeviceTag, PageOrder, PotentialPartition};
-use ew_model::Model;
+use ew_model::{ContentDiff, Model};
 
 /// How much of the derived data a round trip compares.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -97,7 +99,7 @@ impl Disk {
             ));
         }
         let (live, back) = (session.world().model, reader.world().model);
-        same_model(&live, &back)?;
+        same_model("live", &live, &back)?;
         lap("models compared");
         let r = derived_agree(session, &reader, depth);
         lap("derived compared");
@@ -121,7 +123,7 @@ impl Disk {
                 report.findings.first()
             ));
         }
-        same_model(initial, &reader.world().model)
+        same_model("initial", initial, &reader.world().model)
             .map_err(|e| format!("after undo-all and a save, the reloaded model is not the initial one: {e}"))
     }
 }
@@ -136,34 +138,31 @@ impl Drop for Disk {
     }
 }
 
-/// `Model::content_eq`, and on a mismatch the first differing row.
-fn same_model(live: &Model, back: &Model) -> Result<(), String> {
-    if live.content_eq(back) {
+/// `Model::content_eq` between `first` (named `name` in the text: the live model, or the initial one at the closing
+/// round trip) and the reloaded model; on a mismatch, the first difference `Model::content_diff` names (a row, an
+/// unknown record or library document, an index entry), with the row's lines where `model_lines` renders its kind.
+pub fn same_model(name: &str, first: &Model, back: &Model) -> Result<(), String> {
+    if first.content_eq(back) {
         return Ok(());
     }
-    let (a, b) = (
-        ew_commands::rows::model_lines(live).map_err(|e| format!("{e:?}"))?,
-        ew_commands::rows::model_lines(back).map_err(|e| format!("{e:?}"))?,
-    );
-    let (ma, mb): (std::collections::BTreeMap<_, _>, std::collections::BTreeMap<_, _>) =
-        (a.into_iter().collect(), b.into_iter().collect());
-    for (k, v) in &ma {
-        match mb.get(k) {
-            None => return Err(format!("the row {k:?} is gone after the reload")),
-            Some(w) if w != v => {
-                return Err(format!(
-                    "the row {k:?} differs after the reload:\n live: {v}\n back: {w}"
-                ));
+    let Some(diff) = first.content_diff(back) else {
+        return Err(format!(
+            "the models differ (first: {name}, second: reloaded), but Model::content_diff names no difference"
+        ));
+    };
+    let mut text = format!("the models differ (first: {name}, second: reloaded): {diff}");
+    if let ContentDiff::Row { key, .. } = &diff {
+        for (side, model) in [(name, first), ("reloaded", back)] {
+            let line = ew_commands::rows::model_lines(model)
+                .map_err(|e| format!("{e:?}"))?
+                .into_iter()
+                .find_map(|(k, line)| (k == *key).then_some(line));
+            if let Some(line) = line {
+                let _ = write!(text, "\n {side}: {line}");
             }
-            Some(_) => {}
         }
     }
-    for k in mb.keys() {
-        if !ma.contains_key(k) {
-            return Err(format!("the row {k:?} appears after the reload"));
-        }
-    }
-    Err("the models differ (not in a row: an unknown record or an index entry)".to_owned())
+    Err(text)
 }
 
 /// The derived families of the live session and of its reload agree.

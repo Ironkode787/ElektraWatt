@@ -1172,6 +1172,32 @@ fn save_and_reload_of_golden_a_round_trips() {
         .unwrap_or_else(|e| panic!("after undo-all: {e}"));
 }
 
+/// FT-468: the round-trip oracle names a differing row of any kind from the model's own tables, also a kind that
+/// `model_lines` does not render: Golden A with the structure box of the `fuzz-smoke` finding against Golden A.
+#[test]
+fn the_round_trip_oracle_names_a_row_of_any_kind() {
+    let mut session = open_session(7);
+    let initial = session.world().model.clone();
+    let log = ew_api::CmdLog::parse(concat!(
+        r#"{"$schema":"ew.cmdlog/1","label":"FT-468"}"#,
+        "\n",
+        r#"{"cmd":"box.structure","params":{"assigns":{"location":"d6137d06-68c5-5e53-abe2-c728d203b03d"},"external":"97ccee03-a693-5fbc-9d61-5f5ce37ec8e6","outline":[[0,0],[50000000,0],[50000000,30000000],[0,30000000]],"page":"64b79654-66b4-5243-9cfc-fd7c0878c4f3","style":"dotted"}}"#,
+        "\n",
+    ))
+    .expect("the log parses");
+    session
+        .run_script(&log, "FT-468")
+        .expect("box.structure commits on Golden A");
+    let err = roundtrip::same_model("live", &session.world().model, &initial)
+        .expect_err("a structure box more is a difference");
+    assert!(
+        err.starts_with("the models differ (first: live, second: reloaded): the structure_box row "),
+        "{err}"
+    );
+    assert!(err.contains(" is in the first model only"), "{err}");
+    roundtrip::same_model("live", &initial, &initial.clone()).expect("a model equals its clone");
+}
+
 /// FT-316 on the shape the `library.embed` arm builds ("embed then undo"): a symbol whose function definition
 /// is not embedded, then that function definition, both commit as the arm says, with a save in between; undoing
 /// both restores Golden A (the undo-all oracle (e)), although the second undo removes a copy that the symbol

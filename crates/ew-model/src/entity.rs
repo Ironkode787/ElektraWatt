@@ -15,6 +15,7 @@ use ew_schema::{
     ReportBlock, Representation, Revision, Section, StructureBox, StructureNode, SymbolDef,
 };
 
+use crate::diff::Presence;
 use crate::model::Model;
 use crate::rev::{Rev, RowId, Table};
 
@@ -219,6 +220,15 @@ macro_rules! entities {
         /// Whether two models hold the same rows in every table (`changed_at` ignored; project excluded).
         pub(crate) fn same_tables(a: &Model, b: &Model) -> bool {
             true $( && a.$($field).+.same_rows(&b.$($field).+) )*
+        }
+
+        /// The first table row that differs between two models or that one of them lacks, in kind order (the
+        /// order of this list), then ID order (project excluded); `None` exactly when `same_tables` holds.
+        pub(crate) fn first_row_difference(a: &Model, b: &Model) -> Option<(AnyKey, Presence)> {
+            $( if let Some((id, presence)) = a.$($field).+.first_difference(&b.$($field).+) {
+                return Some(((Kind::$variant, id.cast::<()>()), presence));
+            } )*
+            None
         }
 
     };
