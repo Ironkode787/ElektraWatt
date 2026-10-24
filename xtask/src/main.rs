@@ -737,7 +737,8 @@ mod tests {
     /// default-features run is in test-linux-default and test-macos; the unfiltered all-features run is in test-linux
     /// and test-macos; test-windows-1, test-windows-2 and test-windows-3 run the all-features archive in three
     /// disjoint parts that together cover every test: part 1 is `WINDOWS_PART1_BINARIES` (which contains the
-    /// acceptance tests and the fuzzer), part 2 is `WINDOWS_PART2_BINARIES`, part 3 is the complement of both. The nextest config documents the same filter.
+    /// acceptance tests and the fuzzer), part 2 is `WINDOWS_PART2_BINARIES`, part 3 is the complement of both.
+    /// The nextest config documents the same filter.
     #[test]
     fn the_acceptance_tests_and_the_fuzzer_run_once_per_ci_job() {
         let ci = std::fs::read_to_string(workspace_root().join(".github/workflows/ci.yml")).unwrap();

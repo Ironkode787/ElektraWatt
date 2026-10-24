@@ -121,8 +121,9 @@ relative; the gain is the removal of the 7:52 against 15:01 imbalance, not less 
 real times; the guard test in `xtask` (`WINDOWS_PART1_BINARIES`, `WINDOWS_PART2_BINARIES`) keeps `ci.yml` equal to the lists.
 
 **Lesson: partition by time, not by count.** `--partition count:N/M` equalises the number of tests; when a handful of
-binaries hold most of the run time, name them with `binary_id(=crate::binary)` in explicit lists (as many as there are parts but one) and give the
-last part the complement, and keep every part either an explicit set or `not (those sets)` so that the cover stays complete and disjoint.
+binaries hold most of the run time, name them with `binary_id(=crate::binary)` in explicit lists, one explicit list per
+part except the last, which is the complement, and keep every part either an explicit set or `not (those sets)` so that
+the cover stays complete and disjoint.
 
 Two lessons of the cycle-22 hotfixes to the split Windows jobs (FT-387), for every workflow that moves artefacts between jobs:
 
