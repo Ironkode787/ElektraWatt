@@ -1470,4 +1470,183 @@ fn the_page_item_commands_replay_through_ew_apply() {
     let saved_tables = saved.page_tables("101").unwrap();
     assert_eq!(saved_tables.items.len(), 3);
     assert_eq!(saved_tables.structure_boxes.len(), 1);
+const GOLDEN_PARTS: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../golden/J-E-2416/tables/parts.csv"
+);
+
+/// A fresh saved project without parts (FT-410's import target).
+fn parts_target(t: &Tmp, name: &str) -> PathBuf {
+    let project = serde_json::from_str(
+        r#"{"id":"3b9e51c4-8a27-7d10-b5f3-6c0a2e9d4f18","derivation_profile":"2027.1"}"#,
+    )
+    .unwrap();
+    let mut session =
+        ew_api::Session::from_records(project, [], [], ew_api::SessionOptions::default()).unwrap();
+    session
+        .execute(&ew_api::AnyCommand {
+            name: "page.create".into(),
+            params: serde_json::json!({"number": 1, "title": "Cover"}),
+        })
+        .unwrap();
+    let dir = t.0.join(name);
+    let mut store = ew_api::StoreOptions::new("test");
+    store.state_dir = None;
+    session.create(&dir, store).unwrap();
+    session.close();
+    dir
+}
+
+/// The part copies of a `lib/parts` folder by `item_id`, without the members that legitimately differ between
+/// projects (ids, hash, provenance, the manufacturer's library).
+fn comparable_parts(dir: &std::path::Path) -> std::collections::BTreeMap<String, serde_json::Value> {
+    let mut out = std::collections::BTreeMap::new();
+    for (_, bytes) in tree(dir) {
+        let mut v: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        let item = v["item_id"].as_str().unwrap().to_owned();
+        let o = v.as_object_mut().unwrap();
+        for k in ["id", "library_id", "sha256", "sources"] {
+            o.remove(k);
+        }
+        if let Some(m) = o.get_mut("meta").and_then(|m| m.as_object_mut()) {
+            m.remove("sources");
+        }
+        if let Some(m) = o.get_mut("manufacturer").and_then(|m| m.as_object_mut()) {
+            m.remove("library");
+        }
+        assert!(out.insert(item, v).is_none(), "one copy per item");
+    }
+    out
+}
+
+/// FT-410 acceptance a: `ew import parts` creates the golden project's 29 part copies, and the recorded command
+/// replays through `ew apply` to the same bytes.
+#[test]
+fn import_parts_creates_the_golden_part_copies_and_replays_through_apply() {
+    let t = Tmp::new();
+    let home = t.0.join("home");
+    let a = parts_target(&t, "parts-a.ew");
+    let b = t.0.join("parts-b.ew");
+    copy_dir(&a, &b);
+    let o = ew_isolated(
+        &home,
+        &[
+            "import".as_ref(),
+            "parts".as_ref(),
+            GOLDEN_PARTS.as_ref(),
+            "--project".as_ref(),
+            a.as_os_str(),
+        ],
+    );
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    assert_eq!(
+        stdout(&o),
+        "imported parts.csv: 29 created, 0 skipped, 0 errors; saved\n"
+    );
+    let golden = std::path::Path::new(GOLDEN_A).join("lib/parts");
+    let mine = tree(&a.join("lib/parts"));
+    assert_eq!(mine.len(), 29);
+    assert_eq!(mine.len(), tree(&golden).len());
+    assert_eq!(comparable_parts(&a.join("lib/parts")), comparable_parts(&golden));
+
+    let id = {
+        let (session, _) = ew_api::Session::open_reader(&b, "test", "test").expect("the copy opens");
+        let id = session.query().project().id.as_uuid();
+        session.close();
+        id
+    };
+    let parts = ew_api::import::read_parts_tables(std::path::Path::new(GOLDEN_PARTS), id).unwrap();
+    let log = format!(
+        "{}\n{}\n",
+        r#"{"$schema":"ew.cmdlog/1","label":"test"}"#,
+        serde_json::json!({"cmd": "parts.import", "params": parts.params()})
+    );
+    let log_path = t.0.join("parts.ewcmd");
+    std::fs::write(&log_path, log).unwrap();
+    let o = ew_isolated(&home, &["apply".as_ref(), b.as_os_str(), log_path.as_os_str()]);
+    assert_eq!(o.status.code(), Some(0), "{}{}", stdout(&o), stderr(&o));
+    assert!(
+        tree(&a.join("lib/parts")) == tree(&b.join("lib/parts")),
+        "the replay differs"
+    );
+}
+
+/// FT-410 acceptance b: a second import skips every key and changes nothing.
+#[test]
+fn a_second_import_parts_skips_every_key() {
+    let t = Tmp::new();
+    let home = t.0.join("home");
+    let a = parts_target(&t, "parts-a.ew");
+    let run = || {
+        ew_isolated(
+            &home,
+            &[
+                "import".as_ref(),
+                "parts".as_ref(),
+                GOLDEN_PARTS.as_ref(),
+                "--project".as_ref(),
+                a.as_os_str(),
+            ],
+        )
+    };
+    assert_eq!(run().status.code(), Some(0));
+    let before = tree(&a.join("lib"));
+    let o = run();
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    assert_eq!(
+        stdout(&o),
+        "imported parts.csv: 0 created, 29 skipped, 0 errors; saved\n"
+    );
+    assert!(
+        tree(&a.join("lib")) == before,
+        "a second import changed the library"
+    );
+}
+
+/// FT-410 acceptance c: a refused table names its line and column and writes nothing.
+#[test]
+fn import_parts_refusals_name_line_and_column() {
+    let t = Tmp::new();
+    let home = t.0.join("home");
+    let a = parts_target(&t, "parts-a.ew");
+    let before = tree(&a);
+    let run = |file: &std::path::Path| {
+        ew_isolated(
+            &home,
+            &[
+                "import".as_ref(),
+                "parts".as_ref(),
+                file.as_os_str(),
+                "--project".as_ref(),
+                a.as_os_str(),
+            ],
+        )
+    };
+    let d1 = t.0.join("t1");
+    std::fs::create_dir_all(&d1).unwrap();
+    std::fs::write(d1.join("parts.csv"), "key,part_number,kind\nA,A1,device\n").unwrap();
+    let o = run(&d1.join("parts.csv"));
+    assert_eq!(o.status.code(), Some(2), "{}", stderr(&o));
+    assert!(
+        stderr(&o).contains("line 1") && stderr(&o).contains("manufacturer"),
+        "{}",
+        stderr(&o)
+    );
+    let d2 = t.0.join("t2");
+    std::fs::create_dir_all(&d2).unwrap();
+    std::fs::write(
+        d2.join("parts.csv"),
+        "key,manufacturer,part_number,kind\nA,Acme,A1,device\nB,Acme,B1,gizmo\n",
+    )
+    .unwrap();
+    let o = run(&d2.join("parts.csv"));
+    assert_eq!(o.status.code(), Some(2), "{}", stderr(&o));
+    assert!(
+        stderr(&o).contains("line 3") && stderr(&o).contains("column `kind`"),
+        "{}",
+        stderr(&o)
+    );
+    assert!(tree(&a) == before, "a refused table changed the project");
+    let o = run(&t.0.join("missing").join("parts.csv"));
+    assert_eq!(o.status.code(), Some(2), "{}", stderr(&o));
 }

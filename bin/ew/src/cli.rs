@@ -16,6 +16,7 @@ use ew_api::{BomMode, CmdLog, Export};
 pub const USAGE: &str = "usage:
   ew --version | -V
   ew import qet <file.qet> [--content <dir>] [--report md|csv|json] [--report-out <file>] [--strict]
+  ew import parts <parts.csv> [--project <dir>]
   ew check [<project-dir>] [--scheme <name>] [--mode release|online] [--format text|md|json] [--out <file>]
   ew sql [<project-dir>] \"<select>\" [--format csv|json] [--timeout <seconds>] [--out <file>]
   ew sql [<project-dir>] --file <query.sql> [--format csv|json] [--timeout <seconds>] [--out <file>]
@@ -33,6 +34,12 @@ pub const USAGE: &str = "usage:
 
 `import qet` exits 0 when the import completes, even with findings; `--strict` exits 1 on lost connections or
 error findings. With `--report` and no `--report-out` stdout is exactly the report; the summary goes to stderr.
+
+`import parts` copies the parts of a parts table (the golden dialect: `parts.csv`, with `part_cps.csv`,
+`part_templates.csv`, `cable_cores.csv` and `part_plc.csv` when they lie beside it) into the project (`--project`,
+default: the nearest ancestor of the current directory holding `manifest.json`) as project-local part copies
+(`parts.import`) and saves; a part whose key the project has already is skipped. Exit 0 when imported (counts on
+stdout), 2 on everything else (usage, a refused table with its line and column, open and save errors).
 
 `check` runs a check scheme (mode `release`, format `text`) over a project directory
 (default: the nearest ancestor of the current directory holding `manifest.json`) and exits 0 with no unwaived
@@ -93,6 +100,8 @@ pub enum Command {
     Help,
     /// Import a QElectroTech project.
     ImportQet(ImportQetArgs),
+    /// `ew import parts`.
+    ImportParts(ImportPartsArgs),
     /// Check a project.
     Check(CheckArgs),
     /// Run a read-only query on the SQL projection.
@@ -282,6 +291,15 @@ pub struct ImportQetArgs {
     pub strict: bool,
 }
 
+/// The arguments of `ew import parts`.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct ImportPartsArgs {
+    /// The parts table (`parts.csv`).
+    pub file: PathBuf,
+    /// The project directory (`--project`).
+    pub project: Option<PathBuf>,
+}
+
 /// Parses the arguments after the program name.
 ///
 /// # Errors
@@ -297,8 +315,9 @@ pub fn parse<I: IntoIterator<Item = String>>(args: I) -> Result<Command, String>
         "help" | "--help" | "-h" => no_more(it, Command::Help),
         "import" => match it.next().as_deref() {
             Some("qet") => parse_import_qet(it),
+            Some("parts") => parse_import_parts(it),
             Some(other) => Err(format!("unknown import format `{other}`")),
-            None => Err("`import` needs a format (qet)".to_owned()),
+            None => Err("`import` needs a format (qet, parts)".to_owned()),
         },
         "check" => parse_check(it),
         "sql" => parse_sql(it),
@@ -355,6 +374,24 @@ fn parse_import_qet(mut it: impl Iterator<Item = String>) -> Result<Command, Str
         report_out,
         strict,
     }))
+}
+
+fn parse_import_parts(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
+    let mut file = None;
+    let mut project = None;
+    while let Some(a) = it.next() {
+        match a.as_str() {
+            "--project" => project = Some(PathBuf::from(value(&mut it, "--project")?)),
+            opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
+            _ => {
+                if file.replace(PathBuf::from(&a)).is_some() {
+                    return Err(format!("unexpected argument `{a}`"));
+                }
+            }
+        }
+    }
+    let file = file.ok_or_else(|| "`import parts` needs a parts table (<parts.csv>)".to_owned())?;
+    Ok(Command::ImportParts(ImportPartsArgs { file, project }))
 }
 
 fn parse_check(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
@@ -716,6 +753,7 @@ pub fn run(cmd: Command) -> i32 {
             0
         }
         Command::ImportQet(a) => run_import_qet(&a),
+        Command::ImportParts(a) => run_import_parts(&a),
         Command::Check(a) => run_check(&a),
         Command::Sql(a) => run_sql(&a),
         Command::SqlDump(a) => run_sql_dump(&a),
@@ -1571,6 +1609,57 @@ fn content_dir() -> Option<PathBuf> {
         .map(PathBuf::from)
 }
 
+fn run_import_parts(a: &ImportPartsArgs) -> i32 {
+    let Some(dir) = project_dir(a.project.as_ref()) else {
+        return 2;
+    };
+    let origin = ew_api::Origin::Cli {
+        subcommand: "import parts".into(),
+        confirmed: false,
+    };
+    let Ok(mut session) = open_for_writing(&dir, origin.clone()) else {
+        return 2;
+    };
+    let id = session.query().project().id.as_uuid();
+    let parts = match ew_api::import::read_parts_tables(&a.file, id) {
+        Ok(p) => p,
+        Err(e) => {
+            eprintln!("error: {e}");
+            session.close();
+            return 2;
+        }
+    };
+    let cmd = ew_api::AnyCommand {
+        name: ew_api::import::PARTS_IMPORT.into(),
+        params: parts.params(),
+    };
+    let receipt = match session
+        .preview_with(&cmd, ew_api::Submit::from(origin))
+        .and_then(|preview| session.commit(preview))
+    {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("error: {e}");
+            session.close();
+            return 2;
+        }
+    };
+    let (created, skipped) =
+        ew_api::import::parts_import_counts(receipt.outcome.note.as_deref().unwrap_or_default())
+            .unwrap_or((0, 0));
+    if let Err(e) = session.save() {
+        eprintln!("error: the save failed: {e:?}");
+        session.close();
+        return 2;
+    }
+    println!(
+        "imported {}: {created} created, {skipped} skipped, 0 errors; saved",
+        parts.source
+    );
+    session.close();
+    0
+}
+
 fn run_import_qet(a: &ImportQetArgs) -> i32 {
     let content = a.content.clone().or_else(content_dir);
     let library = match &content {
@@ -1887,6 +1976,27 @@ SELECT 1"
         assert!(p(&["sql", "--project", "p", "proj", "SELECT 1"]).is_err());
         assert!(p(&["sql", "--project", "p", "proj", "--file", "q.sql"]).is_err());
         assert!(p(&["sql", "dump", "--project", "p", "a", "b"]).is_err());
+    }
+
+    #[test]
+    fn import_parts_options() {
+        let Ok(Command::ImportParts(a)) = p(&["import", "parts", "a.csv"]) else {
+            panic!("import parts");
+        };
+        assert_eq!(a.file, PathBuf::from("a.csv"));
+        assert_eq!(a.project, None);
+        let Ok(Command::ImportParts(b)) = p(&["import", "parts", "--project", "d", "a.csv"]) else {
+            panic!("import parts --project");
+        };
+        assert_eq!(b.project, Some(PathBuf::from("d")));
+    }
+
+    #[test]
+    fn import_parts_errors() {
+        assert!(p(&["import", "parts"]).is_err());
+        assert!(p(&["import", "parts", "a", "b"]).is_err());
+        assert!(p(&["import", "parts", "a", "--bogus"]).is_err());
+        assert!(p(&["import", "parts", "a", "--project"]).is_err());
     }
 
     #[test]

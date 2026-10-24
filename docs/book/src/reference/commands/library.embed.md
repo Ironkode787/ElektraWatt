@@ -12,7 +12,8 @@ is, in one transaction. At least one. Each copy is checked, at `/copies/i`:
 - it reads as a library document of one of those kinds (else invalid);
 - its `id` is the copy identity `v5(NS_LIBCOPY, library_id ‖ item_id)` (ADR-0004 amendment 2; a "keep
   both" copy belongs to a paste, not to embedding);
-- its `library_id` is not the project's: a project-local item is created in the project, not embedded;
+- its `library_id` is not the project's: a project-local item is created in the project, not embedded (a
+  project-local part copy is `parts.import`'s, FT-410);
 - its `sha256` is the hash of the item's own members (the rule of EW-CORE-014): the copy is consistent
   with the hash it claims (the hash does not prove where the copy came from).
 
