@@ -27,7 +27,12 @@ fn the_dropped_count_survives_a_paste_of_the_same_text() {
     let mut shell = writable(&tmp, "102");
     let rep = select_rep(&mut shell, "-102F1");
     let tables = shell.canvas().unwrap().page().tables.clone();
-    let f1 = tables.reps.iter().find(|r| r.id.to_string() == rep).unwrap().functions[0];
+    let f1 = tables
+        .reps
+        .iter()
+        .find(|r| r.id.to_string() == rep)
+        .unwrap()
+        .functions[0];
     let wire = tables
         .connections
         .iter()

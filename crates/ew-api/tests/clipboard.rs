@@ -345,7 +345,10 @@ fn cb2_every_refusal_of_the_parser() {
     let repeated = plus_line(&text, &record.replacen("\"tag\":", "\"tag\":{},\"tag\":", 1));
     assert!(invalid(parse_fragment(&repeated)));
     assert!(invalid(parse_fragment(&plus_line(&text, r#"{"$macro":{}}"#))));
-    assert!(invalid(parse_fragment(&plus_line(&text, r#"{"$node":{"id":"0190a000-0000-7000-8000-000000000009","aspect":"location","path":["X"],"aliases":[],"extra":1}}"#))));
+    assert!(invalid(parse_fragment(&plus_line(
+        &text,
+        r#"{"$node":{"id":"0190a000-0000-7000-8000-000000000009","aspect":"location","path":["X"],"aliases":[],"extra":1}}"#
+    ))));
     let foreign = r#"{"$k":"bond","id":"0190a000-0000-7000-8000-000000000001","a":{"junction":"0190a000-0000-7000-8000-000000000002"},"b":{"junction":"0190a000-0000-7000-8000-000000000003"}}"#;
     assert!(invalid(parse_fragment(&plus_line(&text, foreign))));
     assert!(invalid(parse_fragment(&plus_line(
@@ -395,7 +398,10 @@ fn cb2_an_unknown_header_member_is_ignored_and_crlf_reads() {
     let a = parse_fragment(&more).unwrap();
     let b = parse_fragment(&text).unwrap();
     assert_eq!(a.params, b.params);
-    assert_eq!(parse_fragment(&format!("\u{feff}{text}")).unwrap().params, b.params);
+    assert_eq!(
+        parse_fragment(&format!("\u{feff}{text}")).unwrap().params,
+        b.params
+    );
     assert_eq!(
         parse_fragment(&text.replace('\n', "\r\n")).unwrap().params,
         b.params

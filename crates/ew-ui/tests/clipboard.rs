@@ -10,6 +10,7 @@ mod support;
 
 use egui::{Key, Modifiers, OutputCommand};
 use egui_kittest::Harness;
+use egui_kittest::kittest::Queryable;
 use ew_ui::app::App;
 use ew_ui::ew_viewmodel::shell::{Focus, Outcome};
 use serde_json::{Value, json};
@@ -137,7 +138,7 @@ fn menu_paste_requests_the_system_clipboard() {
     let text = h.state().shell().clipboard().text().unwrap().to_owned();
     h.get_by_label("Edit").click();
     settle(&mut h);
-    h.get_by_label("Paste").click();
+    h.get_by_label_contains("Paste").click();
     h.step();
     assert!(
         h.output().viewport_output.values().any(|v| v

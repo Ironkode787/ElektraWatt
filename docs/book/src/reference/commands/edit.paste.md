@@ -17,8 +17,8 @@ twice, or one the project holds in another version; `/fragment/nodes/<i>` a node
 **Effects.** (1) A library copy the project holds with the same `sha256` is reused, any other is embedded. (2)
 Each structure node rebinds to the project's node of the same aspect and path, else to the one node of that
 aspect whose aliases hold the leaf code; an unmatched node clears the slots naming it (the record inherits),
-with a notice; no node is created. (3) Every record gets a minted ID, in (kind rank, fragment order); the
-references are found from `ew_model::LINKS`: one to a fragment record takes its new ID, one to a library copy
+with a notice; no node is created. (3) Every record gets a minted ID, in (kind rank, fragment order), and loses
+its import lineage (`source_ref`: a pasted record is new, not imported); the references are found from `ew_model::LINKS`: one to a fragment record takes its new ID, one to a library copy
 stays (effect 1), a structure slot takes the rebound node, a page reference the target page, a function's
 `kind.ip.external` stays only in its own project. (4) A reference that resolves to nothing is cleared when it
 can be: a `Cascade` link never can; otherwise the member holding it, or the optional object directly around it
