@@ -404,6 +404,15 @@ fn the_physical_wires_through_a_junction_name_their_numbers_and_ends() {
     let mut seen = Vec::new();
     for j in &tables.junctions {
         let wires = s.junction_wires(j.id);
+        // FT-439: by printed number (natural), then the ends' labels.
+        let text = |x: &str, y: &str| ew_derive::ew_mltext::natural_cmp(x, y).then_with(|| x.cmp(y));
+        assert!(
+            wires.windows(2).all(|w| text(&w[0].label, &w[1].label)
+                .then_with(|| text(&w[0].from, &w[1].from))
+                .then_with(|| text(&w[0].to, &w[1].to))
+                .is_le()),
+            "{wires:?}"
+        );
         let mut ends: Vec<String> = wires
             .iter()
             .map(|w| {

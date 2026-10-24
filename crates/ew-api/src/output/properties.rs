@@ -554,16 +554,16 @@ fn wires_of(q: &Q, conn: Id<Connection>) -> Vec<Wire> {
         .iter()
         .map(|w| (numbers.number(w.0).map(|n| n.label.clone()), w.clone()))
         .collect();
-    wires.sort_by(|(a, wa), (b, wb)| {
-        a.is_none()
-            .cmp(&b.is_none())
-            .then_with(|| match (a, b) {
-                (Some(a), Some(b)) => ew_mltext::natural_cmp(a, b).then_with(|| a.cmp(b)),
-                _ => std::cmp::Ordering::Equal,
-            })
-            .then_with(|| wa.0.cmp(&wb.0))
-    });
+    wires.sort_by(|(a, wa), (b, wb)| number_order(a.as_deref(), b.as_deref()).then_with(|| wa.0.cmp(&wb.0)));
     wires.into_iter().map(|(_, w)| w).collect()
+}
+
+/// The order of printed wire numbers: natural order, then bytes; an unnumbered wire (`None`) after every numbered one.
+fn number_order(a: Option<&str>, b: Option<&str>) -> std::cmp::Ordering {
+    match (a, b) {
+        (Some(a), Some(b)) => ew_mltext::natural_cmp(a, b).then_with(|| a.cmp(b)),
+        _ => a.is_none().cmp(&b.is_none()),
+    }
 }
 
 /// The printed wire number of a connection (its first wire's), `?` when unassigned.
@@ -1939,5 +1939,87 @@ mod tests {
     fn plurals() {
         assert_eq!(kind_plural("device"), "devices");
         assert_eq!(kind_plural("potential_def"), "potential definitions");
+    }
+
+    fn golden() -> Session {
+        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew");
+        Session::open_read_only(&dir, "ElektraWatt test").unwrap().0
+    }
+
+    /// FT-439, ruling 4: a connection's first wire has the smallest printed number (natural order), an unnumbered wire
+    /// comes after every numbered one; the carrier ID only breaks a tie.
+    #[test]
+    fn the_first_wire_has_the_smallest_printed_number_and_unnumbered_wires_come_last() {
+        use std::cmp::Ordering::{Equal, Greater, Less};
+        assert_eq!(number_order(Some("W9"), Some("W10")), Less, "natural, not bytes");
+        assert_eq!(number_order(Some("101.2"), Some("101.10")), Less);
+        assert_eq!(number_order(Some("W10"), None), Less, "unnumbered last");
+        assert_eq!(number_order(None, Some("W1")), Greater);
+        assert_eq!(number_order(None, None), Equal);
+        // Golden A: every connection's wires in that order, and the printed number is the first wire's.
+        let s = golden();
+        let q = s.query();
+        let numbers = q.get::<WireNumbers>(());
+        let mut several = 0;
+        for (c, _) in q.connections().iter() {
+            let wires = wires_of(&q, c);
+            let labels: Vec<Option<String>> = wires
+                .iter()
+                .map(|(w, _)| numbers.number(*w).map(|n| n.label.clone()))
+                .collect();
+            assert!(
+                labels
+                    .windows(2)
+                    .all(|w| number_order(w[0].as_deref(), w[1].as_deref()) != Greater),
+                "{labels:?}"
+            );
+            if let Some(Some(first)) = labels.first() {
+                assert_eq!(&wire_number_text(&q, c), first);
+            }
+            if labels.iter().flatten().collect::<BTreeSet<_>>().len() > 1 {
+                several += 1;
+            }
+        }
+        assert!(several > 0, "Golden A has connections of several numbered wires");
+    }
+
+    /// FT-439, ruling 3: a function's label is its first connection point's label; a representation's is its first
+    /// function's; a device's is its tag.
+    #[test]
+    fn a_function_and_a_representation_are_labelled_by_their_first_connection_point() {
+        let s = golden();
+        let device = s.resolve_reference("tag:-101F1").unwrap();
+        let q = s.query();
+        let d: Id<Device> = Id::from_uuid(device);
+        let functions: Vec<Id<Function>> = q.idx().functions_of_device(d).collect();
+        assert!(!functions.is_empty());
+        for f in functions {
+            let first = q
+                .get::<ew_derive::FunctionCps>(f)
+                .iter()
+                .map(|c| c.idx)
+                .min()
+                .unwrap();
+            let label = function_label(&q, f);
+            assert_eq!(
+                label,
+                ew_derive::cp_label(
+                    &q,
+                    ew_derive::CpRef {
+                        function: f,
+                        idx: first
+                    }
+                )
+            );
+            assert!(label.starts_with("-101F1:"), "{label}");
+            assert_eq!(order_key(&q, Kind::Function, f.as_uuid(), None).0, label);
+            for r in q.idx().reps_of_function(f).collect::<Vec<_>>() {
+                let rep = q.reps().get(r).unwrap();
+                let (rep_label, place) = order_key(&q, Kind::Representation, r.as_uuid(), None);
+                assert_eq!(rep_label, function_label(&q, rep.functions[0]));
+                assert!(place.is_some(), "a drawn representation has a place");
+            }
+        }
+        assert_eq!(order_key(&q, Kind::Device, device, None).0, "-101F1");
     }
 }

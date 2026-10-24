@@ -1218,7 +1218,8 @@ pub struct JunctionWire {
 
 impl Session {
     /// The physical wires through `junction` (`physical_wires_of` of its potential, the wires whose path passes the
-    /// junction, doc 06 §5.5), in wire order: the printed number and the CP labels of both ends. Empty for an unknown
+    /// junction, doc 06 §5.5), by printed wire number, then the ends' labels, the ID last (FT-439): the printed number
+    /// and the CP labels of both ends. Empty for an unknown
     /// junction or one on no potential. Reads memoised families only.
     pub fn junction_wires(&self, junction: Uuid) -> Vec<JunctionWire> {
         let q = self.query();
@@ -1232,19 +1233,34 @@ impl Session {
         };
         let wires = q.get::<PhysicalWiresOf>(potential);
         let numbers = q.get::<WireNumbers>(());
-        wires
+        let mut out: Vec<(JunctionWire, Id<ew_derive::ew_schema::Connection>)> = wires
             .wires
             .iter()
             .filter(|w| w.junctions.contains(&j))
-            .map(|w| JunctionWire {
-                label: numbers
-                    .number(w.id)
-                    .map_or_else(|| "?".to_owned(), |n| n.label.clone()),
-                from: cp_label(&q, w.ends[0].cp),
-                to: cp_label(&q, w.ends[1].cp),
+            .map(|w| {
+                let wire = JunctionWire {
+                    label: numbers
+                        .number(w.id)
+                        .map_or_else(|| "?".to_owned(), |n| n.label.clone()),
+                    from: cp_label(&q, w.ends[0].cp),
+                    to: cp_label(&q, w.ends[1].cp),
+                };
+                (wire, w.id)
             })
-            .collect()
+            .collect();
+        out.sort_by(|(a, ia), (b, ib)| junction_wire_order(a, b).then_with(|| ia.cmp(ib)));
+        out.into_iter().map(|(w, _)| w).collect()
     }
+}
+
+/// The order of the junction editor's wires (FT-439): the printed wire number (natural order, then its bytes), then
+/// the first end's label, then the second's; the caller breaks a remaining tie by wire ID. Never the carrier ID alone:
+/// a split mints its new half and the new wire in one transaction, in no visible order.
+fn junction_wire_order(a: &JunctionWire, b: &JunctionWire) -> std::cmp::Ordering {
+    let text = |x: &str, y: &str| ew_mltext::natural_cmp(x, y).then_with(|| x.cmp(y));
+    text(&a.label, &b.label)
+        .then_with(|| text(&a.from, &b.from))
+        .then_with(|| text(&a.to, &b.to))
 }
 
 #[cfg(test)]

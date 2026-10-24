@@ -9,7 +9,8 @@
 //! page tables, a junction, a point on a connection segment (the grid point of the segment nearest to the pointer;
 //! a coordinate of the segment that is off the grid is the segment's own, the CP-exact coordinate
 //! `require_split_point` accepts), else the grid point. Alt suppresses the object snaps. Ties by the smaller
-//! distance, then for a CP by its label and then the smaller ID (FT-439), for a junction by the smaller ID (two
+//! distance, then for a CP the first in the page tables' order (natural label, its bytes, (y, x), ID; FT-439), for a
+//! junction by the smaller ID (two
 //! junctions are never at one point); for a segment the larger connection ID, which is the
 //! later in paint order (connections paint in ID order, so the one on top) and, for the time-ordered UUIDv7 IDs a
 //! session mints, the wire drawn last; WP-S2.02's pick breaks a tie the same way. Wires the Wire tool draws are
@@ -245,20 +246,15 @@ pub fn resolve_target(cx: &ToolCx<'_>, at: (i64, i64), alt: bool) -> WireTarget 
     let limit = reach * reach;
     let d2 = |p: (i64, i64)| super::dist2(cx.snapper.page_to_sheet(p), at);
     // 1. A connection point.
-    // Ties by label, then ID (FT-439): the CP named in the transcript is one a person can tell apart.
-    let mut best: Option<(i128, EntityRef, &ew_api::output::TableCp)> = None;
+    // A tie keeps the first CP in the page tables' order (natural label, its bytes, (y, x), ID; FT-439).
+    let mut best: Option<(i128, &ew_api::output::TableCp)> = None;
     for cp in &tables.cps {
         let d = d2(cp.at);
-        let id = EntityRef(cp.id);
-        if d <= limit
-            && best.is_none_or(|(bd, bid, b)| {
-                d < bd || (d == bd && (cp.label.as_str(), id) < (b.label.as_str(), bid))
-            })
-        {
-            best = Some((d, id, cp));
+        if d <= limit && best.is_none_or(|(bd, _)| d < bd) {
+            best = Some((d, cp));
         }
     }
-    if let Some((_, _, cp)) = best {
+    if let Some((_, cp)) = best {
         return WireTarget::Cp {
             function: EntityRef(cp.function),
             idx: cp.idx,

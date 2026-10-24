@@ -787,7 +787,7 @@ below).
   that selects a record it created by a label or by a single alias gives byte-identical transcripts on two runs (the
   folio-101 wiring test proves it). **Ordering rule (FT-439, decision log ID-640):** wherever shell output lists
   records it orders them by what a person sees and a replay reproduces (the printed label, else the place: page, then
-  y, then x, else first appearance), the ID only as the last key, so an alias names the same record in every replay;
+  y, then x, a record drawn nowhere after the drawn ones), the ID only as the last key, so an alias names the same record in every replay;
   `ew-viewmodel`'s test `replay_order` runs one creating script under ascending and descending new IDs and compares
   both.
 - **Specified (cycle 25, WP-S6.13; decision log ID-610 to ID-619, the fix round ID-621 to ID-624).** The

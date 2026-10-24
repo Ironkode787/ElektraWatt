@@ -228,6 +228,12 @@ fn steps(dir: &str, p: &Points) -> Vec<(String, Value)> {
         ("canvas.pointer", at(p.band_102[1])),
         ("canvas.release", at(p.band_102[1])),
         ("ui.describe", json!({})),
+        // The new junction alone, its editor: the wires through it listed by printed number, then ends.
+        ("canvas.press", at(p.split)),
+        ("canvas.release", at(p.split)),
+        ("junction.open", json!({})),
+        ("ui.describe", json!({})),
+        ("ui.dismiss", json!({})),
         ("file.save", json!({})),
     ];
     list.into_iter().map(|(a, v)| (a.to_owned(), v)).collect()
@@ -344,6 +350,14 @@ fn one_script_under_ascending_and_descending_ids_prints_the_same_bytes_and_recor
         a.contains("editing \\\"device/parts\\\" buffer"),
         "the set-all buffer is described"
     );
+    // The junction editor of the split's junction lists the wires through it (`  wire "<n>" from … end …`).
+    let editor: Vec<&str> = a
+        .lines()
+        .skip(1)
+        .filter(|l| l.contains("\"action\":\"ui.describe\"") && l.contains("  wire \\\""))
+        .collect();
+    assert_eq!(editor.len(), 1, "the junction editor is described once");
+    assert!(editor[0].matches("  wire \\\"").count() >= 2, "{}", editor[0]);
     assert_eq!(a, b, "byte-identical transcripts");
     assert_eq!(prints_a.len(), prints_b.len());
     for (n, (x, y)) in prints_a.iter().zip(&prints_b).enumerate() {

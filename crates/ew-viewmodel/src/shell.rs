@@ -360,10 +360,11 @@ pub struct ShellModel {
     aliases: std::cell::RefCell<crate::alias::AliasTable>,
     /// The source of new record IDs for the sessions the shell opens or creates: `None` (the system clock and OS
     /// entropy) except in a test that replays one script under different IDs (FT-439's guard, feature `testkit`).
-    id_source: Option<IdSourceFactory>,
+    id_source: Option<fn() -> Box<dyn IdSource + Send>>,
 }
 
 /// A maker of [`IdSource`]s for `ShellModel::set_id_source_for_tests` (feature `testkit`).
+#[cfg(feature = "testkit")]
 pub type IdSourceFactory = fn() -> Box<dyn IdSource + Send>;
 
 /// The directory's own name, never its path.
