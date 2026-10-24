@@ -472,6 +472,10 @@ impl App {
         for event in events {
             self.apply(event);
         }
+        // WP-S2.05 part 3: what a copy wrote goes to the system clipboard (egui's `copy_text`).
+        if let Some(text) = self.shell.take_clipboard_outbox() {
+            ctx.copy_text(text);
+        }
         if (self.shell.revision(), self.shell.tool_overlay().len()) != marks_before {
             ctx.request_repaint();
             ctx.request_repaint_after(Duration::from_millis(100));
@@ -572,6 +576,37 @@ impl App {
                 };
                 events.push(Event::Action(action, Value::Null));
                 return;
+            }
+        }
+        // WP-S2.05 part 3: the platform layer turns Ctrl+C, Ctrl+X and Ctrl+V into clipboard events, not key presses
+        // (egui-winit); on the canvas they run the clipboard actions, a paste with the system clipboard's text. A text
+        // field never gets here (the return above), so the grid and the find pane keep egui's own copy and paste.
+        if focused == Context::Canvas && !palette_open {
+            let clip = ctx.input_mut(|i| {
+                let mut hit = None;
+                i.events.retain(|e| match e {
+                    egui::Event::Copy | egui::Event::Cut | egui::Event::Paste(_) if hit.is_none() => {
+                        hit = Some(e.clone());
+                        false
+                    }
+                    _ => true,
+                });
+                hit
+            });
+            match clip {
+                Some(egui::Event::Copy) => {
+                    events.push(Event::Action("edit.copy", Value::Null));
+                    return;
+                }
+                Some(egui::Event::Cut) => {
+                    events.push(Event::Action("edit.cut", Value::Null));
+                    return;
+                }
+                Some(egui::Event::Paste(text)) => {
+                    events.push(Event::Action("edit.paste_clip", json!({ "text": text })));
+                    return;
+                }
+                _ => {}
             }
         }
         // One list over the focused context and the global one, most modifiers first (egui matches an extra Shift
