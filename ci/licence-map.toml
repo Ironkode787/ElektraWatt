@@ -352,6 +352,19 @@ allowed = ["GPL-3.0-or-later"]
 glob = "docs/book/src/reference/rules/**"
 allowed = ["GPL-3.0-or-later"]
 
+# The blind drafter's files (WP-S6.13, ID-622, FT-415): the prompts, personas, task sheets, recordings and the harness
+# help are prose and data written for agents, CC-BY-4.0 like docs/ (L9); the generated reference files under
+# tools/blind/reference/ are made of ew-viewmodel's strings (the action labels and the describe vocabulary), so they
+# keep that crate's licence, as the generated command and rule pages do (the docs-gen precedent). The harness code is
+# xtask's (xtask/**, MIT OR Apache-2.0). The longer glob beats `tools/blind/**`; REUSE.toml annotates the same paths.
+[[path]]
+glob = "tools/blind/**"
+allowed = ["CC-BY-4.0"]
+
+[[path]]
+glob = "tools/blind/reference/**"
+allowed = ["GPL-3.0-or-later"]
+
 [[path]]
 glob = "*.md"
 allowed = ["CC-BY-4.0"]
