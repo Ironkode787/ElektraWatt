@@ -284,6 +284,22 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         self.run("fields.set_many", json!({ "edits": edits })).map(|_| ())
     }
 
+    // WP-S2.05 part 3
+    /// `edit.paste` (WP-S2.05 part 3): pastes `fragment` (the command's `fragment` member, what
+    /// `ew_api::output::parse_fragment` reads from clipboard text) onto `page` with its anchor at `at` (nm, a grid point
+    /// of the page).
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn paste(&mut self, page: AnyId, at: [i64; 2], fragment: Value) -> Result<()> {
+        self.run(
+            "edit.paste",
+            json!({"page": page, "at": at, "fragment": fragment}),
+        )
+        .map(|_| ())
+    }
+
     /// `fields.set` of each remaining member of `rest` that is in `settable`; the others are noted as not
     /// written under `<kind>.<member>`.
     fn set_rest(&mut self, kind: &str, id: AnyId, rest: Map<String, Value>, settable: &[&str]) -> Result<()> {
@@ -1350,6 +1366,28 @@ mod tests {
             json!({"edits": [
                 {"kind": "device", "targets": [a], "path": "function_text", "value": "Spare"},
                 {"kind": "page", "targets": [b], "path": "title", "value": "Main"}]})
+        );
+    }
+
+    // WP-S2.05 part 3
+    /// `paste` issues one `edit.paste` with the fragment as given.
+    #[test]
+    fn paste_issues_one_command_with_the_fragment() {
+        let mut seen: Vec<(String, Value)> = Vec::new();
+        let mut sink = |name: &str, params: Value| {
+            seen.push((name.to_owned(), params));
+            Ok(Done::default())
+        };
+        let page = AnyId::from_uuid(ew_ids::Uuid::from_u128(3));
+        let fragment = json!({"format": "0.1", "records": []});
+        let mut builder = Builder::new(&mut sink);
+        builder.paste(page, [10, 20], fragment.clone()).unwrap();
+        drop(builder);
+        assert_eq!(seen.len(), 1);
+        assert_eq!(seen[0].0, "edit.paste");
+        assert_eq!(
+            seen[0].1,
+            json!({"page": page, "at": [10, 20], "fragment": fragment})
         );
     }
 }

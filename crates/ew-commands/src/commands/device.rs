@@ -569,7 +569,7 @@ pub struct MoveReps {
 }
 
 /// `round(k × num / den)`, halves away from zero, saturating (the nm length of `k` grid steps).
-fn steps_nm(grid: Grid, k: i64) -> i64 {
+pub(crate) fn steps_nm(grid: Grid, k: i64) -> i64 {
     let num = i128::from(k) * i128::from(grid.num());
     let den = i128::from(grid.den());
     let q = num / den;
@@ -579,7 +579,7 @@ fn steps_nm(grid: Grid, k: i64) -> i64 {
 }
 
 /// The grid position `k` steps from the grid position `x`; `None` on overflow.
-fn step_axis(grid: Grid, x: Nm, k: i64) -> Option<Nm> {
+pub(crate) fn step_axis(grid: Grid, x: Nm, k: i64) -> Option<Nm> {
     grid.at(grid.snap(x).checked_add(k)?)
 }
 
@@ -699,7 +699,7 @@ impl MoveReps {
 /// CPs' new positions; an interior coordinate equal to an end CP's old coordinate moves with that CP (end `a`
 /// first), one on the grid by the steps, any other by the steps' rounded nm length; a segment whose two coordinates
 /// part by the moves keeps its axis with a jog. On [`OutOfRange`] the route is unchanged.
-fn step_route(
+pub(crate) fn step_route(
     route: &mut Vec<Pt2>,
     grid: Grid,
     steps: [i64; 2],

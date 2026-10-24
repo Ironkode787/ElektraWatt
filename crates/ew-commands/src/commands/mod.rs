@@ -52,6 +52,7 @@
 //! | `rep.exchange_symbol` | [`ExchangeSymbol`] | Interactive |
 //! | `project.drawing.set` | [`SetDrawing`] | Interactive |
 //! | `fields.set_many` | [`SetManyFields`] | Interactive; Bulk above 500 targets |
+//! | `edit.paste` | [`PasteFragment`] | Interactive; Bulk above 500 records |
 //!
 //! Every command is of stability `Preview` and undoable except `project.assets.purge`, a marker line whose file side
 //! (deleting asset files nothing names) runs in the session (ADR-0008 amendment 1, FT-380); every one is of exposure
@@ -73,6 +74,8 @@ mod frames;
 mod languages;
 pub(crate) mod library;
 mod page;
+// WP-S2.05 part 3
+mod paste;
 mod plc;
 mod renumber;
 mod revision;
@@ -102,6 +105,8 @@ pub use frames::{FRAMES_MEMBER, FrameForPageType, SetFrameDefaults};
 pub use languages::SetProjectLanguages;
 pub use library::{EmbedLibraryCopies, library_copy_hash};
 pub use page::{CreatePage, DeletePages, PageScope, RenumberPages};
+// WP-S2.05 part 3
+pub use paste::{Fragment, FragmentNode, PASTE_KINDS, PASTE_MAX_RECORDS, PasteFragment};
 pub use plc::{BindChannel, CreatePlcConfigProject, SetModulePart};
 pub use renumber::{DeviceScope, NumberingScheme, RenumberDevices, RenumberOptions};
 pub use revision::{CreateRevision, NewRevisionState, RevisionPageNote};
@@ -164,4 +169,6 @@ pub fn register_all(r: &mut CommandRegistry) {
     r.register::<SetDrawing>();
     // WP-S2.05 part 2
     r.register::<SetManyFields>();
+    // WP-S2.05 part 3
+    r.register::<PasteFragment>();
 }

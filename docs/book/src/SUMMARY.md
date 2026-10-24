@@ -28,6 +28,7 @@
     - [`device.link`](reference/commands/device.link.md)
     - [`device.place`](reference/commands/device.place.md)
     - [`edit.delete`](reference/commands/edit.delete.md)
+    - [`edit.paste`](reference/commands/edit.paste.md)
     - [`external_ref.create`](reference/commands/external_ref.create.md)
     - [`fields.set`](reference/commands/fields.set.md)
     - [`fields.set_many`](reference/commands/fields.set_many.md)

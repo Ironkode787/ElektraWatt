@@ -98,6 +98,12 @@ pub const ARMS: &[Arm] = &[
         weight: 3,
         build: edit_delete,
     },
+    // WP-S2.05 part 3
+    Arm {
+        command: "edit.paste",
+        weight: 3,
+        build: edit_paste,
+    },
     Arm {
         command: "external_ref.create",
         weight: 2,
@@ -749,6 +755,72 @@ fn fields_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 )
             }
         }
+    }
+}
+
+// WP-S2.05 part 3
+/// `edit.paste`: a fragment of one new device with its main function drawn by an embedded symbol on a page that takes
+/// it, pasted at a grid point of that page (the copies are held, so nothing is embedded); refused: no record, another
+/// grid, a point off the grid, a record of a kind that is not pasted, and a representation whose function is not in
+/// the fragment (a mandatory reference).
+fn edit_paste(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let pages = pages_taking_reps(live);
+    let page = *rng.pick(&pages)?;
+    let fits: Vec<&SymInfo> = live
+        .symbols
+        .iter()
+        .filter(|s| s.fndef.is_some() && allowed(&page.kind).contains(&s.rep_type.as_str()))
+        .collect();
+    let symbol = *rng.pick(&fits)?;
+    let (d, f, r) = (rng.uuid(), rng.uuid(), rng.uuid());
+    let anchor = on_page(page, rng);
+    let at = on_page(page, rng);
+    let device =
+        json!({"$k": "device", "id": d, "tag": {"letter": letter(rng), "counter": 1 + rng.below(9)}});
+    let function = json!({"$k": "function", "id": f, "device": d, "def": symbol.fndef});
+    let rep = json!({"$k": "representation", "id": r, "functions": [f], "page": page.id, "symbol": symbol.id,
+        "pos": anchor});
+    let fragment = |records: Vec<Value>, grid: (u64, u64)| {
+        json!({"format": "0.1", "project": live.fixture.project_id, "grid": [grid.0, grid.1],
+            "page_kind": page.kind, "anchor": anchor, "records": records, "copies": [], "nodes": []})
+    };
+    let params = |at: &Value, fragment: Value| json!({"page": page.id, "at": at, "fragment": fragment});
+    let all = || vec![device.clone(), function.clone(), rep.clone()];
+    match rng.below(10) {
+        0 => Some(Step::cmd("edit.paste", params(&at, fragment(Vec::new(), page.grid))).refuse()),
+        1 => {
+            let other = if page.grid == (4_000_000, 1) {
+                (7_937_500, 3)
+            } else {
+                (4_000_000, 1)
+            };
+            Some(Step::cmd("edit.paste", params(&at, fragment(all(), other))).refuse())
+        }
+        2 => {
+            let off = json!([at[0].as_i64()? + 1, at[1]]);
+            Some(Step::cmd("edit.paste", params(&off, fragment(all(), page.grid))).refuse())
+        }
+        3 => {
+            let foreign = json!({"$k": "no_such_kind", "id": rng.uuid()});
+            Some(Step::cmd("edit.paste", params(&at, fragment(vec![foreign], page.grid))).refuse())
+        }
+        4 => Some(
+            Step::cmd(
+                "edit.paste",
+                params(&at, fragment(vec![device.clone(), rep.clone()], page.grid)),
+            )
+            .refuse(),
+        ),
+        _ => Some(
+            Step::cmd("edit.paste", params(&at, fragment(all(), page.grid)))
+                .accept()
+                .counts(&[
+                    (Table::Reps, 1),
+                    (Table::Functions, 1),
+                    (Table::Devices, 1),
+                    (Table::Connections, 0),
+                ]),
+        ),
     }
 }
 

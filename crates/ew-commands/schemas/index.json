@@ -139,6 +139,17 @@
       "confirmation": "none",
       "cost": "interactive",
       "exposure": "edit",
+      "name": "edit.paste",
+      "params_version": 1,
+      "schema": "edit.paste.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
       "name": "external_ref.create",
       "params_version": 1,
       "schema": "external_ref.create.schema.json",

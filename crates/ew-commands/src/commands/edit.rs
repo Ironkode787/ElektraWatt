@@ -1,8 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `edit.delete`: deletes a selection (doc 06 §3.4, §3.6). `edit.paste` is not in v0 (fragments and
-//! paste options arrive with WP-S1.13).
+//! `edit.delete`: deletes a selection (doc 06 §3.4, §3.6). `edit.paste` lives in `paste.rs` (WP-S2.05 part 3).
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
