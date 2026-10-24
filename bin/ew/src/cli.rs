@@ -1503,12 +1503,25 @@ fn run_check(a: &CheckArgs) -> i32 {
             return 2;
         }
     };
-    // `--scheme`, else the scheme the project names for the mode (FT-366), else the shipped default.
+    // `--scheme`, else the scheme the project names for the mode (FT-366), else the shipped default. A project naming a
+    // scheme this build does not ship (a newer writer, a hand edit) gets the default and a notice; the exit status is
+    // the check's (FT-405, decision log ID-602).
     let sch = match &a.scheme {
         Some(name) => scheme(name),
-        None => session
-            .project_check_scheme(a.mode)
-            .or_else(|| scheme("pre-delivery")),
+        None => {
+            let named = session.project_check_scheme_name(a.mode);
+            match named.as_deref().and_then(scheme) {
+                Some(sch) => Some(sch),
+                None => {
+                    if let Some(name) = &named {
+                        eprintln!(
+                            "notice: project scheme '{name}' is not shipped by this build; using pre-delivery"
+                        );
+                    }
+                    scheme("pre-delivery")
+                }
+            }
+        }
     };
     let Some(sch) = sch else {
         eprintln!(

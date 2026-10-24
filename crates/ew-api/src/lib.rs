@@ -739,19 +739,25 @@ impl Session {
     /// `ew check`), `active_scheme` for [`checks::CheckMode::Online`]. `None` when the project names none or
     /// names a scheme that does not ship (a newer or damaged file): the caller's default applies.
     pub fn project_check_scheme(&self, mode: checks::CheckMode) -> Option<&'static checks::Scheme> {
+        checks::scheme(&self.project_check_scheme_name(mode)?)
+    }
+
+    /// The name the project gives the check scheme of a run in `mode` (the member [`Session::project_check_scheme`]
+    /// reads), whether or not this build ships it; `None` when the project names none. `ew check` prints a notice for
+    /// a name this build does not ship before it falls back to `pre-delivery` (FT-405, decision log ID-602).
+    pub fn project_check_scheme_name(&self, mode: checks::CheckMode) -> Option<String> {
         let member = match mode {
             checks::CheckMode::Release => "release_scheme",
             checks::CheckMode::Online => "active_scheme",
         };
         let q = self.query();
-        let name = q
-            .project()
+        q.project()
             .settings
             .extra
             .get(ew_commands::commands::CHECKS_MEMBER)?
             .get(member)?
-            .as_str()?;
-        checks::scheme(name)
+            .as_str()
+            .map(str::to_owned)
     }
 
     /// Runs the check scheme `scheme` in `mode` over the current snapshot through the session's memo store

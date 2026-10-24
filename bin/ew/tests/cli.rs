@@ -304,6 +304,66 @@ fn check_uses_the_schemes_the_project_names() {
     assert_eq!(v["scheme"], "pre-delivery");
 }
 
+/// FT-405 (decision log ID-602): a project naming a scheme this build does not ship (a newer writer, a hand edit) is
+/// checked with `pre-delivery` and a notice on stderr naming the scheme; the exit status is the check's own, the same
+/// as for the project without the slot. A shipped name in the other slot, or `--scheme`, prints no notice.
+#[test]
+fn check_notices_a_project_scheme_this_build_does_not_ship() {
+    let t = Tmp::new();
+    let dir = t.0.join("unshipped.ew");
+    copy_dir(std::path::Path::new(GOLDEN_A), &dir);
+    let file = dir.join("project.jsonl");
+    let text = std::fs::read_to_string(&file).unwrap();
+    let (first, rest) = text.split_once('\n').unwrap();
+    let mut record: serde_json::Value = serde_json::from_str(first).unwrap();
+    record["settings"]["checks"] =
+        serde_json::json!({"release_scheme": "strict-2031", "active_scheme": "drafting"});
+    std::fs::write(&file, format!("{record}\n{rest}")).unwrap();
+    let run = |project: &std::path::Path, extra: &[&str]| {
+        let mut args: Vec<&std::ffi::OsStr> = vec![
+            "check".as_ref(),
+            project.as_os_str(),
+            "--format".as_ref(),
+            "json".as_ref(),
+        ];
+        args.extend(extra.iter().map(|a| std::ffi::OsStr::new(*a)));
+        let o = ew(&args);
+        let v: serde_json::Value = serde_json::from_str(&stdout(&o)).unwrap();
+        (
+            o.status.code(),
+            v["scheme"].as_str().unwrap().to_owned(),
+            String::from_utf8_lossy(&o.stderr).into_owned(),
+        )
+    };
+    const NOTICE: &str = "project scheme 'strict-2031' is not shipped by this build; using pre-delivery";
+    let (code, scheme, stderr) = run(&dir, &[]);
+    assert_eq!(scheme, "pre-delivery");
+    assert!(stderr.contains(NOTICE), "{stderr}");
+    let (golden_code, _, golden_err) = run(std::path::Path::new(GOLDEN_A), &[]);
+    assert_eq!(code, golden_code, "the exit status is unchanged");
+    assert!(matches!(code, Some(0 | 1)), "{stderr}");
+    assert!(!golden_err.contains("not shipped"), "{golden_err}");
+    // Mode `online` reads the shipped `active_scheme`; `--scheme` reads no slot: no notice either way.
+    let (_, scheme, stderr) = run(&dir, &["--mode", "online"]);
+    assert_eq!(scheme, "drafting");
+    assert!(!stderr.contains("not shipped"), "{stderr}");
+    let (_, scheme, stderr) = run(&dir, &["--scheme", "full"]);
+    assert_eq!(scheme, "full");
+    assert!(!stderr.contains("not shipped"), "{stderr}");
+    // An unshipped `active_scheme` is noticed in mode `online`.
+    let text = std::fs::read_to_string(&file).unwrap();
+    let (first, rest) = text.split_once('\n').unwrap();
+    let mut record: serde_json::Value = serde_json::from_str(first).unwrap();
+    record["settings"]["checks"] = serde_json::json!({"active_scheme": "live-2031"});
+    std::fs::write(&file, format!("{record}\n{rest}")).unwrap();
+    let (_, scheme, stderr) = run(&dir, &["--mode", "online"]);
+    assert_eq!(scheme, "pre-delivery");
+    assert!(
+        stderr.contains("project scheme 'live-2031' is not shipped by this build; using pre-delivery"),
+        "{stderr}"
+    );
+}
+
 #[test]
 fn check_markdown_title() {
     let o = ew(&[
