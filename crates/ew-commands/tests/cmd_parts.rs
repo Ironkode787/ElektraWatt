@@ -10,7 +10,7 @@ mod common;
 
 use common::*;
 use ew_commands::commands::{ImportParts, import_counts};
-use ew_commands::{CmdError, Cost, Engine, Receipt};
+use ew_commands::{CmdError, Cost, Engine, Origin, Receipt};
 use ew_schema::{Kind, LibCopy, LibDocument, Part};
 use serde_json::{Value, json};
 
@@ -90,9 +90,9 @@ fn a_second_import_skips_every_key_and_undo_removes_the_first() {
     let r = import(&mut e, std::mem::take(&mut six)).unwrap();
     assert_eq!(r.outcome.note.as_deref().and_then(import_counts), Some((1, 5)));
     // The all-skipped import changed nothing and is no undo step.
-    e.undo().unwrap();
+    e.undo(&Origin::Gui).unwrap();
     assert_eq!(parts(&e), before + 5);
-    e.undo().unwrap();
+    e.undo(&Origin::Gui).unwrap();
     assert_eq!(parts(&e), before);
 }
 

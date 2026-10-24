@@ -14,7 +14,7 @@ use common::fixture::*;
 use common::*;
 use ew_commands::commands::{ArrangeIps, DrawToIp, EndpointParam, IpAtEnd, ReshapeBox};
 use ew_commands::geometry::point_on_grid;
-use ew_commands::{CmdError, Engine, Receipt};
+use ew_commands::{CmdError, Engine, Origin, Receipt};
 use ew_ids::{Id, Uuid};
 use ew_model::{Entity, Model};
 use ew_schema::{
@@ -232,7 +232,7 @@ fn draw_to_ip_from_a_cp_creates_function_representation_and_connection_in_one_un
     assert_eq!(c.number, ew_schema::NumberSpec::default());
     assert_eq!(r.created.len(), 3, "function, representation, connection");
     // One undo removes all of it.
-    e.undo().expect("undo");
+    e.undo(&Origin::Gui).expect("undo");
     assert_eq!(lines(e.model()), before);
     assert!(!has(&e, f.id));
     assert!(!has(&e, reps[0].id));
@@ -273,7 +273,7 @@ fn draw_to_ip_from_a_point_on_a_connection_splits_it_at_a_new_junction() {
     assert_eq!(c.b, cp(ips[0].id, 0));
     assert_eq!(c.route, vec![pt(2 * G, 0), pt(2 * G, 3 * G)]);
     // One undo.
-    e.undo().expect("undo");
+    e.undo(&Origin::Gui).expect("undo");
     assert_eq!(lines(e.model()), before);
 }
 
@@ -445,7 +445,7 @@ fn arrange_ips_gives_each_its_slot_in_the_new_order_and_routes_follow() {
     assert_eq!(sort_of(&e, IP_B), None);
     assert_eq!(sort_of(&e, IP_C), Some(1));
     // One undo.
-    e.undo().expect("undo");
+    e.undo(&Origin::Gui).expect("undo");
     assert_eq!(lines(e.model()), before);
 }
 
@@ -614,7 +614,7 @@ fn reshape_with_cps_replaces_the_outline_and_the_cps_and_routes_follow() {
     assert_eq!(w29[0], at_box(pt(grid_at(14).0, grid_at(12).0)));
     assert_eq!(*w29.last().expect("vertex"), pt(9 * G, 7 * G));
     assert!(orthogonal(&w29), "{w29:?}");
-    e.undo().expect("undo");
+    e.undo(&Origin::Gui).expect("undo");
     assert_eq!(lines(e.model()), before);
 }
 
@@ -649,7 +649,7 @@ fn reshape_without_cps_widening_keeps_top_and_bottom_cps_where_they_are() {
     assert_eq!(w29[0], at_box(bottom.pos));
     assert_eq!(*w29.last().expect("vertex"), pt(9 * G, 7 * G));
     assert!(orthogonal(&w29), "{w29:?}");
-    e.undo().expect("undo");
+    e.undo(&Origin::Gui).expect("undo");
     assert_eq!(lines(e.model()), before);
     // A corner drag (the bottom-right corner two steps right and two down): the bottom CP keeps its x and follows its
     // edge down; the top CP stays.

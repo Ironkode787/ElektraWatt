@@ -11,7 +11,9 @@ use std::collections::BTreeSet;
 use std::path::Path;
 
 use ew_api::output::{CopyError, FragmentError, parse_fragment};
-use ew_api::{AnyCommand, CmdError, NewProjectKind, ProjectTemplate, Receipt, Session, SessionOptions};
+use ew_api::{
+    AnyCommand, CmdError, NewProjectKind, Origin, ProjectTemplate, Receipt, Session, SessionOptions,
+};
 use ew_commands::testkit::seeded_ids;
 use ew_ids::{Id, Uuid};
 use ew_schema::{Device, Kind, TagScheme};
@@ -612,8 +614,8 @@ fn cb3_copies_are_embedded_once_and_undone_with_the_records() {
     // A second paste reuses what the first embedded.
     let again = paste(&mut w, "1", at_steps(&frag, (0, 30)), &frag).unwrap();
     assert!(created(&again, Kind::Part).is_empty());
-    w.undo().unwrap();
-    w.undo().unwrap();
+    w.undo(&Origin::Gui).unwrap();
+    w.undo(&Origin::Gui).unwrap();
     let after = (
         w.query().parts().len(),
         w.query().symbols().len(),

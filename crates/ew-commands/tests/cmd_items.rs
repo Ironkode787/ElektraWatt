@@ -16,7 +16,7 @@ use ew_commands::commands::{
     ItemKindParam, KindName, MarkerModeParam, MoveReps, PlaceItem, PlaceMarker, SetDrawing, SetFields,
     SetProjectSettings, ShapeParam, StrokeParam, TargetRef,
 };
-use ew_commands::{CmdError, Engine};
+use ew_commands::{CmdError, Engine, Origin};
 use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
 use ew_model::Model;
@@ -202,7 +202,7 @@ fn item_place_places_every_shape_and_free_texts() {
     assert_eq!(t.bind.as_ref().map(Ident::as_str), Some("project.description"));
     let plain = place(&mut e, &text("40x60", None, 270_000));
     assert_eq!(e.model().table::<PageItem>().len(), 9);
-    e.undo().expect("undo");
+    e.undo(&Origin::Gui).expect("undo");
     assert!(e.model().table::<PageItem>().get(&plain).is_none());
 }
 
@@ -307,7 +307,7 @@ fn marker_place_sets_overrides_and_lists_the_connections() {
         serde_json::to_value(&conn(&e, CON_W22).overrides.colour).unwrap(),
         json!(["GN", "YE"])
     );
-    e.undo().unwrap();
+    e.undo(&Origin::Gui).unwrap();
     for (c, b) in [CON_W22, CON_W27].iter().zip(before) {
         assert_eq!(conn(&e, *c), b);
     }
@@ -605,7 +605,7 @@ fn a_cross_page_move_unlinks_the_old_pages_markers() {
         e.model().table::<PageItem>().get(&marker_id).is_none(),
         "the marker left empty goes"
     );
-    e.undo().expect("undo");
+    e.undo(&Origin::Gui).expect("undo");
     let PageItemKind::WireMarker(w) = &item(&e, marker_id).kind else {
         panic!("a marker");
     };
@@ -838,7 +838,7 @@ fn an_edit_of_a_stale_marker_writes_a_clean_list() {
         panic!("a marker");
     };
     assert_eq!(w.connections, vec![CON_W22]);
-    e.undo().expect("undo restores the stale list");
+    e.undo(&Origin::Gui).expect("undo restores the stale list");
 }
 
 // ---------------------------------------------------------------------------------------------------------
