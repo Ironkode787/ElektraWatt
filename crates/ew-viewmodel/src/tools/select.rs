@@ -5,8 +5,8 @@
 //! transforms; doc 06 §4.3).
 //!
 //! A press is classified by the pick of WP-S2.04 §6.6 in this order: a link; a segment of a **selected** connection
-//! that is neither its first nor its last segment (part 2, §8.4); a **movable** entity (a representation); any other
-//! entity (a connection, a junction); empty canvas.
+//! that is neither its first nor its last segment (part 2, §8.4); a **movable** entity (a representation, and from
+//! WP-S2.04 part 4b a page item or a structure box); any other entity (a connection, a junction); empty canvas.
 //!
 //! | State | Event (condition) | Next | Output |
 //! |---|---|---|---|
@@ -19,15 +19,15 @@
 //! | idle | press on another entity | pressed (other) | `None` |
 //! | idle | press on empty canvas | rubber-band | `Transient` (the band) |
 //! | pressed (either) | release within 3 points | idle | `Select`: replace with the entity; Shift adds; Ctrl toggles |
-//! | pressed (movable) | move beyond 3 points | dragging | `Transient`: the ghost of the moved entities' rectangles offset by the step displacement, rubber bands and the readout; the moved set is the selection's representations when the pressed entity is selected, else the pressed entity alone |
+//! | pressed (movable) | move beyond 3 points | dragging | `Transient`: the ghost of the moved entities' rectangles offset by the step displacement, rubber bands and the readout; the moved set is the selection's movable entities when the pressed entity is selected, else the pressed entity alone |
 //! | pressed (other) | move beyond 3 points | rubber-band | `Transient` |
 //! | rubber-band | move | rubber-band | `Transient`: solid while the drag goes right (encloses), dashed left (touches) |
 //! | rubber-band | release | idle | `Select`: left to right the entities inside the band, right to left those that touch it; Shift adds |
 //! | dragging | move | dragging | `Transient`; steps `k = round(page displacement × den / num)` per axis |
-//! | dragging | `Dwell { ms ≥ 80 }` | dragging | `Preview(rep.move {reps, steps})` when the steps are not zero |
-//! | dragging | release | idle | `Commit(rep.move {reps, steps})` when the steps are not zero, else `Select` (as a click) |
+//! | dragging | `Dwell { ms ≥ 80 }` | dragging | `Preview(rep.move {reps, items, steps})` when the steps are not zero |
+//! | dragging | release | idle | `Commit(rep.move {reps, items, steps})` when the steps are not zero, else `Select` (as a click) |
 //! | dragging or moving | `Escape` | idle | `Cancel` |
-//! | idle with representations selected | [`SelectTool::start_move`] (M) | moving | `Transient`; the host puts the grid cursor on the primary entity's insertion point first |
+//! | idle with movable entities selected | [`SelectTool::start_move`] (M) | moving | `Transient`; the host puts the grid cursor on the primary entity's anchor first |
 //! | moving | `CursorMove` | moving | steps = the cursor's grid displacement since M; `Transient` |
 //! | moving | `Dwell`, `Activate` | moving, idle | as dragging: `Preview`, `Commit` (zero steps: `Cancel`) |
 //! | idle with representations selected | `Key(RotateCw, RotateCcw, MirrorX, MirrorY, NextVariant)` | idle | `Commit(rep.transform …)` (§7.4; V on exactly one) |
@@ -40,9 +40,10 @@
 //! CP with `cps`, the CP at the grid point of the outline nearest to the pointer); a release without a move is a
 //! click on the box; Escape cancels.
 //!
-//! Connections and junctions in a selection are never moved. Picking uses WP-S2.02's entity rectangles (an entity
-//! may have several: it lies inside a band when all do, and touches it when one does) plus the exact segment
-//! distance of connections (§6.6). A release on empty canvas within 3 points clears the selection (Shift keeps it).
+//! Connections and junctions in a selection are never moved; the movable entities are representations, page items and
+//! structure boxes. Picking uses WP-S2.02's entity rectangles (an entity may have several: it lies inside a band
+//! when all do, and touches it when one does) plus the exact segment distance of connections and structure-box
+//! outlines (§6.6). A release on empty canvas within 3 points clears the selection (Shift keeps it).
 
 use ew_api::output::ew_dl::ew_units::Rect;
 use ew_api::output::ew_dl::{Destination, EntityRef};
@@ -50,7 +51,7 @@ use ew_api::output::ew_dl::{Destination, EntityRef};
 use super::black_box;
 use super::move_keys::{move_command, move_overlay, moved_set, readout, steps_between};
 use super::route_edit::{moved_route, route_command, segment_at, segment_overlay, segment_steps};
-use super::transform::{selected_reps, transform_command};
+use super::transform::{selected_movable, selected_reps, transform_command};
 use super::wire::PageGridMap;
 use super::{
     Button, CanvasEvent, EntityKind, Ghost, Mods, Overlay, OverlayItem, SelectionChange, Style, Token, Tool,
@@ -238,7 +239,8 @@ impl SelectTool {
 
     /// Whether a pending drag or keyboard move no longer stands (fix round of WP-S2.04 part 1, item 11): the
     /// selection changed under it, the page's revision changed (a delete, an undo, a redo, another commit) or one of
-    /// its representations is gone. The host then escapes it, so no stale representation reaches a preview.
+    /// its entities is gone (none of the representations, page items and structure boxes holds it). The host then
+    /// escapes it, so no stale entity reaches a preview.
     pub fn pending_move_stale(&self, cx: &ToolCx<'_>) -> bool {
         let moved = match &self.state {
             State::Dragging { moved, .. } | State::Moving { moved, .. } => moved,
@@ -247,20 +249,23 @@ impl SelectTool {
             }
             _ => return false,
         };
+        let tables = &cx.page.tables;
         self.origin != (cx.selection.generation, cx.page.rev)
-            || moved
-                .iter()
-                .any(|e| !cx.page.tables.reps.iter().any(|r| r.id == e.0))
+            || moved.iter().any(|e| {
+                !tables.reps.iter().any(|r| r.id == e.0)
+                    && !tables.items.iter().any(|i| i.id == e.0)
+                    && !tables.structure_boxes.iter().any(|b| b.id == e.0)
+            })
     }
 
-    /// Starts the keyboard move (M, WP-S2.04 §7.3) of the selection's representations from the grid cursor and
-    /// answers its first overlay; `None` (and nothing changes) without representations selected, without a grid
+    /// Starts the keyboard move (M, WP-S2.04 §7.3) of the selection's movable entities from the grid cursor and
+    /// answers its first overlay; `None` (and nothing changes) without a movable entity selected, without a grid
     /// cursor or in another state than idle.
     pub fn start_move(&mut self, cx: &ToolCx<'_>) -> Option<ToolOutput> {
         if self.state != State::Idle {
             return None;
         }
-        let moved = selected_reps(cx.selection, cx.page);
+        let moved = selected_movable(cx.selection, cx.page);
         let from = self.cursor?;
         if moved.is_empty() {
             return None;
@@ -421,7 +426,10 @@ impl SelectTool {
             return ToolOutput::None;
         }
         if let Some(entity) = cx.pick(at) {
-            let movable = entity_kind(&cx.page.tables, entity) == Some(EntityKind::Rep);
+            let movable = matches!(
+                entity_kind(&cx.page.tables, entity),
+                Some(EntityKind::Rep | EntityKind::Item | EntityKind::StructureBox)
+            );
             self.state = State::Pressed {
                 entity,
                 at,
@@ -500,7 +508,7 @@ impl SelectTool {
                 if steps == (0, 0) {
                     SelectTool::click_entity(pressed, held)
                 } else {
-                    ToolOutput::Commit(move_command(&moved, steps))
+                    ToolOutput::Commit(move_command(&cx.page.tables, &moved, steps))
                 }
             }
             moving @ State::Moving { .. } => {
@@ -688,7 +696,7 @@ impl Tool for SelectTool {
                     return if steps == (0, 0) {
                         ToolOutput::Cancel
                     } else {
-                        ToolOutput::Commit(move_command(&moved, steps))
+                        ToolOutput::Commit(move_command(&cx.page.tables, &moved, steps))
                     };
                 }
                 let Some(at) = self.cursor else {
@@ -704,7 +712,7 @@ impl Tool for SelectTool {
                 State::Dragging { moved, steps, .. } | State::Moving { moved, steps, .. }
                     if *steps != (0, 0) =>
                 {
-                    ToolOutput::Preview(move_command(moved, *steps))
+                    ToolOutput::Preview(move_command(&cx.page.tables, moved, *steps))
                 }
                 State::Segment {
                     connection,

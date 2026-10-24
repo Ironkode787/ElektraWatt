@@ -1,0 +1,106 @@
+{
+  "$k": "part",
+  "id": "df2c9065-fc07-543a-a956-412e9949587e",
+  "library_id": "7e570000-0000-4000-8000-000000000001",
+  "item_id": "7e570000-0000-4000-8000-000000000031",
+  "version": "1.0.0",
+  "sha256": "sha256:5303eba956eb1bd5c365ed4b49cf4ba9a31bb04b5eb88650de9f5085ce86afb5",
+  "meta": {
+    "key": "MICO 4.10",
+    "sources": [
+      "golden.table:parts|MICO 4.10"
+    ]
+  },
+  "manufacturer": {
+    "library": "d76f5765-c456-5393-935c-4cec32a87b01",
+    "item": "ff34c214-73ba-5dd0-b856-fac9e5216242",
+    "version_req": "*",
+    "key": "Murrelektronik"
+  },
+  "part_number": "MICO 4.10 MISSING",
+  "description": "Electronic load distribution, 4 channels",
+  "tech_data": [
+    {
+      "key": "channel_current",
+      "value": {
+        "value": "6",
+        "unit": "A"
+      }
+    }
+  ],
+  "cp_pattern": [
+    {
+      "idx": 0,
+      "designation": "24VDC"
+    },
+    {
+      "idx": 1,
+      "designation": "24VDC"
+    },
+    {
+      "idx": 2,
+      "designation": "GND"
+    },
+    {
+      "idx": 3,
+      "designation": "GND"
+    },
+    {
+      "idx": 4,
+      "designation": "13"
+    },
+    {
+      "idx": 5,
+      "designation": "14"
+    },
+    {
+      "idx": 6,
+      "designation": "Out1"
+    },
+    {
+      "idx": 7,
+      "designation": "Out2"
+    },
+    {
+      "idx": 8,
+      "designation": "Out3"
+    },
+    {
+      "idx": 9,
+      "designation": "Out4"
+    }
+  ],
+  "function_template": [
+    {
+      "fndef": {
+        "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+        "item": "8f2f5a49-a5bc-5d27-815c-47dd24106efb",
+        "version_req": "^0.1",
+        "key": "ew.fn.blackbox"
+      },
+      "main": true,
+      "cps": [
+        0,
+        1,
+        2,
+        3,
+        6,
+        7,
+        8,
+        9
+      ]
+    },
+    {
+      "fndef": {
+        "library": "7e570000-0000-4000-8000-000000000001",
+        "item": "7e570000-0000-4000-8000-000000000032",
+        "version_req": "^0.1",
+        "key": "test.fn.unknown"
+      },
+      "cps": [
+        4,
+        5
+      ]
+    }
+  ]
+}

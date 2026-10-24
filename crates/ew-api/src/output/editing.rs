@@ -28,7 +28,8 @@ use ew_derive::ew_schema::{
 use ew_derive::ew_units::{Nm, Orient2, Pt2, Rect};
 use ew_derive::{
     CpRef, DeviceTag, DisplayedTag, FunctionCps, PageOrder, PageRef, PhysicalWiresOf, PotentialNameOf,
-    PotentialPartition, Q, WireNumbers, box_caption, cp_label, cp_point, live_connections, manufacturer_name,
+    PotentialPartition, Q, WireNumbers, box_caption, cp_label, cp_point, free_text, group_marker,
+    live_connections, manufacturer_name,
 };
 use ew_dl::{ItemKind, PathEl};
 use ew_library::starter::{self, StarterKind};
@@ -421,6 +422,77 @@ impl Session {
         }
         Some(serde_json::json!({ "copies": copies }))
     }
+
+    /// The `library.embed` parameters (`{"copies": [...]}`) that make part copy `part`'s function template
+    /// placeable with the catalogue symbol `symbol` (WP-S2.04 §7.1 as amended by the part-first follow-up of cycle
+    /// 27): first the starter symbol `symbol` and its FnDef, each when `symbol` names a starter symbol and the
+    /// project does not embed it (as [`Session::starter_embed`] gives them), then, in template order, the FnDef of
+    /// every `function_template` entry that the project does not embed, taken from the starter library by the
+    /// entry's FnDef copy ID; no copy twice. `Ok(None)` when nothing is missing or the project has no part copy
+    /// `part`. `Err(keys)` when an entry's FnDef is neither embedded nor in the starter library: `keys` lists those
+    /// entries' FnDef keys in template order (the reference's `key` member, else the FnDef copy ID as lower-case
+    /// UUID text), and nothing is to be embedded.
+    pub fn starter_embed_part(
+        &self,
+        part: Uuid,
+        symbol: &str,
+    ) -> Result<Option<serde_json::Value>, Vec<String>> {
+        let q = self.query();
+        let Some(part) = q.parts().get(Id::from_uuid(part)).cloned() else {
+            return Ok(None);
+        };
+        let item = |id: Uuid| starter::items().iter().find(|i| starter_id(i.json) == Some(id));
+        let mut copies: Vec<serde_json::Value> = Vec::new();
+        let mut seen: BTreeSet<Uuid> = BTreeSet::new();
+        let push = |copies: &mut Vec<serde_json::Value>, id: Uuid| -> bool {
+            let Some(i) = item(id) else { return false };
+            let Ok(v) = serde_json::from_str::<serde_json::Value>(i.json) else {
+                return false;
+            };
+            copies.push(v);
+            true
+        };
+        if let Some(starter) = starter_symbol(symbol) {
+            if !q.symbols().contains(starter.id) {
+                if !push(&mut copies, starter.id.as_uuid()) {
+                    return Ok(None);
+                }
+                seen.insert(starter.id.as_uuid());
+            }
+            let def = fndef_copy(&starter.item.fndef);
+            seen.insert(def.as_uuid());
+            if !q.fndefs().contains(def) && !push(&mut copies, def.as_uuid()) {
+                return Ok(None);
+            }
+        }
+        // The template's FnDefs, in template order: the first copy of an embedded one is not pushed twice.
+        let mut missing: Vec<String> = Vec::new();
+        for entry in &part.item.function_template {
+            let id = fndef_copy(&entry.fndef);
+            if q.fndefs().contains(id) || seen.contains(&id.as_uuid()) {
+                continue;
+            }
+            if !push(&mut copies, id.as_uuid()) {
+                missing.push(
+                    entry
+                        .fndef
+                        .extra
+                        .get("key")
+                        .and_then(serde_json::Value::as_str)
+                        .map_or_else(|| id.to_string(), str::to_owned),
+                );
+                continue;
+            }
+            seen.insert(id.as_uuid());
+        }
+        if !missing.is_empty() {
+            return Err(missing);
+        }
+        if copies.is_empty() {
+            return Ok(None);
+        }
+        Ok(Some(serde_json::json!({ "copies": copies })))
+    }
 }
 
 /// Every terminal strip of the project with its tag as `page` prints it and the next designation and sequence
@@ -746,6 +818,11 @@ pub struct TableItem {
     pub bounds: [i64; 4],
     /// A wire marker's live connections (existing, on this page) in printed order; empty for the other kinds.
     pub connections: Vec<Uuid>,
+    /// The printed text of a free text (its bound value, `ew_derive::free_text`) or of a wire marker (its group
+    /// text, `ew_derive::group_marker`); `None` for a graphic or an unknown variant.
+    pub text: Option<String>,
+    /// A free text's binding name (`project.description`, …); `None` otherwise.
+    pub bind: Option<String>,
 }
 
 /// A structure-box row of the page tables (WP-S2.04 part 4a).
@@ -821,14 +898,21 @@ fn item_rows(q: &Q, page: Id<Page>) -> Vec<TableItem> {
         .into_iter()
         .map(|item| {
             let id = item.id.as_uuid();
-            let (kind, bounds) = match &item.kind {
-                K::Graphic(g) => ("graphic", shape_bounds(&g.shape)),
-                K::FreeText(t) => ("free_text", bounds_of(drawn_bounds(id)).or(bounds_of([pt(t.at)]))),
+            let (kind, bounds, text, bind) = match &item.kind {
+                K::Graphic(g) => ("graphic", shape_bounds(&g.shape), None, None),
+                K::FreeText(t) => (
+                    "free_text",
+                    bounds_of(drawn_bounds(id)).or(bounds_of([pt(t.at)])),
+                    Some(free_text(q, page, t)),
+                    t.bind.as_ref().map(|b| b.as_str().to_owned()),
+                ),
                 K::WireMarker(m) => (
                     "wire_marker",
                     bounds_of(drawn_bounds(id)).or(bounds_of([pt(m.at)])),
+                    group_marker(q, &item).map(|g| g.text),
+                    None,
                 ),
-                K::Unknown(_) => ("unknown", None),
+                K::Unknown(_) => ("unknown", None, None, None),
             };
             TableItem {
                 id,
@@ -838,6 +922,8 @@ fn item_rows(q: &Q, page: Id<Page>) -> Vec<TableItem> {
                     .iter()
                     .map(|c| c.id.as_uuid())
                     .collect(),
+                text,
+                bind,
             }
         })
         .collect();

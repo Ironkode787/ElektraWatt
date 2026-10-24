@@ -31,7 +31,7 @@ impl Tmp {
 
     /// A shell in `mode` with a copy of Golden A open (read-only unless `writable`), showing `folio`.
     pub fn shell_in(&self, mode: Mode, writable: bool, folio: &str) -> ShellModel {
-        let dir = self.0.join("J-E-2416.ew");
+        let dir = self.golden_copy();
         if !dir.exists() {
             copy_dir(Path::new(GOLDEN_A), &dir);
         }
@@ -43,6 +43,11 @@ impl Tmp {
         );
         done(&mut shell, "page.goto", json!({ "folio": folio }));
         shell
+    }
+
+    /// The directory of the copy of Golden A that [`Tmp::shell_in`] opens (for a test that saves and reopens it).
+    pub fn golden_copy(&self) -> PathBuf {
+        self.0.join("J-E-2416.ew")
     }
 
     /// A headless shell with a read-only copy of Golden A on `folio`.

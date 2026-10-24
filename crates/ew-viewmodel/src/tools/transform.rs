@@ -4,7 +4,8 @@
 //! Transform and delete on a selection (WP-S2.04 §7.4): with Select active and representations selected, R commits
 //! `rep.transform {reps, rotate: 1}`, Shift+R `rotate: 3`, X `rotate: 0, mirror: true`, Y `rotate: 2, mirror: true`;
 //! V on exactly one representation commits the `rep.transform` whose composition gives the next variant letter.
-//! Delete commits `edit.delete` with every entity of the selection the page tables resolve (§6.6).
+//! Delete commits `edit.delete` with every entity of the selection the page tables resolve (§6.6). Transforms act on
+//! representations only; a move takes the selection's representations, page items and structure boxes.
 
 use ew_api::AnyCommand;
 use ew_api::geometry::orient_then;
@@ -19,6 +20,16 @@ pub fn selected_reps(selection: &Selection, page: &CanvasPage) -> Vec<EntityRef>
     selection_kinds(selection, &page.tables)
         .into_iter()
         .filter(|(_, k)| *k == EntityKind::Rep)
+        .map(|(e, _)| e)
+        .collect()
+}
+
+/// The movable entities of the selection on `page`, in selection order: its representations, page items and
+/// structure boxes (WP-S2.04 §7.3; connections and junctions are never moved).
+pub fn selected_movable(selection: &Selection, page: &CanvasPage) -> Vec<EntityRef> {
+    selection_kinds(selection, &page.tables)
+        .into_iter()
+        .filter(|(_, k)| matches!(k, EntityKind::Rep | EntityKind::Item | EntityKind::StructureBox))
         .map(|(e, _)| e)
         .collect()
 }

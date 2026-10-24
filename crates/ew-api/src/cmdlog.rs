@@ -463,6 +463,8 @@ fn record_exists(q: &Q, id: AnyId) -> bool {
         || q.potential_defs().contains(id.cast())
         || q.bonds().contains(id.cast())
         || q.report_blocks().contains(id.cast())
+        || q.page_items().contains(id.cast())
+        || q.structure_boxes().contains(id.cast())
         || q.parts().contains(id.cast())
         || q.symbols().contains(id.cast())
         || q.fndefs().contains(id.cast())

@@ -17,9 +17,9 @@
 use std::collections::BTreeSet;
 
 use ew_api::AnyCommand;
-use ew_api::output::TableEnd;
 use ew_api::output::ew_dl::EntityRef;
 use ew_api::output::ew_dl::ew_units::Rect;
+use ew_api::output::{PageTables, TableEnd};
 use serde_json::json;
 
 use super::{Anchor, Overlay, OverlayItem, Style, Token, ToolCx};
@@ -63,24 +63,27 @@ fn rep_delta(cx: &ToolCx<'_>, pos: (i64, i64), steps: (i64, i64)) -> (i64, i64) 
     (axis(pos.0, steps.0), axis(pos.1, steps.1))
 }
 
-/// The movable entities of a drag that starts on `pressed` (§7.3): the representations of the selection when the
-/// pressed entity is selected, else the pressed entity alone; in selection order.
+/// The movable entities of a drag that starts on `pressed` (§7.3): the selection's representations, page items and
+/// structure boxes when the pressed entity is selected, else the pressed entity alone; in selection order.
 pub fn moved_set(cx: &ToolCx<'_>, pressed: EntityRef) -> Vec<EntityRef> {
-    let reps: BTreeSet<_> = cx.page.tables.reps.iter().map(|r| r.id).collect();
     if cx.selection.contains(pressed) {
-        cx.selection
-            .items
-            .iter()
-            .filter(|e| reps.contains(&e.0))
-            .copied()
+        super::selection_kinds(cx.selection, &cx.page.tables)
+            .into_iter()
+            .filter(|(_, k)| {
+                matches!(
+                    k,
+                    super::EntityKind::Rep | super::EntityKind::Item | super::EntityKind::StructureBox
+                )
+            })
+            .map(|(e, _)| e)
             .collect()
     } else {
         vec![pressed]
     }
 }
 
-/// The overlay of a move of `moved` by `steps`: the ghost of their entity rectangles, the rubber bands of their
-/// connections and the readout next to the ghost.
+/// The overlay of a move of `moved` by `steps`: the ghost of their entity rectangles (items and boxes ghost by
+/// their rectangles), the rubber bands of their connections and the readout next to the ghost.
 pub fn move_overlay(cx: &ToolCx<'_>, moved: &[EntityRef], steps: (i64, i64)) -> Overlay {
     let offset = sheet_offset(cx, steps);
     let rects: Vec<Rect> = cx
@@ -241,13 +244,34 @@ fn follow_start(r: &mut Vec<(i64, i64)>, snap: &dyn Fn(i64) -> i64, d: (i64, i64
     }
 }
 
-/// `rep.move {reps, steps}`.
-pub fn move_command(moved: &[EntityRef], steps: (i64, i64)) -> Box<AnyCommand> {
+/// `rep.move {reps, steps}` (plus `items` when page items or structure boxes move): the moved entities that are
+/// representations go to `reps` (always present, because the command requires it), those that are page items or
+/// structure boxes to `items`, each in `moved` order; `items` is serialised only when it is not empty, so a move of
+/// representations alone serialises exactly as before.
+pub fn move_command(tables: &PageTables, moved: &[EntityRef], steps: (i64, i64)) -> Box<AnyCommand> {
+    let is_rep = |e: &EntityRef| tables.reps.iter().any(|r| r.id == e.0);
+    let is_item = |e: &EntityRef| {
+        tables.items.iter().any(|i| i.id == e.0) || tables.structure_boxes.iter().any(|b| b.id == e.0)
+    };
+    let reps: Vec<String> = moved
+        .iter()
+        .filter(|e| is_rep(e))
+        .map(|e| e.0.to_string())
+        .collect();
+    let items: Vec<String> = moved
+        .iter()
+        .filter(|e| is_item(e))
+        .map(|e| e.0.to_string())
+        .collect();
+    let mut params = json!({
+        "reps": reps,
+        "steps": [steps.0, steps.1],
+    });
+    if !items.is_empty() {
+        params["items"] = json!(items);
+    }
     Box::new(AnyCommand {
         name: "rep.move".into(),
-        params: json!({
-            "reps": moved.iter().map(|e| e.0.to_string()).collect::<Vec<_>>(),
-            "steps": [steps.0, steps.1],
-        }),
+        params,
     })
 }

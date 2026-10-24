@@ -238,7 +238,7 @@ pub enum Ghost {
     },
     /// A move of the selection in grid steps.
     Move {
-        /// How many representations move.
+        /// How many entities move (representations, page items and structure boxes).
         count: usize,
         /// The grid steps.
         steps: (i64, i64),
@@ -408,26 +408,32 @@ impl ToolCx<'_> {
     }
 
     /// The entity under `at` by WP-S2.04 §6.6: the smallest entity rectangle containing it inflated by 4 points
-    /// (ties to the later in paint order) among the entities that are no connection; else the connection whose
-    /// drawn polyline passes within 4 points of it by exact integer distance (ties by the smaller distance, then by
-    /// ID). Without page tables, the rectangle pick of [`ToolCx::entity_at`].
+    /// (ties to the later in paint order) among the entities that are neither connections nor structure boxes; else
+    /// the connection whose drawn polyline passes within 4 points of it by exact integer distance (ties by the smaller
+    /// distance, then by ID); else the structure box whose closed outline passes within 4 points (ties by the smaller
+    /// distance, then by ID). A press inside a structure box away from its outline therefore picks nothing. Without
+    /// page tables, the rectangle pick of [`ToolCx::entity_at`].
     pub fn pick(&self, at: (i64, i64)) -> Option<EntityRef> {
         let tables = &self.page.tables;
-        if tables.connections.is_empty() {
+        if tables.connections.is_empty() && tables.structure_boxes.is_empty() {
             return self.entity_at(at);
         }
         let wires: std::collections::BTreeSet<_> = tables.connections.iter().map(|c| c.id).collect();
+        let boxes: std::collections::BTreeSet<_> = tables.structure_boxes.iter().map(|b| b.id).collect();
         let others: Vec<(EntityRef, Rect)> = self
             .page
             .entities
             .iter()
-            .filter(|(e, _)| !wires.contains(&e.0))
+            .filter(|(e, _)| !wires.contains(&e.0) && !boxes.contains(&e.0))
             .copied()
             .collect();
         if let Some((e, _)) = crate::canvas::pick(&others, Some(at), self.nm_of_points(HOVER_SLOP_PT)) {
             return Some(e);
         }
-        self.connection_at(at).map(|(e, _)| e)
+        if let Some((e, _)) = self.connection_at(at) {
+            return Some(e);
+        }
+        self.structure_box_at(at).map(|(e, _)| e)
     }
 
     /// The connection whose drawn polyline (the page tables', mapped to the sheet) passes within 4 points of `at`,
@@ -452,6 +458,33 @@ impl ToolCx<'_> {
             };
             if d <= r * r {
                 let e = EntityRef(c.id);
+                if best.is_none_or(|(bd, be)| d < bd || (d == bd && e.0 < be.0)) {
+                    best = Some((d, e));
+                }
+            }
+        }
+        best.map(|(d, e)| (e, d))
+    }
+
+    /// The structure box whose closed outline (the page tables' vertices mapped to the sheet, the last vertex joined
+    /// to the first) passes within 4 points of `at`, with the squared distance in sheet nm²: exact in `i128`, ties by
+    /// the smaller distance, then by ID. A press inside a box away from its outline picks nothing.
+    pub fn structure_box_at(&self, at: (i64, i64)) -> Option<(EntityRef, i128)> {
+        let r = self.nm_of_points(HOVER_SLOP_PT).floor().min(9.0e15) as i128;
+        let mut best: Option<(i128, EntityRef)> = None;
+        for b in &self.page.tables.structure_boxes {
+            let pts: Vec<(i64, i64)> = b.outline.iter().map(|p| self.snapper.page_to_sheet(*p)).collect();
+            let d = match pts.as_slice() {
+                [] => continue,
+                [p] => dist2(*p, at),
+                _ => {
+                    let closed = pts.windows(2).map(|w| segment_dist2(at, w[0], w[1]));
+                    let last = segment_dist2(at, pts[pts.len() - 1], pts[0]);
+                    closed.chain([last]).min().unwrap_or(i128::MAX)
+                }
+            };
+            if d <= r * r {
+                let e = EntityRef(b.id);
                 if best.is_none_or(|(bd, be)| d < bd || (d == bd && e.0 < be.0)) {
                     best = Some((d, e));
                 }
@@ -616,7 +649,7 @@ pub fn segment_dist2(p: (i64, i64), a: (i64, i64), b: (i64, i64)) -> i128 {
 }
 
 /// The kind of a selected entity, resolved by the page tables (WP-S2.04 §6.6, D14); page items and structure boxes
-/// join with part 4a.
+/// join with WP-S2.04 part 4b.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum EntityKind {
     /// A representation (movable).
@@ -625,6 +658,10 @@ pub enum EntityKind {
     Connection,
     /// A junction.
     Junction,
+    /// A page item (movable).
+    Item,
+    /// A structure box (movable).
+    StructureBox,
 }
 
 impl EntityKind {
@@ -634,6 +671,8 @@ impl EntityKind {
             EntityKind::Rep => "representation",
             EntityKind::Connection => "connection",
             EntityKind::Junction => "junction",
+            EntityKind::Item => "page_item",
+            EntityKind::StructureBox => "structure_box",
         }
     }
 }
@@ -647,6 +686,10 @@ pub fn entity_kind(tables: &PageTables, e: EntityRef) -> Option<EntityKind> {
         Some(EntityKind::Connection)
     } else if tables.junctions.iter().any(|j| j.id == e.0) {
         Some(EntityKind::Junction)
+    } else if tables.items.iter().any(|i| i.id == e.0) {
+        Some(EntityKind::Item)
+    } else if tables.structure_boxes.iter().any(|b| b.id == e.0) {
+        Some(EntityKind::StructureBox)
     } else {
         None
     }

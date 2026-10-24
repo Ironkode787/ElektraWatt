@@ -192,18 +192,23 @@ impl ShellModel {
     }
 
     /// Arms the Place tool (or, in exchange mode, the change-symbol tool) for `pick` of `cat`; `p` holds the
-    /// optional `letter`, `strip` and `designation`.
+    /// optional `letter`, `strip` and `designation`. A part's template function arms **part-first** (WP-S2.04 §7.1
+    /// as amended by the cycle-27 follow-up): the starter symbol and every FnDef the part's template needs are
+    /// embedded in one host commit before the tool arms; an FnDef neither the project nor the starter library holds
+    /// fails the pick by name and arms nothing.
     fn arm(&mut self, cat: Arc<PlaceCatalogue>, pick: Pick, p: &Map<String, Value>) -> Outcome {
         let letter_param = match string_param(p, "letter") {
             Ok(v) => v.map(str::to_owned).or_else(|| self.tools.pick_letter.clone()),
             Err(e) => return e,
         };
         let mut box_cps: Option<Vec<(u16, String)>> = None;
+        let mut part_copy = None;
         let (row_index, part) = match &pick {
             Pick::Symbol(i) | Pick::Function(_, i) => (*i, None),
             Pick::PartFn(pi, fi) => {
                 let part = &cat.parts[*pi];
                 let f = &part.functions[*fi];
+                part_copy = Some(part.copy);
                 if f.black_box {
                     box_cps = Some(f.cps.clone());
                 }
@@ -242,10 +247,32 @@ impl ShellModel {
                 reason_key: "reason-black-box-tool",
             };
         }
-        // A starter symbol is embedded first (its own undo step).
-        let (cat, row_index) = match self.embedded_row(&row.key) {
-            Ok(v) => v,
-            Err(e) => return e,
+        // A starter symbol is embedded first (its own undo step). For a part's template function the arm is
+        // part-first (WP-S2.04 §7.1 as amended by the cycle-27 follow-up): the symbol and every FnDef the part's
+        // template needs go in one commit, so that the functions of the `from_part` target all have their
+        // definition.
+        let (cat, row_index) = if let Some(part_copy) = part_copy {
+            match self
+                .project
+                .as_ref()
+                .map(|p| p.session.starter_embed_part(part_copy, &row.key))
+            {
+                Some(Err(keys)) => return failed("error-part-fndef-missing", &[&keys.join(", ")]),
+                Some(Ok(Some(params))) => match self.host_commit("library.embed", params) {
+                    Outcome::Done => self.sync_views(),
+                    other => return other,
+                },
+                _ => {}
+            }
+            match self.embedded_row(&row.key) {
+                Ok(v) => v,
+                Err(e) => return e,
+            }
+        } else {
+            match self.embedded_row(&row.key) {
+                Ok(v) => v,
+                Err(e) => return e,
+            }
         };
         let row = cat.symbols[row_index].clone();
         if is_box {
@@ -672,8 +699,10 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `tool.move` (M, §7.3): the keyboard move of the selection's representations; the grid cursor goes to the
-    /// primary entity's insertion point when it is not shown.
+    /// `tool.move` (M, §7.3): the keyboard move of the selection's movable entities (representations, page items
+    /// and structure boxes); the grid cursor goes to the primary entity's anchor when it is not shown, else the first
+    /// movable entity's (a representation's insertion point, an item's top-left bounds corner, a structure box's
+    /// first outline vertex).
     pub(super) fn act_tool_move(&mut self) -> Outcome {
         if self.tools.tool.name() != "select"
             && let Some(select) = crate::tools::tool_named("select")
@@ -686,12 +715,8 @@ impl ShellModel {
             };
         };
         let tables = Arc::clone(&c.page().tables);
-        let reps: Vec<EntityRef> = selection_kinds(&self.tools.selection, &tables)
-            .into_iter()
-            .filter(|(_, k)| *k == EntityKind::Rep)
-            .map(|(e, _)| e)
-            .collect();
-        if reps.is_empty() {
+        let movable = transform::selected_movable(&self.tools.selection, c.page());
+        if movable.is_empty() {
             return Outcome::Refused {
                 reason_key: "reason-nothing-to-move",
             };
@@ -701,10 +726,21 @@ impl ShellModel {
                 .tools
                 .selection
                 .primary
-                .filter(|e| entity_kind(&tables, *e) == Some(EntityKind::Rep))
-                .unwrap_or(reps[0]);
-            if let Some(rep) = tables.reps.iter().find(|r| r.id == primary.0) {
-                let at = c.page().snapper.page_to_sheet(rep.pos);
+                .filter(|e| movable.iter().any(|m| m == e))
+                .unwrap_or(movable[0]);
+            let anchor = if let Some(rep) = tables.reps.iter().find(|r| r.id == primary.0) {
+                Some(rep.pos)
+            } else if let Some(item) = tables.items.iter().find(|i| i.id == primary.0) {
+                Some((item.bounds[0], item.bounds[1]))
+            } else {
+                tables
+                    .structure_boxes
+                    .iter()
+                    .find(|b| b.id == primary.0)
+                    .and_then(|b| b.outline.first().copied())
+            };
+            if let Some(anchor) = anchor {
+                let at = c.page().snapper.page_to_sheet(anchor);
                 let g = self.area.as_ref().map_or(0, |a| a.focused);
                 if let Some(c) = self.canvas_mut(g) {
                     c.put_cursor(Some(at));

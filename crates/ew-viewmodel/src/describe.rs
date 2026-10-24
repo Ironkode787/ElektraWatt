@@ -305,6 +305,22 @@ pub const VOCABULARY: &[&str] = &[
     "created",
     "skipped",
     "errors",
+    // Page items and structure boxes (WP-S2.04 part 4b, §10.7; ID-474 extended): 14 words, a reviewed vocabulary
+    // change.
+    "graphic",
+    "line",
+    "polyline",
+    "rect",
+    "circle",
+    "arc",
+    "polygon",
+    "marker",
+    "typing",
+    "drawing",
+    "crossing",
+    "anticlockwise",
+    "boxes",
+    "unknown",
 ];
 
 /// The 10 words of WP-S2.04 §9.6, of which part 3 adds the last 5 to [`VOCABULARY`] (WP-S6.13 part 1 added the
@@ -330,6 +346,26 @@ pub const CLIP_WORDS: &[&str] = &["clipboard", "fragment", "records", "copies", 
 /// The 3 words FT-410 adds to [`VOCABULARY`]: the import card's line `card ready "parts.import" created 29 skipped 0
 /// errors 0`.
 pub const IMPORT_WORDS: &[&str] = &["created", "skipped", "errors"];
+
+/// The 14 words of WP-S2.04 part 4b (§10.7 as ruled in cycle 28): its 11 tool words (`text` is WP-S2.05 part 2's and
+/// `connections` WP-S6.13 part 1's), `anticlockwise` (an arc drawn anticlockwise) and `page.describe`'s `boxes` and
+/// `unknown` (WP-S6.13 §5.5.3).
+pub const ITEM_WORDS: &[&str] = &[
+    "graphic",
+    "line",
+    "polyline",
+    "rect",
+    "circle",
+    "arc",
+    "polygon",
+    "marker",
+    "typing",
+    "drawing",
+    "crossing",
+    "anticlockwise",
+    "boxes",
+    "unknown",
+];
 
 /// The 14 words WP-S2.05 part 2 adds to [`VOCABULARY`] (§7.6).
 pub const FIND_WORDS: &[&str] = &[
@@ -1470,19 +1506,29 @@ fn cell_word(page: &CanvasPage, p: (i64, i64)) -> String {
 }
 
 /// The text of one page for `page.describe` (WP-S6.13 §5.5.3): the header with the exact counts, then the
-/// representations with their connection points, the connections and the junctions, each in a named order (reading
-/// order of the anchor cell, then the position and the symbol key; connections by their end labels; junctions numbered
-/// in reading order). No record ID appears. The lines of the page items and structure boxes come with WP-S2.04 part 4a.
+/// representations with their connection points, the connections, the junctions, the page items and the structure
+/// boxes, each in a named order (reading order of the anchor cell, then the position and the symbol key; connections
+/// by their end labels; junctions in reading order; items and boxes in the page tables' order). The header's
+/// `items <n> boxes <m>` follows `junctions <j>` only when the page has one of them, so a page without items prints
+/// as before. No record ID appears.
 pub fn page_describe(page: &CanvasPage) -> String {
     let t: &PageTables = &page.tables;
-    let mut lines = vec![format!(
+    let mut header = format!(
         "page {} {} reps {} connections {} junctions {}",
         page_quoted(&page.folio),
         page_quoted(&page.title),
         t.reps.len(),
         t.connections.len(),
         t.junctions.len()
-    )];
+    );
+    if !t.items.is_empty() || !t.structure_boxes.is_empty() {
+        header.push_str(&format!(
+            " items {} boxes {}",
+            t.items.len(),
+            t.structure_boxes.len()
+        ));
+    }
+    let mut lines = vec![header];
 
     // The junctions are numbered first: connections and sequences name them by number.
     let cp_label = |function, idx| {
@@ -1619,6 +1665,40 @@ pub fn page_describe(page: &CanvasPage) -> String {
             line.push_str(&m);
         }
         lines.push(line);
+    }
+
+    // The page items, then the structure boxes, in the page tables' order (WP-S2.04 part 4b, §10.7).
+    for item in &t.items {
+        let word = match item.kind.as_str() {
+            "graphic" => "graphic",
+            "free_text" => "text",
+            "wire_marker" => "marker",
+            _ => "unknown",
+        };
+        let mut line = format!(
+            "  item {word} cell {}",
+            cell_word(page, (item.bounds[0], item.bounds[1]))
+        );
+        if matches!(word, "text" | "marker")
+            && let Some(text) = &item.text
+        {
+            line.push(' ');
+            line.push_str(&page_quoted(text));
+        }
+        lines.push(line);
+    }
+    for b in &t.structure_boxes {
+        let top_left = b
+            .outline
+            .iter()
+            .copied()
+            .min_by_key(|(x, y)| (*y, *x))
+            .unwrap_or_default();
+        lines.push(format!(
+            "  box structure cell {} {}",
+            cell_word(page, top_left),
+            page_quoted(&b.caption)
+        ));
     }
     lines.join("\n")
 }

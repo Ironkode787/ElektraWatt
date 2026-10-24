@@ -13,7 +13,7 @@ use std::sync::Arc;
 
 use ew_api::output::{PageConnectionsOf, page_layer};
 use ew_api::{AnyCommand, Recovery, Session, SessionOptions, StoreOptions};
-use ew_derive::ew_ids::Id;
+use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::ew_rds::Aspect;
 use ew_derive::ew_units::Pt2;
 use ew_derive::{
@@ -601,4 +601,146 @@ fn the_page_tables_list_items_and_boxes_by_position() {
     assert_eq!(tables.structure_boxes[0].style, "dash_dot");
     assert_eq!(tables.structure_boxes[0].caption, "Box");
     assert_eq!(tables.structure_boxes[0].outline.len(), 3);
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Part 4b: the page tables' item text and the part-first embedding (§10.7, §7.1)
+
+#[test]
+fn table_items_carry_the_printed_text_and_the_binding() {
+    let batch = batch();
+    let ids = ids_by_key(&batch);
+    let mut s = session(&batch);
+    let page: Id<Page> = id(&ids, "pages|101");
+    let w4: Id<Connection> = id(&ids, "connections|W4");
+    let w5: Id<Connection> = id(&ids, "connections|W5");
+    let line = run(
+        &mut s,
+        "item.place",
+        json!({"page": page.to_string(), "kind": {"graphic": {"shape": {"line": {
+            "a": [50_000_000, 90_000_000], "b": [60_000_000, 90_000_000]}}}}}),
+    );
+    let text = run(
+        &mut s,
+        "item.place",
+        json!({"page": page.to_string(), "kind": {"free_text": {"text": "40x60", "at": [50_000_000, 100_000_000]}}}),
+    );
+    let bound = run(
+        &mut s,
+        "item.place",
+        json!({"page": page.to_string(), "kind": {"free_text": {
+            "bind": "project.description", "at": [50_000_000, 110_000_000]}}}),
+    );
+    let marker = run(
+        &mut s,
+        "marker.place",
+        json!({"page": page.to_string(), "connections": [w4.to_string(), w5.to_string()],
+            "at": [60_000_000, 120_000_000]}),
+    );
+    let tables = s.page_tables("101").unwrap();
+    let primary = |r: &ew_api::Receipt| r.outcome.primary.unwrap().1.as_uuid();
+    let row = |r: &ew_api::Receipt| {
+        tables
+            .items
+            .iter()
+            .find(|i| i.id == primary(r))
+            .unwrap_or_else(|| panic!("no item row for {r:?}"))
+    };
+    assert_eq!(
+        (
+            row(&line).kind.as_str(),
+            row(&line).text.clone(),
+            row(&line).bind.clone()
+        ),
+        ("graphic", None, None),
+        "a graphic prints no text and has no binding"
+    );
+    assert_eq!(row(&text).kind, "free_text");
+    assert_eq!(row(&text).text.as_deref(), Some("40x60"));
+    assert_eq!(row(&text).bind, None);
+    let description = {
+        let q = s.query();
+        ew_derive::bound_text(&q, page, "project.description").expect("the project's description")
+    };
+    assert_eq!(row(&bound).text.as_deref(), Some(description.as_str()));
+    assert_eq!(row(&bound).bind.as_deref(), Some("project.description"));
+    assert_eq!(row(&marker).kind, "wire_marker");
+    assert_eq!(row(&marker).text.as_deref(), Some("2.5 BK BU"));
+    assert_eq!(row(&marker).bind, None);
+}
+
+#[test]
+fn starter_embed_part_names_every_missing_fndef() {
+    let batch = batch();
+    let mut s = session(&batch);
+    let expected = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/expected");
+    // The two-function part alone; its contact FnDef is not embedded.
+    let fixture: Value = serde_json::from_str(
+        &std::fs::read_to_string(expected.join("two_fndef_part.json")).expect("the fixture"),
+    )
+    .expect("JSON");
+    let part: Uuid = fixture["id"]
+        .as_str()
+        .expect("the part copy's ID")
+        .parse()
+        .expect("a UUID");
+    run(&mut s, "library.embed", json!({"copies": [fixture]}));
+    // The starter symbol and its FnDef: the contact FnDef appears once although the symbol and template entry 1
+    // both need it.
+    let first = s
+        .starter_embed_part(part, "ew.iec.contact-no@qet10")
+        .expect("the starter symbol and its FnDef")
+        .expect("the symbol and its FnDef");
+    let keys = |v: &Value| -> Vec<String> {
+        v["copies"]
+            .as_array()
+            .expect("copies")
+            .iter()
+            .map(|c| c["meta"]["key"].as_str().expect("a key").to_owned())
+            .collect()
+    };
+    assert_eq!(keys(&first), ["ew.iec.contact-no@qet10", "ew.fn.contact-no"]);
+    // The embedded black-box symbol needs only the template's missing FnDef.
+    let second = s
+        .starter_embed_part(part, "ew.gen.blackbox@qet10")
+        .expect("the contact FnDef")
+        .expect("the contact FnDef");
+    assert_eq!(keys(&second), ["ew.fn.contact-no"]);
+    // Embedding it leaves both calls nothing to embed.
+    run(&mut s, "library.embed", first);
+    assert!(
+        s.starter_embed_part(part, "ew.iec.contact-no@qet10")
+            .expect("nothing more")
+            .is_none()
+    );
+    assert!(
+        s.starter_embed_part(part, "ew.gen.blackbox@qet10")
+            .expect("nothing more")
+            .is_none()
+    );
+    // The fixture whose second entry no library holds names the entry's key.
+    let fixture: Value = serde_json::from_str(
+        &std::fs::read_to_string(expected.join("missing_fndef_part.json")).expect("the fixture"),
+    )
+    .expect("JSON");
+    let missing_part: Uuid = fixture["id"]
+        .as_str()
+        .expect("the part copy's ID")
+        .parse()
+        .expect("a UUID");
+    run(&mut s, "library.embed", json!({"copies": [fixture]}));
+    assert_eq!(
+        s.starter_embed_part(missing_part, "ew.gen.blackbox@qet10")
+            .expect_err("no library holds test.fn.unknown"),
+        ["test.fn.unknown"]
+    );
+    // A part copy the project does not hold needs nothing.
+    assert!(
+        s.starter_embed_part(
+            Uuid::from_u128(0x7e57_0000_0000_4000_8000_0000_0000_00ff),
+            "ew.iec.contact-no@qet10"
+        )
+        .expect("no part copy")
+        .is_none()
+    );
 }

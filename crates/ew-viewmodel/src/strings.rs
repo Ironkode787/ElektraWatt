@@ -318,6 +318,9 @@ pub fn lookup(key: &str) -> Option<&'static str> {
             "The file dialog is not available: it needs the xdg-desktop-portal service on the session bus. Start the              portal for your desktop (for example xdg-desktop-portal-gtk or -kde) or open the project as an argument."
         }
         "error-no-folio" => "No page has the folio {0}.",
+        "error-part-fndef-missing" => {
+            "The part needs the function definitions {0}, which neither the project nor the starter library holds."
+        }
         "error-command" => "{0}",
         "error-render" => "The page could not be drawn: {0}",
         "openerr-io" => "the files cannot be read",
