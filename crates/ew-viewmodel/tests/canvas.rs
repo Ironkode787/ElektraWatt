@@ -458,7 +458,7 @@ fn a8_the_canvas_steps_run_from_a_script_and_carry_no_time() {
     .join("\n");
     let steps = script::parse(&text).unwrap();
     let mut out = Vec::new();
-    let end = script::run(&mut shell, &mut NoExtension, &steps, &mut |l| {
+    let end = script::run(&mut shell, &mut NoExtension, &steps, false, &mut |l| {
         out.push(l.to_owned());
         Ok(())
     })

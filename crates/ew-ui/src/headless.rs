@@ -7,8 +7,9 @@
 //! (`canvas.snapshot`, WP-S2.02 section 6.6) and the link preview's image (`canvas.preview_snapshot`, WP-S2.03 §7.8)
 //! to the core runner of `ew_viewmodel::script`, and the smoke run of architecture section 10.1.
 //!
-//! Exit codes: 0 all steps done; 1 a step was refused or failed (the run stops there); 2 a usage error (an
-//! unreadable or malformed script, an unknown action ID).
+//! Exit codes: 0 all steps done; 1 a step was refused or failed (the run stops there; with `--keep-going` the run
+//! goes on and the exit code is 1 when any step was not done, WP-S6.13 §5.5.1); 2 a usage error (an unreadable or
+//! malformed script, an unknown action ID).
 
 use std::io::{self, BufRead, Write};
 use std::path::{Path, PathBuf};
@@ -40,6 +41,9 @@ pub struct HeadlessArgs {
     /// `--config-dir <dir>`: the settings directory of the run. Without it (and without `EW_CONFIG_DIR`) the run has
     /// none: it neither reads nor writes the user's settings and recent projects.
     pub config_dir: Option<PathBuf>,
+    /// `--keep-going`: a refused or failed step is written to the transcript and the run goes on (WP-S6.13 §5.5.1);
+    /// the exit code is 1 when any step was not done or the script ends with unsaved changes.
+    pub keep_going: bool,
 }
 
 /// `view.snapshot`: the current page as a PNG at the given dpi through the page view's render path; and
@@ -197,12 +201,12 @@ pub fn run(
             if let Some(name) = path.file_name() {
                 shell.set_origin_file(&name.to_string_lossy());
             }
-            script::run(&mut shell, &mut Snapshot, &steps, &mut sink)
+            script::run(&mut shell, &mut Snapshot, &steps, args.keep_going, &mut sink)
         }
         ScriptSource::Stdin => {
             shell.set_origin_file("stdin");
             let mut lines = stdin.lines();
-            script::run_stream(&mut shell, &mut Snapshot, &mut lines, &mut sink)
+            script::run_stream(&mut shell, &mut Snapshot, &mut lines, args.keep_going, &mut sink)
         }
     };
     let end = match ended {

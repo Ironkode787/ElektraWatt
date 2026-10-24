@@ -1,0 +1,64 @@
+page "102" "Power Supply 2 - Control Current" reps 12 connections 19 junctions 4
+  rep ip "L-1" direction target cell "102-A1" symbol "ew.gen.ip@qet10" variant "A" at 29.104 15.875 mm
+    cp "L-1" at 29.104 13.229 mm wires 1 potential "L-1"
+  rep ip "N-1" direction target cell "102-A1" symbol "ew.gen.ip@qet10" variant "A" at 29.104 21.167 mm
+    cp "N-1" at 29.104 18.521 mm wires 1 potential "N-1"
+  rep ip "PE-1.2" direction source cell "102-A15" symbol "ew.gen.ip@qet10" variant "A" at 251.354 15.875 mm
+    cp "PE-1.2" at 251.354 13.229 mm wires 1 potential "PE"
+  rep "-102G1" cell "102-B6" symbol "ew.gen.blackbox@qet10" variant "A" at 108.479 29.104 mm
+    cp "-102G1:L" at 111.125 29.104 mm wires 1 potential "L-1"
+    cp "-102G1:N" at 116.417 29.104 mm wires 1 potential "N-1"
+    cp "-102G1:PE" at 121.708 29.104 mm wires 1 potential "PE"
+    cp "-102G1:+#1" at 111.125 44.979 mm wires 1 potential "+24V"
+    cp "-102G1:+#2" at 116.417 44.979 mm wires 1 potential "+24V"
+    cp "-102G1:−#1" at 121.708 44.979 mm wires 1 potential "0V"
+    cp "-102G1:−#2" at 127.000 44.979 mm wires 1 potential "0V"
+  rep "-102F1" cell "102-C7" symbol "ew.iec.mcb-1p@qet10" variant "A" at 124.354 52.917 mm
+    cp "-102F1:1" at 124.354 52.917 mm wires 1 potential "+24V"
+    cp "-102F1:2" at 124.354 63.500 mm wires 1 potential "+24V-F"
+  rep ip "0VDC" direction source cell "102-C15" symbol "ew.gen.ip@qet10" variant "A" at 251.354 58.208 mm
+    cp "0VDC" at 251.354 55.563 mm wires 1 potential "0V"
+  rep ip "PE-0VDC" direction source cell "102-D15" symbol "ew.gen.ip@qet10" variant "A" at 251.354 79.375 mm
+    cp "PE-0VDC" at 251.354 76.729 mm wires 1 potential "0V"
+  rep "-102F2" cell "102-E7" symbol "ew.gen.blackbox@qet10" variant "A" at 124.354 92.604 mm
+    cp "-102F2:24VDC#1" at 127.000 92.604 mm wires 1 potential "+24V-F"
+    cp "-102F2:24VDC#2" at 132.292 92.604 mm wires 1 potential "+24V-F"
+    cp "-102F2:GND#1" at 137.583 92.604 mm wires 1 potential "0V"
+    cp "-102F2:GND#2" at 142.875 92.604 mm wires 1 potential "0V"
+    cp "-102F2:13" at 148.167 92.604 mm wires 0
+    cp "-102F2:14" at 127.000 108.479 mm wires 0
+    cp "-102F2:Out1" at 132.292 108.479 mm wires 1 potential "24VDC-1"
+    cp "-102F2:Out2" at 137.583 108.479 mm wires 1 potential "24VDC-2"
+    cp "-102F2:Out3" at 142.875 108.479 mm wires 1 potential "24VDC-3"
+    cp "-102F2:Out4" at 148.167 108.479 mm wires 1 potential "24VDC-4"
+  rep ip "24VDC-3" direction source cell "102-G15" symbol "ew.gen.ip@qet10" variant "A" at 251.354 142.875 mm
+    cp "24VDC-3" at 251.354 140.229 mm wires 1 potential "24VDC-3"
+  rep ip "24VDC-4" direction source cell "102-G15" symbol "ew.gen.ip@qet10" variant "A" at 251.354 148.167 mm
+    cp "24VDC-4" at 251.354 145.521 mm wires 1 potential "24VDC-4"
+  rep ip "24VDC-1" direction source cell "102-H15" symbol "ew.gen.ip@qet10" variant "A" at 251.354 164.042 mm
+    cp "24VDC-1" at 251.354 161.396 mm wires 1 potential "24VDC-1"
+  rep ip "24VDC-2" direction source cell "102-H15" symbol "ew.gen.ip@qet10" variant "A" at 251.354 169.333 mm
+    cp "24VDC-2" at 251.354 166.688 mm wires 1 potential "24VDC-2"
+  wire "-102F1:2" -> junction 4 route provisional bends 0
+  wire "-102F2:Out1" -> "24VDC-1" route provisional bends 1
+  wire "-102F2:Out2" -> "24VDC-2" route provisional bends 1
+  wire "-102F2:Out3" -> "24VDC-3" route provisional bends 1
+  wire "-102F2:Out4" -> "24VDC-4" route provisional bends 1
+  wire "-102G1:+#1" -> junction 1 route provisional bends 1
+  wire "-102G1:+#2" -> junction 1 route provisional bends 1
+  wire "-102G1:PE" -> "PE-1.2" route provisional bends 1
+  wire "-102G1:−#1" -> junction 2 route provisional bends 1
+  wire "-102G1:−#2" -> junction 3 route provisional bends 1
+  wire "L-1" -> "-102G1:L" route provisional bends 1
+  wire "N-1" -> "-102G1:N" route provisional bends 1
+  wire junction 1 -> "-102F1:1" route provisional bends 1
+  wire junction 2 -> "-102F2:GND#1" route provisional bends 1
+  wire junction 2 -> "PE-0VDC" route provisional bends 1
+  wire junction 3 -> "-102F2:GND#2" route provisional bends 1
+  wire junction 3 -> "0VDC" route provisional bends 1
+  wire junction 4 -> "-102F2:24VDC#1" route provisional bends 1
+  wire junction 4 -> "-102F2:24VDC#2" route provisional bends 1
+  junction 1 cell "102-C6" at 108.479 58.208 mm style bevel wiring chain sequence "-102G1:+#1" "-102F1:1" "-102G1:+#2"
+  junction 2 cell "102-D5" at 92.604 79.375 mm style bevel wiring star sequence "-102G1:−#1" "-102F2:GND#1" "PE-0VDC"
+  junction 3 cell "102-D6" at 108.479 79.375 mm style bevel wiring star sequence "-102G1:−#2" "-102F2:GND#2" "0VDC"
+  junction 4 cell "102-D7" at 124.354 79.375 mm style bevel wiring chain sequence "-102F2:24VDC#1" "-102F1:2" "-102F2:24VDC#2"

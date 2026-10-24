@@ -348,6 +348,8 @@ pub struct ShellModel {
     canvas_error: Option<(u64, u64, String, String)>,
     /// How many sheet display lists the shell has built (engine-statistics tests).
     page_content_calls: Cell<u64>,
+    /// The text of the last `page.describe` step, taken by the script runner for the transcript line (WP-S6.13).
+    page_text: Option<String>,
     /// The project sessions opened so far (the source of [`Project`]'s epoch).
     epochs: u64,
     /// The canvas tool host (WP-S2.03 part 2): the active tool, its overlay, the preview, the selection.
@@ -643,6 +645,7 @@ impl ShellModel {
             canvas_backend: CanvasBackend::Cpu,
             canvas_error: None,
             page_content_calls: Cell::new(0),
+            page_text: None,
             epochs: 0,
             tools: crate::tools::ToolHost::new(),
             props: crate::properties::PropertiesState::default(),
@@ -1277,6 +1280,8 @@ impl ShellModel {
             "find.jump" => self.act_find_jump(),
             "find.replace_all" => self.act_find_replace_all(),
             "ui.describe" => Outcome::Done,
+            // WP-S6.13 part 1
+            "page.describe" => self.act_page_describe(p),
             "view.ui_scale" => self.act_ui_scale(p),
             "tools.palette" => self.act_palette(p),
             "help.shortcuts" => self.open_dialog(Dialog::Shortcuts),
@@ -1286,6 +1291,39 @@ impl ShellModel {
             "ui.dismiss" => self.act_dismiss(),
             other => failed("error-unknown-action", &[other]),
         }
+    }
+
+    /// `page.describe {folio?}` (WP-S6.13 §5.5.3): the content of the page `folio` (default the page on show) as text, read
+    /// from the page-content cache (one `page_tables` call when the (revision, folio) is not in it, none when it is);
+    /// the script runner takes the text with [`ShellModel::take_page_text`]. Changes no state.
+    fn act_page_describe(&mut self, p: &Map<String, Value>) -> Outcome {
+        let folio = match string_param(p, "folio") {
+            Err(e) => return e,
+            Ok(Some(f)) => f.to_owned(),
+            Ok(None) => match self.current_folio() {
+                Some(f) => f.to_owned(),
+                None => {
+                    return Outcome::Refused {
+                        reason_key: "reason-no-page",
+                    };
+                }
+            },
+        };
+        if !self.page_rows().iter().any(|r| r.folio == folio) {
+            return failed("error-no-folio", &[&folio]);
+        }
+        match self.page_for(&folio) {
+            Ok(page) => {
+                self.page_text = Some(crate::describe::page_describe(&page));
+                Outcome::Done
+            }
+            Err(message) => Outcome::Failed { message },
+        }
+    }
+
+    /// The text `page.describe` produced in the last step, once (WP-S6.13).
+    pub fn take_page_text(&mut self) -> Option<String> {
+        self.page_text.take()
     }
 
     fn open_dialog(&mut self, dialog: Dialog) -> Outcome {

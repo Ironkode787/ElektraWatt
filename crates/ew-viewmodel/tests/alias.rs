@@ -41,7 +41,7 @@ fn shell(tmp: &Tmp) -> (ShellModel, String) {
 fn run(shell: &mut ShellModel, steps: &[(&str, Value)]) -> Vec<String> {
     let parsed = script::parse(&script_text(steps)).unwrap();
     let mut lines = Vec::new();
-    script::run(shell, &mut NoExtension, &parsed, &mut |l| {
+    script::run(shell, &mut NoExtension, &parsed, false, &mut |l| {
         lines.push(l.to_owned());
         Ok(())
     })
@@ -279,6 +279,7 @@ fn the_table_lives_for_the_run_across_projects() {
         &mut shell,
         &mut NoExtension,
         &mut input.into_iter().map(Ok),
+        false,
         &mut |l| {
             out.push(l.to_owned());
             Ok(())

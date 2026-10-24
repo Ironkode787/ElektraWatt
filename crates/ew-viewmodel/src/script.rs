@@ -243,10 +243,13 @@ impl StepExtension for NoExtension {
 /// How a run ended.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum RunEnd {
-    /// Every step is done (exit code 0). `quit` says `app.quit` ended the script early.
+    /// The script ran to its end, or `app.quit` ended it (exit code 0 when `not_done` is 0, else 1). Without
+    /// `--keep-going` a step that is not done ends the run as [`RunEnd::StepFailed`], so `not_done` is 0 here.
     Completed {
         /// Whether `app.quit` stopped the script before its last step.
         quit: bool,
+        /// The steps that were refused or failed while `--keep-going` let the run go on (WP-S6.13 §5.5.1).
+        not_done: usize,
     },
     /// A step was refused or failed and the run stopped there (exit code 1).
     StepFailed {
@@ -261,8 +264,8 @@ impl RunEnd {
     /// The process exit code of the headless mode.
     pub fn exit_code(&self) -> i32 {
         match self {
-            RunEnd::Completed { .. } => 0,
-            RunEnd::StepFailed { .. } => 1,
+            RunEnd::Completed { not_done: 0, .. } => 0,
+            RunEnd::Completed { .. } | RunEnd::StepFailed { .. } => 1,
             RunEnd::Usage(_) => 2,
         }
     }
@@ -755,6 +758,13 @@ pub fn run_step(
     if step.action == "ui.describe" && outcome == Outcome::Done {
         members.push(member("describe", &Value::from(crate::describe::describe(shell))));
     }
+    // WP-S6.13 part 1: `page.describe` carries the page's text in the same member.
+    if step.action == "page.describe" {
+        let text = shell.take_page_text();
+        if let (Outcome::Done, Some(text)) = (&outcome, text) {
+            members.push(member("describe", &Value::from(text)));
+        }
+    }
     // Every UUID of the line becomes its alias `@n`, numbered in the order of first appearance in the output (FT-422).
     StepResult {
         line: shell.alias_text(&object(members)),
@@ -763,6 +773,9 @@ pub fn run_step(
 }
 
 /// Runs a parsed script: the header, then every step until one is refused or fails, or `app.quit` is done.
+///
+/// With `keep_going` (`--keep-going`, WP-S6.13 §5.5.1) a step that is not done is written as before and the run goes
+/// on; the count of such steps is [`RunEnd::Completed`]'s `not_done`. Without it the first such step ends the run.
 ///
 /// `sink` receives each transcript line (no newline) as it is produced. Returns how the run ended; an I/O error
 /// of the sink is returned as is.
@@ -774,28 +787,38 @@ pub fn run(
     shell: &mut ShellModel,
     ext: &mut dyn StepExtension,
     steps: &[Step],
+    keep_going: bool,
     sink: &mut dyn FnMut(&str) -> io::Result<()>,
 ) -> io::Result<RunEnd> {
     shell.reset_aliases();
     sink(&transcript_header(&shell.config().app_version.clone()))?;
+    let mut not_done = 0;
     for (i, step) in steps.iter().enumerate() {
         let result = run_step(shell, ext, i + 1, step);
         sink(&result.line)?;
         if !result.ok {
-            return Ok(RunEnd::StepFailed { step: i + 1 });
+            if !keep_going {
+                return Ok(RunEnd::StepFailed { step: i + 1 });
+            }
+            not_done += 1;
         }
         if shell.should_quit() {
             return Ok(RunEnd::Completed {
                 quit: i + 1 < steps.len(),
+                not_done,
             });
         }
     }
-    Ok(RunEnd::Completed { quit: false })
+    Ok(RunEnd::Completed {
+        quit: false,
+        not_done,
+    })
 }
 
 /// Runs a script that arrives line by line (a pipe), one transcript line per step, as the lines come in.
 ///
-/// A line that is not valid ends the run with [`RunEnd::Usage`]; steps before it have run.
+/// A line that is not valid ends the run with [`RunEnd::Usage`]; steps before it have run. `keep_going` is as for
+/// [`run`]: a step that is not done does not end the run (a usage error still does).
 ///
 /// # Errors
 ///
@@ -804,12 +827,14 @@ pub fn run_stream(
     shell: &mut ShellModel,
     ext: &mut dyn StepExtension,
     lines: &mut dyn Iterator<Item = io::Result<String>>,
+    keep_going: bool,
     sink: &mut dyn FnMut(&str) -> io::Result<()>,
 ) -> io::Result<RunEnd> {
     shell.reset_aliases();
     sink(&transcript_header(&shell.config().app_version.clone()))?;
     let mut parser = ScriptParser::new();
     let mut number = 0;
+    let mut not_done = 0;
     for raw in lines {
         let raw = raw?;
         let step = match parser.feed(&raw) {
@@ -821,14 +846,20 @@ pub fn run_stream(
         let result = run_step(shell, ext, number, &step);
         sink(&result.line)?;
         if !result.ok {
-            return Ok(RunEnd::StepFailed { step: number });
+            if !keep_going {
+                return Ok(RunEnd::StepFailed { step: number });
+            }
+            not_done += 1;
         }
         if shell.should_quit() {
-            return Ok(RunEnd::Completed { quit: true });
+            return Ok(RunEnd::Completed { quit: true, not_done });
         }
     }
     Ok(match parser.finish() {
-        Ok(()) => RunEnd::Completed { quit: false },
+        Ok(()) => RunEnd::Completed {
+            quit: false,
+            not_done,
+        },
         Err(e) => RunEnd::Usage(e),
     })
 }
@@ -922,7 +953,7 @@ mod tests {
         );
         let steps = parse(&text).unwrap();
         let mut lines = Vec::new();
-        let end = run(&mut shell, &mut NoExtension, &steps, &mut |l| {
+        let end = run(&mut shell, &mut NoExtension, &steps, false, &mut |l| {
             lines.push(l.to_owned());
             Ok(())
         })
@@ -943,7 +974,7 @@ mod tests {
         let mut shell = ShellModel::for_tests();
         let steps = parse(&format!("{HEADER}\n{}\n", r#"{"action":"ui.describe"}"#)).unwrap();
         let mut lines = Vec::new();
-        run(&mut shell, &mut NoExtension, &steps, &mut |l| {
+        run(&mut shell, &mut NoExtension, &steps, false, &mut |l| {
             lines.push(l.to_owned());
             Ok(())
         })
@@ -990,7 +1021,7 @@ mod tests {
         ];
         let mut lines = input.into_iter().map(Ok);
         let mut out = Vec::new();
-        let end = run_stream(&mut shell, &mut NoExtension, &mut lines, &mut |l| {
+        let end = run_stream(&mut shell, &mut NoExtension, &mut lines, false, &mut |l| {
             out.push(l.to_owned());
             Ok(())
         })
@@ -1012,8 +1043,77 @@ mod tests {
             r#"{"action":"app.quit"}"#, r#"{"action":"help.about"}"#
         ))
         .unwrap();
-        let end = run(&mut shell, &mut NoExtension, &steps, &mut |_| Ok(())).unwrap();
-        assert_eq!(end, RunEnd::Completed { quit: true });
+        let end = run(&mut shell, &mut NoExtension, &steps, false, &mut |_| Ok(())).unwrap();
+        assert_eq!(
+            end,
+            RunEnd::Completed {
+                quit: true,
+                not_done: 0
+            }
+        );
         assert_eq!(end.exit_code(), 0);
+    }
+
+    /// WP-S6.13 BD1: with `--keep-going` a refused step in the middle does not end the run; every step has its line
+    /// and the exit code is 1. Without the flag the transcript is today's: it stops at the refusal.
+    #[test]
+    fn keep_going_runs_a_script_past_a_refused_step() {
+        let text = format!(
+            "{HEADER}\n{}\n{}\n{}\n",
+            r#"{"action":"help.about"}"#, r#"{"action":"file.save"}"#, r#"{"action":"ui.dismiss"}"#
+        );
+        let steps = parse(&text).unwrap();
+        let go = |keep_going: bool| {
+            let mut shell = ShellModel::for_tests();
+            let mut lines = Vec::new();
+            let end = run(&mut shell, &mut NoExtension, &steps, keep_going, &mut |l| {
+                lines.push(l.to_owned());
+                Ok(())
+            })
+            .unwrap();
+            (end, lines)
+        };
+        let (end, kept) = go(true);
+        assert_eq!(
+            end,
+            RunEnd::Completed {
+                quit: false,
+                not_done: 1
+            }
+        );
+        assert_eq!(end.exit_code(), 1);
+        // The header and the three steps, the refused one in the middle.
+        assert_eq!(kept.len(), 4);
+        assert!(kept[2].contains(r#""outcome":"refused""#));
+        assert!(kept[3].contains(r#""action":"ui.dismiss""#) && kept[3].contains(r#""outcome":"done""#));
+        let (end, stopped) = go(false);
+        assert_eq!(end, RunEnd::StepFailed { step: 2 });
+        assert_eq!(stopped.len(), 3);
+        // The lines the two runs share are equal byte for byte.
+        assert_eq!(stopped[..], kept[..3]);
+        // The same through the stream runner.
+        let mut shell = ShellModel::for_tests();
+        let mut input = text.lines().map(|l| Ok(l.to_owned()));
+        let mut out = Vec::new();
+        let end = run_stream(&mut shell, &mut NoExtension, &mut input, true, &mut |l| {
+            out.push(l.to_owned());
+            Ok(())
+        })
+        .unwrap();
+        assert_eq!(
+            end,
+            RunEnd::Completed {
+                quit: false,
+                not_done: 1
+            }
+        );
+        assert_eq!(out, kept);
+        // A usage error still ends the run, whatever the flag.
+        let mut shell = ShellModel::for_tests();
+        let mut bad = [HEADER, r#"{"action":"no.such"}"#]
+            .into_iter()
+            .map(|l| Ok(l.to_owned()));
+        let end = run_stream(&mut shell, &mut NoExtension, &mut bad, true, &mut |_| Ok(())).unwrap();
+        assert_eq!(end.exit_code(), 2);
     }
 }

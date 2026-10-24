@@ -70,6 +70,13 @@ pub fn copy_dir(from: &Path, to: &Path) {
     }
 }
 
+/// Whether `EW_BLESS=1` asks the golden-text tests to rewrite their expected files (WP-S6.13).
+// Allowed: the program boundary of a test, read once; the value never reaches a result.
+#[allow(clippy::disallowed_methods)]
+pub fn bless() -> bool {
+    std::env::var_os("EW_BLESS").is_some_and(|v| v == "1")
+}
+
 #[track_caller]
 pub fn done(shell: &mut ShellModel, action: &str, params: Value) {
     assert_eq!(

@@ -1982,7 +1982,9 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
         ) || part1.contains(*w)
             // WP-S2.05 part 2: the find words need the find pane: `tests/find.rs` reaches them.
             || ew_viewmodel::describe::FIND_WORDS.contains(*w)
-            || wiring.contains(*w)),
+            || wiring.contains(*w)
+            // WP-S6.13 part 1: the page text's words are `page.describe`'s: `tests/page_describe.rs` reaches them.
+            || ew_viewmodel::describe::PAGE_WORDS.contains(*w)),
         "words of the vocabulary no state used: {unused:?}"
     );
 }

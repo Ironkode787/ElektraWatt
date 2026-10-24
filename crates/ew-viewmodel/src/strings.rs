@@ -530,6 +530,8 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "action-find-run" => "Find",
         "action-find-row" => "Move the result cursor",
         "action-find-jump" => "Show the result",
+        // WP-S6.13 part 1
+        "action-page-describe" => "Describe the page content",
         "action-find-replace-all" => "Replace all",
         "find-field-function-text" => "Function text",
         "find-field-tag" => "Tag",

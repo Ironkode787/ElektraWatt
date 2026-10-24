@@ -160,6 +160,9 @@ pub struct ActionMeta {
     pub hidden: bool,
     /// Where its shortcuts apply.
     pub context: Context,
+    /// The parameter signature (WP-S6.13 §5.5.2): `""` for an action without parameters, else a comma-separated list of
+    /// `name[?]:type` (see [`validate_signature`]). The blind drafter's harness types its `key=value` arguments by it.
+    pub params: &'static str,
 }
 
 impl std::fmt::Debug for ActionMeta {
@@ -380,6 +383,16 @@ fn junction_editor_open(m: &ShellModel) -> Result<(), &'static str> {
     }
 }
 
+/// A project with a page is open: `page.describe` reads a page (WP-S6.13 §5.5.3).
+fn page_describable(m: &ShellModel) -> Result<(), &'static str> {
+    project_open(m)?;
+    if m.page_count() > 0 {
+        Ok(())
+    } else {
+        Err("reason-no-page")
+    }
+}
+
 /// The picker is open (WP-S2.04 §7.1).
 fn picker_open(m: &ShellModel) -> Result<(), &'static str> {
     if m.picker().is_some() {
@@ -467,7 +480,14 @@ const fn act(
         needs_parameters: false,
         hidden: false,
         context: Context::Global,
+        params: "",
     }
+}
+
+/// Gives an action its parameter signature (WP-S6.13 §5.5.2).
+const fn with_params(params: &'static str, mut a: ActionMeta) -> ActionMeta {
+    a.params = params;
+    a
 }
 
 const fn needs_parameters(mut a: ActionMeta) -> ActionMeta {
@@ -558,50 +578,65 @@ use ActionKind::{Command, View};
 
 /// The registry: the part-1 actions of the spec, section 5.2, in menu order, then the headless-only ones.
 pub static ACTIONS: &[ActionMeta] = &[
-    act(
-        "file.new",
-        Command,
-        "action-file-new",
-        Menu::File,
-        &["Ctrl+N"],
-        always,
-        slot(Menu::File),
+    with_params(
+        "dir?:path, template?:path, discard?:bool",
+        act(
+            "file.new",
+            Command,
+            "action-file-new",
+            Menu::File,
+            &["Ctrl+N"],
+            always,
+            slot(Menu::File),
+        ),
     ),
-    act(
-        "file.open",
-        Command,
-        "action-file-open",
-        Menu::File,
-        &["Ctrl+O"],
-        always,
-        slot(Menu::File),
+    with_params(
+        "dir?:path, read_only?:bool, discard?:bool",
+        act(
+            "file.open",
+            Command,
+            "action-file-open",
+            Menu::File,
+            &["Ctrl+O"],
+            always,
+            slot(Menu::File),
+        ),
     ),
-    needs_parameters(act(
-        "file.open_recent",
-        Command,
-        "action-file-open-recent",
-        Menu::File,
-        &[],
-        has_recent,
-        sub(Menu::File, Submenu::OpenRecent, false),
-    )),
-    act(
-        "file.open_sample",
-        Command,
-        "action-file-open-sample",
-        Menu::File,
-        &[],
-        always,
-        slot(Menu::File),
+    with_params(
+        "index:uint, discard?:bool",
+        needs_parameters(act(
+            "file.open_recent",
+            Command,
+            "action-file-open-recent",
+            Menu::File,
+            &[],
+            has_recent,
+            sub(Menu::File, Submenu::OpenRecent, false),
+        )),
     ),
-    act(
-        "file.import_qet",
-        Command,
-        "action-file-import-qet",
-        Menu::File,
-        &[],
-        always,
-        slot(Menu::File),
+    with_params(
+        "discard?:bool",
+        act(
+            "file.open_sample",
+            Command,
+            "action-file-open-sample",
+            Menu::File,
+            &[],
+            always,
+            slot(Menu::File),
+        ),
+    ),
+    with_params(
+        "file?:path, dir?:path, discard?:bool",
+        act(
+            "file.import_qet",
+            Command,
+            "action-file-import-qet",
+            Menu::File,
+            &[],
+            always,
+            slot(Menu::File),
+        ),
     ),
     act(
         "file.save",
@@ -612,50 +647,65 @@ pub static ACTIONS: &[ActionMeta] = &[
         writable,
         slot_sep(Menu::File),
     ),
-    act(
-        "file.save_as",
-        Command,
-        "action-file-save-as",
-        Menu::File,
-        &["Ctrl+Shift+S"],
-        project_open,
-        slot(Menu::File),
+    with_params(
+        "dir?:path",
+        act(
+            "file.save_as",
+            Command,
+            "action-file-save-as",
+            Menu::File,
+            &["Ctrl+Shift+S"],
+            project_open,
+            slot(Menu::File),
+        ),
     ),
-    act(
-        "file.discard_journal",
-        Command,
-        "action-file-discard-journal",
-        Menu::File,
-        &[],
-        can_discard_journal,
-        slot(Menu::File),
+    with_params(
+        "confirm?:bool",
+        act(
+            "file.discard_journal",
+            Command,
+            "action-file-discard-journal",
+            Menu::File,
+            &[],
+            can_discard_journal,
+            slot(Menu::File),
+        ),
     ),
-    act(
-        "file.export_pdf",
-        Command,
-        "action-file-export-pdf",
-        Menu::File,
-        &["Ctrl+Shift+E"],
-        has_pages,
-        sub(Menu::File, Submenu::Export, true),
+    with_params(
+        "path?:path",
+        act(
+            "file.export_pdf",
+            Command,
+            "action-file-export-pdf",
+            Menu::File,
+            &["Ctrl+Shift+E"],
+            has_pages,
+            sub(Menu::File, Submenu::Export, true),
+        ),
     ),
-    act(
-        "file.close",
-        Command,
-        "action-file-close",
-        Menu::File,
-        &["Ctrl+Shift+W"],
-        project_open,
-        slot_sep(Menu::File),
+    with_params(
+        "discard?:bool",
+        act(
+            "file.close",
+            Command,
+            "action-file-close",
+            Menu::File,
+            &["Ctrl+Shift+W"],
+            project_open,
+            slot_sep(Menu::File),
+        ),
     ),
-    act(
-        "app.quit",
-        Command,
-        "action-app-quit",
-        Menu::File,
-        &["Ctrl+Q"],
-        always,
-        slot(Menu::File),
+    with_params(
+        "discard?:bool",
+        act(
+            "app.quit",
+            Command,
+            "action-app-quit",
+            Menu::File,
+            &["Ctrl+Q"],
+            always,
+            slot(Menu::File),
+        ),
     ),
     act(
         "edit.undo",
@@ -760,14 +810,17 @@ pub static ACTIONS: &[ActionMeta] = &[
         has_pages,
         slot(Menu::Page),
     ),
-    act(
-        "nav.goto",
-        View,
-        "action-nav-goto",
-        Menu::Page,
-        &["Ctrl+G"],
-        has_pages,
-        slot_sep(Menu::Page),
+    with_params(
+        "text?:text",
+        act(
+            "nav.goto",
+            View,
+            "action-nav-goto",
+            Menu::Page,
+            &["Ctrl+G"],
+            has_pages,
+            slot_sep(Menu::Page),
+        ),
     ),
     act(
         "nav.back",
@@ -787,71 +840,92 @@ pub static ACTIONS: &[ActionMeta] = &[
         can_go_forward,
         slot(Menu::Page),
     ),
-    in_canvas(act(
-        "nav.follow",
-        View,
-        "action-nav-follow",
-        Menu::Page,
-        &["F"],
-        has_pages,
-        slot_sep(Menu::Page),
-    )),
-    in_canvas(act(
-        "nav.next_link",
-        View,
-        "action-nav-next-link",
-        Menu::Page,
-        &["Shift+F"],
-        has_pages,
-        slot(Menu::Page),
-    )),
-    in_canvas(act(
-        "nav.previous_link",
-        View,
-        "action-nav-previous-link",
-        Menu::Page,
-        &["Ctrl+Shift+F"],
-        has_pages,
-        slot(Menu::Page),
-    )),
+    with_params(
+        "x_mm?:mm, y_mm?:mm, group?:uint",
+        in_canvas(act(
+            "nav.follow",
+            View,
+            "action-nav-follow",
+            Menu::Page,
+            &["F"],
+            has_pages,
+            slot_sep(Menu::Page),
+        )),
+    ),
+    with_params(
+        "group?:uint",
+        in_canvas(act(
+            "nav.next_link",
+            View,
+            "action-nav-next-link",
+            Menu::Page,
+            &["Shift+F"],
+            has_pages,
+            slot(Menu::Page),
+        )),
+    ),
+    with_params(
+        "group?:uint",
+        in_canvas(act(
+            "nav.previous_link",
+            View,
+            "action-nav-previous-link",
+            Menu::Page,
+            &["Ctrl+Shift+F"],
+            has_pages,
+            slot(Menu::Page),
+        )),
+    ),
     // Keyboard tool input (WP-S2.03 §7.7): the connection points in reading order; `[` and `]` are matched as the
     // physical keys by the window, so they need no AltGr on QWERTZ and AZERTY (doc 16 §4.4).
-    in_canvas(act(
-        "cp.next",
-        View,
-        "action-cp-next",
-        Menu::Page,
-        &["]", "Alt+N"],
-        has_pages,
-        slot_sep(Menu::Page),
-    )),
-    in_canvas(act(
-        "cp.previous",
-        View,
-        "action-cp-previous",
-        Menu::Page,
-        &["[", "Alt+Shift+N"],
-        has_pages,
-        slot(Menu::Page),
-    )),
-    in_canvas(act(
-        "cp.next_unconnected",
-        View,
-        "action-cp-next-unconnected",
-        Menu::Page,
-        &["N"],
-        has_pages,
-        slot(Menu::Page),
-    )),
-    in_canvas(act(
-        "canvas.activate",
-        View,
-        "action-canvas-activate",
-        Menu::Page,
-        &["Enter"],
-        has_pages,
-        None,
-    )),
+    with_params(
+        "group?:uint",
+        in_canvas(act(
+            "cp.next",
+            View,
+            "action-cp-next",
+            Menu::Page,
+            &["]", "Alt+N"],
+            has_pages,
+            slot_sep(Menu::Page),
+        )),
+    ),
+    with_params(
+        "group?:uint",
+        in_canvas(act(
+            "cp.previous",
+            View,
+            "action-cp-previous",
+            Menu::Page,
+            &["[", "Alt+Shift+N"],
+            has_pages,
+            slot(Menu::Page),
+        )),
+    ),
+    with_params(
+        "group?:uint",
+        in_canvas(act(
+            "cp.next_unconnected",
+            View,
+            "action-cp-next-unconnected",
+            Menu::Page,
+            &["N"],
+            has_pages,
+            slot(Menu::Page),
+        )),
+    ),
+    with_params(
+        "alt?:bool",
+        in_canvas(act(
+            "canvas.activate",
+            View,
+            "action-canvas-activate",
+            Menu::Page,
+            &["Enter"],
+            has_pages,
+            None,
+        )),
+    ),
     in_canvas(act(
         "tool.back",
         View,
@@ -861,77 +935,101 @@ pub static ACTIONS: &[ActionMeta] = &[
         has_pages,
         None,
     )),
-    act(
-        "view.zoom_in",
-        View,
-        "action-view-zoom-in",
-        Menu::View,
-        &["Ctrl+Plus", "Ctrl+Equals"],
-        can_zoom_in,
-        slot(Menu::View),
+    with_params(
+        "group?:uint",
+        act(
+            "view.zoom_in",
+            View,
+            "action-view-zoom-in",
+            Menu::View,
+            &["Ctrl+Plus", "Ctrl+Equals"],
+            can_zoom_in,
+            slot(Menu::View),
+        ),
     ),
-    act(
-        "view.zoom_out",
-        View,
-        "action-view-zoom-out",
-        Menu::View,
-        &["Ctrl+Minus"],
-        can_zoom_out,
-        slot(Menu::View),
+    with_params(
+        "group?:uint",
+        act(
+            "view.zoom_out",
+            View,
+            "action-view-zoom-out",
+            Menu::View,
+            &["Ctrl+Minus"],
+            can_zoom_out,
+            slot(Menu::View),
+        ),
     ),
-    act(
-        "view.zoom_actual",
-        View,
-        "action-view-zoom-actual",
-        Menu::View,
-        &["Ctrl+0"],
-        has_pages,
-        slot(Menu::View),
+    with_params(
+        "group?:uint",
+        act(
+            "view.zoom_actual",
+            View,
+            "action-view-zoom-actual",
+            Menu::View,
+            &["Ctrl+0"],
+            has_pages,
+            slot(Menu::View),
+        ),
     ),
-    act(
-        "view.fit_page",
-        View,
-        "action-view-fit-page",
-        Menu::View,
-        &["Home"],
-        has_pages,
-        slot(Menu::View),
+    with_params(
+        "group?:uint",
+        act(
+            "view.fit_page",
+            View,
+            "action-view-fit-page",
+            Menu::View,
+            &["Home"],
+            has_pages,
+            slot(Menu::View),
+        ),
     ),
-    act(
-        "view.pan_left",
-        View,
-        "action-view-pan-left",
-        Menu::View,
-        &["Ctrl+Arrow Left"],
-        has_pages,
-        sub(Menu::View, Submenu::Pan, false),
+    with_params(
+        "group?:uint",
+        act(
+            "view.pan_left",
+            View,
+            "action-view-pan-left",
+            Menu::View,
+            &["Ctrl+Arrow Left"],
+            has_pages,
+            sub(Menu::View, Submenu::Pan, false),
+        ),
     ),
-    act(
-        "view.pan_right",
-        View,
-        "action-view-pan-right",
-        Menu::View,
-        &["Ctrl+Arrow Right"],
-        has_pages,
-        sub(Menu::View, Submenu::Pan, false),
+    with_params(
+        "group?:uint",
+        act(
+            "view.pan_right",
+            View,
+            "action-view-pan-right",
+            Menu::View,
+            &["Ctrl+Arrow Right"],
+            has_pages,
+            sub(Menu::View, Submenu::Pan, false),
+        ),
     ),
-    act(
-        "view.pan_up",
-        View,
-        "action-view-pan-up",
-        Menu::View,
-        &["Ctrl+Arrow Up"],
-        has_pages,
-        sub(Menu::View, Submenu::Pan, false),
+    with_params(
+        "group?:uint",
+        act(
+            "view.pan_up",
+            View,
+            "action-view-pan-up",
+            Menu::View,
+            &["Ctrl+Arrow Up"],
+            has_pages,
+            sub(Menu::View, Submenu::Pan, false),
+        ),
     ),
-    act(
-        "view.pan_down",
-        View,
-        "action-view-pan-down",
-        Menu::View,
-        &["Ctrl+Arrow Down"],
-        has_pages,
-        sub(Menu::View, Submenu::Pan, false),
+    with_params(
+        "group?:uint",
+        act(
+            "view.pan_down",
+            View,
+            "action-view-pan-down",
+            Menu::View,
+            &["Ctrl+Arrow Down"],
+            has_pages,
+            sub(Menu::View, Submenu::Pan, false),
+        ),
     ),
     act(
         "view.side_by_side",
@@ -942,24 +1040,30 @@ pub static ACTIONS: &[ActionMeta] = &[
         has_pages,
         slot_sep(Menu::View),
     ),
-    needs_parameters(act(
-        "pages.mode",
-        View,
-        "action-pages-mode",
-        Menu::View,
-        &[],
-        has_pages,
-        sub(Menu::View, Submenu::PageNavigator, false),
-    )),
-    needs_parameters(act(
-        "pages.sort",
-        View,
-        "action-pages-sort",
-        Menu::View,
-        &[],
-        has_pages,
-        sub(Menu::View, Submenu::PageNavigator, false),
-    )),
+    with_params(
+        "mode:enum(flat|section|structure)",
+        needs_parameters(act(
+            "pages.mode",
+            View,
+            "action-pages-mode",
+            Menu::View,
+            &[],
+            has_pages,
+            sub(Menu::View, Submenu::PageNavigator, false),
+        )),
+    ),
+    with_params(
+        "by:enum(folio|type)",
+        needs_parameters(act(
+            "pages.sort",
+            View,
+            "action-pages-sort",
+            Menu::View,
+            &[],
+            has_pages,
+            sub(Menu::View, Submenu::PageNavigator, false),
+        )),
+    ),
     act(
         "view.grid",
         View,
@@ -988,41 +1092,53 @@ pub static ACTIONS: &[ActionMeta] = &[
         slot(Menu::View),
     ),
     // The property grid (WP-S2.05 part 1, spec §6.10).
-    act(
-        "props.show",
-        View,
-        "action-props-show",
-        Menu::View,
-        &[],
-        project_open,
-        slot_sep(Menu::View),
+    with_params(
+        "on?:bool",
+        act(
+            "props.show",
+            View,
+            "action-props-show",
+            Menu::View,
+            &[],
+            project_open,
+            slot_sep(Menu::View),
+        ),
     ),
-    needs_parameters(act(
-        "view.ui_scale",
-        View,
-        "action-view-ui-scale",
-        Menu::View,
-        &[],
-        always,
-        sub(Menu::View, Submenu::UiScale, true),
-    )),
-    needs_parameters(act(
-        "view.workspace_load",
-        View,
-        "action-view-workspace-load",
-        Menu::View,
-        &[],
-        always,
-        sub(Menu::View, Submenu::Workspace, false),
-    )),
-    act(
-        "view.workspace_save",
-        View,
-        "action-view-workspace-save",
-        Menu::View,
-        &[],
-        always,
-        sub(Menu::View, Submenu::Workspace, false),
+    with_params(
+        "scale:json",
+        needs_parameters(act(
+            "view.ui_scale",
+            View,
+            "action-view-ui-scale",
+            Menu::View,
+            &[],
+            always,
+            sub(Menu::View, Submenu::UiScale, true),
+        )),
+    ),
+    with_params(
+        "name:text",
+        needs_parameters(act(
+            "view.workspace_load",
+            View,
+            "action-view-workspace-load",
+            Menu::View,
+            &[],
+            always,
+            sub(Menu::View, Submenu::Workspace, false),
+        )),
+    ),
+    with_params(
+        "name:text",
+        act(
+            "view.workspace_save",
+            View,
+            "action-view-workspace-save",
+            Menu::View,
+            &[],
+            always,
+            sub(Menu::View, Submenu::Workspace, false),
+        ),
     ),
     act(
         "view.workspace_reset",
@@ -1033,14 +1149,17 @@ pub static ACTIONS: &[ActionMeta] = &[
         always,
         sub(Menu::View, Submenu::Workspace, false),
     ),
-    act(
-        "tools.palette",
-        View,
-        "action-tools-palette",
-        Menu::Tools,
-        &["Ctrl+K", "Ctrl+Shift+P"],
-        always,
-        slot(Menu::Tools),
+    with_params(
+        "query?:text",
+        act(
+            "tools.palette",
+            View,
+            "action-tools-palette",
+            Menu::Tools,
+            &["Ctrl+K", "Ctrl+Shift+P"],
+            always,
+            slot(Menu::Tools),
+        ),
     ),
     act(
         "tool.select",
@@ -1079,42 +1198,54 @@ pub static ACTIONS: &[ActionMeta] = &[
         editable_page,
         slot(Menu::Insert),
     )),
-    act(
-        "strip.new",
-        Command,
-        "action-strip-new",
-        Menu::Insert,
-        &[],
-        editable_page,
-        slot_sep(Menu::Insert),
+    with_params(
+        "letter?:text",
+        act(
+            "strip.new",
+            Command,
+            "action-strip-new",
+            Menu::Insert,
+            &[],
+            editable_page,
+            slot_sep(Menu::Insert),
+        ),
     ),
-    hidden(in_canvas(act(
-        "place.pick",
-        Command,
-        "action-place-pick",
-        Menu::Insert,
-        &[],
-        editable_page,
-        None,
-    ))),
-    hidden(act(
-        "picker.filter",
-        View,
-        "action-picker-filter",
-        Menu::Insert,
-        &[],
-        picker_open,
-        None,
-    )),
-    hidden(act(
-        "picker.row",
-        View,
-        "action-picker-row",
-        Menu::Insert,
-        &[],
-        picker_open,
-        None,
-    )),
+    with_params(
+        "symbol?:text, part?:text, function?:ref, template?:uint, letter?:text, strip?:text, designation?:text",
+        hidden(in_canvas(act(
+            "place.pick",
+            Command,
+            "action-place-pick",
+            Menu::Insert,
+            &[],
+            editable_page,
+            None,
+        ))),
+    ),
+    with_params(
+        "text:text",
+        hidden(act(
+            "picker.filter",
+            View,
+            "action-picker-filter",
+            Menu::Insert,
+            &[],
+            picker_open,
+            None,
+        )),
+    ),
+    with_params(
+        "step?:int, to?:enum(first|last)",
+        hidden(act(
+            "picker.row",
+            View,
+            "action-picker-row",
+            Menu::Insert,
+            &[],
+            picker_open,
+            None,
+        )),
+    ),
     hidden(act(
         "picker.choose",
         Command,
@@ -1196,15 +1327,18 @@ pub static ACTIONS: &[ActionMeta] = &[
         editable_page,
         slot(Menu::Edit),
     )),
-    in_canvas(act(
-        "rep.exchange",
-        Command,
-        "action-rep-exchange",
-        Menu::Edit,
-        &[],
-        editable_page,
-        slot(Menu::Edit),
-    )),
+    with_params(
+        "symbol?:text",
+        in_canvas(act(
+            "rep.exchange",
+            Command,
+            "action-rep-exchange",
+            Menu::Edit,
+            &[],
+            editable_page,
+            slot(Menu::Edit),
+        )),
+    ),
     hidden(in_canvas(act(
         "tool.finish",
         View,
@@ -1214,15 +1348,18 @@ pub static ACTIONS: &[ActionMeta] = &[
         has_pages,
         None,
     ))),
-    hidden(in_canvas(act(
-        "text.input",
-        View,
-        "action-text-input",
-        Menu::Edit,
-        &[],
-        has_pages,
-        None,
-    ))),
+    with_params(
+        "text:text",
+        hidden(in_canvas(act(
+            "text.input",
+            View,
+            "action-text-input",
+            Menu::Edit,
+            &[],
+            has_pages,
+            None,
+        ))),
+    ),
     // WP-S2.04 part 2 (wiring, §8.7): the Wire tool, the proposals' Tab, route edit, the junction sequence editor and
     // the crossings setting. Begin.
     in_canvas(act(
@@ -1281,41 +1418,53 @@ pub static ACTIONS: &[ActionMeta] = &[
         one_junction,
         slot(Menu::Edit),
     )),
-    hidden(act(
-        "junction.member",
-        Command,
-        "action-junction-member",
-        Menu::Edit,
-        &[],
-        junction_editor_open,
-        None,
-    )),
-    hidden(act(
-        "junction.style",
-        Command,
-        "action-junction-style",
-        Menu::Edit,
-        &[],
-        junction_editor_open,
-        None,
-    )),
-    hidden(act(
-        "junction.wiring",
-        Command,
-        "action-junction-wiring",
-        Menu::Edit,
-        &[],
-        junction_editor_open,
-        None,
-    )),
-    act(
-        "project.crossings",
-        Command,
-        "action-project-crossings",
-        Menu::Tools,
-        &[],
-        writable,
-        slot_sep(Menu::Tools),
+    with_params(
+        "from:uint, to:uint",
+        hidden(act(
+            "junction.member",
+            Command,
+            "action-junction-member",
+            Menu::Edit,
+            &[],
+            junction_editor_open,
+            None,
+        )),
+    ),
+    with_params(
+        "style:enum(dot|bevel), orient?:uint",
+        hidden(act(
+            "junction.style",
+            Command,
+            "action-junction-style",
+            Menu::Edit,
+            &[],
+            junction_editor_open,
+            None,
+        )),
+    ),
+    with_params(
+        "wiring:enum(star|chain|style_default)",
+        hidden(act(
+            "junction.wiring",
+            Command,
+            "action-junction-wiring",
+            Menu::Edit,
+            &[],
+            junction_editor_open,
+            None,
+        )),
+    ),
+    with_params(
+        "on?:bool",
+        act(
+            "project.crossings",
+            Command,
+            "action-project-crossings",
+            Menu::Tools,
+            &[],
+            writable,
+            slot_sep(Menu::Tools),
+        ),
     ),
     // WP-S2.04 part 2. End.
     act(
@@ -1372,32 +1521,41 @@ pub static ACTIONS: &[ActionMeta] = &[
         two_groups,
         slot(Menu::Window),
     ),
-    act(
-        "help.documentation",
-        View,
-        "action-help-documentation",
-        Menu::Help,
-        &["F1"],
-        always,
-        slot(Menu::Help),
+    with_params(
+        "topic?:text",
+        act(
+            "help.documentation",
+            View,
+            "action-help-documentation",
+            Menu::Help,
+            &["F1"],
+            always,
+            slot(Menu::Help),
+        ),
     ),
-    act(
-        "help.tutorials",
-        Command,
-        "action-help-tutorials",
-        Menu::Help,
-        &[],
-        always,
-        slot(Menu::Help),
+    with_params(
+        "dir?:path, discard?:bool",
+        act(
+            "help.tutorials",
+            Command,
+            "action-help-tutorials",
+            Menu::Help,
+            &[],
+            always,
+            slot(Menu::Help),
+        ),
     ),
-    act(
-        "help.first_run",
-        View,
-        "action-help-first-run",
-        Menu::Help,
-        &[],
-        always,
-        slot_sep(Menu::Help),
+    with_params(
+        "step?:enum(language|origin|privacy|appearance|start)",
+        act(
+            "help.first_run",
+            View,
+            "action-help-first-run",
+            Menu::Help,
+            &[],
+            always,
+            slot_sep(Menu::Help),
+        ),
     ),
     act(
         "help.shortcuts",
@@ -1426,105 +1584,138 @@ pub static ACTIONS: &[ActionMeta] = &[
         always,
         slot(Menu::Help),
     ),
-    needs_parameters(act(
-        "command.run",
-        Command,
-        "action-command-run",
-        Menu::Tools,
-        &[],
-        writable,
-        None,
-    )),
-    headless(act(
-        "view.snapshot",
-        View,
-        "action-view-snapshot",
-        Menu::View,
-        &[],
-        page_shown,
-        None,
-    )),
-    headless(act(
-        "canvas.snapshot",
-        View,
-        "action-canvas-snapshot",
-        Menu::View,
-        &[],
-        has_pages,
-        None,
-    )),
-    hidden(act(
-        "view.zoom_to",
-        View,
-        "action-view-zoom-to",
-        Menu::View,
-        &[],
-        has_pages,
-        None,
-    )),
-    hidden(act(
-        "view.pan",
-        View,
-        "action-view-pan",
-        Menu::View,
-        &[],
-        has_pages,
-        None,
-    )),
-    hidden(act(
-        "view.canvas_resize",
-        View,
-        "action-view-canvas-resize",
-        Menu::View,
-        &[],
-        always,
-        None,
-    )),
-    hidden(act(
-        "canvas.pointer",
-        View,
-        "action-canvas-pointer",
-        Menu::View,
-        &[],
-        has_pages,
-        None,
-    )),
-    headless(act(
-        "canvas.preview_snapshot",
-        View,
-        "action-canvas-preview-snapshot",
-        Menu::View,
-        &[],
-        has_link_preview,
-        None,
-    )),
-    hidden(in_canvas(act(
-        "canvas.press",
-        View,
-        "action-canvas-press",
-        Menu::View,
-        &[],
-        has_pages,
-        None,
-    ))),
-    hidden(in_canvas(act(
-        "canvas.release",
-        View,
-        "action-canvas-release",
-        Menu::View,
-        &[],
-        has_pages,
-        None,
-    ))),
-    hidden(in_canvas(act(
-        "canvas.dwell",
-        View,
-        "action-canvas-dwell",
-        Menu::View,
-        &[],
-        has_pages,
-        None,
-    ))),
+    with_params(
+        "cmd:text, params?:json",
+        needs_parameters(act(
+            "command.run",
+            Command,
+            "action-command-run",
+            Menu::Tools,
+            &[],
+            writable,
+            None,
+        )),
+    ),
+    with_params(
+        "path:path, dpi?:uint",
+        headless(act(
+            "view.snapshot",
+            View,
+            "action-view-snapshot",
+            Menu::View,
+            &[],
+            page_shown,
+            None,
+        )),
+    ),
+    with_params(
+        "path:path, group?:uint",
+        headless(act(
+            "canvas.snapshot",
+            View,
+            "action-canvas-snapshot",
+            Menu::View,
+            &[],
+            has_pages,
+            None,
+        )),
+    ),
+    with_params(
+        "percent:json, x_mm?:mm, y_mm?:mm, group?:uint",
+        hidden(act(
+            "view.zoom_to",
+            View,
+            "action-view-zoom-to",
+            Menu::View,
+            &[],
+            has_pages,
+            None,
+        )),
+    ),
+    with_params(
+        "dx:json, dy:json, group?:uint",
+        hidden(act(
+            "view.pan",
+            View,
+            "action-view-pan",
+            Menu::View,
+            &[],
+            has_pages,
+            None,
+        )),
+    ),
+    with_params(
+        "width:json, height:json, ppp?:json, group?:uint",
+        hidden(act(
+            "view.canvas_resize",
+            View,
+            "action-view-canvas-resize",
+            Menu::View,
+            &[],
+            always,
+            None,
+        )),
+    ),
+    with_params(
+        "x_mm?:mm, y_mm?:mm, group?:uint, shift?:bool, ctrl?:bool, alt?:bool",
+        hidden(act(
+            "canvas.pointer",
+            View,
+            "action-canvas-pointer",
+            Menu::View,
+            &[],
+            has_pages,
+            None,
+        )),
+    ),
+    with_params(
+        "path:path",
+        headless(act(
+            "canvas.preview_snapshot",
+            View,
+            "action-canvas-preview-snapshot",
+            Menu::View,
+            &[],
+            has_link_preview,
+            None,
+        )),
+    ),
+    with_params(
+        "x_mm:mm, y_mm:mm, button?:enum(primary|middle), shift?:bool, ctrl?:bool, alt?:bool, group?:uint",
+        hidden(in_canvas(act(
+            "canvas.press",
+            View,
+            "action-canvas-press",
+            Menu::View,
+            &[],
+            has_pages,
+            None,
+        ))),
+    ),
+    with_params(
+        "x_mm:mm, y_mm:mm, button?:enum(primary|middle), shift?:bool, ctrl?:bool, alt?:bool, group?:uint",
+        hidden(in_canvas(act(
+            "canvas.release",
+            View,
+            "action-canvas-release",
+            Menu::View,
+            &[],
+            has_pages,
+            None,
+        ))),
+    ),
+    with_params(
+        "ms:uint",
+        hidden(in_canvas(act(
+            "canvas.dwell",
+            View,
+            "action-canvas-dwell",
+            Menu::View,
+            &[],
+            has_pages,
+            None,
+        ))),
+    ),
     headless(act(
         "ui.describe",
         View,
@@ -1534,168 +1725,222 @@ pub static ACTIONS: &[ActionMeta] = &[
         always,
         None,
     )),
-    hidden(act(
-        "page.goto",
-        View,
-        "action-page-goto",
-        Menu::Page,
-        &[],
-        has_pages,
-        None,
-    )),
-    hidden(act(
-        "tab.activate",
-        View,
-        "action-tab-activate",
-        Menu::Window,
-        &[],
-        has_pages,
-        None,
-    )),
-    hidden(act(
-        "tab.move",
-        View,
-        "action-tab-move",
-        Menu::Window,
-        &[],
-        has_pages,
-        None,
-    )),
-    hidden(act(
-        "tab.open",
-        View,
-        "action-tab-open",
-        Menu::Window,
-        &[],
-        has_pages,
-        None,
-    )),
-    hidden(in_canvas(act(
-        "cursor.left",
-        View,
-        "action-cursor-left",
-        Menu::Page,
-        &["Arrow Left"],
-        has_pages,
-        None,
-    ))),
-    hidden(in_canvas(act(
-        "cursor.right",
-        View,
-        "action-cursor-right",
-        Menu::Page,
-        &["Arrow Right"],
-        has_pages,
-        None,
-    ))),
-    hidden(in_canvas(act(
-        "cursor.up",
-        View,
-        "action-cursor-up",
-        Menu::Page,
-        &["Arrow Up"],
-        has_pages,
-        None,
-    ))),
-    hidden(in_canvas(act(
-        "cursor.down",
-        View,
-        "action-cursor-down",
-        Menu::Page,
-        &["Arrow Down"],
-        has_pages,
-        None,
-    ))),
-    hidden(in_canvas(act(
-        "cursor.cell_left",
-        View,
-        "action-cursor-cell-left",
-        Menu::Page,
-        &["Shift+Arrow Left"],
-        has_pages,
-        None,
-    ))),
-    hidden(in_canvas(act(
-        "cursor.cell_right",
-        View,
-        "action-cursor-cell-right",
-        Menu::Page,
-        &["Shift+Arrow Right"],
-        has_pages,
-        None,
-    ))),
-    hidden(in_canvas(act(
-        "cursor.cell_up",
-        View,
-        "action-cursor-cell-up",
-        Menu::Page,
-        &["Shift+Arrow Up"],
-        has_pages,
-        None,
-    ))),
-    hidden(in_canvas(act(
-        "cursor.cell_down",
-        View,
-        "action-cursor-cell-down",
-        Menu::Page,
-        &["Shift+Arrow Down"],
-        has_pages,
-        None,
-    ))),
-    hidden(in_canvas(act(
-        "cursor.set",
-        View,
-        "action-cursor-set",
-        Menu::Page,
-        &[],
-        has_pages,
-        None,
-    ))),
-    hidden(act(
-        "pages.filter",
-        View,
-        "action-pages-filter",
-        Menu::View,
-        &[],
-        has_pages,
-        None,
-    )),
-    hidden(in_navigator(act(
-        "pages.toggle",
-        View,
-        "action-pages-toggle",
-        Menu::View,
-        &[],
-        has_pages,
-        None,
-    ))),
-    hidden(in_navigator(act(
-        "pages.row",
-        View,
-        "action-pages-row",
-        Menu::View,
-        &[],
-        has_pages,
-        None,
-    ))),
-    hidden(in_navigator(act(
-        "pages.open",
-        View,
-        "action-pages-open",
-        Menu::View,
-        &[],
-        has_pages,
-        None,
-    ))),
-    hidden(act(
-        "ui.focus",
-        View,
-        "action-ui-focus",
-        Menu::Window,
-        &[],
-        project_open,
-        None,
-    )),
+    with_params(
+        "folio:text",
+        hidden(act(
+            "page.goto",
+            View,
+            "action-page-goto",
+            Menu::Page,
+            &[],
+            has_pages,
+            None,
+        )),
+    ),
+    with_params(
+        "group:uint, index:uint",
+        hidden(act(
+            "tab.activate",
+            View,
+            "action-tab-activate",
+            Menu::Window,
+            &[],
+            has_pages,
+            None,
+        )),
+    ),
+    with_params(
+        "group:uint, index:uint, to_group:uint, to_index:uint",
+        hidden(act(
+            "tab.move",
+            View,
+            "action-tab-move",
+            Menu::Window,
+            &[],
+            has_pages,
+            None,
+        )),
+    ),
+    with_params(
+        "folio:text, group?:uint",
+        hidden(act(
+            "tab.open",
+            View,
+            "action-tab-open",
+            Menu::Window,
+            &[],
+            has_pages,
+            None,
+        )),
+    ),
+    with_params(
+        "group?:uint",
+        hidden(in_canvas(act(
+            "cursor.left",
+            View,
+            "action-cursor-left",
+            Menu::Page,
+            &["Arrow Left"],
+            has_pages,
+            None,
+        ))),
+    ),
+    with_params(
+        "group?:uint",
+        hidden(in_canvas(act(
+            "cursor.right",
+            View,
+            "action-cursor-right",
+            Menu::Page,
+            &["Arrow Right"],
+            has_pages,
+            None,
+        ))),
+    ),
+    with_params(
+        "group?:uint",
+        hidden(in_canvas(act(
+            "cursor.up",
+            View,
+            "action-cursor-up",
+            Menu::Page,
+            &["Arrow Up"],
+            has_pages,
+            None,
+        ))),
+    ),
+    with_params(
+        "group?:uint",
+        hidden(in_canvas(act(
+            "cursor.down",
+            View,
+            "action-cursor-down",
+            Menu::Page,
+            &["Arrow Down"],
+            has_pages,
+            None,
+        ))),
+    ),
+    with_params(
+        "group?:uint",
+        hidden(in_canvas(act(
+            "cursor.cell_left",
+            View,
+            "action-cursor-cell-left",
+            Menu::Page,
+            &["Shift+Arrow Left"],
+            has_pages,
+            None,
+        ))),
+    ),
+    with_params(
+        "group?:uint",
+        hidden(in_canvas(act(
+            "cursor.cell_right",
+            View,
+            "action-cursor-cell-right",
+            Menu::Page,
+            &["Shift+Arrow Right"],
+            has_pages,
+            None,
+        ))),
+    ),
+    with_params(
+        "group?:uint",
+        hidden(in_canvas(act(
+            "cursor.cell_up",
+            View,
+            "action-cursor-cell-up",
+            Menu::Page,
+            &["Shift+Arrow Up"],
+            has_pages,
+            None,
+        ))),
+    ),
+    with_params(
+        "group?:uint",
+        hidden(in_canvas(act(
+            "cursor.cell_down",
+            View,
+            "action-cursor-cell-down",
+            Menu::Page,
+            &["Shift+Arrow Down"],
+            has_pages,
+            None,
+        ))),
+    ),
+    with_params(
+        "x_mm?:mm, y_mm?:mm, group?:uint",
+        hidden(in_canvas(act(
+            "cursor.set",
+            View,
+            "action-cursor-set",
+            Menu::Page,
+            &[],
+            has_pages,
+            None,
+        ))),
+    ),
+    with_params(
+        "text:text",
+        hidden(act(
+            "pages.filter",
+            View,
+            "action-pages-filter",
+            Menu::View,
+            &[],
+            has_pages,
+            None,
+        )),
+    ),
+    with_params(
+        "key:text",
+        hidden(in_navigator(act(
+            "pages.toggle",
+            View,
+            "action-pages-toggle",
+            Menu::View,
+            &[],
+            has_pages,
+            None,
+        ))),
+    ),
+    with_params(
+        "key?:text, step?:int, to?:enum(first|last)",
+        hidden(in_navigator(act(
+            "pages.row",
+            View,
+            "action-pages-row",
+            Menu::View,
+            &[],
+            has_pages,
+            None,
+        ))),
+    ),
+    with_params(
+        "key?:text, folio?:text, new_tab?:bool",
+        hidden(in_navigator(act(
+            "pages.open",
+            View,
+            "action-pages-open",
+            Menu::View,
+            &[],
+            has_pages,
+            None,
+        ))),
+    ),
+    with_params(
+        "area:enum(navigator|canvas|properties|find), group?:uint",
+        hidden(act(
+            "ui.focus",
+            View,
+            "action-ui-focus",
+            Menu::Window,
+            &[],
+            project_open,
+            None,
+        )),
+    ),
     hidden(act(
         "ui.focus_next",
         View,
@@ -1723,24 +1968,30 @@ pub static ACTIONS: &[ActionMeta] = &[
         always,
         None,
     )),
-    hidden(act(
-        "settings.set",
-        Command,
-        "action-settings-set",
-        Menu::Tools,
-        &[],
-        always,
-        None,
-    )),
-    hidden(act(
-        "first_run.set",
-        View,
-        "action-first-run-set",
-        Menu::Help,
-        &[],
-        first_run_open,
-        None,
-    )),
+    with_params(
+        "key:text, value:json",
+        hidden(act(
+            "settings.set",
+            Command,
+            "action-settings-set",
+            Menu::Tools,
+            &[],
+            always,
+            None,
+        )),
+    ),
+    with_params(
+        "field:text, value:json",
+        hidden(act(
+            "first_run.set",
+            View,
+            "action-first-run-set",
+            Menu::Help,
+            &[],
+            first_run_open,
+            None,
+        )),
+    ),
     hidden(act(
         "first_run.next",
         View,
@@ -1759,24 +2010,30 @@ pub static ACTIONS: &[ActionMeta] = &[
         first_run_open,
         None,
     )),
-    hidden(act(
-        "first_run.finish",
-        Command,
-        "action-first-run-finish",
-        Menu::Help,
-        &[],
-        first_run_open,
-        None,
-    )),
-    hidden(act(
-        "wizard.set",
-        View,
-        "action-wizard-set",
-        Menu::Tools,
-        &[],
-        wizard_open,
-        None,
-    )),
+    with_params(
+        "start?:enum(wizard|sample|qet|new|none)",
+        hidden(act(
+            "first_run.finish",
+            Command,
+            "action-first-run-finish",
+            Menu::Help,
+            &[],
+            first_run_open,
+            None,
+        )),
+    ),
+    with_params(
+        "field:text, value:text",
+        hidden(act(
+            "wizard.set",
+            View,
+            "action-wizard-set",
+            Menu::Tools,
+            &[],
+            wizard_open,
+            None,
+        )),
+    ),
     hidden(act(
         "wizard.next",
         View,
@@ -1795,15 +2052,18 @@ pub static ACTIONS: &[ActionMeta] = &[
         wizard_open,
         None,
     )),
-    hidden(act(
-        "wizard.goto",
-        View,
-        "action-wizard-goto",
-        Menu::Tools,
-        &[],
-        wizard_open,
-        None,
-    )),
+    with_params(
+        "step:uint",
+        hidden(act(
+            "wizard.goto",
+            View,
+            "action-wizard-goto",
+            Menu::Tools,
+            &[],
+            wizard_open,
+            None,
+        )),
+    ),
     hidden(act(
         "wizard.reset",
         View,
@@ -1822,71 +2082,92 @@ pub static ACTIONS: &[ActionMeta] = &[
         wizard_open,
         None,
     )),
-    hidden(act(
-        "wizard.finish",
-        Command,
-        "action-wizard-finish",
-        Menu::Tools,
-        &[],
-        wizard_open,
-        None,
-    )),
-    hidden(act(
-        "wizard.apply_check_scheme",
-        Command,
-        "action-wizard-apply-check-scheme",
-        Menu::Tools,
-        &[],
-        wizard_open,
-        None,
-    )),
+    with_params(
+        "dir?:path",
+        hidden(act(
+            "wizard.finish",
+            Command,
+            "action-wizard-finish",
+            Menu::Tools,
+            &[],
+            wizard_open,
+            None,
+        )),
+    ),
+    with_params(
+        "confirm?:bool",
+        hidden(act(
+            "wizard.apply_check_scheme",
+            Command,
+            "action-wizard-apply-check-scheme",
+            Menu::Tools,
+            &[],
+            wizard_open,
+            None,
+        )),
+    ),
     // The property grid's own controls (WP-S2.05 part 1, spec §6.10): the window and the headless mode dispatch them.
-    hidden(act(
-        "select.set",
-        View,
-        "action-select-set",
-        Menu::Edit,
-        &[],
-        project_open,
-        None,
-    )),
-    hidden(in_properties(act(
-        "props.row",
-        View,
-        "action-props-row",
-        Menu::Edit,
-        &[],
-        grid_shown,
-        None,
-    ))),
-    hidden(in_properties(act(
-        "props.category",
-        View,
-        "action-props-category",
-        Menu::Edit,
-        &[],
-        grid_shown,
-        None,
-    ))),
-    hidden(in_properties(act(
-        "props.edit",
-        View,
-        "action-props-edit",
-        Menu::Edit,
-        // Enter is the canvas's `canvas.activate`: the grid's own Enter is the pane's key (§6.9).
-        &["F2"],
-        grid_shown,
-        None,
-    ))),
-    hidden(in_properties(act(
-        "props.input",
-        View,
-        "action-props-input",
-        Menu::Edit,
-        &[],
-        grid_shown,
-        None,
-    ))),
+    with_params(
+        "ids?:list(ref), refs?:list(ref)",
+        hidden(act(
+            "select.set",
+            View,
+            "action-select-set",
+            Menu::Edit,
+            &[],
+            project_open,
+            None,
+        )),
+    ),
+    with_params(
+        "step?:int, to?:enum(first|last)",
+        hidden(in_properties(act(
+            "props.row",
+            View,
+            "action-props-row",
+            Menu::Edit,
+            &[],
+            grid_shown,
+            None,
+        ))),
+    ),
+    with_params(
+        "category:text, expanded?:bool",
+        hidden(in_properties(act(
+            "props.category",
+            View,
+            "action-props-category",
+            Menu::Edit,
+            &[],
+            grid_shown,
+            None,
+        ))),
+    ),
+    with_params(
+        "row?:text",
+        hidden(in_properties(act(
+            "props.edit",
+            View,
+            "action-props-edit",
+            Menu::Edit,
+            // Enter is the canvas's `canvas.activate`: the grid's own Enter is the pane's key (§6.9).
+            &["F2"],
+            grid_shown,
+            None,
+        ))),
+    ),
+    with_params(
+        "text:text",
+        hidden(in_properties(act(
+            "props.input",
+            View,
+            "action-props-input",
+            Menu::Edit,
+            &[],
+            grid_shown,
+            None,
+        ))),
+    ),
     hidden(in_properties(act(
         "props.commit",
         Command,
@@ -1905,60 +2186,78 @@ pub static ACTIONS: &[ActionMeta] = &[
         grid_shown,
         None,
     ))),
-    hidden(act(
-        "props.set",
-        Command,
-        "action-props-set",
-        Menu::Edit,
-        &[],
-        grid_writable,
-        None,
-    )),
-    hidden(in_properties(act(
-        "props.choose",
-        Command,
-        "action-props-choose",
-        Menu::Edit,
-        &[],
-        grid_shown,
-        None,
-    ))),
-    hidden(in_properties(act(
-        "props.row_menu",
-        View,
-        "action-props-row-menu",
-        Menu::Edit,
-        &["Shift+F10"],
-        grid_shown,
-        None,
-    ))),
-    hidden(in_properties(act(
-        "props.action",
-        Command,
-        "action-props-action",
-        Menu::Edit,
-        &[],
-        grid_shown,
-        None,
-    ))),
-    hidden(in_properties(act(
-        "props.list",
-        Command,
-        "action-props-list",
-        Menu::Edit,
-        &[],
-        grid_writable,
-        None,
-    ))),
-    hidden(in_properties(act(
-        "props.mltext",
-        Command,
-        "action-props-mltext",
-        Menu::Edit,
-        &["Shift+Enter"],
-        grid_shown,
-        None,
-    ))),
+    with_params(
+        "row?:text, value?:text, choice?:uint",
+        hidden(act(
+            "props.set",
+            Command,
+            "action-props-set",
+            Menu::Edit,
+            &[],
+            grid_writable,
+            None,
+        )),
+    ),
+    with_params(
+        "index?:uint, step?:int",
+        hidden(in_properties(act(
+            "props.choose",
+            Command,
+            "action-props-choose",
+            Menu::Edit,
+            &[],
+            grid_shown,
+            None,
+        ))),
+    ),
+    with_params(
+        "step?:int",
+        hidden(in_properties(act(
+            "props.row_menu",
+            View,
+            "action-props-row-menu",
+            Menu::Edit,
+            &["Shift+F10"],
+            grid_shown,
+            None,
+        ))),
+    ),
+    with_params(
+        "row?:text, action:enum(edit|clear|override|reset|freeze|unfreeze)",
+        hidden(in_properties(act(
+            "props.action",
+            Command,
+            "action-props-action",
+            Menu::Edit,
+            &[],
+            grid_shown,
+            None,
+        ))),
+    ),
+    with_params(
+        "row?:text, op:enum(add|remove|up|down)",
+        hidden(in_properties(act(
+            "props.list",
+            Command,
+            "action-props-list",
+            Menu::Edit,
+            &[],
+            grid_writable,
+            None,
+        ))),
+    ),
+    with_params(
+        "row?:text, lang?:text, text?:text",
+        hidden(in_properties(act(
+            "props.mltext",
+            Command,
+            "action-props-mltext",
+            Menu::Edit,
+            &["Shift+Enter"],
+            grid_shown,
+            None,
+        ))),
+    ),
     hidden(in_properties(act(
         "preview.apply",
         Command,
@@ -2005,51 +2304,66 @@ pub static ACTIONS: &[ActionMeta] = &[
         find_shown,
         None,
     ))),
-    hidden(in_find(act(
-        "find.text",
-        View,
-        "action-find-text",
-        Menu::Edit,
-        &[],
-        find_shown,
-        None,
-    ))),
-    hidden(in_find(act(
-        "find.replacement",
-        View,
-        "action-find-replacement",
-        Menu::Edit,
-        &[],
-        find_shown,
-        None,
-    ))),
-    hidden(in_find(act(
-        "find.option",
-        View,
-        "action-find-option",
-        Menu::Edit,
-        &[],
-        find_shown,
-        None,
-    ))),
-    hidden(in_find(act(
-        "find.fields",
-        View,
-        "action-find-fields",
-        Menu::Edit,
-        &[],
-        find_shown,
-        None,
-    ))),
-    hidden(in_find(act(
-        "find.folios",
-        View,
-        "action-find-folios",
-        Menu::Edit,
-        &[],
-        find_shown,
-        None,
-    ))),
+    with_params(
+        "text:text",
+        hidden(in_find(act(
+            "find.text",
+            View,
+            "action-find-text",
+            Menu::Edit,
+            &[],
+            find_shown,
+            None,
+        ))),
+    ),
+    with_params(
+        "text:text",
+        hidden(in_find(act(
+            "find.replacement",
+            View,
+            "action-find-replacement",
+            Menu::Edit,
+            &[],
+            find_shown,
+            None,
+        ))),
+    ),
+    with_params(
+        "option:enum(regex|match_case|whole_word|in_selection), on?:bool",
+        hidden(in_find(act(
+            "find.option",
+            View,
+            "action-find-option",
+            Menu::Edit,
+            &[],
+            find_shown,
+            None,
+        ))),
+    ),
+    with_params(
+        "fields:list(text)",
+        hidden(in_find(act(
+            "find.fields",
+            View,
+            "action-find-fields",
+            Menu::Edit,
+            &[],
+            find_shown,
+            None,
+        ))),
+    ),
+    with_params(
+        "folios:list(text)",
+        hidden(in_find(act(
+            "find.folios",
+            View,
+            "action-find-folios",
+            Menu::Edit,
+            &[],
+            find_shown,
+            None,
+        ))),
+    ),
     hidden(in_find(act(
         "find.run",
         View,
@@ -2059,15 +2373,18 @@ pub static ACTIONS: &[ActionMeta] = &[
         find_shown,
         None,
     ))),
-    hidden(in_find(act(
-        "find.row",
-        View,
-        "action-find-row",
-        Menu::Edit,
-        &[],
-        find_shown,
-        None,
-    ))),
+    with_params(
+        "step?:int, to?:uint",
+        hidden(in_find(act(
+            "find.row",
+            View,
+            "action-find-row",
+            Menu::Edit,
+            &[],
+            find_shown,
+            None,
+        ))),
+    ),
     hidden(in_find(act(
         "find.jump",
         View,
@@ -2077,7 +2394,97 @@ pub static ACTIONS: &[ActionMeta] = &[
         find_shown,
         None,
     ))),
+    // WP-S6.13 part 1: the page's content as text (FR-UI-046's headless v0).
+    with_params(
+        "folio?:text",
+        headless(act(
+            "page.describe",
+            View,
+            "action-page-describe",
+            Menu::Tools,
+            &[],
+            page_describable,
+            None,
+        )),
+    ),
 ];
+
+/// One parameter of an action's signature (WP-S6.13 §5.5.2).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct ParamSpec {
+    /// The parameter's name, `[a-z][a-z0-9_]*`.
+    pub name: String,
+    /// Whether the parameter may be left out (`?`).
+    pub optional: bool,
+    /// The type, as the signature spells it (`mm`, `enum(a|b)`, `list(text)`, ...).
+    pub ty: String,
+}
+
+/// The scalar types of the signature grammar; `enum(…)` and `list(…)` are the two constructors.
+pub const PARAM_TYPES: [&str; 8] = ["mm", "int", "uint", "bool", "text", "path", "json", "ref"];
+
+fn is_word(w: &str) -> bool {
+    let mut chars = w.chars();
+    chars.next().is_some_and(|c| c.is_ascii_lowercase())
+        && chars.all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
+}
+
+fn valid_type(ty: &str) -> bool {
+    if PARAM_TYPES.contains(&ty) {
+        return true;
+    }
+    if let Some(inner) = ty.strip_prefix("enum(").and_then(|t| t.strip_suffix(')')) {
+        return !inner.is_empty() && inner.split('|').all(is_word);
+    }
+    if let Some(inner) = ty.strip_prefix("list(").and_then(|t| t.strip_suffix(')')) {
+        return valid_type(inner);
+    }
+    false
+}
+
+/// Parses a parameter signature by the grammar of WP-S6.13 §5.5.2:
+///
+/// ```text
+/// signature := "" | param (", " param)*
+/// param     := name ["?"] ":" type
+/// type      := "mm" | "int" | "uint" | "bool" | "text" | "path" | "json" | "ref"
+///            | "enum(" word ("|" word)* ")" | "list(" type ")"
+/// ```
+///
+/// # Errors
+///
+/// A message naming what is wrong: an empty parameter, a name that is not `[a-z][a-z0-9_]*`, a repeated name or a
+/// type outside the grammar.
+pub fn parse_signature(sig: &str) -> Result<Vec<ParamSpec>, String> {
+    if sig.is_empty() {
+        return Ok(Vec::new());
+    }
+    let mut out: Vec<ParamSpec> = Vec::new();
+    for part in sig.split(", ") {
+        let Some((name, ty)) = part.split_once(':') else {
+            return Err(format!("`{part}` has no `:type`"));
+        };
+        let (name, optional) = match name.strip_suffix('?') {
+            Some(n) => (n, true),
+            None => (name, false),
+        };
+        if !is_word(name) {
+            return Err(format!("`{name}` is not a parameter name"));
+        }
+        if !valid_type(ty) {
+            return Err(format!("`{ty}` is not a type of the grammar"));
+        }
+        if out.iter().any(|p| p.name == name) {
+            return Err(format!("`{name}` is repeated"));
+        }
+        out.push(ParamSpec {
+            name: name.to_owned(),
+            optional,
+            ty: ty.to_owned(),
+        });
+    }
+    Ok(out)
+}
 
 /// The action with this ID.
 pub fn find(id: &ActionId) -> Option<&'static ActionMeta> {
@@ -2476,6 +2883,113 @@ mod tests {
             "view.workspace_reset",
         ] {
             assert!(view.contains(&id), "{id} in View");
+        }
+    }
+
+    /// The actions that read no parameter although they are hidden, headless-only or marked `needs_parameters`
+    /// (WP-S6.13 BD2): a new such action either has a signature or is added here with a reason.
+    const PARAMETERLESS: &[&str] = &[
+        // Screen controls and keys that read nothing.
+        "first_run.next",
+        "first_run.back",
+        "wizard.next",
+        "wizard.back",
+        "wizard.reset",
+        "wizard.cancel",
+        "ui.focus_next",
+        "ui.focus_previous",
+        "ui.dismiss",
+        "ui.describe",
+        // The picker, the tools and the proposals.
+        "picker.choose",
+        "tool.finish",
+        "tool.next_proposal",
+        "tool.connect_on_move",
+        // `canvas.activate` with `alt` forced.
+        "canvas.activate_alt",
+        // The property grid, the card, the toast and the find pane.
+        "props.commit",
+        "props.cancel",
+        "preview.apply",
+        "preview.cancel",
+        "toast.undo",
+        "toast.dismiss",
+        "find.close",
+        "find.run",
+        "find.jump",
+    ];
+
+    #[test]
+    fn every_signature_parses_with_the_grammar() {
+        for a in ACTIONS {
+            let parsed = parse_signature(a.params).unwrap_or_else(|e| panic!("{}: {e}", a.id));
+            // The canonical spelling: parsing and printing again gives the text.
+            let again: Vec<String> = parsed
+                .iter()
+                .map(|p| format!("{}{}:{}", p.name, if p.optional { "?" } else { "" }, p.ty))
+                .collect();
+            assert_eq!(again.join(", "), a.params, "{}", a.id);
+        }
+        assert!(parse_signature("a:nope").is_err());
+        assert!(parse_signature("A:int").is_err());
+        assert!(
+            parse_signature("a:int,b:int").is_err(),
+            "the separator is a comma and a space"
+        );
+        assert!(parse_signature("a:int, a:uint").is_err());
+        assert!(parse_signature("a:enum()").is_err());
+        assert!(parse_signature("a:list(enum(x|y))").is_ok());
+    }
+
+    #[test]
+    fn every_action_that_reads_parameters_has_a_signature() {
+        for a in ACTIONS
+            .iter()
+            .filter(|a| a.needs_parameters || a.headless_only || a.hidden)
+        {
+            assert!(
+                !a.params.is_empty() || PARAMETERLESS.contains(&a.id),
+                "{} has no signature and is not in PARAMETERLESS",
+                a.id
+            );
+        }
+        for id in PARAMETERLESS {
+            let a = find(id).unwrap_or_else(|| panic!("{id} is not an action"));
+            assert!(a.params.is_empty(), "{id} is listed as parameterless");
+        }
+    }
+
+    #[test]
+    fn the_signatures_the_harness_relies_on() {
+        let sig = |id: &str| find(id).unwrap().params;
+        assert_eq!(
+            sig("canvas.press"),
+            "x_mm:mm, y_mm:mm, button?:enum(primary|middle), shift?:bool, ctrl?:bool, alt?:bool, group?:uint"
+        );
+        // The as-built parameter of Go to is `text` (the specification's example names `folio` and `cell`).
+        assert_eq!(sig("nav.goto"), "text?:text");
+        assert_eq!(sig("page.describe"), "folio?:text");
+        let new = parse_signature(sig("file.new")).unwrap();
+        let template = new.iter().find(|p| p.name == "template").unwrap();
+        assert_eq!(template.ty, "path");
+        // Every action that takes a path types it `path`, so the harness can check it.
+        for (id, name) in [
+            ("file.open", "dir"),
+            ("file.save_as", "dir"),
+            ("file.export_pdf", "path"),
+            ("file.import_qet", "file"),
+            ("help.tutorials", "dir"),
+            ("wizard.finish", "dir"),
+            ("view.snapshot", "path"),
+            ("canvas.snapshot", "path"),
+            ("canvas.preview_snapshot", "path"),
+        ] {
+            let params = parse_signature(sig(id)).unwrap();
+            let p = params
+                .iter()
+                .find(|p| p.name == name)
+                .unwrap_or_else(|| panic!("{id} {name}"));
+            assert_eq!(p.ty, "path", "{id} {name}");
         }
     }
 }

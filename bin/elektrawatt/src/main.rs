@@ -6,12 +6,13 @@
 //!
 //! ```text
 //! elektrawatt [--no-gpu] [<project-dir>]               the window; the project opens after the first frame
-//! elektrawatt --headless --script <file|-> [--record <file.ewcmd>] [--config-dir <dir>]
+//! elektrawatt --headless --script <file|-> [--record <file.ewcmd>] [--config-dir <dir>] [--keep-going]
 //!                                                      the same actions from a UI script, no window, no GPU
 //! elektrawatt --smoke <project-dir>                    opens read-only, draws page 1 at 36 dpi, exits
 //! ```
 //!
-//! Exit codes of the headless mode: 0 every step done, 1 a step was refused or failed, 2 a usage error. The window
+//! Exit codes of the headless mode: 0 every step done, 1 a step was refused or failed (without `--keep-going` the run
+//! stops there; with it the run goes on and the code is 1 when any step was not done), 2 a usage error. The window
 //! exits with 3 when the system has no graphics adapter at all (egui's own chrome needs one; WP-S2.02 section 7.2):
 //! the message names the headless mode, the command-line tool `ew` and, on Linux, Mesa's software drivers.
 //! `--no-gpu` draws the canvas on the CPU and asks eframe for a software adapter (WARP, llvmpipe, lavapipe) for the
@@ -53,7 +54,7 @@ enum Cli {
 }
 
 const USAGE: &str = "usage: elektrawatt [--no-gpu] [<project-dir>]\n\
-       elektrawatt --headless --script <file|-> [--record <file.ewcmd>] [--config-dir <dir>]\n\
+       elektrawatt --headless --script <file|-> [--record <file.ewcmd>] [--config-dir <dir>] [--keep-going]\n\
        elektrawatt --smoke <project-dir>\n\
        elektrawatt --version | --help";
 
@@ -63,6 +64,7 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Cli, String> {
     let mut script: Option<ScriptSource> = None;
     let mut record: Option<PathBuf> = None;
     let mut config_dir: Option<PathBuf> = None;
+    let mut keep_going = false;
     let mut smoke: Option<PathBuf> = None;
     let mut project: Option<PathBuf> = None;
     let mut no_gpu = false;
@@ -83,6 +85,7 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Cli, String> {
             }
             "--record" => record = Some(PathBuf::from(value("--record")?)),
             "--config-dir" => config_dir = Some(PathBuf::from(value("--config-dir")?)),
+            "--keep-going" => keep_going = true,
             "--smoke" => smoke = Some(PathBuf::from(value("--smoke")?)),
             "--no-gpu" => no_gpu = true,
             flag if flag.starts_with("--") => return Err(format!("unknown option {flag}")),
@@ -101,12 +104,14 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Cli, String> {
             script,
             record,
             config_dir,
+            keep_going,
         })),
         (true, None, _) => Err("--headless needs --script <file|->".to_owned()),
         (true, _, _) => Err("--headless takes a script and no project or --smoke".to_owned()),
         (false, Some(_), _) => Err("--script needs --headless".to_owned()),
         (false, None, _) if record.is_some() => Err("--record needs --headless".to_owned()),
         (false, None, _) if config_dir.is_some() => Err("--config-dir needs --headless".to_owned()),
+        (false, None, _) if keep_going => Err("--keep-going needs --headless".to_owned()),
         (false, None, Some(dir)) if project.is_none() => Ok(Cli::Smoke(dir)),
         (false, None, Some(_)) => Err("--smoke takes one directory".to_owned()),
         (false, None, None) => Ok(Cli::Gui(project, no_gpu)),
@@ -459,7 +464,8 @@ mod tests {
             Ok(Cli::Headless(HeadlessArgs {
                 script: ScriptSource::File(PathBuf::from("s.jsonl")),
                 record: None,
-                config_dir: None
+                config_dir: None,
+                keep_going: false
             }))
         );
         assert_eq!(
@@ -467,7 +473,17 @@ mod tests {
             Ok(Cli::Headless(HeadlessArgs {
                 script: ScriptSource::Stdin,
                 record: Some(PathBuf::from("r.ewcmd")),
-                config_dir: None
+                config_dir: None,
+                keep_going: false
+            }))
+        );
+        assert_eq!(
+            parse(&["--headless", "--script", "-", "--keep-going"]),
+            Ok(Cli::Headless(HeadlessArgs {
+                script: ScriptSource::Stdin,
+                record: None,
+                config_dir: None,
+                keep_going: true
             }))
         );
         assert_eq!(
@@ -475,10 +491,15 @@ mod tests {
             Ok(Cli::Headless(HeadlessArgs {
                 script: ScriptSource::File(PathBuf::from("s")),
                 record: None,
-                config_dir: Some(PathBuf::from("c"))
+                config_dir: Some(PathBuf::from("c")),
+                keep_going: false
             }))
         );
         assert!(parse(&["--config-dir", "c"]).is_err());
+        // WP-S6.13 BD1: the flag belongs to the headless mode.
+        assert!(parse(&["--keep-going"]).is_err());
+        assert!(parse(&["--smoke", "p.ew", "--keep-going"]).is_err());
+        assert!(USAGE.contains("--keep-going"));
         assert!(parse(&["--headless"]).is_err());
         assert!(parse(&["--script", "s"]).is_err());
         assert!(parse(&["--record", "r"]).is_err());

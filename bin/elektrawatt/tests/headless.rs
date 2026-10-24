@@ -401,6 +401,53 @@ fn exit_codes_follow_the_spec() {
     assert!(stderr(&out).contains("usage"));
 }
 
+/// WP-S6.13 BD1: with `--keep-going` a refused step in the middle of a script does not end the run; every step has
+/// its line and the exit code is 1. Without the flag the run stops at the refusal, as it always did, and the lines it
+/// wrote are the same bytes. The flag belongs to the headless mode, and the usage text lists it.
+#[test]
+fn keep_going_runs_a_script_past_a_refused_step() {
+    let tmp = Tmp::new();
+    let text = script(&[
+        ("help.about", json!({})),
+        ("file.save", json!({})),
+        ("ui.dismiss", json!({})),
+    ]);
+    let stopped = run_script_file(&tmp, "stop.jsonl", &text, &[]);
+    assert_eq!(stopped.status.code(), Some(1));
+    let stopped_lines = transcript(&stopped);
+    assert_eq!(stopped_lines.len(), 3, "the header and two steps");
+    assert_eq!(stopped_lines[2]["outcome"], "refused");
+
+    let kept = run_script_file(&tmp, "keep.jsonl", &text, &["--keep-going".as_ref()]);
+    assert_eq!(kept.status.code(), Some(1), "{}", stderr(&kept));
+    let kept_lines = transcript(&kept);
+    assert_eq!(kept_lines.len(), 4, "the header and all three steps");
+    assert_eq!(kept_lines[2]["outcome"], "refused");
+    assert_eq!(kept_lines[3]["action"], "ui.dismiss");
+    assert_eq!(kept_lines[3]["outcome"], "done");
+    // The lines the two runs share are equal byte for byte.
+    let (a, b) = (
+        String::from_utf8(stopped.stdout).unwrap(),
+        String::from_utf8(kept.stdout).unwrap(),
+    );
+    assert!(b.starts_with(&a), "{a}\n---\n{b}");
+
+    // A script whose steps are all done exits 0 with the flag too.
+    let clean = run_script_file(
+        &tmp,
+        "clean.jsonl",
+        &script(&[("help.about", json!({})), ("ui.dismiss", json!({}))]),
+        &["--keep-going".as_ref()],
+    );
+    assert_eq!(clean.status.code(), Some(0), "{}", stderr(&clean));
+
+    // The flag without `--headless` is a usage error, and the usage text lists it.
+    let out = elektrawatt(&tmp, &["--keep-going".as_ref()]);
+    assert_eq!(out.status.code(), Some(2));
+    let out = elektrawatt(&tmp, &["--help".as_ref()]);
+    assert!(String::from_utf8_lossy(&out.stdout).contains("--keep-going"));
+}
+
 #[test]
 fn unsaved_changes_need_discard_in_a_script() {
     let tmp = Tmp::new();

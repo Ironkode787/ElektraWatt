@@ -14,9 +14,11 @@
 //! like a number (decision log ID-630, FT-422; [`crate::alias`]): the hovered entity and the selection unquoted, an
 //! ID inside a quoted text inside the quotes; no UUID reaches the text.
 
+use ew_api::output::{PageTables, TableCp, TableEnd};
+
 use crate::actions::{self, ActionItem, MenuEntry, PaletteRun};
 use crate::canvas::PageId;
-use crate::canvas::{mm3, round_tenth};
+use crate::canvas::{CanvasPage, mm3, round_tenth};
 use crate::first_run::FirstRunStep;
 use crate::navigator::RowKind;
 use crate::properties::{Provenance, RowValue};
@@ -270,6 +272,20 @@ pub const VOCABULARY: &[&str] = &[
     "star",
     "chain",
     "connect",
+    // The page text of `page.describe` (WP-S6.13 part 1, §5.5.3; ID-474 extended): 11 words, a reviewed vocabulary
+    // change (`wire`, `->`, `route`, `bends`, `style`, `dot`, `bevel`, `wiring`, `star`, `chain` and `sequence` are
+    // WP-S2.04 part 2's words above).
+    "reps",
+    "connections",
+    "junctions",
+    "wires",
+    "stored",
+    "provisional",
+    "ip",
+    "direction",
+    "source",
+    "undirected",
+    "potential",
 ];
 
 /// The 14 words WP-S2.05 part 2 adds to [`VOCABULARY`] (§7.6).
@@ -320,6 +336,25 @@ pub const PLACE_WORDS: &[&str] = &[
     "picker", "rows", "symbol", "part", "function", "main", "embedded", "starter", "ghost", "place",
     "variant", "rep", "target", "new", "join", "existing", "terminal", "strip", "letter", "tag", "move",
     "steps", "exchange", "unmapped", "floating", "dragging", "moving", "readout",
+];
+
+/// The 11 words `page.describe` adds to [`VOCABULARY`] (WP-S6.13 §5.5.3): its own `reps`, `junctions`, `wires`,
+/// `stored` and `provisional`, the interruption point's `ip`, `direction`, `source`, `undirected` and `potential` (WP-S2.04
+/// part 3's words, which Golden A prints) and `connections` (part 4b's). The other words of its lines (`page`, `rep`,
+/// `cell`, `symbol`, `variant`, `at`, `mm`, `cp`, `none`, `wire`, `->`, `route`, `bends`, `junction`, `style`, `dot`,
+/// `bevel`, `wiring`, `star`, `chain`, `sequence`) are older.
+pub const PAGE_WORDS: &[&str] = &[
+    "reps",
+    "connections",
+    "junctions",
+    "wires",
+    "stored",
+    "provisional",
+    "ip",
+    "direction",
+    "source",
+    "undirected",
+    "potential",
 ];
 
 /// The markers after which the rest of the line is user text (a title, a banner, an error, a reason, a folio, a
@@ -1279,6 +1314,206 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
             lines.push(format!("  button \"{}\"", strings::text("dialog-cancel")));
         }
     }
+}
+
+/// A label or title of the page text as it is quoted: a double quote becomes a single one and a line break a space.
+fn page_quoted(text: &str) -> String {
+    let t: String = text
+        .chars()
+        .map(|c| if c == '\n' || c == '\r' { ' ' } else { c })
+        .collect();
+    format!("\"{}\"", t.replace('"', "'"))
+}
+
+/// `at X Y mm` of a page point in page nm.
+fn page_at(p: (i64, i64)) -> String {
+    format!("at {} {} mm", mm3(p.0), mm3(p.1))
+}
+
+/// The variant letter of an orientation `0..=7`.
+fn variant_letter(orient: u8) -> char {
+    char::from(b'A' + orient.min(7))
+}
+
+/// The tag a representation prints: its device's short tag, read off the labels of its connection points (a CP's
+/// label is `tag:designation`, a terminal's `tag/clamp`, an interruption point's its name); `None` without one.
+fn rep_tag(cps: &[&TableCp]) -> Option<String> {
+    let label = &cps.first()?.label;
+    // A terminal's label is `-X1031:11/a` (its tag is `-X1031:11`); a device's is `-101F1:2` or `-101F1:2#2`.
+    if let Some((tag, _clamp)) = label.rsplit_once('/') {
+        return Some(tag.to_owned());
+    }
+    Some(label.split(':').next().unwrap_or(label).to_owned())
+}
+
+/// The reading key of a page point: its frame cell's row then column (a point outside every cell last), then `y`, `x`.
+fn reading(page: &CanvasPage, p: (i64, i64)) -> (u32, u32, i64, i64) {
+    let (row, column) = page
+        .cells
+        .as_ref()
+        .and_then(|c| c.cell_at(page.snapper.page_to_sheet(p)))
+        .map_or((u32::MAX, u32::MAX), |c| (c.row_index, c.column_index));
+    (row, column, p.1, p.0)
+}
+
+/// The cell of a page point as the line prints it: the quoted cell text, or `none` outside the frame.
+fn cell_word(page: &CanvasPage, p: (i64, i64)) -> String {
+    page.cell_text(page.snapper.page_to_sheet(p))
+        .map_or_else(|| "none".to_owned(), |c| page_quoted(&c))
+}
+
+/// The text of one page for `page.describe` (WP-S6.13 §5.5.3): the header with the exact counts, then the
+/// representations with their connection points, the connections and the junctions, each in a named order (reading
+/// order of the anchor cell, then the position and the symbol key; connections by their end labels; junctions numbered
+/// in reading order). No record ID appears. The lines of the page items and structure boxes come with WP-S2.04 part 4a.
+pub fn page_describe(page: &CanvasPage) -> String {
+    let t: &PageTables = &page.tables;
+    let mut lines = vec![format!(
+        "page {} {} reps {} connections {} junctions {}",
+        page_quoted(&page.folio),
+        page_quoted(&page.title),
+        t.reps.len(),
+        t.connections.len(),
+        t.junctions.len()
+    )];
+
+    // The junctions are numbered first: connections and sequences name them by number.
+    let cp_label = |function, idx| {
+        t.cps
+            .iter()
+            .find(|c| c.function == function && c.idx == idx)
+            .map_or_else(String::new, |c| c.label.clone())
+    };
+    let end_cp_only = |e: &TableEnd| match e {
+        TableEnd::Cp { function, idx } => cp_label(*function, *idx),
+        TableEnd::Junction { .. } => String::new(),
+    };
+    let far_cp_labels = |j: &ew_api::output::TableJunction| -> Vec<String> {
+        j.sequence
+            .iter()
+            .filter_map(|id| t.connections.iter().find(|c| c.id == *id))
+            .map(|c| match (c.a, c.b) {
+                (TableEnd::Junction { id }, other) if id == j.id => end_cp_only(&other),
+                (other, _) => end_cp_only(&other),
+            })
+            .collect()
+    };
+    let mut order: Vec<usize> = (0..t.junctions.len()).collect();
+    order.sort_by_cached_key(|i| {
+        let j = &t.junctions[*i];
+        // The IDs one transaction mints are not in creation order, so an ID decides only between junctions that the
+        // position, the style, the wiring and the sequence cannot tell apart.
+        (
+            reading(page, j.at),
+            j.style.clone(),
+            j.wiring.clone(),
+            far_cp_labels(j),
+            j.id,
+        )
+    });
+    let number = |id| {
+        order
+            .iter()
+            .position(|i| t.junctions[*i].id == id)
+            .map_or(0, |n| n + 1)
+    };
+    let end_text = |e: &TableEnd| match e {
+        TableEnd::Cp { function, idx } => page_quoted(&cp_label(*function, *idx)),
+        TableEnd::Junction { id } => format!("junction {}", number(*id)),
+    };
+
+    // The representations.
+    let mut reps: Vec<_> = t
+        .reps
+        .iter()
+        .map(|r| {
+            let mut cps: Vec<&TableCp> = t.cps.iter().filter(|c| c.rep == r.id).collect();
+            cps.sort_by(|a, b| (a.idx, &a.label).cmp(&(b.idx, &b.label)));
+            let tag = rep_tag(&cps);
+            let key = (
+                reading(page, r.pos),
+                r.symbol_key.clone(),
+                tag.clone().unwrap_or_default(),
+                r.orient,
+            );
+            (key, r, cps, tag)
+        })
+        .collect();
+    reps.sort_by(|a, b| a.0.cmp(&b.0));
+    for (_, r, cps, tag) in &reps {
+        let who = match (&r.ip, tag) {
+            (Some(ip), _) => format!("ip {} direction {}", page_quoted(&ip.name), ip.direction),
+            (None, Some(tag)) => page_quoted(tag),
+            (None, None) => "none".to_owned(),
+        };
+        lines.push(format!(
+            "  rep {who} cell {} symbol {} variant {} {}",
+            cell_word(page, r.pos),
+            page_quoted(&r.symbol_key),
+            page_quoted(&variant_letter(r.orient).to_string()),
+            page_at(r.pos)
+        ));
+        for cp in cps {
+            let mut line = format!(
+                "    cp {} {} wires {}",
+                page_quoted(&cp.label),
+                page_at(cp.at),
+                cp.connections.len()
+            );
+            if let Some(name) = &cp.potential {
+                line.push_str(&format!(" potential {}", page_quoted(name)));
+            }
+            lines.push(line);
+        }
+    }
+
+    // The connections, by their end labels.
+    let mut wires: Vec<(String, String, bool, usize, String)> = t
+        .connections
+        .iter()
+        .map(|c| {
+            let (a, b) = (end_text(&c.a), end_text(&c.b));
+            let bends = c.polyline.len().saturating_sub(2);
+            let route = if c.stored_route { "stored" } else { "provisional" };
+            (
+                a.clone(),
+                b.clone(),
+                c.stored_route,
+                bends,
+                format!("  wire {a} -> {b} route {route} bends {bends}"),
+            )
+        })
+        .collect();
+    wires.sort();
+    lines.extend(wires.into_iter().map(|w| w.4));
+
+    // The junctions, numbered.
+    for (n, i) in order.iter().enumerate() {
+        let j = &t.junctions[*i];
+        let members: Vec<String> = j
+            .sequence
+            .iter()
+            .filter_map(|id| t.connections.iter().find(|c| c.id == *id))
+            .map(|c| match (c.a, c.b) {
+                (TableEnd::Junction { id }, other) if id == j.id => end_text(&other),
+                (other, _) => end_text(&other),
+            })
+            .collect();
+        let mut line = format!(
+            "  junction {} cell {} {} style {} wiring {} sequence",
+            n + 1,
+            cell_word(page, j.at),
+            page_at(j.at),
+            j.style,
+            j.wiring
+        );
+        for m in members {
+            line.push(' ');
+            line.push_str(&m);
+        }
+        lines.push(line);
+    }
+    lines.join("\n")
 }
 
 /// The text of the visible user interface of `model`, lines separated by `\n`, without a final newline, with record IDs
