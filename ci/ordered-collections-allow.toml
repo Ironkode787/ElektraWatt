@@ -49,6 +49,11 @@ count = 1
 
 [[allow]]
 crate = "xtask"
+item = "fn new_token"
+count = 1
+
+[[allow]]
+crate = "xtask"
 item = "type Denylist"
 count = 1
 

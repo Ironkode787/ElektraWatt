@@ -13,7 +13,7 @@
 [[allow]]
 crate = "elektrawatt"
 item = "fn bin_exe"
-count = 3
+count = 4
 
 [[allow]]
 crate = "elektrawatt"
@@ -188,6 +188,11 @@ count = 1
 [[allow]]
 crate = "ew-ui"
 item = "fn adapter_required"
+count = 1
+
+[[allow]]
+crate = "ew-viewmodel"
+item = "fn bless"
 count = 1
 
 [[allow]]
