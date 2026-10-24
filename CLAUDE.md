@@ -13,7 +13,7 @@ Use the cheapest model that can do the task well. Three Claude tiers, each with 
 |---|---|---|---|
 | Coder (external) | DeepSeek Flash at max effort in the DeepSeek harness (Flash only: Pro is not used, owner's ruling 2026-10-24) | — (bridge `.claude/deepseek/dsh-task.py`) | Everything with a closed spec, at every D-level, in its own worktree: implementation (D4–D5 included once the lead's spec is closed), tests, fixtures, DSL verbs, schema/reference regeneration, fuzz arms, kittests, docs sections and as-built text to a decided outline, mechanical edits, and research (repository surveys, literature sweeps) in read-only rounds; Claude reviews, commits and merges (see "DeepSeek coder (dsh)") |
 | Lead | Opus | `lead-designer`, `lead-programmer` | Design and review only (owner's rule, 2026-10-24): architecture, ADRs, domain-model and file-format decisions, cross-document conflicts, estimation/planning, judging alternatives; the closed specs the coder works from (the core crates — ew-model, ew-commands, ew-memo, ew-derive, ew-format/ew-store, concurrency, FFI, public & plugin APIs — get the most exact specs); the rulings; the review of every DeepSeek round (report → diff → acceptance checks re-run); hard debugging. A lead writes code or doc text itself only when a task failed on DeepSeek Flash twice (a second round with a sharpened brief; Pro is not used) |
-| Worker | Sonnet | `designer`, `programmer` | Fallback coder/writer when dsh is unavailable or a task failed on Flash twice (Pro is not used); reviews of D2–D3 DeepSeek rounds and of fix rounds with closed items; window checks and other verification that needs reading screenshots |
+| Worker | Sonnet | `designer`, `programmer` | Fallback coder/writer when dsh is unavailable or a task failed on Flash twice (Pro is not used); window checks and other verification that needs reading screenshots |
 | Mechanical | Haiku | `boilerplate`, `scout` (read-only search) | `scout` for quick read-only lookups the orchestrator or a lead needs inside a turn; `boilerplate` only as the fallback for mechanical edits (headers, renames, count bumps) when dsh is unavailable |
 
 **Defaults.** `.claude/settings.json` sets `CLAUDE_CODE_SUBAGENT_MODEL=sonnet`: any subagent or workflow agent that is
@@ -46,13 +46,20 @@ Rules:
    itself, tests to a given list, fixtures, DSL verbs, schema and reference regeneration, fuzz arms, kittests, docs
    notes and as-built text, mechanical edits, renames, count bumps, licence headers, re-blessing, and the research
    the spec needs. The orchestrator writes this into every lead brief; the lead's report lists its rounds (run name,
-   model, number of rounds, outcome) and what it kept for itself and why. Reviews of D2–D3 rounds and of fix rounds
-   with closed items go to Sonnet; Opus reviews stay for D4–D5.
+   model, number of rounds, outcome) and what it kept for itself and why. The lead reviews every DeepSeek round
+   itself, at every D-level, and writes the fixes file itself (rule 9); Sonnet keeps the window checks.
 8. **Specs leave no choice open (owner's rule, 2026-10-24).** A brief for the coder names the files owned, the exact
    types, signatures or schema, each behaviour with at least one example per branch, the error texts, the tests to
    write (names and what each asserts), the commands that must pass, and what not to touch. A choice the lead has
    not made is made before dispatch, never left to the coder: the coder brief tells it to stop and ask, and every
    open point costs a round.
+9. **Fix feedback is accurate and well scoped (owner's rule, 2026-10-24 evening: "let the lead review the flash
+   rounds, and give accurate, well scoped feedback for the fixes").** The lead reviews every DeepSeek round itself
+   and writes the fixes file for `resume` itself. A fixes file lists numbered findings; each names the file and
+   line, states what the round did against what the brief required with the evidence (the failing command or
+   test, the observed and the expected text or value), gives the exact required change or behaviour and the test
+   that proves it, and says what must not change. No finding without evidence, no "improve" or "clean up", no
+   scope the brief did not have — a new wish is a new round with a new brief. The coder answers by number.
 
 ## DeepSeek coder (dsh)
 
@@ -83,8 +90,8 @@ testing policy, public-repo rules, report format) instead of this file.
   <worktree> diff <base>` and the untracked files listed), then the brief's acceptance checks re-run by the reviewer in a NORMAL worktree, never inside the `ds-*`
   worktree: apply the round's diff to the lead's or reviewer's own worktree (`git -C <ds worktree> diff --binary
   <base> | git apply --index`, untracked files copied; or commit on `ds/<name>` and merge) and run cargo there — the
-  coder's check results are claims, not proof. Review delegation follows rule 7. For revisions
-  write the findings to a file and run `resume <name> --task-file <fixes>` (same dsh session); after three rounds on
+  coder's check results are claims, not proof. The lead reviews every round itself (rules 7 and 9). For revisions
+  write the findings to a fixes file in the form of rule 9 and run `resume <name> --task-file <fixes>` (same dsh session); after three rounds on
   Flash hand the worktree to `programmer` or `lead-programmer` (never `--model pro`: Pro is not used).
 - **Integrate**: commit in the worktree in the project's message style with the line `Coded by DeepSeek <model> via
   dsh (run <name>).` above the trailers, merge `ds/<name>` into the working branch, then `remove <name>` (deletes

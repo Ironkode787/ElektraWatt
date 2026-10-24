@@ -24,3 +24,7 @@ Ground rules:
   worktree (its files are low-integrity; CLAUDE.md "Low integrity"); fix by `resume`, retry on `--model pro`, and only then fall back to `programmer` (Sonnet) or
   `boilerplate` (Haiku). Merge `ds/<name>` into your branch and `remove` the run. Your report lists every round
   (run name, model, rounds, outcome) and what you kept for yourself and why.
+- You review every DeepSeek round yourself (owner's rule, 2026-10-24 evening): the report, the diff, the checks in
+  your own worktree; a fixes file for `resume` follows CLAUDE.md rule 9 — numbered findings, each with file and
+  line, the evidence (observed against expected), the exact required change and the test that proves it, and
+  what must not change; nothing vague, nothing outside the brief.

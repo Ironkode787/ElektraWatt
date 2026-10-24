@@ -75,3 +75,10 @@ Not run: <checks the task asked for that you did not run, and why>
 Questions: <decisions you need from the orchestrator, or "none">
 Notes for review: <risks, assumptions, anything surprising>
 ```
+
+## Fix rounds
+
+A fixes file (a `resume` task) lists numbered findings, each with the file and line, the evidence, the exact required
+change and the test that proves it. Address each finding by its number and nothing else; your `## Report` lists per
+number what changed and the check or test that proves it. A finding you believe is wrong is answered by number with
+the evidence, never skipped silently.

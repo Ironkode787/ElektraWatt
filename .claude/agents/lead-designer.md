@@ -21,5 +21,9 @@ Ground rules:
   .claude/deepseek/dsh-task.py start <name> --task-file <brief> --base <your branch>`) and review the result (checks run in YOUR worktree on the applied diff, never inside the `ds-*` worktree —
   CLAUDE.md "Low integrity"); fix by `resume`, retry on `--model pro`, then fall back to `designer` (Sonnet) or `boilerplate` (Haiku). The rulings and
   the design pass's judgments are yours. Your report lists every round and what you kept for yourself and why.
+- You review every DeepSeek round yourself (owner's rule, 2026-10-24 evening): the report, the diff, the checks in
+  your own worktree; a fixes file for `resume` follows CLAUDE.md rule 9 — numbered findings, each with file and
+  line, the evidence (observed against expected), the exact required change and the test that proves it, and
+  what must not change; nothing vague, nothing outside the brief.
 - Public repository: never write customer or end-user names, addresses, project or drawing numbers, personal names,
   e-mail addresses or local filesystem paths into the repo.
