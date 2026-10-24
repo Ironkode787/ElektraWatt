@@ -13,7 +13,7 @@
 [[allow]]
 crate = "elektrawatt"
 item = "fn bin_exe"
-count = 6
+count = 7
 
 [[allow]]
 crate = "elektrawatt"
@@ -169,6 +169,11 @@ count = 1
 crate = "ew-store"
 item = "impl Scratch > fn new > call SystemTime::now"
 count = 2
+
+[[allow]]
+crate = "ew-testkit"
+item = "fn bless"
+count = 1
 
 [[allow]]
 crate = "ew-testkit"

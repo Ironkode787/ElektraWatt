@@ -14,6 +14,7 @@
 
 mod support;
 
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -346,7 +347,7 @@ fn folio_101s_external_points_print_the_structure_node_and_the_external_referenc
     drop(session);
     // The placement script of §13.6 (WP-S2.04 part 3: the IP tool) with the three external arrows naming the
     // reference this project holds by its ID (the golden script names the golden references' printed texts).
-    let (mut placements, runs) = placement_steps(101, map, &strip);
+    let (mut placements, runs) = placement_steps(101, map, &strip, &BTreeMap::new());
     let mut external_points = 0;
     for i in 0..placements.len() {
         if placements[i].0 == "ip.external" {
