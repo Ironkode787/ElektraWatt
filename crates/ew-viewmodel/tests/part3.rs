@@ -804,11 +804,9 @@ fn ib7_the_describe_lines_use_the_ten_words_and_the_tools_read_nothing_while_mov
 fn ip_external_refuses_a_printed_text_two_references_share_and_takes_an_id() {
     // A location node of Golden A, read from its external references (the copy keeps every ID).
     let location = {
-        let (session, _) = ew_viewmodel::ew_api::Session::open_read_only(
-            std::path::Path::new(common::GOLDEN_A),
-            "test",
-        )
-        .unwrap();
+        let (session, _) =
+            ew_viewmodel::ew_api::Session::open_read_only(std::path::Path::new(common::GOLDEN_A), "test")
+                .unwrap();
         let q = session.query();
         let id = q
             .external_refs()
