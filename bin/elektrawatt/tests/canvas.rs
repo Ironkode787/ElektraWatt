@@ -1083,9 +1083,22 @@ mod folio_scripts {
         json!({ "copies": copies })
     }
 
-    /// The start of §13.6 for folio 101: a new project made by the company-standard wizard with its defaults, page
-    /// 101 (multi-line, the QET grid), strip `X` for the folio's terminals and the interruption-point symbols that
-    /// `command.run` `ip.place` names (the Place tool embeds the symbols it places itself). Saved and closed.
+    /// The `library.embed` parameters of copies of the golden fixture's `lib/` directory.
+    fn embed_golden(files: &[&str]) -> Value {
+        let copies: Vec<Value> = files
+            .iter()
+            .map(|f| {
+                let p = Path::new(super::support::GOLDEN_A).join("lib").join(f);
+                serde_json::from_str(&std::fs::read_to_string(p).unwrap()).unwrap()
+            })
+            .collect();
+        json!({ "copies": copies })
+    }
+
+    /// The start of §13.6 for folios 101 and 102: a new project made by the company-standard wizard with its
+    /// defaults, pages 101 and 102 (multi-line, the QET grid), strip `X` for the terminals, the interruption-point
+    /// symbols, the golden part copies of 102's black boxes, and (part 3) the structure node +J-E-206 with Golden A's
+    /// external references (the Place tool embeds the symbols it places itself). Saved and closed.
     fn start(tmp: &Tmp) -> PathBuf {
         let company = tmp.path("company.ew");
         all_done(&run(
@@ -1123,11 +1136,63 @@ mod folio_scripts {
                         "fndefs/ew.fn.external-arrow.json",
                     ])}),
                 ),
+                // WP-S2.04 part 3: page 102 and the golden part copies of its black boxes (-102G1, -102F2) with the
+                // black-box symbol and FnDef copies their templates name.
+                (
+                    "command.run",
+                    json!({"cmd": "page.create", "params": {
+                        "number": 102, "title": "Power Supply 2 - Control Current", "kind": "multi_line",
+                        "grid": {"num": 7_937_500, "den": 3},
+                    }}),
+                ),
+                (
+                    "command.run",
+                    json!({"cmd": "library.embed", "params": embed_golden(&[
+                        "parts/68075c2c-1eed-5753-8749-88e37b4496d5.json",
+                        "parts/6b848305-0ec3-5ef1-9d84-7277eb168d2a.json",
+                        "fndefs/3d012b01-31ef-5047-a43d-2b74f9049911.json",
+                        "symbols/faf09b45-ec6e-57d8-8be6-faf4c1596ddb.json",
+                    ])}),
+                ),
                 ("file.save", json!({})),
                 ("file.close", json!({})),
             ]),
             None,
         ));
+        // WP-S2.04 part 3 (§13.6's start): the structure node +J-E-206 and Golden A's external references, created in
+        // the session (the node's minted ID is read back here, so no script names it); the folio scripts name the
+        // references by their printed text.
+        let mut store = ew_ui::ew_viewmodel::ew_api::StoreOptions::new("test");
+        store.state_dir = Some(tmp.path("state-start"));
+        let (mut s, _) = Session::open(
+            &job,
+            store,
+            ew_ui::ew_viewmodel::ew_api::SessionOptions::default(),
+            ew_ui::ew_viewmodel::ew_api::Recovery::Keep,
+        )
+        .unwrap();
+        let run = |s: &mut Session, name: &str, params: Value| {
+            let cmd = ew_ui::ew_viewmodel::ew_api::AnyCommand {
+                name: name.into(),
+                params,
+            };
+            s.execute(&cmd).unwrap_or_else(|e| panic!("{name}: {e:?}"))
+        };
+        let receipt = run(
+            &mut s,
+            "structure.create_node",
+            json!({"aspect": "location", "code": "J-E-206"}),
+        );
+        let node = serde_json::to_value(receipt.outcome.primary.expect("the node").1).unwrap();
+        for x in super::support::external_refs() {
+            run(
+                &mut s,
+                "external_ref.create",
+                json!({"location": node, "device": x["device"], "connection": x["connection"]}),
+            );
+        }
+        s.save().unwrap();
+        s.close();
         job
     }
 
@@ -1253,8 +1318,39 @@ mod folio_scripts {
         let placed = reps_of(&tmp.path("a").join("folio.ew"));
         assert_eq!(placed.len(), 17, "representations on 101");
         assert_eq!(placed, golden);
-        // The steps a later part owns: the six interruption points (the IP tool is part 3's).
-        assert_eq!(runs, 6);
+        // No step left to a later part: the six interruption points are the IP tool's (part 3).
+        assert_eq!(runs, 0);
+        // IB7: the IP tool placed Golden A's six interruption points of 101 with their names, directions, symbols
+        // and points, the three external connection points with their external references.
+        let ip_rows = |t: &ew_ui::ew_viewmodel::ew_api::output::PageTables| {
+            let mut v: Vec<_> = t
+                .reps
+                .iter()
+                .filter_map(|r| {
+                    r.ip.as_ref()
+                        .map(|i| (i.name.clone(), i.direction.clone(), r.symbol_key.clone(), r.pos))
+                })
+                .collect();
+            v.sort();
+            v
+        };
+        let (golden_session, _) =
+            Session::open_read_only(Path::new(super::support::GOLDEN_A), "test").unwrap();
+        let (scripted_ips, _) = Session::open_read_only(&tmp.path("a").join("folio.ew"), "test").unwrap();
+        assert_eq!(
+            ip_rows(&scripted_ips.page_tables("101").unwrap()),
+            ip_rows(&golden_session.page_tables("101").unwrap())
+        );
+        let externals = scripted_ips
+            .query()
+            .functions()
+            .iter()
+            .filter(|(_, f)| serde_json::to_value(&***f).unwrap()["kind"]["ip"]["external"].is_string())
+            .count();
+        assert_eq!(
+            externals, 3,
+            "the external connection points name their references"
+        );
         // `--record` replayed on a third copy of the start (the session's command-log replay, `ew apply`'s path) gives
         // the same representations.
         let replay = tmp.path("c").join("folio.ew");
@@ -1426,8 +1522,8 @@ mod folio_scripts {
         assert_eq!(wired.sequences, golden.sequences, "every junction's sequence");
         // Every drawn connection carries the route the Wire tool showed.
         assert!(tables.connections.iter().all(|c| c.stored_route));
-        // The steps a later part owns: the six interruption points (the IP tool is part 3's) and the typed tags.
-        assert_eq!(runs, 6);
+        // The interruption points are the IP tool's (part 3); the typed tags stay `command.run` steps.
+        assert_eq!(runs, 0);
         assert!(!tags.is_empty());
         // `--record` replayed on a third copy of the start.
         let replay = tmp.path("c").join("folio.ew");
@@ -1517,6 +1613,182 @@ mod folio_scripts {
             routes(&tables),
             "the replay's routes: the router never runs on replay"
         );
+        assert_eq!(records_of(&s), records_of(&scripted));
+        s.close();
+    }
+
+    /// WP-S2.04 part 3's share of §13.6 (IB7): folio 102 placed by a generated script: its nine interruption points
+    /// with the IP tool, its two black boxes (-102G1, -102F2) with the black box tool from their parts and their CPs
+    /// dragged along the outline to the golden points (Select's CP drag, `box.reshape`), its contact with the Place
+    /// tool. Two runs give byte-identical transcripts without a UUID; the oracle: 12 representations, each the golden
+    /// symbol at the golden point and orientation, the interruption points with their names and directions, and both
+    /// boxes' outlines and CPs (points and directions) as on Golden A; the `--record` log replayed on the start (the
+    /// minted representation of a `box.reshape` mapped by its point) gives the same records.
+    #[test]
+    fn folio_102_ips_and_black_boxes_are_placed_by_a_generated_script_twice_identically_and_replays() {
+        use ew_ui::ew_viewmodel::ew_api::output::PageTables;
+        let tmp = Tmp::new();
+        let job = start(&tmp);
+        let (session, _) = Session::open_read_only(&job, "test").unwrap();
+        let grid = session.page_grid("102").expect("page 102");
+        let map = SheetMap {
+            scale_ppb: i128::from(grid.sheet_scale_ppb),
+            offset: (
+                i128::from(grid.sheet_offset_nm.0),
+                i128::from(grid.sheet_offset_nm.1),
+            ),
+        };
+        drop(session);
+        let (placements, runs) = placement_steps(102, map, "");
+        assert_eq!(runs, 0, "no command.run step");
+        assert!(
+            placements.iter().filter(|(a, _)| a == "tool.black_box").count() == 2,
+            "two black boxes"
+        );
+        let mut transcripts = Vec::new();
+        let mut records = Vec::new();
+        for n in ["a", "b"] {
+            let dir = tmp.path(n).join("folio.ew");
+            copy_dir(&job, &dir);
+            let mut script = steps(&[
+                ("file.open", json!({ "dir": path(&dir) })),
+                ("page.goto", json!({"folio": "102"})),
+            ]);
+            script.extend(placements.iter().cloned());
+            script.extend(steps(&[
+                ("ui.describe", json!({})),
+                ("file.save", json!({})),
+                ("file.close", json!({})),
+            ]));
+            let record = tmp.path(&format!("{n}.ewcmd"));
+            let out = run(&tmp, &format!("{n}.jsonl"), &script, Some(&record));
+            all_done(&out);
+            let text = String::from_utf8(out.stdout).unwrap();
+            assert!(
+                !text.contains(&*tmp.0.to_string_lossy()),
+                "a path in the transcript"
+            );
+            transcripts.push(text);
+            records.push(record);
+        }
+        if let Some((a, b)) = transcripts[0]
+            .lines()
+            .zip(transcripts[1].lines())
+            .find(|(a, b)| a != b)
+        {
+            let at = a.bytes().zip(b.bytes()).position(|(x, y)| x != y).unwrap_or(0);
+            panic!(
+                "two runs, two transcripts: first difference at {at}: {} | {}",
+                &a[at.saturating_sub(120)..(at + 80).min(a.len())],
+                &b[at.saturating_sub(120)..(at + 80).min(b.len())]
+            );
+        }
+        assert_eq!(transcripts[0], transcripts[1], "two runs, one transcript");
+        super::support::assert_no_uuid(&transcripts[0]);
+        // The oracle.
+        type Boxes = Vec<((i64, i64), Vec<(i64, i64)>, Vec<(u16, (i64, i64), String)>)>;
+        let boxes = |t: &PageTables| -> Boxes {
+            let mut v: Boxes = t
+                .reps
+                .iter()
+                .filter_map(|r| {
+                    let b = r.black_box.as_ref()?;
+                    let mut cps: Vec<_> = b
+                        .cps
+                        .iter()
+                        .map(|(i, p, d)| (*i, *p, d.word().to_owned()))
+                        .collect();
+                    cps.sort();
+                    Some((r.pos, b.outline.clone(), cps))
+                })
+                .collect();
+            v.sort();
+            v
+        };
+        let ip_rows = |t: &PageTables| {
+            let mut v: Vec<_> = t
+                .reps
+                .iter()
+                .filter_map(|r| {
+                    r.ip.as_ref()
+                        .map(|i| (i.name.clone(), i.direction.clone(), r.symbol_key.clone(), r.pos))
+                })
+                .collect();
+            v.sort();
+            v
+        };
+        let (golden_session, _) =
+            Session::open_read_only(Path::new(super::support::GOLDEN_A), "test").unwrap();
+        let golden_tables = golden_session.page_tables("102").unwrap();
+        let (scripted, _) = Session::open_read_only(&tmp.path("a").join("folio.ew"), "test").unwrap();
+        let tables = scripted.page_tables("102").unwrap();
+        let reps = |t: &PageTables| {
+            let mut v: Vec<_> = t
+                .reps
+                .iter()
+                .map(|r| (r.symbol_key.clone(), r.pos, r.orient))
+                .collect();
+            v.sort();
+            v
+        };
+        assert_eq!(golden_tables.reps.len(), 12);
+        assert_eq!(reps(&tables), reps(&golden_tables), "the representations of 102");
+        assert_eq!(
+            ip_rows(&tables),
+            ip_rows(&golden_tables),
+            "the interruption points"
+        );
+        assert_eq!(boxes(&golden_tables).len(), 2);
+        assert_eq!(boxes(&tables), boxes(&golden_tables), "the black boxes");
+        // `--record` replayed on a third copy of the start: each `box.reshape` names the representation the run minted,
+        // mapped to the replay's black box at the same point.
+        let replay = tmp.path("c").join("folio.ew");
+        copy_dir(&job, &replay);
+        let log = CmdLog::parse(&std::fs::read_to_string(&records[0]).unwrap()).unwrap();
+        let names: Vec<&str> = log.commands().map(|c| c.name.as_str()).collect();
+        assert_eq!(
+            names.iter().filter(|n| **n == "box.black").count(),
+            2,
+            "{names:?}"
+        );
+        assert_eq!(names.iter().filter(|n| **n == "ip.place").count(), 9, "{names:?}");
+        assert!(names.contains(&"box.reshape"));
+        let mut store = ew_ui::ew_viewmodel::ew_api::StoreOptions::new("test");
+        store.state_dir = Some(tmp.path("state"));
+        let (mut s, _) = Session::open(
+            &replay,
+            store,
+            ew_ui::ew_viewmodel::ew_api::SessionOptions::default(),
+            ew_ui::ew_viewmodel::ew_api::Recovery::Keep,
+        )
+        .unwrap();
+        for cmd in log.commands() {
+            let mut cmd = cmd.clone();
+            if cmd.name == "box.reshape" {
+                let id = cmd.params["rep"].as_str().unwrap().to_owned();
+                let at = tables
+                    .reps
+                    .iter()
+                    .find(|r| r.id.to_string() == id)
+                    .expect("the run's box")
+                    .pos;
+                let now = s.page_tables("102").unwrap();
+                let mapped = now
+                    .reps
+                    .iter()
+                    .find(|r| r.pos == at && r.black_box.is_some())
+                    .expect("the replay's box")
+                    .id;
+                cmd.params["rep"] = Value::from(mapped.to_string());
+            }
+            let line = json!({"cmd": cmd.name, "params": cmd.params});
+            let one = CmdLog::parse(&format!("{{\"$schema\":\"ew.cmdlog/1\"}}\n{line}\n")).unwrap();
+            s.run_script(&one, "a.ewcmd")
+                .unwrap_or_else(|e| panic!("{}: {e:?}", cmd.name));
+        }
+        let replayed = s.page_tables("102").unwrap();
+        assert_eq!(reps(&replayed), reps(&tables));
+        assert_eq!(boxes(&replayed), boxes(&tables));
         assert_eq!(records_of(&s), records_of(&scripted));
         s.close();
     }

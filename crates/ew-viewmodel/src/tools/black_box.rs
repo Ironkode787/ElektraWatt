@@ -480,11 +480,7 @@ pub fn on_outline(outline: &[(i64, i64)], p: (i64, i64)) -> bool {
 /// The `box.reshape` of black box `rep` with the absolute outline `outline` and, when given, the absolute CPs
 /// `(idx, point, direction)` (page nm), converted to the representation's frame (relative to its position, under the
 /// inverse of its orientation).
-pub fn reshape_command(
-    rep: &TableRep,
-    outline: &[(i64, i64)],
-    cps: Option<&[BoxCpAt]>,
-) -> Box<AnyCommand> {
+pub fn reshape_command(rep: &TableRep, outline: &[(i64, i64)], cps: Option<&[BoxCpAt]>) -> Box<AnyCommand> {
     let inv = orient_inverse(rep.orient);
     let rel = |p: (i64, i64)| orient_point(inv, (p.0 - rep.pos.0, p.1 - rep.pos.1));
     let mut params = json!({

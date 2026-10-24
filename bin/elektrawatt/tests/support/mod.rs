@@ -8,8 +8,9 @@
 //! the Place tool (`place.pick` with its key and the device's letter, then the grid cursor on the golden insertion
 //! point and Enter, so no pointer and no hover reaches the transcript); a terminal with the Place tool's
 //! `new_terminal` target on the strip the start project holds, with the golden designation; an interruption point
-//! (the IP tool is part 3's) through `command.run` `ip.place` with the golden parameters, its external reference
-//! left out; each placement with Alt held (`canvas.activate {alt}`), so that no autoconnect proposal adds a wire.
+//! with the IP tool (part 3: `tool.ip`, `ip.external` with the printed text of its external reference, `ip.name`,
+//! `tool.ip_direction {direction}`, the grid cursor on the golden insertion point and Enter); each placement of a
+//! symbol with Alt held (`canvas.activate {alt}`), so that no autoconnect proposal adds a wire.
 //!
 //! **What part 2 adds** (§13.6): the golden tags typed through `command.run` `fields.set` on `tag:` references to
 //! the tags the placements print ([`typed_tag_steps`], read from a run of the placements, so no minted ID enters the
@@ -92,6 +93,27 @@ fn records() -> BTreeMap<String, Value> {
         }
     }
     out
+}
+
+/// The external references of the fixture (`structure.jsonl`), in record order.
+pub fn external_refs() -> Vec<Value> {
+    lines(&Path::new(GOLDEN_A).join("structure.jsonl"))
+        .into_iter()
+        .filter(|r| r["$k"] == "external_ref")
+        .collect()
+}
+
+/// The printed text (`<device>:<connection>`) of the fixture's external reference `id`, as the IP tool's field offers
+/// it.
+pub fn external_label(id: &str) -> String {
+    let r = external_refs()
+        .into_iter()
+        .find(|r| r["id"] == id)
+        .unwrap_or_else(|| panic!("no external reference {id}"));
+    match r["connection"].as_str() {
+        Some(c) => format!("{}:{c}", r["device"].as_str().unwrap()),
+        None => r["device"].as_str().unwrap().to_owned(),
+    }
 }
 
 /// The key (`meta.key`) of every symbol copy of the fixture, by copy ID.
@@ -199,7 +221,7 @@ pub fn placement_steps(folio: u32, map: SheetMap, strip: &str) -> (Vec<(String, 
         .collect();
     reps.sort_by_key(|r| r["source_ref"]["key"].as_str().unwrap_or_default().to_owned());
     let mut steps: Vec<(String, Value)> = Vec::new();
-    let mut runs = 0;
+    let runs = 0;
     for r in reps {
         let symbol = keys[r["symbol"].as_str().unwrap()].clone();
         let pos = (r["pos"][0].as_i64().unwrap(), r["pos"][1].as_i64().unwrap());
@@ -210,20 +232,27 @@ pub fn placement_steps(folio: u32, map: SheetMap, strip: &str) -> (Vec<(String, 
         );
         let function = &all[r["functions"][0].as_str().unwrap()];
         if let Some(ip) = function["kind"].get("ip") {
-            runs += 1;
-            steps.push((
-                "command.run".into(),
-                json!({"cmd": "ip.place", "params": {
-                    "page": {"ref": format!("folio:{folio}")},
-                    "symbol": r["symbol"],
-                    "pos": [pos.0, pos.1],
-                    "name": ip["name"],
-                    "direction": ip["direction"],
-                }}),
-            ));
+            // WP-S2.04 part 3: the IP tool; an external connection point names its external reference by printed text
+            // (the start project holds the references).
+            steps.push(("tool.ip".into(), json!({})));
+            if let Some(e) = ip["external"].as_str() {
+                steps.push(("ip.external".into(), json!({ "external": external_label(e) })));
+            }
+            steps.push(("ip.name".into(), json!({"text": ip["name"]})));
+            steps.push(("tool.ip_direction".into(), json!({"direction": ip["direction"]})));
+            let (x, y) = map.mm(pos);
+            steps.push(("cursor.set".into(), json!({"x_mm": x, "y_mm": y})));
+            steps.push(("canvas.activate".into(), json!({})));
+            steps.push(("ui.dismiss".into(), json!({})));
             continue;
         }
         let device = &all[function["device"].as_str().unwrap()];
+        if let Some(b) = r.get("box") {
+            let grid = &all[page.as_str().unwrap()]["grid"];
+            let grid = (grid["num"].as_i64().unwrap(), grid["den"].as_i64().unwrap());
+            steps.extend(black_box_steps(map, grid, pos, b, device));
+            continue;
+        }
         let pick = match device.get("terminal") {
             Some(t) => json!({"symbol": symbol, "strip": strip, "designation": t["designation"]}),
             None => json!({"symbol": symbol, "letter": device["tag"]["letter"]}),
@@ -236,6 +265,104 @@ pub fn placement_steps(folio: u32, map: SheetMap, strip: &str) -> (Vec<(String, 
         steps.push(("ui.dismiss".into(), json!({})));
     }
     (steps, runs)
+}
+
+/// The part number of the fixture's part copy `id` (`lib/parts/<id>.json`).
+fn part_number(id: &str) -> String {
+    let path = Path::new(GOLDEN_A).join("lib/parts").join(format!("{id}.json"));
+    let doc: Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+    doc["part_number"].as_str().unwrap().to_owned()
+}
+
+/// A press, a move and a release of the pointer from `from` to `to` (page nm), with the Select tool.
+fn drag(map: SheetMap, from: (i64, i64), to: (i64, i64)) -> Vec<(String, Value)> {
+    let (a, b) = (map.mm(from), map.mm(to));
+    vec![
+        ("canvas.press".into(), json!({"x_mm": a.0, "y_mm": a.1})),
+        ("canvas.pointer".into(), json!({"x_mm": b.0, "y_mm": b.1})),
+        ("canvas.release".into(), json!({"x_mm": b.0, "y_mm": b.1})),
+    ]
+}
+
+/// WP-S2.04 part 3: the steps that draw the golden black box `b` (a rectangle at `pos`, its device `device` made from a
+/// part) with the black box tool and its CPs: `tool.black_box` with the part's template entry 0 and the device's letter,
+/// the two corners by the grid cursor and Enter, then (Select, the box clicked) each CP dragged from the tool's
+/// default layout to its golden point along the outline, a CP whose target is free first (ascending index).
+fn black_box_steps(
+    map: SheetMap,
+    grid: (i64, i64),
+    pos: (i64, i64),
+    b: &Value,
+    device: &Value,
+) -> Vec<(String, Value)> {
+    use ew_ui::ew_viewmodel::tools::black_box::layout;
+    use ew_ui::ew_viewmodel::tools::wire::PageGridMap;
+    let pt = |v: &Value| (v[0].as_i64().unwrap(), v[1].as_i64().unwrap());
+    let outline: Vec<(i64, i64)> = b["outline"].as_array().unwrap().iter().map(pt).collect();
+    assert_eq!(outline.len(), 4, "a rectangle");
+    assert_eq!(outline[0], (0, 0), "the insertion point is the top-left corner");
+    let far = (pos.0 + outline[2].0, pos.1 + outline[2].1);
+    let mut golden: Vec<(u16, (i64, i64))> = b["cps"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|c| {
+            let p = pt(&c["pos"]);
+            (c["idx"].as_u64().unwrap() as u16, (pos.0 + p.0, pos.1 + p.1))
+        })
+        .collect();
+    golden.sort();
+    let part = part_number(device["parts"][0]["part"]["copy"].as_str().unwrap());
+    // At actual size a grid step is wider than the 4 points within which a press takes a grip or a CP.
+    let mut steps: Vec<(String, Value)> = vec![
+        ("view.zoom_actual".into(), json!({})),
+        (
+            "tool.black_box".into(),
+            json!({"part": part, "template": 0, "letter": device["tag"]["letter"]}),
+        ),
+    ];
+    for corner in [pos, far] {
+        let (x, y) = map.mm(corner);
+        steps.push(("cursor.set".into(), json!({"x_mm": x, "y_mm": y})));
+        steps.push(("canvas.activate".into(), json!({})));
+    }
+    steps.push(("ui.dismiss".into(), json!({})));
+    // The tool's default layout (the template's CPs in index order, which is the golden template order).
+    let cps: Vec<(u16, String)> = golden.iter().map(|(i, _)| (*i, i.to_string())).collect();
+    let g = PageGridMap::new(grid);
+    let (origin, _, laid) = layout(g, pos, far, &cps).expect("the default layout");
+    let mut current: Vec<(u16, (i64, i64))> = laid
+        .iter()
+        .map(|(i, p, _)| (*i, (origin.0 + p.0, origin.1 + p.1)))
+        .collect();
+    // Select the box: a click inside it, two grid steps in from its top-left corner (no grip, no CP there).
+    let inside = (g.coord(g.index(pos.0) + 2), g.coord(g.index(pos.1) + 2));
+    let (x, y) = map.mm(inside);
+    steps.push(("canvas.press".into(), json!({"x_mm": x, "y_mm": y})));
+    steps.push(("canvas.release".into(), json!({"x_mm": x, "y_mm": y})));
+    loop {
+        let pending: Vec<(u16, (i64, i64))> = golden
+            .iter()
+            .filter(|(i, p)| current.iter().any(|(j, q)| j == i && q != p))
+            .copied()
+            .collect();
+        let Some(&(idx, to)) = pending
+            .iter()
+            .find(|(i, p)| !current.iter().any(|(j, q)| j != i && q == p))
+        else {
+            assert!(pending.is_empty(), "the CP moves form a cycle: {pending:?}");
+            break;
+        };
+        let from = current.iter().find(|(j, _)| *j == idx).unwrap().1;
+        steps.extend(drag(map, from, to));
+        for c in &mut current {
+            if c.0 == idx {
+                c.1 = to;
+            }
+        }
+    }
+    steps.push(("ui.dismiss".into(), json!({})));
+    steps
 }
 
 // -------------------------------------------------------------------------------------------------------------------

@@ -247,6 +247,35 @@ impl ShellModel {
         self.send_tool(&CanvasEvent::Key(key))
     }
 
+    /// `tool.ip_direction {direction?}`: D cycles the direction; the headless `direction` (`source`, `target`,
+    /// `undirected`) sets it, so a script needs no knowledge of the default.
+    pub(super) fn act_ip_direction(&mut self, p: &Map<String, Value>) -> Outcome {
+        let direction = match string_param(p, "direction") {
+            Ok(None) => return self.act_ip_key(ToolKey::ToggleDirection),
+            Ok(Some("source")) => IpDir::Source,
+            Ok(Some("target")) => IpDir::Target,
+            Ok(Some("undirected")) => IpDir::Undirected,
+            Ok(Some(_)) => return failed("error-bad-param", &["direction"]),
+            Err(e) => return e,
+        };
+        if self.ip_tool().is_none() {
+            return Outcome::Refused {
+                reason_key: "reason-ip-tool-only",
+            };
+        }
+        let overlay = self
+            .with_tool(|t, cx| {
+                t.as_any_mut()
+                    .and_then(|a| a.downcast_mut::<IpTool>())
+                    .map(|ip| ip.choose_direction(direction, cx))
+            })
+            .flatten();
+        if let Some(o) = overlay {
+            self.tools.overlay = o;
+        }
+        Outcome::Done
+    }
+
     /// `ip.name {text}`: the IP tool's name field.
     pub(super) fn act_ip_name(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.ip_tool().is_none() {

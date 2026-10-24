@@ -1285,7 +1285,7 @@ impl ShellModel {
             // WP-S2.04 part 2. End.
             // WP-S2.04 part 3 (interruption points and black boxes, §9.6). Begin.
             "tool.ip" => self.act_tool_ip(),
-            "tool.ip_direction" => self.act_ip_key(crate::tools::ToolKey::ToggleDirection),
+            "tool.ip_direction" => self.act_ip_direction(p),
             "tool.star_source" => self.act_ip_key(crate::tools::ToolKey::ToggleStar),
             "ip.name" => self.act_ip_name(p),
             "ip.external" => self.act_ip_external(p),

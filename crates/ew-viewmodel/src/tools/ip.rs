@@ -287,6 +287,12 @@ impl IpTool {
         self.refresh(cx)
     }
 
+    /// Sets the direction (`tool.ip_direction {direction}`, the headless form of D).
+    pub fn choose_direction(&mut self, direction: IpDir, cx: &ToolCx<'_>) -> Overlay {
+        self.chosen = Some(direction);
+        self.refresh(cx)
+    }
+
     /// Replaces the shape of the same symbol read at a new revision.
     pub fn replace_shape(&mut self, shape: Arc<SymbolShape>) {
         self.outline = shape.outline.clone().into();
