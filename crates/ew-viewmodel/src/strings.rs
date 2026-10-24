@@ -381,6 +381,9 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "reason-human-only" => {
             "Only a person applies this, in the window: it decides what the checks report (ADR-0008)"
         }
+        "reason-human-only-history" => {
+            "Only a person undoes or redoes this step, in the window: it holds a human-only command that decides what the checks report (ADR-0008 amendment 3)"
+        }
         "banner-check-scheme-applied" => "The check scheme {0} was applied to {1}.",
         "wizard-apply-check-scheme" => "Apply the check scheme",
         "wizard-kept-apply" => "kept: apply after finishing",

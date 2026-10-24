@@ -103,7 +103,7 @@ fn attach_sets_parent_and_positions_and_undo_restores() {
     assert_eq!((a.parent, a.position), (Some(DEV_102G1), Some(1)));
     let b = row(&e, DEV_101F1);
     assert_eq!((b.parent, b.position), (Some(DEV_102G1), None));
-    e.undo().expect("undo");
+    e.undo(&ew_commands::Origin::Gui).expect("undo");
     for d in [DEV_102F2, DEV_101F1] {
         let r = row(&e, d);
         assert_eq!((r.parent, r.position), (None, None));
@@ -226,7 +226,7 @@ fn valve_add_checks_positions_and_undo_removes_the_valve() {
         "/position"
     );
     not_found(e.execute(&valve(id(0xdead), None, None)));
-    e.undo().expect("undo");
+    e.undo(&ew_commands::Origin::Gui).expect("undo");
     assert!(!exists(&e, v));
     assert!(!exists(&e, f));
 }
@@ -368,7 +368,7 @@ fn plc_module_aspect_instantiates_its_channels() {
 fn undo_of_the_module_aspect_removes_the_channels() {
     let mut e = engine(plc_model());
     make_module(&mut e);
-    e.undo().expect("undo");
+    e.undo(&ew_commands::Origin::Gui).expect("undo");
     assert_eq!(e.model().table::<Channel>().iter().count(), 0);
 }
 
@@ -515,7 +515,7 @@ fn rebinding_a_held_cp_names_the_unbound_channel_in_the_notice() {
         "{:?}",
         r.outcome.notices
     );
-    e.undo().expect("undo");
+    e.undo(&ew_commands::Origin::Gui).expect("undo");
     assert_eq!(
         row(&e, c1).binding,
         Some(Endpoint::Cp(FN_102F2, 4)),
@@ -792,7 +792,7 @@ fn library_embed_inserts_a_copy_once_and_undo_removes_it() {
     assert_eq!(r.outcome.primary, Some((Kind::Form, id.cast())));
     assert!(has_form(&e, id));
     rejected(e.execute(&embed(vec![json])));
-    e.undo().expect("undo");
+    e.undo(&ew_commands::Origin::Gui).expect("undo");
     assert!(!has_form(&e, id));
 }
 
@@ -931,7 +931,7 @@ fn library_embed_of_a_named_fndef_undoes_to_the_state_before() {
     assert_eq!(r.outcome.primary, Some((Kind::Fndef, fndef.cast())));
     let embedded = e.model().clone();
     let restored = e
-        .undo()
+        .undo(&ew_commands::Origin::Gui)
         .expect("FT-316: the undo of the embedding is not refused");
     assert_eq!(restored.label, "library.embed");
     assert!(!has_fndef(&e, fndef));
@@ -940,11 +940,13 @@ fn library_embed_of_a_named_fndef_undoes_to_the_state_before() {
         "undo restores the state before the embedding"
     );
     assert!(e.model().integrity_check().is_ok());
-    e.redo().expect("redo embeds the copy again");
+    e.redo(&ew_commands::Origin::Gui)
+        .expect("redo embeds the copy again");
     assert!(e.model().content_eq(&embedded));
-    e.undo().expect("and undo removes it again");
+    e.undo(&ew_commands::Origin::Gui)
+        .expect("and undo removes it again");
     assert!(e.model().content_eq(&m0));
-    assert!(e.undo().is_err(), "nothing left to undo");
+    assert!(e.undo(&ew_commands::Origin::Gui).is_err(), "nothing left to undo");
 }
 
 /// An edit cannot remove an embedded FnDef copy that a part names (EW-INV-021): the delete plan refuses it, and
@@ -997,6 +999,6 @@ fn a_named_fndef_copy_cannot_be_removed_by_an_edit() {
     e.execute(&both)
         .expect("the copy goes with the last record that names it");
     assert!(!has_fndef(&e, fndef));
-    e.undo().expect("and comes back with it");
+    e.undo(&ew_commands::Origin::Gui).expect("and comes back with it");
     assert!(e.model().content_eq(&before));
 }

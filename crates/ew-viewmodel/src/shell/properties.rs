@@ -1611,4 +1611,61 @@ mod tests {
         shell.shutdown();
         let _ = std::fs::remove_dir_all(&dir);
     }
+
+    /// FT-404: the shell's undo and redo carry its origin. A `project.checks.set` step committed from the GUI is
+    /// refused to the headless script (`Origin::CmdLog`) with the history reason key, the session unchanged; the
+    /// window's GUI origin undoes and redoes it.
+    #[test]
+    fn a_human_only_step_is_undone_only_in_the_window() {
+        let mut shell = ShellModel::for_tests();
+        let dir = std::env::temp_dir().join(format!("ew-ft404-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let golden = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew");
+        copy_dir(&golden, &dir);
+        assert_eq!(
+            shell.dispatch("file.open", &json!({ "dir": dir.to_string_lossy() })),
+            Outcome::Done
+        );
+        assert_eq!(shell.mode, Mode::Headless);
+        let cmd = AnyCommand {
+            name: "project.checks.set".into(),
+            params: json!({"release_scheme": "full"}),
+        };
+        let session = &mut shell.project.as_mut().unwrap().session;
+        session
+            .execute_with(&cmd, Submit::from(Origin::Gui))
+            .expect("the GUI sets the release scheme");
+        let cursor = |shell: &ShellModel| shell.project.as_ref().unwrap().session.history().cursor();
+        let rev = |shell: &ShellModel| shell.project.as_ref().unwrap().session.world().rev;
+        let (applied, at) = (cursor(&shell), rev(&shell));
+        let refused = Outcome::Refused {
+            reason_key: "reason-human-only-history",
+        };
+        assert_eq!(shell.dispatch("edit.undo", &Value::Null), refused);
+        assert_eq!(
+            (cursor(&shell), rev(&shell)),
+            (applied, at),
+            "a refused undo changes nothing"
+        );
+        assert!(
+            strings::text("reason-human-only-history").contains("ADR-0008 amendment 3"),
+            "the reason names the rule"
+        );
+        shell.mode = Mode::Gui;
+        assert_eq!(shell.dispatch("edit.undo", &Value::Null), Outcome::Done);
+        assert_eq!(cursor(&shell), applied - 1);
+        shell.mode = Mode::Headless;
+        let at = rev(&shell);
+        assert_eq!(shell.dispatch("edit.redo", &Value::Null), refused);
+        assert_eq!(
+            (cursor(&shell), rev(&shell)),
+            (applied - 1, at),
+            "a refused redo changes nothing"
+        );
+        shell.mode = Mode::Gui;
+        assert_eq!(shell.dispatch("edit.redo", &Value::Null), Outcome::Done);
+        assert_eq!(cursor(&shell), applied);
+        shell.shutdown();
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 }

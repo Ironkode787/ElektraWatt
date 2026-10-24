@@ -346,7 +346,8 @@ fn f4_a_preview_from_another_engine_is_re_run() {
     assert_eq!(receipt.created, c_receipt.created);
     assert_eq!(lines(b.model()), start, "B is untouched by the commit on A");
 
-    a.undo().expect("undo on A still works after the commit");
+    a.undo(&ew_commands::Origin::Gui)
+        .expect("undo on A still works after the commit");
     assert_eq!(lines(a.model()), start);
 }
 

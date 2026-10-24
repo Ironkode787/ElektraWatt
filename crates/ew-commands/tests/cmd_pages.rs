@@ -122,7 +122,7 @@ fn undo_create_page() {
     let mut e = engine(golden_model());
     let before = lines(e.model());
     e.execute(&CreatePage::at(Some(SEC1), 110)).unwrap();
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
 }
 
@@ -189,7 +189,7 @@ fn undo_delete_pages() {
     let before = lines(e.model());
     bulk(&mut e, &delete(&[PAGE_101], true)).unwrap();
     assert_ne!(lines(e.model()), before);
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
 }
 
@@ -276,7 +276,7 @@ fn undo_renumber() {
     let mut e = engine(golden_model());
     let before = lines(e.model());
     bulk(&mut e, &renumber(PageScope::Section(SEC1), 201, 1, false)).unwrap();
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
 }
 
@@ -326,7 +326,7 @@ fn undo_create_structure_node() {
     let mut e = engine(golden_model());
     let before = lines(e.model());
     e.execute(&node(Aspect::Function, "A1", Some(FUNC_P01))).unwrap();
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
 }
 
@@ -371,7 +371,7 @@ fn undo_create_section() {
     let mut e = engine(empty_model());
     let before = lines(e.model());
     e.execute(&section_cmd(1, 100, 199)).unwrap();
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
 }
 
@@ -412,7 +412,7 @@ fn undo_create_report_block() {
     let mut e = engine(golden_model());
     let before = lines(e.model());
     e.execute(&block(Some(907))).unwrap();
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
 }
 
@@ -465,13 +465,13 @@ fn report_block_create_embeds_its_form_from_the_library_in_one_step() {
         .unwrap()
         .clone();
     assert_eq!(b.form, form);
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(
         lines(e.model()),
         before,
         "one undo step removes the block and the copy"
     );
-    e.redo().unwrap();
+    e.redo(&ew_commands::Origin::Gui).unwrap();
     assert!(e.model().contains(&key) && e.model().contains(&block_key));
     // The same item again: the held copy is used, nothing is embedded twice.
     let r = e.execute(&with_copy(960, form, &doc)).unwrap();

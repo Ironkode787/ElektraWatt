@@ -127,9 +127,9 @@ fn create_is_undoable() {
     );
     assert!(revision(&e, id).is_open());
     let after = lines(e.model());
-    e.undo().expect("undo");
+    e.undo(&ew_commands::Origin::Gui).expect("undo");
     assert_eq!(lines(e.model()), before);
-    e.redo().expect("redo");
+    e.redo(&ew_commands::Origin::Gui).expect("redo");
     assert_eq!(lines(e.model()), after);
 }
 
@@ -328,7 +328,7 @@ fn the_open_revision_can_be_deleted_a_released_one_cannot() {
     assert_eq!(invalid_at(err), ("edit.delete".into(), "/targets/0".into()));
     e.execute(&delete(v2)).expect("the open revision goes");
     assert!(e.model().table::<Revision>().get(&v2).is_none());
-    e.undo().expect("undo");
+    e.undo(&ew_commands::Origin::Gui).expect("undo");
     assert!(revision(&e, v2).is_open());
 }
 

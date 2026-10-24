@@ -54,7 +54,7 @@ fn designate_sets_one_terminal() {
     assert_eq!(designation(&e, DEV_T1), "9");
     assert_eq!(designation(&e, DEV_T2), "2");
     assert_eq!(e.history().entries().len(), 1);
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(designation(&e, DEV_T1), "1");
     assert_eq!(lines(e.model()), before);
 }
@@ -71,7 +71,7 @@ fn designate_swaps_two_terminals_in_one_transaction() {
     assert_eq!(designation(&e, DEV_T1), "1");
     assert_eq!(e.history().entries().len(), 1);
     assert_eq!(r.outcome.primary, None);
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(designation(&e, DEV_T2), "2");
     assert_eq!(designation(&e, DEV_T3), "3");
     assert_eq!(lines(e.model()), before);

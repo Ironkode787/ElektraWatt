@@ -477,8 +477,8 @@ fn a_page_without_a_form_takes_the_frame_defaults_in_the_page_output() {
         Some("ew.frame.qet-a4-landscape-cover"),
         "the entry of the page's type wins over the default"
     );
-    session.undo().unwrap();
-    session.undo().unwrap();
+    session.undo(&ew_api::Origin::Gui).unwrap();
+    session.undo(&ew_api::Origin::Gui).unwrap();
     assert_eq!(
         frame_of_folio_1(&session),
         nogrid,

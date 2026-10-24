@@ -560,7 +560,7 @@ fn from_part_undo_restores_bytes() {
     ))
     .unwrap();
     assert_ne!(lines(e.model()), before);
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
 }
 
@@ -735,7 +735,7 @@ fn new_terminal_undo_restores_bytes() {
         new_terminal(DEV_X1031, "9", None),
     ))
     .unwrap();
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
 }
 
@@ -1071,7 +1071,7 @@ fn move_by_zero_steps_changes_nothing_and_undo_restores_bytes() {
     assert_eq!(lines(e.model()), before, "zero steps keep every row");
     e.execute(&steps_cmd(vec![REP_102F2, REP_T1], [1, 1])).unwrap();
     assert_ne!(lines(e.model()), before);
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
 }
 
@@ -1466,7 +1466,7 @@ fn exchange_undo_restores_bytes() {
     let before = lines(e.model());
     e.execute(&exchange(REP_L, SYM_REV)).unwrap();
     assert_ne!(lines(e.model()), before);
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
     let _ = maybe_row(&e, REP_L);
 }
@@ -1518,12 +1518,12 @@ fn drawing_set_keeps_the_members_it_does_not_know() {
     // Removing `crossings` leaves the unknown member, so the object stays.
     e.execute(&set_drawing(Some(None))).unwrap();
     assert_eq!(drawing_of(&e), Some(json!({"future": {"a": 1}})));
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(
         drawing_of(&e),
         Some(json!({"future": {"a": 1}, "crossings": "hops"}))
     );
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(
         drawing_of(&e),
         Some(json!({"future": {"a": 1}, "crossings": "plain"}))

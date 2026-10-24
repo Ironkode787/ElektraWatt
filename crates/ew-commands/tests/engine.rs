@@ -67,15 +67,15 @@ fn undo_and_redo_are_new_revisions_and_restore_bytes() {
     let before = lines(e.model());
     e.execute(&create_after(PAGE_102)).unwrap();
     let after = lines(e.model());
-    let u = e.undo().unwrap();
+    let u = e.undo(&Origin::Gui).unwrap();
     assert_eq!(u.rev.0, 2);
     assert_eq!(lines(e.model()), before);
     assert!(!e.is_dirty());
-    let r = e.redo().unwrap();
+    let r = e.redo(&Origin::Gui).unwrap();
     assert_eq!(r.rev.0, 3);
     assert_eq!(lines(e.model()), after);
-    assert!(e.undo().is_ok());
-    assert!(matches!(e.undo(), Err(CmdError::History { .. })));
+    assert!(e.undo(&Origin::Gui).is_ok());
+    assert!(matches!(e.undo(&Origin::Gui), Err(CmdError::History { .. })));
 }
 
 #[test]
@@ -192,4 +192,46 @@ fn every_v0_command_is_an_edit_command_but_the_check_schemes() {
         serde_json::json!({"cli": {"subcommand": "purge", "confirmed": false}})
     );
     let _ = Submit::from(Origin::Gui);
+}
+
+/// FT-404: the strictness order of a coalesced step and who may undo or redo a step of each class.
+#[test]
+fn exposure_strictness_and_the_history_rule() {
+    use Exposure::{Edit, HumanOnly, Import, Internal};
+    let order = [Edit, Import, HumanOnly, Internal];
+    for (i, a) in order.iter().enumerate() {
+        for (j, b) in order.iter().enumerate() {
+            assert_eq!(a.strictest(*b), order[i.max(j)], "{a:?} {b:?}");
+        }
+    }
+    let cli = |confirmed| Origin::Cli {
+        subcommand: "apply".into(),
+        confirmed,
+    };
+    let scripted = [
+        cli(false),
+        Origin::CmdLog {
+            file: "a.ewcmd".into(),
+        },
+        Origin::Script { name: "s".into() },
+        Origin::Mcp { client: "c".into() },
+        Origin::Plugin { id: "p".into() },
+        Origin::Python {
+            script: "p.py".into(),
+        },
+        Origin::Import { lineage: "l".into() },
+        Origin::Merge,
+        Origin::External,
+    ];
+    for origin in [Origin::Gui, cli(true)] {
+        for class in order {
+            assert!(class.allows_history(&origin), "{class:?} {origin:?}");
+        }
+    }
+    for origin in &scripted {
+        assert!(Edit.allows_history(origin), "{origin:?}");
+        assert!(Import.allows_history(origin), "{origin:?}");
+        assert!(!HumanOnly.allows_history(origin), "{origin:?}");
+        assert!(!Internal.allows_history(origin), "{origin:?}");
+    }
 }

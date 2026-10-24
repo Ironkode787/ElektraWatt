@@ -181,7 +181,7 @@ fn n2_binds_the_coil_of_a_new_valve_to_the_channel_of_the_map() {
         assert_eq!(bound, 1, "only the declared coil 14 is bound");
         assert!(r.outcome.notices.is_empty(), "{:?}", r.outcome.notices);
         // one undo step removes the valve and its binding
-        e.undo().expect("undo");
+        e.undo(&ew_commands::Origin::Gui).expect("undo");
         assert_eq!(binding(&e, expected), None);
     }
 }
@@ -490,7 +490,7 @@ fn n1_applies_the_new_kind_to_existing_channels() {
     );
     assert_eq!(r.outcome.notices.len(), 8, "{:?}", r.outcome.notices);
     assert!(has_notice(&r, "kind `do` → `di`"), "{:?}", r.outcome.notices);
-    e.undo().expect("undo");
+    e.undo(&ew_commands::Origin::Gui).expect("undo");
     assert_eq!(row(&e, channel_id(DEV_102F2, 3)).kind, ChannelKind::Do);
 }
 
@@ -599,7 +599,7 @@ fn a_part_change_removes_surplus_channels_only_through_the_preview() {
             .is_some()
     }));
 
-    e.undo().expect("undo");
+    e.undo(&ew_commands::Origin::Gui).expect("undo");
     assert_eq!(row(&e, DEV_102F2).parts[0].part.copy, MODULE_H1);
     assert_eq!(e.model().table::<Channel>().iter().count(), 8);
     assert_eq!(binding(&e, 5), Some(Endpoint::Cp(FN_102F2, 3)));

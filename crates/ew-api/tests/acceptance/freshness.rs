@@ -545,7 +545,7 @@ fn compute(c: &Ctx) -> Result<Run, String> {
         wires_before = wires_after;
     }
     let mut undone = 0;
-    while s.undo().is_ok() {
+    while s.undo(&ew_api::Origin::Gui).is_ok() {
         undone += 1;
     }
     let restored =

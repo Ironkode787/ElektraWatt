@@ -15,8 +15,8 @@ use std::path::{Path, PathBuf};
 
 use ew_api::output::{ExportOptions, ExportPages, PageRow, PageSelection};
 use ew_api::{
-    Access, CmdLog, IdSource, OpenError, OpenReport, Origin, ReadOnlyReason, Recovery, SaveError, Session,
-    SessionOptions, StoreOptions,
+    Access, CmdError, CmdLog, IdSource, OpenError, OpenReport, Origin, ReadOnlyReason, Recovery, SaveError,
+    Session, SessionOptions, StoreOptions,
 };
 use serde_json::{Map, Value, json};
 
@@ -379,6 +379,17 @@ pub type IdSourceFactory = fn() -> Box<dyn IdSource + Send>;
 fn dir_name(dir: &Path) -> String {
     dir.file_name()
         .map_or_else(|| "project".to_owned(), |n| n.to_string_lossy().into_owned())
+}
+
+/// The origin of an undo or redo (FT-404): the GUI in the window, the script's command log headless, like the origin
+/// of the shell's own commands; `Session::undo` and `Session::redo` refuse a `HumanOnly` step from the latter.
+fn history_origin(mode: Mode, origin_file: &str) -> Origin {
+    match mode {
+        Mode::Gui => Origin::Gui,
+        Mode::Headless => Origin::CmdLog {
+            file: origin_file.to_owned(),
+        },
+    }
 }
 
 fn failed(key: &str, args: &[&str]) -> Outcome {
@@ -1711,8 +1722,9 @@ impl ShellModel {
                 reason_key: "reason-no-project",
             };
         };
+        let origin = history_origin(self.mode, &self.origin_file);
         let before = p.session.history().cursor();
-        match p.session.undo() {
+        match p.session.undo(&origin) {
             Ok(_) => {
                 if p.session.history().cursor() < before
                     && let Some(step) = self.record.steps.pop()
@@ -1726,6 +1738,9 @@ impl ShellModel {
                 self.tools.preview = None;
                 Outcome::Done
             }
+            Err(CmdError::Exposure { .. }) => Outcome::Refused {
+                reason_key: "reason-human-only-history",
+            },
             Err(e) => failed("error-command", &[&e.to_string()]),
         }
     }
@@ -1736,8 +1751,9 @@ impl ShellModel {
                 reason_key: "reason-no-project",
             };
         };
+        let origin = history_origin(self.mode, &self.origin_file);
         let before = p.session.history().cursor();
-        match p.session.redo() {
+        match p.session.redo(&origin) {
             Ok(_) => {
                 if p.session.history().cursor() > before
                     && let Some(step) = self.record.undone.pop()
@@ -1751,6 +1767,9 @@ impl ShellModel {
                 self.tools.preview = None;
                 Outcome::Done
             }
+            Err(CmdError::Exposure { .. }) => Outcome::Refused {
+                reason_key: "reason-human-only-history",
+            },
             Err(e) => failed("error-command", &[&e.to_string()]),
         }
     }

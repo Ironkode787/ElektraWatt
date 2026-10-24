@@ -197,10 +197,10 @@ fn step_b1_keeps_the_topology_and_one_undo_per_step_returns_to_golden_a_byte_for
         assert_eq!(wires, connections);
     }
 
-    s.undo().expect("undo the renumber");
+    s.undo(&ew_api::Origin::Gui).expect("undo the renumber");
     let after_settings = ew_commands::rows::model_lines(&s.world().model).unwrap();
     assert_ne!(after_settings, records_before, "the strip rule is still dropped");
-    s.undo().expect("undo the settings edit");
+    s.undo(&ew_api::Origin::Gui).expect("undo the settings edit");
     assert_eq!(
         ew_commands::rows::model_lines(&s.world().model).unwrap(),
         records_before,
@@ -242,14 +242,14 @@ fn steps_b1_then_b2_give_the_final_tag_map_and_three_undos_return_to_golden_a() 
     );
 
     assert_eq!(s.history().entries().len(), 3);
-    s.undo().unwrap();
+    s.undo(&ew_api::Origin::Gui).unwrap();
     assert_eq!(
         ew_commands::rows::model_lines(&s.world().model).unwrap(),
         records_b1,
         "undo of B2 restores B1"
     );
-    s.undo().unwrap();
-    s.undo().unwrap();
+    s.undo(&ew_api::Origin::Gui).unwrap();
+    s.undo(&ew_api::Origin::Gui).unwrap();
     assert_eq!(
         ew_commands::rows::model_lines(&s.world().model).unwrap(),
         records_a,
@@ -349,7 +349,7 @@ fn step_b2_keeps_the_topology_and_one_undo_restores_the_records_byte_for_byte() 
         "the folio numbers changed"
     );
 
-    s.undo().expect("one undo");
+    s.undo(&ew_api::Origin::Gui).expect("one undo");
     assert_eq!(
         ew_commands::rows::model_lines(&s.world().model).unwrap(),
         records_before,

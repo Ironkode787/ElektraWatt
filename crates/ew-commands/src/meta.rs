@@ -44,6 +44,34 @@ impl Exposure {
             Exposure::Internal => false,
         }
     }
+
+    /// The stricter of two classes, by the origins they admit: `Edit` (every origin) < `Import` < `HumanOnly`
+    /// (the GUI and a confirmed CLI subcommand, a subset of `Import`'s) < `Internal` (none). A history step records
+    /// the strictest class of the commands it holds (a coalesced step the strictest of its parts; ADR-0008
+    /// amendment 3's note, FT-404).
+    #[must_use]
+    pub fn strictest(self, other: Exposure) -> Exposure {
+        fn rank(e: Exposure) -> u8 {
+            match e {
+                Exposure::Edit => 0,
+                Exposure::Import => 1,
+                Exposure::HumanOnly => 2,
+                Exposure::Internal => 3,
+            }
+        }
+        if rank(other) > rank(self) { other } else { self }
+    }
+
+    /// Whether an origin may undo or redo a history step of this class (ADR-0008 amendment 3's note, FT-404): a
+    /// `HumanOnly` step (and an `Internal` one, which no origin submits) only from the GUI and a CLI subcommand a
+    /// human confirmed on a terminal, as [`Exposure::allows`] admits `HumanOnly`; an `Edit` or `Import` step from
+    /// every origin.
+    pub fn allows_history(self, origin: &Origin) -> bool {
+        match self {
+            Exposure::Edit | Exposure::Import => true,
+            Exposure::HumanOnly | Exposure::Internal => Exposure::HumanOnly.allows(origin),
+        }
+    }
 }
 
 /// The stability promise of a command's name and parameters (doc 17 §2.1, §11).

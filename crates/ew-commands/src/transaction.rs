@@ -8,7 +8,7 @@ use ew_model::{AnyKey, Op};
 use ew_schema::Page;
 use ew_units::Pt2;
 
-use crate::meta::Origin;
+use crate::meta::{Exposure, Origin};
 use crate::registry::AnyCommand;
 
 /// The visible part of the canvas when the command was submitted.
@@ -49,6 +49,12 @@ pub struct Transaction {
     pub coalesce_key: Option<String>,
     /// Whether it enters the undo stack; otherwise it is a marker line.
     pub undoable: bool,
+    /// The command's exposure class at commit (for a coalesced history step: the strictest of the merged
+    /// transactions', [`Exposure::strictest`]). `undo` and `redo` refuse a `HumanOnly` step from an origin that
+    /// could not have submitted it ([`Exposure::allows_history`]; ADR-0008 amendment 3's note, FT-404). Recorded at
+    /// commit, not looked up at undo time, because the registry may no longer hold the command (a plugin unloaded).
+    /// In memory only: the history is not persisted.
+    pub exposure: Exposure,
     /// The history panel's label: the command name.
     pub label: String,
 }

@@ -33,7 +33,7 @@ use ew_schema::{Page, Representation};
 use crate::command::{DynCommand, Outcome};
 use crate::diff::ModelDiff;
 use crate::error::CmdError;
-use crate::history::{History, HistoryLimits};
+use crate::history::{History, HistoryEntry, HistoryLimits};
 use crate::meta::{CommandMeta, Cost, Origin};
 use crate::normalise::{Normaliser, normalise};
 use crate::registry::{AnyCommand, CommandRegistry};
@@ -463,6 +463,7 @@ impl Engine {
                     context: submit.context,
                     coalesce_key: submit.coalesce_key,
                     undoable: meta.undoable,
+                    exposure: meta.exposure,
                     label: meta.name.into(),
                 },
                 rev,
@@ -635,9 +636,19 @@ impl Engine {
     /// restored state passed them), nor is the model's delete-time rule EW-INV-021, so the undo of
     /// `library.embed` restores the state before it even where records name the copies through a `LibRef`
     /// (FT-316).
-    pub fn undo(&mut self) -> Result<Restored, CmdError> {
+    ///
+    /// `origin` is who asks for the undo: a step that holds a `HumanOnly` command is undone only from the GUI and a
+    /// confirmed CLI subcommand (ADR-0008 amendment 3's note, FT-404).
+    ///
+    /// # Errors
+    ///
+    /// [`CmdError::History`] when there is nothing to undo, a checkpoint blocks it or the model changed under the
+    /// step; [`CmdError::Exposure`] (the step's label, its recorded class and `origin`) when `origin` may not undo
+    /// the step. A refused undo leaves the session unchanged.
+    pub fn undo(&mut self, origin: &Origin) -> Result<Restored, CmdError> {
         let index = self.history.undo_index()?;
         let entry = self.history.entry(index).expect("undo index is in range");
+        check_history_exposure(entry, origin)?;
         let tx = entry.tx().clone();
         let inverse = invert_batch(&tx.ops);
         let rev = self.apply_history_ops(&inverse, &tx.label)?;
@@ -649,10 +660,17 @@ impl Engine {
         })
     }
 
-    /// Re-applies the step above the cursor as a new revision, on the history path like [`Engine::undo`].
-    pub fn redo(&mut self) -> Result<Restored, CmdError> {
+    /// Re-applies the step above the cursor as a new revision, on the history path like [`Engine::undo`], with
+    /// the same origin rule.
+    ///
+    /// # Errors
+    ///
+    /// [`CmdError::History`] when there is nothing to redo or the model changed under the step;
+    /// [`CmdError::Exposure`] when `origin` may not redo the step.
+    pub fn redo(&mut self, origin: &Origin) -> Result<Restored, CmdError> {
         let index = self.history.redo_index()?;
         let entry = self.history.entry(index).expect("redo index is in range");
+        check_history_exposure(entry, origin)?;
         let tx = entry.tx().clone();
         let rev = self.apply_history_ops(&tx.ops, &tx.label)?;
         self.history.redone(index);
@@ -684,6 +702,20 @@ impl Engine {
         self.model = next;
         self.changes.push(change);
         Ok(rev)
+    }
+}
+
+/// Refuses an undo or redo of a step whose recorded exposure class `origin` may not take back or re-apply (FT-404).
+fn check_history_exposure(entry: &HistoryEntry, origin: &Origin) -> Result<(), CmdError> {
+    let exposure = entry.exposure();
+    if exposure.allows_history(origin) {
+        Ok(())
+    } else {
+        Err(CmdError::Exposure {
+            command: entry.label().to_owned(),
+            exposure,
+            origin: origin.clone(),
+        })
     }
 }
 

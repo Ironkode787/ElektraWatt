@@ -69,7 +69,7 @@ fn settings_set_numbering_previews_commits_and_undoes() {
     );
     e.commit(p).unwrap();
     assert_eq!(stored(&e, "numbering"), Some(numbering()));
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
 }
 

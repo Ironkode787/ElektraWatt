@@ -229,9 +229,9 @@ fn black_box_undo_and_redo() {
         .unwrap();
     let after = lines(e.model());
     assert_ne!(after, lines(&before));
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert!(e.model().content_eq(&before));
-    e.redo().unwrap();
+    e.redo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), after);
 }
 
@@ -298,7 +298,7 @@ fn bond_create_undo_restores_the_model() {
     let before = golden_model();
     e.execute(&bond(cp_param(FN_102F2, 1), cp_param(FN_102G1, 1), None))
         .unwrap();
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert!(e.model().content_eq(&before));
 }
 
@@ -352,6 +352,6 @@ fn external_ref_create_undo_restores_the_model() {
     let mut e = engine(golden_model());
     let before = golden_model();
     e.execute(&xref(LOC)).unwrap();
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert!(e.model().content_eq(&before));
 }

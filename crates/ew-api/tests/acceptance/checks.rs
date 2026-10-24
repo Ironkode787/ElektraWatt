@@ -1554,7 +1554,7 @@ fn ac18_b2(c: &Ctx) -> Outcome {
                 == wires
     };
     let steps = s.history().entries().len();
-    let undone = s.undo().is_ok()
+    let undone = s.undo(&ew_api::Origin::Gui).is_ok()
         && ew_commands::rows::model_lines(&s.world().model).expect("records") == records_before;
     let mut wrong = Vec::new();
     if tag_changes != 2 {
@@ -1675,7 +1675,7 @@ fn folio_3_to_4(c: &Ctx) -> Result<Folio3To4, String> {
         .count();
     let main: Id<Representation> = id_of(c, "representations|-201U1");
     let main_text = xrefs_after.get(&main).cloned().unwrap_or_default();
-    let undone = s.undo().is_ok()
+    let undone = s.undo(&ew_api::Origin::Gui).is_ok()
         && ew_commands::rows::model_lines(&s.world().model).expect("records") == records_before;
     Ok(Folio3To4 {
         tags: changed,
@@ -2706,7 +2706,7 @@ fn ac12_one_commit(c: &Ctx) -> Outcome {
     if rows_after == rows_before {
         wrong.push("folio 907 prints the same rows after the commit".into());
     }
-    if s.undo().is_err() || all_props(&golden_common::plain(&s)) != before {
+    if s.undo(&ew_api::Origin::Gui).is_err() || all_props(&golden_common::plain(&s)) != before {
         wrong.push("one undo does not restore the wire colours".into());
     }
     if changed == 0 {

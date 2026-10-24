@@ -128,7 +128,7 @@ fn undo_after_a_save_removes_the_file_again() {
     let added = s.save().unwrap();
     let file = added.written[0].clone();
     assert!(dir.join(file.as_str()).exists());
-    s.undo().unwrap();
+    s.undo(&ew_api::Origin::Gui).unwrap();
     let removed = s.save().unwrap();
     assert_eq!(removed.removed, vec![file.clone()]);
     assert!(removed.written.is_empty());
@@ -217,7 +217,7 @@ fn an_undone_logo_survives_a_crash_after_a_save() {
     set_logo(&mut s, X);
     set_logo(&mut s, Y);
     s.save().unwrap();
-    s.undo().unwrap();
+    s.undo(&ew_api::Origin::Gui).unwrap();
     let live = lines(&s);
     drop(s);
     let (mut r, report) = Session::open(&dir, store_options(&state), options(13), Recovery::Apply).unwrap();

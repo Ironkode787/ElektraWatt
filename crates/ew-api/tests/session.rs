@@ -46,17 +46,52 @@ fn execute_undo_redo_and_the_change_feed() {
     assert_eq!(changes[0].rev.0, 1);
     assert_eq!(changes[0].touched_pages.len(), 1);
 
-    let u = s.undo().unwrap();
+    let u = s.undo(&Origin::Gui).unwrap();
     assert_eq!(u.rev.0, 2);
     assert_eq!(u.label, "page.create");
     assert!(!s.is_dirty());
-    let r2 = s.redo().unwrap();
+    let r2 = s.redo(&Origin::Gui).unwrap();
     assert_eq!(r2.rev.0, 3);
     assert!(s.is_dirty());
     s.mark_saved();
     assert!(!s.is_dirty());
     assert_eq!(s.drain_changes().len(), 2);
     assert_eq!(s.history().entries().len(), 1);
+}
+
+/// FT-404: `Session::undo` and `Session::redo` take the caller's origin; a `project.checks.set` step is refused to the
+/// command-log and script origins (nothing changes, nothing enters the change feed) and taken back by the GUI.
+#[test]
+fn undo_and_redo_of_a_human_only_step_need_the_gui() {
+    let mut s = session(3);
+    let checks = AnyCommand {
+        name: "project.checks.set".into(),
+        params: serde_json::json!({"release_scheme": "full"}),
+    };
+    s.execute_with(&checks, Submit::from(Origin::Gui)).unwrap();
+    s.drain_changes();
+    let rev = s.world().rev;
+    for origin in [
+        Origin::CmdLog {
+            file: "setup.ewcmd".into(),
+        },
+        Origin::Script { name: "tidy".into() },
+    ] {
+        let err = s.undo(&origin).unwrap_err();
+        assert!(
+            matches!(&err, CmdError::Exposure { command, .. } if command == "project.checks.set"),
+            "{origin:?}: {err:?}"
+        );
+        assert_eq!(s.world().rev, rev);
+        assert!(s.drain_changes().is_empty());
+    }
+    s.undo(&Origin::Gui).unwrap();
+    let undone = s.world().rev;
+    let err = s.redo(&Origin::Script { name: "tidy".into() }).unwrap_err();
+    assert!(matches!(err, CmdError::Exposure { .. }), "{err:?}");
+    assert_eq!(s.world().rev, undone);
+    s.redo(&Origin::Gui).unwrap();
+    assert!(s.world().rev > undone);
 }
 
 #[test]

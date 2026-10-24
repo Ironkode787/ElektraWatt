@@ -10,7 +10,8 @@
 //!   as a new revision (the session does both; this type only keeps the entries and the cursor).
 //! - Coalescing: an undoable transaction whose `coalesce_key` equals that of the step directly below the
 //!   cursor merges into it (one drag, one field edit). The merged step keeps the first transaction's
-//!   context and label and the last one's command and origin. The ops are **compacted by key**: a step has
+//!   context and label, the last one's command and origin, and the strictest exposure class of all of them
+//!   ([`Exposure::strictest`]; FT-404). The ops are **compacted by key**: a step has
 //!   one op per key, in key order, with the `before` row of the first transaction that touched the key and
 //!   the `after` row of the last, so 2,000 moves of one representation are one op. The merge happens in
 //!   place (the transaction is cloned only when an entry shares it) and costs O(ops of the incoming
@@ -47,7 +48,7 @@ use ew_model::{Op, Rev};
 
 use crate::diff::ModelDiff;
 use crate::error::CmdError;
-use crate::meta::Origin;
+use crate::meta::{Exposure, Origin};
 use crate::registry::AnyCommand;
 use crate::rows::{after_bytes, before_bytes};
 use crate::transaction::{Transaction, TxContext};
@@ -107,6 +108,12 @@ impl HistoryEntry {
     /// The (last merged) command in its JSON form.
     pub fn command(&self) -> &AnyCommand {
         &self.tx.command
+    }
+
+    /// The strictest exposure class of the commands the step holds, recorded at commit (FT-404): `undo` and
+    /// `redo` refuse a `HumanOnly` step from an origin that [`Exposure::allows_history`] does not admit.
+    pub fn exposure(&self) -> Exposure {
+        self.tx.exposure
     }
 
     /// The editor state an undo or redo of this step restores.
@@ -264,6 +271,7 @@ impl History {
             let (before, after) = merge_ops(&mut merged.ops, tx.ops);
             merged.command = tx.command;
             merged.origin = tx.origin;
+            merged.exposure = merged.exposure.strictest(tx.exposure);
             top.before_bytes = top.before_bytes.saturating_add_signed(before);
             top.after_bytes = top.after_bytes.saturating_add_signed(after);
             // The step is applied: only its `before` rows count.

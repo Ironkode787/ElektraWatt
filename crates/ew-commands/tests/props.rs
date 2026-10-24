@@ -274,8 +274,12 @@ fn via_preview(e: &mut Engine, cmd: &dyn DynCommand) -> Result<Receipt, CmdError
 /// bulk commands are always previewed and committed. `CmdError::Internal` fails the case.
 fn run_step(e: &mut Engine, step: &Step, previews: bool) -> Result<Ran, TestCaseError> {
     match step {
-        Step::Undo => Ok(Ran::Undo(no_internal(e.undo().map(|_| ()))?)),
-        Step::Redo => Ok(Ran::Redo(no_internal(e.redo().map(|_| ()))?)),
+        Step::Undo => Ok(Ran::Undo(no_internal(
+            e.undo(&ew_commands::Origin::Gui).map(|_| ()),
+        )?)),
+        Step::Redo => Ok(Ran::Redo(no_internal(
+            e.redo(&ew_commands::Origin::Gui).map(|_| ()),
+        )?)),
         _ => {
             let Some(cmd) = build(e.model(), step) else {
                 return Ok(Ran::Skipped);
@@ -329,7 +333,7 @@ proptest! {
         let initial_lines = lines(&initial);
         let mut e = engine(initial.clone());
         run_all(&mut e, &sequence)?;
-        while e.undo().is_ok() {}
+        while e.undo(&ew_commands::Origin::Gui).is_ok() {}
         prop_assert_eq!(lines(e.model()), initial_lines);
         prop_assert!(e.model().content_eq(&initial));
         prop_assert!(!e.is_dirty());
@@ -373,9 +377,9 @@ proptest! {
                 continue;
             }
             let after = lines(e.model());
-            prop_assert!(e.undo().is_ok(), "undo of {:?}", step);
+            prop_assert!(e.undo(&ew_commands::Origin::Gui).is_ok(), "undo of {:?}", step);
             prop_assert_eq!(lines(e.model()), before, "undo of {:?}", step);
-            prop_assert!(e.redo().is_ok(), "redo of {:?}", step);
+            prop_assert!(e.redo(&ew_commands::Origin::Gui).is_ok(), "redo of {:?}", step);
             prop_assert_eq!(lines(e.model()), after, "redo of {:?}", step);
         }
     }

@@ -227,7 +227,7 @@ fn create_device_undo_restores_bytes() {
     cmd.main_fndef = Some(FNDEF_MCB);
     e.execute(&cmd).unwrap();
     assert_ne!(lines(e.model()), before);
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
 }
 
@@ -538,7 +538,7 @@ fn place_undo_restores_bytes() {
         to: EndpointParam::Junction { junction: J5 },
     }];
     e.execute(&cmd).unwrap();
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
 }
 
@@ -677,7 +677,7 @@ fn move_undo_restores_bytes() {
     let before = lines(e.model());
     e.execute(&mv(vec![REP_102F2], pt(G, G))).unwrap();
     assert_ne!(lines(e.model()), before);
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
 }
 
@@ -765,7 +765,7 @@ fn transform_undo_restores_bytes() {
     let before = lines(e.model());
     e.execute(&transform(vec![REP_102F2], 3, true)).unwrap();
     assert_ne!(lines(e.model()), before);
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
 }
 
@@ -850,7 +850,7 @@ fn add_terminals_undo_restores_bytes() {
         vec![terminal_spec("4", None), terminal_spec("5", None)],
     ))
     .unwrap();
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
 }
 
@@ -915,7 +915,7 @@ fn create_cable_undo_restores_bytes() {
     let mut e = engine(golden_model());
     let before = lines(e.model());
     e.execute(&cable_cmd(&["1", "2"])).unwrap();
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
 }
 
@@ -964,7 +964,7 @@ fn add_conductors_undo_restores_bytes() {
         conductors: vec![conductor_spec("C")],
     })
     .unwrap();
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
 }
 
@@ -1022,7 +1022,7 @@ fn set_anchor_policy_overrides_one_representation_and_undoes() {
     .unwrap();
     assert_eq!(anchor_of(&e, REP_102F2), Some(AnchorPolicy::Origin));
     assert_eq!(anchor_of(&e, REP_101F1), Some(AnchorPolicy::Origin));
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(anchor_of(&e, REP_102F2), Some(AnchorPolicy::GraphicCentre));
     assert_eq!(anchor_of(&e, REP_101F1), None);
 }

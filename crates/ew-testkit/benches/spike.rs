@@ -309,7 +309,8 @@ fn finish(mut last: Session, baseline: &Model, name: &str) -> StepMemory {
         "{name}: the benchmark changed the model"
     );
     let (bytes, entries) = (last.history().bytes(), last.history().entries().len());
-    last.undo().unwrap_or_else(|e| panic!("{name}: undo: {e}"));
+    last.undo(&ew_api::Origin::Gui)
+        .unwrap_or_else(|e| panic!("{name}: undo: {e}"));
     assert!(
         last.world().model.content_eq(baseline),
         "{name}: the model is not back at the generated state after the samples"
@@ -1336,7 +1337,7 @@ fn memo_family(cx: &mut Ctx, env: &MemoEnv<'_>, name: &str, edit: Edit, target: 
         // `finish` finds the one step it expects (it undoes the other one and checks the baseline).
         while session.history().cursor() > 1 {
             session
-                .undo()
+                .undo(&ew_api::Origin::Gui)
                 .unwrap_or_else(|e| panic!("{name}: undo of the timed edit: {e}"));
         }
         let step = finish(session, env.baseline, name);

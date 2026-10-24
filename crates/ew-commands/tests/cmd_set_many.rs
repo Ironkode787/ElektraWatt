@@ -69,7 +69,7 @@ fn one_value_per_target_in_one_transaction_and_one_undo_step() {
     assert_eq!(text(DEV_102F2), MlText::neutral("Reserve"));
     assert_eq!(text(DEV_102G1), MlText::neutral("Reserve"));
     assert_eq!(e.history().entries().len(), 1, "one undo step");
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before, "undo restores every record");
 }
 

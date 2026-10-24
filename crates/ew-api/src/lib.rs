@@ -54,7 +54,7 @@
 //! assert_eq!(receipt.rev, session.world().rev);
 //! assert_eq!(session.drain_changes().len(), 1);
 //!
-//! session.undo().unwrap();
+//! session.undo(&ew_api::Origin::Gui).unwrap();
 //! assert!(!session.is_dirty());
 //! ```
 
@@ -489,17 +489,31 @@ impl Session {
     }
 
     /// Undoes the last step as a new revision; returns the editor context to restore.
-    pub fn undo(&mut self) -> Result<Restored, CmdError> {
+    ///
+    /// `origin` is who asks: a step that holds a `HumanOnly` command (`project.checks.set`) is undone only from the GUI
+    /// and a confirmed CLI subcommand (ADR-0008 amendment 3's note, FT-404); a command log, script, MCP, plugin or
+    /// Python origin gets [`CmdError::Exposure`] and the session is unchanged.
+    ///
+    /// # Errors
+    ///
+    /// [`CmdError::History`] when there is nothing to undo, a checkpoint blocks it or the model changed under the
+    /// step; [`CmdError::Exposure`] when `origin` may not undo the step.
+    pub fn undo(&mut self, origin: &Origin) -> Result<Restored, CmdError> {
         let before = self.engine.model().clone();
-        let result = self.engine.undo();
+        let result = self.engine.undo(origin);
         self.committed(&before, "undo");
         result
     }
 
-    /// Redoes the next step as a new revision.
-    pub fn redo(&mut self) -> Result<Restored, CmdError> {
+    /// Redoes the next step as a new revision, with [`Session::undo`]'s origin rule.
+    ///
+    /// # Errors
+    ///
+    /// [`CmdError::History`] when there is nothing to redo or the model changed under the step;
+    /// [`CmdError::Exposure`] when `origin` may not redo the step.
+    pub fn redo(&mut self, origin: &Origin) -> Result<Restored, CmdError> {
         let before = self.engine.model().clone();
-        let result = self.engine.redo();
+        let result = self.engine.redo(origin);
         self.committed(&before, "redo");
         result
     }

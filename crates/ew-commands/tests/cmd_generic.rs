@@ -214,7 +214,7 @@ fn set_over_several_targets_is_one_undo_step() {
         assert_eq!(device(&e, d).function_text, MlText::neutral("Protection"));
     }
     assert_eq!(e.history().entries().len(), 1);
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
 }
 
@@ -337,7 +337,7 @@ fn delete_is_undone_to_the_exact_bytes() {
     e.execute(&delete(vec![target(KindName::Device, DEV_102F2.cast())]))
         .unwrap();
     assert_ne!(lines(e.model()), before);
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
 }
 
@@ -404,7 +404,7 @@ fn bulk_delete_runs_through_preview_and_commit() {
     e.commit(p).unwrap();
     assert!(!exists(&e, (Kind::Device, DEV_102F2.cast())));
     assert!(!exists(&e, (Kind::Representation, id::<()>(0x20_000))));
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
 }
 
@@ -642,7 +642,7 @@ fn renumber_include_frozen_unfreezes_and_numbers() {
     assert_eq!(counter(&e, DEV_102F2), Some(1));
     assert_eq!(counter(&e, DEV_102G1), Some(2));
     assert!(device(&e, DEV_102G1).tag.frozen.is_none());
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
 }
 
@@ -743,7 +743,7 @@ fn renumber_is_undone_to_the_exact_bytes() {
     let p = e.preview(&project_scope()).unwrap();
     e.commit(p).unwrap();
     assert_ne!(lines(e.model()), before);
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
 }
 

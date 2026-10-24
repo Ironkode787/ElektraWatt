@@ -282,7 +282,7 @@ fn a_replace_is_one_set_many_and_one_undo_step() {
         .len(),
         20
     );
-    s.undo().unwrap();
+    s.undo(&ew_api::Origin::Gui).unwrap();
     assert_eq!(s.find(&spare(&["204", "205", "206"])).hits.len(), 20);
 
     // FR4: `(Spare)` → `$1 (unused)`.

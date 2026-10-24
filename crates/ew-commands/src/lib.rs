@@ -52,7 +52,7 @@
 //! let page = engine.execute(&CreatePage::at(Some(section_id), 101)).unwrap();
 //! assert_eq!(page.rev.0, 2);
 //!
-//! engine.undo().unwrap(); // the page is gone, as revision 3
+//! engine.undo(&ew_commands::Origin::Gui).unwrap(); // the page is gone, as revision 3
 //! assert_eq!(engine.world().rev.0, 3);
 //! assert!(engine.history().can_redo());
 //! ```

@@ -656,7 +656,7 @@ fn the_dsl_is_deterministic_per_seed() {
 fn undoing_every_step_returns_to_the_empty_model() {
     let (mut d, _) = build(SEED);
     let mut steps = 0;
-    while d.e.undo().is_ok() {
+    while d.e.undo(&ew_commands::Origin::Gui).is_ok() {
         steps += 1;
     }
     assert!(steps > 20, "every command is one undo step, got {steps}");

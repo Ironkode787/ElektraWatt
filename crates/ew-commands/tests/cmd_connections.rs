@@ -189,7 +189,7 @@ fn draw_between_two_connections_makes_two_junctions() {
     assert_eq!(row(&e, jb).at, pt(3 * G, 5 * G));
     assert_eq!(row(&e, ja).sequence.len(), 3);
     assert_eq!(row(&e, jb).sequence.len(), 3);
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
 }
 
@@ -271,7 +271,7 @@ fn draw_undo_restores_bytes() {
     let before = lines(e.model());
     e.execute(&draw(on_w(2), cp_param(FN_T2, 1), None)).unwrap();
     assert_ne!(lines(e.model()), before);
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
 }
 
@@ -321,7 +321,7 @@ fn route_undo_restores_bytes() {
         route: vec![pt(0, 0), pt(G, 0)],
     })
     .unwrap();
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
 }
 
@@ -356,7 +356,7 @@ fn delete_of_a_third_member_dissolves_the_junction() {
     let bond: Bond = row(&e, BOND_PE);
     assert_eq!(bond.via, None);
     assert_eq!(bond.kind, BondKind::Pelv0vPe);
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
 }
 
@@ -373,7 +373,7 @@ fn delete_of_two_members_removes_the_junction_with_the_last() {
     assert!(!has(&e, CON_W22));
     assert!(!has(&e, CON_J5_IN), "the last member goes with its junction");
     assert_eq!(row(&e, BOND_PE).via, None);
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
 }
 
@@ -426,7 +426,7 @@ fn edit_junction_sets_wiring_style_and_sequence() {
     assert_eq!(j.style, bevel);
     assert_eq!(j.wiring, Some(JunctionWiring::Chain));
     assert_eq!(j.sequence, seq);
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
 }
 
@@ -558,7 +558,7 @@ fn place_ip_undo_restores_bytes() {
     let before = lines(e.model());
     e.execute(&place(PAGE_101, "L-2", IpDirection::Undirected))
         .unwrap();
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
 }
 
@@ -608,8 +608,8 @@ fn an_ip_pair_is_placed_and_continued() {
     original_rep.id = rep.id;
     assert_eq!(rep, original_rep);
     // Undo twice restores the golden bytes.
-    e.undo().unwrap();
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
 }
 
@@ -710,7 +710,7 @@ fn continue_ip_undo_restores_bytes() {
         pos: None,
     })
     .unwrap();
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
 }
 
@@ -783,6 +783,6 @@ fn define_potential_undo_restores_bytes() {
     let mut e = engine(golden_model());
     let before = lines(e.model());
     e.execute(&define(cp_param(FN_102G1, 4), "L1")).unwrap();
-    e.undo().unwrap();
+    e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
 }

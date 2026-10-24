@@ -108,9 +108,9 @@ fn company_set_creates_the_panel_builder_party_and_the_notice_and_undoes() {
         project.extra.get(COMPANY_MEMBER),
         Some(&json!({"notice": "Property of Example Panels."}))
     );
-    e.undo().unwrap();
+    e.undo(&Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
-    e.redo().unwrap();
+    e.redo(&Origin::Gui).unwrap();
     assert_eq!(e.model().project().parties.len(), 1);
 }
 
@@ -233,10 +233,10 @@ fn company_set_stores_the_logo_as_an_asset_and_undoes() {
         serde_json::to_value(logo).unwrap()
     );
     assert_eq!(&**e.model().asset(&logo.sha256).unwrap().bytes(), LOGO_SVG);
-    e.undo().unwrap();
+    e.undo(&Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
     assert!(e.model().asset(&logo.sha256).is_some(), "undo keeps the bytes");
-    e.redo().unwrap();
+    e.redo(&Origin::Gui).unwrap();
     assert_eq!(ew_schema::company_logo(&e.model().project().extra), Some(logo));
     // A raster logo says that it prints rasterised.
     let p = e
@@ -377,9 +377,9 @@ fn frames_set_stores_the_frame_defaults_in_page_type_order_and_undoes() {
     // No default and no entry removes the member.
     commit(&mut e, &any("project.frames.set", json!({})));
     assert_eq!(settings_member(&e, "frames"), None);
-    e.undo().unwrap();
-    e.undo().unwrap();
-    e.undo().unwrap();
+    e.undo(&Origin::Gui).unwrap();
+    e.undo(&Origin::Gui).unwrap();
+    e.undo(&Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
 }
 
@@ -523,8 +523,8 @@ fn languages_set_writes_the_languages_and_the_formats_as_one_value() {
         Some(ew_schema::DateFormat::DdMmYyyy)
     );
     assert_eq!(project.settings.formatting.decimal_separator, None);
-    e.undo().unwrap();
-    e.undo().unwrap();
+    e.undo(&Origin::Gui).unwrap();
+    e.undo(&Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
 }
 
@@ -587,8 +587,8 @@ fn checks_set_names_the_schemes_and_keeps_the_rest_of_the_member() {
         settings_member(&e, "checks"),
         Some(json!({"release_scheme": "pre-delivery", "strictness": "strict"}))
     );
-    e.undo().unwrap();
-    e.undo().unwrap();
+    e.undo(&Origin::Gui).unwrap();
+    e.undo(&Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
     // Without anything else in the member, removing both schemes removes the member.
     let mut e = engine(golden_model());
@@ -632,6 +632,100 @@ fn checks_set_takes_shipped_schemes_only_and_only_from_a_human() {
     assert_eq!(settings_member(&e, "checks"), None);
 }
 
+/// FT-404 (ADR-0008 amendment 3's note): a `project.checks.set` step records `HumanOnly`, and undo and redo refuse it
+/// from every origin but the GUI and a confirmed CLI subcommand, with the session unchanged.
+#[test]
+fn checks_set_is_undone_and_redone_only_by_a_human() {
+    let mut e = engine(golden_model());
+    e.execute(&any("project.checks.set", json!({"release_scheme": "full"})))
+        .unwrap();
+    let step = e.history().entries().last().unwrap();
+    assert_eq!(step.exposure(), Exposure::HumanOnly);
+    let refused = |e: &mut Engine, undo: bool, origin: Origin| {
+        let (rev, cursor) = (e.model().rev(), e.history().cursor());
+        let err = if undo { e.undo(&origin) } else { e.redo(&origin) }.unwrap_err();
+        assert_eq!(
+            err,
+            CmdError::Exposure {
+                command: "project.checks.set".into(),
+                exposure: Exposure::HumanOnly,
+                origin: origin.clone(),
+            },
+            "{origin:?}"
+        );
+        assert_eq!(
+            (e.model().rev(), e.history().cursor()),
+            (rev, cursor),
+            "{origin:?}"
+        );
+    };
+    let scripted = [
+        Origin::CmdLog {
+            file: "wizard.ewcmd".into(),
+        },
+        Origin::Script {
+            name: "renumber".into(),
+        },
+        Origin::Mcp {
+            client: "agent".into(),
+        },
+        Origin::Plugin { id: "acme".into() },
+        Origin::Python {
+            script: "fix.py".into(),
+        },
+        Origin::Cli {
+            subcommand: "apply".into(),
+            confirmed: false,
+        },
+    ];
+    for origin in scripted.clone() {
+        refused(&mut e, true, origin);
+    }
+    assert_eq!(
+        settings_member(&e, "checks"),
+        Some(json!({"release_scheme": "full"}))
+    );
+    // The GUI undoes it; scripted origins may not redo it; a confirmed CLI subcommand redoes it.
+    e.undo(&Origin::Gui).unwrap();
+    assert_eq!(settings_member(&e, "checks"), None);
+    for origin in scripted {
+        refused(&mut e, false, origin);
+    }
+    let confirmed = Origin::Cli {
+        subcommand: "project checks".into(),
+        confirmed: true,
+    };
+    e.redo(&confirmed).unwrap();
+    assert_eq!(
+        settings_member(&e, "checks"),
+        Some(json!({"release_scheme": "full"}))
+    );
+    e.undo(&confirmed).unwrap();
+    e.redo(&Origin::Gui).unwrap();
+    assert_eq!(
+        settings_member(&e, "checks"),
+        Some(json!({"release_scheme": "full"}))
+    );
+}
+
+/// FT-404: an `Edit` step is undone and redone from a scripted origin as before.
+#[test]
+fn an_edit_step_is_undone_from_a_script() {
+    let mut e = engine(golden_model());
+    commit(
+        &mut e,
+        &any("project.company.set", json!({"name": "Example Panels"})),
+    );
+    assert_eq!(e.history().entries().last().unwrap().exposure(), Exposure::Edit);
+    let script = Origin::Script { name: "batch".into() };
+    e.undo(&script).unwrap();
+    e.redo(&script).unwrap();
+    e.undo(&Origin::CmdLog {
+        file: "a.ewcmd".into(),
+    })
+    .unwrap();
+}
+
 /// FT-380: `project.assets.purge` is a Bulk `HumanOnly` command with a destructive confirmation and no undo; in the engine
 /// (which owns no project directory) it commits a transparent marker line: no revision, no change of the model, and
 /// an undo passes over it to the step below.
@@ -664,7 +758,7 @@ fn assets_purge_is_a_transparent_non_undoable_marker() {
     assert_eq!(top.label(), "project.assets.purge");
     assert!(!top.is_step() && !top.is_barrier(), "a transparent marker");
     // Undo passes over the marker and reverts the company name.
-    e.undo().unwrap();
+    e.undo(&Origin::Gui).unwrap();
     assert!(
         !e.model()
             .project()
@@ -717,7 +811,7 @@ fn the_history_names_the_assets_of_its_entries() {
         .sha256;
     let named = e.history().asset_mentions().unwrap();
     assert!(named.contains(&first) && named.contains(&second), "{named:?}");
-    e.undo().unwrap();
+    e.undo(&Origin::Gui).unwrap();
     let named = e.history().asset_mentions().unwrap();
     assert!(named.contains(&second), "the redo branch is named too");
 }

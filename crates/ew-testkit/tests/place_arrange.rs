@@ -340,7 +340,7 @@ fn rep_move_by_steps_lands_on_the_grid_where_one_nm_delta_cannot() {
     // One undo takes back one move.
     let before_last = lines(&s);
     must(&mut s, "rep.move", json!({"reps": reps, "steps": [1, 1]}));
-    s.undo().expect("undo");
+    s.undo(&ew_api::Origin::Gui).expect("undo");
     assert_eq!(lines(&s), before_last);
 }
 
@@ -534,7 +534,7 @@ fn exchange_symbol_on_e56_keeps_its_connections_and_follows_the_new_cps() {
         "both routes end at the new CP positions"
     );
     // One undo takes the exchange back.
-    s.undo().expect("undo");
+    s.undo(&ew_api::Origin::Gui).expect("undo");
     assert_eq!(lines(&s), unchanged);
 }
 

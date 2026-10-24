@@ -178,7 +178,8 @@ fn finish(mut last: Session, baseline: &Model, name: &'static str) -> StepMemory
         "{name}: the benchmark changed the model"
     );
     let (bytes, entries) = (last.history().bytes(), last.history().entries().len());
-    last.undo().unwrap_or_else(|e| panic!("{name}: undo: {e}"));
+    last.undo(&ew_api::Origin::Gui)
+        .unwrap_or_else(|e| panic!("{name}: undo: {e}"));
     assert_back(&last, baseline, name);
     (name, bytes, entries)
 }

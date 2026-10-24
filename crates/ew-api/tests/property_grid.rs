@@ -551,7 +551,7 @@ fn pg2_the_project_has_its_settings_rows_and_d06_shows_its_finding() {
         "{:?}",
         sheet.header.findings
     );
-    s.undo().unwrap();
+    s.undo(&ew_api::Origin::Gui).unwrap();
     let sheet = s.property_sheet(&[p101]);
     assert!(sheet.header.findings.iter().all(|f| f.rule != "EW-CORE-023"));
 }

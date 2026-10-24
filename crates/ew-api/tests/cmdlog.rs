@@ -112,9 +112,9 @@ fn every_line_is_one_transaction_with_the_command_log_origin() {
     for entry in s.history().entries() {
         assert_eq!(entry.origin().label(), "cmdlog:variants/x.ewcmd");
     }
-    s.undo().unwrap();
-    s.undo().unwrap();
-    s.undo().unwrap();
+    s.undo(&ew_api::Origin::Gui).unwrap();
+    s.undo(&ew_api::Origin::Gui).unwrap();
+    s.undo(&ew_api::Origin::Gui).unwrap();
     assert_eq!(s.world().rev.0, 6, "one undo per line, each a new revision");
 }
 

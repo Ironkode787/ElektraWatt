@@ -505,12 +505,12 @@ fn run_states(session: &mut Session, mut visit: impl FnMut(&Session, &str, &Mode
     );
     for n in 12..=14 {
         step(session, &format!("{n} undo"), &|s| {
-            s.undo().expect("undo");
+            s.undo(&ew_api::Origin::Gui).expect("undo");
             "undo".into()
         });
     }
     step(session, "15 redo", &|s| {
-        s.redo().expect("redo");
+        s.redo(&ew_api::Origin::Gui).expect("redo");
         "redo".into()
     });
 

@@ -480,7 +480,11 @@ fn apply(session: &mut Session, c: &CmdStep, stats: &mut FuzzStats) -> Result<Ap
 
 /// Runs one step other than a command; Ok(true) when the model changed.
 fn run_history(session: &mut Session, undo: bool, stats: &mut FuzzStats) -> bool {
-    let result = if undo { session.undo() } else { session.redo() };
+    let result = if undo {
+        session.undo(&ew_api::Origin::Gui)
+    } else {
+        session.redo(&ew_api::Origin::Gui)
+    };
     match result {
         Ok(_) => {
             if undo {
@@ -726,7 +730,7 @@ fn run_fuzz_rng(seed: u64, mut rng: SplitMix64, steps: usize, cadence: &Cadence)
     }
 
     // (e) undo until it refuses: the initial model comes back.
-    while session.undo().is_ok() {
+    while session.undo(&ew_api::Origin::Gui).is_ok() {
         stats.closing_undos += 1;
         log.push(Step::Undo.line());
         if stats.closing_undos > 100_000 {
@@ -923,7 +927,9 @@ fn every_arm_commits_and_refuses_what_it_should() {
                 committed += 1;
             } else if applied.changed {
                 committed += 1;
-                session.undo().expect("a committed step undoes");
+                session
+                    .undo(&ew_api::Origin::Gui)
+                    .expect("a committed step undoes");
                 assert!(
                     session.world().model.content_eq(&initial),
                     "arm `{}`: undo did not restore the golden project\nstep: {line}",
@@ -998,7 +1004,9 @@ fn the_placement_and_arrangement_steps_commit_and_refuse_on_golden_a() {
             });
             if applied.changed {
                 *committed.entry(kind).or_default() += 1;
-                session.undo().expect("a committed step undoes");
+                session
+                    .undo(&ew_api::Origin::Gui)
+                    .expect("a committed step undoes");
                 assert!(
                     session.world().model.content_eq(&initial),
                     "undo restores Golden A: {kind}"
@@ -1082,13 +1090,15 @@ step: {line}"
             committed += 1;
             // Every other commit stays, so that the state moves on (the open revision is deleted and created).
             if attempt % 2 == 0 {
-                session.undo().expect("a committed step undoes");
+                session
+                    .undo(&ew_api::Origin::Gui)
+                    .expect("a committed step undoes");
             }
         } else if c.verdict == Verdict::Refuse {
             refused += 1;
         }
     }
-    while session.undo().is_ok() {}
+    while session.undo(&ew_api::Origin::Gui).is_ok() {}
     assert!(
         session.world().model.content_eq(&initial),
         "undo-all restores Golden A"
@@ -1146,7 +1156,7 @@ fn save_and_reload_of_golden_a_round_trips() {
     // The title block is compared too (it derives the revision label, which the revision commands change).
     disk.round_trip(&mut session, roundtrip::Depth::TitleBlock)
         .unwrap_or_else(|e| panic!("after {committed} commands: {e}"));
-    while session.undo().is_ok() {}
+    while session.undo(&ew_api::Origin::Gui).is_ok() {}
     disk.closing(&mut session, &initial)
         .unwrap_or_else(|e| panic!("after undo-all: {e}"));
 }
@@ -1193,9 +1203,11 @@ fn embed_then_undo_of_a_named_fndef_restores_golden_a() {
     disk.round_trip(&mut session, roundtrip::Depth::Sample)
         .unwrap_or_else(|e| panic!("with the shape: {e}"));
     session
-        .undo()
+        .undo(&ew_api::Origin::Gui)
         .expect("FT-316: the undo of the function definition's embedding");
-    session.undo().expect("the undo of the symbol's embedding");
+    session
+        .undo(&ew_api::Origin::Gui)
+        .expect("the undo of the symbol's embedding");
     let model = session.world().model;
     assert!(model.content_eq(&initial), "undo-all restores Golden A");
     model

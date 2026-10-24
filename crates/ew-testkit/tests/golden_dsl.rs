@@ -242,7 +242,7 @@ fn the_command_log_replays_and_every_step_undoes() {
         .unwrap_or_else(|e| panic!("create: {e:?}"));
     let mut steps = 0;
     let mut last = None;
-    while let Ok(restored) = session.undo() {
+    while let Ok(restored) = session.undo(&ew_api::Origin::Gui) {
         steps += 1;
         last = Some(restored.label);
     }
@@ -258,7 +258,9 @@ fn the_command_log_replays_and_every_step_undoes() {
         Some("library.embed"),
         "the first command is undone last"
     );
-    let refused = session.undo().expect_err("the history is empty");
+    let refused = session
+        .undo(&ew_api::Origin::Gui)
+        .expect_err("the history is empty");
     assert!(
         matches!(refused, ew_api::CmdError::History { .. }),
         "undo stops only because nothing is left: {refused:?}"

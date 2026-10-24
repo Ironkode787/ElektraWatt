@@ -101,9 +101,9 @@ fn coalesced_moves_compact_to_one_op_per_key() {
     assert_eq!(op_keys.into_iter().collect::<BTreeSet<_>>(), keys);
     assert_eq!(lines(e.model()), lines(plain.model()));
 
-    e.undo().expect("one undo");
+    e.undo(&Origin::Gui).expect("one undo");
     assert_eq!(lines(e.model()), original);
-    e.redo().expect("redo");
+    e.redo(&Origin::Gui).expect("redo");
     assert_eq!(lines(e.model()), lines(plain.model()));
 }
 
@@ -145,7 +145,8 @@ fn the_budget_holds_after_many_steps() {
     e.execute(&set_text(&[DEV_102F2], &text(1_000, 1))).unwrap();
     assert_eq!(e.history().entries().len(), 1);
     assert!(e.history().bytes() > 100);
-    e.undo().expect("the single oversized step is undoable");
+    e.undo(&Origin::Gui)
+        .expect("the single oversized step is undoable");
 }
 
 #[test]
@@ -201,13 +202,13 @@ fn undo_counts_the_after_rows_of_the_redo_branch() {
         "an applied step counts its before rows only"
     );
 
-    e.undo().expect("undo");
+    e.undo(&Origin::Gui).expect("undo");
     assert_eq!(e.history().bytes(), applied + after);
-    e.redo().expect("redo");
+    e.redo(&Origin::Gui).expect("redo");
     assert_eq!(e.history().bytes(), applied);
 
     // Dropping the redo branch gives its bytes back.
-    e.undo().expect("undo");
+    e.undo(&Origin::Gui).expect("undo");
     e.execute(&set_text(&[DEV_102F2], "short")).expect("fields.set");
     let h = e.history();
     assert_eq!(h.entries().len(), 1);
