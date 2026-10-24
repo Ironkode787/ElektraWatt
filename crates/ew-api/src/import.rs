@@ -203,6 +203,8 @@ pub fn lenient_findings(session: &Session) -> Vec<migration::LiveGroup> {
 // -------------------------------------------------------------------------------------------------------------------
 // Parts tables (FT-410)
 
+/// The `(created, skipped)` counts of a `parts.import` outcome note.
+pub use ew_commands::commands::import_counts as parts_import_counts;
 pub use ew_import_tables::SiblingTables;
 
 /// The command a parts table import dispatches.
