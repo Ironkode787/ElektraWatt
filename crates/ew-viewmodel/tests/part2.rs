@@ -1660,6 +1660,16 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
     done(&mut shell, "page.goto", json!({}));
     texts.push(shell.describe());
     done(&mut shell, "ui.dismiss", json!({}));
+    // FT-408 and FT-409: the creation dialogs, the first with a refusal under its fields.
+    done(&mut shell, "page.new", json!({}));
+    texts.push(shell.describe());
+    assert!(matches!(shell.submit_form(), Outcome::Failed { .. }));
+    texts.push(shell.describe());
+    for action in ["structure.new", "external_ref.new"] {
+        done(&mut shell, action, json!({}));
+        texts.push(shell.describe());
+    }
+    done(&mut shell, "ui.dismiss", json!({}));
     done(&mut shell, "file.close", json!({}));
     texts.push(shell.describe());
     // A refused open leaves a banner on the start page.

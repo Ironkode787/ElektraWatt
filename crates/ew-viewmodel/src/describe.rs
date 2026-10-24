@@ -1313,6 +1313,23 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
             lines.push(format!("  button \"{}\"", strings::text("dialog-save-workspace")));
             lines.push(format!("  button \"{}\"", strings::text("dialog-cancel")));
         }
+        // FT-408 and FT-409: a creation dialog, one `field` line per field in order; the refusal of the last attempt
+        // follows the fields as an `error:` line.
+        Some(Dialog::Form(form)) => {
+            lines.push(format!("dialog \"{}\"", strings::text(form.title_key)));
+            for f in &form.fields {
+                lines.push(format!(
+                    "  field \"{}\": \"{}\"",
+                    strings::text(f.label_key),
+                    f.value
+                ));
+            }
+            if let Some(e) = &form.error {
+                lines.push(format!("  error: {e}"));
+            }
+            lines.push(format!("  button \"{}\"", strings::text("dialog-create")));
+            lines.push(format!("  button \"{}\"", strings::text("dialog-cancel")));
+        }
     }
 }
 

@@ -263,6 +263,8 @@ pub const ALIAS_PARAMS: &[(&str, &str, ParamForm)] = &[
     ("pages.open", "key", ParamForm::Embedded),
     ("props.input", "text", ParamForm::IdRef),
     ("props.set", "value", ParamForm::IdRef),
+    ("structure.new", "parent", ParamForm::Whole),
+    ("external_ref.new", "location", ParamForm::Whole),
     ("command.run", "params", ParamForm::CommandRefs),
 ];
 

@@ -156,7 +156,7 @@ pub fn context_topic(model: &ShellModel) -> &'static str {
         Some(Dialog::ConfirmJournalDiscard) => return "recovery",
         Some(Dialog::ConfirmCheckScheme { .. }) => return "company-standard-wizard",
         Some(Dialog::SaveWorkspace { .. }) => return "workspaces",
-        Some(Dialog::GotoPage { .. }) | None => {}
+        Some(Dialog::GotoPage { .. } | Dialog::Form(_)) | None => {}
     }
     if model.has_project() {
         "project-view"

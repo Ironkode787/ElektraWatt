@@ -32,6 +32,8 @@ use crate::strings;
 use crate::wizard::Wizard;
 
 mod canvas_actions;
+// FT-408 and FT-409
+mod creation;
 mod editing;
 // WP-S2.05 part 2
 mod find;
@@ -44,6 +46,7 @@ mod tools;
 mod wiring;
 mod workspaces;
 
+pub use creation::{FormDialog, FormField, PAGE_TYPES, STRUCTURE_KINDS};
 pub use navigation::{Focus, RECENT_PAGES, SessionCalls};
 pub use tools::SnapIndicator;
 
@@ -209,6 +212,9 @@ pub enum Dialog {
         /// The text of the field.
         text: String,
     },
+    /// Page ▸ New page, Insert ▸ Structure node, Insert ▸ External reference (FT-408, FT-409): the fields of the
+    /// action, which Enter dispatches.
+    Form(FormDialog),
 }
 
 /// What the file dialog of the window must ask for.
@@ -1282,6 +1288,10 @@ impl ShellModel {
             "ui.describe" => Outcome::Done,
             // WP-S6.13 part 1
             "page.describe" => self.act_page_describe(p),
+            // FT-408 and FT-409
+            "page.new" => self.act_page_new(p),
+            "structure.new" => self.act_structure_new(p),
+            "external_ref.new" => self.act_external_ref_new(p),
             "view.ui_scale" => self.act_ui_scale(p),
             "tools.palette" => self.act_palette(p),
             "help.shortcuts" => self.open_dialog(Dialog::Shortcuts),

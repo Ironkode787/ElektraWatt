@@ -908,6 +908,22 @@ impl ShellModel {
         Outcome::Done
     }
 
+    /// Shows the page whose ID text is `id` in the focused group's active tab, as a jump from where it stands: the page
+    /// a creation action just made (FT-408). Nothing happens when no page has the ID.
+    pub(super) fn show_page_by_id(&mut self, id: &str) {
+        let Some(page) = self
+            .page_rows()
+            .iter()
+            .find(|r| r.id.to_string() == id)
+            .map(PageId::of)
+        else {
+            return;
+        };
+        if let Some(g) = self.area.as_ref().map(|a| a.focused) {
+            self.jump(g, page, None, CursorAt::None);
+        }
+    }
+
     pub(super) fn act_page_goto(&mut self, p: &Map<String, Value>) -> Outcome {
         let folio = match string_param(p, "folio") {
             Err(e) => return e,

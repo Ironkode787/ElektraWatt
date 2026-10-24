@@ -774,6 +774,19 @@ pub static ACTIONS: &[ActionMeta] = &[
         find_writable,
         slot(Menu::Edit),
     )),
+    // FT-408: Page, New page.
+    with_params(
+        "folio:text, type?:enum(title_page|table_of_contents|section_divider|graphic|single_line|multi_line|overview|bus_topology|fluid|assembly_overview|panel_layout|model_view|external_document), title?:text, section?:text",
+        act(
+            "page.new",
+            Command,
+            "action-page-new",
+            Menu::Page,
+            &[],
+            writable,
+            slot(Menu::Page),
+        ),
+    ),
     act(
         "page.next",
         View,
@@ -781,7 +794,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         Menu::Page,
         &["Page Down"],
         has_next,
-        slot(Menu::Page),
+        slot_sep(Menu::Page),
     ),
     act(
         "page.previous",
@@ -1208,6 +1221,31 @@ pub static ACTIONS: &[ActionMeta] = &[
             &[],
             editable_page,
             slot_sep(Menu::Insert),
+        ),
+    ),
+    // FT-409: the structure node and the external reference, one previewed command each.
+    with_params(
+        "kind:enum(functional_assignment|function|installation_site|location|document_kind|user_defined|type), designation:text, parent?:text",
+        act(
+            "structure.new",
+            Command,
+            "action-structure-new",
+            Menu::Insert,
+            &[],
+            writable,
+            slot_sep(Menu::Insert),
+        ),
+    ),
+    with_params(
+        "location:text, device:text, connection?:text, project?:text",
+        act(
+            "external_ref.new",
+            Command,
+            "action-external-ref-new",
+            Menu::Insert,
+            &[],
+            writable,
+            slot(Menu::Insert),
         ),
     ),
     with_params(

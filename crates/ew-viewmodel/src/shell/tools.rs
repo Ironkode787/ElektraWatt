@@ -375,7 +375,7 @@ impl ShellModel {
     }
 
     /// The submission of the shell's tool commands: the GUI in the window, the script's command log headless.
-    fn tool_submit(&self) -> Submit {
+    pub(super) fn tool_submit(&self) -> Submit {
         match self.mode {
             Mode::Gui => Submit::from(Origin::Gui),
             Mode::Headless => Submit::from(Origin::CmdLog {
