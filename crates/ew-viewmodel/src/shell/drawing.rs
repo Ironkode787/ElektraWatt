@@ -122,6 +122,11 @@ impl ShellModel {
 
     /// `text.edit` (F2): text edit on exactly one selected unbound free text.
     pub(super) fn act_text_edit(&mut self) -> Outcome {
+        // The same guard as `text.edit`'s enabled predicate (`one_free_text`): the double-click path reaches here
+        // without it, and a read-only project or a page without symbols has no text to edit.
+        if let Err(reason_key) = crate::actions::editable_page(self) {
+            return Outcome::Refused { reason_key };
+        }
         match self.text_edit_target() {
             Ok((item, at, text)) => {
                 self.activate_tool(Box::new(TextEditTool::new(item, at, text)));

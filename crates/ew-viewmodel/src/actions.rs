@@ -331,7 +331,7 @@ fn can_go_forward(m: &ShellModel) -> Result<(), &'static str> {
 }
 
 /// A drawn page of a project that can be changed is on show (the editing tools of WP-S2.04 §7.6).
-fn editable_page(m: &ShellModel) -> Result<(), &'static str> {
+pub(crate) fn editable_page(m: &ShellModel) -> Result<(), &'static str> {
     has_pages(m)?;
     writable(m)?;
     // The page types without wire or symbol tools (doc 06 §2.2: title page, panel layout, model view, external
@@ -3093,11 +3093,7 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
                     let mut item = item_of(meta, model);
                     item.label = strings::text(&format!("graphic-{}", shape.word())).to_owned();
                     item.params = json!({ "shape": shape.word() });
-                    item.shortcut = if *shape == GraphicShape::Line {
-                        shortcut_text(meta)
-                    } else {
-                        String::new()
-                    };
+                    item.shortcut = String::new();
                     item.checked = active == Some(shape.word());
                     item
                 })

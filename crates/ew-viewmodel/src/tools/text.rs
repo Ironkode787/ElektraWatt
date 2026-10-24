@@ -200,7 +200,11 @@ impl Tool for TextTool {
                 let _ = self.moved(*at, mods.alt, cx);
                 self.click(cx)
             }
-            CanvasEvent::Activate => self.click(cx),
+            CanvasEvent::Activate => match &self.state {
+                // Enter in the typing state is `tool.finish`: a non-blank text commits, a blank one does nothing.
+                State::Typing { .. } => self.finish(cx),
+                State::Armed { .. } => self.click(cx),
+            },
             CanvasEvent::Text(text) => {
                 if let State::Typing { text: t, .. } = &mut self.state {
                     *t = text.clone();

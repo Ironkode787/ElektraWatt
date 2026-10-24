@@ -13,8 +13,8 @@ use common::{Tmp, at, done, refused, state};
 use ew_viewmodel::ew_api::output::ew_dl::EntityRef;
 use ew_viewmodel::ew_api::output::{PageTables, TableItem};
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
+use ew_viewmodel::tools::BINDABLE;
 use ew_viewmodel::tools::graphic::round_distance;
-use ew_viewmodel::tools::{BINDABLE, FineKind};
 use serde_json::{Value, json};
 
 /// A headless shell with a writable copy of Golden A on `folio`, at actual size.
@@ -142,6 +142,22 @@ fn structural_tokens(line: &str) -> Vec<String> {
         .collect()
 }
 
+/// `num / den` rounded to the nearest integer, halves away from zero (`den > 0`).
+fn div_round(num: i128, den: i128) -> i128 {
+    let q = num / den;
+    let r = num % den;
+    if 2 * r.abs() >= den { q + num.signum() } else { q }
+}
+
+/// The fine grid's point nearest to `p` on a QET page: `793_750/3` nm per axis, halves away from zero.
+fn fine_snap(p: (i64, i64)) -> (i64, i64) {
+    let coord = |v: i64| {
+        let k = div_round(i128::from(v) * 3, 793_750);
+        i64::try_from(div_round(k * 793_750, 3)).expect("the page coordinate is in range")
+    };
+    (coord(p.0), coord(p.1))
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // PI7: the Text tool, its binding and text edit
 
@@ -155,15 +171,11 @@ fn the_text_tool_places_a_free_text_on_the_fine_grid() {
     // A page point off the 1-px fine grid (793_750/3 nm on this QET page).
     let base = grid_point(&s, (40, 30));
     let raw = (base.0 + 222_222, base.1 + 111_111);
-    let snapped = s
-        .canvas()
-        .unwrap()
-        .page()
-        .snapper
-        .snap_fine(sheet(&s, raw), FineKind::Text, false)
-        .1;
-    assert_ne!(snapped, raw, "the raw point is not on the fine grid");
     let point = sheet(&s, raw);
+    // The tool snaps the exact page point of the pointer, computed here without `Snapper::snap_fine`.
+    let page_raw = s.canvas().unwrap().page().snapper.sheet_to_page(point);
+    let snapped = fine_snap(page_raw);
+    assert_ne!(snapped, raw, "the raw point is not on the fine grid");
     done(&mut s, "canvas.press", at(point, json!({})));
     assert_eq!(s.tool().state(), "typing");
     let ghost = canvas(&s)["ghost"].clone();
@@ -187,6 +199,27 @@ fn the_text_tool_places_a_free_text_on_the_fine_grid() {
     );
     let item = free_text(&s, "40x60");
     assert_eq!(item.bind, None);
+    // A second text, committed with Enter (`canvas.activate`) instead of `tool.finish`.
+    let raw2 = (base.0 + 500_000, base.1 + 400_000);
+    let point2 = sheet(&s, raw2);
+    let page_raw2 = s.canvas().unwrap().page().snapper.sheet_to_page(point2);
+    let snapped2 = fine_snap(page_raw2);
+    assert_ne!(snapped2, raw2, "the second raw point is off the fine grid");
+    done(&mut s, "canvas.press", at(point2, json!({})));
+    assert_eq!(s.tool().state(), "typing");
+    done(&mut s, "text.input", json!({"text": "60x80"}));
+    done(&mut s, "cursor.set", at(point2, json!({})));
+    let rev = s.revision();
+    done(&mut s, "canvas.activate", json!({}));
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "Enter commits the text");
+    assert_eq!(s.tool().state(), "armed");
+    let last = s.recorded_commands().last().expect("the commit");
+    assert_eq!(last.cmd, "item.place");
+    assert_eq!(
+        last.params,
+        json!({"page": page, "kind": {"free_text": {"text": "60x80", "at": [snapped2.0, snapped2.1]}}})
+    );
+    assert_eq!(free_text(&s, "60x80").bind, None);
     done(&mut s, "ui.dismiss", json!({}));
     assert_eq!(s.tool().name(), "select");
 }
@@ -596,16 +629,28 @@ fn the_part_4b_ghost_lines_use_only_vocabulary_words() {
     let p = grid_point(&s, (40, 30));
     click_at(&mut s, p);
     done(&mut s, "text.input", json!({"text": "40x60"}));
+    let line = describe_line(&s, "canvas ghost item text ").expect("the typing text's ghost line");
+    assert!(line.contains("text \"40x60\""), "{line}");
     scan(&s, &mut seen);
     // A bound Text tool.
     done(&mut s, "tool.text", json!({}));
     done(&mut s, "text.bind", json!({"bind": "page.title"}));
+    let line = describe_line(&s, "canvas ghost item text ").expect("the bound text's ghost line");
+    assert!(line.contains("text \"{page.title}\""), "{line}");
     scan(&s, &mut seen);
     // A drawing arc.
     done(&mut s, "tool.graphic", json!({"shape": "arc"}));
     let p = grid_point(&s, (60, 30));
     click_at(&mut s, p);
+    let line = describe_line(&s, "canvas ghost item graphic arc points 1").expect("the arc's ghost line");
+    assert!(!line.ends_with(" anticlockwise"), "{line}");
     scan(&s, &mut seen);
+    done(&mut s, "tool.ip_direction", json!({}));
+    let line = describe_line(&s, "canvas ghost item graphic arc points 1").expect("the arc's ghost line");
+    assert!(line.ends_with(" anticlockwise"), "{line}");
+    scan(&s, &mut seen);
+    assert!(seen.contains("graphic"), "{seen:?}");
+    assert!(seen.contains("anticlockwise"), "{seen:?}");
     let words = ew_viewmodel::describe::ITEM_WORDS;
     assert_eq!(words.len(), 14);
     for w in words {
