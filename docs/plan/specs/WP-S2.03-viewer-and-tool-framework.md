@@ -610,7 +610,7 @@ result as a `Marker` in its overlay; the transcript's `snap` member reports the 
 | pressed | release within 3 points | idle | `Select`: replace with the entity; Shift adds; Ctrl toggles |
 | pressed | move beyond 3 points | rubber-band | `Transient` |
 | rubber-band | move | rubber-band | `Transient`: solid while the drag goes right (encloses), dashed while it goes left (touches) |
-| rubber-band | release | idle | `Select`: left to right the entities whose rectangle lies inside the band, right to left those that intersect it; Shift adds |
+| rubber-band | release | idle | `Select`: left to right the entities whose rectangle lies inside the band, right to left those that intersect it, in reading order of each entity's centre (y, then x; ties by ID; FT-439, not paint order); Shift adds |
 | any | `Activate` | as a press and release at the grid cursor | — |
 | any | `Escape` | idle | `Cancel`, or `None` from idle |
 

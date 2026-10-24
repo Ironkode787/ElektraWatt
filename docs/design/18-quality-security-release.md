@@ -785,8 +785,11 @@ below).
   printer gives a link field; free text that merely contains `@3` stays text. An alias the table does not hold fails
   the step with "No record has the alias `@9` in this session." Because minted IDs no longer reach the output, a script
   that selects a record it created by a label or by a single alias gives byte-identical transcripts on two runs (the
-  folio-101 wiring test proves it); output still ordered by UUID (sorted ID lists, a property sheet's targets) can
-  order two minted records differently between runs, a follow-up of the design pass.
+  folio-101 wiring test proves it). **Ordering rule (FT-439, decision log ID-640):** wherever shell output lists
+  records it orders them by what a person sees and a replay reproduces (the printed label, else the place: page, then
+  y, then x, else first appearance), the ID only as the last key, so an alias names the same record in every replay;
+  `ew-viewmodel`'s test `replay_order` runs one creating script under ascending and descending new IDs and compares
+  both.
 - **Specified (cycle 25, WP-S6.13; decision log ID-610 to ID-619, the fix round ID-621 to ID-624).** The
   [closed specification](../plan/specs/WP-S6.13-blind-drafter-harness.md) turns this section into a harness in three
   parts. `cargo xtask blind` lives in `xtask` and drives the built binaries as processes (no new edge); a run folder
