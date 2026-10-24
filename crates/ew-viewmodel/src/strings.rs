@@ -886,7 +886,10 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "error-page-type" => "\"{0}\" is not a page type; use one of: {1}.",
         "error-structure-kind" => "\"{0}\" is not a structure kind; use one of: {1}.",
         "error-no-node" => "The project has no {0} node \"{1}\".",
-        "error-ambiguous-node" => "{0} nodes share the designation \"{1}\"; give the node's alias instead.",
+        "error-ambiguous-node" => "{0} nodes share the designation \"{1}\": {2}. Give the alias of one of them instead.",
+        "node-candidate-under" => "{0} (under {1})",
+        "node-candidate-top" => "{0} (top level)",
+        "error-wrong-sign" => "\"{0}\" starts with {1}, the sign of the {2} aspect, but this node is in the {3} aspect.",
         _ => return None,
     })
 }

@@ -172,11 +172,13 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                         let label = ui.label(label_text);
                         if f.choices.is_empty() {
                             let mut text = f.value.clone();
-                            let edit = ui.add(
-                                TextEdit::singleline(&mut text)
-                                    .hint_text(label_text)
-                                    .desired_width(240.0),
-                            );
+                            let edit = ui
+                                .add(
+                                    TextEdit::singleline(&mut text)
+                                        .hint_text(label_text)
+                                        .desired_width(240.0),
+                                )
+                                .labelled_by(label.id);
                             if first {
                                 edit.request_focus();
                                 first = false;

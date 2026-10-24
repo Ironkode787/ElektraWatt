@@ -59,6 +59,50 @@ pub const STRUCTURE_KINDS: &[&str] = &[
     "type",
 ];
 
+/// The prefix sign of each structure aspect (doc 03 §5, `Aspect::default_sign`), the longer signs first so that `==` is
+/// read before `=` and `++` before `+`.
+const SIGNS: [(&str, &str); 7] = [
+    ("==", "functional_assignment"),
+    ("++", "installation_site"),
+    ("=", "function"),
+    ("+", "location"),
+    ("&", "document_kind"),
+    ("#", "user_defined"),
+    ("%", "type"),
+];
+
+/// `text` as the code of a node of `aspect`: the aspect's own prefix sign (`+J-E-206`) is taken off, another aspect's sign
+/// is refused with a text naming both.
+fn strip_sign(aspect: &str, text: &str) -> Result<String, String> {
+    let Some(&(sign, of)) = SIGNS.iter().find(|e| text.starts_with(e.0)) else {
+        return Ok(text.to_owned());
+    };
+    if of == aspect {
+        return Ok(text[sign.len()..].trim().to_owned());
+    }
+    Err(strings::format(
+        "error-wrong-sign",
+        &[text, sign, &of.replace('_', " "), &aspect.replace('_', " ")],
+    ))
+}
+
+/// The codes from the root to node `id` in `nodes` (id, code, parent id).
+fn node_path(nodes: &[(String, String, Option<String>)], id: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut cur = Some(id.to_owned());
+    while let Some(c) = cur.take() {
+        let Some(n) = nodes.iter().find(|n| n.0 == c) else {
+            break;
+        };
+        out.push(n.1.clone());
+        if out.len() < 64 {
+            cur = n.2.clone();
+        }
+    }
+    out.reverse();
+    out
+}
+
 /// One field of a creation action: its parameter, the key of its label, the values a choice field offers (none for
 /// free text) and the value the dialog starts with.
 #[derive(Clone, Copy)]
@@ -320,37 +364,67 @@ impl ShellModel {
     }
 
     /// The UUID text of the structure node `text` names in the aspect `aspect`: its alias or UUID (resolved by
-    /// dispatch), or its code when exactly one node of the aspect has it.
+    /// dispatch), or its code (with the aspect's own prefix sign, which is taken off) when exactly one node of the aspect
+    /// has it. Several nodes with the code are refused listing them as aliases `@n` with their parent's code, ordered by
+    /// their codes from the root (FT-439), because no navigator prints a node's alias yet.
     fn structure_node(&self, aspect: &str, text: &str) -> Result<String, String> {
         let Some(project) = &self.project else {
             return Err(strings::text("reason-no-project").to_owned());
         };
         let whole_uuid =
             crate::alias::find_uuid(text).is_some_and(|(at, u)| at == 0 && u.len() == text.len());
+        let code = if whole_uuid {
+            text.to_owned()
+        } else {
+            strip_sign(aspect, text)?
+        };
         let q = project.session.query();
-        let mut hits: Vec<String> = Vec::new();
+        let mut all: Vec<(String, String, Option<String>)> = Vec::new();
         for (id, node) in q.structure_nodes().iter() {
             let node_aspect = serde_json::to_value(&node.aspect).ok();
             if node_aspect.as_ref().and_then(Value::as_str) != Some(aspect) {
                 continue;
             }
-            let id = id.as_uuid().to_string();
-            let named = if whole_uuid {
-                id.eq_ignore_ascii_case(text)
-            } else {
-                node.code.as_str() == text
-            };
-            if named {
-                hits.push(id);
-            }
+            all.push((
+                id.as_uuid().to_string(),
+                node.code.as_str().to_owned(),
+                node.parent.map(|p| p.as_uuid().to_string()),
+            ));
         }
+        let hits: Vec<&(String, String, Option<String>)> = all
+            .iter()
+            .filter(|n| {
+                if whole_uuid {
+                    n.0.eq_ignore_ascii_case(&code)
+                } else {
+                    n.1 == code
+                }
+            })
+            .collect();
         match hits.len() {
             0 => Err(strings::format(
                 "error-no-node",
                 &[&aspect.replace('_', " "), text],
             )),
-            1 => Ok(hits.remove(0)),
-            n => Err(strings::format("error-ambiguous-node", &[&n.to_string(), text])),
+            1 => Ok(hits[0].0.clone()),
+            n => {
+                let mut cands: Vec<(Vec<String>, String)> = hits
+                    .iter()
+                    .map(|h| (node_path(&all, &h.0), h.0.clone()))
+                    .collect();
+                cands.sort();
+                let list: Vec<String> = cands
+                    .iter()
+                    .map(|(path, id)| match path.len().checked_sub(2).and_then(|i| path.get(i)) {
+                        Some(parent) => strings::format("node-candidate-under", &[id, parent]),
+                        None => strings::format("node-candidate-top", &[id]),
+                    })
+                    .collect();
+                Err(self.alias_text(&strings::format(
+                    "error-ambiguous-node",
+                    &[&n.to_string(), text, &list.join(", ")],
+                )))
+            }
         }
     }
 
@@ -433,6 +507,11 @@ impl ShellModel {
                 strings::format("error-structure-kind", &[&kind, &STRUCTURE_KINDS.join(", ")]),
             );
         }
+        let designation = match strip_sign(&kind, &designation) {
+            Ok(d) if !d.is_empty() => d,
+            Ok(_) => return self.form_missing(&STRUCTURE_NEW, p, "designation"),
+            Err(message) => return self.form_failed(&STRUCTURE_NEW, message),
+        };
         let mut params = json!({ "aspect": kind, "code": designation });
         if !parent.is_empty() {
             match self.structure_node(&kind, &parent) {

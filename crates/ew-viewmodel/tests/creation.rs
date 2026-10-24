@@ -7,11 +7,12 @@
 
 mod common;
 
-use common::{Tmp, done, refused};
+use common::{Tmp, at, done, refused};
 use ew_viewmodel::actions::{MenuEntry, menu_model};
 use ew_viewmodel::describe::{FREE_TEXT_MARKERS, VOCABULARY, describe};
 use ew_viewmodel::ew_api::Session;
 use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellConfig, ShellModel};
+use ew_viewmodel::tools::PreviewStatus;
 use serde_json::{Value, json};
 
 fn shell_in(tmp: &Tmp, mode: Mode) -> ShellModel {
@@ -206,17 +207,17 @@ fn a_structure_node_and_an_external_reference_are_created_by_their_designations(
     done(
         &mut shell,
         "structure.new",
-        json!({"kind": "location", "designation": "J-E-206", "parent": "J-E-2416"}),
+        json!({"kind": "location", "designation": "+J-E-206", "parent": "+J-E-2416"}),
     );
     done(
         &mut shell,
         "structure.new",
-        json!({"kind": "function", "designation": "P01"}),
+        json!({"kind": "function", "designation": "=P01"}),
     );
     done(
         &mut shell,
         "external_ref.new",
-        json!({"location": "J-E-206", "device": "JE-N1000-03", "connection": "L"}),
+        json!({"location": "+J-E-206", "device": "JE-N1000-03", "connection": "L"}),
     );
     done(&mut shell, "file.save", json!({}));
     let (nodes, refs) = saved_structure(&tmp);
@@ -269,7 +270,38 @@ fn structure_designations_are_refused_when_unknown_wrong_or_ambiguous() {
     );
     assert_eq!(
         m,
-        "2 nodes share the designation \"X\"; give the node's alias instead."
+        "2 nodes share the designation \"X\": @1 (under A), @2 (under B).          Give the alias of one of them instead."
+    );
+    // The aliases the refusal printed are the nodes: the next step names one as the parent.
+    done(
+        &mut shell,
+        "structure.new",
+        json!({"kind": "location", "designation": "Y", "parent": "@2"}),
+    );
+    // Another aspect's sign is refused naming both, in the designation, the parent and the location.
+    let wrong = "\"=P01\" starts with =, the sign of the function aspect, but this node is in the location aspect.";
+    for (action, params) in [
+        ("structure.new", json!({"kind": "location", "designation": "=P01"})),
+        (
+            "structure.new",
+            json!({"kind": "location", "designation": "Z", "parent": "=P01"}),
+        ),
+        ("external_ref.new", json!({"location": "=P01", "device": "d"})),
+    ] {
+        assert_eq!(failed(&mut shell, action, params), wrong, "{action}");
+    }
+    let m = failed(
+        &mut shell,
+        "structure.new",
+        json!({"kind": "function", "designation": "==P01"}),
+    );
+    assert_eq!(
+        m,
+        "\"==P01\" starts with ==, the sign of the functional assignment aspect, but this node is in the function aspect."
+    );
+    assert_eq!(
+        failed(&mut shell, "structure.new", json!({"kind": "location", "designation": "+"})),
+        "Missing parameter `designation`."
     );
     let m = failed(
         &mut shell,
@@ -521,4 +553,53 @@ fn the_menu_entries_are_disabled_with_their_reason() {
     );
     assert!(items(&shell).iter().all(|i| i.2 && i.3.is_none()));
     shell.shutdown();
+}
+
+#[test]
+fn a_structure_node_leaves_an_armed_place_tool_and_its_preview_alone() {
+    let tmp = Tmp::new("tool-keeps");
+    let mut s = tmp.shell_in(Mode::Gui, true, "101");
+    done(
+        &mut s,
+        "place.pick",
+        json!({"symbol": "ew.iec.contact-no@qet10", "letter": "K"}),
+    );
+    let p = {
+        let snapper = &s.canvas().unwrap().page().snapper;
+        (snapper.page_of_index(60), snapper.page_of_index(30))
+    };
+    let sheet = s.canvas().unwrap().page().snapper.page_to_sheet(p);
+    done(&mut s, "canvas.pointer", at(sheet, json!({})));
+    done(&mut s, "canvas.dwell", json!({"ms": 80}));
+    assert_eq!(s.tool().name(), "place");
+    assert_eq!(s.preview_status(), Some(PreviewStatus::Ready), "the ghost's preview");
+    // Escape closes the dialog and nothing else: the tool stays armed.
+    done(&mut s, "structure.new", json!({}));
+    assert!(matches!(s.dialog(), Some(Dialog::Form(_))));
+    done(&mut s, "ui.dismiss", json!({}));
+    assert!(s.dialog().is_none());
+    assert_eq!(s.tool().name(), "place");
+    // A node is created with the tool armed: one commit of the action's own preview, the tool's preview put back and
+    // stale.
+    let rev = s.revision();
+    let calls = s.session_calls();
+    done(
+        &mut s,
+        "structure.new",
+        json!({"kind": "location", "designation": "J-E-206"}),
+    );
+    assert_ne!(s.revision(), rev);
+    assert_eq!(s.tool().name(), "place");
+    assert_eq!(s.preview_status(), Some(PreviewStatus::Stale));
+    let after = s.session_calls();
+    assert_eq!(after.preview_with, calls.preview_with + 1);
+    assert_eq!(after.commit, calls.commit + 1);
+    assert_eq!(after.execute_with, calls.execute_with);
+    // The tool's next commit is not the stale preview's: it goes through `execute_with` and adds one representation.
+    let before = s.canvas().unwrap().page().tables.reps.len();
+    done(&mut s, "canvas.press", at(sheet, json!({})));
+    done(&mut s, "canvas.release", at(sheet, json!({})));
+    assert_eq!(s.session_calls().execute_with, after.execute_with + 1);
+    assert_eq!(s.canvas().unwrap().page().tables.reps.len(), before + 1);
+    s.shutdown();
 }
