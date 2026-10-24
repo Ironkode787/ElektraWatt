@@ -22,6 +22,7 @@ pub mod embedded;
 pub mod forms;
 pub mod hops;
 pub mod images;
+pub mod items;
 pub mod page;
 pub mod route;
 pub mod symbol;

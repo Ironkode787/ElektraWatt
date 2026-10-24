@@ -56,6 +56,11 @@
 //!   absent, connections with `overrides.show_marker` print the explicit cross-section and the colour codes (their
 //!   file spelling, `GNYE`), joined by a space; in a mode, the connections the mode selects print their effective
 //!   values. A connection a wire-marker item lists prints no marker of its own: the item prints the group.
+//! - **Page items and structure boxes** (WP-S2.04 part 4a; [`page_items`], [`page_boxes`]): a drawn page's items and
+//!   boxes in ID order; with texts, a free text prints its text or its bound value (`ew_derive::free_text`), a wire
+//!   marker its group text and whether it is shown (`ew_derive::group_marker`), a box its caption
+//!   (`ew_derive::box_caption`); the symbols layer reads them without texts (geometry only), so a text edit never
+//!   rebuilds it.
 //! - **Junction and wire-marker symbols**: the built-in generic symbols `ew.gen.junction-dot@qet10`,
 //!   `ew.gen.junction-bevel@qet10` and `ew.gen.wire-marker@qet10` of `content/symbols/qet10`, compiled in
 //!   ([`generic_symbols`]): no record names them, so projects never embed them.
@@ -73,8 +78,8 @@ use ew_derive::ew_mltext::MlText;
 use ew_derive::ew_units::Grid;
 use ew_derive::{
     DisplayedTag, FunctionCps, GeneratedPage, PageOrder, PageRef, Policy, Q, Query, TbValue,
-    TitleBlockValues, XrefTextOf, connection_marker, frame_form_of, grouped_connections, main_part,
-    manufacturer_name, order_code_text, tech_data_text,
+    TitleBlockValues, XrefTextOf, box_caption, connection_marker, frame_form_of, free_text, group_marker,
+    grouped_connections, main_part, manufacturer_name, order_code_text, tech_data_text,
 };
 use ew_dl::Destination;
 use ew_reports::render::{RenderOptions, render};
@@ -374,6 +379,50 @@ impl Query for PageConnectionsOf {
         }
         Arc::new(out)
     }
+}
+
+/// The page items of a drawn page in ID order (WP-S2.04 part 4a). With `texts`, each with what it prints (a free
+/// text's text or bound value, a wire marker's group text and whether it is shown); without, the records alone
+/// (the geometry the symbols layer draws).
+pub fn page_items(q: &Q, page: Id<Page>, texts: bool) -> Vec<ew_scene::items::ItemView> {
+    let items = q.page_items();
+    let mut ids: Vec<_> = q.idx().page_items_by_page(page).collect();
+    ids.sort();
+    ids.into_iter()
+        .filter_map(|id| items.get(id).cloned())
+        .map(|item| {
+            let (text, shown) = if texts {
+                match &item.kind {
+                    ew_schema::PageItemKind::FreeText(t) => (free_text(q, page, t), true),
+                    ew_schema::PageItemKind::WireMarker(_) => {
+                        group_marker(q, &item).map_or((String::new(), false), |g| (g.text, g.shown))
+                    }
+                    _ => (String::new(), false),
+                }
+            } else {
+                (String::new(), false)
+            };
+            ew_scene::items::ItemView { item, text, shown }
+        })
+        .collect()
+}
+
+/// The structure boxes of a drawn page in ID order (WP-S2.04 part 4a), with their captions when `captions` is set.
+pub fn page_boxes(q: &Q, page: Id<Page>, captions: bool) -> Vec<ew_scene::items::StructureBoxView> {
+    let boxes = q.structure_boxes();
+    let mut ids: Vec<_> = q.idx().structure_boxes_by_page(page).collect();
+    ids.sort();
+    ids.into_iter()
+        .filter_map(|id| boxes.get(id).cloned())
+        .map(|sbox| {
+            let caption = if captions {
+                box_caption(q, &sbox)
+            } else {
+                String::new()
+            };
+            ew_scene::items::StructureBoxView { sbox, caption }
+        })
+        .collect()
 }
 
 /// `page_junctions(page)`: the junctions of a page with their generic symbols.

@@ -160,6 +160,8 @@ fn view() -> PageView {
         break_marks: Vec::new(),
         cp_targets: Vec::new(),
         crossings: Default::default(),
+        items: Vec::new(),
+        structure_boxes: Vec::new(),
     }
 }
 
@@ -584,6 +586,8 @@ fn bare(reps: Vec<RepView>, connections: Vec<ConnectionView>) -> PageView {
         break_marks: Vec::new(),
         cp_targets: Vec::new(),
         crossings: Default::default(),
+        items: Vec::new(),
+        structure_boxes: Vec::new(),
     }
 }
 

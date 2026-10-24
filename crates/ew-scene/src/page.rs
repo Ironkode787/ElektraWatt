@@ -20,9 +20,9 @@
 //! | Layer | Reads | Items, in order |
 //! |---|---|---|
 //! | [`Layer::Frame`] | `frame` | [`crate::forms::lower_form`]: frame, grid labels, form graphics and cells, title block |
-//! | [`Layer::Symbols`] | `reps`, `break_marks` | per representation (by ID): one [`Item::instance`] of `symbol_geometry(symbol, orient)` at `pos`, tagged with the representation and its [`Link::Target`]; then its static symbol texts; then per break mark (by representation and side): its path |
+//! | [`Layer::Symbols`] | `reps`, `break_marks`, `items`, `structure_boxes` | per representation (by ID): one [`Item::instance`] of `symbol_geometry(symbol, orient)` at `pos`, tagged with the representation and its [`Link::Target`]; then its static symbol texts; then per break mark (by representation and side): its path; then the CP destinations; then the graphics and structure-box outlines ([`crate::items`]) |
 //! | [`Layer::Wires`] | `reps` (CP positions), `connections`, `junctions` | per connection (by ID): its polyline; then per junction (by ID): its dot or bevel symbol |
-//! | [`Layer::Labels`] | `reps`, `connections`, `wire_marker` | per representation (by ID): its visible slot texts (a [`Link::Source`] where the slot value names a destination); then per connection with a marker (by ID): the marker box and text |
+//! | [`Layer::Labels`] | `reps`, `connections`, `wire_marker`, `items`, `structure_boxes` | per representation (by ID): its visible slot texts (a [`Link::Source`] where the slot value names a destination); then per connection with a marker (by ID): the marker box and text; then the free texts, wire-marker groups and structure-box captions ([`crate::items`]) |
 //! | [`Layer::Tables`] | `table`, `embedded` | [`crate::table::lower_table`]: the house report table of a generated page; then per embedded block (by its rectangle): [`crate::embedded::lower_embedded`] (the cover's colour and standard-size tables) |
 //! | others | — | empty: revision marks and highlights arrive with their work packages |
 //!
@@ -101,6 +101,7 @@ use crate::forms::{
     BoxSpec, FormFinding, FrameGeometry, PageBindings, SheetMap, lower_form, ml_text, place, split_align,
 };
 use crate::hops::{Crossings, hop_path, hops};
+use crate::items::{ItemView, StructureBoxView};
 use crate::route::{RouteEnd, connection_polyline};
 use crate::symbol::{self, TextSource};
 use crate::table::{TableFinding, TableView, lower_table};
@@ -300,6 +301,12 @@ pub struct PageView {
     /// How crossing wires are drawn (FR-CON-031, WP-S2.04 §8.6): the project's drawing setting; the default draws
     /// them plain, byte-equal to a project without the setting.
     pub crossings: Crossings,
+    /// The page items of a drawn page with what they print (WP-S2.04 part 4a): graphics in [`Layer::Symbols`],
+    /// free texts and wire-marker groups in [`Layer::Labels`] ([`crate::items`]).
+    pub items: Vec<ItemView>,
+    /// The structure boxes of a drawn page with their captions (WP-S2.04 part 4a): outlines in
+    /// [`Layer::Symbols`], captions in [`Layer::Labels`].
+    pub structure_boxes: Vec<StructureBoxView>,
 }
 
 /// A connection point that is a link destination on its page (see [`PageView::cp_targets`]).
@@ -482,7 +489,7 @@ impl PageScene {
     }
 }
 
-struct Builder<'a> {
+pub(crate) struct Builder<'a> {
     fonts: &'a FontSet,
     out: LayerList,
 }
@@ -601,7 +608,7 @@ fn polyline_of(view: &PageView, cps: &CpMap, c: &Connection, page: Rect) -> Opti
 }
 
 impl Builder<'_> {
-    fn push(&mut self, item: Item) {
+    pub(crate) fn push(&mut self, item: Item) {
         self.out.list.push(item);
     }
 
@@ -809,6 +816,8 @@ impl Builder<'_> {
                 );
             }
         }
+        // The page items' graphics and the structure-box outlines (WP-S2.04 part 4a).
+        self.item_graphics(view);
     }
 
     fn wires(&mut self, view: &PageView) {
@@ -923,6 +932,13 @@ impl Builder<'_> {
                 });
             }
         }
+        self.connection_markers(view);
+        // The free texts, wire-marker groups and structure-box captions (WP-S2.04 part 4a).
+        self.item_labels(view);
+    }
+
+    /// The per-connection wire markers, by connection ID.
+    fn connection_markers(&mut self, view: &PageView) {
         let markers: Vec<&ConnectionView> = sorted_connections(view)
             .into_iter()
             .filter(|c| c.marker.as_deref().is_some_and(|m| !m.is_empty()))
@@ -964,7 +980,7 @@ impl Builder<'_> {
         }
     }
 
-    fn geometry(&mut self, s: &SymbolRef, orient: Orient2) -> SymbolGeomId {
+    pub(crate) fn geometry(&mut self, s: &SymbolRef, orient: Orient2) -> SymbolGeomId {
         let key = SymbolGeomId {
             symbol: s.id.as_uuid(),
             variant: orient,
@@ -990,7 +1006,7 @@ impl Builder<'_> {
     }
 
     /// Shapes `spec.text` and places it at `spec.at` with its alignment and angle, as form graphics do.
-    fn text(&mut self, spec: &TextSpec<'_>) {
+    pub(crate) fn text(&mut self, spec: &TextSpec<'_>) {
         if spec.text.is_empty() {
             return;
         }
@@ -1078,16 +1094,16 @@ impl Builder<'_> {
     }
 }
 
-struct TextSpec<'a> {
-    text: &'a str,
-    at: Pt2,
-    angle: Angle2,
-    align: &'a Align,
-    style_key: &'a str,
-    entity: EntityRef,
-    link: Option<Link>,
+pub(crate) struct TextSpec<'a> {
+    pub(crate) text: &'a str,
+    pub(crate) at: Pt2,
+    pub(crate) angle: Angle2,
+    pub(crate) align: &'a Align,
+    pub(crate) style_key: &'a str,
+    pub(crate) entity: EntityRef,
+    pub(crate) link: Option<Link>,
     /// One link per listed item of `text` (FT-86).
-    items: &'a [ItemLink],
+    pub(crate) items: &'a [ItemLink],
 }
 
 /// The midpoint of the longest segment of `pts` (the first of equal ones) and whether that segment is
