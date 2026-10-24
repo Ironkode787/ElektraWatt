@@ -1024,8 +1024,9 @@ fn edit_paste(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let device =
         json!({"$k": "device", "id": d, "tag": {"letter": letter(rng), "counter": 1 + rng.below(9)}});
     let function = json!({"$k": "function", "id": f, "device": d, "def": symbol.fndef});
+    // The representation's own type is the symbol's (the default, multi-line, is not taken by every page type).
     let rep = json!({"$k": "representation", "id": r, "functions": [f], "page": page.id, "symbol": symbol.id,
-        "pos": anchor});
+        "rep_type": symbol.rep_type, "pos": anchor});
     let fragment = |records: Vec<Value>, grid: (u64, u64)| {
         json!({"format": "0.1", "project": live.fixture.project_id, "grid": [grid.0, grid.1],
             "page_kind": page.kind, "anchor": anchor, "records": records, "copies": [], "nodes": []})
