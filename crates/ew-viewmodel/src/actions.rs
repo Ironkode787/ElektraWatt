@@ -161,7 +161,7 @@ pub struct ActionMeta {
     /// Where its shortcuts apply.
     pub context: Context,
     /// The parameter signature (WP-S6.13 §5.5.2): `""` for an action without parameters, else a comma-separated list of
-    /// `name[?]:type` (see [`validate_signature`]). The blind drafter's harness types its `key=value` arguments by it.
+    /// `name[?]:type` (see `validate_signature`). The blind drafter's harness types its `key=value` arguments by it.
     pub params: &'static str,
 }
 

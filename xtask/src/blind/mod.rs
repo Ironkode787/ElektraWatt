@@ -5,7 +5,7 @@
 //!
 //! An agent that never sees pixels draws and edits in ElektraWatt through the shell's headless mode, with `ui.describe`
 //! and `page.describe` as its only senses and the transcript as its evidence. This module is the tool between the agent
-//! and the product: run folders outside the repository ([`run`], [`start`]), the filter and the typed arguments
+//! and the product: run folders outside the repository ([`mod@run`], [`start`]), the filter and the typed arguments
 //! ([`filter`]), the protocol ([`protocol`]), the loopback keeper and the stateless replay ([`keeper`], [`stateless`]),
 //! the composed prompt ([`compose`]), the stop with its epilogue ([`stop`]) and the recording, bless and replay
 //! ([`replay`]). The harness drives the built `elektrawatt` and `ew` binaries as processes: it has no edge to any product
