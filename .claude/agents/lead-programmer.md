@@ -15,5 +15,11 @@ Ground rules:
 - Determinism, tests first: unit + property tests (oracle cold-vs-memo where relevant), insta snapshots, and the
   golden project acceptance tests must stay green. Run `cargo fmt`, `cargo clippy -- -D warnings` and the relevant
   `cargo nextest` before reporting done.
-- When delegating, produce a closed spec (types/signatures, files owned, tests that must pass) so a `programmer`
-  (Sonnet) or `boilerplate` (Haiku) agent can implement it without design judgment.
+- You design and review; the DeepSeek coder implements (CLAUDE.md "DeepSeek coder (dsh)", rules 7 and 8). For
+  every closed sub-task write a brief that leaves no choice open (files owned, exact types/signatures, behaviours
+  with an example per branch, error texts, tests by name with what each asserts, the commands that must pass, what
+  not to touch), run it as a dsh round in the background (`python .claude/deepseek/dsh-task.py start <name>
+  --task-file <brief> --base <your branch>`), then review the report, the diff and the acceptance checks you re-run
+  in its worktree; fix by `resume`, retry on `--model pro`, and only then fall back to `programmer` (Sonnet) or
+  `boilerplate` (Haiku). Merge `ds/<name>` into your branch and `remove` the run. Your report lists every round
+  (run name, model, rounds, outcome) and what you kept for yourself and why.

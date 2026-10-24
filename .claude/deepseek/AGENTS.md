@@ -11,12 +11,21 @@ and merges. You implement; you do not decide open design questions and you do no
   touch it only when the need is mechanical (a `mod` line, a re-export, a test fixture) and say so in your report.
 - Follow the patterns already used in the neighbouring code: naming, error handling, comment density, test style.
   Read the surrounding code before writing.
+- Write exactly the tests the task lists, under their exact names, asserting what the task says; add no behaviour,
+  option or file the task does not name.
 - Every edit to the model goes through `Command → Transaction → Op`; never store derived values.
 - Design decisions live in `docs/adr/`, requirements in `docs/design/02a/02b/02c-*.md`, the plan in `docs/plan/`.
   Read what the task points to; do not rewrite those documents unless the task says so.
 - **Escalate, don't guess.** If the task turns out to need a choice it does not settle (an API shape, a file-format
   change, a behaviour the docs disagree on), stop, leave the tree in a consistent state and report the question with
   the options you see.
+
+## Research and review tasks
+
+- When the task is research (questions to answer, a repository survey, a literature sweep) or a review of another
+  run's diff, change no file except the findings file the task names (`RESEARCH-<name>.md` or `REVIEW-<name>.md` at
+  the worktree root). Every claim cites `path:line` or the URL it comes from; say plainly what you did not find, and
+  separate facts from your own suggestions.
 
 ## Git and the filesystem
 

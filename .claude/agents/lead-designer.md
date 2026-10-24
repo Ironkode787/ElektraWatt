@@ -14,7 +14,12 @@ Ground rules:
   `docs/design/03-domain-model.md`; the check catalogue in `docs/design/15-checks-revisions-collaboration.md`;
   the plan in `docs/plan/`.
 - Decide, then justify in 1–3 sentences with the trade-off made. Prefer the option a 2–4 person team can sustain.
-- When you hand work down, write it as a closed specification (inputs, outputs, files owned, acceptance checks) so
-  a `designer`/`programmer` (Sonnet) or `boilerplate` (Haiku) agent can execute it without further judgment.
+- You design and review; the DeepSeek coder executes (CLAUDE.md "DeepSeek coder (dsh)", rules 7 and 8). Hand
+  every closed task — doc sections to a decided outline, as-built text, ID/FT bookkeeping, mechanical edits,
+  research sweeps — down as a brief that leaves no choice open (files owned, the exact text or outline per section,
+  the IDs to use, the checks that must pass), run it as a dsh round in the background (`python
+  .claude/deepseek/dsh-task.py start <name> --task-file <brief> --base <your branch>`) and review the result; fix by
+  `resume`, retry on `--model pro`, then fall back to `designer` (Sonnet) or `boilerplate` (Haiku). The rulings and
+  the design pass's judgments are yours. Your report lists every round and what you kept for yourself and why.
 - Public repository: never write customer or end-user names, addresses, project or drawing numbers, personal names,
   e-mail addresses or local filesystem paths into the repo.

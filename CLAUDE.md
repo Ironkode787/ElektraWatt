@@ -6,14 +6,15 @@ for electrical control-cabinet design. Currently in the design phase: see `docs/
 ## Model routing policy (quota)
 
 Use the cheapest model that can do the task well. Three Claude tiers, each with project subagents in
-`.claude/agents/`, and an external DeepSeek coder that does not draw on the Claude quota:
+`.claude/agents/`, and an external DeepSeek coder that does not draw on the Claude quota. Since the owner's ruling of
+2026-10-24 the Claude leads design and review; the DeepSeek coder does the research, the code and the small tasks:
 
 | Tier | Model | Subagents | Use for |
 |---|---|---|---|
-| Coder (external) | DeepSeek Flash (max effort; V4 Pro on retry) in the DeepSeek harness | — (bridge `.claude/deepseek/dsh-task.py`) | Code with a closed spec at D1–D3, in its own worktree; Claude reviews, commits and merges (see "DeepSeek coder (dsh)") |
-| Lead | Opus | `lead-designer`, `lead-programmer` | Open decisions: architecture, ADRs, domain-model and file-format changes, cross-document conflicts, estimation/planning, judging alternatives; core/critical code (ew-model, ew-commands, ew-memo, ew-derive, ew-format/ew-store, concurrency, FFI/STEP worker, public & plugin APIs, perf-critical rendering); hard debugging; final review |
-| Worker | Sonnet | `designer`, `programmer` | Well-defined work with a closed spec: write/update a doc section to an outline, apply decided resolutions, write an ADR for a made decision; implement a specified command/query/importer step/report/UI panel/CLI subcommand, tests, bug fixes with a known repro; research and literature sweeps |
-| Mechanical | Haiku | `boilerplate`, `scout` (read-only search) | No judgment needed: scaffolding from a template, Cargo.toml edits, licence/REUSE headers, renames and ID-map find-and-replace, fmt/trivial lint fixes, fixtures, CHANGELOG/README, link and Mermaid fixes; repository searches and lookups (`scout`) |
+| Coder (external) | DeepSeek Flash at max effort (V4 Pro only on retry) in the DeepSeek harness | — (bridge `.claude/deepseek/dsh-task.py`) | Everything with a closed spec, at every D-level, in its own worktree: implementation (D4–D5 included once the lead's spec is closed), tests, fixtures, DSL verbs, schema/reference regeneration, fuzz arms, kittests, docs sections and as-built text to a decided outline, mechanical edits, and research (repository surveys, literature sweeps) in read-only rounds; Claude reviews, commits and merges (see "DeepSeek coder (dsh)") |
+| Lead | Opus | `lead-designer`, `lead-programmer` | Design and review only (owner's rule, 2026-10-24): architecture, ADRs, domain-model and file-format decisions, cross-document conflicts, estimation/planning, judging alternatives; the closed specs the coder works from (the core crates — ew-model, ew-commands, ew-memo, ew-derive, ew-format/ew-store, concurrency, FFI, public & plugin APIs — get the most exact specs); the rulings; the review of every DeepSeek round (report → diff → acceptance checks re-run); hard debugging. A lead writes code or doc text itself only when a task failed on DeepSeek Flash and on Pro |
+| Worker | Sonnet | `designer`, `programmer` | Fallback coder/writer when dsh is unavailable or a task failed on Flash and on Pro; reviews of D2–D3 DeepSeek rounds and of fix rounds with closed items; window checks and other verification that needs reading screenshots |
+| Mechanical | Haiku | `boilerplate`, `scout` (read-only search) | `scout` for quick read-only lookups the orchestrator or a lead needs inside a turn; `boilerplate` only as the fallback for mechanical edits (headers, renames, count bumps) when dsh is unavailable |
 
 **Defaults.** `.claude/settings.json` sets `CLAUDE_CODE_SUBAGENT_MODEL=sonnet`: any subagent or workflow agent that is
 not given a model another way runs on Sonnet. Precedence (Claude Code docs): per-call `model` parameter > the agent
@@ -23,8 +24,9 @@ agents follow the main-session model, so prefer `scout` (Haiku) for searches, or
 session itself is the lead (run it on Opus; `opusplan` = Opus while planning, Sonnet while executing, is an option).
 
 Rules:
-1. **The lead decides, workers execute.** Opus turns open questions into closed specs (inputs, outputs, files owned,
-   acceptance checks); Sonnet/Haiku execute them. Do not give an open-ended design question to a worker tier.
+1. **The lead decides, the coder executes.** Opus turns open questions into closed specs (inputs, outputs, files
+   owned, types/signatures, acceptance checks); the DeepSeek coder executes them, Sonnet/Haiku only as the fallback.
+   Do not give an open-ended design question to the coder or to a worker tier.
 2. **Escalate, don't guess.** A worker that hits an undecided choice stops and reports it; Haiku escalates to Sonnet
    when a task needs judgment or fails verification twice; Sonnet escalates to Opus for cross-cutting or
    architectural impact.
@@ -38,39 +40,54 @@ Rules:
    `.claude/agents/` are hot-reloaded; only a brand-new `agents` directory needs a session restart.
 6. **Verification is cheap, rework is not:** always end worker tasks with a mechanical check (build, tests, lint,
    link/Mermaid check, ID-existence grep) so failures surface before an Opus review.
-7. **Leads delegate (owner's rule, 2026-10-25).** A lead lane (Opus) keeps for itself only the parts that need
-   judgment — the design-sensitive core code, the rulings, the review of what came back — and hands every closed
-   sub-task to a worker subagent inside its lane: tests to a given list, fixtures, DSL verbs, schema and reference
-   regeneration, fuzz arms, kittests, docs notes and as-built text (`programmer`, Sonnet) and mechanical edits,
-   renames, count bumps, licence headers, re-blessing (`boilerplate`, Haiku). The orchestrator writes this into every
-   lead brief, and the lead's report lists what it delegated and to which tier; a lead that delegated nothing says why.
-   Reviews of D2–D3 lanes and of fix rounds with closed items go to Sonnet; Opus reviews stay for D4–D5 lanes.
+7. **Leads design and review (owner's rule, 2026-10-24; replaces the Sonnet/Haiku delegation rule of 2026-10-25).**
+   A lead lane (Opus) keeps for itself only the judgment — the specs, the rulings, the review of what came back — and
+   hands every closed sub-task to the DeepSeek coder as a dsh round (see "DeepSeek coder (dsh)"): the implementation
+   itself, tests to a given list, fixtures, DSL verbs, schema and reference regeneration, fuzz arms, kittests, docs
+   notes and as-built text, mechanical edits, renames, count bumps, licence headers, re-blessing, and the research
+   the spec needs. The orchestrator writes this into every lead brief; the lead's report lists its rounds (run name,
+   model, number of rounds, outcome) and what it kept for itself and why. Reviews of D2–D3 rounds and of fix rounds
+   with closed items go to Sonnet; Opus reviews stay for D4–D5.
+8. **Specs leave no choice open (owner's rule, 2026-10-24).** A brief for the coder names the files owned, the exact
+   types, signatures or schema, each behaviour with at least one example per branch, the error texts, the tests to
+   write (names and what each asserts), the commands that must pass, and what not to touch. A choice the lead has
+   not made is made before dispatch, never left to the coder: the coder brief tells it to stop and ask, and every
+   open point costs a round.
 
 ## DeepSeek coder (dsh)
 
 The DeepSeek harness (`dsh`, npm `@deepseek-ai/dsh`, developer preview) codes; Claude Code orchestrates. dsh bills the
-owner's DeepSeek key (`~/.dsh/.env`), not the Claude quota. The bridge `.claude/deepseek/dsh-task.py` runs
+owner's DeepSeek key (`~/.dsh/.env`), not the Claude quota. Since the owner's ruling of 2026-10-24 the coder does all
+the work that has a closed spec; the Claude tiers design, review and integrate. The bridge `.claude/deepseek/dsh-task.py` runs
 `dsh --profile headless` in a worktree of its own; the coder reads `.claude/deepseek/AGENTS.md` (scope, git rules,
 testing policy, public-repo rules, report format) instead of this file.
 
-- **Routing.** Implementation with a closed spec at D1–D3 goes to DeepSeek by default, on DeepSeek Flash at max
-  reasoning effort (the bridge's default, owner's choice 2026-10-24); a round that fails on Flash is re-run with
-  `--model pro` (DeepSeek V4 Pro). D4–D5 code, open design questions and docs stay with the Claude tiers;
-  `programmer`/`boilerplate` take over when dsh is unavailable or a task still fails on Pro.
-- **Run a round** from the main session with Bash `run_in_background` (a round takes minutes to tens of minutes; the
-  notification arrives on exit). Write the brief to a file (goal, files owned, references, acceptance checks), then
+- **Routing.** Everything with a closed spec goes to DeepSeek, at every D-level — code (D4–D5 included once the
+  lead's spec is closed), tests, regeneration, docs text to a decided outline, mechanical edits, and research in
+  read-only rounds — on DeepSeek Flash at max reasoning effort (the bridge's default, owner's choice 2026-10-24); a
+  round that fails on Flash is re-run with `--model pro` (DeepSeek V4 Pro), never Pro first. Open design questions,
+  the rulings and the design pass stay with the leads; `programmer`/`designer`/`boilerplate` take over only when dsh
+  is unavailable or a task still fails on Pro.
+- **Run a round** from the lead lane or the main session with Bash `run_in_background` (a round takes minutes to
+  tens of minutes; the notification arrives on exit — a subagent too is re-invoked when its own background command
+  exits, verified 2026-10-24). Write the brief to a file (goal, files owned, references, acceptance checks), then
   `python .claude/deepseek/dsh-task.py start <name> --task-file <brief> [--base <ref>] [--model flash|pro]`. It
   creates `.claude/worktrees/ds-<name>` on branch `ds/<name>` and prints the outcome, tokens, the changes against the
   base and the coder's `## Report`. `show <name>` re-prints a summary (also mid-round); `list` lists the runs.
-- **Review** the report, then the diff (`git -C <worktree> diff <base>` and the untracked files listed), and re-run the
-  brief's acceptance checks in the worktree before accepting: the coder's check results are claims, not proof.
-  Review delegation follows rule 7. For revisions write the findings to a file and run `resume <name> --task-file
-  <fixes>` (same dsh session); after three rounds hand the worktree to `programmer` or `lead-programmer`.
+- **Research rounds** are read-only: the brief names the questions and the findings file (`RESEARCH-<name>.md` at
+  the worktree root, untracked; every claim cites `path:line` or a URL); the lead reads it, and `remove` deletes it
+  with the worktree.
+- **Review**: for D3 and above first a DeepSeek review round in a FRESH run (`start <name>-review --base ds/<name>`,
+  read-only, findings to `REVIEW-<name>.md`), then the lead's own review: the report, then the diff (`git -C
+  <worktree> diff <base>` and the untracked files listed), then the brief's acceptance checks re-run in the worktree
+  before accepting — the coder's check results are claims, not proof. Review delegation follows rule 7. For revisions
+  write the findings to a file and run `resume <name> --task-file <fixes>` (same dsh session); after three rounds on
+  Flash re-run with `--model pro`; after Pro hand the worktree to `programmer` or `lead-programmer`.
 - **Integrate**: commit in the worktree in the project's message style with the line `Coded by DeepSeek <model> via
   dsh (run <name>).` above the trailers, merge `ds/<name>` into the working branch, then `remove <name>` (deletes
   the worktree with its `target` and the branch).
 - **Limits.** The coder never commits, pushes or leaves its worktree. A round that builds counts as one of the two
-  builders. `--sandbox workspace` (default) confines its file writes to the worktree (dsh's Windows ACL sandbox;
+  builders, and a lane runs one building round at a time. `--sandbox workspace` (default) confines its file writes to the worktree (dsh's Windows ACL sandbox;
   reads and network stay open; cargo builds and tests work under it); `--sandbox full` lifts it. A resumed session
   keeps the sandbox it started with, and approval prompts are always refused (headless has nobody to ask). Workflow
   agents cannot wait out a round (the 10-minute foreground limit), so rounds are started from the main session.
@@ -91,11 +108,14 @@ explicit request that permits setting `effort` on delegated work):
 
 Score with five questions; each "yes" adds a level above D1 (cap D5): Is the spec open (a choice is not yet
 decided)? Does it touch more than 3 files, or a public API/format? Is there no existing pattern to copy? Would a mistake
-be expensive or hard to detect (data, safety, legal)? Is verification weak (no tests/checks)?
+be expensive or hard to detect (data, safety, legal)? Is verification weak (no tests/checks)? The level scores the
+task; the model column applies to the work the Claude tiers do themselves (design, reviews, fallbacks). Code, docs
+text and research with a closed spec go to the DeepSeek coder at every level (rule 7); the level still sets how exact
+the spec must be and who reviews.
 
-- **Escalate on failure:** a task that comes back blocked, fails its verification, or is rejected in review is re-run
-  one level up (with the failed attempt's notes). Two escalations without success → hand to `lead-designer` /
-  `lead-programmer`.
+- **Escalate on failure:** a DeepSeek round that comes back blocked, fails its verification, or is rejected in review
+  is re-run on Pro, then handed to the Claude tier of the ladder's level (with the failed rounds' notes); a Claude task
+  that fails is re-run one level up. Two escalations without success → hand to `lead-designer` / `lead-programmer`.
 - **De-escalate on evidence:** when a kind of task succeeds first time at a level three times in a row, start the
   next one a level lower.
 - **Batch triage:** for fan-outs, score all items in one Haiku/`low` call, then route each item; use
