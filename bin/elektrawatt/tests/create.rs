@@ -344,22 +344,27 @@ fn folio_101s_external_points_print_the_structure_node_and_the_external_referenc
     let external = refs[0].0.clone();
     drop(q);
     drop(session);
-    // The placement script of §13.6 with the three external arrows naming the reference.
+    // The placement script of §13.6 (WP-S2.04 part 3: the IP tool) with the three external arrows naming the
+    // reference this project holds by its ID (the golden script names the golden references' printed texts).
     let (mut placements, runs) = placement_steps(101, map, &strip);
     let mut external_points = 0;
-    for (action, params) in &mut placements {
-        if action == "command.run"
-            && params["cmd"] == "ip.place"
-            && params["params"]["name"]
-                .as_str()
-                .is_some_and(|n| n.starts_with("J-E-206-"))
-        {
-            params["params"]["external"] = json!({"ref": format!("id:{external}")});
+    for i in 0..placements.len() {
+        if placements[i].0 == "ip.external" {
+            let next = &placements[i + 1];
+            assert_eq!(next.0, "ip.name");
+            assert!(
+                next.1["text"].as_str().is_some_and(|n| n.starts_with("J-E-206-")),
+                "{next:?}"
+            );
+            placements[i].1["external"] = json!(format!("id:{external}"));
             external_points += 1;
         }
     }
     assert_eq!(external_points, 3, "the three external arrows of folio 101");
-    assert_eq!(runs, 6);
+    assert_eq!(
+        runs, 0,
+        "the IP tool places every point: no command.run step is left"
+    );
     let mut transcripts = Vec::new();
     let mut records = Vec::new();
     for n in ["a", "b"] {
