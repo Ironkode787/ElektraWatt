@@ -149,7 +149,7 @@ fn the_registry_lists_every_command() {
     let s = session(6);
     let names: Vec<&str> = s.registry().names().collect();
     assert_eq!(names.len(), 54);
-    assert_eq!(names.len(), 47);
+    assert_eq!(names.len(), 54);
     assert!(names.contains(&"parts.import"));
     assert!(names.contains(&"fields.set_many"));
     assert!(names.contains(&"project.assets.purge"));
