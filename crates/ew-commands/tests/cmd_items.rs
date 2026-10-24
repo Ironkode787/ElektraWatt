@@ -221,6 +221,9 @@ fn item_place_rejections() {
         ShapeParam::Polygon {
             points: vec![pt(0, 0), pt(1, 0), pt(1, 0)],
         },
+        ShapeParam::Polygon {
+            points: vec![pt(0, 0), pt(1, 0), pt(2, 0)],
+        },
         ShapeParam::Rect {
             min: pt(0, 0),
             max: pt(5, 0),
@@ -407,6 +410,9 @@ fn box_structure_creates_a_box_and_refuses_bad_members() {
     let mut two = structure_box(location(LOC));
     two.outline = vec![pt(0, 0), pt(1, 1)];
     assert_eq!(pointer(e.execute(&two).unwrap_err(), "box.structure"), "/outline");
+    let mut flat = structure_box(location(LOC));
+    flat.outline = vec![pt(0, 0), pt(1, 1), pt(2, 2), pt(3, 3)];
+    assert_eq!(pointer(e.execute(&flat).unwrap_err(), "box.structure"), "/outline");
     let wrong_aspect = structure_box(location(FUNC_P01));
     assert_eq!(
         pointer(e.execute(&wrong_aspect).unwrap_err(), "box.structure"),
@@ -562,14 +568,53 @@ fn rep_move_refuses_an_unknown_variant() {
     let err = e
         .execute(&mv(vec![], vec![id::<()>(0x4300)], pt(1, 0)))
         .unwrap_err();
-    assert!(matches!(err, CmdError::Rejected { .. }), "{err:?}");
+    let CmdError::Rejected { reason, .. } = err else {
+        panic!("{err:?}");
+    };
+    assert_eq!(
+        reason,
+        format!(
+            "page item {} cannot be moved: it is of a kind this build keeps verbatim, or the move takes it \
+             outside the drawable range",
+            id::<()>(0x4300)
+        )
+    );
+}
+
+/// A cross-page `rep.move` takes the connections that leave the page out of the old page's wire markers; a marker
+/// left empty goes, and undo restores it.
+#[test]
+fn a_cross_page_move_unlinks_the_old_pages_markers() {
+    let mut e = engine(golden_model());
+    let mut m = marker(vec![CON_W11A]);
+    m.page = PAGE_101;
+    let marker_id: Id<PageItem> = e.execute(&m).unwrap().outcome.primary.unwrap().1.cast();
+    e.execute(&MoveReps {
+        items: Vec::new(),
+        steps: None,
+        reps: vec![REP_101F1, REP_IP_101],
+        delta: pt(0, 0),
+        page: Some(PAGE_102),
+    })
+    .expect("moved across pages");
+    assert_eq!(conn(&e, CON_W11A).page, Some(PAGE_102));
+    assert!(
+        e.model().table::<PageItem>().get(&marker_id).is_none(),
+        "the marker left empty goes"
+    );
+    e.undo().expect("undo");
+    let PageItemKind::WireMarker(w) = &item(&e, marker_id).kind else {
+        panic!("a marker");
+    };
+    assert_eq!(w.connections, vec![CON_W11A]);
 }
 
 // ---------------------------------------------------------------------------------------------------------
 // edit.delete and the marker list
 
 /// `edit.delete` takes page items and structure boxes; deleting a connection takes it out of a marker's list and a
-/// marker left empty goes with it; the junction clean-up that removes a connection does the same.
+/// marker left empty goes with it; the junction clean-up that merges two connections puts the kept one in the
+/// removed one's place.
 #[test]
 fn delete_unlinks_markers_and_takes_items_and_boxes() {
     let mut e = engine(golden_model());
@@ -604,8 +649,16 @@ fn delete_unlinks_markers_and_takes_items_and_boxes() {
         panic!("a marker");
     };
     assert_eq!(w.connections, vec![CON_W27]);
-    // Junction J5 joins J5_IN, W22 and W27: deleting W22 leaves two members, which the clean-up merges into one
-    // connection, removing the other; the marker drops the removed one.
+    let feed: Id<PageItem> = e
+        .execute(&marker(vec![CON_J5_IN]))
+        .unwrap()
+        .outcome
+        .primary
+        .unwrap()
+        .1
+        .cast();
+    // Junction J5 joins J5_IN, W22 and W27: deleting W22 leaves two members, which the clean-up merges into the
+    // kept one; a marker that listed the removed member lists the kept one instead, so both markers survive.
     e.execute(&DeleteSelection {
         targets: vec![TargetRef {
             kind: KindName::Connection,
@@ -613,16 +666,21 @@ fn delete_unlinks_markers_and_takes_items_and_boxes() {
         }],
     })
     .expect("deleted");
-    let live: Vec<Id<Connection>> = match &e.model().table::<PageItem>().get(&both).map(|i| i.kind.clone()) {
-        Some(PageItemKind::WireMarker(w)) => w.connections.clone(),
-        None => Vec::new(),
-        _ => panic!("a marker"),
-    };
-    assert!(
-        live.iter()
-            .all(|c| e.model().table::<Connection>().get(c).is_some()),
-        "the list names live connections only: {live:?}"
-    );
+    let survivor: Vec<Id<Connection>> = [CON_J5_IN, CON_W27]
+        .into_iter()
+        .filter(|c| e.model().table::<Connection>().get(c).is_some())
+        .collect();
+    assert_eq!(survivor.len(), 1, "the clean-up merged J5's two members");
+    for m in [both, feed] {
+        let it = e.model().table::<PageItem>().get(&m).expect("the marker survives");
+        let PageItemKind::WireMarker(w) = &it.kind else {
+            panic!("a marker");
+        };
+        assert_eq!(
+            w.connections, survivor,
+            "the kept member takes the removed one's place"
+        );
+    }
     // Items and boxes by `edit.delete`.
     let t = place(&mut e, &text("x", None, 0));
     let b: Id<StructureBox> = e

@@ -12,12 +12,13 @@
 //!
 //! - **two**: the junction dissolves. The kept member keeps its ID, its number and its overrides, and takes
 //!   the other member's far endpoint and route; the other member is removed (and replaced by the kept one
-//!   in the sequence of a junction at its far end). The kept member is the one whose number is not
-//!   `Unassigned`, so an assigned or frozen number is never dropped silently; if both carry the same
-//!   number, or neither carries one, it is the member listed first in the junction's sequence (the feed
-//!   arm). Two different numbers cannot be merged: the junction is left untouched and the command is
-//!   rejected, naming both numbers (the user clears one or deletes the connections separately). If both far
-//!   ends are the same endpoint, the merged connection would loop: both members are removed instead;
+//!   in the sequence of a junction at its far end and in the wire markers that list it). The kept member is
+//!   the one whose number is not `Unassigned`, so an assigned or frozen number is never dropped silently; if
+//!   both carry the same number, or neither carries one, it is the member listed first in the junction's
+//!   sequence (the feed arm). Two different numbers cannot be merged: the junction is left untouched and the
+//!   command is rejected, naming both numbers (the user clears one or deletes the connections separately).
+//!   If both far ends are the same endpoint, the merged connection would loop: both members are removed
+//!   instead;
 //! - **one**: the junction is removed together with that connection;
 //! - **none**: the junction is removed.
 //!
@@ -30,7 +31,7 @@ use std::collections::BTreeSet;
 
 use ew_ids::Id;
 use ew_model::{AnyRow, EndpointKey};
-use ew_schema::{Bond, Connection, Endpoint, Junction, Kind, NumberSpec, PageItem, PageItemKind};
+use ew_schema::{Bond, Connection, Endpoint, Junction, Kind, NumberSpec};
 use ew_units::Pt2;
 
 use crate::error::CmdError;
@@ -66,9 +67,15 @@ fn candidates(tx: &TxBuilder<'_>) -> BTreeSet<Id<Junction>> {
     out
 }
 
-/// Removes a connection: drops it from the sequence of junctions at its ends, clears `via` of bonds
-/// realised by it, and takes it out of the wire markers that list it (a marker left empty is removed, EW-INV-023).
-fn remove_connection(tx: &mut TxBuilder<'_>, id: Id<Connection>) -> Result<(), CmdError> {
+/// Removes a connection: drops it from the sequence of junctions at its ends, clears `via` of bonds realised
+/// by it, and takes it out of the wire markers that list it: with `carrier` (a dissolving junction's kept
+/// member, which carries the wire on) a marker lists the carrier in its place; a marker left empty is removed
+/// (EW-INV-023).
+fn remove_connection(
+    tx: &mut TxBuilder<'_>,
+    id: Id<Connection>,
+    carrier: Option<Id<Connection>>,
+) -> Result<(), CmdError> {
     let Some(c) = tx.get::<Connection>(id) else {
         return Ok(());
     };
@@ -84,20 +91,7 @@ fn remove_connection(tx: &mut TxBuilder<'_>, id: Id<Connection>) -> Result<(), C
             tx.update::<Bond>(b.id, |b| b.via = None)?;
         }
     }
-    for m in tx.markers_of_connection(id) {
-        let Some(item) = tx.get::<PageItem>(m) else {
-            continue;
-        };
-        let mut next = (*item).clone();
-        if let PageItemKind::WireMarker(w) = &mut next.kind {
-            w.connections.retain(|c| *c != id);
-            if w.connections.is_empty() {
-                tx.remove_row((Kind::PageItem, m.cast()));
-                continue;
-            }
-        }
-        tx.put(next);
-    }
+    tx.unlink_markers(id, carrier, None);
     tx.remove_row((Kind::Connection, id.cast()));
     Ok(())
 }
@@ -188,8 +182,8 @@ fn dissolve(
     let (far_other, route_other) = away_from(&other, j);
     let (far_kept, _) = away_from(&kept, j);
     if same_endpoint(&far_kept, &far_other) {
-        remove_connection(tx, keep)?;
-        remove_connection(tx, gone)?;
+        remove_connection(tx, keep, None)?;
+        remove_connection(tx, gone, None)?;
         remove_junction(tx, j);
         return Ok(());
     }
@@ -203,7 +197,7 @@ fn dissolve(
         towards.reverse();
         merged.route = join(towards, kept.route.clone());
     }
-    remove_connection(tx, gone)?;
+    remove_connection(tx, gone, Some(keep))?;
     tx.put(merged);
     if let Endpoint::Junction(far) = far_other {
         tx.update::<Junction>(far, |f| {
@@ -242,7 +236,7 @@ impl Normaliser for JunctionCleanup {
                     changed = true;
                 }
                 [only] => {
-                    remove_connection(tx, *only)?;
+                    remove_connection(tx, *only, None)?;
                     remove_junction(tx, j);
                     work.extend(requeue);
                     changed = true;
