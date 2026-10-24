@@ -13,7 +13,7 @@
 [[allow]]
 crate = "elektrawatt"
 item = "fn bin_exe"
-count = 4
+count = 6
 
 [[allow]]
 crate = "elektrawatt"
@@ -33,6 +33,11 @@ count = 1
 [[allow]]
 crate = "ew"
 item = "fn source_date_epoch"
+count = 1
+
+[[allow]]
+crate = "ew-api"
+item = "fn bless"
 count = 1
 
 [[allow]]
