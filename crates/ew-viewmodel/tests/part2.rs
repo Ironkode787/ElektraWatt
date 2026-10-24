@@ -2002,7 +2002,7 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
             // WP-S2.04 part 3: the IP and black box words need the tools on a writable project: `tests/part3.rs`.
             || ew_viewmodel::describe::IP_WORDS.contains(*w)
             // WP-S2.04 part 4b: the item and box words need a writable project: `tests/part4b.rs` reaches `graphic`,
-            // `marker`, `boxes` and `unknown`; the drawing tools' words come with the later units of part 4b.
+            // `marker` and `boxes`; the drawing tools' words and `unknown` come with the later units of part 4b.
             || ew_viewmodel::describe::ITEM_WORDS.contains(*w)),
         "words of the vocabulary no state used: {unused:?}"
     );

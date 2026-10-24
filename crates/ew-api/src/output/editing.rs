@@ -453,16 +453,14 @@ impl Session {
             true
         };
         if let Some(starter) = starter_symbol(symbol) {
-            if !q.symbols().contains(starter.id) {
-                if !push(&mut copies, starter.id.as_uuid()) {
-                    return Ok(None);
-                }
+            // The starter symbol and its FnDef as `starter_embed` gives them: an item the starter library lacks is
+            // skipped (never a reason for `Ok(None)`), and the symbol is pushed even when its FnDef is not.
+            if !q.symbols().contains(starter.id) && push(&mut copies, starter.id.as_uuid()) {
                 seen.insert(starter.id.as_uuid());
             }
             let def = fndef_copy(&starter.item.fndef);
-            seen.insert(def.as_uuid());
-            if !q.fndefs().contains(def) && !push(&mut copies, def.as_uuid()) {
-                return Ok(None);
+            if !q.fndefs().contains(def) && push(&mut copies, def.as_uuid()) {
+                seen.insert(def.as_uuid());
             }
         }
         // The template's FnDefs, in template order: the first copy of an embedded one is not pushed twice.

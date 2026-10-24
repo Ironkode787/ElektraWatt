@@ -147,3 +147,26 @@ pub fn empty_point(c: &CanvasModel) -> (i64, i64) {
     }
     panic!("no empty point on {}", c.page().folio)
 }
+
+/// The structural tokens of a describe line: every token outside quotes, numbers, aliases and punctuation left out.
+pub fn structural_tokens(line: &str) -> Vec<String> {
+    let mut outside = String::new();
+    let mut quoted = false;
+    for c in line.chars() {
+        if c == '"' {
+            quoted = !quoted;
+            outside.push(' ');
+        } else if !quoted {
+            outside.push(c);
+        }
+    }
+    outside
+        .split_whitespace()
+        .filter(|t| {
+            t.parse::<f64>().is_err()
+                && !ew_viewmodel::alias::is_alias(t)
+                && !t.chars().all(|c| !c.is_alphanumeric())
+        })
+        .map(str::to_owned)
+        .collect()
+}

@@ -706,6 +706,25 @@ fn starter_embed_part_names_every_missing_fndef() {
         .expect("the contact FnDef")
         .expect("the contact FnDef");
     assert_eq!(keys(&second), ["ew.fn.contact-no"]);
+    // A template that names two starter FnDefs and no black box: the symbol and both definitions, in template order.
+    let fixture: Value = serde_json::from_str(
+        &std::fs::read_to_string(expected.join("two_starter_fndef_part.json")).expect("the fixture"),
+    )
+    .expect("JSON");
+    let starter_part: Uuid = fixture["id"]
+        .as_str()
+        .expect("the part copy's ID")
+        .parse()
+        .expect("a UUID");
+    run(&mut s, "library.embed", json!({"copies": [fixture]}));
+    let starter = s
+        .starter_embed_part(starter_part, "ew.iec.contact-no@qet10")
+        .expect("the starter symbol and both FnDefs")
+        .expect("the symbol and both FnDefs");
+    assert_eq!(
+        keys(&starter),
+        ["ew.iec.contact-no@qet10", "ew.fn.contact-no", "ew.fn.contact-nc"]
+    );
     // Embedding it leaves both calls nothing to embed.
     run(&mut s, "library.embed", first);
     assert!(

@@ -377,6 +377,8 @@ const ITEM_PART_TWO_FX: Uuid = Uuid::from_u128(0x7e57_0000_0000_4000_8000_0000_0
 const ITEM_PART_MISSING_FX: Uuid = Uuid::from_u128(0x7e57_0000_0000_4000_8000_0000_0000_0031);
 /// The FnDef `test.fn.unknown` of the missing-entry fixture; no library holds it.
 const ITEM_FN_UNKNOWN: Uuid = Uuid::from_u128(0x7e57_0000_0000_4000_8000_0000_0000_0032);
+/// The two-starter-FnDef part fixture of `crates/ew-api/tests/expected/two_starter_fndef_part.json`.
+const ITEM_PART_STARTER_FX: Uuid = Uuid::from_u128(0x7e57_0000_0000_4000_8000_0000_0000_0033);
 
 fn copy_id<T>(item: Uuid) -> Id<T> {
     ew_ids::v5::lib_copy_id(LIB_TEST, item)
@@ -772,13 +774,12 @@ fn check_fixture(name: &str, doc: &LibDocument) {
         std::fs::create_dir_all(path.parent().expect("a directory")).expect("the expected directory");
         std::fs::write(&path, &text).expect("the fixture");
     }
-    let committed = std::fs::read_to_string(&path)
-        .unwrap_or_else(|e| panic!("{}: {e}; EW_BLESS=1 rewrites it", path.display()))
-        .replace("\r\n", "\n");
+    let committed =
+        std::fs::read(&path).unwrap_or_else(|e| panic!("{}: {e}; EW_BLESS=1 rewrites it", path.display()));
     assert_eq!(
-        committed,
-        text,
-        "{} is not the fixture this build generates; EW_BLESS=1 rewrites it",
+        committed.as_slice(),
+        text.as_bytes(),
+        "{} is not the fixture this build generates byte for byte; EW_BLESS=1 rewrites it",
         path.display()
     );
 }
@@ -787,45 +788,49 @@ fn check_fixture(name: &str, doc: &LibDocument) {
 fn the_two_fndef_part_fixtures_are_current() {
     let work = Work::new();
     let s = open_copy(&work, 6);
-    // The starter FnDef `ew.fn.contact-no` as `library.embed` takes it.
-    let mut contact_no: Value = serde_json::from_str(
-        &std::fs::read_to_string(Path::new(CONTENT).join("fndefs/ew.fn.contact-no.json"))
-            .expect("the starter FnDef"),
-    )
-    .expect("JSON");
-    contact_no = embeddable(contact_no);
-    let contact_def = LibDocument::from_value(contact_no).expect("a FnDef");
-    let LibDocument::Fndef(contact_copy) = &contact_def else {
-        panic!("a FnDef");
+    // The starter FnDefs the fixtures' template entries name, as `library.embed` takes one.
+    let starter_ref = |key: &str| -> ew_schema::LibRef {
+        let json = embeddable(
+            serde_json::from_str(
+                &std::fs::read_to_string(Path::new(CONTENT).join("fndefs").join(format!("{key}.json")))
+                    .expect("the starter FnDef"),
+            )
+            .expect("JSON"),
+        );
+        let doc = LibDocument::from_value(json).expect("a FnDef");
+        let LibDocument::Fndef(copy) = &doc else {
+            panic!("a FnDef");
+        };
+        ew_schema::LibRef {
+            library: copy.library_id,
+            item: copy.item_id,
+            version_req: "^0.1".into(),
+            extra: Extra::from([("key".to_owned(), Value::from(key))]),
+        }
     };
-    // Golden A's MICO 4.10 part copy: the black box plus a normally open contact on pattern CPs 4 and 5.
+    let contact_no = starter_ref("ew.fn.contact-no");
+    let contact_nc = starter_ref("ew.fn.contact-nc");
+    // Golden A's MICO 4.10 part copy: its black-box template entry and its ten-CP pattern.
     let mico: Arc<ew_schema::LibCopy<Part>> = s
         .query()
         .parts()
         .get(id(PART_MICO))
         .cloned()
         .expect("the MICO 4.10 part copy");
-    let build = |item: Uuid, part_number: &str, contact: ew_schema::LibRef| -> LibDocument {
+    let blackbox = mico.item.function_template[0].clone();
+    assert_eq!(blackbox.cps, (0..10).collect::<Vec<u16>>());
+    let blackbox_entry = TemplateFn {
+        // The black box keeps the pattern CPs that are not the contact's.
+        cps: vec![0, 1, 2, 3, 6, 7, 8, 9],
+        ..blackbox
+    };
+    let build = |item: Uuid, part_number: &str, template: Vec<TemplateFn>| -> LibDocument {
         let mut part = (*mico).clone();
-        let blackbox = part.item.function_template[0].clone();
-        assert_eq!(blackbox.cps, (0..10).collect::<Vec<u16>>());
         part.library_id = Id::from_uuid(LIB_TEST);
         part.item_id = Id::from_uuid(item);
         part.id = copy_id(item);
         part.item.part_number = part_number.parse().expect("a part number");
-        part.item.function_template = vec![
-            TemplateFn {
-                // The black box keeps the pattern CPs that are not the contact's.
-                cps: vec![0, 1, 2, 3, 6, 7, 8, 9],
-                ..blackbox
-            },
-            TemplateFn {
-                fndef: contact,
-                main: false,
-                cps: vec![4, 5],
-                extra: Extra::new(),
-            },
-        ];
+        part.item.function_template = template;
         let doc = LibDocument::Part(part.clone());
         part.sha256 = Sha256(library_copy_hash(&doc).expect("hashable"));
         LibDocument::Part(part)
@@ -833,25 +838,56 @@ fn the_two_fndef_part_fixtures_are_current() {
     let two = build(
         ITEM_PART_TWO_FX,
         "MICO 4.10 TWO",
-        ew_schema::LibRef {
-            library: contact_copy.library_id,
-            item: contact_copy.item_id,
-            version_req: "^0.1".into(),
-            extra: Extra::from([("key".to_owned(), Value::from("ew.fn.contact-no"))]),
-        },
+        vec![
+            blackbox_entry.clone(),
+            TemplateFn {
+                fndef: contact_no.clone(),
+                main: false,
+                cps: vec![4, 5],
+                extra: Extra::new(),
+            },
+        ],
     );
     let missing = build(
         ITEM_PART_MISSING_FX,
         "MICO 4.10 MISSING",
-        ew_schema::LibRef {
-            library: Id::from_uuid(LIB_TEST),
-            item: Id::from_uuid(ITEM_FN_UNKNOWN),
-            version_req: "^0.1".into(),
-            extra: Extra::from([("key".to_owned(), Value::from("test.fn.unknown"))]),
-        },
+        vec![
+            blackbox_entry,
+            TemplateFn {
+                fndef: ew_schema::LibRef {
+                    library: Id::from_uuid(LIB_TEST),
+                    item: Id::from_uuid(ITEM_FN_UNKNOWN),
+                    version_req: "^0.1".into(),
+                    extra: Extra::from([("key".to_owned(), Value::from("test.fn.unknown"))]),
+                },
+                main: false,
+                cps: vec![4, 5],
+                extra: Extra::new(),
+            },
+        ],
+    );
+    // Two starter FnDefs and no black box: the part-first arm reaches both.
+    let starter = build(
+        ITEM_PART_STARTER_FX,
+        "MICO 4.10 STARTER",
+        vec![
+            TemplateFn {
+                fndef: contact_no,
+                main: true,
+                cps: vec![4, 5],
+                extra: Extra::new(),
+            },
+            TemplateFn {
+                fndef: contact_nc,
+                main: false,
+                cps: vec![6, 7],
+                extra: Extra::new(),
+            },
+        ],
     );
     check_fixture("two_fndef_part.json", &two);
     check_fixture("missing_fndef_part.json", &missing);
+    check_fixture("two_starter_fndef_part.json", &starter);
 }
 
 // ---------------------------------------------------------------------------------------------------------

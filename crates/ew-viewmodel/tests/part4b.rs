@@ -9,7 +9,7 @@
 
 mod common;
 
-use common::{Tmp, at, done, state};
+use common::{Tmp, at, done, state, structural_tokens};
 use ew_viewmodel::canvas::{HOVER_SLOP_PT, pick};
 use ew_viewmodel::ew_api::output::{PageTables, TableEnd, TableItem, TableRep, TableStructureBox};
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
@@ -24,6 +24,11 @@ const TWO_FNDEF_PART: &str = concat!(
 const MISSING_FNDEF_PART: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../ew-api/tests/expected/missing_fndef_part.json"
+);
+/// The fixture part `MICO 4.10 STARTER`, which needs two starter FnDefs and no black box.
+const TWO_STARTER_FNDEF_PART: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../ew-api/tests/expected/two_starter_fndef_part.json"
 );
 
 /// A headless shell with a writable copy of Golden A on `folio`, at actual size.
@@ -122,8 +127,8 @@ fn place_box(s: &mut ShellModel, outline: &[(i64, i64)], caption: &str) -> Table
         .unwrap_or_else(|| panic!("no box {caption}"))
 }
 
-/// A free grid rectangle on the page: no entity under its centre or its top edge's middle. Its outline and the page
-/// point of its centre.
+/// A free grid rectangle on the page: no entity and no link under its four corners, its four edge midpoints or its
+/// centre. Its outline and the page point of its centre.
 fn free_rectangle(s: &ShellModel) -> (Vec<(i64, i64)>, (i64, i64)) {
     let c = s.canvas().unwrap();
     let slop = HOVER_SLOP_PT / c.points_per_nm();
@@ -134,16 +139,20 @@ fn free_rectangle(s: &ShellModel) -> (Vec<(i64, i64)>, (i64, i64)) {
     };
     for ky in (10..90).step_by(4) {
         for kx in (10..120).step_by(4) {
-            let centre = (sn.page_of_index(kx), sn.page_of_index(ky));
-            let top = (centre.0, sn.page_of_index(ky - 2));
-            if free(centre) && free(top) {
-                let outline = vec![
-                    (sn.page_of_index(kx - 2), sn.page_of_index(ky - 2)),
-                    (sn.page_of_index(kx + 2), sn.page_of_index(ky - 2)),
-                    (sn.page_of_index(kx + 2), sn.page_of_index(ky + 2)),
-                    (sn.page_of_index(kx - 2), sn.page_of_index(ky + 2)),
-                ];
-                return (outline, centre);
+            let pt = |dx: i64, dy: i64| (sn.page_of_index(kx + dx), sn.page_of_index(ky + dy));
+            let checks = [
+                pt(-2, -2),
+                pt(2, -2),
+                pt(2, 2),
+                pt(-2, 2),
+                pt(0, -2),
+                pt(2, 0),
+                pt(0, 2),
+                pt(-2, 0),
+                pt(0, 0),
+            ];
+            if checks.iter().all(|p| free(*p)) {
+                return (vec![pt(-2, -2), pt(2, -2), pt(2, 2), pt(-2, 2)], pt(0, 0));
             }
         }
     }
@@ -186,29 +195,6 @@ fn connection_between<'a>(
             (x == a && y == b) || (x == b && y == a)
         })
         .unwrap_or_else(|| panic!("no connection between {a} and {b}"))
-}
-
-/// The structural tokens of a describe line: every token outside quotes, numbers, aliases and punctuation left out.
-fn structural_tokens(line: &str) -> Vec<String> {
-    let mut outside = String::new();
-    let mut quoted = false;
-    for c in line.chars() {
-        if c == '"' {
-            quoted = !quoted;
-            outside.push(' ');
-        } else if !quoted {
-            outside.push(c);
-        }
-    }
-    outside
-        .split_whitespace()
-        .filter(|t| {
-            t.parse::<f64>().is_err()
-                && !ew_viewmodel::alias::is_alias(t)
-                && !t.chars().all(|c| !c.is_alphanumeric())
-        })
-        .map(str::to_owned)
-        .collect()
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -375,7 +361,7 @@ fn a_press_inside_a_box_starts_a_band_and_its_outline_picks_it() {
     done(&mut s, "canvas.press", at(from, json!({})));
     assert_eq!(s.tool().state(), "rubber-band");
     let d = (10.0 / s.canvas().unwrap().points_per_nm()) as i64;
-    done(&mut s, "canvas.pointer", at((from.0 + d, from.1 + d), json!({})));
+    done(&mut s, "canvas.pointer", at((from.0 + d, from.1), json!({})));
     assert_eq!(s.tool().state(), "rubber-band");
     done(&mut s, "ui.dismiss", json!({}));
     // The middle of the top edge picks the box; two grid steps drag it alone.
@@ -463,12 +449,33 @@ fn a_two_fndef_part_embeds_its_missing_fndef_once() {
 fn a_part_function_with_a_starter_symbol_embeds_symbol_and_fndefs_in_one_step() {
     let tmp = Tmp::new("part4b-part-first");
     let mut s = shell(&tmp, "101");
-    embed_fixture(&mut s, TWO_FNDEF_PART);
+    // Golden A embeds neither FnDef the fixture's template names.
+    let fixture: Value =
+        serde_json::from_str(&std::fs::read_to_string(TWO_STARTER_FNDEF_PART).expect("the fixture"))
+            .expect("JSON");
+    {
+        let (golden, _) =
+            ew_viewmodel::ew_api::Session::open_read_only(std::path::Path::new(common::GOLDEN_A), "test")
+                .expect("Golden A opens read-only");
+        let q = golden.query();
+        for entry in fixture["function_template"].as_array().expect("a template") {
+            let library = entry["fndef"]["library"].as_str().expect("a library");
+            let item = entry["fndef"]["item"].as_str().expect("an item");
+            assert!(
+                !q.fndefs()
+                    .iter()
+                    .any(|(_, d)| d.library_id.to_string() == library && d.item_id.to_string() == item),
+                "Golden A embeds the fixture FnDef {}",
+                entry["fndef"]["key"]
+            );
+        }
+    }
+    embed_fixture(&mut s, TWO_STARTER_FNDEF_PART);
     let rev = s.revision();
     done(
         &mut s,
         "place.pick",
-        json!({"part": "MICO 4.10 TWO", "template": 1, "letter": "K"}),
+        json!({"part": "MICO 4.10 STARTER", "template": 0, "letter": "K"}),
     );
     assert_eq!(s.revision(), rev.map(|r| r + 1), "one library.embed");
     assert_eq!(s.tool().name(), "place");
@@ -476,8 +483,22 @@ fn a_part_function_with_a_starter_symbol_embeds_symbol_and_fndefs_in_one_step() 
     let ghost = &canvas(&s)["ghost"];
     assert_eq!(ghost["symbol"], "ew.iec.contact-no@qet10");
     assert_eq!(ghost["target"], "part");
-    // A free grid point, then Alt+Enter places the contact.
-    let p = grid_point(&s, (70, 40));
+    // The one host commit embedded the symbol and both starter FnDefs, in that order.
+    let embed = s.recorded_commands().last().expect("the library.embed");
+    assert_eq!(embed.cmd, "library.embed");
+    let keys: Vec<&str> = embed.params["copies"]
+        .as_array()
+        .expect("copies")
+        .iter()
+        .map(|c| c["meta"]["key"].as_str().expect("a key"))
+        .collect();
+    assert_eq!(
+        keys,
+        ["ew.iec.contact-no@qet10", "ew.fn.contact-no", "ew.fn.contact-nc"]
+    );
+    // A checked-free grid point, then Alt+Enter: `from_part` refuses unless the template's second FnDef is
+    // embedded too.
+    let (_, p) = free_rectangle(&s);
     let cursor = sheet(&s, p);
     done(&mut s, "cursor.set", at(cursor, json!({})));
     let rev = s.revision();
