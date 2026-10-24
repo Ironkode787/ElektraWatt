@@ -8,7 +8,7 @@ after part 1, part 3 after part 1 and WP-S2.04 part 1; Opus review of each ·
 [WP-S2.05](../02-work-packages.md#wp-s205-property-grid-provenance-find-and-replace-clipboard) · **Decision log:**
 ID-591 to ID-600, the ten entries of §15.3 in order (follow-ups FT-393 to FT-403, the eleven of §15.4 in order; item
 12 is a note in ID-593); §4.1 rule 2's precondition is met: `ci/dep-rules.toml` and architecture §3 carry the
-`ew-api` edges to `ew-units` and `ew-mltext` as normal edges (ID-600); **part 1 delivered in cycle 25**, recorded as ID-626 with its twelve rulings and lane B's last fix, the integration rules ID-628 and the alias grammar ID-630; follow-ups FT-427 to FT-429; **part 2 delivered in cycle 26**, recorded as ID-634 with its twelve rulings, the `run_script` Bulk rule, the regex edge and the window check's focus fix, FT-427 closed, the integration ID-638 and the window checks ID-639; follow-ups FT-431 to FT-433 and FT-435; part 3 (the clipboard) next · **Part of:**
+`ew-api` edges to `ew-units` and `ew-mltext` as normal edges (ID-600); **part 1 delivered in cycle 25**, recorded as ID-626 with its twelve rulings and lane B's last fix, the integration rules ID-628 and the alias grammar ID-630; follow-ups FT-427 to FT-429; **part 2 delivered in cycle 26**, recorded as ID-634 with its twelve rulings, the `run_script` Bulk rule, the regex edge and the window check's focus fix, FT-427 closed, the integration ID-638 and the window checks ID-639; follow-ups FT-431 to FT-433 and FT-435; **part 3 delivered in cycle 27**, recorded as ID-648 with its eleven rulings, the integration and window checks ID-652; follow-ups FT-452 to FT-456; the package is complete · **Part of:**
 ElektraWatt plan, specifications
 
 **Purpose.** This is the closed specification of the package that lets a user read and change every value of what
@@ -746,8 +746,7 @@ A fragment is UTF-8 text, LF line ends, a final LF:
    and items' bounds, snapped down to the grid: the largest grid point not greater on each axis), and the ghost
    rectangles (each copied representation's `TableRep.body` and each item's bounds, relative to the anchor, in record
    order).
-3. Then one line per record, the canonical record line of the project files (`$k` first; doc 05 §3.1), ordered by
-   (kind rank, ID).
+3. Then one line per record, the canonical record line of the project files (`$k` first; doc 05 §3.1), ordered by (kind rank, ID) (*amended in cycle 27, decision log ID-648:* by (kind rank, position, ID), the as-built note below).
 4. Then one line `{"$lib": <libdoc>}` per library copy (the `lib/` JSON form `library.embed` takes), ordered by
    (kind, copy ID).
 5. Then one line `{"$node": {"id": "<uuid>", "aspect": "<aspect>", "path": ["J-E-2416", …], "aliases": […]}}` per
@@ -758,7 +757,7 @@ Equal selections on equal snapshots give byte-equal text. Any other application 
 "grid", "page_kind", "anchor", "records": [<record>…], "copies": [<libdoc>…], "nodes": [<node>…]}` (no ghost); its
 schema is committed with the command.
 
-*As built (cycle 27, lane E; review fix round):* the `$fragment` header is open within v1 (an unknown member is ignored), a `$node` line's members are closed (`id`, `aspect`, `path`, `aliases`); a leading byte-order mark is skipped, CRLF line ends are read and empty lines skipped. Records are ordered by (kind rank, position, ID) — a representation's insertion point, a junction's point, a device's and a function's first copied representation, a connection's and a potential definition's end — not by (kind rank, ID) (FT-439's rule that machine text is not ordered by UUID), and `edit.paste` mints in (kind rank, fragment order) and numbers the pasted devices in that order with online numbering's own loop (`numbering::number_devices`), because the UUIDv7s one transaction mints are not monotonic. A copy drops the import lineage (`source_ref`), and so does `edit.paste` for a fragment written elsewhere.
+*As built (cycle 27, lane E; review fix round):* the `$fragment` header is open within v1 (an unknown member is ignored), a `$node` line's members are closed (`id`, `aspect`, `path`, `aliases`); a leading byte-order mark is skipped, CRLF line ends are read and empty lines skipped. Records are ordered by (kind rank, position, ID) — a representation's insertion point, a junction's point, a device's and a function's first copied representation, a connection's and a potential definition's end — not by (kind rank, ID) (FT-439's rule that machine text is not ordered by UUID), and `edit.paste` mints in (kind rank, fragment order) and numbers the pasted devices in that order with online numbering's own loop (`numbering::number_devices`), because the UUIDv7s one transaction mints are not monotonic. A copy drops the import lineage (`source_ref`), and so does `edit.paste` for a fragment written elsewhere. The fragment carries raw UUIDs as data (lane E's ruling 1, a decision; ID-648): it is clipboard content, never the shell's machine text, so the alias rule of FT-422 does not apply to it, and the transcript's `clipboard` member carries kinds and counts only (§8.8). It does not carry the part-4a kinds yet (FT-452).
 
 ### 8.2 Copy (`Session::copy_fragment`)
 
@@ -810,6 +809,7 @@ In one transaction, reading rows through `TxBuilder` only. **Rejected** (at the 
 - `/fragment/records/<i>`: a kind outside §8.3's list; a representation whose rep type the page type does not allow; a
   **mandatory** reference (effect 4) that resolves neither inside the fragment nor through effects 1 and 2; an image
   item whose asset the target project does not hold;
+- *amended in cycle 27 (ID-648):* a representation whose position is not on the page grid is refused at `/fragment/records/<i>` (the translation is in grid steps); a record's import lineage (`source_ref`) is dropped before the references are resolved, never refused;
 - `/fragment/copies/<i>`: a document that `library.embed`'s `check_copy` rejects; a copy the project holds in another
   version (other `sha256`): "the project holds another version of <item>; update from library first" (the three-way
   choice of doc 06 §3.6 item 4 is a follow-up);
@@ -821,7 +821,7 @@ In one transaction, reading rows through `TxBuilder` only. **Rejected** (at the 
 2. **Structure:** each `$node` rebinds to the target node of the same aspect and the same path codes, else to the one
    node whose aliases contain the leaf code; an unmatched node clears the slots that named it (the record inherits),
    with a notice "structure <path> is not in this project: inherits the page". No node is created.
-3. **Identity:** every record gets `tx.mint()`, in (kind rank, source ID) order. The references to remap are found
+3. **Identity:** every record gets `tx.mint()`, in (kind rank, source ID) order (*amended in cycle 27, ID-648:* in (kind rank, fragment order)). The references to remap are found
    **mechanically from `ew_model::LINKS`** (every declared link of the record's kind; `NOT_LINKS` members are copied as
    they are): a link whose target is a fragment record takes the new ID; a `LibRef` link takes the held or embedded copy
    ID (effect 1); a structure slot takes the rebound node (effect 2). No hand list of reference members exists in the
@@ -846,7 +846,7 @@ In one transaction, reading rows through `TxBuilder` only. **Rejected** (at the 
 6. **Numbering reset:** each device's `tag.counter` and `tag.frozen` are cleared (frozen tags are not copied, doc 06
    §3.6 item 2); terminal designations are kept (the strip is new); each connection's `number` becomes `Unassigned`.
    The online-numbering normalisers then number the new devices and wires in their own order (the lane verifies that
-   the as-built normaliser orders new devices by anchor cell, FR-NUM-028; if not, it stops and reports).
+   the as-built normaliser orders new devices by anchor cell, FR-NUM-028; if not, it stops and reports). *As built (ID-648):* it orders them by ID, so `edit.paste` gives each pasted device that takes part in page-based numbering the next free counter of its main page's scope in fragment order (`numbering::number_devices`, the loop normaliser 4 shares), and the normaliser finds nothing to renumber; FR-NUM-028's anchor-cell order is WP-S1.11's (FT-456).
 7. **IP names** are kept; pairings with points already in the target are derived (the preview's derived diff shows
    the new cross-reference texts, doc 06 §3.6 item 6).
 8. A wire marker left without connections and a junction left with fewer than two connections are removed by the
@@ -868,7 +868,7 @@ then the paste tool with the ghost starting two grid steps right and down of the
 copy, then `edit.delete` of the selection through `edit.delete_selection`'s path (one undo step; the clipboard keeps
 the fragment). **Copy** (`edit.copy`, Ctrl+C): the fragment to the clipboard; **Copy tag list** (`edit.copy_tags`,
 Edit menu): `tag_list` to the clipboard as text. Copy and cut with nothing copyable are refused with
-`reason-nothing-selected`.
+`reason-nothing-selected`. *As built (ID-648):* cut leaves the device and its functions unplaced (FR-DEV-003; doc 06 §3.6), replaces the selection only after a successful copy and leaves it as it was when the copy is refused; a device or function selected by tag is copied and cut as its representations on the page shown; on Windows egui-winit also turns Shift+Delete into the Cut event. Edit ▸ Paste sends `ViewportCommand::RequestPaste` (egui 0.37), and a paste of the text the shell already holds keeps the copy's kind and dropped count.
 
 ### 8.6 Cross-instance and cross-project paste
 
@@ -901,6 +901,10 @@ canvas ghost paste records 7 at 254.000 101.600 mm dropped 1
 
 `VOCABULARY` gains `clipboard`, `fragment`, `records`, `copies`, `paste`, `dropped` (6 words); `lines`, `none`, `at`,
 `mm` exist, `text` and `ghost` come with WP-S2.04.
+
+### 8.9 As built (cycle 27; decision log ID-648, ID-652)
+
+Part 3 is delivered as §8.1 to §8.8 say, with the amendments marked there: `edit.paste` (47 commands on the lane's base, 54 at the integration tip), `Session::copy_fragment`, `parse_fragment` and `tag_list`, the paste tool, Duplicate, Cut, Copy, Paste and Copy tag list, the headless clipboard, six actions and the 6 words of §8.8 (252 words at the integration tip). CB1 to CB8 pass: T55, E55 and E56 of folio 101 pasted into folio 1 of a new project by a script through the built binary, twice byte-identical without a raw UUID, the `--record` log (one `edit.paste`) replayed onto a copy of the same new project; two shell models as two instances; Copy tag list gives `-101F1`, `F55`, `S51`. The expected fragment is compared byte for byte and lives under the `REUSE.toml` annotation (ID-652). The window check on the merged build passed the paste tool, Ctrl+D, Ctrl+X and Shift+Delete with undo, Edit ▸ Paste and Ctrl+V in a text field; a paste on the title page now refuses with a reason (fixed in the cycle-27 window fix round). Follow-ups: FT-452 (the part-4a kinds), FT-453 (a same-project paste keeps the parent), FT-454 (duplicate potential names), FT-455 (the Linux clipboard check), FT-456 (the normaliser's order).
 
 ## 9. Determinism, the headless mode and exact counts
 
