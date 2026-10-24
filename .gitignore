@@ -13,3 +13,6 @@
 
 # Claude Code agent worktrees (local only)
 .claude/worktrees/
+
+# DeepSeek coder runs: task texts, dsh event logs and run state (local only)
+.claude/deepseek/runs/

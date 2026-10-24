@@ -1,0 +1,12 @@
+# Overlay for `dsh --profile headless` when the DeepSeek harness codes for this repository under Claude Code's
+# orchestration (see CLAUDE.md "DeepSeek coder"). dsh-task.py passes it with `--patch`, together with a per-run
+# overlay that selects the model and reasoning effort. A row's `config` replaces that plugin's whole config.
+
+# Load the coder brief instead of the default AGENTS.md/CLAUDE.md chain: CLAUDE.md holds the orchestrator's routing
+# rules, which would mislead the coder. A candidate is joined to every directory from the project root down, so this
+# path only matches at the root.
+- id: agent-instructions
+  config:
+    maxBytes: 65536
+    instructionFileCandidates: ['.claude/deepseek/CODER.md']
+    localInstructionFileCandidates: []
