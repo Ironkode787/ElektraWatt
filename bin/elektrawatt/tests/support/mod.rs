@@ -27,7 +27,7 @@
 
 #![allow(dead_code)]
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -246,6 +246,18 @@ pub fn placement_steps(
     strip: &str,
     functions: &BTreeMap<String, String>,
 ) -> (Vec<(String, Value)>, usize) {
+    placement_steps_with(folio, map, strip, functions, &|_| true)
+}
+
+/// [`placement_steps`] over the golden representations `keep` accepts (the folio-103 demo variant leaves the strip
+/// segments out; every other caller keeps every representation).
+pub fn placement_steps_with(
+    folio: u32,
+    map: SheetMap,
+    strip: &str,
+    functions: &BTreeMap<String, String>,
+    keep: &dyn Fn(&Value) -> bool,
+) -> (Vec<(String, Value)>, usize) {
     let all = records();
     let keys = symbol_keys();
     let page = all
@@ -261,6 +273,9 @@ pub fn placement_steps(
     let mut steps: Vec<(String, Value)> = Vec::new();
     let runs = 0;
     for r in reps {
+        if !keep(r) {
+            continue;
+        }
         let symbol = keys[r["symbol"].as_str().unwrap()].clone();
         let pos = (r["pos"][0].as_i64().unwrap(), r["pos"][1].as_i64().unwrap());
         assert_eq!(
@@ -524,6 +539,18 @@ fn golden_tables(folio: u32) -> ew_ui::ew_viewmodel::ew_api::output::PageTables 
 // The tuple of §13.6: the steps, the commits and the junctions' split points.
 #[allow(clippy::type_complexity)]
 pub fn wiring_steps(folio: u32, map: SheetMap) -> (Vec<(String, Value)>, usize, Vec<(i64, i64)>) {
+    wiring_steps_with(folio, map, None)
+}
+
+/// [`wiring_steps`] with an optional end-point map: `Some(f)` places every connection end at `f` of its golden
+/// label instead of the golden point (the folio-103 demo variant routes to the terminals' own CPs); `None` keeps
+/// [`wiring_steps`]'s behaviour.
+#[allow(clippy::type_complexity)]
+pub fn wiring_steps_with(
+    folio: u32,
+    map: SheetMap,
+    cp_at: Option<&dyn Fn(&str) -> Option<(i64, i64)>>,
+) -> (Vec<(String, Value)>, usize, Vec<(i64, i64)>) {
     use ew_ui::ew_viewmodel::ew_api::geometry::Dir;
     use ew_ui::ew_viewmodel::ew_api::output::TableEnd;
     let t = golden_tables(folio);
@@ -531,6 +558,12 @@ pub fn wiring_steps(folio: u32, map: SheetMap) -> (Vec<(String, Value)>, usize, 
     let cp_of = |e: &TableEnd| match e {
         TableEnd::Cp { function, idx } => t.cps.iter().find(|c| c.function == *function && c.idx == *idx),
         TableEnd::Junction { .. } => None,
+    };
+    let at = |cp: &ew_ui::ew_viewmodel::ew_api::output::TableCp| -> (i64, i64) {
+        match cp_at {
+            Some(f) => f(&cp.label).unwrap_or_else(|| panic!("no end point for the CP {}", cp.label)),
+            None => cp.at,
+        }
     };
     let mut steps: Vec<(String, Value)> = vec![
         ("view.zoom_actual".to_owned(), json!({})),
@@ -560,19 +593,20 @@ pub fn wiring_steps(folio: u32, map: SheetMap) -> (Vec<(String, Value)>, usize, 
             "every member of a golden junction ends at a CP"
         );
         let (f0, f1) = (far[0], far[1]);
-        enter(&mut steps, f0.at);
-        enter(&mut steps, f1.at);
+        let f0_at = at(f0);
+        enter(&mut steps, f0_at);
+        enter(&mut steps, at(f1));
         commits += 1;
         let stub = match f0.dir {
-            Some(Dir::Down) => (f0.at.0, coord(index(f0.at.1) + 1)),
-            Some(Dir::Up) => (f0.at.0, coord(index(f0.at.1) - 1)),
-            Some(Dir::Right) => (coord(index(f0.at.0) + 1), f0.at.1),
-            Some(Dir::Left) => (coord(index(f0.at.0) - 1), f0.at.1),
+            Some(Dir::Down) => (f0_at.0, coord(index(f0_at.1) + 1)),
+            Some(Dir::Up) => (f0_at.0, coord(index(f0_at.1) - 1)),
+            Some(Dir::Right) => (coord(index(f0_at.0) + 1), f0_at.1),
+            Some(Dir::Left) => (coord(index(f0_at.0) - 1), f0_at.1),
             None => panic!("a first member without a direction"),
         };
         points.push(stub);
         for f in &far[2..] {
-            enter(&mut steps, f.at);
+            enter(&mut steps, at(f));
             enter(&mut steps, stub);
             commits += 1;
         }
@@ -589,8 +623,8 @@ pub fn wiring_steps(folio: u32, map: SheetMap) -> (Vec<(String, Value)>, usize, 
         let (Some(a), Some(b)) = (cp_of(&c.a), cp_of(&c.b)) else {
             continue;
         };
-        enter(&mut steps, a.at);
-        enter(&mut steps, b.at);
+        enter(&mut steps, at(a));
+        enter(&mut steps, at(b));
         commits += 1;
     }
     steps.push(("ui.dismiss".to_owned(), json!({})));
@@ -1056,6 +1090,18 @@ fn golden_device(all: &BTreeMap<String, Value>, key: &str) -> Value {
 /// node +J-E-206 with Golden A's external references, and the three strips with the 25 terminals of -X1031 and
 /// -X1032 and their parts. Saved and closed; asserts the pages and the terminals and returns the start.
 pub fn gpp_start(exe: &Path, tmp: &Tmp) -> GppStart {
+    gpp_start_common(exe, tmp, false)
+}
+
+/// The folio-103 demo variant's start (§13.6): exactly [`gpp_start`] except that the strips -X1031 and -X1032 and
+/// their 25 terminals are not created (the 1X1 strip, the pages, the library, the node and the external references
+/// are the same). [`GppStart::functions`] is empty.
+pub fn gpp_start_demo(exe: &Path, tmp: &Tmp) -> GppStart {
+    gpp_start_common(exe, tmp, true)
+}
+
+/// The shared part of [`gpp_start`] and [`gpp_start_demo`].
+fn gpp_start_common(exe: &Path, tmp: &Tmp, demo: bool) -> GppStart {
     let all = records();
     let company = tmp.path("company.ew");
     all_done(&run(
@@ -1068,7 +1114,7 @@ pub fn gpp_start(exe: &Path, tmp: &Tmp) -> GppStart {
         ]),
         None,
     ));
-    let job = tmp.path("gpp.ew");
+    let job = tmp.path(if demo { "gpp-demo.ew" } else { "gpp.ew" });
     let mut script = steps(&[("file.new", json!({ "dir": path(&job) }))]);
     for (number, title) in [
         (101, "Power Supply 1 - Main Current"),
@@ -1153,10 +1199,16 @@ pub fn gpp_start(exe: &Path, tmp: &Tmp) -> GppStart {
             json!({"location": node, "device": x["device"], "connection": x["connection"]}),
         );
     }
-    // The three strips, as Golden A's device records name them (never their structure, ID or source_ref).
+    // The strips: all three of `gpp_start`; the demo variant holds only the 1X1 strip (its -X1031 and -X1032 are
+    // created by `strip.new` on folio 103 and their terminals by Place).
     let mut strips: BTreeMap<String, String> = BTreeMap::new();
     let mut strip_main_fns: BTreeMap<String, String> = BTreeMap::new();
-    for key in ["1X1", "-X1031", "-X1032"] {
+    let strip_keys: &[&str] = if demo {
+        &["1X1"]
+    } else {
+        &["1X1", "-X1031", "-X1032"]
+    };
+    for &key in strip_keys {
         let golden = golden_device(&all, key);
         let mut params = serde_json::Map::new();
         params.insert("letter".into(), golden["tag"]["letter"].clone());
@@ -1177,127 +1229,134 @@ pub fn gpp_start(exe: &Path, tmp: &Tmp) -> GppStart {
         }
         if let Some(main) = golden_main_function(&all, &golden) {
             params.insert("main_fndef".into(), main["def"].clone());
-            strip_main_fns.insert(key.to_owned(), main["id"].as_str().unwrap().to_owned());
+            // Only the two strips of folio 103 are in the function map the folio scripts read; the 1X1 strip's
+            // main function is not (E3 of the review of round a28-r5).
+            if matches!(key, "-X1031" | "-X1032") {
+                strip_main_fns.insert(key.to_owned(), main["id"].as_str().unwrap().to_owned());
+            }
         }
         let id = execute(&mut s, "device.create", Value::Object(params));
         strips.insert(key.to_owned(), id.as_str().unwrap().to_owned());
     }
-    // The terminals of -X1031 and -X1032 in `terminal.seq` order, each strip's one FnDef.
-    let mut terminals: Vec<Value> = Vec::new();
-    for key in ["-X1031", "-X1032"] {
-        let strip = golden_device(&all, key);
-        let mut devices: Vec<Value> = all
-            .values()
-            .filter(|r| r["$k"] == "device" && r["terminal"]["strip"] == strip["id"])
-            .cloned()
-            .collect();
-        devices.sort_by_key(|d| d["terminal"]["seq"].as_u64().unwrap_or(0));
-        let mut fndefs: Vec<String> = Vec::new();
-        let mut specs: Vec<Value> = Vec::new();
-        for d in devices {
-            let main = golden_main_function(&all, &d).expect("a terminal function");
-            let def = main["def"].as_str().unwrap().to_owned();
-            if !fndefs.contains(&def) {
-                fndefs.push(def);
-            }
-            let mut spec = serde_json::Map::new();
-            spec.insert("designation".into(), d["terminal"]["designation"].clone());
-            if let Some(seq) = d["terminal"].get("seq") {
-                spec.insert("seq".into(), seq.clone());
-            }
-            if let Some(text) = d.get("function_text").filter(|t| !t.is_null()) {
-                spec.insert("function_text".into(), text.clone());
-            }
-            if d["terminal"]["rail_bonded"].as_bool() == Some(true) {
-                spec.insert("rail_bonded".into(), Value::Bool(true));
-            }
-            if let Some(levels) = d["terminal"]
-                .get("levels")
-                .filter(|l| l.as_array().is_some_and(|a| !a.is_empty()))
-            {
-                spec.insert("levels".into(), levels.clone());
-            }
-            specs.push(Value::Object(spec));
-            terminals.push(d.clone());
-        }
-        assert_eq!(
-            fndefs.len(),
-            1,
-            "the terminals of {key} use {} function definitions; STOP: the generator places one FnDef per strip",
-            fndefs.len()
-        );
-        execute(
-            &mut s,
-            "terminal.add",
-            json!({"strip": strips[key].clone(), "fndef": fndefs[0].clone(), "terminals": specs}),
-        );
-    }
-    // The new terminal device of each golden terminal: by its strip and designation.
-    let golden_strip_ids: BTreeMap<String, String> = ["-X1031", "-X1032"]
-        .into_iter()
-        .map(|k| {
-            (
-                golden_device(&all, k)["id"].as_str().unwrap().to_owned(),
-                strips[k].clone(),
-            )
-        })
-        .collect();
-    let pairs: Vec<(String, String, String)> = {
-        let q = s.query();
-        let mut out = Vec::new();
-        for golden in &terminals {
-            let strip = golden["terminal"]["strip"].as_str().unwrap();
-            let new_strip = golden_strip_ids
-                .get(strip)
-                .unwrap_or_else(|| panic!("a terminal of a created strip: {strip}"));
-            let key = ["-X1031", "-X1032"]
-                .into_iter()
-                .find(|k| strips[*k] == *new_strip)
-                .expect("a terminal of a created strip");
-            let designation = golden["terminal"]["designation"].as_str().unwrap();
-            let found = q.devices().iter().find_map(|(id, d)| {
-                let t = d.aspects.terminal.as_ref()?;
-                (t.strip.to_string() == *new_strip && t.designation.as_str() == designation)
-                    .then(|| id.to_string())
-            });
-            out.push((
-                golden["id"].as_str().unwrap().to_owned(),
-                key.to_owned(),
-                found.unwrap_or_else(|| panic!("no new terminal {key}:{designation}")),
-            ));
-        }
-        out
-    };
-    // The golden part uses of each terminal, `fields.set` on the new terminal device.
-    for (golden_id, _, new_id) in &pairs {
-        let golden = &all[golden_id];
-        execute(
-            &mut s,
-            "fields.set",
-            json!({"kind": "device", "targets": [new_id], "path": "parts", "value": golden["parts"]}),
-        );
-    }
-    // The function map: the strips' main functions and every terminal function.
     let mut functions: BTreeMap<String, String> = BTreeMap::new();
-    {
-        let q = s.query();
-        let find = |device: &str| -> String {
-            q.functions()
-                .iter()
-                .find_map(|(id, f)| {
-                    let v = serde_json::to_value(&**f).unwrap();
-                    (v["device"].as_str() == Some(device) && v["role"].as_str().unwrap_or("main") == "main")
-                        .then(|| id.to_string())
-                })
-                .unwrap_or_else(|| panic!("no main function of device {device}"))
-        };
-        for (key, golden_fn) in &strip_main_fns {
-            functions.insert(golden_fn.clone(), find(&strips[key]));
+    if !demo {
+        // The terminals of -X1031 and -X1032 in `terminal.seq` order, each strip's one FnDef.
+        let mut terminals: Vec<Value> = Vec::new();
+        for key in ["-X1031", "-X1032"] {
+            let strip = golden_device(&all, key);
+            let mut devices: Vec<Value> = all
+                .values()
+                .filter(|r| r["$k"] == "device" && r["terminal"]["strip"] == strip["id"])
+                .cloned()
+                .collect();
+            devices.sort_by_key(|d| d["terminal"]["seq"].as_u64().unwrap_or(0));
+            let mut fndefs: Vec<String> = Vec::new();
+            let mut specs: Vec<Value> = Vec::new();
+            for d in devices {
+                let main = golden_main_function(&all, &d).expect("a terminal function");
+                let def = main["def"].as_str().unwrap().to_owned();
+                if !fndefs.contains(&def) {
+                    fndefs.push(def);
+                }
+                let mut spec = serde_json::Map::new();
+                spec.insert("designation".into(), d["terminal"]["designation"].clone());
+                if let Some(seq) = d["terminal"].get("seq") {
+                    spec.insert("seq".into(), seq.clone());
+                }
+                if let Some(text) = d.get("function_text").filter(|t| !t.is_null()) {
+                    spec.insert("function_text".into(), text.clone());
+                }
+                if d["terminal"]["rail_bonded"].as_bool() == Some(true) {
+                    spec.insert("rail_bonded".into(), Value::Bool(true));
+                }
+                if let Some(levels) = d["terminal"]
+                    .get("levels")
+                    .filter(|l| l.as_array().is_some_and(|a| !a.is_empty()))
+                {
+                    spec.insert("levels".into(), levels.clone());
+                }
+                specs.push(Value::Object(spec));
+                terminals.push(d.clone());
+            }
+            assert_eq!(
+                fndefs.len(),
+                1,
+                "the terminals of {key} use {} function definitions; STOP: the generator places one FnDef per strip",
+                fndefs.len()
+            );
+            execute(
+                &mut s,
+                "terminal.add",
+                json!({"strip": strips[key].clone(), "fndef": fndefs[0].clone(), "terminals": specs}),
+            );
         }
+        // The new terminal device of each golden terminal: by its strip and designation.
+        let golden_strip_ids: BTreeMap<String, String> = ["-X1031", "-X1032"]
+            .into_iter()
+            .map(|k| {
+                (
+                    golden_device(&all, k)["id"].as_str().unwrap().to_owned(),
+                    strips[k].clone(),
+                )
+            })
+            .collect();
+        let pairs: Vec<(String, String, String)> = {
+            let q = s.query();
+            let mut out = Vec::new();
+            for golden in &terminals {
+                let strip = golden["terminal"]["strip"].as_str().unwrap();
+                let new_strip = golden_strip_ids
+                    .get(strip)
+                    .unwrap_or_else(|| panic!("a terminal of a created strip: {strip}"));
+                let key = ["-X1031", "-X1032"]
+                    .into_iter()
+                    .find(|k| strips[*k] == *new_strip)
+                    .expect("a terminal of a created strip");
+                let designation = golden["terminal"]["designation"].as_str().unwrap();
+                let found = q.devices().iter().find_map(|(id, d)| {
+                    let t = d.aspects.terminal.as_ref()?;
+                    (t.strip.to_string() == *new_strip && t.designation.as_str() == designation)
+                        .then(|| id.to_string())
+                });
+                out.push((
+                    golden["id"].as_str().unwrap().to_owned(),
+                    key.to_owned(),
+                    found.unwrap_or_else(|| panic!("no new terminal {key}:{designation}")),
+                ));
+            }
+            out
+        };
+        // The golden part uses of each terminal, `fields.set` on the new terminal device.
         for (golden_id, _, new_id) in &pairs {
             let golden = &all[golden_id];
-            let main = golden_main_function(&all, golden).expect("a terminal function");
-            functions.insert(main["id"].as_str().unwrap().to_owned(), find(new_id));
+            execute(
+                &mut s,
+                "fields.set",
+                json!({"kind": "device", "targets": [new_id], "path": "parts", "value": golden["parts"]}),
+            );
+        }
+        // The function map: the strips' main functions and every terminal function.
+        {
+            let q = s.query();
+            let find = |device: &str| -> String {
+                q.functions()
+                    .iter()
+                    .find_map(|(id, f)| {
+                        let v = serde_json::to_value(&**f).unwrap();
+                        (v["device"].as_str() == Some(device)
+                            && v["role"].as_str().unwrap_or("main") == "main")
+                            .then(|| id.to_string())
+                    })
+                    .unwrap_or_else(|| panic!("no main function of device {device}"))
+            };
+            for (key, golden_fn) in &strip_main_fns {
+                functions.insert(golden_fn.clone(), find(&strips[key]));
+            }
+            for (golden_id, _, new_id) in &pairs {
+                let golden = &all[golden_id];
+                let main = golden_main_function(&all, golden).expect("a terminal function");
+                functions.insert(main["id"].as_str().unwrap().to_owned(), find(new_id));
+            }
         }
     }
     s.save().unwrap();
@@ -1310,31 +1369,677 @@ pub fn gpp_start(exe: &Path, tmp: &Tmp) -> GppStart {
             "the start project has page {folio}"
         );
     }
-    let q = s.query();
-    let created: Vec<_> = q
-        .devices()
-        .iter()
-        .filter(|(_, d)| {
-            d.aspects.terminal.as_ref().is_some_and(|t| {
-                let strip = t.strip.to_string();
-                strip == strips["-X1031"] || strip == strips["-X1032"]
+    if demo {
+        assert_eq!(strips.len(), 1, "the demo start creates only the 1X1 strip");
+        assert!(functions.is_empty(), "the demo start's function map is empty");
+    } else {
+        let q = s.query();
+        let created: Vec<_> = q
+            .devices()
+            .iter()
+            .filter(|(_, d)| {
+                d.aspects.terminal.as_ref().is_some_and(|t| {
+                    let strip = t.strip.to_string();
+                    strip == strips["-X1031"] || strip == strips["-X1032"]
+                })
             })
-        })
-        .collect();
-    assert_eq!(created.len(), 25, "25 terminal devices on -X1031 and -X1032");
-    for (_, d) in created {
-        assert_eq!(
-            d.parts.len(),
-            1,
-            "each terminal of -X1031 and -X1032 has exactly one part use"
-        );
+            .collect();
+        assert_eq!(created.len(), 25, "25 terminal devices on -X1031 and -X1032");
+        for (_, d) in created {
+            assert_eq!(
+                d.parts.len(),
+                1,
+                "each terminal of -X1031 and -X1032 has exactly one part use"
+            );
+        }
+        drop(q);
     }
-    drop(q);
     drop(s);
     GppStart {
         dir: job,
         strip_1x1: strips["1X1"].clone(),
         functions,
+    }
+}
+
+// -------------------------------------------------------------------------------------------------------------------
+// The folio-103 demo variant (WP-S2.04 §13.6, round a28-r8): the strips by `strip.new` with their golden values
+// member by member, the 15 terminals by Place, their parts, the wiring to the terminals' own CPs, PI10's bridges and
+// the other golden bridges with the strips' plug-in bridge part uses.
+
+/// The 15 terminals of the demo variant that folio 103's drawn connections end at, in placement order.
+pub const DEMO_X1031_TERMINALS: [&str; 11] = ["1", "2", "3", "4", "5", "7", "9", "11", "12", "13", "14"];
+/// The -X1032 terminals of the demo variant.
+pub const DEMO_X1032_TERMINALS: [&str; 4] = ["1", "2", "3", "4"];
+
+/// The demo variant's two strips, by golden key.
+pub struct DemoStrips {
+    /// The -X1031 strip device.
+    pub x1031: String,
+    /// The -X1032 strip device.
+    pub x1032: String,
+    /// The golden plug-in bridge part use of each strip, by golden strip key (its quantity is set in B6).
+    pub bridge_parts: BTreeMap<String, Value>,
+    /// The Session-executed records, by command name.
+    pub executed: BTreeMap<String, usize>,
+}
+
+/// The golden part copy `copy` as its document.
+fn golden_part(copy: &str) -> Value {
+    let path = Path::new(GOLDEN_A).join("lib/parts").join(format!("{copy}.json"));
+    serde_json::from_str(
+        &std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display())),
+    )
+    .unwrap()
+}
+
+/// Whether a golden part use is the plug-in bridge (by its part's description).
+fn part_use_is_bridge(use_: &Value) -> bool {
+    use_["part"]["copy"]
+        .as_str()
+        .is_some_and(|copy| golden_part(copy)["description"] == "Plug-in bridge")
+}
+
+/// The golden symbol key and copy ID of the representation `key` on folio `folio`.
+fn golden_rep_symbol(folio: u32, key: &str) -> (String, String) {
+    let all = records();
+    let keys = symbol_keys();
+    let page = all
+        .values()
+        .find(|r| r["$k"] == "page" && r["folio"]["number"] == folio)
+        .unwrap_or_else(|| panic!("no page {folio}"))["id"]
+        .clone();
+    let rep = all
+        .values()
+        .find(|r| {
+            r["$k"] == "representation"
+                && r["page"] == page
+                && r["source_ref"]["key"] == format!("representations|{key}")
+        })
+        .unwrap_or_else(|| panic!("no golden representation {key} on {folio}"));
+    let copy = rep["symbol"].as_str().unwrap().to_owned();
+    (keys[&copy].clone(), copy)
+}
+
+/// The golden connection record of `key` (e.g. `connections|BR1.1`).
+fn golden_connection(key: &str) -> Value {
+    records()
+        .values()
+        .find(|r| r["$k"] == "connection" && r["source_ref"]["key"] == key)
+        .unwrap_or_else(|| panic!("no golden connection {key}"))
+        .clone()
+}
+
+/// The bridge shaft's CP index on a terminal (the golden BR1.1 endpoint).
+fn golden_bridge_shaft() -> u16 {
+    u16::try_from(
+        golden_connection("connections|BR1.1")["a"]["cp"][1]
+            .as_u64()
+            .unwrap(),
+    )
+    .unwrap()
+}
+
+/// A `fields.set` of one device path.
+fn demo_fields(device: &str, path: &str, value: Value) -> AnyCommand {
+    AnyCommand {
+        name: "fields.set".into(),
+        params: json!({"kind": "device", "targets": [device], "path": path, "value": value}),
+    }
+}
+
+/// B1: the two strips of the folio-103 demo variant by `strip.new`, then their golden values member by member
+/// (`tag.<member>`, `strip.<member>`) and their parts without the plug-in bridge part use. A golden member whose
+/// subpath the command refuses stops the lane: it is never skipped.
+pub fn demo_103_strips(exe: &Path, tmp: &Tmp, job: &Path, strip_1x1: &str) -> DemoStrips {
+    let all = records();
+    let mut out = DemoStrips {
+        x1031: String::new(),
+        x1032: String::new(),
+        bridge_parts: BTreeMap::new(),
+        executed: BTreeMap::new(),
+    };
+    let mut seen: BTreeSet<String> = BTreeSet::new();
+    for key in ["-X1031", "-X1032"] {
+        let name = key.trim_start_matches('-');
+        all_done(&run(
+            exe,
+            tmp,
+            &format!("gpp-demo-strip-{name}.jsonl"),
+            &steps(&[
+                ("file.open", json!({"dir": path(job)})),
+                ("page.goto", json!({"folio": "103"})),
+                ("strip.new", json!({"letter": "X"})),
+                ("file.save", json!({})),
+                ("file.close", json!({})),
+            ]),
+            None,
+        ));
+        let mut store = ew_ui::ew_viewmodel::ew_api::StoreOptions::new("test");
+        store.state_dir = Some(tmp.path(&format!("state-gpp-demo-strip-{name}")));
+        let (mut s, _) = Session::open(
+            job,
+            store,
+            ew_ui::ew_viewmodel::ew_api::SessionOptions::default(),
+            ew_ui::ew_viewmodel::ew_api::Recovery::Keep,
+        )
+        .unwrap();
+        let new: Vec<String> = {
+            let q = s.query();
+            q.devices()
+                .iter()
+                .filter(|(id, d)| {
+                    d.aspects.strip.is_some()
+                        && id.to_string() != strip_1x1
+                        && !seen.contains(&id.to_string())
+                })
+                .map(|(id, _)| id.to_string())
+                .collect()
+        };
+        assert_eq!(new.len(), 1, "one new strip for {key}");
+        let strip = new[0].clone();
+        seen.insert(strip.clone());
+        let golden = golden_device(&all, key);
+        let mut fields: Vec<(String, Value)> = Vec::new();
+        if let Some(tag) = golden["tag"].as_object() {
+            for (member, value) in tag {
+                fields.push((format!("tag.{member}"), value.clone()));
+            }
+        }
+        if let Some(aspect) = golden["strip"].as_object() {
+            for (member, value) in aspect {
+                fields.push((format!("strip.{member}"), value.clone()));
+            }
+        }
+        let mut parts = golden["parts"].as_array().cloned().unwrap_or_default();
+        let bridge = parts
+            .iter()
+            .position(part_use_is_bridge)
+            .unwrap_or_else(|| panic!("no plug-in bridge part use on golden {key}"));
+        let bridge_use = parts.remove(bridge);
+        assert!(
+            !parts.iter().any(part_use_is_bridge),
+            "one plug-in bridge part use on golden {key}"
+        );
+        out.bridge_parts.insert(key.to_owned(), bridge_use);
+        fields.push(("parts".to_owned(), Value::Array(parts)));
+        for (path, value) in fields {
+            s.execute(&demo_fields(&strip, &path, value))
+                .unwrap_or_else(|e| panic!("the demo strip {key}: fields.set {path} refused: {e:?}"));
+            *out.executed.entry("fields.set".to_owned()).or_default() += 1;
+        }
+        s.save().unwrap();
+        s.close();
+        if key == "-X1031" {
+            out.x1031 = strip;
+        } else {
+            out.x1032 = strip;
+        }
+    }
+    out
+}
+
+/// B2: the steps that place the 15 terminals of the demo variant with Place at `P = T - O`, `T` the golden strip
+/// segment's CP `<strip tag>:<d>/a` and `O` the embedded terminal symbol's fn-CP 0 (orientation A). Every insertion
+/// point must be a point of folio 103's connection grid.
+pub fn demo_terminal_steps(job: &Path, x1031: &str, x1032: &str, map: SheetMap) -> Vec<(String, Value)> {
+    let golden = golden_tables(103);
+    let (index, coord) = grid_maps(golden.grid);
+    let (s, _) = Session::open_read_only(job, "test").unwrap();
+    let tables101 = s.page_tables("101").expect("the placed page 101");
+    let terminal_shape = |key: &str| {
+        let rep = tables101
+            .reps
+            .iter()
+            .find(|r| r.symbol_key == key)
+            .unwrap_or_else(|| panic!("no placed representation {key}"));
+        s.symbol_shape(rep.symbol)
+            .unwrap_or_else(|| panic!("no embedded symbol shape {key}"))
+    };
+    let mut out = Vec::new();
+    for (key, strip, golden_key, designations) in [
+        ("-X1031", x1031, "1X1:1", DEMO_X1031_TERMINALS.as_slice()),
+        ("-X1032", x1032, "1X1:PE", DEMO_X1032_TERMINALS.as_slice()),
+    ] {
+        let (symbol, _) = golden_rep_symbol(101, golden_key);
+        let shape = terminal_shape(&symbol);
+        let offset = shape
+            .cps
+            .iter()
+            .find(|c| c.fn_cp == 0)
+            .unwrap_or_else(|| panic!("the terminal symbol {symbol} has no fn CP 0"))
+            .at;
+        for d in designations {
+            let label = format!("{key}:{d}/a");
+            let t = golden
+                .cps
+                .iter()
+                .find(|c| c.label == label)
+                .unwrap_or_else(|| panic!("no golden strip CP {label}"));
+            let p = (t.at.0 - offset.0, t.at.1 - offset.1);
+            assert_eq!(
+                coord(index(p.0)),
+                p.0,
+                "the terminal {label}: the x of its insertion point {p:?} is on the grid"
+            );
+            assert_eq!(
+                coord(index(p.1)),
+                p.1,
+                "the terminal {label}: the y of its insertion point {p:?} is on the grid"
+            );
+            let (x, y) = map.mm(p);
+            out.push((
+                "place.pick".to_owned(),
+                json!({"symbol": symbol.clone(), "strip": strip, "designation": d}),
+            ));
+            out.push(("cursor.set".to_owned(), json!({"x_mm": x, "y_mm": y})));
+            out.push(("canvas.activate".to_owned(), json!({"alt": true})));
+            out.push(("ui.dismiss".to_owned(), json!({})));
+        }
+    }
+    out
+}
+
+/// B3: the `fields.set parts` commands of the 15 placed terminals, found by strip and designation and set to their
+/// golden terminal's parts.
+pub fn demo_terminal_part_steps(job: &Path, x1031: &str, x1032: &str) -> Vec<AnyCommand> {
+    let all = records();
+    let (s, _) = Session::open_read_only(job, "test").unwrap();
+    let q = s.query();
+    let mut out = Vec::new();
+    for (key, strip, designations) in [
+        ("-X1031", x1031, DEMO_X1031_TERMINALS.as_slice()),
+        ("-X1032", x1032, DEMO_X1032_TERMINALS.as_slice()),
+    ] {
+        let strip_id = golden_device(&all, key)["id"].as_str().unwrap().to_owned();
+        for d in designations {
+            let golden = all
+                .values()
+                .find(|r| {
+                    r["$k"] == "device"
+                        && r["terminal"]["strip"].as_str() == Some(&strip_id)
+                        && r["terminal"]["designation"].as_str() == Some(d)
+                })
+                .unwrap_or_else(|| panic!("no golden terminal {key}:{d}"));
+            let device = q
+                .devices()
+                .iter()
+                .find_map(|(id, dev)| {
+                    let t = dev.aspects.terminal.as_ref()?;
+                    (t.strip.to_string() == *strip && t.designation.as_str() == *d).then(|| id.to_string())
+                })
+                .unwrap_or_else(|| panic!("no placed terminal {key}:{d}"));
+            out.push(AnyCommand {
+                name: "fields.set".into(),
+                params: json!({"kind": "device", "targets": [device], "path": "parts", "value": golden["parts"]}),
+            });
+        }
+    }
+    assert_eq!(out.len(), 15, "the 15 terminal part uses");
+    out
+}
+
+/// B4: the wiring steps of the demo's folio 103, every end at the placed CP with the golden label.
+pub fn demo_103_wiring(job: &Path, map: SheetMap) -> (Vec<(String, Value)>, usize) {
+    let (s, _) = Session::open_read_only(job, "test").unwrap();
+    let tables = s.page_tables("103").expect("the demo page 103");
+    let cp_at: BTreeMap<String, (i64, i64)> = tables.cps.iter().map(|c| (c.label.clone(), c.at)).collect();
+    let at = |label: &str| cp_at.get(label).copied();
+    let (steps, commits, _) = wiring_steps_with(103, map, Some(&at));
+    (steps, commits)
+}
+
+/// The CPs of a terminal representation that a drawn page connection ends at, as (label, potential).
+fn demo_terminal_cps(
+    tables: &ew_ui::ew_viewmodel::ew_api::output::PageTables,
+    rep: &str,
+) -> Vec<(String, Option<String>)> {
+    tables
+        .cps
+        .iter()
+        .filter(|c| c.rep.to_string() == rep && !c.connections.is_empty())
+        .map(|c| (c.label.clone(), c.potential.clone()))
+        .collect()
+}
+
+/// The values PI10 prints.
+pub struct DemoPi10 {
+    /// The potentials of the four terminals' drawn CPs before the bridges.
+    pub before: Vec<(String, Option<String>)>,
+    /// The same CPs' potentials after the three bridges.
+    pub after: Vec<(String, Option<String>)>,
+    /// The bridge group the three steps share.
+    pub group: u64,
+    /// The number of `connection.draw` records the three steps wrote.
+    pub draws: usize,
+    /// The project's revision before and after the three steps.
+    pub rev_before: u64,
+    pub rev_after: u64,
+}
+
+/// B5 (PI10): read the four terminals' drawn CP potentials, bridge -X1031:1 to :4 by three `strip.bridge` steps,
+/// check the three page-less `connection.draw` records and read the potentials again.
+pub fn demo_103_pi10(exe: &Path, tmp: &Tmp, job: &Path, x1031: &str) -> DemoPi10 {
+    use ew_ui::ew_viewmodel::ew_api::CmdLog;
+    let (s, _) = Session::open_read_only(job, "test").unwrap();
+    let tables = s.page_tables("103").expect("the demo page 103");
+    let reps: Vec<(String, String)> = {
+        let q = s.query();
+        DEMO_X1031_TERMINALS[..4]
+            .iter()
+            .map(|d| {
+                let device = q
+                    .devices()
+                    .iter()
+                    .find_map(|(id, dev)| {
+                        let t = dev.aspects.terminal.as_ref()?;
+                        (t.strip.to_string() == x1031 && t.designation.as_str() == *d).then(|| id.to_string())
+                    })
+                    .unwrap_or_else(|| panic!("no placed terminal -X1031:{d}"));
+                let rep = tables
+                    .reps
+                    .iter()
+                    .find(|r| r.device.is_some_and(|dev| dev.to_string() == device))
+                    .unwrap_or_else(|| panic!("no representation of -X1031:{d}"));
+                (
+                    rep.id.to_string(),
+                    rep.functions
+                        .first()
+                        .expect("a terminal representation has one function")
+                        .to_string(),
+                )
+            })
+            .collect()
+    };
+    let mut before = Vec::new();
+    for (rep, _) in &reps {
+        before.extend(demo_terminal_cps(&tables, rep));
+    }
+    let all_same_some = before.windows(2).all(|w| w[0].1.is_some() && w[0].1 == w[1].1);
+    assert!(
+        !before.is_empty() && !all_same_some,
+        "before any bridge the potentials are not all one Some: {before:?}"
+    );
+    let mut script = steps(&[
+        ("file.open", json!({"dir": path(job)})),
+        ("page.goto", json!({"folio": "103"})),
+    ]);
+    let before_copy = tmp.path("gpp-demo-pi10-before.ew");
+    copy_dir(job, &before_copy);
+    for k in 0..3 {
+        script.push((
+            "select.set".to_owned(),
+            json!({"ids": [reps[k].0.clone(), reps[k + 1].0.clone()]}),
+        ));
+        script.push(("strip.bridge".to_owned(), json!({})));
+    }
+    script.extend(steps(&[("file.save", json!({})), ("file.close", json!({}))]));
+    let record = tmp.path("gpp-demo-bridges.ewcmd");
+    all_done(&run(exe, tmp, "gpp-demo-bridge.jsonl", &script, Some(&record)));
+    let log = CmdLog::parse(&std::fs::read_to_string(&record).unwrap()).unwrap();
+    let commands: Vec<_> = log.commands().collect();
+    assert_eq!(commands.len(), 3, "three strip.bridge commits");
+    let shaft = golden_bridge_shaft();
+    for (k, cmd) in commands.iter().enumerate() {
+        assert_eq!(cmd.name, "connection.draw");
+        assert!(
+            cmd.params.get("page").is_none(),
+            "the bridge is page-less: {}",
+            cmd.params
+        );
+        let a = &cmd.params["a"]["cp"];
+        let b = &cmd.params["b"]["cp"];
+        assert_eq!(a["function"].as_str(), Some(reps[k].1.as_str()));
+        assert_eq!(b["function"].as_str(), Some(reps[k + 1].1.as_str()));
+        assert_eq!(a["idx"].as_u64(), Some(u64::from(shaft)));
+        assert_eq!(b["idx"].as_u64(), Some(u64::from(shaft)));
+        assert_eq!(cmd.params["kind"]["bridge"]["kind"], "plug_in");
+        assert_eq!(cmd.params["kind"]["bridge"]["shaft"], 1);
+        assert_eq!(cmd.params["kind"]["bridge"]["group"], 1);
+    }
+    let mut store = ew_ui::ew_viewmodel::ew_api::StoreOptions::new("test");
+    store.state_dir = Some(tmp.path("state-gpp-demo-pi10-replay"));
+    // The model revision is per session, so each step's "+1" is checked by replaying the recorded commands on the
+    // copy taken before the script.
+    let (mut replay, _) = Session::open(
+        &before_copy,
+        store,
+        ew_ui::ew_viewmodel::ew_api::SessionOptions::default(),
+        ew_ui::ew_viewmodel::ew_api::Recovery::Keep,
+    )
+    .unwrap();
+    let rev_before = replay.world().rev.0;
+    let mut rev_after = rev_before;
+    for (k, cmd) in commands.iter().enumerate() {
+        let receipt = replay
+            .execute(*cmd)
+            .unwrap_or_else(|e| panic!("the recorded {}: {e:?}", cmd.name));
+        rev_after = receipt.rev.0;
+        assert_eq!(
+            rev_after,
+            rev_before + u64::try_from(k + 1).unwrap(),
+            "each strip.bridge step is one revision"
+        );
+    }
+    replay.close();
+    let (s, _) = Session::open_read_only(job, "test").unwrap();
+    let tables = s.page_tables("103").expect("the demo page 103");
+    let mut after = Vec::new();
+    for (rep, _) in &reps {
+        after.extend(demo_terminal_cps(&tables, rep));
+    }
+    for (label, potential) in &after {
+        assert_eq!(
+            potential.as_deref(),
+            Some("24VDC-1"),
+            "the potential of {label} after PI10"
+        );
+    }
+    DemoPi10 {
+        before,
+        after,
+        group: 1,
+        draws: commands.len(),
+        rev_before,
+        rev_after,
+    }
+}
+
+/// The values B6 prints.
+pub struct DemoBridges {
+    /// The distinct bridge groups per strip, by golden strip key.
+    pub groups: BTreeMap<String, usize>,
+    /// The golden bridge connections drawn.
+    pub drawn: Vec<String>,
+    /// The Session-executed records, by command name.
+    pub executed: BTreeMap<String, usize>,
+}
+
+/// B6: the other golden bridges between placed terminals (all but BR1's three, already drawn), then the strips'
+/// plug-in bridge part uses with the quantity of their distinct bridge groups.
+pub fn demo_103_bridges(tmp: &Tmp, job: &Path, strips: &DemoStrips) -> DemoBridges {
+    let all = records();
+    let mut store = ew_ui::ew_viewmodel::ew_api::StoreOptions::new("test");
+    store.state_dir = Some(tmp.path("state-gpp-demo-other-bridges"));
+    let (mut s, _) = Session::open(
+        job,
+        store,
+        ew_ui::ew_viewmodel::ew_api::SessionOptions::default(),
+        ew_ui::ew_viewmodel::ew_api::Recovery::Keep,
+    )
+    .unwrap();
+    let q = s.query();
+    let mut demo_functions: BTreeMap<(String, String), String> = BTreeMap::new();
+    for (id, dev) in q.devices().iter() {
+        let Some(t) = dev.aspects.terminal.as_ref() else {
+            continue;
+        };
+        let strip = t.strip.to_string();
+        if strip != strips.x1031 && strip != strips.x1032 {
+            continue;
+        }
+        let function = q.functions().iter().find_map(|(fid, f)| {
+            let v = serde_json::to_value(&**f).unwrap();
+            (v["device"].as_str() == Some(&id.to_string()) && v["role"].as_str().unwrap_or("main") == "main")
+                .then(|| fid.to_string())
+        });
+        if let Some(function) = function {
+            demo_functions.insert((strip, t.designation.as_str().to_owned()), function);
+        }
+    }
+    let strip_ids: BTreeMap<String, String> = ["-X1031", "-X1032"]
+        .into_iter()
+        .map(|k| {
+            (
+                golden_device(&all, k)["id"].as_str().unwrap().to_owned(),
+                k.to_owned(),
+            )
+        })
+        .collect();
+    let mut golden_terms: BTreeMap<String, (String, String)> = BTreeMap::new();
+    for dev in all.values().filter(|r| r["$k"] == "device") {
+        let Some(t) = dev.get("terminal") else {
+            continue;
+        };
+        let Some(strip_id) = t["strip"].as_str() else {
+            continue;
+        };
+        let Some(key) = strip_ids.get(strip_id) else {
+            continue;
+        };
+        let Some(main) = golden_main_function(&all, dev) else {
+            continue;
+        };
+        golden_terms.insert(
+            main["id"].as_str().unwrap().to_owned(),
+            (key.clone(), t["designation"].as_str().unwrap().to_owned()),
+        );
+    }
+    let end = |v: &Value| -> Option<(String, u16)> {
+        let cp = v.get("cp")?;
+        Some((
+            cp.get(0)?.as_str()?.to_owned(),
+            u16::try_from(cp.get(1)?.as_u64()?).ok()?,
+        ))
+    };
+    let mut existing: Vec<((String, u16), (String, u16))> = Vec::new();
+    for (_, c) in q.connections().iter() {
+        let v = serde_json::to_value(&**c).unwrap();
+        if v["kind"].get("bridge").is_none() {
+            continue;
+        }
+        if let (Some(a), Some(b)) = (end(&v["a"]), end(&v["b"])) {
+            existing.push((a, b));
+        }
+    }
+    let mut golden_bridges: Vec<&Value> = all
+        .values()
+        .filter(|r| r["$k"] == "connection" && r["kind"].get("bridge").is_some())
+        .collect();
+    golden_bridges.sort_by_key(|r| r["source_ref"]["key"].as_str().unwrap_or_default().to_owned());
+    let mut commands: Vec<(String, AnyCommand)> = Vec::new();
+    for c in golden_bridges {
+        let (Some(a), Some(b)) = (end(&c["a"]), end(&c["b"])) else {
+            continue;
+        };
+        let map = |cp: &(String, u16)| -> Option<(String, u16)> {
+            let (key, designation) = golden_terms.get(&cp.0)?;
+            let strip = if key == "-X1031" {
+                &strips.x1031
+            } else {
+                &strips.x1032
+            };
+            let function = demo_functions.get(&(strip.clone(), designation.clone()))?;
+            Some((function.clone(), cp.1))
+        };
+        let (Some(a), Some(b)) = (map(&a), map(&b)) else {
+            continue;
+        };
+        if existing
+            .iter()
+            .any(|(x, y)| (x == &a && y == &b) || (x == &b && y == &a))
+        {
+            continue;
+        }
+        commands.push((
+            c["source_ref"]["key"].as_str().unwrap().to_owned(),
+            AnyCommand {
+                name: "connection.draw".into(),
+                params: json!({
+                    "a": {"cp": {"function": a.0, "idx": a.1}},
+                    "b": {"cp": {"function": b.0, "idx": b.1}},
+                    "kind": c["kind"].clone(),
+                }),
+            },
+        ));
+    }
+    let mut executed: BTreeMap<String, usize> = BTreeMap::new();
+    for (_, cmd) in &commands {
+        s.execute(cmd).unwrap_or_else(|e| panic!("{}: {e:?}", cmd.name));
+        *executed.entry(cmd.name.clone()).or_default() += 1;
+    }
+    let q = s.query();
+    let mut groups: BTreeMap<String, BTreeSet<u64>> = BTreeMap::new();
+    for (_, c) in q.connections().iter() {
+        let v = serde_json::to_value(&**c).unwrap();
+        let Some(bridge) = v["kind"].get("bridge") else {
+            continue;
+        };
+        let Some(group) = bridge.get("group").and_then(Value::as_u64) else {
+            continue;
+        };
+        let Some(function) = v["a"]["cp"][0].as_str() else {
+            continue;
+        };
+        let strip = q
+            .functions()
+            .iter()
+            .find(|(fid, _)| fid.to_string() == function)
+            .and_then(|(_, f)| f.device)
+            .and_then(|d| q.devices().get(d))
+            .and_then(|d| d.aspects.terminal.as_ref())
+            .map(|t| t.strip.to_string());
+        if let Some(strip) = strip {
+            groups.entry(strip).or_default().insert(group);
+        }
+    }
+    let count31 = groups.get(&strips.x1031).map_or(0, BTreeSet::len);
+    let count32 = groups.get(&strips.x1032).map_or(0, BTreeSet::len);
+    assert_eq!((count31, count32), (2, 1), "the distinct bridge groups per strip");
+    let mut parts_by_key: BTreeMap<String, Value> = BTreeMap::new();
+    for (key, strip) in [("-X1031", &strips.x1031), ("-X1032", &strips.x1032)] {
+        let device = q
+            .devices()
+            .iter()
+            .find(|(id, _)| id.to_string() == *strip)
+            .unwrap_or_else(|| panic!("no strip {key}"))
+            .1;
+        parts_by_key.insert(key.to_owned(), serde_json::to_value(&device.parts).unwrap());
+    }
+    drop(q);
+    let mut out_groups = BTreeMap::new();
+    for (key, strip, count) in [
+        ("-X1031", &strips.x1031, count31),
+        ("-X1032", &strips.x1032, count32),
+    ] {
+        let mut parts = parts_by_key[key].clone();
+        let mut bridge = strips.bridge_parts[key].clone();
+        bridge["qty"] = Value::from(count.to_string());
+        parts
+            .as_array_mut()
+            .expect("the strip's parts are a list")
+            .push(bridge);
+        s.execute(&demo_fields(strip, "parts", parts))
+            .unwrap_or_else(|e| panic!("the strip {key}: fields.set parts refused: {e:?}"));
+        *executed.entry("fields.set".to_owned()).or_default() += 1;
+        out_groups.insert(key.to_owned(), count);
+    }
+    s.save().unwrap();
+    s.close();
+    DemoBridges {
+        groups: out_groups,
+        drawn: commands.into_iter().map(|(key, _)| key).collect(),
+        executed,
     }
 }
 
@@ -1478,8 +2183,19 @@ pub fn potential_steps(folios: &[u32], placed: &Path) -> Vec<(String, AnyCommand
         let mapped = if let Some(cp) = at.get("cp") {
             let function = cp[0].as_str().unwrap_or_default().to_owned();
             let idx = u16::try_from(cp[1].as_u64().unwrap_or(u64::MAX)).expect("a CP index");
-            // The golden representation of the CP's function on one of the folios (none: the definition is not
-            // drawn there, out of scope).
+            // The only golden definition out of the requested folios is `DP` at -201U1 on folio 201 (the review of
+            // round a28-r5, E4): skip only when the golden tables draw the function on none of the folios, never a
+            // definition that is drawn there.
+            let drawn = folios.iter().any(|folio| {
+                golden[folio]
+                    .cps
+                    .iter()
+                    .any(|cp| cp.function.to_string() == function)
+            });
+            if !drawn {
+                continue;
+            }
+            // The golden representation of the CP's function on one of the folios.
             let mut found = None;
             for folio in folios {
                 let mut reps: Vec<&Value> = all
@@ -1503,7 +2219,9 @@ pub fn potential_steps(folios: &[u32], placed: &Path) -> Vec<(String, AnyCommand
                 }
             }
             let Some((folio, rep)) = found else {
-                continue;
+                panic!(
+                    "the potential {label}: its function {function} is drawn on {folios:?} but has no golden representation"
+                );
             };
             let index = rep["functions"]
                 .as_array()
@@ -1733,24 +2451,14 @@ fn crossing_segment(
     None
 }
 
-/// The steps of the four reference marker groups of doc 08 §4.5 on `folio` (101: [W4, W5] and [W7, W9] with 2.5;
-/// 102: [W20, W21, W22, W23] and [W24, W25] with 1.5): the Marker tool's crossing line through a segment that
-/// crosses exactly the group's connections of `tables` in golden order, its field, and Enter. A group no segment
-/// crosses becomes a [`MarkerFallback`].
-pub fn marker_steps(
-    folio: u32,
-    tables: &ew_ui::ew_viewmodel::ew_api::output::PageTables,
-    map: SheetMap,
-) -> (Vec<(String, Value)>, Vec<MarkerFallback>) {
+/// The rehearsal connection of the golden connection `wire`, matched by its printed end labels as the marker
+/// generator matches a group's members (a junction end matches `@`). Panics naming the wire when none matches.
+fn connection_for_wire<'a>(
+    tables: &'a ew_ui::ew_viewmodel::ew_api::output::PageTables,
+    wire: &str,
+) -> &'a ew_ui::ew_viewmodel::ew_api::output::TableConnection {
     use ew_ui::ew_viewmodel::ew_api::output::TableEnd;
-    let groups: Vec<(Vec<&str>, &str)> = match folio {
-        101 => vec![(vec!["W4", "W5"], "2.5"), (vec!["W7", "W9"], "2.5")],
-        102 => vec![
-            (vec!["W20", "W21", "W22", "W23"], "1.5"),
-            (vec!["W24", "W25"], "1.5"),
-        ],
-        _ => panic!("no golden marker group on folio {folio}"),
-    };
+    let (ga, gb) = golden_wire_ends(wire);
     let label = |e: TableEnd| -> Option<String> {
         match e {
             TableEnd::Cp { function, idx } => tables
@@ -1761,27 +2469,53 @@ pub fn marker_steps(
             TableEnd::Junction { .. } => None,
         }
     };
+    let at = |e: TableEnd, golden: &str| {
+        if golden.starts_with('@') {
+            matches!(e, TableEnd::Junction { .. })
+        } else {
+            label(e).is_some_and(|l| golden_end_matches(&l, golden))
+        }
+    };
+    tables
+        .connections
+        .iter()
+        .find(|c| (at(c.a, &ga) && at(c.b, &gb)) || (at(c.a, &gb) && at(c.b, &ga)))
+        .unwrap_or_else(|| panic!("no rehearsal connection for {wire} ({ga} / {gb})"))
+}
+
+/// The ID text of the rehearsal connection of the golden connection `wire`, found as [`marker_steps`] finds a
+/// group's members.
+pub fn rehearsal_connection_id(
+    tables: &ew_ui::ew_viewmodel::ew_api::output::PageTables,
+    wire: &str,
+) -> String {
+    connection_for_wire(tables, wire).id.to_string()
+}
+
+/// The steps of the four reference marker groups of doc 08 §4.5 on `folio` (101: [W4, W5] and [W7, W9] with 2.5;
+/// 102: [W20, W21, W22, W23] and [W24, W25] with 1.5): the Marker tool's crossing line through a segment that
+/// crosses exactly the group's connections of `tables` in golden order, its field, and Enter. A group no segment
+/// crosses becomes a [`MarkerFallback`].
+pub fn marker_steps(
+    folio: u32,
+    tables: &ew_ui::ew_viewmodel::ew_api::output::PageTables,
+    map: SheetMap,
+) -> (Vec<(String, Value)>, Vec<MarkerFallback>) {
+    let groups: Vec<(Vec<&str>, &str)> = match folio {
+        101 => vec![(vec!["W4", "W5"], "2.5"), (vec!["W7", "W9"], "2.5")],
+        102 => vec![
+            (vec!["W20", "W21", "W22", "W23"], "1.5"),
+            (vec!["W24", "W25"], "1.5"),
+        ],
+        _ => panic!("no golden marker group on folio {folio}"),
+    };
     let mut steps = Vec::new();
     let mut fallbacks = Vec::new();
     for (wires, csa) in groups {
         let mut ids = Vec::new();
         let mut lines = Vec::new();
         for wire in &wires {
-            let (ga, gb) = golden_wire_ends(wire);
-            let connection = tables
-                .connections
-                .iter()
-                .find(|c| {
-                    let at = |e: TableEnd, golden: &str| {
-                        if golden.starts_with('@') {
-                            matches!(e, TableEnd::Junction { .. })
-                        } else {
-                            label(e).is_some_and(|l| golden_end_matches(&l, golden))
-                        }
-                    };
-                    (at(c.a, &ga) && at(c.b, &gb)) || (at(c.a, &gb) && at(c.b, &ga))
-                })
-                .unwrap_or_else(|| panic!("no rehearsal connection for {wire} ({ga} / {gb})"));
+            let connection = connection_for_wire(tables, wire);
             ids.push(connection.id.to_string());
             lines.push(connection.polyline.clone());
         }
