@@ -286,7 +286,7 @@ fn run(
     shell.set_id_source_for_tests(Some(ids));
     let parsed = script::parse(&script_text(&steps(&dir, p))).unwrap();
     let mut lines = Vec::new();
-    script::run(&mut shell, &mut NoExtension, &parsed, &mut |l| {
+    script::run(&mut shell, &mut NoExtension, &parsed, false, &mut |l| {
         lines.push(l.to_owned());
         Ok(())
     })
