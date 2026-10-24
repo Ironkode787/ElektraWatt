@@ -1198,6 +1198,35 @@ fn the_round_trip_oracle_names_a_row_of_any_kind() {
     roundtrip::same_model("live", &initial, &initial.clone()).expect("a model equals its clone");
 }
 
+/// FT-468: when only the project row differs, the oracle names it and prints both project lines.
+#[test]
+fn the_round_trip_oracle_prints_the_project_row_lines() {
+    let batch = golden_batch();
+    let mut project = None;
+    let mut records = Vec::new();
+    for r in &batch.records {
+        match r {
+            Record::Project(p) => project = Some(p.clone()),
+            other => records.push(other.clone()),
+        }
+    }
+    let project = project.expect("the batch holds the project");
+    let mut changed = project.clone();
+    changed.master.description = ew_mltext::MlText::neutral("FT-468");
+    let initial = Model::from_records(project, records.clone(), batch.lib.clone()).expect("Golden A loads");
+    let live =
+        Model::from_records(changed, records, batch.lib.clone()).expect("Golden A with a description loads");
+    let err = roundtrip::same_model("live", &live, &initial).expect_err("the project rows differ");
+    assert!(
+        err.starts_with(
+            "the models differ (first: live, second: reloaded): the project rows differ\n live: {"
+        ),
+        "{err}"
+    );
+    assert!(err.contains("\n reloaded: {"), "{err}");
+    assert!(err.contains("FT-468"), "{err}");
+}
+
 /// FT-316 on the shape the `library.embed` arm builds ("embed then undo"): a symbol whose function definition
 /// is not embedded, then that function definition, both commit as the arm says, with a save in between; undoing
 /// both restores Golden A (the undo-all oracle (e)), although the second undo removes a copy that the symbol

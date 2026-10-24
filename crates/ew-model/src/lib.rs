@@ -37,9 +37,9 @@
 //!   resulting model, so it exposes every row); the getters of [`Table`], [`LibraryCopies`] and
 //!   [`BaseIndexes`], and `BaseIndexes::rebuild`;
 //! - always public: [`Model::from_records`], [`Model::apply_with`], [`Model::apply_history`],
-//!   [`Model::integrity_check`], [`Model::content_eq`], [`Model::rev`], [`Model::strictness`],
-//!   [`invert_batch`], and the declarative tables [`LINKS`] and [`RULES`]. `apply_with` and
-//!   `apply_history` consume ops; they return no row.
+//!   [`Model::integrity_check`], [`Model::content_eq`], [`Model::content_diff`] (with [`ContentDiff`] and
+//!   [`Presence`]), [`Model::rev`], [`Model::strictness`], [`invert_batch`], and the declarative tables
+//!   [`LINKS`] and [`RULES`]. `apply_with` and `apply_history` consume ops; they return no row.
 //!
 //! Only `ew-derive` (the tracked read layer), `ew-commands` (a transaction reads the `before` rows of its
 //! ops) and `ew-store` (the writer) may enable it on a normal dependency edge; any crate may enable it on a

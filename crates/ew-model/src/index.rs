@@ -441,28 +441,7 @@ impl BaseIndexes {
     raw_read! {
         /// Whether both index sets hold the same entries (`changed_at` stamps are ignored).
         fn same_entries(&self, other: &BaseIndexes) -> bool {
-            self.functions_by_device.same_entries(&other.functions_by_device)
-                && self.reps_by_page.same_entries(&other.reps_by_page)
-                && self.reps_by_function.same_entries(&other.reps_by_function)
-                && self.connections_by_page.same_entries(&other.connections_by_page)
-                && self
-                    .connections_by_endpoint
-                    .same_entries(&other.connections_by_endpoint)
-                && self.junctions_by_page.same_entries(&other.junctions_by_page)
-                && self.terminals_by_strip.same_entries(&other.terminals_by_strip)
-                && self.conductors_by_cable.same_entries(&other.conductors_by_cable)
-                && self.structure_children.same_entries(&other.structure_children)
-                && self.device_children.same_entries(&other.device_children)
-                && self.pages_by_section.same_entries(&other.pages_by_section)
-                && self
-                    .potential_defs_by_endpoint
-                    .same_entries(&other.potential_defs_by_endpoint)
-                && self.bonds_by_endpoint.same_entries(&other.bonds_by_endpoint)
-                && self.page_items_by_page.same_entries(&other.page_items_by_page)
-                && self
-                    .structure_boxes_by_page
-                    .same_entries(&other.structure_boxes_by_page)
-                && self.referrers.same_entries(&other.referrers)
+            self.first_difference(other).is_none()
         }
     }
 

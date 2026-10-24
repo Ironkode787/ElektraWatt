@@ -690,6 +690,18 @@ proptest! {
         prop_assert_eq!(m2.content_diff(&m0), None);
     }
 
+    /// Not vacuous: a batch that changes the model gets a named difference both ways (a generator that made only
+    /// no-op batches would fail here with too many rejects).
+    #[test]
+    fn content_diff_names_a_part_whenever_a_batch_changes_the_model(actions in batch()) {
+        let m0 = mini_golden();
+        let mut counter = 0;
+        let (m1, _) = step(&m0, &actions, &mut counter);
+        prop_assume!(!m1.content_eq(&m0));
+        prop_assert!(m1.content_diff(&m0).is_some());
+        prop_assert!(m0.content_diff(&m1).is_some());
+    }
+
     /// NFR-REL-07 order independence: the order of the records and library documents on load, unknown
     /// records included, changes neither the model nor its canonical content.
     #[test]

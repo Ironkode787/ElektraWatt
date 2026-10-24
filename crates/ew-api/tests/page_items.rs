@@ -8,9 +8,11 @@
 mod golden_common;
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use ew_api::output::{PageConnectionsOf, page_layer};
-use ew_api::{AnyCommand, Session};
+use ew_api::{AnyCommand, Recovery, Session, SessionOptions, StoreOptions};
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_rds::Aspect;
 use ew_derive::ew_units::Pt2;
@@ -20,6 +22,8 @@ use ew_derive::{
 };
 use ew_dl::{ItemKind, Layer};
 use ew_schema::{Connection, ConnectionKind, Device, Function, Page, Record, StructureNode};
+use ew_store::mem::{DirSync, MemVfs};
+use ew_store::{ManualClock, Vfs};
 use golden_common::{batch, ids_by_key, session, session_with};
 use serde_json::{Value, json};
 
@@ -238,6 +242,83 @@ fn pi2_a_stale_marker_entry_is_reported_on_load() {
     let tables = s.page_tables("101").unwrap();
     assert_eq!(tables.items.len(), 1);
     assert!(tables.items[0].connections.is_empty());
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// FT-468: the fuzz-smoke finding of CI run 40115388450 as a plain test
+
+/// Store options on the in-memory file system (the project and its journals stay inside the test).
+fn ft468_store(vfs: &Arc<MemVfs>) -> StoreOptions {
+    let mut o = StoreOptions::new("ElektraWatt test");
+    o.vfs = Arc::clone(vfs) as Arc<dyn Vfs>;
+    o.clock = Arc::new(ManualClock::fixed());
+    o.state_dir = Some(PathBuf::from("/state"));
+    o
+}
+
+/// FT-468, the `fuzz-smoke` finding of CI run 40115388450 as a plain test (its input is
+/// `fuzz/regressions/command_sequence/structure-box-dropped-by-save`): the structure box of the finding, with a
+/// location assignment and an external reference on page 202 of a copy of Golden A, survives `Session::create` and
+/// a reload, then a later save of its page's file by the reopened session and a second reload; each reload equals
+/// the saving session's model (`Model::content_eq`; a failure prints `Model::content_diff`).
+#[test]
+fn ft468_a_structure_box_with_a_location_and_an_external_reference_survives_save_and_reload() {
+    let batch = batch();
+    let ids = ids_by_key(&batch);
+    let page: String = ids["pages|202"].clone();
+    let location: String = ids["structure|+J-E-206"].clone();
+    let external: String = ids["external_refs|J-E-206-N"].clone();
+    let vfs = Arc::new(MemVfs::new(DirSync::Explicit));
+    vfs.put_dir(Path::new("/state"));
+    let dir = PathBuf::from("/p");
+    let mut s = session(&batch);
+    run(
+        &mut s,
+        "box.structure",
+        json!({
+            "page": page,
+            "outline": [[0, 0], [50_000_000, 0], [50_000_000, 30_000_000], [0, 30_000_000]],
+            "style": "dotted",
+            "assigns": {"location": location},
+            "external": external,
+        }),
+    );
+    s.create(&dir, ft468_store(&vfs)).expect("the copy is written");
+    let live = s.world().model.clone();
+    s.close();
+    let (mut r, report) = Session::open(&dir, ft468_store(&vfs), SessionOptions::default(), Recovery::Keep)
+        .expect("the copy reopens");
+    assert!(report.findings.is_empty(), "{:#?}", report.findings);
+    let back = r.world().model.clone();
+    assert!(
+        live.content_eq(&back),
+        "after create and a reload: {:?}",
+        live.content_diff(&back)
+    );
+    // A later edit on the same page: the reopened session's save rewrites the page's file from the store's index.
+    run(
+        &mut r,
+        "box.structure",
+        json!({
+            "page": page,
+            "outline": [[60_000_000, 0], [90_000_000, 0], [90_000_000, 20_000_000], [60_000_000, 20_000_000]],
+            "style": "dotted",
+            "assigns": {"location": location},
+        }),
+    );
+    r.save().expect("the later save writes the page");
+    let live = r.world().model.clone();
+    r.close();
+    let (again, report) = Session::open(&dir, ft468_store(&vfs), SessionOptions::default(), Recovery::Keep)
+        .expect("the copy reopens after the later save");
+    assert!(report.findings.is_empty(), "{:#?}", report.findings);
+    let back = again.world().model.clone();
+    assert!(
+        live.content_eq(&back),
+        "after a later save of the page: {:?}",
+        live.content_diff(&back)
+    );
+    again.close();
 }
 
 // ---------------------------------------------------------------------------------------------------------

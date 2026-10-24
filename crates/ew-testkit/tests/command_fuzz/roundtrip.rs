@@ -22,7 +22,8 @@ use std::path::PathBuf;
 
 use ew_api::{MemoMode, Session, StoreOptions};
 use ew_derive::{DeviceTag, PageOrder, PotentialPartition};
-use ew_model::{ContentDiff, Model};
+use ew_model::{AnyKey, ContentDiff, Model};
+use ew_schema::Kind;
 
 /// How much of the derived data a round trip compares.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -140,7 +141,8 @@ impl Drop for Disk {
 
 /// `Model::content_eq` between `first` (named `name` in the text: the live model, or the initial one at the closing
 /// round trip) and the reloaded model; on a mismatch, the first difference `Model::content_diff` names (a row, an
-/// unknown record or library document, an index entry), with the row's lines where `model_lines` renders its kind.
+/// unknown record or library document, an index entry), with the row's lines (or the project row's) where
+/// `model_lines` renders its kind.
 pub fn same_model(name: &str, first: &Model, back: &Model) -> Result<(), String> {
     if first.content_eq(back) {
         return Ok(());
@@ -151,14 +153,22 @@ pub fn same_model(name: &str, first: &Model, back: &Model) -> Result<(), String>
         ));
     };
     let mut text = format!("the models differ (first: {name}, second: reloaded): {diff}");
-    if let ContentDiff::Row { key, .. } = &diff {
+    let wanted = |k: &AnyKey| match &diff {
+        ContentDiff::Row { key, .. } => k == key,
+        ContentDiff::Project => k.0 == Kind::Project,
+        _ => false,
+    };
+    if matches!(diff, ContentDiff::Row { .. } | ContentDiff::Project) {
         for (side, model) in [(name, first), ("reloaded", back)] {
-            let line = ew_commands::rows::model_lines(model)
-                .map_err(|e| format!("{e:?}"))?
-                .into_iter()
-                .find_map(|(k, line)| (k == *key).then_some(line));
-            if let Some(line) = line {
-                let _ = write!(text, "\n {side}: {line}");
+            match ew_commands::rows::model_lines(model) {
+                Ok(lines) => {
+                    if let Some((_, line)) = lines.into_iter().find(|(k, _)| wanted(k)) {
+                        let _ = write!(text, "\n {side}: {line}");
+                    }
+                }
+                Err(e) => {
+                    let _ = write!(text, "\n {side}: model_lines failed: {e:?}");
+                }
             }
         }
     }
