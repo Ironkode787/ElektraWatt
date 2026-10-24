@@ -46,6 +46,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
         PickerMode::Exchange => strings::text("picker-title-exchange"),
         PickerMode::Place | PickerMode::Parts => strings::text("picker-title"),
         PickerMode::Strip => strings::text("picker-title-strip"),
+        PickerMode::BlackBox => strings::text("picker-title-black-box"),
     };
     Window::new(title)
         .id(Id::unique("place-picker"))

@@ -145,6 +145,8 @@ pub struct App {
     /// Edit ▸ Paste (or the palette) asked for the system clipboard: the frame sends `ViewportCommand::RequestPaste`,
     /// and the platform answers with a paste event, which runs `edit.paste_clip` with its text like Ctrl+V.
     request_paste: bool,
+    /// The IP tool's name field in the tool strip (WP-S2.04 §9.1): `ip.name` on Enter.
+    ip_name: String,
 }
 
 /// Prepares an egui context for the shell: installs the bundled fonts and switches egui's own keyboard zoom off, so
@@ -182,6 +184,7 @@ impl App {
             applied_scale: None,
             applied_theme: None,
             request_paste: false,
+            ip_name: String::new(),
         }
     }
 
@@ -381,8 +384,21 @@ impl App {
         if self.shell.has_project()
             && let Some(text) = crate::tool_view::tool_strip_text(&self.shell)
         {
+            let ip_tool = self.shell.tool().name() == "ip";
+            let externals = if ip_tool {
+                self.shell.external_choices()
+            } else {
+                Vec::new()
+            };
+            let ip_name = &mut self.ip_name;
             Panel::top("tool-strip").show(ui, |ui| {
-                ui.horizontal(|ui| ui.label(text));
+                ui.horizontal(|ui| {
+                    ui.label(text);
+                    // WP-S2.04 §9.1: the IP tool's name field and external-reference field.
+                    if ip_tool {
+                        crate::tool_view::ip_fields(ui, ip_name, &externals, &mut events);
+                    }
+                });
             });
         }
         let mut new_layout = None;

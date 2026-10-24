@@ -123,8 +123,65 @@ pub fn tool_strip_text(shell: &ShellModel) -> Option<String> {
             parts.extend(unmapped);
             parts.join(" · ")
         }
+        // WP-S2.04 part 3: the IP tool's name, direction, star and external reference; the black box's CPs.
+        Some(tools::Ghost::Ip {
+            name,
+            direction,
+            star,
+            external,
+            ..
+        }) => {
+            let mut parts = vec![name, direction.to_owned()];
+            if star {
+                parts.push(strings::text("action-tool-star-source").to_owned());
+            }
+            parts.extend(external);
+            parts.join(" · ")
+        }
+        Some(tools::Ghost::Box { cps, .. }) => {
+            format!("{} · {cps}", strings::text(tool.status_hint()))
+        }
     };
     Some(format!("{label}: {detail}"))
+}
+
+/// The IP tool's fields in the tool strip (WP-S2.04 §9.1): the name (Enter sends `ip.name`) and the external
+/// reference, offered by printed text (a choice sends `ip.external` with its ID, "none" with `null`).
+pub(crate) fn ip_fields(
+    ui: &mut Ui,
+    name: &mut String,
+    externals: &[(String, String)],
+    events: &mut Vec<crate::app::Event>,
+) {
+    ui.label(strings::text("action-ip-name"));
+    let edit = ui.add(egui::TextEdit::singleline(name).desired_width(120.0));
+    if edit.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) && !name.trim().is_empty() {
+        events.push(crate::app::Event::Action(
+            "ip.name",
+            serde_json::json!({ "text": name.trim() }),
+        ));
+        name.clear();
+    }
+    if !externals.is_empty() {
+        egui::ComboBox::from_label(strings::text("action-ip-external"))
+            .selected_text("…")
+            .show_ui(ui, |ui| {
+                if ui.selectable_label(false, "-").clicked() {
+                    events.push(crate::app::Event::Action(
+                        "ip.external",
+                        serde_json::json!({ "external": null }),
+                    ));
+                }
+                for (id, label) in externals {
+                    if ui.selectable_label(false, label).clicked() {
+                        events.push(crate::app::Event::Action(
+                            "ip.external",
+                            serde_json::json!({ "external": id }),
+                        ));
+                    }
+                }
+            });
+    }
 }
 
 /// A text chip: the text on the panel colour with a thin frame, its anchor point at `at` (points).
