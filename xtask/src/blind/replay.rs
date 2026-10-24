@@ -432,7 +432,12 @@ pub fn bless(root: &Path, run: &Run, name: &str, ci: &str) -> Result<PathBuf> {
     }
     files.push(("outcomes.jsonl".to_owned(), outcomes_jsonl(&run.transcript()?)?));
     files.push(("epilogue.txt".to_owned(), norm.text(&inputs.epilogue)));
-    if let Ok(pdf) = std::fs::read_to_string(run.path("out/project-t1.pdf.sha256")) {
+    // The PDF's digest ties a gate run's recording to the PDF attached to the release (FT-420). It is evidence only,
+    // never compared, and not reproducible: a new project mints random IDs that reach the PDF. The self-test
+    // recording therefore leaves it out, or every bless would change a committed file.
+    if rj.task != "selftest"
+        && let Ok(pdf) = std::fs::read_to_string(run.path("out/project-t1.pdf.sha256"))
+    {
         files.push(("out/project-t1.pdf.sha256".to_owned(), pdf));
     }
     if let Ok(log) = read("record.ewcmd") {
@@ -520,6 +525,10 @@ mod tests {
                 assert!(!text.contains(word), "{}: {word}", f.display());
             }
         }
+        assert!(
+            !dir.join("out/project-t1.pdf.sha256").exists(),
+            "the PDF digest is not reproducible: the self-test recording has none"
+        );
         assert!(
             !dir.join("transcript.jsonl").exists(),
             "the full transcript is not committed"

@@ -121,6 +121,13 @@ pub fn refused_in_copy(command: &str, from_copy: bool) -> Option<String> {
         .then(|| format!("harness: {command} is the orchestrator's"))
 }
 
+/// Whether `arg` names the folder of `own`, the run whose copy of the harness is running.
+pub fn serves_own_run(own: &Run, arg: Option<&str>) -> bool {
+    let Some(arg) = arg else { return false };
+    let canon = |p: &Path| p.canonicalize().unwrap_or_else(|_| p.to_path_buf());
+    canon(Path::new(arg)) == canon(&own.dir)
+}
+
 /// The reference of a run (the copy in the run folder) or, from the repository, the committed one. A run's copy of the
 /// harness (`repo` is `None`) never falls back to the repository.
 fn load_reference(run: Option<&Run>, repo: Option<&Path>) -> Result<Reference> {
@@ -192,7 +199,19 @@ pub fn run(args: &[String], root: &Path) -> Result<bool> {
             print!("{}", help_text(repo, copy.as_ref())?);
             Ok(true)
         }
-        "serve" => keeper::serve_command(&rest),
+        "serve" => {
+            // From a run's copy the keeper serves that run only (the binding `locate` applies to every other command).
+            if let Some(own) = &copy
+                && !serves_own_run(own, rest.first().map(String::as_str))
+            {
+                println!(
+                    "harness: serve of {} is the orchestrator's",
+                    rest.first().map_or("another folder", String::as_str)
+                );
+                return Ok(false);
+            }
+            keeper::serve_command(&rest)
+        }
         "start" => {
             let mut f = Flags(rest);
             let a = start::StartArgs {
@@ -586,6 +605,27 @@ mod tests {
         std::fs::create_dir_all(tmp.0.join("other/bin")).unwrap();
         assert!(copy_of(Some(&tmp.0.join("other/bin/xtask.exe"))).is_none());
         assert!(copy_of(None).is_none());
+    }
+
+    /// ID-621: from a run's copy, `serve` serves that run's folder only: not another run, not a repository.
+    #[test]
+    fn a_copy_serves_its_own_run_only() {
+        let tmp = Tmp::new("serve-own");
+        let (drafter, check) = crate::blind::testkit::check_pair(&tmp);
+        let arg = |r: &Run| r.dir.to_string_lossy().into_owned();
+        assert!(serves_own_run(&check, Some(&arg(&check))));
+        // Another spelling of the same folder is the same folder.
+        let dotted = check.dir.join("..").join("check");
+        assert!(serves_own_run(&check, Some(&dotted.to_string_lossy())));
+        assert!(!serves_own_run(&check, Some(&arg(&drafter))), "another run");
+        assert!(
+            !serves_own_run(&check, Some(&tmp.0.to_string_lossy())),
+            "a repository-like folder"
+        );
+        assert!(!serves_own_run(&check, Some("")));
+        assert!(!serves_own_run(&check, None));
+        // Nothing was created in the folders it refused.
+        assert!(!drafter.path("session.json").exists() && !tmp.0.join("config").exists());
     }
 
     /// `resume` deletes `work/` and gives a check run its project back before the keeper replays the prelude.

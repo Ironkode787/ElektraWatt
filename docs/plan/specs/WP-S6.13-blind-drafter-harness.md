@@ -947,6 +947,9 @@ points where the code differs from the text above, or settles what it left open:
     `harness: <sub> is the orchestrator's` and exits non-zero, and `help` and the action reference are read from the
     run folder only, never from a repository path baked into the binary. `picker.choose` has the signature
     `letter?:text, strip?:text, designation?:text` (the picker's Enter arms the pick as `place.pick` does).
+13. **`out/project-t1.pdf.sha256`** ties a gate run's recording to the PDF attached under FT-420; it is evidence only,
+    never compared, and not reproducible (a new project mints random IDs that reach the PDF), so the self-test
+    recording leaves it out. From a run's copy, `serve` also serves that run's folder only.
 12. **Run state, fix round.** `stop` records `golden_changed` in `run.json` and `bless` refuses such a run; a check run's
     copy of the drafter's project is put back whenever `work/` is deleted (`resume`, every stateless call).
 
