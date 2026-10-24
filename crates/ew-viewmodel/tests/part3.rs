@@ -799,3 +799,52 @@ fn ib7_the_describe_lines_use_the_ten_words_and_the_tools_read_nothing_while_mov
         .collect();
     assert!(missing.is_empty(), "words no state reached: {missing:?}");
 }
+
+#[test]
+fn ip_external_refuses_a_printed_text_two_references_share_and_takes_an_id() {
+    // A location node of Golden A, read from its external references (the copy keeps every ID).
+    let location = {
+        let (session, _) = ew_viewmodel::ew_api::Session::open_read_only(
+            std::path::Path::new(common::GOLDEN_A),
+            "test",
+        )
+        .unwrap();
+        let q = session.query();
+        let id = q
+            .external_refs()
+            .iter()
+            .next()
+            .map(|(_, x)| x.location.to_string())
+            .expect("Golden A has external references");
+        drop(q);
+        id
+    };
+    let tmp = Tmp::new("ip-external");
+    let mut s = shell(&tmp, "102");
+    for _ in 0..2 {
+        done(
+            &mut s,
+            "command.run",
+            json!({"cmd": "external_ref.create", "params": {
+                "location": location, "device": "TWIN-DEV", "connection": "X",
+            }}),
+        );
+    }
+    done(&mut s, "tool.ip", json!({}));
+    assert_eq!(
+        refused(&mut s, "ip.external", json!({"external": "TWIN-DEV:X"})),
+        "reason-external-ambiguous"
+    );
+    let twins: Vec<String> = s
+        .external_choices()
+        .into_iter()
+        .filter(|(_, label)| label == "TWIN-DEV:X")
+        .map(|(id, _)| id)
+        .collect();
+    assert_eq!(twins.len(), 2, "{twins:?}");
+    done(&mut s, "ip.external", json!({"external": twins[0]}));
+    assert_eq!(canvas(&s)["ghost"]["external"], "TWIN-DEV:X");
+    // The empty text is the cleared form.
+    done(&mut s, "ip.external", json!({"external": ""}));
+    assert_eq!(canvas(&s)["ghost"]["external"], Value::Null);
+}

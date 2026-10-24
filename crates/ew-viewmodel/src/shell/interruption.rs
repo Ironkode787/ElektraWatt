@@ -294,8 +294,8 @@ impl ShellModel {
     }
 
     /// `ip.external {external}`: the IP tool's external-reference field: an external reference by its ID (or alias,
-    /// `id:<uuid>`) or its printed text (`JE-N1000-03:L`); `null` clears it. While set, the ghost and the commit use
-    /// the external arrow of the page's grid family.
+    /// `id:<uuid>`) or its printed text (`JE-N1000-03:L`); an empty text clears it (the parameter is `external:text`;
+    /// `null` is accepted too). While set, the ghost and the commit use the external arrow of the page's grid family.
     pub(super) fn act_ip_external(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.ip_tool().is_none() {
             return Outcome::Refused {
