@@ -189,8 +189,10 @@ impl ShellModel {
         }
         let csa = match p.get("csa") {
             None => None,
-            Some(Value::String(s)) if s.is_empty() => Some(None),
-            Some(Value::String(s)) => Some(Some(s.trim().to_owned())),
+            Some(Value::String(s)) => {
+                let text = s.trim();
+                Some((!text.is_empty()).then(|| text.to_owned()))
+            }
             Some(_) => return failed("error-bad-param", &["csa"]),
         };
         let colours = match p.get("colours") {

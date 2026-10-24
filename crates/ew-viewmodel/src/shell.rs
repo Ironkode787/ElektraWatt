@@ -31,8 +31,6 @@ use crate::status;
 use crate::strings;
 use crate::wizard::Wizard;
 
-// WP-S2.04 part 4b: FT-411, Edit ▸ Bridge terminals.
-mod bridge;
 mod canvas_actions;
 // FT-408 and FT-409
 mod creation;
@@ -40,6 +38,8 @@ mod creation;
 mod clipboard;
 // WP-S2.04 part 4b: the text and graphic tools' host duties.
 mod drawing;
+// WP-S2.04 part 4b: FT-411, Edit ▸ Bridge terminals.
+mod bridge;
 mod editing;
 // WP-S2.05 part 2
 mod find;

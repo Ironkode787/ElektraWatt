@@ -60,7 +60,7 @@ pub enum FineKind {
 pub const CP_SNAP_PT: f64 = 8.0;
 
 /// `num / den` rounded to the nearest integer, halves away from zero (`den > 0`).
-fn div_round(num: i128, den: i128) -> i128 {
+pub(super) fn div_round(num: i128, den: i128) -> i128 {
     let q = num / den;
     let r = num % den;
     if 2 * r.abs() >= den { q + num.signum() } else { q }

@@ -26,7 +26,6 @@ type CpKey = (String, u16);
 /// (after the shaft rule) its bridge-shaft CP index.
 struct Terminal {
     function: String,
-    device: String,
     seq: u32,
     designation: String,
     strip: String,
@@ -44,6 +43,9 @@ struct Bridge {
 
 impl ShellModel {
     /// Whether `strip.bridge` can act on the selection (FT-411): `Ok(command parameters)` or `Err(reason key)`.
+    ///
+    /// `pub(crate)` because the action's enabled predicate in `actions.rs` calls it: the Edit menu evaluates it. Its
+    /// cost is linear in the project's connections plus the two selected terminals' keyed lookups.
     pub(crate) fn bridge_params(&self) -> Result<Value, &'static str> {
         let selection: &'static str = "reason-bridge-selection";
         // 1. The focused page's tables; exactly two selected representations, each with one function and a
@@ -66,27 +68,39 @@ impl ShellModel {
         let q = project.session.query();
 
         let mut terminals = Vec::with_capacity(2);
+        let mut devices = Vec::with_capacity(2);
         for rep in [a_rep, b_rep] {
-            let [function] = rep.functions.as_slice() else {
+            // The page tables and the selection carry UUIDs; the typed row ID comes from the record's canonical
+            // text, which `q.reps().get` fixes by inference (the shell names no schema type).
+            let Ok(rep_id) = rep.id.to_string().parse() else {
                 return Err(selection);
             };
-            let Some(device_id) = rep.device else {
+            let Some(record) = q.reps().get(rep_id) else {
                 return Err(selection);
             };
-            let Some((_, device)) = q.devices().iter().find(|(id, _)| id.as_uuid() == device_id) else {
+            let [function] = record.functions.as_slice() else {
+                return Err(selection);
+            };
+            let Some(function) = q.functions().get(*function) else {
+                return Err(selection);
+            };
+            let Some(device_id) = function.device else {
+                return Err(selection);
+            };
+            let Some(device) = q.devices().get(device_id) else {
                 return Err(selection);
             };
             let Some(terminal) = device.aspects.terminal.as_ref() else {
                 return Err(selection);
             };
             terminals.push(Terminal {
-                function: function.to_string(),
-                device: device_id.to_string(),
+                function: function.id.as_uuid().to_string(),
                 seq: terminal.seq,
                 designation: terminal.designation.as_str().to_owned(),
                 strip: terminal.strip.as_uuid().to_string(),
                 shaft: None,
             });
+            devices.push(device_id);
         }
 
         // 2. Both terminals belong to the same strip.
@@ -95,19 +109,15 @@ impl ShellModel {
         }
 
         // 3. Each terminal's bridge shaft: the lowest CP of the first part use whose copy has a shaft-1 entry.
-        for terminal in &mut terminals {
-            let Some((_, device)) = q
-                .devices()
-                .iter()
-                .find(|(id, _)| id.as_uuid().to_string() == terminal.device)
-            else {
+        for (terminal, device_id) in terminals.iter_mut().zip(&devices) {
+            let Some(device) = q.devices().get(*device_id) else {
                 return Err("reason-bridge-no-shaft");
             };
             let mut shaft = None;
             for use_ in &device.parts {
-                let copy = use_.part.copy;
-                let Some((_, part)) = q.parts().iter().find(|(id, _)| id.as_uuid() == copy.as_uuid()) else {
-                    continue;
+                // A part use whose copy the project does not hold fails closed: the terminal has no usable shaft.
+                let Some(part) = q.parts().get(use_.part.copy) else {
+                    return Err("reason-bridge-no-shaft");
                 };
                 let mut lowest: Option<u16> = None;
                 for cp in part.item.cp_pattern.iter() {
@@ -127,19 +137,8 @@ impl ShellModel {
         }
 
         // The strip's bridges: every bridge connection whose `a` end is a CP of one of the strip's terminal
-        // functions; with their two CP ends and the group.
-        let mut function_strip: std::collections::BTreeMap<String, String> = Default::default();
-        for (id, function) in q.functions().iter() {
-            let Some(device_id) = function.device else {
-                continue;
-            };
-            let Some((_, device)) = q.devices().iter().find(|(id, _)| *id == device_id) else {
-                continue;
-            };
-            if let Some(terminal) = &device.aspects.terminal {
-                function_strip.insert(id.as_uuid().to_string(), terminal.strip.as_uuid().to_string());
-            }
-        }
+        // functions; with their two CP ends and the group. Only the `a` end's function, device and terminal aspect
+        // are read, through the keyed tables, so the menu's enabled predicate stays linear in the bridges.
         let mut bridges: Vec<Bridge> = Vec::new();
         for (_, connection) in q.connections().iter() {
             let Ok(kind) = serde_json::to_value(&connection.kind) else {
@@ -163,10 +162,11 @@ impl ShellModel {
             };
             let a = serde_json::to_value(&connection.a).ok().and_then(|e| end(&e));
             let b = serde_json::to_value(&connection.b).ok().and_then(|e| end(&e));
-            let strip = a
-                .as_ref()
-                .and_then(|(function, _)| function_strip.get(function))
-                .cloned();
+            let strip = connection.a.function().and_then(|function| {
+                let function = q.functions().get(function)?;
+                let device = q.devices().get(function.device?)?;
+                Some(device.aspects.terminal.as_ref()?.strip.as_uuid().to_string())
+            });
             bridges.push(Bridge { group, a, b, strip });
         }
 

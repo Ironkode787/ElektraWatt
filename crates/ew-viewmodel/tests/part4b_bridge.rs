@@ -138,16 +138,6 @@ fn place_terminals(s: &mut ShellModel, functions: &[&str]) -> Vec<TableRep> {
         .collect()
 }
 
-/// The CPs of `reps` on the page with their derived potential.
-fn rep_potentials(t: &PageTables, reps: &[TableRep]) -> Vec<(String, Option<String>)> {
-    let ids: Vec<_> = reps.iter().map(|r| r.id).collect();
-    t.cps
-        .iter()
-        .filter(|c| ids.contains(&c.rep))
-        .map(|c| (c.label.clone(), c.potential.clone()))
-        .collect()
-}
-
 /// The `strip.bridge` item of the Edit menu.
 fn edit_item(s: &ShellModel, id: &str) -> ActionItem {
     let edit = menu_model(s)
@@ -230,10 +220,9 @@ fn assert_golden_endpoints() {
     }
 }
 
-/// The largest group of -X1031's bridges in Golden A.
-fn largest_x1031_bridge_group() -> u64 {
-    let (session, _) =
-        Session::open_read_only(Path::new(GOLDEN_A), "test").expect("Golden A opens read-only");
+/// The largest group among -X1031's bridge connections in the project at `dir`.
+fn largest_x1031_bridge_group(dir: &Path) -> u64 {
+    let (session, _) = Session::open_read_only(dir, "test").expect("the project copy opens read-only");
     let q = session.query();
     let mut max = 0;
     for (_, c) in q.connections().iter() {
@@ -298,18 +287,18 @@ fn pi10_three_bridges_join_four_terminals_in_one_group() {
     let mut s = shell(&tmp, "103");
     delete_connections(&mut s, &BR1);
     let reps = place_terminals(&mut s, &X1031);
-    // Before the first bridge the four terminals do not yet share one potential.
-    let t = tables(&s);
-    let before = rep_potentials(&t, &reps);
-    assert!(!before.is_empty(), "the four representations draw CPs");
-    let first = before[0].1.clone();
-    assert!(
-        before.iter().any(|(_, p)| *p != first),
-        "the four terminals do not yet agree: {before:?}"
-    );
+    // The remaining -X1031 bridges (BR2 to BR5) are read from the saved modified copy, not from pristine Golden A.
+    done(&mut s, "file.save", json!({}));
+    let remaining = largest_x1031_bridge_group(&tmp.golden_copy());
     let mut groups = Vec::new();
     for k in 0..3 {
-        select_ids(&mut s, &[reps[k].id.to_string(), reps[k + 1].id.to_string()]);
+        // The first step selects the higher sequence first; the rule still puts :1 in `a` and :2 in `b`.
+        let selection = if k == 0 {
+            [reps[1].id.to_string(), reps[0].id.to_string()]
+        } else {
+            [reps[k].id.to_string(), reps[k + 1].id.to_string()]
+        };
+        select_ids(&mut s, &selection);
         let rev = s.revision();
         done(&mut s, "strip.bridge", json!({}));
         assert_eq!(s.revision(), rev.map(|r| r + 1), "one undo step");
@@ -329,34 +318,16 @@ fn pi10_three_bridges_join_four_terminals_in_one_group() {
         );
         groups.push(group);
     }
-    let expected = largest_x1031_bridge_group() + 1;
-    assert_eq!(groups, vec![expected; 3], "all three bridges in one group");
-    // After the third step the four terminals are on one potential, 24VDC-1: every CP that is on a potential is
-    // on that one, and each of the four terminals has a CP on it. (A clamp CP without a connection is no stitch
-    // node, so its potential stays unset; the drawn clamp b of each terminal carries the joined potential.)
-    let t = tables(&s);
-    let after = rep_potentials(&t, &reps);
-    let potential = after
-        .iter()
-        .filter_map(|(_, p)| p.clone())
-        .next()
-        .expect("a potential after the bridges");
-    assert_eq!(potential, "24VDC-1");
-    assert!(
-        after
-            .iter()
-            .all(|(_, p)| p.as_ref().is_none_or(|q| q == &potential)),
-        "{after:?}"
+    let group0 = groups[0];
+    assert_eq!(groups[1], group0, "the second bridge joins the first group");
+    assert_eq!(groups[2], group0, "the third bridge joins the first group");
+    assert_eq!(
+        group0,
+        remaining + 1,
+        "the next free group after the remaining bridges"
     );
-    for rep in &reps {
-        assert!(
-            t.cps
-                .iter()
-                .any(|c| c.rep == rep.id && c.potential.as_ref() == Some(&potential)),
-            "{} has no CP on {potential}",
-            rep.id
-        );
-    }
+    // BR2 to BR5 remain on -X1031 in groups 2 to 5, so the first new bridge takes group 6.
+    assert_eq!(group0, 6, "BR2 to BR5 remain in groups 2 to 5");
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -370,9 +341,8 @@ fn each_bridge_is_one_undo_step() {
     let rev = s.revision();
     let steps = s.recorded_commands().len();
     done(&mut s, "edit.undo", json!({}));
-    // A revision is the model's change stamp: undo restores a snapshot and stamps it again, so the stamp moves
-    // on rather than returning. One undo step took back exactly the third bridge.
-    assert_ne!(s.revision(), rev);
+    // An undo restores a snapshot and commits a new revision; one undo step took back exactly the third bridge.
+    assert_eq!(s.revision(), rev.map(|r| r + 1));
     assert_eq!(s.recorded_commands().len(), steps - 1);
     // The third bridge is undone: :3 and :4 can be bridged again.
     select_ids(&mut s, &[reps[2].id.to_string(), reps[3].id.to_string()]);

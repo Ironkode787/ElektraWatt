@@ -297,7 +297,8 @@ fn the_marker_tool_takes_w4_and_w5_in_line_order() {
         .expect("the wire marker");
     assert_eq!(marker.text.as_deref(), Some("2.5 BK BU"));
 
-    // The same line drawn right to left (a fresh copy) lists the two the other way round.
+    // The same line drawn right to left (a fresh copy) lists the two the other way round; the keyboard commit
+    // needs a grid cursor even though the pointer drew the line.
     let tmp = Tmp::new("marker-w4w5-rev");
     let mut s = shell(&tmp, "101");
     done(&mut s, "tool.marker", json!({}));
@@ -306,7 +307,8 @@ fn the_marker_tool_takes_w4_and_w5_in_line_order() {
     pointer(&mut s, from);
     release(&mut s, from);
     assert_eq!(s.tool().state(), "typing");
-    done(&mut s, "tool.finish", json!({}));
+    cursor(&mut s, from);
+    done(&mut s, "canvas.activate", json!({}));
     let last = s.recorded_commands().last().expect("the commit");
     let mut reversed = order.clone();
     reversed.reverse();
@@ -382,7 +384,11 @@ fn a_crossing_of_no_wire_returns_to_armed() {
     let rev = s.revision();
     done(&mut s, "tool.marker", json!({}));
     press(&mut s, from);
+    assert_eq!(s.tool().state(), "crossing");
+    assert_eq!(canvas(&s)["ghost"]["connections"], 0);
     pointer(&mut s, to);
+    assert_eq!(s.tool().state(), "crossing");
+    assert_eq!(canvas(&s)["ghost"]["connections"], 0);
     release(&mut s, to);
     assert_eq!(s.tool().state(), "armed");
     assert_eq!(s.revision(), rev, "nothing committed");
@@ -408,9 +414,11 @@ fn marker_fields_parse_colours_and_are_refused_outside_the_tool() {
         "a refused field changes nothing"
     );
     assert_failed(&mut s, "marker.fields", json!({"colours": "BK++GN"}));
-    // The csa is trimmed and the empty text clears it.
+    // The csa is trimmed first: an empty or all-whitespace text clears it.
     done(&mut s, "marker.fields", json!({"csa": " 2.5 "}));
     assert_eq!(canvas(&s)["ghost"]["text"], "2.5 BK GN+YE");
+    done(&mut s, "marker.fields", json!({"csa": "   "}));
+    assert_eq!(canvas(&s)["ghost"]["text"], "BK GN+YE");
     done(&mut s, "marker.fields", json!({"csa": ""}));
     assert_eq!(canvas(&s)["ghost"]["text"], "BK GN+YE");
     // Two entries for two crossed wires: the committed colours are lists of one and two codes.
@@ -662,6 +670,10 @@ fn the_marker_and_structure_box_ghost_lines_use_only_vocabulary_words() {
     };
     done(&mut s, "tool.marker", json!({}));
     scan(&s);
+    assert_eq!(
+        describe_line(&s, "canvas ghost marker ").as_deref(),
+        Some("canvas ghost marker connections 0")
+    );
     let (from, to, _) = w4_w5_line(&s);
     press(&mut s, from);
     scan(&s);
@@ -671,9 +683,12 @@ fn the_marker_and_structure_box_ghost_lines_use_only_vocabulary_words() {
     release(&mut s, to);
     assert_eq!(s.tool().state(), "typing");
     scan(&s);
-    // The marker's line reads as the specification says.
-    let marker = describe_line(&s, "canvas ghost marker ").expect("the marker ghost line");
-    assert_eq!(marker, "canvas ghost marker connections 2");
+    // The marker's line reads as the specification says, also after the fields changed.
+    done(&mut s, "marker.fields", json!({"csa": "2.5", "colours": "BK BU"}));
+    assert_eq!(
+        describe_line(&s, "canvas ghost marker ").as_deref(),
+        Some("canvas ghost marker connections 2 text \"2.5 BK BU\"")
+    );
     done(&mut s, "ui.dismiss", json!({}));
     done(&mut s, "ui.dismiss", json!({}));
     done(&mut s, "tool.structure_box", json!({}));
@@ -684,6 +699,11 @@ fn the_marker_and_structure_box_ghost_lines_use_only_vocabulary_words() {
     scan(&s);
     assert_eq!(s.tool().state(), "outline");
     click_at(&mut s, b);
+    scan(&s);
+    assert_eq!(
+        describe_line(&s, "canvas ghost box ").as_deref(),
+        Some("canvas ghost box outline 2")
+    );
     done(&mut s, "tool.finish", json!({}));
     scan(&s);
     assert_eq!(s.tool().state(), "typing");
@@ -700,6 +720,8 @@ fn pointer_moves_with_the_marker_and_structure_box_tools_call_no_session() {
     done(&mut s, "tool.marker", json!({}));
     let calls = s.session_calls();
     for k in 0..20 {
+        let c = grid_point(&s, (40 + k % 3, 30 + k % 2));
+        cursor(&mut s, c);
         let q = sheet(&s, step(k));
         done(&mut s, "canvas.pointer", at(q, json!({})));
     }
@@ -713,6 +735,8 @@ fn pointer_moves_with_the_marker_and_structure_box_tools_call_no_session() {
     press(&mut s, from);
     let calls = s.session_calls();
     for k in 0..20 {
+        let c = grid_point(&s, (40 + k % 3, 30 + k % 2));
+        cursor(&mut s, c);
         let q = sheet(&s, step(k));
         done(&mut s, "canvas.pointer", at(q, json!({})));
     }
@@ -725,6 +749,8 @@ fn pointer_moves_with_the_marker_and_structure_box_tools_call_no_session() {
     // The typing marker tool.
     let calls = s.session_calls();
     for k in 0..20 {
+        let c = grid_point(&s, (40 + k % 3, 30 + k % 2));
+        cursor(&mut s, c);
         let q = sheet(&s, step(k));
         done(&mut s, "canvas.pointer", at(q, json!({})));
     }
@@ -739,6 +765,8 @@ fn pointer_moves_with_the_marker_and_structure_box_tools_call_no_session() {
     done(&mut s, "tool.structure_box", json!({}));
     let calls = s.session_calls();
     for k in 0..20 {
+        let c = grid_point(&s, (40 + k % 3, 30 + k % 2));
+        cursor(&mut s, c);
         let q = sheet(&s, step(k));
         done(&mut s, "canvas.pointer", at(q, json!({})));
     }
@@ -751,6 +779,8 @@ fn pointer_moves_with_the_marker_and_structure_box_tools_call_no_session() {
     click_at(&mut s, p);
     let calls = s.session_calls();
     for k in 0..20 {
+        let c = grid_point(&s, (40 + k % 3, 30 + k % 2));
+        cursor(&mut s, c);
         let q = sheet(&s, step(k));
         done(&mut s, "canvas.pointer", at(q, json!({})));
     }
@@ -764,6 +794,8 @@ fn pointer_moves_with_the_marker_and_structure_box_tools_call_no_session() {
     done(&mut s, "tool.finish", json!({}));
     let calls = s.session_calls();
     for k in 0..20 {
+        let c = grid_point(&s, (40 + k % 3, 30 + k % 2));
+        cursor(&mut s, c);
         let q = sheet(&s, step(k));
         done(&mut s, "canvas.pointer", at(q, json!({})));
     }
@@ -785,8 +817,12 @@ fn a_page_change_ends_every_part_4b_tool() {
         let mut s = shell(&tmp, "101");
         done(&mut s, tool, json!({}));
         assert_ne!(s.tool().name(), "select", "{tool}");
+        let rep = tables(&s).reps[0].id.to_string();
+        done(&mut s, "select.set", json!({"ids": [rep]}));
+        let selected = s.selection().items.clone();
         done(&mut s, "page.goto", json!({"folio": "102"}));
         assert_eq!(s.tool().name(), "select", "{tool} ends on a page change");
+        assert_eq!(s.selection().items, selected, "{tool} keeps the selection");
     }
     // Text edit, reached through `text.edit` on a placed free text.
     let tmp = Tmp::new("page-change-text-edit");

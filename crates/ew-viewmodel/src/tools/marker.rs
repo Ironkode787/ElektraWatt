@@ -8,8 +8,10 @@
 //! segment `P→Q` of its polyline: the segment counts when it is not parallel to `A→B` and the two closed segments
 //! intersect (the four orientation signs; a segment lying on the line is parallel and never counts, one that ends on
 //! the line does). Its parameter along `A→B` is `t = cross(P−A, Q−P) / cross(B−A, Q−P)`; a connection's key is its
-//! smallest `t` with the segment that gives it, compared as a fraction in `i128`. The crossings are sorted by `t`,
-//! ties by the tables' connection order.
+//! smallest `t` with the segment that gives it. The arithmetic is exact in `i128`; a segment whose orientation or `t`
+//! leaves it does not count, two keys that cannot be compared order by the tables' connection order, and a crossing
+//! point that leaves it is the segment's start point. The crossing point rounds halves away from zero
+//! (`tools/snap.rs`'s `div_round`). The crossings are sorted by `t`, ties by the tables' connection order.
 //!
 //! **The states.** All points are page nm, exact: the crossing ends are the exact page points of the pointer or of
 //! the grid cursor, never snapped; upon release the marker point is the crossing line's midpoint, fine-snapped with
@@ -23,6 +25,7 @@
 //! | armed | `Activate` before any point; `Release` | armed | `None` |
 //! | crossing | `PointerMove`, `CursorMove` to p | crossing (to p) | `Transient`: the dashed line, a `cp` marker per crossing, a `<n> crossed` label |
 //! | crossing | `Release` primary, or `Activate` | typing, or armed (at = to) when nothing is crossed | typing: `Transient` (the line and a grid marker at the marker point); nothing: `Cancel` |
+//! | crossing | `Press` primary | crossing (unchanged) | `None` |
 //! | typing | `Activate` or `Key(Finish)` | armed (at = the marker point) | `Commit(marker.place …)` |
 //! | typing | `Dwell { ms ≥ 80 }` | typing | `Preview(marker.place …)` |
 //! | typing | any move, `Press`, `Release`, `Back` | typing | `None` |
@@ -37,30 +40,20 @@ use ew_api::output::PageTables;
 use ew_api::output::ew_dl::EntityRef;
 use serde_json::{Map, Value, json};
 
+use super::snap::div_round;
 use super::{
     Anchor, Button, CanvasEvent, FineKind, Ghost, MarkerKind, Overlay, OverlayItem, Style, Token, Tool,
     ToolCx, ToolKey, ToolOutput,
 };
 
-/// `a × b` in the plane, in `i128`.
-fn cross(a: (i128, i128), b: (i128, i128)) -> i128 {
-    a.0 * b.1 - a.1 * b.0
+/// `a × b` in the plane, in `i128`; `None` when a product or the difference overflows.
+fn cross(a: (i128, i128), b: (i128, i128)) -> Option<i128> {
+    a.0.checked_mul(b.1)?.checked_sub(a.1.checked_mul(b.0)?)
 }
 
-/// The point `a + b`, in `i128`.
-fn sub(a: (i128, i128), b: (i128, i128)) -> (i128, i128) {
-    (a.0 - b.0, a.1 - b.1)
-}
-
-/// `num / den` rounded to the nearest integer, halves to the even neighbour; `den` is positive.
-fn div_round_half_even(num: i128, den: i128) -> i128 {
-    let q = num.div_euclid(den);
-    let r = num.rem_euclid(den);
-    match (2 * r).cmp(&den) {
-        std::cmp::Ordering::Greater => q + 1,
-        std::cmp::Ordering::Equal if q % 2 != 0 => q + 1,
-        _ => q,
-    }
+/// The point `a − b`, in `i128`; `None` when a difference overflows.
+fn sub(a: (i128, i128), b: (i128, i128)) -> Option<(i128, i128)> {
+    Some((a.0.checked_sub(b.0)?, a.1.checked_sub(b.1)?))
 }
 
 /// An `i128` as an `i64`, saturating.
@@ -69,7 +62,7 @@ fn sat(v: i128) -> i64 {
 }
 
 /// One crossing of the crossing line by a connection: its table ID, its key as a fraction, the segment's
-/// horizontality and the crossing point on the sheet's page (nm, rounded).
+/// horizontality, the crossing point on the sheet's page (nm, rounded), and the connection's place in the tables.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 struct Crossing {
     id: EntityRef,
@@ -78,64 +71,99 @@ struct Crossing {
     den: i128,
     horizontal: bool,
     at: (i64, i64),
+    /// The connection's place in the page tables (the fallback order of incomparable keys).
+    order: usize,
 }
 
 /// The crossings of the segment `from`–`to` (page nm), sorted (see [`crossed_connections`]).
 fn crossings(tables: &PageTables, from: (i64, i64), to: (i64, i64)) -> Vec<Crossing> {
     let a = (i128::from(from.0), i128::from(from.1));
     let b = (i128::from(to.0), i128::from(to.1));
-    let d = sub(b, a);
+    let Some(d) = sub(b, a) else {
+        return Vec::new();
+    };
     let mut out: Vec<Crossing> = Vec::new();
-    for c in &tables.connections {
-        let mut best: Option<(i128, i128, bool)> = None;
+    for (order, c) in tables.connections.iter().enumerate() {
+        let mut best: Option<(i128, i128, bool, (i64, i64))> = None;
         for w in c.polyline.windows(2) {
             let p = (i128::from(w[0].0), i128::from(w[0].1));
             let q = (i128::from(w[1].0), i128::from(w[1].1));
-            let e = sub(q, p);
-            let mut den = cross(d, e);
+            let (Some(e), Some(pa), Some(qa), Some(ap), Some(bp)) =
+                (sub(q, p), sub(p, a), sub(q, a), sub(a, p), sub(b, p))
+            else {
+                continue;
+            };
+            let Some(mut den) = cross(d, e) else {
+                continue;
+            };
             // A segment parallel to the line (one lying on it included) never counts.
             if den == 0 {
                 continue;
             }
+            let (Some(o1), Some(o2), Some(o3), Some(o4)) =
+                (cross(d, pa), cross(d, qa), cross(e, ap), cross(e, bp))
+            else {
+                continue;
+            };
+            let (o1, o2, o3, o4) = (o1.signum(), o2.signum(), o3.signum(), o4.signum());
             // The two closed segments intersect: no strict separation on either line.
-            let o1 = cross(d, sub(p, a)).signum();
-            let o2 = cross(d, sub(q, a)).signum();
-            if o1 * o2 > 0 {
+            if o1 == o2 && o1 != 0 {
                 continue;
             }
-            let o3 = cross(e, sub(a, p)).signum();
-            let o4 = cross(e, sub(b, p)).signum();
-            if o3 * o4 > 0 {
+            if o3 == o4 && o3 != 0 {
                 continue;
             }
-            let mut num = cross(sub(p, a), e);
+            let Some(mut num) = cross(pa, e) else {
+                continue;
+            };
             if den < 0 {
-                num = -num;
-                den = -den;
+                let (Some(n), Some(dn)) = (num.checked_neg(), den.checked_neg()) else {
+                    continue;
+                };
+                num = n;
+                den = dn;
             }
             let better = match best {
                 None => true,
-                Some((bn, bd, _)) => num * bd < bn * den,
+                Some((bn, bd, _, _)) => match (num.checked_mul(bd), bn.checked_mul(den)) {
+                    (Some(l), Some(r)) => l < r,
+                    // Incomparable keys: the earlier connection (table order) keeps the place.
+                    _ => false,
+                },
             };
             if better {
-                best = Some((num, den, w[0].1 == w[1].1));
+                best = Some((num, den, w[0].1 == w[1].1, w[0]));
             }
         }
-        if let Some((num, den, horizontal)) = best {
+        if let Some((num, den, horizontal, start)) = best {
+            // The crossing point `A + t·d`; a coordinate that leaves `i128` uses the segment's start point.
+            let at = match (num.checked_mul(d.0), num.checked_mul(d.1)) {
+                (Some(nx), Some(ny)) => match (
+                    a.0.checked_add(div_round(nx, den)),
+                    a.1.checked_add(div_round(ny, den)),
+                ) {
+                    (Some(x), Some(y)) => (sat(x), sat(y)),
+                    _ => start,
+                },
+                _ => start,
+            };
             out.push(Crossing {
                 id: EntityRef(c.id),
                 num,
                 den,
                 horizontal,
-                at: (
-                    sat(a.0 + div_round_half_even(num * d.0, den)),
-                    sat(a.1 + div_round_half_even(num * d.1, den)),
-                ),
+                at,
+                order,
             });
         }
     }
-    // A stable sort: equal keys keep the tables' connection order.
-    out.sort_by(|x, y| (x.num * y.den).cmp(&(y.num * x.den)));
+    // A stable sort: equal keys keep the tables' connection order; incomparable keys order by it.
+    out.sort_by(
+        |x, y| match (x.num.checked_mul(y.den), y.num.checked_mul(x.den)) {
+            (Some(l), Some(r)) => l.cmp(&r).then_with(|| x.order.cmp(&y.order)),
+            _ => x.order.cmp(&y.order),
+        },
+    );
     out
 }
 
@@ -179,6 +207,8 @@ pub struct MarkerTool {
     colours: Vec<Vec<String>>,
     /// How many connections the crossing line meets now (the ghost's count while crossing).
     crossed: usize,
+    /// The last crossing line (page nm), kept so the typing overlay draws it after a field change.
+    line: Option<((i64, i64), (i64, i64))>,
 }
 
 impl MarkerTool {
@@ -189,6 +219,7 @@ impl MarkerTool {
             csa: None,
             colours: Vec::new(),
             crossed: 0,
+            line: None,
         }
     }
 
@@ -259,6 +290,16 @@ impl MarkerTool {
             });
             return Overlay::new(items);
         }
+        // The typing state keeps the crossing line that gave it its connections (a field change redraws it).
+        if let State::Typing { .. } = &self.state
+            && let Some((from, to)) = self.line
+        {
+            items.push(OverlayItem::Line {
+                a: sheet(from),
+                b: sheet(to),
+                style: Style::dashed(Token::Ghost),
+            });
+        }
         items.push(OverlayItem::Marker {
             at: sheet(at),
             kind: MarkerKind::Grid,
@@ -327,6 +368,7 @@ impl MarkerTool {
     fn click(&mut self, cx: &ToolCx<'_>) -> ToolOutput {
         match &self.state {
             State::Armed { at: Some(at) } => {
+                self.line = None;
                 self.state = State::Crossing { from: *at, to: *at };
                 self.crossed = 0;
                 ToolOutput::Transient(self.overlay(cx))
@@ -346,6 +388,7 @@ impl MarkerTool {
         if crossed.is_empty() {
             self.state = State::Armed { at: Some(to) };
             self.crossed = 0;
+            self.line = None;
             return ToolOutput::Cancel;
         }
         let mid = midpoint(from, to);
@@ -365,18 +408,9 @@ impl MarkerTool {
             angle,
         };
         self.crossed = 0;
-        let sheet = |p: (i64, i64)| cx.snapper.page_to_sheet(p);
-        ToolOutput::Transient(Overlay::new(vec![
-            OverlayItem::Line {
-                a: sheet(from),
-                b: sheet(to),
-                style: Style::dashed(Token::Ghost),
-            },
-            OverlayItem::Marker {
-                at: sheet(at),
-                kind: MarkerKind::Grid,
-            },
-        ]))
+        self.line = Some((from, to));
+        // The line and a grid marker at the marker point; the field changes redraw the same line.
+        ToolOutput::Transient(self.overlay(cx))
     }
 
     /// Enter or `tool.finish` in the typing state.
@@ -392,6 +426,7 @@ impl MarkerTool {
         let (connections, at, angle) = (connections.clone(), *at, *angle);
         self.state = State::Armed { at: Some(at) };
         self.crossed = 0;
+        self.line = None;
         ToolOutput::Commit(self.command(cx, &connections, at, angle))
     }
 
@@ -436,10 +471,21 @@ impl Tool for MarkerTool {
                 button: Button::Primary,
                 ..
             } => {
+                // A press only starts the line; in crossing it changes nothing (Release and Activate take the
+                // crossed connections).
+                if matches!(&self.state, State::Crossing { .. }) {
+                    return ToolOutput::None;
+                }
                 let _ = self.moved(*at, cx);
                 self.click(cx)
             }
-            CanvasEvent::Activate => self.click(cx),
+            CanvasEvent::Activate => {
+                if matches!(&self.state, State::Typing { .. }) {
+                    self.finish(cx)
+                } else {
+                    self.click(cx)
+                }
+            }
             CanvasEvent::Release {
                 button: Button::Primary,
                 ..
@@ -456,11 +502,13 @@ impl Tool for MarkerTool {
                 State::Crossing { to, .. } => {
                     self.state = State::Armed { at: Some(*to) };
                     self.crossed = 0;
+                    self.line = None;
                     ToolOutput::Cancel
                 }
                 State::Typing { at, .. } => {
                     self.state = State::Armed { at: Some(*at) };
                     self.crossed = 0;
+                    self.line = None;
                     ToolOutput::Cancel
                 }
                 State::Armed { .. } => ToolOutput::None,
@@ -576,5 +624,14 @@ mod tests {
         // A wire that stops just short is not crossed.
         let t = page(&[&[(10, 0), (10, 14)]]);
         assert!(crossed_connections(&t, (0, 15), (30, 15)).is_empty());
+    }
+
+    #[test]
+    fn crossings_near_the_coordinate_limit_do_not_panic() {
+        let limit = (1_i64 << 53) - 1;
+        let x = limit - 10;
+        let t = page(&[&[(-x, -limit), (-x, limit)], &[(x, -limit), (x, limit)]]);
+        let hits = crossings(&t, (-limit, 0), (limit, 0));
+        assert!(hits.len() <= 2);
     }
 }

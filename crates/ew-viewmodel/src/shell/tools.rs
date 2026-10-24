@@ -193,8 +193,9 @@ impl ShellModel {
         // A page or tab change ends the gesture a sticky refusal belonged to.
         self.tools.notice = None;
         self.tools.notice_sticky = false;
-        // An editing tool (Wire, Edit route, Place, Change symbol) works on one page (WP-S2.04 part 2, window-check
-        // ruling): a page or tab change ends it and Select takes over. The selection survives (WP-S2.03 §7.6).
+        // An editing tool (Wire, Edit route, Place, Change symbol, and the part-4b Text, Text edit, Graphic, Wire
+        // marker and Structure box tools) works on one page (WP-S2.04 part 2, window-check ruling): a page or tab
+        // change ends it and Select takes over. The selection survives (WP-S2.03 §7.6).
         if matches!(
             self.tools.tool.name(),
             "wire"
