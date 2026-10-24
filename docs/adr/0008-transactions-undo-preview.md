@@ -1,6 +1,6 @@
 # ADR-0008: Transactions, undo/redo and preview-as-fork
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-21 (the first command that edits project settings), 2026-10-22 (the transaction-read rule), 2026-10-23 (a transaction carries assets), 2026-10-24 (amendment 3's `HumanOnly` rule covers undo and redo, and amendment 5's purge as a `HumanOnly` marker line, notes) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-21 (the first command that edits project settings), 2026-10-22 (the transaction-read rule), 2026-10-23 (a transaction carries assets), 2026-10-24 (amendment 3's `HumanOnly` rule covers undo and redo, and amendment 5's purge as a `HumanOnly` marker line, notes), 2026-10-25 (amendment 3's note as built by FT-404) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -132,7 +132,7 @@ these entries refine it.
      `revision.release`, which stays `HumanOnly`. A settings member that decides a check outcome is therefore never
      added to this whitelist and keeps a `HumanOnly` command of its own; extending the whitelist needs an amendment
      of this ADR.
-   - *Note (2026-10-24, lead designer; decision log ID-603; open until FT-404).* The `HumanOnly` rule covers **undo
+   - *Note (2026-10-24, lead designer; decision log ID-603; closed by FT-404 in cycle 27, ID-649).* The `HumanOnly` rule covers **undo
      and redo** too: undoing or redoing a step whose command is `HumanOnly` (today `project.checks.set`) is itself a
      `HumanOnly` act, refused from a script, command-log, MCP, plugin or Python origin and from an unconfirmed CLI. It
      is not enforced as built (cycle 24): `Engine::undo` and `Session::undo` take no origin and the exposure check
@@ -140,8 +140,14 @@ these entries refine it.
      the history step records the strictest exposure of the commands it holds at commit (a coalesced step takes the
      strictest of its parts), and `undo` and `redo` take the caller's origin and refuse a `HumanOnly` step from a
      non-GUI origin or an unconfirmed CLI. Recording at commit rather than looking the command up at undo time keeps
-     the check independent of what the registry holds then (a plugin command may be gone). Until FT-404 the gap is
-     documented here and in [extensibility](../design/17-extensibility.md) §2.3.
+     the check independent of what the registry holds then (a plugin command may be gone).
+     *As built (cycle 27, FT-404; decision log ID-649):* the history step records the strictest exposure class of its
+     commands at commit (`Transaction.exposure`; Edit < Import < `HumanOnly` < Internal, a coalesced step the strictest
+     of its parts), and `Engine::undo` and `redo` and `Session::undo` and `redo` take the caller's `&Origin` and refuse a
+     `HumanOnly` step from every origin but the GUI and a confirmed CLI subcommand with `CmdError::Exposure`; a
+     transparent `HumanOnly` marker step (amendment 5's purge marker) does not block a scripted undo or redo; the shell
+     passes the GUI origin in the window and the command-log origin headless; in memory only, no file-format change
+     ([extensibility](../design/17-extensibility.md) §2.3, §4).
    - **Frozen tags change only by an explicit action.** No derivation changes a frozen tag. Two commands may:
      `fields.set` on `tag.frozen` (explicit freeze and unfreeze) and `numbering.renumber` with `include_frozen: true`,
      which unfreezes only the frozen devices its scheme can number; both are undoable, the renumber previewed. The

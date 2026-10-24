@@ -1,6 +1,6 @@
 # Schematic editor
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-22, cycle 17: `revision.create`, 37 commands, §3.1; amended 2026-10-22, cycle 18: `plc.set_module_part`, 38 commands, §3.1; rows 3, 13 and 14 as built, §3.2; amended 2026-10-22, cycle-22 design pass: the tool contract's context and previews for WP-S2.03, §4.1, decision log ID-536; amended 2026-10-23, cycle-23 design pass: WP-S2.03 part 1 as built, §4.1, §4.3, §5.7, §6, decision log ID-556, ID-557, ID-560; the decisions of WP-S2.04's specification as notes, §3.2, §3.9, §5.2, §5.4, §5.7, decision log ID-561 to ID-564, ID-567, ID-568; amended 2026-10-24, cycle-24 design pass: WP-S2.03 part 2 as built, the tool contract, the Select and Measure tools, picking and snapping, §4.1, §4.3, §4.5, §5.7, §6, decision log ID-586 to ID-589; amended 2026-10-24, cycle-25 design pass: WP-S2.04 part 1 and WP-S2.05 part 1 as built, the page-type refusal text, 45 commands, undo granularity and the keys as built, §2.2, §3.1, §3.9, §6, decision log ID-625 to ID-628; amended 2026-10-24, cycle-26 design pass: WP-S2.04 part 2 and WP-S2.05 part 2 as built, the wire kind per page type, `fields.set_many` and 46 commands, the undo granularity of wiring and replace, the router as built, the keys as built, §2.2, §3.1, §3.9, §5.4, §6, decision log ID-634, ID-635, ID-638) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-22, cycle 17: `revision.create`, 37 commands, §3.1; amended 2026-10-22, cycle 18: `plc.set_module_part`, 38 commands, §3.1; rows 3, 13 and 14 as built, §3.2; amended 2026-10-22, cycle-22 design pass: the tool contract's context and previews for WP-S2.03, §4.1, decision log ID-536; amended 2026-10-23, cycle-23 design pass: WP-S2.03 part 1 as built, §4.1, §4.3, §5.7, §6, decision log ID-556, ID-557, ID-560; the decisions of WP-S2.04's specification as notes, §3.2, §3.9, §5.2, §5.4, §5.7, decision log ID-561 to ID-564, ID-567, ID-568; amended 2026-10-24, cycle-24 design pass: WP-S2.03 part 2 as built, the tool contract, the Select and Measure tools, picking and snapping, §4.1, §4.3, §4.5, §5.7, §6, decision log ID-586 to ID-589; amended 2026-10-24, cycle-25 design pass: WP-S2.04 part 1 and WP-S2.05 part 1 as built, the page-type refusal text, 45 commands, undo granularity and the keys as built, §2.2, §3.1, §3.9, §6, decision log ID-625 to ID-628; amended 2026-10-24, cycle-26 design pass: WP-S2.04 part 2 and WP-S2.05 part 2 as built, the wire kind per page type, `fields.set_many` and 46 commands, the undo granularity of wiring and replace, the router as built, the keys as built, §2.2, §3.1, §3.9, §5.4, §6, decision log ID-634, ID-635, ID-638; amended 2026-10-25, cycle 27: eight commands and 54 registered, the clipboard as built with cut leaving the device unplaced, Shift+Delete on Windows, §3.1, §3.6, §6, decision log ID-646 to ID-648, ID-651) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) edits schematic pages: multi-line, single-line, overview,
 bus-topology, fluid and graphic pages, together with their frames, folios and sections. It covers symbol placement,
@@ -375,6 +375,8 @@ channel and N1 names the surplus it leaves, which this command without `parts` r
 
 *As built (cycle 26, WP-S2.05 part 2; decision log ID-634).* **`fields.set_many`** (`SetFieldsMany`) joins: `{edits: [SetFields…]}`, each entry checked as `fields.set` with its pointer `/edits/<i>`, `Edit`, `Preview`, Interactive, and `Bulk` above 500 targets in all, undoable in one step; find and replace commits one per replace, and Freeze on several devices one per freeze. **46 commands** are registered (44 `Edit`, two `HumanOnly`). WP-S2.04 part 2 added no command: `connection.draw`, `connection.route`, `junction.edit` and `project.drawing.set` existed.
 
+*As built (cycle 27, WP-S2.04 parts 3 and 4a, WP-S2.05 part 3, FT-410; decision log ID-646 to ID-648, ID-651).* Eight commands join: `connection.draw_to_ip`, `ip.arrange` and `box.reshape` (part 3), `box.structure`, `item.place` and `marker.place` (part 4a), `edit.paste` (the clipboard) and `parts.import` (`Bulk`, the parts import), each `Edit`, `Preview` and undoable; part 4a's amendments to `rep.move`, `edit.delete`, `fields.set` and `project.drawing.set` are additive. **54 commands** are registered (52 `Edit`, two `HumanOnly`).
+
 The table lists every registered command and the planned ones (`Cost` is the registered cost; `Bulk` commands run as
 preview jobs). The parameter schemas in `crates/ew-commands/schemas/` and the generated pages of the user guide's
 command reference are the exact form (decision log ID-403).
@@ -392,13 +394,13 @@ command reference are the exact form (decision log ID-403).
 | `connection.draw` (`Connect`) | a, b (CP, junction or point on a connection), route, kind | Interactive | §4.4 |
 | `connection.route` | connection, route | Interactive | FR-CON-007 |
 | `junction.edit` | style, wiring, sequence | Interactive | FR-CON-005 |
-| `ip.place`, `ip.continue`, `ip.arrange` | name, direction, star source, scope; target page; sort key | Interactive | FR-XRF-006 … FR-XRF-014 |
-| `box.black`, `box.structure` | outline, device or assignment, caption, external ref | Interactive | §2.7 |
-| `item.place` | graphic, text, image, wire marker | Interactive | §3.8 |
+| `ip.place`, `ip.continue`, `ip.arrange` | name, direction, star source, scope; target page; sort key | Interactive | FR-XRF-006 … FR-XRF-014; `ip.arrange` (`ArrangeIps`) built in cycle 27 (ID-646), with `connection.draw_to_ip` (`DrawToIp`: a wire ending in a new interruption point, one transaction) |
+| `box.black`, `box.structure` | outline, device or assignment, caption, external ref | Interactive | §2.7; `box.structure` (`CreateStructureBox`) built in cycle 27 (ID-647), and `box.reshape` (`ReshapeBox`: a black box's outline replaced, its CPs given or re-projected; ID-646) |
+| `item.place` | graphic, text, image, wire marker | Interactive | §3.8; built in cycle 27 (`PlaceItem`; ID-647) for graphics and free texts; wire markers by `marker.place` (`PlaceMarker`: one transaction sets the overrides and places the group), images with WP-S2.04 part 5 |
 | `potential.define` | endpoint, name, type, voltage, props | Interactive | FR-CON-010 |
 | `fields.set` (`SetFields`) | targets, field path, value | Interactive | property grid, multi-select; on a revision only while it is open (FR-REV-009; ID-427) |
 | `fields.set_many` (`SetFieldsMany`) | `edits`: a list of `fields.set` parameter sets | Interactive; Bulk above 500 targets in all | built in cycle 26 (ID-634): one replace of find and replace, one Freeze on several devices; one undo step |
-| `edit.delete`, `edit.paste` | selection; fragment, anchor, options | Interactive; Bulk above 500 records | §3.6; `edit.delete` takes the open revision, never a released or withdrawn one (ID-427) |
+| `edit.delete`, `edit.paste` | selection; fragment, anchor, options | Interactive; Bulk above 500 records | §3.6; `edit.delete` takes the open revision, never a released or withdrawn one (ID-427); `edit.paste` (`PasteFragment`) built in cycle 27 (ID-648): the fragment `#ew-fragment v1` as its parameters |
 | `macro.insert` (`InsertMacro`) | macro, at, value set | Bulk | [07](07-symbols-parts-macros.md), FR-MAC-005 |
 | `numbering.renumber` (`RenumberDevices`) | scope, scheme, options | Bulk | FR-NUM-008, FR-NUM-009 |
 | `terminal.designate` | assignments (terminal, designation), at least one | Interactive | one transaction, swaps without temporary names; uniqueness by the prevent rule EW-TERM-002 (FR-TRM-022, [08](08-connections-terminals-cables.md) §6.8) |
@@ -419,6 +421,7 @@ command reference are the exact form (decision log ID-403).
 | `plc.bind_channel` (`BindChannel`) | channel, endpoint (CP or `null`) | Interactive | [10](10-plc-and-bus.md) §3.9; a CP of the module or its descendants; the CP's other channel is unbound (FR-PLC-005; ID-395) |
 | `project.supply.set` (`SetProjectSupply`) | path, value | Interactive | v0: `origin.source` only; the electrical members wait for an ADR-0008 amendment (FT-280; ID-396) |
 | `library.embed` (`EmbedLibraryCopies`) | copies (library documents in `lib/` JSON form) | Interactive | part, symbol, FnDef, form; copy identity and `sha256` checked; no project-local or already embedded item; the caller owns the closure (FT-274; ID-397) |
+| `parts.import` (`ImportParts`) | copies (parsed project-local part copies) | Bulk | built in cycle 27 (ID-651): FT-410's parts import; keys the project holds are skipped and counted; [05](05-project-format-and-persistence.md) §13.2 |
 | `revision.create` (`CreateRevision`) | label, state (`open` or historic `released`), date?, author?, checker?, description, page notes | Interactive | [03](03-domain-model.md) §18; EW-INV-016 to EW-INV-019 refused at the parameter path; no historic release after a release record (R4); the state transitions are FT-302 (ID-427, ID-431) |
 | `plc.set_module_part` (`SetModulePart`) | module, parts? | Bulk | [10](10-plc-and-bus.md) §3.3, §3.9; removes the channels at or above the new part's count with their bindings; the preview is FR-PLC-053's confirmation; refuses a non-module and a `part_use` the new parts do not name (ID-468) |
 
@@ -625,6 +628,8 @@ Paste (`edit.paste`, FR-DEV-029, FR-UI-036):
 
 **Paste as representation** (paste special) creates new representations of the copied functions instead of new
 devices, for example to draw an existing device on an overview page.
+
+*As built (cycle 27, WP-S2.05 part 3; decision log ID-648).* Copy, Cut, Paste, Duplicate and Copy tag list exist on the canvas (Ctrl+C, Ctrl+X, Ctrl+V, Ctrl+D; Copy tag list on the Edit menu), with the fragment as built in [05](05-project-format-and-persistence.md) §12. Items 1, 3, 5 and 6 hold as written; item 2's copies are numbered in fragment order (the order of their representations' positions) by online numbering's own loop, because the normaliser numbers new devices by ID (FR-NUM-028's anchor-cell order is FT-456); item 4's three-way choice is a follow-up, and a copy the project holds in another version is refused ("update from library first"). **Cut leaves the device unplaced** (decided): Cut is Copy and then the deletion of the selected representations, so the device and its functions stay in the project, unplaced (FR-DEV-003), and a cut and paste gives a new device; the identity-keeping move across pages is `rep.move` (§3.4). Trade-off: no device data (parts, frozen tags, technical data) is lost by a cut, at the price of an unplaced device that the user deletes from the navigator. On Windows, Shift+Delete also cuts (egui-winit turns it into the Cut event, §6). A fragment representation off the page grid is refused, and a paste on a page that takes no symbols is refused with its reason. The clipboard is text through egui's clipboard (arboard), whose Wayland and X11 behaviour is a manual check (FT-455).
 
 ### 3.7 Selection, multi-select and bulk edit
 
@@ -1144,7 +1149,7 @@ reachable without AltGr on QWERTZ and AZERTY layouts.
 | Show all representations of the device | Alt+D | Alt+D |
 | Find, find and replace | Ctrl+F, Ctrl+H | Ctrl+F, Ctrl+H |
 | Undo, redo | Ctrl+Z, Ctrl+Shift+Z (Ctrl+Y on Windows) | Ctrl+Z, Ctrl+Y |
-| Copy, cut, paste, paste as representation, duplicate | Ctrl+C, Ctrl+X, Ctrl+V, Ctrl+Shift+V, Ctrl+D | Ctrl+C, Ctrl+X, Ctrl+V, —, Ctrl+D |
+| Copy, cut, paste, paste as representation, duplicate | Ctrl+C, Ctrl+X (on Windows also Shift+Delete, as built in cycle 27), Ctrl+V, Ctrl+Shift+V, Ctrl+D | Ctrl+C, Ctrl+X, Ctrl+V, —, Ctrl+D |
 | Delete | Del | Del |
 | Fit page, fit selection | Home, Shift+Home | Home, — |
 | Cancel tool, clear selection | Esc | Esc |

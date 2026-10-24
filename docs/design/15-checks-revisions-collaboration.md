@@ -1,6 +1,6 @@
 # Checks, revisions and collaboration
 
-**Status:** Draft v0.6 · **Date:** 2026-10-24 (v0.6: the scheme slots' first reader, `ew check`, and the unshipped-scheme notice, §2.4, decision log ID-602; revision author and checker read-only in the property grid, §5.4, decision log ID-593, built in cycle 25, ID-626; v0.5: the cycle-14 rules EW-NUM-001, EW-CORE-023, EW-CORE-053, EW-POT-002 and EW-CORE-065 as built, the release gate of scheme content, decision log ID-349, ID-353, ID-354; v0.4: the check engine as built in cycle 12, decision log ID-305 to ID-313: scope deviations, EW-CORE-051/052 split, waiver semantics, the migration scheme on imports; v0.3: EW-IMP-122 and EW-IMP-123 added, the interim lenient checks of imports; v0.2: EW-CORE-019 added; EW-CORE-004 and -016 clarified) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.7 · **Date:** 2026-10-25 (v0.7: FT-405's notice as built, §2.4, decision log ID-649; v0.6: the scheme slots' first reader, `ew check`, and the unshipped-scheme notice, §2.4, decision log ID-602; revision author and checker read-only in the property grid, §5.4, decision log ID-593, built in cycle 25, ID-626; v0.5: the cycle-14 rules EW-NUM-001, EW-CORE-023, EW-CORE-053, EW-POT-002 and EW-CORE-065 as built, the release gate of scheme content, decision log ID-349, ID-353, ID-354; v0.4: the check engine as built in cycle 12, decision log ID-305 to ID-313: scope deviations, EW-CORE-051/052 split, waiver semantics, the migration scheme on imports; v0.3: EW-IMP-122 and EW-IMP-123 added, the interim lenient checks of imports; v0.2: EW-CORE-019 added; EW-CORE-004 and -016 clarified) · **Part of:** ElektraWatt design document set
 
 > **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
 
@@ -211,7 +211,7 @@ the project's `release_scheme` in mode `release` and its `active_scheme` in mode
 slot is empty (`Session::project_check_scheme`). A slot naming a scheme this build does not ship (written by a newer
 version or by hand; `project.checks.set` accepts shipped schemes only) also falls back to `pre-delivery`; **lead
 ruling:** `ew check` then prints a notice on stderr naming the scheme and the fallback, with the exit status unchanged
-(FT-405), because a silent fallback hides that the run is weaker or different from the one the project asks for. The
+(FT-405), because a silent fallback hides that the run is weaker or different from the one the project asks for. *As built (cycle 27, FT-405; decision log ID-649):* the notice reads `notice: project scheme '<name>' is not shipped by this build; using pre-delivery` (the name printed with Rust's `escape_debug`), and only the slot of the run's mode is read. The
 release gate does not read the slots yet; when it does, it refuses an unshipped `release_scheme` instead of falling
 back. The message panel's online checks do not read `active_scheme` yet either.
 
