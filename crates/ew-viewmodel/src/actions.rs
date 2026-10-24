@@ -1246,14 +1246,18 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
         )),
     ),
-    hidden(act(
-        "picker.choose",
-        Command,
-        "action-picker-choose",
-        Menu::Insert,
-        &[],
-        picker_open,
-        None,
+    hidden(with_params(
+        // `arm` reads the optional device letter and, for a terminal, the strip and its designation.
+        "letter?:text, strip?:text, designation?:text",
+        act(
+            "picker.choose",
+            Command,
+            "action-picker-choose",
+            Menu::Insert,
+            &[],
+            picker_open,
+            None,
+        ),
     )),
     in_canvas(act(
         "tool.rotate_cw",
@@ -2901,7 +2905,6 @@ mod tests {
         "ui.dismiss",
         "ui.describe",
         // The picker, the tools and the proposals.
-        "picker.choose",
         "tool.finish",
         "tool.next_proposal",
         "tool.connect_on_move",
@@ -2969,6 +2972,11 @@ mod tests {
         // The as-built parameter of Go to is `text` (the specification's example names `folio` and `cell`).
         assert_eq!(sig("nav.goto"), "text?:text");
         assert_eq!(sig("page.describe"), "folio?:text");
+        // The picker's Enter arms the pick with the same optional parameters as `place.pick` (fix round).
+        assert_eq!(
+            sig("picker.choose"),
+            "letter?:text, strip?:text, designation?:text"
+        );
         let new = parse_signature(sig("file.new")).unwrap();
         let template = new.iter().find(|p| p.name == "template").unwrap();
         assert_eq!(template.ty, "path");

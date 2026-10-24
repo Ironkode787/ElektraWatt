@@ -59,7 +59,7 @@ strip.new Command "Terminal strip..." menu "Insert" shortcut none context global
 place.pick Command "Pick a symbol to place" menu none shortcut none context canvas hidden params "symbol?:text, part?:text, function?:ref, template?:uint, letter?:text, strip?:text, designation?:text"
 picker.filter View "Filter the picker" menu none shortcut none context global hidden params "text:text"
 picker.row View "Move the picker's row" menu none shortcut none context global hidden params "step?:int, to?:enum(first|last)"
-picker.choose Command "Choose the picker's row" menu none shortcut none context global hidden params ""
+picker.choose Command "Choose the picker's row" menu none shortcut none context global hidden params "letter?:text, strip?:text, designation?:text"
 tool.rotate_cw Command "Rotate clockwise" menu "Edit" shortcut "R" context canvas params ""
 tool.rotate_ccw Command "Rotate counter-clockwise" menu "Edit" shortcut "Shift+R" context canvas params ""
 tool.mirror_x Command "Mirror left to right" menu "Edit" shortcut "X" context canvas params ""
