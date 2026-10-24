@@ -34,10 +34,14 @@
 //! **WP-S2.04 part 3** adds interruption points and black boxes: the IP tool ([`IpTool`]) with its naming and
 //! direction rules ([`ip`]), the Wire tool's end in an interruption point ([`WireTool::end_in_ip`]), the black box tool
 //! ([`BlackBoxTool`]) and the grips of a selected black box ([`black_box`]), which Select drags.
+//!
+//! **WP-S2.04 part 4b** adds page items and drawings: the Text tool ([`TextTool`]) with its six bindable names
+//! ([`BINDABLE`]), text edit ([`TextEditTool`]), and the Graphic tool ([`GraphicTool`], [`GraphicShape`]).
 
 pub mod autoconnect;
 pub mod black_box;
 mod exchange;
+pub mod graphic;
 mod host;
 pub mod ip;
 mod junction_editor;
@@ -51,11 +55,13 @@ mod place;
 pub mod route_edit;
 mod select;
 mod snap;
+pub mod text;
 pub mod transform;
 pub mod wire;
 
 pub use black_box::{BlackBoxTool, BoxTarget};
 pub use exchange::ExchangeTool;
+pub use graphic::{GraphicShape, GraphicTool};
 pub use ip::{IpDir, IpExternal, IpMemory, IpTool};
 pub use junction_editor::{JunctionEditor, JunctionMember, junction_name};
 // WP-S2.05 part 3
@@ -63,6 +69,7 @@ pub use paste::PasteTool;
 pub use picker::{PendingTerminal, Picker, PickerMode, PickerRow};
 pub use place::{ORIENT_NAMES, PlaceTarget, PlaceTool, inside_polygon, next_designation};
 pub use route_edit::RouteEditTool;
+pub use text::{BINDABLE, TextEditTool, TextTool};
 pub use wire::{WireTarget, WireTool};
 
 pub use ew_api::DynCommand;
@@ -283,6 +290,24 @@ pub enum Ghost {
         outline: usize,
         /// The connection points it lays out.
         cps: usize,
+    },
+    /// The Text tool's or Text edit's free text (WP-S2.04 §10.7).
+    Text {
+        /// The anchor point on the page, nm; `None` before the first pointer or cursor move.
+        at_nm: Option<(i64, i64)>,
+        /// The text typed so far (`""` in the armed state).
+        text: String,
+        /// The binding name (`project.description`, …) of a bound text.
+        bind: Option<String>,
+    },
+    /// The Graphic tool's shape (WP-S2.04 §10.7).
+    Graphic {
+        /// The shape's word (`line`, `polyline`, `rect`, `circle`, `arc`, `polygon`).
+        shape: &'static str,
+        /// How many fixed points the shape has (0 in the armed state).
+        points: usize,
+        /// Whether an arc is drawn anticlockwise.
+        anticlockwise: bool,
     },
 }
 

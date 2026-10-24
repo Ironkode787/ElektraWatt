@@ -41,5 +41,7 @@ mod picker;
 pub mod properties;
 mod start_page;
 mod status_bar;
+// WP-S2.04 part 4b: the text tool's popup.
+mod text_popup;
 pub mod tool_view;
 mod wizard;

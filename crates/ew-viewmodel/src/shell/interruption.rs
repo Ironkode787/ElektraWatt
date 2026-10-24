@@ -253,8 +253,15 @@ impl ShellModel {
     }
 
     /// `tool.ip_direction {direction?}`: D cycles the direction; the headless `direction` (`source`, `target`,
-    /// `undirected`) sets it, so a script needs no knowledge of the default.
+    /// `undirected`) sets it, so a script needs no knowledge of the default. While the Graphic tool draws an arc, D
+    /// toggles the arc's sweep direction (WP-S2.04 §10.5) and a `direction` is refused.
     pub(super) fn act_ip_direction(&mut self, p: &Map<String, Value>) -> Outcome {
+        if self.tools.tool.name() == "graphic" {
+            if p.contains_key("direction") {
+                return failed("error-bad-param", &["direction"]);
+            }
+            return self.send_tool(&CanvasEvent::Key(ToolKey::ToggleDirection));
+        }
         let direction = match string_param(p, "direction") {
             Ok(None) => return self.act_ip_key(ToolKey::ToggleDirection),
             Ok(Some("source")) => IpDir::Source,

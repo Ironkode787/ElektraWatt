@@ -13,7 +13,7 @@ use ew_render2d::overlay::{Dash, MarkerKind, ToolMark, ToolToken};
 use ew_render2d::view::DrawTransform;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
-use ew_viewmodel::tools::{self, Anchor, Overlay, OverlayItem, PreviewStatus};
+use ew_viewmodel::tools::{self, Anchor, BINDABLE, Overlay, OverlayItem, PreviewStatus};
 
 /// The renderer's token of a tool token.
 fn token(t: tools::Token) -> ToolToken {
@@ -141,8 +141,52 @@ pub fn tool_strip_text(shell: &ShellModel) -> Option<String> {
         Some(tools::Ghost::Box { cps, .. }) => {
             format!("{} · {cps}", strings::text(tool.status_hint()))
         }
+        // WP-S2.04 part 4b: the text tools' text or binding, and the Graphic tool's shape, points and direction.
+        Some(tools::Ghost::Text { text, bind, .. }) => {
+            let shown = bind.map_or(text, |b| format!("{{{b}}}"));
+            format!("{shown} · {}", strings::text(tool.status_hint()))
+        }
+        Some(tools::Ghost::Graphic {
+            shape,
+            points,
+            anticlockwise,
+        }) => {
+            let mut parts = vec![shape.to_owned(), points.to_string()];
+            if shape == "arc" {
+                let key = if anticlockwise {
+                    "graphic-anticlockwise"
+                } else {
+                    "graphic-clockwise"
+                };
+                parts.push(strings::text(key).to_owned());
+            }
+            parts.push(strings::text(tool.status_hint()).to_owned());
+            parts.join(" · ")
+        }
     };
     Some(format!("{label}: {detail}"))
+}
+
+/// The Text tool's binding in the tool strip (WP-S2.04 §10.5): one choice per [`BINDABLE`] name and "-" for none.
+pub(crate) fn text_fields(ui: &mut Ui, current_bind: Option<&str>, events: &mut Vec<crate::app::Event>) {
+    egui::ComboBox::from_label(strings::text("action-text-bind"))
+        .selected_text(current_bind.unwrap_or("-"))
+        .show_ui(ui, |ui| {
+            if ui.selectable_label(current_bind.is_none(), "-").clicked() {
+                events.push(crate::app::Event::Action(
+                    "text.bind",
+                    serde_json::json!({ "bind": "" }),
+                ));
+            }
+            for name in BINDABLE {
+                if ui.selectable_label(current_bind == Some(name), name).clicked() {
+                    events.push(crate::app::Event::Action(
+                        "text.bind",
+                        serde_json::json!({ "bind": name }),
+                    ));
+                }
+            }
+        });
 }
 
 /// The IP tool's fields in the tool strip (WP-S2.04 §9.1): the name (Enter sends `ip.name`) and the external

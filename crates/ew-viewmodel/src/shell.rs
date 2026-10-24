@@ -36,6 +36,8 @@ mod canvas_actions;
 mod creation;
 // WP-S2.05 part 3
 mod clipboard;
+// WP-S2.04 part 4b: the text and graphic tools' host duties.
+mod drawing;
 mod editing;
 // WP-S2.05 part 2
 mod find;
@@ -52,6 +54,7 @@ mod wiring;
 mod workspaces;
 
 pub use creation::{FormDialog, FormField, PAGE_TYPES, STRUCTURE_KINDS};
+pub use drawing::TextPopup;
 pub use navigation::{Focus, RECENT_PAGES, SessionCalls};
 pub use tools::SnapIndicator;
 
@@ -579,6 +582,11 @@ fn clears_banner(id: &str) -> bool {
             | "tool.black_box"
             | "box.grip"
             | "box.add_cp"
+            // WP-S2.04 part 4b (text and graphic tools, §10.7) leaves it standing too.
+            | "tool.text"
+            | "tool.graphic"
+            | "text.bind"
+            | "text.edit"
             // The property grid's actions (WP-S2.05 §6.10): a failed edit shows under its field, not in the banner.
             | "props.show"
             | "props.focus"
@@ -1133,6 +1141,8 @@ impl ShellModel {
         self.sync_views();
         self.sync_tool_context();
         self.after_commit();
+        // WP-S2.04 part 4b: a finished text edit returns to Select, the selection kept.
+        self.after_text_edit();
         // WP-S2.04 part 2: the junction editor follows the revision and the page.
         self.sync_junction_editor();
         // WP-S2.04 part 3: the grips of a selected black box.
@@ -1258,7 +1268,17 @@ impl ShellModel {
             "tool.next_variant" => self.act_tool_key(crate::tools::ToolKey::NextVariant),
             "tool.next_rep_type" => self.act_tool_key(crate::tools::ToolKey::NextRepType),
             "tool.move" => self.act_tool_move(),
-            "tool.finish" => self.send_tool(&crate::tools::CanvasEvent::Key(crate::tools::ToolKey::Finish)),
+            // Shift+Enter or a double click: a selected free text opens text edit instead (WP-S2.04 §7.3, §10.5).
+            "tool.finish" => {
+                if self.tools.tool.name() == "select"
+                    && self.tools.tool.state() == "idle"
+                    && self.text_edit_target().is_ok()
+                {
+                    self.act_text_edit()
+                } else {
+                    self.send_tool(&crate::tools::CanvasEvent::Key(crate::tools::ToolKey::Finish))
+                }
+            }
             "text.input" => match string_param(p, "text") {
                 Ok(Some(t)) => self.send_tool(&crate::tools::CanvasEvent::Text(t.to_owned())),
                 Ok(None) => failed("error-missing-param", &["text"]),
@@ -1301,6 +1321,12 @@ impl ShellModel {
             "box.grip" => self.act_box_grip(p),
             "box.add_cp" => self.act_box_add_cp(),
             // WP-S2.04 part 3. End.
+            // WP-S2.04 part 4b (text and graphic tools, §10.7). Begin.
+            "tool.text" => self.act_tool_text(),
+            "tool.graphic" => self.act_tool_graphic(p),
+            "text.bind" => self.act_text_bind(p),
+            "text.edit" => self.act_text_edit(),
+            // WP-S2.04 part 4b. End.
             "props.show" => self.act_props_show(p),
             "props.focus" => self.act_props_focus(),
             "props.project" => self.act_props_project(),

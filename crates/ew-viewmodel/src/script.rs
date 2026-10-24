@@ -668,6 +668,26 @@ fn ghost_json(shell: &ShellModel) -> String {
             member("outline", &Value::from(outline)),
             member("cps", &Value::from(cps)),
         ]),
+        // WP-S2.04 part 4b (§10.7).
+        Some(Ghost::Text { at_nm, text, bind }) => object(vec![
+            member("kind", &Value::from("text")),
+            member(
+                "at_nm",
+                &at_nm.map_or(Value::Null, |(x, y)| Value::from(vec![x, y])),
+            ),
+            member("text", &Value::from(text)),
+            member("bind", &bind.map_or(Value::Null, Value::from)),
+        ]),
+        Some(Ghost::Graphic {
+            shape,
+            points,
+            anticlockwise,
+        }) => object(vec![
+            member("kind", &Value::from("graphic")),
+            member("shape", &Value::from(shape)),
+            member("points", &Value::from(points)),
+            member("anticlockwise", &Value::from(anticlockwise)),
+        ]),
     }
 }
 

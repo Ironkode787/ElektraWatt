@@ -1312,6 +1312,27 @@ fn ghost_lines(model: &ShellModel, lines: &mut Vec<String>) {
         Some(crate::tools::Ghost::Box { outline, cps }) => {
             lines.push(format!("canvas ghost box outline {outline} cps {cps}"));
         }
+        // WP-S2.04 part 4b (§10.7): the text tools' free text and the Graphic tool's shape.
+        Some(crate::tools::Ghost::Text { at_nm, text, bind }) => {
+            let mut line = "canvas ghost item text".to_owned();
+            if let Some((x, y)) = at_nm {
+                line.push_str(&format!(" at {} {} mm", mm3(x), mm3(y)));
+            }
+            let shown = bind.map_or(text, |b| format!("{{{b}}}"));
+            line.push_str(&format!(" text \"{shown}\""));
+            lines.push(line);
+        }
+        Some(crate::tools::Ghost::Graphic {
+            shape,
+            points,
+            anticlockwise,
+        }) => {
+            let mut line = format!("canvas ghost item graphic {shape} points {points}");
+            if anticlockwise {
+                line.push_str(" anticlockwise");
+            }
+            lines.push(line);
+        }
     }
     wiring_lines(model, lines);
 }

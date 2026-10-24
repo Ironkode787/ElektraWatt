@@ -14,6 +14,7 @@ use serde_json::{Value, json};
 use crate::settings::UI_SCALES;
 use crate::shell::ShellModel;
 use crate::strings;
+use crate::tools::{Ghost, GraphicShape};
 
 /// An action ID, such as `file.open` (the `&ActionId` of `dispatch` is a `&str`).
 pub type ActionId = str;
@@ -93,6 +94,8 @@ pub enum Submenu {
     Pan,
     /// View, Page navigator: its three views and two sort orders (WP-S2.03).
     PageNavigator,
+    /// Insert, Graphic: one item per shape of the Graphic tool (WP-S2.04 §10.5).
+    Graphic,
 }
 
 impl Submenu {
@@ -106,6 +109,7 @@ impl Submenu {
             Submenu::Workspace => "submenu-workspace",
             Submenu::Pan => "submenu-pan",
             Submenu::PageNavigator => "submenu-page-navigator",
+            Submenu::Graphic => "submenu-graphic",
         }
     }
 }
@@ -420,6 +424,12 @@ fn one_box(m: &ShellModel) -> Result<(), &'static str> {
     } else {
         Err("reason-one-black-box")
     }
+}
+
+/// An editable page with exactly one unbound free text selected (Edit ▸ Edit text; §10.5).
+fn one_free_text(m: &ShellModel) -> Result<(), &'static str> {
+    editable_page(m)?;
+    m.text_edit_target().map(|_| ())
 }
 
 /// The junction sequence editor is open on a project that can be changed (WP-S2.04 part 2, §8.5).
@@ -1765,6 +1775,50 @@ pub static ACTIONS: &[ActionMeta] = &[
         slot(Menu::Edit),
     )),
     // WP-S2.04 part 3. End.
+    // WP-S2.04 part 4b (text and graphic tools, §10.7). Begin.
+    in_canvas(act(
+        "tool.text",
+        Command,
+        "action-tool-text",
+        Menu::Insert,
+        &["T"],
+        editable_page,
+        slot_sep(Menu::Insert),
+    )),
+    with_params(
+        "shape?:enum(line|polyline|rect|circle|arc|polygon)",
+        in_canvas(act(
+            "tool.graphic",
+            Command,
+            "action-tool-graphic",
+            Menu::Insert,
+            &["L"],
+            editable_page,
+            sub(Menu::Insert, Submenu::Graphic, false),
+        )),
+    ),
+    with_params(
+        "bind:text",
+        hidden(in_canvas(act(
+            "text.bind",
+            View,
+            "action-text-bind",
+            Menu::Edit,
+            &[],
+            editable_page,
+            None,
+        ))),
+    ),
+    in_canvas(act(
+        "text.edit",
+        Command,
+        "action-text-edit",
+        Menu::Edit,
+        &["F2"],
+        one_free_text,
+        slot(Menu::Edit),
+    )),
+    // WP-S2.04 part 4b. End.
     act(
         "tools.company_standard",
         Command,
@@ -2874,6 +2928,8 @@ fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
             // WP-S2.04 part 3.
             "tool.ip" => model.tool().name() == "ip",
             "tool.black_box" => model.tool().name() == "black_box",
+            // WP-S2.04 part 4b.
+            "tool.text" => model.tool().name() == "text",
             "project.crossings" => model.crossings_hops(),
             _ => false,
         },
@@ -2962,6 +3018,27 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
                     item.params = json!({ "scale": scale });
                     item.shortcut = String::new();
                     item.checked = (current - scale).abs() < 1e-3;
+                    item
+                })
+                .collect()
+        }
+        Submenu::Graphic => {
+            let active = match model.tool_ghost() {
+                Some(Ghost::Graphic { shape, .. }) => Some(shape),
+                _ => None,
+            };
+            GraphicShape::ALL
+                .iter()
+                .map(|shape| {
+                    let mut item = item_of(meta, model);
+                    item.label = strings::text(&format!("graphic-{}", shape.word())).to_owned();
+                    item.params = json!({ "shape": shape.word() });
+                    item.shortcut = if *shape == GraphicShape::Line {
+                        shortcut_text(meta)
+                    } else {
+                        String::new()
+                    };
+                    item.checked = active == Some(shape.word());
                     item
                 })
                 .collect()
@@ -3093,6 +3170,7 @@ mod tests {
             Submenu::UiScale,
             Submenu::Workspace,
             Submenu::Pan,
+            Submenu::Graphic,
         ] {
             assert!(strings::lookup(s.label_key()).is_some());
         }

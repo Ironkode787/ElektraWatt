@@ -150,6 +150,8 @@ pub struct App {
     request_paste: bool,
     /// The IP tool's name field in the tool strip (WP-S2.04 §9.1): `ip.name` on Enter.
     ip_name: String,
+    /// The text popup's field (WP-S2.04 §10.5): `None` while the popup is closed.
+    text_buffer: Option<String>,
 }
 
 /// Prepares an egui context for the shell: installs the bundled fonts and switches egui's own keyboard zoom off, so
@@ -189,6 +191,7 @@ impl App {
             applied_theme: None,
             request_paste: false,
             ip_name: String::new(),
+            text_buffer: None,
         }
     }
 
@@ -399,6 +402,8 @@ impl App {
             } else {
                 Vec::new()
             };
+            let text_tool = self.shell.tool().name() == "text";
+            let text_bind = if text_tool { self.shell.text_bind() } else { None };
             let ip_name = &mut self.ip_name;
             Panel::top("tool-strip").show(ui, |ui| {
                 ui.horizontal(|ui| {
@@ -406,6 +411,10 @@ impl App {
                     // WP-S2.04 §9.1: the IP tool's name field and external-reference field.
                     if ip_tool {
                         crate::tool_view::ip_fields(ui, ip_name, &externals, &mut events);
+                    }
+                    // WP-S2.04 §10.5: the Text tool's binding.
+                    if text_tool {
+                        crate::tool_view::text_fields(ui, text_bind.as_deref(), &mut events);
                     }
                 });
             });
@@ -467,6 +476,7 @@ impl App {
         );
         self.picker_was_open = picker_open;
         crate::junction::show(&ctx, &self.shell, &mut events);
+        crate::text_popup::show(&ctx, &self.shell, &mut self.text_buffer, &mut events);
         crate::parts_card::show(&ctx, &self.shell, &mut events);
         let dialog_open = self.shell.dialog().is_some();
         about::show(
@@ -576,8 +586,10 @@ impl App {
         let palette_open = self.shell.palette().is_some();
         let dialog_open = self.shell.dialog().is_some();
         // The junction sequence editor is a popup like the picker (WP-S2.04 part 2): Escape closes it, its own keys
-        // stay with it.
-        let picker_open = self.shell.picker().is_some() || self.shell.junction_editor().is_some();
+        // stay with it. The text popup is one too (WP-S2.04 part 4b §10.5).
+        let picker_open = self.shell.picker().is_some()
+            || self.shell.junction_editor().is_some()
+            || self.shell.text_popup().is_some();
         let overlay = palette_open || dialog_open || picker_open;
         if overlay && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
             events.push(Event::Action("ui.dismiss", Value::Null));

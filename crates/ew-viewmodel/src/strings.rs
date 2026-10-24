@@ -185,6 +185,34 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "reason-ip-end-segment" => "Draw a segment before ending the wire in an interruption point",
         "reason-ip-symbol" => "The interruption-point symbol has not exactly one connection point",
         // WP-S2.04 part 3. End.
+        // WP-S2.04 part 4b (text, text edit and graphic tools). Begin.
+        "submenu-graphic" => "Graphic",
+        "action-tool-text" => "Text",
+        "action-tool-graphic" => "Graphic",
+        "action-text-bind" => "Text binding",
+        "action-text-edit" => "Edit text",
+        "graphic-line" => "Line",
+        "graphic-polyline" => "Polyline",
+        "graphic-rect" => "Rectangle",
+        "graphic-circle" => "Circle",
+        "graphic-arc" => "Arc",
+        "graphic-polygon" => "Polygon",
+        "graphic-anticlockwise" => "anticlockwise",
+        "graphic-clockwise" => "clockwise",
+        "tool-text" => "Text",
+        "tool-text_edit" => "Edit text",
+        "tool-graphic" => "Graphic",
+        "hint-text-armed" => "Click or Enter where the text goes; Escape ends",
+        "hint-text-typing" => "Type the text; Enter places it; Escape cancels",
+        "hint-text-edit" => "Type the new text; Enter changes it; Escape cancels",
+        "hint-graphic-armed" => "Click or Enter at the first point; Escape ends",
+        "hint-graphic-drawing" => {
+            "Click or Enter at the next point; Shift+Enter or a double click finishes a polyline or a polygon; Backspace removes the last point"
+        }
+        "reason-text-tool-only" => "Choose the Text tool first",
+        "reason-text-bound" => "This text shows a project or page field; change that field instead",
+        "reason-select-one-text" => "Select exactly one free text",
+        // WP-S2.04 part 4b. End.
         "tool-select" => "Select",
         "tool-measure" => "Measure",
         "hint-select" => "Click to select; drag for a rubber band",
