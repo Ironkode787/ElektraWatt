@@ -89,11 +89,26 @@ impl NavigatorPane {
         if self.filter != nav.filter && !ui.ctx().text_edit_focused() {
             self.filter = nav.filter.clone();
         }
-        let field = ui.add(
-            TextEdit::singleline(&mut self.filter)
-                .hint_text(strings::text("nav-filter-hint"))
-                .desired_width(f32::INFINITY),
-        );
+        // The New page entry (FT-408) beside the filter: the same action as Page, New page, disabled with its reason.
+        let new_page = ew_viewmodel::actions::find("page.new").map(|a| (a.enabled)(shell));
+        let field = ui
+            .horizontal(|ui| {
+                let enabled = matches!(new_page, Some(Ok(())));
+                let button = ui.add_enabled(enabled, egui::Button::new(strings::text("nav-new-page")));
+                let button = match new_page {
+                    Some(Err(reason)) => button.on_disabled_hover_text(strings::text(reason)),
+                    _ => button,
+                };
+                if button.clicked() {
+                    events.push(Event::Action("page.new", serde_json::Value::Null));
+                }
+                ui.add(
+                    TextEdit::singleline(&mut self.filter)
+                        .hint_text(strings::text("nav-filter-hint"))
+                        .desired_width(f32::INFINITY),
+                )
+            })
+            .inner;
         if field.changed() {
             events.push(Event::Action("pages.filter", json!({ "text": self.filter })));
         }

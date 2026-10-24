@@ -5,7 +5,8 @@
 //! the page-view renderer, the privacy state, the licence, the repository, the engineering-verification
 //! disclaimer and the support status, with buttons for the third-party notices and the documentation), the
 //! notices, the keyboard shortcuts, the unsaved-changes question, the question about an earlier session's journal,
-//! Go to page and Save layout as. Each answer is an [`Event`]; Escape closes the dialog through `ui.dismiss`.
+//! Go to page, Save layout as and the creation dialogs of pages, structure nodes and external references (FT-408,
+//! FT-409). Each answer is an [`Event`]; Escape closes the dialog through `ui.dismiss`.
 
 use egui::{Align2, Id, ScrollArea, TextEdit, Ui, Window};
 use ew_viewmodel::actions::ACTIONS;
@@ -159,6 +160,61 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                         events.push(Event::Action("ui.dismiss", Value::Null));
                     }
                 });
+            });
+        }
+        Some(Dialog::Form(form)) => {
+            window(form.title_key).show(ctx, |ui| {
+                let mut submit = false;
+                let mut first = just_opened;
+                egui::Grid::new("form").num_columns(2).show(ui, |ui| {
+                    for f in &form.fields {
+                        let label_text = strings::text(f.label_key);
+                        let label = ui.label(label_text);
+                        if f.choices.is_empty() {
+                            let mut text = f.value.clone();
+                            let edit = ui.add(
+                                TextEdit::singleline(&mut text)
+                                    .hint_text(label_text)
+                                    .desired_width(240.0),
+                            );
+                            if first {
+                                edit.request_focus();
+                                first = false;
+                            }
+                            if text != f.value {
+                                events.push(Event::FormField(f.name, text));
+                            }
+                            submit |= edit.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
+                        } else {
+                            let combo = egui::ComboBox::from_id_salt(("form-choice", f.name))
+                                .selected_text(&f.value)
+                                .width(240.0)
+                                .show_ui(ui, |ui| {
+                                    for choice in f.choices {
+                                        if ui.selectable_label(f.value == *choice, *choice).clicked() {
+                                            events.push(Event::FormField(f.name, (*choice).to_owned()));
+                                        }
+                                    }
+                                });
+                            combo.response.labelled_by(label.id);
+                        }
+                        ui.end_row();
+                    }
+                });
+                if let Some(error) = &form.error {
+                    ui.colored_label(ui.visuals().error_fg_color, error);
+                }
+                ui.horizontal(|ui| {
+                    if ui.button(strings::text("dialog-create")).clicked() {
+                        submit = true;
+                    }
+                    if ui.button(strings::text("dialog-cancel")).clicked() {
+                        events.push(Event::Action("ui.dismiss", Value::Null));
+                    }
+                });
+                if submit {
+                    events.push(Event::FormSubmit);
+                }
             });
         }
         Some(Dialog::SaveWorkspace { text }) => {

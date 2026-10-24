@@ -51,6 +51,10 @@ pub(crate) enum Event {
     GotoGo(String),
     /// The save-layout field changed.
     WorkspaceText(String),
+    /// A field of a creation dialog changed (FT-408, FT-409): the parameter and its text.
+    FormField(&'static str, String),
+    /// Enter in a creation dialog, or its Create button.
+    FormSubmit,
     /// The banner's own button.
     DismissBanner,
     /// The privacy button of the About dialog and of the first-run privacy step: `PRIVACY.md` in the system browser.
@@ -636,6 +640,11 @@ impl App {
             Event::GotoText(text) => self.shell.set_goto_text(&text),
             Event::GotoGo(text) => self.dispatch("nav.goto", &json!({ "text": text })),
             Event::WorkspaceText(text) => self.shell.set_workspace_text(&text),
+            Event::FormField(name, text) => self.shell.set_form_field(name, &text),
+            // A refusal stays in the dialog, so it is not made a banner as well.
+            Event::FormSubmit => {
+                self.shell.submit_form();
+            }
             Event::DismissBanner => self.shell.dismiss_banner(),
             Event::JunctionRow(row) => self.shell.set_junction_row(row),
             Event::OpenPrivacy => {
