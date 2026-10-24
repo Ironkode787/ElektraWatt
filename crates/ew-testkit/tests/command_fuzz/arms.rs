@@ -53,6 +53,12 @@ pub const ARMS: &[Arm] = &[
         weight: 2,
         build: box_black,
     },
+    // WP-S2.04 part 3
+    Arm {
+        command: "box.reshape",
+        weight: 3,
+        build: box_reshape,
+    },
     Arm {
         command: "cable.create",
         weight: 2,
@@ -72,6 +78,12 @@ pub const ARMS: &[Arm] = &[
         command: "connection.draw",
         weight: 4,
         build: connection_draw,
+    },
+    // WP-S2.04 part 3
+    Arm {
+        command: "connection.draw_to_ip",
+        weight: 3,
+        build: connection_draw_to_ip,
     },
     Arm {
         command: "connection.route",
@@ -119,6 +131,12 @@ pub const ARMS: &[Arm] = &[
         command: "fields.set_many",
         weight: 3,
         build: fields_set_many,
+    },
+    // WP-S2.04 part 3
+    Arm {
+        command: "ip.arrange",
+        weight: 3,
+        build: ip_arrange,
     },
     Arm {
         command: "ip.continue",
@@ -1151,6 +1169,358 @@ fn potential_define(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 .counts(&[(Table::PotentialDefs, 1)]),
             )
         }
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// WP-S2.04 part 3: connection.draw_to_ip, ip.arrange, box.reshape
+
+fn connection_draw_to_ip(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let (page_id, functions) = rng.pick(&live.page_functions)?;
+    let page = live
+        .page_info
+        .iter()
+        .find(|p| &p.id == page_id && p.kind == "multi_line")?;
+    let a = rng.pick(functions)?;
+    let n = i64::try_from(page.grid.0).unwrap_or(1);
+    let name = format!("FZ-{}", rng.below(1000));
+    let direction = *rng.pick(&["source", "target", "undirected"])?;
+    let pos = on_page(page, rng);
+    let star_source = rng.chance(4);
+    let sort = rng.chance(3).then(|| rng.range(1, 9));
+    let idx = small_idx(rng);
+    let end = rng.pick(&live.ip_end_syms).cloned();
+    let ip = |symbol: &Value, def: &Value| {
+        let mut ip = json!({
+            "symbol": symbol, "fndef": def, "pos": pos, "name": name, "direction": direction,
+            "star_source": star_source,
+        });
+        if let Some(sort) = sort {
+            ip["sort"] = json!(sort);
+        }
+        ip
+    };
+    let step = |a: Value, page: &Value, ip: Value| json!({"a": a, "page": page, "ip": ip});
+    match rng.below(10) {
+        // Refused: the page does not exist.
+        0 => {
+            let (symbol, def) = end?;
+            let p = step(cp_end(a, idx), &json!(rng.uuid()), ip(&symbol, &def));
+            Some(Step::cmd("connection.draw_to_ip", p).refuse())
+        }
+        // Refused: the first end names a function that does not exist, or a junction that does not.
+        1 => {
+            let (symbol, def) = end?;
+            let a = if rng.chance(2) {
+                cp_end(&json!(rng.uuid()), idx)
+            } else {
+                json!({"junction": {"junction": rng.uuid()}})
+            };
+            let p = step(a, &page.id, ip(&symbol, &def));
+            Some(Step::cmd("connection.draw_to_ip", p).refuse())
+        }
+        // Refused: the insertion point is off the page's connection grid.
+        2 => {
+            let (symbol, def) = end?;
+            let mut ip = ip(&symbol, &def);
+            ip["pos"] = json!([2 * n + 1, 3 * n]);
+            let p = step(cp_end(a, idx), &page.id, ip);
+            Some(Step::cmd("connection.draw_to_ip", p).refuse())
+        }
+        // Refused: the symbol does not exist, or its function definition is not embedded.
+        3 => {
+            let (symbol, def) = end?;
+            let ip = if rng.chance(2) {
+                ip(&json!(rng.uuid()), &def)
+            } else {
+                ip(&symbol, &json!(rng.uuid()))
+            };
+            let p = step(cp_end(a, idx), &page.id, ip);
+            Some(Step::cmd("connection.draw_to_ip", p).refuse())
+        }
+        // Refused: a route that is off the grid and does not end at the interruption point's CP.
+        4 => {
+            let (symbol, def) = end?;
+            let mut p = step(cp_end(a, idx), &page.id, ip(&symbol, &def));
+            p["route"] = json!([[1, 1], [2, 2]]);
+            Some(Step::cmd("connection.draw_to_ip", p).refuse())
+        }
+        // The wire and its interruption point: one function, one representation, one connection. Either: the
+        // generator does not model the prevent rules.
+        _ => {
+            let (symbol, def) = end?;
+            let p = step(cp_end(a, idx), &page.id, ip(&symbol, &def));
+            let name = name.clone();
+            Some(
+                Step::cmd("connection.draw_to_ip", p)
+                    .counts(&[
+                        (Table::Reps, 1),
+                        (Table::Functions, 1),
+                        (Table::Devices, 0),
+                        (Table::Connections, 1),
+                    ])
+                    .check(move |_, after| {
+                        let found = after.functions().iter().any(
+                            |(_, f)| matches!(&f.kind, ew_schema::FunctionKind::Ip(s) if s.name.as_str() == name),
+                        );
+                        found
+                            .then_some(())
+                            .ok_or_else(|| format!("no interruption point named `{name}` afterwards"))
+                    }),
+            )
+        }
+    }
+}
+
+fn ip_arrange(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let mut by_page: std::collections::BTreeMap<String, Vec<&Value>> = std::collections::BTreeMap::new();
+    for ip in &live.ip_infos {
+        by_page.entry(ip.page.to_string()).or_default().push(&ip.function);
+    }
+    let groups: Vec<&Vec<&Value>> = by_page.values().filter(|g| g.len() >= 2).collect();
+    let any_ip = rng.pick(&live.ip_infos)?;
+    match rng.below(10) {
+        // Refused: fewer than two interruption points.
+        0 => {
+            let ips = if rng.chance(2) {
+                vec![]
+            } else {
+                vec![any_ip.function.clone()]
+            };
+            Some(Step::cmd("ip.arrange", json!({"ips": ips})).refuse())
+        }
+        // Refused: an interruption point twice.
+        1 => {
+            let other = rng.pick(&live.ip_infos)?;
+            let ips = if rng.chance(2) {
+                vec![any_ip.function.clone(), any_ip.function.clone()]
+            } else {
+                vec![
+                    any_ip.function.clone(),
+                    other.function.clone(),
+                    any_ip.function.clone(),
+                ]
+            };
+            Some(Step::cmd("ip.arrange", json!({"ips": ips})).refuse())
+        }
+        // Refused: a function that does not exist.
+        2 => Some(Step::cmd("ip.arrange", json!({"ips": [any_ip.function, rng.uuid()]})).refuse()),
+        // Refused: a function that is not an interruption point.
+        3 => {
+            let plain: Vec<_> = live.functions.iter().filter(|f| !f.ip).collect();
+            let f = rng.pick(&plain)?;
+            Some(Step::cmd("ip.arrange", json!({"ips": [any_ip.function, f.id]})).refuse())
+        }
+        // Refused: interruption points of two pages.
+        4 => {
+            let other: Vec<_> = live.ip_infos.iter().filter(|i| i.page != any_ip.page).collect();
+            let other = *rng.pick(&other)?;
+            Some(Step::cmd("ip.arrange", json!({"ips": [any_ip.function, other.function]})).refuse())
+        }
+        // Interruption points of one page in a new order: each takes the slot of its place in the order, the
+        // slots being the old positions sorted by (y, x).
+        _ => {
+            let group = *rng.pick(&groups)?;
+            let mut ips: Vec<Value> = group.iter().map(|f| (*f).clone()).collect();
+            for i in (1..ips.len()).rev() {
+                ips.swap(i, rng.below(i + 1));
+            }
+            let keep = 2 + rng.below(ips.len() - 1);
+            ips.truncate(keep);
+            let set_sort = rng.chance(2);
+            let mut p = json!({"ips": ips});
+            if set_sort {
+                p["set_sort"] = json!(true);
+            }
+            Some(
+                Step::cmd("ip.arrange", p)
+                    .accept()
+                    .counts(&[(Table::Reps, 0), (Table::Functions, 0), (Table::Connections, 0)])
+                    .check(move |before, after| {
+                        let ids: Vec<ew_ids::Id<ew_schema::Function>> = ips
+                            .iter()
+                            .map(typed)
+                            .collect::<Option<_>>()
+                            .ok_or("a function ID")?;
+                        let at = |q: &ew_derive::Q, f: ew_ids::Id<ew_schema::Function>| {
+                            let rep = q.idx().reps_of_function(f).next()?;
+                            let rep = q.reps().get(rep)?;
+                            Some((rep.pos.y.0, rep.pos.x.0))
+                        };
+                        let mut slots: Vec<(i64, i64)> = ids
+                            .iter()
+                            .map(|f| at(before, *f))
+                            .collect::<Option<_>>()
+                            .ok_or("an interruption point without a representation")?;
+                        slots.sort_unstable();
+                        for (i, f) in ids.iter().enumerate() {
+                            let got = at(after, *f).ok_or("the representation disappeared")?;
+                            if got != slots[i] {
+                                return Err(format!(
+                                    "interruption point {i} is at {got:?}, its slot is {:?}",
+                                    slots[i]
+                                ));
+                            }
+                            let now = after.functions().get(*f).ok_or("the function disappeared")?;
+                            let was = before.functions().get(*f).ok_or("the function was not there")?;
+                            let (ew_schema::FunctionKind::Ip(now), ew_schema::FunctionKind::Ip(old)) =
+                                (&now.kind, &was.kind)
+                            else {
+                                return Err("not an interruption point".into());
+                            };
+                            let want = if set_sort {
+                                Some(i32::try_from(i + 1).unwrap_or(i32::MAX))
+                            } else {
+                                old.sort
+                            };
+                            if now.sort != want {
+                                return Err(format!("sort of {i} is {:?}, expected {want:?}", now.sort));
+                            }
+                        }
+                        Ok(())
+                    }),
+            )
+        }
+    }
+}
+
+/// What a reshaped box must satisfy afterwards: the outline as given, the CPs of these indices, each on the
+/// rectangle's outline and, in absolute terms, on the page grid.
+fn box_after_check(
+    rep: Value,
+    outline: Vec<(i64, i64)>,
+    mut idxs: Vec<u16>,
+) -> impl Fn(&ew_derive::Q, &ew_derive::Q) -> Result<(), String> + 'static {
+    idxs.sort_unstable();
+    move |_, after| {
+        let id = typed(&rep).ok_or("a rep ID")?;
+        let r = after.reps().get(id).ok_or("the representation disappeared")?;
+        let spec = r.box_.as_ref().ok_or("the box disappeared")?;
+        let got: Vec<(i64, i64)> = spec.outline.iter().map(|p| (p.x.0, p.y.0)).collect();
+        if got != outline {
+            return Err(format!("the outline is {got:?}, expected {outline:?}"));
+        }
+        let mut have: Vec<u16> = spec.cps.iter().map(|c| c.idx).collect();
+        have.sort_unstable();
+        if have != idxs {
+            return Err(format!("the CPs are {have:?}, expected {idxs:?}"));
+        }
+        let grid = after.pages().get(r.page).ok_or("the page of the box")?.grid;
+        let (l, t, rt, b) = (outline[0].0, outline[0].1, outline[2].0, outline[2].1);
+        for c in &spec.cps {
+            let (x, y) = (c.pos.x.0, c.pos.y.0);
+            let on_vertical = (x == l || x == rt) && (t..=b).contains(&y);
+            let on_horizontal = (y == t || y == b) && (l..=rt).contains(&x);
+            if !(on_vertical || on_horizontal) {
+                return Err(format!("CP {} at ({x}, {y}) is off the outline", c.idx));
+            }
+            let o = r.orient.apply(c.pos);
+            let abs = (r.pos.x.0 + o.x.0, r.pos.y.0 + o.y.0);
+            let on_grid = |v: i64| grid.snap_point(ew_units::Nm(v)) == Some(ew_units::Nm(v));
+            if !(on_grid(abs.0) && on_grid(abs.1)) {
+                return Err(format!("CP {} at {abs:?} is off the grid", c.idx));
+            }
+        }
+        Ok(())
+    }
+}
+
+fn box_reshape(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let b = rng.pick(&live.box_infos)?;
+    let n = b.grid_num;
+    let (x0, y0) = b.outline[0];
+    let (x1, y1) = b.outline[2];
+    let x1w = x1 + rng.range(1, 3) * n;
+    let widened = json!([[x0, y0], [x1w, y0], [x1w, y1], [x0, y1]]);
+    let widened_pts = vec![(x0, y0), (x1w, y0), (x1w, y1), (x0, y1)];
+    let idxs: Vec<u16> = b.cps.iter().map(|c| c.0).collect();
+    let counts = [(Table::Reps, 0), (Table::Functions, 0), (Table::Connections, 0)];
+    match rng.below(11) {
+        // Refused: the representation does not exist.
+        0 => Some(Step::cmd("box.reshape", json!({"rep": rng.uuid(), "outline": widened})).refuse()),
+        // Refused: a representation that has no box.
+        1 => {
+            let rep = rng.pick(&live.plain_reps)?;
+            Some(Step::cmd("box.reshape", json!({"rep": rep, "outline": widened})).refuse())
+        }
+        // Refused: an outline of fewer than three vertices.
+        2 => Some(
+            Step::cmd(
+                "box.reshape",
+                json!({"rep": b.rep, "outline": [[x0, y0], [x1w, y0]]}),
+            )
+            .refuse(),
+        ),
+        // Refused: a vertex off the page's connection grid.
+        3 => {
+            let outline = json!([[x0, y0], [x1w, y0], [x1w + 1, y1], [x0, y1]]);
+            Some(Step::cmd("box.reshape", json!({"rep": b.rep, "outline": outline})).refuse())
+        }
+        // Refused: two CPs with one index.
+        4 => {
+            let cps = json!([
+                {"idx": 0, "pos": [x0, y0], "dir": "up"},
+                {"idx": 0, "pos": [x1w, y0], "dir": "up"},
+            ]);
+            Some(
+                Step::cmd(
+                    "box.reshape",
+                    json!({"rep": b.rep, "outline": widened, "cps": cps}),
+                )
+                .refuse(),
+            )
+        }
+        // Refused: a CP off the outline, or a CP off the grid.
+        5 | 6 => {
+            let pos = if rng.chance(2) {
+                [x0 - n, y0 - n]
+            } else {
+                [x0 + 1, y0]
+            };
+            let cps = json!([{"idx": 0, "pos": pos, "dir": "up"}]);
+            Some(
+                Step::cmd(
+                    "box.reshape",
+                    json!({"rep": b.rep, "outline": widened, "cps": cps}),
+                )
+                .refuse(),
+            )
+        }
+        // No CPs at all. Either: a CP that a connection on the page ends at may not be dropped.
+        7 => Some(
+            Step::cmd(
+                "box.reshape",
+                json!({"rep": b.rep, "outline": widened, "cps": []}),
+            )
+            .counts(&counts),
+        ),
+        // The CPs listed again, those on the right edge moved with it.
+        8 => {
+            let cps: Vec<Value> = b
+                .cps
+                .iter()
+                .map(|(idx, (x, y), dir)| {
+                    let x = if *x == x1 { x1w } else { *x };
+                    json!({"idx": idx, "pos": [x, y], "dir": dir})
+                })
+                .collect();
+            Some(
+                Step::cmd(
+                    "box.reshape",
+                    json!({"rep": b.rep, "outline": widened, "cps": cps}),
+                )
+                .accept()
+                .counts(&counts)
+                .check(box_after_check(b.rep.clone(), widened_pts, idxs)),
+            )
+        }
+        // The CPs re-projected onto the widened rectangle.
+        _ => Some(
+            Step::cmd("box.reshape", json!({"rep": b.rep, "outline": widened}))
+                .accept()
+                .counts(&counts)
+                .check(box_after_check(b.rep.clone(), widened_pts, idxs)),
+        ),
     }
 }
 

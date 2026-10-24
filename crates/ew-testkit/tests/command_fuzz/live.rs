@@ -90,6 +90,17 @@ pub struct UnembeddedRef {
     pub fn_cps: BTreeSet<u16>,
 }
 
+/// A black-box representation whose outline is an axis-aligned rectangle (four vertices), for `box.reshape`.
+pub struct BoxInfo {
+    pub rep: Value,
+    /// The numerator of its page's grid: a multiple of it added to a vertex keeps the vertex on the grid.
+    pub grid_num: i64,
+    /// The outline vertices, relative to the representation.
+    pub outline: Vec<(i64, i64)>,
+    /// The box CPs: function CP index, relative position, direction in its JSON form.
+    pub cps: Vec<(u16, (i64, i64), String)>,
+}
+
 pub struct FuncInfo {
     pub id: Value,
     pub ip: bool,
@@ -235,8 +246,14 @@ pub struct Live {
     pub symbols: Vec<SymInfo>,
     /// (symbol, function definition) pairs of the interruption points drawn now.
     pub ip_syms: Vec<(Value, Value)>,
+    /// The `ip_syms` pairs whose function-definition copy has exactly one CP that the symbol draws: what
+    /// `connection.draw_to_ip` takes at the end of a wire.
+    pub ip_end_syms: Vec<(Value, Value)>,
     /// (symbol, function definition) pairs of the black boxes drawn now.
     pub bb_syms: Vec<(Value, Value)>,
+    /// The representations with a rectangular box, and the ones with no box.
+    pub box_infos: Vec<BoxInfo>,
+    pub plain_reps: Vec<Value>,
     pub fndefs: Vec<FnDefInfo>,
     /// Every representation whose first function exists.
     pub rep_infos: Vec<RepInfo>,
@@ -567,6 +584,7 @@ impl Live {
             });
         }
         let mut ip_syms = Vec::new();
+        let mut ip_end_syms = Vec::new();
         let mut bb_syms = Vec::new();
         let mut ip_infos = Vec::new();
         let mut term_fndef = None;
@@ -575,6 +593,12 @@ impl Live {
             match (&f.kind, first_rep) {
                 (FunctionKind::Ip(spec), Some(r)) => {
                     ip_syms.push((id_json(r.symbol), id_json(f.def)));
+                    if let (Some(sym), Some(def)) = (q.symbols().get(r.symbol), q.fndefs().get(f.def))
+                        && let [cp] = def.item.cps.as_slice()
+                        && sym.item.cps.as_slice().iter().any(|c| c.fn_cp == cp.idx)
+                    {
+                        ip_end_syms.push((id_json(r.symbol), id_json(f.def)));
+                    }
                     if spec.external.is_none() {
                         let grid = q.pages().get(r.page).map(|p| grid_of(p.grid)).unwrap_or((0, 1));
                         ip_infos.push(IpInfo {
@@ -599,6 +623,38 @@ impl Live {
         ip_syms.dedup();
         bb_syms.sort_by_key(|(a, b)| (a.to_string(), b.to_string()));
         bb_syms.dedup();
+        ip_end_syms.sort_by_key(|(a, b)| (a.to_string(), b.to_string()));
+        ip_end_syms.dedup();
+
+        let mut box_infos = Vec::new();
+        let mut plain_reps = Vec::new();
+        for (id, r) in q.reps().iter() {
+            let Some(spec) = &r.box_ else {
+                plain_reps.push(id_json(id));
+                continue;
+            };
+            let pts: Vec<(i64, i64)> = spec.outline.iter().map(|p| (p.x.0, p.y.0)).collect();
+            let rect = pts.len() == 4
+                && pts[0].1 == pts[1].1
+                && pts[1].0 == pts[2].0
+                && pts[2].1 == pts[3].1
+                && pts[3].0 == pts[0].0
+                && pts[0].0 < pts[1].0
+                && pts[0].1 < pts[2].1;
+            let grid = q.pages().get(r.page).map(|p| grid_of(p.grid));
+            if let (true, Some(grid)) = (rect, grid) {
+                box_infos.push(BoxInfo {
+                    rep: id_json(id),
+                    grid_num: i64::try_from(grid.0).unwrap_or(1),
+                    outline: pts,
+                    cps: spec
+                        .cps
+                        .iter()
+                        .map(|c| (c.idx, (c.pos.x.0, c.pos.y.0), kind_text(&c.dir)))
+                        .collect(),
+                });
+            }
+        }
 
         let links = q
             .table::<ew_schema::DeviceLink>()
@@ -691,7 +747,10 @@ impl Live {
             ext_refs: q.external_refs().ids().map(id_json).collect(),
             symbols,
             ip_syms,
+            ip_end_syms,
             bb_syms,
+            box_infos,
+            plain_reps,
             fndefs,
             rep_infos,
             part_templates,

@@ -1,0 +1,133 @@
+{
+  "$defs": {
+    "BoxCp": {
+      "additionalProperties": true,
+      "description": "One CP of a black box: function CP index, position and direction.",
+      "properties": {
+        "dir": {
+          "$ref": "#/$defs/Dir4",
+          "description": "The direction a wire leaves the CP."
+        },
+        "idx": {
+          "description": "The function CP index.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "pos": {
+          "$ref": "#/$defs/Pt2",
+          "description": "Position relative to the representation."
+        }
+      },
+      "required": [
+        "idx",
+        "pos",
+        "dir"
+      ],
+      "type": "object"
+    },
+    "CmdPt2": {
+      "description": "A point or a displacement [x, y] in nanometres, y downwards (doc 05 §3.2).",
+      "items": false,
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      ],
+      "type": "array"
+    },
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    },
+    "Dir4": {
+      "description": "One of four directions on the sheet.",
+      "oneOf": [
+        {
+          "const": "up",
+          "description": "Up (−y).",
+          "type": "string"
+        },
+        {
+          "const": "right",
+          "description": "Right (+x).",
+          "type": "string"
+        },
+        {
+          "const": "down",
+          "description": "Down (+y).",
+          "type": "string"
+        },
+        {
+          "const": "left",
+          "description": "Left (−x).",
+          "type": "string"
+        }
+      ]
+    },
+    "Pt2": {
+      "description": "A point [x, y] in nanometres, y downwards (doc 05 §3.2).",
+      "items": false,
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      ],
+      "type": "array"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`box.reshape` (`ReshapeBox`, FR-DEV-039): replaces the outline of a black box (a representation with a `box`),\nand its connection points with `cps`, or re-projects them onto the new outline.\n\n- `outline` is relative to the representation's `pos` (under its orientation, as `box.black` stores it): at\n  least three vertices, each on the page's connection grid in absolute terms (`pos + orient(v)`).\n- **With `cps`** the box's CPs are replaced: function CP indices distinct, each CP on the grid in absolute terms\n  and on the outline (on an edge `v(i) v(i+1)`, the outline closed).\n- **Without `cps`** every CP is re-projected (doc 06 §8 item 13): it keeps the index of the edge it lay on (the\n  first edge containing it, in outline order) and its offset from that edge's first vertex (measured along the\n  edge's axis), clamped to the new edge's length and snapped to the grid point along the edge nearest to it\n  (ties toward the edge's first vertex); its direction is kept. A CP whose edge index no longer exists, or that\n  lay on no edge, moves to the nearest grid point on the nearest remaining edge (ties by the smaller edge index)\n  and leaves along that edge's outward normal, listed as a notice. On an edge that is neither horizontal nor\n  vertical the grid point is the edge's first vertex (polygon outlines are a follow-up, WP-S2.04 §17.4 item 6),\n  also listed as a notice.\n- Inner graphics are kept. Routes of the connections on the page at the box's CPs follow each moved CP\n  (`geometry::follow_end`).\n\nRejected: a representation that does not exist or has no box; fewer than three outline vertices or one off the\ngrid; with `cps`, two CPs with one index, a CP off the grid or off the outline; a box CP that a connection on\nthe page ends at and that the new CPs no longer draw (keep it in `cps`). Interactive. Outcome: the\nrepresentation.",
+  "properties": {
+    "cps": {
+      "description": "The new connection points; absent re-projects the current ones.",
+      "items": {
+        "$ref": "#/$defs/BoxCp"
+      },
+      "type": [
+        "array",
+        "null"
+      ]
+    },
+    "outline": {
+      "description": "The new outline, relative to the representation's position.",
+      "items": {
+        "$ref": "#/$defs/CmdPt2"
+      },
+      "type": "array"
+    },
+    "rep": {
+      "$ref": "#/$defs/CmdUuid",
+      "description": "The black box's representation."
+    }
+  },
+  "required": [
+    "rep",
+    "outline"
+  ],
+  "title": "box.reshape",
+  "type": "object"
+}

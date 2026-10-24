@@ -1,0 +1,32 @@
+{
+  "$defs": {
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`ip.arrange` (`ArrangeIps`, FR-XRF-013, WP-S2.04 §5.1, D12): interruption points of one page exchanged into a new\norder.\n\n- `ips` are IP functions in the new order: at least two, none twice, each with exactly one representation, all\n  on one page. The slots are the current positions of their representations sorted by `(y, x)` (ties by the\n  representation ID); slot `i` goes to `ips[i]` (its representation's `pos`; orientation, symbol and type kept).\n- Routes of the connections on that page at the moved IPs' CPs follow each CP's displacement\n  (`geometry::follow_end`).\n- With `set_sort`, the `sort` of `ips[i]` becomes `i + 1` (the chain order).\n\nThe order is the caller's (the tool sorts by name or by the derived potential name): nothing derived is read\ninside the transaction (the transaction-read rule, ID-525). Rejected: fewer than two IPs; an IP listed twice; a\nfunction that is not an interruption point or that has not exactly one representation; representations on\ndifferent pages; a missing function. Interactive. Outcome: none.",
+  "properties": {
+    "ips": {
+      "description": "The IP functions in their new order.",
+      "items": {
+        "$ref": "#/$defs/CmdUuid"
+      },
+      "type": "array"
+    },
+    "set_sort": {
+      "description": "Whether the chain order (`sort`) follows the new order.",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "ips"
+  ],
+  "title": "ip.arrange",
+  "type": "object"
+}

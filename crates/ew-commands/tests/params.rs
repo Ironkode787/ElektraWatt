@@ -221,6 +221,22 @@ fn examples() -> Vec<(&'static str, Value)> {
             json!({"page": PAGE_101.to_string(), "at": [0, 0], "fragment": {"format": "0.1",
                 "project": PAGE_101.to_string(), "grid": [7_937_500, 3], "page_kind": "multi_line", "anchor": [0, 0],
                 "records": [], "copies": [], "nodes": []}}),
+        // WP-S2.04 part 3
+        (
+            "connection.draw_to_ip",
+            json!({"a": fn_a, "page": PAGE_102.to_string(), "route": [[0, 0], [7_937_500, 0]],
+                "ip": {"symbol": SYM.to_string(), "pos": [7_937_500, 0], "name": "24VDC-2",
+                    "direction": "source", "star_source": true, "sort": 2}}),
+        ),
+        (
+            "ip.arrange",
+            json!({"ips": [FN_IP_102.to_string(), FN_IP_101.to_string()], "set_sort": true}),
+        ),
+        (
+            "box.reshape",
+            json!({"rep": REP_102F2.to_string(),
+                "outline": [[0, 0], [31_750_000, 0], [31_750_000, 23_812_500], [0, 23_812_500]],
+                "cps": [{"idx": 0, "pos": [7_937_500, 0], "dir": "up"}]}),
         ),
     ]
 }
@@ -249,7 +265,7 @@ fn every_registered_command_has_an_example() {
     let registry = CommandRegistry::builtin();
     let registered: BTreeSet<&str> = registry.commands().map(|c| c.meta().name).collect();
     let covered: BTreeSet<&str> = examples().iter().map(|(n, _)| *n).collect();
-    assert_eq!(registered.len(), 47);
+    assert_eq!(registered.len(), 50);
     assert_eq!(registered, covered);
     assert_eq!(examples().len(), covered.len(), "one example per command");
 }

@@ -143,6 +143,19 @@ pub enum Placement {
     },
 }
 
+/// The interruption point at the end of a wire (see [`Builder::draw_to_ip`]).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct IpEnd {
+    /// The IP symbol copy.
+    pub symbol: Id<SymbolDef>,
+    /// The FnDef copy; `None` takes the symbol's.
+    pub def: Option<Id<FnDef>>,
+    /// The insertion point.
+    pub pos: Pt2,
+    /// Name, direction, star source and sort key (`external` is ignored).
+    pub spec: IpSpec,
+}
+
 /// What [`Builder::connect`] drew.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Drawn {
@@ -1332,6 +1345,94 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
             p.insert("crossings".into(), value.map_or(Value::Null, |c| json!(c)));
         }
         self.run("project.drawing.set", Value::Object(p)).map(|_| ())
+    }
+
+    // WP-S2.04 part 3
+    /// `connection.draw_to_ip` (doc 06 §4.4 "P"): a wire from `a` that ends in a new interruption point, in one
+    /// transaction. `route` (empty for none) must end at the IP's one connection point; `kind` `None` draws a wire.
+    /// `ip.spec.external` is not part of the command and is ignored. Returns the new connection and the new IP
+    /// function.
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn draw_to_ip(
+        &mut self,
+        a: &End,
+        page: Id<Page>,
+        route: &[Pt2],
+        kind: Option<&ConnectionKind>,
+        ip: &IpEnd,
+    ) -> Result<(Id<Connection>, Id<Function>)> {
+        let mut at_end = Map::new();
+        at_end.insert("symbol".into(), json!(ip.symbol));
+        if let Some(def) = ip.def {
+            at_end.insert("fndef".into(), json!(def));
+        }
+        at_end.insert("pos".into(), json!(ip.pos));
+        if let Ok(Value::Object(s)) = serde_json::to_value(&ip.spec) {
+            for (k, v) in s {
+                if k != "external" {
+                    at_end.insert(k, v);
+                }
+            }
+        }
+        let mut p = json!({"a": a.param(), "page": page, "ip": Value::Object(at_end)});
+        if !route.is_empty() {
+            p["route"] = json!(route);
+        }
+        if let Some(kind) = kind {
+            p["kind"] = json!(kind);
+        }
+        let (connection, done) = self.primary::<Connection>("connection.draw_to_ip", p.clone())?;
+        let function = Self::created::<Function>(&done, Kind::Function)
+            .first()
+            .copied()
+            .ok_or_else(|| BuildError {
+                command: "connection.draw_to_ip".into(),
+                params: p,
+                message: "no function created".into(),
+            })?;
+        Ok((connection, function))
+    }
+
+    /// `ip.arrange` (FR-XRF-013): the interruption points `ips` of one page exchanged into the order given;
+    /// `set_sort` also numbers their chain order from 1.
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn arrange_ips(&mut self, ips: &[Id<Function>], set_sort: bool) -> Result<()> {
+        let mut p = json!({"ips": ips});
+        if set_sort {
+            p["set_sort"] = json!(true);
+        }
+        self.run("ip.arrange", p).map(|_| ())
+    }
+
+    /// `box.reshape` (FR-DEV-039): the black box `rep` gets `outline` (relative to its position); `cps` `None`
+    /// re-projects the box's connection points onto the new outline, `Some` lists the new ones as `(function CP,
+    /// position relative to the representation, direction)`, the direction as the command writes it (`"up"`,
+    /// `"right"`, `"down"`, `"left"`).
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn reshape_box(
+        &mut self,
+        rep: Id<Representation>,
+        outline: &[Pt2],
+        cps: Option<&[(u16, Pt2, &str)]>,
+    ) -> Result<()> {
+        let mut p = json!({"rep": rep, "outline": outline});
+        if let Some(cps) = cps {
+            p["cps"] = Value::Array(
+                cps.iter()
+                    .map(|(idx, pos, dir)| json!({"idx": idx, "pos": pos, "dir": dir}))
+                    .collect(),
+            );
+        }
+        self.run("box.reshape", p).map(|_| ())
     }
 }
 

@@ -38,6 +38,17 @@
       "confirmation": "none",
       "cost": "interactive",
       "exposure": "edit",
+      "name": "box.reshape",
+      "params_version": 1,
+      "schema": "box.reshape.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
       "name": "cable.create",
       "params_version": 1,
       "schema": "cable.create.schema.json",
@@ -74,6 +85,17 @@
       "name": "connection.draw",
       "params_version": 1,
       "schema": "connection.draw.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "connection.draw_to_ip",
+      "params_version": 1,
+      "schema": "connection.draw_to_ip.schema.json",
       "stability": "preview",
       "undoable": true
     },
@@ -175,6 +197,17 @@
       "name": "fields.set_many",
       "params_version": 1,
       "schema": "fields.set_many.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "ip.arrange",
+      "params_version": 1,
+      "schema": "ip.arrange.schema.json",
       "stability": "preview",
       "undoable": true
     },

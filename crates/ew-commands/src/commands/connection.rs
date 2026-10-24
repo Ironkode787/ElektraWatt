@@ -641,3 +641,326 @@ impl Command for CreateBond {
         Ok(Outcome::primary((Kind::Bond, id.cast())))
     }
 }
+
+// ---------------------------------------------------------------------------------------------------------
+// WP-S2.04 part 3: a wire ending in a new interruption point, and the arrangement of interruption points
+
+/// `false`, for `skip_serializing_if`.
+fn is_false(b: &bool) -> bool {
+    !*b
+}
+
+/// The default orientation, for `skip_serializing_if`.
+fn is_r0(o: &Orient2) -> bool {
+    o.is_default()
+}
+
+/// The interruption point that [`DrawToIp`] creates at the end of its wire: `ip.place`'s members without `page`
+/// (the wire's) and `external` (an external connection point is placed with `ip.place`).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct IpAtEnd {
+    /// The IP symbol copy.
+    #[schemars(with = "UuidS")]
+    pub symbol: Id<SymbolDef>,
+    /// The FnDef copy; default the symbol's.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<UuidS>")]
+    pub fndef: Option<Id<FnDef>>,
+    /// The insertion point.
+    #[schemars(with = "Pt2S")]
+    pub pos: Pt2,
+    /// The orientation.
+    #[serde(default, skip_serializing_if = "is_r0")]
+    #[schemars(with = "Orient2S")]
+    pub orient: Orient2,
+    /// The pairing name ("24VDC-2").
+    #[schemars(with = "IdentS")]
+    pub name: Ident,
+    /// Signal direction.
+    pub direction: IpDirection,
+    /// The star source of its name.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub star_source: bool,
+    /// Chain order.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sort: Option<i32>,
+}
+
+/// `connection.draw_to_ip` (`DrawToIp`, doc 06 §4.4 "P", WP-S2.04 §5.1, §9.2): a wire that ends in a new
+/// interruption point, in one transaction and one undo step.
+///
+/// - First the IP function and its representation exactly as `ip.place` creates them (`ip` holds `ip.place`'s
+///   members; the page is the wire's, `external` is absent): `Function {device: none, def, role: main, kind: ip
+///   {name, direction, star_source, sort}}` and `Representation {functions: [f], page, symbol, pos, orient,
+///   rep_type: multi_line}`; `def` is `ip.fndef` or the copy the symbol's `fndef` resolves to (must be embedded),
+///   and its FnDef must have exactly one connection point, which the symbol must draw.
+/// - Then the connection from `a` to that connection point exactly as `connection.draw` creates it: `a` is a CP, a
+///   junction or a point on an existing connection (which splits it and makes a junction there); the connection is
+///   `{a, b: the IP's CP, page, route, kind}` with its number unassigned; `route`, when given, is on the page's
+///   connection grid and meets both CPs exactly (`geometry::require_route`), so it ends at the IP's CP.
+///
+/// Nothing derived is read inside the transaction (the name and the direction are the tool's). Rejected: as
+/// `ip.place` (a missing page or symbol copy, a FnDef that is not embedded, `ip.pos` off the grid) and as
+/// `connection.draw` (a missing endpoint record, off-grid geometry, a route that does not meet its CPs); an IP
+/// symbol whose FnDef has not exactly one CP, or that does not draw it. Interactive. Outcome: the connection.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct DrawToIp {
+    /// The wire's first endpoint.
+    pub a: EndpointParam,
+    /// The page the wire and the interruption point are drawn on.
+    #[schemars(with = "UuidS")]
+    pub page: Id<Page>,
+    /// Orthogonal route in nm, ending at the IP's connection point.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[schemars(with = "Vec<Pt2S>")]
+    pub route: Vec<Pt2>,
+    /// The connection kind; default a wire.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<ConnectionKind>,
+    /// The interruption point at the wire's end.
+    pub ip: IpAtEnd,
+}
+
+impl Command for DrawToIp {
+    const NAME: &'static str = "connection.draw_to_ip";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        tx.require::<Page>(self.page)?;
+        let symbol = tx.require::<LibCopy<SymbolDef>>(self.ip.symbol)?;
+        require_on_grid(tx, self.page, self.ip.pos, "/ip/pos")?;
+        let def = self.ip.fndef.unwrap_or_else(|| {
+            ew_ids::v5::lib_copy_id(
+                symbol.item.fndef.library.as_uuid(),
+                symbol.item.fndef.item.as_uuid(),
+            )
+        });
+        let fndef = tx.require::<LibCopy<FnDef>>(def)?;
+        let idx = match fndef.item.cps.as_slice() {
+            [cp] => cp.idx,
+            other => {
+                return tx.reject(format!(
+                    "the interruption point's function definition has {} connection points; a wire ends in an \
+                     interruption point with exactly one",
+                    other.len()
+                ));
+            }
+        };
+        self.a.check(tx)?;
+        let spec = IpSpec {
+            name: self.ip.name.clone(),
+            direction: self.ip.direction.clone(),
+            star_source: self.ip.star_source,
+            sort: self.ip.sort,
+            external: None,
+            extra: Extra::new(),
+        };
+        let function = new_ip(
+            tx,
+            def,
+            spec,
+            self.page,
+            self.ip.symbol,
+            self.ip.pos,
+            self.ip.orient,
+            RepType::MultiLine,
+        )?;
+        if crate::geometry::cp_position(tx, function, idx, self.page).is_none() {
+            return tx.reject(
+                "the interruption-point symbol does not draw its connection point; pick an interruption-point \
+                 symbol that draws it",
+            );
+        }
+        let new_id: Id<Connection> = tx.mint();
+        let mut split_page = None;
+        let a = resolve_end(tx, &self.a, "/a", new_id, &mut split_page)?;
+        let b = Endpoint::Cp(function, idx);
+        require_route(tx, self.page, &a, &b, &self.route, "/route")?;
+        let key = (Kind::Connection, new_id.cast());
+        tx.insert(Connection {
+            id: new_id,
+            v: 1,
+            a,
+            b,
+            page: Some(self.page),
+            route: self.route.clone(),
+            kind: self.kind.clone().unwrap_or_default(),
+            overrides: WireOverrides::default(),
+            number: NumberSpec::default(),
+            source_ref: None,
+            extra: Extra::new(),
+        })?;
+        Ok(Outcome::primary(key))
+    }
+}
+
+/// `ip.arrange` (`ArrangeIps`, FR-XRF-013, WP-S2.04 §5.1, D12): interruption points of one page exchanged into a new
+/// order.
+///
+/// - `ips` are IP functions in the new order: at least two, none twice, each with exactly one representation, all
+///   on one page. The slots are the current positions of their representations sorted by `(y, x)` (ties by the
+///   representation ID); slot `i` goes to `ips[i]` (its representation's `pos`; orientation, symbol and type kept).
+/// - Routes of the connections on that page at the moved IPs' CPs follow each CP's displacement
+///   (`geometry::follow_end`).
+/// - With `set_sort`, the `sort` of `ips[i]` becomes `i + 1` (the chain order).
+///
+/// The order is the caller's (the tool sorts by name or by the derived potential name): nothing derived is read
+/// inside the transaction (the transaction-read rule, ID-525). Rejected: fewer than two IPs; an IP listed twice; a
+/// function that is not an interruption point or that has not exactly one representation; representations on
+/// different pages; a missing function. Interactive. Outcome: none.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ArrangeIps {
+    /// The IP functions in their new order.
+    #[schemars(with = "Vec<UuidS>")]
+    pub ips: Vec<Id<Function>>,
+    /// Whether the chain order (`sort`) follows the new order.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub set_sort: bool,
+}
+
+impl Command for ArrangeIps {
+    const NAME: &'static str = "ip.arrange";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        if self.ips.len() < 2 {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/ips",
+                "arrange at least two interruption points",
+            ));
+        }
+        let mut seen = std::collections::BTreeSet::new();
+        for (i, f) in self.ips.iter().enumerate() {
+            if !seen.insert(*f) {
+                return Err(CmdError::invalid_params(
+                    Self::NAME,
+                    format!("/ips/{i}"),
+                    "the interruption point is listed twice",
+                ));
+            }
+        }
+        let mut reps: Vec<Arc<Representation>> = Vec::with_capacity(self.ips.len());
+        for f in &self.ips {
+            let function = tx.require::<Function>(*f)?;
+            if !matches!(function.kind, FunctionKind::Ip(_)) {
+                return tx.reject(format!(
+                    "function {f} is not an interruption point; arrange interruption points only"
+                ));
+            }
+            let ids = tx.reps_of_function(*f);
+            let [rid] = ids.as_slice() else {
+                return tx.reject(format!(
+                    "interruption point {f} has {} representations; an arranged interruption point has exactly one",
+                    ids.len()
+                ));
+            };
+            reps.push(tx.require::<Representation>(*rid)?);
+        }
+        let page_id = reps[0].page;
+        if reps.iter().any(|r| r.page != page_id) {
+            return tx.reject(
+                "the interruption points lie on different pages; arrange the interruption points of one page",
+            );
+        }
+        let page = tx.require::<Page>(page_id)?;
+        let mut slots: Vec<(Pt2, Id<Representation>)> = reps.iter().map(|r| (r.pos, r.id)).collect();
+        slots.sort_by_key(|(p, id)| (p.y, p.x, *id));
+        let mut moves: std::collections::BTreeMap<(Id<Function>, u16), Pt2> = Default::default();
+        let mut moved: Vec<Representation> = Vec::new();
+        for (rep, (slot, _)) in reps.iter().zip(&slots) {
+            if rep.pos == *slot {
+                continue;
+            }
+            let mut next = (**rep).clone();
+            next.pos = *slot;
+            let (Ok(before), Ok(after)) = (
+                crate::geometry::rep_cps_checked(tx, rep),
+                crate::geometry::rep_cps_checked(tx, &next),
+            ) else {
+                return tx.reject(
+                    "the arrangement puts a connection point outside the drawable range; arrange interruption \
+                     points nearer the page origin",
+                );
+            };
+            for a in &after {
+                let Some(b) = before.iter().find(|b| b.function == a.function && b.idx == a.idx) else {
+                    continue;
+                };
+                let Ok(d) = crate::geometry::sub(a.pos, b.pos) else {
+                    return tx.reject("the arrangement moves a connection point too far");
+                };
+                if d != Pt2::ORIGIN {
+                    moves.entry((a.function, a.idx)).or_insert(d);
+                }
+            }
+            moved.push(next);
+        }
+        follow_moved_cps(tx, page_id, page.grid, &moves, "the arrangement")?;
+        for r in moved {
+            tx.put(r);
+        }
+        if self.set_sort {
+            for (i, f) in self.ips.iter().enumerate() {
+                let sort = i32::try_from(i + 1).unwrap_or(i32::MAX);
+                tx.update::<Function>(*f, |function| {
+                    if let FunctionKind::Ip(spec) = &mut function.kind {
+                        spec.sort = Some(sort);
+                    }
+                })?;
+            }
+        }
+        Ok(Outcome::default())
+    }
+}
+
+/// The routes of the connections on `page` that end at a moved CP of `moves` (function CP → displacement) follow
+/// their ends (`geometry::follow_ends`, both ends at once). `what` names the edit in a refusal.
+pub(crate) fn follow_moved_cps(
+    tx: &mut TxBuilder<'_>,
+    page: Id<Page>,
+    grid: ew_units::Grid,
+    moves: &std::collections::BTreeMap<(Id<Function>, u16), Pt2>,
+    what: &str,
+) -> Result<(), CmdError> {
+    let functions: std::collections::BTreeSet<Id<Function>> = moves.keys().map(|(f, _)| *f).collect();
+    let mut connections: std::collections::BTreeSet<Id<Connection>> = Default::default();
+    for f in functions {
+        connections.extend(tx.connections_of_function(f));
+    }
+    for cid in connections {
+        let c = tx.require::<Connection>(cid)?;
+        if c.page != Some(page) {
+            continue;
+        }
+        let end = |e: &Endpoint| match e {
+            Endpoint::Cp(f, idx) => moves.get(&(*f, *idx)).copied(),
+            _ => None,
+        };
+        let (da, db) = (end(&c.a), end(&c.b));
+        if da.is_none() && db.is_none() {
+            continue;
+        }
+        let mut route = c.route.clone();
+        if crate::geometry::follow_ends(&mut route, grid, da, db).is_err() {
+            return tx.reject(format!(
+                "{what} moves the route of connection {cid} outside the drawable range"
+            ));
+        }
+        if route != c.route {
+            let mut changed = (*c).clone();
+            changed.route = route;
+            tx.put(changed);
+        }
+    }
+    Ok(())
+}

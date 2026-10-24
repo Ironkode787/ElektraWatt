@@ -954,9 +954,10 @@ fn every_arm_commits_and_refuses_what_it_should() {
 }
 
 /// The placement and arrangement steps of WP-S2.04 on Golden A: the `from_part` and `new_terminal` targets of
-/// `device.place`, the `from_part` target of `box.black`, `rep.move` by grid steps, `rep.exchange_symbol` and
-/// `project.drawing.set` are all generated, and each kind commits at least once and is refused at least once where
-/// the arm builds refusals (the verdicts are checked by `apply`; each committed step is undone).
+/// `device.place`, the `from_part` target of `box.black`, `rep.move` by grid steps, `rep.exchange_symbol`,
+/// `project.drawing.set`, `connection.draw_to_ip`, `ip.arrange` and `box.reshape` are all generated, and each kind
+/// commits at least once and is refused at least once where the arm builds refusals (the verdicts are checked by
+/// `apply`; each committed step is undone).
 #[test]
 fn the_placement_and_arrangement_steps_commit_and_refuse_on_golden_a() {
     let mut session = open_session(13);
@@ -972,6 +973,10 @@ fn the_placement_and_arrangement_steps_commit_and_refuse_on_golden_a() {
         ("rep.move", 120),
         ("rep.exchange_symbol", 200),
         ("project.drawing.set", 40),
+        // WP-S2.04 part 3
+        ("connection.draw_to_ip", 300),
+        ("ip.arrange", 200),
+        ("box.reshape", 200),
     ] {
         let arm = ARMS.iter().find(|a| a.command == command).expect("an arm");
         for attempt in 0..attempts {
@@ -1024,6 +1029,9 @@ fn the_placement_and_arrangement_steps_commit_and_refuse_on_golden_a() {
         "rep.move steps",
         "rep.exchange_symbol",
         "project.drawing.set",
+        "connection.draw_to_ip",
+        "ip.arrange",
+        "box.reshape",
     ] {
         assert!(
             committed.get(kind).copied().unwrap_or(0) >= 1,
@@ -1037,6 +1045,9 @@ fn the_placement_and_arrangement_steps_commit_and_refuse_on_golden_a() {
         "rep.move steps",
         "rep.exchange_symbol",
         "project.drawing.set",
+        "connection.draw_to_ip",
+        "ip.arrange",
+        "box.reshape",
     ] {
         assert!(
             refused.get(kind).copied().unwrap_or(0) >= 1,

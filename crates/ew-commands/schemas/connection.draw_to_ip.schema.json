@@ -1,0 +1,394 @@
+{
+  "$defs": {
+    "BridgeKind": {
+      "description": "Kind of a terminal bridge.",
+      "oneOf": [
+        {
+          "const": "plug_in",
+          "description": "Plug-in bridge.",
+          "type": "string"
+        },
+        {
+          "const": "saddle",
+          "description": "Saddle jumper.",
+          "type": "string"
+        },
+        {
+          "const": "wire",
+          "description": "Wire bridge.",
+          "type": "string"
+        },
+        {
+          "const": "inter_level",
+          "description": "Bridge between levels.",
+          "type": "string"
+        }
+      ]
+    },
+    "BridgeSpec": {
+      "additionalProperties": true,
+      "description": "A terminal bridge (doc 08 §2.3): the connections of one group are one bridge object.",
+      "properties": {
+        "group": {
+          "description": "Group number on the strip.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "kind": {
+          "$ref": "#/$defs/BridgeKind",
+          "description": "Bridge kind."
+        },
+        "shaft": {
+          "description": "The shaft.",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "group",
+        "shaft"
+      ],
+      "type": "object"
+    },
+    "BusLine": {
+      "additionalProperties": true,
+      "description": "A bus line and the cable that carries it (FR-CBL-008).",
+      "properties": {
+        "cable": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The cable device."
+        }
+      },
+      "type": "object"
+    },
+    "CmdIdent": {
+      "description": "An identifier: non-empty, one line, NFC, without leading or trailing white space (doc 05 §3.2).",
+      "minLength": 1,
+      "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
+      "type": "string"
+    },
+    "CmdOrient2": {
+      "description": "Orientation: rotation clockwise on the sheet, optionally mirrored (doc 05 §3.2).",
+      "enum": [
+        "r0",
+        "r90",
+        "r180",
+        "r270",
+        "m0",
+        "m90",
+        "m180",
+        "m270"
+      ],
+      "type": "string"
+    },
+    "CmdPt2": {
+      "description": "A point or a displacement [x, y] in nanometres, y downwards (doc 05 §3.2).",
+      "items": false,
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      ],
+      "type": "array"
+    },
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    },
+    "ConnectionKind": {
+      "description": "The kind of a connection (doc 08 §2.3). `Fluid(FluidLine)` (doc 11) and `SingleLine` (1.0) are additive\nvariants of their work packages; until then a file's value is kept as [`ConnectionKind::Unknown`], which\njoins no net (doc 05 §10.3 rule 3).",
+      "oneOf": [
+        {
+          "const": "wire",
+          "description": "One conductor (the default).",
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A cable core or shield.",
+          "properties": {
+            "core": {
+              "$ref": "#/$defs/Uuid"
+            }
+          },
+          "required": [
+            "core"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A terminal bridge; joins potentials, never a wire.",
+          "properties": {
+            "bridge": {
+              "$ref": "#/$defs/BridgeSpec"
+            }
+          },
+          "required": [
+            "bridge"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A single-line bus connection between bus-port CPs.",
+          "properties": {
+            "bus": {
+              "$ref": "#/$defs/BusLine"
+            }
+          },
+          "required": [
+            "bus"
+          ],
+          "type": "object"
+        },
+        {
+          "const": "overview",
+          "description": "Excluded from nets.",
+          "type": "string"
+        },
+        {
+          "const": "internal",
+          "description": "A link between CPs of two functions of one part that no FnDef declares.",
+          "type": "string"
+        }
+      ]
+    },
+    "EndpointParam": {
+      "description": "An endpoint named in command parameters: a function CP, a junction, or a point on an existing\nconnection (which splits it and creates a junction there, doc 06 §3.5).\n\nJSON: `{\"cp\": {\"function\": \"…\", \"idx\": 1}}`, `{\"junction\": {\"junction\": \"…\"}}`,\n`{\"on_connection\": {\"connection\": \"…\", \"at\": [x, y]}}`.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "Connection point `idx` of a function.",
+          "properties": {
+            "cp": {
+              "additionalProperties": false,
+              "properties": {
+                "function": {
+                  "$ref": "#/$defs/CmdUuid",
+                  "description": "The function."
+                },
+                "idx": {
+                  "description": "The CP index.",
+                  "format": "uint16",
+                  "maximum": 65535,
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "function",
+                "idx"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "cp"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A junction.",
+          "properties": {
+            "junction": {
+              "additionalProperties": false,
+              "properties": {
+                "junction": {
+                  "$ref": "#/$defs/CmdUuid",
+                  "description": "The junction."
+                }
+              },
+              "required": [
+                "junction"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "junction"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A point on an existing connection's route.",
+          "properties": {
+            "on_connection": {
+              "additionalProperties": false,
+              "properties": {
+                "at": {
+                  "$ref": "#/$defs/CmdPt2",
+                  "description": "The point (on the route, if the connection has one)."
+                },
+                "connection": {
+                  "$ref": "#/$defs/CmdUuid",
+                  "description": "The connection to split."
+                }
+              },
+              "required": [
+                "connection",
+                "at"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "on_connection"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "IpAtEnd": {
+      "additionalProperties": false,
+      "description": "The interruption point that [`DrawToIp`] creates at the end of its wire: `ip.place`'s members without `page`\n(the wire's) and `external` (an external connection point is placed with `ip.place`).",
+      "properties": {
+        "direction": {
+          "$ref": "#/$defs/IpDirection",
+          "description": "Signal direction."
+        },
+        "fndef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CmdUuid"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The FnDef copy; default the symbol's."
+        },
+        "name": {
+          "$ref": "#/$defs/CmdIdent",
+          "description": "The pairing name (\"24VDC-2\")."
+        },
+        "orient": {
+          "$ref": "#/$defs/CmdOrient2",
+          "description": "The orientation."
+        },
+        "pos": {
+          "$ref": "#/$defs/CmdPt2",
+          "description": "The insertion point."
+        },
+        "sort": {
+          "description": "Chain order.",
+          "format": "int32",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "star_source": {
+          "description": "The star source of its name.",
+          "type": "boolean"
+        },
+        "symbol": {
+          "$ref": "#/$defs/CmdUuid",
+          "description": "The IP symbol copy."
+        }
+      },
+      "required": [
+        "symbol",
+        "pos",
+        "name",
+        "direction"
+      ],
+      "type": "object"
+    },
+    "IpDirection": {
+      "description": "Signal direction of an interruption point.",
+      "oneOf": [
+        {
+          "const": "source",
+          "description": "Source.",
+          "type": "string"
+        },
+        {
+          "const": "target",
+          "description": "Target.",
+          "type": "string"
+        },
+        {
+          "const": "undirected",
+          "description": "Undirected.",
+          "type": "string"
+        }
+      ]
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`connection.draw_to_ip` (`DrawToIp`, doc 06 §4.4 \"P\", WP-S2.04 §5.1, §9.2): a wire that ends in a new\ninterruption point, in one transaction and one undo step.\n\n- First the IP function and its representation exactly as `ip.place` creates them (`ip` holds `ip.place`'s\n  members; the page is the wire's, `external` is absent): `Function {device: none, def, role: main, kind: ip\n  {name, direction, star_source, sort}}` and `Representation {functions: [f], page, symbol, pos, orient,\n  rep_type: multi_line}`; `def` is `ip.fndef` or the copy the symbol's `fndef` resolves to (must be embedded),\n  and its FnDef must have exactly one connection point, which the symbol must draw.\n- Then the connection from `a` to that connection point exactly as `connection.draw` creates it: `a` is a CP, a\n  junction or a point on an existing connection (which splits it and makes a junction there); the connection is\n  `{a, b: the IP's CP, page, route, kind}` with its number unassigned; `route`, when given, is on the page's\n  connection grid and meets both CPs exactly (`geometry::require_route`), so it ends at the IP's CP.\n\nNothing derived is read inside the transaction (the name and the direction are the tool's). Rejected: as\n`ip.place` (a missing page or symbol copy, a FnDef that is not embedded, `ip.pos` off the grid) and as\n`connection.draw` (a missing endpoint record, off-grid geometry, a route that does not meet its CPs); an IP\nsymbol whose FnDef has not exactly one CP, or that does not draw it. Interactive. Outcome: the connection.",
+  "properties": {
+    "a": {
+      "$ref": "#/$defs/EndpointParam",
+      "description": "The wire's first endpoint."
+    },
+    "ip": {
+      "$ref": "#/$defs/IpAtEnd",
+      "description": "The interruption point at the wire's end."
+    },
+    "kind": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ConnectionKind"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The connection kind; default a wire."
+    },
+    "page": {
+      "$ref": "#/$defs/CmdUuid",
+      "description": "The page the wire and the interruption point are drawn on."
+    },
+    "route": {
+      "description": "Orthogonal route in nm, ending at the IP's connection point.",
+      "items": {
+        "$ref": "#/$defs/CmdPt2"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "a",
+    "page",
+    "ip"
+  ],
+  "title": "connection.draw_to_ip",
+  "type": "object"
+}

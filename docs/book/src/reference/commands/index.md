@@ -4,17 +4,19 @@
 
 A command is the one way to change a project (`Command` → `Transaction` → `Op`). The same command runs from the user interface, from a command log replayed by `ew apply`, from scripts and from the Session API. Each page below gives the command's registry entry, its parameters with types and constraints, and the exit codes of `ew apply`.
 
-47 commands, from the parameter schemas in [`crates/ew-commands/schemas`](https://github.com/Ironkode787/ElektraWatt/tree/main/crates/ew-commands/schemas). The catalogue of the command registry is [doc 17 §2.1](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md#21-command-registry).
+50 commands, from the parameter schemas in [`crates/ew-commands/schemas`](https://github.com/Ironkode787/ElektraWatt/tree/main/crates/ew-commands/schemas). The catalogue of the command registry is [doc 17 §2.1](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md#21-command-registry).
 
 | Command | Summary | Cost | Exposure | Stability |
 |---|---|---|---|---|
 | [`assembly.attach`](assembly.attach.md) | `assembly.attach` (`AttachChildren`): makes existing devices children of a parent device (doc 03 §7: modules of a valve terminal under its head device, a mounting plate under its enclosure), with their positions (FR-DEV-022: child order is `Device.position`, never the drawing). | interactive | edit | preview |
 | [`bond.create`](bond.create.md) | `bond.create` (`CreateBond`): declares a bond, a link of two potentials that does not merge them (doc 03 §9.6, doc 08 §3.7; FR-CON-014, the "declare bond" quick fix of EW-POT-001). | interactive | edit | preview |
 | [`box.black`](box.black.md) | `box.black` (`PlaceBlackBox`, doc 06 §2.7, §3.1): places a black box, a function of kind `black_box` drawn with the black-box symbol and its page geometry. | interactive | edit | preview |
+| [`box.reshape`](box.reshape.md) | `box.reshape` (`ReshapeBox`, FR-DEV-039): replaces the outline of a black box (a representation with a `box`), and its connection points with `cps`, or re-projects them onto the new outline. | interactive | edit | preview |
 | [`cable.create`](cable.create.md) | a cable device with its conductors (doc 03 §12). | interactive | edit | preview |
 | [`conductor.add`](conductor.add.md) | conductors of an existing cable. Rejected: the device has no cable aspect; a core already used in the cable or twice in the list. Outcome: the first new conductor. | interactive | edit | preview |
 | [`connection.delete`](connection.delete.md) | removes connections through the delete policies (they leave junction sequences; bonds lose their `via`). A junction left with two or fewer connections is cleaned up by normaliser #8. Every connection must exist. Outcome: none. | interactive | edit | preview |
 | [`connection.draw`](connection.draw.md) | `connection.draw` (`Connect`, doc 06 §3.5, §4.4): one explicit connection. | interactive | edit | preview |
+| [`connection.draw_to_ip`](connection.draw_to_ip.md) | `connection.draw_to_ip` (`DrawToIp`, doc 06 §4.4 "P", WP-S2.04 §5.1, §9.2): a wire that ends in a new interruption point, in one transaction and one undo step. | interactive | edit | preview |
 | [`connection.route`](connection.route.md) | replaces a connection's route (FR-CON-007). Connectivity is unchanged. On a page the route must be on the page's connection grid and its ends must meet their CPs (D3, `geometry::require_route`). Outcome: the connection. Coalesce route drags with a key. | interactive | edit | preview |
 | [`device.create`](device.create.md) | a device without a representation (FR-DEV-001), optionally with its main function. | interactive | edit | preview |
 | [`device.link`](device.link.md) | `device.link` (`LinkDevices`, doc 11 §4.3 `device.link{from, to, Drives}`): a functional link between two devices, such as a valve that drives a field device (doc 11 §3.3: the PLC overview and the I/O list print the driven device's process tag). | interactive | edit | preview |
@@ -24,6 +26,7 @@ A command is the one way to change a project (`Command` → `Transaction` → `O
 | [`external_ref.create`](external_ref.create.md) | `external_ref.create` (`CreateExternalRef`): a point outside the project that an interruption point or a structure box can name (doc 03 §6, FR-XRF-011): a device, and optionally its connection, at a location node, optionally in another project ("JE-N1000-03", connection "L", at +J-E-206). | interactive | edit | preview |
 | [`fields.set`](fields.set.md) | `fields.set` (`SetFields`): sets one field on one or more records of one kind. | interactive | edit | preview |
 | [`fields.set_many`](fields.set_many.md) | `fields.set_many` (`SetManyFields`, WP-S2.05 part 2; FR-DEV-032, FR-UI-020): sets one value per (kind, targets, path) entry, the entries in the given order, in **one** transaction (one undo step). | interactive | edit | preview |
+| [`ip.arrange`](ip.arrange.md) | `ip.arrange` (`ArrangeIps`, FR-XRF-013, WP-S2.04 §5.1, D12): interruption points of one page exchanged into a new order. | interactive | edit | preview |
 | [`ip.continue`](ip.continue.md) | the partner of an interruption point on another page (FR-XRF-014). | interactive | edit | preview |
 | [`ip.place`](ip.place.md) | an interruption point (FR-XRF-006 … FR-XRF-014, doc 03 §10): the IP function and its one representation in one transaction (EW-INV-013). | interactive | edit | preview |
 | [`junction.edit`](junction.edit.md) | style, wiring and sequence of a junction (FR-CON-005, doc 06 §3.5). | interactive | edit | preview |

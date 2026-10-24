@@ -53,6 +53,9 @@
 //! | `project.drawing.set` | [`SetDrawing`] | Interactive |
 //! | `fields.set_many` | [`SetManyFields`] | Interactive; Bulk above 500 targets |
 //! | `edit.paste` | [`PasteFragment`] | Interactive; Bulk above 500 records |
+//! | `connection.draw_to_ip` | [`DrawToIp`] | Interactive |
+//! | `ip.arrange` | [`ArrangeIps`] | Interactive |
+//! | `box.reshape` | [`ReshapeBox`] | Interactive |
 //!
 //! Every command is of stability `Preview` and undoable except `project.assets.purge`, a marker line whose file side
 //! (deleting asset files nothing names) runs in the session (ADR-0008 amendment 1, FT-380); every one is of exposure
@@ -61,6 +64,7 @@
 
 mod assembly;
 mod assets;
+mod box_reshape;
 mod checks;
 pub mod common;
 mod company;
@@ -86,12 +90,13 @@ mod terminal;
 
 pub use assembly::{AddValve, AttachChildren, ChildSpec, LinkDevices};
 pub use assets::PurgeAssets;
+pub use box_reshape::ReshapeBox;
 pub use checks::{CHECKS_MEMBER, SHIPPED_CHECK_SCHEMES, SetCheckSchemes};
 pub use common::{EndpointParam, KindName, TargetRef};
 pub use company::{COMPANY_MEMBER, SetCompany};
 pub use connection::{
-    Connect, ContinueIp, CreateBond, DefinePotential, DeleteConnections, EditJunction, PlaceIp,
-    RouteConnection, WiringChoice,
+    ArrangeIps, Connect, ContinueIp, CreateBond, DefinePotential, DeleteConnections, DrawToIp, EditJunction,
+    IpAtEnd, PlaceIp, RouteConnection, WiringChoice,
 };
 pub use device::{
     ConnectHint, CreateDevice, MoveReps, PlaceBlackBox, PlaceSymbol, PlaceTarget, SetAnchorPolicy,
@@ -171,4 +176,8 @@ pub fn register_all(r: &mut CommandRegistry) {
     r.register::<SetManyFields>();
     // WP-S2.05 part 3
     r.register::<PasteFragment>();
+    // WP-S2.04 part 3
+    r.register::<DrawToIp>();
+    r.register::<ArrangeIps>();
+    r.register::<ReshapeBox>();
 }

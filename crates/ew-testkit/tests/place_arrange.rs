@@ -17,11 +17,12 @@ use ew_api::{AnyCommand, CmdError, Receipt, Recovery, Session, SessionOptions, S
 use ew_commands::commands::library_copy_hash;
 use ew_derive::{FunctionCps, Q, cp_point};
 use ew_ids::{Id, Uuid};
+use ew_mltext::Ident;
 use ew_schema::{
-    Connection, Device, Endpoint, FnRole, Function, FunctionKind, Kind, LibDocument, Page, Part, PartUse,
-    Representation, Sha256, TemplateFn,
+    Connection, ConnectionKind, Device, Endpoint, Extra, FnRole, Function, FunctionKind, IpDirection, IpSpec,
+    Kind, LibDocument, Page, Part, PartUse, Representation, Sha256, TemplateFn,
 };
-use ew_testkit::golden::dsl::{Builder, Done};
+use ew_testkit::golden::dsl::{Builder, Done, End, IpEnd};
 use ew_units::{Grid, Nm, Pt2};
 use serde_json::{Value, json};
 
@@ -748,7 +749,14 @@ fn from_part_gives_a_device_with_a_black_box_and_a_contact_that_is_not_drawn() {
 fn the_new_dsl_verbs_send_the_parameters_of_their_commands() {
     let (page, symbol, rep_id) = (Uuid::from_u128(1), Uuid::from_u128(2), Uuid::from_u128(3));
     let (part, strip, pin_rep) = (Uuid::from_u128(4), Uuid::from_u128(5), Uuid::from_u128(6));
+    let (con_id, ip_function) = (Uuid::from_u128(7), Uuid::from_u128(8));
     let mut sink = |name: &str, _params: Value| -> Result<Done, String> {
+        if name == "connection.draw_to_ip" {
+            return Ok(Done {
+                primary: Some((Kind::Connection, Id::<Connection>::from_uuid(con_id).cast())),
+                created: vec![(Kind::Function, Id::<Function>::from_uuid(ip_function).cast())],
+            });
+        }
         Ok(Done {
             primary: (name == "device.place" || name == "box.black").then_some((
                 Kind::Representation,
@@ -773,6 +781,44 @@ fn the_new_dsl_verbs_send_the_parameters_of_their_commands() {
         .unwrap();
     b.drawing(Some(Some("hops"))).unwrap();
     b.drawing(Some(None)).unwrap();
+    // WP-S2.04 part 3
+    let ip = IpEnd {
+        symbol,
+        def: None,
+        pos: gp(6, 6),
+        spec: IpSpec {
+            name: "24VDC-2".parse::<Ident>().expect("an identifier"),
+            direction: IpDirection::Source,
+            star_source: true,
+            sort: Some(2),
+            external: None,
+            extra: Extra::new(),
+        },
+    };
+    let from = End::Cp(Id::from_uuid(ip_function), 1);
+    let (drawn, f) = b
+        .draw_to_ip(&from, page, &[gp(3, 6), gp(6, 6)], None, &ip)
+        .unwrap();
+    assert_eq!((drawn, f), (Id::from_uuid(con_id), Id::from_uuid(ip_function)));
+    b.draw_to_ip(
+        &from,
+        page,
+        &[],
+        Some(&ConnectionKind::Wire),
+        &IpEnd {
+            def: Some(Id::from_uuid(pin_rep)),
+            ..ip.clone()
+        },
+    )
+    .unwrap();
+    b.arrange_ips(&[Id::from_uuid(ip_function), Id::from_uuid(pin_rep)], false)
+        .unwrap();
+    b.arrange_ips(&[Id::from_uuid(pin_rep), Id::from_uuid(ip_function)], true)
+        .unwrap();
+    let outline = [gp(0, 0), gp(6, 0), gp(6, 4), gp(0, 4)];
+    b.reshape_box(Id::from_uuid(pin_rep), &outline, None).unwrap();
+    b.reshape_box(Id::from_uuid(pin_rep), &outline, Some(&[(2, gp(3, 0), "up")]))
+        .unwrap();
     let script = b.script();
     let at = |i: usize| (script[i].0.as_str(), &script[i].1);
     let target = |i: usize| at(i).1["target"].clone();
@@ -814,4 +860,31 @@ fn the_new_dsl_verbs_send_the_parameters_of_their_commands() {
         (at(8).0, at(8).1),
         ("project.drawing.set", &json!({"crossings": null}))
     );
+    assert_eq!(at(9).0, "connection.draw_to_ip");
+    assert_eq!(
+        at(9).1,
+        &json!({"a": {"cp": {"function": ip_function.to_string(), "idx": 1}}, "page": page,
+            "route": [gp(3, 6), gp(6, 6)],
+            "ip": {"symbol": symbol, "pos": gp(6, 6), "name": "24VDC-2", "direction": "source",
+                "star_source": true, "sort": 2}})
+    );
+    assert_eq!(at(10).0, "connection.draw_to_ip");
+    assert_eq!(at(10).1["kind"], json!("wire"));
+    assert_eq!(at(10).1["ip"]["fndef"], json!(pin_rep.to_string()));
+    assert!(at(10).1.get("route").is_none(), "an empty route is not sent");
+    assert_eq!(at(11).0, "ip.arrange");
+    assert_eq!(
+        at(11).1,
+        &json!({"ips": [ip_function.to_string(), pin_rep.to_string()]})
+    );
+    assert_eq!(
+        at(12).1,
+        &json!({"ips": [pin_rep.to_string(), ip_function.to_string()], "set_sort": true})
+    );
+    assert_eq!(at(13).0, "box.reshape");
+    assert_eq!(
+        at(13).1,
+        &json!({"rep": pin_rep.to_string(), "outline": [gp(0, 0), gp(6, 0), gp(6, 4), gp(0, 4)]})
+    );
+    assert_eq!(at(14).1["cps"], json!([{"idx": 2, "pos": gp(3, 0), "dir": "up"}]));
 }
