@@ -831,6 +831,18 @@ below).
   c4b60ce; the alias `@n` of FT-422 adds no word (ID-640). The editor still cannot place interruption points, draw
   boxes, texts or markers, create pages or structure nodes, or import parts (WP-S2.04 parts 3 to 5, FT-408 to
   FT-411).
+  *As built (cycle 27, WP-S6.13 part 1; decision log ID-610 to ID-624).* The harness `cargo xtask blind` exists
+  (`xtask/src/blind/`, std only: a loopback keeper that is the run's copied `xtask`, `--stateless`, the filter, the
+  protocol with notes, broken steps, quit rules and caps, `compose`, `stop`, `bless`, `replay`, `selftest`; the
+  procedure is `tools/blind/README.md`). The product gained `elektrawatt --headless --keep-going` (a refused or failed
+  step does not end the run; exit 1 when any step was not done), a parameter signature on every action
+  (`ActionMeta.params`; `tools/blind/reference/actions.txt` and `vocabulary.txt` are generated and compared by the
+  `blind_reference` test, which closes FT-314) and the headless-only action `page.describe` (the page's content as
+  text, from the cached page tables). **`page.describe` adds 11 words** (`reps`, `connections`, `junctions`, `wires`,
+  `stored`, `provisional`, `ip`, `direction`, `source`, `undirected`, `potential`): the other 11 of the 22 that the
+  specification counted were WP-S2.04 part 2's, delivered before part 1. **The vocabulary of ID-474 is 238 words and the
+  action registry 168 actions.** CI replays the committed self-test recording twice in fresh folders
+  (`bin/elektrawatt/tests/blind_replay.rs`).
 
 ---
 

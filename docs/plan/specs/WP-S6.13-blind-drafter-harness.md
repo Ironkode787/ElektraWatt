@@ -895,6 +895,45 @@ lane, ID-622). **After part 1:** doc 18 §3.17 and §3.11 as built (the replay t
 doc 18 §3.17 (the prompts and personas as built). **After part 3:** gates §5.4 (the evidence pointer of §8), plan 01
 §3.8, the follow-ups of the reading.
 
+### 12.7 As built: part 1 (cycle 27)
+
+Built as §5.1 to §5.5, §5.8 (`stop`), §5.10 and §6 say; BD1 to BD13 are the tests named in the lane's report. The
+points where the code differs from the text above, or settles what it left open:
+
+1. **Words.** `page.describe` adds **11** words, not 22: WP-S2.04 part 2 (cycle 26) delivered `wire`, `->`, `route`,
+   `bends`, `style`, `dot`, `bevel`, `wiring`, `star`, `chain`, `sequence` before part 1, so only `reps`, `junctions`,
+   `wires`, `stored`, `provisional`, `connections` and `potential` and the interruption point's `ip`, `direction`,
+   `source`, `undirected` are new. WP-S2.04 §9.6 (part 3) loses those five (`ip`, `direction`, `source`, `undirected`,
+   `potential`: 0 left) and §10.7 (part 4b) loses `connections` (12). `VOCABULARY` is **238** words (227 + 11), the
+   registry **168** actions. The page text has no `items`, `boxes`, `item` or `box` lines yet (WP-S2.04 part 4a).
+2. **Signatures.** `nav.goto` takes `text?:text` (the as-built parameter), not `folio?:text, cell?:text` as §5.5.2's
+   example says. A real number that is not a millimetre (`percent`, `dx`, `dy`, `width`, `height`, `ppp`, `scale`) is
+   typed `json`, since the grammar has no other real type.
+3. **Token.** The keeper's token is 122 random bits from the operating system (the seed of `std`'s `RandomState`) in
+   the shape of a UUID v4, not `uuid`'s `v4` feature: `ci/dep-rules.toml` bans that feature outside dev edges
+   (CI-PR-09, doc 18 §3.5). `Cargo.lock` is unchanged; the one new use of `RandomState` is a reviewed allow site in
+   `ci/ordered-collections-allow.toml`, and `ew-viewmodel`'s test helper `bless` (the `EW_BLESS` switch) one in
+   `ci/disallowed-methods-allow.toml`.
+4. **The starter content.** The copied `elektrawatt` would not find the repository's `content/` (symbols, function
+   definitions, forms), so the run folder holds a copy as `.harness/content/` and the keeper sets `EW_CONTENT_DIR`; the
+   replays set it to the repository's `content/`.
+5. **Protocol details.** Steps are numbered by their position in `steps.uiscript`, so the harness's own `look` steps
+   take numbers too; skipped steps continue the numbering. A turn the harness refuses entirely still needs its note. A
+   `note` is accepted after `end: cap` or `quit` for the turn that ended the run; `handback` after `quit` and `cap` too
+   (`end` keeps the first cause, `handed_back` is a field of `run.json`). A check run files its audit with `handback`
+   (five headings, written to `checker.md`). The check run's filter admits the actions of kind `View` (a canvas action is
+   one), as §5.3 says; it works on a copy of the project.
+6. **Run files.** `run.json` gains `stateless`, `handed_back`, `diverged_at`, `clean_before_epilogue` and `child_exit`;
+   `turns.jsonl` lines carry the step range, the first step not done, the broken mark, the refusal text, the scores and
+   an `epilogue` line (the range that `epilogue.txt` is made from). `record.ewcmd.txt` is the one file where the harness
+   rewrites UUIDs (to `@n`, in order of first appearance): the command log keeps the real IDs, and is evidence only.
+7. **Self-test.** The prelude is `file.new` (built-in template), `page.create` 101 and `page.goto`: the headless run
+   starts past the first-run flow, so no wizard is needed; the scripted agent also opens the wizard to show that its
+   preview finds no sample project (BD10). `cargo xtask blind selftest` does not rebuild `xtask` (it is the running
+   program, whose copy goes into the run); it builds `elektrawatt` and `ew` unless `--no-build`.
+8. **Scoring** (`score.json`, `bless-oracle`, `check-task`) is part 2: `stop` writes `out/report.md` with the protocol
+   counts and observations only.
+
 ---
 
 ## Sources
