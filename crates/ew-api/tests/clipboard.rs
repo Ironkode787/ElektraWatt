@@ -141,7 +141,10 @@ fn cb1_the_fragment_of_102f1_is_byte_equal_and_matches_the_expected_file() {
     assert_eq!(a.text, b.text, "two runs give equal bytes");
     assert_eq!((a.records, a.copies, a.dropped_connections), (4, 3, 0));
     assert!(a.skipped.is_empty());
-    assert!(a.text.starts_with("#ew-fragment v1\n{\"$fragment\":{\"format\":\"0.1\",\"project\":"));
+    assert!(
+        a.text
+            .starts_with("#ew-fragment v1\n{\"$fragment\":{\"format\":\"0.1\",\"project\":")
+    );
     assert!(a.text.ends_with('\n'));
     assert!(!a.text.contains("source_ref"), "a copy drops the import lineage");
     let kinds: Vec<String> = a
@@ -159,7 +162,17 @@ fn cb1_the_fragment_of_102f1_is_byte_equal_and_matches_the_expected_file() {
         .collect();
     assert_eq!(
         kinds,
-        ["device", "function", "representation", "potential_def", "$lib", "$lib", "$lib", "$node", "$node"]
+        [
+            "device",
+            "function",
+            "representation",
+            "potential_def",
+            "$lib",
+            "$lib",
+            "$lib",
+            "$node",
+            "$node"
+        ]
     );
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/expected/fragment_102F1.txt");
     if bless() {
@@ -179,8 +192,13 @@ fn cb1_a_terminal_brings_its_strip() {
         .unwrap()
         .reps
         .iter()
-        .find(|r| r.device.is_some_and(|d| s.tag_list(&[d]) == "1X1:1
-"))
+        .find(|r| {
+            r.device.is_some_and(|d| {
+                s.tag_list(&[d])
+                    == "1X1:1
+"
+            })
+        })
         .expect("1X1:1 on 101")
         .clone();
     let terminal = rep.device.unwrap();
@@ -253,10 +271,7 @@ fn cb1_the_copy_refusals() {
     assert_eq!(s.copy_fragment(&[]), Err(CopyError::Empty));
     let dev = s.resolve_reference("tag:-102F1").unwrap();
     assert_eq!(s.copy_fragment(&[dev]), Err(CopyError::Empty));
-    assert_eq!(
-        s.copy_fragment(&[Uuid::from_u128(7)]),
-        Err(CopyError::Generated)
-    );
+    assert_eq!(s.copy_fragment(&[Uuid::from_u128(7)]), Err(CopyError::Generated));
     let mut two = reps_of(&s, "102", &["-102F1"]);
     two.extend(reps_of(&s, "101", &["-101F1"]));
     assert_eq!(s.copy_fragment(&two), Err(CopyError::NotOnePage));
@@ -276,9 +291,7 @@ fn the_tag_list_is_natural_order_one_per_line() {
 
 fn valid_text() -> String {
     let s = golden();
-    s.copy_fragment(&reps_of(&s, "102", &["-102F1"]))
-        .unwrap()
-        .text
+    s.copy_fragment(&reps_of(&s, "102", &["-102F1"])).unwrap().text
 }
 
 /// The text with line `n` (1-based) replaced.
@@ -316,14 +329,15 @@ fn cb2_every_refusal_of_the_parser() {
     assert_eq!(parse_fragment(""), Err(FragmentError::NotAFragment));
     assert_eq!(
         parse_fragment(&text.replacen("v1", "v2", 1)),
-        Err(FragmentError::Newer {
-            version: "v2".into()
-        })
+        Err(FragmentError::Newer { version: "v2".into() })
     );
     // Oversized: the whole text, one line, the records, the nesting.
     let big = format!("{text}{}", " ".repeat(4 << 20));
     assert!(matches!(parse_fragment(&big), Err(FragmentError::TooLarge(_))));
-    let long = plus_line(&text, &format!("{{\"$k\":\"device\",\"x\":\"{}\"}}", "a".repeat(1 << 20)));
+    let long = plus_line(
+        &text,
+        &format!("{{\"$k\":\"device\",\"x\":\"{}\"}}", "a".repeat(1 << 20)),
+    );
     assert!(matches!(parse_fragment(&long), Err(FragmentError::TooLarge(_))));
     let deep = plus_line(&text, &format!("{}{}", "[".repeat(65), "]".repeat(65)));
     assert!(matches!(parse_fragment(&deep), Err(FragmentError::TooLarge(_))));
@@ -333,8 +347,14 @@ fn cb2_every_refusal_of_the_parser() {
     assert!(invalid(parse_fragment(&plus_line(&text, r#"{"$macro":{}}"#))));
     let foreign = r#"{"$k":"bond","id":"0190a000-0000-7000-8000-000000000001","a":{"junction":"0190a000-0000-7000-8000-000000000002"},"b":{"junction":"0190a000-0000-7000-8000-000000000003"}}"#;
     assert!(invalid(parse_fragment(&plus_line(&text, foreign))));
-    assert!(invalid(parse_fragment(&plus_line(&text, r#"{"$k":"page_item","id":"0190a000-0000-7000-8000-000000000001"}"#))));
-    assert!(invalid(parse_fragment(&plus_line(&text, &record.replacen("\"letter\":\"F\"", "\"letter\":7", 1)))));
+    assert!(invalid(parse_fragment(&plus_line(
+        &text,
+        r#"{"$k":"page_item","id":"0190a000-0000-7000-8000-000000000001"}"#
+    ))));
+    assert!(invalid(parse_fragment(&plus_line(
+        &text,
+        &record.replacen("\"letter\":\"F\"", "\"letter\":7", 1)
+    ))));
     assert!(invalid(parse_fragment(&plus_line(&text, "{not json"))));
     assert!(invalid(parse_fragment(&plus_line(&text, r#"{"no":"kind"}"#))));
     // The same record twice.
@@ -349,13 +369,19 @@ fn cb2_every_refusal_of_the_parser() {
     );
     let older = header_with(&text, |h| h["format"] = json!("0.0"));
     assert!(invalid(parse_fragment(&older)));
-    let v2 = with_line(&text, 3, &record.replacen("{\"$k\":\"device\",", "{\"$k\":\"device\",\"$v\":2,", 1));
+    let v2 = with_line(
+        &text,
+        3,
+        &record.replacen("{\"$k\":\"device\",", "{\"$k\":\"device\",\"$v\":2,", 1),
+    );
     assert!(matches!(parse_fragment(&v2), Err(FragmentError::Newer { .. })));
     // A header without a known member, or with a malformed one.
     assert!(invalid(parse_fragment(&header_with(&text, |h| {
         h.as_object_mut().unwrap().remove("grid");
     }))));
-    assert!(invalid(parse_fragment(&header_with(&text, |h| h["project"] = json!("nope")))));
+    assert!(invalid(parse_fragment(
+        &header_with(&text, |h| h["project"] = json!("nope"))
+    )));
     // No header at all.
     assert!(invalid(parse_fragment("#ew-fragment v1\n")));
 }
@@ -368,7 +394,10 @@ fn cb2_an_unknown_header_member_is_ignored_and_crlf_reads() {
     let a = parse_fragment(&more).unwrap();
     let b = parse_fragment(&text).unwrap();
     assert_eq!(a.params, b.params);
-    assert_eq!(parse_fragment(&text.replace('\n', "\r\n")).unwrap().params, b.params);
+    assert_eq!(
+        parse_fragment(&text.replace('\n', "\r\n")).unwrap().params,
+        b.params
+    );
     assert_eq!(b.grid, (7_937_500, 3));
     assert_eq!(b.ghost.len(), 1);
 }
@@ -438,9 +467,15 @@ fn cb3_every_rejection_at_its_pointer() {
     assert_eq!(pointer(run(page, at, &format).unwrap_err()), "/fragment/format");
     // A record of a kind that is not pasted.
     let mut foreign = frag.clone();
-    foreign["records"].as_array_mut().unwrap().push(json!({"$k": "section", "id": Uuid::from_u128(3).to_string(),
+    foreign["records"]
+        .as_array_mut()
+        .unwrap()
+        .push(json!({"$k": "section", "id": Uuid::from_u128(3).to_string(),
         "number": 9, "title": "x"}));
-    assert_eq!(pointer(run(page, at, &foreign).unwrap_err()), "/fragment/records/4");
+    assert_eq!(
+        pointer(run(page, at, &foreign).unwrap_err()),
+        "/fragment/records/4"
+    );
     // A mandatory reference that resolves to nothing: the representation's function is not in the fragment.
     let mut orphan = frag.clone();
     orphan["records"].as_array_mut().unwrap().remove(1);
@@ -466,7 +501,10 @@ fn cb3_every_rejection_at_its_pointer() {
         .find(|(_, p)| p.kind == ew_schema::PageType::TitlePage)
         .map(|(id, _)| id.as_uuid())
         .expect("Golden A has a title page");
-    assert_eq!(pointer(s.preview(&paste_cmd(title, at, &frag)).unwrap_err()), "/page");
+    assert_eq!(
+        pointer(s.preview(&paste_cmd(title, at, &frag)).unwrap_err()),
+        "/page"
+    );
 }
 
 /// CB3: a child device whose parent is not copied loses its parent, position and child scheme, with a notice.
@@ -520,7 +558,10 @@ fn cb3_held_copies_are_reused_and_cb4_the_paste_of_102f1_is_102f3() {
     let part = s.query().parts().get(d.parts[0].part.copy).unwrap().clone();
     assert_eq!(part.item.part_number.as_str(), "A9F78116");
     // Structure by path: the nodes are this project's own.
-    assert_eq!(d.structure, device(&s, s.resolve_reference("tag:-102F1").unwrap()).structure);
+    assert_eq!(
+        d.structure,
+        device(&s, s.resolve_reference("tag:-102F1").unwrap()).structure
+    );
 }
 
 /// CB3: in another project the copies are embedded in the paste's transaction, once, and one undo removes them with
@@ -530,7 +571,11 @@ fn cb3_copies_are_embedded_once_and_undone_with_the_records() {
     let g = golden();
     let frag = fragment(&g, &reps_of(&g, "101", &["T55", "E55", "E56"]));
     let mut w = wizard(11);
-    let before = (w.query().parts().len(), w.query().symbols().len(), w.query().devices().len());
+    let before = (
+        w.query().parts().len(),
+        w.query().symbols().len(),
+        w.query().devices().len(),
+    );
     let receipt = paste(&mut w, "1", at_steps(&frag, (0, 0)), &frag).unwrap();
     let devices = created(&receipt, Kind::Device);
     assert_eq!(devices.len(), 3);
@@ -548,8 +593,15 @@ fn cb3_copies_are_embedded_once_and_undone_with_the_records() {
     assert!(created(&again, Kind::Part).is_empty());
     w.undo().unwrap();
     w.undo().unwrap();
-    let after = (w.query().parts().len(), w.query().symbols().len(), w.query().devices().len());
-    assert_eq!(after, before, "one undo step each removes the records and the embedded copies");
+    let after = (
+        w.query().parts().len(),
+        w.query().symbols().len(),
+        w.query().devices().len(),
+    );
+    assert_eq!(
+        after, before,
+        "one undo step each removes the records and the embedded copies"
+    );
     // Another version of a copy the project holds.
     paste(&mut w, "1", at_steps(&frag, (0, 0)), &frag).unwrap();
     let mut other = frag.clone();
@@ -634,4 +686,37 @@ fn cb3_the_step_translation_is_exact_on_the_qet_grid() {
     got.sort_unstable();
     want.sort_unstable();
     assert_eq!(got, want);
+}
+
+/// Effect 6: the copies are numbered in the fragment's position order, whatever IDs the session mints: two sessions
+/// with other ID seeds give the same tags at the same places, and of E55 and E56 the left one is numbered first.
+#[test]
+fn cb3_the_numbering_follows_the_fragment_order_not_the_minted_ids() {
+    let g = golden();
+    let frag = fragment(&g, &reps_of(&g, "101", &["T55", "E55", "E56"]));
+    let placed = |seed: u64| {
+        let mut w = wizard(seed);
+        let receipt = paste(&mut w, "1", at_steps(&frag, (0, 0)), &frag).unwrap();
+        let tables = w.page_tables("1").unwrap();
+        let mut out: Vec<((i64, i64), String)> = created(&receipt, Kind::Representation)
+            .iter()
+            .map(|r| {
+                let t = tables.reps.iter().find(|t| t.id == *r).unwrap();
+                (t.pos, w.tag_list(&[t.device.unwrap()]))
+            })
+            .collect();
+        out.sort();
+        out
+    };
+    let a = placed(31);
+    assert_eq!(a, placed(32));
+    assert_eq!(a, placed(33));
+    let e: Vec<&String> = a
+        .iter()
+        .filter(|(_, t)| t.contains('E'))
+        .map(|(_, t)| t)
+        .collect();
+    assert_eq!(e.len(), 2);
+    assert!(e[0].trim_end().ends_with("E1"), "{a:?}");
+    assert!(e[1].trim_end().ends_with("E2"), "{a:?}");
 }

@@ -112,8 +112,10 @@ pub struct Fragment {
 /// without it, with a notice; else the paste is refused. A child device whose parent is cleared also loses its
 /// `position`, and a `child` tag scheme. (5) Translation in grid steps: `Δk = index(at) − index(anchor)` per
 /// axis; a grid coordinate becomes the grid point at its index plus `Δk`, any other moves by
-/// `round_half_away(Δk × num / den)`; routes follow their ends as `rep.move`'s `steps` move them. (6) Tag
-/// counters and frozen tags are cleared, wire numbers become unassigned, so the normalisers number the copies.
+/// `round_half_away(Δk × num / den)`; routes follow their ends as `rep.move`'s `steps` move them. (6) Frozen tags
+/// are cleared and wire numbers become unassigned; tag counters are cleared and the copies that take part in
+/// page-based numbering get the next free counter of their main page's scope in fragment order (the online-numbering
+/// rule), so the tags follow the fragment's position order and not the minted IDs.
 ///
 /// Cost: `Bulk` above 500 records. Outcome: the first pasted representation; the notices name every cleared
 /// reference and unmatched structure node.
@@ -581,6 +583,35 @@ fn lib_title(value: &Value) -> String {
         .map_or_else(|| "the item".to_owned(), |s| format!("'{s}'"))
 }
 
+/// Effect 6 completed: the pasted devices that take part in page-based numbering and are placed get the next free
+/// counter of their main page's scope, in fragment order (the online-numbering rule of normaliser #4, applied in the
+/// fragment's position order). The normaliser numbers new devices in ID order, and minted UUIDv7s are not monotonic
+/// within a transaction, so leaving it to the normaliser would number the copies of one paste in a random order; with
+/// a free counter each, the normaliser finds nothing to renumber.
+fn number_in_fragment_order(tx: &mut TxBuilder<'_>, devices: &[Id<Device>]) -> Result<(), CmdError> {
+    use crate::numbering::{CounterScope, ScopeCounters, main_page, numbered};
+    let mut groups: BTreeMap<(CounterScope, ew_mltext::Ident), ScopeCounters> = BTreeMap::new();
+    for d in devices {
+        let Some(dev) = tx.get::<Device>(*d) else {
+            continue;
+        };
+        if !numbered(&dev) || dev.tag.counter.is_some() {
+            continue;
+        }
+        let Some(page) = main_page(tx, *d) else {
+            continue;
+        };
+        let scope = CounterScope::Page(page);
+        let group = groups
+            .entry((scope, dev.tag.letter.clone()))
+            .or_insert_with(|| ScopeCounters::load(tx, &dev.tag.letter, scope));
+        let next = group.next_free(Some(*d));
+        tx.update::<Device>(*d, |x| x.tag.counter = Some(next))?;
+        group.set_counter(*d, next);
+    }
+    Ok(())
+}
+
 /// Adds `text` to `notices` unless it is there already.
 fn notice(text: String, notices: &mut Vec<String>) {
     if !notices.contains(&text) {
@@ -821,9 +852,14 @@ impl Command for PasteFragment {
         }
         // The records, in (kind rank, fragment order).
         let mut primary = None;
+        let mut devices: Vec<Id<Device>> = Vec::new();
         for (_, record) in typed {
             let key = match record {
-                Record::Device(r) => (Kind::Device, tx.insert(r)?.cast()),
+                Record::Device(r) => {
+                    let id = tx.insert(r)?;
+                    devices.push(id);
+                    (Kind::Device, id.cast())
+                }
                 Record::Function(r) => (Kind::Function, tx.insert(r)?.cast()),
                 Record::Representation(r) => (Kind::Representation, tx.insert(r)?.cast()),
                 Record::Connection(r) => (Kind::Connection, tx.insert::<Connection>(r)?.cast()),
@@ -835,6 +871,7 @@ impl Command for PasteFragment {
                 primary.get_or_insert(key);
             }
         }
+        number_in_fragment_order(tx, &devices)?;
         Ok(Outcome {
             primary,
             note: None,
