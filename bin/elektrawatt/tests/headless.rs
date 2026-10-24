@@ -21,6 +21,10 @@ mod grid_properties;
 #[path = "grid/find.rs"]
 mod grid_find;
 
+/// The clipboard headless (WP-S2.05 part 3, CB5, CB6 and CB8).
+#[path = "grid/clipboard.rs"]
+mod grid_clipboard;
+
 /// The folio-script support; here for its UUID check (FT-422).
 mod support;
 
