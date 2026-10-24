@@ -12,6 +12,7 @@
 #![allow(clippy::disallowed_methods)]
 
 mod anonymise;
+mod blind;
 mod build_scripts;
 mod dco;
 mod deps;
@@ -95,6 +96,10 @@ commands:
                        --enforce (the hosted runners are report-only), and always when a bench does not run (the
                        report then has a 'Bench failures' section); --bless writes the baseline; --from reads
                        one captured bench output instead of running a bench (one file per flag, repeat it)
+  blind <subcommand>   the blind-drafter harness (WP-S6.13): an agent that never sees pixels drives the headless
+                       mode through registered UI actions; the run folder lives outside the repository.
+                       help | start | do | look | note | handback | stop | report | resume | compose | bless |
+                       replay | selftest (`cargo xtask blind help` lists them with their arguments)
   ci                   fmt, clippy and nextest (default and all features), doctests and the repository checks
                        above (except check-dco), with a summary; the default-features nextest step is labelled
                        'nextest (no acceptance, no fuzzer)' (the headless acceptance tests and the command fuzzer
@@ -225,6 +230,7 @@ fn main() -> ExitCode {
             }
         },
         "perf-gate" => perf::run(&args[1..]),
+        "blind" => blind::run(&args[1..], &workspace_root()),
         "ci" => ci(),
         "help" | "-h" | "--help" => {
             print!("{USAGE}");
