@@ -59,7 +59,7 @@ pub struct PlaceCatalogue {
     /// The embedded symbol copies and the starter symbols the project has not embedded, of the page's grid family,
     /// in key order.
     pub symbols: Vec<CatalogueSymbol>,
-    /// The embedded part copies with a function template, by part number.
+    /// The embedded part copies with a function template, by part number, then manufacturer, then copy ID.
     pub parts: Vec<CataloguePart>,
     /// Every terminal strip of the project, by its tag as the page prints it (FT-421): the strip chooser of a
     /// terminal placement (§7.1).
@@ -388,7 +388,9 @@ impl Session {
                 functions,
             });
         }
-        parts.sort_by(|a, b| a.part_number.cmp(&b.part_number).then(a.copy.cmp(&b.copy)));
+        parts.sort_by(|a, b| {
+            (&a.part_number, &a.manufacturer, a.copy).cmp(&(&b.part_number, &b.manufacturer, b.copy))
+        });
         Some(PlaceCatalogue {
             symbols: rows.into_iter().map(|(r, _)| r).collect(),
             parts,
@@ -702,7 +704,11 @@ impl Session {
 // -------------------------------------------------------------------------------------------------------------------
 // The page tables
 
-/// The records drawn on a page as tables, in page nm, each list in ID order (WP-S2.04 §4.3).
+/// The records drawn on a page as tables, in page nm (WP-S2.04 §4.3), each list in an order a person can see and a
+/// replay reproduces (FT-439, decision log ID-640): representations, junctions and connections by place (y, then x;
+/// a connection by its first, then its last vertex), connection points by label, ties by the ID as the last key.
+/// Never by ID alone: the IDs one transaction mints are not in creation order, and a tool's first hit or a listed
+/// proposal would then differ between two runs of one script.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct PageTables {
     /// The printed folio label.
@@ -711,13 +717,14 @@ pub struct PageTables {
     pub page: Uuid,
     /// The page's connection grid `(num, den)` nm.
     pub grid: (i64, i64),
-    /// The representations.
+    /// The representations, by insertion point (y, then x), then ID.
     pub reps: Vec<TableRep>,
-    /// The connection points drawn on the page, by their v5 ID.
+    /// The connection points drawn on the page, by label (natural order), then point (y, then x), then v5 ID.
     pub cps: Vec<TableCp>,
-    /// The connections drawn on the page.
+    /// The connections drawn on the page, by the first vertex of the drawn polyline, then the last (y, then x), then
+    /// ID.
     pub connections: Vec<TableConnection>,
-    /// The junctions of the page.
+    /// The junctions of the page, by point (y, then x), then ID.
     pub junctions: Vec<TableJunction>,
 }
 
@@ -783,7 +790,7 @@ pub struct TableCp {
     pub at: (i64, i64),
     /// The direction a wire leaves it.
     pub dir: Option<Dir>,
-    /// The connections on this page ending at it, ascending ID.
+    /// The connections on this page ending at it, in the order of [`PageTables::connections`].
     pub connections: Vec<Uuid>,
     /// The derived name of its potential.
     pub potential: Option<String>,
@@ -982,8 +989,8 @@ fn table_end(e: &Endpoint) -> Option<TableEnd> {
 }
 
 impl Session {
-    /// Every record drawn on the page labelled `folio`, in page nm, each list in ID order (WP-S2.04 §4.3); `None`
-    /// for an unknown folio or a page that is not drawn.
+    /// Every record drawn on the page labelled `folio`, in page nm, each list in the order of [`PageTables`]
+    /// (WP-S2.04 §4.3, FT-439); `None` for an unknown folio or a page that is not drawn.
     ///
     /// A representation's `body` is its symbol shape's body under its orientation, translated; a black box's
     /// outline and CPs are absolute. A CP's `at` is `cp_point` (for a symbol CP the position
@@ -1003,10 +1010,14 @@ impl Session {
         );
         let drawn = drawn_cps(&q, page_id);
         let mut shapes: BTreeMap<Id<SymbolDef>, Option<SymbolShape>> = BTreeMap::new();
-        let mut rep_ids: Vec<Id<Representation>> = q.idx().reps_by_page(page_id).collect();
+        let mut rep_ids: Vec<(i64, i64, Id<Representation>)> = q
+            .idx()
+            .reps_by_page(page_id)
+            .filter_map(|r| q.reps().get(r).map(|rep| (rep.pos.y.0, rep.pos.x.0, r)))
+            .collect();
         rep_ids.sort();
         let mut reps = Vec::new();
-        for rid in rep_ids {
+        for (_, _, rid) in rep_ids {
             let Some(rep) = q.reps().get(rid).cloned() else {
                 continue;
             };
@@ -1068,13 +1079,13 @@ impl Session {
                 continue;
             };
             let dir = Some(dir);
-            let mut connections: Vec<Uuid> = q
+            // Ordered below, by the connections' own order.
+            let connections: Vec<Uuid> = q
                 .idx()
                 .connections_at_cp(function, idx)
                 .filter(|c| q.connections().get(*c).is_some_and(|c| c.page == Some(page_id)))
                 .map(|c| c.as_uuid())
                 .collect();
-            connections.sort();
             let id: Id<()> = v5::cp_id(function, u32::from(idx));
             let potential = partition
                 .potential_at(CpRef::new(function, idx).key())
@@ -1091,10 +1102,14 @@ impl Session {
                 potential,
             });
         }
-        cps.sort_by_key(|c| c.id);
+        cps.sort_by(|a, b| {
+            ew_mltext::natural_cmp(&a.label, &b.label)
+                .then_with(|| a.label.cmp(&b.label))
+                .then_with(|| (a.at.1, a.at.0, a.id).cmp(&(b.at.1, b.at.0, b.id)))
+        });
         let rect = page_rect(&q, page_ref);
         let mut junction_ids: Vec<_> = q.idx().junctions_by_page(page_id).collect();
-        junction_ids.sort();
+        junction_ids.sort_by_key(|j| (q.junctions().get(*j).map(|x| (x.at.y.0, x.at.x.0)), *j));
         let mut junctions = Vec::new();
         let mut junction_at: BTreeMap<Uuid, Pt2> = BTreeMap::new();
         for jid in junction_ids {
@@ -1122,8 +1137,7 @@ impl Session {
                 sequence: j.sequence.iter().map(|c| c.as_uuid()).collect(),
             });
         }
-        let mut connection_ids: Vec<_> = q.idx().connections_by_page(page_id).collect();
-        connection_ids.sort();
+        let connection_ids: Vec<_> = q.idx().connections_by_page(page_id).collect();
         let mut connections = Vec::new();
         for cid in connection_ids {
             let Some(c) = q.connections().get(cid).cloned() else {
@@ -1164,6 +1178,17 @@ impl Session {
                 polyline,
                 stored_route: !c.route.is_empty(),
             });
+        }
+        // By place: the first vertex, then the last (y, then x), then ID; a CP lists its connections in this order.
+        let key = |c: &TableConnection| {
+            let yx = |p: Option<&(i64, i64)>| p.map(|p| (p.1, p.0));
+            (yx(c.polyline.first()), yx(c.polyline.last()), c.id)
+        };
+        connections.sort_by_key(key);
+        let rank: BTreeMap<Uuid, usize> = connections.iter().enumerate().map(|(i, c)| (c.id, i)).collect();
+        for cp in &mut cps {
+            cp.connections
+                .sort_by_key(|c| (rank.get(c).copied().unwrap_or(usize::MAX), *c));
         }
         Some(PageTables {
             folio: folio.to_owned(),

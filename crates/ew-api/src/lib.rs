@@ -105,6 +105,9 @@ pub use ew_commands::{
 /// A command's registered metadata, its cost and its exposure class (WP-S2.05 §4.2): the property grid's guard that
 /// builds only `Edit` commands and its edit policy read them through [`Session::command_meta`].
 pub use ew_commands::{CommandMeta, Cost, Exposure};
+/// The types of [`IdSource`]'s methods, so that a test can supply its own source of new IDs
+/// ([`SessionOptions::ids`]).
+pub use ew_derive::ew_ids::{EntropyError, UnixTime};
 
 use ew_commands::commands::PurgeAssets;
 use ew_commands::{Command as _, Engine, EngineOptions};

@@ -223,9 +223,52 @@ fn the_page_tables_of_folios_101_to_103_match_the_golden_tables_and_the_scene() 
         assert_eq!(t.grid, (7_937_500, 3));
         assert_eq!(t.reps.len(), reps, "{folio}");
         assert_eq!(golden_rows("representations", folio).len(), reps, "{folio}");
-        assert!(t.reps.windows(2).all(|w| w[0].id < w[1].id), "ID order");
-        assert!(t.cps.windows(2).all(|w| w[0].id < w[1].id), "ID order");
-        assert!(t.connections.windows(2).all(|w| w[0].id < w[1].id), "ID order");
+        // FT-439: by place and label, the ID only as the last key.
+        let rep_key = |r: &ew_api::output::TableRep| (r.pos.1, r.pos.0, r.id);
+        assert!(
+            t.reps.windows(2).all(|w| rep_key(&w[0]) < rep_key(&w[1])),
+            "place order"
+        );
+        assert!(
+            t.cps.windows(2).all(|w| {
+                ew_derive::ew_mltext::natural_cmp(&w[0].label, &w[1].label)
+                    .then_with(|| w[0].label.cmp(&w[1].label))
+                    .then_with(|| (w[0].at.1, w[0].at.0, w[0].id).cmp(&(w[1].at.1, w[1].at.0, w[1].id)))
+                    .is_lt()
+            }),
+            "label order"
+        );
+        let conn_key = |c: &ew_api::output::TableConnection| {
+            let yx = |p: Option<&(i64, i64)>| p.map(|p| (p.1, p.0));
+            (yx(c.polyline.first()), yx(c.polyline.last()), c.id)
+        };
+        assert!(
+            t.connections
+                .windows(2)
+                .all(|w| conn_key(&w[0]) < conn_key(&w[1])),
+            "place order"
+        );
+        let junction_key = |j: &ew_api::output::TableJunction| (j.at.1, j.at.0, j.id);
+        assert!(
+            t.junctions
+                .windows(2)
+                .all(|w| junction_key(&w[0]) < junction_key(&w[1])),
+            "place order"
+        );
+        // A CP lists its connections in the table's order.
+        for cp in &t.cps {
+            let pos: Vec<usize> = cp
+                .connections
+                .iter()
+                .map(|c| t.connections.iter().position(|x| x.id == *c).unwrap())
+                .collect();
+            assert!(pos.windows(2).all(|w| w[0] < w[1]), "{}", cp.label);
+        }
+        // Not the ID order of the tables before FT-439 (Golden A's v5 IDs are in no visible order).
+        assert!(
+            !t.reps.windows(2).all(|w| w[0].id < w[1].id),
+            "{folio}: the place order is not the ID order"
+        );
         // Every CP: `cp_point`, and for a symbol CP the shape's position at the orientation (the arithmetic of
         // `ew_commands::geometry::cp_position`).
         let page = Id::from_uuid(t.page);
@@ -247,7 +290,8 @@ fn the_page_tables_of_folios_101_to_103_match_the_golden_tables_and_the_scene() 
         // The page CPs of the viewer are these CPs (same IDs).
         let mut viewer: Vec<Uuid> = s.page_cps(folio).iter().map(|c| c.id).collect();
         viewer.sort();
-        let ours: Vec<Uuid> = t.cps.iter().map(|c| c.id).collect();
+        let mut ours: Vec<Uuid> = t.cps.iter().map(|c| c.id).collect();
+        ours.sort();
         assert_eq!(viewer, ours, "{folio}");
         // Every connection's polyline is the scene's wire.
         let entry = order.entries.iter().find(|e| e.folio == folio).unwrap();

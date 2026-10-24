@@ -415,7 +415,12 @@ fn pg2_mixed_and_missing_selections() {
     let sheet = s.property_sheet(&[main_rep(&s, f2), rep]);
     assert_eq!(sheet.sections[0].kind, "device");
     assert_eq!(sheet.sections[0].targets.len(), 2);
-    assert!(sheet.sections[0].targets.windows(2).all(|w| w[0] < w[1]));
+    // In label order (FT-439), whatever order the selection named them in.
+    assert_eq!(sheet.sections[0].targets, [f1, f2]);
+    assert_eq!(
+        s.property_sheet(&[rep, main_rep(&s, f2)]).sections[0].targets,
+        [f1, f2]
+    );
     let parts = row(&sheet, "device/parts");
     assert!(
         matches!(parts.value, RowValue::Varies { count: 2, .. }),
@@ -424,6 +429,75 @@ fn pg2_mixed_and_missing_selections() {
     );
     assert_eq!(parts.provenance, Provenance::Varies { count: 2 });
     assert_eq!(sheet.header.title, "2 devices");
+}
+
+/// FT-439 (decision log ID-640): a section lists its targets in label order (devices by tag, representations by their
+/// first CP's label, then place), never by ID alone, and a `‹varies›` value lists its texts in natural text order.
+#[test]
+fn ft439_targets_and_varied_texts_are_in_label_order() {
+    let s = golden();
+    let tables = s.page_tables("101").unwrap();
+    let mut devices: Vec<ew_derive::ew_ids::Uuid> = tables.reps.iter().filter_map(|r| r.device).collect();
+    devices.dedup();
+    let sheet = s.property_sheet(&devices);
+    let section = sheet.sections.iter().find(|x| x.kind == "device").unwrap();
+    assert!(section.targets.len() > 5, "{}", section.targets.len());
+    let natural = |a: &str, b: &str| ew_derive::ew_mltext::natural_cmp(a, b).then_with(|| a.cmp(b));
+    let titles: Vec<String> = section
+        .targets
+        .iter()
+        .map(|t| s.property_sheet(&[*t]).header.title)
+        .collect();
+    assert!(
+        titles.windows(2).all(|w| natural(&w[0], &w[1]).is_lt()),
+        "{titles:?}"
+    );
+    let mut by_id = section.targets.clone();
+    by_id.sort();
+    assert_ne!(by_id, section.targets, "Golden A's IDs are in no visible order");
+    // The derived tag varies; its texts (the first eight) in natural order.
+    match &row(&sheet, "device/derived.tag").value {
+        RowValue::Varies { texts, .. } => {
+            assert!(texts.len() > 1);
+            assert!(
+                texts.windows(2).all(|w| natural(&w[0], &w[1]).is_lt()),
+                "{texts:?}"
+            );
+        }
+        other => panic!("{other:?}"),
+    }
+    // The representations of the folio's devices: by the label of their first CP, then by place.
+    let reps: Vec<ew_derive::ew_ids::Uuid> = tables
+        .reps
+        .iter()
+        .filter(|r| r.device.is_some())
+        .map(|r| r.id)
+        .collect();
+    let sheet = s.property_sheet(&reps);
+    let section = sheet
+        .sections
+        .iter()
+        .find(|x| x.kind == "representation")
+        .unwrap();
+    let key = |id: &ew_derive::ew_ids::Uuid| {
+        let r = tables.reps.iter().find(|r| r.id == *id).unwrap();
+        let label = tables
+            .cps
+            .iter()
+            .filter(|c| c.function == r.functions[0])
+            .min_by_key(|c| c.idx)
+            .map(|c| c.label.clone())
+            .unwrap_or_default();
+        (label, (r.pos.1, r.pos.0))
+    };
+    assert!(
+        section.targets.windows(2).all(|w| {
+            let (a, b) = (key(&w[0]), key(&w[1]));
+            natural(&a.0, &b.0).then_with(|| a.1.cmp(&b.1)).is_le()
+        }),
+        "{:?}",
+        section.targets.iter().map(key).collect::<Vec<_>>()
+    );
 }
 
 #[test]
