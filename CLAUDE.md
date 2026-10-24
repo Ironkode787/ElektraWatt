@@ -79,8 +79,10 @@ testing policy, public-repo rules, report format) instead of this file.
   with the worktree.
 - **Review**: for D3 and above first a DeepSeek review round in a FRESH run (`start <name>-review --base ds/<name>`,
   read-only, findings to `REVIEW-<name>.md`), then the lead's own review: the report, then the diff (`git -C
-  <worktree> diff <base>` and the untracked files listed), then the brief's acceptance checks re-run in the worktree
-  before accepting — the coder's check results are claims, not proof. Review delegation follows rule 7. For revisions
+  <worktree> diff <base>` and the untracked files listed), then the brief's acceptance checks re-run by the reviewer in a NORMAL worktree, never inside the `ds-*`
+  worktree: apply the round's diff to the lead's or reviewer's own worktree (`git -C <ds worktree> diff --binary
+  <base> | git apply --index`, untracked files copied; or commit on `ds/<name>` and merge) and run cargo there — the
+  coder's check results are claims, not proof. Review delegation follows rule 7. For revisions
   write the findings to a file and run `resume <name> --task-file <fixes>` (same dsh session); after three rounds on
   Flash re-run with `--model pro`; after Pro hand the worktree to `programmer` or `lead-programmer`.
 - **Integrate**: commit in the worktree in the project's message style with the line `Coded by DeepSeek <model> via
@@ -91,6 +93,14 @@ testing policy, public-repo rules, report format) instead of this file.
   reads and network stay open; cargo builds and tests work under it); `--sandbox full` lifts it. A resumed session
   keeps the sandbox it started with, and approval prompts are always refused (headless has nobody to ask). Workflow
   agents cannot wait out a round (the 10-minute foreground limit), so rounds are started from the main session.
+- **Low integrity (lesson 2026-10-24).** dsh's workspace sandbox labels the whole `ds-*` worktree Low Mandatory
+  Level with inheritance: every file the coder writes or builds there — sources, test exes, `elektrawatt.exe` — is
+  low-integrity. Launched from outside the sandbox, such an exe runs low-integrity: it cannot write to normal folders
+  (the app opens projects read-only, tests fail on the temp dir) and Windows raises "publisher could not be verified"
+  dialogs on the owner's screen. Therefore nobody runs cargo, nextest, clippy, rustdoc or a built binary inside a
+  `ds-*` worktree from outside the sandbox; reviews, acceptance checks, window checks and gates run on a normal
+  worktree that received the diff (the files copied or applied there take normal labels). Inside its own round the
+  coder is unaffected.
 
 ## Effort by difficulty (dynamic routing)
 

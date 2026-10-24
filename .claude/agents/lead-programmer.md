@@ -19,7 +19,8 @@ Ground rules:
   every closed sub-task write a brief that leaves no choice open (files owned, exact types/signatures, behaviours
   with an example per branch, error texts, tests by name with what each asserts, the commands that must pass, what
   not to touch), run it as a dsh round in the background (`python .claude/deepseek/dsh-task.py start <name>
-  --task-file <brief> --base <your branch>`), then review the report, the diff and the acceptance checks you re-run
-  in its worktree; fix by `resume`, retry on `--model pro`, and only then fall back to `programmer` (Sonnet) or
+  --task-file <brief> --base <your branch>`), then review the report and the diff, apply the diff to YOUR worktree (`git -C <ds worktree> diff --binary
+  <base> | git apply --index`) and re-run the acceptance checks there — never cargo or a built binary inside a `ds-*`
+  worktree (its files are low-integrity; CLAUDE.md "Low integrity"); fix by `resume`, retry on `--model pro`, and only then fall back to `programmer` (Sonnet) or
   `boilerplate` (Haiku). Merge `ds/<name>` into your branch and `remove` the run. Your report lists every round
   (run name, model, rounds, outcome) and what you kept for yourself and why.

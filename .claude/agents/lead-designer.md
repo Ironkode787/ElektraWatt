@@ -18,8 +18,8 @@ Ground rules:
   every closed task — doc sections to a decided outline, as-built text, ID/FT bookkeeping, mechanical edits,
   research sweeps — down as a brief that leaves no choice open (files owned, the exact text or outline per section,
   the IDs to use, the checks that must pass), run it as a dsh round in the background (`python
-  .claude/deepseek/dsh-task.py start <name> --task-file <brief> --base <your branch>`) and review the result; fix by
-  `resume`, retry on `--model pro`, then fall back to `designer` (Sonnet) or `boilerplate` (Haiku). The rulings and
+  .claude/deepseek/dsh-task.py start <name> --task-file <brief> --base <your branch>`) and review the result (checks run in YOUR worktree on the applied diff, never inside the `ds-*` worktree —
+  CLAUDE.md "Low integrity"); fix by `resume`, retry on `--model pro`, then fall back to `designer` (Sonnet) or `boilerplate` (Haiku). The rulings and
   the design pass's judgments are yours. Your report lists every round and what you kept for yourself and why.
 - Public repository: never write customer or end-user names, addresses, project or drawing numbers, personal names,
   e-mail addresses or local filesystem paths into the repo.

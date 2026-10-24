@@ -16,6 +16,11 @@ Rounds default to DeepSeek Flash at max reasoning effort.
   python .claude/deepseek/dsh-task.py list
   python .claude/deepseek/dsh-task.py remove <name> [--keep-branch]
 
+Review and acceptance checks run on a NORMAL worktree that received the round's diff (`git -C <worktree> diff
+--binary <base> | git apply --index` elsewhere): the workspace sandbox labels the ds worktree Low Mandatory Level, so
+anything built there runs low-integrity when launched from outside it (read-only app, failing tests, Windows
+"publisher could not be verified" prompts).
+
 A task file of `-` reads the task from stdin. The DeepSeek API key comes from DEEPSEEK_API_KEY in the environment
 or in $DSH_HOME/.env (default ~/.dsh/.env).
 """
