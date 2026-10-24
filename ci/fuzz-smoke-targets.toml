@@ -35,6 +35,7 @@ roots = [
     "ew-derive",
     "ew-ids",
     "ew-import-tables",
+    "ew-mltext",
     "ew-model",
     "ew-schema",
     "ew-store",

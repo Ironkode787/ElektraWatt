@@ -31,6 +31,7 @@ ew-format = { path = "../crates/ew-format" }
 # The open-path target: the store, the model and the in-memory file system of the fault-injection harness.
 ew-store = { path = "../crates/ew-store" }
 ew-model = { path = "../crates/ew-model" }
+ew-mltext = { path = "../crates/ew-mltext" }
 # The command-sequence target includes the modules of crates/ew-testkit/tests/command_fuzz (src/lib.rs), so it has
 # the dependencies of that test.
 ew-api = { path = "../crates/ew-api" }
