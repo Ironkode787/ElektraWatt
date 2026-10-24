@@ -194,7 +194,7 @@ impl ShellModel {
         // ruling): a page or tab change ends it and Select takes over. The selection survives (WP-S2.03 §7.6).
         if matches!(
             self.tools.tool.name(),
-            "wire" | "route_edit" | "place" | "exchange" | "paste"
+            "wire" | "route_edit" | "place" | "exchange" | "paste" | "ip" | "black_box"
         ) && let Some(select) = tool_named("select")
         {
             self.tools.tool = select;
@@ -287,7 +287,7 @@ impl ShellModel {
     }
 
     /// The host's action on a tool's output (§7.2).
-    fn apply_tool_output(&mut self, out: ToolOutput) -> Outcome {
+    pub(super) fn apply_tool_output(&mut self, out: ToolOutput) -> Outcome {
         match out {
             ToolOutput::None => Outcome::Done,
             ToolOutput::Transient(o) => {
@@ -306,6 +306,10 @@ impl ShellModel {
                 self.tools.preview = None;
                 // WP-S2.05 part 3: a committed paste returns to Select with the pasted representations selected.
                 self.tools.pasted = out == Outcome::Done && self.tools.tool.name() == "paste";
+                // The IP tool's memory and its next name (WP-S2.04 part 3, §9.1).
+                if out == Outcome::Done {
+                    self.after_ip_commit();
+                }
                 // After Select commits a move or a transform, the selection is the moved representations (one
                 // selection change, no command; WP-S2.04 §6.4 item 3).
                 if out == Outcome::Done

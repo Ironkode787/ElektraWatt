@@ -30,10 +30,16 @@
 //! autoconnect proposals of a floating or dragged symbol ([`autoconnect`]), route edit (Select's segment drag and
 //! [`RouteEditTool`]) and the junction sequence editor ([`JunctionEditor`]); a tool's route reaches the transcript
 //! through [`Tool::route_info`].
+//!
+//! **WP-S2.04 part 3** adds interruption points and black boxes: the IP tool ([`IpTool`]) with its naming and
+//! direction rules ([`ip`]), the Wire tool's end in an interruption point ([`WireTool::end_in_ip`]), the black box tool
+//! ([`BlackBoxTool`]) and the grips of a selected black box ([`black_box`]), which Select drags.
 
 pub mod autoconnect;
+pub mod black_box;
 mod exchange;
 mod host;
+pub mod ip;
 mod junction_editor;
 mod measure;
 pub mod move_keys;
@@ -48,7 +54,9 @@ mod snap;
 pub mod transform;
 pub mod wire;
 
+pub use black_box::{BlackBoxTool, BoxTarget};
 pub use exchange::ExchangeTool;
+pub use ip::{IpDir, IpExternal, IpMemory, IpTool};
 pub use junction_editor::{JunctionEditor, JunctionMember, junction_name};
 // WP-S2.05 part 3
 pub use paste::PasteTool;
@@ -255,6 +263,26 @@ pub enum Ghost {
         symbol: String,
         /// The designations of the function CPs left unmapped.
         unmapped: Vec<String>,
+    },
+    /// The IP tool's floating interruption point (WP-S2.04 §9.6).
+    Ip {
+        /// The proposed name.
+        name: String,
+        /// `source`, `target` or `undirected`.
+        direction: &'static str,
+        /// Whether it is the star source of its name.
+        star: bool,
+        /// The insertion point on the page, nm; `None` before the first pointer or cursor move.
+        at_nm: Option<(i64, i64)>,
+        /// The printed text of the external reference of an external connection point.
+        external: Option<String>,
+    },
+    /// The black box tool's rectangle (WP-S2.04 §9.6).
+    Box {
+        /// The outline's vertices (0 before the first corner).
+        outline: usize,
+        /// The connection points it lays out.
+        cps: usize,
     },
 }
 

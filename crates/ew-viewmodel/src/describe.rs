@@ -294,6 +294,29 @@ pub const VOCABULARY: &[&str] = &[
     "copies",
     "paste",
     "dropped",
+    // Interruption points and black boxes (WP-S2.04 part 3, §9.6; ID-474 extended): 5 words, a reviewed vocabulary
+    // change (`ip`, `direction`, `source`, `undirected` and `potential` are WP-S6.13 part 1's words above).
+    "name",
+    "outline",
+    "cps",
+    "arrange",
+    "by",
+];
+
+/// The 10 words of WP-S2.04 §9.6, of which part 3 adds the last 5 to [`VOCABULARY`] (WP-S6.13 part 1 added the
+/// first 5): `arrange`, `by` and `potential` name the parameters of `ip.arrange_selected` (FT-314's harness help
+/// lists them); the canvas lines print the others.
+pub const IP_WORDS: &[&str] = &[
+    "ip",
+    "direction",
+    "source",
+    "undirected",
+    "potential",
+    "name",
+    "outline",
+    "cps",
+    "arrange",
+    "by",
 ];
 
 // WP-S2.05 part 3
@@ -1212,6 +1235,30 @@ fn ghost_lines(model: &ShellModel, lines: &mut Vec<String>) {
             lines.push(format!(
                 "canvas ghost exchange symbol \"{symbol}\" unmapped {list}"
             ));
+        }
+        // WP-S2.04 part 3 (§9.6): the IP tool's ghost (an external connection point names its reference) and the black
+        // box tool's rectangle.
+        Some(crate::tools::Ghost::Ip {
+            name,
+            direction,
+            star,
+            at_nm,
+            external,
+        }) => {
+            let mut line = format!(
+                "canvas ghost ip name \"{name}\" direction {direction} star {}",
+                if star { "on" } else { "off" }
+            );
+            if let Some((x, y)) = at_nm {
+                line.push_str(&format!(" at {} {} mm", mm3(x), mm3(y)));
+            }
+            if let Some(e) = external {
+                line.push_str(&format!(" external \"{e}\""));
+            }
+            lines.push(line);
+        }
+        Some(crate::tools::Ghost::Box { outline, cps }) => {
+            lines.push(format!("canvas ghost box outline {outline} cps {cps}"));
         }
     }
     wiring_lines(model, lines);

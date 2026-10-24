@@ -22,9 +22,9 @@ use serde_json::{Map, Value, json};
 use super::{Outcome, ShellModel, failed, string_param};
 use crate::strings;
 use crate::tools::{
-    CanvasEvent, EntityKind, ExchangeTool, Ghost, PendingTerminal, Picker, PickerMode, PickerRow,
-    PlaceTarget, PlaceTool, SelectTool, SelectionChange, Tool, ToolCx, ToolKey, ToolOutput, entity_kind,
-    selection_kinds, transform,
+    BlackBoxTool, BoxTarget, CanvasEvent, EntityKind, ExchangeTool, Ghost, PendingTerminal, Picker,
+    PickerMode, PickerRow, PlaceTarget, PlaceTool, SelectTool, SelectionChange, Tool, ToolCx, ToolKey,
+    ToolOutput, entity_kind, selection_kinds, transform,
 };
 
 /// What a choice of the picker or a `place.pick` arms.
@@ -70,7 +70,7 @@ impl ShellModel {
     }
 
     /// The place catalogue of the focused page, through the cache.
-    fn catalogue(&mut self) -> Option<Arc<PlaceCatalogue>> {
+    pub(super) fn catalogue(&mut self) -> Option<Arc<PlaceCatalogue>> {
         let key = self.canvas_key()?;
         if let Some((k, cat)) = &self.tools.catalogue
             && *k == key
@@ -85,7 +85,7 @@ impl ShellModel {
     }
 
     /// The shape of symbol copy `key` (its ID text), through the per-revision cache; `fetch` reads it.
-    fn cached_shape(
+    pub(super) fn cached_shape(
         &mut self,
         key: String,
         fetch: impl FnOnce(&Session) -> Option<SymbolShape>,
@@ -108,7 +108,7 @@ impl ShellModel {
     }
 
     /// The shape of an embedded catalogue symbol.
-    fn row_shape(&mut self, row: &CatalogueSymbol) -> Option<Arc<SymbolShape>> {
+    pub(super) fn row_shape(&mut self, row: &CatalogueSymbol) -> Option<Arc<SymbolShape>> {
         let copy = row.copy?;
         self.cached_shape(copy.to_string(), |s| s.symbol_shape(copy))
     }
@@ -132,7 +132,7 @@ impl ShellModel {
     // Host commits
 
     /// A host commit (§6.4 item 2): the tool's commit path; a failure shows its message in the banner.
-    fn host_commit(&mut self, name: &str, params: Value) -> Outcome {
+    pub(super) fn host_commit(&mut self, name: &str, params: Value) -> Outcome {
         let cmd = AnyCommand {
             name: name.into(),
             params,
@@ -146,7 +146,7 @@ impl ShellModel {
 
     /// Embeds starter symbol `key` (one `library.embed`, one undo step) when the project has not; then the row of
     /// the refreshed catalogue.
-    fn embedded_row(&mut self, key: &str) -> Result<(Arc<PlaceCatalogue>, usize), Outcome> {
+    pub(super) fn embedded_row(&mut self, key: &str) -> Result<(Arc<PlaceCatalogue>, usize), Outcome> {
         let no_row = Outcome::Refused {
             reason_key: "reason-unknown-symbol",
         };
@@ -198,11 +198,15 @@ impl ShellModel {
             Ok(v) => v.map(str::to_owned).or_else(|| self.tools.pick_letter.clone()),
             Err(e) => return e,
         };
+        let mut box_cps: Option<Vec<(u16, String)>> = None;
         let (row_index, part) = match &pick {
             Pick::Symbol(i) | Pick::Function(_, i) => (*i, None),
             Pick::PartFn(pi, fi) => {
                 let part = &cat.parts[*pi];
                 let f = &part.functions[*fi];
+                if f.black_box {
+                    box_cps = Some(f.cps.clone());
+                }
                 let Some(key) = &f.symbol else {
                     return Outcome::Refused {
                         reason_key: "reason-no-symbol-for-function",
@@ -225,7 +229,15 @@ impl ShellModel {
                 reason_key: "reason-rep-type-not-allowed",
             };
         }
-        if row.black_box {
+        // A black box (a black-box symbol, or a template function that is one) arms the black box tool (WP-S2.04 §9.5);
+        // `tool.black_box` arms nothing else.
+        let is_box = row.black_box || box_cps.is_some();
+        if self.tools.black_box_pick && !is_box {
+            return Outcome::Refused {
+                reason_key: "reason-not-black-box",
+            };
+        }
+        if is_box && matches!(pick, Pick::Function(..)) {
             return Outcome::Refused {
                 reason_key: "reason-black-box-tool",
             };
@@ -236,6 +248,40 @@ impl ShellModel {
             Err(e) => return e,
         };
         let row = cat.symbols[row_index].clone();
+        if is_box {
+            let Some(copy) = row.copy else {
+                return Outcome::Refused {
+                    reason_key: "reason-unknown-symbol",
+                };
+            };
+            let target = match part {
+                Some((part, template, number)) => {
+                    let Some(letter) = letter_param.or(row.letter.clone()) else {
+                        return Outcome::Refused {
+                            reason_key: "reason-letter-needed",
+                        };
+                    };
+                    BoxTarget::Part {
+                        part,
+                        template,
+                        letter,
+                        number,
+                        cps: box_cps.unwrap_or_default(),
+                    }
+                }
+                None => {
+                    let Some(letter) = letter_param.or(row.letter.clone()) else {
+                        return Outcome::Refused {
+                            reason_key: "reason-letter-needed",
+                        };
+                    };
+                    BoxTarget::NewDevice { letter }
+                }
+            };
+            self.tools.picker = None;
+            self.activate_tool(Box::new(BlackBoxTool::new(copy.to_string(), target)));
+            return Outcome::Done;
+        }
         let Some(shape) = self.row_shape(&row) else {
             return Outcome::Refused {
                 reason_key: "reason-unknown-symbol",
@@ -761,7 +807,7 @@ impl ShellModel {
     }
 
     /// A command of the host on the active selection (Delete): the tool's commit path with the after-commit duties.
-    fn commit_from_host(&mut self, cmd: &dyn ew_api::DynCommand) -> Outcome {
+    pub(super) fn commit_from_host(&mut self, cmd: &dyn ew_api::DynCommand) -> Outcome {
         self.tools.before_commit = self.canvas().map(|c| Arc::clone(&c.page().tables));
         let out = self.run_commit(cmd);
         self.tools.overlay = crate::tools::Overlay::default();

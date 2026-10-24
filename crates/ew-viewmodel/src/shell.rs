@@ -39,6 +39,7 @@ mod clipboard;
 mod editing;
 // WP-S2.05 part 2
 mod find;
+mod interruption;
 mod navigation;
 mod onboarding;
 mod projects;
@@ -563,6 +564,17 @@ fn clears_banner(id: &str) -> bool {
             | "junction.wiring"
             | "project.crossings"
             // WP-S2.04 part 2. End.
+            // WP-S2.04 part 3 (interruption points and black boxes, §9.6) leaves it standing too.
+            | "tool.ip"
+            | "tool.ip_direction"
+            | "tool.star_source"
+            | "ip.name"
+            | "ip.external"
+            | "ip.continue_on"
+            | "ip.arrange_selected"
+            | "tool.black_box"
+            | "box.grip"
+            | "box.add_cp"
             // The property grid's actions (WP-S2.05 §6.10): a failed edit shows under its field, not in the banner.
             | "props.show"
             | "props.focus"
@@ -1119,6 +1131,8 @@ impl ShellModel {
         self.after_commit();
         // WP-S2.04 part 2: the junction editor follows the revision and the page.
         self.sync_junction_editor();
+        // WP-S2.04 part 3: the grips of a selected black box.
+        self.sync_box_grips();
         self.sync_properties();
         self.sync_find();
         outcome
@@ -1269,6 +1283,18 @@ impl ShellModel {
             "junction.wiring" => self.act_junction_wiring(p),
             "project.crossings" => self.act_crossings(p),
             // WP-S2.04 part 2. End.
+            // WP-S2.04 part 3 (interruption points and black boxes, §9.6). Begin.
+            "tool.ip" => self.act_tool_ip(),
+            "tool.ip_direction" => self.act_ip_key(crate::tools::ToolKey::ToggleDirection),
+            "tool.star_source" => self.act_ip_key(crate::tools::ToolKey::ToggleStar),
+            "ip.name" => self.act_ip_name(p),
+            "ip.external" => self.act_ip_external(p),
+            "ip.continue_on" => self.act_ip_continue_on(p),
+            "ip.arrange_selected" => self.act_ip_arrange(p),
+            "tool.black_box" => self.act_tool_black_box(p),
+            "box.grip" => self.act_box_grip(p),
+            "box.add_cp" => self.act_box_add_cp(),
+            // WP-S2.04 part 3. End.
             "props.show" => self.act_props_show(p),
             "props.focus" => self.act_props_focus(),
             "props.project" => self.act_props_project(),

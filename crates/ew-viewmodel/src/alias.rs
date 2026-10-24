@@ -258,6 +258,10 @@ pub const ALIAS_PARAMS: &[(&str, &str, ParamForm)] = &[
     ("place.pick", "function", ParamForm::Whole),
     ("place.pick", "strip", ParamForm::Whole),
     ("rep.exchange", "symbol", ParamForm::Whole),
+    // WP-S2.04 part 3: the IP tool's external reference and the black box tool's `place.pick` parameters.
+    ("ip.external", "external", ParamForm::Whole),
+    ("tool.black_box", "symbol", ParamForm::Whole),
+    ("tool.black_box", "part", ParamForm::Whole),
     ("pages.toggle", "key", ParamForm::Embedded),
     ("pages.row", "key", ParamForm::Embedded),
     ("pages.open", "key", ParamForm::Embedded),

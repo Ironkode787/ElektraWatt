@@ -7,9 +7,10 @@
 //! (`<part number> <manufacturer>`, `<n> of <count> <fndef> [main]`). The filter matches case-folded substrings of
 //! the key, the part number and the FnDef key; Up, Down, Home and End move the row; Enter chooses; Escape closes.
 //!
-//! A row is disabled with a reason when the page's type does not allow the symbol's representation type, when the
-//! symbol draws a black box (placed by part 3's black box tool) or when a template function has no symbol on the
-//! page. In exchange mode (§7.5) only the allowed symbol rows are listed.
+//! A row is disabled with a reason when the page's type does not allow the symbol's representation type or when a
+//! template function has no symbol on the page. In exchange mode (§7.5) only the allowed symbol rows are listed. A
+//! black-box row (a black-box symbol, or a template function that is a black box) arms the black box tool instead of
+//! Place (WP-S2.04 §9.5); Insert ▸ Black box opens the picker on those rows alone ([`PickerMode::BlackBox`]).
 //!
 //! **The strip chooser** (FT-421). Choosing a terminal symbol without a strip turns the picker into its strip mode:
 //! one row per strip of the project (the catalogue's `strips`, by tag), each with the next free designation the
@@ -31,6 +32,8 @@ pub enum PickerMode {
     Exchange,
     /// The strip chooser of a terminal placement (FT-421): the project's strips.
     Strip,
+    /// Insert ▸ Black box (WP-S2.04 §9.4): the black-box symbols and the template functions that are black boxes.
+    BlackBox,
 }
 
 impl PickerMode {
@@ -40,6 +43,7 @@ impl PickerMode {
             PickerMode::Place | PickerMode::Parts => "place",
             PickerMode::Exchange => "exchange",
             PickerMode::Strip => "strip",
+            PickerMode::BlackBox => "box",
         }
     }
 }
@@ -127,6 +131,9 @@ impl Picker {
                 if self.mode == PickerMode::Exchange && !s.allowed {
                     continue;
                 }
+                if self.mode == PickerMode::BlackBox && !s.black_box {
+                    continue;
+                }
                 if hit(&s.key) || hit(&s.fndef_key) {
                     rows.push(PickerRow::Symbol(i));
                 }
@@ -135,6 +142,9 @@ impl Picker {
         if self.mode != PickerMode::Exchange {
             for (p, part) in self.catalogue.parts.iter().enumerate() {
                 for (k, func) in part.functions.iter().enumerate() {
+                    if self.mode == PickerMode::BlackBox && !func.black_box {
+                        continue;
+                    }
                     if hit(&part.part_number) || hit(&func.fndef_key) {
                         rows.push(PickerRow::PartFn(p, k));
                     }
@@ -176,19 +186,16 @@ impl Picker {
         match row {
             PickerRow::Symbol(i) => {
                 let s = self.catalogue.symbols.get(i)?;
+                // From WP-S2.04 part 3 a black-box row arms the black box tool (§9.5).
                 if !s.allowed {
                     Some("reason-rep-type-not-allowed")
-                } else if s.black_box && self.mode != PickerMode::Exchange {
-                    Some("reason-black-box-tool")
                 } else {
                     None
                 }
             }
             PickerRow::PartFn(p, k) => {
                 let f = self.catalogue.parts.get(p)?.functions.get(k)?;
-                if f.black_box {
-                    Some("reason-black-box-tool")
-                } else if f.symbol.is_none() {
+                if f.symbol.is_none() {
                     Some("reason-no-symbol-for-function")
                 } else {
                     None

@@ -34,6 +34,12 @@
 //! | any | `Activate` | idle | as a press and release at the grid cursor |
 //! | any | `Escape` | idle | `Cancel`, or `None` from idle |
 //!
+//! **WP-S2.04 part 3** (§9.4): with exactly one black box selected, a press within 4 points of one of its grips (a
+//! vertex first, then a box CP, then an edge's midpoint) drags it (`dragging`): a move shows the reshaped outline, a
+//! dwell previews and a release after a move commits `box.reshape` (a grip without `cps`, so the CPs re-project; a
+//! CP with `cps`, the CP at the grid point of the outline nearest to the pointer); a release without a move is a
+//! click on the box; Escape cancels.
+//!
 //! Connections and junctions in a selection are never moved. Picking uses WP-S2.02's entity rectangles (an entity
 //! may have several: it lies inside a band when all do, and touches it when one does) plus the exact segment
 //! distance of connections (§6.6). A release on empty canvas within 3 points clears the selection (Shift keeps it).
@@ -41,6 +47,7 @@
 use ew_api::output::ew_dl::ew_units::Rect;
 use ew_api::output::ew_dl::{Destination, EntityRef};
 
+use super::black_box;
 use super::move_keys::{move_command, move_overlay, moved_set, readout, steps_between};
 use super::route_edit::{moved_route, route_command, segment_at, segment_overlay, segment_steps};
 use super::transform::{selected_reps, transform_command};
@@ -93,6 +100,18 @@ enum State {
         seg: usize,
         from: (i64, i64),
         steps: i64,
+    },
+    /// A drag of a grip of the selected black box (WP-S2.04 §9.4): `to` the grid point it is at.
+    Grip {
+        rep: EntityRef,
+        grip: usize,
+        to: Option<(i64, i64)>,
+    },
+    /// A drag of a CP of the selected black box along its outline (WP-S2.04 §9.4).
+    BoxCp {
+        rep: EntityRef,
+        idx: u16,
+        to: Option<((i64, i64), ew_api::geometry::Dir)>,
     },
     /// The keyboard move (M): the grid cursor's displacement since entry.
     Moving {
@@ -223,7 +242,9 @@ impl SelectTool {
     pub fn pending_move_stale(&self, cx: &ToolCx<'_>) -> bool {
         let moved = match &self.state {
             State::Dragging { moved, .. } | State::Moving { moved, .. } => moved,
-            State::Segment { .. } => return self.origin.1 != cx.page.rev,
+            State::Segment { .. } | State::Grip { .. } | State::BoxCp { .. } => {
+                return self.origin.1 != cx.page.rev;
+            }
             _ => return false,
         };
         self.origin != (cx.selection.generation, cx.page.rev)
@@ -255,9 +276,118 @@ impl SelectTool {
         Some(out)
     }
 
+    /// A grip or a CP of the selected black box within 4 points of `at` (vertex grips first, then CPs, then the edges'
+    /// midpoints; the nearest of each kind, ties by index).
+    fn box_handle(cx: &ToolCx<'_>, at: (i64, i64)) -> Option<State> {
+        let rep = black_box::selected_black_box(cx)?;
+        let b = rep.black_box.as_ref()?;
+        let n = b.outline.len();
+        let near = |p: (i64, i64)| {
+            let s = cx.snapper.page_to_sheet(p);
+            cx.within(s, at, crate::canvas::HOVER_SLOP_PT)
+                .then(|| super::dist2(s, at))
+        };
+        let grips = black_box::grip_points(&b.outline);
+        let best = |range: std::ops::Range<usize>| {
+            range
+                .filter_map(|k| near(grips[k]).map(|d| (d, k)))
+                .min()
+                .map(|(_, k)| k)
+        };
+        let e = EntityRef(rep.id);
+        if let Some(grip) = best(0..n) {
+            return Some(State::Grip {
+                rep: e,
+                grip,
+                to: None,
+            });
+        }
+        if let Some((_, idx)) = b
+            .cps
+            .iter()
+            .filter_map(|(idx, p, _)| near(*p).map(|d| (d, *idx)))
+            .min()
+        {
+            return Some(State::BoxCp {
+                rep: e,
+                idx,
+                to: None,
+            });
+        }
+        best(n..2 * n).map(|grip| State::Grip {
+            rep: e,
+            grip,
+            to: None,
+        })
+    }
+
+    /// The command of a grip or CP drag at its current point; `None` while it changes nothing or cannot be done.
+    fn box_command(&self, cx: &ToolCx<'_>) -> Option<Box<ew_api::AnyCommand>> {
+        match &self.state {
+            State::Grip { rep, grip, to } => {
+                let r = black_box::black_box_rep(cx, *rep)?;
+                let outline = &r.black_box.as_ref()?.outline;
+                let new = black_box::reshape_by_grip(outline, *grip, (*to)?).ok()?;
+                (new != *outline).then(|| black_box::reshape_command(r, &new, None))
+            }
+            State::BoxCp { rep, idx, to } => {
+                let r = black_box::black_box_rep(cx, *rep)?;
+                let b = r.black_box.as_ref()?;
+                let (p, dir) = (*to)?;
+                let mut cps = b.cps.clone();
+                let c = cps.iter_mut().find(|c| c.0 == *idx)?;
+                if c.1 == p {
+                    return None;
+                }
+                *c = (*idx, p, dir);
+                Some(black_box::reshape_command(r, &b.outline, Some(&cps)))
+            }
+            _ => None,
+        }
+    }
+
+    /// A grip or CP drag moved to `at`: the snapped point and the overlay of the reshaped box.
+    fn box_drag(&mut self, at: (i64, i64), cx: &ToolCx<'_>) -> ToolOutput {
+        let p = cx.snapper.snap_grid(at).page_nm;
+        let grid = PageGridMap::new(cx.page.tables.grid);
+        let overlay = match &mut self.state {
+            State::Grip { rep, grip, to } => {
+                *to = Some(p);
+                let r = black_box::black_box_rep(cx, *rep);
+                r.and_then(|r| {
+                    let b = r.black_box.as_ref()?;
+                    let new = black_box::reshape_by_grip(&b.outline, *grip, p).ok()?;
+                    Some(black_box::reshape_overlay(cx, &new, &[]))
+                })
+            }
+            State::BoxCp { rep, idx, to } => {
+                let r = black_box::black_box_rep(cx, *rep);
+                r.and_then(|r| {
+                    let b = r.black_box.as_ref()?;
+                    let hit = black_box::nearest_on_outline(grid, &b.outline, p)?;
+                    *to = Some(hit);
+                    let cps: Vec<(i64, i64)> = b
+                        .cps
+                        .iter()
+                        .map(|c| if c.0 == *idx { hit.0 } else { c.1 })
+                        .collect();
+                    Some(black_box::reshape_overlay(cx, &b.outline, &cps))
+                })
+            }
+            _ => None,
+        };
+        ToolOutput::Transient(overlay.unwrap_or_default())
+    }
+
     fn press(&mut self, at: (i64, i64), mods: Mods, cx: &ToolCx<'_>) -> ToolOutput {
         if let Some(link) = cx.link_at(at) {
             self.state = State::Link { dest: link.dest, at };
+            return ToolOutput::None;
+        }
+        // WP-S2.04 part 3: a grip or a CP of the selected black box.
+        if let Some(state) = SelectTool::box_handle(cx, at) {
+            self.origin = (cx.selection.generation, cx.page.rev);
+            self.state = state;
             return ToolOutput::None;
         }
         if let Some((connection, line, seg)) = segment_at(cx, at) {
@@ -291,9 +421,22 @@ impl SelectTool {
     }
 
     fn release(&mut self, at: (i64, i64), mods: Mods, cx: &ToolCx<'_>) -> ToolOutput {
+        if matches!(self.state, State::Grip { .. } | State::BoxCp { .. }) {
+            // A release without a move between is a click on the black box.
+            let cmd = self.box_command(cx);
+            let rep = match &self.state {
+                State::Grip { rep, .. } | State::BoxCp { rep, .. } => *rep,
+                _ => return ToolOutput::None,
+            };
+            self.state = State::Idle;
+            return match cmd {
+                Some(c) => ToolOutput::Commit(c),
+                None => SelectTool::click_entity(rep, mods),
+            };
+        }
         let state = std::mem::replace(&mut self.state, State::Idle);
         match state {
-            State::Idle => ToolOutput::None,
+            State::Idle | State::Grip { .. } | State::BoxCp { .. } => ToolOutput::None,
             State::Link { dest, at: from } => {
                 if cx.within(from, at, CLICK_SLOP_PT) {
                     ToolOutput::Follow(dest)
@@ -366,6 +509,7 @@ impl SelectTool {
     fn moved(&mut self, at: (i64, i64), cx: &ToolCx<'_>) -> ToolOutput {
         match self.state.clone() {
             State::Idle | State::Moving { .. } => ToolOutput::None,
+            State::Grip { .. } | State::BoxCp { .. } => self.box_drag(at, cx),
             State::Segment {
                 connection,
                 mods,
@@ -477,7 +621,9 @@ impl Tool for SelectTool {
             State::Idle | State::Link { .. } => "idle",
             State::Pressed { .. } => "pressed",
             State::Band { .. } => "rubber-band",
-            State::Dragging { .. } | State::Segment { .. } => "dragging",
+            State::Dragging { .. } | State::Segment { .. } | State::Grip { .. } | State::BoxCp { .. } => {
+                "dragging"
+            }
             State::Moving { .. } => "moving",
         }
     }
@@ -554,6 +700,10 @@ impl Tool for SelectTool {
                         None => ToolOutput::None,
                     }
                 }
+                State::Grip { .. } | State::BoxCp { .. } => match self.box_command(cx) {
+                    Some(cmd) => ToolOutput::Preview(cmd),
+                    None => ToolOutput::None,
+                },
                 _ => ToolOutput::None,
             },
             CanvasEvent::Escape => {
@@ -571,7 +721,11 @@ impl Tool for SelectTool {
 
     fn status_hint(&self) -> &'static str {
         match self.state {
-            State::Dragging { .. } | State::Moving { .. } | State::Segment { .. } => "hint-select-move",
+            State::Dragging { .. }
+            | State::Moving { .. }
+            | State::Segment { .. }
+            | State::Grip { .. }
+            | State::BoxCp { .. } => "hint-select-move",
             _ => "hint-select",
         }
     }

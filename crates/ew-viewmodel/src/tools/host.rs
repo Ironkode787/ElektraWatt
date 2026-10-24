@@ -13,7 +13,7 @@ use ew_api::output::{LinkTarget, PageTables, PlaceCatalogue, SymbolShape};
 use ew_api::{DerivedDiff, Preview};
 use serde_json::Value;
 
-use super::{JunctionEditor, Overlay, Picker, SelectTool, Selection, Tool};
+use super::{IpMemory, JunctionEditor, Overlay, Picker, SelectTool, Selection, Tool};
 use crate::canvas::CanvasModel;
 
 /// The pane of the link hover preview, in logical points (WP-S2.03 §7.8).
@@ -128,6 +128,12 @@ pub(crate) struct ToolHost {
     // WP-S2.05 part 3
     /// The paste tool committed: at the end of the dispatch Select takes over with the pasted representations selected.
     pub pasted: bool,
+    /// The last committed interruption point's name and direction (WP-S2.04 part 3, §9.1), kept across tools.
+    pub ip_memory: IpMemory,
+    /// `tool.black_box` is choosing: a row that is no black box is refused.
+    pub black_box_pick: bool,
+    /// The grips overlay of a selected black box the host set last (WP-S2.04 §9.4): cleared while the overlay is it.
+    pub grips: Option<Overlay>,
 }
 
 impl ToolHost {
@@ -152,6 +158,9 @@ impl ToolHost {
             junction_editor: None,
             notice: None,
             pasted: false,
+            ip_memory: IpMemory::default(),
+            black_box_pick: false,
+            grips: None,
         }
     }
 }

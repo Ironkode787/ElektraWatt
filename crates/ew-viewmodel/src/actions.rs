@@ -373,6 +373,36 @@ fn one_junction(m: &ShellModel) -> Result<(), &'static str> {
     }
 }
 
+/// An editable page with exactly one interruption point selected (Edit ▸ Continue on page…; WP-S2.04 §9.3).
+fn one_ip(m: &ShellModel) -> Result<(), &'static str> {
+    editable_page(m)?;
+    if m.selected_ip_count() == 1 {
+        Ok(())
+    } else {
+        Err("reason-select-one-ip")
+    }
+}
+
+/// An editable page with at least two interruption points selected (Edit ▸ Arrange interruption points; §9.3).
+fn two_ips(m: &ShellModel) -> Result<(), &'static str> {
+    editable_page(m)?;
+    if m.selected_ip_count() >= 2 {
+        Ok(())
+    } else {
+        Err("reason-select-ips")
+    }
+}
+
+/// An editable page with exactly one black box selected (Edit ▸ Add connection point, the grips; §9.4).
+fn one_box(m: &ShellModel) -> Result<(), &'static str> {
+    editable_page(m)?;
+    if m.one_black_box_selected() {
+        Ok(())
+    } else {
+        Err("reason-one-black-box")
+    }
+}
+
 /// The junction sequence editor is open on a project that can be changed (WP-S2.04 part 2, §8.5).
 fn junction_editor_open(m: &ShellModel) -> Result<(), &'static str> {
     writable(m)?;
@@ -1588,6 +1618,98 @@ pub static ACTIONS: &[ActionMeta] = &[
         ),
     ),
     // WP-S2.04 part 2. End.
+    // WP-S2.04 part 3 (interruption points and black boxes, §9.6). Begin.
+    in_canvas(act(
+        "tool.ip",
+        Command,
+        "action-tool-ip",
+        Menu::Insert,
+        &["P"],
+        editable_page,
+        slot_sep(Menu::Insert),
+    )),
+    in_canvas(act(
+        "tool.black_box",
+        Command,
+        "action-tool-black-box",
+        Menu::Insert,
+        &["B"],
+        editable_page,
+        slot(Menu::Insert),
+    )),
+    in_canvas(act(
+        "tool.ip_direction",
+        View,
+        "action-tool-ip-direction",
+        Menu::Edit,
+        &["D"],
+        editable_page,
+        slot_sep(Menu::Edit),
+    )),
+    in_canvas(act(
+        "tool.star_source",
+        View,
+        "action-tool-star-source",
+        Menu::Edit,
+        &[],
+        editable_page,
+        slot(Menu::Edit),
+    )),
+    hidden(in_canvas(act(
+        "ip.name",
+        View,
+        "action-ip-name",
+        Menu::Edit,
+        &[],
+        editable_page,
+        None,
+    ))),
+    hidden(in_canvas(act(
+        "ip.external",
+        View,
+        "action-ip-external",
+        Menu::Edit,
+        &[],
+        editable_page,
+        None,
+    ))),
+    in_canvas(act(
+        "ip.continue_on",
+        Command,
+        "action-ip-continue-on",
+        Menu::Edit,
+        &[],
+        one_ip,
+        slot(Menu::Edit),
+    )),
+    in_canvas(act(
+        "ip.arrange_selected",
+        Command,
+        "action-ip-arrange-selected",
+        Menu::Edit,
+        &[],
+        two_ips,
+        slot(Menu::Edit),
+    )),
+    hidden(in_canvas(act(
+        "box.grip",
+        Command,
+        "action-box-grip",
+        Menu::Edit,
+        &[],
+        one_box,
+        None,
+    ))),
+    in_canvas(act(
+        "box.add_cp",
+        Command,
+        "action-box-add-cp",
+        Menu::Edit,
+        &[],
+        one_box,
+        slot(Menu::Edit),
+    )),
+    // WP-S2.04 part 3. End.
     act(
         "tools.company_standard",
         Command,
@@ -2688,6 +2810,9 @@ fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
             "tool.select" | "tool.measure" => meta.id.strip_prefix("tool.") == Some(model.tool().name()),
             // WP-S2.04 part 2.
             "tool.wire" => model.tool().name() == "wire",
+            // WP-S2.04 part 3.
+            "tool.ip" => model.tool().name() == "ip",
+            "tool.black_box" => model.tool().name() == "black_box",
             "project.crossings" => model.crossings_hops(),
             _ => false,
         },

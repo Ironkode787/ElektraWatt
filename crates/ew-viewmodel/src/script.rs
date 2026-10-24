@@ -644,6 +644,28 @@ fn ghost_json(shell: &ShellModel) -> String {
             member("symbol", &Value::from(symbol)),
             member("unmapped", &Value::from(unmapped)),
         ]),
+        // WP-S2.04 part 3 (§9.6).
+        Some(Ghost::Ip {
+            name,
+            direction,
+            star,
+            at_nm,
+            ..
+        }) => object(vec![
+            member("kind", &Value::from("ip")),
+            member("name", &Value::from(name)),
+            member("direction", &Value::from(direction)),
+            member("star", &Value::from(star)),
+            member(
+                "at_nm",
+                &at_nm.map_or(Value::Null, |(x, y)| Value::from(vec![x, y])),
+            ),
+        ]),
+        Some(Ghost::Box { outline, cps }) => object(vec![
+            member("kind", &Value::from("box")),
+            member("outline", &Value::from(outline)),
+            member("cps", &Value::from(cps)),
+        ]),
     }
 }
 

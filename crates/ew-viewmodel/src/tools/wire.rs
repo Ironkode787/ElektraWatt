@@ -654,6 +654,99 @@ impl WireTool {
         }
     }
 
+    /// `Key(EndInIp)` (P, WP-S2.04 §9.2): ends the routing wire in a new interruption point drawn with `shape` (the
+    /// IP symbol, one CP) at the end target's grid point, oriented among A–D so that its CP faces the arriving
+    /// segment (the CP leaves opposite to the last segment's direction), its insertion point the grid point that puts
+    /// the CP there (the route then ends exactly at the CP, re-routed when the grid rounds the CP off the point);
+    /// `name_of` gives the name and the direction from the start and the insertion point. Answers the
+    /// `connection.draw_to_ip` commit with the name and direction, the tool armed again; a refusal key while not
+    /// routing to a grid point (`reason-ip-end-grid`), before the wire has a segment (`reason-ip-end-segment`) or for a
+    /// symbol without exactly one CP (`reason-ip-symbol`).
+    pub fn end_in_ip(
+        &mut self,
+        cx: &ToolCx<'_>,
+        shape: &ew_api::output::SymbolShape,
+        name_of: impl FnOnce(&WireTarget, (i64, i64)) -> (String, &'static str),
+    ) -> Result<(ToolOutput, String, &'static str), &'static str> {
+        let State::Routing {
+            start,
+            fixed,
+            end,
+            route,
+            ..
+        } = self.state.clone()
+        else {
+            return Err("reason-ip-end-grid");
+        };
+        let Some(WireTarget::Grid { at: end }) = end else {
+            return Err("reason-ip-end-grid");
+        };
+        let [cp] = shape.cps.as_slice() else {
+            return Err("reason-ip-symbol");
+        };
+        // The arriving direction: the last segment of the routed ghost.
+        let line = super::autoconnect::dedup(&route);
+        let [.., a, b] = line.as_slice() else {
+            return Err("reason-ip-end-segment");
+        };
+        let arrive =
+            Dir::of_vector(((b.0 - a.0).signum(), (b.1 - a.1).signum())).ok_or("reason-ip-end-segment")?;
+        let away = Dir::of_vector((-arrive.vector().0, -arrive.vector().1)).ok_or("reason-ip-end-segment")?;
+        let orient = (0..4u8)
+            .find(|o| ew_api::geometry::orient_dir(*o, cp.dir) == away)
+            .ok_or("reason-ip-symbol")?;
+        let off = ew_api::geometry::orient_point(orient, cp.at);
+        let grid = PageGridMap::new(cx.page.tables.grid);
+        let pos = (
+            grid.coord(grid.index(end.0 - off.0)),
+            grid.coord(grid.index(end.1 - off.1)),
+        );
+        let cp_at = (pos.0 + off.0, pos.1 + off.1);
+        let target = WireTarget::Cp {
+            function: EntityRef(cx.page.tables.page),
+            idx: cp.fn_cp,
+            rep: EntityRef(cx.page.tables.page),
+            at: cp_at,
+            dir: Some(away),
+            label: String::new(),
+        };
+        let route = self.full_route(cx, &start, &fixed, &target);
+        let (name, direction) = name_of(&start, pos);
+        let Some(a) = start.endpoint() else {
+            return Err("reason-ip-end-grid");
+        };
+        let mut params = json!({
+            "a": a,
+            "page": cx.page.tables.page.to_string(),
+            "route": route.iter().map(|p| vec![p.0, p.1]).collect::<Vec<_>>(),
+            "ip": {
+                "symbol": shape.copy.to_string(),
+                "pos": [pos.0, pos.1],
+                "orient": super::place::ORIENT_NAMES[usize::from(orient)],
+                "name": name,
+                "direction": direction,
+            },
+        });
+        if let Some(kind) = self.kind {
+            params["kind"] = Value::from(kind);
+        }
+        self.state = State::Armed { target: None };
+        self.cache = None;
+        let cmd = Box::new(AnyCommand {
+            name: "connection.draw_to_ip".into(),
+            params,
+        });
+        Ok((ToolOutput::Commit(cmd), name, direction))
+    }
+
+    /// The start of the wire being routed.
+    pub fn routing_start(&self) -> Option<&WireTarget> {
+        match &self.state {
+            State::Routing { start, .. } => Some(start),
+            State::Armed { .. } => None,
+        }
+    }
+
     /// The committed route the ghost shows (tests).
     pub fn ghost_route(&self) -> Option<&[(i64, i64)]> {
         match &self.state {
