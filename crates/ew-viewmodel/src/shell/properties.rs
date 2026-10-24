@@ -21,7 +21,7 @@ use std::sync::Arc;
 
 use ew_api::output::ew_dl::{Destination, EntityRef};
 use ew_api::output::{InputError, ParsedInput};
-use ew_api::{AnyCommand, CmdError, Exposure, Origin, Submit};
+use ew_api::{AnyCommand, CmdError, Exposure, Submit};
 use serde_json::{Map, Value, json};
 
 use super::navigation::{Focus, bump};
@@ -927,12 +927,7 @@ impl ShellModel {
 
     /// The submission of the grid's commands: the GUI in the window, the script's command log headless.
     fn props_submit(&self) -> Submit {
-        match self.mode {
-            Mode::Gui => Submit::from(Origin::Gui),
-            Mode::Headless => Submit::from(Origin::CmdLog {
-                file: self.origin_file.clone(),
-            }),
-        }
+        Submit::from(super::mode_origin(self.mode, &self.origin_file))
     }
 
     /// Commits a kept, fresh preview of the command `name` with `params`: the window `Session::commit`; headless a
@@ -1520,6 +1515,7 @@ impl ShellModel {
 mod tests {
     use std::path::Path;
 
+    use ew_api::Origin;
     use serde_json::json;
 
     use super::*;

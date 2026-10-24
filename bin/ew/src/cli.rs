@@ -1514,8 +1514,11 @@ fn run_check(a: &CheckArgs) -> i32 {
                 Some(sch) => Some(sch),
                 None => {
                     if let Some(name) = &named {
+                        // The name comes from the project file: escaped so control characters cannot reach the
+                        // terminal.
                         eprintln!(
-                            "notice: project scheme '{name}' is not shipped by this build; using pre-delivery"
+                            "notice: project scheme '{}' is not shipped by this build; using pre-delivery",
+                            name.escape_debug()
                         );
                     }
                     scheme("pre-delivery")

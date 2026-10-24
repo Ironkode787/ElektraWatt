@@ -376,12 +376,7 @@ impl ShellModel {
 
     /// The submission of the shell's tool commands: the GUI in the window, the script's command log headless.
     pub(super) fn tool_submit(&self) -> Submit {
-        match self.mode {
-            Mode::Gui => Submit::from(Origin::Gui),
-            Mode::Headless => Submit::from(Origin::CmdLog {
-                file: self.origin_file.clone(),
-            }),
-        }
+        Submit::from(super::mode_origin(self.mode, &self.origin_file))
     }
 
     /// `Preview(cmd)` (§7.3): `Session::preview_with` once, the semantic ghost from `Session::derived_diff`; a

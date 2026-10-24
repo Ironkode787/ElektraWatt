@@ -18,6 +18,8 @@ pub enum Cost {
 }
 
 /// Which front-ends may submit a command (doc 17 §2.3, FR-EXT-030).
+///
+/// The derived order is declaration order, not strictness; compare strictness with [`Exposure::strictest`].
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Exposure {

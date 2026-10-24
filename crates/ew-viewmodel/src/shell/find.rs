@@ -15,11 +15,11 @@
 use std::sync::Arc;
 
 use ew_api::output::ew_dl::EntityRef;
-use ew_api::{AnyCommand, Exposure, Origin, Submit};
+use ew_api::{AnyCommand, Exposure, Submit};
 use serde_json::{Map, Value};
 
 use super::navigation::{Focus, bump};
-use super::{Mode, Outcome, ShellModel, failed, string_param};
+use super::{Outcome, ShellModel, failed, string_param};
 use crate::find::{FindQuery, FindResults, FindState, Ran, field_of_word, updated_note};
 use crate::layout::PaneKind;
 use crate::properties::{Card, CardOrigin, EditRoute, PendingEdit};
@@ -357,12 +357,7 @@ impl ShellModel {
             name: name.to_owned(),
             params: params.clone(),
         };
-        let submit = match self.mode {
-            Mode::Gui => Submit::from(Origin::Gui),
-            Mode::Headless => Submit::from(Origin::CmdLog {
-                file: self.origin_file.clone(),
-            }),
-        };
+        let submit = Submit::from(super::mode_origin(self.mode, &self.origin_file));
         let calls = &self.calls;
         let Some(project) = &mut self.project else {
             return Outcome::Done;

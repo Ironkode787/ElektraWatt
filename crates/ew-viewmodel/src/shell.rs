@@ -381,9 +381,9 @@ fn dir_name(dir: &Path) -> String {
         .map_or_else(|| "project".to_owned(), |n| n.to_string_lossy().into_owned())
 }
 
-/// The origin of an undo or redo (FT-404): the GUI in the window, the script's command log headless, like the origin
-/// of the shell's own commands; `Session::undo` and `Session::redo` refuse a `HumanOnly` step from the latter.
-fn history_origin(mode: Mode, origin_file: &str) -> Origin {
+/// The origin of the shell's model commands, undo and redo: the GUI in the window, the script's command log headless
+/// (`Origin::CmdLog`); `Session::undo` and `Session::redo` refuse a `HumanOnly` step from the latter (FT-404).
+pub(super) fn mode_origin(mode: Mode, origin_file: &str) -> Origin {
     match mode {
         Mode::Gui => Origin::Gui,
         Mode::Headless => Origin::CmdLog {
@@ -1722,7 +1722,7 @@ impl ShellModel {
                 reason_key: "reason-no-project",
             };
         };
-        let origin = history_origin(self.mode, &self.origin_file);
+        let origin = mode_origin(self.mode, &self.origin_file);
         let before = p.session.history().cursor();
         match p.session.undo(&origin) {
             Ok(_) => {
@@ -1751,7 +1751,7 @@ impl ShellModel {
                 reason_key: "reason-no-project",
             };
         };
-        let origin = history_origin(self.mode, &self.origin_file);
+        let origin = mode_origin(self.mode, &self.origin_file);
         let before = p.session.history().cursor();
         match p.session.redo(&origin) {
             Ok(_) => {

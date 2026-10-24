@@ -287,6 +287,36 @@ fn a_coalesced_step_takes_the_strictest_exposure_of_its_parts() {
     e.undo(&script).expect("the drag is the script's to undo");
 }
 
+/// FT-404 ruling 3: the exposure check applies only to the step being undone or redone; a transparent marker is
+/// passed over.
+#[test]
+fn a_transparent_human_only_marker_does_not_block_a_scripted_undo() {
+    let mut e = engine(golden_model());
+    drag(&mut e, 1, "a");
+    let listed = format!("sha256:{}", "ab".repeat(32));
+    let p = e
+        .preview(&AnyCommand {
+            name: "project.assets.purge".into(),
+            params: serde_json::json!({ "assets": [listed] }),
+        })
+        .unwrap();
+    e.commit(p).unwrap();
+    let entries = e.history().entries();
+    assert_eq!(entries.len(), 2);
+    let marker = &entries[1];
+    assert!(!marker.is_step());
+    assert!(!marker.is_barrier());
+    assert_eq!(marker.exposure(), Exposure::HumanOnly);
+    assert_eq!(marker.op_count(), 0);
+    assert_eq!(e.history().cursor(), 2);
+    let script = Origin::Script { name: "s".into() };
+    let restored = e.undo(&script).expect("the marker is passed over");
+    assert_eq!(restored.label, "rep.move");
+    assert_eq!(e.history().cursor(), 0);
+    e.redo(&script).expect("redo");
+    assert_eq!(e.history().cursor(), 2);
+}
+
 // Marker lines, directly on `History`
 
 /// A real op list: the ops of a `rep.move` preview.

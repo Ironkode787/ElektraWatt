@@ -306,7 +306,8 @@ fn check_uses_the_schemes_the_project_names() {
 
 /// FT-405 (decision log ID-602): a project naming a scheme this build does not ship (a newer writer, a hand edit) is
 /// checked with `pre-delivery` and a notice on stderr naming the scheme; the exit status is the check's own, the same
-/// as for the project without the slot. A shipped name in the other slot, or `--scheme`, prints no notice.
+/// as for the project without the slot. A shipped name in the other slot, or `--scheme`, prints no notice; only the
+/// slot for the run's mode is read (ruling 5).
 #[test]
 fn check_notices_a_project_scheme_this_build_does_not_ship() {
     let t = Tmp::new();
@@ -362,6 +363,10 @@ fn check_notices_a_project_scheme_this_build_does_not_ship() {
         stderr.contains("project scheme 'live-2031' is not shipped by this build; using pre-delivery"),
         "{stderr}"
     );
+    // Only the slot for the run's mode is read (ruling 5): the release run ignores the unshipped online slot.
+    let (_, scheme, stderr) = run(&dir, &[]);
+    assert_eq!(scheme, "pre-delivery");
+    assert!(!stderr.contains("not shipped"), "{stderr}");
 }
 
 #[test]
