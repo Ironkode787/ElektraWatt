@@ -51,6 +51,8 @@ pub enum Table {
     Symbols,
     Fndefs,
     Revisions,
+    PageItems,
+    StructureBoxes,
 }
 
 impl Table {
@@ -74,6 +76,8 @@ impl Table {
             Table::Symbols => q.symbols().len(),
             Table::Fndefs => q.fndefs().len(),
             Table::Revisions => q.table::<ew_schema::Revision>().len(),
+            Table::PageItems => q.page_items().len(),
+            Table::StructureBoxes => q.structure_boxes().len(),
         }
     }
 }
@@ -197,6 +201,8 @@ pub fn exists(q: &Q, key: (Kind, ew_schema::AnyId)) -> bool {
         Kind::Fndef => q.fndefs().contains(id.cast()),
         Kind::Form => q.forms().contains(id.cast()),
         Kind::Revision => q.table::<ew_schema::Revision>().contains(id.cast()),
+        Kind::PageItem => q.page_items().contains(id.cast()),
+        Kind::StructureBox => q.structure_boxes().contains(id.cast()),
         // A kind no command creates (the project row, the reserved kinds): nothing to say.
         _ => true,
     }

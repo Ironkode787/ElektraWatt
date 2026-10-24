@@ -24,9 +24,9 @@ use ew_ids::Id;
 use ew_model::AnyKey;
 use ew_schema::{
     AnyId, Bond, Channel, Conductor, Connection, ConnectionKind, Device, DeviceLink, Endpoint, ExternalRef,
-    FnDef, FnRole, Function, FunctionKind, IpSpec, Junction, Kind, LibDocument, Page, Part, PlcConfigProject,
-    PotentialDef, Record, ReportBlock, Representation, Revision, RevisionState, Section, StructureNode,
-    SymbolDef,
+    FnDef, FnRole, Function, FunctionKind, IpSpec, Junction, Kind, LibDocument, Page, PageItem, Part,
+    PlcConfigProject, PotentialDef, Record, ReportBlock, Representation, Revision, RevisionState, Section,
+    StructureBox, StructureNode, SymbolDef,
 };
 use ew_units::Pt2;
 use serde_json::{Map, Value, json};
@@ -1434,6 +1434,159 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         }
         self.run("box.reshape", p).map(|_| ())
     }
+
+    // WP-S2.04 part 4a ---------------------------------------------------------------------------------------
+
+    /// `project.drawing.set` with `marker_mode` (FR-CON-024): `Some("all" | "deviations" | "explicit" | "none")`
+    /// sets which wires carry a marker, `None` removes the member (the as-built `show_marker` rule).
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn marker_mode(&mut self, mode: Option<&str>) -> Result<()> {
+        self.run(
+            "project.drawing.set",
+            json!({"marker_mode": mode.map_or(Value::Null, |m| json!(m))}),
+        )
+        .map(|_| ())
+    }
+
+    /// `item.place` (FR-SYM-023, FR-SYM-024): a page item on `page`; `kind` is the command's `kind` member,
+    /// `{"graphic": {"shape": …}}` or `{"free_text": {"text": …, "at": …}}`. Returns the item.
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn place_item(&mut self, page: Id<Page>, kind: Value) -> Result<Id<PageItem>> {
+        let (id, _) = self.primary::<PageItem>("item.place", json!({"page": page, "kind": kind}))?;
+        Ok(id)
+    }
+
+    /// `marker.place` (FR-CON-023, FR-CON-039): the group wire marker of `connections` (printed order) on `page`
+    /// at `at`, turned 90° with `vertical`; `csa` and `colours` (empty, or one per connection) become the
+    /// connections' level-7 overrides. Returns the marker.
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn place_marker(
+        &mut self,
+        page: Id<Page>,
+        connections: &[Id<Connection>],
+        at: Pt2,
+        vertical: bool,
+        csa: Option<&str>,
+        colours: &[Value],
+    ) -> Result<Id<PageItem>> {
+        let mut p = json!({"page": page, "connections": connections, "at": at});
+        if vertical {
+            p["angle"] = json!(90_000);
+        }
+        if let Some(csa) = csa {
+            p["csa"] = json!(csa);
+        }
+        if !colours.is_empty() {
+            p["colours"] = Value::Array(colours.to_vec());
+        }
+        let (id, _) = self.primary::<PageItem>("marker.place", p)?;
+        Ok(id)
+    }
+
+    /// `box.structure` (FR-PRJ-020): a structure box on `page` with its absolute `outline`, `style` (`dotted` or
+    /// `dash_dot`), `caption` (empty: none), the `assigns` member (`{"location": node}` …) and the external point
+    /// it stands for. Returns the box.
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn structure_box(
+        &mut self,
+        page: Id<Page>,
+        outline: &[Pt2],
+        style: &str,
+        caption: &str,
+        assigns: Value,
+        external: Option<Id<ExternalRef>>,
+    ) -> Result<Id<StructureBox>> {
+        let mut p = json!({"page": page, "outline": outline, "style": style, "assigns": assigns});
+        if !caption.is_empty() {
+            p["caption"] = json!(caption);
+        }
+        if let Some(e) = external {
+            p["external"] = json!(e);
+        }
+        let (id, _) = self.primary::<StructureBox>("box.structure", p)?;
+        Ok(id)
+    }
+
+    /// `rep.move` with `items` (WP-S2.04 part 4a): the representations, page items and structure boxes named move
+    /// by `delta` together.
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn move_with_items(
+        &mut self,
+        reps: &[Id<Representation>],
+        items: &[AnyId],
+        delta: Pt2,
+    ) -> Result<()> {
+        self.run("rep.move", json!({"reps": reps, "items": items, "delta": delta}))
+            .map(|_| ())
+    }
+    // WP-S2.04 part 4a
+    /// The page-item verbs issue their commands with the documented parameters.
+    #[test]
+    fn page_item_verbs_issue_their_commands() {
+        let mut seen: Vec<(String, Value)> = Vec::new();
+        let mut sink = |name: &str, params: Value| {
+            seen.push((name.to_owned(), params));
+            Ok(Done::default())
+        };
+        let page: Id<Page> = Id::from_uuid(ew_ids::Uuid::from_u128(7));
+        let c: Id<Connection> = Id::from_uuid(ew_ids::Uuid::from_u128(8));
+        let at = Pt2::new(ew_units::Nm(1), ew_units::Nm(2));
+        let mut builder = Builder::new(&mut sink);
+        builder.marker_mode(Some("explicit")).unwrap();
+        // No primary key comes back from this sink: the placing verbs report that as an error, after the run.
+        assert!(
+            builder
+                .place_item(page, json!({"free_text": {"text": "x", "at": [0, 0]}}))
+                .is_err()
+        );
+        assert!(
+            builder
+                .place_marker(page, &[c], at, true, Some("2.5"), &[json!(["BK"])])
+                .is_err()
+        );
+        assert!(
+            builder
+                .structure_box(page, &[at, at, at], "dotted", "Box", json!({}), None)
+                .is_err()
+        );
+        builder.move_with_items(&[], &[c.cast()], at).unwrap();
+        drop(builder);
+        let names: Vec<&str> = seen.iter().map(|(n, _)| n.as_str()).collect();
+        assert_eq!(
+            names,
+            [
+                "project.drawing.set",
+                "item.place",
+                "marker.place",
+                "box.structure",
+                "rep.move"
+            ]
+        );
+        assert_eq!(seen[0].1, json!({"marker_mode": "explicit"}));
+        assert_eq!(
+            seen[2].1,
+            json!({"page": page, "connections": [c], "at": [1, 2], "angle": 90_000, "csa": "2.5",
+                "colours": [["BK"]]})
+        );
+        assert_eq!(seen[3].1["caption"], json!("Box"));
+        assert_eq!(seen[4].1, json!({"reps": [], "items": [c], "delta": [1, 2]}));
+    }
+
 }
 
 #[cfg(test)]

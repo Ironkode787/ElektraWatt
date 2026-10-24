@@ -51,6 +51,13 @@ pub enum IndexRead {
     ChannelsOfModule(Id<Device>),
     /// `Channel.binding` at any CP of a function → channels (the generic referrer index of the link).
     ChannelsAtFunction(Id<Function>),
+    /// `PageItem.page` → page items.
+    PageItemsByPage(Id<Page>),
+    /// `StructureBox.page` → structure boxes.
+    StructureBoxesByPage(Id<Page>),
+    /// `PageItem.kind.wire_marker.connections[]` → the wire markers listing a connection (the generic referrer
+    /// index of the link).
+    MarkersOfConnection(Id<Connection>),
 }
 
 /// The referrers of `target` through the link `from.field`, in ID order (the generic referrer index serves
@@ -108,6 +115,16 @@ impl IndexRead {
             IndexRead::ChannelsAtFunction(f) => {
                 referrers_through(idx, Kind::Channel, "binding.cp[0]", (Kind::Function, f.cast()))
             }
+            IndexRead::PageItemsByPage(p) => idx.page_items_by_page().get(&p).map(|v| v.cast()).collect(),
+            IndexRead::StructureBoxesByPage(p) => {
+                idx.structure_boxes_by_page().get(&p).map(|v| v.cast()).collect()
+            }
+            IndexRead::MarkersOfConnection(c) => referrers_through(
+                idx,
+                Kind::PageItem,
+                "kind.wire_marker.connections[]",
+                (Kind::Connection, c.cast()),
+            ),
         };
         ids
     }
@@ -549,6 +566,25 @@ impl<'a> TxBuilder<'a> {
                 .is_some_and(|c| c.binding == Some(Endpoint::Cp(function, idx)))
         })
         .collect()
+    }
+
+    /// The page items of a page, in ID order.
+    pub fn page_items_on_page(&self, page: Id<Page>) -> Vec<Id<ew_schema::PageItem>> {
+        self.indexed::<ew_schema::PageItem>(IndexRead::PageItemsByPage(page), |i| i.page == page)
+    }
+
+    /// The structure boxes of a page, in ID order.
+    pub fn structure_boxes_on_page(&self, page: Id<Page>) -> Vec<Id<ew_schema::StructureBox>> {
+        self.indexed::<ew_schema::StructureBox>(IndexRead::StructureBoxesByPage(page), |b| b.page == page)
+    }
+
+    /// The wire markers that list a connection, in ID order.
+    pub fn markers_of_connection(&self, connection: Id<Connection>) -> Vec<Id<ew_schema::PageItem>> {
+        self.indexed::<ew_schema::PageItem>(IndexRead::MarkersOfConnection(connection), |i| {
+            i.kind
+                .wire_marker()
+                .is_some_and(|m| m.connections.contains(&connection))
+        })
     }
 
     /// The next free counter for `letter` in `scope` (FR-NUM-007); see [`crate::numbering`].

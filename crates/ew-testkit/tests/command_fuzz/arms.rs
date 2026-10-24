@@ -58,6 +58,11 @@ pub const ARMS: &[Arm] = &[
         command: "box.reshape",
         weight: 3,
         build: box_reshape,
+    // WP-S2.04 part 4a
+    Arm {
+        command: "box.structure",
+        weight: 2,
+        build: box_structure,
     },
     Arm {
         command: "cable.create",
@@ -148,6 +153,12 @@ pub const ARMS: &[Arm] = &[
         weight: 3,
         build: ip_place,
     },
+    // WP-S2.04 part 4a
+    Arm {
+        command: "item.place",
+        weight: 3,
+        build: item_place,
+    },
     Arm {
         command: "junction.edit",
         weight: 3,
@@ -157,6 +168,12 @@ pub const ARMS: &[Arm] = &[
         command: "library.embed",
         weight: 2,
         build: library_embed,
+    },
+    // WP-S2.04 part 4a
+    Arm {
+        command: "marker.place",
+        weight: 3,
+        build: marker_place,
     },
     Arm {
         command: "numbering.renumber",
@@ -337,6 +354,12 @@ fn letter(rng: &mut SplitMix64) -> &'static str {
 // rep.*, fields.set, deletes, renumbers, junctions, terminals, connections, potentials (the first 11 arms)
 
 fn rep_move(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    // WP-S2.04 part 4a: page items and structure boxes move with `items`.
+    if rng.chance(4)
+        && let Some(step) = rep_move_items(live, rng)
+    {
+        return Some(step);
+    }
     let rep = rng.pick(&live.reps)?.clone();
     match rng.below(8) {
         // Refused: grid steps beside a non-zero delta.
@@ -406,6 +429,205 @@ fn rep_move(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             }
         }),
     )
+}
+
+/// `rep.move` with `items` alone: a page item or structure box moves by a delta; refused across pages, with an
+/// item that does not exist, or with nothing named.
+fn rep_move_items(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let mut all: Vec<(Value, Value)> = live.page_items.clone();
+    all.extend(live.structure_boxes.iter().cloned());
+    match rng.below(6) {
+        0 => Some(Step::cmd("rep.move", json!({"reps": [], "delta": [MOVE_UNIT, 0]})).refuse()),
+        1 => Some(
+            Step::cmd(
+                "rep.move",
+                json!({"reps": [], "items": [rng.uuid()], "delta": [MOVE_UNIT, 0]}),
+            )
+            .refuse(),
+        ),
+        2 => {
+            let (item, _) = rng.pick(&all)?.clone();
+            let page = rng.pick(&live.pages)?.clone();
+            let p = json!({"reps": [], "items": [item], "delta": [MOVE_UNIT, 0], "page": page});
+            Some(Step::cmd("rep.move", p).refuse())
+        }
+        _ => {
+            let (item, _) = rng.pick(&all)?.clone();
+            let delta = [rng.range(-2, 2) * MOVE_UNIT, rng.range(-2, 2) * MOVE_UNIT];
+            Some(
+                Step::cmd("rep.move", json!({"reps": [], "items": [item], "delta": delta}))
+                    .accept()
+                    .counts(&[(Table::PageItems, 0), (Table::StructureBoxes, 0)]),
+            )
+        }
+    }
+}
+
+/// A random graphic shape on `page`, valid unless `degenerate`.
+fn shape(page: &PageInfo, rng: &mut SplitMix64, degenerate: bool) -> Value {
+    let p = |rng: &mut SplitMix64| Live::grid_pos(page, rng.range(1, 60), rng.range(1, 40));
+    let a = p(rng);
+    if degenerate {
+        return match rng.below(4) {
+            0 => json!({"line": {"a": a.clone(), "b": a}}),
+            1 => json!({"polygon": {"points": [a.clone(), a.clone(), a]}}),
+            2 => json!({"circle": {"centre": a, "r": 0}}),
+            _ => json!({"arc": {"centre": a, "r": 1_000_000, "sweep": 0}}),
+        };
+    }
+    let b = Live::grid_pos(page, rng.range(61, 99), rng.range(41, 79));
+    match rng.below(6) {
+        0 => json!({"line": {"a": a, "b": b}}),
+        1 => json!({"polyline": {"points": [a, b, p(rng)]}}),
+        2 => json!({"rect": {"min": b, "max": a}}),
+        3 => json!({"circle": {"centre": a, "r": 1_000_000 + rng.range(0, 5_000_000)}}),
+        4 => json!({"arc": {"centre": a, "r": 2_000_000, "start": 90_000, "sweep": -180_000}}),
+        _ => json!({"polygon": {"points": [[0, 0], [5_000_000, 0], [0, 5_000_000]]}}),
+    }
+}
+
+/// `item.place`: graphics and free texts on a page; refused on a missing page, with a degenerate shape, an unknown
+/// bindable name, an empty text without `bind`, an angle off the quarter turns or an unknown member.
+fn item_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let page = rng.pick(&live.page_info)?;
+    let cmd = |p: Value| Step::cmd("item.place", p);
+    let at = Live::grid_pos(page, rng.range(1, 99), rng.range(1, 70));
+    match rng.below(10) {
+        0 => Some(cmd(json!({"page": rng.uuid(), "kind": {"free_text": {"text": "x", "at": at}}})).refuse()),
+        1 => Some(
+            cmd(json!({"page": page.id, "kind": {"graphic": {"shape": shape(page, rng, true)}}})).refuse(),
+        ),
+        2 => Some(
+            cmd(json!({"page": page.id, "kind": {"free_text": {"bind": "project.reference", "at": at}}}))
+                .refuse(),
+        ),
+        3 => Some(cmd(json!({"page": page.id, "kind": {"free_text": {"text": "", "at": at}}})).refuse()),
+        4 => Some(
+            cmd(json!({"page": page.id, "kind": {"free_text": {"text": "x", "at": at, "angle": 45_000}}}))
+                .refuse(),
+        ),
+        5 => Some(
+            cmd(json!({"page": page.id, "kind": {"graphic": {"shape": shape(page, rng, false)}, "z": 1}}))
+                .refuse(),
+        ),
+        6 | 7 => {
+            let dash = ["solid", "dashed", "dotted", "dash_dot"][rng.below(4)];
+            let p = json!({"page": page.id, "kind": {"graphic": {"shape": shape(page, rng, false),
+                "dash": dash, "fill": rng.chance(2)}}});
+            Some(cmd(p).accept().counts(&[(Table::PageItems, 1)]))
+        }
+        _ => {
+            let text = if rng.chance(3) {
+                json!({"bind": ew_derive::BINDABLE[rng.below(6)], "at": at})
+            } else {
+                let angle = [0, 90_000, 180_000, 270_000][rng.below(4)];
+                let align = ["left", "centre", "right"][rng.below(3)];
+                json!({"text": "40x60", "at": at, "angle": angle, "align": align})
+            };
+            Some(
+                cmd(json!({"page": page.id, "kind": {"free_text": text}}))
+                    .accept()
+                    .counts(&[(Table::PageItems, 1)]),
+            )
+        }
+    }
+}
+
+/// `marker.place`: a group of a page's connections; refused with no connection, a duplicate, a connection of
+/// another page or one that does not exist, an angle other than 0 or 90000, a colour count that does not match or a
+/// foreign colour code.
+fn marker_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let (page, conns) = rng.pick(&live.page_connections)?.clone();
+    let cmd = |p: Value| Step::cmd("marker.place", p);
+    let at = json!([MOVE_UNIT, MOVE_UNIT]);
+    let one = rng.pick(&conns)?.clone();
+    match rng.below(10) {
+        0 => Some(cmd(json!({"page": page, "connections": [], "at": at})).refuse()),
+        1 => Some(cmd(json!({"page": page, "connections": [one.clone(), one], "at": at})).refuse()),
+        2 => Some(cmd(json!({"page": page, "connections": [rng.uuid()], "at": at})).refuse()),
+        3 => {
+            let other = live
+                .page_connections
+                .iter()
+                .filter(|(p, _)| *p != page)
+                .flat_map(|(_, c)| c.iter())
+                .next()
+                .cloned()?;
+            Some(cmd(json!({"page": page, "connections": [other], "at": at})).refuse())
+        }
+        4 => Some(cmd(json!({"page": page, "connections": [one], "at": at, "angle": 45_000})).refuse()),
+        5 => Some(
+            cmd(json!({"page": page, "connections": [one], "at": at, "colours": [["BK"], ["BU"]]})).refuse(),
+        ),
+        6 => Some(
+            cmd(json!({"page": page, "connections": [one], "at": at, "colours": [[{"foreign": "XX"}]]}))
+                .refuse(),
+        ),
+        _ => {
+            let mut chosen: Vec<Value> = conns.clone();
+            chosen.truncate(1 + rng.below(3));
+            if rng.chance(2) {
+                chosen.reverse();
+            }
+            let n = chosen.len();
+            let mut p = json!({"page": page, "connections": chosen, "at": at});
+            if rng.chance(2) {
+                p["angle"] = json!(90_000);
+            }
+            if rng.chance(2) {
+                p["csa"] = json!("1.5");
+                p["colours"] = Value::Array((0..n).map(|_| json!(["BK"])).collect());
+            }
+            Some(cmd(p).accept().counts(&[(Table::PageItems, 1)]))
+        }
+    }
+}
+
+/// `box.structure`: a box on a page assigning a location node; refused with fewer than three vertices, on a missing
+/// page, with a node in a slot of another aspect or a missing external reference.
+fn box_structure(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let page = rng.pick(&live.page_info)?;
+    let cmd = |p: Value| Step::cmd("box.structure", p);
+    let outline = json!([[0, 0], [50_000_000, 0], [50_000_000, 30_000_000], [0, 30_000_000]]);
+    let assigns = match rng.pick(&live.locations) {
+        Some(n) => json!({"location": n}),
+        None => json!({}),
+    };
+    match rng.below(8) {
+        0 => Some(
+            cmd(json!({"page": page.id, "outline": [[0, 0], [1, 1]], "style": "dotted", "assigns": {}}))
+                .refuse(),
+        ),
+        1 => Some(
+            cmd(json!({"page": rng.uuid(), "outline": outline, "style": "dotted", "assigns": {}})).refuse(),
+        ),
+        2 => Some(
+            cmd(
+                json!({"page": page.id, "outline": outline, "style": "dotted", "assigns": {},
+                "external": rng.uuid()}),
+            )
+            .refuse(),
+        ),
+        3 => {
+            let wrong = live.nodes.iter().find(|n| n.aspect != "location")?;
+            Some(
+                cmd(json!({"page": page.id, "outline": outline, "style": "dotted",
+                    "assigns": {"location": wrong.id}}))
+                .refuse(),
+            )
+        }
+        _ => {
+            let style = ["dotted", "dash_dot"][rng.below(2)];
+            let mut p = json!({"page": page.id, "outline": outline, "style": style, "assigns": assigns});
+            if rng.chance(2) {
+                p["caption"] = json!("External Connection");
+            }
+            if let Some(e) = rng.pick(&live.ext_refs) {
+                p["external"] = e.clone();
+            }
+            Some(cmd(p).accept().counts(&[(Table::StructureBoxes, 1)]))
+        }
+    }
 }
 
 fn rep_transform(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
@@ -3435,6 +3657,19 @@ fn project_drawing_set(_live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         0 => Some(Step::cmd("project.drawing.set", json!({})).refuse()),
         // Refused: an unknown value, a value of the wrong type, an unknown member.
         1 => Some(Step::cmd("project.drawing.set", json!({"crossings": "loops"})).refuse()),
+        // WP-S2.04 part 4a: `marker_mode`, an unknown value refused, a known one or `null` accepted.
+        7 if rng.chance(2) => Some(Step::cmd("project.drawing.set", json!({"marker_mode": "some"})).refuse()),
+        7 => {
+            let mode = [
+                json!("all"),
+                json!("deviations"),
+                json!("explicit"),
+                json!("none"),
+                Value::Null,
+            ][rng.below(5)]
+            .clone();
+            Some(Step::cmd("project.drawing.set", json!({"marker_mode": mode})).accept())
+        }
         2 => Some(Step::cmd("project.drawing.set", json!({"crossings": rng.below(9)})).refuse()),
         3 => Some(
             Step::cmd(

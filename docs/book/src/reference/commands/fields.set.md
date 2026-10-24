@@ -67,6 +67,8 @@ The record kinds a command may name generically (`edit.delete`, `fields.set`).
 | `"bond"` |  |
 | `"report_block"` |  |
 | `"revision"` |  |
+| `"page_item"` | `page_item` (WP-S2.04 part 4a). |
+| `"structure_box"` | `structure_box` (WP-S2.04 part 4a). |
 
 ## Exit codes
 

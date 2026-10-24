@@ -10,10 +10,10 @@ use std::sync::Arc;
 use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
 use ew_schema::{
-    AnchorPolicy, BoxSpec, Connection, ConnectionKind, ContactKind, Device, DeviceAspects, DeviceKind,
+    AnchorPolicy, AnyId, BoxSpec, Connection, ConnectionKind, ContactKind, Device, DeviceAspects, DeviceKind,
     Endpoint, Extra, FnDef, FnRole, Function, FunctionKind, Junction, JunctionStyle, Kind, LibCopy,
-    NumberSpec, Page, PageType, Part, PartRef, PartUse, RepType, Representation, Strip, StructureAssignment,
-    SymbolDef, TagSpec,
+    NumberSpec, Page, PageItem, PageType, Part, PartRef, PartUse, RepType, Representation, Strip,
+    StructureAssignment, StructureBox, SymbolDef, TagSpec,
 };
 use ew_units::{Dec3, Grid, Nm, Orient2, Pt2};
 use schemars::JsonSchema;
@@ -548,6 +548,13 @@ fn zero() -> Pt2 {
 /// `k mod 3`) keeps its axis with a jog at the grid point nearest its middle. `steps` is exclusive with a non-zero
 /// `delta` and with `page`: the tools never move across pages, and a script's cross-page move keeps `delta`.
 ///
+/// **Page items and structure boxes** (`items`, WP-S2.04 part 4a): the page items and structure boxes named move
+/// with the representations, translated by `delta`, or with `steps` by `round_half_away(k × num / den)` nm per axis
+/// on their page's grid (they need not lie on the grid). `reps` and `items` together name at least one record; every
+/// item lies on one page, the page of every named representation; an item of a kind this build does not move (a
+/// variant or shape it keeps verbatim) and `items` with a cross-page `page` are rejected. A moved wire marker writes
+/// a clean list (its entries naming a connection that does not exist or is not on its page are dropped).
+///
 /// Outcome: none. Coalesce one drag with a key.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -566,6 +573,10 @@ pub struct MoveReps {
     /// Grid steps `[kx, ky]` on the page's connection grid, instead of `delta` (WP-S2.04 D13).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub steps: Option<[i64; 2]>,
+    /// Page items and structure boxes moving with the representations (WP-S2.04 part 4a).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[schemars(with = "Vec<UuidS>")]
+    pub items: Vec<AnyId>,
 }
 
 /// `round(k × num / den)`, halves away from zero, saturating (the nm length of `k` grid steps).
@@ -583,7 +594,108 @@ pub(crate) fn step_axis(grid: Grid, x: Nm, k: i64) -> Option<Nm> {
     grid.at(grid.snap(x).checked_add(k)?)
 }
 
+/// A page item or structure box named by `rep.move`'s `items`.
+enum MovedItem {
+    Item(Arc<PageItem>),
+    Box(Arc<StructureBox>),
+}
+
+impl MovedItem {
+    fn page(&self) -> Id<Page> {
+        match self {
+            MovedItem::Item(i) => i.page,
+            MovedItem::Box(b) => b.page,
+        }
+    }
+}
+
 impl MoveReps {
+    /// The page items and structure boxes of `items`, each checked: it exists (not found), it is not listed twice,
+    /// all lie on one page, which is the page of every named representation.
+    fn moved_items(&self, tx: &TxBuilder<'_>) -> Result<Vec<MovedItem>, CmdError> {
+        let mut out = Vec::new();
+        let mut seen = BTreeSet::new();
+        for (i, id) in self.items.iter().enumerate() {
+            if !seen.insert(*id) {
+                return Err(CmdError::invalid_params(
+                    Self::NAME,
+                    format!("/items/{i}"),
+                    "the item is listed twice",
+                ));
+            }
+            let item = if let Some(it) = tx.get::<PageItem>(id.cast()) {
+                MovedItem::Item(it)
+            } else if let Some(b) = tx.get::<StructureBox>(id.cast()) {
+                MovedItem::Box(b)
+            } else {
+                return Err(CmdError::NotFound {
+                    key: (Kind::PageItem, *id),
+                });
+            };
+            out.push(item);
+        }
+        if out.is_empty() {
+            return Ok(out);
+        }
+        if self.page.is_some() {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/items",
+                "page items and structure boxes move on their own page; a move to another page takes no `items`",
+            ));
+        }
+        let page = out[0].page();
+        if let Some(i) = out.iter().position(|m| m.page() != page) {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                format!("/items/{i}"),
+                format!("every item lies on one page ({page})"),
+            ));
+        }
+        for (i, r) in self.reps.iter().enumerate() {
+            let rep = tx.require::<Representation>(*r)?;
+            if rep.page != page {
+                return Err(CmdError::invalid_params(
+                    Self::NAME,
+                    format!("/reps/{i}"),
+                    format!(
+                        "representation {r} is on page {}, the items on page {page}; move one page at a time",
+                        rep.page
+                    ),
+                ));
+            }
+        }
+        Ok(out)
+    }
+
+    /// Puts the moved page items and structure boxes, translated by `d` (a moved wire marker with a clean list).
+    fn put_items(tx: &mut TxBuilder<'_>, items: &[MovedItem], d: Pt2) -> Result<(), CmdError> {
+        for m in items {
+            match m {
+                MovedItem::Item(item) => {
+                    let Some(mut next) = crate::commands::items::translate_item(item, d) else {
+                        return tx.reject(format!(
+                            "page item {} cannot be moved: it is of a kind this build keeps verbatim, or the move                              takes it outside the drawable range",
+                            item.id
+                        ));
+                    };
+                    crate::commands::items::clean_marker(tx, &mut next);
+                    tx.put(next);
+                }
+                MovedItem::Box(b) => {
+                    let Some(next) = crate::commands::items::translate_box(b, d) else {
+                        return tx.reject(format!(
+                            "the move takes structure box {} outside the drawable range; move it less far",
+                            b.id
+                        ));
+                    };
+                    tx.put(next);
+                }
+            }
+        }
+        Ok(())
+    }
+
     /// The step move (see the type's documentation).
     fn run_steps(&self, tx: &mut TxBuilder<'_>, steps: [i64; 2]) -> Result<Outcome, CmdError> {
         if self.delta != Pt2::ORIGIN {
@@ -600,6 +712,7 @@ impl MoveReps {
                 "a move to another page takes `delta`; `steps` moves on the representations' own page",
             ));
         }
+        let items = self.moved_items(tx)?;
         let ids: BTreeSet<Id<Representation>> = self.reps.iter().copied().collect();
         let mut reps: Vec<Arc<Representation>> = Vec::new();
         let mut moved: Vec<Representation> = Vec::new();
@@ -691,6 +804,11 @@ impl MoveReps {
         for rep in moved {
             tx.put(rep);
         }
+        if let Some(first) = items.first() {
+            let grid = tx.require::<Page>(first.page())?.grid;
+            let d = Pt2::new(Nm(steps_nm(grid, steps[0])), Nm(steps_nm(grid, steps[1])));
+            Self::put_items(tx, &items, d)?;
+        }
         Ok(Outcome::default())
     }
 }
@@ -775,12 +893,13 @@ impl Command for MoveReps {
     }
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
-        if self.reps.is_empty() {
-            return tx.reject("give at least one representation to move");
+        if self.reps.is_empty() && self.items.is_empty() {
+            return tx.reject("give at least one representation or item to move");
         }
         if let Some(steps) = self.steps {
             return self.run_steps(tx, steps);
         }
+        let items = self.moved_items(tx)?;
         let target_page = match self.page {
             Some(page) => Some(tx.require::<Page>(page)?),
             None => None,
@@ -865,6 +984,7 @@ impl Command for MoveReps {
         for rep in moved {
             tx.put(rep);
         }
+        Self::put_items(tx, &items, self.delta)?;
         Ok(Outcome::default())
     }
 }

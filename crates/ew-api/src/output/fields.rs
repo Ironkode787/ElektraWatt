@@ -426,6 +426,38 @@ fn ref_name(node: &Value) -> Option<&str> {
     node.get("$ref")?.as_str()?.rsplit('/').next()
 }
 
+/// The variants of an externally tagged enum whose every variant carries an object payload (`{"graphic": {…}}`,
+/// WP-S2.04 part 4a): a group of the variants, each optional (one is present); `None` for any other `oneOf`.
+fn tagged_variants(root: &Value, branches: &[Value], depth: usize) -> Option<Vec<FieldNode>> {
+    let variants: Option<Vec<FieldNode>> = branches
+        .iter()
+        .map(|b| {
+            let props = b.get("properties").and_then(Value::as_object)?;
+            let (tag, payload) = props.iter().next().filter(|_| props.len() == 1)?;
+            let payload_type = node_type(root, payload, depth + 1);
+            matches!(payload_type, FieldType::Group(_)).then(|| FieldNode {
+                name: tag.clone(),
+                ty: FieldType::Optional(Box::new(payload_type)),
+            })
+        })
+        .collect();
+    variants.filter(|v| !v.is_empty())
+}
+
+/// Whether `node` (through a `$ref`) is such a tagged enum.
+fn is_tagged_enum(root: &Value, node: &Value, depth: usize) -> bool {
+    if depth > MAX_DEPTH {
+        return false;
+    }
+    let node = match ref_name(node).and_then(|n| root.get("$defs").and_then(|d| d.get(n))) {
+        Some(def) => def,
+        None => node,
+    };
+    node.get("oneOf")
+        .and_then(Value::as_array)
+        .is_some_and(|b| tagged_variants(root, b, depth).is_some())
+}
+
 /// The schema type of `node` (§6.1.1's table).
 fn node_type(root: &Value, node: &Value, depth: usize) -> FieldType {
     if depth > MAX_DEPTH {
@@ -464,6 +496,9 @@ fn node_type(root: &Value, node: &Value, depth: usize) -> FieldType {
         }
     }
     if let Some(branches) = node.get("oneOf").and_then(Value::as_array) {
+        if let Some(variants) = tagged_variants(root, branches, depth) {
+            return FieldType::Group(variants);
+        }
         let options: Option<Vec<String>> = branches
             .iter()
             .map(|b| b.get("const").and_then(Value::as_str).map(str::to_owned))
@@ -493,6 +528,10 @@ fn node_type(root: &Value, node: &Value, depth: usize) -> FieldType {
             },
             "string" if node.get("const").is_none() => FieldType::Text,
             "array" => match node.get("items") {
+                // A list of tagged-enum values (a black box's inner graphics) stays JSON: its items are not rows.
+                Some(items) if is_tagged_enum(root, items, depth) => {
+                    FieldType::List(Box::new(FieldType::Json))
+                }
                 Some(items) if items.is_object() => FieldType::List(Box::new(node_type(root, items, depth))),
                 _ => FieldType::Json,
             },

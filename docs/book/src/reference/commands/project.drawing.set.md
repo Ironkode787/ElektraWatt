@@ -6,8 +6,10 @@
 
 The given members are merged into the object: a value sets the member, `null` removes it; members of the
 object this command does not know are kept. An object left empty is removed. `crossings` (`plain` or `hops`,
-FR-CON-031) chooses how crossing wires are drawn; absent means plain. Presentation only: no derived value
-changes (the drawing of crossings reads it). Rejected: a `drawing` member of the project settings that is not an
+FR-CON-031) chooses how crossing wires are drawn; absent means plain. `marker_mode` (`all`, `deviations`,
+`explicit` or `none`; FR-CON-024, WP-S2.04 part 4a) chooses which wires carry a wire marker; absent means the
+as-built rule (a connection's `show_marker`). Presentation only: no record changes meaning (the drawing and the
+marker derivation read the members). Rejected: a `drawing` member of the project settings that is not an
 object (a newer or damaged format; the command never overwrites it); an unknown value (invalid); no member
 given (invalid at the root). Interactive. Outcome: none.
 
@@ -30,6 +32,7 @@ given (invalid at the root). Interactive. Outcome: none.
 | Name | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `crossings` | [`Crossings`](#crossings) or `null` | no |  | How crossing wires are drawn: `plain` or `hops`; `null` removes the member (plain). |
+| `marker_mode` | [`MarkerModeParam`](#markermodeparam) or `null` | no |  | Which wires carry a wire marker: `all`, `deviations`, `explicit` or `none`; `null` removes the member (the as-built `show_marker` rule). |
 
 ## Types
 
@@ -41,6 +44,18 @@ How crossing wires are drawn (FR-CON-031).
 |---|---|
 | `"plain"` | Plain crossings (the default). |
 | `"hops"` | The wire of the rule hops over the other. |
+
+### MarkerModeParam
+
+Which wires carry a wire marker (FR-CON-024, WP-S2.04 D16); absent: the as-built rule (a connection's
+`show_marker`).
+
+| Value | Meaning |
+|---|---|
+| `"all"` | Every wire. |
+| `"deviations"` | A wire with an effective cross-section or colour set at levels 3 to 7, cores excepted. |
+| `"explicit"` | A wire with a level-7 (explicit) cross-section or colour. |
+| `"none"` | No marker. |
 
 ## Exit codes
 

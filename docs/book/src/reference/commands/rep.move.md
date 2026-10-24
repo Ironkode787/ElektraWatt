@@ -27,6 +27,13 @@ two coordinates part by 1 nm (two end CPs on one coordinate whose representation
 `k mod 3`) keeps its axis with a jog at the grid point nearest its middle. `steps` is exclusive with a non-zero
 `delta` and with `page`: the tools never move across pages, and a script's cross-page move keeps `delta`.
 
+**Page items and structure boxes** (`items`, WP-S2.04 part 4a): the page items and structure boxes named move
+with the representations, translated by `delta`, or with `steps` by `round_half_away(k × num / den)` nm per axis
+on their page's grid (they need not lie on the grid). `reps` and `items` together name at least one record; every
+item lies on one page, the page of every named representation; an item of a kind this build does not move (a
+variant or shape it keeps verbatim) and `items` with a cross-page `page` are rejected. A moved wire marker writes
+a clean list (its entries naming a connection that does not exist or is not on its page are dropped).
+
 Outcome: none. Coalesce one drag with a key.
 
 ## Registry entry
@@ -48,6 +55,7 @@ Outcome: none. Coalesce one drag with a key.
 | Name | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `delta` | [`CmdPt2`](#cmdpt2) | no | `[0,0]` | The displacement; default `[0, 0]`. |
+| `items` | array of [`CmdUuid`](#cmduuid) | no |  | Page items and structure boxes moving with the representations (WP-S2.04 part 4a). |
 | `page` | [`CmdUuid`](#cmduuid) or `null` | no |  | The target page of a cross-page move. |
 | `reps` | array of [`CmdUuid`](#cmduuid) | yes |  | The representations, at least one. |
 | `steps` | array of integer (format `int64`) (at least 2 item(s), at most 2 item(s)) or `null` | no |  | Grid steps `[kx, ky]` on the page's connection grid, instead of `delta` (WP-S2.04 D13). |

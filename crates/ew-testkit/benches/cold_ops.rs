@@ -250,6 +250,7 @@ fn bench_rep_move(
         |session, i| {
             let rep: Id<Representation> = handles.load_reps[i % handles.load_reps.len()];
             let cmd = MoveReps {
+                items: Vec::new(),
                 steps: None,
                 reps: vec![rep],
                 delta,

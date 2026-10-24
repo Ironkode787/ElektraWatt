@@ -56,6 +56,9 @@
 //! | `connection.draw_to_ip` | [`DrawToIp`] | Interactive |
 //! | `ip.arrange` | [`ArrangeIps`] | Interactive |
 //! | `box.reshape` | [`ReshapeBox`] | Interactive |
+//! | `box.structure` | [`CreateStructureBox`] | Interactive |
+//! | `item.place` | [`PlaceItem`] | Interactive |
+//! | `marker.place` | [`PlaceMarker`] | Interactive |
 //!
 //! Every command is of stability `Preview` and undoable except `project.assets.purge`, a marker line whose file side
 //! (deleting asset files nothing names) runs in the session (ADR-0008 amendment 1, FT-380); every one is of exposure
@@ -75,6 +78,7 @@ mod edit;
 mod exchange;
 mod fields;
 mod frames;
+pub(crate) mod items;
 mod languages;
 pub(crate) mod library;
 mod page;
@@ -85,6 +89,7 @@ mod renumber;
 mod revision;
 mod settings;
 mod structure;
+pub(crate) mod structure_box;
 mod supply;
 mod terminal;
 
@@ -102,11 +107,15 @@ pub use device::{
     ConnectHint, CreateDevice, MoveReps, PlaceBlackBox, PlaceSymbol, PlaceTarget, SetAnchorPolicy,
     TransformReps, allowed_rep_types,
 };
-pub use drawing::{Crossings, DRAWING_MEMBER, SetDrawing};
+pub use drawing::{Crossings, DRAWING_MEMBER, MarkerModeParam, SetDrawing};
 pub use edit::{BULK_ABOVE, DeleteSelection};
 pub use exchange::{ExchangePin, ExchangeSymbol};
 pub use fields::{ASPECTS, SET_MANY_MAX_EDITS, SETTABLE, SetFields, SetManyFields};
 pub use frames::{FRAMES_MEMBER, FrameForPageType, SetFrameDefaults};
+pub use items::{
+    AlignParam, DashParam, FreeTextParam, GraphicParam, ItemKindParam, PlaceItem, PlaceMarker, ShapeParam,
+    StrokeParam,
+};
 pub use languages::SetProjectLanguages;
 pub use library::{EmbedLibraryCopies, library_copy_hash};
 pub use page::{CreatePage, DeletePages, PageScope, RenumberPages};
@@ -117,6 +126,7 @@ pub use renumber::{DeviceScope, NumberingScheme, RenumberDevices, RenumberOption
 pub use revision::{CreateRevision, NewRevisionState, RevisionPageNote};
 pub use settings::{SETTABLE_SETTINGS, SetProjectSettings, SettableSetting};
 pub use structure::{CreateExternalRef, CreateReportBlock, CreateSection, CreateStructureNode};
+pub use structure_box::{BoxStyleParam, CreateStructureBox};
 pub use supply::{SETTABLE_SUPPLY, SetProjectSupply};
 pub use terminal::{
     AddConductors, AddTerminals, ConductorSpec, CreateCable, DesignateTerminals, TerminalDesignation,
@@ -180,4 +190,8 @@ pub fn register_all(r: &mut CommandRegistry) {
     r.register::<DrawToIp>();
     r.register::<ArrangeIps>();
     r.register::<ReshapeBox>();
+    // WP-S2.04 part 4a
+    r.register::<CreateStructureBox>();
+    r.register::<PlaceItem>();
+    r.register::<PlaceMarker>();
 }

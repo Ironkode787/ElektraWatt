@@ -89,6 +89,30 @@ proxy!(
 );
 
 proxy!(
+    /// `Nm`: an integer number of nanometres within ±(2⁵³ − 1).
+    NmS,
+    "CmdNm",
+    {
+        "type": "integer",
+        "minimum": -MAX_SAFE_INTEGER,
+        "maximum": MAX_SAFE_INTEGER,
+        "description": "A length in nanometres (doc 05 §3.2)."
+    }
+);
+
+proxy!(
+    /// `Angle2`: an angle in 10⁻³ degree.
+    Angle2S,
+    "CmdAngle2",
+    {
+        "type": "integer",
+        "minimum": -2147483648,
+        "maximum": 2147483647,
+        "description": "An angle in 10^-3 degree, counter-clockwise on the sheet (doc 05 §3.2)."
+    }
+);
+
+proxy!(
     /// `Orient2`: one of the eight orientation variants.
     Orient2S,
     "CmdOrient2",

@@ -14,11 +14,36 @@
           "type": "string"
         }
       ]
+    },
+    "MarkerModeParam": {
+      "description": "Which wires carry a wire marker (FR-CON-024, WP-S2.04 D16); absent: the as-built rule (a connection's\n`show_marker`).",
+      "oneOf": [
+        {
+          "const": "all",
+          "description": "Every wire.",
+          "type": "string"
+        },
+        {
+          "const": "deviations",
+          "description": "A wire with an effective cross-section or colour set at levels 3 to 7, cores excepted.",
+          "type": "string"
+        },
+        {
+          "const": "explicit",
+          "description": "A wire with a level-7 (explicit) cross-section or colour.",
+          "type": "string"
+        },
+        {
+          "const": "none",
+          "description": "No marker.",
+          "type": "string"
+        }
+      ]
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "`project.drawing.set` (`SetDrawing`): writes the drawing settings `settings.extra.drawing` (doc 03 §5.1).\n\nThe given members are merged into the object: a value sets the member, `null` removes it; members of the\nobject this command does not know are kept. An object left empty is removed. `crossings` (`plain` or `hops`,\nFR-CON-031) chooses how crossing wires are drawn; absent means plain. Presentation only: no derived value\nchanges (the drawing of crossings reads it). Rejected: a `drawing` member of the project settings that is not an\nobject (a newer or damaged format; the command never overwrites it); an unknown value (invalid); no member\ngiven (invalid at the root). Interactive. Outcome: none.",
+  "description": "`project.drawing.set` (`SetDrawing`): writes the drawing settings `settings.extra.drawing` (doc 03 §5.1).\n\nThe given members are merged into the object: a value sets the member, `null` removes it; members of the\nobject this command does not know are kept. An object left empty is removed. `crossings` (`plain` or `hops`,\nFR-CON-031) chooses how crossing wires are drawn; absent means plain. `marker_mode` (`all`, `deviations`,\n`explicit` or `none`; FR-CON-024, WP-S2.04 part 4a) chooses which wires carry a wire marker; absent means the\nas-built rule (a connection's `show_marker`). Presentation only: no record changes meaning (the drawing and the\nmarker derivation read the members). Rejected: a `drawing` member of the project settings that is not an\nobject (a newer or damaged format; the command never overwrites it); an unknown value (invalid); no member\ngiven (invalid at the root). Interactive. Outcome: none.",
   "properties": {
     "crossings": {
       "anyOf": [
@@ -30,6 +55,17 @@
         }
       ],
       "description": "How crossing wires are drawn: `plain` or `hops`; `null` removes the member (plain)."
+    },
+    "marker_mode": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/MarkerModeParam"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Which wires carry a wire marker: `all`, `deviations`, `explicit` or `none`; `null` removes the member (the\nas-built `show_marker` rule)."
     }
   },
   "title": "project.drawing.set",

@@ -1,0 +1,160 @@
+{
+  "$defs": {
+    "CmdAngle2": {
+      "description": "An angle in 10^-3 degree, counter-clockwise on the sheet (doc 05 §3.2).",
+      "maximum": 2147483647,
+      "minimum": -2147483648,
+      "type": "integer"
+    },
+    "CmdPt2": {
+      "description": "A point or a displacement [x, y] in nanometres, y downwards (doc 05 §3.2).",
+      "items": false,
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      ],
+      "type": "array"
+    },
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    },
+    "ColourCode": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Ident"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "foreign": {
+              "$ref": "#/$defs/Ident"
+            }
+          },
+          "required": [
+            "foreign"
+          ],
+          "type": "object"
+        }
+      ],
+      "description": "An IEC 60757 or profile-declared company colour code, or {\"foreign\": code} (doc 05 §3.2)."
+    },
+    "ColourSpec": {
+      "description": "One or two colour codes (doc 03 §3.4).",
+      "items": {
+        "$ref": "#/$defs/ColourCode"
+      },
+      "maxItems": 2,
+      "minItems": 1,
+      "type": "array"
+    },
+    "Csa": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Dec3"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "awg": {
+              "maximum": 127,
+              "minimum": -128,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "awg"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kcmil": {
+              "$ref": "#/$defs/Dec3"
+            }
+          },
+          "required": [
+            "kcmil"
+          ],
+          "type": "object"
+        }
+      ],
+      "description": "A cross-section: a Dec3 string in mm², {\"awg\": n} or {\"kcmil\": Dec3} (doc 08 §4.6)."
+    },
+    "Dec3": {
+      "description": "A canonical decimal string: at most three fraction digits, no trailing fraction zeros, no leading zeros, no plus sign, no \"-0\", no exponent, no white space, no unit (doc 05 §3.2). The pattern bounds the integer part to 16 digits; the exact i64 range of the thousandths (about 9.2 x 10^15) is checked by the reader.",
+      "maxLength": 21,
+      "pattern": "^(?:0|-?[1-9][0-9]{0,15}(?:\\.[0-9]{0,2}[1-9])?|-?0\\.[0-9]{0,2}[1-9])$",
+      "type": "string"
+    },
+    "Ident": {
+      "description": "An identifier: non-empty, one line (no control character U+0000 to U+001F or U+007F to U+009F), without leading or trailing white space (the Unicode White_Space set); interior spaces are allowed (doc 05 §3.2). JSON Schema cannot express Unicode Normalization Form C; the reader rejects non-NFC text.",
+      "minLength": 1,
+      "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`marker.place` (`PlaceMarker`, WP-S2.04 §5.1; FR-CON-023, FR-CON-039): places the group wire marker of several\nconnections of one page. One transaction: on each connection `overrides.show_marker` becomes true,\n`overrides.csa` becomes `csa` when given and `overrides.colour` becomes `colours[i]` when given; then a page item\n`{\"wire_marker\": {connections, at, angle, fields: [\"csa\", \"colour\"]}}` lists the connections in the given (printed)\norder. The marker displays the connections' effective values; it stores none of its own (doc 08 §4.5). Nothing\nderived is read. Rejected: no connection, or one listed twice (at `/connections`); a connection that does not\nexist (not found) or is not drawn on `page` (at `/connections/<i>`); an angle other than 0 or 90000 (at\n`/angle`); `colours` neither empty nor one per connection (at `/colours`); a colour that is neither an IEC 60757\ncode nor a company code of the project's colour profile (at `/colours/<i>`, FR-CON-019); a missing page (not\nfound). Interactive. Outcome: the marker.",
+  "properties": {
+    "angle": {
+      "$ref": "#/$defs/CmdAngle2",
+      "description": "The angle in 10⁻³ degree: 0 or 90000; default 0."
+    },
+    "at": {
+      "$ref": "#/$defs/CmdPt2",
+      "description": "The anchor point of the group."
+    },
+    "colours": {
+      "description": "The colours to set: empty, or one per connection in order (their level-7 overrides).",
+      "items": {
+        "$ref": "#/$defs/ColourSpec"
+      },
+      "type": "array"
+    },
+    "connections": {
+      "description": "The connections in printed order: at least one, distinct, all drawn on `page`.",
+      "items": {
+        "$ref": "#/$defs/CmdUuid"
+      },
+      "type": "array"
+    },
+    "csa": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Csa"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "A cross-section to set on every connection (its level-7 override)."
+    },
+    "page": {
+      "$ref": "#/$defs/CmdUuid",
+      "description": "The page."
+    }
+  },
+  "required": [
+    "page",
+    "connections",
+    "at"
+  ],
+  "title": "marker.place",
+  "type": "object"
+}

@@ -101,6 +101,10 @@ pub enum KindName {
     ReportBlock,
     /// `revision`.
     Revision,
+    /// `page_item` (WP-S2.04 part 4a).
+    PageItem,
+    /// `structure_box` (WP-S2.04 part 4a).
+    StructureBox,
 }
 
 impl KindName {
@@ -121,6 +125,8 @@ impl KindName {
             KindName::Bond => Kind::Bond,
             KindName::ReportBlock => Kind::ReportBlock,
             KindName::Revision => Kind::Revision,
+            KindName::PageItem => Kind::PageItem,
+            KindName::StructureBox => Kind::StructureBox,
         }
     }
 }

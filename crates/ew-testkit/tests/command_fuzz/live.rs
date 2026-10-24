@@ -301,6 +301,12 @@ pub struct Live {
     pub revisions: Vec<RevInfo>,
     /// Whether a revision has a release record (the `release` member of its extras).
     pub any_release: bool,
+    /// WP-S2.04 part 4a: `(item, page)` of every page item that `rep.move` can move (a typed variant), and of every
+    /// structure box.
+    pub page_items: Vec<(Value, Value)>,
+    pub structure_boxes: Vec<(Value, Value)>,
+    /// The connections drawn on each page that has one: `(page, connections)`.
+    pub page_connections: Vec<(Value, Vec<Value>)>,
 }
 
 /// Whether a form of this kind can be a page's frame (`project.frames.set`).
@@ -817,6 +823,25 @@ impl Live {
                 .table::<ew_schema::Revision>()
                 .iter()
                 .any(|(_, r)| r.extra.contains_key("release")),
+            page_items: q
+                .page_items()
+                .iter()
+                .filter(|(_, i)| !matches!(i.kind, ew_schema::PageItemKind::Unknown(_)))
+                .map(|(id, i)| (id_json(id), id_json(i.page)))
+                .collect(),
+            structure_boxes: q
+                .structure_boxes()
+                .iter()
+                .map(|(id, b)| (id_json(id), id_json(b.page)))
+                .collect(),
+            page_connections: q
+                .pages()
+                .ids()
+                .filter_map(|p| {
+                    let conns: Vec<Value> = q.idx().connections_by_page(p).map(id_json).collect();
+                    (!conns.is_empty()).then(|| (id_json(p), conns))
+                })
+                .collect(),
         }
     }
 

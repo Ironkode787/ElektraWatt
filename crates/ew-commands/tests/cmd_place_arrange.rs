@@ -786,6 +786,7 @@ fn steps_model() -> Model {
 
 fn steps_cmd(reps: Vec<Id<Representation>>, steps: [i64; 2]) -> MoveReps {
     MoveReps {
+        items: Vec::new(),
         reps,
         delta: pt(0, 0),
         page: None,
@@ -986,6 +987,7 @@ fn the_same_move_as_one_nm_delta_is_refused() {
     let mut e = engine(steps_model());
     let rev = e.model().rev();
     let delta = MoveReps {
+        items: Vec::new(),
         reps: reps.clone(),
         delta: p(one_step, Nm(0)),
         page: None,
@@ -1017,6 +1019,7 @@ fn move_by_steps_rejections() {
     // Steps with a non-zero delta: invalid at /steps.
     invalid_at(
         e.execute(&MoveReps {
+            items: Vec::new(),
             reps: vec![REP_102F2],
             delta: pt(G, 0),
             page: None,
@@ -1027,6 +1030,7 @@ fn move_by_steps_rejections() {
     // Steps with a page.
     invalid_at(
         e.execute(&MoveReps {
+            items: Vec::new(),
             reps: vec![REP_102F2],
             delta: pt(0, 0),
             page: Some(PAGE_101),
@@ -1479,7 +1483,10 @@ fn drawing_of(e: &Engine) -> Option<Value> {
 }
 
 fn set_drawing(crossings: Option<Option<Crossings>>) -> SetDrawing {
-    SetDrawing { crossings }
+    SetDrawing {
+        crossings,
+        marker_mode: None,
+    }
 }
 
 fn project_with_drawing(value: Value) -> Model {
@@ -1584,6 +1591,7 @@ fn drawing_set_json_distinguishes_null_from_absent() {
 #[test]
 fn rep_move_without_steps_serialises_as_before() {
     let cmd = MoveReps {
+        items: Vec::new(),
         reps: vec![REP_102F2],
         delta: pt(7_937_500, -3),
         page: None,
@@ -1598,6 +1606,7 @@ fn rep_move_without_steps_serialises_as_before() {
     assert!(!text.contains("steps"));
     // With a page, as before.
     let with_page = MoveReps {
+        items: Vec::new(),
         page: Some(PAGE_101),
         ..cmd.clone()
     };
@@ -1610,6 +1619,7 @@ fn rep_move_without_steps_serialises_as_before() {
     assert_eq!(back, cmd);
     // With steps the key is there, and `delta` can be left out.
     let steps = MoveReps {
+        items: Vec::new(),
         delta: pt(0, 0),
         steps: Some([1, -2]),
         ..cmd
@@ -1799,6 +1809,7 @@ fn run_follow_op(e: &mut Engine, op: &FollowOp) {
         FollowOp::Steps(reps, steps) => e.execute(&steps_cmd(reps.clone(), *steps)).map(|_| ()),
         FollowOp::Delta(reps, d) => e
             .execute(&MoveReps {
+                items: Vec::new(),
                 reps: reps.clone(),
                 delta: pt(d[0], d[1]),
                 page: None,

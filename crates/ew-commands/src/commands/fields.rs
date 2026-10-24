@@ -9,8 +9,8 @@ use std::collections::BTreeSet;
 
 use ew_model::Entity;
 use ew_schema::{
-    AnyId, Conductor, Connection, Device, ExternalRef, Function, Kind, Page, PotentialDef, ReportBlock,
-    Representation, Revision, Section, StructureNode,
+    AnyId, Conductor, Connection, Device, ExternalRef, Function, Kind, Page, PageItem, PotentialDef,
+    ReportBlock, Representation, Revision, Section, StructureBox, StructureNode,
 };
 use schemars::JsonSchema;
 use serde::de::DeserializeOwned;
@@ -35,6 +35,14 @@ use crate::tx::TxBuilder;
 /// Adding a `plc_module` (or changing the module's parts) instantiates its channels from the part data
 /// (normaliser N1, `channel_instantiation`). An assembly configuration's `covers` names the assembly
 /// device itself or its descendants only (doc 03 §7); any other device is rejected.
+///
+/// A page item's members (WP-S2.04 part 4a) are settable within its own variant only (`kind.free_text.text` on a
+/// free text, refused at `/path` on a graphic), never `kind` as a whole or a wire marker's `connections` (a group is
+/// changed by deleting and placing it); after the value is read back, the checks of `item.place`, `marker.place` and
+/// `box.structure` apply (degenerate shapes, an unknown `bind`, an empty text without `bind`, the angles, fewer than
+/// three outline vertices, a node of the wrong aspect, a missing external reference), refused at `/value`. An edit of
+/// a wire marker writes a clean list: entries naming a connection that does not exist or is not on its page (a file
+/// of an older build) are dropped.
 ///
 /// A revision's members are settable while it is open; a released or withdrawn revision is immutable
 /// (FR-REV-009) and refused at `/targets/<i>`. Its `state` is not settable (Open → Released is
@@ -135,6 +143,28 @@ pub const SETTABLE: &[(KindName, &[&str])] = &[
     (
         KindName::Revision,
         &["label", "date", "author", "checker", "description", "page_notes"],
+    ),
+    (
+        KindName::PageItem,
+        &[
+            "layer",
+            "kind.graphic.shape",
+            "kind.graphic.stroke",
+            "kind.graphic.dash",
+            "kind.graphic.fill",
+            "kind.free_text.text",
+            "kind.free_text.bind",
+            "kind.free_text.at",
+            "kind.free_text.angle",
+            "kind.free_text.style",
+            "kind.free_text.align",
+            "kind.wire_marker.at",
+            "kind.wire_marker.angle",
+        ],
+    ),
+    (
+        KindName::StructureBox,
+        &["outline", "style", "caption", "assigns", "external"],
     ),
 ];
 
@@ -256,6 +286,31 @@ impl SetFields {
                         let notes = tx.require::<Revision>(t.cast())?.page_notes.clone();
                         crate::commands::revision::check_page_notes(tx, Self::NAME, "/value", &notes)?;
                     }
+                }
+                KindName::PageItem => {
+                    refuse_other_variant(tx, *t, path)?;
+                    set_one::<PageItem>(tx, *t, path, value)?;
+                    let mut item = (*tx.require::<PageItem>(t.cast())?).clone();
+                    if let Some(p) = crate::commands::items::item_problem(&item) {
+                        return Err(CmdError::invalid_params(Self::NAME, "/value", p));
+                    }
+                    let before = item.clone();
+                    crate::commands::items::clean_marker(tx, &mut item);
+                    if item != before {
+                        tx.put(item);
+                    }
+                }
+                KindName::StructureBox => {
+                    set_one::<StructureBox>(tx, *t, path, value)?;
+                    let b = tx.require::<StructureBox>(t.cast())?;
+                    crate::commands::structure_box::check_box(tx, Self::NAME, "", &b).map_err(
+                        |e| match e {
+                            CmdError::InvalidParams { message, .. } => {
+                                CmdError::invalid_params(Self::NAME, "/value", message)
+                            }
+                            other => other,
+                        },
+                    )?;
                 }
                 // Junctions and bonds have no settable fields: rejected above.
                 KindName::Junction | KindName::Bond => {
@@ -404,6 +459,23 @@ fn refuse_foreign_covers(tx: &TxBuilder<'_>, device: ew_ids::Id<Device>) -> Resu
                 ));
             }
         }
+    }
+    Ok(())
+}
+
+/// A page-item path names a variant (`kind.<variant>.<member>`): it must be the record's own (WP-S2.04 §5.2).
+fn refuse_other_variant(tx: &TxBuilder<'_>, target: AnyId, path: &str) -> Result<(), CmdError> {
+    let Some(variant) = path.strip_prefix("kind.").and_then(|r| r.split('.').next()) else {
+        return Ok(());
+    };
+    let item = tx.require::<PageItem>(target.cast())?;
+    let own = item.kind.name().unwrap_or("");
+    if own != variant {
+        return Err(CmdError::invalid_params(
+            SetFields::NAME,
+            "/path",
+            format!("page item {target} is a {own}, not a {variant}; `{path}` is not one of its fields"),
+        ));
     }
     Ok(())
 }

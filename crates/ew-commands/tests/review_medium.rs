@@ -164,6 +164,7 @@ fn graphic_on_multi_line_and_bus_topology_and_multi_line_on_fluid_are_allowed() 
 fn move_refuses_a_page_whose_type_does_not_allow_the_rep() {
     let mut e = engine(with_page_type(PageType::Overview));
     let reason = rejection_reason(e.execute(&MoveReps {
+        items: Vec::new(),
         steps: None,
         reps: vec![REP_102G1],
         delta: pt(0, 0),

@@ -207,7 +207,10 @@ fn examples() -> Vec<(&'static str, Value)> {
             json!({"rep": REP_102F2.to_string(), "symbol": SYM_TWO.to_string(),
                 "pin_map": [{"symbol_cp": 0, "function_cp": 1}]}),
         ),
-        ("project.drawing.set", json!({"crossings": "hops"})),
+        (
+            "project.drawing.set",
+            json!({"crossings": "hops", "marker_mode": "explicit"}),
+        ),
         // WP-S2.05 part 2
         (
             "fields.set_many",
@@ -237,6 +240,24 @@ fn examples() -> Vec<(&'static str, Value)> {
             json!({"rep": REP_102F2.to_string(),
                 "outline": [[0, 0], [31_750_000, 0], [31_750_000, 23_812_500], [0, 23_812_500]],
                 "cps": [{"idx": 0, "pos": [7_937_500, 0], "dir": "up"}]}),
+        // WP-S2.04 part 4a
+        (
+            "box.structure",
+            json!({"page": PAGE_101.to_string(),
+                "outline": [[0, 0], [50_000_000, 0], [50_000_000, 30_000_000], [0, 30_000_000]],
+                "style": "dotted", "caption": "External Connection",
+                "assigns": {"location": LOC.to_string()}}),
+        ),
+        (
+            "item.place",
+            json!({"page": PAGE_101.to_string(),
+                "kind": {"free_text": {"text": "40x60", "at": [50_800_000, 30_480_000], "angle": 90_000,
+                    "style": "text.normal", "align": "centre"}}}),
+        ),
+        (
+            "marker.place",
+            json!({"page": PAGE_102.to_string(), "connections": [CON_W22.to_string(), CON_W27.to_string()],
+                "at": [7_937_500, 15_875_000], "angle": 90_000, "csa": "1.5", "colours": [["BK"], ["BU"]]}),
         ),
     ]
 }
@@ -265,7 +286,7 @@ fn every_registered_command_has_an_example() {
     let registry = CommandRegistry::builtin();
     let registered: BTreeSet<&str> = registry.commands().map(|c| c.meta().name).collect();
     let covered: BTreeSet<&str> = examples().iter().map(|(n, _)| *n).collect();
-    assert_eq!(registered.len(), 50);
+    assert_eq!(registered.len(), 53);
     assert_eq!(registered, covered);
     assert_eq!(examples().len(), covered.len(), "one example per command");
 }

@@ -109,6 +109,7 @@ fn touched(session: &mut Session) -> Vec<AnyKey> {
 /// A load representation moved by six by three grid steps.
 fn move_cmd(handles: &Handles) -> MoveReps {
     MoveReps {
+        items: Vec::new(),
         steps: None,
         reps: vec![handles.load_reps[0]],
         delta: Pt2::new(handles.grid.at(6).unwrap(), handles.grid.at(3).unwrap()),

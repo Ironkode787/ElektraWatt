@@ -30,7 +30,7 @@ use std::collections::BTreeSet;
 
 use ew_ids::Id;
 use ew_model::{AnyRow, EndpointKey};
-use ew_schema::{Bond, Connection, Endpoint, Junction, Kind, NumberSpec};
+use ew_schema::{Bond, Connection, Endpoint, Junction, Kind, NumberSpec, PageItem, PageItemKind};
 use ew_units::Pt2;
 
 use crate::error::CmdError;
@@ -66,8 +66,8 @@ fn candidates(tx: &TxBuilder<'_>) -> BTreeSet<Id<Junction>> {
     out
 }
 
-/// Removes a connection: drops it from the sequence of junctions at its ends and clears `via` of bonds
-/// realised by it.
+/// Removes a connection: drops it from the sequence of junctions at its ends, clears `via` of bonds
+/// realised by it, and takes it out of the wire markers that list it (a marker left empty is removed, EW-INV-023).
 fn remove_connection(tx: &mut TxBuilder<'_>, id: Id<Connection>) -> Result<(), CmdError> {
     let Some(c) = tx.get::<Connection>(id) else {
         return Ok(());
@@ -83,6 +83,20 @@ fn remove_connection(tx: &mut TxBuilder<'_>, id: Id<Connection>) -> Result<(), C
         if b.via == Some(id) {
             tx.update::<Bond>(b.id, |b| b.via = None)?;
         }
+    }
+    for m in tx.markers_of_connection(id) {
+        let Some(item) = tx.get::<PageItem>(m) else {
+            continue;
+        };
+        let mut next = (*item).clone();
+        if let PageItemKind::WireMarker(w) = &mut next.kind {
+            w.connections.retain(|c| *c != id);
+            if w.connections.is_empty() {
+                tx.remove_row((Kind::PageItem, m.cast()));
+                continue;
+            }
+        }
+        tx.put(next);
     }
     tx.remove_row((Kind::Connection, id.cast()));
     Ok(())

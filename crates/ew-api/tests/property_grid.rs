@@ -95,7 +95,7 @@ fn pg1_the_catalogue_is_the_expected_one() {
     assert!(field_catalogue("waiver").is_none());
     assert!(field_catalogue("part").is_none());
     assert!(field_catalogue("no_such_kind").is_none());
-    assert_eq!(catalogue_kinds().count(), 19);
+    assert_eq!(catalogue_kinds().count(), 21);
 }
 
 #[test]
@@ -196,6 +196,22 @@ fn pg1_the_json_fallbacks_of_settable_paths_are_the_listed_ones() {
         "representation text_slots[].pos",
         "connection kind",
         "connection number",
+        // WP-S2.04 part 4a: the positions and the nested shape members (cut at the walker's depth) of the two kinds.
+        "page_item kind.graphic.shape.line.a",
+        "page_item kind.graphic.shape.line.b",
+        "page_item kind.graphic.shape.polyline.points",
+        "page_item kind.graphic.shape.rect.max",
+        "page_item kind.graphic.shape.rect.min",
+        "page_item kind.graphic.shape.circle.centre",
+        "page_item kind.graphic.shape.circle.r",
+        "page_item kind.graphic.shape.arc.centre",
+        "page_item kind.graphic.shape.arc.r",
+        "page_item kind.graphic.shape.arc.start",
+        "page_item kind.graphic.shape.arc.sweep",
+        "page_item kind.graphic.shape.polygon.points",
+        "page_item kind.free_text.at",
+        "page_item kind.wire_marker.at",
+        "structure_box outline[]",
         "report_block empty",
     ];
     assert_eq!(fallbacks, expected, "{fallbacks:#?}");

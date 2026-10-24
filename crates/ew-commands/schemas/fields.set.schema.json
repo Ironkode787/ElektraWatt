@@ -79,6 +79,16 @@
           "const": "revision",
           "description": "`revision`.",
           "type": "string"
+        },
+        {
+          "const": "page_item",
+          "description": "`page_item` (WP-S2.04 part 4a).",
+          "type": "string"
+        },
+        {
+          "const": "structure_box",
+          "description": "`structure_box` (WP-S2.04 part 4a).",
+          "type": "string"
         }
       ]
     }
