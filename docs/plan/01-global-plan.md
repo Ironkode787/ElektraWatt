@@ -448,7 +448,7 @@ tell the AI effect from estimation error.
 *Decision log ID-271 (project owner, delegated).* EW is built in **implementation cycles** by AI agents under the
 routing policy of [CLAUDE.md](../../CLAUDE.md): a cycle dispatches two or three lanes, has each reviewed
 independently, fixes the findings, records the decisions in a design pass and integrates once; a work package lands
-every few hours, not every few weeks. Since the owner's rulings of 2026-10-24 and 2026-10-25 (decision log ID-653) the Claude leads design and review, the DeepSeek coder does every task with a closed specification, and at most two lanes build at once. The capacity model of §2 (36 productive pw per developer-year) and the months
+every few hours, not every few weeks. Since the owner's rulings of 2026-10-24 and 2026-10-25 (decision log ID-653) the Claude leads design and review, the DeepSeek coder does every task with a closed specification, and at most three builders run at once (a lane's building DeepSeek round or its own cargo run, a gate or a verify chain; one building round per lane; two from 2026-10-25 until the evening of 2026-10-24). The capacity model of §2 (36 productive pw per developer-year) and the months
 of §3.4 to §3.7 and §9 do not describe that pace. They are kept as the **reference of a human-team scenario**: what
 the same scope costs a team of 2–4 developers, which the funding plan (§13), the descoping ladder (§16) and any
 hand-over to a human team still need. They are not this project's forecast, and the cycle-8 re-baseline "M1 from
