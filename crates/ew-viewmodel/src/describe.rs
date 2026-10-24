@@ -1751,7 +1751,7 @@ mod tests {
             .copied()
             .filter(|k| ew_api::output::field_catalogue(k).is_some())
             .collect();
-        assert_eq!(sheet_kinds.len(), 19, "{sheet_kinds:?}");
+        assert_eq!(sheet_kinds.len(), 21, "{sheet_kinds:?}");
         for k in sheet_kinds.iter().chain(&["page_item", "structure_box"]) {
             assert!(VOCABULARY.contains(k), "`{k}` is not in VOCABULARY");
         }

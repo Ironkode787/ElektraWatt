@@ -794,11 +794,21 @@ fn shape_bounds(shape: &ew_derive::ew_schema::GraphicShape) -> Option<[i64; 4]> 
 /// The page items of a page as table rows, by position (see [`PageTables::items`]).
 fn item_rows(q: &Q, page: Id<Page>) -> Vec<TableItem> {
     use ew_derive::ew_schema::PageItemKind as K;
-    let page_ref = PageRef::Drawn(page);
-    let drawn: Vec<(ew_dl::EntityRef, Rect)> = [ew_dl::Layer::Symbols, ew_dl::Layer::Labels]
-        .into_iter()
-        .flat_map(|l| super::layers::page_layer(q, page_ref, l).list.entity_bounds())
-        .collect();
+    let items = q.page_items();
+    let mut ids: Vec<_> = q.idx().page_items_by_page(page).collect();
+    ids.sort();
+    let records: Vec<_> = ids.into_iter().filter_map(|id| items.get(id).cloned()).collect();
+    // The drawn items of the page's texts and group markers (the labels layer), read only when the page has one.
+    let texts = records
+        .iter()
+        .any(|i| matches!(i.kind, K::FreeText(_) | K::WireMarker(_)));
+    let drawn: Vec<(ew_dl::EntityRef, Rect)> = if texts {
+        super::layers::page_layer(q, PageRef::Drawn(page), ew_dl::Layer::Labels)
+            .list
+            .entity_bounds()
+    } else {
+        Vec::new()
+    };
     let drawn_bounds = |id: Uuid| {
         drawn
             .iter()
@@ -807,12 +817,8 @@ fn item_rows(q: &Q, page: Id<Page>) -> Vec<TableItem> {
             .flat_map(|r| [pt(r.min()), pt(r.max())])
             .collect::<Vec<_>>()
     };
-    let items = q.page_items();
-    let mut ids: Vec<_> = q.idx().page_items_by_page(page).collect();
-    ids.sort();
-    let mut rows: Vec<TableItem> = ids
+    let mut rows: Vec<TableItem> = records
         .into_iter()
-        .filter_map(|id| items.get(id).cloned())
         .map(|item| {
             let id = item.id.as_uuid();
             let (kind, bounds) = match &item.kind {

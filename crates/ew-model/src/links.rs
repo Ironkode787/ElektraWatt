@@ -344,7 +344,7 @@ const BOX_SLOTS: [LinkDecl; 7] = [
 
 /// `page_item.kind.wire_marker.connections[]` (EW-INV-023): unlink, load-tolerant; a marker left without
 /// connections is dropped (deleted in the same plan).
-const MARKER_CONNECTIONS: LinkDecl = LinkDecl {
+const MARKER_LIST_LINK: LinkDecl = LinkDecl {
     load_tolerant: true,
     ..link!(PageItem."kind.wire_marker.connections[]" -> Connection, Unlink, None,
     |v, out| {
@@ -614,7 +614,7 @@ pub static LINKS: &[LinkDecl] = &[
     lineage_link!(DeviceLink),
     // page_item (WP-S2.04 part 4a; EW-INV-022, EW-INV-023)
     link!(PageItem."page" -> Page, Cascade, Some(I::PageItemsByPage), |v, out| id(v.page, out)),
-    MARKER_CONNECTIONS,
+    MARKER_LIST_LINK,
     // structure_box (WP-S2.04 part 4a; EW-INV-022)
     link!(StructureBox."page" -> Page, Cascade, Some(I::StructureBoxesByPage), |v, out| id(v.page, out)),
     BOX_SLOTS[0],
