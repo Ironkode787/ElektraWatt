@@ -26,8 +26,10 @@ can be: a `Cascade` link never can; otherwise the member holding it, or the opti
 without it, with a notice; else the paste is refused. A child device whose parent is cleared also loses its
 `position`, and a `child` tag scheme. (5) Translation in grid steps: `Δk = index(at) − index(anchor)` per
 axis; a grid coordinate becomes the grid point at its index plus `Δk`, any other moves by
-`round_half_away(Δk × num / den)`; routes follow their ends as `rep.move`'s `steps` move them. (6) Tag
-counters and frozen tags are cleared, wire numbers become unassigned, so the normalisers number the copies.
+`round_half_away(Δk × num / den)`; routes follow their ends as `rep.move`'s `steps` move them. (6) Frozen tags
+are cleared and wire numbers become unassigned; tag counters are cleared and the copies that take part in
+page-based numbering get the next free counter of their main page's scope in fragment order (the online-numbering
+rule), so the tags follow the fragment's position order and not the minted IDs.
 
 Cost: `Bulk` above 500 records. Outcome: the first pasted representation; the notices name every cleared
 reference and unmatched structure node.
