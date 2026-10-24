@@ -489,6 +489,33 @@ fn pg11_exact_counts_of_the_grid() {
     shell.shutdown();
 }
 
+/// Window check, item 6: a page change leaves the shell's selection alone but the pane shows the page's own sheet, not
+/// the header of the records selected on the page it left.
+#[test]
+fn a_page_change_shows_the_pages_sheet_not_the_old_selection() {
+    let tmp = Tmp::new("props-page-change");
+    let mut shell = writable(&tmp, "101");
+    let ids: Vec<String> = shell
+        .canvas()
+        .unwrap()
+        .page()
+        .tables
+        .reps
+        .iter()
+        .take(12)
+        .map(|r| r.id.to_string())
+        .collect();
+    assert_eq!(ids.len(), 12);
+    done(&mut shell, "select.set", json!({ "ids": ids }));
+    assert_eq!(shell.properties().sheet().unwrap().header.items, 12);
+    done(&mut shell, "page.goto", json!({"folio": "102"}));
+    assert_eq!(shell.selection().items.len(), 12, "the selection survives");
+    let sheet = shell.properties().sheet().expect("the page's sheet");
+    assert_eq!(sheet.sections[0].kind, "page");
+    assert_eq!(sheet.header.items, 1, "the page on show");
+    shell.shutdown();
+}
+
 /// The stored JSON of row `key`.
 fn json_of(shell: &ShellModel, key: &str) -> Value {
     let sheet = shell.properties().sheet().expect("a sheet");

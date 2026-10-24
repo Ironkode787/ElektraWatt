@@ -1020,6 +1020,9 @@ impl CanvasHost {
                     point_with(Self::sheet_point(rect, canvas, pos), m),
                 ));
                 self.views[group].pressed = false;
+                // The drag ends here; its band goes with the release's answer. Paint the frame after it rather than
+                // leaving the band on screen until the pointer moves again (window check, item 5).
+                ui.ctx().request_repaint();
             }
         }
         let Some(pos) = hover else {

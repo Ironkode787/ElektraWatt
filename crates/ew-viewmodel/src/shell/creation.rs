@@ -72,18 +72,24 @@ const SIGNS: [(&str, &str); 7] = [
 ];
 
 /// `text` as the code of a node of `aspect`: the aspect's own prefix sign (`+J-E-206`) is taken off, another aspect's sign
-/// is refused with a text naming both.
+/// is refused with a text naming both, and any sign left in the code (`+K1+K2`) is refused: a designation names one
+/// aspect, so it holds one sign.
 fn strip_sign(aspect: &str, text: &str) -> Result<String, String> {
-    let Some(&(sign, of)) = SIGNS.iter().find(|e| text.starts_with(e.0)) else {
-        return Ok(text.to_owned());
+    let code = match SIGNS.iter().find(|e| text.starts_with(e.0)) {
+        Some(&(sign, of)) if of == aspect => &text[sign.len()..],
+        Some(&(sign, of)) => {
+            return Err(strings::format(
+                "error-wrong-sign",
+                &[text, sign, &of.replace('_', " "), &aspect.replace('_', " ")],
+            ));
+        }
+        None => text,
     };
-    if of == aspect {
-        return Ok(text[sign.len()..].trim().to_owned());
+    let code = code.trim();
+    if let Some((second, _)) = SIGNS.iter().find(|(sign, _)| code.contains(sign)) {
+        return Err(strings::format("error-second-sign", &[text, second]));
     }
-    Err(strings::format(
-        "error-wrong-sign",
-        &[text, sign, &of.replace('_', " "), &aspect.replace('_', " ")],
-    ))
+    Ok(code.to_owned())
 }
 
 /// The codes from the root to node `id` in `nodes` (id, code, parent id).
@@ -230,6 +236,29 @@ fn text_param(p: &Map<String, Value>, name: &str) -> Result<String, Outcome> {
         Some(Value::Number(n)) => Ok(n.to_string()),
         Some(_) => Err(failed("error-bad-param", &[name])),
     }
+}
+
+/// The ID text of the section whose folio range contains `number`, else `None` (a page outside every section is front
+/// matter).
+fn section_of(shell: &ShellModel, number: u32) -> Option<String> {
+    let q = shell.project.as_ref()?.session.query();
+    let mut sections: Vec<(u16, u32, u32, String)> = q
+        .sections()
+        .iter()
+        .map(|(id, s)| {
+            (
+                s.number,
+                s.folio_range.0,
+                s.folio_range.1,
+                id.as_uuid().to_string(),
+            )
+        })
+        .collect();
+    sections.sort();
+    sections
+        .into_iter()
+        .find(|(_, first, last, _)| (*first..=*last).contains(&number))
+        .map(|(_, _, _, id)| id)
 }
 
 /// The folio of `text`: its number is the leading digits; any more text makes the whole text the folio's label
@@ -477,6 +506,10 @@ impl ShellModel {
                 Ok(id) => params["section"] = Value::String(id.to_string()),
                 Err(message) => return self.form_failed(&PAGE_NEW, message),
             }
+        } else if let Some(id) = section_of(self, number) {
+            // A new page belongs to the section whose folio range holds its number (window check, item 7): a sub-page
+            // of 102 in the range 100–199 sits beside 102 in the navigator, not in the section-less group.
+            params["section"] = Value::String(id);
         }
         let out = self.host_create("page.create", params);
         let out = self.form_done(&PAGE_NEW, out);

@@ -350,6 +350,22 @@ fn editable_page(m: &ShellModel) -> Result<(), &'static str> {
     }
 }
 
+/// A drawn page of a writable project for Paste (window check, item 3): the page's kind is checked by the action, which
+/// refuses it with `reason-paste-page-kind` and the kind's name in the status bar; the menu disables it with that text.
+fn paste_page(m: &ShellModel) -> Result<(), &'static str> {
+    has_pages(m)?;
+    writable(m)?;
+    // A page kind that takes no paste may have no canvas at all (a generated report): the action still runs, so it can
+    // refuse with the kind's reason rather than the general one.
+    if m.paste_page_kind().is_some() {
+        return Ok(());
+    }
+    match m.canvas() {
+        Some(c) if !c.page().tables.page.is_nil() => Ok(()),
+        _ => Err("reason-not-editable"),
+    }
+}
+
 /// An editable page whose type has a connection kind the Wire tool draws (WP-S2.04 part 2, fix round item 1).
 fn wire_page(m: &ShellModel) -> Result<(), &'static str> {
     editable_page(m)?;
@@ -1461,7 +1477,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             "action-edit-paste-clip",
             Menu::Edit,
             &["Ctrl+V"],
-            editable_page,
+            paste_page,
             slot(Menu::Edit),
         )),
     ),
@@ -2830,13 +2846,19 @@ pub struct MenuModel {
 
 fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
     let state = (meta.enabled)(model);
+    // Paste names the page kind that cannot take it (window check, item 3): the reason is a text with the kind, not a
+    // plain key, so the item formats it here.
+    let paste_reason = (meta.id == "edit.paste_clip" && state.is_ok())
+        .then(|| model.paste_page_reason())
+        .flatten();
+    let enabled = state.is_ok() && paste_reason.is_none();
     ActionItem {
         id: meta.id,
         params: Value::Object(serde_json::Map::new()),
         label: strings::text(meta.label_key).to_owned(),
         shortcut: shortcut_text(meta),
-        enabled: state.is_ok(),
-        reason: state.err().map(|k| strings::text(k).to_owned()),
+        enabled,
+        reason: paste_reason.or_else(|| state.err().map(|k| strings::text(k).to_owned())),
         checked: match meta.id {
             "view.grid" => model.grid_on(),
             "view.frame_stats" => model.frame_stats_shown(),

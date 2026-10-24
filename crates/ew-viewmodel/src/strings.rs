@@ -633,6 +633,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "reason-copy-generated" => "Generated content is not copied",
         "reason-clipboard-empty" => "The clipboard is empty",
         "reason-not-a-fragment" => "The clipboard holds no ElektraWatt fragment",
+        "reason-paste-page-kind" => "Nothing can be pasted on a {0} page",
         "reason-no-tags" => "No device is selected",
         "tool-paste" => "Paste",
         "hint-paste" => "Click or Enter to paste; Escape ends",
@@ -960,6 +961,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         }
         "node-candidate-under" => "{0} (under {1})",
         "node-candidate-top" => "{0} (top level)",
+        "error-second-sign" => "\"{0}\" contains a second aspect sign {1}; give one designation",
         "error-wrong-sign" => {
             "\"{0}\" starts with {1}, the sign of the {2} aspect, but this node is in the {3} aspect."
         }

@@ -293,6 +293,7 @@ impl App {
         // the shell refuses now is dispatched, so its reason shows.
         if action == "edit.paste_clip"
             && params.get("text").is_none()
+            && self.shell.paste_page_reason().is_none()
             && ew_viewmodel::actions::find(action).is_some_and(|a| (a.enabled)(&self.shell).is_ok())
         {
             self.request_paste = true;
@@ -737,7 +738,11 @@ impl App {
     /// The file dialogs the shell asked for: their answers are dispatched like any other input.
     fn answer_prompts(&mut self, ctx: &egui::Context) {
         while let Some(request) = self.shell.take_prompt() {
-            let path = match self.platform.pick(request.prompt) {
+            // A native dialog blocks the event loop and returns no egui event: without this request the frame after it
+            // is not painted until the pointer moves (the File menu stayed drawn, the import card appeared late).
+            let pick = self.platform.pick(request.prompt);
+            ctx.request_repaint();
+            let path = match pick {
                 Pick::Path(path) => path,
                 Pick::Cancelled => continue,
                 Pick::Unavailable => {

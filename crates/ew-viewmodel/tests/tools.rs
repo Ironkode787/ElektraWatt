@@ -154,6 +154,32 @@ fn t4_bands_left_to_right_enclose_and_right_to_left_touch() {
     shell.shutdown();
 }
 
+/// Window check, item 5: the rubber band is gone when its drag ends and when the page changes under it, not only on
+/// the next pointer move.
+#[test]
+fn a_band_leaves_no_overlay_on_release_or_page_change() {
+    let tmp = Tmp::new("tools-band-clear");
+    let mut shell = tmp.shell("103");
+    let empty = empty_point(shell.canvas().unwrap());
+    let (w, h) = shell.canvas().unwrap().sheet();
+    let far = (w * 3 / 5, h * 3 / 5);
+    done(&mut shell, "canvas.press", at(empty, json!({})));
+    done(&mut shell, "canvas.pointer", at(far, json!({})));
+    assert_eq!(shell.tool().state(), "rubber-band");
+    assert!(!shell.tool_overlay().is_empty(), "the band is drawn");
+    done(&mut shell, "canvas.release", at(far, json!({})));
+    assert_eq!(shell.tool().state(), "idle");
+    assert!(shell.tool_overlay().is_empty(), "no band after the release");
+    // A band still open when the page changes is dropped with the page.
+    done(&mut shell, "canvas.press", at(empty, json!({})));
+    done(&mut shell, "canvas.pointer", at(far, json!({})));
+    assert_eq!(shell.tool().state(), "rubber-band");
+    done(&mut shell, "page.goto", json!({"folio": "102"}));
+    assert_eq!(shell.tool().state(), "idle");
+    assert!(shell.tool_overlay().is_empty(), "no band after the page change");
+    shell.shutdown();
+}
+
 #[test]
 fn t4_a_click_on_a_link_follows_it_and_the_selection_survives_tabs() {
     let tmp = Tmp::new("tools-t4c");

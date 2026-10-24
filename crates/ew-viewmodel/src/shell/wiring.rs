@@ -29,8 +29,8 @@ impl ShellModel {
     }
 
     /// The text of a canvas key the host refused, shown in place of the tool's hint until the next canvas input.
-    pub fn tool_notice(&self) -> Option<&'static str> {
-        self.tools.notice.map(strings::text)
+    pub fn tool_notice(&self) -> Option<&str> {
+        self.tools.notice.as_deref()
     }
 
     /// Exactly one junction is selected on the focused page (`junction.open`'s condition, §8.5).

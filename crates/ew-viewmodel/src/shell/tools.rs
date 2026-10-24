@@ -342,6 +342,15 @@ impl ShellModel {
                 self.tools.preview = None;
                 Outcome::Done
             }
+            ToolOutput::Refused(reason_key) => {
+                // The same path as a refused canvas key: the status bar shows the reason until the next canvas input.
+                // A refusal ends the gesture it answers: its ghost and its kept preview go, as a refused release's
+                // `Select` and the old `Transient(Overlay::default())` did (review fix, F1).
+                self.tools.overlay = Overlay::default();
+                self.tools.preview = None;
+                self.tools.notice = Some(strings::text(reason_key).to_owned());
+                Outcome::Refused { reason_key }
+            }
             ToolOutput::Select(change) => {
                 self.tools.overlay = Overlay::default();
                 if self.tools.selection.apply(&change) {

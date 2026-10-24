@@ -144,15 +144,23 @@ impl ShellModel {
         rows.first().map(|r| r.row.key.clone())
     }
 
-    /// The records the sheet is for: the project in `props.project` mode, else the selection, else the focused page.
+    /// The records the sheet is for: the project in `props.project` mode, else the selection made on the page on show,
+    /// else the focused page. A page change leaves the selection in the shell (it survives tabs and pages), but the pane
+    /// shows its own sheet again until the selection is made on the new page (window check, item 6).
     fn sheet_ids(&self) -> Vec<EntityRef> {
         let Some(p) = &self.project else {
             return Vec::new();
         };
-        if self.props.project_mode == Some(self.tools.selection.generation) {
+        let generation = self.tools.selection.generation;
+        if self.props.project_mode == Some(generation) {
             return vec![EntityRef(p.session.query().project().id.as_uuid())];
         }
-        if !self.tools.selection.is_empty() {
+        let made_here = self
+            .props
+            .selection_page
+            .as_ref()
+            .is_some_and(|(g, page)| *g == generation && *page == self.current_page());
+        if !self.tools.selection.is_empty() && made_here {
             return self.tools.selection.items.clone();
         }
         match self.current_page().map(|id| id.0) {
@@ -163,6 +171,17 @@ impl ShellModel {
 
     /// Fetches the sheet when the pane is shown and its key changed (the end of every dispatch, a layout change).
     pub(super) fn sync_properties(&mut self) {
+        // The page a selection was made on: a page change with nothing selected there shows the page's own sheet
+        // (window check, item 6).
+        let generation = self.tools.selection.generation;
+        if self
+            .props
+            .selection_page
+            .as_ref()
+            .is_none_or(|(g, _)| *g != generation)
+        {
+            self.props.selection_page = Some((generation, self.current_page()));
+        }
         if !self.properties_shown() {
             self.props.sheet = None;
             self.props.key = None;

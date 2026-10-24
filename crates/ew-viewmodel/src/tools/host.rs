@@ -122,9 +122,9 @@ pub(crate) struct ToolHost {
     pub before_commit: Option<Arc<PageTables>>,
     /// The junction sequence editor popup (WP-S2.04 part 2, §8.5), while open.
     pub junction_editor: Option<JunctionEditor>,
-    /// The reason key of a canvas key the host refused (C, connect on move): the status bar shows its text in place of
-    /// the tool's hint until the next canvas input (WP-S2.04 part 2, window check).
-    pub notice: Option<&'static str>,
+    /// The text of a canvas key the host or a tool refused (C, connect on move; an inside-out grip): the status bar
+    /// shows it in place of the tool's hint until the next canvas input (WP-S2.04 part 2, window check).
+    pub notice: Option<String>,
     // WP-S2.05 part 3
     /// The paste tool committed: at the end of the dispatch Select takes over with the pasted representations selected.
     pub pasted: bool,

@@ -10,6 +10,9 @@
 mod common;
 
 use common::{Tmp, at, done, refused, state};
+use ew_viewmodel::actions::{MenuEntry, find, menu_model, parse_signature};
+use ew_viewmodel::ew_api::output::parse_fragment;
+use ew_viewmodel::ew_api::{AnyCommand, CmdError, Origin, Session, Submit};
 use ew_viewmodel::properties::{RowValue, find_row};
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::{Value, json};
@@ -51,6 +54,99 @@ fn the_dropped_count_survives_a_paste_of_the_same_text() {
     let other = text.replacen("\"letter\":\"F\"", "\"letter\":\"K\"", 1);
     done(&mut shell, "edit.paste_clip", json!({ "text": other }));
     assert_eq!(state(&shell)["canvas"]["ghost"]["dropped"], 0);
+    shell.shutdown();
+}
+
+/// Window check, item 3: Ctrl+V on a page whose kind takes no paste says why and starts no paste tool; Edit ▸ Paste is
+/// disabled with the same reason.
+#[test]
+fn a_paste_on_a_page_that_cannot_take_it_is_refused_with_its_reason() {
+    let tmp = Tmp::new("clip-page-kind");
+    let mut shell = writable(&tmp, "102");
+    select_rep(&mut shell, "-102F1");
+    done(&mut shell, "edit.copy", json!({}));
+    for (folio, kind) in [("1", "title page"), ("901", "report page")] {
+        done(&mut shell, "page.goto", json!({"folio": folio}));
+        assert_eq!(
+            shell.dispatch("edit.paste_clip", &json!({})),
+            Outcome::Refused {
+                reason_key: "reason-paste-page-kind"
+            },
+            "paste on folio {folio}"
+        );
+        let expected = format!("Nothing can be pasted on a {kind}");
+        assert_ne!(shell.tool().name(), "paste", "no paste tool on folio {folio}");
+        assert_eq!(shell.status_fields(false)[0], expected);
+        let item = menu_model(&shell)
+            .into_iter()
+            .flat_map(|m| m.entries)
+            .find_map(|e| match e {
+                MenuEntry::Item(i) if i.id == "edit.paste_clip" => Some(i),
+                _ => None,
+            })
+            .expect("Edit ▸ Paste");
+        assert!(!item.enabled, "disabled on folio {folio}");
+        assert_eq!(item.reason.as_deref(), Some(expected.as_str()));
+    }
+    shell.shutdown();
+}
+
+/// F2: `paste_page_kind`'s list must agree with `edit.paste`'s own page-kind check for every kind `page.new` offers
+/// (plus a generated report page). A multi-line fragment may be refused on a schematic page for its representation
+/// type, so the comparison is the page-level refusal (`/page`) itself, not any refusal.
+#[test]
+fn the_paste_page_kinds_agree_with_the_paste_command() {
+    let tmp = Tmp::new("clip-page-kinds");
+    let mut shell = writable(&tmp, "101");
+    select_rep(&mut shell, "-101F1");
+    done(&mut shell, "edit.copy", json!({}));
+    let text = shell.clipboard().text().unwrap().to_owned();
+    // The shell's own list of page kinds is the `type` enum of `page.new` (a test compares it to `PAGE_TYPES`).
+    let sig = parse_signature(find("page.new").unwrap().params).unwrap();
+    let ty = &sig.iter().find(|p| p.name == "type").unwrap().ty;
+    let kinds: Vec<&str> = ty
+        .strip_prefix("enum(")
+        .and_then(|t| t.strip_suffix(')'))
+        .unwrap()
+        .split('|')
+        .collect();
+    let mut pages: Vec<(String, String)> = Vec::new();
+    for (i, kind) in kinds.iter().enumerate() {
+        let folio = (1000 + i).to_string();
+        done(&mut shell, "page.new", json!({"folio": folio, "type": kind}));
+        pages.push(((*kind).to_owned(), folio));
+    }
+    done(&mut shell, "file.save", json!({}));
+    let (mut session, _) = Session::open_read_only(&tmp.0.join("J-E-2416.ew"), "0.0.0-test").unwrap();
+    let rows = session.page_rows();
+    let report = rows
+        .iter()
+        .find(|r| r.kind == "report")
+        .expect("a generated report page");
+    pages.push(("report".to_owned(), report.folio.clone()));
+    let fragment = parse_fragment(&text).unwrap();
+    let anchor = fragment.params["anchor"].clone();
+    for (kind, folio) in pages {
+        done(&mut shell, "page.goto", json!({"folio": folio}));
+        let shell_refuses = shell.paste_page_kind().is_some();
+        let row = rows
+            .iter()
+            .find(|r| r.folio == folio)
+            .unwrap_or_else(|| panic!("no {kind} page {folio}"));
+        let cmd = AnyCommand {
+            name: "edit.paste".into(),
+            params: json!({
+                "page": row.id.to_string(),
+                "at": anchor,
+                "fragment": fragment.params.clone(),
+            }),
+        };
+        let command_refuses_page = match session.preview_with(&cmd, Submit::from(Origin::Gui)) {
+            Err(CmdError::InvalidParams { path, .. }) => path == "/page",
+            _ => false,
+        };
+        assert_eq!(shell_refuses, command_refuses_page, "{kind} on folio {folio}");
+    }
     shell.shutdown();
 }
 

@@ -11,6 +11,7 @@ use common::{Tmp, at, done, refused};
 use ew_viewmodel::actions::{MenuEntry, menu_model};
 use ew_viewmodel::describe::{FREE_TEXT_MARKERS, VOCABULARY, describe};
 use ew_viewmodel::ew_api::Session;
+use ew_viewmodel::navigator::RowKind;
 use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellConfig, ShellModel};
 use ew_viewmodel::tools::PreviewStatus;
 use serde_json::{Value, json};
@@ -363,6 +364,113 @@ fn structure_designations_are_refused_when_unknown_wrong_or_ambiguous() {
     assert_eq!(
         failed(&mut shell, "external_ref.new", json!({"location": "A"})),
         "Missing parameter `device`."
+    );
+    shell.shutdown();
+}
+
+#[test]
+fn a_new_sub_page_sits_under_its_section_beside_its_number() {
+    let tmp = Tmp::new("page-sub");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    done(&mut shell, "page.new", json!({"folio": "102.9"}));
+    let rows = shell.navigator_rows();
+    let at = |folio: &str| {
+        rows.iter()
+            .position(|r| matches!(r.kind, RowKind::Page(i) if shell.page_rows()[i].folio == folio))
+            .unwrap_or_else(|| panic!("no {folio} row in {rows:?}"))
+    };
+    let (plain, sub) = (at("102"), at("102.9"));
+    assert_eq!(sub, plain + 1, "102.9 follows 102");
+    assert_eq!(rows[sub].parent, rows[plain].parent);
+    let parent = rows[sub].parent.as_deref().expect("a section");
+    let section = rows.iter().find(|r| r.key == parent).expect("the section row");
+    assert!(
+        matches!(&section.kind, RowKind::Node { label, .. } if label == "Section 1 - Wiring Definition"),
+        "{:?}",
+        section.kind
+    );
+    shell.shutdown();
+}
+
+#[test]
+fn a_new_page_outside_every_section_stays_front_matter() {
+    let tmp = Tmp::new("page-front");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    for folio in ["50", "1000"] {
+        done(&mut shell, "page.new", json!({"folio": folio}));
+        let row = shell
+            .page_rows()
+            .iter()
+            .find(|r| r.folio == folio)
+            .unwrap_or_else(|| panic!("no page {folio}"));
+        assert!(row.section.is_none(), "{folio} is front matter");
+    }
+    done(&mut shell, "page.new", json!({"folio": "102.9"}));
+    let rows = shell.navigator_rows();
+    let at = |folio: &str| {
+        rows.iter()
+            .position(|r| matches!(r.kind, RowKind::Page(i) if shell.page_rows()[i].folio == folio))
+            .unwrap_or_else(|| panic!("no {folio} row in {rows:?}"))
+    };
+    for folio in ["50", "1000"] {
+        assert_eq!(
+            rows[at(folio)].parent.as_deref(),
+            Some("s:front"),
+            "{folio} under the section-less group"
+        );
+    }
+    // 102.9 is still in section 1, directly after 102 (its number is inside the range).
+    let (plain, sub) = (at("102"), at("102.9"));
+    assert_eq!(sub, plain + 1, "102.9 follows 102");
+    assert_eq!(rows[sub].parent, rows[plain].parent);
+    let parent = rows[sub].parent.as_deref().expect("a section");
+    let section = rows.iter().find(|r| r.key == parent).expect("the section row");
+    assert!(
+        matches!(&section.kind, RowKind::Node { label, .. } if label == "Section 1 - Wiring Definition"),
+        "{:?}",
+        section.kind
+    );
+    shell.shutdown();
+}
+
+#[test]
+fn a_second_aspect_sign_is_refused_and_one_sign_still_creates() {
+    let tmp = Tmp::new("structure-second-sign");
+    let mut shell = new_project(&tmp, Mode::Headless);
+    for (text, sign) in [("+K1+K2", "+"), ("K1+K2", "+")] {
+        assert_eq!(
+            failed(
+                &mut shell,
+                "structure.new",
+                json!({"kind": "location", "designation": text}),
+            ),
+            format!("\"{text}\" contains a second aspect sign {sign}; give one designation")
+        );
+    }
+    // The parent and the location text are checked the same way.
+    for (action, params) in [
+        (
+            "structure.new",
+            json!({"kind": "location", "designation": "K1", "parent": "+K1+K2"}),
+        ),
+        ("external_ref.new", json!({"location": "+K1+K2", "device": "d"})),
+    ] {
+        assert_eq!(
+            failed(&mut shell, action, params),
+            "\"+K1+K2\" contains a second aspect sign +; give one designation",
+            "{action}"
+        );
+    }
+    done(
+        &mut shell,
+        "structure.new",
+        json!({"kind": "location", "designation": "+K1"}),
+    );
+    done(&mut shell, "file.save", json!({}));
+    let (nodes, _) = saved_structure(&tmp);
+    assert!(
+        nodes.contains(&("location".into(), "K1".into(), None)),
+        "{nodes:?}"
     );
     shell.shutdown();
 }

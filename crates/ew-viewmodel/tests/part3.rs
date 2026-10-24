@@ -647,6 +647,54 @@ fn ib6_widening_g1_by_two_grid_steps_keeps_its_cps_on_the_outline_and_connected(
 }
 
 #[test]
+fn an_inside_out_grip_drag_is_refused_and_leaves_the_box_alone() {
+    let tmp = Tmp::new("grip-inside-out");
+    let mut s = shell(&tmp, "102");
+    let before = g1(&tables(&s));
+    select_ids(&mut s, &[before.id.to_string()]);
+    let grips = s.tool_overlay().clone();
+    assert!(!grips.is_empty(), "the selected box shows its grips");
+    let b = before.black_box.as_ref().unwrap();
+    // Grip 5 is the right edge's midpoint; one grid step inward is valid, past the left edge is not.
+    let mid = ew_viewmodel::tools::black_box::grip_points(&b.outline)[5];
+    let from = sheet(&s, mid);
+    let k = index_of(&s, mid);
+    let left = index_of(&s, b.outline[0]).0;
+    let inward = sheet(&s, grid_point(&s, (k.0 - 1, k.1)));
+    let to = sheet(&s, grid_point(&s, (left - 2, k.1)));
+    done(&mut s, "canvas.press", at(from, json!({})));
+    assert_eq!(s.tool().state(), "dragging");
+    done(&mut s, "canvas.pointer", at(inward, json!({})));
+    assert!(!s.tool_overlay().is_empty(), "the valid reshape ghost");
+    assert_ne!(s.tool_overlay(), &grips, "the ghost is not the grips");
+    done(&mut s, "canvas.dwell", json!({"ms": 80}));
+    assert!(s.preview_state().is_some(), "the valid dwell preview");
+    assert_eq!(
+        refused(&mut s, "canvas.pointer", at(to, json!({}))),
+        "reason-box-inside-out"
+    );
+    assert!(
+        s.tool_overlay().is_empty(),
+        "the refused move clears the reshape ghost"
+    );
+    assert!(s.preview_state().is_none(), "and its kept preview");
+    assert_eq!(
+        refused(&mut s, "canvas.release", at(to, json!({}))),
+        "reason-box-inside-out"
+    );
+    assert!(
+        s.tool_overlay().is_empty() || s.tool_overlay() == &grips,
+        "the refused release leaves the grips, not a reshape ghost"
+    );
+    assert_eq!(g1(&tables(&s)).black_box, before.black_box, "the box stays");
+    assert_eq!(s.tool().state(), "idle");
+    assert_eq!(
+        s.status_fields(false)[0],
+        "A grip cannot pass the opposite side of the black box"
+    );
+}
+
+#[test]
 fn a_cp_is_added_on_the_outline_and_dragged_along_it() {
     let tmp = Tmp::new("box-cp");
     let mut s = shell(&tmp, "102");

@@ -321,29 +321,41 @@ impl SelectTool {
         })
     }
 
-    /// The command of a grip or CP drag at its current point; `None` while it changes nothing or cannot be done.
-    fn box_command(&self, cx: &ToolCx<'_>) -> Option<Box<ew_api::AnyCommand>> {
-        match &self.state {
+    /// The command of a grip or CP drag at its current point; `Ok(None)` while it changes nothing or cannot be done,
+    /// `Err` with the refusal the grip itself produces (an inside-out box).
+    fn box_command(&self, cx: &ToolCx<'_>) -> Result<Option<Box<ew_api::AnyCommand>>, &'static str> {
+        Ok(match &self.state {
             State::Grip { rep, grip, to } => {
-                let r = black_box::black_box_rep(cx, *rep)?;
-                let outline = &r.black_box.as_ref()?.outline;
-                let new = black_box::reshape_by_grip(outline, *grip, (*to)?).ok()?;
-                (new != *outline).then(|| black_box::reshape_command(r, &new, None))
+                let Some(r) = black_box::black_box_rep(cx, *rep) else {
+                    return Ok(None);
+                };
+                let Some(b) = r.black_box.as_ref() else {
+                    return Ok(None);
+                };
+                let Some(to) = *to else { return Ok(None) };
+                let new = black_box::reshape_by_grip(&b.outline, *grip, to)?;
+                (new != b.outline).then(|| black_box::reshape_command(r, &new, None))
             }
             State::BoxCp { rep, idx, to } => {
-                let r = black_box::black_box_rep(cx, *rep)?;
-                let b = r.black_box.as_ref()?;
-                let (p, dir) = (*to)?;
+                let Some(r) = black_box::black_box_rep(cx, *rep) else {
+                    return Ok(None);
+                };
+                let Some(b) = r.black_box.as_ref() else {
+                    return Ok(None);
+                };
+                let Some((p, dir)) = *to else { return Ok(None) };
                 let mut cps = b.cps.clone();
-                let c = cps.iter_mut().find(|c| c.0 == *idx)?;
+                let Some(c) = cps.iter_mut().find(|c| c.0 == *idx) else {
+                    return Ok(None);
+                };
                 if c.1 == p {
-                    return None;
+                    return Ok(None);
                 }
                 *c = (*idx, p, dir);
                 Some(black_box::reshape_command(r, &b.outline, Some(&cps)))
             }
             _ => None,
-        }
+        })
     }
 
     /// A grip or CP drag moved to `at`: the snapped point and the overlay of the reshaped box.
@@ -353,12 +365,18 @@ impl SelectTool {
         let overlay = match &mut self.state {
             State::Grip { rep, grip, to } => {
                 *to = Some(p);
-                let r = black_box::black_box_rep(cx, *rep);
-                r.and_then(|r| {
-                    let b = r.black_box.as_ref()?;
-                    let new = black_box::reshape_by_grip(&b.outline, *grip, p).ok()?;
-                    Some(black_box::reshape_overlay(cx, &new, &[]))
-                })
+                let Some(r) = black_box::black_box_rep(cx, *rep) else {
+                    return ToolOutput::Transient(Overlay::default());
+                };
+                let Some(b) = r.black_box.as_ref() else {
+                    return ToolOutput::Transient(Overlay::default());
+                };
+                let new = match black_box::reshape_by_grip(&b.outline, *grip, p) {
+                    Ok(new) => new,
+                    // An inside-out grip is the same refusal on the drag and on its release; the box stays as it is.
+                    Err(reason_key) => return ToolOutput::Refused(reason_key),
+                };
+                Some(black_box::reshape_overlay(cx, &new, &[]))
             }
             State::BoxCp { rep, idx, to } => {
                 let r = black_box::black_box_rep(cx, *rep);
@@ -430,8 +448,9 @@ impl SelectTool {
             };
             self.state = State::Idle;
             return match cmd {
-                Some(c) => ToolOutput::Commit(c),
-                None => SelectTool::click_entity(rep, mods),
+                Ok(Some(c)) => ToolOutput::Commit(c),
+                Ok(None) => SelectTool::click_entity(rep, mods),
+                Err(reason_key) => ToolOutput::Refused(reason_key),
             };
         }
         let state = std::mem::replace(&mut self.state, State::Idle);
@@ -701,8 +720,9 @@ impl Tool for SelectTool {
                     }
                 }
                 State::Grip { .. } | State::BoxCp { .. } => match self.box_command(cx) {
-                    Some(cmd) => ToolOutput::Preview(cmd),
-                    None => ToolOutput::None,
+                    Ok(Some(cmd)) => ToolOutput::Preview(cmd),
+                    Ok(None) => ToolOutput::None,
+                    Err(reason_key) => ToolOutput::Refused(reason_key),
                 },
                 _ => ToolOutput::None,
             },

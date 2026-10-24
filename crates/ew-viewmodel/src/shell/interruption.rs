@@ -22,6 +22,7 @@ use serde_json::{Map, Value, json};
 use super::canvas_actions::point_mm;
 use super::{Outcome, ShellModel, failed, flag, string_param};
 use crate::canvas::CanvasPage;
+use crate::strings;
 use crate::tools::black_box::{
     nearest_on_outline, on_outline, outward, reshape_by_grip, reshape_command, selected_black_box,
     signed_area2,
@@ -242,7 +243,7 @@ impl ShellModel {
             }
         };
         if key == ToolKey::ToggleStar && external {
-            self.tools.notice = Some("reason-external-never-pairs");
+            self.tools.notice = Some(strings::text("reason-external-never-pairs").to_owned());
             return Outcome::Refused {
                 reason_key: "reason-external-never-pairs",
             };

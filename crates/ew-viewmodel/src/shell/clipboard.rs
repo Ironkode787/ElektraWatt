@@ -27,6 +27,40 @@ impl ShellModel {
         &self.clip
     }
 
+    /// The page kind on show when it cannot take a paste (`edit.paste` refuses its kind); `None` on a page that can.
+    ///
+    /// The list mirrors the command's two page-kind checks: the kinds whose list is empty in
+    /// `crates/ew-commands/src/commands/device.rs`'s `allowed_rep_types` (the title page, panel layout, model view,
+    /// external document and the generated TableOfContents/SectionDivider/Report), and the generated-page arm of
+    /// `crates/ew-commands/src/commands/paste.rs`'s `PasteFragment::place` (`Report | TableOfContents |
+    /// SectionDivider`). `tests/clipboard.rs` checks it against a real `edit.paste` dry run for every page kind the
+    /// shell knows.
+    pub fn paste_page_kind(&self) -> Option<&str> {
+        let kind = self.page_rows().get(self.page_index())?.kind.as_str();
+        matches!(
+            kind,
+            "title_page"
+                | "report"
+                | "table_of_contents"
+                | "section_divider"
+                | "panel_layout"
+                | "model_view"
+                | "external_document"
+        )
+        .then_some(kind)
+    }
+
+    /// The refusal text of a paste on a page that cannot take one, with the page kind's name (`Nothing can be pasted on
+    /// a title page`); `None` on a page that can.
+    pub fn paste_page_reason(&self) -> Option<String> {
+        self.paste_page_kind().map(|kind| {
+            strings::format(
+                "reason-paste-page-kind",
+                &[strings::kind_label(kind).trim_end_matches(" page")],
+            )
+        })
+    }
+
     /// The text a copy asked the window to put on the system clipboard, once (egui's `Context::copy_text`).
     pub fn take_clipboard_outbox(&mut self) -> Option<String> {
         self.clip.take_outbox()
@@ -161,6 +195,14 @@ impl ShellModel {
     /// headless the clipboard is read. One `parse_fragment`; a fragment arms the paste tool, plain text is refused
     /// (`reason-not-a-fragment`), any other error shows in the banner.
     pub(super) fn act_paste_clip(&mut self, p: &Map<String, Value>) -> Outcome {
+        // A page whose kind takes no paste says so before the clipboard is read and no paste tool starts (window
+        // check, item 3).
+        if let Some(reason) = self.paste_page_reason() {
+            self.tools.notice = Some(reason);
+            return Outcome::Refused {
+                reason_key: "reason-paste-page-kind",
+            };
+        }
         let text = match string_param(p, "text") {
             Ok(Some(t)) => {
                 // The window's Ctrl+V brings the system clipboard's text; when it is what this instance copied, the
