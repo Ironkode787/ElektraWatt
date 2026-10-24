@@ -196,6 +196,11 @@ pub const ARMS: &[Arm] = &[
         build: page_renumber,
     },
     Arm {
+        command: "parts.import",
+        weight: 2,
+        build: parts_import,
+    },
+    Arm {
         command: "plc.bind_channel",
         weight: 3,
         build: plc_bind_channel,
@@ -3987,6 +3992,75 @@ fn library_embed(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                             .contains(id)
                             .then_some(())
                             .ok_or_else(|| "the embedded copy is not in the project".to_owned())
+                    }),
+            )
+        }
+    }
+}
+
+/// `parts.import` (Bulk): project-local part copies. A copy with a new key is inserted, one whose key the
+/// project has is skipped; another library, a wrong identity or hash, a duplicate, no copies and a non-part
+/// document are refused.
+fn parts_import(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let (_, template) = rng.pick(&live.fixture.part_json)?;
+    let project = live.fixture.project_id.as_str()?.to_owned();
+    // A project-local copy with a fresh key and a fresh item, identity and hash made consistent.
+    let fresh = |rng: &mut SplitMix64| -> Option<Value> {
+        let mut t = template.clone();
+        t["meta"]["key"] = json!(format!("fuzz.{}", &rng.uuid().replace('-', "")[..12]));
+        relineaged(&t, &project, &rng.uuid())
+    };
+    match rng.below(10) {
+        // Refused: a copy of another library (that is library.embed's).
+        0 => {
+            let mut t = template.clone();
+            t["meta"]["key"] = json!(format!("fuzz.{}", &rng.uuid().replace('-', "")[..12]));
+            let c = relineaged(&t, &rng.uuid(), &rng.uuid())?;
+            Some(Step::cmd("parts.import", json!({"copies": [c]})).refuse())
+        }
+        // Refused: the copy ID is not the copy identity.
+        1 => {
+            let mut c = fresh(rng)?;
+            c["id"] = json!(rng.uuid());
+            Some(Step::cmd("parts.import", json!({"copies": [c]})).refuse())
+        }
+        // Refused: the hash is not the hash of the item's members.
+        2 => {
+            let mut c = fresh(rng)?;
+            c["sha256"] = json!(format!("sha256:{}", "00".repeat(32)));
+            Some(Step::cmd("parts.import", json!({"copies": [c]})).refuse())
+        }
+        // Refused: the same copy twice, and no copies at all.
+        3 => {
+            let c = fresh(rng)?;
+            Some(Step::cmd("parts.import", json!({"copies": [c.clone(), c]})).refuse())
+        }
+        4 => Some(Step::cmd("parts.import", json!({"copies": []})).refuse()),
+        // Refused: not a part document.
+        5 => {
+            let (_, form) = rng.pick(&live.fixture.form_json)?;
+            Some(Step::cmd("parts.import", json!({"copies": [form.clone()]})).refuse())
+        }
+        // Accepted, nothing inserted: the key exists in the project already.
+        6 => Some(
+            Step::cmd("parts.import", json!({"copies": [template.clone()]}))
+                .accept()
+                .counts(&[(Table::Parts, 0)]),
+        ),
+        _ => {
+            let c = fresh(rng)?;
+            let id = c["id"].clone();
+            Some(
+                Step::cmd("parts.import", json!({"copies": [c]}))
+                    .accept()
+                    .counts(&[(Table::Parts, 1)])
+                    .check(move |_, after| {
+                        let id = typed(&id).ok_or("a copy ID")?;
+                        after
+                            .parts()
+                            .contains(id)
+                            .then_some(())
+                            .ok_or_else(|| "the imported part is not in the project".to_owned())
                     }),
             )
         }

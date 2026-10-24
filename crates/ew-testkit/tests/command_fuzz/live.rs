@@ -176,6 +176,8 @@ pub struct Fixture {
     pub symbol_json: Vec<(Value, Value)>,
     /// The function-definition copies, likewise.
     pub fndef_json: Vec<(Value, Value)>,
+    /// The part copies, likewise (project-local in the golden project).
+    pub part_json: Vec<(Value, Value)>,
     pub project_id: Value,
 }
 
@@ -217,6 +219,10 @@ impl Fixture {
             fndef_json: lib_json(
                 q.fndefs().iter().map(|(id, c)| (id, std::sync::Arc::clone(c))),
                 "fndef",
+            ),
+            part_json: lib_json(
+                q.parts().iter().map(|(id, c)| (id, std::sync::Arc::clone(c))),
+                "part",
             ),
             project_id: id_json(q.project().id),
         }
