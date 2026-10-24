@@ -12,7 +12,9 @@ route translates by `delta`; otherwise the route end at the moved endpoint follo
 end vertex moves by `delta`, its neighbour keeps the segment orthogonal). A cross-page move also moves every
 connection whose both ends move to the new page; a connection with only one end on a moved representation (or
 ending at a junction) is rejected, because the IP-pair replacement of FR-CON-043 is not in v0. Online numbering
-renumbers a main representation's device whose page-based tag collides on the new page (FR-NUM-029).
+renumbers a main representation's device whose page-based tag collides on the new page (FR-NUM-029). A wire
+marker on the old page lets go of the connections that leave it, and a marker left empty is removed (the
+unlink policy of its list, EW-INV-023).
 
 **By grid steps** (`steps: [kx, ky]`, WP-S2.04 D13; what the canvas tools send). Each representation's position
 becomes the grid point at its grid index plus the steps, exactly, per axis (`Grid::at(Grid::snap(x) + k)`), so

@@ -654,6 +654,45 @@ impl<'a> TxBuilder<'a> {
         self.pending.insert(key, None);
     }
 
+    /// Takes `connection` out of the wire markers that list it, except those on `keep_on` (the page it lies on
+    /// now). With `carrier` (the connection that carries the wire on, e.g. a dissolved junction's kept member), a
+    /// marker on the carrier's page lists the carrier in its place unless it lists it already. A marker left empty
+    /// is removed: the unlink policy of the marker list (EW-INV-023).
+    pub(crate) fn unlink_markers(
+        &mut self,
+        connection: Id<Connection>,
+        carrier: Option<Id<Connection>>,
+        keep_on: Option<Id<Page>>,
+    ) {
+        for m in self.markers_of_connection(connection) {
+            let Some(item) = self.get::<ew_schema::PageItem>(m) else {
+                continue;
+            };
+            if keep_on == Some(item.page) {
+                continue;
+            }
+            let carrier = carrier.filter(|k| {
+                self.get::<Connection>(*k)
+                    .is_some_and(|k| k.page == Some(item.page))
+            });
+            let mut next = (*item).clone();
+            if let ew_schema::PageItemKind::WireMarker(w) = &mut next.kind {
+                let at = w.connections.iter().position(|c| *c == connection);
+                w.connections.retain(|c| *c != connection);
+                if let (Some(k), Some(at)) = (carrier, at) {
+                    if !w.connections.contains(&k) {
+                        w.connections.insert(at, k);
+                    }
+                }
+                if w.connections.is_empty() {
+                    self.remove_row((Kind::PageItem, m.cast()));
+                    continue;
+                }
+            }
+            self.put(next);
+        }
+    }
+
     /// Removes a record with everything the delete policies take along (doc 03 §4.2): the ops of
     /// `Model::delete_plan`, computed on the current state of the transaction. See
     /// [`TxBuilder::delete_many`].

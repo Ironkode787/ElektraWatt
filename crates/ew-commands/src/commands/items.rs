@@ -201,6 +201,28 @@ fn distinct(points: &[Pt2]) -> usize {
         .len()
 }
 
+/// Whether all points lie on one line (fewer than two distinct points included): a polygon or an outline without
+/// area. Exact in `i128`; a cross product beyond it (points more than 2⁶³ nm apart) counts as not on one line.
+pub(crate) fn collinear(points: &[Pt2]) -> bool {
+    let Some(o) = points.first() else {
+        return true;
+    };
+    let d = |p: &Pt2| {
+        (
+            i128::from(p.x.0) - i128::from(o.x.0),
+            i128::from(p.y.0) - i128::from(o.y.0),
+        )
+    };
+    let Some(u) = points.iter().map(d).find(|v| *v != (0, 0)) else {
+        return true;
+    };
+    points.iter().map(d).all(|v| {
+        v.0.checked_mul(u.1)
+            .zip(v.1.checked_mul(u.0))
+            .is_some_and(|(a, b)| a == b)
+    })
+}
+
 /// Why a graphic is refused (a degenerate shape, a stroke without width, a value of a newer format); `None` when it
 /// is accepted.
 pub(crate) fn graphic_problem(g: &Graphic) -> Option<String> {
@@ -211,6 +233,9 @@ pub(crate) fn graphic_problem(g: &Graphic) -> Option<String> {
         }
         GraphicShape::Polygon(p) if distinct(&p.points) < 3 => {
             "a polygon needs at least three distinct points".to_owned()
+        }
+        GraphicShape::Polygon(p) if collinear(&p.points) => {
+            "a polygon without area: its points lie on one line".to_owned()
         }
         GraphicShape::Rect(r) if r.min.x == r.max.x || r.min.y == r.max.y => {
             "a rectangle without area".to_owned()

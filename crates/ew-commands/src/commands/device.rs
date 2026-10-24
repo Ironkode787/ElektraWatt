@@ -533,7 +533,9 @@ fn zero() -> Pt2 {
 /// end vertex moves by `delta`, its neighbour keeps the segment orthogonal). A cross-page move also moves every
 /// connection whose both ends move to the new page; a connection with only one end on a moved representation (or
 /// ending at a junction) is rejected, because the IP-pair replacement of FR-CON-043 is not in v0. Online numbering
-/// renumbers a main representation's device whose page-based tag collides on the new page (FR-NUM-029).
+/// renumbers a main representation's device whose page-based tag collides on the new page (FR-NUM-029). A wire
+/// marker on the old page lets go of the connections that leave it, and a marker left empty is removed (the
+/// unlink policy of its list, EW-INV-023).
 ///
 /// **By grid steps** (`steps: [kx, ky]`, WP-S2.04 D13; what the canvas tools send). Each representation's position
 /// becomes the grid point at its grid index plus the steps, exactly, per axis (`Grid::at(Grid::snap(x) + k)`), so
@@ -675,7 +677,8 @@ impl MoveReps {
                 MovedItem::Item(item) => {
                     let Some(mut next) = crate::commands::items::translate_item(item, d) else {
                         return tx.reject(format!(
-                            "page item {} cannot be moved: it is of a kind this build keeps verbatim, or the move                              takes it outside the drawable range",
+                            "page item {} cannot be moved: it is of a kind this build keeps verbatim, or the move \
+                             takes it outside the drawable range",
                             item.id
                         ));
                     };
@@ -946,6 +949,7 @@ impl Command for MoveReps {
             })
         };
         let mut changed: Vec<Connection> = Vec::new();
+        let mut off_page: Vec<Id<Connection>> = Vec::new();
         for cid in connections {
             let c = tx.require::<Connection>(cid)?;
             let Some(page) = c.page else {
@@ -964,6 +968,7 @@ impl Command for MoveReps {
                     ));
                 }
                 next.page = Some(new_page);
+                off_page.push(cid);
             }
             let followed = if a && b {
                 translate(&mut next.route, self.delta)
@@ -980,6 +985,11 @@ impl Command for MoveReps {
         }
         for c in changed {
             tx.put(c);
+        }
+        // A wire marker stays on its page (a cross-page move takes no `items`): one on the old page lets go of the
+        // connections that leave it, as the marker list's unlink policy does on a delete (EW-INV-023).
+        for cid in off_page {
+            tx.unlink_markers(cid, None, self.page);
         }
         for rep in moved {
             tx.put(rep);

@@ -70,6 +70,13 @@ pub(crate) fn check_box(
             ),
         ));
     }
+    if crate::commands::items::collinear(&b.outline) {
+        return Err(CmdError::invalid_params(
+            command,
+            format!("{pointer}/outline"),
+            "a structure box's outline has no area: its vertices lie on one line",
+        ));
+    }
     if !crate::commands::items::known_box_style(&b.style) {
         return Err(CmdError::invalid_params(
             command,
