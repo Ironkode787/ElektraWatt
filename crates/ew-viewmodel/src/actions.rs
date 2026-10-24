@@ -435,6 +435,13 @@ fn one_free_text(m: &ShellModel) -> Result<(), &'static str> {
     m.text_edit_target().map(|_| ())
 }
 
+/// An editable page whose selection is exactly two terminals of one strip not yet bridged (Edit ▸ Bridge
+/// terminals; FT-411, §10.7).
+fn two_strip_terminals(m: &ShellModel) -> Result<(), &'static str> {
+    editable_page(m)?;
+    m.bridge_params().map(|_| ())
+}
+
 /// The junction sequence editor is open on a project that can be changed (WP-S2.04 part 2, §8.5).
 fn junction_editor_open(m: &ShellModel) -> Result<(), &'static str> {
     writable(m)?;
@@ -1819,6 +1826,16 @@ pub static ACTIONS: &[ActionMeta] = &[
         Menu::Edit,
         &["F2"],
         one_free_text,
+        slot(Menu::Edit),
+    )),
+    // FT-411: Edit ▸ Bridge terminals.
+    in_canvas(act(
+        "strip.bridge",
+        Command,
+        "action-strip-bridge",
+        Menu::Edit,
+        &[],
+        two_strip_terminals,
         slot(Menu::Edit),
     )),
     // WP-S2.04 part 4b: the Wire marker and Structure box tools, their fields and the marker mode.

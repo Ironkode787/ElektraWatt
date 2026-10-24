@@ -31,6 +31,8 @@ use crate::status;
 use crate::strings;
 use crate::wizard::Wizard;
 
+// WP-S2.04 part 4b: FT-411, Edit ▸ Bridge terminals.
+mod bridge;
 mod canvas_actions;
 // FT-408 and FT-409
 mod creation;
@@ -587,6 +589,7 @@ fn clears_banner(id: &str) -> bool {
             | "tool.graphic"
             | "text.bind"
             | "text.edit"
+            | "strip.bridge"
             | "tool.marker"
             | "marker.fields"
             | "tool.structure_box"
@@ -1331,6 +1334,8 @@ impl ShellModel {
             "tool.graphic" => self.act_tool_graphic(p),
             "text.bind" => self.act_text_bind(p),
             "text.edit" => self.act_text_edit(),
+            // FT-411: Edit ▸ Bridge terminals.
+            "strip.bridge" => self.act_strip_bridge(),
             // WP-S2.04 part 4b (marker and structure box, §10.5 to §10.7).
             "tool.marker" => self.act_tool_marker(),
             "marker.fields" => self.act_marker_fields(p),

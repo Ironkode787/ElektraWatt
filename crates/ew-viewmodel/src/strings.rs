@@ -191,6 +191,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "action-tool-graphic" => "Graphic",
         "action-text-bind" => "Text binding",
         "action-text-edit" => "Edit text",
+        "action-strip-bridge" => "Bridge terminals",
         "graphic-line" => "Line",
         "graphic-polyline" => "Polyline",
         "graphic-rect" => "Rectangle",
@@ -212,6 +213,9 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "reason-text-tool-only" => "Choose the Text tool first",
         "reason-text-bound" => "This text shows a project or page field; change that field instead",
         "reason-select-one-text" => "Select exactly one free text",
+        "reason-bridge-selection" => "Select exactly two terminals of one strip",
+        "reason-bridge-no-shaft" => "Both terminals need a part with a bridge shaft",
+        "reason-bridge-exists" => "These two terminals are bridged already",
         // WP-S2.04 part 4b: the Wire marker tool, the Structure box tool and the marker mode.
         "submenu-wire-markers" => "Wire markers",
         "action-tool-marker" => "Wire marker",
