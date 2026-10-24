@@ -1,0 +1,8 @@
+== page.describe 101 ==
+page "101" "Selftest" reps 2 connections 0 junctions 0
+  rep "-101K1" cell "101-C3" symbol "ew.iec.contact-no@qet10" variant "A" at 63.500 47.625 mm
+    cp "-101K1:13" at 63.500 47.625 mm wires 0
+    cp "-101K1:14" at 63.500 55.563 mm wires 0
+  rep "-101K2" cell "101-C7" symbol "ew.iec.contact-no@qet10" variant "A" at 127.000 47.625 mm
+    cp "-101K2:13" at 127.000 47.625 mm wires 0
+    cp "-101K2:14" at 127.000 55.563 mm wires 0

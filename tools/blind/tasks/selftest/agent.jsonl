@@ -1,0 +1,31 @@
+{"look":{"sections":["page","status"]},"expect":["page view: 101","status bar:"]}
+{"do":[{"action":"tool.place"},{"action":"picker.filter","params":{"text":"contact"}},{"action":"place.pick","params":{"symbol":"ew.iec.contact-no@qet10","letter":"K"}}],"expect":["tool.place done","place.pick done"]}
+{"note":"patience 9 flow 9 The picker opened and the contactor is armed."}
+{"kv":["cursor.set","x_mm=63.5","y_mm=47.625"],"expect":["cursor.set done"]}
+{"note":"patience 9 flow 9 The grid cursor moved."}
+{"do":[{"action":"canvas.activate","params":{"alt":true}}],"expect":["canvas.activate done"]}
+{"note":"patience 9 flow 9 The first contactor is placed."}
+{"look":{"page":""},"expect":["rep \"-101K1\" cell \"101-C3\"","reps 1 connections 0 junctions 0"]}
+{"do":[{"action":"cursor.set","params":{"x_mm":127,"y_mm":47.625}},{"action":"canvas.activate","params":{"alt":true}}],"expect":["canvas.activate done"]}
+{"note":"patience 9 flow 8 The second contactor is placed."}
+{"do":[{"action":"edit.redo"},{"action":"ui.dismiss"}],"expect":["edit.redo refused reason-nothing-to-redo","skipped"]}
+{"note":"patience 8 flow 7 Redo has nothing to redo, as expected; the second step was not sent."}
+{"do":[{"action":"help.tutorials"}],"expect":["harness: help.tutorials is not available to the drafter"]}
+{"note":"patience 8 flow 7 The harness refuses the tutorials, which would reach the sample."}
+{"look":{"page":"101"},"expect":["page \"101\" \"Selftest\" reps 2 connections 0 junctions 0","rep \"-101K2\" cell \"101-C7\""]}
+{"look":{"sections":["canvas"]},"expect":["canvas"]}
+{"look":{"sections":["canvas"],"diff":true},"expect":["no change"]}
+{"do":[{"action":"view.zoom_in"},{"action":"view.zoom_out"},{"action":"view.fit_page"},{"action":"view.pan_left"},{"action":"view.pan_right"},{"action":"view.pan_up"},{"action":"view.pan_down"},{"action":"view.grid"},{"action":"view.grid"}],"expect":["view.grid done"]}
+{"note":"patience 9 flow 9 The view actions all work."}
+{"do":[{"action":"cursor.right"},{"action":"cursor.right"},{"action":"cursor.right"},{"action":"cursor.cell_down"},{"action":"cursor.cell_up"},{"action":"cursor.up"},{"action":"cursor.down"},{"action":"cursor.left"},{"action":"cp.next"},{"action":"cp.previous"}],"expect":["cp.previous done"]}
+{"note":"patience 9 flow 9 The grid cursor and the connection points are reachable from the keyboard."}
+{"do":[{"action":"pages.mode","params":{"mode":"flat"}},{"action":"pages.mode","params":{"mode":"section"}},{"action":"pages.sort","params":{"by":"type"}},{"action":"pages.sort","params":{"by":"folio"}},{"action":"page.first"},{"action":"page.last"},{"action":"page.goto","params":{"folio":"101"}}],"expect":["page.goto done"]}
+{"note":"patience 9 flow 9 The page navigator and the page walk work."}
+{"do":[{"action":"tools.company_standard"}],"expect":["tools.company_standard done"]}
+{"note":"patience 9 flow 9 The wizard opened."}
+{"look":{"sections":["wizard"]},"expect":["The sample project is not installed"]}
+{"do":[{"action":"wizard.cancel"}],"expect":["wizard.cancel done"]}
+{"note":"patience 9 flow 9 The wizard's preview needs the sample project, which a run does not have: as designed."}
+{"do":[{"action":"file.save"},{"action":"file.export_pdf","params":{"path":"selftest.pdf"}}],"expect":["file.save done","file.export_pdf done"]}
+{"note":"patience 10 flow 10 Saved and exported."}
+{"handback":"## 1. Keep or drop\n10. The harness works.\n\n## 2. Where it lost me\nNowhere.\n\n## 3. What the tool is\nA scripted agent.\n\n## 4. Broken\nNothing.\n\n## 5. The drawing set against the design language\nTwo contactors on page 101.\n\n## 6. Flow chart\n```mermaid\nflowchart TD\n  A[look] --> B[place] --> C[save]\n```\n\n## 7. Good\nThe protocol.\n"}

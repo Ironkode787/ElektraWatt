@@ -1,0 +1,45 @@
+{
+  "$schema": "ew.blindrun/1",
+  "run": "selftest",
+  "kind": "free",
+  "task": "selftest",
+  "persona": null,
+  "of": null,
+  "folios": [
+    "101"
+  ],
+  "caps": {
+    "turns": 300,
+    "steps": 800,
+    "looks": 400,
+    "refusals": 50
+  },
+  "files": {
+    "tools/blind/HELP.md": "8cebde93ebd747cae396d38f081a6e0c7547d47e70e5e5f36b3925406d71a24a",
+    "tools/blind/reference/actions.txt": "944cc0a20a928c58f73be3764df2020dcd53e5ae6976e0afd0cfa6cacb859157",
+    "tools/blind/reference/vocabulary.txt": "4195043a6c1a8e75866eb10fe54d680e4983aa4f9ceb4a270cbc306bebeb5332",
+    "tools/blind/tasks/selftest/agent.jsonl": "0d30d3415f394f62189979813cbd51e0729cbcb3884c115ca283c376f6f88862",
+    "tools/blind/tasks/selftest/prelude.uiscript": "9f4d237925c52b4bb3ef91f708236f752fee11846f1582fe2737b05f3c99bb4c",
+    "tools/blind/tasks/selftest/task.md": "973376ea5c9193284ee9b3ee73ac6237cb334ac8d0b668d5f418aa895a8de6ab"
+  },
+  "golden": "229bb4610d9885a53d76cd931970742c10ec9a376afc10d7afd4d816bce14fb9",
+  "app_version": "0.0.0",
+  "harness_version": "0.0.0",
+  "stateless": false,
+  "counts": {
+    "turns": 12,
+    "steps": 38,
+    "looks": 6,
+    "refusals": 1,
+    "refused": 1,
+    "failed": 0,
+    "broken": 0
+  },
+  "end": "handback",
+  "handed_back": true,
+  "diverged_at": null,
+  "ci": "pr",
+  "stale": null,
+  "clean_before_epilogue": true,
+  "child_exit": 1
+}
