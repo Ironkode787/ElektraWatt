@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`parts.import` (`ImportParts`, FT-410): creates project-local part copies, the one command that does (a copy of\nanother library is embedded with `library.embed`, which refuses project-local items).\n\n`copies` holds part copies in the `lib/` JSON form (doc 05 §3.4), as a parts table import produces them: the\nshell and `ew import parts` read the file and parse it (`ew_import_tables::parse_parts_tables`, the golden\ndialect), the command never sees a path. At least one. Each copy is checked, at `/copies/i`:\n- it reads as a library document of kind `part` (else invalid);\n- its `id` is the copy identity `v5(NS_LIBCOPY, library_id ‖ item_id)` and its `sha256` the hash of its item\n  (the rules of `library.embed`);\n- its `library_id` is the project's ID: the copy is project-local;\n- it has a `key` (`meta.key`), which is what a re-import matches on; a key or a copy listed twice is invalid.\n\n**Duplicates.** A copy whose key a project-local part copy of the project has already, or whose copy ID exists, is\nskipped and counted; nothing is updated (updating a part is FR-PRT-014's previewed command). The rest are inserted\nin the given order, in one transaction (one undo step); when every copy is skipped the transaction is empty.\n\nCost `Bulk` (always previewed: the shell shows the card with the created and skipped counts), exposure `Edit` (the\nGUI, `ew import parts`, and a command log replayed by `ew apply`). Outcome: the first inserted copy; the note\n`created <n>, skipped <m>`.",
+  "properties": {
+    "copies": {
+      "description": "The project-local part copies to create (`lib/` JSON form).",
+      "items": true,
+      "type": "array"
+    }
+  },
+  "required": [
+    "copies"
+  ],
+  "title": "parts.import",
+  "type": "object"
+}

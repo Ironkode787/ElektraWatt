@@ -59,6 +59,7 @@
 //! | `box.structure` | [`CreateStructureBox`] | Interactive |
 //! | `item.place` | [`PlaceItem`] | Interactive |
 //! | `marker.place` | [`PlaceMarker`] | Interactive |
+//! | `parts.import` | [`ImportParts`] | Bulk |
 //!
 //! Every command is of stability `Preview` and undoable except `project.assets.purge`, a marker line whose file side
 //! (deleting asset files nothing names) runs in the session (ADR-0008 amendment 1, FT-380); every one is of exposure
@@ -84,6 +85,7 @@ pub(crate) mod library;
 mod page;
 // WP-S2.05 part 3
 mod paste;
+mod parts;
 mod plc;
 mod renumber;
 mod revision;
@@ -121,6 +123,7 @@ pub use library::{EmbedLibraryCopies, library_copy_hash};
 pub use page::{CreatePage, DeletePages, PageScope, RenumberPages};
 // WP-S2.05 part 3
 pub use paste::{Fragment, FragmentNode, PASTE_KINDS, PASTE_MAX_RECORDS, PasteFragment};
+pub use parts::{ImportParts, import_counts};
 pub use plc::{BindChannel, CreatePlcConfigProject, SetModulePart};
 pub use renumber::{DeviceScope, NumberingScheme, RenumberDevices, RenumberOptions};
 pub use revision::{CreateRevision, NewRevisionState, RevisionPageNote};
@@ -194,4 +197,6 @@ pub fn register_all(r: &mut CommandRegistry) {
     r.register::<CreateStructureBox>();
     r.register::<PlaceItem>();
     r.register::<PlaceMarker>();
+    // FT-410
+    r.register::<ImportParts>();
 }

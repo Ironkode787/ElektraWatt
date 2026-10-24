@@ -28,7 +28,8 @@ use crate::tx::TxBuilder;
 /// - it reads as a library document of one of those kinds (else invalid);
 /// - its `id` is the copy identity `v5(NS_LIBCOPY, library_id ‖ item_id)` (ADR-0004 amendment 2; a "keep
 ///   both" copy belongs to a paste, not to embedding);
-/// - its `library_id` is not the project's: a project-local item is created in the project, not embedded;
+/// - its `library_id` is not the project's: a project-local item is created in the project, not embedded (a
+///   project-local part copy is `parts.import`'s, FT-410);
 /// - its `sha256` is the hash of the item's own members (the rule of EW-CORE-014): the copy is consistent
 ///   with the hash it claims (the hash does not prove where the copy came from).
 ///
@@ -49,7 +50,7 @@ pub struct EmbedLibraryCopies {
 /// The copy's lineage, kind-erased: copy ID, library, item, sha256 claimed and computed.
 pub(crate) struct Lineage {
     pub(crate) id: AnyId,
-    library: ew_ids::Uuid,
+    pub(crate) library: ew_ids::Uuid,
     pub(crate) item: ew_ids::Uuid,
     pub(crate) claimed: Sha256,
     computed: Option<[u8; 32]>,
@@ -93,6 +94,25 @@ pub(crate) fn check_copy(
     value: &Value,
     project: ew_ids::Uuid,
 ) -> Result<(LibDocument, Lineage), CmdError> {
+    let (doc, l) = read_copy(command, at, value)?;
+    if l.library == project {
+        return Err(CmdError::invalid_params(
+            command,
+            format!("{at}/library_id"),
+            "a project-local item (library_id = the project ID) is not embedded",
+        ));
+    }
+    Ok((doc, l))
+}
+
+/// Reads one library document of a command parameter at `at` and checks it without regard to its library: it reads as
+/// a library document of kind part, symbol, fndef or form, its `id` is the copy identity and its `sha256` the hash of
+/// its item ([`check_copy`] without the library rule; `parts.import` requires the opposite one).
+pub(crate) fn read_copy(
+    command: &'static str,
+    at: &str,
+    value: &Value,
+) -> Result<(LibDocument, Lineage), CmdError> {
     let doc = LibDocument::from_value(value.clone())
         .map_err(|e| CmdError::invalid_params(command, at.to_owned(), e.to_string()))?;
     let l = match &doc {
@@ -117,13 +137,6 @@ pub(crate) fn check_copy(
                 "the copy ID is {}, not the copy identity {identity} = v5(NS_LIBCOPY, library_id ‖ item_id)",
                 l.id
             ),
-        ));
-    }
-    if l.library == project {
-        return Err(CmdError::invalid_params(
-            command,
-            format!("{at}/library_id"),
-            "a project-local item (library_id = the project ID) is not embedded",
         ));
     }
     if l.computed != Some(l.claimed.0) {

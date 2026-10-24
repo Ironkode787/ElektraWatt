@@ -199,3 +199,138 @@ pub fn lenient_findings(session: &Session) -> Vec<migration::LiveGroup> {
     }
     groups.into_values().collect()
 }
+
+// -------------------------------------------------------------------------------------------------------------------
+// Parts tables (FT-410)
+
+pub use ew_import_tables::SiblingTables;
+
+/// The command a parts table import dispatches.
+pub const PARTS_IMPORT: &str = "parts.import";
+
+/// Part copies read from a parts table, ready for `parts.import` (FT-410).
+#[derive(Clone, PartialEq, Debug)]
+pub struct PartsImport {
+    /// The base name of the chosen file (the copies' provenance).
+    pub source: String,
+    /// The sibling tables that were read with it, by file name, in [`SiblingTables::FILE_NAMES`] order.
+    pub siblings: Vec<String>,
+    /// The project-local part copies in the `lib/` JSON form, in `parts.csv` row order.
+    pub copies: Vec<serde_json::Value>,
+}
+
+impl PartsImport {
+    /// The parameters of `parts.import`: `{"copies": [...]}`.
+    pub fn params(&self) -> serde_json::Value {
+        serde_json::json!({ "copies": self.copies })
+    }
+}
+
+/// Why a parts table could not be read.
+#[derive(Debug)]
+pub enum PartsReadError {
+    /// A file could not be read (its base name, the error).
+    Io(String, std::io::Error),
+    /// The tables were refused (the first problem, with its pointer).
+    Import(ImportError),
+}
+
+impl std::fmt::Display for PartsReadError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PartsReadError::Io(name, e) => write!(f, "{name}: {e}"),
+            PartsReadError::Import(e) => write!(f, "{e}"),
+        }
+    }
+}
+
+impl std::error::Error for PartsReadError {}
+
+/// The starter FnDefs (compiled in, `ew_library::starter`) as the built-in library that part templates resolve in.
+fn starter_fndefs() -> &'static ew_import_tables::BuiltinLibrary {
+    static LIB: std::sync::OnceLock<ew_import_tables::BuiltinLibrary> = std::sync::OnceLock::new();
+    LIB.get_or_init(|| {
+        let docs = ew_library::starter::items()
+            .iter()
+            .filter(|i| i.kind == ew_library::starter::StarterKind::Fndef)
+            .filter_map(|i| LibDocument::from_json(i.json).ok());
+        ew_import_tables::BuiltinLibrary::new(docs).unwrap_or_default()
+    })
+}
+
+/// Parses a `parts.csv` of the golden dialect (text) and its sibling tables into project-local part copies of the
+/// project `project` (`ew_import_tables::parse_parts_tables` with the starter FnDefs). `source` is the chosen file's
+/// name; only its base name is kept.
+///
+/// # Errors
+///
+/// The first problem of any table, with its pointer (strict).
+pub fn parse_parts_tables(
+    parts_csv: &str,
+    siblings: &SiblingTables<'_>,
+    project: ew_derive::ew_ids::Uuid,
+    source: &str,
+) -> Result<PartsImport, ImportError> {
+    let copies = ew_import_tables::parse_parts_tables(
+        parts_csv,
+        siblings,
+        ew_derive::ew_ids::Id::from_uuid(project),
+        source,
+        starter_fndefs(),
+    )?;
+    let source = source.rsplit(['/', '\\']).next().unwrap_or(source).to_owned();
+    let siblings = SiblingTables::FILE_NAMES
+        .iter()
+        .zip([
+            siblings.part_cps,
+            siblings.part_templates,
+            siblings.cable_cores,
+            siblings.part_plc,
+        ])
+        .filter(|(_, t)| t.is_some())
+        .map(|(n, _)| (*n).to_owned())
+        .collect();
+    let copies = copies
+        .into_iter()
+        .map(|c| serde_json::to_value(LibDocument::Part(c)).unwrap_or_default())
+        .collect();
+    Ok(PartsImport {
+        source,
+        siblings,
+        copies,
+    })
+}
+
+/// Reads the parts table `path` and the sibling tables that lie in its folder (`part_cps.csv`, `part_templates.csv`,
+/// `cable_cores.csv`, `part_plc.csv`; an absent table is skipped, so the import is parts-only without them) and
+/// parses them for project `project` ([`parse_parts_tables`]). The host's file read: the CLI and the shell call it,
+/// then dispatch `parts.import` with [`PartsImport::params`].
+///
+/// # Errors
+///
+/// [`PartsReadError::Io`] for a file that cannot be read (named by its base name), [`PartsReadError::Import`] for
+/// refused tables.
+pub fn read_parts_tables(
+    path: &Path,
+    project: ew_derive::ew_ids::Uuid,
+) -> Result<PartsImport, PartsReadError> {
+    let name = |p: &Path| {
+        p.file_name()
+            .map_or_else(|| "parts.csv".to_owned(), |n| n.to_string_lossy().into_owned())
+    };
+    let read = |p: &Path| std::fs::read_to_string(p).map_err(|e| PartsReadError::Io(name(p), e));
+    let parts = read(path)?;
+    let dir = path.parent().unwrap_or_else(|| Path::new("."));
+    let mut texts: Vec<(&'static str, String)> = Vec::new();
+    for file in SiblingTables::FILE_NAMES {
+        let p = dir.join(file);
+        if p.is_file() {
+            texts.push((file, read(&p)?));
+        }
+    }
+    let mut siblings = SiblingTables::default();
+    for (file, text) in &texts {
+        siblings.set(file, text);
+    }
+    parse_parts_tables(&parts, &siblings, project, &name(path)).map_err(PartsReadError::Import)
+}
