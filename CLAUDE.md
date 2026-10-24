@@ -36,6 +36,13 @@ Rules:
    `.claude/agents/` are hot-reloaded; only a brand-new `agents` directory needs a session restart.
 6. **Verification is cheap, rework is not:** always end worker tasks with a mechanical check (build, tests, lint,
    link/Mermaid check, ID-existence grep) so failures surface before an Opus review.
+7. **Leads delegate (owner's rule, 2026-10-25).** A lead lane (Opus) keeps for itself only the parts that need
+   judgment — the design-sensitive core code, the rulings, the review of what came back — and hands every closed
+   sub-task to a worker subagent inside its lane: tests to a given list, fixtures, DSL verbs, schema and reference
+   regeneration, fuzz arms, kittests, docs notes and as-built text (`programmer`, Sonnet) and mechanical edits,
+   renames, count bumps, licence headers, re-blessing (`boilerplate`, Haiku). The orchestrator writes this into every
+   lead brief, and the lead's report lists what it delegated and to which tier; a lead that delegated nothing says why.
+   Reviews of D2–D3 lanes and of fix rounds with closed items go to Sonnet; Opus reviews stay for D4–D5 lanes.
 
 ## Effort by difficulty (dynamic routing)
 
@@ -89,8 +96,9 @@ be expensive or hard to detect (data, safety, legal)? Is verification weak (no t
   not override them in a lane; a full-debuginfo build is a deliberate, one-off choice.
 - A lane's worktree `target` is deleted the moment its work is integrated and re-verified (`cmd //c "rmdir /s /q
   <worktree>	arget"` when `rm -rf` fails on stale incremental entries); the main checkout's `target` is cleaned
-  after every gate. The orchestrator keeps at least 150 GB free before a gate and never lets a fourth lane build while
-  three are building (three builders since the owner's ruling of 2026-10-24; two before that).
+  after every gate. The orchestrator keeps at least 150 GB free before a gate and never lets a third lane build while
+  two are building (two builders again since the owner's ruling of 2026-10-25, made for the lowered usage limits; three
+  were allowed from 2026-10-24 to 2026-10-25). A gate or a verify chain in the main checkout counts as one builder.
 - Agents never delete anything outside their own worktree; if the disk runs short they stop and report.
 
 ## Repository rules
