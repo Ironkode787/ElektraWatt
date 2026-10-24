@@ -16,9 +16,10 @@ interruption point, in one transaction and one undo step.
   connection grid and meets both CPs exactly (`geometry::require_route`), so it ends at the IP's CP.
 
 Nothing derived is read inside the transaction (the name and the direction are the tool's). Rejected: as
-`ip.place` (a missing page or symbol copy, a FnDef that is not embedded, `ip.pos` off the grid) and as
-`connection.draw` (a missing endpoint record, off-grid geometry, a route that does not meet its CPs); an IP
-symbol whose FnDef has not exactly one CP, or that does not draw it. Interactive. Outcome: the connection.
+`ip.place` (a missing page or symbol copy, a FnDef that is not embedded, `ip.pos` off the grid), as
+`connection.draw` (a missing endpoint record, off-grid geometry, a route that does not meet its CPs) and an `a` end
+that no representation of `page` draws; an IP symbol whose FnDef has not exactly one CP, or that does not draw it.
+Interactive. Outcome: the connection.
 
 ## Registry entry
 

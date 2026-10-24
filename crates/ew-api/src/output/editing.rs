@@ -1490,11 +1490,15 @@ impl Session {
 }
 
 /// The order of the junction editor's wires (FT-439): the printed wire number (natural order, then its bytes), then
-/// the first end's label, then the second's; the caller breaks a remaining tie by wire ID. Never the carrier ID alone:
-/// a split mints its new half and the new wire in one transaction, in no visible order.
-fn junction_wire_order(a: &JunctionWire, b: &JunctionWire) -> std::cmp::Ordering {
+/// the first end's label, then the second's; a wire without a number (`?`) after every numbered one (as
+/// `number_order` in `output/properties.rs` puts an unnumbered wire last); the caller breaks a remaining tie by wire
+/// ID. Never the carrier ID alone: a split mints its new half and the new wire in one transaction, in no visible order.
+pub(crate) fn junction_wire_order(a: &JunctionWire, b: &JunctionWire) -> std::cmp::Ordering {
     let text = |x: &str, y: &str| ew_mltext::natural_cmp(x, y).then_with(|| x.cmp(y));
-    text(&a.label, &b.label)
+    let unnumbered = |w: &JunctionWire| w.label == "?";
+    unnumbered(a)
+        .cmp(&unnumbered(b))
+        .then_with(|| text(&a.label, &b.label))
         .then_with(|| text(&a.from, &b.from))
         .then_with(|| text(&a.to, &b.to))
 }
@@ -1546,5 +1550,31 @@ mod tests {
         assert_eq!(placed_body([-1, 0, 2, 10], 0, (100, 200)), [99, 200, 102, 210]);
         // R90: (x, y) → (−y, x).
         assert_eq!(placed_body([-1, 0, 2, 10], 1, (100, 200)), [90, 199, 100, 202]);
+    }
+
+    /// FT-441: a wire without a printed number (`?`) sorts after every numbered wire; between two `?` wires the ends'
+    /// labels decide as before.
+    #[test]
+    fn unnumbered_wires_sort_last_in_junction_wires() {
+        let wire = |label: &str, from: &str, to: &str| JunctionWire {
+            label: label.to_owned(),
+            from: from.to_owned(),
+            to: to.to_owned(),
+        };
+        let mut wires = [
+            wire("W20", "-102G1:+#1", "-102F2:+#2"),
+            wire("?", "-102G1:+#3", "-102F2:+#4"),
+            wire("W3", "-102G1:+#5", "-102F2:+#6"),
+        ];
+        wires.sort_by(junction_wire_order);
+        let labels: Vec<&str> = wires.iter().map(|w| w.label.as_str()).collect();
+        assert_eq!(labels, ["W3", "W20", "?"]);
+        // Two unnumbered wires keep the end-label order.
+        let mut unnumbered = [
+            wire("?", "-102G1:+#2", "-102F2:+#2"),
+            wire("?", "-102G1:+#1", "-102F2:+#1"),
+        ];
+        unnumbered.sort_by(junction_wire_order);
+        assert_eq!(unnumbered[0].from, "-102G1:+#1");
     }
 }

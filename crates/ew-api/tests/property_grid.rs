@@ -663,3 +663,51 @@ fn the_command_meta_and_the_reference_resolver() {
     assert!(s.resolve_reference("folio:101").is_ok());
     assert!(s.resolve_reference("bogus").unwrap_err().contains("v0 resolves"));
 }
+
+/// FT-450: the page item and structure box placement members read their narrowing reasons (a page item's kind and a
+/// marker's wires are replaced, not changed in place; an item stays on its page), while the settable members of a
+/// kind keep their `fields.set` route.
+#[test]
+fn page_item_and_structure_box_members_read_their_reasons() {
+    const KIND: &str =
+        "a page item's kind is not changed in place; delete the item and place another (WP-S2.04 §5.2)";
+    const GROUP: &str =
+        "a marker's wires are changed by deleting the marker and placing another (WP-S2.04 §5.2)";
+    const PAGE: &str = "stays on its page; delete it and place it on the other page";
+    let route = |kind: &str, path: &str| {
+        field_catalogue(kind)
+            .unwrap()
+            .iter()
+            .find(|f| f.path == path)
+            .unwrap_or_else(|| panic!("{kind} {path}"))
+            .route
+            .clone()
+    };
+    let why = |route: &EditRoute| match route {
+        EditRoute::ReadOnly(FieldReadOnly::Narrowed { why }) => why.clone(),
+        other => panic!("not narrowed: {other:?}"),
+    };
+    for path in ["kind", "kind.graphic", "kind.free_text", "kind.wire_marker"] {
+        assert_eq!(why(&route("page_item", path)), KIND, "{path}");
+    }
+    for path in [
+        "kind.wire_marker.connections",
+        "kind.wire_marker.connections[]",
+        "kind.wire_marker.fields",
+        "kind.wire_marker.fields[]",
+    ] {
+        assert_eq!(why(&route("page_item", path)), GROUP, "{path}");
+    }
+    assert_eq!(why(&route("page_item", "page")), PAGE);
+    assert_eq!(why(&route("structure_box", "page")), PAGE);
+    for path in ["kind.graphic.dash", "kind.free_text.text"] {
+        assert_eq!(
+            route("page_item", path),
+            EditRoute::FieldsSet {
+                kind: "page_item".into(),
+                path: path.into()
+            },
+            "{path}"
+        );
+    }
+}

@@ -18,8 +18,8 @@ use ew_commands::{CmdError, Engine, Origin, Receipt};
 use ew_ids::{Id, Uuid};
 use ew_model::{Entity, Model};
 use ew_schema::{
-    BoxCp, BoxSpec, Connection, Dir4, Endpoint, Extra, Function, FunctionKind, IpDirection, Junction, Kind,
-    LibDocument, Page, Record, Representation, SymbolCp, SymbolDef,
+    BoxCp, BoxSpec, Connection, Device, Dir4, Endpoint, Extra, FnRole, Function, FunctionKind, IpDirection,
+    Junction, Kind, LibDocument, Page, Record, Representation, SymbolCp, SymbolDef,
 };
 use ew_units::{Nm, Orient2, Pt2};
 
@@ -108,6 +108,10 @@ const SYM_IP: Id<SymbolDef> = id(0x80);
 const SYM_IP_BARE: Id<SymbolDef> = id(0x81);
 /// A symbol whose FnDef is not embedded.
 const SYM_IP_GONE: Id<SymbolDef> = id(0x82);
+/// A symbol with one CP at the insertion point drawing FnDef CP 1 (FT-446: a start `connection.draw_to_ip` accepts).
+const SYM_CP1: Id<SymbolDef> = id(0x83);
+/// The representation of `FN_102G1` by [`SYM_CP1`]: its CP 1 at (0, 0) on page 102.
+const REP_DRAWN_CP1: Id<Representation> = id(0x308);
 
 fn ip_library() -> Vec<LibDocument> {
     let mut lib = library();
@@ -123,12 +127,20 @@ fn ip_library() -> Vec<LibDocument> {
     let mut gone = symbol_using(SYM_IP_GONE, LIBRARY_X, ITEM_GONE);
     gone.item.cps = ew_schema::KeyedList::from_vec(vec![cp_lib(0, 0, pt(G, 0), Dir4::Up)]).expect("one CP");
     lib.push(LibDocument::Symbol(gone));
+    let mut cp1 = symbol(SYM_CP1);
+    cp1.item.cps = ew_schema::KeyedList::from_vec(vec![cp_lib(0, 1, pt(0, 0), Dir4::Up)]).expect("one CP");
+    lib.push(LibDocument::Symbol(cp1));
     lib
 }
 
 /// The golden records with `f` applied, over [`ip_library`].
 fn ip_model(f: impl FnOnce(&mut Vec<Record>)) -> Model {
     let (project, mut records, _) = mini_golden_parts();
+    // FT-446: a wire may start at `FN_102G1`'s CP 1 on page 102; the mini model's `SYM` draws no CP, so
+    // [`SYM_CP1`] draws it at the origin.
+    let mut drawn = rep(REP_DRAWN_CP1, PAGE_102, vec![FN_102G1]);
+    drawn.symbol = SYM_CP1;
+    records.push(Record::Representation(drawn));
     f(&mut records);
     Model::from_records(project, records, ip_library()).expect("valid model")
 }
@@ -351,6 +363,89 @@ fn draw_to_ip_rejections_write_nothing() {
     assert!(matches!(e.execute(&cmd), Err(CmdError::Rejected { .. })));
     assert_eq!(e.model().rev(), rev);
     assert_eq!(lines(e.model()), before);
+}
+
+/// FT-446: an `a` end not drawn on the wire's page is refused before anything is inserted, naming the page it is
+/// drawn on and the wire's page; the model stays as it was. A black-box CP and a terminal CP drawn by its strip's
+/// segment on the page are accepted starts.
+#[test]
+fn draw_to_ip_refuses_a_start_on_another_page() {
+    const OTHER_PAGE: Id<Page> = id(0x32);
+    const J_OTHER: Id<Junction> = id(0x510);
+    const CON_OTHER: Id<Connection> = id(0x4300);
+    const DEV_BOX: Id<Device> = id(0x108);
+    const FN_BOX: Id<Function> = id(0x20a);
+    const REP_BOX: Id<Representation> = id(0x309);
+    let model = ip_model(|records| {
+        records.push(Record::Page(page(OTHER_PAGE, Some(SEC1), 103, "Another page")));
+        records.push(Record::Junction(junction(J_OTHER, OTHER_PAGE, vec![])));
+        records.push(Record::Connection(connection(
+            CON_OTHER,
+            Some(OTHER_PAGE),
+            cp(FN_T2, 0),
+            cp(FN_T3, 1),
+        )));
+        // A black-box function whose box is on page 102.
+        records.push(Record::Device(device(DEV_BOX, "B", 1)));
+        let mut box_function = function(FN_BOX, DEV_BOX, FNDEF_MICO, FnRole::Main);
+        box_function.kind = FunctionKind::BlackBox;
+        records.push(Record::Function(box_function));
+        let mut box_rep = rep(REP_BOX, PAGE_102, vec![FN_BOX]);
+        box_rep.box_ = Some(BoxSpec {
+            outline: vec![pt(0, 0), pt(4 * G, 0), pt(4 * G, 3 * G), pt(0, 3 * G)],
+            cps: vec![BoxCp {
+                idx: 0,
+                pos: pt(0, 0),
+                dir: Dir4::Left,
+                extra: Extra::new(),
+            }],
+            inner: vec![],
+            extra: Extra::new(),
+        });
+        records.push(Record::Representation(box_rep));
+    });
+    let mut e = engine(model);
+    let rev = e.model().rev();
+    let before = lines(e.model());
+    let good = || draw_to_ip(cp_param(FN_102G1, 1), pt(5 * G, 0), vec![pt(0, 0), pt(6 * G, 0)]);
+    let refusal = |other: Id<Page>| {
+        format!(
+            "the wire's start is drawn on page {other}, not on page {PAGE_102}; start the wire on page {PAGE_102}"
+        )
+    };
+    // A CP of a function whose only representation is on the other page.
+    let mut cmd = good();
+    cmd.a = cp_param(FN_101F1, 0);
+    rejected_with(e.execute(&cmd), &refusal(PAGE_101));
+    // A junction on the other page.
+    let mut cmd = good();
+    cmd.a = EndpointParam::Junction { junction: J_OTHER };
+    rejected_with(e.execute(&cmd), &refusal(OTHER_PAGE));
+    // A point on a connection drawn on the other page.
+    let mut cmd = good();
+    cmd.a = EndpointParam::OnConnection {
+        connection: CON_OTHER,
+        at: pt(0, 0),
+    };
+    rejected_with(e.execute(&cmd), &refusal(OTHER_PAGE));
+    assert_eq!(e.model().rev(), rev);
+    assert_eq!(lines(e.model()), before);
+    // A black-box CP whose box is on page 102 is a start.
+    let mut cmd = good();
+    cmd.a = cp_param(FN_BOX, 0);
+    cmd.ip.name = ident("BOX-1");
+    let r = e.execute(&cmd).expect("a black-box CP on the page is a start");
+    let c = row(&e, typed::<Connection>(r.outcome.primary.expect("primary")));
+    assert_eq!(c.a, cp(FN_BOX, 0));
+    // A terminal CP drawn only by its strip's segment on page 102 is a start.
+    let mut cmd = good();
+    cmd.a = cp_param(FN_T2, 0);
+    cmd.ip.name = ident("TERM-1");
+    let r = e
+        .execute(&cmd)
+        .expect("a terminal CP drawn by the strip segment is a start");
+    let c = row(&e, typed::<Connection>(r.outcome.primary.expect("primary")));
+    assert_eq!(c.a, cp(FN_T2, 0));
 }
 
 // ---------------------------------------------------------------------------------------------------------

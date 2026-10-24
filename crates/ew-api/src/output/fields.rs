@@ -576,18 +576,40 @@ const IDENTIFIERS: &[(&str, &str)] = &[
     ("device", "plc_module.slot"),
 ];
 
-/// The narrowing table (§6.1.3 step 2): settable paths the grid shows read-only.
-const NARROWED: &[(&str, &str, &str)] = &[
+/// Why a page item's kind is narrowed (WP-S2.04 §5.2).
+const KIND: &str =
+    "a page item's kind is not changed in place; delete the item and place another (WP-S2.04 §5.2)";
+
+/// Why a wire marker's wires are narrowed (WP-S2.04 §5.2).
+const GROUP: &str = "a marker's wires are changed by deleting the marker and placing another (WP-S2.04 §5.2)";
+
+/// Why a page item or a structure box does not move across pages.
+const PAGE: &str = "stays on its page; delete it and place it on the other page";
+
+/// The narrowing table (§6.1.3 step 2): settable paths the grid shows read-only. `below` matches the path and its
+/// members and list items; without it only the path itself matches (its settable members keep their `fields.set`
+/// route).
+const NARROWED: &[(&str, &str, bool, &str)] = &[
     (
         "revision",
         "author",
+        true,
         "decides the four-eyes sign-off (FR-REV-007, D-34)",
     ),
     (
         "revision",
         "checker",
+        true,
         "decides the four-eyes sign-off (FR-REV-007, D-34)",
     ),
+    ("page_item", "kind", false, KIND),
+    ("page_item", "kind.graphic", false, KIND),
+    ("page_item", "kind.free_text", false, KIND),
+    ("page_item", "kind.wire_marker", false, KIND),
+    ("page_item", "kind.wire_marker.connections", true, GROUP),
+    ("page_item", "kind.wire_marker.fields", true, GROUP),
+    ("page_item", "page", false, PAGE),
+    ("structure_box", "page", false, PAGE),
 ];
 
 /// The members other commands own (§6.1.3 step 5): kind, path (`*`: every member), command, where a person does it.
@@ -628,8 +650,6 @@ const OTHER_COMMANDS: &[(&str, &str, &str, Option<&str>)] = &[
     ("representation", "pos", "rep.move", Some("the canvas")),
     ("representation", "orient", "rep.transform", Some("the canvas")),
     ("representation", "page", "rep.move", Some("the canvas")),
-    ("page_item", "*", "rep.move", Some("the canvas")),
-    ("structure_box", "*", "rep.move", Some("the canvas")),
     ("connection", "a", "connection.draw", Some("the canvas")),
     ("connection", "b", "connection.draw", Some("the canvas")),
     ("connection", "route", "connection.route", Some("the canvas")),
@@ -678,7 +698,14 @@ pub(crate) fn route_of(kind: &str, path: &str, exposure: &dyn Fn(&str) -> Option
         return EditRoute::ReadOnly(FieldReadOnly::Identity);
     }
     // 2. The narrowing table.
-    if let Some((_, _, why)) = NARROWED.iter().find(|(k, p, _)| *k == kind && under(path, p)) {
+    if let Some((_, _, _, why)) = NARROWED.iter().find(|(k, p, below, _)| {
+        *k == kind
+            && if *below {
+                under(path, p)
+            } else {
+                settable_form(path) == *p
+            }
+    }) {
         return EditRoute::ReadOnly(FieldReadOnly::Narrowed {
             why: (*why).to_owned(),
         });

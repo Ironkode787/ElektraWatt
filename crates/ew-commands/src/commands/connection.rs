@@ -10,9 +10,9 @@ use ew_ids::Id;
 use ew_mltext::Ident;
 use ew_model::EndpointKey;
 use ew_schema::{
-    Bond, BondKind, CircuitClass, Connection, ConnectionKind, Endpoint, ExternalRef, Extra, FnDef, FnRole,
-    Function, FunctionKind, IpDirection, IpSpec, Junction, JunctionStyle, JunctionWiring, Kind, LibCopy,
-    NumberSpec, Page, PotentialDef, PotentialEnv, PotentialType, RepType, Representation, SymbolDef,
+    Bond, BondKind, CircuitClass, Connection, ConnectionKind, Device, Endpoint, ExternalRef, Extra, FnDef,
+    FnRole, Function, FunctionKind, IpDirection, IpSpec, Junction, JunctionStyle, JunctionWiring, Kind,
+    LibCopy, NumberSpec, Page, PotentialDef, PotentialEnv, PotentialType, RepType, Representation, SymbolDef,
     WireOverrides, WireProps,
 };
 use ew_units::{Dec3, Orient2, Pt2};
@@ -701,9 +701,10 @@ pub struct IpAtEnd {
 ///   connection grid and meets both CPs exactly (`geometry::require_route`), so it ends at the IP's CP.
 ///
 /// Nothing derived is read inside the transaction (the name and the direction are the tool's). Rejected: as
-/// `ip.place` (a missing page or symbol copy, a FnDef that is not embedded, `ip.pos` off the grid) and as
-/// `connection.draw` (a missing endpoint record, off-grid geometry, a route that does not meet its CPs); an IP
-/// symbol whose FnDef has not exactly one CP, or that does not draw it. Interactive. Outcome: the connection.
+/// `ip.place` (a missing page or symbol copy, a FnDef that is not embedded, `ip.pos` off the grid), as
+/// `connection.draw` (a missing endpoint record, off-grid geometry, a route that does not meet its CPs) and an `a` end
+/// that no representation of `page` draws; an IP symbol whose FnDef has not exactly one CP, or that does not draw it.
+/// Interactive. Outcome: the connection.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct DrawToIp {
@@ -752,6 +753,53 @@ impl Command for DrawToIp {
             }
         };
         self.a.check(tx)?;
+        // FT-446: the start must be drawn on the page the wire and the IP are drawn on; refuse another page (or none)
+        // before anything is inserted.
+        let (drawn, other) = match &self.a {
+            EndpointParam::Cp { function, .. } => {
+                // A representation draws the CP when it lists the function; a terminal's CP is also drawn by its
+                // strip's segment, which lists a function of the strip device.
+                let strip = tx
+                    .get::<Function>(*function)
+                    .and_then(|f| f.device)
+                    .and_then(|d| tx.get::<Device>(d))
+                    .and_then(|d| d.aspects.terminal.as_ref().map(|t| t.strip));
+                let mut reps = Vec::new();
+                for f in std::iter::once(*function)
+                    .chain(strip.into_iter().flat_map(|s| tx.functions_of_device(s)))
+                {
+                    reps.extend(
+                        tx.reps_of_function(f)
+                            .into_iter()
+                            .filter_map(|r| tx.get::<Representation>(r))
+                            .filter(|rep| rep.functions.contains(&f)),
+                    );
+                }
+                (
+                    reps.iter().any(|rep| rep.page == self.page),
+                    reps.iter().find(|rep| rep.page != self.page).map(|rep| rep.page),
+                )
+            }
+            EndpointParam::Junction { junction } => {
+                let page = tx.require::<Junction>(*junction)?.page;
+                (page == self.page, Some(page))
+            }
+            EndpointParam::OnConnection { connection, .. } => {
+                let page = tx.require::<Connection>(*connection)?.page;
+                (page == Some(self.page), page)
+            }
+        };
+        if !drawn {
+            let page = self.page;
+            return match other {
+                Some(other) => tx.reject(format!(
+                    "the wire's start is drawn on page {other}, not on page {page}; start the wire on page {page}"
+                )),
+                None => tx.reject(format!(
+                    "the wire's start is drawn on no page, not on page {page}; start the wire on page {page}"
+                )),
+            };
+        }
         let spec = IpSpec {
             name: self.ip.name.clone(),
             direction: self.ip.direction.clone(),
