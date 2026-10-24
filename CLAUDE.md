@@ -11,9 +11,9 @@ Use the cheapest model that can do the task well. Three Claude tiers, each with 
 
 | Tier | Model | Subagents | Use for |
 |---|---|---|---|
-| Coder (external) | DeepSeek Flash at max effort (V4 Pro only on retry) in the DeepSeek harness | — (bridge `.claude/deepseek/dsh-task.py`) | Everything with a closed spec, at every D-level, in its own worktree: implementation (D4–D5 included once the lead's spec is closed), tests, fixtures, DSL verbs, schema/reference regeneration, fuzz arms, kittests, docs sections and as-built text to a decided outline, mechanical edits, and research (repository surveys, literature sweeps) in read-only rounds; Claude reviews, commits and merges (see "DeepSeek coder (dsh)") |
-| Lead | Opus | `lead-designer`, `lead-programmer` | Design and review only (owner's rule, 2026-10-24): architecture, ADRs, domain-model and file-format decisions, cross-document conflicts, estimation/planning, judging alternatives; the closed specs the coder works from (the core crates — ew-model, ew-commands, ew-memo, ew-derive, ew-format/ew-store, concurrency, FFI, public & plugin APIs — get the most exact specs); the rulings; the review of every DeepSeek round (report → diff → acceptance checks re-run); hard debugging. A lead writes code or doc text itself only when a task failed on DeepSeek Flash and on Pro |
-| Worker | Sonnet | `designer`, `programmer` | Fallback coder/writer when dsh is unavailable or a task failed on Flash and on Pro; reviews of D2–D3 DeepSeek rounds and of fix rounds with closed items; window checks and other verification that needs reading screenshots |
+| Coder (external) | DeepSeek Flash at max effort in the DeepSeek harness (Flash only: Pro is not used, owner's ruling 2026-10-24) | — (bridge `.claude/deepseek/dsh-task.py`) | Everything with a closed spec, at every D-level, in its own worktree: implementation (D4–D5 included once the lead's spec is closed), tests, fixtures, DSL verbs, schema/reference regeneration, fuzz arms, kittests, docs sections and as-built text to a decided outline, mechanical edits, and research (repository surveys, literature sweeps) in read-only rounds; Claude reviews, commits and merges (see "DeepSeek coder (dsh)") |
+| Lead | Opus | `lead-designer`, `lead-programmer` | Design and review only (owner's rule, 2026-10-24): architecture, ADRs, domain-model and file-format decisions, cross-document conflicts, estimation/planning, judging alternatives; the closed specs the coder works from (the core crates — ew-model, ew-commands, ew-memo, ew-derive, ew-format/ew-store, concurrency, FFI, public & plugin APIs — get the most exact specs); the rulings; the review of every DeepSeek round (report → diff → acceptance checks re-run); hard debugging. A lead writes code or doc text itself only when a task failed on DeepSeek Flash twice (a second round with a sharpened brief; Pro is not used) |
+| Worker | Sonnet | `designer`, `programmer` | Fallback coder/writer when dsh is unavailable or a task failed on Flash twice (Pro is not used); reviews of D2–D3 DeepSeek rounds and of fix rounds with closed items; window checks and other verification that needs reading screenshots |
 | Mechanical | Haiku | `boilerplate`, `scout` (read-only search) | `scout` for quick read-only lookups the orchestrator or a lead needs inside a turn; `boilerplate` only as the fallback for mechanical edits (headers, renames, count bumps) when dsh is unavailable |
 
 **Defaults.** `.claude/settings.json` sets `CLAUDE_CODE_SUBAGENT_MODEL=sonnet`: any subagent or workflow agent that is
@@ -65,9 +65,10 @@ testing policy, public-repo rules, report format) instead of this file.
 - **Routing.** Everything with a closed spec goes to DeepSeek, at every D-level — code (D4–D5 included once the
   lead's spec is closed), tests, regeneration, docs text to a decided outline, mechanical edits, and research in
   read-only rounds — on DeepSeek Flash at max reasoning effort (the bridge's default, owner's choice 2026-10-24); a
-  round that fails on Flash is re-run with `--model pro` (DeepSeek V4 Pro), never Pro first. Open design questions,
+  round that fails on Flash is re-run once on Flash with a sharpened brief (what failed, the exact expected result);
+  DeepSeek Pro is NOT used (owner's ruling, 2026-10-24: the current Flash outperforms Pro on the benchmarks). Open design questions,
   the rulings and the design pass stay with the leads; `programmer`/`designer`/`boilerplate` take over only when dsh
-  is unavailable or a task still fails on Pro.
+  is unavailable or a task still fails on the second Flash round.
 - **Run a round** from the lead lane or the main session with Bash `run_in_background` (a round takes minutes to
   tens of minutes; the notification arrives on exit — a subagent too is re-invoked when its own background command
   exits, verified 2026-10-24). Write the brief to a file (goal, files owned, references, acceptance checks), then
@@ -84,7 +85,7 @@ testing policy, public-repo rules, report format) instead of this file.
   <base> | git apply --index`, untracked files copied; or commit on `ds/<name>` and merge) and run cargo there — the
   coder's check results are claims, not proof. Review delegation follows rule 7. For revisions
   write the findings to a file and run `resume <name> --task-file <fixes>` (same dsh session); after three rounds on
-  Flash re-run with `--model pro`; after Pro hand the worktree to `programmer` or `lead-programmer`.
+  Flash hand the worktree to `programmer` or `lead-programmer` (never `--model pro`: Pro is not used).
 - **Integrate**: commit in the worktree in the project's message style with the line `Coded by DeepSeek <model> via
   dsh (run <name>).` above the trailers, merge `ds/<name>` into the working branch, then `remove <name>` (deletes
   the worktree with its `target` and the branch).
@@ -124,7 +125,7 @@ text and research with a closed spec go to the DeepSeek coder at every level (ru
 the spec must be and who reviews.
 
 - **Escalate on failure:** a DeepSeek round that comes back blocked, fails its verification, or is rejected in review
-  is re-run on Pro, then handed to the Claude tier of the ladder's level (with the failed rounds' notes); a Claude task
+  is re-run once on Flash with a sharpened brief, then handed to the Claude tier of the ladder's level (with the failed rounds' notes; Pro is not used); a Claude task
   that fails is re-run one level up. Two escalations without success → hand to `lead-designer` / `lead-programmer`.
 - **De-escalate on evidence:** when a kind of task succeeds first time at a level three times in a row, start the
   next one a level lower.

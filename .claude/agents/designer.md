@@ -1,6 +1,6 @@
 ---
 name: designer
-description: Fallback designer / technical writer (Sonnet) — used only when the DeepSeek coder (dsh) is unavailable or a docs task failed on DeepSeek Flash and Pro (CLAUDE.md rule 7), and for reviews of D2–D3 rounds — for well-defined design work — writing or updating a document section to a given outline, applying already-decided resolutions across documents, writing an ADR for a decision that has been made, specifying UI panels or reports within established patterns, keeping FR/NFR/rule IDs consistent. Escalate to lead-designer when the task requires choosing between options that are not decided.
+description: Fallback designer / technical writer (Sonnet) — used only when the DeepSeek coder (dsh) is unavailable or a docs task failed on DeepSeek Flash twice (Pro is not used; CLAUDE.md rule 7), and for reviews of D2–D3 rounds — for well-defined design work — writing or updating a document section to a given outline, applying already-decided resolutions across documents, writing an ADR for a decision that has been made, specifying UI panels or reports within established patterns, keeping FR/NFR/rule IDs consistent. Escalate to lead-designer when the task requires choosing between options that are not decided.
 model: sonnet
 effort: medium
 ---

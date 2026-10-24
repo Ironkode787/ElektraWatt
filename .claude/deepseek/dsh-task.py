@@ -7,7 +7,7 @@ Each task gets its own git worktree (.claude/worktrees/ds-<name> on branch ds/<n
 token use, the files changed against the base commit and the coder's final report. `resume` continues the same dsh
 session with revision instructions. The coder never commits; the orchestrator reviews, commits and merges.
 
-  python .claude/deepseek/dsh-task.py start <name> --task-file brief.md [--base REF] [--model flash|pro|ID]
+  python .claude/deepseek/dsh-task.py start <name> --task-file brief.md [--base REF] [--model flash|ID]
                                       [--effort off|low|high|max] [--sandbox workspace|full] [--timeout-min N]
 
 Rounds default to DeepSeek Flash at max reasoning effort.
@@ -41,6 +41,10 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 PROVIDER = 'deepseek-official'
 MODELS = {'pro': 'deepseek-v4-pro', 'flash': 'deepseek-flash'}
+# Owner's ruling (2026-10-24, evening): DeepSeek Pro is not used — the current Flash outperforms Pro on the
+# benchmarks. A round that fails on Flash is re-run on Flash with a sharpened brief, then handed to the Claude tiers.
+PRO_REFUSED = ('DeepSeek Pro is not used (owner\'s ruling, 2026-10-24: the current Flash outperforms Pro). '
+               'Re-run on Flash with a sharpened brief, or hand the task to programmer/lead-programmer.')
 SANDBOXES = {'workspace': 'workspace-write', 'full': 'danger-full-access'}
 # The project's build settings (CLAUDE.md "Disk and build concurrency"); set when the caller has not.
 CARGO_ENV = {'CARGO_PROFILE_DEV_DEBUG': 'line-tables-only', 'CARGO_INCREMENTAL': '0', 'CARGO_BUILD_JOBS': '4'}
@@ -355,7 +359,7 @@ def main() -> int:
     def round_options(p: argparse.ArgumentParser) -> None:
         p.add_argument('name')
         p.add_argument('--task-file', required=True, help='the task text, or - for stdin')
-        p.add_argument('--model', default='flash', help='flash (deepseek-flash, the default), pro (deepseek-v4-pro) '
+        p.add_argument('--model', default='flash', help='flash (deepseek-flash, the default; pro is refused: owner\'s ruling 2026-10-24) '
                        'or a model id')
         p.add_argument('--effort', choices=['off', 'low', 'high', 'max'], default='max',
                        help='reasoning effort passed to the DeepSeek adapter (default max)')
@@ -382,6 +386,8 @@ def main() -> int:
     p.add_argument('--keep-branch', action='store_true')
     p.set_defaults(func=cmd_remove)
     args = parser.parse_args()
+    if getattr(args, 'model', None) in ('pro', MODELS['pro']):
+        sys.exit(PRO_REFUSED)  # before any worktree, branch or run directory is created
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')  # the coder's report is not limited to the console code page
     return args.func(args)
 

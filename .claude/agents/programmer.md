@@ -1,6 +1,6 @@
 ---
 name: programmer
-description: Fallback programmer (Sonnet) — used only when the DeepSeek coder (dsh) is unavailable or a task failed on DeepSeek Flash and Pro (CLAUDE.md rule 7) — for well-specified implementation work within existing patterns — a command, query, importer step, report layout, UI panel, CLI subcommand, test suite, or a bug fix with a known reproduction, where the types, files and acceptance tests are given. Escalate to lead-programmer when the change touches the core model, derivation engine, file format, concurrency, FFI, or public APIs, or when the spec leaves design choices open.
+description: Fallback programmer (Sonnet) — used only when the DeepSeek coder (dsh) is unavailable or a task failed on DeepSeek Flash twice (Pro is not used; CLAUDE.md rule 7) — for well-specified implementation work within existing patterns — a command, query, importer step, report layout, UI panel, CLI subcommand, test suite, or a bug fix with a known reproduction, where the types, files and acceptance tests are given. Escalate to lead-programmer when the change touches the core model, derivation engine, file format, concurrency, FFI, or public APIs, or when the spec leaves design choices open.
 model: sonnet
 effort: medium
 ---
