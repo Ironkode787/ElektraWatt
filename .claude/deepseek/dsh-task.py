@@ -7,8 +7,10 @@ Each task gets its own git worktree (.claude/worktrees/ds-<name> on branch ds/<n
 token use, the files changed against the base commit and the coder's final report. `resume` continues the same dsh
 session with revision instructions. The coder never commits; the orchestrator reviews, commits and merges.
 
-  python .claude/deepseek/dsh-task.py start <name> --task-file brief.md [--base REF] [--model pro|flash|ID]
-                                      [--effort high|max] [--sandbox workspace|full] [--timeout-min N]
+  python .claude/deepseek/dsh-task.py start <name> --task-file brief.md [--base REF] [--model flash|pro|ID]
+                                      [--effort off|low|high|max] [--sandbox workspace|full] [--timeout-min N]
+
+Rounds default to DeepSeek Flash at max reasoning effort.
   python .claude/deepseek/dsh-task.py resume <name> --task-file fixes.md [same options]
   python .claude/deepseek/dsh-task.py show <name> [--round N]
   python .claude/deepseek/dsh-task.py list
@@ -348,8 +350,10 @@ def main() -> int:
     def round_options(p: argparse.ArgumentParser) -> None:
         p.add_argument('name')
         p.add_argument('--task-file', required=True, help='the task text, or - for stdin')
-        p.add_argument('--model', default='pro', help='pro (deepseek-v4-pro), flash (deepseek-flash) or a model id')
-        p.add_argument('--effort', default='high', help='reasoning effort passed to the DeepSeek adapter')
+        p.add_argument('--model', default='flash', help='flash (deepseek-flash, the default), pro (deepseek-v4-pro) '
+                       'or a model id')
+        p.add_argument('--effort', choices=['off', 'low', 'high', 'max'], default='max',
+                       help='reasoning effort passed to the DeepSeek adapter (default max)')
         p.add_argument('--sandbox', choices=SANDBOXES, default='workspace',
                        help='workspace: writes confined to the worktree; full: no sandbox')
         p.add_argument('--timeout-min', type=float, default=90, help='stop the round after this many minutes')

@@ -10,7 +10,7 @@ Use the cheapest model that can do the task well. Three Claude tiers, each with 
 
 | Tier | Model | Subagents | Use for |
 |---|---|---|---|
-| Coder (external) | DeepSeek V4 Pro / Flash in the DeepSeek harness | — (bridge `.claude/deepseek/dsh-task.py`) | Code with a closed spec at D1–D3, in its own worktree; Claude reviews, commits and merges (see "DeepSeek coder (dsh)") |
+| Coder (external) | DeepSeek Flash (max effort; V4 Pro on retry) in the DeepSeek harness | — (bridge `.claude/deepseek/dsh-task.py`) | Code with a closed spec at D1–D3, in its own worktree; Claude reviews, commits and merges (see "DeepSeek coder (dsh)") |
 | Lead | Opus | `lead-designer`, `lead-programmer` | Open decisions: architecture, ADRs, domain-model and file-format changes, cross-document conflicts, estimation/planning, judging alternatives; core/critical code (ew-model, ew-commands, ew-memo, ew-derive, ew-format/ew-store, concurrency, FFI/STEP worker, public & plugin APIs, perf-critical rendering); hard debugging; final review |
 | Worker | Sonnet | `designer`, `programmer` | Well-defined work with a closed spec: write/update a doc section to an outline, apply decided resolutions, write an ADR for a made decision; implement a specified command/query/importer step/report/UI panel/CLI subcommand, tests, bug fixes with a known repro; research and literature sweeps |
 | Mechanical | Haiku | `boilerplate`, `scout` (read-only search) | No judgment needed: scaffolding from a template, Cargo.toml edits, licence/REUSE headers, renames and ID-map find-and-replace, fmt/trivial lint fixes, fixtures, CHANGELOG/README, link and Mermaid fixes; repository searches and lookups (`scout`) |
@@ -53,12 +53,13 @@ owner's DeepSeek key (`~/.dsh/.env`), not the Claude quota. The bridge `.claude/
 `dsh --profile headless` in a worktree of its own; the coder reads `.claude/deepseek/AGENTS.md` (scope, git rules,
 testing policy, public-repo rules, report format) instead of this file.
 
-- **Routing.** Implementation with a closed spec at D1–D3 goes to DeepSeek by default: `--model flash` for D1,
-  `--model pro` (DeepSeek V4 Pro, the default) for D2–D3. D4–D5 code, open design questions and docs stay with the
-  Claude tiers; `programmer`/`boilerplate` take over when dsh is unavailable or a task fails there twice.
+- **Routing.** Implementation with a closed spec at D1–D3 goes to DeepSeek by default, on DeepSeek Flash at max
+  reasoning effort (the bridge's default, owner's choice 2026-10-24); a round that fails on Flash is re-run with
+  `--model pro` (DeepSeek V4 Pro). D4–D5 code, open design questions and docs stay with the Claude tiers;
+  `programmer`/`boilerplate` take over when dsh is unavailable or a task still fails on Pro.
 - **Run a round** from the main session with Bash `run_in_background` (a round takes minutes to tens of minutes; the
   notification arrives on exit). Write the brief to a file (goal, files owned, references, acceptance checks), then
-  `python .claude/deepseek/dsh-task.py start <name> --task-file <brief> [--base <ref>] [--model pro|flash]`. It
+  `python .claude/deepseek/dsh-task.py start <name> --task-file <brief> [--base <ref>] [--model flash|pro]`. It
   creates `.claude/worktrees/ds-<name>` on branch `ds/<name>` and prints the outcome, tokens, the changes against the
   base and the coder's `## Report`. `show <name>` re-prints a summary (also mid-round); `list` lists the runs.
 - **Review** the report, then the diff (`git -C <worktree> diff <base>` and the untracked files listed), and re-run the
