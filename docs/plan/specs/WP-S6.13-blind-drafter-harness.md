@@ -933,6 +933,22 @@ points where the code differs from the text above, or settles what it left open:
    program, whose copy goes into the run); it builds `elektrawatt` and `ew` unless `--no-build`.
 8. **Scoring** (`score.json`, `bless-oracle`, `check-task`) is part 2: `stop` writes `out/report.md` with the protocol
    counts and observations only.
+9. **Reason key.** An unknown folio fails with the existing `error-no-folio` (one text per reason key), not a new
+   `error-unknown-folio`; a project without a page is refused with `reason-no-page`, one without a project with
+   `reason-no-project`.
+10. **The `rep ip` line** carries `symbol` and `variant` like every representation line, unlike the example of §5.5.3:
+    `rep ip "<name>" direction <word> cell "<cell>" symbol "<key>" variant "<A to H>" at X Y mm`. `undirected` is kept
+    among the 11 words although Golden A has no undirected interruption point: the printer emits the direction word of
+    the page tables' `TableIp` (`ip_direction_word` maps `IpDirection::Undirected` to `undirected`), so
+    `direction undirected` is printable and an expected text of a later golden folio would contain it. The count stays
+    **238** words (227 + 11).
+11. **Isolation (ID-621), fix round.** The run's copy of the harness (`<dir>/bin/xtask` beside `<dir>/run.json`) runs
+    only `help`, `do`, `look`, `note`, `handback`, `report`, `resume` and `serve`; any other subcommand prints
+    `harness: <sub> is the orchestrator's` and exits non-zero, and `help` and the action reference are read from the
+    run folder only, never from a repository path baked into the binary. `picker.choose` has the signature
+    `letter?:text, strip?:text, designation?:text` (the picker's Enter arms the pick as `place.pick` does).
+12. **Run state, fix round.** `stop` records `golden_changed` in `run.json` and `bless` refuses such a run; a check run's
+    copy of the drafter's project is put back whenever `work/` is deleted (`resume`, every stateless call).
 
 ---
 

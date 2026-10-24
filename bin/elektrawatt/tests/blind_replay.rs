@@ -116,8 +116,13 @@ fn load(dir: &Path) -> Recording {
 
 /// The recordings under `tools/blind/recordings`, by name.
 fn recordings() -> Vec<(String, Recording)> {
+    recordings_in(Path::new(RECORDINGS))
+}
+
+/// The recordings under `dir`, by name.
+fn recordings_in(dir: &Path) -> Vec<(String, Recording)> {
     let mut out = Vec::new();
-    let Ok(entries) = std::fs::read_dir(RECORDINGS) else {
+    let Ok(entries) = std::fs::read_dir(dir) else {
         return out;
     };
     for e in entries.flatten() {
@@ -166,6 +171,14 @@ fn replay(rec: &Recording) -> Vec<String> {
 /// R1 and R2 over one replay: the failures, empty when both hold.
 fn check(rec: &Recording, lines: &[String]) -> Vec<String> {
     let mut failures = Vec::new();
+    // ID-630 (d): a raw UUID in any replayed line is a product defect, named by its line.
+    if let Some(at) = lines.iter().position(|l| has_uuid(l)) {
+        failures.push(format!(
+            "a raw UUID in replayed transcript line {}: {}",
+            at + 1,
+            lines[at].chars().take(160).collect::<String>()
+        ));
+    }
     if lines.len() < rec.outcomes.len() {
         failures.push(format!(
             "the replay wrote {} steps and the recording has {}",
@@ -214,10 +227,6 @@ fn check(rec: &Recording, lines: &[String]) -> Vec<String> {
                 rec.dir.display()
             ));
         }
-        // No record ID in a page text: the product prints aliases.
-        if has_uuid(&text) {
-            failures.push("a raw UUID in the page texts".to_owned());
-        }
     }
     failures
 }
@@ -246,42 +255,58 @@ fn has_uuid(text: &str) -> bool {
     false
 }
 
-/// Replays the recordings whose `ci` is `which` twice and reports every failure at once.
-fn run_recordings(which: &str) {
-    let mut failures = Vec::new();
-    for (name, rec) in recordings().iter().filter(|(_, r)| r.ci == which) {
+/// What replaying a folder of recordings found.
+struct Outcome {
+    /// Every failure, with the recording's name.
+    failures: Vec<String>,
+    /// The recordings left out because they are stale: `name: reason`.
+    skipped: Vec<String>,
+}
+
+/// Replays the recordings of `dir` whose `ci` is `which` twice and reports every failure at once; a recording with
+/// `stale` set is skipped with its reason (D15).
+fn run_recordings(dir: &Path, which: &str) -> Outcome {
+    let mut out = Outcome {
+        failures: Vec::new(),
+        skipped: Vec::new(),
+    };
+    for (name, rec) in recordings_in(dir).iter().filter(|(_, r)| r.ci == which) {
         if let Some(reason) = &rec.stale {
             eprintln!("recording {name} is stale and skipped: {reason}");
+            out.skipped.push(format!("{name}: {reason}"));
             continue;
         }
         let first = replay(rec);
         let second = replay(rec);
-        failures.extend(check(rec, &first).into_iter().map(|f| format!("{name}: {f}")));
+        out.failures
+            .extend(check(rec, &first).into_iter().map(|f| format!("{name}: {f}")));
         if first != second {
             let at = first
                 .iter()
                 .zip(&second)
                 .position(|(a, b)| a != b)
                 .unwrap_or(first.len().min(second.len()));
-            failures.push(format!(
+            out.failures.push(format!(
                 "{name}: two replays in fresh folders differ at transcript line {}",
                 at + 1
             ));
         }
     }
-    assert!(failures.is_empty(), "{}", failures.join("\n"));
+    out
 }
 
 #[test]
 fn blind_replay() {
-    run_recordings("pr");
+    let out = run_recordings(Path::new(RECORDINGS), "pr");
+    assert!(out.failures.is_empty(), "{}", out.failures.join("\n"));
 }
 
 /// The long recordings (`ci = "nightly"`), replayed by the deep nightly (FT-414).
 #[test]
 #[ignore = "the nightly's"]
 fn blind_replay_long() {
-    run_recordings("nightly");
+    let out = run_recordings(Path::new(RECORDINGS), "nightly");
+    assert!(out.failures.is_empty(), "{}", out.failures.join("\n"));
 }
 
 /// The self-test recording exists, runs in the PR jobs and is never stale (D15).
@@ -336,30 +361,66 @@ fn a_corrupted_outcome_fails_the_replay() {
     assert!(check(&bad, &lines).iter().any(|f| f.starts_with("R2")));
 }
 
-/// A recording with `stale` set is skipped with its reason: here a copy of the self-test recording is marked stale and
-/// its `run.json` says why; `run_recordings` leaves it out.
+/// A recording with `stale` set is skipped with its reason (BD12): a copy of the self-test recording with a corrupted
+/// `outcomes.jsonl` fails while it is not stale, and is skipped, with its reason, once `stale` is set.
 #[test]
 fn a_stale_recording_is_skipped_with_its_reason() {
     let tmp = Tmp::new();
     let all = recordings();
     let selftest = &all.iter().find(|(n, _)| n == "selftest").unwrap().1;
-    let mut run: Value =
-        serde_json::from_str(&std::fs::read_to_string(selftest.dir.join("run.json")).unwrap()).unwrap();
-    run["stale"] = Value::from("the wizard's step order changed (WP-X)");
-    std::fs::write(tmp.0.join("run.json"), run.to_string()).unwrap();
+    let copy = tmp.0.join("copy");
+    std::fs::create_dir_all(&copy).unwrap();
     for f in [
         "prelude.uiscript",
         "steps.uiscript",
-        "outcomes.jsonl",
         "epilogue.txt",
         "turns.jsonl",
     ] {
-        std::fs::copy(selftest.dir.join(f), tmp.0.join(f)).unwrap();
+        std::fs::copy(selftest.dir.join(f), copy.join(f)).unwrap();
     }
-    let rec = load(&tmp.0);
-    assert_eq!(
-        rec.stale.as_deref(),
-        Some("the wizard's step order changed (WP-X)")
+    // The first outcome is corrupted: `file.new` is said to have been refused.
+    let outcomes = std::fs::read_to_string(selftest.dir.join("outcomes.jsonl")).unwrap();
+    let corrupted = outcomes.replacen("\"outcome\":\"done\"", "\"outcome\":\"refused\"", 1);
+    assert_ne!(corrupted, outcomes);
+    std::fs::write(copy.join("outcomes.jsonl"), corrupted).unwrap();
+    let mut run: Value =
+        serde_json::from_str(&std::fs::read_to_string(selftest.dir.join("run.json")).unwrap()).unwrap();
+    std::fs::write(copy.join("run.json"), run.to_string()).unwrap();
+
+    // Not stale: the corrupted outcome fails the replay.
+    let live = run_recordings(&tmp.0, "pr");
+    assert!(live.skipped.is_empty(), "{:?}", live.skipped);
+    assert!(
+        live.failures.iter().any(|f| f.starts_with("copy: R1 step 1")),
+        "{:?}",
+        live.failures
     );
-    assert_eq!(rec.ci, "pr");
+
+    // Stale: skipped, with its reason, and nothing fails.
+    run["stale"] = Value::from("the wizard's step order changed (WP-X)");
+    std::fs::write(copy.join("run.json"), run.to_string()).unwrap();
+    let skipped = run_recordings(&tmp.0, "pr");
+    assert!(skipped.failures.is_empty(), "{:?}", skipped.failures);
+    assert_eq!(skipped.skipped, ["copy: the wizard's step order changed (WP-X)"]);
+}
+
+/// A raw UUID in any replayed line fails the check and names the line (ID-630 (d)).
+#[test]
+fn a_raw_uuid_in_a_replayed_line_fails() {
+    let all = recordings();
+    let selftest = &all.iter().find(|(n, _)| n == "selftest").unwrap().1;
+    let mut lines = replay(selftest);
+    assert!(check(selftest, &lines).is_empty());
+    lines[2] = lines[2].replacen(
+        "\"state\"",
+        "\"id\":\"0197a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b\",\"state\"",
+        1,
+    );
+    let failures = check(selftest, &lines);
+    assert!(
+        failures
+            .iter()
+            .any(|f| f.starts_with("a raw UUID in replayed transcript line 3")),
+        "{failures:?}"
+    );
 }
