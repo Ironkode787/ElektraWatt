@@ -99,14 +99,11 @@ fn the_picker_lists_the_grid_family_embeds_a_starter_symbol_once_and_disables_ro
         text.contains("  row symbol \"ew.iec.mcb-1p@qet10\" embedded"),
         "{text}"
     );
-    // A black-box symbol row is disabled with its reason, and choosing it is refused.
+    // A black-box symbol row is enabled from WP-S2.04 part 3 (§9.5): choosing it arms the black box tool
+    // (`tests/part3.rs`).
     done(&mut s, "picker.filter", json!({"text": "blackbox"}));
     let line = describe_line(&s, "  row symbol \"ew.gen.blackbox@qet10\"");
-    assert!(line.contains("disabled: Use the black box tool (B)"), "{line}");
-    assert_eq!(
-        refused(&mut s, "picker.choose", json!({})),
-        "reason-black-box-tool"
-    );
+    assert!(!line.contains("disabled"), "{line}");
     // Rows move and clamp.
     done(&mut s, "picker.filter", json!({"text": ""}));
     let n = s.picker().unwrap().rows.len();

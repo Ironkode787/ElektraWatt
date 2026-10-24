@@ -1996,7 +1996,9 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
             || ew_viewmodel::describe::CLIP_WORDS.contains(*w)
             || wiring.contains(*w)
             // WP-S6.13 part 1: the page text's words are `page.describe`'s: `tests/page_describe.rs` reaches them.
-            || ew_viewmodel::describe::PAGE_WORDS.contains(*w)),
+            || ew_viewmodel::describe::PAGE_WORDS.contains(*w)
+            // WP-S2.04 part 3: the IP and black box words need the tools on a writable project: `tests/part3.rs`.
+            || ew_viewmodel::describe::IP_WORDS.contains(*w)),
         "words of the vocabulary no state used: {unused:?}"
     );
 }
