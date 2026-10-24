@@ -1466,7 +1466,52 @@ fn the_page_item_commands_replay_through_ew_apply() {
         .unwrap();
     let (saved, _) = ew_api::Session::open_read_only(&project, "test").unwrap();
     let diff = replayed.diff_from(&saved.world()).unwrap();
-    assert!(diff.model.is_empty(), "{:?}", diff.model);
+    // A log line cannot name a minted page item or structure box, so the `ew apply` run and the in-process replay
+    // mint different IDs for both kinds; `model_lines` lists them since the generated key list, so the diff reports
+    // each of them as removed and added. No other record may differ, and the items and boxes themselves are equal by
+    // content, IDs aside.
+    use ew_api::ChangeKind;
+    let mut removed: std::collections::BTreeMap<&str, usize> = std::collections::BTreeMap::new();
+    let mut added: std::collections::BTreeMap<&str, usize> = std::collections::BTreeMap::new();
+    for change in &diff.model.changes {
+        let kind = change.key.0.name();
+        assert!(
+            matches!(kind, "page_item" | "structure_box"),
+            "the replay changed a {kind} record: {change:?}"
+        );
+        match change.change {
+            ChangeKind::Removed => *removed.entry(kind).or_default() += 1,
+            ChangeKind::Added => *added.entry(kind).or_default() += 1,
+            ChangeKind::Changed => panic!("a {kind} record differs by members: {change:?}"),
+        }
+    }
+    assert_eq!(
+        removed, added,
+        "per kind, the removed and added minted records balance"
+    );
+    // The two projects' items and boxes on 101 by content: a marker's connections are the golden connection IDs,
+    // which the log names, so they are equal on both sides.
+    let contents = |s: &ew_api::Session| {
+        let t = s.page_tables("101").expect("page 101");
+        let mut items: Vec<_> = t
+            .items
+            .iter()
+            .map(|i| (i.kind.clone(), i.bounds, i.connections.clone()))
+            .collect();
+        items.sort();
+        let mut boxes: Vec<_> = t
+            .structure_boxes
+            .iter()
+            .map(|b| (b.outline.clone(), b.style.clone(), b.caption.clone()))
+            .collect();
+        boxes.sort();
+        (items, boxes)
+    };
+    assert_eq!(
+        contents(&replayed),
+        contents(&saved),
+        "the page items and structure boxes by content, IDs aside"
+    );
     let saved_tables = saved.page_tables("101").unwrap();
     assert_eq!(saved_tables.items.len(), 3);
     assert_eq!(saved_tables.structure_boxes.len(), 1);

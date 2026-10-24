@@ -11,11 +11,7 @@
 //! A row that has no JSON form (a coordinate beyond ±(2⁵³ − 1), ADR-0005) is a [`CmdError::Internal`],
 //! never a silent `null`.
 
-use ew_model::{AnyKey, AnyRow, Entity, Model};
-use ew_schema::{
-    Bond, Conductor, Connection, Device, ExternalRef, FnDef, FormDef, Function, ImportLineage, Junction,
-    LibCopy, Page, Part, PotentialDef, ReportBlock, Representation, Section, StructureNode, SymbolDef,
-};
+use ew_model::{AnyKey, AnyRow, Model};
 use serde_json::Value;
 
 use crate::error::CmdError;
@@ -66,37 +62,14 @@ pub fn row_text(row: &AnyRow) -> Result<String, CmdError> {
 /// Every row of a model (project row first, then every table in kind order, each in ID order) as
 /// `(key, compact JSON)`. Two models with equal lines hold byte-identical records.
 pub fn model_lines(model: &Model) -> Result<Vec<(AnyKey, String)>, CmdError> {
-    fn table<T: Entity>(model: &Model, out: &mut Vec<(AnyKey, String)>) -> Result<(), CmdError> {
-        for (id, row) in model.table::<T>().iter() {
-            out.push((T::key(*id), row_text(&T::wrap(std::sync::Arc::clone(row)))?));
-        }
-        Ok(())
-    }
     let mut out = Vec::new();
-    let project = AnyRow::Project(std::sync::Arc::clone(model.project()));
-    out.push((project.key(), row_text(&project)?));
-    table::<ew_schema::PlcConfigProject>(model, &mut out)?;
-    table::<ImportLineage>(model, &mut out)?;
-    table::<StructureNode>(model, &mut out)?;
-    table::<Section>(model, &mut out)?;
-    table::<ExternalRef>(model, &mut out)?;
-    table::<Page>(model, &mut out)?;
-    table::<Device>(model, &mut out)?;
-    table::<Function>(model, &mut out)?;
-    table::<Representation>(model, &mut out)?;
-    table::<Connection>(model, &mut out)?;
-    table::<Junction>(model, &mut out)?;
-    table::<Conductor>(model, &mut out)?;
-    table::<ew_schema::Channel>(model, &mut out)?;
-    table::<PotentialDef>(model, &mut out)?;
-    table::<Bond>(model, &mut out)?;
-    table::<ew_schema::DeviceLink>(model, &mut out)?;
-    table::<ReportBlock>(model, &mut out)?;
-    table::<ew_schema::Revision>(model, &mut out)?;
-    table::<LibCopy<Part>>(model, &mut out)?;
-    table::<LibCopy<SymbolDef>>(model, &mut out)?;
-    table::<LibCopy<FnDef>>(model, &mut out)?;
-    table::<LibCopy<FormDef>>(model, &mut out)?;
+    for key in model.keys() {
+        // Generated from the entity list, so every key has a row; a key without one is no line.
+        let Some(row) = model.row(&key) else {
+            continue;
+        };
+        out.push((key, row_text(&row)?));
+    }
     Ok(out)
 }
 

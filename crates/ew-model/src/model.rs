@@ -262,6 +262,18 @@ impl Model {
         }
     }
 
+    raw_read! {
+        /// Every key the model holds: the project row's first, then every table's rows in kind order (the order of
+        /// the `entities!` list), each in ID order. Generated from the entity list, so a new record kind is listed by
+        /// construction.
+        fn keys(&self) -> Vec<AnyKey> {
+            let mut out = Vec::new();
+            out.push((Kind::Project, self.project.value.id.cast()));
+            out.extend(crate::entity::table_keys(self));
+            out
+        }
+    }
+
     /// The asset with this hash, if the model holds it. Not a record read: an asset's bytes never change under
     /// its hash, so a reader needs no dependency tracking for it (doc 05 §13.3).
     pub fn asset(&self, sha256: &ew_schema::Sha256) -> Option<&Asset> {
@@ -542,5 +554,59 @@ fn sort_unknown<T>(items: &mut [T], value: impl Fn(&T) -> &serde_json::Value) ->
                 id: ew_ids::Id::from_uuid(*id),
             },
         }),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use ew_ids::{Id, Uuid};
+    use ew_schema::{Kind, KindStatus, Record};
+
+    use crate::entity::{TABLE_KINDS, table_keys};
+    use crate::tests::fixture;
+
+    use super::Model;
+
+    /// Every implemented record kind has a table, and the table list holds no other kind: [`Model::keys`] and the
+    /// store's file index are generated from the same `entities!` list, so no future kind can be missed again
+    /// (part 4a's `PageItem` and `StructureBox` were).
+    #[test]
+    fn every_implemented_record_kind_has_a_table() {
+        let implemented: Vec<Kind> = Kind::ALL
+            .into_iter()
+            .filter(|k| *k != Kind::Project && k.status() == KindStatus::Implemented)
+            .collect();
+        assert_eq!(
+            TABLE_KINDS,
+            &implemented[..],
+            "the entity list and the registry's implemented kinds differ"
+        );
+        assert!(
+            !TABLE_KINDS.contains(&Kind::Project),
+            "the project row is no table"
+        );
+    }
+
+    /// [`Model::keys`] is the project key first, then every row of every table, and it lists a page item and a
+    /// structure box like any other row.
+    #[test]
+    fn keys_lists_every_row() {
+        let (project, mut records, lib) = fixture::mini_golden_parts();
+        let item: Id<ew_schema::PageItem> = Id::from_uuid(Uuid::from_u128(0x9001));
+        let structure_box: Id<ew_schema::StructureBox> = Id::from_uuid(Uuid::from_u128(0x9002));
+        records.push(Record::PageItem(fixture::graphic_line(item, fixture::PAGE_101)));
+        records.push(Record::StructureBox(fixture::structure_box(
+            structure_box,
+            fixture::PAGE_101,
+            Some(fixture::LOC),
+            None,
+        )));
+        let model = Model::from_records(project, records, lib).expect("the model is valid");
+        let mut expected = vec![(Kind::Project, model.project().id.cast())];
+        expected.extend(table_keys(&model));
+        let keys = model.keys();
+        assert_eq!(keys, expected, "project first, then every table in kind order");
+        assert!(keys.contains(&(Kind::PageItem, item.cast())));
+        assert!(keys.contains(&(Kind::StructureBox, structure_box.cast())));
     }
 }

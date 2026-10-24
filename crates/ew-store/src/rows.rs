@@ -8,15 +8,11 @@
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
-use ew_format::ew_schema::{
-    AnyId, Bond, Channel, Conductor, Connection, Device, DeviceLink, ExternalRef, FnDef, FormDef, Function,
-    ImportLineage, Junction, Kind, LibCopy, LibDocument, Page, Part, PlcConfigProject, PotentialDef, Record,
-    ReportBlock, Representation, Section, StructureNode, SymbolDef,
-};
+use ew_format::ew_schema::{AnyId, Function, Junction, Kind, LibDocument, Record, Representation};
 use ew_format::{
     Anchors, FilePath, FormatError, LineKey, lib_dir, record_file, tagged_document, tagged_line,
 };
-use ew_model::{AnyKey, AnyRow, Entity, Model};
+use ew_model::{AnyKey, AnyRow, Model};
 use serde_json::Value;
 
 /// Applies `$m!(variant, type)` to every entity kind, for matches over [`AnyRow`].
@@ -282,36 +278,10 @@ pub(crate) fn file_of(model: &Model, key: &AnyKey) -> Result<Option<FilePath>, F
     record_file(&record, &ModelAnchors(model)).map(Some)
 }
 
-/// Every key of a model: the project row, every table, every library copy.
+/// Every key a model holds: the project row's, then every table's rows in kind order (generated from the model's
+/// entity list, so a new record kind is listed by construction).
 pub(crate) fn all_keys(model: &Model) -> BTreeSet<AnyKey> {
-    fn table<T: Entity>(model: &Model, out: &mut BTreeSet<AnyKey>) {
-        out.extend(model.table::<T>().ids().map(T::key));
-    }
-    let mut out = BTreeSet::new();
-    out.insert((Kind::Project, model.project().id.cast()));
-    table::<PlcConfigProject>(model, &mut out);
-    table::<ImportLineage>(model, &mut out);
-    table::<StructureNode>(model, &mut out);
-    table::<Section>(model, &mut out);
-    table::<ExternalRef>(model, &mut out);
-    table::<Page>(model, &mut out);
-    table::<Device>(model, &mut out);
-    table::<Function>(model, &mut out);
-    table::<Representation>(model, &mut out);
-    table::<Connection>(model, &mut out);
-    table::<Junction>(model, &mut out);
-    table::<Conductor>(model, &mut out);
-    table::<Channel>(model, &mut out);
-    table::<PotentialDef>(model, &mut out);
-    table::<Bond>(model, &mut out);
-    table::<DeviceLink>(model, &mut out);
-    table::<ReportBlock>(model, &mut out);
-    table::<ew_format::ew_schema::Revision>(model, &mut out);
-    table::<LibCopy<Part>>(model, &mut out);
-    table::<LibCopy<SymbolDef>>(model, &mut out);
-    table::<LibCopy<FnDef>>(model, &mut out);
-    table::<LibCopy<FormDef>>(model, &mut out);
-    out
+    model.keys().into_iter().collect()
 }
 
 /// The follow relations of doc 05 §2.2: the keys whose file can change when one of `keys` changes,
