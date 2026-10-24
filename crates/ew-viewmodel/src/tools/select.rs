@@ -135,17 +135,21 @@ fn touches(a: Rect, b: Rect) -> bool {
 }
 
 /// The entities a band selects: left to right (`encloses`) those whose rectangles all lie inside it, right to left
-/// those with a rectangle that touches it; in paint order of each entity's first rectangle.
+/// those with a rectangle that touches it; in reading order of the centre of each entity's rectangles together (y,
+/// then x), ties by ID (FT-439, decision log ID-640). Not in paint order: the scene paints records in ID order, and
+/// the IDs one transaction mints are not in creation order, so the selection (and the aliases it prints) could list
+/// two new records the other way round in a replay.
 pub fn band_selection(entities: &[(EntityRef, Rect)], band: Rect, encloses: bool) -> Vec<EntityRef> {
-    let mut order: Vec<EntityRef> = Vec::new();
-    for (e, _) in entities {
-        if !order.contains(e) {
-            order.push(*e);
+    let mut order: Vec<(EntityRef, Rect)> = Vec::new();
+    for (e, r) in entities {
+        match order.iter_mut().find(|(x, _)| x == e) {
+            Some((_, union)) => *union = union.union(*r),
+            None => order.push((*e, *r)),
         }
     }
-    order
+    let mut picked: Vec<((i64, i64), EntityRef)> = order
         .into_iter()
-        .filter(|e| {
+        .filter(|(e, _)| {
             let mut rects = entities.iter().filter(|(x, _)| x == e).map(|(_, r)| *r);
             if encloses {
                 rects.all(|r| inside(r, band))
@@ -153,7 +157,13 @@ pub fn band_selection(entities: &[(EntityRef, Rect)], band: Rect, encloses: bool
                 rects.any(|r| touches(r, band))
             }
         })
-        .collect()
+        .map(|(e, r)| {
+            let (x, y) = crate::canvas::rect_centre(r);
+            ((y, x), e)
+        })
+        .collect();
+    picked.sort();
+    picked.into_iter().map(|(_, e)| e).collect()
 }
 
 impl SelectTool {
@@ -595,5 +605,44 @@ impl Tool for SelectTool {
 
     fn as_any_mut(&mut self) -> Option<&mut dyn std::any::Any> {
         Some(self)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ew_api::output::ew_dl::ew_units::{Nm, Pt2};
+
+    fn rect(x0: i64, y0: i64, x1: i64, y1: i64) -> Rect {
+        Rect::from_points(Pt2::new(Nm(x0), Nm(y0)), Pt2::new(Nm(x1), Nm(y1)))
+    }
+
+    fn e(n: u128) -> EntityRef {
+        EntityRef(format!("{n:032x}").parse().unwrap())
+    }
+
+    /// FT-439: a band lists what it selects in reading order of each entity's centre (y, then x), ties by ID; never in
+    /// paint order, which follows the IDs.
+    #[test]
+    fn a_band_selects_in_reading_order_not_in_paint_order() {
+        // Painted by ID: 1 (lower right), 2 (upper left, two rectangles), 3 (upper right), 4 and 5 at one point.
+        let entities = vec![
+            (e(1), rect(50, 50, 60, 60)),
+            (e(2), rect(0, 0, 10, 10)),
+            (e(3), rect(50, 0, 60, 10)),
+            (e(2), rect(0, 20, 10, 30)),
+            (e(5), rect(70, 70, 80, 80)),
+            (e(4), rect(70, 70, 80, 80)),
+        ];
+        // Entity 2's centre is that of its two rectangles together, (5, 15): after 3's (55, 5).
+        assert_eq!(
+            band_selection(&entities, rect(-5, -5, 100, 100), true),
+            [e(3), e(2), e(1), e(4), e(5)]
+        );
+        assert_eq!(
+            band_selection(&entities, rect(-5, -5, 100, 12), false),
+            [e(3), e(2)]
+        );
+        assert_eq!(band_selection(&entities, rect(-5, -5, 100, 12), true), [e(3)]);
     }
 }

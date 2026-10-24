@@ -141,7 +141,7 @@ impl ShellModel {
             Some(d) => ProjectTemplate::Directory(d),
             None => ProjectTemplate::Builtin,
         };
-        match Session::new_project(from, NewProjectKind::Schematic, ShellModel::session_options()) {
+        match Session::new_project(from, NewProjectKind::Schematic, self.session_options()) {
             Ok(session) => self.create_and_install(session, &dir, "error-new", None),
             Err(e) => {
                 let message = strings::format("error-new", &[strings::text(open_error_key(&e))]);
@@ -199,7 +199,7 @@ impl ShellModel {
         let session = match Session::new_project(
             ProjectTemplate::Directory(&sample),
             NewProjectKind::Schematic,
-            ShellModel::session_options(),
+            self.session_options(),
         ) {
             Ok(s) => s,
             Err(e) => {

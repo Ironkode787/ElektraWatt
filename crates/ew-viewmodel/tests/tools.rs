@@ -41,7 +41,8 @@ fn band_oracle(shell: &ShellModel, a: (i64, i64), b: (i64, i64)) -> Vec<EntityRe
     let (y0, y1) = (a.1.min(b.1), a.1.max(b.1));
     let inside = |r: &Rect| r.min().x.0 >= x0 && r.max().x.0 <= x1 && r.min().y.0 >= y0 && r.max().y.0 <= y1;
     let touch = |r: &Rect| r.min().x.0 <= x1 && r.max().x.0 >= x0 && r.min().y.0 <= y1 && r.max().y.0 >= y0;
-    entities(shell)
+    // In reading order of the centre of each entity's rectangles together (y, then x), ties by ID (FT-439).
+    let mut picked: Vec<((i64, i64), EntityRef)> = entities(shell)
         .into_iter()
         .filter(|(_, rs)| {
             if b.0 >= a.0 {
@@ -50,8 +51,16 @@ fn band_oracle(shell: &ShellModel, a: (i64, i64), b: (i64, i64)) -> Vec<EntityRe
                 rs.iter().any(touch)
             }
         })
-        .map(|(e, _)| e)
-        .collect()
+        .map(|(e, rs)| {
+            let x0 = rs.iter().map(|r| r.min().x.0).min().unwrap();
+            let x1 = rs.iter().map(|r| r.max().x.0).max().unwrap();
+            let y0 = rs.iter().map(|r| r.min().y.0).min().unwrap();
+            let y1 = rs.iter().map(|r| r.max().y.0).max().unwrap();
+            ((y0 + (y1 - y0) / 2, x0 + (x1 - x0) / 2), e)
+        })
+        .collect();
+    picked.sort();
+    picked.into_iter().map(|(_, e)| e).collect()
 }
 
 #[test]

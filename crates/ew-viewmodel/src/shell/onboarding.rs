@@ -487,7 +487,7 @@ impl ShellModel {
         let mut session = Session::new_project(
             ProjectTemplate::Builtin,
             NewProjectKind::Basic,
-            ShellModel::session_options(),
+            self.session_options(),
         )
         .map_err(|e| strings::format("error-wizard-write", &[strings::text(open_error_key(&e))]))?;
         run_commands(&mut session, "wizard", &commands)?;

@@ -15,7 +15,7 @@ use std::path::{Path, PathBuf};
 
 use ew_api::output::{ExportOptions, ExportPages, PageRow, PageSelection};
 use ew_api::{
-    Access, CmdLog, OpenError, OpenReport, Origin, ReadOnlyReason, Recovery, SaveError, Session,
+    Access, CmdLog, IdSource, OpenError, OpenReport, Origin, ReadOnlyReason, Recovery, SaveError, Session,
     SessionOptions, StoreOptions,
 };
 use serde_json::{Map, Value, json};
@@ -358,7 +358,13 @@ pub struct ShellModel {
     find: crate::find::FindState,
     /// The ID aliases `@n` of this session's machine text (FT-422, ID-630); never stored.
     aliases: std::cell::RefCell<crate::alias::AliasTable>,
+    /// The source of new record IDs for the sessions the shell opens or creates: `None` (the system clock and OS
+    /// entropy) except in a test that replays one script under different IDs (FT-439's guard, feature `testkit`).
+    id_source: Option<IdSourceFactory>,
 }
+
+/// A maker of [`IdSource`]s for `ShellModel::set_id_source_for_tests` (feature `testkit`).
+pub type IdSourceFactory = fn() -> Box<dyn IdSource + Send>;
 
 /// The directory's own name, never its path.
 fn dir_name(dir: &Path) -> String {
@@ -641,6 +647,7 @@ impl ShellModel {
             props: crate::properties::PropertiesState::default(),
             find: crate::find::FindState::default(),
             aliases: std::cell::RefCell::new(crate::alias::AliasTable::new()),
+            id_source: None,
         };
         model.load_active_workspace();
         model
@@ -1442,12 +1449,24 @@ impl ShellModel {
         store
     }
 
-    /// The session options of the shell's own sessions: the origin is the GUI.
-    fn session_options() -> SessionOptions {
+    /// The session options of the shell's own sessions: the origin is the GUI, new IDs from the system unless a test
+    /// set a source (`set_id_source_for_tests`, feature `testkit`).
+    fn session_options(&self) -> SessionOptions {
         SessionOptions {
             origin: Origin::Gui,
+            ids: self.id_source.map(|make| make()),
             ..SessionOptions::default()
         }
+    }
+
+    /// The source of new record IDs for every session the shell opens or creates from now on (feature `testkit`
+    /// only; `None`: the system clock and OS entropy, as in the product, which never sets one). FT-439's guard runs one
+    /// script under an ascending and a descending source: a shell output ordered by UUID then differs (decision log
+    /// ID-640). The product's IDs stay UUIDv7 from the system (ADR-0004); this is no seeded ID source for the shell
+    /// (ID-630).
+    #[cfg(feature = "testkit")]
+    pub fn set_id_source_for_tests(&mut self, make: Option<IdSourceFactory>) {
+        self.id_source = make;
     }
 
     fn open_for_editing_with(
@@ -1455,7 +1474,7 @@ impl ShellModel {
         dir: &Path,
         recovery: Recovery,
     ) -> Result<(Session, OpenReport), OpenError> {
-        Session::open(dir, self.store_options(), ShellModel::session_options(), recovery)
+        Session::open(dir, self.store_options(), self.session_options(), recovery)
     }
 
     /// Decides the access of a freshly opened session: a leftover journal re-opens it read-only.

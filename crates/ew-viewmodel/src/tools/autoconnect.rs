@@ -10,7 +10,8 @@
 //! grid step at a time, inside the search area: a representation body (other than the ghost's own) stops it; a free
 //! CP whose direction is opposite to the ray's, at the walk point (equal grid indices on both axes), is a hit; a
 //! connection segment collinear with the ray at the walk point stops it (the line is occupied); a segment crossing
-//! the ray is passed. Several CPs at one walk point are hits in CP-ID order (the v5 ID). The proposal of a ray is its
+//! the ray is passed. Several CPs at one walk point are hits in label order (the page tables' order, FT-439; never
+//! the v5 ID, which follows the minted function ID). The proposal of a ray is its
 //! first hit; [`ToolKey::NextProposal`](super::ToolKey::NextProposal) (Tab) cycles every ray to its next hit further
 //! along, wrapping.
 //!
@@ -196,7 +197,7 @@ fn ray_hits(
         if x < area[0] || x > area[2] || y < area[1] || y > area[3] {
             break;
         }
-        // Free CPs facing the ray at the walk point, in CP-ID order (the rows are in ID order).
+        // Free CPs facing the ray at the walk point, in label order (the rows' order, FT-439).
         for q in &tables.cps {
             if grid.index(q.at.0) == kx
                 && grid.index(q.at.1) == ky
