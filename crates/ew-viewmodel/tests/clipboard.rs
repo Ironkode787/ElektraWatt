@@ -19,6 +19,52 @@ fn writable(tmp: &Tmp, folio: &str) -> ShellModel {
     tmp.shell_in(Mode::Headless, true, folio)
 }
 
+/// Doc 06 §3.6 item 5: a copy that dropped a wire says so in the ghost also when the window's Ctrl+V brings the same
+/// text back as `edit.paste_clip`'s `text`.
+#[test]
+fn the_dropped_count_survives_a_paste_of_the_same_text() {
+    let tmp = Tmp::new("clip-dropped");
+    let mut shell = writable(&tmp, "102");
+    let rep = select_rep(&mut shell, "-102F1");
+    let tables = shell.canvas().unwrap().page().tables.clone();
+    let f1 = tables.reps.iter().find(|r| r.id.to_string() == rep).unwrap().functions[0];
+    let wire = tables
+        .connections
+        .iter()
+        .find(|c| matches!(c.a, ew_viewmodel::ew_api::output::TableEnd::Cp { function, idx: 1 } if function == f1))
+        .expect("-102F1:2's wire")
+        .id
+        .to_string();
+    done(&mut shell, "select.set", json!({ "ids": [rep, wire] }));
+    done(&mut shell, "edit.copy", json!({}));
+    assert_eq!(shell.clipboard().dropped(), 1);
+    let text = shell.clipboard().text().unwrap().to_owned();
+    done(&mut shell, "edit.paste_clip", json!({ "text": text }));
+    assert_eq!(state(&shell)["canvas"]["ghost"]["dropped"], 1);
+    // Another text is another clipboard: nothing dropped.
+    done(&mut shell, "ui.dismiss", json!({}));
+    let other = text.replacen("\"letter\":\"F\"", "\"letter\":\"K\"", 1);
+    done(&mut shell, "edit.paste_clip", json!({ "text": other }));
+    assert_eq!(state(&shell)["canvas"]["ghost"]["dropped"], 0);
+    shell.shutdown();
+}
+
+/// A cut whose copy is refused (several pages) leaves the selection as it was, also one made by tag.
+#[test]
+fn a_refused_cut_leaves_the_selection() {
+    let tmp = Tmp::new("clip-cut-refused");
+    let mut shell = writable(&tmp, "101");
+    let rep101 = select_rep(&mut shell, "-101F1");
+    done(&mut shell, "page.goto", json!({"folio": "102"}));
+    done(&mut shell, "select.set", json!({"refs": ["tag:-102F1"]}));
+    let device = shell.selection().items[0].0.to_string();
+    done(&mut shell, "select.set", json!({ "ids": [device, rep101] }));
+    let before = shell.selection().items.clone();
+    assert_eq!(refused(&mut shell, "edit.cut", json!({})), "reason-copy-pages");
+    assert_eq!(shell.selection().items, before);
+    shell.shutdown();
+}
+
 /// A device selected by its tag (`select.set`, the scripts' and the blind drafter's way) is copied, and cut, as its
 /// representations on the page shown.
 #[test]

@@ -106,16 +106,17 @@ impl ShellModel {
     /// `edit.cut` (Ctrl+X): copy, then `edit.delete` of the selection through `edit.delete_selection`'s path (one undo
     /// step); the clipboard keeps the fragment.
     pub(super) fn act_cut(&mut self) -> Outcome {
-        // A device selected by tag is cut as the representations the copy took.
         let targets = self.copy_targets();
+        let out = self.act_copy();
+        if out != Outcome::Done {
+            // A refused copy (several pages, nothing copyable) leaves the selection as it was.
+            return out;
+        }
+        // A device selected by tag is cut as the representations the copy took.
         if targets != self.tools.selection.items
             && self.tools.selection.apply(&SelectionChange::Replace(targets))
         {
             self.announce_selection();
-        }
-        let out = self.act_copy();
-        if out != Outcome::Done {
-            return out;
         }
         self.act_delete_selection()
     }
@@ -162,7 +163,11 @@ impl ShellModel {
     pub(super) fn act_paste_clip(&mut self, p: &Map<String, Value>) -> Outcome {
         let text = match string_param(p, "text") {
             Ok(Some(t)) => {
-                self.clip.set(t.to_owned(), None, 0, false);
+                // The window's Ctrl+V brings the system clipboard's text; when it is what this instance copied, the
+                // clipboard keeps what the copy knew (its kind and the dropped connections, doc 06 §3.6 item 5).
+                if self.clip.text() != Some(t) {
+                    self.clip.set(t.to_owned(), None, 0, false);
+                }
                 t.to_owned()
             }
             Ok(None) => match self.clip.text() {

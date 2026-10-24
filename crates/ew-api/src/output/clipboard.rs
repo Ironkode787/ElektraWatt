@@ -10,6 +10,9 @@
 //! "page_kind", "anchor": [x, y], "ghost": [[x0, y0, x1, y1], …]}}`; then one canonical record line per record, one
 //! `{"$lib": <libdoc>}` line per library copy and one `{"$node": {"id", "aspect", "path", "aliases"}}` line per
 //! structure node. Another application sees JSON Lines after one comment line (FR-UI-040).
+//! Within v1 the `$fragment` header is open (a member this version does not know is ignored, room for later minor
+//! additions such as WP-S1.19's macros), while a `$node` line's members are closed (`id`, `aspect`, `path`,
+//! `aliases`; any other is refused).
 //!
 //! **Order** (§9 item 3; FT-439's rule that machine text is not ordered by UUID): records by (kind rank, position,
 //! ID): a representation's insertion point (x, then y), a junction's point, a function's and a device's first copied
@@ -183,8 +186,9 @@ fn pair(v: &Value) -> Option<(i64, i64)> {
 /// version does not know is ignored; another `format` or a record of another schema version is refused (newer as
 /// [`FragmentError::Newer`], older as [`FragmentError::Invalid`]). A record must be of a pasted kind and read as a
 /// record; a library copy as a library document; IDs are distinct. Line ends may be CRLF (a clipboard may convert
-/// them); empty lines are skipped. No semantic check: that is `edit.paste`'s.
+/// them); empty lines are skipped. A leading byte-order mark is skipped. No semantic check: that is `edit.paste`'s.
 pub fn parse_fragment(text: &str) -> Result<ParsedFragment, FragmentError> {
+    let text = text.strip_prefix('\u{feff}').unwrap_or(text);
     let mut lines = text.split('\n').map(|l| l.strip_suffix('\r').unwrap_or(l));
     let first = lines.next().unwrap_or_default();
     if first != FRAGMENT_HEADER {

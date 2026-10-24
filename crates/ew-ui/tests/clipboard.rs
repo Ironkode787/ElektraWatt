@@ -103,3 +103,52 @@ fn copy_and_paste_events_reach_the_clipboard_actions_on_the_canvas() {
     assert_eq!(h.state().shell().tool().name(), "select");
     assert_eq!(h.state().shell().selection().items.len(), 1);
 }
+
+/// A focused text field keeps egui's own copy and paste: the gate `ctx.text_edit_focused()` in `route_keys` leaves
+/// the platform's paste and copy events to the field, so no tool is armed and the shell's clipboard is not written.
+#[test]
+fn text_fields_keep_their_own_copy_and_paste() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "102");
+    h.key_press_modifiers(Modifiers::COMMAND, Key::F);
+    settle(&mut h);
+    assert_eq!(h.state().shell().focus(), Some(Focus::Find));
+    let rev = h.state().shell().revision();
+    assert_eq!(h.state().shell().clipboard().text(), None);
+    h.event(egui::Event::Paste("x".into()));
+    settle(&mut h);
+    assert_eq!(h.state().shell().tool().name(), "select");
+    assert_eq!(h.state().shell().revision(), rev);
+    assert!(h.state().shell().find_state().text().contains('x'));
+    h.event(egui::Event::Copy);
+    settle(&mut h);
+    assert_eq!(h.state().shell().clipboard().text(), None);
+}
+
+/// Edit > Paste asks the platform for the system clipboard (`ViewportCommand::RequestPaste`, which eframe answers
+/// with a paste event) instead of reusing the shell's last text.
+#[test]
+fn menu_paste_requests_the_system_clipboard() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "102");
+    select_102f1(&mut h);
+    h.event(egui::Event::Copy);
+    settle(&mut h);
+    let text = h.state().shell().clipboard().text().unwrap().to_owned();
+    h.get_by_label("Edit").click();
+    settle(&mut h);
+    h.get_by_label("Paste").click();
+    h.step();
+    assert!(
+        h.output().viewport_output.values().any(|v| v
+            .commands
+            .iter()
+            .any(|c| matches!(c, egui::ViewportCommand::RequestPaste))),
+        "the frame asks the platform for the clipboard"
+    );
+    assert_eq!(h.state().shell().tool().name(), "select");
+    // The platform's answer.
+    h.event(egui::Event::Paste(text));
+    settle(&mut h);
+    assert_eq!(h.state().shell().tool().name(), "paste");
+}

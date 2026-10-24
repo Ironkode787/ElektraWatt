@@ -280,3 +280,47 @@ impl ScopeCounters {
         self.holders.entry(counter).or_default().insert(device);
     }
 }
+
+/// Numbers `devices` in the given order (FR-NUM-007): each one that takes part in page-based numbering
+/// ([`numbered`]) and is placed (it has a [`main_page`]) gets the next free counter of its (main page, letter)
+/// scope when `renumber` says so; the counters of each scope are loaded once ([`ScopeCounters`]) and kept up to
+/// date. `renumber` sees the device, its record and its scope's counters. Returns whether a counter changed.
+///
+/// The one loop of online numbering: normaliser #4 calls it with its candidates in ID order and its collision
+/// rule, `edit.paste` with the pasted devices in fragment order and "no counter yet" (WP-S2.05 part 3), because
+/// the IDs one transaction mints are not monotonic. The paste's own call goes away once the normaliser orders new
+/// devices by position (FR-NUM-028).
+///
+/// # Errors
+///
+/// A device that vanished between the read and the write ([`crate::error::CmdError::NotFound`]).
+pub fn number_devices(
+    tx: &mut TxBuilder<'_>,
+    devices: &[Id<Device>],
+    mut renumber: impl FnMut(&TxBuilder<'_>, Id<Device>, &Device, &ScopeCounters) -> bool,
+) -> Result<bool, crate::error::CmdError> {
+    let mut changed = false;
+    let mut groups: BTreeMap<(CounterScope, Ident), ScopeCounters> = BTreeMap::new();
+    for d in devices {
+        let Some(dev) = tx.get::<Device>(*d) else {
+            continue;
+        };
+        if !numbered(&dev) {
+            continue;
+        }
+        let Some(page) = main_page(tx, *d) else {
+            continue;
+        };
+        let scope = CounterScope::Page(page);
+        let group = groups
+            .entry((scope, dev.tag.letter.clone()))
+            .or_insert_with(|| ScopeCounters::load(tx, &dev.tag.letter, scope));
+        if renumber(tx, *d, &dev, group) {
+            let next = group.next_free(Some(*d));
+            tx.update::<Device>(*d, |dev| dev.tag.counter = Some(next))?;
+            group.set_counter(*d, next);
+            changed = true;
+        }
+    }
+    Ok(changed)
+}

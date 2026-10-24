@@ -21,16 +21,15 @@
 //! *makes* a tag collide). `fields.set` of a colliding counter or letter is rejected by the command itself
 //! (D2), so this normaliser renumbers only new devices, moves and page changes.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 use ew_ids::Id;
-use ew_mltext::Ident;
 use ew_model::AnyRow;
 use ew_schema::{Device, FnRole, Function, Kind, Representation};
 
 use crate::error::CmdError;
 use crate::normalise::Normaliser;
-use crate::numbering::{CounterScope, ScopeCounters, collided_in, main_page, main_page_in, numbered};
+use crate::numbering::{collided_in, main_page, main_page_in, number_devices};
 use crate::tx::TxBuilder;
 
 /// Normaliser #4.
@@ -121,42 +120,17 @@ impl Normaliser for OnlineNumbering {
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<bool, CmdError> {
         let candidates = candidates(tx);
-        let mut changed = false;
-        // The counters of each (scope, letter) group, loaded on first use and kept up to date as
-        // candidates are renumbered, so a run costs one scan per group (NFR-PERF-08).
-        let mut groups: BTreeMap<(CounterScope, Ident), ScopeCounters> = BTreeMap::new();
-        for d in &candidates {
-            let Some(dev) = tx.get::<Device>(*d) else {
-                continue;
-            };
-            if !numbered(&dev) {
-                continue;
+        let order: Vec<Id<Device>> = candidates.iter().copied().collect();
+        // The candidates in ID order; the counters of each (scope, letter) group are loaded once per run
+        // (NFR-PERF-08) by the shared loop.
+        number_devices(tx, &order, |tx, d, dev, group| match dev.tag.counter {
+            None => true,
+            Some(counter) => {
+                let base = tx.base_model();
+                group.holders(counter).any(|other| {
+                    other != d && (!candidates.contains(&other) || other < d) && !collided_in(base, d, other)
+                })
             }
-            let Some(page) = main_page(tx, *d) else {
-                continue;
-            };
-            let scope = CounterScope::Page(page);
-            let group = groups
-                .entry((scope, dev.tag.letter.clone()))
-                .or_insert_with(|| ScopeCounters::load(tx, &dev.tag.letter, scope));
-            let renumber = match dev.tag.counter {
-                None => true,
-                Some(counter) => {
-                    let base = tx.base_model();
-                    group.holders(counter).any(|other| {
-                        other != *d
-                            && (!candidates.contains(&other) || other < *d)
-                            && !collided_in(base, *d, other)
-                    })
-                }
-            };
-            if renumber {
-                let next = group.next_free(Some(*d));
-                tx.update::<Device>(*d, |dev| dev.tag.counter = Some(next))?;
-                group.set_counter(*d, next);
-                changed = true;
-            }
-        }
-        Ok(changed)
+        })
     }
 }

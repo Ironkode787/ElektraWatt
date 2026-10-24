@@ -103,8 +103,8 @@ pub struct Fragment {
 /// **Effects.** (1) A library copy the project holds with the same `sha256` is reused, any other is embedded. (2)
 /// Each structure node rebinds to the project's node of the same aspect and path, else to the one node of that
 /// aspect whose aliases hold the leaf code; an unmatched node clears the slots naming it (the record inherits),
-/// with a notice; no node is created. (3) Every record gets a minted ID, in (kind rank, fragment order); the
-/// references are found from `ew_model::LINKS`: one to a fragment record takes its new ID, one to a library copy
+/// with a notice; no node is created. (3) Every record gets a minted ID, in (kind rank, fragment order), and loses
+/// its import lineage (`source_ref`: a pasted record is new, not imported); the references are found from `ew_model::LINKS`: one to a fragment record takes its new ID, one to a library copy
 /// stays (effect 1), a structure slot takes the rebound node, a page reference the target page, a function's
 /// `kind.ip.external` stays only in its own project. (4) A reference that resolves to nothing is cleared when it
 /// can be: a `Cascade` link never can; otherwise the member holding it, or the optional object directly around it
@@ -584,32 +584,20 @@ fn lib_title(value: &Value) -> String {
 }
 
 /// Effect 6 completed: the pasted devices that take part in page-based numbering and are placed get the next free
-/// counter of their main page's scope, in fragment order (the online-numbering rule of normaliser #4, applied in the
-/// fragment's position order). The normaliser numbers new devices in ID order, and minted UUIDv7s are not monotonic
-/// within a transaction, so leaving it to the normaliser would number the copies of one paste in a random order; with
-/// a free counter each, the normaliser finds nothing to renumber.
+/// counter of their main page's scope in fragment order, through online numbering's one loop
+/// ([`crate::numbering::number_devices`]). The normaliser numbers new devices in ID order, and the UUIDv7s one
+/// transaction mints are not monotonic, so leaving it to the normaliser would number the copies of one paste in a
+/// random order; with a free counter each, the normaliser finds nothing to renumber.
 fn number_in_fragment_order(tx: &mut TxBuilder<'_>, devices: &[Id<Device>]) -> Result<(), CmdError> {
-    use crate::numbering::{CounterScope, ScopeCounters, main_page, numbered};
-    let mut groups: BTreeMap<(CounterScope, ew_mltext::Ident), ScopeCounters> = BTreeMap::new();
-    for d in devices {
-        let Some(dev) = tx.get::<Device>(*d) else {
-            continue;
-        };
-        if !numbered(&dev) || dev.tag.counter.is_some() {
-            continue;
-        }
-        let Some(page) = main_page(tx, *d) else {
-            continue;
-        };
-        let scope = CounterScope::Page(page);
-        let group = groups
-            .entry((scope, dev.tag.letter.clone()))
-            .or_insert_with(|| ScopeCounters::load(tx, &dev.tag.letter, scope));
-        let next = group.next_free(Some(*d));
-        tx.update::<Device>(*d, |x| x.tag.counter = Some(next))?;
-        group.set_counter(*d, next);
+    crate::numbering::number_devices(tx, devices, |_, _, dev, _| dev.tag.counter.is_none()).map(|_| ())
+}
+
+/// Drops a record's import lineage (`source_ref`): a pasted record is new, not imported, so its lineage is not a
+/// reference to resolve (the copy drops it too; a fragment from elsewhere may carry one).
+fn drop_lineage(v: &mut Value) {
+    if let Some(o) = v.as_object_mut() {
+        o.remove("source_ref");
     }
-    Ok(())
 }
 
 /// Adds `text` to `notices` unless it is there already.
@@ -678,6 +666,7 @@ impl Command for PasteFragment {
             let (kind, old) = keys[i];
             let at = format!("/fragment/records/{i}");
             let mut v = self.fragment.records[i].clone();
+            drop_lineage(&mut v);
             if let Some(id) = v.get_mut("id") {
                 *id = Value::from(plan.ids[&(kind, old)].hyphenated().to_string());
             }
@@ -923,57 +912,57 @@ mod tests {
         ]
     }
 
-    /// The hand oracle of spec §8.4 effect 4, per link path: `true` mandatory. Derived from doc 03: a
-    /// representation's functions and symbol copy, a function's FnDef copy, a device's part copies, a connection's
-    /// ends, a terminal's strip and a potential definition's endpoint are mandatory; a device's parent, a
-    /// connection's `overrides.wire_part`, the `external` references are optional. The rows the specification does
-    /// not name are this lane's (ruling 3 of the report): the record's own page (retargeted, never unresolved), the
-    /// structure slots (cleared: the record inherits), an import lineage (mandatory: copy drops `source_ref`), a strip
-    /// accessory's part (mandatory like a part use), an assembly configuration's part and covers (optional), the PLC
+    /// The hand oracle of spec §8.4 effect 4, per link path: `Some(true)` mandatory, `None` dropped before anything
+    /// resolves. Derived from doc 03: a representation's functions and symbol copy, a function's FnDef copy, a
+    /// device's part copies, a connection's ends, a terminal's strip and a potential definition's endpoint are
+    /// mandatory; a device's parent, a connection's `overrides.wire_part`, the `external` references are optional.
+    /// The rows the specification does not name are this lane's (ruling 3 of the report): the record's own page
+    /// (retargeted, never unresolved), the structure slots (cleared: the record inherits), an import lineage (`None`:
+    /// the paste drops `source_ref`, a pasted record is new, not imported), a strip accessory's part (mandatory like a part use), an assembly configuration's part and covers (optional), the PLC
     /// station's configuration project (mandatory: copy drops the aspect), a cable core or bus cable (mandatory and
     /// optional: copy makes a core a plain wire), a junction's sequence entries (optional), a function's device
     /// (mandatory: copy brings it).
-    const ORACLE: &[(&str, bool)] = &[
-        ("device.parent", false),
-        ("device.parts[].part.copy", true),
-        ("device.strip.accessories[].part.copy", true),
-        ("device.structure.functional_assignment", false),
-        ("device.structure.function", false),
-        ("device.structure.installation_site", false),
-        ("device.structure.location", false),
-        ("device.structure.document_kind", false),
-        ("device.structure.user_defined", false),
-        ("device.structure.type", false),
-        ("device.terminal.strip", true),
-        ("device.assembly.configs[].part.copy", false),
-        ("device.assembly.configs[].covers[]", false),
-        ("device.plc_station.config_project", true),
-        ("device.source_ref.lineage", true),
-        ("function.device", true),
-        ("function.def", true),
-        ("function.kind.ip.external", false),
-        ("function.source_ref.lineage", true),
-        ("representation.functions[]", true),
-        ("representation.pin_map[].function", true),
-        ("representation.page", true),
-        ("representation.symbol", true),
-        ("representation.source_ref.lineage", true),
-        ("connection.a.cp[0]", true),
-        ("connection.a.junction", true),
-        ("connection.b.cp[0]", true),
-        ("connection.b.junction", true),
-        ("connection.page", true),
-        ("connection.kind.core", true),
-        ("connection.kind.bus.cable", false),
-        ("connection.overrides.wire_part.copy", false),
-        ("connection.source_ref.lineage", true),
-        ("junction.page", true),
-        ("junction.sequence[]", false),
-        ("junction.source_ref.lineage", true),
-        ("potential_def.at.cp[0]", true),
-        ("potential_def.at.junction", true),
-        ("potential_def.props.wire_part.copy", false),
-        ("potential_def.source_ref.lineage", true),
+    const ORACLE: &[(&str, Option<bool>)] = &[
+        ("device.parent", Some(false)),
+        ("device.parts[].part.copy", Some(true)),
+        ("device.strip.accessories[].part.copy", Some(true)),
+        ("device.structure.functional_assignment", Some(false)),
+        ("device.structure.function", Some(false)),
+        ("device.structure.installation_site", Some(false)),
+        ("device.structure.location", Some(false)),
+        ("device.structure.document_kind", Some(false)),
+        ("device.structure.user_defined", Some(false)),
+        ("device.structure.type", Some(false)),
+        ("device.terminal.strip", Some(true)),
+        ("device.assembly.configs[].part.copy", Some(false)),
+        ("device.assembly.configs[].covers[]", Some(false)),
+        ("device.plc_station.config_project", Some(true)),
+        ("device.source_ref.lineage", None),
+        ("function.device", Some(true)),
+        ("function.def", Some(true)),
+        ("function.kind.ip.external", Some(false)),
+        ("function.source_ref.lineage", None),
+        ("representation.functions[]", Some(true)),
+        ("representation.pin_map[].function", Some(true)),
+        ("representation.page", Some(true)),
+        ("representation.symbol", Some(true)),
+        ("representation.source_ref.lineage", None),
+        ("connection.a.cp[0]", Some(true)),
+        ("connection.a.junction", Some(true)),
+        ("connection.b.cp[0]", Some(true)),
+        ("connection.b.junction", Some(true)),
+        ("connection.page", Some(true)),
+        ("connection.kind.core", Some(true)),
+        ("connection.kind.bus.cable", Some(false)),
+        ("connection.overrides.wire_part.copy", Some(false)),
+        ("connection.source_ref.lineage", None),
+        ("junction.page", Some(true)),
+        ("junction.sequence[]", Some(false)),
+        ("junction.source_ref.lineage", None),
+        ("potential_def.at.cp[0]", Some(true)),
+        ("potential_def.at.junction", Some(true)),
+        ("potential_def.props.wire_part.copy", Some(false)),
+        ("potential_def.source_ref.lineage", None),
     ];
 
     /// CB3: the mechanical rule (the link's policy, then whether the record reads without the reference) agrees
@@ -994,17 +983,28 @@ mod tests {
                 .find(|(p, _)| *p == path)
                 .unwrap_or_else(|| panic!("{path} has no oracle row"))
                 .1;
-            let got: Vec<bool> = samples
+            let holders: Vec<&Value> = samples
                 .iter()
-                .filter(|s| s["$k"] == decl.from.name())
-                .filter_map(|s| mandatory_in(decl, s))
+                .filter(|s| s["$k"] == decl.from.name() && !occurrences(s, decl.field).is_empty())
                 .collect();
-            assert!(!got.is_empty(), "{path}: no sample holds it");
-            for g in got {
-                assert_eq!(
-                    g, expected,
-                    "{path}: mandatory by the rule {g}, by the oracle {expected}"
-                );
+            assert!(!holders.is_empty(), "{path}: no sample holds it");
+            for s in holders {
+                match expected {
+                    // Dropped before resolution: the paste never meets the reference.
+                    None => {
+                        let mut v = s.clone();
+                        drop_lineage(&mut v);
+                        assert!(occurrences(&v, decl.field).is_empty(), "{path} is dropped");
+                        assert!(reads(&v), "{path}: the record reads without it");
+                    }
+                    Some(expected) => {
+                        let g = mandatory_in(decl, s).unwrap();
+                        assert_eq!(
+                            g, expected,
+                            "{path}: mandatory by the rule {g}, by the oracle {expected}"
+                        );
+                    }
+                }
             }
             checked.insert(path);
         }

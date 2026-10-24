@@ -758,6 +758,8 @@ Equal selections on equal snapshots give byte-equal text. Any other application 
 "grid", "page_kind", "anchor", "records": [<record>…], "copies": [<libdoc>…], "nodes": [<node>…]}` (no ghost); its
 schema is committed with the command.
 
+*As built (cycle 27, lane E; review fix round):* the `$fragment` header is open within v1 (an unknown member is ignored), a `$node` line's members are closed (`id`, `aspect`, `path`, `aliases`); a leading byte-order mark is skipped, CRLF line ends are read and empty lines skipped. Records are ordered by (kind rank, position, ID) — a representation's insertion point, a junction's point, a device's and a function's first copied representation, a connection's and a potential definition's end — not by (kind rank, ID) (FT-439's rule that machine text is not ordered by UUID), and `edit.paste` mints in (kind rank, fragment order) and numbers the pasted devices in that order with online numbering's own loop (`numbering::number_devices`), because the UUIDv7s one transaction mints are not monotonic. A copy drops the import lineage (`source_ref`), and so does `edit.paste` for a fragment written elsewhere.
+
 ### 8.2 Copy (`Session::copy_fragment`)
 
 From the selected IDs, on one page (else `NotOnePage`; a generated page: `Generated`; nothing copyable: `Empty`):

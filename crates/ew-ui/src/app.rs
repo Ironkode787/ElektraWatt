@@ -141,6 +141,10 @@ pub struct App {
     applied_scale: Option<f32>,
     /// The theme last given to egui.
     applied_theme: Option<String>,
+    // WP-S2.05 part 3
+    /// Edit ▸ Paste (or the palette) asked for the system clipboard: the frame sends `ViewportCommand::RequestPaste`,
+    /// and the platform answers with a paste event, which runs `edit.paste_clip` with its text like Ctrl+V.
+    request_paste: bool,
 }
 
 /// Prepares an egui context for the shell: installs the bundled fonts and switches egui's own keyboard zoom off, so
@@ -177,6 +181,7 @@ impl App {
             deferred: None,
             applied_scale: None,
             applied_theme: None,
+            request_paste: false,
         }
     }
 
@@ -280,6 +285,16 @@ impl App {
     }
 
     fn dispatch(&mut self, action: &'static str, params: &Value) {
+        // WP-S2.05 part 3: a paste without the clipboard's text (Edit ▸ Paste, the palette, a Ctrl+V key press that
+        // the platform did not turn into a paste event) asks the platform for the system clipboard first; an action
+        // the shell refuses now is dispatched, so its reason shows.
+        if action == "edit.paste_clip"
+            && params.get("text").is_none()
+            && ew_viewmodel::actions::find(action).is_some_and(|a| (a.enabled)(&self.shell).is_ok())
+        {
+            self.request_paste = true;
+            return;
+        }
         let outcome = self.shell.dispatch(action, params);
         self.report(outcome);
     }
@@ -475,6 +490,9 @@ impl App {
         // WP-S2.05 part 3: what a copy wrote goes to the system clipboard (egui's `copy_text`).
         if let Some(text) = self.shell.take_clipboard_outbox() {
             ctx.copy_text(text);
+        }
+        if std::mem::take(&mut self.request_paste) {
+            ctx.send_viewport_cmd(ViewportCommand::RequestPaste);
         }
         if (self.shell.revision(), self.shell.tool_overlay().len()) != marks_before {
             ctx.request_repaint();

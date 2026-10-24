@@ -345,6 +345,7 @@ fn cb2_every_refusal_of_the_parser() {
     let repeated = plus_line(&text, &record.replacen("\"tag\":", "\"tag\":{},\"tag\":", 1));
     assert!(invalid(parse_fragment(&repeated)));
     assert!(invalid(parse_fragment(&plus_line(&text, r#"{"$macro":{}}"#))));
+    assert!(invalid(parse_fragment(&plus_line(&text, r#"{"$node":{"id":"0190a000-0000-7000-8000-000000000009","aspect":"location","path":["X"],"aliases":[],"extra":1}}"#))));
     let foreign = r#"{"$k":"bond","id":"0190a000-0000-7000-8000-000000000001","a":{"junction":"0190a000-0000-7000-8000-000000000002"},"b":{"junction":"0190a000-0000-7000-8000-000000000003"}}"#;
     assert!(invalid(parse_fragment(&plus_line(&text, foreign))));
     assert!(invalid(parse_fragment(&plus_line(
@@ -386,7 +387,7 @@ fn cb2_every_refusal_of_the_parser() {
     assert!(invalid(parse_fragment("#ew-fragment v1\n")));
 }
 
-/// CB2: an unknown `$fragment` member is ignored (a later minor addition such as WP-S1.19's), CRLF line ends read.
+/// CB2: an unknown `$fragment` member is ignored (a later minor addition such as WP-S1.19's), CRLF line ends read, and a byte-order mark is skipped.
 #[test]
 fn cb2_an_unknown_header_member_is_ignored_and_crlf_reads() {
     let text = valid_text();
@@ -394,6 +395,7 @@ fn cb2_an_unknown_header_member_is_ignored_and_crlf_reads() {
     let a = parse_fragment(&more).unwrap();
     let b = parse_fragment(&text).unwrap();
     assert_eq!(a.params, b.params);
+    assert_eq!(parse_fragment(&format!("\u{feff}{text}")).unwrap().params, b.params);
     assert_eq!(
         parse_fragment(&text.replace('\n', "\r\n")).unwrap().params,
         b.params
@@ -539,6 +541,19 @@ fn cb3_a_child_whose_parent_is_not_copied() {
         "{:?}",
         receipt.outcome.notices
     );
+}
+
+/// CB3: a fragment whose records carry an import lineage (one written elsewhere) pastes; the pasted records have none.
+#[test]
+fn cb3_an_import_lineage_is_dropped_not_refused() {
+    let mut s = golden();
+    let mut frag = fragment(&s, &reps_of(&s, "102", &["-102F1"]));
+    for r in frag["records"].as_array_mut().unwrap() {
+        r["source_ref"] = json!({"lineage": Uuid::from_u128(77).to_string(), "key": "elsewhere"});
+    }
+    let receipt = paste(&mut s, "102", at_steps(&frag, (0, 6)), &frag).unwrap();
+    let d = device(&s, created(&receipt, Kind::Device)[0]);
+    assert_eq!(d.source_ref, None);
 }
 
 /// CB3 and CB4: the held library copies are reused in the same project: -102F1 pasted on 102 is -102F3 with part
