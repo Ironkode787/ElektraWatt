@@ -68,6 +68,7 @@ pub const SWEPT: &[&str] = &[
     "ip_info",
     "ip_notes",
     "ip_pairing",
+    "ip_structure",
     "module_channel_ids",
     "module_order",
     "module_starts",
@@ -98,6 +99,7 @@ pub const SWEPT: &[&str] = &[
     "rail_bonds",
     "rail_terminal",
     "rail_terminals",
+    "rep_structure_box",
     "report_block_pages",
     "report_rows",
     "settings_member",
@@ -236,6 +238,9 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     check::<IpFunctions>(memo, cold, [()], o);
     check::<IpInfoOf>(memo, cold, keys.functions.iter().copied(), o);
     check::<IpPairingQ>(memo, cold, [()], o);
+    // WP-S2.04 part 4a: an interruption point's structure and the structure box around a representation.
+    check::<ew_derive::IpStructure>(memo, cold, keys.functions.iter().copied(), o);
+    check::<ew_derive::RepStructureBox>(memo, cold, keys.reps.iter().copied(), o);
     check::<PageIds>(memo, cold, [()], o);
     check::<PagelessLinks>(memo, cold, [()], o);
     check::<RailBondsQ>(memo, cold, [()], o);

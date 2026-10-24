@@ -1332,6 +1332,17 @@ impl Session {
                                     .unwrap_or_default();
                                 Provenance::Inherited { from }
                             }
+                            // WP-S2.04 part 4a: the structure box around the main representation (FR-PRJ-020).
+                            SlotSource::StructureBox => {
+                                inherited = true;
+                                let folio = (*q.get::<MainRep>(*d))
+                                    .and_then(|r| q.reps().get(r))
+                                    .and_then(|r| folio_of(q, r.page))
+                                    .unwrap_or_default();
+                                Provenance::Inherited {
+                                    from: format!("structure box on page {folio}"),
+                                }
+                            }
                         };
                         per.push((Some(Value::String(text)), provenance));
                     }

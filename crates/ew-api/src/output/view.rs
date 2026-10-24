@@ -52,8 +52,10 @@
 //!   has no value. An empty text is not listed.
 //! - **Break marks** (D-41, doc 11 §5.5 step 5): the `assembly_break_marks()` of a drawn page ([`page_break_marks`]),
 //!   drawn by the scene at the side of their representation.
-//! - **Wire markers** (ID-144, provisional): connections with `overrides.show_marker` print the explicit
-//!   cross-section and the colour codes (their file spelling), joined by a space.
+//! - **Wire markers** (ID-144; WP-S2.04 part 4a, `ew_derive::connection_marker`): with the project's `marker_mode`
+//!   absent, connections with `overrides.show_marker` print the explicit cross-section and the colour codes (their
+//!   file spelling, `GNYE`), joined by a space; in a mode, the connections the mode selects print their effective
+//!   values. A connection a wire-marker item lists prints no marker of its own: the item prints the group.
 //! - **Junction and wire-marker symbols**: the built-in generic symbols `ew.gen.junction-dot@qet10`,
 //!   `ew.gen.junction-bevel@qet10` and `ew.gen.wire-marker@qet10` of `content/symbols/qet10`, compiled in
 //!   ([`generic_symbols`]): no record names them, so projects never embed them.
@@ -71,8 +73,8 @@ use ew_derive::ew_mltext::MlText;
 use ew_derive::ew_units::Grid;
 use ew_derive::{
     DisplayedTag, FunctionCps, GeneratedPage, PageOrder, PageRef, Policy, Q, Query, TbValue,
-    TitleBlockValues, XrefTextOf, frame_form_of, main_part, manufacturer_name, order_code_text,
-    tech_data_text,
+    TitleBlockValues, XrefTextOf, connection_marker, frame_form_of, grouped_connections, main_part,
+    manufacturer_name, order_code_text, tech_data_text,
 };
 use ew_dl::Destination;
 use ew_reports::render::{RenderOptions, render};
@@ -85,8 +87,8 @@ use ew_scene::page::{
 };
 use ew_scene::table::{TableColumn, TableRow, TableRowKind, TableView};
 use ew_schema::{
-    Csa, FnRole, FormDef, Function, FunctionKind, JunctionStyle, LibCopy, LibDocument, Page, PageType,
-    RepType, ReportBlock, ReportKind, ReportSource, Representation, Side, SlotKind, SymbolDef,
+    FnRole, FormDef, Function, FunctionKind, JunctionStyle, LibCopy, LibDocument, Page, PageType, RepType,
+    ReportBlock, ReportKind, ReportSource, Representation, Side, SlotKind, SymbolDef,
 };
 
 /// The key of the frame form of dividers, and of pages without a form (ID-144).
@@ -347,15 +349,6 @@ impl Query for PageSlotsOf {
     }
 }
 
-fn csa_text(c: &Csa) -> Option<String> {
-    match c {
-        Csa::Mm2(d) => Some(d.to_string()),
-        Csa::Awg(n) => Some(format!("AWG{n}")),
-        Csa::Kcmil(d) => Some(format!("{d} kcmil")),
-        Csa::Unknown(_) => None,
-    }
-}
-
 /// `page_connections(page)`: the connections drawn on a page with their wire-marker texts.
 #[derive(Debug)]
 pub struct PageConnectionsOf;
@@ -368,26 +361,12 @@ impl Query for PageConnectionsOf {
 
     fn run(q: &Q, key: &Id<Page>) -> Arc<Vec<ConnectionView>> {
         let mut out = Vec::new();
+        let grouped = grouped_connections(q, *key);
         for cid in q.idx().connections_by_page(*key) {
             let Some(c) = q.connections().get(cid).cloned() else {
                 continue;
             };
-            let marker = c.overrides.show_marker.then(|| {
-                let mut parts = Vec::new();
-                if let Some(t) = c.overrides.csa.as_ref().and_then(csa_text) {
-                    parts.push(t);
-                }
-                // The colour's file spelling ("BU", "GNYE"), as the tables write it.
-                if let Some(col) = c
-                    .overrides
-                    .colour
-                    .as_ref()
-                    .and_then(|col| serde_json::to_value(col).ok()?.as_str().map(str::to_owned))
-                {
-                    parts.push(col);
-                }
-                parts.join(" ")
-            });
+            let marker = connection_marker(q, &c, grouped.contains(&cid));
             out.push(ConnectionView {
                 connection: c,
                 marker,

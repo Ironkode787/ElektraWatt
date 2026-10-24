@@ -32,7 +32,7 @@ use crate::nets::{CpRef, ip_cp};
 use crate::note::DeriveNote;
 use crate::query::{Changes, Policy, Query};
 use crate::stitch::{IpGroup, IpInfo, PairMode};
-use crate::{DrawnPageOrder, PageRef, PageStructure, Q, RepAnchorCell};
+use crate::{DrawnPageOrder, PageRef, Q, RepAnchorCell};
 
 /// The value of [`IpInfoOf`]: one interruption point as the pairing and the potential names read it.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -150,7 +150,8 @@ impl Query for IpInfoOf {
             let mut scope = None;
             if pairs {
                 let (_, scope_aspect) = pairing_setting(q);
-                scope = scope_aspect.and_then(|a| page.and_then(|p| q.get::<PageStructure>(p).node(a)));
+                // The point's structure: its structure box over its page (`ip_structure`, WP-S2.04 §10.2).
+                scope = scope_aspect.and_then(|a| q.get::<crate::items::IpStructure>(fid).node(a));
                 if let (Some(aspect), None) = (scope_aspect, scope) {
                     notes.push(DeriveNote::Connectivity {
                         code: "EW-CORE-051",

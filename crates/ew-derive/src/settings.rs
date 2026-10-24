@@ -202,6 +202,9 @@ impl Query for SettingsMember {
 pub struct DrawingSettings {
     /// `crossings: "hops"`: crossing wires are drawn as hops (FR-CON-031); else plain.
     pub hops: bool,
+    /// `marker_mode` (FR-CON-024, WP-S2.04 D16): which wires carry a marker; `None` (absent or an unknown value) is
+    /// the as-built rule, a connection's `show_marker`.
+    pub marker_mode: Option<crate::items::MarkerMode>,
 }
 
 /// `drawing_settings()`: the project's [`DrawingSettings`] (WP-S2.04 part 2, §8.6). Policy Memo: a cut-off point
@@ -218,14 +221,13 @@ impl Query for DrawingSettingsQ {
 
     fn run(q: &Q, _: &()) -> Arc<DrawingSettings> {
         let project = q.project();
-        let hops = project
-            .settings
-            .extra
-            .get("drawing")
-            .and_then(|d| d.get("crossings"))
+        let drawing = project.settings.extra.get("drawing");
+        let hops = drawing.and_then(|d| d.get("crossings")).and_then(Value::as_str) == Some("hops");
+        let marker_mode = drawing
+            .and_then(|d| d.get("marker_mode"))
             .and_then(Value::as_str)
-            == Some("hops");
-        Arc::new(DrawingSettings { hops })
+            .and_then(crate::items::MarkerMode::from_name);
+        Arc::new(DrawingSettings { hops, marker_mode })
     }
 }
 

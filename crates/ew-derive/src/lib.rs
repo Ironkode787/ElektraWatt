@@ -58,6 +58,7 @@ mod flow_distance;
 mod heap;
 mod index;
 mod ip;
+mod items;
 mod joins;
 mod links;
 mod memo_keys;
@@ -103,6 +104,13 @@ pub use index::{
     PagelessLinksV, RailTerminals,
 };
 pub use ip::{IpFnInfo, IpInfoOf, IpNotes, IpPairing, IpPairingQ};
+// WP-S2.04 part 4a: page items and structure boxes, derived (§10.2).
+pub use items::{
+    BINDABLE, GroupMarker, IpStructure, MarkerMode, RepStructureBox, bound_text, box_caption, colour_text,
+    connection_marker, csa_text, effective_marker_text, explicit_marker_text, free_text, group_marker,
+    grouped_connections, live_connections, marker_mode, neutral, outline_area2, outline_contains,
+    shows_marker, stale_marker_notes,
+};
 pub use joins::{JoinStyle, JoinWiring, JunctionJoin, WireJoin, cp_label, wire_join};
 pub use links::{
     BondPath, BondPaths, BondPathsQ, DeclaredLink, FunctionLinks, FunctionLinksOf, RailBonds, RailBondsQ,
@@ -227,6 +235,7 @@ pub const FAMILIES: &[(&str, Policy)] = &[
     (IpInfoOf::FAMILY, IpInfoOf::POLICY),
     (IpNotes::FAMILY, IpNotes::POLICY),
     (IpPairingQ::FAMILY, IpPairingQ::POLICY),
+    (IpStructure::FAMILY, IpStructure::POLICY),
     (MainFunction::FAMILY, MainFunction::POLICY),
     (MainRep::FAMILY, MainRep::POLICY),
     (ModuleChannelIds::FAMILY, ModuleChannelIds::POLICY),
@@ -252,6 +261,7 @@ pub const FAMILIES: &[(&str, Policy)] = &[
     (RailTerminalOf::FAMILY, RailTerminalOf::POLICY),
     (RailTerminals::FAMILY, RailTerminals::POLICY),
     (RepAnchorCell::FAMILY, RepAnchorCell::POLICY),
+    (RepStructureBox::FAMILY, RepStructureBox::POLICY),
     (SectionStructure::FAMILY, SectionStructure::POLICY),
     (SettingsMember::FAMILY, SettingsMember::POLICY),
     (SolenoidPositions::FAMILY, SolenoidPositions::POLICY),

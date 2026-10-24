@@ -405,6 +405,8 @@ fn index_keys(row: &AnyRow) -> Vec<(IndexName, IxKey)> {
             }
         }
         AnyRow::Junction(j) => by_id(&mut out, IndexName::JunctionsByPage, j.page),
+        AnyRow::PageItem(i) => by_id(&mut out, IndexName::PageItemsByPage, i.page),
+        AnyRow::StructureBox(b) => by_id(&mut out, IndexName::StructureBoxesByPage, b.page),
         AnyRow::Conductor(c) => by_id(&mut out, IndexName::ConductorsByCable, c.cable),
         AnyRow::PotentialDef(p) => at(&mut out, IndexName::PotentialDefsByEndpoint, &p.at),
         AnyRow::Bond(b) => {
@@ -488,7 +490,7 @@ mod tests {
         Kind::Form,
     ];
 
-    const INDEXES: [IndexName; 13] = [
+    const INDEXES: [IndexName; 15] = [
         IndexName::FunctionsByDevice,
         IndexName::RepsByPage,
         IndexName::RepsByFunction,
@@ -502,6 +504,8 @@ mod tests {
         IndexName::PagesBySection,
         IndexName::PotentialDefsByEndpoint,
         IndexName::BondsByEndpoint,
+        IndexName::PageItemsByPage,
+        IndexName::StructureBoxesByPage,
     ];
 
     /// The `i`-th ID of a pool as UUID text.
@@ -671,7 +675,7 @@ mod tests {
         };
     }
 
-    /// Every bucket key of the 13 named indexes.
+    /// Every bucket key of the 15 named indexes.
     fn bucket_keys(m: &Model) -> Vec<(IndexName, IxKey)> {
         let ix = m.indexes();
         let mut out = Vec::new();
@@ -696,6 +700,8 @@ mod tests {
             ix.potential_defs_by_endpoint()
         );
         endpoint_buckets!(out, IndexName::BondsByEndpoint, ix.bonds_by_endpoint());
+        id_buckets!(out, IndexName::PageItemsByPage, ix.page_items_by_page());
+        id_buckets!(out, IndexName::StructureBoxesByPage, ix.structure_boxes_by_page());
         out
     }
 
@@ -761,6 +767,8 @@ mod tests {
             IndexName::RepsByPage,
             IndexName::ConnectionsByPage,
             IndexName::JunctionsByPage,
+            IndexName::PageItemsByPage,
+            IndexName::StructureBoxesByPage,
         ] {
             assert_eq!(
                 coarse(&m, &MemoInput::Read(DepKey::IndexKey(name, IxKey::Id(page)))),
@@ -964,6 +972,20 @@ mod tests {
                     key,
                 )
             }
+            (Kind::PageItem, "page") => (
+                typed::<ew_schema::PageItem>(json!({
+                    "id": uid(1), "page": target,
+                    "kind": {"graphic": {"shape": {"line": {"a": [0, 0], "b": [1, 0]}}}},
+                })),
+                by_id,
+            ),
+            (Kind::StructureBox, "page") => (
+                typed::<ew_schema::StructureBox>(json!({
+                    "id": uid(1), "page": target, "outline": [[0, 0], [1, 0], [1, 1]], "style": "dotted",
+                    "assigns": {},
+                })),
+                by_id,
+            ),
             (kind, field) => panic!("link {kind:?}.{field} has no index_keys case in this test"),
         }
     }

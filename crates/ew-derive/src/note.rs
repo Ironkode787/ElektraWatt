@@ -143,6 +143,17 @@ pub enum DeriveNote {
         /// What happened and which fallback applied, in English.
         detail: String,
     },
+    /// A wire marker lists a connection that does not exist or is not drawn on the marker's page (a file of a build
+    /// before WP-S2.04 part 4a, which kept page items verbatim): a load finding, not a refusal (ADR-0009 amendment
+    /// 8). The derivation and the drawing ignore the entry; the next edit of the marker may write a clean list.
+    StaleMarkerEntry {
+        /// The marker (page item) ID.
+        marker: String,
+        /// The listed connection ID.
+        connection: String,
+        /// What is wrong with it, in English (`does not exist`, `is not drawn on the marker's page`).
+        detail: &'static str,
+    },
     /// The designation pattern of a module's part (`ChannelSpec.designation`, doc 10 §2.4, §2.6) does not expand
     /// (FT-318): the module's channels get no automatic designation, one note per module.
     DesignationPattern {
@@ -195,7 +206,8 @@ impl DeriveNote {
             DeriveNote::SchemeNotApplied { .. }
             | DeriveNote::MalformedShim { .. }
             | DeriveNote::ProfileOverlap { .. }
-            | DeriveNote::DesignationPattern { .. } => NoteSeverity::Warning,
+            | DeriveNote::DesignationPattern { .. }
+            | DeriveNote::StaleMarkerEntry { .. } => NoteSeverity::Warning,
             DeriveNote::DefaultFrame | DeriveNote::DefaultWireProfile { .. } => NoteSeverity::Info,
         }
     }
@@ -243,6 +255,15 @@ impl fmt::Display for DeriveNote {
                 f,
                 "the channel designation pattern `{pattern}` of the part of module {module} does not expand ({detail}); \
                  its channels have no automatic designation"
+            ),
+            DeriveNote::StaleMarkerEntry {
+                marker,
+                connection,
+                detail,
+            } => write!(
+                f,
+                "wire marker {marker} lists connection {connection}, which {detail}; the entry is ignored until the \
+                 marker is edited"
             ),
             DeriveNote::Connectivity {
                 code,

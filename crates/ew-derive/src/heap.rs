@@ -286,6 +286,9 @@ impl HeapBytes for DeriveNote {
                 shim.heap_bytes() + rows.heap_bytes() + detail.heap_bytes()
             }
             DeriveNote::QueryCycle { key, .. } => key.heap_bytes(),
+            DeriveNote::StaleMarkerEntry {
+                marker, connection, ..
+            } => marker.heap_bytes() + connection.heap_bytes(),
             DeriveNote::Connectivity { subject, detail, .. } | DeriveNote::Xref { subject, detail, .. } => {
                 subject.heap_bytes() + detail.heap_bytes()
             }

@@ -76,7 +76,7 @@ use crate::pages::{PageOrder, PageOrderV, PageRef, folio_label};
 use crate::profile::XrefFormat;
 use crate::query::{Policy, Query};
 use crate::stitch::PairMode;
-use crate::structure::{PageStructure, ResolvedStructure, StructurePath};
+use crate::structure::{ResolvedStructure, StructurePath};
 use crate::tag::MainFunction;
 use crate::xref_format::{
     ItemOptions, ItemValues, Rendered, XrefToken, names_structure, parse_format, render_item,
@@ -688,12 +688,14 @@ impl Query for XrefTextOf {
             return Arc::new(XrefText::default());
         };
         let settings = q.get::<XrefSettingsOf>(());
+        // An interruption point's structure is `ip_structure` (its structure box over its page, WP-S2.04 §10.2).
+        let source_function = q.reps().get(*key).and_then(|r| r.functions.first().copied());
         let cx = TextCx {
             q,
             settings: &settings,
             order: q.get::<PageOrder>(()),
             source,
-            source_structure: q.get::<PageStructure>(source),
+            source_structure: crate::items::structure_for(q, source_function, source),
         };
         let targets = &relation.targets;
         let (rendered, shown) = match &relation.kind {
@@ -800,7 +802,7 @@ impl TextCx<'_> {
             .pages()
             .get(t.page)
             .map_or_else(|| "?".to_owned(), |p| folio_label(p));
-        let structure = q.get::<PageStructure>(t.page);
+        let structure = crate::items::structure_for(q, Some(t.function), t.page);
         let values = ItemValues {
             page,
             page_index: if tokens.contains(&XrefToken::PageIndex) {
@@ -888,7 +890,7 @@ fn contact_rows(cx: &TextCx<'_>, targets: &[XrefTarget]) -> XrefText {
 }
 
 /// The printed external target: "+J-E-206 / JE-N1000-03" (FR-XRF-012).
-fn external_text(q: &Q, e: Id<ExternalRef>) -> String {
+pub(crate) fn external_text(q: &Q, e: Id<ExternalRef>) -> String {
     let Some(x) = q.external_refs().get(e) else {
         q.note(DeriveNote::Xref {
             code: EW_CORE_053,

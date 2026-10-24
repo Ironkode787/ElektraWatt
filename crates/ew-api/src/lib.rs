@@ -193,9 +193,13 @@ fn project_notes(model: &Model) -> Vec<DerivationFinding> {
     let mut q = Q::new(model);
     let _ = q.get::<NumberingSettingsOf>(());
     let _ = q.get::<FrameSettings>(());
+    // WP-S2.04 §10.1: a wire marker of an older file that lists a deleted connection, or one of another page, is
+    // reported, not refused.
+    let stale = ew_derive::stale_marker_notes(&q);
     q.diagnostics()
         .notes()
         .into_iter()
+        .chain(stale)
         .map(DerivationFinding::from)
         .collect()
 }

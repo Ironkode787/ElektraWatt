@@ -117,6 +117,9 @@ pub enum SlotSource {
     Parent,
     /// The page of the device's main representation.
     MainRepPage,
+    /// The structure box around the device's main representation (FR-PRJ-020, WP-S2.04 §10.2), or around an
+    /// interruption point's representation (`ip_structure`).
+    StructureBox,
 }
 
 /// One resolved aspect.
@@ -169,7 +172,7 @@ impl ResolvedStructure {
     }
 }
 
-fn resolved_slot(q: &Q, node: Id<StructureNode>, source: SlotSource) -> Option<ResolvedSlot> {
+pub(crate) fn resolved_slot(q: &Q, node: Id<StructureNode>, source: SlotSource) -> Option<ResolvedSlot> {
     // A slot naming a missing node, or a node of another aspect's tree, resolves to nothing (the
     // structural invariants rule both out in a valid snapshot).
     q.structure_nodes().get(node)?;
@@ -226,11 +229,10 @@ pub(crate) fn structure_parent(dev: &Device) -> Option<Id<Device>> {
 /// 1. the device's own slot: a node, or `none` (explicitly no node);
 /// 2. absent (inherit) on a terminal or a child-tag device: the strip's or the parent's resolved slot, so
 ///    `-X1031:1` and `-201U3-Q1` are designations inside their parent's structure;
-/// 3. absent on any other device: the slot of the page of its main representation;
+/// 3. absent on any other device: the slot of the structure box around its main representation when the box's
+///    `assigns` has a node or `none` for the aspect ([`SlotSource::StructureBox`]; `rep_structure_box`, FR-PRJ-020,
+///    WP-S2.04 §10.2), else the slot of the page of its main representation;
 /// 4. an unplaced device with a parent device: the parent's resolved slot; else no node.
-///
-/// Structure boxes around the main representation (FR-PRJ-020) are not in this format version; they
-/// slot in between steps 1 and 3 when the record kind exists.
 ///
 /// **Cycles.** Steps 2 and 4 follow the device inheritance graph (terminal → strip, device → parent),
 /// which EW-INV-015 keeps acyclic. On a snapshot that breaks it, the edge that closes the cycle reads
@@ -251,11 +253,16 @@ impl Query for StructureOf {
             return Arc::new(out);
         };
         let inherit_parent = structure_parent(dev);
-        let page = if inherit_parent.is_some() {
+        let main_rep = if inherit_parent.is_some() {
             None
         } else {
-            q.get::<MainRep>(*key)
-                .and_then(|r| q.reps().get(r).map(|r| r.page))
+            *q.get::<MainRep>(*key)
+        };
+        let page = main_rep.and_then(|r| q.reps().get(r).map(|r| r.page));
+        // Step 3's structure box (FR-PRJ-020): only around a main representation that is drawn on a page.
+        let around = match (main_rep, page) {
+            (Some(r), Some(_)) => crate::items::box_of_rep(q, r),
+            _ => None,
         };
         let parent = inherit_parent.or(if page.is_none() { dev.parent } else { None });
         let page_structure = page.map(|p| q.get::<PageStructure>(p));
@@ -272,7 +279,10 @@ impl Query for StructureOf {
                 Some(Slot::None) => None,
                 // Absent or a newer form: inherit.
                 Some(Slot::Unknown(_)) | None => {
-                    if let Some(ps) = &page_structure {
+                    let boxed = around.as_ref().and_then(|b| crate::items::box_slot(q, b, aspect));
+                    if let Some(from_box) = boxed {
+                        from_box
+                    } else if let Some(ps) = &page_structure {
                         ps.slots.get(&aspect).map(|s| ResolvedSlot {
                             source: SlotSource::MainRepPage,
                             ..s.clone()
