@@ -412,7 +412,10 @@ fn box_structure_creates_a_box_and_refuses_bad_members() {
     assert_eq!(pointer(e.execute(&two).unwrap_err(), "box.structure"), "/outline");
     let mut flat = structure_box(location(LOC));
     flat.outline = vec![pt(0, 0), pt(1, 1), pt(2, 2), pt(3, 3)];
-    assert_eq!(pointer(e.execute(&flat).unwrap_err(), "box.structure"), "/outline");
+    assert_eq!(
+        pointer(e.execute(&flat).unwrap_err(), "box.structure"),
+        "/outline"
+    );
     let wrong_aspect = structure_box(location(FUNC_P01));
     assert_eq!(
         pointer(e.execute(&wrong_aspect).unwrap_err(), "box.structure"),
@@ -672,7 +675,11 @@ fn delete_unlinks_markers_and_takes_items_and_boxes() {
         .collect();
     assert_eq!(survivor.len(), 1, "the clean-up merged J5's two members");
     for m in [both, feed] {
-        let it = e.model().table::<PageItem>().get(&m).expect("the marker survives");
+        let it = e
+            .model()
+            .table::<PageItem>()
+            .get(&m)
+            .expect("the marker survives");
         let PageItemKind::WireMarker(w) = &it.kind else {
             panic!("a marker");
         };
