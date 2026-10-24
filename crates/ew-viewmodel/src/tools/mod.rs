@@ -36,7 +36,8 @@
 //! ([`BlackBoxTool`]) and the grips of a selected black box ([`black_box`]), which Select drags.
 //!
 //! **WP-S2.04 part 4b** adds page items and drawings: the Text tool ([`TextTool`]) with its six bindable names
-//! ([`BINDABLE`]), text edit ([`TextEditTool`]), and the Graphic tool ([`GraphicTool`], [`GraphicShape`]).
+//! ([`BINDABLE`]), text edit ([`TextEditTool`]), the Graphic tool ([`GraphicTool`], [`GraphicShape`]), the Wire
+//! marker tool ([`MarkerTool`], [`crossed_connections`]) and the Structure box tool ([`StructureBoxTool`]).
 
 pub mod autoconnect;
 pub mod black_box;
@@ -45,6 +46,7 @@ pub mod graphic;
 mod host;
 pub mod ip;
 mod junction_editor;
+pub mod marker;
 mod measure;
 pub mod move_keys;
 mod overlay;
@@ -55,6 +57,7 @@ mod place;
 pub mod route_edit;
 mod select;
 mod snap;
+pub mod structure_box;
 pub mod text;
 pub mod transform;
 pub mod wire;
@@ -64,11 +67,13 @@ pub use exchange::ExchangeTool;
 pub use graphic::{GraphicShape, GraphicTool};
 pub use ip::{IpDir, IpExternal, IpMemory, IpTool};
 pub use junction_editor::{JunctionEditor, JunctionMember, junction_name};
+pub use marker::{MarkerTool, crossed_connections};
 // WP-S2.05 part 3
 pub use paste::PasteTool;
 pub use picker::{PendingTerminal, Picker, PickerMode, PickerRow};
 pub use place::{ORIENT_NAMES, PlaceTarget, PlaceTool, inside_polygon, next_designation};
 pub use route_edit::RouteEditTool;
+pub use structure_box::StructureBoxTool;
 pub use text::{BINDABLE, TextEditTool, TextTool};
 pub use wire::{WireTarget, WireTool};
 
@@ -308,6 +313,18 @@ pub enum Ghost {
         points: usize,
         /// Whether an arc is drawn anticlockwise.
         anticlockwise: bool,
+    },
+    /// The Wire marker tool's group (WP-S2.04 §10.7).
+    Marker {
+        /// The crossed connections (0 in the armed state).
+        connections: usize,
+        /// The fields' text (`2.5 BK BU`); `None` when both fields are empty.
+        text: Option<String>,
+    },
+    /// The Structure box tool's outline (WP-S2.04 §10.7).
+    StructureBox {
+        /// The outline's vertices: 0 in the armed state, the fixed points while drawing, all of them while typing.
+        outline: usize,
     },
 }
 

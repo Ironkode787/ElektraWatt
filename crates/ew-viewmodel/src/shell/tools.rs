@@ -197,7 +197,18 @@ impl ShellModel {
         // ruling): a page or tab change ends it and Select takes over. The selection survives (WP-S2.03 §7.6).
         if matches!(
             self.tools.tool.name(),
-            "wire" | "route_edit" | "place" | "exchange" | "paste" | "ip" | "black_box"
+            "wire"
+                | "route_edit"
+                | "place"
+                | "exchange"
+                | "paste"
+                | "ip"
+                | "black_box"
+                | "text"
+                | "text_edit"
+                | "graphic"
+                | "marker"
+                | "structure_box"
         ) && let Some(select) = tool_named("select")
         {
             self.tools.tool = select;

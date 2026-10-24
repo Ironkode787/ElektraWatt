@@ -212,6 +212,42 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "reason-text-tool-only" => "Choose the Text tool first",
         "reason-text-bound" => "This text shows a project or page field; change that field instead",
         "reason-select-one-text" => "Select exactly one free text",
+        // WP-S2.04 part 4b: the Wire marker tool, the Structure box tool and the marker mode.
+        "submenu-wire-markers" => "Wire markers",
+        "action-tool-marker" => "Wire marker",
+        "action-marker-fields" => "Marker fields",
+        "action-marker-csa" => "Cross-section",
+        "action-marker-colours" => "Colours",
+        "action-tool-structure-box" => "Structure box",
+        "action-structure-box-fields" => "Structure box fields",
+        "action-structure-box-style" => "Style",
+        "action-structure-box-caption" => "Caption",
+        "action-structure-box-location" => "Location",
+        "action-project-marker-mode" => "Wire markers",
+        "marker-mode-per_wire" => "As set per wire",
+        "marker-mode-all" => "All wires",
+        "marker-mode-deviations" => "Deviations",
+        "marker-mode-explicit" => "Explicit overrides",
+        "marker-mode-none" => "None",
+        "box-style-dotted" => "Dotted",
+        "box-style-dash_dot" => "Dash-dot",
+        "tool-marker" => "Wire marker",
+        "tool-structure_box" => "Structure box",
+        "marker-crossed" => "{0} crossed",
+        "hint-marker-armed" => "Press and drag (or Enter, move, Enter) across the wires to mark; Escape ends",
+        "hint-marker-crossing" => "Release (or Enter) to take the crossed wires",
+        "hint-marker-typing" => {
+            "Set the cross-section and colours if wanted; Enter places the marker; Escape cancels"
+        }
+        "hint-structure-box-armed" => "Click or Enter at the first corner; Escape ends",
+        "hint-structure-box-outline" => {
+            "Click or Enter at the next corner; Shift+Enter or a double click closes the box (two corners: a rectangle)"
+        }
+        "hint-structure-box-typing" => {
+            "Set the style, caption, location and external point; Enter places the box; Escape cancels"
+        }
+        "reason-marker-tool-only" => "Choose the Wire marker tool first",
+        "reason-structure-box-tool-only" => "Choose the Structure box tool first",
         // WP-S2.04 part 4b. End.
         "tool-select" => "Select",
         "tool-measure" => "Measure",

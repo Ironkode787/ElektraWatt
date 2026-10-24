@@ -72,6 +72,29 @@ impl ShellModel {
         }
     }
 
+    /// The project's `marker_mode` setting when it is set (WP-S2.04 §10.2 item 3): `all`, `deviations`,
+    /// `explicit` or `none`; `per_wire` for an absent or unknown one.
+    pub fn marker_mode_word(&self) -> &'static str {
+        let Some(p) = &self.project else {
+            return "per_wire";
+        };
+        let q = p.session.query();
+        match q
+            .project()
+            .settings
+            .extra
+            .get("drawing")
+            .and_then(|d| d.get("marker_mode"))
+            .and_then(Value::as_str)
+        {
+            Some("all") => "all",
+            Some("deviations") => "deviations",
+            Some("explicit") => "explicit",
+            Some("none") => "none",
+            _ => "per_wire",
+        }
+    }
+
     /// The ghost route of the active Wire tool while it routes (page nm); `None` for another tool.
     pub fn wire_ghost_route(&mut self) -> Option<Vec<(i64, i64)>> {
         self.tools

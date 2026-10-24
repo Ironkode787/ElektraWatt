@@ -1333,6 +1333,17 @@ fn ghost_lines(model: &ShellModel, lines: &mut Vec<String>) {
             }
             lines.push(line);
         }
+        // WP-S2.04 part 4b: the Wire marker tool's group and the Structure box tool's outline.
+        Some(crate::tools::Ghost::Marker { connections, text }) => {
+            let mut line = format!("canvas ghost marker connections {connections}");
+            if let Some(text) = text {
+                line.push_str(&format!(" text \"{text}\""));
+            }
+            lines.push(line);
+        }
+        Some(crate::tools::Ghost::StructureBox { outline }) => {
+            lines.push(format!("canvas ghost box outline {outline}"));
+        }
     }
     wiring_lines(model, lines);
 }

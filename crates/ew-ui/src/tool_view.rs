@@ -163,6 +163,16 @@ pub fn tool_strip_text(shell: &ShellModel) -> Option<String> {
             parts.push(strings::text(tool.status_hint()).to_owned());
             parts.join(" · ")
         }
+        // WP-S2.04 part 4b: the Wire marker's crossed count and fields, the Structure box's outline.
+        Some(tools::Ghost::Marker { connections, text }) => format!(
+            "{} · {} · {}",
+            connections,
+            text.unwrap_or_else(|| "-".to_owned()),
+            strings::text(tool.status_hint())
+        ),
+        Some(tools::Ghost::StructureBox { outline }) => {
+            format!("{} · {}", outline, strings::text(tool.status_hint()))
+        }
     };
     Some(format!("{label}: {detail}"))
 }
@@ -187,6 +197,97 @@ pub(crate) fn text_fields(ui: &mut Ui, current_bind: Option<&str>, events: &mut 
                 }
             }
         });
+}
+
+/// The Wire marker tool's fields in the tool strip (WP-S2.04 §10.5): the cross-section and the colours, each sent by
+/// Enter as `marker.fields` with its member (`""` clears it).
+pub(crate) fn marker_fields(
+    ui: &mut Ui,
+    csa: &mut String,
+    colours: &mut String,
+    events: &mut Vec<crate::app::Event>,
+) {
+    for (label_key, buffer, member) in [
+        ("action-marker-csa", csa, "csa"),
+        ("action-marker-colours", colours, "colours"),
+    ] {
+        ui.label(strings::text(label_key));
+        let edit = ui.add(egui::TextEdit::singleline(buffer).desired_width(120.0));
+        let label = strings::text(label_key).to_owned();
+        edit.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &label));
+        if edit.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+            let mut params = serde_json::Map::new();
+            params.insert(member.to_owned(), serde_json::json!(buffer.trim()));
+            events.push(crate::app::Event::Action(
+                "marker.fields",
+                serde_json::Value::Object(params),
+            ));
+        }
+    }
+}
+
+/// The Structure box tool's fields in the tool strip (WP-S2.04 §10.5): the style (`structure_box.fields` at once), the
+/// caption and location (Enter sends its member; `""` clears it) and the external reference by printed text (a choice
+/// sends its ID, "none" clears it).
+pub(crate) fn structure_box_fields(
+    ui: &mut Ui,
+    externals: &[(String, String)],
+    caption: &mut String,
+    location: &mut String,
+    events: &mut Vec<crate::app::Event>,
+) {
+    egui::ComboBox::from_label(strings::text("action-structure-box-style"))
+        .selected_text("…")
+        .show_ui(ui, |ui| {
+            for style in ["dotted", "dash_dot"] {
+                if ui
+                    .selectable_label(false, strings::text(&format!("box-style-{style}")))
+                    .clicked()
+                {
+                    events.push(crate::app::Event::Action(
+                        "structure_box.fields",
+                        serde_json::json!({ "style": style }),
+                    ));
+                }
+            }
+        });
+    for (label_key, buffer, member, width) in [
+        ("action-structure-box-caption", caption, "caption", 120.0_f32),
+        ("action-structure-box-location", location, "location", 140.0_f32),
+    ] {
+        ui.label(strings::text(label_key));
+        let edit = ui.add(egui::TextEdit::singleline(buffer).desired_width(width));
+        let label = strings::text(label_key).to_owned();
+        edit.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &label));
+        if edit.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+            let mut params = serde_json::Map::new();
+            params.insert(member.to_owned(), serde_json::json!(buffer.trim()));
+            events.push(crate::app::Event::Action(
+                "structure_box.fields",
+                serde_json::Value::Object(params),
+            ));
+        }
+    }
+    if !externals.is_empty() {
+        egui::ComboBox::from_label(strings::text("action-ip-external"))
+            .selected_text("…")
+            .show_ui(ui, |ui| {
+                if ui.selectable_label(false, "-").clicked() {
+                    events.push(crate::app::Event::Action(
+                        "structure_box.fields",
+                        serde_json::json!({ "external": "" }),
+                    ));
+                }
+                for (id, label) in externals {
+                    if ui.selectable_label(false, label).clicked() {
+                        events.push(crate::app::Event::Action(
+                            "structure_box.fields",
+                            serde_json::json!({ "external": id }),
+                        ));
+                    }
+                }
+            });
+    }
 }
 
 /// The IP tool's fields in the tool strip (WP-S2.04 §9.1): the name (Enter sends `ip.name`) and the external

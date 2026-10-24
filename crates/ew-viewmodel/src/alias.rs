@@ -269,6 +269,9 @@ pub const ALIAS_PARAMS: &[(&str, &str, ParamForm)] = &[
     ("props.set", "value", ParamForm::IdRef),
     ("structure.new", "parent", ParamForm::Whole),
     ("external_ref.new", "location", ParamForm::Whole),
+    // WP-S2.04 part 4b: the Structure box tool's location node and external reference.
+    ("structure_box.fields", "location", ParamForm::Whole),
+    ("structure_box.fields", "external", ParamForm::Whole),
     ("command.run", "params", ParamForm::CommandRefs),
 ];
 

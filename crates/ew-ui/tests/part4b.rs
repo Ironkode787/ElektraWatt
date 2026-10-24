@@ -2,16 +2,19 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! WP-S2.04 part 4b in the window without rendering (PI7, §10.5): the text popup takes the focus when the Text tool
-//! opens it, Enter sends the text to the tool and places it, and Escape closes it without a commit.
+//! opens it, Enter sends the text to the tool and places it, and Escape closes it without a commit. The Wire marker
+//! and Structure box tools arm on their shortcuts, and the marker's cross-section field in the tool strip sends
+//! `marker.fields`.
 
 mod support;
 
-use egui::Key;
+use egui::{Key, Modifiers};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
 use ew_ui::ew_viewmodel::shell::Outcome;
 use ew_ui::ew_viewmodel::strings;
+use ew_ui::ew_viewmodel::tools::Ghost;
 use serde_json::{Value, json};
 use support::{Scripted, Tmp, harness, settle, wait_for_page};
 
@@ -112,4 +115,55 @@ fn escape_closes_the_text_popup_without_a_commit() {
             .any(|i| i.kind == "free_text" && i.text.as_deref() == Some("40x60")),
         "the typed text is not placed"
     );
+}
+
+#[test]
+fn shift_w_and_shift_b_arm_the_marker_and_structure_box_tools() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "101");
+    h.key_press_modifiers(Modifiers::SHIFT, Key::W);
+    settle(&mut h);
+    settle(&mut h);
+    assert_eq!(h.state().shell().tool().name(), "marker");
+    h.key_press(Key::Escape);
+    settle(&mut h);
+    settle(&mut h);
+    assert_eq!(h.state().shell().tool().name(), "select");
+    h.key_press_modifiers(Modifiers::SHIFT, Key::B);
+    settle(&mut h);
+    settle(&mut h);
+    assert_eq!(h.state().shell().tool().name(), "structure_box");
+}
+
+#[test]
+fn the_marker_fields_in_the_tool_strip_send_the_cross_section() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "101");
+    dispatch(&mut h, "tool.marker", json!({}));
+    settle(&mut h);
+    settle(&mut h);
+    assert_eq!(h.state().shell().tool().name(), "marker");
+    let label = strings::text("action-marker-csa");
+    let field = h
+        .get_all_by_role(egui::Role::TextInput)
+        .find(|n| n.accesskit_node().label().as_deref() == Some(label))
+        .expect("the cross-section field");
+    field.click();
+    settle(&mut h);
+    let field = h
+        .get_all_by_role(egui::Role::TextInput)
+        .find(|n| n.accesskit_node().label().as_deref() == Some(label))
+        .expect("the cross-section field");
+    field.type_text("2.5");
+    settle(&mut h);
+    h.key_press(Key::Enter);
+    settle(&mut h);
+    settle(&mut h);
+    match h.state().shell().tool_ghost() {
+        Some(Ghost::Marker { connections, text }) => {
+            assert_eq!(connections, 0);
+            assert_eq!(text.as_deref(), Some("2.5"));
+        }
+        other => panic!("not the Wire marker's ghost: {other:?}"),
+    }
 }

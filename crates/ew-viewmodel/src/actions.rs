@@ -96,6 +96,8 @@ pub enum Submenu {
     PageNavigator,
     /// Insert, Graphic: one item per shape of the Graphic tool (WP-S2.04 §10.5).
     Graphic,
+    /// Tools, Wire markers: the marker mode's four settable modes and the as-built one (WP-S2.04 §10.6).
+    WireMarkers,
 }
 
 impl Submenu {
@@ -110,6 +112,7 @@ impl Submenu {
             Submenu::Pan => "submenu-pan",
             Submenu::PageNavigator => "submenu-page-navigator",
             Submenu::Graphic => "submenu-graphic",
+            Submenu::WireMarkers => "submenu-wire-markers",
         }
     }
 }
@@ -1818,6 +1821,61 @@ pub static ACTIONS: &[ActionMeta] = &[
         one_free_text,
         slot(Menu::Edit),
     )),
+    // WP-S2.04 part 4b: the Wire marker and Structure box tools, their fields and the marker mode.
+    in_canvas(act(
+        "tool.marker",
+        Command,
+        "action-tool-marker",
+        Menu::Insert,
+        &["Shift+W"],
+        editable_page,
+        slot(Menu::Insert),
+    )),
+    with_params(
+        "csa?:text, colours?:text",
+        hidden(in_canvas(act(
+            "marker.fields",
+            View,
+            "action-marker-fields",
+            Menu::Insert,
+            &[],
+            editable_page,
+            None,
+        ))),
+    ),
+    in_canvas(act(
+        "tool.structure_box",
+        Command,
+        "action-tool-structure-box",
+        Menu::Insert,
+        &["Shift+B"],
+        editable_page,
+        slot(Menu::Insert),
+    )),
+    with_params(
+        "style?:enum(dotted|dash_dot), caption?:text, location?:text, external?:text",
+        hidden(in_canvas(act(
+            "structure_box.fields",
+            View,
+            "action-structure-box-fields",
+            Menu::Insert,
+            &[],
+            editable_page,
+            None,
+        ))),
+    ),
+    with_params(
+        "mode:enum(per_wire|all|deviations|explicit|none)",
+        act(
+            "project.marker_mode",
+            Command,
+            "action-project-marker-mode",
+            Menu::Tools,
+            &[],
+            writable,
+            sub(Menu::Tools, Submenu::WireMarkers, false),
+        ),
+    ),
     // WP-S2.04 part 4b. End.
     act(
         "tools.company_standard",
@@ -2930,6 +2988,8 @@ fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
             "tool.black_box" => model.tool().name() == "black_box",
             // WP-S2.04 part 4b.
             "tool.text" => model.tool().name() == "text",
+            "tool.marker" => model.tool().name() == "marker",
+            "tool.structure_box" => model.tool().name() == "structure_box",
             "project.crossings" => model.crossings_hops(),
             _ => false,
         },
@@ -3039,6 +3099,19 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
                         String::new()
                     };
                     item.checked = active == Some(shape.word());
+                    item
+                })
+                .collect()
+        }
+        Submenu::WireMarkers => {
+            let current = model.marker_mode_word();
+            ["per_wire", "all", "deviations", "explicit", "none"]
+                .iter()
+                .map(|mode| {
+                    let mut item = item_of(meta, model);
+                    item.label = strings::text(&format!("marker-mode-{mode}")).to_owned();
+                    item.params = json!({ "mode": mode });
+                    item.checked = *mode == current;
                     item
                 })
                 .collect()
@@ -3171,6 +3244,7 @@ mod tests {
             Submenu::Workspace,
             Submenu::Pan,
             Submenu::Graphic,
+            Submenu::WireMarkers,
         ] {
             assert!(strings::lookup(s.label_key()).is_some());
         }

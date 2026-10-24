@@ -150,6 +150,12 @@ pub struct App {
     request_paste: bool,
     /// The IP tool's name field in the tool strip (WP-S2.04 §9.1): `ip.name` on Enter.
     ip_name: String,
+    /// The Wire marker tool's cross-section and colours fields (WP-S2.04 §10.5): `marker.fields` on Enter.
+    marker_csa: String,
+    marker_colours: String,
+    /// The Structure box tool's caption and location fields (WP-S2.04 §10.5): `structure_box.fields` on Enter.
+    structure_caption: String,
+    structure_location: String,
     /// The text popup's field (WP-S2.04 §10.5): `None` while the popup is closed.
     text_buffer: Option<String>,
 }
@@ -191,6 +197,10 @@ impl App {
             applied_theme: None,
             request_paste: false,
             ip_name: String::new(),
+            marker_csa: String::new(),
+            marker_colours: String::new(),
+            structure_caption: String::new(),
+            structure_location: String::new(),
             text_buffer: None,
         }
     }
@@ -397,7 +407,9 @@ impl App {
             && let Some(text) = crate::tool_view::tool_strip_text(&self.shell)
         {
             let ip_tool = self.shell.tool().name() == "ip";
-            let externals = if ip_tool {
+            let marker_tool = self.shell.tool().name() == "marker";
+            let structure_box_tool = self.shell.tool().name() == "structure_box";
+            let externals = if ip_tool || structure_box_tool {
                 self.shell.external_choices()
             } else {
                 Vec::new()
@@ -405,6 +417,10 @@ impl App {
             let text_tool = self.shell.tool().name() == "text";
             let text_bind = if text_tool { self.shell.text_bind() } else { None };
             let ip_name = &mut self.ip_name;
+            let marker_csa = &mut self.marker_csa;
+            let marker_colours = &mut self.marker_colours;
+            let structure_caption = &mut self.structure_caption;
+            let structure_location = &mut self.structure_location;
             Panel::top("tool-strip").show(ui, |ui| {
                 ui.horizontal(|ui| {
                     ui.label(text);
@@ -415,6 +431,19 @@ impl App {
                     // WP-S2.04 §10.5: the Text tool's binding.
                     if text_tool {
                         crate::tool_view::text_fields(ui, text_bind.as_deref(), &mut events);
+                    }
+                    // WP-S2.04 §10.5: the Wire marker's fields and the Structure box's style and fields.
+                    if marker_tool {
+                        crate::tool_view::marker_fields(ui, marker_csa, marker_colours, &mut events);
+                    }
+                    if structure_box_tool {
+                        crate::tool_view::structure_box_fields(
+                            ui,
+                            &externals,
+                            structure_caption,
+                            structure_location,
+                            &mut events,
+                        );
                     }
                 });
             });

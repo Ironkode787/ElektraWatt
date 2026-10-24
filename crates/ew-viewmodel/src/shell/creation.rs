@@ -396,7 +396,7 @@ impl ShellModel {
     /// dispatch), or its code (with the aspect's own prefix sign, which is taken off) when exactly one node of the aspect
     /// has it. Several nodes with the code are refused listing them as aliases `@n` with their parent's code, ordered by
     /// their codes from the root (FT-439), because no navigator prints a node's alias yet.
-    fn structure_node(&self, aspect: &str, text: &str) -> Result<String, String> {
+    pub(super) fn structure_node(&self, aspect: &str, text: &str) -> Result<String, String> {
         let Some(project) = &self.project else {
             return Err(strings::text("reason-no-project").to_owned());
         };

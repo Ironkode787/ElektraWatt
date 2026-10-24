@@ -302,6 +302,28 @@ impl ShellModel {
         }
     }
 
+    /// Resolves an external reference by its ID (or alias, `id:<uuid>`) or its printed text (`JE-N1000-03:L`): by ID
+    /// first; by printed text only when exactly one reference prints it (fix round, item 7). `Err` carries the reason
+    /// key of the refusal (`reason-no-external`, `reason-external-ambiguous`).
+    pub(super) fn resolve_external(&self, s: &str) -> Result<IpExternal, Outcome> {
+        let s = s.strip_prefix("id:").unwrap_or(s);
+        let choices = self.external_choices();
+        let by_id = choices.iter().find(|(id, _)| id.eq_ignore_ascii_case(s));
+        let by_text: Vec<&(String, String)> = choices.iter().filter(|(_, label)| label == s).collect();
+        match (by_id, by_text.as_slice()) {
+            (Some((id, label)), _) | (None, [(id, label)]) => Ok(IpExternal {
+                id: id.clone(),
+                label: label.clone(),
+            }),
+            (None, []) => Err(Outcome::Refused {
+                reason_key: "reason-no-external",
+            }),
+            (None, _) => Err(Outcome::Refused {
+                reason_key: "reason-external-ambiguous",
+            }),
+        }
+    }
+
     /// `ip.external {external}`: the IP tool's external-reference field: an external reference by its ID (or alias,
     /// `id:<uuid>`) or its printed text (`JE-N1000-03:L`); an empty text clears it (the parameter is `external:text`;
     /// `null` is accepted too). While set, the ghost and the commit use the external arrow of the page's grid family.
@@ -315,30 +337,10 @@ impl ShellModel {
             None => return failed("error-missing-param", &["external"]),
             Some(Value::Null) => None,
             Some(Value::String(s)) if s.is_empty() => None,
-            Some(Value::String(s)) => {
-                let s = s.strip_prefix("id:").unwrap_or(s);
-                let choices = self.external_choices();
-                // By ID first; by printed text only when exactly one reference prints it (fix round, item 7).
-                let by_id = choices.iter().find(|(id, _)| id.eq_ignore_ascii_case(s));
-                let by_text: Vec<&(String, String)> =
-                    choices.iter().filter(|(_, label)| label == s).collect();
-                match (by_id, by_text.as_slice()) {
-                    (Some((id, label)), _) | (None, [(id, label)]) => Some(IpExternal {
-                        id: id.clone(),
-                        label: label.clone(),
-                    }),
-                    (None, []) => {
-                        return Outcome::Refused {
-                            reason_key: "reason-no-external",
-                        };
-                    }
-                    (None, _) => {
-                        return Outcome::Refused {
-                            reason_key: "reason-external-ambiguous",
-                        };
-                    }
-                }
-            }
+            Some(Value::String(s)) => match self.resolve_external(s) {
+                Ok(e) => Some(e),
+                Err(outcome) => return outcome,
+            },
             Some(_) => return failed("error-bad-param", &["external"]),
         };
         let base = if external.is_some() {
