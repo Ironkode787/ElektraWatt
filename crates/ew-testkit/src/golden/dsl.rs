@@ -1534,58 +1534,6 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         self.run("rep.move", json!({"reps": reps, "items": items, "delta": delta}))
             .map(|_| ())
     }
-    // WP-S2.04 part 4a
-    /// The page-item verbs issue their commands with the documented parameters.
-    #[test]
-    fn page_item_verbs_issue_their_commands() {
-        let mut seen: Vec<(String, Value)> = Vec::new();
-        let mut sink = |name: &str, params: Value| {
-            seen.push((name.to_owned(), params));
-            Ok(Done::default())
-        };
-        let page: Id<Page> = Id::from_uuid(ew_ids::Uuid::from_u128(7));
-        let c: Id<Connection> = Id::from_uuid(ew_ids::Uuid::from_u128(8));
-        let at = Pt2::new(ew_units::Nm(1), ew_units::Nm(2));
-        let mut builder = Builder::new(&mut sink);
-        builder.marker_mode(Some("explicit")).unwrap();
-        // No primary key comes back from this sink: the placing verbs report that as an error, after the run.
-        assert!(
-            builder
-                .place_item(page, json!({"free_text": {"text": "x", "at": [0, 0]}}))
-                .is_err()
-        );
-        assert!(
-            builder
-                .place_marker(page, &[c], at, true, Some("2.5"), &[json!(["BK"])])
-                .is_err()
-        );
-        assert!(
-            builder
-                .structure_box(page, &[at, at, at], "dotted", "Box", json!({}), None)
-                .is_err()
-        );
-        builder.move_with_items(&[], &[c.cast()], at).unwrap();
-        drop(builder);
-        let names: Vec<&str> = seen.iter().map(|(n, _)| n.as_str()).collect();
-        assert_eq!(
-            names,
-            [
-                "project.drawing.set",
-                "item.place",
-                "marker.place",
-                "box.structure",
-                "rep.move"
-            ]
-        );
-        assert_eq!(seen[0].1, json!({"marker_mode": "explicit"}));
-        assert_eq!(
-            seen[2].1,
-            json!({"page": page, "connections": [c], "at": [1, 2], "angle": 90_000, "csa": "2.5",
-                "colours": [["BK"]]})
-        );
-        assert_eq!(seen[3].1["caption"], json!("Box"));
-        assert_eq!(seen[4].1, json!({"reps": [], "items": [c], "delta": [1, 2]}));
-    }
 }
 
 #[cfg(test)]
@@ -1642,5 +1590,58 @@ mod tests {
             seen[0].1,
             json!({"page": page, "at": [10, 20], "fragment": fragment})
         );
+    }
+
+    // WP-S2.04 part 4a
+    /// The page-item verbs issue their commands with the documented parameters.
+    #[test]
+    fn page_item_verbs_issue_their_commands() {
+        let mut seen: Vec<(String, Value)> = Vec::new();
+        let mut sink = |name: &str, params: Value| {
+            seen.push((name.to_owned(), params));
+            Ok(Done::default())
+        };
+        let page: Id<Page> = Id::from_uuid(ew_ids::Uuid::from_u128(7));
+        let c: Id<Connection> = Id::from_uuid(ew_ids::Uuid::from_u128(8));
+        let at = Pt2::new(ew_units::Nm(1), ew_units::Nm(2));
+        let mut builder = Builder::new(&mut sink);
+        builder.marker_mode(Some("explicit")).unwrap();
+        // No primary key comes back from this sink: the placing verbs report that as an error, after the run.
+        assert!(
+            builder
+                .place_item(page, json!({"free_text": {"text": "x", "at": [0, 0]}}))
+                .is_err()
+        );
+        assert!(
+            builder
+                .place_marker(page, &[c], at, true, Some("2.5"), &[json!(["BK"])])
+                .is_err()
+        );
+        assert!(
+            builder
+                .structure_box(page, &[at, at, at], "dotted", "Box", json!({}), None)
+                .is_err()
+        );
+        builder.move_with_items(&[], &[c.cast()], at).unwrap();
+        drop(builder);
+        let names: Vec<&str> = seen.iter().map(|(n, _)| n.as_str()).collect();
+        assert_eq!(
+            names,
+            [
+                "project.drawing.set",
+                "item.place",
+                "marker.place",
+                "box.structure",
+                "rep.move"
+            ]
+        );
+        assert_eq!(seen[0].1, json!({"marker_mode": "explicit"}));
+        assert_eq!(
+            seen[2].1,
+            json!({"page": page, "connections": [c], "at": [1, 2], "angle": 90_000, "csa": "2.5",
+                "colours": [["BK"]]})
+        );
+        assert_eq!(seen[3].1["caption"], json!("Box"));
+        assert_eq!(seen[4].1, json!({"reps": [], "items": [c], "delta": [1, 2]}));
     }
 }
