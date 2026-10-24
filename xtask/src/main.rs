@@ -705,25 +705,39 @@ fn ci() -> Result<bool> {
 mod tests {
     use super::{ONCE_PER_JOB_FILTER, unresolved_clippy_paths, workspace_root};
 
-    /// The six slowest test binaries of the all-features run (FT-387): `test-windows-1` runs exactly these, so the
-    /// acceptance tests and the command fuzzer run there and nowhere else; `test-windows-2` and `test-windows-3` run
-    /// the complement of this set, half each by test count. `ci/README.md` (CI-PR-03) records the durations the set was
-    /// chosen from; a binary that moves in or out of the set is a change to that table and to `ci.yml`.
-    const WINDOWS_SLOW_BINARIES: [&str; 6] = [
+    /// The heavy test binaries of the all-features run, balanced by measured time (FT-387): `test-windows-1` runs
+    /// exactly `WINDOWS_PART1_BINARIES`, `test-windows-2` exactly `WINDOWS_PART2_BINARIES`, and `test-windows-3` the
+    /// complement of both, so the acceptance tests and the command fuzzer run in part 1 and nowhere else. `ci/README.md`
+    /// (CI-PR-03) records the durations the lists were chosen from; a binary that moves between the lists is a change
+    /// to that table and to `ci.yml`.
+    const WINDOWS_PART1_BINARIES: [&str; 9] = [
+        "elektrawatt::canvas",
         "ew-api::acceptance",
-        "ew-api::page_output",
+        "ew-derive::incremental_partition",
+        "ew-import-qet::hostile_input",
         "ew-store::fault_injection",
+        "ew-store::incremental",
+        "ew-store::purge",
         "ew-testkit::command_fuzz",
+        "ew::cli",
+    ];
+    const WINDOWS_PART2_BINARIES: [&str; 9] = [
+        "elektrawatt::headless",
+        "elektrawatt::part2",
+        "ew-api::checks",
+        "ew-api::memo_oracle",
+        "ew-api::page_output",
         "ew-testkit::golden_dsl",
+        "ew-testkit::spike_memo",
+        "ew-ui::canvas",
         "ew-viewmodel::part2",
     ];
 
     /// FT-268, FT-306, FT-330, FT-353, FT-387: the acceptance tests and the command fuzzer run once per job. The filtered
     /// default-features run is in test-linux-default and test-macos; the unfiltered all-features run is in test-linux
     /// and test-macos; test-windows-1, test-windows-2 and test-windows-3 run the all-features archive in three
-    /// disjoint parts that together cover every test: part 1 is the `WINDOWS_SLOW_BINARIES` set (which contains the
-    /// acceptance tests and the fuzzer), parts 2 and 3 are the complement of that set split by `count:1/2` and
-    /// `count:2/2`. The nextest config documents the same filter.
+    /// disjoint parts that together cover every test: part 1 is `WINDOWS_PART1_BINARIES` (which contains the
+    /// acceptance tests and the fuzzer), part 2 is `WINDOWS_PART2_BINARIES`, part 3 is the complement of both. The nextest config documents the same filter.
     #[test]
     fn the_acceptance_tests_and_the_fuzzer_run_once_per_ci_job() {
         let ci = std::fs::read_to_string(workspace_root().join(".github/workflows/ci.yml")).unwrap();
@@ -750,44 +764,56 @@ mod tests {
                 "the all-features run runs everything: {line}"
             );
         }
-        // FT-387: part 1 is the slow set, parts 2 and 3 the complement halved by count; together a complete and
-        // disjoint cover, and the acceptance tests and the fuzzer (both in the slow set) run in part 1 only.
+        // FT-387: parts 1 and 2 are the two explicit lists, part 3 is the complement of both; together a complete and
+        // disjoint cover, and the acceptance tests and the fuzzer run in part 1 only.
         for needle in ["ew-api::acceptance", "ew-testkit::command_fuzz"] {
             assert!(
-                WINDOWS_SLOW_BINARIES.contains(&needle),
-                "{needle} belongs to the slow set"
+                WINDOWS_PART1_BINARIES.contains(&needle),
+                "{needle} belongs to part 1"
             );
         }
-        let slow = WINDOWS_SLOW_BINARIES
-            .map(|binary| format!("binary_id(={binary})"))
-            .join(" or ");
+        for binary in WINDOWS_PART1_BINARIES {
+            assert!(
+                !WINDOWS_PART2_BINARIES.contains(&binary),
+                "{binary} is in both lists"
+            );
+        }
+        let filter = |binaries: &[&str]| {
+            binaries
+                .iter()
+                .map(|binary| format!("binary_id(={binary})"))
+                .collect::<Vec<_>>()
+                .join(" or ")
+        };
+        let (one, two) = (filter(&WINDOWS_PART1_BINARIES), filter(&WINDOWS_PART2_BINARIES));
         let expected = [
-            (format!("-E '{slow}'"), None),
-            (format!("-E 'not ({slow})'"), Some("--partition count:1/2")),
-            (format!("-E 'not ({slow})'"), Some("--partition count:2/2")),
+            format!("-E '{one}' --profile ci"),
+            format!("-E '{two}' --profile ci"),
+            format!("-E 'not ({one} or {two})' --profile ci"),
         ];
-        for (k, (line, (filter, partition))) in archive.iter().zip(&expected).enumerate() {
+        for (k, (line, filter)) in archive.iter().zip(&expected).enumerate() {
             assert!(
                 line.contains("--workspace-remap .") && line.contains(filter.as_str()),
                 "part {} of 3 runs the filter {filter}: {line}",
                 k + 1
             );
-            match partition {
-                Some(partition) => assert!(line.contains(partition), "part {} of 3: {line}", k + 1),
-                None => assert!(
-                    !line.contains("--partition"),
-                    "part 1 of 3 is not partitioned: {line}"
-                ),
-            }
-        }
-        // Every name in the slow set is a test binary that exists, so a rename cannot silently empty part 1.
-        for binary in WINDOWS_SLOW_BINARIES {
-            let (krate, name) = binary.split_once("::").unwrap();
-            let tests = workspace_root().join("crates").join(krate).join("tests");
             assert!(
-                tests.join(format!("{name}.rs")).is_file() || tests.join(name).join("main.rs").is_file(),
-                "{binary} is not a test binary of {krate}"
+                !line.contains("--partition"),
+                "part {} of 3 is not count-partitioned: {line}",
+                k + 1
             );
+        }
+        // Every name in the lists is a test binary that exists, so a rename cannot silently empty a part.
+        for binary in WINDOWS_PART1_BINARIES.iter().chain(&WINDOWS_PART2_BINARIES) {
+            let (krate, name) = binary.split_once("::").unwrap();
+            let root = workspace_root();
+            let found = [root.join("crates").join(krate), root.join("bin").join(krate)]
+                .iter()
+                .map(|package| package.join("tests"))
+                .any(|tests| {
+                    tests.join(format!("{name}.rs")).is_file() || tests.join(name).join("main.rs").is_file()
+                });
+            assert!(found, "{binary} is not a test binary of {krate}");
         }
         // FT-353: the doctests run in test-linux and test-macos (default features and all features), nowhere else.
         let doc_runs: Vec<&str> = ci
