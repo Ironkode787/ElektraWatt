@@ -323,11 +323,16 @@ impl App {
         self.report(outcome);
     }
 
-    /// A failure the shell has not put into a banner of its own becomes one.
+    /// A failure or incomplete Cut refusal becomes a banner when the shell has not shown one of its own.
     fn report(&mut self, outcome: Outcome) {
-        if let Outcome::Failed { message } = outcome
-            && self.shell.banner().is_none()
-        {
+        let message = match outcome {
+            Outcome::Failed { message } => message,
+            Outcome::Refused {
+                reason_key: "reason-cut-incomplete-items",
+            } => strings::text("reason-cut-incomplete-items").to_owned(),
+            _ => return,
+        };
+        if self.shell.banner().is_none() {
             self.shell.show_banner(&message);
         }
     }

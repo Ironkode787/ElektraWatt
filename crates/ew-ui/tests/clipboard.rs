@@ -8,11 +8,17 @@
 
 mod support;
 
+use std::sync::Arc;
+
 use egui::{Key, Modifiers, OutputCommand};
 use egui_kittest::Harness;
-use egui_kittest::kittest::Queryable;
+use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::shell::{Focus, Outcome};
+use ew_ui::ew_viewmodel::clipboard::ClipKind;
+use ew_ui::ew_viewmodel::ew_api::output::{PageTables, parse_fragment};
+use ew_ui::ew_viewmodel::shell::{Focus, Outcome, SessionCalls};
+use ew_ui::ew_viewmodel::strings;
+use ew_ui::ew_viewmodel::tools::Selection;
 use serde_json::{Value, json};
 use support::{Scripted, Tmp, harness, settle, wait_for_page};
 
@@ -152,4 +158,222 @@ fn menu_paste_requests_the_system_clipboard() {
     h.event(egui::Event::Paste(text));
     settle(&mut h);
     assert_eq!(h.state().shell().tool().name(), "paste");
+}
+
+const SENTINEL: &str = "cycle28-clipboard-sentinel";
+
+/// Every state member the lossless Cut guard must preserve; feedback itself is checked separately.
+#[derive(Debug, PartialEq, Eq)]
+struct CutState {
+    revision: Option<u64>,
+    recorded: usize,
+    selection: Selection,
+    tables: Arc<PageTables>,
+    clipboard: (Option<String>, Option<ClipKind>, usize),
+    announcement: Option<String>,
+    calls: SessionCalls,
+}
+
+fn cut_state(h: &Harness<'_, App>) -> CutState {
+    let shell = h.state().shell();
+    CutState {
+        revision: shell.revision(),
+        recorded: shell.recorded_commands().len(),
+        selection: shell.selection().clone(),
+        tables: shell.canvas().unwrap().page().tables.clone(),
+        clipboard: (
+            shell.clipboard().text().map(str::to_owned),
+            shell.clipboard().kind().cloned(),
+            shell.clipboard().dropped(),
+        ),
+        announcement: shell.tool_announcement().map(str::to_owned),
+        calls: shell.session_calls(),
+    }
+}
+
+fn prime_clipboard(h: &mut Harness<'_, App>) {
+    h.event(egui::Event::Paste(SENTINEL.into()));
+    settle(h);
+    assert_eq!(h.state().shell().clipboard().text(), Some(SENTINEL));
+    assert!(h.state().shell().banner().is_none());
+    assert_eq!(h.state().shell().tool().name(), "select");
+    // Setup is complete before the action frame whose platform output the test will inspect.
+    let _ = h.state_mut().shell_mut().take_clipboard_outbox();
+    settle(h);
+}
+
+/// A marker alone cannot be cut losslessly because its wire is outside the selection.
+fn incomplete_marker(h: &mut Harness<'_, App>) {
+    let tables = h.state().shell().canvas().unwrap().page().tables.clone();
+    let connection = tables.connections.first().expect("a wire on 101").id;
+    dispatch(
+        h,
+        "command.run",
+        json!({"cmd": "marker.place", "params": {
+            "page": tables.page.to_string(), "connections": [connection.to_string()], "at": [100_000_000, 100_000_000]
+        }}),
+    );
+    let id = h
+        .state()
+        .shell()
+        .canvas()
+        .unwrap()
+        .page()
+        .tables
+        .items
+        .iter()
+        .find(|i| i.kind == "wire_marker" && !tables.items.iter().any(|old| old.id == i.id))
+        .expect("the newly placed marker")
+        .id;
+    dispatch(h, "select.set", json!({"ids": [id.to_string()]}));
+    settle(h);
+    assert!(matches!(h.state().shell().focus(), Some(Focus::Canvas(_))));
+    assert_eq!(h.state().shell().selection().items.len(), 1);
+    assert_eq!(h.state().shell().selection().items[0].0, id);
+    prime_clipboard(h);
+}
+
+fn assert_no_copy_output(h: &Harness<'_, App>) {
+    assert!(
+        !h.output()
+            .platform_output
+            .commands
+            .iter()
+            .any(|c| matches!(c, OutputCommand::CopyText(_))),
+        "Cut must not publish a partial fragment"
+    );
+}
+
+fn assert_cut_refusal(h: &mut Harness<'_, App>, mut before: CutState) {
+    before.calls.copy_fragment += 1;
+    settle(h);
+    assert_eq!(cut_state(h), before, "only copy preparation may change");
+    let reason = strings::text("reason-cut-incomplete-items");
+    assert_eq!(h.state().shell().banner(), Some(reason));
+    assert!(
+        h.query_all_by_label(reason).next().is_some(),
+        "the explanation is accessible"
+    );
+    settle(h);
+    assert_eq!(
+        h.state().shell().banner(),
+        Some(reason),
+        "another ordinary frame keeps the explanation"
+    );
+    assert!(h.query_all_by_label(reason).next().is_some());
+    assert_eq!(cut_state(h), before);
+}
+
+#[test]
+fn incomplete_cut_clipboard_event_shows_reason_without_changes() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "101");
+    incomplete_marker(&mut h);
+    let before = cut_state(&h);
+    h.event(egui::Event::Cut);
+    h.step();
+    assert_no_copy_output(&h);
+    assert_cut_refusal(&mut h, before);
+}
+
+#[test]
+fn incomplete_cut_menu_shows_reason_without_changes() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "101");
+    incomplete_marker(&mut h);
+    h.get_by_label("Edit").click();
+    settle(&mut h);
+    assert!(!h.get_by_label_contains("Cut").accesskit_node().is_disabled());
+    let before = cut_state(&h);
+    h.get_by_label_contains("Cut").click();
+    h.step();
+    assert_no_copy_output(&h);
+    assert_cut_refusal(&mut h, before);
+}
+
+#[test]
+fn successful_page_item_cut_has_no_refusal_banner() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "101");
+    let page = h.state().shell().canvas().unwrap().page().tables.page.to_string();
+    dispatch(
+        &mut h,
+        "command.run",
+        json!({"cmd": "item.place", "params": {
+            "page": page, "kind": {"free_text": {"text": "40x60", "at": [100_000_000, 100_000_000]}}
+        }}),
+    );
+    let id = h
+        .state()
+        .shell()
+        .canvas()
+        .unwrap()
+        .page()
+        .tables
+        .items
+        .iter()
+        .find(|i| i.kind == "free_text" && i.text.as_deref() == Some("40x60"))
+        .expect("the free text")
+        .id;
+    dispatch(&mut h, "select.set", json!({"ids": [id.to_string()]}));
+    settle(&mut h);
+    assert!(matches!(h.state().shell().focus(), Some(Focus::Canvas(_))));
+    prime_clipboard(&mut h);
+    let before = cut_state(&h);
+    h.event(egui::Event::Cut);
+    h.step();
+    let copied = h
+        .output()
+        .platform_output
+        .commands
+        .iter()
+        .find_map(|c| match c {
+            OutputCommand::CopyText(text) => Some(text.clone()),
+            _ => None,
+        })
+        .expect("successful Cut publishes the fragment");
+    settle(&mut h);
+    let shell = h.state().shell();
+    assert_eq!(shell.revision(), before.revision.map(|r| r + 1));
+    assert_eq!(shell.recorded_commands().len(), before.recorded + 1);
+    assert_eq!(shell.recorded_commands().last().unwrap().cmd, "edit.delete");
+    assert!(
+        !shell
+            .canvas()
+            .unwrap()
+            .page()
+            .tables
+            .items
+            .iter()
+            .any(|i| i.id == id)
+    );
+    assert_eq!(shell.clipboard().text(), Some(copied.as_str()));
+    assert_eq!(
+        shell.clipboard().kind(),
+        Some(&ClipKind::Fragment {
+            records: 1,
+            copies: 0
+        })
+    );
+    assert_eq!(shell.clipboard().dropped(), 0);
+    let fragment = parse_fragment(&copied).unwrap();
+    assert_eq!(fragment.records, 1);
+    let record = &fragment.params["records"][0];
+    assert_eq!(record["id"], id.to_string());
+    assert_eq!(record["$k"], "page_item");
+    assert_eq!(record["kind"]["free_text"]["text"], "40x60");
+    assert!(shell.banner().is_none());
+}
+
+#[test]
+fn plain_text_paste_refusal_remains_quiet() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "101");
+    assert!(matches!(h.state().shell().focus(), Some(Focus::Canvas(_))));
+    let rev = h.state().shell().revision();
+    h.event(egui::Event::Paste("ordinary external text".into()));
+    settle(&mut h);
+    assert!(h.state().shell().banner().is_none());
+    assert_eq!(h.state().shell().tool().name(), "select");
+    assert_eq!(h.state().shell().revision(), rev);
 }
