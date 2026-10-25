@@ -62,12 +62,22 @@ count = 1
 
 [[allow]]
 crate = "ew-commands"
+item = "fn coalesced_moves_compact_to_one_op_per_key > call env::var_os"
+count = 1
+
+[[allow]]
+crate = "ew-commands"
 item = "fn committed_schemas_match_the_generated_ones > call env::var_os"
 count = 1
 
 [[allow]]
 crate = "ew-commands"
 item = "fn ten_megabyte_string_fails_fast > call Instant::now"
+count = 1
+
+[[allow]]
+crate = "ew-commands"
+item = "fn ten_megabyte_string_fails_fast > call env::var_os"
 count = 1
 
 [[allow]]
@@ -81,9 +91,14 @@ item = "fn ten_thousand_targets_are_formatted_without_quadratic_work > call Inst
 count = 1
 
 [[allow]]
+crate = "ew-derive"
+item = "fn ten_thousand_targets_are_formatted_without_quadratic_work > call env::var_os"
+count = 1
+
+[[allow]]
 crate = "ew-export"
 item = "inner attribute"
-count = 1
+count = 2
 
 [[allow]]
 crate = "ew-format"

@@ -869,6 +869,7 @@ fn ten_thousand_targets_are_formatted_without_quadratic_work() {
     // Timing acquisition and reporting are opt-in; no time reaches the compared text.
     let start = std::env::var_os("EW_PERF_ASSERT")
         .is_some()
+        // Opt-in test timing only; the clock never reaches the model, exports or compared text.
         .then(std::time::Instant::now);
     let source = q.get::<XrefTextOf>(rid(0x10));
     assert_eq!(source.links.len(), 9);
