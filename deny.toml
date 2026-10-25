@@ -15,9 +15,9 @@ unmaintained = "workspace"
 ignore = []
 
 [licenses]
-# The NFR-LIC-04 allowlist (shared by ADR-0023 and ADR-0024). Not yet listed, by decision:
+# The NFR-LIC-04 allowlist (shared by ADR-0023 and ADR-0024). Native Windows clipboard now reaches
+# clipboard-win/error-code under its existing graph-triggered BSL-1.0 admission. Not yet listed, by decision:
 # - LGPL-2.1: OCCT, allowed in ew-step-worker only; added as a per-crate exception with that work package.
-# - BSL-1.0: added only if `cargo deny list` shows it (NFR-LIC-04).
 # - the osifont expression: only if ADR-0028 bundles that font.
 # GPL-2.0-only, AGPL and non-OSI licences are never added.
 allow = [
@@ -32,6 +32,7 @@ allow = [
   "MPL-2.0",
   "CC0-1.0",
   "OFL-1.1",
+  "BSL-1.0",
 ]
 confidence-threshold = 0.93
 # The list is the project-wide policy; entries not used by the current graph are expected.

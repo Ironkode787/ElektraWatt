@@ -99,6 +99,12 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    `Apache-2.0 WITH LLVM-exception` is allowed now, also in the permissive closure (wit-bindgen, wasmtime);
    BSL-1.0 is added only if `cargo deny list` at M0 shows it; the osifont licence expression is added only if
    ADR-0028 bundles that font, with the exact SPDX expression verified with counsel.
+
+   *As built (cycle 28):* native clipboard support reaches clipboard-win 5.4.1 and error-code 3.4.0, both
+   BSL-1.0. Their reviewed licence declarations/text satisfy NFR-LIC-04’s existing graph-triggered admission;
+   `deny.toml`, `about.toml` and `fuzz/deny.toml` admit BSL-1.0 consistently so generated dependency notices
+   include its text. The L4 licence-boundary allowlist remains unchanged; no runtime or dependency version
+   changes are made.
 4. **The Code of Conduct keeps its own licence** (2026-10-18; [19](../design/19-open-source-governance.md) §2.1 L9,
    §2.3; `LICENSE.md`). Decision 6's Contributor Covenant 3.0 is third-party text licensed `CC-BY-SA-4.0` by its
    steward (verified against the published text), so `CODE_OF_CONDUCT.md` keeps that licence and the Covenant's
