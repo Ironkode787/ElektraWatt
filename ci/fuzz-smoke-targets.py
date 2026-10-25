@@ -84,7 +84,7 @@ def selftest():
         return " ".join(select(paths))
 
     every = " ".join(f"{t}:{n}" for t, n in MAX_LEN.items())
-    assert list(MAX_LEN) == ["jsonl_loader", "migration_chain", "command_sequence"], list(MAX_LEN)
+    assert list(MAX_LEN) == ["jsonl_loader", "migration_chain", "command_sequence", "png_pdf"], list(MAX_LEN)
     loader, chain, command = "jsonl_loader:65536", "migration_chain:65", "command_sequence:512"
     # nothing relevant
     assert run() == ""
@@ -116,7 +116,10 @@ def selftest():
     assert run("ci/fuzz-smoke-targets.py") == every
     assert run("ci/fuzz-smoke-targets.toml") == every
     # several paths: the union, in run order, once each
-    assert run("crates/ew-commands/a.rs", "crates/ew-format/b.rs", "crates/ew-commands/c.rs") == every
+    assert (
+        run("crates/ew-commands/a.rs", "crates/ew-format/b.rs", "crates/ew-dl/src/lib.rs", "crates/ew-commands/c.rs")
+        == every
+    )
     # Windows separators and a leading ./ (a local run)
     assert run("crates\\ew-store\\src\\lib.rs") == f"{chain} {command}"
     assert run("./crates/ew-commands/src/tx.rs") == command

@@ -94,6 +94,28 @@ fn a_malformed_log_names_its_line() {
 }
 
 #[test]
+fn command_log_errors_print_the_command_error_text() {
+    let error = CmdError::InvalidParams {
+        command: "project.company.set".into(),
+        path: "/logo".into(),
+        message: "m".into(),
+    };
+    assert_eq!(
+        CmdLogError::Failed {
+            line: 3,
+            error: error.clone(),
+            committed: 2,
+        }
+        .to_string(),
+        "command log, line 3: project.company.set: invalid parameters at `/logo`: m (2 earlier lines committed)"
+    );
+    assert_eq!(
+        CmdLogError::Refused { line: 1, error }.to_string(),
+        "command log, line 1: not run: project.company.set: invalid parameters at `/logo`: m"
+    );
+}
+
+#[test]
 fn every_line_is_one_transaction_with_the_command_log_origin() {
     let mut s = session();
     let receipts = s

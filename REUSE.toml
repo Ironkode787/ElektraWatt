@@ -106,3 +106,26 @@ path = ["fuzz/corpus/**", "fuzz/regressions/**"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
 SPDX-License-Identifier = "CC0-1.0"
+
+# L8: the real-exporter SVG corpus of FT-418: public-domain and CC0 works from Wikimedia Commons, kept byte for byte
+# (crates/ew-schema/tests/fixtures/svg-exporters/SOURCES.md lists the source, licence and any change of each file).
+[[annotations]]
+path = "crates/ew-schema/tests/fixtures/svg-exporters/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = [
+  "Wikimedia Commons contributors (public domain or CC0-1.0; see SOURCES.md)",
+  "2026 The ElektraWatt contributors",
+]
+SPDX-License-Identifier = "CC0-1.0"
+
+# L8: the real-exporter raster corpus of FT-436: public-domain and CC0 works from Wikimedia Commons, kept byte for
+# byte (crates/ew-export/tests/fixtures/raster-exporters/SOURCES.md lists the source, licence and verdict of each
+# file).
+[[annotations]]
+path = "crates/ew-export/tests/fixtures/raster-exporters/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = [
+  "Wikimedia Commons contributors (public domain or CC0-1.0; see SOURCES.md)",
+  "2026 The ElektraWatt contributors",
+]
+SPDX-License-Identifier = "CC0-1.0"

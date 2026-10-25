@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ev="http://www.w3.org/2001/xml-events"
+width="3.85942in" height="2.28461in" viewBox="0 0 277.878 164.492" xml:space="preserve" color-interpolation-filters="sRGB"
+class="st13">
+<style type="text/css">
+.st1 {fill:#f2f2f2;stroke:#000000;stroke-dasharray:1.5,3;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.5}
+.st2 {marker-end:url(#mrkr1-10);stroke:#0000ff;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.5}
+.st3 {fill:#0000ff;fill-opacity:1;stroke:#0000ff;stroke-opacity:1;stroke-width:0.37313432835821}
+.st4 {stroke:#0000ff;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.5}
+.st5 {fill:#ffffff;stroke:#3f3f3f;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.5}
+.st6 {fill:#3f3f3f;font-family:Arial,Helvetica,sans-serif;font-size:0.75em}
+.st7 {font-size:1em}
+.st8 {stroke:#0000ff;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+.st9 {fill:#0000ff;stroke:#0000ff;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+.st10 {fill:none;stroke:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:0.75}
+.st11 {fill:#ff0000;font-family:Arial,Helvetica,sans-serif;font-size:0.499992em}
+.st12 {marker-end:url(#mrkr4-104);stroke:#0000ff;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.5}
+.st13 {fill:none;fill-rule:evenodd;font-size:12px;overflow:visible;stroke-linecap:square;stroke-miterlimit:3}
+</style>
+
+<defs id="Markers">
+<g id="lend1">
+<path d="M 1 -1 L 0 0 L 1 1 " style="stroke-linecap:round;stroke-linejoin:round;fill:none"/>
+</g>
+<marker id="mrkr1-10" class="st3" orient="auto" markerUnits="strokeWidth" overflow="visible">
+<use xlink:href="#lend1" transform="scale(-2.68,-2.68) "/>
+</marker>
+<g id="lend4">
+<path d="M 2 1 L 0 0 L 2 -1 L 2 1 " style="stroke:none"/>
+</g>
+<marker id="mrkr4-104" class="st3" refX="-5.36" orient="auto" markerUnits="strokeWidth" overflow="visible">
+<use xlink:href="#lend4" transform="scale(-2.68,-2.68) "/>
+</marker>
+</defs>
+<g>
+<g id="group84-1" transform="translate(0.75,-0.75)">
+<g id="shape38-2">
+<path d="M0 83 A138.189 81.4961 0 0 1 276.38 83 A138.189 81.4961 0 0 1 0 83 Z" class="st1"/>
+</g>
+<g id="group27-4" transform="translate(294.844,-19.9155) rotate(30)">
+<g id="shape25-5" transform="translate(-164.492,164.492) rotate(-90)">
+<path d="M0 164.49 L21.64 164.49" class="st2"/>
+</g>
+<g id="shape26-11" transform="translate(-164.492,142.848) rotate(-90)">
+<path d="M0 164.49 L14.43 164.49" class="st4"/>
+</g>
+</g>
+<g id="group28-14" transform="translate(-48.4237,5.65894) rotate(-45)">
+<g id="shape29-15" transform="translate(-164.492,164.492) rotate(-90)">
+<path d="M0 164.49 L19.18 164.49" class="st2"/>
+</g>
+<g id="shape30-20" transform="translate(-164.492,145.31) rotate(-90)">
+<path d="M0 164.49 L12.79 164.49" class="st4"/>
+</g>
+</g>
+<g id="shape31-23" transform="translate(227.088,168.28) rotate(128.77)">
+<path d="M0 164.49 A50.9787 29.8341 155.22 0 1 62.34 164.49" class="st4"/>
+</g>
+<g id="shape1-26" transform="translate(10.4434,-62.4741)">
+<path d="M11.21 136.15 C11.97 136.17 12.77 136.14 13.55 136.15 C19.04 136.16 23.1 137.31 27.95 137.95 C32.74 138.58
+ 38.29 138.7 43.69 138.18 C49.79 137.59 55.69 136.18 60.77 136.82 C63.63 137.18 66.23 138.19 67.8 139.76
+ C69.99 141.94 70.2 145.2 69.81 148.22 C69.42 151.31 68.4 154.14 66.97 156.8 C65.38 159.72 63.3 162.42
+ 59.1 163.68 C55.93 164.63 51.55 164.75 48.05 164.13 C45.6 163.7 43.57 162.9 41.01 162.55 C37.91 162.12
+ 34.03 162.35 30.97 162.55 C27.57 162.78 25.17 162.98 21.93 163.23 C17.91 163.53 12.58 163.91 8.69 163
+ C3.39 161.76 0.77 158.12 0.15 154.2 C-0.39 150.82 0.56 147.24 2.28 144.13 C3.26 142.36 4.49 140.75 5.6
+ 139.51 C6.88 138.09 7.99 137.17 11.21 136.15 Z" class="st5"/>
+<text x="20.72" y="147.62" class="st6">Nudeln<tspan x="18.97" dy="1.2em" class="st7">al dente</tspan></text></g>
+<g id="shape6-30" transform="translate(64.6759,-99.2126)">
+<ellipse cx="34.9849" cy="150.319" rx="34.9849" ry="14.1732" class="st5"/>
+<text x="17.73" y="147.62" class="st6">Kochzeit<tspan x="16.47" dy="1.2em" class="st7">beachten</tspan></text></g>
+<g id="shape9-34" transform="translate(0,-106.521)">
+<ellipse cx="28.125" cy="136.367" rx="28.125" ry="28.125" class="st5"/>
+<text x="17.87" y="139.07" class="st6">Koch</text></g>
+<g id="shape5-37" transform="translate(196.56,-70.8661)">
+<path d="M11.21 136.15 C11.97 136.17 12.77 136.14 13.55 136.15 C19.04 136.16 23.1 137.31 27.95 137.95 C32.74 138.58
+ 38.29 138.7 43.69 138.18 C49.79 137.59 55.69 136.18 60.77 136.82 C63.63 137.18 66.23 138.19 67.8 139.76
+ C69.99 141.94 70.2 145.2 69.81 148.22 C69.42 151.31 68.4 154.14 66.97 156.8 C65.38 159.72 63.3 162.42
+ 59.1 163.68 C55.93 164.63 51.55 164.75 48.05 164.13 C45.6 163.7 43.57 162.9 41.01 162.55 C37.91 162.12
+ 34.03 162.35 30.97 162.55 C27.57 162.78 25.17 162.98 21.93 163.23 C17.91 163.53 12.58 163.91 8.69 163
+ C3.39 161.76 0.77 158.12 0.15 154.2 C-0.39 150.82 0.56 147.24 2.28 144.13 C3.26 142.36 4.49 140.75 5.6
+ 139.51 C6.88 138.09 7.99 137.17 11.21 136.15 Z" class="st5"/>
+<text x="7.22" y="147.62" class="st6">schmackhafte<tspan x="24.23" dy="1.2em" class="st7">Soße</tspan></text></g>
+<g id="group51-41" transform="translate(41.9528,-52.4409)">
+<g id="shape52-42" transform="translate(167.327,158.823) rotate(90)">
+<path d="M0 164.49 L5.67 164.49" class="st8"/>
+</g>
+<g id="shape53-45" transform="translate(0,-2.83465)">
+<path d="M0 164.49 L5.67 164.49" class="st8"/>
+</g>
+<g id="shape54-48" transform="translate(2.40945,-7.65354)">
+<path d="M0 164.07 a0.425197 0.425197 0 1 1 0.850394 0 a0.425197 0.425197 0 0 1 -0.850394 0 Z" class="st9"/>
+</g>
+</g>
+<g id="group55-50" transform="translate(229.606,-60.9449)">
+<g id="shape56-51" transform="translate(167.327,158.823) rotate(90)">
+<path d="M0 164.49 L5.67 164.49" class="st8"/>
+</g>
+<g id="shape57-54" transform="translate(0,-2.83465)">
+<path d="M0 164.49 L5.67 164.49" class="st8"/>
+</g>
+<g id="shape58-57" transform="translate(2.40945,-7.65354)">
+<path d="M0 164.07 a0.425197 0.425197 0 1 1 0.850394 0 a0.425197 0.425197 0 0 1 -0.850394 0 Z" class="st9"/>
+</g>
+</g>
+<g id="shape63-59" transform="translate(217.559,-97.7953)">
+<rect x="0" y="155.988" width="30.4724" height="8.50394" class="st10"/>
+<text x="4.23" y="162.04" class="st11">Softgoal</text></g>
+<g id="shape64-62" transform="translate(155.906,-148.819)">
+<rect x="0" y="155.988" width="22.6063" height="8.50394" class="st10"/>
+<text x="4.97" y="162.04" class="st11">Goal</text></g>
+<g id="shape65-65" transform="translate(86.811,-127.559)">
+<rect x="0" y="155.988" width="24.8031" height="8.50394" class="st10"/>
+<text x="4.9" y="162.04" class="st11">Belief</text></g>
+<g id="shape66-68" transform="translate(55.3465,-137.48)">
+<rect x="0" y="155.988" width="22.6063" height="8.50394" class="st10"/>
+<text x="4.3" y="162.04" class="st11">Actor</text></g>
+<g id="shape67-71" transform="translate(110.064,-2.83465)">
+<rect x="0" y="155.988" width="56.25" height="8.50394" class="st10"/>
+<text x="7.45" y="162.04" class="st11">Actor Boundary</text></g>
+<g id="shape68-74" transform="translate(-54.4088,32.6398) rotate(-60)">
+<rect x="0" y="155.988" width="50.6805" height="8.50394" class="st10"/>
+<text x="5.83" y="162.04" class="st11">Argumentation</text></g>
+<g id="shape69-77" transform="translate(32.0763,-89.7343)">
+<rect x="0" y="155.988" width="30.4724" height="8.50394" class="st10"/>
+<text x="4.23" y="162.04" class="st11">Softgoal</text></g>
+<g id="shape72-80" transform="translate(-18.1606,10.0136) rotate(-60)">
+<rect x="0" y="155.988" width="41.0324" height="8.50394" class="st10"/>
+<text x="5.18" y="162.04" class="st11">Means-End</text></g>
+<g id="shape73-83" transform="translate(22.1947,71.4853) rotate(-79.8744)">
+<rect x="0" y="155.988" width="41.0324" height="8.50394" class="st10"/>
+<text x="5.18" y="162.04" class="st11">Means-End</text></g>
+<g id="shape74-86" transform="translate(87.9094,-12.7559)">
+<rect x="0" y="155.988" width="22.6063" height="8.50394" class="st10"/>
+<text x="4.8" y="162.04" class="st11">Task</text></g>
+<g id="shape75-89" transform="translate(172.662,-12.7559)">
+<rect x="0" y="155.988" width="22.6063" height="8.50394" class="st10"/>
+<text x="4.8" y="162.04" class="st11">Task</text></g>
+<g id="shape76-92" transform="translate(38.9764,-39.9088)">
+<rect x="0" y="155.988" width="24.8031" height="8.50394" class="st10"/>
+<text x="5.07" y="162.04" class="st11">Make</text></g>
+<g id="shape77-95" transform="translate(218.193,-45.3543)">
+<rect x="0" y="155.988" width="24.8031" height="8.50394" class="st10"/>
+<text x="5.07" y="162.04" class="st11">Make</text></g>
+<g id="group80-98" transform="translate(115.718,-49.5692)">
+<g id="shape36-99" transform="translate(-142.454,82.2461) rotate(-60)">
+<path d="M0 164.49 L41.2 164.49" class="st12"/>
+</g>
+<g id="shape37-105" transform="translate(-118.487,40.7326) rotate(-60)">
+<path d="M0 164.49 L34.13 164.49" class="st4"/>
+</g>
+</g>
+<g id="group81-108" transform="translate(167.84,-49.6012)">
+<g id="shape33-109" transform="translate(-161.993,135.928) rotate(-80)">
+<path d="M0 164.49 L35.13 164.49" class="st12"/>
+</g>
+<g id="shape34-114" transform="translate(-154.718,94.6702) rotate(-80)">
+<path d="M0 164.49 L30.06 164.49" class="st4"/>
+</g>
+</g>
+<g id="shape2-117" transform="translate(63.7795,-21.2598)">
+<path d="M8.75 136.15 L61.22 136.15 L69.97 150.32 L61.22 164.49 L8.75 164.49 L0 150.32 L8.75 136.15 Z" class="st5"/>
+<text x="15.97" y="147.62" class="st6">Spaghetti<tspan x="20.47" dy="1.2em" class="st7">kochen</tspan></text></g>
+<g id="shape4-121" transform="translate(148.98,-21.2598)">
+<path d="M8.75 136.15 L61.22 136.15 L69.97 150.32 L61.22 164.49 L8.75 164.49 L0 150.32 L8.75 136.15 Z" class="st5"/>
+<text x="24.23" y="147.62" class="st6">Soße<tspan x="15.47" dy="1.2em" class="st7">herstellen</tspan></text></g>
+<g id="shape3-125" transform="translate(133.154,-120.472)">
+<path d="M55.8 164.49 A14.1733 14.1733 -180 0 0 69.97 150.32 A14.1733 14.1733 -180 0 0 55.8 136.15 L14.17 136.15
+ A14.1733 14.1733 -180 0 0 -0 150.32 A14.1733 14.1733 -180 0 0 14.17 164.49 L55.8 164.49 Z" class="st5"/>
+<text x="15.97" y="153.02" class="st6">Spaghetti</text></g>
+</g>
+</g>
+</svg>

@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC '-//W3C//DTD SVG 1.1//EN' 'http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd'>
+<svg width="359.18" height="223.88" color-interpolation-filters="sRGB" fill="none" fill-rule="evenodd" font-size="12" stroke-linecap="square" stroke-miterlimit="3" viewBox="0 0 269.38 167.91" xmlns="http://www.w3.org/2000/svg">
+ <g stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width=".24">
+  <path d="m189.79 31.63h-28.35v14.17a14.173 14.173 0 1 0-14.17-14.17h-14.17"/>
+  <path d="m133.1 31.63h-42.52"/>
+  <path d="m90.58 10.37v42.52"/>
+  <path d="m90.58 31.63h-56.69"/>
+  <circle cx="19.71" cy="31.63" r="14.17"/>
+ </g>
+ <path d="m10.287 24.538h18.85v12h-18.85z"/>
+ <text x="13.22" y="37.74" fill="#000" font-family="Liberation Serif" font-size="2em">~</text>
+ <path d="m10.287 1.2h18.85v12h-18.85z"/>
+ <text x="15.38" y="10.8" fill="#000" font-family="Liberation Serif" font-size="1em">G</text>
+ <g stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width=".24">
+  <path d="m189.79 31.62h63.78"/>
+  <g fill="#000">
+   <path d="m131.68 31.62a1.42 1.42 0 0 1 2.84 0 1.42 1.42 0 0 1-2.84 0z"/>
+   <path d="m188.37 31.62a1.42 1.42 0 0 1 2.84 0 1.42 1.42 0 0 1-2.84 0z"/>
+  </g>
+ </g>
+ <path d="m154.36 1.2h18.85v12h-18.85z"/>
+ <text x="159.45" y="10.8" fill="#000" font-family="Liberation Serif" font-size="1em">D</text>
+ <path d="m48.06 28.086h21.26v7.087h-21.26z" fill="#fff" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width=".24"/>
+ <path d="m51.744 10.79h18.992v18h-18.992z"/>
+ <g transform="translate(51.74 -139.12)">
+  
+<svg y="149.91" width="18.99" height="18" color-interpolation-filters="sRGB" fill="none" fill-rule="evenodd" font-size="12" stroke-linecap="square" stroke-miterlimit="3" preserveAspectRatio="none" version="1.1" viewBox="0 0 655.36 621.12" xmlns="http://www.w3.org/2000/svg">
+   <g transform="scale(.9996 1.0004)" fill="#000" font-family="Liberation Serif,serif" font-weight="400" stroke-width="1.08">
+    <text y="517.3" x="394.44" font-size="241.4">G</text>
+    <text y="413.84" x="94.84" font-size="413.84" font-style="italic">X</text>
+   </g>
+  </svg>
+ </g>
+ <path d="m51.744 10.79h18.992v18h-18.992z"/>
+ <g stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width=".24">
+  <path transform="matrix(-.7071 .7071 -.7071 -.7071 376.55 139.02)" d="m0 167.91h12.68"/>
+  <path transform="matrix(.9487 -.3162 .3162 .9487 196.21 -136.16)" d="m0 167.91h8.96"/>
+  <path transform="matrix(.7071 -.7071 .7071 .7071 130.59 -95.61)" d="m0 167.91h16.04"/>
+ </g>
+ <path d="m241.81 4.365h18.85v12h-18.85z"/>
+ <text x="247.57" y="13.96" fill="#000" font-family="Liberation Serif" font-size="1em">Z</text>
+ <g stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width=".24">
+  <path d="m19.71 159.18v-90.93"/>
+  <path d="m19.71 159.18h232.66"/>
+  <path d="m19.71 123.75h226.77"/>
+  <path d="m33.88 159.18v-35.43"/>
+  <path d="m48.06 159.18v-35.43"/>
+  <path d="m62.23 123.75v35.43"/>
+  <path d="m76.41 123.75v35.43"/>
+  <path d="m90.58 159.18v-35.43"/>
+  <path d="m104.75 159.18v-35.43"/>
+  <path d="m118.93 123.75v35.43"/>
+  <path d="m133.1 123.75v35.43"/>
+  <path d="m147.27 159.18v-35.43"/>
+  <path d="m161.44 159.18v-35.43"/>
+  <path d="m175.62 123.75v35.43"/>
+  <path d="m189.79 123.75v35.43"/>
+  <path d="m203.96 159.18v-35.43"/>
+  <path d="m218.13 159.19v-35.43"/>
+  <path d="m232.31 123.75v35.43"/>
+  <path d="m246.49 123.75v35.43"/>
+ </g>
+ <path d="m0.72 112.84h18.992v18h-18.992z"/>
+ <g transform="translate(.72 -37.07)">
+  
+<svg y="149.91" width="18.99" height="18" color-interpolation-filters="sRGB" fill="none" fill-rule="evenodd" font-size="12" stroke-linecap="square" stroke-miterlimit="3" preserveAspectRatio="none" version="1.1" viewBox="0 0 655.36 621.12" xmlns="http://www.w3.org/2000/svg">
+   <g transform="scale(.9996 1.0004)" fill="#000" font-family="Liberation Serif,serif" font-weight="400" stroke-width="1.08">
+    <g font-size="241.4">
+     <text y="262.96" x="313.61">'</text>
+     <text y="262.96" x="271.58">'</text>
+     <text y="551.79" x="240.33">KD</text>
+    </g>
+    <text y="448.32" x="75.44" font-size="413.84" font-style="italic">I</text>
+   </g>
+  </svg>
+ </g>
+ <path d="m0.72 112.84h18.992v18h-18.992zm4.819-28.347h13.975v18h-13.975z"/>
+ <g transform="translate(5.54 -65.42)">
+  
+<svg y="149.91" width="13.98" height="18" color-interpolation-filters="sRGB" fill="none" fill-rule="evenodd" font-size="12" stroke-linecap="square" stroke-miterlimit="3" preserveAspectRatio="none" version="1.1" viewBox="0 0 508.8 655.36" xmlns="http://www.w3.org/2000/svg">
+   <g transform="scale(.9996 1.0004)" fill="#000" font-family="Liberation Serif,serif" font-weight="400" stroke-width="1.14">
+    <g font-size="254.62">
+     <text y="277.36" x="330.78">'</text>
+     <text y="277.36" x="286.45">'</text>
+     <text y="581.99" x="253.48">K</text>
+    </g>
+    <text x="79.56" y="472.87" font-size="436.49" font-style="italic">I</text>
+   </g>
+  </svg>
+ </g>
+ <path d="m5.539 84.491h13.975v18h-13.975z"/>
+ <g stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width=".24">
+  <path d="m19.71 95.4h226.77" stroke-dasharray="1.68,1.2"/>
+  <path d="m26.8 159.19v-63.78"/>
+  <path d="m40.97 95.4v63.78"/>
+  <path d="m55.15 95.4v63.78"/>
+  <path d="m69.32 95.41v63.78"/>
+  <path d="m83.49 95.4v63.78"/>
+  <path d="m97.67 95.4v63.78"/>
+  <path d="m111.84 95.4v63.78"/>
+  <path d="m126.01 95.4v63.78"/>
+  <path d="m140.19 95.4v63.78"/>
+  <path d="m154.36 95.4v63.78"/>
+  <path d="m168.53 95.4v63.78"/>
+  <path d="m182.71 95.4v63.78"/>
+  <path d="m196.88 95.4v63.78"/>
+  <path d="m211.05 95.4v63.78"/>
+  <path d="m225.23 95.4v63.78"/>
+  <path d="m239.4 95.4v63.78"/>
+  <path d="m246.49 95.4v31.18"/>
+  <path d="m203.96 31.62h5.89"/>
+ </g>
+ <path d="m43.155 62.072h186.97v34.98h-186.97z"/>
+ <g transform="translate(43.16 -70.86)">
+  
+<svg y="132.93" width="186.97" height="34.98" color-interpolation-filters="sRGB" fill="none" fill-rule="evenodd" font-size="12" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="3" preserveAspectRatio="none" version="1.1" viewBox="0 0 655.36 122.6" xmlns="http://www.w3.org/2000/svg">
+ <g stroke="#000" stroke-linecap="round" stroke-linejoin="round">
+  <path d="m95.156 92.452 5.366-3.074" stroke-width="1.75"/>
+  <path d="m100.52 90.256 7.775 14.274" stroke-width="3.51"/>
+  <path d="m109.17 104.53 10.293-42.602h22.557m-51.246-5.71h108.73m220.64 36.234 5.366-3.074" stroke-width="1.75"/>
+  <path d="m425.52 90.256 7.775 14.274" stroke-width="3.51"/>
+  <path d="m434.17 104.53 10.293-42.602h22.557" stroke-width="1.75"/>
+  <path d="m415.77 56.218h231.15" stroke-width="1.75"/>
+ </g>
+ <g fill="#000" font-weight="400" stroke-linecap="round" stroke-linejoin="round">
+  <text transform="scale(.9986 1.0014)" x="469.52" y="101.75" font-family="Liberation Serif,serif" font-size="55.59" stroke-width="1.75">(</text>
+  <text transform="scale(.9986 1.0014)" x="635.31" y="101.75" font-family="Liberation Serif,serif" font-size="55.59" stroke-width="1.75">)</text>
+  <g font-family="Liberation Serif,serif" font-size="224" stroke-width="16">
+   <text transform="matrix(.1095 0 0 .1098 610.68 112.66)">D</text>
+   <text transform="matrix(.1095 0 0 .1098 515.42 112.66)">G</text>
+   <text transform="matrix(.1095 0 0 .1098 556.7 50.84)">n</text>
+   <text transform="matrix(.1095 0 0 .1098 340 47.87)">'</text>
+   <text transform="matrix(.1095 0 0 .1098 335.73 47.87)">'</text>
+   <text transform="matrix(.1095 0 0 .1098 332.55 77.3)">KD</text>
+   <text transform="matrix(.1095 0 0 .1098 174.76 112.66)">G</text>
+   <text transform="matrix(.1095 0 0 .1098 170.49 50.84)">n</text>
+   <text transform="matrix(.1095 0 0 .1098 31.86 47.87)">'</text>
+   <text transform="matrix(.1095 0 0 .1098 27.59 47.87)">'</text>
+   <text transform="matrix(.1095 0 0 .1098 24.42 77.3)">K</text>
+  </g>
+  <g font-family="Liberation Serif,serif" font-size="384" stroke-width="16">
+   <text transform="matrix(.1095 0 0 .1098 445.77 102.11)">3</text>
+   <text transform="matrix(.1095 0 0 .1098 508.41 40.3)">1</text>
+   <text transform="matrix(.1095 0 0 .1098 501.84 40.3)">,</text>
+   <text transform="matrix(.1095 0 0 .1098 484.76 40.3)">1</text>
+   <text transform="matrix(.1095 0 0 .1098 120.78 102.11)">3</text>
+   <text transform="matrix(.1095 0 0 .1098 122.2 40.3)">1</text>
+   <text transform="matrix(.1095 0 0 .1098 115.63 40.3)">,</text>
+   <text transform="matrix(.1095 0 0 .1098 98.55 40.3)">1</text>
+   <g font-style="italic">
+    <text transform="matrix(.1095 0 0 .1098 580.13 102.11)">X</text>
+    <text transform="matrix(.1095 0 0 .1098 485.3 102.11)">X</text>
+    <text transform="matrix(.1095 0 0 .1098 522.86 40.3)">U</text>
+    <text transform="matrix(.1095 0 0 .1098 315.8 66.76)">I</text>
+    <text transform="matrix(.1095 0 0 .1098 144.65 102.11)">X</text>
+    <text transform="matrix(.1095 0 0 .1098 136.66 40.3)">U</text>
+    <text transform="matrix(.1095 0 0 .1098 7.67 66.76)">I</text>
+   </g>
+  </g>
+  <g transform="scale(.9986 1.0014)" font-family="Liberation Serif,serif" font-size="42.11" stroke-width="1.75">
+   <text x="546.39" y="101.97">+</text>
+   <text x="382.57" y="66.67">=</text>
+   <text x="57.13" y="66.67">=</text>
+  </g>
+ </g>
+  </svg>
+ </g>
+ <path d="m43.155 62.072h186.97v34.98h-186.97z"/>
+ <path transform="matrix(0 1 -1 0 414.4 31.63)" d="m0 167.91h63.78" stroke="#000" stroke-dasharray="1.68,1.2" stroke-linecap="round" stroke-linejoin="round" stroke-width=".24"/>
+</svg>
+

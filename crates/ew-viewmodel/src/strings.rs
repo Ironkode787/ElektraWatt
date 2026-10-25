@@ -792,6 +792,25 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "wizard-error-logo-size" => {
             "The logo file is larger than 512 KiB; choose a smaller file (an SVG logo is usually far smaller)."
         }
+        "wizard-error-logo-svg-editing" => {
+            "The logo SVG holds editing data (entities or foreignObject). Save it again as a plain SVG: in \
+             Illustrator with \"Preserve Illustrator Editing Capabilities\" off, in Inkscape as \"Plain SVG\", in \
+             draw.io with \"Formatted Text\" and \"Word Wrap\" off."
+        }
+        "wizard-error-logo-svg-active" => {
+            "The logo SVG holds a script or an event handler, which a drawing never runs. Remove it and export the \
+             logo again as a plain SVG."
+        }
+        "wizard-error-logo-svg-external" => {
+            "The logo SVG links or embeds other files (images, fonts, web addresses). Convert text to outlines, \
+             remove linked or embedded images and export it again as a plain SVG; a raster logo can be chosen as its \
+             own PNG or JPEG file."
+        }
+        "wizard-error-logo-svg-complex" => {
+            "The logo SVG is too complex to draw safely (deep nesting, long chains of clones or markers, huge \
+             numbers, transform-origin or convolution filters). Simplify it and export it again as a plain SVG with \
+             presentation attributes rather than a style sheet."
+        }
         "wizard-notice-logo-gone" => {
             "The logo file of the saved draft could not be read; choose the logo again."
         }

@@ -28,6 +28,7 @@ workspace's, so the shared dependencies have the versions of the tested build; t
 | `jsonl_loader` | Files of a project directory (the golden project's paths and a few more classes), each with arbitrary bytes, a manifest (arbitrary bytes, or computed from the files so that the hashes match) and, with a mode bit, tiny limits, through `ew_format::{Manifest::parse, plan, load}` | No panic; a parsed manifest survives its text form; a valid input (no finding) renders to files that load again with no finding, nothing to rewrite and the same records and library documents; the canonical rendering is a fixpoint of load and render |
 | `migration_chain` | The golden project with a list of operations on its records (members in byte-wise order, a removed or foreign member, another `$k` or `$v`, duplicated, swapped, cut, moved and deleted lines, CRLF, a BOM, a missing file), the manifest recomputed (or left stale), opened by `ew_store::Store::open` | No panic; the model passes `integrity_check`; when the session can edit, a save without an edit succeeds, a second save writes nothing, a reader opens the result with an equal model (`content_eq`) and nothing left to rewrite |
 | `command_sequence` | A seed, a step count (1 to 8) and a tape of bytes through the seeded command generator of the nightly command fuzzer (`crates/ew-testkit/tests/command_fuzz`, included as modules) over Golden A | The oracles of the nightly test with a cheap cadence: the structural check after every changing step, the validity oracle of every command, the save-and-reload round trip, the closing undo-all (the undo law). The memo oracle belongs to `fuzz_long` and to the full oracle run |
+| `png_pdf` | PNG bytes through `ew-render-cpu`'s `decode_image` and, when it accepts them, a one-page PDF/A-2b through `ew-export`'s writer (krilla) | No panic; an accepted PNG is written and drawn (`Ok`, one image, none skipped) |
 
 **The migration chain.** The format's upgrade chain on `serde_json::Value` (WP-S1.17) is not built. What exists is the
 open path that takes a project written by an older build within the same format (the typed revisions, ADR-0011
@@ -51,7 +52,7 @@ cargo fuzz run -a jsonl_loader target/corpus/jsonl_loader corpus/jsonl_loader --
 
 The first corpus directory is the working one (libFuzzer writes the inputs that add coverage there; `target/` is ignored);
 the committed seeds under `corpus/<target>/` stay as they are. Useful `max_len` values: `jsonl_loader` 65536,
-`migration_chain` 65, `command_sequence` 512. Run it from `fuzz/`: from the repository root rustup would choose the stable
+`migration_chain` 65, `command_sequence` 512, `png_pdf` 16384. Run it from `fuzz/`: from the repository root rustup would choose the stable
 toolchain of the workspace and cargo-fuzz would refuse. AddressSanitizer is cargo-fuzz's default. A sanitized binary that
 links the bundled SQLite reports an ODR violation for `aiOff` at start-up unless `ASAN_OPTIONS=detect_odr_violation=0`
 (cargo-fuzz sets it for `cargo fuzz run`; export it to run a built binary by hand). This is a false positive of the C code,
@@ -79,7 +80,9 @@ for.
 ## Seed corpora and regressions
 
 `corpus/<target>/` holds small seeds made from the golden project (anonymised, CC0) by `src/bin/seed_corpus.rs`; regenerate
-with `cargo run --release --bin seed_corpus` from `fuzz/` (deterministic). `artifacts/` (what libFuzzer writes for a crash,
+with `cargo run --release --bin seed_corpus` from `fuzz/` (deterministic). The seeds of `png_pdf` are four small PNGs
+written by hand (an 8-bit RGBA image with translucent pixels, an 8-bit grey-and-alpha image, a palette image with `tRNS`, a
+16-bit RGB image), not made by `seed_corpus`. `artifacts/` (what libFuzzer writes for a crash,
 an out-of-memory, a timeout or a slow input) and `coverage/` are ignored.
 
 **A finding is reported, not fixed in the change that finds it.** Copy the crash input to `regressions/<target>/` (a

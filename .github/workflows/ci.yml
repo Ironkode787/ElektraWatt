@@ -660,6 +660,13 @@ jobs:
           # The full export must be the committed digest, so that the file validated here is the file of G-M1-01.
           echo "$(tr -d '\n' < golden/J-E-2416/expected/pdf/sha256.txt)  $out/golden-all.pdf" | sha256sum --check --strict -
           ls -l "$out"
+      - name: print the raster corpus (FT-436)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/pdf/raster"
+          EW_RASTER_PDF_DIR="$RUNNER_TEMP/pdf/raster" cargo test -p ew-export --locked --test raster_exporters every_decodable_raster_file_prints_in_a_pdf_a
+          ls -l "$RUNNER_TEMP/pdf/raster"
       - name: pull veraPDF
         shell: bash
         run: |
@@ -685,6 +692,18 @@ jobs:
           ls -l "$out/verapdf-report.xml"
       - name: veraPDF verdict
         run: python3 -I ci/verapdf-check.py "$RUNNER_TEMP/pdf/verapdf-report.xml" --expect-jobs 3 --profile 2B --summary "$GITHUB_STEP_SUMMARY"
+      - name: validate the raster corpus against PDF/A-2b
+        shell: bash
+        run: |
+          set -uo pipefail
+          out="$RUNNER_TEMP/pdf/raster"
+          docker run --rm --network none --cap-drop ALL --security-opt no-new-privileges \
+            --volume "$out:/data:ro" "$VERAPDF_IMAGE" --flavour 2b --format xml /data \
+            > "$RUNNER_TEMP/pdf/verapdf-raster-report.xml" 2> "$RUNNER_TEMP/pdf/verapdf-raster-stderr.txt"
+          echo "veraPDF $VERAPDF_VERSION exit status: $?"
+          cat "$RUNNER_TEMP/pdf/verapdf-raster-stderr.txt"
+      - name: veraPDF verdict (raster corpus)
+        run: python3 -I ci/verapdf-check.py "$RUNNER_TEMP/pdf/verapdf-raster-report.xml" --expect-jobs 8 --profile 2B --summary "$GITHUB_STEP_SUMMARY"
       - name: upload the veraPDF report
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -693,6 +712,8 @@ jobs:
           path: |
             ${{ runner.temp }}/pdf/verapdf-report.xml
             ${{ runner.temp }}/pdf/verapdf-stderr.txt
+            ${{ runner.temp }}/pdf/verapdf-raster-report.xml
+            ${{ runner.temp }}/pdf/verapdf-raster-stderr.txt
             ${{ runner.temp }}/pdf/golden-*.pdf
           if-no-files-found: warn
           retention-days: 14

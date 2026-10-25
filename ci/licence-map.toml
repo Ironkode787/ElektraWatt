@@ -499,7 +499,13 @@ only_in = "crates/ew-import-qet/src/qet_port/**"
 # Files that may carry third-party copyright lines above the collective notice (NFR-LIC-10, 19 §2.3). Every
 # other file carries exactly one copyright line, `<year> The ElektraWatt contributors`.
 [notices]
-third_party = ["CODE_OF_CONDUCT.md", "crates/ew-import-qet/src/qet_port/**", "assets/fonts/**"]
+third_party = [
+  "CODE_OF_CONDUCT.md",
+  "crates/ew-import-qet/src/qet_port/**",
+  "assets/fonts/**",
+  "crates/ew-schema/tests/fixtures/svg-exporters/**",
+  "crates/ew-export/tests/fixtures/raster-exporters/**",
+]
 
 # ---------------------------------------------------------------------------------------------------------------
 # The licence-boundary allowlist (NFR-MAINT-02, 19 LR-03, ADR-0024 decision 2 and amendment 3): every package in

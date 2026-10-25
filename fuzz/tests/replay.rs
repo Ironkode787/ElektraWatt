@@ -127,6 +127,17 @@ fn the_command_seeds_pass_and_commit_commands() {
     }
 }
 
+#[test]
+fn the_png_pdf_seeds_decode_and_print() {
+    let seeds = inputs("corpus/png_pdf");
+    assert!(seeds.len() >= 4, "the PNG-to-PDF target's seed corpus is missing");
+    for (name, bytes) in &seeds {
+        let decoded = ew_fuzz::png_pdf::check(bytes).decoded;
+        eprintln!("{name}: decoded = {decoded}");
+        assert!(decoded, "{name}: the seed did not decode as a PNG");
+    }
+}
+
 /// The reported findings: each input of `regressions/<target>/` is replayed in this ordinary test process, where a
 /// panic is caught and the generator's own failure text (the seed, the step, the oracle and the command log of
 /// `command_sequence`) is printed, which libFuzzer's aborting panic hook never lets the fuzz target do. Nothing is

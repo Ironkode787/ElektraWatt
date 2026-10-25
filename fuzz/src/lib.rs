@@ -3,12 +3,13 @@
 
 //! The cargo-fuzz crate of ElektraWatt (FT-297, FT-272, FT-304; doc 18 §3.6, §3.12; `fuzz/README.md`).
 //!
-//! Three targets (`fuzz_targets/`), each a thin `fuzz_target!` over a `check` function of this library, so that
+//! Four targets (`fuzz_targets/`), each a thin `fuzz_target!` over a `check` function of this library, so that
 //! a crash input replays in a plain test and the seed corpora are made with the same encoders:
 //!
 //! - [`loader`]: arbitrary bytes through the `ew-format` reader;
 //! - [`open_path`]: the golden project with old-shape records, opened by `ew-store`;
-//! - [`command`]: the seeded command generator of the nightly command fuzzer over the fuzzer's input.
+//! - [`command`]: the seeded command generator of the nightly command fuzzer over the fuzzer's input;
+//! - [`png_pdf`]: a PNG through `ew-render-cpu`'s `decode_image` and, when it accepts it, the PDF writer of `ew-export`.
 //!
 //! The crate is outside the cargo workspace and builds on the nightly toolchain of `rust-toolchain.toml`.
 //! `unsafe`: none in this crate; the `unsafe` of cargo-fuzz's `fuzz_target!` macro lives in `libfuzzer-sys`.
@@ -19,6 +20,7 @@ pub mod command;
 pub mod golden;
 pub mod loader;
 pub mod open_path;
+pub mod png_pdf;
 
 /// The modules of the command fuzzer's test (`crates/ew-testkit/tests/command_fuzz`), included as they are: the
 /// generator, its arms, the oracles and the save-and-reload and import steps. The test's own `main.rs` is the

@@ -88,7 +88,7 @@ pub use ew_derive::{BomMode, DeriveNote, MemoStore, Mismatch, NoteSeverity};
 pub use ew_reports::export::{Export, ExportError, Exported};
 /// Assets (doc 05 §13.3): the reference a record stores, the sniffer and the base64 form of command parameters.
 pub use ew_schema::{
-    AssetError, AssetFormat, AssetRef, MAX_LOGO_BYTES, Sha256, base64_encode, sniff as sniff_asset,
+    AssetError, AssetFormat, AssetRef, MAX_LOGO_BYTES, Sha256, SvgHazard, base64_encode, sniff as sniff_asset,
 };
 /// The read-only SQL projection (`ew sql`, the acceptance SQL, ADR-0017): views, sandbox, results.
 pub use ew_sqlview as sql;

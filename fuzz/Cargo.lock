@@ -358,6 +358,8 @@ dependencies = [
  "ew-api",
  "ew-commands",
  "ew-derive",
+ "ew-dl",
+ "ew-export",
  "ew-format",
  "ew-ids",
  "ew-import-tables",
@@ -370,6 +372,7 @@ dependencies = [
  "libfuzzer-sys",
  "serde",
  "serde_json",
+ "uuid",
 ]
 
 [[package]]

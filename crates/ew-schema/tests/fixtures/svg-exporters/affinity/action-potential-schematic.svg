@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 1188 839" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;">
+    <rect x="615.825" y="648.421" width="348.839" height="190.07" style="fill-opacity:0.1;"/>
+    <rect x="484.313" y="0" width="115.336" height="708.192" style="fill-opacity:0.1;"/>
+    <rect x="352.8" y="0" width="115.336" height="708.192" style="fill-opacity:0.1;"/>
+    <path d="M225.171,305.082L225.171,733.185" style="fill:none;stroke:black;stroke-width:4.04px;"/>
+    <path d="M225.171,678.347L1123.11,678.347" style="fill:none;stroke:black;stroke-width:2.02px;stroke-dasharray:4.04,6.07;"/>
+    <path d="M225.171,519.174L1123.11,519.174" style="fill:none;stroke:black;stroke-width:2.02px;stroke-dasharray:4.04,6.07;"/>
+    <path d="M225.171,360L1123.11,360" style="fill:none;stroke:black;stroke-width:2.02px;stroke-dasharray:4.04,6.07;"/>
+    <path d="M225.171,678.347L360.889,678.347C420.821,678.347 438.777,29.845 476.225,29.845C510.033,29.845 528.312,483.101 606.443,675.516C639.927,757.934 698.566,808.565 766.101,808.565C845.526,808.565 926.407,678.347 1005.1,678.347L1123.11,678.347" style="fill:none;stroke:rgb(232,6,94);stroke-width:4.04px;"/>
+    <path d="M505.099,734.236L359.433,734.236L359.433,732.214L505.099,732.214L505.099,734.236ZM515.209,733.185L495.07,741.839L495.312,741.273L495.555,740.787L496.04,739.655L496.202,739.17L496.526,738.037L496.687,737.552L496.849,736.986L496.93,736.42L497.011,735.934L497.173,734.802L497.173,734.317L497.254,733.751L497.254,732.699L497.173,732.133L497.173,731.567L497.092,731.082L496.93,729.949L496.849,729.464L496.526,728.332L496.364,727.846L496.04,726.714L495.798,726.229L495.312,725.096L495.07,724.611L515.209,733.185Z" style="fill-rule:nonzero;"/>
+    <path d="M200.178,312.038L250.163,298.127" style="fill:none;stroke:black;stroke-width:1.62px;"/>
+    <path d="M200.178,301.605L250.163,287.693" style="fill:none;stroke:black;stroke-width:1.62px;"/>
+    <path d="M225.171,239.731L225.171,294.649" style="fill:none;stroke:black;stroke-width:4.04px;"/>
+    <text x="191.523px" y="49.979px" style="font-family:'ArialMT', 'Arial', sans-serif;font-size:34.667px;">Depolarisation</text>
+    <text x="539.26px" y="49.979px" style="font-family:'ArialMT', 'Arial', sans-serif;font-size:34.667px;">Repolarisation</text>
+    <text x="-2.282px" y="520.483px" style="font-family:'ArialMT', 'Arial', sans-serif;font-size:34.623px;">Membrane</text>
+    <text x="-2.282px" y="556.24px" style="font-family:'ArialMT', 'Arial', sans-serif;font-size:34.623px;">potential</text>
+    <text x="91.201px" y="690.777px" style="font-family:'ArialMT', 'Arial', sans-serif;font-size:34.623px;">-70 mV</text>
+    <text x="900.532px" y="781.635px" style="font-family:'ArialMT', 'Arial', sans-serif;font-size:34.623px;">Hyperpolarisation</text>
+    <text x="900.532px" y="817.392px" style="font-family:'ArialMT', 'Arial', sans-serif;font-size:34.623px;">(Refractory period)</text>
+    <text x="257.219px" y="746.966px" style="font-family:'ArialMT', 'Arial', sans-serif;font-size:34.623px;">Time</text>
+</svg>

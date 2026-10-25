@@ -3,3 +3,5 @@
 
 * text=auto eol=lf
 *.png binary
+# Real exporter corpora: kept byte for byte as their exporters wrote them (CRLF included; FT-418, FT-436).
+crates/*/tests/fixtures/*-exporters/** -text

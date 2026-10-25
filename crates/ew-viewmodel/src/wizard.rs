@@ -566,7 +566,11 @@ impl Logo {
         if bytes.len() > ew_api::MAX_LOGO_BYTES {
             return Err("wizard-error-logo-size");
         }
-        let (format, _) = ew_api::sniff_asset(&bytes).map_err(|_| "wizard-error-logo")?;
+        let (format, _) = match ew_api::sniff_asset(&bytes) {
+            Ok(sniffed) => sniffed,
+            Err(ew_api::AssetError::UnsafeSvg(hazard)) => return Err(svg_refusal_key(hazard)),
+            Err(_) => return Err("wizard-error-logo"),
+        };
         let digest = bytes.iter().fold(0xcbf2_9ce4_8422_2325_u64, |h, b| {
             (h ^ u64::from(*b)).wrapping_mul(0x0100_0000_01b3)
         });
@@ -575,6 +579,18 @@ impl Logo {
             format,
             digest,
         })
+    }
+}
+
+/// The wizard's text key for a refused SVG logo: what was found and how to export the logo again (FT-418).
+fn svg_refusal_key(hazard: ew_api::SvgHazard) -> &'static str {
+    use ew_api::SvgHazard as H;
+    match hazard {
+        H::DoctypeSubset | H::Entity | H::ForeignObject => "wizard-error-logo-svg-editing",
+        H::Script | H::EventAttribute => "wizard-error-logo-svg-active",
+        H::ExternalReference => "wizard-error-logo-svg-external",
+        H::TooComplex | H::HugeNumber | H::Unsupported => "wizard-error-logo-svg-complex",
+        H::NotUtf8 | H::Malformed => "wizard-error-logo",
     }
 }
 
@@ -1474,6 +1490,53 @@ mod tests {
         assert_eq!(back, d);
         d.set(LOGO_FIELD, "").unwrap();
         assert_eq!(d.preview_commands(), Draft::default().preview_commands());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_refused_svg_logo_says_how_to_export_again() {
+        let dir = std::env::temp_dir().join(format!("ew-wizard-logo-svg-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let cases = [
+            (
+                r#"<?xml version="1.0"?><!DOCTYPE svg [ <!ENTITY ns_svg "http://www.w3.org/2000/svg"> ]><svg xmlns="&ns_svg;" viewBox="0 0 4 4"/>"#,
+                "wizard-error-logo-svg-editing",
+            ),
+            (
+                r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4"><foreignObject width="4" height="4"/></svg>"#,
+                "wizard-error-logo-svg-editing",
+            ),
+            (
+                r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4" onload="x()"/>"#,
+                "wizard-error-logo-svg-active",
+            ),
+            (
+                r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4"><image href="https://example.invalid/a.png" width="4" height="4"/></svg>"#,
+                "wizard-error-logo-svg-external",
+            ),
+            (
+                r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4"><path d="M0 0 A1e30 1 0 0 1 2 2"/></svg>"#,
+                "wizard-error-logo-svg-complex",
+            ),
+        ];
+        for (i, (svg, key)) in cases.iter().enumerate() {
+            let path = dir.join(format!("logo-{i}.svg"));
+            std::fs::write(&path, svg.as_bytes()).unwrap();
+            assert_eq!(
+                Draft::default().set(LOGO_FIELD, &path.to_string_lossy()),
+                Err(*key),
+                "{key}"
+            );
+        }
+        for key in [
+            "wizard-error-logo-svg-editing",
+            "wizard-error-logo-svg-active",
+            "wizard-error-logo-svg-external",
+            "wizard-error-logo-svg-complex",
+        ] {
+            let text = crate::strings::lookup(key).expect("a text for the refusal");
+            assert!(text.contains("plain SVG"), "{key}: {text}");
+        }
         let _ = std::fs::remove_dir_all(&dir);
     }
 

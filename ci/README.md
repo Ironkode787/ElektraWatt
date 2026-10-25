@@ -536,6 +536,13 @@ stays `not_applicable` and its text names the job, which is what the committed h
 the entry would pass and the committed report would differ). `python3 -I ci/verapdf-check.py --selftest` and the test
 `the_verapdf_entry_reads_the_report_of_the_job` check the two readers on the same cases.
 
+Since FT-436 the job also prints every decodable file of the real-exporter raster corpus
+(`crates/ew-export/tests/fixtures/raster-exporters/`) on a page of its own through the test
+`every_decodable_raster_file_prints_in_a_pdf_a` with `EW_RASTER_PDF_DIR`, validates the folder with the same image and
+flags, and gives the second report its own verdict (`--expect-jobs 8`, the eight retained files); the reports are in
+the same artifact. GIMP's public-domain ICC profile remains covered; real-exporter Adobe/HP ICC profiles, PNG iCCP
+and grey JPEGs remain follow-up gaps after excluding files whose embedded-profile licences were not verified.
+
 ## Coverage job (CI-PR-13)
 
 FT-296, G-M1-15 (S criterion: a dated plan). The workflow [`coverage.yml`](../.github/workflows/coverage.yml) runs

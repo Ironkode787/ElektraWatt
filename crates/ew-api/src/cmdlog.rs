@@ -107,7 +107,7 @@ impl fmt::Display for CmdLogError {
                 "command log, line {line}: reference: {message} ({committed} earlier lines committed)"
             ),
             CmdLogError::Refused { line, error } => {
-                write!(f, "command log, line {line}: not run: {error:?}")
+                write!(f, "command log, line {line}: not run: {error}")
             }
             CmdLogError::Failed {
                 line,
@@ -115,7 +115,7 @@ impl fmt::Display for CmdLogError {
                 committed,
             } => write!(
                 f,
-                "command log, line {line}: {error:?} ({committed} earlier lines committed)"
+                "command log, line {line}: {error} ({committed} earlier lines committed)"
             ),
         }
     }

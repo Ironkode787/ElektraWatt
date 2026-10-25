@@ -15,7 +15,8 @@
 # `jsonl_loader` feeds `ew-format` alone (src/loader.rs); `migration_chain` opens a project directory with `ew-store`
 # (src/open_path.rs); `command_sequence` runs the seeded command generator of `ew-testkit`
 # (crates/ew-testkit/tests/command_fuzz, included as modules) through the `ew-api` facade, so it reaches the
-# whole command, derivation, import and export stack.
+# whole command, derivation, import and export stack. `png_pdf` feeds PNG bytes to `ew-render-cpu`'s decoder and the PDF
+# writer of `ew-export` (src/png_pdf.rs).
 
 [targets.jsonl_loader]
 max_len = 65536
@@ -84,3 +85,8 @@ closure = [
     "ew-text",
     "ew-units",
 ]
+
+[targets.png_pdf]
+max_len = 16384
+roots = ["ew-dl", "ew-export"]
+closure = ["ew-dl", "ew-export", "ew-render-cpu", "ew-units"]
