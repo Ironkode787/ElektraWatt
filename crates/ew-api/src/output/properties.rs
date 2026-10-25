@@ -32,8 +32,8 @@ use ew_derive::{
 use ew_model::EndpointKey;
 use ew_schema::{
     Bond, Channel, Conductor, Connection, Device, DeviceLink, ExternalRef, Function, ImportLineage, Junction,
-    Kind, Page, PlcConfigProject, PotentialDef, ReportBlock, Representation, Revision, Section,
-    StructureNode,
+    Kind, Page, PageItem, PlcConfigProject, PotentialDef, ReportBlock, Representation, Revision, Section,
+    StructureBox, StructureNode,
 };
 use serde_json::Value;
 
@@ -256,6 +256,8 @@ fn lookup(q: &Q, id: Uuid) -> Option<(Kind, Value)> {
         Representation => Representation,
         Connection => Connection,
         Junction => Junction,
+        PageItem => PageItem,
+        StructureBox => StructureBox,
         Conductor => Conductor,
         Channel => Channel,
         PotentialDef => PotentialDef,

@@ -9,6 +9,8 @@
 //! `target/tmp/field_catalogue.txt` (`CARGO_TARGET_TMPDIR`): review the difference and copy it over; a missing one is
 //! written. The reviewer reads its settable paths that fall back to `json`.
 
+mod golden_common;
+
 use std::path::Path;
 
 use ew_api::output::{
@@ -710,4 +712,157 @@ fn page_item_and_structure_box_members_read_their_reasons() {
             "{path}"
         );
     }
+}
+
+/// Place through the command path and keep the actual primary ID, rather than a catalogue-only fixture.
+fn placed(s: &mut Session, name: &str, params: Value) -> ew_derive::ew_ids::Uuid {
+    s.execute(&AnyCommand {
+        name: name.into(),
+        params,
+    })
+    .unwrap_or_else(|e| panic!("{name}: {e}"))
+    .outcome
+    .primary
+    .expect("the placed record")
+    .1
+    .as_uuid()
+}
+
+#[test]
+fn page_items_and_structure_boxes_have_property_sheets() {
+    let batch = golden_common::batch();
+    let ids = golden_common::ids_by_key(&batch);
+    let mut s = golden_common::session(&batch);
+    let page = &ids["pages|101"];
+    let text = placed(
+        &mut s,
+        "item.place",
+        json!({"page": page,
+        "kind": {"free_text": {"text": "40x60", "at": [100_000_000, 100_000_000]}}}),
+    );
+    let line = placed(
+        &mut s,
+        "item.place",
+        json!({"page": page,
+        "kind": {"graphic": {"shape": {"line": {"a": [100_000_000, 110_000_000], "b": [120_000_000, 110_000_000]}}}}}),
+    );
+    let marker = placed(
+        &mut s,
+        "marker.place",
+        json!({"page": page,
+        "connections": [&ids["connections|W4"]], "at": [100_000_000, 120_000_000]}),
+    );
+    let box_id = placed(
+        &mut s,
+        "box.structure",
+        json!({"page": page,
+        "outline": [[100_000_000, 130_000_000], [120_000_000, 130_000_000], [120_000_000, 150_000_000]],
+        "style": "dotted", "caption": "Spare", "assigns": {}}),
+    );
+    for (id, kind) in [
+        (text, "page_item"),
+        (line, "page_item"),
+        (marker, "page_item"),
+        (box_id, "structure_box"),
+    ] {
+        let sheet = s.property_sheet(&[id]);
+        assert_eq!(sheet.header.items, 1, "{kind} {id}");
+        assert_eq!(sheet.missing, 0);
+        assert_eq!(sheet.header.kinds, [(kind.to_owned(), 1)]);
+        assert_eq!(sheet.sections.len(), 1);
+        assert_eq!(sheet.sections[0].kind, kind);
+        assert_eq!(sheet.sections[0].targets, [id]);
+        assert!(!sheet.sections[0].rows.is_empty());
+    }
+    let narrowed = |sheet: &PropertySheet, key: &str, expected: &str| {
+        assert_eq!(
+            row(sheet, key).route,
+            EditRoute::ReadOnly(FieldReadOnly::Narrowed { why: expected.into() }),
+            "{key}"
+        );
+    };
+    let editable = |sheet: &PropertySheet, kind: &str, path: &str| {
+        let r = row(sheet, &format!("{kind}/{path}"));
+        assert_eq!(
+            r.route,
+            EditRoute::FieldsSet {
+                kind: kind.into(),
+                path: path.into()
+            }
+        );
+        assert!(r.actions.contains(&RowAction::Edit));
+    };
+    const KIND: &str =
+        "a page item's kind is not changed in place; delete the item and place another (WP-S2.04 §5.2)";
+    const GROUP: &str =
+        "a marker's wires are changed by deleting the marker and placing another (WP-S2.04 §5.2)";
+    const PAGE: &str = "stays on its page; delete it and place it on the other page";
+    for id in [text, line, marker] {
+        let sheet = s.property_sheet(&[id]);
+        narrowed(&sheet, "page_item/kind", KIND);
+        narrowed(&sheet, "page_item/page", PAGE);
+    }
+    let sheet = s.property_sheet(&[text]);
+    assert_eq!(one(row(&sheet, "page_item/kind.free_text.text")), "40x60");
+    editable(&sheet, "page_item", "kind.free_text.text");
+    let sheet = s.property_sheet(&[line]);
+    editable(&sheet, "page_item", "kind.graphic.shape");
+    let sheet = s.property_sheet(&[marker]);
+    for path in ["connections", "connections[0]", "fields", "fields[0]"] {
+        narrowed(&sheet, &format!("page_item/kind.wire_marker.{path}"), GROUP);
+    }
+    let sheet = s.property_sheet(&[box_id]);
+    narrowed(&sheet, "structure_box/page", PAGE);
+    assert_eq!(one(row(&sheet, "structure_box/caption")), "Spare");
+    editable(&sheet, "structure_box", "caption");
+}
+
+#[test]
+fn page_item_property_sheet_multi_selection_keeps_members_and_missing_counts() {
+    let batch = golden_common::batch();
+    let mut s = golden_common::session(&batch);
+    let page = page(&s, "101").to_string();
+    let mut texts = Vec::new();
+    for (text, x) in [("40x60", 100_000_000), ("Updated", 120_000_000)] {
+        texts.push(placed(
+            &mut s,
+            "item.place",
+            json!({"page": page,
+            "kind": {"free_text": {"text": text, "at": [x, 100_000_000]}}}),
+        ));
+    }
+    let box_id = placed(
+        &mut s,
+        "box.structure",
+        json!({"page": page,
+        "outline": [[100_000_000, 130_000_000], [120_000_000, 130_000_000], [120_000_000, 150_000_000]],
+        "style": "dotted", "caption": "Spare", "assigns": {}}),
+    );
+    let sheet = s.property_sheet(&texts);
+    assert_eq!(sheet.header.items, 2);
+    assert_eq!(sheet.missing, 0);
+    assert_eq!(sheet.sections.len(), 1);
+    assert_eq!(sheet.sections[0].kind, "page_item");
+    assert_eq!(sheet.sections[0].targets.len(), 2);
+    assert!(texts.iter().all(|id| sheet.sections[0].targets.contains(id)));
+    assert!(matches!(
+        row(&sheet, "page_item/kind.free_text.text").value,
+        RowValue::Varies { count: 2, .. }
+    ));
+    let sheet = s.property_sheet(&[texts[0], box_id]);
+    assert_eq!(sheet.header.items, 2);
+    assert_eq!(sheet.missing, 0);
+    assert!(sheet.sections.is_empty(), "the two kinds share no section");
+    let gone = ew_derive::ew_ids::Uuid::from_u128(0x0123_4567_89ab_7def_8123_4567_89ab_cdef);
+    let sheet = s.property_sheet(&[gone]);
+    assert_eq!(sheet.header.items, 0);
+    assert_eq!(sheet.missing, 1);
+    assert!(sheet.sections.is_empty());
+    let sheet = s.property_sheet(&[texts[0], gone]);
+    assert_eq!(sheet.header.items, 1);
+    assert_eq!(sheet.missing, 1);
+    assert_eq!(sheet.sections.len(), 1);
+    assert_eq!(sheet.sections[0].kind, "page_item");
+    assert_eq!(sheet.sections[0].targets, [texts[0]]);
+    assert_eq!(one(row(&sheet, "page_item/kind.free_text.text")), "40x60");
 }

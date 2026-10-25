@@ -423,3 +423,124 @@ fn text_edit_typing_updates_preview_before_enter() {
         Some("original")
     );
 }
+
+/// Map a rendered item's sheet bounds into the current canvas geometry, as the pointer tests do.
+fn screen(h: &Harness<'_, App>, p: (i64, i64)) -> egui::Pos2 {
+    let bounds = h
+        .get_all_by_role(egui::Role::Canvas)
+        .next()
+        .expect("the canvas node")
+        .accesskit_node()
+        .raw_bounds()
+        .expect("bounds");
+    let c = h.state().shell().canvas().unwrap();
+    let k = c.points_per_nm();
+    egui::Pos2::new(
+        bounds.x0 as f32 + ((p.0 - c.centre().0) as f64 * k + c.pane().0 / 2.0) as f32,
+        bounds.y0 as f32 + ((p.1 - c.centre().1) as f64 * k + c.pane().1 / 2.0) as f32,
+    )
+}
+
+fn tap(h: &mut Harness<'_, App>, pos: egui::Pos2) {
+    h.event(egui::Event::PointerMoved(pos));
+    for pressed in [true, false] {
+        h.event(egui::Event::PointerButton {
+            pos,
+            button: egui::PointerButton::Primary,
+            pressed,
+            modifiers: Modifiers::NONE,
+        });
+    }
+    h.run_ok();
+    h.run_ok();
+}
+
+#[test]
+fn clicking_placed_text_shows_properties_and_f2_edit() {
+    use ew_ui::ew_viewmodel::properties::{RowValue, find_row};
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "101");
+    assert!(h.state().shell().properties_shown());
+    typing_text(&mut h);
+    type_field(&mut h, "action-text-input", "40x60", true);
+    let item = h
+        .state()
+        .shell()
+        .canvas()
+        .unwrap()
+        .page()
+        .tables
+        .items
+        .iter()
+        .find(|i| i.kind == "free_text" && i.text.as_deref() == Some("40x60"))
+        .expect("the placed text")
+        .clone();
+    h.key_press(Key::Escape);
+    settle(&mut h);
+    settle(&mut h);
+    assert_eq!(h.state().shell().tool().name(), "select");
+    let [x0, y0, x1, y1] = item.bounds;
+    let point = h
+        .state()
+        .shell()
+        .canvas()
+        .unwrap()
+        .page()
+        .snapper
+        .page_to_sheet((x0 + (x1 - x0) / 2, y0 + (y1 - y0) / 2));
+    let pos = screen(&h, point);
+    tap(&mut h, pos);
+    settle(&mut h);
+    let selection = &h.state().shell().selection().items;
+    assert_eq!(selection.len(), 1, "the pointer selects only the placed text");
+    assert_eq!(selection[0].0, item.id);
+    let assert_sheet = |h: &Harness<'_, App>| {
+        let sheet = h.state().shell().properties().sheet().unwrap();
+        assert_eq!(sheet.header.items, 1);
+        assert_eq!(sheet.missing, 0);
+        assert_eq!(sheet.sections.len(), 1);
+        assert_eq!(sheet.sections[0].kind, "page_item");
+        assert_eq!(sheet.sections[0].targets, [item.id]);
+        let (_, row) = find_row(sheet, "page_item/kind.free_text.text").expect("the text row");
+        assert!(matches!(&row.value, RowValue::One { text, .. } if text == "40x60"));
+        for key in ["props-gone", "props-gone-title"] {
+            assert!(
+                h.query_all_by_label(strings::text(key)).next().is_none(),
+                "{key} is absent from the accessible UI"
+            );
+        }
+    };
+    assert_sheet(&h);
+    let rev = h.state().shell().revision();
+    let recorded = h.state().shell().recorded_commands().len();
+    h.key_press(Key::F2);
+    settle(&mut h);
+    settle(&mut h);
+    assert_eq!(h.state().shell().tool().name(), "text_edit");
+    assert!(h.state().shell().text_popup().is_some());
+    assert_field(&h, "action-text-input", "40x60");
+    type_field(&mut h, "action-text-input", "Cancelled", false);
+    h.key_press(Key::Escape);
+    settle(&mut h);
+    settle(&mut h);
+    assert!(h.state().shell().text_popup().is_none());
+    assert_eq!(h.state().shell().revision(), rev);
+    assert_eq!(h.state().shell().recorded_commands().len(), recorded);
+    assert_eq!(
+        h.state()
+            .shell()
+            .canvas()
+            .unwrap()
+            .page()
+            .tables
+            .items
+            .iter()
+            .find(|i| i.id == item.id)
+            .unwrap()
+            .text
+            .as_deref(),
+        Some("40x60")
+    );
+    assert_eq!(h.state().shell().selection().items[0].0, item.id);
+    assert_sheet(&h);
+}

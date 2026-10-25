@@ -781,3 +781,125 @@ fn a_leaf_below_an_identifier_member_opens_the_card() {
     assert_eq!(shell.revision(), rev);
     shell.shutdown();
 }
+
+#[test]
+fn selected_page_item_properties_refresh_after_edit() {
+    use ew_viewmodel::properties::{EditRoute, FieldReadOnly};
+    let tmp = Tmp::new("props-page-item");
+    let mut shell = writable(&tmp, "101");
+    assert!(shell.properties_shown());
+    let page = shell.canvas().unwrap().page().tables.page.to_string();
+    done(
+        &mut shell,
+        "command.run",
+        json!({"cmd": "item.place", "params": {
+            "page": page, "kind": {"free_text": {"text": "40x60", "at": [100_000_000, 100_000_000]}}
+        }}),
+    );
+    let id = shell
+        .canvas()
+        .unwrap()
+        .page()
+        .tables
+        .items
+        .iter()
+        .find(|i| i.text.as_deref() == Some("40x60"))
+        .unwrap()
+        .id;
+    let calls = shell.session_calls().property_sheet;
+    done(&mut shell, "select.set", json!({"ids": [id.to_string()]}));
+    assert_eq!(
+        shell.session_calls().property_sheet,
+        calls + 1,
+        "one selection refresh"
+    );
+    let selection = shell.selection().clone();
+    let sheet = shell.properties().sheet().unwrap();
+    assert_eq!(sheet.header.items, 1);
+    assert_eq!(sheet.missing, 0);
+    assert_eq!(sheet.sections.len(), 1);
+    assert_eq!(sheet.sections[0].kind, "page_item");
+    assert_eq!(sheet.sections[0].targets, [id]);
+    assert!(!sheet.sections[0].rows.is_empty());
+    for path in ["page", "kind"] {
+        assert!(matches!(
+            find_row(sheet, &format!("page_item/{path}")).unwrap().1.route,
+            EditRoute::ReadOnly(FieldReadOnly::Narrowed { .. })
+        ));
+    }
+    for path in ["page", "kind"] {
+        assert_eq!(
+            refused(
+                &mut shell,
+                "props.set",
+                json!({
+                    "row": format!("page_item/{path}"), "value": "x"
+                })
+            ),
+            "reason-read-only"
+        );
+    }
+    assert_eq!(
+        shell.session_calls().property_sheet,
+        calls + 1,
+        "read-only edits make no query"
+    );
+    let rev = shell.revision();
+    let before = steps(&shell);
+    let before_calls = shell.session_calls();
+    done(
+        &mut shell,
+        "props.set",
+        json!({"row": "page_item/kind.free_text.text", "value": "Updated"}),
+    );
+    assert_eq!(shell.revision(), rev.map(|r| r + 1));
+    assert_eq!(steps(&shell), before + 1);
+    let command = shell.recorded_commands().last().unwrap();
+    assert_eq!(command.cmd, "fields.set");
+    assert_eq!(command.params["kind"], "page_item");
+    assert_eq!(command.params["targets"], json!([id.to_string()]));
+    assert_eq!(command.params["path"], "kind.free_text.text");
+    assert_eq!(command.params["value"], "Updated");
+    let after_calls = shell.session_calls();
+    assert_eq!(after_calls.preview_with, before_calls.preview_with + 1);
+    assert_eq!(after_calls.run_script, before_calls.run_script + 1);
+    assert_eq!(after_calls.commit, before_calls.commit);
+    assert_eq!(after_calls.property_sheet, calls + 2, "one revision refresh");
+    assert_eq!(text(&shell, "page_item/kind.free_text.text"), "Updated");
+    assert_eq!(
+        shell
+            .canvas()
+            .unwrap()
+            .page()
+            .tables
+            .items
+            .iter()
+            .find(|i| i.id == id)
+            .unwrap()
+            .text
+            .as_deref(),
+        Some("Updated")
+    );
+    assert_eq!(shell.selection(), &selection);
+    done(&mut shell, "edit.undo", json!({}));
+    assert_eq!(text(&shell, "page_item/kind.free_text.text"), "40x60");
+    assert_eq!(
+        shell
+            .canvas()
+            .unwrap()
+            .page()
+            .tables
+            .items
+            .iter()
+            .find(|i| i.id == id)
+            .unwrap()
+            .text
+            .as_deref(),
+        Some("40x60")
+    );
+    assert_eq!(shell.properties().sheet().unwrap().sections[0].targets, [id]);
+    assert_eq!(shell.properties().sheet().unwrap().missing, 0);
+    assert_eq!(shell.session_calls().property_sheet, calls + 3);
+    assert_eq!(shell.selection(), &selection);
+    shell.shutdown();
+}
