@@ -156,6 +156,8 @@ pub struct App {
     /// The Structure box tool's caption and location fields (WP-S2.04 §10.5): `structure_box.fields` on Enter.
     structure_caption: String,
     structure_location: String,
+    /// The tool generation whose drawing-field drafts are displayed.
+    drawing_fields_epoch: Option<u64>,
     /// The text popup's field (WP-S2.04 §10.5): `None` while the popup is closed.
     text_buffer: Option<String>,
 }
@@ -197,6 +199,7 @@ impl App {
             applied_theme: None,
             request_paste: false,
             ip_name: String::new(),
+            drawing_fields_epoch: None,
             marker_csa: String::new(),
             marker_colours: String::new(),
             structure_caption: String::new(),
@@ -401,6 +404,14 @@ impl App {
             });
         }
         Panel::bottom("status-bar").show(ui, |ui| status_bar::show(ui, &self.shell, exporting));
+        let tool_epoch = self.shell.tool_epoch();
+        if self.drawing_fields_epoch != Some(tool_epoch) {
+            self.marker_csa.clear();
+            self.marker_colours.clear();
+            self.structure_caption.clear();
+            self.structure_location.clear();
+            self.drawing_fields_epoch = Some(tool_epoch);
+        }
         // The tool strip (WP-S2.04 §6.4 item 4): the active tool's options as read-only text, above the canvas; shown
         // for every tool (Select's hint at rest), so its row never comes and goes during a gesture.
         if self.shell.has_project()

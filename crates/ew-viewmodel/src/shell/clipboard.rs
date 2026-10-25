@@ -124,6 +124,12 @@ impl ShellModel {
             Ok(c) => c,
             Err(out) => return out,
         };
+        self.write_copied_fragment(copied);
+        Outcome::Done
+    }
+
+    /// Publishes a prepared copy and announces its record count.
+    fn write_copied_fragment(&mut self, copied: CopiedFragment) {
         let records = copied.records.to_string();
         self.write_clipboard(
             copied.text,
@@ -134,18 +140,22 @@ impl ShellModel {
             copied.dropped_connections,
         );
         self.tools.announcement = Some(strings::format("announce-copied", &[&records]));
-        Outcome::Done
     }
 
     /// `edit.cut` (Ctrl+X): copy, then `edit.delete` of the selection through `edit.delete_selection`'s path (one undo
     /// step); the clipboard keeps the fragment.
     pub(super) fn act_cut(&mut self) -> Outcome {
-        let targets = self.copy_targets();
-        let out = self.act_copy();
-        if out != Outcome::Done {
-            // A refused copy (several pages, nothing copyable) leaves the selection as it was.
-            return out;
+        let copied = match self.copy_selection() {
+            Ok(c) => c,
+            Err(out) => return out,
+        };
+        if copied.incomplete_page_items > 0 {
+            return Outcome::Refused {
+                reason_key: "reason-cut-incomplete-items",
+            };
         }
+        self.write_copied_fragment(copied);
+        let targets = self.copy_targets();
         // A device selected by tag is cut as the representations the copy took.
         if targets != self.tools.selection.items
             && self.tools.selection.apply(&SelectionChange::Replace(targets))

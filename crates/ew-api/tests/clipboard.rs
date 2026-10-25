@@ -1029,3 +1029,114 @@ fn cb_items_a_structure_box_keeps_its_external_in_its_own_project_only() {
     assert_eq!(pasted.external, None);
     assert_eq!(pasted.assigns.location, Some(Slot::Node(Id::from_uuid(node))));
 }
+
+/// Copy preserves its lossy bytes and notices while reporting whether Cut can transfer every selected item.
+#[test]
+fn copy_fragment_reports_incomplete_page_items() {
+    let batch = golden_common::batch();
+    let ids = golden_common::ids_by_key(&batch);
+    let page: Id<Page> = id(&ids, "pages|101");
+    let unknown = Uuid::from_u128(0x0192_f3a0_0000_7000_8000_0000_0000_a002);
+    let mut s = golden_common::session_with(&batch, |_, records| {
+        records.push(ew_schema::Record::PageItem(
+            serde_json::from_value(json!({
+                "id": unknown.to_string(), "page": page.to_string(),
+                "kind": {"macro_box": {"name": "later"}}
+            }))
+            .unwrap(),
+        ));
+    });
+    let w4: Id<Connection> = id(&ids, "connections|W4");
+    let w5: Id<Connection> = id(&ids, "connections|W5");
+    let marker = run(
+        &mut s,
+        "marker.place",
+        json!({"page":page.to_string(),
+        "connections":[w4.to_string(),w5.to_string()], "at":[0,0]}),
+    )
+    .outcome
+    .primary
+    .unwrap()
+    .1
+    .as_uuid();
+    let text = run(
+        &mut s,
+        "item.place",
+        json!({"page":page.to_string(),
+        "kind":{"free_text":{"text":"copy text","at":[0,0]}}}),
+    )
+    .outcome
+    .primary
+    .unwrap()
+    .1
+    .as_uuid();
+    let graphic = run(
+        &mut s,
+        "item.place",
+        json!({"page":page.to_string(),
+        "kind":{"graphic":{"shape":{"line":{"a":[0,0],"b":[1000,1000]}}}}}),
+    )
+    .outcome
+    .primary
+    .unwrap()
+    .1
+    .as_uuid();
+    let box_id = run(
+        &mut s,
+        "box.structure",
+        json!({"page":page.to_string(),
+        "outline":[[0,0],[1000,0],[1000,1000],[0,1000]],"style":"dotted","assigns":{}}),
+    )
+    .outcome
+    .primary
+    .unwrap()
+    .1
+    .as_uuid();
+    let empty = s.copy_fragment(&[unknown]).unwrap();
+    assert_eq!(empty.incomplete_page_items, 1);
+    assert_eq!(empty.skipped, vec![("page_item".to_owned(), 1)]);
+    assert_eq!(empty.records, 0);
+    let omitted = s.copy_fragment(&[marker]).unwrap();
+    assert_eq!(omitted.incomplete_page_items, 1, "an empty marker counts once");
+    assert_eq!(omitted.skipped, vec![("wire_marker".to_owned(), 1)]);
+    assert_eq!(omitted.records, 0);
+    // With no record lines, each retains the exact same fragment bytes as an empty known-item selection's header.
+    assert_eq!(omitted.text, empty.text);
+    let terminal = s
+        .page_tables("101")
+        .unwrap()
+        .reps
+        .iter()
+        .find(|r| r.device.is_some_and(|d| s.tag_list(&[d]) == "1X1:1\n"))
+        .unwrap()
+        .id;
+    let mut partial = reps_of(&s, "101", &["S51"]);
+    partial.extend([terminal, marker]);
+    let copied = s.copy_fragment(&partial).unwrap();
+    assert_eq!(copied.incomplete_page_items, 1);
+    assert!(copied.skipped.is_empty());
+    let records = parse_fragment(&copied.text).unwrap().params["records"].clone();
+    assert_eq!(
+        records
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|r| r["$k"] == "page_item")
+            .unwrap()["kind"]["wire_marker"]["connections"],
+        json!([w4.to_string()])
+    );
+    // Omitted items do not change Copy's bytes or record/library counts.
+    partial.push(unknown);
+    let mixed = s.copy_fragment(&partial).unwrap();
+    assert_eq!(mixed.incomplete_page_items, 2);
+    assert_eq!(mixed.text, copied.text);
+    assert_eq!((mixed.records, mixed.copies), (copied.records, copied.copies));
+    assert_eq!(mixed.skipped, empty.skipped);
+    let mut complete: Vec<_> = s.page_tables("101").unwrap().reps.iter().map(|r| r.id).collect();
+    complete.extend([marker, text, graphic, box_id]);
+    let copied = s.copy_fragment(&complete).unwrap();
+    assert_eq!(copied.incomplete_page_items, 0);
+    for selected in [text, graphic, box_id] {
+        assert_eq!(s.copy_fragment(&[selected]).unwrap().incomplete_page_items, 0);
+    }
+}

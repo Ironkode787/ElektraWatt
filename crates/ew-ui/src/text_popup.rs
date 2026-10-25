@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The text popup (WP-S2.04 §6.4 item 1, §10.5): the Text tool's and text edit's single-line field. While the Text
-//! tool types or Text edit is open, a window at the top holds one field; Enter sends `text.input` and `tool.finish`
+//! tool types or Text edit is open, a window at the top holds one field; edits send `text.input` for the preview,
+//! and Enter sends the latest `text.input` and `tool.finish`
 //! (so the tool places or changes the text), Escape is the window's popup dismissal (the key routing sends
 //! `ui.dismiss`, which reaches the tool). The buffer starts as the ghost's text and is dropped when the popup closes.
 
@@ -40,8 +41,11 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, buffer: &mut Option<String>
             if first {
                 edit.request_focus();
             }
-            if edit.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+            let finish = edit.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
+            if edit.changed() || finish {
                 events.push(Event::Action("text.input", json!({ "text": text.clone() })));
+            }
+            if finish {
                 events.push(Event::Action("tool.finish", json!({})));
             }
         });

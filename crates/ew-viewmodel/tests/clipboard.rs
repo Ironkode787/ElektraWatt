@@ -557,3 +557,314 @@ fn structural_words(line: &str, shortcut_keys: &[String]) -> Vec<String> {
     }
     words
 }
+
+/// A refused Cut changes only the copy-call counter, including an already pending GUI clipboard write.
+fn assert_incomplete_cut_unchanged(shell: &mut ShellModel, ids: &[String]) {
+    let rep = select_rep(shell, "-101F1");
+    done(shell, "select.set", json!({"ids":[rep]}));
+    done(shell, "edit.copy", json!({}));
+    // Keep a nonempty outbox pending while testing the refusal.
+    let clip = shell.clipboard().text().unwrap().to_owned();
+    let kind = shell.clipboard().kind().cloned();
+    let dropped = shell.clipboard().dropped();
+    done(shell, "select.set", json!({"ids":ids}));
+    let selection = shell.selection().items.clone();
+    let revision = shell.revision();
+    let recorded = shell.recorded_commands().len();
+    let announcement = shell.tool_announcement().map(str::to_owned);
+    let calls = shell.session_calls();
+    let before = shell.canvas().unwrap().page().tables.clone();
+    assert_eq!(
+        shell.dispatch("edit.cut", &json!({})),
+        Outcome::Refused {
+            reason_key: "reason-cut-incomplete-items"
+        }
+    );
+    assert_eq!(shell.clipboard().text(), Some(clip.as_str()));
+    assert_eq!(shell.clipboard().kind(), kind.as_ref());
+    assert_eq!(shell.clipboard().dropped(), dropped);
+    assert_eq!(shell.take_clipboard_outbox().as_deref(), Some(clip.as_str()));
+    assert_eq!(shell.take_clipboard_outbox(), None);
+    assert_eq!(shell.selection().items, selection);
+    assert_eq!(shell.revision(), revision);
+    assert_eq!(shell.recorded_commands().len(), recorded);
+    assert_eq!(shell.tool_announcement(), announcement.as_deref());
+    let mut expected_calls = calls;
+    expected_calls.copy_fragment += 1;
+    assert_eq!(
+        shell.session_calls(),
+        expected_calls,
+        "exactly one copy preparation and no other Session calls"
+    );
+    assert_eq!(shell.canvas().unwrap().page().tables.as_ref(), before.as_ref());
+}
+
+fn cut_marker_fixture(shell: &mut ShellModel, partial: bool) -> (String, Vec<String>) {
+    use ew_viewmodel::ew_api::output::TableEnd;
+    let t = shell.canvas().unwrap().page().tables.clone();
+    let funcs = |c: &ew_viewmodel::ew_api::output::TableConnection| match (&c.a, &c.b) {
+        (TableEnd::Cp { function: a, .. }, TableEnd::Cp { function: b, .. }) => Some([*a, *b]),
+        _ => None,
+    };
+    let (first, ends) = t
+        .connections
+        .iter()
+        .filter_map(|c| funcs(c).map(|f| (c, f)))
+        .find(|(_, f)| f.iter().all(|id| t.reps.iter().any(|r| r.functions.contains(id))))
+        .unwrap();
+    let other = t
+        .connections
+        .iter()
+        .find(|c| funcs(c).is_some_and(|f| f.iter().any(|id| !ends.contains(id))))
+        .unwrap();
+    let connections = if partial {
+        vec![first.id.to_string(), other.id.to_string()]
+    } else {
+        vec![first.id.to_string()]
+    };
+    done(
+        shell,
+        "command.run",
+        json!({"cmd":"marker.place","params":{
+        "page":t.page.to_string(),"connections":connections,"at":[0,0]}}),
+    );
+    let marker = shell
+        .canvas()
+        .unwrap()
+        .page()
+        .tables
+        .items
+        .iter()
+        .find(|i| i.kind == "wire_marker")
+        .unwrap()
+        .id
+        .to_string();
+    let reps = ends
+        .iter()
+        .map(|f| {
+            t.reps
+                .iter()
+                .find(|r| r.functions.contains(f))
+                .unwrap()
+                .id
+                .to_string()
+        })
+        .collect();
+    (marker, reps)
+}
+
+fn cut_text_fixture(shell: &mut ShellModel) -> String {
+    let page = shell.canvas().unwrap().page().tables.page.to_string();
+    done(
+        shell,
+        "command.run",
+        json!({"cmd":"item.place","params":{
+        "page":page,"kind":{"free_text":{"text":"cut text","at":[0,0]}}}}),
+    );
+    shell
+        .canvas()
+        .unwrap()
+        .page()
+        .tables
+        .items
+        .iter()
+        .find(|i| i.text.as_deref() == Some("cut text"))
+        .unwrap()
+        .id
+        .to_string()
+}
+
+#[test]
+fn cut_marker_without_copied_wires_is_refused_without_changes() {
+    let tmp = Tmp::new("cut-empty-marker");
+    let mut s = tmp.shell_in(Mode::Gui, true, "101");
+    let (marker, _) = cut_marker_fixture(&mut s, false);
+    assert_incomplete_cut_unchanged(&mut s, &[marker]);
+    s.shutdown();
+}
+
+#[test]
+fn cut_mixed_text_and_omitted_marker_is_refused_without_changes() {
+    let tmp = Tmp::new("cut-mixed-marker");
+    let mut s = tmp.shell_in(Mode::Gui, true, "101");
+    let (marker, _) = cut_marker_fixture(&mut s, false);
+    let text = cut_text_fixture(&mut s);
+    assert_incomplete_cut_unchanged(&mut s, &[marker, text]);
+    s.shutdown();
+}
+
+#[test]
+fn cut_partially_copied_marker_is_refused_without_changes() {
+    let tmp = Tmp::new("cut-partial-marker");
+    let mut s = tmp.shell_in(Mode::Gui, true, "101");
+    let (marker, mut selected) = cut_marker_fixture(&mut s, true);
+    selected.push(marker);
+    assert_incomplete_cut_unchanged(&mut s, &selected);
+    // Compare the stored associations, not the page-table marker projection.
+    let text = s.clipboard().text().unwrap().to_owned();
+    let all: Vec<_> = s
+        .canvas()
+        .unwrap()
+        .page()
+        .tables
+        .reps
+        .iter()
+        .map(|r| r.id.to_string())
+        .chain(selected)
+        .collect();
+    done(&mut s, "select.set", json!({"ids":all}));
+    done(&mut s, "edit.copy", json!({}));
+    let fragment = ew_viewmodel::ew_api::output::parse_fragment(s.clipboard().text().unwrap()).unwrap();
+    let records = fragment.params["records"].as_array().unwrap();
+    assert_eq!(
+        records
+            .iter()
+            .find(|r| r["kind"]["wire_marker"].is_object())
+            .unwrap()["kind"]["wire_marker"]["connections"]
+            .as_array()
+            .unwrap()
+            .len(),
+        2
+    );
+    assert_ne!(s.clipboard().text(), Some(text.as_str()));
+    s.shutdown();
+}
+
+#[test]
+fn cut_unknown_page_item_alone_and_with_text_is_refused_without_changes() {
+    // Load a forward-compatible variant through Session::from_records, then persist it in a temporary fixture.
+    use ew_viewmodel::ew_api::{Session, SessionOptions, StoreOptions};
+    let tmp = Tmp::new("cut-unknown");
+    let mut s = tmp.shell_in(Mode::Gui, true, "101");
+    let page = s.canvas().unwrap().page().tables.page.to_string();
+    s.shutdown();
+    let dir = tmp.golden_copy();
+    let (source, _) = Session::open_read_only(&dir, "ElektraWatt test").unwrap();
+    let project = (**source.query().project()).clone();
+    // Retain Golden A's records and libraries using the existing project's persisted JSONL fixture.
+    let mut records = Vec::new();
+    fn read_records(dir: &std::path::Path, records: &mut Vec<Value>) {
+        for entry in std::fs::read_dir(dir).unwrap() {
+            let path = entry.unwrap().path();
+            if path.is_dir() && path.file_name().unwrap() != "lib" {
+                read_records(&path, records);
+            } else if path.extension().is_some_and(|e| e == "jsonl") {
+                for line in std::fs::read_to_string(path)
+                    .unwrap()
+                    .lines()
+                    .filter(|l| !l.is_empty())
+                {
+                    let v: Value = serde_json::from_str(line).unwrap();
+                    if v["$k"] != "project" {
+                        records.push(v);
+                    }
+                }
+            }
+        }
+    }
+    read_records(&dir, &mut records);
+    let unknown = "0192f3a0-0000-7000-8000-00000000a003";
+    records.push(json!({"$k":"page_item","id":unknown,"page":page,"kind":{"macro_box":{"name":"later"}}}));
+    let records = records
+        .into_iter()
+        .map(|v| serde_json::from_value(v).unwrap())
+        .collect::<Vec<_>>();
+    let mut libs = Vec::new();
+    for folder in std::fs::read_dir(dir.join("lib")).unwrap() {
+        for entry in std::fs::read_dir(folder.unwrap().path()).unwrap() {
+            libs.push(
+                serde_json::from_str(&std::fs::read_to_string(entry.unwrap().path()).unwrap()).unwrap(),
+            );
+        }
+    }
+    let mut fixture = Session::from_records(project, records, libs, SessionOptions::default()).unwrap();
+    let target = tmp.0.join("unknown.ew");
+    fixture.create(&target, StoreOptions::new("0.0.0-test")).unwrap();
+    fixture.close();
+    let mut s = ShellModel::new(
+        Mode::Gui,
+        ew_viewmodel::shell::ShellConfig::in_dir(&tmp.0.join("unknown-config"), "0.0.0-test"),
+    );
+    done(&mut s, "file.open", json!({"dir":target.to_string_lossy()}));
+    done(&mut s, "page.goto", json!({"folio":"101"}));
+    let text = cut_text_fixture(&mut s);
+    assert_incomplete_cut_unchanged(&mut s, &[unknown.to_owned()]);
+    assert_incomplete_cut_unchanged(&mut s, &[unknown.to_owned(), text]);
+    s.shutdown();
+}
+
+#[test]
+fn complete_page_item_cut_still_undoes_and_redoes_once() {
+    let tmp = Tmp::new("cut-complete-items");
+    let mut s = tmp.shell_in(Mode::Gui, true, "101");
+    let (marker, _) = cut_marker_fixture(&mut s, true);
+    let text = cut_text_fixture(&mut s);
+    let page = s.canvas().unwrap().page().tables.page.to_string();
+    done(
+        &mut s,
+        "command.run",
+        json!({"cmd":"item.place","params":{"page":page,
+        "kind":{"graphic":{"shape":{"line":{"a":[0,0],"b":[1000,1000]}}}}}}),
+    );
+    done(
+        &mut s,
+        "command.run",
+        json!({"cmd":"box.structure","params":{"page":page,
+        "outline":[[0,0],[1000,0],[1000,1000],[0,1000]],"style":"dotted","assigns":{}}}),
+    );
+    let before = s.canvas().unwrap().page().tables.clone();
+    let mut ids: Vec<_> = before.reps.iter().map(|r| r.id.to_string()).collect();
+    ids.extend([marker.clone(), text.clone()]);
+    ids.extend(
+        before
+            .items
+            .iter()
+            .filter(|i| i.kind == "graphic")
+            .map(|i| i.id.to_string()),
+    );
+    ids.extend(before.structure_boxes.iter().map(|b| b.id.to_string()));
+    done(&mut s, "select.set", json!({"ids":ids}));
+    let rev = s.revision();
+    let recorded = s.recorded_commands().len();
+    let calls = s.session_calls();
+    done(&mut s, "edit.cut", json!({}));
+    assert_eq!(s.session_calls().copy_fragment, calls.copy_fragment + 1);
+    assert_eq!(s.revision(), rev.map(|r| r + 1));
+    assert_eq!(s.recorded_commands().len(), recorded + 1);
+    let clipped = s.clipboard().text().unwrap().to_owned();
+    let records = ew_viewmodel::ew_api::output::parse_fragment(&clipped)
+        .unwrap()
+        .params["records"]
+        .clone();
+    for id in [&marker, &text] {
+        assert!(records.as_array().unwrap().iter().any(|r| r["id"] == id.as_str()));
+    }
+    assert!(
+        records
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|r| r["kind"]["graphic"].is_object())
+    );
+    assert!(
+        records
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|r| r["$k"] == "structure_box")
+    );
+    let deleted = s.canvas().unwrap().page().tables.clone();
+    assert!(deleted.items.iter().all(|i| !ids.contains(&i.id.to_string())));
+    assert!(
+        deleted
+            .structure_boxes
+            .iter()
+            .all(|b| !ids.contains(&b.id.to_string()))
+    );
+    done(&mut s, "edit.undo", json!({}));
+    assert_eq!(s.canvas().unwrap().page().tables.as_ref(), before.as_ref());
+    done(&mut s, "edit.redo", json!({}));
+    assert_eq!(s.canvas().unwrap().page().tables.as_ref(), deleted.as_ref());
+    assert_eq!(s.clipboard().text(), Some(clipped.as_str()));
+    s.shutdown();
+}

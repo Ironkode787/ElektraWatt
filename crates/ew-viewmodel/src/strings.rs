@@ -700,6 +700,9 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "action-edit-duplicate" => "Duplicate",
         "action-edit-copy-tags" => "Copy tag list",
         "action-clipboard-text" => "Set the clipboard text",
+        "reason-cut-incomplete-items" => {
+            "Cut would lose page items or marker connections; include every marker wire or use Copy"
+        }
         "reason-copy-pages" => "The selection spans several pages: copy from one page",
         "reason-copy-generated" => "Generated content is not copied",
         "reason-clipboard-empty" => "The clipboard is empty",

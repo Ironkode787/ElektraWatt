@@ -601,3 +601,59 @@ fn page_describe_lists_items_and_boxes() {
         }
     }
 }
+
+/// Only replacing the active tool advances the epoch; a host reset cannot recycle its previous value.
+#[test]
+fn tool_epoch_tracks_replacements_without_session_reads() {
+    let tmp = Tmp::new("tool-epoch");
+    let blank = ShellModel::new(
+        Mode::Headless,
+        ew_viewmodel::shell::ShellConfig::in_dir(&tmp.0.join("blank"), "0.0.0-test"),
+    );
+    assert_eq!(blank.tool_epoch(), 0);
+    let mut s = shell(&tmp, "101");
+    let initial = s.tool_epoch();
+    let calls = s.session_calls();
+    assert_eq!(s.tool_epoch(), initial);
+    assert_eq!(s.session_calls(), calls, "the accessor reads no Session data");
+    done(&mut s, "tool.marker", json!({}));
+    assert_eq!(s.tool_epoch(), initial.wrapping_add(1));
+    let armed = s.tool_epoch();
+    done(&mut s, "marker.fields", json!({"csa":"2.5"}));
+    done(&mut s, "cursor.set", json!({"x_mm":100.0,"y_mm":100.0}));
+    done(&mut s, "canvas.activate", json!({}));
+    assert_eq!(
+        s.tool_epoch(),
+        armed,
+        "ordinary events and field edits preserve drafts"
+    );
+    done(&mut s, "tool.marker", json!({}));
+    assert_eq!(
+        s.tool_epoch(),
+        armed.wrapping_add(1),
+        "same-tool activation replaces the instance"
+    );
+    let before_page = s.tool_epoch();
+    done(&mut s, "page.goto", json!({"folio":"102"}));
+    assert_eq!(s.tool().name(), "select");
+    assert_eq!(
+        s.tool_epoch(),
+        before_page.wrapping_add(1),
+        "the direct context replacement advances the epoch"
+    );
+    let before_close = s.tool_epoch();
+    done(&mut s, "file.close", json!({}));
+    assert_eq!(
+        s.tool_epoch(),
+        before_close.wrapping_add(1),
+        "resetting the host preserves the generation"
+    );
+    done(
+        &mut s,
+        "file.open",
+        json!({"dir":tmp.golden_copy().to_string_lossy()}),
+    );
+    // Opening first closes the empty host, then install_view creates the project host.
+    assert_eq!(s.tool_epoch(), before_close.wrapping_add(3));
+    s.shutdown();
+}

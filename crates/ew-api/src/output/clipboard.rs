@@ -71,6 +71,8 @@ pub struct CopiedFragment {
     pub copies: usize,
     /// How many selected connections were dropped because an end lies outside the copy.
     pub dropped_connections: usize,
+    /// Number of selected page items omitted from the fragment or copied with a shorter wire-marker connection list.
+    pub incomplete_page_items: usize,
     /// What was reached but not copied, by kind (`bond`, `cable`, `conductor`, `page_item`, `plc_station`,
     /// `wire_marker`), in name order.
     pub skipped: Vec<(String, usize)>,
@@ -683,6 +685,7 @@ impl Session {
         let mut items: Vec<PageItem> = Vec::new();
         let mut unknown_items = 0usize;
         let mut emptied_markers = 0usize;
+        let mut incomplete_page_items = 0usize;
         for id in &sel_items {
             let Some(item) = q.page_items().get(*id) else {
                 continue;
@@ -696,6 +699,9 @@ impl Session {
                         .copied()
                         .filter(|c| connections.contains(c))
                         .collect();
+                    if kept.len() != m.connections.len() || kept.is_empty() {
+                        incomplete_page_items += 1;
+                    }
                     if kept.is_empty() {
                         emptied_markers += 1;
                     } else {
@@ -706,7 +712,10 @@ impl Session {
                         items.push(item);
                     }
                 }
-                PageItemKind::Unknown(_) => unknown_items += 1,
+                PageItemKind::Unknown(_) => {
+                    unknown_items += 1;
+                    incomplete_page_items += 1;
+                }
             }
         }
         if unknown_items > 0 {
@@ -1021,6 +1030,7 @@ impl Session {
             records: lines.len(),
             copies: libs.len(),
             dropped_connections,
+            incomplete_page_items,
             skipped: skipped.into_iter().collect(),
         })
     }

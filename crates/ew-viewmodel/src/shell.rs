@@ -372,6 +372,8 @@ pub struct ShellModel {
     epochs: u64,
     /// The canvas tool host (WP-S2.03 part 2): the active tool, its overlay, the preview, the selection.
     tools: crate::tools::ToolHost,
+    /// Active-tool replacement generation, independent of the replaceable host.
+    tool_epoch: u64,
     /// The property grid (WP-S2.05 part 1): the sheet, the row cursor, the edit, the card and the toast.
     props: crate::properties::PropertiesState,
     /// The find pane (WP-S2.05 part 2): the query, the results, the cursor and the note.
@@ -702,6 +704,7 @@ impl ShellModel {
             page_text: None,
             epochs: 0,
             tools: crate::tools::ToolHost::new(),
+            tool_epoch: 0,
             props: crate::properties::PropertiesState::default(),
             find: crate::find::FindState::default(),
             clip: crate::clipboard::ClipboardState::default(),

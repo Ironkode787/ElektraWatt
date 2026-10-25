@@ -77,6 +77,11 @@ impl ShellModel {
         self.tools.tool.as_ref()
     }
 
+    /// The active-tool replacement generation; ordinary events and field edits leave it unchanged.
+    pub fn tool_epoch(&self) -> u64 {
+        self.tool_epoch
+    }
+
     /// The active tool's overlay (sheet nm of the focused canvas's page).
     pub fn tool_overlay(&self) -> &Overlay {
         &self.tools.overlay
@@ -161,6 +166,7 @@ impl ShellModel {
     /// A fresh host: Select active, nothing selected (a project opened or closed).
     pub(super) fn reset_tools(&mut self) {
         self.tools = crate::tools::ToolHost::new();
+        self.tool_epoch = self.tool_epoch.wrapping_add(1);
     }
 
     /// The (group, tab ID, page) the active tool works on.
@@ -213,6 +219,7 @@ impl ShellModel {
         ) && let Some(select) = tool_named("select")
         {
             self.tools.tool = select;
+            self.tool_epoch = self.tool_epoch.wrapping_add(1);
             self.tools.junction_editor = None;
             self.announce_tool();
         }
@@ -569,6 +576,7 @@ impl ShellModel {
         self.tools.notice = None;
         self.tools.notice_sticky = false;
         self.tools.tool = tool;
+        self.tool_epoch = self.tool_epoch.wrapping_add(1);
         self.announce_tool();
         if let Some(at) = self.canvas().and_then(CanvasModel::cursor) {
             let _ = self.send_tool(&CanvasEvent::CursorMove { at });

@@ -167,3 +167,259 @@ fn the_marker_fields_in_the_tool_strip_send_the_cross_section() {
         other => panic!("not the Wire marker's ghost: {other:?}"),
     }
 }
+
+/// Edits an accessible field, leaving its draft unsubmitted unless Enter is requested.
+fn type_field(h: &mut Harness<'_, App>, key: &str, text: &str, enter: bool) {
+    let label = strings::text(key);
+    h.get_all_by_role(egui::Role::TextInput)
+        .find(|n| n.accesskit_node().label().as_deref() == Some(label))
+        .unwrap()
+        .click();
+    settle(h);
+    h.key_press_modifiers(Modifiers::COMMAND, Key::A);
+    settle(h);
+    h.get_all_by_role(egui::Role::TextInput)
+        .find(|n| n.accesskit_node().label().as_deref() == Some(label))
+        .unwrap()
+        .type_text(text);
+    settle(h);
+    if enter {
+        h.key_press(Key::Enter);
+        settle(h);
+        settle(h);
+    }
+}
+
+fn assert_field(h: &Harness<'_, App>, key: &str, expected: &str) {
+    let label = strings::text(key);
+    let field = h
+        .get_all_by_role(egui::Role::TextInput)
+        .find(|n| n.accesskit_node().label().as_deref() == Some(label))
+        .unwrap();
+    assert_eq!(field.accesskit_node().value().as_deref(), Some(expected), "{key}");
+}
+
+fn activate(h: &mut Harness<'_, App>, action: &str) {
+    dispatch(h, action, json!({}));
+    settle(h);
+    settle(h);
+}
+
+#[test]
+fn rearming_marker_resets_visible_fields_to_tool_defaults() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "101");
+    activate(&mut h, "tool.marker");
+    for switch_away in [true, false] {
+        type_field(&mut h, "action-marker-csa", "2.5", true);
+        type_field(&mut h, "action-marker-colours", "BK BU", true);
+        assert!(
+            matches!(h.state().shell().tool_ghost(),Some(Ghost::Marker{text:Some(text),..}) if text=="2.5 BK BU")
+        );
+        if switch_away {
+            activate(&mut h, "tool.text");
+        }
+        activate(&mut h, "tool.marker");
+        assert_field(&h, "action-marker-csa", "");
+        assert_field(&h, "action-marker-colours", "");
+        assert!(matches!(
+            h.state().shell().tool_ghost(),
+            Some(Ghost::Marker {
+                connections: 0,
+                text: None
+            })
+        ));
+    }
+}
+
+fn outline_box(h: &mut Harness<'_, App>) {
+    for (x, y) in [(100.0, 100.0), (120.0, 120.0)] {
+        dispatch(h, "cursor.set", json!({"x_mm":x,"y_mm":y}));
+        dispatch(h, "canvas.activate", json!({}));
+        settle(h);
+    }
+    dispatch(h, "tool.finish", json!({}));
+    settle(h);
+    assert_eq!(h.state().shell().tool().state(), "typing");
+}
+
+#[test]
+fn rearming_structure_box_resets_visible_fields_to_tool_defaults() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "101");
+    activate(&mut h, "tool.structure_box");
+    for switch_away in [true, false] {
+        type_field(&mut h, "action-structure-box-caption", "Spare", true);
+        type_field(&mut h, "action-structure-box-location", "+J-E-206", true);
+        if switch_away {
+            activate(&mut h, "tool.text");
+        }
+        activate(&mut h, "tool.structure_box");
+        assert_field(&h, "action-structure-box-caption", "");
+        assert_field(&h, "action-structure-box-location", "");
+        outline_box(&mut h);
+        dispatch(&mut h, "tool.finish", json!({}));
+        settle(&mut h);
+        let last = h.state().shell().recorded_commands().last().unwrap();
+        assert_eq!(last.cmd, "box.structure");
+        assert!(last.params.get("caption").is_none_or(|v| v.is_null()));
+        assert_eq!(last.params["assigns"], json!({}));
+    }
+}
+
+#[test]
+fn drawing_field_drafts_survive_frames_and_outline_transitions() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "101");
+    activate(&mut h, "tool.marker");
+    type_field(&mut h, "action-marker-csa", "2.5", false);
+    settle(&mut h);
+    settle(&mut h);
+    assert_field(&h, "action-marker-csa", "2.5");
+    assert!(matches!(
+        h.state().shell().tool_ghost(),
+        Some(Ghost::Marker { text: None, .. })
+    ));
+    dispatch(&mut h, "cursor.set", json!({"x_mm":100.0,"y_mm":100.0}));
+    dispatch(&mut h, "canvas.activate", json!({}));
+    settle(&mut h);
+    assert_eq!(h.state().shell().tool().state(), "crossing");
+    assert_field(&h, "action-marker-csa", "2.5");
+    type_field(&mut h, "action-marker-csa", "2.5", true);
+    assert!(
+        matches!(h.state().shell().tool_ghost(),Some(Ghost::Marker{text:Some(text),..}) if text=="2.5"),
+        "{:?}",
+        h.state().shell().tool_ghost()
+    );
+    activate(&mut h, "tool.structure_box");
+    type_field(&mut h, "action-structure-box-caption", "Spare", false);
+    outline_box(&mut h);
+    assert_field(&h, "action-structure-box-caption", "Spare");
+    type_field(&mut h, "action-structure-box-caption", "Spare", true);
+    dispatch(&mut h, "tool.finish", json!({}));
+    settle(&mut h);
+    assert_eq!(
+        h.state().shell().recorded_commands().last().unwrap().params["caption"],
+        "Spare"
+    );
+}
+
+#[test]
+fn page_and_project_changes_do_not_keep_stale_drawing_fields() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "101");
+    activate(&mut h, "tool.marker");
+    type_field(&mut h, "action-marker-csa", "2.5", true);
+    dispatch(&mut h, "page.goto", json!({"folio":"102"}));
+    settle(&mut h);
+    assert_eq!(h.state().shell().tool().name(), "select");
+    activate(&mut h, "tool.marker");
+    assert_field(&h, "action-marker-csa", "");
+    activate(&mut h, "tool.structure_box");
+    type_field(&mut h, "action-structure-box-caption", "Spare", true);
+    type_field(&mut h, "action-structure-box-location", "+J-E-206", true);
+    // Closing and reopening the project replaces the whole host; its epoch must still advance.
+    dispatch(&mut h, "file.close", json!({}));
+    settle(&mut h);
+    let dir = tmp.0.join("g.ew");
+    dispatch(&mut h, "file.open", json!({"dir":dir.to_string_lossy()}));
+    settle(&mut h);
+    wait_for_page(&mut h);
+    dispatch(&mut h, "page.goto", json!({"folio":"101"}));
+    settle(&mut h);
+    activate(&mut h, "tool.structure_box");
+    assert_field(&h, "action-structure-box-caption", "");
+    assert_field(&h, "action-structure-box-location", "");
+}
+
+#[test]
+fn text_popup_typing_updates_ghost_and_dwell_preview_without_commit() {
+    use ew_ui::ew_viewmodel::tools::PreviewStatus;
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "101");
+    typing_text(&mut h);
+    let rev = h.state().shell().revision();
+    let recorded = h.state().shell().recorded_commands().len();
+    type_field(&mut h, "action-text-input", "40x60", false);
+    assert!(
+        matches!(h.state().shell().tool_ghost(),Some(Ghost::Text{text,..}) if text=="40x60"),
+        "{:?}",
+        h.state().shell().tool_ghost()
+    );
+    assert!(h.state().shell().tool_overlay().labels().any(|s| s == "40x60"));
+    dispatch(&mut h, "canvas.dwell", json!({"ms":80}));
+    settle(&mut h);
+    assert_eq!(h.state().shell().preview_status(), Some(PreviewStatus::Ready));
+    assert_eq!(h.state().shell().revision(), rev);
+    assert_eq!(h.state().shell().recorded_commands().len(), recorded);
+    h.key_press(Key::Enter);
+    settle(&mut h);
+    settle(&mut h);
+    assert_eq!(h.state().shell().revision(), rev.map(|r| r + 1));
+    let added = &h.state().shell().recorded_commands()[recorded..];
+    assert_eq!(added.len(), 1);
+    assert_eq!(added[0].cmd, "item.place");
+}
+
+#[test]
+fn text_edit_typing_updates_preview_before_enter() {
+    use ew_ui::ew_viewmodel::tools::PreviewStatus;
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "101");
+    let page = h.state().shell().canvas().unwrap().page().tables.page.to_string();
+    dispatch(
+        &mut h,
+        "command.run",
+        json!({"cmd":"item.place","params":{"page":page,
+        "kind":{"free_text":{"text":"original","at":[0,0]}}}}),
+    );
+    let id = h
+        .state()
+        .shell()
+        .canvas()
+        .unwrap()
+        .page()
+        .tables
+        .items
+        .iter()
+        .find(|i| i.text.as_deref() == Some("original"))
+        .unwrap()
+        .id
+        .to_string();
+    dispatch(&mut h, "select.set", json!({"ids":[id]}));
+    h.key_press(Key::F2);
+    settle(&mut h);
+    settle(&mut h);
+    assert_eq!(h.state().shell().tool().name(), "text_edit");
+    let rev = h.state().shell().revision();
+    let recorded = h.state().shell().recorded_commands().len();
+    type_field(&mut h, "action-text-input", "changed", false);
+    assert!(matches!(h.state().shell().tool_ghost(),Some(Ghost::Text{text,..}) if text=="changed"));
+    assert!(h.state().shell().tool_overlay().labels().any(|s| s == "changed"));
+    dispatch(&mut h, "canvas.dwell", json!({"ms":80}));
+    settle(&mut h);
+    assert_eq!(h.state().shell().preview_status(), Some(PreviewStatus::Ready));
+    assert_eq!(h.state().shell().revision(), rev);
+    assert_eq!(h.state().shell().recorded_commands().len(), recorded);
+    h.key_press(Key::Escape);
+    settle(&mut h);
+    settle(&mut h);
+    assert_eq!(h.state().shell().revision(), rev);
+    assert_eq!(h.state().shell().recorded_commands().len(), recorded);
+    assert!(h.state().shell().text_popup().is_none());
+    assert_eq!(
+        h.state()
+            .shell()
+            .canvas()
+            .unwrap()
+            .page()
+            .tables
+            .items
+            .iter()
+            .find(|i| i.id.to_string() == id)
+            .unwrap()
+            .text
+            .as_deref(),
+        Some("original")
+    );
+}
