@@ -30,3 +30,8 @@ fail-fast = false
 
 [profile.ci.junit]
 path = "junit.xml"
+
+# Local development and cycle gates omit performance measurements (ID-664).
+# Select with NEXTEST_PROFILE=local-dev; hosted CI and performance profiles stay unchanged.
+[profile.local-dev]
+default-filter = 'not binary(perf) and not test(/^perf_/)'

@@ -8,7 +8,7 @@ after WP-S2.03 part 2's delivery; Opus review of each ·
 **Date:** 2026-10-22 · **Work package:**
 [WP-S2.04](../02-work-packages.md#wp-s204-placement-wiring-and-drawing-tools) · **Decision log:** ID-561 to ID-571 (the
 cycle-23 design pass recorded §17.3's entries; §17.4's follow-ups are FT-372 to FT-379; doc 03 §5 and §6 and doc 05
-§2.2 carry §10.1's shapes since that pass, so part 4a's precondition of §17.2 is met; **part 1 delivered in cycle 25**, recorded as ID-625 with its thirteen rulings, the integration rules ID-628 and the window check ID-629; follow-ups FT-421 to FT-426, of which FT-423 is due before part 2 integrates and FT-421 before part 2's delivery; **part 2 delivered in cycle 26**, recorded as ID-635 with its nine rulings, the fix round and the window-check rules, FT-421 and FT-423 closed, FT-424 in part, the integration ID-638 and the window checks ID-639; follow-ups FT-434 and FT-437, FT-374 amended; **parts 3 and 4a delivered in cycle 27**, recorded as ID-646 (fourteen rulings and the review's) and ID-647 (thirteen rulings, the unlink ruling, AC-16 at 2527 keys of 72 families), with the integration and window checks ID-652; follow-ups FT-441, FT-443 to FT-447, FT-450 to FT-452 and FT-462; FT-389, FT-392, FT-424's second half and FT-437 re-dated to part 4b; part 4b next) · **Part of:** ElektraWatt plan,
+§2.2 carry §10.1's shapes since that pass, so part 4a's precondition of §17.2 is met; **part 1 delivered in cycle 25**, recorded as ID-625 with its thirteen rulings, the integration rules ID-628 and the window check ID-629; follow-ups FT-421 to FT-426, of which FT-423 is due before part 2 integrates and FT-421 before part 2's delivery; **part 2 delivered in cycle 26**, recorded as ID-635 with its nine rulings, the fix round and the window-check rules, FT-421 and FT-423 closed, FT-424 in part, the integration ID-638 and the window checks ID-639; follow-ups FT-434 and FT-437, FT-374 amended; **parts 3 and 4a delivered in cycle 27**, recorded as ID-646 (fourteen rulings and the review's) and ID-647 (thirteen rulings, the unlink ruling, AC-16 at 2527 keys of 72 families), with the integration and window checks ID-652; follow-ups FT-441, FT-443 to FT-447, FT-450 to FT-452 and FT-462; FT-389, FT-392, FT-424's second half and FT-437 re-dated to part 4b; part 4b implemented in cycle 28 (ID-659, ID-660), pending the integrating session's normal-window and delivery validation; part 5 remains open) · **Part of:** ElektraWatt plan,
 specifications
 
 **Purpose.** This is the closed specification of the first editing package. It turns the viewer and tool framework of
@@ -598,7 +598,7 @@ absent: plain, so Golden A's output is byte-equal. The PDF uses the same display
 | `tool.route_edit` | Edit ▸ Edit route | — | canvas | — |
 | `junction.open` | Edit ▸ Junction sequence… | Enter on a selected junction | canvas | — |
 | `junction.member`, `junction.style`, `junction.wiring` | hidden (the popup) | Alt+Up, Alt+Down | junction | `from`, `to`; `style`, optional `orient`; `wiring` |
-| `project.crossings` | Project ▸ Drawing (checked) | — | global | optional `on` |
+| `project.crossings` | Tools (checked) | — | global | optional `on` |
 
 **Transcript:** `canvas` gains `route` (`null` or `{"from": "<label>", "bends": n, "points": n, "end": "<label>" or
 null}`) after `picker`, and `junction_editor` (`null` or `{"junction": "<cell>" (as built: the frame cell, `C11` or `C11#2`; ID-630, ID-635), "style": "bevel", "wiring": "chain",
@@ -796,25 +796,27 @@ entity reference, so WP-S2.02's entity rectangles pick it. The PDF writes the sa
 ### 10.4 Commands and amendments of part 4a
 
 `box.structure`, `item.place`, `marker.place` (§5.1); `rep.move` `items`, `edit.delete` and `fields.set` kinds,
-`project.drawing.set` `marker_mode` (§5.2). *Deviation (cycle 27; decision log ID-647):* Select's drag, `tool.move` and Delete on page items and structure boxes move to part 4b (§10.5, checked by PI7); part 4a delivers the commands and amendments, so `rep.move { reps, items, steps }` and `edit.delete` reach the new kinds from a command or a script.
+`project.drawing.set` `marker_mode` (§5.2). Select's drag, `tool.move` and Delete on page items and structure boxes moved from part 4a to part 4b (ID-647); part 4b now implements them together with representations in one command (PI7, ID-659).
 
-*As built (cycle 27, part 4a; decision log ID-647).* The record kinds as §10.1 (and doc 03 §6, doc 05 §2.2) say, with these notes: `free_text.text` is optional (omitted when empty; an empty text needs `bind`), `arc.start` defaults to 0 and is omitted then, and `$v` is omitted when 1; an older build's lines (reserved kinds, written in byte-wise member order) load typed with a `NonCanonical` finding and are rewritten canonically. `item.place` and `box.structure` also refuse collinear polygons and zero-area box outlines. The page tables list `items` and `structure_boxes` by position (FT-439's rule). AC-16 sweeps 2527 keys of 72 memoised families (`rep_structure_box`, `ip_structure`), the one reviewed golden line; no other golden byte changes. Open: `fields.set` on a connection's `overrides.colour` lacks `marker.place`'s colour-code check (FT-451); the project description has no command, so PI3 is proved with `page.title` (FT-447); the non-settable members of both kinds route to `rep.move` in the property grid instead of a narrowing with its reason (FT-450); the fragment does not carry the new kinds yet (FT-452).
+*As built (cycle 27, part 4a; decision log ID-647).* The record kinds as §10.1 (and doc 03 §6, doc 05 §2.2) say, with these notes: `free_text.text` is optional (omitted when empty; an empty text needs `bind`), `arc.start` defaults to 0 and is omitted then, and `$v` is omitted when 1; an older build's lines (reserved kinds, written in byte-wise member order) load typed with a `NonCanonical` finding and are rewritten canonically. `item.place` and `box.structure` also refuse collinear polygons and zero-area box outlines. The page tables list `items` and `structure_boxes` by position (FT-439's rule). AC-16 sweeps 2527 keys of 72 memoised families (`rep_structure_box`, `ip_structure`), the one reviewed golden line; no other golden byte changes. Open at the cycle-27 delivery: `fields.set` on a connection's `overrides.colour` lacks `marker.place`'s colour-code check (FT-451); the project description has no command, so PI3 is proved with `page.title` (FT-447); the non-settable members of both kinds route to `rep.move` in the property grid instead of a narrowing with its reason (FT-450); the cycle-27 fragment did not carry the new kinds (FT-452, closed by ID-660); FT-450 is closed by ID-659.
 
 ### 10.5 The tools of part 4b
 
 | Tool | States | Commit |
 |---|---|---|
-| Text (`text`, T) | `armed` → press or `Activate` at the fine-snapped point opens the text field popup (`typing`); `Text(s)` sets the text; Enter (or `tool.finish`) → commit; `Escape` closes the popup and returns to `armed` | `item.place { free_text: { text: s, at, angle, style } }`; with the tool strip's binding chosen (`text.bind` with `bind`), `bind` instead of `text` |
+| Text (`text`, T) | `armed` → bound Text commits at the placement press without opening a popup; otherwise press or `Activate` at the fine-snapped point opens the text field popup (`typing`); `Text(s)` sets the text; Enter (or `tool.finish`) → commit; `Escape` closes the popup and returns to `armed` | `item.place { free_text: { text: s, at, angle, style } }`; with the tool strip's binding chosen (`text.bind` with `bind`), `bind` instead of `text` |
 | Text edit | In Select, a double click (or `text.edit`, F2) on a selected free text opens the popup with its text | `fields.set { kind: page_item, targets: [id], path: "kind.free_text.text", value }` |
-| Graphic (`graphic`, L for a line; Insert ▸ Graphic ▸ line, polyline, rectangle, circle, arc, polygon) | `armed` → `drawing`: line and rectangle by two points; circle by centre and a point on it; arc by centre, start point and end point (sweep clockwise by default; Shift held on the end press, or `Key(ToggleDirection)` (D, the keyboard path) before the end press, makes it anticlockwise, and the tool strip and the ghost show the direction); polyline and polygon by points, `Back` removing the last, `tool.finish` ending | `item.place { graphic: { shape } }` |
+| Graphic (`graphic`, L for a line; Insert ▸ Graphic ▸ line, polyline, rectangle, circle, arc, polygon) | `armed` → `drawing`: line and rectangle by two points; circle by centre and a point on it; arc by centre, start point and end point (sweep clockwise by default; Shift held on the end press, or `Key(ToggleDirection)` (D, the keyboard path) before the end press, makes it anticlockwise, and the tool strip and the ghost show the direction); polyline and polygon by points, `Back` removing the last, Shift+Enter or double click (`tool.finish`) ending | `item.place { graphic: { shape } }` |
 | Marker (`marker`, Shift+W; doc 06 §4.5) | `armed` → `crossing`: a rubber line from the press point to the pointer; every connection segment it crosses, in the order along the line, is collected; release or `Activate` → the tool strip's fields (cross-section, colours; `marker.fields` with `csa`, `colours`) → Enter commits | `marker.place { connections, at: the crossing line's midpoint snapped to the fine grid, angle: 90 when the crossed segments are horizontal, csa, colours }` |
-| Structure box (`structure_box`, Shift+B) | `armed` → `outline` (a rectangle by two fine-snapped points; polygon points with `tool.finish`); then the tool strip's style, caption, location node and external reference (`structure_box.fields`) → Enter | `box.structure` |
+| Structure box (`structure_box`, Shift+B) | `armed` → `outline` (a rectangle by two fine-snapped points; polygon points with Shift+Enter or double click (`tool.finish`); two corners distinct in both axes become a rectangle); then the tool strip's style, caption, location node and external reference (`structure_box.fields`) → Enter | `box.structure` |
 
 All previews on a dwell of 80 ms as elsewhere; Escape returns to `armed`, from `armed` to Select.
 
+*As built (cycle 28, ID-659).* Text/Text edit input updates the ghost while typing and the 80 ms dwell preview before an explicit Enter commit; Escape cancels. Bound Text commits at its press. Graphic and Structure box use Shift+Enter or a double click for tool.finish; a two-corner box outline becomes a rectangle before its fields/Enter step. Marker fields determine the ghost and commit text, and angle is 90 degrees only when all crossed segments are horizontal. A new drawing-tool activation, including the same action and page/project reset, resets the displayed marker/structure drafts to that tool's defaults; editable drafts survive ordinary frames and outline transitions. Changing the page cancels every part-4b tool. These statements describe accepted corrected code; the normal-window pass is recorded separately.
+
 ### 10.6 The marker mode action
 
-`project.marker_mode` (Project ▸ Drawing ▸ Wire markers ▸ four checked items and "As set per wire") commits
+`project.marker_mode` (Tools ▸ Wire markers ▸ four checked items and "As set per wire") commits
 `project.drawing.set { marker_mode }`.
 
 ### 10.7 Actions, transcript and describe of part 4b
@@ -825,7 +827,7 @@ All previews on a dwell of 80 ms as elsewhere; Escape returns to `armed`, from `
 | `text.bind`, `text.edit` | hidden (tool strip); Edit ▸ Edit text | —; F2 | canvas | `bind`; — |
 | `tool.marker`, `marker.fields` | Insert ▸ Wire marker; hidden | Shift+W | canvas | —; `csa`, `colours` |
 | `tool.structure_box`, `structure_box.fields` | Insert ▸ Structure box; hidden | Shift+B | canvas | —; `style`, `caption`, `location`, `external` |
-| `project.marker_mode` | Project ▸ Drawing (checked) | — | global | `mode` |
+| `project.marker_mode` | Tools ▸ Wire markers (checked) | — | global | `mode` |
 
 `ghost` gains `{"kind": "text", "at_nm": [x, y], "text": "…"}`, `{"kind": "graphic", "shape": "polyline", "points":
 n}`, `{"kind": "marker", "connections": n, "text": "2.5 BK BU"}` and `{"kind": "structure_box", "outline": n}`.
@@ -848,9 +850,11 @@ there already and this part adds **12**; if WP-S6.13 part 1 integrates after par
 **Strip bridges (FT-411, hosted here by the cycle-25 ruling ID-622; 0.2 pw from WP-S2.04's reserve).** The action
 `strip.bridge` (Edit ▸ Bridge terminals, context canvas, no parameters; signature `""`) is enabled when the selection is
 exactly two terminal representations of one strip whose terminals are not yet bridged to each other, and commits
-through the host the existing page-less `connection.draw` between the two terminals, with the endpoints a golden bridge uses (doc 20 §8.3; the lane reads them from Golden A's bridge connections and stops if they differ by terminal type) (one undo step); a range
-such as BR1 (-X1031 1 to 4) is drawn as three such steps. Disabled with its reason otherwise (`reason-bridge-selection`).
+through the host the existing page-less `connection.draw` between the two terminals, using the lowest CP of the first part use with a shaft-1 bridge entry, with checked existing connectivity/group selection (one undo step); a range
+such as BR1 (-X1031 1 to 4) is drawn as three such steps. Disabled reasons distinguish selection/strip/shaft/already-connected conditions; `reason-bridge-selection` is not every refusal.
 It adds no describe word. Checked by PI10.
+
+*As built (cycle 28, ID-659):* fourteen new words, because `text` and `connections` already exist and `anticlockwise`, `boxes` and `unknown` are also needed; 266 words and 198 actions are the lane's proposed integrated totals, to be confirmed by the merged-tip pinned reference check. The delta is ten actions, with 54 commands. `page.describe` prints item/box lines only when the page has that content; `TableItem` carries text and bind.
 
 ## 11. Part 5: images
 
@@ -945,7 +949,7 @@ PI1 to PI6 and PI8 belong to part 4a, PI7, PI9 and the G-PP rehearsal of §13.6 
 | PI6 | FR-CON-024's acceptance: on Golden A, `explicit` prints exactly the per-connection markers that the absent setting prints (the four reference groups' ten wires); `none` none; `all` one per wire; `deviations` the wires with a level 3 to 7 value | `ew-api` tests | §10.2 |
 | PI7 | Tools: Text (with binding and edit), Graphic (every shape, Back, finish), Marker (crossing order, fields), Structure box; move and delete of items and boxes with representations in one command | `ew-viewmodel` tests | §10.5 |
 | PI8 | Commands and amendments with every rejection; DSL verbs and fuzzer arms; the catalogue at 50 commands (*as built:* 49 on part 4a's base, 54 at the cycle-27 integration tip, §5.1) | `ew-commands`, `ew-testkit` tests | §5 |
-| PI9 | Transcript, describe, the 13 words; the folio-101 structure-box and marker steps of §13.6 twice byte-identical; replay; exact counts; golden unchanged; policy and targeted checks, including `check-licence-map` for the touched permissive-boundary crates | lane; tests | §10.7, §12 |
+| PI9 | Transcript, describe, the as-built fourteen added words (§10.7); the folio-101 structure-box and marker steps of §13.6 twice byte-identical; replay; exact counts; golden unchanged; policy and targeted checks, including `check-licence-map` for the touched permissive-boundary crates | lane; tests | §10.7, §12 |
 | PI10 | FT-411: on the folio-103 demo variant, bridging -X1031:1 to :4 by three `strip.bridge` steps gives one potential over the four terminals (24VDC-1) and three page-less connections; a selection of two terminals of different strips or of one terminal is refused with `reason-bridge-selection`; each step one undo step | `ew-viewmodel` tests; the demo script | FT-411 |
 
 ### 13.5 Part 5
@@ -1006,6 +1010,14 @@ The G-PP rehearsal shows that the tools can draw the content, not that users can
 
 The workspace suite, the acceptance runner and the performance runs are not run by the lanes (testing policy, ID-512);
 the integrating session runs `cargo xtask ci` at the cycle delivery.
+
+### 13.7 As built in cycle 28 (part 4b)
+
+**WP-S2.04 part 4b implemented in cycle 28; delivery validation remains with the integrating session.** Text, Text edit, Graphic, Wire marker and Structure box use the existing tool host; Select moves and deletes page items and structure boxes together with representations, completing part 4a's PI7 deviation. A bound Text commits on the placement press; unbound Text opens the popup, previews the changed text on the 80 ms dwell and commits explicitly with Enter. Text edit uses F2/double click on a free text and refuses a read-only page. Graphic polylines/polygons and a Structure box outline finish with Shift+Enter (`tool.finish`) or a double click; two distinct box corners in both axes make a rectangle, after which its fields and Enter place it. D changes an arc's direction. Wire marker collects connections in crossing order, its ghost text comes from the submitted fields, and its angle is 90 degrees only when every crossed segment is horizontal. Rearming a drawing tool, including the same tool and after page/project reset, clears the displayed marker/structure drafts to the new tool's defaults; ordinary frames and outline transitions preserve editable drafts. All five tools obey the page-change cancellation rule. `project.marker_mode` is under Tools ▸ Wire markers. `TableItem` exposes text and binding; `page.describe` adds items/boxes only for a page that has them. The lane's registry delta is ten actions and fourteen words (text and connections already exist; anticlockwise, boxes and unknown are among the added words), with 54 commands; final generated totals are checked on the merged tip. PI7/PI9/PI10 and both folio-103 rehearsal variants have automated lane evidence; they do not establish G-PP usability, a normal-window pass or cycle delivery. FT-411, FT-441, FT-446, FT-450 and FT-462 are closed in their implemented scope; FT-452 is recorded separately. FT-389, FT-392, FT-424's second half and FT-437 were not taken and remain open before G-PP. `junction.open` and Edit ▸ Edit route require exactly one selected entity of the respective kind; a mixed selection including an item or box does not qualify.
+
+Since cycle 28 the fragment also carries page items and structure boxes (ranks 43/44); marker associations retain and remap copied connections, empty markers/unknown variants are skipped and counted, and cross-project structure-box paste clears `external`. Copy remains partial-selection tolerant; Cut refuses an incomplete selected page-item transfer before side effects (ID-660; WP-S2.05 §8). `CopiedFragment::incomplete_page_items` counts each selected page item omitted or copied with fewer marker associations once. Cut performs one copy and, when that count is nonzero, refuses with `reason-cut-incomplete-items` before any clipboard/outbox, selection, model or revision change: “Cut would lose page items or marker connections; include every marker wire or use Copy”. A complete Cut keeps one delete/undo step and the device-left-unplaced rule.
+
+`gpp_rehearsal_draws_folios_101_to_103_saves_exports_and_lists_the_parts` and `gpp_rehearsal_on_the_folio_103_demo_variant` supply automated content evidence. Normal-window, merged gate and hosted CI checks remain pending; this is not pilot-gate, usability or performance evidence. FT-411, FT-441, FT-446, FT-450, FT-452 and FT-462 are closed in their implemented scope; FT-389, FT-392, FT-424's second half and FT-437 remain open before G-PP (ID-659, ID-660, ID-666).
 
 ## 14. Files owned
 

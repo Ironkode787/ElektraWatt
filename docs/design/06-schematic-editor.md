@@ -1,6 +1,6 @@
 # Schematic editor
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-22, cycle 17: `revision.create`, 37 commands, §3.1; amended 2026-10-22, cycle 18: `plc.set_module_part`, 38 commands, §3.1; rows 3, 13 and 14 as built, §3.2; amended 2026-10-22, cycle-22 design pass: the tool contract's context and previews for WP-S2.03, §4.1, decision log ID-536; amended 2026-10-23, cycle-23 design pass: WP-S2.03 part 1 as built, §4.1, §4.3, §5.7, §6, decision log ID-556, ID-557, ID-560; the decisions of WP-S2.04's specification as notes, §3.2, §3.9, §5.2, §5.4, §5.7, decision log ID-561 to ID-564, ID-567, ID-568; amended 2026-10-24, cycle-24 design pass: WP-S2.03 part 2 as built, the tool contract, the Select and Measure tools, picking and snapping, §4.1, §4.3, §4.5, §5.7, §6, decision log ID-586 to ID-589; amended 2026-10-24, cycle-25 design pass: WP-S2.04 part 1 and WP-S2.05 part 1 as built, the page-type refusal text, 45 commands, undo granularity and the keys as built, §2.2, §3.1, §3.9, §6, decision log ID-625 to ID-628; amended 2026-10-24, cycle-26 design pass: WP-S2.04 part 2 and WP-S2.05 part 2 as built, the wire kind per page type, `fields.set_many` and 46 commands, the undo granularity of wiring and replace, the router as built, the keys as built, §2.2, §3.1, §3.9, §5.4, §6, decision log ID-634, ID-635, ID-638; amended 2026-10-25, cycle 27: eight commands and 54 registered, the clipboard as built with cut leaving the device unplaced, Shift+Delete on Windows, §3.1, §3.6, §6, decision log ID-646 to ID-648, ID-651) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · Amended 2026-10-25, cycle 28: accepted implementation and scoped follow-ups (ID-659 to ID-666); normal-window and delivery validation pending. · **Date:** 2026-10-18 (amended 2026-10-22, cycle 17: `revision.create`, 37 commands, §3.1; amended 2026-10-22, cycle 18: `plc.set_module_part`, 38 commands, §3.1; rows 3, 13 and 14 as built, §3.2; amended 2026-10-22, cycle-22 design pass: the tool contract's context and previews for WP-S2.03, §4.1, decision log ID-536; amended 2026-10-23, cycle-23 design pass: WP-S2.03 part 1 as built, §4.1, §4.3, §5.7, §6, decision log ID-556, ID-557, ID-560; the decisions of WP-S2.04's specification as notes, §3.2, §3.9, §5.2, §5.4, §5.7, decision log ID-561 to ID-564, ID-567, ID-568; amended 2026-10-24, cycle-24 design pass: WP-S2.03 part 2 as built, the tool contract, the Select and Measure tools, picking and snapping, §4.1, §4.3, §4.5, §5.7, §6, decision log ID-586 to ID-589; amended 2026-10-24, cycle-25 design pass: WP-S2.04 part 1 and WP-S2.05 part 1 as built, the page-type refusal text, 45 commands, undo granularity and the keys as built, §2.2, §3.1, §3.9, §6, decision log ID-625 to ID-628; amended 2026-10-24, cycle-26 design pass: WP-S2.04 part 2 and WP-S2.05 part 2 as built, the wire kind per page type, `fields.set_many` and 46 commands, the undo granularity of wiring and replace, the router as built, the keys as built, §2.2, §3.1, §3.9, §5.4, §6, decision log ID-634, ID-635, ID-638; amended 2026-10-25, cycle 27: eight commands and 54 registered, the clipboard as built with cut leaving the device unplaced, Shift+Delete on Windows, §3.1, §3.6, §6, decision log ID-646 to ID-648, ID-651) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) edits schematic pages: multi-line, single-line, overview,
 bus-topology, fluid and graphic pages, together with their frames, folios and sections. It covers symbol placement,
@@ -631,6 +631,8 @@ devices, for example to draw an existing device on an overview page.
 
 *As built (cycle 27, WP-S2.05 part 3; decision log ID-648).* Copy, Cut, Paste, Duplicate and Copy tag list exist on the canvas (Ctrl+C, Ctrl+X, Ctrl+V, Ctrl+D; Copy tag list on the Edit menu), with the fragment as built in [05](05-project-format-and-persistence.md) §12. Items 1, 3, 5 and 6 hold as written; item 2's copies are numbered in fragment order (the order of their representations' positions) by online numbering's own loop, because the normaliser numbers new devices by ID (FR-NUM-028's anchor-cell order is FT-456); item 4's three-way choice is a follow-up, and a copy the project holds in another version is refused ("update from library first"). **Cut leaves the device unplaced** (decided): Cut is Copy and then the deletion of the selected representations, so the device and its functions stay in the project, unplaced (FR-DEV-003), and a cut and paste gives a new device; the identity-keeping move across pages is `rep.move` (§3.4). Trade-off: no device data (parts, frozen tags, technical data) is lost by a cut, at the price of an unplaced device that the user deletes from the navigator. On Windows, Shift+Delete also cuts (egui-winit turns it into the Cut event, §6). A fragment representation off the page grid is refused, and a paste on a page that takes no symbols is refused with its reason. The clipboard is text through egui's clipboard (arboard), whose Wayland and X11 behaviour is a manual check (FT-455).
 
+*Cycle 28 (ID-660):* Since cycle 28 the fragment also carries page items and structure boxes (ranks 43/44); marker associations retain and remap copied connections, empty markers/unknown variants are skipped and counted, and cross-project structure-box paste clears `external`. Copy remains partial-selection tolerant; Cut refuses an incomplete selected page-item transfer before side effects (ID-660; WP-S2.05 §8). `CopiedFragment::incomplete_page_items` counts each selected page item omitted or copied with fewer marker associations once. Cut performs one copy and, when that count is nonzero, refuses with `reason-cut-incomplete-items` before any clipboard/outbox, selection, model or revision change: “Cut would lose page items or marker connections; include every marker wire or use Copy”. A complete Cut keeps one delete/undo step and the device-left-unplaced rule.
+
 ### 3.7 Selection, multi-select and bulk edit
 
 - The selection is a set of entity references (representations, connections, junctions, page items, boxes) that
@@ -663,6 +665,8 @@ representations in those columns unless they carry a manual text (FR-DEV-011). I
 Mechanical linkages between related functions (an actuator and its contacts; a valve and a process valve) are
 derived dashed lines, not graphics (FR-SYM-014, FR-DEV-028). Dragging the actuator moves its linkage, and the
 linkage cannot be selected as a free line.
+
+*Cycle 28 (ID-659):* Text, Text edit, Graphic, Wire marker and Structure box are implemented through the tool host (§4.5); Image remains part 5.
 
 ### 3.9 Undo granularity
 
@@ -883,10 +887,12 @@ stateDiagram-v2
 
 | Tool | States (abridged) | Commits |
 |---|---|---|
-| Interruption point | Armed → Floating (name, direction, star source) → Committed | `ip.place` |
-| Box (black or structure) | Armed → Outline (rectangle or polygon clicks) → Assign (device or structure, external ref) → Committed | `box.black`, `box.structure` |
-| Marker (CDP) | Armed → Crossing (rubber line across wires) → Fields (size, colours) → Committed | `item.place` + `fields.set` in one transaction |
-| Graphic, Text, Image | Armed → Drawing → Committed | `item.place` |
+| Interruption point | Armed → Floating (name, direction, star source) → Committed | `ip.place` (§3.5; WP-S2.04 §9.1) |
+| Black box | Armed → Outline → Assign device → Committed | `box.black` (WP-S2.04 §9.4) |
+| Structure box | Armed → Outline → Fields → Committed | `box.structure` |
+| Wire marker (CDP) | Armed → Crossing (rubber line across wires) → Fields (size, colours) → Committed | `marker.place` |
+| Graphic, Text | Armed → Drawing/Typing → Committed | `item.place`; Text edit uses `fields.set` |
+| Image (part 5, open) | Planned placement flow | planned `item.place` path |
 | Route edit | Grip selected → Dragging segment (stays orthogonal) → Committed | `connection.route` |
 | Measure | Armed → Measuring | none (transient) |
 | Pan, zoom | — | none |
@@ -897,6 +903,8 @@ readout chip `dx … dy … mm, d mm`. Its points snap to a connection point wit
 held. It never previews and never commits, and it does not want hover, so the entity hover outline and the link hover
 and preview are not drawn under it. The readout is announced through the canvas's live region on Press and on Activate
 (doc 16 §4.5).
+
+*As built (cycle 28, ID-659).* Text/Text edit input updates the ghost while typing and the 80 ms dwell preview before an explicit Enter commit; Escape cancels. Bound Text commits at its press. Graphic and Structure box use Shift+Enter or a double click for tool.finish; a two-corner box outline becomes a rectangle before its fields/Enter step. Marker fields determine the ghost and commit text, and angle is 90 degrees only when all crossed segments are horizontal. A new drawing-tool activation, including the same action and page/project reset, resets the displayed marker/structure drafts to that tool's defaults; editable drafts survive ordinary frames and outline transitions. Changing the page cancels every part-4b tool. These statements describe accepted corrected code; the normal-window pass is recorded separately. Text edit uses F2/double click on free text and refuses a read-only page. Select moves and deletes mixed representations, page items and structure boxes together in one command. `strip.bridge` (Edit ▸ Bridge terminals, no shortcut) uses the lowest CP of the first part use with a shaft-1 bridge entry, checks bridge connectivity/group selection and draws one page-less connection in one undo step. Disabled reasons distinguish selection, strip, shaft and already-connected conditions.
 
 ---
 

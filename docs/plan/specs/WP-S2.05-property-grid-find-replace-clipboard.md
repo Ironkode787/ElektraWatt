@@ -1,6 +1,6 @@
 # WP-S2.05: property grid, provenance, find and replace, clipboard (closed specification)
 
-**Status:** specified in cycle 24 (documents only) for three lead-programmer parts: part 1 (the field catalogue, the
+**Status:** specified in cycle 24 (documents only); Amended 2026-10-25, cycle 28: fragment extension and pre-side-effect Cut guard implemented (ID-660), delivery validation pending. for three lead-programmer parts: part 1 (the field catalogue, the
 property sheet and the property grid, D4), part 2 (find and replace with `fields.set_many`, D4) and part 3 (the
 clipboard: project fragments, `edit.paste`, duplicate and cut, D5); part 1 after WP-S2.03 part 2's delivery, part 2
 after part 1, part 3 after part 1 and WP-S2.04 part 1; Opus review of each ·
@@ -757,7 +757,7 @@ Equal selections on equal snapshots give byte-equal text. Any other application 
 "grid", "page_kind", "anchor", "records": [<record>…], "copies": [<libdoc>…], "nodes": [<node>…]}` (no ghost); its
 schema is committed with the command.
 
-*As built (cycle 27, lane E; review fix round):* the `$fragment` header is open within v1 (an unknown member is ignored), a `$node` line's members are closed (`id`, `aspect`, `path`, `aliases`); a leading byte-order mark is skipped, CRLF line ends are read and empty lines skipped. Records are ordered by (kind rank, position, ID) — a representation's insertion point, a junction's point, a device's and a function's first copied representation, a connection's and a potential definition's end — not by (kind rank, ID) (FT-439's rule that machine text is not ordered by UUID), and `edit.paste` mints in (kind rank, fragment order) and numbers the pasted devices in that order with online numbering's own loop (`numbering::number_devices`), because the UUIDv7s one transaction mints are not monotonic. A copy drops the import lineage (`source_ref`), and so does `edit.paste` for a fragment written elsewhere. The fragment carries raw UUIDs as data (lane E's ruling 1, a decision; ID-648): it is clipboard content, never the shell's machine text, so the alias rule of FT-422 does not apply to it, and the transcript's `clipboard` member carries kinds and counts only (§8.8). It does not carry the part-4a kinds yet (FT-452).
+*As built (cycle 27, lane E; review fix round):* the `$fragment` header is open within v1 (an unknown member is ignored), a `$node` line's members are closed (`id`, `aspect`, `path`, `aliases`); a leading byte-order mark is skipped, CRLF line ends are read and empty lines skipped. Records are ordered by (kind rank, position, ID) — a representation's insertion point, a junction's point, a device's and a function's first copied representation, a connection's and a potential definition's end — not by (kind rank, ID) (FT-439's rule that machine text is not ordered by UUID), and `edit.paste` mints in (kind rank, fragment order) and numbers the pasted devices in that order with online numbering's own loop (`numbering::number_devices`), because the UUIDv7s one transaction mints are not monotonic. A copy drops the import lineage (`source_ref`), and so does `edit.paste` for a fragment written elsewhere. The fragment carries raw UUIDs as data (lane E's ruling 1, a decision; ID-648): it is clipboard content, never the shell's machine text, so the alias rule of FT-422 does not apply to it, and the transcript's `clipboard` member carries kinds and counts only (§8.8). Cycle 27 did not carry the part-4a kinds (FT-452). Since cycle 28 the fragment also carries page items and structure boxes (ranks 43/44); marker associations retain and remap copied connections, empty markers/unknown variants are skipped and counted, and cross-project structure-box paste clears `external`. Copy remains partial-selection tolerant; Cut refuses an incomplete selected page-item transfer before side effects (ID-660; WP-S2.05 §8).
 
 ### 8.2 Copy (`Session::copy_fragment`)
 
@@ -771,7 +771,7 @@ From the selected IDs, on one page (else `NotOnePage`; a generated page: `Genera
    counted in `dropped_connections` (doc 06 §3.6 item 5).
 3. **Junctions:** selected ones, and every junction at which at least two connections with copied far ends meet;
    steps 2 and 3 repeat until nothing is added. A copied junction's `sequence` keeps only copied connections.
-4. **Wire markers** only when every listed connection is copied; other page items as selected.
+4. **Wire markers** retain copied connections only; a marker with no copied connection is skipped and counted. Other supported page items are copied as selected; unknown variants are skipped and counted and do not affect the anchor or ghost (cycle 28, ID-660).
 5. **Library copies:** every symbol, FnDef and part copy the records name (representations' symbols, functions' FnDefs,
    devices' parts, connections' `overrides.wire_part`); **structure nodes:** every node a record's structure
    assignment names (by ID, with its aspect, path codes and aliases).
@@ -783,6 +783,8 @@ From the selected IDs, on one page (else `NotOnePage`; a generated page: `Genera
 `Session::tag_list(ids)`: the devices reached from the IDs (§6.2's expansion), each as its displayed tag on its main
 page, deduplicated, in natural order, one per line, LF, final LF; an empty string for none (FR-UI-040's "Copy tag
 list").
+
+*Cycle 28 (ID-660):* `CopiedFragment::incomplete_page_items` counts each selected page item omitted or copied with fewer marker associations once.
 
 ### 8.3 Parsing (`parse_fragment`)
 
@@ -852,6 +854,8 @@ In one transaction, reading rows through `TxBuilder` only. **Rejected** (at the 
 8. A wire marker left without connections and a junction left with fewer than two connections are removed by the
    existing clean-up (junction clean-up row 8; the wire-marker delete policy of WP-S2.04 part 4a).
 
+*Cycle 28 (ID-660):* ranks 43/44 remain in fragment v1; page-item geometry translates with the anchor. Marker associations retain only copied connections and remap to minted IDs; an empty marker is not pasted. Unknown page-item variants are skipped and counted and do not affect the anchor or ghost. Cross-project structure-box paste clears `external`.
+
 ### 8.5 The paste tool, duplicate and cut
 
 **Paste** (`edit.paste_clip`, Ctrl+V on the canvas): the window takes the text of egui's paste event, headless the
@@ -869,6 +873,8 @@ copy, then `edit.delete` of the selection through `edit.delete_selection`'s path
 the fragment). **Copy** (`edit.copy`, Ctrl+C): the fragment to the clipboard; **Copy tag list** (`edit.copy_tags`,
 Edit menu): `tag_list` to the clipboard as text. Copy and cut with nothing copyable are refused with
 `reason-nothing-selected`. *As built (ID-648):* cut leaves the device and its functions unplaced (FR-DEV-003; doc 06 §3.6), replaces the selection only after a successful copy and leaves it as it was when the copy is refused; a device or function selected by tag is copied and cut as its representations on the page shown; on Windows egui-winit also turns Shift+Delete into the Cut event. Edit ▸ Paste sends `ViewportCommand::RequestPaste` (egui 0.37), and a paste of the text the shell already holds keeps the copy's kind and dropped count.
+
+*Cycle 28 (ID-660):* `CopiedFragment::incomplete_page_items` counts each selected page item omitted or copied with fewer marker associations once. Cut performs one copy and, when that count is nonzero, refuses with `reason-cut-incomplete-items` before any clipboard/outbox, selection, model or revision change: “Cut would lose page items or marker connections; include every marker wire or use Copy”. A complete Cut keeps one delete/undo step and the device-left-unplaced rule.
 
 ### 8.6 Cross-instance and cross-project paste
 
@@ -905,6 +911,8 @@ canvas ghost paste records 7 at 254.000 101.600 mm dropped 1
 ### 8.9 As built (cycle 27; decision log ID-648, ID-652)
 
 Part 3 is delivered as §8.1 to §8.8 say, with the amendments marked there: `edit.paste` (47 commands on the lane's base, 54 at the integration tip), `Session::copy_fragment`, `parse_fragment` and `tag_list`, the paste tool, Duplicate, Cut, Copy, Paste and Copy tag list, the headless clipboard, six actions and the 6 words of §8.8 (252 words at the integration tip). CB1 to CB8 pass: T55, E55 and E56 of folio 101 pasted into folio 1 of a new project by a script through the built binary, twice byte-identical without a raw UUID, the `--record` log (one `edit.paste`) replayed onto a copy of the same new project; two shell models as two instances; Copy tag list gives `-101F1`, `F55`, `S51`. The expected fragment is compared byte for byte and lives under the `REUSE.toml` annotation (ID-652). The window check on the merged build passed the paste tool, Ctrl+D, Ctrl+X and Shift+Delete with undo, Edit ▸ Paste and Ctrl+V in a text field; a paste on the title page now refuses with a reason (fixed in the cycle-27 window fix round, commit 10f7d6f). Follow-ups: FT-452 (the part-4a kinds), FT-453 (a same-project paste keeps the parent), FT-454 (duplicate potential names), FT-455 (the Linux clipboard check), FT-456 (the normaliser's order).
+
+*Cycle 28 implementation addendum (ID-660):* Since cycle 28 the fragment also carries page items and structure boxes (ranks 43/44); marker associations retain and remap copied connections, empty markers/unknown variants are skipped and counted, and cross-project structure-box paste clears `external`. Copy remains partial-selection tolerant; Cut refuses an incomplete selected page-item transfer before side effects (ID-660; WP-S2.05 §8). `CopiedFragment::incomplete_page_items` counts each selected page item omitted or copied with fewer marker associations once. Cut performs one copy and, when that count is nonzero, refuses with `reason-cut-incomplete-items` before any clipboard/outbox, selection, model or revision change: “Cut would lose page items or marker connections; include every marker wire or use Copy”. A complete Cut keeps one delete/undo step and the device-left-unplaced rule. This closes FT-452 at code level; normal-window and cycle delivery validation of the extension remain pending. The cycle-27 window evidence above is historical.
 
 ## 9. Determinism, the headless mode and exact counts
 
