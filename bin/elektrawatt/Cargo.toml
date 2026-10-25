@@ -25,7 +25,8 @@ ew-print = { path = "../../crates/ew-print" }
 # no persistence, no default_fonts. `wgpu_no_default_features` instead of `wgpu`: eframe's `wgpu` turns on every
 # wgpu backend through egui-wgpu's defaults; the backends are ew-render2d's, one set per operating system (FT-328:
 # DX12 with WARP on Windows, Metal on macOS, Vulkan and GL on Linux).
-eframe = { version = "=0.37.0", default-features = false, features = ["accesskit", "wgpu_no_default_features", "wayland", "x11"] }
+# Native Copy/Cut/Paste needs the explicit clipboard feature with defaults disabled.
+eframe = { version = "=0.37.0", default-features = false, features = ["accesskit", "clipboard", "wgpu_no_default_features", "wayland", "x11"] }
 # Open and Save As dialogs; the XDG-portal backend on Linux (no GTK), pollster as its executor.
 rfd = { version = "=0.17.2", default-features = false, features = ["xdg-portal"] }
 
@@ -35,6 +36,9 @@ rfd = { version = "=0.17.2", default-features = false, features = ["xdg-portal"]
 # `cargo update` would bring the advisories back (FT-326). Remove it when the graph no longer needs the hold.
 [target.'cfg(any(target_os = "linux", target_os = "dragonfly", target_os = "freebsd", target_os = "netbsd", target_os = "openbsd"))'.dependencies]
 zbus_xml = "=5.2.1"
+# Not used directly: hold the Wayland clipboard on the existing SCTK 0.19 dependency chain.
+# smithay-clipboard 0.7.3 only upgrades that backend; review its new dependencies separately.
+smithay-clipboard = "=0.7.2"
 
 [dev-dependencies]
 serde_json = "1.0.154"

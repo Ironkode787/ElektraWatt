@@ -782,6 +782,96 @@ mod tests {
         }
     }
 
+    #[test]
+    fn the_desktop_shipping_graph_enables_the_native_clipboard() {
+        let root = crate::workspace_root();
+        let policy = crate::deps::Policy::load(&root.join("ci/dep-rules.toml")).expect("policy loads");
+        for krate in ["eframe", "egui-winit"] {
+            assert!(
+                policy
+                    .required_features
+                    .iter()
+                    .any(|r| r.krate == krate && r.feature == "clipboard"),
+                "{krate}/clipboard is required by the policy"
+            );
+        }
+        for target in [
+            "x86_64-pc-windows-msvc",
+            "x86_64-unknown-linux-gnu",
+            "aarch64-apple-darwin",
+        ] {
+            let output = std::process::Command::new(crate::cargo())
+                .current_dir(&root)
+                .args([
+                    "tree",
+                    "--locked",
+                    "-p",
+                    "elektrawatt",
+                    "--target",
+                    target,
+                    "-e",
+                    "normal,build",
+                    "--prefix",
+                    "none",
+                    "--format",
+                    "{p}|{f}",
+                ])
+                .output()
+                .expect("cargo tree runs");
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            assert!(
+                output.status.success(),
+                "shipping graph for {target} failed ({}):\nstdout:\n{stdout}\nstderr:\n{stderr}",
+                output.status
+            );
+            let mut graph = BTreeMap::<&str, std::collections::BTreeSet<&str>>::new();
+            for line in stdout.lines() {
+                let Some((package, features)) = line.split_once('|') else {
+                    continue;
+                };
+                let Some(name) = package.split_whitespace().next() else {
+                    continue;
+                };
+                graph.entry(name).or_default().extend(
+                    features
+                        .split(',')
+                        .map(str::trim)
+                        .filter(|feature| !feature.is_empty()),
+                );
+            }
+            for (krate, feature) in [
+                ("eframe", "clipboard"),
+                ("egui-winit", "clipboard"),
+                ("egui-winit", "arboard"),
+            ] {
+                assert!(
+                    graph.get(krate).is_some_and(|fs| fs.contains(feature)),
+                    "shipping graph for {target} must enable {krate}/{feature}"
+                );
+            }
+            assert!(graph.contains_key("arboard"), "{target} must contain arboard");
+            if target == "x86_64-unknown-linux-gnu" {
+                assert!(
+                    graph
+                        .get("egui-winit")
+                        .is_some_and(|fs| fs.contains("smithay-clipboard")),
+                    "{target} must enable egui-winit/smithay-clipboard"
+                );
+                assert!(
+                    graph.contains_key("smithay-clipboard"),
+                    "{target} must contain smithay-clipboard"
+                );
+            }
+            for feature in ["default_fonts", "glow", "persistence"] {
+                assert!(
+                    !graph.get("eframe").is_some_and(|fs| fs.contains(feature)),
+                    "shipping graph for {target} must keep eframe/{feature} off"
+                );
+            }
+        }
+    }
+
     fn required(krate: &str, feature: &str) -> RequiredFeature {
         RequiredFeature {
             krate: krate.to_owned(),

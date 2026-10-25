@@ -163,6 +163,16 @@ reason = "ARCH §3 rule 3 (GPU)"
 # feature turns on `wayland-sys/dlopen`; without it wayland-sys' build script runs pkg-config for libwayland and
 # links it. `cargo xtask check-features` fails when either feature leaves the resolved graph while its crate is in it.
 [[required_features]]
+crate = "eframe"
+feature = "clipboard"
+reason = "the desktop must publish Copy/Cut and read Paste through the operating-system clipboard"
+
+[[required_features]]
+crate = "egui-winit"
+feature = "clipboard"
+reason = "without it the desktop silently falls back to an app-internal clipboard"
+
+[[required_features]]
 crate = "wgpu-hal"
 feature = "gles"
 reason = "it gives wayland-sys its dlopen feature (no pkg-config probe, no libwayland at link time)"

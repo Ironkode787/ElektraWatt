@@ -91,6 +91,12 @@ criteria = "safe-to-deploy"
 version = "0.2.2"
 notes = "AI-performed, owner-delegated (2026-10-23), cycle 24 lane C lead audit. Read all src (3 files). No unsafe; no fs/net/env; no build.rs; log only. DoS only: exponential descendant-selector matching, selector-group x declaration clone growth, O(n^2) error positions, recursion on comment runs; ElektraWatt's SVG rejecter caps selectors, groups, comments and style-sheet size before parsing."
 
+[[audits.smithay-clipboard]]
+who = "Ironkode787"
+criteria = "safe-to-deploy"
+version = "0.7.2"
+notes = "AI-performed, owner-delegated (2026-10-25), full source review by a GPT-6.1 Sol coder and independent GPT-6.1 Sol lead review of all four library source files, manifest and MIT licence; pending owner confirmation before a distributed binary. No build.rs, file-path opening, environment read, subprocess or remote network in library code. Uses an existing Wayland display, a worker/event queue and clipboard transfer pipe FDs. Unsafe foreign-display construction requires the display to outlive Clipboard and its joined worker; fcntl and calloop pipe access retain owned descriptors. Buffers use safe slices, validated UTF-8/lossy conversion and line-end normalization. Last-seat focus and compositor serials gate selection access. Caveats: public load blocks without a timeout, peer input is accumulated to EOF without a size cap, store send errors are discarded, and worker/setup errors can fail or panic; no guarantee against a broken or hostile same-session compositor/peer. This is a full audit of this crate version only; existing SCTK 0.19.2, calloop 0.13.0 and calloop-wayland-source 0.3.0 exemptions and owner-confirmation debt remain. The compatible 0.7.2 hold retains that dependency chain while enabling native clipboard support; the complete upstream/archive comparison with 0.7.3 found dependency/MSRV/edition and cosmetic/unsafe-style changes, with no missing clipboard algorithm/security fix identified. No known smithay-clipboard advisory was found in the upstream/RustSec/OSV checks at review time."
+
 [[audits.svgtypes]]
 who = "Ironkode787"
 criteria = "safe-to-deploy"
