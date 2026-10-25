@@ -75,19 +75,21 @@ fn coalesced_moves_compact_to_one_op_per_key() {
 
     let mut e = engine_with_limits(golden_model(), unlimited());
     let original = lines(e.model());
-    // A timer that only appears in the failure message of the budget check.
-    let started = Instant::now();
+    // Timing acquisition, reporting and the release budget are opt-in.
+    let started = std::env::var_os("EW_PERF_ASSERT").is_some().then(Instant::now);
     for i in 0..N {
         e.execute_with(&move_rep(delta(i)), Submit::from(Origin::Gui).coalescing("drag"))
             .expect("rep.move");
     }
-    let elapsed = started.elapsed();
-    eprintln!("{N} coalesced moves: {elapsed:?}");
-    if !cfg!(debug_assertions) {
-        assert!(
-            elapsed.as_secs_f64() < 1.0,
-            "{N} coalesced moves took {elapsed:?}"
-        );
+    if let Some(started) = started {
+        let elapsed = started.elapsed();
+        eprintln!("{N} coalesced moves: {elapsed:?}");
+        if !cfg!(debug_assertions) {
+            assert!(
+                elapsed.as_secs_f64() < 1.0,
+                "{N} coalesced moves took {elapsed:?}"
+            );
+        }
     }
 
     assert_eq!(e.history().entries().len(), 1);

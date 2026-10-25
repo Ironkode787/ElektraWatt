@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The doc 14 §11 time-bound regressions: hostile element definitions are rejected, or reported with
-//! bounded output, in linear time. The bounds are generous (a debug build is allowed 15 s where a release
-//! build must stay below 1 s) so that the tests cannot flake; a quadratic implementation misses them by
-//! orders of magnitude.
+//! The doc 14 §11 hostile-input regressions: element definitions are rejected, or reported with
+//! bounded output. Ordinary runs prove correctness and output limits only. Timing acquisition,
+//! reporting and generous bounds are opt-in with `EW_PERF_ASSERT` (doc 18 §3.16); a debug build is
+//! allowed 15 s where a release build must stay below 1 s.
 
-// Wall-clock timers of the hostile-input budgets, asserted only with EW_PERF_ASSERT (doc 18 §3.16); no timestamp reaches a compared result.
+// Opt-in wall-clock timers only; no timestamp reaches a compared result.
 #![allow(clippy::disallowed_methods)]
 
 use std::fmt::Write as _;
@@ -35,50 +35,53 @@ fn budget() -> Duration {
     }
 }
 
-/// The timing policy of the project (CLAUDE.md "Testing policy"): wall-clock bounds are not asserted in the
-/// ordinary test run, which is shared with builds and other suites and would flake under load. The timing is
-/// printed; a milestone perf run sets `EW_PERF_ASSERT=1` to turn it into an assertion.
-fn assert_within_budget(what: &str, elapsed: Duration) {
+/// Starts timing only for an opt-in performance run.
+fn start_timing() -> Option<Instant> {
+    std::env::var_os("EW_PERF_ASSERT").is_some().then(Instant::now)
+}
+
+/// Timing acquisition, reporting and bounds are opt-in; ordinary runs prove correctness/output limits.
+fn assert_within_budget(what: &str, elapsed: Option<Duration>) {
     assert_within(what, elapsed, budget());
 }
 
 /// As [`assert_within_budget`], against an explicit bound.
-fn assert_within(what: &str, elapsed: Duration, bound: Duration) {
-    if std::env::var_os("EW_PERF_ASSERT").is_some() {
+fn assert_within(what: &str, elapsed: Option<Duration>, bound: Duration) {
+    if let Some(elapsed) = elapsed {
         assert!(elapsed < bound, "{what} took {elapsed:?}, bound {bound:?}");
-    } else {
-        eprintln!("{what}: {elapsed:?} (bound {bound:?}, not asserted outside a milestone run)");
     }
 }
 
-/// Imports `text` as `x.elmt` and returns the result with the time it took.
-fn timed_import(text: &str) -> (Result<ImportBatch, ImportError>, Duration) {
+/// Imports `text` as `x.elmt` and returns the result with an optional elapsed time.
+fn timed_import(text: &str) -> (Result<ImportBatch, ImportError>, Option<Duration>) {
     let input = ImportInput::new("x.elmt", text.as_bytes().to_vec()).unwrap();
     let mut ctx = ImportContext::new(Id::from_uuid(Uuid::from_u128(1)));
-    let start = Instant::now();
+    let start = start_timing();
     let result = QetElementImporter.import(&input, &mut ctx);
-    (result, start.elapsed())
+    (result, start.map(|start| start.elapsed()))
 }
 
 /// Reads `text` as an element definition directly under `limits` (the importer always applies the
 /// element-definition preset, so the project-file default is reachable only this way) and returns the
-/// result with the time it took.
-fn timed_read(text: &str, limits: &Limits) -> (Result<ElementImport, ImportError>, Duration) {
+/// result with an optional elapsed time.
+fn timed_read(text: &str, limits: &Limits) -> (Result<ElementImport, ImportError>, Option<Duration>) {
     let src = ElementSource::new("x.elmt", None).unwrap();
     let lineage = LineageInfo {
         id: Id::from_uuid(Uuid::from_u128(1)),
         namespace: Uuid::from_u128(2),
     };
-    let start = Instant::now();
+    let start = start_timing();
     let result = read_element(text, &src, &lineage, Id::from_uuid(Uuid::from_u128(1)), limits);
-    (result, start.elapsed())
+    (result, start.map(|start| start.elapsed()))
 }
 
 /// The shared checks of the two finding-flood tests.
 fn check_flood(text: &str, name: &str) {
     const CHILDREN: usize = 100_000;
     let (result, elapsed) = timed_import(text);
-    eprintln!("{name}: {elapsed:?}");
+    if let Some(elapsed) = elapsed {
+        eprintln!("{name}: {elapsed:?}");
+    }
     assert_within_budget("{name} took {elapsed:?}", elapsed);
     let report = result.unwrap().report;
     assert_eq!(report.entries.len(), MAX_ENTRIES_PER_DEFINITION + 1);
@@ -145,10 +148,12 @@ fn long_polygon_is_linear() {
     let node = doc.root_element();
     let mut ctx = PrimCtx::new("x.elmt", None, Decimal::ZERO, Decimal::ZERO);
     let mut out = Parsed::default();
-    let start = Instant::now();
+    let start = start_timing();
     polygon(node, &mut ctx, &mut out).unwrap();
-    let elapsed = start.elapsed();
-    eprintln!("long_polygon_is_linear: {elapsed:?}");
+    let elapsed = start.map(|start| start.elapsed());
+    if let Some(elapsed) = elapsed {
+        eprintln!("long_polygon_is_linear: {elapsed:?}");
+    }
     let bound = if cfg!(debug_assertions) {
         Duration::from_secs(5)
     } else {
@@ -170,7 +175,9 @@ fn hostile_polygon_is_refused_before_parsing() {
         polygon_element(100_000)
     );
     let (result, elapsed) = timed_import(&text);
-    eprintln!("hostile_polygon_is_refused_before_parsing: {elapsed:?}");
+    if let Some(elapsed) = elapsed {
+        eprintln!("hostile_polygon_is_refused_before_parsing: {elapsed:?}");
+    }
     assert_within_budget("took {elapsed:?}", elapsed);
     assert_eq!(
         result.err(),
@@ -189,7 +196,9 @@ fn polygon_just_under_the_attribute_limit_imports_within_budget() {
         polygon_element(4_095)
     );
     let (result, elapsed) = timed_import(&text);
-    eprintln!("polygon_just_under_the_attribute_limit_imports_within_budget: {elapsed:?}");
+    if let Some(elapsed) = elapsed {
+        eprintln!("polygon_just_under_the_attribute_limit_imports_within_budget: {elapsed:?}");
+    }
     assert_within_budget("took {elapsed:?}", elapsed);
     let batch = result.unwrap();
     let symbols: Vec<_> = batch
@@ -233,7 +242,9 @@ fn attribute_flood_across_elements_is_refused() {
     text.push_str("</definition>");
     // 1,048,592 attributes: over the project-file default (the element preset refuses far earlier).
     let (result, elapsed) = timed_read(&text, &Limits::default());
-    eprintln!("attribute_flood_across_elements_is_refused: {elapsed:?}");
+    if let Some(elapsed) = elapsed {
+        eprintln!("attribute_flood_across_elements_is_refused: {elapsed:?}");
+    }
     assert_within_budget("took {elapsed:?}", elapsed);
     assert_eq!(
         result.err(),
@@ -257,7 +268,9 @@ fn finding_after_many_newlines_uses_a_small_line_index() {
     text.push_str("<x/>");
     text.push_str("</definition>");
     let (result, elapsed) = timed_import(&text);
-    eprintln!("finding_after_many_newlines_uses_a_small_line_index: {elapsed:?}");
+    if let Some(elapsed) = elapsed {
+        eprintln!("finding_after_many_newlines_uses_a_small_line_index: {elapsed:?}");
+    }
     assert_within_budget("took {elapsed:?}", elapsed);
     let report = result.unwrap().report;
     let entry = report
@@ -298,7 +311,9 @@ fn attribute_work_flood_is_refused_before_parsing() {
     // preset would refuse the count first).
     let text = flood_text(128, 8_100);
     let (result, elapsed) = timed_read(&text, &Limits::default());
-    eprintln!("attribute_work_flood_is_refused_before_parsing: {elapsed:?}");
+    if let Some(elapsed) = elapsed {
+        eprintln!("attribute_work_flood_is_refused_before_parsing: {elapsed:?}");
+    }
     assert_eq!(
         result.err(),
         Some(ImportError::LimitExceeded {
@@ -322,7 +337,9 @@ fn attribute_work_flood_is_refused_before_parsing() {
 fn many_moderate_elements_import_within_budget() {
     let text = flood_text(1_000, 200);
     let (result, elapsed) = timed_read(&text, &Limits::default());
-    eprintln!("many_moderate_elements_import_within_budget: {elapsed:?}");
+    if let Some(elapsed) = elapsed {
+        eprintln!("many_moderate_elements_import_within_budget: {elapsed:?}");
+    }
     assert_within_budget("took {elapsed:?}", elapsed);
     assert!(result.unwrap().entries.len() <= MAX_ENTRIES_PER_DEFINITION + 1);
 }
@@ -333,7 +350,9 @@ fn many_moderate_elements_import_within_budget() {
 fn moderate_elements_under_the_element_preset_import_within_budget() {
     let text = flood_text(500, 200);
     let (result, elapsed) = timed_import(&text);
-    eprintln!("moderate_elements_under_the_element_preset_import_within_budget: {elapsed:?}");
+    if let Some(elapsed) = elapsed {
+        eprintln!("moderate_elements_under_the_element_preset_import_within_budget: {elapsed:?}");
+    }
     assert_within_budget("took {elapsed:?}", elapsed);
     assert!(result.unwrap().report.entries.len() <= MAX_ENTRIES_PER_DEFINITION + 1);
 }
@@ -351,7 +370,9 @@ fn node_flood_text(count: usize) -> String {
 fn nodes_just_under_the_default_import_within_budget() {
     let text = node_flood_text(999_000);
     let (result, elapsed) = timed_read(&text, &Limits::default());
-    eprintln!("nodes_just_under_the_default_import_within_budget: {elapsed:?}");
+    if let Some(elapsed) = elapsed {
+        eprintln!("nodes_just_under_the_default_import_within_budget: {elapsed:?}");
+    }
     assert_within_budget("took {elapsed:?}", elapsed);
     let entries = result.unwrap().entries;
     assert_eq!(entries.len(), MAX_ENTRIES_PER_DEFINITION + 1);
@@ -368,7 +389,9 @@ fn node_flood_is_refused_by_the_prescan() {
     };
     assert_eq!(prescan(&text, &Limits::default()), Err(expected.clone()));
     let (result, elapsed) = timed_read(&text, &Limits::default());
-    eprintln!("node_flood_is_refused_by_the_prescan: {elapsed:?}");
+    if let Some(elapsed) = elapsed {
+        eprintln!("node_flood_is_refused_by_the_prescan: {elapsed:?}");
+    }
     assert_eq!(result.err(), Some(expected));
     assert_within_budget("took {elapsed:?}", elapsed);
 }
@@ -379,7 +402,9 @@ fn node_flood_is_refused_by_the_prescan() {
 fn nodes_just_under_the_element_preset_import_within_budget() {
     let text = node_flood_text(262_142);
     let (result, elapsed) = timed_import(&text);
-    eprintln!("nodes_just_under_the_element_preset_import_within_budget: {elapsed:?}");
+    if let Some(elapsed) = elapsed {
+        eprintln!("nodes_just_under_the_element_preset_import_within_budget: {elapsed:?}");
+    }
     assert_within_budget("took {elapsed:?}", elapsed);
     let report = result.unwrap().report;
     assert_eq!(report.entries.len(), MAX_ENTRIES_PER_DEFINITION + 1);
@@ -399,7 +424,9 @@ fn element_preset_refuses_node_flood() {
         Err(expected.clone())
     );
     let (result, elapsed) = timed_import(&text);
-    eprintln!("element_preset_refuses_node_flood: {elapsed:?}");
+    if let Some(elapsed) = elapsed {
+        eprintln!("element_preset_refuses_node_flood: {elapsed:?}");
+    }
     assert_eq!(result.err(), Some(expected));
     assert_within_budget("took {elapsed:?}", elapsed);
 }
@@ -412,7 +439,9 @@ fn worst_case_text_primitives_under_the_preset_import_within_budget() {
     text.push_str(&"<text x=\"0\" y=\"0\" font=\"a,1,1,1,1,1\"/>".repeat(43_000));
     text.push_str("</description></definition>");
     let (result, elapsed) = timed_import(&text);
-    eprintln!("worst_case_text_primitives_under_the_preset_import_within_budget: {elapsed:?}");
+    if let Some(elapsed) = elapsed {
+        eprintln!("worst_case_text_primitives_under_the_preset_import_within_budget: {elapsed:?}");
+    }
     assert_within_budget("took {elapsed:?}", elapsed);
     assert!(result.is_ok(), "{result:?}");
 }
@@ -438,12 +467,16 @@ fn markup_character_flood_is_refused_before_parsing() {
         let text = format!("<definition type=\"element\">{body}</definition>");
         // Through the importer, under the element preset: 2 x 262,144 + 131,072.
         let (result, elapsed) = timed_import(&text);
-        eprintln!("markup_character_flood_is_refused_before_parsing ({name}): {elapsed:?}");
+        if let Some(elapsed) = elapsed {
+            eprintln!("markup_character_flood_is_refused_before_parsing ({name}): {elapsed:?}");
+        }
         assert_eq!(result.err(), Some(preset.clone()), "{name}");
         assert_within_budget("{name} took {elapsed:?}", elapsed);
         // Under the project-file default: 2 x 1,000,000 + 1,048,576.
         let (result, elapsed) = timed_read(&text, &Limits::default());
-        eprintln!("markup_character_flood_is_refused_before_parsing ({name}, default): {elapsed:?}");
+        if let Some(elapsed) = elapsed {
+            eprintln!("markup_character_flood_is_refused_before_parsing ({name}, default): {elapsed:?}");
+        }
         assert_eq!(result.err(), Some(expected.clone()), "{name} default");
         assert_within_budget("{name} default took {elapsed:?}", elapsed);
     }
@@ -460,7 +493,9 @@ fn markup_characters_under_the_bound_import_within_budget() {
     );
     // The default's bound is 2 x 1,000,000 + 1,048,576; the element preset's is 655,360.
     let (result, elapsed) = timed_read(&text, &Limits::default());
-    eprintln!("markup_characters_under_the_bound_import_within_budget: {elapsed:?}");
+    if let Some(elapsed) = elapsed {
+        eprintln!("markup_characters_under_the_bound_import_within_budget: {elapsed:?}");
+    }
     assert_within_budget("took {elapsed:?}", elapsed);
     assert!(result.is_ok(), "{result:?}");
 }
@@ -474,7 +509,9 @@ fn style_entries(el: &ElementImport) -> usize {
 /// The shared checks of the style-pair floods (N5), read under `limits`.
 fn check_style_flood(text: &str, name: &str, limits: &Limits) -> ElementImport {
     let (result, elapsed) = timed_read(text, limits);
-    eprintln!("{name}: {elapsed:?}");
+    if let Some(elapsed) = elapsed {
+        eprintln!("{name}: {elapsed:?}");
+    }
     assert_within_budget("{name} took {elapsed:?}", elapsed);
     let el = result.unwrap();
     let kept = style_entries(&el);
@@ -574,14 +611,16 @@ fn text_run(section_open: &str, section_close: &str, n: usize) -> Vec<u8> {
     bytes
 }
 
-/// Imports `bytes` as `x.elmt` and returns the error with the time it took.
+/// Imports `bytes` as `x.elmt` and returns the error, optionally reporting elapsed time.
 fn timed_refusal(bytes: Vec<u8>, name: &str) -> ImportError {
     let input = ImportInput::new("x.elmt", bytes).unwrap();
     let mut ctx = ImportContext::new(Id::from_uuid(Uuid::from_u128(1)));
-    let start = Instant::now();
+    let start = start_timing();
     let result = QetElementImporter.import(&input, &mut ctx);
-    let elapsed = start.elapsed();
-    eprintln!("{name}: {elapsed:?}");
+    let elapsed = start.map(|start| start.elapsed());
+    if let Some(elapsed) = elapsed {
+        eprintln!("{name}: {elapsed:?}");
+    }
     assert_within_budget("{name} took {elapsed:?}", elapsed);
     result.expect_err("the input is refused")
 }

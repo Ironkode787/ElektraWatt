@@ -866,8 +866,10 @@ fn ten_thousand_targets_are_formatted_without_quadratic_work() {
     }
     let m = fx.build();
     let q = Q::new(&m);
-    // A timer against a generous bound (the no-quadratic-work check); no time reaches the compared text.
-    let start = std::time::Instant::now();
+    // Timing acquisition and reporting are opt-in; no time reaches the compared text.
+    let start = std::env::var_os("EW_PERF_ASSERT")
+        .is_some()
+        .then(std::time::Instant::now);
     let source = q.get::<XrefTextOf>(rid(0x10));
     assert_eq!(source.links.len(), 9);
     assert!(source.text.ends_with(", …"));
@@ -886,7 +888,9 @@ fn ten_thousand_targets_are_formatted_without_quadratic_work() {
         assert_eq!(t.text, want, "target {i}");
         assert_eq!(t.links.len(), 1);
     }
-    eprintln!("10 000 targets: {:?}", start.elapsed());
+    if let Some(start) = start {
+        eprintln!("10 000 targets: {:?}", start.elapsed());
+    }
 }
 
 /// The texts, links and kinds of every representation of `m`, sorted by representation ID.

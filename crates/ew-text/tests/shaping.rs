@@ -296,12 +296,14 @@ fn long_text_sanity() {
         .cycle()
         .take(1_000)
         .collect();
-    let start = Instant::now();
+    let start = std::env::var_os("EW_PERF_ASSERT").is_some().then(Instant::now);
     let s = bundled().shape(&text, &style("text.normal"), None);
-    let took = start.elapsed();
     assert_eq!(s.run.glyphs.len(), 1_000);
-    // No budget is asserted (debug builds vary); the time is printed for inspection.
-    println!("1000 characters shaped in {took:?}");
+    // No budget is asserted (debug builds vary); timing acquisition and reporting are opt-in.
+    if let Some(start) = start {
+        let took = start.elapsed();
+        println!("1000 characters shaped in {took:?}");
+    }
 }
 
 #[test]

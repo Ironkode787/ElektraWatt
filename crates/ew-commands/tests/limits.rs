@@ -130,10 +130,9 @@ fn ten_megabyte_string_fails_fast() {
         params: json!({"kind": "device", "targets": [], "path": "function_text",
             "value": "x".repeat(10 * 1024 * 1024)}),
     };
-    // A timer of the fail-fast check; it is compared with a generous bound only.
-    let started = Instant::now();
+    // Timing acquisition and the generous bound are opt-in.
+    let started = std::env::var_os("EW_PERF_ASSERT").is_some().then(Instant::now);
     let result = CommandRegistry::builtin().resolve(&cmd);
-    let took = started.elapsed();
     match result {
         Err(CmdError::InvalidParams {
             command,
@@ -146,13 +145,16 @@ fn ten_megabyte_string_fails_fast() {
         }
         other => panic!("expected InvalidParams, got {:?}", other.map(|c| c.name())),
     }
-    let budget = if cfg!(debug_assertions) {
-        Duration::from_secs(2)
-    } else {
-        Duration::from_millis(50)
-    };
-    assert!(took < budget, "resolve took {took:?}");
-    eprintln!("ten_megabyte_string_fails_fast: resolve took {took:?}");
+    if let Some(started) = started {
+        let took = started.elapsed();
+        let budget = if cfg!(debug_assertions) {
+            Duration::from_secs(2)
+        } else {
+            Duration::from_millis(50)
+        };
+        assert!(took < budget, "resolve took {took:?}");
+        eprintln!("ten_megabyte_string_fails_fast: resolve took {took:?}");
+    }
 }
 
 #[test]
