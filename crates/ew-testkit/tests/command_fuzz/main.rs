@@ -953,6 +953,109 @@ fn every_arm_commits_and_refuses_what_it_should() {
     eprintln!("{}", report("every arm", &stats));
 }
 
+#[test]
+fn conductor_add_non_cable_refusal_excludes_cables() {
+    let mut session = open_session(469);
+    let fixture = Rc::new(Fixture::of(&session.query()));
+    let mut live = Live::read(&session.query(), &fixture);
+    let cable = live.cables.first().expect("Golden A has a cable").id.clone();
+    assert!(live.plain_devices.contains(&cable));
+    let q = session.query();
+    let cable_id = serde_json::from_value(cable.clone()).expect("a device ID");
+    assert!(
+        q.devices()
+            .get(cable_id)
+            .expect("a live cable")
+            .aspects
+            .cable
+            .is_some()
+    );
+    let non_cable = live
+        .plain_devices
+        .iter()
+        .find(|id| {
+            let id = serde_json::from_value((*id).clone()).expect("a device ID");
+            q.devices()
+                .get(id)
+                .expect("a live device")
+                .aspects
+                .cable
+                .is_none()
+        })
+        .expect("Golden A has a plain non-cable device")
+        .clone();
+    let non_cable_id = serde_json::from_value(non_cable.clone()).expect("a device ID");
+    assert!(
+        q.devices()
+            .get(non_cable_id)
+            .expect("a live device")
+            .aspects
+            .cable
+            .is_none()
+    );
+    let arm = ARMS
+        .iter()
+        .find(|a| a.command == "conductor.add")
+        .expect("an arm");
+
+    let seed = 469;
+    let mut normal = SplitMix64::new(seed);
+    normal.next(); // The initial cable pick keeps its seeded draw.
+    let second = normal.next();
+    let tape = [0u64.to_le_bytes(), (second ^ 1u64).to_le_bytes()].concat();
+
+    live.plain_devices = vec![cable.clone()];
+    let mut rng = SplitMix64::with_tape(seed, &tape);
+    assert!(
+        (arm.build)(&live, &mut rng).is_none(),
+        "a cable is not a refusal target"
+    );
+
+    live.plain_devices = vec![cable, non_cable.clone()];
+    let mut rng = SplitMix64::with_tape(seed, &tape);
+    let Some(Step::Cmd(c)) = (arm.build)(&live, &mut rng) else {
+        panic!("the non-cable refusal branch builds a command");
+    };
+    assert_eq!(c.verdict, Verdict::Refuse);
+    assert_eq!(c.name, "conductor.add");
+    assert_eq!(c.params["cable"], non_cable);
+    let before = session.world();
+    let mut stats = FuzzStats::default();
+    let applied = apply(&mut session, &c, &mut stats).expect("a valid non-cable refusal");
+    assert!(!applied.ok);
+    assert!(!applied.changed);
+    let after = session.world();
+    assert_eq!(before.rev, after.rev);
+    assert!(after.model.content_eq(&before.model));
+}
+
+#[test]
+fn ft469_command_sequence_regression_passes() {
+    let bytes =
+        std::fs::read(repo().join("fuzz/regressions/command_sequence/non-cable-refusal-picked-a-cable"))
+            .expect("the preserved FT-469 input");
+    assert_eq!(bytes.len(), 66);
+    let seed = u64::from_le_bytes(bytes[..8].try_into().expect("eight seed bytes"));
+    let steps = 1 + usize::from(bytes[8]) % 8;
+    assert_eq!(seed, 18_446_744_073_709_486_082);
+    assert_eq!(steps, 8);
+    let stats = run_fuzz_tape(
+        seed,
+        &bytes[9..],
+        steps,
+        &Cadence {
+            sample_every: 0,
+            check_every: 0,
+            verify_every: 0,
+            full_end: false,
+            save_weight: 1,
+            import_weight: 0,
+            deep: false,
+        },
+    );
+    assert!(stats.committed() > 0);
+}
+
 /// The placement and arrangement steps of WP-S2.04 on Golden A: the `from_part` and `new_terminal` targets of
 /// `device.place`, the `from_part` target of `box.black`, `rep.move` by grid steps, `rep.exchange_symbol`,
 /// `project.drawing.set`, `connection.draw_to_ip`, `ip.arrange` and `box.reshape` are all generated, and each kind

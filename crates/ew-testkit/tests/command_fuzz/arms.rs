@@ -2885,7 +2885,12 @@ fn conductor_add(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         }
         // Refused: not a cable.
         1 => {
-            let d = rng.pick(&live.plain_devices)?;
+            let candidates: Vec<_> = live
+                .plain_devices
+                .iter()
+                .filter(|id| !live.cables.iter().any(|cable| cable.id == **id))
+                .collect();
+            let d = rng.pick(&candidates)?;
             Some(
                 Step::cmd(
                     "conductor.add",
