@@ -10,13 +10,11 @@
 //! a coordinate of the segment that is off the grid is the segment's own, the CP-exact coordinate
 //! `require_split_point` accepts), else the grid point. Alt suppresses the object snaps. Ties by the smaller
 //! distance, then for a CP the first in the page tables' order (natural label, its bytes, (y, x), ID; FT-439), for a
-//! junction by the smaller ID (two
-//! junctions are never at one point); for a segment the larger connection ID, which is the
-//! later in paint order (connections paint in ID order, so the one on top) and, for the time-ordered UUIDv7 IDs a
-//! session mints, the wire drawn last; WP-S2.02's pick breaks a tie the same way. Wires the Wire tool draws are
-//! committed one per command, so their IDs are in drawing order; only IDs minted within one transaction (the two
-//! halves of a split) share a timestamp and may not be, and those never tie with each other here: they meet only at
-//! the split's junction, which is no segment point (a junction is a target of its own, before segments).
+//! junction by the smaller ID (two junctions are never at one point); for a segment the larger connection ID,
+//! which is later in paint order (connections paint in ID order, so the one on top); WP-S2.02's pick breaks a tie
+//! the same way. This is a paint-order contract, not a creation-order guarantee: UUIDv7 IDs are not guaranteed to
+//! be chronological or monotonic within the clock's resolution or across clock movement. A split's halves meet
+//! at their junction, which is a target of its own before segments.
 //!
 //! | State | Event | Next | Output |
 //! |---|---|---|---|

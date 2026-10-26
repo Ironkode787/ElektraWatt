@@ -1027,6 +1027,7 @@ dependencies = [
  "eframe",
  "ew-print",
  "ew-ui",
+ "ew-viewmodel",
  "png",
  "rfd",
  "serde_json",

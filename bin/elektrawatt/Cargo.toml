@@ -41,6 +41,7 @@ zbus_xml = "=5.2.1"
 smithay-clipboard = "=0.7.2"
 
 [dev-dependencies]
+ew-viewmodel = { path = "../../crates/ew-viewmodel", features = ["testkit"] }
 serde_json = "1.0.154"
 # tests/headless.rs: the 150 dpi snapshot against golden/J-E-2416/expected/png and the exported PDF's digest.
 png = "0.18.1"

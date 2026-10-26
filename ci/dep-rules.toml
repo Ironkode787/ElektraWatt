@@ -115,6 +115,8 @@ planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "e
 
 # Additional edges allowed for dev-dependencies only (for example a test helper crate).
 [allowed_dev_edges]
+# The G-PP wiring regression reverses new IDs through the viewmodel's test-only source hook.
+"elektrawatt" = ["ew-viewmodel"]
 # ew-commands' own integration tests enable its `testkit` feature (row dumps, `Preview::ops`, history ops),
 # which is crate-private otherwise (ARCH §3 rule 1).
 "ew-commands" = ["ew-commands"]

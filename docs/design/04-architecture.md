@@ -254,7 +254,7 @@ sessions (G6).
 | `ew-viewmodel` | GPL | Toolkit-agnostic panel models: navigator trees, table rows with edit→command mapping, property-grid rows with provenance, message lists, each with a revision stamp; the toolkit-neutral action definitions and the shell model that the GUI and the headless mode `elektrawatt --headless` both dispatch on (decision log ID-443, ID-444); as built in cycle 19: the registry, `ShellModel`, the settings file, the UI-script runner and the `ui.describe` text (ID-473, ID-474) | ew-api |
 | `ew-ui` | GPL | egui widgets, canvas host, tools (state machines; specified for WP-S2.03: the tool host and the tools in `ew-viewmodel`, `ew-ui` maps input and paints, decision log ID-536), command palette, keymaps, the action registry behind every menu, the 3D transform gizmo over `ew-render3d`'s camera and pick API; as built in cycle 19: the shell frame, the CPU page view with its render worker, the palette, the bundled UI fonts and the headless runner (ID-473) | egui 0.37.0, egui_tiles 0.17.1, egui_table 0.10.0, egui_ltreeview 0.9.0, transform-gizmo-egui 0.11.0 (in cycle 19: egui 0.37.0 and skrifa 0.44.0 only; egui_kittest 0.37.0 for tests) |
 | `ew-viewer` (1.0) | GPL | The read-only `.ewpp` wiring viewer on `ew-ui` widgets, used by the `ew-wiring-viewer` binary and the "Preview package" view of the Manufacturing workspace | ew-ewpp, ew-ui, ew-render-cpu, hayro 0.8.0 (after the fidelity check) |
-| `elektrawatt` (bin) | GPL | eframe shell, native menus on macOS and Windows (egui menu bar on Linux), dialogs, clipboard, crash handler; as built in cycle 19: the window, the rfd dialogs, `--headless`, `--smoke` and the exit codes, with the egui menu bar on every OS (ID-446, ID-473) | eframe 0.37.0, egui-wgpu 0.37.0, muda 0.21.2, rfd 0.17.2, arboard 3.7.0, ew-print (in cycle 19: eframe 0.37.0 on wgpu and rfd 0.17.2 only; `rust-version` 1.95, ID-477) |
+| `elektrawatt` (bin) | GPL | eframe shell, native menus on macOS and Windows (egui menu bar on Linux), dialogs, clipboard, crash handler; as built in cycle 19: the window, the rfd dialogs, `--headless`, `--smoke` and the exit codes, with the egui menu bar on every OS (ID-446, ID-473) | eframe 0.37.0, egui-wgpu 0.37.0, muda 0.21.2, rfd 0.17.2, arboard 3.7.0, ew-print (in cycle 19: eframe 0.37.0 on wgpu and rfd 0.17.2 only; `rust-version` 1.95, ID-477); dev: ew-viewmodel/testkit (the G-PP wiring regression under both new-ID orders) |
 | `ew` (bin) | GPL | CLI, `ew mcp`, merge driver, textconv, migration verifier | clap **(verify)**, rmcp 3.5.1 **(verify)**, ew-print, hayro 0.8.0 (`ew verify-migration`), serde_json (a normal dependency since cycle 22, for the `HumanOnly` subcommand's command value; decision log ID-546) |
 | `ew-wiring-viewer` (bin, 1.0) | GPL | Small read-only viewer for shop PCs | ew-viewer |
 | `ew-step-worker` (bin) | GPL (links LGPL OCCT) | STEP reading, tessellation, feature edges, hulls, mounting frames | occt-sys 7.8.1, opencascade 0.3.0, gltf 1.4.1 |
@@ -358,6 +358,7 @@ graph TD
   ui --> vm & r2d & rcpu & r3d
   viewer --> ewpp & ui & rcpu
   app --> ui & print
+  app -.-> vm
   cli --> api & print
   wv --> viewer
   stepw --> stepp

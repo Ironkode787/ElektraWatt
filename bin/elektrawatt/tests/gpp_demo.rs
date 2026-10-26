@@ -14,8 +14,13 @@ use std::path::Path;
 
 use ew_ui::ew_viewmodel::ew_api::output::{PageTables, RowValue, TableEnd, TableJunction};
 use ew_ui::ew_viewmodel::ew_api::{
-    AnyCommand, BomMode, CmdLog, Export, Recovery, Session, SessionOptions, StoreOptions,
+    AnyCommand, BomMode, CmdLog, EntropyError, Export, IdSource, Recovery, Session, SessionOptions,
+    StoreOptions, UnixTime,
 };
+use ew_ui::ew_viewmodel::script::{self, NoExtension};
+use ew_ui::ew_viewmodel::shell::{IdSourceFactory, Mode, Resources, ShellConfig, ShellModel};
+use ew_ui::ew_viewmodel::tools::ToolCx;
+use ew_ui::ew_viewmodel::tools::wire::{WireTarget, resolve_target};
 use serde_json::json;
 
 use support::{
@@ -154,6 +159,239 @@ fn marker_texts(t: &PageTables) -> Vec<String> {
         .collect();
     out.sort();
     out
+}
+
+/// The replay-order guard's clock and entropy pattern, counting in either direction.
+struct WiringIds {
+    millis: u64,
+    n: u64,
+    ascending: bool,
+}
+
+impl IdSource for WiringIds {
+    fn now(&mut self) -> UnixTime {
+        if self.ascending {
+            self.millis += 1;
+        } else {
+            self.millis -= 1;
+        }
+        UnixTime {
+            millis: self.millis,
+            sub_ms_nanos: 0,
+        }
+    }
+
+    fn fill(&mut self, buf: &mut [u8]) -> Result<(), EntropyError> {
+        if self.ascending {
+            self.n += 1;
+        } else {
+            self.n -= 1;
+        }
+        let bits = self.n.to_be_bytes();
+        for (i, byte) in buf.iter_mut().enumerate() {
+            *byte = bits[i % bits.len()];
+        }
+        Ok(())
+    }
+}
+
+fn ascending_wiring_ids() -> Box<dyn IdSource + Send> {
+    Box::new(WiringIds {
+        millis: 0,
+        n: 0,
+        ascending: true,
+    })
+}
+
+fn descending_wiring_ids() -> Box<dyn IdSource + Send> {
+    Box::new(WiringIds {
+        millis: (1 << 48) - 1,
+        n: u64::MAX,
+        ascending: false,
+    })
+}
+
+/// A split must hit only its intended stored CP-to-CP wire, including at an interior bend.
+fn assert_unique_split_target(shell: &ShellModel, point: (i64, i64), far: &[String], name: &str) {
+    let canvas = shell.canvas().unwrap();
+    let page = canvas.page();
+    let tables = &page.tables;
+    let contains = |line: &[(i64, i64)]| {
+        line.first() != Some(&point)
+            && line.last() != Some(&point)
+            && line.windows(2).any(|w| {
+                let (a, b) = (w[0], w[1]);
+                (a.0 == point.0 && b.0 == point.0 && (a.1.min(b.1)..=a.1.max(b.1)).contains(&point.1))
+                    || (a.1 == point.1 && b.1 == point.1 && (a.0.min(b.0)..=a.0.max(b.0)).contains(&point.0))
+            })
+    };
+    let hits: Vec<_> = tables
+        .connections
+        .iter()
+        .filter(|c| c.stored_route && contains(&c.polyline))
+        .collect();
+    assert_eq!(hits.len(), 1, "{name}: ambiguous split at {point:?} for {far:?}");
+    let connection = hits[0];
+    let mut labels: Vec<_> = [connection.a, connection.b]
+        .into_iter()
+        .map(|end| match end {
+            TableEnd::Cp { function, idx } => tables
+                .cps
+                .iter()
+                .find(|cp| cp.function == function && cp.idx == idx)
+                .unwrap()
+                .label
+                .clone(),
+            TableEnd::Junction { .. } => panic!("{name}: split target must still join two CPs"),
+        })
+        .collect();
+    labels.sort();
+    let mut expected = far[..2].to_vec();
+    expected.sort();
+    assert_eq!(labels, expected, "{name}: intended first wire at {point:?}");
+    let cx = ToolCx {
+        page,
+        points_per_nm: canvas.points_per_nm(),
+        pane: canvas.pane(),
+        snapper: &page.snapper,
+        selection: shell.selection(),
+    };
+    let target = resolve_target(&cx, page.snapper.page_to_sheet(point), false);
+    assert!(
+        matches!(target, WireTarget::Segment { connection: id, at } if id.0 == connection.id && at == point),
+        "{name}: production wire target must be the unique intended segment at {point:?}: {target:?}"
+    );
+}
+
+/// The real authoring actions must create the same topology regardless of new connections' ID order.
+#[test]
+fn gpp_folio_102_wiring_survives_both_new_id_orders() {
+    let exe = bin_exe();
+    let tmp = Tmp::new();
+    let GppStart {
+        dir: placed,
+        strip_1x1,
+        functions,
+    } = gpp_start(&exe, &tmp);
+    let map = {
+        let (s, _) = Session::open_read_only(&placed, "test").unwrap();
+        SheetMap::of_grid(&s.page_grid("102").unwrap())
+    };
+    let (placements, _) = placement_steps(102, map, &strip_1x1, &functions);
+    let mut place = steps(&[
+        ("file.open", json!({"dir": path(&placed)})),
+        ("page.goto", json!({"folio": "102"})),
+    ]);
+    place.extend(placements);
+    place.extend(steps(&[("file.save", json!({})), ("file.close", json!({}))]));
+    all_done(&run(&exe, &tmp, "order-place.jsonl", &place, None));
+    let mut tags = steps(&[("file.open", json!({"dir": path(&placed)}))]);
+    tags.extend(typed_tag_steps(102, &placed));
+    tags.extend(steps(&[("file.save", json!({})), ("file.close", json!({}))]));
+    all_done(&run(&exe, &tmp, "order-tags.jsonl", &tags, None));
+
+    let (wiring, commits, points) = wiring_steps(102, map);
+    assert_eq!(commits, 15);
+    let golden_far: Vec<_> = {
+        let (s, _) = Session::open_read_only(Path::new(GOLDEN_A), "test").unwrap();
+        let tables = s.page_tables("102").unwrap();
+        tables
+            .junctions
+            .iter()
+            .map(|j| junction_far_ends(&tables, j))
+            .collect()
+    };
+    assert_eq!(points.len(), 4);
+    assert_eq!(golden_far.len(), points.len());
+    let styles = junction_style_steps(102, map, &points);
+    let sources: [(&str, IdSourceFactory); 2] = [
+        ("ascending", ascending_wiring_ids),
+        ("descending", descending_wiring_ids),
+    ];
+    let mut minted_orders = Vec::new();
+    for (name, source) in sources {
+        let job = tmp.path(&format!("{name}.ew"));
+        support::copy_dir(&placed, &job);
+        let config = ShellConfig::in_dir(&tmp.path(&format!("config-{name}")), "0.0.0-test").with_resources(
+            Resources {
+                content_dir: Some(Path::new(support::CONTENT).to_path_buf()),
+                ..Resources::default()
+            },
+        );
+        let mut shell = ShellModel::new(Mode::Headless, config);
+        shell.set_id_source_for_tests(Some(source));
+        let mut actions = steps(&[
+            ("file.open", json!({"dir": path(&job)})),
+            ("page.goto", json!({"folio": "102"})),
+            ("view.zoom_actual", json!({})),
+        ]);
+        actions.extend(wiring.iter().cloned());
+        actions.extend(styles.iter().cloned());
+        actions.extend(steps(&[("file.save", json!({})), ("file.close", json!({}))]));
+        let parsed = script::parse(&support::script_text(&actions)).unwrap();
+        let mut split_checks = 0;
+        for (i, step) in parsed.iter().enumerate() {
+            if step.action == "canvas.activate" && i > 0 && parsed[i - 1].action == "cursor.set" {
+                for (point, far) in points.iter().zip(&golden_far) {
+                    let (x, y) = map.mm(*point);
+                    if parsed[i - 1].params == json!({"x_mm": x, "y_mm": y}) {
+                        assert_unique_split_target(&shell, *point, far, name);
+                        split_checks += 1;
+                    }
+                }
+            }
+            let result = script::run_step(&mut shell, &mut NoExtension, i + 1, step);
+            assert!(result.ok, "{name}: {}", result.line);
+        }
+        assert_eq!(split_checks, 4, "{name}: every junction split was checked");
+        shell.shutdown();
+        let (s, _) = Session::open_read_only(&job, "test").unwrap();
+        let tables = s.page_tables("102").unwrap();
+        // The first connection of each of the first two junctions keeps its ID when split;
+        // those two wires are authored in this order by the shared generator.
+        let first_wire = |at| tables.junctions.iter().find(|j| j.at == at).unwrap().sequence[0];
+        let minted_order = first_wire(points[0]).cmp(&first_wire(points[1]));
+        assert_eq!(
+            minted_order,
+            if name == "ascending" {
+                std::cmp::Ordering::Less
+            } else {
+                std::cmp::Ordering::Greater
+            },
+            "{name}: the injected source must reverse actual connection IDs"
+        );
+        minted_orders.push(minted_order);
+        eprintln!("folio-102 wiring: {name}, actual connection ID order {minted_order:?}");
+        let w23 = rehearsal_connection_id(&tables, "W23");
+        let edge = tables
+            .connections
+            .iter()
+            .find(|c| c.id.to_string() == w23)
+            .unwrap();
+        let (junction, function, idx) = match (edge.a, edge.b) {
+            (TableEnd::Junction { id }, TableEnd::Cp { function, idx })
+            | (TableEnd::Cp { function, idx }, TableEnd::Junction { id }) => (id, function, idx),
+            _ => panic!("{name}: W23 must join a junction to GND#2"),
+        };
+        assert_eq!(
+            tables
+                .cps
+                .iter()
+                .find(|c| c.function == function && c.idx == idx)
+                .unwrap()
+                .label,
+            "-102F2:GND#2"
+        );
+        let j6 = tables.junctions.iter().find(|j| j.id == junction).unwrap();
+        assert_eq!(
+            junction_far_ends(&tables, j6),
+            ["-102G1:−#2", "-102F2:GND#2", "0VDC"]
+        );
+        let oracle = wiring_oracle(&tables);
+        assert_eq!(oracle.counts, (19, 4), "{name}");
+        assert_eq!(oracle, golden_wiring(102), "{name}: complete folio-102 wiring");
+    }
+    assert_ne!(minted_orders[0], minted_orders[1]);
 }
 
 /// WP-S2.04 §13.6's G-PP rehearsal: the start of `gpp_start`, the placements of 101 to 103 in one script, the typed

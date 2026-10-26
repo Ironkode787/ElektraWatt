@@ -532,9 +532,13 @@ fn golden_tables(folio: u32) -> ew_ui::ew_viewmodel::ew_api::output::PageTables 
 /// each end, Enter), at actual size so that a grid point one step from a connection point is a target of its own.
 /// A connection between two connection points is drawn as it is. A junction is drawn so that its sequence comes out
 /// as the golden one: a wire from the far end of its first member to the far end of its second, then each further
-/// member from its far end onto that wire one grid step from the first end along its leaving direction (the junction
-/// is created there and the wire split, `connection.draw`'s `on_connection`); the junctions are drawn before the other
-/// connections, so that no other wire passes their split points. Returns the steps, the number of Wire tool commits,
+/// member from its far end onto that wire at a split point along a CP's leaving direction (the junction is created
+/// there and the wire split, `connection.draw`'s `on_connection`). For this golden rehearsal layout, folio 102's
+/// common downward G1 supply bank uses the second end, starting one step away and advancing until its transverse
+/// grid row (Up/Down) or column (Left/Right) differs from earlier receiving splits. These lanes avoid the shared
+/// departure and return corridors. All other junctions use the first end, one step away, preserving the upward
+/// F2-to-F1 junction's marker-crossing geometry. This is a golden-layout rule, not a general routing guarantee.
+/// The junctions are drawn before the other connections. Returns the steps, the number of Wire tool commits,
 /// and the point at which each golden junction (table order) is created.
 // The tuple of §13.6: the steps, the commits and the junctions' split points.
 #[allow(clippy::type_complexity)]
@@ -571,12 +575,13 @@ pub fn wiring_steps_with(
     ];
     let mut commits = 0;
     let mut points: Vec<(i64, i64)> = Vec::new();
+    let mut split_lanes = BTreeSet::new();
     let enter = |steps: &mut Vec<(String, Value)>, p: (i64, i64)| {
         let (x, y) = map.mm(p);
         steps.push(("cursor.set".to_owned(), json!({"x_mm": x, "y_mm": y})));
         steps.push(("canvas.activate".to_owned(), json!({})));
     };
-    // The junctions first: their split points (one step from a CP) then lie on no other wire.
+    // The junctions first, with an isolated split point on each first wire.
     for j in &t.junctions {
         let far: Vec<_> = j
             .sequence
@@ -593,16 +598,39 @@ pub fn wiring_steps_with(
             "every member of a golden junction ends at a CP"
         );
         let (f0, f1) = (far[0], far[1]);
-        let f0_at = at(f0);
-        enter(&mut steps, f0_at);
+        enter(&mut steps, at(f0));
         enter(&mut steps, at(f1));
         commits += 1;
-        let stub = match f0.dir {
-            Some(Dir::Down) => (f0_at.0, coord(index(f0_at.1) + 1)),
-            Some(Dir::Up) => (f0_at.0, coord(index(f0_at.1) - 1)),
-            Some(Dir::Right) => (coord(index(f0_at.0) + 1), f0_at.1),
-            Some(Dir::Left) => (coord(index(f0_at.0) - 1), f0_at.1),
-            None => panic!("a first member without a direction"),
+        // Distinct receiving lanes isolate the common downward supply bank from
+        // earlier wires. Other junctions retain their original marker geometry.
+        let use_receiving = folio == 102 && f0.dir == Some(Dir::Down);
+        let split_cp = if use_receiving { f1 } else { f0 };
+        let split_at = at(split_cp);
+        let mut distance = 1;
+        let stub = loop {
+            let (point, lane) = match split_cp.dir {
+                Some(Dir::Down) => {
+                    let y = coord(index(split_at.1) + distance);
+                    ((split_at.0, y), (0, y))
+                }
+                Some(Dir::Up) => {
+                    let y = coord(index(split_at.1) - distance);
+                    ((split_at.0, y), (0, y))
+                }
+                Some(Dir::Right) => {
+                    let x = coord(index(split_at.0) + distance);
+                    ((x, split_at.1), (1, x))
+                }
+                Some(Dir::Left) => {
+                    let x = coord(index(split_at.0) - distance);
+                    ((x, split_at.1), (1, x))
+                }
+                None => panic!("a split member without a direction"),
+            };
+            if !use_receiving || split_lanes.insert(lane) {
+                break point;
+            }
+            distance += 1;
         };
         points.push(stub);
         for f in &far[2..] {
