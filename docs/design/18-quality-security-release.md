@@ -1176,13 +1176,14 @@ NFR-SEC-19:
     gfx-rs/wgpu#10256, fixed on trunk by #10307 for v31, the v30 backport #10593 open. egui-wgpu 0.37 never calls
     `Buffer::destroy` and drops its one capture view inside the map callback before `unmap`; device loss is outside
     its control, and ElektraWatt's own renderers must not hold a view across `destroy`) and removed its exemption.
-  - *Native clipboard helper* (cycle 28, `6ecc9e7`; ID-660). The explicitly enabled eframe clipboard feature adds smithay-clipboard 0.7.2. Its full source audit is AI-performed by a coder and independent lead and remains pending owner confirmation before a distributed binary. The exact compatibility pin retains the existing SCTK 0.19.2/calloop 0.13.0/calloop-wayland-source 0.3.0 graph; their exemptions and owner-confirmation debt are unchanged. No new exemption or licence-policy relaxation is introduced. Windows clipboard-win 5.4.1 and error-code 3.4.0 are BSL-1.0, admitted under NFR-LIC-04’s existing conditional admission (ADR-0024 amendment 3); the synchronized policies and generated notices now include the Boost licence text.
+  - *Native clipboard helper* (cycle 28, `6ecc9e7`; ID-660). The explicitly enabled eframe clipboard feature adds smithay-clipboard 0.7.2. Its full source audit is AI-performed by a coder and independent lead and remains pending owner confirmation before a distributed binary. The exact compatibility pin retains the existing SCTK 0.19.2/calloop 0.13.0/calloop-wayland-source 0.3.0 graph; their exemptions and owner-confirmation debt are unchanged. No new exemption or licence-policy relaxation is introduced. Windows clipboard-win 5.4.3 and error-code 3.4.0 are BSL-1.0, admitted under NFR-LIC-04’s existing conditional admission (ADR-0024 amendment 3); the synchronized policies and generated notices include the Boost licence text. The delivery correction replaces yanked clipboard-win 5.4.1 with non-yanked 5.4.3, retaining the HTML bounds fix first released in 5.4.2. Its full nine-file source audit by a GPT-6.1 Sol coder and independent GPT-6.1 Sol lead review are complete and AI-performed, pending owner confirmation before a distributed binary; the obsolete 5.4.1 exemption is removed. The reached Windows path includes Unicode text and automatic image-paste fallback through raw PNG/CF_DIBV5 bytes, while clipboard-win's bitmap helpers and HTML API are not called. The audit records their unsafe caveats, unbounded clipboard buffers and Win32 conversion assumptions; error-code remains exempt. No application-source changes are made; final Windows build and real OS clipboard validation remain delivery checks.
   - *Count.* The cycle-20 audit took the exemptions from 485 to 384 (374 `safe-to-deploy`, 10 `safe-to-run`); lane A's
     egui_tiles 0.18.0 added one in the same cycle (385); the wgpu audit of cycle 21 brings them back to 384 (374 and 10).
     Cycle 22 (WP-S2.02 part 2; decision log ID-543) adds four and prunes one: 387 (377 `safe-to-deploy`, 10
     `safe-to-run`; `[[exemptions.` entries of `supply-chain/config.toml`). Cycle 24's usvg crates and cycle 26's
     raster crates came with audits and left it at 387; cycle 26's regex family brings it to **386** (380
-    `safe-to-deploy`, 6 `safe-to-run`; below).
+    `safe-to-deploy`, 6 `safe-to-run`; below). The cycle-28 clipboard-win full audit removes its old exemption,
+    leaving **385** current exemptions (379 `safe-to-deploy`, 6 `safe-to-run`).
   - *The GPU canvas's tessellation crates* (cycle 22; decision log ID-543, FT-326). `lyon_tessellation` 1.0.22,
     `lyon_path` 1.0.19 and `lyon_geom` 1.0.20 (MIT OR Apache-2.0) and `float_next_after` 1.0.0 (MIT) join the graph
     through `ew-render2d`. None has a build script and the build-script allowlist is unchanged. They are recorded as
@@ -1204,7 +1205,7 @@ NFR-SEC-19:
     `forbid(unsafe_code)`), and its exemption is removed; `aho-corasick`, `regex` and `regex-automata` are **raised to
     `safe-to-deploy` exemptions, not audited line by line** (about 21k, 11k and 66k lines, 227, 1 and 57 `unsafe` sites;
     no build script, no file, network, process, environment or FFI use in `src`). **Owner item:** confirm these three
-    or audit them before any distributed binary. The exemptions are now **386** (380 `safe-to-deploy`, 6 `safe-to-run`).
+    or audit them before any distributed binary. At cycle 26 the exemptions were **386** (380 `safe-to-deploy`, 6 `safe-to-run`).
     The confirmation or audit is FT-435 (decision log ID-634).
   - *The raster crates* (cycle 26, FT-406; decision log ID-636, ID-637). krilla's `raster-images` feature (on in
     `ew-export`) brings **four new packages**: gif 0.14.2 and image-webp 0.2.4 (MIT OR Apache-2.0), imagesize 0.14.0

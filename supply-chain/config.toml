@@ -191,10 +191,6 @@ criteria = "safe-to-deploy"
 version = "0.10.2"
 criteria = "safe-to-deploy"
 
-[[exemptions.clipboard-win]]
-version = "5.4.1"
-criteria = "safe-to-deploy"
-
 [[exemptions.color]]
 version = "0.3.3"
 criteria = "safe-to-deploy"
