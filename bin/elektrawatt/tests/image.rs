@@ -129,6 +129,22 @@ fn im2_an_image_is_placed_by_a_script_twice_identically_and_replays() {
     };
     let placed = rows(&scripted);
     assert_eq!(placed.len(), 1, "one image on 101");
+    // The save wrote the asset the item names: the project reopened from disk holds it (the logo was taken off, so the
+    // item is the only record that names it), as a file `assets/<hash>.svg`.
+    let hash: ew_ui::ew_viewmodel::ew_api::Sha256 = SVG_HASH.parse().unwrap();
+    assert!(
+        scripted.asset(&hash).is_some(),
+        "the reopened project holds the image's asset"
+    );
+    let file = SVG_HASH.trim_start_matches("sha256:");
+    assert!(
+        tmp.path("a")
+            .join("J-E-2416.ew")
+            .join("assets")
+            .join(format!("{file}.svg"))
+            .is_file(),
+        "assets/<hash>.svg is on disk"
+    );
     let [x0, y0, x1, y1] = placed[0];
     assert!(x1 > x0 && y1 > y0);
     assert!(
@@ -161,7 +177,6 @@ fn im2_an_image_is_placed_by_a_script_twice_identically_and_replays() {
         placed,
         "the replay's item equals the scripted session's"
     );
-    let hash: ew_ui::ew_viewmodel::ew_api::Sha256 = SVG_HASH.parse().unwrap();
     assert!(s.asset(&hash).is_some(), "the replay brought the asset in too");
     s.close();
 }

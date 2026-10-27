@@ -295,13 +295,22 @@ impl Model {
     }
 
     raw_read! {
-        /// The assets the records name, by hash: today the company logo of the project row
-        /// ([`ew_schema::company_logo`]). The save writes these (doc 05 §13.3).
+        /// The assets the records name, by hash: the company logo of the project row
+        /// ([`ew_schema::company_logo`]) and the asset of every image page item the model holds the bytes of. The save
+        /// writes these (doc 05 §13.3), the journal carries them and the purge keeps them.
         fn referenced_assets(&self) -> std::collections::BTreeMap<ew_schema::Sha256, ew_schema::AssetRef> {
-            ew_schema::company_logo(&self.project.value.extra)
+            let mut named: std::collections::BTreeMap<_, _> = ew_schema::company_logo(&self.project.value.extra)
                 .map(|r| (r.sha256, r))
                 .into_iter()
-                .collect()
+                .collect();
+            for (_, item) in self.page_items.iter() {
+                if let ew_schema::PageItemKind::Image(image) = &item.kind
+                    && let Some(asset) = self.assets.get(&image.asset)
+                {
+                    named.insert(image.asset, *asset.reference());
+                }
+            }
+            named
         }
     }
 
