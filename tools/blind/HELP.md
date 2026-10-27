@@ -1,3 +1,7 @@
+---
+prompt: blind-help
+version: 2
+---
 # The harness: how to work with it
 
 You work with ElektraWatt through one program, `{blind}`, and nothing else. You never see a picture: you read text, and
@@ -14,6 +18,7 @@ action with its parameters.
 | `{blind} look {run} --page [<folio>]` | The content of a page as text: what is drawn on it, in reading order. |
 | `{blind} note {run} "patience <0-10> flow <0-10> <text>"` | The note of your last turn. |
 | `{blind} handback {run} -` | Your hand-back on standard input; it ends the run. |
+| `{blind} report {run} <which>` | For reviewers (a check run) only: `<which>` is `check`, `bom` or `score`, the check report, the parts list and the score of the drafter's project. A drafter has nothing to read here. |
 
 ## A turn
 
@@ -40,8 +45,22 @@ A refused step is never sent. The texts are:
 - `harness: paths are names inside the run's work folder`: a file or folder is a bare name, like `project` or `out.pdf`.
 - `harness: use a label or a position, not an ID`: name a record by its tag, its label or its position, or by an alias
   `@n` that the application printed in its own output.
+- `harness: the checker does not change the project`: in a check run, any action that changes the project, and the
+  canvas actions that press, release or click (they can finish a drawing tool).
+- `harness: marked broken, move on`: you sent a step that already failed twice in a row.
 - `harness: parameters too large`, `harness: a batch has 1 to 20 steps`, `harness: look cap per turn`,
   `harness: note required for turn <n>`.
+
+## The outcome words
+
+Every step the application takes ends in one of three words:
+
+- `done`: the application did it.
+- `refused`: the application did not do it because it is not possible now; the reason follows (a word such as
+  `reason-no-project`: the text after `reason-` is the reason in short form).
+- `failed`: the application tried and could not; the message says why.
+
+`skipped` is the harness's own word: the step was not sent because an earlier step of the batch was not done.
 
 ## How to read a line of the interface
 
@@ -51,6 +70,14 @@ A line is structure and text. The words outside quotation marks are the applicat
 `@n` is the application's name for one record in this run; use it wherever an action asks for an ID or a reference.
 Positions are millimetres on the page; a page has a frame of cells (rows A to H, columns 0 to 16) that you can name in
 Go to.
+
+`look --page` describes the content of one page, in reading order (row A to H of the anchor cell, then column 0 to 16):
+the header gives the folio, the title and the counts (`reps` representations, `connections` drawn connections,
+`junctions`); each `rep` line is one drawn device or symbol with the label it prints in quotation marks, its cell, its
+symbol and variant and its position, followed by its `cp` lines (the connection points, with the number of `wires`
+drawn to each and the `potential` where there is one); `wire` lines name the two ends of a drawn connection; a
+`junction` line names its cell, style, wiring and the sequence of the far ends. Words inside quotation marks are the
+user's text (tags, titles, symbol keys); the rest are the application's own words.
 
 ## The hand-back
 

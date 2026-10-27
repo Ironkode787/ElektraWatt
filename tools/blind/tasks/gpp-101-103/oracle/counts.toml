@@ -1,0 +1,51 @@
+# The exact counts of the task gpp-101-103 (WP-S6.13 §5.7, §5.9: checks H1, H2, H3) and the marker texts (S7).
+#
+# `bless-oracle` checks this file against a temporary copy of Golden A: folios 101 and 102 equal the headers of the copy's
+# `page.describe`; folio 103 is the demo variant (the strip segments of the golden page left out, the terminals placed
+# one by one), whose reps equal the golden's less its strip segments plus the placed terminals.
+
+[[folio]]
+folio = "101"
+reps = 17
+connections = 21
+junctions = 2
+budget_turns = 250
+source = "WP-S2.04 §13.6 exact counts after each folio; doc 20 §5, §6.1, §8.2, §8.3"
+
+[[folio]]
+folio = "102"
+reps = 12
+connections = 19
+junctions = 4
+budget_turns = 250
+source = "WP-S2.04 §13.6 exact counts after each folio; doc 20 §5, §6.1, §8.2, §8.3"
+
+[[folio]]
+folio = "103"
+reps = 35
+connections = 20
+junctions = 0
+terminals = 15
+strips = 2
+budget_turns = 400
+source = "WP-S2.04 §13.6, the G-PP demo variant of folio 103 (ruling 1 of §17.5, ID-571): the 23 reps of the golden page less its 3 strip segments plus the 15 terminals; doc 20 §9"
+
+[[marker]]
+folio = "101"
+text = "2.5 BK BU"
+source = "WP-S2.04 §13.6: the marker above S51 (W7, W9); doc 20 §8.2"
+
+[[marker]]
+folio = "101"
+text = "2.5 BK BU"
+source = "WP-S2.04 §13.6: the marker below S51 (W4, W5); doc 20 §8.2"
+
+[[marker]]
+folio = "102"
+text = "1.5 DBU DBU WH WH"
+source = "WP-S2.04 §13.6: the marker below -102G1 (W20 to W23); doc 20 §8.2"
+
+[[marker]]
+folio = "102"
+text = "1.5 DBU DBU"
+source = "WP-S2.04 §13.6: the marker above -102F2 (W24, W25); doc 20 §8.2"

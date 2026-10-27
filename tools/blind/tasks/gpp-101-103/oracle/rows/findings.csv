@@ -1,0 +1,8 @@
+rule,severity,tag
+EW-NUM-001,info,-XPE
+EW-NUM-001,info,E55
+EW-NUM-001,info,E56
+EW-NUM-001,info,F55
+EW-NUM-001,info,S51
+EW-NUM-001,info,S56
+EW-NUM-001,info,T55

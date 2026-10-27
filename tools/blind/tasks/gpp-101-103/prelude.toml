@@ -1,0 +1,29 @@
+# The class of every step of `prelude.uiscript`, in order (WP-S6.13 §5.7, D11): `setup` is what a company's basic project
+# holds (the first-run flow's wizard with its defaults, the part copies); `drawing` is anything a user draws on folios
+# 101 to 103, pages included, and names the follow-up that removes it (`gap = "FT-…"`). Check H7 is the number of
+# `drawing` lines.
+#
+# History: FT-408 (`page.new`) and FT-409 (structure nodes and external references) closed in cycle 27 (ID-650), so the
+# pages, the structure node `+J-E-206` and the external reference are the agent's work, not prelude lines. FT-410 closed
+# too (`parts.import`), but the task keeps the part copies as prelude `setup` (the agent's shell has no parts table to
+# import from); a part is chosen with `tool.place_part` among the copies that carry a function template.
+
+[[step]]
+action = "tools.company_standard"
+class = "setup"
+
+[[step]]
+action = "wizard.finish"
+class = "setup"
+
+[[step]]
+action = "wizard.cancel"
+class = "setup"
+
+[[step]]
+action = "file.new"
+class = "setup"
+
+[[step]]
+action = "command.run"
+class = "setup"

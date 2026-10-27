@@ -1,0 +1,11 @@
+# The checks an open follow-up or an undelivered package part blocks (WP-S6.13 §5.9, D12): a check that is not `ok` and
+# is listed here is scored `gap` with this follow-up, not `miss`. A check that is `ok` stays `ok`. A gap that is closed
+# in the plan but still listed here is a review finding: remove the entry in the design pass that closes it.
+#
+# The check IDs: H1 to H3 the counts of folios 101 to 103, H4 the parts list, H5 the agent's PDF, H6 the agent's save,
+# H7 the prelude; S1 to S8 the soft checks.
+
+[[gap]]
+check = "H4"
+gap = "WP-S2.07"
+reason = "A part is chosen for a placed device in the part selection of WP-S2.07 (M2); until then only the parts with a function template (the black boxes and the terminals) are placed from the part picker, and the plug-in bridges and end brackets (the TBD rows) have no action."
