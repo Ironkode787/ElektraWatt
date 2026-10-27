@@ -23,8 +23,11 @@
 //! below 255 go into the context's *translucent* mesh, drawn last in paint order without depth writes.
 //!
 //! **Caches.** Meshes are cached across scenes in a [`MeshCache`], so a second preparation of the same page
-//! tessellates nothing. Images are skipped, as the CPU path skips them; symbol instances, which the canvas's sheet
-//! lists never contain (they are inlined), are skipped and counted, as the CPU path does without a resolver. A
+//! tessellates nothing. **Raster images (PNG, JPEG) are skipped and counted:** this path has no texture pipeline, so the
+//! canvas routes a page whose list holds one to the CPU tile path instead ([`has_raster_images`] is the one predicate
+//! the host asks); SVG images never reach it, because the export job has already turned them into paths. Symbol
+//! instances, which the canvas's sheet lists never contain (they are inlined), are skipped and counted, as the CPU
+//! path does without a resolver. A
 //! group clip becomes a per-instance clip rectangle in page coordinates (exact for multiples of 90°, the bounding
 //! box otherwise).
 
@@ -127,7 +130,7 @@ pub struct PrepareStats {
     pub glyph_instances: u64,
     /// Glyph runs.
     pub runs: u64,
-    /// Image items skipped.
+    /// Image items skipped (the GPU path draws none; the canvas draws a page with raster images on the CPU path).
     pub images_skipped: u64,
     /// Symbol instances skipped (no geometry resolver).
     pub instances_skipped: u64,
@@ -630,6 +633,22 @@ impl<'a> Walker<'a> {
     }
 }
 
+/// Whether `list` holds a raster image that is drawable (a PNG or JPEG item with its bytes, in a group at any depth the
+/// renderers walk): the pages the GPU path cannot draw and the canvas hands to the CPU tile path. An SVG image item
+/// does not count: the export job resolves it to paths, and the CPU path skips one that is left.
+pub fn has_raster_images(list: &DisplayList) -> bool {
+    fn any(items: &[Item], depth: usize) -> bool {
+        items.iter().any(|i| match &i.kind {
+            ItemKind::Image(img) => {
+                img.image.format != ew_dl::ImageFormat::Svg && !img.image.bytes.is_empty()
+            }
+            ItemKind::Group(g) => depth < MAX_GROUP_DEPTH && any(&g.items, depth + 1),
+            _ => false,
+        })
+    }
+    any(&list.items, 0)
+}
+
 /// Prepares `list` as scene `id` with the meshes of `cache` (adding what is missing) and the glyph outlines of
 /// `fonts`.
 pub fn prepare(
@@ -928,9 +947,43 @@ mod tests {
             },
             Transform::IDENTITY,
         ));
+        let image = |format| {
+            Item::image(
+                Arc::new(ew_dl::ImageData {
+                    sha256: [7; 32],
+                    format,
+                    bytes: Arc::from(vec![1u8, 2, 3]),
+                }),
+                Rect::from_points(p(0, 0), p(9, 9)),
+            )
+        };
+        list.push(image(ew_dl::ImageFormat::Png));
+        list.push(Item::group(None, None, vec![image(ew_dl::ImageFormat::Jpeg)]));
         let s = prepare(1, &list, &NoFonts, &mut cache);
         assert_eq!(s.stats.instances_skipped, 1);
+        assert_eq!(
+            s.stats.images_skipped, 2,
+            "a PNG and a JPEG in a group are counted, not drawn"
+        );
         assert!(s.meshes.is_empty());
+        assert!(has_raster_images(&list));
+        let mut svg = DisplayList::new();
+        svg.push(image(ew_dl::ImageFormat::Svg));
+        assert!(!has_raster_images(&svg), "an SVG image is no raster");
+        let mut empty = DisplayList::new();
+        empty.push(Item::image(
+            Arc::new(ew_dl::ImageData {
+                sha256: [7; 32],
+                format: ew_dl::ImageFormat::Png,
+                bytes: Arc::from(Vec::new()),
+            }),
+            Rect::from_points(p(0, 0), p(9, 9)),
+        ));
+        assert!(
+            !has_raster_images(&empty),
+            "an image without bytes is not drawn by any path"
+        );
+        assert!(!has_raster_images(&DisplayList::new()));
     }
 
     #[test]

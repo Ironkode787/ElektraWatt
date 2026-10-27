@@ -541,3 +541,182 @@ fn the_gpu_scene_is_keyed_by_session_revision_and_folio() {
         assert!(host.requested_scene() > Some(newest));
     }
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// Raster images: the GPU path has no texture pipeline, so a page with a PNG or JPEG item is drawn by the CPU path
+
+/// A PNG of `w × h` opaque red pixels (synthetic).
+fn red_png(w: u32, h: u32) -> Vec<u8> {
+    ew_render_cpu::encode_png(
+        &RgbaImage {
+            width: w,
+            height: h,
+            pixels: [255u8, 0, 0, 255].repeat((w * h) as usize),
+        },
+        None,
+    )
+}
+
+/// The pixels of `image` that are clearly red.
+fn red_pixels(image: &RgbaImage) -> usize {
+    image
+        .pixels
+        .chunks(4)
+        .filter(|p| p[0] > 200 && p[1] < 60 && p[2] < 60)
+        .count()
+}
+
+fn vulkan() -> ew_ui::gpu::AdapterSummary {
+    ew_ui::gpu::AdapterSummary {
+        kind: ew_ui::gpu::DeviceKind::Discrete,
+        api: ew_ui::gpu::GpuApi::Vulkan,
+        name: "test GPU".into(),
+    }
+}
+
+/// A host on which the switch rule chose the GPU and whose canvas is `d`'s, and a shell to label.
+fn gpu_host(d: &HeadlessDevice, tmp: &Tmp) -> (ew_ui::gpu::GpuHost, ShellModel) {
+    let mut shell = ShellModel::new(Mode::Headless, tmp.config());
+    let mut host = ew_ui::gpu::GpuHost::new();
+    host.simulate(vulkan(), Ok(()));
+    host.update(&mut shell, false);
+    host.set_canvas_for_tests(d.canvas().expect("the canvas initialises"));
+    assert!(host.drawing(), "the rule chose the GPU");
+    (host, shell)
+}
+
+/// A page with a PNG item selects the CPU path, whose output shows the PNG's pixels inside the item's rectangle; the
+/// GPU path draws none of them (it skips and counts the image), and a page without a raster image keeps the GPU path.
+#[test]
+fn a_page_with_a_png_item_is_drawn_by_the_cpu_path_with_its_pixels() {
+    let devices = devices();
+    let tmp = Tmp::new();
+    let at = |x: i64, y: i64| Pt2::new(Nm(x), Nm(y));
+    let rect = Rect::from_points(at(20_000_000, 20_000_000), at(60_000_000, 30_000_000));
+    let png = Item::image(
+        Arc::new(ew_ui::ew_viewmodel::ew_api::output::ew_dl::ImageData {
+            sha256: [9; 32],
+            format: ew_ui::ew_viewmodel::ew_api::output::ew_dl::ImageFormat::Png,
+            bytes: Arc::from(red_png(8, 2)),
+        }),
+        rect,
+    );
+    let mut with = DisplayList::new();
+    with.push(png.clone());
+    // The image also inside a group, as the scene builds it under a translation.
+    let mut grouped = DisplayList::new();
+    grouped.push(Item::group(
+        Some(Transform::from_translation(at(0, 0))),
+        None,
+        vec![png],
+    ));
+    let mut without = DisplayList::new();
+    without.push(Item::path(Path::rect(rect), None, Some(Brush::BLACK)));
+    let (with, grouped, without) = (Arc::new(with), Arc::new(grouped), Arc::new(without));
+    let sheet = (100_000_000, 60_000_000);
+    let options = RenderOptions {
+        dpi: 96,
+        ..RenderOptions::default()
+    };
+    for d in &devices {
+        let (mut host, mut shell) = gpu_host(d, &tmp);
+        let page = page_of(1, 1, "1", &with);
+        let plain = page_of(1, 1, "2", &without);
+        assert!(!host.draws_page(&page), "a PNG item: the CPU path");
+        assert!(
+            !host.draws_page(&page_of(1, 1, "3", &grouped)),
+            "also inside a group"
+        );
+        assert!(host.draws_page(&plain), "no raster image: the GPU path");
+        // The status text says which path draws the page on show.
+        let raster = host.page_has_rasters(&page);
+        host.update(&mut shell, raster);
+        assert_eq!(shell.canvas_backend().label(), "CPU");
+        let raster = host.page_has_rasters(&plain);
+        host.update(&mut shell, raster);
+        assert_eq!(shell.canvas_backend().label(), "GPU Vulkan");
+        // The CPU path's output has the PNG's red inside the rectangle: 40 × 10 mm at 96 dpi is about 151 × 38 pixels.
+        let (cpu, report) = render(&with, sheet_size(sheet), &options, fonts(), None).unwrap();
+        assert_eq!(report.skipped_images, 0);
+        let inside = red_pixels(&cpu);
+        assert!(inside >= 5_000, "{inside} red pixels on the CPU path");
+        let (w, h) = (cpu.width as usize, cpu.height as usize);
+        let (px_per_mm, _) = (96.0 / 25.4, ());
+        let inside_rect = (0..h)
+            .flat_map(|y| (0..w).map(move |x| (x, y)))
+            .filter(|&(x, y)| {
+                let (xmm, ymm) = (x as f64 / px_per_mm, y as f64 / px_per_mm);
+                (20.0..60.0).contains(&xmm) && (20.0..30.0).contains(&ymm)
+            })
+            .filter(|&(x, y)| {
+                let i = (y * w + x) * 4;
+                cpu.pixels[i] > 200 && cpu.pixels[i + 1] < 60 && cpu.pixels[i + 2] < 60
+            })
+            .count();
+        assert_eq!(
+            inside_rect, inside,
+            "every red pixel is inside the item's rectangle"
+        );
+        // The GPU path skips it.
+        let gpu = gpu_image(d, &with, sheet, 96);
+        assert_eq!(red_pixels(&gpu), 0, "the GPU path draws no raster image");
+    }
+}
+
+/// The company logo as a PNG is a raster image in the title block's list: that page selects the CPU path too and its
+/// CPU output shows the logo; without a logo the page keeps the GPU path.
+#[test]
+fn a_title_block_page_with_a_png_logo_is_drawn_by_the_cpu_path() {
+    let devices = devices();
+    let Some(d) = devices.first() else {
+        return;
+    };
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let mut shell = ShellModel::new(Mode::Headless, tmp.config());
+    assert_eq!(
+        shell.dispatch(
+            "file.open",
+            &json!({"dir": dir.to_string_lossy(), "read_only": false})
+        ),
+        Outcome::Done
+    );
+    assert_eq!(
+        shell.dispatch("page.goto", &json!({"folio": "101"})),
+        Outcome::Done
+    );
+    let (mut host, _) = gpu_host(d, &tmp);
+    let options = RenderOptions {
+        dpi: 96,
+        ..RenderOptions::default()
+    };
+    let plain = Arc::clone(shell.canvas().expect("a canvas").page());
+    assert!(host.draws_page(&plain), "without a logo: the GPU path");
+    let (before, _) = render(&plain.list, sheet_size(plain.sheet), &options, fonts(), None).unwrap();
+    assert_eq!(red_pixels(&before), 0, "the golden page has no red");
+    let logo = ew_ui::ew_viewmodel::ew_api::base64_encode(&red_png(64, 32));
+    assert_eq!(
+        shell.dispatch(
+            "command.run",
+            &json!({"cmd": "project.company.set", "params": {"logo": logo}})
+        ),
+        Outcome::Done
+    );
+    assert_eq!(
+        shell.dispatch("page.goto", &json!({"folio": "101"})),
+        Outcome::Done
+    );
+    let page = Arc::clone(shell.canvas().expect("a canvas").page());
+    assert!(
+        !host.draws_page(&page),
+        "a PNG logo in the title block: the CPU path"
+    );
+    let (after, report) = render(&page.list, sheet_size(page.sheet), &options, fonts(), None).unwrap();
+    assert_eq!(report.skipped_images, 0);
+    assert!(
+        red_pixels(&after) >= 100,
+        "{} red pixels: the logo on the CPU path",
+        red_pixels(&after)
+    );
+    shell.shutdown();
+}

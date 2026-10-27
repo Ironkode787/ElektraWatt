@@ -21,7 +21,7 @@ pub mod switch;
 pub mod tess;
 
 pub use device::{HeadlessDevice, adapter_count};
-pub use prepare::{Hold, MeshCache, PreparedScene, Preparer, prepare};
+pub use prepare::{Hold, MeshCache, PreparedScene, Preparer, has_raster_images, prepare};
 pub use render::{GpuCanvas, GpuView, RenderOutcome, TARGET_FORMAT, sample_count_for};
 pub use switch::{
     AdapterSummary, BackendSetting, CanvasBackend, DeviceKind, Flags, GpuApi, GpuError, choose,

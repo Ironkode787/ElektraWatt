@@ -215,3 +215,38 @@ fn a_target_beyond_the_device_limit_is_an_error_not_a_panic() {
         assert!(canvas.render(&view(8, 8)).is_ok());
     }
 }
+
+/// The GPU path has no texture pipeline: a PNG item is counted as skipped and leaves its rectangle blank (the canvas
+/// routes a page with a raster image to the CPU path, `has_raster_images`).
+#[test]
+fn a_raster_image_item_is_skipped_by_the_gpu_path_and_counted() {
+    let png = ew_render_cpu::encode_png(
+        &ew_render_cpu::RgbaImage {
+            width: 8,
+            height: 2,
+            pixels: [255u8, 0, 0, 255].repeat(16),
+        },
+        None,
+    );
+    let mut list = DisplayList::new();
+    list.push(Item::image(
+        Arc::new(ew_dl::ImageData {
+            sha256: [3; 32],
+            format: ew_dl::ImageFormat::Png,
+            bytes: Arc::from(png),
+        }),
+        Rect::from_points(p(mm(10.0), mm(10.0)), p(mm(50.0), mm(20.0))),
+    ));
+    assert!(ew_render2d::gpu::has_raster_images(&list));
+    let mut cache = MeshCache::default();
+    assert_eq!(prepare(1, &list, &NoFonts, &mut cache).stats.images_skipped, 1);
+    for d in devices() {
+        let mut canvas = canvas_with(&d, &list);
+        canvas.render(&view(300, 100)).expect("a render");
+        let image = canvas.read_back().expect("the readback");
+        assert!(
+            image.pixels.chunks(4).all(|px| px == [255, 255, 255, 255]),
+            "nothing is drawn"
+        );
+    }
+}
