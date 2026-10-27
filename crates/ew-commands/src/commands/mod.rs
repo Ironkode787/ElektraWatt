@@ -115,8 +115,8 @@ pub use exchange::{ExchangePin, ExchangeSymbol};
 pub use fields::{ASPECTS, SET_MANY_MAX_EDITS, SETTABLE, SetFields, SetManyFields};
 pub use frames::{FRAMES_MEMBER, FrameForPageType, SetFrameDefaults};
 pub use items::{
-    AlignParam, DashParam, FreeTextParam, GraphicParam, ItemKindParam, PlaceItem, PlaceMarker, ShapeParam,
-    StrokeParam,
+    AlignParam, DashParam, FreeTextParam, GraphicParam, ImageParam, ItemKindParam, PlaceItem, PlaceMarker,
+    ShapeParam, StrokeParam,
 };
 pub use languages::SetProjectLanguages;
 pub use library::{EmbedLibraryCopies, library_copy_hash};

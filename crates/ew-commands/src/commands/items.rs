@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Page items (WP-S2.04 part 4a, §5.1, §10.1): `item.place` (`PlaceItem`; graphics and free texts, FR-SYM-023,
-//! FR-SYM-024) and `marker.place` (`PlaceMarker`; the group wire marker, FR-CON-023, FR-CON-039), with the checks
+//! FR-SYM-024, and from part 5 images, FR-SYM-025) and `marker.place` (`PlaceMarker`; the group wire marker, FR-CON-023, FR-CON-039), with the checks
 //! that `fields.set` repeats after it writes a page item, and the translation `rep.move` applies to the page items
 //! and structure boxes it moves.
 
@@ -12,8 +12,8 @@ use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
 use ew_schema::{
     BoxStyle, ColourCode, ColourSpec, Connection, Csa, Extra, FreeText, Graphic, GraphicShape, GraphicStroke,
-    LineDash, MarkerField, Page, PageItem, PageItemKind, ShapeArc, ShapeCircle, ShapeLine, ShapePoints,
-    ShapeRect, StructureBox, TextAlign, WireMarker,
+    ImageItem, LineDash, MarkerField, Page, PageItem, PageItemKind, Sha256, ShapeArc, ShapeCircle, ShapeLine,
+    ShapePoints, ShapeRect, StructureBox, TextAlign, WireMarker,
 };
 use ew_units::{Angle2, Nm, Pt2};
 use schemars::JsonSchema;
@@ -179,7 +179,19 @@ fn is_zero_angle(a: &Angle2) -> bool {
     *a == Angle2::ZERO
 }
 
-/// What `item.place` places: `{"graphic": {…}}` or `{"free_text": {…}}`.
+/// An image of `item.place` (WP-S2.04 part 5, FR-SYM-025).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ImageParam {
+    /// The asset: `sha256:<64 hex>`, one the project holds (doc 05 §13.3).
+    pub asset: Sha256,
+    /// Two opposite corners of the rectangle the image is drawn in, absolute in page nm (stored with the smaller
+    /// coordinates first); the rectangle has an area.
+    #[schemars(with = "[Pt2S; 2]")]
+    pub rect: (Pt2, Pt2),
+}
+
+/// What `item.place` places: `{"graphic": {…}}`, `{"free_text": {…}}` or `{"image": {…}}`.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case", deny_unknown_fields)]
 pub enum ItemKindParam {
@@ -187,6 +199,8 @@ pub enum ItemKindParam {
     Graphic(GraphicParam),
     /// A free text (FR-SYM-024).
     FreeText(FreeTextParam),
+    /// An image asset in a rectangle (FR-SYM-025, part 5).
+    Image(ImageParam),
 }
 
 // -------------------------------------------------------------------------------------------------------------
@@ -292,6 +306,13 @@ pub(crate) fn marker_problem(m: &WireMarker) -> Option<String> {
     })
 }
 
+/// Why an image's own members are refused (a rectangle without area); whether the project holds its asset is checked
+/// by `item.place` and `rep.move` needs no check (the asset does not change).
+pub(crate) fn image_problem(i: &ImageItem) -> Option<String> {
+    let r = i.rect.0;
+    (r.min().x == r.max().x || r.min().y == r.max().y).then(|| "an image rectangle without area".to_owned())
+}
+
 /// Why a page item is refused by the commands; `None` when it is accepted (a variant this build keeps verbatim is
 /// not judged).
 pub(crate) fn item_problem(item: &PageItem) -> Option<String> {
@@ -299,6 +320,7 @@ pub(crate) fn item_problem(item: &PageItem) -> Option<String> {
         PageItemKind::Graphic(g) => graphic_problem(g),
         PageItemKind::FreeText(t) => free_text_problem(t),
         PageItemKind::WireMarker(m) => marker_problem(m),
+        PageItemKind::Image(i) => image_problem(i),
         PageItemKind::Unknown(_) => None,
     }
 }
@@ -388,13 +410,15 @@ fn free_text_of(t: &FreeTextParam) -> FreeText {
     }
 }
 
-/// `item.place` (`PlaceItem`, WP-S2.04 §5.1; FR-SYM-023, FR-SYM-024): creates a page item on a page, a graphic
-/// (`{"graphic": {shape, stroke?, dash?, fill?}}`) or a free text (`{"free_text": {text, bind?, at, angle?, style?,
-/// align?}}`), absolute in page nm; a rectangle is stored with `min` the smaller coordinates. Rejected: a missing page
+/// `item.place` (`PlaceItem`, WP-S2.04 §5.1; FR-SYM-023, FR-SYM-024, FR-SYM-025): creates a page item on a page, a
+/// graphic (`{"graphic": {shape, stroke?, dash?, fill?}}`), a free text (`{"free_text": {text, bind?, at, angle?,
+/// style?, align?}}`) or an image (`{"image": {asset, rect}}`, part 5: an asset of the project's store in the
+/// rectangle of two opposite corners, stored with the smaller coordinates first), absolute in page nm; a rectangle is stored with `min` the smaller coordinates. Rejected: a missing page
 /// (not found); a degenerate shape (a zero-length line, a polyline or polygon with fewer than two or three distinct
 /// points, a rectangle without area, a radius of 0, an arc without sweep) or a stroke width of 0 or less, at
 /// `/kind/graphic`; a `bind` that is not one of the six bindable names, an empty `text` without `bind`, or an angle
-/// other than 0, 90000, 180000 or 270000, at `/kind/free_text`. Interactive. Outcome: the item.
+/// other than 0, 90000, 180000 or 270000, at `/kind/free_text`; an image whose asset the project does not hold, at
+/// `/kind/image/asset`, or whose rectangle has no area, at `/kind/image`. Interactive. Outcome: the item.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct PlaceItem {
@@ -424,6 +448,26 @@ impl Command for PlaceItem {
                 let t = free_text_of(t);
                 let p = free_text_problem(&t);
                 (PageItemKind::FreeText(t), p, "/kind/free_text")
+            }
+            ItemKindParam::Image(i) => {
+                let (a, b) = i.rect;
+                let item = ImageItem {
+                    asset: i.asset,
+                    rect: ew_schema::Bounds(ew_units::Rect::from_points(a, b)),
+                    extra: Extra::new(),
+                };
+                if tx.asset(&i.asset).is_none() {
+                    return Err(CmdError::invalid_params(
+                        Self::NAME,
+                        "/kind/image/asset",
+                        format!(
+                            "the project holds no asset {}; an image places an asset the project already holds",
+                            i.asset
+                        ),
+                    ));
+                }
+                let p = image_problem(&item);
+                (PageItemKind::Image(item), p, "/kind/image")
             }
         };
         if let Some(p) = problem {
@@ -659,6 +703,10 @@ pub(crate) fn translate_item(item: &PageItem, d: Pt2) -> Option<PageItem> {
         },
         PageItemKind::FreeText(t) => t.at = moved(t.at, d)?,
         PageItemKind::WireMarker(m) => m.at = moved(m.at, d)?,
+        PageItemKind::Image(i) => {
+            let (min, max) = (moved(i.rect.0.min(), d)?, moved(i.rect.0.max(), d)?);
+            i.rect = ew_schema::Bounds(ew_units::Rect::from_points(min, max));
+        }
         PageItemKind::Unknown(_) => return None,
     }
     Some(next)

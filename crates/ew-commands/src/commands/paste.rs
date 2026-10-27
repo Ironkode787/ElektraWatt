@@ -504,11 +504,15 @@ impl PasteFragment {
             if !seen.insert(id) {
                 return Err(Self::invalid(&at, "the record is listed twice"));
             }
-            if let Record::PageItem(item) = &record
-                && matches!(item.kind, PageItemKind::Unknown(_))
-            {
-                notices.push("a page item of a kind this version does not know was left out".to_owned());
-                continue;
+            if let Record::PageItem(item) = &record {
+                if matches!(item.kind, PageItemKind::Unknown(_)) {
+                    notices.push("a page item of a kind this version does not know was left out".to_owned());
+                    continue;
+                }
+                if matches!(item.kind, PageItemKind::Image(_)) {
+                    notices.push("an image was left out: a fragment does not carry its asset".to_owned());
+                    continue;
+                }
             }
             out.push((i, kind, id));
         }
@@ -864,7 +868,9 @@ impl Command for PasteFragment {
                     PageItemKind::WireMarker(m) => {
                         m.at = step_point(grid, m.at, steps).map_err(|_| too_far(*i))?;
                     }
-                    PageItemKind::Unknown(_) => unreachable!("unknown page item kinds are left out"),
+                    PageItemKind::Image(_) | PageItemKind::Unknown(_) => {
+                        unreachable!("images and unknown page item kinds are left out")
+                    }
                 },
                 Record::StructureBox(b) => {
                     for p in &mut b.outline {

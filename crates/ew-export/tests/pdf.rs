@@ -540,6 +540,48 @@ fn hostile_images_are_skipped_never_a_panic() {
     assert_eq!(out.report.fonts.len(), 1, "the text is drawn");
 }
 
+/// WP-S2.04 part 5 (IM1, FR-SYM-025): an SVG image item that the export job resolved (a group clipped to the image's
+/// rectangle holding the SVG's filled paths) is drawn as vector operators, with no image XObject and nothing counted
+/// as skipped; the unresolved SVG image item the page scene holds is never embedded as a raster, and a PNG item next
+/// to it is one image object.
+#[test]
+fn an_svg_image_item_is_vector_paths_and_a_png_item_an_image_object() {
+    let rect = Rect::from_points(mm(20, 40), mm(100, 60));
+    let navy = Brush::Solid(Color::from_rgb8(0x12, 0x34, 0x56));
+    let resolved = Item::group(
+        None,
+        Some(rect),
+        vec![Item::path(Path::rect(rect), None, Some(navy))],
+    );
+    let vector = pdf(&[page(1, "1", None, vec![resolved])], &options(), &fonts(), None).unwrap();
+    assert_eq!((vector.report.images, vector.report.skipped_images), (0, 0));
+    assert_eq!(
+        count(&vector.bytes, "/Subtype/Image"),
+        0,
+        "no raster object for the vector logo"
+    );
+    let blank = pdf(&[page(1, "1", None, Vec::new())], &options(), &fonts(), None).unwrap();
+    assert_ne!(vector.bytes, blank.bytes, "the paths are drawn");
+
+    let svg = image(
+        7,
+        ew_dl::ImageFormat::Svg,
+        b"<svg xmlns='http://www.w3.org/2000/svg'/>",
+        mm(20, 40),
+        mm(100, 60),
+    );
+    let png = image(
+        8,
+        ew_dl::ImageFormat::Png,
+        &png_of(8, 2, [255, 0, 0, 255]),
+        mm(120, 40),
+        mm(200, 60),
+    );
+    let out = pdf(&[page(1, "1", None, vec![svg, png])], &options(), &fonts(), None).unwrap();
+    assert_eq!((out.report.images, out.report.skipped_images), (1, 1));
+    assert_eq!(count(&out.bytes, "/Subtype/Image"), 1, "the PNG only");
+}
+
 /// A PNG of `w × h` pixels with the given colour type, depth and raw image data, optionally a palette and `tRNS`.
 fn png_raw(
     w: u32,

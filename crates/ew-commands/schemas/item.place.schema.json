@@ -197,8 +197,32 @@
       ],
       "type": "object"
     },
+    "ImageParam": {
+      "additionalProperties": false,
+      "description": "An image of `item.place` (WP-S2.04 part 5, FR-SYM-025).",
+      "properties": {
+        "asset": {
+          "$ref": "#/$defs/Sha256",
+          "description": "The asset: `sha256:<64 hex>`, one the project holds (doc 05 §13.3)."
+        },
+        "rect": {
+          "description": "Two opposite corners of the rectangle the image is drawn in, absolute in page nm (stored with the smaller\ncoordinates first); the rectangle has an area.",
+          "items": {
+            "$ref": "#/$defs/CmdPt2"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "type": "array"
+        }
+      },
+      "required": [
+        "asset",
+        "rect"
+      ],
+      "type": "object"
+    },
     "ItemKindParam": {
-      "description": "What `item.place` places: `{\"graphic\": {…}}` or `{\"free_text\": {…}}`.",
+      "description": "What `item.place` places: `{\"graphic\": {…}}`, `{\"free_text\": {…}}` or `{\"image\": {…}}`.",
       "oneOf": [
         {
           "additionalProperties": false,
@@ -225,8 +249,26 @@
             "free_text"
           ],
           "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "An image asset in a rectangle (FR-SYM-025, part 5).",
+          "properties": {
+            "image": {
+              "$ref": "#/$defs/ImageParam"
+            }
+          },
+          "required": [
+            "image"
+          ],
+          "type": "object"
         }
       ]
+    },
+    "Sha256": {
+      "description": "A SHA-256 digest sha256:<64 lower-case hex> (doc 05 §3.2).",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
     },
     "ShapeParam": {
       "description": "A graphic's shape in command parameters, absolute in page nm (the record's encoding).",
@@ -424,7 +466,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "`item.place` (`PlaceItem`, WP-S2.04 §5.1; FR-SYM-023, FR-SYM-024): creates a page item on a page, a graphic\n(`{\"graphic\": {shape, stroke?, dash?, fill?}}`) or a free text (`{\"free_text\": {text, bind?, at, angle?, style?,\nalign?}}`), absolute in page nm; a rectangle is stored with `min` the smaller coordinates. Rejected: a missing page\n(not found); a degenerate shape (a zero-length line, a polyline or polygon with fewer than two or three distinct\npoints, a rectangle without area, a radius of 0, an arc without sweep) or a stroke width of 0 or less, at\n`/kind/graphic`; a `bind` that is not one of the six bindable names, an empty `text` without `bind`, or an angle\nother than 0, 90000, 180000 or 270000, at `/kind/free_text`. Interactive. Outcome: the item.",
+  "description": "`item.place` (`PlaceItem`, WP-S2.04 §5.1; FR-SYM-023, FR-SYM-024, FR-SYM-025): creates a page item on a page, a\ngraphic (`{\"graphic\": {shape, stroke?, dash?, fill?}}`), a free text (`{\"free_text\": {text, bind?, at, angle?,\nstyle?, align?}}`) or an image (`{\"image\": {asset, rect}}`, part 5: an asset of the project's store in the\nrectangle of two opposite corners, stored with the smaller coordinates first), absolute in page nm; a rectangle is stored with `min` the smaller coordinates. Rejected: a missing page\n(not found); a degenerate shape (a zero-length line, a polyline or polygon with fewer than two or three distinct\npoints, a rectangle without area, a radius of 0, an arc without sweep) or a stroke width of 0 or less, at\n`/kind/graphic`; a `bind` that is not one of the six bindable names, an empty `text` without `bind`, or an angle\nother than 0, 90000, 180000 or 270000, at `/kind/free_text`; an image whose asset the project does not hold, at\n`/kind/image/asset`, or whose rectangle has no area, at `/kind/image`. Interactive. Outcome: the item.",
   "properties": {
     "kind": {
       "$ref": "#/$defs/ItemKindParam",

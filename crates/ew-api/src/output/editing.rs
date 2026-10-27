@@ -910,6 +910,12 @@ fn item_rows(q: &Q, page: Id<Page>) -> Vec<TableItem> {
                     group_marker(q, &item).map(|g| g.text),
                     None,
                 ),
+                K::Image(i) => (
+                    "image",
+                    bounds_of([pt(i.rect.0.min()), pt(i.rect.0.max())]),
+                    None,
+                    None,
+                ),
                 K::Unknown(_) => ("unknown", None, None, None),
             };
             TableItem {

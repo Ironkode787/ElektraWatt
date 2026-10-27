@@ -689,7 +689,15 @@ fn page_item_and_structure_box_members_read_their_reasons() {
         EditRoute::ReadOnly(FieldReadOnly::Narrowed { why }) => why.clone(),
         other => panic!("not narrowed: {other:?}"),
     };
-    for path in ["kind", "kind.graphic", "kind.free_text", "kind.wire_marker"] {
+    for path in [
+        "kind",
+        "kind.graphic",
+        "kind.free_text",
+        "kind.wire_marker",
+        "kind.image",
+        "kind.image.asset",
+        "kind.image.rect",
+    ] {
         assert_eq!(why(&route("page_item", path)), KIND, "{path}");
     }
     for path in [

@@ -510,7 +510,7 @@ fn every_page_item_variant_and_shape_round_trips_byte_for_byte() {
     assert_eq!(seen, 6);
 }
 
-/// A variant this format does not type (`image` until part 5, `macro_box`, a newer format's) is kept verbatim as
+/// A variant this format does not type (`macro_box`, `underlay`, a newer format's) is kept verbatim as
 /// `PageItemKind::Unknown` and written back byte for byte; so is an unknown shape, dash and box style (doc 05
 /// §10.3).
 #[test]
@@ -522,8 +522,8 @@ fn an_unknown_page_item_variant_is_kept_verbatim() {
             "macro_box",
         ),
         (
-            r#"{"$k":"page_item","id":"@PI_MACRO","page":"@P101","kind":{"image":{"asset":"@HASH","rect":[[0,0],[1000000,1000000]]}}}"#,
-            "image",
+            r#"{"$k":"page_item","id":"@PI_MACRO","page":"@P101","kind":{"underlay":{"asset":"@HASH","rect":[[0,0],[1000000,1000000]]}}}"#,
+            "underlay",
         ),
         (
             r#"{"$k":"page_item","id":"@PI_MACRO","page":"@P101","kind":"divider"}"#,
@@ -556,6 +556,39 @@ fn an_unknown_page_item_variant_is_kept_verbatim() {
         panic!("a structure box");
     };
     assert!(matches!(b.style, BoxStyle::Unknown(_)));
+}
+
+/// The `image` variant (WP-S2.04 part 5, §11) is typed: it round-trips byte for byte, a reversed rectangle and a
+/// malformed hash are refused by the strict reader, and an unknown member is kept.
+#[test]
+fn the_image_page_item_variant_is_typed() {
+    use ew_schema::PageItemKind;
+    let line = fill(
+        r#"{"$k":"page_item","id":"@PI_MACRO","page":"@P101","kind":{"image":{"asset":"@HASH","rect":[[0,0],[40000000,10000000]]}}}"#,
+    );
+    let Record::PageItem(item) = assert_canonical(&line) else {
+        panic!("a page item: {line}");
+    };
+    let PageItemKind::Image(img) = &item.kind else {
+        panic!("an image: {line}");
+    };
+    assert_eq!(item.kind.name(), Some("image"));
+    assert_eq!(img.rect.0.width().0, 40_000_000);
+    let with_extra = fill(
+        r#"{"$k":"page_item","id":"@PI_MACRO","page":"@P101","kind":{"image":{"asset":"@HASH","rect":[[0,0],[1,1]],"x-note":1}}}"#,
+    );
+    assert_canonical(&with_extra);
+    for bad in [
+        r#"{"$k":"page_item","id":"@PI_MACRO","page":"@P101","kind":{"image":{"asset":"@HASH","rect":[[5,5],[0,0]]}}}"#,
+        r#"{"$k":"page_item","id":"@PI_MACRO","page":"@P101","kind":{"image":{"asset":"sha256:zz","rect":[[0,0],[1,1]]}}}"#,
+        r#"{"$k":"page_item","id":"@PI_MACRO","page":"@P101","kind":{"image":{"rect":[[0,0],[1,1]]}}}"#,
+    ] {
+        let line = fill(bad);
+        assert!(serde_json::from_str::<Record>(&line).is_err(), "accepted: {line}");
+        let (record, found) = Record::load(ew_schema::parse_value(&line).unwrap()).unwrap();
+        assert_eq!(found.len(), 1, "{line}");
+        assert_eq!(serde_json::to_string(&record).unwrap(), line);
+    }
 }
 
 /// A malformed known variant is refused by the strict reader and kept verbatim by the loader (EW-CORE-017), and a

@@ -5,9 +5,9 @@
 //! page-owned kinds `page_item` (rank 43) and `structure_box` (rank 44), typed within format 0.1 under
 //! ADR-0011 amendment 4 (ID-334): additive, no format or `$v` bump, an older build keeps the records verbatim.
 //!
-//! A page item's `kind` is an externally tagged object. This format types three variants, `graphic`,
-//! `free_text` and `wire_marker`; every other variant (`image` until WP-S2.04 part 5, `macro_box`,
-//! `surface_view`, `model_view`, `dimension`, `underlay` and the variants of a newer format) is kept verbatim as
+//! A page item's `kind` is an externally tagged object. This format types four variants, `graphic`,
+//! `free_text`, `wire_marker` and `image` (WP-S2.04 part 5); every other variant (`macro_box`, `surface_view`,
+//! `model_view`, `dimension`, `underlay` and the variants of a newer format) is kept verbatim as
 //! [`PageItemKind::Unknown`] and written back unchanged (doc 05 §10.3).
 //!
 //! Positions are page nanometres ([`Pt2`]), lengths [`Nm`], angles [`Angle2`] (10⁻³ degree). What the format does
@@ -24,7 +24,7 @@ use serde_json::Value;
 use crate::json::{Extra, de_extra, is_default, is_false, is_v1, v1};
 use crate::proxy::{Angle2S, IdentS, MlTextS, NmS, Pt2S, UuidS};
 use crate::track::open_enum;
-use crate::value::StructureAssignment;
+use crate::value::{Bounds, Sha256, StructureAssignment};
 use crate::{Connection, ExternalRef, Page};
 
 // ---------------------------------------------------------------------------------------------------------
@@ -54,7 +54,8 @@ pub struct PageItem {
     pub extra: Extra,
 }
 
-/// The variant of a page item: `{"graphic": {…}}`, `{"free_text": {…}}` or `{"wire_marker": {…}}`.
+/// The variant of a page item: `{"graphic": {…}}`, `{"free_text": {…}}`, `{"wire_marker": {…}}` or
+/// `{"image": {…}}`.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 #[serde(remote = "Self")]
@@ -66,20 +67,23 @@ pub enum PageItemKind {
     FreeText(FreeText),
     /// The group marker of several connections (FR-CON-023, FR-CON-039).
     WireMarker(WireMarker),
-    /// A variant this format does not type (`image` until WP-S2.04 part 5, `macro_box`, `surface_view`,
-    /// `model_view`, `dimension`, `underlay`, or a newer format's), kept verbatim.
+    /// An image asset placed in a rectangle (FR-SYM-025, WP-S2.04 part 5).
+    Image(ImageItem),
+    /// A variant this format does not type (`macro_box`, `surface_view`, `model_view`, `dimension`,
+    /// `underlay`, or a newer format's), kept verbatim.
     #[serde(skip)]
     Unknown(Value),
 }
 
 impl PageItemKind {
-    /// The variant's name (`graphic`, `free_text`, `wire_marker`), or the tag of an unknown variant (`None` when
+    /// The variant's name (`graphic`, `free_text`, `wire_marker`, `image`), or the tag of an unknown variant (`None` when
     /// it has none).
     pub fn name(&self) -> Option<&str> {
         match self {
             PageItemKind::Graphic(_) => Some("graphic"),
             PageItemKind::FreeText(_) => Some("free_text"),
             PageItemKind::WireMarker(_) => Some("wire_marker"),
+            PageItemKind::Image(_) => Some("image"),
             PageItemKind::Unknown(Value::Object(m)) if m.len() == 1 => m.keys().next().map(String::as_str),
             PageItemKind::Unknown(Value::String(s)) => Some(s.as_str()),
             PageItemKind::Unknown(_) => None,
@@ -339,6 +343,24 @@ pub enum MarkerField {
     /// A value of a newer format, kept verbatim.
     #[serde(skip)]
     Unknown(Value),
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Image
+
+/// An image asset placed on the page (FR-SYM-025, WP-S2.04 §11): the asset's content hash (the project holds
+/// `assets/<sha256>.<ext>`, checked by `item.place`) and the rectangle it is drawn in, `rect` as `[[x0, y0],
+/// [x1, y1]]` in absolute page nanometres with `min <= max` (the reader rejects a reversed rectangle). An SVG is
+/// drawn as vector paths, a PNG or JPEG as an image.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct ImageItem {
+    /// The asset.
+    pub asset: Sha256,
+    /// The rectangle on the page.
+    pub rect: Bounds,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
 }
 
 // ---------------------------------------------------------------------------------------------------------

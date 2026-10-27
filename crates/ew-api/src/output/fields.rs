@@ -606,6 +606,8 @@ const NARROWED: &[(&str, &str, bool, &str)] = &[
     ("page_item", "kind.graphic", false, KIND),
     ("page_item", "kind.free_text", false, KIND),
     ("page_item", "kind.wire_marker", false, KIND),
+    // An image's asset and rectangle are fixed in place (WP-S2.04 part 5): it moves with `rep.move`.
+    ("page_item", "kind.image", true, KIND),
     ("page_item", "kind.wire_marker.connections", true, GROUP),
     ("page_item", "kind.wire_marker.fields", true, GROUP),
     ("page_item", "page", false, PAGE),

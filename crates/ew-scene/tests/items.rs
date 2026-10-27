@@ -3,7 +3,7 @@
 
 //! Page items and structure boxes drawn (WP-S2.04 part 4a, §10.3): graphics and box outlines in the symbols layer,
 //! free texts, wire-marker groups and captions in the labels layer, each tagged with its entity, in ID order, and a
-//! page without items unchanged.
+//! page without items unchanged; the image item of part 5 (§11) in the symbols layer.
 
 use std::sync::Arc;
 
@@ -30,7 +30,26 @@ fn item(n: u128, kind: Value, text: &str, shown: bool) -> ItemView {
         item: Arc::new(item),
         text: text.to_owned(),
         shown,
+        asset: None,
     }
+}
+
+/// An image page item over `[[0, 0], [40 mm, 10 mm]]` of the asset with the hash byte `sha`, its asset reference
+/// as the page query would find it.
+fn image_item(n: u128, sha: u8, held: Option<ew_schema::AssetFormat>) -> ItemView {
+    let hash = ew_schema::Sha256([sha; 32]);
+    let mut v = item(
+        n,
+        json!({"image": {"asset": hash.to_string(), "rect": [[0, 0], [40_000_000, 10_000_000]]}}),
+        "",
+        false,
+    );
+    v.asset = held.map(|format| ew_schema::AssetRef {
+        sha256: hash,
+        format,
+        size: Some((40, 10)),
+    });
+    v
 }
 
 fn sbox(n: u128, style: &str, caption: &str) -> StructureBoxView {
@@ -232,4 +251,52 @@ fn items_are_drawn_in_id_order_and_an_empty_page_is_unchanged() {
     let empty = view(Vec::new(), Vec::new());
     let scene = page_scene(&empty, bundled());
     assert!(scene.layers.iter().all(|(_, l)| l.is_empty()));
+}
+
+/// An image item is drawn in the symbols layer as an image item without bytes, tagged with its record, in ID order
+/// with the graphics: an SVG asset as an SVG image (the export job turns it into vector paths), a PNG as a PNG, and
+/// an asset the project does not hold as a PNG (the export reports its missing bytes).
+#[test]
+fn an_image_item_is_drawn_in_the_symbols_layer_without_bytes() {
+    use ew_schema::AssetFormat;
+    let v = view(
+        vec![
+            image_item(0x32, 3, None),
+            image_item(0x30, 1, Some(AssetFormat::Svg)),
+            image_item(0x31, 2, Some(AssetFormat::Png)),
+            image_item(0x33, 4, Some(AssetFormat::Jpeg)),
+        ],
+        Vec::new(),
+    );
+    let l = page_display_list(&v, Layer::Symbols, bundled());
+    let images: Vec<_> = l
+        .list
+        .items
+        .iter()
+        .map(|i| match &i.kind {
+            ItemKind::Image(img) => (
+                i.entity,
+                img.image.sha256[0],
+                img.image.format,
+                img.image.bytes.len(),
+                img.rect,
+            ),
+            other => panic!("an image, not {other:?}"),
+        })
+        .collect();
+    let rect = ew_units::Rect::from_points(
+        ew_units::Pt2::new(Nm(0), Nm(0)),
+        ew_units::Pt2::new(Nm(40_000_000), Nm(10_000_000)),
+    );
+    assert_eq!(
+        images,
+        vec![
+            (entity(0x30), 1, ew_dl::ImageFormat::Svg, 0, rect),
+            (entity(0x31), 2, ew_dl::ImageFormat::Png, 0, rect),
+            (entity(0x32), 3, ew_dl::ImageFormat::Png, 0, rect),
+            (entity(0x33), 4, ew_dl::ImageFormat::Jpeg, 0, rect),
+        ]
+    );
+    let labels = page_display_list(&v, Layer::Labels, bundled());
+    assert!(labels.list.items.is_empty(), "an image has no label");
 }

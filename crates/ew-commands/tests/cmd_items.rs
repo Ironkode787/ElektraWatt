@@ -13,8 +13,8 @@ use common::fixture::*;
 use common::*;
 use ew_commands::commands::{
     BoxStyleParam, CreateExternalRef, CreateStructureBox, DeleteSelection, FreeTextParam, GraphicParam,
-    ItemKindParam, KindName, MarkerModeParam, MoveReps, PlaceItem, PlaceMarker, SetDrawing, SetFields,
-    SetProjectSettings, ShapeParam, StrokeParam, TargetRef,
+    ImageParam, ItemKindParam, KindName, MarkerModeParam, MoveReps, PlaceItem, PlaceMarker, SetCompany,
+    SetDrawing, SetFields, SetProjectSettings, ShapeParam, StrokeParam, TargetRef,
 };
 use ew_commands::{CmdError, Engine, Origin};
 use ew_ids::Id;
@@ -274,6 +274,121 @@ fn item_place_rejections() {
     missing.page = id(0x3f);
     assert!(matches!(e.execute(&missing), Err(CmdError::NotFound { .. })));
     assert_eq!(e.model().table::<PageItem>().len(), 0, "nothing was placed");
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// item.place, images (WP-S2.04 part 5, §11; FR-SYM-025)
+
+/// A placeholder logo: an SVG of 40 × 10 user units (no company's artwork).
+const IMAGE_SVG: &[u8] =
+    br#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 10"><rect width="40" height="10"/></svg>"#;
+
+/// Brings `bytes` into the engine's asset store (the company logo command is the one command that does), removes the
+/// logo again and returns the asset's hash: the asset stays in the store.
+fn hold_asset(e: &mut Engine, bytes: &[u8]) -> ew_schema::Sha256 {
+    use sha2::Digest;
+    let set = |logo: &str| SetCompany {
+        name: None,
+        notice: None,
+        personal_data: None,
+        logo: Some(logo.to_owned()),
+    };
+    // A bulk command: previewed, then committed.
+    for logo in [ew_schema::base64_encode(bytes), String::new()] {
+        let p = e.preview(&set(&logo)).expect("logo");
+        e.commit(p).expect("committed");
+    }
+    let hash = ew_schema::Sha256(sha2::Sha256::digest(bytes).into());
+    assert!(e.model().asset(&hash).is_some(), "the asset stays in the store");
+    hash
+}
+
+fn image(asset: ew_schema::Sha256, a: Pt2, b: Pt2) -> PlaceItem {
+    PlaceItem {
+        page: PAGE_101,
+        kind: ItemKindParam::Image(ImageParam { asset, rect: (a, b) }),
+    }
+}
+
+/// `item.place` places an image of a held asset with the rectangle stored smaller coordinates first; the record
+/// round-trips as `{"image": {"asset", "rect"}}` and undo removes it.
+#[test]
+fn item_place_places_an_image_of_a_held_asset() {
+    let mut e = engine(golden_model());
+    let hash = hold_asset(&mut e, IMAGE_SVG);
+    let id = place(
+        &mut e,
+        &image(hash, pt(90_000_000, 50_000_000), pt(50_000_000, 40_000_000)),
+    );
+    let it = item(&e, id);
+    assert_eq!(it.page, PAGE_101);
+    let PageItemKind::Image(img) = &it.kind else {
+        panic!("an image")
+    };
+    assert_eq!(img.asset, hash);
+    assert_eq!(
+        (img.rect.0.min(), img.rect.0.max()),
+        (pt(50_000_000, 40_000_000), pt(90_000_000, 50_000_000))
+    );
+    assert_eq!(
+        serde_json::to_value(&it.kind).unwrap(),
+        json!({"image": {"asset": hash.to_string(),
+            "rect": [[50_000_000, 40_000_000], [90_000_000, 50_000_000]]}})
+    );
+    e.undo(&Origin::Gui).expect("undo");
+    assert!(e.model().table::<PageItem>().get(&id).is_none());
+    assert!(e.model().asset(&hash).is_some(), "undo keeps the bytes");
+}
+
+/// The rejections of an image: an asset the project does not hold (`/kind/image/asset`), a rectangle without area
+/// (`/kind/image`), a missing page (not found); nothing is placed.
+#[test]
+fn item_place_image_rejections() {
+    let mut e = engine(golden_model());
+    let hash = hold_asset(&mut e, IMAGE_SVG);
+    let unknown = ew_schema::Sha256([0xab; 32]);
+    let err = e
+        .execute(&image(unknown, pt(0, 0), pt(10_000_000, 5_000_000)))
+        .unwrap_err();
+    let CmdError::InvalidParams { path, message, .. } = &err else {
+        panic!("{err:?}")
+    };
+    assert_eq!(path, "/kind/image/asset");
+    assert!(
+        message.contains(&unknown.to_string()) && message.contains("holds no asset"),
+        "{message}"
+    );
+    for (a, b) in [
+        (pt(0, 0), pt(10_000_000, 0)),
+        (pt(0, 0), pt(0, 10_000_000)),
+        (pt(5, 5), pt(5, 5)),
+    ] {
+        assert_eq!(
+            pointer(e.execute(&image(hash, a, b)).unwrap_err(), "item.place"),
+            "/kind/image"
+        );
+    }
+    let mut missing = image(hash, pt(0, 0), pt(10_000_000, 5_000_000));
+    missing.page = id(0x3f);
+    assert!(matches!(e.execute(&missing), Err(CmdError::NotFound { .. })));
+    assert_eq!(e.model().table::<PageItem>().len(), 0, "nothing was placed");
+}
+
+/// `rep.move` moves an image by translating its rectangle.
+#[test]
+fn rep_move_moves_an_image() {
+    let mut e = engine(golden_model());
+    let hash = hold_asset(&mut e, IMAGE_SVG);
+    let img = place(&mut e, &image(hash, pt(0, 0), pt(40_000_000, 10_000_000)));
+    e.execute(&mv(vec![], vec![img.cast()], pt(7_937_500, 15_875_000)))
+        .expect("moved");
+    let PageItemKind::Image(i) = &item(&e, img).kind else {
+        panic!("an image")
+    };
+    assert_eq!(
+        (i.rect.0.min(), i.rect.0.max()),
+        (pt(7_937_500, 15_875_000), pt(47_937_500, 25_875_000))
+    );
 }
 
 // ---------------------------------------------------------------------------------------------------------

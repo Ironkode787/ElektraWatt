@@ -130,8 +130,9 @@ pub use page::{
     Scale, SlotOverride, SortKey, SqlQuery,
 };
 pub use page_item::{
-    BoxStyle, FreeText, Graphic, GraphicShape, GraphicStroke, LineDash, MarkerField, PageItem, PageItemKind,
-    ShapeArc, ShapeCircle, ShapeLine, ShapePoints, ShapeRect, StructureBox, TextAlign, WireMarker,
+    BoxStyle, FreeText, Graphic, GraphicShape, GraphicStroke, ImageItem, LineDash, MarkerField, PageItem,
+    PageItemKind, ShapeArc, ShapeCircle, ShapeLine, ShapePoints, ShapeRect, StructureBox, TextAlign,
+    WireMarker,
 };
 pub use plc::{
     AddrSpec, Channel, ChannelKind, ChannelSpec, ChannelState, DeviceLink, DeviceLinkKind, IoClass, IoDir,

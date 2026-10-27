@@ -365,6 +365,7 @@ impl HeapSize for ew_schema::PageItemKind {
                     + m.fields.capacity() * std::mem::size_of::<ew_schema::MarkerField>()
                     + m.extra.heap_size()
             }
+            ew_schema::PageItemKind::Image(i) => i.extra.heap_size(),
             ew_schema::PageItemKind::Unknown(v) => v.heap_size(),
         }
     }

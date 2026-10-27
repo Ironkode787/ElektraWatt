@@ -493,12 +493,23 @@ fn shape(page: &PageInfo, rng: &mut SplitMix64, degenerate: bool) -> Value {
 }
 
 /// `item.place`: graphics and free texts on a page; refused on a missing page, with a degenerate shape, an unknown
-/// bindable name, an empty text without `bind`, an angle off the quarter turns or an unknown member.
+/// bindable name, an empty text without `bind`, an angle off the quarter turns, an unknown member or (part 5) an
+/// image whose asset the project does not hold.
 fn item_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let page = rng.pick(&live.page_info)?;
     let cmd = |p: Value| Step::cmd("item.place", p);
     let at = Live::grid_pos(page, rng.range(1, 99), rng.range(1, 70));
-    match rng.below(10) {
+    match rng.below(11) {
+        10 => {
+            // A hash the project cannot hold: 32 random bytes.
+            let bytes: Vec<u8> = (0..4).flat_map(|_| rng.next().to_le_bytes()).collect();
+            let asset = format!("sha256:{}", hex(&bytes));
+            Some(
+                cmd(json!({"page": page.id, "kind": {"image": {"asset": asset,
+                    "rect": [at, [MOVE_UNIT * 20, MOVE_UNIT * 20]]}}}))
+                .refuse(),
+            )
+        }
         0 => Some(cmd(json!({"page": rng.uuid(), "kind": {"free_text": {"text": "x", "at": at}}})).refuse()),
         1 => Some(
             cmd(json!({"page": page.id, "kind": {"graphic": {"shape": shape(page, rng, true)}}})).refuse(),

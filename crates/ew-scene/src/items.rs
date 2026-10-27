@@ -11,6 +11,7 @@
 //! | graphic | its shape (line, polyline, rectangle, circle, arc in the QET convention, polygon) in the page's wire stroke ([`wire_stroke`]) unless `stroke` sets the width; `dashed`, `dotted` and `dash_dot` are the pen-width multiples of doc 07 §2.3; a closed shape with `fill` is filled black |
 //! | free text | its printed text ([`ItemView::text`]) at `at` in its style (absent: `text.normal`), aligned left, centred or right on `at` and vertically on its middle, at a readable angle with the alignment flipped as slot texts are (doc 06 §2.5) |
 //! | wire marker | when shown ([`ItemView::shown`]): the `ew.gen.wire-marker` symbol at `at` (turned for 90°) and the group text in style `marker`, centred, as the per-connection marker is drawn |
+//! | image | its asset in `rect`: a PNG or JPEG as an image item, an SVG as an image item too, which the export job and the renderers' resolver turn into vector paths ([`crate::images`], FR-SYM-025); the item carries the asset's hash and format and no bytes, as every image of a display list does |
 //! | structure box | its outline in the page's wire stroke width, dotted (0.5 mm on, 1 mm off) or dash-dot (4 mm on, 1 mm off, 0.5 mm on, 1 mm off); its caption in `tag.main` above the outline's top-left vertex (the smallest `y`, then `x`) |
 //!
 //! Items and boxes are drawn in ID order, each item tagged with its entity reference so that WP-S2.02's entity
@@ -18,10 +19,10 @@
 
 use std::sync::Arc;
 
-use ew_dl::{Brush, Dash, DashPattern, EntityRef, Item, Path, Stroke, Transform};
+use ew_dl::{Brush, Dash, DashPattern, EntityRef, ImageData, ImageFormat, Item, Path, Stroke, Transform};
 use ew_schema::{
-    Align, BoxStyle, FreeText, Graphic, GraphicShape, LineDash, PageItem, PageItemKind, StructureBox,
-    TextAlign,
+    Align, AssetFormat, AssetRef, BoxStyle, FreeText, Graphic, GraphicShape, LineDash, PageItem,
+    PageItemKind, StructureBox, TextAlign,
 };
 use ew_text::DEFAULT_STYLE_KEY;
 use ew_units::{Angle2, Nm, Orient2, Pt2, Rect};
@@ -39,6 +40,10 @@ pub struct ItemView {
     /// For a wire marker: whether the group is drawn (one of its connections would show a marker in the project's
     /// mode). Ignored for the other variants.
     pub shown: bool,
+    /// For an image: the reference of the asset the project holds under its hash (the format, which the record does
+    /// not carry); `None` when the project does not hold it (the item then reads as a PNG and the export reports
+    /// the missing bytes). Ignored for the other variants.
+    pub asset: Option<AssetRef>,
 }
 
 /// One structure box of the page with its printed caption.
@@ -130,20 +135,33 @@ fn top_left(outline: &[Pt2]) -> Option<Pt2> {
 }
 
 impl Builder<'_> {
-    /// [`Layer::Symbols`](ew_dl::Layer::Symbols): the graphics, then the structure-box outlines, by ID.
+    /// [`Layer::Symbols`](ew_dl::Layer::Symbols): the graphics and images, then the structure-box outlines, by ID.
     pub(crate) fn item_graphics(&mut self, view: &PageView) {
         for iv in sorted_items(view) {
-            let PageItemKind::Graphic(g) = &iv.item.kind else {
-                continue;
-            };
-            let Some((path, closed)) = shape_path(&g.shape) else {
-                continue;
-            };
-            let fill = (closed && g.fill).then_some(Brush::BLACK);
-            self.push(
-                Item::path(path, Some(graphic_stroke(view, g)), fill)
-                    .with_entity(EntityRef(iv.item.id.as_uuid())),
-            );
+            let entity = EntityRef(iv.item.id.as_uuid());
+            match &iv.item.kind {
+                PageItemKind::Graphic(g) => {
+                    let Some((path, closed)) = shape_path(&g.shape) else {
+                        continue;
+                    };
+                    let fill = (closed && g.fill).then_some(Brush::BLACK);
+                    self.push(Item::path(path, Some(graphic_stroke(view, g)), fill).with_entity(entity));
+                }
+                PageItemKind::Image(i) => {
+                    let format = match iv.asset.map_or(AssetFormat::Png, |a| a.format) {
+                        AssetFormat::Svg => ImageFormat::Svg,
+                        AssetFormat::Png => ImageFormat::Png,
+                        AssetFormat::Jpeg => ImageFormat::Jpeg,
+                    };
+                    let data = ImageData {
+                        sha256: i.asset.0,
+                        format,
+                        bytes: Arc::from(Vec::new()),
+                    };
+                    self.push(Item::image(Arc::new(data), i.rect.0).with_entity(entity));
+                }
+                _ => {}
+            }
         }
         for bv in sorted_boxes(view) {
             let b = &bv.sbox;

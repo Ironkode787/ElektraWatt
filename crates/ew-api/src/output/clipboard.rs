@@ -26,7 +26,7 @@
 //! **What a copy drops** (§8.2 item 6): an import lineage (`source_ref`: a pasted record is new, not imported), a
 //! PLC station aspect (its configuration project is not copied), a cable core (the copy is a plain wire), a bus
 //! line's cable, an assembly cover outside the copy and a junction's sequence entries outside the copy. A page item
-//! of a kind this version does not know is dropped as `page_item`, and a wire marker that keeps none of its copied
+//! of a kind this version does not know, and an image (its asset is not in the fragment), is dropped as `page_item`, and a wire marker that keeps none of its copied
 //! connections as `wire_marker`. Bonds, cables and conductors are listed in [`CopiedFragment::skipped`]. The
 //! fragment's records keep their source IDs; it is data, not machine text, so the shell's ID alias does not apply to
 //! it.
@@ -510,6 +510,7 @@ fn page_item_pos(item: &PageItem) -> PosKey {
         },
         PageItemKind::FreeText(t) => Some((t.at.x.0, t.at.y.0)),
         PageItemKind::WireMarker(m) => Some((m.at.x.0, m.at.y.0)),
+        PageItemKind::Image(i) => Some((i.rect.0.min().x.0, i.rect.0.min().y.0)),
         PageItemKind::Unknown(_) => None,
     }
 }
@@ -712,7 +713,8 @@ impl Session {
                         items.push(item);
                     }
                 }
-                PageItemKind::Unknown(_) => {
+                // An image names an asset of this project's store, which a fragment does not carry: it is not copied.
+                PageItemKind::Image(_) | PageItemKind::Unknown(_) => {
                     unknown_items += 1;
                     incomplete_page_items += 1;
                 }

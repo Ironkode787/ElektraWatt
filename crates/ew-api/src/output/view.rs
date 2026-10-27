@@ -391,6 +391,12 @@ pub fn page_items(q: &Q, page: Id<Page>, texts: bool) -> Vec<ew_scene::items::It
     ids.into_iter()
         .filter_map(|id| items.get(id).cloned())
         .map(|item| {
+            // An image's format comes from the asset the project holds (assets are only added; the read is recorded
+            // against the project row, `Q::logo_asset`).
+            let asset = match &item.kind {
+                ew_schema::PageItemKind::Image(i) => q.logo_asset(&i.asset),
+                _ => None,
+            };
             let (text, shown) = if texts {
                 match &item.kind {
                     ew_schema::PageItemKind::FreeText(t) => (free_text(q, page, t), true),
@@ -402,7 +408,12 @@ pub fn page_items(q: &Q, page: Id<Page>, texts: bool) -> Vec<ew_scene::items::It
             } else {
                 (String::new(), false)
             };
-            ew_scene::items::ItemView { item, text, shown }
+            ew_scene::items::ItemView {
+                item,
+                text,
+                shown,
+                asset,
+            }
         })
         .collect()
 }
