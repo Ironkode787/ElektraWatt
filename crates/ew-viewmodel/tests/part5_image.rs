@@ -494,7 +494,8 @@ fn a_directory_is_not_an_image_file() {
 }
 
 /// Cycle-29 review 6: a character device is no file to read: `metadata().len()` is 0 for `/dev/zero`, and reading it to
-/// the end would never finish. It is refused at once with `error-image-file`, nothing is armed and the model is untouched.
+/// the end would never finish. It is refused without being read, with `error-image-file`; nothing is armed and the model
+/// is untouched.
 #[cfg(unix)]
 #[test]
 fn a_device_is_refused_without_being_read() {
@@ -502,12 +503,8 @@ fn a_device_is_refused_without_being_read() {
     let mut s = shell(&tmp, "101");
     done(&mut s, "tool.image", json!({}));
     let revision = s.revision();
-    let started = std::time::Instant::now();
+    // No timer (FT-317 disallows `Instant::now`, tests included): a read that never ends is caught by nextest's timeout.
     let message = failed_message(&mut s, "image.file", json!({ "path": "/dev/zero" }));
-    assert!(
-        started.elapsed() < std::time::Duration::from_secs(10),
-        "refused promptly"
-    );
     assert_eq!(
         message,
         "Cannot read the image file /dev/zero: not a regular file."
