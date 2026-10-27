@@ -58,7 +58,39 @@ fn folio_proposal_takes_a_sub_page_when_the_next_number_is_used() {
         .unwrap()
         .clone();
     assert_eq!(page.folio.number, 101);
-    assert_eq!(page.folio.label.as_ref().map(|l| l.as_str()), Some("1"));
+    assert_eq!(
+        page.folio.label.as_ref().map(|l| l.as_str()),
+        Some("101.1"),
+        "the sub-page label is the printed folio (doc 06 §5.6)"
+    );
+}
+
+#[test]
+fn folio_proposal_counts_sub_pages_and_nests_after_a_sub_page() {
+    let mut e = engine(golden_model());
+    let label_of = |e: &ew_commands::Engine, r: ew_commands::Receipt| {
+        let page = e
+            .model()
+            .table::<Page>()
+            .get(&typed(r.outcome.primary.unwrap()))
+            .unwrap()
+            .clone();
+        (
+            page.folio.number,
+            page.folio.label.as_ref().map(|l| l.as_str().to_owned()),
+        )
+    };
+    let first = e.execute(&create_after(PAGE_101)).expect("first sub-page");
+    let first_id = typed::<Page>(first.outcome.primary.unwrap());
+    assert_eq!(label_of(&e, first), (101, Some("101.1".into())));
+    let second = e.execute(&create_after(PAGE_101)).expect("second sub-page");
+    assert_eq!(
+        label_of(&e, second),
+        (101, Some("101.2".into())),
+        "101.1 is taken"
+    );
+    let nested = e.execute(&create_after(first_id)).expect("after 101.1");
+    assert_eq!(label_of(&e, nested), (101, Some("101.1.1".into())));
 }
 
 #[test]
@@ -118,7 +150,7 @@ fn commit_after_a_conflicting_change_reruns_the_command() {
     let page = e.model().table::<Page>().get(&typed(key)).unwrap().clone();
     assert_eq!(
         (page.folio.number, page.folio.label.as_ref().map(|l| l.as_str())),
-        (102, Some("1"))
+        (102, Some("102.1"))
     );
 }
 

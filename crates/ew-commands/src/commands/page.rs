@@ -36,8 +36,9 @@ fn qet_grid() -> Grid {
 /// The folio is `{section, number, label}` when `number` is given. Otherwise `after` names the page to
 /// insert after and the folio is proposed (doc 06 §5.6): `after.number + 1` if it lies in the section's
 /// range (any number when the page has no section) and no page, divider or report block of that section
-/// uses it; else the sub-page `{after.number, label}` with label `k` (or `<after.label>.k`) for the
-/// smallest free `k ≥ 1`. The section is `after`'s; a different explicit `section` is rejected.
+/// uses it; else the sub-page `{after.number, label}` with the printed label `<after's folio>.k` (`101.1`
+/// after `101`, `101.1.1` after `101.1`) for the smallest `k ≥ 1` no page of the section prints. The
+/// section is `after`'s; a different explicit `section` is rejected.
 ///
 /// Rejected: neither `number` nor `after`; a folio another page of the section already has; kind `report`
 /// (report pages are generated, EW-INV-012). The section and form must exist.
@@ -135,17 +136,17 @@ fn propose_folio(tx: &TxBuilder<'_>, after: &Page) -> Result<(u32, Option<Ident>
             return Ok((n, None));
         }
     }
+    // The label is the printed folio (doc 06 §5.6, FR-PAG-006): `101.1` after `101`, `101.1.1` after `101.1`.
+    let base = match &after.folio.label {
+        Some(l) => l.as_str().to_owned(),
+        None => after.folio.number.to_string(),
+    };
     for k in 1u32.. {
-        let text = match &after.folio.label {
-            Some(l) => format!("{}.{k}", l.as_str()),
-            None => k.to_string(),
-        };
+        let text = format!("{base}.{k}");
         let label: Ident = text
             .parse()
             .map_err(|_| CmdError::internal(format!("sub-page label `{text}` is not an identifier")))?;
-        let taken = pages
-            .iter()
-            .any(|(_, f)| f.number == after.folio.number && f.label.as_ref() == Some(&label));
+        let taken = pages.iter().any(|(_, f)| f.label.as_ref() == Some(&label));
         if !taken {
             return Ok((after.folio.number, Some(label)));
         }

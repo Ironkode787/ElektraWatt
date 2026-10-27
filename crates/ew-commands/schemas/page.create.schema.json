@@ -234,7 +234,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "`page.create`: a new drawn page (FR-PAG-005, doc 06 §5.6).\n\nThe folio is `{section, number, label}` when `number` is given. Otherwise `after` names the page to\ninsert after and the folio is proposed (doc 06 §5.6): `after.number + 1` if it lies in the section's\nrange (any number when the page has no section) and no page, divider or report block of that section\nuses it; else the sub-page `{after.number, label}` with label `k` (or `<after.label>.k`) for the\nsmallest free `k ≥ 1`. The section is `after`'s; a different explicit `section` is rejected.\n\nRejected: neither `number` nor `after`; a folio another page of the section already has; kind `report`\n(report pages are generated, EW-INV-012). The section and form must exist.",
+  "description": "`page.create`: a new drawn page (FR-PAG-005, doc 06 §5.6).\n\nThe folio is `{section, number, label}` when `number` is given. Otherwise `after` names the page to\ninsert after and the folio is proposed (doc 06 §5.6): `after.number + 1` if it lies in the section's\nrange (any number when the page has no section) and no page, divider or report block of that section\nuses it; else the sub-page `{after.number, label}` with the printed label `<after's folio>.k` (`101.1`\nafter `101`, `101.1.1` after `101.1`) for the smallest `k ≥ 1` no page of the section prints. The\nsection is `after`'s; a different explicit `section` is rejected.\n\nRejected: neither `number` nor `after`; a folio another page of the section already has; kind `report`\n(report pages are generated, EW-INV-012). The section and form must exist.",
   "properties": {
     "after": {
       "anyOf": [

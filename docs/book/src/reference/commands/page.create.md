@@ -7,8 +7,9 @@
 The folio is `{section, number, label}` when `number` is given. Otherwise `after` names the page to
 insert after and the folio is proposed (doc 06 §5.6): `after.number + 1` if it lies in the section's
 range (any number when the page has no section) and no page, divider or report block of that section
-uses it; else the sub-page `{after.number, label}` with label `k` (or `<after.label>.k`) for the
-smallest free `k ≥ 1`. The section is `after`'s; a different explicit `section` is rejected.
+uses it; else the sub-page `{after.number, label}` with the printed label `<after's folio>.k` (`101.1`
+after `101`, `101.1.1` after `101.1`) for the smallest `k ≥ 1` no page of the section prints. The
+section is `after`'s; a different explicit `section` is rejected.
 
 Rejected: neither `number` nor `after`; a folio another page of the section already has; kind `report`
 (report pages are generated, EW-INV-012). The section and form must exist.
