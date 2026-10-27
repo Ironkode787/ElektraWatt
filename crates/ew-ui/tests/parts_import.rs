@@ -16,7 +16,7 @@ use std::rc::Rc;
 use egui::{Key, Modifiers, Vec2};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
-use ew_ui::app::{App, Pick, Platform, setup};
+use ew_ui::app::{App, Pick, PickReply, Platform, setup};
 use ew_ui::ew_viewmodel::ew_api::Session;
 use ew_ui::ew_viewmodel::shell::{Mode, Outcome, Prompt, ShellModel};
 use serde_json::{Value, json};
@@ -221,4 +221,130 @@ fn the_card_and_the_closed_menu_arrive_in_the_frame_after_the_pick() {
         "the card is gone"
     );
     h.state_mut().shell_mut().shutdown();
+}
+
+/// FT-467: a platform whose dialog stays open off the window's thread until the test answers it through the sender.
+#[derive(Clone, Default)]
+struct ThreadedPlatform {
+    answer: Rc<RefCell<Option<std::sync::mpsc::Sender<Pick>>>>,
+    started: Rc<Cell<usize>>,
+}
+
+impl Platform for ThreadedPlatform {
+    fn pick(&mut self, _: Prompt) -> Pick {
+        panic!("a threaded platform is asked through start_pick");
+    }
+
+    fn start_pick(&mut self, _: Prompt, _: &egui::Context) -> PickReply {
+        let (tx, rx) = std::sync::mpsc::channel();
+        *self.answer.borrow_mut() = Some(tx);
+        self.started.set(self.started.get() + 1);
+        PickReply::Later(rx)
+    }
+}
+
+/// A harness on a new project whose File, Import, Parts table... has been clicked once with `platform`.
+fn harness_with_open_dialog<'a>(tmp: &Tmp, platform: ThreadedPlatform) -> Harness<'a, App> {
+    let dir = tmp.0.join("proj.ew");
+    let mut shell = ShellModel::new(Mode::Gui, tmp.config());
+    let params: Value = json!({"dir": dir.to_string_lossy(), "template": "builtin"});
+    assert_eq!(shell.dispatch("file.new", &params), Outcome::Done);
+    let app = App::new(shell, Box::new(platform), None);
+    let mut h = Harness::builder()
+        .with_size(Vec2::new(1000.0, 700.0))
+        .with_context_setup(setup)
+        .build_ui_state(|ui, app: &mut App| app.ui(ui), app);
+    settle(&mut h);
+    h.get_by_label("File").click();
+    settle(&mut h);
+    h.get_by_label("Import").click();
+    settle(&mut h);
+    h.get_by_label("Parts table...").click();
+    h.step();
+    h.step();
+    h
+}
+
+/// FT-467: while the dialog is open on its own thread the window keeps painting, nothing is dispatched and no second
+/// dialog starts; the frame after the answer arrives has the card in the shell, and the next one paints it.
+#[test]
+fn an_answer_from_the_dialog_thread_opens_the_card_in_the_next_frame() {
+    let tmp = Tmp::new();
+    let csv = tmp.0.join("parts.csv");
+    std::fs::write(
+        &csv,
+        "key,manufacturer,part_number,kind,type_designation,description,unit,test_data,tech_data\nA1,Acme,A1,,,Relay A,piece,,\nA2,Acme,A2,,,Relay B,piece,,\n",
+    )
+    .unwrap();
+    let platform = ThreadedPlatform::default();
+    let mut h = harness_with_open_dialog(&tmp, platform.clone());
+    assert_eq!(platform.started.get(), 1, "the dialog started once");
+    let pass = h.ctx.cumulative_pass_nr();
+    for _ in 0..3 {
+        h.step();
+    }
+    assert!(
+        h.ctx.cumulative_pass_nr() > pass,
+        "the window keeps painting while the dialog is open"
+    );
+    assert!(!h.state().shell().import_card_open(), "no card before the answer");
+    assert_eq!(platform.started.get(), 1, "no second dialog while one is open");
+    assert!(
+        h.query_by_label("Parts table...").is_none(),
+        "the File menu is closed while the dialog is open"
+    );
+
+    let tx = platform.answer.borrow_mut().take().unwrap();
+    tx.send(Pick::Path(csv)).unwrap();
+    h.step();
+    assert!(
+        h.state().shell().import_card_open(),
+        "the card is in the shell in the frame after the answer"
+    );
+    h.step();
+    assert!(
+        h.query_by_label_contains("parts.csv: 2 created").is_some(),
+        "the card's text is painted"
+    );
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// FT-467: a dialog thread that ends without an answer (it panicked) counts as a cancel: no card, no change, and the
+/// next prompt starts a new dialog.
+#[test]
+fn a_dialog_thread_without_an_answer_counts_as_cancelled() {
+    let tmp = Tmp::new();
+    let platform = ThreadedPlatform::default();
+    let mut h = harness_with_open_dialog(&tmp, platform.clone());
+    drop(platform.answer.borrow_mut().take());
+    h.step();
+    h.step();
+    assert!(!h.state().shell().import_card_open());
+    assert!(!h.state().shell().can_undo());
+    h.get_by_label("File").click();
+    settle(&mut h);
+    h.get_by_label("Import").click();
+    settle(&mut h);
+    h.get_by_label("Parts table...").click();
+    h.step();
+    h.step();
+    assert_eq!(platform.started.get(), 2, "a new prompt starts a new dialog");
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// FT-467: `spawn_pick` puts the answer in the channel before it requests the repaint, so the frame the request starts
+/// finds it.
+#[test]
+fn spawn_pick_sends_the_answer_before_it_requests_a_repaint() {
+    let ctx = egui::Context::default();
+    let (woke_tx, woke_rx) = std::sync::mpsc::channel::<()>();
+    let woke_tx = std::sync::Mutex::new(woke_tx);
+    ctx.set_request_repaint_callback(move |_| {
+        let _ = woke_tx.lock().unwrap().send(());
+    });
+    let answer = ew_ui::app::spawn_pick(&ctx, || Pick::Path(PathBuf::from("a.csv"))).unwrap();
+    woke_rx
+        .recv_timeout(std::time::Duration::from_secs(10))
+        .expect("the dialog thread requested a repaint");
+    assert_eq!(answer.try_recv(), Ok(Pick::Path(PathBuf::from("a.csv"))));
 }

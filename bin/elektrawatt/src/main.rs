@@ -30,7 +30,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use eframe::egui;
-use ew_ui::app::{App, Pick, Platform, setup};
+use ew_ui::app::{App, Pick, PickReply, Platform, setup, spawn_pick};
 use ew_ui::ew_viewmodel::shell::{Mode, Prompt, Resources, ShellConfig, ShellModel};
 use ew_ui::ew_viewmodel::strings;
 use ew_ui::gpu::{Flags, adapter_count, wgpu_configuration};
@@ -119,7 +119,10 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Cli, String> {
 }
 
 /// The file dialogs of the operating system through `rfd`.
-struct RfdPlatform;
+struct RfdPlatform {
+    /// The dialog every prompt starts from: on Windows it carries the window as its owner.
+    base: rfd::FileDialog,
+}
 
 /// An environment variable as a path, `None` when unset or empty.
 // Program boundary: the portal's session bus (`DBUS_SESSION_BUS_ADDRESS`, `XDG_RUNTIME_DIR`) and the directories of
@@ -137,39 +140,102 @@ fn session_bus_present(address: Option<PathBuf>, runtime_dir: Option<PathBuf>) -
     address.is_some() || runtime_dir.is_some_and(|d| d.join("bus").exists())
 }
 
-impl Platform for RfdPlatform {
-    fn pick(&mut self, prompt: Prompt) -> Pick {
-        if cfg!(target_os = "linux")
-            && !session_bus_present(env_path("DBUS_SESSION_BUS_ADDRESS"), env_path("XDG_RUNTIME_DIR"))
-        {
-            return Pick::Unavailable;
+/// How a dialog of `rfd` is shown: what it asks for.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum DialogKind {
+    Folder,
+    File,
+    Save,
+}
+
+impl RfdPlatform {
+    /// The dialogs of the window `cc` was made for. On Windows the window is their owner, so it takes no input while
+    /// a dialog is open, as when the dialog ran on the window's thread (FT-467); elsewhere they have no parent, as
+    /// before.
+    fn new(cc: &eframe::CreationContext<'_>) -> RfdPlatform {
+        let base = rfd::FileDialog::new();
+        let base = if cfg!(target_os = "windows") {
+            base.set_parent(cc)
+        } else {
+            base
+        };
+        RfdPlatform { base }
+    }
+
+    /// Whether the system has file dialogs: on Linux `rfd` needs the xdg desktop portal's session bus.
+    fn available() -> bool {
+        !cfg!(target_os = "linux")
+            || session_bus_present(env_path("DBUS_SESSION_BUS_ADDRESS"), env_path("XDG_RUNTIME_DIR"))
+    }
+
+    /// The dialog of `prompt`, built on the window's thread (its texts are the window's).
+    fn dialog(&self, prompt: Prompt) -> (rfd::FileDialog, DialogKind) {
+        let base = self.base.clone();
+        match prompt {
+            Prompt::OpenFolder => (
+                base.set_title(strings::text("prompt-open-title")),
+                DialogKind::Folder,
+            ),
+            Prompt::NewFolder => (
+                base.set_title(strings::text("prompt-save-as-title")),
+                DialogKind::Folder,
+            ),
+            Prompt::OpenQet => (
+                base.set_title(strings::text("prompt-open-qet-title"))
+                    .add_filter("QElectroTech", &["qet"]),
+                DialogKind::File,
+            ),
+            Prompt::OpenPartsTable => (
+                base.set_title(strings::text("prompt-open-parts-title"))
+                    .add_filter("CSV", &["csv"]),
+                DialogKind::File,
+            ),
+            Prompt::OpenImage => (
+                base.set_title(strings::text("prompt-open-image-title"))
+                    .add_filter("Images", &["svg", "png", "jpg", "jpeg"]),
+                DialogKind::File,
+            ),
+            Prompt::SavePdf => (
+                base.set_title(strings::text("prompt-export-title"))
+                    .set_file_name(strings::text("prompt-pdf-name"))
+                    .add_filter("PDF", &["pdf"]),
+                DialogKind::Save,
+            ),
         }
-        let picked = match prompt {
-            Prompt::OpenFolder => rfd::FileDialog::new()
-                .set_title(strings::text("prompt-open-title"))
-                .pick_folder(),
-            Prompt::NewFolder => rfd::FileDialog::new()
-                .set_title(strings::text("prompt-save-as-title"))
-                .pick_folder(),
-            Prompt::OpenQet => rfd::FileDialog::new()
-                .set_title(strings::text("prompt-open-qet-title"))
-                .add_filter("QElectroTech", &["qet"])
-                .pick_file(),
-            Prompt::OpenPartsTable => rfd::FileDialog::new()
-                .set_title(strings::text("prompt-open-parts-title"))
-                .add_filter("CSV", &["csv"])
-                .pick_file(),
-            Prompt::OpenImage => rfd::FileDialog::new()
-                .set_title(strings::text("prompt-open-image-title"))
-                .add_filter("Images", &["svg", "png", "jpg", "jpeg"])
-                .pick_file(),
-            Prompt::SavePdf => rfd::FileDialog::new()
-                .set_title(strings::text("prompt-export-title"))
-                .set_file_name(strings::text("prompt-pdf-name"))
-                .add_filter("PDF", &["pdf"])
-                .save_file(),
+    }
+
+    /// Shows `dialog` and waits for the user, on the calling thread.
+    fn run(dialog: rfd::FileDialog, kind: DialogKind) -> Pick {
+        let picked = match kind {
+            DialogKind::Folder => dialog.pick_folder(),
+            DialogKind::File => dialog.pick_file(),
+            DialogKind::Save => dialog.save_file(),
         };
         picked.map_or(Pick::Cancelled, Pick::Path)
+    }
+}
+
+impl Platform for RfdPlatform {
+    fn pick(&mut self, prompt: Prompt) -> Pick {
+        if !Self::available() {
+            return Pick::Unavailable;
+        }
+        let (dialog, kind) = self.dialog(prompt);
+        Self::run(dialog, kind)
+    }
+
+    /// Every dialog runs on a thread of its own, so the window's event loop keeps running and the answer is painted
+    /// at once (FT-467).
+    fn start_pick(&mut self, prompt: Prompt, ctx: &egui::Context) -> PickReply {
+        if !Self::available() {
+            return PickReply::Now(Pick::Unavailable);
+        }
+        let (dialog, kind) = self.dialog(prompt);
+        match spawn_pick(ctx, move || Self::run(dialog, kind)) {
+            Ok(rx) => PickReply::Later(rx),
+            // Without a thread for it the dialog runs on the window's thread, as before FT-467.
+            Err(_) => PickReply::Now(self.pick(prompt)),
+        }
     }
 
     fn open_url(&mut self, url: &str) -> bool {
@@ -316,7 +382,6 @@ fn run_gui(initial: Option<PathBuf>, no_gpu: bool) -> i32 {
         shell.start_first_run_if_needed();
     }
     let flags = Flags { no_gpu };
-    let mut app = App::new(shell, Box::new(RfdPlatform), initial);
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_title(strings::text("window-title-start"))
@@ -331,6 +396,8 @@ fn run_gui(initial: Option<PathBuf>, no_gpu: bool) -> i32 {
         options,
         Box::new(move |cc| {
             setup(&cc.egui_ctx);
+            // The file dialogs need the window (their owner on Windows), so the frame is made here.
+            let mut app = App::new(shell, Box::new(RfdPlatform::new(cc)), initial);
             // The canvas draws on eframe's device (one wgpu device, ADR-0014); without a render state it is the CPU
             // canvas.
             app.attach_gpu(cc.wgpu_render_state.clone(), flags);

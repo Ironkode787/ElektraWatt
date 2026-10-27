@@ -10,12 +10,13 @@
 //! `ew-ui` does not depend on eframe: the application binary calls [`App::ui`] from its `eframe::App`.
 
 use std::path::PathBuf;
+use std::sync::mpsc::{self, Receiver, TryRecvError};
 use std::time::Duration;
 
 use egui::{CentralPanel, Key, Modifiers, Panel, ThemePreference, Ui, ViewportCommand};
 use ew_viewmodel::actions::Context;
 use ew_viewmodel::layout::PaneKind;
-use ew_viewmodel::shell::{ConfirmAnswer, Focus, Outcome, Prompt, ShellModel};
+use ew_viewmodel::shell::{ConfirmAnswer, Focus, Outcome, Prompt, PromptRequest, ShellModel};
 use ew_viewmodel::strings;
 use serde_json::{Value, json};
 
@@ -74,11 +75,59 @@ pub enum Pick {
     Unavailable,
 }
 
+/// How a file dialog's answer comes to the frame.
+#[derive(Debug)]
+pub enum PickReply {
+    /// At once: a test's platform, or a system without a file dialog.
+    Now(Pick),
+    /// From the dialog's own thread (FT-467): the frame reads the receiver at the start of every frame, and the thread
+    /// requests a repaint once the answer is in it ([`spawn_pick`]).
+    Later(Receiver<Pick>),
+}
+
+/// Runs `ask` (a native file dialog) on a thread of its own and returns the receiver of its answer; the thread sends
+/// the answer and then requests a repaint of `ctx`, so the frame that the request starts finds it (FT-467).
+///
+/// A modal dialog run inside the frame spins its own message loop on the window's thread. On Windows that loop
+/// dispatches the repaint which egui requested at the start of the frame to winit, which can only buffer it (its
+/// handler is busy with the frame) and delivers its buffer only when the event loop wakes again; egui sends no second
+/// request while that one is outstanding, so the answer stayed unpainted until the next pointer input. A dialog off
+/// the window's thread leaves the event loop running.
+///
+/// # Errors
+///
+/// The thread could not be started.
+pub fn spawn_pick(
+    ctx: &egui::Context,
+    ask: impl FnOnce() -> Pick + Send + 'static,
+) -> std::io::Result<Receiver<Pick>> {
+    let (tx, rx) = mpsc::channel();
+    let ctx = ctx.clone();
+    std::thread::Builder::new()
+        .name("ew-file-dialog".to_owned())
+        .spawn(move || {
+            let pick = ask();
+            // The answer first, then the wake-up: the frame the request starts must find it. A frame that has gone
+            // (the window closed) leaves nobody to receive it.
+            let _ = tx.send(pick);
+            ctx.request_repaint();
+        })?;
+    Ok(rx)
+}
+
 /// The operating system's file dialogs and browser, which the application binary provides (`rfd` and the system's
 /// opener) and tests replace.
 pub trait Platform {
     /// Asks the user for a path: a project directory, a new directory, a PDF file or a QElectroTech file.
     fn pick(&mut self, prompt: Prompt) -> Pick;
+
+    /// Starts the file dialog of `prompt` and says how its answer comes. The default answers at once with
+    /// [`Platform::pick`]; the application binary runs its native dialogs through [`spawn_pick`], so the window keeps
+    /// its event loop while a dialog is open (FT-467). `ctx` is the context to repaint when the answer is there.
+    fn start_pick(&mut self, prompt: Prompt, ctx: &egui::Context) -> PickReply {
+        let _ = ctx;
+        PickReply::Now(self.pick(prompt))
+    }
 
     /// Opens a URL in the system browser: a `file://` URL of the installed user guide, or the repository's
     /// `PRIVACY.md` (a user action; the application itself sends nothing); `false` when it could not be opened.
@@ -136,9 +185,8 @@ pub struct App {
     dialog_was_open: bool,
     /// An action that waits one frame so that the status bar can show it running (the PDF export).
     deferred: Option<Deferred>,
-    /// Frames still owed after a native dialog returned: the window has just regained focus and one immediate repaint
-    /// can be swallowed (the stale menu after a modal dialog). Two scheduled frames make the answer visible.
-    prompt_repaints: u8,
+    /// The file dialog that is open off the window's thread, with the request it answers (FT-467).
+    pending_pick: Option<(PromptRequest, Receiver<Pick>)>,
     /// The `ui_scale` last given to egui: the zoom is set when the setting changes, not every frame, so that
     /// egui's own zoom keys keep working in between.
     applied_scale: Option<f32>,
@@ -194,7 +242,7 @@ impl App {
             picker_was_open: false,
             dialog_was_open: false,
             deferred: None,
-            prompt_repaints: 0,
+            pending_pick: None,
             applied_scale: None,
             applied_theme: None,
             request_paste: false,
@@ -378,9 +426,8 @@ impl App {
         if let Some(dir) = self.initial.take() {
             self.dispatch("file.open", &json!({ "dir": dir.to_string_lossy() }));
         }
-        // The native dialogs are answered at the start of a frame, so the menu is already closed and the card is in the
-        // shell before this frame paints; waiting until the end would need another frame that a modal dialog may swallow
-        // (W3).
+        // The file dialogs are started and answered at the start of a frame, so the menu is already closed and the card
+        // is in the shell before this frame paints (W3); an answer from a dialog's thread starts this frame (FT-467).
         self.answer_prompts(&ctx);
         if self.dock.version() != self.shell.layout_version() {
             self.dock = Dock::new(self.shell.layout(), self.shell.layout_version());
@@ -619,14 +666,6 @@ impl App {
             ctx.request_repaint_after(Duration::from_millis(250));
         }
 
-        // The dialog answer's first frame is painted now; the deferred frames (30 ms, then 120 ms) are what the real
-        // window shows after it regains focus.
-        if self.prompt_repaints > 0 {
-            self.prompt_repaints -= 1;
-            let after = if self.prompt_repaints == 0 { 120 } else { 30 };
-            ctx.request_repaint_after(Duration::from_millis(after));
-        }
-
         let title = self.shell.title();
         if title != self.title {
             ctx.send_viewport_cmd(ViewportCommand::Title(title.clone()));
@@ -821,54 +860,71 @@ impl App {
         }
     }
 
-    /// The file dialogs the shell asked for: their answers are dispatched like any other input. A native dialog blocks
-    /// the event loop without an egui event; the menu it was opened from must be closed here, and the repaired frame
-    /// must be requested (W3).
+    /// The file dialogs the shell asked for: their answers are dispatched like any other input. The platform's native
+    /// dialogs run off the window's thread (FT-467), so a dialog's answer is read here, at the start of a frame, once
+    /// its thread has sent it; while it is open the shell's next prompt waits. A platform that answers at once (the
+    /// tests') is answered in the same frame.
     fn answer_prompts(&mut self, ctx: &egui::Context) {
-        while let Some(request) = self.shell.take_prompt() {
-            let pick = self.platform.pick(request.prompt);
-            let path = match pick {
-                Pick::Path(path) => path,
-                Pick::Cancelled => {
-                    self.prompt_answered(ctx);
-                    continue;
+        loop {
+            if let Some((request, rx)) = self.pending_pick.take() {
+                match rx.try_recv() {
+                    Ok(pick) => self.answer_prompt(ctx, request, pick),
+                    Err(TryRecvError::Empty) => {
+                        self.pending_pick = Some((request, rx));
+                        return;
+                    }
+                    // The dialog's thread ended without an answer (it panicked): as if the user cancelled.
+                    Err(TryRecvError::Disconnected) => self.answer_prompt(ctx, request, Pick::Cancelled),
                 }
-                Pick::Unavailable => {
-                    self.shell.show_banner(strings::text("banner-no-file-dialog"));
-                    self.prompt_answered(ctx);
-                    continue;
-                }
-            };
-            let mut params = request.params.as_object().cloned().unwrap_or_default();
-            params.insert(
-                request.param.to_owned(),
-                Value::String(path.to_string_lossy().into_owned()),
-            );
-            if request.action == "file.export_pdf" {
-                // The export is synchronous in part 1: one frame with the label on screen, then the export.
-                self.deferred = Some(Deferred {
-                    action: request.action,
-                    params: Value::Object(params),
-                    painted: false,
-                });
-            } else {
-                self.dispatch(request.action, &Value::Object(params));
+                continue;
             }
-            self.prompt_answered(ctx);
+            let Some(request) = self.shell.take_prompt() else {
+                return;
+            };
+            match self.platform.start_pick(request.prompt, ctx) {
+                PickReply::Now(pick) => self.answer_prompt(ctx, request, pick),
+                PickReply::Later(rx) => self.pending_pick = Some((request, rx)),
+            }
         }
     }
 
-    /// The menu state after a modal dialog: close every popup and request the frames that paint the result.
+    /// Dispatches the answer `pick` to the dialog of `request`.
+    fn answer_prompt(&mut self, ctx: &egui::Context, request: PromptRequest, pick: Pick) {
+        let path = match pick {
+            Pick::Path(path) => path,
+            Pick::Cancelled => {
+                self.prompt_answered(ctx);
+                return;
+            }
+            Pick::Unavailable => {
+                self.shell.show_banner(strings::text("banner-no-file-dialog"));
+                self.prompt_answered(ctx);
+                return;
+            }
+        };
+        let mut params = request.params.as_object().cloned().unwrap_or_default();
+        params.insert(
+            request.param.to_owned(),
+            Value::String(path.to_string_lossy().into_owned()),
+        );
+        if request.action == "file.export_pdf" {
+            // The export is synchronous in part 1: one frame with the label on screen, then the export.
+            self.deferred = Some(Deferred {
+                action: request.action,
+                params: Value::Object(params),
+                painted: false,
+            });
+        } else {
+            self.dispatch(request.action, &Value::Object(params));
+        }
+        self.prompt_answered(ctx);
+    }
+
+    /// The menu state after a dialog: close every popup and request the frame that paints the result.
     fn prompt_answered(&mut self, ctx: &egui::Context) {
-        // `ui.close()` ran in the modal frame, but a menu click's frame cannot repaint while the dialog blocks; the
-        // popup memory is cleared here so the frame that paints the answer already shows the menu closed.
+        // The menu the dialog was opened from is closed in the frame that paints the answer.
         egui::Popup::close_all(ctx);
-        // "Stale menu after a modal native dialog until the mouse moved": the frame that answers the dialog is painted
-        // while the window has just regained focus, and one request made in it does not reach the screen. Paint now and
-        // schedule the next frame; the end of that frame schedules the one after it (R6).
         ctx.request_repaint();
-        ctx.request_repaint_after(Duration::from_millis(30));
-        self.prompt_repaints = 2;
     }
 
     /// The documentation page F1 asked for: opened in the system browser when the user guide is installed, else a
