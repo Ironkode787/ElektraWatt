@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The tool host's duties of WP-S2.04 part 4b (§10.5, §10.7): arming the Text, Graphic, Wire marker and Structure box
-//! tools, the Text tool's binding, text edit (F2, and the window's double click on a selected free text), the text
+//! tools (and, from part 5, the Image tool with its asset, §11), the Text tool's binding, text edit (F2, and the window's double click on a selected free text), the text
 //! popup's content, the tools' strip fields, the marker mode action and the return to Select when an edit finishes.
 //!
 //! **Reads.** Arming and the pointer and cursor moves of the Text, Graphic, Wire marker and Structure box tools read
@@ -17,8 +17,8 @@ use serde_json::{Map, Value, json};
 
 use super::{Outcome, ShellModel, failed, string_param};
 use crate::tools::{
-    BINDABLE, EntityKind, Ghost, GraphicShape, GraphicTool, MarkerTool, StructureBoxTool, TextEditTool,
-    TextTool, selection_kinds, tool_named,
+    BINDABLE, EntityKind, Ghost, GraphicShape, GraphicTool, ImageAsset, ImageTool, MarkerTool,
+    StructureBoxTool, TextEditTool, TextTool, selection_kinds, tool_named,
 };
 
 /// The text popup of the window (WP-S2.04 §10.5): the title's label key and the field's initial text.
@@ -305,6 +305,63 @@ impl ShellModel {
             })
             .flatten();
         // The fields change no point: without one the overlay is left as it is.
+        if let Some(o) = overlay
+            && !o.items.is_empty()
+        {
+            self.tools.overlay = o;
+        }
+        self.announce_tool();
+        Outcome::Done
+    }
+
+    // -----------------------------------------------------------------------------------------------------------
+    // The Image tool (WP-S2.04 §11)
+
+    /// `tool.image` (Insert ▸ Image…): the Image tool, without an asset until `image.pick`.
+    pub(super) fn act_tool_image(&mut self) -> Outcome {
+        self.activate_tool(Box::new(ImageTool::new()));
+        Outcome::Done
+    }
+
+    /// `image.pick {asset}`: the Image tool's asset, a hash (`sha256:<64 hex>`) the project already holds; the tool
+    /// is armed with it and its intrinsic size. A hash the project does not hold fails and changes nothing.
+    pub(super) fn act_image_pick(&mut self, p: &Map<String, Value>) -> Outcome {
+        if self.tools.tool.name() != "image" {
+            return Outcome::Refused {
+                reason_key: "reason-image-tool-only",
+            };
+        }
+        let text = match string_param(p, "asset") {
+            Ok(Some(t)) => t,
+            Ok(None) => return failed("error-missing-param", &["asset"]),
+            Err(e) => return e,
+        };
+        let Ok(sha256) = text.parse::<ew_api::Sha256>() else {
+            return failed("error-bad-param", &["asset"]);
+        };
+        let Some(project) = &self.project else {
+            return Outcome::Refused {
+                reason_key: "reason-no-project",
+            };
+        };
+        let Some((reference, _)) = project.session.asset(&sha256) else {
+            return failed("error-image-asset-missing", &[text]);
+        };
+        let asset = ImageAsset {
+            hash: sha256.to_string(),
+            size: reference.size,
+        };
+        let overlay = self
+            .with_tool(|t, cx| {
+                t.as_any_mut()
+                    .and_then(|a| a.downcast_mut::<ImageTool>())
+                    .map(|tool| {
+                        tool.set_asset(asset);
+                        tool.refresh(cx)
+                    })
+            })
+            .flatten();
+        // The asset changes no point: without one the overlay is left as it is.
         if let Some(o) = overlay
             && !o.items.is_empty()
         {

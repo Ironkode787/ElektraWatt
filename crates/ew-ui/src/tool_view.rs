@@ -173,6 +173,14 @@ pub fn tool_strip_text(shell: &ShellModel) -> Option<String> {
         Some(tools::Ghost::StructureBox { outline }) => {
             format!("{} · {}", outline, strings::text(tool.status_hint()))
         }
+        // WP-S2.04 part 5: the Image tool's asset.
+        Some(tools::Ghost::Image { asset }) => {
+            format!(
+                "{} · {}",
+                asset.unwrap_or_else(|| "-".to_owned()),
+                strings::text(tool.status_hint())
+            )
+        }
     };
     Some(format!("{label}: {detail}"))
 }

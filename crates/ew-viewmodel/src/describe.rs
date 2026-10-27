@@ -321,6 +321,8 @@ pub const VOCABULARY: &[&str] = &[
     "anticlockwise",
     "boxes",
     "unknown",
+    // The Image tool (WP-S2.04 part 5, §11; ID-474 extended): 1 word, a reviewed vocabulary change.
+    "image",
 ];
 
 /// The 10 words of WP-S2.04 §9.6, of which part 3 adds the last 5 to [`VOCABULARY`] (WP-S6.13 part 1 added the
@@ -366,6 +368,9 @@ pub const ITEM_WORDS: &[&str] = &[
     "boxes",
     "unknown",
 ];
+
+/// The word WP-S2.04 part 5 adds to [`VOCABULARY`] (§11): the Image tool's ghost line and `page.describe`'s image item.
+pub const IMAGE_WORDS: &[&str] = &["image"];
 
 /// The 14 words WP-S2.05 part 2 adds to [`VOCABULARY`] (§7.6).
 pub const FIND_WORDS: &[&str] = &[
@@ -1344,6 +1349,14 @@ fn ghost_lines(model: &ShellModel, lines: &mut Vec<String>) {
         Some(crate::tools::Ghost::StructureBox { outline }) => {
             lines.push(format!("canvas ghost box outline {outline}"));
         }
+        // WP-S2.04 part 5 (§11): the Image tool's asset.
+        Some(crate::tools::Ghost::Image { asset }) => {
+            let mut line = "canvas ghost item image".to_owned();
+            if let Some(asset) = asset {
+                line.push_str(&format!(" \"{asset}\""));
+            }
+            lines.push(line);
+        }
     }
     wiring_lines(model, lines);
 }
@@ -1705,6 +1718,7 @@ pub fn page_describe(page: &CanvasPage) -> String {
             "graphic" => "graphic",
             "free_text" => "text",
             "wire_marker" => "marker",
+            "image" => "image",
             _ => "unknown",
         };
         let mut line = format!(

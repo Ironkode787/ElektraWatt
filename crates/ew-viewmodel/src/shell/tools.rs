@@ -200,7 +200,7 @@ impl ShellModel {
         self.tools.notice = None;
         self.tools.notice_sticky = false;
         // An editing tool (Wire, Edit route, Place, Change symbol, and the part-4b Text, Text edit, Graphic, Wire
-        // marker and Structure box tools) works on one page (WP-S2.04 part 2, window-check ruling): a page or tab
+        // marker, Structure box and part-5 Image tools) works on one page (WP-S2.04 part 2, window-check ruling): a page or tab
         // change ends it and Select takes over. The selection survives (WP-S2.03 §7.6).
         if matches!(
             self.tools.tool.name(),
@@ -216,6 +216,7 @@ impl ShellModel {
                 | "graphic"
                 | "marker"
                 | "structure_box"
+                | "image"
         ) && let Some(select) = tool_named("select")
         {
             self.tools.tool = select;

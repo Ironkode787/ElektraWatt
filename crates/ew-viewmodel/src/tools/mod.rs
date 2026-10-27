@@ -38,12 +38,15 @@
 //! **WP-S2.04 part 4b** adds page items and drawings: the Text tool ([`TextTool`]) with its six bindable names
 //! ([`BINDABLE`]), text edit ([`TextEditTool`]), the Graphic tool ([`GraphicTool`], [`GraphicShape`]), the Wire
 //! marker tool ([`MarkerTool`], [`crossed_connections`]) and the Structure box tool ([`StructureBoxTool`]).
+//!
+//! **WP-S2.04 part 5** adds the Image tool ([`ImageTool`], [`ImageAsset`], [`fit_rect`]).
 
 pub mod autoconnect;
 pub mod black_box;
 mod exchange;
 pub mod graphic;
 mod host;
+pub mod image;
 pub mod ip;
 mod junction_editor;
 pub mod marker;
@@ -65,6 +68,7 @@ pub mod wire;
 pub use black_box::{BlackBoxTool, BoxTarget};
 pub use exchange::ExchangeTool;
 pub use graphic::{GraphicShape, GraphicTool};
+pub use image::{ImageAsset, ImageTool, fit_rect};
 pub use ip::{IpDir, IpExternal, IpMemory, IpTool};
 pub use junction_editor::{JunctionEditor, JunctionMember, junction_name};
 pub use marker::{MarkerTool, crossed_connections};
@@ -325,6 +329,11 @@ pub enum Ghost {
     StructureBox {
         /// The outline's vertices: 0 in the armed state, the fixed points while drawing, all of them while typing.
         outline: usize,
+    },
+    /// The Image tool's asset (WP-S2.04 §11).
+    Image {
+        /// The asset's hash (`sha256:<64 hex>`); `None` before `image.pick`.
+        asset: Option<String>,
     },
 }
 

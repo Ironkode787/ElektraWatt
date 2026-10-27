@@ -1,4 +1,4 @@
-# ew.blindvocab/1: the 266 structural words of the describe text, then its free-text markers
+# ew.blindvocab/1: the 267 structural words of the describe text, then its free-text markers
 title:
 menu
 submenu
@@ -265,6 +265,7 @@ crossing
 anticlockwise
 boxes
 unknown
+image
 markers:
 title:
 banner:

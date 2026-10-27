@@ -2003,7 +2003,9 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
             || ew_viewmodel::describe::IP_WORDS.contains(*w)
             // WP-S2.04 part 4b: the item and box words need a writable project: `tests/part4b.rs` reaches `graphic`,
             // `marker` and `boxes`; the drawing tools' words and `unknown` come with the later units of part 4b.
-            || ew_viewmodel::describe::ITEM_WORDS.contains(*w)),
+            || ew_viewmodel::describe::ITEM_WORDS.contains(*w)
+            // WP-S2.04 part 5: `image` comes with the Image tool: `tests/part5_image.rs` reaches it.
+            || ew_viewmodel::describe::IMAGE_WORDS.contains(*w)),
         "words of the vocabulary no state used: {unused:?}"
     );
 }

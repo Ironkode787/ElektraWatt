@@ -1894,6 +1894,28 @@ pub static ACTIONS: &[ActionMeta] = &[
         ),
     ),
     // WP-S2.04 part 4b. End.
+    // WP-S2.04 part 5 (images, §11).
+    in_canvas(act(
+        "tool.image",
+        Command,
+        "action-tool-image",
+        Menu::Insert,
+        &[],
+        editable_page,
+        slot(Menu::Insert),
+    )),
+    with_params(
+        "asset:text",
+        hidden(in_canvas(act(
+            "image.pick",
+            View,
+            "action-image-pick",
+            Menu::Insert,
+            &[],
+            editable_page,
+            None,
+        ))),
+    ),
     act(
         "tools.company_standard",
         Command,

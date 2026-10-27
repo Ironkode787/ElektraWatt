@@ -597,6 +597,9 @@ fn clears_banner(id: &str) -> bool {
             | "tool.structure_box"
             | "structure_box.fields"
             | "project.marker_mode"
+            // WP-S2.04 part 5 (images, §11).
+            | "tool.image"
+            | "image.pick"
             // The property grid's actions (WP-S2.05 §6.10): a failed edit shows under its field, not in the banner.
             | "props.show"
             | "props.focus"
@@ -1346,6 +1349,9 @@ impl ShellModel {
             "structure_box.fields" => self.act_structure_box_fields(p),
             "project.marker_mode" => self.act_marker_mode(p),
             // WP-S2.04 part 4b. End.
+            // WP-S2.04 part 5 (images, §11).
+            "tool.image" => self.act_tool_image(),
+            "image.pick" => self.act_image_pick(p),
             "props.show" => self.act_props_show(p),
             "props.focus" => self.act_props_focus(),
             "props.project" => self.act_props_project(),

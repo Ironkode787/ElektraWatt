@@ -216,6 +216,17 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "reason-bridge-selection" => "Select exactly two terminals of one strip",
         "reason-bridge-no-shaft" => "Both terminals need a part with a bridge shaft",
         "reason-bridge-exists" => "These two terminals are bridged already",
+        // WP-S2.04 part 5 (images, §11).
+        "action-tool-image" => "Image…",
+        "action-image-pick" => "Image asset",
+        "tool-image" => "Image",
+        "hint-image-picking" => "Choose an image asset of the project first",
+        "hint-image-armed" => "Click or Enter at the first corner; Escape ends",
+        "hint-image-placing" => {
+            "Click or Enter at the opposite corner; Backspace or Escape drops the first corner"
+        }
+        "reason-image-tool-only" => "Choose the Image tool first",
+        "error-image-asset-missing" => "The project holds no image asset {0}.",
         // WP-S2.04 part 4b: the Wire marker tool, the Structure box tool and the marker mode.
         "submenu-wire-markers" => "Wire markers",
         "action-tool-marker" => "Wire marker",

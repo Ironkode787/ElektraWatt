@@ -44,7 +44,7 @@
 //! `{"kind": "fragment", "records", "copies"}` or `{"kind": "text", "lines"}`), and the canvas `ghost` may be
 //! `{"kind": "paste", "records", "at_nm", "dropped"}`. (WP-S2.04 part 4b) the `ghost` may also be
 //! `{"kind": "text", …}`, `{"kind": "graphic", …}`, `{"kind": "marker", "connections", "text"}` or
-//! `{"kind": "structure_box", "outline"}`. Nothing in it depends on time, process or location: two runs of one
+//! `{"kind": "structure_box", "outline"}`, and (part 5) `{"kind": "image", "asset"}`. Nothing in it depends on time, process or location: two runs of one
 //! script on equal inputs give equal bytes.
 //!
 //! **Record IDs** (decision log ID-630, FT-422). No UUID reaches a transcript line: every UUID of a step's line
@@ -595,7 +595,7 @@ fn junction_editor_json(shell: &ShellModel) -> String {
 
 /// The `ghost` member of the canvas (WP-S2.04 §7.7): `null`, or `{"kind": "place", "symbol", "variant",
 /// "rep_type", "at_nm", "target", "tag", "hints"}`, `{"kind": "move", "count", "steps"}` or `{"kind": "exchange",
-/// "symbol", "unmapped"}`, and the part 4b forms (`text`, `graphic`, `marker`, `structure_box`).
+/// "symbol", "unmapped"}`, and the part 4b forms (`text`, `graphic`, `marker`, `structure_box`) and part 5's `image`.
 fn ghost_json(shell: &ShellModel) -> String {
     use crate::tools::Ghost;
     match shell.tool_ghost() {
@@ -699,6 +699,11 @@ fn ghost_json(shell: &ShellModel) -> String {
         Some(Ghost::StructureBox { outline }) => object(vec![
             member("kind", &Value::from("structure_box")),
             member("outline", &Value::from(outline)),
+        ]),
+        // WP-S2.04 part 5 (§11).
+        Some(Ghost::Image { asset }) => object(vec![
+            member("kind", &Value::from("image")),
+            member("asset", &asset.map_or(Value::Null, Value::from)),
         ]),
     }
 }
