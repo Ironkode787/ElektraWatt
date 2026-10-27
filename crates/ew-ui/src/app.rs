@@ -410,7 +410,10 @@ impl App {
         self.canvas.update_backend(&mut self.shell);
         if ctx.input(|i| i.viewport().close_requested()) && !self.shell.should_quit() {
             ctx.send_viewport_cmd(ViewportCommand::CancelClose);
-            self.dispatch("app.quit", &Value::Null);
+            // While a file dialog is open nothing the user does reaches the shell (see below): the window stays open.
+            if self.pending_pick.is_none() {
+                self.dispatch("app.quit", &Value::Null);
+            }
         }
         // The export runs in the frame after the one that painted its label.
         if let Some(d) = self.deferred.as_mut() {
@@ -600,6 +603,13 @@ impl App {
         if canvas_shown {
             // The merged tile submission and the hidden-first eviction of every canvas (WP-S2.03 §6.8).
             self.canvas.finish_frame(&ctx, &self.shell);
+        }
+        // A native dialog that is open off the window's thread need not be modal (on Linux the portal dialog has no
+        // owner window), and its answer carries the shell's earlier choices with it (`discard` after a Discard): what
+        // the user does in the window in the meantime would be thrown away unasked. So while it is open the frame
+        // paints and dispatches nothing of what the user did (keys, menus, panels, cards, canvas, dropped files).
+        if self.pending_pick.is_some() {
+            events.clear();
         }
         if !events.is_empty() {
             ctx.request_repaint();
