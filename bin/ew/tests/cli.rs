@@ -682,6 +682,48 @@ fn export_without_the_block_is_exit_2() {
     );
 }
 
+/// FT-465: the parts list of a project without a `parts_summary` block (a new project from the built-in template, as the
+/// blind drafter's self-test makes) is a refusal, exit 2, and the one-line message names the block, the export, where the
+/// block comes from, and that there is nothing to export; no file is written.
+#[test]
+fn export_bom_without_the_block_is_exit_2_and_names_the_cause() {
+    let t = Tmp::new();
+    let dir = tiny_project(&t);
+    let out = t.0.join("bom.csv");
+    for mode in ["parts", "assembly"] {
+        let o = ew(&[
+            "export".as_ref(),
+            "bom".as_ref(),
+            dir.as_os_str(),
+            "--mode".as_ref(),
+            mode.as_ref(),
+            "--out".as_ref(),
+            out.as_os_str(),
+        ]);
+        assert_eq!(o.status.code(), Some(2), "{mode}: {}", stdout(&o));
+        let err = stderr(&o);
+        assert_eq!(err.lines().count(), 1, "one line: {err}");
+        for want in [
+            "error: the project has no report block of kind `parts_summary`",
+            "the bill of materials is the rows of that block",
+            "company-standard wizard creates it as folio 901",
+            "a project from the built-in template has none",
+            "nothing to export",
+        ] {
+            assert!(err.contains(want), "{mode}: `{want}` not in `{err}`");
+        }
+        assert!(!out.exists(), "a refused export writes no file");
+    }
+    // The cable list says the same about its own block.
+    let o = ew(&["export".as_ref(), "cables".as_ref(), dir.as_os_str()]);
+    assert_eq!(o.status.code(), Some(2));
+    assert!(
+        stderr(&o).contains("the cable list is the rows of that block") && stderr(&o).contains("folio 906"),
+        "{}",
+        stderr(&o)
+    );
+}
+
 /// `--out` to a path that cannot be written is exit 2 with the path in the message, and writes nothing.
 #[test]
 fn export_out_to_an_unwritable_path_is_exit_2() {

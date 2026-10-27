@@ -857,6 +857,30 @@ fn run_sql(a: &SqlArgs) -> i32 {
     0
 }
 
+/// The message of a refused export (FT-465). A project without the report block of the export's kind has no row source:
+/// the export is the rows of that block (doc 17 §3.3), so it is refused, not empty, and the message names the block, the
+/// export and where the block comes from. A block that does not derive keeps the report layer's own text.
+fn export_refusal(what: Export, e: &ew_api::ExportError) -> String {
+    match e {
+        ew_api::ExportError::NoBlock(kind) => {
+            let (export, made) = match what {
+                Export::Cables => (
+                    "the cable list",
+                    "the company-standard wizard creates it as folio 906",
+                ),
+                Export::Bom(_) => (
+                    "the bill of materials",
+                    "the company-standard wizard creates it as folio 901",
+                ),
+            };
+            format!(
+                "the project has no report block of kind `{kind}`: {export} is the rows of that block ({made}; a project from the built-in template has none), so there is nothing to export"
+            )
+        }
+        other => other.to_string(),
+    }
+}
+
 fn run_export(a: &ExportArgs) -> i32 {
     let Some(dir) = project_dir(a.project.as_ref()) else {
         return 2;
@@ -875,7 +899,7 @@ fn run_export(a: &ExportArgs) -> i32 {
     let exported = match session.export(what) {
         Ok(e) => e,
         Err(e) => {
-            eprintln!("error: {e}");
+            eprintln!("error: {}", export_refusal(what, &e));
             return 2;
         }
     };
