@@ -177,6 +177,24 @@ const BLOCKED: [&str; 6] = [
     "help.tutorials",
 ];
 
+/// The actions a check run never sends although they are of kind `View` (FT-442): the canvas actions that can reach a
+/// tool's commit. A press, a release and a click at the grid cursor (`canvas.activate`, with or without Alt) finish
+/// what an armed tool draws, and `tool.finish` commits it; `canvas.drag*` is the drag family, should the registry ever
+/// register one. The checker keeps navigation, zoom, pan, tabs, the page navigator, pointing (`canvas.pointer`,
+/// `canvas.dwell`), the grid cursor, `tool.select`, `tool.measure` and `look`.
+pub const CHECK_REFUSED: [&str; 5] = [
+    "canvas.press",
+    "canvas.release",
+    "canvas.activate",
+    "canvas.activate_alt",
+    "tool.finish",
+];
+
+/// Whether a check run refuses the action `id` although it is of kind `View` (see [`CHECK_REFUSED`]).
+pub fn check_refuses(id: &str) -> bool {
+    CHECK_REFUSED.contains(&id) || id.starts_with("canvas.drag")
+}
+
 /// Whether `text` holds a UUID (8-4-4-4-12 hexadecimal), anywhere.
 pub fn has_uuid(text: &str) -> bool {
     super::normalise::first_uuid(text).is_some()
@@ -220,7 +238,9 @@ pub fn check_step(
     {
         return Err(not_available());
     }
-    if kind == Kind::Check && !(action.view || id == "file.open" || id == "app.quit") {
+    // A check run: only actions of kind `View` and `file.open`, `app.quit`, and of those not the canvas actions that can
+    // reach a tool's commit (FT-442).
+    if kind == Kind::Check && (!(action.view || id == "file.open" || id == "app.quit") || check_refuses(id)) {
         return Err("harness: the checker does not change the project".to_owned());
     }
     // Every parameter name is in the signature.
@@ -531,6 +551,82 @@ mod tests {
         );
         assert_eq!(check(Kind::Check, &step("page.describe", json!({}))), Ok(()));
         assert_eq!(check(Kind::Gate, &step("edit.undo", json!({}))), Ok(()));
+    }
+
+    /// FT-442: a check run refuses the canvas actions that can reach a tool's commit (press, release, a click at the grid
+    /// cursor with or without Alt, finish, and any drag), with the checker's refusal text, and keeps navigation, zoom,
+    /// pan, tabs, the page navigator, pointing and the looks. A drafter run is not affected.
+    #[test]
+    fn a_check_run_refuses_what_can_reach_a_tools_commit_and_keeps_the_views() {
+        let refusal = Err("harness: the checker does not change the project".to_owned());
+        let canvas = json!({"x_mm": 10, "y_mm": 20});
+        for (id, params) in [
+            ("canvas.press", canvas.clone()),
+            ("canvas.release", canvas.clone()),
+            ("canvas.activate", json!({})),
+            ("canvas.activate_alt", json!({})),
+            ("tool.finish", json!({})),
+        ] {
+            assert_eq!(check(Kind::Check, &step(id, params.clone())), refusal, "{id}");
+            assert_eq!(
+                check(Kind::Gate, &step(id, params)),
+                Ok(()),
+                "{id} stays the drafter's"
+            );
+        }
+        // A drag, should the registry register one, is refused by its family name (the committed registry has none).
+        let mut with_drag = test_reference();
+        for id in ["canvas.drag", "canvas.drag_to"] {
+            with_drag.actions.push(ActionRef {
+                id: id.to_owned(),
+                view: true,
+                params: Vec::new(),
+            });
+            assert_eq!(
+                check_step(&with_drag, Kind::Check, &step(id, json!({})), &BTreeSet::new()),
+                refusal,
+                "{id}"
+            );
+        }
+        // What a checker keeps: navigation, zoom, pan, tabs, the navigator, pointing, the cursor, the looks, the view tools.
+        for (id, params) in [
+            ("nav.goto", json!({"text": "101"})),
+            ("nav.follow", json!({})),
+            ("nav.back", json!({})),
+            ("page.goto", json!({"folio": "102"})),
+            ("page.next", json!({})),
+            ("view.zoom_in", json!({})),
+            ("view.zoom_to", json!({"percent": 50})),
+            ("view.fit_page", json!({})),
+            ("view.pan", json!({"dx": 1, "dy": 2})),
+            ("view.pan_left", json!({})),
+            ("tab.new", json!({})),
+            ("tab.activate", json!({"group": 0, "index": 0})),
+            ("pages.open", json!({"folio": "103"})),
+            ("canvas.pointer", canvas.clone()),
+            ("canvas.dwell", json!({"ms": 100})),
+            ("cursor.set", canvas.clone()),
+            ("tool.select", json!({})),
+            ("tool.measure", json!({})),
+            ("ui.describe", json!({})),
+            ("page.describe", json!({"folio": "101"})),
+            ("file.open", json!({"dir": "project"})),
+            ("app.quit", json!({})),
+        ] {
+            assert_eq!(check(Kind::Check, &step(id, params)), Ok(()), "{id} is kept");
+        }
+        // The registry's view actions a check run refuses are exactly the list: nothing else of kind View is lost.
+        let r = test_reference();
+        let mut refused: Vec<&str> = r
+            .actions
+            .iter()
+            .filter(|a| a.view && check_refuses(&a.id) && !BLOCKED.contains(&a.id.as_str()))
+            .map(|a| a.id.as_str())
+            .collect();
+        refused.sort_unstable();
+        let mut want = CHECK_REFUSED.to_vec();
+        want.sort_unstable();
+        assert_eq!(refused, want);
     }
 
     /// BD7: the `key=value` parser types by signature.
