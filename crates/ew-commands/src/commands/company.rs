@@ -24,6 +24,42 @@ use crate::tx::TxBuilder;
 /// `notice` and `logo` and keeps every other member.
 pub const COMPANY_MEMBER: &str = ew_schema::COMPANY_MEMBER;
 
+/// Brings the image file of `text` (base64, RFC 4648 §4) into the project's asset store: the one path of the company logo
+/// and of an image given as data to `item.place`. The text is checked against [`ew_schema::MAX_LOGO_BYTES`] before it is
+/// decoded, then decoded, sniffed (format, intrinsic size, the size limits and, for an SVG, the rejecter of FT-383) and
+/// stored with the transaction ([`TxBuilder::put_asset`]). `what` names the file and the limit in the refusal text, for
+/// example ("the logo", "a company logo"); every refusal is `InvalidParams` of `command` at `pointer`.
+pub(crate) fn store_image(
+    tx: &mut TxBuilder<'_>,
+    command: &str,
+    pointer: &str,
+    what: (&str, &str),
+    text: &str,
+) -> Result<ew_schema::AssetRef, CmdError> {
+    let too_large = || {
+        CmdError::invalid_params(
+            command,
+            pointer,
+            format!(
+                "{} is larger than {} KiB (the limit of {})",
+                what.0,
+                ew_schema::MAX_LOGO_BYTES / 1024,
+                what.1
+            ),
+        )
+    };
+    if text.len() > ew_schema::MAX_LOGO_BYTES.div_ceil(3) * 4 {
+        return Err(too_large());
+    }
+    let bytes = ew_schema::base64_decode(text)
+        .map_err(|e| CmdError::invalid_params(command, pointer, e.to_string()))?;
+    if bytes.len() > ew_schema::MAX_LOGO_BYTES {
+        return Err(too_large());
+    }
+    tx.put_asset(bytes)
+        .map_err(|e| CmdError::invalid_params(command, pointer, e.to_string()))
+}
+
 /// `project.company.set` (`SetCompany`): sets the company of the project, the panel builder (doc 16 §9.2 step 1).
 ///
 /// - `name`: the name of the first party with role `panel_builder` (FR-PRJ-003; the title-block path
@@ -89,28 +125,7 @@ impl Command for SetCompany {
             None => None,
             Some("") => Some(None),
             Some(text) => {
-                // Checked on the text first, so that an oversized logo is not decoded.
-                let too_large = || {
-                    CmdError::invalid_params(
-                        Self::NAME,
-                        "/logo",
-                        format!(
-                            "the logo is larger than {} KiB (the limit of a company logo)",
-                            ew_schema::MAX_LOGO_BYTES / 1024
-                        ),
-                    )
-                };
-                if text.len() > ew_schema::MAX_LOGO_BYTES.div_ceil(3) * 4 {
-                    return Err(too_large());
-                }
-                let bytes = ew_schema::base64_decode(text)
-                    .map_err(|e| CmdError::invalid_params(Self::NAME, "/logo", e.to_string()))?;
-                if bytes.len() > ew_schema::MAX_LOGO_BYTES {
-                    return Err(too_large());
-                }
-                let reference = tx
-                    .put_asset(bytes)
-                    .map_err(|e| CmdError::invalid_params(Self::NAME, "/logo", e.to_string()))?;
+                let reference = store_image(tx, Self::NAME, "/logo", ("the logo", "a company logo"), text)?;
                 if reference.format.is_raster() {
                     outcome.notices.push(format!(
                         "the logo is a {} raster image: it prints rasterised (D-07); an SVG logo prints as vectors",

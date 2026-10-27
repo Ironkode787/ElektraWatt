@@ -202,8 +202,22 @@
       "description": "An image of `item.place` (WP-S2.04 part 5, FR-SYM-025).",
       "properties": {
         "asset": {
-          "$ref": "#/$defs/Sha256",
-          "description": "The asset: `sha256:<64 hex>`, one the project holds (doc 05 §13.3)."
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Sha256"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The asset: `sha256:<64 hex>`, one the project holds (doc 05 §13.3). Exactly one of `asset` and `data`."
+        },
+        "data": {
+          "description": "The image file itself, in base64 (RFC 4648 §4), for an image the project does not hold yet: validated and\nstored as the company logo is (`project.company.set`: the formats, the SVG rejecter, the size limits, at most\n512 KiB), in the same transaction. Exactly one of `asset` and `data`.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "rect": {
           "description": "Two opposite corners of the rectangle the image is drawn in, absolute in page nm (stored with the smaller\ncoordinates first); the rectangle has an area.",
@@ -216,7 +230,6 @@
         }
       },
       "required": [
-        "asset",
         "rect"
       ],
       "type": "object"
@@ -466,7 +479,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "`item.place` (`PlaceItem`, WP-S2.04 §5.1; FR-SYM-023, FR-SYM-024, FR-SYM-025): creates a page item on a page, a\ngraphic (`{\"graphic\": {shape, stroke?, dash?, fill?}}`), a free text (`{\"free_text\": {text, bind?, at, angle?,\nstyle?, align?}}`) or an image (`{\"image\": {asset, rect}}`, part 5: an asset of the project's store in the\nrectangle of two opposite corners, stored with the smaller coordinates first), absolute in page nm; a rectangle is stored with `min` the smaller coordinates. Rejected: a missing page\n(not found); a degenerate shape (a zero-length line, a polyline or polygon with fewer than two or three distinct\npoints, a rectangle without area, a radius of 0, an arc without sweep) or a stroke width of 0 or less, at\n`/kind/graphic`; a `bind` that is not one of the six bindable names, an empty `text` without `bind`, or an angle\nother than 0, 90000, 180000 or 270000, at `/kind/free_text`; an image whose asset the project does not hold, at\n`/kind/image/asset`, or whose rectangle has no area, at `/kind/image`. Interactive. Outcome: the item.",
+  "description": "`item.place` (`PlaceItem`, WP-S2.04 §5.1; FR-SYM-023, FR-SYM-024, FR-SYM-025): creates a page item on a page, a\ngraphic (`{\"graphic\": {shape, stroke?, dash?, fill?}}`), a free text (`{\"free_text\": {text, bind?, at, angle?,\nstyle?, align?}}`) or an image (`{\"image\": {asset | data, rect}}`, part 5: an asset of the project's store, or the\nimage file as base64 `data`, which the command validates and stores as the company logo is stored, in the\nrectangle of two opposite corners, stored with the smaller coordinates first), absolute in page nm; a rectangle is\nstored with `min` the smaller coordinates. Rejected: a missing page (not found); a degenerate shape (a zero-length\nline, a polyline or polygon with fewer than two or three distinct points, a rectangle without area, a radius of 0,\nan arc without sweep) or a stroke width of 0 or less, at\n`/kind/graphic`; a `bind` that is not one of the six bindable names, an empty `text` without `bind`, or an angle\nother than 0, 90000, 180000 or 270000, at `/kind/free_text`; an image with both or neither of `asset` and `data`, or\nwhose rectangle has no area, at `/kind/image`; one whose asset the project does not hold, at `/kind/image/asset`;\none whose `data` is no accepted image file (the logo's checks and texts), at `/kind/image/data`. Interactive.\nOutcome: the item.",
   "properties": {
     "kind": {
       "$ref": "#/$defs/ItemKindParam",

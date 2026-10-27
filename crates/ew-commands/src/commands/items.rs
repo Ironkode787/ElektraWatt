@@ -183,8 +183,14 @@ fn is_zero_angle(a: &Angle2) -> bool {
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ImageParam {
-    /// The asset: `sha256:<64 hex>`, one the project holds (doc 05 §13.3).
-    pub asset: Sha256,
+    /// The asset: `sha256:<64 hex>`, one the project holds (doc 05 §13.3). Exactly one of `asset` and `data`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub asset: Option<Sha256>,
+    /// The image file itself, in base64 (RFC 4648 §4), for an image the project does not hold yet: validated and
+    /// stored as the company logo is (`project.company.set`: the formats, the SVG rejecter, the size limits, at most
+    /// 512 KiB), in the same transaction. Exactly one of `asset` and `data`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub data: Option<String>,
     /// Two opposite corners of the rectangle the image is drawn in, absolute in page nm (stored with the smaller
     /// coordinates first); the rectangle has an area.
     #[schemars(with = "[Pt2S; 2]")]
@@ -412,13 +418,17 @@ fn free_text_of(t: &FreeTextParam) -> FreeText {
 
 /// `item.place` (`PlaceItem`, WP-S2.04 §5.1; FR-SYM-023, FR-SYM-024, FR-SYM-025): creates a page item on a page, a
 /// graphic (`{"graphic": {shape, stroke?, dash?, fill?}}`), a free text (`{"free_text": {text, bind?, at, angle?,
-/// style?, align?}}`) or an image (`{"image": {asset, rect}}`, part 5: an asset of the project's store in the
-/// rectangle of two opposite corners, stored with the smaller coordinates first), absolute in page nm; a rectangle is stored with `min` the smaller coordinates. Rejected: a missing page
-/// (not found); a degenerate shape (a zero-length line, a polyline or polygon with fewer than two or three distinct
-/// points, a rectangle without area, a radius of 0, an arc without sweep) or a stroke width of 0 or less, at
+/// style?, align?}}`) or an image (`{"image": {asset | data, rect}}`, part 5: an asset of the project's store, or the
+/// image file as base64 `data`, which the command validates and stores as the company logo is stored, in the
+/// rectangle of two opposite corners, stored with the smaller coordinates first), absolute in page nm; a rectangle is
+/// stored with `min` the smaller coordinates. Rejected: a missing page (not found); a degenerate shape (a zero-length
+/// line, a polyline or polygon with fewer than two or three distinct points, a rectangle without area, a radius of 0,
+/// an arc without sweep) or a stroke width of 0 or less, at
 /// `/kind/graphic`; a `bind` that is not one of the six bindable names, an empty `text` without `bind`, or an angle
-/// other than 0, 90000, 180000 or 270000, at `/kind/free_text`; an image whose asset the project does not hold, at
-/// `/kind/image/asset`, or whose rectangle has no area, at `/kind/image`. Interactive. Outcome: the item.
+/// other than 0, 90000, 180000 or 270000, at `/kind/free_text`; an image with both or neither of `asset` and `data`, or
+/// whose rectangle has no area, at `/kind/image`; one whose asset the project does not hold, at `/kind/image/asset`;
+/// one whose `data` is no accepted image file (the logo's checks and texts), at `/kind/image/data`. Interactive.
+/// Outcome: the item.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct PlaceItem {
@@ -450,22 +460,43 @@ impl Command for PlaceItem {
                 (PageItemKind::FreeText(t), p, "/kind/free_text")
             }
             ItemKindParam::Image(i) => {
+                let asset = match (&i.asset, &i.data) {
+                    (Some(_), Some(_)) | (None, None) => {
+                        return Err(CmdError::invalid_params(
+                            Self::NAME,
+                            "/kind/image",
+                            "give exactly one of `asset` (a hash the project holds) and `data` (the image file in                              base64), not both and not neither",
+                        ));
+                    }
+                    (Some(asset), None) => {
+                        if tx.asset(asset).is_none() {
+                            return Err(CmdError::invalid_params(
+                                Self::NAME,
+                                "/kind/image/asset",
+                                format!(
+                                    "the project holds no asset {asset}; an image places an asset the project                                      already holds, or gives its file as `data`"
+                                ),
+                            ));
+                        }
+                        *asset
+                    }
+                    (None, Some(data)) => {
+                        crate::commands::company::store_image(
+                            tx,
+                            Self::NAME,
+                            "/kind/image/data",
+                            ("the image", "an image given as data"),
+                            data,
+                        )?
+                        .sha256
+                    }
+                };
                 let (a, b) = i.rect;
                 let item = ImageItem {
-                    asset: i.asset,
+                    asset,
                     rect: ew_schema::Bounds(ew_units::Rect::from_points(a, b)),
                     extra: Extra::new(),
                 };
-                if tx.asset(&i.asset).is_none() {
-                    return Err(CmdError::invalid_params(
-                        Self::NAME,
-                        "/kind/image/asset",
-                        format!(
-                            "the project holds no asset {}; an image places an asset the project already holds",
-                            i.asset
-                        ),
-                    ));
-                }
                 let p = image_problem(&item);
                 (PageItemKind::Image(item), p, "/kind/image")
             }

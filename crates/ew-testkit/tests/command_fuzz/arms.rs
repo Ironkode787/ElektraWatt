@@ -499,7 +499,38 @@ fn item_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let page = rng.pick(&live.page_info)?;
     let cmd = |p: Value| Step::cmd("item.place", p);
     let at = Live::grid_pos(page, rng.range(1, 99), rng.range(1, 70));
-    match rng.below(11) {
+    match rng.below(13) {
+        11 => {
+            // The image file itself: a small valid PNG (the sniffer reads the header), stored with the item.
+            let mut png = b"\x89PNG\r\n\x1a\n".to_vec();
+            png.extend_from_slice(&13u32.to_be_bytes());
+            png.extend_from_slice(b"IHDR");
+            png.extend_from_slice(&u32::try_from(rng.range(1, 64)).expect("small").to_be_bytes());
+            png.extend_from_slice(&u32::try_from(rng.range(1, 64)).expect("small").to_be_bytes());
+            png.extend_from_slice(&[8, 6, 0, 0, 0]);
+            let data = ew_schema::base64_encode(&png);
+            Some(
+                cmd(json!({"page": page.id, "kind": {"image": {"data": data,
+                    "rect": [at, [MOVE_UNIT * 60, MOVE_UNIT * 40]]}}}))
+                .accept()
+                .counts(&[(Table::PageItems, 1)]),
+            )
+        }
+        12 => {
+            // Junk bytes, or both members, or neither: refused.
+            let junk: Vec<u8> = (0..8).flat_map(|_| rng.next().to_le_bytes()).collect();
+            let image = match rng.below(3) {
+                0 => {
+                    json!({"data": ew_schema::base64_encode(&junk), "rect": [at, [MOVE_UNIT * 60, MOVE_UNIT * 40]]})
+                }
+                1 => {
+                    json!({"data": ew_schema::base64_encode(&junk), "asset": format!("sha256:{}", hex(&junk[..32])),
+                    "rect": [at, [MOVE_UNIT * 60, MOVE_UNIT * 40]]})
+                }
+                _ => json!({"rect": [at, [MOVE_UNIT * 60, MOVE_UNIT * 40]]}),
+            };
+            Some(cmd(json!({"page": page.id, "kind": {"image": image}})).refuse())
+        }
         10 => {
             // A hash the project cannot hold: 32 random bytes.
             let bytes: Vec<u8> = (0..4).flat_map(|_| rng.next().to_le_bytes()).collect();

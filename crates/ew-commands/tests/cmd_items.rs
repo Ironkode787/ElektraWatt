@@ -306,7 +306,11 @@ fn hold_asset(e: &mut Engine, bytes: &[u8]) -> ew_schema::Sha256 {
 fn image(asset: ew_schema::Sha256, a: Pt2, b: Pt2) -> PlaceItem {
     PlaceItem {
         page: PAGE_101,
-        kind: ItemKindParam::Image(ImageParam { asset, rect: (a, b) }),
+        kind: ItemKindParam::Image(ImageParam {
+            asset: Some(asset),
+            data: None,
+            rect: (a, b),
+        }),
     }
 }
 
@@ -371,6 +375,161 @@ fn item_place_image_rejections() {
     let mut missing = image(hash, pt(0, 0), pt(10_000_000, 5_000_000));
     missing.page = id(0x3f);
     assert!(matches!(e.execute(&missing), Err(CmdError::NotFound { .. })));
+    assert_eq!(e.model().table::<PageItem>().len(), 0, "nothing was placed");
+}
+
+fn image_data(bytes: &[u8], a: Pt2, b: Pt2) -> PlaceItem {
+    PlaceItem {
+        page: PAGE_101,
+        kind: ItemKindParam::Image(ImageParam {
+            asset: None,
+            data: Some(ew_schema::base64_encode(bytes)),
+            rect: (a, b),
+        }),
+    }
+}
+
+/// A PNG signature and `IHDR` of 4 × 2 pixels (enough for the asset store's sniffer).
+fn tiny_png() -> Vec<u8> {
+    let mut b = b"\x89PNG\r\n\x1a\n".to_vec();
+    b.extend_from_slice(&13u32.to_be_bytes());
+    b.extend_from_slice(b"IHDR");
+    b.extend_from_slice(&4u32.to_be_bytes());
+    b.extend_from_slice(&2u32.to_be_bytes());
+    b.extend_from_slice(&[8, 6, 0, 0, 0]);
+    b
+}
+
+/// `item.place` with `data`: the file is validated as the logo is, stored in the same transaction and named by its
+/// hash; an SVG and a PNG; one undo takes the item (the asset's bytes stay in the model, as every asset's do, and are
+/// written by no save once nothing names them); redo brings the item back.
+#[test]
+fn item_place_with_data_stores_the_asset_and_the_item() {
+    use sha2::Digest;
+    let mut e = engine(golden_model());
+    for bytes in [IMAGE_SVG.to_vec(), tiny_png()] {
+        let hash = ew_schema::Sha256(sha2::Sha256::digest(&bytes).into());
+        assert!(e.model().asset(&hash).is_none(), "not held before");
+        let id = place(&mut e, &image_data(&bytes, pt(0, 0), pt(40_000_000, 10_000_000)));
+        let PageItemKind::Image(img) = &item(&e, id).kind else {
+            panic!("an image")
+        };
+        assert_eq!(img.asset, hash, "the item names the asset by its hash");
+        assert_eq!(
+            &**e.model().asset(&hash).expect("stored").bytes(),
+            bytes.as_slice()
+        );
+        e.undo(&Origin::Gui).expect("undo");
+        assert!(
+            e.model().table::<PageItem>().get(&id).is_none(),
+            "one undo takes the item"
+        );
+        e.redo(&Origin::Gui).expect("redo");
+        assert!(e.model().table::<PageItem>().get(&id).is_some());
+    }
+}
+
+/// `data` of an asset the project already holds places the item by that hash and changes nothing in the store; undo
+/// removes the item and the asset stays held.
+#[test]
+fn item_place_with_data_of_a_held_asset_keeps_it() {
+    let mut e = engine(golden_model());
+    let hash = hold_asset(&mut e, IMAGE_SVG);
+    let held: Vec<_> = e.model().assets().map(|a| *a.sha256()).collect();
+    let id = place(
+        &mut e,
+        &image_data(IMAGE_SVG, pt(0, 0), pt(40_000_000, 10_000_000)),
+    );
+    let PageItemKind::Image(img) = &item(&e, id).kind else {
+        panic!("an image")
+    };
+    assert_eq!(img.asset, hash);
+    assert_eq!(e.model().assets().map(|a| *a.sha256()).collect::<Vec<_>>(), held);
+    e.undo(&Origin::Gui).expect("undo");
+    assert!(e.model().table::<PageItem>().get(&id).is_none());
+    assert!(e.model().asset(&hash).is_some(), "the held asset stays");
+}
+
+/// Both `asset` and `data`, or neither, are refused at `/kind/image`; refusals of the data keep the logo's texts at
+/// `/kind/image/data`: a hostile SVG with the rejecter's text, bytes that are no image, text that is no base64 and a
+/// file over the logo limit; nothing is placed or stored.
+#[test]
+fn item_place_data_rejections() {
+    use sha2::Digest;
+    let mut e = engine(golden_model());
+    let hash = hold_asset(&mut e, IMAGE_SVG);
+    let rect = (pt(0, 0), pt(40_000_000, 10_000_000));
+    let both = PlaceItem {
+        page: PAGE_101,
+        kind: ItemKindParam::Image(ImageParam {
+            asset: Some(hash),
+            data: Some(ew_schema::base64_encode(IMAGE_SVG)),
+            rect,
+        }),
+    };
+    let neither = PlaceItem {
+        page: PAGE_101,
+        kind: ItemKindParam::Image(ImageParam {
+            asset: None,
+            data: None,
+            rect,
+        }),
+    };
+    for bad in [both, neither] {
+        let err = e.execute(&bad).unwrap_err();
+        let CmdError::InvalidParams { path, message, .. } = &err else {
+            panic!("{err:?}")
+        };
+        assert_eq!(path, "/kind/image");
+        assert!(message.contains("exactly one of `asset`"), "{message}");
+    }
+    let hostile: &[u8] =
+        br#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4"><script>alert(1)</script></svg>"#;
+    let hostile_hash = ew_schema::Sha256(sha2::Sha256::digest(hostile).into());
+    let err = e.execute(&image_data(hostile, rect.0, rect.1)).unwrap_err();
+    let CmdError::InvalidParams { path, message, .. } = &err else {
+        panic!("{err:?}")
+    };
+    assert_eq!(path, "/kind/image/data");
+    // The very text the company logo's refusal has for these bytes.
+    let logo = e
+        .preview(&SetCompany {
+            name: None,
+            notice: None,
+            personal_data: None,
+            logo: Some(ew_schema::base64_encode(hostile)),
+        })
+        .map(|_| ())
+        .unwrap_err();
+    let CmdError::InvalidParams {
+        message: logo_message,
+        ..
+    } = &logo
+    else {
+        panic!("{logo:?}")
+    };
+    assert_eq!(message, logo_message);
+    assert!(message.contains("script"), "{message}");
+    assert!(e.model().asset(&hostile_hash).is_none(), "nothing stored");
+    for (bytes, needle) in [
+        (b"not an image".to_vec(), ""),
+        (vec![0u8; 600 * 1024], "larger than 512 KiB"),
+    ] {
+        let err = e.execute(&image_data(&bytes, rect.0, rect.1)).unwrap_err();
+        let CmdError::InvalidParams { path, message, .. } = &err else {
+            panic!("{err:?}")
+        };
+        assert_eq!(path, "/kind/image/data");
+        assert!(message.contains(needle), "{message}");
+    }
+    let mut not_base64 = image_data(IMAGE_SVG, rect.0, rect.1);
+    if let ItemKindParam::Image(i) = &mut not_base64.kind {
+        i.data = Some("***".into());
+    }
+    assert_eq!(
+        pointer(e.execute(&not_base64).unwrap_err(), "item.place"),
+        "/kind/image/data"
+    );
     assert_eq!(e.model().table::<PageItem>().len(), 0, "nothing was placed");
 }
 
