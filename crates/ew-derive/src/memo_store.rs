@@ -307,8 +307,11 @@ impl MemoStore {
     /// Moves the store from its snapshot to `after`, the snapshot a commit produced from it by putting the
     /// rows `keys` (the change feed's touched keys; the union over several commits is fine): push
     /// invalidation with the page-level keys of the touched rows before and after. `after` must descend from
-    /// the store's snapshot through those commits. A snapshot at the same revision is ignored; an older one
-    /// (another history) starts a new, empty store.
+    /// the store's snapshot through those commits. A snapshot at the same revision is ignored, unless its asset
+    /// store differs: a transaction without rows can bring an asset (a lost logo set again), which changes what
+    /// the readers of [`DepKey::Assets`](crate::DepKey::Assets) answer but not the revision, and an `ew_memo` store
+    /// cannot advance to an equal revision, so it starts a new, empty store at that snapshot. An older snapshot
+    /// (another history) starts a new, empty store too.
     ///
     /// There is deliberately no "move to any snapshot" (review cycle 9, finding 10): verifying memos of one
     /// history by pull against the stamps of another compares incomparable revisions, which can find a stale
@@ -317,6 +320,10 @@ impl MemoStore {
         let rev = after.rev();
         let before = self.model.borrow().clone();
         if rev == before.rev() {
+            // Nothing changed, unless an asset arrived without a row (the stamp of the asset store is its size).
+            if after.assets_stamp() != before.assets_stamp() {
+                self.restart(after);
+            }
             return;
         }
         if rev < before.rev() {

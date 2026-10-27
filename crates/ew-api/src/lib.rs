@@ -609,8 +609,12 @@ impl Session {
         let changes = self.engine.drain_changes();
         if changes.is_empty() {
             // A transaction without row changes that brought an asset (a lost logo picked again; assets are only
-            // ever added): journal it, so that a crash before the save does not lose its bytes (FT-337).
-            let arrived = self.engine.model().assets().count() != before.assets().count();
+            // ever added): journal it, so that a crash before the save does not lose its bytes (FT-337), and bring the
+            // memo store along, whose readers of the asset store answer differently now (the revision is the same).
+            let arrived = self.engine.model().assets_stamp() != before.assets_stamp();
+            if arrived && let Some(memo) = &self.memo {
+                memo.advance(self.engine.model(), &[]);
+            }
             if let (true, Some(p)) = (arrived, &mut self.persistence) {
                 let _ = p
                     .store

@@ -241,3 +241,52 @@ fn an_asset_that_arrives_with_an_item_on_another_page_reaches_the_memoised_views
         "page 101 draws the logo's paths"
     );
 }
+
+/// Cycle-29 review 2, item 2: an asset can arrive in a transaction that changes no row at all. The project names its
+/// company logo by the full reference, the logo's file is missing, and an image item names the same hash; the same
+/// logo bytes set again change no row (the project row already names them) but bring the asset. The memo store must
+/// follow (it is advanced although the revision stayed): the image's views equal the cold ones, an SVG now.
+#[test]
+fn an_asset_that_arrives_without_any_row_reaches_the_memoised_views() {
+    let batch = batch();
+    let ids = ids_by_key(&batch);
+    let page_a = ids["pages|101"].clone();
+    let reference = ew_api::asset_ref_of(SVG).expect("the placeholder is an SVG");
+    let mut s = golden_common::session_with(&batch, |project, records| {
+        project.extra.insert(
+            ew_schema::COMPANY_MEMBER.into(),
+            json!({"logo": serde_json::to_value(reference).unwrap()}),
+        );
+        let item: ew_schema::PageItem = serde_json::from_value(json!({
+            "id": "0192f3a0-0000-7000-8000-00000000a001", "page": page_a,
+            "kind": {"image": {"asset": reference.sha256.to_string(),
+                "rect": [[20_000_000, 40_000_000], [100_000_000, 60_000_000]]}}}))
+        .unwrap();
+        records.push(ew_schema::Record::PageItem(item));
+    });
+    assert!(s.asset(&reference.sha256).is_none(), "the logo's file is missing");
+    // The memo store holds every page's views, page 101's with the image as a PNG of unknown bytes.
+    let report = ew_api::verify::verify_derived(&s).expect("memo on");
+    assert!(report.is_clean(), "{:?}", report.differences);
+    let before = s.export_svg(&folio_101()).unwrap();
+    assert!(before.report.skipped_images >= 1, "the missing file is reported");
+
+    let rev = s.world().rev;
+    let p = s
+        .preview(&cmd(
+            "project.company.set",
+            json!({ "logo": ew_api::base64_encode(SVG) }),
+        ))
+        .unwrap();
+    s.commit(p).unwrap();
+    assert!(s.asset(&reference.sha256).is_some(), "the asset arrived");
+    assert_eq!(s.world().rev, rev, "no row changed");
+
+    let report = ew_api::verify::verify_derived(&s).expect("memo on");
+    assert!(report.is_clean(), "{:?}", report.differences);
+    let after = s.export_svg(&folio_101()).unwrap();
+    assert!(
+        after.files[0].text.contains("#123456"),
+        "page 101 draws the logo's paths"
+    );
+}
