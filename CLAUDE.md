@@ -31,14 +31,17 @@ work is done by Claude subagents; there is no external coder.
    gate, one fresh-context Opus subagent at `high` effort reviews the cycle's total diff (`git diff <last delivered
    main>..<tip>`) against the ADRs, the specs and the design docs: format bytes and data loss first, then
    determinism, panics, spec gaps, tests, CI/supply chain and repository hygiene. It did not write the briefs and is
-   given the code, not the orchestrator's conclusions. It reports ranked findings with `path:line` and evidence;
-   fixes go to a subagent chosen by rules 1–5 and are re-verified before the gate.
+   given the code, not the orchestrator's conclusions. It reports ranked findings with `path:line` and evidence,
+   and a verdict (accepted / not accepted). The findings go to a fix subagent on Sonnet at `xhigh` effort (in its
+   own worktree, the findings verbatim as its brief); then the same reviewer (continued with SendMessage; a fresh
+   Opus `high` reviewer with the previous findings if it is gone) re-reviews the fixes and the remaining diff.
+   Fix → re-review repeats until the reviewer accepts; only then does the cycle go to the gate.
 7. **Isolation and integration.** Every subagent that edits files runs with `isolation: "worktree"` and commits on
    its own branch; the orchestrator picks or merges onto the working branch, regenerates generated files once on
    the merged tip, and verifies before claiming the tip is green. Subagent check results are claims until re-run.
 8. **Cycle rhythm.** Plan and dispatch → integrate → window checks of user-visible changes (a model that reads
    screenshots, on a normal build) → design pass (decision-log rows, FT rows, as-built spec text, doc 01 cycle
-   section, next candidates) → the cycle review (rule 6) and its fixes → one full gate → fast-forward `main`, push,
+   section, next candidates) → the cycle review (rule 6), fix and re-review until accepted → one full gate → fast-forward `main`, push,
    watch CI on the full SHA. Report outcomes faithfully, including what was skipped or not proven.
 
 ## Testing policy (owner's rule, 2026-10-18)
