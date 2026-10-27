@@ -953,6 +953,48 @@ fn every_arm_commits_and_refuses_what_it_should() {
     eprintln!("{}", report("every arm", &stats));
 }
 
+/// Cycle-29 review: the `item.place` arm that places an image from its file (`.accept()`) gives the image's rectangle
+/// an area on every draw: the two opposite corners differ on both axes, whichever grid position the first corner drew
+/// (before, a fixed second corner made the rectangle empty on about one draw in forty, and `item.place` refuses an
+/// empty rectangle: a false finding in `fuzz_long`).
+#[test]
+fn the_image_arm_always_places_a_rectangle_with_area() {
+    let session = open_session(7);
+    let fixture = Rc::new(Fixture::of(&session.query()));
+    let live = Live::read(&session.query(), &fixture);
+    let arm = ARMS.iter().find(|a| a.command == "item.place").expect("an arm");
+    let (mut images, mut empty) = (0, Vec::new());
+    for seed in 0..20_000u64 {
+        let mut rng = SplitMix64::new(seed);
+        let Some(Step::Cmd(c)) = (arm.build)(&live, &mut rng) else {
+            continue;
+        };
+        let image = &c.params["kind"]["image"];
+        if image.get("data").is_none() || c.verdict != Verdict::Accept {
+            continue;
+        }
+        images += 1;
+        let rect = image["rect"].as_array().expect("a rectangle");
+        let corner = |i: usize| -> (i64, i64) {
+            (
+                rect[i][0].as_i64().expect("an x"),
+                rect[i][1].as_i64().expect("a y"),
+            )
+        };
+        let (a, b) = (corner(0), corner(1));
+        if b.0 == a.0 || b.1 == a.1 {
+            empty.push((seed, a, b));
+        }
+    }
+    assert!(images > 500, "the arm places images: {images}");
+    assert!(
+        empty.is_empty(),
+        "{} of {images} accepted image rectangles have no area, first: {:?}",
+        empty.len(),
+        empty.first()
+    );
+}
+
 #[test]
 fn conductor_add_non_cable_refusal_excludes_cables() {
     let mut session = open_session(469);

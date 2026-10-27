@@ -509,9 +509,13 @@ fn item_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             png.extend_from_slice(&u32::try_from(rng.range(1, 64)).expect("small").to_be_bytes());
             png.extend_from_slice(&[8, 6, 0, 0, 0]);
             let data = ew_schema::base64_encode(&png);
+            // The second corner is 1 to 20 move units right of and below the first, so the rectangle has area
+            // whichever grid position the first one drew (`item.place` refuses a rectangle without).
+            let (dx, dy) = (rng.range(1, 20), rng.range(1, 20));
+            let (x, y) = (at[0].as_i64()?, at[1].as_i64()?);
             Some(
                 cmd(json!({"page": page.id, "kind": {"image": {"data": data,
-                    "rect": [at, [MOVE_UNIT * 60, MOVE_UNIT * 40]]}}}))
+                    "rect": [at, [x + MOVE_UNIT * dx, y + MOVE_UNIT * dy]]}}}))
                 .accept()
                 .counts(&[(Table::PageItems, 1)]),
             )
