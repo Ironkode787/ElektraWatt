@@ -281,7 +281,7 @@ destinations, in **reading order**: by the cell of the rectangle's centre (`colu
 `PageCells::cell_at`, never the labels; no cell sorts last), then by `(y, x)` of the centre, then paint order. The same
 order, on the same indices, is the order of `page_cps` (§4.2), except that `page_cps` breaks a tie at one point by
 the CP's label in natural order, then by its ID (coincident CPs keep their order, their snap and their `cp.next` walk
-in every fresh copy of a project, whose IDs are random; blind replay, WP-S6.13 §6 item 3).
+in every fresh copy of a project, whose IDs are random; blind replay, WP-S6.13 §6 item 3; decision log ID-677). The link list's own last tie, paint order, still sorts representations by their random IDs (FT-483).
 
 **Hover.** A pointer inside a link rectangle inflated by 4 points at the current zoom hovers that link (smallest area
 wins, ties to the later in paint order); a hovered link takes precedence over the entity hover of WP-S2.02 and is drawn

@@ -1,6 +1,6 @@
 # Connections, terminals and cables
 
-**Status:** Draft v0.1 · **Date:** 2026-10-23 (cycle 23: the shipped colour profiles and their limits as built, §4.3, decision log ID-577; the marker mode as a project setting for WP-S2.04, §4.5, ID-568; 2026-10-21: cycle 11: page token of segment-less strips as built, decision log ID-293; cycle 12: EW-TERM-002 as built, §6.8, and the cover size note, §4.2; cycle 13: the orientation of segment-only terminals, §3.8, the numbering order and the golden numbers as built, §5.2, and the segment wording, §6.7; 2026-10-27, cycle 29: the numbering order's tie-break by what is printed, §5.2 and §11, decision log ID-675) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-23 (cycle 23: the shipped colour profiles and their limits as built, §4.3, decision log ID-577; the marker mode as a project setting for WP-S2.04, §4.5, ID-568; 2026-10-21: cycle 11: page token of segment-less strips as built, decision log ID-293; cycle 12: EW-TERM-002 as built, §6.8, and the cover size note, §4.2; cycle 13: the orientation of segment-only terminals, §3.8, the numbering order and the golden numbers as built, §5.2, and the segment wording, §6.7; 2026-10-27, cycle 29: the numbering order's tie-break by what is printed, §5.2 and §11, decision log ID-675; the fallback potential name's tie by its text and not by the CP ID, §3.5, decision log ID-677) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) turns drawn connections into electrical meaning. It covers
 connection points, connections and junctions, the three connectivity levels (net, signal, potential) with stable
@@ -290,7 +290,7 @@ an undefined one.
   3. a fallback `<displayed tag>:<CP designation>` of the member CP that comes first in (page order, row, column),
      ties by that fallback text in natural order, then by CP ID (so two CPs of one anchor cell, such as a terminal's
      two sides, give the same name in every fresh copy of a project, whose IDs are random; blind replay, WP-S6.13
-     §6 item 3).
+     §6 item 3; decision log ID-677).
 
   An external source interruption point counts as a source IP for step 2 (decision log ID-174).
 - **Aliases.** Every other distinct IP name on the potential is an alias, in natural order (FR-CON-012, D-24).
