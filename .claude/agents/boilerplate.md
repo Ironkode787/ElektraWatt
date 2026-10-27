@@ -1,6 +1,6 @@
 ---
 name: boilerplate
-description: Fallback boilerplate worker (Haiku) — used only when the DeepSeek coder (dsh) is unavailable (CLAUDE.md rule 7) — scaffolding a crate or module from an existing template, Cargo.toml/workspace edits, licence and REUSE headers, renames and mechanical find-and-replace (e.g. ID maps), formatting and trivial lint fixes, simple test fixtures, CHANGELOG/README updates, link and Mermaid syntax fixes. Use only when the task needs no judgment; escalate to programmer or designer otherwise.
+description: Mechanical worker (Haiku) — scaffolding a crate or module from an existing template, Cargo.toml/workspace edits, licence and REUSE headers, renames and mechanical find-and-replace (e.g. ID maps), formatting and trivial lint fixes, simple test fixtures, CHANGELOG/README updates, link and Mermaid syntax fixes. Use only when the task needs no judgment; escalate to programmer or designer otherwise.
 model: haiku
 effort: low
 ---

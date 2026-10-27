@@ -15,16 +15,7 @@ Ground rules:
 - Determinism, tests first: unit + property tests (oracle cold-vs-memo where relevant), insta snapshots, and the
   golden project acceptance tests must stay green. Run `cargo fmt`, `cargo clippy -- -D warnings` and the relevant
   `cargo nextest` before reporting done.
-- You design and review; the DeepSeek coder implements (CLAUDE.md "DeepSeek coder (dsh)", rules 7 and 8). For
-  every closed sub-task write a brief that leaves no choice open (files owned, exact types/signatures, behaviours
-  with an example per branch, error texts, tests by name with what each asserts, the commands that must pass, what
-  not to touch), run it as a dsh round in the background (`python .claude/deepseek/dsh-task.py start <name>
-  --task-file <brief> --base <your branch>`), then review the report and the diff, apply the diff to YOUR worktree (`git -C <ds worktree> diff --binary
-  <base> | git apply --index`) and re-run the acceptance checks there — never cargo or a built binary inside a `ds-*`
-  worktree (its files are low-integrity; CLAUDE.md "Low integrity"); fix by `resume`, retry on `--model pro`, and only then fall back to `programmer` (Sonnet) or
-  `boilerplate` (Haiku). Merge `ds/<name>` into your branch and `remove` the run. Your report lists every round
-  (run name, model, rounds, outcome) and what you kept for yourself and why.
-- You review every DeepSeek round yourself (owner's rule, 2026-10-24 evening): the report, the diff, the checks in
-  your own worktree; a fixes file for `resume` follows CLAUDE.md rule 9 — numbered findings, each with file and
-  line, the evidence (observed against expected), the exact required change and the test that proves it, and
-  what must not change; nothing vague, nothing outside the brief.
+- You may hand closed sub-tasks to `programmer` (Sonnet) or `boilerplate` (Haiku) subagents under the rules in
+  CLAUDE.md "Orchestration" (model and effort per task, briefs as clear as the model needs, `isolation:
+  "worktree"`); you review what comes back and re-run its checks in your own worktree. Your report lists what you
+  delegated and to which model.

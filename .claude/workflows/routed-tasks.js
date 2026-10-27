@@ -10,7 +10,7 @@ export const meta = {
 
 // args: { tasks: [{ id: string, prompt: string, difficulty?: 1..5 }], maxEscalations?: number }
 // Each task prompt must be self-contained: goal, files owned, acceptance checks to run.
-// Ladder and rubric: see CLAUDE.md "Effort by difficulty".
+// Ladder and rubric: this file; model and effort rules: CLAUDE.md "Orchestration".
 const LADDER = [
   null,
   { model: 'haiku', effort: 'low' },     // D1 trivial / mechanical
