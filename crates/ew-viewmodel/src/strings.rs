@@ -219,6 +219,13 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         // WP-S2.04 part 5 (images, §11).
         "action-tool-image" => "Image…",
         "action-image-pick" => "Image asset",
+        "action-image-file" => "Image file",
+        "prompt-open-image-title" => "Insert an image",
+        "error-image-file" => "Cannot read the image file {0}: {1}.",
+        "error-image-too-large" => {
+            "The image {0} is larger than {1} KiB (the limit of an image the project stores)."
+        }
+        "error-image-refused" => "The image {0} is not accepted: {1}.",
         "tool-image" => "Image",
         "hint-image-picking" => "Choose an image asset of the project first",
         "hint-image-armed" => "Click or Enter at the first corner; Escape ends",

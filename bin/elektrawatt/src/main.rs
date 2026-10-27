@@ -159,6 +159,10 @@ impl Platform for RfdPlatform {
                 .set_title(strings::text("prompt-open-parts-title"))
                 .add_filter("CSV", &["csv"])
                 .pick_file(),
+            Prompt::OpenImage => rfd::FileDialog::new()
+                .set_title(strings::text("prompt-open-image-title"))
+                .add_filter("Images", &["svg", "png", "jpg", "jpeg"])
+                .pick_file(),
             Prompt::SavePdf => rfd::FileDialog::new()
                 .set_title(strings::text("prompt-export-title"))
                 .set_file_name(strings::text("prompt-pdf-name"))

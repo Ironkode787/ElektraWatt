@@ -240,6 +240,8 @@ pub enum Prompt {
     OpenQet,
     /// An existing parts table, `parts.csv` (Import, Parts table).
     OpenPartsTable,
+    /// An image file the asset store accepts: SVG, PNG or JPEG (Insert, Image).
+    OpenImage,
 }
 
 /// A request to the window to open a page of the user guide in the system browser (F1).
@@ -600,6 +602,7 @@ fn clears_banner(id: &str) -> bool {
             // WP-S2.04 part 5 (images, §11).
             | "tool.image"
             | "image.pick"
+            | "image.file"
             // The property grid's actions (WP-S2.05 §6.10): a failed edit shows under its field, not in the banner.
             | "props.show"
             | "props.focus"
@@ -1352,6 +1355,7 @@ impl ShellModel {
             // WP-S2.04 part 5 (images, §11).
             "tool.image" => self.act_tool_image(),
             "image.pick" => self.act_image_pick(p),
+            "image.file" => self.act_image_file(p),
             "props.show" => self.act_props_show(p),
             "props.focus" => self.act_props_focus(),
             "props.project" => self.act_props_project(),

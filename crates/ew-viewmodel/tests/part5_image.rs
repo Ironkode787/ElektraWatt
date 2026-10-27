@@ -13,7 +13,7 @@ use std::sync::Arc;
 
 use common::{Tmp, at, done, refused, state, structural_tokens};
 use ew_viewmodel::ew_api::output::PageTables;
-use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
+use ew_viewmodel::shell::{Mode, Outcome, Prompt, ShellModel};
 use ew_viewmodel::tools::{Ghost, fit_rect};
 use serde_json::{Value, json};
 
@@ -333,4 +333,171 @@ fn the_image_ghost_and_menu_use_the_vocabulary() {
             .any(|l| l.contains("Image…") && l.contains("tool.image")),
         "Insert ▸ Image… in the menu:\n{text}"
     );
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Files: the window's dialog answer and a file dropped on the canvas (`image.file`)
+
+/// A PNG signature and `IHDR` of 8 × 2 pixels (enough for the asset store's sniffer).
+fn tiny_png() -> Vec<u8> {
+    let mut b = b"\x89PNG\r\n\x1a\n".to_vec();
+    b.extend_from_slice(&13u32.to_be_bytes());
+    b.extend_from_slice(b"IHDR");
+    b.extend_from_slice(&8u32.to_be_bytes());
+    b.extend_from_slice(&2u32.to_be_bytes());
+    b.extend_from_slice(&[8, 6, 0, 0, 0]);
+    b
+}
+
+fn write_file(tmp: &Tmp, name: &str, bytes: &[u8]) -> String {
+    let file = tmp.0.join(name);
+    std::fs::write(&file, bytes).unwrap();
+    file.to_string_lossy().into_owned()
+}
+
+fn failed_message(s: &mut ShellModel, action: &str, params: Value) -> String {
+    match s.dispatch(action, &params) {
+        Outcome::Failed { message } => message,
+        other => panic!("{action} {params}: {other:?}"),
+    }
+}
+
+/// A file the project does not hold arms the tool with its hash and keeps its bytes as pending `data`: the second
+/// corner commits `item.place` with `data` (the file's base64) and the project then holds the asset; one undo takes the
+/// item. Any tool may be active (the drop path), and the ghost names the hash already.
+#[test]
+fn a_new_file_is_placed_as_data_and_arms_the_tool_from_any_tool() {
+    let tmp = Tmp::new("image-file-new");
+    let mut s = shell(&tmp, "101");
+    let png = tiny_png();
+    let file = write_file(&tmp, "pick.png", &png);
+    let reference = ew_viewmodel::ew_api::asset_ref_of(&png).unwrap();
+    assert_eq!(s.tool().name(), "select");
+    done(&mut s, "image.file", json!({ "path": file }));
+    assert_eq!(s.tool().name(), "image", "a drop arms the Image tool");
+    assert_eq!(s.tool().state(), "armed");
+    let hash = reference.sha256.to_string();
+    assert_eq!(canvas(&s)["ghost"], json!({"kind": "image", "asset": hash}));
+
+    let page = tables(&s).page.to_string();
+    let before = item_count(&s);
+    let a = grid_point(&s, (40, 20));
+    let b = grid_point(&s, (60, 40));
+    click_at(&mut s, a);
+    click_at(&mut s, b);
+    let (min, max) = fit_rect(a, b, reference.size).expect("a box with area");
+    let last = s.recorded_commands().last().expect("the commit");
+    assert_eq!(last.cmd, "item.place");
+    assert_eq!(
+        last.params,
+        json!({"page": page, "kind": {"image": {
+            "data": ew_viewmodel::ew_api::base64_encode(&png),
+            "rect": [[min.0, min.1], [max.0, max.1]]}}}),
+        "{last:?}"
+    );
+    assert_eq!(item_count(&s), before + 1);
+    // The project holds the asset now: the next file of the same bytes is armed by hash alone.
+    done(&mut s, "image.file", json!({ "path": file }));
+    click_at(&mut s, a);
+    click_at(&mut s, b);
+    let last = s.recorded_commands().last().expect("the commit");
+    assert_eq!(last.params["kind"]["image"]["asset"], json!(hash), "{last:?}");
+    assert!(last.params["kind"]["image"].get("data").is_none());
+    assert_eq!(item_count(&s), before + 2);
+    done(&mut s, "edit.undo", json!({}));
+    done(&mut s, "edit.undo", json!({}));
+    assert_eq!(item_count(&s), before);
+}
+
+/// A file of an asset the project holds is armed by its hash, with no pending bytes; `image.pick` clears pending bytes.
+#[test]
+fn a_held_file_is_armed_by_hash_and_pick_clears_pending_bytes() {
+    let tmp = Tmp::new("image-file-held");
+    let mut s = shell(&tmp, "101");
+    hold_asset(&mut s);
+    done(&mut s, "tool.image", json!({}));
+    let file = write_file(&tmp, "logo.svg", SVG);
+    done(&mut s, "image.file", json!({ "path": file }));
+    assert_eq!(canvas(&s)["ghost"], json!({"kind": "image", "asset": SVG_HASH}));
+    let a = grid_point(&s, (40, 20));
+    let b = grid_point(&s, (60, 26));
+    click_at(&mut s, a);
+    click_at(&mut s, b);
+    let last = s.recorded_commands().last().unwrap();
+    assert_eq!(last.params["kind"]["image"]["asset"], json!(SVG_HASH), "{last:?}");
+    // A new file's pending bytes are dropped by the next pick.
+    let png = write_file(&tmp, "pick.png", &tiny_png());
+    done(&mut s, "image.file", json!({ "path": png }));
+    done(&mut s, "image.pick", json!({ "asset": SVG_HASH }));
+    click_at(&mut s, a);
+    click_at(&mut s, b);
+    let last = s.recorded_commands().last().unwrap();
+    assert_eq!(last.params["kind"]["image"]["asset"], json!(SVG_HASH), "{last:?}");
+}
+
+/// A file the store does not accept fails with the store's text and changes nothing: not an image, a hostile SVG, a
+/// file over the limit, a path that does not exist; a missing `path` fails headless and raises the dialog in the window.
+#[test]
+fn files_the_store_refuses_fail_and_change_nothing() {
+    let tmp = Tmp::new("image-file-refused");
+    let mut s = shell(&tmp, "101");
+    done(&mut s, "tool.image", json!({}));
+    let hostile: &[u8] =
+        br#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4"><script>alert(1)</script></svg>"#;
+    let junk = write_file(&tmp, "notes.txt", b"not an image");
+    let evil = write_file(&tmp, "evil.svg", hostile);
+    let big = write_file(&tmp, "big.png", &vec![0u8; 600 * 1024]);
+    let missing = tmp.0.join("absent.png").to_string_lossy().into_owned();
+    let message = failed_message(&mut s, "image.file", json!({ "path": junk }));
+    assert!(
+        message.contains("notes.txt") && message.contains("not accepted"),
+        "{message}"
+    );
+    let message = failed_message(&mut s, "image.file", json!({ "path": evil }));
+    assert!(
+        message.contains("evil.svg") && message.contains("script"),
+        "{message}"
+    );
+    let message = failed_message(&mut s, "image.file", json!({ "path": big }));
+    assert!(message.contains("larger than 512 KiB"), "{message}");
+    let message = failed_message(&mut s, "image.file", json!({ "path": missing }));
+    assert!(message.contains("Cannot read"), "{message}");
+    assert_eq!(s.tool().state(), "picking", "a refused file arms nothing");
+    assert_eq!(s.tool_ghost(), Some(Ghost::Image { asset: None }));
+    match s.dispatch("image.file", &json!({})) {
+        Outcome::Failed { .. } => {}
+        other => panic!("headless without a path: {other:?}"),
+    }
+    match s.dispatch("image.file", &json!({"path": 5})) {
+        Outcome::Failed { .. } => {}
+        other => panic!("{other:?}"),
+    }
+}
+
+/// In the window Insert ▸ Image… raises the file dialog whose answer is `image.file`; headless it only arms the tool.
+#[test]
+fn the_window_asks_for_a_file_and_headless_does_not() {
+    let tmp = Tmp::new("image-prompt");
+    let mut gui = tmp.shell_in(Mode::Gui, true, "101");
+    done(&mut gui, "tool.image", json!({}));
+    assert_eq!(gui.tool().name(), "image");
+    let prompt = gui.take_prompt().expect("a prompt for the window");
+    assert_eq!(prompt.action, "image.file");
+    assert_eq!(prompt.prompt, Prompt::OpenImage);
+    assert_eq!(prompt.param, "path");
+    // The answer.
+    let file = write_file(&tmp, "pick.png", &tiny_png());
+    done(&mut gui, "image.file", json!({ "path": file }));
+    assert_eq!(gui.tool().state(), "armed");
+    done(&mut gui, "image.file", json!({}));
+    assert_eq!(
+        gui.take_prompt().map(|p| p.prompt),
+        Some(Prompt::OpenImage),
+        "no path: ask again"
+    );
+    gui.shutdown();
+    let tmp = Tmp::new("image-noprompt");
+    let mut headless = shell(&tmp, "101");
+    done(&mut headless, "tool.image", json!({}));
+    assert!(headless.take_prompt().is_none());
 }

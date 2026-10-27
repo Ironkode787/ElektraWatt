@@ -390,6 +390,20 @@ impl App {
 
         let mut events: Vec<Event> = Vec::new();
         self.route_keys(&ctx, &mut events);
+        // A file from the OS dropped on the window (doc 16 §4.8): an image becomes the Image tool's asset.
+        let dropped: Vec<PathBuf> = ctx.input(|i| {
+            i.raw
+                .dropped_files
+                .iter()
+                .map(|f| f.path().to_path_buf())
+                .collect()
+        });
+        if let Some(file) = dropped_image(&dropped) {
+            events.push(Event::Action(
+                "image.file",
+                json!({ "path": file.to_string_lossy() }),
+            ));
+        }
 
         let exporting = self.deferred.is_some();
         Panel::top("menu-bar").show(ui, |ui| menu::show(ui, &self.shell, &mut events));
@@ -869,5 +883,33 @@ impl App {
                 self.shell.show_banner(strings::text("doc-missing"));
             }
         }
+    }
+}
+
+/// The first of the dropped files that doc 16 §4.8 maps onto the Image tool: every file that is no QElectroTech
+/// project, parts table, spreadsheet or project folder or archive (those drops are other flows). A file the asset store
+/// does not accept is refused by `image.file` with the store's text.
+pub(crate) fn dropped_image(files: &[PathBuf]) -> Option<&PathBuf> {
+    files.iter().find(|f| {
+        let ext = f
+            .extension()
+            .map(|e| e.to_string_lossy().to_ascii_lowercase())
+            .unwrap_or_default();
+        !f.is_dir() && !matches!(ext.as_str(), "qet" | "ew" | "ewz" | "csv" | "xlsx")
+    })
+}
+
+#[cfg(test)]
+mod drop_tests {
+    use super::*;
+
+    #[test]
+    fn only_files_of_no_other_drop_flow_go_to_the_image_tool() {
+        let p = |s: &str| PathBuf::from(s);
+        let files = [p("plant.QET"), p("parts.csv"), p("logo.svg"), p("photo.png")];
+        assert_eq!(dropped_image(&files), Some(&files[2]));
+        assert_eq!(dropped_image(&files[..2]), None);
+        assert_eq!(dropped_image(&[p("noext")]), Some(&p("noext")));
+        assert_eq!(dropped_image(&[]), None);
     }
 }

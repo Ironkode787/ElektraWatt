@@ -1916,6 +1916,18 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
         ))),
     ),
+    with_params(
+        "path:text",
+        hidden(in_canvas(act(
+            "image.file",
+            View,
+            "action-image-file",
+            Menu::Insert,
+            &[],
+            editable_page,
+            None,
+        ))),
+    ),
     act(
         "tools.company_standard",
         Command,

@@ -5,7 +5,9 @@
 //! fine-snapped corners that keeps the asset's aspect ratio, committed as an `item.place` image.
 //!
 //! **The asset** is chosen by the host (`image.pick`, which resolves the hash through the session and hands the tool
-//! its hash and intrinsic size, [`ImageAsset`]); the tool itself never reads the project.
+//! its hash and intrinsic size, [`ImageAsset`]; `image.file`, which does the same for a file the window picked or
+//! received and keeps its bytes as pending `data` while the project does not hold them); the tool itself never reads
+//! the project.
 //!
 //! **The rectangle.** All points are page nm, fine-snapped ([`crate::tools::Snapper::snap_fine`],
 //! `FineKind::Graphic`). The first corner is the first click `p0`; the second click `p` fixes the box
@@ -48,6 +50,10 @@ pub struct ImageAsset {
     pub hash: String,
     /// The intrinsic size, `None` when the asset does not say.
     pub size: Option<(u32, u32)>,
+    /// The file's bytes in base64 while the project does not hold the asset yet (a file the window picked or
+    /// received): the commit then carries them as `data`, which `item.place` validates and stores; `None` for an asset
+    /// the project holds.
+    pub data: Option<String>,
 }
 
 /// The rectangle of an image of intrinsic `size` whose corner is `p0` and which fits the box towards `p`: `(min,
@@ -163,9 +169,9 @@ impl ImageTool {
             name: "item.place".into(),
             params: json!({
                 "page": cx.page.tables.page.to_string(),
-                "kind": {"image": {
-                    "asset": asset.hash,
-                    "rect": [[min.0, min.1], [max.0, max.1]],
+                "kind": {"image": match &asset.data {
+                    Some(data) => json!({"data": data, "rect": [[min.0, min.1], [max.0, max.1]]}),
+                    None => json!({"asset": asset.hash, "rect": [[min.0, min.1], [max.0, max.1]]}),
                 }},
             }),
         }))

@@ -113,6 +113,7 @@ structure_box.fields View "Structure box fields" menu none shortcut none context
 project.marker_mode Command "Wire markers" menu "Tools ▸ Wire markers" shortcut none context global params "mode:enum(per_wire|all|deviations|explicit|none)"
 tool.image Command "Image…" menu "Insert" shortcut none context canvas params ""
 image.pick View "Image asset" menu none shortcut none context canvas hidden params "asset:text"
+image.file View "Image file" menu none shortcut none context canvas hidden params "path:text"
 tools.company_standard Command "Company standard wizard..." menu "Tools" shortcut none context global params ""
 tab.new View "New tab" menu "Window" shortcut "Ctrl+T" context global params ""
 tab.close View "Close tab" menu "Window" shortcut "Ctrl+W" context global params ""

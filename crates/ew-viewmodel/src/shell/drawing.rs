@@ -15,7 +15,7 @@
 use ew_api::AnyCommand;
 use serde_json::{Map, Value, json};
 
-use super::{Outcome, ShellModel, failed, string_param};
+use super::{Mode, Outcome, Prompt, ShellModel, failed, string_param};
 use crate::tools::{
     BINDABLE, EntityKind, Ghost, GraphicShape, GraphicTool, ImageAsset, ImageTool, MarkerTool,
     StructureBoxTool, TextEditTool, TextTool, selection_kinds, tool_named,
@@ -318,8 +318,76 @@ impl ShellModel {
     // The Image tool (WP-S2.04 §11)
 
     /// `tool.image` (Insert ▸ Image…): the Image tool, without an asset until `image.pick`.
+    ///
+    /// In the window it also raises the native file dialog (`Prompt::OpenImage`), whose answer is `image.file`;
+    /// headless the tool waits for `image.pick`.
     pub(super) fn act_tool_image(&mut self) -> Outcome {
         self.activate_tool(Box::new(ImageTool::new()));
+        match self.mode {
+            Mode::Gui => self.need_path("image.file", Prompt::OpenImage, "path", &Map::new()),
+            Mode::Headless => Outcome::Done,
+        }
+    }
+
+    /// `image.file {path}`: the Image tool's asset from a file (the window's dialog answer, or a file dropped on the
+    /// canvas; any tool may be active, the Image tool is armed when it is not). The file is read (at most
+    /// [`ew_api::MAX_LOGO_BYTES`]), sniffed as the asset store sniffs ([`ew_api::asset_ref_of`]: format, intrinsic
+    /// size, the limits, the SVG rejecter) and hashed. A project that holds the hash arms the tool with it, as
+    /// `image.pick` does; otherwise the tool keeps the bytes as pending `data` for the commit. A file the store does
+    /// not accept fails with the store's text and changes nothing.
+    pub(super) fn act_image_file(&mut self, p: &Map<String, Value>) -> Outcome {
+        let path = match string_param(p, "path") {
+            Err(e) => return e,
+            Ok(Some(path)) => std::path::PathBuf::from(path),
+            Ok(None) => return self.need_path("image.file", Prompt::OpenImage, "path", p),
+        };
+        let name = path.display().to_string();
+        let limit = ew_api::MAX_LOGO_BYTES;
+        let too_large = || failed("error-image-too-large", &[&name, &(limit / 1024).to_string()]);
+        match std::fs::metadata(&path) {
+            Ok(m) if m.len() > limit as u64 => return too_large(),
+            Ok(_) => {}
+            Err(e) => return failed("error-image-file", &[&name, &e.to_string()]),
+        }
+        let bytes = match std::fs::read(&path) {
+            Ok(b) if b.len() > limit => return too_large(),
+            Ok(b) => b,
+            Err(e) => return failed("error-image-file", &[&name, &e.to_string()]),
+        };
+        let reference = match ew_api::asset_ref_of(&bytes) {
+            Ok(r) => r,
+            Err(e) => return failed("error-image-refused", &[&name, &e.to_string()]),
+        };
+        let Some(project) = &self.project else {
+            return Outcome::Refused {
+                reason_key: "reason-no-project",
+            };
+        };
+        let held = project.session.asset(&reference.sha256).is_some();
+        let asset = ImageAsset {
+            hash: reference.sha256.to_string(),
+            size: reference.size,
+            data: (!held).then(|| ew_api::base64_encode(&bytes)),
+        };
+        if self.tools.tool.name() != "image" {
+            self.activate_tool(Box::new(ImageTool::new()));
+        }
+        let overlay = self
+            .with_tool(|t, cx| {
+                t.as_any_mut()
+                    .and_then(|a| a.downcast_mut::<ImageTool>())
+                    .map(|tool| {
+                        tool.set_asset(asset);
+                        tool.refresh(cx)
+                    })
+            })
+            .flatten();
+        if let Some(o) = overlay
+            && !o.items.is_empty()
+        {
+            self.tools.overlay = o;
+        }
+        self.announce_tool();
         Outcome::Done
     }
 
@@ -350,6 +418,7 @@ impl ShellModel {
         let asset = ImageAsset {
             hash: sha256.to_string(),
             size: reference.size,
+            data: None,
         };
         let overlay = self
             .with_tool(|t, cx| {

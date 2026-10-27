@@ -81,6 +81,22 @@ use ew_schema::{LibDocument, Project, Record};
 use ew_store::{Changes, LockState, RecoverError, SaveReport, Store};
 
 pub use cmdlog::{CmdLog, CmdLogError, SCHEMA as CMDLOG_SCHEMA, ScriptDiff};
+/// The reference of an image file as the asset store makes it ([`sniff_asset`] and the SHA-256 of the bytes): what a
+/// front-end reads from a file the user picked or dropped before it asks `item.place` to store it (WP-S2.04 part 5).
+///
+/// # Errors
+///
+/// The [`AssetError`] of bytes that are no SVG, PNG or JPEG file, or exceed a limit.
+pub fn asset_ref_of(bytes: &[u8]) -> Result<AssetRef, AssetError> {
+    use sha2::Digest;
+    let (format, size) = ew_schema::sniff(bytes)?;
+    Ok(AssetRef {
+        sha256: Sha256(sha2::Sha256::digest(bytes).into()),
+        format,
+        size,
+    })
+}
+
 /// The check engine (`ew check`, the message panel, the migration report): rules, schemes, findings.
 pub use ew_checks as checks;
 pub use ew_derive::{BomMode, DeriveNote, MemoStore, Mismatch, NoteSeverity};
