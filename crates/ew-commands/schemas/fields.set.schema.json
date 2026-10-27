@@ -89,6 +89,11 @@
           "const": "structure_box",
           "description": "`structure_box` (WP-S2.04 part 4a).",
           "type": "string"
+        },
+        {
+          "const": "project",
+          "description": "`project`: the single project row (FT-447); `fields.set` only, `edit.delete` refuses it.",
+          "type": "string"
         }
       ]
     }

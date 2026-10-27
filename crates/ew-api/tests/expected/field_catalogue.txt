@@ -13,9 +13,9 @@ project languages group? other read-only:project.languages.set
 project languages.source text other read-only:project.languages.set
 project languages.translations list<text> other read-only:project.languages.set
 project languages.translations[] text other read-only:project.languages.set
-project master group other read-only:no-command
+project master group other -
 project master.created text? other read-only:no-command
-project master.description mltext other read-only:no-command
+project master.description mltext other fields.set:master.description
 project master.document_title mltext other read-only:no-command
 project master.drawing_id ident? other read-only:no-command
 project master.edited text? other read-only:no-command

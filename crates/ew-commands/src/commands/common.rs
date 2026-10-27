@@ -105,6 +105,8 @@ pub enum KindName {
     PageItem,
     /// `structure_box` (WP-S2.04 part 4a).
     StructureBox,
+    /// `project`: the single project row (FT-447); `fields.set` only, `edit.delete` refuses it.
+    Project,
 }
 
 impl KindName {
@@ -127,6 +129,7 @@ impl KindName {
             KindName::Revision => Kind::Revision,
             KindName::PageItem => Kind::PageItem,
             KindName::StructureBox => Kind::StructureBox,
+            KindName::Project => Kind::Project,
         }
     }
 }

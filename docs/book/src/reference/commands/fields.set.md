@@ -71,6 +71,7 @@ The record kinds a command may name generically (`edit.delete`, `fields.set`).
 | `"revision"` |  |
 | `"page_item"` | `page_item` (WP-S2.04 part 4a). |
 | `"structure_box"` | `structure_box` (WP-S2.04 part 4a). |
+| `"project"` | `project`: the single project row (FT-447); `fields.set` only, `edit.delete` refuses it. |
 
 ## Exit codes
 

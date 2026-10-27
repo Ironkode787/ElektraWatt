@@ -839,3 +839,82 @@ fn company_set_refuses_a_hostile_svg_logo() {
     }
     assert_eq!(e.model().assets().count(), before);
 }
+
+// ---------------------------------------------------------------------------------------------------------
+// FT-447: the project description through `fields.set`
+
+/// `fields.set` with kind `project` and the project's ID sets `master.description`; undo restores it; a neutral
+/// text and a language object both read back.
+#[test]
+fn fields_set_sets_the_project_description_and_undoes() {
+    let mut e = engine(golden_model());
+    let project = common::fixture::PROJECT.to_string();
+    let before = e.model().project().master.description.clone();
+    e.execute(&any(
+        "fields.set",
+        json!({"kind": "project", "targets": [project], "path": "master.description", "value": "Feed panel"}),
+    ))
+    .expect("the project description");
+    assert_eq!(
+        e.model().project().master.description,
+        MlText::neutral("Feed panel")
+    );
+    e.execute(&any(
+        "fields.set",
+        json!({"kind": "project", "targets": [project], "path": "master.description",
+            "value": {"en": "Feed panel", "nl": "Voedingskast"}}),
+    ))
+    .expect("a language object");
+    assert_eq!(
+        e.model().project().master.description.get(&"nl".parse().unwrap()),
+        Some("Voedingskast")
+    );
+    e.undo(&Origin::Gui).unwrap();
+    e.undo(&Origin::Gui).unwrap();
+    assert_eq!(e.model().project().master.description, before);
+}
+
+/// The refusals: another project member (at `/path`, naming the one settable path), a target that is not the
+/// project (not found), a value that is not a text (at `/value`), and `edit.delete` of the project (at
+/// `/targets/0`).
+#[test]
+fn fields_set_on_the_project_refuses_other_members_targets_and_values() {
+    let mut e = engine(golden_model());
+    let project = common::fixture::PROJECT.to_string();
+    let (path, message) = invalid(
+        &mut e,
+        &any(
+            "fields.set",
+            json!({"kind": "project", "targets": [project], "path": "master.object_id", "value": "X"}),
+        ),
+    );
+    assert_eq!(path, "/path");
+    assert!(message.contains("settable: master.description"), "{message}");
+    let other = id::<ew_schema::Project>(0x4fe).to_string();
+    assert!(matches!(
+        e.preview(&any(
+            "fields.set",
+            json!({"kind": "project", "targets": [other], "path": "master.description", "value": "X"}),
+        )),
+        Err(CmdError::NotFound { .. })
+    ));
+    let (path, _) = invalid(
+        &mut e,
+        &any(
+            "fields.set",
+            json!({"kind": "project", "targets": [project], "path": "master.description", "value": 7}),
+        ),
+    );
+    assert_eq!(path, "/value");
+    let (path, message) = invalid(
+        &mut e,
+        &any(
+            "edit.delete",
+            json!({"targets": [{"kind": "project", "id": project}]}),
+        ),
+    );
+    assert_eq!(
+        (path.as_str(), message.as_str()),
+        ("/targets/0", "the project cannot be deleted")
+    );
+}

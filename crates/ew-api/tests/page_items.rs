@@ -355,6 +355,24 @@ fn pi3_a_bound_free_text_prints_the_title_block_value_and_follows_its_property()
     let labels = texts(&s.query(), page, Layer::Labels);
     assert!(labels.iter().any(|t| t == "Feed"), "{labels:?}");
     assert!(!labels.iter().any(|t| t == "Power Supply 1 - Main Current"));
+    // The project description is edited by `fields.set` on the project (FT-447): the bound text follows too.
+    let project = s.query().project().id.to_string();
+    run(
+        &mut s,
+        "fields.set",
+        json!({"kind": "project", "targets": [project], "path": "master.description", "value": "Feed panel"}),
+    );
+    let q = s.query();
+    assert_eq!(
+        ew_derive::bound_text(&q, page, "project.description").as_deref(),
+        Some("Feed panel")
+    );
+    let labels = texts(&q, page, Layer::Labels);
+    assert!(labels.iter().any(|t| t == "Feed panel"), "{labels:?}");
+    assert!(
+        !labels.contains(&description),
+        "{description:?} still in {labels:?}"
+    );
 }
 
 // ---------------------------------------------------------------------------------------------------------

@@ -59,6 +59,13 @@ impl Command for DeleteSelection {
             ));
         }
         for (i, t) in self.targets.iter().enumerate() {
+            if t.kind == crate::commands::common::KindName::Project {
+                return Err(CmdError::invalid_params(
+                    Self::NAME,
+                    format!("/targets/{i}"),
+                    "the project cannot be deleted",
+                ));
+            }
             if tx.row(&t.key()).is_none() {
                 return Err(CmdError::NotFound { key: t.key() });
             }

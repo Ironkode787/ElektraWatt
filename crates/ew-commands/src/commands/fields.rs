@@ -48,6 +48,10 @@ use crate::tx::TxBuilder;
 /// (FR-REV-009) and refused at `/targets/<i>`. Its `state` is not settable (Open → Released is
 /// `revision.release`). A `page_notes` value names existing pages, one note per page (EW-INV-019), and its
 /// notes take no member other than `page` and `description`.
+///
+/// The project row (kind `project`, its one ID as the target) takes `master.description`, the project
+/// description that title blocks and bound free texts print (FT-447, FR-SYM-024); the other project members
+/// keep their own commands.
 pub const SETTABLE: &[(KindName, &[&str])] = &[
     (
         KindName::Device,
@@ -127,6 +131,7 @@ pub const SETTABLE: &[(KindName, &[&str])] = &[
         &["code", "aliases", "description", "order"],
     ),
     (KindName::Section, &["title", "divider", "folio_range"]),
+    (KindName::Project, &["master.description"]),
     (
         KindName::ReportBlock,
         &[
@@ -319,6 +324,7 @@ impl SetFields {
                         },
                     )?;
                 }
+                KindName::Project => set_project_member(tx, *t, path, value)?,
                 // Junctions and bonds have no settable fields: rejected above.
                 KindName::Junction | KindName::Bond => {
                     return Err(CmdError::internal("fields.set: kind without settable fields"));
@@ -332,6 +338,35 @@ impl SetFields {
         }
         Ok(())
     }
+}
+
+/// [`set_one`] for the project row, which is not a table entity: the one target must be the project's ID (else not
+/// found); the member is set on the record's JSON form and read back, refused at `/value` as [`set_one`] refuses.
+fn set_project_member(
+    tx: &mut TxBuilder<'_>,
+    target: AnyId,
+    path: &str,
+    value: &Value,
+) -> Result<(), CmdError> {
+    let project = tx.project();
+    if project.id.cast::<()>() != target {
+        return Err(CmdError::NotFound {
+            key: (Kind::Project, target),
+        });
+    }
+    let mut json = serde_json::to_value(&*project)
+        .map_err(|e| CmdError::internal(format!("fields.set: cannot serialise the project ({e})")))?;
+    let segments: Vec<&str> = path.split('.').collect();
+    if !set_member(&mut json, &segments, value) {
+        return Err(CmdError::invalid_params(
+            SetFields::NAME,
+            "/path",
+            format!("`{path}` lies below a value that is not an object"),
+        ));
+    }
+    let next: ew_schema::Project = serde_json::from_value(json)
+        .map_err(|e| CmdError::invalid_params(SetFields::NAME, "/value", e.to_string()))?;
+    tx.set_project(next)
 }
 
 /// FR-CON-019 for `fields.set` on a connection's `overrides.colour` (FT-451): the colour as read back must be IEC
