@@ -472,3 +472,94 @@ fn an_incomplete_purge_records_the_plans_files() {
     vfs.hold(&root.join("manifest.json"), 0);
     s.close();
 }
+
+const IMAGE: &[u8] = br#"<svg viewBox="0 0 8 2"><rect width="8" height="2"/></svg>"#;
+
+/// `item.place` of an image with the file as `data` on the first page of `s`; returns the new item's ID text.
+fn place_image(s: &mut Session) -> String {
+    let page = s
+        .query()
+        .pages()
+        .iter()
+        .next()
+        .map(|(id, _)| id.to_string())
+        .expect("a page");
+    let receipt = s
+        .execute(&AnyCommand {
+            name: "item.place".into(),
+            params: serde_json::json!({"page": page, "kind": {"image": {"data": ew_api::base64_encode(IMAGE),
+                "rect": [[0, 0], [40_000_000, 10_000_000]]}}}),
+        })
+        .expect("the image is placed");
+    receipt.outcome.primary.expect("the item").1.as_uuid().to_string()
+}
+
+/// Cycle-29 review 7 (`Model::referenced_assets`: the save writes the assets the records name, the journal carries
+/// them): an image placed with its file as `data` and never saved survives a crash. The recovery holds the asset, the
+/// recovered model equals the live one, and the next save writes `assets/<hash>.svg`.
+#[test]
+fn an_image_placed_with_data_survives_a_crash_and_the_next_save_writes_its_file() {
+    let state = temp("state");
+    let (mut s, dir) = created(&state);
+    place_image(&mut s);
+    let live = lines(&s);
+    // A crash: no save, no clean close.
+    drop(s);
+    let (mut r, report) = Session::open(&dir, store_options(&state), options(30), Recovery::Apply).unwrap();
+    assert!(report.recovery.is_some());
+    assert_eq!(lines(&r), live);
+    let held = r
+        .world()
+        .model
+        .assets()
+        .find(|a| &**a.bytes() == IMAGE)
+        .map(|a| *a.reference())
+        .expect("the image's bytes are recovered from the journal");
+    assert!(r.is_dirty());
+    r.save().unwrap();
+    let hex = &held.sha256.to_string()["sha256:".len()..];
+    assert_eq!(
+        std::fs::read(dir.join("assets").join(format!("{hex}.svg"))).unwrap(),
+        IMAGE,
+        "the save writes the file the image item names"
+    );
+    r.close();
+    // And it loads again with the item.
+    let (again, report) = Session::open(&dir, store_options(&state), options(31), Recovery::Keep).unwrap();
+    assert!(report.findings.is_empty(), "{:?}", report.findings);
+    assert!(again.world().model.assets().any(|a| &**a.bytes() == IMAGE));
+    again.close();
+    let _ = std::fs::remove_dir_all(&dir);
+    let _ = std::fs::remove_dir_all(&state);
+}
+
+/// Cycle-29 review 7: after a save and a reopen the purge keeps the asset file that only an image item names, and
+/// removes it once the item is deleted (so the keep is the item's doing, not a default).
+#[test]
+fn the_purge_keeps_an_asset_only_an_image_item_names() {
+    let state = temp("state");
+    let (mut s, dir) = created(&state);
+    let item = place_image(&mut s);
+    s.save().unwrap();
+    s.close();
+
+    let (mut s, _) = Session::open(&dir, store_options(&state), options(32), Recovery::Keep).unwrap();
+    let plan = s.purge_preview().unwrap();
+    assert!(plan.remove.is_empty(), "{plan:?}");
+    assert_eq!(plan.kept, 1, "the file the image item names is kept");
+    // Delete the item and save: nothing names the file any more, and a fresh session's purge lists it.
+    s.execute(&AnyCommand {
+        name: "edit.delete".into(),
+        params: serde_json::json!({"targets": [{"kind": "page_item", "id": item}]}),
+    })
+    .expect("the item is deleted");
+    s.save().unwrap();
+    s.close();
+    let (s, _) = Session::open(&dir, store_options(&state), options(33), Recovery::Keep).unwrap();
+    let plan = s.purge_preview().unwrap();
+    assert_eq!(plan.remove.len(), 1, "{plan:?}");
+    assert_eq!(plan.kept, 0);
+    s.close();
+    let _ = std::fs::remove_dir_all(&dir);
+    let _ = std::fs::remove_dir_all(&state);
+}
