@@ -187,6 +187,47 @@ fn create_page_refuses_a_folio_a_report_block_generates() {
         .expect("a block of another section");
 }
 
+/// FT-459 (cycle-29 review 8): when several refusals apply to one folio, the first of the order range, divider, report
+/// block, duplicate is the one the reason names.
+#[test]
+fn create_page_names_the_first_of_several_refusals() {
+    let mut e = engine(golden_model());
+    let sec2: Id<Section> = typed(
+        e.execute(&section_cmd(2, 200, 299))
+            .unwrap()
+            .outcome
+            .primary
+            .unwrap(),
+    );
+    // A report block of section 2 whose first folio is the divider's.
+    let mut on_divider = block(Some(200));
+    on_divider.section = Some(sec2);
+    bulk(&mut e, &on_divider).expect("a block at the divider's folio");
+    // Range before divider: number 300 is outside 200 to 299, and its label prints the divider's folio "200".
+    assert_eq!(
+        rejected(e.execute(&labelled(Some(sec2), 300, "200"))),
+        "folio 200 lies outside section 2's folio range 200 to 299; choose a folio in the range"
+    );
+    // Divider before report block: folio 200 is the divider page and the page the block at 200 generates.
+    assert_eq!(
+        rejected(e.execute(&CreatePage::at(Some(sec2), 200))),
+        "folio 200 is the divider page of section 2; choose another folio"
+    );
+    // Report block before duplicate: a page that prints "190" exists, then a block at 190 is made.
+    e.execute(&labelled(Some(SEC1), 191, "190"))
+        .expect("a page that prints 190");
+    bulk(&mut e, &block(Some(190))).expect("a block at 190");
+    assert_eq!(
+        rejected(e.execute(&CreatePage::at(Some(SEC1), 190))),
+        "folio 190 is a page the report block at folio 190 generates; choose another folio"
+    );
+    // The duplicate alone, last in the order.
+    assert_eq!(
+        rejected(e.execute(&CreatePage::at(Some(SEC1), 101))),
+        "folio 101 already exists in this section; choose a free folio"
+    );
+}
+
 /// FT-459 (FR-PAG-012): two pages of a section may not print the same folio, whatever their numbers.
 #[test]
 fn create_page_refuses_a_printed_folio_another_page_prints() {
