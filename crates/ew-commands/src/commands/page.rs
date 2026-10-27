@@ -10,8 +10,8 @@ use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
 use ew_model::ModelError;
 use ew_schema::{
-    Device, Extra, Folio, FormDef, Function, Kind, Page, PageType, ReportBlock, Representation, Scale,
-    Section, StructureAssignment,
+    ContinuationPolicy, Device, Extra, Folio, FormDef, Function, Kind, Page, PageType, ReportBlock,
+    Representation, Scale, Section, StructureAssignment,
 };
 use ew_units::Grid;
 use schemars::JsonSchema;
@@ -40,8 +40,11 @@ fn qet_grid() -> Grid {
 /// after `101`, `101.1.1` after `101.1`) for the smallest `k ≥ 1` no page of the section prints. The
 /// section is `after`'s; a different explicit `section` is rejected.
 ///
-/// Rejected: neither `number` nor `after`; a folio another page of the section already has; kind `report`
-/// (report pages are generated, EW-INV-012). The section and form must exist.
+/// Rejected: neither `number` nor `after`; a printed folio (the label, else the number) another page of the
+/// section already prints; kind `report` (report pages are generated, EW-INV-012). An explicit `number` is also
+/// rejected (FT-459; FR-PAG-012, FR-REP-041) outside the section's folio range, at the folio of the section's divider
+/// page (the range's first folio) and at a folio a page-oriented report block of the same section generates (its
+/// first folio; with sub-page continuation also `<first>.<k>`). The section and form must exist.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct CreatePage {
@@ -154,6 +157,58 @@ fn propose_folio(tx: &TxBuilder<'_>, after: &Page) -> Result<(u32, Option<Ident>
     Err(CmdError::internal("no free sub-page label"))
 }
 
+/// The printed folio of a drawn page: its label, else its number (`ew_derive::folio_label`).
+fn printed_folio(number: u32, label: Option<&Ident>) -> String {
+    label.map_or_else(|| number.to_string(), |l| l.as_str().to_owned())
+}
+
+/// Why an explicit folio may not be created (FT-459; FR-PAG-012, FR-REP-041, FR-CHK-038), in this order: a number
+/// outside the section's folio range; the printed folio of the section's divider page (its range's first folio,
+/// FR-PAG-009); the printed folio of a generated page of a page-oriented report block of the same section (its first
+/// folio, and with sub-page continuation any `<first>.<k>`; with next-folio continuation only the first folio is
+/// known without derivation, the rest stays with the check). `None` when the folio is free of them.
+fn explicit_folio_problem(
+    tx: &TxBuilder<'_>,
+    sec: Option<&Section>,
+    section: Option<Id<Section>>,
+    number: u32,
+    printed: &str,
+) -> Option<String> {
+    if let Some(s) = sec {
+        let (first, last) = s.folio_range;
+        if number < first || number > last {
+            return Some(format!(
+                "folio {printed} lies outside section {}'s folio range {first} to {last}; choose a folio in the range",
+                s.number
+            ));
+        }
+        if s.divider && printed == first.to_string() {
+            return Some(format!(
+                "folio {printed} is the divider page of section {}; choose another folio",
+                s.number
+            ));
+        }
+    }
+    for b in tx.iter::<ReportBlock>() {
+        if b.section != section || b.embedded.is_some() {
+            continue;
+        }
+        let Some(first) = b.first_folio else { continue };
+        let head = first.to_string();
+        let generated = printed == head
+            || (b.continuation == ContinuationPolicy::SubPage
+                && printed
+                    .strip_prefix(&head)
+                    .is_some_and(|rest| rest.starts_with('.')));
+        if generated {
+            return Some(format!(
+                "folio {printed} is a page the report block at folio {first} generates; choose another folio"
+            ));
+        }
+    }
+    None
+}
+
 impl Command for CreatePage {
     const NAME: &'static str = "page.create";
 
@@ -185,19 +240,22 @@ impl Command for CreatePage {
                 return tx.reject("give an explicit folio `number` or the page to insert `after`");
             }
         };
-        if let Some(s) = section {
-            tx.require::<Section>(s)?;
+        let sec = match section {
+            Some(s) => Some(tx.require::<Section>(s)?),
+            None => None,
+        };
+        let printed = printed_folio(number, label.as_ref());
+        if self.number.is_some() {
+            if let Some(reason) = explicit_folio_problem(tx, sec.as_deref(), section, number, &printed) {
+                return tx.reject(reason);
+            }
         }
         if section_pages(tx, section)
             .iter()
-            .any(|(_, f)| f.number == number && f.label == label)
+            .any(|(_, f)| printed_folio(f.number, f.label.as_ref()) == printed)
         {
             return tx.reject(format!(
-                "folio {number}{} already exists in this section; choose a free folio",
-                label
-                    .as_ref()
-                    .map(|l| format!(".{}", l.as_str()))
-                    .unwrap_or_default()
+                "folio {printed} already exists in this section; choose a free folio"
             ));
         }
         let id: Id<Page> = tx.mint();

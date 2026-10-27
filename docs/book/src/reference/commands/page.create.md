@@ -11,8 +11,11 @@ uses it; else the sub-page `{after.number, label}` with the printed label `<afte
 after `101`, `101.1.1` after `101.1`) for the smallest `k ≥ 1` no page of the section prints. The
 section is `after`'s; a different explicit `section` is rejected.
 
-Rejected: neither `number` nor `after`; a folio another page of the section already has; kind `report`
-(report pages are generated, EW-INV-012). The section and form must exist.
+Rejected: neither `number` nor `after`; a printed folio (the label, else the number) another page of the
+section already prints; kind `report` (report pages are generated, EW-INV-012). An explicit `number` is also
+rejected (FT-459; FR-PAG-012, FR-REP-041) outside the section's folio range, at the folio of the section's divider
+page (the range's first folio) and at a folio a page-oriented report block of the same section generates (its
+first folio; with sub-page continuation also `<first>.<k>`). The section and form must exist.
 
 ## Registry entry
 

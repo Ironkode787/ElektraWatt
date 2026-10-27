@@ -117,6 +117,88 @@ fn create_page_rejections() {
     assert!(rejected(e.execute(&CreatePage::at(Some(SEC1), 101))).contains("already exists"));
 }
 
+fn labelled(section: Option<Id<Section>>, number: u32, label: &str) -> CreatePage {
+    let mut c = CreatePage::at(section, number);
+    c.label = Some(ident(label));
+    c
+}
+
+/// FT-459 (FR-PAG-012, FR-CHK-038): an explicit folio outside the section's range is refused with the range; a
+/// page in no section has no range.
+#[test]
+fn create_page_refuses_a_folio_outside_the_section_range() {
+    let mut e = engine(golden_model());
+    assert_eq!(
+        rejected(e.execute(&CreatePage::at(Some(SEC1), 210))),
+        "folio 210 lies outside section 1's folio range 100 to 199; choose a folio in the range"
+    );
+    assert!(rejected(e.execute(&CreatePage::at(Some(SEC1), 99))).contains("outside section 1's folio range"));
+    e.execute(&CreatePage::at(Some(SEC1), 199))
+        .expect("the range's last folio");
+    e.execute(&CreatePage::at(None, 5000))
+        .expect("no section, no range");
+}
+
+/// FT-459 (FR-PAG-009): the first folio of a section with a divider prints the divider; a sub-page of it does not.
+#[test]
+fn create_page_refuses_the_divider_folio() {
+    let mut e = engine(golden_model());
+    let sec2: Id<Section> = typed(
+        e.execute(&section_cmd(2, 200, 299))
+            .unwrap()
+            .outcome
+            .primary
+            .unwrap(),
+    );
+    assert_eq!(
+        rejected(e.execute(&CreatePage::at(Some(sec2), 200))),
+        "folio 200 is the divider page of section 2; choose another folio"
+    );
+    e.execute(&labelled(Some(sec2), 200, "200.1"))
+        .expect("a sub-page after the divider");
+    e.execute(&CreatePage::at(Some(sec2), 201))
+        .expect("the next folio");
+}
+
+/// FT-459 (FR-REP-041): a folio a report block of the section generates is refused: the first folio, and with
+/// sub-page continuation its sub-pages; with next-folio continuation the first folio only; a block of another
+/// section and an embedded block refuse nothing.
+#[test]
+fn create_page_refuses_a_folio_a_report_block_generates() {
+    let mut e = engine(golden_model());
+    bulk(&mut e, &block(Some(190))).expect("a sub-page block at 190");
+    let mut next = block(Some(180));
+    next.continuation = ContinuationPolicy::NextFolio;
+    bulk(&mut e, &next).expect("a next-folio block at 180");
+    assert_eq!(
+        rejected(e.execute(&CreatePage::at(Some(SEC1), 190))),
+        "folio 190 is a page the report block at folio 190 generates; choose another folio"
+    );
+    assert_eq!(
+        rejected(e.execute(&labelled(Some(SEC1), 190, "190.2"))),
+        "folio 190.2 is a page the report block at folio 190 generates; choose another folio"
+    );
+    e.execute(&labelled(Some(SEC1), 190, "190a"))
+        .expect("190a is not a continuation");
+    assert!(rejected(e.execute(&CreatePage::at(Some(SEC1), 180))).contains("report block at folio 180"));
+    e.execute(&labelled(Some(SEC1), 180, "180.1"))
+        .expect("a next-folio block has no sub-pages");
+    e.execute(&CreatePage::at(None, 190))
+        .expect("a block of another section");
+}
+
+/// FT-459 (FR-PAG-012): two pages of a section may not print the same folio, whatever their numbers.
+#[test]
+fn create_page_refuses_a_printed_folio_another_page_prints() {
+    let mut e = engine(golden_model());
+    assert_eq!(
+        rejected(e.execute(&labelled(Some(SEC1), 102, "101"))),
+        "folio 101 already exists in this section; choose a free folio"
+    );
+    e.execute(&labelled(Some(SEC1), 101, "101.1")).unwrap();
+    assert!(rejected(e.execute(&labelled(Some(SEC1), 101, "101.1"))).contains("folio 101.1 already exists"));
+}
+
 #[test]
 fn undo_create_page() {
     let mut e = engine(golden_model());
