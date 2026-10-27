@@ -1917,7 +1917,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         ))),
     ),
     with_params(
-        "path:text",
+        "path:path",
         hidden(in_canvas(act(
             "image.file",
             View,
@@ -3491,6 +3491,7 @@ mod tests {
             ("file.import_qet", "file"),
             ("help.tutorials", "dir"),
             ("wizard.finish", "dir"),
+            ("image.file", "path"),
             ("view.snapshot", "path"),
             ("canvas.snapshot", "path"),
             ("canvas.preview_snapshot", "path"),

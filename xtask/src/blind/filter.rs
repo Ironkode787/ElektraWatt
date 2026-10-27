@@ -553,6 +553,27 @@ mod tests {
         assert_eq!(check(Kind::Gate, &step("edit.undo", json!({}))), Ok(()));
     }
 
+    /// WP-S6.13 §11 items 2 and 8 (cycle-29 review): `image.file` reads a file of the host, so its `path` is confined to
+    /// a name inside the run's work folder like every other path parameter, in a check run as well (it is a `View`).
+    #[test]
+    fn image_file_reads_only_inside_the_work_folder() {
+        let paths = Err("harness: paths are names inside the run's work folder".to_owned());
+        for kind in [Kind::Free, Kind::Gate, Kind::Check] {
+            for bad in ["../x.png", "C:/x.png", "/etc/passwd", "a/b.png", "..\\x.png"] {
+                assert_eq!(
+                    check(kind, &step("image.file", json!({"path": bad}))),
+                    paths,
+                    "{kind:?} {bad:?}"
+                );
+            }
+            assert_eq!(
+                check(kind, &step("image.file", json!({"path": "logo.png"}))),
+                Ok(()),
+                "{kind:?}: a name inside the work folder"
+            );
+        }
+    }
+
     /// FT-442: a check run refuses the canvas actions that can reach a tool's commit (press, release, a click at the grid
     /// cursor with or without Alt, finish, and any drag), with the checker's refusal text, and keeps navigation, zoom,
     /// pan, tabs, the page navigator, pointing and the looks. A drafter run is not affected.

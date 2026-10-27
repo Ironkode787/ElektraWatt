@@ -16,13 +16,13 @@
   },
   "files": {
     "tools/blind/HELP.md": "557e01abd66edb235a08141247dab5523a548a3daabe6d219ee01657f2c0b554",
-    "tools/blind/reference/actions.txt": "d898109ca8375b0fe439e0e0008a3cb6347105dd5fcfa8e6709a4f53f203629d",
+    "tools/blind/reference/actions.txt": "af6052278899ed6a66d42e082dad5e763b759397f54fd30afae4385788733565",
     "tools/blind/reference/vocabulary.txt": "4bd32f1a1e9a996064f33502c52e74437140a13b9bc2a5d18ad373ff8e167ace",
     "tools/blind/tasks/selftest/agent.jsonl": "0d30d3415f394f62189979813cbd51e0729cbcb3884c115ca283c376f6f88862",
     "tools/blind/tasks/selftest/prelude.uiscript": "9f4d237925c52b4bb3ef91f708236f752fee11846f1582fe2737b05f3c99bb4c",
     "tools/blind/tasks/selftest/task.md": "973376ea5c9193284ee9b3ee73ac6237cb334ac8d0b668d5f418aa895a8de6ab"
   },
-  "golden": "923910a398a42d1cc132e3862a67cac9dd3107a7d6369997007f54fa9bdfbf21",
+  "golden": "0c3ff9088d3a0c8e452f396573a46bbc482d142f46d1012f4178225db0a16cdd",
   "app_version": "0.0.0",
   "harness_version": "0.0.0",
   "stateless": false,
