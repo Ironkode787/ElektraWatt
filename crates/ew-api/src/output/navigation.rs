@@ -569,8 +569,10 @@ fn grid_index(p: i64, num: i128, den: i128) -> Option<i64> {
     ((k * num - i128::from(p) * den).abs() <= den).then(|| sat(k))
 }
 
-/// The reading-order key of a CP: its cell's column and row index, its sheet `(y, x)`, its ID.
-type ReadingKey = (u32, u32, i64, i64, Uuid);
+/// The reading-order key of a CP: its cell's column and row index and its sheet `(y, x)`. `page_cps` breaks ties by
+/// the label (natural order, then bytes) and only then by the ID, so two coincident CPs keep their order in every
+/// fresh copy of a project (WP-S6.13 §6 item 3: the IDs of a new project are random).
+type ReadingKey = (u32, u32, i64, i64);
 
 /// The function CPs a page may draw: every CP of every function its representations name (their functions and
 /// pin-map targets) and, for a strip segment, of every terminal of its strip. [`cp_point`] decides which are
@@ -879,8 +881,9 @@ impl Session {
 
     /// Every connection point drawn on the page labelled `folio` (WP-S2.03 §4.2, part 2), in reading order: by the
     /// column index, then the row index of the CP's cell (`cp_cell`; a CP outside the frame grid last), then by the
-    /// sheet point's `(y, x)`, then by ID. Empty for an unknown folio, a page that is not drawn, or a page without
-    /// CPs.
+    /// sheet point's `(y, x)`, then by the label (natural order, then bytes), then by ID (coincident CPs keep their
+    /// order in every fresh copy of a project). Empty for an unknown folio, a page that is not drawn, or a page
+    /// without CPs.
     ///
     /// `at_nm` is `cp_point` mapped to the sheet by the frame's page-to-sheet map and rounded to the nearest nm;
     /// `grid_index` the grid index `k` per axis when the page point lies within 1 nm of `k × g` (always, by
@@ -925,9 +928,14 @@ impl Session {
                 grid_index,
                 connected: q.idx().connections_at_cp(function, idx).next().is_some(),
             };
-            rows.push(((column, row, at_nm.1, at_nm.0, cp.id), cp));
+            rows.push(((column, row, at_nm.1, at_nm.0), cp));
         }
-        rows.sort_by_key(|r| r.0);
+        rows.sort_by(|(ka, a), (kb, b)| {
+            ka.cmp(kb)
+                .then_with(|| ew_mltext::natural_cmp(&a.label, &b.label))
+                .then_with(|| a.label.cmp(&b.label))
+                .then_with(|| a.id.cmp(&b.id))
+        });
         rows.into_iter().map(|(_, cp)| cp).collect()
     }
 }
