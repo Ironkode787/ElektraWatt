@@ -184,7 +184,9 @@ pub const ASPECTS: &[&str] = &[
 /// member, which resets it to its default); intermediate objects are created, except that a path below a
 /// device aspect ([`ASPECTS`]) requires the aspect to exist; the JSON is read back into the record type
 /// and put. Rejected with [`CmdError::InvalidParams`] at `/path`: a path not in [`SETTABLE`] for the kind;
-/// at `/value`: a value the record type does not accept (the deserialisation error as message). Targets
+/// at `/value`: a value the record type does not accept (the deserialisation error as message), and a
+/// connection's `overrides.colour` with a code that is neither IEC 60757 nor a company code of the project's
+/// colour profile (FR-CON-019, `marker.place`'s check and text). Targets
 /// must exist and be distinct; there is at least one. Invariants and prevent rules apply at the end of the
 /// transaction, so a swap of two terminal designations over two commands is not possible here, but one
 /// `fields.set` that leaves a duplicate is caught later by prevent rules (ADR-0009). Outcome: none.
@@ -270,7 +272,12 @@ impl SetFields {
                 KindName::Function => set_one::<Function>(tx, *t, path, value)?,
                 KindName::Page => set_one::<Page>(tx, *t, path, value)?,
                 KindName::Representation => set_one::<Representation>(tx, *t, path, value)?,
-                KindName::Connection => set_one::<Connection>(tx, *t, path, value)?,
+                KindName::Connection => {
+                    set_one::<Connection>(tx, *t, path, value)?;
+                    if path == "overrides.colour" {
+                        refuse_unknown_colour(tx, t.cast())?;
+                    }
+                }
                 KindName::Conductor => set_one::<Conductor>(tx, *t, path, value)?,
                 KindName::PotentialDef => set_one::<PotentialDef>(tx, *t, path, value)?,
                 KindName::StructureNode => set_one::<StructureNode>(tx, *t, path, value)?,
@@ -325,6 +332,20 @@ impl SetFields {
         }
         Ok(())
     }
+}
+
+/// FR-CON-019 for `fields.set` on a connection's `overrides.colour` (FT-451): the colour as read back must be IEC
+/// 60757 codes or company codes of the project's colour profile, the same check and text as `marker.place`'s;
+/// refused at `/value`. A removed colour (`null`) passes.
+fn refuse_unknown_colour(tx: &TxBuilder<'_>, conn: ew_ids::Id<Connection>) -> Result<(), CmdError> {
+    let c = tx.require::<Connection>(conn)?;
+    if let Some(colour) = &c.overrides.colour {
+        let company = crate::commands::items::company_codes(tx);
+        if let Some(p) = crate::commands::items::colour_problem(&company, colour) {
+            return Err(CmdError::invalid_params(SetFields::NAME, "/value", p));
+        }
+    }
+    Ok(())
 }
 
 // WP-S2.05 part 2 ------------------------------------------------------------------------------------------------

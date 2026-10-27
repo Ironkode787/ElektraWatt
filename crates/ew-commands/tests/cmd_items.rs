@@ -379,6 +379,73 @@ fn marker_place_rejections() {
     .expect("a declared company code");
 }
 
+/// FT-451 (FR-CON-019): `fields.set` on a connection's `overrides.colour` refuses at `/value`, with
+/// `marker.place`'s text, a code that is neither IEC 60757 nor a company code of the colour profile, and a
+/// foreign code; IEC codes, a declared company code and `null` pass; a refusal changes nothing.
+#[test]
+fn fields_set_refuses_a_colour_the_profile_does_not_know() {
+    let mut e = engine(golden_model());
+    let target: AnyId = CON_W22.cast();
+    let before = conn(&e, CON_W22).overrides.colour.clone();
+    let refused = |e: &mut Engine, value: Value| match e
+        .execute(&set(KindName::Connection, target, "overrides.colour", value))
+        .unwrap_err()
+    {
+        CmdError::InvalidParams {
+            command,
+            path,
+            message,
+            ..
+        } => {
+            assert_eq!((command.as_str(), path.as_str()), ("fields.set", "/value"));
+            message
+        }
+        other => panic!("expected InvalidParams, got {other:?}"),
+    };
+    assert_eq!(
+        refused(&mut e, json!(["DBU"])),
+        "`DBU` is neither an IEC 60757 colour code nor a company code of the project's colour profile"
+    );
+    assert!(
+        refused(&mut e, json!(["BK", {"foreign": "XX"}])).contains("is a foreign colour code"),
+        "the second code of a two-colour spec is checked too"
+    );
+    assert_eq!(
+        conn(&e, CON_W22).overrides.colour,
+        before,
+        "a refusal changes nothing"
+    );
+    e.execute(&set(
+        KindName::Connection,
+        target,
+        "overrides.colour",
+        json!(["GN", "YE"]),
+    ))
+    .expect("an IEC code");
+    let profile = SetProjectSettings {
+        member: "colour_profile".into(),
+        value: json!({"key": "house", "codes": [{"code": "DBU", "base": "BU", "shade": "dark"}],
+            "rows": [{"colour": ["DBU"]}]}),
+    };
+    let preview = e.preview(&profile).expect("a colour profile (a bulk command)");
+    e.commit(preview).expect("committed");
+    e.execute(&set(
+        KindName::Connection,
+        target,
+        "overrides.colour",
+        json!(["DBU"]),
+    ))
+    .expect("a declared company code");
+    e.execute(&set(
+        KindName::Connection,
+        target,
+        "overrides.colour",
+        Value::Null,
+    ))
+    .expect("null removes the colour");
+    assert_eq!(conn(&e, CON_W22).overrides.colour, None);
+}
+
 // ---------------------------------------------------------------------------------------------------------
 // box.structure
 
