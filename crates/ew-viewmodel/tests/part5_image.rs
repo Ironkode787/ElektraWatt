@@ -474,6 +474,48 @@ fn files_the_store_refuses_fail_and_change_nothing() {
     }
 }
 
+/// Cycle-29 review 6: only a regular file is read. A directory is refused with `error-image-file` and the reason, whatever
+/// the platform's own error for reading it would say.
+#[test]
+fn a_directory_is_not_an_image_file() {
+    let tmp = Tmp::new("image-file-dir");
+    let mut s = shell(&tmp, "101");
+    done(&mut s, "tool.image", json!({}));
+    let dir = tmp.0.to_string_lossy().into_owned();
+    let message = failed_message(&mut s, "image.file", json!({ "path": dir }));
+    assert_eq!(
+        message,
+        format!(
+            "Cannot read the image file {}: not a regular file.",
+            tmp.0.display()
+        )
+    );
+    assert_eq!(s.tool().state(), "picking", "a refused path arms nothing");
+}
+
+/// Cycle-29 review 6: a character device is no file to read: `metadata().len()` is 0 for `/dev/zero`, and reading it to
+/// the end would never finish. It is refused at once with `error-image-file`, nothing is armed and the model is untouched.
+#[cfg(unix)]
+#[test]
+fn a_device_is_refused_without_being_read() {
+    let tmp = Tmp::new("image-file-device");
+    let mut s = shell(&tmp, "101");
+    done(&mut s, "tool.image", json!({}));
+    let revision = s.revision();
+    let started = std::time::Instant::now();
+    let message = failed_message(&mut s, "image.file", json!({ "path": "/dev/zero" }));
+    assert!(
+        started.elapsed() < std::time::Duration::from_secs(10),
+        "refused promptly"
+    );
+    assert_eq!(
+        message,
+        "Cannot read the image file /dev/zero: not a regular file."
+    );
+    assert_eq!(s.tool().state(), "picking");
+    assert_eq!(s.revision(), revision, "the model is untouched");
+}
+
 /// In the window Insert ▸ Image… raises the file dialog whose answer is `image.file`; headless it only arms the tool.
 #[test]
 fn the_window_asks_for_a_file_and_headless_does_not() {

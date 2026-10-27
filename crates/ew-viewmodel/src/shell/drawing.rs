@@ -12,6 +12,8 @@
 //!
 //! **Commits** go through the tool's commit path (`execute_with` in the window, `run_script` headless).
 
+use std::io::Read as _;
+
 use ew_api::AnyCommand;
 use serde_json::{Map, Value, json};
 
@@ -344,16 +346,23 @@ impl ShellModel {
         let name = path.display().to_string();
         let limit = ew_api::MAX_LOGO_BYTES;
         let too_large = || failed("error-image-too-large", &[&name, &(limit / 1024).to_string()]);
+        // Only a regular file is read: a character device or a FIFO reports length 0, and reading it to the end would
+        // not finish. The read is bounded as well (the file may grow after the metadata).
         match std::fs::metadata(&path) {
+            Ok(m) if !m.is_file() => return failed("error-image-file", &[&name, "not a regular file"]),
             Ok(m) if m.len() > limit as u64 => return too_large(),
             Ok(_) => {}
             Err(e) => return failed("error-image-file", &[&name, &e.to_string()]),
         }
-        let bytes = match std::fs::read(&path) {
-            Ok(b) if b.len() > limit => return too_large(),
-            Ok(b) => b,
-            Err(e) => return failed("error-image-file", &[&name, &e.to_string()]),
-        };
+        let mut bytes = Vec::new();
+        if let Err(e) =
+            std::fs::File::open(&path).and_then(|f| f.take(limit as u64 + 1).read_to_end(&mut bytes))
+        {
+            return failed("error-image-file", &[&name, &e.to_string()]);
+        }
+        if bytes.len() > limit {
+            return too_large();
+        }
         let reference = match ew_api::asset_ref_of(&bytes) {
             Ok(r) => r,
             Err(e) => return failed("error-image-refused", &[&name, &e.to_string()]),
