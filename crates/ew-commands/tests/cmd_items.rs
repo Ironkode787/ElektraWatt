@@ -358,9 +358,11 @@ fn item_place_image_rejections() {
         panic!("{err:?}")
     };
     assert_eq!(path, "/kind/image/asset");
-    assert!(
-        message.contains(&unknown.to_string()) && message.contains("holds no asset"),
-        "{message}"
+    assert_eq!(
+        message,
+        &format!(
+            "the project holds no asset {unknown}; an image places an asset the project already holds, or gives its file as `data`"
+        )
     );
     for (a, b) in [
         (pt(0, 0), pt(10_000_000, 0)),
@@ -481,7 +483,10 @@ fn item_place_data_rejections() {
             panic!("{err:?}")
         };
         assert_eq!(path, "/kind/image");
-        assert!(message.contains("exactly one of `asset`"), "{message}");
+        assert_eq!(
+            message,
+            "give exactly one of `asset` (a hash the project holds) and `data` (the image file in base64), not both and not neither"
+        );
     }
     let hostile: &[u8] =
         br#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4"><script>alert(1)</script></svg>"#;

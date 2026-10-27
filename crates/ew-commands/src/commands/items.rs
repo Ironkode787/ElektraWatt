@@ -465,7 +465,7 @@ impl Command for PlaceItem {
                         return Err(CmdError::invalid_params(
                             Self::NAME,
                             "/kind/image",
-                            "give exactly one of `asset` (a hash the project holds) and `data` (the image file in                              base64), not both and not neither",
+                            "give exactly one of `asset` (a hash the project holds) and `data` (the image file in base64), not both and not neither",
                         ));
                     }
                     (Some(asset), None) => {
@@ -474,7 +474,7 @@ impl Command for PlaceItem {
                                 Self::NAME,
                                 "/kind/image/asset",
                                 format!(
-                                    "the project holds no asset {asset}; an image places an asset the project                                      already holds, or gives its file as `data`"
+                                    "the project holds no asset {asset}; an image places an asset the project already holds, or gives its file as `data`"
                                 ),
                             ));
                         }
