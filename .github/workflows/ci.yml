@@ -110,7 +110,7 @@ jobs:
       - name: wall clock, environment and randomness
         run: cargo xtask check-disallowed-methods
 
-  # CI-PR-02, CI-PR-03, CI-PR-04 (test-linux and test-linux-default; test-windows-build, -1, -2 and -3; test-macos)
+  # CI-PR-02, CI-PR-03, CI-PR-04 (test-linux and test-linux-default; test-windows-build, -1, -2 and -3; test-macos and test-macos-all-features)
   test-linux:
     name: test-linux
     runs-on: ubuntu-24.04
@@ -474,6 +474,10 @@ jobs:
           print(f"{n} failed test case(s) annotated")
           PY
 
+  # FT-438: test-macos is split in two jobs that run in parallel, as the Windows run is (FT-387): this one is the default-features
+  # half (build, the filtered nextest run, the default-features doctests), test-macos-all-features the other (the unfiltered
+  # all-features nextest run, which has the acceptance tests and the fuzzer once, and the all-features doctests). One job
+  # took 21 to 37 minutes in the recorded runs; the parts are projected at about 22 and 19 at worst (ci/README.md).
   test-macos:
     name: test-macos
     runs-on: macos-15
@@ -504,6 +508,57 @@ jobs:
       # xtask's ONCE_PER_JOB_FILTER by a test (FT-268, FT-306).
       - name: cargo nextest (without the acceptance tests and the fuzzer)
         run: cargo nextest run --workspace --locked --profile ci -E 'not (package(ew-api) and binary(acceptance)) and not (package(ew-testkit) and binary(command_fuzz))'
+      # Names every failed nextest case as a check-run annotation (the job log needs admin rights to read).
+      - name: failed tests as annotations
+        if: failure()
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET, os
+          p = os.path.join("target", "nextest", "ci", "junit.xml")
+          if not os.path.exists(p):
+              print("::warning title=nextest::no junit.xml was written")
+              raise SystemExit(0)
+          n = 0
+          for tc in ET.parse(p).getroot().iter("testcase"):
+              f = tc.find("failure")
+              if f is None:
+                  f = tc.find("error")
+              if f is None:
+                  continue
+              n += 1
+              text = ((f.get("message") or "") + "\n" + (f.text or "")).strip()[:1500]
+              text = text.replace("%", "%25").replace("\r", "").replace("\n", "%0A")
+              print(f"::error title=nextest {tc.get('classname')}::{tc.get('name')}::{text}")
+          print(f"{n} failed test case(s) annotated")
+          PY
+      # nextest does not run doctests.
+      - name: cargo test --doc
+        run: cargo test --doc --workspace --locked
+
+  test-macos-all-features:
+    name: test-macos-all-features
+    runs-on: macos-15
+    # The GPU canvas tests fail instead of skipping when no adapter is found: these runners have one (Mesa's lavapipe
+    # on Linux, WARP on Windows, Metal on macOS), so a skip here would hide a broken setup (WP-S2.02 part 2, spec section 8).
+    env:
+      EW_REQUIRE_GPU_ADAPTER: "1"
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      # NFR-REL-07: ICU4X_DATA_DIR swaps the ICU segmentation data at build time and changes line breaks.
+      - name: assert ICU4X_DATA_DIR is unset
+        shell: bash
+        run: test -z "${ICU4X_DATA_DIR:-}"
+      - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
+        with:
+          tool: cargo-nextest@0.9.148
       # Feature-gated code (for example ew-ids/testkit) is only compiled and tested with its feature on.
       - name: cargo nextest (all features, with the acceptance tests and the fuzzer)
         run: cargo nextest run --workspace --all-features --locked --profile ci
@@ -532,8 +587,6 @@ jobs:
           print(f"{n} failed test case(s) annotated")
           PY
       # nextest does not run doctests.
-      - name: cargo test --doc
-        run: cargo test --doc --workspace --locked
       - name: cargo test --doc (all features)
         run: cargo test --doc --workspace --all-features --locked
 
