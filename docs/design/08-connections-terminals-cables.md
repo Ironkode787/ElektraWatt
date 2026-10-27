@@ -1,6 +1,6 @@
 # Connections, terminals and cables
 
-**Status:** Draft v0.1 · **Date:** 2026-10-23 (cycle 23: the shipped colour profiles and their limits as built, §4.3, decision log ID-577; the marker mode as a project setting for WP-S2.04, §4.5, ID-568; 2026-10-21: cycle 11: page token of segment-less strips as built, decision log ID-293; cycle 12: EW-TERM-002 as built, §6.8, and the cover size note, §4.2; cycle 13: the orientation of segment-only terminals, §3.8, the numbering order and the golden numbers as built, §5.2, and the segment wording, §6.7) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-23 (cycle 23: the shipped colour profiles and their limits as built, §4.3, decision log ID-577; the marker mode as a project setting for WP-S2.04, §4.5, ID-568; 2026-10-21: cycle 11: page token of segment-less strips as built, decision log ID-293; cycle 12: EW-TERM-002 as built, §6.8, and the cover size note, §4.2; cycle 13: the orientation of segment-only terminals, §3.8, the numbering order and the golden numbers as built, §5.2, and the segment wording, §6.7; 2026-10-27, cycle 29: the numbering order's tie-break by what is printed, §5.2 and §11, decision log ID-675) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) turns drawn connections into electrical meaning. It covers
 connection points, connections and junctions, the three connectivity levels (net, signal, potential) with stable
@@ -689,7 +689,7 @@ A `WireNumberingScheme` holds format groups, an order, a counter scope and an on
 | Formulas | sandboxed rhai (FR-NUM-026) | 1.0 |
 
 - **Numbering order** (FR-NUM-028): the page of the wire's From end, then the From end's cell (column, then row),
-  then the To end's page and cell (the page first, then column, then row), then the wire ID. The cell of an end is
+  then the To end's page and cell (the page first, then column, then row), then, among wires equal in all of these, the From end's CP label, the To end's CP label (natural order, as `cp_label` prints them) and the first route vertex of the From end's constituent read from the From end (y, then x; a wire without one after those with one), and the wire ID only for wires equal in all of them (FT-440, decision log ID-675). The cell of an end is
   the cell of the CP's drawn point on the page of the constituent that ends there, a terminal in a strip segment
   included (§6.7; decision log ID-326). Counters are assigned once and stored. `{page}` and `{column}` are tokens
   evaluated from the From end. A page renumber therefore changes page-based numbers only through its preview, as it
@@ -703,8 +703,8 @@ A `WireNumberingScheme` holds format groups, an order, a counter scope and an on
   one page token of every format), counter scope page, cores not numbered, not printed. W1–W34 receive 34 unique
   numbers, listed in the derived "No." column of [20](20-golden-project.md) §8.2: W29 gets 102.10 and W33 103.1.
   The acceptance runner generates `expected/wires.csv` with this rule, which also decides the ties between wires of
-  equal cells by the wire ID. Since the orientation has its flow-distance step (FT-101, cycle 14) AC-09 has no
-  known deviation: the numbers of W1 to W5, W7 and W9 are final (decision log ID-325 listed them until then; ID-347). **As built (cycle 13; decision log
+  equal cells by what is printed, then by the wire ID. Since the orientation has its flow-distance step (FT-101, cycle 14) AC-09 has no
+  known deviation. Cycle 29 (FT-440, decision log ID-675) renumbered nine tied wires of Golden A: W1 101.3 → 101.1, W2 101.1 → 101.2, W3 101.2 → 101.3, W7 101.5 → 101.4, W9 101.4 → 101.5, W4 101.7 → 101.6, W5 101.6 → 101.7, W22 102.4 → 102.3 and W23 102.3 → 102.4; this supersedes the finality that decision log ID-347 gave W1 to W5, W7 and W9. **As built (cycle 13; decision log
   ID-324):** the numbers are derived by the query `wire_numbers` and printed on folio 907; they are not yet stored
   (`NumberWires` and the stored number come with WP-S1.11) and not printed on the pages (FR-CON-026). Where wires
   tie on their cells, the query keeps the counter range of the group (`WireNumber::tie`) beside the exact counter.
@@ -1155,7 +1155,7 @@ PDF, XLSX, CSV and `.ewpp` read the same row source, so the printed list and the
 
 Determinism (NFR-REL-07, FR-NUM-028) has four sources:
 - union-find edges are applied in a fixed key order;
-- every tie is broken by ID;
+- every tie is broken by what is printed, then by ID;
 - profiles reject ambiguous rows at load time;
 - numbering order never uses creation order.
 

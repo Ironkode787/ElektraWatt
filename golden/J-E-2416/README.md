@@ -651,13 +651,13 @@ here, with the follow-up task of the [work breakdown](../../docs/plan/02-work-pa
     (doc 08 §6.7); the strip-segment and black-box points are restated in `ew-derive` from the page scene's rules.
   - The "No." column prints `{page}.{counter}` (counter scope page) on the 34 wires W1 … W34 and nothing on the 10
     cable cores (FR-NUM-019). `expected/csv/wires.csv` holds the exact counters, also where two wires have equal
-    cells (a tie): the wire ID decides there, and the query keeps the counter range of the group
+    cells (a tie): what is printed decides there (the From end's CP label, the To end's, the first route vertex), the wire ID last (FT-440, decision log ID-675), and the query keeps the counter range of the group
     (`WireNumber::tie`) for a table that wants to print it. The page of every number equals doc
     20's "No." column, which now holds the computed numbers (W29 is 102.10; doc 20 §8.1 said the order could not be
     stated in advance); `expected/wire_numbers_8_2.csv` is that column, written by `tools/tables_from_doc20.py`, and
     AC-09 compares the runner's numbers with it, with no known deviation since FT-101 (cycle 14: the From ends
-    follow the flow-distance step, so W1 to W5 start at the supply side and their numbers, and those of W7 and W9,
-    are final). Numbers are not printed on pages
+    follow the flow-distance step, so W1 to W5 start at the supply side; cycle 29's tie-break renumbered W1 to W5,
+    W7, W9, W22 and W23, decision log ID-675). Numbers are not printed on pages
     (FR-CON-026 follows with the number display) and not stored: `NumberWires` and the stored `NumberSpec` are the
     numbering schemes of FR-NUM-020.
   - From and To follow doc 08 §3.8 (FR-CON-040): on one page the end with the smaller flow distance is From
