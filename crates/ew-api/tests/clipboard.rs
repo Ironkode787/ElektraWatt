@@ -780,6 +780,142 @@ fn cb3_the_numbering_follows_the_fragment_order_not_the_minted_ids() {
     assert!(e[1].trim_end().ends_with("E2"), "{a:?}");
 }
 
+/// FT-456: a fragment of five breakers built from -102F1's device, function and representation, at the QET grid
+/// indexes below, listed in this (fragment) order; the cells are those of the wizard page's frame.
+const FIVE_BREAKERS: [(i64, i64); 5] = [(41, 14), (17, 46), (17, 14), (29, 30), (19, 14)];
+
+/// The fragment of [`FIVE_BREAKERS`]: -102F1's fragment with its records repeated under fresh fragment-local IDs and
+/// moved to each grid index (the potential definition left out, its name would repeat).
+fn five_breakers(g: &Session) -> Value {
+    let mut frag = fragment(g, &reps_of(g, "102", &["-102F1"]));
+    let records = frag["records"].as_array().unwrap().clone();
+    let of = |k: &str| records.iter().find(|r| r["$k"] == k).unwrap().clone();
+    let (dev, fun, rep) = (of("device"), of("function"), of("representation"));
+    let mut out = Vec::new();
+    for (i, (kx, ky)) in FIVE_BREAKERS.iter().enumerate() {
+        let local = |n: u128| {
+            Uuid::from_u128(0x0190_a000_0000_7000_8000_0000_0000_0000 + (i as u128) * 16 + n).to_string()
+        };
+        let mut d = dev.clone();
+        d["id"] = json!(local(1));
+        let mut f = fun.clone();
+        f["id"] = json!(local(2));
+        f["device"] = json!(local(1));
+        let mut r = rep.clone();
+        r["id"] = json!(local(3));
+        r["functions"] = json!([local(2)]);
+        r["pos"] = json!([QET.at(*kx).unwrap().0, QET.at(*ky).unwrap().0]);
+        out.extend([d, f, r]);
+    }
+    frag["records"] = json!(out);
+    frag["anchor"] = json!([QET.at(10).unwrap().0, QET.at(10).unwrap().0]);
+    frag
+}
+
+/// The counters `edit.paste` gives the five breakers on the wizard page of a session with ID seed `seed`, by grid
+/// index, and the grid indexes in the order of the minted device IDs.
+type Pasted = (BTreeMap<(i64, i64), u32>, Vec<(i64, i64)>);
+
+/// An ID source whose clock stands still, as a fast machine's within one transaction: the UUIDv7s it mints order by
+/// their random bits alone, so the order of the IDs one transaction mints is not the minting order and changes with
+/// the seed (`SeededSource` advances its clock per ID, which keeps them in minting order).
+struct FrozenClock(u64);
+
+impl ew_ids::IdSource for FrozenClock {
+    fn now(&mut self) -> ew_ids::UnixTime {
+        ew_ids::UnixTime {
+            millis: 1_767_225_600_000,
+            sub_ms_nanos: 0,
+        }
+    }
+
+    fn fill(&mut self, buf: &mut [u8]) -> Result<(), ew_ids::EntropyError> {
+        for b in buf {
+            // splitmix64
+            self.0 = self.0.wrapping_add(0x9e37_79b9_7f4a_7c15);
+            let mut z = self.0;
+            z = (z ^ (z >> 30)).wrapping_mul(0xbf58_476d_1ce4_e5b9);
+            z = (z ^ (z >> 27)).wrapping_mul(0x94d0_49bb_1331_11eb);
+            *b = (z ^ (z >> 31)) as u8;
+        }
+        Ok(())
+    }
+}
+
+fn five_breakers_pasted(frag: &Value, seed: u64) -> Pasted {
+    let mut w = Session::new_project(
+        ProjectTemplate::Builtin,
+        NewProjectKind::Schematic,
+        SessionOptions {
+            ids: Some(Box::new(FrozenClock(seed))),
+            ..SessionOptions::default()
+        },
+    )
+    .expect("a new project");
+    let receipt = paste(&mut w, "1", at_steps(frag, (0, 0)), frag).unwrap();
+    let q = w.query();
+    let mut by_id = BTreeMap::new();
+    let mut out = BTreeMap::new();
+    for r in created(&receipt, Kind::Representation) {
+        let rep = q.reps().get(Id::from_uuid(r)).unwrap();
+        let k = (QET.snap(rep.pos.x), QET.snap(rep.pos.y));
+        let f = q.functions().get(rep.functions[0]).unwrap();
+        let d = f.device.unwrap();
+        out.insert(k, q.devices().get(d).unwrap().tag.counter.expect("numbered"));
+        by_id.insert(d, k);
+    }
+    (out, by_id.into_values().collect())
+}
+
+/// Whether grid indexes listed in ID order are in cell order (column, then row, then x): the cells of
+/// [`FIVE_BREAKERS`] on the QET frame, column `(kx - 2) / 6`, row `(ky - 2) / 8`.
+fn in_cell_order(by_id: &[(i64, i64)]) -> bool {
+    let key = |(kx, ky): (i64, i64)| ((kx - 2) / 6, (ky - 2) / 8, kx, ky);
+    by_id.windows(2).all(|w| key(w[0]) < key(w[1]))
+}
+
+/// FT-456 (FR-NUM-028): one transaction that creates several numbered devices numbers them in the order of their
+/// anchor cells (column, then row; in one cell by position), not in the order of the IDs it mints nor in fragment
+/// order: (17, 14) and (19, 14) share column 2 row B and come first, left before right, then (17, 46) in column 2 row
+/// F, then (29, 30) in column 4, then (41, 14) in column 6.
+#[test]
+fn ft456_new_devices_are_numbered_in_cell_order_not_id_order() {
+    let g = golden();
+    let frag = five_breakers(&g);
+    let want: BTreeMap<(i64, i64), u32> = [
+        ((17, 14), 1),
+        ((19, 14), 2),
+        ((17, 46), 3),
+        ((29, 30), 4),
+        ((41, 14), 5),
+    ]
+    .into();
+    let mut out_of_order = 0;
+    for seed in 41..49 {
+        let (got, by_id) = five_breakers_pasted(&frag, seed);
+        assert_eq!(got, want, "seed {seed}");
+        out_of_order += usize::from(!in_cell_order(&by_id));
+    }
+    assert!(out_of_order > 0, "some seed mints the IDs out of cell order");
+}
+
+/// FT-456: a replay of the paste (the same command in a session that mints other IDs, as `ew apply` replays a command
+/// log) gives every breaker the number it had in the first session, also when the replay's IDs fall in another
+/// order (at least one of the replays below does).
+#[test]
+fn ft456_a_replay_numbers_the_new_devices_alike() {
+    let g = golden();
+    let frag = five_breakers(&g);
+    let (first, first_order) = five_breakers_pasted(&frag, 7);
+    let mut other_order = 0;
+    for seed in 41..49 {
+        let (replayed, order) = five_breakers_pasted(&frag, seed);
+        assert_eq!(replayed, first, "seed {seed}");
+        other_order += usize::from(order != first_order);
+    }
+    assert!(other_order > 0, "a replay mints the IDs in another order");
+}
+
 // ---------------------------------------------------------------------------------------------------------------------
 // FT-452: page items and structure boxes in the fragment
 

@@ -140,20 +140,31 @@ impl Query for FrameSettings {
     const POLICY: Policy = Policy::Cold;
 
     fn run(q: &Q, _key: &()) -> Arc<FrameSettingsValue> {
-        let malformed = |detail: &str| {
-            q.note(DeriveNote::MalformedShim {
-                member: FRAMES_MEMBER.into(),
-                detail: detail.into(),
-            });
-        };
-        let mut out = FrameSettingsValue::default();
         let project = q.project();
-        let Some(frames) = project.settings.extra.get("frames") else {
-            return Arc::new(out);
+        Arc::new(FrameSettingsValue::parse(
+            project.settings.extra.get("frames"),
+            |detail| {
+                q.note(DeriveNote::MalformedShim {
+                    member: FRAMES_MEMBER.into(),
+                    detail: detail.into(),
+                });
+            },
+        ))
+    }
+}
+
+impl FrameSettingsValue {
+    /// Parses the `frames` member of `ProjectSettings.extra` (absent: the empty value). Each malformed part is
+    /// dropped and reported once through `malformed`. Pure: [`FrameSettings`] and the command layer's
+    /// model-only cell lookup (`ew_commands::numbering::anchor_cell`) share it.
+    pub fn parse(frames: Option<&Value>, mut malformed: impl FnMut(&str)) -> FrameSettingsValue {
+        let mut out = FrameSettingsValue::default();
+        let Some(frames) = frames else {
+            return out;
         };
         let Some(frames) = frames.as_object() else {
             malformed("frames is not an object");
-            return Arc::new(out);
+            return out;
         };
         if let Some(default) = frames.get("default") {
             out.default = form_id(default);
@@ -185,7 +196,7 @@ impl Query for FrameSettings {
             }
             Some(_) => malformed("per_page_type is not an array"),
         }
-        Arc::new(out)
+        out
     }
 }
 
@@ -234,25 +245,38 @@ pub fn frame_form_of(
     kind: &PageType,
     with_default: bool,
 ) -> Option<Id<FormDef>> {
-    let held = |id: Id<FormDef>| q.forms().get(id).is_some().then_some(id);
-    own.and_then(held).or_else(|| {
-        let settings = q.get::<FrameSettings>(());
-        let name = serde_json::to_value(kind).ok();
-        let of_type = name.as_ref().and_then(Value::as_str).and_then(|name| {
-            settings
-                .per_page_type
-                .iter()
-                .find(|e| e.page_type == name)
-                .and_then(|e| e.form)
-                .and_then(held)
-        });
-        of_type.or_else(|| {
-            if with_default {
-                settings.default.and_then(held)
-            } else {
-                None
-            }
-        })
+    let held = |id: Id<FormDef>| q.forms().get(id).is_some();
+    if let Some(own) = own.filter(|id| held(*id)) {
+        return Some(own);
+    }
+    frame_form_from_settings(&q.get::<FrameSettings>(()), kind, with_default, held)
+}
+
+/// The settings part of [`frame_form_of`] (a page without a held own form): the frame defaults' entry of the page's
+/// type, else, when `with_default`, their `default`, each only when `held` says the project holds that form copy.
+/// Pure: the command layer's model-only cell lookup (`ew_commands::numbering::anchor_cell`) shares it.
+pub fn frame_form_from_settings(
+    settings: &FrameSettingsValue,
+    kind: &PageType,
+    with_default: bool,
+    held: impl Fn(Id<FormDef>) -> bool,
+) -> Option<Id<FormDef>> {
+    let held = |id: Id<FormDef>| held(id).then_some(id);
+    let name = serde_json::to_value(kind).ok();
+    let of_type = name.as_ref().and_then(Value::as_str).and_then(|name| {
+        settings
+            .per_page_type
+            .iter()
+            .find(|e| e.page_type == name)
+            .and_then(|e| e.form)
+            .and_then(held)
+    });
+    of_type.or_else(|| {
+        if with_default {
+            settings.default.and_then(held)
+        } else {
+            None
+        }
     })
 }
 
@@ -408,7 +432,14 @@ fn letter(r: u32, skip_io: bool) -> Option<String> {
 pub fn anchor_point(q: &Q, rep: Id<Representation>) -> Option<Pt2> {
     let rep = q.reps().get(rep)?;
     let symbol = q.symbols().get(rep.symbol)?;
-    let anchor = symbol_anchor(&symbol.item, rep)?;
+    anchor_point_of(&symbol.item, rep)
+}
+
+/// The anchor point of `rep` drawn with `symbol` (its symbol copy's item), in page nm; the pure core of
+/// [`anchor_point`], shared with the command layer's model-only cell lookup
+/// (`ew_commands::numbering::anchor_cell`). `None` on overflow.
+pub fn anchor_point_of(symbol: &SymbolDef, rep: &Representation) -> Option<Pt2> {
+    let anchor = symbol_anchor(symbol, rep)?;
     let offset = rep.orient.checked_apply(anchor)?;
     rep.pos.checked_add(offset)
 }

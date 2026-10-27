@@ -208,6 +208,35 @@ fn every_representation_anchors_in_its_table_cell() {
     );
 }
 
+/// FT-456: the command layer's model-only anchor cell (`ew_commands::numbering::anchor_cell_in`, which online
+/// numbering orders by) equals the derived `rep_anchor_cell` for every representation of Golden A: the committed
+/// fixture `golden/J-E-2416.ew` opened read-only, and the model the golden tables bootstrap.
+#[test]
+fn the_command_layer_anchor_cells_agree_on_golden_a() {
+    let fixture = Session::open_read_only(&repo().join("golden/J-E-2416.ew"), "ElektraWatt test")
+        .expect("the golden fixture opens")
+        .0;
+    let batch = golden_batch();
+    let bootstrapped = session(&batch);
+    for (what, s) in [("fixture", &fixture), ("tables", &bootstrapped)] {
+        let model = s.world().model;
+        let q = ew_derive::Q::new(&model);
+        let mut checked = 0;
+        let mut with_cell = 0;
+        for (rep, _) in q.reps().iter() {
+            let derived = (*q.get::<ew_derive::RepAnchorCell>(rep)).clone();
+            let ours = ew_commands::numbering::anchor_cell_in(&model, rep);
+            assert_eq!(ours, derived, "{what}: representation {rep}");
+            checked += 1;
+            with_cell += usize::from(derived.is_some());
+        }
+        assert!(
+            checked > 100 && with_cell > 100,
+            "{what}: {checked} representations, {with_cell} with a cell"
+        );
+    }
+}
+
 /// F3 (review cycle 6 C): with the numbering settings of doc 20 §4.4 and the ▲U-34 frozen tags, every device's
 /// derived tag (`device_tag`, structure omitted) is its table key as doc 20 prints it: `-101F1`, `-X1031`,
 /// `S51`, `-201U3-Q1`, `-X1031:1`, `-XPE`, `-UC1-plate`.

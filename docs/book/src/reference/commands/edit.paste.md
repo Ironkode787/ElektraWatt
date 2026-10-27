@@ -32,8 +32,8 @@ axis; a grid coordinate becomes the grid point at its index plus `Δk`, any othe
 `round_half_away(Δk × num / den)`; routes follow their ends as `rep.move`'s `steps` move them, and a page
 item's points and a structure box's outline vertices move by the same rule. (6) Frozen tags
 are cleared and wire numbers become unassigned; tag counters are cleared and the copies that take part in
-page-based numbering get the next free counter of their main page's scope in fragment order (the online-numbering
-rule), so the tags follow the fragment's position order and not the minted IDs. (7) A page item of a kind this
+page-based numbering get the next free counter of their main page's scope from online numbering, in the order of
+their anchor cells (FR-NUM-028, FT-456), so the tags follow the pasted positions and not the minted IDs. (7) A page item of a kind this
 version does not know is left out before any ID is minted, and a wire marker whose connection list is empty
 after effect 4 is not inserted, each with a notice.
 

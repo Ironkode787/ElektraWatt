@@ -6,14 +6,16 @@
 //! **Candidates** (F3): the devices whose numbering this transaction changes: a new device, a device whose
 //! tag letter or counter changed, and a device whose main page (the page of its main representation)
 //! changed. A device that is merely touched (another field edited, a function or an auxiliary
-//! representation changed) is not a candidate. For each candidate in ID order that takes part in
-//! numbering ([`crate::numbering::numbered`]) and is placed:
+//! representation changed) is not a candidate. For each candidate that takes part in numbering
+//! ([`crate::numbering::numbered`]) and is placed, in the order of the anchor cells of the main
+//! representations ([`crate::numbering::PlaceKey`]: column, then row, ties by the anchor point; FR-NUM-028,
+//! FT-456), never in ID order (the IDs one transaction mints are not monotonic, so a replay would differ):
 //!
 //! - without a counter, it gets the next free counter of its scope;
 //! - with a counter that another numbered device of the scope also holds, it gets the next free counter
 //!   only when that collision is **new**, i.e. the two devices did not already hold the same tag in the
-//!   base snapshot, and the other device is not a candidate (it was there first) or is a candidate with a
-//!   smaller ID.
+//!   base snapshot, and the other device is not a candidate (it was there first) or is a candidate earlier
+//!   in that order.
 //!
 //! So moving -101F1's main representation onto a folio that already has an -F1 renumbers the moved device,
 //! never the one that stayed, and editing an unrelated field of a device whose tag already collided in a
@@ -21,7 +23,7 @@
 //! *makes* a tag collide). `fields.set` of a colliding counter or letter is rejected by the command itself
 //! (D2), so this normaliser renumbers only new devices, moves and page changes.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use ew_ids::Id;
 use ew_model::AnyRow;
@@ -29,7 +31,7 @@ use ew_schema::{Device, FnRole, Function, Kind, Representation};
 
 use crate::error::CmdError;
 use crate::normalise::Normaliser;
-use crate::numbering::{collided_in, main_page, main_page_in, number_devices};
+use crate::numbering::{PlaceKey, collided_in, main_page, main_page_in, number_devices, place_key};
 use crate::tx::TxBuilder;
 
 /// Normaliser #4.
@@ -120,16 +122,23 @@ impl Normaliser for OnlineNumbering {
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<bool, CmdError> {
         let candidates = candidates(tx);
-        let order: Vec<Id<Device>> = candidates.iter().copied().collect();
-        // The candidates in ID order; the counters of each (scope, letter) group are loaded once per run
-        // (NFR-PERF-08) by the shared loop.
+        // The candidates in place order (FR-NUM-028, FT-456), never in ID order: the IDs one transaction mints
+        // are not monotonic. The counters of each (scope, letter) group are loaded once per run (NFR-PERF-08)
+        // by the shared loop.
+        let mut keyed: Vec<(PlaceKey, Id<Device>)> =
+            candidates.iter().map(|d| (place_key(tx, *d), *d)).collect();
+        keyed.sort();
+        let rank: BTreeMap<Id<Device>, usize> = keyed.iter().enumerate().map(|(i, (_, d))| (*d, i)).collect();
+        let order: Vec<Id<Device>> = keyed.into_iter().map(|(_, d)| d).collect();
         number_devices(tx, &order, |tx, d, dev, group| match dev.tag.counter {
             None => true,
             Some(counter) => {
                 let base = tx.base_model();
-                group.holders(counter).any(|other| {
-                    other != d && (!candidates.contains(&other) || other < d) && !collided_in(base, d, other)
-                })
+                // The other holder was there first: not a candidate, or a candidate earlier in place order.
+                let earlier = |other: &Id<Device>| rank.get(other).is_none_or(|r| Some(r) < rank.get(&d));
+                group
+                    .holders(counter)
+                    .any(|other| other != d && earlier(&other) && !collided_in(base, d, other))
             }
         })
     }

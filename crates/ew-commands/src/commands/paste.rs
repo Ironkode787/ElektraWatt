@@ -120,8 +120,8 @@ pub struct Fragment {
 /// `round_half_away(Δk × num / den)`; routes follow their ends as `rep.move`'s `steps` move them, and a page
 /// item's points and a structure box's outline vertices move by the same rule. (6) Frozen tags
 /// are cleared and wire numbers become unassigned; tag counters are cleared and the copies that take part in
-/// page-based numbering get the next free counter of their main page's scope in fragment order (the online-numbering
-/// rule), so the tags follow the fragment's position order and not the minted IDs. (7) A page item of a kind this
+/// page-based numbering get the next free counter of their main page's scope from online numbering, in the order of
+/// their anchor cells (FR-NUM-028, FT-456), so the tags follow the pasted positions and not the minted IDs. (7) A page item of a kind this
 /// version does not know is left out before any ID is minted, and a wire marker whose connection list is empty
 /// after effect 4 is not inserted, each with a notice.
 ///
@@ -630,15 +630,6 @@ fn lib_title(value: &Value) -> String {
         .map_or_else(|| "the item".to_owned(), |s| format!("'{s}'"))
 }
 
-/// Effect 6 completed: the pasted devices that take part in page-based numbering and are placed get the next free
-/// counter of their main page's scope in fragment order, through online numbering's one loop
-/// ([`crate::numbering::number_devices`]). The normaliser numbers new devices in ID order, and the UUIDv7s one
-/// transaction mints are not monotonic, so leaving it to the normaliser would number the copies of one paste in a
-/// random order; with a free counter each, the normaliser finds nothing to renumber.
-fn number_in_fragment_order(tx: &mut TxBuilder<'_>, devices: &[Id<Device>]) -> Result<(), CmdError> {
-    crate::numbering::number_devices(tx, devices, |_, _, dev, _| dev.tag.counter.is_none()).map(|_| ())
-}
-
 /// Drops a record's import lineage (`source_ref`): a pasted record is new, not imported, so its lineage is not a
 /// reference to resolve (the copy drops it too; a fragment from elsewhere may carry one).
 fn drop_lineage(v: &mut Value) {
@@ -920,15 +911,12 @@ impl Command for PasteFragment {
             step_route(&mut c.route, grid, steps, a, b).map_err(|_| too_far(*i))?;
         }
         // The records, in (kind rank, fragment order).
+        // Effect 6 is completed by online numbering (normaliser #4), which numbers the new devices in the order
+        // of their anchor cells (FR-NUM-028, FT-456), whatever IDs this transaction mints.
         let mut primary = None;
-        let mut devices: Vec<Id<Device>> = Vec::new();
         for (_, record) in typed {
             let key = match record {
-                Record::Device(r) => {
-                    let id = tx.insert(r)?;
-                    devices.push(id);
-                    (Kind::Device, id.cast())
-                }
+                Record::Device(r) => (Kind::Device, tx.insert(r)?.cast()),
                 Record::Function(r) => (Kind::Function, tx.insert(r)?.cast()),
                 Record::Representation(r) => (Kind::Representation, tx.insert(r)?.cast()),
                 Record::Connection(r) => (Kind::Connection, tx.insert::<Connection>(r)?.cast()),
@@ -942,7 +930,6 @@ impl Command for PasteFragment {
                 primary.get_or_insert(key);
             }
         }
-        number_in_fragment_order(tx, &devices)?;
         Ok(Outcome {
             primary,
             note: None,

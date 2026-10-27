@@ -407,3 +407,282 @@ proptest! {
         assert_agree(&fx, &ids);
     }
 }
+
+// ---------------------------------------------------------------------------------------------------------
+// Anchor cells (FT-456): `ew_commands::numbering::anchor_cell` is the model-only copy of `RepAnchorCell` that
+// online numbering orders by (normalisers see no derived data). The two must agree on every representation, for
+// every anchor policy, orientation, slot override and frame resolution the derivation handles.
+
+/// The golden grid frame's copy ID (`content/forms/ew.frame.qet-a4-landscape-grid.json`).
+const FRAME_COPY: &str = "c80af135-34f8-574c-8f52-756bd24c7bd0";
+/// The page every anchor case draws on.
+const ANCHOR_PAGE: u128 = 0x701;
+const MM: i64 = 1_000_000;
+const ORIENTS: [&str; 8] = ["r0", "r90", "r180", "r270", "m0", "m90", "m180", "m270"];
+
+/// A frame form with its own grid: 3 columns from index 1 with the labels I and II (the third has none: no cell),
+/// 4 rows skipping I and O, below a 10 mm header band.
+fn labelled_form() -> serde_json::Value {
+    json!({
+        "kind": "frame",
+        "sheet": {"width": 297_000_000, "height": 210_000_000},
+        "grid": {
+            "header_band": {"num": 10_000_000, "den": 1},
+            "columns": {"count": 3, "start_index": 1, "width": {"num": 20_000_000, "den": 1}, "labels": ["I", "II"]},
+            "rows": {"count": 4, "height": {"num": 20_000_000, "den": 1}, "skip_io": true},
+        },
+    })
+}
+
+/// One frame resolution of `ew_derive::FrameGridOf`: page type, `Page.form`, `frames` shim (`null`: none),
+/// whether the page has cells at all.
+type FrameCase = (&'static str, Option<String>, serde_json::Value, bool);
+
+/// The frame resolutions of `ew_derive::FrameGridOf`, one per case.
+fn frame_cases() -> Vec<FrameCase> {
+    let custom = uid(0x600);
+    let nogrid = uid(0x601);
+    vec![
+        // The page's own form.
+        ("multi_line", Some(FRAME_COPY.into()), json!(null), true),
+        // Nothing configured: the built-in default grid.
+        ("multi_line", None, json!(null), true),
+        // The shim's default.
+        ("multi_line", None, json!({"default": custom}), true),
+        // The shim's entry of the page type wins over its default.
+        (
+            "multi_line",
+            None,
+            json!({"default": FRAME_COPY, "per_page_type": [{"page_type": "multi_line", "form": custom}]}),
+            true,
+        ),
+        // An entry of another page type does not apply.
+        (
+            "multi_line",
+            None,
+            json!({"default": custom, "per_page_type": [{"page_type": "fluid", "form": FRAME_COPY}]}),
+            true,
+        ),
+        // The page's form wins over the shim; a form without a grid has no cells.
+        (
+            "multi_line",
+            Some(nogrid.clone()),
+            json!({"default": FRAME_COPY}),
+            false,
+        ),
+        ("multi_line", None, json!({"default": nogrid}), false),
+        // Forms the project does not hold fall through to the built-in grid.
+        (
+            "multi_line",
+            None,
+            json!({"default": uid(0x777), "per_page_type": [{"page_type": "multi_line", "form": uid(0x778)}]}),
+            true,
+        ),
+        // A malformed matching entry falls through to the default; a malformed shim to the built-in grid.
+        (
+            "multi_line",
+            None,
+            json!({"default": custom, "per_page_type": [{"page_type": "multi_line", "form": 1}, 7]}),
+            true,
+        ),
+        ("multi_line", None, json!("not an object"), true),
+        (
+            "multi_line",
+            None,
+            json!({"default": 5, "per_page_type": 3}),
+            true,
+        ),
+        // Title, contents and divider pages: no grid without configuration; the shim's default or entry applies.
+        ("title_page", None, json!(null), false),
+        ("table_of_contents", None, json!({"default": FRAME_COPY}), true),
+        ("section_divider", None, json!(null), false),
+        (
+            "title_page",
+            None,
+            json!({"per_page_type": [{"page_type": "title_page", "form": custom}]}),
+            true,
+        ),
+    ]
+}
+
+/// One symbol of the anchor cases: copy ID, anchor policy, graphics, text slots.
+type AnchorSymbol = (
+    u128,
+    serde_json::Value,
+    Vec<serde_json::Value>,
+    Vec<serde_json::Value>,
+);
+
+/// The symbols of the anchor cases, by copy ID: every anchor policy (`origin`, `named`, `slot` with and without a
+/// matching slot, `graphic_centre` with and without graphics, a policy of a newer format).
+fn anchor_symbols(fx: &mut Fx) -> Vec<u128> {
+    let rect = |x0: i64, y0: i64, x1: i64, y1: i64| json!({"rect": {"rect": [[x0, y0], [x1, y1]]}});
+    let slot = |kind: &str, x: i64, y: i64| json!({"kind": kind, "pos": [x, y], "align": "centre"});
+    let symbols: Vec<AnchorSymbol> = vec![
+        (0x520, json!("origin"), vec![], vec![]),
+        (0x521, json!({"named": [16 * MM, 8 * MM]}), vec![], vec![]),
+        (
+            0x522,
+            json!({"slot": "xref"}),
+            vec![],
+            vec![slot("tag", 0, 0), slot("xref", 8 * MM, -8 * MM)],
+        ),
+        (
+            0x523,
+            json!({"slot": "plc_address"}),
+            vec![],
+            vec![slot("tag", 16 * MM, 16 * MM)],
+        ),
+        (
+            0x524,
+            json!("graphic_centre"),
+            vec![
+                rect(0, 0, 16 * MM, 32 * MM),
+                json!({"circle": {"centre": [-3, 5], "r": 8 * MM}}),
+                json!({"ellipse": {"rect": [[0, -8 * MM], [33 * MM, 8 * MM + 1]]}}),
+            ],
+            vec![],
+        ),
+        (0x525, json!("graphic_centre"), vec![], vec![]),
+        (0x526, json!("a_policy_of_a_newer_format"), vec![], vec![]),
+    ];
+    let mut out = Vec::new();
+    for (n, anchor, graphics, slots) in symbols {
+        fx.symbol(n, 0x500, anchor, &[(0, 0, 0, 0)]);
+        let doc = fx.lib.last_mut().expect("the symbol");
+        if !graphics.is_empty() {
+            doc["graphics"] = json!(graphics);
+        }
+        if !slots.is_empty() {
+            doc["text_slots"] = json!(slots);
+        }
+        out.push(n);
+    }
+    out
+}
+
+/// The point at grid index `(kx, ky)` of the QET 10 px grid, in nm.
+fn qet(kx: i64, ky: i64) -> (i64, i64) {
+    let g = ew_units::Grid::QET_10PX;
+    (g.at(kx).expect("fits").0, g.at(ky).expect("fits").0)
+}
+
+/// Asserts that both layers give every representation of `m` the same anchor cell; returns how many have one.
+fn assert_anchor_cells_agree(m: &ew_model::Model, what: &str) -> usize {
+    let q = Q::new(m);
+    let mut with_cell = 0;
+    for (rep, _) in q.reps().iter() {
+        let derived = (*q.get::<ew_derive::RepAnchorCell>(rep)).clone();
+        let ours = ew_commands::numbering::anchor_cell_in(m, rep);
+        assert_eq!(ours, derived, "{what}: representation {rep}");
+        with_cell += usize::from(derived.is_some());
+    }
+    with_cell
+}
+
+/// A fixture with the golden frame, the labelled frame (0x600), a frame without a grid (0x601), the anchor
+/// symbols and one device whose main function the representations draw; the page is added by the caller.
+fn anchor_fixture() -> (Fx, Vec<u128>) {
+    let mut fx = Fx::new();
+    fx.lib(
+        serde_json::from_str(include_str!(
+            "../../../content/forms/ew.frame.qet-a4-landscape-grid.json"
+        ))
+        .unwrap(),
+    );
+    fx.lib(serde_json::from_str(include_str!("../../../content/forms/ew.titleblock.qet-a4.json")).unwrap());
+    fx.lib_item("form", 0x600, labelled_form());
+    fx.lib_item(
+        "form",
+        0x601,
+        json!({"kind": "frame", "sheet": {"width": 297_000_000, "height": 210_000_000}}),
+    );
+    fx.fndef(0x500, ["ProtectionOvercurrent", "MCB", "1P"], &[(0, "1")]);
+    let symbols = anchor_symbols(&mut fx);
+    fx.device(0x1000, "F", Some(1))
+        .function(0x1001, Some(0x1000), 0x500, true);
+    (fx, symbols)
+}
+
+/// Each frame case with representations of every anchor policy, in every orientation, at points inside, on the
+/// boundaries of and outside the drawing area (and off the grid), with and without a slot override and a
+/// representation's own anchor policy.
+#[test]
+fn anchor_cells_agree_with_the_command_layer() {
+    let points: Vec<(i64, i64)> = vec![
+        qet(11, 38),
+        qet(53, 14),
+        qet(101, 62),
+        qet(1, 1),
+        qet(103, 10),
+        qet(104, 10),
+        qet(10, 66),
+        qet(-5, 10),
+        (25_000_000, 15_000_000),
+        (25_000_001, 34_999_999),
+        (45_000_000, 90_000_000),
+    ];
+    for (case, (kind, form, frames, cells)) in frame_cases().into_iter().enumerate() {
+        let (mut fx, symbols) = anchor_fixture();
+        if !frames.is_null() {
+            fx.project_set("settings", json!({ "frames": frames }));
+        }
+        fx.page(ANCHOR_PAGE, 101, None, kind, &[], "anchors");
+        fx.record(ANCHOR_PAGE)["grid"] = json!({"num": 7_937_500, "den": 3});
+        if let Some(form) = &form {
+            fx.record(ANCHOR_PAGE)["form"] = json!(form);
+        }
+        let mut n = 0x10_000u128;
+        for (si, symbol) in symbols.iter().enumerate() {
+            for (oi, orient) in ORIENTS.iter().enumerate() {
+                for (pi, (x, y)) in points.iter().enumerate() {
+                    fx.rep(n, ANCHOR_PAGE, *symbol, &[0x1001], *x, *y);
+                    fx.record(n)["orient"] = json!(orient);
+                    // Every third: the xref slot (index 1) dragged 16 mm in symbol coordinates; every fifth: the
+                    // representation's own policy overrides the symbol's.
+                    if (si + oi + pi) % 3 == 0 {
+                        fx.record(n)["text_slots"] = json!([{"slot": 1, "pos": [16 * MM, 0]}]);
+                    }
+                    if (si + oi + pi) % 5 == 0 {
+                        fx.record(n)["anchor"] = json!({"named": [-8 * MM, 24 * MM]});
+                    }
+                    n += 1;
+                }
+            }
+        }
+        let m = fx.build();
+        let with_cell = assert_anchor_cells_agree(&m, &format!("frame case {case}"));
+        assert_eq!(with_cell > 0, cells, "frame case {case}: {with_cell} cells");
+    }
+}
+
+proptest! {
+    /// Random anchors (a representation's named point or a dragged slot), orientations and positions on the golden
+    /// frame and on the labelled frame: both layers give the same cell.
+    #[test]
+    fn random_anchor_cells_agree_with_the_command_layer(
+        labelled in any::<bool>(),
+        reps in proptest::collection::vec(
+            (0usize..8, -60i64..360, -60i64..260, -40i64..40, -40i64..40, any::<bool>()),
+            1..12,
+        ),
+    ) {
+        let (mut fx, symbols) = anchor_fixture();
+        fx.page(ANCHOR_PAGE, 101, None, "multi_line", &[], "anchors");
+        fx.record(ANCHOR_PAGE)["grid"] = json!({"num": 7_937_500, "den": 3});
+        fx.record(ANCHOR_PAGE)["form"] = json!(if labelled { uid(0x600) } else { FRAME_COPY.into() });
+        for (i, (orient, x, y, ax, ay, slot)) in reps.iter().enumerate() {
+            let n = 0x10_000 + i as u128;
+            // Positions in 1 mm steps plus an odd remainder, so on- and off-grid points both occur.
+            fx.rep(n, ANCHOR_PAGE, symbols[2], &[0x1001], x * MM + x % 7, y * MM - y % 5);
+            fx.record(n)["orient"] = json!(ORIENTS[*orient]);
+            if *slot {
+                fx.record(n)["text_slots"] = json!([{"slot": 1, "pos": [ax * MM, ay * MM]}]);
+            } else {
+                fx.record(n)["anchor"] = json!({"named": [ax * MM, ay * MM]});
+            }
+        }
+        let m = fx.build();
+        assert_anchor_cells_agree(&m, "random");
+    }
+}

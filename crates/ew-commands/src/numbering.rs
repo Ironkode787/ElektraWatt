@@ -23,7 +23,10 @@ use std::sync::Arc;
 use ew_ids::Id;
 use ew_mltext::{Ident, NaturalKey};
 use ew_model::Model;
-use ew_schema::{Device, FnRole, Function, Page, RepType, Representation, TagScheme};
+use ew_schema::{
+    Device, FnRole, FormDef, FrameGrid, Function, LibCopy, Page, PageType, RepType, Representation,
+    SymbolDef, TagScheme,
+};
 
 use crate::tx::TxBuilder;
 
@@ -102,6 +105,105 @@ pub fn main_rep(tx: &TxBuilder<'_>, device: Id<Device>) -> Option<Arc<Representa
 /// The page of a device's main representation.
 pub fn main_page(tx: &TxBuilder<'_>, device: Id<Device>) -> Option<Id<Page>> {
     main_rep(tx, device).map(|r| r.page)
+}
+
+/// The two places the command layer reads records from: a transaction's view ([`TxBuilder`], with its
+/// pending writes) and a snapshot ([`Model`]). [`anchor_cell`] and [`anchor_cell_in`] share one body over it.
+trait Rows {
+    fn row<T: ew_model::Entity>(&self, id: ew_model::RowId<T>) -> Option<Arc<T>>;
+    fn project_settings_frames(&self) -> Option<serde_json::Value>;
+}
+
+impl Rows for TxBuilder<'_> {
+    fn row<T: ew_model::Entity>(&self, id: ew_model::RowId<T>) -> Option<Arc<T>> {
+        self.get::<T>(id)
+    }
+
+    fn project_settings_frames(&self) -> Option<serde_json::Value> {
+        self.project().settings.extra.get("frames").cloned()
+    }
+}
+
+impl Rows for Model {
+    fn row<T: ew_model::Entity>(&self, id: ew_model::RowId<T>) -> Option<Arc<T>> {
+        self.table::<T>().get(&id).cloned()
+    }
+
+    fn project_settings_frames(&self) -> Option<serde_json::Value> {
+        self.project().settings.extra.get("frames").cloned()
+    }
+}
+
+/// `anchor_cell(rep)`: the frame cell of a representation's anchor point, read from the model alone (no derived
+/// query), equal to `ew_derive::RepAnchorCell` (doc 06 §5.1). Normalisers see only the transaction's model, so
+/// online numbering orders by this copy; `ew-derive`'s `tests/agreement.rs` holds the two together, like
+/// [`main_rep`] and `ew_derive::MainRep`.
+///
+/// The anchor point is `ew_derive::anchor_point_of` (the representation's or its symbol's anchor policy, mapped by
+/// orientation and position); the frame grid is the page's own form, else the `frames` settings shim's entry of
+/// the page type, else its default (`ew_derive::frame_form_from_settings`; a form the project does not hold falls
+/// through), else the built-in grid, except on title, table-of-contents and divider pages (no grid); a held form
+/// without a `grid` has no cells. `None` for a missing representation, symbol or page, outside the drawing area,
+/// or on overflow.
+pub fn anchor_cell(tx: &TxBuilder<'_>, rep: Id<Representation>) -> Option<ew_derive::Cell> {
+    anchor_cell_with(tx, rep)
+}
+
+/// [`anchor_cell`] in a snapshot.
+pub fn anchor_cell_in(model: &Model, rep: Id<Representation>) -> Option<ew_derive::Cell> {
+    anchor_cell_with(model, rep)
+}
+
+/// The anchor point of a representation on its page (`ew_derive::anchor_point_of`), read from the model alone.
+fn anchor_point_with(rows: &impl Rows, rep: &Representation) -> Option<ew_units::Pt2> {
+    let symbol = rows.row::<LibCopy<SymbolDef>>(rep.symbol)?;
+    ew_derive::anchor_point_of(&symbol.item, rep)
+}
+
+fn anchor_cell_with(rows: &impl Rows, rep: Id<Representation>) -> Option<ew_derive::Cell> {
+    let rep = rows.row::<Representation>(rep)?;
+    let point = anchor_point_with(rows, &rep)?;
+    let page = rows.row::<Page>(rep.page)?;
+    let grid = frame_grid_with(rows, &page)?;
+    ew_derive::cell_in_grid(&grid, page.grid, point)
+}
+
+/// The frame grid of a page, by the rule of `ew_derive::FrameGridOf`.
+fn frame_grid_with(rows: &impl Rows, page: &Page) -> Option<FrameGrid> {
+    let held = |id: Id<FormDef>| rows.row::<LibCopy<FormDef>>(id).is_some();
+    let form = page.form.filter(|f| held(*f)).or_else(|| {
+        let frames = rows.project_settings_frames();
+        let settings = ew_derive::FrameSettingsValue::parse(frames.as_ref(), |_| {});
+        ew_derive::frame_form_from_settings(&settings, &page.kind, true, held)
+    });
+    match form {
+        None if matches!(
+            page.kind,
+            PageType::TitlePage | PageType::TableOfContents | PageType::SectionDivider
+        ) =>
+        {
+            None
+        }
+        None => Some(ew_derive::default_frame_grid()),
+        Some(form) => rows.row::<LibCopy<FormDef>>(form)?.item.grid.clone(),
+    }
+}
+
+/// The order online numbering gives the devices it numbers (FR-NUM-028, FT-456): by the anchor cell of the main
+/// representation ([`anchor_cell`]: column, then row; a device without a cell after those with one), ties by the
+/// anchor point (x, then y), then by ID (devices anchored on the same point). Unplaced devices are not numbered;
+/// they sort with the devices without a cell. Never by ID alone: the IDs one transaction mints are not monotonic,
+/// so an ID order would differ between a session and its replay.
+pub type PlaceKey = (bool, Option<(u32, u32)>, Option<(i64, i64)>, Id<Device>);
+
+/// The [`PlaceKey`] of a device in a transaction.
+pub fn place_key(tx: &TxBuilder<'_>, device: Id<Device>) -> PlaceKey {
+    let Some(rep) = main_rep(tx, device) else {
+        return (true, None, None, device);
+    };
+    let cell = anchor_cell(tx, rep.id).map(|c| (c.column, c.row));
+    let point = anchor_point_with(tx, &rep).map(|p| (p.x.0, p.y.0));
+    (cell.is_none(), cell, point, device)
 }
 
 /// The page of a device's main representation in a snapshot (the base of a transaction), by the same
@@ -286,10 +388,8 @@ impl ScopeCounters {
 /// scope when `renumber` says so; the counters of each scope are loaded once ([`ScopeCounters`]) and kept up to
 /// date. `renumber` sees the device, its record and its scope's counters. Returns whether a counter changed.
 ///
-/// The one loop of online numbering: normaliser #4 calls it with its candidates in ID order and its collision
-/// rule, `edit.paste` with the pasted devices in fragment order and "no counter yet" (WP-S2.05 part 3), because
-/// the IDs one transaction mints are not monotonic. The paste's own call goes away once the normaliser orders new
-/// devices by position (FR-NUM-028).
+/// The one loop of online numbering: normaliser #4 calls it with its candidates in [`PlaceKey`] order and its
+/// collision rule (FR-NUM-028, FT-456; `edit.paste` no longer numbers its copies itself).
 ///
 /// # Errors
 ///

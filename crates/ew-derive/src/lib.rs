@@ -92,7 +92,8 @@ pub use assembly::{AssemblyBreakMarks, BreakMark, BreakSide, order_code_text};
 pub use bom::{BomMode, BomRow, BomRowKey, BomRows, DevicePartLines, LineSource, PartLine};
 pub use cell::{
     Cell, CellOf, FrameGridOf, FrameSettings, FrameSettingsValue, FrameTypeEntry, RepAnchorCell,
-    anchor_point, cell_in_grid, default_frame_grid, frame_form_of, frame_grid,
+    anchor_point, anchor_point_of, cell_in_grid, default_frame_grid, frame_form_from_settings, frame_form_of,
+    frame_grid,
 };
 pub use channel_index::{ChannelKeyed, ChannelsByCp, ChannelsByModule, ModuleChannelIds};
 pub use cp_point::{cp_cell, cp_point};
