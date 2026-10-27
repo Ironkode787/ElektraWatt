@@ -5,8 +5,8 @@
 //! and the report.
 //!
 //! The epilogue is part of `steps.uiscript`: `page.describe` for every folio of the run, `file.save` only when the
-//! project is dirty (recorded, so that the scoring can see that the agent did not save), and `app.quit`. The scoring
-//! itself (`score.json`) is part 2's code beside the oracle it reads; `stop` writes `out/report.md` with the protocol's
+//! project is dirty (recorded, so that the scoring can see that the agent did not save), and `app.quit`. Then `stop`
+//! scores the run (`score.json`, part 2, [`super::score`]) and writes `out/report.md` with the score, the protocol's
 //! counts and observations.
 
 use std::fmt::Write as _;
@@ -16,6 +16,7 @@ use anyhow::{Result, bail};
 use serde_json::{Value, json};
 
 use super::run::{Run, Turn, append, sha256_hex, step_line};
+use super::score::{ExportFacts, score_markdown, score_run};
 use super::session::{Backend, Sent, Step};
 use super::start::check_golden;
 
@@ -64,6 +65,8 @@ fn last_dirty(run: &Run) -> Option<bool> {
 struct Exports {
     notes: Vec<String>,
     pdf_same: Option<bool>,
+    /// The exit code of `ew check` (the JSON run).
+    check_exit: Option<i32>,
 }
 
 fn run_exports(run: &Run) -> Result<Exports> {
@@ -139,7 +142,7 @@ fn run_exports(run: &Run) -> Result<Exports> {
             "out/check.txt",
         ],
     )?;
-    go(
+    ex.check_exit = go(
         "ew check --format json",
         &[
             "check",
@@ -217,6 +220,16 @@ pub fn stop(root: &Path, run: &Run, backend: &mut dyn Backend, reason: &str) -> 
         j.child_exit = code;
         j.golden_changed = golden.is_err();
     })?;
+    // The score (§5.9): a gate run against its oracle, any other run only its protocol; a check run has none.
+    let scored = if check {
+        None
+    } else {
+        let facts = ExportFacts {
+            pdfs_identical: ex.pdf_same,
+            ew_check_exit: ex.check_exit,
+        };
+        Some(score_run(root, run, facts)?)
+    };
     let mut md = String::new();
     let _ = writeln!(md, "# Run {}\n", rj.run);
     let _ = writeln!(
@@ -226,6 +239,9 @@ pub fn stop(root: &Path, run: &Run, backend: &mut dyn Backend, reason: &str) -> 
         rj.task,
         rj.end.as_deref().unwrap_or("none")
     );
+    if let Some(s) = &scored {
+        md.push_str(&score_markdown(s));
+    }
     let c = rj.counts;
     let _ = writeln!(md, "## Protocol\n");
     let _ = writeln!(
@@ -403,6 +419,17 @@ mod tests {
         assert!(report.contains("no (the epilogue saved it)"), "{report}");
         assert!(report.contains("golden/ unchanged: yes"), "{report}");
         assert!(report.contains("not exported"), "{report}");
+        // §5.9: a run without an oracle holds its protocol in `score.json`, and the report has a score section.
+        assert!(
+            report.contains("## Score") && report.contains("holds no oracle"),
+            "{report}"
+        );
+        let score: crate::blind::score::Score =
+            serde_json::from_str(&std::fs::read_to_string(f.run.path("out/score.json")).unwrap()).unwrap();
+        assert_eq!(score.run, "r1");
+        assert_eq!(score.outcome, None);
+        assert_eq!(score.protocol.counts.steps, 1);
+        assert_eq!(score.protocol.observations.clean_before_epilogue, Some(false));
         assert!(
             !report.contains(&f.tmp.0.to_string_lossy().to_string()),
             "no absolute path in the report"

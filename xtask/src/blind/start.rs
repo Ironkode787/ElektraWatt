@@ -146,6 +146,18 @@ pub fn prepare(root: &Path, a: &StartArgs, version: &dyn Fn(&Path) -> Result<Str
     if a.kind != Kind::Check && a.of.is_some() {
         bail!("`--of` belongs to a check run");
     }
+    // A check run audits a stopped drafter run.
+    let drafter = if a.kind == Kind::Check {
+        let of = a.of.as_deref().unwrap_or_default();
+        let d = super::run::locate(of, a.out.as_deref(), None)?;
+        if !d.path("out/report.md").exists() {
+            bail!("run `{of}` is not stopped: `stop` it first");
+        }
+        Some(d)
+    } else {
+        None
+    };
+    let folios = run_folios(root, a, drafter.as_ref())?;
     let golden = tree_sha(&root.join("golden"))?;
     let bin = a.bin.clone().unwrap_or_else(|| root.join("target/debug"));
     let own = std::env::current_exe().ok();
@@ -191,21 +203,15 @@ pub fn prepare(root: &Path, a: &StartArgs, version: &dyn Fn(&Path) -> Result<Str
     copy_file(&root.join("tools/blind/HELP.md"), &run.path(".harness/HELP.md"))?;
 
     let blind = run.blind_command();
-    let inp = compose_input(root, a, &blind);
+    let inp = compose_input(root, a, &blind, &folios);
     let composed = compose(&inp)?;
     let files = run_files(&inp, &composed)?;
     std::fs::write(run.path("prompt.md"), &composed.text)?;
 
     // The prelude: the task's own, or the harness's for a check run (the drafter's project, opened).
-    let prelude = if a.kind == Kind::Check {
-        let of = a.of.as_deref().unwrap_or_default();
-        let drafter = super::run::locate(of, a.out.as_deref(), None)?;
-        let rj = drafter.load()?;
-        let _ = rj;
-        if !drafter.path("out/report.md").exists() {
-            bail!("run `{of}` is not stopped: `stop` it first");
-        }
-        seed_from(&drafter, &run)?;
+    let prelude = if let Some(drafter) = &drafter {
+        seed_from(drafter, &run)?;
+        copy_reports(drafter, &run)?;
         format!(
             "{}\n{}\n",
             script_header("check prelude"),
@@ -234,7 +240,7 @@ pub fn prepare(root: &Path, a: &StartArgs, version: &dyn Fn(&Path) -> Result<Str
         task: a.task.clone(),
         persona: a.persona.clone(),
         of: a.of.clone(),
-        folios: a.folios.clone(),
+        folios,
         caps: a.kind.caps(),
         files,
         golden,
@@ -255,7 +261,12 @@ pub fn prepare(root: &Path, a: &StartArgs, version: &dyn Fn(&Path) -> Result<Str
     Ok(run)
 }
 
-fn compose_input<'a>(root: &'a Path, a: &'a StartArgs, blind: &'a str) -> ComposeIn<'a> {
+fn compose_input<'a>(
+    root: &'a Path,
+    a: &'a StartArgs,
+    blind: &'a str,
+    folios: &'a [String],
+) -> ComposeIn<'a> {
     ComposeIn {
         root,
         kind: a.kind,
@@ -264,7 +275,44 @@ fn compose_input<'a>(root: &'a Path, a: &'a StartArgs, blind: &'a str) -> Compos
         run_id: &a.run_id,
         blind,
         caps: a.kind.caps(),
+        folios,
     }
+}
+
+/// The folios of a run: those given with `--folios`; else, for a check run, the drafter's; else those of the task's
+/// oracle (`oracle/counts.toml`); a task without an oracle has none (the sheet is shown whole).
+///
+/// # Errors
+///
+/// A malformed `counts.toml`, or a drafter run that cannot be read.
+pub fn run_folios(root: &Path, a: &StartArgs, drafter: Option<&Run>) -> Result<Vec<String>> {
+    if !a.folios.is_empty() {
+        return Ok(a.folios.clone());
+    }
+    if let Some(d) = drafter {
+        return Ok(d.load()?.folios);
+    }
+    let counts = super::score::task_dir(root, &a.task).join("oracle/counts.toml");
+    if counts.is_file() {
+        let file: super::score::CountsFile = super::score::read_toml(&counts)?;
+        return Ok(file.folio.into_iter().map(|c| c.folio).collect());
+    }
+    Ok(Vec::new())
+}
+
+/// Copies the drafter run's reports (`out/check.txt`, `bom.csv`, `score.json`, `report.md`) into the check run's
+/// `reports/`: what `report <run> check|bom|score` of the check run prints. The drafter's notes and hand-back stay
+/// where they are.
+fn copy_reports(drafter: &Run, run: &Run) -> Result<()> {
+    std::fs::create_dir_all(run.path("reports"))?;
+    for name in ["check.txt", "bom.csv", "score.json", "report.md"] {
+        let from = drafter.path(&format!("out/{name}"));
+        if from.is_file() {
+            std::fs::copy(&from, run.path(&format!("reports/{name}")))
+                .with_context(|| format!("copying {}", from.display()))?;
+        }
+    }
+    Ok(())
 }
 
 /// Reads `elektrawatt --version` of the copied binary: the text after the program's name.
@@ -416,6 +464,110 @@ mod tests {
         assert!(
             prepare(&root, &check, &|_| Ok("0".to_owned())).is_err(),
             "a check run needs --of"
+        );
+    }
+
+    /// The folios of a run: `--folios`, else the drafter's (a check run), else the task's oracle, else none.
+    #[test]
+    fn the_folios_of_a_run_default_to_the_oracles_or_the_drafters() {
+        let tmp = Tmp::new("start-folios");
+        let root = fake_repo(&tmp);
+        let w = |rel: &str, text: &str| {
+            let p = root.join(rel);
+            std::fs::create_dir_all(p.parent().unwrap()).unwrap();
+            std::fs::write(p, text).unwrap();
+        };
+        w(
+            "tools/blind/tasks/gpp/oracle/counts.toml",
+            "[[folio]]\nfolio = \"101\"\nreps = 1\nconnections = 0\njunctions = 0\nsource = \"t\"\n\n[[folio]]\nfolio = \"102\"\nreps = 1\nconnections = 0\njunctions = 0\nsource = \"t\"\n",
+        );
+        let mut a = args(&tmp, "r1");
+        a.task = "gpp".to_owned();
+        a.folios = Vec::new();
+        assert_eq!(run_folios(&root, &a, None).unwrap(), ["101", "102"]);
+        a.folios = vec!["102".to_owned()];
+        assert_eq!(run_folios(&root, &a, None).unwrap(), ["102"], "--folios wins");
+        // A task without an oracle has none: the sheet is shown whole.
+        a.task = "selftest".to_owned();
+        a.folios = Vec::new();
+        assert!(run_folios(&root, &a, None).unwrap().is_empty());
+        // A check run takes the drafter's, unless it is given its own.
+        let (drafter, _check) = crate::blind::testkit::check_pair(&tmp);
+        drafter
+            .update(|j| j.folios = vec!["101".to_owned(), "103".to_owned()])
+            .unwrap();
+        a.task = "gpp".to_owned();
+        assert_eq!(run_folios(&root, &a, Some(&drafter)).unwrap(), ["101", "103"]);
+    }
+
+    /// A check run gets the drafter's reports in `reports/` (and nothing of its notes), and `report` of the check run
+    /// prints them; the drafter's folios are the check run's.
+    #[test]
+    fn a_check_run_reads_the_drafters_reports_and_not_its_notes() {
+        let tmp = Tmp::new("start-reports");
+        let root = fake_repo(&tmp);
+        std::fs::write(root.join("tools/blind/CHECKER.md"), "You check {run}.\n").unwrap();
+        let mut a = args(&tmp, "d1");
+        a.folios = vec!["101".to_owned()];
+        let drafter = prepare(&root, &a, &|_| Ok("0".to_owned())).unwrap();
+        // The drafter is not stopped yet: no check run.
+        let mut c = args(&tmp, "c1");
+        c.kind = Kind::Check;
+        c.of = Some("d1".to_owned());
+        c.folios = Vec::new();
+        let err = prepare(&root, &c, &|_| Ok("0".to_owned())).unwrap_err();
+        assert!(err.to_string().contains("is not stopped"), "{err}");
+        std::fs::create_dir_all(drafter.path("work/project")).unwrap();
+        std::fs::create_dir_all(drafter.path("out")).unwrap();
+        for (name, text) in [
+            ("report.md", "# Run d1\n"),
+            ("score.json", "{\"outcome\":\"pass\"}\n"),
+            ("check.txt", "no findings\n"),
+            ("bom.csv", "row,Qty\n"),
+            ("project-t1.pdf", "pdf"),
+        ] {
+            std::fs::write(drafter.path(&format!("out/{name}")), text).unwrap();
+        }
+        std::fs::write(drafter.path("drafter.md"), "## Turn 1\nsecret notes\n").unwrap();
+        std::fs::write(drafter.path("handback.md"), "1. Keep or drop\n").unwrap();
+        let check = prepare(&root, &c, &|_| Ok("0".to_owned())).unwrap();
+        assert_eq!(check.load().unwrap().folios, ["101"], "the drafter's folios");
+        for name in ["report.md", "score.json", "check.txt", "bom.csv"] {
+            assert!(check.path(&format!("reports/{name}")).is_file(), "{name}");
+        }
+        assert!(!check.path("reports/project-t1.pdf").exists(), "no PDF");
+        // Nothing of the drafter's notes reaches the check run's folder.
+        for rel in [
+            "drafter.md",
+            "handback.md",
+            "reports/drafter.md",
+            "reports/handback.md",
+        ] {
+            let text = std::fs::read_to_string(check.path(rel)).unwrap_or_default();
+            assert!(
+                !text.contains("secret") && !text.contains("Keep or drop"),
+                "{rel}"
+            );
+        }
+        use crate::blind::protocol::report;
+        assert_eq!(report(&check, "check").unwrap(), "no findings\n");
+        assert_eq!(report(&check, "bom").unwrap(), "row,Qty\n");
+        let score = report(&check, "score").unwrap();
+        assert!(
+            score.contains("\"outcome\":\"pass\"") && score.contains("# Run d1"),
+            "{score}"
+        );
+        assert!(
+            report(&check, "nonsense")
+                .unwrap()
+                .starts_with("harness: report check, bom or score")
+        );
+        // A drafter run reads its own `out/`.
+        assert_eq!(report(&drafter, "check").unwrap(), "no findings\n");
+        std::fs::remove_file(drafter.path("out/check.txt")).unwrap();
+        assert_eq!(
+            report(&drafter, "check").unwrap(),
+            "harness: out/check.txt does not exist yet\n"
         );
     }
 

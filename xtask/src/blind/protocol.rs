@@ -661,18 +661,27 @@ pub fn handback(run: &Run, text: &str) -> Result<String> {
 ///
 /// A failure of the run folder.
 pub fn report(run: &Run, which: &str) -> Result<String> {
+    // A check run reads the reports of the drafter run it audits, copied into its `reports/` by `start`; any other run
+    // reads what its own `stop` wrote into `out/`.
+    let dir = if run.load()?.kind == "check" {
+        "reports"
+    } else {
+        "out"
+    };
     let files: &[&str] = match which {
-        "check" => &["out/check.txt"],
-        "bom" => &["out/bom.csv"],
-        "score" => &["out/score.json", "out/report.md"],
+        "check" => &["check.txt"],
+        "bom" => &["bom.csv"],
+        "score" => &["score.json", "report.md"],
         other => return Ok(format!("harness: report check, bom or score, not `{other}`\n")),
     };
-    for f in files {
-        if let Ok(text) = std::fs::read_to_string(run.path(f)) {
-            return Ok(text);
-        }
+    let texts: Vec<String> = files
+        .iter()
+        .filter_map(|f| std::fs::read_to_string(run.path(&format!("{dir}/{f}"))).ok())
+        .collect();
+    if texts.is_empty() {
+        return Ok(format!("harness: {dir}/{} does not exist yet\n", files[0]));
     }
-    Ok(format!("harness: {} does not exist yet\n", files[0]))
+    Ok(texts.join("\n"))
 }
 
 #[cfg(test)]

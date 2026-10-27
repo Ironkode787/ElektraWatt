@@ -99,7 +99,8 @@ commands:
   blind <subcommand>   the blind-drafter harness (WP-S6.13): an agent that never sees pixels drives the headless
                        mode through registered UI actions; the run folder lives outside the repository.
                        help | start | do | look | note | handback | stop | report | resume | compose | bless |
-                       replay | selftest (`cargo xtask blind help` lists them with their arguments)
+                       replay | selftest | bless-oracle | check-task (`cargo xtask blind help` lists them with their
+                       arguments)
   ci                   fmt, clippy and nextest (default and all features), doctests and the repository checks
                        above (except check-dco), with a summary; the default-features nextest step is labelled
                        'nextest (no acceptance, no fuzzer)' (the headless acceptance tests and the command fuzzer

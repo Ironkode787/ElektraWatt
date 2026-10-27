@@ -23,9 +23,11 @@ pub mod compose;
 pub mod filter;
 pub mod keeper;
 pub mod normalise;
+pub mod oracle;
 pub mod protocol;
 pub mod replay;
 pub mod run;
+pub mod score;
 pub mod selftest;
 pub mod session;
 pub mod start;
@@ -56,11 +58,12 @@ For the orchestrator:
   stop <run> [--reason <r>]                   the epilogue, the exports, the report
   report <run> check|bom|score                what the stop wrote
   resume <run>                                a lost session: replay and go on
-  compose --kind <k> --task <t> [--persona <p>] --run <id>
+  compose --kind <k> --task <t> [--persona <p>] [--folios <a,b>] --run <id>
   bless <run> --as <name> [--ci pr|nightly|none]
   replay <recording|run> [--bin <dir>] [--twice]
   selftest [--no-build] [--bin <dir>] [--out <dir>]
-Part 2 adds bless-oracle and check-task.
+  bless-oracle <task> [--bin <dir>]           the expected rows of a task's oracle, from a temporary copy of Golden A
+  check-task <task>                           the task folder: files, prelude classes, gaps, the sheet against doc 20
 ";
 
 /// Takes `--flag value` and `--flag` out of `args`.
@@ -376,6 +379,15 @@ pub fn run(args: &[String], root: &Path) -> Result<bool> {
             let task = f.take_value("--task")?.context("--task is needed")?;
             let persona = f.take_value("--persona")?;
             let run_id = f.take_value("--run")?.context("--run is needed")?;
+            let folios: Vec<String> = f
+                .take_value("--folios")?
+                .map(|s| {
+                    s.split(',')
+                        .map(|x| x.trim().to_owned())
+                        .filter(|x| !x.is_empty())
+                        .collect()
+                })
+                .unwrap_or_default();
             let c = compose::compose(&compose::ComposeIn {
                 root,
                 kind,
@@ -384,6 +396,7 @@ pub fn run(args: &[String], root: &Path) -> Result<bool> {
                 run_id: &run_id,
                 blind: "<run>/bin/xtask blind",
                 caps: kind.caps(),
+                folios: &folios,
             })?;
             print!("{}", c.text);
             Ok(true)
@@ -444,9 +457,42 @@ pub fn run(args: &[String], root: &Path) -> Result<bool> {
             }
             selftest::run(root, &a)
         }
-        "bless-oracle" | "check-task" => {
-            println!("harness: `{command}` is part 2 of WP-S6.13 and is not in this build");
-            Ok(false)
+        "bless-oracle" => {
+            let mut f = Flags(rest);
+            let bin = f.take_value("--bin")?.map(PathBuf::from);
+            let args = f.rest();
+            let [task] = args.as_slice() else {
+                bail!("bless-oracle <task> [--bin <dir>]");
+            };
+            let (before, after) = oracle::bless_oracle(
+                root,
+                &oracle::BlessArgs {
+                    task: task.clone(),
+                    bin,
+                },
+            )?;
+            println!("oracle of `{task}` written from a temporary copy of the golden project");
+            println!("golden/ digest before {before}");
+            println!("golden/ digest after  {after}");
+            println!("golden/ unchanged: {}", before == after);
+            Ok(before == after)
+        }
+        "check-task" => {
+            let args = Flags(rest).rest();
+            let [task] = args.as_slice() else {
+                bail!("check-task <task>");
+            };
+            let problems = oracle::check_task(root, task)?;
+            if problems.is_empty() {
+                println!("task `{task}` is sound");
+                Ok(true)
+            } else {
+                for p in &problems {
+                    println!("{p}");
+                }
+                println!("task `{task}`: {} problem(s)", problems.len());
+                Ok(false)
+            }
         }
         other => {
             eprint!("blind: unknown subcommand `{other}`\n\n{HELP}");

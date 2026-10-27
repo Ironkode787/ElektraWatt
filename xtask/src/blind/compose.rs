@@ -31,6 +31,8 @@ pub struct ComposeIn<'a> {
     pub blind: &'a str,
     /// The caps of the run.
     pub caps: Caps,
+    /// The folios of the run (`--folios`): the blocks of the task sheet for other folios are left out. Empty: all.
+    pub folios: &'a [String],
 }
 
 /// The prompt and the digests of the files it was made from.
@@ -47,6 +49,37 @@ pub const REFERENCE_FILES: [&str; 2] = [
     "tools/blind/reference/actions.txt",
     "tools/blind/reference/vocabulary.txt",
 ];
+
+/// Leaves out the folio blocks of `body` that are not for `folios` (§5.4: `--folios`). A block is the lines from
+/// `<!-- folio 102 -->` to `<!-- /folio -->`; the marker lines themselves never reach the prompt. With no folios every
+/// block stays.
+///
+/// # Errors
+///
+/// A block that is not closed, an end marker without a block, or a block inside a block.
+pub fn filter_folios(body: &str, folios: &[String]) -> Result<String> {
+    let mut out = String::new();
+    let mut open: Option<bool> = None;
+    for line in body.split_inclusive('\n') {
+        let t = line.trim();
+        if let Some(folio) = t.strip_prefix("<!-- folio ").and_then(|r| r.strip_suffix(" -->")) {
+            if open.is_some() {
+                bail!("the task sheet has a folio block inside a folio block");
+            }
+            open = Some(folios.is_empty() || folios.iter().any(|f| f == folio.trim()));
+        } else if t == "<!-- /folio -->" {
+            if open.take().is_none() {
+                bail!("the task sheet has an end of a folio block without a block");
+            }
+        } else if open != Some(false) {
+            out.push_str(line);
+        }
+    }
+    if open.is_some() {
+        bail!("the task sheet has a folio block that is not closed");
+    }
+    Ok(out)
+}
 
 fn read_text(root: &Path, rel: &str) -> Result<String> {
     let text = std::fs::read_to_string(root.join(rel)).with_context(|| format!("reading {rel}"))?;
@@ -85,6 +118,11 @@ pub fn compose(inp: &ComposeIn) -> Result<Composed> {
     for rel in rels {
         let body = read_text(inp.root, &rel)?;
         let sha = sha256_hex(body.as_bytes());
+        let body = if rel.ends_with("/task.md") {
+            filter_folios(&body, inp.folios).with_context(|| rel.clone())?
+        } else {
+            body
+        };
         let body = body
             .replace("{run}", inp.run_id)
             .replace("{blind}", inp.blind)
@@ -179,6 +217,94 @@ mod tests {
             run_id: "gpp-r1",
             blind: "/r/bin/xtask blind",
             caps: kind.caps(),
+            folios: &[],
+        }
+    }
+
+    /// `--folios` leaves the sheet's blocks of other folios out of the prompt (§5.4); the markers never reach it.
+    #[test]
+    fn folio_blocks_of_other_folios_are_left_out() {
+        let sheet = "Intro.\n<!-- folio 101 -->\nOne.\n<!-- /folio -->\n<!-- folio 102 -->\nTwo.\n<!-- /folio -->\nEnd.\n";
+        let f = |list: &[&str]| {
+            let folios: Vec<String> = list.iter().map(|s| (*s).to_owned()).collect();
+            filter_folios(sheet, &folios).unwrap()
+        };
+        assert_eq!(f(&[]), "Intro.\nOne.\nTwo.\nEnd.\n");
+        assert_eq!(f(&["101"]), "Intro.\nOne.\nEnd.\n");
+        assert_eq!(f(&["102", "101"]), "Intro.\nOne.\nTwo.\nEnd.\n");
+        assert_eq!(f(&["103"]), "Intro.\nEnd.\n");
+        for bad in [
+            "<!-- folio 101 -->\nx\n",
+            "x\n<!-- /folio -->\n",
+            "<!-- folio 101 -->\n<!-- folio 102 -->\n<!-- /folio -->\n<!-- /folio -->\n",
+        ] {
+            assert!(filter_folios(bad, &[]).is_err(), "{bad:?}");
+        }
+        // The composed prompt takes the filtered sheet, the digest stays the file's.
+        let tmp = Tmp::new("compose-folios");
+        tree(&tmp);
+        std::fs::write(tmp.0.join("tools/blind/tasks/gpp/task.md"), sheet).unwrap();
+        let only = vec!["102".to_owned()];
+        let mut inp = input(&tmp.0, Kind::Gate, "gpp", None);
+        inp.folios = &only;
+        let c = compose(&inp).unwrap();
+        assert!(c.text.contains("Two.") && !c.text.contains("One.") && !c.text.contains("<!-- folio"));
+        assert_eq!(
+            c.files["tools/blind/tasks/gpp/task.md"],
+            sha256_hex(sheet.as_bytes())
+        );
+    }
+
+    /// BD14: the prompt, persona, checker and help files carry a front-matter block with the name and a version.
+    #[test]
+    fn the_prompt_files_carry_front_matter() {
+        let root = crate::workspace_root();
+        let cases = [
+            ("tools/blind/BLIND_DRAFTER.md", "prompt", "blind-drafter"),
+            ("tools/blind/CHECKER.md", "prompt", "blind-checker"),
+            ("tools/blind/HELP.md", "prompt", "blind-help"),
+            ("tools/blind/personas/qet-veteran.md", "persona", "qet-veteran"),
+            ("tools/blind/personas/switcher.md", "persona", "switcher"),
+        ];
+        for (rel, key, name) in cases {
+            let text = read_text(&root, rel).unwrap();
+            let rest = text
+                .strip_prefix("---\n")
+                .unwrap_or_else(|| panic!("{rel} has no front matter"));
+            let (front, _) = rest
+                .split_once("\n---\n")
+                .unwrap_or_else(|| panic!("{rel}: the front matter is not closed"));
+            let lines: Vec<&str> = front.lines().collect();
+            assert_eq!(lines[0], format!("{key}: {name}"), "{rel}");
+            let version = lines[1]
+                .strip_prefix("version: ")
+                .unwrap_or_else(|| panic!("{rel}: no version"));
+            assert!(version.parse::<u32>().is_ok_and(|v| v >= 1), "{rel}: {version}");
+            assert_eq!(lines.len(), 2, "{rel}: only the name and the version");
+        }
+        // The prompts' placeholders are the ones compose substitutes.
+        for rel in [
+            "tools/blind/BLIND_DRAFTER.md",
+            "tools/blind/CHECKER.md",
+            "tools/blind/HELP.md",
+        ] {
+            let text = read_text(&root, rel).unwrap();
+            let left = text
+                .replace("{run}", "")
+                .replace("{blind}", "")
+                .replace("{kind}", "")
+                .replace("{turns}", "")
+                .replace("{steps}", "")
+                .replace("{looks}", "")
+                .replace("{refusals}", "");
+            // Placeholders left over would be words in braces; JSON examples (`{"action":…}`) are fine.
+            assert!(
+                !left
+                    .split('{')
+                    .skip(1)
+                    .any(|p| p.starts_with(|c: char| c.is_ascii_lowercase()) && p.contains('}')),
+                "{rel} has an unknown placeholder"
+            );
         }
     }
 
