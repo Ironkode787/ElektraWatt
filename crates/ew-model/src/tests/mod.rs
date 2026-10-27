@@ -5,6 +5,7 @@
 //! fixture without a testkit dependency.
 
 mod assembly_links;
+mod assets;
 mod content_diff;
 mod field_mask;
 pub(crate) mod fixture;

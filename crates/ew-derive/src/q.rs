@@ -593,12 +593,14 @@ impl Q {
         self.model.project()
     }
 
-    /// The reference of the held asset with this hash (format, intrinsic size), for the company logo of the earlier
-    /// bare-hash form, which names no format (FT-337). Recorded as a read of the project row: assets are only ever
-    /// added, a file's assets are loaded before any query runs, and the bare form is never written, so the only way
-    /// the answer changes is `project.company.set` writing the logo, which changes the project row.
+    /// The reference of the held asset with this hash (format, intrinsic size): the company logo of the earlier
+    /// bare-hash form, which names no format (FT-337), and the asset of an image page item. Recorded as a read of the
+    /// project row (`project.company.set` changes the logo the answer is asked for) and of the asset store
+    /// ([`DepKey::Assets`]): assets are only ever added, and one arrives in any transaction that carries it, e.g.
+    /// an image item placed on another page with the file as `data`, which changes no row this reader read.
     pub fn logo_asset(&self, sha256: &ew_schema::Sha256) -> Option<ew_schema::AssetRef> {
         self.read(DepKey::Project, self.model.project_row().changed_at());
+        self.read(DepKey::Assets, self.model.assets_stamp());
         self.model.asset(sha256).map(|a| *a.reference())
     }
 

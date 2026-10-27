@@ -285,6 +285,15 @@ impl Model {
         self.assets.values()
     }
 
+    /// The stamp of the asset store for a tracked read of whether an asset is held (`ew-derive`'s `DepKey::Assets`):
+    /// the number of assets the model holds. Assets are only ever added ([`Model::put_asset`]; the model keeps every
+    /// asset it was given), so the stamp changes exactly when an insert grows the set. An asset can arrive in a
+    /// transaction that changes no row a reader read (an image item of another page brings the file as `data`), so
+    /// such a reader depends on this stamp and not on the rows.
+    pub fn assets_stamp(&self) -> Rev {
+        Rev(u64::try_from(self.assets.len()).unwrap_or(u64::MAX))
+    }
+
     /// Puts an asset into the asset store. Its bytes are named by their hash, so this is not a change of the
     /// model: no revision, no op, and putting an asset that is there already does nothing. The callers are the
     /// commit of a transaction whose ops name the asset, the store at open and the journal replay.

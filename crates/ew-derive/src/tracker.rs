@@ -13,8 +13,8 @@
 //! comparing its current stamp with the recorded `observed`; a dependency is unchanged iff the current stamp
 //! equals `observed`. The stamp of a `Row` is the row's `changed_at` (the table's for an absent row); of an
 //! `IndexKey` the key's `changed_at` (the index's for an absent key); of a `Table` or `Index` the table's or
-//! index's; of `Project` the project row's; of `Reserved` the model's revision. Stamps only grow, and a query
-//! result depends only on the recorded reads.
+//! index's; of `Project` the project row's; of `Assets` the number of assets held; of `Reserved` the model's
+//! revision. Stamps only grow, and a query result depends only on the recorded reads.
 
 use std::cell::RefCell;
 use std::fmt;
@@ -36,6 +36,10 @@ pub enum IxKey {
 pub enum DepKey {
     /// The project row (master data, settings, the pinned derivation profile).
     Project,
+    /// The asset store: whether an asset is held and its reference (the format of an image). The observed
+    /// revision is the number of assets the model holds ([`Model::assets_stamp`](ew_model::Model::assets_stamp)):
+    /// assets are only ever added, and one can arrive in a transaction that changes no row the reader read.
+    Assets,
     /// One row, present or absent. For an absent row the observed revision is the table's.
     Row(AnyKey),
     /// A whole table (iteration, length).

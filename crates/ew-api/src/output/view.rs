@@ -392,7 +392,8 @@ pub fn page_items(q: &Q, page: Id<Page>, texts: bool) -> Vec<ew_scene::items::It
         .filter_map(|id| items.get(id).cloned())
         .map(|item| {
             // An image's format comes from the asset the project holds (assets are only added; the read is recorded
-            // against the project row, `Q::logo_asset`).
+            // against the project row and the asset store, `Q::logo_asset`: the asset can arrive with an item of
+            // another page).
             let asset = match &item.kind {
                 ew_schema::PageItemKind::Image(i) => q.logo_asset(&i.asset),
                 _ => None,

@@ -168,7 +168,7 @@ fn endpoint_shard_id(e: &EndpointKey) -> AnyId {
 ///   `PageItemsByPage` and `StructureBoxesByPage`;
 ///   `IndexShard(name, s)` otherwise, where `s` is the shard of the key's ID, of the function of a `Cp`
 ///   endpoint, or of the junction of a `Junction` endpoint.
-/// - `Read(Table(_))`, `Read(Index(_))`, `Read(Project)`, `Read(Reserved)`: themselves.
+/// - `Read(Table(_))`, `Read(Index(_))`, `Read(Project)`, `Read(Assets)`, `Read(Reserved)`: themselves.
 pub(crate) fn coarse(model: &Model, input: &MemoInput) -> MemoInput {
     match input {
         MemoInput::Read(DepKey::Row(key)) => match model.row(key).as_ref().and_then(page_of) {
@@ -260,8 +260,8 @@ fn index_stamp(model: &Model, name: IndexName) -> Rev {
 
 /// The revision stamp of a tracked read in `model`: exactly what `Q`'s accessor observes for it (the
 /// verifier contract of `tracker.rs`): a row's `changed_at` (the table's for an absent row), a bucket's
-/// `changed_at` (the index's for an absent key), the table's, the index's, the project row's; the model's
-/// revision for the reserved records.
+/// `changed_at` (the index's for an absent key), the table's, the index's, the project row's; the number of
+/// assets held for the asset store; the model's revision for the reserved records.
 pub(crate) fn stamp(model: &Model, dep: &DepKey) -> Rev {
     match dep {
         // A kind without a table has no read in `Q`: the model's revision is the conservative answer.
@@ -270,6 +270,7 @@ pub(crate) fn stamp(model: &Model, dep: &DepKey) -> Rev {
         DepKey::IndexKey(name, key) => index_key_stamp(model, *name, *key),
         DepKey::Index(name) => index_stamp(model, *name),
         DepKey::Project => model.project_row().changed_at(),
+        DepKey::Assets => model.assets_stamp(),
         DepKey::Reserved => model.rev(),
     }
 }
@@ -292,7 +293,7 @@ fn kind_durability(kind: Kind) -> Durability {
 
 /// The durability of an input (ADR-0002 decision 4): the project row is `Settings`; rows and tables of the
 /// embedded library copies (`Part`, `Symbol`, `Fndef`, `Form`) are `Library`; everything else, the
-/// registration keys and parts included, is `Drawing`.
+/// registration keys, the asset store and parts included, is `Drawing` (a drawing commit brings assets in).
 pub(crate) fn durability(input: &MemoInput) -> Durability {
     match input {
         MemoInput::Read(DepKey::Project) => Durability::Settings,
@@ -308,7 +309,9 @@ pub(crate) fn durability(input: &MemoInput) -> Durability {
 /// `Shard(kind, shard(id))`, and in `before` and in `after` (where the row exists): the row's `Page`, and for
 /// every named base index the row feeds, the bucket's coarse key and `Read(Index(name))`. `Read(Reserved)`
 /// is included when the reserved records of `before` and `after` differ (their stamp changes with every
-/// commit, their content almost never: no command puts them). The list is sorted and deduplicated.
+/// commit, their content almost never: no command puts them), and `Read(Assets)` when `after` holds assets
+/// that `before` does not (a transaction brings its assets in without a row of the readers that depend on
+/// them). The list is sorted and deduplicated.
 ///
 /// The durability is the most durable level among the keys (`Drawing` for an empty list): `Settings` for the
 /// project row, `Library` for a library copy. A kind's level never changes, so it covers the input before and
@@ -317,6 +320,9 @@ pub(crate) fn touched(before: &Model, after: &Model, keys: &[AnyKey]) -> (Vec<Me
     let mut out = Vec::new();
     if reserved_changed(before, after) {
         out.push(MemoInput::Read(DepKey::Reserved));
+    }
+    if stamp(before, &DepKey::Assets) != stamp(after, &DepKey::Assets) {
+        out.push(MemoInput::Read(DepKey::Assets));
     }
     let mut level = Durability::Drawing;
     for key in keys {
@@ -867,6 +873,41 @@ mod tests {
             durability(&MemoInput::Read(DepKey::Reserved)),
             Durability::Drawing
         );
+        assert_eq!(
+            durability(&MemoInput::Read(DepKey::Assets)),
+            Durability::Drawing,
+            "a drawing commit brings assets in"
+        );
+    }
+
+    /// Cycle-29 review 4: an asset arrives without a row of the readers that depend on it (the file of an image item
+    /// placed on another page), so a commit that grows the asset store touches `Read(Assets)` and nothing else, and
+    /// its stamp changes with the insert only.
+    #[test]
+    fn touched_lists_the_asset_store_when_it_grew() {
+        let before = base();
+        let same = before.clone();
+        assert_eq!(touched(&before, &same, &[]).0, Vec::new());
+        let mut after = before.clone();
+        let asset = ew_model::Asset::new(
+            ew_schema::AssetRef {
+                sha256: ew_schema::Sha256([7; 32]),
+                format: ew_schema::AssetFormat::Svg,
+                size: None,
+            },
+            vec![1u8, 2, 3],
+        );
+        after.put_asset(asset.clone());
+        let (list, level) = touched(&before, &after, &[]);
+        assert_eq!(list, vec![MemoInput::Read(DepKey::Assets)]);
+        assert_eq!(level, Durability::Drawing);
+        assert_ne!(stamp(&before, &DepKey::Assets), stamp(&after, &DepKey::Assets));
+        let own = MemoInput::Read(DepKey::Assets);
+        assert_eq!(coarse(&after, &own), own, "its own registration key");
+        // Putting it again changes nothing.
+        let mut again = after.clone();
+        again.put_asset(asset);
+        assert_eq!(touched(&after, &again, &[]).0, Vec::new());
     }
 
     // -------------------------------------------------------------------------------------------------
@@ -1086,6 +1127,7 @@ mod tests {
         let _ = q.project();
         let _ = q.profile();
         let _ = q.reserved(Kind::Waiver).count();
+        let _ = q.logo_asset(&ew_schema::Sha256([7; 32]));
 
         let reads = rec.reads();
         for r in &reads {
@@ -1103,6 +1145,7 @@ mod tests {
             |d: &DepKey| matches!(d, DepKey::IndexKey(..)),
             |d: &DepKey| matches!(d, DepKey::Index(_)),
             |d: &DepKey| matches!(d, DepKey::Project),
+            |d: &DepKey| matches!(d, DepKey::Assets),
             |d: &DepKey| matches!(d, DepKey::Reserved),
         ] {
             assert!(
@@ -1264,7 +1307,7 @@ mod tests {
                 "the list is sorted and has no duplicates: {list:?}"
             );
 
-            let mut deps = vec![DepKey::Project, DepKey::Reserved];
+            let mut deps = vec![DepKey::Project, DepKey::Assets, DepKey::Reserved];
             deps.extend(INDEXES.map(DepKey::Index));
             deps.extend(TABLE_KINDS.map(DepKey::Table));
             for m in [&model, &after] {

@@ -196,3 +196,48 @@ fn the_page_tables_list_an_image_item() {
         [20_000_000, 40_000_000, 100_000_000, 60_000_000]
     );
 }
+
+/// Cycle-29 review 4: a page's views are memoised, and an image's format comes from the asset the project holds. An
+/// image item whose asset the project does not hold (its file is missing) reads as a PNG; the same file placed on
+/// another page with `data` brings the asset in the same transaction without touching the first page's rows, so the
+/// first page's memoised views must follow: they equal the cold ones (an SVG now: vector paths, no raster image).
+#[test]
+fn an_asset_that_arrives_with_an_item_on_another_page_reaches_the_memoised_views() {
+    let batch = batch();
+    let ids = ids_by_key(&batch);
+    let (page_a, page_b) = (ids["pages|101"].clone(), ids["pages|102"].clone());
+    let hash = ew_api::Sha256(sha2::Sha256::digest(SVG).into());
+    let mut s = golden_common::session_with(&batch, |_, records| {
+        let item: ew_schema::PageItem = serde_json::from_value(json!({
+            "id": "0192f3a0-0000-7000-8000-00000000a001", "page": page_a,
+            "kind": {"image": {"asset": hash.to_string(),
+                "rect": [[20_000_000, 40_000_000], [100_000_000, 60_000_000]]}}}))
+        .unwrap();
+        records.push(ew_schema::Record::PageItem(item));
+    });
+    assert!(s.asset(&hash).is_none(), "the file is missing");
+    // The memo store holds the views of every page, page 101's with the image as a PNG of unknown bytes.
+    let report = ew_api::verify::verify_derived(&s).expect("memo on");
+    assert!(report.is_clean(), "{:?}", report.differences);
+    let before = s.export_svg(&folio_101()).unwrap();
+    assert_eq!(before.report.skipped_images, 1, "the missing file is reported");
+    assert!(!before.files[0].text.contains("#123456"));
+
+    s.execute(&cmd(
+        "item.place",
+        json!({"page": page_b, "kind": {"image": {"data": ew_api::base64_encode(SVG),
+            "rect": [[20_000_000, 40_000_000], [100_000_000, 60_000_000]]}}}),
+    ))
+    .expect("placed with the file itself");
+    assert!(s.asset(&hash).is_some());
+
+    // Page 101's memoised views equal their cold values, and its image is the SVG now.
+    let report = ew_api::verify::verify_derived(&s).expect("memo on");
+    assert!(report.is_clean(), "{:?}", report.differences);
+    let after = s.export_svg(&folio_101()).unwrap();
+    assert_eq!(after.report.skipped_images, 0);
+    assert!(
+        after.files[0].text.contains("#123456"),
+        "page 101 draws the logo's paths"
+    );
+}
