@@ -8,8 +8,12 @@
 //! - `the_to_cell_is_the_second_key`: wires from one From cell are ordered by the To cell, before the wire ID.
 //! - `the_to_page_compares_before_the_to_cell`: a wire to another page sorts after the wires that stay on the
 //!   From page, whatever the To cell.
-//! - `a_tie_is_decided_by_the_wire_id_and_keeps_its_range`: equal cells, the wire ID decides, `tie` gives the
-//!   counter range of the group.
+//! - `a_tie_is_decided_by_the_wire_id_and_keeps_its_range`: equal cells, labels and route, the wire ID decides,
+//!   `tie` gives the counter range of the group.
+//! - FT-440, the tie-break among equal cells: `the_from_label_decides_before_the_wire_id_and_the_to_label`,
+//!   `the_labels_compare_in_natural_order`, `the_to_label_decides_when_the_from_labels_are_equal`,
+//!   `the_first_route_vertex_decides_when_the_labels_are_equal` (y, then x, a wire without a route last) and
+//!   `the_route_is_read_from_the_from_end`.
 //! - `a_core_takes_no_counter`: a cable core inside a page run is in the order but unnumbered.
 //! - `a_wire_on_no_page_is_last_and_unnumbered`.
 //! - `a_terminal_in_a_strip_segment_has_a_cell_for_the_orientation`: a wire from a segment-only terminal to a
@@ -127,6 +131,15 @@ fn at(column: i64, row: i64) -> Pt2 {
 fn node(fx: &mut Fx, n: u128, page: u128, column: i64, row: i64) {
     let p = at(column, row);
     fx.device(n + 0x20_000, "K", Some(n as u32));
+    fx.function(n, Some(n + 0x20_000), FN_PLAIN, true);
+    fx.rep(n + REP, page, SYM_PLAIN, &[n], p.x.0, p.y.0);
+}
+
+/// Like [`node`], with the device counter `counter` instead of one derived from `n`: two devices with one counter
+/// print the same CP label.
+fn node_tagged(fx: &mut Fx, n: u128, page: u128, column: i64, row: i64, counter: u32) {
+    let p = at(column, row);
+    fx.device(n + 0x20_000, "K", Some(counter));
     fx.function(n, Some(n + 0x20_000), FN_PLAIN, true);
     fx.rep(n + REP, page, SYM_PLAIN, &[n], p.x.0, p.y.0);
 }
@@ -250,11 +263,13 @@ fn the_to_page_compares_before_the_to_cell() {
 #[test]
 fn a_tie_is_decided_by_the_wire_id_and_keeps_its_range() {
     let mut fx = fixture();
-    // Four wires with the same From cell and To cell, and one more elsewhere that sorts first.
-    node(&mut fx, 0x1001, P1, 4, 1);
-    node(&mut fx, 0x1002, P1, 4, 1);
-    node(&mut fx, 0x1011, P1, 9, 6);
-    node(&mut fx, 0x1012, P1, 9, 6);
+    // Two wires with the same cells and the same CP labels (the two sources are devices of one tag, so are the
+    // two sinks), no route; and one more wire elsewhere that sorts first. The wire IDs run against the order
+    // of the declaration and of the device IDs.
+    node_tagged(&mut fx, 0x1001, P1, 4, 1, 1);
+    node_tagged(&mut fx, 0x1002, P1, 4, 1, 1);
+    node_tagged(&mut fx, 0x1011, P1, 9, 6, 2);
+    node_tagged(&mut fx, 0x1012, P1, 9, 6, 2);
     node(&mut fx, 0x1003, P1, 1, 1);
     node(&mut fx, 0x1013, P1, 2, 6);
     wire(&mut fx, 0x2003, Some(P1), 0x1001, 0x1011);
@@ -266,6 +281,92 @@ fn a_tie_is_decided_by_the_wire_id_and_keeps_its_range() {
     // The two wires of the tie keep the ID order and both carry the range of the group, counters 2 to 3.
     assert_eq!(rows[1], (0x2001, Some("101.2".to_owned()), Some((2, 3))));
     assert_eq!(rows[2], (0x2003, Some("101.3".to_owned()), Some((2, 3))));
+}
+
+#[test]
+fn the_from_label_decides_before_the_wire_id_and_the_to_label() {
+    let mut fx = fixture();
+    // Two sources in one cell and two sinks in one cell: the same From and To cells. The wire with the lower
+    // wire ID starts at the source with the higher label, so the ID order and the label order differ; its To
+    // label is the lower one, so the To label would put it first if it came before the From label.
+    node(&mut fx, 0x1001, P1, 4, 1);
+    node(&mut fx, 0x1002, P1, 4, 1);
+    node(&mut fx, 0x1011, P1, 9, 6);
+    node(&mut fx, 0x1012, P1, 9, 6);
+    wire(&mut fx, 0x2001, Some(P1), 0x1002, 0x1011);
+    wire(&mut fx, 0x2002, Some(P1), 0x1001, 0x1012);
+    let rows = order(&fx.build());
+    assert_eq!(ids(&rows), vec![0x2002, 0x2001]);
+    assert_eq!(rows[0], (0x2002, Some("101.1".to_owned()), Some((1, 2))));
+    assert_eq!(rows[1], (0x2001, Some("101.2".to_owned()), Some((1, 2))));
+}
+
+#[test]
+fn the_labels_compare_in_natural_order() {
+    let mut fx = fixture();
+    // Counters whose digit count differs, 0x9 (K9) against 0x10 (K16): a text order would put K16 first.
+    node(&mut fx, 0x10, P1, 4, 1);
+    node(&mut fx, 0x9, P1, 4, 1);
+    node(&mut fx, 0x1011, P1, 9, 6);
+    wire(&mut fx, 0x2001, Some(P1), 0x10, 0x1011);
+    wire(&mut fx, 0x2002, Some(P1), 0x9, 0x1011);
+    let rows = order(&fx.build());
+    assert_eq!(ids(&rows), vec![0x2002, 0x2001], "K9 comes before K16");
+}
+
+#[test]
+fn the_to_label_decides_when_the_from_labels_are_equal() {
+    let mut fx = fixture();
+    // Both wires start at the same CP and end in one cell; the wire with the lower ID ends at the higher label.
+    node(&mut fx, 0x1001, P1, 4, 1);
+    node(&mut fx, 0x1011, P1, 9, 6);
+    node(&mut fx, 0x1012, P1, 9, 6);
+    wire(&mut fx, 0x2001, Some(P1), 0x1001, 0x1012);
+    wire(&mut fx, 0x2002, Some(P1), 0x1001, 0x1011);
+    let rows = order(&fx.build());
+    assert_eq!(ids(&rows), vec![0x2002, 0x2001]);
+    assert_eq!(rows[0], (0x2002, Some("101.1".to_owned()), Some((1, 2))));
+}
+
+/// A wire with a route, in nm.
+fn wire_routed(fx: &mut Fx, n: u128, a: u128, b: u128, route: Value) {
+    wire(fx, n, Some(P1), a, b);
+    fx.record(n)["route"] = route;
+}
+
+#[test]
+fn the_first_route_vertex_decides_when_the_labels_are_equal() {
+    let mut fx = fixture();
+    // Four sources of one tag in one cell, four sinks of one tag in one cell: equal cells and labels. The wire
+    // IDs run against the order the routes ask for: the smaller y goes first, for equal y the smaller x, and a
+    // wire without a route comes after those with one, whatever its ID.
+    for k in 0..4 {
+        node_tagged(&mut fx, 0x1001 + k, P1, 4, 1, 1);
+        node_tagged(&mut fx, 0x1011 + k, P1, 9, 6, 2);
+    }
+    wire(&mut fx, 0x2000, Some(P1), 0x1001, 0x1011);
+    wire_routed(&mut fx, 0x2001, 0x1002, 0x1012, json!([[0, 300], [10, 300]]));
+    wire_routed(&mut fx, 0x2002, 0x1003, 0x1013, json!([[500, 100], [500, 300]]));
+    wire_routed(&mut fx, 0x2003, 0x1004, 0x1014, json!([[200, 100], [500, 300]]));
+    let rows = order(&fx.build());
+    assert_eq!(ids(&rows), vec![0x2003, 0x2002, 0x2001, 0x2000]);
+    assert_eq!(rows[0].2, Some((1, 4)));
+}
+
+#[test]
+fn the_route_is_read_from_the_from_end() {
+    let mut fx = fixture();
+    for k in 0..2 {
+        node_tagged(&mut fx, 0x1001 + k, P1, 4, 1, 1);
+        node_tagged(&mut fx, 0x1011 + k, P1, 9, 6, 2);
+    }
+    // 0x2001 runs from the From end (a is the source): its first vertex has y 200. 0x2002 is declared the other
+    // way round (a is the sink), so its route runs towards the From end and the From end's vertex is the last
+    // one, y 100; read from `a` it would be y 300 and sort after 0x2001.
+    wire_routed(&mut fx, 0x2001, 0x1001, 0x1011, json!([[0, 200], [0, 0]]));
+    wire_routed(&mut fx, 0x2002, 0x1012, 0x1002, json!([[0, 300], [0, 100]]));
+    let rows = order(&fx.build());
+    assert_eq!(ids(&rows), vec![0x2002, 0x2001]);
 }
 
 #[test]

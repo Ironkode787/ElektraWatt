@@ -1,11 +1,11 @@
 row,No.,From,CP,To,CP,Potential,Colour,mm²,Source,Via,Wire part,Pages
-data,101.1,ext. J-E-206-N,,1X1:2,2,N,BU,1.5 mm²,rule,,,101
-data,101.2,ext. J-E-206-PE,,1X1:PE,2,PE,GNYE,1.5 mm²,rule,,,101
-data,101.3,ext. J-E-206-L,,1X1:1,2,L,BK,1.5 mm²,rule,,,101
-data,101.4,S51,3,-101F1,N,N-S,BU,2.5 mm²,cdp/rule,chain on -101F1:N#1,,101
-data,101.5,S51,1,-101F1,1,L-S,BK,2.5 mm²,cdp/rule,chain on -101F1:1,,101
-data,101.6,1X1:2,1,S51,4,N,BU,2.5 mm²,cdp/rule,,,101
-data,101.7,1X1:1,1,S51,2,L,BK,2.5 mm²,cdp/rule,,,101
+data,101.1,ext. J-E-206-L,,1X1:1,2,L,BK,1.5 mm²,rule,,,101
+data,101.2,ext. J-E-206-N,,1X1:2,2,N,BU,1.5 mm²,rule,,,101
+data,101.3,ext. J-E-206-PE,,1X1:PE,2,PE,GNYE,1.5 mm²,rule,,,101
+data,101.4,S51,1,-101F1,1,L-S,BK,2.5 mm²,cdp/rule,chain on -101F1:1,,101
+data,101.5,S51,3,-101F1,N,N-S,BU,2.5 mm²,cdp/rule,chain on -101F1:N#1,,101
+data,101.6,1X1:1,1,S51,2,L,BK,2.5 mm²,cdp/rule,,,101
+data,101.7,1X1:2,1,S51,4,N,BU,2.5 mm²,cdp/rule,,,101
 data,101.8,1X1:PE,1,-XPE,PE,PE,GNYE,1.5 mm²,rule,,,101
 data,101.9,-101F1,1,F55,1,L-S,BK,1.5 mm²,rule,chain on -101F1:1,,101
 data,101.10,-101F1,N,F55,N,N-S,BU,1.5 mm²,rule,chain on -101F1:N#1,,101
@@ -20,8 +20,8 @@ data,101.18,E55,PE,-X1032:1,b,PE,GNYE,1.5 mm²,rule,IP PE-1.1,,"101, 103"
 data,101.19,S56,14,E56,X1,N-55S,BU,1.5 mm²,rule,,,101
 data,102.1,-102G1,+,-102F1,1,+24V,DBU,1.5 mm²,cdp/rule,102-C6 chain on -102F1:1,,102
 data,102.2,-102G1,+,-102F1,1,+24V,DBU,1.5 mm²,cdp/rule,102-C6 chain on -102F1:1,,102
-data,102.3,-102G1,−,-102F2,GND,0V,WH,1.5 mm²,cdp/rule,102-D6 star at -102G1:−#2,,102
-data,102.4,-102G1,−,-102F2,GND,0V,WH,1.5 mm²,cdp/rule,102-D5 star at -102G1:−#1,,102
+data,102.3,-102G1,−,-102F2,GND,0V,WH,1.5 mm²,cdp/rule,102-D5 star at -102G1:−#1,,102
+data,102.4,-102G1,−,-102F2,GND,0V,WH,1.5 mm²,cdp/rule,102-D6 star at -102G1:−#2,,102
 data,102.5,-102G1,−,-X1032:2,a,0V ⇄ PE,GNYE,0.75 mm²,bond/rule,102-D5 star at -102G1:−#1; IP PE-0VDC,,"102, 103"
 data,102.6,-102G1,PE,-X1032:2,b,PE,GNYE,1.5 mm²,rule,IP PE-1.2,,"102, 103"
 data,102.7,-102G1,−,-X1031:11,a,0V,WH,0.75 mm²,rule,102-D6 star at -102G1:−#2; IP 0VDC,,"102, 103"

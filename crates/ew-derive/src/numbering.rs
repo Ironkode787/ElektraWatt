@@ -14,13 +14,18 @@
 //! 2. the From end's frame cell, column then row,
 //! 3. the To end's page, then the To end's frame cell, column then row (the To page compares first: a wire to
 //!    another page sorts after the wires that stay on the From page; ruling of cycle 13),
-//! 4. the wire ID.
+//! 4. among wires equal in all of these, what a person sees (FT-440, decision log ID-675): the From end's CP
+//!    label, then the To end's CP label (natural order, as [`cp_label`] prints them), then the first route
+//!    vertex of the From end's constituent read from the From end (y, then x; a wire without one after those
+//!    with one),
+//! 5. the wire ID, only for wires equal in all of them (the minted IDs are not monotonic, so they must not
+//!    decide what a printed label can).
 //!
 //! The From end is the end [`orient_wire`] puts first (doc 08 §3.8). The cell of an end is the cell of the CP's
 //! drawn point on the page of the constituent connection that ends there ([`cp_cell`]); an end that no
 //! representation draws on that page has no cell and sorts after every cell. Where the two cells cannot
-//! separate two wires the wire ID decides; [`WireNumber::tie`] then gives the counter range of the group, so
-//! that a table can print "101.2–.3 (tie)" as doc 20 §8.2 does.
+//! separate two wires the steps 4 and 5 decide; [`WireNumber::tie`] still groups the wires of the same cells,
+//! so that a table can print "101.2–.3 (tie)" as doc 20 §8.2 does.
 //!
 //! The query orders **every** physical wire (cores included, so that the wire list can use the order for its
 //! rows); only the numbered ones carry a [`WireNumber`]. A wire none of whose constituents is drawn on a page
@@ -34,10 +39,12 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use ew_ids::Id;
-use ew_schema::{Connection, Page};
+use ew_mltext::{NaturalKey, natural_key};
+use ew_schema::{Connection, Endpoint, Page};
 
 use crate::cp_point::cp_cell;
 use crate::flow_distance::CpFlowDistanceOf;
+use crate::joins::cp_label;
 use crate::pages::DrawnPageOrder;
 use crate::query::{Policy, Query};
 use crate::wires::{PhysicalWire, PhysicalWiresOf, WireEnd};
@@ -53,7 +60,7 @@ pub struct WireNumber {
     /// The printed number, `{page}.{counter}` (`102.5`).
     pub label: String,
     /// The counters (first, last) of the group of wires whose From and To cells are the same, when the group
-    /// has more than one wire: the wire ID decided among them (doc 20 §8.1 "tie").
+    /// has more than one wire: the labels, the route or the wire ID decided among them (doc 20 §8.1 "tie").
     pub tie: Option<(u32, u32)>,
 }
 
@@ -110,8 +117,23 @@ impl Query for WireNumbers {
 /// A frame cell as the sort key `(column, row)`; `(MAX, MAX)` when the end has none.
 type CellKey = (u32, u32);
 
-/// The sort key of a wire: From page position, From cell, To page position, To cell, wire ID.
-type Key = (usize, CellKey, usize, CellKey, Id<Connection>);
+/// The first route vertex read from the From end as the sort key `(none, y, x)`: a wire without one after those
+/// with one.
+type VertexKey = (bool, i64, i64);
+
+/// The sort key of a wire: From page position, From cell, To page position, To cell, then among equal cells
+/// what a person sees (FT-440): the From end's CP label and the To end's (natural order), the first route vertex
+/// (y, then x), and only then the wire ID.
+type Key = (
+    usize,
+    CellKey,
+    usize,
+    CellKey,
+    NaturalKey,
+    NaturalKey,
+    VertexKey,
+    Id<Connection>,
+);
 
 struct Entry {
     key: Key,
@@ -129,7 +151,7 @@ fn number_wires(q: &Q) -> WireNumbersV {
         }
     }
     let mut entries: Vec<(Id<Connection>, Entry)> = by_id.into_iter().collect();
-    entries.sort_by_key(|a| a.1.key);
+    entries.sort_by(|a, b| a.1.key.cmp(&b.1.key));
 
     // Counters per page over the numbered wires, then the tie groups: runs of equal (page, From, To) cells.
     let mut next: BTreeMap<Id<Page>, u32> = BTreeMap::new();
@@ -208,12 +230,25 @@ fn entry(q: &Q, order: &crate::pages::PageOrderV, wire: &PhysicalWire) -> Entry 
             .unwrap_or(usize::MAX)
     };
     let pos = position(from_page);
+    // The first vertex of the From end's constituent, read from the From end.
+    let vertex = from_side
+        .and_then(|c| q.connections().get(*c))
+        .and_then(|c| {
+            let from = &w.ends[0].cp;
+            let reversed = matches!(c.b, Endpoint::Cp(f, i) if f == from.function && i == from.idx)
+                && !matches!(c.a, Endpoint::Cp(f, i) if f == from.function && i == from.idx);
+            if reversed { c.route.last() } else { c.route.first() }.copied()
+        })
+        .map_or((true, 0, 0), |p| (false, p.y.0, p.x.0));
     Entry {
         key: (
             pos,
             cell(&w.ends[0], from_page),
             position(to_page),
             cell(&w.ends[1], to_page),
+            natural_key(&cp_label(q, w.ends[0].cp)),
+            natural_key(&cp_label(q, w.ends[1].cp)),
+            vertex,
             w.id,
         ),
         page: from_page.filter(|_| pos != usize::MAX),
