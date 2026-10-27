@@ -13,7 +13,7 @@ ID-610 to ID-619, the ten entries of §12.3 in order (follow-ups FT-408 to FT-41
 round ID-621 to ID-624 (follow-up FT-420); **cycle 26:** the alias `@n` landed (FT-422, ID-640), so part 1's
 normaliser does not rewrite UUIDs and only guards against a raw one, which fails the replay comparison naming the line
 (ID-630 (d)); the shell's UUID-keyed orders go first (FT-439), so that an alias names the same record in every replay;
-**part 1 delivered in cycle 27**, recorded as ID-645 with its nine rulings and the review's, ID-621's token amended, FT-314 and FT-415 closed; follow-ups FT-442 and FT-465; part 2 next (ID-654) ·
+**part 1 delivered in cycle 27**, recorded as ID-645 with its nine rulings and the review's, ID-621's token amended, FT-314 and FT-415 closed; follow-ups FT-442 and FT-465; **part 2 delivered in cycle 29** (amended 2026-10-27), recorded as ID-669 with its seven deviations (§12.8), FT-442 and FT-465 closed, BD14 and BD15 passing and BD16 pending; part 3 next (ID-674) ·
 **Part of:** ElektraWatt plan, specifications
 
 **Purpose.** This is the closed specification of the blind drafter's harness: the tool through which an agent that
@@ -313,12 +313,14 @@ Every step the agent sends is checked before it reaches the product. A refused s
 | The action ID is in `reference/actions.txt` | `harness: unknown action <id>` |
 | The action is not `command.run`, `view.snapshot`, `canvas.snapshot` or `canvas.preview_snapshot` | `harness: <id> is not available to the drafter` |
 | The action does not reach the sample project or a basic project by path: not `file.open_sample`, not `help.tutorials`, not `first_run.finish` with `start` `sample`, not `settings.set` with the key `basic_project` | `harness: <id> is not available to the drafter` |
-| A `gate` or `free` run: any other action. A `check` run: only actions of kind `View` and `file.open`, `app.quit` | `harness: the checker does not change the project` |
+| A `gate` or `free` run: any other action. A `check` run: only actions of kind `View` and `file.open`, `app.quit`, except the canvas actions that reach a tool's commit (the list below; FT-442) | `harness: the checker does not change the project` |
 | Every parameter whose signature type is `path` (among them `dir`, `path`, `file` and `file.new`'s `template`) is a bare relative name (no `/`, `\`, `:`, no `..`, not empty) | `harness: paths are names inside the run's work folder` |
 | Every parameter name is in the action's signature (with `key=value`) | `harness: <action> has no parameter <name>` |
 | No parameter value (at any depth) contains a UUID (8-4-4-4-12 hexadecimal) | `harness: use a label or a position, not an ID` |
 | The parameters are a JSON object of at most 64 KiB | `harness: parameters too large` |
 | The step is not marked broken (§5.2.2 item 4) | `harness: marked broken, move on` |
+
+**The check run's list (FT-442, closed in cycle 29; ID-669).** A canvas action is of kind `View`, and a canvas press, drag or activate can reach a tool's commit, so a checker could move representations in its copy of the project and describe a changed drawing. A check run therefore refuses `canvas.press`, `canvas.release`, `canvas.activate`, `canvas.activate_alt`, `tool.finish` and any `canvas.drag*` with the text above, and keeps `nav.*`, `page.*`, `view.zoom*`, `view.pan*`, `view.fit_page`, `tab.*`, `pages.*`, `canvas.pointer`, `canvas.dwell`, `cursor.*`, `tool.select`, `tool.measure`, `ui.describe`, `page.describe`, `file.open` and `app.quit`. A test asserts that the `View` actions the filter refuses are exactly this list.
 
 The product runs with its working directory at `work/`, so bare names resolve inside the run folder; `--config-dir`
 points at `config/`, `EW_SAMPLE_DIR` at `.harness/empty-sample/` and `EW_DOCS_DIR` at `book/` (§5.4), so even an
@@ -924,7 +926,8 @@ points where the code differs from the text above, or settles what it left open:
    `note` is accepted after `end: cap` or `quit` for the turn that ended the run; `handback` after `quit` and `cap` too
    (`end` keeps the first cause, `handed_back` is a field of `run.json`). A check run files its audit with `handback`
    (five headings, written to `checker.md`). The check run's filter admits the actions of kind `View` (a canvas action is
-   one), as §5.3 says; it works on a copy of the project.
+   one), as §5.3 said then; it works on a copy of the project. Part 2 amends this: a check run refuses the canvas actions that reach a tool's
+   commit (FT-442; §5.3, §12.8).
 6. **Run files.** `run.json` gains `stateless`, `handed_back`, `diverged_at`, `clean_before_epilogue` and `child_exit`;
    `turns.jsonl` lines carry the step range, the first step not done, the broken mark, the refusal text, the scores and
    an `epilogue` line (the range that `epilogue.txt` is made from). `record.ewcmd.txt` is the one file where the harness
@@ -954,6 +957,20 @@ points where the code differs from the text above, or settles what it left open:
     recording leaves it out. From a run's copy, `serve` also serves that run's folder only.
 12. **Run state, fix round.** `stop` records `golden_changed` in `run.json` and `bless` refuses such a run; a check run's
     copy of the drafter's project is put back whenever `work/` is deleted (`resume`, every stateless call).
+
+### 12.8 As built: part 2 (cycle 29)
+
+Built as §5.6, §5.7, §5.8 (the reports), §5.9 and §7 say; BD14 and BD15 pass and the golden digest is unchanged across `bless-oracle` (decision log ID-669). **Files:** `tools/blind/BLIND_DRAFTER.md`, `CHECKER.md` and `HELP.md` (version 2), the personas `personas/qet-veteran.md` and `personas/switcher.md`, the task sheets `tasks/gpp-101-103/` (`task.md`, `prelude.uiscript`, `prelude.toml`, `gaps.toml` and `oracle/` with `counts.toml`, `bom.csv`, `rows.sql` and `rows/*.csv`) and `tasks/free/`, and `xtask/src/blind/score.rs` and `oracle.rs` (the scores H1 to H7 and S1 to S8, `bless-oracle`, `check-task`). **The prelude is setup only:** `tools.company_standard`, `wizard.finish`, `wizard.cancel`, `file.new` and one `command.run library.embed` of the 14 golden part copies; it has no `drawing` lines, because FT-408 to FT-411 are closed. **`gaps.toml`:** H4 is a gap owned by WP-S2.07, because the part picker lists only parts that have a function template. The points where the code differs from the text above, or settles what it left open:
+
+1. **Folios.** `compose` takes `<!-- folio N -->` blocks and a `--folios` option, and `start` defaults the folios to the oracle's.
+2. **Reports.** A check run copies the drafter's `out/check.txt`, `out/bom.csv`, `out/score.json` and `out/report.md` into its own `reports/`, which `report` reads.
+3. **The self-test recording** gained `out/score.json` and a Score section.
+4. **S7 (markers)** reads the `item marker` lines of the page text, because the SQL projection has no view of markers; the expected rows come from `[[marker]]` in `counts.toml`.
+5. **S8** approximates AC-21 by matching a finding's `subject` against the drawn tags.
+6. **H4** compares part number, description and quantity.
+7. **`bless-oracle`** uses a fixed temporary folder `ew-blind-oracle-<task>`, removed at the end.
+
+**FT-442 closed:** the check run's filter and its list are §5.3's; a test asserts that the refused `View` actions are exactly the list. **FT-465 closed:** the cause is that a project from the built-in template has no `parts_summary` report block, and `ExportError::NoBlock` is by design; exit 2 is kept and the CLI message now names the block, the wizard origin (folio 901 or 906) and "nothing to export". **BD16**, the dry run on folio 101, is the orchestrator's after the integration and is pending; this section records no result for it.
 
 ---
 
