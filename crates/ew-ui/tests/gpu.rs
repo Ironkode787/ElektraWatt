@@ -13,7 +13,10 @@ mod support;
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
-use ew_render_cpu::{FontBytes, RenderOptions, RgbaImage, SheetSize, pixel_size, render};
+use ew_render_cpu::{
+    FontBytes, ItemBounds, RegionOptions, RenderOptions, RgbaImage, SheetSize, pixel_size, render,
+    render_region,
+};
 use ew_render2d::gpu::{GpuView, HeadlessDevice, MeshCache, prepare};
 use ew_ui::ew_viewmodel::canvas::CanvasPage;
 use ew_ui::ew_viewmodel::ew_api::output::ew_dl::ew_units::{Nm, Pt2, Rect};
@@ -585,6 +588,23 @@ fn gpu_host(d: &HeadlessDevice, tmp: &Tmp) -> (ew_ui::gpu::GpuHost, ShellModel) 
     (host, shell)
 }
 
+/// The canvas's CPU path: the whole sheet as one `render_region` with the list's `ItemBounds` (what the tile pool
+/// runs, culling included), and its report.
+fn tiles(list: &DisplayList, sheet: (i64, i64), dpi: u32) -> (RgbaImage, ew_render_cpu::RenderReport) {
+    let (w, h) = pixel_size(sheet_size(sheet), dpi);
+    let bounds = ItemBounds::of(list, None);
+    let options = RegionOptions {
+        dpi,
+        x: 0,
+        y: 0,
+        width: w as u32,
+        height: h as u32,
+        background: Color::WHITE,
+        surround: Color::WHITE,
+    };
+    render_region(list, Some(&bounds), sheet_size(sheet), &options, fonts(), None).unwrap()
+}
+
 /// A page with a PNG item selects the CPU path, whose output shows the PNG's pixels inside the item's rectangle; the
 /// GPU path draws none of them (it skips and counts the image), and a page without a raster image keeps the GPU path.
 #[test]
@@ -614,10 +634,6 @@ fn a_page_with_a_png_item_is_drawn_by_the_cpu_path_with_its_pixels() {
     without.push(Item::path(Path::rect(rect), None, Some(Brush::BLACK)));
     let (with, grouped, without) = (Arc::new(with), Arc::new(grouped), Arc::new(without));
     let sheet = (100_000_000, 60_000_000);
-    let options = RenderOptions {
-        dpi: 96,
-        ..RenderOptions::default()
-    };
     for d in &devices {
         let (mut host, mut shell) = gpu_host(d, &tmp);
         let page = page_of(1, 1, "1", &with);
@@ -636,7 +652,7 @@ fn a_page_with_a_png_item_is_drawn_by_the_cpu_path_with_its_pixels() {
         host.update(&mut shell, raster);
         assert_eq!(shell.canvas_backend().label(), "GPU Vulkan");
         // The CPU path's output has the PNG's red inside the rectangle: 40 × 10 mm at 96 dpi is about 151 × 38 pixels.
-        let (cpu, report) = render(&with, sheet_size(sheet), &options, fonts(), None).unwrap();
+        let (cpu, report) = tiles(&with, sheet, 96);
         assert_eq!(report.skipped_images, 0);
         let inside = red_pixels(&cpu);
         assert!(inside >= 5_000, "{inside} red pixels on the CPU path");
@@ -686,13 +702,9 @@ fn a_title_block_page_with_a_png_logo_is_drawn_by_the_cpu_path() {
         Outcome::Done
     );
     let (mut host, _) = gpu_host(d, &tmp);
-    let options = RenderOptions {
-        dpi: 96,
-        ..RenderOptions::default()
-    };
     let plain = Arc::clone(shell.canvas().expect("a canvas").page());
     assert!(host.draws_page(&plain), "without a logo: the GPU path");
-    let (before, _) = render(&plain.list, sheet_size(plain.sheet), &options, fonts(), None).unwrap();
+    let (before, _) = tiles(&plain.list, plain.sheet, 96);
     assert_eq!(red_pixels(&before), 0, "the golden page has no red");
     let logo = ew_ui::ew_viewmodel::ew_api::base64_encode(&red_png(64, 32));
     assert_eq!(
@@ -711,7 +723,7 @@ fn a_title_block_page_with_a_png_logo_is_drawn_by_the_cpu_path() {
         !host.draws_page(&page),
         "a PNG logo in the title block: the CPU path"
     );
-    let (after, report) = render(&page.list, sheet_size(page.sheet), &options, fonts(), None).unwrap();
+    let (after, report) = tiles(&page.list, page.sheet, 96);
     assert_eq!(report.skipped_images, 0);
     assert!(
         red_pixels(&after) >= 100,

@@ -323,3 +323,55 @@ fn item_bounds_cover_what_each_item_draws() {
         }
     }
 }
+
+/// A drawn image is part of its item's reach: `render_region` with `ItemBounds` (the canvas's tile path) draws the
+/// image where `render` does, at the top level and in a clipped group, and culls a region it does not touch.
+#[test]
+fn a_png_item_is_inside_the_item_bounds_and_the_tiles_draw_it() {
+    let png = ew_render_cpu::encode_png(
+        &RgbaImage {
+            width: 8,
+            height: 2,
+            pixels: [255u8, 0, 0, 255].repeat(16),
+        },
+        None,
+    );
+    let rect = Rect::from_points(mm(20, 40), mm(100, 60));
+    let image = Item::image(
+        Arc::new(ew_dl::ImageData {
+            sha256: [5; 32],
+            format: ew_dl::ImageFormat::Png,
+            bytes: Arc::from(png),
+        }),
+        rect,
+    );
+    let red = |img: &RgbaImage| {
+        img.pixels
+            .chunks(4)
+            .filter(|p| p[0] > 200 && p[1] < 60 && p[2] < 60)
+            .count()
+    };
+    for list in [
+        DisplayList {
+            items: vec![image.clone()],
+        },
+        DisplayList {
+            items: vec![Item::group(None, Some(rect), vec![image.clone()])],
+        },
+    ] {
+        let dpi = 96;
+        let (w, h) = pixel_size(a4(), dpi);
+        let whole = full(&list, dpi);
+        assert!(red(&whole) > 5_000, "{} red pixels from render", red(&whole));
+        let bounds = ItemBounds::of(&list, None);
+        let o = region(dpi, 0, 0, w as u32, h as u32);
+        assert_eq!(
+            cut(&list, Some(&bounds), &o),
+            whole,
+            "the tiles equal the full raster"
+        );
+        // A region far from the image (the lower right of the sheet) is culled and blank.
+        let far = region(dpi, i64::from(w as u32) - 40, i64::from(h as u32) - 40, 32, 32);
+        assert_eq!(red(&cut(&list, Some(&bounds), &far)), 0);
+    }
+}

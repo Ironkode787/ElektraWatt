@@ -307,8 +307,8 @@ pub fn render_region(
 /// The bounds of the top-level items of a display list, for [`render_region`]'s culling.
 ///
 /// Per top-level item: the box (in sheet nanometres) of everything the renderer draws for it (path control boxes,
-/// glyph-run layout boxes and glyph origins, resolved instances, groups under their transforms and cut to their
-/// clips; images are not drawn and add nothing) and how far ink can reach beyond that box: half the widest stroke
+/// glyph-run layout boxes and glyph origins, the rectangles of drawn images (PNG and JPEG with bytes), resolved instances,
+/// groups under their transforms and cut to their clips) and how far ink can reach beyond that box: half the widest stroke
 /// times the miter limit (a miter join reaches that far) and twice the em size of a glyph run (outlines reach
 /// beyond their layout box). [`render_region`] adds 2 device pixels for anti-aliasing.
 #[derive(Clone, PartialEq, Debug)]
@@ -392,7 +392,13 @@ fn reach_of(
                 }
                 acc.pad = acc.pad.max(2.0 * run.size.0 as f64);
             }
-            ItemKind::Image(_) => {}
+            // A drawn image (PNG or JPEG with its bytes, as `Painter::image` draws it) reaches its rectangle; one the
+            // painter skips adds nothing.
+            ItemKind::Image(img) => {
+                if img.image.format != ImageFormat::Svg && !img.image.bytes.is_empty() {
+                    acc.add(cur.transform_rect_bbox(nm_rect(img.rect)));
+                }
+            }
             ItemKind::Instance(inst) => {
                 let geom = geometry
                     .filter(|_| inst_depth < MAX_INSTANCE_DEPTH)
