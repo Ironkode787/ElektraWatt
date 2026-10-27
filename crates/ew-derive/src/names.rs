@@ -7,8 +7,9 @@
 //! - **`potential_name(p)`** (doc 08 §3.5): the first definition's name in ID order (another name is noted as
 //!   EW-POT-017); else the first non-external source interruption point in page order (page position, anchor
 //!   row, anchor column, ID); else the first external source interruption point in that order (review decision
-//!   D6); else `<tag>:<designation>` of the first member CP in that order. The aliases are every other distinct
-//!   IP name on the potential, external points included, in natural order; points on a bond's `via` path (doc 03
+//!   D6); else `<tag>:<designation>` of the first member CP in (page position, row, column) order, ties by that
+//!   name in natural order and then by CP ID. The aliases are every other distinct IP name on the potential,
+//!   external points included, in natural order; points on a bond's `via` path (doc 03
 //!   §9.6) are named on the bond, not on the potential. A signal takes the first IP name inside it, in page
 //!   order. The family also pushes the EW-POT-001 notes of the potential's attributes, which name it.
 //! - **`potential_attrs(p)`** (doc 03 §9.4): type, voltage, environment and class from the first definition in
@@ -197,8 +198,10 @@ impl Query for PotentialNameOf {
     }
 }
 
-/// The fallback name `<tag>:<designation>` of the first member CP (not an IP) in (page position, row,
-/// column, CP ID) order of its function's first representation.
+/// The fallback name `<tag>:<designation>` of the first member CP (not an IP) in (page position, row, column) order
+/// of its function's first representation; ties go to the name in natural order (then bytes) and only then to the CP
+/// ID, so two CPs of one anchor cell (a terminal's two sides) name the potential alike in every fresh copy of a
+/// project (WP-S6.13 §6 item 3: an ID of a new project is random).
 fn fallback_name(q: &Q, p: &Potential) -> PotentialName {
     let is_ip = |f: Id<Function>| p.ips.binary_search(&f).is_ok();
     let order = q.get::<DrawnPageOrder>(());
@@ -211,31 +214,55 @@ fn fallback_name(q: &Q, p: &Potential) -> PotentialName {
             .unwrap_or(usize::MAX);
         let cell = rep.and_then(|r| q.get::<RepAnchorCell>(r).as_ref().clone());
         let (row, col) = cell.map_or((u32::MAX, u32::MAX), |c| (c.row, c.column));
-        (pos, row, col, cp.id())
+        (pos, row, col)
     };
-    let first = p
+    let text = |cp: CpRef| {
+        let tag = q
+            .functions()
+            .get(cp.function)
+            .and_then(|f| f.device)
+            .and_then(|d| q.get::<DeviceTag>(d).as_ref().as_ref().map(|t| t.short()))
+            .unwrap_or_else(|| "?".to_owned());
+        let designation = q
+            .get::<FunctionCps>(cp.function)
+            .iter()
+            .find(|c| c.idx == cp.idx)
+            .map_or_else(|| cp.idx.to_string(), |c| c.designation.clone());
+        format!("{tag}:{designation}")
+    };
+    let keyed: Vec<_> = p
         .cps
         .iter()
         .filter(|cp| !is_ip(cp.function))
-        .min_by_key(|cp| key(cp))
-        .or_else(|| p.cps.first())
-        .copied();
-    let Some(cp) = first else {
+        .map(|cp| (key(cp), *cp))
+        .collect();
+    // Only the CPs that tie on the first key are named, so the family reads no other member's tag.
+    let first = keyed
+        .iter()
+        .map(|(k, _)| *k)
+        .min()
+        .map_or_else(
+            || p.cps.first().copied().into_iter().collect(),
+            |min| {
+                keyed
+                    .iter()
+                    .filter(|(k, _)| *k == min)
+                    .map(|(_, cp)| *cp)
+                    .collect::<Vec<_>>()
+            },
+        )
+        .into_iter()
+        .map(|cp| (text(cp), cp))
+        .min_by(|(ta, a), (tb, b)| {
+            natural_cmp(ta, tb)
+                .then_with(|| ta.cmp(tb))
+                .then_with(|| a.id().cmp(&b.id()))
+        });
+    let Some((text, cp)) = first else {
         return unknown().name;
     };
-    let tag = q
-        .functions()
-        .get(cp.function)
-        .and_then(|f| f.device)
-        .and_then(|d| q.get::<DeviceTag>(d).as_ref().as_ref().map(|t| t.short()))
-        .unwrap_or_else(|| "?".to_owned());
-    let designation = q
-        .get::<FunctionCps>(cp.function)
-        .iter()
-        .find(|c| c.idx == cp.idx)
-        .map_or_else(|| cp.idx.to_string(), |c| c.designation.clone());
     PotentialName {
-        text: format!("{tag}:{designation}"),
+        text,
         source: NameSource::Fallback(cp),
     }
 }

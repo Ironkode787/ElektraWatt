@@ -287,8 +287,10 @@ an undefined one.
 - **Canonical name.** It is the first of these:
   1. the `PotentialDef.name`;
   2. the name of the first source IP in page order;
-  3. a fallback `<displayed tag>:<CP designation>` of the member CP that comes first in (page order, row, column,
-     CP ID).
+  3. a fallback `<displayed tag>:<CP designation>` of the member CP that comes first in (page order, row, column),
+     ties by that fallback text in natural order, then by CP ID (so two CPs of one anchor cell, such as a terminal's
+     two sides, give the same name in every fresh copy of a project, whose IDs are random; blind replay, WP-S6.13
+     §6 item 3).
 
   An external source interruption point counts as a source IP for step 2 (decision log ID-174).
 - **Aliases.** Every other distinct IP name on the potential is an alias, in natural order (FR-CON-012, D-24).

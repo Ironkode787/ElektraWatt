@@ -487,6 +487,32 @@ fn potential_id_prefers_definitions() {
     assert_eq!(part.potentials().next().unwrap().id, PotentialId::Cp(min));
 }
 
+#[test]
+fn fallback_name_ties_go_to_the_name_not_the_cp_id() {
+    // One function whose two CPs (designations "1" and "2") share its anchor cell, wired to each other: no
+    // definition and no IP, so the fallback names the potential. The two CPs tie on (page, row, column); the tie
+    // goes to the name in natural order (`…:1`), whichever of the two CP IDs is smaller — a new project's IDs are
+    // random (WP-S6.13 §6 item 3, blind replay of gpp-dry-101).
+    let below = |f: u128| CpRef::new(id(f), 1).id() < CpRef::new(id(f), 0).id();
+    let pick = |want: bool| (0x1001..0x1100).find(|f| below(*f) == want).unwrap();
+    for f in [pick(true), pick(false)] {
+        let mut fx = base();
+        func(&mut fx, f, P1);
+        conn(&mut fx, 0x2001, Some(P1), Ep::Cp(f, 0), Ep::Cp(f, 1), Value::Null);
+        let m = fx.build();
+        let q = Q::new(&m);
+        let part = q.get::<PotentialPartition>(());
+        assert_eq!(part.potential_count(), 1);
+        let name = q.get::<PotentialNameOf>(part.potentials().next().unwrap().id);
+        assert!(name.name.text.ends_with(":1"), "{f:#x}: {}", name.name.text);
+        assert_eq!(
+            name.name.source,
+            NameSource::Fallback(CpRef::new(id(f), 0)),
+            "{f:#x}"
+        );
+    }
+}
+
 /// A model with seven connections, a junction, an IP pair, a bridge and a definition.
 fn scenario() -> Fx {
     let mut fx = base();

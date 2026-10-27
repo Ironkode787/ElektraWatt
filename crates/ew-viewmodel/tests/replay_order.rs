@@ -364,3 +364,132 @@ fn one_script_under_ascending_and_descending_ids_prints_the_same_bytes_and_recor
         assert_eq!(x, y, "alias @{} names another record", n + 1);
     }
 }
+
+/// A maker of an ID source.
+type Ids = fn() -> Box<dyn IdSource + Send>;
+
+/// New IDs that ascend from the clock `millis` and the random bits `n`: two more ID sets, so that a tie broken by a
+/// hash of a new ID (a v5 CP ID) flips between some pair of the four runs below.
+fn ascending_from(millis: u64, n: u64) -> Box<dyn IdSource + Send> {
+    Box::new(Ascending { millis, n })
+}
+
+fn ascending_b() -> Box<dyn IdSource + Send> {
+    ascending_from(1 << 40, 0x9E37_79B9_7F4A_7C15)
+}
+
+fn ascending_c() -> Box<dyn IdSource + Send> {
+    ascending_from(3 << 41, 0x2545_F491_4F6C_DD1D)
+}
+
+/// After the blind run `gpp-dry-101` (cycle 29, lane H29): two terminals of a new strip placed on one point (Alt
+/// places without snapping), the wire tool's cursor on their coincident CPs, a wire between the first terminal's two
+/// sides, and `cp.next` over the coincident CPs.
+fn coincident_steps(dir: &str) -> Vec<(String, Value)> {
+    let terminal = |designation: &str| {
+        vec![
+            ("tool.place", json!({})),
+            ("picker.filter", json!({"text": "iec.terminal@"})),
+            ("picker.choose", json!({})),
+            ("picker.choose", json!({ "designation": designation })),
+            ("nav.goto", json!({"text": "199-D2"})),
+            ("canvas.activate", json!({"alt": true})),
+            ("ui.dismiss", json!({})),
+        ]
+    };
+    let mut list: Vec<(&str, Value)> = vec![
+        ("file.open", json!({ "dir": dir })),
+        (
+            "page.new",
+            json!({"folio": "199", "section": "1", "title": "T", "type": "multi_line"}),
+        ),
+        ("strip.new", json!({"letter": "X"})),
+    ];
+    list.extend(terminal("1"));
+    list.extend(terminal("2"));
+    list.extend([
+        ("tool.wire", json!({})),
+        // The two terminals' upper CPs, on one point: the snap names one of them.
+        ("cursor.set", json!({"x_mm": 54.152, "y_mm": 85.467})),
+        ("canvas.activate", json!({})),
+        // Their lower CPs.
+        ("cursor.set", json!({"x_mm": 54.152, "y_mm": 90.686})),
+        ("canvas.activate", json!({})),
+        ("ui.dismiss", json!({})),
+        // The wired terminal's potential has no definition and no IP: the fallback name of its two CPs.
+        ("page.describe", json!({"folio": "199"})),
+        ("cp.next", json!({})),
+        ("cp.next", json!({})),
+        ("cp.next", json!({})),
+        ("cp.next", json!({})),
+        ("app.quit", json!({"discard": true})),
+    ]);
+    list.into_iter().map(|(a, v)| (a.to_owned(), v)).collect()
+}
+
+/// One run of the coincident script under `ids` on a fresh copy of Golden A: the transcript, the directory replaced.
+fn run_coincident(tag: &str, ids: Ids) -> String {
+    let tmp = Tmp::new(tag);
+    let dir = tmp.0.join("J-E-2416.ew");
+    copy_dir(Path::new(GOLDEN_A), &dir);
+    let dir = dir.to_string_lossy().into_owned();
+    let mut shell = ShellModel::new(
+        Mode::Headless,
+        ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
+    );
+    shell.set_id_source_for_tests(Some(ids));
+    let parsed = script::parse(&script_text(&coincident_steps(&dir))).unwrap();
+    let mut lines = Vec::new();
+    script::run(&mut shell, &mut NoExtension, &parsed, false, &mut |l| {
+        lines.push(l.to_owned());
+        Ok(())
+    })
+    .unwrap();
+    for l in lines.iter().skip(1) {
+        let step: Value = serde_json::from_str(l).unwrap();
+        assert_eq!(step["outcome"], "done", "{tag}: {l}");
+    }
+    shell.shutdown();
+    lines.join("\n").replace(&dir, "DIR")
+}
+
+/// The blind replay of `gpp-dry-101` differed between two fresh folders (cycle 29, lane H29): coincident CPs were
+/// ordered by their v5 IDs in `page_cps` (the snap's label, `cp.next`), and a potential's fallback name took the CP
+/// with the smaller v5 ID among the CPs of one anchor cell. Both ties now go to the label or the name in natural
+/// order: four runs under four ID sets print the same bytes, the snap names `-X1991:1/a` and the potential is
+/// `-X1991:1:1`.
+#[test]
+fn coincident_cps_and_fallback_names_do_not_depend_on_new_ids() {
+    let sources: [(&str, Ids); 4] = [
+        ("coincident-asc", ascending),
+        ("coincident-desc", descending),
+        ("coincident-b", ascending_b),
+        ("coincident-c", ascending_c),
+    ];
+    let runs: Vec<String> = sources
+        .into_iter()
+        .map(|(tag, ids)| run_coincident(tag, ids))
+        .collect();
+    let a = &runs[0];
+    let steps: Vec<Value> = a
+        .lines()
+        .skip(1)
+        .map(|l| serde_json::from_str::<Value>(l).unwrap())
+        .collect();
+    let snap = steps
+        .iter()
+        .find(|v| v["action"] == "cursor.set")
+        .map(|v| v["state"]["canvas"]["snap"].clone())
+        .unwrap();
+    assert_eq!(snap["kind"], "cp", "{a}");
+    assert_eq!(snap["label"], "-X1991:1/a", "{a}");
+    let describe = steps
+        .iter()
+        .find(|v| v["action"] == "page.describe")
+        .and_then(|v| v["describe"].as_str())
+        .unwrap();
+    assert!(describe.contains("potential \"-X1991:1:1\""), "{describe}");
+    for (n, b) in runs.iter().enumerate().skip(1) {
+        assert_eq!(a, b, "run {} prints other bytes than run 1", n + 1);
+    }
+}
