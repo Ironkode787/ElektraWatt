@@ -145,7 +145,7 @@ impl ShellModel {
                 let cursor = self.project.as_ref().map_or(0, |p| p.session.history().cursor());
                 let from = self.history.row.unwrap_or(cursor.saturating_sub(1).min(len - 1));
                 // Down the list is toward older entries: a smaller index.
-                let moved = i64::try_from(from).unwrap_or(0) - step;
+                let moved = i64::try_from(from).unwrap_or(0).saturating_sub(step);
                 usize::try_from(moved.clamp(0, i64::try_from(len - 1).unwrap_or(0))).unwrap_or(0)
             }
             (None, None) => return failed("error-missing-param", &["step"]),

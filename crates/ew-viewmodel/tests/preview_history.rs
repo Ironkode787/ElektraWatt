@@ -649,6 +649,33 @@ fn pv5_markers_sit_at_their_revisions_and_the_counts_are_exact() {
     s.shutdown();
 }
 
+/// R1-7 of cycle 31: `history.row` with the extreme steps does not overflow; it clamps to the first (newest) or the
+/// last (oldest) entry.
+#[test]
+fn history_row_clamps_the_extreme_steps() {
+    let tmp = Tmp::new("history-row-extremes");
+    let mut s = small(&tmp, Mode::Headless);
+    done(
+        &mut s,
+        "page.new",
+        json!({"folio": "102", "type": "multi_line", "title": "Control"}),
+    );
+    done(&mut s, "history.show", json!({}));
+    let len = s.history_pane().view().unwrap().rows.len();
+    assert!(len >= 2, "{len} entries");
+    done(&mut s, "history.row", json!({"step": i64::MIN}));
+    assert_eq!(s.history_pane().row_cursor(), Some(len - 1), "the first entry");
+    done(&mut s, "history.row", json!({"step": i64::MAX}));
+    assert_eq!(s.history_pane().row_cursor(), Some(0), "the last entry");
+    done(&mut s, "history.row", json!({"step": i64::MIN}));
+    assert_eq!(
+        s.history_pane().row_cursor(),
+        Some(len - 1),
+        "the first entry again"
+    );
+    s.shutdown();
+}
+
 const LOGO_X: &[u8] = br#"<svg viewBox="0 0 8 2"><rect width="8" height="2"/></svg>"#;
 const LOGO_Y: &[u8] = br#"<svg viewBox="0 0 3 3"><circle r="1"/></svg>"#;
 
