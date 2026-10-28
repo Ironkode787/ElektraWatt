@@ -192,3 +192,43 @@ fn w31_2_the_first_tag_change_is_on_show_at_1280_by_800() {
     assert!(h.query_by_label("Tags (11)").is_some());
     h.state_mut().shell_mut().shutdown();
 }
+
+/// W31-7: an undone entry offers Redo to here (`history.undo_to` redoes up to it, §8.4), not Undo to here; the applied
+/// entries keep Undo to here. Its row is named `…, undone`.
+#[test]
+fn w31_7_an_undone_entry_offers_redo_to_here() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let mut h = harness(&tmp, Scripted::default(), Some(dir));
+    settle(&mut h);
+    for text in ["one", "two", "three"] {
+        dispatch(
+            &mut h,
+            "command.run",
+            json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-101F1"}],
+                "path": "function_text", "value": text}}),
+        );
+    }
+    dispatch(&mut h, "history.show", json!({}));
+    settle(&mut h);
+    assert_eq!(h.get_all_by_label("Undo to here").count(), 3);
+    assert_eq!(h.query_all_by_label("Redo to here").count(), 0);
+    dispatch(&mut h, "history.undo_to", json!({"entry": 1}));
+    settle(&mut h);
+    assert!(has_text(&h, "3 steps · cursor at 1"));
+    // Entries 3 and 2 are undone (the first two rows), entry 1 is applied.
+    assert_eq!(h.get_all_by_label("Redo to here").count(), 2);
+    assert_eq!(h.get_all_by_label("Undo to here").count(), 1);
+    let undone = h
+        .get_all_by_role(egui::Role::Group)
+        .filter_map(|n| n.accesskit_node().label())
+        .filter(|l| l.ends_with(", undone"))
+        .count();
+    assert_eq!(undone, 2, "the undone rows are named so");
+    // Redo to here on entry 3 (the first row) redoes both.
+    h.get_all_by_label("Redo to here").next().unwrap().click();
+    settle(&mut h);
+    assert_eq!(h.state().shell().history_pane().view().unwrap().cursor, 3);
+    assert_eq!(h.query_all_by_label("Redo to here").count(), 0);
+    h.state_mut().shell_mut().shutdown();
+}

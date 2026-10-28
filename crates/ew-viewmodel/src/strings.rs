@@ -1336,6 +1336,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "history-merged" => "merged {0}",
         "history-changes-title" => "Changes of step {0}",
         "history-redo" => "undone",
+        "history-redo-to" => "Redo to here",
         "marker-saved" => "Saved",
         "renumber-pages-title" => "Renumber pages",
         "renumber-devices-title" => "Renumber devices",

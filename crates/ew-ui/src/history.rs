@@ -67,8 +67,10 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                             let mut rich = RichText::new(&text);
                             let selected = history.row_cursor() == Some(row.index);
                             match state {
-                                // An undone entry in `color.history.undone`; selected, in text.secondary (§4.15).
+                                // An undone entry in `color.history.undone`; selected, in text.secondary (§4.15);
+                                // italic either way, so a selected undone row still reads as undone (W31-7).
                                 EntryState::Redo => {
+                                    rich = rich.italics();
                                     let t = crate::theme::current(ui.ctx());
                                     let colour = if selected {
                                         t.text_secondary
@@ -88,9 +90,13 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                                     text.clone()
                                 };
                                 r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Group, true, &name));
-                                if r.double_clicked()
-                                    || ui.small_button(strings::text("action-history-undo-to")).clicked()
-                                {
+                                // W31-7: `history.undo_to` redoes up to an undone entry (§8.4), so its row offers
+                                // Redo to here; the others keep Undo to here (§8.8).
+                                let walk = match state {
+                                    EntryState::Redo => "history-redo-to",
+                                    EntryState::Now | EntryState::Done => "action-history-undo-to",
+                                };
+                                if r.double_clicked() || ui.small_button(strings::text(walk)).clicked() {
                                     events.push(Event::Action(
                                         "history.undo_to",
                                         json!({ "entry": row.index + 1 }),
