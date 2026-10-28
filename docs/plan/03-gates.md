@@ -242,9 +242,9 @@ otherwise reached. The two AI columns are the internal target and the upside of 
 | **G-SP** | 7 (May 2027) | 6 (Apr 2027) |
 | **G-M0** | 3 (Jan 2027) | 3 (Jan 2027) |
 | **G-M1** | 23 (Sep 2028) | 16 (Feb 2028) |
-| **G-PP** | 38 (Dec 2029) | 24 (Oct 2028) |
-| **G-M2** | 65 (Mar 2032) | 39 (Jan 2030) |
-| **G-M3** | 73 (Nov 2032) | 43 (May 2030) |
+| **G-PP** | 38 (Dec 2029) | 25 (Nov 2028) |
+| **G-M2** | 65 (Mar 2032) | 38 (Dec 2029) |
+| **G-M3** | 73 (Nov 2032) | 42 (Apr 2030) |
 | **G-M4** | 87 (Jan 2034) | 51 (Jan 2031) |
 | **G-M5** | 100 (Feb 2035) | 56 (Jun 2031) |
 | **G-M6** | 108 (Oct 2035) | 62 (Dec 2031) |

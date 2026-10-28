@@ -52,7 +52,7 @@ scenario,label,scope,developers,joins,efficiency,capacity,estimate,ai_speedup,mi
 2d-full-cap80,"2 developers, full scope, capacity -20 %",full,2,0 0,1.0,0.8,mean,1.0,M3,G-M3,91,May 2034
 2d-full-cap80,"2 developers, full scope, capacity -20 %",full,2,0 0,1.0,0.8,mean,1.0,M4,G-M4,109,Nov 2035
 2d-full-cap80,"2 developers, full scope, capacity -20 %",full,2,0 0,1.0,0.8,mean,1.0,M5,G-M5,125,Mar 2037
-2d-full-cap80,"2 developers, full scope, capacity -20 %",full,2,0 0,1.0,0.8,mean,1.0,M6,G-M6,135,Jan 2038
+2d-full-cap80,"2 developers, full scope, capacity -20 %",full,2,0 0,1.0,0.8,mean,1.0,M6,G-M6,134,Dec 2037
 2d-full-cap120,"2 developers, full scope, capacity +20 %",full,2,0 0,1.0,1.2,mean,1.0,M0,G-M0,2,Dec 2026
 2d-full-cap120,"2 developers, full scope, capacity +20 %",full,2,0 0,1.0,1.2,mean,1.0,,G-SP,6,Apr 2027
 2d-full-cap120,"2 developers, full scope, capacity +20 %",full,2,0 0,1.0,1.2,mean,1.0,M1,G-M1,19,May 2028
@@ -182,9 +182,9 @@ scenario,label,scope,developers,joins,efficiency,capacity,estimate,ai_speedup,mi
 4d-full,"4 developers (fourth from month 4), full scope",full,4,0 0 0 4,0.9,1.0,mean,1.0,M0,G-M0,3,Jan 2027
 4d-full,"4 developers (fourth from month 4), full scope",full,4,0 0 0 4,0.9,1.0,mean,1.0,,G-SP,6,Apr 2027
 4d-full,"4 developers (fourth from month 4), full scope",full,4,0 0 0 4,0.9,1.0,mean,1.0,M1,G-M1,16,Feb 2028
-4d-full,"4 developers (fourth from month 4), full scope",full,4,0 0 0 4,0.9,1.0,mean,1.0,M-PP,G-PP,24,Oct 2028
-4d-full,"4 developers (fourth from month 4), full scope",full,4,0 0 0 4,0.9,1.0,mean,1.0,M2,G-M2,39,Jan 2030
-4d-full,"4 developers (fourth from month 4), full scope",full,4,0 0 0 4,0.9,1.0,mean,1.0,M3,G-M3,43,May 2030
+4d-full,"4 developers (fourth from month 4), full scope",full,4,0 0 0 4,0.9,1.0,mean,1.0,M-PP,G-PP,25,Nov 2028
+4d-full,"4 developers (fourth from month 4), full scope",full,4,0 0 0 4,0.9,1.0,mean,1.0,M2,G-M2,38,Dec 2029
+4d-full,"4 developers (fourth from month 4), full scope",full,4,0 0 0 4,0.9,1.0,mean,1.0,M3,G-M3,42,Apr 2030
 4d-full,"4 developers (fourth from month 4), full scope",full,4,0 0 0 4,0.9,1.0,mean,1.0,M4,G-M4,51,Jan 2031
 4d-full,"4 developers (fourth from month 4), full scope",full,4,0 0 0 4,0.9,1.0,mean,1.0,M5,G-M5,56,Jun 2031
 4d-full,"4 developers (fourth from month 4), full scope",full,4,0 0 0 4,0.9,1.0,mean,1.0,M6,G-M6,62,Dec 2031
@@ -247,7 +247,7 @@ scenario,label,scope,developers,joins,efficiency,capacity,estimate,ai_speedup,mi
 5d-lean,"5 developers (funded growth, outside the 2-4 decision), lean scope",lean,5,0 0 0 4 6,0.85,1.0,mean,1.0,M1,G-M1,16,Feb 2028
 5d-lean,"5 developers (funded growth, outside the 2-4 decision), lean scope",lean,5,0 0 0 4 6,0.85,1.0,mean,1.0,M-PP,G-PP,24,Oct 2028
 5d-lean,"5 developers (funded growth, outside the 2-4 decision), lean scope",lean,5,0 0 0 4 6,0.85,1.0,mean,1.0,M2,G-M2,32,Jun 2029
-5d-lean,"5 developers (funded growth, outside the 2-4 decision), lean scope",lean,5,0 0 0 4 6,0.85,1.0,mean,1.0,M3,G-M3,36,Oct 2029
+5d-lean,"5 developers (funded growth, outside the 2-4 decision), lean scope",lean,5,0 0 0 4 6,0.85,1.0,mean,1.0,M3,G-M3,37,Nov 2029
 5d-lean,"5 developers (funded growth, outside the 2-4 decision), lean scope",lean,5,0 0 0 4 6,0.85,1.0,mean,1.0,M4,G-M4,45,Jul 2030
 5d-lean,"5 developers (funded growth, outside the 2-4 decision), lean scope",lean,5,0 0 0 4 6,0.85,1.0,mean,1.0,M5,G-M5,45,Jul 2030
 5d-lean,"5 developers (funded growth, outside the 2-4 decision), lean scope",lean,5,0 0 0 4 6,0.85,1.0,mean,1.0,M6,G-M6,51,Jan 2031
@@ -258,7 +258,7 @@ scenario,label,scope,developers,joins,efficiency,capacity,estimate,ai_speedup,mi
 5d-full,"5 developers (funded growth, outside the 2-4 decision), full scope",full,5,0 0 0 4 6,0.85,1.0,mean,1.0,M2,G-M2,34,Aug 2029
 5d-full,"5 developers (funded growth, outside the 2-4 decision), full scope",full,5,0 0 0 4 6,0.85,1.0,mean,1.0,M3,G-M3,38,Dec 2029
 5d-full,"5 developers (funded growth, outside the 2-4 decision), full scope",full,5,0 0 0 4 6,0.85,1.0,mean,1.0,M4,G-M4,47,Sep 2030
-5d-full,"5 developers (funded growth, outside the 2-4 decision), full scope",full,5,0 0 0 4 6,0.85,1.0,mean,1.0,M5,G-M5,48,Oct 2030
+5d-full,"5 developers (funded growth, outside the 2-4 decision), full scope",full,5,0 0 0 4 6,0.85,1.0,mean,1.0,M5,G-M5,49,Nov 2030
 5d-full,"5 developers (funded growth, outside the 2-4 decision), full scope",full,5,0 0 0 4 6,0.85,1.0,mean,1.0,M6,G-M6,54,Apr 2031
 6d-lean,"6 developers (funded growth, outside the 2-4 decision), lean scope",lean,6,0 0 0 4 6 6,0.85,1.0,mean,1.0,M0,G-M0,3,Jan 2027
 6d-lean,"6 developers (funded growth, outside the 2-4 decision), lean scope",lean,6,0 0 0 4 6 6,0.85,1.0,mean,1.0,,G-SP,6,Apr 2027

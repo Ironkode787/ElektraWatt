@@ -101,7 +101,9 @@ lags egui.
   ([specification](../plan/specs/WP-S2.17-design-language-and-ui-polish.md)); FT-338, FT-348, FT-390, FT-391,
   FT-425, FT-506, FT-507, FT-508, FT-509, FT-510 and FT-512's tooltip half are absorbed by it. Its 5.7 pw come from
   WP-S2.08 (4.0 pw: the theming, colour-vision and contrast half and the look of the palette, tooltips and menus) and
-  WP-S2.16 (1.7 pw), so the MVP gate stays at month 41 (the specification's §15.5).
+  WP-S2.16 (1.7 pw), so the MVP gate stays at month 41 (the specification's §15.5). *Amended 2026-10-28:* 16a v1.1
+  maps the widgets built alongside it (§6.25) and WP-S2.17 grows to 6.0 pw with 0.3 pw more from WP-S2.08
+  (the specification's §15.1).
 - **Requirements.** No FR or NFR text changes. The language serves FR-UI-001, FR-UI-018, FR-UI-025, FR-UI-027,
   FR-UI-034, FR-UI-043 and NFR-A11Y-01 to -04; the token contrast test is NFR-A11Y-04's "contrast lint over theme
   tokens".

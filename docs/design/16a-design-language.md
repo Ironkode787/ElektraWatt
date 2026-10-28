@@ -1,6 +1,6 @@
 # Design language
 
-**Status:** v1.0, accepted 2026-10-28 · **Date:** 2026-10-28 · **Decision:** [ADR-0031](../adr/0031-design-language-and-task-ordered-command-bar.md)
+**Status:** v1.1, accepted 2026-10-28; v1.1 adds the built widgets (§4.15, §6.21 to §6.25) · **Date:** 2026-10-28 · **Decision:** [ADR-0031](../adr/0031-design-language-and-task-ordered-command-bar.md)
 (Accepted) · **Visual reference:** [the mockup](assets/design-language-mockup.html) (approved by the owner) · **Work package:**
 [WP-S2.17](../plan/specs/WP-S2.17-design-language-and-ui-polish.md) · **Part of:** ElektraWatt design document set
 
@@ -451,6 +451,30 @@ Density changes sizes only; colours, type sizes and the order of everything stay
 Component code (the command bar, rows, chips) paints with the token values directly through `ew-ui`'s widget helpers;
 none of it reads raw egui defaults.
 
+### 4.15 Component tokens of the built widgets
+
+Added 2026-10-28 for the widgets that WP-S2.06 part 3, WP-S2.09 parts 2 and 3 and FT-500 built alongside this
+document (§6.21 to §6.25). Each is a component token (§4.1, layer 3) defined by an alias or an existing size; none
+adds a raw value, so the token test of WP-S2.17 part 1 checks them through their aliases.
+
+| Token | Comfortable | Compact | Defined as | Use |
+|---|---|---|---|---|
+| `size.table_header` | 24 | 24 | `size.control.inline` | The header row of every table and data grid (§6.7, §6.21) |
+| `size.table_column` | 110 (40 to 480) | 110 (40 to 480) | as built (WP-S2.06 part 3) | A grid column's starting width and its resize range |
+| `size.severity_icon` | 16 | 16 | `icon.sm` | Severity icons in finding rows, grid cells and the Messages counts (as built 10 px) |
+| `size.chooser` | 240 to 360 wide, 8 rows | the same | `size.row` × 8 high at most | The chooser list (§6.22) |
+| `size.preview_list` | 10 rows | 10 rows | `size.row` × 10 | Rows a Preview list shows before it scrolls (as built: 10 rows) |
+| `size.card_strip` | 28 | 28 | `size.control` | The "Preview open" strip (§6.23) |
+| `color.table.frozen_edge` | = `color.border.default` | = `color.border.default` | alias | The frozen key column's right edge, the grid's one vertical line (§6.21) |
+| `color.table.cursor` | = `color.focus` | = `color.focus` | alias | The cursor cell's 2-px inset ring while the grid has the keyboard (5.69:1 and 6.0:1 on the panel, 4.95:1 and 4.64:1 on a marked row) |
+| `color.table.cursor_idle` | = `color.accent` | = `color.accent` | alias | The cursor cell's 1-px inset ring while the focus is elsewhere; the width, not the colour, tells the two apart |
+| `color.history.undone` | = `color.text.tertiary` | = `color.text.tertiary` | alias | Undone History entries, always with their state icon (§6.24) |
+| `color.card.strip` | = `color.surface.sunken` | = `color.surface.sunken` | alias | The fill of the "Preview open" strip |
+
+`color.border.control` is not used for the idle cursor: on `color.accent.subtle` it falls to 2.88:1, under 3:1.
+Tertiary text does not sit on `color.accent.subtle` either (4.62:1 light, 4.42:1 dark): a selected or marked row
+draws its tertiary parts in `color.text.secondary`.
+
 ## 5. Layout architecture
 
 ### 5.1 The window
@@ -629,6 +653,13 @@ close button (Ctrl+J) sits at the row's right end. The **Messages** table follow
 (110 px; the semantic icon and word in SemiBold), Message, Object (120 px, a link in `color.accent` that selects and
 shows the object), Page (80 px) and Rule (90 px), the last two with tabular digits in `color.text.secondary`. It
 closes with its close button or Escape in an empty pane, and remembers its height.
+
+*As built (WP-S2.09 part 2, 2026-10-28).* Messages is `NavKind::Messages` on the navigator framework: a tree of
+severity groups, rules and findings (§6.24), with the framework's Table toggle that shows the same rows as a data grid
+(§6.21) whose columns are severity, rule, message, object, page and cell, fix and state. The mockup's table is that
+grid with the mockup's five columns on show; which view opens first, and the mockup's column order as the grid's
+default, are a proposed follow-up (§6.25), not part of the restyle. The other bottom panes as built: Find (table
+rows), Jobs (§6.19 and §6.25), History (§6.24) and Preview (§6.23).
 
 ### 5.8 The status bar
 
@@ -864,6 +895,187 @@ Two to four mutually exclusive views of one panel ("Pages | Devices"): a track o
 with `radius.sm` in `type.small` and `color.text.secondary`; the chosen item on `color.surface.panel` with
 `elevation.1`, SemiBold and `color.text.primary`. It is a `TabList` for AccessKit; Left and Right move between items.
 
+### 6.21 Data grid (a navigator's table mode)
+
+The table of §6.7 grown into an editable grid, for every navigator's table mode (WP-S2.06 part 3, egui_table). The
+behaviour is as built; this section fixes only its look.
+
+**Above the grid**, in the pane's tool line under the panel header: the **Table toggle**, a 24-px icon button
+(`table`) that takes the Selected state while the pane is in table mode (as built a toggle button named "Table");
+the filter field (§6.5), shared with the tree view and the only filter of the grid; the **Columns** menu button (a
+Subtle button with a chevron) whose menu (§6.13) lists every column with a check icon, the key column's item
+disabled with its reason, and for each movable column on show two 24-px icon buttons (`arrow-left`, `arrow-right`)
+named "Move <column> left" and "… right" as built; and, when an edit failed, the error line of §6.1 (icon and message
+in `color.error`, `type.small`).
+
+**Header** (`size.table_header`, `color.surface.sunken`, sticky, a 1-px `color.border.subtle` line under it): each
+header cell is a Subtle button with the column label in `type.small` SemiBold `color.text.secondary`; the sorted
+column's label is `color.text.primary` and is followed by a 16-px sort icon (`arrow-narrow-up` ascending,
+`arrow-narrow-down` descending; as built the characters ↑ and ↓); a derived (read-only) column's label is followed by
+a 16-px `math-function` icon in `color.text.tertiary` with the tooltip "Derived; read-only" (as built: italics). A
+click sorts and a second click reverses, as built. The **resize handle** at a header cell's right edge is invisible at
+rest; on hover and while dragging it is a 1-px `color.accent` line over the header and body, as the dock splitters
+(§4.14), and it keeps its as-built name "Resize <column> column".
+
+**Frozen key column**: the first column stays at the left while the grid scrolls (egui_table's sticky column) and is
+closed on its right by a 1-px `color.table.frozen_edge` line from the header to the last row, the grid's only vertical
+line. No shadow: the panel is flat (`elevation.0`).
+
+**Body rows** (`size.row`, `type.small`, `space.4` cell padding, one 1-px `color.border.subtle` line under each row,
+no zebra, columns `size.table_column` wide and resizable): text in `color.text.primary`; derived cells in
+`color.text.secondary` (the header icon and the cell's accessible name ", read-only" carry the meaning; italics go,
+since no italic face is bundled, §4.8); a read-only cell shows no edit affordance and its reason as tooltip, as built.
+
+| State | Drawing |
+|---|---|
+| Rest | As above |
+| Hover | `color.state.hover` across the row |
+| Marked (selected) | `color.accent.subtle` across the row; tertiary parts drawn in `color.text.secondary` (§4.15) |
+| Cursor row | a 2-px accent bar (`radius.mark`) at the key cell's left edge, inset 4 px top and bottom (as built: the key cell drawn selected) |
+| Cursor cell | 2-px `color.table.cursor` ring inside the cell while the grid has the keyboard; 1-px `color.table.cursor_idle` ring otherwise (as built: underlined text on a selected fill) |
+| Editing | the cell holds an inline value cell in its editing look (§6.8: `color.surface.panel`, 1-px accent border and 1-px accent ring, `radius.sm`, inset 2 px) |
+| Disabled | a read-only project changes nothing visible; the double click does nothing (as built) |
+| Error | the error line above the grid; a pattern error inside the pattern card |
+
+The grid itself is the focusable node: the focus ring of §6.1 is drawn around the whole grid, inset 1 px into the
+pane, and the cursor cell shows where the keys act. **Density** changes the row height only; header, column widths
+and padding stay. **Keyboard and accessibility** as built (WP-S2.06 §8.1): arrows, Tab and Shift+Tab, Home, End,
+Ctrl+Home, Ctrl+End move the cursor; Shift+Up and Shift+Down extend the marks; Enter opens the row; Ctrl+Enter applies
+the table card; a printable character starts editing; in the editor Enter commits, Ctrl+Enter commits every marked
+row, Escape reverts. The grid is a `Table` named "<navigator> table", a header cell a button "Sort by <column>", a
+cell a `Cell` named "<column> <text>, row <i> of <n>[, read-only]", a resize handle a `Splitter`.
+
+**Cards of the grid** follow §6.9 and §6.23: the **pattern fill card** (title "Pattern fill" in `type.body.strong`,
+the field with its hint, the first values as a polite live line in `type.small` `color.text.secondary`, the error
+inline; Enter applies and Escape closes, as built, so it has no buttons) and the **table card** of a paste, fill or
+edit gesture (the gesture title, a Stale or Failed status badge in place of the bracketed word, the ignored cells as a
+secondary line, each blocking cell as a row with the error icon, "row · column · text · reason", and an ambiguous
+cell's readings as Secondary buttons).
+
+### 6.22 Chooser list
+
+A popup list of candidates the user picks one from, for a choice too small for a dialog and too contextual for the
+palette. `color.surface.raised`, `elevation.1`, `radius.md`, `space.2` padding, `size.chooser`; no title. Rows are
+`size.row`: a 16-px kind icon in `color.text.secondary`, the printed name in `type.body`, and right-aligned the kind
+word in `type.small` `color.text.tertiary`; the active row has the hover overlay (as menus, §6.13, never the accent)
+and, when the candidates are canvas objects, its object shows the hover outline of §7.1 while it is active. It opens
+8 px from the pointer by the placement rule of §7.4 (the HUD and the statistics panel are obstacles) and never covers
+the pointer's 16-px box. A last line in `type.caption` `color.text.tertiary` shows the keys as key chips ("↑ ↓",
+"Enter", "Esc"). Keys: Up and Down (wrapping), Home, End, type-ahead on the name, Enter picks, Escape closes and leaves
+everything as it was. AccessKit: a `ListBox` named by the question ("Objects here"), its rows `ListBoxOption`s with
+position and set size; the active row is announced. **Density** changes the row height only.
+
+*Not built.* No widget uses it yet: FT-500's pick stack is walked by repeated clicks (§6.25), and its chooser is a
+proposed follow-up. The component is fixed here so that the follow-up, and any later "which one?" choice, gets this
+look and not a new one.
+
+### 6.23 Preview card, the Preview tab and the card strip
+
+The card of §6.9 in its three places (WP-S2.09 part 3, FR-UI-022). The behaviour is as built.
+
+**Inline cards** (the property grid's, the quick fix's, the Pages reorder, the table card, Find's replace, the parts
+import): §6.9 with these details: the title in `type.body.strong`; "as of rev 3" in `type.small`
+`color.text.tertiary` after it; a stale or failed card carries a **status badge** (§6.16: "Stale" in the warning
+style, "Failed" in the error style, with the failure's sentence under the title in `color.error`) instead of the
+as-built "[stale]" text; the summary line in `type.small` `color.text.secondary`; Apply (Primary) and Cancel
+(Secondary) right-aligned.
+
+**The Preview tab** (bottom dock): a header row with the title, revision and badge at the left and Apply and Cancel at
+the right, so the actions stay visible above long lists (as built they sit under the summary); the summary line under
+it ("12 records · 4 tags · 6 cross-reference texts · 3 pages", and an import's created and skipped counts); then the
+lists **Entities, Tags, Xrefs, Pages** as collapsible sections with headers in the style of the property categories
+(§6.8: 28 px, `type.small` SemiBold `color.text.secondary`, a chevron) and a count badge (§6.16) instead of "(n)".
+List rows are `size.row` in `type.small`: an entity row shows the change word in `color.text.tertiary` in a 64-px
+column, the kind in `color.text.secondary`, the label in `color.text.primary` and the changed fields in
+`color.text.tertiary`; a tag or cross-reference row shows "old → new" with the arrow in `color.text.tertiary` and, for a
+cross-reference, the folio as the meta column (tabular digits). Each list shows `size.preview_list` rows, then
+scrolls, as built. Without a card the tab shows the empty state of §6.17 ("No preview is open"). AccessKit as built: a
+`Group` named "Preview", the header a polite live region, buttons named by their text.
+
+**The card strip**, in an origin pane while the Preview tab shows its card: one line `size.card_strip` high on
+`color.card.strip`, `radius.md`, `space.3` padding: a 16-px `eye` icon in `color.text.secondary`, "Preview open:
+<summary>" in `type.small` with ellipsis and a tooltip when cut, then Apply (a Subtle button with its label in
+`color.accent` SemiBold), Cancel and Show (Subtle). Polite live region as built.
+
+### 6.24 Finding rows, History rows and the chip line
+
+**Finding rows** (the Messages tree, WP-S2.09 part 2) are tree rows (§6.6) with a severity icon of
+`size.severity_icon` before the title, in the severity's colour: error `circle-x` in `color.error`, warning
+`alert-triangle` in the warning icon colour (§4.4), info `info-circle` in `color.accent` (as built: a filled circle,
+triangle and square of 10 px; the three shapes stay distinct). Severity group rows ("Errors", "Warnings", "Infos")
+are group rows with the severity icon in place of the folder and their count in the meta column; rule rows show the
+rule ID in the meta column. Severity never rests on colour: the shape differs, the group row names it, and the
+accessible name of every finding row carries the severity word, as built. A **pending** finding draws its icon and
+title in `color.text.tertiary` and carries a "Pending" status badge in the neutral style (`color.surface.sunken`,
+`color.text.secondary`), as built in the badge list. Enter and the double click jump to the object, as built.
+
+**The Messages header** (under the panel header): the scheme in `type.small` `color.text.secondary`, then one count
+badge per severity (§6.16, the severity icon at 12 px, the number, the semantic subtle fill and text), then "waived n"
+and "pending n" in `color.text.tertiary`; the polite live value stays the as-built sentence ("<scheme> · E 1 · W 2 · I
+0 · waived 0 · pending 1"). **The detail block** of the cursor's finding, under a 1-px `color.border.subtle` line: the
+rule ID and title in `type.body.strong`; the kind and severity in `type.small` `color.text.secondary`; the message in
+`type.body`; "Quick fix: <label>" in `type.small` with **Fix…** as a Secondary button (disabled on a read-only project,
+with the reason as tooltip, §6.1); **Rule page** as a link in `color.accent`. The quick-fix card is §6.23's inline
+card. The footer sentence ("Checks support, but do not replace, engineering verification.") is `type.caption`
+`color.text.tertiary`.
+
+**History rows** (the History panel, WP-S2.09 part 3; newest first, as built): `size.row` list rows: a 16-px state
+icon column (the current entry `arrow-right` in `color.accent`, an undone entry `arrow-back-up` in
+`color.history.undone`, a done entry none), the entry number right-aligned in a 28-px column in `type.small`
+`color.text.tertiary` with tabular digits, the label in `type.body` (`type.body.strong` for the current entry, as
+built), then in `type.small` `color.text.tertiary` the origin and the pages, then a "merged n" count badge and a "Not
+undoable" status badge (neutral, `lock` icon) where they apply. Undone entries draw their label in
+`color.history.undone` with the icon, so the state is not colour alone; their accessible name ends ", undone", as built.
+The row cursor takes the Selected state. The row actions **Undo to here** (`history`) and **Show changes**
+(`list-details`) are 24-px icon buttons in `color.text.secondary` with their as-built names and tooltips. **Marker
+lines** are separator rows: the marker text in `type.small` `color.text.tertiary` followed by a 1-px
+`color.border.subtle` rule to the row's end (as built: italics). The header ("12 steps · cursor at 9") is
+`type.small` `color.text.secondary`; the empty panel is §6.17's empty state ("Nothing to undo yet"). **Show changes**
+is the dialog frame of §6.12, small and non-modal as built, titled "Changes of step n", its records as list rows, Close
+as a Secondary button; Escape closes.
+
+**The chip line** ("Not on this page:", WP-S2.06 part 1) above the canvas: the label in `type.small`
+`color.text.secondary`, then one **jump chip** per target: `radius.pill`, 20 px high, 1-px `color.border.default`,
+`space.icon` padding, a 12-px `file` icon and "<folio>-<cell>" in `type.small` `color.accent`, the hover overlay and
+the focus ring; named "Open <folio>-<cell>" as built.
+
+### 6.25 The built widgets mapped
+
+Every widget built before or alongside this document that §6.2 to §6.24 did not name, with its component, tokens,
+states, density and the keyboard and accessibility it keeps. The part column names WP-S2.17's part that restyles it.
+
+| Widget (as built) | Component | Tokens | States | Density | Keyboard and accessibility (as built) | Part |
+|---|---|---|---|---|---|---|
+| Table mode grid (`nav_table.rs`, WP-S2.06 part 3) | Data grid §6.21 (header, frozen key column, cursor, editor) on §6.7 | `size.table_header`, `size.table_column`, `size.row`, `color.surface.sunken`, `color.table.frozen_edge`, `color.table.cursor`, `color.table.cursor_idle`, `color.accent.subtle`, `color.state.hover` | Rest, hover, marked, cursor row, cursor cell (focused and idle), editing, read-only, error | Row height | §6.21: a `Table` with `Cell` and `Splitter` nodes, sort buttons, the cell cursor's keys | 3 |
+| Table toggle, Columns menu, pattern fill card, table card | Icon button §6.3; menu §6.13; card §6.9 and §6.23 | `size.control.inline`, `color.surface.raised`, `elevation.1` | Toggle Selected; menu items checked or disabled with reason; card stale or failed | Menu rows `size.row` | Named toggle, check boxes, "Move <column> left/right"; the pattern field's Enter and Escape | 3 (toggle, menu); 4 (cards) |
+| Messages tree rows and severity icons (`navigator.rs`, `messages.rs`, WP-S2.09 part 2) | Tree row §6.6 with the finding-row anatomy §6.24 | `size.severity_icon`, `color.error`, the warning icon colour, `color.accent`, `color.text.tertiary` | Rest, hover, selected, focused, pending | Row height | `Tree` and `TreeItem` with level, position, expanded; severity word in the name; F8, Enter, `navigator.jump` | 3 |
+| Messages header counts, detail block, footer | Count badges §6.16; text styles §4.8; Secondary button and link §6.2 | `color.*.subtle` fills, `type.small`, `type.body.strong`, `type.caption` | Fix… disabled with reason on a read-only project | None | Header a polite live region; buttons named by their text | 3 |
+| Messages in table mode | Data grid §6.21; the severity cell draws icon and word in SemiBold in the severity colour (the mockup's Severity column) | as the grid, plus `size.severity_icon` | as the grid | Row height | as the grid | 3 |
+| Messages quick-fix card | Inline card §6.23 | as §6.9 | Stale, failed | None | Live summary; Apply, Cancel | 4 |
+| Preview tab (`preview.rs`, WP-S2.09 part 3) | Preview tab §6.23 | `size.preview_list`, `size.row`, `type.body.strong`, status badges | Card open, stale, failed, empty | List row height | `Group` "Preview"; polite header; Apply, Cancel | 4 |
+| "Preview open" strip | Card strip §6.23 | `size.card_strip`, `color.card.strip`, `color.accent` | Rest, hover on its buttons | None | Polite live; Apply, Cancel, Show | 4 |
+| History panel (`history.rs`, WP-S2.09 part 3) | History rows §6.24; empty state §6.17 | `color.history.undone`, `color.accent`, `size.row`, count and status badges | Done, current, undone, cursor (Selected), focused | Row height | `Group` "History"; each entry a `Group` named by label and state; Up, Down, Enter through `history.row` and `history.undo_to`; Tab to the row buttons | 3 |
+| Show changes popup | Dialog frame §6.12 (small, non-modal) | `color.surface.raised`, `elevation.2`, `radius.lg` | — | List row height | Escape and Close | 3 |
+| Pick stack (`tools::pick_stack`, FT-500) and the hover outline | Canvas hover outline §7.1 on the stack's first entity; the walk moves the selection (§7.1) | `canvas.hover`, `canvas.selection` | Hover, selected | None | The repeated click walks the stack, Shift and Ctrl never walk; no node of its own | 5 |
+| Chip line "Not on this page" (`navigator.rs`, WP-S2.06 part 1) | Jump chip §6.24 | `radius.pill`, `color.border.default`, `color.accent` | Rest, hover, focused | None | Buttons "Open <folio>-<cell>" | 3 |
+| Highlights and their name chips (WP-S2.06 part 2) | §4.6, §7.4, §7.5 (complete) | `canvas.highlight.1` to `.4`, `canvas.highlight.label` | — | None | View state only; no node | 5 |
+| Jobs pane (`jobs.rs`, WP-S2.09 part 1) | Table rows §6.7; progress §6.19; outcome badges; empty state §6.17 | `color.accent` (progress line), status badges | Running, done, cancelled, failed | Row height | `Group` "Jobs"; a running entry a `ProgressIndicator`; Cancel, Open | 3 (rows), 4 (badges, empty state) |
+| Toasts and the notifications log (`notifications.rs`) | §6.10 (complete; it moves the stack to the canvas's top right) | `elevation.2`, `radius.lg` | Action valid or not | None | Polite live; 8 s on the window's clock; the log never takes the focus | 4 |
+| Recovery dialog and the read-only banner | §6.12, §6.11 (complete; wording in WP-S2.17 part 4) | `elevation.2`, the warning subtle fill | — | None | Escape cancels; Enter the Primary | 4 |
+
+**Proposed follow-ups** (behaviour the design language suggests; none is part of the restyle, each is numbered at
+the design pass that adopts it):
+1. **Pick-stack chooser.** Alt+click (or a held click) on overlapping objects opens the chooser list of §6.22 with the
+   pick stack, the active row outlined on the canvas; the repeated-click walk stays.
+2. **Pick-stack hint.** While the pointer is over more than one pickable object, the HUD's prompt says so ("3 here ·
+   click again for the next"), so the walk can be found.
+3. **Messages opens as the mockup's table.** The Messages pane opens in table mode with Severity, Message, Object,
+   Page and Rule on show in that order (fix and state hidden), the tree one toggle away.
+4. **Sort state in the header's name.** A sorted header's accessible name adds ", sorted ascending" or ", sorted
+   descending" (today only the arrow shows it).
+5. **History row actions on demand.** Undo to here and Show changes appear on the cursor row, on hover and on focus
+   only, as the property row's "…" button (§6.8), instead of on every row.
+
 ## 7. Canvas overlays
 
 All overlays follow FT-391's scale rule (`s = max(1, ⌊ppp⌋)`), live in the session-only overlay layers (never in the
@@ -1017,6 +1229,15 @@ corrections were made in the committed copy because requirements demand them, an
    (NFR-A11Y-04; §4.6).
 
 The mockup's tooltip keys are illustrative; the keys are doc 16 §4.4's. Behaviour stays doc 16's.
+
+**Addition of 2026-10-28 (v1.1).** The mockup gains a **component sheet**, opened by a third mockup control
+("Components") and following the theme and density toggles, that shows the components §6.21 and §6.22 add: a strip of
+a Terminal strips navigator in table mode (the tool line with the Table toggle, the filter and Columns; a sticky
+header with a sorted and a derived column; the frozen key column; a marked row, the cursor row and its cursor cell,
+an editing cell) and the chooser list over a piece of sheet with a dashed hover outline, labelled as a proposed
+follow-up. The additions are a block of CSS at the end of the style sheet, the sheet's markup before the mockup
+controls, one button in the mockup controls and one script function; every approved part is byte-identical. The
+sheet's names are illustrative.
 
 **Decided** (2026-10-28, by the orchestrator under the owner's delegation, after the owner's approval of the
 mockup): ADR-0031 is Accepted; the accent is Volt blue #0B63CE (light) and #5AA2FF (dark); the default density is

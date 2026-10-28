@@ -52,7 +52,7 @@ WP-S2.04,S2,"Placement, wiring and drawing tools",M-PP,M-PP,,MVP,7,10,15,WP-S2.0
 WP-S2.05,S2,"Property grid, provenance, find and replace, clipboard",M-PP,M-PP,,MVP,3,4.5,6.5,WP-S2.03,,FR-UI-009 FR-UI-010 FR-UI-020 FR-UI-036 FR-UI-040 FR-UI-044 FR-DEV-029 FR-DEV-031 FR-DEV-032,AC-28,UI developer
 WP-S2.06,S2,Navigators and table mode,M-PP,M-PP,,MVP,3.5,5,7.5,WP-S2.03,,FR-UI-005 FR-UI-007 FR-UI-008 FR-UI-018 NFR-PERF-15,NFR-PERF-15,UI developer
 WP-S2.07,S2,"Domain tables: strip, cable and PLC editors, part selection",M2,M2,,MVP,2.5,3.5,5,WP-S2.06 WP-S1.14 WP-S1.21 WP-S1.19,,FR-TRM-013 FR-TRM-015 FR-CBL-016 FR-PLC-020 FR-PLC-021 FR-PRT-015 FR-PRT-022,AC-28,UI developer
-WP-S2.08,S2,"Command palette, keymaps, accessibility and UI localisation",M2,M2,,MVP,1.5,2.5,4.5,WP-S2.01,,FR-UI-012 FR-UI-013 FR-UI-025..FR-UI-027 FR-UI-032 FR-UI-045 FR-UI-047 FR-UI-048 NFR-A11Y-01..NFR-A11Y-04 NFR-I18N-01 NFR-I18N-02 NFR-I18N-06 NFR-UX-03,NFR-A11Y-02 NFR-UX-03,UI developer
+WP-S2.08,S2,"Command palette, keymaps, accessibility and UI localisation",M2,M2,,MVP,1.2,2.2,4.2,WP-S2.01,,FR-UI-012 FR-UI-013 FR-UI-025..FR-UI-027 FR-UI-032 FR-UI-045 FR-UI-047 FR-UI-048 NFR-A11Y-01..NFR-A11Y-04 NFR-I18N-01 NFR-I18N-02 NFR-I18N-06 NFR-UX-03,NFR-A11Y-02 NFR-UX-03,UI developer
 WP-S2.09,S2,"Messages, bulk previews, history, jobs and recovery UI",M-PP,M-PP,,MVP,2.5,3.5,5,WP-S2.03 WP-S1.15,,FR-UI-021..FR-UI-024 FR-UI-041 FR-UI-042 FR-UI-050 NFR-PERF-08 NFR-PERF-19,AC-18,UI developer
 WP-S2.10,S2,Symbol editor,M2,M5,a,MVP,2,3,4.5,WP-S2.04,,FR-SYM-017,,UI developer
 WP-S2.11,S2,GUI test suite (egui_kittest),M2,M2,,MVP,1.5,2.5,4,WP-S2.04 WP-S2.05,,NFR-MAINT-11,AC-28 NFR-A11Y-02,UI developer
@@ -61,7 +61,7 @@ WP-S2.13,S2,"Automation workspaces: PLC, bus and fluid",M3,M3,,1.0,4.5,6.5,10,WP
 WP-S2.14,S2,Editor 1.0 completion,M5,1.x,c,1.0,3,4.5,6.5,WP-S2.05 WP-S2.08,,FR-UI-004 FR-UI-011 FR-UI-014 FR-UI-046 FR-UI-051 FR-SYM-026,,UI developer
 WP-S2.15,S2,"Revision, review and merge UI",M5,1.x,c,1.0,2,3,4.5,WP-S1.31 WP-S2.09,,FR-COL-015 FR-COL-017 FR-REV-016..FR-REV-018,,UI developer
 WP-S2.16,S2,Usability round R2 and fixes,M6,M6,,1.0,1,1.3,2.2,WP-S2.13 WP-S4.04 WP-S5.01,,NFR-UX-01 NFR-UX-02,NFR-UX-01 NFR-UX-02,UX researcher
-WP-S2.17,S2,Design language and UI polish,M-PP,M-PP,,MVP,4,5.5,8,WP-S2.05 WP-S2.06,,FR-UI-001 FR-UI-034 NFR-A11Y-03 NFR-A11Y-04,NFR-A11Y-04,UI developer
+WP-S2.17,S2,Design language and UI polish,M-PP,M-PP,,MVP,4.3,5.8,8.3,WP-S2.05 WP-S2.06,,FR-UI-001 FR-UI-034 NFR-A11Y-03 NFR-A11Y-04,NFR-A11Y-04,UI developer
 WP-S3.01,S3,"Display list, scene and symbol model",M1,M1,,MVP,4,5.5,8,WP-S1.02,,FR-SYM-001..FR-SYM-006 FR-SYM-009..FR-SYM-014 FR-SYM-016 FR-SYM-019 FR-SYM-021 FR-OUT-018,AC-02,Output and migration developer
 WP-S3.02,S3,"Frames, forms, title blocks, text and fonts",M1,M1,,MVP,3,4.5,7,WP-S3.01,,FR-PAG-014..FR-PAG-019 FR-PAG-021 FR-PAG-023 FR-PAG-029 FR-PAG-031 FR-REP-032..FR-REP-037 FR-OUT-027 NFR-REL-17,AC-01 AC-04,Output and migration developer
 WP-S3.03,S3,Report engine and spine report folios,M1,M1,,MVP,3.9,5.4,7.9,WP-S3.02 WP-S1.06 WP-S1.07,,FR-REP-001..FR-REP-006 FR-REP-009 FR-REP-012..FR-REP-014 FR-REP-016 FR-REP-027 FR-REP-028 FR-REP-038 FR-REP-039 FR-REP-041 FR-REP-048 FR-PAG-011 FR-PAG-030 FR-I18N-009 NFR-PERF-10 FR-EXP-005 FR-LAY-009,AC-03 AC-07 AC-08 AC-09 AC-10 AC-11 AC-12,Output and migration developer

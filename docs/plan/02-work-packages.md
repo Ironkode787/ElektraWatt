@@ -22,7 +22,7 @@ by hand.
 > - **The full v1 scope does not fit 15–18 months.** Three developers have about 162 pw in 18 months;
 >   1.0 needs 4.0 times that. No team size reaches 1.0 before month 29, because the longest
 >   dependency chain alone takes that long (§6).
-> - **Realistic dates, full scope, base capacity.** 3 developers: spine exit (M1) at month 16 (Feb 2028), MVP at month 44 (Jun 2030), 1.0 at month 72 (Oct 2032). 2 developers: MVP at month 65 (Mar 2032), 1.0 at month 108 (Oct 2035). 4 developers: MVP at month 39 (Jan 2030), 1.0 at month 62 (Dec 2031).
+> - **Realistic dates, full scope, base capacity.** 3 developers: spine exit (M1) at month 16 (Feb 2028), MVP at month 44 (Jun 2030), 1.0 at month 72 (Oct 2032). 2 developers: MVP at month 65 (Mar 2032), 1.0 at month 108 (Oct 2035). 4 developers: MVP at month 38 (Dec 2029), 1.0 at month 62 (Dec 2031).
 > - **Levers.** Deferring the MVP's Should items, moving the QET migration to the 0.x release after the MVP and
 >   moving 13 1.0 WPs to 1.x (the `milestone_lean` column) brings 3 developers to the MVP at month 41 (Mar 2030) and 1.0 at month 65 (Mar 2032). Even with every WP at its optimistic estimate and 20 % more capacity, that lean scope lands at month 24 (MVP) and month 36 (1.0). §7.4 recommends a combination.
 > - **Pilot preview.** 16 WPs, two of them slices split off MVP WPs, form milestone M-PP (release 0.0.x, pilot only): interactive 2D drawing of new projects at month 26 (Dec 2028) with three developers, 15 months before the MVP.
@@ -246,8 +246,8 @@ scope (`milestone` column):
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | M0 | Kick-off and foundations | MVP | 4 | 4.5 | 7.5 | 12.0 | 7.8 | 0.7 | 7.8 | 9.3 | 10.0 |
 | M1 | Spine exit: headless golden PDF | MVP | 22 | 68.8 | 99.9 | 152.7 | 103.5 | 3.2 | 111.3 | 133.5 | 136.8 |
-| M-PP | Pilot preview 0.0.x | MVP | 16 | 50.4 | 73.4 | 110.9 | 75.8 | 2.7 | 187.1 | 224.5 | 228.8 |
-| M2 | MVP: pilot release | MVP | 33 | 83.2 | 124.2 | 192.2 | 128.7 | 3.3 | 315.8 | 378.9 | 384.4 |
+| M-PP | Pilot preview 0.0.x | MVP | 16 | 50.7 | 73.7 | 111.2 | 76.1 | 2.7 | 187.4 | 224.9 | 229.2 |
+| M2 | MVP: pilot release | MVP | 33 | 82.9 | 123.9 | 191.9 | 128.4 | 3.3 | 315.8 | 378.9 | 384.4 |
 | M3 | Automation breadth: PLC, bus, fluid, exchange | 1.0 | 7 | 28.0 | 41.0 | 63.5 | 42.6 | 2.3 | 358.4 | 430.0 | 436.0 |
 | M4 | Manufacturing and 2D/3D panel | 1.0 | 16 | 49.5 | 72.0 | 109.5 | 74.5 | 2.7 | 432.9 | 519.4 | 526.0 |
 | M5 | 1.0 feature complete (beta) | 1.0 | 15 | 43.0 | 64.5 | 99.0 | 66.7 | 2.5 | 499.5 | 599.4 | 606.4 |
@@ -262,8 +262,8 @@ Lean scope, the plan of record (`milestone_lean` column):
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | M0 | Kick-off and foundations | MVP | 4 | 4.5 | 7.5 | 12.0 | 7.8 | 0.7 | 7.8 | 9.3 | 10.0 |
 | M1 | Spine exit: headless golden PDF | MVP | 22 | 68.8 | 99.9 | 152.7 | 103.5 | 3.2 | 111.3 | 133.5 | 136.8 |
-| M-PP | Pilot preview 0.0.x | MVP | 16 | 50.4 | 73.4 | 110.9 | 75.8 | 2.7 | 187.1 | 224.5 | 228.8 |
-| M2 | MVP: pilot release | MVP | 27 | 69.7 | 103.2 | 159.2 | 107.0 | 3.0 | 294.0 | 352.8 | 358.1 |
+| M-PP | Pilot preview 0.0.x | MVP | 16 | 50.7 | 73.7 | 111.2 | 76.1 | 2.7 | 187.4 | 224.9 | 229.2 |
+| M2 | MVP: pilot release | MVP | 27 | 69.4 | 102.9 | 158.9 | 106.7 | 3.0 | 294.0 | 352.8 | 358.1 |
 | M3 | Automation breadth: PLC, bus, fluid, exchange | 1.0 | 9 | 35.0 | 51.5 | 79.5 | 53.4 | 2.6 | 347.5 | 416.9 | 422.8 |
 | M4 | Manufacturing and 2D/3D panel | 1.0 | 15 | 46.5 | 68.0 | 103.5 | 70.3 | 2.6 | 417.8 | 501.3 | 507.8 |
 | M5 | 1.0 feature complete (beta) | 1.0 | 7 | 17.0 | 26.0 | 40.0 | 26.8 | 1.5 | 444.6 | 533.5 | 540.2 |
@@ -278,13 +278,13 @@ Lean scope, the plan of record (`milestone_lean` column):
 |---|---|---|---|---|---|---|---|---|---|---|
 | S0 | 7.8 | 3.7 | — | 5.3 | — | — | — | 9.3 | — | 25.9 |
 | S1 | — | 55.3 | 27.7 | 36.2 | 12.0 | 3.6 | 24.4 | — | 21.0 | 159.3 |
-| S2 | — | — | 46.5 | 15.0 | 6.8 | — | 7.7 | 1.4 | — | 77.3 |
+| S2 | — | — | 46.8 | 14.7 | 6.8 | — | 7.7 | 1.4 | — | 77.3 |
 | S3 | — | 26.8 | — | 29.2 | 23.8 | — | 11.4 | — | 8.2 | 91.3 |
 | S4 | — | — | — | 8.8 | — | 38.4 | 6.7 | — | 8.2 | 53.8 |
 | S5 | — | — | — | — | — | 29.4 | 6.3 | — | 6.2 | 35.7 |
 | S6 | — | 10.1 | 1.6 | 24.5 | — | — | 4.1 | 16.0 | — | 56.3 |
 | S7 | — | 7.7 | — | 9.8 | — | 3.1 | 6.2 | 7.8 | — | 34.4 |
-| **All** | **7.8** | **103.5** | **75.8** | **128.7** | **42.6** | **74.5** | **66.7** | **34.4** | **43.5** | **533.9** |
+| **All** | **7.8** | **103.5** | **76.1** | **128.4** | **42.6** | **74.5** | **66.7** | **34.4** | **43.5** | **533.9** |
 <!-- /generated:wbs-totals-matrix -->
 
 ### 4.4 Plausibility checks
@@ -324,7 +324,7 @@ Month numbers per PA-1 (calendar month in brackets), base capacity.
 |---|---|---|---|---|---|---|---|---|---|
 | 2 developers | 3 (Jan 2027) | 7 (May 2027) | 23 (Sep 2028) | 38 (Dec 2029) | 65 (Mar 2032) | 73 (Nov 2032) | 87 (Jan 2034) | 100 (Feb 2035) | 108 (Oct 2035) |
 | 3 developers (baseline) | 3 (Jan 2027) | 6 (Apr 2027) | 16 (Feb 2028) | 26 (Dec 2028) | 44 (Jun 2030) | 48 (Oct 2030) | 60 (Oct 2031) | 67 (May 2032) | 72 (Oct 2032) |
-| 4 developers | 3 (Jan 2027) | 6 (Apr 2027) | 16 (Feb 2028) | 24 (Oct 2028) | 39 (Jan 2030) | 43 (May 2030) | 51 (Jan 2031) | 56 (Jun 2031) | 62 (Dec 2031) |
+| 4 developers | 3 (Jan 2027) | 6 (Apr 2027) | 16 (Feb 2028) | 25 (Nov 2028) | 38 (Dec 2029) | 42 (Apr 2030) | 51 (Jan 2031) | 56 (Jun 2031) | 62 (Dec 2031) |
 <!-- /generated:wbs-dates-full -->
 
 ### 5.3 Sensitivity and best case
@@ -338,9 +338,9 @@ optimistic estimate **and** uses 120 % capacity. "Lean" applies all three levers
 | 2 | Lean | 75 | 60 | 50 | 121 | 97 | 81 | 33 / 53 |
 | **3** | **Lean** | **52** | **41** | **35** | **81** | **65** | **54** | **24 / 36** |
 | 4 | Lean | 45 | 36 | 30 | 72 | 58 | 48 | 21 / 33 |
-| 2 | Full | 81 | 65 | 54 | 135 | 108 | 90 | 36 / 59 |
+| 2 | Full | 81 | 65 | 54 | 134 | 108 | 90 | 36 / 59 |
 | 3 | Full | 55 | 44 | 37 | 90 | 72 | 60 | 25 / 40 |
-| 4 | Full | 48 | 39 | 32 | 77 | 62 | 52 | 22 / 35 |
+| 4 | Full | 48 | 38 | 32 | 77 | 62 | 52 | 22 / 35 |
 <!-- /generated:wbs-sensitivity -->
 
 Even the best case with the lean scope and four developers misses an 18-month 1.0. The estimates would have to be
@@ -357,7 +357,7 @@ and a first NLnet grant, typically €5k–€50k (unverified, [governance](../d
 | Team | Profile | M1 | M2 MVP | M6 1.0 | M6 with the lean scope |
 |---|---|---|---|---|---|
 | 3 | 3 from month 0 | 16 (Feb 2028) | 44 (Jun 2030) | 72 (Oct 2032) | 65 (Mar 2032) |
-| 4 | 3 from month 0, 1 from month 4, 90 % efficiency from month 4 | 16 (Feb 2028) | 39 (Jan 2030) | 62 (Dec 2031) | 58 (Aug 2031) |
+| 4 | 3 from month 0, 1 from month 4, 90 % efficiency from month 4 | 16 (Feb 2028) | 38 (Dec 2029) | 62 (Dec 2031) | 58 (Aug 2031) |
 | 6 | 3 from month 0, 1 from month 4, 2 from month 6, 85 % efficiency from month 6 | 16 (Feb 2028) | 30 (Apr 2029) | 47 (Sep 2030) | 47 (Sep 2030) |
 | 8 | 3 from month 0, 1 from month 4, 4 from month 6, 85 % efficiency from month 6 | 16 (Feb 2028) | 28 (Feb 2029) | 39 (Jan 2030) | 39 (Jan 2030) |
 | 10 | 3 from month 0, 1 from month 4, 6 from month 6, 85 % efficiency from month 6 | 16 (Feb 2028) | 25 (Nov 2028) | 37 (Nov 2029) | 36 (Oct 2029) |
@@ -512,7 +512,7 @@ Each row applies only the named levers (the `lever` column of the CSV); "Lean" i
 <!-- generated:wbs-lever-dates -->
 | Scope | Effort to MVP (mean + reserve) | Effort to 1.0 (mean + reserve) | 2 devs M2 / M6 | 3 devs M2 / M6 | 4 devs M2 / M6 |
 |---|---|---|---|---|---|
-| Full scope | 379 pw | 641 pw | 65 / 108 | 44 / 72 | 39 / 62 |
+| Full scope | 379 pw | 641 pw | 65 / 108 | 44 / 72 | 38 / 62 |
 | Lever (a): MVP Should deferral | 370 pw | 641 pw | 63 / 108 | 44 / 72 | 38 / 61 |
 | Levers (a) and (b): plus MVP split | 353 pw | 641 pw | 60 / 108 | 41 / 72 | 36 / 62 |
 | Lever (c) only: 1.0-lean | 379 pw | 575 pw | 65 / 96 | 44 / 65 | 38 / 57 |
@@ -1498,7 +1498,7 @@ S2 builds the egui shell and every interactive tool against `World`, the queries
 | [WP-S2.05](#wp-s205-property-grid-provenance-find-and-replace-clipboard) | Property grid, provenance, find and replace, clipboard | M-PP | same | 4.6 | UI developer |
 | [WP-S2.06](#wp-s206-navigators-and-table-mode) | Navigators and table mode | M-PP | same | 5.2 | UI developer |
 | [WP-S2.07](#wp-s207-domain-tables-strip-cable-and-plc-editors-part-selection) | Domain tables: strip, cable and PLC editors, part selection | M2 | same | 3.6 | UI developer |
-| [WP-S2.08](#wp-s208-command-palette-keymaps-accessibility-and-ui-localisation) | Command palette, keymaps, accessibility and UI localisation | M2 | same | 2.7 | UI developer |
+| [WP-S2.08](#wp-s208-command-palette-keymaps-accessibility-and-ui-localisation) | Command palette, keymaps, accessibility and UI localisation | M2 | same | 2.4 | UI developer |
 | [WP-S2.09](#wp-s209-messages-bulk-previews-history-jobs-and-recovery-ui) | Messages, bulk previews, history, jobs and recovery UI | M-PP | same | 3.6 | UI developer |
 | [WP-S2.10](#wp-s210-symbol-editor) | Symbol editor | M2 | M5 (lever a) | 3.1 | UI developer |
 | [WP-S2.11](#wp-s211-gui-test-suite-egui_kittest) | GUI test suite (egui_kittest) | M2 | same | 2.6 | UI developer |
@@ -1507,7 +1507,7 @@ S2 builds the egui shell and every interactive tool against `World`, the queries
 | [WP-S2.14](#wp-s214-editor-10-completion) | Editor 1.0 completion | M5 | 1.x (lever c) | 4.6 | UI developer |
 | [WP-S2.15](#wp-s215-revision-review-and-merge-ui) | Revision, review and merge UI | M5 | 1.x (lever c) | 3.1 | UI developer |
 | [WP-S2.16](#wp-s216-usability-round-r2-and-fixes) | Usability round R2 and fixes | M6 | same | 1.4 | UX researcher |
-| [WP-S2.17](#wp-s217-design-language-and-ui-polish) | Design language and UI polish | M-PP | same | 5.7 | UI developer |
+| [WP-S2.17](#wp-s217-design-language-and-ui-polish) | Design language and UI polish | M-PP | same | 6.0 | UI developer |
 <!-- /generated:wbs-stream-S2 -->
 
 #### WP-S2.01 Application shell, first run and company-standard wizard UI
@@ -1677,12 +1677,14 @@ S2 builds the egui shell and every interactive tool against `World`, the queries
 | Deliverables | Palette, keymaps, a11y and i18n layers |
 | Depends on | WP-S2.01 |
 | Requirements | FR-UI-012, FR-UI-013, FR-UI-025 … FR-UI-027, FR-UI-032, FR-UI-045, FR-UI-047, FR-UI-048, NFR-A11Y-01 … NFR-A11Y-04, NFR-I18N-01, NFR-I18N-02, NFR-I18N-06, NFR-UX-03 (17 rows) |
-| Effort (pw) | O 1.5 · L 2.5 · P 4.5 · **PERT 2.7** (σ 0.5) |
+| Effort (pw) | O 1.2 · L 2.2 · P 4.2 · **PERT 2.4** (σ 0.5) |
 | Milestone · release | M2 MVP: pilot release · MVP |
 | Acceptance | NFR-A11Y-02, NFR-UX-03 |
 | Owner role | UI developer |
 
 *Note (2026-10-28, design language).* 4.0 pw of this package's estimate moves to [WP-S2.17](specs/WP-S2.17-design-language-and-ui-polish.md), which delivers its theming, colour-vision and contrast half (the token set with its contrast test, the light, dark and high-contrast themes, the overlay hues and patterns) and the look of the palette, tooltips and menus; the requirements stay mapped here for their behaviour (orchestrator's ruling, 2026-10-28).
+
+*Note (2026-10-28, widget mapping).* A further 0.3 pw moves to [WP-S2.17](specs/WP-S2.17-design-language-and-ui-polish.md) (O 1.5 · L 2.5 · P 4.5 to O 1.2 · L 2.2 · P 4.2): the look of the table and list panes built alongside the design language (the table-mode data grid, the message panel, the Preview tab, History), mapped in [16a](../design/16a-design-language.md) §6.25 (the specification's §15.1).
 
 #### WP-S2.09 Messages, bulk previews, history, jobs and recovery UI
 
@@ -1827,12 +1829,14 @@ S2 builds the egui shell and every interactive tool against `World`, the queries
 | Deliverables | Design language in `ew-ui` and `ew-viewmodel`, token dump, icon table, snapshots |
 | Depends on | WP-S2.05, WP-S2.06 |
 | Requirements | FR-UI-001, FR-UI-034, NFR-A11Y-03, NFR-A11Y-04 (4 rows) |
-| Effort (pw) | O 4 · L 5.5 · P 8 · **PERT 5.7** (σ 0.7) |
+| Effort (pw) | O 4.3 · L 5.8 · P 8.3 · **PERT 6.0** (σ 0.7) |
 | Milestone · release | M-PP Pilot preview 0.0.x · MVP |
 | Acceptance | NFR-A11Y-04 |
 | Owner role | UI developer |
 
 *Status (2026-10-28, lane H31).* **Specified** ([closed specification](specs/WP-S2.17-design-language-and-ui-polish.md); design in [16a design language](../design/16a-design-language.md) and [ADR-0031](../adr/0031-design-language-and-task-ordered-command-bar.md), Accepted; the owner-approved [mockup](../design/assets/design-language-mockup.html) is the visual reference and each part's acceptance checks conformance with it): six parts in three waves, 5.6 pw against the PERT of 5.7 pw with a de-scope rule. Wave 1: part 1 (tokens, themes, fonts, 0.8 pw, Opus/medium) and part 6 (the icon set, 0.6 pw, Opus/low); wave 2: part 2 (the command surface, 1.2 pw, Opus/high) and part 5 (canvas overlays, 0.9 pw, Opus/medium); wave 3: part 3 (docks, rails, rows, Properties, the status bar, 1.3 pw, Opus/medium) and part 4 (dialogs, toasts, menus, palette, empty states, 0.8 pw, Opus/medium). It absorbs FT-338, FT-348 (except page thumbnails, FT-492), FT-390, FT-391, FT-425, FT-506, FT-507, FT-508, FT-509, FT-510 and FT-512's tooltip half. Its 5.7 pw come from WP-S2.08 (4.0 pw) and WP-S2.16 (1.7 pw), so the MVP gate stays at month 41. Decision-log entries are numbered at the design pass that adopts it.
+
+*Amendment (2026-10-28, lane K31).* The widgets built alongside the design language (WP-S2.06 part 3's data grid, WP-S2.09 part 2's message panel, part 3's Preview tab, strip and History, the chip line, FT-500's hover) are mapped to components in [16a](../design/16a-design-language.md) v1.1 (§4.15, §6.21 to §6.25) and restyled by parts 3 (1.5 pw), 4 (0.9 pw) and 5 with the checks DK9 to DK12, CP8, CP9 and OV7; the package is 5.9 pw against a PERT of 6.0 pw, the 0.3 pw taken from WP-S2.08. Five behaviour follow-ups are proposed (16a §6.25), to be numbered at the design pass.
 
 ### 9.4 S3 Documents, reports and migration
 

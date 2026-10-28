@@ -255,8 +255,8 @@ Cross-cutting lines inside these totals: documentation 13.8 pw (WP-S0.06, WP-S7.
 <!-- generated:effort-scope -->
 | Scope | M-PP (PERT) | M-PP with reserve | MVP (PERT) | MVP with reserve | 1.0 (PERT) | 1.0 with reserve | 1.x backlog (PERT) |
 |---|---|---|---|---|---|---|---|
-| Full scope | 187.1 | 224.5 | 315.8 | 378.9 | 533.9 | 640.7 | 43.5 |
-| **Lean: levers (a), (b) and (c) — plan of record** | **187.1** | **224.5** | **294.0** | **352.8** | **479.0** | **574.8** | **98.4** |
+| Full scope | 187.4 | 224.9 | 315.8 | 378.9 | 533.9 | 640.7 | 43.5 |
+| **Lean: levers (a), (b) and (c) — plan of record** | **187.4** | **224.9** | **294.0** | **352.8** | **479.0** | **574.8** | **98.4** |
 <!-- /generated:effort-scope -->
 
 Levers (a) and (b) move work from the MVP into the 1.0 releases; only lever (c) removes work from 1.0. M-PP is a
@@ -270,9 +270,9 @@ month adds the dependencies, the lead times and the one-owner-per-WP rule.
 <!-- generated:capacity-bound -->
 | Team | Lean M-PP: bound / simulated | Lean MVP: bound / simulated | Lean 1.0: bound / simulated | Full M-PP: bound / simulated | Full MVP: bound / simulated | Full 1.0: bound / simulated |
 |---|---|---|---|---|---|---|
-| 2 developers | 37.4 / 38 | 58.8 / 60 | 95.8 / 97 | 37.4 / 38 | 63.2 / 65 | 106.8 / 108 |
-| 3 developers | 24.9 / 26 | 39.2 / 41 | 63.9 / 65 | 24.9 / 26 | 42.1 / 44 | 71.2 / 72 |
-| 4 developers (fourth from month 4) | 21.5 / 24 | 33.3 / 36 | 53.9 / 58 | 21.5 / 24 | 35.8 / 39 | 60.0 / 62 |
+| 2 developers | 37.5 / 38 | 58.8 / 60 | 95.8 / 97 | 37.5 / 38 | 63.2 / 65 | 106.8 / 108 |
+| 3 developers | 25.0 / 26 | 39.2 / 41 | 63.9 / 65 | 25.0 / 26 | 42.1 / 44 | 71.2 / 72 |
+| 4 developers (fourth from month 4) | 21.5 / 24 | 33.3 / 36 | 53.9 / 58 | 21.5 / 25 | 35.8 / 38 | 60.0 / 62 |
 <!-- /generated:capacity-bound -->
 
 **Reading it.** For the MVP and 1.0 the simulated dates are within a few months of the capacity bound: the team
@@ -306,7 +306,7 @@ any hand-over to a human team.
 |---|---|---|---|---|---|---|---|---|---|
 | 2 developers | 3 (Jan 2027) | 7 (May 2027) | 23 (Sep 2028) | 38 (Dec 2029) | 65 (Mar 2032) | 73 (Nov 2032) | 87 (Jan 2034) | 100 (Feb 2035) | 108 (Oct 2035) |
 | 3 developers | 3 (Jan 2027) | 6 (Apr 2027) | 16 (Feb 2028) | 26 (Dec 2028) | 44 (Jun 2030) | 48 (Oct 2030) | 60 (Oct 2031) | 67 (May 2032) | 72 (Oct 2032) |
-| 4 developers (fourth from month 4) | 3 (Jan 2027) | 6 (Apr 2027) | 16 (Feb 2028) | 24 (Oct 2028) | 39 (Jan 2030) | 43 (May 2030) | 51 (Jan 2031) | 56 (Jun 2031) | 62 (Dec 2031) |
+| 4 developers (fourth from month 4) | 3 (Jan 2027) | 6 (Apr 2027) | 16 (Feb 2028) | 25 (Nov 2028) | 38 (Dec 2029) | 42 (Apr 2030) | 51 (Jan 2031) | 56 (Jun 2031) | 62 (Dec 2031) |
 <!-- /generated:dates-full -->
 
 With the lean scope, M5 falls one month after M4 (3 developers) or in the same month (4 developers), because lever
@@ -323,9 +323,9 @@ uses 120 % capacity.
 | 2 | Lean | 75 (Jan 2033) | 60 (Oct 2031) | 50 (Dec 2030) | 121 (Nov 2036) | 97 (Nov 2034) | 81 (Jul 2033) | 33 / 53 |
 | **3** | **Lean** | **52 (Feb 2031)** | **41 (Mar 2030)** | **35 (Sep 2029)** | **81 (Jul 2033)** | **65 (Mar 2032)** | **54 (Apr 2031)** | **24 / 36** |
 | 4 | Lean | 45 (Jul 2030) | 36 (Oct 2029) | 30 (Apr 2029) | 72 (Oct 2032) | 58 (Aug 2031) | 48 (Oct 2030) | 21 / 33 |
-| 2 | Full | 81 (Jul 2033) | 65 (Mar 2032) | 54 (Apr 2031) | 135 (Jan 2038) | 108 (Oct 2035) | 90 (Apr 2034) | 36 / 59 |
+| 2 | Full | 81 (Jul 2033) | 65 (Mar 2032) | 54 (Apr 2031) | 134 (Dec 2037) | 108 (Oct 2035) | 90 (Apr 2034) | 36 / 59 |
 | 3 | Full | 55 (May 2031) | 44 (Jun 2030) | 37 (Nov 2029) | 90 (Apr 2034) | 72 (Oct 2032) | 60 (Oct 2031) | 25 / 40 |
-| 4 | Full | 48 (Oct 2030) | 39 (Jan 2030) | 32 (Jun 2029) | 77 (Mar 2033) | 62 (Dec 2031) | 52 (Feb 2031) | 22 / 35 |
+| 4 | Full | 48 (Oct 2030) | 38 (Dec 2029) | 32 (Jun 2029) | 77 (Mar 2033) | 62 (Dec 2031) | 52 (Feb 2031) | 22 / 35 |
 <!-- /generated:sensitivity -->
 
 ### 3.6 Can v1 fit 15–18 months?
@@ -779,11 +779,11 @@ blocks other work and has no conditions.
 | WP-S2.05 | Property grid, provenance, find and replace, clipboard | S2 | 4.6 |
 | WP-S2.06 | Navigators and table mode | S2 | 5.2 |
 | WP-S2.09 | Messages, bulk previews, history, jobs and recovery UI | S2 | 3.6 |
-| WP-S2.17 | Design language and UI polish | S2 | 5.7 |
+| WP-S2.17 | Design language and UI polish | S2 | 6.0 |
 | WP-S6.13 | Blind-drafter gate agent: harness, personas and prompt | S6 | 1.6 |
-| **Sum** | **16 WPs** |  | **75.8** |
+| **Sum** | **16 WPs** |  | **76.1** |
 
-With the M0 and M1 WPs, M-PP needs 187.1 pw (224.5 pw with the reserve); the MVP needs 294.0 pw. The preview is therefore 64 % of the MVP effort and reuses every M1 output unchanged.
+With the M0 and M1 WPs, M-PP needs 187.4 pw (224.9 pw with the reserve); the MVP needs 294.0 pw. The preview is therefore 64 % of the MVP effort and reuses every M1 output unchanged.
 <!-- /generated:pp-scope -->
 
 ---
@@ -914,39 +914,39 @@ gantt
   Perf spike ew-memo and SQL projection :t12, 2027-06-21, 2027-12-15
   Preview breadth numbering devices terminals parts :t13, 2028-01-24, 2028-12-05
   Rule engine and core online checks :t14, 2028-04-14, 2028-08-05
-  Parts macros rule packs revisions :t15, 2028-12-05, 2029-03-31
+  Parts macros rule packs revisions :t15, 2028-12-05, 2029-04-04
   PLC bus fluid models :t16, 2028-12-27, 2029-05-27
   Collaboration and CLI :t17, 2029-04-23, 2029-11-04
-  PLC bus and fluid 1.0 :t18, 2030-01-09, 2030-05-22
-  Parts 1.0 :t19, 2030-10-09, 2030-11-22
+  PLC bus and fluid 1.0 :t18, 2030-01-10, 2030-05-22
+  Parts 1.0 :t19, 2030-10-09, 2030-11-21
   Model 1.0 rule packs 1.0 and MCP :t20, 2031-05-15, 2031-10-01
   section S2 Interaction and UI
   Shell canvas and viewer :t21, 2028-02-14, 2028-07-15
   Placement wiring tools property grid navigators messages :t22, 2028-07-15, 2028-12-08
-  Domain tables palette keymaps :t23, 2029-06-27, 2030-01-13
+  Domain tables palette keymaps :t23, 2029-06-30, 2030-01-10
   GUI tests and usability R0 R1 :t24, 2029-09-29, 2030-01-12
   Automation workspaces :t25, 2030-05-22, 2030-08-12
-  Symbol editor :t26, 2031-07-30, 2031-09-06
+  Symbol editor :t26, 2031-07-30, 2031-09-05
   Usability R2 and fixes :t27, 2031-11-01, 2031-11-18
   section S3 Documents and migration
   Display list frames forms report engine PDF :t28, 2027-01-27, 2028-01-08
   Spine importers CSV and QET elements :t29, 2027-07-23, 2027-09-11
   Importer contracts and migration report :t30, 2029-03-13, 2029-04-19
-  MVP reports SVG printing table exports :t31, 2029-08-16, 2030-01-09
+  MVP reports SVG printing table exports :t31, 2029-08-16, 2030-01-13
   QET project import and corpus :t32, 2030-01-12, 2030-09-06
   AML TIA PLCopen EDZ DXF DWG exchange :t33, 2030-03-28, 2030-10-09
-  1.0 reports and QET assistants :t34, 2031-07-22, 2031-09-17
+  1.0 reports and QET assistants :t34, 2031-07-23, 2031-09-17
   section S4 Physical
-  2D panel model and tools :t35, 2029-02-13, 2029-12-08
-  STEP worker 3D model and 3D view :t36, 2030-08-12, 2031-03-02
+  2D panel model and tools :t35, 2029-02-13, 2029-12-11
+  STEP worker 3D model and 3D view :t36, 2030-08-12, 2031-03-01
   Collision routing and wire lengths :t37, 2030-12-29, 2031-05-10
   section S5 Manufacturing outputs
   Wire records ferrules labels :t38, 2030-09-06, 2031-02-22
-  Drilling and assembly lists :t39, 2031-03-02, 2031-06-04
+  Drilling and assembly lists :t39, 2031-03-01, 2031-06-03
   Machine profiles and production package :t40, 2031-05-10, 2031-08-12
   section S6 Quality and release
   Test kit determinism perf gate :t41, 2027-10-12, 2028-02-14
-  Packaging security signing privacy :t42, 2029-03-31, 2029-12-12
+  Packaging security signing privacy :t42, 2029-04-04, 2029-12-12
   MVP stabilisation :t43, 2030-01-13, 2030-03-26
   Monthly 0.x releases :t44, 2030-03-26, 2032-03-04
   1.0 hardening and stabilisation :t45, 2031-09-17, 2032-02-14
@@ -954,8 +954,8 @@ gantt
   section S7 Content
   Golden data and starter symbols :t47, 2027-11-26, 2028-02-27
   MVP docs and starter parts :t48, 2029-05-27, 2029-12-11
-  Golden 1.0 fixtures :t49, 2031-04-07, 2031-05-15
-  1.0 docs and manufacturer pack :t50, 2031-11-18, 2032-02-22
+  Golden 1.0 fixtures :t49, 2031-04-08, 2031-05-15
+  1.0 docs and manufacturer pack :t50, 2031-11-18, 2032-02-21
 ```
 <!-- /generated:gantt-baseline -->
 
@@ -1109,7 +1109,7 @@ they concern the pace (SR-1, SR-2, SR-7, SR-15).
 | Milestone (lean scope) | Longest dependency chain, unlimited developers | Capacity bound, 3 developers | Simulated, 3 developers |
 |---|---|---|---|
 | M1 | 13.7 months (WP-S1.01 → WP-S1.02 → WP-S1.03 → WP-S1.07 → WP-S3.03 → WP-S3.04) | 14.8 months | 15.9 → month 16 |
-| M-PP | 18.0 months (WP-S1.01 … WP-S1.03, WP-S1.07, WP-S1.08, WP-S2.03, WP-S2.04, WP-S6.13) | 24.9 months | 26.0 → month 26 |
+| M-PP | 18.0 months (WP-S1.01 … WP-S1.03, WP-S1.07, WP-S1.08, WP-S2.03, WP-S2.04, WP-S6.13) | 25.0 months | 26.0 → month 26 |
 | M2 | 20.9 months (WP-S1.01 … WP-S1.03, WP-S1.07, WP-S1.08, WP-S2.03, WP-S2.04, WP-S2.12, WP-S6.08) | 39.2 months | 40.9 → month 41 |
 | M6 | 28.5 months (WP-S1.01 … WP-S1.04, WP-S1.13, WP-S1.19a, WP-S1.19, WP-S4.01, WP-S4.05, WP-S4.07, WP-S4.08, WP-S5.04, WP-S5.07, WP-S6.10, WP-S6.12) | 63.9 months | 64.3 → month 65 |
 <!-- /generated:critical-path -->
@@ -1170,7 +1170,7 @@ Impacts are simulated on the plan of record (3 developers, lean scope) unless st
 | Third developer joins at month 6 | 18 | 28 | 43 | 67 |
 | Third developer joins at month 12 | 20 | 30 | 45 | 69 |
 | Strict roles: dev 1 S0 and S1; dev 2 S2, S4, S6; dev 3 S3, S5, S6, S7 | 27 | 38 | 56 | 75 |
-| Strict, but dev 3 also takes S1, dev 2 also S7 and dev 1 also S6 | 20 | 34 | 45 | 71 |
+| Strict, but dev 3 also takes S1, dev 2 also S7 and dev 1 also S6 | 20 | 35 | 45 | 71 |
 | 4 developers, plan order | 16 | 24 | 36 | 58 |
 | 4 developers, STEP worker (WP-S4.03) before M2 | 16 | 24 | 37 | 56 |
 | 3 developers, STEP worker (WP-S4.03) before M2 | 16 | 26 | 42 | 65 |
@@ -1230,7 +1230,7 @@ The schedule model uses exactly this rule. Strict silos are expensive:
 |---|---|---|---|---|
 | **Pull rule, owners review (plan of record)** | 16 | 26 | 41 | 65 |
 | Strict: dev 1 S0 and S1; dev 2 S2, S4, S6; dev 3 S3, S5, S6, S7 | 27 | 38 | 56 | 75 |
-| Strict, but dev 3 also takes S1, dev 2 also S7 and dev 1 also S6 | 20 | 34 | 45 | 71 |
+| Strict, but dev 3 also takes S1, dev 2 also S7 and dev 1 also S6 | 20 | 35 | 45 | 71 |
 <!-- /generated:silos -->
 
 S1 is almost 30 % of the effort; one person cannot carry it. Everyone therefore works in the core during the

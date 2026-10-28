@@ -175,6 +175,48 @@ table.msg tr.sel td { background:var(--accent-subtle); }
 /* Toggles shown only in the mockup */
 .mock { position:fixed; right:56px; bottom:34px; display:flex; gap:6px; z-index:5; }
 .mock button { height:26px; padding:0 10px; border-radius:999px; background:var(--surface-raised); box-shadow:var(--shadow-2); font-size:12px; color:var(--text-primary); }
+
+/* Addition 2026-10-28 (doc 16a v1.1, sections 6.21 and 6.22): the component sheet, opened from the mockup controls.
+   Class names start with cs- so that no approved selector or parsed element changes. */
+.cs-sheet { position:fixed; top:48px; right:56px; bottom:72px; width:720px; max-width:calc(100vw - 112px); overflow:auto; z-index:6;
+  background:var(--surface-chrome); border-radius:8px; box-shadow:var(--shadow-2); padding:16px; display:flex; flex-direction:column; gap:12px; }
+.cs-sheet[hidden] { display:none; }
+.cs-sheet > * { flex:none; }
+.cs-h { margin:0; font-size:12px; font-weight:600; letter-spacing:.02em; text-transform:uppercase; color:var(--text-secondary); }
+.cs-note { margin:0; font-size:12px; color:var(--text-tertiary); }
+.cs-pane { background:var(--surface-panel); border:1px solid var(--border-default); border-radius:6px; overflow:hidden; }
+.cs-tools { height:32px; display:flex; align-items:center; gap:4px; padding:0 8px; }
+.cs-ib { width:24px; height:24px; display:grid; place-items:center; border-radius:4px; color:var(--text-secondary); }
+.cs-ib:hover,.cs-sub:hover,.cs-th:hover { background:var(--hover); }
+.cs-ib.on { background:var(--accent-subtle); color:var(--accent); }
+.cs-filter { flex:1; height:24px; display:flex; align-items:center; gap:8px; padding:0 8px; border:1px solid var(--border-control); border-radius:6px; color:var(--text-tertiary); font-size:12px; }
+.cs-sub { height:24px; display:flex; align-items:center; gap:4px; padding:0 8px; border-radius:6px; font-size:12px; color:var(--text-primary); }
+.cs-gridwrap { overflow:auto; border-top:1px solid var(--border-subtle); }
+table.cs-grid { border-collapse:separate; border-spacing:0; font-size:12px; width:max-content; min-width:100%; }
+.cs-grid th { position:sticky; top:0; z-index:1; height:24px; padding:0; text-align:left; background:var(--surface-sunken); border-bottom:1px solid var(--border-subtle); white-space:nowrap; }
+.cs-th { width:100%; height:24px; display:flex; align-items:center; gap:4px; padding:0 12px; font-size:12px; font-weight:600; color:var(--text-secondary); }
+.cs-th.sorted { color:var(--text-primary); }
+.cs-th .cs-d { color:var(--text-tertiary); }
+.cs-grid td { height:var(--row); min-width:110px; padding:0 12px; border-bottom:1px solid var(--border-subtle); white-space:nowrap; background:var(--surface-panel); position:relative; }
+.cs-grid .cs-key { position:sticky; left:0; z-index:1; border-right:1px solid var(--border-default); }
+.cs-grid th.cs-key { z-index:2; }
+.cs-grid tr:hover td { background-image:linear-gradient(var(--hover),var(--hover)); }
+.cs-grid tr.cs-mark td { background-color:var(--accent-subtle); }
+.cs-grid tr.cs-cur td.cs-key::before { content:""; position:absolute; left:0; top:4px; bottom:4px; width:2px; border-radius:2px; background:var(--accent); }
+.cs-grid td.cs-der { color:var(--text-secondary); }
+.cs-grid td.cs-cell { outline:2px solid var(--accent); outline-offset:-2px; }
+.cs-grid td.cs-edit { padding:0 2px; }
+.cs-val { height:24px; display:flex; align-items:center; padding:0 10px; border-radius:4px; border:1px solid var(--accent); box-shadow:0 0 0 1px var(--accent); background:var(--surface-panel); }
+.cs-canvas { position:relative; height:200px; background:var(--canvas-surround); border-radius:6px; overflow:hidden; }
+.cs-sheetbit { position:absolute; left:16px; top:16px; width:300px; height:168px; background:var(--sheet); box-shadow:var(--shadow-1); }
+.cs-sheetbit svg { width:100%; height:100%; display:block; }
+.cs-chooser { position:absolute; left:236px; top:56px; width:264px; background:var(--surface-raised); border-radius:6px; box-shadow:var(--shadow-1); padding:4px; }
+.cs-opt { height:var(--row); display:flex; align-items:center; gap:8px; padding:0 8px; border-radius:4px; color:var(--text-primary); }
+.cs-opt .cs-ic { color:var(--text-secondary); }
+.cs-opt .cs-kind { margin-left:auto; font-size:12px; color:var(--text-tertiary); }
+.cs-opt.act { background:var(--hover); }
+.cs-keys { display:flex; align-items:center; gap:6px; padding:6px 8px 2px; font-size:11px; color:var(--text-tertiary); border-top:1px solid var(--border-subtle); margin-top:4px; }
+.cs-kbd { border:1px solid var(--border-default); border-radius:4px; padding:0 4px; }
 </style>
 </head>
 <body data-density="comfortable">
@@ -464,9 +506,58 @@ table.msg tr.sel td { background:var(--accent-subtle); }
   <span class="sfield" style="color:var(--text-tertiary)" title="Renderer">GPU</span>
 </footer>
 
+<!-- ===== Addition 2026-10-28 (doc 16a v1.1): component sheet, sections 6.21 and 6.22 ===== -->
+<section class="cs-sheet" id="csheet" aria-label="Component sheet" hidden>
+  <h2 class="cs-h">Data grid: a navigator in table mode (16a 6.21)</h2>
+  <div class="cs-pane">
+    <div class="cs-tools">
+      <button class="cs-ib on focusable" title="Table" aria-pressed="true"><svg class="i i16" viewBox="0 0 24 24"><path d="M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 10h18M10 3v18"/></svg></button>
+      <div class="cs-filter"><svg class="i i16" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Filter terminals</div>
+      <button class="cs-sub focusable" aria-haspopup="menu">Columns<svg class="i i16" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
+    </div>
+    <div class="cs-gridwrap">
+      <table class="cs-grid" role="grid" aria-label="Terminal strips table">
+        <thead><tr>
+          <th class="cs-key"><button class="cs-th sorted" title="Sort by Terminal">Terminal<svg class="i i16" viewBox="0 0 24 24"><path d="M12 5v14M16 9l-4-4M8 9l4-4"/></svg></button></th>
+          <th><button class="cs-th" title="Sort by Strip">Strip</button></th>
+          <th><button class="cs-th" title="Sort by Target">Target</button></th>
+          <th><button class="cs-th" title="Derived; read-only">Potential<svg class="i i16 cs-d" viewBox="0 0 24 24"><path d="M3 19a2 2 0 0 0 2 2c2 0 2-4 3-9s1-9 3-9a2 2 0 0 1 2 2"/><path d="M5 12h6M15 12l6 6M15 18l6-6"/></svg></button></th>
+          <th><button class="cs-th" title="Sort by Page">Page</button></th>
+        </tr></thead>
+        <tbody>
+          <tr><td class="cs-key">-X1:1</td><td>-X1</td><td>-M1:U1</td><td class="cs-der">L1</td><td>3</td></tr>
+          <tr class="cs-mark"><td class="cs-key">-X1:2</td><td>-X1</td><td>-M1:V1</td><td class="cs-der">L2</td><td>3</td></tr>
+          <tr class="cs-mark cs-cur"><td class="cs-key">-X1:3</td><td>-X1</td><td class="cs-cell">-M1:W1</td><td class="cs-der">L3</td><td>3</td></tr>
+          <tr><td class="cs-key">-X1:PE</td><td>-X1</td><td>-M1:PE</td><td class="cs-der">PE</td><td>3</td></tr>
+          <tr><td class="cs-key">-X1:4</td><td>-X1</td><td class="cs-edit"><div class="cs-val">-K1:A2</div></td><td class="cs-der">0V-CTRL</td><td>4</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <p class="cs-note">Two rows marked; the cursor on -X1:3, Target (bar on the key cell, ring on the cell); an editing cell on -X1:4 for comparison (in the window the editor opens at the cursor).</p>
+  <h2 class="cs-h">Chooser list: the pick stack (16a 6.22; proposed follow-up, not built)</h2>
+  <div class="cs-canvas">
+    <div class="cs-sheetbit">
+      <svg viewBox="0 0 300 168" aria-label="Sheet detail">
+        <g stroke="#000" stroke-width="1.6" fill="none"><path d="M20 84H280M150 20v44M150 104v44"/><circle cx="150" cy="84" r="8" fill="#FFF"/></g>
+        <rect x="134" y="68" width="32" height="32" fill="none" stroke="var(--selection)" stroke-width="1" stroke-dasharray="4 4"/>
+        <text x="164" y="64" font-family="Noto Sans, Segoe UI, sans-serif" font-size="11" fill="#000">-X1:2</text>
+      </svg>
+    </div>
+    <div class="cs-chooser" role="listbox" aria-label="Objects here">
+      <div class="cs-opt act" role="option" aria-selected="true"><svg class="i i16 cs-ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v6M12 15v6"/></svg>-X1:2<span class="cs-kind">Terminal</span></div>
+      <div class="cs-opt" role="option" aria-selected="false"><svg class="i i16 cs-ic" viewBox="0 0 24 24"><path d="M4 18h6V6h10"/></svg>-X1:2 – -K1:A1<span class="cs-kind">Wire</span></div>
+      <div class="cs-opt" role="option" aria-selected="false"><svg class="i i16 cs-ic" viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="12" rx="1" stroke-dasharray="3 2"/></svg>+CP<span class="cs-kind">Structure box</span></div>
+      <div class="cs-keys"><span class="cs-kbd">↑ ↓</span><span class="cs-kbd">Enter</span>selects<span class="cs-kbd">Esc</span>closes</div>
+    </div>
+  </div>
+  <p class="cs-note">The active row has the hover overlay and its object the dashed hover outline. As built, a repeated click walks the same stack.</p>
+</section>
+
 <div class="mock" aria-label="Mockup controls">
   <button onclick="toggleTheme()" id="themeBtn">Dark</button>
   <button onclick="toggleDensity()" id="densBtn">Compact</button>
+  <button onclick="toggleSheet()" id="sheetBtn">Components</button>
 </div>
 
 <script>
@@ -476,6 +567,7 @@ function toggleTheme(){var r=document.documentElement,d=r.getAttribute('data-the
 function toggleDensity(){var b=document.body,c=b.getAttribute('data-density')==='compact';
   b.setAttribute('data-density',c?'comfortable':'compact');document.getElementById('densBtn').textContent=c?'Compact':'Comfortable';}
 function toggleDock(){var e=document.getElementById('bottom');e.hidden=!e.hidden;}
+function toggleSheet(){var e=document.getElementById('csheet');e.hidden=!e.hidden;}
 document.querySelectorAll('#tabs .tab').forEach(function(t){t.addEventListener('click',function(){
   document.querySelectorAll('#tabs .tab').forEach(function(u){u.setAttribute('aria-selected','false');});
   t.setAttribute('aria-selected','true');});});
