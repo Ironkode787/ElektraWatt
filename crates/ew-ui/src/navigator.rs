@@ -320,7 +320,8 @@ impl NavigatorPane {
             let writable =
                 ew_viewmodel::actions::find("table.edit").is_some_and(|a| (a.enabled)(shell).is_ok());
             let preview = shell.pattern_preview(self.kind).map(|(_, v)| v);
-            self.table.show(ui, nav, writable, preview, list_id, events);
+            self.table
+                .show(ui, nav, writable, preview, (list_id, ours), events);
             self.painted = self.table.painted;
             return;
         }

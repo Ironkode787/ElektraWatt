@@ -90,10 +90,10 @@ fn steps(shell: &ShellModel) -> usize {
 fn tb7_the_key_column_stays_while_the_table_scrolls_right() {
     let tmp = Tmp::new();
     let mut h = table(&tmp, "strips", "x1031");
+    // WP-S2.17 DK9: the columns start at `size.table_column` (110 px), so Strip and Terminal are on show in the pane.
     for name in [
         "Strip -X1031, row 1 of 20, read-only",
         "Terminal 1, row 1 of 20",
-        "Function text 1+, row 1 of 20",
         "Sort by Strip",
         "Sort by Terminal",
         "Terminal strips table",
@@ -361,28 +361,50 @@ fn tb4_paste_resolve_and_apply_without_a_pointer() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// W31-3: a header whose text is wider than its column ("Function text") is cut to the column less its padding, not
-/// run into the next one.
+/// W31-3, restyled by WP-S2.17 DK9 (doc 16a §6.21): the header button covers its column, and its label (in
+/// `type.small` SemiBold) is painted within the column less its `space.4` padding, cut with an ellipsis when it is
+/// wider, never run into the next column.
 #[test]
 fn w31_3_a_header_text_is_truncated_within_its_column() {
     let tmp = Tmp::new();
     let mut h = table(&tmp, "strips", "x1031");
     settle(&mut h);
+    let t = ew_ui::theme::current(&h.ctx);
+    // WP-S2.17 DK9: columns start at `size.table_column`; the cell cursor brings Function text into view.
+    done(
+        h.state_mut().shell_mut(),
+        "table.cell",
+        json!({"kind": "strips", "column": "label"}),
+    );
+    settle(&mut h);
     let header = h.get_by_label("Sort by Function text").rect();
     let cell = h.get_by_label("Function text 1+, row 1 of 20").rect();
-    // The full header text is wider than the column: what is on show is cut.
-    let font = egui::TextStyle::Button.resolve(&h.ctx.global_style());
-    let full = h.ctx.fonts_mut(|f| {
-        f.layout_no_wrap("Function text".to_owned(), font, egui::Color32::WHITE)
-            .size()
-            .x
-    });
-    assert!(full > header.width(), "{full} wider than {header:?}");
     assert!(
-        header.left() >= cell.left() - 0.5 && header.right() <= cell.right() + 0.5,
-        "the header {header:?} inside its column {cell:?}"
+        (header.left() - cell.left()).abs() < 0.5 && (header.right() - cell.right()).abs() < 0.5,
+        "the header {header:?} covers its column {cell:?}"
     );
-    let next = h.get_by_label("Sort by Group").rect();
-    assert!(header.right() < next.left(), "{header:?} ends before {next:?}");
+    // The next column, when it is on show, starts where this one ends.
+    if let Some(next) = h.query_by_label("Sort by Group") {
+        let next = next.rect();
+        assert!(
+            header.right() <= next.left() + 0.5,
+            "{header:?} ends where {next:?} starts"
+        );
+    }
+    // The label painted in the header: inside the padding.
+    let mut label = None;
+    for c in &h.output().shapes {
+        if let egui::Shape::Text(text) = &c.shape
+            && header.contains(text.pos + egui::vec2(0.0, text.galley.size().y / 2.0))
+            && text.galley.text().starts_with("Function")
+        {
+            label = Some(egui::Rect::from_min_size(text.pos, text.galley.size()));
+        }
+    }
+    let label = label.expect("the painted header label");
+    assert!(
+        label.left() >= header.left() + t.space_4 - 0.5 && label.right() <= header.right() - t.space_4 + 0.5,
+        "the label {label:?} within the padding of {header:?}"
+    );
     h.state_mut().shell_mut().shutdown();
 }

@@ -24,7 +24,10 @@
 
 use std::collections::BTreeSet;
 
-use egui::{Key, Modifiers, RichText, Sense, TextEdit, Ui};
+use std::sync::Arc;
+
+use egui::text::{LayoutJob, TextFormat, TextWrapping};
+use egui::{FontId, Key, Modifiers, Rect, RichText, Sense, StrokeKind, TextEdit, Ui, pos2, vec2};
 use egui_table::{CellInfo, Column, HeaderCellInfo, HeaderRow, Table, TableDelegate};
 use ew_viewmodel::ew_api::output::NavTable;
 use ew_viewmodel::navigators::table::cell_reason;
@@ -33,6 +36,8 @@ use ew_viewmodel::strings;
 use serde_json::{Value, json};
 
 use crate::app::Event;
+use crate::icons::{self, IconId};
+use crate::theme::{self, Rgba, Tokens, TypeToken};
 
 /// A navigator's table between frames.
 #[derive(Default)]
@@ -62,16 +67,18 @@ fn column_key(table: &NavTable, shown: &[usize], i: usize) -> Option<String> {
 }
 
 impl TableUi {
-    /// Paints the table of navigator `nav` (in table mode) into `ui`; `table_id` is the focusable table node.
+    /// Paints the table of navigator `nav` (in table mode) into `ui`; `focus` is the focusable table node and whether
+    /// the shell's focus is on this navigator.
     pub(crate) fn show(
         &mut self,
         ui: &mut Ui,
         nav: &Navigator,
         writable: bool,
         preview: Option<Result<Vec<String>, String>>,
-        table_id: egui::Id,
+        focus: (egui::Id, bool),
         events: &mut Vec<Event>,
     ) {
+        let (table_id, ours) = focus;
         let kind = nav.kind;
         let (Some(table), Some(mode)) = (nav.table(), nav.table_mode()) else {
             return;
@@ -150,7 +157,14 @@ impl TableUi {
         if let Some((r, c)) = scroll {
             t = t.scroll_to_row(r as u64, None).scroll_to_column(c, None);
         }
+        // The grid has the keyboard: the cursor cell's ring is 2 px, 1 px otherwise (doc 16a §6.21).
+        // The shell's focus decides in the frame it moves (egui's follows a frame later).
+        let focused = ours && ui.memory(|m| m.has_focus(table_id));
+        let area = ui.available_rect_before_wrap();
         let mut delegate = Delegate {
+            tokens: tokens.clone(),
+            focused,
+            area,
             kind,
             table,
             rows: &rows,
@@ -165,13 +179,27 @@ impl TableUi {
             edit_id: table_id.with("edit"),
             events,
             painted: 0,
-            row_height: tokens.size_row,
         };
         let column_ids: Vec<(egui::Id, String)> = shown
             .iter()
             .map(|c| (column_id(&table.columns[*c].key), table.columns[*c].label.clone()))
             .collect();
         ui.scope_builder(egui::UiBuilder::new().accessibility_parent(table_id), |ui| {
+            // Doc 16a §6.21: the header band in `color.surface.sunken` across the grid with a 1-px
+            // `color.border.subtle` line under it; the resize handles are invisible at rest and a 1-px `color.accent`
+            // line on hover and while dragging (egui_table paints them with the widget strokes).
+            let band = Rect::from_min_size(area.min, vec2(area.width(), tokens.size_table_header));
+            ui.painter()
+                .rect_filled(band, theme::SQUARE, tokens.surface_sunken.color32());
+            ui.painter().hline(
+                band.x_range(),
+                band.bottom() - tokens.border_width / 2.0,
+                theme::stroke(tokens.border_width, tokens.border_subtle),
+            );
+            let w = &mut ui.visuals_mut().widgets;
+            w.noninteractive.bg_stroke = egui::Stroke::NONE;
+            w.hovered.bg_stroke = theme::stroke(tokens.border_width, tokens.accent);
+            w.active.bg_stroke = theme::stroke(tokens.border_width, tokens.accent);
             let id = t.get_id(ui);
             t.show(ui, &mut delegate);
             // egui_table's column resize handles are `interact` areas without a role or a name: they are named here
@@ -404,21 +432,56 @@ pub(crate) fn keys(ui: &Ui, nav: &Navigator, card: bool, events: &mut Vec<Event>
     }
 }
 
-// W31-3
-/// Runs `add` in the cell's rect less `space.2` on either side, clipped to it, with that inner size.
-fn in_cell<R>(ui: &mut Ui, add: impl FnOnce(&mut Ui, egui::Vec2) -> R) -> R {
-    let pad = crate::theme::current(ui.ctx()).space_2;
-    let rect = ui.max_rect().shrink2(egui::vec2(pad, 0.0));
-    let clip = ui.clip_rect().intersect(rect);
-    ui.scope_builder(egui::UiBuilder::new().max_rect(rect), |ui| {
-        ui.set_clip_rect(clip);
-        add(ui, rect.size())
+/// Paints `text` in `font` and `colour` at the left of `rect`, centred vertically and cut with an ellipsis at its
+/// width (W31-3); returns the painted width.
+fn paint_text(ui: &Ui, rect: Rect, text: &str, font: FontId, colour: Rgba) -> f32 {
+    let mut job = LayoutJob::single_section(text.to_owned(), TextFormat::simple(font, colour.color32()));
+    job.wrap = TextWrapping::truncate_at_width(rect.width().max(0.0));
+    let galley = ui.painter().layout_job(job);
+    let width = galley.size().x;
+    let at = pos2(rect.left(), rect.center().y - galley.size().y / 2.0);
+    ui.painter().galley(at, galley, colour.color32());
+    width
+}
+
+/// A cell's rect: the whole cell, or in egui_table's sizing pass (the first frame) `size.table_column` wide or as
+/// wide as `content` (the unwrapped content's width) plus `space.4` on either side when that is wider, so that a
+/// column starts at `size.table_column` and fits its widest cell on show (doc 16a §6.21; as built every column
+/// shrank to its 40-px minimum).
+fn cell_rect(ui: &Ui, t: &Tokens, content: impl FnOnce() -> f32) -> Rect {
+    let rect = ui.max_rect();
+    if ui.is_sizing_pass() {
+        let width = (content() + 2.0 * t.space_4).max(t.size_table_column);
+        Rect::from_min_size(rect.min, vec2(width, rect.height()))
+    } else {
+        rect
+    }
+}
+
+/// The unwrapped width of `text` in `font`.
+fn text_width(ui: &Ui, text: &str, font: FontId) -> f32 {
+    ui.painter()
+        .layout_no_wrap(text.to_owned(), font, theme::NONE)
+        .size()
+        .x
+}
+
+/// The SemiBold cut of `type.small` (a header label, doc 16a §6.21).
+fn small_strong(t: &Tokens) -> FontId {
+    theme::font(&TypeToken {
+        semibold: true,
+        ..t.type_small
     })
-    .inner
 }
 
 /// The table's delegate for one frame.
 struct Delegate<'a> {
+    /// The theme on show.
+    tokens: Arc<Tokens>,
+    /// Whether the grid has the keyboard.
+    focused: bool,
+    /// The grid's rect (a row is hovered when the pointer is in it at the row's height).
+    area: Rect,
     kind: NavKind,
     table: &'a NavTable,
     rows: &'a [VisRow],
@@ -439,21 +502,35 @@ struct Delegate<'a> {
     edit_id: egui::Id,
     events: &'a mut Vec<Event>,
     painted: usize,
-    /// `size.row` of the theme on show.
-    row_height: f32,
 }
 
 impl Delegate<'_> {
-    /// The cell editor in its cell.
+    /// The cell editor in its cell (doc 16a §6.21 "Editing", the value cell of §6.8): inset `space.1`, the panel fill,
+    /// a 1-px accent border and a 1-px accent ring outside it, `radius.sm`, the text where the cell's text was.
     fn editor(&mut self, ui: &mut Ui, name: &str) {
+        let t = self.tokens.clone();
         let word = self.kind.word();
         let focused = ui.memory(|m| m.has_focus(self.edit_id));
         // Ctrl+Enter commits every marked row (egui's single-line field ends on a plain Enter only).
         let all = focused && ui.input_mut(|i| i.consume_key(Modifiers::COMMAND, Key::Enter));
         let escape = ui.input(|i| i.key_pressed(Key::Escape));
-        let response = ui.add(
+        let frame = ui.max_rect().shrink(t.space_1);
+        let painter = ui.painter();
+        let r = theme::radius(t.radius_sm);
+        painter.rect_filled(frame, r, t.surface_panel.color32());
+        let edge = theme::stroke(t.border_width, t.accent);
+        painter.rect_stroke(frame, r, edge, StrokeKind::Inside);
+        painter.rect_stroke(frame, r, edge, StrokeKind::Outside);
+        let field = frame.shrink2(vec2(t.space_4 - t.space_1, 0.0));
+        let response = ui.put(
+            field,
             TextEdit::singleline(self.buffer)
                 .id(self.edit_id)
+                .frame(egui::Frame::NONE)
+                .margin(egui::Margin::ZERO)
+                .font(theme::font(&t.type_small))
+                .text_color(t.text_primary.color32())
+                .align(egui::Align2::LEFT_CENTER)
                 .desired_width(f32::INFINITY),
         );
         let name = name.to_owned();
@@ -480,6 +557,16 @@ impl Delegate<'_> {
             }
         }
     }
+
+    /// The frozen key column's right edge: a 1-px `color.table.frozen_edge` line down `rect` (doc 16a §6.21).
+    fn frozen_edge(&self, ui: &Ui, rect: Rect) {
+        let t = &self.tokens;
+        ui.painter().vline(
+            rect.right() - t.border_width / 2.0,
+            rect.y_range(),
+            theme::stroke(t.border_width, t.table_frozen_edge),
+        );
+    }
 }
 
 impl TableDelegate for Delegate<'_> {
@@ -487,28 +574,52 @@ impl TableDelegate for Delegate<'_> {
         let Some(&c) = self.shown.get(cell.col_range.start) else {
             return;
         };
+        let t = self.tokens.clone();
         let column = &self.table.columns[c];
         let sorted = self.sort.filter(|(i, _)| *i == cell.col_range.start);
-        let text = match sorted {
-            Some((_, false)) => format!("{} ↑", column.label),
-            Some((_, true)) => format!("{} ↓", column.label),
-            None => column.label.clone(),
+        // Doc 16a §6.21: a Subtle button over the whole header cell; the label in `type.small` SemiBold, secondary
+        // (primary when sorted) and followed by the 16-px sort icon; a derived column's label by `math-function` in
+        // tertiary with the tooltip "Derived; read-only".
+        let icon = match sorted {
+            Some((_, false)) => Some((IconId::arrow_narrow_up, t.text_primary)),
+            Some((_, true)) => Some((IconId::arrow_narrow_down, t.text_primary)),
+            None => None,
         };
-        let rich = if column.derived {
-            RichText::new(text).strong().italics()
-        } else {
-            RichText::new(text).strong()
-        };
-        // W31-3: clipped to the column, left-aligned, cut with an ellipsis.
-        let response = in_cell(ui, |ui, size| {
-            ui.add_sized(
-                size,
-                egui::Button::new((rich, egui::Atom::grow()))
-                    .frame(false)
-                    .truncate(),
-            )
+        let derived = column.derived.then_some((IconId::math_function, t.text_tertiary));
+        let icons: Vec<(IconId, Rgba)> = icon.into_iter().chain(derived).collect();
+        let icon_room = icons.len() as f32 * (t.icon_sm + t.space_2);
+        let rect = cell_rect(ui, &t, || {
+            text_width(ui, &column.label, small_strong(&t)) + icon_room
         });
-        // FT-523: the sorted header's name says the direction, not only its arrow (NFR-A11Y-01).
+        let response = ui.allocate_rect(rect, Sense::click());
+        crate::command_bar::state_overlay(ui, &t, &response, true, 0.0);
+        let content = rect.shrink2(vec2(t.space_4, 0.0));
+        let colour = if sorted.is_some() {
+            t.text_primary
+        } else {
+            t.text_secondary
+        };
+        let text_rect = Rect::from_min_max(
+            content.min,
+            pos2(
+                (content.right() - icon_room).max(content.left()),
+                content.bottom(),
+            ),
+        );
+        let width = paint_text(ui, text_rect, &column.label, small_strong(&t), colour);
+        let mut x = content.left() + width + t.space_2;
+        for (id, colour) in icons {
+            let at = Rect::from_min_size(
+                pos2(x, rect.center().y - t.icon_sm / 2.0),
+                vec2(t.icon_sm, t.icon_sm),
+            );
+            icons::paint(ui.painter(), id, at, colour.color32(), t.icon_stroke);
+            x += t.icon_sm + t.space_2;
+        }
+        if cell.col_range.start == 0 {
+            self.frozen_edge(ui, rect);
+        }
+        // FT-523: the sorted header's name says the direction, not only its icon (NFR-A11Y-01).
         let name = strings::format("table-sort-by", &[&column.label]);
         let name = match sorted {
             Some((_, false)) => strings::format("table-sorted-ascending", &[&name]),
@@ -516,6 +627,11 @@ impl TableDelegate for Delegate<'_> {
             None => name,
         };
         response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &name));
+        let response = if column.derived {
+            response.on_hover_text(strings::text("table-derived"))
+        } else {
+            response
+        };
         if response.clicked() {
             let descending = matches!(sorted, Some((_, false)));
             self.events.push(Event::Action(
@@ -523,6 +639,34 @@ impl TableDelegate for Delegate<'_> {
                 json!({"kind": self.kind.word(), "by": column.key, "descending": descending}),
             ));
         }
+    }
+
+    fn row_ui(&mut self, ui: &mut Ui, row_nr: u64) {
+        let Some(row) = usize::try_from(row_nr).ok().and_then(|at| self.rows.get(at)) else {
+            return;
+        };
+        let t = &self.tokens;
+        let rect = ui.max_rect();
+        let painter = ui.painter();
+        // Doc 16a §6.21: a marked row in `color.accent.subtle`, the hovered row in `color.state.hover`, one 1-px
+        // `color.border.subtle` line under each row; no zebra.
+        let key = &self.table.nodes[row.node as usize].key;
+        if self.marked.contains(key) {
+            painter.rect_filled(rect, theme::SQUARE, t.accent_subtle.color32());
+        }
+        let body_top = self.area.top() + t.size_table_header;
+        let hovered = ui
+            .ctx()
+            .pointer_hover_pos()
+            .is_some_and(|p| self.area.contains(p) && p.y > body_top && rect.y_range().contains(p.y));
+        if hovered {
+            painter.rect_filled(rect, theme::SQUARE, t.state_hover.color32());
+        }
+        painter.hline(
+            rect.x_range(),
+            rect.bottom() - t.border_width / 2.0,
+            theme::stroke(t.border_width, t.border_subtle),
+        );
     }
 
     fn cell_ui(&mut self, ui: &mut Ui, cell: &CellInfo) {
@@ -533,6 +677,7 @@ impl TableDelegate for Delegate<'_> {
             return;
         };
         self.painted += 1;
+        let t = self.tokens.clone();
         let node = &self.table.nodes[row.node as usize];
         let column = &self.table.columns[c];
         let text = node.cells.get(c).cloned().unwrap_or_default();
@@ -549,26 +694,46 @@ impl TableDelegate for Delegate<'_> {
         if reason.is_some() {
             name.push_str(strings::text("table-cell-read-only"));
         }
+        let rect = ui.max_rect();
+        if cell.col_nr == 0 {
+            self.frozen_edge(ui, rect);
+        }
         if self.edit == Some((at, cell.col_nr)) {
             self.editor(ui, &name);
             return;
         }
-        let marked = self.marked.contains(&node.key);
         let is_cursor = self.cursor == Some((at, cell.col_nr));
         let on_cursor_row = self.cursor.is_some_and(|(r, _)| r == at);
-        let rich = if column.derived {
-            RichText::new(&text).italics()
+        let rect = cell_rect(ui, &t, || text_width(ui, &text, theme::font(&t.type_small)));
+        let response = ui.allocate_rect(rect, Sense::click());
+        // Doc 16a §6.21: text in `type.small`, primary (a derived cell secondary), `space.4` padding, cut with an
+        // ellipsis at the column (W31-3).
+        let colour = if column.derived {
+            t.text_secondary
         } else {
-            RichText::new(&text)
+            t.text_primary
         };
-        let rich = if is_cursor { rich.underline() } else { rich };
-        // W31-3: clipped to the column, left-aligned (the key column too), cut with an ellipsis.
-        let selected = marked || is_cursor || (on_cursor_row && cell.col_nr == 0);
-        let button = egui::Button::selectable(selected, (rich, egui::Atom::grow()))
-            .frame(false)
-            .truncate()
-            .sense(Sense::click());
-        let response = in_cell(ui, |ui, size| ui.add_sized(size, button));
+        let content = rect.shrink2(vec2(t.space_4, 0.0));
+        paint_text(ui, content, &text, theme::font(&t.type_small), colour);
+        let painter = ui.painter();
+        // The cursor row: a 2-px accent bar at the key cell's left edge, inset `space.2` top and bottom.
+        if on_cursor_row && cell.col_nr == 0 {
+            let bar = Rect::from_min_max(
+                pos2(rect.left(), rect.top() + t.space_2),
+                pos2(rect.left() + t.focus_width, rect.bottom() - t.space_2),
+            );
+            painter.rect_filled(bar, theme::radius(t.radius_mark), t.accent.color32());
+        }
+        // The cursor cell: a 2-px `color.table.cursor` ring inside the cell while the grid has the keyboard, a 1-px
+        // `color.table.cursor_idle` ring otherwise.
+        if is_cursor {
+            let ring = if self.focused {
+                theme::stroke(t.focus_width, t.table_cursor)
+            } else {
+                theme::stroke(t.border_width, t.table_cursor_idle)
+            };
+            painter.rect_stroke(rect, theme::SQUARE, ring, StrokeKind::Inside);
+        }
         response.widget_info(|| egui::WidgetInfo::selected(egui::Role::Cell, true, is_cursor, &name));
         let response = match &reason {
             Some(r) => response.on_hover_text(r.as_str()),
@@ -613,6 +778,6 @@ impl TableDelegate for Delegate<'_> {
     }
 
     fn default_row_height(&self) -> f32 {
-        self.row_height
+        self.tokens.size_row
     }
 }

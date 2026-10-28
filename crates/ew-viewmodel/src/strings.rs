@@ -1308,6 +1308,8 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "table-move-left-name" => "Move {0} left",
         "table-move-right-name" => "Move {0} right",
         "table-sort-by" => "Sort by {0}",
+        // Doc 16a §6.21: the tooltip of a derived column's header icon.
+        "table-derived" => "Derived; read-only",
         "table-cell-row" => ", row {0} of {1}",
         "table-cell-read-only" => ", read-only",
         "table-pattern-title" => "Pattern fill",
