@@ -15,7 +15,7 @@ use std::time::Duration;
 
 use egui::Vec2;
 use egui_kittest::Harness;
-use egui_kittest::kittest::NodeT as _;
+use egui_kittest::kittest::{NodeT as _, Queryable as _};
 use ew_ui::app::{App, Pick, Platform, setup};
 use ew_ui::ew_viewmodel::shell::{Mode, Prompt, Resources, ShellConfig, ShellModel};
 
@@ -182,4 +182,85 @@ pub fn assert_named(harness: &Harness<'_, App>) {
         harness.state().splitter_count(),
         "the unnamed handles are the dock's splitters and nothing else"
     );
+}
+
+// WP-S2.17 part 2: the app menu replaced the menu bar, the HUD the tool strip.
+
+/// The value of the tool HUD's `Status` node ("Select · Click to select …"); empty without a HUD.
+pub fn hud_value(harness: &Harness<'_, App>) -> String {
+    harness
+        .query_all_by_role_and_label(egui::accesskit::Role::Status, "Tool")
+        .next()
+        .and_then(|n| n.accesskit_node().value())
+        .unwrap_or_default()
+}
+
+/// The role and label of every ancestor of `node`.
+fn ancestors(node: &egui_kittest::Node<'_>) -> Vec<(egui::accesskit::Role, String)> {
+    let mut out = Vec::new();
+    let mut at = node.accesskit_node().parent();
+    while let Some(n) = at {
+        out.push((n.role(), n.label().unwrap_or_default()));
+        at = n.parent();
+    }
+    out
+}
+
+/// Whether `node` is in the command bar or the HUD and not in a menu (a popup menu's node is a child of the button
+/// that opened it).
+fn in_chrome(node: &egui_kittest::Node<'_>) -> bool {
+    for (role, label) in ancestors(node) {
+        if role == egui::accesskit::Role::Menu {
+            return false;
+        }
+        if (role == egui::accesskit::Role::Toolbar && label == "Command bar")
+            || (role == egui::accesskit::Role::Status && label == "Tool")
+        {
+            return true;
+        }
+    }
+    false
+}
+
+/// The node labelled `label` outside the command bar and the HUD: an entry of the open menus (the app menu's
+/// submenus share their names with the command tabs, some items with the bar's buttons).
+pub fn menu_node<'t>(harness: &'t Harness<'_, App>, label: &'t str) -> egui_kittest::Node<'t> {
+    off_chrome(harness, label).unwrap_or_else(|| panic!("no menu entry {label:?}"))
+}
+
+/// The last node labelled `label` outside the command bar and the HUD (a dialog's "Renumber" next to the bar's
+/// Renumber button, the toast's "Undo" next to the quick-access Undo), if any.
+pub fn off_chrome<'t>(harness: &'t Harness<'_, App>, label: &'t str) -> Option<egui_kittest::Node<'t>> {
+    harness.query_all_by_label(label).rfind(|n| !in_chrome(n))
+}
+
+/// The `Tab` nodes of the page view and the docks, without the command bar's tabs.
+pub fn view_tabs<'t>(harness: &'t Harness<'_, App>) -> Vec<egui_kittest::Node<'t>> {
+    harness
+        .get_all_by_role(egui::accesskit::Role::Tab)
+        .filter(|n| !in_chrome(n))
+        .collect()
+}
+
+/// Opens the app menu (its button "Menu") and then each submenu of `path` in turn ("File", "Import").
+pub fn open_menu(harness: &mut Harness<'_, App>, path: &[&str]) {
+    harness.get_by_label("Menu").click();
+    harness.run_ok();
+    for label in path {
+        menu_node(harness, label).click();
+        harness.run_ok();
+    }
+}
+
+/// The command-bar button labelled `label` (the HUD and the menus may hold an entry of that name too).
+pub fn bar_button<'t>(harness: &'t Harness<'_, App>, label: &'t str) -> egui_kittest::Node<'t> {
+    harness
+        .query_all_by_label(label)
+        .find(|n| {
+            in_chrome(n)
+                && ancestors(n)
+                    .iter()
+                    .any(|(role, l)| *role == egui::accesskit::Role::Toolbar && l == "Command bar")
+        })
+        .unwrap_or_else(|| panic!("no command-bar button {label:?}"))
 }

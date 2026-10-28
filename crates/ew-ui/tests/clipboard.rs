@@ -142,7 +142,7 @@ fn menu_paste_requests_the_system_clipboard() {
     h.event(egui::Event::Copy);
     settle(&mut h);
     let text = h.state().shell().clipboard().text().unwrap().to_owned();
-    h.get_by_label("Edit").click();
+    support::open_menu(&mut h, &["Edit"]);
     settle(&mut h);
     h.get_by_label_contains("Paste").click();
     h.step();
@@ -281,7 +281,7 @@ fn incomplete_cut_menu_shows_reason_without_changes() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "101");
     incomplete_marker(&mut h);
-    h.get_by_label("Edit").click();
+    support::open_menu(&mut h, &["Edit"]);
     settle(&mut h);
     assert!(!h.get_by_label_contains("Cut").accesskit_node().is_disabled());
     let before = cut_state(&h);

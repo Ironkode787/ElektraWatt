@@ -1,9 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The egui frame over the shell model (WP-S2.01 parts 1 and 2, spec section 5.3): the menu bar, the banner, the
-//! start page, the first-run screen, the wizard, or the docked project view (the page list and the page canvas of
-//! WP-S2.02), the status bar, the palette and the dialogs, and the routing of keyboard shortcuts.
+//! The egui frame over the shell model (WP-S2.01 parts 1 and 2, spec section 5.3): the command bar with the app menu
+//! (WP-S2.17 part 2), the banner, the start page, the first-run screen, the wizard, or the docked project view (the
+//! page list and the page canvas of WP-S2.02, with the tool HUD and the zoom control over it), the status bar, the
+//! palette and the dialogs, and the routing of keyboard shortcuts.
 //!
 //! The frame paints from `ShellModel`'s getters and sends everything the user does to `ShellModel::dispatch`
 //! (a menu item, a palette entry, a shortcut, a dialog answer, a file dialog's result). It names no `Session`.
@@ -22,6 +23,7 @@ use serde_json::{Value, json};
 
 use crate::canvas::{CanvasCounters, CanvasHost};
 use crate::canvas_area::CanvasAreaHost;
+use crate::command_bar::CommandBarHost;
 use crate::dock::Dock;
 use crate::find::FindPane;
 use crate::gpu::GpuHost;
@@ -29,7 +31,7 @@ use crate::keys::{self, Binding};
 use crate::navigator::NavigatorPane;
 use crate::page_view::PageView;
 use crate::properties::PropertiesPane;
-use crate::{about, first_run, menu, palette, start_page, status_bar, wizard};
+use crate::{about, first_run, palette, start_page, status_bar, wizard};
 
 /// What the user did in one frame, applied after the frame is painted.
 #[derive(Clone, Debug)]
@@ -213,7 +215,30 @@ pub struct App {
     drawing_fields_epoch: Option<u64>,
     /// The text popup's field (WP-S2.04 §10.5): `None` while the popup is closed.
     text_buffer: Option<String>,
+    // WP-S2.17 part 2
+    /// The command bar's window state (the collapsed bar's popover, the search field's place).
+    command_bar: CommandBarHost,
+    /// The page view pane's rectangle in the last frame: the HUD, the zoom control and the tool options stand on it.
+    page_pane: Option<egui::Rect>,
+    /// The HUD's rectangle in the last frame.
+    hud_rect: Option<egui::Rect>,
+    /// Whether the window had the operating system's focus in the last frame (FT-514).
+    window_focused: Option<bool>,
+    /// How many times the window regained the focus and asked for the frames that repaint it (FT-514; tests).
+    focus_repaints: u64,
+    /// Alt is down and nothing else was pressed since: its release opens the app menu (doc 16a §5.2).
+    alt_alone: bool,
+    /// Whether Alt was down in the last frame.
+    alt_down: bool,
+    /// Whether the shell's focus was on the command bar in the last frame (F6 arrives: the active tab takes egui's
+    /// focus).
+    bar_had_focus: bool,
+    /// The actions the frame dispatched, oldest first, at most [`DISPATCH_LOG`] (tests: CB2).
+    dispatch_log: std::collections::VecDeque<&'static str>,
 }
+
+/// How many dispatched actions [`App::dispatched`] keeps.
+const DISPATCH_LOG: usize = 256;
 
 /// Prepares an egui context for the shell: installs the bundled fonts and switches egui's own keyboard zoom off, so
 /// that Ctrl+Plus, Ctrl+Minus and Ctrl+0 reach the canvas and never the UI scale (which stays `view.ui_scale`).
@@ -260,7 +285,34 @@ impl App {
             structure_caption: String::new(),
             structure_location: String::new(),
             text_buffer: None,
+            command_bar: CommandBarHost::new(),
+            page_pane: None,
+            hud_rect: None,
+            window_focused: None,
+            focus_repaints: 0,
+            alt_alone: false,
+            alt_down: false,
+            bar_had_focus: false,
+            dispatch_log: std::collections::VecDeque::new(),
         }
+    }
+
+    /// The actions the frame dispatched, oldest first (the last 256; tests: CB2).
+    #[doc(hidden)]
+    pub fn dispatched(&self) -> Vec<&'static str> {
+        self.dispatch_log.iter().copied().collect()
+    }
+
+    /// How many times the window regained the operating system's focus and requested its repaints (FT-514; tests).
+    #[doc(hidden)]
+    pub fn focus_repaints(&self) -> u64 {
+        self.focus_repaints
+    }
+
+    /// The command bar's and the HUD's rectangles in the last frame (tests: CB4).
+    #[doc(hidden)]
+    pub fn command_surface_rects(&self) -> (Option<egui::Rect>, Option<egui::Rect>, Option<egui::Rect>) {
+        (self.command_bar.bar_rect(), self.hud_rect, self.page_pane)
     }
 
     /// The shell model.
@@ -413,6 +465,10 @@ impl App {
             self.request_paste = true;
             return;
         }
+        if self.dispatch_log.len() == DISPATCH_LOG {
+            self.dispatch_log.pop_front();
+        }
+        self.dispatch_log.push_back(action);
         let outcome = self.shell.dispatch(action, params);
         self.report(outcome);
     }
@@ -462,6 +518,21 @@ impl App {
                 self.dispatch("app.quit", &Value::Null);
             }
         }
+        // FT-514: a native dialog closed, or the user came back from another window: the window regains the focus
+        // without a pointer move, and the status hint it shows may be stale. The frame that sees the focus come back
+        // repaints now and twice shortly after (a dialog may still be closing while the first frame paints).
+        let focused = ctx.input(|i| i.viewport().focused);
+        if focused == Some(true) && self.window_focused == Some(false) {
+            ctx.request_repaint();
+            ctx.request_repaint_after(Duration::from_millis(100));
+            ctx.request_repaint_after(Duration::from_millis(500));
+            self.focus_repaints += 1;
+        }
+        if focused.is_some() {
+            self.window_focused = focused;
+        }
+        // WP-S2.17 part 2: Alt pressed and released alone, or F10, opens the app menu (doc 16a §5.2).
+        self.app_menu_keys(&ctx);
         // WP-S2.09 part 1: the jobs wake the window after each progress report and at their end, and every frame takes
         // the ends that are in (no `Session` call).
         if !self.waker_set {
@@ -527,10 +598,25 @@ impl App {
         }
 
         // The chrome paints `color.surface.chrome` itself (doc 16a §4.14); panels take `color.surface.panel`.
-        let chrome = crate::theme::current(&ctx).surface_chrome.color32();
-        Panel::top("menu-bar")
-            .frame(egui::Frame::side_top_panel(&ctx.global_style()).fill(chrome))
-            .show(ui, |ui| menu::show(ui, &self.shell, &mut events));
+        let tokens = crate::theme::current(&ctx);
+        let chrome = tokens.surface_chrome.color32();
+        // WP-S2.17 part 2: the command bar replaces the menu bar (doc 16a §5.2); the app button opens the app menu.
+        let bar_height = crate::command_bar::bar_height(&tokens, self.shell.command_bar_collapsed());
+        let command_bar = &mut self.command_bar;
+        let shell = &self.shell;
+        Panel::top("command-bar")
+            .exact_size(bar_height)
+            .resizable(false)
+            .show_separator_line(false)
+            .frame(egui::Frame::NONE.fill(chrome))
+            .show(ui, |ui| command_bar.show(ui, shell, &mut events));
+        // F6 reached the command bar: its active tab takes egui's keyboard focus.
+        let bar_has_focus = self.shell.focus() == Some(Focus::CommandBar);
+        if bar_has_focus && !self.bar_had_focus {
+            let tab = crate::command_bar::tab_id(self.shell.command_tab());
+            ctx.memory_mut(|m| m.request_focus(tab));
+        }
+        self.bar_had_focus = bar_has_focus;
         if let Some(banner) = self.shell.banner() {
             Panel::top("banner").show(ui, |ui| {
                 ui.horizontal_wrapped(|ui| {
@@ -557,53 +643,6 @@ impl App {
             self.structure_location.clear();
             self.drawing_fields_epoch = Some(tool_epoch);
         }
-        // The tool strip (WP-S2.04 §6.4 item 4): the active tool's options as read-only text, above the canvas; shown
-        // for every tool (Select's hint at rest), so its row never comes and goes during a gesture.
-        if self.shell.has_project()
-            && let Some(text) = crate::tool_view::tool_strip_text(&self.shell)
-        {
-            let ip_tool = self.shell.tool().name() == "ip";
-            let marker_tool = self.shell.tool().name() == "marker";
-            let structure_box_tool = self.shell.tool().name() == "structure_box";
-            let externals = if ip_tool || structure_box_tool {
-                self.shell.external_choices()
-            } else {
-                Vec::new()
-            };
-            let text_tool = self.shell.tool().name() == "text";
-            let text_bind = if text_tool { self.shell.text_bind() } else { None };
-            let ip_name = &mut self.ip_name;
-            let marker_csa = &mut self.marker_csa;
-            let marker_colours = &mut self.marker_colours;
-            let structure_caption = &mut self.structure_caption;
-            let structure_location = &mut self.structure_location;
-            Panel::top("tool-strip").show(ui, |ui| {
-                ui.horizontal(|ui| {
-                    ui.label(text);
-                    // WP-S2.04 §9.1: the IP tool's name field and external-reference field.
-                    if ip_tool {
-                        crate::tool_view::ip_fields(ui, ip_name, &externals, &mut events);
-                    }
-                    // WP-S2.04 §10.5: the Text tool's binding.
-                    if text_tool {
-                        crate::tool_view::text_fields(ui, text_bind.as_deref(), &mut events);
-                    }
-                    // WP-S2.04 §10.5: the Wire marker's fields and the Structure box's style and fields.
-                    if marker_tool {
-                        crate::tool_view::marker_fields(ui, marker_csa, marker_colours, &mut events);
-                    }
-                    if structure_box_tool {
-                        crate::tool_view::structure_box_fields(
-                            ui,
-                            &externals,
-                            structure_caption,
-                            structure_location,
-                            &mut events,
-                        );
-                    }
-                });
-            });
-        }
         let mut new_layout = None;
         let mut canvas_shown = false;
         let project_view =
@@ -612,6 +651,7 @@ impl App {
             self.canvas.begin_frame(&ctx, &self.shell);
         }
         self.area_splitters = 0;
+        let mut page_pane = None;
         CentralPanel::default().show(ui, |ui| {
             if self.shell.first_run().is_some() {
                 first_run::show(ui, &self.shell, &mut events);
@@ -647,6 +687,8 @@ impl App {
                     PaneKind::Preview => crate::preview::show(ui, shell, &mut events),
                     PaneKind::History => crate::history::show(ui, shell, &mut events),
                     PaneKind::PageView => {
+                        // WP-S2.17 part 2: the HUD and the zoom control stand on the page view pane.
+                        page_pane = Some(ui.max_rect());
                         canvas_area.show(ui, shell, canvas, &mut events);
                         *area_splitters = canvas_area.splitter_count(shell);
                         canvas_shown = true;
@@ -657,11 +699,20 @@ impl App {
                 start_page::show(ui, &self.shell, &mut events);
             }
         });
+        // WP-S2.17 part 2: the HUD, the zoom control and the tool options over the page view (doc 16a §5.5).
+        self.page_pane = page_pane.filter(|_| canvas_shown);
+        self.hud_rect = None;
+        if let Some(pane) = self.page_pane {
+            self.hud_rect = Some(crate::hud::show(&ctx, &self.shell, pane, &mut events));
+            crate::hud::show_zoom(&ctx, &self.shell, pane, &mut events);
+            self.tool_options(&ctx, pane, &mut events);
+        }
         let palette_open = self.shell.palette().is_some();
         palette::show(
             &ctx,
             &self.shell,
             palette_open && !self.palette_was_open,
+            self.command_bar.search_rect(),
             &mut events,
         );
         self.palette_was_open = palette_open;
@@ -796,6 +847,20 @@ impl App {
             // WP-S2.09 §6.5: the notifications log is a popup too.
             || self.shell.notifications().popup_open();
         let overlay = palette_open || dialog_open || picker_open;
+        // WP-S2.17 part 2: Escape closes the app menu (with its submenus), then the collapsed bar's command-row popover.
+        if egui::Popup::is_id_open(ctx, crate::command_bar::app_menu_id())
+            && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape))
+        {
+            egui::Popup::close_all(ctx);
+            return;
+        }
+        if self.command_bar.popover_open()
+            && !overlay
+            && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape))
+        {
+            self.command_bar.close_popover();
+            return;
+        }
         if overlay && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
             events.push(Event::Action("ui.dismiss", Value::Null));
             return;
@@ -825,8 +890,26 @@ impl App {
             Some(Focus::Canvas(_)) => Context::Canvas,
             Some(Focus::Properties) => Context::Properties,
             Some(Focus::Find) => Context::Find,
-            None => Context::Global,
+            Some(Focus::CommandBar) | None => Context::Global,
         };
+        // WP-S2.17 part 2 (doc 16a §5.9): on the command bar Left and Right move between the tabs.
+        if self.shell.focus() == Some(Focus::CommandBar) && !palette_open {
+            let step = ctx.input_mut(|i| {
+                if i.consume_key(Modifiers::NONE, Key::ArrowLeft) {
+                    -1
+                } else if i.consume_key(Modifiers::NONE, Key::ArrowRight) {
+                    1
+                } else {
+                    0
+                }
+            });
+            if step != 0 {
+                let tab = crate::command_bar::step_tab(self.shell.command_tab(), step);
+                events.push(Event::Action("view.command_tab", json!({ "tab": tab.word() })));
+                ctx.memory_mut(|m| m.request_focus(crate::command_bar::tab_id(tab)));
+                return;
+            }
+        }
         if focused == Context::Canvas && !palette_open {
             let bracket = ctx.input_mut(|i| {
                 let mut hit = None;
@@ -960,6 +1043,115 @@ impl App {
                 return;
             }
         }
+    }
+
+    /// Alt pressed and released with nothing else, or F10, opens the app menu (doc 16a §5.2); not while a dialog or a
+    /// file dialog is open.
+    fn app_menu_keys(&mut self, ctx: &egui::Context) {
+        let (alt, other, f10) = ctx.input_mut(|i| {
+            let other = i.events.iter().any(|e| {
+                matches!(
+                    e,
+                    egui::Event::Key { pressed: true, .. }
+                        | egui::Event::PointerButton { pressed: true, .. }
+                        | egui::Event::Text(_)
+                )
+            });
+            // F10 alone: `consume_key` matches logically and would take Shift+F10, the context menu key (FR-UI-031).
+            let f10 = i.modifiers.is_none() && i.consume_key(Modifiers::NONE, Key::F10);
+            (i.modifiers.alt, other, f10)
+        });
+        let mut open = f10;
+        if alt && !self.alt_down {
+            self.alt_alone = !other;
+        } else if alt && other {
+            self.alt_alone = false;
+        }
+        if !alt && self.alt_down && self.alt_alone {
+            open = true;
+        }
+        if !alt {
+            self.alt_alone = false;
+        }
+        self.alt_down = alt;
+        if open && self.shell.dialog().is_none() && self.pending_pick.is_none() {
+            egui::Popup::open_id(ctx, crate::command_bar::app_menu_id());
+        }
+    }
+
+    /// The tool options card at the page view's top left (WP-S2.17 part 2): the fields of the IP tool (WP-S2.04 §9.1),
+    /// the Text tool's binding, the Wire marker's fields and the Structure box's style and fields (WP-S2.04 §10.5),
+    /// which the removed tool strip held. Shown only while one of those tools runs.
+    fn tool_options(&mut self, ctx: &egui::Context, pane: egui::Rect, events: &mut Vec<Event>) {
+        let tool = self.shell.tool().name();
+        let (ip, text, marker, structure_box) = (
+            tool == "ip",
+            tool == "text",
+            tool == "marker",
+            tool == "structure_box",
+        );
+        if !(ip || text || marker || structure_box) {
+            return;
+        }
+        let t = crate::theme::current(ctx);
+        let externals = if ip || structure_box {
+            self.shell.external_choices()
+        } else {
+            Vec::new()
+        };
+        let text_bind = if text { self.shell.text_bind() } else { None };
+        let at = egui::pos2(
+            pane.left() + t.space_4,
+            pane.top() + t.size_dock_tab_bar + t.space_4,
+        );
+        let App {
+            ip_name,
+            marker_csa,
+            marker_colours,
+            structure_caption,
+            structure_location,
+            ..
+        } = self;
+        egui::Area::new(egui::Id::unique("tool-options"))
+            .fixed_pos(at)
+            .order(egui::Order::Middle)
+            .show(ctx, |ui| {
+                egui::Frame::NONE
+                    .fill(t.surface_raised.color32())
+                    .corner_radius(crate::theme::radius(t.radius_lg))
+                    .shadow(crate::theme::shadow(&t.elevation_1))
+                    .inner_margin(egui::Margin::same(t.space_3 as i8))
+                    .show(ui, |ui| {
+                        ui.horizontal(|ui| {
+                            ui.label(
+                                egui::RichText::new(strings::text("hud-tool-options"))
+                                    .font(crate::theme::font(&t.type_caption))
+                                    .color(t.text_secondary.color32()),
+                            );
+                            // WP-S2.04 §9.1: the IP tool's name field and external-reference field.
+                            if ip {
+                                crate::tool_view::ip_fields(ui, ip_name, &externals, events);
+                            }
+                            // WP-S2.04 §10.5: the Text tool's binding.
+                            if text {
+                                crate::tool_view::text_fields(ui, text_bind.as_deref(), events);
+                            }
+                            // WP-S2.04 §10.5: the Wire marker's fields and the Structure box's style and fields.
+                            if marker {
+                                crate::tool_view::marker_fields(ui, marker_csa, marker_colours, events);
+                            }
+                            if structure_box {
+                                crate::tool_view::structure_box_fields(
+                                    ui,
+                                    &externals,
+                                    structure_caption,
+                                    structure_location,
+                                    events,
+                                );
+                            }
+                        });
+                    });
+            });
     }
 
     fn apply(&mut self, event: Event) {

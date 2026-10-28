@@ -13,8 +13,15 @@ use ew_viewmodel::strings;
 use crate::app::Event;
 use crate::keys;
 
-/// Paints the palette when it is open. `just_opened` puts the keyboard focus into its text field.
-pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: &mut Vec<Event>) {
+/// Paints the palette when it is open. `just_opened` puts the keyboard focus into its text field. `anchor` is the
+/// command bar's search field (WP-S2.17 part 2, doc 16a §5.2): the palette opens under it, right-aligned with it.
+pub fn show(
+    ctx: &egui::Context,
+    shell: &ShellModel,
+    just_opened: bool,
+    anchor: Option<egui::Rect>,
+    events: &mut Vec<Event>,
+) {
     let Some(state) = shell.palette() else {
         return;
     };
@@ -36,9 +43,15 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
         events.push(Event::PaletteRun);
     }
     let entries = shell.palette_entries();
-    Window::new(strings::text("palette-title"))
-        .id(Id::unique("command-palette"))
-        .anchor(Align2::CENTER_TOP, [0.0, 60.0])
+    let window = Window::new(strings::text("palette-title")).id(Id::unique("command-palette"));
+    let gap = crate::theme::current(ctx).space_1;
+    let window = match anchor {
+        Some(field) => window
+            .pivot(Align2::RIGHT_TOP)
+            .fixed_pos(field.right_bottom() + egui::vec2(0.0, gap)),
+        None => window.anchor(Align2::CENTER_TOP, [0.0, 60.0]),
+    };
+    window
         .collapsible(false)
         .resizable(false)
         .default_width(480.0)

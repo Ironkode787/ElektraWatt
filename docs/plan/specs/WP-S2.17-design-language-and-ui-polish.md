@@ -233,6 +233,25 @@ face6da6; the blind references re-blessed in 9af26fc2 (55 commands, 254 actions,
    is named by its label and carries its shortcut; the HUD is a `Status` node with the tool and target.
 7. **Describe and transcripts** per D15.
 
+### 6.1 As built in cycle 32 (part 2)
+
+Where the build differs from the text above (each item is a deviation for the cycle review to accept or send back):
+
+- **The HUD** lives in its own `hud.rs` (not `tool_view.rs`); it is centred on the page-view pane's rectangle, not on
+  the focused group's canvas. Its value reads `<tool>[ <target>] · <prompt>`. The Place prompt is
+  `<target> · R rotates · V variant · Esc done`, the target being the predicted tag or terminal, else the strip.
+- **The tool strip's fields** (IP name, Text binding, Wire marker fields, Structure box style and fields) moved into a
+  floating "Tool options" card at the page view's top left, shown only while one of those tools runs.
+- **The app menu** has ten menus: File, Edit, the six tabs' menus with their groups, Window and Help. Each action
+  appears once, so File no longer holds Import ▸ and Export ▸ (doc 16a §9.2 lists them): the imports and exports sit in
+  their tabs' groups. A group of more than three entries becomes a submenu, a smaller one a separated block.
+- **Collapsed bar:** 33 px (the 32-px tab row and its 1-px line).
+- **F6 ring:** command bar, navigator, canvas, properties; from no focus F6 starts at the navigator as before.
+- **CB4's 65 %:** the current docks leave the page view 63 % of the width at 1280 × 800 (797 of 1264 px in the
+  harness); the kittest asserts 63 % until part 3's default workspace narrows the docks.
+- **Pending commands** (no registry action yet) are drawn nowhere and listed by name in `command_bar::PENDING`.
+- **Placed actions** without a topic of their own link to the "project-view" documentation topic.
+
 ## 7. Part 3: docks, rails, rows, Properties and the status bar
 
 1. **Rails** (`ew-ui` `rail.rs`): left and right rails as views of their tab groups, whose own tab bars are not drawn

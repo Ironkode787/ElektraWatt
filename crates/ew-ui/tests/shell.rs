@@ -22,9 +22,23 @@ fn the_start_page_offers_open_and_names_no_project() {
     assert!(h.query_by_label("Open...").is_some());
     assert!(h.query_by_label("Update check: off").is_some());
     assert!(h.query_by_label("No project open").is_some());
-    // The menu bar is there, in order, on every operating system.
-    for menu in ["File", "Edit", "View", "Page", "Tools", "Help"] {
-        assert!(h.query_by_label(menu).is_some(), "menu {menu}");
+    // The app menu is there on every operating system (WP-S2.17 part 2: one button opens the whole tree, in doc
+    // 16a §9.2's order).
+    support::open_menu(&mut h, &[]);
+    let labels: Vec<String> = h
+        .get_all_by_role(egui::Role::Button)
+        .filter_map(|n| n.accesskit_node().label())
+        .collect();
+    let menus = [
+        "File", "Edit", "Project", "Page", "Draw", "Check", "Output", "View", "Window", "Help",
+    ];
+    let shown: Vec<&str> = labels
+        .iter()
+        .map(String::as_str)
+        .filter(|l| menus.contains(l))
+        .collect();
+    for menu in menus {
+        assert!(shown.contains(&menu), "menu {menu} in {labels:?}");
     }
     assert!(!h.state().shell().has_project());
 }
@@ -140,7 +154,7 @@ fn help_about_opens_and_closes() {
     let tmp = Tmp::new();
     let mut h = harness(&tmp, Scripted::default(), None);
     settle(&mut h);
-    h.get_by_label("Help").click();
+    support::open_menu(&mut h, &["Help"]);
     settle(&mut h);
     h.get_by_label("About ElektraWatt").click();
     settle(&mut h);
@@ -279,7 +293,7 @@ fn the_file_menu_greys_out_what_needs_a_project() {
     let tmp = Tmp::new();
     let mut h = harness(&tmp, Scripted::default(), None);
     settle(&mut h);
-    h.get_by_label("File").click();
+    support::open_menu(&mut h, &["File"]);
     settle(&mut h);
     // A menu entry is named by its label and its accelerator.
     let open = format!("Open... {}", ew_ui::keys::display("Ctrl+O"));
@@ -297,9 +311,8 @@ fn the_ui_scale_setting_scales_the_frame() {
     let mut h = harness(&tmp, Scripted::default(), None);
     settle(&mut h);
     assert_eq!(h.ctx.zoom_factor(), 1.0);
-    h.get_by_label("View").click();
-    settle(&mut h);
-    h.get_by_label("UI scale").click();
+    support::open_menu(&mut h, &["View", "UI scale"]);
+
     settle(&mut h);
     h.get_by_label("150 %").click();
     settle(&mut h);

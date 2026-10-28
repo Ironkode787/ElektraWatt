@@ -100,8 +100,8 @@ fn pl6_a_terminal_joins_x1031_from_the_keyboard_with_the_predicted_tag_after_the
         "the ghost's label shows {tag}"
     );
     assert!(
-        ew_ui::tool_view::tool_strip_text(h.state().shell()).is_some_and(|t| t.contains("-X1031:30")),
-        "the tool strip"
+        support::hud_value(&h).contains("-X1031:30"),
+        "the HUD names the target (WP-S2.17 part 2)"
     );
     settle(&mut h);
     // Enter commits; the tool stays armed with the next designation; Ctrl+Z takes the terminal back.

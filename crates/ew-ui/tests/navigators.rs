@@ -98,9 +98,9 @@ fn nv5_the_devices_pane_and_the_chip_line() {
     let mut h = on_golden(&tmp);
     dispatch(&mut h, "page.goto", json!({"folio": "102"}));
     settle(&mut h);
-    h.get_by_label("View").click();
+    support::open_menu(&mut h, &["View", "Panels"]);
     settle(&mut h);
-    h.get_by_label("Navigators").click();
+    support::menu_node(&h, "Navigators").click();
     settle(&mut h);
     h.get_by_label("Devices").click();
     settle(&mut h);
@@ -324,6 +324,10 @@ fn nv11_scrolling_the_devices_pane_paints_the_rows_in_view_and_calls_nothing() {
 fn r30_double_clicking_a_paged_report_block_goes_to_its_first_folio() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp);
+    // WP-S2.17 part 2: the command bar (85 px) is taller than the menu bar and the tool strip it replaced; at 700 px
+    // the virtualised pane no longer lays out the Wire List row at all, so this window is 800 px high.
+    h.set_size(egui::Vec2::new(1000.0, 800.0));
+    settle(&mut h);
     dispatch(&mut h, "page.goto", json!({"folio": "102"}));
     dispatch(&mut h, "navigator.show", json!({"kind": "blocks"}));
     settle(&mut h);

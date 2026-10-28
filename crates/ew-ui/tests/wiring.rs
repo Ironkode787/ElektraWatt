@@ -259,8 +259,8 @@ fn a_page_change_ends_edit_route_and_select_takes_over() {
     wait_for_page(&mut h);
     assert_eq!(h.state().shell().tool().name(), "select");
     assert!(
-        ew_ui::tool_view::tool_strip_text(h.state().shell()).is_some_and(|t| t.starts_with("Select: ")),
-        "the strip shows Select's hint"
+        support::hud_value(&h).starts_with("Select \u{b7} "),
+        "the HUD shows Select (WP-S2.17 part 2)"
     );
     assert_eq!(
         h.state().shell().selection().items.len(),
@@ -277,8 +277,8 @@ fn a_horizontal_drag_moves_a_representation_along_x_only() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "102");
     assert!(
-        ew_ui::tool_view::tool_strip_text(h.state().shell()).is_some(),
-        "the strip at rest"
+        !support::hud_value(&h).is_empty(),
+        "the HUD at rest (WP-S2.17 part 2: it replaced the tool strip)"
     );
     let rep = h
         .state()

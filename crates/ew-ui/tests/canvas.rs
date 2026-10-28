@@ -203,9 +203,9 @@ fn a10_view_grid_and_the_cursor_field() {
     let tmp = Tmp::new();
     let mut h = on_103(&tmp);
     assert!(status(&h).contains(&"QET 10 px".to_owned()), "{:?}", status(&h));
-    h.get_by_label("View").click();
+    support::open_menu(&mut h, &["View"]);
     settle(&mut h);
-    h.get_by_label("Grid").click();
+    support::menu_node(&h, "Grid").click();
     settle(&mut h);
     assert!(!h.state().shell().grid_on());
     assert!(
@@ -289,9 +289,9 @@ fn a11_the_statistics_hold_one_sample_per_canvas_frame() {
         frame.p99,
         stats.phase(ew_render2d::stats::Phase::Render).p99
     );
-    h.get_by_label("View").click();
+    support::open_menu(&mut h, &["View"]);
     settle(&mut h);
-    h.get_by_label("Frame statistics").click();
+    support::menu_node(&h, "Frame statistics").click();
     settle(&mut h);
     assert!(h.state().shell().frame_stats_shown());
     h.state_mut().shell_mut().shutdown();

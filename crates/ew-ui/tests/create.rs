@@ -38,7 +38,7 @@ fn page_new_asks_for_the_fields_enter_creates_and_escape_cancels() {
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
     let before = h.state().shell().page_count();
-    h.get_by_label("Page").click();
+    support::open_menu(&mut h, &["Page"]);
     settle(&mut h);
     h.get_by_label("New page...").click();
     settle(&mut h);
@@ -69,7 +69,7 @@ fn page_new_asks_for_the_fields_enter_creates_and_escape_cancels() {
     assert_eq!(h.state().shell().page_count(), before + 1);
     assert_eq!(h.state().shell().current_folio(), Some("999"));
     // A second time Escape cancels and creates nothing.
-    h.get_by_label("Page").click();
+    support::open_menu(&mut h, &["Page"]);
     settle(&mut h);
     h.get_by_label("New page...").click();
     settle(&mut h);
@@ -131,7 +131,7 @@ fn the_insert_entries_open_the_structure_and_external_reference_dialogs() {
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
-    h.get_by_label("Insert").click();
+    support::open_menu(&mut h, &["Project"]);
     settle(&mut h);
     h.get_by_label("Structure node...").click();
     settle(&mut h);
@@ -141,7 +141,7 @@ fn the_insert_entries_open_the_structure_and_external_reference_dialogs() {
     h.key_press(Key::Enter);
     settle(&mut h);
     assert!(h.state().shell().dialog().is_none());
-    h.get_by_label("Insert").click();
+    support::open_menu(&mut h, &["Project"]);
     settle(&mut h);
     h.get_by_label("External reference...").click();
     settle(&mut h);
@@ -166,7 +166,7 @@ fn the_new_entries_are_disabled_without_a_project() {
     let tmp = Tmp::new();
     let mut h = harness(&tmp, Scripted::default(), None);
     settle(&mut h);
-    h.get_by_label("Page").click();
+    support::open_menu(&mut h, &["Page"]);
     settle(&mut h);
     assert!(
         h.get_by_label("New page...").accesskit_node().is_disabled(),
@@ -174,7 +174,7 @@ fn the_new_entries_are_disabled_without_a_project() {
     );
     h.key_press(Key::Escape);
     settle(&mut h);
-    h.get_by_label("Insert").click();
+    support::open_menu(&mut h, &["Project"]);
     settle(&mut h);
     for entry in ["Structure node...", "External reference..."] {
         assert!(h.get_by_label(entry).accesskit_node().is_disabled(), "{entry}");

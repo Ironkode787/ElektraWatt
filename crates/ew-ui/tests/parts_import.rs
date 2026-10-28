@@ -31,9 +31,7 @@ fn without_a_project_the_entry_is_disabled() {
     let tmp = Tmp::new();
     let mut h = harness(&tmp, Scripted::default(), None);
     settle(&mut h);
-    h.get_by_label("File").click();
-    settle(&mut h);
-    h.get_by_label("Import").click();
+    support::open_menu(&mut h, &["Project"]);
     settle(&mut h);
     assert!(
         h.get_by_label("Parts table...").accesskit_node().is_disabled(),
@@ -57,9 +55,7 @@ fn the_entry_prompts_and_ctrl_enter_applies_the_card() {
     settle(&mut h);
     wait_for_page(&mut h);
 
-    h.get_by_label("File").click();
-    settle(&mut h);
-    h.get_by_label("Import").click();
+    support::open_menu(&mut h, &["Project"]);
     settle(&mut h);
     assert!(
         !h.get_by_label("Parts table...").accesskit_node().is_disabled(),
@@ -174,9 +170,7 @@ fn the_card_and_the_closed_menu_arrive_in_the_frame_after_the_pick() {
     *ctx_slot.borrow_mut() = Some(h.ctx.clone());
     settle(&mut h);
 
-    h.get_by_label("File").click();
-    settle(&mut h);
-    h.get_by_label("Import").click();
+    support::open_menu(&mut h, &["Project"]);
     settle(&mut h);
     h.get_by_label("Parts table...").click();
     // Step frames until the one in which the dialog was answered; it must already show the menu closed and the card in
@@ -258,9 +252,7 @@ fn harness_with_open_dialog<'a>(tmp: &Tmp, platform: ThreadedPlatform) -> Harnes
         .with_context_setup(setup)
         .build_ui_state(|ui, app: &mut App| app.ui(ui), app);
     settle(&mut h);
-    h.get_by_label("File").click();
-    settle(&mut h);
-    h.get_by_label("Import").click();
+    support::open_menu(&mut h, &["Project"]);
     settle(&mut h);
     h.get_by_label("Parts table...").click();
     h.step();
@@ -324,9 +316,7 @@ fn a_dialog_thread_without_an_answer_counts_as_cancelled() {
     h.step();
     assert!(!h.state().shell().import_card_open());
     assert!(!h.state().shell().can_undo());
-    h.get_by_label("File").click();
-    settle(&mut h);
-    h.get_by_label("Import").click();
+    support::open_menu(&mut h, &["Project"]);
     settle(&mut h);
     h.get_by_label("Parts table...").click();
     h.step();
@@ -387,7 +377,7 @@ fn no_input_reaches_the_shell_while_a_file_dialog_is_open() {
     assert!(h.state().shell().is_dirty());
 
     // File > Open, Discard: the dialog is open with `discard` already given.
-    h.get_by_label("File").click();
+    support::open_menu(&mut h, &["File"]);
     settle(&mut h);
     h.get_by_label_contains("Open...").click();
     settle(&mut h);
@@ -409,7 +399,7 @@ fn no_input_reaches_the_shell_while_a_file_dialog_is_open() {
     h.step();
     h.key_press_modifiers(Modifiers::COMMAND, Key::K);
     h.step();
-    h.get_by_label("Edit").click();
+    support::open_menu(&mut h, &["Edit"]);
     h.step();
     h.step();
     h.get_all_by_label_contains("Undo")

@@ -306,7 +306,7 @@ fn closing_the_wizard_keeps_the_draft_and_the_screen_returns_to_the_start_page()
     let tmp = Tmp::new();
     let mut h = harness_with(gui_shell(&tmp), Scripted::default(), None);
     settle(&mut h);
-    h.get_by_label("Tools").click();
+    support::open_menu(&mut h, &["Project"]);
     settle(&mut h);
     h.get_by_label("Company standard wizard...").click();
     settle(&mut h);
@@ -364,11 +364,9 @@ fn the_project_view_is_a_dock_and_a_changed_layout_becomes_the_workspace_file() 
     assert_eq!(Layout::parse(&text).unwrap().1, layout);
 
     // Save it under a name through the dialog.
-    h.get_by_label("View").click();
+    support::open_menu(&mut h, &["View", "Layout", "Workspace"]);
     settle(&mut h);
-    h.get_by_label("Workspace").click();
-    settle(&mut h);
-    h.get_by_label("Save layout as...").click();
+    support::menu_node(&h, "Save layout as...").click();
     settle(&mut h);
     assert!(matches!(
         h.state().shell().dialog(),
@@ -394,11 +392,9 @@ fn the_project_view_is_a_dock_and_a_changed_layout_becomes_the_workspace_file() 
     assert!(tmp.0.join("config/workspaces/Tabbed.json").is_file());
 
     // Reset puts the built-in layout back and the frame follows.
-    h.get_by_label("View").click();
+    support::open_menu(&mut h, &["View", "Layout"]);
     settle(&mut h);
-    h.get_by_label("Workspace").click();
-    settle(&mut h);
-    h.get_by_label("Reset layout").click();
+    support::menu_node(&h, "Reset layout").click();
     settle(&mut h);
     settle(&mut h);
     assert_eq!(h.state().shell().layout(), &Layout::schematic());
@@ -452,7 +448,7 @@ fn f1_opens_the_page_of_the_context_in_the_system_browser() {
     // Over a menu item with a documentation topic, F1 opens that item's page, and its tooltip says so.
     done(h.state_mut().shell_mut(), "ui.dismiss", json!({}));
     settle(&mut h);
-    h.get_by_label("File").click();
+    support::open_menu(&mut h, &["File"]);
     settle(&mut h);
     let item = format!("New project... {}", ew_ui::keys::display("Ctrl+N"));
     h.get_by_label(&item).hover();
@@ -484,7 +480,7 @@ fn the_about_dialog_is_complete_and_leads_to_the_notices() {
     let platform = Scripted::default();
     let mut h = harness_with(gui_shell(&tmp), platform.clone(), None);
     settle(&mut h);
-    h.get_by_label("Help").click();
+    support::open_menu(&mut h, &["Help"]);
     settle(&mut h);
     h.get_by_label("About ElektraWatt").click();
     settle(&mut h);

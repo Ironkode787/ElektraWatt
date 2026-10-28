@@ -116,9 +116,9 @@ fn ms5_the_pane_in_the_window_named_rows_keyboard_detail_and_pending() {
     // WP-S2.06 part 3: the Table toggles before the Messages pane opens (it adds none: it has no table mode).
     let toggles = h.query_all_by_label("Table").count();
     // View ▸ Messages docks the pane at the bottom and focuses it.
-    h.get_by_label("View").click();
+    support::open_menu(&mut h, &["Check"]);
     settle(&mut h);
-    h.get_by_label("Messages").click();
+    support::menu_node(&h, "Messages").click();
     settle(&mut h);
     settle(&mut h);
     let shell = h.state().shell();
@@ -261,9 +261,9 @@ fn w31_1_the_selected_row_and_its_detail_are_both_on_show_at_1280_by_800() {
     let mut h = on_golden(&tmp, Scripted::default());
     h.set_size(egui::Vec2::new(1280.0, 800.0));
     settle(&mut h);
-    h.get_by_label("View").click();
+    support::open_menu(&mut h, &["Check"]);
     settle(&mut h);
-    h.get_by_label("Messages").click();
+    support::menu_node(&h, "Messages").click();
     settle(&mut h);
     settle(&mut h);
     let whole = |h: &Harness<'_, App>| -> (egui::Rect, Vec<(String, egui::Rect)>) {

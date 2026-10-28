@@ -139,7 +139,7 @@ fn v12_the_viewer_without_a_pointer() {
     h.key_press_modifiers(Modifiers::COMMAND, Key::T);
     settle(&mut h);
     assert_eq!(h.state().shell().area().unwrap().tab_count(), 2);
-    assert_eq!(h.get_all_by_role(egui::Role::Tab).count(), 2);
+    assert_eq!(support::view_tabs(&h).len(), 2);
     assert_eq!(
         h.query_all_by_label("Close 103").count(),
         2,
@@ -156,9 +156,9 @@ fn v12_the_viewer_without_a_pointer() {
         "Ctrl+W closes the tab, not the project"
     );
     // View, Side by side; Ctrl+F6 focuses the other group.
-    h.get_by_label("View").click();
+    support::open_menu(&mut h, &["View", "Layout"]);
     settle(&mut h);
-    h.get_by_label("Side by side").click();
+    support::menu_node(&h, "Side by side").click();
     settle(&mut h);
     wait_for_page(&mut h);
     settle(&mut h);
@@ -407,8 +407,8 @@ fn the_splitter_share_survives_a_tab_click_and_ctrl_f6() {
         "the drag moved the splitter: {dragged:?}"
     );
     // A tab click and Ctrl+F6 change the model's version; the tree is rebuilt and the share stays.
-    let tab = h
-        .get_all_by_role(egui::Role::Tab)
+    let tab = support::view_tabs(&h)
+        .into_iter()
         .find(|n| !n.accesskit_node().is_selected().unwrap_or(false))
         .expect("an inactive tab");
     tab.click();

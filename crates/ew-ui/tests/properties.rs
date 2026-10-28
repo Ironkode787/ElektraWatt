@@ -304,7 +304,7 @@ fn pg11_the_window_fetches_a_sheet_once_per_key() {
     );
     settle(&mut h);
     assert!(h.state().shell().toast().is_some());
-    assert!(h.query_by_label("Undo").is_some(), "the toast's Undo");
+    assert!(support::off_chrome(&h, "Undo").is_some(), "the toast's Undo");
 }
 
 /// The checkbox of a boolean row (§6.5) from the keyboard: Space on the focused row sets the other value; undo

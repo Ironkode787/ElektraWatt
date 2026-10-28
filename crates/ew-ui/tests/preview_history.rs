@@ -56,7 +56,9 @@ fn pv2_renumber_devices_through_the_dialog_and_the_preview_tab() {
     );
     h.state_mut().shell_mut().set_form_field("include_frozen", "true");
     settle(&mut h);
-    h.get_by_label("Renumber").click();
+    support::off_chrome(&h, "Renumber")
+        .expect("the dialog's Renumber")
+        .click();
     settle(&mut h);
     assert!(h.state().shell().dialog().is_none());
     assert!(group_named(&h, "Preview"), "the Preview tab");
@@ -174,7 +176,9 @@ fn w31_2_the_first_tag_change_is_on_show_at_1280_by_800() {
     settle(&mut h);
     h.state_mut().shell_mut().set_form_field("include_frozen", "true");
     settle(&mut h);
-    h.get_by_label("Renumber").click();
+    support::off_chrome(&h, "Renumber")
+        .expect("the dialog's Renumber")
+        .click();
     settle(&mut h);
     settle(&mut h);
     let pane = h

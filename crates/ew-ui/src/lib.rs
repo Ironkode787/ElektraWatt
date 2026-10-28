@@ -20,6 +20,8 @@ pub mod app;
 pub mod canvas;
 pub mod canvas_area;
 pub mod canvas_chips;
+// WP-S2.17 part 2: the command bar and the tool HUD.
+mod command_bar;
 pub mod dock;
 // WP-S2.05 part 2
 pub mod find;
@@ -31,6 +33,7 @@ pub mod headless;
 pub mod icons;
 // WP-S2.09 part 3
 mod history;
+mod hud;
 // WP-S2.09 part 1: the Jobs pane, the toasts and the notifications log.
 mod jobs;
 pub mod keys;
