@@ -7,7 +7,7 @@
 one independent Opus review per cycle (ID-667) · **Date:** 2026-10-28 · **Work package:**
 [WP-S2.17](../02-work-packages.md#wp-s217-design-language-and-ui-polish) · **Design:**
 [16a design language](../../design/16a-design-language.md), [ADR-0031](../../adr/0031-design-language-and-task-ordered-command-bar.md)
-· **Decision log:** the entries of §15.3, numbered by the orchestrator at the design pass that adopts this
+(Accepted) · **Visual reference:** the owner-approved [mockup](../../design/assets/design-language-mockup.html) · **Decision log:** the entries of §15.3, numbered by the orchestrator at the design pass that adopts this
 specification · **Part of:** ElektraWatt plan, specifications
 
 **Purpose.** This is the closed specification of the package that gives the window its design language: one token
@@ -15,7 +15,8 @@ source with light, dark and high-contrast themes, the task-ordered command bar, 
 under the navigator, restyled rows, property grid, status bar, dialogs, toasts, menus and palette, canvas overlays
 that never collide, and an icon set. It is written against the delivered shell of WP-S2.01 to WP-S2.06 and WP-S2.09
 part 1 (§2.1), not against their code. Where this document and doc 16a differ, this document is the narrower and wins
-for the lanes; doc 16a stays the target. A choice a lane meets that this document does not settle is escalated, never
+for the lanes; doc 16a stays the target, and the owner-approved [mockup](../../design/assets/design-language-mockup.html) is the visual reference both are
+read from: each part's acceptance compares its components with it (§12.0). A choice a lane meets that this document does not settle is escalated, never
 guessed (`CLAUDE.md`, rule 2).
 
 ---
@@ -42,7 +43,7 @@ guessed (`CLAUDE.md`, rule 2).
 
 ## 1. Goal and non-goals
 
-**Goal.** At the end of the package the window follows doc 16a. Every colour, size, radius and font comes from one
+**Goal.** At the end of the package the window follows doc 16a and looks like the [mockup](../../design/assets/design-language-mockup.html). Every colour, size, radius and font comes from one
 token module and passes a contrast test in light, dark and high-contrast themes; commands sit in a task-ordered command
 bar generated from the action registry (Project, Page, Draw, Check, Output, View), with an app menu, quick access and
 command search; navigators sit behind an icon rail with Properties docked under them; tree rows, table rows and
@@ -69,6 +70,7 @@ deterministically.
 |---|---|
 | [Doc 16a](../../design/16a-design-language.md) §3 to §9 | Pillars, tokens, layout, components, overlays, wording, command order: the target |
 | [ADR-0031](../../adr/0031-design-language-and-task-ordered-command-bar.md) | The decisions and their alternatives |
+| The [mockup](../../design/assets/design-language-mockup.html) (`docs/design/assets/design-language-mockup.html`) | The visual reference: token values in its `:root` and dark blocks, sizes and layout in its CSS, the Draw tab's commands and the status fields in its markup (§12.0) |
 | [UX/UI](../../design/16-ux-ui.md) §2.4, §2.5, §3, §4, §6, §8, §10, §11 | The registry, settings, the shell as built, focus and keys, the property grid, notifications, accessibility, theming |
 | [WP-S2.03](WP-S2.03-viewer-and-tool-framework.md), [WP-S2.04](WP-S2.04-placement-wiring-drawing-tools.md), [WP-S2.05](WP-S2.05-property-grid-find-replace-clipboard.md), [WP-S2.06](WP-S2.06-navigators-and-table-mode.md), [WP-S2.09](WP-S2.09-messages-bulk-previews-history-jobs-and-recovery-ui.md) as built | Tabs, tools and their hints, the ghost and chips, the property sheet and its rows, the navigator framework, jobs, notifications, the recovery dialog |
 | Code at 78222b19 | `crates/ew-ui/src/{app.rs,menu.rs,dock.rs,canvas.rs,canvas_area.rs,navigator.rs,properties.rs,status_bar.rs,palette.rs,picker.rs,notifications.rs,jobs.rs,messages.rs,fonts.rs,tool_view.rs,page_view.rs,parts_card.rs,start_page.rs,about.rs}`; `crates/ew-viewmodel/src/{actions.rs,layout.rs,status.rs,settings.rs,describe.rs,strings.rs,shell.rs,properties.rs}`; `assets/fonts/`; `REUSE.toml`; `xtask/` |
@@ -103,25 +105,25 @@ deterministically.
 
 ## 3. The decisions of this specification
 
-Each is a lead ruling the owner may reverse; the design pass records them (§15.3).
+Each is a lead ruling; the design pass records them (§15.3). The taste choices were decided on 2026-10-28 (§15.5).
 
 | # | Decision | Reason and trade-off |
 |---|---|---|
 | D1 | **Six parts in three waves**: wave 1 parts 1 and 6, wave 2 parts 2 and 5, wave 3 parts 3 and 4; 5.6 pw against a PERT of 5.7 pw (O 4 · L 5.5 · P 8), 0.1 pw reserve; de-scope rule §15.1 | Tokens and icons are inputs of everything; parts 2 and 5 touch disjoint files (the chrome's top and the canvas); parts 3 and 4 touch the panes and the popups after the command bar has moved the menus |
-| D2 | **The design language is doc 16a and ADR-0031**; the lanes implement it as specified here; ADR-0031 stays Proposed until the owner confirms the look on the mockup and then on part 1's snapshots | The lead owns design decisions; the look is the owner's taste |
-| D3 | **The command bar is generated from the registry**: `ActionMeta` gains `placement: Option<Placement>` (`tab: Tab`, `group: Group`, `order: u16`, `size: CommandSize { Large, Small }`) and `icon: IconId` becomes required for placed actions; `Tab` and `Group` are toolkit-neutral enums in `ew-viewmodel` with doc 16a §5.3's members and order; menus become the app menu over the same tree | One source; a test can prove that bar, menu and palette agree |
+| D2 | **The design language is doc 16a and ADR-0031 (Accepted), with the owner-approved mockup as the visual reference**; the lanes implement it as specified here; where 16a's text and the mockup differ on look the mockup wins and the lane reports the difference for 16a's correction; requirements override both (16a §11) | The owner approved the mockup; one picture to match is easier to hold than prose |
+| D3 | **The command bar is generated from the registry**: `ActionMeta` gains `placement: Option<Placement>` (`tab: Tab`, `group: Group`, `order: u16`, `size: CommandSize { Large, Small }`, `bar_label: Option<&'static str>`, the short label without ellipsis) and `icon: IconId` becomes required for placed actions; `Tab` and `Group` are toolkit-neutral enums in `ew-viewmodel` with doc 16a §5.3's members and order; each tab names its next-step action (Draw: `check.run` as "Check project"; Check: PDF export; others none); the Draw tab holds exactly the mockup's fourteen commands and its next step; menus become the app menu over the same tree | One source; a test can prove that bar, menu, palette and mockup agree |
 | D4 | **One token module in `ew-ui`** (`theme/`), with global ramps, alias tokens per theme and component sizes per density; `theme::apply` maps them onto egui; a dump `tests/expected/tokens.txt`; a source guard test fails on `Color32` constructors, hex literals and numeric `CornerRadius`, `Stroke` or `Margin` literals in `crates/ew-ui/src/**` outside `theme/` and `icons/generated.rs` | P7 made checkable |
-| D5 | **Default theme follows the system** (egui's theme preference, doc 16 §11.1); light is the reference for snapshots and the mockup; the high-contrast themes are selectable in View ▸ Theme | As doc 16 decided; the owner may choose light as default (doc 16a §11) |
-| D6 | **Two densities**, Comfortable default, stored as `density` in `settings.toml` and set by `view.density { value }` | JetBrains' compact-mode precedent; one switch, no per-panel densities |
+| D5 | **Default theme follows the system** (egui's theme preference, doc 16 §11.1); light is the reference for snapshots and the mockup; the high-contrast themes are selectable in View ▸ Theme | As doc 16 decided; confirmed 2026-10-28 (§15.5) |
+| D6 | **Two densities**, Comfortable default, stored as `density` in `settings.toml` and set by `view.density { value }`; Compact changes the row height, the command row and the command buttons' layout only, as in the mockup | JetBrains' compact-mode precedent; one switch, no per-panel densities |
 | D7 | **Dependency decision: `egui_kittest` dev-features `snapshot` and `wgpu`** for `ew-ui`'s tests (MIT OR Apache-2.0; adds the image-diff crate `dify` and its tree). The lane runs `cargo deny check` and `cargo vet` for the added crates and stops if a licence is outside ADR-0024's allowlist or an audit is missing (the orchestrator records the audits). Snapshot tests are `#[cfg(all(feature = "snapshots"))]` behind an `ew-ui` test feature, run in one CI job with an adapter (Windows WARP); thresholds in `kittest.toml` (`threshold` 0.6, `max_failed_pixels` ≤ 10); `UPDATE_SNAPSHOTS=true` re-blesses | Pixel snapshots are the only machine check of a look; one platform keeps them stable; the deterministic CPU `view.snapshot` covers the canvas overlays on every platform (§11) |
 | D8 | **Asset decision: `NotoSans-SemiBold.ttf`** from the same Noto Sans release as the bundled Regular (OFL-1.1, `assets/fonts/`, the existing REUSE entry and `NOTICE` line extended); UI only (`FontFamily::Name("semibold")`); drawings unchanged | ADR-0028's family; a 13-px emphasis that Bold makes too heavy; no licence change |
 | D9 | **Asset decision: Tabler Icons 3.50.0, vendored** as the SVG files actually used (about 110) under `assets/icons/tabler/` with `LICENSES/MIT.txt` and a `REUSE.toml` annotation naming Tabler's copyright line; the project's own glyphs under `assets/icons/ew/` (GPL-3.0-or-later, the application's licence); `cargo xtask gen-icons` converts both with `kurbo` (already in the lock) into `crates/ew-ui/src/icons/generated.rs` (committed, `--check` in CI); no runtime SVG parsing, no icon font, no new product dependency | Deterministic, testable, stroke width as a token; no wrapper crate that lags egui |
-| D10 | **The default Schematic workspace changes**: left column = navigator group (rail-driven) over Properties (55 : 45); right column = palettes group, closed; bottom group closed until opened; the workspace file format `ew.workspace/1` is unchanged and an old file still loads (its panes keep their places) | Doc 16a §5.1; the canvas gets 72 % of a 1280-px window |
-| D11 | **Properties: Main and Advanced.** `ew-viewmodel` holds a per-kind list of primary field paths (Main, open by default) and a per-kind list of internal paths (Advanced: `$v`, ids, keys, source references, lineage, counters, form UUIDs) shown only when `show_advanced_properties` is on (`props.show_advanced { on }`); provenance icons only for non-authored rows; no edit buttons (in-place editing as built through the existing edit routes); duplicate labels in one section are a test failure fixed by label keys, not by hiding rows | Doc 16a §6.8; P3, P6; no change to `ew-api`'s sheet |
-| D12 | **The status bar's fields and order** are doc 16a §5.8's; the language field leaves the bar (start page and Settings keep the switch); the findings field returns (WP-S2.09 D8 kept counts in the pane header; both now show them) | FR-UI-034; P3 |
-| D13 | **One chip placement function** `place_chip(target: Rect, size: Vec2, obstacles: &[Rect], pointer: Option<Pos2>) -> ChipPlacement` (pure, in `ew-viewmodel`'s canvas module) for preview chips, ghost labels, highlight name chips and measurement readouts, with doc 16a §7.4's order and fallback; the ghost draws one label (FT-507); obstacles include the statistics panel and the HUD (FT-508) | Collisions become a unit-tested function |
-| D14 | **Highlights take doc 16 §10.3's hues** (#D55E00, #009E73, #CC79A7, #A86F00), the selection the accent #0B63CE; FT-506 closed; the CVD-render expected images re-blessed in one reviewed commit | NFR-A11Y-03's 3:1 on the sheet |
-| D15 | **The headless surface**: `ui.describe` gains a `commandbar` section (the active tab, then one line per group with its actions) and a `rail` line per side; the hint-strip line is removed; the status line follows D12; new actions `view.density`, `view.command_bar` (`collapsed: bool`), `view.command_tab { tab }`, `rail.show { side, pane }`, `props.show_advanced { on }`; every expected transcript that changes is re-blessed in one reviewed commit per part that lists them | The blind drafter and the scripts keep reading the window as text |
+| D10 | **The default Schematic workspace changes**: left column = navigator group (rail-driven: Project with Pages and Devices, Terminal strips, Cables, Potentials, Structure, then the rest; History at the rail's foot) over Properties (50 : 50); right column = palettes group, closed; bottom group closed until opened; the workspace file format `ew.workspace/1` is unchanged and an old file still loads (its panes keep their places) | Doc 16a §5.1; the canvas gets 72 % of a 1280-px window |
+| D11 | **Properties: Main and Advanced.** `ew-viewmodel` holds a per-kind list of primary field paths (Main, open by default) and a per-kind list of internal paths (Advanced: `$v`, ids, keys, source references, lineage, counters, form UUIDs) shown only when `show_advanced_properties` is on (`props.show_advanced { on }`, also the "Show advanced (n)" link at the panel's foot); provenance chips (one word: part, page, derived, override, frozen, library, generated) only for non-authored rows; no edit buttons (in-place editing as built through the existing edit routes); duplicate labels in one section are a test failure fixed by label keys, not by hiding rows | Doc 16a §6.8; P3, P6; no change to `ew-api`'s sheet |
+| D12 | **The status bar's fields and order** are doc 16a §5.8's (the mockup's, with FR-UI-034's selection, cell, snap and renderer); the state field ("Ready") at the left; the tool hint moves to the HUD; the language and page fields leave the bar (start page and Settings keep the language switch); one findings field returns (WP-S2.09 D8 kept counts in the pane header; both now show them) | FR-UI-034; P3 |
+| D13 | **One chip placement function** `place_chip(target: Rect, size: Vec2, obstacles: &[Rect], pointer: Option<Pos2>) -> ChipPlacement` (pure, in `ew-viewmodel`'s canvas module) for preview chips, ghost labels, highlight name chips and measurement readouts, with doc 16a §7.4's order and fallback; the ghost draws one label (FT-507); obstacles include the statistics panel, the HUD (always shown) and the zoom control (FT-508) | Collisions become a unit-tested function |
+| D14 | **Highlights take doc 16 §10.3's hues** (#D55E00, #009E73, #CC79A7, #A86F00) with name chips filled with the hue and a black label (doc 16a §4.6), the selection the accent #0B63CE with 8-px handles; FT-506 closed; the CVD-render expected images re-blessed in one reviewed commit | NFR-A11Y-03's 3:1 on the sheet |
+| D15 | **The headless surface**: `ui.describe` gains a `commandbar` section (the active tab, then one line per group with its actions, then the next step) and a `rail` line per side and a `hud` line (tool and prompt); the hint-strip line is removed; the status line follows D12; new actions `view.density`, `view.command_bar` (`collapsed: bool`), `view.command_tab { tab }`, `rail.show { side, pane }`, `props.show_advanced { on }`; every expected transcript that changes is re-blessed in one reviewed commit per part that lists them | The blind drafter and the scripts keep reading the window as text |
 | D16 | **What the package absorbs**: FT-338 (named splitters, part 3), FT-348 (theme, icons, toolbar and window size and position memory; page thumbnails stay FT-492), FT-390 (the link preview's node, part 5), FT-391 (part 5), FT-425 (the picker's manufacturer headers, part 4), FT-506, FT-507, FT-508 (part 5), FT-509 (part 3), FT-510 (part 4), FT-512's tooltip half (part 5; the Connection points category stays with FT-512) | Each is a visual or naming defect of the surfaces this package redraws |
 
 ## 4. Crates, boundaries and the items added
@@ -149,8 +151,8 @@ no egui name outside `ew-ui` and `elektrawatt`, no `ew-model` name in `ew-viewmo
 | Part | Crate | Item | Contract |
 |---|---|---|---|
 | 1 | `ew-ui` | `theme::Tokens` (all alias and component tokens of doc 16a §4 as fields), `theme::Theme { Light, Dark, HighContrastDark, HighContrastLight }`, `theme::Density { Comfortable, Compact }`, `theme::tokens(theme, density) -> Tokens`, `theme::apply(&Tokens, &egui::Context)`, `theme::contrast(a, b) -> f32` (WCAG 2.1) | Pure functions; `tokens` is deterministic; `apply` sets only what doc 16a §4.14 lists |
-| 2 | `ew-viewmodel` | `enum Tab { Project, Page, Draw, Check, Output, View }`, `enum Group` (doc 16a §5.3's groups), `enum CommandSize { Large, Small }`, `struct Placement { tab, group, order: u16, size }`; `ActionMeta::placement: Option<Placement>`; `fn command_bar(&ShellModel) -> CommandBarModel` (tabs, groups, buttons with enabled state and reason) | Toolkit-neutral; ordered by `(tab, group, order)` |
-| 2 | `ew-viewmodel` | `struct HudModel { tool: ActionId, target: Option<String>, keys: Vec<(String, String)> }`, `fn hud(&ShellModel) -> Option<HudModel>` | `None` while Select is active |
+| 2 | `ew-viewmodel` | `enum Tab { Project, Page, Draw, Check, Output, View }`, `enum Group` (doc 16a §5.3's groups), `enum CommandSize { Large, Small }`, `struct Placement { tab, group, order: u16, size, bar_label: Option<&'static str> }`; `ActionMeta::placement: Option<Placement>`; `fn next_step(Tab) -> Option<ActionId>`; `fn command_bar(&ShellModel) -> CommandBarModel` (tabs, groups, buttons with bar label, enabled state and reason, the next step) | Toolkit-neutral; ordered by `(tab, group, order)` |
+| 2 | `ew-viewmodel` | `struct HudModel { tool: ActionId, quick: [ActionId; 3], target: Option<String>, prompt: String }`, `fn hud(&ShellModel) -> HudModel` | Always present; with Select the prompt is the selection and its keys ("1 selected · Del deletes · R rotates") |
 | 3 | `ew-viewmodel` | `RailState { left: PaneKind, right: Option<PaneKind> }` in the shell model; `StatusField` order per D12 | Rails are views of tab groups |
 | 5 | `ew-viewmodel` | `fn place_chip(target: Rect, size: Vec2, obstacles: &[Rect], pointer: Option<Pos2>) -> ChipPlacement { rect, faded: bool }` (own small `Rect`/`Vec2`/`Pos2` types, no egui) | Doc 16a §7.4 |
 | 6 | `ew-ui` | `icons::IconId` (one variant per icon, `snake_case` names), `icons::paint(painter, id, rect, color, stroke_px)`; `ew-viewmodel` names icons by a `&'static str` key that `ew-ui` maps, so `ew-viewmodel` stays egui-free | Generated table, static data only |
@@ -181,16 +183,18 @@ change, no history entry), all in the palette and in View. No command is added.
 
 ## 6. Part 2: the command surface
 
-1. **Placement data.** Every action of doc 16a §5.3 gets its `Placement` and icon key; actions not in the table keep
-   `placement: None`. The Insert menu's actions move to Draw; Tools dissolves per doc 16a §9.2.
+1. **Placement data.** Every action of doc 16a §5.3 gets its `Placement`, bar label and icon key; each tab its next
+   step; actions not in the table keep `placement: None`. The Insert menu's actions move to Draw; Tools dissolves per doc 16a §9.2.
 2. **The command bar** (`ew-ui` `command_bar.rs`): the tab row (app menu button, quick access, tabs, command search)
-   and the command row (groups, large, small and split buttons, toggles), doc 16a §5.2's sizes per density; collapse
+   and the command row (groups, large, small and split buttons, toggles, the next-step primary), doc 16a §5.2's sizes
+   per density and the mockup's look; collapse
    with Ctrl+F1 and a tab double-click; overflow into "More" below 1100 px; the bar never reflows on state changes.
 3. **The app menu.** `menu.rs` becomes the app menu: one button opening the full tree in doc 16a §9.2's order; Alt and
    F10 open it; every registry action appears in it exactly once.
 4. **Command search.** The field opens the existing palette anchored under it (the palette's restyle is part 4).
-5. **The HUD** (`tool_view.rs`): doc 16a §5.5's pill from `HudModel`; it moves to the canvas bottom while the pointer is
-   within 48 px; the tool strip line under the menu is removed.
+5. **The HUD** (`tool_view.rs`): doc 16a §5.5's pill from `HudModel`, always shown at the canvas bottom; it moves under
+   the tab bar while the pointer is within 48 px; the tool strip line under the menu is removed. **The zoom control**
+   of doc 16a §5.5 at the canvas's bottom right.
 6. **AccessKit.** The tab row is a `TabList` of `Tab` nodes; groups are `Group` nodes named by the group; every button
    is named by its label and carries its shortcut; the HUD is a `Status` node with the tool and target.
 7. **Describe and transcripts** per D15.
@@ -200,14 +204,15 @@ change, no history entry), all in the palette and in View. No command is added.
 1. **Rails** (`ew-ui` `rail.rs`): left and right rails as views of their tab groups, whose own tab bars are not drawn
    (an egui_tiles `Behavior::tab_bar_height` of 0 for the containers the rails drive; if 0.18.0 cannot do this per
    container, the lane stops and reports, and the lead rules between a wrapper and egui side panels); doc 16a §5.4's
-   order, names, keys (Ctrl+1 to Ctrl+8) and collapse; FT-509 closed.
-2. **The default workspace** per D10; the navigator header and filter of doc 16a §5.4; Properties under the navigator.
+   order, names, keys (Ctrl+1 to Ctrl+9), the indicator bar, History at the foot and collapse; FT-509 closed.
+2. **The default workspace** per D10; the panel header, the Pages | Devices segmented control (doc 16a §6.20) and the
+   filter of doc 16a §5.4; Properties under the navigator; the bottom dock's look of doc 16a §5.7.
 3. **Tree rows** (`navigator.rs`): doc 16a §6.6's anatomy for every navigator; the badges move from text to icon and
    caption badges; the current page row in `type.body.strong`.
 4. **Table rows**: one row component for the Jobs, Messages and Find panes and every table, doc 16a §6.7.
-5. **Properties** (`properties.rs`): the header, filter, Main and Advanced (D11), the rows of doc 16a §6.8 with
-   in-place editing, the provenance icons, the row "…" menu; the duplicate labels of Golden A's sheets renamed.
-6. **The status bar** (`status_bar.rs`, `status.rs`) per D12 and doc 16a §5.8, with the findings chips and the
+5. **Properties** (`properties.rs`): the header, the filter when more than twelve rows, Main and Advanced (D11), the
+   rows of doc 16a §6.8 with in-place value cells, the provenance chips, the row "…" menu; the duplicate labels of Golden A's sheets renamed.
+6. **The status bar** (`status_bar.rs`, `status.rs`) per D12 and doc 16a §5.8, with the findings field and the
    renderer field's warning state.
 7. **Canvas tabs and dock tabs** per doc 16a §5.5 and §6.4; the "Page view" and pane headings removed.
 8. **FT-338**: the dock and canvas-area splitters get names ("Resize <pane> and <pane>"); the walker's skip removed.
@@ -221,7 +226,7 @@ change, no history entry), all in the palette and in View. No command is added.
    16a §6.12's anatomy; `ew-viewmodel` gives each dialog a `DialogSpec { title, body, primary, secondary, danger }`
    so the texts are tested headless. The quit prompt reads "Save changes to <project> before closing?" with Save,
    Don't save, Cancel; the recovery dialog reads "Recover unsaved changes?" with Recover, Open read-only, Discard….
-2. **Toasts and the log** per doc 16a §6.10; the log as the bell popover.
+2. **Toasts and the log** per doc 16a §6.10 (the canvas's top right); the log as the bell popover.
 3. **Banners** per doc 16a §6.11.
 4. **Menus and context menus** per doc 16a §6.13 (applies to the app menu of part 2).
 5. **The palette** per doc 16a §6.14: no title, breadcrumbs, key chips, unrunnable actions not listed.
@@ -237,7 +242,8 @@ change, no history entry), all in the palette and in View. No command is added.
 1. **Tokens on the canvas**: selection, hover, ghost, snap, CP rings, highlights, measurement and chips take doc 16a
    §4.6's tokens through the canvas host; highlights per D14 (FT-506).
 2. **FT-391's scale rule** for every overlay mark at ppp 1, 1.5, 2 and 3.
-3. **Selection** with its white casing and handles; hover dashed (doc 16a §7.1).
+3. **Selection** with its white casing and 8-px handles; hover dashed (doc 16a §7.1); highlight name chips in the hue
+   with a black label (D14).
 4. **`place_chip`** (D13) for every chip; the ghost's single label (FT-507); the statistics panel and the HUD as
    obstacles (FT-508).
 5. **CP tooltip** (FT-512's tooltip half): hovering a CP shows its printed label, function kind and potential.
@@ -277,6 +283,42 @@ All are ordinary nextest tests in the existing jobs unless marked "snapshot" (D7
 policy): nextest, clippy `-D warnings` and `cargo fmt --all --check` for the crates changed, `check-deps`,
 `check-features`, `check-licence-map`, `reuse lint` where touched.
 
+### 12.0 Conformance with the mockup
+
+The approved [mockup](../../design/assets/design-language-mockup.html) is checked by machine where it can be: **token values exactly**, and **geometry within
+the tolerances below**. Rasterisers differ (a browser against epaint), so pixels are not compared across them; the
+snapshots of D7 are reviewed side by side with the mockup at the same size, theme and density (§14 item 8). The
+checks read the committed mockup file (`include_str!` from `docs/design/assets/`), so a new mockup version moves the
+expected values in one reviewed commit.
+
+**Token map.** The mockup's custom properties map one to one onto 16a's aliases: `--surface-chrome` →
+`color.surface.chrome`, `--surface-panel`, `--surface-raised`, `--surface-sunken`, `--surface-inverse`,
+`--text-primary` … `--text-on-inverse`, `--accent`, `--accent-hover`, `--accent-subtle`, `--border-subtle`,
+`--border-default`, `--border-control`, `--hover`, `--pressed`, `--error` … `--success-subtle`, `--warning-icon`,
+`--canvas-surround`, `--grid-dot`, `--selection`, `--shadow-1` → `elevation.1`, `--shadow-2` → `elevation.2`,
+`--row` → `size.row`, `--bar-cmd` → `size.command_row`; the `:root` block is Light and Comfortable, `[data-theme=dark]`
+is Dark, `[data-density=compact]` is Compact.
+
+**Reference geometry** (1280 × 800, ppp 1, the default workspace on Golden A folio 101; from the mockup's CSS):
+
+| # | Element | Mockup | Tolerance |
+|---|---|---|---|
+| G1 | Command bar height (tab row, command row, bottom line) | 85 (Compact 69) | ±1 px |
+| G2 | Tab row; command row | 32; 52 (Compact 36) | ±1 px |
+| G3 | Large command button; small command button | 46 high, ≥ 52 wide; 24 high | ±1 px |
+| G4 | Command search field; quick-access button | 280 × 24; 28 × 24 | ±2 px |
+| G5 | Left rail; left column; right rail | 40; 280; 40 | ±1 px |
+| G6 | Rail button | 32 × 32 | ±1 px |
+| G7 | Canvas-tab bar; status bar | 32; 26 | ±1 px |
+| G8 | Canvas width as a share of the window | 71.9 % (920 px) | ±1 percentage point |
+| G9 | Navigator : Properties heights | 50 : 50 | ±3 percentage points |
+| G10 | Row height; property label column | 28 (Compact 24); 96 | exact; ±2 px |
+| G11 | HUD: height; gap to the canvas bottom; centred | 36; 16; centre within 2 px | ±2 px |
+| G12 | Zoom control: buttons; inset right and bottom | 28 × 28; 12 and 16 | ±2 px |
+| G13 | Toast: width; inset top and right of the canvas | 300; 12 and 12 | ±2 px |
+| G14 | Bottom dock when opened | 184 high, tab row 32 | ±1 px |
+| G15 | Radii: icon buttons, value cells, chips 4; command, rail and primary buttons, fields 6; toasts and dialogs 8; HUD and badges pill | as listed | exact |
+
 ### 12.1 Part 1
 
 | # | Check | Where | Proves |
@@ -288,18 +330,20 @@ policy): nextest, clippy `-D warnings` and `cargo fmt --all --check` for the cra
 | DL5 | SemiBold is registered; a `type.body.strong` label is laid out with the semibold family; `reuse lint` and `check-licence-map` pass with the new font | `ew-ui` test; lane | D8 |
 | DL6 | Snapshot: the component gallery in the four themes at ppp 1 and 2 | snapshot | Doc 16a §6 states |
 | DL7 | `view.density` and the theme setting round-trip through `settings.toml`; an unknown value is refused with its reason | `ew-viewmodel` test | D5, D6 |
+| DL8 | **Matches the mockup's tokens:** every custom property of the token map (§12.0) parsed from the mockup's `:root`, dark and compact blocks equals the `Tokens` value of Light, Dark and Compact exactly (hex, alpha to 1/255, shadow offsets, blur and colours, sizes in px); G10 and G15's radii exactly | `ew-ui` test | D2, mockup |
 
 ### 12.2 Part 2
 
 | # | Check | Where | Proves |
 |---|---|---|---|
-| CB1 | Registry: every placed action has an icon key, a label, a docs anchor; tabs and groups in doc 16a §5.3's order; Draw holds Select, Place, Connect, Annotate, Arrange and Edit; no action placed twice; at most two Large per group; every registry action appears exactly once in the app-menu tree | `ew-viewmodel` test | D3, P5 |
+| CB1 | Registry: every placed action has an icon key, a label, a docs anchor; tabs and groups in doc 16a §5.3's order; Draw holds Select, Place, Connect, Annotate and Arrange; no action placed twice; at most two Large per group; every registry action appears exactly once in the app-menu tree | `ew-viewmodel` test | D3, P5 |
 | CB2 | AccessKit: a `TabList` with six `Tab` nodes named Project to View; every command button named by its label with its shortcut; clicking each enabled button of the Draw tab dispatches its action (counted through the dispatch log) | `ew-ui` kittest | NFR-A11Y-02 |
 | CB3 | Keys: Alt and F10 open the app menu; Ctrl+F1 collapses and restores; F6 from the canvas reaches the command bar in doc 16a §5.9's order; Left and Right move between tabs | `ew-ui` kittest | NFR-A11Y-01 |
-| CB4 | Geometry at 1280 × 800, 100 %: the command bar is 84 px high in Comfortable and 68 px in Compact; the canvas rect is at least 65 % of the window's width in the default workspace (part 3's layout) or the current one (before part 3) | `ew-ui` kittest | ADR-0031 decision 5 |
-| CB5 | HUD: arming Place on Golden A folio 101 shows a `Status` node named with the tool and target and its key hints; Select shows none; no node of the former tool strip exists | `ew-ui` kittest | Doc 16a §5.5 |
+| CB4 | Geometry at 1280 × 800, 100 %: G1 to G4 and G11 within tolerance in both densities; the canvas rect is at least 65 % of the window's width in the default workspace (part 3's layout) or the current one (before part 3) | `ew-ui` kittest | ADR-0031 decision 5, mockup |
+| CB5 | HUD: always one `Status` node; with Select and one selected object its prompt reads "1 selected · Del deletes · R rotates"; arming Place on Golden A folio 101 names the tool and target and its key hints; no node of the former tool strip exists | `ew-ui` kittest | Doc 16a §5.5 |
 | CB6 | Describe and transcripts re-blessed per D15; scripts twice byte-identical; `ew apply` replay unchanged | lane; tests | §11 |
-| CB7 | Snapshot: the command bar for each tab, light and dark, Comfortable and Compact | snapshot | Doc 16a §5.2 |
+| CB7 | Snapshot: the command bar for each tab, light and dark, Comfortable and Compact; reviewed beside the mockup | snapshot | Doc 16a §5.2 |
+| CB8 | **Matches the mockup's command surface:** the Draw tab's buttons parsed from the mockup's command row (label, large or small, group order, the next-step button "Check project") equal `command_bar` for Draw (bar labels, sizes, order; a mockup command whose action is not yet in the registry, such as Align, is listed by name as pending and skipped, never reordered); the six tab labels equal the mockup's; the app button carries the name "ElektraWatt" and the accessible name "Menu" | `ew-viewmodel` test; kittest | D3, mockup |
 
 ### 12.3 Part 3
 
@@ -308,21 +352,23 @@ policy): nextest, clippy `-D warnings` and `cargo fmt --all --check` for the cra
 | DK1 | With every navigator shown, each has one named rail button, all reachable by Tab and by Ctrl+number; the accessible-name walker passes with no skip (FT-338, FT-509) | `ew-ui` kittest | FT-509, FT-338 |
 | DK2 | Pages navigator rows on Golden A carry no "[QET grid]" or "[generated]" text; their badges are named nodes; the focused tab's page row uses the strong text style | `ew-ui` kittest | Doc 16a §6.6 |
 | DK3 | Properties on Golden A for a page, a device, a terminal and a connection: no two rows of a section share a label; no authored row has a provenance description; no node named "edit"; Advanced rows (`$v`, ids, keys, lineage) absent until `props.show_advanced { on: true }`; Main open, other categories closed; an Enter edit commits exactly one command (the as-built mapping unchanged) | `ew-viewmodel`, `ew-ui` tests | D11, FR-UI-008 unchanged |
-| DK4 | Status fields in D12's order; findings shown only when non-zero; renderer field in warning style on `--no-gpu`; no language field | `ew-viewmodel` test; describe | D12, FR-UI-034 |
+| DK4 | Status fields in D12's order, equal to the order of the mockup's status-bar fields; "Ready" at the left; findings shown only when non-zero, as one field; renderer field in warning style on `--no-gpu`; no language or page field | `ew-viewmodel` test; describe | D12, FR-UI-034, mockup |
 | DK5 | The default workspace per D10; a workspace file written before the package loads with its panes in place; `ew.workspace/1` bytes for a saved default are deterministic | `ew-viewmodel` test | D10 |
 | DK6 | Window size and position restored and clamped (a pure clamp function tested on three monitor layouts) | `elektrawatt` or `ew-ui` test | FT-348 |
-| DK7 | Snapshot: the main window on Golden A folio 101 at 1280 × 800, light and dark, Comfortable and Compact, and at 300 % UI scale (light, Comfortable) | snapshot | Doc 16a §5, NFR-A11Y-04 |
+| DK7 | Snapshot: the main window on Golden A folio 101 at 1280 × 800, light and dark, Comfortable and Compact, and at 300 % UI scale (light, Comfortable); reviewed beside the mockup | snapshot | Doc 16a §5, NFR-A11Y-04 |
+| DK8 | **Matches the mockup's layout:** G5 to G10 and G14 within tolerance; the first five rail entries in the mockup's order (Project, Terminal strips, Cables, Potentials, Structure) with History at the foot; the Project entry shows the Pages and Devices segmented control | `ew-ui` kittest | D10, mockup |
 
 ### 12.4 Part 4
 
 | # | Check | Where | Proves |
 |---|---|---|---|
 | CP1 | Every `DialogSpec` has exactly one primary; no primary is destructive; titles end with "?" when they ask; Escape cancels every dialog (kittest) | `ew-viewmodel`, `ew-ui` tests | Doc 16a §6.12 |
-| CP2 | Toasts: at most three, anchored bottom right above the status bar; the bell opens the log | `ew-ui` kittest | Doc 16a §6.10 |
+| CP2 | Toasts: at most three, anchored at the canvas's top right, newest on top; the bell opens the log | `ew-ui` kittest | Doc 16a §6.10 |
 | CP3 | Wording lint of §8 item 8 over the registry, the dialog specs and the UI strings | `ew-viewmodel` test | Doc 16a §8 |
 | CP4 | Palette: an action without a GUI path is not listed; results carry breadcrumbs and key chips | `ew-viewmodel` test; kittest | Doc 16a §6.14 |
 | CP5 | Every list pane shows its empty state as a named node; a finished job shows Done, Cancelled or Failed (FT-510); picker part rows under manufacturer headers (FT-425) | `ew-ui` kittest; `ew-viewmodel` test | FT-510, FT-425 |
-| CP6 | Snapshot: each dialog, the toast stack, a menu and the palette, light and dark | snapshot | Doc 16a §6 |
+| CP6 | Snapshot: each dialog, the toast stack, a menu and the palette, light and dark; the toast reviewed beside the mockup's | snapshot | Doc 16a §6 |
+| CP7 | **Matches the mockup's toast:** G13 within tolerance; title, line and action in the mockup's text styles (strong, small secondary, small SemiBold accent); radius 8 and `elevation.2` from the tokens | `ew-ui` kittest | Doc 16a §6.10, mockup |
 
 ### 12.5 Part 5
 
@@ -333,6 +379,7 @@ policy): nextest, clippy `-D warnings` and `cargo fmt --all --check` for the cra
 | OV3 | FT-391's scale rule at ppp 1, 1.5, 2 and 3; snapshots at ppp 1 unchanged except for the colours | `ew-render2d` unit tests | FT-391 |
 | OV4 | Hovering -X1031's CP 21 on folio 101 shows a tooltip "-X1031 : 21 · terminal · <potential>"; the link preview has a named region node | `ew-ui` kittest | FT-512 (tooltip), FT-390 |
 | OV5 | `view.snapshot` PNGs of §11 item 2 blessed and stable across two runs | `ew-ui` test | Doc 16a §7 |
+| OV6 | **Matches the mockup's overlays:** at ppp 1 the selection is a 2-px outline in `canvas.selection` with a white casing and four 8-px handles, the highlight name chip is filled with its hue with a black label and radius 4, and the HUD and zoom control meet G11 and G12 (overlay model values and pixel probes of the CPU snapshot) | `ew-ui` test | D14, mockup |
 
 ### 12.6 Part 6
 
@@ -343,6 +390,7 @@ policy): nextest, clippy `-D warnings` and `cargo fmt --all --check` for the cra
 | IC3 | Every icon paints at 16, 20 and 24 px at ppp 1 and 2 without panic and within its rect | `ew-ui` test | Doc 16a §4.11 |
 | IC4 | `reuse lint` clean; the About dialog's third-party notices list Tabler Icons with its licence | lane; `ew-ui` test | ADR-0024 |
 | IC5 | Snapshot: the icon gallery, light and dark | snapshot | Doc 16a §4.11 |
+| IC6 | **Matches the mockup's icon metrics:** icons paint at 16 and 20 px with a 1.5-px stroke at ppp 1 (the mockup's `svg.i` and `svg.i16`), in the role colours of doc 16a §4.11 (secondary at rest, accent when active) | `ew-ui` test | Doc 16a §4.11, mockup |
 
 The workspace suite, the acceptance runner and the performance runs are not run by the lanes (testing policy,
 ID-512); the integrating session runs `cargo xtask ci` at the cycle delivery.
@@ -392,8 +440,9 @@ second lane to integrate rebases on the first. Read-only for the lanes: every cr
 6. **Determinism.** Describe and transcripts sorted and free of pixels, time and paths; the re-blessed files listed in
    their commits.
 7. **Overlays.** `place_chip` covers every chip; FT-391 scale rule applied everywhere; highlight hues per D14.
-8. **Look.** The snapshots match doc 16a and the mockup in spirit; the reviewer names any surface that still looks
-   like egui's default.
+8. **Look.** The conformance checks of §12.0 pass; the reviewer opens each snapshot beside the mockup at the same
+   size, theme and density, names every visible difference (colour, size, spacing, radius, order) as a finding, and
+   names any surface that still looks like egui's default.
 
 ## 15. Size, order, routing and the documents to update
 
@@ -436,8 +485,9 @@ window check by a model that reads screenshots, at 1280 × 800 and 1920 × 1080,
 ### 15.3 Decision-log entries (to be numbered at the design pass)
 
 1. WP-S2.17 specified in six parts and three waves, 5.6 pw against a PERT of 5.7 pw, the de-scope rule (D1, §15).
-2. The design language (doc 16a) and ADR-0031 adopted as the default in force, Proposed until the owner confirms the
-   look (D2).
+2. The design language (doc 16a) and ADR-0031 Accepted; the owner-approved mockup committed as the visual reference
+   (`docs/design/assets/design-language-mockup.html`), 16a aligned with it, and two corrections that requirements
+   force (D2; 16a §11).
 3. The command bar generated from the registry; the menus become the app menu; Tools dissolves; Insert becomes Draw
    (D3).
 4. One token module with a dump, a contrast test and a literal guard; system-following default theme; two densities
@@ -451,24 +501,31 @@ window check by a model that reads screenshots, at 1280 × 800 and 1920 × 1080,
 10. The headless surface: the `commandbar` and `rail` describe sections and five view actions (D15).
 11. The follow-ups absorbed (D16): FT-338, FT-348, FT-390, FT-391, FT-425, FT-506, FT-507, FT-508, FT-509, FT-510
     and FT-512's tooltip half.
+12. The taste decisions of §15.5 (accent, density, theme, assets).
+13. The plan: WP-S2.17's 5.7 pw taken from WP-S2.08 (4.0 pw) and WP-S2.16 (1.7 pw); the generated G-M2 stays at
+    month 41.
+14. Conformance with the mockup as acceptance (§12.0: the token map, the reference geometry and DL8, CB8, DK8, CP7,
+    OV6, IC6).
 
 ### 15.4 Follow-up tasks
 
 None new at specification. Each lane reports the deviations it needs; the de-scope rule's items become follow-ups if
 they leave.
 
-### 15.5 Open questions for the owner
+### 15.5 Decided (2026-10-28)
 
-Taste only (doc 16a §11): the look itself (ADR-0031 Proposed until confirmed), the accent hue within the blues that
-pass the tests, the default density and whether the default theme follows the system or is light.
+The owner approved the mockup; the orchestrator decided the rest under the owner's delegation: **ADR-0031 is
+Accepted**; **the accent is Volt blue** #0B63CE (light) and #5AA2FF (dark); **the default density is
+Comfortable**; **the default theme follows the system**; **Noto Sans SemiBold (OFL-1.1) and Tabler Icons 3.50.0
+(MIT) are accepted** as assets (D8, D9). D7's dev-features stay a dependency decision for the part-1 lane's
+`cargo deny` and `cargo vet` run.
 
-**Plan dates (for the owner, DEC-001).** Adding 5.7 pw to M-PP leaves the generated G-PP at month 26 (Dec 2028) and
-G-M6 at month 65, and moves the generated G-M2 from month 41 (Mar 2030) to 42 (Apr 2030), G-M3 to 48, G-M4 to 59 and
-G-M5 to 60 (milestones.csv, plan 03 §2). The hand-written statements of the plan of record (vision §9, ARCH §15.2,
-plan 01 §R1, plan 03 §1 and §2.1, the risk register's preamble and gate map, the decision log's gate table and plan
-README) still say month 41; they are updated in one pass when the owner accepts the shift, or WP-S2.17's size is
-taken from WP-S2.08's and WP-S2.16's reserves instead and the generated dates return to month 41. Dated records
-(DEC-001's options, PI-6, ID-225, the risk scores as of 2026-10-18) are not rewritten.
+**Plan dates.** The calendar is unchanged: WP-S2.17's 5.7 pw are taken from WP-S2.08 (O 4.5 · L 6.5 · P 9.5 to
+O 1.5 · L 2.5 · P 4.5, 4.0 pw: the theming, colour-vision and contrast half and the look of the palette, tooltips and
+menus move here) and WP-S2.16 (O 2 · L 3 · P 4.5 to O 1 · L 1.3 · P 2.2, 1.7 pw: R2 reuses R1's protocol, and the
+visual-polish share of its fix list is pre-empted). The generated G-PP stays at month 26, G-M2 at month 41 and
+G-M6 at month 65; the internal gates G-M3 and G-M5 come out one month later in the generated tables (48 and 60)
+than in the hand-written gate prose (47 and 59), which is left as it is (the orchestrator's ruling).
 
 ### 15.6 Documents the design passes update
 

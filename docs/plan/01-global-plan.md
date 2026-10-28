@@ -26,7 +26,7 @@ done, G-SP is passed with the outcome Recycle, and 16 of the 22 M1 work packages
 part). The WBS, the estimates, the gates and the acceptance criteria are unchanged.
 
 <!-- generated:summary-headline -->
-**The headline.** The full v1 scope is **539.6 person-weeks** (pw) of estimated work, **647.5 pw** with the 20 % integration and bug-fix reserve: 15.0 productive developer-years, 18.0 with the reserve. The lean scope of record is 484.7 pw (581.6 pw with the reserve). Three developers deliver 108 productive pw a year. **The architecture's indicative 15–18 months to 1.0 cannot be met by 2–4 developers.** With three developers, month 16 is when the spine exits (headless golden PDF, M1). No team size reaches 1.0 in 18 months, because the longest dependency chain alone takes 28.5 months.
+**The headline.** The full v1 scope is **533.9 person-weeks** (pw) of estimated work, **640.7 pw** with the 20 % integration and bug-fix reserve: 14.8 productive developer-years, 17.8 with the reserve. The lean scope of record is 479.0 pw (574.8 pw with the reserve). Three developers deliver 108 productive pw a year. **The architecture's indicative 15–18 months to 1.0 cannot be met by 2–4 developers.** With three developers, month 16 is when the spine exits (headless golden PDF, M1). No team size reaches 1.0 in 18 months, because the longest dependency chain alone takes 28.5 months.
 <!-- /generated:summary-headline -->
 
 **Plan of record (proposed): three developers, lean scope.** Month *n* counts from 2026-11-01 and is labelled
@@ -37,14 +37,14 @@ iterations against. At G-M1 both are replaced by one re-baseline from the measur
 <!-- generated:summary-dates -->
 | Scenario | M1 spine exit | M-PP pilot preview 0.0.x | M2 MVP 0.1.0 | M6 release 1.0 |
 |---|---|---|---|---|
-| **3 developers, lean scope: plan of record, external commitments** | **16 (Feb 2028)** | **26 (Dec 2028)** | **42 (Apr 2030)** | **65 (Mar 2032)** |
-| Same, capacity −20 % / +20 % | 20 (Jun 2028) / 14 (Dec 2027) | 33 (Jul 2029) / 22 (Aug 2028) | 52 (Feb 2031) / 35 (Sep 2029) | 82 (Aug 2033) / 55 (May 2031) |
-| **3 developers + AI-moderate, lean scope: internal target** | **13 (Nov 2027)** | **21 (Jul 2028)** | **33 (Jul 2029)** | **53 (Mar 2031)** |
-| 3 developers + AI-strong, lean scope (upside, not planned) | 11 (Sep 2027) | 18 (Apr 2028) | 29 (Mar 2029) | 46 (Aug 2030) |
-| 3 developers, full scope (if PD-1 rejects the levers) | 16 (Feb 2028) | 26 (Dec 2028) | 45 (Jul 2030) | 73 (Nov 2032) |
+| **3 developers, lean scope: plan of record, external commitments** | **16 (Feb 2028)** | **26 (Dec 2028)** | **41 (Mar 2030)** | **65 (Mar 2032)** |
+| Same, capacity −20 % / +20 % | 20 (Jun 2028) / 14 (Dec 2027) | 33 (Jul 2029) / 22 (Aug 2028) | 52 (Feb 2031) / 35 (Sep 2029) | 81 (Jul 2033) / 54 (Apr 2031) |
+| **3 developers + AI-moderate, lean scope: internal target** | **13 (Nov 2027)** | **21 (Jul 2028)** | **33 (Jul 2029)** | **52 (Feb 2031)** |
+| 3 developers + AI-strong, lean scope (upside, not planned) | 11 (Sep 2027) | 18 (Apr 2028) | 29 (Mar 2029) | 45 (Jul 2030) |
+| 3 developers, full scope (if PD-1 rejects the levers) | 16 (Feb 2028) | 26 (Dec 2028) | 44 (Jun 2030) | 72 (Oct 2032) |
 | 4 developers (fourth from month 4), lean scope | 16 (Feb 2028) | 24 (Oct 2028) | 36 (Oct 2029) | 58 (Aug 2031) |
-| 2 developers, lean scope | 23 (Sep 2028) | 38 (Dec 2029) | 61 (Nov 2031) | 98 (Dec 2034) |
-| 6 developers (funded growth, outside the 2–4 decision), lean scope | 16 (Feb 2028) | 21 (Jul 2028) | 29 (Mar 2029) | 47 (Sep 2030) |
+| 2 developers, lean scope | 23 (Sep 2028) | 38 (Dec 2029) | 60 (Oct 2031) | 97 (Nov 2034) |
+| 6 developers (funded growth, outside the 2–4 decision), lean scope | 16 (Feb 2028) | 21 (Jul 2028) | 28 (Feb 2029) | 47 (Sep 2030) |
 <!-- /generated:summary-dates -->
 
 **"Lean"** applies the three scope levers of the [work breakdown](02-work-packages.md#7-scope-levers), recorded per
@@ -65,15 +65,15 @@ folios 101–103 and 901 interactively.
 **What moves the dates.**
 
 <!-- generated:summary-movers -->
-| Change against the plan of record (M-PP 26, M2 42, M6 65) | M-PP month (change) | M2 month (change) | M6 month (change) |
+| Change against the plan of record (M-PP 26, M2 41, M6 65) | M-PP month (change) | M2 month (change) | M6 month (change) |
 |---|---|---|---|
-| AI-moderate (internal target, §3.7) | 21 (−5) | 33 (−9) | 53 (−12) |
-| Fourth developer from month 4 (§10.3) | 24 (−2) | 36 (−6) | 58 (−7) |
-| Effort +10 % (estimates optimistic) | 29 (+3) | 46 (+4) | 72 (+7) |
-| Capacity −20 % | 33 (+7) | 52 (+10) | 82 (+17) |
-| Third developer joins at month 6 | 28 (+2) | 44 (+2) | 67 (+2) |
-| Strict stream silos instead of the pull rule (§10.2) | 38 (+12) | 56 (+14) | 75 (+10) |
-| Full scope instead of the levers (PD-1) | 26 (±0) | 45 (+3) | 73 (+8) |
+| AI-moderate (internal target, §3.7) | 21 (−5) | 33 (−8) | 52 (−13) |
+| Fourth developer from month 4 (§10.3) | 24 (−2) | 36 (−5) | 58 (−7) |
+| Effort +10 % (estimates optimistic) | 29 (+3) | 46 (+5) | 71 (+6) |
+| Capacity −20 % | 33 (+7) | 52 (+11) | 81 (+16) |
+| Third developer joins at month 6 | 28 (+2) | 43 (+2) | 67 (+2) |
+| Strict stream silos instead of the pull rule (§10.2) | 38 (+12) | 56 (+15) | 75 (+10) |
+| Full scope instead of the levers (PD-1) | 26 (±0) | 44 (+3) | 72 (+7) |
 <!-- /generated:summary-movers -->
 
 - **Measured velocity decides.** The estimates are judgement. Actuals logged from the first commit re-scale the plan
@@ -102,9 +102,9 @@ NLnet steps are reference text for a human-team scenario.*
 | 16 (Feb 2028) | M1 | The reference set as a PDF generated from the model; nightly `ew` CLI builds |
 | 26 (Dec 2028) | M-PP, release 0.0.x | **Pilot preview**: draws new projects interactively (place, wire, terminals, cables, title block, core reports, PDF, online checks, save and load); unsigned, pilot only |
 | 26 (Dec 2028) | R0 | Formative usability round on the preview build |
-| 41 (Mar 2030) | R1 | Summative usability round on the MVP release candidate |
-| 42 (Apr 2030) | M2, release 0.1.0 | Signed release for new projects on three OSes |
-| 47 (Sep 2030) | release 0.6.0 | Migration of existing QET projects (lever b) |
+| 40 (Feb 2030) | R1 | Summative usability round on the MVP release candidate |
+| 41 (Mar 2030) | M2, release 0.1.0 | Signed release for new projects on three OSes |
+| 47 (Sep 2030) | release 0.7.0 | Migration of existing QET projects (lever b) |
 | 65 (Mar 2032) | M6, release 1.0 | PLC exchange, 3D layout, wire lengths and machine files |
 <!-- /generated:pilot-timeline -->
 
@@ -239,15 +239,15 @@ Lean scope to 1.0, PERT means in pw:
 <!-- generated:effort-parts -->
 | Part | pw | Share | Contains |
 |---|---|---|---|
-| Feature work, streams S1–S5 | 374.3 | 77.2 % | Core model and derivation, UI, documents and migration, physical, manufacturing |
-| Quality, security and release engineering, S6 | 56.3 | 11.6 % | Test kit, perf gate, fuzzing, privacy, packaging, signing, SBOM, CRA; release engineering and stabilisation 33.3 pw (WP-S6.06 … WP-S6.10, WP-S6.12) |
-| Content and documentation, S7 | 28.3 | 5.8 % | Golden data, starter symbols and parts, user documentation and tutorials |
-| Foundation, governance, pilot and community, S0 | 25.9 | 5.3 % | Repository, licences, legal gates, signing enrolment, docs site, funding, pilot programme |
-| **Subtotal** | **484.7** | **100 %** |  |
-| Integration, hardening and bug-fix reserve (20 %) | 96.9 |  | GA-6 |
-| **Total to 1.0** | **581.6** |  |  |
+| Feature work, streams S1–S5 | 368.6 | 76.9 % | Core model and derivation, UI, documents and migration, physical, manufacturing |
+| Quality, security and release engineering, S6 | 56.3 | 11.7 % | Test kit, perf gate, fuzzing, privacy, packaging, signing, SBOM, CRA; release engineering and stabilisation 33.3 pw (WP-S6.06 … WP-S6.10, WP-S6.12) |
+| Content and documentation, S7 | 28.3 | 5.9 % | Golden data, starter symbols and parts, user documentation and tutorials |
+| Foundation, governance, pilot and community, S0 | 25.9 | 5.4 % | Repository, licences, legal gates, signing enrolment, docs site, funding, pilot programme |
+| **Subtotal** | **479.0** | **100 %** |  |
+| Integration, hardening and bug-fix reserve (20 %) | 95.8 |  | GA-6 |
+| **Total to 1.0** | **574.8** |  |  |
 
-Cross-cutting lines inside these totals: documentation 13.8 pw (WP-S0.06, WP-S7.05, WP-S7.07, plus the crate docs inside every WP); pilot, usability and external acceptance 20.7 pw (WP-S0.08, WP-S0.09, WP-S2.12, WP-S2.16, WP-S6.11).
+Cross-cutting lines inside these totals: documentation 13.8 pw (WP-S0.06, WP-S7.05, WP-S7.07, plus the crate docs inside every WP); pilot, usability and external acceptance 19.0 pw (WP-S0.08, WP-S0.09, WP-S2.12, WP-S2.16, WP-S6.11).
 <!-- /generated:effort-parts -->
 
 ### 3.2 Effort per scope option
@@ -255,8 +255,8 @@ Cross-cutting lines inside these totals: documentation 13.8 pw (WP-S0.06, WP-S7.
 <!-- generated:effort-scope -->
 | Scope | M-PP (PERT) | M-PP with reserve | MVP (PERT) | MVP with reserve | 1.0 (PERT) | 1.0 with reserve | 1.x backlog (PERT) |
 |---|---|---|---|---|---|---|---|
-| Full scope | 187.1 | 224.5 | 319.8 | 383.7 | 539.6 | 647.5 | 43.5 |
-| **Lean: levers (a), (b) and (c) — plan of record** | **187.1** | **224.5** | **298.0** | **357.6** | **484.7** | **581.6** | **98.4** |
+| Full scope | 187.1 | 224.5 | 315.8 | 378.9 | 533.9 | 640.7 | 43.5 |
+| **Lean: levers (a), (b) and (c) — plan of record** | **187.1** | **224.5** | **294.0** | **352.8** | **479.0** | **574.8** | **98.4** |
 <!-- /generated:effort-scope -->
 
 Levers (a) and (b) move work from the MVP into the 1.0 releases; only lever (c) removes work from 1.0. M-PP is a
@@ -270,9 +270,9 @@ month adds the dependencies, the lead times and the one-owner-per-WP rule.
 <!-- generated:capacity-bound -->
 | Team | Lean M-PP: bound / simulated | Lean MVP: bound / simulated | Lean 1.0: bound / simulated | Full M-PP: bound / simulated | Full MVP: bound / simulated | Full 1.0: bound / simulated |
 |---|---|---|---|---|---|---|
-| 2 developers | 37.4 / 38 | 59.6 / 61 | 96.9 / 98 | 37.4 / 38 | 64.0 / 65 | 107.9 / 109 |
-| 3 developers | 24.9 / 26 | 39.7 / 42 | 64.6 / 65 | 24.9 / 26 | 42.6 / 45 | 71.9 / 73 |
-| 4 developers (fourth from month 4) | 21.5 / 24 | 33.8 / 36 | 54.5 / 58 | 21.5 / 24 | 36.2 / 39 | 60.6 / 62 |
+| 2 developers | 37.4 / 38 | 58.8 / 60 | 95.8 / 97 | 37.4 / 38 | 63.2 / 65 | 106.8 / 108 |
+| 3 developers | 24.9 / 26 | 39.2 / 41 | 63.9 / 65 | 24.9 / 26 | 42.1 / 44 | 71.2 / 72 |
+| 4 developers (fourth from month 4) | 21.5 / 24 | 33.3 / 36 | 53.9 / 58 | 21.5 / 24 | 35.8 / 39 | 60.0 / 62 |
 <!-- /generated:capacity-bound -->
 
 **Reading it.** For the MVP and 1.0 the simulated dates are within a few months of the capacity bound: the team
@@ -294,9 +294,9 @@ any hand-over to a human team.
 <!-- generated:dates-lean -->
 | Team | M0 | G-SP spike | M1 | M-PP 0.0.x | M2 MVP | M3 | M4 | M5 beta | M6 1.0 |
 |---|---|---|---|---|---|---|---|---|---|
-| 2 developers | 3 (Jan 2027) | 7 (May 2027) | 23 (Sep 2028) | 38 (Dec 2029) | 61 (Nov 2031) | 71 (Sep 2032) | 85 (Nov 2033) | 89 (Mar 2034) | 98 (Dec 2034) |
-| **3 developers** | **3 (Jan 2027)** | **6 (Apr 2027)** | **16 (Feb 2028)** | **26 (Dec 2028)** | **42 (Apr 2030)** | **48 (Oct 2030)** | **59 (Sep 2031)** | **60 (Oct 2031)** | **65 (Mar 2032)** |
-| 4 developers (fourth from month 4) | 3 (Jan 2027) | 6 (Apr 2027) | 16 (Feb 2028) | 24 (Oct 2028) | 36 (Oct 2029) | 42 (Apr 2030) | 53 (Mar 2031) | 53 (Mar 2031) | 58 (Aug 2031) |
+| 2 developers | 3 (Jan 2027) | 7 (May 2027) | 23 (Sep 2028) | 38 (Dec 2029) | 60 (Oct 2031) | 70 (Aug 2032) | 84 (Oct 2033) | 89 (Mar 2034) | 97 (Nov 2034) |
+| **3 developers** | **3 (Jan 2027)** | **6 (Apr 2027)** | **16 (Feb 2028)** | **26 (Dec 2028)** | **41 (Mar 2030)** | **48 (Oct 2030)** | **58 (Aug 2031)** | **60 (Oct 2031)** | **65 (Mar 2032)** |
+| 4 developers (fourth from month 4) | 3 (Jan 2027) | 6 (Apr 2027) | 16 (Feb 2028) | 24 (Oct 2028) | 36 (Oct 2029) | 40 (Feb 2030) | 52 (Feb 2031) | 52 (Feb 2031) | 58 (Aug 2031) |
 <!-- /generated:dates-lean -->
 
 **Full scope (if PD-1 rejects the levers), base capacity.**
@@ -304,9 +304,9 @@ any hand-over to a human team.
 <!-- generated:dates-full -->
 | Team | M0 | G-SP spike | M1 | M-PP 0.0.x | M2 MVP | M3 | M4 | M5 beta | M6 1.0 |
 |---|---|---|---|---|---|---|---|---|---|
-| 2 developers | 3 (Jan 2027) | 7 (May 2027) | 23 (Sep 2028) | 38 (Dec 2029) | 65 (Mar 2032) | 73 (Nov 2032) | 88 (Feb 2034) | 101 (Mar 2035) | 109 (Nov 2035) |
-| 3 developers | 3 (Jan 2027) | 6 (Apr 2027) | 16 (Feb 2028) | 26 (Dec 2028) | 45 (Jul 2030) | 49 (Nov 2030) | 61 (Nov 2031) | 67 (May 2032) | 73 (Nov 2032) |
-| 4 developers (fourth from month 4) | 3 (Jan 2027) | 6 (Apr 2027) | 16 (Feb 2028) | 24 (Oct 2028) | 39 (Jan 2030) | 43 (May 2030) | 52 (Feb 2031) | 57 (Jul 2031) | 62 (Dec 2031) |
+| 2 developers | 3 (Jan 2027) | 7 (May 2027) | 23 (Sep 2028) | 38 (Dec 2029) | 65 (Mar 2032) | 73 (Nov 2032) | 87 (Jan 2034) | 100 (Feb 2035) | 108 (Oct 2035) |
+| 3 developers | 3 (Jan 2027) | 6 (Apr 2027) | 16 (Feb 2028) | 26 (Dec 2028) | 44 (Jun 2030) | 48 (Oct 2030) | 60 (Oct 2031) | 67 (May 2032) | 72 (Oct 2032) |
+| 4 developers (fourth from month 4) | 3 (Jan 2027) | 6 (Apr 2027) | 16 (Feb 2028) | 24 (Oct 2028) | 39 (Jan 2030) | 43 (May 2030) | 51 (Jan 2031) | 56 (Jun 2031) | 62 (Dec 2031) |
 <!-- /generated:dates-full -->
 
 With the lean scope, M5 falls one month after M4 (3 developers) or in the same month (4 developers), because lever
@@ -320,12 +320,12 @@ uses 120 % capacity.
 <!-- generated:sensitivity -->
 | Team | Scope | M2 at −20 % | M2 base | M2 at +20 % | M6 at −20 % | M6 base | M6 at +20 % | Best case M2 / M6 |
 |---|---|---|---|---|---|---|---|---|
-| 2 | Lean | 77 (Mar 2033) | 61 (Nov 2031) | 51 (Jan 2031) | 122 (Dec 2036) | 98 (Dec 2034) | 82 (Aug 2033) | 34 / 54 |
-| **3** | **Lean** | **52 (Feb 2031)** | **42 (Apr 2030)** | **35 (Sep 2029)** | **82 (Aug 2033)** | **65 (Mar 2032)** | **55 (May 2031)** | **24 / 36** |
-| 4 | Lean | 45 (Jul 2030) | 36 (Oct 2029) | 30 (Apr 2029) | 72 (Oct 2032) | 58 (Aug 2031) | 49 (Nov 2030) | 21 / 33 |
-| 2 | Full | 82 (Aug 2033) | 65 (Mar 2032) | 55 (May 2031) | 136 (Feb 2038) | 109 (Nov 2035) | 91 (May 2034) | 36 / 60 |
-| 3 | Full | 56 (Jun 2031) | 45 (Jul 2030) | 38 (Dec 2029) | 91 (May 2034) | 73 (Nov 2032) | 61 (Nov 2031) | 25 / 40 |
-| 4 | Full | 48 (Oct 2030) | 39 (Jan 2030) | 33 (Jul 2029) | 77 (Mar 2033) | 62 (Dec 2031) | 52 (Feb 2031) | 22 / 35 |
+| 2 | Lean | 75 (Jan 2033) | 60 (Oct 2031) | 50 (Dec 2030) | 121 (Nov 2036) | 97 (Nov 2034) | 81 (Jul 2033) | 33 / 53 |
+| **3** | **Lean** | **52 (Feb 2031)** | **41 (Mar 2030)** | **35 (Sep 2029)** | **81 (Jul 2033)** | **65 (Mar 2032)** | **54 (Apr 2031)** | **24 / 36** |
+| 4 | Lean | 45 (Jul 2030) | 36 (Oct 2029) | 30 (Apr 2029) | 72 (Oct 2032) | 58 (Aug 2031) | 48 (Oct 2030) | 21 / 33 |
+| 2 | Full | 81 (Jul 2033) | 65 (Mar 2032) | 54 (Apr 2031) | 135 (Jan 2038) | 108 (Oct 2035) | 90 (Apr 2034) | 36 / 59 |
+| 3 | Full | 55 (May 2031) | 44 (Jun 2030) | 37 (Nov 2029) | 90 (Apr 2034) | 72 (Oct 2032) | 60 (Oct 2031) | 25 / 40 |
+| 4 | Full | 48 (Oct 2030) | 39 (Jan 2030) | 32 (Jun 2029) | 77 (Mar 2033) | 62 (Dec 2031) | 52 (Feb 2031) | 22 / 35 |
 <!-- /generated:sensitivity -->
 
 ### 3.6 Can v1 fit 15–18 months?
@@ -350,23 +350,23 @@ gantt
   section 2 developers
   Spine to M1         :s00, 2026-11-01, 2028-10-01
   M1 to pilot preview :s01, 2028-10-01, 2030-01-01
-  Preview to MVP      :s02, 2030-01-01, 2031-12-01
-  MVP to 1.0          :s03, 2031-12-01, 2035-01-01
+  Preview to MVP      :s02, 2030-01-01, 2031-11-01
+  MVP to 1.0          :s03, 2031-11-01, 2034-12-01
   section 3 developers plan of record
   Spine to M1         :s10, 2026-11-01, 2028-03-01
   M1 to pilot preview :s11, 2028-03-01, 2029-01-01
-  Preview to MVP      :s12, 2029-01-01, 2030-05-01
-  MVP to 1.0          :s13, 2030-05-01, 2032-04-01
+  Preview to MVP      :s12, 2029-01-01, 2030-04-01
+  MVP to 1.0          :s13, 2030-04-01, 2032-04-01
   section 3 developers AI-moderate
   Spine to M1         :s20, 2026-11-01, 2027-12-01
   M1 to pilot preview :s21, 2027-12-01, 2028-08-01
   Preview to MVP      :s22, 2028-08-01, 2029-08-01
-  MVP to 1.0          :s23, 2029-08-01, 2031-04-01
+  MVP to 1.0          :s23, 2029-08-01, 2031-03-01
   section 3 developers AI-strong
   Spine to M1         :s30, 2026-11-01, 2027-10-01
   M1 to pilot preview :s31, 2027-10-01, 2028-05-01
   Preview to MVP      :s32, 2028-05-01, 2029-04-01
-  MVP to 1.0          :s33, 2029-04-01, 2030-09-01
+  MVP to 1.0          :s33, 2029-04-01, 2030-08-01
   section 4 developers
   Spine to M1         :s40, 2026-11-01, 2028-03-01
   M1 to pilot preview :s41, 2028-03-01, 2028-11-01
@@ -375,8 +375,8 @@ gantt
   section 6 developers funded
   Spine to M1         :s50, 2026-11-01, 2028-03-01
   M1 to pilot preview :s51, 2028-03-01, 2028-08-01
-  Preview to MVP      :s52, 2028-08-01, 2029-04-01
-  MVP to 1.0          :s53, 2029-04-01, 2030-10-01
+  Preview to MVP      :s52, 2028-08-01, 2029-03-01
+  MVP to 1.0          :s53, 2029-03-01, 2030-10-01
 ```
 <!-- /generated:gantt-teams -->
 
@@ -402,10 +402,10 @@ level of assistance (GA-5).
 <!-- generated:ai-scenarios -->
 | Scenario (3 developers, lean scope) | Effort to 1.0 with reserve (pw) | Equivalent velocity ratio | M1 | M-PP 0.0.x | M2 MVP 0.1.0 | M6 1.0 |
 |---|---|---|---|---|---|---|
-| Baseline: conservative estimates (plan of record, external) | 582 | 1.00 | 16 (Feb 2028) | 26 (Dec 2028) | 42 (Apr 2030) | 65 (Mar 2032) |
-| AI-moderate: development × 1/1.4 (internal target) | 467 | 1.24 | 13 (Nov 2027) | 21 (Jul 2028) | 33 (Jul 2029) | 53 (Mar 2031) |
-| AI-strong: development × 1/1.8 (upside) | 404 | 1.44 | 11 (Sep 2027) | 18 (Apr 2028) | 29 (Mar 2029) | 46 (Aug 2030) |
-| AI-moderate with capacity −20 % | 467 | 1.24 | 16 (Feb 2028) | 26 (Dec 2028) | 42 (Apr 2030) | 66 (Apr 2032) |
+| Baseline: conservative estimates (plan of record, external) | 575 | 1.00 | 16 (Feb 2028) | 26 (Dec 2028) | 41 (Mar 2030) | 65 (Mar 2032) |
+| AI-moderate: development × 1/1.4 (internal target) | 461 | 1.25 | 13 (Nov 2027) | 21 (Jul 2028) | 33 (Jul 2029) | 52 (Feb 2031) |
+| AI-strong: development × 1/1.8 (upside) | 398 | 1.44 | 11 (Sep 2027) | 18 (Apr 2028) | 29 (Mar 2029) | 45 (Jul 2030) |
+| AI-moderate with capacity −20 % | 461 | 1.25 | 16 (Feb 2028) | 26 (Dec 2028) | 41 (Mar 2030) | 65 (Mar 2032) |
 <!-- /generated:ai-scenarios -->
 
 "Equivalent velocity ratio" is the baseline effort divided by the scenario's effort: the ratio the G-M1 measurement
@@ -690,11 +690,11 @@ are for the plan of record (3 developers, lean scope); a phase starts with its f
 | **P0 Foundations** | 0–3 | Nov 2026 – Jan 2027 | Repository, CI on three OSes, licences and the licence boundary, pilot kick-off, signing enrolment and trademark search started, early ADRs | S0, S6 | M0 |
 | **P1 Spine** | 0–16 | Nov 2026 – Feb 2028 | Two lanes ([architecture](../design/04-architecture.md#15-spine-build-order-and-parallel-streams) §15.1): core (crates, schema, model, commands, derivation, `ew-memo`, persistence, SQL projection) and output (display list, forms, reports, CPU renderer, PDF), plus test kit and golden data | S1, S3, S6, S7 | M1 |
 | **P2 Pilot preview** | 14–26 | Jan 2028 – Dec 2028 | Shell, 2D canvas, viewer, placement and wiring tools, property grid, navigators, messages; model breadth for devices, terminals, cables, numbering; rule engine and core online checks; project parts | S1, S2 | M-PP, release 0.0.x (pilot only) |
-| **P3 Interactive MVP** | 25–42 | Dec 2028 – Apr 2030 | Rule packs, revisions, collaboration, parts libraries and macros; PLC, bus and fluid MVP model; domain tables, palette, keymaps; 2D panel; packaging, signing, CRA processes; R0 and R1 | S1, S2, S4, S6, S7 | M2, release 0.1.0 |
+| **P3 Interactive MVP** | 25–41 | Dec 2028 – Mar 2030 | Rule packs, revisions, collaboration, parts libraries and macros; PLC, bus and fluid MVP model; domain tables, palette, keymaps; 2D panel; packaging, signing, CRA processes; R0 and R1 | S1, S2, S4, S6, S7 | M2, release 0.1.0 |
 | **P4 Automation breadth and migration** | 38–48 | Jan 2030 – Oct 2030 | PLC, bus and fluid 1.0; QET project migration; AML, TIA and PLCopen exchange; EDZ; DXF/DWG | S1, S2, S3 | M3 |
-| **P5 Physical and manufacturing** | 46–59 | Sep 2030 – Sep 2031 | STEP worker, 3D model and view, collision, routing, lengths; wire records, ferrules, labels, machine profiles, `.ewpp` | S4, S5 | M4 |
+| **P5 Physical and manufacturing** | 45–58 | Aug 2030 – Aug 2031 | STEP worker, 3D model and view, collision, routing, lengths; wire records, ferrules, labels, machine profiles, `.ewpp` | S4, S5 | M4 |
 | **P6 Completion** | 54–60 | May 2031 – Oct 2031 | Model, rule-pack and report completion; deferred MVP Should items; beta | S1, S2, S3 | M5, 1.0 beta |
-| **P7 Hardening and release** | 59–65 | Oct 2031 – Mar 2032 | 1.0 quality layers, R2, external acceptance (SC-7, SC-8), documentation and German, format freeze, stabilisation | S6, S2, S7 | M6, release 1.0 |
+| **P7 Hardening and release** | 58–65 | Sep 2031 – Mar 2032 | 1.0 quality layers, R2, external acceptance (SC-7, SC-8), documentation and German, format freeze, stabilisation | S6, S2, S7 | M6, release 1.0 |
 | **P8 1.x** | from 66 | from Apr 2032 | Quarterly minors with the 1.x themes (§6.4) | all | — |
 <!-- /generated:phases -->
 
@@ -783,7 +783,7 @@ blocks other work and has no conditions.
 | WP-S6.13 | Blind-drafter gate agent: harness, personas and prompt | S6 | 1.6 |
 | **Sum** | **16 WPs** |  | **75.8** |
 
-With the M0 and M1 WPs, M-PP needs 187.1 pw (224.5 pw with the reserve); the MVP needs 298.0 pw. The preview is therefore 63 % of the MVP effort and reuses every M1 output unchanged.
+With the M0 and M1 WPs, M-PP needs 187.1 pw (224.5 pw with the reserve); the MVP needs 294.0 pw. The preview is therefore 64 % of the MVP effort and reuses every M1 output unchanged.
 <!-- /generated:pp-scope -->
 
 ---
@@ -817,22 +817,25 @@ WP ship fixes only):
 <!-- generated:release-train -->
 | Release | Month (calendar) | Milestone | WPs that land (finished in that month) |
 |---|---|---|---|
-| 0.3.0 | 44 (Jun 2030) |  | WP-S3.10 QET project import I: pages, devices, conductors, title blocks; WP-S3.19 DXF and DWG exchange |
-| 0.4.0 | 45 (Jul 2030) |  | WP-S2.13 Automation workspaces: PLC, bus and fluid |
-| 0.5.0 | 46 (Aug 2030) |  | WP-S3.11 QET project import II: links, formulas, strips, tables |
-| 0.6.0 | 47 (Sep 2030) |  | WP-S3.13 QET corpus, migration verifier and pilot migrations |
-| 0.7.0 | 48 (Oct 2030) | **M3** at 0.7.0 | WP-S3.16 PLC exchange: AutomationML, TIA tag tables, PLCopen XML; WP-S3.18 EDZ, EPLAN parts XML and QET 1.0 import |
-| 0.8.0 | 49 (Nov 2030) |  | WP-S1.28 Parts 1.0: accessories, variants, classification, consumables |
-| 0.9.0 | 50 (Dec 2030) |  | WP-S4.03 STEP worker (ew-step-worker); WP-S5.01 Production wire records, change list and Manufacturing workspace |
-| 0.11.0 | 52 (Feb 2031) |  | WP-S4.05 3D layout model: enclosures, doors, surfaces, panel macros, 3D CPs; WP-S5.02 Ferrules and end treatments |
-| 0.12.0 | 53 (Mar 2031) |  | WP-S4.04 3D renderer and the Panel 3D workspace; WP-S5.03 Marking schemes and label engine |
-| 0.13.0 | 54 (Apr 2031) |  | WP-S4.06 Collision and clearance checking; WP-S4.07 Routing graph and RouteWires |
-| 0.14.0 | 55 (May 2031) |  | WP-S5.06 Machining features, drilling DXF and hole tables; WP-S7.06 Golden 1.0 fixtures: A-R, 3D, thermal, exchange, manufacturing |
-| 0.15.0 | 56 (Jun 2031) |  | WP-S4.08 Wire lengths, duct fill and wiring manager; WP-S5.05 Terminal assembly lists, cut lists and consumables |
-| 0.17.0 | 58 (Aug 2031) |  | WP-S1.26 Model 1.0 completion: connections, terminals, cables, numbering, project; WP-S1.30 1.0 rule packs, SQL rules and SARIF; WP-S5.04 Machine export profiles and pre-flight |
-| 0.18.0 | 59 (Sep 2031) | **M4** at 0.18.0 | WP-S2.10 Symbol editor; WP-S3.15 1.0 report kinds and user SQL reports; WP-S5.07 Production package .ewpp |
+| 0.2.0 | 42 (Apr 2030) |  | WP-S1.24 PLC and bus 1.0: tracking, symbols, safety, PROFINET, IO-Link, EtherCAT |
+| 0.3.0 | 43 (May 2030) |  | WP-S1.25 Fluid 1.0: valve models, media, tubes, fluid reports; WP-S3.19 DXF and DWG exchange |
+| 0.5.0 | 45 (Jul 2030) |  | WP-S3.11 QET project import II: links, formulas, strips, tables |
+| 0.6.0 | 46 (Aug 2030) |  | WP-S2.13 Automation workspaces: PLC, bus and fluid; WP-S3.16 PLC exchange: AutomationML, TIA tag tables, PLCopen XML |
+| 0.7.0 | 47 (Sep 2030) |  | WP-S3.13 QET corpus, migration verifier and pilot migrations |
+| 0.8.0 | 48 (Oct 2030) | **M3** at 0.8.0 | WP-S3.18 EDZ, EPLAN parts XML and QET 1.0 import |
+| 0.9.0 | 49 (Nov 2030) |  | WP-S1.28 Parts 1.0: accessories, variants, classification, consumables; WP-S4.03 STEP worker (ew-step-worker) |
+| 0.10.0 | 50 (Dec 2030) |  | WP-S5.01 Production wire records, change list and Manufacturing workspace |
+| 0.11.0 | 51 (Jan 2031) |  | WP-S4.05 3D layout model: enclosures, doors, surfaces, panel macros, 3D CPs; WP-S5.02 Ferrules and end treatments |
+| 0.12.0 | 52 (Feb 2031) |  | WP-S5.03 Marking schemes and label engine |
+| 0.13.0 | 53 (Mar 2031) |  | WP-S4.04 3D renderer and the Panel 3D workspace; WP-S4.07 Routing graph and RouteWires |
+| 0.14.0 | 54 (Apr 2031) |  | WP-S4.06 Collision and clearance checking |
+| 0.15.0 | 55 (May 2031) |  | WP-S4.08 Wire lengths, duct fill and wiring manager; WP-S5.06 Machining features, drilling DXF and hole tables; WP-S7.06 Golden 1.0 fixtures: A-R, 3D, thermal, exchange, manufacturing |
+| 0.16.0 | 56 (Jun 2031) |  | WP-S5.05 Terminal assembly lists, cut lists and consumables |
+| 0.17.0 | 57 (Jul 2031) |  | WP-S1.26 Model 1.0 completion: connections, terminals, cables, numbering, project; WP-S5.04 Machine export profiles and pre-flight |
+| 0.18.0 | 58 (Aug 2031) | **M4** at 0.18.0 | WP-S1.30 1.0 rule packs, SQL rules and SARIF; WP-S5.07 Production package .ewpp |
+| 0.19.0 | 59 (Sep 2031) |  | WP-S2.10 Symbol editor; WP-S3.12 QET migration assistants: cables, fluid map, layout binding, reconstruction; WP-S3.15 1.0 report kinds and user SQL reports |
 
-Finished before the MVP although they are later scope (in the 0.1.0 build, but neither promised nor gated by the MVP): WP-S1.24, WP-S1.25.
+Finished before the MVP although they are later scope (in the 0.1.0 build, but neither promised nor gated by the MVP): WP-S3.10.
 <!-- /generated:release-train -->
 
 ### 6.3 1.0: betas, release candidates and the format freeze
@@ -840,12 +843,12 @@ Finished before the MVP although they are later scope (in the 0.1.0 build, but n
 <!-- generated:betas -->
 | Release | Month (calendar) | Content |
 |---|---|---|
-| 1.0.0-beta.1 | 60 (Oct 2031) | **M5**: feature complete; WP-S1.23 Headless read-only MCP server; WP-S3.12 QET migration assistants: cables, fluid map, layout binding, reconstruction |
-| 1.0.0-beta.2 | 61 (Nov 2031) | Fixes |
-| 1.0.0-beta.3 | 62 (Dec 2031) | WP-S2.16 Usability round R2 and fixes |
-| 1.0.0-rc.1 | 63 (Jan 2032) | **Format freeze**, 8 weeks before 1.0 ([quality](../design/18-quality-security-release.md#72-format-change-window) §7.2); WP-S6.10 1.0 quality layers and release hardening |
-| 1.0.0-rc.2 | 64 (Feb 2032) | WP-S7.07 Documentation and tutorials 1.0, German translation |
-| **1.0.0** | 65 (Mar 2032) | **M6**; WP-S6.11 External acceptance: TIA Portal, CODESYS and a machine shop (SC-7, SC-8); WP-S6.12 1.0 beta-to-release stabilisation; WP-S7.08 First manufacturer data pack and content repositories |
+| 1.0.0-beta.1 | 60 (Oct 2031) | **M5**: feature complete; WP-S1.23 Headless read-only MCP server |
+| 1.0.0-beta.2 | 61 (Nov 2031) | WP-S2.16 Usability round R2 and fixes |
+| 1.0.0-beta.3 | 62 (Dec 2031) | WP-S6.10 1.0 quality layers and release hardening |
+| 1.0.0-rc.1 | 63 (Jan 2032) | **Format freeze**, 8 weeks before 1.0 ([quality](../design/18-quality-security-release.md#72-format-change-window) §7.2); WP-S7.07 Documentation and tutorials 1.0, German translation |
+| 1.0.0-rc.2 | 64 (Feb 2032) | WP-S6.12 1.0 beta-to-release stabilisation; WP-S7.08 First manufacturer data pack and content repositories |
+| **1.0.0** | 65 (Mar 2032) | **M6**; WP-S6.11 External acceptance: TIA Portal, CODESYS and a machine shop (SC-7, SC-8) |
 <!-- /generated:betas -->
 
 Betas and release candidates keep the monthly rhythm and are pre-1.0 in SemVer, so the 0.x rules (latest only,
@@ -887,23 +890,23 @@ gantt
   M0 foundations :milestone, m0, 2027-01-03, 0d
   M1 spine exit :milestone, m1, 2028-02-27, 0d
   M-PP pilot preview 0.0.x :milestone, m2, 2028-12-27, 0d
-  M2 MVP 0.1.0 :milestone, m3, 2030-04-11, 0d
-  M3 automation :milestone, m4, 2030-10-06, 0d
-  M4 manufacturing and 3D :milestone, m5, 2031-09-11, 0d
-  M5 beta :milestone, m6, 2031-10-14, 0d
-  M6 release 1.0 :milestone, m7, 2032-03-21, 0d
+  M2 MVP 0.1.0 :milestone, m3, 2030-03-26, 0d
+  M3 automation :milestone, m4, 2030-10-09, 0d
+  M4 manufacturing and 3D :milestone, m5, 2031-08-12, 0d
+  M5 beta :milestone, m6, 2031-10-01, 0d
+  M6 release 1.0 :milestone, m7, 2032-03-04, 0d
   G-SP spike decision :milestone, gsp, 2027-04-20, 0d
   R0 formative usability :milestone, r0, 2028-12-08, 0d
-  R1 summative usability :milestone, r1, 2030-03-17, 0d
+  R1 summative usability :milestone, r1, 2030-02-15, 0d
   section S0 Foundation and governance
   Pilot kick-off :t1, 2026-11-01, 2026-11-20
   Repository and CI bootstrap :t2, 2026-11-01, 2026-12-09
   Signing enrolment and trademark search :t3, 2026-11-20, 2026-12-02
   Licences REUSE DCO and LG-1 LG-2 LG-5 :t4, 2026-12-09, 2027-01-23
   Docs site and governance files :t5, 2026-12-09, 2027-01-27
-  Pilot programme and community :t6, 2028-02-27, 2032-03-21
+  Pilot programme and community :t6, 2028-02-27, 2032-03-04
   Enrolment lead time external :t7, 2026-12-02, 2027-12-01
-  Steward signing identities LG-3 LG-4 close :t8, 2029-07-28, 2029-08-16
+  Steward signing identities LG-3 LG-4 close :t8, 2029-07-14, 2029-08-02
   section S1 Core model and derivation
   Foundation crates schema model commands :t9, 2026-11-01, 2027-05-27
   Persistence core :t10, 2027-02-12, 2027-04-23
@@ -912,47 +915,47 @@ gantt
   Preview breadth numbering devices terminals parts :t13, 2028-01-24, 2028-12-05
   Rule engine and core online checks :t14, 2028-04-14, 2028-08-05
   Parts macros rule packs revisions :t15, 2028-12-05, 2029-03-31
-  PLC bus fluid models :t16, 2028-12-27, 2029-04-19
-  Collaboration and CLI :t17, 2029-05-07, 2029-11-18
-  PLC bus and fluid 1.0 :t18, 2030-01-27, 2030-04-26
-  Parts 1.0 :t19, 2030-10-06, 2030-11-19
-  Model 1.0 rule packs 1.0 and MCP :t20, 2031-05-20, 2031-10-14
+  PLC bus fluid models :t16, 2028-12-27, 2029-05-27
+  Collaboration and CLI :t17, 2029-04-23, 2029-11-04
+  PLC bus and fluid 1.0 :t18, 2030-01-09, 2030-05-22
+  Parts 1.0 :t19, 2030-10-09, 2030-11-22
+  Model 1.0 rule packs 1.0 and MCP :t20, 2031-05-15, 2031-10-01
   section S2 Interaction and UI
   Shell canvas and viewer :t21, 2028-02-14, 2028-07-15
   Placement wiring tools property grid navigators messages :t22, 2028-07-15, 2028-12-08
-  Domain tables palette keymaps :t23, 2029-04-23, 2029-08-25
-  GUI tests and usability R0 R1 :t24, 2029-11-16, 2030-01-27
-  Automation workspaces :t25, 2030-04-26, 2030-07-16
-  Symbol editor :t26, 2031-08-13, 2031-09-19
-  Usability R2 and fixes :t27, 2031-11-11, 2031-12-18
+  Domain tables palette keymaps :t23, 2029-06-27, 2030-01-13
+  GUI tests and usability R0 R1 :t24, 2029-09-29, 2030-01-12
+  Automation workspaces :t25, 2030-05-22, 2030-08-12
+  Symbol editor :t26, 2031-07-30, 2031-09-06
+  Usability R2 and fixes :t27, 2031-11-01, 2031-11-18
   section S3 Documents and migration
   Display list frames forms report engine PDF :t28, 2027-01-27, 2028-01-08
   Spine importers CSV and QET elements :t29, 2027-07-23, 2027-09-11
-  Importer contracts and migration report :t30, 2029-03-31, 2029-05-07
-  MVP reports SVG printing table exports :t31, 2029-10-05, 2030-01-27
-  QET project import and corpus :t32, 2030-03-25, 2030-09-11
-  AML TIA PLCopen EDZ DXF DWG exchange :t33, 2030-04-11, 2030-10-06
-  1.0 reports and QET assistants :t34, 2031-07-28, 2031-10-12
+  Importer contracts and migration report :t30, 2029-03-13, 2029-04-19
+  MVP reports SVG printing table exports :t31, 2029-08-16, 2030-01-09
+  QET project import and corpus :t32, 2030-01-12, 2030-09-06
+  AML TIA PLCopen EDZ DXF DWG exchange :t33, 2030-03-28, 2030-10-09
+  1.0 reports and QET assistants :t34, 2031-07-22, 2031-09-17
   section S4 Physical
-  2D panel model and tools :t35, 2029-02-13, 2029-12-26
-  STEP worker 3D model and 3D view :t36, 2030-09-11, 2031-02-27
-  Collision routing and wire lengths :t37, 2031-01-28, 2031-06-09
+  2D panel model and tools :t35, 2029-02-13, 2029-12-08
+  STEP worker 3D model and 3D view :t36, 2030-08-12, 2031-03-02
+  Collision routing and wire lengths :t37, 2030-12-29, 2031-05-10
   section S5 Manufacturing outputs
-  Wire records ferrules labels :t38, 2030-09-27, 2031-03-15
-  Drilling and assembly lists :t39, 2031-03-15, 2031-06-17
-  Machine profiles and production package :t40, 2031-06-09, 2031-09-11
+  Wire records ferrules labels :t38, 2030-09-06, 2031-02-22
+  Drilling and assembly lists :t39, 2031-03-02, 2031-06-04
+  Machine profiles and production package :t40, 2031-05-10, 2031-08-12
   section S6 Quality and release
   Test kit determinism perf gate :t41, 2027-10-12, 2028-02-14
-  Packaging security signing privacy :t42, 2029-04-19, 2030-01-29
-  MVP stabilisation :t43, 2030-01-29, 2030-04-11
-  Monthly 0.x releases :t44, 2030-04-11, 2032-03-21
-  1.0 hardening and stabilisation :t45, 2031-10-12, 2032-03-10
-  External acceptance SC-7 SC-8 :t46, 2032-02-04, 2032-03-19
+  Packaging security signing privacy :t42, 2029-03-31, 2029-12-12
+  MVP stabilisation :t43, 2030-01-13, 2030-03-26
+  Monthly 0.x releases :t44, 2030-03-26, 2032-03-04
+  1.0 hardening and stabilisation :t45, 2031-09-17, 2032-02-14
+  External acceptance SC-7 SC-8 :t46, 2032-01-19, 2032-03-04
   section S7 Content
   Golden data and starter symbols :t47, 2027-11-26, 2028-02-27
-  MVP docs and starter parts :t48, 2029-07-16, 2029-12-26
-  Golden 1.0 fixtures :t49, 2031-04-12, 2031-05-20
-  1.0 docs and manufacturer pack :t50, 2031-12-18, 2032-03-21
+  MVP docs and starter parts :t48, 2029-05-27, 2029-12-11
+  Golden 1.0 fixtures :t49, 2031-04-07, 2031-05-15
+  1.0 docs and manufacturer pack :t50, 2031-11-18, 2032-02-22
 ```
 <!-- /generated:gantt-baseline -->
 
@@ -1107,8 +1110,8 @@ they concern the pace (SR-1, SR-2, SR-7, SR-15).
 |---|---|---|---|
 | M1 | 13.7 months (WP-S1.01 → WP-S1.02 → WP-S1.03 → WP-S1.07 → WP-S3.03 → WP-S3.04) | 14.8 months | 15.9 → month 16 |
 | M-PP | 18.0 months (WP-S1.01 … WP-S1.03, WP-S1.07, WP-S1.08, WP-S2.03, WP-S2.04, WP-S6.13) | 24.9 months | 26.0 → month 26 |
-| M2 | 20.9 months (WP-S1.01 … WP-S1.03, WP-S1.07, WP-S1.08, WP-S2.03, WP-S2.04, WP-S2.12, WP-S6.08) | 39.7 months | 41.4 → month 42 |
-| M6 | 28.5 months (WP-S1.01 … WP-S1.04, WP-S1.13, WP-S1.19a, WP-S1.19, WP-S4.01, WP-S4.05, WP-S4.07, WP-S4.08, WP-S5.04, WP-S5.07, WP-S6.10, WP-S6.12) | 64.6 months | 64.9 → month 65 |
+| M2 | 20.9 months (WP-S1.01 … WP-S1.03, WP-S1.07, WP-S1.08, WP-S2.03, WP-S2.04, WP-S2.12, WP-S6.08) | 39.2 months | 40.9 → month 41 |
+| M6 | 28.5 months (WP-S1.01 … WP-S1.04, WP-S1.13, WP-S1.19a, WP-S1.19, WP-S4.01, WP-S4.05, WP-S4.07, WP-S4.08, WP-S5.04, WP-S5.07, WP-S6.10, WP-S6.12) | 63.9 months | 64.3 → month 65 |
 <!-- /generated:critical-path -->
 
 **The M1 WPs include 1.9 pw moved from M2 work packages** (WP-S1.12, WP-S1.14, WP-S1.18, WP-S3.08, WP-S6.05,
@@ -1155,22 +1158,22 @@ Impacts are simulated on the plan of record (3 developers, lean scope) unless st
 <!-- generated:impacts -->
 | Case (lean scope) | M1 | M-PP | M2 | M6 |
 |---|---|---|---|---|
-| Plan of record (3 developers, lean scope) | 16 | 26 | 42 | 65 |
-| Effort +10 % | 18 | 29 | 46 | 72 |
-| Effort +25 % | 20 | 33 | 52 | 82 |
-| Velocity ratio 0.90 (effort +11 %) | 18 | 29 | 47 | 73 |
-| Velocity ratio 0.80 (effort +25 %) | 20 | 33 | 52 | 82 |
-| Velocity ratio 0.67 (effort +50 %) | 24 | 39 | 63 | 98 |
-| Velocity ratio 1.25 on every WP | 13 | 21 | 34 | 53 |
-| Velocity ratio 1.50 on every WP (clamp limit) | 11 | 18 | 28 | 44 |
-| Capacity −20 % | 20 | 33 | 52 | 82 |
-| Third developer joins at month 6 | 18 | 28 | 44 | 67 |
-| Third developer joins at month 12 | 20 | 30 | 46 | 69 |
+| Plan of record (3 developers, lean scope) | 16 | 26 | 41 | 65 |
+| Effort +10 % | 18 | 29 | 46 | 71 |
+| Effort +25 % | 20 | 33 | 52 | 81 |
+| Velocity ratio 0.90 (effort +11 %) | 18 | 29 | 46 | 72 |
+| Velocity ratio 0.80 (effort +25 %) | 20 | 33 | 52 | 81 |
+| Velocity ratio 0.67 (effort +50 %) | 24 | 39 | 62 | 97 |
+| Velocity ratio 1.25 on every WP | 13 | 21 | 33 | 52 |
+| Velocity ratio 1.50 on every WP (clamp limit) | 11 | 18 | 28 | 43 |
+| Capacity −20 % | 20 | 33 | 52 | 81 |
+| Third developer joins at month 6 | 18 | 28 | 43 | 67 |
+| Third developer joins at month 12 | 20 | 30 | 45 | 69 |
 | Strict roles: dev 1 S0 and S1; dev 2 S2, S4, S6; dev 3 S3, S5, S6, S7 | 27 | 38 | 56 | 75 |
-| Strict, but dev 3 also takes S1, dev 2 also S7 and dev 1 also S6 | 20 | 34 | 47 | 73 |
+| Strict, but dev 3 also takes S1, dev 2 also S7 and dev 1 also S6 | 20 | 34 | 45 | 71 |
 | 4 developers, plan order | 16 | 24 | 36 | 58 |
 | 4 developers, STEP worker (WP-S4.03) before M2 | 16 | 24 | 37 | 56 |
-| 3 developers, STEP worker (WP-S4.03) before M2 | 16 | 26 | 43 | 65 |
+| 3 developers, STEP worker (WP-S4.03) before M2 | 16 | 26 | 42 | 65 |
 <!-- /generated:impacts -->
 
 | ID | Risk | Early indicator | Impact (rows of the table above) | Mitigation | Owner |
@@ -1225,9 +1228,9 @@ The schedule model uses exactly this rule. Strict silos are expensive:
 <!-- generated:silos -->
 | Working mode (3 developers, lean scope) | M1 | M-PP | M2 | M6 |
 |---|---|---|---|---|
-| **Pull rule, owners review (plan of record)** | 16 | 26 | 42 | 65 |
+| **Pull rule, owners review (plan of record)** | 16 | 26 | 41 | 65 |
 | Strict: dev 1 S0 and S1; dev 2 S2, S4, S6; dev 3 S3, S5, S6, S7 | 27 | 38 | 56 | 75 |
-| Strict, but dev 3 also takes S1, dev 2 also S7 and dev 1 also S6 | 20 | 34 | 47 | 73 |
+| Strict, but dev 3 also takes S1, dev 2 also S7 and dev 1 also S6 | 20 | 34 | 45 | 71 |
 <!-- /generated:silos -->
 
 S1 is almost 30 % of the effort; one person cannot carry it. Everyone therefore works in the core during the
@@ -1242,15 +1245,15 @@ the join date (GA-2). "Developer-years added" counts from the join to 1.0.
 <!-- generated:dev4-join -->
 | Developer 4 joins | M1 | M-PP | M2 | M6 | Gain against 3 developers (M2 / M6, months) | Developer-years added |
 |---|---|---|---|---|---|---|
-| Not at all | 16 | 26 | 42 | 65 | — | — |
-| Month 4 (from 2027-03-01) | 16 | 24 | 36 | 58 | 6 / 7 | 4.5 |
-| Month 9 (from 2027-08-01) | 15 | 27 | 37 | 59 | 5 / 6 | 4.2 |
-| Month 12 (from 2027-11-01) | 16 | 27 | 38 | 60 | 4 / 5 | 4.0 |
-| Month 15 (from 2028-02-01) | 16 | 28 | 38 | 60 | 4 / 5 | 3.8 |
-| Month 24 (from 2028-11-01) | 16 | 27 | 40 | 62 | 2 / 3 | 3.2 |
-| Month 30 (from 2029-05-01) | 16 | 26 | 41 | 63 | 1 / 2 | 2.8 |
-| Month 40 (from 2030-03-01) | 16 | 26 | 42 | 64 | 0 / 1 | 2.0 |
-| Month 46 (from 2030-09-01) | 16 | 26 | 42 | 65 | 0 / 0 | 1.6 |
+| Not at all | 16 | 26 | 41 | 65 | — | — |
+| Month 4 (from 2027-03-01) | 16 | 24 | 36 | 58 | 5 / 7 | 4.5 |
+| Month 9 (from 2027-08-01) | 15 | 27 | 37 | 59 | 4 / 6 | 4.2 |
+| Month 12 (from 2027-11-01) | 16 | 27 | 37 | 59 | 4 / 6 | 3.9 |
+| Month 15 (from 2028-02-01) | 16 | 28 | 38 | 60 | 3 / 5 | 3.8 |
+| Month 24 (from 2028-11-01) | 16 | 27 | 39 | 61 | 2 / 4 | 3.1 |
+| Month 30 (from 2029-05-01) | 16 | 26 | 40 | 62 | 1 / 3 | 2.7 |
+| Month 40 (from 2030-03-01) | 16 | 26 | 41 | 64 | 0 / 1 | 2.0 |
+| Month 46 (from 2030-09-01) | 16 | 26 | 41 | 65 | 0 / 0 | 1.6 |
 <!-- /generated:dev4-join -->
 
 **Recommendation.**
@@ -1269,8 +1272,8 @@ Growth beyond four is outside the user's 2–4 decision and is shown only to mak
 <!-- generated:beyond-four -->
 | Team (lean scope) | M-PP | M2 | M6 |
 |---|---|---|---|
-| 5: 3 from month 0, 1 from month 4, 1 from month 6, 85 % efficiency from month 6 | 24 (Oct 2028) | 32 (Jun 2029) | 52 (Feb 2031) |
-| 6: 3 from month 0, 1 from month 4, 2 from month 6, 85 % efficiency from month 6 | 21 (Jul 2028) | 29 (Mar 2029) | 47 (Sep 2030) |
+| 5: 3 from month 0, 1 from month 4, 1 from month 6, 85 % efficiency from month 6 | 24 (Oct 2028) | 32 (Jun 2029) | 51 (Jan 2031) |
+| 6: 3 from month 0, 1 from month 4, 2 from month 6, 85 % efficiency from month 6 | 21 (Jul 2028) | 28 (Feb 2029) | 47 (Sep 2030) |
 <!-- /generated:beyond-four -->
 
 A cheaper route to extra capacity is a contractor on a self-contained WP set funded by a grant (§13.3). The best
@@ -1463,11 +1466,11 @@ when the listed WPs finish in the baseline.
 | NL-3 | 1 | `ew-memo` engine with oracle and the performance gate | WP-S1.05, WP-S6.03 | AC-16, AC-17 | 12–15 |
 | NL-4 | 1 | PDF/A-2b of the golden drawing set; published format specification and a permissive-only sample reader | WP-S3.04 | AC-13, AC-14 (Linux), SC-11 | 15 |
 | NL-5 | 2 | Rule engine and `ew check` CLI with the MVP packs | WP-S1.15, WP-S1.16a, WP-S1.16, WP-S1.22 | AC-21 | 21–37 |
-| NL-6 | 2 | QET project import with lineage and migration report | WP-S3.09, WP-S3.10, WP-S3.11 | AC-25, AC-26 | 31–46 |
+| NL-6 | 2 | QET project import with lineage and migration report | WP-S3.09, WP-S3.10, WP-S3.11 | AC-25, AC-26 | 30–45 |
 | NL-7 | 2 | QET corpus and migration verifier | WP-S3.13 | AC-27, SC-4 | 47 |
-| NL-8 | 3 | AML AR APC, TIA tag tables and PLCopen XML | WP-S3.16 | AC-30 | 48 |
-| NL-9 | 3 | EDZ and EPLAN parts XML import; DXF and DWG exchange | WP-S3.18, WP-S3.19 | AC-37 (DXF), AC-38 | 44–48 |
-| NL-10 | 3 | Machine export profiles and the production package | WP-S5.04, WP-S5.07 | AC-35 | 58–59 |
+| NL-8 | 3 | AML AR APC, TIA tag tables and PLCopen XML | WP-S3.16 | AC-30 | 46 |
+| NL-9 | 3 | EDZ and EPLAN parts XML import; DXF and DWG exchange | WP-S3.18, WP-S3.19 | AC-37 (DXF), AC-38 | 43–48 |
+| NL-10 | 3 | Machine export profiles and the production package | WP-S5.04, WP-S5.07 | AC-35 | 57–58 |
 <!-- /generated:nlnet -->
 
 This splits the governance's single first proposal (format crates, importers and `ew check` at M1) into three,
@@ -1504,25 +1507,25 @@ counted in the plan of record because the employer applies every year; NLnet is 
 
 | Cost line (euro, excluding VAT; all amounts are estimates to verify) | 3 devs (baseline) | 3 devs + AI-moderate | 3 devs + AI-strong | 4 devs | 2 devs |
 |---|---|---|---|---|---|
-| M6 1.0 at month | 65 | 53 | 46 | 58 | 98 |
-| Developer-years to 1.0 (to the MVP) | 16.3 (10.5) | 13.3 (8.3) | 11.5 (7.3) | 19.0 (11.7) | 16.3 (10.2) |
-| Developer staff to 1.0 (developer-years × loaded cost) | €1 625k | €1 325k | €1 150k | €1 900k | €1 633k |
-| AI tooling (subscriptions or API use per developer-month) | €10k | €32k | €55k | €11k | €10k |
+| M6 1.0 at month | 65 | 52 | 45 | 58 | 97 |
+| Developer-years to 1.0 (to the MVP) | 16.3 (10.3) | 13.0 (8.3) | 11.3 (7.3) | 19.0 (11.7) | 16.2 (10.0) |
+| Developer staff to 1.0 (developer-years × loaded cost) | €1 625k | €1 300k | €1 125k | €1 900k | €1 617k |
+| AI tooling (subscriptions or API use per developer-month) | €10k | €31k | €54k | €11k | €10k |
 | Counsel: LG-1, ADR-0025, ADR-0030, CRA scope (one-off) | €20k | €20k | €20k | €20k | €20k |
-| Counsel after M1 (per year) | €12k | €10k | €9k | €10k | €19k |
+| Counsel after M1 (per year) | €12k | €10k | €8k | €10k | €18k |
 | Trademark: clearance search, EU word mark (classes 9, 42), attorney | €4k | €4k | €4k | €4k | €4k |
 | Code signing: Artifact Signing and Apple Developer Program (per year from enrolment) | €1k | €1k | €1k | €1k | €2k |
-| CI runners beyond the free tier, Weblate, website (per year) | €8k | €7k | €6k | €7k | €12k |
+| CI runners beyond the free tier, Weblate, website (per year) | €8k | €6k | €6k | €7k | €12k |
 | Test hardware: three OSes and a performance runner, refreshed every 3 years | €8k | €8k | €8k | €8k | €10k |
 | Usability rounds R1 and R2: participants, optional moderator | €6k | €6k | €6k | €6k | €6k |
 | External acceptance: partner-shop time, TIA Portal access | €5k | €5k | €5k | €5k | €5k |
 | Stichting founding (LG-6, phase 2) | €2k | €2k | €2k | €2k | €2k |
-| Pilot time, in kind (hours per month × rate) | €35k | €29k | €25k | €31k | €53k |
-| **Gross cost to 1.0** | **€1 737k** | **€1 449k** | **€1 291k** | **€2 007k** | **€1 777k** |
-| WBSO offset (share of staff cost, **verify** rates with RVO) | −€406k | −€331k | −€288k | −€475k | −€408k |
-| **Net cost to 1.0, plan of record (no grants)** | **€1 331k** | **€1 117k** | **€1 003k** | **€1 532k** | **€1 368k** |
+| Pilot time, in kind (hours per month × rate) | €35k | €28k | €24k | €31k | €52k |
+| **Gross cost to 1.0** | **€1 737k** | **€1 422k** | **€1 264k** | **€2 007k** | **€1 759k** |
+| WBSO offset (share of staff cost, **verify** rates with RVO) | −€406k | −€325k | −€281k | −€475k | −€404k |
+| **Net cost to 1.0, plan of record (no grants)** | **€1 331k** | **€1 097k** | **€983k** | **€1 532k** | **€1 355k** |
 | NLnet, if 3 proposals are granted at €30k each (upside, not planned) | −€90k | −€90k | −€90k | −€90k | −€90k |
-| Net cost with NLnet | €1 241k | €1 027k | €913k | €1 442k | €1 278k |
+| Net cost with NLnet | €1 241k | €1 007k | €893k | €1 442k | €1 265k |
 <!-- /generated:budget -->
 
 **Reading it.** Staff is close to 90 % of the cost or more in every scenario, so the cost follows the
@@ -1622,10 +1625,10 @@ scope). Rule of thumb: 9 pw ≈ one month with three developers, 10.8 pw with fo
 <!-- generated:descoping -->
 | Step | Option | PERT pw out of the MVP | PERT pw out of 1.0 | M2 (3 developers) | M6 (3 developers) |
 |---|---|---|---|---|---|
-| DS-1 | Lever (a) | 7.8 | 0.0 | 45 → 44 | 73 → 73 |
-| DS-2 | Lever (b) | 14.0 | 0.0 | 44 → 42 | 73 → 73 |
-| DS-3 | Lever (c) | 0.0 | 54.9 | 42 → 42 | 73 → 65 |
-| DS-6 | 3D, routing and lengths chain to 1.1 | 0.0 | 34.3 | 42 → 42 | 65 → 61 |
+| DS-1 | Lever (a) | 7.8 | 0.0 | 44 → 44 | 72 → 72 |
+| DS-2 | Lever (b) | 14.0 | 0.0 | 44 → 41 | 72 → 72 |
+| DS-3 | Lever (c) | 0.0 | 54.9 | 41 → 41 | 72 → 65 |
+| DS-6 | 3D, routing and lengths chain to 1.1 | 0.0 | 34.3 | 41 → 42 | 65 → 60 |
 <!-- /generated:descoping -->
 
 | Order | Option | What users lose | Decision |
