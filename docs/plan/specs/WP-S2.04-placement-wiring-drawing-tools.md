@@ -194,7 +194,10 @@ Part 4 below means part 4a, except the `ew-viewmodel` and `ew-ui` cells, which a
 Tools receive sheet nm (WP-S2.03). Commands take page nm. The page tables and the symbol shape are in **page nm**; the
 tools convert with the `PageGrid` map of the canvas page (the map `PageCells::cell_at` uses, S2.03 §4.2) and draw the
 overlay in sheet nm. A route is the full vertex list from end `a` to end `b` inclusive, as `geometry::require_route`
-checks it (a CP end's vertex equals the CP's position exactly).
+checks it (a CP end's vertex equals the CP's position exactly). *As built (cycle 30, FT-437; decision log ID-710):* a
+route is tidy: no vertex repeats the one before it and no two segments share a stretch on one line (a doubling back
+included); a collinear vertex where the route runs straight on is allowed. An untidy route is refused, naming the
+vertex, never rewritten; the check runs last in `connection.draw`, `connection.route` and `connection.draw_to_ip`.
 
 ### 4.3 The public items added below the shell
 
@@ -431,6 +434,11 @@ picker in exchange mode listing symbols with `allowed` set; choosing one arms th
 CP and a dashed `Rect` around each function CP that would become unmapped; `Dwell` previews, `Activate` or a press
 commits `rep.exchange_symbol { rep, symbol }`, `Escape` cancels. A starter symbol is embedded first (§7.1).
 
+*As built (cycle 30, FT-424's second half; decision log ID-710).* `ew_commands::commands::derive_pin_map` is the
+command's map rule; `ew_api::output::exchange_map(current, new)` applies it to the two symbol shapes (`drawn`,
+`unmapped`, `unmatched`, the last judging the drawn CPs only), and the exchange tool marks the unmapped CPs before the
+dwell. The reading of notices is removed.
+
 ### 7.6 Actions of part 1
 
 Label keys and English texts in `ew_viewmodel::strings`; kinds: `Command` for those that commit, else `View`.
@@ -498,7 +506,7 @@ rule (the corner from the ends' own coordinates). Output: the full vertex list, 
 interior vertices on the grid, the ends exact. Pure, integer-only, `i128` where products occur; a unit-test table
 covers straight, L, Z, obstacle detours, the fallback and the tie rule.
 
-*As built (cycle 26; decision log ID-635).* The search is an exact backward Dijkstra over (grid node, heading) from the end and a forward walk from the start that takes the lowest-ranked move staying on a least path, not A*; it returns the path this section defines (ruling 7). **Size limit:** the search area holds at most `MAX_NODES` = 262,144 grid nodes (2^18; an A0 sheet at a 2.5 mm grid has 160,412), and a larger area falls back to the L route, as does an index at the edge of `i64` (`checked_add`); the backward search stops once its distance passes the start's, which leaves the result unchanged. A corner next to an end takes that end's coordinate, so a connection point up to 1 nm off a rational grid stays valid for `require_route`. After a fixed bend the router has no incoming direction and can double back over the last segment (FT-437).
+*As built (cycle 26; decision log ID-635).* The search is an exact backward Dijkstra over (grid node, heading) from the end and a forward walk from the start that takes the lowest-ranked move staying on a least path, not A*; it returns the path this section defines (ruling 7). **Size limit:** the search area holds at most `MAX_NODES` = 262,144 grid nodes (2^18; an A0 sheet at a 2.5 mm grid has 160,412), and a larger area falls back to the L route, as does an index at the edge of `i64` (`checked_add`); the backward search stops once its distance passes the start's, which leaves the result unchanged. A corner next to an end takes that end's coordinate, so a connection point up to 1 nm off a rational grid stays valid for `require_route`. *As built (cycle 30, FT-437; decision log ID-710):* the search never moves back against its arriving heading; a U-turn would cost only one bend, and without this rule the route ran back over a CP's stub or over the segment before a fixed bend. After a fixed bend the router takes the bend's incoming direction (`RouteRequest.arrive`): the first move never reverses it and a turn there costs nothing, so the tie rule is otherwise that of an end without a direction. The L fallback takes the corner whose first leg does not reverse it.
 
 ### 8.2 The Wire tool (`wire`; doc 06 §4.4, FR-UI-015, FR-CON-001, FR-CON-006)
 
@@ -884,7 +892,7 @@ same tool.
 
 **The window-check fixes (lane A29, rounds 3 and 4; decision log ID-679).** The window check of cycle 29 found a PNG not drawn and, behind it, a data loss; three points follow from it.
 
-9. **Raster images are drawn by the CPU tile path this cycle.** The GPU canvas (the wgpu mesh pipeline) has no texture path and skips raster image items by design (`ew-render2d` prepare). Ruling (project owner, delegated): a page whose display list holds a raster image (PNG or JPEG with bytes, groups followed; SVG-derived paths do not count) is drawn by the CPU tile path; `ew_render2d::gpu::has_raster_images` is the test and `GpuHost::draws_page` the switch, and the status bar reads CPU for such a page. This also covers a PNG company logo in a title block. A textured-quad GPU pipeline replaces the routing in a later cycle (FT-480).
+9. **Raster images are drawn by the CPU tile path this cycle.** The GPU canvas (the wgpu mesh pipeline) has no texture path and skips raster image items by design (`ew-render2d` prepare). Ruling (project owner, delegated): a page whose display list holds a raster image (PNG or JPEG with bytes, groups followed; SVG-derived paths do not count) is drawn by the CPU tile path; `ew_render2d::gpu::has_raster_images` is the test and `GpuHost::draws_page` the switch, and the status bar reads CPU for such a page. This also covers a PNG company logo in a title block. A textured-quad GPU pipeline replaces the routing in a later cycle (FT-480). *Superseded in cycle 30 (FT-480; decision log ID-702):* the GPU canvas draws raster images itself (WP-S2.02 §7.1), every page is drawn by the switch rule's backend, and the status bar no longer reads CPU for image pages.
 10. **The CPU tile path draws images.** It culled every image, because `ItemBounds::reach_of` gave an image no reach (stale since FT-406); it now counts a drawn image's rectangle (commit fbdbc2f2). The logo PNG on the CPU path is fixed with it.
 11. **A save writes the assets of image items (a data loss, fixed).** `Model::referenced_assets` named only the company logo, so a save never wrote the asset of an image page item and the reopened project lost it. It now names every image page item's asset, and the save, the journal and the purge use it (commit 6703bccd). Found by the window check before delivery; no released build had it. Point 3 (d) above (the asset's bytes stay in memory and are not saved once nothing names them) is unchanged: an image item names its asset.
 

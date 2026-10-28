@@ -391,8 +391,22 @@ pixels on a side is rendered as `render_region` parts of at most 4096 pixels and
   instances and approximate inside one mesh**, where a mesh's own primitives keep the mesh's order; §8 item 3 bounds
   the difference.
 - **LOD**: a glyph run whose em height on screen is below 2 pixels is drawn as its layout box filled with its brush at
-  alpha 0.35 (the "bar"); images are skipped, as the CPU path skips them; a group clip becomes a per-instance clip
+  alpha 0.35 (the "bar"); images the CPU path skips (no bytes, SVG, undecodable) are skipped and counted (*as built,
+  cycle 30*; before FT-480 every image was skipped); a group clip becomes a per-instance clip
   rectangle in page coordinates tested in the fragment shader (exact for multiples of 90°, the bounding box otherwise).
+- **Raster images** (*as built, cycle 30, FT-480; decision log ID-702*). Each image item takes one paint index. The
+  preparation worker decodes PNG and JPEG with `ew_render_cpu::decode_image`, premultiplies the texels and caches them
+  by SHA-256 in the `MeshCache` under its budget. When a side exceeds the device's `max_texture_dimension_2d`, it
+  downscales by an area average: the longer side becomes the limit, the shorter `round(shorter × limit / longer)`, at
+  least 1. A drawn image is the unit square over its rectangle with the context's clip, drawn by a second pair of
+  pipelines over the same vertex and instance layout, view uniform, MSAA and depth format. Group 1 holds the texture
+  and a bilinear clamp-to-edge sampler without mipmaps, which is the CPU path's `ImageSampler::default()`. Texels are
+  premultiplied `Rgba8Unorm` and blend as premultiplied colour. Opaque images go in the opaque pass; images with alpha
+  go in the translucent pass in paint order. Textures are cached by SHA-256 within `GPU_TEXTURE_BYTES` (256 MiB), least
+  recently used first and never the current scene's; an evicted texture is uploaded again on demand, and one beyond the
+  device limit is refused and counted, not a fault. Parity against the CPU raster: mean channel difference 0.27 (bound
+  0.35), no unmatched ink. Since FT-480 every page is drawn by the switch rule's backend (§7.2); the CPU routing of
+  raster pages of cycle 29 (`has_raster_images`, `GpuHost::draws_page`) is removed.
 - **Target.** One WGSL file. The canvas renders into its own 4× multisampled colour and depth attachments, resolved
   into a texture of the pane's physical size, which `ew-ui` registers once per size as an egui native texture through
   egui-wgpu's renderer and paints as an image under the overlays of §6.4 (the overlays stay one code path for both

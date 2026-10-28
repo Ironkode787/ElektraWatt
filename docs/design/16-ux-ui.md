@@ -1,6 +1,6 @@
 # User experience and user interface
 
-**Status:** Draft v0.1 · Amended 2026-10-27, cycle 29: the native file dialogs on a thread of their own, §4.4, decision log ID-676 (FT-467 closed). · Amended 2026-10-26, cycle 28: accepted implementation; final local validation and publication status in ID-665; hosted CI pending at publication; hold after delivery; scoped follow-ups (ID-659 to ID-666); merged references/raster validation and accepted window corrections recorded; scoped Windows window checks passed. · **Date:** 2026-10-18 (amended 2026-10-22, cycle-19 design pass: the part-1 shell and its headless mode as built, §3.9, decision log ID-473 to ID-475, ID-485; amended 2026-10-22, cycle-20 design pass: the toolkit-neutral workspace file, §2.5; the part-2 shell as built, §3.9; first run and the wizard as built, §9.1, §9.2; decision log ID-486 to ID-493, ID-504; amended 2026-10-22, cycle-21 design pass: the zoom field, §3.6; the canvas as built and the viewer note, §3.9; the canvas node, §10.1; what 100 % means under the UI scale, §17; decision log ID-513, ID-517 to ID-522; amended 2026-10-22, cycle-22 design pass: the GPU canvas, its switch rule, the status bar's backend field and the UI scale as built, §3.6, §3.9, §17; the wizard's fields as built with the confirmed check-scheme step, §9.2; the rulings of WP-S2.03's specification (Back and Forward per tab, the canvas area, the tool host), §2.5, §3.4, §3.5, §4.5; decision log ID-532, ID-533, ID-536, ID-539 to ID-542, ID-544 to ID-547; amended 2026-10-23, cycle-23 design pass: WP-S2.03 part 1 as built, the viewer's tabs, navigator, links, Go to and grid cursor, §2.5, §3.2, §3.4 to §3.6, §3.9, §4.2, §4.4, §4.5, §5.1, §5.2, §10.1, decision log ID-556 to ID-560; the wizard's logo, shipped colour profiles and golden report blocks as built and its colour default, §9.2, ID-572 to ID-578; `PRIVACY.md` and its link, the web-URL exception of the opener, §3.9, §9.1, §13, ID-579; amended 2026-10-24, cycle-24 design pass: WP-S2.03 part 2 as built, the tool host, Select and Measure, the Escape chain, the pointer rule, the keys and the live region, §3.6, §4.2, §4.4 to §4.6, §10.1, decision log ID-586 to ID-590; the provenance chip names its profile, §6.2, §18.1, ID-598; the mixed-selection rule, §17, ID-593; the check scheme's selection for `ew check`, §9.2, ID-602; amended 2026-10-24, cycle-25 design pass: WP-S2.04 part 1 and WP-S2.05 part 1 as built, the property sheet and its provenance, the Insert menu, the keys and the tool strip, the property grid, its editors and its preview policy, the mixed-selection rule as built, §2.1, §2.2, §3.2, §4.4, §4.5, §6.1 to §6.3, §7.5, §17, decision log ID-625 to ID-630; amended 2026-10-24, cycle-26 design pass: the find pane's place, the keys per context and the find pane's Tab, the wiring tools with the page-change, tool-strip and chip rules, the replace card, §3.4, §4.4, §4.5, §7.6, decision log ID-634, ID-635, ID-638, ID-639; amended 2026-10-25, cycle-27 design pass: the keys of the IP, black box and clipboard tools and Shift+Delete on Windows, §4.4; FT-405's notice, §9.2, decision log ID-646, ID-648, ID-649) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · Amended 2026-10-28, cycle 30: the navigators as built, the docking of navigators and the bottom dock, the filter and the selection synchronisation, §3.4, §5.2 to §5.4, decision log ID-709, ID-712, ID-713; the job and notifications fields, notifications and jobs as built, §3.6, §8.2, §8.3, decision log ID-714, ID-715; the highlight slots as built and their contrast departure (FT-506), §10.3, decision log ID-712. · Amended 2026-10-27, cycle 29: the native file dialogs on a thread of their own, §4.4, decision log ID-676 (FT-467 closed). · Amended 2026-10-26, cycle 28: accepted implementation; final local validation and publication status in ID-665; hosted CI pending at publication; hold after delivery; scoped follow-ups (ID-659 to ID-666); merged references/raster validation and accepted window corrections recorded; scoped Windows window checks passed. · **Date:** 2026-10-18 (amended 2026-10-22, cycle-19 design pass: the part-1 shell and its headless mode as built, §3.9, decision log ID-473 to ID-475, ID-485; amended 2026-10-22, cycle-20 design pass: the toolkit-neutral workspace file, §2.5; the part-2 shell as built, §3.9; first run and the wizard as built, §9.1, §9.2; decision log ID-486 to ID-493, ID-504; amended 2026-10-22, cycle-21 design pass: the zoom field, §3.6; the canvas as built and the viewer note, §3.9; the canvas node, §10.1; what 100 % means under the UI scale, §17; decision log ID-513, ID-517 to ID-522; amended 2026-10-22, cycle-22 design pass: the GPU canvas, its switch rule, the status bar's backend field and the UI scale as built, §3.6, §3.9, §17; the wizard's fields as built with the confirmed check-scheme step, §9.2; the rulings of WP-S2.03's specification (Back and Forward per tab, the canvas area, the tool host), §2.5, §3.4, §3.5, §4.5; decision log ID-532, ID-533, ID-536, ID-539 to ID-542, ID-544 to ID-547; amended 2026-10-23, cycle-23 design pass: WP-S2.03 part 1 as built, the viewer's tabs, navigator, links, Go to and grid cursor, §2.5, §3.2, §3.4 to §3.6, §3.9, §4.2, §4.4, §4.5, §5.1, §5.2, §10.1, decision log ID-556 to ID-560; the wizard's logo, shipped colour profiles and golden report blocks as built and its colour default, §9.2, ID-572 to ID-578; `PRIVACY.md` and its link, the web-URL exception of the opener, §3.9, §9.1, §13, ID-579; amended 2026-10-24, cycle-24 design pass: WP-S2.03 part 2 as built, the tool host, Select and Measure, the Escape chain, the pointer rule, the keys and the live region, §3.6, §4.2, §4.4 to §4.6, §10.1, decision log ID-586 to ID-590; the provenance chip names its profile, §6.2, §18.1, ID-598; the mixed-selection rule, §17, ID-593; the check scheme's selection for `ew check`, §9.2, ID-602; amended 2026-10-24, cycle-25 design pass: WP-S2.04 part 1 and WP-S2.05 part 1 as built, the property sheet and its provenance, the Insert menu, the keys and the tool strip, the property grid, its editors and its preview policy, the mixed-selection rule as built, §2.1, §2.2, §3.2, §4.4, §4.5, §6.1 to §6.3, §7.5, §17, decision log ID-625 to ID-630; amended 2026-10-24, cycle-26 design pass: the find pane's place, the keys per context and the find pane's Tab, the wiring tools with the page-change, tool-strip and chip rules, the replace card, §3.4, §4.4, §4.5, §7.6, decision log ID-634, ID-635, ID-638, ID-639; amended 2026-10-25, cycle-27 design pass: the keys of the IP, black box and clipboard tools and Shift+Delete on Windows, §4.4; FT-405's notice, §9.2, decision log ID-646, ID-648, ID-649) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how people work with ElektraWatt (EW): the main window and its docking
 workspace, navigators, canvas tabs, the property grid with provenance, the command palette and keymaps, table
@@ -364,6 +364,12 @@ shell calls the current page. The splitter has no accessible name yet (FT-338).
 
 *As built (cycle 26, WP-S2.05 part 2; decision log ID-634).* The **Find pane** ("Find and replace", `PaneKind::Find`) opens with Ctrl+F or Ctrl+H **below the page view** in the Schematic workspace, not across the full-width bottom dock that the placement rule above names; it is a pane of the workspace file like the others (a build that predates it refuses a workspace file that names it). F6 and Shift+F6 include it, and closing it (or a workspace reset, load or dock layout change that removes it) drops a replace card it holds.
 
+*As built (cycle 30, WP-S2.06 part 1 and WP-S2.09 part 1; decision log ID-709, ID-714).* A shown navigator docks as a
+tab beside Pages (`PaneKind::Navigator(kind)`, workspace key = the kind word). **Dock tab groups are not draggable as a
+whole**, only panes, as in the canvas area, so a tab bar is never an unnamed drag area. **The bottom dock:** Find and
+Jobs share one tab group below the page view (`Layout::with_bottom`, renamed from `with_find`; `PaneKind::ALL` has five
+entries and `BOTTOM = [Find, Jobs]`); Messages, Preview and History join it with WP-S2.09's parts 2 and 3.
+
 ### 3.5 Canvas tabs
 
 | Tab kind | Content | Editable | Title and badges | Release |
@@ -422,6 +428,12 @@ and 16 of the golden frame is 265.525 mm, not the rounded 265.6 mm (ID-560).
 *As built (cycle 24, WP-S2.03 part 2; decision log ID-586, ID-587).* The hint field shows the active tool's status
 hint (Select: `Click to select; drag for a rubber band`), and while a link preview shows (§4.5) it reads `Click or F: go
 to <target>`.
+
+*As built (cycle 30, WP-S2.09 part 1; decision log ID-714, ID-715).* The **job field** appears 200 ms after a job starts
+and reads `PDF export <p> %` in the window (headless `PDF export`, without a percentage, so transcripts carry no
+timing); a click opens the Jobs pane. The **`Notifications <n>`** field shows while the session's notifications log is
+not empty and opens the log. The findings field of the table above is not built: the message panel's counts stand in
+its pane header (WP-S2.09 D8). The cycle-19 `status-exporting` text is removed with the synchronous export.
 
 ### 3.7 Start page
 
@@ -846,6 +858,23 @@ mode and the facet filter. **Open items (FT-371):** the row cursor stays where t
 elsewhere (§4.2), and the visible rows are rebuilt from the page rows on every call instead of being cached per
 revision and navigator state.
 
+*As built (cycle 30, WP-S2.06 parts 1 and 2; decision log ID-709, ID-712, ID-713): eleven navigators on one framework.*
+Pages and Devices (part 1) and Connections, Terminal strips, Cables, PLC, Potentials, Interruption points, Structure
+identifiers, Parts in use and Report blocks (part 2) are shown from View ▸ Navigators and read their rows from
+`Session::navigator_table`, the last nine through `ew_reports::project_rows`, so each equals its stored report block on
+Golden A. **Pages** keeps its actions, keys and lines; a click now marks and a double click or Enter opens; FT-360 and
+FT-371's cursor item are closed. **Devices:** function `=` › location `+` › devices › child devices by position, then
+tag › functions, labelled by their FnDef key (a function has no text of its own) with `main` or `aux` ›
+representations `<folio>-<cell>`; -201U3 sits at level 4, under -201U1. **Connections:** the wire list's rows, under
+potentials, with the bridges under a group "Bridges"; a connection's drawable is the cell of its first end that is a
+CP drawn on the page; an unnumbered wire reads `<from> <cp> → <to> <cp>`; every wire and core connection appears at
+least once, shared only by junction arms. **Structure identifiers:** aspect groups in the Function and Location roles;
+aliases are filter tokens. **PLC:** a channel's label is its address, else its number; it opens its representation's
+page with nothing selected. **Report blocks:** an embedded block shows its host page as first folio, a page count of 0
+and no open target; a block's section is that of its first page. **Not built:** Messages (WP-S2.09's panel, FT-493),
+Unplaced devices (WP-S4.02, FT-486), the library status of parts (FT-487), finding badges and `has:finding`
+(FT-488), thumbnails (FT-492), persisted navigator state (FT-489), Delete and F2 in trees (FT-490).
+
 Symbol, part and macro **browsers** are library views, specified in [07](07-symbols-parts-macros.md) §5; they
 dock like navigators.
 
@@ -857,6 +886,11 @@ autocompletion: `page:103`, `potential:24VDC-1`, `state:spare`, `kind:terminal`,
 per keystroke at XL (NFR-PERF-15; §15.2). Filters are saved per navigator instance in the per-user view state
 `.ew/u-<hash>/view.json` (§2.5).
 
+*As built (cycle 30, WP-S2.06 part 1; decision log ID-684, ID-709).* A row matches when every query token is a prefix
+of one of its tokens, in any order (so `-12k4` also matches -49K12), or when the whole case-folded query is a substring
+of its label; the facets are the closed list `page:`, `potential:`, `state:`, `kind:`, `part:` and the flags
+`unplaced` and `frozen` (`has:finding` waits for FT-488); always on the UI thread. Filters are not yet saved (FT-489).
+
 ### 5.4 Selection synchronisation
 
 Selection is synchronised both ways (FR-UI-007; algorithm in §15.3):
@@ -865,6 +899,12 @@ Selection is synchronised both ways (FR-UI-007; algorithm in §15.3):
   the page is **not** switched. For -201U1 selected while folio 102 is shown, the canvas shows a chip line "Not on
   this page: 201-E1, 3-B2, 106-G3, 902", and Enter opens the page of the main representation (lowest page order,
   row, column, ID; [03](03-domain-model.md) §8.2).
+
+*As built (cycle 30, WP-S2.06 part 1; decision log ID-684, ID-709).* Marking rows selects the drawables on the shown
+page, else the records, and never switches the page; the chip line above the canvas area lists at most 12 places (main
+first) as buttons named `Open <folio>-<cell>`, and a selection or page change clears it. Every open navigator follows a
+foreign selection once (the deepest node per record, ancestors expanded, the cursor on the first), guarded by a
+selection generation; a page switch puts the Pages cursor on the current page.
 
 ---
 
@@ -1100,6 +1140,14 @@ History                                        oldest kept: step 1 · 12 MB of 2
 - At most three toasts are visible; repeated toasts of one kind coalesce ("3 external changes applied"). EW makes
   no sounds. OS notifications are a 1.x Could, opt-in.
 
+*As built (cycle 30, WP-S2.09 part 1; decision log ID-693, ID-714, ID-715).* `notify_with(text, key, undo)` raises a
+toast and logs it; at most three toasts show, a toast of a visible key replaces it, each lasts 8 s on the window's
+clock, and the log holds the session's last 100 notifications, newest first, opened from the `Notifications <n>` field
+(§3.6) and View ▸ Notifications. Undo stays usable while the step it undoes is the next undo step of the same project
+session; closing the project removes the visible toasts and expires their Undo; Open stays usable while the exported
+file was written in this session. The stack replaces the earlier rule that the next committing action removes a toast;
+the toasts of FT-485 (strip, structure node, external reference, autoconnect, PDF export) share the key `edit`.
+
 ### 8.3 Jobs and staleness
 
 The jobs panel lists kind, scope, base revision, progress (determinate when the job knows its total of pages or
@@ -1120,6 +1168,14 @@ no indicator, so nothing flickers. Cancel takes effect within 500 ms (NFR-PERF-1
 partial file (FR-UI-024). After opening a project the status bar shows "Warming up" while editing is already
 possible (NFR-PERF-03). An export reports the revision it ran on ("exported rev 214; the model is now at rev
 216"), as information, not as an error.
+
+*As built (cycle 30, WP-S2.09 part 1; decision log ID-692, ID-714, ID-715).* The PDF export is the first job: one named
+`std` thread of `ew-jobs` over a snapshot, with a checkpoint per page and per drawn item. The Jobs pane is a group named
+"Jobs" whose running entry is a progress bar labelled `PDF export <name>` with Cancel; a finished entry shows its
+result ("cancelled; no file written", a failure with its cause, or Done with Open). The file is written to a hidden
+sibling `.<name>.ew-part`, synced and renamed into place, and removed on cancel, failure or panic, so no partial file
+remains. Replacing a file is confirmed once, by the native save dialog's prompt or `replace: true` in a script; a
+second export while one runs is refused. Headless, the export waits for its job unless `wait: false`.
 
 ### 8.4 Message panel
 
@@ -1347,6 +1403,14 @@ using Okabe–Ito hues. Contrast ratios are WCAG 2.1 relative-luminance values a
 Okabe–Ito orange #E69F00 (2.25:1), sky blue #56B4E9 (2.31:1) and yellow #F0E442 (1.32:1) fail 3:1 on white. They
 are used only on dark chrome surfaces, where they reach 7.4:1, 7.2:1 and 12.6:1 against #1E1E1E; on the sheet the
 darkened orange #A86F00 (not an Okabe–Ito value) replaces them.
+
+*As built (cycle 30, WP-S2.06 part 2; decision log ID-687, ID-712, ID-713).* Highlights are view state, never a model
+edit, composited into `canvas.snapshot` and listed by `ui.describe`. The four slots use #E69F00, #56B4E9, #009E73 and
+#D55E00 with the hatch angles 45°, 135°, 0° and 90°: a band 8 pt wide with a translucent fill at alpha 77 and hatch
+lines 2 pt wide at a 6 pt pitch (points × ppp, square caps); a fifth highlight replaces the oldest; they are painted
+above the overlays and below the statistics panel and the preview chips. **This departs from the slot table above:**
+slots 1 and 2 (orange and sky blue) are below 3:1 on the white sheet (NFR-A11Y-03); FT-506 brings them to the table's
+hues or records a ruling.
 
 Severity colours reuse three highlight hues, but they never share a shape: findings are icons with a word, while
 highlights are halos with a name chip, so an error icon on a vermillion-highlighted net stays unambiguous.

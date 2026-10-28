@@ -5,7 +5,8 @@ ID-651): part 1 (jobs, the PDF export as a job with progress and cancel, the not
 dialog, 1.15 pw, D5), part 2 (the message panel on WP-S2.06's navigator framework with pending completeness findings and
 quick fixes, 0.85 pw, D3), part 3 (the bulk preview tab, the renumber dialogs, the history panel with context restore and
 the GUI purge step, 1.2 pw, D4); part 1 may start now, part 2 after WP-S2.06 part 1's delivery, part 3 after part 1's;
-one independent Opus review per cycle (ID-667) · **Date:** 2026-10-28 · **Work package:**
+one independent Opus review per cycle (ID-667); **part 1 delivered in cycle 30** (§6.9; decision log ID-714, ID-715), parts 2
+and 3 next · **Date:** 2026-10-28 · **Work package:**
 [WP-S2.09](../02-work-packages.md#wp-s209-messages-bulk-previews-history-jobs-and-recovery-ui) · **Decision log:**
 ID-690 to ID-699, the ten entries of §15.3 in order (follow-ups FT-494 to FT-498, the five of §15.4 in order) · **Part
 of:** ElektraWatt plan, specifications
@@ -342,6 +343,41 @@ one `toast` line each, newest last. **New describe words (18, fewer by those alr
 `jobs`, `job`, `running`, `pdf`, `done`, `pages`, `kib`, `rev`, `now`, `cancelled`, `notifications`, `notification`,
 `open`, `expired`, `recovery`, `transactions`, `base`, `matches`, `moved` (19 tokens, of which `pages` arrives with
 WP-S2.06 part 1).
+
+### 6.9 As built in cycle 30 (part 1)
+
+**WP-S2.09 part 1 delivered in cycle 30 (lane M30; decision log ID-714, ID-715).** JB1 to JB9 pass; 55 commands, 223
+actions and 303 describe words at the lane (225 and 309 on the merged tip with WP-S2.06 part 2, ID-716). Built as §6
+says, with these points:
+
+- **§6.1.** As specified, and a held checkpoint is a breakpoint: every arrival blocks until the next release, and the
+  hold stays (deviation 2). `JobCtl` is `Send + Sync`.
+- **§6.2.** The phases are one function, `export_pages_hooked`, used by both paths; the synchronous export uses
+  `NoHooks`, so the bytes are identical by construction. Checkpoints: `page` after each scene, with `report(i, n,
+  "building")` before page i; `draw` per item before it is drawn; `drawn`, followed by `report(n, n, "drawing")`;
+  `written` after the writer (phase `writing`, total 0).
+- **§6.3.** The body writes `.<name>.ew-part`, runs `sync_all`, passes `checkpoint("rename")` and renames; a drop guard
+  removes the sibling on a cancel, a failure or a panic. Headless, the job field reads `PDF export` with no percentage
+  (deviation 4). The I/O cause is the error kind's text, never a path. The `status-exporting` string and the "Exporting
+  PDF" label go with the deferred export.
+- **§6.4.** The Jobs pane is a group named "Jobs"; a running entry is a progress bar labelled `PDF export <name>` with
+  Cancel, a finished one shows its result, and Done shows Open. The status-bar job field links to the pane and shows
+  `PDF export <p> %` in the window after 200 ms. The bottom dock is `Layout::with_bottom` (renamed from `with_find`),
+  `PaneKind::ALL` has 5 entries and `BOTTOM = [Find, Jobs]`.
+- **§6.5.** `notify_with(text, key, undo)`; the log holds 100 entries, newest first; at most 3 toasts are visible. In
+  the window toasts are an overlay with an 8 s timer each, and the log is a window opened by the `Notifications <n>`
+  field. Undo from a toast or the log also requires the same project session; closing the project removes the visible
+  toasts and expires their Undo (deviation 7). The stack replaces WP-S2.05's rule that the next committing action
+  removes a toast, and FT-485's toasts share the key `edit` (deviation 8).
+- **§6.6.** As specified, except: the time of the last change is shown in UTC (deviation 1; local time is FT-503); the
+  dialog also lets through `ui.dismiss` (Escape is Open read-only), `ui.describe`, `help.documentation` (F1 opens the
+  `recovery` topic), `app.quit` and `view.canvas_resize` (deviation 5); Recover also fails when the re-open is not an
+  editing one, and the Cancel of Discard… returns to the recovery dialog (deviation 6). After Save As the original
+  keeps the journal of the edits that went into the copy, so reopening it shows this dialog (deviation 10; FT-499).
+- **§6.7.** As specified (FT-464); `ew import parts` uses the same function, without a CLI test of its own (FT-504).
+- **§6.8.** The 8 actions as the table lists them; `jobs.wait` is hidden in the window. `file.export_pdf`'s parameters
+  are `path?:path, replace?:bool, wait?:bool`. 18 new words (`pages` was already present, as foreseen).
+  `tools/blind/HELP.md` is version 4, with the `jobs` and `notifications` sections.
 
 ## 7. Part 2: the message panel
 

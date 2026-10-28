@@ -281,7 +281,7 @@ destinations, in **reading order**: by the cell of the rectangle's centre (`colu
 `PageCells::cell_at`, never the labels; no cell sorts last), then by `(y, x)` of the centre, then paint order. The same
 order, on the same indices, is the order of `page_cps` (§4.2), except that `page_cps` breaks a tie at one point by
 the CP's label in natural order, then by its ID (coincident CPs keep their order, their snap and their `cp.next` walk
-in every fresh copy of a project, whose IDs are random; blind replay, WP-S6.13 §6 item 3; decision log ID-677). The link list's own last tie, paint order, still sorts representations by their random IDs (FT-483).
+in every fresh copy of a project, whose IDs are random; blind replay, WP-S6.13 §6 item 3; decision log ID-677). *As built (cycle 30, FT-483; decision log ID-704):* links are ordered by the reading key, then by the target's printed label (`PageLink::label()`, the cell, else the folio) in natural order, then bytes, a link without a target last, and by destination and paint order only between links that print the same, so random representation IDs no longer decide the order.
 
 **Hover.** A pointer inside a link rectangle inflated by 4 points at the current zoom hovers that link (smallest area
 wins, ties to the later in paint order); a hovered link takes precedence over the entity hover of WP-S2.02 and is drawn
@@ -719,7 +719,7 @@ WP-S2.05**:
 | 3 | `canvas.activate` is refused without a grid cursor; the host sends `CursorMove` before `Activate` and on tool activation | ID-587 |
 | 4 | An entity with several rectangles is enclosed only if all are inside the band, touched if any is; a click on empty canvas clears the selection (Shift keeps it) | ID-587 |
 | 5 | The transcript's `snap` is read from the overlay's last marker; `Marker` is unchanged | ID-587 |
-| 6 | **Interim:** the preview chips sit in the canvas's top-left corner (the derived diff has no positions); by tag position later (FT-389) | ID-587 |
+| 6 | **Interim:** the preview chips sit in the canvas's top-left corner (the derived diff has no positions); by tag position later (FT-389). *Closed in cycle 30 (FT-389):* the chips stand by the changed tag. A tag change sits above the body of the device's first representation on the page, or above the Place tool's floating insertion point for a device the page does not draw yet. A cross-reference change sits above its representation. The header with the `stale` badge sits above the first chip. Changes with no position stay in the top-left corner. Every chip stays inside the canvas, off the other chips and off the frame-statistics panel (FT-502: the printed-tag position) | ID-587; ID-710 |
 | 7 | A commit is refused on a read-only project (`reason-read-only`); tool commits join the `--record` steps; a preview still runs and shows as ready (a preview is a read) | ID-587, ID-589 |
 | 8 | `canvas.preview_snapshot` is headless-only like `canvas.snapshot` | ID-587 |
 | 9 | The headless tests live in `bin/elektrawatt/tests/canvas.rs` (a new test file would need an allow-list change) | ID-587 |
@@ -736,7 +736,9 @@ Narrator and the bracket keys on German and French layouts stay owner checks.
 
 **Design items** (ID-589): one integer scale factor for overlay marks (FT-391; markers are fixed at 7 and 9 pixels
 today while lines double at ppp ≥ 2); the popup's AccessKit node (FT-390); a group hidden while a press is held
-(FT-392); the chips by tag position (FT-389); `selected_rects` and the band selection are O(n·m), not measured (owner's
+(FT-392; closed in cycle 30, ID-710: a change of the tool's (group, tab, page) while a primary press is held escapes the
+tool and drops the next primary release, with no focus, pointer, tool or selection change, and the window forgets a
+press held on a group the area no longer shows); the chips by tag position (FT-389, closed in cycle 30); `selected_rects` and the band selection are O(n·m), not measured (owner's
 rule).
 
 ## 8. Determinism, the headless mode and exact counts

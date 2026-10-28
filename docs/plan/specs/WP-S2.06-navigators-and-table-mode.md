@@ -4,7 +4,8 @@
 cycle 27, ID-650): part 1 (the navigator framework, the Pages navigator on it with multi-selection and drag to
 reorder, the Devices navigator, selection synchronisation, 2.2 pw, D4), part 2 (the nine further navigators and
 potential and net highlighting, 1.05 pw, D3), part 3 (table mode: columns, cell editing, fill-down, pattern fill, paste
-from Excel, 1.5 pw, D4); order 1 → 2 → 3; one independent Opus review per cycle (ID-667) ·
+from Excel, 1.5 pw, D4); order 1 → 2 → 3; one independent Opus review per cycle (ID-667); **parts 1 and 2 delivered in
+cycle 30** (§6.11, §7.5; decision log ID-709, ID-712, ID-713), part 3 next ·
 **Date:** 2026-10-28 · **Work package:**
 [WP-S2.06](../02-work-packages.md#wp-s206-navigators-and-table-mode) · **Decision log:** ID-681 to ID-689, the nine
 entries of §15.3 in order (follow-ups FT-486 to FT-493, the eight of §15.4 in order) · **Part of:** ElektraWatt plan,
@@ -393,6 +394,56 @@ non-Pages navigators always and for Pages only when it has more than 50 rows. Th
 **New describe words (18):** `kind`, `pages`, `devices`, `strips`, `cables`, `plc`, `potentials`, `ips`, `parts`,
 `blocks`, `tree`, `ascending`, `descending`, `showing`, `to`, `elsewhere`, `aux`, `reorder` (267 → 285).
 
+### 6.11 As built in cycle 30 (part 1)
+
+**WP-S2.06 part 1 delivered in cycle 30 (lane H30; decision log ID-709).** NV1 to NV12 pass; 55 commands, 215 actions
+and 285 describe words. Built as §6 says, with these points where the code settles what the text left open:
+
+- **Tables.** `Session::navigator_table` builds Pages (the section tree as built, keys `s:<n>` and `s:front` › `…/p:<uuid>`;
+  columns folio, title, type, frame, generated) and Devices (function `=` › location `+` › devices not under a listed
+  parent in natural tag order › child devices by position, then tag › functions labelled by their FnDef key with `main`
+  or `aux` › representations `<folio>-<cell>`). The other nine kinds return their columns and no nodes until part 2.
+  `ew_reports::project_rows` equals the stored blocks 901 and 903 to 910 on Golden A (NV1, in `ew-api`'s
+  `tests/reports_golden.rs`, because `ew-reports` cannot load Golden A without a new dev edge).
+- **Framework.** `navigators::Navigator` in the view model holds the view (tree or flat), the sort (label or a column,
+  ascending or descending), the filter, the collapsed and marked keys, the cursor, the Shift anchor, the `Arc<NavTable>`
+  and the applied selection generation; the visible rows are cached per (table, view, sort, filter, expansion). The
+  Pages navigator reads `page_rows` once per revision as built, so `navigator_table(Pages)` is used by part 3's table
+  only, and §9 item 4's counts cover the other navigators.
+- **Filter.** Parts `<facet>:<value>` of the closed list and the flags `unplaced` and `frozen` are conditions; the rest is
+  plain text whose tokens must each prefix a node token, in any order (`-12k4` also matches -49K12), or whose case-folded
+  text is a substring of the label. Pages uses the same filter over `<folio> <title>`. `ew-api` re-exports
+  `nav_tokens` (so a query is split as node tokens are), `nav_natural_key` and `Uuid`.
+- **Selection.** Marking selects the drawables on the shown page, else the records. The chips (at most 12, main
+  first) are cleared by a selection or page change. Every open navigator follows a foreign selection generation once
+  (the deepest node per record, ancestors expanded, the cursor on the first). A page switch puts the Pages cursor on the
+  current page (FT-371's navigator item).
+- **Reorder.** `pages.reorder {pages?, before?, end?}` (default: the marked page records, else the cursor's page)
+  previews `page.reorder` into a `CardOrigin::Reorder { notices }` card in the Pages pane; Apply is `navigator.apply`,
+  Ctrl+Enter or `preview.apply`, Escape cancels, a stale card previews again; `pages.move_up` and `pages.move_down`
+  (Alt+Up, Alt+Down) move by one within the section. `page.reorder`'s `section` is an `Option`: without `before` it
+  names the section (null or absent is the front matter), together with `before` it is refused at `/section`, and an
+  order that does not change is refused at `/pages`. The card's describe line reads `card ready "page.reorder" targets
+  1 changes 2 tags N xrefs M reorder "106 → 103" "103 → 106"`.
+- **New page (FT-461).** It proposes the next free integer after the current page record and the section of the marked
+  or cursor section node, else of the current page.
+- **Window.** View ▸ Navigators lists the 11 kinds as checked items; a shown navigator docks as a tab beside Pages
+  (`PaneKind::Navigator(kind)`, workspace key = the kind word). Dock tab groups are not draggable as a whole (only
+  panes), so the tab bar is not an unnamed drag area.
+- **Widget.** One generic tree widget: `Tree` and `TreeItem` with level, position, size, expanded and selected (for
+  Pages, `selected` is now the mark, not the cursor); type-ahead with a 1 s reset; a click marks and a double click or
+  Enter opens (Pages included); a click does not scroll the list, which scrolls only when the cursor leaves the rows on
+  show; drag of page rows (on a page row: before it; on a section node: to its end) and of unplaced function rows onto
+  the canvas (`place.pick {function}`, which now works without `symbol`: the first allowed catalogue symbol whose FnDef
+  key equals the row's label). The chip line sits above the canvas area, with buttons named `Open <folio>-<cell>`.
+- **Focus and describe.** `Focus::Navigator(NavKind)` for every navigator; `ui.focus` gains `kind?`; the describe focus
+  line for the other kinds reads `focus navigator kind <word>`, the transcript `navigator.<kind>`. Of the 18 new words,
+  `aux` (badges print quoted) and `pages` (the Pages header omits `kind`) cannot appear structurally; they stay in
+  `VOCABULARY` as specified and the reach test excludes them with that reason. Devices' function rows order by FnDef
+  name under the default label sort; the sort label reads Tag for Devices and Label for the others; every column has
+  `derived = false` until part 3 (§8.2). -201U3 sits at level 4, under -201U1.
+- **Headless surface.** 14 actions, 18 words.
+
 ## 7. Part 2: the further navigators and highlighting
 
 ### 7.1 The providers
@@ -452,6 +503,39 @@ The provider rows print as §6.10 with their role words. The canvas section gain
 label>" connections <k>`; a highlighted row's line ends with `highlight <n>`.
 
 **New describe words (6):** `cable`, `module`, `station`, `manufacturer`, `highlight`, `slot` (285 → 291).
+
+### 7.5 As built in cycle 30 (part 2)
+
+**WP-S2.06 part 2 delivered in cycle 30 (lane N30; decision log ID-712, ID-713).** NP1 to NP6 pass; 55 commands, 217
+actions and 291 describe words. Built as §7 says, with these points:
+
+- **Providers.** Connections, Terminal strips, Cables, PLC, Potentials, Interruption points, Structure identifiers, Parts
+  in use and Report blocks read their rows through `ew_reports::project_rows`, and every one equals its stored block on
+  Golden A. A connection's drawable is the cell of its first end that is a CP drawn on the page; an unnumbered wire
+  row reads `<from> <cp> → <to> <cp>`; bridges sit under a Section-role group "Bridges"; a potential's children include
+  both sides of a `⇄` cell. Structure aspect groups use the Function and Location roles (StructureNode for other
+  aspects), and aliases are filter tokens. A PLC channel's label is its address, else its number, and its open target
+  is the page of its representation, with nothing selected. An embedded report block shows its host page as first
+  folio, a page count of 0 and no open target; a block's section is the section of its first page.
+- **NP2 (N30-1).** Of the 72 wire and core connections every one is listed at least once, and only junction
+  (star-feed) arms are shared by two physical wires, among them the numbered W20 and W24; FR-UI-005's acceptance reads
+  "at least once; shared only by junction arms".
+- **Highlighting.** `HighlightTarget { Potential(Uuid), Net(Uuid) }` and `Session::highlight_members` (sorted,
+  deduplicated, empty for an unknown ID). Four slots with #E69F00, #56B4E9, #009E73 and #D55E00 and the hatch angles
+  45°, 135°, 0° and 90°; an 8 pt band, a translucent fill at alpha 77, hatch lines 2 pt wide at a 6 pt pitch, sizes in
+  points × ppp with square caps, one global hatch-line family, the angle in screen coordinates; a fifth highlight
+  replaces the oldest; members are refreshed once per revision; `paint_at` is the one geometry source of the window and
+  `canvas.snapshot`. A net is the page-local net that holds the connection; a potential's members are the connections
+  with either end on it; the bond row and group rows cannot be highlighted; `Net(first record)` takes the smallest
+  UUID. Highlights are painted above the overlays and below the statistics panel and the preview chips. Slots 0 and 1
+  are below 3:1 on white (FT-506).
+- **Actions and words.** `navigator.highlight` (`kind?`, `key?`, `off?`; Ctrl+Shift+H; in the navigator) and
+  `view.clear_highlights` (View menu, disabled without highlights); strings `reason-no-highlights` and
+  `error-highlight-row`; the six words of §7.4.
+- **FT-461.** New structure node pre-fills the parent from the marked Structure node, else the cursor's, in the GUI
+  only; headless, a missing parent parameter still fails.
+- **NP4.** A click on W29's route picks W30, or nothing on a repeat, independent of the navigators (N30-3, FT-500);
+  the test clicks, asserts the picked wire's rows, then selects W29 by `select.set`.
 
 ## 8. Part 3: table mode
 

@@ -1,6 +1,6 @@
 # Connections, terminals and cables
 
-**Status:** Draft v0.1 · **Date:** 2026-10-23 (cycle 23: the shipped colour profiles and their limits as built, §4.3, decision log ID-577; the marker mode as a project setting for WP-S2.04, §4.5, ID-568; 2026-10-21: cycle 11: page token of segment-less strips as built, decision log ID-293; cycle 12: EW-TERM-002 as built, §6.8, and the cover size note, §4.2; cycle 13: the orientation of segment-only terminals, §3.8, the numbering order and the golden numbers as built, §5.2, and the segment wording, §6.7; 2026-10-27, cycle 29: the numbering order's tie-break by what is printed, §5.2 and §11, decision log ID-675; the fallback potential name's tie by its text and not by the CP ID, §3.5, decision log ID-677) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-23 (cycle 23: the shipped colour profiles and their limits as built, §4.3, decision log ID-577; the marker mode as a project setting for WP-S2.04, §4.5, ID-568; 2026-10-21: cycle 11: page token of segment-less strips as built, decision log ID-293; cycle 12: EW-TERM-002 as built, §6.8, and the cover size note, §4.2; cycle 13: the orientation of segment-only terminals, §3.8, the numbering order and the golden numbers as built, §5.2, and the segment wording, §6.7; 2026-10-27, cycle 29: the numbering order's tie-break by what is printed, §5.2 and §11, decision log ID-675; the fallback potential name's tie by its text and not by the CP ID, §3.5, decision log ID-677; amended 2026-10-28, cycle-30 design pass: `orient_wire`'s step 3 without minted IDs (FT-478), §3.8, decision log ID-704; the `#n` after a repeated clamp letter, §3.8, decision log ID-711) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) turns drawn connections into electrical meaning. It covers
 connection points, connections and junctions, the three connectivity levels (net, signal, potential) with stable
@@ -417,6 +417,11 @@ physical_wires_of(potential):                              // memo per potential
      pass-through pair).
   3. Ties are broken by the anchor cell (row, column) and then by CP ID. A terminal drawn only by a strip segment
      has no anchor of its own: its anchor cell is the cell of its CP in the segment (§6.7; decision log ID-327).
+     *As built (cycle 30, FT-478; decision log ID-704):* the anchor cell of an end is the smallest cell (row, column)
+     of its function's representations on the wire's page (no longer the cell of the smallest representation ID);
+     ties then go to the CP label in natural order, then to the places the function is drawn at (page order, cell),
+     and the CP IDs come last, so no minted ID decides an orientation that the print can decide. No Golden A wire
+     changed orientation or number.
 
   This reproduces every From/To pair of [20](20-golden-project.md) §8.2. Examples: 1X1:1 → S51:2, because the supply
   enters at J-E-206-L; -102G1:+#2 → -102F1:1; E55:PE → -X1032:1/b, by page order.
@@ -435,7 +440,10 @@ physical_wires_of(potential):                              // memo per potential
   (FR-TRM-006, FR-MFG-002). A device end prints `tag:designation`, with `#n` only where printed designations repeat
   (`-102G1:+ #1`). `cp_label` of `ew-derive` is the one owner
   of this label; the From/To CP columns of the wire list (`conn::end_text` in `ew-reports`) still drop `#n` and are to
-  converge on it (FT-102; decision log ID-348).
+  converge on it (FT-102; decision log ID-348). A terminal end whose function repeats a clamp letter within one level
+  prints `#n` after the clamp, the n-th CP of that level and clamp in index order (`1X1:1/a#2`); `cp_label` owns it
+  (cycle 30, O30; decision log ID-711). It applies to the starter terminal FnDefs, which give side 2 the clamp `a`
+  where §6.1 and §6.3 say `b`; once their data is corrected (FT-505) it remains only for third-party FnDefs.
 
 *As built (cycle 7, WP-S1.07; decision log ID-146 to ID-151).* The families of §3.3 to §3.8 exist in `ew-derive`,
 Memo by policy and cold in phase 1. Decisions the code had to fix:
