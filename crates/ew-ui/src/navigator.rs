@@ -340,7 +340,11 @@ impl NavigatorPane {
         }
         // The cursor is scrolled into view when it moved to a row outside the rows on show (the first and last ones may
         // be cut).
-        let inside = |i: usize| self.view.start < i && i + 1 < self.view.end;
+        // K32: the rows on show end where this frame's list ends, not where last frame's did (a list that just got
+        // shorter no longer shows the rows below its new foot).
+        let fits = (list_rect.height().max(0.0) / row_height(ui.ctx())).floor() as usize;
+        let shown_end = self.view.end.min(self.view.start + fits);
+        let inside = |i: usize| self.view.start < i && i + 1 < shown_end;
         // W31-1: a list that got shorter (the Messages detail block opened below it) scrolls its cursor back into view.
         let shrunk = list_rect.height() + 0.5 < self.list_height;
         self.list_height = list_rect.height();

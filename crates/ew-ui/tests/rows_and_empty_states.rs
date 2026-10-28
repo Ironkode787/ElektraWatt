@@ -143,6 +143,15 @@ fn dk10_messages_rows_badges_and_header() {
             .any(|l| l == &pending.name && l.ends_with(", pending")),
         "{items:?}"
     );
+    // The cursor row is scrolled into view above the detail block that opened with it (W31-1, fixed by K32 for a list
+    // that was taller the frame before).
+    let list = h.get_by_label("Messages navigator").rect();
+    let row = h
+        .get_all_by_role(egui::Role::TreeItem)
+        .find(|n| n.accesskit_node().label().as_deref() == Some(pending.name.as_str()))
+        .unwrap()
+        .rect();
+    assert!(list.expand(0.5).contains_rect(row), "{row:?} inside {list:?}");
     assert!(
         labels(&h, egui::Role::Label).iter().any(|l| l == "Pending"),
         "the Pending badge node: {:?}",
