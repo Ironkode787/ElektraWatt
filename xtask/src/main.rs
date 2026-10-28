@@ -11,6 +11,7 @@
 // from the environment, `CARGO` names the cargo binary, and tests name scratch directories by the clock.
 #![allow(clippy::disallowed_methods)]
 
+mod affected;
 mod anonymise;
 mod blind;
 mod build_scripts;
@@ -89,6 +90,12 @@ commands:
                        Markdown report and a JUnit file (target/nextest/ci/junit.xml) and exits non-zero when an
                        entry fails or is not built (crates/ew-api/tests/acceptance.rs); --milestone runs the
                        release profile with EW_PERF_ASSERT=1 so that AC-17 is measured
+  affected [--base <rev>]
+                       the workspace crates changed since the merge base of <rev> (default main) and HEAD,
+                       uncommitted and untracked files included, with their reverse dependencies (cargo
+                       metadata), and the targeted `cargo nextest run -p ...` (with the features the crates'
+                       tests require) and `cargo clippy -p ...` commands for them; for between-wave and
+                       fix-round verifies only, a gate runs the full suite
   perf-gate [--classes S,M] [--quick] [--report <file>] [--baseline <file>] [--from <bench-output>]...
             [--bless] [--enforce] [--dry-run]
                        the performance and memory gate of WP-S6.03 (nightly, .github/workflows/perf.yml): runs
@@ -246,6 +253,7 @@ fn main() -> ExitCode {
                 Ok(false)
             }
         },
+        "affected" => affected::run(&args[1..], &workspace_root()),
         "perf-gate" => perf::run(&args[1..]),
         "blind" => blind::run(&args[1..], &workspace_root()),
         "ci" => ci(),
