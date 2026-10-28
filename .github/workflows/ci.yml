@@ -136,8 +136,10 @@ jobs:
           tool: cargo-nextest@0.9.148
       # Mesa's software Vulkan driver (lavapipe): the GPU canvas's parity test (WP-S2.02 part 2, spec section 8 item 4)
       # needs an adapter; without one the test prints `skipped: no adapter` and passes, which proves nothing on Linux.
+      # FT-479: the step took 440 s and 535 s in test-linux-default in runs 40376419761 and 40364837825 (10 s in test-linux, same
+      # command, same runs), a stalled mirror connection; the timeouts and retries turn a stall into a retry of a few seconds.
       - name: install Mesa's lavapipe for the GPU canvas tests
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends mesa-vulkan-drivers
+        run: sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 update -qq && sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 install -y -qq --no-install-recommends mesa-vulkan-drivers
       - name: cargo build
         run: cargo build --workspace --locked
       # FT-353 (decision log ID-527): the default-features run moved to the job test-linux-default, so that the two
@@ -203,8 +205,10 @@ jobs:
           tool: cargo-nextest@0.9.148
       # Mesa's software Vulkan driver (lavapipe): the GPU canvas's parity test (WP-S2.02 part 2, spec section 8 item 4)
       # needs an adapter; without one the test prints `skipped: no adapter` and passes, which proves nothing on Linux.
+      # FT-479: the step took 440 s and 535 s in test-linux-default in runs 40376419761 and 40364837825 (10 s in test-linux, same
+      # command, same runs), a stalled mirror connection; the timeouts and retries turn a stall into a retry of a few seconds.
       - name: install Mesa's lavapipe for the GPU canvas tests
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends mesa-vulkan-drivers
+        run: sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 update -qq && sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 install -y -qq --no-install-recommends mesa-vulkan-drivers
       - name: cargo build
         run: cargo build --workspace --locked
       # The default-features run of the Linux test (FT-353, decision log ID-527), without the headless acceptance
@@ -311,17 +315,13 @@ jobs:
           # Outside the checkout: the licence-map test walks the working tree and flagged the archive in the first
           # split run (ci run 39846775852, test-windows-1).
           path: ${{ runner.temp }}/nextest-archive
-      # Part 1 of 3 of the all-features suite (FT-353, FT-387): nine heavy test binaries, named by `binary_id`; they hold the
-      # acceptance tests and the command fuzzer, so those run once in total, here. Part 2 names nine other heavy binaries, part 3
+      # Part 1 of 3 of the all-features suite (FT-353, FT-387): eight heavy test binaries, named by `binary_id`; they hold the
+      # acceptance tests and the command fuzzer, so those run once in total, here. Part 2 names ten other heavy binaries, part 3
       # runs every remaining binary (`not` of both lists), so the three parts are a complete and disjoint cover. The lists balance
-      # the per-binary durations of a full run (`ci/README.md`, CI-PR-03): the cycle-26 split took 15:01, 7:52 and 13:35.
-      # The xtask tests run `cargo metadata`, which needs the registry sources.
-      - name: cargo fetch
-        shell: bash
-        run: cargo fetch --locked
+      # the per-binary durations of a full run (`ci/README.md`, CI-PR-03): the cycle-26 split took 15:01, 7:52 and 13:35; FT-479 moved `ew-store::fault_injection` from part 1 to part 2 (nextest steps of 8:38 to 10:14, 3:53 to 6:21 and 5:23 to 8:27 before the move).
       - name: cargo nextest (all features, partition 1/3)
         shell: bash
-        run: cargo nextest run --archive-file "$RUNNER_TEMP/nextest-archive/nextest-archive.tar.zst" --workspace-remap . -E 'binary_id(=elektrawatt::canvas) or binary_id(=ew-api::acceptance) or binary_id(=ew-derive::incremental_partition) or binary_id(=ew-import-qet::hostile_input) or binary_id(=ew-store::fault_injection) or binary_id(=ew-store::incremental) or binary_id(=ew-store::purge) or binary_id(=ew-testkit::command_fuzz) or binary_id(=ew::cli)' --profile ci
+        run: cargo nextest run --archive-file "$RUNNER_TEMP/nextest-archive/nextest-archive.tar.zst" --workspace-remap . -E 'binary_id(=elektrawatt::canvas) or binary_id(=ew-api::acceptance) or binary_id(=ew-derive::incremental_partition) or binary_id(=ew-import-qet::hostile_input) or binary_id(=ew-store::incremental) or binary_id(=ew-store::purge) or binary_id(=ew-testkit::command_fuzz) or binary_id(=ew::cli)' --profile ci
       # Names every failed nextest case as a check-run annotation (the job log needs admin rights to read).
       - name: failed tests as annotations
         if: failure()
@@ -376,16 +376,12 @@ jobs:
           # Outside the checkout: the licence-map test walks the working tree and flagged the archive in the first
           # split run (ci run 39846775852, test-windows-1).
           path: ${{ runner.temp }}/nextest-archive
-      # Part 2 of 3 of the all-features suite (FT-353, FT-387): nine heavy test binaries, named by `binary_id` (the lumpy ones
-      # that count-splitting dealt out unevenly); part 1 takes nine others and part 3 the rest. The acceptance tests and the
+      # Part 2 of 3 of the all-features suite (FT-353, FT-387): ten heavy test binaries, named by `binary_id` (the lumpy ones
+      # that count-splitting dealt out unevenly); part 1 takes eight others and part 3 the rest. The acceptance tests and the
       # command fuzzer are in part 1 only.
-      # The xtask tests run `cargo metadata`, which needs the registry sources.
-      - name: cargo fetch
-        shell: bash
-        run: cargo fetch --locked
       - name: cargo nextest (all features, partition 2/3)
         shell: bash
-        run: cargo nextest run --archive-file "$RUNNER_TEMP/nextest-archive/nextest-archive.tar.zst" --workspace-remap . -E 'binary_id(=elektrawatt::headless) or binary_id(=elektrawatt::part2) or binary_id(=ew-api::checks) or binary_id(=ew-api::memo_oracle) or binary_id(=ew-api::page_output) or binary_id(=ew-testkit::golden_dsl) or binary_id(=ew-testkit::spike_memo) or binary_id(=ew-ui::canvas) or binary_id(=ew-viewmodel::part2)' --profile ci
+        run: cargo nextest run --archive-file "$RUNNER_TEMP/nextest-archive/nextest-archive.tar.zst" --workspace-remap . -E 'binary_id(=elektrawatt::headless) or binary_id(=elektrawatt::part2) or binary_id(=ew-api::checks) or binary_id(=ew-api::memo_oracle) or binary_id(=ew-api::page_output) or binary_id(=ew-store::fault_injection) or binary_id(=ew-testkit::golden_dsl) or binary_id(=ew-testkit::spike_memo) or binary_id(=ew-ui::canvas) or binary_id(=ew-viewmodel::part2)' --profile ci
       # Names every failed nextest case as a check-run annotation (the job log needs admin rights to read).
       - name: failed tests as annotations
         if: failure()
@@ -442,13 +438,14 @@ jobs:
           path: ${{ runner.temp }}/nextest-archive
       # Part 3 of 3 of the all-features suite (FT-353, FT-387): every binary that is in neither list of parts 1 and 2 (the
       # many-test, well-parallelised bulk). The acceptance tests and the command fuzzer are in part 1 only.
-      # The xtask tests run `cargo metadata`, which needs the registry sources.
+      # The xtask tests run `cargo metadata`, which needs the registry sources; they are in this part only (no other test binary
+      # starts cargo: FT-479), so parts 1 and 2 skip the fetch (62 s and 64 s in runs 40611786232 and 40607950237).
       - name: cargo fetch
         shell: bash
         run: cargo fetch --locked
       - name: cargo nextest (all features, partition 3/3)
         shell: bash
-        run: cargo nextest run --archive-file "$RUNNER_TEMP/nextest-archive/nextest-archive.tar.zst" --workspace-remap . -E 'not (binary_id(=elektrawatt::canvas) or binary_id(=ew-api::acceptance) or binary_id(=ew-derive::incremental_partition) or binary_id(=ew-import-qet::hostile_input) or binary_id(=ew-store::fault_injection) or binary_id(=ew-store::incremental) or binary_id(=ew-store::purge) or binary_id(=ew-testkit::command_fuzz) or binary_id(=ew::cli) or binary_id(=elektrawatt::headless) or binary_id(=elektrawatt::part2) or binary_id(=ew-api::checks) or binary_id(=ew-api::memo_oracle) or binary_id(=ew-api::page_output) or binary_id(=ew-testkit::golden_dsl) or binary_id(=ew-testkit::spike_memo) or binary_id(=ew-ui::canvas) or binary_id(=ew-viewmodel::part2))' --profile ci
+        run: cargo nextest run --archive-file "$RUNNER_TEMP/nextest-archive/nextest-archive.tar.zst" --workspace-remap . -E 'not (binary_id(=elektrawatt::canvas) or binary_id(=ew-api::acceptance) or binary_id(=ew-derive::incremental_partition) or binary_id(=ew-import-qet::hostile_input) or binary_id(=ew-store::incremental) or binary_id(=ew-store::purge) or binary_id(=ew-testkit::command_fuzz) or binary_id(=ew::cli) or binary_id(=elektrawatt::headless) or binary_id(=elektrawatt::part2) or binary_id(=ew-api::checks) or binary_id(=ew-api::memo_oracle) or binary_id(=ew-api::page_output) or binary_id(=ew-store::fault_injection) or binary_id(=ew-testkit::golden_dsl) or binary_id(=ew-testkit::spike_memo) or binary_id(=ew-ui::canvas) or binary_id(=ew-viewmodel::part2))' --profile ci
       # Names every failed nextest case as a check-run annotation (the job log needs admin rights to read).
       - name: failed tests as annotations
         if: failure()

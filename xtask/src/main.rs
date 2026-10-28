@@ -717,23 +717,23 @@ mod tests {
     /// complement of both, so the acceptance tests and the command fuzzer run in part 1 and nowhere else. `ci/README.md`
     /// (CI-PR-03) records the durations the lists were chosen from; a binary that moves between the lists is a change
     /// to that table and to `ci.yml`.
-    const WINDOWS_PART1_BINARIES: [&str; 9] = [
+    const WINDOWS_PART1_BINARIES: [&str; 8] = [
         "elektrawatt::canvas",
         "ew-api::acceptance",
         "ew-derive::incremental_partition",
         "ew-import-qet::hostile_input",
-        "ew-store::fault_injection",
         "ew-store::incremental",
         "ew-store::purge",
         "ew-testkit::command_fuzz",
         "ew::cli",
     ];
-    const WINDOWS_PART2_BINARIES: [&str; 9] = [
+    const WINDOWS_PART2_BINARIES: [&str; 10] = [
         "elektrawatt::headless",
         "elektrawatt::part2",
         "ew-api::checks",
         "ew-api::memo_oracle",
         "ew-api::page_output",
+        "ew-store::fault_injection",
         "ew-testkit::golden_dsl",
         "ew-testkit::spike_memo",
         "ew-ui::canvas",
