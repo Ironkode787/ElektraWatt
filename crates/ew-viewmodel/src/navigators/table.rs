@@ -145,14 +145,16 @@ pub fn table_rows(table: &NavTable, sort: &SortBy, descending: bool, query: &Que
 }
 
 /// The records of a row of the route's kind (D10): a conductor route takes a core row's conductor (the records after
-/// its cable), a potential definition route a potential row's record (not the bond row's), every other route the row's
-/// records; deduplicated, in record order.
+/// its cable), a potential definition route a potential row's record when it is a `potential_def` (not the bond row's,
+/// nor a connection point naming the potential), every other route the row's records; deduplicated, in record order.
 pub fn row_targets(node: &NavNode, route_kind: &str) -> Vec<Uuid> {
     let picked: Vec<Uuid> = match route_kind {
         "conductor" if node.role == NavRole::Conductor => node.records.iter().skip(1).copied().collect(),
         "conductor" => Vec::new(),
         "potential_def"
-            if node.role == NavRole::Potential && node.facets.iter().any(|(f, _)| f == "potential") =>
+            if node.role == NavRole::Potential
+                && node.facets.iter().any(|(f, _)| f == "potential")
+                && node.kinds.first().is_some_and(|k| k == "potential_def") =>
         {
             node.records.clone()
         }

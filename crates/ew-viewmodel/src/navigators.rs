@@ -521,6 +521,7 @@ mod tests {
             label: label.to_owned(),
             badges: Vec::new(),
             records: Vec::new(),
+            kinds: Vec::new(),
             drawables: Vec::new(),
             open: None,
             cells: Vec::new(),

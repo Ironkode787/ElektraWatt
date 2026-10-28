@@ -174,6 +174,7 @@ mod tests {
             label: "-3W1: cable without length".to_owned(),
             badges: vec![severity.to_owned()],
             records: Vec::new(),
+            kinds: Vec::new(),
             drawables: Vec::new(),
             open: None,
             cells: vec![

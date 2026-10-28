@@ -249,6 +249,9 @@ pub struct NavNode {
     pub badges: Vec<String>,
     /// The records the row stands for.
     pub records: Vec<Uuid>,
+    /// The records' kinds for edit routing, aligned with `records`; empty where the builder does not state them (not
+    /// printed).
+    pub kinds: Vec<String>,
     /// What draws them, main first, then page order, cell row, cell column, ID.
     pub drawables: Vec<Drawable>,
     /// What Enter opens.
@@ -546,6 +549,7 @@ impl Builder {
             label,
             badges,
             records,
+            kinds: Vec::new(),
             drawables,
             open,
             cells,
@@ -1609,6 +1613,15 @@ fn potentials_table(q: &Q, b: &mut Builder) {
             Some(texts),
             facets,
         );
+        // The overview's row entity: the bond, the potential's definition, or (a potential without one) its CP.
+        let kind = if bond {
+            "bond"
+        } else if q.potential_defs().contains(Id::from_uuid(record)) {
+            "potential_def"
+        } else {
+            "cp"
+        };
+        b.nodes[n as usize].kinds = vec![kind.to_owned()];
         b.nodes[n as usize].open = first.and_then(|f| pages.get(&f)).map(|p| NavOpen {
             page: *p,
             select: Vec::new(),

@@ -238,6 +238,16 @@ fn np1_cables_plc_potentials_parts() {
     assert_eq!(wires, want, "the Connections navigator's physical-wire rows");
     let bond = find(&t, NavRole::Potential, "B1 (0V \u{21C4} PE)");
     assert!(children(&t, bond).is_empty());
+    // The record kinds for edit routing (FT-515): every potential of Golden A has a definition; the bond row's is
+    // the bond.
+    for n in table_rows(&t) {
+        let want = if n.label.starts_with("B1 ") {
+            "bond"
+        } else {
+            "potential_def"
+        };
+        assert_eq!(n.kinds, [want], "{}", n.label);
+    }
 
     // Parts in use: block 901's rows in component mode, the 27 rows; 2904602 → -102G1.
     let t = s.navigator_table(NavKind::Parts);

@@ -875,3 +875,80 @@ fn the_messages_pane_has_no_table_mode() {
     assert!(shell.navigator_open(NavKind::Messages));
     shell.shutdown();
 }
+
+/// FT-515: a potential known only by a name at a connection point (its definition deleted) has its CP as the
+/// Potentials row's record; the row's potential-definition cells are read-only ("no record of this kind") and compile
+/// no `fields.set` on the CP; a potential with a definition still edits.
+#[test]
+fn a_potential_without_a_definition_has_read_only_definition_cells() {
+    let tmp = Tmp::new("ft515");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    done(&mut shell, "navigator.show", json!({"kind": "potentials"}));
+    done(&mut shell, "navigator.table", json!({"kind": "potentials"}));
+    let def = {
+        let t = shell.nav(NavKind::Potentials).and_then(|n| n.table()).unwrap();
+        let n = t
+            .nodes
+            .iter()
+            .find(|n| n.role == NavRole::Potential && n.label == "24VDC-4")
+            .expect("24VDC-4");
+        assert_eq!(n.kinds, ["potential_def"]);
+        n.records[0]
+    };
+    done(
+        &mut shell,
+        "command.run",
+        json!({"cmd": "edit.delete", "params": {"targets": [{"kind": "potential_def", "id": def.to_string()}]}}),
+    );
+    let key = {
+        let t = shell.nav(NavKind::Potentials).and_then(|n| n.table()).unwrap();
+        t.nodes
+            .iter()
+            .find(|n| n.table_row && n.kinds == ["cp"])
+            .expect("a potential known only at a CP")
+            .key
+            .clone()
+    };
+    let pot = col(&shell, NavKind::Potentials, "Potential");
+    let n = steps(&shell);
+    let m = failed(
+        &mut shell,
+        "table.edit",
+        json!({"kind": "potentials", "row": key, "column": pot}),
+    );
+    assert_eq!(m, "Potential is read-only here: no record of this kind.");
+    // A paste over the cell is invalid with the same reason and commits nothing.
+    done(&mut shell, "table.cell", json!({"row": key, "column": pot}));
+    done(&mut shell, "table.paste", json!({"text": "X-1\n"}));
+    assert_eq!(
+        lines_with(&shell, "  cell ")
+            .iter()
+            .filter(|l| l.ends_with("invalid \"no record of this kind\""))
+            .count(),
+        1,
+        "{:?}",
+        lines_with(&shell, "  cell ")
+    );
+    failed(&mut shell, "preview.apply", json!({}));
+    done(&mut shell, "preview.cancel", json!({}));
+    assert_eq!(steps(&shell), n, "no fields.set on the CP");
+    // A potential with a definition still edits.
+    let (k1, _) = column(&shell, NavKind::Potentials, "Potential")
+        .into_iter()
+        .find(|(_, t)| t == "24VDC-1")
+        .expect("24VDC-1");
+    done(
+        &mut shell,
+        "table.edit",
+        json!({"kind": "potentials", "row": k1, "column": pot}),
+    );
+    done(
+        &mut shell,
+        "table.input",
+        json!({"kind": "potentials", "text": "24VDC-9"}),
+    );
+    done(&mut shell, "table.commit", json!({"kind": "potentials"}));
+    assert_eq!(steps(&shell), n + 1);
+    assert_eq!(last(&shell).0, "fields.set");
+    shell.shutdown();
+}
