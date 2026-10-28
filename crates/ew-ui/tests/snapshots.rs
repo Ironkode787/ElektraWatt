@@ -90,8 +90,10 @@ fn record(name: &str, image: &ew_render_cpu::RgbaImage, gated: bool) -> Option<S
     }
 }
 
-fn main_window(theme: &str, density: &str) -> (Harness<'static, App>, offscreen::Recorder) {
-    let tmp = Box::leak(Box::new(Tmp::new()));
+/// The main window on a copy of Golden A in `theme` and `density`, with the temporary directory that holds the copy:
+/// the caller drops it after the harness, so no copy is left in the temporary directory.
+fn main_window(theme: &str, density: &str) -> (Harness<'static, App>, offscreen::Recorder, Tmp) {
+    let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut shell = ShellModel::new(Mode::Gui, tmp.config());
     assert_eq!(
@@ -119,7 +121,7 @@ fn main_window(theme: &str, density: &str) -> (Harness<'static, App>, offscreen:
     h.run_ok();
     support::wait_for_page(&mut h);
     h.run_ok();
-    (h, recorder)
+    (h, recorder, tmp)
 }
 
 #[test]
@@ -128,11 +130,14 @@ fn the_main_window_in_every_theme_and_density() {
     let mut failures = Vec::new();
     for theme in ["light", "dark", "hc-dark", "hc-light"] {
         for density in ["comfortable", "compact"] {
-            let (h, recorder) = main_window(theme, density);
+            let (h, recorder, tmp) = main_window(theme, density);
             let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
             assert_eq!((image.width, image.height), (1280, 800));
             let gated = matches!(theme, "light" | "dark");
             failures.extend(record(&format!("main-{theme}-{density}"), &image, gated));
+            // The project closes before its directory is removed.
+            drop(h);
+            drop(tmp);
         }
     }
     assert!(failures.is_empty(), "{}", failures.join("\n"));
@@ -143,7 +148,7 @@ fn the_main_window_in_every_theme_and_density() {
 fn the_table_and_the_history_panel_for_review() {
     let dev = device();
     for theme in ["light", "dark"] {
-        let (mut h, recorder) = main_window(theme, "comfortable");
+        let (mut h, recorder, tmp) = main_window(theme, "comfortable");
         let shell = h.state_mut().shell_mut();
         for (action, params) in [
             ("navigator.show", json!({"kind": "devices"})),
@@ -155,6 +160,8 @@ fn the_table_and_the_history_panel_for_review() {
         h.run_ok();
         let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
         assert_eq!(record(&format!("table-history-{theme}"), &image, false), None);
+        drop(h);
+        drop(tmp);
     }
 }
 
