@@ -355,3 +355,29 @@ fn tb4_paste_resolve_and_apply_without_a_pointer() {
     assert_eq!(&vals[first..first + 2], ["0.75 mm²", "1.5 mm²"]);
     h.state_mut().shell_mut().shutdown();
 }
+
+/// W31-3: a header whose text is wider than its column ("Function text") is cut to the column less its padding, not
+/// run into the next one.
+#[test]
+fn w31_3_a_header_text_is_truncated_within_its_column() {
+    let tmp = Tmp::new();
+    let mut h = table(&tmp, "strips", "x1031");
+    settle(&mut h);
+    let header = h.get_by_label("Sort by Function text").rect();
+    let cell = h.get_by_label("Function text 1+, row 1 of 20").rect();
+    // The full header text is wider than the column: what is on show is cut.
+    let font = egui::TextStyle::Button.resolve(&h.ctx.global_style());
+    let full = h.ctx.fonts_mut(|f| {
+        f.layout_no_wrap("Function text".to_owned(), font, egui::Color32::WHITE)
+            .size()
+            .x
+    });
+    assert!(full > header.width(), "{full} wider than {header:?}");
+    assert!(
+        header.left() >= cell.left() - 0.5 && header.right() <= cell.right() + 0.5,
+        "the header {header:?} inside its column {cell:?}"
+    );
+    let next = h.get_by_label("Sort by Group").rect();
+    assert!(header.right() < next.left(), "{header:?} ends before {next:?}");
+    h.state_mut().shell_mut().shutdown();
+}

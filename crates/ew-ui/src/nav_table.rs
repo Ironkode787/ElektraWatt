@@ -392,6 +392,19 @@ pub(crate) fn keys(ui: &Ui, nav: &Navigator, card: bool, events: &mut Vec<Event>
     }
 }
 
+// W31-3
+/// Runs `add` in the cell's rect less `space.2` on either side, clipped to it, with that inner size.
+fn in_cell<R>(ui: &mut Ui, add: impl FnOnce(&mut Ui, egui::Vec2) -> R) -> R {
+    let pad = crate::theme::current(ui.ctx()).space_2;
+    let rect = ui.max_rect().shrink2(egui::vec2(pad, 0.0));
+    let clip = ui.clip_rect().intersect(rect);
+    ui.scope_builder(egui::UiBuilder::new().max_rect(rect), |ui| {
+        ui.set_clip_rect(clip);
+        add(ui, rect.size())
+    })
+    .inner
+}
+
 /// The table's delegate for one frame.
 struct Delegate<'a> {
     kind: NavKind,
@@ -474,7 +487,15 @@ impl TableDelegate for Delegate<'_> {
         } else {
             RichText::new(text).strong()
         };
-        let response = ui.add(egui::Button::new(rich).frame(false));
+        // W31-3: clipped to the column, left-aligned, cut with an ellipsis.
+        let response = in_cell(ui, |ui, size| {
+            ui.add_sized(
+                size,
+                egui::Button::new((rich, egui::Atom::grow()))
+                    .frame(false)
+                    .truncate(),
+            )
+        });
         let name = strings::format("table-sort-by", &[&column.label]);
         response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &name));
         if response.clicked() {
@@ -523,11 +544,13 @@ impl TableDelegate for Delegate<'_> {
             RichText::new(&text)
         };
         let rich = if is_cursor { rich.underline() } else { rich };
-        let button =
-            egui::Button::selectable(marked || is_cursor || (on_cursor_row && cell.col_nr == 0), rich)
-                .frame(false)
-                .sense(Sense::click());
-        let response = ui.add_sized(ui.available_size(), button);
+        // W31-3: clipped to the column, left-aligned (the key column too), cut with an ellipsis.
+        let selected = marked || is_cursor || (on_cursor_row && cell.col_nr == 0);
+        let button = egui::Button::selectable(selected, (rich, egui::Atom::grow()))
+            .frame(false)
+            .truncate()
+            .sense(Sense::click());
+        let response = in_cell(ui, |ui, size| ui.add_sized(size, button));
         response.widget_info(|| egui::WidgetInfo::selected(egui::Role::Cell, true, is_cursor, &name));
         let response = match &reason {
             Some(r) => response.on_hover_text(r.as_str()),
