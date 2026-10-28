@@ -8,6 +8,10 @@ for electrical control-cabinet design. Currently in the design phase: see `docs/
 The main session orchestrates: it plans each cycle, briefs the subagents, integrates their work and delivers. All
 work is done by Claude subagents; there is no external coder.
 
+0. **Sonnet is excluded until the owner lifts it (owner, 2026-10-28: Sonnet drove the excessive usage).** Choose
+   only Opus or Haiku; wherever a rule below names Sonnet, use Opus at a lower effort for work that needs judgment
+   and Haiku for closed, mechanical work. Leads may not delegate to Sonnet (`programmer`/`designer` run with an
+   explicit `model`).
 1. **Model per task.** For every task, work package or bundle in a cycle the orchestrator chooses the subagent's
    model — Opus, Sonnet or Haiku — and passes it explicitly (`model` on the Agent tool or a workflow `agent()`
    call). The role agents in `.claude/agents/` are templates for the brief, not a fixed routing.
@@ -32,7 +36,8 @@ work is done by Claude subagents; there is no external coder.
    main>..<tip>`) against the ADRs, the specs and the design docs: format bytes and data loss first, then
    determinism, panics, spec gaps, tests, CI/supply chain and repository hygiene. It did not write the briefs and is
    given the code, not the orchestrator's conclusions. It reports ranked findings with `path:line` and evidence,
-   and a verdict (accepted / not accepted). The findings go to a fix subagent on Sonnet at `xhigh` effort (in its
+   and a verdict (accepted / not accepted). The findings go to a fix subagent on Sonnet at `xhigh` effort (while rule 0 holds: Opus at
+   `medium`) (in its
    own worktree, the findings verbatim as its brief); then the same reviewer (continued with SendMessage; a fresh
    Opus `high` reviewer with the previous findings if it is gone) re-reviews the fixes and the remaining diff.
    Fix → re-review repeats until the reviewer accepts; only then does the cycle go to the gate.
