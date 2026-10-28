@@ -48,6 +48,11 @@ work is done by Claude subagents; there is no external coder.
    screenshots, on a normal build) → design pass (decision-log rows, FT rows, as-built spec text, doc 01 cycle
    section, next candidates) → the cycle review (rule 6), fix and re-review until accepted → one full gate → fast-forward `main`, push,
    watch CI on the full SHA. Report outcomes faithfully, including what was skipped or not proven.
+   **Cycles are large (owner, 2026-10-28: "more wps, not parallel"):** plan about twice the work per cycle as
+   sequential waves of lanes, still at most three builders at once; a finished lane's slot goes to the next queued WP
+   instead of closing the cycle; a merged-tip verify between waves; the window checks, design pass, review loop and
+   gate run once, after the last wave. Window checks never drive the desktop while the owner is using it: verify the
+   app window has the focus before every key or click, and stop if it does not.
 
 ## Testing policy (owner's rule, 2026-10-18)
 
