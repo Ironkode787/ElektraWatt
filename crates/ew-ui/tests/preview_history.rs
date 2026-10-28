@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.09 part 3 in the window (§10.3): Renumber devices... opens its dialog, OK opens the `bulk` card in the Preview
+//! WP-S2.09 part 3 in the window (§10.3): Renumber devices… opens its dialog, OK opens the `bulk` card in the Preview
 //! tab with Golden B1's tag changes and Apply commits it (PV2); the property grid's card is a one-line chip while the
 //! tab shows it (PV3); the history panel lists the steps with Undo to here and Show changes (PV5); each followed by the
 //! accessible-name walker.

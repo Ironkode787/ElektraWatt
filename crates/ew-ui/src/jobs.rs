@@ -35,7 +35,13 @@ pub fn show(
     ui.scope_builder(egui::UiBuilder::new().accessibility_parent(pane_id), |ui| {
         let jobs = shell.jobs();
         if jobs.entries().next().is_none() {
-            ui.label(strings::text("jobs-empty"));
+            crate::components::empty_state(
+                ui,
+                crate::icons::IconId::file_type_pdf,
+                strings::text("empty-jobs"),
+                strings::text("empty-jobs-text"),
+                None,
+            );
             return;
         }
         egui::ScrollArea::vertical()
@@ -92,8 +98,11 @@ fn entry(ui: &mut Ui, e: &JobEntry, elapsed: Option<std::time::Duration>, events
                 }
             });
         }
+        // WP-S2.17 part 4 (FT-510, doc 16a §6.19): a finished entry names its outcome as a status badge next to its
+        // result.
         JobStatus::Done { pages, kib, now } => {
             ui.horizontal_wrapped(|ui| {
+                crate::components::status_badge(ui, crate::components::Badge::Done);
                 ui.label(strings::format(
                     "job-done",
                     &[&pages.to_string(), &kib.to_string()],
@@ -107,13 +116,19 @@ fn entry(ui: &mut Ui, e: &JobEntry, elapsed: Option<std::time::Duration>, events
             });
         }
         JobStatus::Cancelled => {
-            ui.label(strings::text("job-cancelled"));
+            ui.horizontal_wrapped(|ui| {
+                crate::components::status_badge(ui, crate::components::Badge::Cancelled);
+                ui.label(strings::text("job-cancelled"));
+            });
         }
         JobStatus::Failed(cause) => {
-            ui.colored_label(
-                ui.visuals().error_fg_color,
-                strings::format("job-failed", &[cause]),
-            );
+            ui.horizontal_wrapped(|ui| {
+                crate::components::status_badge(ui, crate::components::Badge::Failed);
+                ui.colored_label(
+                    ui.visuals().error_fg_color,
+                    strings::format("job-failed", &[cause]),
+                );
+            });
         }
     }
 }

@@ -98,49 +98,31 @@ pub(crate) fn header(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     fix_card(ui, shell, events);
 }
 
-/// The quick-fix card (§7.4): what the fix changes, Apply and Cancel.
+/// The quick-fix card (§7.4; WP-S2.17 part 4, doc 16a §6.23): "Quick fix `<rule>`" with its revision and status badge,
+/// what the fix changes, Apply and Cancel.
 fn fix_card(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
-    let (Some(card), Some(rev)) = (shell.properties().card(), shell.revision()) else {
+    let Some(card) = shell.properties().card() else {
         return;
     };
     let CardOrigin::QuickFix { rule } = &card.origin else {
         return;
     };
-    ui.group(|ui| {
-        let mut line = strings::format(
-            "card-fix",
-            &[
-                rule,
-                &card.changes.to_string(),
-                &card.preview.derived.tags.len().to_string(),
-                &card.preview.derived.xrefs.len().to_string(),
-            ],
-        );
-        match (&card.preview.result, card.preview.status(rev)) {
-            (Err(m), _) => line = strings::format("card-failed", &[m]),
-            (_, ew_viewmodel::tools::PreviewStatus::Stale) => {
-                line.push_str(&format!(" [{}]", strings::text("card-stale")));
-            }
-            _ => {}
-        }
-        // WP-S2.09 part 3 (§8.1): while the Preview tab shows the card, a one-line chip stands in for it.
-        if crate::preview::chip(ui, shell, &line, events) {
-            return;
-        }
-        let response = ui.label(&line);
-        ui.ctx().accesskit_node_builder(response.id, |n| {
-            n.set_live(egui::accesskit::Live::Polite);
-            n.set_value(line);
-        });
-        ui.horizontal(|ui| {
-            if ui.button(strings::text("card-apply")).clicked() {
-                events.push(Event::Action("navigator.apply", Value::Null));
-            }
-            if ui.button(strings::text("card-cancel")).clicked() {
-                events.push(Event::Action("preview.cancel", Value::Null));
-            }
-        });
-    });
+    let title = strings::format("card-title-fix", &[rule]);
+    let summary = strings::format(
+        "card-fix",
+        &[
+            &card.changes.to_string(),
+            &card.preview.derived.tags.len().to_string(),
+            &card.preview.derived.xrefs.len().to_string(),
+        ],
+    );
+    let card = crate::components::InlineCard {
+        title: &title,
+        summary: &summary,
+        apply: "navigator.apply",
+        strip: true,
+    };
+    crate::components::inline_card(ui, shell, card, events, |_, _| {});
 }
 
 /// The detail block of the cursor's finding, below the rows.

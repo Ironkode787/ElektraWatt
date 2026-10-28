@@ -236,3 +236,76 @@ fn the_command_bar_on_every_tab() {
     }
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
+
+/// WP-S2.17 part 4 (CP6, CP9): the quit prompt over the toast, the app menu's File submenu, the command palette and
+/// the Preview tab with the property grid's "Preview open" strip, in light and dark, gated.
+#[test]
+fn part4_dialogs_toasts_menu_palette_and_preview_in_light_and_dark() {
+    let dev = device();
+    let mut failures = Vec::new();
+    for theme in ["light", "dark"] {
+        // An edit gives the toast and the dirty project; closing asks to save.
+        let (mut h, recorder, tmp) = main_window(theme, "comfortable");
+        // The palette's caret blinks on the wall clock: steady for a stable image.
+        h.ctx.all_styles_mut(|s| s.visuals.text_cursor.blink = false);
+        let shell = h.state_mut().shell_mut();
+        for (action, params) in [
+            ("select.set", json!({"refs": ["tag:-101F1", "tag:-102F1"]})),
+            (
+                "props.set",
+                json!({"row": "device/function_text", "value": "Spare"}),
+            ),
+        ] {
+            assert_eq!(shell.dispatch(action, &params), Outcome::Done, "{action}");
+        }
+        let _ = shell.dispatch("file.close", &json!({}));
+        h.run_ok();
+        h.run_ok();
+        let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
+        failures.extend(record(&format!("part4-dialog-toast-{theme}"), &image, true));
+        let _ = h.state_mut().shell_mut().dispatch("ui.dismiss", &json!(null));
+        h.run_ok();
+        // The app menu with its File submenu.
+        support::open_menu(&mut h, &["File"]);
+        h.run_ok();
+        let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
+        failures.extend(record(&format!("part4-menu-{theme}"), &image, true));
+        h.key_press(egui::Key::Escape);
+        h.run_ok();
+        h.key_press(egui::Key::Escape);
+        h.run_ok();
+        // The palette.
+        assert_eq!(
+            h.state_mut().shell_mut().dispatch("tools.palette", &json!({})),
+            Outcome::Done
+        );
+        h.run_ok();
+        h.run_ok();
+        let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
+        failures.extend(record(&format!("part4-palette-{theme}"), &image, true));
+        h.key_press(egui::Key::Escape);
+        h.run_ok();
+        // A card in the Preview tab and the grid's strip; the toast (it leaves on the wall clock) is dismissed first.
+        let shell = h.state_mut().shell_mut();
+        let serials: Vec<u64> = shell.notifications().visible().iter().map(|n| n.serial).collect();
+        for serial in serials {
+            shell.dismiss_toast(serial);
+        }
+        for (action, params) in [
+            ("select.set", json!({"refs": ["tag:-101F1", "tag:-102F1"]})),
+            ("props.show", json!({"on": true})),
+            ("props.set", json!({"row": "device/tag.counter", "value": "9"})),
+        ] {
+            assert_eq!(shell.dispatch(action, &params), Outcome::Done, "{action}");
+        }
+        h.run_ok();
+        support::wait_for_page(&mut h);
+        h.run_ok();
+        let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
+        failures.extend(record(&format!("part4-preview-{theme}"), &image, true));
+        h.state_mut().shell_mut().shutdown();
+        drop(h);
+        drop(tmp);
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}

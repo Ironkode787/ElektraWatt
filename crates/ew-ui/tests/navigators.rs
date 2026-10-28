@@ -190,7 +190,7 @@ fn nv7_dragging_106_before_103_opens_the_card_and_apply_commits() {
     let card = h.state().shell().properties().card().map(|c| c.origin.word());
     assert_eq!(card, Some("reorder"));
     assert!(
-        h.query_by_label_contains("Preview: reorder pages · 106 → 103, 103 → 106 · ")
+        h.query_by_label_contains("Reorder pages · 106 → 103, 103 → 106 · ")
             .is_some(),
         "the card's line"
     );

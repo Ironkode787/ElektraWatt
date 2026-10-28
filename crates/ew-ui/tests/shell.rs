@@ -19,7 +19,7 @@ fn the_start_page_offers_open_and_names_no_project() {
     let tmp = Tmp::new();
     let mut h = harness(&tmp, Scripted::default(), None);
     settle(&mut h);
-    assert!(h.query_by_label("Open...").is_some());
+    assert!(h.query_by_label("Open…").is_some());
     assert!(h.query_by_label("Update check: off").is_some());
     assert!(h.query_by_label("No project open").is_some());
     // The app menu is there on every operating system (WP-S2.17 part 2: one button opens the whole tree, in doc
@@ -235,10 +235,10 @@ fn closing_a_dirty_project_asks_and_discard_closes_it() {
     assert!(h.state().shell().has_project());
     h.key_press_modifiers(Modifiers::COMMAND | Modifiers::SHIFT, Key::W);
     settle(&mut h);
-    h.get_by_label("Discard").click();
+    h.get_by_label("Don't save").click();
     settle(&mut h);
     assert!(!h.state().shell().has_project());
-    assert!(h.query_by_label("Open...").is_some(), "back on the start page");
+    assert!(h.query_by_label("Open…").is_some(), "back on the start page");
 }
 
 #[test]
@@ -296,7 +296,7 @@ fn the_file_menu_greys_out_what_needs_a_project() {
     support::open_menu(&mut h, &["File"]);
     settle(&mut h);
     // A menu entry is named by its label and its accelerator.
-    let open = format!("Open... {}", ew_ui::keys::display("Ctrl+O"));
+    let open = format!("Open… {}", ew_ui::keys::display("Ctrl+O"));
     assert!(!h.get_by_label(&open).accesskit_node().is_disabled());
     let save = format!("Save {}", ew_ui::keys::display("Ctrl+S"));
     assert!(
@@ -369,5 +369,5 @@ fn the_zoom_is_set_when_the_setting_changes_not_every_frame() {
     assert_eq!(h.ctx.zoom_factor(), 1.5);
 }
 
-// WP-S2.09 part 1: the one-frame "Exporting PDF..." label went with the export job; `tests/jobs.rs` holds the
+// WP-S2.09 part 1: the one-frame "Exporting PDF…" label went with the export job; `tests/jobs.rs` holds the
 // window's export (the save dialog, the job, its progress and its end).

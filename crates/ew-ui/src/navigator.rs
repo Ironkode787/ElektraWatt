@@ -664,81 +664,53 @@ fn row_ui(
     }
 }
 
-/// The reorder card in the Pages pane (§6.6): "Preview: reorder pages · 106 → 103, 103 → 106 · <n> tags, <m>
-/// cross-reference texts", Apply and Cancel.
+/// The reorder card in the Pages pane (§6.6; WP-S2.17 part 4, doc 16a §6.23): "Reorder pages" with its revision and
+/// status badge, "106 → 103, 103 → 106 · <n> tags, <m> cross-reference texts", Apply and Cancel.
 fn reorder_card(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
-    let (Some(card), Some(rev)) = (shell.properties().card(), shell.revision()) else {
+    let Some(card) = shell.properties().card() else {
         return;
     };
     let CardOrigin::Reorder { notices } = &card.origin else {
         return;
     };
-    ui.group(|ui| {
-        let mut line = strings::format(
-            "card-reorder",
-            &[
-                &notices.join(", "),
-                &card.preview.derived.tags.len().to_string(),
-                &card.preview.derived.xrefs.len().to_string(),
-            ],
-        );
-        match (&card.preview.result, card.preview.status(rev)) {
-            (Err(m), _) => line = strings::format("card-failed", &[m]),
-            (_, ew_viewmodel::tools::PreviewStatus::Stale) => {
-                line.push_str(&format!(" [{}]", strings::text("card-stale")));
-            }
-            _ => {}
-        }
-        // WP-S2.09 part 3 (§8.1): while the Preview tab shows the card, a one-line chip stands in for it.
-        if crate::preview::chip(ui, shell, &line, events) {
-            return;
-        }
-        let response = ui.label(&line);
-        ui.ctx().accesskit_node_builder(response.id, |n| {
-            n.set_live(egui::accesskit::Live::Polite);
-            n.set_value(line);
-        });
-        ui.horizontal(|ui| {
-            if ui.button(strings::text("card-apply")).clicked() {
-                events.push(Event::Action("navigator.apply", Value::Null));
-            }
-            if ui.button(strings::text("card-cancel")).clicked() {
-                events.push(Event::Action("preview.cancel", Value::Null));
-            }
-        });
-    });
+    let summary = strings::format(
+        "card-reorder",
+        &[
+            &notices.join(", "),
+            &card.preview.derived.tags.len().to_string(),
+            &card.preview.derived.xrefs.len().to_string(),
+        ],
+    );
+    let card = crate::components::InlineCard {
+        title: strings::text("card-title-reorder"),
+        summary: &summary,
+        apply: "navigator.apply",
+        strip: true,
+    };
+    crate::components::inline_card(ui, shell, card, events, |_, _| {});
 }
 
 // WP-S2.06 part 3
-/// The table card in the pane of the navigator whose gesture it holds (§8.7): the title with the gesture and its
-/// counts, the pasted columns that were ignored, every invalid or ambiguous cell (row, column, text, reason) with a
-/// button per reading (`table.resolve`) and Drop (`table.drop`), then Apply and Cancel.
+/// The table card in the pane of the navigator whose gesture it holds (§8.7; WP-S2.17 part 4, doc 16a §6.23): the
+/// title with the gesture and its counts, the pasted columns that were ignored, every invalid or ambiguous cell (row,
+/// column, text, reason) with a button per reading (`table.resolve`) and Drop (`table.drop`), then Apply and Cancel.
 fn table_card(ui: &mut Ui, shell: &ShellModel, kind: NavKind, events: &mut Vec<Event>) {
-    let (Some(card), Some(gesture), Some(rev)) =
-        (shell.properties().card(), shell.table_gesture(), shell.revision())
-    else {
+    let (Some(_), Some(gesture)) = (shell.properties().card(), shell.table_gesture()) else {
         return;
     };
     if gesture.nav != kind {
         return;
     }
-    ui.group(|ui| {
-        let mut line = gesture.title();
-        match (&card.preview.result, card.preview.status(rev)) {
-            (Err(m), _) => line.push_str(&format!(" · {m}")),
-            (_, ew_viewmodel::tools::PreviewStatus::Stale) => {
-                line.push_str(&format!(" [{}]", strings::text("card-stale")));
-            }
-            _ => {}
-        }
-        let response = ui.label(&line);
-        ui.ctx().accesskit_node_builder(response.id, |n| {
-            n.set_live(egui::accesskit::Live::Polite);
-            n.set_value(line);
-        });
-        if !gesture.ignored.is_empty() {
-            ui.label(gesture.ignored.join(", "));
-        }
+    let title = gesture.title();
+    let summary = gesture.ignored.join(", ");
+    let card = crate::components::InlineCard {
+        title: &title,
+        summary: &summary,
+        apply: "navigator.apply",
+        strip: false,
+    };
+    crate::components::inline_card(ui, shell, card, events, |ui, events| {
+        use crate::components::{Kind, button};
         for (i, c) in gesture.cells.iter().enumerate() {
             if !c.blocking() {
                 continue;
@@ -751,7 +723,7 @@ fn table_card(ui: &mut Ui, shell: &ShellModel, kind: NavKind, events: &mut Vec<E
                 ));
                 if let ew_viewmodel::navigators::table::CellValue::Ambiguous(readings) = &c.value {
                     for (k, (text, _)) in readings.iter().enumerate() {
-                        if ui.button(text).clicked() {
+                        if button(ui, Kind::Secondary, text, true, 0.0).clicked() {
                             events.push(Event::Action(
                                 "table.resolve",
                                 json!({"cell": i + 1, "choice": k + 1}),
@@ -759,19 +731,11 @@ fn table_card(ui: &mut Ui, shell: &ShellModel, kind: NavKind, events: &mut Vec<E
                         }
                     }
                 }
-                if ui.button(strings::text("card-table-drop")).clicked() {
+                if button(ui, Kind::Subtle, strings::text("card-table-drop"), true, 0.0).clicked() {
                     events.push(Event::Action("table.drop", json!({ "cell": i + 1 })));
                 }
             });
         }
-        ui.horizontal(|ui| {
-            if ui.button(strings::text("card-apply")).clicked() {
-                events.push(Event::Action("navigator.apply", Value::Null));
-            }
-            if ui.button(strings::text("card-cancel")).clicked() {
-                events.push(Event::Action("preview.cancel", Value::Null));
-            }
-        });
     });
 }
 

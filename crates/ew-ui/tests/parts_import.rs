@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! File, Import, Parts table... in the window without rendering (FT-410): the entry is disabled without a project;
+//! File, Import, Parts table… in the window without rendering (FT-410): the entry is disabled without a project;
 //! with a new project it raises the file prompt (`Prompt::OpenPartsTable`), the answer opens the import card
 //! ("parts.csv: 29 created, 0 skipped, 0 errors"), Ctrl+Enter applies it from anywhere, and the project has the 29
 //! part copies; the accessible-name walker after every step.
@@ -34,7 +34,7 @@ fn without_a_project_the_entry_is_disabled() {
     support::open_menu(&mut h, &["Project"]);
     settle(&mut h);
     assert!(
-        h.get_by_label("Parts table...").accesskit_node().is_disabled(),
+        h.get_by_label("Parts table…").accesskit_node().is_disabled(),
         "no project: disabled"
     );
 }
@@ -58,10 +58,10 @@ fn the_entry_prompts_and_ctrl_enter_applies_the_card() {
     support::open_menu(&mut h, &["Project"]);
     settle(&mut h);
     assert!(
-        !h.get_by_label("Parts table...").accesskit_node().is_disabled(),
+        !h.get_by_label("Parts table…").accesskit_node().is_disabled(),
         "a writable project: enabled"
     );
-    h.get_by_label("Parts table...").click();
+    h.get_by_label("Parts table…").click();
     settle(&mut h);
     settle(&mut h);
     assert_eq!(platform.asked.borrow().as_slice(), [Prompt::OpenPartsTable]);
@@ -70,7 +70,10 @@ fn the_entry_prompts_and_ctrl_enter_applies_the_card() {
         h.query_by_label_contains("parts.csv: 29 created").is_some(),
         "the card's line"
     );
-    assert!(h.query_by_label("Import parts").is_some(), "the window's title");
+    assert!(
+        h.query_by_label_contains("Import parts").is_some(),
+        "the card's title (in the strip while the Preview tab shows it)"
+    );
     // WP-S2.09 part 3: the Preview tab shows the card too; its chip and the tab each have the button.
     assert!(h.get_all_by_label("Apply").next().is_some());
     assert!(h.get_all_by_label("Cancel").next().is_some());
@@ -172,7 +175,7 @@ fn the_card_and_the_closed_menu_arrive_in_the_frame_after_the_pick() {
 
     support::open_menu(&mut h, &["Project"]);
     settle(&mut h);
-    h.get_by_label("Parts table...").click();
+    h.get_by_label("Parts table…").click();
     // Step frames until the one in which the dialog was answered; it must already show the menu closed and the card in
     // the shell (the card's text is laid out in the following frame).
     let mut answered = false;
@@ -183,7 +186,7 @@ fn the_card_and_the_closed_menu_arrive_in_the_frame_after_the_pick() {
         let at = pick_pass.get();
         if at != u64::MAX && before <= at && at <= after {
             assert!(
-                h.query_by_label("Parts table...").is_none(),
+                h.query_by_label("Parts table…").is_none(),
                 "the File menu closes in the frame that answers the pick"
             );
             assert!(
@@ -240,7 +243,7 @@ impl Platform for ThreadedPlatform {
     }
 }
 
-/// A harness on a new project whose File, Import, Parts table... has been clicked once with `platform`.
+/// A harness on a new project whose File, Import, Parts table… has been clicked once with `platform`.
 fn harness_with_open_dialog<'a>(tmp: &Tmp, platform: ThreadedPlatform) -> Harness<'a, App> {
     let dir = tmp.0.join("proj.ew");
     let mut shell = ShellModel::new(Mode::Gui, tmp.config());
@@ -254,7 +257,7 @@ fn harness_with_open_dialog<'a>(tmp: &Tmp, platform: ThreadedPlatform) -> Harnes
     settle(&mut h);
     support::open_menu(&mut h, &["Project"]);
     settle(&mut h);
-    h.get_by_label("Parts table...").click();
+    h.get_by_label("Parts table…").click();
     h.step();
     h.step();
     h
@@ -285,7 +288,7 @@ fn an_answer_from_the_dialog_thread_opens_the_card_in_the_next_frame() {
     assert!(!h.state().shell().import_card_open(), "no card before the answer");
     assert_eq!(platform.started.get(), 1, "no second dialog while one is open");
     assert!(
-        h.query_by_label("Parts table...").is_none(),
+        h.query_by_label("Parts table…").is_none(),
         "the File menu is closed while the dialog is open"
     );
 
@@ -318,7 +321,7 @@ fn a_dialog_thread_without_an_answer_counts_as_cancelled() {
     assert!(!h.state().shell().can_undo());
     support::open_menu(&mut h, &["Project"]);
     settle(&mut h);
-    h.get_by_label("Parts table...").click();
+    h.get_by_label("Parts table…").click();
     h.step();
     h.step();
     assert_eq!(platform.started.get(), 2, "a new prompt starts a new dialog");
@@ -379,13 +382,13 @@ fn no_input_reaches_the_shell_while_a_file_dialog_is_open() {
     // File > Open, Discard: the dialog is open with `discard` already given.
     support::open_menu(&mut h, &["File"]);
     settle(&mut h);
-    h.get_by_label_contains("Open...").click();
+    h.get_by_label_contains("Open…").click();
     settle(&mut h);
     assert!(matches!(
         h.state().shell().dialog(),
         Some(ew_ui::ew_viewmodel::shell::Dialog::ConfirmDiscard { .. })
     ));
-    h.get_by_label("Discard").click();
+    h.get_by_label("Don't save").click();
     h.step();
     h.step();
     assert_eq!(platform.started.get(), 1, "the dialog is open");

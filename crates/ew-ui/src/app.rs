@@ -618,15 +618,48 @@ impl App {
         }
         self.bar_had_focus = bar_has_focus;
         if let Some(banner) = self.shell.banner() {
-            Panel::top("banner").show(ui, |ui| {
+            // WP-S2.17 part 4: the banner of doc 16a §6.11 (the warning subtle fill, its icon, one sentence, one
+            // Primary action, a Subtle dismiss).
+            let frame = egui::Frame::NONE
+                .fill(tokens.warning_subtle.color32())
+                .inner_margin(egui::Margin::symmetric(
+                    tokens.space_4 as i8,
+                    tokens.space_2 as i8,
+                ));
+            Panel::top("banner").frame(frame).show(ui, |ui| {
                 ui.horizontal_wrapped(|ui| {
-                    ui.label(banner);
+                    ui.set_min_height(tokens.size_control);
+                    let (r, _) =
+                        ui.allocate_exact_size(egui::Vec2::splat(tokens.icon_md), egui::Sense::hover());
+                    crate::icons::paint(
+                        ui.painter(),
+                        crate::icons::IconId::alert_triangle,
+                        r,
+                        tokens.warning_icon.color32(),
+                        tokens.icon_stroke,
+                    );
+                    ui.label(egui::RichText::new(banner).color(tokens.text_primary.color32()));
                     if self.shell.can_discard_journal()
-                        && ui.button(strings::text("action-file-discard-journal")).clicked()
+                        && crate::components::button(
+                            ui,
+                            crate::components::Kind::Primary,
+                            strings::text("action-file-discard-journal"),
+                            true,
+                            0.0,
+                        )
+                        .clicked()
                     {
                         events.push(Event::Action("file.discard_journal", Value::Null));
                     }
-                    if ui.button(strings::text("banner-dismiss")).clicked() {
+                    if crate::components::button(
+                        ui,
+                        crate::components::Kind::Subtle,
+                        strings::text("banner-dismiss"),
+                        true,
+                        0.0,
+                    )
+                    .clicked()
+                    {
                         events.push(Event::DismissBanner);
                     }
                 });
@@ -739,7 +772,10 @@ impl App {
         // WP-S2.09 part 3: Show changes of the history panel.
         crate::history::show_changes(&ctx, &self.shell, &mut events);
         // WP-S2.09 part 1: the toasts and the notifications log.
-        crate::notifications::show_toasts(&ctx, &self.shell, &mut events);
+        // WP-S2.17 part 4: at the canvas's top right (doc 16a §6.10).
+        let bar_bottom = self.command_bar.bar_rect().map_or(0.0, |r| r.bottom());
+        let anchor = crate::notifications::toast_anchor(&tokens, &ctx, self.page_pane, bar_bottom);
+        crate::notifications::show_toasts(&ctx, &self.shell, anchor, &mut events);
         crate::notifications::show_log(&ctx, &self.shell, &mut events);
         let dialog_open = self.shell.dialog().is_some();
         about::show(
@@ -1125,18 +1161,17 @@ impl App {
             .fixed_pos(at)
             .order(egui::Order::Middle)
             .show(ctx, |ui| {
-                egui::Frame::NONE
-                    .fill(t.surface_raised.color32())
-                    .corner_radius(crate::theme::radius(t.radius_lg))
+                // WP-S2.17 part 4: a card of doc 16a §6.9 (panel fill, a 1-px border, `radius.md`, `space.4` padding,
+                // the title in `type.body.strong`) with `elevation.1`, as it floats over the canvas.
+                crate::components::card_frame(&t)
                     .shadow(crate::theme::shadow(&t.elevation_1))
-                    .inner_margin(egui::Margin::same(t.space_3 as i8))
                     .show(ui, |ui| {
+                        ui.label(
+                            egui::RichText::new(strings::text("hud-tool-options"))
+                                .font(crate::theme::font(&t.type_body_strong))
+                                .color(t.text_primary.color32()),
+                        );
                         ui.horizontal(|ui| {
-                            ui.label(
-                                egui::RichText::new(strings::text("hud-tool-options"))
-                                    .font(crate::theme::font(&t.type_caption))
-                                    .color(t.text_secondary.color32()),
-                            );
                             // WP-S2.04 §9.1: the IP tool's name field and external-reference field.
                             if ip {
                                 crate::tool_view::ip_fields(ui, ip_name, &externals, events);

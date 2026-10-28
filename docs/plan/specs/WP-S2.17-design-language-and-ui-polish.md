@@ -310,6 +310,50 @@ Where the build differs from the text above (each item is a deviation for the cy
    edits only the card functions in part 3's files (`reorder_card`, `table_card`, `fix_card`, the pattern dialog); the
    second of the two lanes to integrate rebases.
 
+### 8.1 As built in cycle 32 (part 4)
+
+- **Dialogs.** `ew_viewmodel::dialogs::spec(&Dialog, &ShellModel) -> DialogSpec` covers every `Dialog` variant,
+  including the creation and renumber forms; `DialogSpec` adds `asks` (the title ends with "?" exactly then) and
+  `form` (the form width). `ew-ui/src/dialog.rs` draws them all on `egui::Modal` (the `color.backdrop` scrim): title
+  in `type.title`, body, content, then the footer with the danger button at the left and the Primary and the others at
+  the right in the platform's order. **Deviation:** in a confirmation of a destructive step (journal discard, purge)
+  the Primary is Cancel (Enter keeps the data) and the step is the red danger button (`DangerPrimary`); the Primary is
+  then drawn as a Secondary beside it. The headless `describe` output prints the spec's title and buttons in reading
+  order. Being modal, the recovery dialog blocks the banner behind it until Escape closes it.
+- **Toasts.** 300 px, `radius.lg`, `elevation.2`, `space.4` padding, at the canvas pane's top right (`space.4` in,
+  under its tab bar), newest on top, `space.3` between them; each is a `Group` node named "Notification".
+  **Deviations:** the notification model has no severity and no secondary line, so the icon is `circle_check`
+  (success) when the toast offers an action and `info_circle` otherwise, and the line row is not drawn; the log's
+  foot has Close, not Clear (the model has no clear action). The anchor uses the canvas pane's rectangle, so it is
+  rechecked once part 3's dock headers land.
+- **Menus.** Rows of `size.row` with a 16-px icon column (the action's icon, the check icon when checked, empty for
+  submenus so labels align), the key in `type.small` secondary; the selection fill is off.
+- **Palette.** An `Area` without a title, 560 px, anchored under the command bar's field; 32-px rows with icon,
+  matched characters strong, breadcrumb (`tab · group`, else the menu path) in tertiary or the disabled reason in
+  secondary, and key chips. Actions that need parameters and model commands are no longer listed (they stay reachable
+  headless through `command.run`).
+- **Picker.** Still an `egui::Window` (the global window style), rows as name plus tertiary library or function, raw
+  IDs in the tooltip; part rows sorted by manufacturer (stable, part-number order within) with a header before each
+  manufacturer (`Picker::header_before`); the filter also matches the manufacturer (FT-425).
+- **Cards.** `components::inline_card` serves the property grid's, the quick fix's, the Pages reorder, Find's replace
+  and the parts import card (an `Area` at the top centre, `elevation.1`); the table card has no strip; the pattern
+  dialog uses `card_frame` with `apply_cancel_with`. Summaries no longer start with "Preview: "; the strip line is
+  "`<title>` · `<summary>`". **The Preview tab**: header row with "Preview: `<name>`", "as of rev `<r>`", the badge and
+  Apply/Cancel at the right; collapsible sections with a count badge (accessible name "Tags (11)").
+  **Deviation:** list rows are one `LayoutJob` (verb, kind, name, detail in their colours), not the 64-px change
+  column. At 1280 px the strip in the Properties pane cuts its line to "Previ…" (ellipsis, full line in the tooltip);
+  Apply, Cancel and Show stay whole.
+- **Empty states and outcomes.** Built for the Jobs pane ("No jobs yet"), the Preview tab ("No preview is open") and
+  the notifications log; Jobs rows carry Done, Cancelled or Failed badges (FT-510). **Not built:** the empty states
+  of Messages, Find, History and the navigators: their files are part 3's (same cycle, other lane); the strings exist
+  (`empty-find-*`, `empty-messages*`, `empty-history-text`) for that lane or a follow-up.
+- **Wording.** Every "..." in the strings, labels and tests became "…"; the quit prompt and the titles that ask end
+  with "?". The lint's list of actions whose label ends with "…" is explicit in `tests/part4_dialogs.rs`
+  (`OPENS_INPUT`). The banner and the floating Tool options card take the card frame and button kinds.
+- **Snapshots (CP6, CP9).** Gated, light and dark: the quit prompt over the edit toast, the app menu's File submenu,
+  the palette, and the Preview tab with the property grid's card and its strip. **Not taken:** the other dialogs one
+  by one, the quick-fix card and the table card images.
+
 ## 9. Part 5: canvas overlays
 
 1. **Tokens on the canvas**: selection, hover, ghost, snap, CP rings, highlights, measurement and chips take doc 16a

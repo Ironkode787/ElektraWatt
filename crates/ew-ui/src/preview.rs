@@ -1,59 +1,129 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Preview tab (WP-S2.09 part 3, §8.1, D11; FR-UI-022) and the one-line chip that replaces the inline cards while
-//! it is open.
+//! The Preview tab (WP-S2.09 part 3, §8.1, D11; FR-UI-022), restyled by WP-S2.17 part 4 (doc 16a §6.23).
 //!
-//! **The tab** shows the open card: the header "Preview: `<command>` · as of rev `<r>`" with the stale badge, the summary
-//! (records, tags, cross-reference texts, pages; an import's created and skipped counts), Apply and Cancel, then the
-//! lists in a scroll area, each virtualised: the one that carries the change first and open (Tags for a renumber,
-//! Entities otherwise), then the others closed (W31-2), Xrefs and Pages last. Without a card it says "No preview is open". The lists are the shell's
-//! ([`ShellModel::preview_pane`]); the tab reads nothing of its own.
+//! **The tab** shows the open card: a header row with "Preview: `<command>`", "as of rev `<r>`" and the Stale or Failed
+//! status badge at the left and Apply (Primary) and Cancel at the right, so the actions stay visible above long lists;
+//! the summary line under it (records, tags, cross-reference texts, pages; an import's created and skipped counts);
+//! then the lists **Entities, Tags, Xrefs, Pages** as collapsible sections with a chevron and a count badge, each
+//! virtualised and at most `size.preview_list` rows high before it scrolls: the one that carries the change first and
+//! open (Tags for a renumber, Entities otherwise), then the others closed (W31-2), Xrefs and Pages last. List rows are
+//! `size.row` in `type.small`: an entity row shows the change word in `color.text.tertiary` in a 64-px column, the
+//! kind in `color.text.secondary`, the label in `color.text.primary` and the changed fields in tertiary; a tag or
+//! cross-reference row "old → new" with the arrow in tertiary, a cross-reference with its folio first. Without a card
+//! the tab shows its empty state ("No preview is open"). The lists are the shell's ([`ShellModel::preview_pane`]).
 //!
-//! **The chip** ([`chip`]): "Preview open: `<summary>`" with Apply, Cancel and Show in the origin pane, in place of its
-//! inline card.
+//! **The strip** that stands in for an inline card while the tab is open is [`crate::components::card_strip`].
 //!
-//! **Accessibility.** The tab is a `Group` named "Preview"; the header is a polite live region; the buttons are named
-//! by their text.
+//! **Accessibility.** The tab is a `Group` named "Preview"; the title is a polite live region whose value is the header
+//! ("Preview: `<command>` · as of rev `<r>`", with "stale" when it is); the buttons are named by their text.
 
-use egui::{RichText, Ui};
+use egui::text::LayoutJob;
+use egui::{Align, Layout, RichText, Ui};
 use ew_viewmodel::properties::CardOrigin;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
-use ew_viewmodel::tools::PreviewStatus;
-use serde_json::{Value, json};
+use serde_json::Value;
 
 use crate::app::Event;
+use crate::components::{self, CardStatus};
+use crate::icons::IconId;
+use crate::theme::{self, Rgba, Tokens};
 
-/// The rows of one list, virtualised, in a collapsing section headed `title (<n>)`, open at first when `open`.
-fn list(ui: &mut Ui, title: &str, rows: &[String], open: bool) {
+/// One list row: its segments, each with its colour.
+type Row = Vec<(String, Rgba)>;
+
+/// The text of a row (its accessible name).
+fn row_text(row: &Row) -> String {
+    row.iter().map(|(s, _)| s.as_str()).collect()
+}
+
+/// The rows of one list in a collapsible section titled `title` with a count badge, open at first when `open`; at most
+/// `size.preview_list` rows on show, then it scrolls.
+fn list(ui: &mut Ui, title: &str, rows: &[Row], open: bool) {
     if rows.is_empty() {
         return;
     }
-    egui::CollapsingHeader::new(format!("{title} ({})", rows.len()))
+    let id = ui.scope_id().with(("preview-list", title));
+    if !components::section_header(ui, id, title, rows.len(), open) {
+        return;
+    }
+    let t = components::tokens(ui);
+    let row = t.size_row;
+    egui::ScrollArea::vertical()
         .id_salt(title)
-        .default_open(open)
-        .show(ui, |ui| {
-            // Rows of `size.row`, at most `size.preview_list` of them on show (doc 16a §6.22).
-            let t = crate::theme::current(ui.ctx());
-            let row = t.size_row;
-            egui::ScrollArea::vertical()
-                .id_salt(title)
-                .max_height(row * t.size_preview_list_rows as f32)
-                .auto_shrink([false, true])
-                .show_rows(ui, row, rows.len(), |ui, range| {
-                    ui.spacing_mut().item_spacing.y = 0.0;
-                    for r in &rows[range] {
-                        let width = ui.available_width();
-                        // Left-aligned in the row (W31-2: `add_sized` centred them).
-                        ui.allocate_ui_with_layout(
-                            egui::vec2(width, row),
-                            egui::Layout::left_to_right(egui::Align::Center),
-                            |ui| ui.add(egui::Label::new(r).truncate()),
-                        );
-                    }
-                });
+        .max_height(row * t.size_preview_list_rows as f32)
+        .auto_shrink([false, true])
+        .show_rows(ui, row, rows.len(), |ui, range| {
+            ui.spacing_mut().item_spacing.y = 0.0;
+            for r in &rows[range] {
+                let width = ui.available_width();
+                // Left-aligned in the row (W31-2: `add_sized` centred them).
+                ui.allocate_ui_with_layout(
+                    egui::vec2(width, row),
+                    Layout::left_to_right(Align::Center),
+                    |ui| {
+                        ui.add_space(t.space_4);
+                        let mut job = LayoutJob::default();
+                        for (s, c) in r {
+                            job.append(
+                                s,
+                                0.0,
+                                egui::TextFormat::simple(theme::font(&t.type_small), c.color32()),
+                            );
+                        }
+                        let text = row_text(r);
+                        let response = ui.add(egui::Label::new(job).truncate());
+                        response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, &text));
+                    },
+                );
+            }
         });
+}
+
+/// The rows of the four lists: entities, tags, cross-reference texts, pages.
+fn rows(t: &Tokens, shell: &ShellModel) -> [Vec<Row>; 4] {
+    let pane = shell.preview_pane();
+    let arrow = |before: &str, after: &str| -> Row {
+        vec![
+            (before.to_owned(), t.text_primary),
+            (" → ".to_owned(), t.text_tertiary),
+            (after.to_owned(), t.text_primary),
+        ]
+    };
+    let entities = pane
+        .entities()
+        .iter()
+        .map(|e| {
+            // The change word in a 64-px column (padded to its width in the row's font).
+            let mut r = vec![
+                (format!("{} ", e.change), t.text_tertiary),
+                (format!("{} ", e.kind), t.text_secondary),
+                (e.label.clone(), t.text_primary),
+            ];
+            if !e.fields.is_empty() {
+                r.push((format!(" ({})", e.fields.join(", ")), t.text_tertiary));
+            }
+            r
+        })
+        .collect();
+    let tags = pane.tags().iter().map(|(a, b)| arrow(a, b)).collect();
+    let xrefs = pane
+        .xrefs()
+        .iter()
+        .map(|x| {
+            let mut r = vec![(format!("{}: ", x.folio), t.text_secondary)];
+            r.extend(arrow(&x.before, &x.after));
+            r
+        })
+        .collect();
+    let pages = pane
+        .pages()
+        .iter()
+        .map(|p| vec![(p.clone(), t.text_primary)])
+        .collect();
+    [entities, tags, xrefs, pages]
 }
 
 /// Paints the Preview tab of `shell`.
@@ -63,73 +133,110 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     let pane = ui.interact(rect, pane_id, egui::Sense::hover());
     pane.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Group, true, strings::text("pane-preview")));
     ui.scope_builder(egui::UiBuilder::new().accessibility_parent(pane_id), |ui| {
-        let (Some(card), Some(rev)) = (shell.properties().card(), shell.revision()) else {
-            ui.label(strings::text("preview-none"));
+        let t = components::tokens(ui);
+        let Some(card) = shell.properties().card() else {
+            components::empty_state(
+                ui,
+                IconId::eye,
+                strings::text("preview-none"),
+                strings::text("empty-preview-text"),
+                None,
+            );
             return;
         };
-        let mut header = strings::format(
-            "preview-header",
-            &[&card.preview.name, &card.preview.base_rev.to_string()],
-        );
-        let preview = match &card.preview.result {
-            Ok(p) => p,
-            Err(m) => {
-                ui.colored_label(
-                    crate::theme::current(ui.ctx()).error.color32(),
-                    strings::format("card-failed", &[m]),
-                );
-                buttons(ui, &card.origin, events);
-                return;
+        let status = components::card_status(shell);
+
+        let pad = t.space_4;
+        // The header row: title, revision and badge at the left; Apply and Cancel at the right.
+        ui.add_space(t.space_3);
+        ui.horizontal(|ui| {
+            ui.add_space(pad);
+            ui.spacing_mut().item_spacing.x = t.space_3;
+            let title = strings::format("preview-title", &[&card.preview.name]);
+            let response = ui.label(
+                RichText::new(&title)
+                    .font(theme::font(&t.type_body_strong))
+                    .color(t.text_primary.color32()),
+            );
+            let mut header = strings::format(
+                "preview-header",
+                &[&card.preview.name, &card.preview.base_rev.to_string()],
+            );
+            if status == CardStatus::Stale {
+                header.push_str(&format!(" [{}]", strings::text("preview-stale")));
             }
-        };
-        if card.preview.status(rev) == PreviewStatus::Stale {
-            header.push_str(&format!(" [{}]", strings::text("preview-stale")));
-        }
-        let response = ui.label(RichText::new(&header).strong());
-        let live = header.clone();
-        ui.ctx().accesskit_node_builder(response.id, |n| {
-            n.set_live(egui::accesskit::Live::Polite);
-            n.set_value(live);
+            ui.ctx().accesskit_node_builder(response.id, |n| {
+                n.set_live(egui::accesskit::Live::Polite);
+                n.set_value(header);
+            });
+            ui.label(
+                RichText::new(strings::format(
+                    "card-as-of",
+                    &[&card.preview.base_rev.to_string()],
+                ))
+                .font(theme::font(&t.type_small))
+                .color(t.text_tertiary.color32()),
+            );
+            match &status {
+                CardStatus::Stale => {
+                    components::status_badge(ui, components::Badge::Stale);
+                }
+                CardStatus::Failed(_) => {
+                    components::status_badge(ui, components::Badge::Failed);
+                }
+                CardStatus::Fresh => {}
+            }
+            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                ui.add_space(pad);
+                components::apply_cancel(ui, components::apply_action(&card.origin), Value::Null, events);
+            });
         });
+        let inset = |ui: &mut Ui, f: &mut dyn FnMut(&mut Ui)| {
+            ui.horizontal(|ui| {
+                ui.add_space(pad);
+                ui.vertical(|ui| f(ui));
+            });
+        };
+        if let CardStatus::Failed(m) = &status {
+            inset(ui, &mut |ui| {
+                components::live_line(ui, &strings::format("card-failed", &[m]), true)
+            });
+            return;
+        }
         let pane = shell.preview_pane();
-        ui.label(strings::format(
+        let summary = strings::format(
             "preview-summary",
             &[
-                &preview.diff().len().to_string(),
+                &card
+                    .preview
+                    .result
+                    .as_ref()
+                    .map_or(0, |p| p.diff().len())
+                    .to_string(),
                 &pane.tags().len().to_string(),
                 &pane.xrefs().len().to_string(),
                 &pane.pages().len().to_string(),
             ],
-        ));
-        if let CardOrigin::Import { created, skipped, .. } = &card.origin {
-            ui.label(strings::format(
-                "preview-summary-import",
-                &[&created.to_string(), &skipped.to_string()],
-            ));
-        }
-        buttons(ui, &card.origin, events);
-        ui.separator();
+        );
+        inset(ui, &mut |ui| {
+            components::live_line(ui, &summary, false);
+            if let CardOrigin::Import { created, skipped, .. } = &card.origin {
+                components::live_line(
+                    ui,
+                    &strings::format(
+                        "preview-summary-import",
+                        &[&created.to_string(), &skipped.to_string()],
+                    ),
+                    false,
+                );
+            }
+        });
+        ui.add_space(t.space_2);
+        let [entities, tags, xrefs, pages] = rows(&t, shell);
         egui::ScrollArea::vertical()
             .id_salt("preview-lists")
             .auto_shrink([false, false])
             .show(ui, |ui| {
-                let entities: Vec<String> = pane
-                    .entities()
-                    .iter()
-                    .map(|e| {
-                        let mut t = format!("{} {} {}", e.change, e.kind, e.label);
-                        if !e.fields.is_empty() {
-                            t.push_str(&format!(" ({})", e.fields.join(", ")));
-                        }
-                        t
-                    })
-                    .collect();
-                let tags: Vec<String> = pane.tags().iter().map(|(a, b)| format!("{a} → {b}")).collect();
-                let xrefs: Vec<String> = pane
-                    .xrefs()
-                    .iter()
-                    .map(|x| format!("{}: {} → {}", x.folio, x.before, x.after))
-                    .collect();
                 // W31-2: the list that carries the change comes first and open (Tags for a renumber, the changed
                 // entities otherwise); the others follow, closed.
                 let renumber = card.preview.name.ends_with("renumber") && !tags.is_empty();
@@ -141,56 +248,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                     list(ui, strings::text("preview-tags"), &tags, false);
                 }
                 list(ui, strings::text("preview-xrefs"), &xrefs, false);
-                list(ui, strings::text("preview-pages"), pane.pages(), false);
+                list(ui, strings::text("preview-pages"), &pages, false);
             });
     });
-}
-
-/// The action Apply dispatches for a card of `origin`: the Pages navigator's own for a reorder card.
-fn apply_action(origin: &CardOrigin) -> &'static str {
-    match origin {
-        // WP-S2.09 part 2: the quick-fix card is the Messages pane's, applied like the reorder card.
-        CardOrigin::Reorder { .. } | CardOrigin::QuickFix { .. } => "navigator.apply",
-        _ => "preview.apply",
-    }
-}
-
-/// Apply and Cancel.
-fn buttons(ui: &mut Ui, origin: &CardOrigin, events: &mut Vec<Event>) {
-    ui.horizontal(|ui| {
-        if ui.button(strings::text("preview-apply")).clicked() {
-            events.push(Event::Action(apply_action(origin), Value::Null));
-        }
-        if ui.button(strings::text("preview-cancel")).clicked() {
-            events.push(Event::Action("preview.cancel", json!({})));
-        }
-    });
-}
-
-/// The one-line chip of an origin pane while the Preview tab shows its card: "Preview open: <line>" with Apply, Cancel
-/// and Show (which brings the tab to the front). `false` (and nothing painted) while the tab is not open, so the pane
-/// paints its inline card.
-pub(crate) fn chip(ui: &mut Ui, shell: &ShellModel, line: &str, events: &mut Vec<Event>) -> bool {
-    let Some(card) = shell.properties().card().filter(|_| shell.preview_shown()) else {
-        return false;
-    };
-    let text = strings::format("preview-open-chip", &[line]);
-    ui.horizontal_wrapped(|ui| {
-        let response = ui.label(&text);
-        let live = text.clone();
-        ui.ctx().accesskit_node_builder(response.id, |n| {
-            n.set_live(egui::accesskit::Live::Polite);
-            n.set_value(live);
-        });
-        if ui.small_button(strings::text("preview-apply")).clicked() {
-            events.push(Event::Action(apply_action(&card.origin), Value::Null));
-        }
-        if ui.small_button(strings::text("preview-cancel")).clicked() {
-            events.push(Event::Action("preview.cancel", json!({})));
-        }
-        if ui.small_button(strings::text("preview-show")).clicked() {
-            events.push(Event::Action("preview.show", json!({ "on": true })));
-        }
-    });
-    true
 }

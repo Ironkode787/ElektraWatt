@@ -261,8 +261,13 @@ impl TableUi {
         if fresh || (!ui.ctx().text_edit_focused() && self.pattern != pattern) {
             pattern.clone_into(&mut self.pattern);
         }
-        egui::Frame::group(ui.style()).show(ui, |ui| {
-            ui.label(RichText::new(strings::text("table-pattern-title")).strong());
+        // WP-S2.17 part 4: the card of doc 16a §6.9, with Apply (Enter) and Cancel (Escape) as its buttons.
+        let t = crate::theme::current(ui.ctx());
+        crate::components::card_frame(&t).show(ui, |ui| {
+            ui.label(
+                RichText::new(strings::text("table-pattern-title"))
+                    .font(crate::theme::font(&t.type_body_strong)),
+            );
             let escape = ui.input(|i| i.key_pressed(Key::Escape));
             let enter = ui.input(|i| i.key_pressed(Key::Enter));
             let label = strings::text("table-pattern-hint");
@@ -302,6 +307,12 @@ impl TableUi {
                     events.push(Event::Action("table.commit", json!({ "kind": word })));
                 }
             }
+            crate::components::apply_cancel_with(
+                ui,
+                ("table.commit", json!({ "kind": word })),
+                ("ui.dismiss", Value::Null),
+                events,
+            );
         });
     }
 }

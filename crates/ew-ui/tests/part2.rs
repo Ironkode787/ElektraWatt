@@ -39,7 +39,7 @@ fn the_start_page_has_every_entry_of_doc_16_section_3_7() {
     for label in [
         "New project",
         "Template: the built-in basic project",
-        "Open...",
+        "Open…",
         "Open sample project",
         "Import QElectroTech project",
         "Create company standard",
@@ -245,9 +245,9 @@ fn the_wizard_shows_a_preview_follows_a_typed_value_and_writes_the_basic_project
     assert!(h.query_all_by_label("kept: apply after finishing").count() > 0);
     assert!(h.query_all_by_label("written to the basic project").count() > 0);
     // WP-S2.17 part 1: controls of `size.control` (28 px) push the button under the fold of this window.
-    h.get_by_label("Create the basic project...").scroll_to_me();
+    h.get_by_label("Create the basic project…").scroll_to_me();
     settle(&mut h);
-    h.get_by_label("Create the basic project...").click();
+    h.get_by_label("Create the basic project…").click();
     settle(&mut h);
     assert_eq!(platform.asked.borrow().as_slice(), [Prompt::NewFolder]);
     let shell = h.state().shell();
@@ -308,7 +308,7 @@ fn closing_the_wizard_keeps_the_draft_and_the_screen_returns_to_the_start_page()
     settle(&mut h);
     support::open_menu(&mut h, &["Project"]);
     settle(&mut h);
-    h.get_by_label("Company standard wizard...").click();
+    h.get_by_label("Company standard wizard…").click();
     settle(&mut h);
     assert!(h.state().shell().wizard().is_some());
     h.get_by_label("Close (the draft is kept)").click();
@@ -366,7 +366,7 @@ fn the_project_view_is_a_dock_and_a_changed_layout_becomes_the_workspace_file() 
     // Save it under a name through the dialog.
     support::open_menu(&mut h, &["View", "Layout", "Workspace"]);
     settle(&mut h);
-    support::menu_node(&h, "Save layout as...").click();
+    support::menu_node(&h, "Save layout as…").click();
     settle(&mut h);
     assert!(matches!(
         h.state().shell().dialog(),
@@ -450,7 +450,7 @@ fn f1_opens_the_page_of_the_context_in_the_system_browser() {
     settle(&mut h);
     support::open_menu(&mut h, &["File"]);
     settle(&mut h);
-    let item = format!("New project... {}", ew_ui::keys::display("Ctrl+N"));
+    let item = format!("New project… {}", ew_ui::keys::display("Ctrl+N"));
     h.get_by_label(&item).hover();
     h.run_ok();
     h.key_press(Key::F1);
@@ -539,7 +539,11 @@ fn a_leftover_journal_is_discarded_from_the_banner() {
             .next()
             .is_some()
     );
-    h.get_by_label("Discard unsaved changes of the earlier session...")
+    // WP-S2.17 part 4: the recovery dialog is modal; Escape closes it and the banner stays.
+    h.key_press(Key::Escape);
+    settle(&mut h);
+    assert!(h.state().shell().dialog().is_none());
+    h.get_by_label("Discard unsaved changes of the earlier session…")
         .click();
     settle(&mut h);
     assert!(matches!(
@@ -556,7 +560,11 @@ fn a_leftover_journal_is_discarded_from_the_banner() {
         h.state().shell().can_discard_journal(),
         "Cancel keeps the journal"
     );
-    h.get_by_label("Discard unsaved changes of the earlier session...")
+    // WP-S2.17 part 4: the recovery dialog is modal; Escape closes it and the banner stays.
+    h.key_press(Key::Escape);
+    settle(&mut h);
+    assert!(h.state().shell().dialog().is_none());
+    h.get_by_label("Discard unsaved changes of the earlier session…")
         .click();
     settle(&mut h);
     h.get_by_label("Discard").click();

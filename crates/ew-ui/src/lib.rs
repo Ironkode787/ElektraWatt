@@ -22,6 +22,9 @@ pub mod canvas_area;
 pub mod canvas_chips;
 // WP-S2.17 part 2: the command bar and the tool HUD.
 mod command_bar;
+// WP-S2.17 part 4: the small components (buttons, badges, chips, empty states, cards) and the dialog frame.
+mod components;
+mod dialog;
 pub mod dock;
 // WP-S2.05 part 2
 pub mod find;

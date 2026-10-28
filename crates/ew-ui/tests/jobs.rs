@@ -163,11 +163,11 @@ fn jb6_the_toasts_stack_and_the_log_opens_from_the_status_bar() {
         !h.state().shell().notifications().popup_open(),
         "Escape closes it"
     );
-    // A toast's Close takes it off the screen; the log keeps it.
+    // A toast's Dismiss takes it off the screen; the log keeps it.
     let before = h.state().shell().notifications().visible().len();
-    h.get_all_by_label("Close")
+    h.get_all_by_label("Dismiss")
         .next()
-        .expect("a toast's Close")
+        .expect("a toast's Dismiss")
         .click();
     settle(&mut h);
     assert_eq!(h.state().shell().notifications().visible().len(), before - 1);
@@ -201,7 +201,7 @@ fn jb7_the_recovery_dialog_offers_recover_open_read_only_and_discard() {
         h.state().shell().dialog(),
         Some(Dialog::Recovery { .. })
     ));
-    assert!(h.query_by_label("Recover unsaved changes").is_some());
+    assert!(h.query_by_label("Recover unsaved changes?").is_some());
     assert!(
         h.query_by_label("g.ew has unsaved changes from a session that ended unexpectedly.")
             .is_some()
@@ -217,7 +217,7 @@ fn jb7_the_recovery_dialog_offers_recover_open_read_only_and_discard() {
         "{ago:?} then {utc:?} then the buttons {recover:?}"
     );
     assert!(h.query_by_label("Open read-only").is_some());
-    assert!(h.query_by_label("Discard...").is_some());
+    assert!(h.query_by_label("Discard…").is_some());
     h.get_by_label("Recover").click();
     settle(&mut h);
     let shell = h.state().shell();

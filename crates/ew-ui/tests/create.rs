@@ -40,7 +40,7 @@ fn page_new_asks_for_the_fields_enter_creates_and_escape_cancels() {
     let before = h.state().shell().page_count();
     support::open_menu(&mut h, &["Page"]);
     settle(&mut h);
-    h.get_by_label("New page...").click();
+    h.get_by_label("New page…").click();
     settle(&mut h);
     assert!(matches!(h.state().shell().dialog(), Some(Dialog::Form(f)) if f.action == "page.new"));
     // The navigator's button and the dialog's title.
@@ -71,7 +71,7 @@ fn page_new_asks_for_the_fields_enter_creates_and_escape_cancels() {
     // A second time Escape cancels and creates nothing.
     support::open_menu(&mut h, &["Page"]);
     settle(&mut h);
-    h.get_by_label("New page...").click();
+    h.get_by_label("New page…").click();
     settle(&mut h);
     h.state_mut().shell_mut().set_form_field("folio", "");
     settle(&mut h);
@@ -133,7 +133,7 @@ fn the_insert_entries_open_the_structure_and_external_reference_dialogs() {
     settle(&mut h);
     support::open_menu(&mut h, &["Project"]);
     settle(&mut h);
-    h.get_by_label("Structure node...").click();
+    h.get_by_label("Structure node…").click();
     settle(&mut h);
     assert!(matches!(h.state().shell().dialog(), Some(Dialog::Form(f)) if f.action == "structure.new"));
     field(&h, "Designation").type_text("J-E-999");
@@ -143,7 +143,7 @@ fn the_insert_entries_open_the_structure_and_external_reference_dialogs() {
     assert!(h.state().shell().dialog().is_none());
     support::open_menu(&mut h, &["Project"]);
     settle(&mut h);
-    h.get_by_label("External reference...").click();
+    h.get_by_label("External reference…").click();
     settle(&mut h);
     assert!(matches!(h.state().shell().dialog(), Some(Dialog::Form(f)) if f.action == "external_ref.new"));
     field(&h, "Location (designation)").type_text("J-E-999");
@@ -169,14 +169,14 @@ fn the_new_entries_are_disabled_without_a_project() {
     support::open_menu(&mut h, &["Page"]);
     settle(&mut h);
     assert!(
-        h.get_by_label("New page...").accesskit_node().is_disabled(),
+        h.get_by_label("New page…").accesskit_node().is_disabled(),
         "New page is disabled without a project"
     );
     h.key_press(Key::Escape);
     settle(&mut h);
     support::open_menu(&mut h, &["Project"]);
     settle(&mut h);
-    for entry in ["Structure node...", "External reference..."] {
+    for entry in ["Structure node…", "External reference…"] {
         assert!(h.get_by_label(entry).accesskit_node().is_disabled(), "{entry}");
     }
 }

@@ -256,52 +256,42 @@ impl FindPane {
         }
     }
 
-    /// The replace card (§7.4): a polite live region with Apply and Cancel.
+    /// The replace card (§7.4; WP-S2.17 part 4, doc 16a §6.23): "Replace" with its revision and status badge, the
+    /// summary as a polite live region, the first tag changes, Apply and Cancel.
     fn card(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
-        let (Some(card), Some(rev)) = (shell.properties().card(), shell.revision()) else {
+        let Some(card) = shell.properties().card() else {
             return;
         };
         if !matches!(card.origin, CardOrigin::Find { .. }) {
             return;
         }
-        egui::Frame::group(ui.style()).show(ui, |ui| {
-            let mut line = strings::format(
-                "find-card-line",
-                &[
-                    &card.changes.to_string(),
-                    &card.targets.to_string(),
-                    &card.preview.derived.tags.len().to_string(),
-                    &card.preview.derived.xrefs.len().to_string(),
-                ],
-            );
-            match (&card.preview.result, card.preview.status(rev)) {
-                (Err(m), _) => line = strings::format("card-failed", &[m]),
-                (_, ew_viewmodel::tools::PreviewStatus::Stale) => {
-                    line.push_str(&format!(" [{}]", strings::text("card-stale")));
-                }
-                _ => {}
+        let summary = strings::format(
+            "find-card-line",
+            &[
+                &card.changes.to_string(),
+                &card.targets.to_string(),
+                &card.preview.derived.tags.len().to_string(),
+                &card.preview.derived.xrefs.len().to_string(),
+            ],
+        );
+        let tags: Vec<String> = card
+            .preview
+            .derived
+            .tags
+            .iter()
+            .take(20)
+            .map(|tag| format!("{} → {}", tag.before, tag.after))
+            .collect();
+        let inline = crate::components::InlineCard {
+            title: strings::text("card-title-find"),
+            summary: &summary,
+            apply: "preview.apply",
+            strip: true,
+        };
+        crate::components::inline_card(ui, shell, inline, events, |ui, _| {
+            for tag in &tags {
+                ui.label(tag);
             }
-            // WP-S2.09 part 3 (§8.1): while the Preview tab shows the card, a one-line chip stands in for it.
-            if crate::preview::chip(ui, shell, &line, events) {
-                return;
-            }
-            let response = ui.label(&line);
-            let live = line.clone();
-            ui.ctx().accesskit_node_builder(response.id, |n| {
-                n.set_live(egui::accesskit::Live::Polite);
-                n.set_value(live);
-            });
-            for tag in card.preview.derived.tags.iter().take(20) {
-                ui.label(format!("{} -> {}", tag.before, tag.after));
-            }
-            ui.horizontal(|ui| {
-                if ui.button(strings::text("card-apply")).clicked() {
-                    events.push(Event::Action("preview.apply", json!({})));
-                }
-                if ui.button(strings::text("card-cancel")).clicked() {
-                    events.push(Event::Action("preview.cancel", json!({})));
-                }
-            });
         });
     }
 
