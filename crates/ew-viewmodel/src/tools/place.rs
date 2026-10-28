@@ -588,10 +588,21 @@ impl Tool for PlaceTool {
             .find(|(before, _)| before.is_empty())
             .or_else(|| info.tags.first())
             .map(|(_, after)| after.clone())?;
-        // The label of the last overlay gains the tag (the overlay is otherwise what the last move drew).
+        // The label of the last overlay gains the tag (the overlay is otherwise what the last move drew). A label that
+        // already ends with the tag of an earlier preview at this point, or with this one, gets it once (FT-507: one
+        // label per tag).
         let mut o = self.last.clone();
         for item in &mut o.items {
             if let OverlayItem::Label { text, .. } = item {
+                for known in self.tag.iter().chain(std::iter::once(&tag)) {
+                    while let Some(n) = text
+                        .strip_suffix(known.as_str())
+                        .and_then(|t| t.strip_suffix(' '))
+                        .map(str::len)
+                    {
+                        text.truncate(n);
+                    }
+                }
                 text.push(' ');
                 text.push_str(&tag);
             }

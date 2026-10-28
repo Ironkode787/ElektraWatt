@@ -297,6 +297,9 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "preview-chip-failed" => "Preview of {0} failed: {1}",
         "preview-chip-change" => "{0} → {1}",
         "link-preview-title" => "{0}",
+        // WP-S2.17 part 5 (FT-390): the link preview's accessible node.
+        "link-preview-node" => "Link preview: page {0}, cell {1}",
+        "link-preview-node-page" => "Link preview: page {0}",
         "canvas-cursor-live-cp" => ", connection point {0}",
         "reason-no-cp" => "The page has no connection point",
         "reason-no-unconnected-cp" => "The page has no unconnected connection point",

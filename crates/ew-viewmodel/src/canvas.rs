@@ -39,6 +39,10 @@ use ew_api::output::{LinkTarget, PageCells, PageCp, PageGrid, PageRow, PageTable
 use crate::shell::natural_cmp;
 use crate::tools::Snapper;
 
+pub mod chip;
+
+pub use chip::{ChipPlacement, place_chip};
+
 /// A page of the page order by its stable identity (`PageRow::id`), held as the page's own PDF destination
 /// (`Destination::Page`, `ew:p:<uuid>`): a renumber that changes folios keeps it (WP-S2.03 §6.2).
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -719,6 +723,12 @@ impl CanvasModel {
             .and_then(|i| self.page.cps.get(i))
     }
 
+    /// The tooltip of the connection point under the pointer (doc 16a §7.2; FT-512's tooltip half, WP-S2.17 part 5):
+    /// [`cp_tip`] of [`CanvasModel::hovered_cp`].
+    pub fn hovered_cp_tip(&self) -> Option<String> {
+        self.hovered_cp().map(|cp| cp_tip(&self.page, cp))
+    }
+
     /// The link under the pointer.
     pub fn hovered_link(&self) -> Option<&PageLink> {
         self.hover_link.and_then(|i| self.page.links.get(i))
@@ -998,6 +1008,28 @@ pub enum GridLabel {
     Mm(String),
 }
 
+/// A connection point's tooltip (doc 16a §7.2): its printed label, the name of the symbol of the representation that
+/// draws it (the function's kind as the page shows it: `terminal`, `mcb-1pn`) and its potential's derived name, joined
+/// by ` · `; a part the page tables do not know is left out (`1X1:1/a · terminal · L`).
+pub fn cp_tip(page: &CanvasPage, cp: &PageCp) -> String {
+    let row = page.tables.cps.iter().find(|t| t.id == cp.id);
+    let kind = row
+        .and_then(|t| page.tables.reps.iter().find(|r| r.id == t.rep))
+        .map(|r| symbol_name(&r.symbol_key))
+        .filter(|k| !k.is_empty());
+    let potential = row.and_then(|t| t.potential.as_deref()).filter(|p| !p.is_empty());
+    let mut parts = vec![cp.label.as_str()];
+    parts.extend(kind);
+    parts.extend(potential);
+    parts.join(" · ")
+}
+
+/// The name part of a symbol key: `ew.iec.terminal@qet10` → `terminal` (the text after the last dot, before `@`).
+pub fn symbol_name(key: &str) -> &str {
+    let base = key.split('@').next().unwrap_or(key);
+    base.rsplit('.').next().unwrap_or(base)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1029,6 +1061,14 @@ mod tests {
 
     fn model() -> CanvasModel {
         CanvasModel::new(page(Vec::new()), HEADLESS_PANE, 1.0)
+    }
+
+    #[test]
+    fn ov4_a_symbol_key_names_the_cp_tooltips_kind() {
+        assert_eq!(symbol_name("ew.iec.terminal@qet10"), "terminal");
+        assert_eq!(symbol_name("ew.iec.mcb-1pn@qet10"), "mcb-1pn");
+        assert_eq!(symbol_name("plain"), "plain");
+        assert_eq!(symbol_name(""), "");
     }
 
     #[test]
