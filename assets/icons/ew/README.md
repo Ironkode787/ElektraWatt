@@ -14,7 +14,7 @@ at the token stroke). `cargo xtask gen-icons` reads them with the vendored set a
 | `black-box.svg` | `ew-black-box` | A dashed rectangle: a device drawn as a black box with an open outline |
 | `cable.svg` | `ew-cable` | A cable end: two conductors leave a round sheath end, with a sheath band |
 | `interruption-point.svg` | `ew-interruption-point` | A conductor ending in an arrow at a page edge: the connection continues elsewhere |
-| `potential.svg` | `ew-potential` | Two rails joined by a vertical conductor with junction dots: one electrical potential |
+| `potential.svg` | `ew-potential` | A conductor with two node dots and two taps ending in connection points: one electrical potential (net) |
 | `qet-grid.svg` | `ew-qet-grid` | A frame with a three-by-three dot grid: the QElectroTech grid badge |
 | `structure-box.svg` | `ew-structure-box` | A frame with a "+" in its corner: a location (structure) box |
 | `terminal-strip.svg` | `ew-terminal-strip` | Three terminals in a row with their leads above and below |
