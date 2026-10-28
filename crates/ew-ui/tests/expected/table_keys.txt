@@ -1,0 +1,73 @@
+Ctrl+Home
+  table.cell {"kind":"strips","row":"strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:78532d37-2122-56c2-a92c-cf3340ef93a8"}
+Down
+  table.cell {"kind":"strips","step":1}
+Right
+  table.cell {"across":1,"kind":"strips"}
+Tab
+  table.cell {"across":1,"kind":"strips"}
+Shift+Tab
+  table.cell {"across":-1,"kind":"strips"}
+Left
+  table.cell {"across":-1,"kind":"strips"}
+Up
+  table.cell {"kind":"strips","step":-1}
+End
+  table.cell {"column":"state","kind":"strips"}
+Home
+  table.cell {"column":"strip","kind":"strips"}
+Ctrl+End
+  table.cell {"kind":"strips","row":"strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:31cc8007-66f2-575e-af87-ef92ccde2a71"}
+Ctrl+Home
+  table.cell {"kind":"strips","row":"strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:78532d37-2122-56c2-a92c-cf3340ef93a8"}
+Shift+Down
+  navigator.row {"extend":true,"kind":"strips","step":1}
+Shift+Down
+  navigator.row {"extend":true,"kind":"strips","step":1}
+Shift+Up
+  navigator.row {"extend":true,"kind":"strips","step":-1}
+Ctrl+Enter (no card)
+Right
+  table.cell {"across":1,"kind":"strips"}
+Right
+  table.cell {"across":1,"kind":"strips"}
+type Q
+  table.input {"kind":"strips","text":"Q"}
+editor: type x
+  table.input {"kind":"strips","text":"Qx"}
+editor: Escape
+  ui.dismiss null
+  table.commit {"kind":"strips"}
+type Z
+  table.input {"kind":"strips","text":"Z"}
+editor: Enter
+  table.commit {"kind":"strips"}
+Shift+Down
+  navigator.row {"extend":true,"kind":"strips","step":1}
+type W
+  table.input {"kind":"strips","text":"W"}
+editor: Ctrl+Enter
+  table.commit {"all":true,"kind":"strips"}
+click
+  ui.focus {"area":"navigator","kind":"strips"}
+  navigator.select {"keys":["strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:b571c572-3d0d-5170-acdd-ee6a855d4056"],"kind":"strips"}
+  table.cell {"column":"terminal","kind":"strips","row":"strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:b571c572-3d0d-5170-acdd-ee6a855d4056"}
+Ctrl+click
+  ui.focus {"area":"navigator","kind":"strips"}
+  navigator.mark {"key":"strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:57641700-ad7a-5186-a026-bb03d2c33c91","kind":"strips"}
+  table.cell {"column":"terminal","kind":"strips","row":"strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:57641700-ad7a-5186-a026-bb03d2c33c91"}
+Shift+click
+  ui.focus {"area":"navigator","kind":"strips"}
+  navigator.row {"extend":true,"key":"strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:cfe9de31-1f66-50e6-a949-6771255059af","kind":"strips"}
+  table.cell {"column":"terminal","kind":"strips","row":"strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:cfe9de31-1f66-50e6-a949-6771255059af"}
+double click
+  table.edit {"column":"label","kind":"strips","row":"strip:d8221507-61e8-5141-a2cb-95300ef8a242/terminal:46e82110-0737-5547-b146-aac63d618b30"}
+editor: Escape
+  ui.dismiss null
+  table.commit {"kind":"strips"}
+header click
+  navigator.sort {"by":"terminal","descending":true,"kind":"strips"}
+header click again
+  navigator.sort {"by":"terminal","descending":false,"kind":"strips"}
+refocus
+Enter

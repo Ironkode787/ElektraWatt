@@ -234,7 +234,7 @@ pub struct App {
     /// focus).
     bar_had_focus: bool,
     /// The actions the frame dispatched, oldest first, at most [`DISPATCH_LOG`] (tests: CB2).
-    dispatch_log: std::collections::VecDeque<&'static str>,
+    dispatch_log: std::collections::VecDeque<(&'static str, Value)>,
 }
 
 /// How many dispatched actions [`App::dispatched`] keeps.
@@ -300,7 +300,13 @@ impl App {
     /// The actions the frame dispatched, oldest first (the last 256; tests: CB2).
     #[doc(hidden)]
     pub fn dispatched(&self) -> Vec<&'static str> {
-        self.dispatch_log.iter().copied().collect()
+        self.dispatch_log.iter().map(|(a, _)| *a).collect()
+    }
+
+    /// The actions the frame dispatched with their parameters, oldest first (the last 256; tests: DK9).
+    #[doc(hidden)]
+    pub fn dispatched_calls(&self) -> Vec<(&'static str, Value)> {
+        self.dispatch_log.iter().cloned().collect()
     }
 
     /// How many times the window regained the operating system's focus and requested its repaints (FT-514; tests).
@@ -467,7 +473,7 @@ impl App {
         if self.dispatch_log.len() == DISPATCH_LOG {
             self.dispatch_log.pop_front();
         }
-        self.dispatch_log.push_back(action);
+        self.dispatch_log.push_back((action, params.clone()));
         let outcome = self.shell.dispatch(action, params);
         self.report(outcome);
     }
