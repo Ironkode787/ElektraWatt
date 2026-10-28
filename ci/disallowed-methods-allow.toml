@@ -218,7 +218,7 @@ count = 1
 [[allow]]
 crate = "ew-ui"
 item = "fn bless"
-count = 2
+count = 3
 
 [[allow]]
 crate = "ew-ui"
