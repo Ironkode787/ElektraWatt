@@ -49,7 +49,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "`page.renumber`: renumbers folio numbers (FR-PAG-007). References are by ID, so every xref, tag and\nTOC row follows without further ops.\n\nThe pages in scope are ordered by (section number, folio number, label in natural order, ID); pages\nsharing a folio number (sub-pages) keep their labels and move together. With `keep_gaps`, a page gets\n`start + (old − first_old) × step`; without, the i-th distinct old number (from 0) becomes\n`start + i × step`. `step` is at least 1. A new folio that equals the folio of a page outside the scope\nin the same section is rejected. Bulk.",
+  "description": "`page.renumber`: renumbers folio numbers (FR-PAG-007). References are by ID, so every xref, tag and\nTOC row follows without further ops.\n\nThe pages in scope are ordered by (section number, folio number, label in natural order, ID); pages\nsharing a folio number (sub-pages) keep their labels and move together. With `keep_gaps`, a page gets\n`start + (old − first_old) × step`; without, the i-th distinct old number (from 0) becomes\n`start + i × step`. `step` is at least 1. A new folio that equals the folio of a page outside the scope\nin the same section is rejected. A page of the same section whose label's leading number segment (up to the first\n`.`, or the whole label) is the printed old number takes the printed new number instead (`101.1` becomes `20.1`\nwhen 101 becomes 20; `101a` and `1011.1` keep their label; FT-475); a rewritten label that equals another page's\nprinted folio is rejected. Bulk.",
   "properties": {
     "keep_gaps": {
       "default": false,

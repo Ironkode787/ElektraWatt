@@ -3,7 +3,7 @@
 
 //! Page commands (doc 06 §3.1): `page.create`, `page.delete`, `page.renumber`.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use ew_ids::Id;
@@ -384,7 +384,10 @@ pub enum PageScope {
 /// sharing a folio number (sub-pages) keep their labels and move together. With `keep_gaps`, a page gets
 /// `start + (old − first_old) × step`; without, the i-th distinct old number (from 0) becomes
 /// `start + i × step`. `step` is at least 1. A new folio that equals the folio of a page outside the scope
-/// in the same section is rejected. Bulk.
+/// in the same section is rejected. A page of the same section whose label's leading number segment (up to the first
+/// `.`, or the whole label) is the printed old number takes the printed new number instead (`101.1` becomes `20.1`
+/// when 101 becomes 20; `101a` and `1011.1` keep their label; FT-475); a rewritten label that equals another page's
+/// printed folio is rejected. Bulk.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct RenumberPages {
@@ -487,8 +490,59 @@ impl Command for RenumberPages {
                 ));
             }
         }
+        // FT-475: a label that carries the printed folio of its parent (FT-460's `101.1`, an imported `101.1.1`, or
+        // the page's own label `101`) follows the number: in the same section, a label whose leading segment (up to
+        // the first `.` or the end) is the printed old number gets the printed new number in its place. `101a` and
+        // `1011.1` keep their label. Computed on the old state, so chained renumbers (101 to 102, 102 to 103) cannot
+        // see each other's result.
+        let moves: BTreeMap<(Option<Id<Section>>, String), u32> = scope
+            .iter()
+            .zip(&new_numbers)
+            .filter(|(p, (_, new))| p.folio.number != *new)
+            .map(|(p, &(_, new))| ((p.folio.section, p.folio.number.to_string()), new))
+            .collect();
+        let mut relabel: Vec<(Id<Page>, Ident)> = Vec::new();
+        for p in tx.iter::<Page>() {
+            let Some(label) = &p.folio.label else { continue };
+            let (head, rest) = label
+                .as_str()
+                .split_once('.')
+                .map_or((label.as_str(), ""), |(h, _)| (h, &label.as_str()[h.len()..]));
+            let Some(&new) = moves.get(&(p.folio.section, head.to_owned())) else {
+                continue;
+            };
+            let text = format!("{new}{rest}");
+            let new_label: Ident = text
+                .parse()
+                .map_err(|_| CmdError::internal(format!("sub-page label `{text}` is not an identifier")))?;
+            relabel.push((p.id, new_label));
+        }
+        if !relabel.is_empty() {
+            // The printed folios after the renumbering must stay distinct within a section.
+            let new_number: BTreeMap<Id<Page>, u32> = new_numbers.iter().copied().collect();
+            let new_label: BTreeMap<Id<Page>, &Ident> = relabel.iter().map(|(id, l)| (*id, l)).collect();
+            let mut printed: BTreeMap<(Option<Id<Section>>, String), u32> = BTreeMap::new();
+            let mut texts: Vec<(Option<Id<Section>>, String, bool)> = Vec::new();
+            for p in tx.iter::<Page>() {
+                let number = new_number.get(&p.id).copied().unwrap_or(p.folio.number);
+                let label = new_label.get(&p.id).copied().or(p.folio.label.as_ref());
+                let text = printed_folio(number, label);
+                *printed.entry((p.folio.section, text.clone())).or_default() += 1;
+                texts.push((p.folio.section, text, new_label.contains_key(&p.id)));
+            }
+            for (section, text, relabelled) in texts {
+                if relabelled && printed[&(section, text.clone())] > 1 {
+                    return tx.reject(format!(
+                        "sub-page label {text} is already used by another page of the section; choose another `start`"
+                    ));
+                }
+            }
+        }
         for (id, new) in new_numbers {
             tx.update::<Page>(id, |p| p.folio.number = new)?;
+        }
+        for (id, label) in relabel {
+            tx.update::<Page>(id, |p| p.folio.label = Some(label))?;
         }
         Ok(Outcome::default())
     }

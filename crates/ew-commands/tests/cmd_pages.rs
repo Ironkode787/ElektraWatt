@@ -380,6 +380,77 @@ fn renumber_sub_pages_move_together() {
     assert_eq!(folio_of(&e, PAGE_102), (Some(SEC1), 21, None));
 }
 
+/// FT-475 (ID-670): a label whose leading number segment is the page's old printed folio follows the new folio.
+#[test]
+fn renumber_rewrites_sub_page_labels() {
+    let mut e = engine(golden_model());
+    let mk = |e: &mut Engine, section: Option<Id<Section>>, number: u32, label: &str| -> Id<Page> {
+        typed(
+            e.execute(&labelled(section, number, label))
+                .unwrap()
+                .outcome
+                .primary
+                .unwrap(),
+        )
+    };
+    let own = mk(&mut e, Some(SEC1), 150, "150");
+    let first = mk(&mut e, Some(SEC1), 101, "101.1");
+    let nested = mk(&mut e, Some(SEC1), 101, "101.1.1");
+    let letter = mk(&mut e, Some(SEC1), 101, "101a");
+    let longer = mk(&mut e, Some(SEC1), 101, "1011.1");
+    let other = mk(&mut e, None, 101, "101.1");
+    bulk(
+        &mut e,
+        &renumber(
+            PageScope::Pages(vec![PAGE_101, own, first, nested, letter, longer]),
+            20,
+            1,
+            false,
+        ),
+    )
+    .unwrap();
+    let label = |e: &Engine, p| folio_of(e, p).2;
+    assert_eq!(folio_of(&e, PAGE_101), (Some(SEC1), 20, None));
+    assert_eq!(folio_of(&e, own), (Some(SEC1), 21, Some("21".into())));
+    assert_eq!(label(&e, first).as_deref(), Some("20.1"));
+    assert_eq!(label(&e, nested).as_deref(), Some("20.1.1"));
+    assert_eq!(label(&e, letter).as_deref(), Some("101a"));
+    assert_eq!(label(&e, longer).as_deref(), Some("1011.1"));
+    assert_eq!(folio_of(&e, other), (None, 101, Some("101.1".into())));
+}
+
+/// FT-475: the relabelling is part of the renumbering's transaction (one undo), and a page outside the scope keeps
+/// its number but follows the label rule.
+#[test]
+fn renumber_sub_page_labels_undo_in_one_step() {
+    let mut e = engine(golden_model());
+    let sub: Id<Page> = typed(
+        e.execute(&labelled(Some(SEC1), 101, "101.1"))
+            .unwrap()
+            .outcome
+            .primary
+            .unwrap(),
+    );
+    let before = lines(e.model());
+    bulk(&mut e, &renumber(PageScope::Pages(vec![PAGE_101]), 20, 1, false)).unwrap();
+    assert_eq!(folio_of(&e, sub), (Some(SEC1), 101, Some("20.1".into())));
+    e.undo(&ew_commands::Origin::Gui).unwrap();
+    assert_eq!(lines(e.model()), before);
+}
+
+/// FT-475: a rewritten label may not collide with the printed folio of another page of the section.
+#[test]
+fn renumber_refuses_a_rewritten_label_that_collides() {
+    let mut e = engine(golden_model());
+    e.execute(&labelled(Some(SEC1), 101, "101.1")).unwrap();
+    e.execute(&labelled(Some(SEC1), 150, "20.1")).unwrap();
+    let reason = rejected(bulk(
+        &mut e,
+        &renumber(PageScope::Pages(vec![PAGE_101]), 20, 1, false),
+    ));
+    assert!(reason.contains("20.1"), "{reason}");
+}
+
 #[test]
 fn renumber_rejections() {
     let mut e = engine(golden_model());

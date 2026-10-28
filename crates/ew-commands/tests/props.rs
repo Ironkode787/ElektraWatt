@@ -303,14 +303,16 @@ fn run_all(e: &mut Engine, sequence: &[Step]) -> Result<(), TestCaseError> {
 }
 
 /// The rows of one kind, with one member of an object member of their JSON removed.
-fn rows_without(model: &Model, kind: Kind, member: (&str, &str)) -> Vec<(AnyKey, serde_json::Value)> {
+fn rows_without(model: &Model, kind: Kind, members: &[(&str, &str)]) -> Vec<(AnyKey, serde_json::Value)> {
     lines(model)
         .into_iter()
         .filter(|(key, _)| key.0 == kind)
         .map(|(key, text)| {
             let mut value: serde_json::Value = serde_json::from_str(&text).expect("a row is JSON");
-            if let Some(obj) = value.get_mut(member.0).and_then(|v| v.as_object_mut()) {
-                obj.remove(member.1);
+            for member in members {
+                if let Some(obj) = value.get_mut(member.0).and_then(|v| v.as_object_mut()) {
+                    obj.remove(member.1);
+                }
             }
             (key, value)
         })
@@ -399,8 +401,8 @@ proptest! {
         prop_assert_eq!(lines_except(&before, Kind::Device), lines_except(after, Kind::Device));
         // Devices differ at most in their counter.
         prop_assert_eq!(
-            rows_without(&before, Kind::Device, ("tag", "counter")),
-            rows_without(after, Kind::Device, ("tag", "counter"))
+            rows_without(&before, Kind::Device, &[("tag", "counter")]),
+            rows_without(after, Kind::Device, &[("tag", "counter")])
         );
         let again = e.preview(&cmd);
         prop_assert!(
@@ -410,7 +412,7 @@ proptest! {
         );
     }
 
-    /// `page.renumber` changes only the folio numbers of pages.
+    /// `page.renumber` changes only the folio numbers of pages and the sub-page labels that carry them (FT-475).
     #[test]
     fn page_renumbering_keeps_references(sequence in steps(true), start_101 in any::<bool>()) {
         let mut e = engine(golden_model());
@@ -424,8 +426,8 @@ proptest! {
         let after = e.model();
         prop_assert_eq!(lines_except(&before, Kind::Page), lines_except(after, Kind::Page));
         prop_assert_eq!(
-            rows_without(&before, Kind::Page, ("folio", "number")),
-            rows_without(after, Kind::Page, ("folio", "number"))
+            rows_without(&before, Kind::Page, &[("folio", "number"), ("folio", "label")]),
+            rows_without(after, Kind::Page, &[("folio", "number"), ("folio", "label")])
         );
     }
 

@@ -9,7 +9,10 @@ The pages in scope are ordered by (section number, folio number, label in natura
 sharing a folio number (sub-pages) keep their labels and move together. With `keep_gaps`, a page gets
 `start + (old − first_old) × step`; without, the i-th distinct old number (from 0) becomes
 `start + i × step`. `step` is at least 1. A new folio that equals the folio of a page outside the scope
-in the same section is rejected. Bulk.
+in the same section is rejected. A page of the same section whose label's leading number segment (up to the first
+`.`, or the whole label) is the printed old number takes the printed new number instead (`101.1` becomes `20.1`
+when 101 becomes 20; `101a` and `1011.1` keep their label; FT-475); a rewritten label that equals another page's
+printed folio is rejected. Bulk.
 
 ## Registry entry
 
