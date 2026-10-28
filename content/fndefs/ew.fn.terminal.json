@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "e6f46588-2ed1-594f-857b-4810ffe4a028",
   "version": "0.1.0",
-  "sha256": "sha256:cd7848264aaf391593c96b79186cfc4d4fba883e2c8be9d06d829cd08d3f320d",
+  "sha256": "sha256:7967e0347175bf21a734226db1fec540c0bab3f6e558047da241dbb675400d0e",
   "meta": {
     "key": "ew.fn.terminal",
     "licence": "CC-BY-SA-4.0",
@@ -35,7 +35,7 @@
       "level": 1,
       "side": "side2",
       "clamp": {
-        "clamp": "a"
+        "clamp": "b"
       }
     }
   ],
