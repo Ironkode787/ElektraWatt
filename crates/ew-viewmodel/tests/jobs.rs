@@ -629,3 +629,57 @@ fn ft513_a_waited_failure_and_a_done_export_are_not_unseen() {
     assert!(tmp.0.join("ok.pdf").exists());
     s.shutdown();
 }
+
+/// Polls until no job runs (the end is taken by a poll, as the script runner's poll before a step may take it).
+fn poll_to_the_end(s: &mut ShellModel) {
+    while s.jobs().running() > 0 {
+        s.poll_jobs();
+        std::thread::yield_now();
+    }
+}
+
+/// R1-2 of cycle 31: a `jobs.wait` after a poll already took the failed or cancelled end still sees it, with and
+/// without `job`, so whether the runner's poll or the wait took the end does not change the run's outcome.
+#[test]
+fn ft513_a_wait_after_a_poll_took_the_end_still_sees_it() {
+    let tmp = Tmp::new("ft513-polled");
+    let mut s = small(&tmp, Mode::Headless);
+    let missing = tmp.0.join("missing").join("out.pdf");
+    // Failed, `jobs.wait {}`.
+    done(
+        &mut s,
+        "file.export_pdf",
+        json!({"path": path_text(&missing), "wait": false}),
+    );
+    poll_to_the_end(&mut s);
+    done(&mut s, "jobs.wait", json!({}));
+    assert!(s.wait_jobs().is_empty(), "jobs.wait {{}} saw the failure");
+    // Failed, `jobs.wait {job: 2}`.
+    done(
+        &mut s,
+        "file.export_pdf",
+        json!({"path": path_text(&missing), "wait": false}),
+    );
+    poll_to_the_end(&mut s);
+    done(&mut s, "jobs.wait", json!({"job": 2}));
+    assert!(s.wait_jobs().is_empty(), "jobs.wait {{job: 2}} saw the failure");
+    // Held, cancelled, released, polled to its end, then `jobs.wait {}`.
+    let gate = Gate::new();
+    gate.hold("page");
+    s.set_job_gate_for_tests(Some(gate.clone()));
+    done(
+        &mut s,
+        "file.export_pdf",
+        json!({"path": path_text(&tmp.0.join("b.pdf")), "wait": false}),
+    );
+    gate.wait_reached("page");
+    done(&mut s, "jobs.cancel", json!({}));
+    gate.release();
+    poll_to_the_end(&mut s);
+    s.set_job_gate_for_tests(None);
+    done(&mut s, "jobs.wait", json!({}));
+    assert!(s.wait_jobs().is_empty(), "jobs.wait {{}} saw the cancel");
+    // Nothing left unseen: `jobs.wait {}` is done at once.
+    done(&mut s, "jobs.wait", json!({}));
+    s.shutdown();
+}

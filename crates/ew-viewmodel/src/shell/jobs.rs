@@ -390,9 +390,12 @@ impl ShellModel {
     }
 
     /// Waits for job `number` and takes its end; the step's outcome by the end (§6.3 item 5). The waiting step sees
-    /// the end, so it is not an unseen failure.
+    /// the end, so it is not an unseen failure, also when a poll took the end before this step (R1-2 of cycle 31).
     fn wait_job(&mut self, number: u64) -> Outcome {
         let Some(handle) = self.jobs.get_mut(number).and_then(|e| e.handle.take()) else {
+            if let Some(entry) = self.jobs.get_mut(number) {
+                entry.unseen_failure = None;
+            }
             return Outcome::Done;
         };
         let end = handle.wait();
@@ -541,14 +544,17 @@ impl ShellModel {
         }
     }
 
-    /// `jobs.wait {job?}` (headless only): waits for a running job (the newest by default) and takes its end; done at
-    /// once when none runs.
+    /// `jobs.wait {job?}` (headless only): waits for a job and takes its end; by default the newest job whose end no
+    /// step has seen yet (still running, or ended by a poll with an unseen failure), so the outcome does not depend on
+    /// which poll took the end (R1-2 of cycle 31). Done at once when there is none.
     pub(super) fn act_jobs_wait(&mut self, p: &Map<String, Value>) -> Outcome {
-        let number = match self.job_number(
-            p,
-            |j| j.newest_running().map(|e| e.number),
-            "reason-no-running-job",
-        ) {
+        let unseen = |j: &JobsState| {
+            j.entries()
+                .filter(|e| e.handle.is_some() || e.unseen_failure.is_some())
+                .last()
+                .map(|e| e.number)
+        };
+        let number = match self.job_number(p, unseen, "reason-no-running-job") {
             Ok(n) => n,
             // Nothing runs: there is nothing to wait for.
             Err(Outcome::Refused { .. }) => return Outcome::Done,
