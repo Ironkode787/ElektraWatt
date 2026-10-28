@@ -1384,7 +1384,10 @@ Libraries are `.ewlib` text directories in the project format at every tier
   arise.
 - **Immutable versions.** A published version never changes: `ew lib pack` refuses different content under an
   existing version, so `(library_id, item_id, version)` determines the content ([07](07-symbols-parts-macros.md)
-  §2.1).
+  §2.1). The starter library's draft items (status `draft`, every one at 0.1.0, [07](07-symbols-parts-macros.md)
+  §2.3) are not published before the first release and may change in place (ID-733). The consequence: a project
+  made before such a change refuses a cross-project paste of the changed item (a terminal, after FT-505) until
+  "update from library" (FR-PRT-014) exists.
 - **Foreign SQLite files** (QETZ, third-party catalogues) open read-only with `trusted_schema=OFF`, defensive mode
   and a schema check (ARCH §7.7, NFR-SEC-06).
 - **Item content** is specified in [symbols, parts and macros](07-symbols-parts-macros.md). The record kinds
