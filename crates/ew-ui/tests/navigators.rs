@@ -317,3 +317,34 @@ fn nv11_scrolling_the_devices_pane_paints_the_rows_in_view_and_calls_nothing() {
     );
     h.state_mut().shell_mut().shutdown();
 }
+
+/// R30 F9 in the window: a double click on the paged Wire List row of the Report blocks navigator goes to folio 907.
+#[test]
+fn r30_double_clicking_a_paged_report_block_goes_to_its_first_folio() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp);
+    dispatch(&mut h, "page.goto", json!({"folio": "102"}));
+    dispatch(&mut h, "navigator.show", json!({"kind": "blocks"}));
+    settle(&mut h);
+    settle(&mut h);
+    let at = item_centre(&h, "Wire List");
+    h.input_mut().events.push(egui::Event::PointerMoved(at));
+    h.run_ok();
+    for pressed in [true, false, true, false] {
+        h.input_mut().events.push(egui::Event::PointerButton {
+            pos: at,
+            button: PointerButton::Primary,
+            pressed,
+            modifiers: Modifiers::NONE,
+        });
+    }
+    settle(&mut h);
+    settle(&mut h);
+    assert_eq!(h.state().shell().current_folio(), Some("907"));
+    assert_eq!(
+        h.state().shell().selection().items.len(),
+        1,
+        "the block is selected"
+    );
+    h.state_mut().shell_mut().shutdown();
+}

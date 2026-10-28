@@ -427,3 +427,37 @@ fn np6_the_six_words_and_the_two_actions() {
     }
     shell.shutdown();
 }
+
+/// R30 F9: opening a paged report-block row goes to its first folio's page and selects the block; an embedded block
+/// (no generated pages) has no open target and leaves the page unchanged.
+#[test]
+fn r30_opening_a_paged_report_block_goes_to_its_first_folio() {
+    let tmp = Tmp::new("nav2-blocks-open");
+    let mut shell = tmp.shell_in(Mode::Headless, false, "102");
+    done(&mut shell, "navigator.show", json!({"kind": "blocks"}));
+    let t = shell.nav(NavKind::Blocks).and_then(|n| n.table()).unwrap();
+    let wire = t
+        .nodes
+        .iter()
+        .find(|n| n.role == NavRole::ReportBlock && n.cells[2] == "907")
+        .cloned()
+        .expect("a paged block at folio 907");
+    let embedded = t
+        .nodes
+        .iter()
+        .find(|n| n.role == NavRole::ReportBlock && n.cells[4] == "0")
+        .cloned()
+        .expect("an embedded block");
+    done(
+        &mut shell,
+        "navigator.open",
+        json!({"kind": "blocks", "key": wire.key}),
+    );
+    assert_eq!(shell.current_folio(), Some("907"));
+    let selected: Vec<_> = shell.selection().items.iter().map(|e| e.0).collect();
+    assert_eq!(selected, wire.records, "the block is selected");
+    assert!(embedded.open.is_none(), "an embedded block has no open target");
+    let _ = shell.dispatch("navigator.open", &json!({"kind": "blocks", "key": embedded.key}));
+    assert_eq!(shell.current_folio(), Some("907"), "the page is unchanged");
+    shell.shutdown();
+}

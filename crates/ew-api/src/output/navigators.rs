@@ -1889,9 +1889,10 @@ fn blocks_table(q: &Q, b: &mut Builder) {
             Some(cells),
             facets,
         );
+        // A paged block opens its first generated page with the block selected (R30 F9).
         b.nodes[n as usize].open = open.map(|p| NavOpen {
             page: p,
-            select: Vec::new(),
+            select: vec![id],
         });
     }
 }
