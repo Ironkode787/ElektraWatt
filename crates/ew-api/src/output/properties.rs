@@ -1720,7 +1720,8 @@ impl Session {
         });
         let subtitle = subtitle.filter(|s| !s.is_empty());
         let location = device.and_then(|d| main_location(q, d));
-        // The open findings of the drafting scheme on the sheet's records or pages.
+        // The open findings of the online scheme (WP-S2.09 §4.2: the project's `active_scheme`, else `drafting`) on the
+        // sheet's records or pages.
         let mut targets: BTreeSet<Uuid> = BTreeSet::new();
         let mut pages: BTreeSet<Uuid> = BTreeSet::new();
         for s in sections {
@@ -1730,8 +1731,8 @@ impl Session {
             }
         }
         let mut findings: Vec<(String, String, FindingChip)> = Vec::new();
-        if let Some(scheme) = checks::scheme("drafting") {
-            let report = checks::run(q, scheme, checks::CheckMode::Online);
+        {
+            let report = checks::run(q, self.online_scheme(), checks::CheckMode::Online);
             for f in report
                 .findings
                 .iter()

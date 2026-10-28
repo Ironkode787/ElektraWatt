@@ -1137,6 +1137,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "nav-title-structure" => "Structure identifiers",
         "nav-title-parts" => "Parts in use",
         "nav-title-blocks" => "Report blocks",
+        "nav-title-messages" => "Messages",
         "nav-tree-name" => "{0} navigator",
         "chips-label" => "Not on this page:",
         "chip-name" => "Open {0}",

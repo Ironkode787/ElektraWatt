@@ -38,7 +38,7 @@ use super::PageRow;
 use super::view::PageFrameOf;
 use crate::Session;
 
-/// The eleven navigators (D4), in View ▸ Navigators order.
+/// The twelve navigators (D4; WP-S2.09 D8 adds the message panel last), in View ▸ Navigators order.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum NavKind {
     /// Pages.
@@ -63,11 +63,13 @@ pub enum NavKind {
     Parts,
     /// Report blocks (part 2).
     Blocks,
+    /// The message panel (WP-S2.09 part 2, D8): the findings of the project's online check scheme.
+    Messages,
 }
 
 impl NavKind {
-    /// The eleven kinds in menu order.
-    pub const ALL: [NavKind; 11] = [
+    /// The twelve kinds in menu order.
+    pub const ALL: [NavKind; 12] = [
         NavKind::Pages,
         NavKind::Devices,
         NavKind::Connections,
@@ -79,6 +81,7 @@ impl NavKind {
         NavKind::Structure,
         NavKind::Parts,
         NavKind::Blocks,
+        NavKind::Messages,
     ];
 
     /// The kind's word: the `kind` parameter of the `navigator.*` actions and the describe text.
@@ -95,6 +98,7 @@ impl NavKind {
             NavKind::Structure => "structure",
             NavKind::Parts => "parts",
             NavKind::Blocks => "blocks",
+            NavKind::Messages => "messages",
         }
     }
 
@@ -149,6 +153,12 @@ pub enum NavRole {
     Part,
     /// A report block.
     ReportBlock,
+    /// A severity group of the message panel (WP-S2.09 part 2).
+    Severity,
+    /// A rule group of the message panel.
+    Rule,
+    /// A finding of the message panel.
+    Finding,
 }
 
 impl NavRole {
@@ -176,6 +186,9 @@ impl NavRole {
             NavRole::Manufacturer => "manufacturer",
             NavRole::Part => "part",
             NavRole::ReportBlock => "report_block",
+            NavRole::Severity => "severity",
+            NavRole::Rule => "rule",
+            NavRole::Finding => "finding",
         }
     }
 }
@@ -409,6 +422,18 @@ fn columns_of(kind: NavKind) -> Vec<NavColumn> {
         }
         NavKind::Parts => kind_columns("parts_summary"),
         NavKind::Blocks => own(&["title", "kind", "first_folio", "section", "pages"]),
+        // WP-S2.09 §7.1: every column is derived and read-only; `rule` is the key column.
+        NavKind::Messages => MESSAGE_COLUMNS
+            .iter()
+            .map(|k| NavColumn {
+                key: (*k).to_owned(),
+                label: key_label(k),
+                derived: true,
+                key_column: *k == "rule",
+                route: None,
+                read_only: Some("derived".to_owned()),
+            })
+            .collect(),
     }
 }
 
@@ -517,6 +542,7 @@ impl Session {
             NavKind::Structure => structure_table(&q, &mut b),
             NavKind::Parts => parts_table(&q, &mut b),
             NavKind::Blocks => blocks_table(&q, &mut b),
+            NavKind::Messages => self.messages_table(&q, &mut b),
         }
         b.finish(kind, rev)
     }
@@ -1965,6 +1991,247 @@ impl Session {
     }
 }
 
+// ---------------------------------------------------------------------------------------------------------------
+// WP-S2.09 part 2: the message panel (§7.1, D8)
+
+/// The columns of the message panel's table rows (§7.1), in order; `rule` is the key column.
+const MESSAGE_COLUMNS: [&str; 7] = [
+    "severity",
+    "rule",
+    "message",
+    "object",
+    "page_cell",
+    "fix",
+    "state",
+];
+
+/// The severities in the panel's group order, with the group labels.
+const SEVERITY_GROUPS: [(crate::checks::Severity, &str); 3] = [
+    (crate::checks::Severity::Error, "Errors"),
+    (crate::checks::Severity::Warning, "Warnings"),
+    (crate::checks::Severity::Info, "Infos"),
+];
+
+/// The word of a rule kind (`safety`, `conflict`, `completeness`, `hygiene`, `integrity`): the `kind` facet of a
+/// finding row and the detail line's kind.
+fn rule_kind_word(kind: crate::checks::RuleKind) -> &'static str {
+    use crate::checks::RuleKind;
+    match kind {
+        RuleKind::Safety => "safety",
+        RuleKind::Conflict => "conflict",
+        RuleKind::Completeness => "completeness",
+        RuleKind::Hygiene => "hygiene",
+        RuleKind::Integrity => "integrity",
+    }
+}
+
+/// The drawables of one finding target (§6.1 item 6 of WP-S2.06): a device the representations of its functions; a
+/// function its representations; a representation and a connection themselves; a conductor its core connections;
+/// every other record none.
+fn target_drawables(
+    q: &Q,
+    folios: &BTreeMap<Id<Page>, (usize, String, Uuid)>,
+    target: &crate::checks::Target,
+) -> Vec<Drawable> {
+    use ew_derive::ew_schema::{Conductor, ConnectionKind, Kind};
+    let id = target.id.as_uuid();
+    match target.kind {
+        Kind::Device => device_drawables(q, folios, Id::from_uuid(id)),
+        Kind::Function => {
+            let f: Id<Function> = Id::from_uuid(id);
+            let main = q.functions().get(f).is_none_or(|x| x.role == FnRole::Main);
+            sorted(
+                q.idx()
+                    .reps_of_function(f)
+                    .filter_map(|r| drawable(q, folios, r, main))
+                    .collect(),
+            )
+        }
+        Kind::Representation => sorted(drawable(q, folios, Id::from_uuid(id), true).into_iter().collect()),
+        Kind::Connection => connection_drawables(q, folios, &[Id::from_uuid(id)]),
+        Kind::Conductor => {
+            let cid: Id<Conductor> = Id::from_uuid(id);
+            let mut cons: Vec<Id<ew_derive::ew_schema::Connection>> = q
+                .connections()
+                .iter()
+                .filter(|(_, c)| matches!(c.kind, ConnectionKind::Core(x) if x == cid))
+                .map(|(_, c)| c.id)
+                .collect();
+            cons.sort();
+            connection_drawables(q, folios, &cons)
+        }
+        _ => Vec::new(),
+    }
+}
+
+/// Sets a node's first natural key to its rank (its index), so that the default label sort keeps the provider's order.
+fn rank(b: &mut Builder, at: u32) {
+    let r = natural_key(&at.to_string());
+    if let Some(first) = b.nodes[at as usize].natural.first_mut() {
+        *first = r;
+    }
+}
+
+impl Session {
+    /// The check scheme of the online checks (WP-S2.09 §4.2): the project's `active_scheme`
+    /// ([`Session::project_check_scheme`] in [`crate::checks::CheckMode::Online`]), else `drafting`. The message panel
+    /// and the property grid's header findings run it.
+    pub fn online_scheme(&self) -> &'static crate::checks::Scheme {
+        self.project_check_scheme(crate::checks::CheckMode::Online)
+            .unwrap_or(&crate::checks::DRAFTING)
+    }
+
+    /// The message panel's tree (WP-S2.09 §7.1): severity groups (Error, Warning, Info; an empty one left out) → rule
+    /// groups in rule-ID order (label `<rule ID> <title>`, badge the number of its findings) → the findings in the
+    /// report's order (label `<subject>: <message>`, key `finding:<fingerprint>`), from the online scheme's run. A
+    /// node's first natural key is its rank in this order, so that the default label sort shows the provider's order.
+    fn messages_table(&self, q: &Q, b: &mut Builder) {
+        use crate::checks::{self, CheckMode};
+        let report = checks::run(q, self.online_scheme(), CheckMode::Online);
+        let folios = folios(q);
+        for (severity, label) in SEVERITY_GROUPS {
+            let of_severity: Vec<&checks::Finding> = report
+                .findings
+                .iter()
+                .filter(|f| f.severity == severity)
+                .collect();
+            if of_severity.is_empty() {
+                continue;
+            }
+            let word = severity.name();
+            let snode = group(
+                b,
+                None,
+                NavRole::Severity,
+                &format!("severity:{word}"),
+                label.to_owned(),
+            );
+            rank(b, snode);
+            let rules: std::collections::BTreeSet<&'static str> =
+                of_severity.iter().map(|f| f.rule).collect();
+            for rule in rules {
+                let findings: Vec<&checks::Finding> =
+                    of_severity.iter().copied().filter(|f| f.rule == rule).collect();
+                let meta = checks::rule(rule).map(|r| r.meta());
+                let rnode = b.push(
+                    Some(snode),
+                    NavRole::Rule,
+                    &format!("rule:{rule}"),
+                    match meta {
+                        Some(m) if !m.title.is_empty() => format!("{rule} {}", m.title),
+                        _ => rule.to_owned(),
+                    },
+                    vec![findings.len().to_string()],
+                    Vec::new(),
+                    Vec::new(),
+                    None,
+                    vec![("kind".to_owned(), NavRole::Rule.word().to_owned())],
+                );
+                rank(b, rnode);
+                let kind = meta.map(|m| rule_kind_word(m.kind));
+                for f in findings {
+                    finding_node(q, b, &folios, rnode, f, kind);
+                }
+            }
+        }
+    }
+}
+
+/// One finding row (§7.1): its records are the targets, its drawables theirs; its page is the finding's page, else the
+/// page of the primary target's first drawable; Enter opens that page with the targets' drawables on it selected.
+fn finding_node(
+    q: &Q,
+    b: &mut Builder,
+    folios: &BTreeMap<Id<Page>, (usize, String, Uuid)>,
+    parent: u32,
+    f: &crate::checks::Finding,
+    kind: Option<&'static str>,
+) {
+    let mut drawables = Vec::new();
+    for t in &f.targets {
+        drawables.extend(target_drawables(q, folios, t));
+    }
+    let mut seen = std::collections::BTreeSet::new();
+    drawables.retain(|d| seen.insert(d.record));
+    let primary: Vec<Drawable> = f
+        .targets
+        .first()
+        .map(|t| target_drawables(q, folios, t))
+        .unwrap_or_default();
+    let page: Option<(String, Uuid)> = match f.page {
+        Some(p) => folios.get(&p).map(|(_, folio, u)| (folio.clone(), *u)),
+        None => primary.first().map(|d| (d.folio.clone(), d.page)),
+    };
+    let page_cell = match &page {
+        Some((folio, u)) => primary
+            .iter()
+            .find(|d| d.page == *u)
+            .map_or_else(|| folio.clone(), rep_label),
+        None => String::new(),
+    };
+    let waived = matches!(f.state, crate::checks::FindingState::Waived { .. });
+    let state = if waived { "waived" } else { "open" };
+    let word = f.severity.name();
+    let cells = vec![
+        word.to_owned(),
+        f.rule.to_owned(),
+        f.message.clone(),
+        f.subject.clone(),
+        page_cell,
+        f.fix.as_ref().map(|x| x.label.clone()).unwrap_or_default(),
+        state.to_owned(),
+    ];
+    let mut badges = vec![word.to_owned()];
+    if waived {
+        badges.push("waived".to_owned());
+    }
+    if f.fix.is_some() {
+        badges.push("fix".to_owned());
+    }
+    let mut facets = Vec::new();
+    if let Some(k) = kind {
+        facets.push(("kind".to_owned(), k.to_owned()));
+    }
+    if let Some((folio, _)) = &page {
+        facets.push(("page".to_owned(), folio.to_lowercase()));
+    }
+    facets.push(("state".to_owned(), state.to_owned()));
+    let label = if f.subject.is_empty() {
+        f.message.clone()
+    } else {
+        format!("{}: {}", f.subject, f.message)
+    };
+    let open_page = page
+        .as_ref()
+        .map(|(_, u)| *u)
+        .or_else(|| drawables.first().map(|d| d.page));
+    let records: Vec<Uuid> = f.targets.iter().map(|t| t.id.as_uuid()).collect();
+    let select = |p: Uuid| -> Vec<Uuid> {
+        drawables
+            .iter()
+            .filter(|d| d.page == p)
+            .map(|d| d.record)
+            .collect()
+    };
+    let open = open_page.map(|p| NavOpen {
+        page: p,
+        select: select(p),
+    });
+    let at = b.push(
+        Some(parent),
+        NavRole::Finding,
+        &format!("finding:{}", f.fingerprint),
+        label,
+        badges,
+        records,
+        drawables,
+        Some(cells),
+        facets,
+    );
+    rank(b, at);
+    b.nodes[at as usize].open = open;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1994,7 +2261,8 @@ mod tests {
                 "ips",
                 "structure",
                 "parts",
-                "blocks"
+                "blocks",
+                "messages"
             ]
         );
         for k in NavKind::ALL {
