@@ -1,0 +1,484 @@
+<!doctype html>
+<!--
+SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+SPDX-License-Identifier: CC-BY-4.0
+
+The design-language mockup approved by the owner on 2026-10-28: the visual reference of
+docs/design/16a-design-language.md (section 11). All drawing content, names and rule codes are illustrative.
+Two corrections against the approved copy, both required (16a section 11): the status bar carries the fields of
+FR-UI-034 and NFR-PLAT-03, and the highlight name chip has a black label (NFR-A11Y-04).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ElektraWatt design language mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600&display=swap">
+<style>
+/* Tokens of doc 16a section 4: global ramps -> aliases. Light is the default; [data-theme=dark] swaps the aliases. */
+:root {
+  --surface-chrome:#F4F5F7; --surface-panel:#FFFFFF; --surface-raised:#FFFFFF; --surface-sunken:#F4F5F7;
+  --surface-inverse:#1A1D21; --text-primary:#1A1D21; --text-secondary:#555C66; --text-tertiary:#646C78;
+  --text-disabled:#A7AEB8; --text-on-accent:#FFFFFF; --text-on-inverse:#ECEEF1;
+  --accent:#0B63CE; --accent-hover:#0A58B8; --accent-subtle:#E7F0FC;
+  --border-subtle:#E3E6EA; --border-default:#D5D9DF; --border-control:#868E99;
+  --hover:rgba(26,29,33,.06); --pressed:rgba(26,29,33,.10);
+  --error:#C42B3C; --error-subtle:#FDECEE; --warning:#9A5B00; --warning-icon:#B26A00; --warning-subtle:#FFF4E0;
+  --success:#17733F; --success-subtle:#E8F5EE;
+  --canvas-surround:#E3E6EA; --sheet:#FFFFFF; --sheet-line:#000000; --grid-dot:#B8BEC7; --selection:#0B63CE;
+  --hl1:#D55E00; --hl2:#009E73;
+  --shadow-1:0 1px 2px rgba(16,24,40,.10),0 0 0 1px rgba(16,24,40,.04);
+  --shadow-2:0 8px 24px rgba(16,24,40,.16),0 2px 6px rgba(16,24,40,.08);
+  --row:28px; --bar-cmd:52px; --font:"Noto Sans","Segoe UI",system-ui,-apple-system,sans-serif;
+}
+[data-theme=dark] {
+  --surface-chrome:#1A1D21; --surface-panel:#212429; --surface-raised:#2A2E34; --surface-sunken:#1A1D21;
+  --surface-inverse:#ECEEF1; --text-primary:#ECEEF1; --text-secondary:#A7AEB8; --text-tertiary:#959DA8;
+  --text-disabled:#555C66; --text-on-accent:#0B1A33; --text-on-inverse:#1A1D21;
+  --accent:#5AA2FF; --accent-hover:#77B3FF; --accent-subtle:#203754;
+  --border-subtle:#343941; --border-default:#3F454D; --border-control:#868E99;
+  --hover:rgba(255,255,255,.07); --pressed:rgba(255,255,255,.12);
+  --error:#FF8A8A; --error-subtle:#3A2226; --warning:#F5B544; --warning-icon:#F5B544; --warning-subtle:#3A2E17;
+  --success:#47C97E; --success-subtle:#1D3326;
+  --canvas-surround:#2E3238;
+  --shadow-1:0 1px 2px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.04);
+  --shadow-2:0 8px 24px rgba(0,0,0,.5),0 2px 6px rgba(0,0,0,.3);
+}
+[data-density=compact] { --row:24px; --bar-cmd:36px; }
+
+* { box-sizing:border-box; }
+html,body { margin:0; height:100%; }
+body { background:var(--surface-chrome); color:var(--text-primary); font:13px/1.4 var(--font);
+  display:grid; grid-template-rows:auto 1fr 26px; height:100vh; overflow:hidden; }
+button { font:inherit; color:inherit; background:none; border:0; cursor:default; }
+svg.i { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; flex:none; }
+svg.i16 { width:16px; height:16px; }
+.focusable:focus-visible { outline:2px solid var(--accent); outline-offset:1px; border-radius:4px; }
+
+/* Command bar: tab row 32 + command row 52 (Comfortable) / 36 (Compact) */
+.cbar { background:var(--surface-chrome); border-bottom:1px solid var(--border-default); }
+.tabrow { height:32px; display:flex; align-items:center; gap:4px; padding:0 8px; }
+.appbtn { display:flex; align-items:center; gap:6px; height:24px; padding:0 8px; border-radius:6px; font-weight:600; }
+.appbtn .logo { width:16px; height:16px; border-radius:4px; background:var(--accent); display:grid; place-items:center; }
+.appbtn .logo svg { width:12px; height:12px; stroke:var(--text-on-accent); stroke-width:2; fill:none; }
+.appbtn:hover,.qa:hover,.tab:hover,.cmd:hover,.rbtn:hover,.row:hover,.sfield:hover,.ghost:hover { background:var(--hover); }
+.qa { width:28px; height:24px; display:grid; place-items:center; border-radius:4px; color:var(--text-secondary); }
+.sep { width:1px; height:16px; background:var(--border-default); margin:0 4px; }
+.tab { height:32px; padding:0 12px; color:var(--text-secondary); position:relative; border-radius:6px 6px 0 0; }
+.tab[aria-selected=true] { color:var(--text-primary); font-weight:600; }
+.tab[aria-selected=true]::after { content:""; position:absolute; left:12px; right:12px; bottom:0; height:2px; border-radius:2px; background:var(--accent); }
+.spacer { flex:1; }
+.search { display:flex; align-items:center; gap:8px; width:280px; height:24px; padding:0 8px; border-radius:6px;
+  background:var(--surface-panel); border:1px solid var(--border-default); color:var(--text-tertiary); }
+.kbd { margin-left:auto; font-size:11px; color:var(--text-tertiary); border:1px solid var(--border-default); border-radius:4px; padding:0 4px; }
+.cmdrow { height:var(--bar-cmd); display:flex; align-items:center; gap:2px; padding:0 8px; background:var(--surface-panel); border-top:1px solid var(--border-subtle); }
+.group { display:flex; align-items:center; gap:2px; padding:0 4px; }
+.group + .group { border-left:1px solid var(--border-subtle); }
+.cmd { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; min-width:52px; height:46px; padding:0 6px; border-radius:6px; font-size:12px; color:var(--text-primary); }
+.cmd.small { flex-direction:row; min-width:0; height:24px; gap:6px; font-size:12px; }
+.cmd.on { background:var(--accent-subtle); color:var(--accent); }
+.smallstack { display:flex; flex-direction:column; gap:0; }
+[data-density=compact] .cmd { flex-direction:row; height:28px; min-width:0; gap:6px; }
+[data-density=compact] .smallstack { flex-direction:row; }
+.primary { background:var(--accent); color:var(--text-on-accent); border-radius:6px; height:28px; padding:0 12px; font-weight:600; display:flex; align-items:center; gap:6px; }
+.primary:hover { background:var(--accent-hover); }
+
+/* Body: left rail | navigator+properties | canvas | right rail */
+.main { display:grid; grid-template-columns:40px 280px 1fr 40px; min-height:0; }
+.rail { background:var(--surface-chrome); display:flex; flex-direction:column; align-items:center; gap:4px; padding:8px 0; }
+.rail.left { border-right:1px solid var(--border-default); }
+.rail.right { border-left:1px solid var(--border-default); }
+.rbtn { width:32px; height:32px; display:grid; place-items:center; border-radius:6px; color:var(--text-secondary); position:relative; }
+.rbtn.on { color:var(--accent); background:var(--accent-subtle); }
+.rbtn.on::before { content:""; position:absolute; left:-4px; top:8px; bottom:8px; width:2px; border-radius:2px; background:var(--accent); }
+.dock { background:var(--surface-panel); border-right:1px solid var(--border-default); display:grid; grid-template-rows:minmax(0,1fr) auto minmax(0,1fr); min-height:0; }
+.phead { height:32px; display:flex; align-items:center; gap:8px; padding:0 8px 0 12px; font-weight:600; font-size:12px; letter-spacing:.02em; color:var(--text-secondary); text-transform:uppercase; }
+.phead .ghost { margin-left:auto; }
+.ghost { width:24px; height:24px; display:grid; place-items:center; border-radius:4px; color:var(--text-secondary); }
+.seg { display:flex; margin:0 12px 8px; background:var(--surface-sunken); border-radius:6px; padding:2px; }
+.seg button { flex:1; height:24px; border-radius:4px; color:var(--text-secondary); font-size:12px; }
+.seg button[aria-pressed=true] { background:var(--surface-panel); color:var(--text-primary); font-weight:600; box-shadow:var(--shadow-1); }
+.filter { margin:0 12px 8px; height:28px; display:flex; align-items:center; gap:8px; padding:0 8px; border:1px solid var(--border-control); border-radius:6px; color:var(--text-tertiary); }
+.tree { overflow:auto; padding-bottom:8px; }
+.row { height:var(--row); display:flex; align-items:center; gap:8px; padding:0 12px; color:var(--text-primary); white-space:nowrap; position:relative; }
+.row .caret { width:12px; color:var(--text-tertiary); }
+.row .meta { margin-left:auto; color:var(--text-tertiary); font-size:12px; font-variant-numeric:tabular-nums; }
+.row.sel { background:var(--accent-subtle); }
+.row.sel::before { content:""; position:absolute; left:0; top:4px; bottom:4px; width:2px; border-radius:2px; background:var(--accent); }
+.row .ic { color:var(--text-secondary); }
+.row.sel .ic { color:var(--accent); }
+.badge { font-size:11px; padding:0 6px; border-radius:999px; line-height:18px; }
+.badge.warn { background:var(--warning-subtle); color:var(--warning); }
+.splitter { height:1px; background:var(--border-default); }
+.props { overflow:auto; }
+.ptitle { padding:4px 12px 8px; }
+.ptitle .name { font-size:15px; font-weight:600; }
+.ptitle .sub { color:var(--text-secondary); font-size:12px; }
+.psec { height:28px; display:flex; align-items:center; gap:6px; padding:0 12px; font-size:12px; font-weight:600; color:var(--text-secondary); }
+.prow { display:grid; grid-template-columns:96px 1fr; align-items:center; min-height:var(--row); padding:0 12px; gap:8px; }
+.prow label { color:var(--text-secondary); font-size:12px; }
+.prow .val { height:24px; display:flex; align-items:center; padding:0 6px; border-radius:4px; border:1px solid transparent; }
+.prow .val:hover { border-color:var(--border-control); }
+.prow .val.edit { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
+.chip { font-size:11px; color:var(--text-tertiary); margin-left:auto; border:1px solid var(--border-default); border-radius:999px; padding:0 6px; line-height:16px; }
+.adv { padding:8px 12px; color:var(--accent); font-size:12px; }
+
+/* Centre */
+.centre { display:grid; grid-template-rows:32px 1fr auto; min-width:0; min-height:0; }
+.ctabs { display:flex; align-items:flex-end; gap:2px; padding:0 8px; background:var(--surface-chrome); border-bottom:1px solid var(--border-default); }
+.ctab { height:28px; display:flex; align-items:center; gap:8px; padding:0 12px; border-radius:6px 6px 0 0; color:var(--text-secondary); font-size:12px; }
+.ctab.on { background:var(--canvas-surround); color:var(--text-primary); font-weight:600; border:1px solid var(--border-default); border-bottom:0; margin-bottom:-1px; height:29px; }
+.ctab .dot { width:6px; height:6px; border-radius:50%; background:var(--accent); }
+.canvas { background:var(--canvas-surround); position:relative; overflow:hidden; min-height:0; }
+.sheet { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:min(92%,1060px); aspect-ratio:1.414; background:var(--sheet); box-shadow:var(--shadow-1); }
+.sheet svg { width:100%; height:100%; display:block; }
+.hud { position:absolute; left:50%; bottom:16px; transform:translateX(-50%); display:flex; align-items:center; gap:2px; padding:4px; border-radius:999px; background:var(--surface-inverse); color:var(--text-on-inverse); box-shadow:var(--shadow-2); }
+.hud button { height:28px; min-width:28px; padding:0 8px; border-radius:999px; display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-on-inverse); }
+.hud button:hover { background:rgba(127,127,127,.22); }
+.hud button.on { background:var(--accent); color:var(--text-on-accent); font-weight:600; }
+.hud .hint { padding:0 10px 0 6px; font-size:12px; opacity:.8; }
+.hud .div { width:1px; height:16px; background:currentColor; opacity:.25; margin:0 2px; }
+.zoom { position:absolute; right:12px; bottom:16px; display:flex; flex-direction:column; border-radius:6px; background:var(--surface-raised); box-shadow:var(--shadow-1); }
+.zoom button { width:28px; height:28px; display:grid; place-items:center; color:var(--text-secondary); }
+.toast { position:absolute; right:12px; top:12px; width:300px; background:var(--surface-raised); border-radius:8px; box-shadow:var(--shadow-2); padding:12px; display:grid; grid-template-columns:20px 1fr 24px; gap:8px; }
+.toast .t { font-weight:600; }
+.toast .d { color:var(--text-secondary); font-size:12px; margin-top:2px; }
+.toast .a { color:var(--accent); font-size:12px; font-weight:600; margin-top:6px; }
+
+/* Bottom dock: Messages */
+.bottom { background:var(--surface-panel); border-top:1px solid var(--border-default); height:184px; display:grid; grid-template-rows:32px 1fr; }
+.bottom[hidden] { display:none; }
+.btabs { display:flex; align-items:center; gap:2px; padding:0 8px; border-bottom:1px solid var(--border-subtle); }
+.btab { height:32px; padding:0 10px; color:var(--text-secondary); font-size:12px; position:relative; display:flex; align-items:center; gap:6px; }
+.btab.on { color:var(--text-primary); font-weight:600; }
+.btab.on::after { content:""; position:absolute; left:10px; right:10px; bottom:0; height:2px; background:var(--accent); border-radius:2px; }
+.count { font-size:11px; border-radius:999px; padding:0 6px; line-height:16px; background:var(--surface-sunken); color:var(--text-secondary); font-weight:400; }
+table.msg { width:100%; border-collapse:collapse; font-size:12px; }
+table.msg th { position:sticky; top:0; text-align:left; font-weight:600; color:var(--text-secondary); background:var(--surface-sunken); height:24px; padding:0 12px; border-bottom:1px solid var(--border-subtle); }
+table.msg td { height:var(--row); padding:0 12px; border-bottom:1px solid var(--border-subtle); white-space:nowrap; }
+table.msg tr:hover td { background:var(--hover); }
+table.msg tr.sel td { background:var(--accent-subtle); }
+.sev { display:inline-flex; align-items:center; gap:6px; font-weight:600; }
+.sev.err { color:var(--error); } .sev.warn { color:var(--warning); }
+.sev.warn svg { color:var(--warning-icon); }
+.mono { font-variant-numeric:tabular-nums; color:var(--text-secondary); }
+.link { color:var(--accent); }
+
+/* Status bar */
+.status { display:flex; align-items:center; gap:2px; padding:0 8px; background:var(--surface-chrome); border-top:1px solid var(--border-default); font-size:12px; color:var(--text-secondary); }
+.sfield { height:22px; display:flex; align-items:center; gap:6px; padding:0 8px; border-radius:4px; font-variant-numeric:tabular-nums; }
+.sfield.err { color:var(--error); font-weight:600; }
+.sfield.ok { color:var(--success); }
+
+/* Toggles shown only in the mockup */
+.mock { position:fixed; right:56px; bottom:34px; display:flex; gap:6px; z-index:5; }
+.mock button { height:26px; padding:0 10px; border-radius:999px; background:var(--surface-raised); box-shadow:var(--shadow-2); font-size:12px; color:var(--text-primary); }
+</style>
+</head>
+<body data-density="comfortable">
+
+<!-- ===== Command bar ===== -->
+<header class="cbar" role="toolbar" aria-label="Command bar">
+  <div class="tabrow">
+    <button class="appbtn focusable" aria-haspopup="menu" title="Menu (Alt)">
+      <span class="logo"><svg viewBox="0 0 24 24"><path d="M13 3 6 14h6l-1 7 7-11h-6z"/></svg></span>ElektraWatt
+      <svg class="i i16" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
+    <span class="sep"></span>
+    <button class="qa focusable" title="Save (Ctrl+S)"><svg class="i i16" viewBox="0 0 24 24"><path d="M6 4h10l4 4v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2"/><path d="M12 14m-2 0a2 2 0 1 0 4 0a2 2 0 1 0-4 0"/><path d="M14 4v4H8V4"/></svg></button>
+    <button class="qa focusable" title="Undo (Ctrl+Z)"><svg class="i i16" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+    <button class="qa focusable" title="Redo (Ctrl+Y)"><svg class="i i16" viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
+    <span class="sep"></span>
+    <nav role="tablist" aria-label="Command tabs" style="display:flex;gap:2px" id="tabs">
+      <button class="tab focusable" role="tab" aria-selected="false">Project</button>
+      <button class="tab focusable" role="tab" aria-selected="false">Page</button>
+      <button class="tab focusable" role="tab" aria-selected="true">Draw</button>
+      <button class="tab focusable" role="tab" aria-selected="false">Check</button>
+      <button class="tab focusable" role="tab" aria-selected="false">Output</button>
+      <button class="tab focusable" role="tab" aria-selected="false">View</button>
+    </nav>
+    <span class="spacer"></span>
+    <div class="search" role="search">
+      <svg class="i i16" viewBox="0 0 24 24"><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0-14 0"/><path d="m21 21-6-6"/></svg>
+      Search commands, devices, pages
+      <span class="kbd">Ctrl K</span>
+    </div>
+  </div>
+
+  <!-- Draw tab: select -> place -> connect -> annotate -> arrange (left to right, no captions) -->
+  <div class="cmdrow" id="cmdrow">
+    <div class="group" aria-label="Select">
+      <button class="cmd on focusable" title="Select (Esc)"><svg class="i" viewBox="0 0 24 24"><path d="m4 4 7 17 2.5-7.5L21 11z"/></svg>Select</button>
+    </div>
+    <div class="group" aria-label="Place">
+      <button class="cmd focusable" title="Symbol (S)"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/><path d="M12 2v3M12 19v3"/></svg>Symbol</button>
+      <button class="cmd focusable" title="Device from part (P)"><svg class="i" viewBox="0 0 24 24"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9z"/><path d="m12 12 8-4.5M12 12v9M12 12 4 7.5"/></svg>Device</button>
+      <div class="smallstack">
+        <button class="cmd small focusable" title="Terminal (T)"><svg class="i i16" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v6M12 15v6"/></svg>Terminal</button>
+        <button class="cmd small focusable" title="Black box (B)"><svg class="i i16" viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="12" rx="1" stroke-dasharray="3 2"/></svg>Black box</button>
+      </div>
+    </div>
+    <div class="group" aria-label="Connect">
+      <button class="cmd focusable" title="Wire (W)"><svg class="i" viewBox="0 0 24 24"><path d="M4 18h6V6h10"/><circle cx="4" cy="18" r="1.5"/><circle cx="20" cy="6" r="1.5"/></svg>Wire</button>
+      <div class="smallstack">
+        <button class="cmd small focusable" title="Potential (O)"><svg class="i i16" viewBox="0 0 24 24"><path d="M4 8h16M4 16h16"/><path d="M8 4v16" stroke-dasharray="2 2"/></svg>Potential</button>
+        <button class="cmd small focusable" title="Interruption point (I)"><svg class="i i16" viewBox="0 0 24 24"><path d="M4 12h8"/><path d="m12 8 4 4-4 4"/></svg>Interruption</button>
+      </div>
+    </div>
+    <div class="group" aria-label="Annotate">
+      <button class="cmd focusable" title="Text (X)"><svg class="i" viewBox="0 0 24 24"><path d="M6 5h12M12 5v14M9 19h6"/></svg>Text</button>
+      <button class="cmd small focusable" title="Measure (M)"><svg class="i i16" viewBox="0 0 24 24"><path d="M4 16 16 4l4 4L8 20z"/><path d="m8 12 2 2M11 9l2 2M14 6l2 2"/></svg>Measure</button>
+    </div>
+    <div class="group" aria-label="Arrange">
+      <div class="smallstack">
+        <button class="cmd small focusable" title="Rotate (R)"><svg class="i i16" viewBox="0 0 24 24"><path d="M19.95 11a8 8 0 1 0-.5 4M20 4v7h-7"/></svg>Rotate</button>
+        <button class="cmd small focusable" title="Mirror (Y)"><svg class="i i16" viewBox="0 0 24 24"><path d="M12 3v18"/><path d="M8 7 3 17h5zM16 7l5 10h-5z"/></svg>Mirror</button>
+      </div>
+      <div class="smallstack">
+        <button class="cmd small focusable" title="Align"><svg class="i i16" viewBox="0 0 24 24"><path d="M4 4v16"/><rect x="8" y="6" width="10" height="4" rx="1"/><rect x="8" y="14" width="6" height="4" rx="1"/></svg>Align</button>
+        <button class="cmd small focusable" title="Renumber devices"><svg class="i i16" viewBox="0 0 24 24"><path d="M4 7h3v10M4 17h6M14 7h4a2 2 0 0 1 0 4h-2a2 2 0 0 0 0 4h4"/></svg>Renumber</button>
+      </div>
+    </div>
+    <span class="spacer"></span>
+    <button class="primary focusable" title="Run the check scheme (F7)"><svg class="i i16" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></svg>Check project</button>
+  </div>
+</header>
+
+<!-- ===== Main ===== -->
+<div style="display:grid;grid-template-rows:1fr auto;min-height:0">
+<main class="main">
+  <aside class="rail left" aria-label="Navigators">
+    <button class="rbtn on focusable" title="Pages and devices (Ctrl+1)"><svg class="i" viewBox="0 0 24 24"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2"/></svg></button>
+    <button class="rbtn focusable" title="Terminals (Ctrl+2)"><svg class="i" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="1"/><path d="M8 4v16M12 4v16M16 4v16"/></svg></button>
+    <button class="rbtn focusable" title="Cables (Ctrl+3)"><svg class="i" viewBox="0 0 24 24"><path d="M4 9a5 5 0 0 1 5-5h6a5 5 0 0 1 0 10H9a5 5 0 0 0 0 10h11"/></svg></button>
+    <button class="rbtn focusable" title="Potentials (Ctrl+4)"><svg class="i" viewBox="0 0 24 24"><path d="M13 3 6 14h6l-1 7 7-11h-6z"/></svg></button>
+    <button class="rbtn focusable" title="Structure (Ctrl+5)"><svg class="i" viewBox="0 0 24 24"><path d="M6 3v12M6 9h8a3 3 0 0 0 3-3V3"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="3" r="0.5"/></svg></button>
+    <span class="spacer"></span>
+    <button class="rbtn focusable" title="History"><svg class="i" viewBox="0 0 24 24"><path d="M12 8v4l2 2"/><path d="M3.05 11a9 9 0 1 1 .5 4M3 4v5h5"/></svg></button>
+  </aside>
+
+  <section class="dock" aria-label="Navigator and Properties">
+    <div style="display:flex;flex-direction:column;min-height:0">
+      <div class="phead">Project<button class="ghost focusable" title="More"><svg class="i i16" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></button></div>
+      <div class="seg" role="tablist"><button role="tab" aria-pressed="true">Pages</button><button role="tab" aria-pressed="false">Devices</button></div>
+      <div class="filter"><svg class="i i16" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Filter pages</div>
+      <div class="tree" role="tree">
+        <div class="row" role="treeitem"><span class="caret">▾</span><svg class="i i16 ic" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>=A1 Machine<span class="meta">6</span></div>
+        <div class="row" role="treeitem" style="padding-left:32px"><svg class="i i16 ic" viewBox="0 0 24 24"><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2"/></svg>Cover sheet<span class="meta">1</span></div>
+        <div class="row" role="treeitem" style="padding-left:32px"><svg class="i i16 ic" viewBox="0 0 24 24"><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2"/></svg>Power supply 400 V<span class="meta">2</span></div>
+        <div class="row sel" role="treeitem" aria-selected="true" style="padding-left:32px"><svg class="i i16 ic" viewBox="0 0 24 24"><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2"/></svg>Conveyor motor M1<span class="badge warn">1</span><span class="meta" style="margin-left:6px">3</span></div>
+        <div class="row" role="treeitem" style="padding-left:32px"><svg class="i i16 ic" viewBox="0 0 24 24"><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2"/></svg>Control 24 V DC<span class="meta">4</span></div>
+        <div class="row" role="treeitem" style="padding-left:32px"><svg class="i i16 ic" viewBox="0 0 24 24"><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2"/></svg>PLC inputs<span class="meta">5</span></div>
+        <div class="row" role="treeitem" style="padding-left:32px"><svg class="i i16 ic" viewBox="0 0 24 24"><path d="M3 4h18v16H3zM3 9h18M9 9v11"/></svg>Terminal diagram X1<span class="meta">6</span></div>
+        <div class="row" role="treeitem"><span class="caret">▸</span><svg class="i i16 ic" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Reports<span class="meta">4</span></div>
+      </div>
+    </div>
+    <div class="splitter"></div>
+    <div class="props" aria-label="Properties">
+      <div class="phead">Properties</div>
+      <div class="ptitle"><div class="name">-K1</div><div class="sub">Contactor, 3 NO + 1 NO aux · page 3</div></div>
+      <div class="psec">▾ Main</div>
+      <div class="prow"><label>Tag</label><div class="val edit">-K1</div></div>
+      <div class="prow"><label>Function</label><div class="val">Conveyor forward</div></div>
+      <div class="prow"><label>Part</label><div class="val">Contactor 4 kW 24 V DC</div></div>
+      <div class="prow"><label>Coil voltage</label><div class="val">24 V DC<span class="chip" title="Value from the part">part</span></div></div>
+      <div class="prow"><label>Location</label><div class="val">+CP<span class="chip" title="Inherited from the page">page</span></div></div>
+      <div class="adv">Show advanced (7)</div>
+    </div>
+  </section>
+
+  <section class="centre" aria-label="Canvas">
+    <div class="ctabs">
+      <div class="ctab">Power supply 400 V</div>
+      <div class="ctab on"><span class="dot" title="Unsaved changes"></span>Conveyor motor M1</div>
+    </div>
+    <div class="canvas">
+      <div class="sheet">
+        <svg viewBox="0 0 1188 840" aria-label="Schematic page sketch">
+          <defs>
+            <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1" fill="var(--grid-dot)"/></pattern>
+            <pattern id="hatch1" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="8" stroke="#D55E00" stroke-width="2" opacity=".35"/></pattern>
+          </defs>
+          <rect x="20" y="20" width="1148" height="800" fill="url(#grid)"/>
+          <!-- frame -->
+          <g fill="none" stroke="#000" stroke-width="1.2">
+            <rect x="20" y="20" width="1148" height="800"/>
+            <rect x="40" y="40" width="1108" height="700"/>
+            <path d="M40 760h1108"/>
+            <path d="M 225 40v-20 M410 40v-20 M595 40v-20 M780 40v-20 M965 40v-20"/>
+          </g>
+          <g font-family="Noto Sans, Segoe UI, sans-serif" font-size="12" fill="#000">
+            <text x="128" y="34">0</text><text x="313" y="34">1</text><text x="498" y="34">2</text><text x="683" y="34">3</text><text x="868" y="34">4</text><text x="1053" y="34">5</text>
+          </g>
+          <!-- title block (generic) -->
+          <g fill="none" stroke="#000" stroke-width="1"><path d="M40 740v80M700 740v80M900 740v80M1040 740v80M700 780h448"/></g>
+          <g font-family="Noto Sans, Segoe UI, sans-serif" fill="#000">
+            <text x="56" y="770" font-size="14" font-weight="600">Sample machine</text>
+            <text x="56" y="792" font-size="12">Conveyor motor M1 · direct-on-line starter</text>
+            <text x="712" y="768" font-size="11">Page</text><text x="712" y="806" font-size="11">=A1+CP</text>
+            <text x="912" y="768" font-size="11">Rev. A</text><text x="1052" y="768" font-size="11">3 / 6</text>
+          </g>
+          <!-- power bus L1 L2 L3 PE -->
+          <g stroke="#000" stroke-width="1.6" fill="none">
+            <path d="M60 110H1128M60 130H1128M60 150H1128"/>
+            <path d="M60 170H1128" stroke-dasharray="14 4 2 4"/>
+          </g>
+          <g font-family="Noto Sans, Segoe UI, sans-serif" font-size="12" fill="#000">
+            <text x="64" y="104">L1</text><text x="64" y="124">L2</text><text x="64" y="144">L3</text><text x="64" y="164">PE</text>
+          </g>
+          <!-- drops to Q1 -->
+          <g stroke="#000" stroke-width="1.6" fill="none">
+            <path d="M240 110v90M260 130v70M280 150v50"/>
+            <circle cx="240" cy="110" r="3" fill="#000"/><circle cx="260" cy="130" r="3" fill="#000"/><circle cx="280" cy="150" r="3" fill="#000"/>
+            <!-- Q1 motor protection: three contacts + thermal/magnetic -->
+            <path d="M240 200v14l-10 24M260 200v14l-10 24M280 200v14l-10 24"/>
+            <path d="M240 244v26M260 244v26M280 244v26"/>
+            <path d="M226 226h70" stroke-dasharray="4 3"/>
+            <rect x="296" y="216" width="18" height="20"/>
+            <path d="M240 270v60M260 270v60M280 270v60"/>
+          </g>
+          <text x="320" y="246" font-family="Noto Sans, Segoe UI, sans-serif" font-size="13" font-weight="600" fill="#000">-Q1</text>
+          <text x="320" y="262" font-family="Noto Sans, Segoe UI, sans-serif" font-size="11" fill="#000">2.5–4 A</text>
+          <!-- K1 main contacts (selected) -->
+          <g stroke="#000" stroke-width="1.6" fill="none">
+            <path d="M240 330v14l-10 24M260 330v14l-10 24M280 330v14l-10 24"/>
+            <path d="M240 374v56M260 374v56M280 374v56"/>
+            <path d="M226 356h60" stroke-dasharray="4 3"/>
+          </g>
+          <rect x="216" y="322" width="96" height="60" fill="none" stroke="#FFFFFF" stroke-width="4"/>
+          <rect x="216" y="322" width="96" height="60" fill="none" stroke="var(--selection)" stroke-width="2"/>
+          <g fill="#FFFFFF" stroke="var(--selection)" stroke-width="1.5">
+            <rect x="212" y="318" width="8" height="8"/><rect x="308" y="318" width="8" height="8"/><rect x="212" y="378" width="8" height="8"/><rect x="308" y="378" width="8" height="8"/>
+          </g>
+          <text x="320" y="356" font-family="Noto Sans, Segoe UI, sans-serif" font-size="13" font-weight="600" fill="#000">-K1</text>
+          <!-- terminals X1 -->
+          <g stroke="#000" stroke-width="1.4" fill="#FFF">
+            <circle cx="240" cy="438" r="5"/><circle cx="260" cy="438" r="5"/><circle cx="280" cy="438" r="5"/><circle cx="300" cy="438" r="5"/>
+          </g>
+          <text x="312" y="442" font-family="Noto Sans, Segoe UI, sans-serif" font-size="11" fill="#000">-X1 1 2 3 PE</text>
+          <!-- motor -->
+          <g stroke="#000" stroke-width="1.6" fill="none">
+            <path d="M240 443v57M260 443v47M280 443v57M300 443v-12"/>
+            <path d="M300 170v261" stroke-dasharray="14 4 2 4"/>
+            <circle cx="260" cy="540" r="40"/>
+            <path d="M240 500l6 4M280 500l-6 4"/>
+          </g>
+          <g font-family="Noto Sans, Segoe UI, sans-serif" fill="#000">
+            <text x="248" y="538" font-size="16" font-weight="600">M</text><text x="250" y="556" font-size="12">3~</text>
+            <text x="312" y="532" font-size="13" font-weight="600">-M1</text>
+            <text x="312" y="548" font-size="11">1.5 kW</text>
+          </g>
+          <!-- control circuit 24 V -->
+          <g stroke="#000" stroke-width="1.6" fill="none">
+            <path d="M600 200H1100M600 640H1100"/>
+            <path d="M680 200v60l-14 30v10M680 300v50"/>
+            <path d="M666 270h-12" />
+            <path d="M680 350v20l-12 28M680 398v42"/>
+            <path d="M680 440v30"/>
+            <rect x="664" y="470" width="32" height="40"/>
+            <path d="M680 510v130"/>
+            <path d="M680 410h80v-40l-12-28v-20h-28v20" />
+            <path d="M720 302h40v-102"/>
+          </g>
+          <g font-family="Noto Sans, Segoe UI, sans-serif" fill="#000">
+            <text x="604" y="194" font-size="11">+24 V</text><text x="604" y="656" font-size="11">0 V</text>
+            <text x="618" y="282" font-size="13" font-weight="600">-S1</text><text x="618" y="298" font-size="11">Stop</text>
+            <text x="618" y="388" font-size="13" font-weight="600">-S2</text><text x="618" y="404" font-size="11">Start</text>
+            <text x="704" y="494" font-size="13" font-weight="600">-K1</text>
+            <text x="772" y="360" font-size="11">13–14</text>
+          </g>
+          <!-- highlighted potential with hatch halo (highlight slot 1) -->
+          <rect x="672" y="512" width="16" height="128" fill="url(#hatch1)"/>
+          <g transform="translate(694 576)">
+            <rect x="0" y="-11" width="70" height="20" rx="4" fill="#D55E00"/>
+            <text x="8" y="3" font-family="Noto Sans, Segoe UI, sans-serif" font-size="11" fill="#000000" font-weight="600">0V-CTRL</text>
+          </g>
+          <!-- cross-reference column -->
+          <g font-family="Noto Sans, Segoe UI, sans-serif" font-size="11" fill="#000">
+            <text x="880" y="480">-K1</text>
+            <text x="880" y="498">1–2 /3.1</text><text x="880" y="512">3–4 /3.1</text><text x="880" y="526">5–6 /3.1</text><text x="880" y="540">13–14 /3.3</text>
+            <path d="M876 486h70" stroke="#000"/>
+          </g>
+        </svg>
+      </div>
+
+      <div class="toast" role="status">
+        <svg class="i" viewBox="0 0 24 24" style="color:var(--success)"><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0-18 0"/><path d="m9 12 2 2 4-4"/></svg>
+        <div><div class="t">PDF exported</div><div class="d">6 pages, 1 warning</div><div class="a">Open folder</div></div>
+        <button class="ghost" title="Dismiss"><svg class="i i16" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      </div>
+
+      <div class="hud" role="toolbar" aria-label="Tool">
+        <button class="on" title="Select (Esc)"><svg class="i i16" viewBox="0 0 24 24"><path d="m4 4 7 17 2.5-7.5L21 11z"/></svg>Select</button>
+        <button title="Wire (W)"><svg class="i i16" viewBox="0 0 24 24"><path d="M4 18h6V6h10"/></svg></button>
+        <button title="Symbol (S)"><svg class="i i16" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/></svg></button>
+        <button title="Text (X)"><svg class="i i16" viewBox="0 0 24 24"><path d="M6 5h12M12 5v14"/></svg></button>
+        <span class="div"></span>
+        <span class="hint">1 selected · Del deletes · R rotates</span>
+      </div>
+      <div class="zoom"><button title="Zoom in">+</button><button title="Zoom out">−</button><button title="Fit page (Home)"><svg class="i i16" viewBox="0 0 24 24"><path d="M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4"/></svg></button></div>
+    </div>
+  </section>
+
+  <aside class="rail right" aria-label="Palettes">
+    <button class="rbtn focusable" title="Symbols"><svg class="i" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><circle cx="16.5" cy="16.5" r="3.5"/></svg></button>
+    <button class="rbtn focusable" title="Parts"><svg class="i" viewBox="0 0 24 24"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9z"/><path d="m12 12 8-4.5M12 12v9M12 12 4 7.5"/></svg></button>
+  </aside>
+</main>
+
+<!-- ===== Bottom dock (closed by default; opened here from the findings field) ===== -->
+<section class="bottom" id="bottom" aria-label="Messages">
+  <div class="btabs">
+    <button class="btab on">Messages <span class="count">3</span></button>
+    <button class="btab">Find</button>
+    <button class="btab">Jobs</button>
+    <button class="btab">History</button>
+    <span class="spacer"></span>
+    <button class="ghost" title="Close (Ctrl+J)" onclick="toggleDock()"><svg class="i i16" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+  </div>
+  <div style="overflow:auto">
+    <table class="msg">
+      <thead><tr><th style="width:110px">Severity</th><th>Message</th><th style="width:120px">Object</th><th style="width:80px">Page</th><th style="width:90px">Rule</th></tr></thead>
+      <tbody>
+        <tr class="sel"><td><span class="sev err"><svg class="i i16" viewBox="0 0 24 24"><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0-18 0"/><path d="M12 8v4M12 16h.01"/></svg>Error</span></td><td>Connection point -M1:PE is not connected</td><td class="link">-M1</td><td class="mono">3</td><td class="mono">CON-003</td></tr>
+        <tr><td><span class="sev warn"><svg class="i i16" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.4 3.9 2.6 17.5A1.8 1.8 0 0 0 4.2 20h15.6a1.8 1.8 0 0 0 1.6-2.5L13.6 3.9a1.8 1.8 0 0 0-3.2 0"/></svg>Warning</span></td><td>-K1 has no part assigned to its auxiliary contact 13–14</td><td class="link">-K1</td><td class="mono">3</td><td class="mono">DEV-011</td></tr>
+        <tr><td><span class="sev warn"><svg class="i i16" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.4 3.9 2.6 17.5A1.8 1.8 0 0 0 4.2 20h15.6a1.8 1.8 0 0 0 1.6-2.5L13.6 3.9a1.8 1.8 0 0 0-3.2 0"/></svg>Warning</span></td><td>Terminal -X1:4 is reserved but not used</td><td class="link">-X1:4</td><td class="mono">6</td><td class="mono">TRM-002</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+</div>
+
+<!-- ===== Status bar ===== -->
+<footer class="status" role="status">
+  <span class="sfield">Ready</span>
+  <span class="spacer"></span>
+  <button class="sfield err focusable" onclick="toggleDock()" title="Findings: open Messages (Ctrl+J)"><svg class="i i16" viewBox="0 0 24 24"><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0-18 0"/><path d="M12 8v4M12 16h.01"/></svg>1 error · 2 warnings</button>
+  <span class="sfield">1 selected</span>
+  <span class="sfield">3-C2 · X 168.0 · Y 92.0 mm</span>
+  <span class="sfield">Grid 4 mm · Snap</span>
+  <span class="sfield">125 %</span>
+  <span class="sfield ok"><svg class="i i16" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></svg>Saved</span>
+  <span class="sfield" style="color:var(--text-tertiary)" title="Renderer">GPU</span>
+</footer>
+
+<div class="mock" aria-label="Mockup controls">
+  <button onclick="toggleTheme()" id="themeBtn">Dark</button>
+  <button onclick="toggleDensity()" id="densBtn">Compact</button>
+</div>
+
+<script>
+function toggleTheme(){var r=document.documentElement,d=r.getAttribute('data-theme')==='dark';
+  if(d){r.removeAttribute('data-theme');}else{r.setAttribute('data-theme','dark');}
+  document.getElementById('themeBtn').textContent=d?'Dark':'Light';}
+function toggleDensity(){var b=document.body,c=b.getAttribute('data-density')==='compact';
+  b.setAttribute('data-density',c?'comfortable':'compact');document.getElementById('densBtn').textContent=c?'Compact':'Comfortable';}
+function toggleDock(){var e=document.getElementById('bottom');e.hidden=!e.hidden;}
+document.querySelectorAll('#tabs .tab').forEach(function(t){t.addEventListener('click',function(){
+  document.querySelectorAll('#tabs .tab').forEach(function(u){u.setAttribute('aria-selected','false');});
+  t.setAttribute('aria-selected','true');});});
+</script>
+</body>
+</html>

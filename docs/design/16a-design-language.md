@@ -1,7 +1,7 @@
 # Design language
 
-**Status:** Draft v0.1 · **Date:** 2026-10-28 · **Decision:** [ADR-0031](../adr/0031-design-language-and-task-ordered-command-bar.md)
-(Proposed; default in force for WP-S2.17) · **Work package:**
+**Status:** v1.0, accepted 2026-10-28 · **Date:** 2026-10-28 · **Decision:** [ADR-0031](../adr/0031-design-language-and-task-ordered-command-bar.md)
+(Accepted) · **Visual reference:** [the mockup](assets/design-language-mockup.html) (approved by the owner) · **Work package:**
 [WP-S2.17](../plan/specs/WP-S2.17-design-language-and-ui-polish.md) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document is the visual and verbal language of ElektraWatt (EW): the pillars every screen follows, the
@@ -9,7 +9,9 @@ design tokens (colour, type, spacing, sizes, radii, borders, elevation, icons, m
 high-contrast themes, the layout of the main window and its command surface, the component inventory with anatomy and
 states, the canvas overlays, the wording rules, the order in which commands are offered, and the map from today's
 window to the target. [16 UX and UI](16-ux-ui.md) says what the window does; this document says how it looks and
-reads. Where the two differ on appearance, this one wins (ADR-0031 decision 1); behaviour stays doc 16's.
+reads. Where the two differ on appearance, this one wins (ADR-0031 decision 1); behaviour stays doc 16's. The
+owner-approved mockup is the visual reference: every value here is the mockup's, and where this text and the mockup
+differ the mockup wins, except for the two corrections that requirements force (§11).
 
 **Contents**
 1. [Why a design language](#1-why-a-design-language)
@@ -22,7 +24,7 @@ reads. Where the two differ on appearance, this one wins (ADR-0031 decision 1); 
 8. [Wording and capitalisation](#8-wording-and-capitalisation)
 9. [Command progression](#9-command-progression)
 10. [Migration map from the current window](#10-migration-map-from-the-current-window)
-11. [The mockup and what the owner confirms](#11-the-mockup-and-what-the-owner-confirms)
+11. [The mockup, the visual reference](#11-the-mockup-the-visual-reference)
 12. [Sources](#12-sources)
 
 ---
@@ -102,12 +104,14 @@ Every element earns its place by being used or by preventing a mistake. Show exc
 ### P4 The eye goes to what matters
 
 One accent, one primary action per surface, a contrast budget.
-- **Do** spend the accent on four things only: the primary action, keyboard focus, the selected state (in lists and on
-  the canvas) and links. Selection uses the same blue in the navigator, the Properties header and the canvas, so the
-  eye joins them.
+- **Do** spend the accent on four things only: the primary action, keyboard focus, the selected or active state (in
+  lists, on the rail, the active tool and on the canvas) and links; plus two marks, the product mark in the app
+  button and the 6-px unsaved dot on a canvas tab. Selection uses the same blue in the navigator, the Properties
+  header and the canvas, so the eye joins them.
 - **Do** keep each view to at most three type sizes and three contrast levels (text primary, secondary, tertiary);
   NN/g: "If everything is contrasted, then nothing stands out."
-- **Do** give each dialog, card and banner exactly one filled (primary) button; the others are secondary or subtle.
+- **Do** give each dialog, card and banner exactly one filled (primary) button, and the command row at most one: the
+  tab's next step at its right end (§5.2); the others are secondary or subtle.
 - **Don't** fill hovered menu items with saturated accent (today's View menu does); hover is a neutral overlay.
 
 ### P5 Task-ordered commands (logical progression)
@@ -124,8 +128,8 @@ Commands appear in the order of the work, left to right and top to bottom.
 Show the frequent; keep the rest one step away; never more than two levels.
 - **Do** show the main properties of a selection first (tag, function text, part, location) and collapse the other
   categories; put internal fields under **Advanced**, off by default.
-- **Do** open the bottom dock (Messages, Jobs, History) on demand from its status-bar field or key; keep it closed by
-  default so the canvas has the height.
+- **Do** open the bottom dock (Messages, Jobs, History) on demand from its status-bar field, the rail's History
+  button or its key; keep it closed by default so the canvas has the height.
 - **Don't** nest a third level (a dialog from a dialog from a menu); NN/g: designs beyond two disclosure levels
   "typically have low usability".
 
@@ -172,7 +176,7 @@ Three layers, as in Fluent 2 and Material 3:
 2. **Alias tokens** carry meaning and have one value per theme: `color.text.secondary`, `color.surface.panel`,
    `space.3`, `radius.md`. Widgets use these.
 3. **Component tokens** are the few values a component needs beyond aliases: `size.command.large`,
-   `size.rail.button`. They are defined in terms of aliases where possible.
+   `size.quick_access`. They are defined in terms of aliases where possible.
 
 In `ew-ui` the tokens are one module (`theme/tokens.rs`): a `Tokens` struct per theme built from the ramps, applied to
 egui's `Style` by `theme::apply` (§4.14) and passed to the canvas host for overlay colours. `tests/expected/tokens.txt`
@@ -234,11 +238,11 @@ row. **Text** needs 4.5:1, **non-text** (icons, boundaries, focus) 3:1.
 
 | Alias | Light | Dark | On | Light ratio | Dark ratio | Use |
 |---|---|---|---|---|---|---|
-| `color.surface.chrome` | `slate-50` #F4F5F7 | `slate-900` #1A1D21 | — | — | — | Command bar, rails, status bar |
-| `color.surface.panel` | `slate-0` #FFFFFF | `slate-850` #212429 | — | — | — | Docked panels |
+| `color.surface.chrome` | `slate-50` #F4F5F7 | `slate-900` #1A1D21 | — | — | — | The command bar's tab row, rails, canvas-tab bar, status bar |
+| `color.surface.panel` | `slate-0` #FFFFFF | `slate-850` #212429 | — | — | — | The command row, docked panels, the command search field |
 | `color.surface.raised` | `slate-0` #FFFFFF | `slate-800` #2A2E34 | — | — | — | Menus, popovers, dialogs, toasts, palette |
-| `color.surface.sunken` | `slate-50` #F4F5F7 | `slate-900` #1A1D21 | — | — | — | Table headers, the property filter |
-| `color.surface.inverse` | `slate-900` #1A1D21 | `slate-100` #ECEEF1 | — | — | — | Tooltips, canvas chips, the tool HUD |
+| `color.surface.sunken` | `slate-50` #F4F5F7 | `slate-900` #1A1D21 | — | — | — | Table headers, the segmented control's track, dock-tab counts |
+| `color.surface.inverse` | `slate-900` #1A1D21 | `slate-100` #ECEEF1 | — | — | — | Tooltips, canvas chips, the tool HUD (opaque) |
 | `color.text.primary` | `slate-900` #1A1D21 | `slate-100` #ECEEF1 | panel | 16.9 | 13.4 | Values, labels of rows, body |
 | `color.text.secondary` | `slate-600` #555C66 | `slate-350` #A7AEB8 | panel | 6.75 | 7.0 | Property labels, meta, shortcuts |
 | `color.text.tertiary` | `slate-500` #646C78 | `slate-450` #959DA8 | chrome | 4.86 | 6.2 (5.0 on raised) | Placeholders, folio column, captions |
@@ -258,7 +262,9 @@ row. **Text** needs 4.5:1, **non-text** (icons, boundaries, focus) 3:1.
 
 Every value in both columns is recomputed by the token test of WP-S2.17 part 1; a token that fails is changed in the
 dump, not exempted. Selected rows keep their text readable: primary text on `color.accent.subtle` is 14.7:1 (light)
-and 10.4:1 (dark).
+and 10.4:1 (dark); the accent label of an active command on `color.accent.subtle` is 4.95:1 and 4.64:1. Other pairs
+the mockup uses: secondary text on chrome 6.19:1, warning text on its subtle fill 4.98:1 (dark 7.31:1), the HUD's
+text on the inverse surface 14.6:1 and its hint at 80 % opacity 10.3:1.
 
 ### 4.6 Canvas tokens
 
@@ -270,23 +276,26 @@ lines of the drawing.
 | `canvas.surround` | light `slate-150` #E3E6EA, dark #2E3238 | — | The grey around the sheet |
 | `canvas.sheet_shadow` | elevation 1 (§4.10) | — | Lifts the sheet off the surround |
 | `canvas.grid_dot` | #B8BEC7 | 1.9 (intentionally faint) | Dots; the pitch doubles below 8 points (as built) |
-| `canvas.selection` | `volt-600` #0B63CE | 5.69 (3.69 on black lines) | Solid 2s-px outline with a 1s-px white casing, square handles |
+| `canvas.selection` | `volt-600` #0B63CE | 5.69 (3.69 on black lines) | Solid 2s-px outline with a 1s-px white casing, 8s-px square corner handles |
 | `canvas.hover` | `volt-600` | 5.69 | 1s-px dashed outline |
 | `canvas.ghost` | `volt-600` at 60 % | — | The placed symbol's strokes, its label chip (§7.3) |
 | `canvas.snap` | `volt-600` | 5.69 | Crosshair with a 6-px gap; CP ring 8s + 1 px |
-| `canvas.highlight.1` | vermillion #D55E00 | 3.87 | 45° hatch halo, name chip |
-| `canvas.highlight.2` | bluish green #009E73 | 3.42 | 135° hatch halo, name chip |
-| `canvas.highlight.3` | reddish purple #CC79A7 | 3.06 | 0° hatch halo, name chip |
-| `canvas.highlight.4` | dark orange #A86F00 | 4.25 | 90° hatch halo, name chip |
+| `canvas.highlight.1` | vermillion #D55E00 | 3.87 | 45° hatch halo, name chip filled with the hue |
+| `canvas.highlight.2` | bluish green #009E73 | 3.42 | 135° hatch halo, name chip filled with the hue |
+| `canvas.highlight.3` | reddish purple #CC79A7 | 3.06 | 0° hatch halo, name chip filled with the hue |
+| `canvas.highlight.4` | dark orange #A86F00 | 4.25 | 90° hatch halo, name chip filled with the hue |
 | `canvas.measure` | `color.text.primary` (light value) | 16.9 | 1-px line with end ticks; readout chip |
 | `canvas.stale` | `slate-400` at 30 % | — | Diagonal hatch |
 | `canvas.chip` | `color.surface.inverse` at 94 % | — | Rounded `radius.sm`, `type.small` |
+| `canvas.highlight.label` | #000000 | 5.43, 6.14, 6.86, 4.94 on the four hues | `type.caption` SemiBold on a highlight name chip |
 
 `s` is FT-391's integer scale factor `max(1, ⌊ppp⌋)`. **This settles FT-506**: the highlight slots take doc 16 §10.3's
 hues (the as-built Okabe–Ito orange and sky blue are 2.25:1 and 2.31:1 on white), and the slot geometry (an 8-pt band,
 fill alpha 77, 2-pt hatch at a 6-pt pitch) stays as built. **The selection departs from §10.3's #0072B2** for the
 accent #0B63CE, so the tree, the Properties header and the canvas show the selected object in one colour; both are
-blue, and the CVD renders of NFR-A11Y-03 are re-run with the new value.
+blue, and the CVD renders of NFR-A11Y-03 are re-run with the new value. **Highlight name chips** are filled with
+their slot's hue (`radius.sm`, 20 px high), as in the mockup; their label is black, because white on the four hues
+is 3.87, 3.42, 3.06 and 4.25:1, under NFR-A11Y-04's 4.5:1 for text (one of the two corrections of §11).
 
 ### 4.7 High-contrast themes
 
@@ -308,9 +317,10 @@ do not jitter; no monospace face is needed.
 | Token | Size / line (px at 100 %) | Weight | Use |
 |---|---|---|---|
 | `type.caption` | 11 / 14 | Regular | Badges, key chips, the folio column's secondary text, tiny meta |
-| `type.small` | 12 / 16 | Regular | Status bar, table cells in Compact, secondary lines, canvas chips |
+| `type.small` | 12 / 16 | Regular | Status bar, command-button labels, canvas and dock tabs, table cells, property labels, secondary lines, canvas chips |
+| `type.label` | 12 / 16 | SemiBold, upper case, +0.02 em tracking | Panel headers ("PROJECT", "PROPERTIES") and property category headers, in `color.text.secondary` |
 | `type.body` | 13 / 18 | Regular | Default: tree rows, property values, menus, buttons, fields |
-| `type.body.strong` | 13 / 18 | SemiBold | Active tab, the current page row, primary button, category headers |
+| `type.body.strong` | 13 / 18 | SemiBold | Active command tab, the app button's name, primary button, toast titles, the current page row |
 | `type.title` | 15 / 20 | SemiBold | Dialog titles, the Properties header, empty-state titles |
 | `type.display` | 20 / 26 | SemiBold | Start page and wizard headings only |
 
@@ -319,47 +329,59 @@ the floor and the configurable minimum font size (FR-UI-027) raises every token 
 
 ### 4.9 Spacing and sizes
 
-A 4-px grid. Spacing tokens (a subset of Carbon's scale):
+A 4-px grid for layout, with one 2-px step inside components (the mockup's 6-px icon gap and 10-px dock-tab
+padding). Spacing tokens (a subset of Carbon's scale plus `space.icon`):
 
 | Token | px | Typical use |
 |---|---|---|
 | `space.1` | 2 | Icon to badge, hairline gaps |
-| `space.2` | 4 | Inside chips; between icon and label in small buttons |
-| `space.3` | 8 | Between controls in a row; row horizontal padding |
-| `space.4` | 12 | Between command groups; panel inner padding |
-| `space.5` | 16 | Dialog padding; indent per tree level |
+| `space.2` | 4 | Between rail buttons; either side of a command-group divider; inside key chips |
+| `space.icon` | 6 | Between an icon and its label (small and Compact command buttons, the app button, primary buttons, status fields, dock tabs); chip and value-cell padding |
+| `space.3` | 8 | Between an icon and the text in tree rows and toasts; the gutters of the tab row, the command row and the rail |
+| `space.4` | 12 | Row and panel horizontal padding; command-tab padding; primary-button padding; toast padding; canvas inset of the toast and zoom control |
+| `space.5` | 16 | Dialog padding; the HUD's distance from the canvas bottom |
 | `space.6` | 24 | Between dialog sections; empty-state spacing |
 | `space.7` | 32 | Start-page blocks |
 
 | Size token | Comfortable | Compact | Notes |
 |---|---|---|---|
-| `size.row` | 28 | 24 | Tree, table, property, menu rows (Carbon's 32 and 24, between them) |
-| `size.control` | 28 | 24 | Buttons, fields, dropdowns |
+| `size.row` | 28 | 24 | Tree, table, property and menu rows (Carbon's 32 and 24, between them) |
+| `size.control` | 28 | 28 | Primary and secondary buttons, the filter field |
+| `size.control.inline` | 24 | 24 | Property value cells, the command search field, segmented items, the app button, quick access |
 | `size.tab_row` | 32 | 32 | Command tabs and quick access |
 | `size.command_row` | 52 | 36 | The row of command groups |
-| `size.command.large` | 52 × ≥ 56 | — | Icon 24 over label; Compact has no large buttons |
+| `size.command.large` | 46 × ≥ 52 | 28 high | Comfortable: icon 20 over label, 2-px gap; Compact: icon 20 beside label |
 | `size.command.small` | 24 | 24 | Icon 16 and label beside it |
-| `size.dock_tab` | 32 | 28 | Canvas and bottom-dock tabs |
-| `size.rail` | 40 | 36 | Rail width; rail buttons 32 / 28 square |
-| `size.status` | 24 | 22 | Status bar |
-| `size.panel.left` | 280 (220 to 480) | 260 | Navigator and Properties column |
-| `size.panel.right` | 280 (220 to 480) | 260 | Palettes |
+| `size.quick_access` | 28 × 24 | 28 × 24 | Save, Undo, Redo |
+| `size.search` | 280 × 24 | 280 × 24 | The command search field |
+| `size.panel_header` | 32 | 32 | Navigator, Properties and palette headers |
+| `size.dock_tab_bar` | 32 | 32 | Canvas-tab bar (tabs 28 high) and the bottom dock's tab row |
+| `size.rail` | 40 | 40 | Rail width; rail buttons 32 square |
+| `size.status` | 26 | 26 | Status bar; its fields 22 high |
+| `size.panel.left` | 280 (220 to 480) | 280 | Navigator and Properties column; Properties takes half its height |
+| `size.panel.right` | 280 (220 to 480) | 280 | Palettes |
+| `size.dock.bottom` | 184 | 184 | The bottom dock's height when it opens (then remembered) |
+| `size.property_label` | 96 | 96 | The property label column |
+
+Density changes the row height, the command row and the command buttons' layout only (§4.13).
 
 ### 4.10 Radii, borders, elevation
 
 | Token | Value | Use |
 |---|---|---|
-| `radius.sm` | 4 | Buttons, fields, chips on the canvas, key chips, focus ring |
-| `radius.md` | 6 | Menus, popovers, tooltips, cards, palette thumbnails |
+| `radius.sm` | 4 | Quick-access and other icon buttons, property value cells, segmented items, key chips, status fields, canvas chips, the focus ring |
+| `radius.md` | 6 | Command, rail, primary and secondary buttons, the app button, fields, the segmented track, canvas tabs' top corners, the zoom control, menus, popovers, tooltips, cards, palette thumbnails |
 | `radius.lg` | 8 | Dialogs, toasts, the command palette |
-| `radius.pill` | 999 | Count badges, the tool HUD |
+| `radius.pill` | 999 | Count badges, provenance chips, the tool HUD and its buttons |
+| `radius.mark` | 2 | The 2-px accent bars: tab underlines, the rail indicator, the selected-row bar |
 | `border.width` | 1 px | Every border; focus rings are 2 px |
 | `elevation.0` | none | Chrome and docked panels (flat) |
-| `elevation.1` | light: offset 0,2 blur 6 rgba(16,24,40,0.12); dark: 0,2 blur 6 rgba(0,0,0,0.45) + `color.border.default` | Menus, popovers, tooltips, canvas chips, the sheet |
-| `elevation.2` | light: 0,8 blur 24 rgba(16,24,40,0.18); dark: 0,8 blur 24 rgba(0,0,0,0.6) + `color.border.default` | Dialogs, toasts, the command palette |
+| `elevation.1` | light: offset 0,1 blur 2 rgba(16,24,40,0.10) plus a 1-px ring rgba(16,24,40,0.04); dark: 0,1 blur 2 rgba(0,0,0,0.40) plus a 1-px ring rgba(255,255,255,0.04) | The sheet, the zoom control, the selected segmented item, menus, popovers, tooltips, canvas chips |
+| `elevation.2` | light: 0,8 blur 24 rgba(16,24,40,0.16) plus 0,2 blur 6 rgba(16,24,40,0.08); dark: 0,8 blur 24 rgba(0,0,0,0.50) plus 0,2 blur 6 rgba(0,0,0,0.30) | The tool HUD, toasts, dialogs, the command palette |
 
-In the dark theme a raised surface is lighter than the one below it and carries a 1-px border, because shadows barely
-show on dark grey (Material's dark-theme guidance, with #121212 as its base surface).
+In the dark theme a raised surface is lighter than the one below it (`slate-800` over `slate-850`), because shadows
+barely show on dark grey (Material's dark-theme guidance, with #121212 as its base surface); the 1-px ring of
+`elevation.1` gives small floating things their edge.
 
 ### 4.11 Icons
 
@@ -371,11 +393,13 @@ show on dark grey (Material's dark-theme guidance, with #121212 as its base surf
 - **EW glyphs.** Glyphs Tabler lacks (cable, terminal strip, interruption point, black box, potential, structure box,
   QET grid) are drawn by the project on the same grid with the same stroke rules, stored beside the vendored set under
   the application's licence, and go through the same generator.
-- **Sizes and stroke.** `icon.sm` 16 px (rows, menus, chips), `icon.md` 20 px (rails, small command buttons, the
-  status bar), `icon.lg` 24 px (large command buttons, empty states at 32). Stroke 1.5 px at 16 and 20 px, 1.75 px at
-  24 px, multiplied by the pixels per point; Tabler's own stroke 2 at 24 px is too heavy beside 13-px text.
+- **Sizes and stroke.** `icon.sm` 16 px (rows, menus, small command buttons, quick access, the HUD, status fields,
+  dock tabs), `icon.md` 20 px (large command buttons, rails, toasts), `icon.lg` 24 px (dialogs; empty states at 32).
+  Stroke 1.5 px at 16 and 20 px, 1.75 px at 24 px, multiplied by the pixels per point; Tabler's own stroke 2 at 24 px
+  is too heavy beside 13-px text.
 - **Colour.** Icons take the text colour of their context (`color.text.secondary` at rest, `color.text.primary` on
-  hover and selection, `color.accent` only on the active rail button and a toggled tool); semantic icons take their
+  hover, `color.accent` on the active rail button, an active or toggled command and a selected tree row); semantic
+icons take their
   semantic colour. No multicolour icons.
 - **Meaning.** One icon per concept everywhere (the Pages icon is the same on the rail, in the menu and in the
   palette); an icon never replaces a label in the command bar's large buttons, on dialogs or in menus.
@@ -395,8 +419,9 @@ No slide-ins, no bounce, no animated zoom by default. A toast or a popover fades
 Two modes in View ▸ Density, stored in the user settings (`density = "comfortable" | "compact"`):
 - **Comfortable** (default): 28-px rows, the command row with large labelled buttons for each group's frequent
   commands. For learning and for the pilot preview.
-- **Compact**: 24-px rows, every command a small button with its label beside the icon, smaller rails and dock tabs.
-  For experts and small screens (the JetBrains "compact mode" precedent).
+- **Compact**: 24-px rows and a 36-px command row in which every command shows its label beside the icon (large
+  commands 28 high with icon 20, small ones 24 high in one row). Rails, tabs, panels and the status bar keep their
+  sizes. For experts and small screens (the JetBrains "compact mode" precedent).
 
 Density changes sizes only; colours, type sizes and the order of everything stay the same.
 
@@ -408,20 +433,20 @@ Density changes sizes only; colours, type sizes and the order of everything stay
 |---|---|
 | `Visuals::dark_mode` | theme is dark |
 | `Visuals::panel_fill` | `color.surface.panel` (the chrome panels paint `color.surface.chrome` themselves) |
-| `Visuals::window_fill`, `window_stroke`, `window_shadow`, `window_corner_radius` | `color.surface.raised`, `color.border.default` (dark) or none (light), `elevation.2`, `radius.lg` |
+| `Visuals::window_fill`, `window_stroke`, `window_shadow`, `window_corner_radius` | `color.surface.raised`, none, `elevation.2`, `radius.lg` |
 | `Visuals::popup_shadow`, `menu_corner_radius` | `elevation.1`, `radius.md` |
 | `Visuals::extreme_bg_color`, `text_edit_bg_color` | the text-field fill (`color.surface.panel`) |
 | `Visuals::selection` (`bg_fill`, `stroke`) | `color.accent.subtle`, `color.accent` |
 | `Visuals::hyperlink_color`, `warn_fg_color`, `error_fg_color` | `color.accent`, `color.warning`, `color.error` |
 | `Visuals::widgets.noninteractive` | `bg_stroke` `color.border.subtle`, `fg_stroke` `color.text.secondary` |
-| `Visuals::widgets.inactive` | `weak_bg_fill` transparent (subtle buttons), `bg_fill` field fill, `bg_stroke` `color.border.control` for fields, `fg_stroke` `color.text.primary`, `corner_radius` `radius.sm`, `expansion` 0 |
+| `Visuals::widgets.inactive` | `weak_bg_fill` transparent (subtle buttons), `bg_fill` field fill, `bg_stroke` `color.border.control` for fields, `fg_stroke` `color.text.primary`, `corner_radius` `radius.md`, `expansion` 0 |
 | `Visuals::widgets.hovered`, `active`, `open` | the same plus `color.state.hover` / `color.state.pressed` overlays, `expansion` 0 (nothing grows under the pointer) |
 | `Visuals::striped`, `indent_has_left_vline`, `button_frame`, `collapsing_header_frame` | false, false, true, false |
 | `Visuals::disabled_alpha` | replaced by `color.text.disabled` in the component code |
-| `Spacing::item_spacing`, `button_padding`, `interact_size`, `indent`, `menu_margin`, `window_margin`, `icon_width`, `icon_spacing` | (`space.3`, `space.2`), (`space.3`, `space.2`), y = `size.control`, `space.5`, `space.2`, `space.5`, 14, `space.2` |
+| `Spacing::item_spacing`, `button_padding`, `interact_size`, `indent`, `menu_margin`, `window_margin`, `icon_width`, `icon_spacing` | (`space.3`, `space.2`), (`space.4`, `space.2`), y = `size.control`, 20, `space.2`, `space.5`, 16, `space.icon` |
 | `Style::text_styles` | `Small` = `type.caption`, `Body` and `Button` = `type.body`, `Heading` = `type.title`, `Monospace` = Noto Sans at 12; `Name("small")`, `Name("strong")`, `Name("display")` for the rest; SemiBold through `FontFamily::Name("semibold")` |
 | `Style::animation_time` | `motion.fast` |
-| egui_tiles `Behavior` (`tab_bar_height`, `tab_bar_color`, `tab_bg_color`, `tab_text_color`, `tab_outline_stroke`, `tab_bar_hline_stroke`, `gap_width`, `resize_stroke`) | `size.dock_tab`, `color.surface.chrome`, panel or transparent, primary or secondary text, none, `color.border.subtle`, 1, `color.border.subtle` (hover: `color.accent`) |
+| egui_tiles `Behavior` (`tab_bar_height`, `tab_bar_color`, `tab_bg_color`, `tab_text_color`, `tab_outline_stroke`, `tab_bar_hline_stroke`, `gap_width`, `resize_stroke`) | `size.dock_tab_bar`, `color.surface.chrome`, `canvas.surround` for the active canvas tab or transparent, primary or secondary text, `color.border.default` on the active canvas tab, `color.border.default`, 1, `color.border.default` (hover: `color.accent`) |
 
 Component code (the command bar, rows, chips) paints with the token values directly through `ew-ui`'s widget helpers;
 none of it reads raw egui defaults.
@@ -430,66 +455,83 @@ none of it reads raw egui defaults.
 
 ### 5.1 The window
 
+The window is [the mockup](assets/design-language-mockup.html)'s (open it in a browser; it toggles light and dark and the two densities). In outline:
+
 ```text
-+-----------------------------------------------------------------------------------------------------+
-| [=] [Save][Undo][Redo] |  Project  Page  [Draw]  Check  Output  View  |        [ Search commands  Ctrl+K ] | tab row 32
-| Select | Symbol  Device   Terminal  Black  | Wire   Interruption  Wire     | Text  Graphic | Move Rotate ... | command row 52
-|        |  ...    from part strip    box    |        point         marker   | Image  Box    | Mirror Delete   |
-+----+-------------------------+---------------------------------------------------------+----+-------+
-| Pg | Pages            [+][..] | 101 Power supply 1 x | 103 Power supply 3 |  [+]          | Sy |       |
-| Dv | [ Filter pages         ] |  +----------------------------------------------------+ | Pt | (right|
-| Cn | v Front matter          |  |     .   .   .  [ Place  -K1   R Rotate  Esc Done ]  | |    | rail, |
-| Pt |   1   Title page        |  |   +-------------------------------------------+    | |    | closed|
-| St |   2   Contents   gen    |  |   |  white sheet, print-true, frame and       |    | |    | by    |
-| Cb | v Section 1 Wiring      |  |   |  title block, the drawing                 |    | |    | default)
-| PL |   101 Power supply 1  <-|  |   |                                           |    | |    |       |
-| Rb |   102 Power supply 2    |  |   +-------------------------------------------+    | |    |       |
-|    |-------------------------|  |          grey surround                             | |    |       |
-|    | -102G1          Error 1 |  +----------------------------------------------------+ |    |       |
-|    | Power supply 24 V DC    |                                                         |    |       |
-|    | v Main                  |                                                         |    |       |
-|    |   Tag        -102G1  f  |                                                         |    |       |
-|    |   Part       2904602 L  |                                                         |    |       |
-|    | > Electrical            |                                                         |    |       |
-+----+-------------------------+---------------------------------------------------------+----+-------+
-| Click a connection point to start a wire     3 selected  102-H15 x 255.0 y 172.5 mm  QET 10 px  156 %  |
-|                                              (x)2 (!)5   PDF 40 %   Saved   GPU   Page 6 of 36  (bell)  | status 24
-+-----------------------------------------------------------------------------------------------------+
++-------------------------------------------------------------------------------------------------------+
+| [# ElektraWatt v] | [S][U][R] | Project  Page  [Draw]  Check  Output  View    [Q Search commands, devices, pages  Ctrl K] | tab row 32, chrome
+|-------------------------------------------------------------------------------------------------------|
+| [Select] | [Symbol] [Device] Terminal  | [Wire] Potential    | [Text] Measure | Rotate  Align     [Check project] | command row 52, panel
+|          |                   Black box |        Interruption |                | Mirror  Renumber                  |
++----+-----------------------------+----------------------------------------------------------------+----+
+| Pg | PROJECT                 ... | Power supply 400 V | * Conveyor motor M1 |                     | Sy |
+| Tm | [ Pages     |   Devices   ] |  +----------------------------------------------------------+   | Pt |
+| Cb | [ Filter pages            ] |  |  white sheet on the grey surround       [toast: PDF       ]|   |    |
+| Po | v =A1 Machine            6  |  |                                          [exported   Open ]|   |    |
+| St |     Cover sheet          1  |  |                                                           |   |    |
+|    |     Conveyor motor M1 (1) 3 |<-|  selected (accent)                                       + |   |    |
+|    |-----------------------------|  |                                                         - |   |    |
+|    | PROPERTIES                  |  |     ( [Select] wire symbol text | 1 selected ... )      # |   |    |
+|    | -K1                         |  +----------------------------------------------------------+   |    |
+|    | Contactor ... · page 3      | Messages (3)  Find  Jobs  History                          x   |    |
+|    | v Main                      | Severity  Message                     Object  Page  Rule       |    |
+|    |   Tag       [-K1         ]  | (x) Error Connection point ...        -M1     3     ...        |    |
+| Hi |   Coil v.   24 V DC   (part)| (!) Warning ...                                                 |    |
++----+-----------------------------+----------------------------------------------------------------+----+
+| Ready                       (x) 1 error · 2 warnings  1 selected  3-C2 · X 168.0 · Y 92.0 mm  Grid 4 mm · Snap  125 %  Saved  GPU | 26
++-------------------------------------------------------------------------------------------------------+
 ```
 
-At 1280 × 800 and 100 %, Comfortable: command bar 84 px, status bar 24 px, left rail 40 + left column 280 px, right
-rail 40 px, so the canvas area is 920 × about 640 px: 72 % of the width (ADR-0031 decision 5 requires at least 65 %).
-At 1920 × 1080 it is 1560 × about 920 px.
+At 1280 × 800 and 100 %, Comfortable: command bar 85 px (tab row 32, command row 52 with its top hairline, the
+bottom line 1; Compact 69), canvas-tab bar 32 px, status bar 26 px, left rail 40 + left column 280 px, right rail
+40 px, so the canvas is 920 × 657 px: 72 % of the width
+(ADR-0031 decision 5 requires at least 65 %). The bottom dock, when open, takes 184 px of that height. At
+1920 × 1080 the canvas is 1560 × 937 px. The sheet is centred on the surround at up to 92 % of the canvas
+width.
 
 ### 5.2 The command surface
 
-The **command bar** (ADR-0031 decision 3) has two rows on `color.surface.chrome`, separated from the content by one
-`color.border.subtle` line.
+The **command bar** (ADR-0031 decision 3) has two rows: the tab row on `color.surface.chrome` and the command row on
+`color.surface.panel`, with a `color.border.subtle` hairline between them and a `color.border.default` line under
+the bar.
 
-**The tab row (32 px), left to right:**
-1. **App menu button** (icon `menu-2`, name "Menu", Alt or F10): opens the full command tree as a menu (§9.2). On
-   macOS it is hidden and the global menu bar carries the same tree.
-2. **Quick access**: Save (Ctrl+S), Undo (Ctrl+Z), Redo (Ctrl+Y / Ctrl+Shift+Z) as 28-px icon buttons. Microsoft's
-   ribbon guidance pairs every ribbon with an application button and a quick-access toolbar so file commands and
-   undo never need a tab change.
-3. **Tabs**: Project, Page, Draw, Check, Output, View, in `type.body`; the active one in `type.body.strong` with a
-   2-px `color.accent` underline, the others `color.text.secondary`; hover shows the hover overlay. One click
-   switches; the tab row is a `TabList` with `Tab` children for AccessKit.
-4. **Command search**, right-aligned, 240 px: a field with a search icon and the placeholder "Search commands" and the
-   key chip "Ctrl+K". Focusing it opens the command palette (§6.14) anchored under the field.
+**The tab row (32 px, `space.3` gutters), left to right:**
+1. **App button** (accessible name "Menu", Alt or F10): the product mark (a 16-px `color.accent` square with
+   `radius.sm` and the bolt glyph in `color.text.on_accent`), the name "ElektraWatt" in `type.body.strong` and a
+   16-px chevron; `size.control.inline` high, `radius.md`, `space.3` padding. It opens the full command tree as a
+   menu (§9.2). On macOS it is hidden and the global menu bar carries the same tree.
+2. A 1 × 16 px `color.border.default` separator, then **quick access**: Save (Ctrl+S), Undo (Ctrl+Z), Redo (Ctrl+Y /
+   Ctrl+Shift+Z) as `size.quick_access` icon buttons with `icon.sm` in `color.text.secondary`, `radius.sm`; then
+   another separator. Microsoft's ribbon guidance pairs every ribbon with an application button and a quick-access
+   toolbar so file commands and undo never need a tab change.
+3. **Tabs**: Project, Page, Draw, Check, Output, View, in `type.body` with `space.4` padding; the active one in
+   `type.body.strong` and `color.text.primary` with a 2-px `color.accent` underline inset `space.4` from both ends
+   (`radius.mark`), the others `color.text.secondary`; hover shows the hover overlay. One click switches; the tab row
+   is a `TabList` with `Tab` children for AccessKit.
+4. **Command search**, right-aligned, `size.search` (280 × 24): `color.surface.panel` fill, a 1-px
+   `color.border.default`, `radius.md`, a 16-px search icon, the placeholder "Search commands, devices, pages" in
+   `color.text.tertiary` and the key chip "Ctrl K" at its right end. The icon and the placeholder identify the
+   field (WCAG 1.4.11). Focusing it opens the command palette (§6.14) anchored under the field.
 
-**The command row (52 px Comfortable, 36 px Compact)** shows the active tab's **groups**, left to right in task order,
-separated by a 1-px `color.border.subtle` divider with `space.4` either side. Group names are not printed (the
+**The command row (52 px Comfortable, 36 px Compact, `space.3` gutters)** shows the active tab's **groups**, left to
+right in task order, separated by a 1-px `color.border.subtle` divider with `space.2` either side; buttons in a
+group sit 2 px apart. Group names are not printed (the
 Simplified Ribbon's choice); they are the tooltip of the divider region, the submenu names in the app menu and the
 breadcrumb in the palette. Inside a group:
-- **Large buttons** (Comfortable only): icon 24 over a label in `type.small`, 52 px high, at least 56 px wide, at most
-  two per group, for the commands the user reaches for most (they are marked `size = Large` in the registry).
-- **Small buttons**: icon 16 and label in `type.small` side by side, 24 px high, stacked two to a column in
-  Comfortable, in one row in Compact.
-- **Split buttons** for a command with variants (Mirror ▸ left to right, top to bottom; Graphic ▸ line, rectangle,
-  circle): the main part runs the default, the chevron opens a menu.
-- **Toggle commands** (Grid, Snap, Side by side) show their on state with `color.accent.subtle` fill and an accent
-  icon.
+- **Large buttons**: `icon.md` over a label in `type.small` with a 2-px gap, 46 px high, at least 52 px wide, `space.icon`
+  side padding, `radius.md`, at most two per group, for the commands the user reaches for most (`size = Large` in the
+  registry). In Compact they are 28 px high with the icon beside the label.
+- **Small buttons**: `icon.sm` and a label in `type.small` side by side with `space.icon` between, 24 px high,
+  stacked two to a column in Comfortable, in one row in Compact.
+- **Labels in the bar** are the short form of the registry label, without the ellipsis ("Device" for "Device from
+  part…", "Renumber" for "Renumber devices…"); the tooltip, the menus and the palette carry the full label.
+- **Active and toggled commands** (the running tool, Grid, Snap) show `color.accent.subtle` fill with the icon and
+  label in `color.accent`.
+- **The tab's next step**: at the right end of the row, after a flexible space, at most one Primary button (§6.2) with
+  a 16-px icon: on Draw "Check project" (F7), on Check "Export PDF"; the other tabs have none. It is the one
+  accent fill in the chrome and reads as the way forward in the order of work (§9.1).
+- **Split buttons** for a command with variants (Mirror ▸ left to right, top to bottom; Check scheme ▾): the main
+  part runs the default, the chevron opens a menu.
 - A command that cannot run now is drawn disabled with its reason as tooltip; nothing is hidden or reflowed by state,
   so the bar never jumps.
 
@@ -499,53 +541,71 @@ narrow, groups collapse from the right into a "More" split button, each into one
 menu; the Draw tab's Select, Place and Connect groups never collapse.
 
 **The bar is generated from the registry.** `ActionMeta` gains `placement: Option<Placement { tab, group, order,
-size }>` and `icon: IconId`; the bar draws whatever has a placement, in that order. A registry test asserts that every
+size, bar_label }>` and `icon: IconId`, and each tab names its next-step action; the bar draws whatever has a
+placement, in that order. A registry test asserts that every
 placed action has an icon, a label and a docs anchor, and that each tab's groups follow §5.3's order.
 
 ### 5.3 The tabs
 
-| Tab | Groups, left to right (large buttons in **bold**) | Notes |
+| Tab | Groups, left to right (large buttons in **bold**; bar labels) | Next step · notes |
 |---|---|---|
-| Project | Project: **Project properties**, Structure identifiers… · Parts: **Import parts table…**, Project parts · Standards: Settings and schemes…, Company standard… · Import: Import QET project… | Set up once; New, Open and Save are in the app menu and quick access, never duplicated here |
-| Page | Pages: **New page**, Page properties, Delete page · Order: Renumber pages…, Move up, Move down · Go: **Go to page or cell…** (Ctrl+G), Back (Alt+Left), Forward (Alt+Right), Follow cross-reference (F) | Folio navigation and page set-up |
-| **Draw** (home) | Select: **Select** · Place: **Symbol…** (I), **Device from part…** (Shift+I), Terminal strip…, Black box (B) · Connect: **Wire** (W), Interruption point (P), Wire marker (Shift+W) · Annotate: Text (T), Graphic ▾, Image…, Structure box (Shift+B) · Arrange: Move (M), Rotate (R), Mirror ▾ (X, Y), Delete · Edit: Properties (E), Change symbol… | The core loop; the tab that opens with a project |
-| Check | Run: **Run checks**, Check scheme ▾ · Findings: **Messages**, Next finding (F8), Previous finding (Shift+F8) · Numbering: **Renumber devices…**, Freeze tag, Unfreeze tag · Trace: Highlight potential… (Ctrl+Shift+H), Clear highlights | Make it right before output |
-| Output | PDF: **Export PDF…**, Print… · Reports: **Report blocks**, Open generated page · Lists: Parts list, Wire list, Terminal diagram (open their generated pages) · Jobs: Jobs | Everything that leaves the project |
-| View | Zoom: **Fit page** (Home), Zoom in, Zoom out, Actual size · Show: Grid, Frame statistics · Panels: Navigators ▾, Properties, Messages, Jobs, History, Notifications · Layout: Side by side, Workspaces ▾, Reset layout · Appearance: Theme ▾, Density ▾, UI scale ▾ | Never needed for the work itself |
+| Project | Project: **Properties**, Structure · Parts: **Import parts**, Project parts · Standards: Schemes, Company standard · Import: Import QET | None · set up once; New, Open and Save are in the app menu and quick access, never duplicated here |
+| Page | Pages: **New page**, Page properties, Delete page · Order: Renumber pages, Move up, Move down · Go: **Go to** (Ctrl+G), Back (Alt+Left), Forward (Alt+Right), Follow reference (F) | None · folio navigation and page set-up |
+| **Draw** (home) | Select: **Select** · Place: **Symbol** (I), **Device** (Shift+I), Terminal, Black box (B) · Connect: **Wire** (W), Potential (Shift+P), Interruption (P) · Annotate: **Text** (T), Measure · Arrange: Rotate (R), Mirror (X, Y), Align, Renumber | **Check project** (F7) · the core loop and the tab that opens with a project; exactly the mockup's fourteen commands and its next step. Move, Delete, Wire marker, Graphic, Image, Structure box, Properties and Change symbol are reached by their keys, the context menu, the app menu's Draw and the palette; Align arrives with its package |
+| Check | Run: **Check project** (F7), Check scheme ▾ · Findings: **Messages**, Next finding (F8), Previous finding (Shift+F8) · Numbering: Freeze tag, Unfreeze tag · Trace: Highlight potential (Ctrl+Shift+H), Clear highlights | **Export PDF** · make it right before output; Renumber lives on Draw (the mockup) |
+| Output | PDF: **Export PDF**, Print · Reports: **Report blocks**, Open generated page · Lists: Parts list, Wire list, Terminal diagram (open their generated pages) · Jobs: Jobs | None · everything that leaves the project |
+| View | Zoom: **Fit page** (Home), Zoom in, Zoom out, Actual size · Show: Grid, Snap, Frame statistics · Panels: Navigators ▾, Properties, Messages, Jobs, History, Notifications · Layout: Side by side, Workspaces ▾, Reset layout · Appearance: Theme ▾, Density ▾, UI scale ▾ | None · never needed for the work itself |
 
-Commands of later packages join their tab's group when they exist (Macro… in Place, Cable in Connect, Waivers in
-Findings); a new group needs a design-language review. The Edit commands Cut, Copy, Paste, Duplicate and Select all
+Commands of later packages join their tab's group when they exist (Macro in Place, Cable in Connect, Waivers in
+Findings); a new group, or a new command on Draw, needs a design-language review against the mockup. The Edit commands Cut, Copy, Paste, Duplicate and Select all
 live in the app menu's Edit, the canvas context menu and their keys, as everywhere else.
 
 ### 5.4 Left: the rail, the navigator and Properties
 
-- **The navigator rail** (`size.rail`, `color.surface.chrome`, a 1-px border on its right) shows one 32-px icon
-  button per navigator, in this order: Pages, Devices, Connections, Potentials, Terminal strips, Cables, PLC, Report
-  blocks, then the rest of `NavKind` (Messages excepted, it lives in the bottom dock). The active one has
-  `color.accent.subtle` fill and an accent icon; each has an accessible name and a tooltip with its key. This
-  replaces the overflowing tab strip (FT-509): every navigator is one click and one name away, however many are shown.
-  Clicking the active one collapses the column (the canvas gets the width); Ctrl+1 to Ctrl+8 select by position.
-- **The navigator panel** (`size.panel.left`, `color.surface.panel`): a 32-px header with the navigator's name in
-  `type.body.strong` and its two or three actions as icon buttons at the right (New page, view mode ▾); the filter
-  field; the tree (§6.6). No second heading.
-- **Properties** is docked under the navigator in the same column (45 % of its height, resizable, the split
-  remembered per workspace): header (§6.8), then the rows. It shows the selection, whatever selected it.
+- **The navigator rail** (`size.rail`, `color.surface.chrome`, a 1-px `color.border.default` on its right, `space.3`
+  top padding) shows one 32-px icon button (`radius.md`, `icon.md` in `color.text.secondary`, `space.2` apart) per
+  entry, in this order: **Project** (Pages and Devices), Terminal strips, Cables, Potentials, Structure, then
+  Connections, PLC, Interruption points, Parts in use and Report blocks; **History** sits at the rail's foot and
+  opens the bottom dock's History tab. The active entry has `color.accent.subtle` fill, an accent icon and a 2-px
+  accent indicator bar (`radius.mark`) 4 px left of the button, inset 8 px top and bottom. Each has an accessible
+  name and a tooltip with its key. This replaces the overflowing tab strip (FT-509): every navigator is one click and
+  one name away. Clicking the active one collapses the column (the canvas gets the width); Ctrl+1 to Ctrl+9 select by
+  position. Messages is not on the rail; it lives in the bottom dock.
+- **The navigator panel** (`size.panel.left`, `color.surface.panel`, a 1-px `color.border.default` on its right): a
+  `size.panel_header` header with the entry's name in `type.label` ("PROJECT") and its actions as 24-px icon buttons
+  at the right ("More"); for the Project entry a **segmented control** "Pages | Devices" (§6.20) chooses the
+  navigator, because the user flips between the two most; then the filter field ("Filter pages", §6.5); then the
+  tree (§6.6). No second heading.
+- **Properties** is docked under the navigator in the same column, below a 1-px `color.border.default` splitter, and
+  takes half the column's height by default (resizable, the split remembered per workspace): its header "PROPERTIES"
+  in `type.label`, the object header and the rows (§6.8). It shows the selection, whatever selected it.
 - Both remain egui_tiles panes: the rail is a view of the left tab group whose own tab bar is not drawn, so docking,
   the workspace file `ew.workspace/1` and its determinism stay as built (doc 16 §2.5).
 
 ### 5.5 Centre: canvas tabs, canvas, HUD
 
-- **Canvas tabs** (`size.dock_tab`) on `color.surface.chrome`: `<folio> <title>` in `type.body`, the active tab on
-  `color.surface.panel` with `type.body.strong` and a 2-px accent top line; badges as icons with names (generated: a
-  `sparkles` icon; QET grid: a small "QET" caption badge); the close button shows on the active and hovered tab (and is
-  Ctrl+W for all); "+" (New tab, Ctrl+T) at the end. No "Page view" heading above them.
-- **The canvas**: the white sheet with `elevation.1` on `canvas.surround`; overlays per §7.
-- **The tool HUD**: while a tool other than Select is active, a pill (`radius.pill`, `color.surface.inverse` at 94 %,
-  `elevation.1`) floats 12 px under the tab bar, centred: the tool's icon and name, its target in `type.body.strong`
-  ("Place  -X1031:21"), then its keys as key chips ("R Rotate", "V Variant", "Esc Done"). It never takes focus, never
-  covers the pointer (it moves to the bottom of the canvas while the pointer is within 48 px of it) and is the
-  floating tool window of the owner's reference, reduced to what the running tool needs. The one-sentence prompt stays
-  in the status bar (§5.8); the hint strip under the menu is removed.
+- **Canvas tabs**: a `size.dock_tab_bar` bar on `color.surface.chrome` with a `color.border.default` line under it
+  and `space.3` gutters; tabs 28 px high with `space.4` padding and `radius.md` top corners, the page title in
+  `type.small` (the folio and full path in the tooltip). Inactive tabs are text in `color.text.secondary` with no box;
+  the active tab takes `canvas.surround` fill, a 1-px `color.border.default` on its top and sides and none below, so
+  it opens into the canvas, with its title in `type.small` SemiBold and `color.text.primary`. An unsaved page shows
+  a 6-px `color.accent` dot before its title. Badges are icons with names (generated: `sparkles`; QET grid: a
+  "QET" caption badge); the close button shows on the active and hovered tab (and is Ctrl+W for all); "+" (New
+  tab, Ctrl+T) at the end. No "Page view" heading above them.
+- **The canvas**: the white sheet with `elevation.1`, centred on `canvas.surround` at up to 92 % of the canvas
+  width; overlays per §7.
+- **The tool HUD** is always shown: a pill (`radius.pill`, opaque `color.surface.inverse`, `elevation.2`, 4-px
+  padding) centred `space.5` above the canvas's bottom edge. It holds the active tool as a 28-px pill button with
+  `icon.sm` and its name (`color.accent` fill, `color.text.on_accent`, SemiBold), three quick tools as 28-px icon
+  pills (Wire, Symbol, Text), a 1 × 16 px divider and the **prompt** in `type.small` at 80 % opacity: the selection
+  and its keys with Select ("1 selected · Del deletes · R rotates"), the tool's target and keys otherwise
+  ("Place -X1031:21 · R rotates · V variant · Esc done"). It never takes focus and never covers the pointer: it
+  moves to 12 px under the tab bar while the pointer is within 48 px of it. It is the floating tool window of the
+  owner's reference, reduced to what the running tool needs; the hint strip under the menu is removed.
+- **The zoom control**: at the canvas's bottom right (`space.4` from the right, `space.5` from the bottom), a
+  vertical stack of three 28-px icon buttons (Zoom in, Zoom out, Fit page) on `color.surface.raised`, `radius.md`,
+  `elevation.1`.
+- **Toasts** appear at the canvas's top right (§6.10).
 
 ### 5.6 Right: the palettes
 
@@ -561,27 +621,36 @@ stays as the keyboard path; both open the same Place tool.
 
 One tab group below the canvas (WP-S2.09 D14), **closed by default**. It opens when the user asks: the status-bar
 findings field or F8 opens Messages, the job field opens Jobs, Ctrl+F opens Find, a bulk preview opens Preview (the
-user asked for it), Ctrl+H History. It closes with its tabs' close buttons or Escape in an empty pane, and remembers
-its height.
+user asked for it), Ctrl+H or the rail's History button opens History. It is `size.dock.bottom` high on
+`color.surface.panel` with a 1-px `color.border.default` above it. Its tab row is 32 px with a `color.border.subtle`
+line under it: tabs in `type.small` with 10-px padding, the active one SemiBold and `color.text.primary` with a 2-px
+accent underline inset 10 px, the others `color.text.secondary`; a tab with items carries a count chip (§6.16); one
+close button (Ctrl+J) sits at the row's right end. The **Messages** table follows §6.7 with the columns Severity
+(110 px; the semantic icon and word in SemiBold), Message, Object (120 px, a link in `color.accent` that selects and
+shows the object), Page (80 px) and Rule (90 px), the last two with tabular digits in `color.text.secondary`. It
+closes with its close button or Escape in an empty pane, and remembers its height.
 
 ### 5.8 The status bar
 
-24 px on `color.surface.chrome`, `type.small`, separated from the content by a 1-px line. Fields are text, with a
-1-px divider only where two numbers would touch. Left: the **prompt** (the active tool's status hint, doc 16 §3.6),
-`color.text.secondary`. Right, in this order:
+`size.status` (26 px) on `color.surface.chrome`, `type.small` with tabular digits, separated from the content by a
+1-px `color.border.default` line, `space.3` gutters. Each field is 22 px high with `space.3` padding and `radius.sm`,
+text in `color.text.secondary` with an optional 16-px icon `space.icon` before it, and the hover overlay when it
+is clickable. Left: the **state** ("Ready", or the running command's name). The tool prompt is in the HUD (§5.5).
+Right, in this order:
 
 | Field | Shown | Example | Click |
 |---|---|---|---|
-| Selection | when not empty | "3 selected" | — |
-| Cursor | pointer over the canvas or grid cursor shown | "102-H15 · x 255.0 y 172.5 mm" | Go to (Ctrl+G) |
-| Grid | always | "QET 10 px" / "4 mm" / "Grid off" | View ▸ Grid |
-| Zoom | always | "156 %" | Fit page |
-| Findings | when any count is non-zero | error icon "2", warning icon "5", info icon "1" in their colours | opens Messages |
+| Findings | when any count is non-zero | the worst severity's icon and "1 error · 2 warnings", SemiBold in that severity's colour | opens Messages |
 | Job | 200 ms after a job starts | "PDF export 40 %" with a 2-px progress line | opens Jobs |
-| Save state | always | "Saved" (secondary) / "Unsaved changes" with a dot (primary) / "Read-only" (warning) | — |
-| Renderer | always (FR-UI-034, NFR-PLAT-03) | "GPU" (tertiary) / "CPU" or "WARP" (warning colour, tooltip says why) | About |
-| Page | always | "Page 6 of 36" | Go to |
+| Selection | when not empty (FR-UI-034) | "1 selected" | — |
+| Cursor | pointer over the canvas or grid cursor shown | "3-C2 · X 168.0 · Y 92.0 mm" (the cell first, FR-UI-034) | Go to (Ctrl+G) |
+| Grid and snap | always | "Grid 4 mm · Snap" / "QET grid 10 px" / "Grid off" | View ▸ Grid |
+| Zoom | always | "125 %" | Fit page |
+| Save state | always | "Saved" in `color.success` with a check icon / "Unsaved changes" in `color.text.primary` with a dot / "Read-only" in `color.warning` | — |
+| Renderer | always (FR-UI-034, NFR-PLAT-03) | "GPU" in `color.text.tertiary` / "CPU" or "WARP" in `color.warning`, the tooltip says why | About |
 | Notifications | when the log is not empty | bell icon with "2" | opens the log |
+
+The page field leaves the bar: the active canvas tab and the selected navigator row already show the page (P3).
 
 The language field leaves the status bar (it stays on the start page and in Settings): a setting that changes once a
 year does not belong in the busiest strip of the window.
@@ -609,7 +678,7 @@ Every interactive component has these states, drawn the same way everywhere:
 | Rest | As specified per component |
 | Hover | `color.state.hover` overlay; no size change (`expansion` 0) |
 | Pressed | `color.state.pressed` overlay |
-| Selected | `color.accent.subtle` fill; text and icon primary; in lists a 2-px accent bar at the left edge while focused |
+| Selected | `color.accent.subtle` fill; text primary, icon `color.accent`; in lists a 2-px accent bar (`radius.mark`) at the left edge, inset 4 px top and bottom |
 | Focused (keyboard) | 2-px `color.focus` ring, 1 px outside the element, `radius` of the element + 1 |
 | Disabled | `color.text.disabled` text and icon, no hover; the reason as tooltip (doc 16 §2.4) |
 | Error | `color.error` boundary on fields, the message under the field with an icon |
@@ -624,63 +693,76 @@ Every interactive component has these states, drawn the same way everywhere:
 | Subtle | no fill, no border, `color.text.primary`; hover overlay | Toolbar-like actions inside panels, toasts, rows |
 | Danger | Secondary with `color.error` text; Primary with `color.error` fill only in a confirmation of a destructive step | Discard…, Delete…, Purge… |
 
-`size.control` high, `radius.sm`, padding `space.3` horizontally, minimum width 72 px for text buttons. An icon in a
-text button sits left at `icon.sm`. Labels are verbs (§8). The default (Enter) button is the primary one, never a
+`size.control` high, `radius.md`, padding `space.4` horizontally, minimum width 72 px for text buttons in dialogs. An
+icon in a text button sits left at `icon.sm`, `space.icon` before the label. Labels are verbs (§8). The default (Enter) button is the primary one, never a
 destructive one.
 
 ### 6.3 Icon buttons and command buttons
 
-Icon buttons are Subtle buttons with only an icon (28 or 24 px square, `icon.md` or `icon.sm`) and always have an
-accessible name and a tooltip "<Label> (<key>)". Command buttons are §5.2's large, small and split buttons; their
+Icon buttons are Subtle buttons with only an icon in `color.text.secondary`: 24 px square with `icon.sm` and
+`radius.sm` in panel headers, rows, toasts and the dock ("More", close), `size.quick_access` in the tab row, 28 px in
+the zoom control; they always have an accessible name and a tooltip "<Label> (<key>)". Command buttons are §5.2's large, small and split buttons; their
 tooltip is "<Label> (<key>). <One-sentence description>. F1: help" (doc 16 §3.3).
 
 ### 6.4 Tabs
 
-Three kinds, one look: text in `type.body`, active in `type.body.strong` with a 2-px accent line (under the command
-tabs, over the canvas and dock tabs), inactive in `color.text.secondary`, hover overlay, no boxes around inactive
-tabs, close button only on dock and canvas tabs. Tab bars never carry a second heading.
+Three kinds, one family: inactive tabs are text in `color.text.secondary` with the hover overlay and no box; the
+active tab is SemiBold in `color.text.primary`. **Command tabs** (§5.2) are `type.body` with a 2-px accent underline
+inset `space.4`. **Bottom-dock tabs** (§5.7) are `type.small` with a 2-px accent underline inset 10 px and a count
+chip. **Canvas tabs** (§5.5) are `type.small`; the active one opens into the canvas (surround fill, a border on three
+sides) with no accent line, because the canvas below it is the indication. Close buttons only on dock and canvas
+tabs. Tab bars never carry a second heading.
 
 ### 6.5 Fields
 
-28 / 24 px, `color.surface.panel` fill, 1-px `color.border.control`, `radius.sm`, `space.3` padding; placeholder in
-`color.text.tertiary`; focus replaces the border with the 2-px focus ring. Search and filter fields carry a leading
-search icon and a trailing clear button when not empty. Numbers align right and carry their unit as a suffix in
+`size.control` high, `color.surface.panel` fill, 1-px `color.border.control`, `radius.md`, `space.3` padding;
+placeholder in `color.text.tertiary`; focus replaces the border with the 2-px focus ring. Filter fields (the
+navigator's "Filter pages", inset `space.4` from the panel's sides) carry a leading 16-px filter icon and a trailing
+clear button when not empty; the command search field is §5.2's. **Inline value cells** in Properties are §6.8's. Numbers align right and carry their unit as a suffix in
 `color.text.secondary` ("2.5 mm²").
 
 ### 6.6 Tree rows
 
-`size.row`, indent `space.5` per level, then: a 16-px chevron column (empty for leaves), a 16-px kind icon
-(`color.text.secondary`), the **key column** in `color.text.tertiary` with tabular digits (a page's folio, a device's
-location prefix; fixed width per tree), the **title** in `color.text.primary` with ellipsis and a tooltip when cut,
-and right-aligned **badges** (a finding count badge, "generated" as an icon, "QET" as a caption badge). Group rows
-(sections) are `type.body.strong` in `color.text.secondary`. The row of the page shown in the focused canvas tab is
+`size.row`, `space.4` horizontal padding, `space.3` between parts, indent 20 px per level, then: a 12-px chevron
+column in `color.text.tertiary` (absent on leaves), a 16-px kind icon (`color.text.secondary`), the **title** in
+`type.body` and `color.text.primary` with ellipsis and a tooltip when cut, then right-aligned **badges** (a finding
+count badge, "generated" as an icon, "QET" as a caption badge) and the **meta column** in `type.small`,
+`color.text.tertiary`, tabular digits: a page's folio, a group's child count, a device's page. Group rows (sections,
+structure levels) look like other rows with a folder icon and their child count. The row of the page shown in the focused canvas tab is
 `type.body.strong`. Selected rows take the Selected state; selection synchronisation with the canvas (doc 16 §5.4)
 shows the same accent in both. Pending or muted rows (WP-S2.09 D9) use `color.text.tertiary` and an outline icon.
 
 ### 6.7 Table and grid rows
 
-Header row `size.row` on `color.surface.sunken`, `type.small` in `type.body.strong` weight, `color.text.secondary`,
-sort indicator icon; body rows `size.row` with one 1-px `color.border.subtle` line under each row, no vertical lines,
+Header row 24 px on `color.surface.sunken`, `type.small` SemiBold in `color.text.secondary`, sticky, with a
+`color.border.subtle` line under it and a sort indicator icon; body rows `size.row` in `type.small` with `space.4`
+cell padding and one 1-px `color.border.subtle` line under each row; cells that name an object are links in
+`color.accent`; no vertical lines,
 no zebra stripes (the line and the hover are enough at this density); numbers right-aligned with tabular digits;
 editable cells show a field on focus or double-click; the selected row takes the Selected state; the focused cell a
 focus ring.
 
 ### 6.8 Property rows and the Properties header
 
-**Header** (on `color.surface.panel`, `space.4` padding): the kind icon at `icon.md`, the object's printed name in
-`type.title` ("-102G1", "103 Power supply 3"), one secondary line in `color.text.secondary` (function text, or kind and
-cell, "Terminal · 101-D2"), and at the right the findings badge if any. For a multi-selection: "3 devices" and the
-mixed-selection rule of doc 16 §17. Then a filter field ("Filter properties").
+**Header** (under the panel header, `space.4` side padding, 4 px above and `space.3` below): the object's printed
+name in `type.title` ("-K1", "103 Power supply 3"), one line in `type.small` and `color.text.secondary` (kind and
+rating, then the page: "Contactor, 3 NO + 1 NO aux · page 3"), and at the right the findings badge if any. For a
+multi-selection: "3 devices" and the mixed-selection rule of doc 16 §17. A filter field ("Filter properties")
+appears under it only when the open categories hold more than twelve rows.
 
-**Categories**: collapsible headers in `type.body.strong`, `color.text.secondary`, with a chevron; **Main** (the
-fields of the kind marked primary in the field catalogue: tag, function text, part, location, page title, number)
-open, the others closed and remembered per kind. **Advanced** (the record's internal members: `$v`, ID, key, source
-reference, lineage, form UUIDs, counters) exists only when Settings ▸ Show advanced properties is on.
+**Categories**: 28-px collapsible headers in `type.small` SemiBold, `color.text.secondary`, with a chevron; **Main**
+(the fields of the kind marked primary in the field catalogue: tag, function text, part, location, page title,
+number) open, the others closed and remembered per kind. **Advanced** (the record's internal members: `$v`, ID, key,
+source reference, lineage, form UUIDs, counters) is hidden; a link "Show advanced (n)" in `type.small` and
+`color.accent` at the panel's foot shows it, and the choice is remembered (Settings ▸ Show advanced properties).
 
-**Rows** (`size.row`): label in `color.text.secondary`, left-aligned in a 40 % column with ellipsis and tooltip; value in
-`color.text.primary`; unit as suffix; at the far right a **provenance icon only when the value is not authored**:
-derived (`math-function`), inherited (`arrow-down-right`), overridden (`pencil` with a dot), frozen (`snowflake`),
-library (`book`), generated (`sparkles`), each with its chip text as tooltip and accessible description (doc 16 §6.2).
+**Rows** (`size.row`, `space.4` side padding, `space.3` gap): the label in `type.small` and `color.text.secondary` in
+the `size.property_label` column with ellipsis and tooltip; the value in a `size.control.inline` cell (`radius.sm`,
+`space.icon` padding, a transparent 1-px border that turns `color.border.control` on hover and `color.accent` with a
+1-px accent ring while editing) in `color.text.primary`; unit as suffix; at the cell's right end a **provenance chip
+only when the value is not authored**: a pill in `type.caption` and `color.text.tertiary` with a 1-px
+`color.border.default` naming the source in one word, "part", "page", "derived", "override", "frozen", "library"
+or "generated", with doc 16 §6.2's full chip text as tooltip and accessible description.
 An authored value shows nothing, so the eye finds the exceptions. An empty authored value shows an em dash in
 `color.text.tertiary`. **Editing is in place:** a click or Enter on an editable value turns it into its editor;
 Enter commits, Escape cancels; a read-only value shows no editor and its reason as tooltip. There are no "edit"
@@ -697,9 +779,11 @@ Secondary (Cancel). A stale card shows the warning banner style inside its top (
 
 ### 6.10 Toasts and the notifications log
 
-Toasts stack at the bottom right of the window, `space.4` above the status bar, newest at the bottom, at most three
-(WP-S2.09 D6): 360 px wide, `color.surface.raised`, `elevation.2`, `radius.lg`, `space.4` padding. Anatomy: semantic
-icon, one line of `type.body` (two at most), an optional Subtle action ("Undo", "Open"), a close icon button. They
+Toasts stack at the canvas's top right, `space.4` from its edges, newest at the top, at most three (WP-S2.09 D6):
+300 px wide, `color.surface.raised`, `elevation.2`, `radius.lg`, `space.4` padding. Anatomy, in three columns with
+`space.3` gaps: the 20-px semantic icon; the title in `type.body.strong`, an optional line in `type.small` and
+`color.text.secondary` ("6 pages, 1 warning"), and an optional action as a text link in `type.small` SemiBold
+`color.accent` ("Open folder", "Undo"); a 24-px close icon button. They
 fade in (`motion.base`) and leave after 8 s; hovering or focusing one pauses it; every toast is also in the log, so no
 action depends on its time (NFR-A11Y-04). The **notifications log** is a popover from the status bar's bell: a list
 in tree-row style, newest first, each with its time, message and still-valid actions; "Clear" at its foot.
@@ -750,9 +834,10 @@ hover overlay and a tooltip with the full name, library and version. Selected or
 
 | Kind | Drawing | Example |
 |---|---|---|
-| Count badge | `radius.pill`, `type.caption` SemiBold, semantic fill or `slate-150` | the "2" on the error icon, a finding count on a tree row |
+| Count badge | `radius.pill`, `type.caption`, 18 px high, `space.icon` padding; the semantic subtle fill with the semantic text, or `color.surface.sunken` with `color.text.secondary` | a finding count on a tree row, "3" on the Messages tab |
+| Provenance chip | `radius.pill`, `type.caption`, `color.text.tertiary`, 1-px `color.border.default`, 16 px high | "part", "page" (§6.8) |
 | Status badge | `radius.sm`, subtle semantic fill, icon + word in `type.caption` | "Pending", "Stale", "Read-only" |
-| Key chip | `radius.sm`, 1-px `color.border.default`, `type.caption`, `color.text.secondary` | "Ctrl+K", "R" |
+| Key chip | `radius.sm`, 1-px `color.border.default`, `type.caption`, `color.text.tertiary`, `space.2` padding; the keys separated by a space | "Ctrl K", "R" |
 | Canvas chip | §7.4 | "-X1031:21", "24VDC-1" |
 
 ### 6.17 Empty states
@@ -772,6 +857,13 @@ Determinate: a 2-px accent line under the job field and in the Jobs row, with th
 12-px spinner beside the text. A finished job names its outcome as a status badge (Done, Cancelled, Failed) next to
 its result (FT-510).
 
+### 6.20 Segmented control
+
+Two to four mutually exclusive views of one panel ("Pages | Devices"): a track on `color.surface.sunken` with
+`radius.md` and 2-px padding, inset `space.4` from the panel's sides; equal-width items `size.control.inline` high
+with `radius.sm` in `type.small` and `color.text.secondary`; the chosen item on `color.surface.panel` with
+`elevation.1`, SemiBold and `color.text.primary`. It is a `TabList` for AccessKit; Left and Right move between items.
+
 ## 7. Canvas overlays
 
 All overlays follow FT-391's scale rule (`s = max(1, ⌊ppp⌋)`), live in the session-only overlay layers (never in the
@@ -780,7 +872,7 @@ display list), and keep 3:1 on the white sheet.
 ### 7.1 Selection, hover and handles
 
 Selection: a 2s-px `canvas.selection` outline around the representation's bounds with a 1s-px white casing outside it,
-so it reads over black lines; handles are 6s-px squares, white fill, 1s-px accent stroke. Hover: a 1s-px dashed accent
+so it reads over black lines; handles are 8s-px squares at the corners, white fill, 1.5s-px accent stroke. Hover: a 1s-px dashed accent
 outline (4s on, 4s off). A selected object under the pointer shows the selection only.
 
 ### 7.2 Connection points, snap and the grid cursor
@@ -802,7 +894,8 @@ surface at 94 %, `type.small`, `radius.sm`, `space.2` by `space.1` padding, `ele
 order: the preferred anchor (above right of the target, 8 px off), then below right, above left, below left; a
 position is rejected if it overlaps another chip, the tool HUD, the frame-statistics panel or the pointer's 16-px
 box (FT-508); if all four fail, the chip is drawn at the preferred anchor with 80 % opacity. Chips never cover the
-target's own printed text when an alternative exists.
+target's own printed text when an alternative exists. Highlight name chips are the exception to the inverse fill:
+they take their slot's hue with a black label (§4.6).
 
 ### 7.5 Highlights
 
@@ -824,10 +917,11 @@ HUD; chips avoid it (§7.4).
 1. **Sentence case everywhere**: menus, buttons, tabs, titles, tooltips, column headers ("Export PDF…", "Go to page
    or cell…", "Renumber devices…"). Proper nouns, standards and codes keep their case: PDF, QET, EPLAN, IEC 81346,
    PLC, CSV, -102G1, 24VDC-1.
-2. **Commands are verbs** ("Export PDF", "Run checks", "Import parts table"); panels and tabs are nouns ("Pages",
+2. **Commands are verbs** ("Export PDF", "Check project", "Import parts table"); panels and tabs are nouns ("Pages",
    "Messages", "Properties"); groups are nouns of the job ("Place", "Connect" are both: they name the activity).
 3. **The ellipsis** (the single character "…", U+2026, never three full stops) ends a command that needs more input
    before it acts (it opens a dialog or a picker): "Symbol…", "Export PDF…". A command that acts at once has none.
+   The command bar's short labels drop it (§5.2); menus, the palette and tooltips keep it.
 4. **One word per concept**, the standard's or EPLAN's (doc 16 §4.1 item 8): device, function, connection point,
    interruption point, potential, structure identifier, part. QET and EPLAN synonyms are palette aliases, not labels.
 5. **Messages say what happened, why, and what to do** (NFR-UX-07), in that order, in at most two sentences: "The PDF
@@ -836,8 +930,8 @@ HUD; chips avoid it (§7.4).
    (EW-POT-013)").
 6. **Numbers**: a space between value and unit ("2.5 mm²", "69 %", as built); counts with their noun ("3 devices",
    "1 selected"); "of" for positions ("Page 6 of 36", "2 of 4 placed").
-7. **Keys** are written as on the keyboard with "+" ("Ctrl+Shift+H"); macOS shows the symbols (⌘⇧H) through the
-   same registry text (doc 16 §3.9 Keyboard).
+7. **Keys** are written as on the keyboard with "+" ("Ctrl+Shift+H") in text and tooltips, and as spaced keys in a key
+   chip ("Ctrl K"); macOS shows the symbols (⌘⇧H) through the same registry text (doc 16 §3.9 Keyboard).
 8. **Abbreviations** only where the user's documents use them (PE, N, L1, IP for interruption point in EPLAN usage);
    tooltips spell them out the first time ("IP: interruption point").
 9. **Titles of dialogs** are the question or the task, not the subject: "Recover unsaved changes?", not "Recovery".
@@ -869,7 +963,7 @@ Duplicate, Delete, Select all, Find and replace…, Properties), then **Project*
 **Output** and **View** with the same groups and order as the tabs (a group is a submenu when it holds more than three
 commands, otherwise a separated block), then **Window** and **Help**. The as-built menus map onto it: Insert becomes
 Draw; Tools dissolves (Command palette into View and the search field, Settings into File, Renumber devices into
-Check); Window and Help stay.
+Draw); Window and Help stay. The menu opens from the app button (§5.2).
 
 ### 9.3 The palette
 
@@ -885,17 +979,17 @@ the cycle-29 jobs check (`wincheck4`). The part column names WP-S2.17's part tha
 |---|---|---|---|
 | 01-open.png, f9-screen.png | egui default dark theme; no accent hierarchy; flat greys | Tokens of §4 in light (default follows the system), dark and high contrast | 1 |
 | 01-open.png | Eight menus, no toolbar | Command bar with the app menu, quick access, six tabs and search (§5.2) | 2 |
-| 01-open.png, 32-place-chip-mid.png | A hint strip under the menu repeating the status bar ("Select: Click to select…") | Removed; prompt in the status bar, the running tool in the HUD (§5.5) | 2 |
+| 01-open.png, 32-place-chip-mid.png | A hint strip under the menu repeating the status bar ("Select: Click to select…") | Removed; the tool and its prompt in the HUD (§5.5) | 2 |
 | 01-open.png | "Pages" heading over a "Pages" tab; "Page view" heading over the canvas tabs | One name per pane, in its tab or rail button (§5.4, §5.5) | 3 |
 | 06-nav-connections.png, 16-highlight-103.png | Left tab strip "Pages, Connections, Te ▸" hides navigators (FT-509) | Navigator rail (§5.4) | 3 |
 | 01-open.png, 19b-terminal-tooltip.png | Tree rows "1 Title Page [QET grid]", "[generated]" in text, truncated titles, no icons | Kind icon, folio column, title, icon and caption badges (§6.6) | 3 |
 | 01-open.png, 19b-terminal-tooltip.png, 21-props-scrolled.png | Every property row "= authored" and a clipped "edit" button; `$v`, Key "pages\|103", UUIDs; "Tag" and "Parts" twice | Provenance icon only when not authored, in-place editing, Advanced hidden, distinct labels (§6.8) | 3 |
-| 01-open.png | Status bar "Click to select… · 1 (1 of 36) · 69 % · QET 10 px · saved · GPU DX12 · EN" | Ordered fields, exceptions emphasised, findings chips, no language field (§5.8) | 3 |
+| 01-open.png | Status bar "Click to select… · 1 (1 of 36) · 69 % · QET 10 px · saved · GPU DX12 · EN" | Ordered fields, exceptions emphasised, one findings field, no language or page field (§5.8) | 3 |
 | 02-palette-nav.png | Palette with a grey "Command palette" title and disabled entries "Parameter forms come with a later version" | Search-field palette with breadcrumbs and key chips; unrunnable actions not listed (§6.14) | 4 |
 | 04-view-menu.png, 22-insert-menu.png, 03-window-menu.png | Hovered and checked menu items filled with saturated blue; no icons; three-dot ellipses | Neutral hover, check icons, icon column, "…" (§6.13, §8) | 4 |
 | 36-quit-prompt.png | Grey centred title "Unsaved changes", three equal buttons left-aligned | "Save changes to <project> before closing?"; Save (Primary), Don't save (Danger, left), Cancel (§6.12) | 4 |
 | 37-recovery-dialog.png | A banner and a dialog say the same thing; grey centred title; equal buttons | One dialog first ("Recover unsaved changes?", Recover as Primary); the banner only for the read-only state that follows (§6.11, §6.12) | 4 |
-| 35-notifications.png | Notifications popover with a grey title and a "Close" button over the Properties | Toast stack bottom right; the log as a bell popover from the status bar (§6.10) | 4 |
+| 35-notifications.png | Notifications popover with a grey title and a "Close" button over the Properties | Toast stack at the canvas's top right; the log as a bell popover from the status bar (§6.10) | 4 |
 | 34-jobs-pane.png, wincheck4 a2-jobs-pane.png | "Jobs" heading over "No jobs"; finished entries without an outcome word (FT-510) | Empty state; outcome badges; the bottom dock closed by default (§5.7, §6.17, §6.19) | 4 |
 | 30-picker.png | Insert symbol modal with raw IDs ("ew.iec.terminal@qet10 [embedded]") | Picker rows with thumbnail, name and library in tertiary text; the Symbols palette at the right (§5.6, §6.15) | 4 |
 | 32-place-chip-mid.png, 33-place-chip-near-stats.png | Ghost label printing the tag twice and the preview chip over it; chips under the statistics panel (FT-507, FT-508) | One ghost label; the chip placement rule (§7.3, §7.4) | 5 |
@@ -904,14 +998,31 @@ the cycle-29 jobs check (`wincheck4`). The part column names WP-S2.17's part tha
 | 34-jobs-pane.png | Frame-statistics panel in egui's default tooltip style overlapping the drawing | Diagnostic chip style, avoided by chips (§7.7) | 5 |
 | every screenshot | No icons anywhere | Tabler set plus EW glyphs (§4.11) | 6 |
 
-## 11. The mockup and what the owner confirms
+## 11. The mockup, the visual reference
 
-A self-contained HTML mockup of the target main window (light theme with a dark toggle; command bar, rails, Pages
-navigator, Properties, canvas with a schematic sketch, the HUD, the status bar and the bottom dock collapsed) is handed
-to the owner outside the repository with this document. It is a picture of the tokens and the layout, not a
-specification: where the two differ, this document wins. **The owner confirms** the look (ADR-0031 is Proposed until
-then) and may change three taste choices without reopening the design: the accent hue (any blue between #0B63CE and
-#0072B2 passes every test), the default density, and the default theme (follow the system, as specified, or light).
+The owner approved [the mockup](assets/design-language-mockup.html) on 2026-10-28. It is a self-contained
+page of the main window: light by default with a dark toggle and a density toggle; the command bar on the Draw tab,
+the rail with the Project entry, the Pages navigator and Properties, the canvas with a sketch of an illustrative
+motor-starter page, the tool HUD, the zoom control and a toast, the closed right rail, the Messages dock (opened from
+the findings field) and the status bar. It loads Noto Sans from Google Fonts and nothing else. All its drawing
+content, names and rule codes are illustrative.
+
+**It is the visual reference.** The values of §4 to §7 are read from it; WP-S2.17's snapshot checks compare each
+part's components with it: token values exactly, layout proportions within the tolerances its specification
+states. Where this document and the mockup differ on look, the mockup wins and this document is corrected. Two
+corrections were made in the committed copy because requirements demand them, and only these:
+1. **The status bar** shows the fields FR-UI-034 and NFR-PLAT-03 require (selection count, the cell in the cursor
+   field, the snap mode, the renderer) in the mockup's field style.
+2. **Highlight name chips** have a black label, since white on the four highlight hues is below 4.5:1
+   (NFR-A11Y-04; §4.6).
+
+The mockup's tooltip keys are illustrative; the keys are doc 16 §4.4's. Behaviour stays doc 16's.
+
+**Decided** (2026-10-28, by the orchestrator under the owner's delegation, after the owner's approval of the
+mockup): ADR-0031 is Accepted; the accent is Volt blue #0B63CE (light) and #5AA2FF (dark); the default density is
+Comfortable; the default theme follows the system; Noto Sans SemiBold (OFL-1.1) and Tabler Icons 3.50.0 (MIT) are
+accepted as assets. A later change of look is a design-language review against the mockup, and a new mockup
+version is committed with it.
 
 ## 12. Sources
 

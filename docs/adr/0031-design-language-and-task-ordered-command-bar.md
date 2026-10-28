@@ -1,7 +1,7 @@
 # ADR-0031: Design language and the task-ordered command bar
 
-**Status:** Proposed · default in force for WP-S2.17 from 2026-10-28 · **Date:** 2026-10-28 · **Deciders:** lead
-designer; the project owner confirms the look (the mockup of [16a](../design/16a-design-language.md) §11)
+**Status:** Accepted · **Date:** 2026-10-28 · **Deciders:** lead designer; the project owner approved the look on
+[the mockup](../design/assets/design-language-mockup.html) (2026-10-28), and the orchestrator decided the remaining taste choices under the owner's delegation
 
 ## Context
 
@@ -33,14 +33,18 @@ designer; the project owner confirms the look (the mockup of [16a](../design/16a
    token set (colour, type, spacing, size, radius, border, elevation, icon, motion, density) in light, dark and two
    high-contrast themes, the layout architecture, the component inventory with anatomy and states, the wording rules,
    the command progression and the migration map. Doc 16 keeps the behaviour; 16a owns the look. Where they differ on
-   appearance, 16a wins.
+   appearance, 16a wins. **The owner-approved mockup** (`docs/design/assets/design-language-mockup.html`) is the
+   visual reference: 16a's values are read from it, it wins over 16a's text on look, and WP-S2.17's acceptance compares
+   each part with it (token values exactly, geometry within stated tolerances). Only requirements override it (16a
+   §11 lists the two corrections they forced).
 2. **One token source.** `ew-ui` holds the tokens as one Rust table (global ramps → alias tokens → component
    tokens), maps them onto egui `Style`, `Visuals` and `Spacing` and onto the canvas overlay colours, and dumps them
    to a blessed text file. No colour, size or radius literal appears in widget code outside the token module.
 3. **The command surface is a task-ordered command bar** (a single-row ribbon in Microsoft's terms): an app-menu
-   button that opens the full menu tree, a quick-access group (Save, Undo, Redo), **six tabs in the order of work —
-   Project, Page, Draw, Check, Output, View —** with one row of labelled command groups each, and a command search
-   field (the palette, Ctrl+K) at the right end. Draw is the home tab: select, place, connect, annotate and arrange
+   button (the product mark and name) that opens the full menu tree, a quick-access group (Save, Undo, Redo), **six
+   tabs in the order of work — Project, Page, Draw, Check, Output, View —** with one row of labelled command groups
+   each and, on Draw and Check, the tab's next step as the one primary button at the row's end ("Check project",
+   "Export PDF"), and a command search field (the palette, Ctrl+K) at the right end of the tab row. Draw is the home tab: select, place, connect, annotate and arrange
    are its groups, left to right, so the core loop never changes tabs. No contextual tabs: the Properties panel is the
    selection's surface. The command bar is generated from the action registry (`ActionMeta` gains its tab, group,
    size and icon), so menus, bar, palette and keys cannot disagree.
@@ -50,8 +54,8 @@ designer; the project owner confirms the look (the mockup of [16a](../design/16a
 5. **The window layout:** command bar on top; on the left an icon rail of navigators and one navigator panel with
    Properties docked below it; the canvas in the centre with its tabs and a floating tool HUD; a right rail with the
    Symbols and Parts palettes, closed by default; a bottom dock (Messages, Find, Jobs, History, Preview) closed by
-   default and opened by its status-bar field or key; a quiet status bar. The canvas takes at least 65 % of a
-   1280 × 800 window.
+   default and opened by its status-bar field or key; a quiet status bar; on the canvas a tool HUD and a zoom control.
+   The canvas takes at least 65 % of a 1280 × 800 window (72 % in the default layout).
 6. **One accent colour, Volt blue #0B63CE** (dark theme #5AA2FF), used for the primary action, focus, the selected
    state in every list and the selection on the canvas; everything else is a cool neutral ramp. Semantic colours
    (error, warning, success) appear only where there is a finding or an outcome.
@@ -63,7 +67,8 @@ designer; the project owner confirms the look (the mockup of [16a](../design/16a
    at 20 px) through epaint, with no icon crate and no icon font; the dozen EDA glyphs Tabler lacks are drawn in its
    grid by the project.
 9. **Two densities:** Comfortable (default; rows 28 px, large command buttons with labels under the icon) and Compact
-   (rows 24 px, every command a small button with its label beside the icon), switched in View.
+   (rows 24 px, every command with its label beside the icon), switched in View. **The default theme follows the
+   system**; light is the reference of the mockup and the snapshots.
 
 ## Alternatives considered
 
@@ -71,7 +76,7 @@ designer; the project owner confirms the look (the mockup of [16a](../design/16a
 |---|---|---|---|
 | **A. Menu bar plus one compact toolbar** (doc 16 §3.3, KiCad, QET) | Familiar to QET users; cheapest; what doc 16 planned | Eight menus of indirect commands are what the owner calls a mess; a toolbar without labels teaches nothing; EPLAN users lose their ribbon habit (R-069) | Rejected |
 | **B. Full Office ribbon** (EPLAN 2022+): several rows, large and small buttons, group captions, contextual tabs, KeyTips | Closest to EPLAN; strong discoverability | Three rows of small buttons plus group captions take about a sixth of an 800-px laptop screen; contextual tabs move commands under the user; Microsoft's own guidance warns that a ribbon pays only when users stay on one Home tab, and that porting menus into tabs "misses most of the value" | Rejected as specified; its good parts are kept |
-| **C. Task-ordered command bar (chosen):** one row per tab, labelled large buttons for the frequent commands, small ones for the rest, a home tab for the core loop, an app menu, quick access and search | Direct one-click commands with labels; the task order is visible; 84 px in Comfortable and 68 px in Compact (16a §5.2); buildable in egui as rows of buttons from the registry | Not identical to EPLAN; tab design must be right the first time (frequent tab switching kills it) | **Chosen** |
+| **C. Task-ordered command bar (chosen):** one row per tab, labelled large buttons for the frequent commands, small ones for the rest, a home tab for the core loop, an app menu, quick access and search | Direct one-click commands with labels; the task order is visible; 85 px in Comfortable and 69 px in Compact (16a §5.1); buildable in egui as rows of buttons from the registry | Not identical to EPLAN; tab design must be right the first time (frequent tab switching kills it) | **Chosen** |
 | **D. Command palette only, minimal chrome** (Linear, Zed) | The calmest look | Fails discoverability for users who do not yet know the command names (NFR-UX-04 is "without documentation") | Rejected; the palette stays as the keyboard path |
 
 **Properties on the right** (doc 16 §2.6, Figma, Altium) was weighed against **Properties under the navigator**
@@ -94,8 +99,9 @@ lags egui.
   notes that point here; its §1 non-goal narrows to "no multi-row Office ribbon and no contextual tabs", and
   [ARCH](../design/04-architecture.md) §16 says the same. The plan gains WP-S2.17
   ([specification](../plan/specs/WP-S2.17-design-language-and-ui-polish.md)); FT-338, FT-348, FT-390, FT-391,
-  FT-425, FT-506, FT-507, FT-508, FT-509, FT-510 and FT-512's tooltip half are absorbed by it. Adding it to M-PP
-  moves the generated MVP date by one month (the specification's §15.5), an owner decision under DEC-001.
+  FT-425, FT-506, FT-507, FT-508, FT-509, FT-510 and FT-512's tooltip half are absorbed by it. Its 5.7 pw come from
+  WP-S2.08 (4.0 pw: the theming, colour-vision and contrast half and the look of the palette, tooltips and menus) and
+  WP-S2.16 (1.7 pw), so the MVP gate stays at month 41 (the specification's §15.5).
 - **Requirements.** No FR or NFR text changes. The language serves FR-UI-001, FR-UI-018, FR-UI-025, FR-UI-027,
   FR-UI-034, FR-UI-043 and NFR-A11Y-01 to -04; the token contrast test is NFR-A11Y-04's "contrast lint over theme
   tokens".
@@ -103,7 +109,7 @@ lags egui.
   `ActionMeta` gains placement metadata (tab, group, size, icon ID), which is toolkit-neutral data. The headless
   `ui.describe` gains a command-bar section and loses nothing; every expected transcript whose `layout:` or status
   line changes is re-blessed once in a reviewed commit.
-- **Assets and dependencies.** Two asset additions, no new crate in the product: `NotoSans-SemiBold.ttf` (OFL-1.1,
+- **Assets and dependencies.** Two asset additions, accepted on 2026-10-28, and no new crate in the product: `NotoSans-SemiBold.ttf` (OFL-1.1,
   the family already bundled) and the vendored Tabler SVGs (MIT) with their REUSE annotations; the generator uses
   `kurbo`, already in the lock file. The snapshot tests need `egui_kittest`'s `snapshot` and `wgpu` features (MIT OR
   Apache-2.0), a dev-dependency decision recorded in WP-S2.17 D7.
