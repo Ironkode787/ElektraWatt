@@ -702,6 +702,74 @@ mod path_bound_oracle {
         }
     }
 
+    fn relative_length() -> impl Strategy<Value = String> {
+        let unit = proptest::sample::select(&["em", "ex", "%", "", "mm"][..]);
+        let number = proptest::sample::select(&["0.5", "1", "3", "40", "250", "1000000"][..]);
+        (number, unit).prop_map(|(n, u)| format!("{n}{u}"))
+    }
+
+    fn font_size() -> impl Strategy<Value = String> {
+        prop_oneof![
+            relative_length(),
+            proptest::sample::select(&["xx-large", "smaller", "medium", "bogus"][..]).prop_map(str::to_owned),
+        ]
+    }
+
+    fn root() -> impl Strategy<Value = String> {
+        prop_oneof![
+            Just(String::new()),
+            Just(r#"viewBox="0 0 100 100""#.to_owned()),
+            Just(r#"viewBox="0 0 4000 30""#.to_owned()),
+            Just(r#"width="200%" height="50""#.to_owned()),
+            Just(r#"viewBox="0 0 10 10" width="300%""#.to_owned()),
+            Just(r#"width="3in""#.to_owned()),
+        ]
+    }
+
+    proptest! {
+        #![proptest_config(ProptestConfig::with_cases(128))]
+
+        /// FT-501: radii in `em`, `ex` and `%` under a `font-size` chain and a root viewport: when the pre-scan
+        /// admits the document, its segment bound covers what usvg makes.
+        #[test]
+        fn the_bound_holds_for_relative_radii(
+            root in root(),
+            sizes in proptest::collection::vec(font_size(), 0..4),
+            shape in proptest::sample::select(&["circle", "ellipse", "rect"][..]),
+            rx in relative_length(),
+            ry in relative_length(),
+        ) {
+            let mut text = format!(r#"<svg xmlns="http://www.w3.org/2000/svg" {root}>"#);
+            for size in &sizes {
+                text.push_str(&format!(r#"<g font-size="{size}">"#));
+            }
+            text.push_str(&match shape {
+                "circle" => format!(r#"<circle cx="5" cy="5" r="{rx}" fill="black"/>"#),
+                "ellipse" => format!(r#"<ellipse cx="5" cy="5" rx="{rx}" ry="{ry}" fill="black"/>"#),
+                _ => format!(r#"<rect width="2000" height="2000" rx="{rx}" ry="{ry}" fill="black"/>"#),
+            });
+            text.push_str(&"</g>".repeat(sizes.len()));
+            text.push_str("</svg>");
+            if let Some(bound) = ew_schema::svg_segment_bound(text.as_bytes()) {
+                let made = usvg::Tree::from_str(&text, &usvg::Options::default()).map_or(0, |tree| count(tree.root()));
+                prop_assert!(made <= bound, "{}: usvg made {}, the bound is {}", text, made, bound);
+            }
+        }
+    }
+
+    /// FT-501: a hand-written `<circle r="40%">` in a 100 x 100 viewBox is admitted, and usvg makes no more segments
+    /// than the bound.
+    #[test]
+    fn a_percent_radius_circle_is_admitted_and_bounded() {
+        let text = r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40%" fill="black"/></svg>"#;
+        let bound = ew_schema::svg_segment_bound(text.as_bytes()).expect("admitted");
+        let made = usvg::Tree::from_str(text, &usvg::Options::default()).map_or(0, |tree| count(tree.root()));
+        assert!(
+            made > 0 && made <= bound,
+            "usvg made {made}, the bound is {bound}"
+        );
+    }
+
     /// The arc case of FT-470: one arc command of a tiny radius over a long chord is thousands of segments in usvg,
     /// and the bound covers them.
     #[test]

@@ -598,8 +598,10 @@ pub const MAX_SVG_ARC_PIECES: u64 = 64;
 ///   Selectors are known exactly in a plain sheet; in any other sheet every span that can end a valid selector is
 ///   one (with comments that can host a statement), and a sheet with an escape is one selector of all its parts.
 ///
-/// Where the scan cannot tell what usvg will apply, it counts the larger case: a length in `em`, `ex` or `%` is as
-/// large as `f32` allows, path data it cannot follow is bounded from its digits, a combinator it cannot tell walks
+/// Where the scan cannot tell what usvg will apply, it counts the larger case: a radius in `em` or `ex` resolves from
+/// the `font-size` chain (default 12) and one in `%` from the root viewport, but each is as large as `f32` allows where
+/// CSS may set a font size (for `em`, `ex`), a nested `svg` or `symbol` sets another viewport (for `%`) or a `use`
+/// converts the shape again (for all three) (FT-501); path data it cannot follow is bounded from its digits, a combinator it cannot tell walks
 /// every ancestor and the sibling, and a rule's declarations may apply to every element unless its selector requires
 /// a class.
 ///
@@ -631,6 +633,14 @@ struct Work {
 #[doc(hidden)]
 pub fn svg_path_segment_bound(d: &str) -> u64 {
     work::path_segments(d)
+}
+
+/// The upper bound [`svg_hazard`] uses for the path segments of every shape conversion of an admitted document, or
+/// `None` when it refuses it, for the test that checks the resolution of `em`, `ex` and `%` radii against usvg
+/// itself (FT-501, `ew-scene`); not part of the asset API.
+#[doc(hidden)]
+pub fn svg_segment_bound(bytes: &[u8]) -> Option<u64> {
+    svg_work(bytes).ok().map(|work| work.segments)
 }
 
 /// [`svg_hazard`]'s scan: the first refusal, or the work bounds of an admitted document.
@@ -822,8 +832,13 @@ struct Record {
     classes: Vec<String>,
     /// Its ancestors (0 for the root).
     depth: usize,
-    /// The segments of the path usvg makes of it when it is a shape ([`work::shape_segments`]), else 0.
-    segments: u64,
+    /// The segments of the path usvg makes of it when it is a shape ([`work::shape_segments`]), else 0: with its
+    /// font size known (index bit 0 clear) or the worst case (set), and its viewport known (bit 1 clear) or the
+    /// worst case (set); [`Scan::finish`] chooses (FT-501).
+    segment_cases: [u64; 4],
+    /// Upper bounds of its font size and of its viewport's larger side; `None` when unknown (FT-501).
+    font: Option<f64>,
+    viewport: Option<f64>,
     /// The markers its own marker attributes and `style` name, per property.
     markers: work::MarkerTargets,
     /// The declarations (`:` count) and bytes of its `style` attribute, applied to it and to each clone.
@@ -884,6 +899,12 @@ struct Scan {
     /// or may hold the `font` shorthand (fourteen attributes per declaration).
     css_inherit: bool,
     css_font: bool,
+    /// Whether a style sheet, a `style` attribute or a `font` attribute mentions `font`, so CSS may set a
+    /// `font-size` the scan's chain does not see (FT-501): every `em` and `ex` then counts as the worst case.
+    font_css: bool,
+    /// Whether a nested `svg` or `symbol` sets another viewport: a shape that a reference from inside it converts
+    /// (marker, pattern, clip or mask content) resolves `%` there, so every `%` counts as the worst case (FT-501).
+    nested_viewport: bool,
     /// The ids each class rule references, by class.
     class_targets: std::collections::BTreeMap<String, std::collections::BTreeSet<String>>,
     /// The classes whose rule names a marker property.
@@ -934,8 +955,51 @@ impl Scan {
                 }
             }
         }
-        // Path data is case-sensitive (absolute and relative commands): the shape's segments are bounded first.
-        let segments = work::shape_segments(name, attrs);
+        // FT-501: what this element's relative lengths resolve against. The font size follows the `font-size` chain
+        // from usvg's default; the viewport is the root's, unknown under a nested `svg` or `symbol` (usvg converts
+        // their content in their own viewport). CSS and `use` are applied in `finish`.
+        let parent = self.open.last().map(|(_, _, record)| *record);
+        let parent_font = parent.map_or(Some(work::DEFAULT_FONT_SIZE), |p| self.records[p].font);
+        let font_sizes: Vec<String> = attrs
+            .iter()
+            .filter(|(a, _)| *a == "font-size")
+            .map(|(_, v)| v.to_ascii_lowercase())
+            .collect();
+        let font = work::font_size_bound(parent_font, font_sizes.iter().map(String::as_str));
+        let viewport = match parent {
+            None => {
+                let lower: Vec<(&str, String)> =
+                    attrs.iter().map(|(a, v)| (*a, v.to_ascii_lowercase())).collect();
+                work::root_viewport(&lower)
+            }
+            Some(_) if matches!(name, "svg" | "symbol") => {
+                self.nested_viewport = true;
+                None
+            }
+            Some(p) => self.records[p].viewport,
+        };
+        // Path data is case-sensitive (absolute and relative commands): the shape's segments are bounded first, in
+        // the four cases `finish` chooses from (font size known or worst, viewport known or worst).
+        let segments = if work::has_radii(name) {
+            let mut cases = [0u64; 4];
+            for (k, case) in cases.iter_mut().enumerate() {
+                let worst = work::Lengths::WORST;
+                let lengths = work::Lengths {
+                    font: font.filter(|_| k & 1 == 0).unwrap_or(worst.font),
+                    viewport: viewport.filter(|_| k & 2 == 0).unwrap_or(worst.viewport),
+                };
+                *case = work::shape_segments(name, attrs, lengths);
+            }
+            cases
+        } else {
+            [work::shape_segments(name, attrs, work::Lengths::WORST); 4]
+        };
+        if attrs
+            .iter()
+            .any(|(a, v)| *a == "font" || (*a == "style" && v.to_ascii_lowercase().contains("font")))
+        {
+            self.font_css = true;
+        }
         // All following hazard/graph logic retains the scanner's conservative ASCII-insensitive behaviour.
         for (_, value) in attrs.iter_mut() {
             value.make_ascii_lowercase();
@@ -983,7 +1047,9 @@ impl Scan {
             marker_attr: false,
             classes: Vec::new(),
             depth: self.open.len(),
-            segments,
+            segment_cases: segments,
+            font,
+            viewport,
             markers: Default::default(),
             style: (0, 0),
         });
@@ -1147,6 +1213,7 @@ impl Scan {
         self.drop_shadows += text.matches("drop-shadow(").count();
         self.css_inherit |= text.contains("inherit");
         self.css_font |= work::may_hold_font_shorthand(text);
+        self.font_css |= text.contains("font");
         // The group bound without parsing: every selector group needs a `,` or a `{`. The declaration bound is
         // exact for a plain sheet (below); a sheet that is not plain keeps the raw product of the group bound and
         // the `:` count, a declaration needing a `:`.
@@ -1514,7 +1581,31 @@ impl Scan {
         }
         // The path segments usvg makes of every shape conversion, with or without markers: an arc of a tiny radius
         // over a long chord is thousands of cubic pieces, and a radius in `em` can be as large as f32 allows.
-        let segments: Vec<u64> = self.records.iter().map(|record| record.segments).collect();
+        // FT-501: a shape inside a `use` target is converted again under the `use`'s ancestors and viewport, so its
+        // `em`, `ex` and `%` radii count as the worst case there; when CSS can set a font size, every `em` and `ex`
+        // does; when a nested `svg` or `symbol` sets another viewport, every `%` does. Otherwise they resolve from
+        // the font-size chain and the root viewport.
+        let mut converted_again = vec![false; self.records.len()];
+        for target in &self.use_targets {
+            if let Some(&k) = self.ids.get(target.as_str()) {
+                converted_again[self.nodes[k].record] = true;
+            }
+        }
+        for r in 0..self.records.len() {
+            if let Some(parent) = self.records[r].parent {
+                converted_again[r] |= converted_again[parent];
+            }
+        }
+        let segments: Vec<u64> = self
+            .records
+            .iter()
+            .zip(&converted_again)
+            .map(|(record, again)| {
+                let case =
+                    usize::from(self.font_css || *again) | usize::from(self.nested_viewport || *again) << 1;
+                record.segment_cases[case]
+            })
+            .collect();
         work.segments = instances(&segments);
         if work.segments > MAX_SVG_PATH_SEGMENTS {
             return Err(SvgHazard::TooComplex);
@@ -1543,25 +1634,10 @@ impl Scan {
                     targets.iter().for_each(|t| consider(kind, t));
                 }
             }
-            let mut converted_again = vec![false; self.records.len()];
-            for target in &self.use_targets {
-                if let Some(&k) = self.ids.get(target.as_str()) {
-                    converted_again[self.nodes[k].record] = true;
-                }
-            }
-            for r in 0..self.records.len() {
-                if let Some(parent) = self.records[r].parent {
-                    converted_again[r] |= converted_again[parent];
-                }
-            }
-            let weight: Vec<u64> = self
-                .records
-                .iter()
-                .enumerate()
-                .map(|(r, record)| {
-                    if record.segments > 0 && (chain_bad[r] || converted_again[r]) {
-                        record
-                            .segments
+            let weight: Vec<u64> = (0..self.records.len())
+                .map(|r| {
+                    if segments[r] > 0 && (chain_bad[r] || converted_again[r]) {
+                        segments[r]
                             .saturating_mul(largest[1])
                             .saturating_add(largest[0])
                             .saturating_add(largest[2])

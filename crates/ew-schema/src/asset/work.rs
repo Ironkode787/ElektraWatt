@@ -308,32 +308,158 @@ pub(super) fn path_segments(d: &str) -> u64 {
     }
 }
 
-/// An upper bound of the magnitude in user units of an SVG length attribute value (lower case): a number with no
-/// unit, `px`, `in`, `cm`, `mm`, `pt` or `pc` at usvg's default 96 dpi; anything else (`em`, `ex` and `%` depend on
-/// font sizes and viewports, which nested `em` sizes can make as large as `f32::MAX`; text that does not read as a
-/// number) is `f32::MAX`. `auto` and an empty value are 0 (usvg then uses the other radius or none).
-pub(super) fn length_bound(value: &str) -> f64 {
+/// The largest magnitude usvg's `f32` lengths reach, as `f64`.
+const F32_MAX: f64 = f32::MAX as f64;
+
+/// usvg 0.48.1's default font size (`Options::font_size`), the start of every `font-size` chain.
+pub(super) const DEFAULT_FONT_SIZE: f64 = 12.0;
+
+/// usvg's fallback size of a root `svg` without a `viewBox` whose `width` or `height` is a percentage
+/// (`Options::default_size`, 100 × 100) and the default `width` and `height` (`100%`).
+const DEFAULT_SIZE: f64 = 100.0;
+
+/// What relative lengths resolve against (FT-501), as upper bounds: the element's font size (usvg's
+/// `resolve_font_size`) for `em` and `ex`, and the larger side of the viewport (`State::view_box`) for `%`.
+/// [`Lengths::WORST`] is the bound when the scan cannot tell (CSS can set `font-size`, a `use` converts the shape
+/// under other ancestors, a nested `svg` or `symbol` sets another viewport).
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub(super) struct Lengths {
+    /// An upper bound of the font size in user units.
+    pub(super) font: f64,
+    /// An upper bound of the viewport's width and height in user units.
+    pub(super) viewport: f64,
+}
+
+impl Lengths {
+    /// Either may be as large as f32 allows.
+    pub(super) const WORST: Lengths = Lengths {
+        font: F32_MAX,
+        viewport: F32_MAX,
+    };
+}
+
+/// A number and its unit, lower case: `None` for text that does not start with a number. The unit is the rest,
+/// trimmed.
+fn number_and_unit(value: &str) -> Option<(f64, &str)> {
     let v = value.trim_ascii();
-    if v.is_empty() || v == "auto" {
-        return 0.0;
-    }
     let mut cursor = PathCursor {
         b: v.as_bytes(),
         i: 0,
     };
-    let Some(number) = cursor.list_number() else {
-        return f64::from(f32::MAX);
-    };
-    let factor = match v[cursor.i..].trim_ascii() {
+    let number = cursor.list_number()?;
+    Some((number.abs(), v[cursor.i..].trim_ascii()))
+}
+
+/// The factor of an absolute unit at usvg's default 96 dpi (no unit and `px` are 1), or `None`.
+fn absolute_factor(unit: &str) -> Option<f64> {
+    Some(match unit {
         "" | "px" => 1.0,
         "in" => 96.0,
         "cm" => 96.0 / 2.54,
         "mm" => 96.0 / 25.4,
         "pt" => 96.0 / 72.0,
         "pc" => 16.0,
-        _ => return f64::from(f32::MAX),
+        _ => return None,
+    })
+}
+
+/// An upper bound of the magnitude in user units of an SVG length attribute value (lower case) of a shape: a number
+/// with no unit, `px`, `in`, `cm`, `mm`, `pt` or `pc` at usvg's default 96 dpi; `em` and `ex` times `lengths.font`
+/// (`ex` is half an `em` in usvg); `%` of `lengths.viewport` (usvg takes a percentage of the viewport's width, height
+/// or their mean square, none larger than the larger side), and `f32::MAX` whatever the number when that base is
+/// `f32::MAX` (it may be infinite in usvg); text that does not read as a number is `f32::MAX`.
+/// `auto` and an empty value are 0 (usvg then uses the other radius or none). At most `f32::MAX`.
+pub(super) fn length_bound(value: &str, lengths: Lengths) -> f64 {
+    let v = value.trim_ascii();
+    if v.is_empty() || v == "auto" {
+        return 0.0;
+    }
+    let Some((number, unit)) = number_and_unit(v) else {
+        return F32_MAX;
     };
-    (number.abs() * factor).min(f64::from(f32::MAX))
+    // A base at `f32::MAX` may be infinite in usvg's `f32` arithmetic (a font-size chain that overflowed), and any
+    // multiple of infinity is infinite: the length is then unbounded whatever its number.
+    let relative = |base: f64, scale: f64| if base >= F32_MAX { None } else { Some(base * scale) };
+    let factor = match (absolute_factor(unit), unit) {
+        (Some(f), _) => Some(f),
+        (None, "em") => relative(lengths.font, 1.0),
+        (None, "ex") => relative(lengths.font, 0.5),
+        (None, "%") => relative(lengths.viewport, 0.01),
+        (None, _) => None,
+    };
+    factor.map_or(F32_MAX, |f| (number * f).min(F32_MAX))
+}
+
+/// The largest factor usvg's `convert_named_font_size` applies to the parent's font size (`xx-large` and the like,
+/// 1.2³; an unknown name keeps the parent's).
+const NAMED_FONT_FACTOR: f64 = 1.728;
+
+/// An upper bound of an element's font size (usvg's `resolve_font_size`, which applies every ancestor's `font-size`
+/// attribute from the root down) from `parent`, its parent's bound, and the values of its attributes named
+/// `font-size` (lower case): absolute units as [`length_bound`], `em` and `%` relative to the parent, `ex` half an
+/// `em`, a named size at most 1.2³ times the parent. The parent's bound stays a candidate, so an attribute usvg does
+/// not read (another namespace) cannot lower the bound. `None` (unknown, the worst case) for `inherit`, which usvg
+/// replaces by an ancestor's value that then applies twice, or when the parent's is unknown.
+pub(super) fn font_size_bound<'a>(
+    parent: Option<f64>,
+    values: impl IntoIterator<Item = &'a str>,
+) -> Option<f64> {
+    let parent = parent?;
+    let mut bound = parent;
+    for value in values {
+        let v = value.trim_ascii();
+        if v.contains("inherit") {
+            return None;
+        }
+        let size = match number_and_unit(v) {
+            Some((n, unit)) => match (absolute_factor(unit), unit) {
+                (Some(f), _) => n * f,
+                (None, "em") => n * parent,
+                (None, "ex") => n * parent / 2.0,
+                (None, "%") => n * parent / 100.0,
+                (None, _) => parent * NAMED_FONT_FACTOR,
+            },
+            None => parent * NAMED_FONT_FACTOR,
+        };
+        bound = bound.max(size);
+    }
+    Some(bound.min(F32_MAX))
+}
+
+/// An upper bound of the larger side of the root viewport usvg converts the document's shapes in (`convert_doc`'s
+/// `State::view_box`), from the root element's attributes (local names, lower case values): its `viewBox` when that
+/// has four numbers, else its size, `width` and `height` (default `100%`) with a percentage taken of the `viewBox` or,
+/// without one, of usvg's 100 × 100 fallback. Every candidate counts (an invalid `viewBox` makes usvg use the size),
+/// and `None` (unknown) when a `width` or `height` is in `em`, `ex` or another unit that is not absolute.
+pub(super) fn root_viewport(attrs: &[(&str, String)]) -> Option<f64> {
+    let view_box: Option<f64> = attrs
+        .iter()
+        .filter(|(a, _)| *a == "viewbox")
+        .filter_map(|(_, v)| {
+            let mut cursor = PathCursor {
+                b: v.as_bytes(),
+                i: 0,
+            };
+            let numbers: Vec<f64> = std::iter::from_fn(|| cursor.list_number()).take(5).collect();
+            (numbers.len() == 4).then(|| numbers[2].abs().max(numbers[3].abs()))
+        })
+        .reduce(f64::max);
+    // The size's percentages are of the `viewBox` or of the fallback; a missing or unreadable side is `100%`. The
+    // base itself is a candidate (the default side), which keeps the bound simple and never lowers it.
+    let base = view_box.unwrap_or(0.0).max(DEFAULT_SIZE);
+    let mut bound = base;
+    for (attr, value) in attrs {
+        if !matches!(*attr, "width" | "height") {
+            continue;
+        }
+        let side = match number_and_unit(value) {
+            Some((n, "%")) => n * base / 100.0,
+            Some((n, unit)) => n * absolute_factor(unit)?,
+            None => base,
+        };
+        bound = bound.max(side);
+    }
+    Some(bound.min(F32_MAX))
 }
 
 /// An upper bound of the segments of the path usvg makes of a shape element (`name` its lower-case local name,
@@ -341,8 +467,8 @@ pub(super) fn length_bound(value: &str) -> f64 {
 /// `path` per [`path_segments`]; `line` 2; `polyline` one per number of `points` (a point takes two), `polygon` one
 /// more for its close; `rect` 5 without radii, else four lines, four quarter arcs of the larger radius and its move
 /// and close; `circle` and `ellipse` four quarter arcs of the (larger) radius, a move and a close. Radii are bounded
-/// by [`length_bound`].
-pub(super) fn shape_segments(name: &str, attrs: &[(&str, String)]) -> u64 {
+/// by [`length_bound`] with `lengths`.
+pub(super) fn shape_segments(name: &str, attrs: &[(&str, String)], lengths: Lengths) -> u64 {
     let value = |key: &str| {
         attrs
             .iter()
@@ -352,7 +478,7 @@ pub(super) fn shape_segments(name: &str, attrs: &[(&str, String)]) -> u64 {
     let radius = |keys: &[&str]| -> Option<f64> {
         keys.iter()
             .filter_map(|k| value(k))
-            .map(|v| length_bound(&v))
+            .map(|v| length_bound(&v, lengths))
             .reduce(f64::max)
     };
     let round = |r: f64| radius_pieces(r).saturating_mul(4).saturating_add(2);
@@ -374,7 +500,12 @@ pub(super) fn shape_segments(name: &str, attrs: &[(&str, String)]) -> u64 {
     }
 }
 
-/// The marker targets a declaration list (a `style` attribute or a rule body, lower case) names, per property. A
+/// Whether a shape's segments depend on its [`Lengths`]: a `rect`, `circle` or `ellipse` (the shapes with radii).
+pub(super) fn has_radii(name: &str) -> bool {
+    matches!(name, "rect" | "circle" | "ellipse")
+}
+
+// The marker targets a declaration list (a `style` attribute or a rule body, lower case) names, per property. A
 /// list with a comment, a quote, a backslash or a `;` inside parentheses can hide a declaration boundary from a split
 /// on `;`, so there every `url(#…)` target counts for all three properties (when the list names a marker at all); a
 /// declaration called `marker` (the shorthand) or any other name with `marker` in it counts for all three as well.

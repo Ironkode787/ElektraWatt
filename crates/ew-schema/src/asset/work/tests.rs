@@ -114,7 +114,7 @@ fn lengths_are_bounded_in_user_units() {
         ("x", f64::from(f32::MAX)),
     ];
     for (value, expected) in cases {
-        assert_eq!(length_bound(value), *expected, "{value}");
+        assert_eq!(length_bound(value, Lengths::WORST), *expected, "{value}");
     }
 }
 
@@ -139,10 +139,23 @@ fn shapes_count_their_segments() {
         ("g", attrs(&[("d", "M0 0 L1 1")]), 0),
     ];
     for (name, attrs, expected) in &cases {
-        assert_eq!(shape_segments(name, attrs), *expected, "{name}");
+        assert_eq!(shape_segments(name, attrs, Lengths::WORST), *expected, "{name}");
     }
     // A radius in `em` can be as large as f32 allows: millions of pieces.
-    assert!(shape_segments("circle", &attrs(&[("r", "1em")])) > 10_000_000);
+    assert!(shape_segments("circle", &attrs(&[("r", "1em")]), Lengths::WORST) > 10_000_000);
+    // FT-501: with a known font size and viewport it resolves.
+    let known = Lengths {
+        font: 12.0,
+        viewport: 100.0,
+    };
+    assert_eq!(
+        shape_segments("circle", &attrs(&[("r", "1em")]), known),
+        4 * pieces(12.0) + 2
+    );
+    assert_eq!(
+        shape_segments("ellipse", &attrs(&[("rx", "40%"), ("ry", "1ex")]), known),
+        4 * pieces(40.0) + 2
+    );
 }
 
 #[test]
@@ -726,4 +739,173 @@ fn the_exporter_corpus_stays_far_below_the_work_limits() {
     );
     assert!(largest["markers"].0 * 4_000 < MAX_SVG_MARKER_WORK);
     assert!(largest["css"].0 * 39 < MAX_SVG_CSS_WORK);
+}
+
+/// FT-501: `em` and `ex` lengths resolve from the font size, `%` from the viewport; absolute units are unchanged.
+#[test]
+fn relative_lengths_resolve_from_the_font_size_and_the_viewport() {
+    let known = Lengths {
+        font: 12.0,
+        viewport: 100.0,
+    };
+    let cases: &[(&str, f64)] = &[
+        ("5", 5.0),
+        ("1in", 96.0),
+        ("2em", 24.0),
+        ("2ex", 12.0),
+        ("40%", 40.0),
+        ("-50%", 50.0),
+        ("1e9em", 1.2e10),
+        ("x", f64::from(f32::MAX)),
+        ("2q", f64::from(f32::MAX)),
+    ];
+    for (value, expected) in cases {
+        assert_eq!(length_bound(value, known), *expected, "{value}");
+    }
+    let huge = Lengths {
+        font: 1.0e36,
+        viewport: 100.0,
+    };
+    assert_eq!(
+        length_bound("1000em", huge),
+        f64::from(f32::MAX),
+        "capped at f32::MAX"
+    );
+    // A base at f32::MAX may be infinite in usvg: even a tiny multiple is unbounded.
+    for value in ["0.00001em", "0.00001ex", "0.00001%"] {
+        assert_eq!(
+            length_bound(value, Lengths::WORST),
+            f64::from(f32::MAX),
+            "{value}"
+        );
+    }
+}
+
+/// FT-501: the font-size chain's upper bound (usvg's `resolve_font_size`): absolute sizes, `em`, `ex` and `%` of the
+/// parent's, named sizes at most 1.2³ times it; the parent's own bound always counts; `inherit` is unknown.
+#[test]
+fn font_sizes_follow_the_chain() {
+    let parent = Some(12.0);
+    let one = |v: &str| font_size_bound(parent, [v]);
+    assert_eq!(font_size_bound(parent, []), Some(12.0));
+    assert_eq!(one("20"), Some(20.0));
+    assert_eq!(one("10px"), Some(12.0), "the parent's bound stays a candidate");
+    assert_eq!(one("1in"), Some(96.0));
+    assert_eq!(one("3em"), Some(36.0));
+    assert_eq!(one("4ex"), Some(24.0));
+    assert_eq!(one("200%"), Some(24.0));
+    assert_eq!(one("xx-large"), Some(12.0 * 1.728));
+    assert_eq!(one("inherit"), None);
+    assert_eq!(
+        font_size_bound(None, ["20"]),
+        None,
+        "an unknown parent stays unknown"
+    );
+    assert_eq!(
+        font_size_bound(parent, ["2em", "30"]),
+        Some(30.0),
+        "the larger of two"
+    );
+    // Nested `em` sizes grow to f32::MAX and stop there.
+    let mut font = Some(1.0e9);
+    for _ in 0..5 {
+        font = font_size_bound(font, ["1000000000em"]);
+    }
+    assert_eq!(font, Some(f64::from(f32::MAX)));
+}
+
+/// FT-501: the root viewport's larger side, from the `viewBox` or the size.
+#[test]
+fn the_root_viewport_comes_from_the_view_box_or_the_size() {
+    let attrs = |pairs: &[(&'static str, &str)]| -> Attrs {
+        pairs.iter().map(|(a, v)| (*a, (*v).to_owned())).collect()
+    };
+    let cases: Vec<(Attrs, Option<f64>)> = vec![
+        (attrs(&[]), Some(100.0)),
+        (attrs(&[("viewbox", "0 0 400 300")]), Some(400.0)),
+        (attrs(&[("viewbox", "0,0,10,10")]), Some(100.0)),
+        (attrs(&[("width", "300"), ("height", "50")]), Some(300.0)),
+        (attrs(&[("width", "2in")]), Some(192.0)),
+        (attrs(&[("width", "200%")]), Some(200.0)),
+        (
+            attrs(&[("viewbox", "0 0 400 300"), ("width", "50%")]),
+            Some(400.0),
+        ),
+        (attrs(&[("viewbox", "0 0 1"), ("width", "250")]), Some(250.0)),
+        (attrs(&[("width", "10em")]), None),
+    ];
+    for (attrs, expected) in &cases {
+        assert_eq!(root_viewport(attrs), *expected, "{attrs:?}");
+    }
+}
+
+/// FT-501: a shape with an `em`, `ex` or `%` radius is admitted when the font-size chain and the viewport bound it,
+/// and counts the worst case under CSS that can set a font size, inside a `use` target or under a nested viewport.
+/// The caps are unchanged: an `em` radius under a huge font size is still refused.
+#[test]
+fn relative_radii_resolve_in_the_pre_scan() {
+    const SVG: &str = r#"xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100""#;
+    let cases: Vec<(&str, String, Option<SvgHazard>)> = vec![
+        (
+            "a circle of 40 % in a 100 x 100 viewBox",
+            format!(r#"<svg {SVG}><circle cx="50" cy="50" r="40%"/></svg>"#),
+            None,
+        ),
+        (
+            "a circle of 2em at the default font size",
+            format!(r#"<svg {SVG}><circle r="2em"/></svg>"#),
+            None,
+        ),
+        (
+            "a rounded rectangle of 1ex under a font size of 20",
+            format!(r#"<svg {SVG}><g font-size="20"><rect width="9" height="9" rx="1ex"/></g></svg>"#),
+            None,
+        ),
+        (
+            "an em radius under a font size of 1e36, from nested em sizes",
+            format!(
+                r#"<svg {SVG}><g font-size="1000000000"><g font-size="1000000000em"><g font-size="1000000000em"><g font-size="1000000000em"><circle r="1em"/></g></g></g></g></svg>"#
+            ),
+            Some(SvgHazard::TooComplex),
+        ),
+        (
+            "an em radius when a style sheet sets a font size",
+            format!(r#"<svg {SVG}><style>g {{ font-size: 1px }}</style><circle r="2em"/></svg>"#),
+            Some(SvgHazard::TooComplex),
+        ),
+        (
+            "an em radius when a style attribute sets a font size",
+            format!(r#"<svg {SVG}><g style="font-size: 2px"><circle r="2em"/></g></svg>"#),
+            Some(SvgHazard::TooComplex),
+        ),
+        (
+            "an em radius under an inherited font size",
+            format!(
+                r#"<svg {SVG}><g font-size="2em"><g font-size="inherit"><circle r="2em"/></g></g></svg>"#
+            ),
+            Some(SvgHazard::TooComplex),
+        ),
+        (
+            "a % radius inside a use target",
+            format!(r##"<svg {SVG}><defs><circle id="c" r="40%"/></defs><use href="#c"/></svg>"##),
+            Some(SvgHazard::TooComplex),
+        ),
+        (
+            "a % radius when a nested svg sets another viewport",
+            format!(r#"<svg {SVG}><svg viewBox="0 0 1 1"/><circle r="40%"/></svg>"#),
+            Some(SvgHazard::TooComplex),
+        ),
+        (
+            "a % radius when the root's width is in em",
+            r#"<svg xmlns="http://www.w3.org/2000/svg" width="10em"><circle r="40%"/></svg>"#.to_owned(),
+            Some(SvgHazard::TooComplex),
+        ),
+    ];
+    for (what, text, expected) in &cases {
+        assert_eq!(svg_hazard(text.as_bytes()), *expected, "{what}");
+    }
+    let work = svg_work(cases[0].1.as_bytes()).unwrap();
+    assert_eq!(work.segments, 4 * pieces(40.0) + 2);
+    let work = svg_work(cases[2].1.as_bytes()).unwrap();
+    assert_eq!(work.segments, 4 * pieces(10.0) + 6);
 }
