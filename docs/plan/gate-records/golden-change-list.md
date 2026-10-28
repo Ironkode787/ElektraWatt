@@ -23,7 +23,7 @@ Per change: the commit's short hash and date, its subject, the decision IDs it c
 
 docs(plan,design,golden): FT-440's tie-break and Golden A's renumbered wires (ID-675)
 
-Decision IDs: ID-347, ID-670, ID-671, ID-674, ID-675, FT-440, FT-459
+Decision IDs: ID-347, ID-670, ID-671, ID-674, ID-675, ID-678, ID-680, FT-440, FT-459
 
 - doc 20, 8.2 Wire table: changed 9 (`1` (No.), `2` (No.), `3` (No.), `4` (No.), `5` (No.), `7` (No.), `9` (No.), `22` (No.), `23` (No.))
 
