@@ -12,8 +12,8 @@ Bundled fonts (assets/fonts/, ADR-0028)
 
 Noto Sans and Noto Sans Math are licensed under the SIL Open Font License, Version 1.1 (OFL-1.1); the
 licence text is LICENSES/OFL-1.1.txt. The files are unmodified copies of static unhinted TrueType files and
-are pinned by SHA-256 in crates/ew-text (ADR-0028 recommendation 6). The two Noto Sans files are the
-instances of the upstream repository at the commit named in each Source URL (the repository publishes no
+are pinned by SHA-256 in crates/ew-text (ADR-0028 recommendation 6); Noto Sans SemiBold, a face of the user
+interface only (WP-S2.17), is pinned in crates/ew-ui. The three Noto Sans files are the instances of the upstream repository at the commit named in each Source URL (the repository publishes no
 release tags). Noto Sans Math is not a raw commit file: it is the file at the path named under "Source"
 inside the notofonts release asset NotoSansMath-v3.000.zip. Noto Sans Math is the symbol fallback face
 (ADR-0028 recommendation 3).
@@ -37,6 +37,15 @@ assets/fonts/NotoSans-Bold.ttf
   Retrieved: 2026-10-18
   SHA-256:   8caac57b9ed492ab8a0501f1f1573d83a08822be36dd3f255e05964e12105f8d
   Size:      349072 bytes
+
+assets/fonts/NotoSans-SemiBold.ttf
+  Family:    Noto Sans SemiBold
+  Version:   Version 2.003
+  Copyright: Copyright 2015 Google Inc. All Rights Reserved.
+  Source:    https://raw.githubusercontent.com/notofonts/notosans/f10dc31fb679345cf9ab0cc4fdca061d03a78b82/fonts/ttf/unhinted/instance_ttf/NotoSans-SemiBold.ttf
+  Retrieved: 2026-10-28
+  SHA-256:   854409525d63d9f716d9ae3545a944e4b2af11abbee744e4f2b4a819eb386482
+  Size:      348812 bytes
 
 assets/fonts/NotoSansMath-Regular.ttf
   Family:    Noto Sans Math Regular

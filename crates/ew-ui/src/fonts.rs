@@ -4,7 +4,8 @@
 //! The UI fonts (WP-S2.01 part 1, spec section 5.3): egui's built-in fonts are off (`default_fonts` is not a
 //! feature of this build), and the bundled Noto Sans of `ew-text` becomes the proportional and monospace family.
 //! The face bytes come from `ew_api::output::font_bytes()`, the same set the PDF export embeds, so the screen and
-//! the paper use one font file (NFR-REL-11: no system fonts).
+//! the paper use one font file (NFR-REL-11: no system fonts). WP-S2.17 part 1 adds Noto Sans SemiBold as the family
+//! `semibold` for the chrome's emphasis (D8); it is not an export face.
 
 use std::sync::Arc;
 
@@ -18,6 +19,16 @@ pub const REGULAR: &str = "NotoSans-Regular";
 
 /// The name of the symbol face (Noto Sans Math), the last fallback for glyphs the regular face lacks.
 pub const SYMBOLS: &str = "NotoSansMath-Regular";
+
+/// The name of the SemiBold face (WP-S2.17 D8): UI emphasis only, never the drawings.
+pub const SEMIBOLD: &str = "NotoSans-SemiBold";
+
+/// The egui font family of the SemiBold face (`FontFamily::Name("semibold")`).
+pub const SEMIBOLD_FAMILY: &str = "semibold";
+
+/// The bundled Noto Sans SemiBold (`assets/fonts/NotoSans-SemiBold.ttf`, OFL-1.1; provenance in `NOTICE`). It is the
+/// UI's own face, not one of the export's: the drawings keep Regular and Bold (D8).
+const NOTO_SANS_SEMIBOLD: &[u8] = include_bytes!("../../../assets/fonts/NotoSans-SemiBold.ttf");
 
 /// What a bundled face is, read from its own tables.
 struct Face {
@@ -62,7 +73,15 @@ pub fn definitions() -> FontDefinitions {
         }
     }
     defs.families.insert(FontFamily::Proportional, order.clone());
-    defs.families.insert(FontFamily::Monospace, order);
+    defs.families.insert(FontFamily::Monospace, order.clone());
+    defs.font_data.insert(
+        SEMIBOLD.to_owned(),
+        Arc::new(FontData::from_static(NOTO_SANS_SEMIBOLD)),
+    );
+    let mut semibold = vec![SEMIBOLD.to_owned()];
+    semibold.extend(order);
+    defs.families
+        .insert(FontFamily::Name(SEMIBOLD_FAMILY.into()), semibold);
     defs
 }
 
@@ -86,5 +105,36 @@ mod tests {
         // The bundled faces are the export's: the regular face is the one file of NotoSans-Regular.ttf.
         let regular = defs.font_data[REGULAR].bytes();
         assert!(font_bytes().values().any(|b| &*b.data == regular));
+    }
+
+    #[test]
+    fn the_semibold_family_starts_with_the_semibold_face_and_falls_back_to_the_others() {
+        let defs = definitions();
+        let family = &defs.families[&FontFamily::Name(SEMIBOLD_FAMILY.into())];
+        assert_eq!(family, &[SEMIBOLD, REGULAR, SYMBOLS]);
+        let face = FontRef::new(defs.font_data[SEMIBOLD].bytes()).unwrap();
+        assert_eq!(face.attributes().weight.value(), 600.0);
+        let name: String = face
+            .localized_strings(StringId::FAMILY_NAME)
+            .english_or_first()
+            .unwrap()
+            .chars()
+            .collect();
+        assert_eq!(name, "Noto Sans SemiBold");
+    }
+
+    /// The SemiBold file is the one of `NOTICE` (ADR-0028 recommendation 6: bundled fonts are pinned by SHA-256).
+    #[test]
+    fn the_semibold_file_is_the_pinned_one() {
+        use sha2::{Digest, Sha256};
+        let digest: String = Sha256::digest(NOTO_SANS_SEMIBOLD)
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect();
+        assert_eq!(
+            digest,
+            "854409525d63d9f716d9ae3545a944e4b2af11abbee744e4f2b4a819eb386482"
+        );
+        assert_eq!(NOTO_SANS_SEMIBOLD.len(), 348_812);
     }
 }

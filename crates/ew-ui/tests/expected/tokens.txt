@@ -1,0 +1,1050 @@
+# The design tokens of doc 16a §4 (WP-S2.17 part 1): every token of every theme and density, a colour pair's
+# contrast after the colour ("on <background> <ratio>"). Rewritten by EW_BLESS=1; a change is a reviewed diff.
+
+[light comfortable]
+color.surface.chrome #F4F5F7
+color.surface.panel #FFFFFF
+color.surface.raised #FFFFFF
+color.surface.sunken #F4F5F7
+color.surface.inverse #1A1D21
+color.text.primary #1A1D21 on color.surface.panel 16.91 on color.surface.chrome 15.50 on color.surface.raised 16.91 on color.surface.sunken 15.50 on color.accent.subtle 14.71
+color.text.secondary #555C66 on color.surface.panel 6.75 on color.surface.chrome 6.19 on color.surface.raised 6.75 on color.accent.subtle 5.88
+color.text.tertiary #646C78 on color.surface.chrome 4.86 on color.surface.panel 5.31 on color.surface.raised 5.31
+color.text.disabled #A7AEB8
+color.text.on_accent #FFFFFF on color.accent 5.69
+color.text.on_inverse #ECEEF1 on color.surface.inverse 14.55
+color.accent #0B63CE on color.surface.panel 5.69 on color.accent.subtle 4.95
+color.accent.hover #0A58B8
+color.accent.pressed #094C9F
+color.accent.subtle #E7F0FC
+color.border.subtle #E3E6EA
+color.border.default #D5D9DF
+color.border.control #868E99 on color.surface.panel 3.31
+color.focus #0B63CE on color.surface.panel 5.69
+color.state.hover #1A1D210F
+color.state.pressed #1A1D211A
+color.error #C42B3C on color.surface.panel 5.59
+color.error.subtle #FDECEE
+color.warning #9A5B00 on color.surface.panel 5.43 on color.warning.subtle 4.98
+color.warning.icon #B26A00 on color.surface.panel 4.24
+color.warning.subtle #FFF4E0
+color.success #17733F on color.surface.panel 5.90
+color.success.subtle #E8F5EE
+color.info #0B63CE
+color.info.subtle #E7F0FC
+color.backdrop #1A1D213D
+canvas.surround #E3E6EA
+canvas.sheet #FFFFFF
+canvas.sheet_line #000000
+canvas.grid_dot #B8BEC7
+canvas.selection #0B63CE on canvas.sheet 5.69
+canvas.hover #0B63CE on canvas.sheet 5.69
+canvas.ghost #0B63CE99
+canvas.snap #0B63CE on canvas.sheet 5.69
+canvas.highlight.1 #D55E00 on canvas.sheet 3.87
+canvas.highlight.2 #009E73 on canvas.sheet 3.42
+canvas.highlight.3 #CC79A7 on canvas.sheet 3.06
+canvas.highlight.4 #A86F00 on canvas.sheet 4.25
+canvas.measure #1A1D21 on canvas.sheet 16.91
+canvas.stale #868E994D
+canvas.chip #1A1D21F0
+canvas.chip_text #ECEEF1
+canvas.highlight.label #000000 on canvas.highlight.1 5.43 on canvas.highlight.2 6.14 on canvas.highlight.3 6.86 on canvas.highlight.4 4.94
+elevation.1 0 1 2 0 #1018281A, 0 0 0 1 #1018280A
+elevation.2 0 8 24 0 #10182829, 0 2 6 0 #10182814
+border.raised 0px
+type.caption 11/14 regular
+type.small 12/16 regular
+type.label 12/16 semibold upper
+type.body 13/18 regular
+type.body.strong 13/18 semibold
+type.title 15/20 semibold
+type.display 20/26 semibold
+type.mono 12/16 regular
+space.1 2px
+space.2 4px
+space.icon 6px
+space.3 8px
+space.4 12px
+space.5 16px
+space.6 24px
+space.7 32px
+size.row 28px
+size.control 28px
+size.control.inline 24px
+size.tab_row 32px
+size.command_row 52px
+size.command.large.height 46px
+size.command.large.min_width 52px
+size.command.small 24px
+size.quick_access.width 28px
+size.quick_access.height 24px
+size.search.width 280px
+size.search.height 24px
+size.panel_header 32px
+size.dock_tab_bar 32px
+size.rail 40px
+size.rail_button 32px
+size.status 26px
+size.status_field 22px
+size.panel.left 280px
+size.panel.right 280px
+size.dock.bottom 184px
+size.property_label 96px
+size.tree_indent 20px
+size.table_header 24px
+size.badge 18px
+size.chip 16px
+size.button.min_width 72px
+size.dialog.small 440px
+size.dialog.form 640px
+size.palette 560px
+size.palette.row 32px
+size.toast 300px
+size.tooltip.max 320px
+size.table_column 110px
+size.table_column.min 40px
+size.table_column.max 480px
+size.severity_icon 16px
+size.chooser.min_width 240px
+size.chooser.max_width 360px
+size.chooser.rows 8
+size.preview_list.rows 10
+size.card_strip 28px
+color.table.frozen_edge #D5D9DF
+color.table.cursor #0B63CE on color.surface.panel 5.69 on color.accent.subtle 4.95
+color.table.cursor_idle #0B63CE on color.accent.subtle 4.95
+color.history.undone #646C78 on color.surface.panel 5.31
+color.card.strip #F4F5F7
+radius.none 0px
+radius.mark 2px
+radius.sm 4px
+radius.md 6px
+radius.lg 8px
+radius.pill 999px
+border.width 1px
+focus.width 2px
+icon.sm 16px
+icon.md 20px
+icon.lg 24px
+icon.stroke 1.5px
+icon.stroke.lg 1.75px
+motion.fast 80ms
+motion.base 140ms
+
+[light compact]
+color.surface.chrome #F4F5F7
+color.surface.panel #FFFFFF
+color.surface.raised #FFFFFF
+color.surface.sunken #F4F5F7
+color.surface.inverse #1A1D21
+color.text.primary #1A1D21 on color.surface.panel 16.91 on color.surface.chrome 15.50 on color.surface.raised 16.91 on color.surface.sunken 15.50 on color.accent.subtle 14.71
+color.text.secondary #555C66 on color.surface.panel 6.75 on color.surface.chrome 6.19 on color.surface.raised 6.75 on color.accent.subtle 5.88
+color.text.tertiary #646C78 on color.surface.chrome 4.86 on color.surface.panel 5.31 on color.surface.raised 5.31
+color.text.disabled #A7AEB8
+color.text.on_accent #FFFFFF on color.accent 5.69
+color.text.on_inverse #ECEEF1 on color.surface.inverse 14.55
+color.accent #0B63CE on color.surface.panel 5.69 on color.accent.subtle 4.95
+color.accent.hover #0A58B8
+color.accent.pressed #094C9F
+color.accent.subtle #E7F0FC
+color.border.subtle #E3E6EA
+color.border.default #D5D9DF
+color.border.control #868E99 on color.surface.panel 3.31
+color.focus #0B63CE on color.surface.panel 5.69
+color.state.hover #1A1D210F
+color.state.pressed #1A1D211A
+color.error #C42B3C on color.surface.panel 5.59
+color.error.subtle #FDECEE
+color.warning #9A5B00 on color.surface.panel 5.43 on color.warning.subtle 4.98
+color.warning.icon #B26A00 on color.surface.panel 4.24
+color.warning.subtle #FFF4E0
+color.success #17733F on color.surface.panel 5.90
+color.success.subtle #E8F5EE
+color.info #0B63CE
+color.info.subtle #E7F0FC
+color.backdrop #1A1D213D
+canvas.surround #E3E6EA
+canvas.sheet #FFFFFF
+canvas.sheet_line #000000
+canvas.grid_dot #B8BEC7
+canvas.selection #0B63CE on canvas.sheet 5.69
+canvas.hover #0B63CE on canvas.sheet 5.69
+canvas.ghost #0B63CE99
+canvas.snap #0B63CE on canvas.sheet 5.69
+canvas.highlight.1 #D55E00 on canvas.sheet 3.87
+canvas.highlight.2 #009E73 on canvas.sheet 3.42
+canvas.highlight.3 #CC79A7 on canvas.sheet 3.06
+canvas.highlight.4 #A86F00 on canvas.sheet 4.25
+canvas.measure #1A1D21 on canvas.sheet 16.91
+canvas.stale #868E994D
+canvas.chip #1A1D21F0
+canvas.chip_text #ECEEF1
+canvas.highlight.label #000000 on canvas.highlight.1 5.43 on canvas.highlight.2 6.14 on canvas.highlight.3 6.86 on canvas.highlight.4 4.94
+elevation.1 0 1 2 0 #1018281A, 0 0 0 1 #1018280A
+elevation.2 0 8 24 0 #10182829, 0 2 6 0 #10182814
+border.raised 0px
+type.caption 11/14 regular
+type.small 12/16 regular
+type.label 12/16 semibold upper
+type.body 13/18 regular
+type.body.strong 13/18 semibold
+type.title 15/20 semibold
+type.display 20/26 semibold
+type.mono 12/16 regular
+space.1 2px
+space.2 4px
+space.icon 6px
+space.3 8px
+space.4 12px
+space.5 16px
+space.6 24px
+space.7 32px
+size.row 24px
+size.control 28px
+size.control.inline 24px
+size.tab_row 32px
+size.command_row 36px
+size.command.large.height 28px
+size.command.large.min_width 0px
+size.command.small 24px
+size.quick_access.width 28px
+size.quick_access.height 24px
+size.search.width 280px
+size.search.height 24px
+size.panel_header 32px
+size.dock_tab_bar 32px
+size.rail 40px
+size.rail_button 32px
+size.status 26px
+size.status_field 22px
+size.panel.left 280px
+size.panel.right 280px
+size.dock.bottom 184px
+size.property_label 96px
+size.tree_indent 20px
+size.table_header 24px
+size.badge 18px
+size.chip 16px
+size.button.min_width 72px
+size.dialog.small 440px
+size.dialog.form 640px
+size.palette 560px
+size.palette.row 32px
+size.toast 300px
+size.tooltip.max 320px
+size.table_column 110px
+size.table_column.min 40px
+size.table_column.max 480px
+size.severity_icon 16px
+size.chooser.min_width 240px
+size.chooser.max_width 360px
+size.chooser.rows 8
+size.preview_list.rows 10
+size.card_strip 28px
+color.table.frozen_edge #D5D9DF
+color.table.cursor #0B63CE on color.surface.panel 5.69 on color.accent.subtle 4.95
+color.table.cursor_idle #0B63CE on color.accent.subtle 4.95
+color.history.undone #646C78 on color.surface.panel 5.31
+color.card.strip #F4F5F7
+radius.none 0px
+radius.mark 2px
+radius.sm 4px
+radius.md 6px
+radius.lg 8px
+radius.pill 999px
+border.width 1px
+focus.width 2px
+icon.sm 16px
+icon.md 20px
+icon.lg 24px
+icon.stroke 1.5px
+icon.stroke.lg 1.75px
+motion.fast 80ms
+motion.base 140ms
+
+[dark comfortable]
+color.surface.chrome #1A1D21
+color.surface.panel #212429
+color.surface.raised #2A2E34
+color.surface.sunken #1A1D21
+color.surface.inverse #ECEEF1
+color.text.primary #ECEEF1 on color.surface.panel 13.39 on color.surface.chrome 14.55 on color.surface.raised 11.74 on color.surface.sunken 14.55 on color.accent.subtle 10.41
+color.text.secondary #A7AEB8 on color.surface.panel 6.96 on color.surface.chrome 7.56 on color.surface.raised 6.10 on color.accent.subtle 5.41
+color.text.tertiary #959DA8 on color.surface.chrome 6.17 on color.surface.panel 5.68 on color.surface.raised 4.98
+color.text.disabled #555C66
+color.text.on_accent #0B1A33 on color.accent 6.65
+color.text.on_inverse #1A1D21 on color.surface.inverse 14.55
+color.accent #5AA2FF on color.surface.panel 5.96 on color.accent.subtle 4.64
+color.accent.hover #77B3FF
+color.accent.pressed #4A90EA
+color.accent.subtle #203754
+color.border.subtle #343941
+color.border.default #3F454D
+color.border.control #868E99 on color.surface.panel 4.70
+color.focus #5AA2FF on color.surface.panel 5.96
+color.state.hover #FFFFFF12
+color.state.pressed #FFFFFF1F
+color.error #FF8A8A on color.surface.panel 6.86
+color.error.subtle #3A2226
+color.warning #F5B544 on color.surface.panel 8.58 on color.warning.subtle 7.31
+color.warning.icon #F5B544 on color.surface.panel 8.58
+color.warning.subtle #3A2E17
+color.success #47C97E on color.surface.panel 7.36
+color.success.subtle #1D3326
+color.info #5AA2FF
+color.info.subtle #203754
+color.backdrop #1A1D213D
+canvas.surround #2E3238
+canvas.sheet #FFFFFF
+canvas.sheet_line #000000
+canvas.grid_dot #B8BEC7
+canvas.selection #0B63CE on canvas.sheet 5.69
+canvas.hover #0B63CE on canvas.sheet 5.69
+canvas.ghost #0B63CE99
+canvas.snap #0B63CE on canvas.sheet 5.69
+canvas.highlight.1 #D55E00 on canvas.sheet 3.87
+canvas.highlight.2 #009E73 on canvas.sheet 3.42
+canvas.highlight.3 #CC79A7 on canvas.sheet 3.06
+canvas.highlight.4 #A86F00 on canvas.sheet 4.25
+canvas.measure #1A1D21 on canvas.sheet 16.91
+canvas.stale #868E994D
+canvas.chip #ECEEF1F0
+canvas.chip_text #1A1D21
+canvas.highlight.label #000000 on canvas.highlight.1 5.43 on canvas.highlight.2 6.14 on canvas.highlight.3 6.86 on canvas.highlight.4 4.94
+elevation.1 0 1 2 0 #00000066, 0 0 0 1 #FFFFFF0A
+elevation.2 0 8 24 0 #00000080, 0 2 6 0 #0000004D
+border.raised 0px
+type.caption 11/14 regular
+type.small 12/16 regular
+type.label 12/16 semibold upper
+type.body 13/18 regular
+type.body.strong 13/18 semibold
+type.title 15/20 semibold
+type.display 20/26 semibold
+type.mono 12/16 regular
+space.1 2px
+space.2 4px
+space.icon 6px
+space.3 8px
+space.4 12px
+space.5 16px
+space.6 24px
+space.7 32px
+size.row 28px
+size.control 28px
+size.control.inline 24px
+size.tab_row 32px
+size.command_row 52px
+size.command.large.height 46px
+size.command.large.min_width 52px
+size.command.small 24px
+size.quick_access.width 28px
+size.quick_access.height 24px
+size.search.width 280px
+size.search.height 24px
+size.panel_header 32px
+size.dock_tab_bar 32px
+size.rail 40px
+size.rail_button 32px
+size.status 26px
+size.status_field 22px
+size.panel.left 280px
+size.panel.right 280px
+size.dock.bottom 184px
+size.property_label 96px
+size.tree_indent 20px
+size.table_header 24px
+size.badge 18px
+size.chip 16px
+size.button.min_width 72px
+size.dialog.small 440px
+size.dialog.form 640px
+size.palette 560px
+size.palette.row 32px
+size.toast 300px
+size.tooltip.max 320px
+size.table_column 110px
+size.table_column.min 40px
+size.table_column.max 480px
+size.severity_icon 16px
+size.chooser.min_width 240px
+size.chooser.max_width 360px
+size.chooser.rows 8
+size.preview_list.rows 10
+size.card_strip 28px
+color.table.frozen_edge #3F454D
+color.table.cursor #5AA2FF on color.surface.panel 5.96 on color.accent.subtle 4.64
+color.table.cursor_idle #5AA2FF on color.accent.subtle 4.64
+color.history.undone #959DA8 on color.surface.panel 5.68
+color.card.strip #1A1D21
+radius.none 0px
+radius.mark 2px
+radius.sm 4px
+radius.md 6px
+radius.lg 8px
+radius.pill 999px
+border.width 1px
+focus.width 2px
+icon.sm 16px
+icon.md 20px
+icon.lg 24px
+icon.stroke 1.5px
+icon.stroke.lg 1.75px
+motion.fast 80ms
+motion.base 140ms
+
+[dark compact]
+color.surface.chrome #1A1D21
+color.surface.panel #212429
+color.surface.raised #2A2E34
+color.surface.sunken #1A1D21
+color.surface.inverse #ECEEF1
+color.text.primary #ECEEF1 on color.surface.panel 13.39 on color.surface.chrome 14.55 on color.surface.raised 11.74 on color.surface.sunken 14.55 on color.accent.subtle 10.41
+color.text.secondary #A7AEB8 on color.surface.panel 6.96 on color.surface.chrome 7.56 on color.surface.raised 6.10 on color.accent.subtle 5.41
+color.text.tertiary #959DA8 on color.surface.chrome 6.17 on color.surface.panel 5.68 on color.surface.raised 4.98
+color.text.disabled #555C66
+color.text.on_accent #0B1A33 on color.accent 6.65
+color.text.on_inverse #1A1D21 on color.surface.inverse 14.55
+color.accent #5AA2FF on color.surface.panel 5.96 on color.accent.subtle 4.64
+color.accent.hover #77B3FF
+color.accent.pressed #4A90EA
+color.accent.subtle #203754
+color.border.subtle #343941
+color.border.default #3F454D
+color.border.control #868E99 on color.surface.panel 4.70
+color.focus #5AA2FF on color.surface.panel 5.96
+color.state.hover #FFFFFF12
+color.state.pressed #FFFFFF1F
+color.error #FF8A8A on color.surface.panel 6.86
+color.error.subtle #3A2226
+color.warning #F5B544 on color.surface.panel 8.58 on color.warning.subtle 7.31
+color.warning.icon #F5B544 on color.surface.panel 8.58
+color.warning.subtle #3A2E17
+color.success #47C97E on color.surface.panel 7.36
+color.success.subtle #1D3326
+color.info #5AA2FF
+color.info.subtle #203754
+color.backdrop #1A1D213D
+canvas.surround #2E3238
+canvas.sheet #FFFFFF
+canvas.sheet_line #000000
+canvas.grid_dot #B8BEC7
+canvas.selection #0B63CE on canvas.sheet 5.69
+canvas.hover #0B63CE on canvas.sheet 5.69
+canvas.ghost #0B63CE99
+canvas.snap #0B63CE on canvas.sheet 5.69
+canvas.highlight.1 #D55E00 on canvas.sheet 3.87
+canvas.highlight.2 #009E73 on canvas.sheet 3.42
+canvas.highlight.3 #CC79A7 on canvas.sheet 3.06
+canvas.highlight.4 #A86F00 on canvas.sheet 4.25
+canvas.measure #1A1D21 on canvas.sheet 16.91
+canvas.stale #868E994D
+canvas.chip #ECEEF1F0
+canvas.chip_text #1A1D21
+canvas.highlight.label #000000 on canvas.highlight.1 5.43 on canvas.highlight.2 6.14 on canvas.highlight.3 6.86 on canvas.highlight.4 4.94
+elevation.1 0 1 2 0 #00000066, 0 0 0 1 #FFFFFF0A
+elevation.2 0 8 24 0 #00000080, 0 2 6 0 #0000004D
+border.raised 0px
+type.caption 11/14 regular
+type.small 12/16 regular
+type.label 12/16 semibold upper
+type.body 13/18 regular
+type.body.strong 13/18 semibold
+type.title 15/20 semibold
+type.display 20/26 semibold
+type.mono 12/16 regular
+space.1 2px
+space.2 4px
+space.icon 6px
+space.3 8px
+space.4 12px
+space.5 16px
+space.6 24px
+space.7 32px
+size.row 24px
+size.control 28px
+size.control.inline 24px
+size.tab_row 32px
+size.command_row 36px
+size.command.large.height 28px
+size.command.large.min_width 0px
+size.command.small 24px
+size.quick_access.width 28px
+size.quick_access.height 24px
+size.search.width 280px
+size.search.height 24px
+size.panel_header 32px
+size.dock_tab_bar 32px
+size.rail 40px
+size.rail_button 32px
+size.status 26px
+size.status_field 22px
+size.panel.left 280px
+size.panel.right 280px
+size.dock.bottom 184px
+size.property_label 96px
+size.tree_indent 20px
+size.table_header 24px
+size.badge 18px
+size.chip 16px
+size.button.min_width 72px
+size.dialog.small 440px
+size.dialog.form 640px
+size.palette 560px
+size.palette.row 32px
+size.toast 300px
+size.tooltip.max 320px
+size.table_column 110px
+size.table_column.min 40px
+size.table_column.max 480px
+size.severity_icon 16px
+size.chooser.min_width 240px
+size.chooser.max_width 360px
+size.chooser.rows 8
+size.preview_list.rows 10
+size.card_strip 28px
+color.table.frozen_edge #3F454D
+color.table.cursor #5AA2FF on color.surface.panel 5.96 on color.accent.subtle 4.64
+color.table.cursor_idle #5AA2FF on color.accent.subtle 4.64
+color.history.undone #959DA8 on color.surface.panel 5.68
+color.card.strip #1A1D21
+radius.none 0px
+radius.mark 2px
+radius.sm 4px
+radius.md 6px
+radius.lg 8px
+radius.pill 999px
+border.width 1px
+focus.width 2px
+icon.sm 16px
+icon.md 20px
+icon.lg 24px
+icon.stroke 1.5px
+icon.stroke.lg 1.75px
+motion.fast 80ms
+motion.base 140ms
+
+[hc-dark comfortable]
+color.surface.chrome #000000
+color.surface.panel #000000
+color.surface.raised #000000
+color.surface.sunken #000000
+color.surface.inverse #FFFFFF
+color.text.primary #FFFFFF on color.surface.panel 21.00 on color.surface.chrome 21.00 on color.surface.raised 21.00 on color.surface.sunken 21.00 on color.accent.subtle 17.56
+color.text.secondary #D7DBE0 on color.surface.panel 15.10 on color.surface.chrome 15.10 on color.surface.raised 15.10 on color.accent.subtle 12.63
+color.text.tertiary #D7DBE0 on color.surface.chrome 15.10 on color.surface.panel 15.10 on color.surface.raised 15.10
+color.text.disabled #8A9099 on color.surface.panel 6.53
+color.text.on_accent #000000 on color.accent 10.11
+color.text.on_inverse #000000 on color.surface.inverse 21.00
+color.accent #79B8FF on color.surface.panel 10.11 on color.accent.subtle 8.46
+color.accent.hover #A3CEFF
+color.accent.pressed #A3CEFF
+color.accent.subtle #001A33
+color.border.subtle #FFFFFF on color.surface.panel 21.00
+color.border.default #FFFFFF on color.surface.panel 21.00 on color.surface.chrome 21.00
+color.border.control #FFFFFF on color.surface.panel 21.00
+color.focus #79B8FF on color.surface.panel 10.11
+color.state.hover #262626
+color.state.pressed #3A3A3A
+color.error #FF9C9C on color.surface.panel 10.49
+color.error.subtle #000000
+color.warning #FFD066 on color.surface.panel 14.47 on color.warning.subtle 14.47
+color.warning.icon #FFD066 on color.surface.panel 14.47
+color.warning.subtle #000000
+color.success #6EE29E on color.surface.panel 13.04
+color.success.subtle #000000
+color.info #79B8FF
+color.info.subtle #001A33
+color.backdrop #1A1D213D
+canvas.surround #1A1A1A
+canvas.sheet #FFFFFF
+canvas.sheet_line #000000
+canvas.grid_dot #B8BEC7
+canvas.selection #0B63CE on canvas.sheet 5.69
+canvas.hover #0B63CE on canvas.sheet 5.69
+canvas.ghost #0B63CE99
+canvas.snap #0B63CE on canvas.sheet 5.69
+canvas.highlight.1 #D55E00 on canvas.sheet 3.87
+canvas.highlight.2 #009E73 on canvas.sheet 3.42
+canvas.highlight.3 #CC79A7 on canvas.sheet 3.06
+canvas.highlight.4 #A86F00 on canvas.sheet 4.25
+canvas.measure #1A1D21 on canvas.sheet 16.91
+canvas.stale #868E994D
+canvas.chip #FFFFFFF0
+canvas.chip_text #000000
+canvas.highlight.label #000000 on canvas.highlight.1 5.43 on canvas.highlight.2 6.14 on canvas.highlight.3 6.86 on canvas.highlight.4 4.94
+elevation.1 0 0 0 0 #00000000, 0 0 0 0 #00000000
+elevation.2 0 0 0 0 #00000000, 0 0 0 0 #00000000
+border.raised 1px
+type.caption 11/14 regular
+type.small 12/16 regular
+type.label 12/16 semibold upper
+type.body 13/18 regular
+type.body.strong 13/18 semibold
+type.title 15/20 semibold
+type.display 20/26 semibold
+type.mono 12/16 regular
+space.1 2px
+space.2 4px
+space.icon 6px
+space.3 8px
+space.4 12px
+space.5 16px
+space.6 24px
+space.7 32px
+size.row 28px
+size.control 28px
+size.control.inline 24px
+size.tab_row 32px
+size.command_row 52px
+size.command.large.height 46px
+size.command.large.min_width 52px
+size.command.small 24px
+size.quick_access.width 28px
+size.quick_access.height 24px
+size.search.width 280px
+size.search.height 24px
+size.panel_header 32px
+size.dock_tab_bar 32px
+size.rail 40px
+size.rail_button 32px
+size.status 26px
+size.status_field 22px
+size.panel.left 280px
+size.panel.right 280px
+size.dock.bottom 184px
+size.property_label 96px
+size.tree_indent 20px
+size.table_header 24px
+size.badge 18px
+size.chip 16px
+size.button.min_width 72px
+size.dialog.small 440px
+size.dialog.form 640px
+size.palette 560px
+size.palette.row 32px
+size.toast 300px
+size.tooltip.max 320px
+size.table_column 110px
+size.table_column.min 40px
+size.table_column.max 480px
+size.severity_icon 16px
+size.chooser.min_width 240px
+size.chooser.max_width 360px
+size.chooser.rows 8
+size.preview_list.rows 10
+size.card_strip 28px
+color.table.frozen_edge #FFFFFF
+color.table.cursor #79B8FF on color.surface.panel 10.11 on color.accent.subtle 8.46
+color.table.cursor_idle #79B8FF on color.accent.subtle 8.46
+color.history.undone #D7DBE0 on color.surface.panel 15.10
+color.card.strip #000000
+radius.none 0px
+radius.mark 2px
+radius.sm 4px
+radius.md 6px
+radius.lg 8px
+radius.pill 999px
+border.width 1px
+focus.width 2px
+icon.sm 16px
+icon.md 20px
+icon.lg 24px
+icon.stroke 1.5px
+icon.stroke.lg 1.75px
+motion.fast 80ms
+motion.base 140ms
+
+[hc-dark compact]
+color.surface.chrome #000000
+color.surface.panel #000000
+color.surface.raised #000000
+color.surface.sunken #000000
+color.surface.inverse #FFFFFF
+color.text.primary #FFFFFF on color.surface.panel 21.00 on color.surface.chrome 21.00 on color.surface.raised 21.00 on color.surface.sunken 21.00 on color.accent.subtle 17.56
+color.text.secondary #D7DBE0 on color.surface.panel 15.10 on color.surface.chrome 15.10 on color.surface.raised 15.10 on color.accent.subtle 12.63
+color.text.tertiary #D7DBE0 on color.surface.chrome 15.10 on color.surface.panel 15.10 on color.surface.raised 15.10
+color.text.disabled #8A9099 on color.surface.panel 6.53
+color.text.on_accent #000000 on color.accent 10.11
+color.text.on_inverse #000000 on color.surface.inverse 21.00
+color.accent #79B8FF on color.surface.panel 10.11 on color.accent.subtle 8.46
+color.accent.hover #A3CEFF
+color.accent.pressed #A3CEFF
+color.accent.subtle #001A33
+color.border.subtle #FFFFFF on color.surface.panel 21.00
+color.border.default #FFFFFF on color.surface.panel 21.00 on color.surface.chrome 21.00
+color.border.control #FFFFFF on color.surface.panel 21.00
+color.focus #79B8FF on color.surface.panel 10.11
+color.state.hover #262626
+color.state.pressed #3A3A3A
+color.error #FF9C9C on color.surface.panel 10.49
+color.error.subtle #000000
+color.warning #FFD066 on color.surface.panel 14.47 on color.warning.subtle 14.47
+color.warning.icon #FFD066 on color.surface.panel 14.47
+color.warning.subtle #000000
+color.success #6EE29E on color.surface.panel 13.04
+color.success.subtle #000000
+color.info #79B8FF
+color.info.subtle #001A33
+color.backdrop #1A1D213D
+canvas.surround #1A1A1A
+canvas.sheet #FFFFFF
+canvas.sheet_line #000000
+canvas.grid_dot #B8BEC7
+canvas.selection #0B63CE on canvas.sheet 5.69
+canvas.hover #0B63CE on canvas.sheet 5.69
+canvas.ghost #0B63CE99
+canvas.snap #0B63CE on canvas.sheet 5.69
+canvas.highlight.1 #D55E00 on canvas.sheet 3.87
+canvas.highlight.2 #009E73 on canvas.sheet 3.42
+canvas.highlight.3 #CC79A7 on canvas.sheet 3.06
+canvas.highlight.4 #A86F00 on canvas.sheet 4.25
+canvas.measure #1A1D21 on canvas.sheet 16.91
+canvas.stale #868E994D
+canvas.chip #FFFFFFF0
+canvas.chip_text #000000
+canvas.highlight.label #000000 on canvas.highlight.1 5.43 on canvas.highlight.2 6.14 on canvas.highlight.3 6.86 on canvas.highlight.4 4.94
+elevation.1 0 0 0 0 #00000000, 0 0 0 0 #00000000
+elevation.2 0 0 0 0 #00000000, 0 0 0 0 #00000000
+border.raised 1px
+type.caption 11/14 regular
+type.small 12/16 regular
+type.label 12/16 semibold upper
+type.body 13/18 regular
+type.body.strong 13/18 semibold
+type.title 15/20 semibold
+type.display 20/26 semibold
+type.mono 12/16 regular
+space.1 2px
+space.2 4px
+space.icon 6px
+space.3 8px
+space.4 12px
+space.5 16px
+space.6 24px
+space.7 32px
+size.row 24px
+size.control 28px
+size.control.inline 24px
+size.tab_row 32px
+size.command_row 36px
+size.command.large.height 28px
+size.command.large.min_width 0px
+size.command.small 24px
+size.quick_access.width 28px
+size.quick_access.height 24px
+size.search.width 280px
+size.search.height 24px
+size.panel_header 32px
+size.dock_tab_bar 32px
+size.rail 40px
+size.rail_button 32px
+size.status 26px
+size.status_field 22px
+size.panel.left 280px
+size.panel.right 280px
+size.dock.bottom 184px
+size.property_label 96px
+size.tree_indent 20px
+size.table_header 24px
+size.badge 18px
+size.chip 16px
+size.button.min_width 72px
+size.dialog.small 440px
+size.dialog.form 640px
+size.palette 560px
+size.palette.row 32px
+size.toast 300px
+size.tooltip.max 320px
+size.table_column 110px
+size.table_column.min 40px
+size.table_column.max 480px
+size.severity_icon 16px
+size.chooser.min_width 240px
+size.chooser.max_width 360px
+size.chooser.rows 8
+size.preview_list.rows 10
+size.card_strip 28px
+color.table.frozen_edge #FFFFFF
+color.table.cursor #79B8FF on color.surface.panel 10.11 on color.accent.subtle 8.46
+color.table.cursor_idle #79B8FF on color.accent.subtle 8.46
+color.history.undone #D7DBE0 on color.surface.panel 15.10
+color.card.strip #000000
+radius.none 0px
+radius.mark 2px
+radius.sm 4px
+radius.md 6px
+radius.lg 8px
+radius.pill 999px
+border.width 1px
+focus.width 2px
+icon.sm 16px
+icon.md 20px
+icon.lg 24px
+icon.stroke 1.5px
+icon.stroke.lg 1.75px
+motion.fast 80ms
+motion.base 140ms
+
+[hc-light comfortable]
+color.surface.chrome #FFFFFF
+color.surface.panel #FFFFFF
+color.surface.raised #FFFFFF
+color.surface.sunken #FFFFFF
+color.surface.inverse #000000
+color.text.primary #000000 on color.surface.panel 21.00 on color.surface.chrome 21.00 on color.surface.raised 21.00 on color.surface.sunken 21.00 on color.accent.subtle 18.27
+color.text.secondary #2A2E34 on color.surface.panel 13.65 on color.surface.chrome 13.65 on color.surface.raised 13.65 on color.accent.subtle 11.87
+color.text.tertiary #2A2E34 on color.surface.chrome 13.65 on color.surface.panel 13.65 on color.surface.raised 13.65
+color.text.disabled #6B717A on color.surface.panel 4.92
+color.text.on_accent #FFFFFF on color.accent 8.64
+color.text.on_inverse #FFFFFF on color.surface.inverse 21.00
+color.accent #0047A3 on color.surface.panel 8.64 on color.accent.subtle 7.52
+color.accent.hover #003A85
+color.accent.pressed #003A85
+color.accent.subtle #E6F0FF
+color.border.subtle #000000 on color.surface.panel 21.00
+color.border.default #000000 on color.surface.panel 21.00 on color.surface.chrome 21.00
+color.border.control #000000 on color.surface.panel 21.00
+color.focus #0047A3 on color.surface.panel 8.64
+color.state.hover #E6E6E6
+color.state.pressed #CCCCCC
+color.error #A1001D on color.surface.panel 8.29
+color.error.subtle #FFFFFF
+color.warning #6B3F00 on color.surface.panel 8.99 on color.warning.subtle 8.99
+color.warning.icon #6B3F00 on color.surface.panel 8.99
+color.warning.subtle #FFFFFF
+color.success #0B5A2E on color.surface.panel 8.35
+color.success.subtle #FFFFFF
+color.info #0047A3
+color.info.subtle #E6F0FF
+color.backdrop #1A1D213D
+canvas.surround #C8C8C8
+canvas.sheet #FFFFFF
+canvas.sheet_line #000000
+canvas.grid_dot #B8BEC7
+canvas.selection #0B63CE on canvas.sheet 5.69
+canvas.hover #0B63CE on canvas.sheet 5.69
+canvas.ghost #0B63CE99
+canvas.snap #0B63CE on canvas.sheet 5.69
+canvas.highlight.1 #D55E00 on canvas.sheet 3.87
+canvas.highlight.2 #009E73 on canvas.sheet 3.42
+canvas.highlight.3 #CC79A7 on canvas.sheet 3.06
+canvas.highlight.4 #A86F00 on canvas.sheet 4.25
+canvas.measure #1A1D21 on canvas.sheet 16.91
+canvas.stale #868E994D
+canvas.chip #000000F0
+canvas.chip_text #FFFFFF
+canvas.highlight.label #000000 on canvas.highlight.1 5.43 on canvas.highlight.2 6.14 on canvas.highlight.3 6.86 on canvas.highlight.4 4.94
+elevation.1 0 0 0 0 #00000000, 0 0 0 0 #00000000
+elevation.2 0 0 0 0 #00000000, 0 0 0 0 #00000000
+border.raised 1px
+type.caption 11/14 regular
+type.small 12/16 regular
+type.label 12/16 semibold upper
+type.body 13/18 regular
+type.body.strong 13/18 semibold
+type.title 15/20 semibold
+type.display 20/26 semibold
+type.mono 12/16 regular
+space.1 2px
+space.2 4px
+space.icon 6px
+space.3 8px
+space.4 12px
+space.5 16px
+space.6 24px
+space.7 32px
+size.row 28px
+size.control 28px
+size.control.inline 24px
+size.tab_row 32px
+size.command_row 52px
+size.command.large.height 46px
+size.command.large.min_width 52px
+size.command.small 24px
+size.quick_access.width 28px
+size.quick_access.height 24px
+size.search.width 280px
+size.search.height 24px
+size.panel_header 32px
+size.dock_tab_bar 32px
+size.rail 40px
+size.rail_button 32px
+size.status 26px
+size.status_field 22px
+size.panel.left 280px
+size.panel.right 280px
+size.dock.bottom 184px
+size.property_label 96px
+size.tree_indent 20px
+size.table_header 24px
+size.badge 18px
+size.chip 16px
+size.button.min_width 72px
+size.dialog.small 440px
+size.dialog.form 640px
+size.palette 560px
+size.palette.row 32px
+size.toast 300px
+size.tooltip.max 320px
+size.table_column 110px
+size.table_column.min 40px
+size.table_column.max 480px
+size.severity_icon 16px
+size.chooser.min_width 240px
+size.chooser.max_width 360px
+size.chooser.rows 8
+size.preview_list.rows 10
+size.card_strip 28px
+color.table.frozen_edge #000000
+color.table.cursor #0047A3 on color.surface.panel 8.64 on color.accent.subtle 7.52
+color.table.cursor_idle #0047A3 on color.accent.subtle 7.52
+color.history.undone #2A2E34 on color.surface.panel 13.65
+color.card.strip #FFFFFF
+radius.none 0px
+radius.mark 2px
+radius.sm 4px
+radius.md 6px
+radius.lg 8px
+radius.pill 999px
+border.width 1px
+focus.width 2px
+icon.sm 16px
+icon.md 20px
+icon.lg 24px
+icon.stroke 1.5px
+icon.stroke.lg 1.75px
+motion.fast 80ms
+motion.base 140ms
+
+[hc-light compact]
+color.surface.chrome #FFFFFF
+color.surface.panel #FFFFFF
+color.surface.raised #FFFFFF
+color.surface.sunken #FFFFFF
+color.surface.inverse #000000
+color.text.primary #000000 on color.surface.panel 21.00 on color.surface.chrome 21.00 on color.surface.raised 21.00 on color.surface.sunken 21.00 on color.accent.subtle 18.27
+color.text.secondary #2A2E34 on color.surface.panel 13.65 on color.surface.chrome 13.65 on color.surface.raised 13.65 on color.accent.subtle 11.87
+color.text.tertiary #2A2E34 on color.surface.chrome 13.65 on color.surface.panel 13.65 on color.surface.raised 13.65
+color.text.disabled #6B717A on color.surface.panel 4.92
+color.text.on_accent #FFFFFF on color.accent 8.64
+color.text.on_inverse #FFFFFF on color.surface.inverse 21.00
+color.accent #0047A3 on color.surface.panel 8.64 on color.accent.subtle 7.52
+color.accent.hover #003A85
+color.accent.pressed #003A85
+color.accent.subtle #E6F0FF
+color.border.subtle #000000 on color.surface.panel 21.00
+color.border.default #000000 on color.surface.panel 21.00 on color.surface.chrome 21.00
+color.border.control #000000 on color.surface.panel 21.00
+color.focus #0047A3 on color.surface.panel 8.64
+color.state.hover #E6E6E6
+color.state.pressed #CCCCCC
+color.error #A1001D on color.surface.panel 8.29
+color.error.subtle #FFFFFF
+color.warning #6B3F00 on color.surface.panel 8.99 on color.warning.subtle 8.99
+color.warning.icon #6B3F00 on color.surface.panel 8.99
+color.warning.subtle #FFFFFF
+color.success #0B5A2E on color.surface.panel 8.35
+color.success.subtle #FFFFFF
+color.info #0047A3
+color.info.subtle #E6F0FF
+color.backdrop #1A1D213D
+canvas.surround #C8C8C8
+canvas.sheet #FFFFFF
+canvas.sheet_line #000000
+canvas.grid_dot #B8BEC7
+canvas.selection #0B63CE on canvas.sheet 5.69
+canvas.hover #0B63CE on canvas.sheet 5.69
+canvas.ghost #0B63CE99
+canvas.snap #0B63CE on canvas.sheet 5.69
+canvas.highlight.1 #D55E00 on canvas.sheet 3.87
+canvas.highlight.2 #009E73 on canvas.sheet 3.42
+canvas.highlight.3 #CC79A7 on canvas.sheet 3.06
+canvas.highlight.4 #A86F00 on canvas.sheet 4.25
+canvas.measure #1A1D21 on canvas.sheet 16.91
+canvas.stale #868E994D
+canvas.chip #000000F0
+canvas.chip_text #FFFFFF
+canvas.highlight.label #000000 on canvas.highlight.1 5.43 on canvas.highlight.2 6.14 on canvas.highlight.3 6.86 on canvas.highlight.4 4.94
+elevation.1 0 0 0 0 #00000000, 0 0 0 0 #00000000
+elevation.2 0 0 0 0 #00000000, 0 0 0 0 #00000000
+border.raised 1px
+type.caption 11/14 regular
+type.small 12/16 regular
+type.label 12/16 semibold upper
+type.body 13/18 regular
+type.body.strong 13/18 semibold
+type.title 15/20 semibold
+type.display 20/26 semibold
+type.mono 12/16 regular
+space.1 2px
+space.2 4px
+space.icon 6px
+space.3 8px
+space.4 12px
+space.5 16px
+space.6 24px
+space.7 32px
+size.row 24px
+size.control 28px
+size.control.inline 24px
+size.tab_row 32px
+size.command_row 36px
+size.command.large.height 28px
+size.command.large.min_width 0px
+size.command.small 24px
+size.quick_access.width 28px
+size.quick_access.height 24px
+size.search.width 280px
+size.search.height 24px
+size.panel_header 32px
+size.dock_tab_bar 32px
+size.rail 40px
+size.rail_button 32px
+size.status 26px
+size.status_field 22px
+size.panel.left 280px
+size.panel.right 280px
+size.dock.bottom 184px
+size.property_label 96px
+size.tree_indent 20px
+size.table_header 24px
+size.badge 18px
+size.chip 16px
+size.button.min_width 72px
+size.dialog.small 440px
+size.dialog.form 640px
+size.palette 560px
+size.palette.row 32px
+size.toast 300px
+size.tooltip.max 320px
+size.table_column 110px
+size.table_column.min 40px
+size.table_column.max 480px
+size.severity_icon 16px
+size.chooser.min_width 240px
+size.chooser.max_width 360px
+size.chooser.rows 8
+size.preview_list.rows 10
+size.card_strip 28px
+color.table.frozen_edge #000000
+color.table.cursor #0047A3 on color.surface.panel 8.64 on color.accent.subtle 7.52
+color.table.cursor_idle #0047A3 on color.accent.subtle 7.52
+color.history.undone #2A2E34 on color.surface.panel 13.65
+color.card.strip #FFFFFF
+radius.none 0px
+radius.mark 2px
+radius.sm 4px
+radius.md 6px
+radius.lg 8px
+radius.pill 999px
+border.width 1px
+focus.width 2px
+icon.sm 16px
+icon.md 20px
+icon.lg 24px
+icon.stroke 1.5px
+icon.stroke.lg 1.75px
+motion.fast 80ms
+motion.base 140ms

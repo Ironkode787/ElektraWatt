@@ -14,6 +14,11 @@ publish = false
 [lints]
 workspace = true
 
+[features]
+# WP-S2.17 DL6: the chrome snapshot tests, rendered offscreen with this crate's own egui-wgpu and ew-render2d's
+# headless device (no new package; D7's `snapshot`/`wgpu` features are not adopted). Without it they are not compiled.
+snapshots = []
+
 [dependencies]
 ew-viewmodel = { path = "../ew-viewmodel" }
 ew-render2d = { path = "../ew-render2d" }
@@ -43,11 +48,14 @@ tracing = { version = "0.1.44", default-features = false, features = ["std"] }
 skrifa = { version = "0.44.0", default-features = false, features = ["std"] }
 
 [dev-dependencies]
-# Interaction tests and the accessible-name walker, without rendering (no snapshot or wgpu feature).
+# Interaction tests and the accessible-name walker, without rendering (no snapshot or wgpu feature: WP-S2.17 D7 would
+# bring packages beyond the spec's, see the part 1 report; the chrome snapshots use `tests/offscreen`).
 egui_kittest = { version = "=0.37.0", default-features = false }
 # WP-S2.09 part 1: the window's running export is held at a gate (`ShellModel::set_job_gate_for_tests`, feature
 # `testkit`, dev-only by `ci/dep-rules.toml`); the normal edge above is the same package.
 ew-viewmodel = { path = "../ew-viewmodel", features = ["testkit"] }
+# WP-S2.17 part 1: the SemiBold face is pinned by SHA-256 in a unit test (ADR-0028 recommendation 6).
+sha2 = { workspace = true }
 
 # The canvas frame-time bench (WP-S2.02 section 9); `cargo xtask perf-gate` runs it once per gate run.
 [[bench]]

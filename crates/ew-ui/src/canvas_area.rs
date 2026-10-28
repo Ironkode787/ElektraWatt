@@ -321,7 +321,7 @@ impl Behavior<TabPane> for AreaBehavior<'_> {
             f32::INFINITY,
             font,
         );
-        let margin = 8.0;
+        let margin = crate::theme::current(ui.ctx()).space_3;
         let close = Vec2::splat(self.close_button_outer_size());
         let width = galley.size().x + 2.0 * margin + 4.0 + close.x;
         let (_, rect) = ui.allocate_space(vec2(width, ui.available_height()));
@@ -335,7 +335,8 @@ impl Behavior<TabPane> for AreaBehavior<'_> {
             visuals.extreme_bg_color
         };
         if !state.is_being_dragged {
-            ui.painter().rect_filled(rect.shrink(0.5), 0.0, fill);
+            ui.painter()
+                .rect_filled(rect.shrink(0.5), crate::theme::SQUARE, fill);
             let text_at = egui::Align2::LEFT_CENTER
                 .align_size_within_rect(galley.size(), rect.shrink(margin))
                 .min;

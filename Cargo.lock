@@ -1684,6 +1684,7 @@ dependencies = [
  "ew-render3d",
  "ew-viewmodel",
  "serde_json",
+ "sha2",
  "skrifa 0.44.0",
  "tracing",
 ]

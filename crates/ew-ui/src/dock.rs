@@ -176,9 +176,11 @@ impl Dock {
     /// Paints the tree; `pane_ui` paints one pane. A tab picked from a tab group's "All tabs" menu (FT-509) becomes
     /// that group's active tab.
     pub fn show(&mut self, ui: &mut Ui, pane_ui: &mut dyn FnMut(&mut Ui, PaneKind)) {
+        let tokens = crate::theme::current(ui.ctx());
         let mut behavior = DockBehavior {
             pane_ui,
             chosen: None,
+            tokens,
         };
         self.tree.ui(&mut behavior, ui);
         if let Some((group, child)) = behavior.chosen {
@@ -226,6 +228,8 @@ struct DockBehavior<'a> {
     pane_ui: &'a mut dyn FnMut(&mut Ui, PaneKind),
     /// FT-509: the (tab group, tab) picked from the "All tabs" menu this frame.
     chosen: Option<(TileId, TileId)>,
+    /// The tokens of the theme on show (doc 16a §4.14's egui_tiles row).
+    tokens: std::sync::Arc<crate::theme::Tokens>,
 }
 
 impl egui_tiles::Behavior<PaneKind> for DockBehavior<'_> {
@@ -252,6 +256,75 @@ impl egui_tiles::Behavior<PaneKind> for DockBehavior<'_> {
 
     fn is_tab_closable(&self, _tiles: &Tiles<PaneKind>, _tile_id: TileId) -> bool {
         false
+    }
+
+    // WP-S2.17 part 1: the dock's look from the tokens (doc 16a §4.14).
+    fn tab_bar_height(&self, _style: &egui::Style) -> f32 {
+        self.tokens.size_dock_tab_bar
+    }
+
+    fn gap_width(&self, _style: &egui::Style) -> f32 {
+        self.tokens.border_width
+    }
+
+    fn tab_bar_color(&self, _visuals: &egui::Visuals) -> egui::Color32 {
+        self.tokens.surface_chrome.color32()
+    }
+
+    fn tab_bg_color(
+        &self,
+        _visuals: &egui::Visuals,
+        _tiles: &Tiles<PaneKind>,
+        _tile_id: TileId,
+        state: &egui_tiles::TabState,
+    ) -> egui::Color32 {
+        if state.active {
+            self.tokens.surface_panel.color32()
+        } else {
+            crate::theme::NONE
+        }
+    }
+
+    fn tab_outline_stroke(
+        &self,
+        _visuals: &egui::Visuals,
+        _tiles: &Tiles<PaneKind>,
+        _tile_id: TileId,
+        state: &egui_tiles::TabState,
+    ) -> egui::Stroke {
+        if state.active {
+            crate::theme::stroke(self.tokens.border_width, self.tokens.border_default)
+        } else {
+            egui::Stroke::NONE
+        }
+    }
+
+    fn tab_bar_hline_stroke(&self, _visuals: &egui::Visuals) -> egui::Stroke {
+        crate::theme::stroke(self.tokens.border_width, self.tokens.border_default)
+    }
+
+    fn tab_text_color(
+        &self,
+        _visuals: &egui::Visuals,
+        _tiles: &Tiles<PaneKind>,
+        _tile_id: TileId,
+        state: &egui_tiles::TabState,
+    ) -> egui::Color32 {
+        if state.active {
+            self.tokens.text_primary.color32()
+        } else {
+            self.tokens.text_secondary.color32()
+        }
+    }
+
+    fn resize_stroke(&self, _style: &egui::Style, resize_state: egui_tiles::ResizeState) -> egui::Stroke {
+        let t = &self.tokens;
+        match resize_state {
+            egui_tiles::ResizeState::Idle => crate::theme::stroke(t.border_width, t.border_default),
+            egui_tiles::ResizeState::Hovering | egui_tiles::ResizeState::Dragging => {
+                crate::theme::stroke(t.border_width, t.accent)
+            }
+        }
     }
 
     /// The registry owns Ctrl+Tab (`tab.next`, WP-S2.03 §6.2): egui_tiles' own cycling of the hovered container's tabs

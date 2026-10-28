@@ -218,8 +218,12 @@ fn paint_highlights(
             continue;
         };
         let (r, g, b) = highlight::SLOT_COLOURS[usize::from(slot) % highlight::MAX_HIGHLIGHTS];
-        let fill = egui::Color32::from_rgba_unmultiplied(r, g, b, highlight::BAND_ALPHA);
-        let stroke = egui::Stroke::new(highlight::HATCH_WIDTH_PT as f32, egui::Color32::from_rgb(r, g, b));
+        // The slot's colour is data of the viewmodel (doc 16 §10.3's hues arrive with WP-S2.17 part 5, D14).
+        let fill = crate::theme::rgba(r, g, b, highlight::BAND_ALPHA);
+        let stroke = egui::Stroke::new(
+            highlight::HATCH_WIDTH_PT as f32,
+            crate::theme::rgba(r, g, b, u8::MAX),
+        );
         for band in &bands {
             painter.add(egui::Shape::convex_polygon(
                 band.band.iter().map(|p| to_pt(*p)).collect(),
@@ -258,7 +262,7 @@ pub fn preview_snapshot_image(shell: &ShellModel) -> Result<(ew_render_cpu::Rgba
 /// The canvas theme of the settings (light for `system`).
 fn theme_of(shell: &ShellModel) -> Theme {
     match shell.settings().theme.as_str() {
-        "dark" => overlay::DARK,
+        "dark" | "hc-dark" => overlay::DARK,
         _ => overlay::LIGHT,
     }
 }
@@ -528,7 +532,7 @@ fn to_points(origin: Pos2, ppp: f32, r: PxRect) -> Rect {
 }
 
 fn color32(c: Color) -> Color32 {
-    Color32::from_rgba_unmultiplied(c.r, c.g, c.b, c.a)
+    crate::theme::rgba(c.r, c.g, c.b, c.a)
 }
 
 /// The renderer's view of a canvas: the pane and the pixels per point without the UI scale, so that
@@ -1030,12 +1034,13 @@ impl CanvasHost {
             (None, Some(folio)) => strings::format("page-rendering", &[folio]),
             (None, None) => strings::text("page-no-pages").to_owned(),
         };
+        let t = crate::theme::current(ui.ctx());
         ui.painter().text(
             rect.center(),
             egui::Align2::CENTER_CENTER,
             text,
-            egui::FontId::proportional(14.0),
-            ui.visuals().text_color(),
+            crate::theme::font(&t.type_body),
+            t.text_secondary.color32(),
         );
     }
 
@@ -1360,14 +1365,27 @@ impl CanvasHost {
         let painter = ui.painter_at(popup.intersect(rect));
         let origin = popup.min;
         for &r in &marks.surround {
-            painter.rect_filled(to_points(origin, ppp, r), 0.0, color32(theme.surround));
+            painter.rect_filled(
+                to_points(origin, ppp, r),
+                crate::theme::SQUARE,
+                color32(theme.surround),
+            );
         }
-        painter.rect_filled(to_points(origin, ppp, marks.sheet), 0.0, color32(theme.paper));
+        painter.rect_filled(
+            to_points(origin, ppp, marks.sheet),
+            crate::theme::SQUARE,
+            color32(theme.paper),
+        );
         let uv = Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0));
         for layer in &plan.layers {
             for placed in layer {
                 if let Some(t) = self.cache.get(&placed.key, self.frame) {
-                    painter.image(t.id(), to_points(origin, ppp, placed.rect), uv, Color32::WHITE);
+                    painter.image(
+                        t.id(),
+                        to_points(origin, ppp, placed.rect),
+                        uv,
+                        crate::theme::NO_TINT,
+                    );
                 }
             }
         }
@@ -1565,9 +1583,17 @@ impl CanvasHost {
         let painter = ui.painter_at(rect);
         let origin = rect.min;
         for &r in &overlay.surround {
-            painter.rect_filled(to_points(origin, ppp, r), 0.0, color32(theme.surround));
+            painter.rect_filled(
+                to_points(origin, ppp, r),
+                crate::theme::SQUARE,
+                color32(theme.surround),
+            );
         }
-        painter.rect_filled(to_points(origin, ppp, overlay.sheet), 0.0, color32(theme.paper));
+        painter.rect_filled(
+            to_points(origin, ppp, overlay.sheet),
+            crate::theme::SQUARE,
+            color32(theme.paper),
+        );
         let uv = Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0));
         let mut complete = plan.settled;
         let mut fallback = false;
@@ -1576,7 +1602,7 @@ impl CanvasHost {
             for placed in layer {
                 match self.texture(group, placed.key) {
                     Some((id, old)) => {
-                        painter.image(id, to_points(origin, ppp, placed.rect), uv, Color32::WHITE);
+                        painter.image(id, to_points(origin, ppp, placed.rect), uv, crate::theme::NO_TINT);
                         // A tile of the previous revision on the last layer: the page on show is not drawn yet.
                         if old && i == last {
                             complete = false;
@@ -1613,7 +1639,11 @@ impl CanvasHost {
         let painter = ui.painter_at(rect);
         let origin = rect.min;
         for &r in &overlay.surround {
-            painter.rect_filled(to_points(origin, ppp, r), 0.0, color32(theme.surround));
+            painter.rect_filled(
+                to_points(origin, ppp, r),
+                crate::theme::SQUARE,
+                color32(theme.surround),
+            );
         }
         let s = overlay.sheet;
         let (w, h) = (pane_px.0.max(1) as f32, pane_px.1.max(1) as f32);
@@ -1621,20 +1651,21 @@ impl CanvasHost {
             Pos2::new(s.x0 as f32 / w, s.y0 as f32 / h),
             Pos2::new(s.x1 as f32 / w, s.y1 as f32 / h),
         );
-        painter.image(texture, to_points(origin, ppp, s), uv, Color32::WHITE);
+        painter.image(texture, to_points(origin, ppp, s), uv, crate::theme::NO_TINT);
         paint_marks(&painter, origin, ppp, overlay, theme);
     }
 
     /// The statistics overlay: fps, the p99 of the frame and of each phase, the pending tiles and the backend.
     /// The frame the statistics panel takes in `rect`: the preview chips keep out of it (FT-389).
     fn statistics_frame(&self, ui: &Ui, rect: Rect, shell: &ShellModel) -> Rect {
+        let t = crate::theme::current(ui.ctx());
         let galley = ui.painter_at(rect).layout_no_wrap(
             self.statistics_text(shell),
-            egui::FontId::proportional(12.0),
-            Color32::WHITE,
+            crate::theme::font(&t.type_small),
+            t.canvas_chip_text.color32(),
         );
-        let at = rect.right_top() + Vec2::new(-8.0 - galley.size().x, 8.0);
-        Rect::from_min_size(at, galley.size()).expand(4.0)
+        let at = rect.right_top() + Vec2::new(-t.space_3 - galley.size().x, t.space_3);
+        Rect::from_min_size(at, galley.size()).expand(t.space_2)
     }
 
     /// The statistics panel's text.
@@ -1660,16 +1691,18 @@ impl CanvasHost {
     }
 
     fn paint_statistics(&self, ui: &Ui, rect: Rect, shell: &ShellModel) {
+        // The statistics panel as a canvas chip (doc 16a §7.4; its own diagnostic-chip look is part 5's, §7.7).
+        let t = crate::theme::current(ui.ctx());
         let painter = ui.painter_at(rect);
         let galley = painter.layout_no_wrap(
             self.statistics_text(shell),
-            egui::FontId::proportional(12.0),
-            Color32::WHITE,
+            crate::theme::font(&t.type_small),
+            t.canvas_chip_text.color32(),
         );
-        let at = rect.right_top() + Vec2::new(-8.0 - galley.size().x, 8.0);
-        let back = Rect::from_min_size(at, galley.size()).expand(4.0);
-        painter.rect_filled(back, 2.0, Color32::from_black_alpha(180));
-        painter.galley(at, galley, Color32::WHITE);
+        let at = rect.right_top() + Vec2::new(-t.space_3 - galley.size().x, t.space_3);
+        let back = Rect::from_min_size(at, galley.size()).expand(t.space_2);
+        painter.rect_filled(back, t.radius_sm, t.canvas_chip.color32());
+        painter.galley(at, galley, t.canvas_chip_text.color32());
     }
 }
 

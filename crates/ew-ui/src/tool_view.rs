@@ -9,7 +9,7 @@
 //!
 //! Labels and chips are never composited into `canvas.snapshot`; `ui.describe` lists them.
 
-use egui::{Align2, Color32, FontId, Pos2, Rect, Stroke, Ui, Vec2};
+use egui::{Align2, FontId, Pos2, Rect, Stroke, Ui, Vec2};
 use ew_render2d::overlay::{Dash, MarkerKind, ToolMark, ToolToken};
 use ew_render2d::view::DrawTransform;
 use ew_viewmodel::shell::ShellModel;
@@ -343,21 +343,31 @@ pub(crate) fn ip_fields(
     }
 }
 
-/// A text chip: the text on the panel colour with a thin frame, its anchor point at `at` (points).
+/// A text chip: the text on the raised surface with a thin frame, its anchor point at `at` (points). The canvas
+/// chip of doc 16a §7.4 (inverse, `radius.sm`) is WP-S2.17 part 5's; part 1 keeps the as-built light chip on tokens.
 fn chip(ui: &Ui, clip: Rect, at: Pos2, align: Align2, text: &str) {
+    let t = crate::theme::current(ui.ctx());
     let painter = ui.painter_at(clip);
-    let visuals = ui.visuals();
-    let galley = painter.layout_no_wrap(text.to_owned(), FontId::proportional(12.0), visuals.text_color());
+    let galley = painter.layout_no_wrap(text.to_owned(), chip_font(&t), t.text_primary.color32());
     let rect = align.anchor_size(at, galley.size());
-    painter.rect_filled(rect.expand(3.0), 2.0, visuals.extreme_bg_color);
+    painter.rect_filled(rect.expand(CHIP_PAD), t.radius_sm, t.surface_raised.color32());
     painter.rect_stroke(
-        rect.expand(3.0),
-        2.0,
-        Stroke::new(1.0, visuals.weak_text_color()),
+        rect.expand(CHIP_PAD),
+        t.radius_sm,
+        Stroke::new(t.border_width, t.border_control.color32()),
         egui::StrokeKind::Outside,
     );
-    painter.galley(rect.min, galley, visuals.text_color());
+    painter.galley(rect.min, galley, t.text_primary.color32());
 }
+
+/// The font of a canvas chip (`type.small`).
+fn chip_font(t: &crate::theme::Tokens) -> FontId {
+    crate::theme::font(&t.type_small)
+}
+
+/// The padding of a chip around its text, as built (between `space.1` and `space.2`; doc 16a §7.4 sets the canvas
+/// chip's in part 5).
+const CHIP_PAD: f32 = 3.0;
 
 /// Paints the overlay's labels of the focused canvas: each a chip at its point (`transform` maps sheet nm to the
 /// pane's physical pixels, `ppp` pixels per point, `origin` the pane's top-left corner in points).
@@ -548,9 +558,10 @@ pub fn paint_preview(
     }
     texts.truncate(11);
     let painter = ui.painter_at(rect);
+    let font = chip_font(&crate::theme::current(ui.ctx()));
     let size = |t: &str| {
         painter
-            .layout_no_wrap(t.to_owned(), FontId::proportional(12.0), Color32::WHITE)
+            .layout_no_wrap(t.to_owned(), font.clone(), crate::theme::NO_TINT)
             .size()
     };
     let changes: Vec<(Option<(Pos2, Align2)>, Vec2)> = texts.iter().map(|(t, at)| (*at, size(t))).collect();
@@ -560,30 +571,28 @@ pub fn paint_preview(
         .chain(texts.into_iter().map(|(t, _)| t))
         .zip(frames)
     {
-        chip(ui, rect, frame.shrink(3.0).min, Align2::LEFT_TOP, &text);
+        chip(ui, rect, frame.shrink(CHIP_PAD).min, Align2::LEFT_TOP, &text);
         out.push((text, frame));
     }
     out
 }
 
-/// The frame of the link preview popup (§7.8): a shadowed border around `rect` and the target's folio above it.
+/// The frame of the link preview popup (§7.8): a popover (doc 16a §6.13's surface: `elevation.1`, a 1-px
+/// `color.border.default` outline) around `rect` and the target's folio above it.
 pub fn paint_popup_frame(ui: &Ui, clip: Rect, rect: Rect, folio: &str) {
+    let t = crate::theme::current(ui.ctx());
     let painter = ui.painter_at(clip);
-    painter.rect_filled(
-        rect.translate(Vec2::new(3.0, 3.0)),
-        2.0,
-        Color32::from_black_alpha(60),
-    );
+    painter.add(crate::theme::shadow(&t.elevation_1).as_shape(rect, crate::theme::SQUARE));
     painter.rect_stroke(
         rect,
-        0.0,
-        Stroke::new(1.0, ui.visuals().strong_text_color()),
+        crate::theme::SQUARE,
+        Stroke::new(t.border_width, t.border_default.color32()),
         egui::StrokeKind::Outside,
     );
     chip(
         ui,
         clip,
-        rect.left_top() - Vec2::new(0.0, 4.0),
+        rect.left_top() - Vec2::new(0.0, t.space_2),
         Align2::LEFT_BOTTOM,
         &strings::format("link-preview-title", &[folio]),
     );

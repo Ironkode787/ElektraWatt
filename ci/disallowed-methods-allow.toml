@@ -216,6 +216,16 @@ item = "fn adapter_required"
 count = 1
 
 [[allow]]
+crate = "ew-ui"
+item = "fn bless"
+count = 1
+
+[[allow]]
+crate = "ew-ui"
+item = "fn out_dir"
+count = 1
+
+[[allow]]
 crate = "ew-viewmodel"
 item = "fn bless"
 count = 1

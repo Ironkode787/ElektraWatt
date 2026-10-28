@@ -13,7 +13,7 @@ use std::path::PathBuf;
 use std::sync::mpsc::{self, Receiver, TryRecvError};
 use std::time::Duration;
 
-use egui::{CentralPanel, Key, Modifiers, Panel, ThemePreference, Ui, ViewportCommand};
+use egui::{CentralPanel, Key, Modifiers, Panel, Ui, ViewportCommand};
 use ew_viewmodel::actions::Context;
 use ew_viewmodel::layout::PaneKind;
 use ew_viewmodel::shell::{ConfirmAnswer, Focus, Outcome, Prompt, PromptRequest, ShellModel};
@@ -195,8 +195,8 @@ pub struct App {
     /// The `ui_scale` last given to egui: the zoom is set when the setting changes, not every frame, so that
     /// egui's own zoom keys keep working in between.
     applied_scale: Option<f32>,
-    /// The theme last given to egui.
-    applied_theme: Option<String>,
+    /// The theme and density settings last given to egui.
+    applied_theme: Option<(String, String)>,
     // WP-S2.05 part 3
     /// Edit ▸ Paste (or the palette) asked for the system clipboard: the frame sends `ViewportCommand::RequestPaste`,
     /// and the platform answers with a paste event, which runs `edit.paste_clip` with its text like Ctrl+V.
@@ -436,14 +436,15 @@ impl App {
             ctx.set_zoom_factor(scale);
             self.applied_scale = Some(scale);
         }
-        let theme = self.shell.settings().theme.clone();
-        if self.applied_theme.as_deref() != Some(theme.as_str()) {
-            ctx.set_theme(match theme.as_str() {
-                "light" => ThemePreference::Light,
-                "dark" => ThemePreference::Dark,
-                _ => ThemePreference::System,
-            });
-            self.applied_theme = Some(theme);
+        // WP-S2.17 part 1: the theme and the density as tokens (doc 16a §4.14), applied when either setting changes;
+        // `system` lets egui follow the operating system between Light and Dark (D5).
+        let appearance = (
+            self.shell.settings().theme.clone(),
+            self.shell.settings().density.clone(),
+        );
+        if self.applied_theme.as_ref() != Some(&appearance) {
+            crate::theme::apply_setting(&appearance.0, &appearance.1, &ctx);
+            self.applied_theme = Some(appearance);
         }
         // The switch rule (WP-S2.02 section 7.2): the setting is effective at once, a failure moves the canvas to the
         // CPU with one banner, and the status bar shows the result.
@@ -519,7 +520,11 @@ impl App {
             ));
         }
 
-        Panel::top("menu-bar").show(ui, |ui| menu::show(ui, &self.shell, &mut events));
+        // The chrome paints `color.surface.chrome` itself (doc 16a §4.14); panels take `color.surface.panel`.
+        let chrome = crate::theme::current(&ctx).surface_chrome.color32();
+        Panel::top("menu-bar")
+            .frame(egui::Frame::side_top_panel(&ctx.global_style()).fill(chrome))
+            .show(ui, |ui| menu::show(ui, &self.shell, &mut events));
         if let Some(banner) = self.shell.banner() {
             Panel::top("banner").show(ui, |ui| {
                 ui.horizontal_wrapped(|ui| {
@@ -535,7 +540,9 @@ impl App {
                 });
             });
         }
-        Panel::bottom("status-bar").show(ui, |ui| status_bar::show(ui, &self.shell, hide_job, &mut events));
+        Panel::bottom("status-bar")
+            .frame(egui::Frame::side_top_panel(&ctx.global_style()).fill(chrome))
+            .show(ui, |ui| status_bar::show(ui, &self.shell, hide_job, &mut events));
         let tool_epoch = self.shell.tool_epoch();
         if self.drawing_fields_epoch != Some(tool_epoch) {
             self.marker_csa.clear();

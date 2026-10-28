@@ -27,15 +27,6 @@ use serde_json::json;
 
 use crate::app::Event;
 
-/// The height of a row in points.
-const ROW_HEIGHT: f32 = 22.0;
-
-/// The width of a row's label column in points.
-const LABEL_WIDTH: f32 = 120.0;
-
-/// The indent of one nesting level in points.
-const INDENT: f32 = 10.0;
-
 /// A text longer than this many characters is ellipsised in the middle (the whole text in the tooltip).
 const MAX_SHOWN: usize = 48;
 
@@ -256,7 +247,8 @@ impl PropertiesPane {
 
     /// The header (§6.2): title, subtitle, location, finding chips.
     fn header(ui: &mut Ui, sheet: &PropertySheet) {
-        ui.label(RichText::new(&sheet.header.title).strong().size(15.0));
+        let t = crate::theme::current(ui.ctx());
+        ui.label(RichText::new(&sheet.header.title).font(crate::theme::font(&t.type_title)));
         if let Some(s) = &sheet.header.subtitle {
             ui.label(s);
         }
@@ -358,8 +350,12 @@ impl PropertiesPane {
         if let Some(e) = &error {
             description.push_str(&format!("; {e}"));
         }
+        // Doc 16a §6.8: rows of `size.row`, the label column `size.property_label`, value cells
+        // `size.control.inline`; a nested row is indented by `space.3` per level (16a sets no property indent).
+        let t = crate::theme::current(ui.ctx());
+        let (row_height, label_width, indent) = (t.size_row, t.size_property_label, t.space_3);
         let width = ui.available_width();
-        let (rect, _) = ui.allocate_exact_size(Vec2::new(width, ROW_HEIGHT), Sense::hover());
+        let (rect, _) = ui.allocate_exact_size(Vec2::new(width, row_height), Sense::hover());
         let group_id = ui.scope_id().with(("prop-row", &row.key));
         let group = ui.interact(rect, group_id, Sense::hover());
         let name = label.clone();
@@ -374,12 +370,13 @@ impl PropertiesPane {
                 .accessibility_parent(group_id)
                 .layout(egui::Layout::left_to_right(egui::Align::Center)),
         );
-        child.add_space(INDENT * f32::from(row.depth));
+        child.spacing_mut().interact_size.y = t.size_control_inline;
+        child.add_space(indent * f32::from(row.depth));
         let selected = focused == Some(row.key.as_str());
         let label_button = child.add_sized(
             [
-                LABEL_WIDTH - INDENT * f32::from(row.depth).min(6.0),
-                ROW_HEIGHT - 2.0,
+                label_width - indent * f32::from(row.depth).min(6.0),
+                t.size_control_inline,
             ],
             egui::Button::selectable(selected, middle(&label)).frame(false),
         );
@@ -445,7 +442,7 @@ impl PropertiesPane {
             ui.scope_builder(egui::UiBuilder::new().accessibility_parent(list_id), |ui| {
                 egui::ScrollArea::vertical()
                     .id_salt(("prop-choices-scroll", &row.key))
-                    .max_height(ROW_HEIGHT * 8.0)
+                    .max_height(t.size_row * t.size_chooser_rows as f32)
                     .show(ui, |ui| {
                         let top = ui.min_rect().min;
                         for (i, (text, _)) in c.items.iter().enumerate() {

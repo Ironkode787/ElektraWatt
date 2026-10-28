@@ -200,7 +200,7 @@ impl PageView {
                     texture.id(),
                     image_rect,
                     egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
-                    egui::Color32::WHITE,
+                    crate::theme::NO_TINT,
                 );
             }
             _ => {

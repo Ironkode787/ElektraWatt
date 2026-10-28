@@ -107,6 +107,9 @@ fn ms5_the_pane_in_the_window_named_rows_keyboard_detail_and_pending() {
     let platform = Scripted::default();
     let opened = platform.opened.clone();
     let mut h = on_golden(&tmp, platform);
+    // WP-S2.17 part 1: with the controls and rows at their token sizes (28 points) the docked pane of a 700-point
+    // window has no room left for a row below its header; 800 points (the height of the snapshots' window) does.
+    h.set_size(egui::Vec2::new(1000.0, 800.0));
     dispatch(&mut h, "page.goto", json!({"folio": "101"}));
     dispatch(&mut h, "view.zoom_actual", json!({}));
     settle(&mut h);

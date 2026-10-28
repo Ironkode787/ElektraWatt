@@ -385,8 +385,9 @@ impl FindPane {
     fn job(ui: &Ui, hit: &FindHit) -> LayoutJob {
         let font = egui::TextStyle::Body.resolve(ui.style());
         let plain = TextFormat::simple(font.clone(), ui.visuals().text_color());
+        let t = crate::theme::current(ui.ctx());
         let strong = TextFormat {
-            underline: egui::Stroke::new(1.0, ui.visuals().strong_text_color()),
+            underline: egui::Stroke::new(t.border_width, ui.visuals().strong_text_color()),
             color: ui.visuals().strong_text_color(),
             ..TextFormat::simple(font, ui.visuals().strong_text_color())
         };

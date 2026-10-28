@@ -39,11 +39,10 @@ use serde_json::{Value, json};
 
 use crate::app::Event;
 
-/// The height of one row in points.
-pub const ROW_HEIGHT: f32 = 20.0;
-
-/// The indent of one level in points.
-const INDENT: f32 = 14.0;
+/// The height of one row in points: `size.row` of the theme on show (doc 16a §6.6; 28, Compact 24).
+pub fn row_height(ctx: &egui::Context) -> f32 {
+    crate::theme::current(ctx).size_row
+}
 
 /// How long the type-ahead buffer lives without typing, in seconds.
 const TYPE_AHEAD_RESET: f64 = 1.0;
@@ -235,8 +234,13 @@ impl NavigatorPane {
                 .resizable(false)
                 .max_size(max)
                 .show(ui, |ui| {
+                    // Scrolled inside the panel's own height: egui's default minimum of 64 points would grow the
+                    // panel past `max` and push its top over the rows.
+                    let inner = ui.available_height().max(0.0);
                     egui::ScrollArea::vertical()
                         .id_salt("messages-detail-scroll")
+                        .max_height(inner)
+                        .min_scrolled_height(inner)
                         .show(ui, |ui| crate::messages::detail_and_footer(ui, shell, events));
                 });
         }
@@ -245,7 +249,9 @@ impl NavigatorPane {
         let visible = self.visible_rows(shell);
         let cursor = shell.nav_cursor(self.kind);
         // The list itself: one focusable node with the role `Tree` (`Table` in table mode).
-        let list_rect = ui.available_rect_before_wrap();
+        // It ends where the Messages detail panel begins: the panel moves the cursor's bottom up, which
+        // `available_rect_before_wrap` alone does not see.
+        let list_rect = ui.available_rect_before_wrap().intersect(ui.cursor());
         let list_id = ui.scope_id().with(("navigator", self.kind_word()));
         let list = ui.interact(list_rect, list_id, Sense::focusable_noninteractive());
         let tree_name = if in_table {
@@ -316,18 +322,27 @@ impl NavigatorPane {
             .and_then(|c| visible.iter().position(|r| &r.key == c))
             .filter(|i| !inside(*i));
         self.scrolled_to.clone_from(&cursor);
+        let row = row_height(ui.ctx());
+        // The list keeps to that room: neither the rest of the pane nor egui's default minimum of 64 points may run
+        // it under the Messages detail block, which the token sizes made reachable in a short pane.
+        let list_height = list_rect.height().max(0.0);
         let mut area = egui::ScrollArea::vertical()
             .id_salt(("navigator-scroll", self.kind_word()))
-            .auto_shrink([false, false]);
+            .auto_shrink([false, false])
+            .max_height(list_height)
+            .min_scrolled_height(list_height);
         if let Some(i) = scroll_to {
-            area = area.vertical_scroll_offset((i as f32 * ROW_HEIGHT - 2.0 * ROW_HEIGHT).max(0.0));
+            area = area.vertical_scroll_offset((i as f32 * row - 2.0 * row).max(0.0));
         }
         let kind = self.kind;
         let mut painted = 0;
         let mut view = 0..0;
         // The rows are made in a scope whose AccessKit parent is the list, so they are the Tree's items (§6.9).
         ui.scope_builder(egui::UiBuilder::new().accessibility_parent(list_id), |ui| {
-            area.show_rows(ui, ROW_HEIGHT, visible.len(), |ui, range| {
+            // Rows of `size.row`, edge to edge (doc 16a §6.6): the row's widgets take the row's height, no gap.
+            ui.spacing_mut().item_spacing.y = 0.0;
+            ui.spacing_mut().interact_size.y = row;
+            area.show_rows(ui, row, visible.len(), |ui, range| {
                 view = range.clone();
                 for row in &visible[range] {
                     painted += 1;
@@ -504,7 +519,8 @@ fn row_ui(
     let is_cursor = cursor == Some(row.key.as_str());
     let (glyph_clicked, response) = ui
         .horizontal(|ui| {
-            ui.add_space(INDENT * (row.level.saturating_sub(1)) as f32);
+            let indent = crate::theme::current(ui.ctx()).size_tree_indent;
+            ui.add_space(indent * (row.level.saturating_sub(1)) as f32);
             let glyph = match row.expanded {
                 Some(true) => ui.add(egui::Button::new("-").frame(false).small()).clicked(),
                 Some(false) => ui.add(egui::Button::new("+").frame(false).small()).clicked(),

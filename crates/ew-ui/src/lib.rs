@@ -54,5 +54,7 @@ mod start_page;
 mod status_bar;
 // WP-S2.04 part 4b: the text tool's popup.
 mod text_popup;
+// WP-S2.17 part 1: the design tokens, themes and their mapping onto egui.
+pub mod theme;
 pub mod tool_view;
 mod wizard;

@@ -296,7 +296,7 @@ fn nv11_scrolling_the_devices_pane_paints_the_rows_in_view_and_calls_nothing() {
     assert_eq!(h.state().shell().session_calls().navigator_table, calls + 1);
     let total = h.state().shell().shown_rows(NavKind::Devices).len();
     let tree = h.get_by_label("Devices navigator").rect();
-    let in_view = (tree.height() / ew_ui::navigator::ROW_HEIGHT).ceil() as usize;
+    let in_view = (tree.height() / ew_ui::navigator::row_height(&h.ctx)).ceil() as usize;
     let (built, painted) = h.state().navigator_pane_stats(NavKind::Devices).unwrap();
     assert!(total > in_view + 2, "{total} rows, {in_view} in view");
     assert!(painted <= in_view + 2, "{painted} painted, {in_view} in view");
@@ -327,6 +327,16 @@ fn r30_double_clicking_a_paged_report_block_goes_to_its_first_folio() {
     dispatch(&mut h, "page.goto", json!({"folio": "102"}));
     dispatch(&mut h, "navigator.show", json!({"kind": "blocks"}));
     settle(&mut h);
+    settle(&mut h);
+    // WP-S2.17 part 1: rows of `size.row` (28 px) put the row under the pane's fold in this window; scroll it in.
+    h.get_all_by_role(egui::Role::TreeItem)
+        .find(|n| {
+            n.accesskit_node()
+                .label()
+                .is_some_and(|l| l.starts_with("Wire List"))
+        })
+        .unwrap()
+        .scroll_to_me();
     settle(&mut h);
     let at = item_centre(&h, "Wire List");
     h.input_mut().events.push(egui::Event::PointerMoved(at));

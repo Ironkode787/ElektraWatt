@@ -9,6 +9,7 @@
 //! filled square in its info colour (the hyperlink colour); a pending row draws the same shape outlined in the muted
 //! text colour, and its text is muted too. The word is the row's badge, so no state rests on colour alone.
 
+use crate::theme::Tokens;
 use egui::{Color32, Pos2, Rect, Sense, Stroke, Ui, Vec2};
 use ew_viewmodel::navigators::NavKind;
 use ew_viewmodel::properties::CardOrigin;
@@ -18,34 +19,34 @@ use serde_json::{Value, json};
 
 use crate::app::Event;
 
-/// The side of a severity icon in points.
-const ICON: f32 = 10.0;
-
-/// The colour of a finding row's icon: the severity's theme colour, the muted text colour while it is pending.
+/// The colour of a finding row's icon: the severity's token, the tertiary text while it is pending (doc 16a §6.24).
 pub(crate) fn icon_colour(ui: &Ui, look: FindingLook) -> Color32 {
-    colour_of(ui.visuals(), look)
+    colour_of(&crate::theme::current(ui.ctx()), look)
 }
 
-/// The colour rule of [`icon_colour`] over a theme's visuals.
-fn colour_of(v: &egui::Visuals, look: FindingLook) -> Color32 {
+/// The colour rule of [`icon_colour`] over a theme's tokens: error, the warning icon colour, info (the accent).
+fn colour_of(t: &Tokens, look: FindingLook) -> Color32 {
     if look.pending {
-        return v.weak_text_color();
+        return t.text_tertiary.color32();
     }
     match look.severity {
-        "error" => v.error_fg_color,
-        "warning" => v.warn_fg_color,
-        _ => v.hyperlink_color,
+        "error" => t.error,
+        "warning" => t.warning_icon,
+        _ => t.info,
     }
+    .color32()
 }
 
-/// Paints a finding row's severity icon (§7.3) in a square of its own.
+/// Paints a finding row's severity icon (§7.3) in a square of `size.severity_icon`; the shape (circle, triangle,
+/// square) is drawn in the inner 10 px of the 16-px box, as built, until the icon set of WP-S2.17 part 6.
 pub(crate) fn severity_icon(ui: &mut Ui, look: FindingLook) {
-    let (rect, _) = ui.allocate_exact_size(Vec2::splat(ICON), Sense::hover());
+    let t = crate::theme::current(ui.ctx());
+    let (rect, _) = ui.allocate_exact_size(Vec2::splat(t.size_severity_icon), Sense::hover());
     let colour = icon_colour(ui, look);
     let painter = ui.painter();
     let c = rect.center();
-    let r = ICON / 2.0 - 1.0;
-    let stroke = Stroke::new(1.5, colour);
+    let r = t.size_severity_icon / 2.0 - t.space_icon / 2.0;
+    let stroke = Stroke::new(t.icon_stroke, colour);
     match look.severity {
         "error" => {
             if look.pending {
@@ -60,19 +61,15 @@ pub(crate) fn severity_icon(ui: &mut Ui, look: FindingLook) {
                 Pos2::new(c.x + r, c.y + r),
                 Pos2::new(c.x - r, c.y + r),
             ];
-            let fill = if look.pending {
-                Color32::TRANSPARENT
-            } else {
-                colour
-            };
+            let fill = if look.pending { crate::theme::NONE } else { colour };
             painter.add(egui::Shape::convex_polygon(points, fill, stroke));
         }
         _ => {
             let square = Rect::from_center_size(c, Vec2::splat(2.0 * r));
             if look.pending {
-                painter.rect_stroke(square, 0.0, stroke, egui::StrokeKind::Inside);
+                painter.rect_stroke(square, crate::theme::SQUARE, stroke, egui::StrokeKind::Inside);
             } else {
-                painter.rect_filled(square, 0.0, colour);
+                painter.rect_filled(square, crate::theme::SQUARE, colour);
             }
         }
     }
@@ -182,16 +179,22 @@ mod tests {
     use super::*;
 
     #[test]
-    fn the_icon_colour_is_the_severitys_theme_colour_and_muted_while_pending() {
-        for v in [egui::Visuals::light(), egui::Visuals::dark()] {
+    fn the_icon_colour_is_the_severitys_token_and_tertiary_while_pending() {
+        use crate::theme::{Density, Theme, tokens};
+        for theme in Theme::ALL {
+            let t = tokens(theme, Density::Comfortable);
             let look = |severity, pending| FindingLook { severity, pending };
-            assert_eq!(colour_of(&v, look("error", false)), v.error_fg_color);
-            assert_eq!(colour_of(&v, look("warning", false)), v.warn_fg_color);
-            assert_eq!(colour_of(&v, look("info", false)), v.hyperlink_color);
+            assert_eq!(colour_of(&t, look("error", false)), t.error.color32());
+            assert_eq!(colour_of(&t, look("warning", false)), t.warning_icon.color32());
+            assert_eq!(colour_of(&t, look("info", false)), t.accent.color32());
             for s in ["error", "warning", "info"] {
-                assert_eq!(colour_of(&v, look(s, true)), v.weak_text_color(), "{s} pending");
+                assert_eq!(
+                    colour_of(&t, look(s, true)),
+                    t.text_tertiary.color32(),
+                    "{s} pending"
+                );
             }
-            assert_ne!(v.error_fg_color, v.warn_fg_color, "error and warning differ");
+            assert_ne!(t.error, t.warning_icon, "error and warning differ");
         }
     }
 }

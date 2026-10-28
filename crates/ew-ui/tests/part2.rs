@@ -244,6 +244,9 @@ fn the_wizard_shows_a_preview_follows_a_typed_value_and_writes_the_basic_project
     settle(&mut h);
     assert!(h.query_all_by_label("kept: apply after finishing").count() > 0);
     assert!(h.query_all_by_label("written to the basic project").count() > 0);
+    // WP-S2.17 part 1: controls of `size.control` (28 px) push the button under the fold of this window.
+    h.get_by_label("Create the basic project...").scroll_to_me();
+    settle(&mut h);
     h.get_by_label("Create the basic project...").click();
     settle(&mut h);
     assert_eq!(platform.asked.borrow().as_slice(), [Prompt::NewFolder]);
@@ -258,6 +261,8 @@ fn the_wizard_shows_a_preview_follows_a_typed_value_and_writes_the_basic_project
             .is_some()
     );
     // FT-336 ruling: the check scheme is applied after finishing, by a person, after a confirmation.
+    h.get_by_label("Apply the check scheme").scroll_to_me();
+    settle(&mut h);
     h.get_by_label("Apply the check scheme").click();
     settle(&mut h);
     assert!(matches!(
@@ -277,6 +282,8 @@ fn the_wizard_shows_a_preview_follows_a_typed_value_and_writes_the_basic_project
     );
     assert!(h.query_all_by_label("kept: apply after finishing").count() == 0);
     assert!(h.query_by_label("Apply the check scheme").is_none());
+    h.get_by_label("Close").scroll_to_me();
+    settle(&mut h);
     h.get_by_label("Close").click();
     settle(&mut h);
     let shell = h.state().shell();
