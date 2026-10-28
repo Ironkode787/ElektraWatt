@@ -72,8 +72,11 @@ work is done by Claude subagents; there is no external coder.
 ## Disk and build concurrency (owner's rule, 2026-10-21)
 
 - `.claude/settings.json` sets, for every Claude session in this project, `CARGO_PROFILE_DEV_DEBUG=line-tables-only`
-  (panics keep file and line; the PDBs lose most of their size), `CARGO_INCREMENTAL=0` and `CARGO_BUILD_JOBS=4`. Do
+  (panics keep file and line; the PDBs lose most of their size), `CARGO_INCREMENTAL=0` and `CARGO_BUILD_JOBS=8`. Do
   not override them in a worktree; a full-debuginfo build is a deliberate, one-off choice.
+- **Build jobs scale to the free cores (owner, 2026-10-28; the machine has 24):** 8 jobs per builder while up to
+  three builders run (the settings default); a verify chain or gate that runs as the only builder exports
+  `CARGO_BUILD_JOBS=20`. The three-builder and disk rules are unchanged.
 - A worktree's `target` is deleted the moment its work is integrated and re-verified (`cmd //c "rmdir /s /q
   <worktree>\target"` when `rm -rf` fails on stale incremental entries); the main checkout's `target` is cleaned
   after every gate. Keep at least 150 GB free before a gate and let at most THREE builders run at once (a

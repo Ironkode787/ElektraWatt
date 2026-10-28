@@ -4,6 +4,6 @@
     "CLAUDE_CODE_SUBAGENT_MODEL": "haiku",
     "CARGO_PROFILE_DEV_DEBUG": "line-tables-only",
     "CARGO_INCREMENTAL": "0",
-    "CARGO_BUILD_JOBS": "4"
+    "CARGO_BUILD_JOBS": "8"
   }
 }
