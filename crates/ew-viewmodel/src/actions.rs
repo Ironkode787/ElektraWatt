@@ -6,11 +6,17 @@
 //! Every menu item, palette entry, keyboard shortcut and dialog result of the shell is an action of
 //! [`ACTIONS`], dispatched with [`ShellModel::dispatch`]; the headless mode drives the same registry. An action
 //! has a stable ID, a label key (the English text lives in [`crate::strings`]), default shortcuts, and an
-//! `enabled` predicate that names the reason key of a refusal. [`menu_model`] builds the menu bar from the
+//! `enabled` predicate that names the reason key of a refusal. [`menu_model`] builds the app menu from the
 //! registry, so the egui frame and the `ui.describe` text cannot disagree.
+//!
+//! WP-S2.17 part 2 (D3, doc 16a §9.2): the menus are the app menu's submenus, File, Edit, then one per command-bar
+//! tab (Project, Page, Draw, Check, Output, View), then Window and Help; Insert became Draw and Tools dissolved. An
+//! action with a [`Placement`] is a command of the bar ([`crate::command_bar`]) and sits in its tab's menu under its
+//! group; a group of more than three commands is a submenu, a smaller one a separated block.
 
 use serde_json::{Value, json};
 
+use crate::command_bar::{CommandSize, Group, Placement, Tab, place};
 use crate::settings::{DENSITIES, THEMES, UI_SCALES};
 use crate::shell::ShellModel;
 use crate::strings;
@@ -28,21 +34,25 @@ pub enum ActionKind {
     Command,
 }
 
-/// The menus of the menu bar, in order.
+/// The submenus of the app menu, in order (doc 16a §9.2).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Menu {
     /// File.
     File,
     /// Edit.
     Edit,
-    /// View.
-    View,
-    /// Insert: the symbols, parts and strips to place (WP-S2.04).
-    Insert,
-    /// Page.
+    /// Project: the Project tab's groups (WP-S2.17 part 2).
+    Project,
+    /// Page: the Page tab's groups.
     Page,
-    /// Tools.
-    Tools,
+    /// Draw: the Draw tab's groups (the former Insert menu and the tools).
+    Draw,
+    /// Check: the Check tab's groups.
+    Check,
+    /// Output: the Output tab's groups.
+    Output,
+    /// View: the View tab's groups.
+    View,
     /// Window: the canvas tabs (WP-S2.03).
     Window,
     /// Help.
@@ -50,14 +60,16 @@ pub enum Menu {
 }
 
 impl Menu {
-    /// The menus in menu-bar order.
-    pub const ALL: [Menu; 8] = [
+    /// The menus in the app menu's order.
+    pub const ALL: [Menu; 10] = [
         Menu::File,
         Menu::Edit,
-        Menu::View,
-        Menu::Insert,
+        Menu::Project,
         Menu::Page,
-        Menu::Tools,
+        Menu::Draw,
+        Menu::Check,
+        Menu::Output,
+        Menu::View,
         Menu::Window,
         Menu::Help,
     ];
@@ -67,13 +79,20 @@ impl Menu {
         match self {
             Menu::File => "menu-file",
             Menu::Edit => "menu-edit",
-            Menu::View => "menu-view",
-            Menu::Insert => "menu-insert",
+            Menu::Project => "menu-project",
             Menu::Page => "menu-page",
-            Menu::Tools => "menu-tools",
+            Menu::Draw => "menu-draw",
+            Menu::Check => "menu-check",
+            Menu::Output => "menu-output",
+            Menu::View => "menu-view",
             Menu::Window => "menu-window",
             Menu::Help => "menu-help",
         }
+    }
+
+    /// The command-bar tab whose groups the menu shows, if any.
+    pub fn tab(self) -> Option<Tab> {
+        Tab::ALL.into_iter().find(|t| t.menu() == self)
     }
 }
 
@@ -82,10 +101,6 @@ impl Menu {
 pub enum Submenu {
     /// File, Open recent: one item per recent project.
     OpenRecent,
-    /// File, Export.
-    Export,
-    /// File, Import (FT-410): the parts table.
-    Import,
     /// View, UI scale: one item per scale.
     UiScale,
     /// View, Theme: one item per theme (WP-S2.17 part 1).
@@ -103,8 +118,10 @@ pub enum Submenu {
     Navigators,
     /// Insert, Graphic: one item per shape of the Graphic tool (WP-S2.04 §10.5).
     Graphic,
-    /// Tools, Wire markers: the marker mode's four settable modes and the as-built one (WP-S2.04 §10.6).
+    /// Draw, Connect, Wire markers: the marker mode's four settable modes and the as-built one (WP-S2.04 §10.6).
     WireMarkers,
+    /// View, Layout, Command tab: one item per tab of the command bar (WP-S2.17 part 2).
+    CommandTab,
 }
 
 impl Submenu {
@@ -112,8 +129,6 @@ impl Submenu {
     pub fn label_key(self) -> &'static str {
         match self {
             Submenu::OpenRecent => "submenu-open-recent",
-            Submenu::Export => "submenu-export",
-            Submenu::Import => "submenu-import",
             Submenu::UiScale => "submenu-ui-scale",
             Submenu::Theme => "submenu-theme",
             Submenu::Density => "submenu-density",
@@ -123,6 +138,7 @@ impl Submenu {
             Submenu::Navigators => "submenu-navigators",
             Submenu::Graphic => "submenu-graphic",
             Submenu::WireMarkers => "submenu-wire-markers",
+            Submenu::CommandTab => "submenu-command-tab",
         }
     }
 }
@@ -143,11 +159,14 @@ pub enum Context {
     Find,
 }
 
-/// Where an action sits in the menu bar.
+/// Where an action sits in the app menu.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct MenuSlot {
     /// The menu.
     pub menu: Menu,
+    /// The command-bar group inside a tab's menu, if any (WP-S2.17 part 2): the group's commands first, then the
+    /// group's menu-only actions in registry order.
+    pub group: Option<Group>,
     /// The submenu inside it, if any.
     pub submenu: Option<Submenu>,
     /// Whether a separator is drawn before the item (or the submenu, at its first item).
@@ -183,6 +202,10 @@ pub struct ActionMeta {
     /// The parameter signature (WP-S6.13 §5.5.2): `""` for an action without parameters, else a comma-separated list of
     /// `name[?]:type` (see `validate_signature`). The blind drafter's harness types its `key=value` arguments by it.
     pub params: &'static str,
+    /// The place in the command bar (WP-S2.17 part 2, D3); `None` for an action the bar does not show.
+    pub placement: Option<Placement>,
+    /// The icon key (`ew-ui` maps it to its icon table; doc 16a §4.11); required for a placed action.
+    pub icon: Option<&'static str>,
 }
 
 impl std::fmt::Debug for ActionMeta {
@@ -544,6 +567,7 @@ fn first_run_open(m: &ShellModel) -> Result<(), &'static str> {
 const fn slot(menu: Menu) -> Option<MenuSlot> {
     Some(MenuSlot {
         menu,
+        group: None,
         submenu: None,
         separator_before: false,
     })
@@ -552,6 +576,7 @@ const fn slot(menu: Menu) -> Option<MenuSlot> {
 const fn slot_sep(menu: Menu) -> Option<MenuSlot> {
     Some(MenuSlot {
         menu,
+        group: None,
         submenu: None,
         separator_before: true,
     })
@@ -560,9 +585,54 @@ const fn slot_sep(menu: Menu) -> Option<MenuSlot> {
 const fn sub(menu: Menu, submenu: Submenu, separator_before: bool) -> Option<MenuSlot> {
     Some(MenuSlot {
         menu,
+        group: None,
         submenu: Some(submenu),
         separator_before,
     })
+}
+
+/// A menu-only action in a command-bar group of its tab's menu (WP-S2.17 part 2).
+const fn grp(group: Group) -> Option<MenuSlot> {
+    Some(MenuSlot {
+        menu: group.tab().menu(),
+        group: Some(group),
+        submenu: None,
+        separator_before: false,
+    })
+}
+
+/// A menu-only action in a submenu of a command-bar group.
+const fn grp_sub(group: Group, submenu: Submenu) -> Option<MenuSlot> {
+    Some(MenuSlot {
+        menu: group.tab().menu(),
+        group: Some(group),
+        submenu: Some(submenu),
+        separator_before: false,
+    })
+}
+
+/// Places an action in the command bar with its icon; its app-menu slot becomes its group in its tab's menu (a
+/// submenu it had stays: the bar's button opens it as a menu).
+const fn placed(placement: Placement, icon: &'static str, mut a: ActionMeta) -> ActionMeta {
+    let submenu = match a.menu {
+        Some(s) => s.submenu,
+        None => None,
+    };
+    a.menu = Some(MenuSlot {
+        menu: placement.tab.menu(),
+        group: Some(placement.group),
+        submenu,
+        separator_before: false,
+    });
+    a.placement = Some(placement);
+    a.icon = Some(icon);
+    a
+}
+
+/// Gives an action that the bar does not place an icon (quick access, the HUD's tools).
+const fn with_icon(icon: &'static str, mut a: ActionMeta) -> ActionMeta {
+    a.icon = Some(icon);
+    a
 }
 
 const fn act(
@@ -587,6 +657,8 @@ const fn act(
         hidden: false,
         context: Context::Global,
         params: "",
+        placement: None,
+        icon: None,
     }
 }
 
@@ -805,38 +877,49 @@ pub static ACTIONS: &[ActionMeta] = &[
     ),
     with_params(
         "file?:path, dir?:path, discard?:bool",
-        act(
-            "file.import_qet",
-            Command,
-            "action-file-import-qet",
-            Menu::File,
-            &[],
-            always,
-            // FT-466 (WP-S2.09 part 3, §8.1): in the File, Import submenu, its ID unchanged.
-            sub(Menu::File, Submenu::Import, false),
+        placed(
+            place(Group::Import, 1, CommandSize::Small, Some("bar-import-qet")),
+            "file-import",
+            act(
+                "file.import_qet",
+                Command,
+                "action-file-import-qet",
+                Menu::Project,
+                &[],
+                always,
+                // FT-466 moved it to File, Import; WP-S2.17 part 2 places it in Project, Import (its ID unchanged).
+                None,
+            ),
         ),
     ),
     // FT-410: File, Import, Parts table...
     with_params(
         "path?:path",
-        act(
-            "parts.import",
-            Command,
-            "action-parts-import",
-            Menu::File,
-            &[],
-            writable,
-            sub(Menu::File, Submenu::Import, false),
+        placed(
+            place(Group::Parts, 1, CommandSize::Large, Some("bar-import-parts")),
+            "database-import",
+            act(
+                "parts.import",
+                Command,
+                "action-parts-import",
+                Menu::Project,
+                &[],
+                writable,
+                None,
+            ),
         ),
     ),
-    act(
-        "file.save",
-        Command,
-        "action-file-save",
-        Menu::File,
-        &["Ctrl+S"],
-        writable,
-        slot_sep(Menu::File),
+    with_icon(
+        "device-floppy",
+        act(
+            "file.save",
+            Command,
+            "action-file-save",
+            Menu::File,
+            &["Ctrl+S"],
+            writable,
+            slot_sep(Menu::File),
+        ),
     ),
     with_params(
         "dir?:path",
@@ -866,14 +949,18 @@ pub static ACTIONS: &[ActionMeta] = &[
     // once.
     with_params(
         "path?:path, replace?:bool, wait?:bool",
-        act(
-            "file.export_pdf",
-            Command,
-            "action-file-export-pdf",
-            Menu::File,
-            &["Ctrl+Shift+E"],
-            has_pages,
-            sub(Menu::File, Submenu::Export, true),
+        placed(
+            place(Group::Pdf, 1, CommandSize::Large, None),
+            "file-type-pdf",
+            act(
+                "file.export_pdf",
+                Command,
+                "action-file-export-pdf",
+                Menu::Output,
+                &["Ctrl+Shift+E"],
+                has_pages,
+                None,
+            ),
         ),
     ),
     with_params(
@@ -900,35 +987,45 @@ pub static ACTIONS: &[ActionMeta] = &[
             slot(Menu::File),
         ),
     ),
-    act(
-        "edit.undo",
-        Command,
-        "action-edit-undo",
-        Menu::Edit,
-        &["Ctrl+Z"],
-        can_undo,
-        slot(Menu::Edit),
+    with_icon(
+        "arrow-back-up",
+        act(
+            "edit.undo",
+            Command,
+            "action-edit-undo",
+            Menu::Edit,
+            &["Ctrl+Z"],
+            can_undo,
+            slot(Menu::Edit),
+        ),
     ),
-    act(
-        "edit.redo",
-        Command,
-        "action-edit-redo",
-        Menu::Edit,
-        &["Ctrl+Shift+Z", "Ctrl+Y"],
-        can_redo,
-        slot(Menu::Edit),
+    with_icon(
+        "arrow-forward-up",
+        act(
+            "edit.redo",
+            Command,
+            "action-edit-redo",
+            Menu::Edit,
+            &["Ctrl+Shift+Z", "Ctrl+Y"],
+            can_redo,
+            slot(Menu::Edit),
+        ),
     ),
     // WP-S2.09 part 3 (§8.4): Edit, History.
     with_params(
         "on?:bool",
-        act(
-            "history.show",
-            View,
-            "action-history-show",
-            Menu::Edit,
-            &[],
-            project_open,
-            slot(Menu::Edit),
+        placed(
+            place(Group::Panels, 4, CommandSize::Small, None),
+            "history",
+            act(
+                "history.show",
+                View,
+                "action-history-show",
+                Menu::View,
+                &[],
+                project_open,
+                None,
+            ),
         ),
     ),
     // Edit, Properties of selection (E and Alt+Enter on the canvas) and Project properties: the shell has no Project
@@ -942,14 +1039,18 @@ pub static ACTIONS: &[ActionMeta] = &[
         project_open,
         slot_sep(Menu::Edit),
     )),
-    act(
-        "props.project",
-        View,
-        "action-props-project",
-        Menu::Edit,
-        &[],
-        project_open,
-        slot(Menu::Edit),
+    placed(
+        place(Group::Project, 1, CommandSize::Large, Some("bar-properties")),
+        "adjustments",
+        act(
+            "props.project",
+            View,
+            "action-props-project",
+            Menu::Project,
+            &[],
+            project_open,
+            None,
+        ),
     ),
     // WP-S2.05 part 2: Edit, Find..., Find and replace... and Replace all (§7.6). macOS's ⌥⌘F (doc 16 §4.4) needs a
     // per-platform binding: `Ctrl+Alt+F` would be a Ctrl+Alt+letter chord, which NFR-I18N-06 forbids.
@@ -983,27 +1084,35 @@ pub static ACTIONS: &[ActionMeta] = &[
     // FT-408: Page, New page.
     with_params(
         "folio:text, type?:enum(title_page|table_of_contents|section_divider|graphic|single_line|multi_line|overview|bus_topology|fluid|assembly_overview|panel_layout|model_view|external_document), title?:text, section?:text",
-        act(
-            "page.new",
-            Command,
-            "action-page-new",
-            Menu::Page,
-            &[],
-            writable,
-            slot(Menu::Page),
+        placed(
+            place(Group::Pages, 1, CommandSize::Large, None),
+            "file-plus",
+            act(
+                "page.new",
+                Command,
+                "action-page-new",
+                Menu::Page,
+                &[],
+                writable,
+                None,
+            ),
         ),
     ),
     // WP-S2.09 part 3 (§8.3): Page, Renumber pages...
     with_params(
         "section?:text, start?:uint, step?:uint, keep_gaps?:bool",
-        act(
-            "pages.renumber",
-            Command,
-            "action-pages-renumber",
-            Menu::Page,
-            &[],
-            writable,
-            slot(Menu::Page),
+        placed(
+            place(Group::Order, 1, CommandSize::Small, None),
+            "list-numbers",
+            act(
+                "pages.renumber",
+                Command,
+                "action-pages-renumber",
+                Menu::Page,
+                &[],
+                writable,
+                None,
+            ),
         ),
     ),
     act(
@@ -1013,7 +1122,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         Menu::Page,
         &["Page Down"],
         has_next,
-        slot_sep(Menu::Page),
+        grp(Group::Go),
     ),
     act(
         "page.previous",
@@ -1022,7 +1131,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         Menu::Page,
         &["Page Up"],
         has_previous,
-        slot(Menu::Page),
+        grp(Group::Go),
     ),
     act(
         "page.first",
@@ -1031,7 +1140,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         Menu::Page,
         &[],
         has_pages,
-        slot(Menu::Page),
+        grp(Group::Go),
     ),
     act(
         "page.last",
@@ -1040,48 +1149,64 @@ pub static ACTIONS: &[ActionMeta] = &[
         Menu::Page,
         &[],
         has_pages,
-        slot(Menu::Page),
+        grp(Group::Go),
     ),
     with_params(
         "text?:text",
-        act(
-            "nav.goto",
-            View,
-            "action-nav-goto",
-            Menu::Page,
-            &["Ctrl+G"],
-            has_pages,
-            slot_sep(Menu::Page),
+        placed(
+            place(Group::Go, 1, CommandSize::Large, Some("bar-go-to")),
+            "current-location",
+            act(
+                "nav.goto",
+                View,
+                "action-nav-goto",
+                Menu::Page,
+                &["Ctrl+G"],
+                has_pages,
+                None,
+            ),
         ),
     ),
-    act(
-        "nav.back",
-        View,
-        "action-nav-back",
-        Menu::Page,
-        &["Alt+Arrow Left"],
-        can_go_back,
-        slot(Menu::Page),
+    placed(
+        place(Group::Go, 2, CommandSize::Small, None),
+        "arrow-left",
+        act(
+            "nav.back",
+            View,
+            "action-nav-back",
+            Menu::Page,
+            &["Alt+Arrow Left"],
+            can_go_back,
+            None,
+        ),
     ),
-    act(
-        "nav.forward",
-        View,
-        "action-nav-forward",
-        Menu::Page,
-        &["Alt+Arrow Right"],
-        can_go_forward,
-        slot(Menu::Page),
+    placed(
+        place(Group::Go, 3, CommandSize::Small, None),
+        "arrow-right",
+        act(
+            "nav.forward",
+            View,
+            "action-nav-forward",
+            Menu::Page,
+            &["Alt+Arrow Right"],
+            can_go_forward,
+            None,
+        ),
     ),
     with_params(
         "x_mm?:mm, y_mm?:mm, group?:uint",
-        in_canvas(act(
-            "nav.follow",
-            View,
-            "action-nav-follow",
-            Menu::Page,
-            &["F"],
-            has_pages,
-            slot_sep(Menu::Page),
+        in_canvas(placed(
+            place(Group::Go, 4, CommandSize::Small, Some("bar-follow-reference")),
+            "link",
+            act(
+                "nav.follow",
+                View,
+                "action-nav-follow",
+                Menu::Page,
+                &["F"],
+                has_pages,
+                None,
+            ),
         )),
     ),
     with_params(
@@ -1093,7 +1218,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             Menu::Page,
             &["Shift+F"],
             has_pages,
-            slot(Menu::Page),
+            grp(Group::Go),
         )),
     ),
     with_params(
@@ -1105,7 +1230,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             Menu::Page,
             &["Ctrl+Shift+F"],
             has_pages,
-            slot(Menu::Page),
+            grp(Group::Go),
         )),
     ),
     // Keyboard tool input (WP-S2.03 §7.7): the connection points in reading order; `[` and `]` are matched as the
@@ -1119,7 +1244,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             Menu::Page,
             &["]", "Alt+N"],
             has_pages,
-            slot_sep(Menu::Page),
+            grp(Group::Go),
         )),
     ),
     with_params(
@@ -1131,7 +1256,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             Menu::Page,
             &["[", "Alt+Shift+N"],
             has_pages,
-            slot(Menu::Page),
+            grp(Group::Go),
         )),
     ),
     with_params(
@@ -1143,7 +1268,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             Menu::Page,
             &["N"],
             has_pages,
-            slot(Menu::Page),
+            grp(Group::Go),
         )),
     ),
     with_params(
@@ -1169,50 +1294,66 @@ pub static ACTIONS: &[ActionMeta] = &[
     )),
     with_params(
         "group?:uint",
-        act(
-            "view.zoom_in",
-            View,
-            "action-view-zoom-in",
-            Menu::View,
-            &["Ctrl+Plus", "Ctrl+Equals"],
-            can_zoom_in,
-            slot(Menu::View),
+        placed(
+            place(Group::Zoom, 2, CommandSize::Small, None),
+            "zoom-in",
+            act(
+                "view.zoom_in",
+                View,
+                "action-view-zoom-in",
+                Menu::View,
+                &["Ctrl+Plus", "Ctrl+Equals"],
+                can_zoom_in,
+                None,
+            ),
         ),
     ),
     with_params(
         "group?:uint",
-        act(
-            "view.zoom_out",
-            View,
-            "action-view-zoom-out",
-            Menu::View,
-            &["Ctrl+Minus"],
-            can_zoom_out,
-            slot(Menu::View),
+        placed(
+            place(Group::Zoom, 3, CommandSize::Small, None),
+            "zoom-out",
+            act(
+                "view.zoom_out",
+                View,
+                "action-view-zoom-out",
+                Menu::View,
+                &["Ctrl+Minus"],
+                can_zoom_out,
+                None,
+            ),
         ),
     ),
     with_params(
         "group?:uint",
-        act(
-            "view.zoom_actual",
-            View,
-            "action-view-zoom-actual",
-            Menu::View,
-            &["Ctrl+0"],
-            has_pages,
-            slot(Menu::View),
+        placed(
+            place(Group::Zoom, 4, CommandSize::Small, None),
+            "zoom-reset",
+            act(
+                "view.zoom_actual",
+                View,
+                "action-view-zoom-actual",
+                Menu::View,
+                &["Ctrl+0"],
+                has_pages,
+                None,
+            ),
         ),
     ),
     with_params(
         "group?:uint",
-        act(
-            "view.fit_page",
-            View,
-            "action-view-fit-page",
-            Menu::View,
-            &["Home"],
-            has_pages,
-            slot(Menu::View),
+        placed(
+            place(Group::Zoom, 1, CommandSize::Large, None),
+            "maximize",
+            act(
+                "view.fit_page",
+                View,
+                "action-view-fit-page",
+                Menu::View,
+                &["Home"],
+                has_pages,
+                None,
+            ),
         ),
     ),
     with_params(
@@ -1224,7 +1365,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             Menu::View,
             &["Ctrl+Arrow Left"],
             has_pages,
-            sub(Menu::View, Submenu::Pan, false),
+            grp_sub(Group::Zoom, Submenu::Pan),
         ),
     ),
     with_params(
@@ -1236,7 +1377,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             Menu::View,
             &["Ctrl+Arrow Right"],
             has_pages,
-            sub(Menu::View, Submenu::Pan, false),
+            grp_sub(Group::Zoom, Submenu::Pan),
         ),
     ),
     with_params(
@@ -1248,7 +1389,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             Menu::View,
             &["Ctrl+Arrow Up"],
             has_pages,
-            sub(Menu::View, Submenu::Pan, false),
+            grp_sub(Group::Zoom, Submenu::Pan),
         ),
     ),
     with_params(
@@ -1260,17 +1401,21 @@ pub static ACTIONS: &[ActionMeta] = &[
             Menu::View,
             &["Ctrl+Arrow Down"],
             has_pages,
-            sub(Menu::View, Submenu::Pan, false),
+            grp_sub(Group::Zoom, Submenu::Pan),
         ),
     ),
-    act(
-        "view.side_by_side",
-        View,
-        "action-view-side-by-side",
-        Menu::View,
-        &[],
-        has_pages,
-        slot_sep(Menu::View),
+    placed(
+        place(Group::Layout, 1, CommandSize::Small, None),
+        "layout-columns",
+        act(
+            "view.side_by_side",
+            View,
+            "action-view-side-by-side",
+            Menu::View,
+            &[],
+            has_pages,
+            None,
+        ),
     ),
     with_params(
         "mode:enum(flat|section|structure)",
@@ -1281,7 +1426,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             Menu::View,
             &[],
             has_pages,
-            sub(Menu::View, Submenu::PageNavigator, false),
+            grp_sub(Group::Panels, Submenu::PageNavigator),
         )),
     ),
     with_params(
@@ -1293,26 +1438,34 @@ pub static ACTIONS: &[ActionMeta] = &[
             Menu::View,
             &[],
             has_pages,
-            sub(Menu::View, Submenu::PageNavigator, false),
+            grp_sub(Group::Panels, Submenu::PageNavigator),
         )),
     ),
-    act(
-        "view.grid",
-        View,
-        "action-view-grid",
-        Menu::View,
-        &[],
-        has_pages,
-        slot_sep(Menu::View),
+    placed(
+        place(Group::Show, 1, CommandSize::Small, None),
+        "grid-dots",
+        act(
+            "view.grid",
+            View,
+            "action-view-grid",
+            Menu::View,
+            &[],
+            has_pages,
+            None,
+        ),
     ),
-    act(
-        "view.frame_stats",
-        View,
-        "action-view-frame-stats",
-        Menu::View,
-        &[],
-        always,
-        slot(Menu::View),
+    placed(
+        place(Group::Show, 3, CommandSize::Small, None),
+        "chart-line",
+        act(
+            "view.frame_stats",
+            View,
+            "action-view-frame-stats",
+            Menu::View,
+            &[],
+            always,
+            None,
+        ),
     ),
     act(
         "view.cpu_canvas",
@@ -1321,76 +1474,100 @@ pub static ACTIONS: &[ActionMeta] = &[
         Menu::View,
         &[],
         always,
-        slot(Menu::View),
+        grp(Group::Show),
     ),
     // The property grid (WP-S2.05 part 1, spec §6.10).
     with_params(
         "on?:bool",
-        act(
-            "props.show",
-            View,
-            "action-props-show",
-            Menu::View,
-            &[],
-            project_open,
-            slot_sep(Menu::View),
+        placed(
+            place(Group::Panels, 2, CommandSize::Small, None),
+            "list-details",
+            act(
+                "props.show",
+                View,
+                "action-props-show",
+                Menu::View,
+                &[],
+                project_open,
+                None,
+            ),
         ),
     ),
     // WP-S2.09 part 1 (§6.8): View ▸ Jobs and View ▸ Notifications.
     with_params(
         "on?:bool",
-        act(
-            "jobs.show",
-            View,
-            "action-jobs-show",
-            Menu::View,
-            &[],
-            project_open,
-            slot(Menu::View),
+        placed(
+            place(Group::Jobs, 1, CommandSize::Small, None),
+            "activity",
+            act(
+                "jobs.show",
+                View,
+                "action-jobs-show",
+                Menu::Output,
+                &[],
+                project_open,
+                None,
+            ),
         ),
     ),
     with_params(
         "on?:bool",
-        act(
-            "notifications.show",
-            View,
-            "action-notifications-show",
-            Menu::View,
-            &[],
-            always,
-            slot(Menu::View),
+        placed(
+            place(Group::Panels, 5, CommandSize::Small, None),
+            "bell",
+            act(
+                "notifications.show",
+                View,
+                "action-notifications-show",
+                Menu::View,
+                &[],
+                always,
+                None,
+            ),
         ),
     ),
     // WP-S2.09 part 2 (§7.6): View ▸ Messages, F8 and Shift+F8, the quick fix of a finding row.
     with_params(
         "on?:bool",
-        act(
-            "messages.show",
-            View,
-            "action-messages-show",
-            Menu::View,
-            &[],
-            project_open,
-            slot(Menu::View),
+        placed(
+            place(Group::Findings, 1, CommandSize::Large, None),
+            "messages",
+            act(
+                "messages.show",
+                View,
+                "action-messages-show",
+                Menu::Check,
+                &[],
+                project_open,
+                None,
+            ),
         ),
     ),
-    act(
-        "messages.next",
-        View,
-        "action-messages-next",
-        Menu::View,
-        &["F8"],
-        project_open,
-        None,
+    placed(
+        place(Group::Findings, 2, CommandSize::Small, None),
+        "arrow-narrow-down",
+        act(
+            "messages.next",
+            View,
+            "action-messages-next",
+            Menu::Check,
+            &["F8"],
+            project_open,
+            None,
+        ),
     ),
-    act(
-        "messages.previous",
-        View,
-        "action-messages-previous",
-        Menu::View,
-        &["Shift+F8"],
-        project_open,
-        None,
+    placed(
+        place(Group::Findings, 3, CommandSize::Small, None),
+        "arrow-narrow-up",
+        act(
+            "messages.previous",
+            View,
+            "action-messages-previous",
+            Menu::Check,
+            &["Shift+F8"],
+            project_open,
+            None,
+        ),
     ),
     with_params(
         "key?:text",
@@ -1398,7 +1575,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             "messages.fix",
             Command,
             "action-messages-fix",
-            Menu::Tools,
+            Menu::Check,
             &[],
             writable,
             None,
@@ -1406,52 +1583,93 @@ pub static ACTIONS: &[ActionMeta] = &[
     ),
     with_params(
         "scale:json",
-        needs_parameters(act(
-            "view.ui_scale",
-            View,
-            "action-view-ui-scale",
-            Menu::View,
-            &[],
-            always,
-            sub(Menu::View, Submenu::UiScale, true),
+        needs_parameters(placed(
+            place(Group::Appearance, 3, CommandSize::Small, None),
+            "text-size",
+            act(
+                "view.ui_scale",
+                View,
+                "action-view-ui-scale",
+                Menu::View,
+                &[],
+                always,
+                sub(Menu::View, Submenu::UiScale, false),
+            ),
         )),
     ),
     // WP-S2.17 part 1: View ▸ Theme and View ▸ Density (doc 16a §4.13, D5, D6). The theme words of the spec
     // (`hc-dark`, `hc-light`) are not words of the signature grammar, so `value` is text, checked against `THEMES`.
     with_params(
         "value:text",
-        needs_parameters(act(
-            "view.theme",
-            View,
-            "action-view-theme",
-            Menu::View,
-            &[],
-            always,
-            sub(Menu::View, Submenu::Theme, false),
+        needs_parameters(placed(
+            place(Group::Appearance, 1, CommandSize::Small, None),
+            "sun-moon",
+            act(
+                "view.theme",
+                View,
+                "action-view-theme",
+                Menu::View,
+                &[],
+                always,
+                sub(Menu::View, Submenu::Theme, false),
+            ),
         )),
     ),
     with_params(
         "value:enum(comfortable|compact)",
+        needs_parameters(placed(
+            place(Group::Appearance, 2, CommandSize::Small, None),
+            "baseline-density-medium",
+            act(
+                "view.density",
+                View,
+                "action-view-density",
+                Menu::View,
+                &[],
+                always,
+                sub(Menu::View, Submenu::Density, false),
+            ),
+        )),
+    ),
+    // WP-S2.17 part 2 (§4.3): the command bar's tab and its collapse (Ctrl+F1, a tab's double click), view actions.
+    with_params(
+        "tab:enum(project|page|draw|check|output|view)",
         needs_parameters(act(
-            "view.density",
+            "view.command_tab",
             View,
-            "action-view-density",
+            "action-view-command-tab",
             Menu::View,
             &[],
             always,
-            sub(Menu::View, Submenu::Density, false),
+            grp_sub(Group::Layout, Submenu::CommandTab),
         )),
     ),
     with_params(
-        "name:text",
-        needs_parameters(act(
-            "view.workspace_load",
+        "collapsed?:bool",
+        act(
+            "view.command_bar",
             View,
-            "action-view-workspace-load",
+            "action-view-command-bar",
             Menu::View,
-            &[],
+            &["Ctrl+F1"],
             always,
-            sub(Menu::View, Submenu::Workspace, false),
+            grp(Group::Layout),
+        ),
+    ),
+    with_params(
+        "name:text",
+        needs_parameters(placed(
+            place(Group::Layout, 2, CommandSize::Small, Some("bar-workspaces")),
+            "layout-dashboard",
+            act(
+                "view.workspace_load",
+                View,
+                "action-view-workspace-load",
+                Menu::View,
+                &[],
+                always,
+                sub(Menu::View, Submenu::Workspace, false),
+            ),
         )),
     ),
     with_params(
@@ -1463,66 +1681,89 @@ pub static ACTIONS: &[ActionMeta] = &[
             Menu::View,
             &[],
             always,
-            sub(Menu::View, Submenu::Workspace, false),
+            grp_sub(Group::Layout, Submenu::Workspace),
         ),
     ),
-    act(
-        "view.workspace_reset",
-        View,
-        "action-view-workspace-reset",
-        Menu::View,
-        &[],
-        always,
-        sub(Menu::View, Submenu::Workspace, false),
+    placed(
+        place(Group::Layout, 3, CommandSize::Small, None),
+        "restore",
+        act(
+            "view.workspace_reset",
+            View,
+            "action-view-workspace-reset",
+            Menu::View,
+            &[],
+            always,
+            None,
+        ),
     ),
     with_params(
         "query?:text",
-        act(
-            "tools.palette",
-            View,
-            "action-tools-palette",
-            Menu::Tools,
-            &["Ctrl+K", "Ctrl+Shift+P"],
-            always,
-            slot(Menu::Tools),
+        with_icon(
+            "search",
+            act(
+                "tools.palette",
+                View,
+                "action-tools-palette",
+                Menu::View,
+                &["Ctrl+K", "Ctrl+Shift+P"],
+                always,
+                grp(Group::Panels),
+            ),
         ),
     ),
-    act(
-        "tool.select",
-        View,
-        "action-tool-select",
-        Menu::Tools,
-        &[],
-        has_pages,
-        slot_sep(Menu::Tools),
+    placed(
+        place(Group::Select, 1, CommandSize::Large, None),
+        "pointer",
+        act(
+            "tool.select",
+            View,
+            "action-tool-select",
+            Menu::Draw,
+            &[],
+            has_pages,
+            None,
+        ),
     ),
-    act(
-        "tool.measure",
-        View,
-        "action-tool-measure",
-        Menu::Tools,
-        &[],
-        has_pages,
-        slot(Menu::Tools),
+    placed(
+        place(Group::Annotate, 2, CommandSize::Small, None),
+        "ruler-measure",
+        act(
+            "tool.measure",
+            View,
+            "action-tool-measure",
+            Menu::Draw,
+            &[],
+            has_pages,
+            None,
+        ),
     ),
     // Place and arrange (WP-S2.04 part 1, §7.6): the Insert menu, the transform keys, Move, Delete, Change symbol.
-    in_canvas(act(
-        "tool.place",
-        Command,
-        "action-tool-place",
-        Menu::Insert,
-        &["I"],
-        editable_page,
-        slot(Menu::Insert),
+    in_canvas(placed(
+        place(Group::Place, 1, CommandSize::Large, None),
+        "circuit-switch-open",
+        act(
+            "tool.place",
+            Command,
+            "action-tool-place",
+            Menu::Draw,
+            &["I"],
+            editable_page,
+            None,
+        ),
     )),
-    in_canvas(act(
-        "tool.place_part",
-        Command,
-        "action-tool-place-part",
-        Menu::Insert,
-        &["Shift+I"],
-        editable_page,
-        slot(Menu::Insert),
+    in_canvas(placed(
+        place(Group::Place, 2, CommandSize::Large, Some("bar-device")),
+        "package",
+        act(
+            "tool.place_part",
+            Command,
+            "action-tool-place-part",
+            Menu::Draw,
+            &["Shift+I"],
+            editable_page,
+            None,
+        ),
     )),
     with_params(
         "letter?:text",
@@ -1530,23 +1771,27 @@ pub static ACTIONS: &[ActionMeta] = &[
             "strip.new",
             Command,
             "action-strip-new",
-            Menu::Insert,
+            Menu::Draw,
             &[],
             editable_page,
-            slot_sep(Menu::Insert),
+            grp(Group::Place),
         ),
     ),
     // FT-409: the structure node and the external reference, one previewed command each.
     with_params(
         "kind:enum(functional_assignment|function|installation_site|location|document_kind|user_defined|type), designation:text, parent?:text",
-        act(
-            "structure.new",
-            Command,
-            "action-structure-new",
-            Menu::Insert,
-            &[],
-            writable,
-            slot_sep(Menu::Insert),
+        placed(
+            place(Group::Project, 2, CommandSize::Small, Some("bar-structure")),
+            "sitemap",
+            act(
+                "structure.new",
+                Command,
+                "action-structure-new",
+                Menu::Project,
+                &[],
+                writable,
+                None,
+            ),
         ),
     ),
     with_params(
@@ -1555,10 +1800,10 @@ pub static ACTIONS: &[ActionMeta] = &[
             "external_ref.new",
             Command,
             "action-external-ref-new",
-            Menu::Insert,
+            Menu::Project,
             &[],
             writable,
-            slot(Menu::Insert),
+            grp(Group::Project),
         ),
     ),
     with_params(
@@ -1567,7 +1812,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             "place.pick",
             Command,
             "action-place-pick",
-            Menu::Insert,
+            Menu::Draw,
             &[],
             editable_page,
             None,
@@ -1579,7 +1824,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             "picker.filter",
             View,
             "action-picker-filter",
-            Menu::Insert,
+            Menu::Draw,
             &[],
             picker_open,
             None,
@@ -1591,7 +1836,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             "picker.row",
             View,
             "action-picker-row",
-            Menu::Insert,
+            Menu::Draw,
             &[],
             picker_open,
             None,
@@ -1604,74 +1849,82 @@ pub static ACTIONS: &[ActionMeta] = &[
             "picker.choose",
             Command,
             "action-picker-choose",
-            Menu::Insert,
+            Menu::Draw,
             &[],
             picker_open,
             None,
         ),
     )),
-    in_canvas(act(
-        "tool.rotate_cw",
-        Command,
-        "action-tool-rotate-cw",
-        Menu::Edit,
-        &["R"],
-        editable_page,
-        slot_sep(Menu::Edit),
+    in_canvas(placed(
+        place(Group::Arrange, 1, CommandSize::Small, Some("bar-rotate")),
+        "rotate-clockwise",
+        act(
+            "tool.rotate_cw",
+            Command,
+            "action-tool-rotate-cw",
+            Menu::Draw,
+            &["R"],
+            editable_page,
+            None,
+        ),
     )),
     in_canvas(act(
         "tool.rotate_ccw",
         Command,
         "action-tool-rotate-ccw",
-        Menu::Edit,
+        Menu::Draw,
         &["Shift+R"],
         editable_page,
-        slot(Menu::Edit),
+        grp(Group::Arrange),
     )),
-    in_canvas(act(
-        "tool.mirror_x",
-        Command,
-        "action-tool-mirror-x",
-        Menu::Edit,
-        &["X"],
-        editable_page,
-        slot(Menu::Edit),
+    in_canvas(placed(
+        place(Group::Arrange, 2, CommandSize::Small, Some("bar-mirror")),
+        "flip-vertical",
+        act(
+            "tool.mirror_x",
+            Command,
+            "action-tool-mirror-x",
+            Menu::Draw,
+            &["X"],
+            editable_page,
+            None,
+        ),
     )),
     in_canvas(act(
         "tool.mirror_y",
         Command,
         "action-tool-mirror-y",
-        Menu::Edit,
+        Menu::Draw,
         &["Y"],
         editable_page,
-        slot(Menu::Edit),
+        grp(Group::Arrange),
     )),
     in_canvas(act(
         "tool.next_variant",
         Command,
         "action-tool-next-variant",
-        Menu::Edit,
+        Menu::Draw,
         &["V"],
         editable_page,
-        slot(Menu::Edit),
+        grp(Group::Arrange),
     )),
     in_canvas(act(
         "tool.next_rep_type",
         View,
         "action-tool-next-rep-type",
-        Menu::Edit,
+        Menu::Draw,
         &["Shift+V"],
         editable_page,
-        slot(Menu::Edit),
+        grp(Group::Arrange),
     )),
     in_canvas(act(
         "tool.move",
         Command,
         "action-tool-move",
-        Menu::Edit,
+        Menu::Draw,
         &["M"],
         editable_page,
-        slot(Menu::Edit),
+        grp(Group::Arrange),
     )),
     in_canvas(act(
         "edit.delete_selection",
@@ -1680,7 +1933,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         Menu::Edit,
         &["Delete"],
         editable_page,
-        slot(Menu::Edit),
+        slot_sep(Menu::Edit),
     )),
     // WP-S2.05 part 3: the clipboard (§8.8). The chords are the canvas's: a text field of the property grid or the find
     // pane keeps egui's own copy and paste, and the window routes no chord while a text field has the keyboard.
@@ -1691,7 +1944,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         Menu::Edit,
         &["Ctrl+X"],
         selection_editable,
-        slot_sep(Menu::Edit),
+        slot(Menu::Edit),
     )),
     in_canvas(act(
         "edit.copy",
@@ -1704,14 +1957,17 @@ pub static ACTIONS: &[ActionMeta] = &[
     )),
     with_params(
         "text?:text",
-        in_canvas(act(
-            "edit.paste_clip",
-            Command,
-            "action-edit-paste-clip",
-            Menu::Edit,
-            &["Ctrl+V"],
-            paste_page,
-            slot(Menu::Edit),
+        in_canvas(with_icon(
+            "clipboard-list",
+            act(
+                "edit.paste_clip",
+                Command,
+                "action-edit-paste-clip",
+                Menu::Edit,
+                &["Ctrl+V"],
+                paste_page,
+                slot(Menu::Edit),
+            ),
         )),
     ),
     in_canvas(act(
@@ -1746,14 +2002,17 @@ pub static ACTIONS: &[ActionMeta] = &[
     ),
     with_params(
         "symbol?:text",
-        in_canvas(act(
-            "rep.exchange",
-            Command,
-            "action-rep-exchange",
-            Menu::Edit,
-            &[],
-            editable_page,
-            slot(Menu::Edit),
+        in_canvas(with_icon(
+            "circuit-switch-open",
+            act(
+                "rep.exchange",
+                Command,
+                "action-rep-exchange",
+                Menu::Draw,
+                &[],
+                editable_page,
+                grp(Group::Arrange),
+            ),
         )),
     ),
     hidden(in_canvas(act(
@@ -1779,14 +2038,18 @@ pub static ACTIONS: &[ActionMeta] = &[
     ),
     // WP-S2.04 part 2 (wiring, §8.7): the Wire tool, the proposals' Tab, route edit, the junction sequence editor and
     // the crossings setting. Begin.
-    in_canvas(act(
-        "tool.wire",
-        Command,
-        "action-tool-wire",
-        Menu::Insert,
-        &["W"],
-        wire_page,
-        slot_sep(Menu::Insert),
+    in_canvas(placed(
+        place(Group::Connect, 1, CommandSize::Large, Some("bar-wire")),
+        "route-2",
+        act(
+            "tool.wire",
+            Command,
+            "action-tool-wire",
+            Menu::Draw,
+            &["W"],
+            wire_page,
+            None,
+        ),
     )),
     // Ctrl+Enter: a click with Alt held at the grid cursor (a placement without its autoconnect proposals, a bend
     // without object snaps), the keyboard's twin of `canvas.activate {alt}` (fix round; per-context chords, ID-628).
@@ -1817,23 +2080,26 @@ pub static ACTIONS: &[ActionMeta] = &[
         editable_page,
         None,
     ))),
-    in_canvas(act(
-        "tool.route_edit",
-        Command,
-        "action-tool-route-edit",
-        Menu::Edit,
-        &[],
-        one_connection,
-        slot_sep(Menu::Edit),
+    in_canvas(with_icon(
+        "route-2",
+        act(
+            "tool.route_edit",
+            Command,
+            "action-tool-route-edit",
+            Menu::Draw,
+            &[],
+            one_connection,
+            grp(Group::Connect),
+        ),
     )),
     in_canvas(act(
         "junction.open",
         View,
         "action-junction-open",
-        Menu::Edit,
+        Menu::Draw,
         &[],
         one_junction,
-        slot(Menu::Edit),
+        grp(Group::Connect),
     )),
     with_params(
         "from:uint, to:uint",
@@ -1877,33 +2143,41 @@ pub static ACTIONS: &[ActionMeta] = &[
             "project.crossings",
             Command,
             "action-project-crossings",
-            Menu::Tools,
+            Menu::Draw,
             &[],
             writable,
-            slot_sep(Menu::Tools),
+            grp(Group::Connect),
         ),
     ),
     // WP-S2.04 part 2. End.
     // WP-S2.04 part 3 (interruption points and black boxes, §9.6). Begin.
-    in_canvas(act(
-        "tool.ip",
-        Command,
-        "action-tool-ip",
-        Menu::Insert,
-        &["P"],
-        editable_page,
-        slot_sep(Menu::Insert),
+    in_canvas(placed(
+        place(Group::Connect, 3, CommandSize::Small, Some("bar-interruption")),
+        "ew-interruption-point",
+        act(
+            "tool.ip",
+            Command,
+            "action-tool-ip",
+            Menu::Draw,
+            &["P"],
+            editable_page,
+            None,
+        ),
     )),
     with_params(
         "symbol?:text, part?:text, template?:uint, letter?:text",
-        in_canvas(act(
-            "tool.black_box",
-            Command,
-            "action-tool-black-box",
-            Menu::Insert,
-            &["B"],
-            editable_page,
-            slot(Menu::Insert),
+        in_canvas(placed(
+            place(Group::Place, 4, CommandSize::Small, None),
+            "ew-black-box",
+            act(
+                "tool.black_box",
+                Command,
+                "action-tool-black-box",
+                Menu::Draw,
+                &["B"],
+                editable_page,
+                None,
+            ),
         )),
     ),
     with_params(
@@ -1912,20 +2186,20 @@ pub static ACTIONS: &[ActionMeta] = &[
             "tool.ip_direction",
             View,
             "action-tool-ip-direction",
-            Menu::Edit,
+            Menu::Draw,
             &["D"],
             editable_page,
-            slot_sep(Menu::Edit),
+            grp(Group::Connect),
         )),
     ),
     in_canvas(act(
         "tool.star_source",
         View,
         "action-tool-star-source",
-        Menu::Edit,
+        Menu::Draw,
         &[],
         editable_page,
-        slot(Menu::Edit),
+        grp(Group::Connect),
     )),
     with_params(
         "text:text",
@@ -1958,10 +2232,10 @@ pub static ACTIONS: &[ActionMeta] = &[
             "ip.continue_on",
             Command,
             "action-ip-continue-on",
-            Menu::Edit,
+            Menu::Draw,
             &[],
             one_ip,
-            slot(Menu::Edit),
+            grp(Group::Connect),
         )),
     ),
     with_params(
@@ -1970,10 +2244,10 @@ pub static ACTIONS: &[ActionMeta] = &[
             "ip.arrange_selected",
             Command,
             "action-ip-arrange-selected",
-            Menu::Edit,
+            Menu::Draw,
             &[],
             two_ips,
-            slot(Menu::Edit),
+            grp(Group::Connect),
         )),
     ),
     with_params(
@@ -1992,32 +2266,39 @@ pub static ACTIONS: &[ActionMeta] = &[
         "box.add_cp",
         Command,
         "action-box-add-cp",
-        Menu::Edit,
+        Menu::Draw,
         &[],
         one_box,
-        slot(Menu::Edit),
+        grp(Group::Place),
     )),
     // WP-S2.04 part 3. End.
     // WP-S2.04 part 4b (text and graphic tools, §10.7). Begin.
-    in_canvas(act(
-        "tool.text",
-        Command,
-        "action-tool-text",
-        Menu::Insert,
-        &["T"],
-        editable_page,
-        slot_sep(Menu::Insert),
+    in_canvas(placed(
+        place(Group::Annotate, 1, CommandSize::Large, None),
+        "typography",
+        act(
+            "tool.text",
+            Command,
+            "action-tool-text",
+            Menu::Draw,
+            &["T"],
+            editable_page,
+            None,
+        ),
     )),
     with_params(
         "shape?:enum(line|polyline|rect|circle|arc|polygon)",
-        in_canvas(act(
-            "tool.graphic",
-            Command,
-            "action-tool-graphic",
-            Menu::Insert,
-            &["L"],
-            editable_page,
-            sub(Menu::Insert, Submenu::Graphic, false),
+        in_canvas(with_icon(
+            "pencil",
+            act(
+                "tool.graphic",
+                Command,
+                "action-tool-graphic",
+                Menu::Draw,
+                &["L"],
+                editable_page,
+                grp_sub(Group::Annotate, Submenu::Graphic),
+            ),
         )),
     ),
     with_params(
@@ -2032,34 +2313,40 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
         ))),
     ),
-    in_canvas(act(
-        "text.edit",
-        Command,
-        "action-text-edit",
-        Menu::Edit,
-        &["F2"],
-        one_free_text,
-        slot(Menu::Edit),
+    in_canvas(with_icon(
+        "pencil",
+        act(
+            "text.edit",
+            Command,
+            "action-text-edit",
+            Menu::Draw,
+            &["F2"],
+            one_free_text,
+            grp(Group::Annotate),
+        ),
     )),
     // FT-411: Edit ▸ Bridge terminals.
     in_canvas(act(
         "strip.bridge",
         Command,
         "action-strip-bridge",
-        Menu::Edit,
+        Menu::Draw,
         &[],
         two_strip_terminals,
-        slot(Menu::Edit),
+        grp(Group::Connect),
     )),
     // WP-S2.04 part 4b: the Wire marker and Structure box tools, their fields and the marker mode.
-    in_canvas(act(
-        "tool.marker",
-        Command,
-        "action-tool-marker",
-        Menu::Insert,
-        &["Shift+W"],
-        editable_page,
-        slot(Menu::Insert),
+    in_canvas(with_icon(
+        "ew-cable",
+        act(
+            "tool.marker",
+            Command,
+            "action-tool-marker",
+            Menu::Draw,
+            &["Shift+W"],
+            editable_page,
+            grp(Group::Connect),
+        ),
     )),
     with_params(
         "csa?:text, colours?:text",
@@ -2067,20 +2354,23 @@ pub static ACTIONS: &[ActionMeta] = &[
             "marker.fields",
             View,
             "action-marker-fields",
-            Menu::Insert,
+            Menu::Draw,
             &[],
             editable_page,
             None,
         ))),
     ),
-    in_canvas(act(
-        "tool.structure_box",
-        Command,
-        "action-tool-structure-box",
-        Menu::Insert,
-        &["Shift+B"],
-        editable_page,
-        slot(Menu::Insert),
+    in_canvas(with_icon(
+        "ew-structure-box",
+        act(
+            "tool.structure_box",
+            Command,
+            "action-tool-structure-box",
+            Menu::Draw,
+            &["Shift+B"],
+            editable_page,
+            grp(Group::Annotate),
+        ),
     )),
     with_params(
         "style?:enum(dotted|dash_dot), caption?:text, location?:text, external?:text",
@@ -2088,7 +2378,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             "structure_box.fields",
             View,
             "action-structure-box-fields",
-            Menu::Insert,
+            Menu::Draw,
             &[],
             editable_page,
             None,
@@ -2100,22 +2390,25 @@ pub static ACTIONS: &[ActionMeta] = &[
             "project.marker_mode",
             Command,
             "action-project-marker-mode",
-            Menu::Tools,
+            Menu::Draw,
             &[],
             writable,
-            sub(Menu::Tools, Submenu::WireMarkers, false),
+            grp_sub(Group::Connect, Submenu::WireMarkers),
         ),
     ),
     // WP-S2.04 part 4b. End.
     // WP-S2.04 part 5 (images, §11).
-    in_canvas(act(
-        "tool.image",
-        Command,
-        "action-tool-image",
-        Menu::Insert,
-        &[],
-        editable_page,
-        slot(Menu::Insert),
+    in_canvas(with_icon(
+        "file",
+        act(
+            "tool.image",
+            Command,
+            "action-tool-image",
+            Menu::Draw,
+            &[],
+            editable_page,
+            grp(Group::Annotate),
+        ),
     )),
     with_params(
         "asset:text",
@@ -2123,7 +2416,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             "image.pick",
             View,
             "action-image-pick",
-            Menu::Insert,
+            Menu::Draw,
             &[],
             editable_page,
             None,
@@ -2135,42 +2428,59 @@ pub static ACTIONS: &[ActionMeta] = &[
             "image.file",
             View,
             "action-image-file",
-            Menu::Insert,
+            Menu::Draw,
             &[],
             editable_page,
             None,
         ))),
     ),
-    act(
-        "tools.company_standard",
-        Command,
-        "action-tools-company-standard",
-        Menu::Tools,
-        &[],
-        always,
-        slot(Menu::Tools),
+    placed(
+        place(
+            Group::Standards,
+            2,
+            CommandSize::Small,
+            Some("bar-company-standard"),
+        ),
+        "building-factory-2",
+        act(
+            "tools.company_standard",
+            Command,
+            "action-tools-company-standard",
+            Menu::Project,
+            &[],
+            always,
+            None,
+        ),
     ),
     // WP-S2.09 part 2 (§7.6): Tools ▸ Run checks.
-    act(
-        "messages.check",
-        Command,
-        "action-messages-check",
-        Menu::Tools,
-        &[],
-        project_open,
-        slot(Menu::Tools),
+    placed(
+        place(Group::Run, 1, CommandSize::Large, Some("bar-check-project")),
+        "list-check",
+        act(
+            "messages.check",
+            Command,
+            "action-messages-check",
+            Menu::Check,
+            &["F7"],
+            project_open,
+            None,
+        ),
     ),
     // WP-S2.09 part 3 (§8.3, §8.6): Tools, Renumber devices... and Purge unused images...
     with_params(
         "scope?:enum(project|page|selection), scheme?:text, include_frozen?:bool, only_nonconforming?:bool",
-        act(
-            "devices.renumber",
-            Command,
-            "action-devices-renumber",
-            Menu::Tools,
-            &[],
-            writable,
-            slot_sep(Menu::Tools),
+        placed(
+            place(Group::Arrange, 4, CommandSize::Small, Some("bar-renumber")),
+            "sort-ascending-numbers",
+            act(
+                "devices.renumber",
+                Command,
+                "action-devices-renumber",
+                Menu::Draw,
+                &[],
+                writable,
+                None,
+            ),
         ),
     ),
     with_params(
@@ -2179,10 +2489,10 @@ pub static ACTIONS: &[ActionMeta] = &[
             "project.purge_assets",
             Command,
             "action-project-purge-assets",
-            Menu::Tools,
+            Menu::Project,
             &[],
             writable,
-            slot(Menu::Tools),
+            slot_sep(Menu::Project),
         ),
     ),
     act(
@@ -2299,7 +2609,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             "command.run",
             Command,
             "action-command-run",
-            Menu::Tools,
+            Menu::View,
             &[],
             writable,
             None,
@@ -2429,7 +2739,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         "ui.describe",
         View,
         "action-ui-describe",
-        Menu::Tools,
+        Menu::View,
         &[],
         always,
         None,
@@ -2641,14 +2951,18 @@ pub static ACTIONS: &[ActionMeta] = &[
     // WP-S2.06 part 1: the navigator framework (§6.9).
     with_params(
         "kind:enum(pages|devices|connections|strips|cables|plc|potentials|ips|structure|parts|blocks|messages), on?:bool",
-        needs_parameters(act(
-            "navigator.show",
-            View,
-            "action-navigator-show",
-            Menu::View,
-            &[],
-            has_pages,
-            sub(Menu::View, Submenu::Navigators, false),
+        needs_parameters(placed(
+            place(Group::Panels, 1, CommandSize::Small, Some("bar-navigators")),
+            "layout-sidebar",
+            act(
+                "navigator.show",
+                View,
+                "action-navigator-show",
+                Menu::View,
+                &[],
+                has_pages,
+                sub(Menu::View, Submenu::Navigators, false),
+            ),
         )),
     ),
     with_params(
@@ -2780,45 +3094,61 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
         ))),
     ),
-    in_navigator(act(
-        "pages.move_up",
-        Command,
-        "action-pages-move-up",
-        Menu::Page,
-        &["Alt+Arrow Up"],
-        pages_writable,
-        None,
+    in_navigator(placed(
+        place(Group::Order, 2, CommandSize::Small, Some("bar-move-up")),
+        "arrow-up",
+        act(
+            "pages.move_up",
+            Command,
+            "action-pages-move-up",
+            Menu::Page,
+            &["Alt+Arrow Up"],
+            pages_writable,
+            None,
+        ),
     )),
-    in_navigator(act(
-        "pages.move_down",
-        Command,
-        "action-pages-move-down",
-        Menu::Page,
-        &["Alt+Arrow Down"],
-        pages_writable,
-        None,
+    in_navigator(placed(
+        place(Group::Order, 3, CommandSize::Small, Some("bar-move-down")),
+        "arrow-down",
+        act(
+            "pages.move_down",
+            Command,
+            "action-pages-move-down",
+            Menu::Page,
+            &["Alt+Arrow Down"],
+            pages_writable,
+            None,
+        ),
     )),
     // WP-S2.06 part 2: potential and net highlighting (§7.4).
     with_params(
         "kind?:text, key?:text, off?:bool",
-        in_navigator(act(
-            "navigator.highlight",
-            View,
-            "action-navigator-highlight",
-            Menu::View,
-            &["Ctrl+Shift+H"],
-            has_pages,
-            None,
+        in_navigator(placed(
+            place(Group::Trace, 1, CommandSize::Small, None),
+            "highlight",
+            act(
+                "navigator.highlight",
+                View,
+                "action-navigator-highlight",
+                Menu::Check,
+                &["Ctrl+Shift+H"],
+                has_pages,
+                None,
+            ),
         )),
     ),
-    act(
-        "view.clear_highlights",
-        View,
-        "action-view-clear-highlights",
-        Menu::View,
-        &[],
-        has_highlights,
-        slot(Menu::View),
+    placed(
+        place(Group::Trace, 2, CommandSize::Small, None),
+        "highlight-off",
+        act(
+            "view.clear_highlights",
+            View,
+            "action-view-clear-highlights",
+            Menu::Check,
+            &[],
+            has_highlights,
+            None,
+        ),
     ),
     // WP-S2.06 part 3: table mode (§8.8).
     with_params(
@@ -3023,7 +3353,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         "ui.dismiss",
         View,
         "action-ui-dismiss",
-        Menu::Tools,
+        Menu::View,
         &["Escape"],
         always,
         None,
@@ -3034,7 +3364,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             "settings.set",
             Command,
             "action-settings-set",
-            Menu::Tools,
+            Menu::View,
             &[],
             always,
             None,
@@ -3088,7 +3418,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             "wizard.set",
             View,
             "action-wizard-set",
-            Menu::Tools,
+            Menu::Project,
             &[],
             wizard_open,
             None,
@@ -3098,7 +3428,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         "wizard.next",
         View,
         "action-wizard-next",
-        Menu::Tools,
+        Menu::Project,
         &[],
         wizard_open,
         None,
@@ -3107,7 +3437,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         "wizard.back",
         View,
         "action-wizard-back",
-        Menu::Tools,
+        Menu::Project,
         &[],
         wizard_open,
         None,
@@ -3118,7 +3448,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             "wizard.goto",
             View,
             "action-wizard-goto",
-            Menu::Tools,
+            Menu::Project,
             &[],
             wizard_open,
             None,
@@ -3128,7 +3458,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         "wizard.reset",
         View,
         "action-wizard-reset",
-        Menu::Tools,
+        Menu::Project,
         &[],
         wizard_open,
         None,
@@ -3137,7 +3467,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         "wizard.cancel",
         View,
         "action-wizard-cancel",
-        Menu::Tools,
+        Menu::Project,
         &[],
         wizard_open,
         None,
@@ -3148,7 +3478,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             "wizard.finish",
             Command,
             "action-wizard-finish",
-            Menu::Tools,
+            Menu::Project,
             &[],
             wizard_open,
             None,
@@ -3160,7 +3490,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             "wizard.apply_check_scheme",
             Command,
             "action-wizard-apply-check-scheme",
-            Menu::Tools,
+            Menu::Project,
             &[],
             wizard_open,
             None,
@@ -3577,7 +3907,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             "page.describe",
             View,
             "action-page-describe",
-            Menu::Tools,
+            Menu::Page,
             &[],
             page_describable,
             None,
@@ -3693,7 +4023,7 @@ pub struct ActionItem {
     pub topic: Option<&'static str>,
 }
 
-/// An entry of a menu: an item or a submenu.
+/// An entry of a menu: an item, a submenu or a command-bar group shown as a submenu.
 #[derive(Clone, PartialEq, Debug)]
 pub enum MenuEntry {
     /// A separator line.
@@ -3709,6 +4039,53 @@ pub enum MenuEntry {
         /// Its items.
         items: Vec<ActionItem>,
     },
+    /// A command-bar group of more than three commands, as a submenu of its tab's menu (WP-S2.17 part 2, doc 16a
+    /// §9.2): its entries are items and submenus.
+    Group {
+        /// The group.
+        group: Group,
+        /// Its label (the group's name).
+        label: String,
+        /// Its entries.
+        entries: Vec<MenuEntry>,
+    },
+}
+
+impl MenuEntry {
+    /// Every item of the entry, depth first (a separator has none).
+    pub fn items(&self) -> Vec<&ActionItem> {
+        match self {
+            MenuEntry::Separator => Vec::new(),
+            MenuEntry::Item(i) => vec![i],
+            MenuEntry::Submenu { items, .. } => items.iter().collect(),
+            MenuEntry::Group { entries, .. } => entries.iter().flat_map(MenuEntry::items).collect(),
+        }
+    }
+}
+
+impl MenuEntry {
+    /// The items of `submenu` if this entry is it or holds it.
+    pub fn submenu(&self, submenu: Submenu) -> Option<&[ActionItem]> {
+        match self {
+            MenuEntry::Submenu {
+                submenu: s, items, ..
+            } if *s == submenu => Some(items),
+            MenuEntry::Group { entries, .. } => entries.iter().find_map(|e| e.submenu(submenu)),
+            _ => None,
+        }
+    }
+}
+
+impl MenuModel {
+    /// Every item of the menu, depth first.
+    pub fn items(&self) -> Vec<&ActionItem> {
+        self.entries.iter().flat_map(MenuEntry::items).collect()
+    }
+
+    /// The items of `submenu`, wherever in the menu it sits (a command-bar group may hold it).
+    pub fn submenu(&self, submenu: Submenu) -> Option<&[ActionItem]> {
+        self.entries.iter().find_map(|e| e.submenu(submenu))
+    }
 }
 
 /// One menu of the menu bar.
@@ -3722,7 +4099,8 @@ pub struct MenuModel {
     pub entries: Vec<MenuEntry>,
 }
 
-fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
+/// The menu item of `meta` in the state of `model`.
+pub(crate) fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
     let state = (meta.enabled)(model);
     // Paste names the page kind that cannot take it (window check, item 3): the reason is a text with the kind, not a
     // plain key, so the item formats it here.
@@ -3765,6 +4143,9 @@ fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
             "tool.marker" => model.tool().name() == "marker",
             "tool.structure_box" => model.tool().name() == "structure_box",
             "project.crossings" => model.crossings_hops(),
+            // WP-S2.17 part 2: the Place tool lights Symbol in the bar; the command bar's collapse.
+            "tool.place" => model.tool().name() == "place",
+            "view.command_bar" => model.command_bar_collapsed(),
             _ => false,
         },
         topic: crate::help::action_topic(meta.id),
@@ -3777,9 +4158,18 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
         return Vec::new();
     };
     match submenu {
-        Submenu::Export => vec![item_of(meta, model)],
-        // FT-466: File, Import holds the QElectroTech import and the parts table.
-        Submenu::Import => metas.iter().map(|m| item_of(m, model)).collect(),
+        // WP-S2.17 part 2: one item per command-bar tab.
+        Submenu::CommandTab => crate::command_bar::Tab::ALL
+            .into_iter()
+            .map(|tab| {
+                let mut item = item_of(meta, model);
+                item.label = strings::text(tab.label_key()).to_owned();
+                item.params = json!({ "tab": tab.word() });
+                item.shortcut = String::new();
+                item.checked = model.command_tab() == tab;
+                item
+            })
+            .collect(),
         Submenu::PageNavigator => {
             let nav = model.navigator();
             let mut items = Vec::new();
@@ -3946,44 +4336,100 @@ fn window_tabs(model: &ShellModel, entries: &mut Vec<MenuEntry>) {
     }
 }
 
-/// The menu bar generated from the registry, in the state of `model`: File, Edit, View, Page, Tools, Help.
+/// The registry actions in `submenu`, in registry order.
+fn submenu_metas(submenu: Submenu) -> Vec<&'static ActionMeta> {
+    ACTIONS
+        .iter()
+        .filter(|a| a.menu.is_some_and(|m| m.submenu == Some(submenu)))
+        .collect()
+}
+
+/// The items of `submenu` in the state of `model` (the command bar's menu buttons open them).
+pub(crate) fn submenu_entries(submenu: Submenu, model: &ShellModel) -> Vec<ActionItem> {
+    submenu_items(submenu, &submenu_metas(submenu), model)
+}
+
+/// The entries of `metas` in order: an item each, a submenu once for the first action in it; with separators where
+/// a slot asks for one (`separate`).
+fn entries_of(metas: &[&'static ActionMeta], model: &ShellModel, separate: bool) -> Vec<MenuEntry> {
+    let mut entries = Vec::new();
+    let mut done: Vec<Submenu> = Vec::new();
+    for meta in metas {
+        let Some(s) = meta.menu else { continue };
+        if s.submenu.is_some_and(|sub| done.contains(&sub)) {
+            continue;
+        }
+        if separate && s.separator_before && !entries.is_empty() {
+            entries.push(MenuEntry::Separator);
+        }
+        match s.submenu {
+            None => entries.push(MenuEntry::Item(item_of(meta, model))),
+            Some(submenu) => {
+                done.push(submenu);
+                entries.push(MenuEntry::Submenu {
+                    submenu,
+                    label: strings::text(submenu.label_key()).to_owned(),
+                    items: submenu_entries(submenu, model),
+                });
+            }
+        }
+    }
+    entries
+}
+
+/// The registry actions of `group` in the app menu: its placed commands by their order, then its menu-only actions in
+/// registry order.
+pub fn group_metas(group: Group) -> Vec<&'static ActionMeta> {
+    let mut metas = crate::command_bar::placed_in(group);
+    metas.extend(
+        ACTIONS
+            .iter()
+            .filter(|a| a.placement.is_none() && a.menu.is_some_and(|m| m.group == Some(group))),
+    );
+    metas
+}
+
+/// The app menu generated from the registry, in the state of `model` (doc 16a §9.2): File, Edit, the six tabs' menus
+/// with their groups (a group of more than three entries is a submenu named by the group, a smaller one a separated
+/// block), then Window and Help. Every action with a slot appears exactly once.
 pub fn menu_model(model: &ShellModel) -> Vec<MenuModel> {
     Menu::ALL
         .iter()
         .map(|&menu| {
             let mut entries = Vec::new();
-            let mut done_submenus: Vec<Submenu> = Vec::new();
-            for meta in ACTIONS {
-                let Some(s) = meta.menu.filter(|s| s.menu == menu) else {
-                    continue;
-                };
-                if let Some(submenu) = s.submenu
-                    && done_submenus.contains(&submenu)
-                {
-                    continue;
-                }
-                if s.separator_before && !entries.is_empty() {
-                    entries.push(MenuEntry::Separator);
-                }
-                match s.submenu {
-                    None => entries.push(MenuEntry::Item(item_of(meta, model))),
-                    Some(submenu) => {
-                        done_submenus.push(submenu);
-                        let metas: Vec<&ActionMeta> = ACTIONS
-                            .iter()
-                            .filter(|a| {
-                                a.menu
-                                    .is_some_and(|m| m.menu == menu && m.submenu == Some(submenu))
-                            })
-                            .collect();
-                        entries.push(MenuEntry::Submenu {
-                            submenu,
-                            label: strings::text(submenu.label_key()).to_owned(),
-                            items: submenu_items(submenu, &metas, model),
+            if let Some(tab) = menu.tab() {
+                for group in tab.groups() {
+                    let block = entries_of(&group_metas(group), model, false);
+                    if block.is_empty() {
+                        continue;
+                    }
+                    if !entries.is_empty() {
+                        entries.push(MenuEntry::Separator);
+                    }
+                    if block.len() > 3 {
+                        entries.push(MenuEntry::Group {
+                            group,
+                            label: strings::text(&group.label_key()).to_owned(),
+                            entries: block,
                         });
+                    } else {
+                        entries.extend(block);
                     }
                 }
             }
+            let rest: Vec<&'static ActionMeta> = ACTIONS
+                .iter()
+                .filter(|a| a.menu.is_some_and(|s| s.menu == menu && s.group.is_none()))
+                .collect();
+            let mut rest = entries_of(&rest, model, true);
+            if menu.tab().is_some() && !entries.is_empty() && !rest.is_empty() {
+                if rest.first() != Some(&MenuEntry::Separator) {
+                    entries.push(MenuEntry::Separator);
+                }
+            } else if rest.first() == Some(&MenuEntry::Separator) {
+                rest.remove(0);
+            }
+            entries.extend(rest);
             if menu == Menu::Window {
                 window_tabs(model, &mut entries);
             }
@@ -4049,8 +4495,7 @@ mod tests {
         }
         for s in [
             Submenu::OpenRecent,
-            Submenu::Export,
-            Submenu::Import,
+            Submenu::CommandTab,
             Submenu::UiScale,
             Submenu::Theme,
             Submenu::Density,
@@ -4093,15 +4538,8 @@ mod tests {
     fn every_menu_entry_is_a_registry_entry() {
         let model = ShellModel::for_tests();
         for menu in menu_model(&model) {
-            for entry in &menu.entries {
-                let items: Vec<&ActionItem> = match entry {
-                    MenuEntry::Separator => Vec::new(),
-                    MenuEntry::Item(i) => vec![i],
-                    MenuEntry::Submenu { items, .. } => items.iter().collect(),
-                };
-                for item in items {
-                    assert!(find(item.id).is_some(), "{} is not in the registry", item.id);
-                }
+            for item in menu.items() {
+                assert!(find(item.id).is_some(), "{} is not in the registry", item.id);
             }
         }
         let order: Vec<Menu> = menu_model(&model).iter().map(|m| m.menu).collect();
@@ -4121,25 +4559,17 @@ mod tests {
         let menus = menu_model(&model);
         let ids = |menu: Menu| -> Vec<&'static str> {
             let m = menus.iter().find(|m| m.menu == menu).unwrap();
-            m.entries
-                .iter()
-                .flat_map(|e| match e {
-                    MenuEntry::Separator => Vec::new(),
-                    MenuEntry::Item(i) => vec![i.id],
-                    MenuEntry::Submenu { items, .. } => items.iter().map(|i| i.id).collect(),
-                })
-                .collect()
+            m.items().iter().map(|i| i.id).collect()
         };
         let file = ids(Menu::File);
-        for id in [
-            "file.new",
-            "file.open_sample",
-            "file.import_qet",
-            "file.discard_journal",
-        ] {
+        for id in ["file.new", "file.open_sample", "file.discard_journal"] {
             assert!(file.contains(&id), "{id} in File");
         }
-        assert!(ids(Menu::Tools).contains(&"tools.company_standard"));
+        // WP-S2.17 part 2: the imports and the company standard sit in the Project tab's menu.
+        let project = ids(Menu::Project);
+        for id in ["tools.company_standard", "file.import_qet", "parts.import"] {
+            assert!(project.contains(&id), "{id} in Project");
+        }
         let help = ids(Menu::Help);
         for id in [
             "help.documentation",

@@ -11,7 +11,7 @@ mod common;
 use std::path::Path;
 
 use common::{GOLDEN_A, Tmp, at, done, refused};
-use ew_viewmodel::actions::{ActionItem, Menu, MenuEntry, menu_model};
+use ew_viewmodel::actions::{ActionItem, Menu, menu_model};
 use ew_viewmodel::canvas::{HOVER_SLOP_PT, pick};
 use ew_viewmodel::ew_api::Session;
 use ew_viewmodel::ew_api::output::{PageTables, TableRep};
@@ -138,19 +138,17 @@ fn place_terminals(s: &mut ShellModel, functions: &[&str]) -> Vec<TableRep> {
         .collect()
 }
 
-/// The `strip.bridge` item of the Edit menu.
+/// The `strip.bridge` item of the app menu (WP-S2.17 part 2: Draw, Connect).
 fn edit_item(s: &ShellModel, id: &str) -> ActionItem {
-    let edit = menu_model(s)
+    let draw = menu_model(s)
         .into_iter()
-        .find(|m| m.menu == Menu::Edit)
-        .expect("the Edit menu");
-    edit.entries
+        .find(|m| m.menu == Menu::Draw)
+        .expect("the Draw menu");
+    draw.items()
         .into_iter()
-        .find_map(|e| match e {
-            MenuEntry::Item(item) if item.id == id => Some(item),
-            _ => None,
-        })
-        .unwrap_or_else(|| panic!("no {id} in the Edit menu"))
+        .find(|item| item.id == id)
+        .cloned()
+        .unwrap_or_else(|| panic!("no {id} in the Draw menu"))
 }
 
 /// The golden endpoints the bridge rule relies on: every function's device is the terminal aspect of -X1031 (or

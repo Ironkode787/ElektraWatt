@@ -4,7 +4,8 @@
 //! The `ui.describe` text (WP-S2.01 part 1, spec section 6.2): the visible user interface as text, one line per
 //! element, in paint order. It is what an agent reads instead of a screenshot.
 //!
-//! Paint order: the window title, the menu bar with every entry and its enabled state (and reason), the banner,
+//! Paint order: the window title, the app menu with every entry and its enabled state (and reason), the command bar
+//! (WP-S2.17 part 2), the banner,
 //! the first-run flow, the wizard, or the project view (the page navigator, the canvas tabs and the focus, the page
 //! view and its canvas lines, the workspace and its layout), or the start page, the status bar, then the palette or a dialog, then the last documentation request.
 //! Directory names appear, paths never. The structural words are fixed English machine text (decision log ID-474):
@@ -412,7 +413,18 @@ pub const VOCABULARY: &[&str] = &[
     "ambiguous",
     "pattern",
     "values",
+    // The command bar and the HUD (WP-S2.17 part 2, D15; ID-474 extended): the 4 words of `COMMAND_BAR_WORDS`, a
+    // reviewed vocabulary change (`tab`, `collapsed`, `group`, `step`, `tool` and `target` are older).
+    "commandbar",
+    "next",
+    "hud",
+    "prompt",
 ];
+
+// WP-S2.17 part 2
+/// The 4 words WP-S2.17 part 2 adds to [`VOCABULARY`] (D15): the `commandbar` section's head word and its `next step`
+/// line, the `hud` line and its `prompt`.
+pub const COMMAND_BAR_WORDS: &[&str] = &["commandbar", "next", "hud", "prompt"];
 
 // WP-S2.09 part 2
 /// The 16 words WP-S2.09 part 2 adds to [`VOCABULARY`] (§7.6): the kind word `messages`, the role words `severity` and
@@ -1705,6 +1717,77 @@ fn project_view(model: &ShellModel, lines: &mut Vec<String>) {
     lines.push(format!("layout: {}", model.layout().describe()));
 }
 
+/// The menu lines of `entry` at `depth` (WP-S2.17 part 2): an item, a submenu with its items, or a command-bar group
+/// with its entries one level deeper.
+fn menu_entry_lines(entry: &MenuEntry, depth: usize, lines: &mut Vec<String>) {
+    let indent = "  ".repeat(depth);
+    match entry {
+        MenuEntry::Separator => {}
+        MenuEntry::Item(item) => lines.push(item_line(&indent, item)),
+        MenuEntry::Submenu { label, items, .. } => {
+            lines.push(format!("{indent}submenu \"{label}\""));
+            let inner = "  ".repeat(depth + 1);
+            lines.extend(items.iter().map(|i| item_line(&inner, i)));
+        }
+        MenuEntry::Group { label, entries, .. } => {
+            lines.push(format!("{indent}group \"{label}\""));
+            for e in entries {
+                menu_entry_lines(e, depth + 1, lines);
+            }
+        }
+    }
+}
+
+/// A command of the command bar as `id "bar label" [shortcut] (checked) enabled|disabled`; the reason of a disabled
+/// command is on its menu line.
+fn bar_button(b: &crate::command_bar::CommandButton) -> String {
+    let mut text = format!("{} \"{}\"", b.id, b.bar_label);
+    if !b.shortcut.is_empty() {
+        text.push_str(&format!(" [{}]", b.shortcut));
+    }
+    if b.checked {
+        text.push_str(" (checked)");
+    }
+    text.push_str(if b.enabled { " enabled" } else { " disabled" });
+    text
+}
+
+/// The command bar's lines (WP-S2.17 part 2, D15): the active tab, then one line per group with its commands in bar
+/// order, then the next step; a collapsed bar prints its tab line only.
+fn command_bar_lines(model: &ShellModel, lines: &mut Vec<String>) {
+    let bar = crate::command_bar::command_bar(model);
+    let tab = bar
+        .tabs
+        .iter()
+        .find(|(t, _)| *t == bar.tab)
+        .map_or("", |(_, l)| l.as_str());
+    let mut head = format!("commandbar tab \"{tab}\"");
+    if bar.collapsed {
+        head.push_str(" collapsed");
+        lines.push(head);
+        return;
+    }
+    lines.push(head);
+    for g in &bar.groups {
+        let buttons: Vec<String> = g.buttons.iter().map(bar_button).collect();
+        lines.push(format!("  group \"{}\" {}", g.label, buttons.join(", ")));
+    }
+    if let Some(next) = &bar.next {
+        lines.push(format!("  next step {}", bar_button(next)));
+    }
+}
+
+/// The HUD's line over the canvas (WP-S2.17 part 2, D15): the tool, what it works on and the prompt (quoted user text).
+fn hud_line(model: &ShellModel, lines: &mut Vec<String>) {
+    let hud = crate::command_bar::hud(model);
+    let mut line = format!("hud tool {} \"{}\"", hud.tool, hud.tool_label);
+    if let Some(target) = &hud.target {
+        line.push_str(&format!(" target \"{target}\""));
+    }
+    line.push_str(&format!(" prompt \"{}\"", hud.prompt));
+    lines.push(line);
+}
+
 /// The canvas lines after the page-view line (WP-S2.02 section 6.6): millimetres with three decimals from whole
 /// nanometres, the zoom with one decimal; the grid and backend labels are quoted user text.
 fn canvas_lines(model: &ShellModel, lines: &mut Vec<String>) {
@@ -1800,6 +1883,8 @@ fn canvas_lines(model: &ShellModel, lines: &mut Vec<String>) {
         }
     }
     tool_lines(model, lines);
+    // WP-S2.17 part 2: the HUD over the canvas.
+    hud_line(model, lines);
 }
 
 /// The tool lines after the canvas lines (WP-S2.03 §7.9): the active tool, the snap indicator, the selection, the
@@ -2571,16 +2656,11 @@ pub fn describe(model: &ShellModel) -> String {
     for menu in actions::menu_model(model) {
         lines.push(strings::format("describe-menu", &[&menu.label]));
         for entry in &menu.entries {
-            match entry {
-                MenuEntry::Separator => {}
-                MenuEntry::Item(item) => lines.push(item_line("  ", item)),
-                MenuEntry::Submenu { label, items, .. } => {
-                    lines.push(format!("  submenu \"{label}\""));
-                    lines.extend(items.iter().map(|i| item_line("    ", i)));
-                }
-            }
+            menu_entry_lines(entry, 1, &mut lines);
         }
     }
+    // WP-S2.17 part 2: the command bar under the app menu.
+    command_bar_lines(model, &mut lines);
     if let Some(banner) = model.banner() {
         lines.push(format!("banner: {banner}"));
     }

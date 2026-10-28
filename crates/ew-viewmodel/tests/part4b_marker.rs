@@ -12,7 +12,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use common::{GOLDEN_A, Tmp, at, done, refused, state, structural_tokens};
-use ew_viewmodel::actions::{ActionItem, Menu, MenuEntry, Submenu, menu_model};
+use ew_viewmodel::actions::{ActionItem, Menu, Submenu, menu_model};
 use ew_viewmodel::ew_api::output::{PageTables, TableConnection, TableEnd};
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use ew_viewmodel::tools::{FineKind, crossed_connections};
@@ -214,22 +214,14 @@ fn location_node_uuid() -> String {
 
 /// The items of the Wire markers submenu.
 fn marker_mode_items(s: &ShellModel) -> Vec<ActionItem> {
-    let tools = menu_model(s)
+    // WP-S2.17 part 2: Draw, Connect, Wire markers.
+    let draw = menu_model(s)
         .into_iter()
-        .find(|m| m.menu == Menu::Tools)
-        .expect("the Tools menu");
-    tools
-        .entries
-        .into_iter()
-        .find_map(|e| match e {
-            MenuEntry::Submenu {
-                submenu: Submenu::WireMarkers,
-                items,
-                ..
-            } => Some(items),
-            _ => None,
-        })
+        .find(|m| m.menu == Menu::Draw)
+        .expect("the Draw menu");
+    draw.submenu(Submenu::WireMarkers)
         .expect("the Wire markers submenu")
+        .to_vec()
 }
 
 fn checked_mode(s: &ShellModel, mode: &str) -> bool {

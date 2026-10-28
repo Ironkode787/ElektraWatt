@@ -74,6 +74,43 @@ impl ShellModel {
         Ok(())
     }
 
+    /// The command bar's active tab (WP-S2.17 part 2).
+    pub fn command_tab(&self) -> crate::command_bar::Tab {
+        self.command_tab
+    }
+
+    /// Whether the command bar is collapsed to its tab row.
+    pub fn command_bar_collapsed(&self) -> bool {
+        self.command_bar_collapsed
+    }
+
+    /// `view.command_tab { tab }`: shows the tab's groups in the command bar; an unknown tab is refused with
+    /// `error-bad-param`.
+    pub(super) fn act_command_tab(&mut self, p: &Map<String, Value>) -> Outcome {
+        match string_param(p, "tab") {
+            Err(e) => e,
+            Ok(None) => failed("error-missing-param", &["tab"]),
+            Ok(Some(word)) => match crate::command_bar::Tab::from_word(word) {
+                Some(tab) => {
+                    self.command_tab = tab;
+                    Outcome::Done
+                }
+                None => failed("error-bad-param", &["tab"]),
+            },
+        }
+    }
+
+    /// `view.command_bar { collapsed? }`: collapses the command bar to its tab row or restores it; without the
+    /// parameter it toggles (Ctrl+F1, a double-click on a tab).
+    pub(super) fn act_command_bar(&mut self, p: &Map<String, Value>) -> Outcome {
+        self.command_bar_collapsed = match p.get("collapsed") {
+            None => !self.command_bar_collapsed,
+            Some(Value::Bool(b)) => *b,
+            Some(_) => return failed("error-bad-param", &["collapsed"]),
+        };
+        Outcome::Done
+    }
+
     /// `view.theme { value }` and `view.density { value }` (WP-S2.17 part 1): the setting `key` from the `value`
     /// parameter; an unknown value is refused with `error-bad-param`.
     pub(super) fn act_view_setting(&mut self, key: &str, p: &Map<String, Value>) -> Outcome {

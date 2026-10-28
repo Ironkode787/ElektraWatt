@@ -761,8 +761,8 @@ fn tb8_describe_lines_words_and_counts() {
         assert!(VOCABULARY.contains(w), "{w}");
     }
     // Merged with WP-S2.09 parts 2 and 3 (16 + 13 words, 5 + 8 actions) and WP-S2.17 part 1 (2 actions).
-    assert_eq!(VOCABULARY.len(), 344);
-    assert_eq!(ew_viewmodel::actions::ACTIONS.len(), 254);
+    assert_eq!(VOCABULARY.len(), 348);
+    assert_eq!(ew_viewmodel::actions::ACTIONS.len(), 256);
     for (id, keys) in [
         ("table.edit", &["F2"][..]),
         ("table.fill_down", &["Ctrl+D"]),

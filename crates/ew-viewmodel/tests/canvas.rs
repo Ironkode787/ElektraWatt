@@ -7,7 +7,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use ew_viewmodel::actions::{self, ACTIONS, Menu, MenuEntry, Submenu};
+use ew_viewmodel::actions::{self, ACTIONS, Menu, Submenu};
 use ew_viewmodel::canvas::{CanvasBackend, ZOOM_MAX, ZOOM_MIN, rect_centre};
 use ew_viewmodel::script::{self, NoExtension};
 use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
@@ -86,12 +86,8 @@ fn state(shell: &ShellModel) -> Value {
 /// Whether the menu item `id` (a top-level item of a menu) is checked.
 fn checked(shell: &ShellModel, id: &str) -> bool {
     actions::menu_model(shell)
-        .into_iter()
-        .flat_map(|m| m.entries)
-        .find_map(|e| match e {
-            MenuEntry::Item(i) if i.id == id => Some(i.checked),
-            _ => None,
-        })
+        .iter()
+        .find_map(|m| m.items().into_iter().find(|i| i.id == id).map(|i| i.checked))
         .unwrap()
 }
 
@@ -149,18 +145,13 @@ fn a2_the_canvas_actions_are_in_the_registry_with_their_menus_and_reasons() {
         .into_iter()
         .find(|m| m.menu == Menu::View)
         .unwrap();
-    let pan = view
-        .entries
+    // WP-S2.17 part 2: under the Zoom group.
+    let pan: Vec<&str> = view
+        .submenu(Submenu::Pan)
+        .expect("View has the Pan submenu")
         .iter()
-        .find_map(|e| match e {
-            MenuEntry::Submenu {
-                submenu: Submenu::Pan,
-                items,
-                ..
-            } => Some(items.iter().map(|i| i.id).collect::<Vec<_>>()),
-            _ => None,
-        })
-        .expect("View has the Pan submenu");
+        .map(|i| i.id)
+        .collect();
     assert_eq!(
         pan,
         ["view.pan_left", "view.pan_right", "view.pan_up", "view.pan_down"]
@@ -367,8 +358,13 @@ fn a8_the_transcript_and_the_describe_text_carry_the_canvas() {
     assert_eq!(lines[pv + 11], "canvas selection none");
     assert_eq!(lines[pv + 12], "canvas preview none");
     assert_eq!(lines[pv + 13], "canvas overlay 0");
+    // WP-S2.17 part 2: the HUD over the canvas.
+    assert_eq!(
+        lines[pv + 14],
+        "hud tool tool.select \"Select\" prompt \"Click to select; drag for a rubber band\""
+    );
     assert!(
-        lines[pv + 14].starts_with("workspace "),
+        lines[pv + 15].starts_with("workspace "),
         "no statistics line while off"
     );
     // The pointer at an entity's centre: that entity (or a smaller one there) in hover, its box in the describe line.

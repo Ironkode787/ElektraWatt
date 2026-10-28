@@ -642,14 +642,14 @@ fn the_menu_entries_are_disabled_with_their_reason() {
         no_project,
         [
             (
-                "Insert".to_owned(),
+                "Project".to_owned(),
                 "Structure node...".to_owned(),
                 false,
                 Some("No project is open".to_owned()),
                 String::new()
             ),
             (
-                "Insert".to_owned(),
+                "Project".to_owned(),
                 "External reference...".to_owned(),
                 false,
                 Some("No project is open".to_owned()),

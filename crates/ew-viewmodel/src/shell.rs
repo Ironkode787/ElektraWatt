@@ -471,6 +471,11 @@ pub struct ShellModel {
     preview: crate::preview::PreviewPane,
     /// The history panel and the contexts of the commits.
     history: crate::undo_history::HistoryPane,
+    // WP-S2.17 part 2
+    /// The command bar's active tab (`view.command_tab`); a session state, Draw at start.
+    command_tab: crate::command_bar::Tab,
+    /// Whether the command bar shows the tab row only (`view.command_bar`, Ctrl+F1).
+    command_bar_collapsed: bool,
 }
 
 /// A maker of [`IdSource`]s for `ShellModel::set_id_source_for_tests` (feature `testkit`).
@@ -593,6 +598,9 @@ fn clears_banner(id: &str) -> bool {
             | "tab.activate"
             | "tab.move"
             | "view.side_by_side"
+            // WP-S2.17 part 2: switching or collapsing the command bar leaves a banner standing.
+            | "view.command_tab"
+            | "view.command_bar"
             | "nav.back"
             | "nav.forward"
             | "nav.follow"
@@ -863,6 +871,8 @@ impl ShellModel {
             messages: crate::navigators::messages::MessagesState::default(),
             preview: crate::preview::PreviewPane::default(),
             history: crate::undo_history::HistoryPane::default(),
+            command_tab: crate::command_bar::Tab::Draw,
+            command_bar_collapsed: false,
         };
         model.load_active_workspace();
         model
@@ -1630,6 +1640,9 @@ impl ShellModel {
             // WP-S2.17 part 1
             "view.theme" => self.act_view_setting("theme", p),
             "view.density" => self.act_view_setting("density", p),
+            // WP-S2.17 part 2
+            "view.command_tab" => self.act_command_tab(p),
+            "view.command_bar" => self.act_command_bar(p),
             "tools.palette" => self.act_palette(p),
             "help.shortcuts" => self.open_dialog(Dialog::Shortcuts),
             "help.about" => self.open_dialog(Dialog::About),

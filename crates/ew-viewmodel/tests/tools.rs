@@ -623,19 +623,17 @@ fn t10_the_transcript_and_describe_members_of_the_tools() {
     done(&mut shell, "cursor.right", json!({}));
     let node = ew_viewmodel::status::canvas_node(&shell, 0).unwrap();
     assert!(node.live.contains(" x "), "the cursor again: {}", node.live);
-    // The Tools menu checks the active tool.
+    // The Draw menu checks the active tool (WP-S2.17 part 2: Tools dissolved into Draw).
     let menus = ew_viewmodel::actions::menu_model(&shell);
-    let tools = menus
+    let draw = menus
         .iter()
-        .find(|m| m.menu == ew_viewmodel::actions::Menu::Tools)
+        .find(|m| m.menu == ew_viewmodel::actions::Menu::Draw)
         .unwrap();
-    let checked: Vec<&str> = tools
-        .entries
-        .iter()
-        .filter_map(|e| match e {
-            ew_viewmodel::actions::MenuEntry::Item(i) if i.checked => Some(i.id),
-            _ => None,
-        })
+    let checked: Vec<&str> = draw
+        .items()
+        .into_iter()
+        .filter(|i| i.checked && i.id.starts_with("tool."))
+        .map(|i| i.id)
         .collect();
     assert_eq!(checked, vec!["tool.select"]);
     shell.shutdown();

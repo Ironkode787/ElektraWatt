@@ -134,6 +134,9 @@ pub fn action_topic(action: &str) -> Option<&'static str> {
         "help.about" => "about",
         "command.run" => "commands",
         a if a.starts_with("view.workspace") => "workspaces",
+        // WP-S2.17 part 2 (CB1): every command of the command bar has a page; until the book has a command-bar
+        // section the project view's page explains the window it sits in.
+        a if crate::actions::find(a).is_some_and(|m| m.placement.is_some()) => "project-view",
         _ => return None,
     })
 }

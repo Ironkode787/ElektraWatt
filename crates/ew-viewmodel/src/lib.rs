@@ -23,6 +23,8 @@ pub mod actions;
 pub mod alias;
 pub mod area;
 pub mod canvas;
+// WP-S2.17 part 2
+pub mod command_bar;
 // WP-S2.05 part 3
 pub mod clipboard;
 pub mod describe;
