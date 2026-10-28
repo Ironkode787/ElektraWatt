@@ -185,3 +185,54 @@ fn the_component_gallery_in_every_theme_at_ppp_1_and_2() {
     }
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
+
+/// `image`'s pixels inside `rect` (points at ppp 1), clamped to the image.
+fn crop(image: &ew_render_cpu::RgbaImage, rect: egui::Rect) -> ew_render_cpu::RgbaImage {
+    let x0 = (rect.left().max(0.0) as u32).min(image.width);
+    let y0 = (rect.top().max(0.0) as u32).min(image.height);
+    let x1 = (rect.right().ceil() as u32).clamp(x0, image.width);
+    let y1 = (rect.bottom().ceil() as u32).clamp(y0, image.height);
+    let mut pixels = Vec::with_capacity(((x1 - x0) * (y1 - y0) * 4) as usize);
+    for y in y0..y1 {
+        let start = ((y * image.width + x0) * 4) as usize;
+        pixels.extend_from_slice(&image.pixels[start..start + ((x1 - x0) * 4) as usize]);
+    }
+    ew_render_cpu::RgbaImage {
+        width: x1 - x0,
+        height: y1 - y0,
+        pixels,
+    }
+}
+
+/// CB7 (§12.2): the command bar alone, cropped to its frame, for each of the six tabs, in light comfortable and dark
+/// compact (gated).
+#[test]
+fn the_command_bar_on_every_tab() {
+    let dev = device();
+    let mut failures = Vec::new();
+    for (theme, density) in [("light", "comfortable"), ("dark", "compact")] {
+        let (mut h, recorder, tmp) = main_window(theme, density);
+        for tab in ["project", "page", "draw", "check", "output", "view"] {
+            assert_eq!(
+                h.state_mut()
+                    .shell_mut()
+                    .dispatch("view.command_tab", &json!({"tab": tab})),
+                Outcome::Done,
+                "{tab}"
+            );
+            h.run_ok();
+            h.run_ok();
+            let (bar, _, _) = h.state().command_surface_rects();
+            let bar = bar.expect("the command bar");
+            let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
+            failures.extend(record(
+                &format!("command-bar-{tab}-{theme}-{density}"),
+                &crop(&image, bar),
+                true,
+            ));
+        }
+        drop(h);
+        drop(tmp);
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
