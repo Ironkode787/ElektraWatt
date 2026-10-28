@@ -59,24 +59,33 @@ pub enum PaneKind {
     // WP-S2.09 part 1
     /// The Jobs pane (§6.4): the PDF exports with their progress and results, in the bottom dock (D14).
     Jobs,
+    // WP-S2.09 part 3
+    /// The Preview tab (§8.1): the open card's preview, in the bottom dock (D11, D14).
+    Preview,
+    /// The history panel (§8.4): the undo steps and the marker lines, in the bottom dock (D13, D14).
+    History,
 }
 
 impl PaneKind {
     /// Every pane kind but the navigators.
-    pub const ALL: [PaneKind; 5] = [
+    pub const ALL: [PaneKind; 7] = [
         PaneKind::Pages,
         PaneKind::PageView,
         PaneKind::Properties,
         PaneKind::Find,
         PaneKind::Jobs,
+        PaneKind::Preview,
+        PaneKind::History,
     ];
 
     /// The panes of the bottom dock (D14): they share one tab group below the page view (WP-S2.09 part 2: the
-    /// Messages navigator is one of them).
-    pub const BOTTOM: [PaneKind; 3] = [
+    /// Messages navigator is one of them; part 3: the Preview tab and the history panel).
+    pub const BOTTOM: [PaneKind; 5] = [
         PaneKind::Find,
         PaneKind::Jobs,
         PaneKind::Navigator(NavKind::Messages),
+        PaneKind::Preview,
+        PaneKind::History,
     ];
 
     /// The name in a workspace file.
@@ -88,6 +97,8 @@ impl PaneKind {
             PaneKind::Find => "find",
             PaneKind::Navigator(k) => k.word(),
             PaneKind::Jobs => "jobs",
+            PaneKind::Preview => "preview",
+            PaneKind::History => "history",
         }
     }
 
@@ -109,6 +120,8 @@ impl PaneKind {
             PaneKind::Find => "pane-find",
             PaneKind::Navigator(k) => nav_title_key(k),
             PaneKind::Jobs => "pane-jobs",
+            PaneKind::Preview => "pane-preview",
+            PaneKind::History => "pane-history",
         }
     }
 }
@@ -395,6 +408,33 @@ impl Layout {
             },
         };
         Layout { root }
+    }
+
+    // WP-S2.09 part 3
+    /// The layout with `pane` shown: the tab group that holds it shows it (D11: opening a card shows the Preview tab).
+    /// Unchanged when `pane` is not in it or is already shown.
+    pub fn showing(&self, pane: PaneKind) -> Layout {
+        fn show(n: &LayoutNode, pane: PaneKind) -> LayoutNode {
+            match n {
+                LayoutNode::Pane(p) => LayoutNode::Pane(*p),
+                LayoutNode::Tabs { children, active } => {
+                    let at = children
+                        .iter()
+                        .position(|c| matches!(c, LayoutNode::Pane(p) if *p == pane));
+                    LayoutNode::Tabs {
+                        children: children.iter().map(|c| show(c, pane)).collect(),
+                        active: at.unwrap_or(*active),
+                    }
+                }
+                LayoutNode::Split { dir, children } => LayoutNode::Split {
+                    dir: *dir,
+                    children: children.iter().map(|(s, c)| (*s, show(c, pane))).collect(),
+                },
+            }
+        }
+        Layout {
+            root: show(&self.root, pane),
+        }
     }
 
     /// The layout without `pane`: a container left with one child is replaced by it, an empty one goes. The page view

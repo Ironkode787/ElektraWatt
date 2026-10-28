@@ -217,6 +217,23 @@ fn has_pages(m: &ShellModel) -> Result<(), &'static str> {
     }
 }
 
+// WP-S2.09 part 3
+/// The history panel's row moves and Show changes: a project with the panel open.
+fn history_open(m: &ShellModel) -> Result<(), &'static str> {
+    project_open(m)?;
+    if m.history_shown() {
+        Ok(())
+    } else {
+        Err("reason-history-closed")
+    }
+}
+
+/// Undo to here: a writable project with the panel open.
+fn history_writable(m: &ShellModel) -> Result<(), &'static str> {
+    writable(m)?;
+    history_open(m)
+}
+
 fn can_undo(m: &ShellModel) -> Result<(), &'static str> {
     writable(m)?;
     if m.can_undo() {
@@ -645,7 +662,8 @@ fn find_writable(m: &ShellModel) -> Result<(), &'static str> {
 /// (FT-410) is a window of its own and needs neither.
 fn card_shown(m: &ShellModel) -> Result<(), &'static str> {
     project_open(m)?;
-    if m.properties_shown() || m.find_shown() || m.import_card_open() {
+    // WP-S2.09 part 3 (§8.7): the Preview tab shows every card.
+    if m.properties_shown() || m.find_shown() || m.import_card_open() || m.preview_shown() {
         Ok(())
     } else {
         Err("reason-no-sheet")
@@ -770,7 +788,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             Menu::File,
             &[],
             always,
-            slot(Menu::File),
+            // FT-466 (WP-S2.09 part 3, §8.1): in the File, Import submenu, its ID unchanged.
+            sub(Menu::File, Submenu::Import, false),
         ),
     ),
     // FT-410: File, Import, Parts table...
@@ -875,6 +894,19 @@ pub static ACTIONS: &[ActionMeta] = &[
         can_redo,
         slot(Menu::Edit),
     ),
+    // WP-S2.09 part 3 (§8.4): Edit, History.
+    with_params(
+        "on?:bool",
+        act(
+            "history.show",
+            View,
+            "action-history-show",
+            Menu::Edit,
+            &[],
+            project_open,
+            slot(Menu::Edit),
+        ),
+    ),
     // Edit, Properties of selection (E and Alt+Enter on the canvas) and Project properties: the shell has no Project
     // menu yet, so the project's properties sit beside the selection's (WP-S2.05 §6.10, lane ruling).
     in_canvas(act(
@@ -931,6 +963,19 @@ pub static ACTIONS: &[ActionMeta] = &[
             "page.new",
             Command,
             "action-page-new",
+            Menu::Page,
+            &[],
+            writable,
+            slot(Menu::Page),
+        ),
+    ),
+    // WP-S2.09 part 3 (§8.3): Page, Renumber pages...
+    with_params(
+        "section?:text, start?:uint, step?:uint, keep_gaps?:bool",
+        act(
+            "pages.renumber",
+            Command,
+            "action-pages-renumber",
             Menu::Page,
             &[],
             writable,
@@ -2065,6 +2110,31 @@ pub static ACTIONS: &[ActionMeta] = &[
         project_open,
         slot(Menu::Tools),
     ),
+    // WP-S2.09 part 3 (§8.3, §8.6): Tools, Renumber devices... and Purge unused library copies...
+    with_params(
+        "scope?:enum(project|page|selection), scheme?:text, include_frozen?:bool, only_nonconforming?:bool",
+        act(
+            "devices.renumber",
+            Command,
+            "action-devices-renumber",
+            Menu::Tools,
+            &[],
+            writable,
+            slot_sep(Menu::Tools),
+        ),
+    ),
+    with_params(
+        "confirm?:bool",
+        act(
+            "project.purge_assets",
+            Command,
+            "action-project-purge-assets",
+            Menu::Tools,
+            &[],
+            writable,
+            slot(Menu::Tools),
+        ),
+    ),
     act(
         "tab.new",
         View,
@@ -3047,6 +3117,55 @@ pub static ACTIONS: &[ActionMeta] = &[
         card_shown,
         None,
     ))),
+    // WP-S2.09 part 3 (§8.1, §8.4): the Preview tab and the history panel's own moves.
+    with_params(
+        "on?:bool",
+        hidden(act(
+            "preview.show",
+            View,
+            "action-preview-show",
+            Menu::View,
+            &[],
+            project_open,
+            None,
+        )),
+    ),
+    with_params(
+        "step?:int, to?:enum(first|last)",
+        hidden(act(
+            "history.row",
+            View,
+            "action-history-row",
+            Menu::Edit,
+            &[],
+            history_open,
+            None,
+        )),
+    ),
+    with_params(
+        "entry?:uint",
+        hidden(act(
+            "history.undo_to",
+            Command,
+            "action-history-undo-to",
+            Menu::Edit,
+            &[],
+            history_writable,
+            None,
+        )),
+    ),
+    with_params(
+        "entry?:uint",
+        hidden(act(
+            "history.changes",
+            View,
+            "action-history-changes",
+            Menu::Edit,
+            &[],
+            history_open,
+            None,
+        )),
+    ),
     hidden(act(
         "toast.undo",
         Command,
@@ -3413,6 +3532,9 @@ fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
             "notifications.show" => model.notifications().popup_open(),
             // WP-S2.09 part 2.
             "messages.show" => model.navigator_open(crate::navigators::NavKind::Messages),
+            // WP-S2.09 part 3.
+            "history.show" => model.history_shown(),
+            "preview.show" => model.preview_shown(),
             "tool.select" | "tool.measure" => meta.id.strip_prefix("tool.") == Some(model.tool().name()),
             // WP-S2.04 part 2.
             "tool.wire" => model.tool().name() == "wire",
@@ -3436,7 +3558,9 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
         return Vec::new();
     };
     match submenu {
-        Submenu::Export | Submenu::Import => vec![item_of(meta, model)],
+        Submenu::Export => vec![item_of(meta, model)],
+        // FT-466: File, Import holds the QElectroTech import and the parts table.
+        Submenu::Import => metas.iter().map(|m| item_of(m, model)).collect(),
         Submenu::PageNavigator => {
             let nav = model.navigator();
             let mut items = Vec::new();

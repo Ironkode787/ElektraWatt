@@ -1472,6 +1472,10 @@ impl ShellModel {
         if matches!(card.origin, CardOrigin::QuickFix { .. }) {
             return self.apply_fix_card(card);
         }
+        // WP-S2.09 part 3: a bulk card is a renumber dialog's (§8.2).
+        if matches!(card.origin, CardOrigin::Bulk) {
+            return self.apply_bulk_card(card);
+        }
         let Some(rev) = self.revision() else {
             return Outcome::Done;
         };

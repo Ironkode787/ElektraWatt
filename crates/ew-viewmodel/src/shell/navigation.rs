@@ -100,6 +100,11 @@ pub struct SessionCalls {
     // WP-S2.09 part 1
     /// `Session::export_job`: once per started PDF export (§9 item 5); no other `Session` call runs off this thread.
     pub export_job: u64,
+    // WP-S2.09 part 3
+    /// `Session::preview_entities`: once per card the Preview tab shows (§9 item 5).
+    pub preview_entities: u64,
+    /// `Session::history_view`: once per (project session, revision) while the history panel is open.
+    pub history_view: u64,
 }
 
 /// Counts one of the shell's `Session` calls (a free function, so that a call can be counted while the project is
@@ -566,6 +571,28 @@ impl ShellModel {
                 CursorAt::Exact(p) => c.put_cursor(Some(p)),
                 CursorAt::Nearest(p) => c.place_cursor(p),
             }
+        }
+        let Some(to) = self.location(g) else { return };
+        if from != to
+            && let Some(a) = &mut self.area
+        {
+            a.groups[g].active_tab_mut().history.record(from);
+        }
+    }
+
+    // WP-S2.09 part 3
+    /// The context restore of an undo or redo (§8.5): group `g`'s active tab shows `page` at `viewport` (a fitted view
+    /// fits again); the location it leaves goes on the tab's back list unless it is the one it reaches.
+    pub(super) fn restore_location(&mut self, g: usize, page: PageId, viewport: Viewport) {
+        let Some(from) = self.location(g) else { return };
+        if from.page == page {
+            // The same page keeps its canvas (and the keyboard cursor, WP-S2.03 §7.7): only the view moves.
+            if let Some(c) = self.canvas_mut(g) {
+                c.set_viewport(&viewport);
+            }
+        } else {
+            self.remember_view(g);
+            self.show(g, page, Arrival::Exact(viewport));
         }
         let Some(to) = self.location(g) else { return };
         if from != to

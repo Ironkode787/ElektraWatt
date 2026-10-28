@@ -198,6 +198,8 @@ pub struct FormDialog {
     pub action: &'static str,
     /// The key of the dialog's title.
     pub title_key: &'static str,
+    /// The key of the button Enter presses (`Create`; WP-S2.09 part 3's renumber dialogs: `Renumber`).
+    pub ok_key: &'static str,
     /// The fields in order.
     pub fields: Vec<FormField>,
     /// What the last attempt was refused with, shown under the fields.
@@ -210,6 +212,7 @@ impl Spec {
         FormDialog {
             action: self.action,
             title_key: self.title_key,
+            ok_key: "dialog-create",
             fields: self
                 .fields
                 .iter()

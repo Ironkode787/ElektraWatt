@@ -2016,7 +2016,9 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
             // `tests/jobs.rs`, `tests/notifications.rs` and `tests/recovery.rs` reach them.
             || ew_viewmodel::describe::JOB_WORDS.contains(*w)
             // WP-S2.09 part 2: the message panel's words need its pane: `tests/messages.rs` reaches them.
-            || ew_viewmodel::describe::MSG_WORDS.contains(*w)),
+            || ew_viewmodel::describe::MSG_WORDS.contains(*w)
+            // WP-S2.09 part 3: the preview and history words need a card or the history panel: `tests/preview_history.rs`.
+            || ew_viewmodel::describe::PREVIEW_WORDS.contains(*w)),
         "words of the vocabulary no state used: {unused:?}"
     );
 }

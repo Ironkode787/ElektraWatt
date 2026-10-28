@@ -40,6 +40,8 @@ pub mod navigator;
 // WP-S2.06 part 1
 pub mod navigators;
 pub mod notifications;
+// WP-S2.09 part 3
+pub mod preview;
 pub mod properties;
 pub mod script;
 pub mod settings;
@@ -47,5 +49,7 @@ pub mod shell;
 pub mod status;
 pub mod strings;
 pub mod tools;
+// WP-S2.09 part 3
+pub mod undo_history;
 pub mod wizard;
 mod wizard_data;

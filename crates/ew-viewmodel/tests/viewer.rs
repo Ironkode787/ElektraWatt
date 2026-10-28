@@ -302,6 +302,10 @@ fn v3_walks_jumps_back_and_forward_with_the_exact_view() {
     done(&mut shell, "page.goto", json!({"folio": "101"}));
     done(&mut shell, "edit.undo", json!({}));
     assert!(!shell.page_labels().contains(&"107".to_owned()));
+    // WP-S2.09 §8.5: the undo restores the page the step was made on (103) as a jump from 101.
+    assert_eq!(shell.current_folio(), Some("103"), "the step's context");
+    done(&mut shell, "nav.back", json!({}));
+    assert_eq!(shell.current_folio(), Some("101"), "the restore's back entry");
     done(&mut shell, "nav.back", json!({}));
     assert_eq!(shell.current_folio(), Some("103"), "the entry of 107 was dropped");
     // The cap of 50.

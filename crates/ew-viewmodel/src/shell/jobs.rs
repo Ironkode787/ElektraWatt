@@ -39,7 +39,7 @@ fn uint_param(p: &Map<String, Value>, name: &str) -> Result<Option<u64>, Outcome
 }
 
 /// A `bool` parameter with its default.
-fn bool_param(p: &Map<String, Value>, name: &str, default: bool) -> Result<bool, Outcome> {
+pub(super) fn bool_param(p: &Map<String, Value>, name: &str, default: bool) -> Result<bool, Outcome> {
     match p.get(name) {
         None | Some(Value::Null) => Ok(default),
         Some(Value::Bool(b)) => Ok(*b),

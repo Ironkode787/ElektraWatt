@@ -390,6 +390,21 @@ pub const VOCABULARY: &[&str] = &[
     "conflict",
     "hygiene",
     "integrity",
+    // The Preview tab and the history panel (WP-S2.09 part 3, §8.7; ID-474 extended): the 13 words of `PREVIEW_WORDS`,
+    // a reviewed vocabulary change (the specification's 14 less `saved`: a marker's text is quoted).
+    "summary",
+    "entity",
+    "added",
+    "changed",
+    "removed",
+    "fields",
+    "xref",
+    "more",
+    "entries",
+    "entry",
+    "origin",
+    "merged",
+    "redo",
 ];
 
 // WP-S2.09 part 2
@@ -413,6 +428,14 @@ pub const MSG_WORDS: &[&str] = &[
     "conflict",
     "hygiene",
     "integrity",
+];
+
+// WP-S2.09 part 3
+/// The 13 words WP-S2.09 part 3 adds to [`VOCABULARY`] (§8.7): the `preview` and `history` sections' words (the
+/// specification's 14 less `saved`, which only a quoted marker text carries).
+pub const PREVIEW_WORDS: &[&str] = &[
+    "summary", "entity", "added", "changed", "removed", "fields", "xref", "more", "entries", "entry",
+    "origin", "merged", "redo",
 ];
 
 // WP-S2.09 part 1
@@ -1324,6 +1347,139 @@ fn jobs_lines(model: &ShellModel, lines: &mut Vec<String>) {
     }
 }
 
+// WP-S2.09 part 3
+/// One labelled record of a preview or of Show changes: `entity <change> "<kind>" "<label>" [fields "<f>"...]` (the
+/// kind quoted: the record kinds stay out of the vocabulary).
+fn entity_line(indent: &str, e: &ew_api::output::PreviewEntity) -> String {
+    let mut line = format!(
+        "{indent}entity {} \"{}\" \"{}\"",
+        e.change,
+        user(&e.kind),
+        user(&e.label)
+    );
+    if !e.fields.is_empty() {
+        line.push_str(" fields");
+        for f in &e.fields {
+            line.push_str(&format!(" \"{}\"", user(f)));
+        }
+    }
+    line
+}
+
+/// At most [`crate::preview::MAX_LIST`] lines of `items`, then `  more <word> <n>`.
+fn listed<T>(lines: &mut Vec<String>, items: &[T], word: &str, line: impl Fn(&T) -> String) {
+    lines.extend(items.iter().take(crate::preview::MAX_LIST).map(line));
+    if items.len() > crate::preview::MAX_LIST {
+        lines.push(format!(
+            "  more {word} {}",
+            items.len() - crate::preview::MAX_LIST
+        ));
+    }
+}
+
+/// The Preview tab while it is open (§8.7): `preview none` without a card; else the header, the summary and the lists
+/// of entities, tags, cross-reference texts and pages.
+fn preview_lines(model: &ShellModel, lines: &mut Vec<String>) {
+    if !model.preview_shown() {
+        return;
+    }
+    let (Some(card), Some(rev)) = (model.properties().card(), model.revision()) else {
+        lines.push("preview none".to_owned());
+        return;
+    };
+    let name = user(&card.preview.name);
+    let preview = match &card.preview.result {
+        Ok(p) => p,
+        Err(message) => {
+            lines.push(format!("preview \"{name}\" failed \"{}\"", user(message)));
+            return;
+        }
+    };
+    lines.push(format!(
+        "preview \"{name}\" {} rev {}",
+        card.preview.status(rev).word(),
+        card.preview.base_rev
+    ));
+    let pane = model.preview_pane();
+    let mut summary = format!(
+        "  summary records {} tags {} xrefs {} pages {}",
+        preview.diff().len(),
+        pane.tags().len(),
+        pane.xrefs().len(),
+        pane.pages().len()
+    );
+    if let crate::properties::CardOrigin::Import { created, skipped, .. } = &card.origin {
+        summary.push_str(&format!(" created {created} skipped {skipped}"));
+    }
+    lines.push(summary);
+    listed(lines, pane.entities(), "entity", |e| entity_line("  ", e));
+    listed(lines, pane.tags(), "tag", |(a, b)| {
+        format!("  tag \"{}\" \"{}\"", user(a), user(b))
+    });
+    listed(lines, pane.xrefs(), "xref", |x| {
+        format!(
+            "  xref \"{}\" \"{}\" \"{}\"",
+            user(&x.folio),
+            user(&x.before),
+            user(&x.after)
+        )
+    });
+    listed(lines, pane.pages(), "page", |f| format!("  page \"{}\"", user(f)));
+}
+
+/// The history panel while it is open (§8.7): `history entries <n> cursor <c>`, then its lines newest first (entries
+/// numbered from 1, the markers after their revision's entry); the row cursor's entry ends with `cursor`. Show changes
+/// follows as `  changes entry <n> records <k>` and at most [`crate::undo_history::MAX_CHANGES`] entity lines.
+fn history_lines(model: &ShellModel, lines: &mut Vec<String>) {
+    use crate::undo_history::HistoryLine;
+    if !model.history_shown() {
+        return;
+    }
+    let pane = model.history_pane();
+    let Some(view) = pane.view() else { return };
+    lines.push(format!(
+        "history entries {} cursor {}",
+        view.rows.len(),
+        view.cursor
+    ));
+    for line in pane.lines(model.markers()) {
+        match line {
+            HistoryLine::Marker(m) => lines.push(format!("  marker \"{}\"", user(&m.text))),
+            HistoryLine::Entry { row, state, origin } => {
+                let mut text = format!(
+                    "  entry {} {} \"{}\" origin \"{}\"",
+                    row.index + 1,
+                    state.word(),
+                    user(&row.label),
+                    user(origin)
+                );
+                if !row.pages.is_empty() {
+                    text.push_str(" pages");
+                    for f in &row.pages {
+                        text.push_str(&format!(" \"{}\"", user(f)));
+                    }
+                }
+                if row.merged > 1 {
+                    text.push_str(&format!(" merged {}", row.merged));
+                }
+                if !row.step {
+                    text.push_str(" marker");
+                }
+                if pane.row_cursor() == Some(row.index) {
+                    text.push_str(" cursor");
+                }
+                lines.push(text);
+            }
+        }
+    }
+    if let Some((index, records)) = pane.changes() {
+        lines.push(format!("  changes entry {} records {}", index + 1, records.len()));
+        for e in records.iter().take(crate::undo_history::MAX_CHANGES) {
+            lines.push(entity_line("    ", e));
+        }
+    }
+}
+
 /// The notifications log while its popup is open (§6.8): `notifications <n>`, then the entries, newest first.
 fn notification_lines(model: &ShellModel, lines: &mut Vec<String>) {
     let log = model.notifications();
@@ -1387,6 +1543,9 @@ fn project_view(model: &ShellModel, lines: &mut Vec<String>) {
     find_lines(model, lines);
     // WP-S2.09 part 1
     jobs_lines(model, lines);
+    // WP-S2.09 part 3
+    preview_lines(model, lines);
+    history_lines(model, lines);
     card_and_toast_lines(model, lines);
     // WP-S2.05 part 3: what the clipboard holds, never its text.
     lines.push(model.clipboard().describe_line());
@@ -1885,6 +2044,24 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
         }
         // FT-408 and FT-409: a creation dialog, one `field` line per field in order; the refusal of the last attempt
         // follows the fields as an `error:` line.
+        // WP-S2.09 part 3 (§8.6): at most 20 file names, then "and <n> more".
+        Some(Dialog::ConfirmPurge { files, .. }) => {
+            lines.push(format!("dialog \"{}\"", strings::text("confirm-purge-title")));
+            lines.push(format!("  label \"{}\"", strings::text("confirm-purge-text")));
+            for f in files.iter().take(crate::shell::PURGE_LISTED) {
+                lines.push(format!("  item \"{}\"", user(f)));
+            }
+            if files.len() > crate::shell::PURGE_LISTED {
+                let more = (files.len() - crate::shell::PURGE_LISTED).to_string();
+                lines.push(format!(
+                    "  label \"{}\"",
+                    strings::format("confirm-purge-more", &[&more])
+                ));
+            }
+            for key in ["dialog-purge", "dialog-cancel"] {
+                lines.push(format!("  button \"{}\"", strings::text(key)));
+            }
+        }
         Some(Dialog::Form(form)) => {
             lines.push(format!("dialog \"{}\"", strings::text(form.title_key)));
             for f in &form.fields {
@@ -1897,7 +2074,7 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
             if let Some(e) = &form.error {
                 lines.push(format!("  error: {e}"));
             }
-            lines.push(format!("  button \"{}\"", strings::text("dialog-create")));
+            lines.push(format!("  button \"{}\"", strings::text(form.ok_key)));
             lines.push(format!("  button \"{}\"", strings::text("dialog-cancel")));
         }
     }

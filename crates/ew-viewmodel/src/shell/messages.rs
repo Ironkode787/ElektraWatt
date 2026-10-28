@@ -369,9 +369,10 @@ impl ShellModel {
             && let Some((epoch, now)) = self.epoch_rev()
             && now != rev
         {
-            self.messages
-                .annotations
-                .insert((epoch, now), format!("quick fix {rule}"));
+            let text = format!("quick fix {rule}");
+            // WP-S2.09 part 3 (§8.4): the history panel shows the annotation as the entry's origin.
+            self.note_history_origin(now, &text);
+            self.messages.annotations.insert((epoch, now), text);
         }
         out
     }

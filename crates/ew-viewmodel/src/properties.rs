@@ -210,10 +210,14 @@ pub enum CardOrigin {
         /// The rule ID of the finding.
         rule: String,
     },
+    // WP-S2.09 part 3
+    /// The card of a `Bulk` command a dialog built (§8.2): Page, Renumber pages... (`page.renumber`) and Tools, Renumber
+    /// devices... (`numbering.renumber`); its targets and changes are the number of entity changes.
+    Bulk,
 }
 
 impl CardOrigin {
-    /// The transcript's word (`properties`, `find`, `import`, `reorder`, `fix`).
+    /// The transcript's word (`properties`, `find`, `import`, `reorder`, `fix`, `bulk`).
     pub fn word(&self) -> &'static str {
         match self {
             CardOrigin::Properties => "properties",
@@ -221,6 +225,7 @@ impl CardOrigin {
             CardOrigin::Import { .. } => "import",
             CardOrigin::Reorder { .. } => "reorder",
             CardOrigin::QuickFix { .. } => "fix",
+            CardOrigin::Bulk => "bulk",
         }
     }
 }

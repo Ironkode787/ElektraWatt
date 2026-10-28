@@ -40,6 +40,8 @@ mod clipboard;
 mod drawing;
 // WP-S2.04 part 4b: FT-411, Edit ▸ Bridge terminals.
 mod bridge;
+// WP-S2.09 part 3: the Preview tab, the renumber dialogs and the purge.
+mod bulk;
 mod editing;
 // WP-S2.05 part 2
 mod find;
@@ -58,6 +60,8 @@ mod parts;
 mod projects;
 mod properties;
 mod tools;
+// WP-S2.09 part 3: the history panel and context restore.
+mod undo_panel;
 // WP-S2.04 part 2: the wiring tools' host duties.
 mod wiring;
 mod workspaces;
@@ -67,6 +71,8 @@ pub use drawing::TextPopup;
 pub use navigation::{Focus, RECENT_PAGES, SessionCalls};
 // WP-S2.06 part 1
 pub use navigators::{Chip, DragSource, FindingLook, MAX_CHIPS, ShownRow};
+// WP-S2.09 part 3
+pub use bulk::PURGE_LISTED;
 pub use tools::SnapIndicator;
 
 /// Who drives the shell: the window or the headless runner. They share `dispatch`; the modes differ only where a
@@ -248,6 +254,14 @@ pub enum Dialog {
         last_change_ms: u64,
         /// Why the last Recover failed.
         failed: Option<String>,
+    },
+    /// Tools, Purge unused library copies (WP-S2.09 part 3, §8.6): the files that go, which undo does not bring back;
+    /// Purge (`project.assets.purge` with `confirm`) or Cancel (Escape).
+    ConfirmPurge {
+        /// The library files that are deleted, in their order.
+        files: Vec<String>,
+        /// The assets they hold (the parameter of the purge).
+        assets: Vec<String>,
     },
 }
 
@@ -448,6 +462,11 @@ pub struct ShellModel {
     // WP-S2.09 part 2
     /// The message panel's view state: the editing page, the scheme of its table, the quick fixes' origin annotations.
     messages: crate::navigators::messages::MessagesState,
+    // WP-S2.09 part 3
+    /// The Preview tab's lists of the open card.
+    preview: crate::preview::PreviewPane,
+    /// The history panel and the contexts of the commits.
+    history: crate::undo_history::HistoryPane,
 }
 
 /// A maker of [`IdSource`]s for `ShellModel::set_id_source_for_tests` (feature `testkit`).
@@ -718,6 +737,11 @@ fn clears_banner(id: &str) -> bool {
             | "notifications.show"
             | "notifications.run"
             | "journal.keep"
+            // WP-S2.09 part 3: the Preview tab and the history panel's own moves.
+            | "preview.show"
+            | "history.show"
+            | "history.row"
+            | "history.changes"
     )
 }
 
@@ -826,6 +850,8 @@ impl ShellModel {
             markers: Vec::new(),
             recovery_stash: None,
             messages: crate::navigators::messages::MessagesState::default(),
+            preview: crate::preview::PreviewPane::default(),
+            history: crate::undo_history::HistoryPane::default(),
         };
         model.load_active_workspace();
         model
@@ -1271,7 +1297,10 @@ impl ShellModel {
         // committing action removed it gives way to the stack).
         // WP-S2.09 part 2: the project session and revision before the action, for the editing page (§7.2).
         let before = self.epoch_rev();
+        // WP-S2.09 §8.5: the context before the action is kept for the history entries it commits.
+        let context = self.take_context();
         let outcome = self.run_action(meta.id, p);
+        self.keep_contexts(context);
         // The canvases follow the pages and the revision the action left (WP-S2.02 section 6.1, WP-S2.03 §6.2), and a
         // busy tool is escaped when its canvas changed (WP-S2.03 §7.2); the property grid fetches its sheet when its
         // key changed (WP-S2.05 §9 item 4).
@@ -1289,6 +1318,9 @@ impl ShellModel {
         self.sync_navigators();
         self.sync_properties();
         self.sync_find();
+        // WP-S2.09 part 3: the Preview tab follows the card, the history panel the revision.
+        self.sync_preview();
+        self.sync_history();
         outcome
     }
 
@@ -1330,6 +1362,15 @@ impl ShellModel {
             "app.quit" => self.act_quit(p),
             "edit.undo" => self.act_undo(),
             "edit.redo" => self.act_redo(),
+            // WP-S2.09 part 3
+            "preview.show" => self.act_preview_show(p),
+            "history.show" => self.act_history_show(p),
+            "history.row" => self.act_history_row(p),
+            "history.undo_to" => self.act_history_undo_to(p),
+            "history.changes" => self.act_history_changes(p),
+            "pages.renumber" => self.act_pages_renumber(p),
+            "devices.renumber" => self.act_devices_renumber(p),
+            "project.purge_assets" => self.act_purge_assets(p),
             "page.next" => self.walk(self.page_index() + 1),
             "page.previous" => self.walk(self.page_index().saturating_sub(1)),
             "page.first" => self.walk(0),
@@ -1867,6 +1908,9 @@ impl ShellModel {
         // so do its history markers.
         self.notes.clear_visible();
         self.markers.clear();
+        // WP-S2.09 part 3: the Preview tab's lists and the history panel's state are the project's.
+        self.preview.clear();
+        self.history.clear();
     }
 
     /// Ends the shell at the end of a run or of the window (also on a log-off): a clean project is closed, a dirty
@@ -1911,6 +1955,12 @@ impl ShellModel {
         match p.session.save() {
             Ok(_) => {
                 self.record.saved_steps = self.record.steps.clone();
+                // WP-S2.09 §8.4: a save is a marker line of the history panel.
+                let rev = p.session.world().rev.0;
+                self.markers.push(HistoryMarker {
+                    rev,
+                    text: strings::text("marker-saved").to_owned(),
+                });
                 Outcome::Done
             }
             Err(e) => {
@@ -1982,7 +2032,12 @@ impl ShellModel {
         let before = p.session.history().cursor();
         match p.session.undo(&origin) {
             Ok(_) => {
-                if p.session.history().cursor() < before
+                let after = p.session.history().cursor();
+                // WP-S2.09 §8.5: the first entry of the step undone.
+                let crossed = (after < before)
+                    .then(|| p.session.history().entries().get(after).map(|e| e.rev().0))
+                    .flatten();
+                if after < before
                     && let Some(step) = self.record.steps.pop()
                 {
                     self.record.undone.push(step);
@@ -1992,6 +2047,7 @@ impl ShellModel {
                 // and the preview go; the next pointer or cursor move draws them again.
                 self.tools.overlay = crate::tools::Overlay::default();
                 self.tools.preview = None;
+                self.crossed_step(crossed);
                 Outcome::Done
             }
             Err(CmdError::Exposure { .. }) => Outcome::Refused {
@@ -2011,7 +2067,12 @@ impl ShellModel {
         let before = p.session.history().cursor();
         match p.session.redo(&origin) {
             Ok(_) => {
-                if p.session.history().cursor() > before
+                let after = p.session.history().cursor();
+                // WP-S2.09 §8.5: the first entry of the step redone.
+                let crossed = (after > before)
+                    .then(|| p.session.history().entries().get(before).map(|e| e.rev().0))
+                    .flatten();
+                if after > before
                     && let Some(step) = self.record.undone.pop()
                 {
                     self.record.steps.push(step);
@@ -2021,6 +2082,7 @@ impl ShellModel {
                 // and the preview go; the next pointer or cursor move draws them again.
                 self.tools.overlay = crate::tools::Overlay::default();
                 self.tools.preview = None;
+                self.crossed_step(crossed);
                 Outcome::Done
             }
             Err(CmdError::Exposure { .. }) => Outcome::Refused {
@@ -2077,6 +2139,8 @@ impl ShellModel {
             || self.dialog.take().is_some()
             // WP-S2.09 §6.5: the notifications log is a popup.
             || std::mem::take(&mut self.notes.popup)
+            // WP-S2.09 §8.4: so is Show changes.
+            || self.history.changes.take().is_some()
             || self.tools.picker.take().is_some()
             || self.tools.junction_editor.take().is_some()
             || self.tools.link_preview.take().is_some()
