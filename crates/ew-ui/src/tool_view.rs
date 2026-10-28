@@ -3,8 +3,9 @@
 
 //! What the window paints of the tool framework besides the shared marks (WP-S2.03 §7.4, §7.3, §7.8): the tool
 //! overlay's marks in the renderer's form, its text labels as chips in the chrome font, the semantic ghost of a
-//! kept preview as chips (the derived diff carries no positions, so the chips stand in the canvas's top-left corner,
-//! with the `stale` badge while the preview is stale) and the frame of the link preview popup.
+//! kept preview as chips by the changed tags on the page (the header with the `stale` badge above the first; a
+//! change not drawn on the page, and the header without one, in the canvas's top-left corner; never over the
+//! statistics panel, FT-389) and the frame of the link preview popup.
 //!
 //! Labels and chips are never composited into `canvas.snapshot`; `ui.describe` lists them.
 
@@ -383,11 +384,114 @@ pub fn paint_labels(
     }
 }
 
+/// The gap between a preview chip and what it stands by, and between stacked chips, points.
+const CHIP_GAP: f32 = 4.0;
+
+/// The frame a chip's text of `size` occupies at `at` with `align` (the painted frame is 3 points around the text).
+fn chip_frame(at: Pos2, align: Align2, size: Vec2) -> Rect {
+    align.anchor_size(at, size).expand(3.0)
+}
+
+/// Moves `r` into `clip` and down past every rectangle of `taken` and past `avoid` (the statistics panel) it
+/// overlaps, at most 32 steps (FT-389): deterministic, top to bottom. Without room below, a chip over `avoid` goes
+/// left of it.
+fn settle_chip(mut r: Rect, clip: Rect, avoid: Option<Rect>, taken: &[Rect]) -> Rect {
+    let clamp = |r: Rect| {
+        let dx = (clip.left() - r.left()).max(0.0) + (clip.right() - r.right()).min(0.0);
+        let dy = (clip.top() - r.top()).max(0.0) + (clip.bottom() - r.bottom()).min(0.0);
+        r.translate(Vec2::new(dx, dy))
+    };
+    r = clamp(r);
+    for _ in 0..32 {
+        let bottom = taken
+            .iter()
+            .chain(avoid.as_ref())
+            .filter(|o| o.intersects(r))
+            .map(|o| o.bottom())
+            .reduce(f32::max);
+        let Some(bottom) = bottom else { break };
+        r = r.translate(Vec2::new(0.0, bottom + 1.0 - r.top()));
+        if r.bottom() > clip.bottom() {
+            r = clamp(r);
+            if let Some(a) = avoid
+                && a.intersects(r)
+            {
+                r = r.translate(Vec2::new(a.left() - 1.0 - r.right(), 0.0));
+            }
+            break;
+        }
+    }
+    r
+}
+
+/// The layout of the preview chips (FT-389): `changes` are the sizes of the `before → after` texts with the point
+/// (points) and alignment of the changed tag on the page, or `None` for a change not drawn on this page; the header
+/// (command, status, the `stale` badge) stands right above the first placed change, else in the canvas's top-left
+/// corner; the unplaced changes stack below the header. A chip is moved into `clip` and down past the chips before
+/// it and past `avoid` (the statistics panel). Returns the frames, the header's first.
+pub fn layout_chips(
+    clip: Rect,
+    avoid: Option<Rect>,
+    header: Vec2,
+    changes: &[(Option<(Pos2, Align2)>, Vec2)],
+) -> Vec<Rect> {
+    let mut taken: Vec<Rect> = Vec::new();
+    let mut frames: Vec<Option<Rect>> = vec![None; changes.len()];
+    for (k, (at, size)) in changes.iter().enumerate() {
+        if let Some((p, align)) = at {
+            let r = settle_chip(chip_frame(*p, *align, *size), clip, avoid, &taken);
+            taken.push(r);
+            frames[k] = Some(r);
+        }
+    }
+    let corner = clip.min + Vec2::new(12.0, 12.0);
+    let head = match frames.iter().flatten().next() {
+        Some(first) => chip_frame(
+            first.left_top() + Vec2::new(3.0, -CHIP_GAP - 3.0),
+            Align2::LEFT_BOTTOM,
+            header,
+        ),
+        None => chip_frame(corner, Align2::LEFT_TOP, header),
+    };
+    let head = settle_chip(head, clip, avoid, &taken);
+    taken.push(head);
+    let mut out = vec![head];
+    let mut below = Pos2::new(corner.x, head.bottom() + CHIP_GAP + 3.0);
+    for (k, (_, size)) in changes.iter().enumerate() {
+        let r = match frames[k] {
+            Some(r) => r,
+            None => {
+                let r = settle_chip(chip_frame(below, Align2::LEFT_TOP, *size), clip, avoid, &taken);
+                taken.push(r);
+                below.y = r.bottom() + CHIP_GAP + 3.0;
+                r
+            }
+        };
+        out.push(r);
+    }
+    out
+}
+
 /// Paints the semantic ghost of the kept preview (§7.3): its command and status, then one chip per changed tag
-/// and cross-reference text (`before → after`), in the canvas's top-left corner.
-pub fn paint_preview(ui: &Ui, rect: Rect, shell: &ShellModel) {
+/// and cross-reference text (`before → after`), each by the changed tag's position on the page from the page
+/// tables (above the top-left corner of the body of the device's first representation on the page, or of the
+/// representation whose cross-reference changes; a device the page does not draw yet stands above the Place tool's
+/// floating insertion point), never over the statistics panel `avoid` (FT-389; the layout of
+/// [`layout_chips`]). `origin` is the pane's top-left corner in points, `ppp` pixels per point, `transform` maps
+/// sheet nm to the pane's pixels. Returns the chips' texts and frames (the window keeps them for tests).
+#[allow(clippy::too_many_arguments)]
+pub fn paint_preview(
+    ui: &Ui,
+    rect: Rect,
+    origin: Pos2,
+    ppp: f32,
+    transform: &DrawTransform,
+    canvas: &ew_viewmodel::canvas::CanvasModel,
+    shell: &ShellModel,
+    avoid: Option<Rect>,
+) -> Vec<(String, Rect)> {
     let (Some(p), Some(status)) = (shell.preview_state(), shell.preview_status()) else {
-        return;
+        return Vec::new();
     };
     // A ready preview that changes no tag and no cross-reference text says nothing a chip should stand for (a route
     // edit, a move): the tool's readout and strip carry it (WP-S2.04 part 2, window check).
@@ -396,24 +500,67 @@ pub fn paint_preview(ui: &Ui, rect: Rect, shell: &ShellModel) {
         && p.derived.tags.is_empty()
         && p.derived.xrefs.is_empty()
     {
-        return;
+        return Vec::new();
     }
-    let mut lines = vec![match (&p.result, status) {
+    let header = match (&p.result, status) {
         (Err(message), _) => strings::format("preview-chip-failed", &[&p.name, message]),
         (_, PreviewStatus::Stale) => strings::format("preview-chip-stale", &[&p.name]),
         _ => strings::format("preview-chip", &[&p.name]),
-    }];
+    };
+    let page = canvas.page();
+    let tables = &page.tables;
+    // The point (points) above the top-left corner of a body on the page.
+    let above = |body: [i64; 4]| {
+        let sheet = page
+            .snapper
+            .page_to_sheet((body[0].min(body[2]), body[1].min(body[3])));
+        let (x, y) = transform.to_screen((sheet.0 as f64, sheet.1 as f64));
+        (
+            origin + Vec2::new(x as f32, y as f32) / ppp - Vec2::new(0.0, CHIP_GAP),
+            Align2::LEFT_BOTTOM,
+        )
+    };
+    // A device the page does not draw yet (the Place tool's new device) stands by the floating symbol's insertion
+    // point.
+    let floating = match shell.tool_ghost() {
+        Some(tools::Ghost::Place { at_nm: Some(at), .. }) => Some([at.0, at.1, at.0, at.1]),
+        _ => None,
+    };
+    let mut texts: Vec<(String, Option<(Pos2, Align2)>)> = Vec::new();
     for c in &p.derived.tags {
-        lines.push(strings::format("preview-chip-change", &[&c.before, &c.after]));
+        let id = c.key.as_uuid();
+        let at = tables
+            .reps
+            .iter()
+            .find(|r| r.device == Some(id))
+            .map(|r| r.body)
+            .or(floating)
+            .map(above);
+        texts.push((strings::format("preview-chip-change", &[&c.before, &c.after]), at));
     }
     for c in &p.derived.xrefs {
-        lines.push(strings::format("preview-chip-change", &[&c.before, &c.after]));
+        let id = c.key.as_uuid();
+        let at = tables.reps.iter().find(|r| r.id == id).map(|r| above(r.body));
+        texts.push((strings::format("preview-chip-change", &[&c.before, &c.after]), at));
     }
-    let mut at = rect.min + Vec2::new(12.0, 12.0);
-    for line in lines.iter().take(12) {
-        chip(ui, rect, at, Align2::LEFT_TOP, line);
-        at.y += 22.0;
+    texts.truncate(11);
+    let painter = ui.painter_at(rect);
+    let size = |t: &str| {
+        painter
+            .layout_no_wrap(t.to_owned(), FontId::proportional(12.0), Color32::WHITE)
+            .size()
+    };
+    let changes: Vec<(Option<(Pos2, Align2)>, Vec2)> = texts.iter().map(|(t, at)| (*at, size(t))).collect();
+    let frames = layout_chips(rect, avoid, size(&header), &changes);
+    let mut out = Vec::with_capacity(frames.len());
+    for (text, frame) in std::iter::once(header)
+        .chain(texts.into_iter().map(|(t, _)| t))
+        .zip(frames)
+    {
+        chip(ui, rect, frame.shrink(3.0).min, Align2::LEFT_TOP, &text);
+        out.push((text, frame));
     }
+    out
 }
 
 /// The frame of the link preview popup (§7.8): a shadowed border around `rect` and the target's folio above it.

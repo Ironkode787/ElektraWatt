@@ -372,6 +372,8 @@ pub struct CanvasHost {
     popup: PopupView,
     /// The pointer's rest on the focused canvas.
     rest: Option<Rest>,
+    /// The preview chips painted last, with their frames in points, and the statistics panel's frame (tests, FT-389).
+    chips: (Vec<(String, Rect)>, Option<Rect>),
 }
 
 impl Default for CanvasHost {
@@ -460,7 +462,14 @@ impl CanvasHost {
             fonts: Arc::new(BundledFonts(font_bytes())),
             popup: PopupView::default(),
             rest: None,
+            chips: (Vec::new(), None),
         }
+    }
+
+    /// The preview chips painted in the last frame with their frames (points), and the statistics panel's frame when
+    /// it showed (tests, FT-389).
+    pub fn preview_chips(&self) -> (&[(String, Rect)], Option<Rect>) {
+        (&self.chips.0, self.chips.1)
     }
 
     /// The GPU side of the first group's canvas (the switch rule runs there).
@@ -643,9 +652,14 @@ impl CanvasHost {
             }
             (None, None) => {}
         }
+        let stats = shell
+            .frame_stats_shown()
+            .then(|| self.statistics_frame(ui, rect, shell));
         if shell.area().map(|a| a.focused) == Some(group) {
             crate::tool_view::paint_labels(ui, rect, rect.min, ppp, &transform, shell.tool_overlay());
-            crate::tool_view::paint_preview(ui, rect, shell);
+            let chips =
+                crate::tool_view::paint_preview(ui, rect, rect.min, ppp, &transform, canvas, shell, stats);
+            self.chips = (chips, stats);
             if let Some(lp) = shell.link_preview() {
                 self.paint_popup(ui, rect, ppp, &response, lp, &theme);
             }
@@ -1496,7 +1510,19 @@ impl CanvasHost {
     }
 
     /// The statistics overlay: fps, the p99 of the frame and of each phase, the pending tiles and the backend.
-    fn paint_statistics(&self, ui: &Ui, rect: Rect, shell: &ShellModel) {
+    /// The frame the statistics panel takes in `rect`: the preview chips keep out of it (FT-389).
+    fn statistics_frame(&self, ui: &Ui, rect: Rect, shell: &ShellModel) -> Rect {
+        let galley = ui.painter_at(rect).layout_no_wrap(
+            self.statistics_text(shell),
+            egui::FontId::proportional(12.0),
+            Color32::WHITE,
+        );
+        let at = rect.right_top() + Vec2::new(-8.0 - galley.size().x, 8.0);
+        Rect::from_min_size(at, galley.size()).expand(4.0)
+    }
+
+    /// The statistics panel's text.
+    fn statistics_text(&self, shell: &ShellModel) -> String {
         let ms = |v: f64| format!("{v:.2}");
         let mut lines = vec![
             strings::format("canvas-stats-fps", &[&format!("{:.0}", self.stats.fps())]),
@@ -1514,9 +1540,16 @@ impl CanvasHost {
             "canvas-stats-backend",
             &[&shell.canvas_backend().label()],
         ));
+        lines.join("\n")
+    }
+
+    fn paint_statistics(&self, ui: &Ui, rect: Rect, shell: &ShellModel) {
         let painter = ui.painter_at(rect);
-        let galley =
-            painter.layout_no_wrap(lines.join("\n"), egui::FontId::proportional(12.0), Color32::WHITE);
+        let galley = painter.layout_no_wrap(
+            self.statistics_text(shell),
+            egui::FontId::proportional(12.0),
+            Color32::WHITE,
+        );
         let at = rect.right_top() + Vec2::new(-8.0 - galley.size().x, 8.0);
         let back = Rect::from_min_size(at, galley.size()).expand(4.0);
         painter.rect_filled(back, 2.0, Color32::from_black_alpha(180));

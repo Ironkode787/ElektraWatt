@@ -359,6 +359,14 @@ impl App {
         self.canvas.scene_count()
     }
 
+    /// The preview chips painted in the last frame with their frames in points, and the statistics panel's frame
+    /// when it showed (tests, FT-389).
+    #[doc(hidden)]
+    pub fn preview_chips(&self) -> (Vec<(String, egui::Rect)>, Option<egui::Rect>) {
+        let (chips, stats) = self.canvas.preview_chips();
+        (chips.to_vec(), stats)
+    }
+
     /// The panes of the dock tree in layout order (tests).
     pub fn dock_panes(&self) -> Vec<PaneKind> {
         self.dock.panes()

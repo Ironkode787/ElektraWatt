@@ -869,3 +869,142 @@ fn a_view_change_with_a_stationary_pointer_replays_the_pointer() {
     );
     h.state_mut().shell_mut().shutdown();
 }
+
+/// The window position (points) of the sheet point `p` on the focused canvas.
+fn screen_of(h: &Harness<'_, App>, p: (i64, i64)) -> Pos2 {
+    let bounds = h
+        .get_all_by_role(egui::Role::Canvas)
+        .next()
+        .expect("the canvas node")
+        .accesskit_node()
+        .raw_bounds()
+        .expect("bounds");
+    let c = h.state().shell().canvas().unwrap();
+    let k = c.points_per_nm();
+    Pos2::new(
+        bounds.x0 as f32 + ((p.0 - c.centre().0) as f64 * k + c.pane().0 / 2.0) as f32,
+        bounds.y0 as f32 + ((p.1 - c.centre().1) as f64 * k + c.pane().1 / 2.0) as f32,
+    )
+}
+
+/// The Place tool armed with a terminal of strip -X1031 on folio 103, its ghost moved by the grid cursor and rested
+/// on: the preview names the new terminal's tag. Returns the ghost's insertion point (page nm).
+fn place_and_rest(h: &mut Harness<'_, App>) -> (i64, i64) {
+    dispatch(
+        h,
+        "place.pick",
+        json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X1031", "designation": "30"}),
+    );
+    settle(h);
+    h.key_press(Key::ArrowRight);
+    settle(h);
+    dispatch(h, "canvas.dwell", json!({"ms": 80}));
+    settle(h);
+    match h.state().shell().tool_ghost() {
+        Some(Ghost::Place {
+            at_nm: Some(at),
+            tag: Some(_),
+            ..
+        }) => at,
+        other => panic!("a resting place ghost with its tag: {other:?}"),
+    }
+}
+
+/// FT-389: the preview chips stand by the changed tag on the page (here the Place tool's new terminal, which the
+/// page does not draw yet: above its floating symbol's insertion point), the header with the command right above
+/// the chip; with the frame statistics shown over that spot the chips move below the panel and never cover it.
+#[test]
+fn the_preview_chips_stand_by_the_changed_tag_and_avoid_the_statistics() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "103");
+    let at = place_and_rest(&mut h);
+    let tl = h
+        .state()
+        .shell()
+        .canvas()
+        .unwrap()
+        .page()
+        .snapper
+        .page_to_sheet(at);
+    let (chips, stats) = h.state().preview_chips();
+    assert!(stats.is_none());
+    assert!(chips.len() >= 2, "{chips:?}");
+    let anchor = screen_of(&h, tl);
+    let (text, frame) = &chips[1];
+    assert!(text.contains("-X1031:30"), "{chips:?}");
+    assert!(
+        (frame.left() - (anchor.x - 3.0)).abs() < 0.5,
+        "{frame:?} by {anchor:?}"
+    );
+    assert!(
+        (frame.bottom() - (anchor.y - 1.0)).abs() < 0.5,
+        "{frame:?} above {anchor:?}"
+    );
+    let head = chips[0].1;
+    assert!(chips[0].0.contains("device.place"), "{chips:?}");
+    assert!(
+        head.bottom() <= frame.top() && frame.top() - head.bottom() < 6.0,
+        "{head:?} over {frame:?}"
+    );
+
+    // The statistics shown, and the view panned so that the anchor lies inside their panel: the chips go below it.
+    dispatch(&mut h, "view.frame_stats", json!({}));
+    settle(&mut h);
+    let panel = h.state().preview_chips().1.expect("the statistics panel");
+    let d = panel.center() - anchor;
+    dispatch(&mut h, "view.pan", json!({"dx": d.x, "dy": d.y}));
+    settle(&mut h);
+    let anchor = screen_of(&h, tl);
+    assert!(
+        panel.contains(anchor),
+        "the anchor {anchor:?} lies in the panel {panel:?}"
+    );
+    let (chips, stats) = h.state().preview_chips();
+    let panel = stats.expect("the statistics panel");
+    assert!(chips.len() >= 2, "the preview is kept: {chips:?}");
+    for (text, frame) in &chips {
+        assert!(
+            !frame.intersects(panel),
+            "{text} at {frame:?} covers the panel {panel:?}"
+        );
+    }
+    let frame = chips[1].1;
+    assert!(frame.top() > panel.bottom(), "below the panel: {frame:?}");
+    // Still by the tag: straight below the panel, moved left only as far as the canvas's right edge needs.
+    assert!(
+        frame.left() <= anchor.x && anchor.x <= frame.right(),
+        "still at the tag's x: {frame:?} by {anchor:?}"
+    );
+    h.state_mut().shell_mut().shutdown();
+}
+
+#[test]
+fn the_chip_layout_keeps_out_of_the_panel_and_off_each_other() {
+    let clip = egui::Rect::from_min_max(Pos2::new(0.0, 0.0), Pos2::new(400.0, 300.0));
+    let panel = egui::Rect::from_min_max(Pos2::new(300.0, 0.0), Pos2::new(400.0, 100.0));
+    let size = Vec2::new(60.0, 14.0);
+    // Two changes at one tag inside the panel, one change not on the page.
+    let changes = [
+        (Some((Pos2::new(320.0, 50.0), egui::Align2::LEFT_BOTTOM)), size),
+        (Some((Pos2::new(320.0, 50.0), egui::Align2::LEFT_BOTTOM)), size),
+        (None, size),
+    ];
+    let frames = ew_ui::tool_view::layout_chips(clip, Some(panel), size, &changes);
+    assert_eq!(frames.len(), 4);
+    for (i, a) in frames.iter().enumerate() {
+        assert!(clip.contains_rect(*a), "{a:?} inside the canvas");
+        assert!(!a.intersects(panel), "{a:?} off the panel");
+        for b in &frames[i + 1..] {
+            assert!(!a.intersects(*b), "{a:?} and {b:?} apart");
+        }
+    }
+    // The changes stay at the tag's x (moved straight down); the unplaced one stacks in the top-left corner.
+    assert_eq!(frames[1].left(), 317.0);
+    assert!(frames[1].top() > panel.bottom());
+    assert!(frames[2].top() > frames[1].bottom());
+    assert_eq!(frames[3].left(), 9.0);
+    // Without a panel or a placed change: the header in the corner, the changes below it.
+    let frames = ew_ui::tool_view::layout_chips(clip, None, size, &[(None, size), (None, size)]);
+    assert_eq!(frames[0].left_top(), Pos2::new(9.0, 9.0));
+    assert!(frames[1].top() > frames[0].bottom() && frames[2].top() > frames[1].bottom());
+}
