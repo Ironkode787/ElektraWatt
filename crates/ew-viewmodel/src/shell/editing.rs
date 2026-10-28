@@ -507,8 +507,13 @@ impl ShellModel {
                         reason_key: "reason-unknown-symbol",
                     };
                 };
+                // The parameters of this choice (`designation`, `letter`, `strip`) win over those of the choice that
+                // opened the chooser; the strip is the current row's unless this choice names one.
                 let mut params = pending.params.clone();
-                params.insert("strip".into(), Value::from(cat.strips[i].id.to_string()));
+                params.extend(p.iter().map(|(k, v)| (k.clone(), v.clone())));
+                if params.get("strip").is_none_or(Value::is_null) {
+                    params.insert("strip".into(), Value::from(cat.strips[i].id.to_string()));
+                }
                 self.arm(cat, Pick::Symbol(symbol), &params)
             }
         }

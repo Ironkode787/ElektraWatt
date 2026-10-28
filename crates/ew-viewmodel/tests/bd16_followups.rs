@@ -75,3 +75,42 @@ fn item1_the_two_clamps_of_a_starter_terminal_print_distinct_labels() {
     assert!(labels[0].ends_with(":1/a#1"), "{labels:?}");
     assert!(labels[1].ends_with(":1/a#2"), "{labels:?}");
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// Item 2: the strip chooser's choice takes its own `designation`.
+
+#[test]
+fn item2_the_strip_choosers_designation_names_the_terminal() {
+    let tmp = Tmp::new("bd16-2");
+    let mut s = new_project_with_strip(&tmp);
+    // The drafter's call: the designation on the strip row's choice (the strip proposes `1`).
+    place_terminal(&mut s, "101-D2", json!({}), json!({"designation": "PE"}));
+    let labels = cp_labels(&s);
+    assert!(labels.iter().all(|l| l.contains(":PE/")), "{labels:?}");
+}
+
+#[test]
+fn item2_the_strip_rows_designation_wins_over_the_symbol_rows() {
+    let tmp = Tmp::new("bd16-2b");
+    let mut s = new_project_with_strip(&tmp);
+    place_terminal(
+        &mut s,
+        "101-D2",
+        json!({"designation": "5"}),
+        json!({"designation": "9"}),
+    );
+    // The symbol row's designation still applies when the strip row's choice names none.
+    place_terminal(&mut s, "101-D4", json!({"designation": "7"}), json!({}));
+    let labels = cp_labels(&s);
+    assert_eq!(
+        labels.iter().filter(|l| l.contains(":9/")).count(),
+        2,
+        "{labels:?}"
+    );
+    assert_eq!(
+        labels.iter().filter(|l| l.contains(":7/")).count(),
+        2,
+        "{labels:?}"
+    );
+    assert!(!labels.iter().any(|l| l.contains(":5/")), "{labels:?}");
+}

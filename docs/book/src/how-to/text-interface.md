@@ -39,7 +39,8 @@ the same in several steps.
 
 `strip.new` creates an empty terminal strip; the toast names it. It draws nothing until its first terminal is placed:
 choose the terminal symbol in the symbol picker, and a second picker lists the strips (`row strip "<tag>" terminal
-"<next>" @<n>`); choose the strip there. A strip without terminals prints its tag with question marks in it (`-X??`) because
+"<next>" @<n>`); choose the strip there. The terminal takes the row's proposed designation unless the choice names one
+(`picker.choose` with `designation` `PE`, on either picker). A strip without terminals prints its tag with question marks in it (`-X??`) because
 its counter is given with its first terminal; the `@n` at the end of its row selects it (`select.set` with `ids`
 `["@n"]`), and `edit.delete_selection` deletes a strip that has no terminals.
 
