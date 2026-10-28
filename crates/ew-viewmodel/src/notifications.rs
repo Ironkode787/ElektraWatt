@@ -4,7 +4,7 @@
 //! The notifications (WP-S2.09 part 1, D6, §6.5; FR-UI-042, NFR-A11Y-04): the toasts on screen and the log of the
 //! session's last notifications, with the actions that stay usable while they are valid.
 //!
-//! Every toast enters the log ([`NotificationLog::push`]): at most [`MAX_VISIBLE`] toasts are visible (a toast of a
+//! Every toast enters the log (`NotificationLog::push`): at most [`MAX_VISIBLE`] toasts are visible (a toast of a
 //! key that is visible replaces that one; a fourth pushes out the oldest), and the log keeps the last [`MAX_LOG`]
 //! (the oldest dropped). A toast's timeout (8 s) is the window's clock, never the model's: headless, a toast stays
 //! until it is dismissed, replaced or pushed out. An entry's action is valid while what it acts on still holds: Undo
