@@ -11,6 +11,8 @@
 //!   two actions on the new project; folio 101's generated placement script then places its interruption points with
 //!   the external reference named by the three external arrows, and the arrows print "+J-E-206 / JE-N1000-03"
 //!   (doc 20 §3.4 item 9, FR-XRF-012).
+//! - **Navigators (WP-S2.06 part 1).** On a copy of Golden A a script marks -201U3 in the Devices navigator, opens it
+//!   and reorders 106 before 103; two runs give byte-identical transcripts and the record replays.
 
 mod support;
 
@@ -438,4 +440,104 @@ fn folio_101s_external_points_print_the_structure_node_and_the_external_referenc
     .unwrap();
     s.run_script(&log, "a.ewcmd").unwrap();
     assert_eq!(s.page_tables("101").unwrap().reps.len(), 17);
+}
+
+// WP-S2.06 part 1
+/// Golden A in the source tree (copied before every run).
+const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
+
+/// The (folio, title) pairs of a project's page order.
+fn page_titles(dir: &Path) -> Vec<(String, String)> {
+    let (s, _) = Session::open_read_only(dir, "test").unwrap();
+    s.page_rows().into_iter().map(|r| (r.folio, r.title)).collect()
+}
+
+/// WP-S2.06 part 1 through the built binary (acceptance checks NV5, NV7 and NV10; §9 items 1 and 2): a script on a
+/// copy of Golden A opens the Devices navigator with folio 102 shown, marks -201U3 by type-ahead and Space (the chips
+/// 201-E4 and 203-B4), opens it (folio 201), reorders 106 before 103 through the card, and saves. Two runs give
+/// byte-identical transcripts without a UUID; the `--record` log holds one `page.reorder` and replays on a third copy
+/// to the same pages.
+#[test]
+fn a_navigator_script_runs_twice_identically_and_its_record_replays() {
+    let tmp = Tmp::new();
+    let script = |dir: &Path| {
+        steps(&[
+            ("file.open", json!({"dir": path(dir)})),
+            ("page.goto", json!({"folio": "102"})),
+            ("navigator.show", json!({"kind": "devices"})),
+            ("navigator.jump", json!({"kind": "devices", "prefix": "-201U3"})),
+            ("navigator.mark", json!({"kind": "devices"})),
+            ("ui.describe", json!({})),
+            ("navigator.open", json!({"kind": "devices"})),
+            ("pages.reorder", json!({"pages": ["106"], "before": "103"})),
+            ("ui.describe", json!({})),
+            ("navigator.apply", json!({})),
+            ("ui.describe", json!({})),
+            ("file.save", json!({})),
+            ("file.close", json!({})),
+        ])
+    };
+    let mut transcripts = Vec::new();
+    for n in ["a", "b"] {
+        let dir = tmp.path(n).join("J-E-2416.ew");
+        copy_dir(Path::new(GOLDEN_A), &dir);
+        let record = tmp.path(&format!("{n}.ewcmd"));
+        let text = all_done(&run(&tmp, n, &script(&dir), Some(&record)));
+        assert!(
+            !text.contains(&*tmp.0.to_string_lossy()),
+            "a path in the transcript"
+        );
+        support::assert_no_uuid(&text);
+        transcripts.push(text);
+    }
+    same_transcript(&transcripts[0], &transcripts[1]);
+    let steps: Vec<Value> = transcripts[0]
+        .lines()
+        .skip(1)
+        .map(|l| serde_json::from_str(l).unwrap())
+        .collect();
+    // NV5: 102 stays on show, the selection is -201U3's record, the chips name its two representations.
+    let first = steps[5]["describe"].as_str().unwrap();
+    assert!(first.contains("\npage view: 102\n"), "{first}");
+    assert!(first.contains("\n  elsewhere \"201-E4\" \"203-B4\"\n"), "{first}");
+    assert!(
+        first.contains("device \"-201U3\" expanded selected cursor"),
+        "{first}"
+    );
+    assert_eq!(steps[5]["state"]["focus"], "navigator.devices");
+    assert_eq!(steps[6]["state"]["page"], "201", "Enter opens 201");
+    // NV7: the card, then Apply.
+    assert_eq!(steps[7]["state"]["card"]["origin"], "reorder");
+    let card = steps[8]["describe"].as_str().unwrap();
+    assert!(card.contains(" reorder \"106 → 103\" \"103 → 106\""), "{card}");
+    assert!(steps[9]["state"]["card"].is_null());
+    assert_eq!(steps[9]["state"]["can_undo"], true);
+    // §9 item 2: the record holds one `page.reorder` with explicit page IDs and replays to the same pages.
+    let log = CmdLog::parse(&std::fs::read_to_string(tmp.path("a.ewcmd")).unwrap()).unwrap();
+    let names: Vec<&str> = log.commands().map(|c| c.name.as_str()).collect();
+    assert_eq!(names, ["page.reorder"]);
+    let replay = tmp.path("c").join("J-E-2416.ew");
+    copy_dir(Path::new(GOLDEN_A), &replay);
+    let mut store = ew_ui::ew_viewmodel::ew_api::StoreOptions::new("test");
+    store.state_dir = Some(tmp.path("state"));
+    let (mut s, _) = Session::open(
+        &replay,
+        store,
+        ew_ui::ew_viewmodel::ew_api::SessionOptions::default(),
+        ew_ui::ew_viewmodel::ew_api::Recovery::Keep,
+    )
+    .unwrap();
+    s.run_script(&log, "a.ewcmd").unwrap();
+    let replayed: Vec<(String, String)> = s.page_rows().into_iter().map(|r| (r.folio, r.title)).collect();
+    drop(s);
+    assert_eq!(
+        replayed,
+        page_titles(&tmp.path("a").join("J-E-2416.ew")),
+        "the replay equals the scripted project"
+    );
+    assert_ne!(
+        replayed,
+        page_titles(Path::new(GOLDEN_A)),
+        "103 and 106 swapped their titles"
+    );
 }
