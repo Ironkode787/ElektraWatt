@@ -133,16 +133,22 @@ fn violations_of(plan: &Plan) -> Vec<String> {
     differing.chain(stale).collect()
 }
 
-/// The violations of `docs-gen --check` for the repository at `root`.
+/// The violations of `docs-gen --check` for the repository at `root`: the generated pages, and the work-package
+/// counts that the plan states by hand (`plan_counts.rs`).
 pub(crate) fn violations(root: &Path) -> Result<Vec<String>> {
-    Ok(violations_of(&plan(root)?))
+    let mut found = violations_of(&plan(root)?);
+    found.extend(crate::plan_counts::violations(root)?);
+    Ok(found)
 }
 
 /// `docs-gen [--check]` for the repository at `root`.
 pub(crate) fn run(root: &Path, check: bool) -> Result<bool> {
     let plan = plan(root)?;
+    // The plan's hand-written WP counts: checked in both modes, never rewritten (they are prose).
+    let counts = crate::plan_counts::violations(root)?;
     if check {
-        let violations = violations_of(&plan);
+        let mut violations = violations_of(&plan);
+        violations.extend(counts);
         if violations.is_empty() {
             println!(
                 "docs-gen: ok ({} commands, {} rule packs)",
@@ -174,6 +180,16 @@ pub(crate) fn run(root: &Path, check: bool) -> Result<bool> {
         plan.stale.len(),
         plan.wanted.len() - plan.differing.len()
     );
+    if !counts.is_empty() {
+        eprintln!(
+            "docs-gen: {} stated WP count(s) differ from docs/plan/work-packages.csv; fix them by hand",
+            counts.len()
+        );
+        for v in &counts {
+            eprintln!("  - {v}");
+        }
+        return Ok(false);
+    }
     Ok(true)
 }
 

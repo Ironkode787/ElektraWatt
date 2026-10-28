@@ -24,6 +24,7 @@ mod icons;
 mod licence;
 mod ordered;
 mod perf;
+mod plan_counts;
 mod raw_read;
 mod repo;
 mod symbols;
@@ -81,7 +82,8 @@ commands:
   docs-gen [--check]   the generated reference pages of the user documentation book (docs/book/src/reference/):
                        one page per command (crates/ew-commands/schemas/) and per rule pack
                        (crates/ew-checks/catalogue/rules.json); --check changes nothing and fails when a
-                       committed page differs
+                       committed page differs; both modes fail when a WP count stated by hand in
+                       docs/plan/01-global-plan.md or docs/plan/03-*.md differs from docs/plan/work-packages.csv
   gen-icons [--check]  the icon table of ew-ui (crates/ew-ui/src/icons/generated.rs) from the vendored Tabler
                        Icons (assets/icons/tabler/) and the project's glyphs (assets/icons/ew/); --check changes
                        nothing and fails when the committed table differs
