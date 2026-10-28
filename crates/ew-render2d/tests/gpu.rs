@@ -3,10 +3,15 @@
 
 //! The GPU canvas on a headless device (WP-S2.02 part 2, B4 and the renderer's own rules): a hairline keeps one
 //! physical pixel, later paint wins over earlier whatever the batch order, translucency blends last, clips cut,
-//! and an idle frame submits nothing. On Windows an adapter must be found (DX12 WARP at least); elsewhere a host
-//! without one prints `skipped: no adapter` and passes (§8 item 4).
+//! and an idle frame submits nothing. Raster images (FT-480) are drawn by the textured-quad pipeline in paint order,
+//! clipped, cached and downscaled, within the parity rule of §8 item 3 against the CPU raster. On Windows an adapter
+//! must be found (DX12 WARP at least); elsewhere a host without one prints `skipped: no adapter` and passes (§8 item
+//! 4).
 
 use std::sync::Arc;
+
+#[path = "../../ew-render-cpu/tests/common/jpeg.rs"]
+mod jpeg;
 
 use ew_dl::ew_units::{Nm, Pt2, Rect};
 use ew_dl::{Brush, Color, DisplayList, FontKey, Item, Path, Stroke, Transform};
@@ -216,37 +221,484 @@ fn a_target_beyond_the_device_limit_is_an_error_not_a_panic() {
     }
 }
 
-/// The GPU path has no texture pipeline: a PNG item is counted as skipped and leaves its rectangle blank (the canvas
-/// routes a page with a raster image to the CPU path, `has_raster_images`).
-#[test]
-fn a_raster_image_item_is_skipped_by_the_gpu_path_and_counted() {
-    let png = ew_render_cpu::encode_png(
+// ---------------------------------------------------------------------------------------------------------------
+// Raster images (FT-480): the textured-quad pipeline, checked against the CPU raster
+
+/// A PNG of `w × h` pixels, pixel `(x, y)` given by `f` (synthetic).
+fn png_of(w: u32, h: u32, f: impl Fn(u32, u32) -> [u8; 4]) -> Vec<u8> {
+    let f = &f;
+    let pixels = (0..h).flat_map(|y| (0..w).flat_map(move |x| f(x, y))).collect();
+    ew_render_cpu::encode_png(
         &ew_render_cpu::RgbaImage {
-            width: 8,
-            height: 2,
-            pixels: [255u8, 0, 0, 255].repeat(16),
+            width: w,
+            height: h,
+            pixels,
         },
         None,
-    );
-    let mut list = DisplayList::new();
-    list.push(Item::image(
+    )
+}
+
+/// An image item of `bytes` with the (test-only) hash `[sha; 32]`; distinct images get distinct hashes.
+fn image_item(sha: u8, format: ew_dl::ImageFormat, bytes: Vec<u8>, rect: Rect) -> Item {
+    Item::image(
         Arc::new(ew_dl::ImageData {
-            sha256: [3; 32],
-            format: ew_dl::ImageFormat::Png,
-            bytes: Arc::from(png),
+            sha256: [sha; 32],
+            format,
+            bytes: Arc::from(bytes),
         }),
-        Rect::from_points(p(mm(10.0), mm(10.0)), p(mm(50.0), mm(20.0))),
-    ));
-    assert!(ew_render2d::gpu::has_raster_images(&list));
-    let mut cache = MeshCache::default();
-    assert_eq!(prepare(1, &list, &NoFonts, &mut cache).stats.images_skipped, 1);
-    for d in devices() {
-        let mut canvas = canvas_with(&d, &list);
-        canvas.render(&view(300, 100)).expect("a render");
-        let image = canvas.read_back().expect("the readback");
+        rect,
+    )
+}
+
+fn mm_rect(x0: f64, y0: f64, x1: f64, y1: f64) -> Rect {
+    Rect::from_points(p(mm(x0), mm(y0)), p(mm(x1), mm(y1)))
+}
+
+/// The pixel at (`x_mm`, `y_mm`) of an image at 96 dpi with the sheet's origin at its corner.
+fn at_mm(image: &ew_render_cpu::RgbaImage, x_mm: f64, y_mm: f64) -> [u8; 4] {
+    let k = 96.0 / 25.4;
+    pixel(image, (x_mm * k) as u32, (y_mm * k) as u32)
+}
+
+fn near(got: [u8; 4], want: [u8; 4], tolerance: u8) -> bool {
+    got.iter().zip(want).all(|(g, w)| g.abs_diff(w) <= tolerance)
+}
+
+/// The CPU raster of `list` at 96 dpi on a `w × h` pixel sheet (the reference of the parity checks).
+fn cpu_image(list: &DisplayList, w: u32, h: u32) -> ew_render_cpu::RgbaImage {
+    let k = 25_400_000.0 / 96.0;
+    let sheet = ew_render_cpu::SheetSize {
+        width: Nm((f64::from(w) * k).round() as i64),
+        height: Nm((f64::from(h) * k).round() as i64),
+    };
+    let options = ew_render_cpu::RenderOptions {
+        dpi: 96,
+        ..ew_render_cpu::RenderOptions::default()
+    };
+    let (image, report) = ew_render_cpu::render(list, sheet, &options, &NoFonts, None).unwrap();
+    assert_eq!((image.width, image.height), (w, h));
+    assert_eq!(report.skipped_images, 0, "the CPU path draws every image");
+    image
+}
+
+/// The GPU raster of `list` at 96 dpi on a `w × h` target.
+fn gpu_image(d: &HeadlessDevice, list: &DisplayList, w: u32, h: u32) -> ew_render_cpu::RgbaImage {
+    let mut canvas = canvas_with(d, list);
+    canvas.render(&view(w, h)).expect("a render");
+    assert_eq!(canvas.counters().textures_refused, 0);
+    canvas.read_back().expect("the readback")
+}
+
+/// The clearly-ink pixels of `a` and how many of them have no pixel in `b`'s 3 × 3 neighbourhood with every channel
+/// within 128: the parity rule of WP-S2.02 §8 item 3, as `ew-ui`'s B2 tests apply it.
+fn unmatched(a: &ew_render_cpu::RgbaImage, b: &ew_render_cpu::RgbaImage) -> (usize, usize) {
+    let (w, h) = (i64::from(a.width), i64::from(a.height));
+    let px = |img: &ew_render_cpu::RgbaImage, x: i64, y: i64| pixel(img, x as u32, y as u32);
+    let mut ink = 0;
+    let mut missed = 0;
+    for y in 0..h {
+        for x in 0..w {
+            let c = px(a, x, y);
+            if !is_ink(c) {
+                continue;
+            }
+            ink += 1;
+            let found = (-1..=1).any(|dy| {
+                (-1..=1).any(|dx| {
+                    let (nx, ny) = (x + dx, y + dy);
+                    (0..w).contains(&nx) && (0..h).contains(&ny) && near(px(b, nx, ny), c, 128)
+                })
+            });
+            missed += usize::from(!found);
+        }
+    }
+    (missed, ink)
+}
+
+/// The mean absolute difference of the red, green and blue channels.
+fn mean_difference(a: &ew_render_cpu::RgbaImage, b: &ew_render_cpu::RgbaImage) -> f64 {
+    let sum: u64 = a
+        .pixels
+        .chunks(4)
+        .zip(b.pixels.chunks(4))
+        .map(|(p, q)| (0..3).map(|c| u64::from(p[c].abs_diff(q[c]))).sum::<u64>())
+        .sum();
+    sum as f64 / (a.pixels.len() / 4 * 3).max(1) as f64
+}
+
+/// The bound of the mean channel difference between the GPU and the CPU raster of the image pages: measured 0.27 on
+/// the hardware DX12 adapter and on WARP alike (cycle 30), both pages; the bound leaves about a quarter for other
+/// adapters' MSAA patterns. A missing, shifted or nearest-sampled image raises it several times over.
+const MEAN_BOUND_IMAGES: f64 = 0.35;
+
+/// The parity rule both ways (at most 1 % of the clearly-ink pixels unmatched) and the mean channel difference
+/// within `mean_bound`.
+fn assert_parity(
+    label: &str,
+    gpu: &ew_render_cpu::RgbaImage,
+    cpu: &ew_render_cpu::RgbaImage,
+    mean_bound: f64,
+) {
+    assert_eq!((gpu.width, gpu.height), (cpu.width, cpu.height));
+    let mean = mean_difference(gpu, cpu);
+    println!("{label}: mean channel difference {mean:.4}");
+    assert!(mean <= mean_bound, "{label}: mean {mean:.4} above {mean_bound}");
+    for (name, a, b) in [("GPU", gpu, cpu), ("CPU", cpu, gpu)] {
+        let (missed, ink) = unmatched(a, b);
+        let share = 100.0 * missed as f64 / ink.max(1) as f64;
+        println!("{label}: {missed} of {ink} clearly-ink {name} pixels unmatched ({share:.3} %)");
+        assert!(ink > 500, "{label}: the {name} image has ink");
         assert!(
-            image.pixels.chunks(4).all(|px| px == [255, 255, 255, 255]),
-            "nothing is drawn"
+            share <= 1.0,
+            "{label}: {share:.3} % of the {name} ink is unmatched"
         );
+    }
+}
+
+#[test]
+fn a_png_item_is_drawn_inside_its_rectangle() {
+    let red = png_of(8, 2, |_, _| [255, 0, 0, 255]);
+    let mut list = DisplayList::new();
+    list.push(image_item(
+        3,
+        ew_dl::ImageFormat::Png,
+        red,
+        mm_rect(10.0, 10.0, 50.0, 20.0),
+    ));
+    let mut cache = MeshCache::default();
+    let scene = prepare(1, &list, &NoFonts, &mut cache);
+    assert_eq!((scene.stats.images, scene.stats.images_skipped), (1, 0));
+    for d in devices() {
+        let image = gpu_image(&d, &list, 300, 100);
+        let k = 96.0 / 25.4;
+        let mut red_pixels = 0;
+        for y in 0..image.height {
+            for x in 0..image.width {
+                let px = pixel(&image, x, y);
+                if px[0] > 200 && px[1] < 60 && px[2] < 60 {
+                    red_pixels += 1;
+                    let (xm, ym) = (f64::from(x) / k, f64::from(y) / k);
+                    assert!(
+                        (9.7..50.3).contains(&xm) && (9.7..20.3).contains(&ym),
+                        "red at ({x}, {y}) outside the rectangle"
+                    );
+                }
+            }
+        }
+        // 40 × 10 mm at 96 dpi: about 151 × 38 pixels.
+        assert!((5_400..=6_000).contains(&red_pixels), "{red_pixels} red pixels");
+        assert_eq!(at_mm(&image, 30.0, 15.0), [255, 0, 0, 255]);
+        assert_eq!(at_mm(&image, 70.0, 15.0), [255, 255, 255, 255], "the paper");
+    }
+}
+
+#[test]
+fn a_jpeg_item_matches_the_cpu_raster() {
+    let jpeg = jpeg::baseline(jpeg::Layout::Ycbcr420, 64, 32);
+    let mut list = DisplayList::new();
+    list.push(image_item(
+        4,
+        ew_dl::ImageFormat::Jpeg,
+        jpeg,
+        mm_rect(5.0, 5.0, 45.0, 25.0),
+    ));
+    let cpu = cpu_image(&list, 200, 120);
+    for d in devices() {
+        let gpu = gpu_image(&d, &list, 200, 120);
+        // The JPEG's pixels inside the rectangle: the centre matches the CPU raster closely.
+        let (g, c) = (at_mm(&gpu, 25.0, 15.0), at_mm(&cpu, 25.0, 15.0));
+        assert!(near(g, c, 3), "{g:?} against the CPU's {c:?}");
+        assert_ne!(g, [255, 255, 255, 255], "the image is drawn");
+        assert_parity(
+            &format!("JPEG on {:?}", d.summary.kind),
+            &gpu,
+            &cpu,
+            MEAN_BOUND_IMAGES,
+        );
+    }
+}
+
+#[test]
+fn an_image_with_alpha_over_a_filled_path_blends_in_paint_order() {
+    let half_red = png_of(4, 4, |_, _| [255, 0, 0, 128]);
+    let mut list = DisplayList::new();
+    list.push(Item::path(
+        square(0.0, 0.0, 20.0),
+        None,
+        Some(Brush::Solid(Color::from_rgb8(0, 0, 255))),
+    ));
+    list.push(image_item(
+        5,
+        ew_dl::ImageFormat::Png,
+        half_red,
+        mm_rect(10.0, 0.0, 30.0, 20.0),
+    ));
+    let cpu = cpu_image(&list, 120, 80);
+    let over = at_mm(&cpu, 15.0, 10.0);
+    assert!(near(over, [128, 0, 127, 255], 2), "the CPU blend {over:?}");
+    for d in devices() {
+        let gpu = gpu_image(&d, &list, 120, 80);
+        let got = at_mm(&gpu, 15.0, 10.0);
+        assert!(
+            near(got, over, 2),
+            "over the path: {got:?} against the CPU's {over:?}"
+        );
+        let alone = at_mm(&gpu, 25.0, 10.0);
+        assert!(
+            near(alone, at_mm(&cpu, 25.0, 10.0), 2),
+            "over the paper: {alone:?}"
+        );
+        assert_eq!(at_mm(&gpu, 5.0, 10.0), [0, 0, 255, 255], "the path alone");
+    }
+}
+
+#[test]
+fn a_path_painted_after_an_image_covers_it() {
+    let green = png_of(4, 4, |_, _| [0, 200, 0, 255]);
+    let half_green = png_of(4, 4, |_, _| [0, 200, 0, 100]);
+    for (sha, bytes) in [(6, green), (7, half_green)] {
+        let mut list = DisplayList::new();
+        // The image inside a group (its own context), the black square after it in the root's static mesh, which
+        // the opaque pass may draw first: the depth test keeps the paint order.
+        list.push(Item::group(
+            Some(Transform::from_translation(p(mm(2.0), mm(2.0)))),
+            None,
+            vec![image_item(
+                sha,
+                ew_dl::ImageFormat::Png,
+                bytes,
+                mm_rect(0.0, 0.0, 20.0, 20.0),
+            )],
+        ));
+        list.push(Item::path(square(10.0, 10.0, 15.0), None, Some(Brush::BLACK)));
+        let cpu = cpu_image(&list, 120, 120);
+        let image_px = at_mm(&cpu, 5.0, 5.0);
+        assert!(image_px[0] <= 160, "image {sha} on the CPU path: {image_px:?}");
+        for d in devices() {
+            let gpu = gpu_image(&d, &list, 120, 120);
+            assert_eq!(
+                at_mm(&gpu, 15.0, 15.0),
+                [0, 0, 0, 255],
+                "image {sha}: the later path covers it"
+            );
+            let got = at_mm(&gpu, 5.0, 5.0);
+            assert!(
+                near(got, image_px, 2),
+                "image {sha} elsewhere: {got:?} against the CPU's {image_px:?}"
+            );
+        }
+    }
+}
+
+#[test]
+fn a_clipped_image_is_clipped() {
+    let blue = png_of(4, 4, |_, _| [0, 0, 255, 255]);
+    let mut list = DisplayList::new();
+    // The image's left half only.
+    list.push(Item::group(
+        Some(Transform::from_translation(p(mm(10.0), mm(0.0)))),
+        Some(mm_rect(0.0, 0.0, 10.0, 20.0)),
+        vec![image_item(
+            8,
+            ew_dl::ImageFormat::Png,
+            blue,
+            mm_rect(0.0, 0.0, 20.0, 20.0),
+        )],
+    ));
+    let cpu = cpu_image(&list, 140, 80);
+    for d in devices() {
+        let gpu = gpu_image(&d, &list, 140, 80);
+        assert_eq!(at_mm(&gpu, 15.0, 10.0), [0, 0, 255, 255], "inside the clip");
+        assert_eq!(at_mm(&gpu, 25.0, 10.0), [255, 255, 255, 255], "outside the clip");
+        assert_eq!(
+            at_mm(&cpu, 25.0, 10.0),
+            [255, 255, 255, 255],
+            "as on the CPU path"
+        );
+    }
+}
+
+/// Images at several scales, turned and mirrored, with alpha over paths and under a later path, against the CPU
+/// raster: the parity rule of §8 item 3 and a mean channel difference bound.
+#[test]
+fn images_match_the_cpu_raster_within_the_parity_rule() {
+    // A pattern with smooth and hard edges and an alpha ramp.
+    let pattern = png_of(16, 12, |x, y| {
+        let a = if y < 6 { 255 } else { (64 + x * 12) as u8 };
+        [
+            (x * 16) as u8,
+            (y * 20) as u8,
+            if (x / 4 + y / 4) % 2 == 0 { 40 } else { 220 },
+            a,
+        ]
+    });
+    let jpeg = jpeg::baseline(jpeg::Layout::Ycbcr444, 32, 32);
+    let mut list = DisplayList::new();
+    list.push(Item::path(
+        square(5.0, 5.0, 30.0),
+        None,
+        Some(Brush::Solid(Color::from_rgb8(0, 114, 178))),
+    ));
+    list.push(image_item(
+        9,
+        ew_dl::ImageFormat::Png,
+        pattern.clone(),
+        mm_rect(10.0, 10.0, 42.0, 34.0),
+    ));
+    // Turned a quarter, and mirrored.
+    list.push(Item::group(
+        Some(Transform::new(
+            p(mm(80.0), mm(10.0)),
+            ew_dl::ew_units::Orient2::R90,
+            ew_dl::ew_units::Angle2::ZERO,
+        )),
+        None,
+        vec![image_item(
+            9,
+            ew_dl::ImageFormat::Png,
+            pattern,
+            mm_rect(0.0, 0.0, 30.0, 20.0),
+        )],
+    ));
+    list.push(Item::group(
+        Some(Transform::new(
+            p(mm(130.0), mm(40.0)),
+            ew_dl::ew_units::Orient2::M0,
+            ew_dl::ew_units::Angle2::ZERO,
+        )),
+        None,
+        vec![image_item(
+            10,
+            ew_dl::ImageFormat::Jpeg,
+            jpeg,
+            mm_rect(0.0, 0.0, 25.0, 25.0),
+        )],
+    ));
+    // A later path over the PNG.
+    list.push(Item::path(
+        Path::line(p(mm(5.0), mm(30.0)), p(mm(140.0), mm(30.0))),
+        Some(Stroke::solid(Nm(400_000))),
+        None,
+    ));
+    let cpu = cpu_image(&list, 560, 300);
+    for d in devices() {
+        let gpu = gpu_image(&d, &list, 560, 300);
+        assert_parity(
+            &format!("images on {:?}", d.summary.kind),
+            &gpu,
+            &cpu,
+            MEAN_BOUND_IMAGES,
+        );
+    }
+}
+
+#[test]
+fn the_texture_cache_evicts_past_its_budget_and_uploads_again_on_demand() {
+    let one = |sha: u8, rgb: [u8; 3]| {
+        let mut list = DisplayList::new();
+        let bytes = png_of(16, 16, |_, _| [rgb[0], rgb[1], rgb[2], 255]);
+        list.push(image_item(
+            sha,
+            ew_dl::ImageFormat::Png,
+            bytes,
+            mm_rect(2.0, 2.0, 12.0, 12.0),
+        ));
+        list
+    };
+    let (a, b) = (one(11, [255, 0, 0]), one(12, [0, 0, 255]));
+    for d in devices() {
+        let mut canvas = d.canvas().expect("the canvas initialises");
+        // Room for one 16 × 16 texture (1 KiB) beyond the current scene's.
+        canvas.set_texture_budget(1_024);
+        let mut cache = MeshCache::default();
+        let v = view(64, 64);
+        canvas.set_scene(Arc::new(prepare(1, &a, &NoFonts, &mut cache)));
+        canvas.render(&v).unwrap();
+        assert_eq!((canvas.texture_count(), canvas.texture_bytes()), (1, 1_024));
+        canvas.set_scene(Arc::new(prepare(2, &b, &NoFonts, &mut cache)));
+        canvas.render(&v).unwrap();
+        assert_eq!(
+            canvas.texture_count(),
+            1,
+            "the older texture is evicted past the budget"
+        );
+        assert_eq!(canvas.counters().textures_uploaded, 2);
+        assert_eq!(at_mm(&canvas.read_back().unwrap(), 7.0, 7.0), [0, 0, 255, 255]);
+        // Back to the first scene: its texture is uploaded again and drawn.
+        canvas.set_scene(Arc::new(prepare(3, &a, &NoFonts, &mut cache)));
+        canvas.render(&v).unwrap();
+        assert_eq!(canvas.counters().textures_uploaded, 3);
+        assert_eq!(at_mm(&canvas.read_back().unwrap(), 7.0, 7.0), [255, 0, 0, 255]);
+        // Within the default budget nothing is evicted and a known image is not uploaded again.
+        canvas.set_texture_budget(ew_render2d::gpu::GPU_TEXTURE_BYTES);
+        canvas.set_scene(Arc::new(prepare(4, &b, &NoFonts, &mut cache)));
+        canvas.set_scene(Arc::new(prepare(5, &a, &NoFonts, &mut cache)));
+        assert_eq!(canvas.texture_count(), 2);
+        assert_eq!(
+            canvas.counters().textures_uploaded,
+            4,
+            "b uploaded once more, a kept"
+        );
+    }
+}
+
+#[test]
+fn an_oversize_image_is_downscaled_on_the_worker_and_one_beyond_the_device_is_refused() {
+    // 64 × 8 texels, left half red and right half blue, within a maximum side of 16: 16 × 2 texels.
+    let wide = png_of(64, 8, |x, _| {
+        if x < 32 {
+            [255, 0, 0, 255]
+        } else {
+            [0, 0, 255, 255]
+        }
+    });
+    let mut list = DisplayList::new();
+    list.push(image_item(
+        13,
+        ew_dl::ImageFormat::Png,
+        wide,
+        mm_rect(0.0, 0.0, 40.0, 5.0),
+    ));
+    let mut cache = MeshCache::default();
+    cache.set_max_image_side(16);
+    let scene = prepare(1, &list, &NoFonts, &mut cache);
+    let texture = &scene.images[0];
+    assert_eq!((texture.width, texture.height, texture.downscaled), (16, 2, true));
+    for d in devices() {
+        let mut canvas = d.canvas().expect("the canvas initialises");
+        canvas.set_scene(Arc::new(prepare(2, &list, &NoFonts, &mut cache)));
+        canvas.render(&view(200, 40)).unwrap();
+        let image = canvas.read_back().unwrap();
+        assert_eq!(at_mm(&image, 5.0, 2.5), [255, 0, 0, 255]);
+        assert_eq!(at_mm(&image, 35.0, 2.5), [0, 0, 255, 255]);
+        // An image one texel wider than the device allows (a preparation told a larger maximum) is refused and not
+        // drawn: no fault, the rest of the page is drawn.
+        let max = canvas.max_image_side();
+        let Ok(side) = u16::try_from(max + 1) else {
+            println!("skipped: the device allows {max} texels, beyond a PNG's decodable side");
+            continue;
+        };
+        let too_wide = png_of(u32::from(side), 1, |_, _| [255, 0, 0, 255]);
+        let mut big = DisplayList::new();
+        big.push(image_item(
+            14,
+            ew_dl::ImageFormat::Png,
+            too_wide,
+            mm_rect(0.0, 0.0, 40.0, 5.0),
+        ));
+        big.push(Item::path(square(45.0, 0.0, 5.0), None, Some(Brush::BLACK)));
+        let mut unbounded = MeshCache::default();
+        unbounded.set_max_image_side(u32::from(u16::MAX));
+        canvas.set_scene(Arc::new(prepare(3, &big, &NoFonts, &mut unbounded)));
+        canvas.render(&view(200, 40)).expect("no fault");
+        assert_eq!(canvas.counters().textures_refused, 1);
+        assert!(canvas.fault().is_none());
+        let image = canvas.read_back().unwrap();
+        assert_eq!(
+            at_mm(&image, 5.0, 2.5),
+            [255, 255, 255, 255],
+            "the refused image is not drawn"
+        );
+        assert_eq!(at_mm(&image, 47.0, 2.5), [0, 0, 0, 255], "the path is");
     }
 }

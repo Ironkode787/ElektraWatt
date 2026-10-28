@@ -846,14 +846,8 @@ impl CanvasHost {
     /// Applies the switch rule for this frame (WP-S2.02 section 7.2) and sets the shell's backend label; the second
     /// group follows the first.
     pub(crate) fn update_backend(&mut self, shell: &mut ShellModel) {
-        // The page on show in the focused group: one with a raster image is drawn by the CPU path, and the label says so.
-        let focused = shell.area().map_or(0, |a| a.focused);
-        let raster_page = match (shell.canvas_of(focused), self.views.get_mut(focused)) {
-            (Some(canvas), Some(view)) => view.gpu.page_has_rasters(canvas.page()),
-            _ => false,
-        };
         let (first, rest) = self.views.split_at_mut(1);
-        first[0].gpu.update(shell, raster_page);
+        first[0].gpu.update(shell);
         // The second group's GPU canvas exists only while two groups are shown.
         let needed = shell
             .area()
@@ -876,8 +870,7 @@ impl CanvasHost {
     ) -> Option<(TextureId, bool)> {
         let fonts = Arc::clone(&self.fonts);
         let gpu = &mut self.views[group].gpu;
-        // The page's backend: a page with a raster image is drawn by the CPU tiles (the GPU path skips rasters).
-        if !gpu.draws_page(canvas.page()) {
+        if !gpu.drawing() {
             return None;
         }
         let (has_scene, ready) = gpu.sync_scene(ctx, canvas.page(), &fonts);

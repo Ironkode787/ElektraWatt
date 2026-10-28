@@ -546,7 +546,7 @@ fn the_gpu_scene_is_keyed_by_session_revision_and_folio() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Raster images: the GPU path has no texture pipeline, so a page with a PNG or JPEG item is drawn by the CPU path
+// Raster images: a page with a PNG or JPEG item is drawn by the GPU path's textured-quad pipeline (FT-480)
 
 /// A PNG of `w × h` opaque red pixels (synthetic).
 fn red_png(w: u32, h: u32) -> Vec<u8> {
@@ -582,7 +582,7 @@ fn gpu_host(d: &HeadlessDevice, tmp: &Tmp) -> (ew_ui::gpu::GpuHost, ShellModel) 
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
     let mut host = ew_ui::gpu::GpuHost::new();
     host.simulate(vulkan(), Ok(()));
-    host.update(&mut shell, false);
+    host.update(&mut shell);
     host.set_canvas_for_tests(d.canvas().expect("the canvas initialises"));
     assert!(host.drawing(), "the rule chose the GPU");
     (host, shell)
@@ -605,12 +605,57 @@ fn tiles(list: &DisplayList, sheet: (i64, i64), dpi: u32) -> (RgbaImage, ew_rend
     render_region(list, Some(&bounds), sheet_size(sheet), &options, fonts(), None).unwrap()
 }
 
-/// A page with a PNG item selects the CPU path, whose output shows the PNG's pixels inside the item's rectangle; the
-/// GPU path draws none of them (it skips and counts the image), and a page without a raster image keeps the GPU path.
+/// The page drawn by `host`'s own path (its preparation worker, the scene keyed by the page, the canvas render) at
+/// 96 dpi, the sheet's origin at the target's corner, read back.
+fn host_image(
+    host: &mut ew_ui::gpu::GpuHost,
+    ctx: &egui::Context,
+    page: &Arc<CanvasPage>,
+    fonts: &ew_render2d::pool::SharedFonts,
+) -> RgbaImage {
+    assert_eq!(until_ready(host, ctx, page, fonts), (true, true));
+    let (w, h) = pixel_size(sheet_size(page.sheet), 96);
+    let view = GpuView {
+        target_px: (w as u32, h as u32),
+        origin_px: (0.0, 0.0),
+        px_per_nm: 96.0 / 25_400_000.0,
+    };
+    // Without eframe's render state the host registers no texture, but the canvas renders.
+    let _ = host.render(&view);
+    let canvas = host.canvas().expect("the GPU canvas");
+    assert!(canvas.fault().is_none());
+    canvas.read_back().expect("the readback")
+}
+
+/// The red pixels of `image` (96 dpi) outside the rectangle `x_mm × y_mm` (widened by a third of a pixel for
+/// anti-aliasing).
+fn red_outside(image: &RgbaImage, x_mm: (f64, f64), y_mm: (f64, f64)) -> usize {
+    let k = 96.0 / 25.4;
+    let (w, h) = (image.width as usize, image.height as usize);
+    (0..h)
+        .flat_map(|y| (0..w).map(move |x| (x, y)))
+        .filter(|&(x, y)| {
+            let i = (y * w + x) * 4;
+            image.pixels[i] > 200 && image.pixels[i + 1] < 60 && image.pixels[i + 2] < 60
+        })
+        .filter(|&(x, y)| {
+            let (xm, ym) = (x as f64 / k, y as f64 / k);
+            let slack = 0.1;
+            !((x_mm.0 - slack..x_mm.1 + slack).contains(&xm)
+                && (y_mm.0 - slack..y_mm.1 + slack).contains(&ym))
+        })
+        .count()
+}
+
+/// A page with a PNG item is drawn by the GPU path (FT-480; cycle 29 routed such a page to the CPU tiles, ID-679):
+/// the host keeps the GPU for it and the status bar names the GPU; the host's own path (worker, scene, render) draws
+/// the PNG's pixels inside the item's rectangle, also with the image inside a group, within the parity rule of
+/// WP-S2.02 §8 item 3 against the CPU tiles.
 #[test]
-fn a_page_with_a_png_item_is_drawn_by_the_cpu_path_with_its_pixels() {
+fn a_page_with_a_png_item_is_drawn_by_the_gpu_path_with_its_pixels() {
     let devices = devices();
     let tmp = Tmp::new();
+    let fonts: ew_render2d::pool::SharedFonts = Arc::new(fonts().clone());
     let at = |x: i64, y: i64| Pt2::new(Nm(x), Nm(y));
     let rect = Rect::from_points(at(20_000_000, 20_000_000), at(60_000_000, 30_000_000));
     let png = Item::image(
@@ -630,64 +675,48 @@ fn a_page_with_a_png_item_is_drawn_by_the_cpu_path_with_its_pixels() {
         None,
         vec![png],
     ));
-    let mut without = DisplayList::new();
-    without.push(Item::path(Path::rect(rect), None, Some(Brush::BLACK)));
-    let (with, grouped, without) = (Arc::new(with), Arc::new(grouped), Arc::new(without));
-    let sheet = (100_000_000, 60_000_000);
+    let (with, grouped) = (Arc::new(with), Arc::new(grouped));
     for d in &devices {
         let (mut host, mut shell) = gpu_host(d, &tmp);
-        let page = page_of(1, 1, "1", &with);
-        let plain = page_of(1, 1, "2", &without);
-        assert!(!host.draws_page(&page), "a PNG item: the CPU path");
-        assert!(
-            !host.draws_page(&page_of(1, 1, "3", &grouped)),
-            "also inside a group"
-        );
-        assert!(host.draws_page(&plain), "no raster image: the GPU path");
-        // The status text says which path draws the page on show.
-        let raster = host.page_has_rasters(&page);
-        host.update(&mut shell, raster);
-        assert_eq!(shell.canvas_backend().label(), "CPU");
-        let raster = host.page_has_rasters(&plain);
-        host.update(&mut shell, raster);
-        assert_eq!(shell.canvas_backend().label(), "GPU Vulkan");
-        // The CPU path's output has the PNG's red inside the rectangle: 40 × 10 mm at 96 dpi is about 151 × 38 pixels.
-        let (cpu, report) = tiles(&with, sheet, 96);
-        assert_eq!(report.skipped_images, 0);
-        let inside = red_pixels(&cpu);
-        assert!(inside >= 5_000, "{inside} red pixels on the CPU path");
-        let (w, h) = (cpu.width as usize, cpu.height as usize);
-        let (px_per_mm, _) = (96.0 / 25.4, ());
-        let inside_rect = (0..h)
-            .flat_map(|y| (0..w).map(move |x| (x, y)))
-            .filter(|&(x, y)| {
-                let (xmm, ymm) = (x as f64 / px_per_mm, y as f64 / px_per_mm);
-                (20.0..60.0).contains(&xmm) && (20.0..30.0).contains(&ymm)
-            })
-            .filter(|&(x, y)| {
-                let i = (y * w + x) * 4;
-                cpu.pixels[i] > 200 && cpu.pixels[i + 1] < 60 && cpu.pixels[i + 2] < 60
-            })
-            .count();
-        assert_eq!(
-            inside_rect, inside,
-            "every red pixel is inside the item's rectangle"
-        );
-        // The GPU path skips it.
-        let gpu = gpu_image(d, &with, sheet, 96);
-        assert_eq!(red_pixels(&gpu), 0, "the GPU path draws no raster image");
+        let ctx = egui::Context::default();
+        for (folio, list) in [("1", &with), ("2", &grouped)] {
+            let page = page_of(1, 1, folio, list);
+            host.update(&mut shell);
+            assert!(host.drawing(), "a page with a PNG item: the GPU path");
+            assert_eq!(
+                shell.canvas_backend().label(),
+                "GPU Vulkan",
+                "the status bar names the GPU"
+            );
+            let gpu = host_image(&mut host, &ctx, &page, &fonts);
+            let stats = host.canvas().unwrap().scene().unwrap().stats;
+            assert_eq!((stats.images, stats.images_skipped), (1, 0));
+            // 40 × 10 mm at 96 dpi is about 151 × 38 pixels of the PNG's red, none outside the rectangle.
+            let red = red_pixels(&gpu);
+            assert!(red >= 5_000, "{red} red pixels on the GPU path");
+            assert_eq!(red_outside(&gpu, (20.0, 60.0), (20.0, 30.0)), 0);
+            let (cpu, report) = tiles(list, page.sheet, 96);
+            assert_eq!(report.skipped_images, 0);
+            assert_parity(
+                &format!("PNG page {folio} on {:?}", d.summary.kind),
+                &gpu,
+                &cpu,
+                MEAN_BOUND_FOLIO_103,
+            );
+        }
     }
 }
 
-/// The company logo as a PNG is a raster image in the title block's list: that page selects the CPU path too and its
-/// CPU output shows the logo; without a logo the page keeps the GPU path.
+/// The company logo as a PNG is a raster image in the title block's list: that page keeps the GPU path too (FT-480)
+/// and the host's GPU image shows the logo as the CPU tiles do.
 #[test]
-fn a_title_block_page_with_a_png_logo_is_drawn_by_the_cpu_path() {
+fn a_title_block_page_with_a_png_logo_is_drawn_by_the_gpu_path() {
     let devices = devices();
     let Some(d) = devices.first() else {
         return;
     };
     let tmp = Tmp::new();
+    let fonts: ew_render2d::pool::SharedFonts = Arc::new(fonts().clone());
     let dir = tmp.golden("g.ew");
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
     assert_eq!(
@@ -702,10 +731,12 @@ fn a_title_block_page_with_a_png_logo_is_drawn_by_the_cpu_path() {
         Outcome::Done
     );
     let (mut host, _) = gpu_host(d, &tmp);
+    let ctx = egui::Context::default();
     let plain = Arc::clone(shell.canvas().expect("a canvas").page());
-    assert!(host.draws_page(&plain), "without a logo: the GPU path");
-    let (before, _) = tiles(&plain.list, plain.sheet, 96);
-    assert_eq!(red_pixels(&before), 0, "the golden page has no red");
+    let plain_gpu = host_image(&mut host, &ctx, &plain, &fonts);
+    assert_eq!(red_pixels(&plain_gpu), 0, "the golden page has no red");
+    // The page's own GPU/CPU difference at 96 dpi (text and widened hairlines), which the logo adds to.
+    let plain_mean = mean_difference(&plain_gpu, &tiles(&plain.list, plain.sheet, 96).0);
     let logo = ew_ui::ew_viewmodel::ew_api::base64_encode(&red_png(64, 32));
     assert_eq!(
         shell.dispatch(
@@ -719,16 +750,19 @@ fn a_title_block_page_with_a_png_logo_is_drawn_by_the_cpu_path() {
         Outcome::Done
     );
     let page = Arc::clone(shell.canvas().expect("a canvas").page());
-    assert!(
-        !host.draws_page(&page),
-        "a PNG logo in the title block: the CPU path"
-    );
-    let (after, report) = tiles(&page.list, page.sheet, 96);
+    assert!(host.drawing(), "a PNG logo in the title block: the GPU path");
+    let gpu = host_image(&mut host, &ctx, &page, &fonts);
+    assert_eq!(host.canvas().unwrap().scene().unwrap().stats.images, 1);
+    let (cpu, report) = tiles(&page.list, page.sheet, 96);
     assert_eq!(report.skipped_images, 0);
+    let (on_gpu, on_cpu) = (red_pixels(&gpu), red_pixels(&cpu));
+    assert!(on_gpu >= 100, "{on_gpu} red pixels: the logo on the GPU path");
     assert!(
-        red_pixels(&after) >= 100,
-        "{} red pixels: the logo on the CPU path",
-        red_pixels(&after)
+        on_gpu.abs_diff(on_cpu) * 10 <= on_cpu,
+        "{on_gpu} red pixels on the GPU path against {on_cpu} on the CPU path"
     );
+    // The parity rule, and the logo adds at most 0.05 to the page's mean channel difference.
+    println!("folio 101 without the logo: mean channel difference {plain_mean:.4}");
+    assert_parity("folio 101 with a PNG logo", &gpu, &cpu, plain_mean + 0.05);
     shell.shutdown();
 }

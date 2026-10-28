@@ -4,9 +4,21 @@
 //! The GPU canvas (WP-S2.02 §7.1): a prepared scene drawn instanced into the canvas's own multisampled colour and
 //! depth attachments, resolved into a texture of the target's physical size.
 //!
-//! **Paint order.** Opaque meshes are drawn first, batched by mesh in any order, with the depth test and depth
-//! writes (later in paint order is nearer); translucent meshes, LOD bars and translucent glyphs follow in paint
-//! order with the depth test and without depth writes.
+//! **Paint order.** Opaque meshes and opaque images are drawn first, batched by mesh (and texture) in any order,
+//! with the depth test and depth writes (later in paint order is nearer); translucent meshes, LOD bars, translucent
+//! glyphs and images with alpha follow in paint order with the depth test and without depth writes.
+//!
+//! **Raster images** (FT-480). A second pair of pipelines over the same vertex and instance layout, view uniform,
+//! MSAA sample count and depth format draws an image instance as the unit square with its texture (`fs_image` in
+//! the one WGSL file): bind group 1 holds the texture and the sampler. Textures are premultiplied `Rgba8Unorm`
+//! (gamma-space bytes, as the CPU path's u8 pipeline interpolates them) and blended as premultiplied colour. The
+//! sampler is bilinear with clamp-to-edge and no mipmaps: the CPU path's `ImageSampler::default()` (peniko's
+//! `ImageQuality::Medium`, `Extend::Pad`), which vello_cpu narrows to nearest only for a 1:1 integer translation,
+//! where bilinear sampling at texel centres gives the same texels. The textures are cached by SHA-256 within
+//! [`GPU_TEXTURE_BYTES`] (least recently used first, never those of the current scene), one bind group each; a scene
+//! whose texture was evicted uploads it again from its prepared image. An image wider or taller than the device's
+//! `max_texture_dimension_2d` (the worker downscales to it, [`super::prepare::fit_side`]) is refused and counted,
+//! never a fault.
 //!
 //! **Target.** 4× MSAA where the adapter supports it for both formats (else 1), resolved into an `Rgba8Unorm`
 //! texture. That is the format egui-wgpu's native textures must have; its shader samples it as gamma-space colour,
@@ -17,7 +29,7 @@
 //! **Frames.** [`GpuCanvas::render`] encodes and submits only when the scene, the view, the target size or the LOD
 //! cut changed since the last submission; an idle frame submits nothing (doc 16 §1 rule 3).
 //!
-//! **Buffers.** Uploads use `Queue::write_buffer` only. The one mapped buffer is the readback of
+//! **Buffers.** Uploads use `Queue::write_buffer` and `Queue::write_texture` only. The one mapped buffer is the readback of
 //! [`GpuCanvas::read_back`] (tests and the bench): its mapped view lives inside the block that awaited the map,
 //! is copied out there and dropped before `unmap` (the mapped-view rule of §7.1; wgpu 30.0.1 releases a buffer on
 //! `destroy` or device loss without checking for live views, upstream gfx-rs/wgpu#10256).
@@ -29,7 +41,7 @@ use std::sync::{Arc, Mutex, PoisonError};
 
 use ew_render_cpu::RgbaImage;
 
-use super::prepare::{Instance, MeshKey, PreparedScene};
+use super::prepare::{ImageTexture, Instance, MeshKey, PreparedScene};
 use super::switch::GpuError;
 use super::tess::VERTEX_BYTES;
 use crate::view::DrawTransform;
@@ -48,6 +60,12 @@ const UNIFORM_BYTES: u64 = 32;
 
 /// The GPU mesh cache's budget beyond the meshes of the current scene.
 pub const GPU_MESH_BYTES: u64 = 128 * 1024 * 1024;
+
+/// The GPU texture cache's budget beyond the textures of the current scene (raster images, 4 bytes per texel).
+pub const GPU_TEXTURE_BYTES: u64 = 256 * 1024 * 1024;
+
+/// An image's texture key: the SHA-256 of its encoded bytes.
+type TextureKey = [u8; 32];
 
 /// What the canvas shows: the target size and the sheet-to-pixel transform.
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -95,6 +113,11 @@ pub struct GpuCounters {
     pub instance_writes: u64,
     /// Scenes set.
     pub scenes: u64,
+    /// Image textures uploaded.
+    pub textures_uploaded: u64,
+    /// Image textures refused (a side beyond the device's `max_texture_dimension_2d`, or texels that do not fill
+    /// the stated size); their images are not drawn.
+    pub textures_refused: u64,
 }
 
 struct Targets {
@@ -113,17 +136,28 @@ struct GpuMesh {
     used: u64,
 }
 
+/// One cached image texture with its bind group.
+struct GpuTexture {
+    bind_group: wgpu::BindGroup,
+    bytes: u64,
+    used: u64,
+}
+
 /// One instanced draw.
 #[derive(Clone, PartialEq, Debug)]
 struct Draw {
     mesh: u32,
     instances: Range<u32>,
     translucent: bool,
+    /// The image of an image draw, as an index into the scene's images.
+    image: Option<u32>,
 }
 
 struct SceneState {
     prepared: Arc<PreparedScene>,
     keys: Vec<MeshKey>,
+    /// The texture key of each of the scene's images.
+    texture_keys: Vec<TextureKey>,
     instances: Option<wgpu::Buffer>,
     capacity: u64,
     draws: Vec<Draw>,
@@ -139,18 +173,41 @@ struct RenderKey {
     cut: usize,
 }
 
+/// The pipelines of the canvas, the image textures' bind group layout and the sampler.
+struct Pipelines {
+    opaque: wgpu::RenderPipeline,
+    translucent: wgpu::RenderPipeline,
+    image_opaque: wgpu::RenderPipeline,
+    image_translucent: wgpu::RenderPipeline,
+    texture_layout: wgpu::BindGroupLayout,
+    sampler: wgpu::Sampler,
+}
+
+impl Pipelines {
+    fn of(&self, translucent: bool, image: bool) -> &wgpu::RenderPipeline {
+        match (image, translucent) {
+            (false, false) => &self.opaque,
+            (false, true) => &self.translucent,
+            (true, false) => &self.image_opaque,
+            (true, true) => &self.image_translucent,
+        }
+    }
+}
+
 /// The wgpu renderer of the canvas over one device.
 pub struct GpuCanvas {
     device: wgpu::Device,
     queue: wgpu::Queue,
     sample_count: u32,
-    opaque: wgpu::RenderPipeline,
-    translucent: wgpu::RenderPipeline,
+    pipelines: Pipelines,
     uniform: wgpu::Buffer,
     bind_group: wgpu::BindGroup,
     targets: Option<Targets>,
     meshes: BTreeMap<MeshKey, GpuMesh>,
     mesh_bytes: u64,
+    textures: BTreeMap<TextureKey, GpuTexture>,
+    texture_bytes: u64,
+    texture_budget: u64,
     generation: u64,
     scene: Option<SceneState>,
     last: Option<RenderKey>,
@@ -263,18 +320,20 @@ impl GpuCanvas {
         if let Some(e) = validation.or(memory) {
             return Err(GpuError::Init(e));
         }
-        let (opaque, translucent, uniform, bind_group) = built;
+        let (pipelines, uniform, bind_group) = built;
         Ok(GpuCanvas {
             device,
             queue,
             sample_count,
-            opaque,
-            translucent,
+            pipelines,
             uniform,
             bind_group,
             targets: None,
             meshes: BTreeMap::new(),
             mesh_bytes: 0,
+            textures: BTreeMap::new(),
+            texture_bytes: 0,
+            texture_budget: GPU_TEXTURE_BYTES,
             generation: 0,
             scene: None,
             last: None,
@@ -283,16 +342,7 @@ impl GpuCanvas {
         })
     }
 
-    #[allow(clippy::type_complexity)]
-    fn build(
-        device: &wgpu::Device,
-        sample_count: u32,
-    ) -> (
-        wgpu::RenderPipeline,
-        wgpu::RenderPipeline,
-        wgpu::Buffer,
-        wgpu::BindGroup,
-    ) {
+    fn build(device: &wgpu::Device, sample_count: u32) -> (Pipelines, wgpu::Buffer, wgpu::BindGroup) {
         let module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("ew-canvas"),
             source: wgpu::ShaderSource::Wgsl(include_str!("canvas.wgsl").into()),
@@ -315,6 +365,44 @@ impl GpuCanvas {
             bind_group_layouts: &[Some(&bind_layout)],
             immediate_size: 0,
         });
+        // Group 1 of the image pipelines: the image's texture and the sampler.
+        let texture_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("ew-canvas-image"),
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        multisampled: false,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+            ],
+        });
+        let image_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("ew-canvas-image"),
+            bind_group_layouts: &[Some(&bind_layout), Some(&texture_layout)],
+            immediate_size: 0,
+        });
+        // The CPU path's sampler (module documentation): bilinear, clamp to edge, no mipmaps.
+        let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            label: Some("ew-canvas-image"),
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            address_mode_w: wgpu::AddressMode::ClampToEdge,
+            mag_filter: wgpu::FilterMode::Linear,
+            min_filter: wgpu::FilterMode::Linear,
+            mipmap_filter: wgpu::MipmapFilterMode::Nearest,
+            ..wgpu::SamplerDescriptor::default()
+        });
         let uniform = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("ew-canvas-view"),
             size: UNIFORM_BYTES,
@@ -330,14 +418,26 @@ impl GpuCanvas {
             }],
         });
         let buffers = vertex_layouts();
-        let pipeline = |translucent: bool| {
+        // Straight-alpha colour for the meshes; premultiplied texels for the images.
+        let straight = wgpu::BlendComponent {
+            src_factor: wgpu::BlendFactor::SrcAlpha,
+            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+            operation: wgpu::BlendOperation::Add,
+        };
+        let premultiplied = wgpu::BlendComponent {
+            src_factor: wgpu::BlendFactor::One,
+            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+            operation: wgpu::BlendOperation::Add,
+        };
+        let pipeline = |translucent: bool, image: bool| {
             device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                label: Some(if translucent {
-                    "ew-canvas-translucent"
-                } else {
-                    "ew-canvas-opaque"
+                label: Some(match (image, translucent) {
+                    (false, false) => "ew-canvas-opaque",
+                    (false, true) => "ew-canvas-translucent",
+                    (true, false) => "ew-canvas-image-opaque",
+                    (true, true) => "ew-canvas-image-translucent",
                 }),
-                layout: Some(&layout),
+                layout: Some(if image { &image_layout } else { &layout }),
                 vertex: wgpu::VertexState {
                     module: &module,
                     entry_point: Some("vs_main"),
@@ -364,21 +464,13 @@ impl GpuCanvas {
                 },
                 fragment: Some(wgpu::FragmentState {
                     module: &module,
-                    entry_point: Some("fs_main"),
+                    entry_point: Some(if image { "fs_image" } else { "fs_main" }),
                     compilation_options: wgpu::PipelineCompilationOptions::default(),
                     targets: &[Some(wgpu::ColorTargetState {
                         format: TARGET_FORMAT,
                         blend: Some(wgpu::BlendState {
-                            color: wgpu::BlendComponent {
-                                src_factor: wgpu::BlendFactor::SrcAlpha,
-                                dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
-                                operation: wgpu::BlendOperation::Add,
-                            },
-                            alpha: wgpu::BlendComponent {
-                                src_factor: wgpu::BlendFactor::One,
-                                dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
-                                operation: wgpu::BlendOperation::Add,
-                            },
+                            color: if image { premultiplied } else { straight },
+                            alpha: premultiplied,
                         }),
                         write_mask: wgpu::ColorWrites::ALL,
                     })],
@@ -387,7 +479,15 @@ impl GpuCanvas {
                 cache: None,
             })
         };
-        (pipeline(false), pipeline(true), uniform, bind_group)
+        let pipelines = Pipelines {
+            opaque: pipeline(false, false),
+            translucent: pipeline(true, false),
+            image_opaque: pipeline(false, true),
+            image_translucent: pipeline(true, true),
+            texture_layout,
+            sampler,
+        };
+        (pipelines, uniform, bind_group)
     }
 
     /// The device.
@@ -415,6 +515,28 @@ impl GpuCanvas {
         self.counters
     }
 
+    /// The longest image side the device takes (`max_texture_dimension_2d`): the preparation's maximum side
+    /// ([`super::prepare::MeshCache::set_max_image_side`], [`super::prepare::Preparer::new`]).
+    pub fn max_image_side(&self) -> u32 {
+        self.device.limits().max_texture_dimension_2d
+    }
+
+    /// The number of cached image textures.
+    pub fn texture_count(&self) -> usize {
+        self.textures.len()
+    }
+
+    /// The bytes of the cached image textures.
+    pub fn texture_bytes(&self) -> u64 {
+        self.texture_bytes
+    }
+
+    /// Sets the texture cache's budget ([`GPU_TEXTURE_BYTES`] by default; tests set a smaller one). It applies from
+    /// the next [`GpuCanvas::set_scene`].
+    pub fn set_texture_budget(&mut self, bytes: u64) {
+        self.texture_budget = bytes;
+    }
+
     /// The scene on show.
     pub fn scene(&self) -> Option<&Arc<PreparedScene>> {
         self.scene.as_ref().map(|s| &s.prepared)
@@ -430,8 +552,78 @@ impl GpuCanvas {
         self.targets.as_ref().map(|t| t.size)
     }
 
-    /// Shows `prepared`: uploads the meshes the GPU does not have yet (`Queue::write_buffer`), and drops cached
-    /// meshes of older scenes while over [`GPU_MESH_BYTES`].
+    /// Uploads `image` as a texture with its bind group (`Queue::write_texture`), or refuses it (counted) when a side
+    /// is 0 or beyond the device's limit or its texels do not fill its size.
+    fn upload_texture(&mut self, image: &ImageTexture, generation: u64) {
+        let (w, h) = (image.width, image.height);
+        let max = self.max_image_side();
+        let fits = w > 0 && h > 0 && w <= max && h <= max;
+        if !fits || image.rgba.len() as u64 != u64::from(w) * u64::from(h) * 4 {
+            self.counters.textures_refused += 1;
+            return;
+        }
+        let size = wgpu::Extent3d {
+            width: w,
+            height: h,
+            depth_or_array_layers: 1,
+        };
+        let texture = self.device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("ew-canvas-image"),
+            size,
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: TARGET_FORMAT,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+            view_formats: &[],
+        });
+        self.queue.write_texture(
+            wgpu::TexelCopyTextureInfo {
+                texture: &texture,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+                aspect: wgpu::TextureAspect::All,
+            },
+            &image.rgba,
+            wgpu::TexelCopyBufferLayout {
+                offset: 0,
+                bytes_per_row: Some(w * 4),
+                rows_per_image: Some(h),
+            },
+            size,
+        );
+        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("ew-canvas-image"),
+            layout: &self.pipelines.texture_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(&view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Sampler(&self.pipelines.sampler),
+                },
+            ],
+        });
+        let bytes = image.bytes();
+        self.texture_bytes += bytes;
+        self.textures.insert(
+            image.sha256,
+            GpuTexture {
+                bind_group,
+                bytes,
+                used: generation,
+            },
+        );
+        self.counters.textures_uploaded += 1;
+    }
+
+    /// Shows `prepared`: uploads the meshes and image textures the GPU does not have yet (`Queue::write_buffer`,
+    /// `Queue::write_texture`), and drops cached meshes and textures of older scenes while over [`GPU_MESH_BYTES`]
+    /// and the texture budget ([`GPU_TEXTURE_BYTES`] unless [`GpuCanvas::set_texture_budget`] set another),
+    /// least recently used first.
     pub fn set_scene(&mut self, prepared: Arc<PreparedScene>) {
         self.generation += 1;
         let generation = self.generation;
@@ -492,9 +684,35 @@ impl GpuCanvas {
                 }
             }
         }
+        let mut texture_keys = Vec::with_capacity(prepared.images.len());
+        for image in &prepared.images {
+            texture_keys.push(image.sha256);
+            match self.textures.get_mut(&image.sha256) {
+                Some(t) => t.used = generation,
+                None => self.upload_texture(image, generation),
+            }
+        }
+        if self.texture_bytes > self.texture_budget {
+            let mut old: Vec<(u64, TextureKey)> = self
+                .textures
+                .iter()
+                .filter(|(_, t)| t.used < generation)
+                .map(|(k, t)| (t.used, *k))
+                .collect();
+            old.sort_unstable();
+            for (_, key) in old {
+                if self.texture_bytes <= self.texture_budget {
+                    break;
+                }
+                if let Some(t) = self.textures.remove(&key) {
+                    self.texture_bytes -= t.bytes;
+                }
+            }
+        }
         self.scene = Some(SceneState {
             prepared,
             keys,
+            texture_keys,
             instances: None,
             capacity: 0,
             draws: Vec::new(),
@@ -587,38 +805,59 @@ impl GpuCanvas {
             return;
         };
         let p = &scene.prepared;
+        // Each instance with the image it draws (`None`: a mesh).
         let mut opaque_glyphs: Vec<&Instance> = Vec::new();
-        let mut translucent: Vec<&Instance> = p.translucent.iter().collect();
+        let mut opaque_images: Vec<(&Instance, Option<u32>)> = Vec::new();
+        let mut translucent: Vec<(&Instance, Option<u32>)> =
+            p.translucent.iter().map(|i| (i, None)).collect();
         for (i, run) in p.runs.iter().enumerate() {
             if i < cut {
-                translucent.push(&run.bar);
+                translucent.push((&run.bar, None));
             } else if run.translucent {
-                translucent.extend(&p.glyphs[run.glyphs.clone()]);
+                translucent.extend(p.glyphs[run.glyphs.clone()].iter().map(|i| (i, None)));
             } else {
                 opaque_glyphs.extend(&p.glyphs[run.glyphs.clone()]);
             }
         }
+        for image in &p.image_instances {
+            let opaque = p.images.get(image.image as usize).is_some_and(|t| t.opaque);
+            let entry = (&image.quad, Some(image.image));
+            if opaque {
+                opaque_images.push(entry);
+            } else {
+                translucent.push(entry);
+            }
+        }
         opaque_glyphs.sort_by_key(|i| i.mesh);
-        translucent.sort_by_key(|i| i.depth);
-        let mut bytes =
-            Vec::with_capacity((p.opaque.len() + opaque_glyphs.len() + translucent.len()) * INSTANCE_BYTES);
+        opaque_images.sort_by_key(|(_, image)| *image);
+        translucent.sort_by_key(|(i, _)| i.depth);
+        let mut bytes = Vec::with_capacity(
+            (p.opaque.len() + opaque_glyphs.len() + opaque_images.len() + translucent.len()) * INSTANCE_BYTES,
+        );
         let mut draws: Vec<Draw> = Vec::new();
         let all = p
             .opaque
             .iter()
-            .map(|i| (i, false))
-            .chain(opaque_glyphs.into_iter().map(|i| (i, false)))
-            .chain(translucent.into_iter().map(|i| (i, true)));
-        for (n, (inst, translucent)) in (0u32..).zip(all) {
+            .map(|i| (i, None, false))
+            .chain(opaque_glyphs.into_iter().map(|i| (i, None, false)))
+            .chain(opaque_images.into_iter().map(|(i, image)| (i, image, false)))
+            .chain(translucent.into_iter().map(|(i, image)| (i, image, true)));
+        for (n, (inst, image, translucent)) in (0u32..).zip(all) {
             push_instance(&mut bytes, inst);
             match draws.last_mut() {
-                Some(d) if d.mesh == inst.mesh && d.translucent == translucent && d.instances.end == n => {
+                Some(d)
+                    if d.mesh == inst.mesh
+                        && d.translucent == translucent
+                        && d.image == image
+                        && d.instances.end == n =>
+                {
                     d.instances.end = n + 1;
                 }
                 _ => draws.push(Draw {
                     mesh: inst.mesh,
                     instances: n..n + 1,
                     translucent,
+                    image,
                 }),
             }
         }
@@ -735,7 +974,8 @@ impl GpuCanvas {
             pass.set_bind_group(0, &self.bind_group, &[]);
             if let Some(instances) = &scene.instances {
                 pass.set_vertex_buffer(1, instances.slice(..));
-                let mut translucent = None;
+                // The pipeline set last: (translucent, image).
+                let mut current = None;
                 for d in &scene.draws {
                     let Some(mesh) = scene.keys.get(d.mesh as usize).and_then(|k| self.meshes.get(k)) else {
                         continue;
@@ -743,13 +983,25 @@ impl GpuCanvas {
                     if mesh.index_count == 0 {
                         continue;
                     }
-                    if translucent != Some(d.translucent) {
-                        pass.set_pipeline(if d.translucent {
-                            &self.translucent
-                        } else {
-                            &self.opaque
-                        });
-                        translucent = Some(d.translucent);
+                    // An image draw binds its texture; a refused texture is not drawn.
+                    let texture = match d.image {
+                        None => None,
+                        Some(i) => {
+                            let cached = scene
+                                .texture_keys
+                                .get(i as usize)
+                                .and_then(|k| self.textures.get(k));
+                            let Some(t) = cached else { continue };
+                            Some(t)
+                        }
+                    };
+                    let wanted = (d.translucent, texture.is_some());
+                    if current != Some(wanted) {
+                        pass.set_pipeline(self.pipelines.of(wanted.0, wanted.1));
+                        current = Some(wanted);
+                    }
+                    if let Some(t) = texture {
+                        pass.set_bind_group(1, &t.bind_group, &[]);
                     }
                     pass.set_vertex_buffer(0, mesh.vertices.slice(..));
                     pass.set_index_buffer(mesh.indices.slice(..), wgpu::IndexFormat::Uint32);

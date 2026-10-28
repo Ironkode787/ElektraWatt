@@ -1,12 +1,13 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// The canvas shader of ew-render2d's GPU path (WP-S2.02 section 7.1): one instanced pipeline for the meshes of
-// paths, glyph outlines and LOD bars.
+// The canvas shader of ew-render2d's GPU path (WP-S2.02 section 7.1): one instanced vertex stage for the meshes of
+// paths, glyph outlines and LOD bars (fs_main) and for raster images, the unit square with a texture (fs_image,
+// FT-480).
 //
 // Colours are sRGB bytes as authored and are written to an Rgba8Unorm target as they are, so blending happens in
 // gamma space, as in the CPU renderer's u8 pipeline, and egui-wgpu samples the texture as the gamma-space texture
-// it expects.
+// it expects. Image texels are premultiplied gamma-space bytes, sampled bilinearly as the CPU path samples them.
 
 struct View {
     // Where page micrometre (0, 0) lands, in physical pixels of the target.
@@ -21,6 +22,10 @@ struct View {
 };
 
 @group(0) @binding(0) var<uniform> view: View;
+
+// The image pipelines' group 1: the image's premultiplied texture and the bilinear clamp-to-edge sampler.
+@group(1) @binding(0) var image_texture: texture_2d<f32>;
+@group(1) @binding(1) var image_sampler: sampler;
 
 struct VertexIn {
     // Per vertex: the point on the path, the stroke normal and half-width (zero for fills), the colour and the
@@ -44,6 +49,8 @@ struct VertexOut {
     @location(0) color: vec4<f32>,
     @location(1) page_um: vec2<f32>,
     @location(2) @interpolate(flat) clip: vec4<f32>,
+    // The mesh-local point: the texture coordinate of an image's unit square ((0, 0) at the rectangle's top left).
+    @location(3) uv: vec2<f32>,
 };
 
 @vertex
@@ -71,13 +78,28 @@ fn vs_main(in: VertexIn) -> VertexOut {
     out.color = in.color * in.tint;
     out.page_um = page;
     out.clip = in.clip;
+    out.uv = in.pos;
     return out;
+}
+
+fn clipped(page_um: vec2<f32>, clip: vec4<f32>) -> bool {
+    return page_um.x < clip.x || page_um.y < clip.y || page_um.x > clip.z || page_um.y > clip.w;
 }
 
 @fragment
 fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
-    if in.page_um.x < in.clip.x || in.page_um.y < in.clip.y || in.page_um.x > in.clip.z || in.page_um.y > in.clip.w {
+    if clipped(in.page_um, in.clip) {
         discard;
     }
     return in.color;
+}
+
+@fragment
+fn fs_image(in: VertexOut) -> @location(0) vec4<f32> {
+    // Sampled before the clip test: implicit derivatives need uniform control flow.
+    let texel = textureSample(image_texture, image_sampler, in.uv);
+    if clipped(in.page_um, in.clip) {
+        discard;
+    }
+    return texel;
 }

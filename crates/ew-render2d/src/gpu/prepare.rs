@@ -23,13 +23,19 @@
 //! below 255 go into the context's *translucent* mesh, drawn last in paint order without depth writes.
 //!
 //! **Caches.** Meshes are cached across scenes in a [`MeshCache`], so a second preparation of the same page
-//! tessellates nothing. **Raster images (PNG, JPEG) are skipped and counted:** this path has no texture pipeline, so the
-//! canvas routes a page whose list holds one to the CPU tile path instead ([`has_raster_images`] is the one predicate
-//! the host asks); SVG images never reach it, because the export job has already turned them into paths. Symbol
-//! instances, which the canvas's sheet lists never contain (they are inlined), are skipped and counted, as the CPU
-//! path does without a resolver. A
-//! group clip becomes a per-instance clip rectangle in page coordinates (exact for multiples of 90°, the bounding
-//! box otherwise).
+//! tessellates nothing. Symbol instances, which the canvas's sheet lists never contain (they are inlined), are
+//! skipped and counted, as the CPU path does without a resolver. A group clip becomes a per-instance clip rectangle
+//! in page coordinates (exact for multiples of 90°, the bounding box otherwise).
+//!
+//! **Raster images** (PNG, JPEG; FT-480). Each image item takes one paint index; a drawn one becomes an
+//! [`ImageInstance`]: the unit square (the LOD bars' mesh) over the item's rectangle, with the context's clip, drawn by
+//! the renderer's textured-quad pipeline. The worker decodes the bytes with [`ew_render_cpu::decode_image`] (the CPU
+//! path's decoder, so both paths draw the same images and skip the same ones), premultiplies them and, when a side
+//! exceeds the preparation's maximum (the device's `max_texture_dimension_2d`), downscales them by an area average
+//! ([`fit_side`]); the result, an [`ImageTexture`], is cached in the [`MeshCache`] by SHA-256 under the same budget
+//! and generation rule as the meshes, so a second preparation decodes nothing. An image without bytes, an SVG image
+//! (the export job turns SVG into paths first) and bytes that do not decode are skipped and counted, as the CPU path
+//! skips them.
 
 use std::collections::BTreeMap;
 use std::hash::{DefaultHasher, Hash, Hasher};
@@ -38,8 +44,11 @@ use std::sync::{Arc, Condvar, Mutex, PoisonError};
 use std::thread;
 
 use ew_dl::ew_units::Rect;
-use ew_dl::{Brush, Color, DisplayList, FontKey, Item, ItemKind, PathItem, ShapedRun, Transform};
-use ew_render_cpu::{FontBytes, FontResolver};
+use ew_dl::{
+    Brush, Color, DisplayList, FontKey, ImageData, ImageFormat, ImageItem, Item, ItemKind, PathItem,
+    ShapedRun, Transform,
+};
+use ew_render_cpu::{FontBytes, FontResolver, decode_image};
 use kurbo::Affine;
 use skrifa::MetadataProvider;
 use skrifa::instance::{LocationRef, Size};
@@ -61,6 +70,10 @@ pub const BAR_EM_PX: f64 = 2.0;
 
 /// The CPU-side mesh cache's budget; meshes of the current scene are never evicted.
 pub const MESH_CACHE_BYTES: u64 = 128 * 1024 * 1024;
+
+/// The longest side of an image texture when the preparation is not told the device's limit: wgpu's default
+/// `max_texture_dimension_2d`.
+pub const DEFAULT_MAX_IMAGE_SIDE: u32 = 8192;
 
 /// The clip of an unclipped instance, in page micrometres.
 const NO_CLIP: [f32; 4] = [-1.0e30, -1.0e30, 1.0e30, 1.0e30];
@@ -130,7 +143,11 @@ pub struct PrepareStats {
     pub glyph_instances: u64,
     /// Glyph runs.
     pub runs: u64,
-    /// Image items skipped (the GPU path draws none; the canvas draws a page with raster images on the CPU path).
+    /// Raster images drawn (image instances).
+    pub images: u64,
+    /// Images decoded by this preparation (0 when every image was cached).
+    pub images_decoded: u64,
+    /// Image items not drawn, as the CPU path skips them: no bytes, SVG, or bytes that do not decode.
     pub images_skipped: u64,
     /// Symbol instances skipped (no geometry resolver).
     pub instances_skipped: u64,
@@ -155,10 +172,134 @@ pub struct PreparedScene {
     pub runs: Vec<RunLod>,
     /// The glyph instances of all runs.
     pub glyphs: Vec<Instance>,
+    /// The decoded images the image instances refer to, one per SHA-256, in the order of first use.
+    pub images: Vec<Arc<ImageTexture>>,
+    /// The drawn raster images, in paint order.
+    pub image_instances: Vec<ImageInstance>,
     /// The number of paint indices (the depth range).
     pub depth_count: u32,
     /// What this preparation did.
     pub stats: PrepareStats,
+}
+
+/// A raster image decoded for upload: premultiplied RGBA8 within the preparation's maximum side.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct ImageTexture {
+    /// The SHA-256 of the encoded bytes (the image item's hash): the GPU texture cache's key.
+    pub sha256: [u8; 32],
+    /// Width in texels.
+    pub width: u32,
+    /// Height in texels.
+    pub height: u32,
+    /// Premultiplied RGBA8, row-major, top row first, `width × height × 4` bytes.
+    pub rgba: Vec<u8>,
+    /// Whether every texel is opaque (alpha 255): drawn in the opaque pass, else in the translucent pass.
+    pub opaque: bool,
+    /// Whether the decoded image was larger than the maximum side and was downscaled ([`fit_side`]).
+    pub downscaled: bool,
+}
+
+impl ImageTexture {
+    /// The bytes of its texels.
+    pub fn bytes(&self) -> u64 {
+        self.rgba.len() as u64
+    }
+}
+
+/// One drawn raster image.
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub struct ImageInstance {
+    /// The image, as an index into [`PreparedScene::images`].
+    pub image: u32,
+    /// The unit square ([`bar_key`]'s mesh) over the image's rectangle: texture coordinate (0, 0) at the
+    /// rectangle's top-left corner, the context's clip, the item's paint index; the tint is white.
+    pub quad: Instance,
+}
+
+/// The texture size of a `width × height` image within `max_side`: unchanged when both sides fit, else the longer side
+/// becomes `max_side` and the shorter `round(shorter × max_side / longer)`, at least 1 (integer arithmetic, halves
+/// up).
+pub fn fit_side(width: u32, height: u32, max_side: u32) -> (u32, u32) {
+    let max_side = max_side.max(1);
+    let longer = width.max(height);
+    if longer <= max_side {
+        return (width, height);
+    }
+    let scale = |v: u32| {
+        let v = (u64::from(v) * u64::from(max_side) + u64::from(longer) / 2) / u64::from(longer);
+        (v as u32).clamp(1, max_side)
+    };
+    (scale(width), scale(height))
+}
+
+/// Straight-alpha RGBA8 to premultiplied, in place, with the CPU path's rounding (`(c × a + 255) >> 8`); returns
+/// whether every pixel is opaque.
+fn premultiply(rgba: &mut [u8]) -> bool {
+    let mut opaque = true;
+    for px in rgba.as_chunks_mut::<4>().0 {
+        let a = u16::from(px[3]);
+        opaque &= a == 255;
+        for c in &mut px[..3] {
+            *c = ((u16::from(*c) * a + 255) >> 8) as u8;
+        }
+    }
+    opaque
+}
+
+/// The area average of `src` (`w × h`, RGBA8) at `w2 × h2` (each side at most the source's): destination texel
+/// `(i, j)` averages the source texels of columns `i·w/w2 .. (i+1)·w/w2` and rows `j·h/h2 .. (j+1)·h/h2` (floors),
+/// rounded to the nearest.
+fn downscale(src: &[u8], w: u32, h: u32, w2: u32, h2: u32) -> Vec<u8> {
+    let span = |i: u32, n: u32, m: u32| {
+        let a = (u64::from(i) * u64::from(n) / u64::from(m)) as usize;
+        let b = (u64::from(i + 1) * u64::from(n) / u64::from(m)) as usize;
+        a..b.max(a + 1)
+    };
+    let row = w as usize * 4;
+    let mut out = Vec::with_capacity(w2 as usize * h2 as usize * 4);
+    for j in 0..h2 {
+        let rows = span(j, h, h2);
+        for i in 0..w2 {
+            let cols = span(i, w, w2);
+            let mut sum = [0u64; 4];
+            for y in rows.clone() {
+                for x in cols.clone() {
+                    let at = y * row + x * 4;
+                    for (s, &c) in sum.iter_mut().zip(&src[at..at + 4]) {
+                        *s += u64::from(c);
+                    }
+                }
+            }
+            let n = (rows.len() * cols.len()) as u64;
+            out.extend(sum.map(|s| ((s + n / 2) / n) as u8));
+        }
+    }
+    out
+}
+
+/// The texture of an image item's bytes within `max_side`, or `None` for an SVG, empty bytes or bytes that
+/// [`decode_image`] refuses (as the CPU path skips them).
+pub fn image_texture(data: &ImageData, max_side: u32) -> Option<ImageTexture> {
+    if data.format == ImageFormat::Svg || data.bytes.is_empty() {
+        return None;
+    }
+    let decoded = decode_image(data.format, &data.bytes)?;
+    let (w, h) = (u32::from(decoded.width), u32::from(decoded.height));
+    let mut rgba = decoded.rgba;
+    let opaque = premultiply(&mut rgba);
+    let (w2, h2) = fit_side(w, h, max_side);
+    let downscaled = (w2, h2) != (w, h);
+    if downscaled {
+        rgba = downscale(&rgba, w, h, w2, h2);
+    }
+    Some(ImageTexture {
+        sha256: data.sha256,
+        width: w2,
+        height: h2,
+        rgba,
+        opaque,
+        downscaled,
+    })
 }
 
 impl PreparedScene {
@@ -184,15 +325,28 @@ struct Entry {
     used: u64,
 }
 
-/// Meshes cached across scenes, keyed by content, with the faces of the fonts they came from.
+/// One cached decoded image (`None`: it does not decode).
+struct ImageEntry {
+    image: Option<Arc<ImageTexture>>,
+    bytes: u64,
+    /// The preparation that last used it.
+    used: u64,
+}
+
+/// Meshes and decoded images cached across scenes, keyed by content (images by SHA-256), with the faces of the fonts
+/// they came from.
 pub struct MeshCache {
     entries: BTreeMap<MeshKey, Entry>,
+    images: BTreeMap<[u8; 32], ImageEntry>,
+    max_image_side: u32,
     faces: BTreeMap<FontKey, Option<Face>>,
     bytes: u64,
     budget: u64,
     generation: u64,
     /// Meshes tessellated over the cache's lifetime.
     pub tessellated_total: u64,
+    /// Images decoded over the cache's lifetime.
+    pub decoded_total: u64,
 }
 
 impl Default for MeshCache {
@@ -205,22 +359,75 @@ impl std::fmt::Debug for MeshCache {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("MeshCache")
             .field("meshes", &self.entries.len())
+            .field("images", &self.images.len())
             .field("bytes", &self.bytes)
             .finish_non_exhaustive()
     }
 }
 
 impl MeshCache {
-    /// An empty cache that keeps at most `budget` bytes of meshes beyond those of the newest scene.
+    /// An empty cache that keeps at most `budget` bytes of meshes and decoded images beyond those of the newest
+    /// scene; images are kept within [`DEFAULT_MAX_IMAGE_SIDE`].
     pub fn new(budget: u64) -> MeshCache {
         MeshCache {
             entries: BTreeMap::new(),
+            images: BTreeMap::new(),
+            max_image_side: DEFAULT_MAX_IMAGE_SIDE,
             faces: BTreeMap::new(),
             bytes: 0,
             budget,
             generation: 0,
             tessellated_total: 0,
+            decoded_total: 0,
         }
+    }
+
+    /// Sets the longest side of the image textures it prepares (the device's `max_texture_dimension_2d`, at least 1);
+    /// a change drops the decoded images.
+    pub fn set_max_image_side(&mut self, side: u32) {
+        let side = side.max(1);
+        if side != self.max_image_side {
+            self.max_image_side = side;
+            let dropped: u64 = self.images.values().map(|e| e.bytes).sum();
+            self.bytes -= dropped;
+            self.images.clear();
+        }
+    }
+
+    /// The longest side of the image textures it prepares.
+    pub fn max_image_side(&self) -> u32 {
+        self.max_image_side
+    }
+
+    /// The number of cached decoded images (including images that do not decode).
+    pub fn image_count(&self) -> usize {
+        self.images.len()
+    }
+
+    /// The texture of `data` from the cache, or decoded; `None` for an image no path draws.
+    fn image(&mut self, data: &ImageData, stats: &mut PrepareStats) -> Option<Arc<ImageTexture>> {
+        if data.format == ImageFormat::Svg || data.bytes.is_empty() {
+            return None;
+        }
+        let generation = self.generation;
+        if let Some(e) = self.images.get_mut(&data.sha256) {
+            e.used = generation;
+            return e.image.clone();
+        }
+        let image = image_texture(data, self.max_image_side).map(Arc::new);
+        stats.images_decoded += 1;
+        self.decoded_total += 1;
+        let bytes = image.as_ref().map_or(0, |i| i.bytes());
+        self.bytes += bytes;
+        self.images.insert(
+            data.sha256,
+            ImageEntry {
+                image: image.clone(),
+                bytes,
+                used: generation,
+            },
+        );
+        image
     }
 
     /// The number of cached meshes.
@@ -233,25 +440,34 @@ impl MeshCache {
         self.entries.is_empty()
     }
 
-    /// Drops the least recently used meshes not used by the newest preparation while over the budget.
+    /// Drops the least recently used meshes and decoded images not used by the newest preparation while over the
+    /// budget (meshes first among equally old ones).
     fn evict(&mut self) {
         if self.bytes <= self.budget {
             return;
         }
-        let mut old: Vec<(u64, MeshKey)> = self
+        let mut old: Vec<(u64, Result<MeshKey, [u8; 32]>)> = self
             .entries
             .iter()
             .filter(|(_, e)| e.used < self.generation)
-            .map(|(k, e)| (e.used, *k))
+            .map(|(k, e)| (e.used, Ok(*k)))
+            .chain(
+                self.images
+                    .iter()
+                    .filter(|(_, e)| e.used < self.generation)
+                    .map(|(k, e)| (e.used, Err(*k))),
+            )
             .collect();
-        old.sort_unstable();
+        old.sort_by_key(|(used, _)| *used);
         for (_, key) in old {
             if self.bytes <= self.budget {
                 break;
             }
-            if let Some(e) = self.entries.remove(&key) {
-                self.bytes -= e.bytes;
-            }
+            let freed = match key {
+                Ok(mesh) => self.entries.remove(&mesh).map(|e| e.bytes),
+                Err(sha) => self.images.remove(&sha).map(|e| e.bytes),
+            };
+            self.bytes -= freed.unwrap_or(0);
         }
     }
 
@@ -377,6 +593,9 @@ struct Walker<'a> {
     translucent: Vec<Instance>,
     runs: Vec<RunLod>,
     glyphs: Vec<Instance>,
+    images: Vec<Arc<ImageTexture>>,
+    image_index: BTreeMap<[u8; 32], u32>,
+    image_instances: Vec<ImageInstance>,
     stats: PrepareStats,
 }
 
@@ -528,7 +747,10 @@ impl<'a> Walker<'a> {
                     self.run(run, frame, clip, base + *local);
                     *local += 1;
                 }
-                ItemKind::Image(_) => self.stats.images_skipped += 1,
+                ItemKind::Image(img) => {
+                    self.image(img, frame, clip, base + *local);
+                    *local += 1;
+                }
                 ItemKind::Instance(_) => self.stats.instances_skipped += 1,
                 ItemKind::Group(g) => {
                     if depth >= MAX_GROUP_DEPTH {
@@ -550,6 +772,45 @@ impl<'a> Walker<'a> {
                 }
             }
         }
+    }
+
+    /// A raster image at paint index `depth`: the unit square over its rectangle with its texture, or skipped and
+    /// counted as the CPU path skips it (an image with an empty rectangle is neither drawn nor counted, as there).
+    fn image(&mut self, img: &ImageItem, frame: Affine, clip: Clip, depth: u32) {
+        let Some(texture) = self.cache.image(&img.image, &mut self.stats) else {
+            self.stats.images_skipped += 1;
+            return;
+        };
+        let r = nm_rect(img.rect);
+        if r.width() <= 0.0 || r.height() <= 0.0 {
+            return;
+        }
+        let image = match self.image_index.get(&texture.sha256) {
+            Some(&i) => i,
+            None => {
+                let i = self.images.len() as u32;
+                self.image_index.insert(texture.sha256, i);
+                self.images.push(texture);
+                i
+            }
+        };
+        let square = Arc::new(MeshData::unit_square());
+        let mesh = self.use_mesh(bar_key(), &square);
+        let t = to_um()
+            * frame
+            * Affine::translate((r.x0, r.y0))
+            * Affine::new([r.width(), 0.0, 0.0, r.height(), 0.0, 0.0]);
+        self.image_instances.push(ImageInstance {
+            image,
+            quad: Instance {
+                mesh,
+                transform: coefficients(t),
+                clip: clip_um(clip),
+                tint: [255; 4],
+                depth,
+            },
+        });
+        self.stats.images += 1;
     }
 
     /// A glyph run: one instance per glyph with an outline, and its bar.
@@ -633,24 +894,8 @@ impl<'a> Walker<'a> {
     }
 }
 
-/// Whether `list` holds a raster image that is drawable (a PNG or JPEG item with its bytes, in a group at any depth the
-/// renderers walk): the pages the GPU path cannot draw and the canvas hands to the CPU tile path. An SVG image item
-/// does not count: the export job resolves it to paths, and the CPU path skips one that is left.
-pub fn has_raster_images(list: &DisplayList) -> bool {
-    fn any(items: &[Item], depth: usize) -> bool {
-        items.iter().any(|i| match &i.kind {
-            ItemKind::Image(img) => {
-                img.image.format != ew_dl::ImageFormat::Svg && !img.image.bytes.is_empty()
-            }
-            ItemKind::Group(g) => depth < MAX_GROUP_DEPTH && any(&g.items, depth + 1),
-            _ => false,
-        })
-    }
-    any(&list.items, 0)
-}
-
-/// Prepares `list` as scene `id` with the meshes of `cache` (adding what is missing) and the glyph outlines of
-/// `fonts`.
+/// Prepares `list` as scene `id` with the meshes and decoded images of `cache` (adding what is missing) and the
+/// glyph outlines of `fonts`.
 pub fn prepare(
     id: u64,
     list: &DisplayList,
@@ -667,6 +912,9 @@ pub fn prepare(
         translucent: Vec::new(),
         runs: Vec::new(),
         glyphs: Vec::new(),
+        images: Vec::new(),
+        image_index: BTreeMap::new(),
+        image_instances: Vec::new(),
         stats: PrepareStats::default(),
     };
     let depth_count = w.context(&list.items, Affine::IDENTITY, None, 0, 0);
@@ -676,6 +924,8 @@ pub fn prepare(
         mut translucent,
         mut runs,
         glyphs,
+        images,
+        image_instances,
         stats,
         cache,
         ..
@@ -691,6 +941,8 @@ pub fn prepare(
         translucent,
         runs,
         glyphs,
+        images,
+        image_instances,
         depth_count,
         stats,
     }
@@ -745,11 +997,16 @@ impl std::fmt::Debug for Preparer {
 }
 
 impl Preparer {
-    /// A worker that calls `waker` when a scene is ready (the host's repaint request).
-    pub fn new(waker: Arc<dyn Fn() + Send + Sync>) -> Preparer {
+    /// A worker that calls `waker` when a scene is ready (the host's repaint request) and prepares image textures
+    /// within `max_image_side` (the device's `max_texture_dimension_2d`, [`GpuCanvas::max_image_side`]).
+    ///
+    /// [`GpuCanvas::max_image_side`]: super::render::GpuCanvas::max_image_side
+    pub fn new(waker: Arc<dyn Fn() + Send + Sync>, max_image_side: u32) -> Preparer {
         let (jobs, rx) = channel::<Job>();
         let (tx, done) = channel();
-        let cache = Arc::new(Mutex::new(MeshCache::default()));
+        let mut worker_state = MeshCache::default();
+        worker_state.set_max_image_side(max_image_side);
+        let cache = Arc::new(Mutex::new(worker_state));
         let worker_cache = Arc::clone(&cache);
         let hold = Arc::new(Hold::default());
         let worker_hold = Arc::clone(&hold);
@@ -936,7 +1193,7 @@ mod tests {
     }
 
     #[test]
-    fn images_and_symbol_instances_are_skipped_and_counted() {
+    fn images_no_path_draws_and_symbol_instances_are_skipped_and_counted() {
         let mut cache = MeshCache::default();
         let mut list = DisplayList::new();
         list.push(Item::instance(
@@ -947,43 +1204,171 @@ mod tests {
             },
             Transform::IDENTITY,
         ));
-        let image = |format| {
+        let image = |sha: u8, format, bytes: Vec<u8>| {
             Item::image(
                 Arc::new(ew_dl::ImageData {
-                    sha256: [7; 32],
+                    sha256: [sha; 32],
                     format,
-                    bytes: Arc::from(vec![1u8, 2, 3]),
+                    bytes: Arc::from(bytes),
                 }),
                 Rect::from_points(p(0, 0), p(9, 9)),
             )
         };
-        list.push(image(ew_dl::ImageFormat::Png));
-        list.push(Item::group(None, None, vec![image(ew_dl::ImageFormat::Jpeg)]));
+        list.push(image(7, ImageFormat::Png, vec![1, 2, 3]));
+        list.push(Item::group(
+            None,
+            None,
+            vec![image(8, ImageFormat::Jpeg, vec![1, 2, 3])],
+        ));
+        list.push(image(9, ImageFormat::Svg, b"<svg/>".to_vec()));
+        list.push(image(10, ImageFormat::Png, Vec::new()));
         let s = prepare(1, &list, &NoFonts, &mut cache);
         assert_eq!(s.stats.instances_skipped, 1);
         assert_eq!(
-            s.stats.images_skipped, 2,
-            "a PNG and a JPEG in a group are counted, not drawn"
+            s.stats.images_skipped, 4,
+            "bytes that do not decode (also in a group), an SVG and an image without bytes"
         );
+        assert_eq!(s.stats.images, 0);
+        assert!(s.image_instances.is_empty() && s.images.is_empty());
         assert!(s.meshes.is_empty());
-        assert!(has_raster_images(&list));
-        let mut svg = DisplayList::new();
-        svg.push(image(ew_dl::ImageFormat::Svg));
-        assert!(!has_raster_images(&svg), "an SVG image is no raster");
-        let mut empty = DisplayList::new();
-        empty.push(Item::image(
+        assert_eq!(s.depth_count, 4, "every image item takes a paint index");
+    }
+
+    /// A PNG of `w × h` pixels of `px` (synthetic).
+    fn png(w: u32, h: u32, px: [u8; 4]) -> Vec<u8> {
+        ew_render_cpu::encode_png(
+            &ew_render_cpu::RgbaImage {
+                width: w,
+                height: h,
+                pixels: px.repeat((w * h) as usize),
+            },
+            None,
+        )
+    }
+
+    fn png_item(sha: u8, bytes: Vec<u8>, rect: Rect) -> Item {
+        Item::image(
             Arc::new(ew_dl::ImageData {
-                sha256: [7; 32],
-                format: ew_dl::ImageFormat::Png,
-                bytes: Arc::from(Vec::new()),
+                sha256: [sha; 32],
+                format: ImageFormat::Png,
+                bytes: Arc::from(bytes),
             }),
-            Rect::from_points(p(0, 0), p(9, 9)),
+            rect,
+        )
+    }
+
+    #[test]
+    fn a_png_is_an_image_instance_over_its_rectangle_at_its_paint_index() {
+        let mut cache = MeshCache::default();
+        let mut list = DisplayList::new();
+        list.push(Item::path(
+            Path::rect(Rect::from_points(p(0, 0), p(9_000, 9_000))),
+            None,
+            Some(Brush::BLACK),
         ));
-        assert!(
-            !has_raster_images(&empty),
-            "an image without bytes is not drawn by any path"
+        let rect = Rect::from_points(p(10_000, 20_000), p(50_000, 30_000));
+        list.push(Item::group(
+            Some(Transform::from_translation(p(1_000, 2_000))),
+            Some(Rect::from_points(p(0, 0), p(30_000, 40_000))),
+            vec![png_item(1, png(4, 2, [255, 0, 0, 128]), rect)],
+        ));
+        // The same image again: one texture, two instances.
+        list.push(png_item(1, png(4, 2, [255, 0, 0, 128]), rect));
+        let s = prepare(1, &list, &NoFonts, &mut cache);
+        assert_eq!(
+            (s.stats.images, s.stats.images_decoded, s.stats.images_skipped),
+            (2, 1, 0)
         );
-        assert!(!has_raster_images(&DisplayList::new()));
+        assert_eq!(s.images.len(), 1);
+        let t = &s.images[0];
+        assert_eq!((t.width, t.height, t.opaque, t.downscaled), (4, 2, false, false));
+        assert_eq!(&t.rgba[..4], &[128, 0, 0, 128], "premultiplied");
+        assert_eq!(s.depth_count, 3);
+        let [first, second] = [s.image_instances[0], s.image_instances[1]];
+        assert_eq!((first.quad.depth, second.quad.depth), (1, 2));
+        // The unit square onto the rectangle under the group's translation, in page micrometres.
+        assert_eq!(first.quad.transform, [40.0, 0.0, 0.0, 10.0, 11.0, 22.0]);
+        assert_eq!(first.quad.clip, [1.0, 2.0, 31.0, 42.0]);
+        assert_eq!(second.quad.clip, NO_CLIP);
+        assert_eq!(s.meshes[first.quad.mesh as usize].0, bar_key());
+        // A second preparation decodes nothing.
+        let again = prepare(2, &list, &NoFonts, &mut cache);
+        assert_eq!(again.stats.images_decoded, 0);
+        assert_eq!(cache.decoded_total, 1);
+    }
+
+    #[test]
+    fn an_image_beyond_the_maximum_side_is_downscaled_by_an_area_average() {
+        assert_eq!(fit_side(100, 50, 100), (100, 50));
+        assert_eq!(fit_side(200, 50, 100), (100, 25));
+        assert_eq!(
+            fit_side(3, 1000, 100),
+            (1, 100),
+            "the shorter side keeps at least 1"
+        );
+        assert_eq!(fit_side(301, 100, 100), (100, 33));
+        // Columns alternate black and white: each pair averages to grey.
+        let mut px = Vec::new();
+        for _ in 0..2 {
+            for x in 0..8 {
+                px.extend_from_slice(if x % 2 == 0 {
+                    &[0, 0, 0, 255]
+                } else {
+                    &[255, 255, 255, 255]
+                });
+            }
+        }
+        let bytes = ew_render_cpu::encode_png(
+            &ew_render_cpu::RgbaImage {
+                width: 8,
+                height: 2,
+                pixels: px,
+            },
+            None,
+        );
+        let data = ew_dl::ImageData {
+            sha256: [2; 32],
+            format: ImageFormat::Png,
+            bytes: Arc::from(bytes),
+        };
+        let t = image_texture(&data, 4).unwrap();
+        assert_eq!((t.width, t.height, t.downscaled, t.opaque), (4, 1, true, true));
+        assert_eq!(t.rgba, [128, 128, 128, 255].repeat(4));
+        // Through the cache: its maximum side applies, and a change drops the decoded images.
+        let mut cache = MeshCache::default();
+        cache.set_max_image_side(4);
+        let mut list = DisplayList::new();
+        list.push(Item::image(Arc::new(data), Rect::from_points(p(0, 0), p(9, 9))));
+        let s = prepare(1, &list, &NoFonts, &mut cache);
+        assert_eq!((s.images[0].width, s.images[0].height), (4, 1));
+        assert_eq!(cache.image_count(), 1);
+        cache.set_max_image_side(8);
+        assert_eq!(cache.image_count(), 0);
+        let s = prepare(2, &list, &NoFonts, &mut cache);
+        assert_eq!(
+            (s.images[0].width, s.images[0].height, s.images[0].downscaled),
+            (8, 2, false)
+        );
+    }
+
+    #[test]
+    fn decoded_images_are_evicted_over_the_budget_like_meshes() {
+        let mut cache = MeshCache::new(0);
+        let one = |sha| {
+            let mut l = DisplayList::new();
+            l.push(png_item(
+                sha,
+                png(2, 2, [0, 0, 255, 255]),
+                Rect::from_points(p(0, 0), p(9, 9)),
+            ));
+            l
+        };
+        let _ = prepare(1, &one(1), &NoFonts, &mut cache);
+        assert_eq!(cache.image_count(), 1, "the newest scene's image stays");
+        let _ = prepare(2, &one(2), &NoFonts, &mut cache);
+        assert_eq!(cache.image_count(), 1, "the old image is evicted");
+        let s = prepare(3, &one(1), &NoFonts, &mut cache);
+        assert_eq!(s.stats.images_decoded, 1, "decoded again on demand");
     }
 
     #[test]

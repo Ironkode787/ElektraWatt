@@ -109,9 +109,6 @@ pub struct GpuHost {
     shown: Option<(u64, String, u64)>,
     next_scene: u64,
     choice: Choice,
-    /// Whether the page last asked about holds a raster image, by the page's key (the walk of the list runs once per
-    /// revision of a page, not per frame).
-    rasters: Option<(PageKey, bool)>,
     /// The banners already shown (each failure is told once).
     told: BTreeSet<&'static str>,
 }
@@ -148,7 +145,6 @@ impl GpuHost {
             shown: None,
             next_scene: 1,
             choice: Choice::Cpu,
-            rasters: None,
             told: BTreeSet::new(),
         }
     }
@@ -226,31 +222,19 @@ impl GpuHost {
         &self.choice
     }
 
-    /// Whether the GPU canvas draws (the rule chose it and the canvas exists).
+    /// Whether the GPU canvas draws (the rule chose it and the canvas exists). It draws every page, raster images
+    /// (PNG, JPEG) included, through its textured-quad pipeline (FT-480).
     pub fn drawing(&self) -> bool {
         self.choice.is_gpu() && self.canvas.is_some()
     }
 
-    /// Whether this page is drawn by the GPU canvas: the GPU canvas draws ([`GpuHost::drawing`]) and the page holds no
-    /// raster image. The GPU path has no texture pipeline and skips PNG and JPEG items, so a page with one is drawn
-    /// by the CPU tile path, which draws them (a per-page choice on top of the switch rule; SVG images are paths
-    /// already). This is the one place the backend of a page is decided.
-    pub fn draws_page(&mut self, page: &CanvasPage) -> bool {
-        self.drawing() && !self.page_has_rasters(page)
-    }
-
-    /// Whether the page's display list holds a raster image ([`ew_render2d::gpu::has_raster_images`]), cached per
-    /// (session, revision, folio).
-    pub fn page_has_rasters(&mut self, page: &CanvasPage) -> bool {
-        let key = PageKey::of(page);
-        match &self.rasters {
-            Some((k, has)) if *k == key => *has,
-            _ => {
-                let has = ew_render2d::gpu::has_raster_images(&page.list);
-                self.rasters = Some((key, has));
-                has
-            }
-        }
+    /// The longest image side the worker prepares: the canvas device's `max_texture_dimension_2d`, else wgpu's
+    /// default.
+    fn max_image_side(&self) -> u32 {
+        self.canvas.as_ref().map_or(
+            ew_render2d::gpu::DEFAULT_MAX_IMAGE_SIDE,
+            GpuCanvas::max_image_side,
+        )
     }
 
     /// The GPU canvas (tests and the statistics).
@@ -308,9 +292,10 @@ impl GpuHost {
     }
 
     fn preparer(&mut self, ctx: &egui::Context) -> &Preparer {
+        let side = self.max_image_side();
         self.preparer.get_or_insert_with(|| {
             let ctx = ctx.clone();
-            Preparer::new(Arc::new(move || ctx.request_repaint()))
+            Preparer::new(Arc::new(move || ctx.request_repaint()), side)
         })
     }
 
@@ -332,10 +317,7 @@ impl GpuHost {
 
     /// Applies the switch rule for this frame and sets the shell's backend label; a failure is told once in the
     /// banner.
-    ///
-    /// `raster_page`: the page on show holds a raster image, so the CPU path draws it ([`GpuHost::draws_page`]) and the
-    /// label says `CPU` although the rule chose the GPU.
-    pub fn update(&mut self, shell: &mut ShellModel, raster_page: bool) {
+    pub fn update(&mut self, shell: &mut ShellModel) {
         let setting = if shell.cpu_canvas_setting() {
             BackendSetting::Cpu
         } else {
@@ -380,11 +362,7 @@ impl GpuHost {
         {
             shell.show_banner(&strings::format("banner-gpu-no-software-adapter", &[&a.name]));
         }
-        let label = if raster_page && choice.is_gpu() {
-            CanvasBackend::Cpu
-        } else {
-            label_of(&choice)
-        };
+        let label = label_of(&choice);
         if shell.canvas_backend() != &label {
             shell.set_canvas_backend(label);
         }
@@ -400,12 +378,13 @@ impl GpuHost {
         page: &Arc<CanvasPage>,
         fonts: &SharedFonts,
     ) -> (bool, bool) {
+        let side = self.max_image_side();
         let Some(canvas) = &mut self.canvas else {
             return (false, false);
         };
         let preparer = self.preparer.get_or_insert_with(|| {
             let ctx = ctx.clone();
-            Preparer::new(Arc::new(move || ctx.request_repaint()))
+            Preparer::new(Arc::new(move || ctx.request_repaint()), side)
         });
         let key = PageKey::of(page);
         if self.requested.as_ref().is_none_or(|(k, _)| *k != key) {
