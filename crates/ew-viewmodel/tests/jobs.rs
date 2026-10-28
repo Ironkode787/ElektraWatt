@@ -714,7 +714,16 @@ fn ft513_jobs_wait_chooses_the_newest_job_no_step_waited_for_whatever_the_polls_
         gate.wait_reached("page");
         // The hold stays for every later checkpoint `page`: a helper releases until the step is over.
         let stop = std::sync::atomic::AtomicBool::new(false);
+        // Sets `stop` on every exit of the scope closure, unwinding included, so a failed assertion fails the
+        // test instead of leaving the helper looping (R3-1).
+        struct Stop<'a>(&'a std::sync::atomic::AtomicBool);
+        impl Drop for Stop<'_> {
+            fn drop(&mut self) {
+                self.0.store(true, std::sync::atomic::Ordering::Relaxed);
+            }
+        }
         std::thread::scope(|scope| {
+            let _stop = Stop(&stop);
             scope.spawn(|| {
                 while !stop.load(std::sync::atomic::Ordering::Relaxed) {
                     gate.release();
@@ -730,7 +739,6 @@ fn ft513_jobs_wait_chooses_the_newest_job_no_step_waited_for_whatever_the_polls_
                 assert_eq!(s.jobs().running(), 1);
             }
             done(&mut s, "jobs.wait", json!({}));
-            stop.store(true, std::sync::atomic::Ordering::Relaxed);
         });
         s.set_job_gate_for_tests(None);
         assert!(b.exists(), "B wrote its file");
