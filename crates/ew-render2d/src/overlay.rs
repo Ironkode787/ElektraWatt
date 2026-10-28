@@ -14,8 +14,15 @@
 //! lines and ghosts, the snap markers and last the cursor. The tool overlay's text labels are not drawn here: the
 //! window draws them as chips in its own font, and the headless snapshot leaves them out (WP-S2.03 §7.4).
 //!
-//! The theme tokens are constants here for the light and the dark theme until WP-S2.08's theme system replaces
-//! them; the sheet itself is white with its authored colours in every theme (FR-UI-043, doc 16 §11.2).
+//! **FT-391's scale rule** (WP-S2.17 part 5): every mark scales by the integer factor `s = max(1, ⌊ppp⌋)`
+//! ([`mark_scale`]): lines are `s` pixels wide with dashes of `4s` on and `4s` off, the grid cross and the junction
+//! square are `6s + 1` pixels, the CP ring `8s + 1`, the hover outline `s`, the selection outline `2s` with an
+//! `s`-pixel white casing on both sides and `8s`-pixel corner handles (white with an accent rim), and the grid cursor's
+//! arms `s` wide from `2s` to `8s` off its centre. At ppp 1 every mark keeps its size as built before part 5.
+//!
+//! The colours come from the caller's [`Theme`]: the window and the snapshot build it from the design language's
+//! canvas tokens (doc 16a §4.6); [`LIGHT`] and [`DARK`] hold the same values for callers without the token module.
+//! The sheet itself is white with its authored colours in every theme (FR-UI-043, doc 16 §11.2).
 
 use ew_dl::Color;
 use ew_dl::ew_units::Rect;
@@ -36,54 +43,66 @@ pub struct Theme {
     pub hover: Color,
     /// The solid selection outline (doc 16 §10.3).
     pub selection: Color,
-    /// The keyboard grid cursor's crosshair (provisional token `cursor`, #D55E00, 3.87:1 on white; the crosshair's
-    /// shape carries the meaning, doc 16 §10.3).
+    /// The keyboard grid cursor's crosshair (doc 16a §7.2: the accent; the crosshair's shape carries the meaning).
     pub cursor: Color,
     /// The sheet (white in every theme).
     pub paper: Color,
-    /// The geometric ghost of a drag (provisional token `ghost`, #0072B2).
+    /// The geometric ghost of a drag (`canvas.ghost`, the accent at 60 %).
     pub ghost: Color,
-    /// The snap markers (provisional token `snap`, #009E73, 3.42:1 on white; the marker's shape carries the meaning).
+    /// The snap markers (`canvas.snap`; the marker's shape carries the meaning).
     pub snap: Color,
-    /// The Measure tool's line (provisional token `measure`, #A86F00, 4.25:1).
+    /// The Measure tool's line (`canvas.measure`).
     pub measure: Color,
-    /// The rubber band of a selection (provisional token `rubber-band`, #0072B2).
+    /// The rubber band of a selection (the accent).
     pub rubber_band: Color,
+    /// The selection's casing and the faces of its handles (white, doc 16a §7.1).
+    pub casing: Color,
 }
 
 const fn rgb(r: u8, g: u8, b: u8) -> Color {
     Color { r, g, b, a: 255 }
 }
 
-/// The light theme's canvas tokens (provisional until WP-S2.08).
+/// The accent `volt-600` #0B63CE (5.69:1 on white).
+const ACCENT: Color = rgb(0x0B, 0x63, 0xCE);
+
+/// The light theme's canvas tokens (doc 16a §4.6: the values of `ew-ui`'s token module).
 pub const LIGHT: Theme = Theme {
-    surround: rgb(0xD4, 0xD4, 0xD4),
-    border: rgb(0x8C, 0x8C, 0x8C),
-    grid_dot: rgb(0x9E, 0x9E, 0x9E),
-    hover: rgb(0x00, 0x72, 0xB2),
-    selection: rgb(0x00, 0x72, 0xB2),
-    cursor: rgb(0xD5, 0x5E, 0x00),
+    surround: rgb(0xE3, 0xE6, 0xEA),
+    border: rgb(0xD5, 0xD9, 0xDF),
+    grid_dot: rgb(0xB8, 0xBE, 0xC7),
+    hover: ACCENT,
+    selection: ACCENT,
+    cursor: ACCENT,
     paper: rgb(0xFF, 0xFF, 0xFF),
-    ghost: rgb(0x00, 0x72, 0xB2),
-    snap: rgb(0x00, 0x9E, 0x73),
-    measure: rgb(0xA8, 0x6F, 0x00),
-    rubber_band: rgb(0x00, 0x72, 0xB2),
+    ghost: Color {
+        r: 0x0B,
+        g: 0x63,
+        b: 0xCE,
+        a: 153,
+    },
+    snap: ACCENT,
+    measure: rgb(0x1A, 0x1D, 0x21),
+    rubber_band: ACCENT,
+    casing: rgb(0xFF, 0xFF, 0xFF),
 };
 
-/// The dark theme's canvas tokens (provisional until WP-S2.08); the sheet stays white.
+/// The dark theme's canvas tokens (doc 16a §4.6); the sheet and the marks on it stay as in [`LIGHT`].
 pub const DARK: Theme = Theme {
-    surround: rgb(0x2B, 0x2B, 0x2B),
-    border: rgb(0x6E, 0x6E, 0x6E),
-    grid_dot: rgb(0x9E, 0x9E, 0x9E),
-    hover: rgb(0x00, 0x72, 0xB2),
-    selection: rgb(0x00, 0x72, 0xB2),
-    cursor: rgb(0xD5, 0x5E, 0x00),
-    paper: rgb(0xFF, 0xFF, 0xFF),
-    ghost: rgb(0x00, 0x72, 0xB2),
-    snap: rgb(0x00, 0x9E, 0x73),
-    measure: rgb(0xA8, 0x6F, 0x00),
-    rubber_band: rgb(0x00, 0x72, 0xB2),
+    surround: rgb(0x2E, 0x32, 0x38),
+    border: rgb(0x3F, 0x45, 0x4D),
+    ..LIGHT
 };
+
+/// FT-391's integer scale factor of the overlay marks at `ppp` physical pixels per point: `max(1, ⌊ppp⌋)`, at most
+/// 16 (a value that is not finite counts as 1).
+pub fn mark_scale(ppp: f64) -> i64 {
+    if ppp.is_finite() && ppp >= 1.0 {
+        (ppp.floor() as i64).min(16)
+    } else {
+        1
+    }
+}
 
 /// The smallest spacing of grid dots on screen, in logical points: below it the drawn pitch doubles.
 pub const MIN_DOT_SPACING_PT: f64 = 8.0;
@@ -91,11 +110,14 @@ pub const MIN_DOT_SPACING_PT: f64 = 8.0;
 /// The hover and selection outlines stand this many logical points outside the entity's rectangle.
 pub const OUTLINE_OUTSET_PT: f64 = 2.0;
 
-/// The dash of the hover outline: this many pixels on, as many off.
+/// The dash of the hover outline at scale 1: this many pixels on, as many off (`4s` at scale `s`, FT-391).
 pub const HOVER_DASH_PX: i64 = 4;
 
-/// The dash of a tool line: this many pixels on, as many off (WP-S2.03 §7.4).
+/// The dash of a tool line at scale 1: this many pixels on, as many off (WP-S2.03 §7.4; `4s` at scale `s`).
 pub const TOOL_DASH_PX: i64 = 4;
+
+/// The side of a selection handle at scale 1 (doc 16a §7.1: `8s`).
+pub const HANDLE_PX: i64 = 8;
 
 /// The colour token of a tool line (WP-S2.03 §7.4; provisional until WP-S2.08's theme).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -131,8 +153,8 @@ pub enum Dash {
     Dashed,
 }
 
-/// The shape of a snap marker: a 7-pixel cross on a grid point, a 9-pixel ring on a connection point, a 7-pixel
-/// filled square on a junction.
+/// The shape of a snap marker: a `6s + 1`-pixel cross on a grid point, an `8s + 1`-pixel ring on a connection point,
+/// a `6s + 1`-pixel filled square on a junction (7, 9 and 7 pixels at scale 1).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum MarkerKind {
     /// A grid point.
@@ -184,7 +206,7 @@ pub enum ToolMark {
         offset: (i64, i64),
     },
     /// A floating symbol's outline (WP-S2.04 §6.3): polylines in sheet nm, drawn as dashed lines in the ghost token
-    /// (1 pixel, 2 at `ppp ≥ 2`).
+    /// (`s` pixels wide, FT-391).
     Paths {
         /// The polylines.
         paths: Vec<Vec<(i64, i64)>>,
@@ -258,8 +280,14 @@ pub struct Overlay {
     pub dots: Vec<PxRect>,
     /// The dashes of the hover outline.
     pub hover: Vec<PxRect>,
-    /// The bands of the selection outlines.
+    /// The bands of the selection outlines (`2s` pixels).
     pub selected: Vec<PxRect>,
+    /// The white casing of the selection outlines: an `s`-pixel band on each side of the outline (doc 16a §7.1).
+    pub casing: Vec<PxRect>,
+    /// The selection handles' rims: an `8s`-pixel square on each corner of each outline, in the selection colour.
+    pub handles: Vec<PxRect>,
+    /// The handles' white faces, inside their rims.
+    pub handle_faces: Vec<PxRect>,
     /// The four arms of the grid cursor's crosshair.
     pub cursor: Vec<PxRect>,
     /// The tool's lines, rectangles and ghosts, each pixel run with its colour token, in the tool's order.
@@ -298,22 +326,56 @@ fn push_clipped(out: &mut Vec<PxRect>, r: PxRect, pane: &PxRect) {
     }
 }
 
-/// The 1-pixel dashed outline of `r` (`HOVER_DASH_PX` on, as many off, each edge from its first corner).
-fn dashed(r: PxRect, pane: &PxRect, out: &mut Vec<PxRect>) {
-    let period = 2 * HOVER_DASH_PX;
+/// The `s`-pixel dashed outline of `r` (`4s` on, as many off, each edge from its first corner; FT-391).
+fn dashed(r: PxRect, s: i64, pane: &PxRect, out: &mut Vec<PxRect>) {
+    let dash = HOVER_DASH_PX * s;
+    let period = 2 * dash;
     let mut x = r.x0;
     while x < r.x1 {
-        let end = (x + HOVER_DASH_PX).min(r.x1);
-        push_clipped(out, PxRect::new(x, r.y0, end, r.y0 + 1), pane);
-        push_clipped(out, PxRect::new(x, r.y1 - 1, end, r.y1), pane);
+        let end = (x + dash).min(r.x1);
+        push_clipped(out, PxRect::new(x, r.y0, end, r.y0 + s), pane);
+        push_clipped(out, PxRect::new(x, r.y1 - s, end, r.y1), pane);
         x += period;
     }
     let mut y = r.y0;
     while y < r.y1 {
-        let end = (y + HOVER_DASH_PX).min(r.y1);
-        push_clipped(out, PxRect::new(r.x0, y, r.x0 + 1, end), pane);
-        push_clipped(out, PxRect::new(r.x1 - 1, y, r.x1, end), pane);
+        let end = (y + dash).min(r.y1);
+        push_clipped(out, PxRect::new(r.x0, y, r.x0 + s, end), pane);
+        push_clipped(out, PxRect::new(r.x1 - s, y, r.x1, end), pane);
         y += period;
+    }
+}
+
+/// The selection of the outline rectangle `r` at scale `s` (doc 16a §7.1 and the mockup, FT-391): the `2s` band just
+/// inside its edges, an `s`-pixel white casing outside and inside that band, and an `8s`-pixel handle centred on each
+/// corner of the band's centre line, a rim in the selection colour (`⌈1.5 s⌉` pixels) around a white face.
+fn selection(r: PxRect, s: i64, pane: &PxRect, o: &mut Overlay) {
+    solid(r, 2 * s, pane, &mut o.selected);
+    solid(
+        PxRect::new(r.x0 - s, r.y0 - s, r.x1 + s, r.y1 + s),
+        s,
+        pane,
+        &mut o.casing,
+    );
+    let inner = PxRect::new(r.x0 + 2 * s, r.y0 + 2 * s, r.x1 - 2 * s, r.y1 - 2 * s);
+    if inner.x1 - inner.x0 > 2 * s && inner.y1 - inner.y0 > 2 * s {
+        solid(inner, s, pane, &mut o.casing);
+    }
+    let half = HANDLE_PX * s / 2;
+    let rim = (3 * s + 1) / 2;
+    for (cx, cy) in [
+        (r.x0 + s, r.y0 + s),
+        (r.x1 - s, r.y0 + s),
+        (r.x0 + s, r.y1 - s),
+        (r.x1 - s, r.y1 - s),
+    ] {
+        let h = PxRect::new(cx - half, cy - half, cx + half, cy + half);
+        push_clipped(&mut o.handles, h, pane);
+        push_clipped(
+            &mut o.handle_faces,
+            PxRect::new(h.x0 + rim, h.y0 + rim, h.x1 - rim, h.y1 - rim),
+            pane,
+        );
     }
 }
 
@@ -422,47 +484,46 @@ pub fn build(input: &OverlayInput<'_>) -> Overlay {
         Some((step, dots)) => (Some(step), dots),
         None => (None, Vec::new()),
     };
+    let s = mark_scale(input.ppp);
     let mut hover = Vec::new();
     if let Some(r) = input.hover {
-        dashed(outline_rect(&input.transform, input.ppp, r), &pane, &mut hover);
+        dashed(outline_rect(&input.transform, input.ppp, r), s, &pane, &mut hover);
     }
-    let mut selected = Vec::new();
+    let mut sel = Overlay::default();
     for &r in input.selected {
-        solid(
-            outline_rect(&input.transform, input.ppp, r),
-            2,
-            &pane,
-            &mut selected,
-        );
+        selection(outline_rect(&input.transform, input.ppp, r), s, &pane, &mut sel);
     }
     let mut cursor = Vec::new();
     if let Some((cx, cy)) = input.cursor {
         let (sx, sy) = input.transform.to_screen((cx as f64, cy as f64));
         let (px, py) = (sx.floor() as i64, sy.floor() as i64);
+        // Arms `s` wide from `2s` to `8s` off the centre pixel (at scale 1: 17 pixels with a 5-pixel gap).
+        let o = (s - 1) / 2;
+        let (y0, x0) = (py - o, px - o);
         for arm in [
-            PxRect::new(px - 8, py, px - 2, py + 1),
-            PxRect::new(px + 3, py, px + 9, py + 1),
-            PxRect::new(px, py - 8, px + 1, py - 2),
-            PxRect::new(px, py + 3, px + 1, py + 9),
+            PxRect::new(px - 8 * s, y0, px - 2 * s, y0 + s),
+            PxRect::new(px + 2 * s + 1, y0, px + 8 * s + 1, y0 + s),
+            PxRect::new(x0, py - 8 * s, x0 + s, py - 2 * s),
+            PxRect::new(x0, py + 2 * s + 1, x0 + s, py + 8 * s + 1),
         ] {
             push_clipped(&mut cursor, arm, &pane);
         }
     }
     let mut tool = Vec::new();
     let mut markers = Vec::new();
-    let width: i64 = if input.ppp >= 2.0 { 2 } else { 1 };
+    let width = s;
     let t = &input.transform;
     let screen = |p: (i64, i64)| t.to_screen((p.0 as f64, p.1 as f64));
     for mark in input.tool {
         let mut px = Vec::new();
         let token = match mark {
             ToolMark::Line { a, b, dash, token } => {
-                line_px(screen(*a), screen(*b), width, *dash, &pane, &mut px);
+                line_px(screen(*a), screen(*b), width, s, *dash, &pane, &mut px);
                 *token
             }
             ToolMark::Polyline { points, dash, token } => {
                 for w in points.windows(2) {
-                    line_px(screen(w[0]), screen(w[1]), width, *dash, &pane, &mut px);
+                    line_px(screen(w[0]), screen(w[1]), width, s, *dash, &pane, &mut px);
                 }
                 *token
             }
@@ -479,13 +540,13 @@ pub fn build(input: &OverlayInput<'_>) -> Overlay {
             ToolMark::Paths { paths } => {
                 for line in paths {
                     for w in line.windows(2) {
-                        line_px(screen(w[0]), screen(w[1]), width, Dash::Dashed, &pane, &mut px);
+                        line_px(screen(w[0]), screen(w[1]), width, s, Dash::Dashed, &pane, &mut px);
                     }
                 }
                 ToolToken::Ghost
             }
             ToolMark::Marker { at, kind } => {
-                marker_px(screen(*at), *kind, &pane, &mut markers);
+                marker_px(screen(*at), *kind, s, &pane, &mut markers);
                 continue;
             }
         };
@@ -498,7 +559,10 @@ pub fn build(input: &OverlayInput<'_>) -> Overlay {
         grid_step,
         dots,
         hover,
-        selected,
+        selected: sel.selected,
+        casing: sel.casing,
+        handles: sel.handles,
+        handle_faces: sel.handle_faces,
         cursor,
         tool,
         markers,
@@ -561,9 +625,17 @@ fn div_round(num: i64, den: i64) -> i64 {
 }
 
 /// The pixels of the line from the screen point `a` to `b` (physical pixels, unrounded): from the pixel of `a` to
-/// the pixel of `b`, one square of `width` pixels per step along the major axis, the dash counted from `a`, only
-/// the part within the pane walked and the result clipped to it.
-fn line_px(a: (f64, f64), b: (f64, f64), width: i64, dash: Dash, pane: &PxRect, out: &mut Vec<PxRect>) {
+/// the pixel of `b`, one square of `width` pixels per step along the major axis, the dash (`4s` steps on, as many
+/// off) counted from `a`, only the part within the pane walked and the result clipped to it.
+fn line_px(
+    a: (f64, f64),
+    b: (f64, f64),
+    width: i64,
+    s: i64,
+    dash: Dash,
+    pane: &PxRect,
+    out: &mut Vec<PxRect>,
+) {
     if !(a.0.is_finite() && a.1.is_finite() && b.0.is_finite() && b.1.is_finite()) {
         return;
     }
@@ -592,7 +664,7 @@ fn line_px(a: (f64, f64), b: (f64, f64), width: i64, dash: Dash, pane: &PxRect, 
     let (dx, dy) = (fx1 as i64 - x0, fy1 as i64 - y0);
     let mut run = Vec::new();
     for i in first..=last {
-        if dash == Dash::Dashed && (i / TOOL_DASH_PX) % 2 == 1 {
+        if dash == Dash::Dashed && (i / (TOOL_DASH_PX * s)) % 2 == 1 {
             continue;
         }
         let (x, y) = if n == 0 {
@@ -625,30 +697,40 @@ fn rect_px(
         ))
     };
     let (x0, y0, x1, y1) = (a.x.0, a.y.0, b.x.0, b.y.0);
-    line_px(p(x0, y0), p(x1, y0), width, dash, pane, out);
-    line_px(p(x1, y0), p(x1, y1), width, dash, pane, out);
-    line_px(p(x1, y1), p(x0, y1), width, dash, pane, out);
-    line_px(p(x0, y1), p(x0, y0), width, dash, pane, out);
+    // The lines are `width` (= `s`) pixels wide and dashed at the same scale.
+    let s = width;
+    line_px(p(x0, y0), p(x1, y0), width, s, dash, pane, out);
+    line_px(p(x1, y0), p(x1, y1), width, s, dash, pane, out);
+    line_px(p(x1, y1), p(x0, y1), width, s, dash, pane, out);
+    line_px(p(x0, y1), p(x0, y0), width, s, dash, pane, out);
 }
 
-/// The pixels of a snap marker centred on the pixel of the screen point `at`.
-fn marker_px(at: (f64, f64), kind: MarkerKind, pane: &PxRect, out: &mut Vec<PxRect>) {
+/// The pixels of a snap marker centred on the pixel of the screen point `at`, at scale `s` (FT-391).
+fn marker_px(at: (f64, f64), kind: MarkerKind, s: i64, pane: &PxRect, out: &mut Vec<PxRect>) {
     if !(at.0.is_finite() && at.1.is_finite()) {
         return;
     }
     let (px, py) = (at.0.floor() as i64, at.1.floor() as i64);
+    let h = 3 * s;
     match kind {
         MarkerKind::Grid => {
-            push_clipped(out, PxRect::new(px - 3, py, px + 4, py + 1), pane);
-            push_clipped(out, PxRect::new(px, py - 3, px + 1, py), pane);
-            push_clipped(out, PxRect::new(px, py + 1, px + 1, py + 4), pane);
+            // Two `6s + 1`-pixel arms `s` wide crossing at the centre pixel (the vertical arm split around the
+            // horizontal one, so that no pixel is listed twice).
+            let o = (s - 1) / 2;
+            let (y0, x0) = (py - o, px - o);
+            push_clipped(out, PxRect::new(px - h, y0, px + h + 1, y0 + s), pane);
+            push_clipped(out, PxRect::new(x0, py - h, x0 + s, y0), pane);
+            push_clipped(out, PxRect::new(x0, y0 + s, x0 + s, py + h + 1), pane);
         }
         MarkerKind::Cp => {
-            // The pixels whose centre lies between 3.5 and 4.5 pixels from the centre pixel's: d² in 13 ..= 20.
-            for dy in -4..=4_i64 {
+            // The pixels whose centre lies between `3s + 0.5` and `4s + 0.5` pixels from the centre pixel's (at
+            // scale 1: d² in 13 ..= 20), that is `(6s + 1)² ≤ 4d² ≤ (8s + 1)²`.
+            let r = 4 * s;
+            let (lo, hi) = ((6 * s + 1).pow(2), (8 * s + 1).pow(2));
+            for dy in -r..=r {
                 let mut run = Vec::new();
-                for dx in -4..=4_i64 {
-                    if (13..=20).contains(&(dx * dx + dy * dy)) {
+                for dx in -r..=r {
+                    if (lo..=hi).contains(&(4 * (dx * dx + dy * dy))) {
                         push_run(&mut run, PxRect::new(px + dx, py + dy, px + dx + 1, py + dy + 1));
                     }
                 }
@@ -657,7 +739,7 @@ fn marker_px(at: (f64, f64), kind: MarkerKind, pane: &PxRect, out: &mut Vec<PxRe
                 }
             }
         }
-        MarkerKind::Junction => push_clipped(out, PxRect::new(px - 3, py - 3, px + 4, py + 4), pane),
+        MarkerKind::Junction => push_clipped(out, PxRect::new(px - h, py - h, px + h + 1, py + h + 1), pane),
     }
 }
 
@@ -689,7 +771,8 @@ pub fn fill(image: &mut RgbaImage, r: PxRect, c: Color) {
 }
 
 /// Composites the overlays into a snapshot of the pane, in paint order: surround, page bounds, grid dots, hover,
-/// selection, the tool's lines and ghosts, its snap markers, and last the grid cursor's crosshair.
+/// the selection (casing, outline, the handles' rims, then their faces), the tool's lines and ghosts, its snap
+/// markers, and last the grid cursor's crosshair.
 pub fn composite(image: &mut RgbaImage, overlay: &Overlay, theme: &Theme) {
     for &r in &overlay.surround {
         fill(image, r, theme.surround);
@@ -703,8 +786,17 @@ pub fn composite(image: &mut RgbaImage, overlay: &Overlay, theme: &Theme) {
     for &r in &overlay.hover {
         fill(image, r, theme.hover);
     }
+    for &r in &overlay.casing {
+        fill(image, r, theme.casing);
+    }
     for &r in &overlay.selected {
         fill(image, r, theme.selection);
+    }
+    for &r in &overlay.handles {
+        fill(image, r, theme.selection);
+    }
+    for &r in &overlay.handle_faces {
+        fill(image, r, theme.casing);
     }
     for &(r, token) in &overlay.tool {
         fill(image, r, theme.token(token));
@@ -846,8 +938,26 @@ mod tests {
             let k = (y as usize * 1200 + x as usize) * 4;
             [img.pixels[k], img.pixels[k + 1], img.pixels[k + 2]]
         };
-        assert_eq!(at(s.x0 + 3, s.y0), [0x00, 0x72, 0xB2]);
+        assert_eq!(at((s.x0 + s.x1) / 2, s.y0), [0x0B, 0x63, 0xCE]);
         assert_eq!(at(600, 300), [255, 255, 255]);
+    }
+
+    /// A theme whose every token has its own colour, so that a composite tells the layers apart.
+    fn distinct() -> Theme {
+        Theme {
+            surround: rgb(1, 1, 1),
+            border: rgb(2, 2, 2),
+            grid_dot: rgb(3, 3, 3),
+            hover: rgb(4, 4, 4),
+            selection: rgb(5, 5, 5),
+            cursor: rgb(0xD5, 0x5E, 0x00),
+            paper: rgb(255, 255, 255),
+            ghost: rgb(7, 7, 7),
+            snap: rgb(0x00, 0x9E, 0x73),
+            measure: rgb(0xA8, 0x6F, 0x00),
+            rubber_band: rgb(9, 9, 9),
+            casing: rgb(10, 10, 10),
+        }
     }
 
     fn white() -> RgbaImage {
@@ -909,7 +1019,7 @@ mod tests {
         i.cursor = Some((nx as i64, ny as i64));
         let o = build(&i);
         let mut img = white();
-        composite(&mut img, &o, &LIGHT);
+        composite(&mut img, &o, &distinct());
         let at = |x: i64, y: i64| {
             let k = (y as usize * 1200 + x as usize) * 4;
             [img.pixels[k], img.pixels[k + 1], img.pixels[k + 2]]
@@ -937,15 +1047,19 @@ mod tests {
 
     #[test]
     fn the_cursor_token_is_the_same_in_both_themes() {
-        assert_eq!(LIGHT.cursor, rgb(0xD5, 0x5E, 0x00));
-        assert_eq!(DARK.cursor, rgb(0xD5, 0x5E, 0x00));
+        assert_eq!(LIGHT.cursor, rgb(0x0B, 0x63, 0xCE));
+        assert_eq!(DARK.cursor, rgb(0x0B, 0x63, 0xCE));
     }
 
     #[test]
     fn the_dark_theme_changes_the_surround_not_the_paper() {
         assert_ne!(LIGHT.surround, DARK.surround);
         assert_eq!(LIGHT.paper, DARK.paper);
-        assert_eq!(LIGHT.hover, rgb(0x00, 0x72, 0xB2));
+        assert_eq!(LIGHT.hover, rgb(0x0B, 0x63, 0xCE));
+        assert_eq!(LIGHT.surround, rgb(0xE3, 0xE6, 0xEA));
+        assert_eq!(DARK.surround, rgb(0x2E, 0x32, 0x38));
+        assert_eq!(LIGHT.casing, rgb(0xFF, 0xFF, 0xFF));
+        assert_eq!(LIGHT.ghost.a, 153, "the accent at 60 %");
     }
 
     // ---------------------------------------------------------------------------------------------------------------
@@ -1149,7 +1263,7 @@ mod tests {
         let mut i = with_tool(&v, &tool);
         let o = build(&i);
         let mut img = white();
-        composite(&mut img, &o, &LIGHT);
+        composite(&mut img, &o, &distinct());
         let rgb_at = |img: &RgbaImage, p: (i64, i64)| {
             let k = (p.1 as usize * 1200 + p.0 as usize) * 4;
             [img.pixels[k], img.pixels[k + 1], img.pixels[k + 2]]
@@ -1163,11 +1277,11 @@ mod tests {
         i.cursor = Some(at);
         let o = build(&i);
         let mut img = white();
-        composite(&mut img, &o, &LIGHT);
+        composite(&mut img, &o, &distinct());
         assert_eq!(rgb_at(&img, (c.0 + 3, c.1)), [0xD5, 0x5E, 0x00]);
         // Twice the same input, the same pixels.
         let mut again = white();
-        composite(&mut again, &build(&i), &LIGHT);
+        composite(&mut again, &build(&i), &distinct());
         assert_eq!(img.pixels, again.pixels);
     }
 
@@ -1194,7 +1308,233 @@ mod tests {
             token: ToolToken::Measure,
         }];
         assert!(build(&with_tool(&v, &outside)).tool.is_empty());
-        assert_eq!(LIGHT.token(ToolToken::Ghost), rgb(0x00, 0x72, 0xB2));
-        assert_eq!(DARK.token(ToolToken::Snap), rgb(0x00, 0x9E, 0x73));
+        assert_eq!(LIGHT.token(ToolToken::Ghost), LIGHT.ghost);
+        assert_eq!(DARK.token(ToolToken::Snap), rgb(0x0B, 0x63, 0xCE));
+    }
+
+    // ---------------------------------------------------------------------------------------------------------------
+    // FT-391's scale rule and the selection of doc 16a §7.1 (WP-S2.17 part 5, acceptance checks OV3 and OV6)
+
+    fn view_at(ppp: f64) -> View {
+        View { ppp, ..view(1.0) }
+    }
+
+    /// The width and height of the bounding box of a set of pixels.
+    fn extent(p: &std::collections::BTreeSet<(i64, i64)>) -> (i64, i64) {
+        let x0 = p.iter().map(|q| q.0).min().unwrap();
+        let x1 = p.iter().map(|q| q.0).max().unwrap();
+        let y0 = p.iter().map(|q| q.1).min().unwrap();
+        let y1 = p.iter().map(|q| q.1).max().unwrap();
+        (x1 - x0 + 1, y1 - y0 + 1)
+    }
+
+    #[test]
+    fn ov3_the_scale_factor_is_the_whole_part_of_ppp() {
+        assert_eq!(mark_scale(1.0), 1);
+        assert_eq!(mark_scale(1.5), 1);
+        assert_eq!(mark_scale(2.0), 2);
+        assert_eq!(mark_scale(2.99), 2);
+        assert_eq!(mark_scale(3.0), 3);
+        assert_eq!(mark_scale(0.5), 1);
+        assert_eq!(mark_scale(f64::NAN), 1);
+        assert_eq!(mark_scale(f64::INFINITY), 1);
+        assert_eq!(mark_scale(100.0), 16);
+    }
+
+    /// OV3: at ppp 1, 1.5, 2 and 3 the markers are `6s + 1` (cross, square) and `8s + 1` (ring) pixels, lines `s`
+    /// pixels wide with `4s` dashes, the hover `s` with `4s` dashes, the cursor's arms `s` wide and `6s` long.
+    #[test]
+    fn ov3_every_mark_follows_the_scale_rule() {
+        for (ppp, s) in [(1.0, 1_i64), (1.5, 1), (2.0, 2), (3.0, 3)] {
+            let v = view_at(ppp);
+            let t = v.settled_transform();
+            let at = (148_500_000, 105_000_000);
+            let c = px_of(&t, at);
+            let mark = |kind| [ToolMark::Marker { at, kind }];
+            let grid = pixels(&build(&with_tool(&v, &mark(MarkerKind::Grid))).markers);
+            assert_eq!(extent(&grid), (6 * s + 1, 6 * s + 1), "grid cross at ppp {ppp}");
+            assert_eq!(
+                grid.len() as i64,
+                2 * s * (6 * s + 1) - s * s,
+                "two arms {s} wide"
+            );
+            assert!(grid.contains(&c));
+            let ring = pixels(&build(&with_tool(&v, &mark(MarkerKind::Cp))).markers);
+            assert_eq!(extent(&ring), (8 * s + 1, 8 * s + 1), "CP ring at ppp {ppp}");
+            assert!(!ring.contains(&c), "open at its centre");
+            assert!(ring.contains(&(c.0 + 4 * s, c.1)) && ring.contains(&(c.0, c.1 - 4 * s)));
+            // The ring is `s` thick on the axes.
+            let on_axis = (1..=4 * s).filter(|d| ring.contains(&(c.0 + d, c.1))).count() as i64;
+            assert_eq!(on_axis, s, "ring thickness at ppp {ppp}");
+            let square = pixels(&build(&with_tool(&v, &mark(MarkerKind::Junction))).markers);
+            assert_eq!(extent(&square), (6 * s + 1, 6 * s + 1));
+            assert_eq!(square.len() as i64, (6 * s + 1) * (6 * s + 1));
+
+            // A horizontal line: `s` rows; dashed, `4s` on and `4s` off.
+            let (a, b) = ((100_000_000, 100_000_000), (150_000_000, 100_000_000));
+            let line = |dash| {
+                [ToolMark::Line {
+                    a,
+                    b,
+                    dash,
+                    token: ToolToken::Measure,
+                }]
+            };
+            let solid = build(&with_tool(&v, &line(Dash::Solid)));
+            assert_eq!(solid.tool.len(), 1);
+            assert_eq!(
+                solid.tool[0].0.y1 - solid.tool[0].0.y0,
+                s,
+                "line width at ppp {ppp}"
+            );
+            let dashed = build(&with_tool(&v, &line(Dash::Dashed)));
+            let runs: Vec<PxRect> = dashed.tool.iter().map(|(r, _)| *r).collect();
+            assert!(runs.len() > 2);
+            assert_eq!(
+                runs[0].x1 - runs[0].x0,
+                4 * s + s - 1,
+                "a dash of {s}-pixel squares"
+            );
+            assert_eq!(runs[1].x0 - runs[0].x0, 8 * s, "the dash period at ppp {ppp}");
+
+            // The hover: `s` thick, `4s` dashes from each edge's first corner.
+            let r = Rect::from_points(
+                Pt2::new(Nm::from_mm(140), Nm::from_mm(100)),
+                Pt2::new(Nm::from_mm(160), Nm::from_mm(110)),
+            );
+            let o = build(&input(&v, None, Some(r)));
+            let top: Vec<&PxRect> = {
+                let y = o.hover.iter().map(|d| d.y0).min().unwrap();
+                let mut t: Vec<&PxRect> = o.hover.iter().filter(|d| d.y0 == y && d.x1 - d.x0 > s).collect();
+                t.sort_by_key(|d| d.x0);
+                t
+            };
+            assert!(
+                top.iter().all(|d| d.y1 - d.y0 == s),
+                "hover thickness at ppp {ppp}"
+            );
+            assert_eq!(top[0].x1 - top[0].x0, 4 * s);
+            assert_eq!(top[1].x0 - top[0].x0, 8 * s);
+
+            // The cursor: four arms `s` wide, `6s` long, the centre pixel empty.
+            let mut i = input(&v, None, None);
+            i.cursor = Some(at);
+            let o = build(&i);
+            assert_eq!(o.cursor.len(), 4);
+            for arm in &o.cursor {
+                let (w, h) = (arm.x1 - arm.x0, arm.y1 - arm.y0);
+                assert!(
+                    (w, h) == (6 * s, s) || (w, h) == (s, 6 * s),
+                    "{arm:?} at ppp {ppp}"
+                );
+            }
+            assert!(pixels(&o.cursor).iter().all(|p| *p != c));
+        }
+    }
+
+    /// OV3: at ppp 1 the marks are exactly those built before the scale rule (the snapshots change only in colour).
+    #[test]
+    fn ov3_at_ppp_1_the_marks_keep_their_sizes() {
+        let v = view(1.0);
+        let at = (148_500_000, 105_000_000);
+        let mark = |kind| [ToolMark::Marker { at, kind }];
+        assert_eq!(
+            pixels(&build(&with_tool(&v, &mark(MarkerKind::Grid))).markers).len(),
+            13
+        );
+        assert_eq!(
+            pixels(&build(&with_tool(&v, &mark(MarkerKind::Cp))).markers).len(),
+            32
+        );
+        assert_eq!(
+            pixels(&build(&with_tool(&v, &mark(MarkerKind::Junction))).markers).len(),
+            49
+        );
+        let r = Rect::from_points(
+            Pt2::new(Nm::from_mm(140), Nm::from_mm(100)),
+            Pt2::new(Nm::from_mm(160), Nm::from_mm(110)),
+        );
+        let sel = [r];
+        let mut i = input(&v, None, None);
+        i.selected = &sel;
+        let o = build(&i);
+        assert_eq!(o.selected.len(), 4);
+        let band = o.selected[0];
+        assert_eq!(band.y1 - band.y0, 2, "a 2-pixel outline");
+    }
+
+    /// OV6 (model and pixels): at ppp 1 the selection is a 2-pixel outline in the selection colour with a 1-pixel
+    /// white casing on both sides and four 8-pixel handles on its corners, white with a selection-coloured rim; at ppp
+    /// 2 everything doubles.
+    #[test]
+    fn ov6_the_selection_has_a_casing_and_four_8_pixel_handles() {
+        let r = Rect::from_points(
+            Pt2::new(Nm::from_mm(140), Nm::from_mm(100)),
+            Pt2::new(Nm::from_mm(160), Nm::from_mm(110)),
+        );
+        let sel = [r];
+        for (ppp, s) in [(1.0, 1_i64), (2.0, 2)] {
+            let v = view_at(ppp);
+            let mut i = input(&v, None, None);
+            i.selected = &sel;
+            let o = build(&i);
+            let outline = pixels(&o.selected);
+            let (x0, y0) = (
+                outline.iter().map(|p| p.0).min().unwrap(),
+                outline.iter().map(|p| p.1).min().unwrap(),
+            );
+            let (x1, y1) = (
+                outline.iter().map(|p| p.0).max().unwrap() + 1,
+                outline.iter().map(|p| p.1).max().unwrap() + 1,
+            );
+            assert_eq!(o.handles.len(), 4);
+            assert_eq!(o.handle_faces.len(), 4);
+            for h in &o.handles {
+                assert_eq!(
+                    (h.x1 - h.x0, h.y1 - h.y0),
+                    (8 * s, 8 * s),
+                    "an 8s handle at ppp {ppp}"
+                );
+                // Centred on a corner of the outline's centre line.
+                let (cx, cy) = ((h.x0 + h.x1) / 2, (h.y0 + h.y1) / 2);
+                assert!(cx == x0 + s || cx == x1 - s, "{h:?}");
+                assert!(cy == y0 + s || cy == y1 - s, "{h:?}");
+            }
+            let casing = pixels(&o.casing);
+            let mid = (x0 + x1) / 2;
+            // Above the outline, the outline (2s), below it (inside).
+            for k in 0..s {
+                assert!(casing.contains(&(mid, y0 - 1 - k)), "outer casing at ppp {ppp}");
+                assert!(
+                    casing.contains(&(mid, y0 + 2 * s + k)),
+                    "inner casing at ppp {ppp}"
+                );
+            }
+            assert!(!casing.contains(&(mid, y0 - 1 - s)));
+            let mut img = RgbaImage {
+                width: (1200.0 * ppp) as u32,
+                height: (800.0 * ppp) as u32,
+                pixels: vec![0; (1200.0 * ppp * 800.0 * ppp) as usize * 4],
+            };
+            composite(&mut img, &o, &LIGHT);
+            let w = img.width as usize;
+            let at = |x: i64, y: i64| {
+                let k = (y as usize * w + x as usize) * 4;
+                [img.pixels[k], img.pixels[k + 1], img.pixels[k + 2]]
+            };
+            let blue = [0x0B, 0x63, 0xCE];
+            let white = [0xFF, 0xFF, 0xFF];
+            assert_eq!(at(mid, y0), blue);
+            assert_eq!(at(mid, y0 + 2 * s - 1), blue);
+            assert_eq!(at(mid, y0 - 1), white, "outer casing");
+            assert_eq!(at(mid, y0 + 2 * s), white, "inner casing");
+            let h = o.handles[0];
+            assert_eq!(at(h.x0, h.y0), blue, "the handle's rim");
+            assert_eq!(
+                at((h.x0 + h.x1) / 2, (h.y0 + h.y1) / 2),
+                white,
+                "the handle's face"
+            );
+        }
     }
 }
