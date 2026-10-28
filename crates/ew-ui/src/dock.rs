@@ -609,6 +609,44 @@ mod tests {
         );
     }
 
+    /// R3-3 of cycle 31: when the user drags the splitter during a clamped frame, `restore` keeps the dragged
+    /// shares, so the layout is the user's new one.
+    #[test]
+    fn a_drag_during_a_clamped_frame_keeps_the_dragged_shares() {
+        let layout = page_over_messages();
+        let mut dock = Dock::new(&layout, 0);
+        let (clamps, guessed) = dock.keep_bottom_min(800.0, 300.0);
+        assert!(guessed, "no frame yet, so the fallback height was used");
+        assert_eq!(
+            clamps.len(),
+            1,
+            "350/1000 of 800 is under 300, so the split is clamped"
+        );
+        let clamp = &clamps[0];
+        let (page, messages) = (clamp.shown[0].0, clamp.shown[1].0);
+        let Some(Tile::Container(Container::Linear(linear))) = dock.tree.tiles.get_mut(clamp.split) else {
+            panic!("the clamped split is a linear container");
+        };
+        // A drag moves share from one neighbour to the other.
+        let (p, m) = (linear.shares[page], linear.shares[messages]);
+        let delta = 0.1 * (p + m);
+        linear.shares.set_share(page, p - delta);
+        linear.shares.set_share(messages, m + delta);
+        let permille = |x: f32| (x / (p + m) * 1000.0).round() as u32;
+        let mut dragged = layout.clone();
+        let LayoutNode::Split { children, .. } = &mut dragged.root else {
+            unreachable!()
+        };
+        let LayoutNode::Split { children, .. } = &mut children[1].1 else {
+            unreachable!()
+        };
+        children[0].0 = permille(p - delta);
+        children[1].0 = permille(m + delta);
+        dock.restore(&clamps);
+        assert_eq!(dock.layout(), Some(dragged));
+        assert_ne!(dock.layout().as_ref(), Some(&layout));
+    }
+
     #[test]
     fn the_schematic_workspace_round_trips_through_the_tree() {
         let layout = Layout::schematic();
