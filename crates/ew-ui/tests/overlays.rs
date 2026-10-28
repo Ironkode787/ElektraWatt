@@ -525,33 +525,40 @@ fn ov4_the_link_preview_has_a_named_region() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// OV2, FT-508 (the seam of the chrome over the canvas): a frame reported with `set_chrome_obstacles` (the tool HUD,
-/// the zoom control) is an obstacle like the statistics panel: the Place ghost's label moves off it.
+/// OV2, OV6, FT-508: the window reports the tool HUD's and the zoom control's frames over the canvas
+/// (`chrome_obstacles` holds both), and with the Place ghost near the bottom centre and the bottom right no canvas chip
+/// (the ghost's label, the statistics panel) stands on either.
 #[test]
-fn ov2_the_chips_keep_off_the_reported_chrome() {
+fn ov2_the_chips_keep_off_the_hud_and_the_zoom_control() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "101");
     dispatch(&mut h, "place.pick", json!({"symbol": "ew.iec.mcb-1p@qet10"}));
     settle(&mut h);
     let (w, hh) = h.state().shell().canvas().unwrap().sheet();
-    dispatch(&mut h, "canvas.pointer", at((w / 3, hh * 2 / 3)));
-    settle(&mut h);
-    let label = |h: &mut Harness<'_, App>| {
-        h.state_mut()
-            .canvas_host()
-            .canvas_chips(0)
-            .iter()
-            .find(|c| c.kind == ChipKind::Label)
-            .map(|c| c.rect)
-            .expect("the ghost's label")
-    };
-    let before = label(&mut h);
-    // A stand-in for the HUD where the label stands.
-    let chrome = before.expand(2.0);
-    h.state_mut().canvas_host().set_chrome_obstacles(0, vec![chrome]);
-    settle(&mut h);
-    let after = label(&mut h);
-    assert!(!after.intersects(chrome), "{after:?} off the chrome {chrome:?}");
-    assert_eq!(h.state_mut().canvas_host().chrome_obstacles(0), [chrome]);
+    for p in [(w / 2, hh * 19 / 20), (w * 19 / 20, hh * 19 / 20)] {
+        dispatch(&mut h, "canvas.pointer", at(p));
+        settle(&mut h);
+        settle(&mut h);
+        let (_, hud, _) = h.state().command_surface_rects();
+        let hud = hud.expect("the HUD over the page view");
+        let chrome = h.state_mut().canvas_host().chrome_obstacles(0).to_vec();
+        assert_eq!(chrome.len(), 2, "the HUD and the zoom control: {chrome:?}");
+        assert_eq!(chrome[0], hud);
+        let zoom = chrome[1];
+        assert!(!zoom.intersects(hud), "two frames: {zoom:?} {hud:?}");
+        let chips = h.state_mut().canvas_host().canvas_chips(0).to_vec();
+        assert!(
+            chips.iter().any(|c| c.kind == ChipKind::Label),
+            "the ghost's label at {p:?}"
+        );
+        for c in &chips {
+            assert!(
+                !c.rect.intersects(hud) && !c.rect.intersects(zoom),
+                "{:?} {:?} off the HUD {hud:?} and the zoom control {zoom:?} (ghost at {p:?})",
+                c.kind,
+                c.rect
+            );
+        }
+    }
     h.state_mut().shell_mut().shutdown();
 }

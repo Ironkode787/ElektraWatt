@@ -707,6 +707,15 @@ impl App {
             crate::hud::show_zoom(&ctx, &self.shell, pane, &mut events);
             self.tool_options(&ctx, pane, &mut events);
         }
+        // OV2/OV6: the canvas painted before the HUD (whose place follows the pointer), so the chips keep off this
+        // frame's HUD and zoom control from the next frame on; the next input repaints anyway, no extra repaint.
+        let chrome: Vec<egui::Rect> = match (self.page_pane, self.hud_rect) {
+            (Some(pane), Some(hud)) => vec![hud, crate::hud::zoom_rect(&crate::theme::current(&ctx), pane)],
+            _ => Vec::new(),
+        };
+        for group in 0..crate::canvas::GROUPS {
+            self.canvas.set_chrome_obstacles(group, chrome.clone());
+        }
         let palette_open = self.shell.palette().is_some();
         palette::show(
             &ctx,

@@ -85,7 +85,7 @@ pub const MAX_UPLOADS_PER_FRAME: usize = 8;
 pub const MAX_UPLOAD_BYTES_PER_FRAME: usize = 2 * 1024 * 1024;
 
 /// The most canvas groups.
-const GROUPS: usize = 2;
+pub(crate) const GROUPS: usize = 2;
 
 /// The hover outline of a canvas while the active tool shows the hover (WP-S2.03 §6.4, §7.1): the hovered link's
 /// rectangle, else, while an entity is hovered, the rectangle of the first entity of the pick stack under the pointer
