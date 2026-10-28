@@ -13,7 +13,7 @@ mod common;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-use common::{Tmp, done, refused};
+use common::{GOLDEN_A, Tmp, copy_dir, done, refused};
 use ew_viewmodel::ew_api::{CmdLog, Recovery, Session, SessionOptions, StoreOptions};
 use ew_viewmodel::shell::{AccessMode, ConfirmAnswer, Dialog, Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::json;
@@ -303,4 +303,92 @@ fn jb7_a_collision_with_a_save_of_another_session_fails_the_recovery_and_reopens
     assert_eq!(s.access(), Some(AccessMode::Edit));
     assert!(title(&s).contains("Elsewhere"));
     s.shutdown();
+}
+
+/// A copy of Golden A, the original of a Save As.
+fn original(tmp: &Tmp) -> PathBuf {
+    let original = tmp.golden_copy();
+    copy_dir(Path::new(GOLDEN_A), &original);
+    original
+}
+
+/// Opens `original` for editing and makes one unsaved edit (page 995).
+fn edit(s: &mut ShellModel, original: &Path) {
+    open(s, original);
+    assert_eq!(s.access(), Some(AccessMode::Edit));
+    done(
+        s,
+        "command.run",
+        json!({"cmd": "page.create", "params": {"number": 995}}),
+    );
+    assert!(s.is_dirty());
+}
+
+fn has_995(s: &ShellModel) -> bool {
+    s.page_labels().iter().any(|l| l == "995")
+}
+
+/// FT-499 (fixed in the cycle-30 review round): Save As closes the original cleanly once the copy exists, so the
+/// edits that went into the copy leave no journal behind and the original reopens editable, without the recovery
+/// dialog and unchanged on disk.
+#[test]
+fn save_as_closes_the_original_so_it_reopens_editable_without_a_journal() {
+    let tmp = Tmp::new("ft499-save-as");
+    let mut s = shell(&tmp, Mode::Headless);
+    let original = original(&tmp);
+    let on_disk = files(std::slice::from_ref(&original));
+    let state = tmp.0.join("config").join("state");
+    let copy = tmp.0.join("copy.ew");
+    edit(&mut s, &original);
+    // The original's journal: the only one so far.
+    let journal: Vec<PathBuf> = files(std::slice::from_ref(&state)).into_keys().collect();
+    assert_eq!(journal.len(), 1, "{journal:?}");
+    let journal_dir = journal[0].parent().unwrap().to_path_buf();
+    done(&mut s, "file.save_as", json!({ "dir": copy.to_string_lossy() }));
+    assert!(!s.is_dirty());
+    assert!(!journal_dir.exists(), "the original's journal is gone");
+    done(&mut s, "file.close", json!({}));
+    assert!(
+        files(std::slice::from_ref(&state)).is_empty(),
+        "no journal is left"
+    );
+    assert_eq!(
+        files(std::slice::from_ref(&original)),
+        on_disk,
+        "the original's records are as before the edit"
+    );
+    open(&mut s, &original);
+    assert_eq!(s.dialog(), None);
+    assert_eq!(s.access(), Some(AccessMode::Edit));
+    assert!(!s.can_discard_journal());
+    assert!(!has_995(&s), "the original has no edit");
+    done(&mut s, "file.close", json!({}));
+    open(&mut s, &copy);
+    assert!(has_995(&s), "the copy has the edit");
+    s.shutdown();
+}
+
+/// FT-499: a Save As that cannot create its folder leaves the original and its journal as they were, so the dirty
+/// original is still recoverable after the session ends without a clean close.
+#[test]
+fn a_failed_save_as_keeps_the_original_journal() {
+    let tmp = Tmp::new("ft499-failed");
+    let mut s = shell(&tmp, Mode::Headless);
+    let original = original(&tmp);
+    edit(&mut s, &original);
+    let blocker = tmp.0.join("a-file");
+    std::fs::write(&blocker, b"x").unwrap();
+    let target = blocker.join("copy.ew");
+    match s.dispatch("file.save_as", &json!({ "dir": target.to_string_lossy() })) {
+        Outcome::Failed { .. } => {}
+        other => panic!("{other:?}"),
+    }
+    assert!(s.is_dirty());
+    s.shutdown();
+    let mut again = shell(&tmp, Mode::Headless);
+    open(&mut again, &original);
+    assert!(matches!(again.dialog(), Some(Dialog::Recovery { .. })));
+    done(&mut again, "journal.recover", json!({}));
+    assert!(has_995(&again), "the edit is recovered");
+    again.shutdown();
 }

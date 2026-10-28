@@ -998,8 +998,9 @@ another session's save, or a re-open that is not an editing one) re-opens read-o
 Open read-only and Discard…. **Open read-only** keeps the journal and the read-only access (Escape means the same).
 **Discard…** asks for confirmation, then opens editable without the edits; its Cancel returns to the dialog. Nothing
 is written before a choice. Headless, `journal.recover`, `journal.keep` and `file.discard_journal { confirm: true }`
-answer the dialog. `ew recover` is not built (FT-252). After Save As the original keeps the journal of the edits that
-went into the copy, so reopening the original shows this dialog (FT-499).
+answer the dialog. `ew recover` is not built (FT-252). Save As closes the original cleanly once the copy exists (its
+journal of the edits that went into the copy deleted, its lock released), so reopening the original does not show this
+dialog; a failed Save As keeps the original's journal (FT-499, fixed in the cycle-30 review round).
 
 ---
 

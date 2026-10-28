@@ -816,7 +816,10 @@ impl Session {
     }
 
     /// Writes the session's model as a new project into `dir` (a directory without a project) and keeps
-    /// it as the session's project (Save As, doc 05 §5.5).
+    /// it as the session's project (Save As, doc 05 §5.5). Once the new project exists, the previous one is
+    /// closed cleanly: its journal (the edits that are now saved in the new project) is deleted and its lock
+    /// released, so reopening it neither offers to recover them nor opens it read-only (FT-499). When the
+    /// write fails, the previous project and its journal stay as they were.
     ///
     /// # Errors
     ///
@@ -824,11 +827,14 @@ impl Session {
     pub fn create(&mut self, dir: &Path, store: StoreOptions) -> Result<(), OpenError> {
         let model = self.engine.model().clone();
         let store = Store::create(dir, &model, store)?;
-        self.persistence = Some(Persistence {
+        let previous = self.persistence.replace(Persistence {
             store,
             unsaved: BTreeSet::new(),
             recovered: false,
         });
+        if let Some(p) = previous {
+            p.store.close();
+        }
         self.engine.mark_saved();
         Ok(())
     }

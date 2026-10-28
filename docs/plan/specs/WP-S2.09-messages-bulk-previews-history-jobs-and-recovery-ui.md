@@ -372,8 +372,11 @@ says, with these points:
 - **§6.6.** As specified, except: the time of the last change is shown in UTC (deviation 1; local time is FT-503); the
   dialog also lets through `ui.dismiss` (Escape is Open read-only), `ui.describe`, `help.documentation` (F1 opens the
   `recovery` topic), `app.quit` and `view.canvas_resize` (deviation 5); Recover also fails when the re-open is not an
-  editing one, and the Cancel of Discard… returns to the recovery dialog (deviation 6). After Save As the original
-  keeps the journal of the edits that went into the copy, so reopening it shows this dialog (deviation 10; FT-499).
+  editing one, and the Cancel of Discard… returns to the recovery dialog (deviation 6). As delivered, after Save As
+  the original kept the journal of the edits that went into the copy, so reopening it showed this dialog (deviation
+  10; FT-499); **fixed in the cycle-30 review round**: Save As closes the original cleanly once the copy exists (its
+  journal deleted, its lock released), so the original reopens editable without the dialog; a failed Save As keeps
+  it.
 - **§6.7.** As specified (FT-464); `ew import parts` uses the same function, without a CLI test of its own (FT-504).
 - **§6.8.** The 8 actions as the table lists them; `jobs.wait` is hidden in the window. `file.export_pdf`'s parameters
   are `path?:path, replace?:bool, wait?:bool`. 18 new words (`pages` was already present, as foreseen).
