@@ -24,6 +24,7 @@ use std::path::PathBuf;
 
 use egui::Vec2;
 use egui_kittest::Harness;
+use egui_kittest::kittest::Queryable;
 use ew_ui::app::{App, setup};
 use ew_ui::ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::json;
@@ -329,6 +330,167 @@ fn part4_dialogs_toasts_menu_palette_and_preview_in_light_and_dark() {
         h.state_mut().shell_mut().shutdown();
         drop(h);
         drop(tmp);
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
+
+/// The rectangle of the first node named `name` (its label, or a label node's value).
+fn node_rect(h: &Harness<'_, App>, name: &str) -> Option<egui::Rect> {
+    use egui_kittest::kittest::NodeT as _;
+    h.root().children_recursive().find_map(|n| {
+        let a = n.accesskit_node();
+        (a.label().as_deref() == Some(name) || a.value().as_deref() == Some(name)).then(|| n.rect())
+    })
+}
+
+/// The Messages pane's rectangle: from its header to its footer, across its tree.
+fn messages_pane(h: &Harness<'_, App>) -> egui::Rect {
+    let list = node_rect(h, "Messages navigator").expect("the Messages tree");
+    let shell = h.state().shell();
+    let top = shell
+        .messages_counts()
+        .and_then(|c| {
+            let scheme = shell.messages_scheme().unwrap_or_default();
+            node_rect(
+                h,
+                &format!(
+                    "{scheme} · E {} · W {} · I {} · waived {} · pending {}",
+                    c.errors, c.warnings, c.infos, c.waived, c.pending
+                ),
+            )
+        })
+        .map_or(list.top(), |r| r.top());
+    let bottom = node_rect(h, "Checks support, but do not replace, engineering verification.")
+        .map_or(list.bottom(), |r| r.bottom());
+    egui::Rect::from_min_max(
+        egui::pos2(list.left(), top - 4.0),
+        egui::pos2(list.right(), bottom + 4.0),
+    )
+}
+
+/// DK12 (WP-S2.17 part 3, lane K32): the Messages pane in tree mode (Golden A's error and a pending finding, then the
+/// cursor on the pending finding with its detail block) and the History panel (three steps, a save marker, one undone), each cropped to its pane, in light
+/// and dark at both densities, gated.
+#[test]
+fn dk12_messages_and_history_in_light_and_dark_at_both_densities() {
+    let dev = device();
+    let mut failures = Vec::new();
+    for theme in ["light", "dark"] {
+        for density in ["comfortable", "compact"] {
+            let (mut h, recorder, tmp) = main_window(theme, density);
+            assert_eq!(
+                h.state_mut().shell_mut().dispatch("messages.show", &json!({})),
+                Outcome::Done
+            );
+            h.run_ok();
+            let shell = h.state_mut().shell_mut();
+            // An unpaired interruption point on 101: a pending completeness finding there.
+            assert_eq!(shell.dispatch("tool.ip", &json!({})), Outcome::Done);
+            let (x, y) = {
+                let sn = &shell.canvas().unwrap().page().snapper;
+                sn.page_to_sheet((sn.page_of_index(60), sn.page_of_index(3)))
+            };
+            for (action, params) in [
+                (
+                    "cursor.set",
+                    json!({"x_mm": x as f64 / 1e6, "y_mm": y as f64 / 1e6}),
+                ),
+                ("ip.name", json!({"text": "SNAP"})),
+            ] {
+                assert_eq!(shell.dispatch(action, &params), Outcome::Done, "{action}");
+            }
+            for _ in 0..3 {
+                let state: serde_json::Value =
+                    serde_json::from_str(&ew_ui::ew_viewmodel::script::state_json(shell)).unwrap();
+                if state["canvas"]["ghost"]["direction"] == "target" {
+                    break;
+                }
+                assert_eq!(shell.dispatch("tool.ip_direction", &json!({})), Outcome::Done);
+            }
+            for (action, params) in [("canvas.activate", json!({})), ("ui.dismiss", json!({}))] {
+                assert_eq!(shell.dispatch(action, &params), Outcome::Done, "{action}");
+            }
+            h.run_ok();
+            h.run_ok();
+            let shell = h.state_mut().shell_mut();
+            assert!(
+                shell.messages_counts().is_some_and(|c| c.pending > 0),
+                "a pending finding: {:?}",
+                shell.messages_counts()
+            );
+            // The toast of the edit leaves on the wall clock: dismissed for a stable image.
+            let serials: Vec<u64> = shell.notifications().visible().iter().map(|n| n.serial).collect();
+            for serial in serials {
+                shell.dismiss_toast(serial);
+            }
+            let pending = shell
+                .shown_rows(ew_ui::ew_viewmodel::navigators::NavKind::Messages)
+                .into_iter()
+                .find(|r| r.finding.is_some_and(|f| f.pending))
+                .expect("the pending row");
+            // First the rows alone (no cursor, no detail block), then the cursor on the pending finding with its
+            // detail block (`messages.next` would open another page and end the pending).
+            for (name, cursor) in [("messages", false), ("messages-detail", true)] {
+                if cursor {
+                    assert_eq!(
+                        h.state_mut()
+                            .shell_mut()
+                            .dispatch("navigator.row", &json!({"kind": "messages", "key": pending.key})),
+                        Outcome::Done
+                    );
+                }
+                h.run_ok();
+                h.run_ok();
+                let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
+                failures.extend(record(
+                    &format!("dk12-{name}-{theme}-{density}"),
+                    &crop(&image, messages_pane(&h)),
+                    true,
+                ));
+            }
+            // History: three steps, a save, one undone.
+            let shell = h.state_mut().shell_mut();
+            for text in ["one", "two", "three"] {
+                assert_eq!(
+                    shell.dispatch(
+                        "command.run",
+                        &json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-101F1"}],
+                            "path": "function_text", "value": text}}),
+                    ),
+                    Outcome::Done
+                );
+            }
+            for (action, params) in [
+                ("file.save", json!({})),
+                ("edit.undo", json!({})),
+                ("history.show", json!({})),
+            ] {
+                assert_eq!(shell.dispatch(action, &params), Outcome::Done, "{action}");
+            }
+            let serials: Vec<u64> = shell.notifications().visible().iter().map(|n| n.serial).collect();
+            for serial in serials {
+                shell.dismiss_toast(serial);
+            }
+            h.run_ok();
+            h.run_ok();
+            let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
+            let pane = h
+                .get_all_by_role(egui::Role::Group)
+                .find(|n| {
+                    use egui_kittest::kittest::NodeT as _;
+                    n.accesskit_node().label().as_deref() == Some("History")
+                })
+                .map(|n| n.rect())
+                .expect("the History panel");
+            failures.extend(record(
+                &format!("dk12-history-{theme}-{density}"),
+                &crop(&image, pane),
+                true,
+            ));
+            h.state_mut().shell_mut().shutdown();
+            drop(h);
+            drop(tmp);
+        }
     }
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
