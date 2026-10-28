@@ -531,6 +531,19 @@ mod tests {
         assert_eq!(loose.canvas_backend, "auto");
         let metal = Settings::parse("canvas_backend = \"metal\"\n").unwrap();
         assert_eq!(metal.canvas_backend, "auto");
+        // WP-S2.17 DL7: the density and the high-contrast themes round-trip; an unknown density falls back.
+        for (theme, density) in [("hc-light", "compact"), ("hc-dark", "comfortable")] {
+            let s = Settings {
+                theme: theme.to_owned(),
+                density: density.to_owned(),
+                ..Settings::default()
+            };
+            let back = Settings::parse(&s.to_toml()).unwrap();
+            assert_eq!((back.theme.as_str(), back.density.as_str()), (theme, density));
+        }
+        assert_eq!(loose.density, "comfortable");
+        let dense = Settings::parse("density = \"dense\"\n").unwrap();
+        assert_eq!(dense.density, "comfortable");
         assert!(Settings::parse("canvas_backend = 1\n").is_none());
         // A key of the wrong type makes the file bad, like the older keys.
         for text in [

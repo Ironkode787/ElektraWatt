@@ -212,8 +212,8 @@ face6da6; the blind references re-blessed in 9af26fc2 (55 commands, 254 actions,
   failure. **Proven on local WARP only** (three identical runs); the first hosted run confirms it.
 - **Migration:** every literal colour and size, including WP-S2.06 part 3's table, WP-S2.09 part 3's Preview tab and
   history panel and part 6's icons, takes a token. Gaps left to later parts are listed in §15.4.
-- **Checks:** DL1 to DL6 and DL8 pass (DL7 with the settings tests); IC6's role colours can now read the tokens (part
-  2 wires them with the placements).
+- **Checks:** DL1 to DL8 pass (DL7: `dl7_density_and_theme_round_trip_through_settings_toml` and the settings unit
+  test); IC6's role colours can now read the tokens (part 2 wires them with the placements).
 
 ## 6. Part 2: the command surface
 

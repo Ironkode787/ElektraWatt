@@ -413,6 +413,39 @@ fn the_ui_scale_is_validated_and_persists() {
     assert_eq!(again.settings().ui_scale, 1.5);
 }
 
+/// WP-S2.17 DL7: `view.density` and `view.theme` write `settings.toml` and survive a restart; an unknown value fails
+/// with its reason and changes nothing.
+#[test]
+fn dl7_density_and_theme_round_trip_through_settings_toml() {
+    let tmp = Tmp::new();
+    let config = tmp.config();
+    let file = config.config_dir.clone().unwrap().join("settings.toml");
+    let mut shell = ShellModel::new(Mode::Headless, config);
+    for (action, value) in [("view.density", "compact"), ("view.theme", "hc-dark")] {
+        assert_eq!(
+            shell.dispatch(action, &json!({"value": value})),
+            Outcome::Done,
+            "{action}"
+        );
+    }
+    let text = std::fs::read_to_string(&file).unwrap();
+    assert!(text.contains("density = \"compact\""), "{text}");
+    assert!(text.contains("theme = \"hc-dark\""), "{text}");
+    for (action, value) in [("view.density", "dense"), ("view.theme", "purple")] {
+        assert_eq!(
+            shell.dispatch(action, &json!({"value": value})),
+            Outcome::Failed {
+                message: "Parameter `value` is not valid.".to_owned()
+            },
+            "{action} {value}"
+        );
+    }
+    assert_eq!(std::fs::read_to_string(&file).unwrap(), text, "nothing written");
+    let again = ShellModel::new(Mode::Headless, tmp.config());
+    assert_eq!(again.settings().density, "compact");
+    assert_eq!(again.settings().theme, "hc-dark");
+}
+
 #[test]
 fn a_corrupted_settings_file_raises_a_banner_and_keeps_a_copy() {
     let tmp = Tmp::new();
