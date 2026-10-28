@@ -330,8 +330,8 @@ fn the_image_ghost_and_menu_use_the_vocabulary() {
     let text = s.describe();
     assert!(
         text.lines()
-            .any(|l| l.contains("Image…") && l.contains("tool.image")),
-        "Insert ▸ Image… in the menu:\n{text}"
+            .any(|l| l.contains("Image...") && l.contains("tool.image")),
+        "Insert ▸ Image... in the menu:\n{text}"
     );
 }
 
