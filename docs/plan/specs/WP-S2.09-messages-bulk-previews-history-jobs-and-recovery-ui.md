@@ -5,8 +5,8 @@ ID-651): part 1 (jobs, the PDF export as a job with progress and cancel, the not
 dialog, 1.15 pw, D5), part 2 (the message panel on WP-S2.06's navigator framework with pending completeness findings and
 quick fixes, 0.85 pw, D3), part 3 (the bulk preview tab, the renumber dialogs, the history panel with context restore and
 the GUI purge step, 1.2 pw, D4); part 1 may start now, part 2 after WP-S2.06 part 1's delivery, part 3 after part 1's;
-one independent Opus review per cycle (ID-667); **part 1 delivered in cycle 30** (§6.9; decision log ID-714, ID-715), parts 2
-and 3 next · **Date:** 2026-10-28 · **Work package:**
+one independent Opus review per cycle (ID-667); **part 1 delivered in cycle 30** (§6.9; decision log ID-714, ID-715), **parts 2
+and 3 delivered in cycle 31** (§7.7, §8.8; decision log ID-730 to ID-732, ID-736), so the package is complete · **Date:** 2026-10-28 · **Work package:**
 [WP-S2.09](../02-work-packages.md#wp-s209-messages-bulk-previews-history-jobs-and-recovery-ui) · **Decision log:**
 ID-690 to ID-699, the ten entries of §15.3 in order (follow-ups FT-494 to FT-498, the five of §15.4 in order) · **Part
 of:** ElektraWatt plan, specifications
@@ -288,8 +288,11 @@ dialog "Recover unsaved changes"
   button "Discard…"
 ```
 
-The window shows the last change as local date and time (never in the transcript), and "The project changed on disk
-since" when `base_matches` is false. Escape is Open read-only.
+The window shows how long ago the last change was ("Last change: 12 minutes ago"; just now, minutes, hours or days,
+from `SystemTime`, with the UTC time in the hover text; never in the transcript), and "The project changed on disk
+since" when `base_matches` is false. *Amended in cycle 31 (FT-503, decision log ID-736):* the specification asked for
+local date and time, which needs a time-zone source the dependency rule does not allow; local clock time waits for the
+first feature that needs real dates (the title block's revision dates), then `chrono` with its `clock` feature only. Escape is Open read-only.
 - **Recover** (`journal.recover`): close the read-only session; open with `Recovery::Apply`. If the opened session's
   store still reports a recovery (`session.store().and_then(Store::recovery)` is `Some`), the replay failed: close that
   session (its own journal goes, the leftover stays), re-open read-only as before and show the dialog again with
@@ -369,7 +372,8 @@ says, with these points:
   field. Undo from a toast or the log also requires the same project session; closing the project removes the visible
   toasts and expires their Undo (deviation 7). The stack replaces WP-S2.05's rule that the next committing action
   removes a toast, and FT-485's toasts share the key `edit` (deviation 8).
-- **§6.6.** As specified, except: the time of the last change is shown in UTC (deviation 1; local time is FT-503); the
+- **§6.6.** As specified, except: the time of the last change was shown in UTC (deviation 1); since cycle 31 it is the elapsed
+  time with the UTC time on hover (FT-503 closed, ID-736; §6.6 amended); the
   dialog also lets through `ui.dismiss` (Escape is Open read-only), `ui.describe`, `help.documentation` (F1 opens the
   `recovery` topic), `app.quit` and `view.canvas_resize` (deviation 5); Recover also fails when the re-open is not an
   editing one, and the Cancel of Discard… returns to the recovery dialog (deviation 6). As delivered, after Save As
@@ -467,6 +471,44 @@ navigator "Messages" kind messages view tree sort "Label" ascending filter "" ro
 words (16, fewer by those already present):** `messages`, `severity`, `rule`, `scheme`, `warnings`, `infos`, `waived`,
 `detail`, `title`, `message`, `fix`, `completeness`, `safety`, `conflict`, `hygiene`, `integrity`.
 
+### 7.7 As built in cycle 31 (part 2)
+
+**WP-S2.09 part 2 delivered in cycle 31 (lane B31; decision log ID-730).** MS1 to MS6 pass (MS5 in kittest); 55
+commands, 230 actions and 325 describe words at the lane (252 and 344 on the merged tip with part 3 and WP-S2.06 part 3,
+ID-741). Built as §7 says, with these points:
+
+- **Provider (§7.1).** `NavKind::Messages` (word `messages`) builds its rows from `Session::check(online_scheme(),
+  Online)`; `online_scheme()` is the project's active scheme, else `drafting`, read once with the table; the property
+  grid's header findings use it too. Severity groups `Errors`, `Warnings`, `Infos` (key `severity:<word>`; empty groups
+  left out), rule groups in rule-ID order (label `<ID> <title>`, badge the count), findings in the report's order (key
+  `…/finding:<fingerprint>`, label `<subject>: <message>`); the order comes from `natural[0]`, the node's rank. Badges:
+  the severity, then `waived` and `fix`, then `pending`. Facets `kind`, `page`, `state`; columns severity, rule
+  (the key column), message, object, page and cell, fix and state, all derived and read-only. The page facet and cell
+  use the effective page: the finding's, else that of the primary target's first drawable; a finding with an empty
+  subject is labelled by its message. Enter opens that page with the finding's drawables selected.
+- **Pending (§7.2).** The editing page is set only by a commit (the revision moved in the same epoch and the history
+  entry at cursor − 1 has the current revision), so undo and redo do not set it; switching page, a new project session
+  and `messages.check` clear it. A pending row counts only in `pending`, not in its severity's count.
+- **The pane (§7.3).** Docked at the bottom by View ▸ Messages (its own checked item, outside View ▸ Navigators) and
+  `messages.show`; `navigator.show {kind: messages}` docks it there too. A header `<scheme> · E n · W n · I n · waived n
+  · pending n` (a polite live region), the rows with severity icons (a filled circle, triangle and square in the
+  error, warning and link colours; a pending row outlined and muted; the severity word always in the row's name), a
+  detail block (rule and title, kind and severity, message, the fix's label with Fix…, a Rule page link) at most half
+  the pane's height and scrolling, and the footer "Checks support, but do not replace, engineering verification."
+  The Rule page link focuses the pane, then runs `help.documentation`. **The pane has no table mode** (decision log
+  ID-732): `navigator.table {kind: messages}` fails with `error-nav-no-table`; FT-522 adds it.
+- **Keys.** F8 and Shift+F8 walk the findings on show (inside collapsed groups, revealing the row, respecting the
+  filter), wrap, and dock a closed pane without moving the focus; they open the finding as Enter does, and refuse
+  `reason-no-findings` when none is on show. F1 on a finding or rule row opens `reference/rules/<pack>.html#<id>`.
+- **Quick fixes (§7.4).** `messages.fix` is hidden and works only in a navigator; it re-runs the memoised check and
+  matches the fingerprint (no new public `ew-api` item); a row without a finding or fix refuses `reason-no-fix`. The
+  card opens in the Preview tab (part 3), its describe line ends ` fix "<rule>"`, Escape cancels it in navigator focus
+  and Ctrl+Enter applies it; a stale card previews again on Apply; Apply commits in one undo step whose history origin
+  is `quick fix <rule>` (through `note_history_origin`).
+- **Counts (§7.5).** No new `SessionCalls` counter: Run checks drops the table and refetches it, so `navigator_table`
+  rises by exactly 1.
+- **Not built:** an `ew.uiscript/1` script test of the MS flows (§9 item 1), FT-516; the real window was not driven.
+
 ## 8. Part 3: the preview tab, the renumber dialogs, the history panel
 
 ### 8.1 The Preview tab (D11, FR-UI-022)
@@ -506,7 +548,9 @@ are the number of entity changes. Apply and the stale rule as built.
 
 Golden B (AC-18, GUI): B1's settings step runs through `command.run` (its command, `project.settings.set`, is not this
 package's); its renumber through `devices.renumber { scope: "project", scheme: "page_based", include_frozen: true,
-only_nonconforming: true }`, whose preview lists exactly the 10 tag changes of doc 20 §2.2; B2 through `pages.renumber {
+only_nonconforming: true }`, whose preview lists exactly the 8 devices and 11 printed tags it changes (the 8 device
+tags and 1X1's terminals :1, :2 and :PE) on 1 page; doc 20 §2.2's 10 tag changes include the strips -X1031 and -X1032,
+which B1's settings step renames, not the renumber (amended in cycle 31, decision log ID-731); B2 through `pages.renumber {
 section: "1", start: 101 }`, whose preview lists exactly 2 tag changes (-106W1 → -104W1, -106W2 → -104W2) and 14
 cross-reference texts. Accept commits one transaction each; each undo restores the previous bytes (a save after the
 undo equals the bytes before the step, `generation` aside).
@@ -580,7 +624,57 @@ history entries 3 cursor 3
 Each list of the preview prints at most 20 lines, then `  more <list word> <n>`. An entry line ends with `merged <k>`
 when k > 1 and with `marker` for a non-undoable entry (the window's "not undoable"). The renumber and purge dialogs use
 the existing `field` and `item` lines. **New describe words (14, fewer by those already present):** `summary`, `entity`,
-`added`, `removed`, `changed`, `fields`, `xref`, `more`, `entries`, `entry`, `origin`, `merged`, `saved`, `redo`.
+`added`, `removed`, `changed`, `fields`, `xref`, `more`, `entries`, `entry`, `origin`, `merged`, `saved`, `redo`. *As
+built:* 13; `saved` is not needed, because marker texts are quoted, and the record kind is quoted in `entity` lines
+(`entity changed "page" "106" …`), so the vocabulary stays closed (§8.8).
+
+### 8.8 As built in cycle 31 (part 3)
+
+**WP-S2.09 part 3 delivered in cycle 31 (lane D31, integrated by lane I31; decision log ID-731, ID-732).** PV1 to PV7
+pass; 55 commands, 233 actions and 322 describe words at the lane (238 and 338 merged with part 2; 252 and 344 on the
+tip, ID-741). Built as §8 says, with these points:
+
+- **Below the shell (§4.2).** `output/preview.rs`: `PreviewEntity {change, kind, id, label, fields}` and
+  `Session::preview_entities`, ordered added, changed, removed, then kind, then label in natural order, then bytes,
+  then ID; an added record is labelled from the candidate model. `output/history.rs`: `HistoryRow {index, label,
+  origin, step, barrier, merged, rev, pages}` (`merged` is the number of transactions in the step; at most 8 pages in
+  page order; origins "GUI", "script <base name>", "external change", "import", else `label()`), `HistoryView {rows,
+  cursor, bytes, max_bytes, max_steps}`, `Session::history_view` and, beyond §4.2's list, `Session::history_entities`
+  for Show changes.
+- **The Preview tab (§8.1).** `PaneKind::Preview` and `PaneKind::History` share the bottom dock with Find, Jobs and
+  Messages. When its card ends the tab stays open and prints `preview none` ("No preview is open"); a new card brings
+  it forward and leaves the focus where it was; a card is identified by (base rev, command, params, origin), and a
+  stale card's rebuild counts as a new card. `preview.apply` and `preview.cancel` stay in the properties context and
+  accept an open Preview tab. The quick-fix card and the table card open it too; the table card keeps its inline card
+  in the navigator, because its per-cell Resolve and Drop live there (ID-732). Describe: `preview "<name>"
+  <ready|stale> rev <r>` or `preview "<name>" failed "<msg>"`, `summary records N tags T xrefs X pages P` (plus
+  `created c skipped s` for an import), `entity <change> "<kind>" "<label>" [fields "<f>"…]`, `tag "<old>" "<new>"`,
+  `xref "<folio>" "<old>" "<new>"`, `page "<folio>"`, `more <list> <n>`; tags in natural order of the old tag, xrefs
+  grouped by their page's order; at most 20 lines per list (`MAX_LIST`).
+- **The renumber dialogs (§8.3).** Window-only, as FT-408's forms: headless, a missing `start` or `scheme` fails with
+  `error-missing-param` naming it. Renumber pages' Section is a free-text field (a section number, or `front`),
+  default the current page's section; Start defaults to the first folio number of the section's own pages, leaving out
+  generated pages and the section divider (101 for Golden A's section 1); `front` sends the page IDs, a number the
+  section's ID. Renumber devices' scopes: `page` (the current page; `reason-no-page` without one) and `selection` (a
+  selected function or representation maps to its device; `reason-no-devices-selected` without one); the schemes are
+  `page_based`. PV2's measured counts are §8.3's as amended.
+- **The history panel (§8.4).** Entries numbered from 1; `history.undo_to {entry: n}` walks in one direction until the
+  cursor is at n and restores the context of the last step crossed. `history.row`, `history.undo_to` and
+  `history.changes` are global hidden actions enabled only while the panel is open (`reason-history-closed`); there is
+  no `history` context. Describe: `history entries <n> cursor <c>`, entries newest first, the row cursor's entry ending
+  ` cursor`; Show changes prints `changes entry <n> records <k>` and up to 100 `entity` lines (`MAX_CHANGES`), and
+  Escape closes it. The Saved marker (`marker-saved`) sits at the save's revision; quick-fix origins come from
+  `ShellModel::note_history_origin(rev, text)`, which is public. In the window each row has Undo to here and Show changes
+  buttons and a double-click; arrow and Enter routing is not built (FT-519). The header shows "<n> steps · cursor at
+  <c>" instead of "oldest kept: step k · a MB of b MB" (FT-518).
+- **Context restore (§8.5).** On the same page only the viewport moves, so the keyboard grid cursor survives; otherwise
+  the page is shown at the exact viewport with one back-history entry; the selection is filtered to items that resolve
+  as `id:<uuid>`; contexts are kept with `or_insert` per revision (a nested action keeps the nearer one), at most 500
+  (`MAX_CONTEXTS`).
+- **The purge step (§8.6).** The dialog lists base names (at most 20, `PURGE_LISTED`); `confirm: true` purges exactly the
+  hashes the dialog listed; a failure is `error-purge` with a path-free text. FT-417 closed.
+- **FT-466.** `file.import_qet` sits in the File ▸ Import submenu, which lists all of its items. Closed.
+- **Blind help.** `tools/blind/HELP.md` names the `preview` and `history` sections.
 
 ## 9. Determinism, the headless mode and exact counts
 
@@ -635,10 +729,10 @@ contradicts stops the lane for a lead ruling.
 | # | Check | Where | Proves |
 |---|---|---|---|
 | PV1 | `preview_entities`: added, changed and removed records with labels and fields in §4.2's order on a fixture command of each kind | `ew-api` tests | §4.2 |
-| PV2 | FR-UI-022's and AC-18's GUI acceptance, kittest and script: B1 through `command.run` then `devices.renumber` previews exactly the 10 tag changes; B2 through `pages.renumber` previews exactly 2 tags and 14 xref texts; the tab shows them with a page list; Accept commits one transaction each; a save after each undo equals the earlier bytes, `generation` aside | `ew-viewmodel`, `ew-ui` tests; `bin/elektrawatt/tests` | FR-UI-022, AC-18, D12 |
+| PV2 | FR-UI-022's and AC-18's GUI acceptance, kittest and script: B1 through `command.run` then `devices.renumber` previews exactly 8 devices and 11 printed tags on 1 page (§8.3); B2 through `pages.renumber` previews exactly 2 tags and 14 xref texts; the tab shows them with a page list; Accept commits one transaction each; a save after each undo equals the earlier bytes, `generation` aside | `ew-viewmodel`, `ew-ui` tests; `bin/elektrawatt/tests` | FR-UI-022, AC-18, D12 |
 | PV3 | Every card origin opens in the tab and keeps its chip; the `card` line byte-equal to the as-built expected texts; staleness: a commit while a card is open shows `stale` and Accept rebuilds as built; closing the tab cancels | `ew-viewmodel` tests | D11 |
 | PV4 | `history_view`: rows, origins, pages and merged counts on a fixture history of 4 GUI steps, a script step and an external change | `ew-api` test | §4.2 |
-| PV5 | FR-UI-023's acceptance (amended, D16): three edits on 101, 102 and 103, each with a selection; one undo shows 103 with its selection, a second 102 with its selection; redo returns to 102's step context; Undo to here on the first entry shows 101; markers for an export and a save sit at their revisions | `ew-viewmodel` tests; script | D13, §8.4, §8.5 |
+| PV5 | FR-UI-023's acceptance (amended, D16): three edits on 101, 102 and 103, each with a selection; one undo shows 103 with its selection, a second 102 with its selection; redo returns to 102's step context; Undo to here on the first entry leaves it applied by §8.4's stop rule and restores step 2's context (102), and one more undo shows 101 (amended in cycle 31, ID-731); markers for an export and a save sit at their revisions | `ew-viewmodel` tests; script | D13, §8.4, §8.5 |
 | PV6 | The purge step: the dialog lists `purge_preview`'s files; Purge commits the marker; an empty plan refuses; headless refuses `reason-human-only` | `ew-viewmodel` test | §8.6, FT-417 |
 | PV7 | Transcript, describe, the new words, the 8 actions re-blessed; the expected transcripts that a card now changes (the `layout:` line, the `preview` section) re-blessed in one reviewed commit listing them; scripts twice byte-identical; replay; exact counts; golden unchanged; targeted checks as JB9 | lane; tests | §8.7, §9 |
 

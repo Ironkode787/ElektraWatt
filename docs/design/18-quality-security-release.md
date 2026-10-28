@@ -1187,7 +1187,12 @@ NFR-SEC-19:
     `safe-to-run`; `[[exemptions.` entries of `supply-chain/config.toml`). Cycle 24's usvg crates and cycle 26's
     raster crates came with audits and left it at 387; cycle 26's regex family brings it to **386** (380
     `safe-to-deploy`, 6 `safe-to-run`; below). The cycle-28 clipboard-win full audit removes its old exemption,
-    leaving **385** current exemptions (379 `safe-to-deploy`, 6 `safe-to-run`).
+    leaving **385** current exemptions (379 `safe-to-deploy`, 6 `safe-to-run`). Cycle 31's table widget (WP-S2.06 part
+    3; decision log ID-728) adds three `safe-to-deploy` exemptions, `egui_table` 0.11.0, `vec1` 1.12.1 and `enumn`
+    0.1.14 (through egui's `serde` feature): **388** (382 `safe-to-deploy`, 6 `safe-to-run`); WP-S2.17's parts 1 and 6
+    add none. **The owner confirmed the approach on 2026-10-28** (decision log ID-723): the AI-performed audits and the
+    recorded exemptions stand for the pilot preview's 0.0.x builds, and later crates follow the same rule without a
+    per-crate confirmation; the burn-down below stays the rule before the first signed release.
   - *The GPU canvas's tessellation crates* (cycle 22; decision log ID-543, FT-326). `lyon_tessellation` 1.0.22,
     `lyon_path` 1.0.19 and `lyon_geom` 1.0.20 (MIT OR Apache-2.0) and `float_next_after` 1.0.0 (MIT) join the graph
     through `ew-render2d`. None has a build script and the build-script allowlist is unchanged. They are recorded as

@@ -5,11 +5,12 @@
 (canvas overlays, 0.9 pw); then part 3 (docks, rails, rows, the property grid, the status bar, the data grid and the
 built panes, 1.5 pw) ∥ part 4 (cards, the Preview tab, toasts, dialogs, menus, palette, empty states, 0.9 pw); 5.9 pw
 against a PERT of 6.0 pw (amended 2026-10-28 for the widgets built alongside doc 16a, §2.1 and §15.1); M-PP, before
-G-PP; one independent Opus review per cycle (ID-667) · **Date:** 2026-10-28 · **Work package:**
+G-PP; one independent Opus review per cycle (ID-667); **parts 1 and 6 delivered in cycle 31** (§5.1, §10.1; decision
+log ID-740, ID-737); D7 amended to an in-house pixel gate (ID-739) · **Date:** 2026-10-28 · **Work package:**
 [WP-S2.17](../02-work-packages.md#wp-s217-design-language-and-ui-polish) · **Design:**
 [16a design language](../../design/16a-design-language.md), [ADR-0031](../../adr/0031-design-language-and-task-ordered-command-bar.md)
-(Accepted) · **Visual reference:** the owner-approved [mockup](../../design/assets/design-language-mockup.html) · **Decision log:** the entries of §15.3, numbered by the orchestrator at the design pass that adopts this
-specification · **Part of:** ElektraWatt plan, specifications
+(Accepted) · **Visual reference:** the owner-approved [mockup](../../design/assets/design-language-mockup.html) · **Decision log:** the entries of §15.3, recorded as ID-724 to ID-727 and ID-739 at the cycle-31 design pass (part 6
+ID-737, part 1 ID-740; follow-ups FT-519 to FT-523, §15.4) · **Part of:** ElektraWatt plan, specifications
 
 **Purpose.** This is the closed specification of the package that gives the window its design language: one token
 source with light, dark and high-contrast themes, the task-ordered command bar, the navigator rail with Properties
@@ -108,7 +109,7 @@ deterministically.
 | Only Noto Sans Regular and Bold are bundled | Part 1 bundles SemiBold (D8) |
 | The property sheet has no notion of a primary field | Part 3 marks primary fields in the viewmodel by kind (D11), not in `ew-api` |
 | The chip placement of FT-389 knows the statistics panel but not the ghost label | Part 5 makes one placement function for every canvas chip (D13) |
-| `egui_kittest` is built without `snapshot` and `wgpu` | D7 |
+| `egui_kittest` is built without `snapshot` and `wgpu` | D7 (as amended: an in-house pixel gate, no new package) |
 
 ## 3. The decisions of this specification
 
@@ -122,7 +123,7 @@ Each is a lead ruling; the design pass records them (§15.3). The taste choices 
 | D4 | **One token module in `ew-ui`** (`theme/`), with global ramps, alias tokens per theme and component sizes per density; `theme::apply` maps them onto egui; a dump `tests/expected/tokens.txt`; a source guard test fails on `Color32` constructors, hex literals and numeric `CornerRadius`, `Stroke` or `Margin` literals in `crates/ew-ui/src/**` outside `theme/` and `icons/generated.rs` | P7 made checkable |
 | D5 | **Default theme follows the system** (egui's theme preference, doc 16 §11.1); light is the reference for snapshots and the mockup; the high-contrast themes are selectable in View ▸ Theme | As doc 16 decided; confirmed 2026-10-28 (§15.5) |
 | D6 | **Two densities**, Comfortable default, stored as `density` in `settings.toml` and set by `view.density { value }`; Compact changes the row height, the command row and the command buttons' layout only, as in the mockup | JetBrains' compact-mode precedent; one switch, no per-panel densities |
-| D7 | **Dependency decision: `egui_kittest` dev-features `snapshot` and `wgpu`** for `ew-ui`'s tests (MIT OR Apache-2.0; adds the image-diff crate `dify` and its tree). The lane runs `cargo deny check` and `cargo vet` for the added crates and stops if a licence is outside ADR-0024's allowlist or an audit is missing (the orchestrator records the audits). Snapshot tests are `#[cfg(all(feature = "snapshots"))]` behind an `ew-ui` test feature, run in one CI job with an adapter (Windows WARP); thresholds in `kittest.toml` (`threshold` 0.6, `max_failed_pixels` ≤ 10); `UPDATE_SNAPSHOTS=true` re-blesses | Pixel snapshots are the only machine check of a look; one platform keeps them stable; the deterministic CPU `view.snapshot` covers the canvas overlays on every platform (§11) |
+| D7 | **Chrome snapshots by an in-house pixel gate** (*amended in cycle 31, decision log ID-739*: the first text, `egui_kittest`'s dev-features `snapshot` and `wgpu`, is **rejected**, because they brought 13 packages into the lock, among them a URL opener and two environment sniffers). Part 1's offscreen renderer (egui-wgpu on `ew-render2d`'s headless device, PNG through `ew-render-cpu`; no new package) draws the main window and the component gallery; an `ew-ui` test compares each image with a blessed PNG under `crates/ew-ui/tests/expected/snapshots/` (a pixel differs when a channel differs by more than a tolerance; at most a set number of differing pixels; a diff image written on failure; `EW_BLESS=1` re-blesses); the tests are `#[cfg(all(feature = "snapshots", windows))]` behind an `ew-ui` test feature and run in CI's `test-windows-3` (through `--all-features`) with WARP, uploading their images on failure; as built, a channel tolerance of 4/255 and at most 10 differing pixels over 8 gated images | Pixel snapshots are the only machine check of a look; one platform keeps them stable; a few dozen lines of comparison code cost less than thirteen packages in the development graph; the deterministic CPU `view.snapshot` covers the canvas overlays on every platform (§11) |
 | D8 | **Asset decision: `NotoSans-SemiBold.ttf`** from the same Noto Sans release as the bundled Regular (OFL-1.1, `assets/fonts/`, the existing REUSE entry and `NOTICE` line extended); UI only (`FontFamily::Name("semibold")`); drawings unchanged | ADR-0028's family; a 13-px emphasis that Bold makes too heavy; no licence change |
 | D9 | **Asset decision: Tabler Icons 3.50.0, vendored** as the SVG files actually used (about 110) under `assets/icons/tabler/` with `LICENSES/MIT.txt` and a `REUSE.toml` annotation naming Tabler's copyright line; the project's own glyphs under `assets/icons/ew/` (GPL-3.0-or-later, the application's licence); `cargo xtask gen-icons` converts both with `kurbo` (already in the lock) into `crates/ew-ui/src/icons/generated.rs` (committed, `--check` in CI); no runtime SVG parsing, no icon font, no new product dependency | Deterministic, testable, stroke width as a token; no wrapper crate that lags egui |
 | D10 | **The default Schematic workspace changes**: left column = navigator group (rail-driven: Project with Pages and Devices, Terminal strips, Cables, Potentials, Structure, then the rest; History at the rail's foot) over Properties (50 : 50); right column = palettes group, closed; bottom group closed until opened; the workspace file format `ew.workspace/1` is unchanged and an old file still loads (its panes keep their places) | Doc 16a §5.1; the canvas gets 72 % of a 1280-px window |
@@ -148,7 +149,7 @@ Each is a lead ruling; the design pass records them (§15.3). The taste choices 
 **Rules the lanes keep** (the earlier packages' rules stand: through `Session` only, no `unsafe`, no unordered output,
 no egui name outside `ew-ui` and `elektrawatt`, no `ew-model` name in `ew-viewmodel` or `ew-ui`):
 1. **No change below the shell**: nothing in `ew-api`, `ew-commands`, `ew-model`, `ew-store` or any format crate.
-2. **No new product dependency**; the dev-features of D7 and the assets of D8 and D9 are the only additions;
+2. **No new product dependency**; the assets of D8 and D9 are the only additions (D7 as amended adds no package);
    `cargo xtask check-deps`, `check-licence-map` and `reuse lint` stay green.
 3. **Golden A's outputs do not change**; no file under `golden/` changes.
 4. **No literal styling** outside `theme/` (D4's guard).
@@ -187,6 +188,32 @@ change, no history entry), all in the palette and in View. No command is added.
    passes); the window looks right in all four themes at this point, before the layout changes.
 7. **A component gallery** (`ew-ui` test-only `gallery.rs`): buttons in every state, fields, rows, chips, a menu, a
    dialog and a toast, used by the snapshots of parts 1 and 4.
+
+### 5.1 As built in cycle 31 (part 1)
+
+**Part 1 delivered in cycle 31 (lane J31; decision log ID-740).** Commits cf52e7a9, f90a7e5e, 40be0315, 272d6a3a and
+face6da6; the blind references re-blessed in 9af26fc2 (55 commands, 254 actions, 344 words).
+
+- **Tokens** (`crates/ew-ui/src/theme/`): `tokens.rs` holds doc 16a v1.1's ramps, then aliases, then components
+  (including §4.15's and §6.21 to §6.25's table, history and card tokens); `apply.rs` has `style_of`, `apply`,
+  `apply_setting` and `font`; `mod.rs` has `Theme`, `Density`, `contrast`, `current(ctx)` and small helpers. The dump
+  is blessed in `tests/expected/tokens.txt`; the literal guard (DL4) passes over `crates/ew-ui/src/**`.
+- **Settings:** `theme` takes `system | light | dark | hc-dark | hc-light` (`system` installs Light and Dark in egui's
+  two slots with the system preference); `density` takes `comfortable` (default) or `compact`; View ▸ Theme
+  (`view.theme`, `value:text`, because `hc-dark` is not a word of the signature grammar) and View ▸ Density
+  (`view.density`, an enum). Compact changes only the row height (24), the command row (36) and the large command size.
+- **Fonts:** the `semibold` family is Noto Sans SemiBold, then Regular, then Math; the file comes from the same upstream
+  commit as the bundled Regular and Bold and is pinned by its SHA-256 in a unit test, `NOTICE` and `REUSE.toml`.
+- **Snapshots and the pixel gate (D7 as amended):** egui-wgpu on `ew-render2d`'s headless device renders the main
+  window and the component gallery; 8 images are gated (the main window light and dark in both densities, the gallery
+  in the four themes at ppp 1) against `tests/expected/snapshots/*.png` (about 801 KB) with a channel tolerance of
+  4/255 and at most 10 differing pixels; the other images (high-contrast main windows, the gallery at ppp 2) are
+  written for review only. Windows only, in `test-windows-3` through `--all-features`, with the images uploaded on
+  failure. **Proven on local WARP only** (three identical runs); the first hosted run confirms it.
+- **Migration:** every literal colour and size, including WP-S2.06 part 3's table, WP-S2.09 part 3's Preview tab and
+  history panel and part 6's icons, takes a token. Gaps left to later parts are listed in §15.4.
+- **Checks:** DL1 to DL6 and DL8 pass (DL7 with the settings tests); IC6's role colours can now read the tokens (part
+  2 wires them with the placements).
 
 ## 6. Part 2: the command surface
 
@@ -295,6 +322,35 @@ change, no history entry), all in the palette and in View. No command is added.
 4. **`icons::paint`** draws an icon in a rect with the token stroke (doc 16a §4.11) scaled by ppp.
 5. **An icon gallery** in the component gallery for the snapshots.
 
+### 10.1 As built in cycle 31 (part 6)
+
+**Part 6 delivered in cycle 31 (lane L31; decision log ID-737).** Commits 8a20bb68 and 44070459.
+
+- **Vendored:** 96 outline SVGs of Tabler Icons 3.50.0 (fewer than item 1's estimate of about 110) from the npm
+  package, the archive's SHA-256 in `NOTICE`; `focus-2` (Go to) holds a filled dot and is replaced by
+  `current-location`. `REUSE.toml`, `NOTICE` and `ci/licence-map.toml` carry Tabler's copyright line as its MIT licence
+  states it (ID-738).
+- **EW glyphs:** black box, cable, interruption point, potential (a conductor with two node dots and taps ending in open
+  circles, after one redraw), QET grid, structure box and terminal strip, keys `ew-<stem>`, annotated in `REUSE.toml`;
+  dashes and dots are separate subpaths, never `stroke-dasharray`.
+- **The generator:** `cargo xtask gen-icons [--check]` parses each `d` with `kurbo::BezPath::from_svg` (kurbo 0.13.1,
+  `std` only; no new package or feature edge), refuses any element but `svg` and `path`, any fill, any `style`, a
+  viewBox other than `0 0 24 24` and a `stroke="none"` path other than Tabler's bounding box (dropped), rounds to
+  1/1000 and sorts by key; `generated.rs` (103 icons, `#[rustfmt::skip]`) is checked by `xtask ci` and the docs
+  workflow.
+- **In `ew-ui`:** `IconId` (snake_case variants, `ALL`, `KEYS`, `COUNT`, `from_key`, `key`), `icons::shapes(id, rect,
+  color, stroke_px)` and `icons::paint`; round caps and joins are discs of half the stroke at every vertex (epaint has
+  neither), curves flattened at 0.05 pt; the icon fills the rect's largest centred square; stroke, size and colour are
+  parameters until part 1's tokens. The icon map (doc 16a names about 20 icons) is recorded in `tests/icons.rs`; part 2
+  reuses it; the Potentials rail uses `ew-potential`, because `bolt` is the product mark.
+- **Checks now:** IC1; IC2's generator half and table half (every key 16a names and the seven EW keys exist); IC3 (16,
+  20 and 24 px at ppp 1 and 2, every vertex inside the rect plus one pixel); IC4 (the About notices name Tabler;
+  `reuse lint` clean); IC6's metrics (16 and 20 px, 1.5-px stroke, cap discs of radius 0.75) and its names (every titled
+  mockup control holding an icon is in a title-to-key table whose keys exist).
+- **Deferred:** IC5, the icon gallery snapshot, to part 1's component gallery and D7's gate; IC2's "every key used by the
+  registry and the rails", to part 2 (`IconId::from_key(meta.icon)` for each placed action); IC6's role colours as
+  tokens (secondary at rest, accent when active), to part 1's token module.
+
 ## 11. Determinism, the headless mode and snapshots
 
 1. **Transcripts and describe** stay deterministic: the command bar, rails and status lines are sorted by the
@@ -303,8 +359,8 @@ change, no history entry), all in the palette and in View. No command is added.
 2. **Canvas overlays** are proven on the deterministic CPU path: `view.snapshot` PNGs of folio 101 with a selection,
    a ghost with its chip, four highlights and a measurement, blessed under `crates/ew-ui/tests/expected/` and equal on
    every platform (as the existing canvas snapshots are).
-3. **Chrome snapshots** (D7) run on Windows with WARP in one CI job and locally; elsewhere they are skipped with a
-   printed reason. Each part blesses its own images; the reviewer looks at them.
+3. **Chrome snapshots** (D7 as amended: part 1's offscreen renderer and the in-house pixel gate) run on Windows with
+   WARP in one CI job and locally; elsewhere they are not compiled. Each part blesses its own images; the reviewer looks at them.
 4. **No time, path, process ID or UUID** in any new describe line, notification or dialog text.
 
 ## 12. Acceptance checks
@@ -388,9 +444,9 @@ is Dark, `[data-density=compact]` is Compact.
 | DK7 | Snapshot: the main window on Golden A folio 101 at 1280 × 800, light and dark, Comfortable and Compact, and at 300 % UI scale (light, Comfortable); reviewed beside the mockup | snapshot | Doc 16a §5, NFR-A11Y-04 |
 | DK8 | **Matches the mockup's layout:** G5 to G10 and G14 within tolerance; the first five rail entries in the mockup's order (Project, Terminal strips, Cables, Potentials, Structure) with History at the foot; the Project entry shows the Pages and Devices segmented control | `ew-ui` kittest | D10, mockup |
 | DK9 | Data grid on Golden A's Terminal strips navigator in table mode: the grid is one `Table` node; header cells are buttons "Sort by <column>" and the sorted one paints the sort icon; the key column stays at the left after a horizontal scroll and paints its `color.table.frozen_edge` line; a marked row paints `color.accent.subtle`, the cursor row the 2-px bar and the cursor cell the 2-px ring (1 px when the focus is elsewhere); a double click opens an editing cell with the accent border; every key of doc 16a §6.21 dispatches the same actions as before the restyle (the dispatch log equals the as-built expected log); row height `size.row` in both densities, header `size.table_header` | `ew-ui` kittest (probes of the painted shapes) | Doc 16a §6.21, as-built behaviour kept |
-| DK10 | Messages on Golden A with one error, one warning and one pending completeness finding: the three severity icons are distinct shapes at 16 px in their colours; the pending row's icon and title use the tertiary tone and it carries a "Pending" badge node; every finding row's accessible name holds its severity word; the header's live value is the as-built sentence; Fix… is disabled with a reason on a read-only project; in table mode the severity cell paints icon and word | `ew-ui` kittest | Doc 16a §6.24, FR-UI-025 (not colour alone) |
+| DK10 | Messages on Golden A with one error, one warning and one pending completeness finding: the three severity icons are distinct shapes at 16 px in their colours; the pending row's icon and title use the tertiary tone and it carries a "Pending" badge node; every finding row's accessible name holds its severity word; the header's live value is the as-built sentence; Fix… is disabled with a reason on a read-only project; in table mode the severity cell paints icon and word (this clause waits for FT-522: as built the Messages pane has no table mode, decision log ID-732) | `ew-ui` kittest | Doc 16a §6.24, FR-UI-025 (not colour alone) |
 | DK11 | History after three commits and one undo: the current entry paints `arrow-right` and the strong style, the undone entry `arrow-back-up` in `color.history.undone` and its name ends ", undone"; the row actions are named icon buttons; a marker line is a separator row; Show changes opens in the dialog frame and Escape closes it; the chip line's jump chips are buttons "Open <folio>-<cell>" | `ew-ui` kittest | Doc 16a §6.24 |
-| DK12 | Snapshot: the Terminal strips grid in table mode (a sorted column, a derived column, two marked rows, the cursor cell, an editing cell), the Messages pane in tree and table mode, and History, light and dark, Comfortable and Compact; the grid reviewed beside the mockup's component sheet | snapshot | Doc 16a §6.21, §6.24, mockup |
+| DK12 | Snapshot: the Terminal strips grid in table mode (a sorted column, a derived column, two marked rows, the cursor cell, an editing cell), the Messages pane in tree mode (its table mode with FT-522, ID-732), and History, light and dark, Comfortable and Compact; the grid reviewed beside the mockup's component sheet | snapshot | Doc 16a §6.21, §6.24, mockup |
 
 ### 12.4 Part 4
 
@@ -437,7 +493,8 @@ ID-512); the integrating session runs `cargo xtask ci` at the cycle delivery.
 **Part 1:** new `crates/ew-ui/src/theme/**`, `crates/ew-ui/src/fonts.rs`, every `crates/ew-ui/src/*.rs` for literal
 migration only, `crates/ew-ui/tests/{theme.rs,gallery.rs}` and `tests/expected/tokens.txt`, `crates/ew-viewmodel/src/settings.rs`
 (theme and density), `assets/fonts/NotoSans-SemiBold.ttf`, `REUSE.toml` (the fonts entry), `NOTICE`, `crates/ew-ui/Cargo.toml`
-(dev-features of D7), `kittest.toml`, `supply-chain/**` only as the orchestrator directs.
+(the `snapshots` test feature and an existing package as a dev-dependency for D7 as amended), `crates/ew-ui/tests/expected/snapshots/**`,
+`.github/workflows/**` (the snapshot job), `supply-chain/**` only as the orchestrator directs.
 **Part 6:** `assets/icons/**`, `LICENSES/MIT.txt` if a line is needed, `REUSE.toml` (the icons entry), `xtask/src/**`
 (`gen-icons`), `crates/ew-ui/src/icons/**`, the About notices.
 **Part 2:** `crates/ew-viewmodel/src/{actions.rs,command_bar.rs (new),describe.rs,strings.rs,shell.rs}` and the tool
@@ -467,8 +524,8 @@ second lane to integrate rebases on the first. Read-only for the lanes: every cr
 
 ## 14. Review checklist for the Opus reviewer
 
-1. **Scope.** Nothing below the shell changed; no golden file; no product dependency; assets and dev-features exactly
-   D7 to D9 with their licences and REUSE entries.
+1. **Scope.** Nothing below the shell changed; no golden file; no product dependency and no new package for D7; assets
+   exactly D8 and D9 with their licences and REUSE entries.
 2. **Tokens.** The dump matches doc 16a §4; the contrast test covers every pair of §4.5 and §4.6; no literal outside
    `theme/`.
 3. **Registry.** One placement per action; bar, app menu and palette agree; nothing reachable only by pointer.
@@ -530,7 +587,10 @@ generator is closed); part 2 Opus at `high` (the registry, the chrome and every 
 part 3 Opus at `medium`; part 4 Opus at `medium`. Each wave is one lane-cycle with the cycle's independent review and a
 window check by a model that reads screenshots, at 1280 × 800 and 1920 × 1080, light and dark.
 
-### 15.3 Decision-log entries (to be numbered at the design pass)
+### 15.3 Decision-log entries (recorded at the cycle-31 design pass)
+
+Items 1, 3 to 11 and 13 are ID-726 (item 13's plan also ID-724); items 2, 12 and 14 are ID-725; item 15 is ID-727;
+item 5's D7 was rejected and amended by ID-739. Part 6 as built is ID-737; part 1 as built is ID-740.
 
 1. WP-S2.17 specified in six parts and three waves, 5.6 pw against a PERT of 5.7 pw, the de-scope rule (D1, §15).
 2. The design language (doc 16a) and ADR-0031 Accepted; the owner-approved mockup committed as the visual reference
@@ -564,18 +624,26 @@ window check by a model that reads screenshots, at 1280 × 800 and 1920 × 1080,
 None new at specification. Each lane reports the deviations it needs; the de-scope rule's items become follow-ups if
 they leave.
 
-*Proposed with the widget mapping (2026-10-28; numbered at the design pass that adopts them; none is part of this
-package):* the five behaviour changes of doc 16a §6.25: (1) the pick-stack chooser on doc 16a §6.22, (2) the HUD's
-pick-stack hint, (3) Messages opening in table mode with the mockup's five columns, (4) the sort state in a header's
-accessible name, (5) History's row actions on demand.
+*Proposed with the widget mapping (2026-10-28; none is part of this package), numbered at the cycle-31 design pass
+(ID-727):* the five behaviour changes of doc 16a §6.25: (1) the pick-stack chooser on doc 16a §6.22, **FT-520**; (2)
+the HUD's pick-stack hint, **FT-521**; (3) Messages opening in table mode with the mockup's five columns, **FT-522**;
+(4) the sort state in a header's accessible name, **FT-523**; (5) History's row actions on demand, **FT-519** (with the
+window's arrow and Enter routing of WP-S2.09 §8.4).
+
+*Assigned inside the package at the cycle-31 design pass (ID-740; the part-1 lane's design-language gaps, no new
+FT):* a property-indent token (part 3), a dock tab token (part 3), the link preview as a popover, the pattern card's
+group frame and the Preview list as the card strip of 16a §6.23 (`size.card_strip` and `color.card.strip` are defined
+but unused) (all part 4), the tool chip's padding, the statistics panel (16a §7.7), the highlight slot colours as tokens (D14) and `ew-render2d`'s overlay
+theme (all part 5). FT-514, the stale hint after a dialog while the window is inactive, is absorbed by part 2 with the
+HUD (ID-726).
 
 ### 15.5 Decided (2026-10-28)
 
 The owner approved the mockup; the orchestrator decided the rest under the owner's delegation: **ADR-0031 is
 Accepted**; **the accent is Volt blue** #0B63CE (light) and #5AA2FF (dark); **the default density is
 Comfortable**; **the default theme follows the system**; **Noto Sans SemiBold (OFL-1.1) and Tabler Icons 3.50.0
-(MIT) are accepted** as assets (D8, D9). D7's dev-features stay a dependency decision for the part-1 lane's
-`cargo deny` and `cargo vet` run.
+(MIT) are accepted** as assets (D8, D9). D7's dev-features were rejected at part 1 for an in-house pixel gate
+(ID-739).
 
 **Plan dates.** The calendar is unchanged: WP-S2.17's 5.7 pw are taken from WP-S2.08 (O 4.5 · L 6.5 · P 9.5 to
 O 1.5 · L 2.5 · P 4.5, 4.0 pw: the theming, colour-vision and contrast half and the look of the palette, tooltips and

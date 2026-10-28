@@ -5,7 +5,8 @@ cycle 27, ID-650): part 1 (the navigator framework, the Pages navigator on it wi
 reorder, the Devices navigator, selection synchronisation, 2.2 pw, D4), part 2 (the nine further navigators and
 potential and net highlighting, 1.05 pw, D3), part 3 (table mode: columns, cell editing, fill-down, pattern fill, paste
 from Excel, 1.5 pw, D4); order 1 → 2 → 3; one independent Opus review per cycle (ID-667); **parts 1 and 2 delivered in
-cycle 30** (§6.11, §7.5; decision log ID-709, ID-712, ID-713), part 3 next ·
+cycle 30** (§6.11, §7.5; decision log ID-709, ID-712, ID-713), **part 3 delivered in cycle 31** (§8.9; decision log
+ID-728, ID-729, ID-732), so the package is complete ·
 **Date:** 2026-10-28 · **Work package:**
 [WP-S2.06](../02-work-packages.md#wp-s206-navigators-and-table-mode) · **Decision log:** ID-681 to ID-689, the nine
 entries of §15.3 in order (follow-ups FT-486 to FT-493, the eight of §15.4 in order) · **Part of:** ElektraWatt plan,
@@ -750,6 +751,18 @@ words (309 + the 6 of §8.8). Built as §8 says, with these points:
   through the built binary twice byte-identically and replays its record (two `fields.set`).
 - **FT-509.** Every tab group of two or more panes in the dock has an "All tabs" menu (≡) at the right of its tab
   strip that lists every pane and activates the chosen one, so tabs pushed out by the strip's overflow stay reachable.
+- **Integration (cycle 31, lane I31; decision log ID-732, ID-741).** On the merged tip with WP-S2.09 parts 2 and 3 the
+  counts are 55 commands, **252 actions and 344 describe words**. The Messages pane (WP-S2.09 part 2) has **no table
+  mode**: its rows are findings under their own header and detail block, so `navigator.table {kind: messages}` fails
+  with `error-nav-no-table`, the window shows no Table toggle there, and its rows word is finding/findings; FT-522
+  adds the mockup's Messages table. The table card also opens WP-S2.09's Preview tab and keeps its inline card in
+  the navigator, where its per-cell Resolve and Drop live; Apply works through `navigator.apply` and
+  `preview.apply`. `card_shown` accepts an open table gesture; `reorder_card` accepts Reorder, QuickFix and Table
+  cards; Escape runs the table's dismissal before the reorder or quick-fix card's cancel.
+- **Follow-ups.** FT-515: a potential known only by a name at a connection point would compile a `fields.set` on
+  `potential_def` with the CP's ID as target (`row_targets` does not check the record kind). FT-523: a sorted
+  header's accessible name does not say the sort direction. The table's look is WP-S2.17 part 3's (16a §6.21, DK9,
+  DK12).
 
 ## 9. Determinism, the headless mode and exact counts
 

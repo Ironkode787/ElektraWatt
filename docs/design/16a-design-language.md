@@ -1,6 +1,7 @@
 # Design language
 
-**Status:** v1.1, accepted 2026-10-28; v1.1 adds the built widgets (§4.15, §6.21 to §6.25) · **Date:** 2026-10-28 · **Decision:** [ADR-0031](../adr/0031-design-language-and-task-ordered-command-bar.md)
+**Status:** v1.1, accepted 2026-10-28; v1.1 adds the built widgets (§4.15, §6.21 to §6.25); cycle-31 design pass: the
+Messages pane has no table mode as built, the History keys as built, the follow-ups numbered (decision log ID-727, ID-732) · **Date:** 2026-10-28 · **Decision:** [ADR-0031](../adr/0031-design-language-and-task-ordered-command-bar.md)
 (Accepted) · **Visual reference:** [the mockup](assets/design-language-mockup.html) (approved by the owner) · **Work package:**
 [WP-S2.17](../plan/specs/WP-S2.17-design-language-and-ui-polish.md) · **Part of:** ElektraWatt design document set
 
@@ -655,10 +656,10 @@ shows the object), Page (80 px) and Rule (90 px), the last two with tabular digi
 closes with its close button or Escape in an empty pane, and remembers its height.
 
 *As built (WP-S2.09 part 2, 2026-10-28).* Messages is `NavKind::Messages` on the navigator framework: a tree of
-severity groups, rules and findings (§6.24), with the framework's Table toggle that shows the same rows as a data grid
-(§6.21) whose columns are severity, rule, message, object, page and cell, fix and state. The mockup's table is that
-grid with the mockup's five columns on show; which view opens first, and the mockup's column order as the grid's
-default, are a proposed follow-up (§6.25), not part of the restyle. The other bottom panes as built: Find (table
+severity groups, rules and findings (§6.24). Its rows carry the columns severity, rule, message, object, page and
+cell, fix and state, but **the pane has no table mode** (decision log ID-732: `navigator.table` refuses it and no Table
+toggle shows). The mockup's table, a data grid (§6.21) with the mockup's five columns on show and opening first, is
+FT-522, not part of the restyle. The other bottom panes as built: Find (table
 rows), Jobs (§6.19 and §6.25), History (§6.24) and Preview (§6.23).
 
 ### 5.8 The status bar
@@ -1050,11 +1051,11 @@ states, density and the keyboard and accessibility it keeps. The part column nam
 | Table toggle, Columns menu, pattern fill card, table card | Icon button §6.3; menu §6.13; card §6.9 and §6.23 | `size.control.inline`, `color.surface.raised`, `elevation.1` | Toggle Selected; menu items checked or disabled with reason; card stale or failed | Menu rows `size.row` | Named toggle, check boxes, "Move <column> left/right"; the pattern field's Enter and Escape | 3 (toggle, menu); 4 (cards) |
 | Messages tree rows and severity icons (`navigator.rs`, `messages.rs`, WP-S2.09 part 2) | Tree row §6.6 with the finding-row anatomy §6.24 | `size.severity_icon`, `color.error`, the warning icon colour, `color.accent`, `color.text.tertiary` | Rest, hover, selected, focused, pending | Row height | `Tree` and `TreeItem` with level, position, expanded; severity word in the name; F8, Enter, `navigator.jump` | 3 |
 | Messages header counts, detail block, footer | Count badges §6.16; text styles §4.8; Secondary button and link §6.2 | `color.*.subtle` fills, `type.small`, `type.body.strong`, `type.caption` | Fix… disabled with reason on a read-only project | None | Header a polite live region; buttons named by their text | 3 |
-| Messages in table mode | Data grid §6.21; the severity cell draws icon and word in SemiBold in the severity colour (the mockup's Severity column) | as the grid, plus `size.severity_icon` | as the grid | Row height | as the grid | 3 |
+| Messages in table mode (not built, FT-522) | Data grid §6.21; the severity cell draws icon and word in SemiBold in the severity colour (the mockup's Severity column) | as the grid, plus `size.severity_icon` | as the grid | Row height | as the grid | 3, with FT-522 |
 | Messages quick-fix card | Inline card §6.23 | as §6.9 | Stale, failed | None | Live summary; Apply, Cancel | 4 |
 | Preview tab (`preview.rs`, WP-S2.09 part 3) | Preview tab §6.23 | `size.preview_list`, `size.row`, `type.body.strong`, status badges | Card open, stale, failed, empty | List row height | `Group` "Preview"; polite header; Apply, Cancel | 4 |
 | "Preview open" strip | Card strip §6.23 | `size.card_strip`, `color.card.strip`, `color.accent` | Rest, hover on its buttons | None | Polite live; Apply, Cancel, Show | 4 |
-| History panel (`history.rs`, WP-S2.09 part 3) | History rows §6.24; empty state §6.17 | `color.history.undone`, `color.accent`, `size.row`, count and status badges | Done, current, undone, cursor (Selected), focused | Row height | `Group` "History"; each entry a `Group` named by label and state; Up, Down, Enter through `history.row` and `history.undo_to`; Tab to the row buttons | 3 |
+| History panel (`history.rs`, WP-S2.09 part 3) | History rows §6.24; empty state §6.17 | `color.history.undone`, `color.accent`, `size.row`, count and status badges | Done, current, undone, cursor (Selected), focused | Row height | `Group` "History"; each entry a `Group` named by label and state; the actions `history.row` and `history.undo_to` exist, but the window routes no Up, Down or Enter yet (FT-519); Tab to the row buttons | 3 |
 | Show changes popup | Dialog frame §6.12 (small, non-modal) | `color.surface.raised`, `elevation.2`, `radius.lg` | — | List row height | Escape and Close | 3 |
 | Pick stack (`tools::pick_stack`, FT-500) and the hover outline | Canvas hover outline §7.1 on the stack's first entity; the walk moves the selection (§7.1) | `canvas.hover`, `canvas.selection` | Hover, selected | None | The repeated click walks the stack, Shift and Ctrl never walk; no node of its own | 5 |
 | Chip line "Not on this page" (`navigator.rs`, WP-S2.06 part 1) | Jump chip §6.24 | `radius.pill`, `color.border.default`, `color.accent` | Rest, hover, focused | None | Buttons "Open <folio>-<cell>" | 3 |
@@ -1063,8 +1064,8 @@ states, density and the keyboard and accessibility it keeps. The part column nam
 | Toasts and the notifications log (`notifications.rs`) | §6.10 (complete; it moves the stack to the canvas's top right) | `elevation.2`, `radius.lg` | Action valid or not | None | Polite live; 8 s on the window's clock; the log never takes the focus | 4 |
 | Recovery dialog and the read-only banner | §6.12, §6.11 (complete; wording in WP-S2.17 part 4) | `elevation.2`, the warning subtle fill | — | None | Escape cancels; Enter the Primary | 4 |
 
-**Proposed follow-ups** (behaviour the design language suggests; none is part of the restyle, each is numbered at
-the design pass that adopts it):
+**Proposed follow-ups** (behaviour the design language suggests; none is part of the restyle; numbered at the
+cycle-31 design pass, decision log ID-727: 1 is FT-520, 2 FT-521, 3 FT-522, 4 FT-523, 5 FT-519):
 1. **Pick-stack chooser.** Alt+click (or a held click) on overlapping objects opens the chooser list of §6.22 with the
    pick stack, the active row outlined on the canvas; the repeated-click walk stays.
 2. **Pick-stack hint.** While the pointer is over more than one pickable object, the HUD's prompt says so ("3 here ·

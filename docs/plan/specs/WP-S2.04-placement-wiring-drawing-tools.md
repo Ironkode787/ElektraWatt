@@ -327,6 +327,20 @@ Picking keeps WP-S2.02's entity rectangles (smallest area containing the point i
 in paint order); a connection is picked when the exact integer distance from the point to a segment of its `polyline`
 is at most 4 points at the current zoom (ties by smaller distance, then by ID).
 
+*As built (cycle 31, FT-500; decision log ID-734):* picking is a pick stack (`tools::pick_stack`) of three groups: R,
+the non-connection, non-structure-box entities whose rectangle, inflated by 4 points, holds the point (smallest area
+first, ties to the later in paint order); C, the connections whose drawn polyline passes within 4 points (nearer
+first, then by ID); B, the structure boxes whose outline passes within 4 points (nearer first, then by ID). The stack
+is C, R, B when R is empty, or when R's first is a representation and the nearest connection's line is strictly
+nearer to the point than the nearest centre of that representation's rectangles that hold it; otherwise R, C, B. The
+pick is the first entry. A plain click repeated within 3 points of the walk's first press, on the same page and
+revision, while the selection is still exactly what the last plain click selected, selects the next entity of the
+stack; the last wraps to the first. This also holds for the click that a press on a selected connection's segment
+becomes, and for Activate (Enter); Shift and Ctrl clicks never walk. A press on a wire's line inside a
+representation's rectangle that turns into a drag moves the representation. The page text's wire point (`at X Y mm`)
+is a point where the wire is first in the stack and the only connection in it, with no link under it. The hover
+outline keeps WP-S2.02's rectangle pick until WP-S2.17 part 5 (OV7); a chooser and a HUD hint are FT-520 and FT-521.
+
 ### 6.7 Readouts (FR-UI-018's rest)
 
 While a drag or a route is in progress the overlay carries a `Label` next to the ghost: for a move `dx <dx> dy <dy> mm`
