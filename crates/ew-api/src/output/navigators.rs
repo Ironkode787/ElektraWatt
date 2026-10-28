@@ -2349,17 +2349,18 @@ mod tests {
     }
 
     /// TB1 (D10, §8.2): each route of the editable-column table is an `EditRoute::FieldsSet` of `field_catalogue` with
-    /// a scalar `FieldType`, and the catalogue's identifier flag (which table mode's policy reads) is set for the
-    /// terminal designation only; every column of every navigator carries the route or the read-only reason of §8.2's
-    /// precedence at column level ("derived" before "no command yet").
-    ///
-    /// §8.2 marks the potential's name and the structure node's code as identifiers too; WP-S2.05's catalogue
-    /// (`IDENTIFIERS`, FR-UI-044 rule 2) does not, so the two disagree on those rows. The table follows the catalogue
-    /// (one source for the grid and the table); the disagreement is reported for a ruling (lane A31).
+    /// a scalar `FieldType`, and the catalogue's identifier flag (which table mode's policy reads) is set exactly for
+    /// §8.2's identifier rows (the terminal designation, the potential's name and the structure node's code); every
+    /// column of every navigator carries the route or the read-only reason of §8.2's precedence at column level
+    /// ("derived" before "no command yet").
     #[test]
     fn tb1_the_editable_columns_are_scalar_fields_set_routes_of_the_catalogue() {
         use crate::output::{EditRoute, field_catalogue};
-        let identifiers = [("device", "terminal.designation")];
+        let identifiers = [
+            ("device", "terminal.designation"),
+            ("potential_def", "name"),
+            ("structure_node", "code"),
+        ];
         for (nav, key, kind, path) in EDITABLE_COLUMNS {
             let catalogue = field_catalogue(kind).unwrap_or_else(|| panic!("{kind}: no catalogue"));
             let spec = catalogue

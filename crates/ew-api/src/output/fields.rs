@@ -563,7 +563,8 @@ pub(crate) const FIXED_SETTINGS: [&str; 5] = [
     "xref_format",
 ];
 
-/// The outgoing identifiers of FR-UI-044 rule 2 (§6.1.3).
+/// The outgoing identifiers of FR-UI-044 rule 2 (§6.1.3), with a potential's name and a structure node's code
+/// (WP-S2.06 §8.2).
 const IDENTIFIERS: &[(&str, &str)] = &[
     ("device", "tag.letter"),
     ("device", "tag.counter"),
@@ -574,6 +575,9 @@ const IDENTIFIERS: &[(&str, &str)] = &[
     ("connection", "number"),
     ("device", "plc_module.start"),
     ("device", "plc_module.slot"),
+    // WP-S2.06 part 3 (cycle 31, the orchestrator's ruling on §8.2): names that must be unique are identifiers.
+    ("potential_def", "name"),
+    ("structure_node", "code"),
 ];
 
 /// Why a page item's kind is narrowed (WP-S2.04 §5.2).

@@ -539,6 +539,59 @@ fn tb5_the_policy() {
     shell.shutdown();
 }
 
+/// TB5's rule 2 on §8.2's other identifiers (the orchestrator's ruling, cycle 31): a pattern fill of the names of two
+/// potentials, and of the codes of two structure nodes, each opens the card with `reason-identifiers` and commits
+/// nothing.
+#[test]
+fn tb5_names_of_two_potentials_and_codes_of_two_structure_nodes_open_the_card() {
+    let tmp = Tmp::new("tb5-ident");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    for (kind, word, label, pattern) in [
+        (NavKind::Potentials, "potentials", "Potential", "POT-{n}"),
+        (NavKind::Structure, "structure", "Designation", "Z{n}"),
+    ] {
+        done(&mut shell, "navigator.show", json!({"kind": word}));
+        done(&mut shell, "navigator.table", json!({"kind": word, "on": true}));
+        let c = col(&shell, kind, label);
+        // Two rows of two different records with a value in the column.
+        let mut seen = Vec::new();
+        let keys: Vec<String> = column(&shell, kind, label)
+            .into_iter()
+            .filter(|(_, t)| {
+                let fresh = !t.is_empty() && !seen.contains(t);
+                if fresh {
+                    seen.push(t.clone());
+                }
+                fresh
+            })
+            .take(2)
+            .map(|(k, _)| k)
+            .collect();
+        assert_eq!(keys.len(), 2, "{word}: two rows");
+        mark(&mut shell, kind, &keys);
+        done(
+            &mut shell,
+            "table.cell",
+            json!({"kind": word, "row": keys[0], "column": c}),
+        );
+        let n = steps(&shell);
+        done(
+            &mut shell,
+            "table.pattern_fill",
+            json!({"kind": word, "pattern": pattern}),
+        );
+        let card = shell
+            .properties()
+            .card()
+            .unwrap_or_else(|| panic!("{word}: rule 2's card"));
+        assert_eq!(card.reason, "reason-identifiers", "{word}");
+        assert_eq!(card.targets, 2, "{word}");
+        assert_eq!(steps(&shell), n, "{word}: nothing committed");
+        done(&mut shell, "preview.cancel", json!({}));
+    }
+    shell.shutdown();
+}
+
 /// TB5's rule 1: a fill down over more than 500 device rows (a copy of Golden A with 501 devices more, made through
 /// the session) opens the card (`reason-bulk`).
 #[test]

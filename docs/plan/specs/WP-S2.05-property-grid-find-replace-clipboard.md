@@ -320,7 +320,9 @@ test registry), and `field_catalogue(kind)` is that function over the built-in r
 
 **`identifier`** is set for `device` `tag.letter`, `tag.counter`, `tag.frozen`, `tag.scheme`, `terminal.designation`,
 `terminal.seq`; `connection` `number`; `device` `plc_module.start`, `plc_module.slot` (FR-UI-044 rule 2's outgoing
-identifiers; folios are not settable here).
+identifiers; folios are not settable here). *Amended in cycle 31 (WP-S2.06 §8.2, the orchestrator's ruling):* also
+`potential_def` `name` and `structure_node` `code`, since names that must be unique are identifiers; a change of either
+on more than one record opens the card in the grid and in a navigator's table.
 
 **The expected catalogue.** `crates/ew-api/tests/expected/field_catalogue.txt` holds, for every implemented kind, one
 line per node: `<kind> <path> <type> <category> <route>`. A test regenerates it and fails on a difference; the lane

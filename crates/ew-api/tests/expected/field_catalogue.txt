@@ -82,7 +82,7 @@ structure_node $v int[0..65535] identity read-only:identity
 structure_node aliases list<ident> texts fields.set:aliases
 structure_node aliases[] ident texts fields.set:aliases
 structure_node aspect text other read-only:no-command
-structure_node code ident identity fields.set:code
+structure_node code ident identity fields.set:code identifier
 structure_node description mltext texts fields.set:description
 structure_node id uuid identity read-only:identity
 structure_node order int[0..] identity fields.set:order
@@ -335,7 +335,7 @@ potential_def env.ac_dc enum(ac|dc)? electrical fields.set:env
 potential_def env.earthing enum(pelv|selv|floating)? electrical fields.set:env
 potential_def env.frequency dec3? electrical fields.set:env
 potential_def id uuid identity read-only:identity
-potential_def name ident identity fields.set:name
+potential_def name ident identity fields.set:name identifier
 potential_def props group electrical fields.set:props
 potential_def props.colour colour? electrical fields.set:props
 potential_def props.csa csa? electrical fields.set:props
