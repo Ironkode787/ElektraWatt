@@ -46,12 +46,16 @@ mod editing;
 mod fields;
 // WP-S2.05 part 2
 mod find;
+// WP-S2.09 part 3: the history panel's rows (§4.2).
+mod history;
 // WP-S2.09 part 1: the export as a job (D4).
 mod job;
 mod layers;
 mod navigation;
 // WP-S2.06 part 1
 mod navigators;
+// WP-S2.09 part 3: the labelled entity list of a preview (§4.2).
+mod preview;
 mod properties;
 mod view;
 
@@ -88,12 +92,14 @@ pub use fields::{
 // WP-S2.05 part 2
 pub use find::{FindField, FindHit, FindQuery, FindResults};
 // WP-S2.09 part 1
+pub use history::{HistoryRow, HistoryView};
 pub use job::ExportJob;
 pub use layers::{
     FrameLayer, LabelsLayer, PageLayer, SymbolsLayer, TablesLayer, WiresLayer, page_kind, page_layer,
     page_scene, page_view,
 };
 pub use navigation::{CellLabel, GotoError, GotoTarget, LinkTarget, PageCells, PageCp, PageRow};
+pub use preview::PreviewEntity;
 // WP-S2.06 parts 1 and 2
 pub use navigators::{
     Drawable, HighlightTarget, NaturalKey, NavColumn, NavKind, NavNode, NavOpen, NavRole, NavTable, Uuid,

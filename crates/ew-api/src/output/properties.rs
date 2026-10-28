@@ -508,7 +508,7 @@ impl ParseCx for SheetCx<'_> {
 }
 
 /// A short title of the record `id`: a device's tag, a page's folio and title, a node's path, a name.
-fn record_title(q: &Q, id: Uuid, source: Option<&str>) -> Option<String> {
+pub(super) fn record_title(q: &Q, id: Uuid, source: Option<&str>) -> Option<String> {
     let (kind, json) = lookup(q, id)?;
     Some(match kind {
         Kind::Device => device_tag_text(q, Id::from_uuid(id)),
