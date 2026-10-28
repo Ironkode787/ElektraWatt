@@ -54,7 +54,9 @@ mod messages;
 mod navigation;
 // WP-S2.06 part 1
 mod navigators;
+// WP-S2.06 part 3
 mod onboarding;
+mod table;
 // FT-410
 mod parts;
 mod projects;
@@ -401,6 +403,8 @@ pub struct ShellModel {
     // WP-S2.06 part 1
     /// The open navigators other than Pages, by kind.
     navs: std::collections::BTreeMap<crate::navigators::NavKind, crate::navigators::Navigator>,
+    /// WP-S2.06 part 3: the Pages navigator in table mode, a generic navigator over `navigator_table(Pages)` (§8.1).
+    pages_table: Option<crate::navigators::Navigator>,
     /// The chips of the line "Not on this page" (§6.5), and the (selection generation, page) they were made for.
     chips: Vec<navigators::Chip>,
     chips_for: Option<(u64, Option<crate::canvas::PageId>)>,
@@ -621,6 +625,12 @@ fn clears_banner(id: &str) -> bool {
             | "navigator.jump"
             | "navigator.highlight"
             | "view.clear_highlights"
+            | "navigator.table"
+            | "table.columns"
+            | "table.cell"
+            | "table.edit"
+            | "table.input"
+            | "table.copy"
             | "ui.focus"
             | "ui.focus_next"
             | "ui.focus_previous"
@@ -821,6 +831,7 @@ impl ShellModel {
             area: None,
             navigator: PageNavigator::new(),
             navs: std::collections::BTreeMap::new(),
+            pages_table: None,
             chips: Vec::new(),
             chips_for: None,
             last_page: None,
@@ -1430,6 +1441,21 @@ impl ShellModel {
             "messages.previous" => self.act_messages_walk(false),
             "messages.fix" => self.act_messages_fix(p),
             "messages.check" => self.act_messages_check(),
+            // WP-S2.06 part 3
+            "navigator.table" => self.act_navigator_table(p),
+            "table.columns" => self.act_table_columns(p),
+            "table.cell" => self.act_table_cell(p),
+            "table.edit" => self.act_table_edit(p),
+            "table.input" => self.act_table_input(p),
+            "table.commit" => self.act_table_commit(p),
+            "table.set" => self.act_table_set(p),
+            "table.fill_down" => self.act_table_fill_down(p),
+            "table.pattern_fill" => self.act_table_pattern_fill(p),
+            "table.paste" => self.act_table_paste(p),
+            "table.copy" => self.act_table_copy(p),
+            "table.clear" => self.act_table_clear(p),
+            "table.resolve" => self.act_table_resolve(p),
+            "table.drop" => self.act_table_drop(p),
             "ui.focus" => self.act_focus(p),
             "ui.focus_next" => self.act_focus_cycle(1),
             "ui.focus_previous" => self.act_focus_cycle(-1),
@@ -2148,6 +2174,12 @@ impl ShellModel {
             return Outcome::Done;
         }
         if let Some(outcome) = self.dismiss_properties() {
+            return outcome;
+        }
+        // WP-S2.06 part 3: Escape in a navigator's table ends the cell edit or the pattern dialog, then the table card.
+        if let Some(Focus::Navigator(k)) = self.focus
+            && let Some(outcome) = self.dismiss_table(k)
+        {
             return outcome;
         }
         // WP-S2.06 part 1: Escape in a navigator cancels the reorder card (WP-S2.09 part 2: and the quick-fix card).

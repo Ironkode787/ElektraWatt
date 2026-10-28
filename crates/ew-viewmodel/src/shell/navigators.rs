@@ -141,9 +141,30 @@ impl ShellModel {
         }
     }
 
-    /// The state of an open navigator other than Pages.
+    /// The state of an open navigator other than Pages, or of the Pages navigator in table mode (§8.1).
     pub fn nav(&self, kind: NavKind) -> Option<&Navigator> {
-        self.navs.get(&kind)
+        self.generic(kind)
+    }
+
+    /// The generic navigator state of `kind`: an open navigator other than Pages, or Pages in table mode.
+    pub(super) fn generic(&self, kind: NavKind) -> Option<&Navigator> {
+        match kind {
+            NavKind::Pages => self.pages_table.as_ref(),
+            k => self.navs.get(&k),
+        }
+    }
+
+    /// [`ShellModel::generic`], mutable.
+    pub(super) fn generic_mut(&mut self, kind: NavKind) -> Option<&mut Navigator> {
+        match kind {
+            NavKind::Pages => self.pages_table.as_mut(),
+            k => self.navs.get_mut(&k),
+        }
+    }
+
+    /// Whether `kind` is the Pages navigator as built (WP-S2.03 §6.1), not in table mode.
+    pub(super) fn as_built_pages(&self, kind: NavKind) -> bool {
+        kind == NavKind::Pages && self.pages_table.is_none()
     }
 
     /// The chips of the line "Not on this page" (§6.5).
@@ -179,10 +200,12 @@ impl ShellModel {
     }
 
     /// The keys of navigator `kind`'s rows on show, in display order.
-    fn vis_keys(&self, kind: NavKind) -> Vec<String> {
+    pub(super) fn vis_keys(&self, kind: NavKind) -> Vec<String> {
         match kind {
-            NavKind::Pages => self.navigator_rows().into_iter().map(|r| r.key).collect(),
-            k => match self.navs.get(&k) {
+            NavKind::Pages if self.pages_table.is_none() => {
+                self.navigator_rows().into_iter().map(|r| r.key).collect()
+            }
+            k => match self.generic(k) {
                 Some(n) => {
                     let Some(t) = n.table() else { return Vec::new() };
                     n.visible()
@@ -198,15 +221,15 @@ impl ShellModel {
     /// The row cursor's key of navigator `kind`.
     pub fn nav_cursor(&self, kind: NavKind) -> Option<String> {
         match kind {
-            NavKind::Pages => self.navigator_row_key(),
-            k => self.navs.get(&k).and_then(Navigator::cursor_key),
+            NavKind::Pages if self.pages_table.is_none() => self.navigator_row_key(),
+            k => self.generic(k).and_then(Navigator::cursor_key),
         }
     }
 
     /// The rows on show of navigator `kind`.
     pub fn shown_rows(&self, kind: NavKind) -> Vec<ShownRow> {
         match kind {
-            NavKind::Pages => {
+            NavKind::Pages if self.pages_table.is_none() => {
                 let rows = self.page_rows();
                 let current = self.current_page();
                 let nav = &self.navigator;
@@ -253,7 +276,7 @@ impl ShellModel {
                     .collect()
             }
             k => {
-                let Some(n) = self.navs.get(&k) else {
+                let Some(n) = self.generic(k) else {
                     return Vec::new();
                 };
                 let Some(t) = n.table() else { return Vec::new() };
@@ -352,6 +375,7 @@ impl ShellModel {
         self.nav_version += 1;
         if !self.has_project() {
             self.navs.clear();
+            self.pages_table = None;
             self.chips.clear();
             self.last_page = None;
             self.highlights.clear();
@@ -366,6 +390,9 @@ impl ShellModel {
             })
             .collect();
         self.navs.retain(|k, _| wanted.contains(k));
+        if !panes.contains(&PaneKind::Pages) {
+            self.pages_table = None;
+        }
         for k in &wanted {
             self.navs.entry(*k).or_insert_with(|| Navigator::new(*k));
         }
@@ -394,6 +421,19 @@ impl ShellModel {
                 self.messages.scheme = Some(project.session.online_scheme().name);
             }
             if let Some(n) = self.navs.get_mut(&k) {
+                n.table = Some(Arc::new(table));
+            }
+        }
+        // WP-S2.06 part 3: the Pages navigator in table mode reads `navigator_table(Pages)`, once per revision.
+        if self
+            .pages_table
+            .as_ref()
+            .is_some_and(|n| n.table().is_none_or(|t| Some(t.rev) != rev))
+            && let Some(project) = &self.project
+        {
+            let table = project.session.navigator_table(NavKind::Pages);
+            bump(&self.calls, |c| c.navigator_table += 1);
+            if let Some(n) = self.pages_table.as_mut() {
                 n.table = Some(Arc::new(table));
             }
         }
@@ -435,7 +475,7 @@ impl ShellModel {
             }
             self.navigator.marked = marked;
         }
-        for n in self.navs.values_mut() {
+        for n in self.navs.values_mut().chain(self.pages_table.as_mut()) {
             if n.applied == Some(generation) {
                 continue;
             }
@@ -467,7 +507,7 @@ impl ShellModel {
     // Parameters
 
     /// The `kind` parameter: a navigator word, else (absent) the focused navigator.
-    fn kind_param(&self, p: &Map<String, Value>) -> Result<NavKind, Outcome> {
+    pub(super) fn kind_param(&self, p: &Map<String, Value>) -> Result<NavKind, Outcome> {
         match string_param(p, "kind")? {
             Some(w) => NavKind::from_word(w).ok_or_else(|| {
                 let words: Vec<&str> = NavKind::ALL.iter().map(|k| k.word()).collect();
@@ -480,7 +520,7 @@ impl ShellModel {
     }
 
     /// An open navigator's kind from the parameters.
-    fn open_kind(&self, p: &Map<String, Value>) -> Result<NavKind, Outcome> {
+    pub(super) fn open_kind(&self, p: &Map<String, Value>) -> Result<NavKind, Outcome> {
         let k = self.kind_param(p)?;
         if self.navigator_open(k) || k == NavKind::Pages {
             Ok(k)
@@ -490,7 +530,7 @@ impl ShellModel {
     }
 
     /// A row key on show of navigator `kind`, from parameter `name`.
-    fn nav_key_param(
+    pub(super) fn nav_key_param(
         &self,
         kind: NavKind,
         p: &Map<String, Value>,
@@ -503,11 +543,11 @@ impl ShellModel {
         }
     }
 
-    fn set_cursor(&mut self, kind: NavKind, key: &str) {
+    pub(super) fn set_cursor(&mut self, kind: NavKind, key: &str) {
         match kind {
-            NavKind::Pages => self.navigator.set_row(key),
+            NavKind::Pages if self.pages_table.is_none() => self.navigator.set_row(key),
             k => {
-                if let Some(n) = self.navs.get_mut(&k) {
+                if let Some(n) = self.generic_mut(k) {
                     n.cursor = Some(key.to_owned());
                 }
             }
@@ -516,21 +556,21 @@ impl ShellModel {
 
     fn marks(&self, kind: NavKind) -> BTreeSet<String> {
         match kind {
-            NavKind::Pages => self.navigator.marked.clone(),
-            k => self.navs.get(&k).map(|n| n.marked.clone()).unwrap_or_default(),
+            NavKind::Pages if self.pages_table.is_none() => self.navigator.marked.clone(),
+            k => self.generic(k).map(|n| n.marked.clone()).unwrap_or_default(),
         }
     }
 
     fn set_marks(&mut self, kind: NavKind, marks: BTreeSet<String>, anchor: Option<String>) {
         match kind {
-            NavKind::Pages => {
+            NavKind::Pages if self.pages_table.is_none() => {
                 self.navigator.marked = marks;
                 if anchor.is_some() {
                     self.navigator.anchor = anchor;
                 }
             }
             k => {
-                if let Some(n) = self.navs.get_mut(&k) {
+                if let Some(n) = self.generic_mut(k) {
                     n.marked = marks;
                     if anchor.is_some() {
                         n.anchor = anchor;
@@ -542,22 +582,22 @@ impl ShellModel {
 
     fn anchor(&self, kind: NavKind) -> Option<String> {
         match kind {
-            NavKind::Pages => self.navigator.anchor.clone(),
-            k => self.navs.get(&k).and_then(|n| n.anchor.clone()),
+            NavKind::Pages if self.pages_table.is_none() => self.navigator.anchor.clone(),
+            k => self.generic(k).and_then(|n| n.anchor.clone()),
         }
     }
 
     /// The records and drawables of a row.
     fn row_payload(&self, kind: NavKind, key: &str) -> (Vec<Uuid>, Vec<Drawable>) {
         match kind {
-            NavKind::Pages => {
+            NavKind::Pages if self.pages_table.is_none() => {
                 let rows = self.page_rows();
                 match crate::navigator::PageNavigator::page_of(key, rows) {
                     Some(i) if is_record(&rows[i]) => (vec![rows[i].id], Vec::new()),
                     _ => (Vec::new(), Vec::new()),
                 }
             }
-            k => match self.navs.get(&k).and_then(|n| n.node_of(key)) {
+            k => match self.generic(k).and_then(|n| n.node_of(key)) {
                 Some((_, node)) => (node.records.clone(), node.drawables.clone()),
                 None => (Vec::new(), Vec::new()),
             },
@@ -567,7 +607,7 @@ impl ShellModel {
     /// The label type-ahead compares with.
     fn row_label(&self, kind: NavKind, key: &str) -> String {
         match kind {
-            NavKind::Pages => {
+            NavKind::Pages if self.pages_table.is_none() => {
                 let rows = self.page_rows();
                 match crate::navigator::PageNavigator::page_of(key, rows) {
                     Some(i) => rows[i].folio.clone(),
@@ -583,8 +623,7 @@ impl ShellModel {
                 }
             }
             k => self
-                .navs
-                .get(&k)
+                .generic(k)
                 .and_then(|n| n.node_of(key))
                 .map(|(_, n)| n.label.clone())
                 .unwrap_or_default(),
@@ -657,9 +696,9 @@ impl ShellModel {
         };
         self.chips_for = Some((generation, self.current_page()));
         match kind {
-            NavKind::Pages => self.navigator.applied = Some(generation),
+            NavKind::Pages if self.pages_table.is_none() => self.navigator.applied = Some(generation),
             k => {
-                if let Some(n) = self.navs.get_mut(&k) {
+                if let Some(n) = self.generic_mut(k) {
                     n.applied = Some(generation);
                 }
             }
@@ -720,7 +759,7 @@ impl ShellModel {
         }
         match NavView::from_word(&view) {
             Some(v) => {
-                if let Some(n) = self.navs.get_mut(&kind) {
+                if let Some(n) = self.generic_mut(kind) {
                     n.view = v;
                 }
                 Outcome::Done
@@ -741,13 +780,13 @@ impl ShellModel {
             Ok(Some(v)) => v.to_owned(),
         };
         let descending = flag(p, "descending");
-        if kind == NavKind::Pages {
+        if self.as_built_pages(kind) {
             if descending {
                 return failed("error-bad-param", &["descending"]);
             }
             return self.act_pages_sort(&json_map(json!({ "by": by })));
         }
-        let Some(n) = self.navs.get_mut(&kind) else {
+        let Some(n) = self.generic_mut(kind) else {
             return failed("error-nav-closed", &[kind.word()]);
         };
         let columns: Vec<String> = n
@@ -774,14 +813,14 @@ impl ShellModel {
             Ok(k) => k,
             Err(e) => return e,
         };
-        if kind == NavKind::Pages {
+        if self.as_built_pages(kind) {
             return self.act_pages_filter(p);
         }
         match string_param(p, "text") {
             Err(e) => e,
             Ok(None) => failed("error-missing-param", &["text"]),
             Ok(Some(t)) => {
-                if let Some(n) = self.navs.get_mut(&kind) {
+                if let Some(n) = self.generic_mut(kind) {
                     n.filter = t.to_owned();
                 }
                 Outcome::Done
@@ -795,7 +834,7 @@ impl ShellModel {
             Ok(k) => k,
             Err(e) => return e,
         };
-        if kind == NavKind::Pages {
+        if self.as_built_pages(kind) {
             return self.act_pages_toggle(p);
         }
         let key = match self.nav_key_param(kind, p, "key") {
@@ -810,7 +849,7 @@ impl ShellModel {
         if !has_children {
             return failed("error-nav-key", &[&key, kind.word()]);
         }
-        if let Some(n) = self.navs.get_mut(&kind) {
+        if let Some(n) = self.generic_mut(kind) {
             if !n.collapsed.remove(&key) {
                 n.collapsed.insert(key.clone());
             }
@@ -830,7 +869,7 @@ impl ShellModel {
         let mut q = p.clone();
         q.remove("kind");
         q.remove("extend");
-        let out = if kind == NavKind::Pages {
+        let out = if self.as_built_pages(kind) {
             self.act_pages_row(&q)
         } else {
             let keys = self.vis_keys(kind);
@@ -893,7 +932,7 @@ impl ShellModel {
             Ok(k) => k,
             Err(e) => return e,
         };
-        if kind == NavKind::Pages {
+        if self.as_built_pages(kind) {
             let mut q = p.clone();
             q.remove("kind");
             if !q.contains_key("key")
@@ -924,7 +963,7 @@ impl ShellModel {
                 }
             },
         };
-        let Some((_, node)) = self.navs.get(&kind).and_then(|n| n.node_of(&key)) else {
+        let Some((_, node)) = self.generic(kind).and_then(|n| n.node_of(&key)) else {
             return failed("error-nav-key", &[&key, kind.word()]);
         };
         let Some(open) = node.open.clone() else {
@@ -957,7 +996,7 @@ impl ShellModel {
             ));
         }
         let generation = self.tools.selection.generation;
-        if let Some(n) = self.navs.get_mut(&kind) {
+        if let Some(n) = self.generic_mut(kind) {
             n.applied = Some(generation);
         }
         self.chips.clear();
@@ -1069,14 +1108,15 @@ impl ShellModel {
         }
     }
 
-    /// `navigator.apply` (Ctrl+Enter with a card in the pane): applies the reorder card or (WP-S2.09 part 2) the
-    /// quick-fix card.
+    /// `navigator.apply` (Ctrl+Enter with a card in the pane): applies the reorder card, (WP-S2.09 part 2) the
+    /// quick-fix card or (WP-S2.06 part 3) a table card.
     pub(super) fn act_navigator_apply(&mut self) -> Outcome {
-        if !self
-            .props
-            .card()
-            .is_some_and(|c| matches!(c.origin, CardOrigin::Reorder { .. } | CardOrigin::QuickFix { .. }))
-        {
+        if !self.props.card().is_some_and(|c| {
+            matches!(
+                c.origin,
+                CardOrigin::Reorder { .. } | CardOrigin::QuickFix { .. } | CardOrigin::Table { .. }
+            )
+        }) {
             return Outcome::Refused {
                 reason_key: "reason-no-card",
             };
@@ -1356,7 +1396,7 @@ impl ShellModel {
 
     /// The slot of the highlight a row of navigator `kind` stands for, when it is shown.
     pub fn row_highlight_slot(&self, kind: NavKind, key: &str) -> Option<u8> {
-        let (_, node) = self.navs.get(&kind)?.node_of(key)?;
+        let (_, node) = self.generic(kind)?.node_of(key)?;
         self.highlights.slot_of(&row_highlight(node)?)
     }
 

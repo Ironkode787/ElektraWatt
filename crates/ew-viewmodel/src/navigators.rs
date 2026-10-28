@@ -24,6 +24,9 @@
 
 // WP-S2.09 part 2
 pub mod messages;
+pub mod paste;
+pub mod pattern;
+pub mod table;
 
 use std::cell::RefCell;
 use std::collections::BTreeSet;
@@ -164,6 +167,7 @@ struct VisKey {
     descending: bool,
     filter: String,
     collapsed: BTreeSet<String>,
+    table_mode: bool,
 }
 
 /// The cache of the visible rows (not part of the state's equality).
@@ -193,6 +197,7 @@ pub struct NavStamp {
     collapsed: BTreeSet<String>,
     marked: BTreeSet<String>,
     cursor: Option<String>,
+    table_mode: Option<table::TableMode>,
 }
 
 /// The state of an open navigator other than Pages (§6.2).
@@ -220,6 +225,8 @@ pub struct Navigator {
     pub(crate) table: Option<Arc<NavTable>>,
     /// The selection generation this navigator last applied or followed (the generation guard, §6.5).
     pub(crate) applied: Option<u64>,
+    /// Table mode (WP-S2.06 part 3, §8): Some while the navigator shows its table.
+    pub(crate) table_mode: Option<table::TableMode>,
     cache: VisCache,
     /// How many times the visible rows were built (tests).
     pub(crate) rebuilds: std::cell::Cell<u64>,
@@ -240,6 +247,7 @@ impl Navigator {
             anchor: None,
             table: None,
             applied: None,
+            table_mode: None,
             cache: VisCache::default(),
             rebuilds: std::cell::Cell::new(0),
         }
@@ -255,6 +263,18 @@ impl Navigator {
         &self.marked
     }
 
+    /// Table mode's state, while the navigator shows its table (§8).
+    pub fn table_mode(&self) -> Option<&table::TableMode> {
+        self.table_mode.as_ref()
+    }
+
+    /// The cursor cell on show in table mode: (row key, column index).
+    pub fn cursor_cell(&self) -> Option<(String, usize)> {
+        let mode = self.table_mode.as_ref()?;
+        let table = self.table.as_ref()?;
+        Some((self.cursor_key()?, mode.cursor_column(table)?))
+    }
+
     /// What the rows on show depend on.
     pub fn stamp(&self) -> NavStamp {
         NavStamp {
@@ -266,6 +286,7 @@ impl Navigator {
             collapsed: self.collapsed.clone(),
             marked: self.marked.clone(),
             cursor: self.cursor.clone(),
+            table_mode: self.table_mode.clone(),
         }
     }
 
@@ -287,20 +308,26 @@ impl Navigator {
             descending: self.descending,
             filter: self.filter.clone(),
             collapsed: self.collapsed.clone(),
+            table_mode: self.table_mode.is_some(),
         };
         if let Some((k, rows)) = &*self.cache.0.borrow()
             && *k == key
         {
             return Arc::clone(rows);
         }
-        let rows = Arc::new(visible_rows(
-            table,
-            self.view,
-            &self.sort,
-            self.descending,
-            &Query::parse(&self.filter),
-            &self.collapsed,
-        ));
+        let query = Query::parse(&self.filter);
+        let rows = Arc::new(if self.table_mode.is_some() {
+            table::table_rows(table, &self.sort, self.descending, &query)
+        } else {
+            visible_rows(
+                table,
+                self.view,
+                &self.sort,
+                self.descending,
+                &query,
+                &self.collapsed,
+            )
+        });
         self.rebuilds.set(self.rebuilds.get() + 1);
         *self.cache.0.borrow_mut() = Some((key, Arc::clone(&rows)));
         rows

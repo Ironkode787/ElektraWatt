@@ -413,9 +413,9 @@ fn np6_the_six_words_and_the_two_actions() {
         assert!(VOCABULARY.contains(w), "{w}");
     }
     // WP-S2.09 part 2 adds the message panel's sixteen words and five actions; part 3 the Preview tab's and the
-    // history panel's thirteen words and eight actions.
-    assert_eq!(VOCABULARY.len(), 338);
-    assert_eq!(ew_viewmodel::actions::ACTIONS.len(), 238);
+    // history panel's thirteen words and eight actions; WP-S2.06 part 3 table mode's six words and fourteen actions.
+    assert_eq!(VOCABULARY.len(), 344);
+    assert_eq!(ew_viewmodel::actions::ACTIONS.len(), 252);
     let hl = ew_viewmodel::actions::ACTIONS
         .iter()
         .find(|a| a.id == "navigator.highlight")

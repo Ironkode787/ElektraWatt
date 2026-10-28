@@ -376,8 +376,72 @@ fn kind_columns(kind: &str) -> Vec<NavColumn> {
         .unwrap_or_default()
 }
 
-/// The columns of a navigator (§6.6, §7.1; the routes of §8.2 for part 1's kinds).
+/// The editable columns of table mode (WP-S2.06 part 3, §8.2; D10): (navigator, column key, route kind, route path).
+/// Every other column is read-only.
+const EDITABLE_COLUMNS: [(NavKind, &str, &str, &str); 16] = [
+    (NavKind::Pages, "title", "page", "title"),
+    (NavKind::Pages, "type", "page", "kind"),
+    (NavKind::Devices, "function_text", "device", "function_text"),
+    (NavKind::Connections, "colour", "connection", "overrides.colour"),
+    (
+        NavKind::Connections,
+        "cross_section",
+        "connection",
+        "overrides.csa",
+    ),
+    (NavKind::Strips, "terminal", "device", "terminal.designation"),
+    (NavKind::Strips, "label", "device", "function_text"),
+    (NavKind::Strips, "state", "device", "state"),
+    (NavKind::Cables, "colour", "conductor", "colour"),
+    (NavKind::Cables, "cross_section", "conductor", "csa"),
+    (NavKind::Potentials, "potential", "potential_def", "name"),
+    (NavKind::Potentials, "class", "potential_def", "circuit_class"),
+    (NavKind::Potentials, "colour", "potential_def", "props.colour"),
+    (NavKind::Potentials, "cross_section", "potential_def", "props.csa"),
+    (NavKind::Structure, "designation", "structure_node", "code"),
+    (
+        NavKind::Structure,
+        "function_text",
+        "structure_node",
+        "description",
+    ),
+];
+
+/// The derived columns (WP-S2.06 part 3, §8.1, §8.2): cells the derivation computes from other records rather than a
+/// field of the row's record (a connection's or terminal's potential, the folios a row is drawn on, counts). Drawn
+/// italic in table mode and read-only with the reason "derived".
+const DERIVED_COLUMNS: [(NavKind, &str); 8] = [
+    (NavKind::Connections, "potential"),
+    (NavKind::Connections, "pages"),
+    (NavKind::Strips, "potential"),
+    (NavKind::Potentials, "aliases"),
+    (NavKind::Potentials, "members"),
+    (NavKind::Potentials, "pages"),
+    (NavKind::Structure, "usage"),
+    (NavKind::Blocks, "pages"),
+];
+
+/// The columns of a navigator (§6.6, §7.1) with the routes of §8.2's table and the derived flags.
 fn columns_of(kind: NavKind) -> Vec<NavColumn> {
+    let mut columns = plain_columns_of(kind);
+    for c in &mut columns {
+        if DERIVED_COLUMNS.contains(&(kind, c.key.as_str())) {
+            c.derived = true;
+            c.route = None;
+            c.read_only = Some("derived".to_owned());
+        } else if let Some((_, _, k, p)) = EDITABLE_COLUMNS
+            .iter()
+            .find(|(n, key, _, _)| *n == kind && *key == c.key)
+        {
+            c.route = Some(((*k).to_owned(), (*p).to_owned()));
+            c.read_only = None;
+        }
+    }
+    columns
+}
+
+/// The columns of a navigator before §8.2's routes (§6.6, §7.1).
+fn plain_columns_of(kind: NavKind) -> Vec<NavColumn> {
     let own = |keys: &[&str]| -> Vec<NavColumn> {
         keys.iter()
             .enumerate()
@@ -387,21 +451,12 @@ fn columns_of(kind: NavKind) -> Vec<NavColumn> {
     match kind {
         NavKind::Pages => vec![
             column("folio", "Folio", true, None),
-            column("title", "Title", false, Some(("page", "title"))),
-            column("type", "Type", false, Some(("page", "kind"))),
+            column("title", "Title", false, None),
+            column("type", "Type", false, None),
             column("frame", "Frame", false, None),
             column("generated", "Generated", false, None),
         ],
-        NavKind::Devices => kind_columns("structure_overview")
-            .into_iter()
-            .map(|mut c| {
-                if c.key == "function_text" {
-                    c.route = Some(("device".to_owned(), "function_text".to_owned()));
-                    c.read_only = None;
-                }
-                c
-            })
-            .collect(),
+        NavKind::Devices => kind_columns("structure_overview"),
         NavKind::Connections => kind_columns("wire_list"),
         NavKind::Strips => {
             let mut c = own(&["strip"]);
@@ -2271,5 +2326,87 @@ mod tests {
         assert_eq!(NavRole::StructureNode.word(), "structure_node");
         assert_eq!(key_label("page_cell"), "Page cell");
         assert_eq!(key_label("first_folio"), "First folio");
+    }
+
+    /// Whether a value type is a scalar of D10: Text, Ident, MlText, Bool, Int, Dec3, Quantity, Csa, Nm, Colour, Enum,
+    /// or Optional of one.
+    fn scalar(ty: &crate::output::FieldType) -> bool {
+        use crate::output::FieldType as T;
+        matches!(
+            ty.inner(),
+            T::Text
+                | T::Ident
+                | T::MlText
+                | T::Bool
+                | T::Int { .. }
+                | T::Dec3
+                | T::Quantity
+                | T::Csa
+                | T::Nm
+                | T::Colour
+                | T::Enum { .. }
+        )
+    }
+
+    /// TB1 (D10, §8.2): each route of the editable-column table is an `EditRoute::FieldsSet` of `field_catalogue` with
+    /// a scalar `FieldType`, and the catalogue's identifier flag (which table mode's policy reads) is set for the
+    /// terminal designation only; every column of every navigator carries the route or the read-only reason of §8.2's
+    /// precedence at column level ("derived" before "no command yet").
+    ///
+    /// §8.2 marks the potential's name and the structure node's code as identifiers too; WP-S2.05's catalogue
+    /// (`IDENTIFIERS`, FR-UI-044 rule 2) does not, so the two disagree on those rows. The table follows the catalogue
+    /// (one source for the grid and the table); the disagreement is reported for a ruling (lane A31).
+    #[test]
+    fn tb1_the_editable_columns_are_scalar_fields_set_routes_of_the_catalogue() {
+        use crate::output::{EditRoute, field_catalogue};
+        let identifiers = [("device", "terminal.designation")];
+        for (nav, key, kind, path) in EDITABLE_COLUMNS {
+            let catalogue = field_catalogue(kind).unwrap_or_else(|| panic!("{kind}: no catalogue"));
+            let spec = catalogue
+                .iter()
+                .find(|f| f.path == path)
+                .unwrap_or_else(|| panic!("{kind}.{path}: not in the catalogue"));
+            assert!(
+                matches!(&spec.route, EditRoute::FieldsSet { kind: k, .. } if k == kind),
+                "{kind}.{path}: route {:?}",
+                spec.route
+            );
+            assert!(scalar(&spec.ty), "{kind}.{path}: {}", spec.ty.word());
+            assert_eq!(
+                spec.identifier,
+                identifiers.contains(&(kind, path)),
+                "{kind}.{path}: identifier"
+            );
+            let col = columns_of(nav)
+                .into_iter()
+                .find(|c| c.key == key)
+                .unwrap_or_else(|| panic!("{nav:?}: no column {key}"));
+            assert_eq!(col.route, Some((kind.to_owned(), path.to_owned())));
+            assert_eq!(col.read_only, None);
+            assert!(!col.derived);
+        }
+        for nav in NavKind::ALL {
+            for c in columns_of(nav) {
+                let listed = EDITABLE_COLUMNS
+                    .iter()
+                    .any(|(n, k, _, _)| *n == nav && *k == c.key);
+                match (listed, c.derived) {
+                    (true, _) => assert!(c.route.is_some(), "{nav:?}.{}", c.key),
+                    (false, true) => {
+                        assert_eq!(c.read_only.as_deref(), Some("derived"), "{nav:?}.{}", c.key);
+                        assert_eq!(c.route, None);
+                    }
+                    (false, false) => {
+                        assert_eq!(
+                            c.read_only.as_deref(),
+                            Some("no command yet"),
+                            "{nav:?}.{}",
+                            c.key
+                        );
+                        assert_eq!(c.route, None);
+                    }
+                }
+            }
+        }
     }
 }

@@ -405,6 +405,13 @@ pub const VOCABULARY: &[&str] = &[
     "origin",
     "merged",
     "redo",
+    // Table mode (WP-S2.06 part 3, §8.8; ID-474 extended): the 6 words of `TABLE_WORDS`, a reviewed vocabulary change.
+    "table",
+    "columns",
+    "invalid",
+    "ambiguous",
+    "pattern",
+    "values",
 ];
 
 // WP-S2.09 part 2
@@ -437,6 +444,11 @@ pub const PREVIEW_WORDS: &[&str] = &[
     "summary", "entity", "added", "changed", "removed", "fields", "xref", "more", "entries", "entry",
     "origin", "merged", "redo",
 ];
+
+// WP-S2.06 part 3
+/// The 6 words WP-S2.06 part 3 adds to [`VOCABULARY`] (§8.8): the header's `table`, the `columns` line, the table
+/// card's `invalid` and `ambiguous` cells, and the pattern dialog's `pattern` and `values`.
+pub const TABLE_WORDS: &[&str] = &["table", "columns", "invalid", "ambiguous", "pattern", "values"];
 
 // WP-S2.09 part 1
 /// The 18 words WP-S2.09 part 1 adds to [`VOCABULARY`] (§6.8): the `jobs` and `notifications` sections, the toast's
@@ -920,7 +932,13 @@ fn navigator_lines(model: &ShellModel, lines: &mut Vec<String>) {
 /// The lines of every open navigator other than Pages (§6.10): the header with the kind, the view, the sort, the
 /// filter, the row count and the window, then one line per row of the window around the cursor.
 fn other_navigator_lines(model: &ShellModel, lines: &mut Vec<String>) {
-    for kind in model.open_navigators() {
+    let pages = crate::navigators::NavKind::Pages;
+    let kinds = model
+        .nav(pages)
+        .map(|_| pages)
+        .into_iter()
+        .chain(model.open_navigators());
+    for kind in kinds {
         let Some(nav) = model.nav(kind) else { continue };
         let rows = model.shown_rows(kind);
         let cursor = model.nav_cursor(kind);
@@ -930,10 +948,11 @@ fn other_navigator_lines(model: &ShellModel, lines: &mut Vec<String>) {
         let start = window_start(rows.len(), at);
         let end = (start + NAV_WINDOW).min(rows.len());
         lines.push(format!(
-            "navigator \"{}\" kind {} view {} sort \"{}\" {} filter \"{}\" rows {} showing {} to {end}",
+            "navigator \"{}\" kind {} view {}{} sort \"{}\" {} filter \"{}\" rows {} showing {} to {end}",
             strings::text(crate::layout::nav_title_key(kind)),
             kind.word(),
             nav.view.word(),
+            if nav.table_mode().is_some() { " table" } else { "" },
             user(&nav.sort_label()),
             if nav.descending { "descending" } else { "ascending" },
             user(&nav.filter),
@@ -955,6 +974,20 @@ fn other_navigator_lines(model: &ShellModel, lines: &mut Vec<String>) {
             ));
         }
         let table = nav.table();
+        // WP-S2.06 part 3: the table's lines (§8.8).
+        if let (Some(mode), Some(t)) = (nav.table_mode(), table) {
+            table_lines(
+                model,
+                kind,
+                nav,
+                mode,
+                t,
+                &rows[start..end],
+                cursor.as_deref(),
+                lines,
+            );
+            continue;
+        }
         for r in rows.iter().skip(start).take(NAV_WINDOW) {
             let mut line = format!(
                 "  row level {} {} \"{}\"",
@@ -1004,6 +1037,87 @@ fn other_navigator_lines(model: &ShellModel, lines: &mut Vec<String>) {
                 lines.push(format!("  detail fix \"{}\"", user(fix)));
             }
         }
+    }
+}
+
+// WP-S2.06 part 3
+/// A navigator's table (§8.8): the `columns` line of the column labels on show, one `row` line per row of the window
+/// with its cells on show quoted (` selected`, ` cursor "<column label>"`, the highlight slot), then the cell edit
+/// (`editing "<column label>" buffer "<text>"`), its error, and the pattern dialog (`pattern "<pattern>" values
+/// "<text>" …` with the first five texts, or `invalid "<message>"`).
+#[allow(clippy::too_many_arguments)]
+fn table_lines(
+    model: &ShellModel,
+    kind: crate::navigators::NavKind,
+    nav: &crate::navigators::Navigator,
+    mode: &crate::navigators::table::TableMode,
+    table: &crate::navigators::NavTable,
+    rows: &[crate::shell::ShownRow],
+    cursor: Option<&str>,
+    lines: &mut Vec<String>,
+) {
+    let shown = mode.shown_columns(table);
+    let quoted = |cols: &mut dyn Iterator<Item = &str>| -> String {
+        cols.map(|c| format!(" \"{}\"", user(c))).collect::<String>()
+    };
+    lines.push(format!(
+        "  columns{}",
+        quoted(&mut shown.iter().map(|i| table.columns[*i].label.as_str()))
+    ));
+    let cursor_col = mode.cursor_column(table).map(|c| table.columns[c].label.clone());
+    for r in rows {
+        let Some(node) = table.nodes.iter().find(|n| n.key == r.key) else {
+            continue;
+        };
+        let mut line = format!(
+            "  row{}",
+            quoted(
+                &mut shown
+                    .iter()
+                    .map(|i| node.cells.get(*i).map_or("", String::as_str))
+            )
+        );
+        if nav.marked().contains(&r.key) {
+            line.push_str(" selected");
+        }
+        if cursor == Some(r.key.as_str())
+            && let Some(c) = &cursor_col
+        {
+            line.push_str(&format!(" cursor \"{}\"", user(c)));
+        }
+        if let Some(slot) = model.row_highlight_slot(kind, &r.key) {
+            line.push_str(&format!(" highlight {slot}"));
+        }
+        lines.push(line);
+    }
+    if let Some(e) = mode.edit() {
+        let label = table
+            .columns
+            .iter()
+            .find(|c| c.key == e.column)
+            .map_or(e.column.as_str(), |c| c.label.as_str());
+        lines.push(format!(
+            "  editing \"{}\" buffer \"{}\"",
+            user(label),
+            user(&e.buffer)
+        ));
+    }
+    if let Some((pattern, values)) = model.pattern_preview(kind) {
+        match values {
+            Ok(v) => lines.push(format!(
+                "  pattern \"{}\" values{}",
+                user(&pattern),
+                quoted(&mut v.iter().map(String::as_str))
+            )),
+            Err(message) => lines.push(format!(
+                "  pattern \"{}\" invalid \"{}\"",
+                user(&pattern),
+                user(&message)
+            )),
+        }
+    }
+    if let Some(message) = mode.error() {
+        lines.push(format!("  error \"{}\"", user(message)));
     }
 }
 
@@ -1296,9 +1410,38 @@ fn card_and_toast_lines(model: &ShellModel, lines: &mut Vec<String>) {
                     if let crate::properties::CardOrigin::QuickFix { rule } = &card.origin {
                         line.push_str(&format!(" fix \"{}\"", user(rule)));
                     }
+                    // WP-S2.06 part 3: the table card names its origin.
+                    if matches!(card.origin, crate::properties::CardOrigin::Table { .. }) {
+                        line.push_str(" table");
+                    }
                     lines.push(line);
                 }
             },
+        }
+        // WP-S2.06 part 3: the table card's invalid and ambiguous cells (§8.8), numbered by their place in the gesture.
+        if let crate::properties::CardOrigin::Table { gesture } = &card.origin {
+            for (i, c) in gesture.cells.iter().enumerate() {
+                if !c.blocking() {
+                    continue;
+                }
+                let head = format!(
+                    "  cell {} \"{}\" \"{}\"",
+                    i + 1,
+                    user(&c.row_label),
+                    user(&c.column_label)
+                );
+                match (&c.value, c.reason()) {
+                    (_, Some(reason)) => lines.push(format!("{head} invalid \"{}\"", user(&reason))),
+                    (crate::navigators::table::CellValue::Ambiguous(readings), None) => {
+                        let r: String = readings
+                            .iter()
+                            .map(|(t, _)| format!(" \"{}\"", user(t)))
+                            .collect();
+                        lines.push(format!("{head} ambiguous{r}"));
+                    }
+                    _ => {}
+                }
+            }
         }
     }
     toast_lines(model, lines);
@@ -1535,7 +1678,10 @@ fn row_line(
 }
 
 fn project_view(model: &ShellModel, lines: &mut Vec<String>) {
-    navigator_lines(model, lines);
+    // WP-S2.06 part 3: the Pages navigator in table mode prints as the other navigators do.
+    if model.nav(crate::navigators::NavKind::Pages).is_none() {
+        navigator_lines(model, lines);
+    }
     // WP-S2.06 part 1
     other_navigator_lines(model, lines);
     properties_lines(model, lines);

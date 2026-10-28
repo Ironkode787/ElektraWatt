@@ -173,15 +173,59 @@ impl Dock {
         self.tree.simplify(&options);
     }
 
-    /// Paints the tree; `pane_ui` paints one pane.
+    /// Paints the tree; `pane_ui` paints one pane. A tab picked from a tab group's "All tabs" menu (FT-509) becomes
+    /// that group's active tab.
     pub fn show(&mut self, ui: &mut Ui, pane_ui: &mut dyn FnMut(&mut Ui, PaneKind)) {
-        let mut behavior = DockBehavior { pane_ui };
+        let mut behavior = DockBehavior {
+            pane_ui,
+            chosen: None,
+        };
         self.tree.ui(&mut behavior, ui);
+        if let Some((group, child)) = behavior.chosen {
+            self.activate(group, child);
+            ui.ctx().request_repaint();
+        }
     }
+
+    // FT-509
+    /// Makes `child` the active tab of the tab group `group`.
+    fn activate(&mut self, group: TileId, child: TileId) {
+        if let Some(Tile::Container(Container::Tabs(tabs))) = self.tree.tiles.get_mut(group)
+            && tabs.children.contains(&child)
+        {
+            tabs.set_active(child);
+        }
+    }
+
+    /// The active pane of the tab group that holds `pane` (tests).
+    pub fn active_beside(&self, pane: PaneKind) -> Option<PaneKind> {
+        let id = self.tree.tiles.find_pane(&pane)?;
+        let group = self.tree.tiles.parent_of(id)?;
+        match self.tree.tiles.get(group)? {
+            Tile::Container(Container::Tabs(tabs)) => match self.tree.tiles.get(tabs.active?)? {
+                Tile::Pane(p) => Some(*p),
+                Tile::Container(_) => None,
+            },
+            _ => None,
+        }
+    }
+}
+
+/// The panes of a tab group, each with its tile, in tab order (FT-509's menu).
+fn tab_panes(tiles: &Tiles<PaneKind>, tabs: &Tabs) -> Vec<(TileId, PaneKind)> {
+    tabs.children
+        .iter()
+        .filter_map(|c| match tiles.get(*c)? {
+            Tile::Pane(p) => Some((*c, *p)),
+            Tile::Container(_) => None,
+        })
+        .collect()
 }
 
 struct DockBehavior<'a> {
     pane_ui: &'a mut dyn FnMut(&mut Ui, PaneKind),
+    /// FT-509: the (tab group, tab) picked from the "All tabs" menu this frame.
+    chosen: Option<(TileId, TileId)>,
 }
 
 impl egui_tiles::Behavior<PaneKind> for DockBehavior<'_> {
@@ -221,6 +265,37 @@ impl egui_tiles::Behavior<PaneKind> for DockBehavior<'_> {
     /// beside it, §6.8) gets no unnamed drag area of its own, as in the canvas area.
     fn is_tile_draggable(&self, tiles: &Tiles<PaneKind>, tile_id: TileId) -> bool {
         matches!(tiles.get(tile_id), Some(egui_tiles::Tile::Pane(_)))
+    }
+
+    // FT-509
+    /// A tab group of two or more tabs gets an "All tabs" menu at the right of its tab strip, listing every tab by its
+    /// title, so that a tab hidden behind the strip's overflow arrows stays reachable and named.
+    fn top_bar_right_ui(
+        &mut self,
+        tiles: &Tiles<PaneKind>,
+        ui: &mut Ui,
+        tile_id: TileId,
+        tabs: &Tabs,
+        _scroll_offset: &mut f32,
+    ) {
+        let panes = tab_panes(tiles, tabs);
+        if panes.len() < 2 {
+            return;
+        }
+        let name = strings::text("dock-all-tabs");
+        let response = ui
+            .menu_button("≡", |ui| {
+                for (child, pane) in &panes {
+                    let title = strings::text(pane.title_key());
+                    if ui.selectable_label(tabs.is_active(*child), title).clicked() {
+                        self.chosen = Some((tile_id, *child));
+                        ui.close();
+                    }
+                }
+            })
+            .response;
+        response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, name));
+        response.on_hover_text(name);
     }
 }
 

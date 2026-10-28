@@ -375,6 +375,12 @@ impl App {
         self.dock.panes()
     }
 
+    /// The active pane of the tab group that holds `pane` (tests, FT-509).
+    #[doc(hidden)]
+    pub fn dock_active_beside(&self, pane: PaneKind) -> Option<PaneKind> {
+        self.dock.active_beside(pane)
+    }
+
     /// Puts `pane` into the tab group of `target`, as a drag of its title onto the other pane does (tests).
     #[doc(hidden)]
     pub fn dock_tab_together(&mut self, pane: PaneKind, target: PaneKind) {
@@ -385,6 +391,14 @@ impl App {
         // WP-S2.05 part 3: a paste without the clipboard's text (Edit ▸ Paste, the palette, a Ctrl+V key press that
         // the platform did not turn into a paste event) asks the platform for the system clipboard first; an action
         // the shell refuses now is dispatched, so its reason shows.
+        // WP-S2.06 part 3: the table's paste likewise.
+        if action == "table.paste"
+            && params.get("text").is_none()
+            && ew_viewmodel::actions::find(action).is_some_and(|a| (a.enabled)(&self.shell).is_ok())
+        {
+            self.request_paste = true;
+            return;
+        }
         if action == "edit.paste_clip"
             && params.get("text").is_none()
             && self.shell.paste_page_reason().is_none()
@@ -853,6 +867,38 @@ impl App {
                 }
                 Some(egui::Event::Paste(text)) => {
                     events.push(Event::Action("edit.paste_clip", json!({ "text": text })));
+                    return;
+                }
+                _ => {}
+            }
+        }
+        // WP-S2.06 part 3: in a navigator's table the clipboard events run the table's copy and paste (§8.6).
+        if focused == Context::Navigator
+            && !palette_open
+            && let Some(kind) = self.shell.focused_navigator()
+            && self.shell.nav(kind).is_some_and(|n| n.table_mode().is_some())
+        {
+            let clip = ctx.input_mut(|i| {
+                let mut hit = None;
+                i.events.retain(|e| match e {
+                    egui::Event::Copy | egui::Event::Paste(_) if hit.is_none() => {
+                        hit = Some(e.clone());
+                        false
+                    }
+                    _ => true,
+                });
+                hit
+            });
+            match clip {
+                Some(egui::Event::Copy) => {
+                    events.push(Event::Action("table.copy", json!({ "kind": kind.word() })));
+                    return;
+                }
+                Some(egui::Event::Paste(text)) => {
+                    events.push(Event::Action(
+                        "table.paste",
+                        json!({ "kind": kind.word(), "text": text }),
+                    ));
                     return;
                 }
                 _ => {}

@@ -83,7 +83,7 @@ impl ShellModel {
     /// A command refusal as the grid shows it: [`refusal_text`] with the target named by its label (the header's title
     /// for one target, else the title of that record's own sheet: one `Session::property_sheet` call, on a refusal
     /// only), page IDs as folios and other IDs left out.
-    fn refusal(&self, e: &CmdError, section: Option<&SheetSection>) -> String {
+    pub(super) fn refusal(&self, e: &CmdError, section: Option<&SheetSection>) -> String {
         let rows = self.page_rows();
         let label = |i: usize| -> String {
             let target = section.and_then(|s| s.targets.get(i).copied());
@@ -1475,6 +1475,10 @@ impl ShellModel {
         // WP-S2.09 part 3: a bulk card is a renumber dialog's (§8.2).
         if matches!(card.origin, CardOrigin::Bulk) {
             return self.apply_bulk_card(card);
+        }
+        // WP-S2.06 part 3: a table card is a navigator's table gesture (§8.7).
+        if matches!(card.origin, CardOrigin::Table { .. }) {
+            return self.apply_table_card(card);
         }
         let Some(rev) = self.revision() else {
             return Outcome::Done;

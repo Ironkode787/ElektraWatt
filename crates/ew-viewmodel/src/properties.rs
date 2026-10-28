@@ -214,6 +214,13 @@ pub enum CardOrigin {
     /// The card of a `Bulk` command a dialog built (§8.2): Page, Renumber pages... (`page.renumber`) and Tools, Renumber
     /// devices... (`numbering.renumber`); its targets and changes are the number of entity changes.
     Bulk,
+    // WP-S2.06 part 3
+    /// A gesture of a navigator's table (§8.7): the card in the navigator's pane, with the gesture's cells, so that
+    /// `table.resolve` and `table.drop` rebuild the command and a stale card retargets its rows.
+    Table {
+        /// The gesture.
+        gesture: crate::navigators::table::Gesture,
+    },
 }
 
 impl CardOrigin {
@@ -226,6 +233,7 @@ impl CardOrigin {
             CardOrigin::Reorder { .. } => "reorder",
             CardOrigin::QuickFix { .. } => "fix",
             CardOrigin::Bulk => "bulk",
+            CardOrigin::Table { .. } => "table",
         }
     }
 }

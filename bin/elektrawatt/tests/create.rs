@@ -624,3 +624,122 @@ page view: {folio}
     let log = CmdLog::parse(&log).unwrap();
     assert_eq!(log.commands().count(), 0, "a highlight records nothing");
 }
+
+// WP-S2.06 part 3
+/// The Terminal strips table's cell texts of a project, row by row (the table's nodes in tree order).
+fn strip_cells(dir: &Path) -> Vec<Vec<String>> {
+    let (s, _) = Session::open_read_only(dir, "test").unwrap();
+    let t = s.navigator_table(ew_ui::ew_viewmodel::ew_api::output::NavKind::Strips);
+    t.nodes.into_iter().map(|n| n.cells).collect()
+}
+
+/// WP-S2.06 part 3 through the built binary (acceptance checks TB2 and TB8; §9 items 1 and 2): a script on a copy of
+/// Golden A shows the Terminal strips navigator as a table filtered `x1031` and sorted by Terminal, sets terminal 13's
+/// function text to "Spare" by a cell edit, marks terminals 13 to 17 and fills down, copies the marked rows and saves.
+/// Two runs give byte-identical transcripts without a UUID; the `--record` log holds the two `fields.set` steps and
+/// replays on a third copy to the same Terminal strips table.
+#[test]
+fn a_table_script_runs_twice_identically_and_its_record_replays() {
+    let tmp = Tmp::new();
+    let mut list = vec![
+        ("page.goto", json!({"folio": "102"})),
+        ("navigator.show", json!({"kind": "strips"})),
+        ("navigator.table", json!({"kind": "strips", "on": true})),
+        ("navigator.filter", json!({"kind": "strips", "text": "x1031"})),
+        ("navigator.sort", json!({"kind": "strips", "by": "terminal"})),
+        ("ui.focus", json!({"area": "navigator", "kind": "strips"})),
+        ("navigator.jump", json!({"kind": "strips", "prefix": "13"})),
+        ("table.cell", json!({"column": "label"})),
+        ("table.edit", json!({})),
+        ("table.input", json!({"text": "Spare"})),
+        ("ui.describe", json!({})),
+        ("table.commit", json!({})),
+        ("navigator.mark", json!({"kind": "strips"})),
+    ];
+    for _ in 0..4 {
+        list.push(("table.cell", json!({"step": 1})));
+        list.push(("navigator.mark", json!({"kind": "strips"})));
+    }
+    list.extend([
+        ("table.fill_down", json!({})),
+        ("table.copy", json!({})),
+        ("ui.describe", json!({})),
+        ("file.save", json!({})),
+        ("file.close", json!({})),
+    ]);
+    let script = |dir: &Path| {
+        let mut all = steps(&[("file.open", json!({"dir": path(dir)}))]);
+        all.extend(steps(&list));
+        all
+    };
+    let mut transcripts = Vec::new();
+    for n in ["a", "b"] {
+        let dir = tmp.path(n).join("J-E-2416.ew");
+        copy_dir(Path::new(GOLDEN_A), &dir);
+        let record = tmp.path(&format!("{n}.ewcmd"));
+        let text = all_done(&run(&tmp, n, &script(&dir), Some(&record)));
+        assert!(
+            !text.contains(&*tmp.0.to_string_lossy()),
+            "a path in the transcript"
+        );
+        support::assert_no_uuid(&text);
+        transcripts.push(text);
+    }
+    same_transcript(&transcripts[0], &transcripts[1]);
+    let steps: Vec<Value> = transcripts[0]
+        .lines()
+        .skip(1)
+        .map(|l| serde_json::from_str(l).unwrap())
+        .collect();
+    let editing = steps[11]["describe"].as_str().unwrap();
+    assert!(
+        editing.contains("\n  editing \"Function text\" buffer \"Spare\"\n"),
+        "{editing}"
+    );
+    let filled = steps.iter().rev().find_map(|s| s["describe"].as_str()).unwrap();
+    assert!(
+        filled.contains(
+            "navigator \"Terminal strips\" kind strips view tree table sort \"Terminal\" ascending"
+        ),
+        "{filled}"
+    );
+    assert!(
+        filled.contains("toast \"Set Function text on 5 terminals\" undo"),
+        "{filled}"
+    );
+    for t in ["13", "14", "15", "16", "17"] {
+        assert!(
+            filled.contains(&format!("\n  row \"-X1031\" \"{t}\" \"Spare\" ")),
+            "terminal {t}: {filled}"
+        );
+    }
+    // §9 item 2: the record holds the cell edit and the fill, and replays to the same table.
+    let log = CmdLog::parse(&std::fs::read_to_string(tmp.path("a.ewcmd")).unwrap()).unwrap();
+    let names: Vec<&str> = log.commands().map(|c| c.name.as_str()).collect();
+    assert_eq!(names, ["fields.set", "fields.set"]);
+    let replay = tmp.path("c").join("J-E-2416.ew");
+    copy_dir(Path::new(GOLDEN_A), &replay);
+    let mut store = ew_ui::ew_viewmodel::ew_api::StoreOptions::new("test");
+    store.state_dir = Some(tmp.path("state"));
+    let (mut s, _) = Session::open(
+        &replay,
+        store,
+        ew_ui::ew_viewmodel::ew_api::SessionOptions::default(),
+        ew_ui::ew_viewmodel::ew_api::Recovery::Keep,
+    )
+    .unwrap();
+    s.run_script(&log, "a.ewcmd").unwrap();
+    s.save().unwrap();
+    drop(s);
+    let scripted = strip_cells(&tmp.path("a").join("J-E-2416.ew"));
+    assert_eq!(
+        strip_cells(&replay),
+        scripted,
+        "the replay equals the scripted project"
+    );
+    assert_ne!(
+        scripted,
+        strip_cells(Path::new(GOLDEN_A)),
+        "terminals 13 to 17 changed"
+    );
+}

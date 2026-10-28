@@ -662,8 +662,13 @@ fn find_writable(m: &ShellModel) -> Result<(), &'static str> {
 /// (FT-410) is a window of its own and needs neither.
 fn card_shown(m: &ShellModel) -> Result<(), &'static str> {
     project_open(m)?;
-    // WP-S2.09 part 3 (§8.7): the Preview tab shows every card.
-    if m.properties_shown() || m.find_shown() || m.import_card_open() || m.preview_shown() {
+    // WP-S2.09 part 3 (§8.7): the Preview tab shows every card; WP-S2.06 part 3: a table card is in its navigator.
+    if m.properties_shown()
+        || m.find_shown()
+        || m.import_card_open()
+        || m.preview_shown()
+        || m.table_gesture().is_some()
+    {
         Ok(())
     } else {
         Err("reason-no-sheet")
@@ -677,16 +682,29 @@ fn card_writable(m: &ShellModel) -> Result<(), &'static str> {
 }
 
 // WP-S2.06 part 1
-/// `navigator.apply`: a writable project with the Pages pane's reorder card or (WP-S2.09 part 2) the Messages pane's
-/// quick-fix card on show.
+/// `navigator.apply`: a writable project with the Pages pane's reorder card, (WP-S2.09 part 2) the Messages pane's
+/// quick-fix card or (WP-S2.06 part 3) a navigator's table card on show.
 fn reorder_card(m: &ShellModel) -> Result<(), &'static str> {
     writable(m)?;
     if m.properties().card().is_some_and(|c| {
         matches!(
             c.origin,
-            crate::properties::CardOrigin::Reorder { .. } | crate::properties::CardOrigin::QuickFix { .. }
+            crate::properties::CardOrigin::Reorder { .. }
+                | crate::properties::CardOrigin::QuickFix { .. }
+                | crate::properties::CardOrigin::Table { .. }
         )
     }) {
+        Ok(())
+    } else {
+        Err("reason-no-card")
+    }
+}
+
+// WP-S2.06 part 3
+/// `table.resolve` and `table.drop`: a writable project with a table card on show.
+fn table_card(m: &ShellModel) -> Result<(), &'static str> {
+    writable(m)?;
+    if m.table_gesture().is_some() {
         Ok(())
     } else {
         Err("reason-no-card")
@@ -2769,6 +2787,175 @@ pub static ACTIONS: &[ActionMeta] = &[
         &[],
         has_highlights,
         slot(Menu::View),
+    ),
+    // WP-S2.06 part 3: table mode (§8.8).
+    with_params(
+        "kind:text, on?:bool",
+        hidden(act(
+            "navigator.table",
+            View,
+            "action-navigator-table",
+            Menu::View,
+            &[],
+            has_pages,
+            None,
+        )),
+    ),
+    with_params(
+        "kind:text, show?:list(text), hide?:list(text), order?:list(text)",
+        hidden(act(
+            "table.columns",
+            View,
+            "action-table-columns",
+            Menu::View,
+            &[],
+            has_pages,
+            None,
+        )),
+    ),
+    with_params(
+        "kind?:text, row?:text, column?:text, step?:int, across?:int",
+        hidden(in_navigator(act(
+            "table.cell",
+            View,
+            "action-table-cell",
+            Menu::View,
+            &[],
+            has_pages,
+            None,
+        ))),
+    ),
+    with_params(
+        "kind?:text, row?:text, column?:text",
+        hidden(in_navigator(act(
+            "table.edit",
+            View,
+            "action-table-edit",
+            Menu::Edit,
+            &["F2"],
+            pages_writable,
+            None,
+        ))),
+    ),
+    with_params(
+        "kind?:text, text:text",
+        hidden(in_navigator(act(
+            "table.input",
+            View,
+            "action-table-input",
+            Menu::Edit,
+            &[],
+            pages_writable,
+            None,
+        ))),
+    ),
+    with_params(
+        "kind?:text, all?:bool",
+        hidden(in_navigator(act(
+            "table.commit",
+            Command,
+            "action-table-commit",
+            Menu::Edit,
+            &[],
+            pages_writable,
+            None,
+        ))),
+    ),
+    with_params(
+        "kind:text, column:text, value:text, rows?:list(text), all?:bool",
+        hidden(act(
+            "table.set",
+            Command,
+            "action-table-set",
+            Menu::Edit,
+            &[],
+            pages_writable,
+            None,
+        )),
+    ),
+    with_params(
+        "kind?:text",
+        in_navigator(act(
+            "table.fill_down",
+            Command,
+            "action-table-fill-down",
+            Menu::Edit,
+            &["Ctrl+D"],
+            pages_writable,
+            None,
+        )),
+    ),
+    with_params(
+        "kind?:text, pattern?:text",
+        in_navigator(act(
+            "table.pattern_fill",
+            Command,
+            "action-table-pattern-fill",
+            Menu::Edit,
+            &["Ctrl+Shift+D"],
+            pages_writable,
+            None,
+        )),
+    ),
+    with_params(
+        "kind?:text, text?:text",
+        in_navigator(act(
+            "table.paste",
+            Command,
+            "action-table-paste",
+            Menu::Edit,
+            &["Ctrl+V"],
+            pages_writable,
+            None,
+        )),
+    ),
+    with_params(
+        "kind?:text",
+        in_navigator(act(
+            "table.copy",
+            View,
+            "action-table-copy",
+            Menu::Edit,
+            &["Ctrl+C"],
+            has_pages,
+            None,
+        )),
+    ),
+    with_params(
+        "kind?:text",
+        in_navigator(act(
+            "table.clear",
+            Command,
+            "action-table-clear",
+            Menu::Edit,
+            &["Delete"],
+            pages_writable,
+            None,
+        )),
+    ),
+    with_params(
+        "cell:uint, choice:uint",
+        hidden(in_navigator(act(
+            "table.resolve",
+            Command,
+            "action-table-resolve",
+            Menu::Edit,
+            &[],
+            table_card,
+            None,
+        ))),
+    ),
+    with_params(
+        "cell:uint",
+        hidden(in_navigator(act(
+            "table.drop",
+            Command,
+            "action-table-drop",
+            Menu::Edit,
+            &[],
+            table_card,
+            None,
+        ))),
     ),
     with_params(
         "area:enum(navigator|canvas|properties|find), group?:uint, kind?:text",

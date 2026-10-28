@@ -125,7 +125,7 @@ impl NavigatorPane {
 
     fn stamp(&self, shell: &ShellModel) -> Option<Stamp> {
         match self.kind {
-            NavKind::Pages => Some(Stamp::Pages(
+            NavKind::Pages if shell.nav(NavKind::Pages).is_none() => Some(Stamp::Pages(
                 shell.session_calls().page_rows,
                 shell.revision(),
                 shell.navigator().clone(),
@@ -158,9 +158,10 @@ impl NavigatorPane {
 
     /// Paints the navigator of `shell` into `ui`.
     pub(crate) fn show(&mut self, ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
-        let pages = self.kind == NavKind::Pages;
+        // The Pages navigator as built (WP-S2.03); in table mode (WP-S2.06 part 3) it is a generic navigator.
+        let pages = self.kind == NavKind::Pages && shell.nav(NavKind::Pages).is_none();
         let shell_filter = match self.kind {
-            NavKind::Pages => shell.navigator().filter.clone(),
+            NavKind::Pages if pages => shell.navigator().filter.clone(),
             k => shell.nav(k).map(|n| n.filter.clone()).unwrap_or_default(),
         };
         if self.filter != shell_filter && !ui.ctx().text_edit_focused() {
@@ -217,6 +218,8 @@ impl NavigatorPane {
                         .show(ui, |ui| crate::messages::detail_and_footer(ui, shell, events));
                 });
         }
+        // WP-S2.06 part 3: the table card of this navigator's gesture.
+        table_card(ui, shell, self.kind, events);
         let visible = self.visible_rows(shell);
         let cursor = shell.nav_cursor(self.kind);
         // The list itself: one focusable node with the role `Tree`.
@@ -280,7 +283,7 @@ impl NavigatorPane {
                 view = range.clone();
                 for row in &visible[range] {
                     painted += 1;
-                    row_ui(ui, kind, row, cursor.as_deref(), &visible, events);
+                    row_ui(ui, kind, pages, row, cursor.as_deref(), &visible, events);
                 }
             });
         });
@@ -297,7 +300,7 @@ impl NavigatorPane {
         cursor: Option<&str>,
         events: &mut Vec<Event>,
     ) {
-        let pages = self.kind == NavKind::Pages;
+        let pages = self.kind == NavKind::Pages && shell.nav(NavKind::Pages).is_none();
         let kind = self.kind_word();
         let row = cursor.and_then(|c| visible.iter().find(|r| r.key == c));
         let pressed = |m: Modifiers, k: Key| ui.ctx().input_mut(|i| i.consume_key(m, k));
@@ -325,6 +328,8 @@ impl NavigatorPane {
         let card = shell.properties().card().is_some_and(|c| match c.origin {
             CardOrigin::Reorder { .. } => pages,
             CardOrigin::QuickFix { .. } => self.kind == NavKind::Messages,
+            // WP-S2.06 part 3: a table card.
+            CardOrigin::Table { .. } => true,
             _ => false,
         });
         if pressed(Modifiers::SHIFT, Key::ArrowDown) {
@@ -379,12 +384,12 @@ impl NavigatorPane {
             } else if let Some(r) = row
                 && r.openable
             {
-                open(events, self.kind, &r.key, true);
+                open(events, self.kind, pages, &r.key, true);
             }
         } else if pressed(Modifiers::NONE, Key::Enter) {
             if let Some(r) = row {
                 if r.openable {
-                    open(events, self.kind, &r.key, false);
+                    open(events, self.kind, pages, &r.key, false);
                 } else if r.expanded.is_some() {
                     toggle(events, &r.key);
                 }
@@ -424,13 +429,13 @@ impl NavigatorPane {
     }
 }
 
-/// Opens a row: `pages.open` for a page row of the Pages navigator, `navigator.open` otherwise.
-fn open(events: &mut Vec<Event>, kind: NavKind, key: &str, new_tab: bool) {
+/// Opens a row: `pages.open` for a page row of the Pages navigator as built (`pages`), `navigator.open` otherwise.
+fn open(events: &mut Vec<Event>, kind: NavKind, pages: bool, key: &str, new_tab: bool) {
     let mut p = json!({ "key": key });
     if new_tab {
         p["new_tab"] = Value::Bool(true);
     }
-    if kind == NavKind::Pages {
+    if pages {
         events.push(Event::Action("pages.open", p));
     } else {
         p["kind"] = Value::from(kind.word());
@@ -442,6 +447,7 @@ fn open(events: &mut Vec<Event>, kind: NavKind, key: &str, new_tab: bool) {
 fn row_ui(
     ui: &mut Ui,
     kind: NavKind,
+    pages: bool,
     row: &ShownRow,
     cursor: Option<&str>,
     visible: &[ShownRow],
@@ -490,7 +496,7 @@ fn row_ui(
     });
     let word = kind.word();
     if glyph_clicked {
-        let action = if kind == NavKind::Pages {
+        let action = if pages {
             ("pages.toggle", json!({"key": row.key}))
         } else {
             ("navigator.toggle", json!({"kind": word, "key": row.key}))
@@ -519,9 +525,7 @@ fn row_ui(
         None => {}
     }
     // A drop of pages on a row of the Pages navigator.
-    if kind == NavKind::Pages
-        && let Some(payload) = response.dnd_release_payload::<PagesDrag>()
-    {
+    if pages && let Some(payload) = response.dnd_release_payload::<PagesDrag>() {
         let pages = payload.0.clone();
         match &row.drag {
             Some(DragSource::Page(target)) => {
@@ -545,13 +549,13 @@ fn row_ui(
     let modifiers = ui.input(|i| i.modifiers);
     if response.clicked_by(PointerButton::Middle) {
         if row.openable {
-            open(events, kind, &row.key, true);
+            open(events, kind, pages, &row.key, true);
         }
     } else if response.double_clicked() {
         if row.openable {
-            open(events, kind, &row.key, false);
+            open(events, kind, pages, &row.key, false);
         } else if row.expanded.is_some() {
-            let action = if kind == NavKind::Pages {
+            let action = if pages {
                 ("pages.toggle", json!({"key": row.key}))
             } else {
                 ("navigator.toggle", json!({"kind": word, "key": row.key}))
@@ -616,6 +620,72 @@ fn reorder_card(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             n.set_live(egui::accesskit::Live::Polite);
             n.set_value(line);
         });
+        ui.horizontal(|ui| {
+            if ui.button(strings::text("card-apply")).clicked() {
+                events.push(Event::Action("navigator.apply", Value::Null));
+            }
+            if ui.button(strings::text("card-cancel")).clicked() {
+                events.push(Event::Action("preview.cancel", Value::Null));
+            }
+        });
+    });
+}
+
+// WP-S2.06 part 3
+/// The table card in the pane of the navigator whose gesture it holds (§8.7): the title with the gesture and its
+/// counts, the pasted columns that were ignored, every invalid or ambiguous cell (row, column, text, reason) with a
+/// button per reading (`table.resolve`) and Drop (`table.drop`), then Apply and Cancel.
+fn table_card(ui: &mut Ui, shell: &ShellModel, kind: NavKind, events: &mut Vec<Event>) {
+    let (Some(card), Some(gesture), Some(rev)) =
+        (shell.properties().card(), shell.table_gesture(), shell.revision())
+    else {
+        return;
+    };
+    if gesture.nav != kind {
+        return;
+    }
+    ui.group(|ui| {
+        let mut line = gesture.title();
+        match (&card.preview.result, card.preview.status(rev)) {
+            (Err(m), _) => line.push_str(&format!(" · {m}")),
+            (_, ew_viewmodel::tools::PreviewStatus::Stale) => {
+                line.push_str(&format!(" [{}]", strings::text("card-stale")));
+            }
+            _ => {}
+        }
+        let response = ui.label(&line);
+        ui.ctx().accesskit_node_builder(response.id, |n| {
+            n.set_live(egui::accesskit::Live::Polite);
+            n.set_value(line);
+        });
+        if !gesture.ignored.is_empty() {
+            ui.label(gesture.ignored.join(", "));
+        }
+        for (i, c) in gesture.cells.iter().enumerate() {
+            if !c.blocking() {
+                continue;
+            }
+            ui.horizontal_wrapped(|ui| {
+                let what = c.reason().unwrap_or_default();
+                ui.label(format!(
+                    "{} · {} · {} · {what}",
+                    c.row_label, c.column_label, c.text
+                ));
+                if let ew_viewmodel::navigators::table::CellValue::Ambiguous(readings) = &c.value {
+                    for (k, (text, _)) in readings.iter().enumerate() {
+                        if ui.button(text).clicked() {
+                            events.push(Event::Action(
+                                "table.resolve",
+                                json!({"cell": i + 1, "choice": k + 1}),
+                            ));
+                        }
+                    }
+                }
+                if ui.button(strings::text("card-table-drop")).clicked() {
+                    events.push(Event::Action("table.drop", json!({ "cell": i + 1 })));
+                }
+            });
+        }
         ui.horizontal(|ui| {
             if ui.button(strings::text("card-apply")).clicked() {
                 events.push(Event::Action("navigator.apply", Value::Null));
