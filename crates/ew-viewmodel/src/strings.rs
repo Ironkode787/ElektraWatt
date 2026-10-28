@@ -386,7 +386,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "banner-recovery" => {
             "This project has unsaved changes from a session that ended unexpectedly. It is open read-only. \
              File, Discard unsaved changes of the earlier session deletes them and opens the project for \
-             editing; recovering them comes with a later version."
+             editing; to recover them, reopen the project and choose Recover in the recovery dialog."
         }
         "banner-read-only" => "This project is open read-only: {0}.",
         "banner-findings" => "{0} integrity findings were found when the project was opened.",

@@ -186,6 +186,9 @@ fn jb7_open_read_only_keeps_the_journal_and_the_read_only_access() {
             .contains("unsaved changes from a session that ended"),
         "the banner stays"
     );
+    let banner = s.banner().unwrap_or_default();
+    assert!(!banner.contains("later version"), "{banner}");
+    assert!(banner.contains("Recover in the recovery dialog"), "{banner}");
     assert_eq!(
         refused(&mut s, "journal.recover", json!({})),
         "reason-no-recovery"
