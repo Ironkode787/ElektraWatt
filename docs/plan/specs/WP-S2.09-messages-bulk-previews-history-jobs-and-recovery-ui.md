@@ -289,7 +289,7 @@ dialog "Recover unsaved changes"
 ```
 
 The window shows how long ago the last change was ("Last change: 12 minutes ago"; just now, minutes, hours or days,
-from `SystemTime`, with the UTC time in the hover text; never in the transcript), and "The project changed on disk
+from `SystemTime`, with the UTC time on a small second line under it; never in the transcript), and "The project changed on disk
 since" when `base_matches` is false. *Amended in cycle 31 (FT-503, decision log ID-736):* the specification asked for
 local date and time, which needs a time-zone source the dependency rule does not allow; local clock time waits for the
 first feature that needs real dates (the title block's revision dates), then `chrono` with its `clock` feature only. Escape is Open read-only.
@@ -373,7 +373,7 @@ says, with these points:
   toasts and expires their Undo (deviation 7). The stack replaces WP-S2.05's rule that the next committing action
   removes a toast, and FT-485's toasts share the key `edit` (deviation 8).
 - **§6.6.** As specified, except: the time of the last change was shown in UTC (deviation 1); since cycle 31 it is the elapsed
-  time with the UTC time on hover (FT-503 closed, ID-736; §6.6 amended); the
+  time with the UTC time on a second line (FT-503 closed, ID-736; §6.6 amended); the
   dialog also lets through `ui.dismiss` (Escape is Open read-only), `ui.describe`, `help.documentation` (F1 opens the
   `recovery` topic), `app.quit` and `view.canvas_resize` (deviation 5); Recover also fails when the re-open is not an
   editing one, and the Cancel of Discard… returns to the recovery dialog (deviation 6). As delivered, after Save As
