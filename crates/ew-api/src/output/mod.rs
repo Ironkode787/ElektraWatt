@@ -42,6 +42,8 @@ mod fields;
 mod find;
 mod layers;
 mod navigation;
+// WP-S2.06 part 1
+mod navigators;
 mod properties;
 mod view;
 
@@ -82,6 +84,10 @@ pub use layers::{
     page_scene, page_view,
 };
 pub use navigation::{CellLabel, GotoError, GotoTarget, LinkTarget, PageCells, PageCp, PageRow};
+// WP-S2.06 part 1
+pub use navigators::{
+    Drawable, NaturalKey, NavColumn, NavKind, NavNode, NavOpen, NavRole, NavTable, tokens as nav_tokens,
+};
 pub use properties::{
     FindingChip, PropRow, PropertySheet, Provenance, RowAction, RowValue, SheetHeader, SheetSection,
 };

@@ -195,7 +195,7 @@ fn starter_symbol(key: &str) -> Option<&'static LibCopy<SymbolDef>> {
 }
 
 /// The starter FnDef copy with this copy ID.
-fn starter_fndef(id: Id<FnDef>) -> Option<&'static LibCopy<FnDef>> {
+pub(super) fn starter_fndef(id: Id<FnDef>) -> Option<&'static LibCopy<FnDef>> {
     starter_docs().iter().find_map(|(_, _, d)| match d {
         LibDocument::Fndef(c) if c.id == id => Some(c),
         _ => None,
