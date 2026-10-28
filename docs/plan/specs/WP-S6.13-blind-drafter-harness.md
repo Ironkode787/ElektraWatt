@@ -403,7 +403,10 @@ A headless-only `View` action (`headless(…)`, context global, params `folio?:t
 refused with `reason-no-project` or `reason-no-page`, failed with `error-unknown-folio` for an unknown folio. Its
 transcript line carries the member `describe` (as `ui.describe`'s does) with the text below, built from
 `Session::page_tables` (WP-S2.04 §4.3), the device tags the scene prints and the page's cell map (`PageCells::cell_at`).
-Texts in quotes are user text or labels; positions are page millimetres with three decimals:
+Texts in quotes are user text or labels; positions are millimetres with three decimals on the sheet, the coordinates
+`canvas.press`, `canvas.pointer` and `cursor.set` take (*amended in cycle 30, FT-485 item 5:* they were the page's own
+coordinates, which are offset from the sheet's by the frame margin, so a reader who clicked a printed position missed
+it by that margin):
 
 ```text
 page "101" "Power Supply 1 - Main Current" reps 17 connections 21 junctions 2
@@ -424,8 +427,14 @@ page "101" "Power Supply 1 - Main Current" reps 17 connections 21 junctions 2
   key. The label is the device's short tag as the page prints it, `ip "<name>" direction <word>` for an interruption
   point (WP-S2.04 part 3's words), or `none`. Connection points in index order with their printed label, position, the
   number of drawn connections ending there (`wires`) and the derived potential name when there is one.
-- **Connections** sorted by their end labels: `wire <end> -> <end> route stored|provisional bends <n>`; an end is a CP
-  label in quotes or `junction <n>`.
+- **Connections** sorted by their end labels: `wire <end> -> <end> route stored|provisional bends <n>[ at <x> <y> mm]`;
+  an end is a CP label in quotes or `junction <n>`. *Amended in cycle 30 (FT-485 item 4):* `at` gives a point on the
+  wire that the Select tool's press picks as this wire and nothing else (no other entity's rectangle and no other wire
+  within the pick reach at 50 %, else 90 %, zoom; the candidates are the 32nds of each segment, the middle first, longer
+  segments first), and is left out when there is none (a provisional route that runs along another wire or through a
+  symbol's body for its whole length). Such a wire is selected by its ends: `select.set` takes `wire:<end> -> <end>`
+  beside the session's references (ends as this line prints them, quotes optional, either way round; no such wire or
+  several fail with a message).
 - **Junctions** numbered 1, 2, … in reading order of their position; `sequence` names each member by its far-end CP label
   (WP-S2.04 part 2's rule for `junction_wires`).
 - **Items and boxes** (once WP-S2.04 part 4a's fields exist): `item <graphic|text|marker|image|unknown> "<cell>"` with

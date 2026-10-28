@@ -1,139 +1,139 @@
 page "103" "Power Supply 3 - Control Current Distribution" reps 23 connections 20 junctions 0
-  rep ip "0VDC" direction target cell "103-A1" symbol "ew.gen.ip@qet10" variant "A" at 29.104 15.875 mm
-    cp "0VDC" at 29.104 13.229 mm wires 1 potential "0V"
-  rep ip "24VDC-1" direction target cell "103-A1" symbol "ew.gen.ip@qet10" variant "A" at 29.104 21.167 mm
-    cp "24VDC-1" at 29.104 18.521 mm wires 1 potential "24VDC-1"
-  rep "-X1031:1" cell "103-A3" symbol "ew.gen.strip-segment@qet10" variant "A" at 60.854 15.875 mm
-    cp "-X1031:1/a" at 63.500 15.875 mm wires 1 potential "24VDC-1"
-    cp "-X1031:10/a" at 87.313 15.875 mm wires 0
-    cp "-X1031:2/a" at 66.146 15.875 mm wires 0
-    cp "-X1031:3/a" at 68.792 15.875 mm wires 0
-    cp "-X1031:4/a" at 71.438 15.875 mm wires 0
-    cp "-X1031:5/a" at 74.083 15.875 mm wires 1 potential "24VDC-2"
-    cp "-X1031:6/a" at 76.729 15.875 mm wires 0
-    cp "-X1031:7/a" at 79.375 15.875 mm wires 1 potential "24VDC-3"
-    cp "-X1031:8/a" at 82.021 15.875 mm wires 0
-    cp "-X1031:9/a" at 84.667 15.875 mm wires 1 potential "24VDC-4"
-    cp "-X1031:1/b" at 63.500 23.813 mm wires 1 potential "24VDC-1"
-    cp "-X1031:10/b" at 87.313 23.813 mm wires 0
-    cp "-X1031:2/b" at 66.146 23.813 mm wires 1 potential "24VDC-1"
-    cp "-X1031:3/b" at 68.792 23.813 mm wires 1 potential "24VDC-1"
-    cp "-X1031:4/b" at 71.438 23.813 mm wires 1 potential "24VDC-1"
-    cp "-X1031:5/b" at 74.083 23.813 mm wires 0
-    cp "-X1031:6/b" at 76.729 23.813 mm wires 0
-    cp "-X1031:7/b" at 79.375 23.813 mm wires 0
-    cp "-X1031:8/b" at 82.021 23.813 mm wires 0
-    cp "-X1031:9/b" at 84.667 23.813 mm wires 0
-    cp "-X1031:1/c" at 63.500 23.813 mm wires 0
-    cp "-X1031:10/c" at 87.313 23.813 mm wires 0
-    cp "-X1031:2/c" at 66.146 23.813 mm wires 0
-    cp "-X1031:3/c" at 68.792 23.813 mm wires 0
-    cp "-X1031:4/c" at 71.438 23.813 mm wires 0
-    cp "-X1031:5/c" at 74.083 23.813 mm wires 0
-    cp "-X1031:6/c" at 76.729 23.813 mm wires 0
-    cp "-X1031:7/c" at 79.375 23.813 mm wires 0
-    cp "-X1031:8/c" at 82.021 23.813 mm wires 0
-    cp "-X1031:9/c" at 84.667 23.813 mm wires 0
-  rep ip "24VDC-AIR1" direction source cell "103-A6" symbol "ew.gen.ip@qet10" variant "A" at 108.479 15.875 mm
-    cp "24VDC-AIR1" at 108.479 13.229 mm wires 1 potential "24VDC-1"
-  rep "-X1031:11" cell "103-A10" symbol "ew.gen.strip-segment@qet10" variant "A" at 171.979 15.875 mm
-    cp "-X1031:11/a" at 174.625 15.875 mm wires 1 potential "0V"
-    cp "-X1031:12/a" at 177.271 15.875 mm wires 0
-    cp "-X1031:13/a" at 179.917 15.875 mm wires 0
-    cp "-X1031:14/a" at 182.563 15.875 mm wires 0
-    cp "-X1031:15/a" at 185.208 15.875 mm wires 0
-    cp "-X1031:16/a" at 187.854 15.875 mm wires 0
-    cp "-X1031:17/a" at 190.500 15.875 mm wires 0
-    cp "-X1031:18/a" at 193.146 15.875 mm wires 0
-    cp "-X1031:19/a" at 195.792 15.875 mm wires 0
-    cp "-X1031:20/a" at 198.438 15.875 mm wires 0
-    cp "-X1031:11/b" at 174.625 23.813 mm wires 1 potential "0V"
-    cp "-X1031:12/b" at 177.271 23.813 mm wires 1 potential "0V"
-    cp "-X1031:13/b" at 179.917 23.813 mm wires 1 potential "0V"
-    cp "-X1031:14/b" at 182.563 23.813 mm wires 1 potential "0V"
-    cp "-X1031:15/b" at 185.208 23.813 mm wires 0
-    cp "-X1031:16/b" at 187.854 23.813 mm wires 0
-    cp "-X1031:17/b" at 190.500 23.813 mm wires 0
-    cp "-X1031:18/b" at 193.146 23.813 mm wires 0
-    cp "-X1031:19/b" at 195.792 23.813 mm wires 0
-    cp "-X1031:20/b" at 198.438 23.813 mm wires 0
-    cp "-X1031:11/c" at 174.625 23.813 mm wires 0
-    cp "-X1031:12/c" at 177.271 23.813 mm wires 0
-    cp "-X1031:13/c" at 179.917 23.813 mm wires 0
-    cp "-X1031:14/c" at 182.563 23.813 mm wires 0
-    cp "-X1031:15/c" at 185.208 23.813 mm wires 0
-    cp "-X1031:16/c" at 187.854 23.813 mm wires 0
-    cp "-X1031:17/c" at 190.500 23.813 mm wires 0
-    cp "-X1031:18/c" at 193.146 23.813 mm wires 0
-    cp "-X1031:19/c" at 195.792 23.813 mm wires 0
-    cp "-X1031:20/c" at 198.438 23.813 mm wires 0
-  rep ip "0VDC-AIR1" direction source cell "103-A14" symbol "ew.gen.ip@qet10" variant "A" at 235.479 15.875 mm
-    cp "0VDC-AIR1" at 235.479 13.229 mm wires 1 potential "0V"
-  rep ip "24VDC-AIR4" direction source cell "103-B6" symbol "ew.gen.ip@qet10" variant "A" at 108.479 31.750 mm
-    cp "24VDC-AIR4" at 108.479 29.104 mm wires 1 potential "24VDC-1"
-  rep ip "24VDC-AIR2" direction source cell "103-B6" symbol "ew.gen.ip@qet10" variant "A" at 108.479 37.042 mm
-    cp "24VDC-AIR2" at 108.479 34.396 mm wires 1 potential "24VDC-1"
-  rep ip "24VDC-AIR3" direction source cell "103-B6" symbol "ew.gen.ip@qet10" variant "A" at 108.479 42.333 mm
-    cp "24VDC-AIR3" at 108.479 39.688 mm wires 1 potential "24VDC-1"
-  rep ip "0VDC-AIR4" direction source cell "103-B14" symbol "ew.gen.ip@qet10" variant "A" at 235.479 31.750 mm
-    cp "0VDC-AIR4" at 235.479 29.104 mm wires 1 potential "0V"
-  rep ip "0VDC-AIR2" direction source cell "103-B14" symbol "ew.gen.ip@qet10" variant "A" at 235.479 37.042 mm
-    cp "0VDC-AIR2" at 235.479 34.396 mm wires 1 potential "0V"
-  rep ip "0VDC-AIR3" direction source cell "103-B14" symbol "ew.gen.ip@qet10" variant "A" at 235.479 42.333 mm
-    cp "0VDC-AIR3" at 235.479 39.688 mm wires 1 potential "0V"
-  rep ip "24VDC-2" direction target cell "103-C1" symbol "ew.gen.ip@qet10" variant "A" at 29.104 58.208 mm
-    cp "24VDC-2" at 29.104 55.563 mm wires 1 potential "24VDC-2"
-  rep ip "24VDC-3" direction target cell "103-D1" symbol "ew.gen.ip@qet10" variant "A" at 29.104 79.375 mm
-    cp "24VDC-3" at 29.104 76.729 mm wires 1 potential "24VDC-3"
-  rep ip "24VDC-4" direction target cell "103-F1" symbol "ew.gen.ip@qet10" variant "A" at 29.104 121.708 mm
-    cp "24VDC-4" at 29.104 119.063 mm wires 1 potential "24VDC-4"
-  rep "-X1032:1" cell "103-F3" symbol "ew.gen.strip-segment@qet10" variant "A" at 60.854 121.708 mm
-    cp "-X1032:1/a" at 63.500 121.708 mm wires 1 potential "PE"
-    cp "-X1032:2/a" at 66.146 121.708 mm wires 1 potential "PE"
-    cp "-X1032:3/a" at 68.792 121.708 mm wires 1 potential "PE"
-    cp "-X1032:4/a" at 71.438 121.708 mm wires 0
-    cp "-X1032:5/a" at 74.083 121.708 mm wires 0
-    cp "-X1032:1/b" at 63.500 129.646 mm wires 1 potential "PE"
-    cp "-X1032:2/b" at 66.146 129.646 mm wires 1 potential "PE"
-    cp "-X1032:3/b" at 68.792 129.646 mm wires 1 potential "PE"
-    cp "-X1032:4/b" at 71.438 129.646 mm wires 1 potential "PE"
-    cp "-X1032:5/b" at 74.083 129.646 mm wires 0
-    cp "-X1032:1/c" at 63.500 129.646 mm wires 0
-    cp "-X1032:2/c" at 66.146 129.646 mm wires 0
-    cp "-X1032:3/c" at 68.792 129.646 mm wires 0
-    cp "-X1032:4/c" at 71.438 129.646 mm wires 0
-    cp "-X1032:5/c" at 74.083 129.646 mm wires 0
-  rep ip "PE-AIR2" direction target cell "103-G1" symbol "ew.gen.ip@qet10" variant "A" at 29.104 137.583 mm
-    cp "PE-AIR2" at 29.104 134.938 mm wires 1 potential "PE"
-  rep ip "PE-0VDC" direction target cell "103-G1" symbol "ew.gen.ip@qet10" variant "A" at 29.104 142.875 mm
-    cp "PE-0VDC" at 29.104 140.229 mm wires 1 potential "0V"
-  rep ip "PE-AIR1" direction target cell "103-G1" symbol "ew.gen.ip@qet10" variant "A" at 29.104 148.167 mm
-    cp "PE-AIR1" at 29.104 145.521 mm wires 1 potential "PE"
-  rep ip "PE-1.3" direction target cell "103-G6" symbol "ew.gen.ip@qet10" variant "A" at 108.479 137.583 mm
-    cp "PE-1.3" at 108.479 134.938 mm wires 1 potential "PE"
-  rep ip "PE-1.1" direction target cell "103-G6" symbol "ew.gen.ip@qet10" variant "A" at 108.479 142.875 mm
-    cp "PE-1.1" at 108.479 140.229 mm wires 1 potential "PE"
-  rep ip "PE-1.4" direction target cell "103-G6" symbol "ew.gen.ip@qet10" variant "A" at 113.771 142.875 mm
-    cp "PE-1.4" at 113.771 140.229 mm wires 1 potential "PE"
-  rep ip "PE-1.2" direction target cell "103-G6" symbol "ew.gen.ip@qet10" variant "A" at 108.479 148.167 mm
-    cp "PE-1.2" at 108.479 145.521 mm wires 1 potential "PE"
-  wire "-X1031:1/b" -> "24VDC-AIR1" route provisional bends 1
-  wire "-X1031:11/b" -> "0VDC-AIR1" route provisional bends 1
-  wire "-X1031:12/b" -> "0VDC-AIR2" route provisional bends 1
-  wire "-X1031:13/b" -> "0VDC-AIR3" route provisional bends 1
-  wire "-X1031:14/b" -> "0VDC-AIR4" route provisional bends 1
-  wire "-X1031:2/b" -> "24VDC-AIR2" route provisional bends 1
-  wire "-X1031:3/b" -> "24VDC-AIR3" route provisional bends 1
-  wire "-X1031:4/b" -> "24VDC-AIR4" route provisional bends 1
-  wire "-X1032:1/a" -> "PE-AIR2" route provisional bends 1
-  wire "-X1032:3/a" -> "PE-AIR1" route provisional bends 1
-  wire "-X1032:3/b" -> "PE-1.3" route provisional bends 1
-  wire "-X1032:4/b" -> "PE-1.4" route provisional bends 1
-  wire "0VDC" -> "-X1031:11/a" route provisional bends 1
+  rep ip "0VDC" direction target cell "103-A1" symbol "ew.gen.ip@qet10" variant "A" at 38.495 25.447 mm
+    cp "0VDC" at 38.495 22.838 mm wires 1 potential "0V"
+  rep ip "24VDC-1" direction target cell "103-A1" symbol "ew.gen.ip@qet10" variant "A" at 38.495 30.666 mm
+    cp "24VDC-1" at 38.495 28.057 mm wires 1 potential "24VDC-1"
+  rep "-X1031:1" cell "103-A3" symbol "ew.gen.strip-segment@qet10" variant "A" at 69.809 25.447 mm
+    cp "-X1031:1/a" at 72.419 25.447 mm wires 1 potential "24VDC-1"
+    cp "-X1031:10/a" at 95.905 25.447 mm wires 0
+    cp "-X1031:2/a" at 75.028 25.447 mm wires 0
+    cp "-X1031:3/a" at 77.638 25.447 mm wires 0
+    cp "-X1031:4/a" at 80.248 25.447 mm wires 0
+    cp "-X1031:5/a" at 82.857 25.447 mm wires 1 potential "24VDC-2"
+    cp "-X1031:6/a" at 85.467 25.447 mm wires 0
+    cp "-X1031:7/a" at 88.076 25.447 mm wires 1 potential "24VDC-3"
+    cp "-X1031:8/a" at 90.686 25.447 mm wires 0
+    cp "-X1031:9/a" at 93.295 25.447 mm wires 1 potential "24VDC-4"
+    cp "-X1031:1/b" at 72.419 33.276 mm wires 1 potential "24VDC-1"
+    cp "-X1031:10/b" at 95.905 33.276 mm wires 0
+    cp "-X1031:2/b" at 75.028 33.276 mm wires 1 potential "24VDC-1"
+    cp "-X1031:3/b" at 77.638 33.276 mm wires 1 potential "24VDC-1"
+    cp "-X1031:4/b" at 80.248 33.276 mm wires 1 potential "24VDC-1"
+    cp "-X1031:5/b" at 82.857 33.276 mm wires 0
+    cp "-X1031:6/b" at 85.467 33.276 mm wires 0
+    cp "-X1031:7/b" at 88.076 33.276 mm wires 0
+    cp "-X1031:8/b" at 90.686 33.276 mm wires 0
+    cp "-X1031:9/b" at 93.295 33.276 mm wires 0
+    cp "-X1031:1/c" at 72.419 33.276 mm wires 0
+    cp "-X1031:10/c" at 95.905 33.276 mm wires 0
+    cp "-X1031:2/c" at 75.028 33.276 mm wires 0
+    cp "-X1031:3/c" at 77.638 33.276 mm wires 0
+    cp "-X1031:4/c" at 80.248 33.276 mm wires 0
+    cp "-X1031:5/c" at 82.857 33.276 mm wires 0
+    cp "-X1031:6/c" at 85.467 33.276 mm wires 0
+    cp "-X1031:7/c" at 88.076 33.276 mm wires 0
+    cp "-X1031:8/c" at 90.686 33.276 mm wires 0
+    cp "-X1031:9/c" at 93.295 33.276 mm wires 0
+  rep ip "24VDC-AIR1" direction source cell "103-A6" symbol "ew.gen.ip@qet10" variant "A" at 116.781 25.447 mm
+    cp "24VDC-AIR1" at 116.781 22.838 mm wires 1 potential "24VDC-1"
+  rep "-X1031:11" cell "103-A10" symbol "ew.gen.strip-segment@qet10" variant "A" at 179.410 25.447 mm
+    cp "-X1031:11/a" at 182.020 25.447 mm wires 1 potential "0V"
+    cp "-X1031:12/a" at 184.629 25.447 mm wires 0
+    cp "-X1031:13/a" at 187.239 25.447 mm wires 0
+    cp "-X1031:14/a" at 189.848 25.447 mm wires 0
+    cp "-X1031:15/a" at 192.458 25.447 mm wires 0
+    cp "-X1031:16/a" at 195.067 25.447 mm wires 0
+    cp "-X1031:17/a" at 197.677 25.447 mm wires 0
+    cp "-X1031:18/a" at 200.286 25.447 mm wires 0
+    cp "-X1031:19/a" at 202.896 25.447 mm wires 0
+    cp "-X1031:20/a" at 205.505 25.447 mm wires 0
+    cp "-X1031:11/b" at 182.020 33.276 mm wires 1 potential "0V"
+    cp "-X1031:12/b" at 184.629 33.276 mm wires 1 potential "0V"
+    cp "-X1031:13/b" at 187.239 33.276 mm wires 1 potential "0V"
+    cp "-X1031:14/b" at 189.848 33.276 mm wires 1 potential "0V"
+    cp "-X1031:15/b" at 192.458 33.276 mm wires 0
+    cp "-X1031:16/b" at 195.067 33.276 mm wires 0
+    cp "-X1031:17/b" at 197.677 33.276 mm wires 0
+    cp "-X1031:18/b" at 200.286 33.276 mm wires 0
+    cp "-X1031:19/b" at 202.896 33.276 mm wires 0
+    cp "-X1031:20/b" at 205.505 33.276 mm wires 0
+    cp "-X1031:11/c" at 182.020 33.276 mm wires 0
+    cp "-X1031:12/c" at 184.629 33.276 mm wires 0
+    cp "-X1031:13/c" at 187.239 33.276 mm wires 0
+    cp "-X1031:14/c" at 189.848 33.276 mm wires 0
+    cp "-X1031:15/c" at 192.458 33.276 mm wires 0
+    cp "-X1031:16/c" at 195.067 33.276 mm wires 0
+    cp "-X1031:17/c" at 197.677 33.276 mm wires 0
+    cp "-X1031:18/c" at 200.286 33.276 mm wires 0
+    cp "-X1031:19/c" at 202.896 33.276 mm wires 0
+    cp "-X1031:20/c" at 205.505 33.276 mm wires 0
+  rep ip "0VDC-AIR1" direction source cell "103-A14" symbol "ew.gen.ip@qet10" variant "A" at 242.039 25.447 mm
+    cp "0VDC-AIR1" at 242.039 22.838 mm wires 1 potential "0V"
+  rep ip "24VDC-AIR4" direction source cell "103-B6" symbol "ew.gen.ip@qet10" variant "A" at 116.781 41.104 mm
+    cp "24VDC-AIR4" at 116.781 38.495 mm wires 1 potential "24VDC-1"
+  rep ip "24VDC-AIR2" direction source cell "103-B6" symbol "ew.gen.ip@qet10" variant "A" at 116.781 46.324 mm
+    cp "24VDC-AIR2" at 116.781 43.714 mm wires 1 potential "24VDC-1"
+  rep ip "24VDC-AIR3" direction source cell "103-B6" symbol "ew.gen.ip@qet10" variant "A" at 116.781 51.543 mm
+    cp "24VDC-AIR3" at 116.781 48.933 mm wires 1 potential "24VDC-1"
+  rep ip "0VDC-AIR4" direction source cell "103-B14" symbol "ew.gen.ip@qet10" variant "A" at 242.039 41.104 mm
+    cp "0VDC-AIR4" at 242.039 38.495 mm wires 1 potential "0V"
+  rep ip "0VDC-AIR2" direction source cell "103-B14" symbol "ew.gen.ip@qet10" variant "A" at 242.039 46.324 mm
+    cp "0VDC-AIR2" at 242.039 43.714 mm wires 1 potential "0V"
+  rep ip "0VDC-AIR3" direction source cell "103-B14" symbol "ew.gen.ip@qet10" variant "A" at 242.039 51.543 mm
+    cp "0VDC-AIR3" at 242.039 48.933 mm wires 1 potential "0V"
+  rep ip "24VDC-2" direction target cell "103-C1" symbol "ew.gen.ip@qet10" variant "A" at 38.495 67.200 mm
+    cp "24VDC-2" at 38.495 64.590 mm wires 1 potential "24VDC-2"
+  rep ip "24VDC-3" direction target cell "103-D1" symbol "ew.gen.ip@qet10" variant "A" at 38.495 88.076 mm
+    cp "24VDC-3" at 38.495 85.467 mm wires 1 potential "24VDC-3"
+  rep ip "24VDC-4" direction target cell "103-F1" symbol "ew.gen.ip@qet10" variant "A" at 38.495 129.829 mm
+    cp "24VDC-4" at 38.495 127.219 mm wires 1 potential "24VDC-4"
+  rep "-X1032:1" cell "103-F3" symbol "ew.gen.strip-segment@qet10" variant "A" at 69.809 129.829 mm
+    cp "-X1032:1/a" at 72.419 129.829 mm wires 1 potential "PE"
+    cp "-X1032:2/a" at 75.028 129.829 mm wires 1 potential "PE"
+    cp "-X1032:3/a" at 77.638 129.829 mm wires 1 potential "PE"
+    cp "-X1032:4/a" at 80.248 129.829 mm wires 0
+    cp "-X1032:5/a" at 82.857 129.829 mm wires 0
+    cp "-X1032:1/b" at 72.419 137.657 mm wires 1 potential "PE"
+    cp "-X1032:2/b" at 75.028 137.657 mm wires 1 potential "PE"
+    cp "-X1032:3/b" at 77.638 137.657 mm wires 1 potential "PE"
+    cp "-X1032:4/b" at 80.248 137.657 mm wires 1 potential "PE"
+    cp "-X1032:5/b" at 82.857 137.657 mm wires 0
+    cp "-X1032:1/c" at 72.419 137.657 mm wires 0
+    cp "-X1032:2/c" at 75.028 137.657 mm wires 0
+    cp "-X1032:3/c" at 77.638 137.657 mm wires 0
+    cp "-X1032:4/c" at 80.248 137.657 mm wires 0
+    cp "-X1032:5/c" at 82.857 137.657 mm wires 0
+  rep ip "PE-AIR2" direction target cell "103-G1" symbol "ew.gen.ip@qet10" variant "A" at 38.495 145.486 mm
+    cp "PE-AIR2" at 38.495 142.877 mm wires 1 potential "PE"
+  rep ip "PE-0VDC" direction target cell "103-G1" symbol "ew.gen.ip@qet10" variant "A" at 38.495 150.705 mm
+    cp "PE-0VDC" at 38.495 148.096 mm wires 1 potential "0V"
+  rep ip "PE-AIR1" direction target cell "103-G1" symbol "ew.gen.ip@qet10" variant "A" at 38.495 155.924 mm
+    cp "PE-AIR1" at 38.495 153.315 mm wires 1 potential "PE"
+  rep ip "PE-1.3" direction target cell "103-G6" symbol "ew.gen.ip@qet10" variant "A" at 116.781 145.486 mm
+    cp "PE-1.3" at 116.781 142.877 mm wires 1 potential "PE"
+  rep ip "PE-1.1" direction target cell "103-G6" symbol "ew.gen.ip@qet10" variant "A" at 116.781 150.705 mm
+    cp "PE-1.1" at 116.781 148.096 mm wires 1 potential "PE"
+  rep ip "PE-1.4" direction target cell "103-G6" symbol "ew.gen.ip@qet10" variant "A" at 122.000 150.705 mm
+    cp "PE-1.4" at 122.000 148.096 mm wires 1 potential "PE"
+  rep ip "PE-1.2" direction target cell "103-G6" symbol "ew.gen.ip@qet10" variant "A" at 116.781 155.924 mm
+    cp "PE-1.2" at 116.781 153.315 mm wires 1 potential "PE"
+  wire "-X1031:1/b" -> "24VDC-AIR1" route provisional bends 1 at 94.600 22.838 mm
+  wire "-X1031:11/b" -> "0VDC-AIR1" route provisional bends 1 at 212.029 22.838 mm
+  wire "-X1031:12/b" -> "0VDC-AIR2" route provisional bends 1 at 213.334 43.714 mm
+  wire "-X1031:13/b" -> "0VDC-AIR3" route provisional bends 1 at 214.639 48.933 mm
+  wire "-X1031:14/b" -> "0VDC-AIR4" route provisional bends 1 at 215.944 38.495 mm
+  wire "-X1031:2/b" -> "24VDC-AIR2" route provisional bends 1 at 95.905 43.714 mm
+  wire "-X1031:3/b" -> "24VDC-AIR3" route provisional bends 1 at 97.210 48.933 mm
+  wire "-X1031:4/b" -> "24VDC-AIR4" route provisional bends 1 at 98.514 38.495 mm
+  wire "-X1032:1/a" -> "PE-AIR2" route provisional bends 1 at 55.457 142.877 mm
+  wire "-X1032:3/a" -> "PE-AIR1" route provisional bends 1 at 58.066 153.315 mm
+  wire "-X1032:3/b" -> "PE-1.3" route provisional bends 1 at 97.210 142.877 mm
+  wire "-X1032:4/b" -> "PE-1.4" route provisional bends 1 at 101.124 148.096 mm
+  wire "0VDC" -> "-X1031:11/a" route provisional bends 1 at 137.168 25.447 mm
   wire "24VDC-1" -> "-X1031:1/a" route provisional bends 1
   wire "24VDC-2" -> "-X1031:5/a" route provisional bends 1
   wire "24VDC-3" -> "-X1031:7/a" route provisional bends 1
-  wire "24VDC-4" -> "-X1031:9/a" route provisional bends 1
-  wire "PE-0VDC" -> "-X1032:2/a" route provisional bends 1
+  wire "24VDC-4" -> "-X1031:9/a" route provisional bends 1 at 38.495 95.416 mm
+  wire "PE-0VDC" -> "-X1032:2/a" route provisional bends 1 at 56.762 129.829 mm
   wire "PE-1.1" -> "-X1032:1/b" route provisional bends 1
   wire "PE-1.2" -> "-X1032:2/b" route provisional bends 1

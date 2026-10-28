@@ -1513,9 +1513,82 @@ fn page_quoted(text: &str) -> String {
     format!("\"{}\"", t.replace('"', "'"))
 }
 
-/// `at X Y mm` of a page point in page nm.
-fn page_at(p: (i64, i64)) -> String {
-    format!("at {} {} mm", mm3(p.0), mm3(p.1))
+/// `at X Y mm` of a page point in page nm, printed as the sheet point a pointer or the grid cursor reaches it at
+/// (`canvas.press`, `canvas.pointer`, `cursor.set`; FT-485 item 5): the page's own coordinates are offset from the
+/// sheet's by the frame margin, so a page coordinate printed as is missed every click by that margin.
+fn page_at(page: &CanvasPage, p: (i64, i64)) -> String {
+    let s = page.snapper.page_to_sheet(p);
+    format!("at {} {} mm", mm3(s.0), mm3(s.1))
+}
+
+/// The candidate points of [`wire_point`] along a segment, in 32nds: the middle first, then outward (the nearer to the
+/// middle first, the lower first).
+const FRACTIONS: [i64; 31] = [
+    16, 15, 17, 14, 18, 13, 19, 12, 20, 11, 21, 10, 22, 9, 23, 8, 24, 7, 25, 6, 26, 5, 27, 4, 28, 3, 29, 2,
+    30, 1, 31,
+];
+
+/// A sheet point on the drawn polyline of `wire` that the Select tool's press picks as this wire (WP-S2.04 §6.6;
+/// FT-485 item 4), so a reader of the page text can hover, select or delete it: no other entity's rectangle, inflated
+/// by the pick reach at 50 % zoom (else at 90 %), contains it, and no other connection passes as near. The candidates
+/// are the points at n/32 of each segment ([`FRACTIONS`]: the middle first, then outward), longer segments first
+/// (ties: the segment's order); `None` when no candidate is unambiguous (a provisional route that runs inside a
+/// symbol's body or along another wire for its whole length).
+fn wire_point(page: &CanvasPage, wire: &ew_api::output::TableConnection) -> Option<(i64, i64)> {
+    use crate::tools::segment_dist2;
+    let sheet = |pts: &[(i64, i64)]| -> Vec<(i64, i64)> {
+        pts.iter().map(|p| page.snapper.page_to_sheet(*p)).collect()
+    };
+    let wires: std::collections::BTreeSet<_> = page.tables.connections.iter().map(|c| c.id).collect();
+    let boxes: std::collections::BTreeSet<_> = page.tables.structure_boxes.iter().map(|b| b.id).collect();
+    let others: Vec<_> = page
+        .entities
+        .iter()
+        .filter(|(e, _)| !wires.contains(&e.0) && !boxes.contains(&e.0))
+        .map(|(_, r)| (r.min(), r.max()))
+        .collect();
+    let lines: Vec<(_, Vec<(i64, i64)>)> = page
+        .tables
+        .connections
+        .iter()
+        .map(|c| (c.id, sheet(&c.polyline)))
+        .collect();
+    let dist = |pts: &[(i64, i64)], p: (i64, i64)| -> i128 {
+        pts.windows(2)
+            .map(|w| segment_dist2(p, w[0], w[1]))
+            .min()
+            .unwrap_or(i128::MAX)
+    };
+    let own = sheet(&wire.polyline);
+    let mut segments: Vec<(i128, usize)> = own
+        .windows(2)
+        .enumerate()
+        .map(|(i, w)| (crate::tools::dist2(w[0], w[1]), i))
+        .filter(|(len, _)| *len > 0)
+        .collect();
+    segments.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.cmp(&b.1)));
+    // The pick reach of 4 points at 50 % and at 90 % zoom, nm (1 pt = 25.4 mm / 72).
+    for reach in [25_400_000 * 4 * 2 / 72, 25_400_000 * 4 * 10 / 72 / 9] {
+        let reach = i64::from(reach);
+        for &(_, i) in &segments {
+            let (a, b) = (own[i], own[i + 1]);
+            for n in FRACTIONS {
+                let p = (a.0 + (b.0 - a.0) * n / 32, a.1 + (b.1 - a.1) * n / 32);
+                let covered = others.iter().any(|(lo, hi)| {
+                    p.0 >= lo.x.0 - reach
+                        && p.0 <= hi.x.0 + reach
+                        && p.1 >= lo.y.0 - reach
+                        && p.1 <= hi.y.0 + reach
+                });
+                let r2 = i128::from(reach) * i128::from(reach);
+                let rival = lines.iter().any(|(id, pts)| *id != wire.id && dist(pts, p) <= r2);
+                if !covered && !rival {
+                    return Some(p);
+                }
+            }
+        }
+    }
+    None
 }
 
 /// The variant letter of an orientation `0..=7`.
@@ -1550,32 +1623,10 @@ fn cell_word(page: &CanvasPage, p: (i64, i64)) -> String {
         .map_or_else(|| "none".to_owned(), |c| page_quoted(&c))
 }
 
-/// The text of one page for `page.describe` (WP-S6.13 §5.5.3): the header with the exact counts, then the
-/// representations with their connection points, the connections, the junctions, the page items and the structure
-/// boxes, each in a named order (reading order of the anchor cell, then the position and the symbol key; connections
-/// by their end labels; junctions in reading order; items and boxes in the page tables' order). The header's
-/// `items <n> boxes <m>` follows `junctions <j>` only when the page has one of them, so a page without items prints
-/// as before. No record ID appears.
-pub fn page_describe(page: &CanvasPage) -> String {
+/// The junctions of the page text in their numbered order (indices into the page tables' junctions): reading order of
+/// the position, then style, wiring, the far-end CP labels of the sequence and the ID.
+fn junction_order(page: &CanvasPage) -> Vec<usize> {
     let t: &PageTables = &page.tables;
-    let mut header = format!(
-        "page {} {} reps {} connections {} junctions {}",
-        page_quoted(&page.folio),
-        page_quoted(&page.title),
-        t.reps.len(),
-        t.connections.len(),
-        t.junctions.len()
-    );
-    if !t.items.is_empty() || !t.structure_boxes.is_empty() {
-        header.push_str(&format!(
-            " items {} boxes {}",
-            t.items.len(),
-            t.structure_boxes.len()
-        ));
-    }
-    let mut lines = vec![header];
-
-    // The junctions are numbered first: connections and sequences name them by number.
     let cp_label = |function, idx| {
         t.cps
             .iter()
@@ -1609,6 +1660,67 @@ pub fn page_describe(page: &CanvasPage) -> String {
             j.id,
         )
     });
+    order
+}
+
+/// The drawn connections of `page` with their two ends as the page text names them, without quotes: a CP label or
+/// `junction <n>` (FT-485 item 4: `select.set` takes `wire:<a> -> <b>`).
+pub fn page_wires(page: &CanvasPage) -> Vec<(ew_api::output::ew_dl::EntityRef, String, String)> {
+    let t: &PageTables = &page.tables;
+    let order = junction_order(page);
+    let end = |e: &TableEnd| match e {
+        TableEnd::Cp { function, idx } => t
+            .cps
+            .iter()
+            .find(|c| c.function == *function && c.idx == *idx)
+            .map_or_else(String::new, |c| c.label.clone()),
+        TableEnd::Junction { id } => format!(
+            "junction {}",
+            order
+                .iter()
+                .position(|i| t.junctions[*i].id == *id)
+                .map_or(0, |n| n + 1)
+        ),
+    };
+    t.connections
+        .iter()
+        .map(|c| (ew_api::output::ew_dl::EntityRef(c.id), end(&c.a), end(&c.b)))
+        .collect()
+}
+
+/// The text of one page for `page.describe` (WP-S6.13 §5.5.3): the header with the exact counts, then the
+/// representations with their connection points, the connections, the junctions, the page items and the structure
+/// boxes, each in a named order (reading order of the anchor cell, then the position and the symbol key; connections
+/// by their end labels; junctions in reading order; items and boxes in the page tables' order). The header's
+/// `items <n> boxes <m>` follows `junctions <j>` only when the page has one of them, so a page without items prints
+/// as before. No record ID appears.
+pub fn page_describe(page: &CanvasPage) -> String {
+    let t: &PageTables = &page.tables;
+    let mut header = format!(
+        "page {} {} reps {} connections {} junctions {}",
+        page_quoted(&page.folio),
+        page_quoted(&page.title),
+        t.reps.len(),
+        t.connections.len(),
+        t.junctions.len()
+    );
+    if !t.items.is_empty() || !t.structure_boxes.is_empty() {
+        header.push_str(&format!(
+            " items {} boxes {}",
+            t.items.len(),
+            t.structure_boxes.len()
+        ));
+    }
+    let mut lines = vec![header];
+
+    // The junctions are numbered first: connections and sequences name them by number.
+    let order = junction_order(page);
+    let cp_label = |function, idx| {
+        t.cps
+            .iter()
+            .find(|c| c.function == function && c.idx == idx)
+            .map_or_else(String::new, |c| c.label.clone())
+    };
     let number = |id| {
         order
             .iter()
@@ -1649,13 +1761,13 @@ pub fn page_describe(page: &CanvasPage) -> String {
             cell_word(page, r.pos),
             page_quoted(&r.symbol_key),
             page_quoted(&variant_letter(r.orient).to_string()),
-            page_at(r.pos)
+            page_at(page, r.pos)
         ));
         for cp in cps {
             let mut line = format!(
                 "    cp {} {} wires {}",
                 page_quoted(&cp.label),
-                page_at(cp.at),
+                page_at(page, cp.at),
                 cp.connections.len()
             );
             if let Some(name) = &cp.potential {
@@ -1673,12 +1785,15 @@ pub fn page_describe(page: &CanvasPage) -> String {
             let (a, b) = (end_text(&c.a), end_text(&c.b));
             let bends = c.polyline.len().saturating_sub(2);
             let route = if c.stored_route { "stored" } else { "provisional" };
+            // A point that picks this wire and nothing else (FT-485 item 4), where there is one.
+            let point =
+                wire_point(page, c).map_or_else(String::new, |p| format!(" at {} {} mm", mm3(p.0), mm3(p.1)));
             (
                 a.clone(),
                 b.clone(),
                 c.stored_route,
                 bends,
-                format!("  wire {a} -> {b} route {route} bends {bends}"),
+                format!("  wire {a} -> {b} route {route} bends {bends}{point}"),
             )
         })
         .collect();
@@ -1701,7 +1816,7 @@ pub fn page_describe(page: &CanvasPage) -> String {
             "  junction {} cell {} {} style {} wiring {} sequence",
             n + 1,
             cell_word(page, j.at),
-            page_at(j.at),
+            page_at(page, j.at),
             j.style,
             j.wiring
         );
