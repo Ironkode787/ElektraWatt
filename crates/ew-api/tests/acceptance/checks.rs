@@ -213,7 +213,7 @@ pub fn all(r: &mut Runner) {
                 "acceptance SQL over the api_v1 views equals expected/csv: {}",
                 names.join(", ")
             ),
-            |c| match &c.sql {
+            |c| match c.sql() {
                 Ok(p) => match names.iter().try_for_each(|n| sql_pair(p, n)) {
                     Ok(()) => pass(format!(
                         "acceptance/{}.sql over the api_v1 views returns expected/csv/{}.csv row by row",
@@ -1135,7 +1135,7 @@ fn sql_pair(projection: &ew_api::sql::Projection, name: &str) -> Result<(), Stri
 /// and of path (c), the checked-in fixture `golden/J-E-2416.ew` opened read-only, return the same expected
 /// CSVs.
 fn ac15_sql_paths(c: &Ctx) -> Outcome {
-    let a = match &c.sql {
+    let a = match c.sql() {
         Ok(p) => p,
         Err(e) => return fail(format!("the SQL projection of path (a) did not build: {e}")),
     };

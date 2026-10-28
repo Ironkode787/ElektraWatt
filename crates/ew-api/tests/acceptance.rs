@@ -16,9 +16,11 @@
 //!
 //! - `cargo xtask acceptance <report.md>` runs the gate: the `#[ignore]`d test `gate` writes the report and
 //!   fails when any entry fails or is not built (exit status non-zero).
-//! - The ordinary tests run the runner once, without the raster comparison and the measurements, and compare
-//!   its report with the committed `expected/acceptance_headless.md`; they keep `expected/csv/` equal to the
-//!   derived rows.
+//! - The ordinary tests run the runner without the raster comparison and the measurements, in the three shards of
+//!   [`HEADLESS_SHARDS`] that nextest runs in parallel (cycle 32), and compare each shard's rows with the
+//!   committed `expected/acceptance_headless.md`; a fourth test shows that the shards evaluate every row of the
+//!   report once and that the committed summary line follows from the committed rows. They keep `expected/csv/`
+//!   equal to the derived rows.
 //!   `EW_BLESS=1 cargo nextest run -p ew-api --test acceptance -E 'test(expected_csv)'` rewrites `expected/csv/`.
 
 // The page-output helpers are shared with `tests/page_output.rs`; not every function is used here.
@@ -46,52 +48,184 @@ mod report;
 mod runner;
 
 use report::Status;
-use runner::{Options, run};
+use runner::{Options, evaluated_rows, run, run_shard};
 
 /// The (pass, fail, not_built, not_applicable) counts of the headless report; updated with the committed report.
 const EXPECTED: (usize, usize, usize, usize) = (88, 0, 0, 6);
 
 /// The committed report of the headless run without the raster comparison (`expected/acceptance_headless.md`):
-/// the ordinary test runs the runner once and compares its report with this file, which pins the statuses and
-/// reasons and, by being a file, shows that two runs print the same text. A change of the model or of a golden
-/// that moves an entry rewrites it: `EW_BLESS=1 cargo nextest run -p ew-api --test acceptance -E
-/// 'test(headless_report)'`.
+/// the ordinary tests run the runner and compare its rows with this file, which pins the statuses and reasons
+/// and, by being a file, shows that two runs print the same text. A change of the model or of a golden that
+/// moves an entry rewrites it: `EW_BLESS=1 cargo nextest run -p ew-api --test acceptance -E
+/// 'test(headless_report)'` (the first shard runs every entry and writes the whole file; the others then do
+/// nothing).
 fn committed_report() -> std::path::PathBuf {
     golden_common::repo().join("golden/J-E-2416/expected/acceptance_headless.md")
 }
 
-/// The ordinary test: one run without the raster comparison (the 150 dpi PNGs are compared by
-/// `tests/page_output.rs`, and by the full run of `cargo xtask acceptance`) and without the performance
-/// measurements (milestone runs only).
-#[test]
-fn the_headless_report_equals_the_committed_report() {
-    // The headless run never reads EW_VERAPDF_REPORT: the committed report does not depend on the environment.
-    let report = run(Options {
+/// The ordinary run's options: no raster comparison (the 150 dpi PNGs are compared by `tests/page_output.rs`, and
+/// by the full run of `cargo xtask acceptance`), no performance measurements (milestone runs only), and no
+/// veraPDF report (the headless run never reads EW_VERAPDF_REPORT: the committed report does not depend on the
+/// environment).
+fn headless() -> Options {
+    Options {
         raster: false,
         perf: false,
         verapdf: None,
-    });
-    assert_eq!(report.oracle_mismatches, 0, "the oracle found memo mismatches");
-    let text = report.markdown();
-    let path = committed_report();
+    }
+}
+
+/// The shards of the headless report: the entry indexes each one evaluates (an `entry_from` row goes with the
+/// entry it copies). The SQL pairs (AC-08 to AC-11) and AC-15's SQL paths share the SQL projection, whose
+/// pre-delivery check on the oracle session takes about a minute in a debug build, so they are one shard; the
+/// criteria AC-01 to AC-13 another; AC-18, AC-20, AC-14, the rest of AC-15, AC-16, AC-17, AC-39 and the §19
+/// rows the third (open-ended, so that an entry added at the end is evaluated). Every row is evaluated by
+/// exactly one shard (`the_headless_report_shards_cover_the_committed_report`); moving an entry only moves the
+/// work between shards.
+#[allow(clippy::single_range_in_vec_init)] // a shard is a list of index ranges; the first has one
+const HEADLESS_SHARDS: [&[std::ops::Range<usize>]; 3] =
+    [&[0..31], &[31..35, 45..46], &[35..45, 46..usize::MAX]];
+
+/// One shard of the ordinary test: its rows equal the committed report's rows, and the oracle sessions found no
+/// mismatch.
+fn headless_report_shard(shard: usize) {
     if std::env::var_os("EW_BLESS").is_some_and(|v| v == "1") {
-        std::fs::write(&path, text.as_bytes()).unwrap();
+        if shard == 0 {
+            let report = run(headless());
+            assert_eq!(report.oracle_mismatches, 0, "the oracle found memo mismatches");
+            std::fs::write(committed_report(), report.markdown().as_bytes()).unwrap();
+        }
         return;
     }
+    let run = run_shard(headless(), HEADLESS_SHARDS[shard]);
+    assert_eq!(
+        run.report.oracle_mismatches, 0,
+        "the oracle found memo mismatches"
+    );
+    let path = committed_report();
     let committed = std::fs::read_to_string(&path)
         .unwrap_or_else(|e| panic!("{}: {e} (EW_BLESS=1 generates it)", path.display()));
+    let (_, rows) = split_report(&committed);
+    assert_eq!(
+        rows.len(),
+        run.report.checks.len(),
+        "the runner has {} entries, {} has {} rows (EW_BLESS=1 rewrites it)",
+        run.report.checks.len(),
+        path.display(),
+        rows.len()
+    );
+    let mut evaluated = 0;
+    let mut differing = Vec::new();
+    for (i, check) in run.report.checks.iter().enumerate() {
+        if !run.evaluated[i] {
+            continue;
+        }
+        evaluated += 1;
+        let row = check.row();
+        if row != rows[i] {
+            differing.push(format!("row {i}:\n  now:       {row}\n  committed: {}", rows[i]));
+        }
+    }
+    assert!(evaluated > 0, "shard {shard} evaluates no row");
     assert!(
-        committed == text,
-        "the report differs from {} (EW_BLESS=1 rewrites it):\n{text}",
-        path.display()
+        differing.is_empty(),
+        "shard {shard}: {} row(s) differ from {} (EW_BLESS=1 rewrites it):\n{}",
+        differing.len(),
+        path.display(),
+        differing.join("\n")
     );
-    let counts = (
-        report.count(Status::Pass),
-        report.count(Status::Fail),
-        report.count(Status::NotBuilt),
-        report.count(Status::NotApplicable),
+}
+
+/// The committed report split into the lines before the entry rows (with their line ends) and the rows.
+fn split_report(text: &str) -> (&str, Vec<&str>) {
+    const TABLE: &str = "|---|---|---|---|\n";
+    let at = text.find(TABLE).expect("the report has a table") + TABLE.len();
+    let rows = text[at..].lines().collect();
+    (&text[..at], rows)
+}
+
+#[test]
+fn the_headless_report_equals_the_committed_report_shard_1_of_3() {
+    headless_report_shard(0);
+}
+
+#[test]
+fn the_headless_report_equals_the_committed_report_shard_2_of_3() {
+    headless_report_shard(1);
+}
+
+#[test]
+fn the_headless_report_equals_the_committed_report_shard_3_of_3() {
+    headless_report_shard(2);
+}
+
+/// The shards together are the former single test: the runner's rows (listed without evaluating anything) are
+/// the committed rows by criterion and check, in order; every row is evaluated by exactly one shard; and the
+/// committed title, summary line and table header are the ones the runner prints for the committed rows' statuses
+/// with no oracle mismatch (each shard asserts its own mismatches are none), with the expected counts.
+#[test]
+fn the_headless_report_shards_cover_the_committed_report() {
+    let listed = run_shard(headless(), &[]);
+    assert!(
+        listed.evaluated.iter().all(|e| !e),
+        "an empty selection evaluates nothing"
     );
-    assert_eq!(counts, EXPECTED, "pass, fail, not_built, not_applicable");
+    let committed = std::fs::read_to_string(committed_report()).unwrap();
+    let (head, rows) = split_report(&committed);
+    assert_eq!(
+        rows.len(),
+        listed.report.checks.len(),
+        "rows of the committed report"
+    );
+    let mut counts = [0usize; 4];
+    for (check, row) in listed.report.checks.iter().zip(&rows) {
+        let start = check.row_start();
+        let rest = row
+            .strip_prefix(&start)
+            .unwrap_or_else(|| panic!("the committed row `{row}` is not the entry `{start}`"));
+        let label = rest.split(" | ").next().unwrap_or_default();
+        let status = [
+            Status::Pass,
+            Status::Fail,
+            Status::NotBuilt,
+            Status::NotApplicable,
+        ]
+        .into_iter()
+        .position(|s| s.label() == label)
+        .unwrap_or_else(|| panic!("`{label}` is not a status: {row}"));
+        counts[status] += 1;
+    }
+    assert_eq!(
+        (counts[0], counts[1], counts[2], counts[3]),
+        EXPECTED,
+        "pass, fail, not_built, not_applicable"
+    );
+    assert_eq!(
+        head,
+        report::header(rows.len(), counts, 0),
+        "the committed summary follows from its rows"
+    );
+    assert!(
+        committed.ends_with('\n')
+            && committed[head.len()..] == rows.iter().map(|r| format!("{r}\n")).collect::<String>()
+    );
+
+    let mut times = vec![0usize; rows.len()];
+    for select in HEADLESS_SHARDS {
+        for (i, e) in evaluated_rows(&listed.origins, select).into_iter().enumerate() {
+            times[i] += usize::from(e);
+        }
+    }
+    let wrong: Vec<(usize, usize)> = times
+        .iter()
+        .enumerate()
+        .filter(|(_, n)| **n != 1)
+        .map(|(i, n)| (i, *n))
+        .collect();
+    assert!(
+        wrong.is_empty(),
+        "(row, shards evaluating it) not once: {wrong:?}"
+    );
 }
 
 /// The gate itself, run by `cargo xtask acceptance`: the full run with the raster comparison, writing the

@@ -33,7 +33,7 @@ use crate::view::{GoldenPage, fonts, golden_pages, golden_session};
 
 use super::checks;
 use super::freshness;
-use super::report::{Check, Outcome, Report, fail};
+use super::report::{Check, Outcome, Report, Status, fail};
 
 /// Options of a run.
 #[derive(Clone, Debug)]
@@ -73,8 +73,9 @@ pub struct Ctx {
     pub pdf_read: Result<Vec<PageRead>, String>,
     pub fonts: BTreeMap<FontKey, FontBytes>,
     /// The SQL projection of the profiled model with its pre-delivery check run (WP-S1.10), or why it did
-    /// not build.
-    pub sql: Result<ew_api::sql::Projection, String>,
+    /// not build: [`Ctx::sql`], built by the first entry that reads it (about a minute in a debug build: the
+    /// check runs on the oracle session).
+    sql: std::cell::OnceCell<Result<ew_api::sql::Projection, String>>,
     /// The AC-16 run (`freshness.rs`), computed by the first entry that reads it.
     pub ac16: std::cell::OnceCell<Result<freshness::Run, String>>,
 }
@@ -101,10 +102,8 @@ impl Ctx {
         let pdf_pages = pdf_pages(&q, Parallelism::Serial);
         let pdf = pdf(&pdf_pages, &pdf_options(&q), &fonts, None).expect("the golden PDF is written");
         let pdf_read = PdfFile::parse(&pdf.bytes).and_then(|f| f.pages());
-        let checks = profiled.check(&ew_api::checks::PRE_DELIVERY, ew_api::checks::CheckMode::Release);
-        let sql = profiled.sql_projection(Some(&checks)).map_err(|e| e.to_string());
         Ctx {
-            sql,
+            sql: std::cell::OnceCell::new(),
             ac16: std::cell::OnceCell::new(),
             raster: options.raster,
             perf: options.perf,
@@ -123,6 +122,18 @@ impl Ctx {
         }
     }
 
+    /// The SQL projection of the profiled model with its pre-delivery check run, or why it did not build.
+    pub fn sql(&self) -> &Result<ew_api::sql::Projection, String> {
+        self.sql.get_or_init(|| {
+            let checks = self
+                .profiled
+                .check(&ew_api::checks::PRE_DELIVERY, ew_api::checks::CheckMode::Release);
+            self.profiled
+                .sql_projection(Some(&checks))
+                .map_err(|e| e.to_string())
+        })
+    }
+
     /// A `Q` without the report engine over the profiled model (the row tests' recipe).
     pub fn rows_q(&self) -> Q {
         golden_common::plain(&self.profiled)
@@ -130,74 +141,180 @@ impl Ctx {
 }
 
 /// Collects the entries; a check that panics is a failed entry with the panic message as its reason.
+///
+/// A run evaluates every entry, or (a shard of the ordinary test, [`run_shard`]) the entries whose index is in a
+/// selection, plus every [`Runner::entry_from`] row whose source entry it evaluated; the other rows are listed
+/// by ID and name without being evaluated. The context is built by the first entry evaluated, so a run that
+/// evaluates nothing builds nothing.
 pub struct Runner {
-    ctx: Ctx,
+    options: Options,
+    ctx: std::cell::OnceCell<Ctx>,
     report: Report,
+    /// The entry indexes this run evaluates; `None` is all.
+    select: Option<Vec<std::ops::Range<usize>>>,
+    /// Per row: whether it was evaluated.
+    evaluated: Vec<bool>,
+    /// Per row: the row an `entry_from` row copies, `None` for an ordinary entry.
+    origins: Vec<Option<usize>>,
+}
+
+/// The rows that a selection evaluates, from the rows' origins (`None`: an ordinary entry, evaluated when its
+/// index is selected; `Some(j)`: an `entry_from` row, evaluated with row `j`). The rule of [`Runner::entry`] and
+/// [`Runner::entry_from`], for the test that the shards cover every row once.
+pub fn evaluated_rows(origins: &[Option<usize>], select: &[std::ops::Range<usize>]) -> Vec<bool> {
+    let mut out: Vec<bool> = Vec::with_capacity(origins.len());
+    for (i, origin) in origins.iter().enumerate() {
+        let e = match origin {
+            None => select.iter().any(|r| r.contains(&i)),
+            Some(j) => out[*j],
+        };
+        out.push(e);
+    }
+    out
 }
 
 impl Runner {
-    /// Whether this run measures the AC-17 times.
-    pub fn perf(&self) -> bool {
-        self.ctx.perf
+    fn new(options: Options, select: Option<Vec<std::ops::Range<usize>>>) -> Runner {
+        Runner {
+            options,
+            ctx: std::cell::OnceCell::new(),
+            report: Report::default(),
+            select,
+            evaluated: Vec::new(),
+            origins: Vec::new(),
+        }
     }
 
-    /// Adds one entry: `check` runs now, and a panic inside it becomes a failure.
+    fn ctx(&self) -> &Ctx {
+        self.ctx.get_or_init(|| Ctx::new(self.options.clone()))
+    }
+
+    /// Whether this run measures the AC-17 times.
+    pub fn perf(&self) -> bool {
+        self.options.perf
+    }
+
+    /// Adds one entry: `check` runs now (when the run evaluates it), and a panic inside it becomes a failure.
     pub fn entry(&mut self, id: &'static str, name: &str, check: impl FnOnce(&Ctx) -> Outcome) {
-        let (status, reason) = match catch_unwind(AssertUnwindSafe(|| check(&self.ctx))) {
-            Ok(outcome) => outcome,
-            Err(payload) => {
-                let message = payload
-                    .downcast_ref::<String>()
-                    .cloned()
-                    .or_else(|| payload.downcast_ref::<&str>().map(|s| (*s).to_owned()))
-                    .unwrap_or_else(|| "panic".to_owned());
-                fail(format!("the check panicked: {message}"))
+        let index = self.report.checks.len();
+        let selected = self
+            .select
+            .as_ref()
+            .is_none_or(|s| s.iter().any(|r| r.contains(&index)));
+        let (status, reason) = if !selected {
+            not_evaluated()
+        } else {
+            match catch_unwind(AssertUnwindSafe(|| check(self.ctx()))) {
+                Ok(outcome) => outcome,
+                Err(payload) => {
+                    let message = payload
+                        .downcast_ref::<String>()
+                        .cloned()
+                        .or_else(|| payload.downcast_ref::<&str>().map(|s| (*s).to_owned()))
+                        .unwrap_or_else(|| "panic".to_owned());
+                    fail(format!("the check panicked: {message}"))
+                }
             }
         };
-        self.report.checks.push(Check {
-            id,
-            name: name.to_owned(),
-            status,
-            reason,
-        });
+        self.push(
+            Check {
+                id,
+                name: name.to_owned(),
+                status,
+                reason,
+            },
+            selected,
+            None,
+        );
     }
 
     /// Adds one entry whose outcome is the status of an earlier entry of the same run (a regression row that
-    /// the criterion's check covers): `via` names that entry by criterion and name.
+    /// the criterion's check covers): `via` names that entry by criterion and name. It is evaluated when that
+    /// entry is.
     pub fn entry_from(&mut self, id: &'static str, name: &str, via: (&str, &str), why: &str) {
-        let found = self
+        let source = self
             .report
             .checks
             .iter()
-            .find(|c| c.id == via.0 && c.name == via.1)
-            .unwrap_or_else(|| panic!("no entry {} / {}", via.0, via.1))
-            .clone();
-        let reason = format!(
-            "{why} Same check as {} \"{}\": {}",
-            via.0, found.name, found.reason
-        )
-        .trim_start()
-        .to_owned();
-        self.report.checks.push(Check {
-            id,
-            name: name.to_owned(),
-            status: found.status,
-            reason,
-        });
+            .position(|c| c.id == via.0 && c.name == via.1)
+            .unwrap_or_else(|| panic!("no entry {} / {}", via.0, via.1));
+        let found = self.report.checks[source].clone();
+        let selected = self.evaluated[source];
+        let (status, reason) = if selected {
+            let reason = format!(
+                "{why} Same check as {} \"{}\": {}",
+                via.0, found.name, found.reason
+            )
+            .trim_start()
+            .to_owned();
+            (found.status, reason)
+        } else {
+            not_evaluated()
+        };
+        self.push(
+            Check {
+                id,
+                name: name.to_owned(),
+                status,
+                reason,
+            },
+            selected,
+            Some(source),
+        );
     }
+
+    fn push(&mut self, check: Check, evaluated: bool, origin: Option<usize>) {
+        self.report.checks.push(check);
+        self.evaluated.push(evaluated);
+        self.origins.push(origin);
+    }
+
+    /// The report, with the oracle mismatches of the context's sessions if it was built.
+    fn finish(self) -> Shard {
+        let mut report = self.report;
+        report.oracle_mismatches = self.ctx.get().map_or(0, |ctx| {
+            [&ctx.oracle, &ctx.profiled]
+                .iter()
+                .map(|s| s.take_oracle_mismatches().len())
+                .sum()
+        });
+        Shard {
+            report,
+            evaluated: self.evaluated,
+            origins: self.origins,
+        }
+    }
+}
+
+/// The outcome of a row that the run does not evaluate (never compared with anything).
+fn not_evaluated() -> Outcome {
+    (Status::NotBuilt, "not evaluated in this shard".to_owned())
+}
+
+/// The result of [`run_shard`].
+pub struct Shard {
+    /// Every row; the rows not evaluated are placeholders (`not_built`, never compared).
+    pub report: Report,
+    /// Per row: whether this run evaluated it.
+    pub evaluated: Vec<bool>,
+    /// Per row: the row an `entry_from` row copies.
+    pub origins: Vec<Option<usize>>,
 }
 
 /// Runs the acceptance checks over the golden fixture and returns the report.
 pub fn run(options: Options) -> Report {
-    let mut runner = Runner {
-        ctx: Ctx::new(options),
-        report: Report::default(),
-    };
+    let mut runner = Runner::new(options, None);
+    // The SQL projection first, as before the shards existed: the profiled session's pre-delivery check runs
+    // before every entry, so a full run reads that session in the same order.
+    let _ = runner.ctx().sql();
     checks::all(&mut runner);
-    let mut report = runner.report;
-    report.oracle_mismatches = [&runner.ctx.oracle, &runner.ctx.profiled]
-        .iter()
-        .map(|s| s.take_oracle_mismatches().len())
-        .sum();
-    report
+    runner.finish().report
+}
+
+/// Runs the entries with an index in `select` (and the `entry_from` rows of those entries) and lists the
+/// others; see [`Runner`]. An empty selection evaluates nothing and builds no context.
+pub fn run_shard(options: Options, select: &[std::ops::Range<usize>]) -> Shard {
+    let mut runner = Runner::new(options, Some(select.to_vec()));
+    checks::all(&mut runner);
+    runner.finish()
 }

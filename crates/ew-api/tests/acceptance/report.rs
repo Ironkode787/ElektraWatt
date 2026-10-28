@@ -109,30 +109,50 @@ impl Report {
 
     /// The report as Markdown: a summary line and a table with one row per entry.
     pub fn markdown(&self) -> String {
-        let mut out = String::new();
-        out.push_str("# Acceptance report: golden project J-E-2416, gate M1 (headless)\n\n");
-        let _ = writeln!(
-            out,
-            "{} entries: {} pass, {} fail, {} not_built, {} not_applicable. Oracle mismatches: {}. `fail` and `not_built` block the gate; `not_applicable` does not.\n",
-            self.checks.len(),
-            self.count(Status::Pass),
-            self.count(Status::Fail),
-            self.count(Status::NotBuilt),
-            self.count(Status::NotApplicable),
-            self.oracle_mismatches
-        );
-        out.push_str("| Criterion | Check | Status | Reason |\n|---|---|---|---|\n");
+        let counts = [
+            Status::Pass,
+            Status::Fail,
+            Status::NotBuilt,
+            Status::NotApplicable,
+        ]
+        .map(|s| self.count(s));
+        let mut out = header(self.checks.len(), counts, self.oracle_mismatches);
         for c in &self.checks {
-            let _ = writeln!(
-                out,
-                "| {} | {} | {} | {} |",
-                c.id,
-                cell(&c.name),
-                c.status.label(),
-                cell(&c.reason)
-            );
+            out.push_str(&c.row());
+            out.push('\n');
         }
         out
+    }
+}
+
+/// The lines of the Markdown report before the entry rows: title, summary line with the entry count, the
+/// (pass, fail, not_built, not_applicable) counts and the oracle mismatches, and the table header.
+pub fn header(entries: usize, counts: [usize; 4], oracle_mismatches: usize) -> String {
+    let mut out = String::new();
+    out.push_str("# Acceptance report: golden project J-E-2416, gate M1 (headless)\n\n");
+    let _ = writeln!(
+        out,
+        "{} entries: {} pass, {} fail, {} not_built, {} not_applicable. Oracle mismatches: {}. `fail` and `not_built` block the gate; `not_applicable` does not.\n",
+        entries, counts[0], counts[1], counts[2], counts[3], oracle_mismatches
+    );
+    out.push_str("| Criterion | Check | Status | Reason |\n|---|---|---|---|\n");
+    out
+}
+
+impl Check {
+    /// The entry's row of the Markdown table (no line end).
+    pub fn row(&self) -> String {
+        format!(
+            "{}{} | {} |",
+            self.row_start(),
+            self.status.label(),
+            cell(&self.reason)
+        )
+    }
+
+    /// The start of the row, up to the status: criterion and check.
+    pub fn row_start(&self) -> String {
+        format!("| {} | {} | ", self.id, cell(&self.name))
     }
 }
 

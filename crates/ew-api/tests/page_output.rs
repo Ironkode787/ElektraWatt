@@ -317,11 +317,49 @@ fn the_printed_frame_matches_doc_20_section_17_1() {
     assert!(errors.is_empty(), "{errors:#?}");
 }
 
+/// The shards of the PNG comparison: nextest runs them in parallel. Shard `k` of [`PNG_SHARDS`] compares the
+/// pages `k * n / PNG_SHARDS .. (k + 1) * n / PNG_SHARDS` of the `n` golden pages in page order, so the shards
+/// together compare every page once whatever `n` is.
+const PNG_SHARDS: usize = 4;
+
 #[test]
-fn the_png_candidates_match_within_the_doc_20_tolerance() {
+fn the_png_candidates_match_within_the_doc_20_tolerance_shard_1_of_4() {
+    png_candidates_match(0);
+}
+
+#[test]
+fn the_png_candidates_match_within_the_doc_20_tolerance_shard_2_of_4() {
+    png_candidates_match(1);
+}
+
+#[test]
+fn the_png_candidates_match_within_the_doc_20_tolerance_shard_3_of_4() {
+    png_candidates_match(2);
+}
+
+#[test]
+fn the_png_candidates_match_within_the_doc_20_tolerance_shard_4_of_4() {
+    png_candidates_match(3);
+}
+
+/// The pages of PNG shard `shard` of `n` pages.
+fn png_shard_range(shard: usize, n: usize) -> std::ops::Range<usize> {
+    shard * n / PNG_SHARDS..(shard + 1) * n / PNG_SHARDS
+}
+
+#[test]
+fn the_png_shards_compare_every_page_once() {
+    for n in [0, 1, 3, 4, 36, 37] {
+        let covered: Vec<usize> = (0..PNG_SHARDS).flat_map(|k| png_shard_range(k, n)).collect();
+        assert_eq!(covered, (0..n).collect::<Vec<_>>(), "{n} pages");
+    }
+}
+
+/// Every golden page of shard `shard` renders to a 150 dpi PNG within doc 20's tolerance of the committed one.
+fn png_candidates_match(shard: usize) {
     let f = fonts();
     with_golden_pages(|pages| {
-        for g in pages {
+        for g in &pages[png_shard_range(shard, pages.len())] {
             let scene = page_scene(&g.view, ew_text::bundled());
             let bytes = page_png(&scene, &f);
             let path = expected_dir("png").join(format!("{}.png", g.entry.folio));

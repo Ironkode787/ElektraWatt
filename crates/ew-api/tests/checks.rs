@@ -64,8 +64,10 @@ fn golden_a_pre_delivery_summary() {
     assert_eq!(report.exit_code(), i32::from(report.counts.errors > 0));
 }
 
+/// The memoised check equals the cold one (two independent halves of one claim, split so that nextest runs
+/// them in parallel; the oracle half is `golden_a_check_memoised_equals_cold_and_the_oracle_is_quiet_oracle`).
 #[test]
-fn golden_a_check_memoised_equals_cold_and_the_oracle_is_quiet() {
+fn golden_a_check_memoised_equals_cold_and_the_oracle_is_quiet_memo() {
     let batch = golden_common::batch();
     let memo = golden_common::session(&batch);
     let first = memo.check(&PRE_DELIVERY, CheckMode::Release);
@@ -80,7 +82,12 @@ fn golden_a_check_memoised_equals_cold_and_the_oracle_is_quiet() {
         CheckMode::Release,
     );
     assert_eq!(first, cold, "memoised and cold runs agree");
+}
 
+/// The oracle is quiet over the full online check and the pre-delivery check of Golden A.
+#[test]
+fn golden_a_check_memoised_equals_cold_and_the_oracle_is_quiet_oracle() {
+    let batch = golden_common::batch();
     let oracle = golden_common::session_oracle(&batch);
     let _ = oracle.check(&checks::FULL, CheckMode::Online);
     let _ = oracle.check(&PRE_DELIVERY, CheckMode::Release);

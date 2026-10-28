@@ -1102,9 +1102,90 @@ fn ft469_command_sequence_regression_passes() {
 /// `device.place`, the `from_part` target of `box.black`, `rep.move` by grid steps, `rep.exchange_symbol`,
 /// `project.drawing.set`, `connection.draw_to_ip`, `ip.arrange` and `box.reshape` are all generated, and each kind
 /// commits at least once and is refused at least once where the arm builds refusals (the verdicts are checked by
-/// `apply`; each committed step is undone).
+/// `apply`; each committed step is undone, and the undo restores Golden A, so every attempt starts from Golden A).
+///
+/// The commands, their attempts (seeded `50_000 + attempt`) and the kinds each must commit and refuse, in the
+/// three groups that nextest runs in parallel (`..._golden_a_<k>_of_3`): every attempt of the former single test
+/// is in exactly one group (`the_placement_groups_hold_every_command_and_kind_once`).
+type PlacementGroup = &'static [(&'static str, u64, &'static [&'static str])];
+
+/// See [`placement_steps`].
+const PLACEMENT_GROUPS: [PlacementGroup; 3] = [
+    &[(
+        "device.place",
+        400,
+        &["device.place from_part", "device.place new_terminal"],
+    )],
+    &[
+        ("box.black", 200, &["box.black from_part"]),
+        ("rep.move", 120, &["rep.move steps"]),
+        ("rep.exchange_symbol", 200, &["rep.exchange_symbol"]),
+        ("project.drawing.set", 40, &["project.drawing.set"]),
+    ],
+    // WP-S2.04 part 3
+    &[
+        ("connection.draw_to_ip", 300, &["connection.draw_to_ip"]),
+        ("ip.arrange", 200, &["ip.arrange"]),
+        ("box.reshape", 200, &["box.reshape"]),
+    ],
+];
+
 #[test]
-fn the_placement_and_arrangement_steps_commit_and_refuse_on_golden_a() {
+fn the_placement_groups_hold_every_command_and_kind_once() {
+    let commands: Vec<(&str, u64)> = PLACEMENT_GROUPS
+        .iter()
+        .flat_map(|g| g.iter().map(|(c, n, _)| (*c, *n)))
+        .collect();
+    assert_eq!(
+        commands,
+        [
+            ("device.place", 400),
+            ("box.black", 200),
+            ("rep.move", 120),
+            ("rep.exchange_symbol", 200),
+            ("project.drawing.set", 40),
+            ("connection.draw_to_ip", 300),
+            ("ip.arrange", 200),
+            ("box.reshape", 200),
+        ]
+    );
+    let kinds: Vec<&str> = PLACEMENT_GROUPS
+        .iter()
+        .flat_map(|g| g.iter().flat_map(|(_, _, k)| k.iter().copied()))
+        .collect();
+    assert_eq!(
+        kinds,
+        [
+            "device.place from_part",
+            "device.place new_terminal",
+            "box.black from_part",
+            "rep.move steps",
+            "rep.exchange_symbol",
+            "project.drawing.set",
+            "connection.draw_to_ip",
+            "ip.arrange",
+            "box.reshape",
+        ]
+    );
+}
+
+#[test]
+fn the_placement_and_arrangement_steps_commit_and_refuse_on_golden_a_1_of_3() {
+    placement_steps(PLACEMENT_GROUPS[0]);
+}
+
+#[test]
+fn the_placement_and_arrangement_steps_commit_and_refuse_on_golden_a_2_of_3() {
+    placement_steps(PLACEMENT_GROUPS[1]);
+}
+
+#[test]
+fn the_placement_and_arrangement_steps_commit_and_refuse_on_golden_a_3_of_3() {
+    placement_steps(PLACEMENT_GROUPS[2]);
+}
+
+/// One group of [`PLACEMENT_GROUPS`] on a fresh Golden A session.
+fn placement_steps(group: PlacementGroup) {
     let mut session = open_session(13);
     session.take_oracle_mismatches();
     let fixture = Rc::new(Fixture::of(&session.query()));
@@ -1112,17 +1193,7 @@ fn the_placement_and_arrangement_steps_commit_and_refuse_on_golden_a() {
     let mut stats = FuzzStats::default();
     let mut committed: BTreeMap<&'static str, usize> = BTreeMap::new();
     let mut refused: BTreeMap<&'static str, usize> = BTreeMap::new();
-    for (command, attempts) in [
-        ("device.place", 400u64),
-        ("box.black", 200),
-        ("rep.move", 120),
-        ("rep.exchange_symbol", 200),
-        ("project.drawing.set", 40),
-        // WP-S2.04 part 3
-        ("connection.draw_to_ip", 300),
-        ("ip.arrange", 200),
-        ("box.reshape", 200),
-    ] {
+    for &(command, attempts, _) in group {
         let arm = ARMS.iter().find(|a| a.command == command).expect("an arm");
         for attempt in 0..attempts {
             let mut rng = SplitMix64::new(50_000 + attempt);
@@ -1167,33 +1238,11 @@ fn the_placement_and_arrangement_steps_commit_and_refuse_on_golden_a() {
         }
     }
     eprintln!("committed {committed:?}\nrefused {refused:?}");
-    for kind in [
-        "device.place from_part",
-        "device.place new_terminal",
-        "box.black from_part",
-        "rep.move steps",
-        "rep.exchange_symbol",
-        "project.drawing.set",
-        "connection.draw_to_ip",
-        "ip.arrange",
-        "box.reshape",
-    ] {
+    for kind in group.iter().flat_map(|(_, _, kinds)| kinds.iter()) {
         assert!(
             committed.get(kind).copied().unwrap_or(0) >= 1,
             "no committed `{kind}` step: {committed:?}"
         );
-    }
-    for kind in [
-        "device.place from_part",
-        "device.place new_terminal",
-        "box.black from_part",
-        "rep.move steps",
-        "rep.exchange_symbol",
-        "project.drawing.set",
-        "connection.draw_to_ip",
-        "ip.arrange",
-        "box.reshape",
-    ] {
         assert!(
             refused.get(kind).copied().unwrap_or(0) >= 1,
             "no refused `{kind}` step: {refused:?}"

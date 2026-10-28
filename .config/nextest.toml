@@ -8,8 +8,8 @@ retries = 0
 fail-fast = false
 
 # Two slow test binaries run ONCE per CI test job (decision log ID-381, ID-437):
-#   - the headless acceptance tests (crates/ew-api/tests/acceptance.rs: the report equality test, the derived-CSV
-#     test and their helper tests; about 2 min per run; FT-268);
+#   - the headless acceptance tests (crates/ew-api/tests/acceptance.rs: the report equality test, in three shards
+#     that run in parallel since cycle 32, the derived-CSV test and their helper tests; FT-268);
 #   - the command fuzzer (crates/ew-testkit/tests/command_fuzz: `fuzz_smoke`, 15 to 19 s in a debug build, and the
 #     binary's other tests; FT-306).
 # The rule:

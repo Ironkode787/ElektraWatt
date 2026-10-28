@@ -18,9 +18,11 @@
 //!   the snapshot through a memoising `Q` and through `Session::query_over`; the values are equal, so are the
 //!   derivation notes, and a second memoising `Q` (mostly memo hits) is equal again, with hits in the
 //!   commit statistics.
-//! - `oracle_finds_no_mismatch_over_every_state` (`MemoMode::Oracle`): the same states with the engine's own
-//!   oracle re-running one memoised read in eight cold; no mismatch and no cycle. Its `#[ignore]`d twin
-//!   `oracle_finds_no_mismatch_over_every_state_on_every_read` re-runs every read (the deep nightly, FT-297).
+//! - `oracle_finds_no_mismatch_over_every_state_shard_<k>_of_5` (`MemoMode::Oracle`): the same states with the
+//!   engine's own oracle re-running one memoised read in eight cold; no mismatch and no cycle. The five shards
+//!   check consecutive state ranges and run in parallel (cycle 32); together they sample exactly the reads of
+//!   one run over all states. Its `#[ignore]`d twin `oracle_finds_no_mismatch_over_every_state_on_every_read`
+//!   re-runs every read in one run (the deep nightly, FT-297).
 //! - `the_family_list_is_the_memo_families` (the guard that a promotion or demotion of a family breaks the
 //!   test loudly).
 //! - `a_cold_q_evaluates_every_query_once` (review cycle 10, finding 1): a cold `Q` evaluates each (family,
@@ -453,14 +455,27 @@ fn with_edited_profile(model: &Model) -> (Model, Vec<ew_model::AnyKey>) {
     (after, vec![key])
 }
 
-/// Applies the states in order; after each one `visit` gets the session, the label and the snapshot that
-/// the memo store and `session.query()` see.
-fn run_states(session: &mut Session, mut visit: impl FnMut(&Session, &str, &Model)) {
+/// The number of states [`run_states`] applies.
+const STATES: usize = 20;
+
+/// Applies the states `1..=last` in order (all of them for `last >= STATES`); after each one `visit` gets the
+/// session, the state's number and label and the snapshot that the memo store and `session.query()` see.
+/// Returns the number of states visited. The states do not depend on what `visit` does, except through the
+/// memo store's contents and counters: a sharded test replays the earlier states with the same reads.
+fn run_states(
+    session: &mut Session,
+    last: usize,
+    mut visit: impl FnMut(&Session, usize, &str, &Model),
+) -> usize {
     let targets = Targets::of(&session.query_over(&session.world().model));
     let mut model = session.world().model.clone();
-    visit(session, "1 open", &model);
+    let visited = std::cell::Cell::new(1);
+    visit(session, 1, "1 open", &model);
 
     let mut step = |session: &mut Session, label: &str, run: &dyn Fn(&mut Session) -> String| {
+        if visited.get() >= last {
+            return;
+        }
         let before = session.world().rev;
         let what = run(session);
         assert!(
@@ -469,7 +484,12 @@ fn run_states(session: &mut Session, mut visit: impl FnMut(&Session, &str, &Mode
         );
         eprintln!("{label}: {what}");
         let model = session.world().model.clone();
-        visit(session, label, &model);
+        visited.set(visited.get() + 1);
+        assert!(
+            label.starts_with(&format!("{} ", visited.get())),
+            "{label}: the label numbers the state"
+        );
+        visit(session, visited.get(), label, &model);
     };
     let by = |candidates: Vec<AnyCommand>| {
         move |session: &mut Session| apply(session, "state", candidates.clone())
@@ -515,6 +535,9 @@ fn run_states(session: &mut Session, mut visit: impl FnMut(&Session, &str, &Mode
     });
 
     // The topology cases of the incremental potential partition.
+    if visited.get() >= last {
+        return visited.get();
+    }
     let joined = std::cell::Cell::new(None);
     step(session, "16 join two potentials", &|s| {
         let ends = draw_between_potentials(s, "16 join two potentials", None);
@@ -533,18 +556,28 @@ fn run_states(session: &mut Session, mut visit: impl FnMut(&Session, &str, &Mode
         bridged.set(Some(ends));
         format!("connection.draw bridge {ends:?}")
     });
+    if visited.get() >= last {
+        return visited.get();
+    }
     let ends = bridged.get().expect("the bridge state ran");
     step(session, "19 bridge removed", &|s| {
         delete_between(s, "19 bridge removed", ends);
         format!("edit.delete {ends:?}")
     });
 
+    if visited.get() >= last {
+        return visited.get();
+    }
+
     // The profile edits go to the memo store directly: no command edits the project settings. The colour
     // and the size edit are one advance; no session command may follow.
     model = session.world().model.clone();
     let (after, keys) = with_edited_profile(&model);
     session.memo().expect("memoising session").advance(&after, &keys);
-    visit(session, "20 colour and size profile edit", &after);
+    visited.set(visited.get() + 1);
+    visit(session, visited.get(), "20 colour and size profile edit", &after);
+    assert_eq!(visited.get(), STATES, "STATES is the number of states");
+    visited.get()
 }
 
 fn memo_q_notes_equal(session: &Session, model: &Model, state: &str) -> BTreeMap<&'static str, usize> {
@@ -587,7 +620,7 @@ fn memo_equals_cold_over_every_state() {
     let batch = golden_common::batch();
     let mut session = session(&batch, MemoMode::On);
     let mut counts_at_open = None;
-    run_states(&mut session, |session, state, model| {
+    run_states(&mut session, STATES, |session, _, state, model| {
         let counts = memo_q_notes_equal(session, model, state);
         // The second pass: a new memoising `Q`, mostly memo hits.
         let mut second = session.query();
@@ -611,14 +644,64 @@ fn memo_equals_cold_over_every_state() {
     );
 }
 
+/// The shards of `oracle_finds_no_mismatch_over_every_state`: the states each one checks, `(first, last)`.
+/// Together they check every state once (`the_oracle_shards_check_every_state_once`); about the same oracle
+/// time each (a debug build, cycle 32).
+const ORACLE_SHARDS: [(usize, usize); 5] = [(1, 5), (6, 10), (11, 14), (15, 17), (18, 20)];
+
 #[test]
-fn oracle_finds_no_mismatch_over_every_state() {
-    // `Oracle::Every` (the Session's own setting) re-runs every memoised read cold at every depth: about
-    // five minutes over the 20 states in a debug build. One read in `ORACLE_ONE_IN`, counted over all reads
-    // of the store (deterministic), keeps the test under a minute.
-    oracle_finds_no_mismatch(Oracle::OneIn(
-        NonZeroU32::new(ORACLE_ONE_IN).expect("n is not zero"),
-    ));
+fn the_oracle_shards_check_every_state_once() {
+    let mut next = 1;
+    for (first, last) in ORACLE_SHARDS {
+        assert_eq!(first, next, "the shards are contiguous: {ORACLE_SHARDS:?}");
+        assert!(last >= first, "{ORACLE_SHARDS:?}");
+        next = last + 1;
+    }
+    assert_eq!(
+        next,
+        STATES + 1,
+        "the shards end at the last state: {ORACLE_SHARDS:?}"
+    );
+}
+
+/// One shard of the sampled oracle over the states. `Oracle::Every` (the Session's own setting) re-runs every
+/// memoised read cold at every depth: about five minutes over the 20 states in a debug build. One read in
+/// `ORACLE_ONE_IN`, counted over all reads of the store (deterministic), samples them instead; the states are
+/// split into the shards of [`ORACLE_SHARDS`] so that nextest runs them in parallel. A shard replays the states
+/// before its own with the same reads and the store's read counter running, so it samples exactly the reads
+/// that one run over all states samples in its states.
+fn oracle_shard(shard: usize) {
+    let (first, last) = ORACLE_SHARDS[shard];
+    oracle_finds_no_mismatch(
+        Oracle::OneIn(NonZeroU32::new(ORACLE_ONE_IN).expect("n is not zero")),
+        first,
+        last,
+    );
+}
+
+#[test]
+fn oracle_finds_no_mismatch_over_every_state_shard_1_of_5() {
+    oracle_shard(0);
+}
+
+#[test]
+fn oracle_finds_no_mismatch_over_every_state_shard_2_of_5() {
+    oracle_shard(1);
+}
+
+#[test]
+fn oracle_finds_no_mismatch_over_every_state_shard_3_of_5() {
+    oracle_shard(2);
+}
+
+#[test]
+fn oracle_finds_no_mismatch_over_every_state_shard_4_of_5() {
+    oracle_shard(3);
+}
+
+#[test]
+fn oracle_finds_no_mismatch_over_every_state_shard_5_of_5() {
+    oracle_shard(4);
 }
 
 /// The full oracle of the deep nightly (CI-N-02, FT-297; `.github/workflows/deep-nightly.yml`, run with
@@ -626,18 +709,45 @@ fn oracle_finds_no_mismatch_over_every_state() {
 #[test]
 #[ignore = "deep nightly (CI-N-02): the oracle on every read, about five minutes in a debug build"]
 fn oracle_finds_no_mismatch_over_every_state_on_every_read() {
-    oracle_finds_no_mismatch(Oracle::Every);
+    oracle_finds_no_mismatch(Oracle::Every, 1, STATES);
 }
 
-fn oracle_finds_no_mismatch(oracle: Oracle) {
+/// The oracle over the states `first..=last`; the states before `first` are replayed with the same reads and
+/// an oracle that counts the reads (`OneIn`) but checks none of them. A count of `u32::MAX` reads selects no
+/// read before the 4,294,967,295th, far beyond the reads of a run.
+fn oracle_finds_no_mismatch(oracle: Oracle, first: usize, last: usize) {
     assert_family_list();
     let batch = golden_common::batch();
     let mut session = session(&batch, MemoMode::Oracle);
-    session.memo().expect("memoising session").set_oracle(oracle);
-    run_states(&mut session, |session, state, _model| {
+    let counting = Oracle::OneIn(NonZeroU32::MAX);
+    session
+        .memo()
+        .expect("memoising session")
+        .set_oracle(if first == 1 { oracle } else { counting });
+    let oracle_checks = |s: &Session| {
+        s.memo()
+            .expect("memoising session")
+            .total_stats()
+            .total()
+            .oracle_checks
+    };
+    // The checks of the shard's states: from here (the session's own checks at open are not a state's).
+    let checks_before = std::cell::Cell::new(oracle_checks(&session));
+    let mut checked = 0;
+    let visited = run_states(&mut session, last, |session, n, state, _model| {
         let q = session.query();
         sweep(&q, None, state);
         let mismatches = session.take_oracle_mismatches();
+        if n < first {
+            assert!(mismatches.is_empty(), "{state}: replayed states check nothing");
+            if n + 1 == first {
+                // The next state's command and reads are the shard's own.
+                session.memo().expect("memoising session").set_oracle(oracle);
+                checks_before.set(oracle_checks(session));
+            }
+            return;
+        }
+        checked += 1;
         assert!(
             mismatches.is_empty(),
             "{state}: oracle mismatches: {mismatches:#?}"
@@ -646,6 +756,20 @@ fn oracle_finds_no_mismatch(oracle: Oracle) {
         assert_eq!(total.cycles, 0, "{state}: cycles detected");
         assert!(total.oracle_checks > 0, "{state}: the oracle checked nothing");
     });
+    assert_eq!(
+        visited,
+        last.min(STATES),
+        "the run reaches the shard's last state"
+    );
+    assert_eq!(
+        checked,
+        last.min(STATES) + 1 - first,
+        "the shard checks its states"
+    );
+    eprintln!(
+        "oracle checks in states {first} to {last}: {}",
+        oracle_checks(&session) - checks_before.get()
+    );
 }
 
 /// Review cycle 10, finding 1: a cold `Q` (`MemoMode::Off`, `Session::query_over`, the oracle's cold twin)
