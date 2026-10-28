@@ -159,8 +159,11 @@ fn cb1_the_registry_places_every_command_once_and_the_app_menu_holds_every_actio
     s.shutdown();
 }
 
+/// One command of the mockup's command row: its group, label and size.
+type MockupCommand = (String, String, CommandSize);
+
 /// The Draw tab's commands of the mockup's command row: (group, label, size) in order, and the next step's label.
-fn mockup_draw() -> (Vec<(String, String, CommandSize)>, String, Vec<String>, String) {
+fn mockup_draw() -> (Vec<MockupCommand>, String, Vec<String>, String) {
     let path = concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/../../docs/design/assets/design-language-mockup.html"
@@ -227,7 +230,7 @@ fn cb8_the_draw_tab_equals_the_mockups_command_row() {
     let (mockup, next, tabs, app) = mockup_draw();
     assert!(mockup.len() >= 10, "parsed {mockup:?}");
     let pending: Vec<&str> = PENDING.iter().map(|(_, _, n)| *n).collect();
-    let expected: Vec<(String, String, CommandSize)> = mockup
+    let expected: Vec<MockupCommand> = mockup
         .into_iter()
         .filter(|(_, label, _)| !pending.contains(&label.as_str()))
         .collect();

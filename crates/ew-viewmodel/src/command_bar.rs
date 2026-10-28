@@ -360,6 +360,8 @@ pub struct CommandBarModel {
     pub collapsed: bool,
     /// Every tab with its label, left to right.
     pub tabs: Vec<(Tab, String)>,
+    /// The quick-access buttons of the tab row: Save, Undo, Redo (doc 16a §5.2).
+    pub quick: Vec<CommandButton>,
     /// The tab's groups that hold a command, left to right.
     pub groups: Vec<GroupModel>,
     /// The tab's next step.
@@ -451,6 +453,10 @@ pub fn command_bar_of(model: &ShellModel, tab: Tab) -> CommandBarModel {
             .into_iter()
             .map(|t| (t, strings::text(t.label_key()).to_owned()))
             .collect(),
+        quick: QUICK_ACCESS
+            .iter()
+            .filter_map(|id| action_button(model, id))
+            .collect(),
         groups,
         next,
     }
@@ -459,6 +465,17 @@ pub fn command_bar_of(model: &ShellModel, tab: Tab) -> CommandBarModel {
 /// The command bar of the shell's active tab.
 pub fn command_bar(model: &ShellModel) -> CommandBarModel {
     command_bar_of(model, model.command_tab())
+}
+
+/// The quick-access buttons of the tab row (doc 16a §5.2).
+pub const QUICK_ACCESS: [&str; 3] = ["file.save", "edit.undo", "edit.redo"];
+
+/// The button of action `id` in the state of `model` (a quick-access or HUD button; its bar size is Small unless the
+/// action is placed); `None` for an unknown action.
+pub fn action_button(model: &ShellModel, id: &str) -> Option<CommandButton> {
+    let meta = actions::find(id)?;
+    let size = meta.placement.map_or(CommandSize::Small, |p| p.size);
+    Some(button_of(meta, model, size))
 }
 
 /// The HUD's quick tools (the mockup's Wire, Symbol and Text).
@@ -540,25 +557,20 @@ pub fn hud(model: &ShellModel) -> HudModel {
             }
         }
         None => hint(),
+        // Doc 16a §5.5: "Place -X1031:21 · R rotates · V variant · Esc done": the predicted tag or terminal (the symbol
+        // until the pointer gives it one), then the keys; the ghost's line in `ui.describe` keeps the rest.
         Some(Ghost::Place {
-            symbol,
-            variant,
-            target: word,
-            letter,
-            strip,
-            tag,
-            ..
+            symbol, strip, tag, ..
         }) => {
-            target = tag.clone().or_else(|| strip.clone());
-            let mut parts = vec![symbol, variant.to_string(), word.to_owned()];
-            parts.extend(letter);
-            parts.extend(strip);
-            parts.extend(tag);
-            parts.push(strings::format(
-                "hud-keys-place",
-                &[&key_of("tool.rotate_cw"), &key_of("tool.next_variant")],
-            ));
-            parts.join(" \u{b7} ")
+            target = tag.or(strip);
+            let what = target.clone().unwrap_or(symbol);
+            format!(
+                "{what} \u{b7} {}",
+                strings::format(
+                    "hud-keys-place",
+                    &[&key_of("tool.rotate_cw"), &key_of("tool.next_variant")],
+                )
+            )
         }
         Some(Ghost::Move { readout, .. }) => readout,
         Some(Ghost::Paste { records, .. }) => format!(

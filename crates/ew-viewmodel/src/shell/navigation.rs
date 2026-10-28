@@ -43,6 +43,9 @@ pub enum Focus {
     // WP-S2.05 part 2
     /// The find pane.
     Find,
+    // WP-S2.17 part 2
+    /// The command bar's tab row (doc 16a §5.9: first in the F6 ring).
+    CommandBar,
 }
 
 /// How many times the shell has asked the `Session` for each of the viewer's reads (the exact-count tests, spec
@@ -1233,6 +1236,11 @@ impl ShellModel {
                 self.focus = Some(Focus::Find);
                 Outcome::Done
             }
+            // WP-S2.17 part 2
+            "commandbar" => {
+                self.focus = Some(Focus::CommandBar);
+                Outcome::Done
+            }
             "canvas" => {
                 let g = match self.group_param(p) {
                     Ok(g) => g,
@@ -1248,11 +1256,16 @@ impl ShellModel {
         }
     }
 
-    /// F6 (`step` 1) and Shift+F6 (`step` −1): navigator, canvas group 1, canvas group 2, then the property grid and the
-    /// find pane while their panes are in the layout, cyclic.
+    /// F6 (`step` 1) and Shift+F6 (`step` −1): the command bar (WP-S2.17 part 2), navigator, canvas group 1, canvas
+    /// group 2, then the property grid and the find pane while their panes are in the layout, cyclic. Without a focus
+    /// the cycle starts from the navigator, as before the command bar.
     pub(super) fn act_focus_cycle(&mut self, step: isize) -> Outcome {
         let groups = self.area.as_ref().map_or(0, |a| a.groups.len());
-        let ring: Vec<Focus> = std::iter::once(Focus::Navigator(crate::navigators::NavKind::Pages))
+        // WP-S2.17 part 2 (doc 16a §5.9): the command bar first.
+        let ring: Vec<Focus> = std::iter::once(Focus::CommandBar)
+            .chain(std::iter::once(Focus::Navigator(
+                crate::navigators::NavKind::Pages,
+            )))
             // WP-S2.06 part 1: the open navigators after Pages.
             .chain(self.navs.keys().map(|k| Focus::Navigator(*k)))
             .chain((0..groups).map(Focus::Canvas))
@@ -1263,7 +1276,7 @@ impl ShellModel {
         let here = self
             .focus
             .and_then(|f| ring.iter().position(|r| *r == f))
-            .unwrap_or(0);
+            .unwrap_or(1);
         let next = ring[(here as isize + step).rem_euclid(ring.len() as isize) as usize];
         if let (Focus::Canvas(g), Some(a)) = (next, &mut self.area) {
             a.focused = g;

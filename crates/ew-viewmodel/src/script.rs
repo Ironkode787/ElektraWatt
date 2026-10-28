@@ -331,6 +331,8 @@ pub fn state_json(shell: &ShellModel) -> String {
                 Some(Focus::Properties) => Value::from("properties"),
                 // WP-S2.05 part 2
                 Some(Focus::Find) => Value::from("find"),
+                // WP-S2.17 part 2
+                Some(Focus::CommandBar) => Value::from("commandbar"),
             },
         ),
         format!("\"navigator\":{}", navigator_json(shell)),

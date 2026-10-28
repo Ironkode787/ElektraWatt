@@ -715,7 +715,8 @@ fn v9_the_transcript_members_and_describe_lines() {
     assert!(nav < tabs && tabs < pv);
     assert!(!d.contains("page list"));
     assert_eq!(state(&shell)["focus"], "navigator");
-    // F6 cycles navigator, group 1, group 2 and the property grid (WP-S2.05: in the Schematic workspace).
+    // F6 cycles navigator, group 1, group 2 and the property grid (WP-S2.05: in the Schematic workspace), then the
+    // command bar (WP-S2.17 part 2, doc 16a §5.9: first in the ring).
     done(&mut shell, "ui.focus_next", json!({}));
     assert_eq!(shell.focus(), Some(Focus::Canvas(0)));
     done(&mut shell, "ui.focus_next", json!({}));
@@ -723,10 +724,15 @@ fn v9_the_transcript_members_and_describe_lines() {
     done(&mut shell, "ui.focus_next", json!({}));
     assert_eq!(shell.focus(), Some(Focus::Properties));
     done(&mut shell, "ui.focus_next", json!({}));
+    assert_eq!(shell.focus(), Some(Focus::CommandBar));
+    assert_eq!(state(&shell)["focus"], "commandbar");
+    done(&mut shell, "ui.focus_next", json!({}));
     assert_eq!(
         shell.focus(),
         Some(Focus::Navigator(ew_viewmodel::navigators::NavKind::Pages))
     );
+    done(&mut shell, "ui.focus_previous", json!({}));
+    assert_eq!(shell.focus(), Some(Focus::CommandBar));
     done(&mut shell, "ui.focus_previous", json!({}));
     assert_eq!(shell.focus(), Some(Focus::Properties));
     done(&mut shell, "ui.focus_previous", json!({}));
