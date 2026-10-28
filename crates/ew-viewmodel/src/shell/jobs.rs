@@ -70,6 +70,13 @@ fn file_url_of(path: &Path) -> String {
     }
 }
 
+/// The export target made absolute when the job starts (against the working directory), so the entry's path and
+/// Open PDF's `file://` URL name the written file even when a script passed a relative path (review finding 6 of
+/// cycle 30). A path `std::path::absolute` cannot handle (an empty one) stays as it is.
+fn absolute_target(path: PathBuf) -> PathBuf {
+    std::path::absolute(&path).unwrap_or(path)
+}
+
 /// Whether `target` lies inside the project directory `dir`: compared on the canonical paths when both exist, else on
 /// the absolute ones (component by component, so `p.ew2` is not inside `p.ew`).
 fn inside(dir: &Path, target: &Path) -> bool {
@@ -282,7 +289,7 @@ impl ShellModel {
     pub(super) fn act_export_pdf(&mut self, p: &Map<String, Value>) -> Outcome {
         let path = match string_param(p, "path") {
             Err(e) => return e,
-            Ok(Some(path)) => PathBuf::from(path),
+            Ok(Some(path)) => absolute_target(PathBuf::from(path)),
             // The native save dialog asks about an existing file itself, so its answer carries `replace` (D5).
             Ok(None) => {
                 let mut rest = p.clone();
@@ -686,5 +693,26 @@ impl ShellModel {
             rows: Vec::new(),
         });
         self.install_view();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Review finding 6 of cycle 30: a relative target is made absolute when the job starts, so its `file://` URL is
+    /// the working directory's file, never `file:///out.pdf`.
+    #[test]
+    fn a_relative_target_gets_the_url_of_the_absolute_file() {
+        let target = absolute_target(PathBuf::from("out.pdf"));
+        assert!(target.is_absolute(), "{target:?}");
+        assert_eq!(target, std::path::absolute("out.pdf").unwrap());
+        let url = file_url_of(&target);
+        assert_ne!(url, "file:///out.pdf");
+        assert!(url.starts_with("file:///") || url.starts_with("file://"), "{url}");
+        assert!(url.ends_with("/out.pdf"), "{url}");
+        assert!(url.len() > "file:///out.pdf".len(), "{url}");
+        // An absolute target is kept as it is.
+        assert_eq!(absolute_target(target.clone()), target);
     }
 }
