@@ -6,7 +6,7 @@
 //!
 //! A window holds up to [`MAX_HIGHLIGHTS`] highlights, each a potential or the net of a connection
 //! ([`HighlightTarget`]) in a **slot** 0 to 3: the first free slot, and a fifth highlight takes the oldest one's slot.
-//! Slot n has the Okabe–Ito colour [`SLOT_COLOURS`]`[n]` and the hatch angle [`SLOT_ANGLES`]`[n]`, so the pattern
+//! Slot n has the colour [`SLOT_COLOURS`]`[n]` and the hatch angle [`SLOT_ANGLES`]`[n]`, so the pattern
 //! carries the meaning as well as the colour (FR-UI-025). The members (the connection IDs, `Session::highlight_members`)
 //! are re-read once per revision.
 //!
@@ -25,10 +25,11 @@ use ew_api::output::Uuid;
 /// The most highlights a window shows.
 pub const MAX_HIGHLIGHTS: usize = 4;
 
-/// The slot colours (Okabe–Ito): orange, sky blue, bluish green, vermillion.
+/// The slot colours, each at least 3:1 on the white sheet (NFR-A11Y-03, doc 16 §10.3; FT-506): dark orange #A86F00
+/// (4.25:1), reddish purple #CC79A7 (3.06:1), bluish green #009E73 (3.42:1) and vermillion #D55E00 (3.87:1).
 pub const SLOT_COLOURS: [(u8, u8, u8); MAX_HIGHLIGHTS] = [
-    (0xE6, 0x9F, 0x00),
-    (0x56, 0xB4, 0xE9),
+    (0xA8, 0x6F, 0x00),
+    (0xCC, 0x79, 0xA7),
     (0x00, 0x9E, 0x73),
     (0xD5, 0x5E, 0x00),
 ];
@@ -296,6 +297,26 @@ mod tests {
 
     fn target(n: u8) -> HighlightTarget {
         HighlightTarget::Net(Uuid::from_bytes([n; 16]))
+    }
+
+    /// FT-506: every slot colour reaches 3:1 against the white sheet (NFR-A11Y-03; WCAG 2.1 relative luminance), and the
+    /// slots keep their hatch angles.
+    #[test]
+    fn ft506_every_slot_colour_is_at_least_3_to_1_on_white() {
+        fn channel(v: u8) -> f64 {
+            let c = f64::from(v) / 255.0;
+            if c <= 0.039_28 {
+                c / 12.92
+            } else {
+                ((c + 0.055) / 1.055).powf(2.4)
+            }
+        }
+        for (r, g, b) in SLOT_COLOURS {
+            let l = 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+            let ratio = 1.05 / (l + 0.05);
+            assert!(ratio >= 3.0, "#{r:02X}{g:02X}{b:02X} is {ratio:.2}:1 on white");
+        }
+        assert_eq!(SLOT_ANGLES, [45, 135, 0, 90]);
     }
 
     #[test]

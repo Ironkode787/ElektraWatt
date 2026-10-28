@@ -521,14 +521,15 @@ actions and 291 describe words. Built as §7 says, with these points:
   (star-feed) arms are shared by two physical wires, among them the numbered W20 and W24; FR-UI-005's acceptance reads
   "at least once; shared only by junction arms".
 - **Highlighting.** `HighlightTarget { Potential(Uuid), Net(Uuid) }` and `Session::highlight_members` (sorted,
-  deduplicated, empty for an unknown ID). Four slots with #E69F00, #56B4E9, #009E73 and #D55E00 and the hatch angles
-  45°, 135°, 0° and 90°; an 8 pt band, a translucent fill at alpha 77, hatch lines 2 pt wide at a 6 pt pitch, sizes in
+  deduplicated, empty for an unknown ID). Four slots with #E69F00, #56B4E9, #009E73 and #D55E00 (cycle 31, FT-506:
+  #A86F00, #CC79A7, #009E73 and #D55E00, each at least 3:1 on white) and the hatch angles 45°, 135°, 0° and 90°; an 8 pt band, a translucent fill at alpha 77, hatch lines 2 pt wide at a 6 pt pitch, sizes in
   points × ppp with square caps, one global hatch-line family, the angle in screen coordinates; a fifth highlight
   replaces the oldest; members are refreshed once per revision; `paint_at` is the one geometry source of the window and
   `canvas.snapshot`. A net is the page-local net that holds the connection; a potential's members are the connections
   with either end on it; the bond row and group rows cannot be highlighted; `Net(first record)` takes the smallest
   UUID. Highlights are painted above the overlays and below the statistics panel and the preview chips. Slots 0 and 1
-  are below 3:1 on white (FT-506).
+  were below 3:1 on white; FT-506 (cycle 31) gave them dark orange #A86F00 and reddish purple #CC79A7, doc 16 §10.3's
+  colours, with the hatch angles kept.
 - **Actions and words.** `navigator.highlight` (`kind?`, `key?`, `off?`; Ctrl+Shift+H; in the navigator) and
   `view.clear_highlights` (View menu, disabled without highlights); strings `reason-no-highlights` and
   `error-highlight-row`; the six words of §7.4.

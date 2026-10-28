@@ -1416,13 +1416,15 @@ Okabe–Ito orange #E69F00 (2.25:1), sky blue #56B4E9 (2.31:1) and yellow #F0E44
 are used only on dark chrome surfaces, where they reach 7.4:1, 7.2:1 and 12.6:1 against #1E1E1E; on the sheet the
 darkened orange #A86F00 (not an Okabe–Ito value) replaces them.
 
-*As built (cycle 30, WP-S2.06 part 2; decision log ID-687, ID-712, ID-713).* Highlights are view state, never a model
-edit, composited into `canvas.snapshot` and listed by `ui.describe`. The four slots use #E69F00, #56B4E9, #009E73 and
-#D55E00 with the hatch angles 45°, 135°, 0° and 90°: a band 8 pt wide with a translucent fill at alpha 77 and hatch
-lines 2 pt wide at a 6 pt pitch (points × ppp, square caps); a fifth highlight replaces the oldest; they are painted
-above the overlays and below the statistics panel and the preview chips. **This departs from the slot table above:**
-slots 1 and 2 (orange and sky blue) are below 3:1 on the white sheet (NFR-A11Y-03); FT-506 brings them to the table's
-hues or records a ruling.
+*As built (cycle 30, WP-S2.06 part 2; decision log ID-687, ID-712, ID-713; colours amended in cycle 31, FT-506).* Highlights are view state, never a model
+edit, composited into `canvas.snapshot` and listed by `ui.describe`. The four slots use the table's four colours,
+dark orange #A86F00, reddish purple #CC79A7, bluish green #009E73 and vermillion #D55E00 (cycle 31, FT-506: every one at
+least 3:1 on white, checked by a unit test), with the hatch angles 45°, 135°, 0° and 90°: a band 8 pt wide with a
+translucent fill at alpha 77 and hatch lines 2 pt wide at a 6 pt pitch (points × ppp, square caps); a fifth highlight
+replaces the oldest; they are painted above the overlays and below the statistics panel and the preview chips. The
+slot order and the hatch shapes differ from the table above: slot 1 keeps the orange family (darkened), slot 2 takes
+reddish purple in place of sky blue (a darker blue would be the selection's #0072B2), slots 3 and 4 keep bluish green
+and vermillion, and every slot is a hatch at its own angle rather than a cross-hatch or dots.
 
 Severity colours reuse three highlight hues, but they never share a shape: findings are icons with a word, while
 highlights are halos with a name chip, so an error icon on a vermillion-highlighted net stays unambiguous.
