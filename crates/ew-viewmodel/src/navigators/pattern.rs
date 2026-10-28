@@ -16,6 +16,10 @@
 //! row's cell text of that column (an unknown key is an error of the whole pattern, [`Template::check_columns`]);
 //! `{prev}` is the text the fill produced for the previous row (for the first row, the caller's start text).
 
+/// The longest text one row may produce, in characters (the paste's cell bound). `{prev}` feeds a row's text into the
+/// next, so `{prev}{prev}` would double it per row without this bound.
+pub const MAX_RENDERED_CHARS: usize = crate::navigators::paste::MAX_CELL_CHARS;
+
 /// One piece of a parsed template.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Piece {
@@ -81,6 +85,8 @@ pub enum RowError {
     Overflow,
     /// `n*k-j` is negative.
     Negative,
+    /// The text would be longer than [`MAX_RENDERED_CHARS`] characters.
+    TooLong,
 }
 
 impl RowError {
@@ -89,6 +95,7 @@ impl RowError {
         match self {
             RowError::Overflow => "the counter overflows",
             RowError::Negative => "the counter is negative",
+            RowError::TooLong => "the text is longer than 10000 characters",
         }
     }
 }
@@ -227,14 +234,27 @@ impl Template {
     ///
     /// # Errors
     ///
-    /// [`RowError`] when the counter overflows or is negative.
+    /// [`RowError`] when the counter overflows or is negative, or when the text would be longer than
+    /// [`MAX_RENDERED_CHARS`] characters (checked before every piece is appended, so nothing over the bound is
+    /// built).
     pub fn render(&self, n: i64, cell: &dyn Fn(&str) -> String, prev: &str) -> Result<String, RowError> {
         let mut out = String::new();
+        let mut chars = 0usize;
+        let mut push = |out: &mut String, piece: &str| -> Result<(), RowError> {
+            // At most `MAX_RENDERED_CHARS + 1` characters are counted, so an oversized piece costs no more.
+            let added = piece.chars().take(MAX_RENDERED_CHARS + 1).count();
+            if chars + added > MAX_RENDERED_CHARS {
+                return Err(RowError::TooLong);
+            }
+            chars += added;
+            out.push_str(piece);
+            Ok(())
+        };
         for p in &self.0 {
             match p {
-                Piece::Literal(t) => out.push_str(t),
-                Piece::Prev => out.push_str(prev),
-                Piece::Column(k) => out.push_str(&cell(k)),
+                Piece::Literal(t) => push(&mut out, t)?,
+                Piece::Prev => push(&mut out, prev)?,
+                Piece::Column(k) => push(&mut out, &cell(k))?,
                 Piece::Counter { mul, add, width } => {
                     let v = n
                         .checked_mul(*mul)
@@ -243,7 +263,7 @@ impl Template {
                     if v < 0 {
                         return Err(RowError::Negative);
                     }
-                    out.push_str(&format!("{v:0width$}", width = *width));
+                    push(&mut out, &format!("{v:0width$}", width = *width))?;
                 }
             }
         }
@@ -281,6 +301,53 @@ mod tests {
         assert_eq!(fill("{{n}}", 1), ["{n}"], "literal braces");
         assert_eq!(fill("a}}b{{c", 1), ["a}b{c"]);
         assert_eq!(fill("", 1), [""]);
+    }
+
+    /// `{prev}{prev}x` doubles the text per row: the row that would pass the bound is refused as too long instead of
+    /// growing without bound (R1-1), and 64 rows finish at once.
+    #[test]
+    fn a_doubling_prev_pattern_is_bounded_per_row() {
+        let t = Template::parse("{prev}{prev}x").unwrap();
+        let started = std::time::Instant::now();
+        let mut prev = String::new();
+        let mut first_too_long = None;
+        for n in 1..=64 {
+            match t.render(n, &|_| String::new(), &prev) {
+                Ok(s) => {
+                    assert!(s.chars().count() <= MAX_RENDERED_CHARS);
+                    prev = s;
+                }
+                Err(e) => {
+                    assert_eq!(e, RowError::TooLong);
+                    assert_eq!(e.message(), "the text is longer than 10000 characters");
+                    first_too_long.get_or_insert(n);
+                    prev.clear();
+                }
+            }
+        }
+        // Row k is 2^k - 1 characters long: row 13 (8191) fits, row 14 (16383) does not.
+        assert_eq!(first_too_long, Some(14));
+        assert!(
+            started.elapsed() < std::time::Duration::from_secs(1),
+            "64 rows took {:?}",
+            started.elapsed()
+        );
+        // The bound is in characters, not bytes: 10000 two-byte characters fit, one more does not.
+        let t = Template::parse("{prev}").unwrap();
+        assert!(
+            t.render(1, &|_| String::new(), &"é".repeat(MAX_RENDERED_CHARS))
+                .is_ok()
+        );
+        assert_eq!(
+            t.render(1, &|_| String::new(), &"é".repeat(MAX_RENDERED_CHARS + 1)),
+            Err(RowError::TooLong)
+        );
+        let t = Template::parse("{col:k}{n}").unwrap();
+        assert_eq!(
+            t.render(1, &|_| "x".repeat(MAX_RENDERED_CHARS), ""),
+            Err(RowError::TooLong),
+            "the counter piece is bounded too"
+        );
     }
 
     /// Random patterns over the grammar's characters never make the parser or the renderer panic.

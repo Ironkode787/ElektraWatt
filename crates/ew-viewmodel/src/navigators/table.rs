@@ -595,8 +595,13 @@ pub fn cell_text(table: &NavTable, node: u32, key: &str) -> String {
 
 /// The texts a pattern fill produces (§8.5) over [`gesture_rows`] in the cursor column: `{n}` counts the rows from 1,
 /// `{prev}` starts with the cursor column's text of the row on show directly above the first one (empty when there is
-/// none).
-pub fn pattern_texts(nav: &Navigator, template: &Template) -> Vec<Result<String, RowError>> {
+/// none). With `limit`, only the first `limit` rows are computed (the dialog's preview). A row in error passes the
+/// empty text on as the next row's `{prev}`, so an error cannot grow later rows.
+pub fn pattern_texts(
+    nav: &Navigator,
+    template: &Template,
+    limit: Option<usize>,
+) -> Vec<Result<String, RowError>> {
     let (Some(table), Some(mode)) = (nav.table(), nav.table_mode()) else {
         return Vec::new();
     };
@@ -612,6 +617,7 @@ pub fn pattern_texts(nav: &Navigator, template: &Template) -> Vec<Result<String,
         .and_then(|at| table.nodes[vis[at].node as usize].cells.get(col).cloned())
         .unwrap_or_default();
     rows.iter()
+        .take(limit.unwrap_or(usize::MAX))
         .enumerate()
         .map(|(k, i)| {
             let cell = |key: &str| cell_text(table, *i, key);

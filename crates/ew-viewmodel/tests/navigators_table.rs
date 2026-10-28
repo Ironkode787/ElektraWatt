@@ -262,6 +262,79 @@ fn tb3_pattern_fill_over_the_twelve_spare_terminals_is_one_fields_set_many() {
     shell.shutdown();
 }
 
+/// R1-1: `{prev}{prev}x` doubles the text per row. The dialog's preview computes only its five rows over 60 marked
+/// devices, and applying it over the 28 terminals makes the rows that would grow past 10000 characters invalid
+/// ("too long") instead of exhausting memory; nothing is committed.
+#[test]
+fn a_doubling_prev_pattern_previews_five_rows_and_refuses_rows_that_grow_too_long() {
+    let tmp = Tmp::new("tb3-long");
+    let mut shell = strips(&tmp, "");
+    // The preview over 60 marked rows (the Devices table of Golden A page 102 shows more than 60).
+    done(&mut shell, "navigator.show", json!({"kind": "devices"}));
+    done(
+        &mut shell,
+        "navigator.table",
+        json!({"kind": "devices", "on": true}),
+    );
+    let devices: Vec<String> = {
+        let n = shell.nav(NavKind::Devices).unwrap();
+        let t = n.table().unwrap();
+        n.visible()
+            .iter()
+            .map(|r| t.nodes[r.node as usize].key.clone())
+            .take(60)
+            .collect()
+    };
+    assert_eq!(devices.len(), 60);
+    mark(&mut shell, NavKind::Devices, &devices);
+    let first = shell.nav(NavKind::Devices).unwrap().table().unwrap().columns[0]
+        .key
+        .clone();
+    done(
+        &mut shell,
+        "table.cell",
+        json!({"kind": "devices", "column": first}),
+    );
+    done(&mut shell, "table.pattern_fill", json!({"kind": "devices"}));
+    done(
+        &mut shell,
+        "table.input",
+        json!({"kind": "devices", "text": "{prev}{prev}x"}),
+    );
+    let (pattern, values) = shell.pattern_preview(NavKind::Devices).expect("the dialog");
+    assert_eq!(pattern, "{prev}{prev}x");
+    let values = values.expect("the pattern parses");
+    assert_eq!(values.len(), 5, "{values:?}");
+    // The fill over the 28 terminals.
+    done(&mut shell, "navigator.show", json!({"kind": "strips"}));
+    let keys: Vec<String> = column(&shell, NavKind::Strips, "Terminal")
+        .into_iter()
+        .map(|(k, _)| k)
+        .collect();
+    assert_eq!(keys.len(), 28);
+    mark(&mut shell, NavKind::Strips, &keys);
+    let fn_col = col(&shell, NavKind::Strips, "Function text");
+    done(
+        &mut shell,
+        "table.cell",
+        json!({"kind": "strips", "column": fn_col}),
+    );
+    let n = steps(&shell);
+    done(
+        &mut shell,
+        "table.pattern_fill",
+        json!({"kind": "strips", "pattern": "{prev}{prev}x"}),
+    );
+    assert_eq!(steps(&shell), n, "nothing committed");
+    let too_long: Vec<String> = lines_with(&shell, "  cell ")
+        .into_iter()
+        .filter(|l| l.ends_with(" invalid \"the text is longer than 10000 characters\""))
+        .collect();
+    // A row in error passes the empty text on, so the doubling restarts: rows 14 and 28 are too long.
+    assert_eq!(too_long.len(), 2, "{too_long:?}");
+    shell.shutdown();
+}
+
 /// TB4 (§8.6, §8.7, D13): paste with a header row in another column order maps by label (an unmatched pasted column is
 /// ignored); without one by position from the cursor; quoted cells with TAB and line breaks; `0,75` and `1,500` (the
 /// latter ambiguous: the card, `table.resolve`, Apply); a read-only column and a row past the end are invalid; two rows

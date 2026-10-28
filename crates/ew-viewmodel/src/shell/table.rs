@@ -972,7 +972,7 @@ impl ShellModel {
                 reason_key: "reason-no-nav-row",
             };
         }
-        let texts = pattern_texts(nav, &template);
+        let texts = pattern_texts(nav, &template, None);
         let cells: Vec<GestureCell> = view
             .acted
             .iter()
@@ -1271,9 +1271,8 @@ impl ShellModel {
             .and_then(|t| t.check_columns(&keys).map(|()| t))
             .map_err(|e| e.message())
             .map(|t| {
-                pattern_texts(n, &t)
+                pattern_texts(n, &t, Some(5))
                     .into_iter()
-                    .take(5)
                     .map(|r| r.unwrap_or_else(|e| e.message().to_owned()))
                     .collect()
             });
