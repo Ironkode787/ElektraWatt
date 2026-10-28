@@ -110,6 +110,8 @@ fn ms5_the_pane_in_the_window_named_rows_keyboard_detail_and_pending() {
     dispatch(&mut h, "page.goto", json!({"folio": "101"}));
     dispatch(&mut h, "view.zoom_actual", json!({}));
     settle(&mut h);
+    // WP-S2.06 part 3: the Table toggles before the Messages pane opens (it adds none: it has no table mode).
+    let toggles = h.query_all_by_label("Table").count();
     // View ▸ Messages docks the pane at the bottom and focuses it.
     h.get_by_label("View").click();
     settle(&mut h);
@@ -122,6 +124,11 @@ fn ms5_the_pane_in_the_window_named_rows_keyboard_detail_and_pending() {
     assert!(
         h.query_by_label("Messages navigator").is_some(),
         "the Tree is named"
+    );
+    assert_eq!(
+        h.query_all_by_label("Table").count(),
+        toggles,
+        "the Messages pane has no Table toggle"
     );
     let counts = shell.messages_counts().unwrap();
     let header = format!(

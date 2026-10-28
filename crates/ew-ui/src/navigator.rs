@@ -24,6 +24,9 @@
 //! **Accessibility.** The list is a node with the role `Tree`; a row is a `TreeItem` named `<label>, <role>[,
 //! <badges>]` (the Pages rows as built, `PageNavigator::accessible_name`), with AccessKit's own `level`,
 //! `position_in_set`, `size_of_set`, `expanded` and `selected` (marked) properties.
+//!
+//! **Table mode** (WP-S2.06 part 3). Every pane has a Table toggle beside its filter (`navigator.table`); a navigator
+//! in table mode is drawn by `nav_table` as an egui_table on the same focusable node, then with the role `Table`.
 
 use std::rc::Rc;
 
@@ -85,6 +88,8 @@ pub struct NavigatorPane {
     painted: usize,
     /// The rows the last frame painted: a cursor inside them is not scrolled to (a click does not move the list).
     view: std::ops::Range<usize>,
+    /// Table mode's widget state (WP-S2.06 part 3).
+    table: crate::nav_table::TableUi,
 }
 
 impl Default for NavigatorPane {
@@ -110,6 +115,7 @@ impl NavigatorPane {
             typed: (String::new(), f64::NEG_INFINITY),
             painted: 0,
             view: 0..0,
+            table: crate::nav_table::TableUi::default(),
         }
     }
 
@@ -118,7 +124,7 @@ impl NavigatorPane {
         self.rebuilds
     }
 
-    /// How many rows the last frame painted (tests).
+    /// How many rows the last frame painted (tests); in table mode, how many cells.
     pub fn painted(&self) -> usize {
         self.painted
     }
@@ -160,6 +166,8 @@ impl NavigatorPane {
     pub(crate) fn show(&mut self, ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         // The Pages navigator as built (WP-S2.03); in table mode (WP-S2.06 part 3) it is a generic navigator.
         let pages = self.kind == NavKind::Pages && shell.nav(NavKind::Pages).is_none();
+        let table_nav = shell.nav(self.kind).filter(|n| n.table_mode().is_some());
+        let in_table = table_nav.is_some();
         let shell_filter = match self.kind {
             NavKind::Pages if pages => shell.navigator().filter.clone(),
             k => shell.nav(k).map(|n| n.filter.clone()).unwrap_or_default(),
@@ -181,6 +189,20 @@ impl NavigatorPane {
                     };
                     if button.clicked() {
                         events.push(Event::Action("page.new", Value::Null));
+                    }
+                }
+                // WP-S2.06 part 3: the Table toggle (§8.1, `navigator.table`); the Messages pane (WP-S2.09 part 2) has
+                // no table mode, so no toggle.
+                if self.kind != NavKind::Messages {
+                    let toggle = ui.add(egui::Button::selectable(in_table, strings::text("table-toggle")));
+                    let name = strings::text("table-toggle");
+                    toggle
+                        .widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, in_table, name));
+                    if toggle.clicked() {
+                        events.push(Event::Action(
+                            "navigator.table",
+                            json!({"kind": self.kind_word(), "on": !in_table}),
+                        ));
                     }
                 }
                 ui.add(
@@ -222,11 +244,16 @@ impl NavigatorPane {
         table_card(ui, shell, self.kind, events);
         let visible = self.visible_rows(shell);
         let cursor = shell.nav_cursor(self.kind);
-        // The list itself: one focusable node with the role `Tree`.
+        // The list itself: one focusable node with the role `Tree` (`Table` in table mode).
         let list_rect = ui.available_rect_before_wrap();
         let list_id = ui.scope_id().with(("navigator", self.kind_word()));
         let list = ui.interact(list_rect, list_id, Sense::focusable_noninteractive());
-        let tree_name = if pages {
+        let tree_name = if in_table {
+            strings::format(
+                "table-name",
+                &[strings::text(ew_viewmodel::layout::nav_title_key(self.kind))],
+            )
+        } else if pages {
             strings::text("submenu-page-navigator").to_owned()
         } else {
             strings::format(
@@ -234,7 +261,12 @@ impl NavigatorPane {
                 &[strings::text(ew_viewmodel::layout::nav_title_key(self.kind))],
             )
         };
-        list.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Tree, true, &tree_name));
+        let role = if in_table {
+            egui::Role::Table
+        } else {
+            egui::Role::Tree
+        };
+        list.widget_info(|| egui::WidgetInfo::labeled(role, true, &tree_name));
         let ours = shell.focus() == Some(Focus::Navigator(self.kind));
         if ours && !list.has_focus() && !ui.ctx().text_edit_focused() && shell.dialog().is_none() {
             list.request_focus();
@@ -246,18 +278,34 @@ impl NavigatorPane {
                     egui::EventFilter {
                         horizontal_arrows: true,
                         vertical_arrows: true,
-                        tab: false,
+                        // In table mode Tab moves the cell cursor (§8.1).
+                        tab: in_table,
                         escape: false,
                     },
                 );
             });
-            self.keys(ui, shell, &visible, cursor.as_deref(), events);
+            match table_nav {
+                Some(nav) => {
+                    let card = shell.table_gesture().is_some();
+                    crate::nav_table::keys(ui, nav, card, events);
+                }
+                None => self.keys(ui, shell, &visible, cursor.as_deref(), events),
+            }
         }
         if list.gained_focus() && !ours {
             events.push(Event::Action(
                 "ui.focus",
                 json!({"area": "navigator", "kind": self.kind_word()}),
             ));
+        }
+        // WP-S2.06 part 3: a navigator in table mode is drawn as its table.
+        if let Some(nav) = table_nav {
+            let writable =
+                ew_viewmodel::actions::find("table.edit").is_some_and(|a| (a.enabled)(shell).is_ok());
+            let preview = shell.pattern_preview(self.kind).map(|(_, v)| v);
+            self.table.show(ui, nav, writable, preview, list_id, events);
+            self.painted = self.table.painted;
+            return;
         }
         // The cursor is scrolled into view when it moved to a row outside the rows on show (the first and last ones may
         // be cut).
