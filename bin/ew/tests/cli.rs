@@ -1739,3 +1739,54 @@ fn import_parts_refusals_name_line_and_column() {
     let o = run(&t.0.join("missing").join("parts.csv"));
     assert_eq!(o.status.code(), Some(2), "{}", stderr(&o));
 }
+
+/// FT-504 (beside JB8's `ew-api` test): `ew import parts` with a `parts.csv` and sibling tables that a spreadsheet
+/// saved with a byte-order mark creates the same 29 part copies as the golden tables without it.
+#[test]
+fn import_parts_with_a_bom_prefixed_table_creates_the_same_copies() {
+    let t = Tmp::new();
+    let home = t.0.join("home");
+    let tables = std::path::Path::new(GOLDEN_PARTS).parent().unwrap();
+    let marked = t.0.join("bom-tables");
+    std::fs::create_dir_all(&marked).unwrap();
+    for file in [
+        "parts.csv",
+        "part_cps.csv",
+        "part_templates.csv",
+        "cable_cores.csv",
+        "part_plc.csv",
+    ] {
+        let text = std::fs::read_to_string(tables.join(file)).unwrap();
+        assert!(!text.starts_with('\u{feff}'), "{file} has no BOM of its own");
+        std::fs::write(marked.join(file), format!("\u{feff}{text}")).unwrap();
+    }
+    let import = |table: &std::path::Path, project: &std::path::Path| {
+        ew_isolated(
+            &home,
+            &[
+                "import".as_ref(),
+                "parts".as_ref(),
+                table.as_os_str(),
+                "--project".as_ref(),
+                project.as_os_str(),
+            ],
+        )
+    };
+    let plain = parts_target(&t, "parts-plain.ew");
+    let o = import(std::path::Path::new(GOLDEN_PARTS), &plain);
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    let bom = parts_target(&t, "parts-bom.ew");
+    let o = import(&marked.join("parts.csv"), &bom);
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    assert_eq!(
+        stdout(&o),
+        "imported parts.csv: 29 created, 0 skipped, 0 errors; saved\n"
+    );
+    assert!(stderr(&o).is_empty(), "{}", stderr(&o));
+    assert_eq!(tree(&bom.join("lib/parts")).len(), 29);
+    assert_eq!(
+        comparable_parts(&bom.join("lib/parts")),
+        comparable_parts(&plain.join("lib/parts")),
+        "the same part copies as without the BOM"
+    );
+}
