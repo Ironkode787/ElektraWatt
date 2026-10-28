@@ -336,6 +336,22 @@ impl ShellModel {
         }
     }
 
+    /// Waits for every running job and takes its end (its entry, notification and marker), as `jobs.wait` does for
+    /// one. The headless runner calls it at the end of a run, before its unsaved-changes check, so a script whose
+    /// export did not wait (`wait: false`) still writes its file, and its transcript, file and log are the same on
+    /// every run (§9 items 1 and 2; review finding 3 of cycle 30).
+    pub fn wait_jobs(&mut self) {
+        let running: Vec<u64> = self
+            .jobs
+            .entries()
+            .filter(|e| e.handle.is_some())
+            .map(|e| e.number)
+            .collect();
+        for number in running {
+            let _ = self.wait_job(number);
+        }
+    }
+
     /// Waits for job `number` and takes its end; the step's outcome by the end (§6.3 item 5).
     fn wait_job(&mut self, number: u64) -> Outcome {
         let Some(handle) = self.jobs.get_mut(number).and_then(|e| e.handle.take()) else {
@@ -347,7 +363,7 @@ impl ShellModel {
 
     /// The end of job `number` (§6.3 item 5): its entry's status, the notification, the history marker. Returns the
     /// outcome a waiting step reports.
-    fn finish_job(&mut self, number: u64, end: JobEnd<ExportDone>) -> Outcome {
+    pub(super) fn finish_job(&mut self, number: u64, end: JobEnd<ExportDone>) -> Outcome {
         let current = self.project.as_ref().map(|p| (p.epoch, p.session.world().rev.0));
         let Some(entry) = self.jobs.get_mut(number) else {
             return Outcome::Done;

@@ -1860,8 +1860,12 @@ impl ShellModel {
     pub fn shutdown(&mut self) {
         self.flush_layout();
         // WP-S2.09: a running export is cancelled and waited for (it stops at its next page), so no job outlives the
-        // shell and no sibling file is left by a killed thread.
-        self.jobs.stop_all();
+        // shell and no sibling file is left by a killed thread. Its real end is recorded like any other: its entry,
+        // its notification in the log, its marker (ID-719: Quit cancels running jobs). A headless run waits for its
+        // jobs before it gets here (`wait_jobs`).
+        for (number, end) in self.jobs.stop_all() {
+            let _ = self.finish_job(number, end);
+        }
         match self.project.take() {
             Some(p) if p.session.is_dirty() => drop(p),
             Some(p) => p.session.close(),

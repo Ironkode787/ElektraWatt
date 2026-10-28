@@ -17,7 +17,7 @@ use std::collections::VecDeque;
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
 
-use ew_api::ew_jobs::{Gate, Job, JobCtl, JobError, JobOptions, Progress, Waker};
+use ew_api::ew_jobs::{Gate, Job, JobCtl, JobEnd, JobError, JobOptions, Progress, Waker};
 use ew_api::output::ExportJob;
 
 use crate::strings;
@@ -208,17 +208,23 @@ impl JobsState {
     }
 
     /// Cancels every running job and waits for each to end (the shell's end: no job outlives its window or run, so
-    /// no sibling is left by a killed thread).
-    pub(crate) fn stop_all(&mut self) {
+    /// no sibling is left by a killed thread). Returns each job's real end, for the shell to record: a job that had
+    /// already written its file is done, not cancelled (ID-719).
+    pub(crate) fn stop_all(&mut self) -> Vec<(u64, JobEnd<ExportDone>)> {
         // A test gate would hold a cancelled job at its checkpoint: it is let go.
         self.gate = None;
-        for e in &mut self.entries {
-            if let Some(h) = e.handle.take() {
-                h.cancel();
-                let _ = h.wait();
-                e.status = JobStatus::Cancelled;
-            }
+        let handles: Vec<(u64, Job<ExportDone>)> = self
+            .entries
+            .iter_mut()
+            .filter_map(|e| Some((e.number, e.handle.take()?)))
+            .collect();
+        for (_, h) in &handles {
+            h.cancel();
         }
+        handles
+            .into_iter()
+            .map(|(number, h)| (number, h.wait()))
+            .collect()
     }
 }
 

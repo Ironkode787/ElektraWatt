@@ -260,3 +260,49 @@ fn jb7_the_recovery_script_is_byte_identical_twice() {
     assert_eq!(transcripts[0], transcripts[2], "two runs give the same bytes");
     assert_eq!(transcripts[1], transcripts[3], "two runs give the same bytes");
 }
+
+/// Review finding 3 of cycle 30: a script whose last step is an export that does not wait (`wait: false`) and has no
+/// `jobs.wait` still writes its file, because the end of the run waits for its jobs; two runs give the same
+/// transcript and the same PDF (the golden digest), and no sibling is left.
+#[test]
+fn jb4_an_export_that_did_not_wait_is_written_at_the_end_of_the_run() {
+    let tmp = Tmp::new();
+    let mut transcripts = Vec::new();
+    let mut pdfs = Vec::new();
+    for side in ["a", "b"] {
+        let dir = tmp.0.join(side);
+        copy_dir(Path::new(GOLDEN_A), &dir.join("g.ew"));
+        let pdf = dir.join("out.pdf");
+        let steps = [
+            ("file.open", json!({ "dir": path(&dir.join("g.ew")) })),
+            ("file.export_pdf", json!({ "path": path(&pdf), "wait": false })),
+        ];
+        let out = run(&dir, "nowait", &steps, None);
+        assert_eq!(
+            out.status.code(),
+            Some(0),
+            "{}{}",
+            String::from_utf8_lossy(&out.stdout),
+            String::from_utf8_lossy(&out.stderr)
+        );
+        assert!(out.stderr.is_empty(), "{}", String::from_utf8_lossy(&out.stderr));
+        let lines = steps_of(&out);
+        assert_eq!(lines.len(), 2);
+        assert_eq!(lines[1]["outcome"], "done");
+        let bytes = std::fs::read(&pdf).expect("the PDF is written");
+        let digest: String = Sha256::digest(&bytes)
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect();
+        let expected = std::fs::read_to_string(Path::new(EXPECTED).join("pdf/sha256.txt")).unwrap();
+        assert_eq!(digest, expected.trim(), "the job's PDF is the golden PDF");
+        assert!(!dir.join(".out.pdf.ew-part").exists(), "no sibling");
+        transcripts.push(String::from_utf8(out.stdout.clone()).unwrap());
+        pdfs.push(bytes);
+    }
+    assert_eq!(
+        transcripts[0], transcripts[1],
+        "two runs give the same transcript"
+    );
+    assert_eq!(pdfs[0], pdfs[1], "two runs give the same PDF");
+}

@@ -12,6 +12,7 @@ use std::path::Path;
 
 use common::{Tmp, done, refused, state};
 use ew_viewmodel::ew_api::ew_jobs::Gate;
+use ew_viewmodel::jobs::JobStatus;
 use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::{Value, json};
 
@@ -436,4 +437,62 @@ fn jb6_open_pdf_in_the_window_is_a_file_url_request() {
     done(&mut s, "notifications.run", json!({"entry": 1, "action": "open"}));
     assert!(s.take_open_request().is_some());
     s.shutdown();
+}
+
+/// The texts of the notifications log, oldest first.
+fn log_texts(s: &ShellModel) -> Vec<String> {
+    s.notifications().entries().map(|n| n.text.clone()).collect()
+}
+
+/// ID-719: Quit (`shutdown`) cancels a running export, waits for it and records its real end like any other: a job
+/// that met its cancel is cancelled, its entry and the notifications log say so, and no file is left.
+#[test]
+fn quit_records_a_cancelled_export_in_its_entry_and_the_log() {
+    let tmp = Tmp::new("quit-cancel");
+    let mut s = small(&tmp, Mode::Gui);
+    let gate = Gate::new();
+    gate.hold("page");
+    s.set_job_gate_for_tests(Some(gate.clone()));
+    let target = tmp.0.join("out.pdf");
+    done(&mut s, "file.export_pdf", json!({"path": path_text(&target)}));
+    gate.wait_reached("page");
+    // The cancel flag is set before the job goes on, so its end is the cancel; nobody takes it before the quit.
+    done(&mut s, "jobs.cancel", json!({}));
+    gate.release();
+    s.shutdown();
+    assert_eq!(
+        s.jobs().get(1).map(|e| e.status.clone()),
+        Some(JobStatus::Cancelled)
+    );
+    assert_eq!(log_texts(&s), ["Export cancelled; no file written"]);
+    assert!(!target.exists(), "no file");
+    assert!(!sibling(&target).exists(), "no sibling");
+}
+
+/// ID-719: a job that had already written its file when the quit came keeps its real end: done, not cancelled, with
+/// its notification in the log.
+#[test]
+fn quit_keeps_the_end_of_an_export_that_wrote_its_file() {
+    let tmp = Tmp::new("quit-done");
+    let mut s = small(&tmp, Mode::Gui);
+    let target = tmp.0.join("out.pdf");
+    done(&mut s, "file.export_pdf", json!({"path": path_text(&target)}));
+    // The window never waits and nothing polls: the end is still in the job when the shell ends. After the rename the
+    // body has no checkpoint left, so the cancel cannot change its end.
+    for _ in 0..2000 {
+        if target.exists() {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    }
+    assert!(target.exists(), "the file is written");
+    assert_eq!(s.jobs().running(), 1, "its end is not taken yet");
+    s.shutdown();
+    assert!(matches!(
+        s.jobs().get(1).map(|e| e.status.clone()),
+        Some(JobStatus::Done { .. })
+    ));
+    let texts = log_texts(&s);
+    assert_eq!(texts.len(), 1, "{texts:?}");
+    assert!(texts[0].starts_with("Exported out.pdf: "), "{texts:?}");
 }

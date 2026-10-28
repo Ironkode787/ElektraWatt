@@ -220,6 +220,10 @@ pub fn run(
     if let RunEnd::Usage(e) = &end {
         let _ = writeln!(err, "error: {e}");
     }
+    // An export started with `wait: false` and never waited for ends here as if `jobs.wait` had followed: its file is
+    // written and its end recorded before the checks below, so two runs of the script give the same file (review
+    // finding 3 of cycle 30; `shutdown` would cancel it at a point that depends on timing).
+    shell.wait_jobs();
     // A script that ends with unsaved changes did not say what to do with them: exit 1, and the journal is kept
     // (`shutdown` deletes it only for a clean project). `app.quit` with `discard` ends such a script cleanly.
     let mut code = end.exit_code();
