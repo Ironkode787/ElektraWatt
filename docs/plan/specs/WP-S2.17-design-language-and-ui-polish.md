@@ -335,7 +335,7 @@ rail), `table_widget` TB7 (FT-523) and `command_surface` CB4 (65 % again).
   history}`: with that focus Up and Down are `history.row` and Enter is `history.undo_to`; a click on a row moves the
   row cursor there. The row actions stay text buttons; on the other rows they keep their nodes (Tab reaches them) but
   are not painted. The state icons, the badges and the dialog frame of doc 16a §6.24 are not built.
-- **Not built in this part:** the data grid's restyle of doc 16a §6.21 beyond FT-523 (DK9), Messages' restyle
+- **Not built in this part:** Messages' restyle
   (DK10), History's icons (the rest of DK11), the DK12 snapshots, the dock tabs' restyle of doc 16a §6.4 and window
   memory (DK6, the rest of FT-348): candidates for the next cycle.
 
@@ -360,9 +360,6 @@ rail), `table_widget` TB7 (FT-523) and `command_surface` CB4 (65 % again).
   "[severity] rule message" text, and the actions popup is still drawn inline under the row. Test: `ew-ui`
   `tests/properties.rs` `j32_property_rows_are_left_aligned_with_one_word_chips`; `ew-viewmodel`
   `the_chip_word_names_the_source`.
-- **DK9 not built.** The spec's DK9 is the data grid (doc 16a §6.21, the navigators' table mode), not the property
-  grid; the lane built the property rows of §6.8 above and left §6.21's restyle (sort icon, frozen-edge line, cursor
-  bar and ring probes) open.
 - **The choice editor's option list** is a popup (`egui::Area`, foreground) with doc 16a §6.22's look
   (`color.surface.raised`, `elevation.1`, `radius.md`, `space.2` padding, rows of `size.row`, at most
   `size.chooser` rows, 240 to 360 px wide, the active row in the hover overlay). `properties::choices_placement`
@@ -423,7 +420,7 @@ and colours), `history.rs` (DK11's state icons and undone tone) and `window_memo
 - **Snapshots (DK12).** Gated, light and dark at both densities, each cropped to its pane: `dk12-messages-*` (the
   rows with an error and a pending finding), `dk12-messages-detail-*` (the cursor on the pending finding with its
   detail block) and `dk12-history-*` (three steps, the save marker, one undone): twelve new images; no other image
-  changed. The Terminal strips grid of DK12 is DK9's (lane J32).
+  changed. The Terminal strips grid of DK12 is DK9's (lane L32), whose grid snapshots are not built.
 - **Window memory (DK6, FT-348).** `settings.toml` keeps `[window]` (`x`, `y`, `width`, `height` in whole points,
   `maximized`), written only once a window recorded it (at the end of the window, by `ShellModel::shutdown` in the GUI
   mode), so headless runs and tests keep their settings bytes; a table that cannot be read is dropped, not the file.
@@ -436,6 +433,52 @@ and colours), `history.rs` (DK11's state icons and undone tone) and `window_memo
   monitor list (eframe 0.37 without its `persistence` feature exposes none before or after the window opens), so a
   window saved on a monitor that is gone opens off-screen until the list is wired; eframe still clamps the size to
   the largest monitor. A follow-up FT.
+
+**L32 (cycle 32, the data grid of doc 16a §6.21, DK9):**
+
+- **Dispatch log first.** `App::dispatched_calls` keeps each dispatched action with its parameters (the names-only
+  `dispatched` is unchanged). `tests/data_grid.rs` `dk9_every_key_dispatches_the_as_built_actions` drives every key
+  of §6.21 (arrows, Tab, Shift+Tab, Home, End, Ctrl+Home, Ctrl+End, Shift+Up, Shift+Down, Enter, Ctrl+Enter, a
+  printable character; in the editor Enter, Ctrl+Enter, Escape) and the pointer gestures (click, Ctrl+click,
+  Shift+click, double click, two header clicks) on Golden A's Terminal strips table and compares the log with
+  `tests/expected/table_keys.txt`, recorded from the grid before the restyle (its own commit) and unchanged after.
+  As built and kept: Escape in the editor logs `ui.dismiss` then `table.commit`; Enter on a terminal row and Ctrl+Enter
+  without a card dispatch nothing. The restyled columns are wider, so the test brings the next gesture's column into
+  view through the shell (`table.cell`, not logged) where the old 40-px columns had it on show.
+- **Header** (`nav_table.rs`): the `color.surface.sunken` band of `size.table_header` across the grid with a 1-px
+  `color.border.subtle` line under it; each header cell is one button over the whole cell (name as built, FT-523's
+  ", sorted ascending/descending" kept) with the hover overlay, its label in `type.small` SemiBold, secondary or
+  primary when sorted, followed by the 16-px `arrow-narrow-up`/`-down` icon (the ↑ and ↓ characters are gone); a
+  derived column's label by `math-function` in tertiary and the tooltip "Derived; read-only" (new string
+  `table-derived`; the italics are gone). Resize handles are invisible at rest and a 1-px `color.accent` line on
+  hover and drag (egui_table's widget strokes, scoped to the grid); they keep their "Resize <column> column" name.
+- **Body:** cells are one click-sensing rect each (no selectable button), text in `type.small` with `space.4`
+  padding cut with an ellipsis, derived cells in `color.text.secondary`; a marked row is `color.accent.subtle` across
+  the row, the hovered row `color.state.hover`, one 1-px `color.border.subtle` line under each row; the cursor row
+  paints the 2-px accent bar (`radius.mark`) at the key cell's left edge inset `space.2`; the cursor cell a 2-px
+  `color.table.cursor` ring inside it while the grid has the keyboard (the shell's focus on the navigator and egui's
+  on the grid) and a 1-px `color.table.cursor_idle` ring otherwise; the key column's 1-px `color.table.frozen_edge`
+  line from the header to the last row. The editor is the value cell's editing look (inset `space.1`,
+  `color.surface.panel`, 1-px accent border inside and ring outside, `radius.sm`, text in `type.small`).
+- **Column widths:** a column starts at `size.table_column` and grows to its widest cell on show on the first frame
+  (at most 480); as built egui_table's first-frame auto-size shrank every column to its 40-px minimum, so the cells
+  showed "…". In the default left dock about two columns are on show; the TB7 and W31-3 tests now assert Strip and
+  Terminal on show and bring Function text into view with the cursor.
+- **Tests (`ew-ui` kittest, probes of the painted shapes):** `tests/data_grid.rs`
+  `dk9_one_table_node_with_sort_buttons_and_the_sort_icon` (one `Table` node, the header's height and band, the sort
+  icon's paths up and down, none on an unsorted header, `math-function` on the derived Potential header),
+  `dk9_the_key_column_stays_and_paints_the_frozen_edge` (the edge line on the header and key cells before and after
+  End, the key column's left unchanged), `dk9_marked_rows_the_cursor_row_bar_and_the_cursor_ring` (two marked rows'
+  fills, the bar's rect, the 2-px ring and the 1-px ring after `ui.focus {area: canvas}`),
+  `dk9_a_double_click_opens_the_editing_cell_with_the_accent_border` (the editor has the keyboard; inside and outside
+  1-px accent strokes and the panel fill with `radius.sm`), `dk9_row_and_header_heights_in_both_densities`.
+  `table_widget.rs` `w31_3_a_header_text_is_truncated_within_its_column` now checks that the header button covers its
+  column and its painted label stays within the padding.
+- **Not built in L32:** the tool line above the grid (the Table toggle as a 24-px `table` icon button, the Columns
+  menu button as a Subtle button with a chevron, the move items as `arrow-left`/`arrow-right` icon buttons, the
+  error line's icon), the focus ring around the whole grid, the pattern-fill and table cards (§6.9, §6.23 own
+  them), and the DK12 grid snapshots (the review image `table-history-{light,dark}` shows the Devices table and is not
+  gated; no gated snapshot changed).
 
 ## 8. Part 4: cards, toasts, dialogs, menus, palette and empty states
 
