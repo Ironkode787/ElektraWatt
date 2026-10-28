@@ -11,6 +11,7 @@
 
 - [How-to guides](how-to/index.md)
   - [Use the application window](how-to/application-window.md)
+  - [Draw a page from the text interface](how-to/text-interface.md)
 
 # Reference
 
