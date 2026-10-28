@@ -15,10 +15,10 @@ agent saves its own work) and quits.
 the recording `tools/blind/recordings/selftest/` and replays that recording twice. A change of the product that breaks
 the recording is repaired by running the self-test again in the same change.
 
-<!-- file: tools/blind/HELP.md sha256 7e401db6605385ee777cfe63bf21e7e6342709cd9677730d74fc4dea76705259 -->
+<!-- file: tools/blind/HELP.md sha256 32e0ee7f8c9ba427945371d75c79a86ddb8a5f6ce52962548181dc2a02a225e6 -->
 ---
 prompt: blind-help
-version: 3
+version: 4
 ---
 # The harness: how to work with it
 
@@ -32,7 +32,7 @@ action with its parameters.
 |---|---|
 | `«run»\bin/xtask.exe blind do selftest <action> [key=value ...]` | One step. A value is typed by the action's parameters: `x_mm=254` is a number, `shift=true` a switch, `folio=101` the text `101`; a list or an object is JSON (`fields='["tag","text"]'`). `key=null` leaves an optional parameter out. |
 | `«run»\bin/xtask.exe blind do selftest -` | A batch of 1 to 20 steps, one JSON object per line on standard input: `{"action":"canvas.press","params":{"x_mm":254,"y_mm":127}}`. |
-| `«run»\bin/xtask.exe blind look selftest [section ...] [--diff] [--menus]` | The interface as text, by sections (`title:`, `banner:`, `page`, `navigator`, `canvas`, `properties`, `card`, `toast`, `find`, `clipboard`, `status`, `palette`, `dialog`, `wizard`, `first`, `start`, `workspace`, `help:`, `notices:`). The menus are left out unless you ask with `--menus`. With `--diff` you get only the lines added (`+`) or removed (`-`) since your last look at the same sections. |
+| `«run»\bin/xtask.exe blind look selftest [section ...] [--diff] [--menus]` | The interface as text, by sections (`title:`, `banner:`, `page`, `navigator`, `canvas`, `properties`, `card`, `toast`, `find`, `jobs`, `clipboard`, `status`, `notifications`, `palette`, `dialog`, `wizard`, `first`, `start`, `workspace`, `help:`, `notices:`). `jobs` shows while View ▸ Jobs is open, `notifications` while View ▸ Notifications is. The menus are left out unless you ask with `--menus`. With `--diff` you get only the lines added (`+`) or removed (`-`) since your last look at the same sections. |
 | `«run»\bin/xtask.exe blind look selftest --page [<folio>]` | The content of a page as text: what is drawn on it, in reading order. |
 | `«run»\bin/xtask.exe blind note selftest "patience <0-10> flow <0-10> <text>"` | The note of your last turn. |
 | `«run»\bin/xtask.exe blind handback selftest -` | Your hand-back on standard input; it ends the run. |

@@ -171,6 +171,8 @@ navigator.apply Command "Apply the preview" menu none shortcut none context navi
 pages.reorder Command "Reorder pages" menu none shortcut none context navigator hidden params "pages?:list(text), before?:text, end?:bool"
 pages.move_up Command "Move page up" menu none shortcut "Alt+Arrow Up" context navigator params ""
 pages.move_down Command "Move page down" menu none shortcut "Alt+Arrow Down" context navigator params ""
+navigator.highlight View "Highlight" menu none shortcut "Ctrl+Shift+H" context navigator params "kind?:text, key?:text, off?:bool"
+view.clear_highlights View "Clear highlights" menu "View" shortcut none context global params ""
 ui.focus View "Focus an area" menu none shortcut none context global hidden params "area:enum(navigator|canvas|properties|find), group?:uint, kind?:text"
 ui.focus_next View "Next area" menu none shortcut "F6" context global hidden params ""
 ui.focus_previous View "Previous area" menu none shortcut "Shift+F6" context global hidden params ""
