@@ -304,7 +304,7 @@ impl ShellModel {
             return match self.mode {
                 Mode::Headless => failed("error-confirm-needed", &[]),
                 Mode::Gui => {
-                    // WP-S2.09 §6.6: Discard... of the recovery dialog; Cancel returns to it.
+                    // WP-S2.09 §6.6: Discard… of the recovery dialog; Cancel returns to it.
                     if matches!(self.dialog, Some(Dialog::Recovery { .. })) {
                         self.recovery_stash = self.dialog.take();
                     }

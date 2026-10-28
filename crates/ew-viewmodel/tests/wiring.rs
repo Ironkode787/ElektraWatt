@@ -1002,7 +1002,7 @@ fn junction_and_route_entries_name_what_to_select_and_undo_drops_the_marks() {
     );
     let text = s.describe();
     assert!(
-        text.contains("item junction.open \"Junction sequence...\" disabled: Select exactly one junction"),
+        text.contains("item junction.open \"Junction sequence…\" disabled: Select exactly one junction"),
         "{text}"
     );
     assert!(text.contains("item tool.route_edit \"Edit route\" disabled: Select exactly one connection"));
@@ -1013,7 +1013,7 @@ fn junction_and_route_entries_name_what_to_select_and_undo_drops_the_marks() {
     done(&mut s, "select.set", json!({"ids": [j.to_string()]}));
     assert!(
         s.describe()
-            .contains("item junction.open \"Junction sequence...\" enabled")
+            .contains("item junction.open \"Junction sequence…\" enabled")
     );
     done(&mut s, "junction.open", json!({}));
     assert!(

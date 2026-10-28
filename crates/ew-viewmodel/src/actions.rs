@@ -892,7 +892,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             ),
         ),
     ),
-    // FT-410: File, Import, Parts table...
+    // FT-410: File, Import, Parts table…
     with_params(
         "path?:path",
         placed(
@@ -1052,7 +1052,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
         ),
     ),
-    // WP-S2.05 part 2: Edit, Find..., Find and replace... and Replace all (§7.6). macOS's ⌥⌘F (doc 16 §4.4) needs a
+    // WP-S2.05 part 2: Edit, Find…, Find and replace… and Replace all (§7.6). macOS's ⌥⌘F (doc 16 §4.4) needs a
     // per-platform binding: `Ctrl+Alt+F` would be a Ctrl+Alt+letter chord, which NFR-I18N-06 forbids.
     act(
         "find.open",
@@ -1098,7 +1098,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             ),
         ),
     ),
-    // WP-S2.09 part 3 (§8.3): Page, Renumber pages...
+    // WP-S2.09 part 3 (§8.3): Page, Renumber pages…
     with_params(
         "section?:text, start?:uint, step?:uint, keep_gaps?:bool",
         placed(
@@ -2466,7 +2466,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
         ),
     ),
-    // WP-S2.09 part 3 (§8.3, §8.6): Tools, Renumber devices... and Purge unused images...
+    // WP-S2.09 part 3 (§8.3, §8.6): Tools, Renumber devices… and Purge unused images…
     with_params(
         "scope?:enum(project|page|selection), scheme?:text, include_frozen?:bool, only_nonconforming?:bool",
         placed(
@@ -4457,6 +4457,37 @@ pub struct PaletteEntry {
     pub enabled: bool,
     /// The reason text of a disabled entry.
     pub reason: Option<String>,
+    /// Where the action lives in the command bar or the app menu ("Draw · Place", "File"; doc 16a §9.3).
+    pub breadcrumb: String,
+}
+
+/// Where `meta` lives, as the palette shows it (doc 16a §6.14, §9.3): the tab and the group of its command-bar place
+/// or of its menu group ("Draw · Place"), else its menu and submenu ("View · Theme"), else its category's menu.
+pub fn breadcrumb(meta: &ActionMeta) -> String {
+    let group = meta
+        .placement
+        .map(|p| p.group)
+        .or_else(|| meta.menu.and_then(|m| m.group));
+    if let Some(g) = group {
+        return format!(
+            "{} · {}",
+            strings::text(g.tab().label_key()),
+            strings::text(&g.label_key())
+        );
+    }
+    match meta.menu {
+        Some(MenuSlot {
+            menu,
+            submenu: Some(s),
+            ..
+        }) => format!(
+            "{} · {}",
+            strings::text(menu.label_key()),
+            strings::text(s.label_key())
+        ),
+        Some(slot) => strings::text(slot.menu.label_key()).to_owned(),
+        None => strings::text(meta.category.label_key()).to_owned(),
+    }
 }
 
 /// What a palette entry runs.

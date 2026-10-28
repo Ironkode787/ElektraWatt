@@ -5,7 +5,7 @@
 //! (`Session::place_catalogue`, fetched once per (revision, folio) while it is open). Its rows are the symbol rows
 //! (`<key>` with the badge `embedded` or `starter`), then one row per function of each part's template
 //! (`<part number> <manufacturer>`, `<n> of <count> <fndef> [main]`). The filter matches case-folded substrings of
-//! the key, the part number and the FnDef key; Up, Down, Home and End move the row; Enter chooses; Escape closes.
+//! the key, the part number, the manufacturer (FT-425: the part rows stand grouped under it) and the FnDef key; Up, Down, Home and End move the row; Enter chooses; Escape closes.
 //!
 //! A row is disabled with a reason when the page's type does not allow the symbol's representation type or when a
 //! template function has no symbol on the page. In exchange mode (§7.5) only the allowed symbol rows are listed. A
@@ -140,12 +140,22 @@ impl Picker {
             }
         }
         if self.mode != PickerMode::Exchange {
-            for (p, part) in self.catalogue.parts.iter().enumerate() {
+            // FT-425 (WP-S2.17 part 4): the part rows grouped by manufacturer (in the manufacturer's order, the
+            // catalogue's order within one), under the manufacturer's header ([`Picker::header_before`]); the filter
+            // matches the manufacturer too.
+            let mut parts: Vec<usize> = (0..self.catalogue.parts.len()).collect();
+            parts.sort_by(|a, b| {
+                self.catalogue.parts[*a]
+                    .manufacturer
+                    .cmp(&self.catalogue.parts[*b].manufacturer)
+            });
+            for p in parts {
+                let part = &self.catalogue.parts[p];
                 for (k, func) in part.functions.iter().enumerate() {
                     if self.mode == PickerMode::BlackBox && !func.black_box {
                         continue;
                     }
-                    if hit(&part.part_number) || hit(&func.fndef_key) {
+                    if hit(&part.part_number) || hit(&part.manufacturer) || hit(&func.fndef_key) {
                         rows.push(PickerRow::PartFn(p, k));
                     }
                 }
@@ -153,6 +163,18 @@ impl Picker {
         }
         self.rows = rows;
         self.row = 0;
+    }
+
+    /// The manufacturer header that stands above row `i` (FT-425): the manufacturer of a part row whose manufacturer
+    /// differs from the row before it (or that is the first part row); `None` for every other row.
+    pub fn header_before(&self, i: usize) -> Option<&str> {
+        let manufacturer = |row: Option<&PickerRow>| match row {
+            Some(PickerRow::PartFn(p, _)) => self.catalogue.parts.get(*p).map(|x| x.manufacturer.as_str()),
+            _ => None,
+        };
+        let here = manufacturer(self.rows.get(i))?;
+        let before = i.checked_sub(1).and_then(|j| manufacturer(self.rows.get(j)));
+        (before != Some(here)).then_some(here)
     }
 
     /// Sets the filter.

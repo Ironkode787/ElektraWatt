@@ -244,7 +244,7 @@ pub enum Dialog {
     Form(FormDialog),
     /// Recover unsaved changes (WP-S2.09 part 1, D7, §6.6): opened with the read-only project when an editing open
     /// found the journal of a session that ended with unsaved changes. Recover (`journal.recover`), Open read-only
-    /// (`journal.keep`, Escape) or Discard... (`file.discard_journal`); after a failed recovery only the last two.
+    /// (`journal.keep`, Escape) or Discard… (`file.discard_journal`); after a failed recovery only the last two.
     Recovery {
         /// The project's directory name.
         name: String,
@@ -461,7 +461,7 @@ pub struct ShellModel {
     notes: crate::notifications::NotificationLog,
     /// The history's marker lines of the open project session (exports, recoveries), by revision.
     markers: Vec<HistoryMarker>,
-    /// The recovery dialog that Discard... replaced with its confirmation: Cancel returns to it.
+    /// The recovery dialog that Discard… replaced with its confirmation: Cancel returns to it.
     recovery_stash: Option<Dialog>,
     // WP-S2.09 part 2
     /// The message panel's view state: the editing page, the scheme of its table, the quick fixes' origin annotations.
@@ -1190,8 +1190,10 @@ impl ShellModel {
         }
     }
 
-    /// The palette entries for the current query: the registry actions and the model commands whose label or ID
-    /// contains the query (case-insensitively); enabled entries first, disabled ones last with their reason.
+    /// The palette entries for the current query: the registry actions whose label or ID contains the query
+    /// (case-insensitively); enabled entries first, disabled ones last with their reason. WP-S2.17 part 4 (doc 16a
+    /// §6.14, P3): an action the palette cannot run from the window (one that needs parameters it cannot supply) and
+    /// the model commands are not listed; scripts still reach them. Each entry carries its breadcrumb.
     pub fn palette_entries(&self) -> Vec<PaletteEntry> {
         let query = self
             .palette
@@ -1202,15 +1204,15 @@ impl ShellModel {
             query.is_empty() || label.to_lowercase().contains(&query) || id.to_lowercase().contains(&query)
         };
         let mut entries: Vec<PaletteEntry> = Vec::new();
-        for meta in ACTIONS.iter().filter(|a| !a.headless_only && !a.hidden) {
+        for meta in ACTIONS
+            .iter()
+            .filter(|a| !a.headless_only && !a.hidden && !a.needs_parameters)
+        {
             let label = strings::text(meta.label_key);
             if !matches(label, meta.id) {
                 continue;
             }
-            let mut state = (meta.enabled)(self);
-            if state.is_ok() && meta.needs_parameters {
-                state = Err("reason-parameters-later");
-            }
+            let state = (meta.enabled)(self);
             entries.push(PaletteEntry {
                 run: PaletteRun::Action(meta.id),
                 label: label.to_owned(),
@@ -1218,22 +1220,10 @@ impl ShellModel {
                 shortcut: actions::shortcut_text(meta),
                 enabled: state.is_ok(),
                 reason: state.err().map(|k| strings::text(k).to_owned()),
+                breadcrumb: actions::breadcrumb(meta),
             });
         }
-        for name in self.command_names() {
-            if !matches(&name, &name) {
-                continue;
-            }
-            entries.push(PaletteEntry {
-                run: PaletteRun::Command(name.clone()),
-                label: name.clone(),
-                id: name,
-                shortcut: String::new(),
-                enabled: false,
-                reason: Some(strings::text("reason-parameters-later").to_owned()),
-            });
-        }
-        // Enabled first; the sort is stable, so each group keeps registry order, then command names.
+        // Enabled first; the sort is stable, so each group keeps registry order.
         entries.sort_by_key(|e| !e.enabled);
         entries
     }
@@ -2170,7 +2160,7 @@ impl ShellModel {
     /// a tool other than Select is replaced by Select and Select's selection is cleared. A banner has a button of its
     /// own, [`ShellModel::dismiss_banner`].
     fn act_dismiss(&mut self) -> Outcome {
-        // WP-S2.09 §6.6: Escape in the confirmation that Discard... opened returns to the recovery dialog.
+        // WP-S2.09 §6.6: Escape in the confirmation that Discard… opened returns to the recovery dialog.
         if matches!(self.dialog, Some(Dialog::ConfirmJournalDiscard))
             && let Some(stashed) = self.recovery_stash.take()
         {

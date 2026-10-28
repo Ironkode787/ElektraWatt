@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-410: File, Import, Parts table... as the headless action `parts.import`: the golden parts table into a new
+//! FT-410: File, Import, Parts table… as the headless action `parts.import`: the golden parts table into a new
 //! project through the inline preview card (29 created, none skipped; a second import skips all 29), the picker
 //! listing the parts in part-number order, a transcript that is byte-identical across runs and has no UUID, the
 //! disabled menu item without a project, a refused table with its pointer and no card, and the recorded command.
@@ -139,7 +139,7 @@ fn the_golden_parts_table_imports_through_the_card_once() {
 }
 
 #[test]
-fn the_picker_lists_the_imported_parts_in_part_number_order() {
+fn the_picker_lists_the_imported_parts_under_their_manufacturer_in_part_number_order() {
     let tmp = Tmp::new("parts-picker");
     let mut shell = headless(&tmp);
     new_project(&mut shell, &tmp.0.join("proj.ew"));
@@ -151,18 +151,41 @@ fn the_picker_lists_the_imported_parts_in_part_number_order() {
     done(&mut shell, "preview.apply", json!({}));
     done(&mut shell, "tool.place", json!({}));
     let picker = shell.picker().expect("the picker is open");
-    let numbers: Vec<&str> = picker
+    // FT-425 (WP-S2.17 part 4, CP5): grouped by manufacturer, in part-number order within one (FT-439).
+    let rows: Vec<(usize, &str, &str)> = picker
         .rows
         .iter()
-        .filter_map(|r| match r {
-            PickerRow::PartFn(p, _) => Some(picker.catalogue.parts[*p].part_number.as_str()),
+        .enumerate()
+        .filter_map(|(i, r)| match r {
+            PickerRow::PartFn(p, _) => {
+                let part = &picker.catalogue.parts[*p];
+                Some((i, part.manufacturer.as_str(), part.part_number.as_str()))
+            }
             _ => None,
         })
         .collect();
-    assert!(!numbers.is_empty(), "part rows are listed");
-    let mut sorted = numbers.clone();
+    assert!(!rows.is_empty(), "part rows are listed");
+    let keys: Vec<(&str, &str)> = rows.iter().map(|(_, m, n)| (*m, *n)).collect();
+    let mut sorted = keys.clone();
     sorted.sort_unstable();
-    assert_eq!(numbers, sorted, "part-number order (FT-439)");
+    assert_eq!(keys, sorted, "manufacturer, then part-number order");
+    // A header stands above the first part row of each manufacturer and above no other row.
+    for (k, (i, m, _)) in rows.iter().enumerate() {
+        let first = k == 0 || rows[k - 1].1 != *m;
+        assert_eq!(picker.header_before(*i), first.then_some(*m), "row {i}");
+    }
+    assert!(
+        (0..picker.rows.len())
+            .filter(|i| !matches!(picker.rows[*i], PickerRow::PartFn(..)))
+            .all(|i| picker.header_before(i).is_none()),
+        "no header above a symbol row"
+    );
+    // The filter matches the manufacturer.
+    let maker = rows[0].1.to_owned();
+    done(&mut shell, "picker.filter", json!({"text": maker}));
+    let picker = shell.picker().expect("the picker is open");
+    assert!(picker.rows.iter().any(|r| matches!(r, PickerRow::PartFn(..))));
+    done(&mut shell, "picker.filter", json!({"text": ""}));
     let text = shell.describe();
     assert!(text.contains("  row part \""), "{text}");
     shell.shutdown();
@@ -185,7 +208,7 @@ fn without_a_project_the_menu_item_is_disabled_with_its_reason() {
     let text = shell.describe();
     let line = line_with(&text, "item parts.import");
     assert_eq!(
-        line, "item parts.import \"Parts table...\" disabled: No project is open",
+        line, "item parts.import \"Parts table…\" disabled: No project is open",
         "{text}"
     );
     assert_eq!(

@@ -5,7 +5,7 @@
 //!
 //! Every user-facing text of `ew-viewmodel` and `ew-ui` is a key of [`lookup`]; no other literal reaches a
 //! screen, a menu, a banner or a transcript. WP-S2.08 replaces the `match` with Fluent bundles without touching a
-//! call site. A text may hold the placeholders `{0}`, `{1}`, ... that [`format()`] fills in.
+//! call site. A text may hold the placeholders `{0}`, `{1}`, … that [`format()`] fills in.
 
 /// The text of `key`, or `None` for a key that has none.
 pub fn lookup(key: &str) -> Option<&'static str> {
@@ -32,7 +32,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "scale-200" => "200 %",
 
         // Actions.
-        "action-file-open" => "Open...",
+        "action-file-open" => "Open…",
         // The canvas tools (WP-S2.03 part 2).
         "action-tool-select" => "Select",
         "action-tool-measure" => "Measure",
@@ -46,13 +46,13 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "action-canvas-dwell" => "Pointer at rest",
         "action-canvas-preview-snapshot" => "Link preview snapshot",
         // The place-and-arrange tools (WP-S2.04 part 1).
-        "action-tool-place" => "Symbol...",
-        "action-tool-place-part" => "Device from part...",
+        "action-tool-place" => "Symbol…",
+        "action-tool-place-part" => "Device from part…",
         "action-place-pick" => "Pick a symbol to place",
         "action-picker-filter" => "Filter the picker",
         "action-picker-row" => "Move the picker's row",
         "action-picker-choose" => "Choose the picker's row",
-        "action-strip-new" => "Terminal strip...",
+        "action-strip-new" => "Terminal strip…",
         "action-tool-rotate-cw" => "Rotate clockwise",
         "action-tool-rotate-ccw" => "Rotate counter-clockwise",
         "action-tool-mirror-x" => "Mirror left to right",
@@ -63,7 +63,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "action-tool-finish" => "Finish",
         "action-text-input" => "Type into the tool",
         "action-edit-delete-selection" => "Delete",
-        "action-rep-exchange" => "Change symbol...",
+        "action-rep-exchange" => "Change symbol…",
         "tool-place" => "Place",
         "tool-exchange" => "Change symbol",
         "hint-place" => "Click or Enter to place; R, X, Y and V turn it; Escape ends",
@@ -118,12 +118,13 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "picker-title-strip" => "Choose a terminal strip",
         "picker-title-black-box" => "Insert black box",
         "picker-strip-row" => "{0}  next terminal {1}",
+        "picker-strip-next" => "next terminal {0}",
         "action-tool-wire" => "Connection",
         "action-canvas-activate-alt" => "Click with Alt at the grid cursor",
         "action-tool-next-proposal" => "Next autoconnect proposal",
         "action-tool-connect-on-move" => "Connect while moving",
         "action-tool-route-edit" => "Edit route",
-        "action-junction-open" => "Junction sequence...",
+        "action-junction-open" => "Junction sequence…",
         "action-junction-member" => "Move a junction member",
         "action-junction-style" => "Junction style",
         "action-junction-wiring" => "Junction wiring",
@@ -161,12 +162,12 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         // WP-S2.04 part 2. End.
         // WP-S2.04 part 3 (interruption points and black boxes). Begin.
         "action-tool-ip" => "Interruption point",
-        "action-tool-black-box" => "Black box...",
+        "action-tool-black-box" => "Black box…",
         "action-tool-ip-direction" => "Interruption point direction",
         "action-tool-star-source" => "Star source",
         "action-ip-name" => "Interruption point name",
         "action-ip-external" => "External reference",
-        "action-ip-continue-on" => "Continue on page...",
+        "action-ip-continue-on" => "Continue on page…",
         "action-ip-arrange-selected" => "Arrange interruption points",
         "action-box-grip" => "Move a black box grip",
         "action-box-add-cp" => "Add connection point",
@@ -184,7 +185,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "error-no-external" => {
             "No external reference is \"{0}\"; name one as device:connection, optionally after its location and \" / \" (+J-E-206 / JE-N1000-03:L). The project's: {1}"
         }
-        "external-none" => "none (create one with Insert ▸ External reference..., external_ref.new)",
+        "external-none" => "none (create one with Insert ▸ External reference…, external_ref.new)",
         "reason-external-ambiguous" => "Several external references print this text: name one by its ID",
         "reason-select-one-ip" => "Select exactly one interruption point",
         "reason-select-ips" => "Select at least two interruption points",
@@ -231,7 +232,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "reason-bridge-no-shaft" => "Both terminals need a part with a bridge shaft",
         "reason-bridge-exists" => "These two terminals are bridged already",
         // WP-S2.04 part 5 (images, §11).
-        "action-tool-image" => "Image...",
+        "action-tool-image" => "Image…",
         "action-image-pick" => "Image asset",
         "action-image-file" => "Image file",
         "prompt-open-image-title" => "Insert an image",
@@ -308,8 +309,8 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "reason-no-preview" => "No link preview is shown",
         "action-file-open-recent" => "Open recent project",
         "action-file-save" => "Save",
-        "action-file-save-as" => "Save as...",
-        "action-file-export-pdf" => "Export PDF...",
+        "action-file-save-as" => "Save as…",
+        "action-file-export-pdf" => "Export PDF…",
         "action-file-close" => "Close project",
         "action-app-quit" => "Quit",
         "action-edit-undo" => "Undo",
@@ -318,7 +319,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "action-page-previous" => "Previous page",
         "action-page-first" => "First page",
         "action-page-last" => "Last page",
-        "action-page-goto" => "Go to page...",
+        "action-page-goto" => "Go to page…",
         "action-view-fit-page" => "Fit page",
         "action-view-zoom-in" => "Zoom in",
         "action-view-zoom-out" => "Zoom out",
@@ -515,11 +516,11 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "window-title" => "{0} - ElektraWatt",
         "window-title-start" => "ElektraWatt",
         "start-title" => "ElektraWatt",
-        "start-open" => "Open...",
+        "start-open" => "Open…",
         "start-recent" => "Recent projects",
         "start-update-check" => "Update check: off",
         "pages-title" => "Pages",
-        "page-rendering" => "Rendering page {0}...",
+        "page-rendering" => "Rendering page {0}…",
         "page-no-pages" => "The project has no pages.",
 
         // The status bar.
@@ -532,14 +533,15 @@ pub fn lookup(key: &str) -> Option<&'static str> {
 
         // The palette and the dialogs.
         "palette-title" => "Command palette",
-        "palette-hint" => "Type a command...",
+        "palette-hint" => "Type a command…",
         "palette-no-match" => "No matching command",
         "dialog-close" => "Close",
         "dialog-save" => "Save",
         "dialog-discard" => "Discard",
         "dialog-cancel" => "Cancel",
         "dialog-go" => "Go",
-        "confirm-title" => "Unsaved changes",
+        "confirm-title" => "Save changes to {0} before closing?",
+        "dialog-dont-save" => "Don't save",
         "confirm-text" => "The project has unsaved changes.",
         "goto-title" => "Go to page or cell",
         "goto-hint" => "Folio or cell",
@@ -561,18 +563,18 @@ pub fn lookup(key: &str) -> Option<&'static str> {
 
         // Part 2: menus, actions and reasons.
         "submenu-workspace" => "Workspace",
-        "action-file-new" => "New project...",
+        "action-file-new" => "New project…",
         "action-file-open-sample" => "Open sample project",
-        "action-file-import-qet" => "Import QElectroTech project...",
-        "action-parts-import" => "Parts table...",
-        "action-file-discard-journal" => "Discard unsaved changes of the earlier session...",
+        "action-file-import-qet" => "Import QElectroTech project…",
+        "action-parts-import" => "Parts table…",
+        "action-file-discard-journal" => "Discard unsaved changes of the earlier session…",
         "action-view-workspace-load" => "Load workspace",
-        "action-view-workspace-save" => "Save layout as...",
+        "action-view-workspace-save" => "Save layout as…",
         "action-view-workspace-reset" => "Reset layout",
-        "action-tools-company-standard" => "Company standard wizard...",
+        "action-tools-company-standard" => "Company standard wizard…",
         "action-help-documentation" => "Documentation",
         "action-help-tutorials" => "Tutorials",
-        "action-help-first-run" => "First-run setup...",
+        "action-help-first-run" => "First-run setup…",
         "action-help-notices" => "Third-party notices",
         "action-settings-set" => "Change a setting",
         "action-first-run-set" => "Answer a first-run question",
@@ -600,7 +602,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "wizard-apply-check-scheme" => "Apply the check scheme",
         "wizard-kept-apply" => "kept: apply after finishing",
         "wizard-close" => "Close",
-        "confirm-check-scheme-title" => "Apply the check scheme",
+        "confirm-check-scheme-title" => "Apply the check scheme?",
         "confirm-check-scheme-text" => {
             "Apply the check scheme {0} to the basic project? The check scheme decides which rules the release gate runs and what the checks report."
         }
@@ -732,7 +734,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "count-wire" => "{0} wire",
         "count-wires" => "{0} wires",
         "toast-strip-new" => {
-            "Created terminal strip {0}; it has no terminals yet. Place them with Insert ▸ Symbol... and the terminal symbol, whose strip picker lists it"
+            "Created terminal strip {0}; it has no terminals yet. Place them with Insert ▸ Symbol… and the terminal symbol, whose strip picker lists it"
         }
         "toast-export-pdf" => "Exported {0}: {1} pages, {2} KiB",
         "toast-structure-new" => "Created the {0} node {1}",
@@ -809,7 +811,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "status-job-phase" => "{0}: {1}",
         "notifications-title" => "Notifications",
         "notifications-empty" => "No notifications",
-        "recovery-title" => "Recover unsaved changes",
+        "recovery-title" => "Recover unsaved changes?",
         "recovery-text" => "{0} has unsaved changes from a session that ended unexpectedly.",
         "recovery-count" => "Unsaved changes: {0}",
         "recovery-last-change" => "Last change: {0}",
@@ -822,22 +824,48 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "elapsed-days" => "{0} days ago",
         "elapsed-days-one" => "1 day ago",
         "recovery-moved" => "The project changed on disk since.",
-        "recovery-discard" => "Discard...",
+        "recovery-discard" => "Discard…",
         "recovery-failed-moved" => {
             "the project changed on disk in the same places; recovery needs the merge panel"
         }
         "recovery-failed-replay" => "the journal could not be replayed",
         "recovery-failed" => "Recover failed: {0}",
         "open-failed" => "The system could not open the file.",
-        "card-line" => "Preview: {0} on {1} {2} · {3} changes · {4} tags, {5} cross-reference texts",
+        "card-line" => "{0} {1} · {2} changes · {3} tags, {4} cross-reference texts",
         "card-apply" => "Apply",
         "card-cancel" => "Cancel",
         "card-stale" => "stale",
         "card-failed" => "failed: {0}",
+        // WP-S2.17 part 4: cards, badges, empty states and outcome badges (doc 16a §6.16, §6.17, §6.23).
+        "card-strip-failed" => "{0} failed: {1}",
+        "card-as-of" => "as of rev {0}",
+        "badge-stale" => "Stale",
+        "badge-failed" => "Failed",
+        "badge-done" => "Done",
+        "badge-cancelled" => "Cancelled",
+        "card-title-reorder" => "Reorder pages",
+        "card-title-fix" => "Quick fix {0}",
+        "card-title-find" => "Replace",
+        "card-title-properties" => "Preview of {0}",
+        "card-title-pattern" => "Pattern fill",
+        "empty-jobs" => "No jobs yet",
+        "empty-jobs-text" => "Exports you start appear here with their progress.",
+        "empty-preview-text" => {
+            "Renumbering, a quick fix or an import shows its changes here before you apply them."
+        }
+        "empty-history-text" => "Your changes appear here; Undo steps back through them.",
+        "empty-find-text" => "Nothing in the project matches what you searched for.",
+        "empty-find-start" => "Find in the project",
+        "empty-find-start-text" => "Type what to find; the matches appear here.",
+        "empty-notifications-text" => "Exports, recoveries and edits of many objects report here.",
+        "empty-messages" => "No findings",
+        "empty-messages-text" => "Check project lists the errors and warnings of the project here.",
+        "toast-dismiss" => "Dismiss",
+        "toast-name" => "Notification",
         // WP-S2.05 part 2: find and replace.
         "pane-find" => "Find and replace",
-        "action-find-open" => "Find...",
-        "action-find-open-replace" => "Find and replace...",
+        "action-find-open" => "Find…",
+        "action-find-open-replace" => "Find and replace…",
         "action-find-close" => "Close the find pane",
         "action-find-text" => "Type the search text",
         "action-find-replacement" => "Type the replacement",
@@ -877,9 +905,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "find-updated-more" => "Preview updated: {0} more results",
         "find-updated-same" => "Preview updated: the same results",
         "find-not-replaced" => "not replaced: {0}",
-        "find-card-line" => {
-            "Preview: replace {0} results on {1} records · {2} tags, {3} cross-reference texts"
-        }
+        "find-card-line" => "{0} results on {1} records · {2} tags, {3} cross-reference texts",
         "reason-no-find" => "The find pane is closed",
         "reason-find-no-replace" => "Open Find and replace to replace",
         "reason-find-truncated" => "More than 10,000 results: refine the search before replacing",
@@ -944,7 +970,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "dialog-save-workspace" => "Save layout",
         "save-workspace-title" => "Save layout as",
         "save-workspace-hint" => "Workspace name",
-        "confirm-journal-title" => "Discard unsaved changes",
+        "confirm-journal-title" => "Discard unsaved changes?",
         "confirm-journal-text" => {
             "An earlier session of this project ended with unsaved changes. Discarding them deletes that work."
         }
@@ -1127,7 +1153,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "wizard-back" => "Back",
         "wizard-cancel" => "Close (the draft is kept)",
         "wizard-reset" => "Start over",
-        "wizard-create" => "Create the basic project...",
+        "wizard-create" => "Create the basic project…",
         "wizard-preview-title" => "Preview",
         "wizard-preview-cover" => "Cover",
         "wizard-preview-page" => "Folio 102",
@@ -1170,7 +1196,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "action-tab-move" => "Move tab",
         "action-tab-open" => "Open page in a new tab",
         "action-view-side-by-side" => "Side by side",
-        "action-nav-goto" => "Go to page or cell...",
+        "action-nav-goto" => "Go to page or cell…",
         "action-nav-back" => "Back",
         "action-nav-forward" => "Forward",
         "action-nav-follow" => "Follow cross-reference",
@@ -1220,7 +1246,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "action-table-commit" => "Commit the cell",
         "action-table-set" => "Set cells",
         "action-table-fill-down" => "Fill down",
-        "action-table-pattern-fill" => "Pattern fill...",
+        "action-table-pattern-fill" => "Pattern fill…",
         "action-table-paste" => "Paste cells",
         "action-table-copy" => "Copy cells",
         "action-table-clear" => "Clear cells",
@@ -1273,7 +1299,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "action-messages-show" => "Messages",
         "action-messages-next" => "Next finding",
         "action-messages-previous" => "Previous finding",
-        "action-messages-fix" => "Apply quick fix...",
+        "action-messages-fix" => "Apply quick fix…",
         "action-messages-check" => "Run checks",
         "reason-no-fix" => "The finding has no quick fix",
         "reason-no-findings" => "There are no findings to show",
@@ -1283,13 +1309,13 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "messages-detail-rule" => "{0} {1}",
         "messages-detail-kind" => "Kind: {0} · severity: {1}",
         "messages-detail-fix" => "Quick fix: {0}",
-        "messages-fix-button" => "Fix...",
+        "messages-fix-button" => "Fix…",
         "messages-rule-page" => "Rule page",
-        "card-fix" => "Preview: quick fix {0} · {1} records, {2} tags, {3} cross-reference texts",
+        "card-fix" => "{0} records, {1} tags, {2} cross-reference texts",
         "nav-tree-name" => "{0} navigator",
         "chips-label" => "Not on this page:",
         "chip-name" => "Open {0}",
-        "card-reorder" => "Preview: reorder pages · {0} · {1} tags, {2} cross-reference texts",
+        "card-reorder" => "{0} · {1} tags, {2} cross-reference texts",
         "error-nav-kind" => "Unknown navigator {0}; use one of {1}.",
         "error-nav-closed" => "The {0} navigator is not open; show it first (navigator.show).",
         "error-nav-key" => "No row {0} is on show in the {1} navigator.",
@@ -1342,9 +1368,9 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "canvas-cursor-live" => "{0}, x {1} y {2} mm",
         "canvas-cursor-live-link" => ", link to {0}",
         // Creating pages, structure nodes and external references (FT-408, FT-409).
-        "action-page-new" => "New page...",
-        "action-structure-new" => "Structure node...",
-        "action-external-ref-new" => "External reference...",
+        "action-page-new" => "New page…",
+        "action-structure-new" => "Structure node…",
+        "action-external-ref-new" => "External reference…",
         "new-page-title" => "New page",
         "new-structure-title" => "New structure node",
         "new-external-title" => "New external reference",
@@ -1382,11 +1408,12 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "action-history-row" => "Move in the history",
         "action-history-undo-to" => "Undo to here",
         "action-history-changes" => "Show changes",
-        "action-pages-renumber" => "Renumber pages...",
-        "action-devices-renumber" => "Renumber devices...",
-        "action-project-purge-assets" => "Purge unused images...",
+        "action-pages-renumber" => "Renumber pages…",
+        "action-devices-renumber" => "Renumber devices…",
+        "action-project-purge-assets" => "Purge unused images…",
         "preview-none" => "No preview is open",
         "preview-header" => "Preview: {0} · as of rev {1}",
+        "preview-title" => "Preview: {0}",
         "preview-stale" => "stale",
         "preview-summary" => "{0} records · {1} tags · {2} cross-reference texts · {3} pages",
         "preview-summary-import" => "{0} part copies created · {1} skipped",
@@ -1425,8 +1452,8 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "reason-history-closed" => "The history panel is closed",
         "reason-undo-history-empty" => "The history is empty",
         "reason-nothing-to-purge" => "No image is unused",
-        "reason-no-purge-dialog" => "Open Purge unused images... first",
-        "confirm-purge-title" => "Purge unused images",
+        "reason-no-purge-dialog" => "Open Purge unused images… first",
+        "confirm-purge-title" => "Purge unused images?",
         "confirm-purge-text" => "These files are deleted and do not come back by undo.",
         "confirm-purge-more" => "and {0} more",
         "dialog-purge" => "Purge",
@@ -1541,7 +1568,7 @@ pub fn text(key: &str) -> &'static str {
     lookup(key).unwrap_or("?")
 }
 
-/// The text of `key` with `{0}`, `{1}`, ... replaced by `args`.
+/// The text of `key` with `{0}`, `{1}`, … replaced by `args`.
 pub fn format(key: &str, args: &[&str]) -> String {
     let mut out = text(key).to_owned();
     for (i, arg) in args.iter().enumerate() {

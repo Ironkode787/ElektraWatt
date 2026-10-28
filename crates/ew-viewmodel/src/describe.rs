@@ -2171,26 +2171,24 @@ fn wiring_lines(model: &ShellModel, lines: &mut Vec<String>) {
 }
 
 fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
-    match model.dialog() {
-        None => {}
-        Some(Dialog::About) => {
-            lines.push(format!("dialog \"{}\"", strings::text("about-title")));
-            for line in crate::about::about_lines(model) {
+    let Some(d) = model.dialog() else {
+        return;
+    };
+    // WP-S2.17 part 4: the title and the buttons are the dialog's specification (`dialogs::spec`), the window's too;
+    // the buttons in the order Primary, the others, the destructive one.
+    let spec = crate::dialogs::spec(d, model);
+    lines.push(format!("dialog \"{}\"", user(&spec.title)));
+    match d {
+        Dialog::About => {
+            for line in &spec.body {
                 lines.push(format!("  label \"{line}\""));
             }
-            lines.push(format!("  button \"{}\"", strings::text("about-privacy-button")));
-            lines.push(format!("  button \"{}\"", strings::text("about-notices-button")));
-            lines.push(format!("  button \"{}\"", strings::text("about-docs-button")));
-            lines.push(format!("  button \"{}\"", strings::text("dialog-close")));
         }
-        Some(Dialog::Notices) => {
-            lines.push(format!("dialog \"{}\"", strings::text("notices-title")));
+        Dialog::Notices => {
             let text = crate::about::notices_text(model);
             lines.push(format!("  notices: {} lines", text.lines().count()));
-            lines.push(format!("  button \"{}\"", strings::text("dialog-close")));
         }
-        Some(Dialog::Shortcuts) => {
-            lines.push(format!("dialog \"{}\"", strings::text("shortcuts-title")));
+        Dialog::Shortcuts => {
             for meta in actions::ACTIONS
                 .iter()
                 .filter(|a| !a.headless_only && !a.hidden && !a.shortcut.is_empty())
@@ -2202,45 +2200,26 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
                     meta.shortcut.join(", ")
                 ));
             }
-            lines.push(format!("  button \"{}\"", strings::text("dialog-close")));
         }
-        Some(Dialog::ConfirmDiscard { pending }) => {
-            lines.push(format!("dialog \"{}\"", strings::text("confirm-title")));
-            lines.push(format!("  label \"{}\"", strings::text("confirm-text")));
+        Dialog::ConfirmDiscard { pending } => {
+            for line in &spec.body {
+                lines.push(format!("  label \"{line}\""));
+            }
             lines.push(format!("  pending {}", pending.action));
-            for key in ["dialog-save", "dialog-discard", "dialog-cancel"] {
-                lines.push(format!("  button \"{}\"", strings::text(key)));
-            }
         }
-        Some(Dialog::ConfirmCheckScheme { scheme }) => {
-            lines.push(format!(
-                "dialog \"{}\"",
-                strings::text("confirm-check-scheme-title")
-            ));
-            lines.push(format!(
-                "  label \"{}\"",
-                strings::format("confirm-check-scheme-text", &[scheme])
-            ));
-            for key in ["dialog-apply", "dialog-cancel"] {
-                lines.push(format!("  button \"{}\"", strings::text(key)));
-            }
-        }
-        Some(Dialog::ConfirmJournalDiscard) => {
-            lines.push(format!("dialog \"{}\"", strings::text("confirm-journal-title")));
-            lines.push(format!("  label \"{}\"", strings::text("confirm-journal-text")));
-            for key in ["dialog-discard", "dialog-cancel"] {
-                lines.push(format!("  button \"{}\"", strings::text(key)));
+        Dialog::ConfirmCheckScheme { .. } | Dialog::ConfirmJournalDiscard => {
+            for line in &spec.body {
+                lines.push(format!("  label \"{line}\""));
             }
         }
         // WP-S2.09 part 1 (§6.6): the time of the last change is the window's only (never in the transcript).
-        Some(Dialog::Recovery {
+        Dialog::Recovery {
             name,
             transactions,
             base_matches,
             failed,
             ..
-        }) => {
-            lines.push(format!("dialog \"{}\"", strings::text("recovery-title")));
+        } => {
             lines.push(format!(
                 "  label \"{}\"",
                 user(&strings::format("recovery-text", &[name]))
@@ -2251,35 +2230,18 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
                 line.push_str(&format!(" failed \"{}\"", user(reason)));
             }
             lines.push(line);
-            if failed.is_none() {
-                lines.push(format!(
-                    "  button \"{}\"",
-                    strings::text("action-journal-recover")
-                ));
-            }
-            lines.push(format!("  button \"{}\"", strings::text("action-journal-keep")));
-            lines.push(format!("  button \"{}\"", strings::text("recovery-discard")));
         }
-        Some(Dialog::GotoPage { text }) => {
-            lines.push(format!("dialog \"{}\"", strings::text("goto-title")));
+        Dialog::GotoPage { text } => {
             lines.push(format!("  field \"{}\": \"{text}\"", strings::text("goto-hint")));
-            lines.push(format!("  button \"{}\"", strings::text("dialog-go")));
-            lines.push(format!("  button \"{}\"", strings::text("dialog-cancel")));
         }
-        Some(Dialog::SaveWorkspace { text }) => {
-            lines.push(format!("dialog \"{}\"", strings::text("save-workspace-title")));
+        Dialog::SaveWorkspace { text } => {
             lines.push(format!(
                 "  field \"{}\": \"{text}\"",
                 strings::text("save-workspace-hint")
             ));
-            lines.push(format!("  button \"{}\"", strings::text("dialog-save-workspace")));
-            lines.push(format!("  button \"{}\"", strings::text("dialog-cancel")));
         }
-        // FT-408 and FT-409: a creation dialog, one `field` line per field in order; the refusal of the last attempt
-        // follows the fields as an `error:` line.
         // WP-S2.09 part 3 (§8.6): at most 20 file names, then "and <n> more".
-        Some(Dialog::ConfirmPurge { files, .. }) => {
-            lines.push(format!("dialog \"{}\"", strings::text("confirm-purge-title")));
+        Dialog::ConfirmPurge { files, .. } => {
             lines.push(format!("  label \"{}\"", strings::text("confirm-purge-text")));
             for f in files.iter().take(crate::shell::PURGE_LISTED) {
                 lines.push(format!("  item \"{}\"", user(f)));
@@ -2291,12 +2253,10 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
                     strings::format("confirm-purge-more", &[&more])
                 ));
             }
-            for key in ["dialog-purge", "dialog-cancel"] {
-                lines.push(format!("  button \"{}\"", strings::text(key)));
-            }
         }
-        Some(Dialog::Form(form)) => {
-            lines.push(format!("dialog \"{}\"", strings::text(form.title_key)));
+        // FT-408 and FT-409: a creation dialog, one `field` line per field in order; the refusal of the last attempt
+        // follows the fields as an `error:` line.
+        Dialog::Form(form) => {
             for f in &form.fields {
                 lines.push(format!(
                     "  field \"{}\": \"{}\"",
@@ -2307,9 +2267,10 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
             if let Some(e) = &form.error {
                 lines.push(format!("  error: {e}"));
             }
-            lines.push(format!("  button \"{}\"", strings::text(form.ok_key)));
-            lines.push(format!("  button \"{}\"", strings::text("dialog-cancel")));
         }
+    }
+    for b in spec.buttons() {
+        lines.push(format!("  button \"{}\"", b.label));
     }
 }
 

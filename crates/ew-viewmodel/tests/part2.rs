@@ -1222,7 +1222,7 @@ fn the_check_scheme_is_applied_after_finishing_by_a_person_only() {
     );
     let dialog = gui.describe();
     assert!(
-        dialog.contains("dialog \"Apply the check scheme\"") && dialog.contains("\"full\""),
+        dialog.contains("dialog \"Apply the check scheme?\"") && dialog.contains("\"full\""),
         "{dialog}"
     );
     done(&mut gui, "wizard.apply_check_scheme", json!({"confirm": true}));
@@ -1963,6 +1963,8 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
         unused.iter().all(|w| matches!(
             **w,
             "disabled"
+                // WP-S2.17 part 4: the palette lists no model command (doc 16a §6.14).
+                | "command"
                 | "external"
                 | "stale"
                 | "failed"
@@ -2038,10 +2040,10 @@ fn describe_lists_the_start_page_the_wizard_and_the_project_view() {
         "button \"Create company standard\"",
         "button \"Tutorials\"",
         "quick \"Language\": \"English\"",
-        "item file.new \"New project...\" [Ctrl+N] enabled",
-        "item file.discard_journal \"Discard unsaved changes of the earlier session...\" disabled: The project has no journal of an earlier session",
+        "item file.new \"New project…\" [Ctrl+N] enabled",
+        "item file.discard_journal \"Discard unsaved changes of the earlier session…\" disabled: The project has no journal of an earlier session",
         "item help.documentation \"Documentation\" [F1] enabled",
-        "item tools.company_standard \"Company standard wizard...\" enabled",
+        "item tools.company_standard \"Company standard wizard…\" enabled",
     ] {
         assert!(start.contains(needle), "{needle}\n{start}");
     }
@@ -2072,7 +2074,7 @@ fn describe_lists_the_start_page_the_wizard_and_the_project_view() {
         "{review}"
     );
     assert!(
-        review.contains("button \"Create the basic project...\""),
+        review.contains("button \"Create the basic project…\""),
         "{review}"
     );
     done(&mut shell, "wizard.cancel", json!({}));

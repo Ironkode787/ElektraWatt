@@ -219,7 +219,7 @@ fn jb7_the_recovery_script_is_byte_identical_twice() {
         let d = lines[1]["describe"].as_str().unwrap();
         assert!(
             d.contains(
-                "dialog \"Recover unsaved changes\"\n  label \"g.ew has unsaved changes from a session that ended \
+                "dialog \"Recover unsaved changes?\"\n  label \"g.ew has unsaved changes from a session that ended \
                  unexpectedly.\"\n  recovery transactions 1 base matches\n  button \"Recover\""
             ),
             "{d}"

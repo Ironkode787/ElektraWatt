@@ -121,7 +121,7 @@ fn a_script_imports_the_golden_parts_and_records_one_command() {
         steps[3]["describe"]
             .as_str()
             .unwrap()
-            .contains("item parts.import \"Parts table...\" enabled")
+            .contains("item parts.import \"Parts table…\" enabled")
     );
     let lines: Vec<&str> = record
         .lines()

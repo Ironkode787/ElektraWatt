@@ -211,8 +211,8 @@ pub enum CardOrigin {
         rule: String,
     },
     // WP-S2.09 part 3
-    /// The card of a `Bulk` command a dialog built (§8.2): Page, Renumber pages... (`page.renumber`) and Tools, Renumber
-    /// devices... (`numbering.renumber`); its targets and changes are the number of entity changes.
+    /// The card of a `Bulk` command a dialog built (§8.2): Page, Renumber pages… (`page.renumber`) and Tools, Renumber
+    /// devices… (`numbering.renumber`); its targets and changes are the number of entity changes.
     Bulk,
     // WP-S2.06 part 3
     /// A gesture of a navigator's table (§8.7): the card in the navigator's pane, with the gesture's cells, so that

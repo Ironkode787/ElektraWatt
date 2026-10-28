@@ -717,7 +717,7 @@ fn pv6_the_purge_step() {
     );
     assert_eq!(
         ew_viewmodel::strings::text("reason-no-purge-dialog"),
-        "Open Purge unused images... first"
+        "Open Purge unused images… first"
     );
     assert!(unused.iter().all(|f| f.exists()), "nothing was purged");
     done(&mut s, "project.purge_assets", json!({}));
@@ -731,7 +731,7 @@ fn pv6_the_purge_step() {
     let d = s.describe();
     assert!(
         d.contains(&format!(
-            "dialog \"Purge unused images\"\n  label \"These files are deleted and do not come back by undo.\"\n  item \"{}\"\n  button \"Purge\"\n  button \"Cancel\"",
+            "dialog \"Purge unused images?\"\n  label \"These files are deleted and do not come back by undo.\"\n  item \"{}\"\n  button \"Cancel\"\n  button \"Purge\"",
             files[0]
         )),
         "{d}"

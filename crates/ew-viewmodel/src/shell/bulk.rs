@@ -347,7 +347,7 @@ impl ShellModel {
         Ok(pages)
     }
 
-    /// `pages.renumber {section?, start?, step?, keep_gaps?}` (Page, Renumber pages...): `page.renumber` of a section's
+    /// `pages.renumber {section?, start?, step?, keep_gaps?}` (Page, Renumber pages…): `page.renumber` of a section's
     /// pages (`front`: the pages of no section) from `start`, opening the `bulk` card. Without `start` the window opens
     /// the dialog (Section, Start, Step, Keep gaps); headless the step fails.
     pub(super) fn act_pages_renumber(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -483,7 +483,7 @@ impl ShellModel {
         out.into_iter().map(|u| u.to_string()).collect()
     }
 
-    /// `devices.renumber {scope?, scheme?, include_frozen?, only_nonconforming?}` (Tools, Renumber devices...):
+    /// `devices.renumber {scope?, scheme?, include_frozen?, only_nonconforming?}` (Tools, Renumber devices…):
     /// `numbering.renumber` of the project, the current page or the selected devices, opening the `bulk` card. Without
     /// `scheme` the window opens the dialog (Scope, Scheme, Include frozen tags, Only non-conforming); headless the step
     /// fails.
@@ -587,7 +587,7 @@ impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // The purge step (FT-417)
 
-    /// `project.purge_assets {confirm?}` (Tools, Purge unused images...): without `confirm` the confirmation lists
+    /// `project.purge_assets {confirm?}` (Tools, Purge unused images…): without `confirm` the confirmation lists
     /// `Session::purge_preview`'s image files; with it `project.assets.purge` of exactly those files is committed from
     /// the GUI origin (its own marker line enters the history), and without an open confirmation it refuses. An empty
     /// plan refuses; headless the action refuses (`HumanOnly`).

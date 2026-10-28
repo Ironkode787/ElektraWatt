@@ -4,7 +4,7 @@
 //! JB7 (WP-S2.09 part 1, D7, §6.6; FR-UI-050's recovery half, FT-313's rest): a dirty session ended without a clean
 //! close (`shutdown`) leaves its journal; the next editing open shows the project read-only with the recovery dialog
 //! and writes nothing before a choice. Recover opens it editable and dirty with the edits, a notification and a
-//! marker; Open read-only keeps the journal and the read-only access; Discard... asks, then opens it editable without
+//! marker; Open read-only keeps the journal and the read-only access; Discard… asks, then opens it editable without
 //! the edits; with the project saved by another session meanwhile so that a field collides, Recover fails, re-opens
 //! read-only and says why.
 
@@ -125,9 +125,9 @@ fn jb7_a_leftover_journal_opens_read_only_with_the_dialog_and_nothing_is_written
     let d = s.describe();
     assert!(
         d.contains(
-            "dialog \"Recover unsaved changes\"\n  label \"small.ew has unsaved changes from a session that ended \
+            "dialog \"Recover unsaved changes?\"\n  label \"small.ew has unsaved changes from a session that ended \
              unexpectedly.\"\n  recovery transactions 1 base matches\n  button \"Recover\"\n  button \"Open \
-             read-only\"\n  button \"Discard...\""
+             read-only\"\n  button \"Discard…\""
         ),
         "{d}"
     );
@@ -209,7 +209,7 @@ fn jb7_open_read_only_keeps_the_journal_and_the_read_only_access() {
 fn jb7_discard_asks_then_opens_editable_without_the_edits() {
     let tmp = Tmp::new("jb7-discard");
     let dir = crashed(&tmp);
-    // The window: Discard... asks; Cancel returns to the recovery dialog; Discard deletes the journal.
+    // The window: Discard… asks; Cancel returns to the recovery dialog; Discard deletes the journal.
     let mut gui = shell(&tmp, Mode::Gui);
     open(&mut gui, &dir);
     done(&mut gui, "file.discard_journal", json!({}));
@@ -283,7 +283,7 @@ fn jb7_a_collision_with_a_save_of_another_session_fails_the_recovery_and_reopens
     let d = s.describe();
     assert!(!d.contains("button \"Recover\""), "{d}");
     assert!(
-        d.contains("  button \"Open read-only\"\n  button \"Discard...\""),
+        d.contains("  button \"Open read-only\"\n  button \"Discard…\""),
         "{d}"
     );
     assert!(matches!(

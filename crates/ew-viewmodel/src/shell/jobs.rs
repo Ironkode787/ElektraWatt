@@ -609,7 +609,7 @@ impl ShellModel {
     /// `journal.recover` (Recover): the read-only session closes and the project re-opens with `Recovery::Apply`. When
     /// the opened store still reports the leftover journal (the replay failed) or the open is not an editing one, that
     /// session closes again (the leftover stays), the project re-opens read-only and the dialog shows the reason with
-    /// Open read-only and Discard... only. Otherwise the project is open for editing and dirty, with a notification
+    /// Open read-only and Discard… only. Otherwise the project is open for editing and dirty, with a notification
     /// and a history marker.
     pub(super) fn act_journal_recover(&mut self) -> Outcome {
         let Some(Dialog::Recovery {

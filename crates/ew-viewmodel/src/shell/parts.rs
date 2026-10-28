@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! File, Import, Parts table... (FT-410): the headless action `parts.import`.
+//! File, Import, Parts table… (FT-410): the headless action `parts.import`.
 //!
 //! The action asks for a `parts.csv` (the window's file dialog, or the `path` parameter), reads it with the tables
 //! beside it through `ew_api::import::read_parts_tables`, and previews the `parts.import` command through the host.

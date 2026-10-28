@@ -28,6 +28,8 @@ pub mod command_bar;
 // WP-S2.05 part 3
 pub mod clipboard;
 pub mod describe;
+// WP-S2.17 part 4: the dialog specifications.
+pub mod dialogs;
 // WP-S2.05 part 2
 pub mod find;
 pub mod first_run;
