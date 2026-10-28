@@ -13,6 +13,9 @@
 //!   (doc 20 §3.4 item 9, FR-XRF-012).
 //! - **Navigators (WP-S2.06 part 1).** On a copy of Golden A a script marks -201U3 in the Devices navigator, opens it
 //!   and reorders 106 before 103; two runs give byte-identical transcripts and the record replays.
+//! - **Highlighting (WP-S2.06 part 2).** On a copy of Golden A a script highlights 24VDC-1 from the Potentials
+//!   navigator, shows folios 102 and 103 and clears it; two runs give byte-identical transcripts and nothing is recorded
+//!   (view state).
 
 mod support;
 
@@ -540,4 +543,84 @@ fn a_navigator_script_runs_twice_identically_and_its_record_replays() {
         page_titles(Path::new(GOLDEN_A)),
         "103 and 106 swapped their titles"
     );
+}
+
+// WP-S2.06 part 2
+/// WP-S2.06 part 2 through the built binary (acceptance checks NP3 and NP6; §9 items 1 and 2): a script on a copy of
+/// Golden A opens the further navigators, highlights 24VDC-1 from the Potentials navigator (type-ahead, then
+/// `navigator.highlight` on the cursor row), shows folios 102 and 103 and clears the highlights. Two runs give
+/// byte-identical transcripts without a UUID; the canvas section names the highlight on both folios; the `--record`
+/// log is empty (a highlight is view state, never a command).
+#[test]
+fn a_highlight_script_runs_twice_identically_and_records_nothing() {
+    let tmp = Tmp::new();
+    let script = |dir: &Path| {
+        steps(&[
+            ("file.open", json!({"dir": path(dir), "read_only": true})),
+            ("page.goto", json!({"folio": "102"})),
+            ("navigator.show", json!({"kind": "connections"})),
+            ("navigator.show", json!({"kind": "strips"})),
+            ("navigator.show", json!({"kind": "plc"})),
+            ("navigator.show", json!({"kind": "potentials"})),
+            (
+                "navigator.jump",
+                json!({"kind": "potentials", "prefix": "24VDC-1"}),
+            ),
+            ("navigator.highlight", json!({"kind": "potentials"})),
+            ("ui.describe", json!({})),
+            ("page.goto", json!({"folio": "103"})),
+            ("ui.describe", json!({})),
+            ("view.clear_highlights", json!({})),
+            ("ui.describe", json!({})),
+            ("file.close", json!({})),
+        ])
+    };
+    let mut transcripts = Vec::new();
+    for n in ["a", "b"] {
+        let dir = tmp.path(n).join("J-E-2416.ew");
+        copy_dir(Path::new(GOLDEN_A), &dir);
+        let record = tmp.path(&format!("{n}.ewcmd"));
+        let text = all_done(&run(&tmp, n, &script(&dir), Some(&record)));
+        assert!(
+            !text.contains(&*tmp.0.to_string_lossy()),
+            "a path in the transcript"
+        );
+        support::assert_no_uuid(&text);
+        transcripts.push(text);
+    }
+    same_transcript(&transcripts[0], &transcripts[1]);
+    let steps: Vec<Value> = transcripts[0]
+        .lines()
+        .skip(1)
+        .map(|l| serde_json::from_str(l).unwrap())
+        .collect();
+    for (at, folio) in [(8, "102"), (10, "103")] {
+        let d = steps[at]["describe"].as_str().unwrap();
+        assert!(
+            d.contains(&format!(
+                "
+page view: {folio}
+"
+            )),
+            "{d}"
+        );
+        assert!(
+            d.contains(
+                "
+  highlight slot 0 potential \"24VDC-1\" connections "
+            ),
+            "{folio}: {d}"
+        );
+        assert!(
+            d.contains("row level 1 potential \"24VDC-1\" expanded cursor highlight 0"),
+            "{d}"
+        );
+        assert!(d.contains("navigator \"PLC\" kind plc view tree"), "{d}");
+        assert!(d.contains("row level 1 station \"-201U1\""), "{d}");
+    }
+    let cleared = steps[12]["describe"].as_str().unwrap();
+    assert!(!cleared.contains("  highlight slot"), "{cleared}");
+    let log = std::fs::read_to_string(tmp.path("a.ewcmd")).unwrap_or_default();
+    let log = CmdLog::parse(&log).unwrap();
+    assert_eq!(log.commands().count(), 0, "a highlight records nothing");
 }
