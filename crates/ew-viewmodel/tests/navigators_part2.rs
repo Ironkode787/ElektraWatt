@@ -389,8 +389,8 @@ fn np6_the_six_words_and_the_two_actions() {
     for w in NAV2_WORDS {
         assert!(VOCABULARY.contains(w), "{w}");
     }
-    assert_eq!(VOCABULARY.len(), 291);
-    assert_eq!(ew_viewmodel::actions::ACTIONS.len(), 217);
+    assert_eq!(VOCABULARY.len(), 309);
+    assert_eq!(ew_viewmodel::actions::ACTIONS.len(), 225);
     let hl = ew_viewmodel::actions::ACTIONS
         .iter()
         .find(|a| a.id == "navigator.highlight")
