@@ -9,7 +9,7 @@
 //! marks the same-record conflicts (D13), compiles the applicable cells into `fields.set` or `fields.set_many`, previews
 //! that command once and decides by FR-UI-044's rules as built for the property grid, plus rule 3: any invalid or
 //! ambiguous cell opens the card. A direct gesture commits the kept preview (the window `Session::commit`, headless a
-//! one-line command log through `Session::run_script`) and shows the toast "Set <columns> on <n> <rows>".
+//! one-line command log through `Session::run_script`) and shows the toast `"Set <columns> on <n> <rows>"`.
 //!
 //! **The card** (§8.7) holds the gesture: `table.resolve` picks a reading of an ambiguous cell and `table.drop` removes
 //! a cell, each compiling and previewing again; Apply is refused while a cell blocks; a stale card retargets its rows

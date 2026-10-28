@@ -7,7 +7,7 @@
 //! it runs to the next quote that is not doubled, may hold TAB and line breaks, and `""` inside is one quote; text after
 //! the closing quote up to the next TAB or line break is kept as Excel does. One trailing empty row is dropped. More
 //! than [`MAX_CELLS`] cells or one cell over [`MAX_CELL_CHARS`] characters refuse the whole paste ("too large"); a quote
-//! that does not close refuses it ("unclosed quote in row <n>").
+//! that does not close refuses it (`"unclosed quote in row <n>"`).
 //!
 //! **Write.** Rows joined by CRLF with a final CRLF, cells by TAB; a cell holding a TAB, a line break or a double quote
 //! is quoted with its quotes doubled, as Excel writes them.
