@@ -8,7 +8,8 @@
 //! to the core runner of `ew_viewmodel::script`, and the smoke run of architecture section 10.1.
 //!
 //! Exit codes: 0 all steps done; 1 a step was refused or failed (the run stops there; with `--keep-going` the run
-//! goes on and the exit code is 1 when any step was not done, WP-S6.13 §5.5.1); 2 a usage error (an unreadable or
+//! goes on and the exit code is 1 when any step was not done, WP-S6.13 §5.5.1), or the script ended with unsaved
+//! changes, or a job no step waited for failed, was cancelled or panicked (FT-513); 2 a usage error (an unreadable or
 //! malformed script, an unknown action ID).
 
 use std::io::{self, BufRead, Write};
@@ -223,12 +224,20 @@ pub fn run(
     // An export started with `wait: false` and never waited for ends here as if `jobs.wait` had followed: its file is
     // written and its end recorded before the checks below, so two runs of the script give the same file (review
     // finding 3 of cycle 30; `shutdown` would cancel it at a point that depends on timing).
-    shell.wait_jobs();
+    // FT-513: an end of such a job that failed, was cancelled or panicked, and that no step waited for, is reported
+    // like a failed step: its notification text on stderr and exit code 1.
+    let unseen = shell.wait_jobs();
+    for text in &unseen {
+        let _ = writeln!(err, "error: {text}");
+    }
     // A script that ends with unsaved changes did not say what to do with them: exit 1, and the journal is kept
     // (`shutdown` deletes it only for a clean project). `app.quit` with `discard` ends such a script cleanly.
     let mut code = end.exit_code();
     if matches!(end, RunEnd::Completed { .. }) && shell.is_dirty() {
         let _ = writeln!(err, "error: {}", strings::text("error-unsaved-at-end"));
+        code = 1;
+    }
+    if !unseen.is_empty() && code == 0 {
         code = 1;
     }
     if let Some(path) = &args.record

@@ -366,7 +366,11 @@ impl ShellModel {
     /// one. The headless runner calls it at the end of a run, before its unsaved-changes check, so a script whose
     /// export did not wait (`wait: false`) still writes its file, and its transcript, file and log are the same on
     /// every run (§9 items 1 and 2; review finding 3 of cycle 30).
-    pub fn wait_jobs(&mut self) {
+    ///
+    /// Returns, in job order, the notification texts of the failed, cancelled or panicked ends that no step waited
+    /// for, whether their end was taken now or by an earlier poll (FT-513): the runner prints each as
+    /// `error: <text>` and exits 1. Which poll took an end depends on timing; this list does not.
+    pub fn wait_jobs(&mut self) -> Vec<String> {
         let running: Vec<u64> = self
             .jobs
             .entries()
@@ -374,17 +378,29 @@ impl ShellModel {
             .map(|e| e.number)
             .collect();
         for number in running {
-            let _ = self.wait_job(number);
+            if let Some(handle) = self.jobs.get_mut(number).and_then(|e| e.handle.take()) {
+                let end = handle.wait();
+                let _ = self.finish_job(number, end);
+            }
         }
+        self.jobs
+            .entries()
+            .filter_map(|e| e.unseen_failure.clone())
+            .collect()
     }
 
-    /// Waits for job `number` and takes its end; the step's outcome by the end (§6.3 item 5).
+    /// Waits for job `number` and takes its end; the step's outcome by the end (§6.3 item 5). The waiting step sees
+    /// the end, so it is not an unseen failure.
     fn wait_job(&mut self, number: u64) -> Outcome {
         let Some(handle) = self.jobs.get_mut(number).and_then(|e| e.handle.take()) else {
             return Outcome::Done;
         };
         let end = handle.wait();
-        self.finish_job(number, end)
+        let outcome = self.finish_job(number, end);
+        if let Some(entry) = self.jobs.get_mut(number) {
+            entry.unseen_failure = None;
+        }
+        outcome
     }
 
     /// The end of job `number` (§6.3 item 5): its entry's status, the notification, the history marker. Returns the
@@ -458,6 +474,9 @@ impl ShellModel {
             .filter(|_| same_session)
             .map(|text| HistoryMarker { rev: entry.rev, text });
         entry.status = status;
+        if matches!(outcome, Outcome::Failed { .. }) {
+            entry.unseen_failure = Some(text.clone());
+        }
         self.notes.push(text, "export", action);
         if let Some(m) = marker {
             self.markers.push(m);

@@ -545,3 +545,87 @@ fn an_export_into_the_open_projects_folder_is_refused() {
     assert!(beside.join("out.pdf").exists());
     s.shutdown();
 }
+
+/// FT-513: the end of a `wait: false` export that failed, was cancelled or panicked and that no step waited for is
+/// returned by `wait_jobs` (the headless runner prints it and exits 1), one text per end, in job order; an end a step
+/// waited for (`jobs.wait`, a waiting export) is not, and neither is a done one.
+#[test]
+fn ft513_wait_jobs_returns_the_unseen_failed_cancelled_and_panicked_ends() {
+    let tmp = Tmp::new("ft513");
+    let mut s = small(&tmp, Mode::Headless);
+    // Failed: a target in a missing folder, its end taken at the end of the run.
+    let missing = tmp.0.join("missing").join("out.pdf");
+    done(
+        &mut s,
+        "file.export_pdf",
+        json!({"path": path_text(&missing), "wait": false}),
+    );
+    let failed_text = "Export failed: the folder does not exist; check that the folder is writable and the file is \
+                       not open in another program";
+    assert_eq!(s.wait_jobs(), vec![failed_text.to_owned()]);
+    // Cancelled: held, cancelled, released; the end is taken by `wait_jobs` again.
+    let gate = Gate::new();
+    gate.hold("page");
+    s.set_job_gate_for_tests(Some(gate.clone()));
+    done(
+        &mut s,
+        "file.export_pdf",
+        json!({"path": path_text(&tmp.0.join("b.pdf")), "wait": false}),
+    );
+    gate.wait_reached("page");
+    done(&mut s, "jobs.cancel", json!({}));
+    gate.release();
+    s.set_job_gate_for_tests(None);
+    let cancelled_text = "Export cancelled; no file written";
+    assert_eq!(
+        s.wait_jobs(),
+        vec![failed_text.to_owned(), cancelled_text.to_owned()],
+        "the earlier unseen end stays in the list"
+    );
+    // Panicked, its end taken by a poll before a later step: still unseen.
+    s.set_job_panic_for_tests(Some("sibling"));
+    done(
+        &mut s,
+        "file.export_pdf",
+        json!({"path": path_text(&tmp.0.join("c.pdf")), "wait": false}),
+    );
+    while s.jobs().running() > 0 {
+        s.poll_jobs();
+        std::thread::yield_now();
+    }
+    s.set_job_panic_for_tests(None);
+    let internal_text = "Export failed: an internal error";
+    assert_eq!(
+        s.wait_jobs(),
+        vec![
+            failed_text.to_owned(),
+            cancelled_text.to_owned(),
+            internal_text.to_owned()
+        ]
+    );
+    s.shutdown();
+}
+
+/// FT-513: a failed end that a step waited for is the step's outcome (or, for `jobs.wait`, its entry's), never an
+/// unseen failure; a done export is none either.
+#[test]
+fn ft513_a_waited_failure_and_a_done_export_are_not_unseen() {
+    let tmp = Tmp::new("ft513-seen");
+    let mut s = small(&tmp, Mode::Headless);
+    let missing = tmp.0.join("missing").join("out.pdf");
+    let _ = failed(&mut s, "file.export_pdf", json!({"path": path_text(&missing)}));
+    done(
+        &mut s,
+        "file.export_pdf",
+        json!({"path": path_text(&missing), "wait": false}),
+    );
+    done(&mut s, "jobs.wait", json!({}));
+    done(
+        &mut s,
+        "file.export_pdf",
+        json!({"path": path_text(&tmp.0.join("ok.pdf")), "wait": false}),
+    );
+    assert!(s.wait_jobs().is_empty());
+    assert!(tmp.0.join("ok.pdf").exists());
+    s.shutdown();
+}

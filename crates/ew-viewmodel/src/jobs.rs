@@ -96,6 +96,10 @@ pub struct JobEntry {
     pub(crate) path: PathBuf,
     /// The running job; `None` once its end has been taken.
     pub(crate) handle: Option<Job<ExportDone>>,
+    /// The notification text of a failed, cancelled or panicked end that no step waited for (a `wait: false` export
+    /// whose end was taken by polling or at the end of a headless run); cleared when a waiting step takes the end.
+    /// The headless runner reports these on stderr (FT-513).
+    pub(crate) unseen_failure: Option<String>,
 }
 
 impl JobEntry {
@@ -236,6 +240,7 @@ impl JobsState {
             epoch,
             path: target,
             handle: Some(handle),
+            unseen_failure: None,
         });
         // The oldest finished entries go; a running one stays.
         while self.entries.len() > MAX_JOBS {

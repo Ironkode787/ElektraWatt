@@ -306,3 +306,41 @@ fn jb4_an_export_that_did_not_wait_is_written_at_the_end_of_the_run() {
     );
     assert_eq!(pdfs[0], pdfs[1], "two runs give the same PDF");
 }
+
+/// FT-513: a script whose last step is an export that does not wait and fails (a target in a missing folder) prints
+/// the notification text as `error: …` on stderr and exits 1; the transcript's step itself is done, and two runs give
+/// the same transcript and the same stderr.
+#[test]
+fn jb5_an_export_that_did_not_wait_and_failed_exits_1_with_its_notification() {
+    let tmp = Tmp::new();
+    let mut outputs = Vec::new();
+    for side in ["a", "b"] {
+        let dir = tmp.0.join(side);
+        copy_dir(Path::new(GOLDEN_A), &dir.join("g.ew"));
+        let pdf = dir.join("missing").join("out.pdf");
+        let steps = [
+            ("file.open", json!({ "dir": path(&dir.join("g.ew")) })),
+            ("file.export_pdf", json!({ "path": path(&pdf), "wait": false })),
+        ];
+        let out = run(&dir, "nowait-fails", &steps, None);
+        assert_eq!(
+            out.status.code(),
+            Some(1),
+            "{}{}",
+            String::from_utf8_lossy(&out.stdout),
+            String::from_utf8_lossy(&out.stderr)
+        );
+        let stderr = String::from_utf8(out.stderr.clone()).unwrap();
+        assert_eq!(
+            stderr.trim_end(),
+            "error: Export failed: the folder does not exist; check that the folder is writable and the file is not \
+             open in another program"
+        );
+        let lines = steps_of(&out);
+        assert_eq!(lines.len(), 2);
+        assert_eq!(lines[1]["outcome"], "done");
+        assert!(!pdf.exists());
+        outputs.push((String::from_utf8(out.stdout.clone()).unwrap(), stderr));
+    }
+    assert_eq!(outputs[0], outputs[1], "two runs give the same output");
+}
