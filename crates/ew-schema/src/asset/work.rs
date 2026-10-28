@@ -489,27 +489,47 @@ fn separates(c: char) -> bool {
     c.is_whitespace() || matches!(c, '>' | '+' | '~')
 }
 
-/// The cost factors of one compound's text.
+/// The length in bytes of the identifier simplecss 0.2.2's `Stream::consume_ident` reads at the start of `text`:
+/// an optional `-`, a name-start character (`_`, an ASCII letter or a character above U+00ED), then name
+/// characters (those, ASCII digits and `-`). 0 when it reads none (simplecss then refuses the selector).
+fn ident_len(text: &str) -> usize {
+    let start = |c: char| c == '_' || c.is_ascii_alphabetic() || u32::from(c) > 237;
+    let more = |c: char| start(c) || c.is_ascii_digit() || c == '-';
+    let mut end = usize::from(text.starts_with('-'));
+    let mut chars = text[end..].chars();
+    match chars.next() {
+        Some(c) if start(c) => end += c.len_utf8(),
+        Some(_) => return 0,
+        None => return end,
+    }
+    end + chars.take_while(|&c| more(c)).map(char::len_utf8).sum::<usize>()
+}
+
+/// The cost factors of one compound's text, in one pass that reads every byte once: each `[name` names the
+/// attribute simplecss reads ([`ident_len`]; an empty name when it reads none, which costs a read of nothing, so
+/// the factors stay an upper bound), and the scan continues after the name, so the bracketed names together are
+/// never longer than the text.
 fn compound_of(text: &str) -> Compound {
     let b = text.as_bytes();
     let mut c = Compound {
         len: text.len() as u64,
         ..Compound::default()
     };
-    for (i, ch) in b.iter().enumerate() {
-        match ch {
+    let mut i = 0;
+    while i < b.len() {
+        match b[i] {
             b'.' => c.named.push("class".to_owned()),
             b'#' => c.named.push("id".to_owned()),
             b'[' => {
-                let name: String = text[i + 1..]
-                    .chars()
-                    .take_while(|c| !(c.is_whitespace() || matches!(c, '=' | '~' | '|' | ']')))
-                    .collect();
-                c.named.push(name);
+                // `[` is one byte, so `i + 1` is a character boundary; so is the end of the name.
+                let len = ident_len(&text[i + 1..]);
+                c.named.push(text[i + 1..i + 1 + len].to_owned());
+                i += len;
             }
             b':' => c.pseudo += 1,
             _ => {}
         }
+        i += 1;
     }
     c
 }

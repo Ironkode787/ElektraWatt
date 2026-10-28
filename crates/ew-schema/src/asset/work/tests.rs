@@ -210,6 +210,88 @@ fn plain_groups_have_exact_shapes() {
     assert_eq!(last_class(".caf\u{e9}"), None);
 }
 
+/// The total length of a compound's attribute names.
+fn named_bytes(c: &Compound) -> usize {
+    c.named.iter().map(String::len).sum()
+}
+
+/// Review finding (cycle 30): a run of `[` used to make every bracket read up to the last `]` (quadratic). The
+/// names are now read once each, exact to simplecss's identifier rule.
+#[test]
+fn bracket_runs_read_each_name_once() {
+    let text = format!("a{}x]", "[".repeat(65_000));
+    let compound = compound_of(&text);
+    assert!(named_bytes(&compound) <= text.len());
+    assert_eq!(compound.named.len(), 65_000);
+    assert_eq!(compound.named.last().map(String::as_str), Some("x"));
+    let Shape::Uniform { compound, .. } = uniform(&text) else {
+        panic!("uniform is always Uniform");
+    };
+    assert!(named_bytes(&compound) <= text.len());
+    // The same with names in every bracket, and with brackets that hold a value.
+    let named = format!("a{}]", "[ab".repeat(20_000));
+    assert!(named_bytes(&compound_of(&named)) <= named.len());
+    let valued = "[x=y]".repeat(10_000);
+    assert!(named_bytes(&compound_of(&valued)) <= valued.len());
+    // simplecss's identifier: an optional `-`, a name start, name characters; a character it does not accept ends
+    // the name, and a bracket it cannot read names nothing.
+    let names = |text: &str| compound_of(text).named;
+    assert_eq!(names("[x=y]"), vec!["x"]);
+    assert_eq!(names("[-a-1_b~=y]"), vec!["-a-1_b"]);
+    assert_eq!(names("[a.b]"), vec!["a", "class"]);
+    assert_eq!(names("[1a]"), vec![""]);
+    assert_eq!(names("[ x]"), vec![""]);
+    assert_eq!(names("[\u{ee}t]"), vec!["\u{ee}t"]);
+    assert_eq!(names("[\u{e9}t]"), vec![""]);
+    assert_eq!(names("[-"), vec!["-"]);
+}
+
+/// Review finding (cycle 30), the documents: a 64 KiB style sheet that is one run of `[`, plain and not plain (a
+/// quote makes the scanner take the uniform shape), and 128 such sheets in one file under `MAX_SVG_BYTES`. Their
+/// verdicts are pinned; [`bracket_runs_read_each_name_once`] pins the linear reading that reaches them.
+#[test]
+fn style_sheets_of_bracket_runs_get_a_verdict() {
+    let rect = r#"<rect width="1" height="1"/>"#;
+    // A sheet of `len` bytes that is one run of `[`.
+    let sheet = |head: &str, len: usize| {
+        let tail = "x]{fill:red}";
+        format!("{head}{}{tail}", "[".repeat(len - head.len() - tail.len()))
+    };
+    let plain = sheet("a[", 64 * 1024);
+    let quoted = sheet(r#"a[y="z"]["#, 64 * 1024);
+    // 128 sheets, each 64 bytes short of 64 KiB so that the file stays within 8 MiB.
+    let short = sheet("a[", 64 * 1024 - 64);
+    assert_eq!(plain.len(), 64 * 1024);
+    assert_eq!(quoted.len(), 64 * 1024);
+    let document = |sheets: &[&str]| {
+        let styles: String = sheets.iter().map(|s| format!("<style>{s}</style>")).collect();
+        format!(r#"<svg {NS}>{styles}{rect}</svg>"#)
+    };
+    let many = document(&vec![short.as_str(); 128]);
+    assert!(many.len() <= super::super::MAX_SVG_BYTES);
+    let cases: Vec<(&str, String, Option<SvgHazard>)> = vec![
+        ("one plain sheet of 64 KiB", document(&[&plain]), None),
+        (
+            "one sheet of 64 KiB that is not plain",
+            document(&[&quoted]),
+            None,
+        ),
+        ("128 plain sheets of almost 64 KiB", many, None),
+    ];
+    for (what, text, expected) in &cases {
+        assert_eq!(svg_hazard(text.as_bytes()), *expected, "{what}");
+    }
+}
+
+proptest! {
+    /// The bracketed names come from disjoint stretches of the text; `.` (one byte) names `class` and `#` names `id`.
+    #[test]
+    fn compound_names_are_linear_in_the_text(text in "[a-z\\[\\]=.#:\\- \u{e9}\u{ee}0-9]{0,200}") {
+        let bound = text.len() + 4 * text.matches('.').count() + text.matches('#').count();
+        prop_assert!(named_bytes(&compound_of(&text)) <= bound);
+    }
+}
+
 #[test]
 fn selector_spans_end_where_a_valid_selector_can_end() {
     assert_eq!(selector_spans(".a{fill:red}.b,.c{x:y}"), vec![".a", ".b", ".c"]);
