@@ -564,3 +564,154 @@ fn d4_edit_delete_cost_counts_planned_records() {
     let many = delete(vec![same; 600]);
     assert_eq!(Command::cost(&many, &golden), Cost::Interactive);
 }
+
+// ---------------------------------------------------------------------------------------------------------
+// FT-437: route hygiene. `connection.draw` and `connection.route` refuse a route with a repeated vertex or a
+// segment that runs over another one (`geometry::require_route`, `geometry::route_defect`).
+
+/// Two devices on page 102 with their first CPs at (G, G) and (4G, G).
+fn two_devices() -> (Engine, Id<Function>, Id<Function>) {
+    let mut e = engine(golden_model());
+    let (_, fa, _) = place_device(&mut e, "K", PAGE_102, pt(G, G));
+    let (_, fb, _) = place_device(&mut e, "K", PAGE_102, pt(4 * G, G));
+    (e, fa, fb)
+}
+
+fn draw_between(fa: Id<Function>, fb: Id<Function>, route: Vec<Pt2>) -> Connect {
+    Connect {
+        a: cp_param(fa, 0),
+        b: cp_param(fb, 0),
+        page: Some(PAGE_102),
+        route,
+        kind: ConnectionKind::Wire,
+    }
+}
+
+/// The naive oracle: whether a route has a repeated vertex, or two segments sharing a stretch of positive length
+/// on one line (every pair compared, in `i128`).
+fn naive_defect(route: &[Pt2]) -> bool {
+    if route.windows(2).any(|w| w[0] == w[1]) {
+        return true;
+    }
+    let v = |p: Pt2| (i128::from(p.x.0), i128::from(p.y.0));
+    let segs: Vec<((i128, i128), (i128, i128))> = route.windows(2).map(|w| (v(w[0]), v(w[1]))).collect();
+    for (i, &(a, b)) in segs.iter().enumerate() {
+        for &(c, d) in &segs[i + 1..] {
+            let (dx, dy) = (b.0 - a.0, b.1 - a.1);
+            let cross = |p: (i128, i128)| dx * (p.1 - a.1) - dy * (p.0 - a.0);
+            if cross(c) != 0 || cross(d) != 0 {
+                continue;
+            }
+            let t = |p: (i128, i128)| dx * (p.0 - a.0) + dy * (p.1 - a.1);
+            let (lo, hi) = (t(c).min(t(d)), t(c).max(t(d)));
+            if lo.max(0) < hi.min(dx * dx + dy * dy) {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+#[test]
+fn ft437_a_repeated_vertex_is_refused_by_draw_and_route() {
+    let (mut e, fa, fb) = two_devices();
+    let dup = vec![pt(G, G), pt(2 * G, G), pt(2 * G, G), pt(4 * G, G)];
+    let expected = format!(
+        "`/route/2` [{}, {}] repeats the vertex before it; remove the duplicate vertex",
+        2 * G,
+        G
+    );
+    assert_eq!(rejection(e.execute(&draw_between(fa, fb, dup.clone()))), expected);
+    let r = e
+        .execute(&draw_between(fa, fb, vec![pt(G, G), pt(4 * G, G)]))
+        .expect("the straight wire");
+    let w: Id<Connection> = typed(r.outcome.primary.expect("primary"));
+    let reason = rejection(e.execute(&RouteConnection {
+        connection: w,
+        route: dup,
+    }));
+    assert_eq!(reason, expected);
+}
+
+#[test]
+fn ft437_a_route_that_doubles_back_is_refused() {
+    let (mut e, fa, fb) = two_devices();
+    // Right to 3G, back left to 2G, down, right, up into the CP: the second segment runs back over the first.
+    let back = vec![
+        pt(G, G),
+        pt(3 * G, G),
+        pt(2 * G, G),
+        pt(2 * G, 2 * G),
+        pt(4 * G, 2 * G),
+        pt(4 * G, G),
+    ];
+    assert_eq!(
+        rejection(e.execute(&draw_between(fa, fb, back))),
+        format!(
+            "`/route/1` the segment from [{x3}, {g}] to [{x2}, {g}] runs over the segment from [{g}, {g}] to \
+             [{x3}, {g}] (`/route/0`); a route never overlaps itself, remove the stretch it runs back over",
+            g = G,
+            x2 = 2 * G,
+            x3 = 3 * G
+        )
+    );
+    // A loop whose last stretch runs over its first, three segments later.
+    let lap = vec![
+        pt(G, G),
+        pt(3 * G, G),
+        pt(3 * G, 2 * G),
+        pt(2 * G, 2 * G),
+        pt(2 * G, G),
+        pt(4 * G, G),
+    ];
+    rejected_naming(
+        e.execute(&draw_between(fa, fb, lap)),
+        "`/route/4` the segment from",
+    );
+    // Running straight on through a collinear vertex is no defect.
+    e.execute(&draw_between(fa, fb, vec![pt(G, G), pt(2 * G, G), pt(4 * G, G)]))
+        .expect("a collinear vertex is accepted");
+}
+
+proptest::proptest! {
+    #![proptest_config(proptest::prelude::ProptestConfig::with_cases(64))]
+
+    /// FT-437: for routes between two CPs through interior grid vertices (repeats and overlaps likely), each of
+    /// `connection.draw` and `connection.route` accepts exactly the routes the naive oracle finds tidy, stores
+    /// them as given (a refused `connection.route` leaves the route as it was), and `geometry::route_defect`
+    /// agrees with the oracle.
+    #[test]
+    fn ft437_draw_and_route_accept_exactly_the_tidy_routes(
+        inner in proptest::collection::vec((0i64..6, 0i64..4), 0..6),
+    ) {
+        let mut route = vec![pt(G, G)];
+        route.extend(inner.iter().map(|&(i, j)| pt(i * G, j * G)));
+        route.push(pt(4 * G, G));
+        let tidy = !naive_defect(&route);
+        proptest::prop_assert_eq!(ew_commands::geometry::route_defect(&route).is_none(), tidy);
+
+        let (mut e, fa, fb) = two_devices();
+        let drawn = e.execute(&draw_between(fa, fb, route.clone()));
+        proptest::prop_assert_eq!(drawn.is_ok(), tidy, "{:?}: {:?}", route, drawn);
+        match drawn {
+            Ok(r) => {
+                let w: Id<Connection> = typed(r.outcome.primary.expect("primary"));
+                proptest::prop_assert_eq!(&row(&e, w).route, &route);
+            }
+            Err(err) => proptest::prop_assert!(matches!(err, CmdError::Rejected { .. }), "{:?}", err),
+        }
+
+        let r = e
+            .execute(&draw_between(fa, fb, vec![pt(G, G), pt(4 * G, G)]))
+            .expect("the straight wire");
+        let w: Id<Connection> = typed(r.outcome.primary.expect("primary"));
+        let routed = e.execute(&RouteConnection { connection: w, route: route.clone() });
+        proptest::prop_assert_eq!(routed.is_ok(), tidy, "{:?}: {:?}", route, routed);
+        let stored = row(&e, w).route;
+        if tidy {
+            proptest::prop_assert_eq!(stored, route);
+        } else {
+            proptest::prop_assert_eq!(stored, vec![pt(G, G), pt(4 * G, G)]);
+        }
+    }
+}

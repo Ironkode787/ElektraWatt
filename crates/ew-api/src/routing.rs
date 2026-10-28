@@ -39,6 +39,9 @@ pub struct RouteRequest {
     /// The search area `[x0, y0, x1, y1]`, page nm: the bounding box of both ends grown by 4 grid steps, clipped to
     /// the page's drawing area.
     pub area: [i64; 4],
+    /// The direction the route arrived at `from` with, for a first end without a direction (a fixed bend's incoming
+    /// direction, FT-437): the route never doubles back over it; a turn there costs no bend. Ignored at a CP end.
+    pub arrive: Option<Dir>,
 }
 
 fn heading(d: Dir) -> Heading {
@@ -65,6 +68,7 @@ pub fn auto_route(req: &RouteRequest) -> Vec<(i64, i64)> {
         obstacles: req.obstacles.clone(),
         grid: req.grid,
         area: req.area,
+        arrive: req.arrive.map(heading),
     })
 }
 
@@ -87,6 +91,7 @@ mod tests {
             obstacles: vec![],
             grid: (mm, 1),
             area: [-4 * mm, -4 * mm, 14 * mm, 14 * mm],
+            arrive: None,
         };
         assert_eq!(auto_route(&req), vec![(0, 0), (10 * mm, 0), (10 * mm, 10 * mm)]);
     }

@@ -245,8 +245,8 @@ fn ib2_ending_a_wire_in_an_ip_is_one_transaction_and_one_undo_step() {
     let start = before
         .cps
         .iter()
-        .find(|c| c.label == "-102F2:13")
-        .expect("-102F2:13")
+        .find(|c| c.label == "-102F2:14")
+        .expect("-102F2:14")
         .clone();
     assert!(start.connections.is_empty());
     let rev = s.revision();

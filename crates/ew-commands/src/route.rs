@@ -7,10 +7,15 @@
 //! `connection.draw`'s `route`, so the command stores what the ghost showed and the router never runs on replay.
 //!
 //! **The search.** Grid nodes inside the area (the area's nearest grid indices, extended to hold both ends and
-//! their stubs), 4-neighbourhood, cost 1 per step and 4 per bend. A node whose page point lies strictly inside an
+//! their stubs), 4-neighbourhood, cost 1 per step and 4 per bend, no move back against the arriving heading (a
+//! U-turn would cost one bend only; FT-437). A node whose page point lies strictly inside an
 //! obstacle rectangle is blocked; the two ends, their nearest grid nodes and their stub nodes never are. A CP end
 //! (one with a leaving direction) first leaves one step along its direction (the stub) and is entered along the
-//! opposite of its direction; a junction or split end (`dir: None`) has no such constraint.
+//! opposite of its direction; a junction or split end (`dir: None`) has no such constraint. A first end without a
+//! direction may carry the heading the route arrived there with ([`RouteRequest::arrive`], a fixed bend's incoming
+//! direction; FT-437): the first move never takes its opposite, so the route never doubles back over the segment
+//! before the bend; a turn there costs nothing (the bend was fixed to turn at), so the tie rule is otherwise the one
+//! of an end without a direction.
 //!
 //! **The tie rule** (NFR-REL-07). Among the paths of least cost the result is the least by (bends, length, move
 //! sequence), the move sequence being the whole list of unit moves from the first end to the second, each ranked
@@ -115,6 +120,10 @@ pub struct RouteRequest {
     /// The search area `[x0, y0, x1, y1]` in page nm: the bounding box of both ends grown by 4 grid steps, clipped to
     /// the page's drawing area.
     pub area: [i64; 4],
+    /// The heading the route arrived at `from` with, for a first end without a direction (a fixed bend's incoming
+    /// direction, FT-437): the first move never takes its opposite; a turn at `from` costs no bend. Ignored for a CP
+    /// end (one with `dir`).
+    pub arrive: Option<Heading>,
 }
 
 /// The provisional L route of `ew-scene`'s rule (the fallback): `[a, b]` for aligned ends (`[a]` for equal ones),
@@ -170,6 +179,12 @@ fn weight(h: Option<Heading>, m: Heading) -> (u32, u32) {
     (1 + BEND_COST * bend, bend)
 }
 
+/// Whether a move with heading `m` from a state that arrived with `h` turns back on itself: never taken, so a route
+/// never doubles back over its last step (FT-437; a U-turn would cost one bend only).
+fn reverses(h: Option<Heading>, m: Heading) -> bool {
+    h == Some(m.opposite())
+}
+
 fn add(a: (u32, u32), b: (u32, u32)) -> (u32, u32) {
     (a.0.saturating_add(b.0), a.1.saturating_add(b.1))
 }
@@ -182,7 +197,42 @@ fn state(node: usize, h: Option<Heading>) -> usize {
 /// The route from `req.from.at` to `req.to.at` (see the module documentation): deterministic, interior vertices on
 /// the grid (or on an end's coordinate next to it), the ends exact.
 pub fn auto_route(req: &RouteRequest) -> Vec<(i64, i64)> {
-    search(req).unwrap_or_else(|| l_route(req.from, req.to))
+    search(req).unwrap_or_else(|| fallback(req))
+}
+
+/// The L route of the fallback; with an arrival heading at a first end without a direction, the corner whose first
+/// leg does not reverse it (FT-437; aligned ends behind the arrival stay the straight segment, the only L there is).
+fn fallback(req: &RouteRequest) -> Vec<(i64, i64)> {
+    let (a, b) = (req.from, req.to);
+    let (pa, pb) = (a.at, b.at);
+    if let (None, Some(h)) = (a.dir, req.arrive)
+        && pa.0 != pb.0
+        && pa.1 != pb.1
+    {
+        // The default corner of an end without a direction, unless its first leg runs against `h`.
+        let default = l_route(a, b);
+        let first_leg = if default[1].1 == pa.1 {
+            if pb.0 > pa.0 {
+                Heading::Right
+            } else {
+                Heading::Left
+            }
+        } else if pb.1 > pa.1 {
+            Heading::Down
+        } else {
+            Heading::Up
+        };
+        if first_leg == h.opposite() {
+            let other = if default[1].1 == pa.1 {
+                (pa.0, pb.1)
+            } else {
+                (pb.0, pa.1)
+            };
+            return vec![pa, other, pb];
+        }
+        return default;
+    }
+    l_route(a, b)
 }
 
 fn search(req: &RouteRequest) -> Option<Vec<(i64, i64)>> {
@@ -254,10 +304,25 @@ fn search(req: &RouteRequest) -> Option<Vec<(i64, i64)>> {
         }
     }
     let goal = space.node(t)?;
-    // The state the forward walk starts from: the first end's stub with its heading, else the first end.
+    // The state the forward walk starts from: the first end's stub with its heading, else the first end with its
+    // arrival heading (FT-437), else the first end.
+    let arrive = if from.dir.is_none() { req.arrive } else { None };
     let start_state = match (from.dir, s1) {
         (Some(d), Some(p)) => state(space.node(p)?, Some(d)),
-        _ => state(space.node(s)?, None),
+        _ => state(space.node(s)?, arrive),
+    };
+    // The cost of a move with heading `m` from state `st` that arrived with `h`; `None` for a U-turn. A turn at the
+    // fixed bend the route starts from is free (the user fixed a bend there), so the arrival only excludes the move
+    // back over the last segment.
+    let free_turn = arrive.map(|_| start_state);
+    let step_cost = |st: usize, h: Option<Heading>, m: Heading| -> Option<(u32, u32)> {
+        if reverses(h, m) {
+            None
+        } else if free_turn == Some(st) {
+            Some(weight(None, m))
+        } else {
+            Some(weight(h, m))
+        }
     };
     // The backward Dijkstra: the least (cost, bends) from every state to the second end. It stops once the popped
     // distance exceeds the start state's: every state the forward walk can step to on a least path is settled by
@@ -311,8 +376,11 @@ fn search(req: &RouteRequest) -> Option<Vec<(i64, i64)>> {
             Some(Heading::Left),
             Some(Heading::Up),
         ] {
-            let cand = add(weight(h, m), d);
             let s1 = state(n1, h);
+            let Some(w) = step_cost(s1, h, m) else {
+                continue;
+            };
+            let cand = add(w, d);
             if cand < dist[s1] {
                 dist[s1] = cand;
                 heap.push(Reverse((cand, s1)));
@@ -328,7 +396,7 @@ fn search(req: &RouteRequest) -> Option<Vec<(i64, i64)>> {
             moves.push(d);
             (n, Some(d))
         }
-        _ => (start, None),
+        _ => (start, arrive),
     };
     if dist[state(node, heading)] == INF {
         return None;
@@ -336,14 +404,16 @@ fn search(req: &RouteRequest) -> Option<Vec<(i64, i64)>> {
     while dist[state(node, heading)] != (0, 0) {
         let here = dist[state(node, heading)];
         let p = position(node);
+        let here_state = state(node, heading);
         let next = Heading::ALL.into_iter().find_map(|m| {
+            let w = step_cost(here_state, heading, m)?;
             let q = (p.0 + m.step().0, p.1 + m.step().1);
             let n = space.node(q)?;
             if space.blocked[n] {
                 return None;
             }
             let there = dist[state(n, Some(m))];
-            (there != INF && add(weight(heading, m), there) == here).then_some((n, m))
+            (there != INF && add(w, there) == here).then_some((n, m))
         });
         let (n, m) = next?;
         moves.push(m);
@@ -459,6 +529,7 @@ mod tests {
             obstacles,
             grid: (MM, 1),
             area: [x0 - 4 * MM, y0 - 4 * MM, x1 + 4 * MM, y1 + 4 * MM],
+            arrive: None,
         }
     }
 
@@ -632,6 +703,7 @@ mod tests {
             obstacles: vec![],
             grid: (7_937_500, 3),
             area: [at(5), at(5), at(25), at(21)],
+            arrive: None,
         };
         let r = auto_route(&request);
         assert_eq!(r.first(), Some(&a.at));
@@ -669,6 +741,7 @@ mod tests {
             obstacles: vec![],
             grid: (1, 1),
             area: [0, 0, 1, 1],
+            arrive: None,
         };
         assert_eq!(auto_route(&edge), l_route(edge.from, edge.to));
     }
@@ -684,5 +757,114 @@ mod tests {
         assert_eq!(r.first(), Some(&p(0, 0)));
         assert_eq!(r[1].0, 0, "leaves down along x = 0: {r:?}");
         assert!(r[1].1 > 0);
+    }
+
+    fn with_arrive(mut r: RouteRequest, h: Heading) -> RouteRequest {
+        r.arrive = Some(h);
+        r
+    }
+
+    #[test]
+    fn a_fixed_bend_s_arrival_is_never_reversed() {
+        // FT-437: a bend fixed at (5, 0) after a segment running right, the end at (0, 0) straight behind it. Without
+        // the arrival heading the route runs straight back over the last segment.
+        let base = req(end(5, 0, None), end(0, 0, None), vec![]);
+        assert_eq!(auto_route(&base), vec![p(5, 0), p(0, 0)]);
+        // With it the first move turns (down ranks before up), runs left and comes up into the end.
+        let r = auto_route(&with_arrive(base, Heading::Right));
+        assert_eq!(r, vec![p(5, 0), p(5, 1), p(0, 1), p(0, 0)]);
+    }
+
+    #[test]
+    fn a_cp_stub_is_never_run_back_over() {
+        // FT-437: a CP leaving right with the end straight behind it. A U-turn after the stub costs one bend only,
+        // so the search would run back over the stub and through the CP; it goes round instead.
+        let r = auto_route(&req(end(0, 0, Some(Heading::Right)), end(-10, 0, None), vec![]));
+        assert_eq!(r, vec![p(0, 0), p(1, 0), p(1, 1), p(-10, 1), p(-10, 0)]);
+    }
+
+    #[test]
+    fn a_turn_at_a_fixed_bend_is_free() {
+        // Arriving down at (0, 0): R R D D still ties with D D R R and wins by rank, as without an arrival; the
+        // bend was fixed to turn there.
+        let base = req(end(0, 0, None), end(2, 2, None), vec![]);
+        assert_eq!(auto_route(&base), vec![p(0, 0), p(2, 0), p(2, 2)]);
+        assert_eq!(
+            auto_route(&with_arrive(base, Heading::Down)),
+            vec![p(0, 0), p(2, 0), p(2, 2)]
+        );
+        // Arriving left, the first move right is excluded (it would run back over the segment before the bend):
+        // D D R R.
+        let base = req(end(0, 0, None), end(2, 2, None), vec![]);
+        assert_eq!(
+            auto_route(&with_arrive(base, Heading::Left)),
+            vec![p(0, 0), p(0, 2), p(2, 2)]
+        );
+    }
+
+    #[test]
+    fn the_arrival_is_ignored_at_a_cp_end() {
+        let base = req(
+            end(0, 0, Some(Heading::Right)),
+            end(10, 10, Some(Heading::Up)),
+            vec![],
+        );
+        assert_eq!(
+            auto_route(&with_arrive(base.clone(), Heading::Left)),
+            auto_route(&base)
+        );
+    }
+
+    #[test]
+    fn the_fallback_does_not_reverse_the_arrival() {
+        // The end walled in: the L route; its default corner (10, 0) would leave right against an arrival heading
+        // left, so the other corner is taken.
+        let to = end(10, 10, None);
+        let walls = vec![
+            rect(7, 7, 13, 9),
+            rect(7, 11, 13, 13),
+            rect(7, 7, 9, 13),
+            rect(11, 7, 13, 13),
+        ];
+        let base = req(end(0, 0, None), to, walls);
+        assert_eq!(auto_route(&base), vec![p(0, 0), p(10, 0), p(10, 10)]);
+        assert_eq!(
+            auto_route(&with_arrive(base.clone(), Heading::Left)),
+            vec![p(0, 0), p(0, 10), p(10, 10)]
+        );
+        // An arrival the default corner does not reverse keeps it.
+        assert_eq!(
+            auto_route(&with_arrive(base, Heading::Right)),
+            vec![p(0, 0), p(10, 0), p(10, 10)]
+        );
+    }
+
+    proptest::proptest! {
+        /// FT-437: from a point without a direction and an arrival heading, the first segment never runs against
+        /// the arrival (but for the fallback between aligned ends), and the route is orthogonal with exact ends,
+        /// among obstacles too.
+        #[test]
+        fn the_first_segment_never_reverses_the_arrival(
+            fx in -6i64..6, fy in -6i64..6, tx in -6i64..6, ty in -6i64..6,
+            h in 0usize..4, to_dir in proptest::option::of(0usize..4),
+            ob in proptest::collection::vec((-8i64..8, -8i64..8, 1i64..4, 1i64..4), 0..4),
+        ) {
+            let arrive = Heading::ALL[h];
+            let to = end(tx, ty, to_dir.map(|k| Heading::ALL[k]));
+            let obstacles = ob.iter().map(|&(x, y, w, hh)| rect(x, y, x + w, y + hh)).collect();
+            let rq = with_arrive(req(end(fx, fy, None), to, obstacles), arrive);
+            let r = auto_route(&rq);
+            // The fallback between aligned ends is the straight segment, the only L there is.
+            let aligned_fallback = search(&rq).is_none() && (fx == tx || fy == ty);
+            proptest::prop_assert_eq!(r.first(), Some(&p(fx, fy)));
+            proptest::prop_assert_eq!(r.last(), Some(&p(tx, ty)));
+            proptest::prop_assert!(orthogonal(&r), "{:?}", r);
+            if r.len() >= 2 && !aligned_fallback {
+                let (a, b) = (r[0], r[1]);
+                let first = if b.0 > a.0 { Heading::Right } else if b.0 < a.0 { Heading::Left }
+                    else if b.1 > a.1 { Heading::Down } else { Heading::Up };
+                proptest::prop_assert_ne!(first, arrive.opposite(), "{:?}", r);
+            }
+        }
     }
 }

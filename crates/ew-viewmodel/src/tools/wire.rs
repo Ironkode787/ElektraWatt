@@ -331,6 +331,11 @@ fn on_axis(grid: PageGridMap, v: i64, lo: i64, hi: i64) -> Option<i64> {
         .min_by_key(|c| ((*c - v).abs(), *c))
 }
 
+/// The direction from `a` to `b` along an axis; `None` for equal or diagonal points.
+fn heading_between(a: (i64, i64), b: (i64, i64)) -> Option<Dir> {
+    Dir::of_vector(((b.0 - a.0).signum(), (b.1 - a.1).signum()))
+}
+
 /// Removes consecutive duplicate vertices and interior vertices collinear with their neighbours; the ends stay.
 pub(super) fn clean(pts: Vec<(i64, i64)>) -> Vec<(i64, i64)> {
     let mut out: Vec<(i64, i64)> = Vec::with_capacity(pts.len());
@@ -377,9 +382,9 @@ enum State {
     },
 }
 
-/// The key of a computed route: the page content's revision, the last fixed vertex with its leaving direction and the
-/// end with its direction.
-type RouteKey = (u64, (i64, i64), Option<Dir>, (i64, i64), Option<Dir>);
+/// The key of a computed route: the page content's revision, the last fixed vertex with its leaving direction and its
+/// arrival direction (FT-437), and the end with its direction.
+type RouteKey = (u64, (i64, i64), Option<Dir>, Option<Dir>, (i64, i64), Option<Dir>);
 
 /// The Wire tool.
 #[derive(Clone, Debug)]
@@ -432,16 +437,16 @@ impl WireTool {
         }
     }
 
-    /// The router's tail from `from` (leaving along `from_dir`) to the end target, through the cache.
+    /// The router's tail from `from` (leaving along `from_dir`, or arrived at along `arrive`) to the end target,
+    /// through the cache.
     fn tail(
         &mut self,
         cx: &ToolCx<'_>,
-        from: (i64, i64),
-        from_dir: Option<Dir>,
+        (from, from_dir, arrive): ((i64, i64), Option<Dir>, Option<Dir>),
         skip: [Option<EntityRef>; 2],
         to: &WireTarget,
     ) -> Vec<(i64, i64)> {
-        let key: RouteKey = (cx.page.rev, from, from_dir, to.at(), to.dir());
+        let key: RouteKey = (cx.page.rev, from, from_dir, arrive, to.at(), to.dir());
         if let Some((k, r)) = &self.cache
             && *k == key
         {
@@ -473,6 +478,7 @@ impl WireTool {
             obstacles,
             grid: tables.grid,
             area,
+            arrive,
         });
         self.routes += 1;
         self.cache = Some((key, route.clone()));
@@ -491,8 +497,14 @@ impl WireTool {
             return Vec::new();
         };
         let from_dir = if fixed.len() == 1 { start.dir() } else { None };
+        // After a fixed bend the router takes the last segment's direction, so it never doubles back over it
+        // (FT-437).
+        let arrive = match fixed {
+            [.., a, b] => heading_between(*a, *b),
+            _ => None,
+        };
         let skip = [start.rep(), to.rep()];
-        let tail = self.tail(cx, last, from_dir, skip, to);
+        let tail = self.tail(cx, (last, from_dir, arrive), skip, to);
         let mut pts: Vec<(i64, i64)> = fixed[..fixed.len() - 1].to_vec();
         pts.extend(tail);
         clean(pts)

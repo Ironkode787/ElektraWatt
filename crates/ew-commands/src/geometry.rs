@@ -385,10 +385,13 @@ pub fn require_split_point(
 /// - every coordinate of every vertex lies on the page's connection grid, or equals that coordinate of
 ///   a route end that meets its CP: a CP position can sit up to 1 nm off a rational grid (the rounding
 ///   pitfall of `Grid::cell`), and the segment leaving it stays orthogonal;
-/// - every vertex lies within ±[`MAX_COORD`].
+/// - every vertex lies within ±[`MAX_COORD`];
+/// - the route is tidy (FT-437, [`route_defect`]): no vertex repeats the one before it, and no segment
+///   runs over another one (a stretch of positive length shared on one line, a doubling back included).
+///   A collinear vertex where the route runs straight on is no defect.
 ///
 /// `field` is the JSON Pointer of the route parameter (`/route`); a refusal names the vertex
-/// (`/route/2`).
+/// (`/route/2`), for an overlap the later segment's first vertex.
 pub fn require_route(
     tx: &TxBuilder<'_>,
     page: Id<Page>,
@@ -440,5 +443,88 @@ pub fn require_route(
             ));
         }
     }
-    Ok(())
+    match route_defect(route) {
+        None => Ok(()),
+        Some(RouteDefect::Duplicate(i)) => tx.reject(format!(
+            "`{field}/{i}` {} repeats the vertex before it; remove the duplicate vertex",
+            fmt_pt(route[i])
+        )),
+        Some(RouteDefect::Overlap(i, j)) => tx.reject(format!(
+            "`{field}/{j}` the segment from {} to {} runs over the segment from {} to {} (`{field}/{i}`); a \
+             route never overlaps itself, remove the stretch it runs back over",
+            fmt_pt(route[j]),
+            fmt_pt(route[j + 1]),
+            fmt_pt(route[i]),
+            fmt_pt(route[i + 1])
+        )),
+    }
+}
+
+/// What makes a route untidy (FT-437, [`route_defect`]).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum RouteDefect {
+    /// Vertex `i` equals vertex `i − 1`.
+    Duplicate(usize),
+    /// The segment from vertex `j` runs over the segment from vertex `i` (`i < j`): the two share a stretch of
+    /// positive length on one line.
+    Overlap(usize, usize),
+}
+
+/// A segment on its line: (reduced direction, offset, interval start, interval end, segment index).
+type LineSeg = ((i128, i128), i128, i128, i128, usize);
+
+/// The first defect of a route whose vertices lie within ±[`MAX_COORD`]: the first repeated vertex, else an
+/// overlapping pair of segments, else `None`. Segments of any direction count (a route is meant to be orthogonal,
+/// but this check does not require it); two segments that only touch at a point do not overlap, so a collinear
+/// vertex where the route runs straight on is no defect, and a U-turn is. Deterministic, `O(n log n)`: the segments
+/// are grouped by their line and each line's intervals swept in order; the pair reported is the first the sweep
+/// meets (the least by line, then by interval start, then by index).
+pub fn route_defect(route: &[Pt2]) -> Option<RouteDefect> {
+    if let Some(i) = (1..route.len()).find(|&i| route[i] == route[i - 1]) {
+        return Some(RouteDefect::Duplicate(i));
+    }
+    // Each segment as (line direction, line offset, interval start, interval end, index), in i128: the direction
+    // reduced by the gcd with its first non-zero component positive, the offset its cross product with the start,
+    // the interval the projections of the two ends on the direction.
+    let mut segs: Vec<LineSeg> = route
+        .windows(2)
+        .enumerate()
+        .map(|(k, w)| {
+            let (ax, ay) = (i128::from(w[0].x.0), i128::from(w[0].y.0));
+            let (bx, by) = (i128::from(w[1].x.0), i128::from(w[1].y.0));
+            let (mut dx, mut dy) = (bx - ax, by - ay);
+            let g = gcd(dx.unsigned_abs(), dy.unsigned_abs()).max(1) as i128;
+            (dx, dy) = (dx / g, dy / g);
+            if dx < 0 || (dx == 0 && dy < 0) {
+                (dx, dy) = (-dx, -dy);
+            }
+            let offset = dx * ay - dy * ax;
+            let (ta, tb) = (dx * ax + dy * ay, dx * bx + dy * by);
+            ((dx, dy), offset, ta.min(tb), ta.max(tb), k)
+        })
+        .collect();
+    segs.sort_unstable();
+    // The segment reaching furthest along the current line so far: (line, offset, end, index).
+    let mut reach: Option<((i128, i128), i128, i128, usize)> = None;
+    for &(dir, offset, lo, hi, k) in &segs {
+        match reach {
+            Some((d, o, end, i)) if d == dir && o == offset => {
+                if lo < end {
+                    return Some(RouteDefect::Overlap(i.min(k), i.max(k)));
+                }
+                if hi > end {
+                    reach = Some((dir, offset, hi, k));
+                }
+            }
+            _ => reach = Some((dir, offset, hi, k)),
+        }
+    }
+    None
+}
+
+fn gcd(mut a: u128, mut b: u128) -> u128 {
+    while b != 0 {
+        (a, b) = (b, a % b);
+    }
+    a
 }
