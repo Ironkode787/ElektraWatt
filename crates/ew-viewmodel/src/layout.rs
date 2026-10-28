@@ -71,8 +71,13 @@ impl PaneKind {
         PaneKind::Jobs,
     ];
 
-    /// The panes of the bottom dock (D14): they share one tab group below the page view.
-    pub const BOTTOM: [PaneKind; 2] = [PaneKind::Find, PaneKind::Jobs];
+    /// The panes of the bottom dock (D14): they share one tab group below the page view (WP-S2.09 part 2: the
+    /// Messages navigator is one of them).
+    pub const BOTTOM: [PaneKind; 3] = [
+        PaneKind::Find,
+        PaneKind::Jobs,
+        PaneKind::Navigator(NavKind::Messages),
+    ];
 
     /// The name in a workspace file.
     pub fn key(self) -> &'static str {
@@ -766,8 +771,8 @@ mod tests {
                 r#"{"tabs":[{"pane":"page-view"},{"pane":"page-view"}]}"#,
                 "appears twice",
             ),
-            // The message panel is not a pane yet (WP-S2.09); `find` is one since WP-S2.05 part 2.
-            (r#"{"pane":"messages"}"#, "unknown pane"),
+            // `find` is a pane since WP-S2.05 part 2, `messages` since WP-S2.09 part 2.
+            (r#"{"pane":"no-such-pane"}"#, "unknown pane"),
             (r#"{"pane":"pages","extra":1}"#, "unknown member"),
             (r#"{"tabs":[]}"#, "empty"),
             (

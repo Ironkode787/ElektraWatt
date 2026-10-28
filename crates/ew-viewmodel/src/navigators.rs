@@ -22,6 +22,9 @@
 //! prefix of one of its tokens or the plain text, case-folded, is a substring of its case-folded label. Matches keep
 //! their ancestors, shown and expanded.
 
+// WP-S2.09 part 2
+pub mod messages;
+
 use std::cell::RefCell;
 use std::collections::BTreeSet;
 use std::sync::Arc;

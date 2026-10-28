@@ -93,7 +93,11 @@ impl ShellModel {
         let Some(anchor) = help::anchor(topic).or_else(|| help::anchor("home")) else {
             return;
         };
-        let target = help::html_target(anchor);
+        self.request_doc_target(help::html_target(anchor));
+    }
+
+    /// Asks the window to open `target`, a page of the built book (`how-to/x.html#fragment`).
+    pub(super) fn request_doc_target(&mut self, target: String) {
         let url = self
             .config
             .resources
@@ -110,7 +114,14 @@ impl ShellModel {
             Err(e) => return e,
             Ok(Some(t)) if help::anchor(t).is_some() => t.to_owned(),
             Ok(Some(_)) => return failed("error-bad-param", &["topic"]),
-            Ok(None) => help::context_topic(self).to_owned(),
+            // WP-S2.09 part 2: F1 on a finding or rule row of the Messages pane opens the rule's page (§7.3).
+            Ok(None) => match self.messages_help_target() {
+                Some(target) => {
+                    self.request_doc_target(target);
+                    return Outcome::Done;
+                }
+                None => help::context_topic(self).to_owned(),
+            },
         };
         self.request_doc(&topic);
         Outcome::Done

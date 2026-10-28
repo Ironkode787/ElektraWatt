@@ -165,6 +165,25 @@ pub fn context_topic(model: &ShellModel) -> &'static str {
     }
 }
 
+// WP-S2.09 part 2
+/// The page and heading of a shipped rule in the book (§7.3): `reference/rules/<pack in lower case>.md` and the rule ID
+/// in lower case (`reference/rules/ew-core.md`, `ew-core-033`); `None` for a rule this build does not ship.
+pub fn rule_page(rule: &str) -> Option<(String, String)> {
+    let meta = ew_api::checks::rule(rule)?.meta();
+    Some((
+        format!("reference/rules/{}.md", meta.pack.to_lowercase()),
+        meta.id.to_lowercase(),
+    ))
+}
+
+/// The page of the built book for a shipped rule (F1 on a finding or rule row of the Messages pane):
+/// `reference/rules/ew-core.html#ew-core-033`.
+pub fn rule_target(rule: &str) -> Option<String> {
+    let (page, fragment) = rule_page(rule)?;
+    let page = page.strip_suffix(".md").unwrap_or(&page);
+    Some(format!("{page}.html#{fragment}"))
+}
+
 /// The page of the built book for an anchor, relative to the book's output directory: `how-to/x.html#fragment`.
 pub fn html_target(anchor: &Anchor) -> String {
     let page = anchor.page.strip_suffix(".md").unwrap_or(anchor.page);
@@ -230,6 +249,36 @@ mod tests {
                 assert!(anchor(topic).is_some(), "{} -> {topic}", meta.id);
             }
         }
+    }
+
+    /// WP-S2.09 MS4: every shipped rule has its page in `SUMMARY.md` and a heading with its ID on that page.
+    #[test]
+    fn every_shipped_rule_has_its_anchor_in_the_book() {
+        let summary = std::fs::read_to_string(Path::new(BOOK_SRC).join("SUMMARY.md")).expect("SUMMARY.md");
+        let rules = ew_api::checks::rules();
+        assert!(!rules.is_empty());
+        for r in rules {
+            let id = r.meta().id;
+            let (page, fragment) = rule_page(id).expect("a shipped rule");
+            assert!(summary.contains(&page), "{page} is not in SUMMARY.md");
+            let text = std::fs::read_to_string(Path::new(BOOK_SRC).join(&page))
+                .unwrap_or_else(|e| panic!("{page}: {e}"));
+            let found = text
+                .lines()
+                .filter_map(|l| l.strip_prefix('#'))
+                .map(|l| heading_id(l.trim_start_matches('#')))
+                .any(|h| h == fragment);
+            assert!(found, "{page}: no heading with the id `{fragment}`");
+        }
+        assert_eq!(
+            rule_page("EW-CORE-033"),
+            Some(("reference/rules/ew-core.md".to_owned(), "ew-core-033".to_owned()))
+        );
+        assert_eq!(
+            rule_target("EW-CORE-033").as_deref(),
+            Some("reference/rules/ew-core.html#ew-core-033")
+        );
+        assert_eq!(rule_page("EW-NONE-001"), None);
     }
 
     #[test]

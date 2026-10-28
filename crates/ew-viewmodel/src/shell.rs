@@ -47,6 +47,8 @@ mod interruption;
 pub(crate) use interruption::natural_cmp;
 // WP-S2.09 part 1: the export job, the notifications, the recovery dialog.
 mod jobs;
+// WP-S2.09 part 2: the message panel.
+mod messages;
 mod navigation;
 // WP-S2.06 part 1
 mod navigators;
@@ -64,7 +66,7 @@ pub use creation::{FormDialog, FormField, PAGE_TYPES, STRUCTURE_KINDS};
 pub use drawing::TextPopup;
 pub use navigation::{Focus, RECENT_PAGES, SessionCalls};
 // WP-S2.06 part 1
-pub use navigators::{Chip, DragSource, MAX_CHIPS, ShownRow};
+pub use navigators::{Chip, DragSource, FindingLook, MAX_CHIPS, ShownRow};
 pub use tools::SnapIndicator;
 
 /// Who drives the shell: the window or the headless runner. They share `dispatch`; the modes differ only where a
@@ -443,6 +445,9 @@ pub struct ShellModel {
     markers: Vec<HistoryMarker>,
     /// The recovery dialog that Discard... replaced with its confirmation: Cancel returns to it.
     recovery_stash: Option<Dialog>,
+    // WP-S2.09 part 2
+    /// The message panel's view state: the editing page, the scheme of its table, the quick fixes' origin annotations.
+    messages: crate::navigators::messages::MessagesState,
 }
 
 /// A maker of [`IdSource`]s for `ShellModel::set_id_source_for_tests` (feature `testkit`).
@@ -820,6 +825,7 @@ impl ShellModel {
             notes: crate::notifications::NotificationLog::default(),
             markers: Vec::new(),
             recovery_stash: None,
+            messages: crate::navigators::messages::MessagesState::default(),
         };
         model.load_active_workspace();
         model
@@ -1263,11 +1269,14 @@ impl ShellModel {
         // WP-S2.09 D6: a toast stays until it is dismissed, replaced by a toast of its key or pushed out by a fourth
         // (and, in the window, for 8 seconds); a later commit only expires its Undo (WP-S2.05 §6.6's rule that the next
         // committing action removed it gives way to the stack).
+        // WP-S2.09 part 2: the project session and revision before the action, for the editing page (§7.2).
+        let before = self.epoch_rev();
         let outcome = self.run_action(meta.id, p);
         // The canvases follow the pages and the revision the action left (WP-S2.02 section 6.1, WP-S2.03 §6.2), and a
         // busy tool is escaped when its canvas changed (WP-S2.03 §7.2); the property grid fetches its sheet when its
         // key changed (WP-S2.05 §9 item 4).
         self.sync_views();
+        self.track_editing_page(before);
         self.sync_tool_context();
         self.after_commit();
         // WP-S2.04 part 4b: a finished text edit returns to Select, the selection kept.
@@ -1374,6 +1383,12 @@ impl ShellModel {
             // WP-S2.06 part 2
             "navigator.highlight" => self.act_navigator_highlight(p),
             "view.clear_highlights" => self.act_clear_highlights(),
+            // WP-S2.09 part 2: the message panel (§7.6).
+            "messages.show" => self.act_messages_show(p),
+            "messages.next" => self.act_messages_walk(true),
+            "messages.previous" => self.act_messages_walk(false),
+            "messages.fix" => self.act_messages_fix(p),
+            "messages.check" => self.act_messages_check(),
             "ui.focus" => self.act_focus(p),
             "ui.focus_next" => self.act_focus_cycle(1),
             "ui.focus_previous" => self.act_focus_cycle(-1),
@@ -2071,12 +2086,15 @@ impl ShellModel {
         if let Some(outcome) = self.dismiss_properties() {
             return outcome;
         }
-        // WP-S2.06 part 1: Escape in a navigator cancels the reorder card.
+        // WP-S2.06 part 1: Escape in a navigator cancels the reorder card (WP-S2.09 part 2: and the quick-fix card).
         if matches!(self.focus, Some(Focus::Navigator(_)))
-            && self
-                .props
-                .card()
-                .is_some_and(|c| matches!(c.origin, crate::properties::CardOrigin::Reorder { .. }))
+            && self.props.card().is_some_and(|c| {
+                matches!(
+                    c.origin,
+                    crate::properties::CardOrigin::Reorder { .. }
+                        | crate::properties::CardOrigin::QuickFix { .. }
+                )
+            })
         {
             self.props.card = None;
             return Outcome::Done;

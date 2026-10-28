@@ -204,16 +204,23 @@ pub enum CardOrigin {
         /// The notices of `page.reorder`'s preview.
         notices: Vec<String>,
     },
+    // WP-S2.09 part 2
+    /// A finding's quick fix (`messages.fix`, §7.4): the card in the Messages pane, always previewed.
+    QuickFix {
+        /// The rule ID of the finding.
+        rule: String,
+    },
 }
 
 impl CardOrigin {
-    /// The transcript's word (`properties`, `find`, `import`, `reorder`).
+    /// The transcript's word (`properties`, `find`, `import`, `reorder`, `fix`).
     pub fn word(&self) -> &'static str {
         match self {
             CardOrigin::Properties => "properties",
             CardOrigin::Find { .. } => "find",
             CardOrigin::Import { .. } => "import",
             CardOrigin::Reorder { .. } => "reorder",
+            CardOrigin::QuickFix { .. } => "fix",
         }
     }
 }

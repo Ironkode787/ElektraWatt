@@ -105,6 +105,18 @@ pub struct ShownRow {
     pub openable: bool,
     /// What a drag of the row carries.
     pub drag: Option<DragSource>,
+    /// A finding row of the Messages navigator: its severity and whether it is pending (WP-S2.09 §7.3).
+    pub finding: Option<FindingLook>,
+}
+
+// WP-S2.09 part 2
+/// How a finding row is painted (§7.3, FR-UI-025): the severity's icon and colour, muted and outlined when pending.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct FindingLook {
+    /// The severity word: `error`, `warning` or `info`.
+    pub severity: &'static str,
+    /// Whether the finding is pending (§7.2).
+    pub pending: bool,
 }
 
 /// Whether a page row is a page record (not a generated page, not a section's divider).
@@ -235,6 +247,7 @@ impl ShellModel {
                             current,
                             openable,
                             drag,
+                            finding: None,
                         }
                     })
                     .collect()
@@ -244,16 +257,27 @@ impl ShellModel {
                     return Vec::new();
                 };
                 let Some(t) = n.table() else { return Vec::new() };
+                // WP-S2.09 part 2: a pending finding row carries the badge `pending` after its others.
+                let editing = (k == NavKind::Messages).then(|| self.editing_folio()).flatten();
                 n.visible()
                     .iter()
                     .map(|v| {
                         let node = &t.nodes[v.node as usize];
+                        let finding =
+                            crate::navigators::messages::severity(node).map(|severity| FindingLook {
+                                severity,
+                                pending: crate::navigators::messages::is_pending(node, editing.as_deref()),
+                            });
+                        let mut badges: Vec<&str> = node.badges.iter().map(String::as_str).collect();
+                        if finding.is_some_and(|f| f.pending) {
+                            badges.push("pending");
+                        }
                         let mut name = format!("{}, {}", node.label, node.role.word());
-                        for b in &node.badges {
+                        for b in &badges {
                             name.push_str(&format!(", {b}"));
                         }
                         let mut text = node.label.clone();
-                        for b in &node.badges {
+                        for b in &badges {
                             text.push_str(&format!(" [{b}]"));
                         }
                         let drag = (node.role == ew_api::output::NavRole::Function
@@ -274,6 +298,7 @@ impl ShellModel {
                             current: false,
                             openable: node.open.is_some(),
                             drag,
+                            finding,
                         }
                     })
                     .collect()
@@ -364,6 +389,10 @@ impl ShellModel {
             let Some(project) = &self.project else { return };
             let table = project.session.navigator_table(k);
             bump(&self.calls, |c| c.navigator_table += 1);
+            // WP-S2.09 part 2: the Messages pane's header names the scheme its table was built with.
+            if k == NavKind::Messages {
+                self.messages.scheme = Some(project.session.online_scheme().name);
+            }
             if let Some(n) = self.navs.get_mut(&k) {
                 n.table = Some(Arc::new(table));
             }
@@ -653,7 +682,12 @@ impl ShellModel {
             k => PaneKind::Navigator(k),
         };
         if on {
-            let layout = self.layout().with_navigator(pane);
+            // WP-S2.09 D14: the Messages navigator docks in the bottom dock, the others beside the Pages pane.
+            let layout = if kind == NavKind::Messages {
+                self.layout().with_bottom(pane)
+            } else {
+                self.layout().with_navigator(pane)
+            };
             self.replace_layout(layout);
             if kind != NavKind::Pages {
                 self.navs.entry(kind).or_insert_with(|| Navigator::new(kind));
@@ -1035,12 +1069,13 @@ impl ShellModel {
         }
     }
 
-    /// `navigator.apply` (Ctrl+Enter with a card in the pane): applies the reorder card.
+    /// `navigator.apply` (Ctrl+Enter with a card in the pane): applies the reorder card or (WP-S2.09 part 2) the
+    /// quick-fix card.
     pub(super) fn act_navigator_apply(&mut self) -> Outcome {
         if !self
             .props
             .card()
-            .is_some_and(|c| matches!(c.origin, CardOrigin::Reorder { .. }))
+            .is_some_and(|c| matches!(c.origin, CardOrigin::Reorder { .. } | CardOrigin::QuickFix { .. }))
         {
             return Outcome::Refused {
                 reason_key: "reason-no-card",

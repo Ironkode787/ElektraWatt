@@ -659,13 +659,16 @@ fn card_writable(m: &ShellModel) -> Result<(), &'static str> {
 }
 
 // WP-S2.06 part 1
-/// `navigator.apply`: a writable project with the Pages pane's reorder card on show.
+/// `navigator.apply`: a writable project with the Pages pane's reorder card or (WP-S2.09 part 2) the Messages pane's
+/// quick-fix card on show.
 fn reorder_card(m: &ShellModel) -> Result<(), &'static str> {
     writable(m)?;
-    if m.properties()
-        .card()
-        .is_some_and(|c| matches!(c.origin, crate::properties::CardOrigin::Reorder { .. }))
-    {
+    if m.properties().card().is_some_and(|c| {
+        matches!(
+            c.origin,
+            crate::properties::CardOrigin::Reorder { .. } | crate::properties::CardOrigin::QuickFix { .. }
+        )
+    }) {
         Ok(())
     } else {
         Err("reason-no-card")
@@ -1288,6 +1291,49 @@ pub static ACTIONS: &[ActionMeta] = &[
             always,
             slot(Menu::View),
         ),
+    ),
+    // WP-S2.09 part 2 (§7.6): View ▸ Messages, F8 and Shift+F8, the quick fix of a finding row.
+    with_params(
+        "on?:bool",
+        act(
+            "messages.show",
+            View,
+            "action-messages-show",
+            Menu::View,
+            &[],
+            project_open,
+            slot(Menu::View),
+        ),
+    ),
+    act(
+        "messages.next",
+        View,
+        "action-messages-next",
+        Menu::View,
+        &["F8"],
+        project_open,
+        None,
+    ),
+    act(
+        "messages.previous",
+        View,
+        "action-messages-previous",
+        Menu::View,
+        &["Shift+F8"],
+        project_open,
+        None,
+    ),
+    with_params(
+        "key?:text",
+        hidden(in_navigator(act(
+            "messages.fix",
+            Command,
+            "action-messages-fix",
+            Menu::Tools,
+            &[],
+            writable,
+            None,
+        ))),
     ),
     with_params(
         "scale:json",
@@ -2009,6 +2055,16 @@ pub static ACTIONS: &[ActionMeta] = &[
         always,
         slot(Menu::Tools),
     ),
+    // WP-S2.09 part 2 (§7.6): Tools ▸ Run checks.
+    act(
+        "messages.check",
+        Command,
+        "action-messages-check",
+        Menu::Tools,
+        &[],
+        project_open,
+        slot(Menu::Tools),
+    ),
     act(
         "tab.new",
         View,
@@ -2464,7 +2520,7 @@ pub static ACTIONS: &[ActionMeta] = &[
     ),
     // WP-S2.06 part 1: the navigator framework (§6.9).
     with_params(
-        "kind:enum(pages|devices|connections|strips|cables|plc|potentials|ips|structure|parts|blocks), on?:bool",
+        "kind:enum(pages|devices|connections|strips|cables|plc|potentials|ips|structure|parts|blocks|messages), on?:bool",
         needs_parameters(act(
             "navigator.show",
             View,
@@ -3355,6 +3411,8 @@ fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
             // WP-S2.09 part 1.
             "jobs.show" => model.jobs_shown(),
             "notifications.show" => model.notifications().popup_open(),
+            // WP-S2.09 part 2.
+            "messages.show" => model.navigator_open(crate::navigators::NavKind::Messages),
             "tool.select" | "tool.measure" => meta.id.strip_prefix("tool.") == Some(model.tool().name()),
             // WP-S2.04 part 2.
             "tool.wire" => model.tool().name() == "wire",
@@ -3403,10 +3461,14 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
             }
             items
         }
-        // WP-S2.06 part 1: one checked item per navigator.
+        // WP-S2.06 part 1: one checked item per navigator; the message panel has its own item, View ▸ Messages
+        // (WP-S2.09 part 2).
         Submenu::Navigators => {
             let mut items = Vec::new();
-            for kind in crate::navigators::NavKind::ALL {
+            for kind in crate::navigators::NavKind::ALL
+                .into_iter()
+                .filter(|k| *k != crate::navigators::NavKind::Messages)
+            {
                 let mut item = item_of(meta, model);
                 item.label = strings::text(crate::layout::nav_title_key(kind)).to_owned();
                 let open = model.navigator_open(kind);

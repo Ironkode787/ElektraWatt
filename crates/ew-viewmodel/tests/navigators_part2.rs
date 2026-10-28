@@ -389,8 +389,9 @@ fn np6_the_six_words_and_the_two_actions() {
     for w in NAV2_WORDS {
         assert!(VOCABULARY.contains(w), "{w}");
     }
-    assert_eq!(VOCABULARY.len(), 309);
-    assert_eq!(ew_viewmodel::actions::ACTIONS.len(), 225);
+    // WP-S2.09 part 2 adds the message panel's sixteen words and five actions.
+    assert_eq!(VOCABULARY.len(), 325);
+    assert_eq!(ew_viewmodel::actions::ACTIONS.len(), 230);
     let hl = ew_viewmodel::actions::ACTIONS
         .iter()
         .find(|a| a.id == "navigator.highlight")

@@ -1468,6 +1468,10 @@ impl ShellModel {
         if matches!(card.origin, CardOrigin::Reorder { .. }) {
             return self.apply_reorder_card(card);
         }
+        // WP-S2.09 part 2: a quick-fix card is the Messages pane's (`messages.fix`).
+        if matches!(card.origin, CardOrigin::QuickFix { .. }) {
+            return self.apply_fix_card(card);
+        }
         let Some(rev) = self.revision() else {
             return Outcome::Done;
         };

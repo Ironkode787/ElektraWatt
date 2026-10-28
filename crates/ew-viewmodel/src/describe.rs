@@ -372,6 +372,47 @@ pub const VOCABULARY: &[&str] = &[
     "base",
     "matches",
     "moved",
+    // The message panel (WP-S2.09 part 2, §7.6; ID-474 extended, ID-698): the 16 words of `MSG_WORDS`, a reviewed
+    // vocabulary change (`finding`, `error`, `warning`, `info`, `errors` and `pending` are older).
+    "messages",
+    "severity",
+    "rule",
+    "scheme",
+    "warnings",
+    "infos",
+    "waived",
+    "detail",
+    "title",
+    "message",
+    "fix",
+    "completeness",
+    "safety",
+    "conflict",
+    "hygiene",
+    "integrity",
+];
+
+// WP-S2.09 part 2
+/// The 16 words WP-S2.09 part 2 adds to [`VOCABULARY`] (§7.6): the kind word `messages`, the role words `severity` and
+/// `rule`, the header line's `scheme`, `warnings`, `infos` and `waived`, the detail lines' `detail`, `title`, `message`
+/// and `fix` (also the quick-fix card's origin word), and the five rule kinds.
+pub const MSG_WORDS: &[&str] = &[
+    "messages",
+    "severity",
+    "rule",
+    "scheme",
+    "warnings",
+    "infos",
+    "waived",
+    "detail",
+    "title",
+    "message",
+    "fix",
+    "completeness",
+    "safety",
+    "conflict",
+    "hygiene",
+    "integrity",
 ];
 
 // WP-S2.09 part 1
@@ -876,6 +917,20 @@ fn other_navigator_lines(model: &ShellModel, lines: &mut Vec<String>) {
             rows.len(),
             if rows.is_empty() { 0 } else { start + 1 },
         ));
+        // WP-S2.09 part 2: the Messages pane's header line (§7.6).
+        if kind == crate::navigators::NavKind::Messages
+            && let Some(c) = model.messages_counts()
+        {
+            lines.push(format!(
+                "  messages scheme \"{}\" errors {} warnings {} infos {} waived {} pending {}",
+                user(model.messages_scheme().unwrap_or_default()),
+                c.errors,
+                c.warnings,
+                c.infos,
+                c.waived,
+                c.pending
+            ));
+        }
         let table = nav.table();
         for r in rows.iter().skip(start).take(NAV_WINDOW) {
             let mut line = format!(
@@ -888,6 +943,10 @@ fn other_navigator_lines(model: &ShellModel, lines: &mut Vec<String>) {
                 for b in &n.badges {
                     line.push_str(&format!(" badge \"{}\"", user(b)));
                 }
+            }
+            // WP-S2.09 part 2: a pending finding's badge follows its others.
+            if r.finding.is_some_and(|f| f.pending) {
+                line.push_str(" badge \"pending\"");
             }
             match r.expanded {
                 Some(true) => line.push_str(" expanded"),
@@ -905,6 +964,22 @@ fn other_navigator_lines(model: &ShellModel, lines: &mut Vec<String>) {
                 line.push_str(&format!(" highlight {slot}"));
             }
             lines.push(line);
+        }
+        // WP-S2.09 part 2: the detail lines of the cursor's finding (§7.6).
+        if kind == crate::navigators::NavKind::Messages
+            && let Some(d) = model.messages_detail()
+        {
+            lines.push(format!(
+                "  detail rule \"{}\" title \"{}\" kind {} severity {}",
+                user(&d.rule),
+                user(&d.title),
+                d.kind,
+                d.severity
+            ));
+            lines.push(format!("  detail message \"{}\"", user(&d.message)));
+            if let Some(fix) = &d.fix {
+                lines.push(format!("  detail fix \"{}\"", user(fix)));
+            }
         }
     }
 }
@@ -1193,6 +1268,10 @@ fn card_and_toast_lines(model: &ShellModel, lines: &mut Vec<String>) {
                         for n in notices {
                             line.push_str(&format!(" \"{}\"", user(n)));
                         }
+                    }
+                    // WP-S2.09 part 2: the quick-fix card names its origin and the finding's rule.
+                    if let crate::properties::CardOrigin::QuickFix { rule } = &card.origin {
+                        line.push_str(&format!(" fix \"{}\"", user(rule)));
                     }
                     lines.push(line);
                 }
