@@ -16,7 +16,11 @@
 //! node, main first, then page order, cell row, cell column, ID; [`NavTable::index`] maps every record and drawable ID
 //! to the nodes that carry it, in node order.
 //!
-//! Part 1 builds Pages and Devices; the other kinds return their columns and no nodes until part 2.
+//! Part 1 built Pages and Devices; part 2 the nine further providers (§7.1): Connections and Potentials from the wire
+//! list and the potential overview, Terminal strips from each strip's terminal diagram, Cables from the cable
+//! overview, PLC from the PLC overview, Parts in use from the parts summary in component mode, Structure identifiers
+//! from the structure overview's node rows, and Interruption points and Report blocks with their own columns. A data
+//! row without records (a heading) is never a table row. Part 2 also adds [`Session::highlight_members`] (§7.3).
 
 use std::collections::BTreeMap;
 
@@ -496,15 +500,23 @@ impl Builder {
 
 impl Session {
     /// The table of navigator `kind` at the current revision (WP-S2.06 §4.2, §6.1): a plain function over `Q`,
-    /// deterministic, reading memoised queries and `ew_reports::project_rows` only. Part 1 builds Pages and Devices;
-    /// every other kind returns its columns and no nodes.
+    /// deterministic, reading memoised queries and `ew_reports::project_rows` only, for every kind of [`NavKind`].
     pub fn navigator_table(&self, kind: NavKind) -> NavTable {
         let rev = self.world().rev.0;
         let mut b = Builder { nodes: Vec::new() };
+        let q = self.query();
         match kind {
             NavKind::Pages => self.pages_table(&mut b),
-            NavKind::Devices => devices_table(&self.query(), &mut b),
-            _ => {}
+            NavKind::Devices => devices_table(&q, &mut b),
+            NavKind::Connections => connections_table(&q, &mut b),
+            NavKind::Strips => strips_table(&q, &mut b),
+            NavKind::Cables => cables_table(&q, &mut b),
+            NavKind::Plc => plc_table(&q, &mut b),
+            NavKind::Potentials => potentials_table(&q, &mut b),
+            NavKind::Ips => ips_table(&q, &mut b),
+            NavKind::Structure => structure_table(&q, &mut b),
+            NavKind::Parts => parts_table(&q, &mut b),
+            NavKind::Blocks => blocks_table(&q, &mut b),
         }
         b.finish(kind, rev)
     }
@@ -898,6 +910,1057 @@ fn device_node(
                 facets,
             );
         }
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Part 2: the nine further providers (§7.1)
+
+/// A plain group node (no records, no cells): a potential, a strip heading, a section, an aspect, a manufacturer.
+fn group(b: &mut Builder, parent: Option<u32>, role: NavRole, segment: &str, label: String) -> u32 {
+    b.push(
+        parent,
+        role,
+        segment,
+        label,
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        None,
+        vec![("kind".to_owned(), role.word().to_owned())],
+    )
+}
+
+/// `kind:<role>`, then one `page:<folio>` per distinct folio of the drawables (sorted).
+fn base_facets(role: NavRole, drawables: &[Drawable]) -> Vec<(String, String)> {
+    let mut facets = vec![("kind".to_owned(), role.word().to_owned())];
+    let mut pages: Vec<String> = drawables.iter().map(|x| x.folio.to_lowercase()).collect();
+    pages.sort();
+    pages.dedup();
+    facets.extend(pages.into_iter().map(|p| ("page".to_owned(), p)));
+    facets
+}
+
+/// The folio → page UUID of every page of the page order (drawn, divider and generated pages).
+fn folio_pages(q: &Q) -> BTreeMap<String, Uuid> {
+    let mut out = BTreeMap::new();
+    for e in &q.get::<PageOrder>(()).entries {
+        out.entry(e.folio.clone()).or_insert(super::page_uuid(e.page));
+    }
+    out
+}
+
+/// The drawables of a device (§6.1 item 6): the representations of its functions, main first, then page order, cell
+/// row, cell column, ID.
+fn device_drawables(
+    q: &Q,
+    folios: &BTreeMap<Id<Page>, (usize, String, Uuid)>,
+    d: Id<Device>,
+) -> Vec<Drawable> {
+    let mut v: Vec<Keyed> = Vec::new();
+    for f in q.idx().functions_of_device(d) {
+        let main = q.functions().get(f).is_some_and(|x| x.role == FnRole::Main);
+        v.extend(
+            q.idx()
+                .reps_of_function(f)
+                .filter_map(|r| drawable(q, folios, r, main)),
+        );
+    }
+    sorted(v)
+}
+
+/// The drawable of a connection: its page, and the cell of its first end that is a CP drawn on that page (else of
+/// its second end, else none). Every connection drawable counts as main.
+fn connection_drawable(
+    q: &Q,
+    folios: &BTreeMap<Id<Page>, (usize, String, Uuid)>,
+    c: Id<ew_derive::ew_schema::Connection>,
+) -> Option<Keyed> {
+    use ew_derive::ew_schema::Endpoint;
+    let con = q.connections().get(c)?;
+    let page = con.page?;
+    let (pos, folio, page_uuid) = folios.get(&page)?.clone();
+    let cell = [&con.a, &con.b].into_iter().find_map(|e| match e {
+        Endpoint::Cp(f, idx) => ew_derive::cp_cell(q, *f, *idx, page),
+        _ => None,
+    });
+    let (row, col, text) = cell.map_or((u32::MAX, u32::MAX, String::new()), |c| {
+        (c.row, c.column, c.to_string())
+    });
+    Some((
+        (false, pos, row, col, c.as_uuid()),
+        Drawable {
+            page: page_uuid,
+            folio,
+            cell: text,
+            record: c.as_uuid(),
+            main: true,
+        },
+    ))
+}
+
+/// The drawables of a list of connections, sorted.
+fn connection_drawables(
+    q: &Q,
+    folios: &BTreeMap<Id<Page>, (usize, String, Uuid)>,
+    cs: &[Id<ew_derive::ew_schema::Connection>],
+) -> Vec<Drawable> {
+    sorted(
+        cs.iter()
+            .filter_map(|c| connection_drawable(q, folios, *c))
+            .collect(),
+    )
+}
+
+/// The first UUID of a report row's ID.
+fn row_entity(id: &ew_reports::RowId, n: usize) -> Option<Uuid> {
+    id.entities().nth(n)
+}
+
+/// A report row's ID as a key segment: its text form with `/` read as `,` (the text form escapes a `/` inside a
+/// name, so the segment never holds one).
+fn row_segment(id: &ew_reports::RowId) -> String {
+    id.to_string().replace('/', ",")
+}
+
+/// The cell text of `key` in a row's texts.
+fn cell_of<'a>(set: &ew_reports::RowSet, texts: &'a [String], key: &str) -> &'a str {
+    set.column(key)
+        .and_then(|c| texts.get(c))
+        .map_or("", String::as_str)
+}
+
+/// One data row of the wire list as the Connections and Potentials navigators show it.
+struct WireListRow {
+    /// The row ID's key segment.
+    segment: String,
+    /// The label: the wire number, else `<from> <from CP> → <to> <to CP>`.
+    label: String,
+    /// The cells.
+    cells: Vec<String>,
+    /// The connections the row stands for.
+    records: Vec<Uuid>,
+    /// Those that are drawn.
+    drawables: Vec<Drawable>,
+    /// The potential cell.
+    potential: String,
+    /// Whether it is a bridge row (after the "Bridges" heading).
+    bridge: bool,
+}
+
+/// The wire list's data rows (§7.1, Connections): a physical-wire row stands for the constituent connections of its
+/// physical wire (`physical_wires_of` of every potential), a bridge row for the bridge connections of its strip and
+/// group.
+fn wire_list_rows(q: &Q) -> Vec<WireListRow> {
+    use ew_derive::ew_schema::{Connection, ConnectionKind, Endpoint};
+    use ew_derive::{PhysicalWiresOf, PotentialPartition};
+    let Some(set) = ew_reports::project_rows(q, "wire_list", None) else {
+        return Vec::new();
+    };
+    let folios = folios(q);
+    let partition = q.get::<PotentialPartition>(());
+    let mut constituents: BTreeMap<Uuid, Vec<Id<Connection>>> = BTreeMap::new();
+    for p in partition.potentials() {
+        for w in &q.get::<PhysicalWiresOf>(p.id).wires {
+            constituents
+                .entry(w.id.as_uuid())
+                .or_insert_with(|| w.constituents.clone());
+        }
+    }
+    let strip_of = |e: &Endpoint| -> Option<Id<Device>> {
+        let Endpoint::Cp(f, _) = e else { return None };
+        let d = q.functions().get(*f)?.device?;
+        q.devices().get(d)?.aspects.terminal.as_ref().map(|t| t.strip)
+    };
+    let mut bridges: BTreeMap<(Uuid, u32), Vec<Id<Connection>>> = BTreeMap::new();
+    for (_, c) in q.connections().iter() {
+        let ConnectionKind::Bridge(spec) = &c.kind else {
+            continue;
+        };
+        if let Some(strip) = strip_of(&c.a).or_else(|| strip_of(&c.b)) {
+            bridges
+                .entry((strip.as_uuid(), u32::from(spec.group)))
+                .or_default()
+                .push(c.id);
+        }
+    }
+    let mut out = Vec::new();
+    let mut after_heading = false;
+    for (i, r) in set.rows.iter().enumerate() {
+        if r.kind != ew_reports::RowKind::Data {
+            after_heading = true;
+            continue;
+        }
+        let texts = ew_reports::csv::row_texts(q, &set, i);
+        let mut cons: Vec<Id<Connection>> = if after_heading {
+            let group = r.id.0.iter().find_map(|k| match k {
+                ew_reports::RowKey::Index(g) => Some(*g),
+                _ => None,
+            });
+            match (row_entity(&r.id, 0), group) {
+                (Some(strip), Some(g)) => bridges.get(&(strip, g)).cloned().unwrap_or_default(),
+                _ => Vec::new(),
+            }
+        } else {
+            row_entity(&r.id, 0)
+                .and_then(|w| constituents.get(&w).cloned())
+                .unwrap_or_default()
+        };
+        cons.sort();
+        cons.dedup();
+        let number = cell_of(&set, &texts, "no");
+        let label = if number.is_empty() {
+            format!(
+                "{} {} \u{2192} {} {}",
+                cell_of(&set, &texts, "from"),
+                cell_of(&set, &texts, "from_cp"),
+                cell_of(&set, &texts, "to"),
+                cell_of(&set, &texts, "to_cp")
+            )
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ")
+        } else {
+            number.to_owned()
+        };
+        out.push(WireListRow {
+            segment: row_segment(&r.id),
+            label,
+            potential: cell_of(&set, &texts, "potential").to_owned(),
+            records: cons.iter().map(|c| c.as_uuid()).collect(),
+            drawables: connection_drawables(q, &folios, &cons),
+            cells: texts,
+            bridge: after_heading,
+        });
+    }
+    out
+}
+
+/// Pushes one wire-list row as a connection node.
+fn push_wire_row(b: &mut Builder, parent: u32, w: &WireListRow, table_row: bool) -> u32 {
+    let mut facets = base_facets(NavRole::Connection, &w.drawables);
+    for p in w
+        .potential
+        .split('\u{21C4}')
+        .map(str::trim)
+        .filter(|p| !p.is_empty())
+    {
+        facets.push(("potential".to_owned(), p.to_lowercase()));
+    }
+    b.push(
+        Some(parent),
+        NavRole::Connection,
+        &format!("connection:{}", w.segment),
+        w.label.clone(),
+        Vec::new(),
+        w.records.clone(),
+        w.drawables.clone(),
+        table_row.then(|| w.cells.clone()),
+        facets,
+    )
+}
+
+/// Connections (§7.1): potential → physical-wire rows; a `Bridges` group → the bridge rows.
+fn connections_table(q: &Q, b: &mut Builder) {
+    let rows = wire_list_rows(q);
+    let mut groups: BTreeMap<String, u32> = BTreeMap::new();
+    let mut bridges: Option<u32> = None;
+    for w in &rows {
+        let parent = if w.bridge {
+            *bridges.get_or_insert_with(|| {
+                group(b, None, NavRole::Section, "section:Bridges", "Bridges".to_owned())
+            })
+        } else {
+            let name = if w.potential.is_empty() {
+                "(none)".to_owned()
+            } else {
+                w.potential.clone()
+            };
+            match groups.get(&name) {
+                Some(g) => *g,
+                None => {
+                    let g = group(
+                        b,
+                        None,
+                        NavRole::Potential,
+                        &format!("potential:{name}"),
+                        name.clone(),
+                    );
+                    groups.insert(name, g);
+                    g
+                }
+            }
+        };
+        push_wire_row(b, parent, w, true);
+    }
+}
+
+/// The strips of the project in natural tag order.
+fn strips(q: &Q) -> Vec<Id<Device>> {
+    let mut v: Vec<(NaturalKey, Id<Device>)> = q
+        .devices()
+        .ids()
+        .filter(|d| q.devices().get(*d).is_some_and(|x| x.aspects.strip.is_some()))
+        .map(|d| (natural_key(&short_tag(q, d)), d))
+        .collect();
+    v.sort();
+    v.into_iter().map(|(_, d)| d).collect()
+}
+
+/// A device's short tag.
+fn short_tag(q: &Q, d: Id<Device>) -> String {
+    q.get::<DeviceTag>(d)
+        .as_ref()
+        .as_ref()
+        .map(ew_derive::Tag::short)
+        .unwrap_or_default()
+}
+
+/// Terminal strips (§7.1): strip → terminal rows; the table is each strip's terminal diagram with a leading `strip`
+/// column.
+fn strips_table(q: &Q, b: &mut Builder) {
+    let folios = folios(q);
+    for strip in strips(q) {
+        let Some(set) = ew_reports::project_rows(q, "terminal_diagram", Some(strip.as_uuid())) else {
+            continue;
+        };
+        let tag = short_tag(q, strip);
+        let mut terminals = Vec::new();
+        for (i, r) in set.rows.iter().enumerate() {
+            if r.kind != ew_reports::RowKind::Data {
+                continue;
+            }
+            let Some(t) = row_entity(&r.id, 1) else { continue };
+            terminals.push((i, t));
+        }
+        let spare = |t: Uuid| {
+            q.devices()
+                .get(Id::from_uuid(t))
+                .is_some_and(|d| d.state == DeviceState::Spare)
+        };
+        let n_spare = terminals.iter().filter(|(_, t)| spare(*t)).count();
+        let drawables = device_drawables(q, &folios, strip);
+        let mut badges = Vec::new();
+        if n_spare > 0 {
+            badges.push(format!("{n_spare} spare"));
+        }
+        let facets = base_facets(NavRole::Strip, &drawables);
+        let snode = b.push(
+            None,
+            NavRole::Strip,
+            &format!("strip:{}", strip.as_uuid()),
+            tag.clone(),
+            badges,
+            vec![strip.as_uuid()],
+            drawables,
+            None,
+            facets,
+        );
+        for (i, t) in terminals {
+            let texts = ew_reports::csv::row_texts(q, &set, i);
+            let id: Id<Device> = Id::from_uuid(t);
+            let drawables = device_drawables(q, &folios, id);
+            let mut facets = base_facets(NavRole::Terminal, &drawables);
+            let mut badges = Vec::new();
+            if let Some(d) = q.devices().get(id) {
+                if d.state == DeviceState::Spare {
+                    badges.push("spare".to_owned());
+                }
+                facets.push(("state".to_owned(), state_word(&d.state).to_owned()));
+            }
+            let potential = cell_of(&set, &texts, "potential");
+            if !potential.is_empty() {
+                facets.push(("potential".to_owned(), potential.to_lowercase()));
+            }
+            let part = cell_of(&set, &texts, "part");
+            if !part.is_empty() {
+                facets.push(("part".to_owned(), part.to_lowercase()));
+            }
+            let label = cell_of(&set, &texts, "terminal").to_owned();
+            let mut cells = vec![tag.clone()];
+            cells.extend(texts);
+            b.push(
+                Some(snode),
+                NavRole::Terminal,
+                &format!("terminal:{t}"),
+                label,
+                badges,
+                vec![t],
+                drawables,
+                Some(cells),
+                facets,
+            );
+        }
+    }
+}
+
+/// Cables (§7.1): the per-cable rows of the cable overview as cable rows, the core rows as conductor rows under them;
+/// the headings are dropped.
+fn cables_table(q: &Q, b: &mut Builder) {
+    use ew_derive::ew_schema::{Conductor, ConnectionKind};
+    let Some(set) = ew_reports::project_rows(q, "cable_overview_diagrams", None) else {
+        return;
+    };
+    let folios = folios(q);
+    let mut cables: BTreeMap<Uuid, u32> = BTreeMap::new();
+    for (i, r) in set.rows.iter().enumerate() {
+        if r.kind != ew_reports::RowKind::Data {
+            continue;
+        }
+        let Some(cable) = row_entity(&r.id, 0) else {
+            continue;
+        };
+        let texts = ew_reports::csv::row_texts(q, &set, i);
+        let part = cell_of(&set, &texts, "part").to_lowercase();
+        match row_entity(&r.id, 1) {
+            None => {
+                let drawables = device_drawables(q, &folios, Id::from_uuid(cable));
+                let mut facets = base_facets(NavRole::Cable, &drawables);
+                if !part.is_empty() {
+                    facets.push(("part".to_owned(), part));
+                }
+                let n = b.push(
+                    None,
+                    NavRole::Cable,
+                    &format!("cable:{cable}"),
+                    cell_of(&set, &texts, "cable").to_owned(),
+                    Vec::new(),
+                    vec![cable],
+                    drawables,
+                    Some(texts),
+                    facets,
+                );
+                cables.insert(cable, n);
+            }
+            Some(core) => {
+                let Some(&parent) = cables.get(&cable) else {
+                    continue;
+                };
+                let cid: Id<Conductor> = Id::from_uuid(core);
+                let mut cons: Vec<Id<ew_derive::ew_schema::Connection>> = q
+                    .connections()
+                    .iter()
+                    .filter(|(_, c)| matches!(c.kind, ConnectionKind::Core(x) if x == cid))
+                    .map(|(_, c)| c.id)
+                    .collect();
+                cons.sort();
+                let drawables = connection_drawables(q, &folios, &cons);
+                let facets = base_facets(NavRole::Conductor, &drawables);
+                b.push(
+                    Some(parent),
+                    NavRole::Conductor,
+                    &format!("conductor:{core}"),
+                    cell_of(&set, &texts, "core").to_owned(),
+                    Vec::new(),
+                    vec![cable, core],
+                    drawables,
+                    Some(texts),
+                    facets,
+                );
+            }
+        }
+    }
+}
+
+/// PLC (§7.1): station → module → channel rows of the PLC overview.
+fn plc_table(q: &Q, b: &mut Builder) {
+    use ew_derive::PlcRows;
+    let Some(set) = ew_reports::project_rows(q, "plc_overview", None) else {
+        return;
+    };
+    let folios = folios(q);
+    // The channel → (module, representation) of every station's PLC rows (the rows the PLC overview lists).
+    let mut channels: BTreeMap<Uuid, (Id<Device>, Option<Id<Representation>>)> = BTreeMap::new();
+    for station in ew_derive::stations(q) {
+        for r in q.get::<PlcRows>(station).iter() {
+            channels.insert(r.channel.as_uuid(), (r.module, r.rep));
+        }
+    }
+    let mut stations: BTreeMap<Option<Uuid>, u32> = BTreeMap::new();
+    let mut modules: BTreeMap<Uuid, u32> = BTreeMap::new();
+    for (i, r) in set.rows.iter().enumerate() {
+        if r.kind != ew_reports::RowKind::Data {
+            continue;
+        }
+        let Some(ch) = row_entity(&r.id, 0) else { continue };
+        let Some(&(module, rep)) = channels.get(&ch) else {
+            continue;
+        };
+        let texts = ew_reports::csv::row_texts(q, &set, i);
+        // The station: the module device's parent with the station aspect, else none.
+        let st = q
+            .devices()
+            .get(module)
+            .and_then(|d| d.parent)
+            .filter(|p| {
+                q.devices()
+                    .get(*p)
+                    .is_some_and(|x| x.aspects.plc_station.is_some())
+            })
+            .map(|s| s.as_uuid());
+        let snode = match stations.get(&st) {
+            Some(n) => *n,
+            None => {
+                let n = match st {
+                    Some(s) => {
+                        let id: Id<Device> = Id::from_uuid(s);
+                        let drawables = device_drawables(q, &folios, id);
+                        let facets = base_facets(NavRole::Station, &drawables);
+                        b.push(
+                            None,
+                            NavRole::Station,
+                            &format!("station:{s}"),
+                            short_tag(q, id),
+                            Vec::new(),
+                            vec![s],
+                            drawables,
+                            None,
+                            facets,
+                        )
+                    }
+                    None => group(b, None, NavRole::Station, "station:-", "(none)".to_owned()),
+                };
+                stations.insert(st, n);
+                n
+            }
+        };
+        let mnode = match modules.get(&module.as_uuid()) {
+            Some(n) => *n,
+            None => {
+                let drawables = device_drawables(q, &folios, module);
+                let facets = base_facets(NavRole::Module, &drawables);
+                let n = b.push(
+                    Some(snode),
+                    NavRole::Module,
+                    &format!("module:{}", module.as_uuid()),
+                    short_tag(q, module),
+                    Vec::new(),
+                    vec![module.as_uuid()],
+                    drawables,
+                    None,
+                    facets,
+                );
+                modules.insert(module.as_uuid(), n);
+                n
+            }
+        };
+        let state = cell_of(&set, &texts, "state").to_owned();
+        let mut badges = Vec::new();
+        let mut facets = vec![("kind".to_owned(), "channel".to_owned())];
+        if state == "spare" {
+            badges.push("spare".to_owned());
+        }
+        if ["used", "spare", "reserved", "not_fitted"].contains(&state.as_str()) {
+            facets.push(("state".to_owned(), state));
+        }
+        let page = rep
+            .and_then(|r| q.reps().get(r))
+            .and_then(|r| folios.get(&r.page).cloned());
+        if let Some((_, folio, _)) = &page {
+            facets.push(("page".to_owned(), folio.to_lowercase()));
+        }
+        let address = cell_of(&set, &texts, "address");
+        let label = if address.is_empty() {
+            cell_of(&set, &texts, "channel").to_owned()
+        } else {
+            address.to_owned()
+        };
+        let n = b.push(
+            Some(mnode),
+            NavRole::Channel,
+            &format!("channel:{ch}"),
+            label,
+            badges,
+            vec![ch, module.as_uuid()],
+            Vec::new(),
+            Some(texts),
+            facets,
+        );
+        b.nodes[n as usize].open = page.map(|(_, _, p)| NavOpen {
+            page: p,
+            select: Vec::new(),
+        });
+    }
+}
+
+/// Potentials (§7.1): the potential overview's rows, each with the physical-wire rows of the wire list whose potential
+/// cell names it (a bond wire's `A ⇄ B` names both).
+fn potentials_table(q: &Q, b: &mut Builder) {
+    let Some(set) = ew_reports::project_rows(q, "potential_overview", None) else {
+        return;
+    };
+    let wires = wire_list_rows(q);
+    let pages = folio_pages(q);
+    for (i, r) in set.rows.iter().enumerate() {
+        if r.kind != ew_reports::RowKind::Data {
+            continue;
+        }
+        let Some(record) = row_entity(&r.id, 0) else {
+            continue;
+        };
+        let texts = ew_reports::csv::row_texts(q, &set, i);
+        let name = cell_of(&set, &texts, "potential").to_owned();
+        let bond =
+            r.id.0
+                .iter()
+                .any(|k| matches!(k, ew_reports::RowKey::Name(n) if n == "bond"));
+        let mut facets = vec![("kind".to_owned(), "potential".to_owned())];
+        let first = cell_of(&set, &texts, "pages")
+            .split([',', '\u{2013}'])
+            .map(str::trim)
+            .find(|s| !s.is_empty())
+            .map(str::to_owned);
+        if !bond {
+            facets.push(("potential".to_owned(), name.to_lowercase()));
+        }
+        if let Some(f) = &first {
+            facets.push(("page".to_owned(), f.to_lowercase()));
+        }
+        let segment = format!("potential:{}", row_segment(&r.id));
+        let n = b.push(
+            None,
+            NavRole::Potential,
+            &segment,
+            name.clone(),
+            Vec::new(),
+            vec![record],
+            Vec::new(),
+            Some(texts),
+            facets,
+        );
+        b.nodes[n as usize].open = first.and_then(|f| pages.get(&f)).map(|p| NavOpen {
+            page: *p,
+            select: Vec::new(),
+        });
+        if bond {
+            continue;
+        }
+        for w in wires
+            .iter()
+            .filter(|w| !w.bridge && w.potential.split('\u{21C4}').map(str::trim).any(|p| p == name))
+        {
+            push_wire_row(b, n, w, false);
+        }
+    }
+}
+
+/// Interruption points (§7.1): name → point rows, from the interruption-point pairing.
+fn ips_table(q: &Q, b: &mut Builder) {
+    use ew_derive::ew_schema::IpDirection;
+    use ew_derive::{IpPairingQ, RepAnchorCell};
+    let pairing = q.get::<IpPairingQ>(());
+    let folios = folios(q);
+    let page_cell = |rep: Option<Id<Representation>>| -> String {
+        let Some(r) = rep.and_then(|r| q.reps().get(r)) else {
+            return String::new();
+        };
+        let folio = folios.get(&r.page).map(|x| x.1.clone()).unwrap_or_default();
+        match q.get::<RepAnchorCell>(r.id).as_ref() {
+            Some(c) => format!("{folio}-{c}"),
+            None => folio,
+        }
+    };
+    let mut names: BTreeMap<String, u32> = BTreeMap::new();
+    let mut points: Vec<(NaturalKey, &ew_derive::IpInfo)> =
+        pairing.ips.values().map(|i| (natural_key(&i.name), i)).collect();
+    points.sort_by(|a, b| a.0.cmp(&b.0).then(a.1.function.cmp(&b.1.function)));
+    for (_, info) in points {
+        let gnode = match names.get(&info.name) {
+            Some(n) => *n,
+            None => {
+                let n = group(
+                    b,
+                    None,
+                    NavRole::Name,
+                    &format!("name:{}", info.name),
+                    info.name.clone(),
+                );
+                names.insert(info.name.clone(), n);
+                n
+            }
+        };
+        let partner = if info.external {
+            "external".to_owned()
+        } else {
+            pairing
+                .partners(info.function)
+                .iter()
+                .map(|p| page_cell(pairing.ips.get(p).and_then(|x| x.rep)))
+                .collect::<Vec<_>>()
+                .join(", ")
+        };
+        let direction = match info.direction {
+            IpDirection::Source => "source",
+            IpDirection::Target => "target",
+            IpDirection::Undirected => "undirected",
+            IpDirection::Unknown(_) => "unknown",
+        };
+        let pc = page_cell(info.rep);
+        let cells = vec![
+            info.name.clone(),
+            pc.clone(),
+            direction.to_owned(),
+            partner,
+            if info.external { "yes" } else { "no" }.to_owned(),
+        ];
+        let drawables = sorted(
+            info.rep
+                .and_then(|r| drawable(q, &folios, r, true))
+                .into_iter()
+                .collect(),
+        );
+        let facets = base_facets(NavRole::Ip, &drawables);
+        let badges = if info.external {
+            vec!["external".to_owned()]
+        } else {
+            Vec::new()
+        };
+        b.push(
+            Some(gnode),
+            NavRole::Ip,
+            &format!("ip:{}", info.function.as_uuid()),
+            if pc.is_empty() { info.name.clone() } else { pc },
+            badges,
+            vec![info.function.as_uuid()],
+            drawables,
+            Some(cells),
+            facets,
+        );
+    }
+}
+
+/// Structure identifiers (§7.1): aspect → structure nodes (nested by `parent`), the structure-node rows of the
+/// structure overview with a `usage` column (the devices and pages that name the node). A node's aliases are filter
+/// tokens (they are never printed, D-03).
+fn structure_table(q: &Q, b: &mut Builder) {
+    use ew_derive::ew_schema::{Open, StructureNode};
+    use ew_derive::{DevicesByStructure, PageStructure};
+    let Some(set) = ew_reports::project_rows(q, "structure_overview", None) else {
+        return;
+    };
+    let by_device = q.get::<DevicesByStructure>(());
+    let mut by_page: BTreeMap<Id<StructureNode>, usize> = BTreeMap::new();
+    for p in q.pages().ids() {
+        for s in q.get::<PageStructure>(p).slots.values() {
+            *by_page.entry(s.node).or_default() += 1;
+        }
+    }
+    // The structure-node rows, by node.
+    let mut rows: Vec<(Id<StructureNode>, Vec<String>)> = Vec::new();
+    for (i, r) in set.rows.iter().enumerate() {
+        let Some(u) = row_entity(&r.id, 0) else { continue };
+        let id: Id<StructureNode> = Id::from_uuid(u);
+        if !q.structure_nodes().contains(id) {
+            continue;
+        }
+        let mut texts = ew_reports::csv::row_texts(q, &set, i);
+        let usage = by_device.get(&id).map_or(0, Vec::len) + by_page.get(&id).copied().unwrap_or(0);
+        texts.push(usage.to_string());
+        rows.push((id, texts));
+    }
+    let aspect_of = |id: Id<StructureNode>| match q.structure_nodes().get(id).map(|n| n.aspect.clone()) {
+        Some(Open::Known(a)) => Some(a),
+        _ => None,
+    };
+    let mut aspects: Vec<Option<Aspect>> = rows.iter().map(|(id, _)| aspect_of(*id)).collect();
+    aspects.sort();
+    aspects.dedup();
+    // Aspects in declaration order, an unknown aspect last.
+    aspects.sort_by_key(|a| (a.is_none(), *a));
+    let mut placed: BTreeMap<Id<StructureNode>, u32> = BTreeMap::new();
+    for aspect in aspects {
+        let (role, word) = match aspect {
+            Some(Aspect::Function) => (NavRole::Function, "function"),
+            Some(Aspect::Location) => (NavRole::Location, "location"),
+            Some(a) => (NavRole::StructureNode, a.as_str()),
+            None => (NavRole::StructureNode, "unknown"),
+        };
+        let anode = group(b, None, role, &format!("aspect:{word}"), word.to_owned());
+        let mine: Vec<&(Id<StructureNode>, Vec<String>)> =
+            rows.iter().filter(|(id, _)| aspect_of(*id) == aspect).collect();
+        // Parents first (by depth), then natural designation; a parent outside the aspect puts the node under it.
+        let mut order = mine;
+        order.sort_by_key(|(id, t)| {
+            (
+                depth(q, *id),
+                natural_key(t.first().map_or("", String::as_str)),
+                *id,
+            )
+        });
+        for (id, texts) in order {
+            let parent = q
+                .structure_nodes()
+                .get(*id)
+                .and_then(|n| n.parent)
+                .and_then(|p| placed.get(&p).copied())
+                .unwrap_or(anode);
+            let facets = vec![("kind".to_owned(), "structure_node".to_owned())];
+            let n = b.push(
+                Some(parent),
+                NavRole::StructureNode,
+                &format!("structure_node:{}", id.as_uuid()),
+                texts.first().cloned().unwrap_or_default(),
+                Vec::new(),
+                vec![id.as_uuid()],
+                Vec::new(),
+                Some(texts.clone()),
+                facets,
+            );
+            if let Some(node) = q.structure_nodes().get(*id) {
+                let t = &mut b.nodes[n as usize].tokens;
+                t.extend(node.aliases.iter().flat_map(|a| tokens(a.as_str())));
+                t.sort();
+                t.dedup();
+            }
+            placed.insert(*id, n);
+        }
+    }
+}
+
+/// The depth of a structure node (0 at the top), bounded by the table's size.
+fn depth(q: &Q, id: Id<ew_derive::ew_schema::StructureNode>) -> usize {
+    let mut d = 0;
+    let mut at = q.structure_nodes().get(id).and_then(|n| n.parent);
+    while let Some(p) = at {
+        d += 1;
+        if d > q.structure_nodes().len() {
+            break;
+        }
+        at = q.structure_nodes().get(p).and_then(|n| n.parent);
+    }
+    d
+}
+
+/// Parts in use (§7.1): manufacturer → part (the parts summary's rows in component mode) → the devices it counts.
+fn parts_table(q: &Q, b: &mut Builder) {
+    let Some(set) = ew_reports::project_rows(q, "parts_summary", None) else {
+        return;
+    };
+    let folios = folios(q);
+    let mut makers: BTreeMap<String, u32> = BTreeMap::new();
+    for (i, r) in set.rows.iter().enumerate() {
+        if r.kind != ew_reports::RowKind::Data {
+            continue;
+        }
+        let texts = ew_reports::csv::row_texts(q, &set, i);
+        let maker = cell_of(&set, &texts, "manufacturer").to_owned();
+        let maker = if maker.is_empty() {
+            "(none)".to_owned()
+        } else {
+            maker
+        };
+        let mnode = match makers.get(&maker) {
+            Some(n) => *n,
+            None => {
+                let n = group(
+                    b,
+                    None,
+                    NavRole::Manufacturer,
+                    &format!("manufacturer:{maker}"),
+                    maker.clone(),
+                );
+                makers.insert(maker, n);
+                n
+            }
+        };
+        let devices: Vec<Id<Device>> = r.sources.iter().map(|s| Id::from_uuid(s.as_uuid())).collect();
+        let number = cell_of(&set, &texts, "part_number").to_owned();
+        let mut facets = vec![("kind".to_owned(), "part".to_owned())];
+        if !number.is_empty() {
+            facets.push(("part".to_owned(), number.to_lowercase()));
+        }
+        let pnode = b.push(
+            Some(mnode),
+            NavRole::Part,
+            &format!("part:{}", row_segment(&r.id)),
+            number.clone(),
+            Vec::new(),
+            devices.iter().map(|d| d.as_uuid()).collect(),
+            Vec::new(),
+            Some(texts),
+            facets,
+        );
+        for d in devices {
+            let drawables = device_drawables(q, &folios, d);
+            let mut facets = base_facets(NavRole::Device, &drawables);
+            if !number.is_empty() {
+                facets.push(("part".to_owned(), number.to_lowercase()));
+            }
+            b.push(
+                Some(pnode),
+                NavRole::Device,
+                &format!("device:{}", d.as_uuid()),
+                short_tag(q, d),
+                Vec::new(),
+                vec![d.as_uuid()],
+                drawables,
+                None,
+                facets,
+            );
+        }
+    }
+}
+
+/// Report blocks (§7.1): section (by number, front matter first) → one row per report block with its title, kind,
+/// first folio (an embedded block's page), section and number of generated pages.
+fn blocks_table(q: &Q, b: &mut Builder) {
+    use ew_derive::ew_schema::{ReportBlock, ReportSource, Section};
+    let order = q.get::<PageOrder>(());
+    // (sort key: section number, first page position, ID), cells, ID, open page, section.
+    type BlockRow = (
+        (Option<u16>, usize, Uuid),
+        Vec<String>,
+        Uuid,
+        Option<Uuid>,
+        Option<Id<Section>>,
+    );
+    let mut rows: Vec<BlockRow> = Vec::new();
+    for id in q.report_blocks().ids() {
+        let Some(block) = q.report_blocks().get(id) else {
+            continue;
+        };
+        let block: &ReportBlock = block;
+        let generated: Vec<(usize, &ew_derive::PageEntry)> = order
+            .entries
+            .iter()
+            .enumerate()
+            .filter(|(_, e)| matches!(e.page, PageRef::Generated { block, .. } if block == id))
+            .collect();
+        let host = block.embedded.as_ref().and_then(|e| {
+            order
+                .entries
+                .iter()
+                .enumerate()
+                .find(|(_, e2)| e2.page == PageRef::Drawn(e.page))
+        });
+        let first = generated.first().copied().or(host);
+        let section = first.map_or(block.section, |(_, e)| e.section);
+        let number = section.and_then(|s| q.sections().get(s)).map(|s| s.number);
+        let kind = match &block.source {
+            ReportSource::Kind(k) => ew_reports::kind_name(k).unwrap_or("unknown").to_owned(),
+            ReportSource::SqlQuery(_) => "sql".to_owned(),
+            _ => "unknown".to_owned(),
+        };
+        let title = super::view::neutral(&block.title);
+        let title = if title.is_empty() { kind.clone() } else { title };
+        let cells = vec![
+            title,
+            kind,
+            first.map(|(_, e)| e.folio.clone()).unwrap_or_default(),
+            number.map(|n| n.to_string()).unwrap_or_default(),
+            generated.len().to_string(),
+        ];
+        let open = generated.first().map(|(_, e)| super::page_uuid(e.page));
+        rows.push((
+            (number, first.map_or(usize::MAX, |(i, _)| i), id.as_uuid()),
+            cells,
+            id.as_uuid(),
+            open,
+            section,
+        ));
+    }
+    rows.sort_by_key(|r| r.0);
+    let mut sections: BTreeMap<Option<u16>, u32> = BTreeMap::new();
+    for ((number, _, _), cells, id, open, section) in rows {
+        let snode = match sections.get(&number) {
+            Some(n) => *n,
+            None => {
+                let (segment, label) = match (number, section.and_then(|s| q.sections().get(s))) {
+                    (Some(n), Some(s)) => (
+                        format!("section:{n}"),
+                        format!("Section {n} - {}", super::view::neutral(&s.title)),
+                    ),
+                    _ => ("section:front".to_owned(), "Front matter".to_owned()),
+                };
+                let n = group(b, None, NavRole::Section, &segment, label);
+                sections.insert(number, n);
+                n
+            }
+        };
+        let facets = vec![("kind".to_owned(), "report_block".to_owned())];
+        let n = b.push(
+            Some(snode),
+            NavRole::ReportBlock,
+            &format!("report_block:{id}"),
+            cells[0].clone(),
+            Vec::new(),
+            vec![id],
+            Vec::new(),
+            Some(cells),
+            facets,
+        );
+        b.nodes[n as usize].open = open.map(|p| NavOpen {
+            page: p,
+            select: Vec::new(),
+        });
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Highlighting (§7.3, D14)
+
+/// What a highlight shows (§4.2): a potential, named by a potential overview row's record, or the net of a connection.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub enum HighlightTarget {
+    /// The potential whose ID (a definition's or a CP's) is this.
+    Potential(Uuid),
+    /// The net that contains this connection.
+    Net(Uuid),
+}
+
+impl Session {
+    /// The connection IDs a highlight draws (WP-S2.06 §4.2, §7.3), sorted: for a potential the connections with an end
+    /// on it (by the potential partition; a bond's `via` counts for both of its potentials), for a connection the
+    /// connections of its page-local net (the connection alone when it joins no net, a bridge). Empty for an unknown
+    /// ID. Reads memoised queries only.
+    pub fn highlight_members(&self, target: &HighlightTarget) -> Vec<Uuid> {
+        use ew_derive::ew_schema::Connection;
+        use ew_derive::{PageLocalNets, PotentialId, PotentialPartition};
+        use ew_model::EndpointKey;
+        let q = self.query();
+        let mut out: Vec<Uuid> = match target {
+            HighlightTarget::Potential(u) => {
+                let partition = q.get::<PotentialPartition>(());
+                let Some(p) = partition
+                    .potentials()
+                    .find(|p| match p.id {
+                        PotentialId::Def(d) => d.as_uuid() == *u,
+                        PotentialId::Cp(c) => c.as_uuid() == *u,
+                    })
+                    .map(|p| p.id)
+                else {
+                    return Vec::new();
+                };
+                q.connections()
+                    .iter()
+                    .filter(|(_, c)| {
+                        [&c.a, &c.b].into_iter().any(|e| {
+                            EndpointKey::of(e)
+                                .and_then(|k| partition.potential_at(k))
+                                .is_some_and(|x| x.id == p)
+                        })
+                    })
+                    .map(|(_, c)| c.id.as_uuid())
+                    .collect()
+            }
+            HighlightTarget::Net(u) => {
+                let id: Id<Connection> = Id::from_uuid(*u);
+                let Some(c) = q.connections().get(id) else {
+                    return Vec::new();
+                };
+                let net = c.page.and_then(|page| {
+                    q.get::<PageLocalNets>(page)
+                        .nets
+                        .iter()
+                        .find(|n| n.connections.contains(&id))
+                        .map(|n| n.connections.iter().map(|x| x.as_uuid()).collect::<Vec<_>>())
+                });
+                net.unwrap_or_else(|| vec![*u])
+            }
+        };
+        out.sort();
+        out.dedup();
+        out
     }
 }
 

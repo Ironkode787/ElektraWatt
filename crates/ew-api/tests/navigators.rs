@@ -168,9 +168,9 @@ fn keys_are_stable_across_a_revision() {
     assert_eq!(keys(&before), keys(&after));
     s.undo(&Origin::Gui).expect("undo");
     assert_eq!(keys(&s.navigator_table(NavKind::Pages)), keys(&pages_before));
-    // Part 2's kinds: columns and no nodes yet.
+    // Part 2's kinds have their rows (WP-S2.06 part 2).
     let c = s.navigator_table(NavKind::Connections);
-    assert!(c.nodes.is_empty());
+    assert!(!c.nodes.is_empty());
     assert!(!c.columns.is_empty());
     // Determinism: two builds are equal.
     assert_eq!(
