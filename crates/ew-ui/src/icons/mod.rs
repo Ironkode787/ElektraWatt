@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The icon set (WP-S2.17 part 6, D9; doc 16a §4.11): Tabler Icons 3.50.0 (MIT) and the project's own glyphs,
-//! converted by `cargo xtask gen-icons` into [`generated`] and drawn through epaint. No runtime SVG parsing.
+//! converted by `cargo xtask gen-icons` into `generated.rs` and drawn through epaint. No runtime SVG parsing.
 //!
 //! `ew-viewmodel` names an icon by its `&'static str` key (the Tabler name, `ew-<name>` for the project's
 //! glyphs) and stays free of egui; [`IconId::from_key`] maps the key. Stroke width, size and colour are the

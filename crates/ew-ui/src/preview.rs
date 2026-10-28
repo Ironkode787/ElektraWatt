@@ -4,13 +4,13 @@
 //! The Preview tab (WP-S2.09 part 3, §8.1, D11; FR-UI-022) and the one-line chip that replaces the inline cards while
 //! it is open.
 //!
-//! **The tab** shows the open card: the header "Preview: <command> · as of rev <r>" with the stale badge, the summary
+//! **The tab** shows the open card: the header "Preview: `<command>` · as of rev `<r>`" with the stale badge, the summary
 //! (records, tags, cross-reference texts, pages; an import's created and skipped counts), Apply and Cancel, then the
 //! lists in a scroll area, each virtualised: the one that carries the change first and open (Tags for a renumber,
 //! Entities otherwise), then the others closed (W31-2), Xrefs and Pages last. Without a card it says "No preview is open". The lists are the shell's
 //! ([`ShellModel::preview_pane`]); the tab reads nothing of its own.
 //!
-//! **The chip** ([`chip`]): "Preview open: <summary>" with Apply, Cancel and Show in the origin pane, in place of its
+//! **The chip** ([`chip`]): "Preview open: `<summary>`" with Apply, Cancel and Show in the origin pane, in place of its
 //! inline card.
 //!
 //! **Accessibility.** The tab is a `Group` named "Preview"; the header is a polite live region; the buttons are named
