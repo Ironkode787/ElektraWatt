@@ -683,3 +683,69 @@ fn ft513_a_wait_after_a_poll_took_the_end_still_sees_it() {
     done(&mut s, "jobs.wait", json!({}));
     s.shutdown();
 }
+
+/// R2-1 of cycle 31: with two `wait: false` exports, A failed and B done, `jobs.wait {}` chooses B whether a poll
+/// already took B's end (a) or B still runs (b): A's failure stays unseen in both, so the run reports the same text
+/// and the same exit status. A second `jobs.wait {}` then chooses A and sees its failure.
+#[test]
+fn ft513_jobs_wait_chooses_the_newest_job_no_step_waited_for_whatever_the_polls_took() {
+    let failed_text = "Export failed: the folder does not exist; check that the folder is writable and the file is \
+                       not open in another program";
+    for polled in [true, false] {
+        let tmp = Tmp::new(if polled { "r2-1-polled" } else { "r2-1-running" });
+        let mut s = small(&tmp, Mode::Headless);
+        // A: fails; the runner's poll takes its end before the next export may start.
+        done(
+            &mut s,
+            "file.export_pdf",
+            json!({"path": path_text(&tmp.0.join("missing").join("a.pdf")), "wait": false}),
+        );
+        poll_to_the_end(&mut s);
+        // B: succeeds, held at its first page by the test hook until released.
+        let gate = Gate::new();
+        gate.hold("page");
+        s.set_job_gate_for_tests(Some(gate.clone()));
+        let b = tmp.0.join("b.pdf");
+        done(
+            &mut s,
+            "file.export_pdf",
+            json!({"path": path_text(&b), "wait": false}),
+        );
+        gate.wait_reached("page");
+        // The hold stays for every later checkpoint `page`: a helper releases until the step is over.
+        let stop = std::sync::atomic::AtomicBool::new(false);
+        std::thread::scope(|scope| {
+            scope.spawn(|| {
+                while !stop.load(std::sync::atomic::Ordering::Relaxed) {
+                    gate.release();
+                    std::thread::yield_now();
+                }
+            });
+            if polled {
+                // (a) A poll takes B's end before the step.
+                poll_to_the_end(&mut s);
+                assert_eq!(s.jobs().running(), 0);
+            } else {
+                // (b) B still runs for the shell when the step starts (no poll has taken its end).
+                assert_eq!(s.jobs().running(), 1);
+            }
+            done(&mut s, "jobs.wait", json!({}));
+            stop.store(true, std::sync::atomic::Ordering::Relaxed);
+        });
+        s.set_job_gate_for_tests(None);
+        assert!(b.exists(), "B wrote its file");
+        assert!(
+            matches!(s.jobs().get(2).map(|e| &e.status), Some(JobStatus::Done { .. })),
+            "B ended done"
+        );
+        assert_eq!(
+            s.wait_jobs(),
+            vec![failed_text.to_owned()],
+            "jobs.wait {{}} chose B, so A's failure stays unseen (polled: {polled})"
+        );
+        // A second `jobs.wait {}` chooses A, the newest job no step waited for, and sees its failure.
+        done(&mut s, "jobs.wait", json!({}));
+        assert!(s.wait_jobs().is_empty(), "polled: {polled}");
+        s.shutdown();
+    }
+}

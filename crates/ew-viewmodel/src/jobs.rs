@@ -100,6 +100,10 @@ pub struct JobEntry {
     /// whose end was taken by polling or at the end of a headless run); cleared when a waiting step takes the end.
     /// The headless runner reports these on stderr (FT-513).
     pub(crate) unseen_failure: Option<String>,
+    /// Whether a step waited for the job (a waiting `file.export_pdf` or `jobs.wait`), set for every outcome and
+    /// never by a poll: `jobs.wait {}` picks the newest job no step waited for, so its choice does not depend on
+    /// which poll took an end (R2-1 of cycle 31).
+    pub(crate) waited: bool,
 }
 
 impl JobEntry {
@@ -241,6 +245,7 @@ impl JobsState {
             path: target,
             handle: Some(handle),
             unseen_failure: None,
+            waited: false,
         });
         // The oldest finished entries go; a running one stays.
         while self.entries.len() > MAX_JOBS {
