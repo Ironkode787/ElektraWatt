@@ -373,6 +373,16 @@ fn pv3_every_origin_opens_the_tab_and_closing_it_cancels() {
     done(&mut shell, "preview.show", json!({"on": false}));
     assert!(shell.properties().card().is_none(), "the card went with the tab");
     assert!(!shell.preview_shown());
+    // The window's dock closing the tab (`set_layout`) cancels the card too.
+    done(
+        &mut shell,
+        "props.set",
+        json!({"row": "device/tag.counter", "value": "9"}),
+    );
+    assert!(shell.preview_shown() && shell.properties().card().is_some());
+    let closed = shell.layout().without(PaneKind::Preview);
+    shell.set_layout(closed, 1.0);
+    assert!(shell.properties().card().is_none(), "closed in the window");
     // Find: a replace card.
     done(&mut shell, "find.open_replace", json!({}));
     done(&mut shell, "find.text", json!({"text": "Spare"}));

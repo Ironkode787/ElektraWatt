@@ -187,6 +187,10 @@ impl ShellModel {
             // A pane dragged out or in: the property grid fetches or drops its sheet (WP-S2.05 §6.9).
             self.sync_properties();
             self.sync_find();
+            // WP-S2.09 part 3: the Preview tab closed with a card pending cancels it; the history panel fetches or
+            // drops its view.
+            self.sync_preview();
+            self.sync_history();
         }
     }
 

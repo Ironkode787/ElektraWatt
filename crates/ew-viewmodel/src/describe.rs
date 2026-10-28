@@ -2500,6 +2500,20 @@ impl ShellModel {
 mod tests {
     use super::*;
 
+    // WP-S2.09 part 3 (§8.7): a list prints at most 20 lines, then `more <word> <n>`.
+    #[test]
+    fn a_preview_list_prints_twenty_lines_then_more() {
+        let items: Vec<u32> = (1..=23).collect();
+        let mut lines = Vec::new();
+        listed(&mut lines, &items, "tag", |n| format!("  tag \"{n}\" \"x\""));
+        assert_eq!(lines.len(), 21);
+        assert_eq!(lines[19], "  tag \"20\" \"x\"");
+        assert_eq!(lines[20], "  more tag 3");
+        let mut exact = Vec::new();
+        listed(&mut exact, &items[..20], "tag", |n| n.to_string());
+        assert_eq!(exact.len(), 20, "no `more` line at exactly 20");
+    }
+
     /// The record kinds of the format (doc 05 §2.2), by their `$k` names: the 53 of `ew_schema::Kind::ALL`.
     const KINDS: [&str; 53] = [
         "project",
