@@ -20,7 +20,7 @@
 //! value, as the property grid composes it. The result is `fields.set` when every target gets the same (kind, member,
 //! value), else one `fields.set_many` with one entry per (kind, member, value) in the order of first appearance.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use serde_json::{Value, json};
 
@@ -431,7 +431,8 @@ pub fn compose_leaf(
 
 /// Marks the same-record conflicts of a gesture (D13), in cell order, over the cells that are not dropped and parse.
 pub fn mark_conflicts(gesture: &mut Gesture) {
-    let mut seen: Vec<((Uuid, String, String), Value, usize)> = Vec::new();
+    // (target, kind, path) -> the first value set on it and that cell's row number.
+    let mut seen: BTreeMap<(Uuid, String, String), (Value, usize)> = BTreeMap::new();
     for cell in &mut gesture.cells {
         cell.conflict = None;
         let (CellValue::Valid(v), Some((kind, path)), false) = (&cell.value, &cell.route, cell.dropped)
@@ -439,19 +440,17 @@ pub fn mark_conflicts(gesture: &mut Gesture) {
             continue;
         };
         let clash = cell.targets.iter().find_map(|t| {
-            seen.iter()
-                .find(|(k, val, _)| k.0 == *t && k.1 == *kind && k.2 == *path && val != v)
-                .map(|(_, _, row)| *row)
+            seen.get(&(*t, kind.clone(), path.clone()))
+                .filter(|(val, _)| val != v)
+                .map(|(_, row)| *row)
         });
         if clash.is_some() {
             cell.conflict = clash;
             continue;
         }
         for t in &cell.targets {
-            let key = (*t, kind.clone(), path.clone());
-            if !seen.iter().any(|(k, _, _)| *k == key) {
-                seen.push((key, v.clone(), cell.row_number));
-            }
+            seen.entry((*t, kind.clone(), path.clone()))
+                .or_insert_with(|| (v.clone(), cell.row_number));
         }
     }
 }
@@ -459,10 +458,11 @@ pub fn mark_conflicts(gesture: &mut Gesture) {
 /// Compiles the applicable cells of a gesture (after [`mark_conflicts`]) into one command; `base(kind, target,
 /// member)` reads a target's stored member for a composed leaf or a language object. `None` when no cell applies.
 pub fn compile(gesture: &Gesture, base: &mut dyn FnMut(&str, Uuid, &str) -> MemberBase) -> Option<Compiled> {
-    // (kind, member, target) → composed value, in the order of first appearance.
+    // (kind, member, target) -> composed value, in the order of first appearance; `at_of` indexes it.
     let mut values: Vec<((String, String, Uuid), Value)> = Vec::new();
-    let mut identifier_routes: Vec<(String, String, BTreeSet<Uuid>)> = Vec::new();
-    let mut bases: Vec<((String, String, Uuid), MemberBase)> = Vec::new();
+    let mut at_of: BTreeMap<(String, String, Uuid), usize> = BTreeMap::new();
+    let mut identifier_routes: BTreeMap<(String, String), BTreeSet<Uuid>> = BTreeMap::new();
+    let mut bases: BTreeMap<(String, String, Uuid), MemberBase> = BTreeMap::new();
     for cell in &gesture.cells {
         let (CellValue::Valid(v), Some((kind, path)), false, None) =
             (&cell.value, &cell.route, cell.dropped, cell.conflict)
@@ -473,28 +473,21 @@ pub fn compile(gesture: &Gesture, base: &mut dyn FnMut(&str, Uuid, &str) -> Memb
         let mltext = route_type(kind, path).is_some_and(|t| matches!(t.inner(), FieldType::MlText));
         let leaf = path != &member || mltext;
         if route_identifier(kind, path) {
-            match identifier_routes
-                .iter_mut()
-                .find(|(k, p, _)| k == kind && p == path)
-            {
-                Some((_, _, set)) => set.extend(cell.targets.iter().copied()),
-                None => identifier_routes.push((
-                    kind.clone(),
-                    path.clone(),
-                    cell.targets.iter().copied().collect(),
-                )),
-            }
+            identifier_routes
+                .entry((kind.clone(), path.clone()))
+                .or_default()
+                .extend(cell.targets.iter().copied());
         }
         for t in &cell.targets {
             let key = (kind.clone(), member.clone(), *t);
-            let at = values.iter().position(|(k, _)| *k == key);
+            let at = at_of.get(&key).copied();
             let new = if leaf {
                 // The stored member, read once per target; a second leaf composes onto the first one's result.
-                let stored = match bases.iter().find(|(k, _)| *k == key) {
-                    Some((_, b)) => b.clone(),
+                let stored = match bases.get(&key) {
+                    Some(b) => b.clone(),
                     None => {
                         let b = base(kind, *t, &member);
-                        bases.push((key.clone(), b.clone()));
+                        bases.insert(key.clone(), b.clone());
                         b
                     }
                 };
@@ -514,14 +507,17 @@ pub fn compile(gesture: &Gesture, base: &mut dyn FnMut(&str, Uuid, &str) -> Memb
             };
             match at {
                 Some(i) => values[i].1 = new,
-                None => values.push((key, new)),
+                None => {
+                    at_of.insert(key.clone(), values.len());
+                    values.push((key, new));
+                }
             }
         }
     }
     if values.is_empty() {
         return None;
     }
-    let identifier = identifier_routes.iter().any(|(_, _, s)| s.len() > 1);
+    let identifier = identifier_routes.values().any(|s| s.len() > 1);
     let targets = values.len();
     let first = &values[0];
     let same = values
@@ -536,15 +532,18 @@ pub fn compile(gesture: &Gesture, base: &mut dyn FnMut(&str, Uuid, &str) -> Memb
             identifier,
         });
     }
-    // One entry per (kind, member, value), its targets in order of appearance.
+    // One entry per (kind, member, value), its targets in order of appearance; a value is indexed by its JSON text
+    // and compared with `==` inside that bucket.
     let mut entries: Vec<(String, String, Value, Vec<String>)> = Vec::new();
+    let mut entry_of: BTreeMap<(String, String, String), Vec<usize>> = BTreeMap::new();
     for ((k, m, t), v) in &values {
-        match entries
-            .iter_mut()
-            .find(|(ek, em, ev, _)| ek == k && em == m && ev == v)
-        {
-            Some((_, _, _, ts)) => ts.push(t.to_string()),
-            None => entries.push((k.clone(), m.clone(), v.clone(), vec![t.to_string()])),
+        let bucket = entry_of.entry((k.clone(), m.clone(), v.to_string())).or_default();
+        match bucket.iter().copied().find(|i| entries[*i].2 == *v) {
+            Some(i) => entries[i].3.push(t.to_string()),
+            None => {
+                bucket.push(entries.len());
+                entries.push((k.clone(), m.clone(), v.clone(), vec![t.to_string()]));
+            }
         }
     }
     let edits: Vec<Value> = entries
@@ -811,5 +810,197 @@ mod tests {
         assert_eq!(g.title(), "Preview: paste 2 cells on 2 terminals · 1 invalid");
         assert_eq!(rows_word(NavKind::Structure, 2), "structure nodes");
         assert_eq!(rows_word(NavKind::Strips, 1), "terminal");
+    }
+
+    /// The straightforward linear-search reference of [`mark_conflicts`] (FT-525).
+    fn reference_mark_conflicts(gesture: &mut Gesture) {
+        let mut seen: Vec<((Uuid, String, String), Value, usize)> = Vec::new();
+        for cell in &mut gesture.cells {
+            cell.conflict = None;
+            let (CellValue::Valid(v), Some((kind, path)), false) = (&cell.value, &cell.route, cell.dropped)
+            else {
+                continue;
+            };
+            let clash = cell.targets.iter().find_map(|t| {
+                seen.iter()
+                    .find(|(k, val, _)| k.0 == *t && k.1 == *kind && k.2 == *path && val != v)
+                    .map(|(_, _, row)| *row)
+            });
+            if clash.is_some() {
+                cell.conflict = clash;
+                continue;
+            }
+            for t in &cell.targets {
+                let key = (*t, kind.clone(), path.clone());
+                if !seen.iter().any(|(k, _, _)| *k == key) {
+                    seen.push((key, v.clone(), cell.row_number));
+                }
+            }
+        }
+    }
+
+    /// The straightforward linear-search reference of [`compile`] (FT-525).
+    fn reference_compile(
+        gesture: &Gesture,
+        base: &mut dyn FnMut(&str, Uuid, &str) -> MemberBase,
+    ) -> Option<Compiled> {
+        let mut values: Vec<((String, String, Uuid), Value)> = Vec::new();
+        let mut identifier_routes: Vec<(String, String, BTreeSet<Uuid>)> = Vec::new();
+        let mut bases: Vec<((String, String, Uuid), MemberBase)> = Vec::new();
+        for cell in &gesture.cells {
+            let (CellValue::Valid(v), Some((kind, path)), false, None) =
+                (&cell.value, &cell.route, cell.dropped, cell.conflict)
+            else {
+                continue;
+            };
+            let member = route_member(kind, path).unwrap_or_else(|| path.clone());
+            let mltext = route_type(kind, path).is_some_and(|t| matches!(t.inner(), FieldType::MlText));
+            let leaf = path != &member || mltext;
+            if route_identifier(kind, path) {
+                match identifier_routes
+                    .iter_mut()
+                    .find(|(k, p, _)| k == kind && p == path)
+                {
+                    Some((_, _, set)) => set.extend(cell.targets.iter().copied()),
+                    None => identifier_routes.push((
+                        kind.clone(),
+                        path.clone(),
+                        cell.targets.iter().copied().collect(),
+                    )),
+                }
+            }
+            for t in &cell.targets {
+                let key = (kind.clone(), member.clone(), *t);
+                let at = values.iter().position(|(k, _)| *k == key);
+                let new = if leaf {
+                    let stored = match bases.iter().find(|(k, _)| *k == key) {
+                        Some((_, b)) => b.clone(),
+                        None => {
+                            let b = base(kind, *t, &member);
+                            bases.push((key.clone(), b.clone()));
+                            b
+                        }
+                    };
+                    let b = match at {
+                        Some(i) => MemberBase {
+                            value: Some(values[i].1.clone()),
+                            language: stored.language,
+                        },
+                        None => stored,
+                    };
+                    match compose_leaf(&member, path, &b, v, mltext) {
+                        Some(x) => x,
+                        None => continue,
+                    }
+                } else {
+                    v.clone()
+                };
+                match at {
+                    Some(i) => values[i].1 = new,
+                    None => values.push((key, new)),
+                }
+            }
+        }
+        if values.is_empty() {
+            return None;
+        }
+        let identifier = identifier_routes.iter().any(|(_, _, s)| s.len() > 1);
+        let targets = values.len();
+        let first = &values[0];
+        let same = values
+            .iter()
+            .all(|((k, m, _), v)| *k == first.0.0 && *m == first.0.1 && *v == first.1);
+        if same {
+            let ids: Vec<String> = values.iter().map(|((_, _, t), _)| t.to_string()).collect();
+            return Some(Compiled {
+                name: "fields.set",
+                params: json!({"kind": first.0.0, "targets": ids, "path": first.0.1, "value": first.1}),
+                targets,
+                identifier,
+            });
+        }
+        let mut entries: Vec<(String, String, Value, Vec<String>)> = Vec::new();
+        for ((k, m, t), v) in &values {
+            match entries
+                .iter_mut()
+                .find(|(ek, em, ev, _)| ek == k && em == m && ev == v)
+            {
+                Some((_, _, _, ts)) => ts.push(t.to_string()),
+                None => entries.push((k.clone(), m.clone(), v.clone(), vec![t.to_string()])),
+            }
+        }
+        let edits: Vec<Value> = entries
+            .into_iter()
+            .map(|(k, m, v, ts)| json!({"kind": k, "targets": ts, "path": m, "value": v}))
+            .collect();
+        Some(Compiled {
+            name: "fields.set_many",
+            params: json!({ "edits": edits }),
+            targets,
+            identifier,
+        })
+    }
+
+    /// A few hundred mixed cells (plain fields, composed leaves, identifiers, several targets per cell, repeated
+    /// targets, clashing and agreeing values, dropped and invalid cells), from a fixed linear congruential sequence.
+    fn mixed_gesture(seed: u64) -> Gesture {
+        let mut x = seed;
+        let mut next = |m: u64| {
+            x = x
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            (x >> 33) % m
+        };
+        let routes = [
+            ("device", "state"),
+            ("device", "label"),
+            ("potential_def", "props.colour"),
+            ("potential_def", "props.csa"),
+            ("terminal", "terminal.designation"),
+        ];
+        let mut cells = Vec::new();
+        for row in 1..=400usize {
+            let (kind, path) = routes[next(routes.len() as u64) as usize];
+            let n = 1 + next(3) as usize;
+            let targets: Vec<u8> = (0..n).map(|_| next(60) as u8).collect();
+            let mut c = cell(row, path, path, &targets, json!(format!("v{}", next(4))));
+            c.route = Some((kind.to_owned(), path.to_owned()));
+            match next(10) {
+                0 => c.dropped = true,
+                1 => c.value = CellValue::Invalid("bad".to_owned()),
+                _ => {}
+            }
+            cells.push(c);
+        }
+        gesture(cells)
+    }
+
+    #[test]
+    fn indexed_compile_and_conflicts_match_the_linear_reference() {
+        for seed in [1, 7, 42, 1234] {
+            let mut fast = mixed_gesture(seed);
+            let mut slow = fast.clone();
+            mark_conflicts(&mut fast);
+            reference_mark_conflicts(&mut slow);
+            assert_eq!(fast, slow, "conflict marks, seed {seed}");
+            assert!(
+                fast.cells.iter().any(|c| c.conflict.is_some()),
+                "seed {seed} has conflicts"
+            );
+            let mut calls_fast = Vec::new();
+            let mut calls_slow = Vec::new();
+            let base = |calls: &mut Vec<(String, Uuid, String)>, k: &str, t: Uuid, m: &str| {
+                calls.push((k.to_owned(), t, m.to_owned()));
+                MemberBase {
+                    value: Some(json!({"colour": "RD", "keep": t.as_bytes()[0]})),
+                    language: "en".to_owned(),
+                }
+            };
+            let a = compile(&fast, &mut |k, t, m| base(&mut calls_fast, k, t, m));
+            let b = reference_compile(&slow, &mut |k, t, m| base(&mut calls_slow, k, t, m));
+            assert_eq!(a, b, "compiled, seed {seed}");
+            assert_eq!(a.unwrap().name, "fields.set_many");
+            assert_eq!(calls_fast, calls_slow, "base reads, seed {seed}");
+        }
     }
 }
