@@ -86,7 +86,8 @@ pub use layers::{
 pub use navigation::{CellLabel, GotoError, GotoTarget, LinkTarget, PageCells, PageCp, PageRow};
 // WP-S2.06 part 1
 pub use navigators::{
-    Drawable, NaturalKey, NavColumn, NavKind, NavNode, NavOpen, NavRole, NavTable, tokens as nav_tokens,
+    Drawable, NaturalKey, NavColumn, NavKind, NavNode, NavOpen, NavRole, NavTable, Uuid, nav_natural_key,
+    tokens as nav_tokens,
 };
 pub use properties::{
     FindingChip, PropRow, PropertySheet, Provenance, RowAction, RowValue, SheetHeader, SheetSection,

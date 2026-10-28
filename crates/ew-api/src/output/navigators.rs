@@ -20,7 +20,9 @@
 
 use std::collections::BTreeMap;
 
-use ew_derive::ew_ids::{Id, Uuid};
+use ew_derive::ew_ids::Id;
+/// The record IDs of the tables, re-exported so that the view model names them without naming `ew-ids`.
+pub use ew_derive::ew_ids::Uuid;
 /// The natural sort key of a label or cell text, re-exported so that the view model sorts without naming `ew-mltext`.
 pub use ew_derive::ew_mltext::NaturalKey;
 use ew_derive::ew_mltext::{natural_key, to_nfc};
@@ -293,6 +295,12 @@ pub fn tokens(text: &str) -> Vec<String> {
         out.push(cur);
     }
     out
+}
+
+/// The natural sort key of a text (`ew_mltext::natural_key`), for a view model that builds rows of its own (the Pages
+/// tree) or a synthetic table in a test, without naming `ew-mltext`.
+pub fn nav_natural_key(text: &str) -> NaturalKey {
+    natural_key(text)
 }
 
 /// The tokens of a label and its cells, sorted and deduplicated.
