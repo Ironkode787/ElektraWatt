@@ -339,6 +339,51 @@ rail), `table_widget` TB7 (FT-523) and `command_surface` CB4 (65 % again).
   (DK10), History's icons (the rest of DK11), the DK12 snapshots, the dock tabs' restyle of doc 16a §6.4 and window
   memory (DK6, the rest of FT-348): candidates for the next cycle.
 
+**J32 (cycle 32, the Properties, choice-list and canvas-tab side):**
+
+- **Property rows (doc 16a §6.8, the mockup's `.prow` and `.psec`).** The label is painted left-aligned in
+  `type.small` `color.text.secondary` in its `size.property_label` column (it was centred), ellipsised with the
+  whole label as tooltip; the row has `space.4` side padding and `space.3` to the value cell. The value cell keeps its
+  node and in-place edit; its hover border is now `color.border.control`, its padding `space.icon`, and a long value
+  is ellipsised (the whole value as tooltip) instead of clipped; a read-only value shows its reason as tooltip. The
+  provenance chip is a pill inside the value cell at its right end (`radius.pill`, `size.chip`, 1-px
+  `color.border.default`, `type.caption` `color.text.tertiary`) holding one word, `properties::chip_word`: "page"
+  (inherited from a page or a structure box on a page), "inherited" (any other inheritance), "derived", "override",
+  "frozen", "library", "generated", "varies"; doc 16a's "part" has no source of its own in the model (a part's values
+  arrive as Library or Derived) and "inherited" and "varies" are added: deviation, recorded here. The chip has no node;
+  the row's description keeps the whole chip text. The cursor row takes the tree row's Selected state
+  (`color.accent.subtle` and the 2-px accent bar) instead of accent label text. The editor is the value cell in its
+  editing look (`color.surface.panel`, 1-px accent border and ring, `radius.sm`). Group headings are `type.small`
+  SemiBold as written ("Main"), no longer `type.label` upper case. Main indents no row (its fields come from several
+  levels without their parents); a category indents from its shallowest row. A row's error is the error icon and
+  the message in `color.error`, `type.small` (no italics). Not done: the header's finding chips are still
+  "[severity] rule message" text, and the actions popup is still drawn inline under the row. Test: `ew-ui`
+  `tests/properties.rs` `j32_property_rows_are_left_aligned_with_one_word_chips`; `ew-viewmodel`
+  `the_chip_word_names_the_source`.
+- **DK9 not built.** The spec's DK9 is the data grid (doc 16a §6.21, the navigators' table mode), not the property
+  grid; the lane built the property rows of §6.8 above and left §6.21's restyle (sort icon, frozen-edge line, cursor
+  bar and ring probes) open.
+- **The choice editor's option list** is a popup (`egui::Area`, foreground) with doc 16a §6.22's look
+  (`color.surface.raised`, `elevation.1`, `radius.md`, `space.2` padding, rows of `size.row`, at most
+  `size.chooser` rows, 240 to 360 px wide, the active row in the hover overlay). `properties::choices_placement`
+  opens it under the row when it fits above the status bar, else over the row, else on the larger side with its list
+  cut to scroll; the bound is the central panel's rectangle (the window less the command bar, the rails and the
+  status bar), which `app.rs` records each frame. Tests: the four placement unit tests in `properties.rs`, and
+  `a_choice_editor_option_is_picked_with_the_mouse` now at 1280 × 800 (no longer 1000 × 1400) asserting the list and
+  every option it shows lie inside the window and above the status bar, before and after typing.
+- **Canvas tabs:** the badges ("QET grid", "generated") are the page rows' caption chip (now
+  `components::caption_chip`, shared with the navigator) painted after the title; the tab's accessible name reads
+  "<folio> <title>, QET grid". The title is `type.small`, secondary on an inactive tab and primary SemiBold on the
+  active one, which has the `color.canvas.surround` fill and a 1-px `color.border.default` top and sides (the
+  mockup's `.ctab`). Test: `tests/viewer.rs` `j32_canvas_tab_badges_are_chips_not_bracketed_words` (no label
+  contains "[", the names end ", QET grid" and ", generated", the words are painted inside the tabs).
+- **DK7 at 300 %:** `snapshots.rs` `the_main_window_at_300_percent_for_review` renders the main window (light,
+  Comfortable, 1280 × 800 points) at 3 physical pixels per point, 3840 × 2400 pixels, for review and not gated (as the
+  gallery at ppp 2). The setting `ui_scale` stops at 200 % (`UI_SCALES`), so the 300 % case is the system's display
+  scale. The image is about 0.56 MB; gating it would be one argument, left off to keep re-blesses small.
+- **Snapshots re-blessed:** `main-{light,dark}-{comfortable,compact}` and the eight `part4-*` images (their window
+  shows Properties and the canvas tab); nothing else changed.
+
 ## 8. Part 4: cards, toasts, dialogs, menus, palette and empty states
 
 1. **Dialogs**: one dialog frame in `ew-ui` (`dialog.rs`) for every modal of the shell (about, keyboard shortcuts, go
