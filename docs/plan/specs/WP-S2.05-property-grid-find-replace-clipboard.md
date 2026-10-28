@@ -398,6 +398,12 @@ targets a derived row's value and provenance follow §6.3 (`Varies` when they di
 target (Freeze on several devices: part 2, §7.5). "Derived would be" for a wire override and "rule gives" for a frozen
 tag are not shown (D9; follow-up).
 
+*Amended in cycle 30 (FT-485 item 2):* the `device` row `tag.frozen` (and the derived tag row, whose partner it is)
+takes the tag typed as the page should print it besides its JSON object: `S51` sets `{"text": "S51", "sign":
+"hidden"}`, `-S51` sets `{"text": "S51"}` (the sign shown, the default), a JSON string is read as its text and an empty
+text unfreezes (`null`); a text that starts with `{` is the object form as before (`Session::parse_field_input`). One
+`props.set` therefore freezes a tag, where Freeze, then the text row, then the sign row took three edits.
+
 ### 6.5 Typed editors
 
 The view model keeps an **edit buffer** (text) per editing row; `ew-ui` draws the editor of the row's type. Parsing is

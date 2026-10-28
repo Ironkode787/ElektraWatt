@@ -574,6 +574,26 @@ fn pg2_the_project_has_its_settings_rows_and_d06_shows_its_finding() {
     assert!(sheet.header.findings.iter().all(|f| f.rule != "EW-CORE-023"));
 }
 
+/// FT-485 item 2: the frozen tag is typed as the page prints it.
+#[test]
+fn the_frozen_tag_takes_the_printed_tag_as_text() {
+    let s = golden();
+    let value = |text: &str| s.parse_field_input("device", "tag.frozen", text).unwrap().value;
+    assert_eq!(value("S51"), json!({"text": "S51", "sign": "hidden"}));
+    assert_eq!(value("-S51"), json!({"text": "S51"}));
+    assert_eq!(value(" \"S51\" "), json!({"text": "S51", "sign": "hidden"}));
+    assert_eq!(value(""), Value::Null);
+    // The object form is parsed as before.
+    assert_eq!(
+        value(r#"{"text":"S51","sign":"hidden"}"#),
+        json!({"text": "S51", "sign": "hidden"})
+    );
+    assert!(matches!(
+        s.parse_field_input("device", "tag.frozen", "S\t51"),
+        Err(InputError::Invalid(_))
+    ));
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // PG8: the editors on the project's data
 

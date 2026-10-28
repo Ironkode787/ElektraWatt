@@ -534,8 +534,11 @@ impl Tool for PlaceTool {
     fn status_hint(&self) -> &'static str {
         if self.proposals.needs_route {
             "hint-place-needs-route"
-        } else {
+        } else if self.proposals.list.is_empty() {
             "hint-place"
+        } else {
+            // FT-485 item 3: the proposals connect on commit unless Alt is held.
+            "hint-place-proposals"
         }
     }
 

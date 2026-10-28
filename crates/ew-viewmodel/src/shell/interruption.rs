@@ -302,26 +302,72 @@ impl ShellModel {
         }
     }
 
-    /// Resolves an external reference by its ID (or alias, `id:<uuid>`) or its printed text (`JE-N1000-03:L`): by ID
-    /// first; by printed text only when exactly one reference prints it (fix round, item 7). `Err` carries the reason
-    /// key of the refusal (`reason-no-external`, `reason-external-ambiguous`).
+    /// Resolves an external reference by its ID (or alias, `id:<uuid>`), its label (`JE-N1000-03:L`, the device and
+    /// the connection) or its label after the location the page prints (`+J-E-206 / JE-N1000-03:L`, the cross-reference
+    /// text of the external point followed by the connection; FT-485 item 8): by ID first; by label only when exactly
+    /// one reference (at that location, when one is named) has it (fix round, item 7). `Err` carries the outcome: a
+    /// text no reference has fails with a message that lists the labels the project has (FT-485 item 8); a label two
+    /// references share is refused with `reason-external-ambiguous`.
     pub(super) fn resolve_external(&self, s: &str) -> Result<IpExternal, Outcome> {
-        let s = s.strip_prefix("id:").unwrap_or(s);
+        let s = s.strip_prefix("id:").unwrap_or(s).trim();
         let choices = self.external_choices();
-        let by_id = choices.iter().find(|(id, _)| id.eq_ignore_ascii_case(s));
-        let by_text: Vec<&(String, String)> = choices.iter().filter(|(_, label)| label == s).collect();
-        match (by_id, by_text.as_slice()) {
-            (Some((id, label)), _) | (None, [(id, label)]) => Ok(IpExternal {
+        if let Some((id, label)) = choices.iter().find(|(id, _)| id.eq_ignore_ascii_case(s)) {
+            return Ok(IpExternal {
+                id: id.clone(),
+                label: label.clone(),
+            });
+        }
+        // `<location> / <label>`: the location narrows the references to those at its node.
+        let (node, label) = match s.rsplit_once(" / ") {
+            Some((location, label)) => (
+                Some(self.structure_node("location", location.trim()).ok()),
+                label.trim(),
+            ),
+            None => (None, s),
+        };
+        let locations = self.external_locations();
+        let by_text: Vec<&(String, String)> = choices
+            .iter()
+            .filter(|(id, l)| {
+                l == label
+                    && match &node {
+                        None => true,
+                        Some(None) => false,
+                        Some(Some(n)) => locations.get(id).is_some_and(|at| at.eq_ignore_ascii_case(n)),
+                    }
+            })
+            .collect();
+        match by_text.as_slice() {
+            [(id, label)] => Ok(IpExternal {
                 id: id.clone(),
                 label: label.clone(),
             }),
-            (None, []) => Err(Outcome::Refused {
-                reason_key: "reason-no-external",
-            }),
-            (None, _) => Err(Outcome::Refused {
+            [] => {
+                let mut labels: Vec<&str> = choices.iter().map(|(_, l)| l.as_str()).collect();
+                labels.dedup();
+                let known = if labels.is_empty() {
+                    strings::text("external-none").to_owned()
+                } else {
+                    labels.join(", ")
+                };
+                Err(failed("error-no-external", &[s, &known]))
+            }
+            _ => Err(Outcome::Refused {
                 reason_key: "reason-external-ambiguous",
             }),
         }
+    }
+
+    /// The location node (its ID text) of each external reference, by the reference's ID text.
+    fn external_locations(&self) -> std::collections::BTreeMap<String, String> {
+        let Some(p) = &self.project else {
+            return std::collections::BTreeMap::new();
+        };
+        let q = p.session.query();
+        q.external_refs()
+            .iter()
+            .map(|(id, x)| (id.to_string(), x.location.as_uuid().to_string()))
+            .collect()
     }
 
     /// `ip.external {external}`: the IP tool's external-reference field: an external reference by its ID (or alias,

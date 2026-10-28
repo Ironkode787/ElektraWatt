@@ -337,7 +337,17 @@ impl ShellModel {
             }
             ToolOutput::Commit(cmd) => {
                 self.tools.before_commit = self.canvas().map(|c| Arc::clone(&c.page().tables));
+                // FT-485 item 3: the wires a placement draws by its autoconnect hints, said in the toast.
+                let connects = self.autoconnect_words(cmd.as_ref());
+                // A tool's commit is a committing action, although the canvas action that reaches it is a view
+                // action: the toast of an earlier commit goes (WP-S2.05 §6.6).
+                self.props.toast = None;
                 let out = self.run_commit(cmd.as_ref());
+                if out == Outcome::Done
+                    && let Some((count, list)) = connects
+                {
+                    self.notify(strings::format("toast-autoconnect", &[&count, &list]), true);
+                }
                 self.tools.tool.on_commit(out == Outcome::Done);
                 self.tools.overlay = Overlay::default();
                 self.tools.preview = None;
@@ -401,6 +411,31 @@ impl ShellModel {
                 self.follow_dest(dest)
             }
         }
+    }
+
+    /// For a `device.place` with autoconnect hints (`connect`): the number of wires it draws as words (`1 wire`,
+    /// `2 wires`) and the proposals the ghost showed (`"2" -> "-101F2:2"`), from the Place tool's ghost; `None` for any
+    /// other command or a placement without hints (Alt, or no proposal).
+    fn autoconnect_words(&self, cmd: &dyn DynCommand) -> Option<(String, String)> {
+        if cmd.name() != "device.place" {
+            return None;
+        }
+        let hints = cmd.to_json().ok()?["connect"].as_array().map_or(0, Vec::len);
+        if hints == 0 {
+            return None;
+        }
+        let Some(crate::tools::Ghost::Place { proposals, .. }) = self.tools.tool.ghost() else {
+            return None;
+        };
+        let list: Vec<String> = proposals
+            .iter()
+            .filter_map(|(cp, target)| target.as_ref().map(|t| format!("{cp} -> \"{t}\"")))
+            .collect();
+        let count = strings::format(
+            if hints == 1 { "count-wire" } else { "count-wires" },
+            &[&hints.to_string()],
+        );
+        Some((count, list.join(", ")))
     }
 
     /// Announces the selection's size through the live region.

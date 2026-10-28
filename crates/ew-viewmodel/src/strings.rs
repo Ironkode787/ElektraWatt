@@ -64,6 +64,9 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "tool-place" => "Place",
         "tool-exchange" => "Change symbol",
         "hint-place" => "Click or Enter to place; R, X, Y and V turn it; Escape ends",
+        "hint-place-proposals" => {
+            "Click or Enter to place and connect the proposed wires; Alt+Click or Alt+Enter places without them; Tab tries the next target; Escape ends"
+        }
         "hint-select-move" => "Release, click or Enter to move; Escape cancels",
         "hint-exchange" => "Click or Enter to change the symbol; Escape cancels",
         "move-readout" => "dx {0} dy {1} mm",
@@ -88,6 +91,11 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "reason-nothing-to-move" => "Nothing movable is selected",
         "reason-place-only" => "Only while placing a symbol",
         "reason-nothing-selected" => "Nothing is selected",
+        "error-wire-reference" => {
+            "No wire of the page shown runs \"{0}\"; name one as the page text does: wire:<end> -> <end>"
+        }
+        "error-wire-ambiguous" => "Several wires of the page shown run \"{0}\"; click the one you mean",
+        "reason-not-on-page" => "The selection is drawn on another page; go to that page to delete it",
         "reason-no-picker" => "The picker is not open",
         "reason-rep-type-not-allowed" => "The page's type does not take this symbol",
         "reason-black-box-tool" => "Use the black box tool (B)",
@@ -170,7 +178,10 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "reason-no-ip-symbol" => "This page's library has no interruption-point symbol",
         "reason-ip-tool-only" => "Only while placing an interruption point",
         "reason-external-never-pairs" => "An external connection point never pairs, so it has no star source",
-        "reason-no-external" => "No such external reference",
+        "error-no-external" => {
+            "No external reference is \"{0}\"; name one as device:connection, optionally after its location and \" / \" (+J-E-206 / JE-N1000-03:L). The project's: {1}"
+        }
+        "external-none" => "none (create one with Insert ▸ External reference..., external_ref.new)",
         "reason-external-ambiguous" => "Several external references print this text: name one by its ID",
         "reason-select-one-ip" => "Select exactly one interruption point",
         "reason-select-ips" => "Select at least two interruption points",
@@ -642,6 +653,19 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "props-row-name" => "{0}: {1}",
         "props-neutral" => "Neutral",
         "toast-set" => "Set {0} on {1} {2}",
+        "count-wire" => "{0} wire",
+        "count-wires" => "{0} wires",
+        "toast-strip-new" => {
+            "Created terminal strip {0}; it has no terminals yet. Place them with Insert ▸ Symbol... and the terminal symbol, whose strip picker lists it"
+        }
+        "toast-export-pdf" => "Exported {0}: {1} pages, {2} KiB",
+        "toast-structure-new" => "Created the {0} node {1}",
+        "toast-external-ref-new" => {
+            "Created the external reference {0}; the Interruption point tool links an external point to it by this label"
+        }
+        "toast-autoconnect" => {
+            "Placed and connected {0}: {1}. Alt+Click or Alt+Enter places without connecting"
+        }
         "toast-undo" => "Undo",
         "toast-close" => "Close",
         "card-line" => "Preview: {0} on {1} {2} · {3} changes · {4} tags, {5} cross-reference texts",

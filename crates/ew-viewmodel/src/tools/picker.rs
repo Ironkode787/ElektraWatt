@@ -14,8 +14,8 @@
 //!
 //! **The strip chooser** (FT-421). Choosing a terminal symbol without a strip turns the picker into its strip mode:
 //! one row per strip of the project (the catalogue's `strips`, by tag), each with the next free designation the
-//! placement proposes (`row strip "-X1031" terminal "21"`); the filter matches the tag; Enter arms the Place tool with
-//! that strip.
+//! placement proposes, then the strip's ID, which the printer names `@n` (`row strip "-X1031" terminal "21" @7`;
+//! FT-485 item 9); the filter matches the tag; Enter arms the Place tool with that strip.
 
 use std::sync::Arc;
 
@@ -206,8 +206,8 @@ impl Picker {
     }
 
     /// The describe line of a row (without its indentation): `row symbol "<key>" embedded`,
-    /// `row part "<number>" function <n> of <count> "<fndef>" [main]` or `row strip "<tag>" terminal "<next>"`, then
-    /// ` disabled: <reason>`.
+    /// `row part "<number>" function <n> of <count> "<fndef>" [main]` or `row strip "<tag>" terminal "<next>" <id>`,
+    /// then ` disabled: <reason>`.
     pub fn row_line(&self, row: PickerRow) -> String {
         let mut line = match row {
             PickerRow::Symbol(i) => {
@@ -232,9 +232,11 @@ impl Picker {
             }
             PickerRow::Strip(i) => {
                 let strip = &self.catalogue.strips[i];
+                // The strip's ID ends the line, which the printer names `@n` (FT-485 item 9): a strip without
+                // terminals prints `-X??` like every other, and this is how it is selected (and deleted).
                 format!(
-                    "row strip \"{}\" terminal \"{}\"",
-                    strip.tag, strip.next_designation
+                    "row strip \"{}\" terminal \"{}\" {}",
+                    strip.tag, strip.next_designation, strip.id
                 )
             }
         };

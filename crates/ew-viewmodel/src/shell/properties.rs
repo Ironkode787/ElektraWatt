@@ -363,6 +363,13 @@ impl ShellModel {
                     let Some(text) = v.as_str() else {
                         return failed("error-bad-param", &["refs"]);
                     };
+                    if let Some(ends) = text.strip_prefix("wire:") {
+                        match self.wire_of_page(ends) {
+                            Ok(e) => items.push(e),
+                            Err(out) => return out,
+                        }
+                        continue;
+                    }
                     match project.session.resolve_reference(text) {
                         Ok(u) => items.push(EntityRef(u)),
                         Err(m) => return Outcome::Failed { message: m },
@@ -380,6 +387,32 @@ impl ShellModel {
             ));
         }
         Outcome::Done
+    }
+
+    /// The drawn connection of the page shown whose ends the page text names `<a> -> <b>` (either way round; quotes
+    /// around an end are optional; FT-485 item 4): a wire whose drawn route another wire or a symbol's body covers
+    /// cannot be clicked, so `select.set` takes `wire:<a> -> <b>` beside the session's references. No such wire, or
+    /// several, fail with a message.
+    fn wire_of_page(&self, ends: &str) -> Result<EntityRef, Outcome> {
+        let unquote = |s: &str| s.trim().trim_matches('"').to_owned();
+        let Some((a, b)) = ends.split_once("->").map(|(a, b)| (unquote(a), unquote(b))) else {
+            return Err(failed("error-wire-reference", &[ends]));
+        };
+        let Some(c) = self.canvas() else {
+            return Err(Outcome::Refused {
+                reason_key: "reason-no-page",
+            });
+        };
+        let hits: Vec<EntityRef> = crate::describe::page_wires(c.page())
+            .into_iter()
+            .filter(|(_, x, y)| (*x == a && *y == b) || (*x == b && *y == a))
+            .map(|(e, _, _)| e)
+            .collect();
+        match hits.as_slice() {
+            [one] => Ok(*one),
+            [] => Err(failed("error-wire-reference", &[ends])),
+            _ => Err(failed("error-wire-ambiguous", &[ends])),
+        }
     }
 
     /// `props.row`: `step` (±n, clamped) or `to` (a row key, `first`, `last`).
@@ -1486,6 +1519,18 @@ impl ShellModel {
         let leaf = edit.leaf.clone().unwrap_or_else(|| new.clone());
         let rebuilt = self.pending_edit(&section, &row, &member, leaf, new, now, edit.typed.clone());
         self.run_edit(rebuilt, true)
+    }
+
+    /// Shows `text` as the toast (FT-485): what a command did that the page does not show by itself (a new strip, an
+    /// export, the wires a placement drew). It stays until it is dismissed or the next command replaces it; `undo`
+    /// offers Undo.
+    pub(super) fn notify(&mut self, text: String, undo: bool) {
+        self.props.toasts += 1;
+        self.props.toast = Some(Toast {
+            text,
+            undo,
+            serial: self.props.toasts,
+        });
     }
 
     /// `preview.cancel` (the card's Cancel, Escape): the preview is dropped.

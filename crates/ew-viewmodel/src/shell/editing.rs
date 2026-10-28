@@ -585,6 +585,20 @@ impl ShellModel {
         if out != Outcome::Done {
             return out;
         }
+        // FT-485 item 1: the strip draws nothing until a terminal is placed, so the toast names it and says where it
+        // shows (a strip's tag counts once it has a terminal on a page: `-X??` until then).
+        self.sync_views();
+        let tag = self
+            .catalogue()
+            .and_then(|cat| {
+                let new = self.tools.last_primary.clone()?;
+                cat.strips
+                    .iter()
+                    .find(|s| s.id.to_string() == new)
+                    .map(|s| s.tag.clone())
+            })
+            .unwrap_or_else(|| format!("-{letter}"));
+        self.notify(strings::format("toast-strip-new", &[&tag]), true);
         let pending = self
             .tools
             .picker
@@ -771,15 +785,102 @@ impl ShellModel {
     /// resolve.
     pub(super) fn act_delete_selection(&mut self) -> Outcome {
         self.cancel_pending_move();
-        let cmd = self
-            .canvas()
-            .and_then(|c| transform::delete_command(&self.tools.selection, c.page()));
-        let Some(cmd) = cmd else {
+        // FT-485 items 9 and 10: a device or a function selected by reference (`select.set` with `tag:…`) is deleted as
+        // the representations the page shown draws of it, as Cut takes it; a device that no page draws (an empty strip,
+        // a device never placed) is deleted itself. A device drawn only on other pages is refused, never deleted there.
+        let targets = self.copy_targets();
+        let Some(page) = self.canvas().map(|c| Arc::clone(c.page())) else {
             return Outcome::Refused {
                 reason_key: "reason-nothing-selected",
             };
         };
+        let mut drawn = crate::tools::Selection::default();
+        drawn.apply(&crate::tools::SelectionChange::Replace(
+            targets
+                .iter()
+                .copied()
+                .filter(|e| crate::tools::entity_kind(&page.tables, *e).is_some())
+                .collect(),
+        ));
+        let (unused, elsewhere) = self.undrawn_devices(&targets, &page.tables);
+        let mut cmd = transform::delete_command(&drawn, &page);
+        if !unused.is_empty() {
+            let mut list: Vec<Value> = cmd
+                .as_ref()
+                .and_then(|c| c.params["targets"].as_array().cloned())
+                .unwrap_or_default();
+            list.extend(
+                unused
+                    .iter()
+                    .map(|e| json!({"kind": "device", "id": e.0.to_string()})),
+            );
+            cmd = Some(Box::new(AnyCommand {
+                name: "edit.delete".into(),
+                params: json!({ "targets": list }),
+            }));
+        }
+        let Some(cmd) = cmd else {
+            return Outcome::Refused {
+                reason_key: if elsewhere {
+                    "reason-not-on-page"
+                } else {
+                    "reason-nothing-selected"
+                },
+            };
+        };
         self.commit_from_host(cmd.as_ref())
+    }
+
+    /// Of `targets`, the entities the page tables do not hold: the devices no representation of the project draws
+    /// (and no terminal names as its strip), in target order; and whether any other target is a device or a function
+    /// that some other page draws.
+    fn undrawn_devices(
+        &self,
+        targets: &[EntityRef],
+        tables: &ew_api::output::PageTables,
+    ) -> (Vec<EntityRef>, bool) {
+        let mut unused = Vec::new();
+        let mut elsewhere = false;
+        let Some(project) = &self.project else {
+            return (unused, elsewhere);
+        };
+        let q = project.session.query();
+        for e in targets {
+            if crate::tools::entity_kind(tables, *e).is_some() {
+                continue;
+            }
+            let Ok(device_id) = e.0.to_string().parse() else {
+                continue;
+            };
+            let Some(device) = q.devices().get(device_id) else {
+                // A function drawn on another page (a device's own functions are handled through the device).
+                elsewhere |= q
+                    .reps()
+                    .iter()
+                    .any(|(_, r)| r.functions.iter().any(|f| f.as_uuid() == e.0));
+                continue;
+            };
+            let functions: Vec<_> = q
+                .functions()
+                .iter()
+                .filter(|(_, f)| f.device == Some(device.id))
+                .map(|(_, f)| f.id)
+                .collect();
+            let drawn = q
+                .reps()
+                .iter()
+                .any(|(_, r)| r.functions.iter().any(|f| functions.contains(f)));
+            if drawn {
+                elsewhere = true;
+            } else if !q
+                .devices()
+                .iter()
+                .any(|(_, d)| d.aspects.terminal.as_ref().is_some_and(|t| t.strip == device.id))
+            {
+                unused.push(*e);
+            }
+        }
+        (unused, elsewhere)
     }
 
     /// `rep.exchange {symbol?}` (§7.5): on exactly one selected representation that draws no interruption point;

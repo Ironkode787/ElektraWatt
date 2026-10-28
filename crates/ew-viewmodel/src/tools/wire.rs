@@ -144,24 +144,34 @@ impl WireTarget {
     }
 
     /// The label the transcript and the live region use: a CP's label; a junction `@` and its name (`@C11`, `@C11#2`
-    /// when the cell holds several); a split point `@` and its cell; a grid point `None`.
+    /// when the cell holds several); a split point `@` and its cell, then the wire it splits by its two ends
+    /// (`@101-C12 F55:2 -> E55:L`, an end that is a junction by its name; FT-485 item 7: two wires can run through one
+    /// cell); a grid point `None`.
     pub fn label(&self, cx: &ToolCx<'_>) -> Option<String> {
+        let cell_of = |p: (i64, i64)| cx.page.cell_text(cx.snapper.page_to_sheet(p)).unwrap_or_default();
         match self {
             WireTarget::Cp { label, .. } => Some(label.clone()),
-            WireTarget::Junction { id, .. } => {
-                let cell_of =
-                    |p: (i64, i64)| cx.page.cell_text(cx.snapper.page_to_sheet(p)).unwrap_or_default();
-                Some(format!(
-                    "@{}",
-                    super::junction_name(&cx.page.tables, *id, &cell_of)
-                ))
-            }
-            WireTarget::Segment { at, .. } => {
-                let cell = cx
-                    .page
-                    .cell_text(cx.snapper.page_to_sheet(*at))
-                    .unwrap_or_default();
-                Some(format!("@{cell}"))
+            WireTarget::Junction { id, .. } => Some(format!(
+                "@{}",
+                super::junction_name(&cx.page.tables, *id, &cell_of)
+            )),
+            WireTarget::Segment { at, connection } => {
+                let tables = &cx.page.tables;
+                let end = |e: &ew_api::output::TableEnd| match e {
+                    ew_api::output::TableEnd::Cp { function, idx } => tables
+                        .cps
+                        .iter()
+                        .find(|c| c.function == *function && c.idx == *idx)
+                        .map_or_else(String::new, |c| c.label.clone()),
+                    ew_api::output::TableEnd::Junction { id } => {
+                        format!("@{}", super::junction_name(tables, EntityRef(*id), &cell_of))
+                    }
+                };
+                let mut label = format!("@{}", cell_of(*at));
+                if let Some(c) = tables.connections.iter().find(|c| c.id == connection.0) {
+                    label.push_str(&format!(" {} -> {}", end(&c.a), end(&c.b)));
+                }
+                Some(label)
             }
             WireTarget::Grid { .. } => None,
         }

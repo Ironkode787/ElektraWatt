@@ -69,7 +69,7 @@ impl ShellModel {
     /// What a copy takes of the selection: each entity the page shown draws as itself, a device or a function (a
     /// `select.set` by tag) as its representations on the page shown, anything else as it is; in selection order
     /// without repeats.
-    fn copy_targets(&self) -> Vec<EntityRef> {
+    pub(super) fn copy_targets(&self) -> Vec<EntityRef> {
         let tables = self.canvas().map(|c| Arc::clone(&c.page().tables));
         let mut out: Vec<EntityRef> = Vec::new();
         for e in &self.tools.selection.items {

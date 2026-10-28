@@ -1797,6 +1797,19 @@ impl ShellModel {
             self.banner = Some(message.clone());
             return Outcome::Failed { message };
         }
+        // FT-485 item 11: the file's name (never its folder: no file system path in the output), the page count and
+        // the size.
+        let name = path
+            .file_name()
+            .map_or_else(String::new, |n| n.to_string_lossy().into_owned());
+        let kib = export.bytes.len().div_ceil(1024);
+        self.notify(
+            strings::format(
+                "toast-export-pdf",
+                &[&name, &export.pages.to_string(), &kib.to_string()],
+            ),
+            false,
+        );
         Outcome::Done
     }
 

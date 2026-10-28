@@ -555,6 +555,12 @@ impl ShellModel {
             }
         }
         let out = self.host_create("structure.create_node", params);
+        if out == Outcome::Done {
+            self.notify(
+                strings::format("toast-structure-new", &[&kind, &designation]),
+                true,
+            );
+        }
         self.form_done(&STRUCTURE_NEW, out)
     }
 
@@ -580,12 +586,21 @@ impl ShellModel {
         };
         let mut params = json!({ "location": location, "device": device });
         if !connection.is_empty() {
-            params["connection"] = Value::String(connection);
+            params["connection"] = Value::String(connection.clone());
         }
         if !project.is_empty() {
             params["project"] = Value::String(project);
         }
         let out = self.host_create("external_ref.create", params);
+        if out == Outcome::Done {
+            // The label `ip.external` takes (FT-485 item 8).
+            let label = if connection.is_empty() {
+                device.clone()
+            } else {
+                format!("{device}:{connection}")
+            };
+            self.notify(strings::format("toast-external-ref-new", &[&label]), true);
+        }
         self.form_done(&EXTERNAL_REF_NEW, out)
     }
 }

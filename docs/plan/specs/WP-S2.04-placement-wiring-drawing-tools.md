@@ -694,7 +694,7 @@ From part 3 the picker's black-box rows are enabled and arm this tool instead of
 | `tool.ip` | Insert ▸ Interruption point | P | canvas | — |
 | `tool.ip_direction`, `tool.star_source` | Edit | D, — | canvas | — |
 | `ip.name` | hidden (the tool strip field) | — | canvas | `text` |
-| `ip.external` | hidden (the tool strip field) | — | canvas | `external` (UUID or `null`; *as built, ID-646:* the external reference's printed text or its ID, `""` clears it, a text that two references share is refused with `reason-external-ambiguous`) |
+| `ip.external` | hidden (the tool strip field) | — | canvas | `external` (UUID or `null`; *as built, ID-646:* the external reference's printed text or its ID, `""` clears it, a text that two references share is refused with `reason-external-ambiguous`; *cycle 30, FT-485 item 8:* the label `device:connection` may follow the location as the page prints it, `+J-E-206 / JE-N1000-03:L`, which narrows the match to the references at that node, and a text no reference has fails with a message that lists the project's labels) |
 | `ip.continue_on` | Edit ▸ Continue on page… | — | canvas | `folio`, optional `x_mm`, `y_mm` |
 | `ip.arrange_selected` | Edit ▸ Arrange interruption points | — | canvas | `by`, `chain_order` |
 | `tool.black_box` | Insert ▸ Black box | B | canvas | as `place.pick` |

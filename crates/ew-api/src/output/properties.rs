@@ -1775,6 +1775,11 @@ impl Session {
         row_path: &str,
         text: &str,
     ) -> Result<ParsedInput, InputError> {
+        if (kind, row_path) == ("device", "tag.frozen")
+            && let Some(parsed) = frozen_tag_input(text)
+        {
+            return parsed;
+        }
         let q = self.query();
         let cx = SheetCx::new(&q);
         let ty = row_type(kind, row_path)
@@ -1793,6 +1798,45 @@ impl Session {
         let cx = SheetCx::new(&q);
         choices(&cx, &ty, &last_member(row_path), filter)
     }
+}
+
+/// The frozen tag typed as the page should print it (FT-485 item 2): `S51` freezes the text `S51` with the sign hidden,
+/// `-S51` the text `S51` with the sign shown (the default sign, left out of the value); a JSON string (`"S51"`) is read
+/// as its text. An empty text unfreezes (`null`). `None` for a JSON object, which is the field's own form and parsed
+/// as before.
+fn frozen_tag_input(text: &str) -> Option<Result<ParsedInput, InputError>> {
+    let t = text.trim();
+    if t.starts_with('{') {
+        return None;
+    }
+    let t = match serde_json::from_str::<Value>(t) {
+        Ok(Value::String(s)) => s,
+        _ => t.to_owned(),
+    };
+    let t = t.trim();
+    if t.is_empty() {
+        return Some(Ok(ParsedInput {
+            value: Value::Null,
+            notes: Vec::new(),
+        }));
+    }
+    let (shown, body) = match t.strip_prefix('-') {
+        Some(rest) => (true, rest.trim_start()),
+        None => (false, t),
+    };
+    Some(match ew_mltext::Ident::from_input(body) {
+        Err(e) => Err(InputError::Invalid(e.to_string())),
+        Ok(ident) => {
+            let mut value = serde_json::json!({ "text": ident.as_str() });
+            if !shown {
+                value["sign"] = Value::from("hidden");
+            }
+            Ok(ParsedInput {
+                value,
+                notes: Vec::new(),
+            })
+        }
+    })
 }
 
 /// The last member of a row path (`structure.location` → `location`).
