@@ -15,9 +15,9 @@
     "refusals": 50
   },
   "files": {
-    "tools/blind/HELP.md": "32e0ee7f8c9ba427945371d75c79a86ddb8a5f6ce52962548181dc2a02a225e6",
-    "tools/blind/reference/actions.txt": "a9b51ffb67fde83cf4831c210acd6abaa709bdcb417bc709d9b89b3d4193ab99",
-    "tools/blind/reference/vocabulary.txt": "a65534510e51f8cf35fc503760749fb14d683768ee78436788af1d592e0deaab",
+    "tools/blind/HELP.md": "6a7c6b74d854cd43cfdf5f1cdf4d3072da4171f0c6992c54a92b5cdbe327417b",
+    "tools/blind/reference/actions.txt": "9ecf40bb4b87a7eb04b5ee227d48e210fc37cf53e73d40ae586316da62213f50",
+    "tools/blind/reference/vocabulary.txt": "367fec6d44bd6ac0613c3a40f68f7ea612ba616970eefb2860711723e35f42ad",
     "tools/blind/tasks/selftest/agent.jsonl": "0d30d3415f394f62189979813cbd51e0729cbcb3884c115ca283c376f6f88862",
     "tools/blind/tasks/selftest/prelude.uiscript": "9f4d237925c52b4bb3ef91f708236f752fee11846f1582fe2737b05f3c99bb4c",
     "tools/blind/tasks/selftest/task.md": "973376ea5c9193284ee9b3ee73ac6237cb334ac8d0b668d5f418aa895a8de6ab"
