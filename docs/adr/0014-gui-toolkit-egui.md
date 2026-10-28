@@ -1,6 +1,6 @@
 # ADR-0014: GUI toolkit: egui/eframe behind `ew-ui`, over a toolkit-agnostic `ew-viewmodel`
 
-**Status:** Accepted · amended 2026-10-18 · as-built notes 2026-10-22 (cycles 19, 20 and 22), 2026-10-23 (cycle 23) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18 and 2026-10-28 (amendment 4) · as-built notes 2026-10-22 (cycles 19, 20 and 22), 2026-10-23 (cycle 23) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -58,6 +58,13 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    [architecture](../design/04-architecture.md) §3). The read-only `.ewpp` wiring viewer of 1.0 is built on
    `ew-ui` widgets. Rule 3 therefore reads: only `ew-ui`, `ew-viewer`, the app binary and the `ew-wiring-viewer`
    binary know egui; only the renderers know wgpu.
+4. **Tables and trees** (2026-10-28; decision log ID-686, [WP-S2.06's specification](../plan/specs/WP-S2.06-navigators-and-table-mode.md)
+   D9). Tables use **egui_table 0.11.0**, the release for egui 0.37 (the 0.10.0 of the context table needs egui 0.36,
+   as egui_tiles 0.17.1 did, ID-490); it adds `egui_table` and `vec1`, both `MIT OR Apache-2.0`, to the shipped graph.
+   **egui_ltreeview is not adopted:** navigator trees are rows that `ew-ui` draws itself on egui's virtualised
+   `ScrollArea::show_rows` with AccessKit tree roles, as the Pages navigator has done since cycle 23 (ID-556), so a tree
+   crate would add a quarterly upgrade and a second selection model without adding a capability. Decision 1 reads
+   "egui/eframe 0.37 with egui_tiles and egui_table".
 
 ## As built (cycle 19)
 
