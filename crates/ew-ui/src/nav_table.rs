@@ -33,12 +33,6 @@ use serde_json::{Value, json};
 
 use crate::app::Event;
 
-/// The height of a table row in points.
-pub const TABLE_ROW_HEIGHT: f32 = 22.0;
-
-/// The width a column starts with, in points (egui_table sizes it to its content on the first frame).
-const COLUMN_WIDTH: f32 = 110.0;
-
 /// A navigator's table between frames.
 #[derive(Default)]
 pub(crate) struct TableUi {
@@ -90,11 +84,14 @@ impl TableUi {
         let cursor_col = mode
             .cursor_column(table)
             .and_then(|c| shown.iter().position(|s| *s == c));
+        // Doc 16a §6.21: rows of `size.row`, the header `size.table_header`, columns start at `size.table_column`
+        // (egui_table sizes them to their content on the first frame) within its range.
+        let tokens = crate::theme::current(ui.ctx());
         // The column chooser and the edit's error.
         ui.horizontal(|ui| {
             Self::chooser(ui, kind, table, &shown, events);
             if let Some(e) = mode.error() {
-                ui.colored_label(ui.visuals().error_fg_color, e);
+                ui.colored_label(tokens.error.color32(), e);
             }
         });
         // The pattern fill dialog (§8.5).
@@ -138,8 +135,8 @@ impl TableUi {
         let columns: Vec<Column> = shown
             .iter()
             .map(|c| {
-                Column::new(COLUMN_WIDTH)
-                    .range(40.0..=480.0)
+                Column::new(tokens.size_table_column)
+                    .range(tokens.size_table_column_min..=tokens.size_table_column_max)
                     .id(column_id(&table.columns[*c].key))
             })
             .collect();
@@ -148,7 +145,7 @@ impl TableUi {
             .num_rows(rows.len() as u64)
             .columns(columns)
             .num_sticky_cols(1)
-            .headers([HeaderRow::new(TABLE_ROW_HEIGHT)]);
+            .headers([HeaderRow::new(tokens.size_table_header)]);
         if let Some((r, c)) = scroll {
             t = t.scroll_to_row(r as u64, None).scroll_to_column(c, None);
         }
@@ -167,6 +164,7 @@ impl TableUi {
             edit_id: table_id.with("edit"),
             events,
             painted: 0,
+            row_height: tokens.size_row,
         };
         let column_ids: Vec<(egui::Id, String)> = shown
             .iter()
@@ -293,7 +291,7 @@ impl TableUi {
                     });
                 }
                 Some(Err(e)) => {
-                    ui.colored_label(ui.visuals().error_fg_color, e);
+                    ui.colored_label(crate::theme::current(ui.ctx()).error.color32(), e);
                 }
                 None => {}
             }
@@ -416,6 +414,8 @@ struct Delegate<'a> {
     edit_id: egui::Id,
     events: &'a mut Vec<Event>,
     painted: usize,
+    /// `size.row` of the theme on show.
+    row_height: f32,
 }
 
 impl Delegate<'_> {
@@ -572,6 +572,6 @@ impl TableDelegate for Delegate<'_> {
     }
 
     fn default_row_height(&self) -> f32 {
-        TABLE_ROW_HEIGHT
+        self.row_height
     }
 }

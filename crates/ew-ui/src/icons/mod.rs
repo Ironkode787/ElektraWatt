@@ -104,7 +104,7 @@ pub fn shapes(id: IconId, rect: Rect, color: Color32, stroke_px: f32) -> Vec<Sha
                 let q = QuadraticBezierShape::from_points_stroke(
                     [current, at(x1, y1), at(x, y)],
                     false,
-                    Color32::TRANSPARENT,
+                    crate::theme::NONE,
                     PathStroke::NONE,
                 );
                 points.extend(q.flatten(Some(TOLERANCE)).into_iter().skip(1));
@@ -114,7 +114,7 @@ pub fn shapes(id: IconId, rect: Rect, color: Color32, stroke_px: f32) -> Vec<Sha
                 let c = CubicBezierShape::from_points_stroke(
                     [current, at(x1, y1), at(x2, y2), at(x, y)],
                     false,
-                    Color32::TRANSPARENT,
+                    crate::theme::NONE,
                     PathStroke::NONE,
                 );
                 points.extend(c.flatten(Some(TOLERANCE)).into_iter().skip(1));

@@ -138,6 +138,26 @@ fn the_main_window_in_every_theme_and_density() {
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
+/// For review only (not gated): the Devices navigator in table mode and the history panel, light and dark.
+#[test]
+fn the_table_and_the_history_panel_for_review() {
+    let dev = device();
+    for theme in ["light", "dark"] {
+        let (mut h, recorder) = main_window(theme, "comfortable");
+        let shell = h.state_mut().shell_mut();
+        for (action, params) in [
+            ("navigator.show", json!({"kind": "devices"})),
+            ("navigator.table", json!({"kind": "devices"})),
+            ("history.show", json!({})),
+        ] {
+            assert_eq!(shell.dispatch(action, &params), Outcome::Done, "{action}");
+        }
+        h.run_ok();
+        let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
+        assert_eq!(record(&format!("table-history-{theme}"), &image, false), None);
+    }
+}
+
 #[test]
 fn the_component_gallery_in_every_theme_at_ppp_1_and_2() {
     let dev = device();

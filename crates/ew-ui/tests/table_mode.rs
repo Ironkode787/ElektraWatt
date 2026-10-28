@@ -150,7 +150,12 @@ fn ft509_every_tab_of_the_left_dock_is_reachable() {
     ] {
         assert!(h.query_all_by_label(title).count() >= 1, "{title}");
     }
-    let item = h.query_all_by_label("Devices").last().expect("the menu item");
+    // The menu item opens below the tab bar; a tab of the same name may also be on the strip, before or after it in
+    // the tree (with the token sizes it comes after), so the item is the lower one.
+    let item = h
+        .query_all_by_label("Devices")
+        .max_by(|a, b| a.rect().top().total_cmp(&b.rect().top()))
+        .expect("the menu item");
     item.click();
     settle(&mut h);
     assert_eq!(

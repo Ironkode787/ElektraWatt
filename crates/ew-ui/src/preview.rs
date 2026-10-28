@@ -24,9 +24,6 @@ use serde_json::{Value, json};
 
 use crate::app::Event;
 
-/// The height of one list row in points.
-const ROW: f32 = 18.0;
-
 /// The rows of one list, virtualised, in a collapsing section headed `title (<n>)`.
 fn list(ui: &mut Ui, title: &str, rows: &[String]) {
     if rows.is_empty() {
@@ -36,13 +33,18 @@ fn list(ui: &mut Ui, title: &str, rows: &[String]) {
         .id_salt(title)
         .default_open(true)
         .show(ui, |ui| {
+            // Rows of `size.row`, at most `size.preview_list` of them on show (doc 16a §6.22).
+            let t = crate::theme::current(ui.ctx());
+            let row = t.size_row;
             egui::ScrollArea::vertical()
                 .id_salt(title)
-                .max_height(ROW * 10.0)
+                .max_height(row * t.size_preview_list_rows as f32)
                 .auto_shrink([false, true])
-                .show_rows(ui, ROW, rows.len(), |ui, range| {
+                .show_rows(ui, row, rows.len(), |ui, range| {
+                    ui.spacing_mut().item_spacing.y = 0.0;
                     for r in &rows[range] {
-                        ui.label(r);
+                        let width = ui.available_width();
+                        ui.add_sized([width, row], egui::Label::new(r).truncate());
                     }
                 });
         });
@@ -66,7 +68,10 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         let preview = match &card.preview.result {
             Ok(p) => p,
             Err(m) => {
-                ui.colored_label(ui.visuals().error_fg_color, strings::format("card-failed", &[m]));
+                ui.colored_label(
+                    crate::theme::current(ui.ctx()).error.color32(),
+                    strings::format("card-failed", &[m]),
+                );
                 buttons(ui, &card.origin, events);
                 return;
             }

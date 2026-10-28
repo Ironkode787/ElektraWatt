@@ -65,12 +65,21 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                                 text.push_str(&format!("  {}", strings::text("history-not-undoable")));
                             }
                             let mut rich = RichText::new(&text);
+                            let selected = history.row_cursor() == Some(row.index);
                             match state {
-                                EntryState::Redo => rich = rich.weak(),
+                                // An undone entry in `color.history.undone`; selected, in text.secondary (§4.15).
+                                EntryState::Redo => {
+                                    let t = crate::theme::current(ui.ctx());
+                                    let colour = if selected {
+                                        t.text_secondary
+                                    } else {
+                                        t.history_undone
+                                    };
+                                    rich = rich.color(colour.color32());
+                                }
                                 EntryState::Now => rich = rich.strong(),
                                 EntryState::Done => {}
                             }
-                            let selected = history.row_cursor() == Some(row.index);
                             ui.horizontal(|ui| {
                                 let r = ui.selectable_label(selected, rich);
                                 let name = if state == EntryState::Redo {

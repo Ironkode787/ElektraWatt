@@ -198,8 +198,10 @@ fn ic3_every_icon_paints_within_its_rect() {
 /// given (secondary at rest, accent when active: the caller's role colour), and the icon fills its square.
 #[test]
 fn ic6_icons_paint_at_the_mockup_metrics() {
-    let secondary = Color32::from_rgb(0x5B, 0x64, 0x70);
-    let accent = Color32::from_rgb(0x0B, 0x63, 0xD6);
+    // The role colours of the light theme (doc 16a §4.11: text.secondary at rest, accent when active).
+    let light = ew_ui::theme::tokens(ew_ui::theme::Theme::Light, ew_ui::theme::Density::Comfortable);
+    let secondary = light.text_secondary.color32();
+    let accent = light.accent.color32();
     for size in [16.0_f32, 20.0] {
         let rect = Rect::from_min_size(Pos2::ZERO, Vec2::splat(size));
         for color in [secondary, accent] {
@@ -210,7 +212,7 @@ fn ic6_icons_paint_at_the_mockup_metrics() {
                     Shape::Path(p) => {
                         paths += 1;
                         assert_eq!(p.stroke.width, 1.5);
-                        assert_eq!(p.fill, Color32::TRANSPARENT);
+                        assert_eq!(p.fill, ew_ui::theme::NONE);
                     }
                     Shape::Circle(c) => {
                         assert_eq!(c.radius, 0.75, "round caps and joins at half the stroke");
