@@ -235,7 +235,8 @@ fn a6_the_canvas_snapshot_matches_the_golden_page_and_shows_the_view() {
             if rgb_at(&grid, 1200, x, y) == rgb_at(&plain, 1200, x, y) {
                 continue;
             }
-            assert_eq!(rgb_at(&grid, 1200, x, y), [0x9E, 0x9E, 0x9E], "({x}, {y})");
+            // Doc 16a §4.6 (WP-S2.17 part 5): `canvas.grid_dot`.
+            assert_eq!(rgb_at(&grid, 1200, x, y), [0xB8, 0xBE, 0xC7], "({x}, {y})");
             assert!(
                 on_grid(x, ox) && on_grid(y, oy),
                 "a dot off the grid at ({x}, {y})"
@@ -256,8 +257,9 @@ fn a6_the_canvas_snapshot_matches_the_golden_page_and_shows_the_view() {
         fx > 1 && fy > 1 && fx + sheet_w < 1199 && fy + sheet_h < 799,
         "the whole sheet is in view"
     );
-    assert_eq!(rgb_at(&fit, 1200, 0, 0), [0xD4, 0xD4, 0xD4], "the light surround");
-    let border = [0x8C, 0x8C, 0x8C];
+    assert_eq!(rgb_at(&fit, 1200, 0, 0), [0xE3, 0xE6, 0xEA], "the light surround");
+    // Doc 16a §4.6 (WP-S2.17 part 5): the page bound in `border.default`.
+    let border = [0xD5, 0xD9, 0xDF];
     assert_eq!(
         rgb_at(&fit, 1200, fx - 1, fy + sheet_h / 2),
         border,
@@ -294,8 +296,8 @@ fn a6_the_canvas_snapshot_matches_the_golden_page_and_shows_the_view() {
     let (_, _, fit_dark) = decode_rgba(&std::fs::read(dark.join("fit.png")).unwrap());
     assert_eq!(
         rgb_at(&fit_dark, 1200, 0, 0),
-        [0x2B, 0x2B, 0x2B],
-        "the dark surround"
+        [0x2E, 0x32, 0x38],
+        "the dark surround (doc 16a canvas.surround)"
     );
     for y in fy..fy + sheet_h {
         for x in fx..fx + sheet_w {
@@ -715,10 +717,10 @@ fn count(rgba: &[u8], c: [u8; 3]) -> usize {
         .count()
 }
 
-const MEASURE: [u8; 3] = [0xA8, 0x6F, 0x00];
-const SNAP: [u8; 3] = [0x00, 0x9E, 0x73];
-const CURSOR: [u8; 3] = [0xD5, 0x5E, 0x00];
-const BAND: [u8; 3] = [0x00, 0x72, 0xB2];
+// Doc 16a §4.6 (WP-S2.17 part 5): the measure line in slate-900; the snap markers, the grid cursor and the rubber
+// band in the one accent.
+const MEASURE: [u8; 3] = [0x1A, 0x1D, 0x21];
+const ACCENT: [u8; 3] = [0x0B, 0x63, 0xCE];
 
 /// Points of `folio` read through an in-process shell as the viewer reads them: a point with no entity and no link,
 /// and the centre of a link to another page.
@@ -822,11 +824,16 @@ fn t7_the_snapshot_composites_the_tool_overlay() {
     let (_, _, measure) = decode_rgba(&measure);
     let (_, _, band) = decode_rgba(&band);
     assert_eq!(count(&plain, MEASURE), 0);
-    assert_eq!(count(&plain, CURSOR), 0);
+    assert_eq!(count(&plain, ACCENT), 0);
     assert!(count(&measure, MEASURE) > 20, "the measure line");
-    assert!(count(&measure, SNAP) >= 32, "the snap markers");
-    assert!(count(&measure, CURSOR) >= 20, "the grid cursor");
-    assert!(count(&band, BAND) > count(&plain, BAND) + 100, "the rubber band");
+    assert!(
+        count(&measure, ACCENT) >= 32 + 20,
+        "the snap markers and the grid cursor"
+    );
+    assert!(
+        count(&band, ACCENT) > count(&plain, ACCENT) + 100,
+        "the rubber band"
+    );
     assert_eq!(
         count(&band, MEASURE),
         0,
@@ -873,7 +880,7 @@ fn t8_the_preview_snapshot_is_deterministic() {
     let bytes = std::fs::read(&path).unwrap();
     let (w, h, rgba) = decode_rgba(&bytes);
     assert_eq!((w, h), (320, 200));
-    assert!(count(&rgba, CURSOR) >= 20, "the cursor crosshair at the target");
+    assert!(count(&rgba, ACCENT) >= 20, "the cursor crosshair at the target");
     let again = run_script(&tmp, "t8.jsonl", &text);
     assert_eq!(again.status.code(), Some(0));
     assert_eq!(std::fs::read(&path).unwrap(), bytes, "byte-identical");

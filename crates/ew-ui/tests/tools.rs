@@ -918,14 +918,48 @@ fn place_and_rest(h: &mut Harness<'_, App>) -> (i64, i64) {
     }
 }
 
-/// FT-389: the preview chips stand by the changed tag on the page (here the Place tool's new terminal, which the
-/// page does not draw yet: above its floating symbol's insertion point), the header with the command right above
-/// the chip; with the frame statistics shown over that spot the chips move below the panel and never cover it.
+/// Whether `frame` stands where the chip rule (WP-S2.17 D13) may put a chip by the point `anchor`: one of its four
+/// candidates, 8 points off.
+fn by_point(frame: egui::Rect, anchor: Pos2) -> bool {
+    use ew_ui::ew_viewmodel::canvas::chip::{Pos2 as P, Rect as R, Vec2 as V, candidates};
+    candidates(
+        R::point(P::new(anchor.x, anchor.y)),
+        V::new(frame.width(), frame.height()),
+    )
+    .iter()
+    .any(|c| (c.min.x - frame.min.x).abs() < 1.0 && (c.min.y - frame.min.y).abs() < 1.0)
+}
+
+/// Every chip of the focused canvas: no two intersect, none is faded, none covers `panel`.
+fn assert_chips_apart(
+    h: &mut Harness<'_, App>,
+    panel: Option<egui::Rect>,
+) -> Vec<ew_ui::canvas_chips::CanvasChip> {
+    let chips = h.state_mut().canvas_host().canvas_chips(0).to_vec();
+    for (i, a) in chips.iter().enumerate() {
+        assert!(!a.faded, "{a:?} found a free place");
+        if let Some(p) = panel {
+            assert!(!a.rect.intersects(p), "{a:?} covers the panel {p:?}");
+        }
+        for b in &chips[i + 1..] {
+            assert!(!a.rect.intersects(b.rect), "{a:?} and {b:?} apart");
+        }
+    }
+    chips
+}
+
+/// FT-389, FT-507 and FT-508 (WP-S2.17 part 5, OV2): the Place ghost of a terminal on Golden A draws one label with
+/// its tag once, even after a second rest; the preview's change chip stands by the floating insertion point, off the
+/// label (the rule's next candidate), the header by it; with the frame statistics shown and the anchor
+/// moved beside their panel, no chip covers the panel; no two chips intersect, with the statistics on and off.
 #[test]
-fn the_preview_chips_stand_by_the_changed_tag_and_avoid_the_statistics() {
+fn ov2_the_place_ghost_draws_its_tag_once_and_its_chips_keep_apart() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "103");
     let at = place_and_rest(&mut h);
+    // A second rest at the same point (the 300-ms dwell previews again): the label still names the tag once.
+    dispatch(&mut h, "canvas.dwell", json!({"ms": 300}));
+    settle(&mut h);
     let tl = h
         .state()
         .shell()
@@ -937,84 +971,54 @@ fn the_preview_chips_stand_by_the_changed_tag_and_avoid_the_statistics() {
     let (chips, stats) = h.state().preview_chips();
     assert!(stats.is_none());
     assert!(chips.len() >= 2, "{chips:?}");
+    let all = assert_chips_apart(&mut h, None);
+    let labels: Vec<_> = all
+        .iter()
+        .filter(|c| c.kind == ew_ui::canvas_chips::ChipKind::Label)
+        .collect();
+    assert_eq!(labels.len(), 1, "one ghost label: {all:?}");
+    assert_eq!(
+        labels[0].text.matches("-X1031:30").count(),
+        1,
+        "the tag once: {:?}",
+        labels[0].text
+    );
     let anchor = screen_of(&h, tl);
     let (text, frame) = &chips[1];
     assert!(text.contains("-X1031:30"), "{chips:?}");
+    assert!(by_point(*frame, anchor), "{frame:?} by {anchor:?}");
     assert!(
-        (frame.left() - (anchor.x - 3.0)).abs() < 0.5,
-        "{frame:?} by {anchor:?}"
-    );
-    assert!(
-        (frame.bottom() - (anchor.y - 1.0)).abs() < 0.5,
-        "{frame:?} above {anchor:?}"
+        !frame.intersects(labels[0].rect),
+        "the chip keeps off the ghost's label"
     );
     let head = chips[0].1;
     assert!(chips[0].0.contains("device.place"), "{chips:?}");
+    // The header's target is the point 8 points left of the change's top-left corner: straight above the change
+    // where that is free; here the ghost's label takes that place, and the header takes the rule's next free one.
     assert!(
-        head.bottom() <= frame.top() && frame.top() - head.bottom() < 6.0,
-        "{head:?} over {frame:?}"
+        by_point(head, frame.left_top() - Vec2::new(8.0, 0.0)),
+        "{head:?} by {frame:?}"
     );
 
-    // The statistics shown, and the view panned so that the anchor lies inside their panel: the chips go below it.
+    // The statistics shown, and the view panned so that the anchor lies just left of their panel, level with its
+    // middle: the candidates right of the anchor fall on the panel, and the chips take the free ones.
     dispatch(&mut h, "view.frame_stats", json!({}));
     settle(&mut h);
     let panel = h.state().preview_chips().1.expect("the statistics panel");
-    let d = panel.center() - anchor;
+    let d = Pos2::new(panel.left() - 4.0, panel.center().y) - anchor;
     dispatch(&mut h, "view.pan", json!({"dx": d.x, "dy": d.y}));
     settle(&mut h);
     let anchor = screen_of(&h, tl);
-    assert!(
-        panel.contains(anchor),
-        "the anchor {anchor:?} lies in the panel {panel:?}"
-    );
     let (chips, stats) = h.state().preview_chips();
     let panel = stats.expect("the statistics panel");
-    assert!(chips.len() >= 2, "the preview is kept: {chips:?}");
-    for (text, frame) in &chips {
-        assert!(
-            !frame.intersects(panel),
-            "{text} at {frame:?} covers the panel {panel:?}"
-        );
-    }
-    let frame = chips[1].1;
-    assert!(frame.top() > panel.bottom(), "below the panel: {frame:?}");
-    // Still by the tag: straight below the panel, moved left only as far as the canvas's right edge needs.
     assert!(
-        frame.left() <= anchor.x && anchor.x <= frame.right(),
-        "still at the tag's x: {frame:?} by {anchor:?}"
+        (anchor.x - (panel.left() - 4.0)).abs() < 1.0,
+        "the anchor {anchor:?} beside the panel {panel:?}"
     );
+    assert!(chips.len() >= 2, "the preview is kept: {chips:?}");
+    assert_chips_apart(&mut h, Some(panel));
+    assert!(by_point(chips[1].1, anchor), "still by the tag: {:?}", chips[1]);
     h.state_mut().shell_mut().shutdown();
-}
-
-#[test]
-fn the_chip_layout_keeps_out_of_the_panel_and_off_each_other() {
-    let clip = egui::Rect::from_min_max(Pos2::new(0.0, 0.0), Pos2::new(400.0, 300.0));
-    let panel = egui::Rect::from_min_max(Pos2::new(300.0, 0.0), Pos2::new(400.0, 100.0));
-    let size = Vec2::new(60.0, 14.0);
-    // Two changes at one tag inside the panel, one change not on the page.
-    let changes = [
-        (Some((Pos2::new(320.0, 50.0), egui::Align2::LEFT_BOTTOM)), size),
-        (Some((Pos2::new(320.0, 50.0), egui::Align2::LEFT_BOTTOM)), size),
-        (None, size),
-    ];
-    let frames = ew_ui::tool_view::layout_chips(clip, Some(panel), size, &changes);
-    assert_eq!(frames.len(), 4);
-    for (i, a) in frames.iter().enumerate() {
-        assert!(clip.contains_rect(*a), "{a:?} inside the canvas");
-        assert!(!a.intersects(panel), "{a:?} off the panel");
-        for b in &frames[i + 1..] {
-            assert!(!a.intersects(*b), "{a:?} and {b:?} apart");
-        }
-    }
-    // The changes stay at the tag's x (moved straight down); the unplaced one stacks in the top-left corner.
-    assert_eq!(frames[1].left(), 317.0);
-    assert!(frames[1].top() > panel.bottom());
-    assert!(frames[2].top() > frames[1].bottom());
-    assert_eq!(frames[3].left(), 9.0);
-    // Without a panel or a placed change: the header in the corner, the changes below it.
-    let frames = ew_ui::tool_view::layout_chips(clip, None, size, &[(None, size), (None, size)]);
-    assert_eq!(frames[0].left_top(), Pos2::new(9.0, 9.0));
-    assert!(frames[1].top() > frames[0].bottom() && frames[2].top() > frames[1].bottom());
 }
 
 /// R30 F3 in the window: after Insert ▸ Image…'s file dialog answers, the status hint is the armed tool's at once,
@@ -1171,19 +1175,13 @@ fn the_chip_of_an_existing_devices_tag_change_stands_above_its_printed_tag() {
     let (text, frame) = &chips[1];
     assert!(text.contains("-101F1."), "{chips:?}");
     let anchor = screen_of(&h, snap.page_to_sheet(tag_at));
-    assert!(
-        (frame.left() - (anchor.x - 3.0)).abs() < 1.0,
-        "{frame:?} by {anchor:?}"
-    );
-    assert!(
-        (frame.bottom() - (anchor.y - 1.0)).abs() < 1.0,
-        "{frame:?} above {anchor:?}"
-    );
-    // Not the body's corner, where FT-389 put it.
+    // By the printed tag text, by the chip rule of WP-S2.17 D13 (one of its four candidates).
+    assert!(by_point(*frame, anchor), "{frame:?} by {anchor:?}");
+    // Not by the body's corner, where FT-389 put it.
     let corner = screen_of(&h, snap.page_to_sheet((rep.body[0], rep.body[1])));
     assert!(
-        (frame.left() - (corner.x - 3.0)).abs() > 1.0 || (frame.bottom() - (corner.y - 1.0)).abs() > 1.0,
-        "{frame:?} is at the body's corner {corner:?}"
+        !by_point(*frame, corner),
+        "{frame:?} is by the body's corner {corner:?}"
     );
     h.state_mut().shell_mut().shutdown();
 }

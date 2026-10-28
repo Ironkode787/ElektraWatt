@@ -370,8 +370,9 @@ fn c_shows_why_it_does_not_connect_while_moving() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-512: the pointer over a connection point shows a tooltip with the CP's label as `cp_label` prints it, and none
-/// once the pointer leaves it.
+/// FT-512, with WP-S2.17 part 5's tooltip (OV4, doc 16a §7.2): the pointer over a connection point of folio 101 shows
+/// a tooltip with the CP's label as `cp_label` prints it, its kind and its potential (`1X1:1/a · terminal · L`), and
+/// none once the pointer leaves it.
 #[test]
 fn hovering_a_connection_point_shows_its_label_in_a_tooltip() {
     use egui_kittest::kittest::Queryable as _;
@@ -406,16 +407,21 @@ fn hovering_a_connection_point_shows_its_label_in_a_tooltip() {
             Some(label)
         );
         // The tooltip shows after egui's delay: frames until it does (bounded).
+        let tip = format!("{label} · terminal · L");
+        assert_eq!(
+            h.state().shell().canvas().unwrap().hovered_cp_tip().as_deref(),
+            Some(tip.as_str())
+        );
         let mut shown = false;
         for _ in 0..120 {
             h.step();
-            if h.query_by_label(label).is_some() {
+            if h.query_by_label(&tip).is_some() {
                 shown = true;
                 break;
             }
             std::thread::sleep(std::time::Duration::from_millis(10));
         }
-        assert!(shown, "a tooltip names {label}");
+        assert!(shown, "a tooltip reads {tip}");
     }
     // Away from every CP: no CP, no tooltip.
     h.hover_at(egui::Pos2::new(2.0, 2.0));
@@ -424,6 +430,6 @@ fn hovering_a_connection_point_shows_its_label_in_a_tooltip() {
         h.step();
     }
     assert!(h.state().shell().canvas().unwrap().hovered_cp().is_none());
-    assert!(h.query_by_label("1X1:1/b").is_none());
+    assert!(h.query_all_by_label_contains("1X1:1/b").next().is_none());
     h.state_mut().shell_mut().shutdown();
 }

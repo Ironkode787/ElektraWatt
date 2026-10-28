@@ -28,8 +28,16 @@
 //! 4. **paint**: the surround, then the GPU texture or the tiles coarse to fine, then (one code path for both
 //!    backends) the page bounds, the grid dots, the hover outline (a hovered link's rectangle before an entity's,
 //!    while the active tool shows the hover), the selection, the tool's overlay and snap markers, the grid cursor,
-//!    then the overlay's labels and the preview's semantic ghost as chips, the link preview popup (a small canvas of
-//!    the target page drawn from the same tile pool) and, when View, Frame statistics is on, the statistics.
+//!    the highlights, then the canvas chips (the overlay's labels, the highlights' name chips and the preview's
+//!    semantic ghost, placed by one rule: [`crate::canvas_chips`]), the link preview popup (a small canvas of the
+//!    target page drawn from the same tile pool) and, when View, Frame statistics is on, the statistics.
+//!
+//! **Design language** (WP-S2.17 part 5, doc 16a §7): the marks take the canvas tokens of the theme egui shows
+//! ([`canvas_theme`]) and FT-391's scale rule (`ew-render2d`'s overlay); the hover outline is drawn around the first
+//! entity of the pick stack under the pointer (FT-500, doc 16a §6.25), never on a selected one; a connection point
+//! under the pointer shows a tooltip in the inverse style (doc 16a §6.18, §7.2); the statistics panel is a diagnostic
+//! chip at the canvas's top right (§7.7). Chrome drawn over the canvas (the tool HUD, the zoom control) reports its
+//! frames with [`CanvasHost::set_chrome_obstacles`], and the chips keep off them (FT-508).
 //!
 //! No raster and no tessellation happens on the UI thread. Each canvas is one focusable AccessKit node with the
 //! role `Canvas`, named `Page <folio>, <title>` and described `<hint>, zoom <zoom>` and, while the grid cursor
@@ -52,7 +60,8 @@ use ew_render2d::stats::{FrameSample, FrameStats, Phase, now};
 use ew_render2d::tiles::{DEFAULT_CACHE_BYTES, Plan, Planner, TileCache, TileKey};
 use ew_render2d::view::{DrawTransform, PxRect, View};
 use ew_viewmodel::canvas::{
-    CanvasModel, CanvasPage, Viewport, bounded_pane, zoom_in_step, zoom_out_step, zoom_percent_text,
+    CanvasModel, CanvasPage, HOVER_SLOP_PT, Viewport, bounded_pane, zoom_in_step, zoom_out_step,
+    zoom_percent_text,
 };
 use ew_viewmodel::ew_api::output::ew_dl::ew_units::Rect as SheetRect;
 use ew_viewmodel::ew_api::output::ew_dl::{Color, FontKey, ew_units::Nm};
@@ -63,6 +72,7 @@ use ew_viewmodel::{highlight, status, strings};
 use serde_json::json;
 
 use crate::app::Event;
+use crate::canvas_chips::{CanvasChip, ChipInput, ChipKind};
 use crate::gpu::GpuHost;
 
 /// The share of the tile cache hidden scenes keep (FT-356): a quarter of 256 MiB.
@@ -77,15 +87,52 @@ pub const MAX_UPLOAD_BYTES_PER_FRAME: usize = 2 * 1024 * 1024;
 /// The most canvas groups.
 const GROUPS: usize = 2;
 
-/// The hover outline of a canvas: the hovered link's rectangle, else the hovered entity's (WP-S2.03 §6.4), while the
-/// active tool shows the hover (§7.1).
-fn hover_rect(shell: &ShellModel, c: &CanvasModel) -> Option<SheetRect> {
+/// The hover outline of a canvas while the active tool shows the hover (WP-S2.03 §6.4, §7.1): the hovered link's
+/// rectangle, else, while an entity is hovered, the rectangle of the first entity of the pick stack under the pointer
+/// (the one a click picks, FT-500; WP-S2.17 part 5, doc 16a §6.25), else the hovered entity's; none on a selected
+/// entity (doc 16a §7.1: the selection only).
+pub fn hover_rect(shell: &ShellModel, group: usize, c: &CanvasModel) -> Option<SheetRect> {
     if !shell.tool().wants_hover() {
         return None;
     }
-    c.hovered_link()
-        .map(|l| l.rect)
-        .or_else(|| c.hover().map(|(_, r)| r))
+    if let Some(l) = c.hovered_link() {
+        return Some(l.rect);
+    }
+    let (_, hovered) = c.hover()?;
+    let page = c.page();
+    let first = c.pointer().and_then(|p| {
+        ew_viewmodel::tools::pick_stack(page, &page.snapper, p, HOVER_SLOP_PT / c.points_per_nm())
+            .first()
+            .and_then(|e| page.entities.iter().find(|(id, _)| id == e))
+            .map(|(_, r)| *r)
+    });
+    let r = first.unwrap_or(hovered);
+    (!shell.selected_rects(group).contains(&r)).then_some(r)
+}
+
+/// The overlay colours of `t` (doc 16a §4.6): the canvas tokens; the page bounds in `color.border.default`, the
+/// keyboard grid cursor and the rubber band in the accent of the sheet (`canvas.selection`).
+pub fn canvas_theme(t: &crate::theme::Tokens) -> Theme {
+    let c = |r: crate::theme::Rgba| Color {
+        r: r.r,
+        g: r.g,
+        b: r.b,
+        a: r.a,
+    };
+    Theme {
+        surround: c(t.canvas_surround),
+        border: c(t.border_default),
+        grid_dot: c(t.canvas_grid_dot),
+        hover: c(t.canvas_hover),
+        selection: c(t.canvas_selection),
+        cursor: c(t.canvas_selection),
+        paper: c(t.canvas_sheet),
+        ghost: c(t.canvas_ghost),
+        snap: c(t.canvas_snap),
+        measure: c(t.canvas_measure),
+        rubber_band: c(t.canvas_selection),
+        casing: c(t.canvas_sheet),
+    }
 }
 
 /// The page grid of a canvas as the overlay draws it, when the grid is on.
@@ -118,7 +165,7 @@ pub fn snapshot_image(shell: &ShellModel, group: usize) -> Result<(ew_render_cpu
         canvas,
         &theme_of(shell),
         grid_spec(shell, canvas),
-        hover_rect(shell, canvas),
+        hover_rect(shell, group, canvas),
         &selected,
         canvas.cursor(),
         &tool,
@@ -259,12 +306,19 @@ pub fn preview_snapshot_image(shell: &ShellModel) -> Result<(ew_render_cpu::Rgba
     )
 }
 
-/// The canvas theme of the settings (light for `system`).
+/// The canvas theme of the settings (Light for `system`; the slot the setting pins otherwise), from the tokens.
 fn theme_of(shell: &ShellModel) -> Theme {
-    match shell.settings().theme.as_str() {
-        "dark" | "hc-dark" => overlay::DARK,
-        _ => overlay::LIGHT,
-    }
+    let settings = shell.settings();
+    let (light, dark, preference) = crate::theme::themes_of_setting(settings.theme.as_str());
+    let theme = if preference == egui::ThemePreference::Dark {
+        dark
+    } else {
+        light
+    };
+    canvas_theme(&crate::theme::tokens(
+        theme,
+        crate::theme::Density::of_setting(settings.density.as_str()),
+    ))
 }
 
 /// The settled pane of `canvas` rendered by `render_region` with the overlays composited (see [`snapshot_image`]).
@@ -487,6 +541,10 @@ pub struct CanvasHost {
     rest: Option<Rest>,
     /// The preview chips painted last, with their frames in points, and the statistics panel's frame (tests, FT-389).
     chips: (Vec<(String, Rect)>, Option<Rect>),
+    /// Every canvas chip painted last, per group (tests; WP-S2.17 part 5).
+    chip_plans: [Vec<CanvasChip>; GROUPS],
+    /// The frames of the chrome drawn over each group's canvas (the tool HUD, the zoom control), points.
+    chrome: [Vec<Rect>; GROUPS],
 }
 
 impl Default for CanvasHost {
@@ -576,6 +634,8 @@ impl CanvasHost {
             popup: PopupView::default(),
             rest: None,
             chips: (Vec::new(), None),
+            chip_plans: Default::default(),
+            chrome: Default::default(),
         }
     }
 
@@ -583,6 +643,26 @@ impl CanvasHost {
     /// it showed (tests, FT-389).
     pub fn preview_chips(&self) -> (&[(String, Rect)], Option<Rect>) {
         (&self.chips.0, self.chips.1)
+    }
+
+    /// Every chip painted on the canvas of `group` in the last frame (WP-S2.17 part 5: labels, highlight name chips,
+    /// the preview), in paint order.
+    pub fn canvas_chips(&self, group: usize) -> &[CanvasChip] {
+        self.chip_plans.get(group).map_or(&[], Vec::as_slice)
+    }
+
+    /// The frames (points) of the chrome drawn over the canvas of `group`: the tool HUD and the zoom control (doc 16a
+    /// §5.5). The canvas chips keep off them (doc 16a §7.4, FT-508) from the next frame on; the frames stay until
+    /// replaced. The seam the HUD's painter calls every frame (WP-S2.17 part 2).
+    pub fn set_chrome_obstacles(&mut self, group: usize, frames: Vec<Rect>) {
+        if let Some(slot) = self.chrome.get_mut(group) {
+            *slot = frames;
+        }
+    }
+
+    /// The chrome frames reported for `group` ([`CanvasHost::set_chrome_obstacles`]).
+    pub fn chrome_obstacles(&self, group: usize) -> &[Rect] {
+        self.chrome.get(group).map_or(&[], Vec::as_slice)
     }
 
     /// The GPU side of the first group's canvas (the switch rule runs there).
@@ -704,10 +784,10 @@ impl CanvasHost {
             return;
         };
         self.map_input(ui, &response, rect, canvas, group, events);
-        // FT-512: the connection point under the pointer names itself in a tooltip (its `cp_label` text), in the
-        // window's ordinary tooltip style.
-        if let Some(cp) = canvas.hovered_cp() {
-            response.clone().on_hover_text_at_pointer(cp.label.as_str());
+        // FT-512's tooltip half (doc 16a §7.2, §6.18): the connection point under the pointer names its printed label,
+        // its kind and its potential in a tooltip in the inverse style.
+        if let Some(tip) = canvas.hovered_cp_tip() {
+            cp_tooltip(&response, tip);
         }
         if shell.area().map(|a| a.focused) == Some(group) {
             self.dwell(ui, canvas, group, events);
@@ -741,11 +821,7 @@ impl CanvasHost {
         self.add_phase(Phase::Render, t_paint - t_render);
 
         // Phase 4: paint.
-        let theme = if ui.visuals().dark_mode {
-            overlay::DARK
-        } else {
-            overlay::LIGHT
-        };
+        let theme = canvas_theme(&crate::theme::current(ui.ctx()));
         let pane_px = view.pane_px_whole();
         let transform = plan.as_ref().map_or_else(|| view.transform(), |p| p.transform);
         let selected = shell.selected_rects(group);
@@ -757,7 +833,7 @@ impl CanvasHost {
             ppp: canvas.ppp(),
             sheet,
             grid: grid_spec(shell, canvas),
-            hover: hover_rect(shell, canvas),
+            hover: hover_rect(shell, group, canvas),
             selected: &selected,
             cursor: canvas.cursor(),
             tool: &tool,
@@ -775,15 +851,37 @@ impl CanvasHost {
         let stats = shell
             .frame_stats_shown()
             .then(|| self.statistics_frame(ui, rect, shell));
-        if shell.area().map(|a| a.focused) == Some(group) {
-            crate::tool_view::paint_labels(ui, rect, rect.min, ppp, &transform, shell.tool_overlay());
-            let chips =
-                crate::tool_view::paint_preview(ui, rect, rect.min, ppp, &transform, canvas, shell, stats);
-            self.chips = (chips, stats);
+        let focused = shell.area().map(|a| a.focused) == Some(group);
+        let mut obstacles: Vec<Rect> = stats.into_iter().collect();
+        obstacles.extend(self.chrome[group].iter().copied());
+        let pointer = ui.input(|i| i.pointer.hover_pos()).filter(|p| rect.contains(*p));
+        let chips = crate::canvas_chips::plan(
+            ui,
+            &ChipInput {
+                rect,
+                ppp,
+                transform: &transform,
+                group,
+                focused,
+                obstacles: &obstacles,
+                pointer,
+            },
+            canvas,
+            shell,
+        );
+        crate::canvas_chips::paint(ui, rect, &chips);
+        if focused {
+            let preview = chips
+                .iter()
+                .filter(|c| matches!(c.kind, ChipKind::PreviewHeader | ChipKind::PreviewChange))
+                .map(|c| (c.text.clone(), c.rect))
+                .collect();
+            self.chips = (preview, stats);
             if let Some(lp) = shell.link_preview() {
                 self.paint_popup(ui, rect, ppp, &response, lp, &theme);
             }
         }
+        self.chip_plans[group] = chips;
         if shell.frame_stats_shown() {
             self.paint_statistics(ui, rect, shell);
         }
@@ -1361,7 +1459,17 @@ impl CanvasHost {
             cursor: lp.target.at_nm,
             tool: &[],
         });
-        crate::tool_view::paint_popup_frame(ui, rect, popup, &lp.target.folio);
+        crate::canvas_chips::paint_popup_frame(ui, rect, popup, &lp.target.folio);
+        // FT-390: a named, non-focusable image region for the popup, so that a screen reader can tell that it is open
+        // and where it leads (a 1-point node at its corner, away from the pointer, which stands 16 points off).
+        let node = response.id.with("link-preview");
+        let at = Rect::from_min_size(popup.min, Vec2::splat(1.0));
+        let name = match &lp.target.cell {
+            Some(cell) => strings::format("link-preview-node", &[&lp.target.folio, cell]),
+            None => strings::format("link-preview-node-page", &[&lp.target.folio]),
+        };
+        ui.interact(at, node, Sense::hover())
+            .widget_info(move || egui::WidgetInfo::labeled(egui::Role::Image, true, &name));
         let painter = ui.painter_at(popup.intersect(rect));
         let origin = popup.min;
         for &r in &marks.surround {
@@ -1656,16 +1764,17 @@ impl CanvasHost {
     }
 
     /// The statistics overlay: fps, the p99 of the frame and of each phase, the pending tiles and the backend.
-    /// The frame the statistics panel takes in `rect`: the preview chips keep out of it (FT-389).
+    /// The frame the statistics panel takes in `rect` (doc 16a §7.7: `space.4` from the canvas's top and right
+    /// edges, `space.2` padding round its `type.caption` text): the canvas chips keep out of it (FT-389, FT-508).
     fn statistics_frame(&self, ui: &Ui, rect: Rect, shell: &ShellModel) -> Rect {
         let t = crate::theme::current(ui.ctx());
         let galley = ui.painter_at(rect).layout_no_wrap(
             self.statistics_text(shell),
-            crate::theme::font(&t.type_small),
+            crate::theme::font(&t.type_caption),
             t.canvas_chip_text.color32(),
         );
-        let at = rect.right_top() + Vec2::new(-t.space_3 - galley.size().x, t.space_3);
-        Rect::from_min_size(at, galley.size()).expand(t.space_2)
+        let size = galley.size() + Vec2::splat(2.0 * t.space_2);
+        Rect::from_min_size(rect.right_top() + Vec2::new(-t.space_4 - size.x, t.space_4), size)
     }
 
     /// The statistics panel's text.
@@ -1691,19 +1800,49 @@ impl CanvasHost {
     }
 
     fn paint_statistics(&self, ui: &Ui, rect: Rect, shell: &ShellModel) {
-        // The statistics panel as a canvas chip (doc 16a §7.4; its own diagnostic-chip look is part 5's, §7.7).
+        // The statistics panel, a diagnostic (doc 16a §7.7): the canvas chip's look (`canvas.chip`, `radius.sm`,
+        // `elevation.1`) with `type.caption` text, at the canvas's top right.
         let t = crate::theme::current(ui.ctx());
         let painter = ui.painter_at(rect);
+        let back = self.statistics_frame(ui, rect, shell);
         let galley = painter.layout_no_wrap(
             self.statistics_text(shell),
-            crate::theme::font(&t.type_small),
+            crate::theme::font(&t.type_caption),
             t.canvas_chip_text.color32(),
         );
-        let at = rect.right_top() + Vec2::new(-t.space_3 - galley.size().x, t.space_3);
-        let back = Rect::from_min_size(at, galley.size()).expand(t.space_2);
-        painter.rect_filled(back, t.radius_sm, t.canvas_chip.color32());
-        painter.galley(at, galley, t.canvas_chip_text.color32());
+        let radius = crate::theme::radius(t.radius_sm);
+        painter.add(crate::theme::shadow(&t.elevation_1).as_shape(back, radius));
+        painter.rect_filled(back, radius, t.canvas_chip.color32());
+        painter.galley(
+            back.min + Vec2::splat(t.space_2),
+            galley,
+            t.canvas_chip_text.color32(),
+        );
     }
+}
+
+/// The tooltip of the connection point under the pointer (doc 16a §6.18, §7.2): `color.surface.inverse` with
+/// `color.text.on_inverse` in `type.small`, `radius.md`, `elevation.1`, at most `size.tooltip.max` wide, after egui's
+/// tooltip delay, 12 points off the pointer.
+fn cp_tooltip(response: &egui::Response, tip: String) {
+    let t = crate::theme::current(&response.ctx);
+    let mut tooltip = egui::containers::Tooltip::for_enabled(response)
+        .at_pointer()
+        .gap(t.space_4);
+    let frame = egui::Frame::new()
+        .fill(t.surface_inverse.color32())
+        .corner_radius(crate::theme::radius(t.radius_md))
+        .inner_margin(egui::Margin::symmetric(t.space_3 as i8, t.space_2 as i8))
+        .shadow(crate::theme::shadow(&t.elevation_1));
+    tooltip.popup = tooltip.popup.frame(frame);
+    tooltip.show(|ui| {
+        ui.set_max_width(t.size_tooltip_max);
+        ui.add(egui::Label::new(
+            egui::RichText::new(tip)
+                .font(crate::theme::font(&t.type_small))
+                .color(t.text_on_inverse.color32()),
+        ));
+    });
 }
 
 /// The zoom text of a canvas as its accessible description reads it (tests).

@@ -370,6 +370,12 @@ impl App {
         (chips.to_vec(), stats)
     }
 
+    /// The canvas host (tests; WP-S2.17 part 5: the chips of the last frame, the chrome-obstacle seam).
+    #[doc(hidden)]
+    pub fn canvas_host(&mut self) -> &mut CanvasHost {
+        &mut self.canvas
+    }
+
     /// The panes of the dock tree in layout order (tests).
     pub fn dock_panes(&self) -> Vec<PaneKind> {
         self.dock.panes()

@@ -19,6 +19,7 @@ mod about;
 pub mod app;
 pub mod canvas;
 pub mod canvas_area;
+pub mod canvas_chips;
 pub mod dock;
 // WP-S2.05 part 2
 pub mod find;
