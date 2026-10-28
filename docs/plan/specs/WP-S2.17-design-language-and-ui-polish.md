@@ -247,8 +247,6 @@ Where the build differs from the text above (each item is a deviation for the cy
   their tabs' groups. A group of more than three entries becomes a submenu, a smaller one a separated block.
 - **Collapsed bar:** 33 px (the 32-px tab row and its 1-px line).
 - **F6 ring:** command bar, navigator, canvas, properties; from no focus F6 starts at the navigator as before.
-- **CB4's 65 %:** the current docks leave the page view 63 % of the width at 1280 × 800 (797 of 1264 px in the
-  harness); the kittest asserts 63 % until part 3's default workspace narrows the docks.
 - **Pending commands** (no registry action yet) are drawn nowhere and listed by name in `command_bar::PENDING`.
 - **Placed actions** without a topic of their own link to the "project-view" documentation topic.
 
@@ -284,6 +282,62 @@ Where the build differs from the text above (each item is a deviation for the cy
 8. **FT-338**: the dock and canvas-area splitters get names ("Resize <pane> and <pane>"); the walker's skip removed.
 9. **Window memory** (the rest of FT-348): the window's size, position and maximised state in `settings.toml`, restored
    at start and clamped to a visible monitor.
+
+### 7.1 As built in cycle 32 (part 3)
+
+Built: the rails, the default workspace, the panel headers with the segmented control, the named splitters
+(FT-338), the page rows' badges, Properties' Main and Advanced groups, the status bar of D12, FT-518, FT-519 and
+FT-523. The tests are `ew-ui` `tests/docks.rs` (DK1, DK2, DK3's window half, DK4's window half, DK8, FT-519),
+`ew-viewmodel` `tests/docks.rs` (DK1's model half, DK3, DK4, DK5, FT-519's focus), `table_mode` (FT-509 through the
+rail), `table_widget` TB7 (FT-523) and `command_surface` CB4 (65 % again).
+
+- **Rails** are egui side panels outside the dock (`size.rail` each), views of `ew_viewmodel::rail`. egui_tiles 0.18
+  has `Behavior::is_tab_bar_visible` per container, so the navigator group (the tab group that holds Pages, Devices or
+  a rail navigator, or such a navigator alone) draws no tab bar; no wrapper was needed. The rail's active entry is
+  derived from the layout (the pane shown in place of Pages); only the column's collapse is shell state
+  (`rail_collapsed`, not persisted). `rail.show {side?, pane}` is hidden from the menus and the palette. The right
+  rail's Symbols and Parts open the existing pickers (`tool.place`, `tool.place_part`): the palettes are not built,
+  and `rail.show {side: right}` is refused with a reason.
+- **The default workspace** is `split horizontal [split vertical ["Pages" 50%, "Properties" 50%] 23%, "Page view"
+  77%]` in thousandths (233 : 767, 500 : 500), so the dock does not rewrite it on the first frame; 233 ‰ of the
+  1,200 px between the rails is the mockup's 280-px column at 1280 × 800. A workspace file written before the package
+  loads as it is (DK5). `with_properties` puts Properties under the column that holds Pages. The navigator's own
+  tool row (New page, Table, Filter) stays as built under the segmented control; the bottom dock's look is unchanged.
+- **Headers:** a pane outside a tab bar has the 32-px header (its title in `type.label`, upper case; the accessible
+  name keeps its case), which is also its drag handle; the page view and the panes of a tab bar have none. The
+  navigator group's header is its rail entry's name ("PROJECT" for Pages and Devices) with the segmented control
+  (a `TabList` "Pages or devices" of two `Tab` nodes).
+- **Splitters (FT-338):** the dock's and the canvas area's containers are not resizable for egui_tiles, and
+  `crate::splitter` draws one named `Splitter` node per pair of shown neighbours ("Resize Pages and Properties"),
+  named after each side's shown pane, with the accent line on hover and drag and a double click that evens the pair.
+  The walker counts these nodes against `splitter_count` and lets no unnamed node through.
+- **Tree rows:** the page rows' badges are caption chips (named `Label` nodes) after the text, not bracketed words;
+  `ShownRow` gained `label` and `badges` (the describe lines keep `text` with brackets). The current page row is in
+  `type.body.strong`. The expand glyphs stay "+" and "-" text, and the canvas tab titles keep their bracketed
+  badges (the canvas tab bar is not restyled).
+- **Properties:** the Main group (the kind's primary fields: page number, section, title, description; device tag,
+  function text, parts, location; connection number, potential, cross-section, colour) comes first; the Advanced rows
+  (`$v`, `id`, `source_ref`, `tag.counter`, `form`, by row path) show after "Show advanced (n)" at the foot
+  (`props.show_advanced {on?}`, the setting `[properties] show_advanced`). Deviation from D11: the other categories
+  stay open by default as built (their collapse is the user's, kept in the settings). The duplicate labels are
+  renamed in the field labels ("… override", "Effective location", "Part use 2", "Connection point 1"). A value cell
+  edits in place on a click (`props.row` then `props.edit`) with a hover border; an empty value is an em dash; the
+  chip shows only for a value that is not authored, in short form ("f derived") with the whole text as its tooltip;
+  the row's actions are one "…" icon button (`props.row_menu`) painted on the cursor row, on hover and on focus. The
+  filter for more than twelve rows is not built.
+- **Status bar:** `status::bar` gives D12's fields with a tone and a tooltip; the window and the describe line
+  `status bar:` use it. The transcripts' `status` member keeps the older `fields()` (so the scripts' outputs are
+  unchanged). The findings field reads the open Messages pane's counts, so it shows only while Messages is open.
+  The save field says "Saved", "Unsaved changes" or "Read-only" (the reason in its tooltip). The findings, job and
+  notifications fields are buttons (Messages, Jobs, the log); the rest are labels.
+- **History:** the header adds "oldest kept: step `<k>` · `<a>` MB of `<b>` MB" (FT-518, MB = 10^6 bytes, one
+  decimal). FT-519 adds `Focus::History` to the F6 ring (last, while the panel is shown) and `ui.focus {area:
+  history}`: with that focus Up and Down are `history.row` and Enter is `history.undo_to`; a click on a row moves the
+  row cursor there. The row actions stay text buttons; on the other rows they keep their nodes (Tab reaches them) but
+  are not painted. The state icons, the badges and the dialog frame of doc 16a §6.24 are not built.
+- **Not built in this part:** the data grid's restyle of doc 16a §6.21 beyond FT-523 (DK9), Messages' restyle
+  (DK10), History's icons (the rest of DK11), the DK12 snapshots, the dock tabs' restyle of doc 16a §6.4 and window
+  memory (DK6, the rest of FT-348): candidates for the next cycle.
 
 ## 8. Part 4: cards, toasts, dialogs, menus, palette and empty states
 
