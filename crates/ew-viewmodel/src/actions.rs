@@ -2160,7 +2160,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         project_open,
         slot(Menu::Tools),
     ),
-    // WP-S2.09 part 3 (§8.3, §8.6): Tools, Renumber devices... and Purge unused library copies...
+    // WP-S2.09 part 3 (§8.3, §8.6): Tools, Renumber devices... and Purge unused images...
     with_params(
         "scope?:enum(project|page|selection), scheme?:text, include_frozen?:bool, only_nonconforming?:bool",
         act(

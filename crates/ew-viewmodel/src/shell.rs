@@ -257,7 +257,7 @@ pub enum Dialog {
         /// Why the last Recover failed.
         failed: Option<String>,
     },
-    /// Tools, Purge unused library copies (WP-S2.09 part 3, §8.6): the files that go, which undo does not bring back;
+    /// Tools, Purge unused images (WP-S2.09 part 3, §8.6): the image files that go, which undo does not bring back;
     /// Purge (`project.assets.purge` with `confirm`) or Cancel (Escape).
     ConfirmPurge {
         /// The library files that are deleted, in their order.

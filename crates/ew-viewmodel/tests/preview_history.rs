@@ -661,7 +661,8 @@ fn set_logo(s: &mut ShellModel, bytes: &[u8]) {
 }
 
 /// PV6 (FT-417): the dialog lists `purge_preview`'s files; Purge commits the command's marker from the GUI origin; an
-/// empty plan refuses; headless the action refuses `reason-human-only`.
+/// empty plan refuses; `confirm` without the open dialog refuses `reason-no-purge-dialog`; headless the action
+/// refuses `reason-human-only`.
 #[test]
 fn pv6_the_purge_step() {
     let tmp = Tmp::new("pv6");
@@ -678,6 +679,20 @@ fn pv6_the_purge_step() {
     );
     done(&mut s, "file.close", json!({}));
     done(&mut s, "file.open", json!({"dir": dir.to_string_lossy()}));
+    // `confirm` without the open confirmation purges nothing (R1-5 of cycle 31).
+    let unused: Vec<_> = std::fs::read_dir(dir.join("assets"))
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .collect();
+    assert_eq!(
+        refused(&mut s, "project.purge_assets", json!({"confirm": true})),
+        "reason-no-purge-dialog"
+    );
+    assert_eq!(
+        ew_viewmodel::strings::text("reason-no-purge-dialog"),
+        "Open Purge unused images... first"
+    );
+    assert!(unused.iter().all(|f| f.exists()), "nothing was purged");
     done(&mut s, "project.purge_assets", json!({}));
     let Some(Dialog::ConfirmPurge { files, assets }) = s.dialog().cloned() else {
         panic!("{:?}", s.dialog());
@@ -689,7 +704,7 @@ fn pv6_the_purge_step() {
     let d = s.describe();
     assert!(
         d.contains(&format!(
-            "dialog \"Purge unused library copies\"\n  label \"These files are deleted and do not come back by undo.\"\n  item \"{}\"\n  button \"Purge\"\n  button \"Cancel\"",
+            "dialog \"Purge unused images\"\n  label \"These files are deleted and do not come back by undo.\"\n  item \"{}\"\n  button \"Purge\"\n  button \"Cancel\"",
             files[0]
         )),
         "{d}"

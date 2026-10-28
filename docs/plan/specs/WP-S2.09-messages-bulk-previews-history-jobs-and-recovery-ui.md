@@ -585,11 +585,14 @@ context (an external change, a recovery) restores nothing.
 
 ### 8.6 The GUI purge step (FT-417)
 
-Tools ▸ Purge unused library copies… (`project.purge_assets`) opens `Dialog::ConfirmPurge` listing
-`Session::purge_preview()`'s files (base names, at most 20 then "and <n> more") with "These files are deleted and do not
-come back by undo." Purge commits `project.assets.purge` from the GUI origin (the command's own marker line appears in
-the history); an empty plan refuses `reason-nothing-to-purge`. Headless the action refuses `reason-human-only` (the
-command is `HumanOnly`).
+Tools ▸ Purge unused images… (`project.purge_assets`) opens `Dialog::ConfirmPurge` (title "Purge unused images")
+listing `Session::purge_preview()`'s files, the unused image files under `assets/` (doc 05 §13.3; never `lib/` copies)
+by base name, at most 20 then "and <n> more", with "These files are deleted and do not come back by undo." Purge
+(`confirm: true`) commits `project.assets.purge` of exactly the listed hashes from the GUI origin (the command's own
+marker line appears in the history); `confirm: true` without the open dialog refuses `reason-no-purge-dialog` ("Open
+Purge unused images... first") and purges nothing; an empty plan refuses `reason-nothing-to-purge` ("No image is
+unused"); an unreadable file names no path ("an image file could not be read"). Headless the action refuses
+`reason-human-only` (the command is `HumanOnly`).
 
 ### 8.7 Actions, transcript and describe of part 3 (8 new)
 
@@ -602,7 +605,7 @@ command is `HumanOnly`).
 | `history.changes` | View | Show changes | — | — | history, hidden | `entry?:uint` |
 | `pages.renumber` | Command | Renumber pages… | Page | — | global | `section?:text, start?:uint, step?:uint, keep_gaps?:bool` |
 | `devices.renumber` | Command | Renumber devices… | Tools | — | global | `scope?:enum(project ¦ page ¦ selection), scheme?:text, include_frozen?:bool, only_nonconforming?:bool` |
-| `project.purge_assets` | Command | Purge unused library copies… | Tools | — | global | `confirm?:bool` |
+| `project.purge_assets` | Command | Purge unused images… | Tools | — | global | `confirm?:bool` |
 
 `preview.apply` and `preview.cancel` also work in the preview context. New top-level sections, printed while the pane is
 open:

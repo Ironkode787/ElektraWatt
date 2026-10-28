@@ -587,10 +587,10 @@ impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // The purge step (FT-417)
 
-    /// `project.purge_assets {confirm?}` (Tools, Purge unused library copies...): without `confirm` the confirmation
-    /// lists `Session::purge_preview`'s files; with it `project.assets.purge` of exactly those files is committed from
-    /// the GUI origin (its own marker line enters the history). An empty plan refuses; headless the action refuses
-    /// (`HumanOnly`).
+    /// `project.purge_assets {confirm?}` (Tools, Purge unused images...): without `confirm` the confirmation lists
+    /// `Session::purge_preview`'s image files; with it `project.assets.purge` of exactly those files is committed from
+    /// the GUI origin (its own marker line enters the history), and without an open confirmation it refuses. An empty
+    /// plan refuses; headless the action refuses (`HumanOnly`).
     pub(super) fn act_purge_assets(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.mode == Mode::Headless {
             return Outcome::Refused {
@@ -627,17 +627,16 @@ impl ShellModel {
             let assets = plan.remove.iter().map(|f| f.sha256.to_string()).collect();
             return self.open_dialog(Dialog::ConfirmPurge { files, assets });
         }
-        let assets = match &self.dialog {
-            Some(Dialog::ConfirmPurge { assets, .. }) => Some(assets.clone()),
-            _ => None,
-        };
-        let params = match &assets {
-            Some(a) => json!({ "assets": a }),
-            None => json!({}),
+        // `confirm` purges exactly the files the open confirmation lists; without it nothing is purged (an empty
+        // `project.assets.purge` would remove every purgeable file unconfirmed; R1-5 of cycle 31).
+        let Some(Dialog::ConfirmPurge { assets, .. }) = &self.dialog else {
+            return Outcome::Refused {
+                reason_key: "reason-no-purge-dialog",
+            };
         };
         let cmd = AnyCommand {
             name: "project.assets.purge".to_owned(),
-            params,
+            params: json!({ "assets": assets }),
         };
         let calls = &self.calls;
         let Some(project) = &mut self.project else {
