@@ -70,6 +70,19 @@ fn file_url_of(path: &Path) -> String {
     }
 }
 
+/// Whether `target` lies inside the project directory `dir`: compared on the canonical paths when both exist, else on
+/// the absolute ones (component by component, so `p.ew2` is not inside `p.ew`).
+fn inside(dir: &Path, target: &Path) -> bool {
+    let folder = target.parent().unwrap_or(target);
+    match (std::fs::canonicalize(dir), std::fs::canonicalize(folder)) {
+        (Ok(d), Ok(f)) => f.starts_with(d),
+        _ => match (std::path::absolute(dir), std::path::absolute(folder)) {
+            (Ok(d), Ok(f)) => f.starts_with(d),
+            _ => false,
+        },
+    }
+}
+
 impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // Getters
@@ -292,6 +305,12 @@ impl ShellModel {
         if self.jobs.running() > 0 {
             return Outcome::Refused {
                 reason_key: "reason-export-running",
+            };
+        }
+        // A PDF renamed over a file of the open project would damage it (review finding 5 of cycle 30).
+        if inside(&project.dir, &path) {
+            return Outcome::Refused {
+                reason_key: "reason-export-into-project",
             };
         }
         if path.exists() && !replace {

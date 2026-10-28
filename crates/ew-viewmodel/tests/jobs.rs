@@ -496,3 +496,52 @@ fn quit_keeps_the_end_of_an_export_that_wrote_its_file() {
     assert_eq!(texts.len(), 1, "{texts:?}");
     assert!(texts[0].starts_with("Exported out.pdf: "), "{texts:?}");
 }
+
+/// Review finding 5 of cycle 30: an export target inside the open project's folder is refused, with or without
+/// `replace`, and nothing there changes; a folder whose name only starts with the project's is not inside it.
+#[test]
+fn an_export_into_the_open_projects_folder_is_refused() {
+    let tmp = Tmp::new("into-project");
+    let mut s = small(&tmp, Mode::Headless);
+    let project = tmp.0.join("small.ew");
+    let manifest = project.join("manifest.json");
+    let before = std::fs::read(&manifest).unwrap();
+    assert_eq!(
+        refused(
+            &mut s,
+            "file.export_pdf",
+            json!({"path": path_text(&project.join("out.pdf"))})
+        ),
+        "reason-export-into-project"
+    );
+    assert!(!project.join("out.pdf").exists());
+    assert_eq!(
+        refused(
+            &mut s,
+            "file.export_pdf",
+            json!({"path": path_text(&manifest), "replace": true})
+        ),
+        "reason-export-into-project"
+    );
+    assert_eq!(
+        std::fs::read(&manifest).unwrap(),
+        before,
+        "the project is unchanged"
+    );
+    // A relative spelling of the same folder is inside it too.
+    let dotted = project.join("..").join("small.ew").join("x.pdf");
+    assert_eq!(
+        refused(&mut s, "file.export_pdf", json!({"path": path_text(&dotted)})),
+        "reason-export-into-project"
+    );
+    assert!(s.jobs().entries().next().is_none(), "no job started");
+    let beside = tmp.0.join("small.ew2");
+    std::fs::create_dir_all(&beside).unwrap();
+    done(
+        &mut s,
+        "file.export_pdf",
+        json!({"path": path_text(&beside.join("out.pdf"))}),
+    );
+    assert!(beside.join("out.pdf").exists());
+    s.shutdown();
+}

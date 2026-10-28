@@ -691,6 +691,9 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "reason-dialog-open" => "A dialog is open: answer it first",
         "reason-file-exists" => "The file exists; pass replace to overwrite it",
         "reason-export-running" => "An export is running",
+        "reason-export-into-project" => {
+            "The file would be inside the open project's folder; choose another folder"
+        }
         "reason-no-running-job" => "No job is running",
         "reason-job-finished" => "The job has finished",
         "reason-no-result" => "No export has written a file",
