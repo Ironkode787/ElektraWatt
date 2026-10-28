@@ -22,10 +22,16 @@
 //! 3. the writer: [`ew_export::pdf`] (PDF/A-2b, outline, `/PageLabels`, named destinations, links, subset fonts)
 //!    or [`ew_export::svg`] (one `<label>.svg` per page), with the bundled fonts only ([`font_bytes`]).
 //!
-//! Serial and parallel runs give the same bytes (AC-14). The `Session` is not `Send`, so phase 1 stays on its
-//! thread: the layers are memoised in the session's store and a second export after an edit rebuilds only the
-//! layers the edit touched. The job is synchronous: progress, cancellation and the job pool of ARCH §2 (`ew-jobs`)
-//! are not built (the CLI is its only caller so far).
+//! Serial and parallel runs give the same bytes (AC-14). The `Session` is not `Send`, so phase 1 of
+//! [`Session::export_pdf`] stays on its thread: the layers are memoised in the session's store and a second export
+//! after an edit rebuilds only the layers the edit touched.
+//!
+//! **The export as a job** (WP-S2.09 part 1, D4; [`ExportJob`], `job.rs`). [`Session::export_job`] takes a snapshot
+//! (the `World`, the report engine, the asset bytes); [`ExportJob::run`] builds a cold `Q` on the job's own thread and
+//! runs the same three phases with a progress report before each page, a checkpoint after each page (`page`), a
+//! cancel check before each page of the page phase (`draw`), and checkpoints after the page phase (`drawn`) and the
+//! writer (`written`). The phases are one function for both ([`export_pages_with`] runs it without hooks), so the job's
+//! bytes are the synchronous export's on the same revision. No pool and no memo snapshot in the job (FT-497).
 //!
 //! **Metadata** ([`pdf_options`], doc 09 §4.3). Title: the project description (neutral). Creator: `ElektraWatt
 //! <version>`. Date (FR-OUT-026): the caller's (`SOURCE_DATE_EPOCH` in the CLI), else the model's edited date, else
@@ -40,6 +46,8 @@ mod editing;
 mod fields;
 // WP-S2.05 part 2
 mod find;
+// WP-S2.09 part 1: the export as a job (D4).
+mod job;
 mod layers;
 mod navigation;
 // WP-S2.06 part 1
@@ -79,6 +87,8 @@ pub use fields::{
 };
 // WP-S2.05 part 2
 pub use find::{FindField, FindHit, FindQuery, FindResults};
+// WP-S2.09 part 1
+pub use job::ExportJob;
 pub use layers::{
     FrameLayer, LabelsLayer, PageLayer, SymbolsLayer, TablesLayer, WiresLayer, page_kind, page_layer,
     page_scene, page_view,
@@ -489,24 +499,93 @@ pub fn export_pages_with(
     options: &ExportOptions,
     assets: &ExportAssets,
 ) -> Result<ExportPages, OutputError> {
+    match export_pages_hooked(q, options, assets, &NoHooks) {
+        Ok(pages) => Ok(pages),
+        Err(Halt::Output(e)) => Err(e),
+        // `NoHooks` never cancels.
+        Err(Halt::Cancelled) => Err(OutputError::Selection("the export was cancelled".to_owned())),
+    }
+}
+
+/// The progress reports and checkpoints of an export run (WP-S2.09 part 1, §6.2): none for the synchronous export
+/// ([`NoHooks`]), the job's controller for [`ExportJob`].
+pub(crate) trait Hooks: Sync {
+    /// The progress: `done` of `total` (`total` 0: indeterminate) in `phase`.
+    fn report(&self, done: u32, total: u32, phase: &'static str);
+    /// A checkpoint: `Err` when the run is cancelled.
+    fn checkpoint(&self, at: &'static str) -> Result<(), ew_jobs::Cancelled>;
+}
+
+/// The hooks of the synchronous export: no report, never cancelled.
+pub(crate) struct NoHooks;
+
+impl Hooks for NoHooks {
+    fn report(&self, _: u32, _: u32, _: &'static str) {}
+
+    fn checkpoint(&self, _: &'static str) -> Result<(), ew_jobs::Cancelled> {
+        Ok(())
+    }
+}
+
+impl Hooks for ew_jobs::JobCtl {
+    fn report(&self, done: u32, total: u32, phase: &'static str) {
+        ew_jobs::JobCtl::report(self, ew_jobs::Progress { done, total, phase });
+    }
+
+    fn checkpoint(&self, at: &'static str) -> Result<(), ew_jobs::Cancelled> {
+        ew_jobs::JobCtl::checkpoint(self, at)
+    }
+}
+
+/// Why a hooked export run stopped.
+pub(crate) enum Halt {
+    /// The export failed.
+    Output(OutputError),
+    /// A checkpoint met the cancel flag.
+    Cancelled,
+}
+
+impl From<OutputError> for Halt {
+    fn from(e: OutputError) -> Halt {
+        Halt::Output(e)
+    }
+}
+
+impl From<ew_jobs::Cancelled> for Halt {
+    fn from(_: ew_jobs::Cancelled) -> Halt {
+        Halt::Cancelled
+    }
+}
+
+/// Phases 1 and 2 of the export with `hooks` (§6.2): before page i of n of the selection `report(i, n, "building")`,
+/// after its scene `checkpoint("page")`; in the page phase each page first checks the cancel flag
+/// (`checkpoint("draw")`) and is skipped when cancelled; after the phase `checkpoint("drawn")` and
+/// `report(n, n, "drawing")`. With [`NoHooks`] this is [`export_pages_with`] exactly.
+pub(crate) fn export_pages_hooked<H: Hooks>(
+    q: &Q,
+    options: &ExportOptions,
+    assets: &ExportAssets,
+    hooks: &H,
+) -> Result<ExportPages, Halt> {
     let order = q.get::<PageOrder>(());
     let picked = options.pages.resolve(&order)?;
     if picked.is_empty() {
-        return Err(OutputError::Selection("the export has no pages".to_owned()));
+        return Err(OutputError::Selection("the export has no pages".to_owned()).into());
     }
+    let total = u32::try_from(picked.len()).unwrap_or(u32::MAX);
     // Phase 1, on this thread through `q`: the memoised layers of every selected page.
-    let phase1: Vec<Phase1> = picked
-        .iter()
-        .map(|&i| {
-            let entry = order.entries[i].clone();
-            Phase1 {
-                title: outline_title(q, &entry),
-                section: section_title(q, &entry),
-                scene: page_scene(q, &entry),
-                entry,
-            }
-        })
-        .collect();
+    let mut phase1: Vec<Phase1> = Vec::with_capacity(picked.len());
+    for (done, &i) in (0u32..).zip(picked.iter()) {
+        hooks.report(done, total, "building");
+        let entry = order.entries[i].clone();
+        phase1.push(Phase1 {
+            title: outline_title(q, &entry),
+            section: section_title(q, &entry),
+            scene: page_scene(q, &entry),
+            entry,
+        });
+        hooks.checkpoint("page")?;
+    }
     let mut findings: Vec<PageFindingAt> = phase1
         .iter()
         .flat_map(|p| {
@@ -516,8 +595,10 @@ pub fn export_pages_with(
             })
         })
         .collect();
-    // Phase 2, the page phase: every sheet list on its own, collected by page index.
+    // Phase 2, the page phase: every sheet list on its own, collected by page index; a page whose turn comes after a
+    // cancel is skipped.
     let resolved = par_map(&phase1, options.parallelism, |_, p| {
+        hooks.checkpoint("draw").ok()?;
         let (content, report) =
             ew_scene::images::resolve_images(&p.scene.sheet_list(), &|sha| assets.get(sha));
         let page = PdfPage {
@@ -529,8 +610,15 @@ pub fn export_pages_with(
             height: p.scene.sheet_height,
             content,
         };
-        (page, report)
+        Some((page, report))
     });
+    hooks.checkpoint("drawn")?;
+    hooks.report(total, total, "drawing");
+    // A skipped page means a cancel, which the checkpoint above has seen already; this keeps the types honest.
+    let resolved = resolved
+        .into_iter()
+        .collect::<Option<Vec<_>>>()
+        .ok_or(Halt::Cancelled)?;
     // The images that could not be drawn (bytes not held, a refused SVG, PNG or JPEG bytes that do not decode) are page
     // findings, after the scene's: no silent loss (decision log ID-620). The raster check uses the renderers' own
     // decoder, once per asset of the export.

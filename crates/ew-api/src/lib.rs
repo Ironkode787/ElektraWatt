@@ -24,9 +24,12 @@
 //! page views and one memoised `page_display_list` family per layer through the session's memo store, the page
 //! phase on `ew_export::par_map`, then the PDF or SVG writer with the bundled fonts.
 //!
-//! Not in v0: the memo snapshot in [`World`] and the job pool for previews (WP-S1.05), rule registration
-//! (WP-S1.15), progress and cancellation of export jobs (`ew-jobs`), the save on a writer thread, and the undo
-//! history of a recovered session (FR-COL-028: a recovered session opens dirty with an empty history).
+//! The PDF export also runs as a job ([`Session::export_job`], WP-S2.09 part 1): a snapshot with a cold `Q` on a
+//! thread of [`ew_jobs`], with progress and cooperative cancel.
+//!
+//! Not in v0: the memo snapshot in [`World`] and the job pool for previews (WP-S1.05, FT-497), rule registration
+//! (WP-S1.15), the save on a writer thread, and the undo history of a recovered session (FR-COL-028: a recovered
+//! session opens dirty with an empty history).
 //!
 //! **Derivation findings.** What the derivation layer could not do as the project asks (an unknown pinned
 //! derivation profile, a numbering scheme the command layer does not number, the built-in default frame, a
@@ -100,6 +103,8 @@ pub fn asset_ref_of(bytes: &[u8]) -> Result<AssetRef, AssetError> {
 /// The check engine (`ew check`, the message panel, the migration report): rules, schemes, findings.
 pub use ew_checks as checks;
 pub use ew_derive::{BomMode, DeriveNote, MemoStore, Mismatch, NoteSeverity};
+/// The job runner (WP-S2.09 part 1, D3): the shell names it through `ew-api` (no workspace edge of its own).
+pub use ew_jobs;
 /// The row sources of `ew export cables|bom` (doc 17 §3.3): what to export and why it could not.
 pub use ew_reports::export::{Export, ExportError, Exported};
 /// Assets (doc 05 §13.3): the reference a record stores, the sniffer and the base64 form of command parameters.
