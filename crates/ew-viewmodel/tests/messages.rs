@@ -362,6 +362,9 @@ fn ms3_the_quick_fix_is_previewed_applied_in_one_step_and_undone() {
         "{card_line}"
     );
     assert!(card_line.ends_with(" fix \"EW-CORE-023\""), "{card_line}");
+    // WP-S2.09 part 3 (§8.1): the card opens in the Preview tab like every origin; the Messages pane stays docked.
+    assert!(shell.preview_shown());
+    assert!(shell.navigator_open(ew_viewmodel::navigators::NavKind::Messages));
     // Apply: one transaction removes the finding; the origin annotation is kept for the history panel.
     let undo_before = shell.can_undo();
     done(&mut shell, "navigator.apply", json!({}));
@@ -373,6 +376,11 @@ fn ms3_the_quick_fix_is_previewed_applied_in_one_step_and_undone() {
         shell.origin_annotation(shell.revision().unwrap()),
         Some("quick fix EW-CORE-023")
     );
+    // WP-S2.09 part 3 (§8.4): the history panel shows the annotation as the entry's origin.
+    done(&mut shell, "history.show", json!({"on": true}));
+    let entry = line(&shell, "  entry ");
+    assert!(entry.contains(" origin \"quick fix EW-CORE-023\""), "{entry}");
+    done(&mut shell, "history.show", json!({"on": false}));
     // One undo step restores it.
     done(&mut shell, "edit.undo", json!({}));
     assert_eq!(findings(&shell, "EW-CORE-023", "102").len(), 1);
