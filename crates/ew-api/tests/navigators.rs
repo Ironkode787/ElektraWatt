@@ -178,3 +178,32 @@ fn keys_are_stable_across_a_revision() {
         s.navigator_table(NavKind::Devices)
     );
 }
+
+/// NFR-PERF-15 at XL (§11): the Devices table of the XL synthetic fixture and a 5-character filter over its tokens.
+/// Not run during development (owner's rule, ID-512): the release phase runs it with FT-491 and reads the timings.
+#[test]
+#[ignore = "release-phase measurement (FT-491); not run during development (owner's rule, ID-512)"]
+fn devices_table_and_a_filter_at_xl() {
+    let (project, records, lib) =
+        ew_testkit::synth::project(ew_testkit::synth::SizeClass::XL, 1).into_parts();
+    let s = Session::from_records(project, records, lib, ew_api::SessionOptions::default())
+        .expect("the XL fixture is a valid model");
+    // The bench helper's clock (ew-testkit) measures the release-phase timing; nothing derived reads it.
+    let (t, built) = ew_testkit::bench::time(|| s.navigator_table(NavKind::Devices));
+    let query = ew_api::output::nav_tokens("k1001");
+    let (hits, filtered) = ew_testkit::bench::time(|| {
+        t.nodes
+            .iter()
+            .filter(|n| {
+                query
+                    .iter()
+                    .all(|q| n.tokens.iter().any(|x| x.starts_with(q.as_str())))
+            })
+            .count()
+    });
+    println!(
+        "XL Devices table: {} nodes in {built:?}; filter `k1001`: {hits} hits in {filtered:?}",
+        t.nodes.len()
+    );
+    assert!(!t.nodes.is_empty());
+}

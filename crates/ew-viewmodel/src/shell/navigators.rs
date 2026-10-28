@@ -151,6 +151,20 @@ impl ShellModel {
         }
     }
 
+    /// The FnDef key of a function, from an open navigator's function row (its label, §6.1 item 2).
+    pub(super) fn function_fndef_key(&self, function: &str) -> Option<String> {
+        self.navs.values().find_map(|n| {
+            let t = n.table()?;
+            t.nodes
+                .iter()
+                .find(|x| {
+                    x.role == ew_api::output::NavRole::Function
+                        && x.records.iter().any(|r| r.to_string() == function)
+                })
+                .map(|x| x.label.clone())
+        })
+    }
+
     /// The keys of navigator `kind`'s rows on show, in display order.
     fn vis_keys(&self, kind: NavKind) -> Vec<String> {
         match kind {

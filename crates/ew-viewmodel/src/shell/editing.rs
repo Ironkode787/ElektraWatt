@@ -557,6 +557,15 @@ impl ShellModel {
                 Pick::PartFn(pi, fi)
             }
             (_, Ok(Some(function))) => {
+                // WP-S2.06 part 1 (§6.7): without `symbol`, the drop of an unplaced function row takes the first
+                // catalogue symbol that draws the function's FnDef (the Devices navigator's function row names it).
+                let symbol = symbol.or_else(|| {
+                    let fndef = self.function_fndef_key(function)?;
+                    cat.symbols
+                        .iter()
+                        .find(|s| s.fndef_key == fndef && s.allowed && !s.black_box)
+                        .map(|s| s.key.clone())
+                });
                 let Some(i) = symbol.as_deref().and_then(find) else {
                     return failed("error-missing-param", &["symbol"]);
                 };

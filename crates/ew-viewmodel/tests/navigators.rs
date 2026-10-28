@@ -450,7 +450,10 @@ fn devices_and_the_canvas_keep_the_selection_in_step() {
     done(&mut shell, "ui.focus", json!({"area": "canvas"}));
     done(&mut shell, "select.set", json!({"ids": [rep_id.to_string()]}));
     let nav = shell.nav(NavKind::Devices).unwrap();
-    assert_eq!(nav.marked().iter().cloned().collect::<Vec<_>>(), std::slice::from_ref(&rep203));
+    assert_eq!(
+        nav.marked().iter().cloned().collect::<Vec<_>>(),
+        std::slice::from_ref(&rep203)
+    );
     assert_eq!(
         shell.nav_cursor(NavKind::Devices).as_deref(),
         Some(rep203.as_str())
@@ -657,4 +660,115 @@ fn every_navigator_opens_and_the_navigator_words_are_reached() {
     }
     assert_eq!(ew_viewmodel::describe::NAV_WORDS.len(), 18);
     shell.shutdown();
+}
+
+/// NV4 (NFR-PERF-15, structural; §11): a synthetic table of 100,000 nodes built in the test (no `Session`): the tree and
+/// the flat list, a filter keystroke and a descending sort give the right rows. Timings are not measured (owner's
+/// rule, ID-512).
+#[test]
+fn a_hundred_thousand_nodes_flatten_filter_and_sort() {
+    use ew_api::output::{NavColumn, NavNode, NavTable, nav_natural_key, nav_tokens};
+    use ew_viewmodel::navigators::{NavView, Query, SortBy, VisRow, visible_rows};
+    let node = |key: String, parent: Option<u32>, role: NavRole, label: String| {
+        let mut tokens = nav_tokens(&label);
+        tokens.sort();
+        tokens.dedup();
+        NavNode {
+            natural: vec![nav_natural_key(&label)],
+            key,
+            parent,
+            role,
+            label,
+            badges: Vec::new(),
+            records: Vec::new(),
+            drawables: Vec::new(),
+            open: None,
+            cells: Vec::new(),
+            table_row: role == NavRole::Device,
+            tokens,
+            facets: Vec::new(),
+        }
+    };
+    // 1,000 groups of 99 devices: 100,000 nodes; the devices in reverse natural order within a group.
+    let mut nodes = Vec::with_capacity(100_000);
+    for g in 0..1000u32 {
+        let gi = u32::try_from(nodes.len()).unwrap();
+        nodes.push(node(
+            format!("function:=G{g}"),
+            None,
+            NavRole::Function,
+            format!("=G{g}"),
+        ));
+        for d in (0..99u32).rev() {
+            nodes.push(node(
+                format!("function:=G{g}/device:{g}-{d}"),
+                Some(gi),
+                NavRole::Device,
+                format!("-{g}K{d}"),
+            ));
+        }
+    }
+    assert_eq!(nodes.len(), 100_000);
+    let table = NavTable {
+        kind: NavKind::Devices,
+        rev: 1,
+        columns: Vec::<NavColumn>::new(),
+        nodes,
+        index: std::collections::BTreeMap::new(),
+    };
+    let none = std::collections::BTreeSet::new();
+    let label = |r: &VisRow| table.nodes[r.node as usize].label.clone();
+    let tree = visible_rows(
+        &table,
+        NavView::Tree,
+        &SortBy::Label,
+        false,
+        &Query::default(),
+        &none,
+    );
+    assert_eq!(tree.len(), 100_000);
+    // Natural order: =G2 before =G10, -0K2 before -0K10.
+    assert_eq!(label(&tree[0]), "=G0");
+    assert_eq!(label(&tree[1]), "-0K0");
+    assert_eq!(label(&tree[3]), "-0K2");
+    assert_eq!(label(&tree[100]), "=G1");
+    assert_eq!(label(&tree[200]), "=G2");
+    // A filter keystroke: `-123k45` (tokens `123`, `k`, `45`, each a prefix of a node token) keeps -123K45 under =G123.
+    let hit = visible_rows(
+        &table,
+        NavView::Tree,
+        &SortBy::Label,
+        false,
+        &Query::parse("-123k45"),
+        &none,
+    );
+    let labels: Vec<String> = hit.iter().map(label).collect();
+    assert_eq!(labels, ["=G123", "-123K45"]);
+    // One keystroke more on a shorter query: `-12k4` keeps -12K4 and -12K40 to -12K49 under =G12, and the groups whose
+    // number starts with 4 that have a device starting with 12 (=G4: -4K12; =G40 to =G49: -4nK12): the tokens are
+    // matched in any order.
+    let hit = visible_rows(
+        &table,
+        NavView::Tree,
+        &SortBy::Label,
+        false,
+        &Query::parse("-12k4"),
+        &none,
+    );
+    let labels: Vec<String> = hit.iter().map(label).collect();
+    assert_eq!(labels[0], "=G4");
+    assert!(labels.contains(&"-12K49".to_owned()));
+    assert!(labels.contains(&"-49K12".to_owned()));
+    // The flat list, sorted descending: 99,000 devices, the last group's last device first.
+    let flat = visible_rows(
+        &table,
+        NavView::Flat,
+        &SortBy::Label,
+        true,
+        &Query::default(),
+        &none,
+    );
+    assert_eq!(flat.len(), 99_000);
+    assert_eq!(label(&flat[0]), "-999K98");
+    assert_eq!(label(&flat[98_999]), "-0K0");
 }

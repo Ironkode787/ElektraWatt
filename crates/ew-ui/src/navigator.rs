@@ -453,9 +453,11 @@ fn row_ui(
         })
         .inner;
     response.widget_info(|| egui::WidgetInfo::selected(egui::Role::TreeItem, true, row.marked, &row.name));
-    let (level, position, size, expanded) = (row.level, row.position, row.set_size, row.expanded);
+    let (level, position, size, expanded, marked) =
+        (row.level, row.position, row.set_size, row.expanded, row.marked);
     ui.ctx().accesskit_node_builder(response.id, |n| {
         n.set_level(level);
+        n.set_selected(marked);
         n.set_position_in_set(position);
         n.set_size_of_set(size);
         if let Some(e) = expanded {

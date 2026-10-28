@@ -215,6 +215,13 @@ impl egui_tiles::Behavior<PaneKind> for DockBehavior<'_> {
     fn cycle_tabs_with_keyboard(&self) -> bool {
         false
     }
+
+    // WP-S2.06 part 1
+    /// Panes are dragged (by their tab or title), containers are not: a tab group (the Pages pane with the navigators
+    /// beside it, §6.8) gets no unnamed drag area of its own, as in the canvas area.
+    fn is_tile_draggable(&self, tiles: &Tiles<PaneKind>, tile_id: TileId) -> bool {
+        matches!(tiles.get(tile_id), Some(egui_tiles::Tile::Pane(_)))
+    }
 }
 
 #[cfg(test)]
