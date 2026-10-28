@@ -25,6 +25,10 @@ mod grid_find;
 #[path = "grid/clipboard.rs"]
 mod grid_clipboard;
 
+/// The export job and the journal recovery headless (WP-S2.09 part 1, JB4 and JB7).
+#[path = "jobs/scripts.rs"]
+mod jobs_scripts;
+
 /// The folio-script support; here for its UUID check (FT-422).
 mod support;
 
