@@ -596,6 +596,74 @@ pub struct ShapeCp {
     pub designation: String,
 }
 
+/// What `rep.exchange_symbol` without `pin_map` does to the function CPs a representation draws, from its current
+/// symbol's shape and the new one ([`exchange_map`], FT-424).
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct ExchangeMap {
+    /// The function CPs the new symbol draws, ascending.
+    pub drawn: Vec<u16>,
+    /// The function CPs the current symbol draws and the new one does not, ascending (the command lists them as
+    /// notices, or refuses one that is connected on the page).
+    pub unmapped: Vec<u16>,
+    /// The first CP of the new symbol without a counterpart by designation whose index default names a function
+    /// CP, `(symbol CP, FnDef CP)`: the command refuses the exchange (give `pin_map`), and `drawn` and `unmapped`
+    /// are empty.
+    pub unmatched: Option<(u16, u16)>,
+}
+
+/// The CP map `rep.exchange_symbol` derives without `pin_map` (FT-424; `ew_commands`' `derive_pin_map`, the
+/// command's own rule), for a representation that draws `current` and gets `new`: the function's CPs are those
+/// `current` draws with their designations (`ShapeCp.designation`); when both shapes draw the same FnDef the map is
+/// by index, else by designation, ASCII case-insensitively. A function CP the current symbol does not draw cannot
+/// become unmapped, so `unmapped` is exact; `unmatched` judges only the CPs `current` draws, while the command judges
+/// every CP of the function's definition (it may refuse at the commit where this predicts none).
+pub fn exchange_map(current: &SymbolShape, new: &SymbolShape) -> ExchangeMap {
+    let mut function: Vec<(u16, &str)> = Vec::new();
+    for c in &current.cps {
+        if !function.iter().any(|(i, _)| *i == c.fn_cp) {
+            function.push((c.fn_cp, c.designation.as_str()));
+        }
+    }
+    let symbol: Vec<(u16, u16, Option<&str>)> = new
+        .cps
+        .iter()
+        .map(|c| {
+            (
+                c.symbol_cp,
+                c.fn_cp,
+                Some(c.designation.as_str()).filter(|d| !d.is_empty()),
+            )
+        })
+        .collect();
+    let drawn: BTreeSet<u16> =
+        match ew_commands::commands::derive_pin_map(&function, current.fndef == new.fndef, &symbol) {
+            Ok(None) => new
+                .cps
+                .iter()
+                .map(|c| c.fn_cp)
+                .filter(|f| function.iter().any(|(i, _)| i == f))
+                .collect(),
+            Ok(Some(entries)) => entries.into_iter().map(|(_, f)| f).collect(),
+            Err(unmatched) => {
+                return ExchangeMap {
+                    unmatched: Some(unmatched),
+                    ..ExchangeMap::default()
+                };
+            }
+        };
+    let mut unmapped: Vec<u16> = function
+        .iter()
+        .map(|(i, _)| *i)
+        .filter(|i| !drawn.contains(i))
+        .collect();
+    unmapped.sort_unstable();
+    ExchangeMap {
+        drawn: drawn.into_iter().collect(),
+        unmapped,
+        unmatched: None,
+    }
+}
+
 /// A schema direction as a [`Dir`] (an unknown direction reads `Up`).
 fn dir_of(d: &Dir4) -> Dir {
     match d {
@@ -1512,6 +1580,77 @@ pub(crate) fn junction_wire_order(a: &JunctionWire, b: &JunctionWire) -> std::cm
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A shape drawing FnDef `def` with CPs `(symbol CP, FnDef CP, designation)`.
+    fn shape(def: u128, cps: &[(u16, u16, &str)]) -> SymbolShape {
+        SymbolShape {
+            copy: Uuid::from_u128(def + 100),
+            key: String::new(),
+            cps: cps
+                .iter()
+                .map(|&(symbol_cp, fn_cp, d)| ShapeCp {
+                    symbol_cp,
+                    fn_cp,
+                    at: (0, 0),
+                    dir: Dir::Up,
+                    designation: d.to_owned(),
+                })
+                .collect(),
+            body: [0; 4],
+            outline: Vec::new(),
+            rep_type: String::new(),
+            fndef: Uuid::from_u128(def),
+        }
+    }
+
+    #[test]
+    fn exchange_map_by_index_for_the_same_definition() {
+        // FT-424: the function draws CPs 0, 1 and 2; the new symbol of the same FnDef draws 0 and 2.
+        let current = shape(1, &[(0, 0, "13"), (1, 1, "14"), (2, 2, "21")]);
+        let new = shape(1, &[(0, 2, "21"), (1, 0, "13")]);
+        assert_eq!(
+            exchange_map(&current, &new),
+            ExchangeMap {
+                drawn: vec![0, 2],
+                unmapped: vec![1],
+                unmatched: None,
+            }
+        );
+    }
+
+    #[test]
+    fn exchange_map_by_designation_case_insensitively() {
+        // Another FnDef: its CP "a1" draws function CP 0 ("A1"); its CP 1 ("X9", FnDef CP 7) has no counterpart and
+        // its default names no function CP, so it draws nothing; function CP 1 ("A2") is unmapped.
+        let current = shape(1, &[(0, 0, "A1"), (1, 1, "A2")]);
+        let new = shape(2, &[(0, 3, "a1"), (1, 7, "X9")]);
+        assert_eq!(
+            exchange_map(&current, &new),
+            ExchangeMap {
+                drawn: vec![0],
+                unmapped: vec![1],
+                unmatched: None,
+            }
+        );
+        // A CP whose FnDef is not embedded (no designation) has no counterpart either.
+        let new = shape(2, &[(0, 3, "A1"), (1, 8, "")]);
+        assert_eq!(exchange_map(&current, &new).unmapped, vec![1]);
+    }
+
+    #[test]
+    fn exchange_map_names_the_unmatched_cp_the_command_refuses() {
+        // The new symbol's CP 1 matches nothing by designation and its default FnDef CP 1 names function CP 1.
+        let current = shape(1, &[(0, 0, "1"), (1, 1, "2")]);
+        let new = shape(2, &[(0, 0, "X1"), (1, 1, "X2")]);
+        assert_eq!(
+            exchange_map(&current, &new),
+            ExchangeMap {
+                drawn: vec![],
+                unmapped: vec![],
+                unmatched: Some((0, 0)),
+            }
+        );
+    }
 
     #[test]
     fn a_cubic_quarter_circle_flattens_within_the_tolerance() {

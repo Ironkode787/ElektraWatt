@@ -112,7 +112,7 @@ pub use device::{
 };
 pub use drawing::{Crossings, DRAWING_MEMBER, MarkerModeParam, SetDrawing};
 pub use edit::{BULK_ABOVE, DeleteSelection};
-pub use exchange::{ExchangePin, ExchangeSymbol};
+pub use exchange::{ExchangePin, ExchangeSymbol, PinPairs, derive_pin_map};
 pub use fields::{ASPECTS, SET_MANY_MAX_EDITS, SETTABLE, SetFields, SetManyFields};
 pub use frames::{FRAMES_MEMBER, FrameForPageType, SetFrameDefaults};
 pub use items::{

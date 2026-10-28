@@ -438,10 +438,11 @@ fn change_symbol_previews_and_commits_on_one_representation() {
     done(&mut s, "ui.dismiss", json!({}));
     // A symbol of another function definition with no CP matching by designation: the preview is refused because a
     // symbol CP would draw a function CP by no decision of the map's (ruling 5), which leaves no CP unmapped: the
-    // ghost names none (fix round, item 4).
+    // ghost names none (fix round, item 4), before the dwell too: the map comes from the two shapes (FT-424).
     done(&mut s, "rep.exchange", json!({"symbol": "ew.iec.heater@qet10"}));
     assert_eq!(s.tool().name(), "exchange");
     assert_eq!(s.tool().state(), "armed");
+    assert_eq!(ghost(&s)["unmapped"], json!([]));
     done(&mut s, "canvas.dwell", json!({"ms": 80}));
     assert_eq!(state(&s)["canvas"]["preview"]["state"], "failed");
     let g = ghost(&s);

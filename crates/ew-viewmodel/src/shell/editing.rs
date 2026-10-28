@@ -413,14 +413,13 @@ impl ShellModel {
                 reason_key: "reason-one-rep",
             };
         };
+        // The shape of the representation's current symbol: the function CPs it draws and their designations.
         let old_symbol = old.symbol;
-        let old_fndef = self
-            .cached_shape(old_symbol.to_string(), |s| s.symbol_shape(old_symbol))
-            .map(|s| s.fndef);
-        let same_def = old_fndef == Some(shape.fndef);
+        let current = self.cached_shape(old_symbol.to_string(), |s| s.symbol_shape(old_symbol));
         self.tools.picker = None;
         self.tools.exchange_rep = None;
-        let Some(tool) = self.with_tool(|_, cx| ExchangeTool::new(rep, Arc::clone(&shape), same_def, cx))
+        let Some(tool) =
+            self.with_tool(|_, cx| ExchangeTool::new(rep, Arc::clone(&shape), current.as_deref(), cx))
         else {
             return Outcome::Refused {
                 reason_key: "reason-no-page",

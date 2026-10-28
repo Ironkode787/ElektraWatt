@@ -72,6 +72,43 @@ fn fold(s: &str) -> String {
     s.to_ascii_lowercase()
 }
 
+/// `(symbol CP, function CP)` pairs of a derived CP map.
+pub type PinPairs = Vec<(u16, u16)>;
+
+/// The CP map `rep.exchange_symbol` derives without `pin_map` (FT-424), as a pure function of the CPs:
+///
+/// - `function_cps`: the function's CPs, `(index, designation)`;
+/// - `same_def`: whether the new symbol's FnDef is the function's definition;
+/// - `symbol_cps`: the new symbol's CPs, `(symbol CP, FnDef CP, designation of that FnDef CP)`, the designation
+///   `None` when the FnDef is not embedded or has no such CP.
+///
+/// `Ok(None)` is the map by index (nothing stored, a symbol CP draws its `fn_cp`); `Ok(Some(entries))` the map by
+/// designation (ASCII case-insensitive), `(symbol CP, function CP)` in symbol-CP order, a symbol CP without a
+/// counterpart left out (it draws no CP of the function); `Err((symbol CP, FnDef CP))` the first symbol CP without a
+/// counterpart whose index default names a CP of the function, which the command refuses.
+pub fn derive_pin_map(
+    function_cps: &[(u16, &str)],
+    same_def: bool,
+    symbol_cps: &[(u16, u16, Option<&str>)],
+) -> Result<Option<PinPairs>, (u16, u16)> {
+    if same_def {
+        return Ok(None);
+    }
+    let mut entries = Vec::new();
+    for &(symbol_cp, fn_cp, designation) in symbol_cps {
+        let target = designation
+            .map(fold)
+            .and_then(|d| function_cps.iter().find(|(_, o)| fold(o) == d))
+            .map(|(idx, _)| *idx);
+        match target {
+            Some(idx) => entries.push((symbol_cp, idx)),
+            None if function_cps.iter().any(|(c, _)| *c == fn_cp) => return Err((symbol_cp, fn_cp)),
+            None => {}
+        }
+    }
+    Ok(Some(entries))
+}
+
 impl Command for ExchangeSymbol {
     const NAME: &'static str = "rep.exchange_symbol";
 
@@ -158,7 +195,6 @@ impl Command for ExchangeSymbol {
                     }
                 }
             }
-            None if new_def == function.def => {}
             None => {
                 let new_cps: BTreeMap<u16, String> = tx
                     .get::<LibCopy<FnDef>>(new_def)
@@ -166,29 +202,29 @@ impl Command for ExchangeSymbol {
                         d.item
                             .cps
                             .iter()
-                            .map(|c| (c.idx, fold(c.designation.as_str())))
+                            .map(|c| (c.idx, c.designation.as_str().to_owned()))
                             .collect()
                     })
                     .unwrap_or_default();
-                for (symbol_cp, fn_cp) in &symbol_cps {
-                    let target = new_cps
-                        .get(fn_cp)
-                        .and_then(|d| own_cps.iter().find(|(_, o)| fold(o) == *d))
-                        .map(|(idx, _)| *idx);
-                    match target {
-                        Some(idx) => pin_map.push(PinMapEntry {
-                            symbol_cp: *symbol_cp,
+                let own: Vec<(u16, &str)> = own_cps.iter().map(|(c, d)| (*c, d.as_str())).collect();
+                let symbol: Vec<(u16, u16, Option<&str>)> = symbol_cps
+                    .iter()
+                    .map(|(s, f)| (*s, *f, new_cps.get(f).map(String::as_str)))
+                    .collect();
+                match derive_pin_map(&own, new_def == function.def, &symbol) {
+                    Ok(entries) => {
+                        pin_map.extend(entries.into_iter().flatten().map(|(symbol_cp, idx)| PinMapEntry {
+                            symbol_cp,
                             function: function_id,
                             idx,
                             extra: Extra::new(),
-                        }),
-                        None if own_cps.iter().any(|(c, _)| c == fn_cp) => {
-                            return tx.reject(format!(
-                                "connection point {symbol_cp} of the new symbol has no counterpart by designation \
-                                 and would draw function CP {fn_cp}; give `pin_map`"
-                            ));
-                        }
-                        None => {}
+                        }));
+                    }
+                    Err((symbol_cp, fn_cp)) => {
+                        return tx.reject(format!(
+                            "connection point {symbol_cp} of the new symbol has no counterpart by designation \
+                             and would draw function CP {fn_cp}; give `pin_map`"
+                        ));
                     }
                 }
             }
