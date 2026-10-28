@@ -688,6 +688,52 @@ The card's invalid cells print as `  cell <i> "<row label>" "<column label>" inv
 
 **New describe words (6):** `table`, `columns`, `invalid`, `ambiguous`, `pattern`, `values` (291 → 297).
 
+### 8.9 As built in cycle 31 (part 3, lane A31)
+
+**The model half of part 3 is delivered; the table widget is not.** TB1 to TB6 and TB8 pass; TB7 is open. Counts: 55
+commands, 239 actions (225 + the 14 of §8.8) and 315 describe words (309 + the 6 of §8.8). Built as §8 says, with
+these points:
+
+- **The widget is not built (TB7 open).** `egui_table` 0.11.0 brings a third new package, `enumn` (through egui's
+  `serde` feature and `accesskit/serde`), against §4.1 rule 2 and D9's "exactly two new packages"; that is a D-row
+  change and waits for a ruling. Without it the window's navigator pane lists a table's rows with its row widget (the
+  key column's text), and the table's columns, cell cursor, editing, fill, pattern and paste are reached through the
+  actions (the hidden ones by script or the command palette), the shortcuts of §8.8, the platform's copy and paste
+  events and the table card in the pane.
+- **Columns.** `ew-api` holds the closed table of §8.2 (`EDITABLE_COLUMNS`, 16 routes) and the derived columns
+  (8: a row's potential, folios and counts); `NavColumn` carries `route`, `derived` and `read_only` with §8.2's reason.
+  TB1's test checks each route against `field_catalogue`: every route is a scalar `FieldsSet` route; the identifier
+  flags follow the catalogue, which marks `terminal.designation` an identifier but neither `potential_def.name` nor
+  `structure_node.code` (§8.2 says yes for both): rule 2 follows the catalogue.
+- **Pages in table mode** is a framework navigator beside the as-built Pages navigator; while it exists the project
+  view's as-built Pages lines are not printed and the Pages pane draws it.
+- **Editing.** `table.input` replaces the whole buffer; Enter (`table.commit`) with unchanged text closes the edit and
+  commits nothing; a parse error stays in the field (`error` line) and commits nothing; an ambiguous number goes to the
+  card through rule 3 (no inline list of readings); `table.cell` while editing reverts the edit.
+- **Compile and policy** as §8.3: one preview, rule 1, rule 2, rule 3 (`reason-table-invalid`); a direct commit's
+  toast reads "Set <column labels> on <n> <rows word> · Undo", the rows word from the navigator (terminals, devices,
+  …). `table.set {kind, column, value, rows?, all?}` is the scripted cell edit.
+- **Fill down and pattern fill** as §8.4 and §8.5; pattern fill works on the marked rows, else the cursor row; a row
+  whose counter overflows or goes negative is an invalid cell on the card, and its `{prev}` for the next row is empty.
+- **Paste.** A first row is a header when at least half of the visible column labels match and at least one does;
+  unmatched header columns are listed on the card as ignored. Cells past the right edge are invalid ("no column"). A
+  pasted text equal to the cell's text is skipped, so pasting a copy back is an empty gesture that commits nothing and
+  opens no card (TB6). The model refuses a text with a TAB or a line break, so quoted cells that hold them are invalid
+  cells with the model's reason.
+- **The card** (`CardOrigin::Table`, word `table`) numbers its cells from 1 in gesture order; `table.resolve` and
+  `table.drop` rebuild the command and its preview (reason `reason-rebuilt`); dropping the last cell closes the card;
+  Apply is refused while cells block ("<n> cells are invalid or ambiguous", singular for one); a stale card retargets
+  and rebuilds. The window draws it in the navigator's pane with a button per reading, Drop, Apply and Cancel;
+  Ctrl+Enter applies it.
+- **Window.** With a navigator in table mode focused, the platform's copy event runs `table.copy` (the TSV goes to the
+  system clipboard) and its paste event runs `table.paste` with the clipboard's text.
+- **Fuzzing.** The fuzzer arms (random text into the TSV parser and into the pattern parser, no panic, the TSV round
+  trip) are unit tests in `ew-viewmodel`, since `ci/dep-rules.toml` allows `ew-testkit` no edge to `ew-viewmodel`.
+- **Determinism.** `create.rs`'s `a_table_script_runs_twice_identically_and_its_record_replays` runs the TB2 flow
+  through the built binary twice byte-identically and replays its record (two `fields.set`).
+- **FT-509.** Every tab group of two or more panes in the dock has an "All tabs" menu (≡) at the right of its tab
+  strip that lists every pane and activates the chosen one, so tabs pushed out by the strip's overflow stay reachable.
+
 ## 9. Determinism, the headless mode and exact counts
 
 1. **Every flow is a script.** Each acceptance flow of §10 that runs in kittest also runs as an `ew.uiscript/1` script
