@@ -294,7 +294,7 @@ criteria = "safe-to-run"
 [[exemptions.egui_table]]
 version = "0.11.0"
 criteria = "safe-to-deploy"
-notes = "WP-S2.06 part 3 (2026-10-28, cycle 31 lane A31): the navigators' table mode in ew-ui (D9, ADR-0014 amendment 4), default-features = false. An exemption, as the lane writes no audit (ID-447); read in full (4 files, 1.4k lines): no unsafe, no build.rs (build = false), no fs/net/env/process; deps egui (serde feature), serde, vec1. Pure layout over egui child Uis; column widths in egui Memory through insert_persisted (on disk only with egui's persistence feature, which ElektraWatt does not enable). Panics only on a NaN or infinite column width (auto_size's sort expect) and debug_asserts. Licence MIT OR Apache-2.0 (the texts are not in the archive). The owner confirms or audits it before any distributed binary (FT-326 list). No allowed import covers this version."
+notes = "WP-S2.06 part 3 (2026-10-28, cycle 31 lane A31): the navigators' table mode in ew-ui (D9, ADR-0014 amendment 4), default-features = false. An exemption, as the lane writes no audit (ID-447); read in full (4 files, 1.4k lines): no unsafe, no build.rs (build = false), no fs/net/env/process; deps egui (serde feature), serde, vec1. Pure layout over egui child Uis; column widths in egui Memory through insert_persisted (on disk only with egui's persistence feature, which ElektraWatt does not enable). Panics only on a NaN or infinite column width (auto_size's sort expect) and debug_asserts. Licence MIT OR Apache-2.0 (the texts are not in the archive). Covered by the owner's confirmation of 2026-10-28 (ID-723) for 0.0.x; audited, covered or replaced before the first signed release (doc 18 §5.4). No allowed import covers this version."
 
 [[exemptions.egui_tiles]]
 version = "0.18.0"
@@ -323,7 +323,7 @@ criteria = "safe-to-deploy"
 [[exemptions.enumn]]
 version = "0.1.14"
 criteria = "safe-to-deploy"
-notes = "WP-S2.06 part 3 (2026-10-28, cycle 31 lane A31): enumn accepted by the orchestrator, cycle 31, transitive via egui/serde (egui_table turns on egui's serde feature, which turns on accesskit/serde). An exemption, as the lane writes no audit (ID-447); read in full (one file, 207 lines, and the test): a derive proc-macro over proc-macro2, quote and syn that emits `fn n(value) -> Option<Self>` for unit variants; no unsafe in the macro or its output, no build.rs, no fs/net/env/process. Licence MIT OR Apache-2.0. The owner confirms or audits it before any distributed binary (FT-326 list). No allowed import covers this version."
+notes = "WP-S2.06 part 3 (2026-10-28, cycle 31 lane A31): enumn accepted by the orchestrator, cycle 31, transitive via egui/serde (egui_table turns on egui's serde feature, which turns on accesskit/serde). An exemption, as the lane writes no audit (ID-447); read in full (one file, 207 lines, and the test): a derive proc-macro over proc-macro2, quote and syn that emits `fn n(value) -> Option<Self>` for unit variants; no unsafe in the macro or its output, no build.rs, no fs/net/env/process. Licence MIT OR Apache-2.0. Covered by the owner's confirmation of 2026-10-28 (ID-723) for 0.0.x; audited, covered or replaced before the first signed release (doc 18 §5.4). No allowed import covers this version."
 
 [[exemptions.epaint]]
 version = "0.37.0"
@@ -1266,7 +1266,7 @@ criteria = "safe-to-deploy"
 [[exemptions.vec1]]
 version = "1.12.1"
 criteria = "safe-to-deploy"
-notes = "WP-S2.06 part 3 (2026-10-28, cycle 31 lane A31): a dependency of egui_table (the navigators' table mode in ew-ui), built with default-features = false (no_std + alloc; no serde, no smallvec). NOT audited line by line (4.4k lines in 3 files, scanned, not read); no unsafe anywhere in src, no build.rs, no fs/net/env/process. Licence MIT OR Apache-2.0. The owner confirms or audits it before any distributed binary (FT-326 list). No allowed import covers this version."
+notes = "WP-S2.06 part 3 (2026-10-28, cycle 31 lane A31): a dependency of egui_table (the navigators' table mode in ew-ui), built with default-features = false (no_std + alloc; no serde, no smallvec). NOT audited line by line (4.4k lines in 3 files, scanned, not read); no unsafe anywhere in src, no build.rs, no fs/net/env/process. Licence MIT OR Apache-2.0. Covered by the owner's confirmation of 2026-10-28 (ID-723) for 0.0.x; audited, covered or replaced before the first signed release (doc 18 §5.4). No allowed import covers this version."
 
 [[exemptions.vello_common]]
 version = "0.2.0"
