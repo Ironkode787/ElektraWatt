@@ -735,7 +735,15 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "recovery-title" => "Recover unsaved changes",
         "recovery-text" => "{0} has unsaved changes from a session that ended unexpectedly.",
         "recovery-count" => "Unsaved changes: {0}",
-        "recovery-last-change" => "Last change: {0} UTC",
+        "recovery-last-change" => "Last change: {0}",
+        "recovery-last-change-utc" => "{0} UTC",
+        "elapsed-just-now" => "just now",
+        "elapsed-minutes" => "{0} minutes ago",
+        "elapsed-minutes-one" => "1 minute ago",
+        "elapsed-hours" => "{0} hours ago",
+        "elapsed-hours-one" => "1 hour ago",
+        "elapsed-days" => "{0} days ago",
+        "elapsed-days-one" => "1 day ago",
         "recovery-moved" => "The project changed on disk since.",
         "recovery-discard" => "Discard...",
         "recovery-failed-moved" => {
@@ -1472,9 +1480,62 @@ pub fn format_count(key: &str, count: usize) -> String {
     }
 }
 
+/// The time from epoch milliseconds `last_ms` to `now_ms` in words (FT-503): `just now` under a minute (also for a
+/// `last_ms` after `now_ms`, a clock skew, never a negative), then whole minutes, hours or days, rounded down.
+pub fn elapsed_text(last_ms: u64, now_ms: u64) -> String {
+    const MINUTE: u64 = 60_000;
+    const HOUR: u64 = 60 * MINUTE;
+    const DAY: u64 = 24 * HOUR;
+    let span = now_ms.saturating_sub(last_ms);
+    let count = |unit: u64| usize::try_from(span / unit).unwrap_or(usize::MAX);
+    if span < MINUTE {
+        text("elapsed-just-now").to_owned()
+    } else if span < HOUR {
+        format_count("elapsed-minutes", count(MINUTE))
+    } else if span < DAY {
+        format_count("elapsed-hours", count(HOUR))
+    } else {
+        format_count("elapsed-days", count(DAY))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const NOW: u64 = 1_793_000_000_000;
+
+    #[test]
+    fn elapsed_text_is_just_now_under_a_minute() {
+        assert_eq!(elapsed_text(NOW, NOW), "just now");
+        assert_eq!(elapsed_text(NOW - 59_999, NOW), "just now");
+    }
+
+    #[test]
+    fn elapsed_text_counts_minutes() {
+        assert_eq!(elapsed_text(NOW - 60_000, NOW), "1 minute ago");
+        assert_eq!(elapsed_text(NOW - 12 * 60_000 - 5, NOW), "12 minutes ago");
+        assert_eq!(elapsed_text(NOW - 3_599_999, NOW), "59 minutes ago");
+    }
+
+    #[test]
+    fn elapsed_text_counts_hours() {
+        assert_eq!(elapsed_text(NOW - 3_600_000, NOW), "1 hour ago");
+        assert_eq!(elapsed_text(NOW - 5 * 3_600_000 - 1, NOW), "5 hours ago");
+    }
+
+    #[test]
+    fn elapsed_text_counts_days() {
+        assert_eq!(elapsed_text(NOW - 86_400_000, NOW), "1 day ago");
+        assert_eq!(elapsed_text(NOW - 40 * 86_400_000, NOW), "40 days ago");
+        assert_eq!(elapsed_text(0, NOW), "20752 days ago");
+    }
+
+    #[test]
+    fn elapsed_text_of_a_future_last_change_is_just_now() {
+        assert_eq!(elapsed_text(NOW + 1, NOW), "just now");
+        assert_eq!(elapsed_text(NOW + 86_400_000, NOW), "just now");
+    }
 
     #[test]
     fn format_count_is_singular_for_one_and_plural_otherwise() {

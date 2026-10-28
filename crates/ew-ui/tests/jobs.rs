@@ -207,7 +207,9 @@ fn jb7_the_recovery_dialog_offers_recover_open_read_only_and_discard() {
             .is_some()
     );
     assert!(h.query_by_label("Unsaved changes: 1").is_some());
-    assert!(h.query_by_label_contains("Last change: ").is_some());
+    // FT-503: the elapsed time (the journal was written moments ago), the UTC stamp only on hover.
+    assert!(h.query_by_label("Last change: just now").is_some());
+    assert!(h.query_by_label_contains(" UTC").is_none());
     assert!(h.query_by_label("Open read-only").is_some());
     assert!(h.query_by_label("Discard...").is_some());
     h.get_by_label("Recover").click();

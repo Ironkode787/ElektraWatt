@@ -26,7 +26,7 @@ fn window(title_key: &str) -> Window<'static> {
         .resizable(false)
 }
 
-/// The time of epoch milliseconds `ms` as `2026-10-28 14:03` (UTC: the standard library has no local time zone and the
+/// The time of epoch milliseconds `ms` as `2026-10-28 14:03` (UTC, the recovery dialog's hover text since FT-503: the standard library has no local time zone and the
 /// application takes no new dependency for one); `None` for 0 (unknown).
 fn utc_text(ms: u64) -> Option<String> {
     if ms == 0 {
@@ -37,6 +37,15 @@ fn utc_text(ms: u64) -> Option<String> {
         "{:04}-{:02}-{:02} {:02}:{:02}",
         d.year, d.month, d.day, d.hour, d.minute
     ))
+}
+
+/// Now in epoch milliseconds, from the clock the lock and the journal use (`ew_store::SystemClock`); 0 before 1970.
+fn now_ms() -> u64 {
+    use ew_viewmodel::ew_api::Clock as _;
+    ew_viewmodel::ew_api::SystemClock
+        .now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| u64::try_from(d.as_millis()).unwrap_or(u64::MAX))
 }
 
 fn close_button(ui: &mut Ui, events: &mut Vec<Event>) {
@@ -193,8 +202,11 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                 ui.set_max_width(460.0);
                 ui.label(strings::format("recovery-text", &[name]));
                 ui.label(strings::format("recovery-count", &[&transactions.to_string()]));
+                // FT-503: the elapsed time against the store's clock; the exact time (UTC, no time-zone source) on hover.
                 if let Some(when) = utc_text(*last_change_ms) {
-                    ui.label(strings::format("recovery-last-change", &[&when]));
+                    let ago = strings::elapsed_text(*last_change_ms, now_ms());
+                    ui.label(strings::format("recovery-last-change", &[&ago]))
+                        .on_hover_text(strings::format("recovery-last-change-utc", &[&when]));
                 }
                 if !base_matches {
                     ui.label(strings::text("recovery-moved"));

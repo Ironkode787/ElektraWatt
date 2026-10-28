@@ -114,7 +114,8 @@ pub use ew_schema::{
 /// The read-only SQL projection (`ew sql`, the acceptance SQL, ADR-0017): views, sandbox, results.
 pub use ew_sqlview as sql;
 pub use ew_store::{
-    Access, OpenError, OpenReport, PurgeError, PurgeFile, PurgePlan, ReadOnlyReason, SaveError, StoreOptions,
+    Access, Clock, OpenError, OpenReport, PurgeError, PurgeFile, PurgePlan, ReadOnlyReason, SaveError,
+    StoreOptions, SystemClock,
 };
 pub use new_project::{NewProjectKind, ProjectTemplate};
 
