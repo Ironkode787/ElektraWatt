@@ -5,7 +5,7 @@
 //!
 //! egui_tiles 0.18 publishes its resize handles without a role or a name. The dock and the canvas area turn its own
 //! handles off (`Behavior::is_container_resizable` is false, so it only paints the idle line) and call [`show`] after
-//! `Tree::ui`: one `Splitter` node per pair of neighbours of every shown linear container, named "Resize <a> and <b>"
+//! `Tree::ui`: one `Splitter` node per pair of neighbours of every shown linear container, named "Resize `<a>` and `<b>`"
 //! by the panes on either side, which a drag resizes as egui_tiles' handle did (the two neighbours trade share, each
 //! kept at least egui_tiles' minimum size) and a double click centres.
 
