@@ -8,7 +8,7 @@
 
 ## Summary for decision makers
 
-**Result in one paragraph.** The catalogues hold 1081 requirements (934 FR, 147 NFR). The 124 WPs cover 1059 of them (98.0 %). No MVP or 1.0 Must or Should requirement that the plan promises lacks a WP (§3). In the full scope, no MVP Must/Should requirements are covered only by WPs after M2; in the lean scope of record, 24 such requirements, because the scope levers move their WPs until the catalogues are re-labelled (§4). No WP cites a token that is not a requirement ID or that names no requirement (§5).
+**Result in one paragraph.** The catalogues hold 1081 requirements (934 FR, 147 NFR). The 125 WPs cover 1059 of them (98.0 %). No MVP or 1.0 Must or Should requirement that the plan promises lacks a WP (§3). In the full scope, no MVP Must/Should requirements are covered only by WPs after M2; in the lean scope of record, 24 such requirements, because the scope levers move their WPs until the catalogues are re-labelled (§4). No WP cites a token that is not a requirement ID or that names no requirement (§5).
 
 **What is asked of the plan owner.** (1) Treat the gap lists of §3 as input to the next WP revision: each listed ID either joins an existing WP, gets a new WP, or is re-labelled in the catalogue (release or priority) with a decision record. (2) Fix the invalid citations of §5, which are typing errors, not scope decisions. (3) Re-run `python3 -I docs/plan/tools/trace.py` after every change of the CSV or the catalogues; the gate reviews of [gates](03-gates.md) use this document as their scope check.
 
