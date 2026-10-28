@@ -14,15 +14,15 @@ use common::*;
 use ew_commands::commands::{
     BoxStyleParam, CreateExternalRef, CreateStructureBox, DeleteSelection, FreeTextParam, GraphicParam,
     ImageParam, ItemKindParam, KindName, MarkerModeParam, MoveReps, PlaceItem, PlaceMarker, SetCompany,
-    SetDrawing, SetFields, SetProjectSettings, ShapeParam, StrokeParam, TargetRef,
+    SetDrawing, SetFields, SetManyFields, SetProjectSettings, ShapeParam, StrokeParam, TargetRef,
 };
 use ew_commands::{CmdError, Engine, Origin};
 use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
 use ew_model::Model;
 use ew_schema::{
-    AnyId, ColourSpec, Connection, Csa, ExternalRef, GraphicShape, Kind, Page, PageItem, PageItemKind,
-    Record, Slot, StructureAssignment, StructureBox,
+    AnyId, ColourSpec, Conductor, Connection, Csa, ExternalRef, GraphicShape, Kind, Page, PageItem,
+    PageItemKind, Record, Slot, StructureAssignment, StructureBox,
 };
 use ew_units::{Angle2, Nm, Pt2};
 use serde_json::{Value, json};
@@ -723,6 +723,73 @@ fn fields_set_refuses_a_colour_the_profile_does_not_know() {
     ))
     .expect("null removes the colour");
     assert_eq!(conn(&e, CON_W22).overrides.colour, None);
+}
+
+/// FT-476: `fields.set` and `fields.set_many` on a conductor's `colour` apply FT-451's check with its texts, at
+/// `/value` (`/edits/0/value` for set_many); IEC codes, a declared company code and `null` pass; a refusal changes
+/// nothing.
+#[test]
+fn fields_set_refuses_a_conductor_colour_the_profile_does_not_know() {
+    let mut e = engine(golden_model());
+    let target: AnyId = COND_A.cast();
+    let colour = |e: &Engine| {
+        e.model()
+            .table::<Conductor>()
+            .get(&COND_A)
+            .expect("conductor")
+            .colour
+            .clone()
+    };
+    let before = colour(&e);
+    let refused = |e: &mut Engine, value: Value| match e
+        .execute(&set(KindName::Conductor, target, "colour", value))
+        .unwrap_err()
+    {
+        CmdError::InvalidParams {
+            command,
+            path,
+            message,
+            ..
+        } => {
+            assert_eq!((command.as_str(), path.as_str()), ("fields.set", "/value"));
+            message
+        }
+        other => panic!("expected InvalidParams, got {other:?}"),
+    };
+    assert_eq!(
+        refused(&mut e, json!(["DBU"])),
+        "`DBU` is neither an IEC 60757 colour code nor a company code of the project's colour profile"
+    );
+    assert!(refused(&mut e, json!(["BK", {"foreign": "XX"}])).contains("is a foreign colour code"));
+    assert_eq!(colour(&e), before, "a refusal changes nothing");
+    match e
+        .execute(&SetManyFields {
+            edits: vec![set(KindName::Conductor, target, "colour", json!(["DBU"]))],
+        })
+        .unwrap_err()
+    {
+        CmdError::InvalidParams { command, path, .. } => {
+            assert_eq!(
+                (command.as_str(), path.as_str()),
+                ("fields.set_many", "/edits/0/value")
+            );
+        }
+        other => panic!("expected InvalidParams, got {other:?}"),
+    }
+    e.execute(&set(KindName::Conductor, target, "colour", json!(["GN", "YE"])))
+        .expect("an IEC code");
+    let profile = SetProjectSettings {
+        member: "colour_profile".into(),
+        value: json!({"key": "house", "codes": [{"code": "DBU", "base": "BU", "shade": "dark"}],
+            "rows": [{"colour": ["DBU"]}]}),
+    };
+    let preview = e.preview(&profile).expect("a colour profile (a bulk command)");
+    e.commit(preview).expect("committed");
+    e.execute(&set(KindName::Conductor, target, "colour", json!(["DBU"])))
+        .expect("a declared company code");
+    e.execute(&set(KindName::Conductor, target, "colour", Value::Null))
+        .expect("null removes the colour");
+    assert_eq!(colour(&e), None);
 }
 
 // ---------------------------------------------------------------------------------------------------------

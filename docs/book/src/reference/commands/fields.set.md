@@ -9,8 +9,8 @@ member, which resets it to its default); intermediate objects are created, excep
 device aspect (`ASPECTS`) requires the aspect to exist; the JSON is read back into the record type
 and put. Rejected with `CmdError::InvalidParams` at `/path`: a path not in `SETTABLE` for the kind;
 at `/value`: a value the record type does not accept (the deserialisation error as message), and a
-connection's `overrides.colour` with a code that is neither IEC 60757 nor a company code of the project's
-colour profile (FR-CON-019, `marker.place`'s check and text). Targets
+connection's `overrides.colour` or a conductor's `colour` with a code that is neither IEC 60757 nor a company
+code of the project's colour profile (FR-CON-019, `marker.place`'s check and text; FT-451, FT-476). Targets
 must exist and be distinct; there is at least one. Invariants and prevent rules apply at the end of the
 transaction, so a swap of two terminal designations over two commands is not possible here, but one
 `fields.set` that leaves a duplicate is caught later by prevent rules (ADR-0009). Outcome: none.
