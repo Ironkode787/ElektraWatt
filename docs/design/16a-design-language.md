@@ -1,6 +1,6 @@
 # Design language
 
-**Status:** v1.1, accepted 2026-10-28; v1.1 adds the built widgets (§4.15, §6.21 to §6.25); cycle-31 design pass: the
+**Status:** v1.2, accepted 2026-10-28; v1.2: the bottom dock's height as built, `size.dock.bottom_min` (decision log ID-743); v1.1 adds the built widgets (§4.15, §6.21 to §6.25); cycle-31 design pass: the
 Messages pane has no table mode as built, the History keys as built, the follow-ups numbered (decision log ID-727, ID-732) · **Date:** 2026-10-28 · **Decision:** [ADR-0031](../adr/0031-design-language-and-task-ordered-command-bar.md)
 (Accepted) · **Visual reference:** [the mockup](assets/design-language-mockup.html) (approved by the owner) · **Work package:**
 [WP-S2.17](../plan/specs/WP-S2.17-design-language-and-ui-polish.md) · **Part of:** ElektraWatt design document set
@@ -361,7 +361,8 @@ padding). Spacing tokens (a subset of Carbon's scale plus `space.icon`):
 | `size.status` | 26 | 26 | Status bar; its fields 22 high |
 | `size.panel.left` | 280 (220 to 480) | 280 | Navigator and Properties column; Properties takes half its height |
 | `size.panel.right` | 280 (220 to 480) | 280 | Palettes |
-| `size.dock.bottom` | 184 | 184 | The bottom dock's height when it opens (then remembered) |
+| `size.dock.bottom` | 184 | 184 | The mockup's reference height of the bottom dock only (the mockup's `.bottom` rule, checked by DL8); as built the dock does not open at it (§5.7, ID-743) |
+| `size.dock.bottom_min` | 300 | 300 | The bottom dock's least shown height: in the vertical split that holds the page view, the child holding a bottom pane is shown at least this high, at most 2/3 of the split; display only, the user's shares stay the layout (§5.7, ID-743) |
 | `size.property_label` | 96 | 96 | The property label column |
 
 Density changes the row height, the command row and the command buttons' layout only (§4.13).
@@ -510,7 +511,7 @@ The window is [the mockup](assets/design-language-mockup.html)'s (open it in a b
 At 1280 × 800 and 100 %, Comfortable: command bar 85 px (tab row 32, command row 52 with its top hairline, the
 bottom line 1; Compact 69), canvas-tab bar 32 px, status bar 26 px, left rail 40 + left column 280 px, right rail
 40 px, so the canvas is 920 × 657 px: 72 % of the width
-(ADR-0031 decision 5 requires at least 65 %). The bottom dock, when open, takes 184 px of that height. At
+(ADR-0031 decision 5 requires at least 65 %). The bottom dock, when open, takes 350/1000 of that height, at least 300 px (§5.7). At
 1920 × 1080 the canvas is 1560 × 937 px. The sheet is centred on the surround at up to 92 % of the canvas
 width.
 
@@ -646,7 +647,9 @@ stays as the keyboard path; both open the same Place tool.
 
 One tab group below the canvas (WP-S2.09 D14), **closed by default**. It opens when the user asks: the status-bar
 findings field or F8 opens Messages, the job field opens Jobs, Ctrl+F opens Find, a bulk preview opens Preview (the
-user asked for it), Ctrl+H or the rail's History button opens History. It is `size.dock.bottom` high on
+user asked for it), Ctrl+H or the rail's History button opens History. It opens at 350/1000 of the page view's vertical split (the layout's 650:350), and the user's
+splitter shares are then kept in the workspace; on show it is at least `size.dock.bottom_min` (300) high, but never more
+than two thirds of that split, a display-only clamp that never rewrites the shares (ID-743). It lies on
 `color.surface.panel` with a 1-px `color.border.default` above it. Its tab row is 32 px with a `color.border.subtle`
 line under it: tabs in `type.small` with 10-px padding, the active one SemiBold and `color.text.primary` with a 2-px
 accent underline inset 10 px, the others `color.text.secondary`; a tab with items carries a count chip (§6.16); one
