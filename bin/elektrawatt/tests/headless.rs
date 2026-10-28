@@ -29,6 +29,10 @@ mod grid_clipboard;
 #[path = "jobs/scripts.rs"]
 mod jobs_scripts;
 
+/// The message panel's flows headless (WP-S2.09 part 2, MS1 to MS4; FT-516).
+#[path = "messages/scripts.rs"]
+mod messages_scripts;
+
 /// Golden B through the renumber actions, the Preview tab and the history panel headless (WP-S2.09 part 3, PV2).
 #[path = "preview/scripts.rs"]
 mod preview_scripts;
