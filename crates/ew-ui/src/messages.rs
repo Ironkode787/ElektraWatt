@@ -111,10 +111,7 @@ pub(crate) fn severity_cell(ui: &mut Ui, look: FindingLook) {
     let galley = ui
         .painter()
         .layout_no_wrap(severity_word(look.severity).to_owned(), font, colour);
-    let (rect, _) = ui.allocate_exact_size(
-        Vec2::new(galley.size().x, t.size_severity_icon),
-        Sense::hover(),
-    );
+    let (rect, _) = ui.allocate_exact_size(Vec2::new(galley.size().x, t.size_severity_icon), Sense::hover());
     ui.painter().galley(
         egui::pos2(rect.left(), rect.center().y - galley.size().y / 2.0),
         galley,
@@ -146,11 +143,9 @@ fn count_colours(t: &Tokens, severity: &str) -> (Rgba, Rgba) {
 /// and the number in `type.caption` in its text colour. Paints no node.
 fn count_badge(ui: &mut Ui, t: &Tokens, severity: &'static str, count: usize) {
     let (fill, text) = count_colours(t, severity);
-    let galley = ui.painter().layout_no_wrap(
-        count.to_string(),
-        theme::font(&t.type_caption),
-        text.color32(),
-    );
+    let galley = ui
+        .painter()
+        .layout_no_wrap(count.to_string(), theme::font(&t.type_caption), text.color32());
     let icon = t.type_caption.size + t.space_1;
     let size = Vec2::new(
         t.space_2 + icon + t.space_1 + galley.size().x + t.space_2,
@@ -336,10 +331,7 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
 
 /// A 1-px `color.border.subtle` line across the space left.
 pub(crate) fn rule_line(ui: &mut Ui, t: &Tokens) {
-    let (rect, _) = ui.allocate_exact_size(
-        Vec2::new(ui.available_width(), t.border_width),
-        Sense::hover(),
-    );
+    let (rect, _) = ui.allocate_exact_size(Vec2::new(ui.available_width(), t.border_width), Sense::hover());
     ui.painter()
         .rect_filled(rect, theme::radius(t.radius_none), t.border_subtle.color32());
 }
@@ -376,7 +368,11 @@ mod tests {
                     t.text_tertiary.color32(),
                     "{s} pending"
                 );
-                assert_eq!(word_colour(&t, look(s, true)), t.text_tertiary, "{s} word pending");
+                assert_eq!(
+                    word_colour(&t, look(s, true)),
+                    t.text_tertiary,
+                    "{s} word pending"
+                );
             }
             assert_eq!(word_colour(&t, look("error", false)), t.error);
             assert_eq!(word_colour(&t, look("warning", false)), t.warning);

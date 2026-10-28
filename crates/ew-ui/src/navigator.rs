@@ -646,23 +646,33 @@ fn row_ui(
             let button = egui::Button::selectable(selected, rich)
                 .frame(false)
                 .sense(Sense::click_and_drag());
-            let response = ui.add(button);
             if kind == NavKind::Messages {
-                // K32 (doc 16a §6.24): a finding's `fix`, `waived` and `pending` are status badges (its severity word
-                // is the severity cell's); a rule row's finding count is a count badge.
-                for b in &row.badges {
-                    if let Some(status) = crate::messages::finding_badge(b) {
-                        crate::components::status_badge(ui, status);
-                    } else if row.finding.is_none()
-                        && let Ok(n) = b.parse::<usize>()
-                    {
-                        crate::components::count_badge(ui, n);
-                    }
-                }
-            } else {
-                for b in &row.badges {
-                    crate::components::caption_chip(ui, b);
-                }
+                // K32 (doc 16a §6.6, §6.24): the badges right-aligned, the title cut with an ellipsis before them. A
+                // finding's `fix`, `waived` and `pending` are status badges (its severity word is the severity
+                // cell's); a rule row's finding count is a count badge.
+                let response = ui
+                    .with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        ui.add_space(t.space_4);
+                        for b in row.badges.iter().rev() {
+                            if let Some(status) = crate::messages::finding_badge(b) {
+                                crate::components::status_badge(ui, status);
+                            } else if row.finding.is_none()
+                                && let Ok(n) = b.parse::<usize>()
+                            {
+                                crate::components::count_badge(ui, n);
+                            }
+                        }
+                        ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                            ui.add(button.truncate())
+                        })
+                        .inner
+                    })
+                    .inner;
+                return (glyph, response);
+            }
+            let response = ui.add(button);
+            for b in &row.badges {
+                crate::components::caption_chip(ui, b);
             }
             (glyph, response)
         })

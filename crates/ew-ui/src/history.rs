@@ -29,9 +29,9 @@
 //! by their actions, with the name as the tooltip.
 
 use egui::{Align, Context, Key, Layout, Modifiers, Rect, RichText, Sense, Ui, Vec2};
+use ew_viewmodel::ew_api::output::HistoryRow;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
-use ew_viewmodel::ew_api::output::HistoryRow;
 use ew_viewmodel::undo_history::{EntryState, HistoryLine, MAX_CHANGES};
 use serde_json::json;
 
@@ -242,7 +242,8 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
 /// A marker line as a separator row: the text in `type.small` `color.text.tertiary`, then a 1-px `color.border.subtle`
 /// rule to the row's end; a `Splitter` node named by the text.
 fn marker_row(ui: &mut Ui, t: &Tokens, text: &str) {
-    let (rect, response) = ui.allocate_exact_size(Vec2::new(ui.available_width(), t.size_row), Sense::hover());
+    let (rect, response) =
+        ui.allocate_exact_size(Vec2::new(ui.available_width(), t.size_row), Sense::hover());
     let name = text.to_owned();
     response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Splitter, true, &name));
     let painter = ui.painter_at(rect);
@@ -291,7 +292,8 @@ struct EntryOut {
 /// One entry row (doc 16a §6.24).
 fn entry_row(ui: &mut Ui, t: &Tokens, e: &Entry<'_>) -> EntryOut {
     let mut out = EntryOut::default();
-    let (rect, response) = ui.allocate_exact_size(Vec2::new(ui.available_width(), t.size_row), Sense::click());
+    let (rect, response) =
+        ui.allocate_exact_size(Vec2::new(ui.available_width(), t.size_row), Sense::click());
     let text = entry_text(e.row, e.origin);
     let name = if e.state == EntryState::Redo {
         format!("{text}, {}", strings::text("history-redo"))

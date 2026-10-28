@@ -1340,7 +1340,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "messages-header" => "{0} · E {1} · W {2} · I {3} · waived {4} · pending {5}",
         "messages-header-waived" => "waived {0}",
         "messages-header-pending" => "pending {0}",
-        "messages-footer" =>"Checks support, but do not replace, engineering verification.",
+        "messages-footer" => "Checks support, but do not replace, engineering verification.",
         "messages-detail-rule" => "{0} {1}",
         "messages-detail-kind" => "Kind: {0} · severity: {1}",
         "messages-detail-fix" => "Quick fix: {0}",
