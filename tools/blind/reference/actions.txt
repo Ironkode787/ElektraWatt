@@ -57,6 +57,8 @@ messages.next View "Next finding" menu none shortcut "F8" context global params 
 messages.previous View "Previous finding" menu none shortcut "Shift+F8" context global params ""
 messages.fix Command "Apply quick fix…" menu none shortcut none context navigator hidden params "key?:text"
 view.ui_scale View "UI scale" menu "View ▸ UI scale" shortcut none context global needs-parameters params "scale:json"
+view.theme View "Theme" menu "View ▸ Theme" shortcut none context global needs-parameters params "value:text"
+view.density View "Density" menu "View ▸ Density" shortcut none context global needs-parameters params "value:enum(comfortable|compact)"
 view.workspace_load View "Load workspace" menu "View ▸ Workspace" shortcut none context global needs-parameters params "name:text"
 view.workspace_save View "Save layout as..." menu "View ▸ Workspace" shortcut none context global params "name:text"
 view.workspace_reset View "Reset layout" menu "View ▸ Workspace" shortcut none context global params ""
