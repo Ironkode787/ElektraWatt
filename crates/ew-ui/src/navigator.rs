@@ -544,10 +544,13 @@ fn row_ui(
             if let Some(look) = row.finding {
                 crate::messages::severity_icon(ui, look);
             }
+            // WP-S2.17 part 3 (doc 16a §6.6): the current page in `type.body.strong`; the badges are chips after the
+            // text, not bracketed words.
+            let t = crate::theme::current(ui.ctx());
             let rich = if row.current {
-                egui::RichText::new(&row.text).strong()
+                egui::RichText::new(&row.label).font(crate::theme::font(&t.type_body_strong))
             } else {
-                egui::RichText::new(&row.text)
+                egui::RichText::new(&row.label)
             };
             let rich = match row.finding {
                 Some(look) if look.pending => rich.color(ui.visuals().weak_text_color()),
@@ -557,7 +560,11 @@ fn row_ui(
             let button = egui::Button::selectable(selected, rich)
                 .frame(false)
                 .sense(Sense::click_and_drag());
-            (glyph, ui.add(button))
+            let response = ui.add(button);
+            for b in &row.badges {
+                badge(ui, &t, b);
+            }
+            (glyph, response)
         })
         .inner;
     response.widget_info(|| egui::WidgetInfo::selected(egui::Role::TreeItem, true, row.marked, &row.name));
@@ -762,4 +769,27 @@ pub(crate) fn chip_line(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>
             }
         }
     });
+}
+
+/// A row's badge (doc 16a §6.6): `type.caption` in `color.text.secondary` on `color.surface.sunken`, `radius.sm`; a
+/// named `Label` node.
+fn badge(ui: &mut Ui, t: &crate::theme::Tokens, text: &str) {
+    let font = crate::theme::font(&t.type_caption);
+    let galley = ui
+        .painter()
+        .layout_no_wrap(text.to_owned(), font, t.text_secondary.color32());
+    let size = galley.size() + egui::vec2(2.0 * t.space_2, t.space_1);
+    let (rect, response) = ui.allocate_exact_size(size, Sense::hover());
+    let name = text.to_owned();
+    response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, &name));
+    ui.painter().rect_filled(
+        rect,
+        crate::theme::radius(t.radius_sm),
+        t.surface_sunken.color32(),
+    );
+    ui.painter().galley(
+        rect.center() - galley.size() / 2.0,
+        galley,
+        t.text_secondary.color32(),
+    );
 }

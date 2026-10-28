@@ -21,7 +21,8 @@ fn the_start_page_offers_open_and_names_no_project() {
     settle(&mut h);
     assert!(h.query_by_label("Open…").is_some());
     assert!(h.query_by_label("Update check: off").is_some());
-    assert!(h.query_by_label("No project open").is_some());
+    // WP-S2.17 part 3 (D12): the status bar's state field; the start page's hint left the bar.
+    assert!(h.query_by_label("Ready").is_some());
     // The app menu is there on every operating system (WP-S2.17 part 2: one button opens the whole tree, in doc
     // 16a §9.2's order).
     support::open_menu(&mut h, &[]);
@@ -98,17 +99,14 @@ fn page_down_changes_the_page_in_the_status_bar() {
     );
     wait_for_page(&mut h);
     settle(&mut h);
-    let total = h.state().shell().page_count();
-    let first = format!("1 (1 of {total})");
-    assert!(h.query_by_label_contains(&first).is_some(), "{first}");
-    assert!(h.query_by_label("Pages").is_some());
-    assert!(h.query_by_label("saved").is_some());
+    // WP-S2.17 part 3 (D12): the page field left the status bar (the canvas tab and the page list show the page); the
+    // save state is "Saved".
+    assert!(h.query_all_by_label("Pages").next().is_some());
+    assert!(h.query_by_label("Saved").is_some());
 
     h.key_press(Key::PageDown);
     settle(&mut h);
     assert_eq!(h.state().shell().page_index(), 1);
-    let second = format!("2 (2 of {total})");
-    assert!(h.query_by_label_contains(&second).is_some(), "{second}");
     h.key_press(Key::PageUp);
     settle(&mut h);
     assert_eq!(h.state().shell().page_index(), 0);
@@ -218,7 +216,7 @@ fn closing_a_dirty_project_asks_and_discard_closes_it() {
     );
     settle(&mut h);
     assert!(
-        h.query_by_label_contains("*").is_some(),
+        h.query_by_label("Unsaved changes").is_some(),
         "the save state shows unsaved"
     );
     // Close project is Ctrl+Shift+W: Ctrl+W closes a canvas tab (WP-S2.03 §6.2).

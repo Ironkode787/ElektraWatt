@@ -266,10 +266,8 @@ fn the_smoke_script_runs_on_golden_a() {
         "the new page is in the page list"
     );
     assert!(describe.contains("menu File"));
-    assert!(
-        describe.contains("status bar: Click to select; drag for a rubber band | 1 (1 of "),
-        "{describe}"
-    );
+    // WP-S2.17 part 3 (D12): the state at the left; the tool's hint is the HUD's, the page field left the bar.
+    assert!(describe.contains("status bar: Ready | "), "{describe}");
     // Transcripts carry no path.
     let all = String::from_utf8_lossy(&out.stdout).into_owned();
     assert!(

@@ -102,7 +102,7 @@ fn nv5_the_devices_pane_and_the_chip_line() {
     settle(&mut h);
     support::menu_node(&h, "Navigators").click();
     settle(&mut h);
-    h.get_by_label("Devices").click();
+    support::menu_node(&h, "Devices").click();
     settle(&mut h);
     settle(&mut h);
     assert!(h.state().shell().navigator_open(NavKind::Devices));

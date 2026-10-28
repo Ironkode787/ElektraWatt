@@ -87,8 +87,12 @@ pub struct ShownRow {
     pub level: usize,
     /// The role word (`page`, `section`, `device`, `representation`).
     pub role: &'static str,
-    /// The painted text.
+    /// The text with its badges in brackets (the describe lines').
     pub text: String,
+    /// The text without its badges (WP-S2.17 part 3: the window paints the badges as chips, doc 16a §6.6).
+    pub label: String,
+    /// The badges (`generated`, `QET grid`, `unplaced`, `pending`), in their order.
+    pub badges: Vec<String>,
     /// The accessible name.
     pub name: String,
     /// `Some(expanded)` for a node with children on show.
@@ -238,24 +242,29 @@ impl ShellModel {
                     .into_iter()
                     .map(|r| {
                         let name = crate::navigator::PageNavigator::accessible_name(&r, rows, current);
-                        let (text, role, current, openable, drag) = match &r.kind {
+                        let mut badges = Vec::new();
+                        let (label, role, current, openable, drag) = match &r.kind {
                             RowKind::Node { label, aspect } => {
                                 (label.clone(), aspect.word(), false, false, None)
                             }
                             RowKind::Page(i) => {
                                 let p = &rows[*i];
-                                let mut t = format!("{} {}", p.folio, p.title);
                                 if p.generated {
-                                    t.push_str(&format!(" [{}]", strings::text("badge-generated")));
+                                    badges.push(strings::text("badge-generated").to_owned());
                                 }
                                 if p.qet_grid {
-                                    t.push_str(&format!(" [{}]", strings::text("badge-qet-grid")));
+                                    badges.push(strings::text("badge-qet-grid").to_owned());
                                 }
                                 let drag =
                                     (draggable && is_record(p)).then(|| DragSource::Page(p.folio.clone()));
-                                (t, "page", Some(PageId::of(p)) == current, true, drag)
+                                let label = format!("{} {}", p.folio, p.title);
+                                (label, "page", Some(PageId::of(p)) == current, true, drag)
                             }
                         };
+                        let mut text = label.clone();
+                        for b in &badges {
+                            text.push_str(&format!(" [{b}]"));
+                        }
                         ShownRow {
                             marked: nav.is_marked(&r.key),
                             key: r.key,
@@ -263,6 +272,8 @@ impl ShellModel {
                             level: r.level,
                             role,
                             text,
+                            label,
+                            badges,
                             name,
                             expanded: matches!(r.kind, RowKind::Node { .. }).then_some(r.expanded),
                             position: r.position,
@@ -303,6 +314,7 @@ impl ShellModel {
                         for b in &badges {
                             text.push_str(&format!(" [{b}]"));
                         }
+                        let badges: Vec<String> = badges.iter().map(|b| (*b).to_owned()).collect();
                         let drag = (node.role == ew_api::output::NavRole::Function
                             && node.badges.iter().any(|b| b == "unplaced"))
                         .then(|| node.records.first().map(|r| DragSource::Function(r.to_string())))
@@ -313,6 +325,8 @@ impl ShellModel {
                             level: v.level,
                             role: node.role.word(),
                             text,
+                            label: node.label.clone(),
+                            badges,
                             name,
                             expanded: v.expanded,
                             position: v.position,

@@ -264,7 +264,11 @@ impl Dock {
                     Some(Tile::Container(Container::Tabs(tabs))) => tabs.active,
                     _ => None,
                 });
-            let in_rail = parent.is_some_and(|p| chrome.rail_groups.contains(&p));
+            // A navigator alone in its place (no tab group) is the navigator group too.
+            let alone =
+                !parent.is_some_and(|p| matches!(tiles.get(p), Some(Tile::Container(Container::Tabs(_)))));
+            let in_rail =
+                parent.is_some_and(|p| chrome.rail_groups.contains(&p)) || (alone && is_rail_pane(pane));
             let project = in_rail && PROJECT_PANES.contains(pane);
             let segmented = project.then(|| {
                 // Devices is in the group: the control shows it chosen when it is the active tab.
@@ -544,6 +548,12 @@ impl DockBehavior<'_> {
         let list = ui.interact(track, list_id, Sense::hover());
         let list_name = strings::text("rail-views").to_owned();
         list.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TabList, true, &list_name));
+        // The two tabs are the list's children.
+        let tabs = ui.new_child(
+            egui::UiBuilder::new()
+                .max_rect(track)
+                .accessibility_parent(list_id),
+        );
         let painter = ui.painter();
         painter.rect_filled(
             track,
@@ -565,7 +575,7 @@ impl DockBehavior<'_> {
             );
             let chosen = shown == pane;
             let id = list_id.with(word);
-            let response = ui.interact(rect, id, Sense::click());
+            let response = tabs.interact(rect, id, Sense::click());
             let label = strings::text(key).to_owned();
             response.widget_info(|| egui::WidgetInfo::selected(egui::Role::Tab, true, chosen, &label));
             if chosen {

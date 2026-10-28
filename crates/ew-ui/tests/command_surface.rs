@@ -263,10 +263,9 @@ fn cb4_the_geometry_at_1280_by_800_in_both_densities() {
             close(hud.center().x, pane.center().x),
             "{density}: {hud:?} in {pane:?}"
         );
-        // As built before part 3: the command bar takes no width, the current docks leave the page view 63 % of it
-        // (797 of 1264 px); the 65 % of CB4 comes with part 3's default workspace, which narrows the docks.
+        // WP-S2.17 part 3's default workspace (D10): the page view takes at least 65 % of the width.
         assert!(
-            pane.width() >= 0.63 * frame.width(),
+            pane.width() >= 0.65 * frame.width(),
             "{density}: the page view {pane:?}"
         );
         h.state_mut().shell_mut().shutdown();

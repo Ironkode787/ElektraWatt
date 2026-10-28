@@ -133,7 +133,8 @@ fn tb7_the_key_column_stays_while_the_table_scrolls_right() {
 }
 
 /// TB7: a header click sorts by that column, a second one reverses it; the column chooser shows a check box per column
-/// (the key column's is disabled), hides a column and moves another left.
+/// (the key column's is disabled), hides a column and moves another left. FT-523: the sorted header's name ends
+/// ", sorted ascending" or ", sorted descending".
 #[test]
 fn tb7_header_click_sorts_and_the_chooser_hides_and_orders() {
     let tmp = Tmp::new();
@@ -145,10 +146,12 @@ fn tb7_header_click_sorts_and_the_chooser_hides_and_orders() {
         (n.sort.clone(), n.descending)
     };
     assert_eq!(nav(&h), (SortBy::Column("terminal".into()), false));
-    assert!(shown(&h, "Sort by Terminal"));
-    h.get_by_label("Sort by Terminal").click();
+    assert!(shown(&h, "Sort by Terminal, sorted ascending"));
+    assert!(shown(&h, "Sort by Strip"), "an unsorted header keeps its name");
+    h.get_by_label("Sort by Terminal, sorted ascending").click();
     settle(&mut h);
     assert_eq!(nav(&h), (SortBy::Column("terminal".into()), true));
+    assert!(shown(&h, "Sort by Terminal, sorted descending"));
     assert!(shown(&h, "Terminal 20, row 1 of 20"), "descending");
     // The chooser.
     h.get_by_label("Columns").click();

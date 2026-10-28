@@ -664,8 +664,12 @@ impl App {
                 });
             });
         }
+        // WP-S2.17 part 3: `size.status` high (doc 16a §5.8).
         Panel::bottom("status-bar")
-            .frame(egui::Frame::side_top_panel(&ctx.global_style()).fill(chrome))
+            .exact_size(tokens.size_status)
+            .resizable(false)
+            .show_separator_line(false)
+            .frame(egui::Frame::NONE.fill(chrome))
             .show(ui, |ui| status_bar::show(ui, &self.shell, hide_job, &mut events));
         let tool_epoch = self.shell.tool_epoch();
         if self.drawing_fields_epoch != Some(tool_epoch) {
@@ -943,6 +947,10 @@ impl App {
             events.push(Event::Action("ui.dismiss", Value::Null));
             return;
         }
+        // FT-519: the history panel's row keys while it has the focus.
+        if !palette_open && crate::history::keys(ctx, events) {
+            return;
+        }
         // WP-S2.17 part 3: Ctrl+1 to Ctrl+9 pick the left rail's entries (doc 16a §5.4).
         if !palette_open
             && self.shell.has_project()
@@ -966,7 +974,7 @@ impl App {
             Some(Focus::Canvas(_)) => Context::Canvas,
             Some(Focus::Properties) => Context::Properties,
             Some(Focus::Find) => Context::Find,
-            Some(Focus::CommandBar) | None => Context::Global,
+            Some(Focus::CommandBar | Focus::History) | None => Context::Global,
         };
         // WP-S2.17 part 2 (doc 16a §5.9): on the command bar Left and Right move between the tabs.
         if self.shell.focus() == Some(Focus::CommandBar) && !palette_open {

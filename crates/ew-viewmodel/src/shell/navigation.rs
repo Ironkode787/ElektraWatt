@@ -46,6 +46,9 @@ pub enum Focus {
     // WP-S2.17 part 2
     /// The command bar's tab row (doc 16a §5.9: first in the F6 ring).
     CommandBar,
+    // WP-S2.17 part 3
+    /// The history panel (FT-519: its row cursor's keys).
+    History,
 }
 
 /// How many times the shell has asked the `Session` for each of the viewer's reads (the exact-count tests, spec
@@ -1241,6 +1244,11 @@ impl ShellModel {
                 self.focus = Some(Focus::CommandBar);
                 Outcome::Done
             }
+            // WP-S2.17 part 3 (FT-519)
+            "history" if self.history_shown() => {
+                self.focus = Some(Focus::History);
+                Outcome::Done
+            }
             "canvas" => {
                 let g = match self.group_param(p) {
                     Ok(g) => g,
@@ -1272,6 +1280,8 @@ impl ShellModel {
             .chain(self.properties_shown().then_some(Focus::Properties))
             // WP-S2.05 part 2
             .chain(self.find_shown().then_some(Focus::Find))
+            // WP-S2.17 part 3 (FT-519)
+            .chain(self.history_shown().then_some(Focus::History))
             .collect();
         let here = self
             .focus

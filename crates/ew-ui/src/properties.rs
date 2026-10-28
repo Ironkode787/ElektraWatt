@@ -2,9 +2,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The property grid pane (WP-S2.05 part 1, spec §6.9): the shell's sheet drawn as the inline preview card, the header
-//! and one block per section with collapsible categories; each row its label, its value or editor, the provenance chip
-//! (an icon glyph and words, never colour alone) and its action buttons. The toast of a commit with several targets is
-//! one of the window's toasts since WP-S2.09 part 1 (`crate::notifications`).
+//! and one block per section with collapsible groups; each row its label, its value or editor, the provenance chip
+//! (an icon glyph and words, never colour alone) and its actions. The toast of a commit with several targets is one of
+//! the window's toasts since WP-S2.09 part 1 (`crate::notifications`).
+//!
+//! WP-S2.17 part 3 (D11; doc 16a §6.8): the header's title in `type.title` and its subtitle in `type.small`; the Main
+//! group (the kind's primary fields) first, then the categories; the Advanced rows (`$v`, ids, source references) only
+//! after "Show advanced (n)" at the foot. A value cell edits in place (a click, with a hover border); an empty value
+//! shows an em dash; the provenance chip only for a value that is not authored, its whole text in the tooltip. The
+//! row's actions are one "…" button (the actions menu, `props.row_menu`), shown on the cursor row, on hover and on
+//! focus: no edit buttons.
 //!
 //! **Input.** Every gesture is a registry action (`props.*`, `preview.*`); the pane builds no command.
 //! While the grid has the shell's focus and no field is being edited: Up, Down, Home and End move the row cursor,
@@ -18,8 +25,8 @@
 
 use egui::{Key, Modifiers, RichText, Sense, TextEdit, Ui, Vec2};
 use ew_viewmodel::properties::{
-    ChoiceKind, FieldType, PropRow, PropertySheet, RowAction, RowValue, SheetSection, categories, chip_text,
-    collapse_key, is_header, read_only_reason, row_label, value_text,
+    ChoiceKind, FieldType, PropRow, PropertySheet, Provenance, RowAction, RowValue, SheetSection,
+    advanced_count, chip_text, group_key, groups, is_header, read_only_reason, row_label, value_text,
 };
 use ew_viewmodel::shell::{Focus, ShellModel};
 use ew_viewmodel::strings;
@@ -120,31 +127,30 @@ impl PropertiesPane {
             }
             let focused = shell.properties_row();
             let collapsed = shell.properties_collapsed();
+            let advanced = shell.properties_show_advanced();
+            let t = crate::theme::current(ui.ctx());
             egui::ScrollArea::vertical()
                 .auto_shrink([false, false])
                 .show(ui, |ui| {
                     for section in &sheet.sections {
-                        ui.label(
-                            RichText::new(format!(
-                                "{} ({})",
-                                strings::kind_plural(&section.kind),
-                                section.targets.len()
-                            ))
-                            .strong(),
-                        );
-                        for (category, rows) in categories(section) {
-                            let key = collapse_key(&section.kind, category);
-                            let shut = collapsed.contains(&key);
-                            let title = format!(
-                                "{} {}",
-                                if shut { "+" } else { "-" },
-                                strings::text(&format!("category-{}", category.word()))
+                        if sheet.sections.len() > 1 {
+                            ui.label(
+                                RichText::new(format!(
+                                    "{} ({})",
+                                    strings::kind_plural(&section.kind),
+                                    section.targets.len()
+                                ))
+                                .font(crate::theme::font(&t.type_body_strong)),
                             );
-                            if ui.add(egui::Button::new(title).frame(false)).clicked() {
+                        }
+                        for (group, rows) in groups(section, advanced) {
+                            let key = group_key(&section.kind, group);
+                            let shut = collapsed.contains(&key);
+                            if group_heading(ui, &t, group.title(), &key, shut) {
                                 events.push(Event::Action("ui.focus", json!({"area": "properties"})));
                                 events.push(Event::Action(
                                     "props.category",
-                                    json!({"category": category.word(), "expanded": shut}),
+                                    json!({"category": group.word(), "expanded": shut}),
                                 ));
                             }
                             if shut {
@@ -153,6 +159,28 @@ impl PropertiesPane {
                             for row in rows {
                                 self.row(ui, shell, sheet, section, row, focused.as_deref(), events);
                             }
+                        }
+                    }
+                    // The foot: "Show advanced (n)" or "Hide advanced (n)".
+                    let n = advanced_count(sheet);
+                    if n > 0 {
+                        ui.add_space(t.space_2);
+                        let key = if advanced {
+                            "props-hide-advanced"
+                        } else {
+                            "props-show-advanced"
+                        };
+                        let text = strings::format(key, &[&n.to_string()]);
+                        let link = ui.add(
+                            egui::Button::new(
+                                RichText::new(text)
+                                    .color(t.accent.color32())
+                                    .font(crate::theme::font(&t.type_small)),
+                            )
+                            .frame(false),
+                        );
+                        if link.clicked() {
+                            events.push(Event::Action("props.show_advanced", json!({ "on": !advanced })));
                         }
                     }
                 });
@@ -245,15 +273,21 @@ impl PropertiesPane {
         }
     }
 
-    /// The header (§6.2): title, subtitle, location, finding chips.
+    /// The header (§6.2): title, subtitle, location, finding chips (doc 16a §6.8: the title in `type.title`, the
+    /// subtitle and the location in `type.small`, secondary).
     fn header(ui: &mut Ui, sheet: &PropertySheet) {
         let t = crate::theme::current(ui.ctx());
         ui.label(RichText::new(&sheet.header.title).font(crate::theme::font(&t.type_title)));
+        let small = |s: &str| {
+            RichText::new(s)
+                .font(crate::theme::font(&t.type_small))
+                .color(t.text_secondary.color32())
+        };
         if let Some(s) = &sheet.header.subtitle {
-            ui.label(s);
+            ui.label(small(s));
         }
         if let Some(l) = &sheet.header.location {
-            ui.label(l);
+            ui.label(small(l));
         }
         for f in &sheet.header.findings {
             ui.label(format!("[{}] {} {}", f.severity, f.rule, f.message));
@@ -329,6 +363,8 @@ impl PropertiesPane {
         } else {
             chip_text(&row.provenance)
         };
+        // D11: the chip stands only by a value that is not authored.
+        let show_chip = !header && !matches!(row.provenance, Provenance::Authored);
         let error = props
             .error()
             .filter(|(r, _)| *r == row.key)
@@ -393,22 +429,106 @@ impl PropertiesPane {
                     ));
                 }
             } else {
-                let shown = child.label(middle(&value));
+                // The value cell: a click edits in place (doc 16a §6.8); an empty value is an em dash.
+                let editable = !header && row.actions.contains(&RowAction::Edit);
+                let actions_w = if row.actions.is_empty() {
+                    0.0
+                } else {
+                    t.size_control_inline
+                };
+                let chip_w = if show_chip { t.size_property_label } else { 0.0 };
+                let cell_w = (child.available_width() - actions_w - chip_w).max(t.size_control_inline);
+                let (cell, response) = child.allocate_exact_size(
+                    Vec2::new(cell_w, t.size_control_inline),
+                    if editable { Sense::click() } else { Sense::hover() },
+                );
+                let shown = if value.is_empty() && !header {
+                    strings::text("props-empty-value").to_owned()
+                } else {
+                    middle(&value)
+                };
+                // The cell's node: the value (a button while a click edits it), inside the row's group.
+                let cell_name = shown.clone();
+                let role = if editable {
+                    egui::Role::Button
+                } else {
+                    egui::Role::Label
+                };
+                response.widget_info(|| egui::WidgetInfo::labeled(role, true, &cell_name));
+                if editable && response.hovered() {
+                    child.painter().rect_stroke(
+                        cell,
+                        crate::theme::radius(t.radius_sm),
+                        crate::theme::stroke(t.border_width, t.border_default),
+                        egui::StrokeKind::Inside,
+                    );
+                }
+                let colour = if value.is_empty() {
+                    t.text_tertiary
+                } else {
+                    t.text_primary
+                };
+                child.painter().with_clip_rect(cell).text(
+                    egui::pos2(cell.left() + t.space_2, cell.center().y),
+                    egui::Align2::LEFT_CENTER,
+                    &shown,
+                    crate::theme::font(&t.type_body),
+                    colour.color32(),
+                );
                 if value.chars().count() > MAX_SHOWN {
-                    shown.on_hover_text(&value);
+                    response.clone().on_hover_text(&value);
+                }
+                if response.clicked() {
+                    events.push(Event::Action("ui.focus", json!({"area": "properties"})));
+                    events.push(Event::Action("props.row", json!({"to": row.key})));
+                    events.push(Event::Action("props.edit", json!({})));
                 }
             }
-            if !chip.is_empty() {
-                child.label(RichText::new(middle(&chip)).small());
+            if show_chip {
+                // The chip: its kind ("f derived"), the whole text in the tooltip.
+                let short = chip.split(" · ").next().unwrap_or_default().to_owned();
+                child
+                    .label(
+                        RichText::new(short)
+                            .font(crate::theme::font(&t.type_caption))
+                            .color(t.text_secondary.color32()),
+                    )
+                    .on_hover_text(&chip);
             }
-            for action in &row.actions {
-                let text = action.word();
-                if child.small_button(text).clicked() {
+            if !row.actions.is_empty() {
+                // The actions menu: one "…" button on the cursor row, on hover and on focus.
+                let id = group_id.with("actions");
+                let (r, _) = child.allocate_exact_size(Vec2::splat(t.size_control_inline), Sense::hover());
+                let name = strings::format("props-row-menu", &[&label]);
+                let response = crate::command_bar::button_response(
+                    &child,
+                    id,
+                    r,
+                    crate::command_bar::Spec {
+                        name: &name,
+                        shortcut: "",
+                        enabled: true,
+                        checked: None,
+                        sense: Sense::click(),
+                    },
+                );
+                let hovered = child.rect_contains_pointer(rect);
+                if selected || hovered || response.has_focus() {
+                    crate::command_bar::state_overlay(&child, &t, &response, true, t.radius_sm);
+                    let icon = egui::Rect::from_center_size(r.center(), Vec2::splat(t.icon_sm));
+                    crate::command_bar::paint_icon(
+                        &child,
+                        "dots",
+                        icon,
+                        t.text_secondary.color32(),
+                        t.icon_stroke,
+                    );
+                }
+                let response = response.on_hover_text(&name);
+                if response.clicked() {
                     events.push(Event::Action("ui.focus", json!({"area": "properties"})));
-                    events.push(Event::Action(
-                        "props.action",
-                        json!({"row": row.key, "action": text}),
-                    ));
+                    events.push(Event::Action("props.row", json!({"to": row.key})));
+                    events.push(Event::Action("props.row_menu", json!({})));
                 }
             }
         }
@@ -625,4 +745,42 @@ pub fn is_grid_key(s: &egui::KeyboardShortcut) -> bool {
             | Key::Space
     );
     (plain && grid) || alt_arrow
+}
+
+/// A group's heading (doc 16a §6.8): a chevron and the title in `type.label`, a button that collapses or expands the
+/// group; `true` when clicked.
+fn group_heading(ui: &mut Ui, t: &crate::theme::Tokens, title: &str, key: &str, shut: bool) -> bool {
+    let (rect, _) = ui.allocate_exact_size(Vec2::new(ui.available_width(), t.size_row), Sense::hover());
+    let id = ui.scope_id().with(("prop-group", key));
+    let response = ui.interact(rect, id, Sense::click());
+    let name = title.to_owned();
+    response.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, !shut, &name));
+    crate::command_bar::state_overlay(ui, t, &response, true, t.radius_sm);
+    let chevron = if shut { "chevron-right" } else { "chevron-down" };
+    let icon = egui::Rect::from_min_size(
+        egui::pos2(rect.left(), rect.center().y - t.icon_sm / 2.0),
+        Vec2::splat(t.icon_sm),
+    );
+    crate::command_bar::paint_icon(ui, chevron, icon, t.text_secondary.color32(), t.icon_stroke);
+    let text = if t.type_label.upper {
+        title.to_uppercase()
+    } else {
+        title.to_owned()
+    };
+    ui.painter().text(
+        egui::pos2(icon.right() + t.space_icon, rect.center().y),
+        egui::Align2::LEFT_CENTER,
+        text,
+        crate::theme::font(&t.type_label),
+        t.text_secondary.color32(),
+    );
+    if response.has_focus() {
+        ui.painter().rect_stroke(
+            rect,
+            crate::theme::radius(t.radius_sm),
+            crate::theme::stroke(t.focus_width, t.focus),
+            egui::StrokeKind::Inside,
+        );
+    }
+    response.clicked()
 }

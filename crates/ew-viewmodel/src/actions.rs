@@ -3345,7 +3345,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         ))),
     ),
     with_params(
-        "area:enum(navigator|canvas|properties|find|commandbar), group?:uint, kind?:text",
+        "area:enum(navigator|canvas|properties|find|commandbar|history), group?:uint, kind?:text",
         hidden(act(
             "ui.focus",
             View,

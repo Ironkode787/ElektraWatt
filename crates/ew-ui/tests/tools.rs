@@ -1122,7 +1122,12 @@ fn r30_the_image_hint_follows_a_threaded_file_answer_without_a_pointer_move() {
             .next()
             .is_none()
     );
-    assert!(h.query_all_by_label_contains("first corner").next().is_some());
+    // WP-S2.17 part 2: the hint is the HUD's.
+    assert!(
+        support::hud_value(&h).contains("first corner"),
+        "{}",
+        support::hud_value(&h)
+    );
     h.state_mut().shell_mut().shutdown();
 }
 

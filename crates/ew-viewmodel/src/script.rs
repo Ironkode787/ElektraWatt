@@ -333,6 +333,8 @@ pub fn state_json(shell: &ShellModel) -> String {
                 Some(Focus::Find) => Value::from("find"),
                 // WP-S2.17 part 2
                 Some(Focus::CommandBar) => Value::from("commandbar"),
+                // WP-S2.17 part 3 (FT-519)
+                Some(Focus::History) => Value::from("history"),
             },
         ),
         format!("\"navigator\":{}", navigator_json(shell)),

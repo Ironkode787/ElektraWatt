@@ -18,7 +18,8 @@
 //! (`ui.dismiss`, the Escape chain), and leaving it commits.
 //!
 //! **Accessibility.** The table is the focusable node with the role `Table` named `<navigator> table`; a header cell is
-//! a button named `Sort by <column label>`; a cell is a node with the role `Cell` named `<column label> <cell text>,
+//! a button named `Sort by <column label>` (FT-523: the sorted one adds ", sorted ascending" or ", sorted
+//! descending"); a cell is a node with the role `Cell` named `<column label> <cell text>,
 //! row <i> of <n>`, with `, read-only` for a read-only cell (§8.1).
 
 use std::collections::BTreeSet;
@@ -507,7 +508,13 @@ impl TableDelegate for Delegate<'_> {
                     .truncate(),
             )
         });
+        // FT-523: the sorted header's name says the direction, not only its arrow (NFR-A11Y-01).
         let name = strings::format("table-sort-by", &[&column.label]);
+        let name = match sorted {
+            Some((_, false)) => strings::format("table-sorted-ascending", &[&name]),
+            Some((_, true)) => strings::format("table-sorted-descending", &[&name]),
+            None => name,
+        };
         response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &name));
         if response.clicked() {
             let descending = matches!(sorted, Some((_, false)));

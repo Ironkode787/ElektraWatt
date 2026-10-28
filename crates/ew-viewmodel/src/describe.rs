@@ -1188,6 +1188,8 @@ fn tab_lines(model: &ShellModel, lines: &mut Vec<String>) {
         Some(Focus::Find) => lines.push("focus find".to_owned()),
         // WP-S2.17 part 2
         Some(Focus::CommandBar) => lines.push("focus commandbar".to_owned()),
+        // WP-S2.17 part 3 (FT-519)
+        Some(Focus::History) => lines.push("focus history".to_owned()),
         None => {}
     }
 }

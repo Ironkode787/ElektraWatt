@@ -239,6 +239,8 @@ pub struct StatusField {
     pub text: String,
     /// Its emphasis.
     pub tone: Tone,
+    /// Its tooltip (why the canvas draws on the CPU, why the project is read-only); empty for none.
+    pub tip: String,
 }
 
 /// The findings field's text and tone: `1 error · 2 warnings`, the worst severity's tone; `None` when every count is
@@ -276,7 +278,12 @@ fn findings(model: &ShellModel) -> Option<(String, Tone)> {
 /// it applies. The tool's hint is the HUD's (part 2); the page and the language fields left the bar. `hide_job` leaves
 /// the job field out (a job younger than 200 ms).
 pub fn bar(model: &ShellModel, hide_job: bool) -> Vec<StatusField> {
-    let field = |kind, text: String, tone| StatusField { kind, text, tone };
+    let field = |kind, text: String, tone| StatusField {
+        kind,
+        text,
+        tone,
+        tip: String::new(),
+    };
     let mut out = vec![field(
         StatusKind::State,
         strings::text("status-ready").to_owned(),
@@ -313,19 +320,22 @@ pub fn bar(model: &ShellModel, hide_job: bool) -> Vec<StatusField> {
             ));
         }
         out.push(match model.access() {
-            Some(AccessMode::ReadOnly { reason_key }) => field(
-                StatusKind::Save,
-                strings::format("status-read-only", &[strings::text(reason_key)]),
-                Tone::Warning,
-            ),
+            Some(AccessMode::ReadOnly { reason_key }) => StatusField {
+                tip: strings::text(reason_key).to_owned(),
+                ..field(
+                    StatusKind::Save,
+                    strings::text("status-bar-read-only").to_owned(),
+                    Tone::Warning,
+                )
+            },
             _ if model.is_dirty() => field(
                 StatusKind::Save,
-                strings::text("status-unsaved").to_owned(),
+                strings::text("status-bar-unsaved").to_owned(),
                 Tone::Strong,
             ),
             _ => field(
                 StatusKind::Save,
-                strings::text("status-saved").to_owned(),
+                strings::text("status-bar-saved").to_owned(),
                 Tone::Success,
             ),
         });
@@ -336,7 +346,15 @@ pub fn bar(model: &ShellModel, hide_job: bool) -> Vec<StatusField> {
     } else {
         Tone::Warning
     };
-    out.push(field(StatusKind::Renderer, renderer, tone));
+    let tip = if tone == Tone::Warning {
+        strings::text("status-renderer-why").to_owned()
+    } else {
+        String::new()
+    };
+    out.push(StatusField {
+        tip,
+        ..field(StatusKind::Renderer, renderer, tone)
+    });
     let log = model.notifications();
     if !log.is_empty() {
         out.push(field(

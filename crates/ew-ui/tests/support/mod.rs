@@ -228,7 +228,17 @@ fn in_chrome(node: &egui_kittest::Node<'_>) -> bool {
 /// The node labelled `label` outside the command bar and the HUD: an entry of the open menus (the app menu's
 /// submenus share their names with the command tabs, some items with the bar's buttons).
 pub fn menu_node<'t>(harness: &'t Harness<'_, App>, label: &'t str) -> egui_kittest::Node<'t> {
-    off_chrome(harness, label).unwrap_or_else(|| panic!("no menu entry {label:?}"))
+    // WP-S2.17 part 3: the rails and the panel headers share names with the submenus ("Project"): an entry inside an
+    // open menu first.
+    harness
+        .query_all_by_label(label)
+        .rfind(|n| {
+            ancestors(n)
+                .iter()
+                .any(|(role, _)| *role == egui::accesskit::Role::Menu)
+        })
+        .or_else(|| off_chrome(harness, label))
+        .unwrap_or_else(|| panic!("no menu entry {label:?}"))
 }
 
 /// The last node labelled `label` outside the command bar and the HUD (a dialog's "Renumber" next to the bar's
@@ -242,6 +252,12 @@ pub fn view_tabs<'t>(harness: &'t Harness<'_, App>) -> Vec<egui_kittest::Node<'t
     harness
         .get_all_by_role(egui::accesskit::Role::Tab)
         .filter(|n| !in_chrome(n))
+        // WP-S2.17 part 3: the Project entry's segmented control is no view tab.
+        .filter(|n| {
+            !ancestors(n)
+                .iter()
+                .any(|(role, label)| *role == egui::accesskit::Role::TabList && label == "Pages or devices")
+        })
         .collect()
 }
 
