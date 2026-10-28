@@ -38,8 +38,16 @@ fn strips(tmp: &Tmp) -> Harness<'static, App> {
     done(shell, "props.show", json!({"on": false}));
     done(shell, "navigator.show", json!({"kind": "strips"}));
     done(shell, "navigator.table", json!({"kind": "strips"}));
-    done(shell, "navigator.filter", json!({"kind": "strips", "text": "x1031"}));
-    done(shell, "navigator.sort", json!({"kind": "strips", "by": "terminal"}));
+    done(
+        shell,
+        "navigator.filter",
+        json!({"kind": "strips", "text": "x1031"}),
+    );
+    done(
+        shell,
+        "navigator.sort",
+        json!({"kind": "strips", "by": "terminal"}),
+    );
     done(shell, "ui.focus", json!({"area": "navigator", "kind": "strips"}));
     settle(&mut h);
     h
@@ -130,8 +138,14 @@ fn gestures() -> Vec<(&'static str, Input)> {
         ("Shift+click", Click("Terminal@7", Modifiers::SHIFT)),
         ("double click", DoubleClick("Function text@2")),
         ("editor: Escape", Key(Modifiers::NONE, egui::Key::Escape)),
-        ("header click", Click("Sort by Terminal, sorted ascending", Modifiers::NONE)),
-        ("header click again", Click("Sort by Terminal, sorted descending", Modifiers::NONE)),
+        (
+            "header click",
+            Click("Sort by Terminal, sorted ascending", Modifiers::NONE),
+        ),
+        (
+            "header click again",
+            Click("Sort by Terminal, sorted descending", Modifiers::NONE),
+        ),
         ("refocus", Refocus),
         ("Enter", Key(Modifiers::NONE, egui::Key::Enter)),
     ]
