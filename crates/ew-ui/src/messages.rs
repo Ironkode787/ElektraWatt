@@ -143,8 +143,8 @@ fn fix_card(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     });
 }
 
-/// The detail block of the cursor's finding and the footer, below the rows.
-pub(crate) fn detail_and_footer(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
+/// The detail block of the cursor's finding, below the rows.
+pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     if let Some(d) = shell.messages_detail() {
         ui.separator();
         ui.label(egui::RichText::new(strings::format("messages-detail-rule", &[&d.rule, &d.title])).strong());
@@ -170,6 +170,10 @@ pub(crate) fn detail_and_footer(ui: &mut Ui, shell: &ShellModel, events: &mut Ve
             }
         });
     }
+}
+
+/// The footer, at the foot of the pane.
+pub(crate) fn footer(ui: &mut Ui) {
     ui.separator();
     ui.label(egui::RichText::new(strings::text("messages-footer")).weak());
 }

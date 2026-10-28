@@ -87,6 +87,8 @@ pub struct NavigatorPane {
     painted: usize,
     /// The rows the last frame painted: a cursor inside them is not scrolled to (a click does not move the list).
     view: std::ops::Range<usize>,
+    /// The list's height on the last frame (W31-1: a shorter list scrolls its cursor back into view).
+    list_height: f32,
     /// Table mode's widget state (WP-S2.06 part 3).
     table: crate::nav_table::TableUi,
 }
@@ -114,6 +116,7 @@ impl NavigatorPane {
             typed: (String::new(), f64::NEG_INFINITY),
             painted: 0,
             view: 0..0,
+            list_height: 0.0,
             table: crate::nav_table::TableUi::default(),
         }
     }
@@ -228,21 +231,29 @@ impl NavigatorPane {
         // footer below them.
         if self.kind == NavKind::Messages {
             crate::messages::header(ui, shell, events);
-            // At most half of a short pane, scrolled, so the rows keep their share and nothing spills below the pane.
-            let max = (ui.available_height() / 2.0).max(1.0);
-            egui::Panel::bottom(ui.scope_id().with("messages-detail"))
+            // W31-1: header, the rows in their own scroll area, the detail block (at most half the pane, ID-730, and
+            // never so tall that fewer than three rows fit), then the footer, which is always on show.
+            let row = row_height(ui.ctx());
+            egui::Panel::bottom(ui.scope_id().with("messages-footer"))
                 .resizable(false)
-                .max_size(max)
-                .show(ui, |ui| {
-                    // Scrolled inside the panel's own height: egui's default minimum of 64 points would grow the
-                    // panel past `max` and push its top over the rows.
-                    let inner = ui.available_height().max(0.0);
-                    egui::ScrollArea::vertical()
-                        .id_salt("messages-detail-scroll")
-                        .max_height(inner)
-                        .min_scrolled_height(inner)
-                        .show(ui, |ui| crate::messages::detail_and_footer(ui, shell, events));
-                });
+                .show(ui, crate::messages::footer);
+            if shell.messages_detail().is_some() {
+                let pane = ui.available_height();
+                let size = (pane / 2.0).min(pane - 3.0 * row).max(row);
+                egui::Panel::bottom(ui.scope_id().with("messages-detail"))
+                    .resizable(false)
+                    .exact_size(size)
+                    .show(ui, |ui| {
+                        // Scrolled inside the panel's own height: egui's default minimum of 64 points would grow the
+                        // panel past `size` and push its top over the rows.
+                        let inner = ui.available_height().max(0.0);
+                        egui::ScrollArea::vertical()
+                            .id_salt("messages-detail-scroll")
+                            .max_height(inner)
+                            .min_scrolled_height(inner)
+                            .show(ui, |ui| crate::messages::detail(ui, shell, events));
+                    });
+            }
         }
         // WP-S2.06 part 3: the table card of this navigator's gesture.
         table_card(ui, shell, self.kind, events);
@@ -316,9 +327,12 @@ impl NavigatorPane {
         // The cursor is scrolled into view when it moved to a row outside the rows on show (the first and last ones may
         // be cut).
         let inside = |i: usize| self.view.start < i && i + 1 < self.view.end;
+        // W31-1: a list that got shorter (the Messages detail block opened below it) scrolls its cursor back into view.
+        let shrunk = list_rect.height() + 0.5 < self.list_height;
+        self.list_height = list_rect.height();
         let scroll_to = cursor
             .as_ref()
-            .filter(|c| self.scrolled_to.as_ref() != Some(*c))
+            .filter(|c| self.scrolled_to.as_ref() != Some(*c) || shrunk)
             .and_then(|c| visible.iter().position(|r| &r.key == c))
             .filter(|i| !inside(*i));
         self.scrolled_to.clone_from(&cursor);

@@ -177,6 +177,8 @@ impl Dock {
     /// that group's active tab.
     pub fn show(&mut self, ui: &mut Ui, pane_ui: &mut dyn FnMut(&mut Ui, PaneKind)) {
         let tokens = crate::theme::current(ui.ctx());
+        let height = ui.available_height();
+        self.keep_bottom_min(height, tokens.size_dock_bottom_min);
         let mut behavior = DockBehavior {
             pane_ui,
             chosen: None,
@@ -186,6 +188,58 @@ impl Dock {
         if let Some((group, child)) = behavior.chosen {
             self.activate(group, child);
             ui.ctx().request_repaint();
+        }
+    }
+
+    // W31-1
+    /// Keeps the bottom dock (D14) at least `min` points tall: in every vertical split, the child that holds a bottom
+    /// pane gets at least `min` of the split's height (the split's last shown height, `fallback` before the first
+    /// frame), and never more than two thirds of it, so the page view keeps its place.
+    fn keep_bottom_min(&mut self, fallback: f32, min: f32) {
+        fn holds_bottom(tiles: &Tiles<PaneKind>, id: TileId) -> bool {
+            match tiles.get(id) {
+                Some(Tile::Pane(p)) => PaneKind::BOTTOM.contains(p),
+                Some(Tile::Container(c)) => c.children().any(|c| holds_bottom(tiles, *c)),
+                None => false,
+            }
+        }
+        let splits: Vec<TileId> = self
+            .tree
+            .tiles
+            .iter()
+            .filter_map(|(id, t)| match t {
+                Tile::Container(Container::Linear(l)) if l.dir == LinearDir::Vertical => Some(*id),
+                _ => None,
+            })
+            .collect();
+        for id in splits {
+            let height = self.tree.tiles.rect(id).map_or(fallback, |r| r.height());
+            let Some(Tile::Container(Container::Linear(linear))) = self.tree.tiles.get(id) else {
+                continue;
+            };
+            let children = linear.children.clone();
+            let Some(bottom) = children
+                .iter()
+                .copied()
+                .find(|c| holds_bottom(&self.tree.tiles, *c))
+            else {
+                continue;
+            };
+            if height <= 0.0 {
+                continue;
+            }
+            let want = (min / height).min(2.0 / 3.0);
+            let Some(Tile::Container(Container::Linear(linear))) = self.tree.tiles.get_mut(id) else {
+                continue;
+            };
+            let total: f32 = children.iter().map(|c| linear.shares[*c].max(0.0)).sum();
+            let own = linear.shares[bottom].max(0.0);
+            if total <= 0.0 || own / total >= want {
+                continue;
+            }
+            // The others keep their ratios; the bottom child's share grows to `want` of the total.
+            let others = total - own;
+            linear.shares.set_share(bottom, want / (1.0 - want) * others);
         }
     }
 

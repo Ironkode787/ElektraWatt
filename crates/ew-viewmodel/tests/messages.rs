@@ -120,7 +120,7 @@ fn ms1_the_pane_lists_the_findings_and_enter_opens_ef08() {
     );
     assert_eq!(
         shell.layout().describe(),
-        "split horizontal [\"Pages\" 16%, split vertical [\"Page view\" 75%, \"Messages\" 25%] 64%, \"Properties\" 20%]"
+        "split horizontal [\"Pages\" 16%, split vertical [\"Page view\" 65%, \"Messages\" 35%] 64%, \"Properties\" 20%]"
     );
     assert_eq!(shell.session_calls().navigator_table, calls + 1);
     let t = table(&shell);

@@ -252,3 +252,63 @@ fn ms5_the_pane_in_the_window_named_rows_keyboard_detail_and_pending() {
     assert!(shown.finding.is_some_and(|f| f.pending && f.severity == "error"));
     h.state_mut().shell_mut().shutdown();
 }
+
+/// W31-1: at 1280×800 the bottom dock holds the Messages pane's header, at least three whole rows, and with a
+/// finding selected both its row and its detail block, with the footer below.
+#[test]
+fn w31_1_the_selected_row_and_its_detail_are_both_on_show_at_1280_by_800() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, Scripted::default());
+    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    settle(&mut h);
+    h.get_by_label("View").click();
+    settle(&mut h);
+    h.get_by_label("Messages").click();
+    settle(&mut h);
+    settle(&mut h);
+    let whole = |h: &Harness<'_, App>| -> (egui::Rect, Vec<(String, egui::Rect)>) {
+        let list = h.get_by_label("Messages navigator").rect();
+        let rows = h
+            .get_all_by_role(egui::Role::TreeItem)
+            .filter_map(|n| n.accesskit_node().label().map(|l| (l, n.rect())))
+            .filter(|(_, r)| list.expand(0.5).contains_rect(*r))
+            .collect();
+        (list, rows)
+    };
+    let (list, rows) = whole(&h);
+    assert!(rows.len() >= 3, "three whole rows in {list:?}: {rows:?}");
+    // A finding further down the list: its row is scrolled into view next to its detail block.
+    let findings: Vec<(String, String)> = h
+        .state()
+        .shell()
+        .shown_rows(NavKind::Messages)
+        .iter()
+        .filter(|r| r.role == "finding")
+        .map(|r| (r.key.clone(), r.name.clone()))
+        .collect();
+    let (key, label) = findings[findings.len().min(6) - 1].clone();
+    dispatch(&mut h, "navigator.row", json!({"kind": "messages", "key": key}));
+    settle(&mut h);
+    settle(&mut h);
+    let (list, rows) = whole(&h);
+    assert!(rows.len() >= 3, "three whole rows beside the detail: {rows:?}");
+    assert!(
+        rows.iter().any(|(l, _)| l.starts_with(&label)),
+        "the selected row {label} in {list:?}: {rows:?}"
+    );
+    let detail = h.state().shell().messages_detail().unwrap();
+    let rule = h
+        .get_by_label(&format!("{} {}", detail.rule, detail.title))
+        .rect();
+    assert!(
+        rule.top() >= list.bottom() - 0.5 && rule.bottom() <= 800.0,
+        "the detail {rule:?} below the rows {list:?}"
+    );
+    let footer = h
+        .get_by_label("Checks support, but do not replace, engineering verification.")
+        .rect();
+    assert!(
+        footer.top() >= rule.bottom() && footer.bottom() <= 800.0,
+        "the footer {footer:?} below the detail {rule:?}"
+    );
+}

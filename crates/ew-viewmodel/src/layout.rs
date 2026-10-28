@@ -253,7 +253,7 @@ impl Layout {
     // WP-S2.09 part 1
     /// The layout with `pane` in the bottom dock (D14; Find, Jobs): beside the bottom pane that is in the layout
     /// already, as a new shown tab of its tab group (its place becomes tabs, or its tabs get one more); with none, the
-    /// page view's place becomes a vertical split of the page view and `pane` (750 : 250), which the first of them
+    /// page view's place becomes a vertical split of the page view and `pane` (650 : 350; W31-1), which the first of them
     /// creates. Unchanged when `pane` is in it.
     pub fn with_bottom(&self, pane: PaneKind) -> Layout {
         fn below(n: &LayoutNode, pane: PaneKind) -> LayoutNode {
@@ -261,8 +261,8 @@ impl Layout {
                 LayoutNode::Pane(PaneKind::PageView) => LayoutNode::Split {
                     dir: SplitDir::Vertical,
                     children: vec![
-                        (750, LayoutNode::Pane(PaneKind::PageView)),
-                        (250, LayoutNode::Pane(pane)),
+                        (650, LayoutNode::Pane(PaneKind::PageView)),
+                        (350, LayoutNode::Pane(pane)),
                     ],
                 },
                 LayoutNode::Pane(p) => LayoutNode::Pane(*p),
@@ -772,7 +772,7 @@ mod tests {
         let full = Layout::schematic().with_find();
         assert_eq!(
             full.describe(),
-            "split horizontal [\"Pages\" 16%, split vertical [\"Page view\" 75%, \"Find and replace\" 25%] 64%, \"Properties\" 20%]"
+            "split horizontal [\"Pages\" 16%, split vertical [\"Page view\" 65%, \"Find and replace\" 35%] 64%, \"Properties\" 20%]"
         );
         assert_eq!(full.with_find(), full, "added once");
         assert_eq!(Layout::parse(&full.to_json("Find")).unwrap().1, full);
@@ -785,12 +785,12 @@ mod tests {
         let jobs = Layout::schematic().with_bottom(PaneKind::Jobs);
         assert_eq!(
             jobs.describe(),
-            "split horizontal [\"Pages\" 16%, split vertical [\"Page view\" 75%, \"Jobs\" 25%] 64%, \"Properties\" 20%]"
+            "split horizontal [\"Pages\" 16%, split vertical [\"Page view\" 65%, \"Jobs\" 35%] 64%, \"Properties\" 20%]"
         );
         let both = jobs.with_find();
         assert_eq!(
             both.describe(),
-            "split horizontal [\"Pages\" 16%, split vertical [\"Page view\" 75%, tabs [\"Jobs\", \"Find and replace\" (shown)] 25%] 64%, \"Properties\" 20%]"
+            "split horizontal [\"Pages\" 16%, split vertical [\"Page view\" 65%, tabs [\"Jobs\", \"Find and replace\" (shown)] 35%] 64%, \"Properties\" 20%]"
         );
         assert_eq!(both.with_bottom(PaneKind::Jobs), both, "added once");
         assert_eq!(Layout::parse(&both.to_json("Bottom")).unwrap().1, both);

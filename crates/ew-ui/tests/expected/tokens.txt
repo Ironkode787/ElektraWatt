@@ -90,6 +90,7 @@ size.status_field 22px
 size.panel.left 280px
 size.panel.right 280px
 size.dock.bottom 184px
+size.dock.bottom_min 300px
 size.property_label 96px
 size.tree_indent 20px
 size.table_header 24px
@@ -221,6 +222,7 @@ size.status_field 22px
 size.panel.left 280px
 size.panel.right 280px
 size.dock.bottom 184px
+size.dock.bottom_min 300px
 size.property_label 96px
 size.tree_indent 20px
 size.table_header 24px
@@ -352,6 +354,7 @@ size.status_field 22px
 size.panel.left 280px
 size.panel.right 280px
 size.dock.bottom 184px
+size.dock.bottom_min 300px
 size.property_label 96px
 size.tree_indent 20px
 size.table_header 24px
@@ -483,6 +486,7 @@ size.status_field 22px
 size.panel.left 280px
 size.panel.right 280px
 size.dock.bottom 184px
+size.dock.bottom_min 300px
 size.property_label 96px
 size.tree_indent 20px
 size.table_header 24px
@@ -614,6 +618,7 @@ size.status_field 22px
 size.panel.left 280px
 size.panel.right 280px
 size.dock.bottom 184px
+size.dock.bottom_min 300px
 size.property_label 96px
 size.tree_indent 20px
 size.table_header 24px
@@ -745,6 +750,7 @@ size.status_field 22px
 size.panel.left 280px
 size.panel.right 280px
 size.dock.bottom 184px
+size.dock.bottom_min 300px
 size.property_label 96px
 size.tree_indent 20px
 size.table_header 24px
@@ -876,6 +882,7 @@ size.status_field 22px
 size.panel.left 280px
 size.panel.right 280px
 size.dock.bottom 184px
+size.dock.bottom_min 300px
 size.property_label 96px
 size.tree_indent 20px
 size.table_header 24px
@@ -1007,6 +1014,7 @@ size.status_field 22px
 size.panel.left 280px
 size.panel.right 280px
 size.dock.bottom 184px
+size.dock.bottom_min 300px
 size.property_label 96px
 size.tree_indent 20px
 size.table_header 24px
