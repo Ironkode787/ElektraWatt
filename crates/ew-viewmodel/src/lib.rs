@@ -30,6 +30,8 @@ pub mod describe;
 pub mod find;
 pub mod first_run;
 pub mod help;
+// WP-S2.06 part 2
+pub mod highlight;
 pub mod history;
 pub mod layout;
 pub mod navigator;

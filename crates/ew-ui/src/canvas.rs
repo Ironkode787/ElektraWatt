@@ -50,7 +50,7 @@ use ew_render2d::overlay::{self, GridSpec, Overlay, OverlayInput, Theme};
 use ew_render2d::pool::{Scene, TilePool, worker_count};
 use ew_render2d::stats::{FrameSample, FrameStats, Phase, now};
 use ew_render2d::tiles::{DEFAULT_CACHE_BYTES, Plan, Planner, TileCache, TileKey};
-use ew_render2d::view::{PxRect, View};
+use ew_render2d::view::{DrawTransform, PxRect, View};
 use ew_viewmodel::canvas::{
     CanvasModel, CanvasPage, Viewport, bounded_pane, zoom_in_step, zoom_out_step, zoom_percent_text,
 };
@@ -58,7 +58,8 @@ use ew_viewmodel::ew_api::output::ew_dl::ew_units::Rect as SheetRect;
 use ew_viewmodel::ew_api::output::ew_dl::{Color, FontKey, ew_units::Nm};
 use ew_viewmodel::ew_api::output::font_bytes;
 use ew_viewmodel::shell::{Focus, ShellModel};
-use ew_viewmodel::{status, strings};
+use ew_viewmodel::tools::OverlayItem;
+use ew_viewmodel::{highlight, status, strings};
 use serde_json::json;
 
 use crate::app::Event;
@@ -113,7 +114,7 @@ pub fn snapshot_image(shell: &ShellModel, group: usize) -> Result<(ew_render_cpu
     };
     let selected = shell.selected_rects(group);
     let tool = crate::tool_view::marks_of(shell, group);
-    render_view(
+    let (mut image, dpi) = render_view(
         canvas,
         &theme_of(shell),
         grid_spec(shell, canvas),
@@ -121,7 +122,115 @@ pub fn snapshot_image(shell: &ShellModel, group: usize) -> Result<(ew_render_cpu
         &selected,
         canvas.cursor(),
         &tool,
-    )
+    )?;
+    // WP-S2.06 part 2: the highlights, composited like the ghost (§7.3).
+    let view = view_of(canvas);
+    let items: Vec<OverlayItem> = shell
+        .highlight_overlay(group)
+        .into_iter()
+        .map(|(i, _)| i)
+        .collect();
+    composite_highlights(&mut image, &view.settled_transform(), view.ppp, &items);
+    Ok((image, dpi))
+}
+
+// WP-S2.06 part 2
+/// The bands of a highlight item on screen (physical pixels of the pane), with its slot.
+fn highlight_bands(
+    item: &OverlayItem,
+    t: &DrawTransform,
+    ppp: f64,
+) -> Option<(Vec<highlight::HatchPiece>, u8)> {
+    let OverlayItem::Highlight { polylines, slot } = item else {
+        return None;
+    };
+    let bands = polylines
+        .iter()
+        .flat_map(|line| {
+            let pts: Vec<(f64, f64)> = line
+                .iter()
+                .map(|p| t.to_screen((p.0 as f64, p.1 as f64)))
+                .collect();
+            highlight::pieces(&pts, *slot, ppp)
+        })
+        .collect();
+    Some((bands, *slot))
+}
+
+/// Composites the highlights into a snapshot (§7.3): per highlight, each pixel whose centre lies in one of its bands is
+/// the slot colour at 30 % over what is there, or the full colour on a hatch line. A pixel is painted once per
+/// highlight even where two bands overlap, so the result does not depend on the band order.
+fn composite_highlights(
+    image: &mut ew_render_cpu::RgbaImage,
+    t: &DrawTransform,
+    ppp: f64,
+    items: &[OverlayItem],
+) {
+    let (w, h) = (i64::from(image.width), i64::from(image.height));
+    for item in items {
+        let Some((bands, slot)) = highlight_bands(item, t, ppp) else {
+            continue;
+        };
+        let (r, g, b) = highlight::SLOT_COLOURS[usize::from(slot) % highlight::MAX_HIGHLIGHTS];
+        // The pixels of this highlight: 1 band, 2 hatch.
+        let mut paint: BTreeMap<(i64, i64), u8> = BTreeMap::new();
+        for band in &bands {
+            let xs = band.band.iter().map(|p| p.0);
+            let ys = band.band.iter().map(|p| p.1);
+            let x0 = (xs.clone().fold(f64::INFINITY, f64::min).floor() as i64).max(0);
+            let x1 = (xs.fold(f64::NEG_INFINITY, f64::max).ceil() as i64).min(w);
+            let y0 = (ys.clone().fold(f64::INFINITY, f64::min).floor() as i64).max(0);
+            let y1 = (ys.fold(f64::NEG_INFINITY, f64::max).ceil() as i64).min(h);
+            for y in y0..y1 {
+                for x in x0..x1 {
+                    let centre = (x as f64 + 0.5, y as f64 + 0.5);
+                    let v = match highlight::paint_at(std::slice::from_ref(band), slot, ppp, centre) {
+                        Some(highlight::Paint::Hatch) => 2,
+                        Some(highlight::Paint::Band) => 1,
+                        None => continue,
+                    };
+                    let e = paint.entry((x, y)).or_insert(0);
+                    *e = (*e).max(v);
+                }
+            }
+        }
+        for ((x, y), v) in paint {
+            let a = if v == 2 { 255 } else { highlight::BAND_ALPHA };
+            overlay::fill(image, PxRect::new(x, y, x + 1, y + 1), Color { r, g, b, a });
+        }
+    }
+}
+
+/// Paints the highlights of canvas group `group` in the window (§7.3): the bands as filled quadrilaterals at 30 % and
+/// the hatch segments as lines in the full colour, above the overlays.
+fn paint_highlights(
+    ui: &egui::Ui,
+    rect: egui::Rect,
+    ppp: f32,
+    t: &DrawTransform,
+    shell: &ShellModel,
+    group: usize,
+) {
+    let painter = ui.painter_at(rect);
+    let to_pt = |p: (f64, f64)| rect.min + egui::Vec2::new(p.0 as f32, p.1 as f32) / ppp;
+    for (item, _) in shell.highlight_overlay(group) {
+        let Some((bands, slot)) = highlight_bands(&item, t, f64::from(ppp)) else {
+            continue;
+        };
+        let (r, g, b) = highlight::SLOT_COLOURS[usize::from(slot) % highlight::MAX_HIGHLIGHTS];
+        let fill = egui::Color32::from_rgba_unmultiplied(r, g, b, highlight::BAND_ALPHA);
+        let stroke = egui::Stroke::new(highlight::HATCH_WIDTH_PT as f32, egui::Color32::from_rgb(r, g, b));
+        for band in &bands {
+            painter.add(egui::Shape::convex_polygon(
+                band.band.iter().map(|p| to_pt(*p)).collect(),
+                fill,
+                egui::Stroke::NONE,
+            ));
+            for (a, b) in &band.hatches {
+                painter.line_segment([to_pt(*a), to_pt(*b)], stroke);
+            }
+        }
+    }
 }
 
 /// `canvas.preview_snapshot` (WP-S2.03 §7.8): the link preview's pane as the popup shows it, by the same rule as
@@ -652,6 +761,8 @@ impl CanvasHost {
             }
             (None, None) => {}
         }
+        // WP-S2.06 part 2: the window's highlights on this page (§7.3).
+        paint_highlights(ui, rect, ppp, &transform, shell, group);
         let stats = shell
             .frame_stats_shown()
             .then(|| self.statistics_frame(ui, rect, shell));

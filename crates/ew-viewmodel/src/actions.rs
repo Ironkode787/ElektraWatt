@@ -662,6 +662,17 @@ fn reorder_card(m: &ShellModel) -> Result<(), &'static str> {
     }
 }
 
+// WP-S2.06 part 2
+/// View ▸ Clear highlights: a highlight is shown.
+fn has_highlights(m: &ShellModel) -> Result<(), &'static str> {
+    project_open(m)?;
+    if m.highlights().is_empty() {
+        Err("reason-no-highlights")
+    } else {
+        Ok(())
+    }
+}
+
 /// The page reorder actions: a writable project with pages.
 fn pages_writable(m: &ShellModel) -> Result<(), &'static str> {
     writable(m)?;
@@ -2574,6 +2585,28 @@ pub static ACTIONS: &[ActionMeta] = &[
         pages_writable,
         None,
     )),
+    // WP-S2.06 part 2: potential and net highlighting (§7.4).
+    with_params(
+        "kind?:text, key?:text, off?:bool",
+        in_navigator(act(
+            "navigator.highlight",
+            View,
+            "action-navigator-highlight",
+            Menu::View,
+            &["Ctrl+Shift+H"],
+            has_pages,
+            None,
+        )),
+    ),
+    act(
+        "view.clear_highlights",
+        View,
+        "action-view-clear-highlights",
+        Menu::View,
+        &[],
+        has_highlights,
+        slot(Menu::View),
+    ),
     with_params(
         "area:enum(navigator|canvas|properties|find), group?:uint, kind?:text",
         hidden(act(

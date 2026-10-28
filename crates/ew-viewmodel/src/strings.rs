@@ -1045,6 +1045,11 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "action-pages-reorder" => "Reorder pages",
         "action-pages-move-up" => "Move page up",
         "action-pages-move-down" => "Move page down",
+        // WP-S2.06 part 2: highlighting.
+        "action-navigator-highlight" => "Highlight",
+        "action-view-clear-highlights" => "Clear highlights",
+        "reason-no-highlights" => "No potential or net is highlighted",
+        "error-highlight-row" => "Only potentials and connections can be highlighted.",
         "submenu-navigators" => "Navigators",
         "nav-title-devices" => "Devices",
         "nav-title-connections" => "Connections",

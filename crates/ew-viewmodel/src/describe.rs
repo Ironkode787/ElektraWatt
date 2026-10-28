@@ -343,7 +343,20 @@ pub const VOCABULARY: &[&str] = &[
     "elsewhere",
     "aux",
     "reorder",
+    // The further navigators and highlighting (WP-S2.06 part 2, §7.4; ID-474 extended, ID-688): the 6 words of
+    // `NAV2_WORDS`, a reviewed vocabulary change.
+    "cable",
+    "module",
+    "station",
+    "manufacturer",
+    "highlight",
+    "slot",
 ];
+
+// WP-S2.06 part 2
+/// The 6 words WP-S2.06 part 2 adds to [`VOCABULARY`] (§7.4): the role words `cable`, `module`, `station` and
+/// `manufacturer`, and the highlight lines' `highlight` and `slot`.
+pub const NAV2_WORDS: &[&str] = &["cable", "module", "station", "manufacturer", "highlight", "slot"];
 
 // WP-S2.06 part 1
 /// The 18 words WP-S2.06 part 1 adds to [`VOCABULARY`] (§6.10): the navigator kinds, the header's `kind`, `tree`,
@@ -842,6 +855,10 @@ fn other_navigator_lines(model: &ShellModel, lines: &mut Vec<String>) {
             if cursor.as_deref() == Some(r.key.as_str()) {
                 line.push_str(" cursor");
             }
+            // WP-S2.06 part 2: a highlighted row ends with its slot.
+            if let Some(slot) = model.row_highlight_slot(kind, &r.key) {
+                line.push_str(&format!(" highlight {slot}"));
+            }
             lines.push(line);
         }
     }
@@ -1278,6 +1295,24 @@ fn canvas_lines(model: &ShellModel, lines: &mut Vec<String>) {
             .map(|c| format!("\"{}\"", user(&c.text())))
             .collect();
         lines.push(format!("  elsewhere {}", chips.join(" ")));
+    }
+    // WP-S2.06 part 2: the highlights drawn on the shown page (§7.4), oldest first.
+    if let Some(group) = model.area().map(|a| a.focused) {
+        let shown = model.highlight_overlay(group);
+        for h in model.highlights().items() {
+            let drawn = shown
+                .iter()
+                .find(|(item, _)| matches!(item, crate::tools::OverlayItem::Highlight { slot, .. } if *slot == h.slot))
+                .map(|(_, n)| *n);
+            if let Some(n) = drawn {
+                lines.push(format!(
+                    "  highlight slot {} {} \"{}\" connections {n}",
+                    h.slot,
+                    h.word(),
+                    user(&h.name)
+                ));
+            }
+        }
     }
     tool_lines(model, lines);
 }

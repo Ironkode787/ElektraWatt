@@ -72,7 +72,8 @@ pub fn marks(overlay: &Overlay, snapper: &tools::Snapper) -> Vec<ToolMark> {
                 OverlayItem::Paths { paths, transform } => ToolMark::Paths {
                     paths: tools::paths_on_sheet(paths, *transform, snapper),
                 },
-                OverlayItem::Label { .. } => return None,
+                // The window's highlights are painted by the canvas (WP-S2.06 §7.3), the labels as chips.
+                OverlayItem::Label { .. } | OverlayItem::Highlight { .. } => return None,
             })
         })
         .collect()

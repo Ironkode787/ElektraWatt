@@ -173,6 +173,16 @@ pub enum OverlayItem {
         /// The orientation and the absolute page point of the origin.
         transform: (u8, (i64, i64)),
     },
+    // WP-S2.06 part 2
+    /// A potential or net highlight (§7.3, D14): the drawn polylines of its members on the shown page, in sheet nm,
+    /// drawn as hatched bands in the colour and hatch angle of `slot` (`crate::highlight`); composited into
+    /// `canvas.snapshot` like `Ghost`. Built by the shell from the window's highlights, never by a tool.
+    Highlight {
+        /// The polylines, in sheet nm.
+        polylines: Vec<Vec<(i64, i64)>>,
+        /// The slot, 0 to 3.
+        slot: u8,
+    },
     /// A text chip (the Measure readout; later a ghost's predicted tag): drawn by the window, listed by
     /// `ui.describe`, never composited into `canvas.snapshot`.
     Label {

@@ -94,6 +94,9 @@ pub struct SessionCalls {
     // WP-S2.06 part 1
     /// `Session::navigator_table`: once per open navigator other than Pages and revision.
     pub navigator_table: u64,
+    // WP-S2.06 part 2
+    /// `Session::highlight_members`: once per highlight and revision.
+    pub highlight_members: u64,
 }
 
 /// Counts one of the shell's `Session` calls (a free function, so that a call can be counted while the project is

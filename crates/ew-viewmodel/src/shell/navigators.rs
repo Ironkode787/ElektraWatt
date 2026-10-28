@@ -22,19 +22,20 @@ use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use ew_api::output::ew_dl::{Destination, EntityRef};
-use ew_api::output::{Drawable, NavKind, PageRow, Uuid};
+use ew_api::output::{Drawable, NavKind, NavNode, NavRole, PageRow, Uuid};
 use ew_api::{AnyCommand, Origin, Submit};
 use serde_json::{Map, Value, json};
 
 use super::navigation::{Focus, bump};
 use super::{Mode, Outcome, ShellModel, failed, flag, string_param};
 use crate::canvas::PageId;
+use crate::highlight::{HighlightTarget, Highlights};
 use crate::layout::PaneKind;
 use crate::navigator::RowKind;
 use crate::navigators::{NavView, Navigator, SortBy, starts_with_folded};
 use crate::properties::{Card, CardOrigin, EditRoute, FieldReadOnly, PendingEdit};
 use crate::strings;
-use crate::tools::{PreviewState, SelectionChange};
+use crate::tools::{OverlayItem, PreviewState, SelectionChange};
 
 /// The most chips the line "Not on this page" shows (§6.5).
 pub const MAX_CHIPS: usize = 12;
@@ -328,6 +329,7 @@ impl ShellModel {
             self.navs.clear();
             self.chips.clear();
             self.last_page = None;
+            self.highlights.clear();
             return;
         }
         let panes = self.layout().panes();
@@ -364,6 +366,14 @@ impl ShellModel {
             bump(&self.calls, |c| c.navigator_table += 1);
             if let Some(n) = self.navs.get_mut(&k) {
                 n.table = Some(Arc::new(table));
+            }
+        }
+        // WP-S2.06 part 2: the highlights' members, once per highlight and revision (§7.3).
+        if let Some(project) = &self.project {
+            for h in self.highlights.stale_mut(rev) {
+                h.members = Arc::new(project.session.highlight_members(&h.target));
+                h.rev = rev;
+                bump(&self.calls, |c| c.highlight_members += 1);
             }
         }
         // The chips belong to the selection and the page they were made for.
@@ -1281,5 +1291,115 @@ fn json_map(v: Value) -> Map<String, Value> {
     match v {
         Value::Object(m) => m,
         _ => Map::new(),
+    }
+}
+
+// -----------------------------------------------------------------------------------------------------------------
+// WP-S2.06 part 2: potential and net highlighting (§7.3, D14)
+
+/// The highlight a row stands for: a potential row of the potential overview (its record names the potential), or a
+/// connection row (the net of its first connection); `None` for every other row.
+pub fn row_highlight(node: &NavNode) -> Option<HighlightTarget> {
+    match node.role {
+        NavRole::Potential
+            if node.table_row
+                && node.records.len() == 1
+                && node.facets.iter().any(|(f, _)| f == "potential") =>
+        {
+            Some(HighlightTarget::Potential(node.records[0]))
+        }
+        NavRole::Connection => node.records.first().map(|c| HighlightTarget::Net(*c)),
+        _ => None,
+    }
+}
+
+impl ShellModel {
+    /// The window's highlights (§7.3).
+    pub fn highlights(&self) -> &Highlights {
+        &self.highlights
+    }
+
+    /// The slot of the highlight a row of navigator `kind` stands for, when it is shown.
+    pub fn row_highlight_slot(&self, kind: NavKind, key: &str) -> Option<u8> {
+        let (_, node) = self.navs.get(&kind)?.node_of(key)?;
+        self.highlights.slot_of(&row_highlight(node)?)
+    }
+
+    /// The highlights on the page of canvas group `group`, as overlay items in sheet nm (oldest first), with the number
+    /// of members drawn there: the drawn polylines of the members in the page's tables, mapped to the sheet.
+    pub fn highlight_overlay(&self, group: usize) -> Vec<(OverlayItem, usize)> {
+        let Some(c) = self.canvas_of(group) else {
+            return Vec::new();
+        };
+        let page = c.page();
+        self.highlights
+            .items()
+            .iter()
+            .filter_map(|h| {
+                let polylines: Vec<Vec<(i64, i64)>> = page
+                    .tables
+                    .connections
+                    .iter()
+                    .filter(|t| h.members.binary_search(&t.id).is_ok())
+                    .map(|t| {
+                        t.polyline
+                            .iter()
+                            .map(|p| page.snapper.page_to_sheet(*p))
+                            .collect()
+                    })
+                    .collect();
+                let n = polylines.len();
+                (n > 0).then_some((
+                    OverlayItem::Highlight {
+                        polylines,
+                        slot: h.slot,
+                    },
+                    n,
+                ))
+            })
+            .collect()
+    }
+
+    /// `navigator.highlight {kind?, key?, off?}` (Ctrl+Shift+H): highlights the potential or the net of a row (default
+    /// the cursor row), or removes its highlight when it is shown (always with `off: true`). A fifth highlight replaces
+    /// the oldest. View state: no command, no undo entry.
+    pub(super) fn act_navigator_highlight(&mut self, p: &Map<String, Value>) -> Outcome {
+        let kind = match self.open_kind(p) {
+            Ok(k) => k,
+            Err(e) => return e,
+        };
+        let key = match self.nav_key_param(kind, p, "key") {
+            Err(e) => return e,
+            Ok(Some(k)) => k,
+            Ok(None) => match self.nav_cursor(kind) {
+                Some(k) => k,
+                None => {
+                    return Outcome::Refused {
+                        reason_key: "reason-no-nav-row",
+                    };
+                }
+            },
+        };
+        let Some((target, name)) = self
+            .navs
+            .get(&kind)
+            .and_then(|n| n.node_of(&key))
+            .and_then(|(_, node)| row_highlight(node).map(|t| (t, node.label.clone())))
+        else {
+            return failed("error-highlight-row", &[]);
+        };
+        let off = p.get("off").and_then(Value::as_bool).unwrap_or(false);
+        if self.highlights.slot_of(&target).is_some() {
+            self.highlights.remove(&target);
+        } else if !off {
+            self.highlights.add(target, &name);
+        }
+        Outcome::Done
+    }
+
+    /// `view.clear_highlights`: removes every highlight.
+    pub(super) fn act_clear_highlights(&mut self) -> Outcome {
+        self.highlights.clear();
+        Outcome::Done
     }
 }

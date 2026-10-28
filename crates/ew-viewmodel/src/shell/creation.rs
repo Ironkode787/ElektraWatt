@@ -535,6 +535,36 @@ impl ShellModel {
         out
     }
 
+    // WP-S2.06 part 2
+    /// The parent the New structure node dialog proposes for a node of aspect `kind` (FT-461's second half, §7.1): the
+    /// first marked node of the Structure identifiers navigator (else its cursor row) when that node's aspect is `kind`,
+    /// by its designation when the designation names it, else by its ID; empty otherwise.
+    pub fn new_structure_parent(&self, kind: &str) -> String {
+        let Some(nav) = self.nav(crate::navigators::NavKind::Structure) else {
+            return String::new();
+        };
+        let prefix = format!("aspect:{kind}/");
+        let pick = nav
+            .marked()
+            .iter()
+            .find(|k| k.starts_with(&prefix))
+            .cloned()
+            .or_else(|| nav.cursor_key().filter(|k| k.starts_with(&prefix)));
+        let Some((_, node)) = pick.as_deref().and_then(|k| nav.node_of(k)) else {
+            return String::new();
+        };
+        if node.role != crate::navigators::NavRole::StructureNode {
+            return String::new();
+        }
+        let Some(id) = node.records.first().map(ToString::to_string) else {
+            return String::new();
+        };
+        match self.structure_node(kind, &node.label) {
+            Ok(found) if found == id => node.label.clone(),
+            _ => id,
+        }
+    }
+
     /// `structure.new {kind, designation, parent?}` (FT-409): one `structure.create_node`.
     pub(super) fn act_structure_new(&mut self, p: &Map<String, Value>) -> Outcome {
         let mut v = Vec::new();
@@ -547,6 +577,21 @@ impl ShellModel {
         let [kind, designation, parent] = <[String; 3]>::try_from(v).expect("three fields");
         for (name, value) in [("kind", &kind), ("designation", &designation)] {
             if value.is_empty() {
+                // WP-S2.06 part 2 (FT-461's second half): the dialog opens with the marked structure node as the parent
+                // when its aspect is the chosen kind's.
+                if self.mode == Mode::Gui && !self.in_form(&STRUCTURE_NEW) && parent.is_empty() {
+                    let chosen = if kind.is_empty() {
+                        STRUCTURE_NEW.fields[0].default
+                    } else {
+                        kind.as_str()
+                    };
+                    let proposal = self.new_structure_parent(chosen);
+                    if !proposal.is_empty() {
+                        let mut filled = p.clone();
+                        filled.insert("parent".into(), Value::String(proposal));
+                        return self.open_dialog(Dialog::Form(STRUCTURE_NEW.dialog(&filled)));
+                    }
+                }
                 return self.form_missing(&STRUCTURE_NEW, p, name);
             }
         }

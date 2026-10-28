@@ -364,6 +364,9 @@ pub struct ShellModel {
     last_page: Option<crate::canvas::PageId>,
     /// Counted up by every dispatch (the navigator widget's cache key).
     nav_version: u64,
+    // WP-S2.06 part 2
+    /// The window's potential and net highlights (§7.3, D14): view state.
+    highlights: crate::highlight::Highlights,
     /// Where the keyboard focus is.
     focus: Option<Focus>,
     /// The page content of the current revision by folio (WP-S2.03 §6.2).
@@ -555,6 +558,8 @@ fn clears_banner(id: &str) -> bool {
             | "navigator.select"
             | "navigator.mark"
             | "navigator.jump"
+            | "navigator.highlight"
+            | "view.clear_highlights"
             | "ui.focus"
             | "ui.focus_next"
             | "ui.focus_previous"
@@ -727,6 +732,7 @@ impl ShellModel {
             chips_for: None,
             last_page: None,
             nav_version: 0,
+            highlights: crate::highlight::Highlights::default(),
             focus: None,
             cache: navigation::PageCache::default(),
             calls: Cell::new(SessionCalls::default()),
@@ -1289,6 +1295,9 @@ impl ShellModel {
             "pages.reorder" => self.act_pages_reorder(p),
             "pages.move_up" => self.act_pages_move(true),
             "pages.move_down" => self.act_pages_move(false),
+            // WP-S2.06 part 2
+            "navigator.highlight" => self.act_navigator_highlight(p),
+            "view.clear_highlights" => self.act_clear_highlights(),
             "ui.focus" => self.act_focus(p),
             "ui.focus_next" => self.act_focus_cycle(1),
             "ui.focus_previous" => self.act_focus_cycle(-1),
