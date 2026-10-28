@@ -47,6 +47,8 @@ pub mod notifications;
 // WP-S2.09 part 3
 pub mod preview;
 pub mod properties;
+// WP-S2.17 part 3
+pub mod rail;
 pub mod script;
 pub mod settings;
 pub mod shell;

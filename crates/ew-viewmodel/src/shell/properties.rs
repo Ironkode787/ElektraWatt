@@ -131,11 +131,33 @@ impl ShellModel {
         self.settings.properties_collapsed.iter().cloned().collect()
     }
 
+    // WP-S2.17 part 3 (D11)
+    /// Whether the grid shows the Advanced rows (`[properties] show_advanced`; `props.show_advanced`).
+    pub fn properties_show_advanced(&self) -> bool {
+        self.settings.properties_show_advanced
+    }
+
+    /// `props.show_advanced {on?}`: shows or hides the Advanced rows (else it toggles), remembered in the settings file.
+    pub(super) fn act_props_show_advanced(&mut self, p: &Map<String, Value>) -> Outcome {
+        let on = match p.get("on") {
+            None => !self.settings.properties_show_advanced,
+            Some(v) => match v.as_bool() {
+                Some(b) => b,
+                None => return failed("error-bad-param", &["on"]),
+            },
+        };
+        if on != self.settings.properties_show_advanced {
+            self.settings.properties_show_advanced = on;
+            self.save_settings();
+        }
+        Outcome::Done
+    }
+
     /// The focused row: the row the cursor was moved to while it is on show, else the first row on show.
     pub fn properties_row(&self) -> Option<String> {
         let sheet = self.props.sheet()?;
         let collapsed = self.properties_collapsed();
-        let rows = visible_rows(sheet, &collapsed);
+        let rows = visible_rows(sheet, &collapsed, self.settings.properties_show_advanced);
         if let Some(moved) = self.props.moved_row()
             && rows.iter().any(|r| r.row.key == moved)
         {
@@ -423,7 +445,7 @@ impl ShellModel {
             };
         };
         let collapsed = self.properties_collapsed();
-        let rows = visible_rows(&sheet, &collapsed);
+        let rows = visible_rows(&sheet, &collapsed, self.settings.properties_show_advanced);
         if rows.is_empty() {
             return Outcome::Refused {
                 reason_key: "reason-no-row",
@@ -479,15 +501,15 @@ impl ShellModel {
                 }
             },
         };
-        let category = match string_param(p, "category") {
+        let group = match string_param(p, "category") {
             Err(e) => return e,
-            Ok(Some(word)) => match crate::properties::Category::ALL.iter().find(|c| c.word() == word) {
-                Some(c) => *c,
+            Ok(Some(word)) => match crate::properties::RowGroup::from_word(word) {
+                Some(g) => g,
                 None => return failed("error-bad-param", &["category"]),
             },
-            Ok(None) => row.category,
+            Ok(None) => crate::properties::group_of(section, row),
         };
-        let key = crate::properties::collapse_key(&section.kind, category);
+        let key = crate::properties::group_key(&section.kind, group);
         let collapsed = self.settings.properties_collapsed.contains(&key);
         let expand = p.get("expanded").and_then(Value::as_bool).unwrap_or(collapsed);
         if expand {

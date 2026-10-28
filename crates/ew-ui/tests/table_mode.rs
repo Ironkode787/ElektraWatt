@@ -106,57 +106,49 @@ fn copy_and_paste_events_run_the_table_actions() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-509: with every navigator shown beside Pages, the left dock's tab group has an "All tabs" menu that names every
-/// tab; picking Devices (hidden behind the strip's overflow) makes it the group's active tab.
+/// FT-509, WP-S2.17 part 3 DK1: the navigator group draws no tab bar; every navigator is one named rail button away
+/// (a click shows it in the group), Ctrl+`<n>` picks the n-th entry, and the Project entry's segmented control switches
+/// between Pages and Devices.
 #[test]
 fn ft509_every_tab_of_the_left_dock_is_reachable() {
     let tmp = Tmp::new();
     let mut h = window(&tmp);
-    let shell = h.state_mut().shell_mut();
-    for k in [
-        "devices",
-        "connections",
-        "strips",
-        "cables",
-        "plc",
-        "potentials",
-        "ips",
-        "structure",
-        "parts",
-        "blocks",
-    ] {
-        done(shell, "navigator.show", json!({"kind": k}));
-    }
     settle(&mut h);
-    assert_ne!(
-        h.state().dock_active_beside(PaneKind::Pages),
-        Some(PaneKind::Navigator(NavKind::Devices))
+    assert!(
+        h.query_by_label("All tabs").is_none(),
+        "the navigator group has no tab bar"
     );
-    h.get_by_label("All tabs").click();
-    settle(&mut h);
-    // The menu names every tab of the group (the tab strip may name some of them too).
-    for title in [
-        "Pages",
-        "Devices",
-        "Connections",
-        "Terminal strips",
-        "Cables",
-        "PLC",
-        "Potentials",
-        "Interruption points",
-        "Structure identifiers",
-        "Parts in use",
-        "Report blocks",
+    for (title, pane) in [
+        ("Terminal strips", PaneKind::Navigator(NavKind::Strips)),
+        ("Cables", PaneKind::Navigator(NavKind::Cables)),
+        ("Potentials", PaneKind::Navigator(NavKind::Potentials)),
+        ("Structure identifiers", PaneKind::Navigator(NavKind::Structure)),
+        ("Connections", PaneKind::Navigator(NavKind::Connections)),
+        ("PLC", PaneKind::Navigator(NavKind::Plc)),
+        ("Interruption points", PaneKind::Navigator(NavKind::Ips)),
+        ("Parts in use", PaneKind::Navigator(NavKind::Parts)),
+        ("Report blocks", PaneKind::Navigator(NavKind::Blocks)),
+        ("Project", PaneKind::Pages),
     ] {
-        assert!(h.query_all_by_label(title).count() >= 1, "{title}");
+        h.get_by_role_and_label(egui::Role::Button, title).click();
+        settle(&mut h);
+        assert_eq!(
+            h.state().shell().layout().shown_in_place_of(PaneKind::Pages),
+            Some(pane),
+            "{title}"
+        );
     }
-    // The menu item opens below the tab bar; a tab of the same name may also be on the strip, before or after it in
-    // the tree (with the token sizes it comes after), so the item is the lower one.
-    let item = h
-        .query_all_by_label("Devices")
-        .max_by(|a, b| a.rect().top().total_cmp(&b.rect().top()))
-        .expect("the menu item");
-    item.click();
+    // Ctrl+2 is the second entry (Terminal strips).
+    h.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::Num2);
+    settle(&mut h);
+    assert_eq!(
+        h.state().shell().layout().shown_in_place_of(PaneKind::Pages),
+        Some(PaneKind::Navigator(NavKind::Strips))
+    );
+    h.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::Num1);
+    settle(&mut h);
+    // The segmented control under the Project header: Pages chosen, Devices one click away.
+    h.get_by_role_and_label(egui::Role::Tab, "Devices").click();
     settle(&mut h);
     assert_eq!(
         h.state().dock_active_beside(PaneKind::Pages),

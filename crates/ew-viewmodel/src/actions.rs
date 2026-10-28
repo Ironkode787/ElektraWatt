@@ -1493,6 +1493,31 @@ pub static ACTIONS: &[ActionMeta] = &[
             ),
         ),
     ),
+    // WP-S2.17 part 3 (§4.3, D11, D15): the Advanced rows of the property grid, and the rails' own control.
+    with_params(
+        "on?:bool",
+        act(
+            "props.show_advanced",
+            View,
+            "action-props-show-advanced",
+            Menu::View,
+            &[],
+            always,
+            grp(Group::Panels),
+        ),
+    ),
+    with_params(
+        "side?:enum(left|right), pane:text",
+        hidden(act(
+            "rail.show",
+            View,
+            "action-rail-show",
+            Menu::View,
+            &[],
+            project_open,
+            None,
+        )),
+    ),
     // WP-S2.09 part 1 (§6.8): View ▸ Jobs and View ▸ Notifications.
     with_params(
         "on?:bool",
@@ -4146,6 +4171,8 @@ pub(crate) fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
             // WP-S2.17 part 2: the Place tool lights Symbol in the bar; the command bar's collapse.
             "tool.place" => model.tool().name() == "place",
             "view.command_bar" => model.command_bar_collapsed(),
+            // WP-S2.17 part 3.
+            "props.show_advanced" => model.properties_show_advanced(),
             _ => false,
         },
         topic: crate::help::action_topic(meta.id),

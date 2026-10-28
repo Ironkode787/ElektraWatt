@@ -476,6 +476,9 @@ pub struct ShellModel {
     command_tab: crate::command_bar::Tab,
     /// Whether the command bar shows the tab row only (`view.command_bar`, Ctrl+F1).
     command_bar_collapsed: bool,
+    // WP-S2.17 part 3
+    /// Whether the left column is collapsed to its rail (`rail.show` on the shown entry); a session state.
+    rail_collapsed: bool,
 }
 
 /// A maker of [`IdSource`]s for `ShellModel::set_id_source_for_tests` (feature `testkit`).
@@ -873,6 +876,7 @@ impl ShellModel {
             history: crate::undo_history::HistoryPane::default(),
             command_tab: crate::command_bar::Tab::Draw,
             command_bar_collapsed: false,
+            rail_collapsed: false,
         };
         model.load_active_workspace();
         model
@@ -1419,6 +1423,9 @@ impl ShellModel {
             "pages.open" => self.act_pages_open(p),
             // WP-S2.06 part 1
             "navigator.show" => self.act_navigator_show(p),
+            // WP-S2.17 part 3
+            "rail.show" => self.act_rail_show(p),
+            "props.show_advanced" => self.act_props_show_advanced(p),
             "navigator.view" => self.act_navigator_view(p),
             "navigator.sort" => self.act_navigator_sort(p),
             "navigator.filter" => self.act_navigator_filter(p),

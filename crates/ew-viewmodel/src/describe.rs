@@ -419,7 +419,20 @@ pub const VOCABULARY: &[&str] = &[
     "next",
     "hud",
     "prompt",
+    // The rails and the Advanced rows (WP-S2.17 part 3, D15; ID-474 extended): the 6 words of `RAIL_WORDS`, a reviewed
+    // vocabulary change (`shown`, `collapsed` and `history` are older).
+    "rail",
+    "left",
+    "right",
+    "foot",
+    "advanced",
+    "hidden",
 ];
+
+// WP-S2.17 part 3
+/// The 6 words WP-S2.17 part 3 adds to [`VOCABULARY`] (D15): the `rail left` and `rail right` lines with the left rail's
+/// `foot`, and the property grid's `advanced <n> shown|hidden` line.
+pub const RAIL_WORDS: &[&str] = &["rail", "left", "right", "foot", "advanced", "hidden"];
 
 // WP-S2.17 part 2
 /// The 4 words WP-S2.17 part 2 adds to [`VOCABULARY`] (D15): the `commandbar` section's head word and its `next step`
@@ -1267,12 +1280,13 @@ fn properties_lines(model: &ShellModel, lines: &mut Vec<String>) {
             section.kind,
             section.targets.len()
         ));
-        for (category, rows) in crate::properties::categories(section) {
-            let key = crate::properties::collapse_key(&section.kind, category);
+        // WP-S2.17 part 3 (D11): Main first, the Advanced rows only while they are shown.
+        for (group, rows) in crate::properties::groups(section, model.properties_show_advanced()) {
+            let key = crate::properties::group_key(&section.kind, group);
             let shut = collapsed.contains(&key);
             lines.push(format!(
                 "  category \"{}\" {}",
-                strings::text(&format!("category-{}", category.word())),
+                group.title(),
                 if shut { "collapsed" } else { "expanded" }
             ));
             if shut {
@@ -1282,6 +1296,15 @@ fn properties_lines(model: &ShellModel, lines: &mut Vec<String>) {
                 lines.push(row_line(sheet, section, row));
             }
         }
+    }
+    let advanced = crate::properties::advanced_count(sheet);
+    if advanced > 0 {
+        let state = if model.properties_show_advanced() {
+            "shown"
+        } else {
+            "hidden"
+        };
+        lines.push(format!("  advanced {advanced} {state}"));
     }
     if let Some(row) = model.properties_row() {
         lines.push(format!("  focus row \"{}\"", user(&row)));
@@ -1717,6 +1740,8 @@ fn project_view(model: &ShellModel, lines: &mut Vec<String>) {
     canvas_lines(model, lines);
     lines.push(format!("workspace \"{}\"", model.workspace()));
     lines.push(format!("layout: {}", model.layout().describe()));
+    // WP-S2.17 part 3 (D15): the rails.
+    lines.extend(crate::rail::describe_lines(model));
 }
 
 /// The menu lines of `entry` at `depth` (WP-S2.17 part 2): an item, a submenu with its items, or a command-bar group
@@ -2638,7 +2663,12 @@ pub fn describe(model: &ShellModel) -> String {
         // WP-S2.09 part 1: a toast can outlive its project (an export's end, a recovery's failure).
         toast_lines(model, &mut lines);
     }
-    lines.push(format!("status bar: {}", model.status_fields(false).join(" | ")));
+    // WP-S2.17 part 3 (D12): the status bar's fields in their order.
+    let fields: Vec<String> = crate::status::bar(model, false)
+        .into_iter()
+        .map(|f| f.text)
+        .collect();
+    lines.push(format!("status bar: {}", fields.join(" | ")));
     // WP-S2.09 part 1: the notifications log is a popup.
     notification_lines(model, &mut lines);
     if let Some(palette) = model.palette() {

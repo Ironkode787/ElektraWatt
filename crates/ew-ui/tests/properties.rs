@@ -339,6 +339,9 @@ fn a_boolean_row_is_a_checkbox() {
 fn a_choice_editor_option_is_picked_with_the_mouse() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "103");
+    // WP-S2.17 part 3 (D10): Properties is the lower half of the left column; the option list needs room below it.
+    h.set_size(egui::Vec2::new(1000.0, 1400.0));
+    settle(&mut h);
     dispatch(&mut h, "select.set", json!({ "ids": [W29] }));
     settle(&mut h);
     dispatch(&mut h, "props.focus", json!({}));

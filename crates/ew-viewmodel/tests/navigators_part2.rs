@@ -414,9 +414,9 @@ fn np6_the_six_words_and_the_two_actions() {
     }
     // WP-S2.09 part 2 adds the message panel's sixteen words and five actions; part 3 the Preview tab's and the
     // history panel's thirteen words and eight actions; WP-S2.06 part 3 table mode's six words and fourteen actions;
-    // WP-S2.17 part 1 View ▸ Theme and View ▸ Density.
-    assert_eq!(VOCABULARY.len(), 348);
-    assert_eq!(ew_viewmodel::actions::ACTIONS.len(), 256);
+    // WP-S2.17 part 1 View ▸ Theme and View ▸ Density; part 3 the rails' six words and two actions.
+    assert_eq!(VOCABULARY.len(), 354);
+    assert_eq!(ew_viewmodel::actions::ACTIONS.len(), 258);
     let hl = ew_viewmodel::actions::ACTIONS
         .iter()
         .find(|a| a.id == "navigator.highlight")

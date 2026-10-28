@@ -5,13 +5,24 @@
 //!
 //! The shell model keeps the layout toolkit-neutral (`ew_viewmodel::layout::Layout`, the content of the workspace
 //! files); this module builds the egui_tiles tree from it, shows the tree, and reads the user's changes (a
-//! splitter, a tab dragged to another place) back into a `Layout`. Every pane has a thin title bar that is also the
-//! drag handle, so a pane can be moved before it has a tab bar of its own.
+//! splitter, a tab dragged to another place) back into a `Layout`.
+//!
+//! WP-S2.17 part 3 (doc 16a §5.4, §5.7): the tab group that holds the Pages pane (the navigator group) draws no tab
+//! bar, the left rail chooses its pane; a pane outside a tab bar has the 32-px panel header ("PROJECT",
+//! "PROPERTIES"), which is also its drag handle; the page view and the panes of a tab bar have no heading. The Project
+//! entry's panes (Pages and Devices) carry the segmented control under their header. The splitters are named
+//! (FT-338, `crate::splitter`), and the left column collapses to its rail.
 
-use egui::{Button, RichText, Sense, Ui};
+use std::collections::BTreeMap;
+
+use egui::{Rect, Sense, Ui, pos2, vec2};
 use egui_tiles::{Container, Linear, LinearDir, Tabs, Tile, TileId, Tiles, Tree, UiResponse};
 use ew_viewmodel::layout::{Layout, LayoutNode, PaneKind, SplitDir};
+use ew_viewmodel::rail::{LEFT, PROJECT_PANES};
 use ew_viewmodel::strings;
+use serde_json::json;
+
+use crate::app::Event;
 
 /// The dock tree of the project view and the layout version it was built from.
 pub struct Dock {
@@ -128,18 +139,9 @@ impl Dock {
         read(&self.tree.tiles, root).map(|root| Layout { root })
     }
 
-    /// The number of splitter handles the tree shows: one between each two neighbours of a split.
+    /// The number of splitter handles the tree shows: one between each two neighbours of a shown split.
     pub fn splitters(&self) -> usize {
-        fn count(n: &LayoutNode) -> usize {
-            match n {
-                LayoutNode::Pane(_) => 0,
-                LayoutNode::Tabs { children, .. } => children.iter().map(count).sum(),
-                LayoutNode::Split { children, .. } => {
-                    children.len().saturating_sub(1) + children.iter().map(|(_, c)| count(c)).sum::<usize>()
-                }
-            }
-        }
-        self.layout().map_or(0, |l| count(&l.root))
+        crate::splitter::count(&self.tree)
     }
 
     /// The panes of the tree (tests).
@@ -174,27 +176,112 @@ impl Dock {
     }
 
     /// Paints the tree; `pane_ui` paints one pane. A tab picked from a tab group's "All tabs" menu (FT-509) becomes
-    /// that group's active tab.
-    pub fn show(&mut self, ui: &mut Ui, pane_ui: &mut dyn FnMut(&mut Ui, PaneKind)) {
+    /// that group's active tab. `collapsed` hides the left column (the root's child that holds the navigator group;
+    /// doc 16a §5.4). Returns what the panel headers' controls asked for (the segmented control's `rail.show`).
+    pub(crate) fn show(
+        &mut self,
+        ui: &mut Ui,
+        collapsed: bool,
+        pane_ui: &mut dyn FnMut(&mut Ui, PaneKind),
+    ) -> Vec<Event> {
         let tokens = crate::theme::current(ui.ctx());
         let height = ui.available_height();
+        self.collapse_left(collapsed);
         let (clamps, guessed) = self.keep_bottom_min(height, tokens.size_dock_bottom_min);
         if guessed {
             // R3-4: a split without a last shown height was clamped against the guess; the next frame uses its
             // real height.
             ui.ctx().request_repaint();
         }
+        let chrome = self.chrome();
         let mut behavior = DockBehavior {
             pane_ui,
             chosen: None,
-            tokens,
+            tokens: tokens.clone(),
+            chrome,
+            events: Vec::new(),
         };
         self.tree.ui(&mut behavior, ui);
+        let events = std::mem::take(&mut behavior.events);
+        let chosen = behavior.chosen.take();
+        drop(behavior);
+        crate::splitter::show(ui, &mut self.tree, &tokens, "dock", &|tiles, id| {
+            title_of(tiles, id)
+        });
         self.restore(&clamps);
-        if let Some((group, child)) = behavior.chosen {
+        if let Some((group, child)) = chosen {
             self.activate(group, child);
             ui.ctx().request_repaint();
         }
+        events
+    }
+
+    // WP-S2.17 part 3
+    /// Hides (or shows again) the left column: the child of a horizontal root split that holds the navigator group,
+    /// unless it also holds the page view.
+    fn collapse_left(&mut self, collapsed: bool) {
+        let Some(root) = self.tree.root() else { return };
+        let Some(Tile::Container(Container::Linear(linear))) = self.tree.tiles.get(root) else {
+            return;
+        };
+        if linear.dir != LinearDir::Horizontal {
+            return;
+        }
+        let children = linear.children.clone();
+        for child in children {
+            let tiles = &self.tree.tiles;
+            if holds(tiles, child, &is_rail_pane) && !holds(tiles, child, &|p| *p == PaneKind::PageView) {
+                self.tree.tiles.set_visible(child, !collapsed);
+            }
+        }
+    }
+
+    /// The navigator group's tab containers and the header of every pane (WP-S2.17 part 3).
+    fn chrome(&self) -> Chrome {
+        let tiles = &self.tree.tiles;
+        let mut chrome = Chrome::default();
+        for (id, tile) in tiles.iter() {
+            let Tile::Container(Container::Tabs(tabs)) = tile else {
+                continue;
+            };
+            if tabs.children.iter().any(|c| holds(tiles, *c, &is_rail_pane)) {
+                chrome.rail_groups.push(*id);
+            }
+        }
+        for (id, tile) in tiles.iter() {
+            let Tile::Pane(pane) = tile else { continue };
+            let parent = tiles.parent_of(*id);
+            let in_bar = parent.is_some_and(|p| {
+                matches!(tiles.get(p), Some(Tile::Container(Container::Tabs(_))))
+                    && !chrome.rail_groups.contains(&p)
+            });
+            if in_bar || *pane == PaneKind::PageView {
+                continue;
+            }
+            let shown = parent
+                .filter(|p| chrome.rail_groups.contains(p))
+                .and_then(|p| match tiles.get(p) {
+                    Some(Tile::Container(Container::Tabs(tabs))) => tabs.active,
+                    _ => None,
+                });
+            let in_rail = parent.is_some_and(|p| chrome.rail_groups.contains(&p));
+            let project = in_rail && PROJECT_PANES.contains(pane);
+            let segmented = project.then(|| {
+                // Devices is in the group: the control shows it chosen when it is the active tab.
+                match shown.and_then(|a| tiles.get(a)) {
+                    Some(Tile::Pane(p)) => *p,
+                    _ => *pane,
+                }
+            });
+            chrome.headers.insert(
+                id.0,
+                Header {
+                    title: header_title(*pane, in_rail),
+                    segmented,
+                },
+            );
+        }
+        chrome
     }
 
     // W31-1, R2-2 of cycle 31
@@ -337,26 +424,207 @@ fn tab_panes(tiles: &Tiles<PaneKind>, tabs: &Tabs) -> Vec<(TileId, PaneKind)> {
         .collect()
 }
 
+/// Whether `pane` belongs to the navigator group: the Pages pane, the Devices navigator or a left-rail navigator.
+fn is_rail_pane(pane: &PaneKind) -> bool {
+    PROJECT_PANES.contains(pane) || LEFT.iter().any(|(.., p)| p == pane)
+}
+
+/// Whether the subtree at `id` holds a pane `pred` accepts.
+fn holds(tiles: &Tiles<PaneKind>, id: TileId, pred: &dyn Fn(&PaneKind) -> bool) -> bool {
+    match tiles.get(id) {
+        Some(Tile::Pane(p)) => pred(p),
+        Some(Tile::Container(c)) => c.children().any(|c| holds(tiles, *c, pred)),
+        None => false,
+    }
+}
+
+/// The title of the pane a tile shows (a splitter's name): a pane's own, a tab group's active pane's, a split's first
+/// child's.
+fn title_of(tiles: &Tiles<PaneKind>, id: TileId) -> String {
+    match tiles.get(id) {
+        Some(Tile::Pane(p)) => strings::text(p.title_key()).to_owned(),
+        Some(Tile::Container(Container::Tabs(tabs))) => tabs
+            .active
+            .or_else(|| tabs.children.first().copied())
+            .map(|c| title_of(tiles, c))
+            .unwrap_or_default(),
+        Some(Tile::Container(c)) => c
+            .children()
+            .next()
+            .map(|c| title_of(tiles, *c))
+            .unwrap_or_default(),
+        None => String::new(),
+    }
+}
+
+/// The header title of `pane`: in the navigator group its rail entry's name (Project for Pages and Devices), else
+/// the pane's title.
+fn header_title(pane: PaneKind, in_rail: bool) -> String {
+    if in_rail && PROJECT_PANES.contains(&pane) {
+        return strings::text("rail-project").to_owned();
+    }
+    strings::text(pane.title_key()).to_owned()
+}
+
+/// A pane's panel header (doc 16a §5.4).
+struct Header {
+    /// The title, drawn in `type.label` (upper case); the accessible name keeps its case.
+    title: String,
+    /// The Project entry's segmented control with the pane it shows chosen.
+    segmented: Option<PaneKind>,
+}
+
+/// What the dock draws around the panes (WP-S2.17 part 3).
+#[derive(Default)]
+struct Chrome {
+    /// The tab groups whose tab bar is not drawn (the rail drives them).
+    rail_groups: Vec<TileId>,
+    /// The panel header of each pane that has one, by tile.
+    headers: BTreeMap<u64, Header>,
+}
+
 struct DockBehavior<'a> {
     pane_ui: &'a mut dyn FnMut(&mut Ui, PaneKind),
     /// FT-509: the (tab group, tab) picked from the "All tabs" menu this frame.
     chosen: Option<(TileId, TileId)>,
     /// The tokens of the theme on show (doc 16a §4.14's egui_tiles row).
     tokens: std::sync::Arc<crate::theme::Tokens>,
+    /// The navigator group and the panel headers.
+    chrome: Chrome,
+    /// What the headers' controls asked for this frame.
+    events: Vec<Event>,
+}
+
+impl DockBehavior<'_> {
+    /// The panel header of a pane (doc 16a §5.4): `size.panel_header` high, the title in `type.label` at `space.4`;
+    /// a button without a frame for AccessKit, sensing drags (the pane's drag handle).
+    fn header(&mut self, ui: &mut Ui, header: &Header) -> egui::Response {
+        let t = self.tokens.clone();
+        let (rect, response) = ui.allocate_exact_size(
+            vec2(ui.available_width(), t.size_panel_header),
+            Sense::click_and_drag(),
+        );
+        let name = header.title.clone();
+        response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &name));
+        let text = if t.type_label.upper {
+            header.title.to_uppercase()
+        } else {
+            header.title.clone()
+        };
+        ui.painter().text(
+            pos2(rect.left() + t.space_4, rect.center().y),
+            egui::Align2::LEFT_CENTER,
+            text,
+            crate::theme::font(&t.type_label),
+            t.text_secondary.color32(),
+        );
+        if let Some(shown) = header.segmented {
+            self.segmented(ui, shown);
+        }
+        response
+    }
+
+    /// The Project entry's segmented control "Pages | Devices" (doc 16a §6.20): a `TabList` of two `Tab` nodes; a click
+    /// shows the other navigator in the group.
+    fn segmented(&mut self, ui: &mut Ui, shown: PaneKind) {
+        let t = self.tokens.clone();
+        let width = ui.available_width();
+        let (outer, _) = ui.allocate_exact_size(
+            vec2(width, t.size_control_inline + 2.0 * t.space_1 + t.space_3),
+            Sense::hover(),
+        );
+        let track = Rect::from_min_size(
+            pos2(outer.left() + t.space_4, outer.top()),
+            vec2(
+                (width - 2.0 * t.space_4).max(0.0),
+                t.size_control_inline + 2.0 * t.space_1,
+            ),
+        );
+        let list_id = ui.scope_id().with("ew-segmented");
+        let list = ui.interact(track, list_id, Sense::hover());
+        let list_name = strings::text("rail-views").to_owned();
+        list.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TabList, true, &list_name));
+        let painter = ui.painter();
+        painter.rect_filled(
+            track,
+            crate::theme::radius(t.radius_md),
+            t.surface_sunken.color32(),
+        );
+        let inner = track.shrink(t.space_1);
+        let half = inner.width() / 2.0;
+        for (i, (pane, key, word)) in [
+            (PROJECT_PANES[0], "rail-pages", "pages"),
+            (PROJECT_PANES[1], "rail-devices", "devices"),
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let rect = Rect::from_min_size(
+                pos2(inner.left() + i as f32 * half, inner.top()),
+                vec2(half, inner.height()),
+            );
+            let chosen = shown == pane;
+            let id = list_id.with(word);
+            let response = ui.interact(rect, id, Sense::click());
+            let label = strings::text(key).to_owned();
+            response.widget_info(|| egui::WidgetInfo::selected(egui::Role::Tab, true, chosen, &label));
+            if chosen {
+                ui.painter()
+                    .add(egui::Shape::Rect(egui::epaint::RectShape::filled(
+                        rect,
+                        crate::theme::radius(t.radius_sm),
+                        t.surface_panel.color32(),
+                    )));
+            } else if response.hovered() {
+                ui.painter()
+                    .rect_filled(rect, crate::theme::radius(t.radius_sm), t.state_hover.color32());
+            }
+            let (font, colour) = if chosen {
+                (
+                    crate::theme::font(&crate::theme::TypeToken {
+                        semibold: true,
+                        ..t.type_small
+                    }),
+                    t.text_primary,
+                )
+            } else {
+                (crate::theme::font(&t.type_small), t.text_secondary)
+            };
+            ui.painter().text(
+                rect.center(),
+                egui::Align2::CENTER_CENTER,
+                &label,
+                font,
+                colour.color32(),
+            );
+            if response.has_focus() {
+                ui.painter().rect_stroke(
+                    rect,
+                    crate::theme::radius(t.radius_sm),
+                    crate::theme::stroke(t.focus_width, t.focus),
+                    egui::StrokeKind::Inside,
+                );
+            }
+            if response.clicked() && !chosen {
+                self.events.push(Event::Action(
+                    "rail.show",
+                    json!({ "side": "left", "pane": word }),
+                ));
+            }
+        }
+    }
 }
 
 impl egui_tiles::Behavior<PaneKind> for DockBehavior<'_> {
-    fn pane_ui(&mut self, ui: &mut Ui, _tile_id: TileId, pane: &mut PaneKind) -> UiResponse {
-        // The title bar is the drag handle: a pane without a tab bar can still be moved.
-        // A button without a frame, so that the title has an accessible name (a label with a drag sense does not).
-        let title = ui.add(
-            Button::new(RichText::new(strings::text(pane.title_key())).strong())
-                .frame(false)
-                .sense(Sense::click_and_drag()),
-        );
-        ui.separator();
+    fn pane_ui(&mut self, ui: &mut Ui, tile_id: TileId, pane: &mut PaneKind) -> UiResponse {
+        // WP-S2.17 part 3: the panel header is the drag handle; a pane in a tab bar is dragged by its tab.
+        let header = self.chrome.headers.remove(&tile_id.0);
+        let dragged = match &header {
+            Some(h) => self.header(ui, h).drag_started(),
+            None => false,
+        };
         (self.pane_ui)(ui, *pane);
-        if title.drag_started() {
+        if dragged {
             UiResponse::DragStarted
         } else {
             UiResponse::None
@@ -368,6 +636,16 @@ impl egui_tiles::Behavior<PaneKind> for DockBehavior<'_> {
     }
 
     fn is_tab_closable(&self, _tiles: &Tiles<PaneKind>, _tile_id: TileId) -> bool {
+        false
+    }
+
+    // WP-S2.17 part 3: the navigator group's tab bar is the rail.
+    fn is_tab_bar_visible(&self, tile_id: TileId, _tabs: &Tabs) -> bool {
+        !self.chrome.rail_groups.contains(&tile_id)
+    }
+
+    /// FT-338: the dock draws its own named splitter handles (`crate::splitter`); egui_tiles paints the idle line.
+    fn is_container_resizable(&self, _tiles: &Tiles<PaneKind>, _tile_id: TileId) -> bool {
         false
     }
 
@@ -499,7 +777,7 @@ mod tests {
             ..Default::default()
         };
         let mut out = ctx.run_ui(input, |ui| {
-            egui::CentralPanel::default().show(ui, |ui| dock.show(ui, &mut |_, _| {}));
+            egui::CentralPanel::default().show(ui, |ui| dock.show(ui, false, &mut |_, _| {}));
         });
         // Nothing paints the frame; its texture changes are dropped on purpose.
         out.textures_delta.clear();
@@ -654,7 +932,7 @@ mod tests {
         assert_eq!(dock.layout().as_ref(), Some(&layout));
         assert_eq!(
             dock.panes(),
-            [PaneKind::Pages, PaneKind::PageView, PaneKind::Properties]
+            [PaneKind::Pages, PaneKind::Properties, PaneKind::PageView]
         );
     }
 
@@ -725,11 +1003,17 @@ mod tests {
         dock.tab_together(PaneKind::Pages, PaneKind::PageView);
         let layout = dock.layout().unwrap();
         assert_eq!(layout.panes().len(), 3, "no pane is lost or doubled: {layout:?}");
+        // WP-S2.17 part 3: Properties under Pages; dragged onto the page view, Pages leaves the left column.
         let LayoutNode::Split { children, .. } = &layout.root else {
             panic!("the property grid stays beside the tab group: {layout:?}");
         };
         assert!(
-            matches!(children[0].1, LayoutNode::Tabs { .. }),
+            children.iter().any(|(_, c)| matches!(
+                c,
+                LayoutNode::Tabs { children, .. }
+                    if children.contains(&LayoutNode::Pane(PaneKind::Pages))
+                        && children.contains(&LayoutNode::Pane(PaneKind::PageView))
+            )),
             "both panes share one tab group: {layout:?}"
         );
         // And the result is a layout the workspace file can hold.

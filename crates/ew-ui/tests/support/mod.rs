@@ -160,12 +160,15 @@ pub fn assert_named(harness: &Harness<'_, App>) {
         if !reachable {
             continue;
         }
-        // The one exception: the splitter handles of the dock are egui_tiles' own `interact` areas, which publish
-        // neither a role nor a name (upstream; the dock's panes, titles and tabs are named, a follow-up FT names the
-        // splitters). Exactly as many handles as the dock has splitters are let through, no other unnamed node.
-        if node.role() == egui::accesskit::Role::Unknown {
+        // FT-338: the dock's and the canvas area's handles are named `Splitter` nodes ("Resize Pages and Page view")
+        // like every other input; no unnamed node is let through any more. (A table's column handles and egui's
+        // panel handle are splitters with other names.)
+        if node.role() == egui::accesskit::Role::Splitter
+            && node
+                .label()
+                .is_some_and(|l| l.starts_with("Resize ") && l.contains(" and "))
+        {
             splitters += 1;
-            continue;
         }
         let named = node.label().is_some_and(|l| !l.trim().is_empty())
             || node.data().placeholder().is_some_and(|p| !p.trim().is_empty());
@@ -180,7 +183,7 @@ pub fn assert_named(harness: &Harness<'_, App>) {
     assert_eq!(
         splitters,
         harness.state().splitter_count(),
-        "the unnamed handles are the dock's splitters and nothing else"
+        "every splitter handle of the dock and the canvas area is a `Splitter` node"
     );
 }
 

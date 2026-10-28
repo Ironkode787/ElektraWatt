@@ -1133,6 +1133,10 @@ fn r30_the_image_hint_follows_a_threaded_file_answer_without_a_pointer_move() {
 fn the_chip_of_an_existing_devices_tag_change_stands_above_its_printed_tag() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "101");
+    // WP-S2.17 part 3 (D10): the rails and the wider left column narrow the page view; at 1000 px the chip meets the
+    // view's edge and is pushed off its candidates, so this window has the reference width.
+    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    settle(&mut h);
     let numbering = json!({"default": "page-based", "schemes": [
         {"key": "page-based", "format": "{page}{letter}{counter}.{column}", "rules": []}]});
     dispatch(

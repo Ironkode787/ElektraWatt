@@ -195,6 +195,8 @@ fn tb2_fill_down_from_the_keyboard_is_one_step() {
     let mut h = table(&tmp, "strips", "x1031");
     // WP-S2.17 part 1: twenty rows of `size.row` (28 points) need a taller window than 700 points to be all on show.
     h.set_size(egui::Vec2::new(1000.0, 900.0));
+    // WP-S2.17 part 3 (D10): Properties under the navigator would halve it; this test needs the whole column.
+    done(h.state_mut().shell_mut(), "props.show", json!({"on": false}));
     settle(&mut h);
     h.get_by_label("Sort by Terminal").click_accesskit();
     settle(&mut h);

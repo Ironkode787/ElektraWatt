@@ -1459,6 +1459,31 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "dialog-purge" => "Purge",
         "error-purge" => "The purge was refused: {0}",
         "purge-unreadable" => "an image file could not be read",
+        // WP-S2.17 part 3: the rails, Properties' Main and Advanced, the status bar (doc 16a §5.4, §5.8, §6.8).
+        "rail-project" => "Project",
+        "rail-symbols" => "Symbols",
+        "rail-parts" => "Parts",
+        "rail-pages" => "Pages",
+        "rail-devices" => "Devices",
+        "rail-views" => "Pages or devices",
+        "action-rail-show" => "Show navigator",
+        "reason-rail-no-palettes" => "The palettes are not built yet; Symbols and Parts open their pickers",
+        "category-main" => "Main",
+        "action-props-show-advanced" => "Show advanced properties",
+        "props-show-advanced" => "Show advanced ({0})",
+        "props-hide-advanced" => "Hide advanced ({0})",
+        "props-row-menu" => "Actions of {0}",
+        "status-ready" => "Ready",
+        "status-selected" => "{0} selected",
+        "status-findings-errors" => "{0} errors",
+        "status-findings-error" => "1 error",
+        "status-findings-warnings" => "{0} warnings",
+        "status-findings-warning" => "1 warning",
+        "status-findings-infos" => "{0} infos",
+        "status-findings-info" => "1 info",
+        "status-renderer-why" => "The canvas draws on the CPU",
+        "splitter-name" => "Resize {0} and {1}",
+        "history-header-kept" => "oldest kept: step {0} · {1} MB of {2} MB",
         _ => return None,
     })
 }
@@ -1473,8 +1498,22 @@ const FIELD_LABELS: &[(&str, &str, &str)] = &[
     ("device", "derived.tag", "Tag"),
     ("device", "derived.main_location", "Main location"),
     ("connection", "derived.number", "Wire number"),
-    ("connection", "overrides.flags.shielded", "Shielded"),
-    ("connection", "overrides.flags.twisted", "Twisted"),
+    // WP-S2.17 part 3 (D11): no two rows of a section share a label; an override is named as one.
+    ("connection", "overrides.flags.shielded", "Shielded override"),
+    ("connection", "overrides.flags.twisted", "Twisted override"),
+    ("connection", "overrides.colour", "Colour override"),
+    ("connection", "overrides.csa", "Cross-section override"),
+    ("connection", "overrides.function", "Function override"),
+    ("connection", "overrides.insulation", "Insulation override"),
+    ("connection", "overrides.wire_part", "Wire part override"),
+    ("connection", "overrides.length", "Length override"),
+    ("connection", "derived.shielded", "Shielded"),
+    ("connection", "derived.twisted", "Twisted"),
+    ("device", "tag", "Tag numbering"),
+    ("device", "parts[]", "Part use"),
+    ("device", "derived.structure.function", "Effective function"),
+    ("device", "derived.structure.location", "Effective location"),
+    ("device", "terminal.strip", "Terminal strip"),
     ("page", "description_override", "Description override"),
     ("page", "grid", "Connection grid"),
     ("page", "derived.description", "Description"),
@@ -1510,8 +1549,15 @@ pub fn field_label(kind: &str, path: &str) -> String {
             generic.push(c);
         }
     }
+    // WP-S2.17 part 3: a list item carries its position (`Connection point 2`), so the items of a list differ.
+    let item = path
+        .strip_suffix(']')
+        .and_then(|p| p.rsplit_once('['))
+        .and_then(|(_, n)| n.parse::<usize>().ok())
+        .map(|n| format!(" {}", n + 1))
+        .unwrap_or_default();
     if let Some((_, _, label)) = FIELD_LABELS.iter().find(|(k, p, _)| *k == kind && *p == generic) {
-        return (*label).to_owned();
+        return format!("{label}{item}");
     }
     let last = generic
         .trim_end_matches("[]")
@@ -1540,6 +1586,7 @@ pub fn field_label(kind: &str, path: &str) -> String {
             out.push(c);
         }
     }
+    out.push_str(&item);
     out
 }
 
@@ -1681,12 +1728,20 @@ mod tests {
         assert_eq!(field_label("device", "function_text"), "Function text");
         assert_eq!(field_label("device", "parts[0].part"), "Part");
         assert_eq!(field_label("device", "parts[1].qty"), "Quantity");
-        assert_eq!(field_label("connection", "overrides.csa"), "Cross-section");
+        assert_eq!(
+            field_label("connection", "overrides.csa"),
+            "Cross-section override"
+        );
         assert_eq!(field_label("connection", "derived.csa"), "Cross-section");
         assert_eq!(field_label("device", "tag.counter"), "Tag counter");
         assert_eq!(field_label("project", "settings.checks"), "Checks");
         assert_eq!(field_label("device", "plc_module"), "PLC module");
-        assert_eq!(field_label("device", "derived.structure.location"), "Location");
+        assert_eq!(
+            field_label("device", "derived.structure.location"),
+            "Effective location"
+        );
+        assert_eq!(field_label("device", "parts[1]"), "Part use 2");
+        assert_eq!(field_label("device", "derived.cp[0]"), "Connection point 1");
         assert_eq!(kind_plural("device"), "devices");
         assert_eq!(kind_plural("potential_def"), "potential definitions");
         assert_eq!(kind_plural("structure_box"), "structure boxes");

@@ -51,12 +51,14 @@ pub mod page_view;
 // WP-S2.09 part 3
 mod palette;
 mod preview;
+mod rail;
 // FT-410: the parts table import card.
 mod parts_card;
 // WP-S2.04 part 2: the junction sequence editor popup.
 mod junction;
 mod picker;
 pub mod properties;
+mod splitter;
 mod start_page;
 mod status_bar;
 // WP-S2.04 part 4b: the text tool's popup.

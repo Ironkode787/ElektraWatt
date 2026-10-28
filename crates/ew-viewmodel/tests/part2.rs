@@ -2086,7 +2086,7 @@ fn describe_lists_the_start_page_the_wizard_and_the_project_view() {
     let view = shell.describe();
     assert!(view.contains("workspace \"Schematic\""), "{view}");
     assert!(
-        view.contains("layout: split horizontal [\"Pages\" 16%, \"Page view\" 64%, \"Properties\" 20%]"),
+        view.contains("layout: split horizontal [split vertical [\"Pages\" 50%, \"Properties\" 50%] 23%, \"Page view\" 77%]"),
         "{view}"
     );
     done(&mut shell, "help.about", json!({}));

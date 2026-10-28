@@ -181,6 +181,10 @@ fn nv5_the_devices_pane_and_the_chip_line() {
 fn nv7_dragging_106_before_103_opens_the_card_and_apply_commits() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp);
+    // WP-S2.17 part 3 (D10): Properties sits under Pages, so the page list has half the column; a taller window
+    // keeps folio 106 laid out.
+    h.set_size(egui::Vec2::new(1000.0, 1000.0));
+    settle(&mut h);
     let rows = h.state().shell().page_rows().to_vec();
     let title = |f: &str| rows.iter().find(|r| r.folio == f).unwrap().title.clone();
     let (t103, t106) = (title("103"), title("106"));
@@ -325,8 +329,9 @@ fn r30_double_clicking_a_paged_report_block_goes_to_its_first_folio() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp);
     // WP-S2.17 part 2: the command bar (85 px) is taller than the menu bar and the tool strip it replaced; at 700 px
-    // the virtualised pane no longer lays out the Wire List row at all, so this window is 800 px high.
-    h.set_size(egui::Vec2::new(1000.0, 800.0));
+    // the virtualised pane no longer lays out the Wire List row at all, so this window is 800 px high; WP-S2.17 part 3
+    // (D10) gives the navigator half the column (Properties under it), so 1200 px.
+    h.set_size(egui::Vec2::new(1000.0, 1200.0));
     settle(&mut h);
     dispatch(&mut h, "page.goto", json!({"folio": "102"}));
     dispatch(&mut h, "navigator.show", json!({"kind": "blocks"}));

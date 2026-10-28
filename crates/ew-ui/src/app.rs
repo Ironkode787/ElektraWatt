@@ -391,8 +391,7 @@ impl App {
     }
 
     /// The number of splitter handles on screen: the dock's and the canvas area's while the project view shows,
-    /// else none (tests: the handles are egui_tiles' own areas and have no accessible name, so the walker allows
-    /// exactly this many; FT-338 names them).
+    /// else none (tests; FT-338: every handle is a named `Splitter` node).
     #[doc(hidden)]
     pub fn splitter_count(&self) -> usize {
         if self.shell.first_run().is_none() && self.shell.wizard().is_none() && self.shell.has_project() {
@@ -684,6 +683,28 @@ impl App {
             self.canvas.begin_frame(&ctx, &self.shell);
         }
         self.area_splitters = 0;
+        if project_view {
+            // WP-S2.17 part 3 (doc 16a §5.4, §5.6): the navigator rail at the left, the palettes rail at the right.
+            for (side, left) in [("rail-left", true), ("rail-right", false)] {
+                let panel = if left {
+                    Panel::left(side)
+                } else {
+                    Panel::right(side)
+                };
+                panel
+                    .exact_size(tokens.size_rail)
+                    .resizable(false)
+                    .show_separator_line(false)
+                    .frame(egui::Frame::NONE.fill(chrome))
+                    .show(ui, |ui| {
+                        if left {
+                            crate::rail::show_left(ui, &self.shell, &mut events);
+                        } else {
+                            crate::rail::show_right(ui, &self.shell, &mut events);
+                        }
+                    });
+            }
+        }
         let mut page_pane = None;
         CentralPanel::default().show(ui, |ui| {
             if self.shell.first_run().is_some() {
@@ -705,7 +726,8 @@ impl App {
                     ..
                 } = self;
                 navigators.retain(|k, _| shell.navigator_open(*k));
-                dock.show(ui, &mut |ui, pane| match pane {
+                let collapsed = shell.rail_collapsed();
+                let headers = dock.show(ui, collapsed, &mut |ui, pane| match pane {
                     PaneKind::Pages => navigator.show(ui, shell, &mut events),
                     // WP-S2.06 part 1
                     PaneKind::Navigator(k) => navigators
@@ -727,6 +749,7 @@ impl App {
                         canvas_shown = true;
                     }
                 });
+                events.extend(headers);
                 new_layout = dock.layout().filter(|l| l != shell.layout());
             } else {
                 start_page::show(ui, &self.shell, &mut events);
@@ -918,6 +941,14 @@ impl App {
             && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape))
         {
             events.push(Event::Action("ui.dismiss", Value::Null));
+            return;
+        }
+        // WP-S2.17 part 3: Ctrl+1 to Ctrl+9 pick the left rail's entries (doc 16a §5.4).
+        if !palette_open
+            && self.shell.has_project()
+            && self.shell.wizard().is_none()
+            && crate::rail::keys(ctx, &self.shell, events)
+        {
             return;
         }
         // FT-410: Ctrl+Enter applies an open parts import card from anywhere (the card is a window of its own).

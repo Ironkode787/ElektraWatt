@@ -405,7 +405,9 @@ fn pg10_the_transcript_and_describe_members() {
     );
     let d = shell.describe();
     assert!(d.contains("  category \"Identity\" collapsed"), "{d}");
-    assert!(!d.contains("row \"device/derived.tag\""), "{d}");
+    // WP-S2.17 part 3 (D11): the tag is a Main row, so the collapsed Identity takes the state row with it.
+    assert!(!d.contains("row \"device/state\""), "{d}");
+    assert!(d.contains("row \"device/derived.tag\""), "{d}");
     done(
         &mut shell,
         "props.category",
@@ -922,7 +924,7 @@ fn a_terminal_lists_its_connection_point_labels() {
     let d = shell.describe();
     assert!(d.contains("  category \"Connection points\" expanded"), "{d}");
     assert!(
-        d.contains("    row \"device/derived.cp[0]\" \"Connection point\" \"1X1:1/a\" derived \"function definition\""),
+        d.contains("    row \"device/derived.cp[0]\" \"Connection point 1\" \"1X1:1/a\" derived \"function definition\""),
         "{d}"
     );
     // Read-only: no action, and an edit is refused.

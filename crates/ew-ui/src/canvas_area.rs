@@ -205,6 +205,22 @@ impl CanvasAreaHost {
             events,
         };
         tree.ui(&mut behavior, ui);
+        // FT-338: the handle between two groups is a named splitter ("Resize 103 … and 104 …").
+        let title = |tiles: &Tiles<TabPane>, id: TileId| -> String {
+            let pane = match tiles.get(id) {
+                Some(Tile::Pane(p)) => Some(p.0),
+                Some(Tile::Container(Container::Tabs(t))) => t.active.and_then(|a| match tiles.get(a) {
+                    Some(Tile::Pane(p)) => Some(p.0),
+                    _ => None,
+                }),
+                _ => None,
+            };
+            pane.and_then(|id| area.tabs().find(|(_, _, t)| t.id == id).map(|(_, _, t)| t))
+                .map(|tab| shell.tab_title(tab))
+                .unwrap_or_default()
+        };
+        let tokens = crate::theme::current(ui.ctx());
+        crate::splitter::show(ui, tree, &tokens, "canvas-area", &title);
         // WP-S2.06 part 1 (§6.7): an unplaced function dropped from the Devices navigator arms the Place tool with it.
         let released = ui.input(|i| i.pointer.any_released());
         if released
@@ -286,6 +302,11 @@ impl Behavior<TabPane> for AreaBehavior<'_> {
     }
 
     fn cycle_tabs_with_keyboard(&self) -> bool {
+        false
+    }
+
+    /// FT-338: the area draws its own named splitter (`crate::splitter`).
+    fn is_container_resizable(&self, _tiles: &Tiles<TabPane>, _tile_id: TileId) -> bool {
         false
     }
 

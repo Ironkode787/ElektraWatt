@@ -743,6 +743,68 @@ impl ShellModel {
         Outcome::Done
     }
 
+    // WP-S2.17 part 3
+    /// Whether the left column is collapsed to its rail.
+    pub fn rail_collapsed(&self) -> bool {
+        self.rail_collapsed
+    }
+
+    /// `rail.show {side, pane}` (D15; doc 16a §5.4): on the left rail, shows the entry's pane in the navigator group
+    /// (opening its navigator beside the Pages pane first, as `navigator.show` does) and expands the column; on the entry
+    /// already shown with the column expanded, collapses the column. `project` is the Pages pane, `devices` the Devices
+    /// navigator. The right rail's palettes are not panes yet: refused with the reason.
+    pub(super) fn act_rail_show(&mut self, p: &Map<String, Value>) -> Outcome {
+        let side = match string_param(p, "side") {
+            Err(e) => return e,
+            Ok(None) => crate::rail::Side::Left,
+            Ok(Some(w)) => match crate::rail::Side::from_word(w) {
+                Some(s) => s,
+                None => return failed("error-bad-param", &["side"]),
+            },
+        };
+        if side == crate::rail::Side::Right {
+            return Outcome::Refused {
+                reason_key: "reason-rail-no-palettes",
+            };
+        }
+        let pane = match string_param(p, "pane") {
+            Err(e) => return e,
+            Ok(None) => return failed("error-missing-param", &["pane"]),
+            Ok(Some(w)) => match crate::rail::left_pane(w) {
+                Some(pane) => pane,
+                None => return failed("error-bad-param", &["pane"]),
+            },
+        };
+        let shown = crate::rail::shown_pane(self);
+        let same_entry = match shown {
+            Some(s) if pane == PaneKind::Pages => crate::rail::PROJECT_PANES.contains(&s),
+            Some(s) => s == pane,
+            None => false,
+        };
+        // The segmented control's `pages` and `devices` switch the view; only an entry's own word collapses.
+        let entry_word = p
+            .get("pane")
+            .and_then(Value::as_str)
+            .is_some_and(|w| crate::rail::LEFT.iter().any(|(e, ..)| *e == w));
+        if same_entry && entry_word && !self.rail_collapsed {
+            self.rail_collapsed = true;
+            return Outcome::Done;
+        }
+        self.rail_collapsed = false;
+        let kind = match pane {
+            PaneKind::Navigator(k) => k,
+            _ => NavKind::Pages,
+        };
+        let mut layout = self.layout().with_navigator(pane);
+        if kind != NavKind::Pages {
+            self.navs.entry(kind).or_insert_with(|| Navigator::new(kind));
+        }
+        layout = layout.showing(pane);
+        self.replace_layout(layout);
+        self.focus = Some(Focus::Navigator(kind));
+        Outcome::Done
+    }
+
     /// `navigator.view {kind, view}`: Pages takes its modes (`pages.mode`), the others `tree` or `flat`.
     pub(super) fn act_navigator_view(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = match self.open_kind(p) {

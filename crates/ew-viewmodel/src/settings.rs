@@ -77,6 +77,8 @@ pub struct Settings {
     /// The property grid's collapsed categories, `<kind>/<category>` (`device/identity`), sorted (`[properties]
     /// collapsed`, WP-S2.05 §6.1.2).
     pub properties_collapsed: Vec<String>,
+    /// Whether the property grid shows the Advanced rows (`[properties] show_advanced`, WP-S2.17 D11).
+    pub properties_show_advanced: bool,
     /// Keys this version does not know, kept and written back.
     extra: toml::Table,
 }
@@ -97,6 +99,7 @@ impl Default for Settings {
             workspace: DEFAULT_WORKSPACE.to_owned(),
             canvas_backend: CANVAS_BACKENDS[0].to_owned(),
             properties_collapsed: Vec::new(),
+            properties_show_advanced: false,
             extra: toml::Table::new(),
         }
     }
@@ -167,7 +170,14 @@ impl Settings {
             .unwrap_or_else(|| DEFAULT_WORKSPACE.to_owned());
         // `[properties] collapsed`: a list of texts; other members of the table are kept.
         let mut properties_collapsed: Vec<String> = Vec::new();
+        let mut properties_show_advanced = false;
         if let Some(toml::Value::Table(props)) = table.get_mut("properties") {
+            // WP-S2.17 part 3 (D11): `[properties] show_advanced`.
+            match props.remove("show_advanced") {
+                None => {}
+                Some(toml::Value::Boolean(on)) => properties_show_advanced = on,
+                Some(_) => return None,
+            }
             match props.remove("collapsed") {
                 None => {}
                 Some(toml::Value::Array(items)) => {
@@ -204,6 +214,7 @@ impl Settings {
             workspace,
             canvas_backend,
             properties_collapsed,
+            properties_show_advanced,
             extra: table,
         };
         // The list is normalised on read: no duplicates, at most MAX_RECENT, first occurrence wins.
@@ -256,21 +267,27 @@ impl Settings {
                 table.remove("basic_project");
             }
         }
-        // Written only when a category is collapsed, so an untouched settings file keeps its bytes.
-        if !self.properties_collapsed.is_empty() {
+        // Written only when a category is collapsed or Advanced is shown, so an untouched settings file keeps its
+        // bytes.
+        if !self.properties_collapsed.is_empty() || self.properties_show_advanced {
             let mut props = match table.remove("properties") {
                 Some(toml::Value::Table(t)) => t,
                 _ => toml::Table::new(),
             };
-            props.insert(
-                "collapsed".to_owned(),
-                toml::Value::Array(
-                    self.properties_collapsed
-                        .iter()
-                        .map(|k| toml::Value::String(k.clone()))
-                        .collect(),
-                ),
-            );
+            if !self.properties_collapsed.is_empty() {
+                props.insert(
+                    "collapsed".to_owned(),
+                    toml::Value::Array(
+                        self.properties_collapsed
+                            .iter()
+                            .map(|k| toml::Value::String(k.clone()))
+                            .collect(),
+                    ),
+                );
+            }
+            if self.properties_show_advanced {
+                props.insert("show_advanced".to_owned(), toml::Value::Boolean(true));
+            }
             table.insert("properties".to_owned(), toml::Value::Table(props));
         }
         // A table of plain values always serialises.

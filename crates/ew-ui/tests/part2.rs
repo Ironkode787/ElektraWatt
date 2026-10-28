@@ -328,10 +328,12 @@ fn the_project_view_is_a_dock_and_a_changed_layout_becomes_the_workspace_file() 
     settle(&mut h);
     assert_eq!(
         h.state().dock_panes(),
-        [PaneKind::Pages, PaneKind::PageView, PaneKind::Properties]
+        [PaneKind::Pages, PaneKind::Properties, PaneKind::PageView]
     );
-    assert!(h.query_by_label("Pages").is_some());
-    assert!(h.query_by_label("Page view").is_some());
+    // WP-S2.17 part 3: the navigator group's header is its rail entry's ("Project"), the page view has none.
+    assert!(h.query_all_by_label("Project").count() >= 1);
+    assert!(h.query_all_by_label("Pages").next().is_some());
+    assert!(h.query_by_label("Page view").is_none());
     assert!(h.query_all_by_label("Properties").next().is_some());
     // View ▸ Properties closes the property grid (WP-S2.05): the two-pane layout this test drags. (A tab group nested
     // in a split shows egui_tiles' unnamed tab-bar area, which the name walker counts with the splitters, FT-338.)
@@ -400,7 +402,7 @@ fn the_project_view_is_a_dock_and_a_changed_layout_becomes_the_workspace_file() 
     assert_eq!(h.state().shell().layout(), &Layout::schematic());
     assert_eq!(
         h.state().dock_panes(),
-        [PaneKind::Pages, PaneKind::PageView, PaneKind::Properties]
+        [PaneKind::Pages, PaneKind::Properties, PaneKind::PageView]
     );
     // The reset was written to the active workspace's file, "Tabbed"; Schematic still has the tabs the user made.
     done(

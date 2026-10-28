@@ -11,7 +11,11 @@
 //! such as `4 mm`, or `Grid off`), the save state (`*` unsaved, `saved`, or `read-only: <reason>`), the canvas
 //! backend (`CPU`, `WARP` or `GPU <backend>`), the UI language, `Notifications <n>` while the notifications log is not
 //! empty, and while a job runs the job field (WP-S2.09 part 1). Without a project the page and save fields are left
-//! out; without a canvas the cursor, zoom and grid.
+//! out; without a canvas the cursor, zoom and grid. These text fields stay the transcripts' `status` member.
+//!
+//! The window's status bar and the describe line follow WP-S2.17 D12 instead ([`bar`]): the state at the left, then
+//! the findings, the job, the selection, the cursor, the grid, the zoom, the save state, the renderer and the
+//! notifications, each with its emphasis.
 
 use crate::canvas::{GridLabel, grid_label, mm1, zoom_percent_text};
 use crate::shell::{AccessMode, ShellModel};
@@ -161,6 +165,185 @@ pub fn fields(model: &ShellModel, hide_job: bool) -> Vec<String> {
     }
     if !hide_job && let Some(job) = model.jobs().newest_running() {
         out.push(job_field(model, job));
+    }
+    out
+}
+
+// WP-S2.17 part 3 (D12; doc 16a §5.8)
+/// What a field of the status bar shows (D12's fields, in their order).
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
+pub enum StatusKind {
+    /// The state at the left: `Ready`.
+    State,
+    /// The findings of the open Messages pane, when any count is not zero; a click opens Messages.
+    Findings,
+    /// The running job, 200 ms after it started; a click opens Jobs.
+    Job,
+    /// The selection's size, when not empty.
+    Selection,
+    /// The pointer or the grid cursor: the cell, then the sheet coordinates.
+    Cursor,
+    /// The grid (`QET 10 px`, `4 mm`, `Grid off`).
+    Grid,
+    /// The zoom.
+    Zoom,
+    /// Saved, unsaved changes or read-only.
+    Save,
+    /// The canvas renderer.
+    Renderer,
+    /// The notifications log's size, when not empty; a click opens the log.
+    Notifications,
+}
+
+impl StatusKind {
+    /// The field's word (`state`, `findings`): the describe line's order and the window's node names are the enum's.
+    pub fn word(self) -> &'static str {
+        match self {
+            StatusKind::State => "state",
+            StatusKind::Findings => "findings",
+            StatusKind::Job => "job",
+            StatusKind::Selection => "selection",
+            StatusKind::Cursor => "cursor",
+            StatusKind::Grid => "grid",
+            StatusKind::Zoom => "zoom",
+            StatusKind::Save => "save",
+            StatusKind::Renderer => "renderer",
+            StatusKind::Notifications => "notifications",
+        }
+    }
+}
+
+/// How a field is emphasised (doc 16a §5.8): an exception stands out, the rest is quiet.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Tone {
+    /// Secondary text.
+    Normal,
+    /// The error colour, SemiBold (findings with an error).
+    Error,
+    /// The warning colour (findings with warnings only, read-only, a CPU or WARP renderer).
+    Warning,
+    /// The success colour (Saved).
+    Success,
+    /// Primary text (unsaved changes).
+    Strong,
+    /// Tertiary text (the GPU renderer).
+    Muted,
+}
+
+/// One field of the status bar.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct StatusField {
+    /// Which field.
+    pub kind: StatusKind,
+    /// Its text.
+    pub text: String,
+    /// Its emphasis.
+    pub tone: Tone,
+}
+
+/// The findings field's text and tone: `1 error · 2 warnings`, the worst severity's tone; `None` when every count is
+/// zero.
+fn findings(model: &ShellModel) -> Option<(String, Tone)> {
+    let c = model.messages_counts()?;
+    let part = |n: usize, one: &str, many: &str| match n {
+        0 => None,
+        1 => Some(strings::text(one).to_owned()),
+        n => Some(strings::format(many, &[&n.to_string()])),
+    };
+    let parts: Vec<String> = [
+        part(c.errors, "status-findings-error", "status-findings-errors"),
+        part(c.warnings, "status-findings-warning", "status-findings-warnings"),
+        part(c.infos, "status-findings-info", "status-findings-infos"),
+    ]
+    .into_iter()
+    .flatten()
+    .collect();
+    if parts.is_empty() {
+        return None;
+    }
+    let tone = if c.errors > 0 {
+        Tone::Error
+    } else if c.warnings > 0 {
+        Tone::Warning
+    } else {
+        Tone::Normal
+    };
+    Some((parts.join(" · "), tone))
+}
+
+/// The status bar of `model` (D12; doc 16a §5.8): the state at the left, then in this order the findings, the job,
+/// the selection, the cursor, the grid, the zoom, the save state, the renderer and the notifications, each only when
+/// it applies. The tool's hint is the HUD's (part 2); the page and the language fields left the bar. `hide_job` leaves
+/// the job field out (a job younger than 200 ms).
+pub fn bar(model: &ShellModel, hide_job: bool) -> Vec<StatusField> {
+    let field = |kind, text: String, tone| StatusField { kind, text, tone };
+    let mut out = vec![field(
+        StatusKind::State,
+        strings::text("status-ready").to_owned(),
+        Tone::Normal,
+    )];
+    if model.project_name().is_some() {
+        if let Some((text, tone)) = findings(model) {
+            out.push(field(StatusKind::Findings, text, tone));
+        }
+        if !hide_job && let Some(job) = model.jobs().newest_running() {
+            out.push(field(StatusKind::Job, job_field(model, job), Tone::Normal));
+        }
+        let selected = model.selection().items.len();
+        if selected > 0 {
+            out.push(field(
+                StatusKind::Selection,
+                strings::format("status-selected", &[&selected.to_string()]),
+                Tone::Normal,
+            ));
+        }
+        if let Some(canvas) = model.canvas() {
+            if let Some((x, y)) = model.shown_point() {
+                let text = match canvas.page().cell_text((x, y)) {
+                    Some(cell) => strings::format("status-cursor-cell", &[&cell, &mm1(x), &mm1(y)]),
+                    None => strings::format("status-cursor", &[&mm1(x), &mm1(y)]),
+                };
+                out.push(field(StatusKind::Cursor, text, Tone::Normal));
+            }
+            out.push(field(StatusKind::Grid, grid_text(model), Tone::Normal));
+            out.push(field(
+                StatusKind::Zoom,
+                strings::format("status-zoom", &[&zoom_percent_text(canvas.zoom())]),
+                Tone::Normal,
+            ));
+        }
+        out.push(match model.access() {
+            Some(AccessMode::ReadOnly { reason_key }) => field(
+                StatusKind::Save,
+                strings::format("status-read-only", &[strings::text(reason_key)]),
+                Tone::Warning,
+            ),
+            _ if model.is_dirty() => field(
+                StatusKind::Save,
+                strings::text("status-unsaved").to_owned(),
+                Tone::Strong,
+            ),
+            _ => field(
+                StatusKind::Save,
+                strings::text("status-saved").to_owned(),
+                Tone::Success,
+            ),
+        });
+    }
+    let renderer = model.canvas_backend().label();
+    let tone = if renderer.starts_with("GPU") {
+        Tone::Muted
+    } else {
+        Tone::Warning
+    };
+    out.push(field(StatusKind::Renderer, renderer, tone));
+    let log = model.notifications();
+    if !log.is_empty() {
+        out.push(field(
+            StatusKind::Notifications,
+            strings::format("status-notifications", &[&log.len().to_string()]),
+            Tone::Normal,
+        ));
     }
     out
 }

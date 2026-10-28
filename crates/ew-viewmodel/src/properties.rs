@@ -342,12 +342,160 @@ pub fn collapse_key(kind: &str, category: Category) -> String {
     format!("{kind}/{}", category.word())
 }
 
-/// The rows on show: every row of every expanded category, in sheet order.
-pub fn visible_rows<'s>(sheet: &'s PropertySheet, collapsed: &BTreeSet<String>) -> Vec<VisibleRow<'s>> {
+// WP-S2.17 part 3 (D11; doc 16a §6.8): Main and Advanced.
+/// A group of rows in the grid: **Main** (the kind's primary fields, first and open) or one of the sheet's categories.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum RowGroup {
+    /// The primary fields of the kind ([`is_primary`]).
+    Main,
+    /// A category of the field catalogue, less the Main rows.
+    Category(Category),
+}
+
+impl RowGroup {
+    /// The word of the group (`main`, a category's word): the `category` parameter of `props.category`.
+    pub fn word(self) -> &'static str {
+        match self {
+            RowGroup::Main => "main",
+            RowGroup::Category(c) => c.word(),
+        }
+    }
+
+    /// The group of `word`.
+    pub fn from_word(word: &str) -> Option<RowGroup> {
+        if word == "main" {
+            return Some(RowGroup::Main);
+        }
+        Category::ALL
+            .iter()
+            .find(|c| c.word() == word)
+            .map(|c| RowGroup::Category(*c))
+    }
+
+    /// The group's title (`Main`, `Identity`).
+    pub fn title(self) -> &'static str {
+        match self {
+            RowGroup::Main => strings::text("category-main"),
+            RowGroup::Category(c) => strings::text(&format!("category-{}", c.word())),
+        }
+    }
+}
+
+/// The collapse key of a section's group (`device/main`, `device/identity`).
+pub fn group_key(kind: &str, group: RowGroup) -> String {
+    format!("{kind}/{}", group.word())
+}
+
+/// The primary fields of a kind, by the row key after `<kind>/`: a row is primary when its key is one of them or a
+/// member of one (`parts[0].part` of `parts`). A kind without a list has no Main group.
+const PRIMARY: &[(&str, &[&str])] = &[
+    (
+        "page",
+        &["folio.number", "folio.section", "title", "derived.description"],
+    ),
+    (
+        "device",
+        &[
+            "derived.tag",
+            "function_text",
+            "parts",
+            "derived.structure.location",
+        ],
+    ),
+    (
+        "connection",
+        &[
+            "derived.number",
+            "derived.potential",
+            "derived.csa",
+            "derived.colour",
+        ],
+    ),
+];
+
+/// The internal members shown only under Advanced, by the row's path: the record version, the ID, the source reference
+/// with its key and lineage, the tag counter and the form's UUID.
+const ADVANCED: &[&str] = &["$v", "id", "source_ref", "tag.counter", "form"];
+
+/// Whether `rest` is `base` or one of its members (`parts[0].qty` of `parts`).
+fn under(rest: &str, base: &str) -> bool {
+    rest == base
+        || rest
+            .strip_prefix(base)
+            .is_some_and(|tail| tail.starts_with('.') || tail.starts_with('['))
+}
+
+/// Whether `row` is one of its kind's primary fields (the Main group).
+pub fn is_primary(kind: &str, row: &PropRow) -> bool {
+    let rest = row.key.split_once('/').map_or(row.key.as_str(), |(_, r)| r);
+    PRIMARY
+        .iter()
+        .find(|(k, _)| *k == kind)
+        .is_some_and(|(_, paths)| paths.iter().any(|p| under(rest, p)))
+}
+
+/// Whether `row` is an internal member, shown only while Advanced is on.
+pub fn is_advanced(row: &PropRow) -> bool {
+    !is_derived(row) && ADVANCED.iter().any(|p| under(&row.path, p))
+}
+
+/// The groups of a section in display order with their rows: Main first when the kind has primary rows, then each
+/// category with its other rows; the Advanced rows are left out unless `advanced`. A group without rows is left out.
+pub fn groups(section: &SheetSection, advanced: bool) -> Vec<(RowGroup, Vec<&PropRow>)> {
+    let shown = |r: &&PropRow| advanced || !is_advanced(r);
+    let main: Vec<&PropRow> = section
+        .rows
+        .iter()
+        .filter(shown)
+        .filter(|r| is_primary(&section.kind, r))
+        .collect();
+    let mut out = Vec::new();
+    if !main.is_empty() {
+        out.push((RowGroup::Main, main));
+    }
+    for (c, rows) in categories(section) {
+        let rows: Vec<&PropRow> = rows
+            .into_iter()
+            .filter(shown)
+            .filter(|r| !is_primary(&section.kind, r))
+            .collect();
+        if !rows.is_empty() {
+            out.push((RowGroup::Category(c), rows));
+        }
+    }
+    out
+}
+
+/// The number of Advanced rows of `sheet` (the "Show advanced (n)" link).
+pub fn advanced_count(sheet: &PropertySheet) -> usize {
+    sheet
+        .sections
+        .iter()
+        .flat_map(|s| &s.rows)
+        .filter(|r| is_advanced(r))
+        .count()
+}
+
+/// The group `row` is shown in.
+pub fn group_of(section: &SheetSection, row: &PropRow) -> RowGroup {
+    if is_primary(&section.kind, row) {
+        RowGroup::Main
+    } else {
+        RowGroup::Category(row.category)
+    }
+}
+
+/// The rows on show: every row of every expanded group, in display order ([`groups`]); the Advanced rows only while
+/// `advanced` is on.
+pub fn visible_rows<'s>(
+    sheet: &'s PropertySheet,
+    collapsed: &BTreeSet<String>,
+    advanced: bool,
+) -> Vec<VisibleRow<'s>> {
     let mut out = Vec::new();
     for s in &sheet.sections {
-        for (c, rows) in categories(s) {
-            if collapsed.contains(&collapse_key(&s.kind, c)) {
+        for (g, rows) in groups(s, advanced) {
+            if collapsed.contains(&group_key(&s.kind, g)) {
                 continue;
             }
             out.extend(rows.into_iter().map(|row| VisibleRow { section: s, row }));

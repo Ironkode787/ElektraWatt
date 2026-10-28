@@ -12,9 +12,10 @@
 //! twice is the same bytes. This is not the serialised egui_tiles tree that doc 16 section 2.5 names: that tree
 //! keeps its tiles in a hash map, whose order would reach the file.
 //!
-//! The panes of the Schematic workspace that exist today are the page list, the page view and the property grid
-//! (WP-S2.05); the navigators and the message panels join with their work packages (WP-S2.06 to WP-S2.09). A saved
-//! workspace without the property grid loads as saved; View ▸ Properties adds it to the right.
+//! The Schematic workspace (WP-S2.17 part 3, D10) is the left column (the navigator group over the property grid) and
+//! the page view; the other navigators join the navigator group from the left rail, the bottom panes open below the
+//! page view. A workspace file written before WP-S2.17 loads as saved, its panes in their places; View ▸ Properties
+//! adds the grid under the Pages pane's column.
 
 use serde_json::{Map, Value, json};
 
@@ -165,6 +166,17 @@ pub enum LayoutNode {
     },
 }
 
+impl LayoutNode {
+    /// Whether `pane` is in this subtree.
+    pub fn holds(&self, pane: PaneKind) -> bool {
+        match self {
+            LayoutNode::Pane(p) => *p == pane,
+            LayoutNode::Tabs { children, .. } => children.iter().any(|c| c.holds(pane)),
+            LayoutNode::Split { children, .. } => children.iter().any(|(_, c)| c.holds(pane)),
+        }
+    }
+}
+
 /// Why a workspace text is not a layout.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum LayoutError {
@@ -198,24 +210,34 @@ pub struct Layout {
 }
 
 impl Layout {
-    /// The Schematic workspace: the page list on the left, the page view in the centre, the property grid on the right
-    /// (shares 200 : 800 : 250, written in thousandths as the dock reads them back; doc 16 section 2.6; its other docks
-    /// come with their panels).
+    /// The Schematic workspace (WP-S2.17 part 3, D10; doc 16a §5.1): the left column holds the navigator group (the
+    /// Pages pane, driven by the left rail) over the property grid (500 : 500), the page view takes the rest (233 : 767
+    /// of the dock's width, so 280 of the 1200 px a 1280-px window leaves between the rails); the bottom dock and the
+    /// right column are closed. The shares are written in thousandths, as the dock reads them back.
     pub fn schematic() -> Layout {
         Layout {
             root: LayoutNode::Split {
                 dir: SplitDir::Horizontal,
                 children: vec![
-                    (160, LayoutNode::Pane(PaneKind::Pages)),
-                    (640, LayoutNode::Pane(PaneKind::PageView)),
-                    (200, LayoutNode::Pane(PaneKind::Properties)),
+                    (
+                        233,
+                        LayoutNode::Split {
+                            dir: SplitDir::Vertical,
+                            children: vec![
+                                (500, LayoutNode::Pane(PaneKind::Pages)),
+                                (500, LayoutNode::Pane(PaneKind::Properties)),
+                            ],
+                        },
+                    ),
+                    (767, LayoutNode::Pane(PaneKind::PageView)),
                 ],
             },
         }
     }
 
-    /// The layout with the property grid on the right (View ▸ Properties): appended to a horizontal root split,
-    /// else the root and the grid side by side (800 : 250). Unchanged when the grid is in it.
+    /// The layout with the property grid (View ▸ Properties): under the left column that holds the Pages pane
+    /// (500 : 500; WP-S2.17 part 3, D10), else appended to a horizontal root split, else the root and the grid side by
+    /// side (800 : 200). Unchanged when the grid is in it.
     pub fn with_properties(&self) -> Layout {
         if self.panes().contains(&PaneKind::Properties) {
             return self.clone();
@@ -226,7 +248,16 @@ impl Layout {
                 children,
             } => {
                 let mut children = children.clone();
-                children.push((200, LayoutNode::Pane(PaneKind::Properties)));
+                match children.iter().position(|(_, c)| c.holds(PaneKind::Pages)) {
+                    Some(i) => {
+                        let column = children[i].1.clone();
+                        children[i].1 = LayoutNode::Split {
+                            dir: SplitDir::Vertical,
+                            children: vec![(500, column), (500, LayoutNode::Pane(PaneKind::Properties))],
+                        };
+                    }
+                    None => children.push((200, LayoutNode::Pane(PaneKind::Properties))),
+                }
                 LayoutNode::Split {
                     dir: SplitDir::Horizontal,
                     children,
@@ -241,6 +272,28 @@ impl Layout {
             },
         };
         Layout { root }
+    }
+
+    // WP-S2.17 part 3
+    /// The pane shown in the place of `pane`: the active tab of the tab group that holds it, else `pane` itself;
+    /// `None` when `pane` is not in the layout (the rails' active entry, doc 16a §5.4).
+    pub fn shown_in_place_of(&self, pane: PaneKind) -> Option<PaneKind> {
+        fn walk(n: &LayoutNode, pane: PaneKind) -> Option<PaneKind> {
+            match n {
+                LayoutNode::Pane(p) => (*p == pane).then_some(pane),
+                LayoutNode::Tabs { children, active } => {
+                    if children.contains(&LayoutNode::Pane(pane)) {
+                        return match children.get(*active) {
+                            Some(LayoutNode::Pane(p)) => Some(*p),
+                            _ => Some(pane),
+                        };
+                    }
+                    children.iter().find_map(|c| walk(c, pane))
+                }
+                LayoutNode::Split { children, .. } => children.iter().find_map(|(_, c)| walk(c, pane)),
+            }
+        }
+        walk(&self.root, pane)
     }
 
     // WP-S2.05 part 2
@@ -689,7 +742,7 @@ mod tests {
         assert_eq!(back.to_json("Schematic"), text, "the same bytes twice");
         assert_eq!(
             layout.describe(),
-            "split horizontal [\"Pages\" 16%, \"Page view\" 64%, \"Properties\" 20%]"
+            "split horizontal [split vertical [\"Pages\" 50%, \"Properties\" 50%] 23%, \"Page view\" 77%]"
         );
     }
 
@@ -772,7 +825,7 @@ mod tests {
         let full = Layout::schematic().with_find();
         assert_eq!(
             full.describe(),
-            "split horizontal [\"Pages\" 16%, split vertical [\"Page view\" 65%, \"Find and replace\" 35%] 64%, \"Properties\" 20%]"
+            "split horizontal [split vertical [\"Pages\" 50%, \"Properties\" 50%] 23%, split vertical [\"Page view\" 65%, \"Find and replace\" 35%] 77%]"
         );
         assert_eq!(full.with_find(), full, "added once");
         assert_eq!(Layout::parse(&full.to_json("Find")).unwrap().1, full);
@@ -785,12 +838,12 @@ mod tests {
         let jobs = Layout::schematic().with_bottom(PaneKind::Jobs);
         assert_eq!(
             jobs.describe(),
-            "split horizontal [\"Pages\" 16%, split vertical [\"Page view\" 65%, \"Jobs\" 35%] 64%, \"Properties\" 20%]"
+            "split horizontal [split vertical [\"Pages\" 50%, \"Properties\" 50%] 23%, split vertical [\"Page view\" 65%, \"Jobs\" 35%] 77%]"
         );
         let both = jobs.with_find();
         assert_eq!(
             both.describe(),
-            "split horizontal [\"Pages\" 16%, split vertical [\"Page view\" 65%, tabs [\"Jobs\", \"Find and replace\" (shown)] 35%] 64%, \"Properties\" 20%]"
+            "split horizontal [split vertical [\"Pages\" 50%, \"Properties\" 50%] 23%, split vertical [\"Page view\" 65%, tabs [\"Jobs\", \"Find and replace\" (shown)] 35%] 77%]"
         );
         assert_eq!(both.with_bottom(PaneKind::Jobs), both, "added once");
         assert_eq!(Layout::parse(&both.to_json("Bottom")).unwrap().1, both);
