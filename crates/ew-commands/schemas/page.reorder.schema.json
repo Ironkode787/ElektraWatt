@@ -1,0 +1,52 @@
+{
+  "$defs": {
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`page.reorder`: moves page records before another page of the same section, or to the section's end (FR-PAG-024,\nWP-S2.06 §5.1).\n\nThe pages of the section (front matter when `before` is absent and `section` is absent or null) are ordered by\n(folio number, label in natural order, ID). The moved pages, taken in that order, are put as one block directly\nbefore `before`, or after the last page of the section when `before` is absent. The folio keys (number and label)\nstay where they are in the order: the page that comes to a position takes the whole key of the page that held it,\nso a moved page takes over the key of the page it replaces and the pages it passes shift by one; pages whose key\ndoes not change get no change, and a transaction notice `<old> → <new>` names each page that moved. One undo step.\nRejected: no page or more than 1,000 pages named, a page named twice or unknown, an unknown `before` or `section`,\nboth `before` and `section`, a `before` that is one of the moved pages, a moved page in another section than the\ntarget, and an order that does not change. Bulk.",
+  "properties": {
+    "before": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CmdUuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The page they are put before; absent or null: after the last page of the section."
+    },
+    "pages": {
+      "description": "The page records to move, 1 to 1,000, in any order (they are taken in page order).",
+      "items": {
+        "$ref": "#/$defs/CmdUuid"
+      },
+      "type": "array"
+    },
+    "section": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CmdUuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Without `before`: the section at whose end the pages go; absent or null: front matter. Not allowed with `before`."
+    }
+  },
+  "required": [
+    "pages"
+  ],
+  "title": "page.reorder",
+  "type": "object"
+}

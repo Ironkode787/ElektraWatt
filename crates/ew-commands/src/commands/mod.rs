@@ -9,6 +9,7 @@
 //! | `page.create` | [`CreatePage`] | Interactive |
 //! | `page.delete` | [`DeletePages`] | Bulk |
 //! | `page.renumber` | [`RenumberPages`] | Bulk |
+//! | `page.reorder` | [`ReorderPages`] | Bulk |
 //! | `structure.create_node` | [`CreateStructureNode`] | Interactive |
 //! | `section.create` | [`CreateSection`] | Interactive |
 //! | `report_block.create` | [`CreateReportBlock`] | Interactive |
@@ -120,7 +121,7 @@ pub use items::{
 };
 pub use languages::SetProjectLanguages;
 pub use library::{EmbedLibraryCopies, library_copy_hash};
-pub use page::{CreatePage, DeletePages, PageScope, RenumberPages};
+pub use page::{CreatePage, DeletePages, PageScope, RenumberPages, ReorderPages};
 // WP-S2.05 part 3
 pub use parts::{ImportParts, import_counts};
 pub use paste::{Fragment, FragmentNode, PASTE_KINDS, PASTE_MAX_RECORDS, PasteFragment};
@@ -143,6 +144,7 @@ pub fn register_all(r: &mut CommandRegistry) {
     r.register::<CreatePage>();
     r.register::<DeletePages>();
     r.register::<RenumberPages>();
+    r.register::<ReorderPages>();
     r.register::<CreateStructureNode>();
     r.register::<CreateSection>();
     r.register::<CreateReportBlock>();

@@ -436,6 +436,32 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         Ok(id)
     }
 
+    /// `page.reorder`: moves `pages` before `before`, or to the end of `section` (`None`: front matter) when `before` is
+    /// `None`.
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn reorder_pages(
+        &mut self,
+        pages: &[Id<Page>],
+        before: Option<Id<Page>>,
+        section: Option<Id<Section>>,
+    ) -> Result<()> {
+        let mut p = Map::new();
+        p.insert("pages".into(), json!(pages));
+        match (before, section) {
+            (Some(before), _) => {
+                p.insert("before".into(), json!(before));
+            }
+            (None, Some(section)) => {
+                p.insert("section".into(), json!(section));
+            }
+            (None, None) => {}
+        }
+        self.run("page.reorder", Value::Object(p)).map(|_| ())
+    }
+
     /// `device.create` (with the main function `main`, a normal function, when given), then `fields.set`
     /// of `tag.frozen`, `process_tag`, `tech_data` and `state`. A terminal or cable is created with
     /// [`Builder::terminals`] or [`Builder::cable`] instead.
@@ -1568,6 +1594,28 @@ mod tests {
                 {"kind": "device", "targets": [a], "path": "function_text", "value": "Spare"},
                 {"kind": "page", "targets": [b], "path": "title", "value": "Main"}]})
         );
+    }
+
+    /// `reorder_pages` issues one `page.reorder`, with `before` or `section` and never both.
+    #[test]
+    fn reorder_pages_issues_one_command_with_before_or_section() {
+        let mut seen: Vec<(String, Value)> = Vec::new();
+        let mut sink = |name: &str, params: Value| {
+            seen.push((name.to_owned(), params));
+            Ok(Done::default())
+        };
+        let a: Id<Page> = Id::from_uuid(ew_ids::Uuid::from_u128(1));
+        let b: Id<Page> = Id::from_uuid(ew_ids::Uuid::from_u128(2));
+        let s: Id<Section> = Id::from_uuid(ew_ids::Uuid::from_u128(3));
+        let mut builder = Builder::new(&mut sink);
+        builder.reorder_pages(&[a], Some(b), Some(s)).unwrap();
+        builder.reorder_pages(&[a, b], None, Some(s)).unwrap();
+        builder.reorder_pages(&[a], None, None).unwrap();
+        drop(builder);
+        assert!(seen.iter().all(|(name, _)| name == "page.reorder"));
+        assert_eq!(seen[0].1, json!({"pages": [a], "before": b}));
+        assert_eq!(seen[1].1, json!({"pages": [a, b], "section": s}));
+        assert_eq!(seen[2].1, json!({"pages": [a]}));
     }
 
     // WP-S2.05 part 3

@@ -197,6 +197,11 @@ pub const ARMS: &[Arm] = &[
         build: page_renumber,
     },
     Arm {
+        command: "page.reorder",
+        weight: 2,
+        build: page_reorder,
+    },
+    Arm {
         command: "parts.import",
         weight: 2,
         build: parts_import,
@@ -1283,6 +1288,56 @@ fn page_renumber(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 )
                 .counts(&[(Table::Pages, 0)]),
             )
+        }
+    }
+}
+
+/// The order `page.reorder` sees the pages of one section in: folio number, then label (none first, natural order),
+/// then ID.
+fn folio_order(a: &PageInfo, b: &PageInfo) -> std::cmp::Ordering {
+    let label = |p: &PageInfo| {
+        p.label
+            .as_deref()
+            .and_then(|l| l.parse::<ew_mltext::Ident>().ok())
+    };
+    a.number
+        .cmp(&b.number)
+        .then_with(|| match (label(a), label(b)) {
+            (Some(x), Some(y)) => x.natural_cmp(&y),
+            (x, y) => x.is_some().cmp(&y.is_some()),
+        })
+        .then_with(|| id_text(&a.id).cmp(&id_text(&b.id)))
+}
+
+fn page_reorder(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    // The pages of each section (of no section: the front matter), in folio order; only sections with two pages.
+    let mut groups: std::collections::BTreeMap<Option<String>, Vec<&PageInfo>> = Default::default();
+    for p in &live.page_info {
+        groups.entry(p.section.as_ref().map(id_text)).or_default().push(p);
+    }
+    let mut groups: Vec<Vec<&PageInfo>> = groups.into_values().filter(|g| g.len() >= 2).collect();
+    for g in &mut groups {
+        g.sort_by(|a, b| folio_order(a, b));
+    }
+    let group = rng.pick(&groups)?;
+    let i = rng.below(group.len());
+    let a = group[i];
+    match rng.below(10) {
+        0 => Some(Step::cmd("page.reorder", json!({"pages": [a.id], "before": rng.uuid()})).refuse()),
+        1 => Some(Step::cmd("page.reorder", json!({"pages": []})).refuse()),
+        _ => {
+            // Any other page of the section to put `a` before; `a` directly before it is no change.
+            let mut j = rng.below(group.len() - 1);
+            if j >= i {
+                j += 1;
+            }
+            let b = group[j];
+            let step = Step::cmd("page.reorder", json!({"pages": [a.id], "before": b.id}));
+            Some(if i + 1 == j {
+                step.refuse()
+            } else {
+                step.counts(&[(Table::Pages, 0)])
+            })
         }
     }
 }

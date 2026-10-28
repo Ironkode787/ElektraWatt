@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `page.create`, `page.delete`, `page.renumber`, `structure.create_node`, `section.create` and
+//! `page.create`, `page.delete`, `page.renumber`, `page.reorder`, `structure.create_node`, `section.create` and
 //! `report_block.create`.
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
@@ -12,6 +12,7 @@ use common::fixture::*;
 use common::*;
 use ew_commands::commands::{
     CreatePage, CreateReportBlock, CreateSection, CreateStructureNode, DeletePages, PageScope, RenumberPages,
+    ReorderPages,
 };
 use ew_commands::{CmdError, DynCommand, Engine, Receipt};
 use ew_ids::Id;
@@ -472,6 +473,224 @@ fn undo_renumber() {
     bulk(&mut e, &renumber(PageScope::Section(SEC1), 201, 1, false)).unwrap();
     e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before);
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// page.reorder
+
+fn reorder(pages: &[Id<Page>], before: Option<Id<Page>>, section: Option<Id<Section>>) -> ReorderPages {
+    ReorderPages {
+        pages: pages.to_vec(),
+        before,
+        section,
+    }
+}
+
+fn new_page(e: &mut Engine, cmd: &CreatePage) -> Id<Page> {
+    typed(e.execute(cmd).unwrap().outcome.primary.unwrap())
+}
+
+/// Golden A's section 1 as 101, 102, 103, 106 (the two new pages returned in this order).
+fn with_pages_103_and_106() -> (Engine, Id<Page>, Id<Page>) {
+    let mut e = engine(golden_model());
+    let p103 = new_page(&mut e, &CreatePage::at(Some(SEC1), 103));
+    let p106 = new_page(&mut e, &CreatePage::at(Some(SEC1), 106));
+    (e, p103, p106)
+}
+
+fn reorder_error(r: Result<Receipt, CmdError>) -> (String, String) {
+    match r {
+        Err(CmdError::InvalidParams {
+            command,
+            path,
+            message,
+        }) => {
+            assert_eq!(command, "page.reorder");
+            (path, message)
+        }
+        other => panic!("expected InvalidParams, got {other:?}"),
+    }
+}
+
+#[test]
+fn reorder_moves_a_page_before_another_and_swaps_the_keys() {
+    let (mut e, p103, p106) = with_pages_103_and_106();
+    let r = bulk(&mut e, &reorder(&[p106], Some(p103), None)).unwrap();
+    assert_eq!(folio_of(&e, PAGE_101), (Some(SEC1), 101, None));
+    assert_eq!(folio_of(&e, PAGE_102), (Some(SEC1), 102, None));
+    assert_eq!(folio_of(&e, p106), (Some(SEC1), 103, None));
+    assert_eq!(folio_of(&e, p103), (Some(SEC1), 106, None));
+    assert_eq!(r.outcome.notices, ["106 → 103", "103 → 106"]);
+}
+
+#[test]
+fn reorder_to_the_section_end() {
+    let mut e = engine(golden_model());
+    let r = bulk(&mut e, &reorder(&[PAGE_101], None, Some(SEC1))).unwrap();
+    assert_eq!(folio_of(&e, PAGE_102), (Some(SEC1), 101, None));
+    assert_eq!(folio_of(&e, PAGE_101), (Some(SEC1), 102, None));
+    assert_eq!(r.outcome.notices, ["102 → 101", "101 → 102"]);
+}
+
+#[test]
+fn reorder_moves_labelled_keys_as_whole_keys() {
+    let mut e = engine(golden_model());
+    let sec = typed(
+        e.execute(&section_cmd(2, 1, 99))
+            .unwrap()
+            .outcome
+            .primary
+            .unwrap(),
+    );
+    let p5 = new_page(&mut e, &CreatePage::at(Some(sec), 5));
+    let p51 = new_page(&mut e, &labelled(Some(sec), 5, "5.1"));
+    let p6 = new_page(&mut e, &CreatePage::at(Some(sec), 6));
+    let r = bulk(&mut e, &reorder(&[p6], Some(p5), None)).unwrap();
+    assert_eq!(folio_of(&e, p6), (Some(sec), 5, None));
+    assert_eq!(folio_of(&e, p5), (Some(sec), 5, Some("5.1".into())));
+    assert_eq!(folio_of(&e, p51), (Some(sec), 6, None));
+    assert_eq!(r.outcome.notices, ["6 → 5", "5 → 5.1", "5.1 → 6"]);
+}
+
+#[test]
+fn reorder_undo_restores_every_folio() {
+    let (mut e, p103, p106) = with_pages_103_and_106();
+    let before = lines(e.model());
+    bulk(&mut e, &reorder(&[p106], Some(p103), None)).unwrap();
+    assert_ne!(lines(e.model()), before);
+    e.undo(&ew_commands::Origin::Gui).unwrap();
+    assert_eq!(lines(e.model()), before);
+    assert_eq!(folio_of(&e, p103), (Some(SEC1), 103, None));
+    assert_eq!(folio_of(&e, p106), (Some(SEC1), 106, None));
+}
+
+#[test]
+fn reorder_front_matter() {
+    let mut e = engine(golden_model());
+    let a = new_page(&mut e, &CreatePage::at(None, 10));
+    let b = new_page(&mut e, &CreatePage::at(None, 11));
+    let r = bulk(&mut e, &reorder(&[a], None, None)).unwrap();
+    assert_eq!(folio_of(&e, b), (None, 10, None));
+    assert_eq!(folio_of(&e, a), (None, 11, None));
+    assert_eq!(r.outcome.notices, ["11 → 10", "10 → 11"]);
+    // A page of a section is not front matter.
+    let (path, message) = reorder_error(bulk(&mut e, &reorder(&[PAGE_101], None, None)));
+    assert_eq!(path, "/pages/0");
+    assert!(message.starts_with("page 101 is in another section"), "{message}");
+}
+
+#[test]
+fn reorder_rejects_an_empty_list() {
+    let mut e = engine(golden_model());
+    let (path, message) = reorder_error(bulk(&mut e, &reorder(&[], None, Some(SEC1))));
+    assert_eq!(
+        (path.as_str(), message.as_str()),
+        ("/pages", "name at least one page")
+    );
+}
+
+#[test]
+fn reorder_rejects_more_than_1000_pages() {
+    let mut e = engine(golden_model());
+    let many: Vec<Id<Page>> = (0..1001).map(|n| id(0x9000 + n)).collect();
+    let (path, message) = reorder_error(bulk(&mut e, &reorder(&many, None, Some(SEC1))));
+    assert_eq!(
+        (path.as_str(), message.as_str()),
+        ("/pages", "at most 1000 pages may be moved at once")
+    );
+}
+
+#[test]
+fn reorder_rejects_a_page_listed_twice() {
+    let mut e = engine(golden_model());
+    let (path, message) = reorder_error(bulk(
+        &mut e,
+        &reorder(&[PAGE_101, PAGE_102, PAGE_101], None, Some(SEC1)),
+    ));
+    assert_eq!(path, "/pages/2");
+    assert_eq!(message, format!("page {PAGE_101} is listed twice"));
+}
+
+#[test]
+fn reorder_rejects_an_unknown_page() {
+    let mut e = engine(golden_model());
+    let missing: Id<Page> = id(0x9999);
+    let (path, message) = reorder_error(bulk(&mut e, &reorder(&[PAGE_101, missing], None, Some(SEC1))));
+    assert_eq!(path, "/pages/1");
+    assert_eq!(message, format!("no page {missing}"));
+}
+
+#[test]
+fn reorder_rejects_an_unknown_before() {
+    let mut e = engine(golden_model());
+    let missing: Id<Page> = id(0x9999);
+    let (path, message) = reorder_error(bulk(&mut e, &reorder(&[PAGE_101], Some(missing), None)));
+    assert_eq!(path, "/before");
+    assert_eq!(message, format!("no page {missing}"));
+}
+
+#[test]
+fn reorder_rejects_before_together_with_section() {
+    let mut e = engine(golden_model());
+    let (path, message) = reorder_error(bulk(&mut e, &reorder(&[PAGE_101], Some(PAGE_102), Some(SEC1))));
+    assert_eq!(
+        (path.as_str(), message.as_str()),
+        ("/section", "give either before or section, not both")
+    );
+}
+
+#[test]
+fn reorder_rejects_an_unknown_section() {
+    let mut e = engine(golden_model());
+    let missing: Id<Section> = id(0x9998);
+    let (path, message) = reorder_error(bulk(&mut e, &reorder(&[PAGE_101], None, Some(missing))));
+    assert_eq!(path, "/section");
+    assert_eq!(message, format!("no section {missing}"));
+}
+
+#[test]
+fn reorder_rejects_a_before_that_is_moved() {
+    let mut e = engine(golden_model());
+    let (path, message) = reorder_error(bulk(&mut e, &reorder(&[PAGE_101], Some(PAGE_101), None)));
+    assert_eq!(path, "/before");
+    assert_eq!(
+        message,
+        "the page to put the pages before is one of the moved pages; name a page that stays"
+    );
+}
+
+#[test]
+fn reorder_rejects_a_page_of_another_section() {
+    let mut e = engine(golden_model());
+    let sec = typed(
+        e.execute(&section_cmd(2, 200, 299))
+            .unwrap()
+            .outcome
+            .primary
+            .unwrap(),
+    );
+    let other = new_page(&mut e, &CreatePage::at(Some(sec), 210));
+    let (path, message) = reorder_error(bulk(&mut e, &reorder(&[PAGE_102, PAGE_101], Some(other), None)));
+    assert_eq!(path, "/pages/0");
+    assert_eq!(
+        message,
+        "page 102 is in another section; move pages between sections by changing their section first"
+    );
+}
+
+#[test]
+fn reorder_rejects_an_order_that_does_not_change() {
+    let mut e = engine(golden_model());
+    let (path, message) = reorder_error(bulk(&mut e, &reorder(&[PAGE_101], Some(PAGE_102), None)));
+    assert_eq!(
+        (path.as_str(), message.as_str()),
+        ("/pages", "the pages are already in this order")
+    );
+    let (path, message) = reorder_error(bulk(&mut e, &reorder(&[PAGE_102], None, Some(SEC1))));
+    assert_eq!(
+        (path.as_str(), message.as_str()),
+        ("/pages", "the pages are already in this order")
+    );
 }
 
 // ---------------------------------------------------------------------------------------------------------

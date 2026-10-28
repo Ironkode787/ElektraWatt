@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Page commands (doc 06 §3.1): `page.create`, `page.delete`, `page.renumber`.
+//! Page commands (doc 06 §3.1): `page.create`, `page.delete`, `page.renumber`, `page.reorder`.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -543,6 +543,165 @@ impl Command for RenumberPages {
         }
         for (id, label) in relabel {
             tx.update::<Page>(id, |p| p.folio.label = Some(label))?;
+        }
+        Ok(Outcome::default())
+    }
+}
+
+/// The most pages `page.reorder` moves at once.
+const REORDER_MAX: usize = 1000;
+
+/// `page.reorder`: moves page records before another page of the same section, or to the section's end (FR-PAG-024,
+/// WP-S2.06 §5.1).
+///
+/// The pages of the section (front matter when `before` is absent and `section` is absent or null) are ordered by
+/// (folio number, label in natural order, ID). The moved pages, taken in that order, are put as one block directly
+/// before `before`, or after the last page of the section when `before` is absent. The folio keys (number and label)
+/// stay where they are in the order: the page that comes to a position takes the whole key of the page that held it,
+/// so a moved page takes over the key of the page it replaces and the pages it passes shift by one; pages whose key
+/// does not change get no change, and a transaction notice `<old> → <new>` names each page that moved. One undo step.
+/// Rejected: no page or more than 1,000 pages named, a page named twice or unknown, an unknown `before` or `section`,
+/// both `before` and `section`, a `before` that is one of the moved pages, a moved page in another section than the
+/// target, and an order that does not change. Bulk.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ReorderPages {
+    /// The page records to move, 1 to 1,000, in any order (they are taken in page order).
+    #[schemars(with = "Vec<UuidS>")]
+    pub pages: Vec<Id<Page>>,
+    /// The page they are put before; absent or null: after the last page of the section.
+    #[serde(default)]
+    #[schemars(with = "Option<UuidS>")]
+    pub before: Option<Id<Page>>,
+    /// Without `before`: the section at whose end the pages go; absent or null: front matter. Not allowed with `before`.
+    #[serde(default)]
+    #[schemars(with = "Option<UuidS>")]
+    pub section: Option<Id<Section>>,
+}
+
+impl ReorderPages {
+    /// A rejection of the parameters at the JSON Pointer `path`.
+    fn bad<T>(path: impl Into<String>, message: impl Into<String>) -> Result<T, CmdError> {
+        Err(CmdError::invalid_params(Self::NAME, path, message))
+    }
+}
+
+impl Command for ReorderPages {
+    const NAME: &'static str = "page.reorder";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME).bulk()
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        if self.pages.is_empty() {
+            return Self::bad("/pages", "name at least one page");
+        }
+        if self.pages.len() > REORDER_MAX {
+            return Self::bad("/pages", "at most 1000 pages may be moved at once");
+        }
+        let mut seen = BTreeSet::new();
+        for (i, id) in self.pages.iter().enumerate() {
+            if !seen.insert(*id) {
+                return Self::bad(format!("/pages/{i}"), format!("page {id} is listed twice"));
+            }
+        }
+        for (i, id) in self.pages.iter().enumerate() {
+            if tx.get::<Page>(*id).is_none() {
+                return Self::bad(format!("/pages/{i}"), format!("no page {id}"));
+            }
+        }
+        let target = match self.before {
+            Some(b) => match tx.get::<Page>(b) {
+                Some(page) => Some(page),
+                None => return Self::bad("/before", format!("no page {b}")),
+            },
+            None => None,
+        };
+        if target.is_some() && self.section.is_some() {
+            return Self::bad("/section", "give either before or section, not both");
+        }
+        if let Some(s) = self.section {
+            if tx.get::<Section>(s).is_none() {
+                return Self::bad("/section", format!("no section {s}"));
+            }
+        }
+        if let Some(b) = self.before {
+            if seen.contains(&b) {
+                return Self::bad(
+                    "/before",
+                    "the page to put the pages before is one of the moved pages; name a page that stays",
+                );
+            }
+        }
+        let sec = match &target {
+            Some(page) => page.folio.section,
+            None => self.section,
+        };
+        for (i, id) in self.pages.iter().enumerate() {
+            let page = tx.require::<Page>(*id)?;
+            if page.folio.section != sec {
+                return Self::bad(
+                    format!("/pages/{i}"),
+                    format!(
+                        "page {} is in another section; move pages between sections by changing their section first",
+                        printed_folio(page.folio.number, page.folio.label.as_ref())
+                    ),
+                );
+            }
+        }
+        // S: the pages of the section in folio order, as `page.renumber` orders them.
+        let mut current = section_pages(tx, sec);
+        current.sort_by(|(ia, a), (ib, b)| {
+            a.number
+                .cmp(&b.number)
+                .then_with(|| match (&a.label, &b.label) {
+                    (Some(x), Some(y)) => x.natural_cmp(y),
+                    (x, y) => x.is_some().cmp(&y.is_some()),
+                })
+                .then(ia.cmp(ib))
+        });
+        // O: S without the moved pages, which go in as one block (in S order) before `before`, or at the end.
+        let moved: Vec<Id<Page>> = current
+            .iter()
+            .map(|(id, _)| *id)
+            .filter(|id| seen.contains(id))
+            .collect();
+        let mut order: Vec<Id<Page>> = current
+            .iter()
+            .map(|(id, _)| *id)
+            .filter(|id| !seen.contains(id))
+            .collect();
+        let at = match self.before {
+            Some(b) => order.iter().position(|id| *id == b).ok_or_else(|| {
+                CmdError::internal("the page to put the pages before is not in its section")
+            })?,
+            None => order.len(),
+        };
+        order.splice(at..at, moved);
+        let old: BTreeMap<Id<Page>, &Folio> = current.iter().map(|(id, f)| (*id, f)).collect();
+        let changed: Vec<usize> = (0..order.len()).filter(|&k| order[k] != current[k].0).collect();
+        let (Some(&first), Some(&last)) = (changed.first(), changed.last()) else {
+            return Self::bad("/pages", "the pages are already in this order");
+        };
+        // The page that comes to position k takes the whole key of the page that held k (no sub-page relabelling).
+        for k in first..=last {
+            if order[k] == current[k].0 {
+                continue;
+            }
+            let key = &current[k].1;
+            let (number, label) = (key.number, key.label.clone());
+            let was = old[&order[k]];
+            let text = format!(
+                "{} → {}",
+                printed_folio(was.number, was.label.as_ref()),
+                printed_folio(number, label.as_ref())
+            );
+            tx.update::<Page>(order[k], |p| {
+                p.folio.number = number;
+                p.folio.label = label;
+            })?;
+            tx.notice(text);
         }
         Ok(Outcome::default())
     }
