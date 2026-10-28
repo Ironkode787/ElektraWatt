@@ -616,6 +616,9 @@ impl App {
                     PaneKind::Find => find.show(ui, shell, &mut events),
                     // WP-S2.09 part 1
                     PaneKind::Jobs => crate::jobs::show(ui, shell, job_started, now, &mut events),
+                    // WP-S2.09 part 3
+                    PaneKind::Preview => crate::preview::show(ui, shell, &mut events),
+                    PaneKind::History => crate::history::show(ui, shell, &mut events),
                     PaneKind::PageView => {
                         canvas_area.show(ui, shell, canvas, &mut events);
                         *area_splitters = canvas_area.splitter_count(shell);
@@ -646,6 +649,8 @@ impl App {
         crate::junction::show(&ctx, &self.shell, &mut events);
         crate::text_popup::show(&ctx, &self.shell, &mut self.text_buffer, &mut events);
         crate::parts_card::show(&ctx, &self.shell, &mut events);
+        // WP-S2.09 part 3: Show changes of the history panel.
+        crate::history::show_changes(&ctx, &self.shell, &mut events);
         // WP-S2.09 part 1: the toasts and the notifications log.
         crate::notifications::show_toasts(&ctx, &self.shell, &mut events);
         crate::notifications::show_log(&ctx, &self.shell, &mut events);

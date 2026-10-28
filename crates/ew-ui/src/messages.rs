@@ -126,6 +126,10 @@ fn fix_card(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             }
             _ => {}
         }
+        // WP-S2.09 part 3 (§8.1): while the Preview tab shows the card, a one-line chip stands in for it.
+        if crate::preview::chip(ui, shell, &line, events) {
+            return;
+        }
         let response = ui.label(&line);
         ui.ctx().accesskit_node_builder(response.id, |n| {
             n.set_live(egui::accesskit::Live::Polite);

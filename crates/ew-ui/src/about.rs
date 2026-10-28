@@ -159,6 +159,28 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                 });
             });
         }
+        // WP-S2.09 part 3 (§8.6, FT-417): the files that go, Purge or Cancel (Escape).
+        Some(Dialog::ConfirmPurge { files, .. }) => {
+            window("confirm-purge-title").show(ctx, |ui| {
+                ui.set_max_width(460.0);
+                ui.label(strings::text("confirm-purge-text"));
+                for f in files.iter().take(ew_viewmodel::shell::PURGE_LISTED) {
+                    ui.label(f);
+                }
+                if files.len() > ew_viewmodel::shell::PURGE_LISTED {
+                    let more = (files.len() - ew_viewmodel::shell::PURGE_LISTED).to_string();
+                    ui.label(strings::format("confirm-purge-more", &[&more]));
+                }
+                ui.horizontal(|ui| {
+                    if ui.button(strings::text("dialog-purge")).clicked() {
+                        events.push(Event::Action("project.purge_assets", json!({ "confirm": true })));
+                    }
+                    if ui.button(strings::text("dialog-cancel")).clicked() {
+                        events.push(Event::Action("ui.dismiss", json!({})));
+                    }
+                });
+            });
+        }
         // WP-S2.09 part 1 (D7, §6.6): Recover, Open read-only (also Escape), Discard... (its confirmation as built).
         Some(Dialog::Recovery {
             name,
@@ -258,7 +280,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                     ui.colored_label(ui.visuals().error_fg_color, error);
                 }
                 ui.horizontal(|ui| {
-                    if ui.button(strings::text("dialog-create")).clicked() {
+                    if ui.button(strings::text(form.ok_key)).clicked() {
                         submit = true;
                     }
                     if ui.button(strings::text("dialog-cancel")).clicked() {

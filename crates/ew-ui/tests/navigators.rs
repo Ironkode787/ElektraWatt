@@ -194,7 +194,8 @@ fn nv7_dragging_106_before_103_opens_the_card_and_apply_commits() {
             .is_some(),
         "the card's line"
     );
-    h.get_by_label("Apply").click();
+    // WP-S2.09 part 3: the Preview tab shows the card too; its chip and the tab each have the button.
+    h.get_all_by_label("Apply").next().unwrap().click();
     settle(&mut h);
     let rows = h.state().shell().page_rows().to_vec();
     let title = |f: &str| rows.iter().find(|r| r.folio == f).unwrap().title.clone();

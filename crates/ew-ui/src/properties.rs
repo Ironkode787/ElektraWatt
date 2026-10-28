@@ -301,6 +301,10 @@ impl PropertiesPane {
                 }
                 _ => {}
             }
+            // WP-S2.09 part 3 (§8.1): while the Preview tab shows the card, a one-line chip stands in for it.
+            if crate::preview::chip(ui, shell, &line, events) {
+                return;
+            }
             let response = ui.label(&line);
             let live = line.clone();
             ui.ctx().accesskit_node_builder(response.id, |n| {

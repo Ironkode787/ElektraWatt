@@ -75,8 +75,9 @@ fn the_entry_prompts_and_ctrl_enter_applies_the_card() {
         "the card's line"
     );
     assert!(h.query_by_label("Import parts").is_some(), "the window's title");
-    assert!(h.query_by_label("Apply").is_some());
-    assert!(h.query_by_label("Cancel").is_some());
+    // WP-S2.09 part 3: the Preview tab shows the card too; its chip and the tab each have the button.
+    assert!(h.get_all_by_label("Apply").next().is_some());
+    assert!(h.get_all_by_label("Cancel").next().is_some());
     assert!(h.state().shell().import_card_open());
     assert!(!h.state().shell().can_undo(), "the card waits for Apply");
 
@@ -118,7 +119,8 @@ fn cancel_drops_the_card_without_a_change() {
         .dispatch("parts.import", &json!({"path": path.to_string_lossy()}));
     assert_eq!(out, Outcome::Done);
     settle(&mut h);
-    h.get_by_label("Cancel").click();
+    // WP-S2.09 part 3: the Preview tab shows the card too; its chip and the tab each have the button.
+    h.get_all_by_label("Cancel").next().unwrap().click();
     settle(&mut h);
     assert!(h.state().shell().properties().card().is_none());
     assert!(!h.state().shell().can_undo());
@@ -204,7 +206,8 @@ fn the_card_and_the_closed_menu_arrive_in_the_frame_after_the_pick() {
         h.query_by_label_contains("parts.csv: 2 created").is_some(),
         "the card's text is painted"
     );
-    h.get_by_label("Apply").click();
+    // WP-S2.09 part 3: the Preview tab shows the card too; its chip and the tab each have the button.
+    h.get_all_by_label("Apply").next().unwrap().click();
     h.step();
     assert_eq!(
         h.state().shell().banner(),

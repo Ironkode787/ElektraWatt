@@ -27,6 +27,8 @@ mod focus;
 pub mod fonts;
 pub mod gpu;
 pub mod headless;
+// WP-S2.09 part 3
+mod history;
 // WP-S2.09 part 1: the Jobs pane, the toasts and the notifications log.
 mod jobs;
 pub mod keys;
@@ -37,7 +39,9 @@ mod messages;
 pub mod navigator;
 mod notifications;
 pub mod page_view;
+// WP-S2.09 part 3
 mod palette;
+mod preview;
 // FT-410: the parts table import card.
 mod parts_card;
 // WP-S2.04 part 2: the junction sequence editor popup.
