@@ -369,3 +369,61 @@ fn c_shows_why_it_does_not_connect_while_moving() {
     );
     h.state_mut().shell_mut().shutdown();
 }
+
+/// FT-512: the pointer over a connection point shows a tooltip with the CP's label as `cp_label` prints it, and none
+/// once the pointer leaves it.
+#[test]
+fn hovering_a_connection_point_shows_its_label_in_a_tooltip() {
+    use egui_kittest::kittest::Queryable as _;
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "101");
+    let page_point = |h: &Harness<'_, App>, label: &str| {
+        let c = h.state().shell().canvas().unwrap();
+        c.page()
+            .tables
+            .cps
+            .iter()
+            .find(|x| x.label == label)
+            .unwrap_or_else(|| panic!("{label}"))
+            .at
+    };
+    assert!(
+        h.query_by_label("1X1:1/a").is_none(),
+        "no tooltip before the hover"
+    );
+    for label in ["1X1:1/a", "1X1:1/b"] {
+        let at = screen_of_page(&h, page_point(&h, label));
+        h.hover_at(at);
+        settle(&mut h);
+        assert_eq!(
+            h.state()
+                .shell()
+                .canvas()
+                .unwrap()
+                .hovered_cp()
+                .map(|cp| cp.label.clone())
+                .as_deref(),
+            Some(label)
+        );
+        // The tooltip shows after egui's delay: frames until it does (bounded).
+        let mut shown = false;
+        for _ in 0..120 {
+            h.step();
+            if h.query_by_label(label).is_some() {
+                shown = true;
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        assert!(shown, "a tooltip names {label}");
+    }
+    // Away from every CP: no CP, no tooltip.
+    h.hover_at(egui::Pos2::new(2.0, 2.0));
+    settle(&mut h);
+    for _ in 0..10 {
+        h.step();
+    }
+    assert!(h.state().shell().canvas().unwrap().hovered_cp().is_none());
+    assert!(h.query_by_label("1X1:1/b").is_none());
+    h.state_mut().shell_mut().shutdown();
+}

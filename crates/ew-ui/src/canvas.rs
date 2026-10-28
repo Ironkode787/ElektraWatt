@@ -700,6 +700,11 @@ impl CanvasHost {
             return;
         };
         self.map_input(ui, &response, rect, canvas, group, events);
+        // FT-512: the connection point under the pointer names itself in a tooltip (its `cp_label` text), in the
+        // window's ordinary tooltip style.
+        if let Some(cp) = canvas.hovered_cp() {
+            response.clone().on_hover_text_at_pointer(cp.label.as_str());
+        }
         if shell.area().map(|a| a.focused) == Some(group) {
             self.dwell(ui, canvas, group, events);
         }

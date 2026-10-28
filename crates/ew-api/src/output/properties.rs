@@ -1392,6 +1392,59 @@ impl Session {
                     provenance,
                     Vec::new(),
                 ));
+                // FT-512: the connection points of the device's functions, one read-only row each with the label
+                // the junction notation prints (`-X1:1/a`, `-102G1:−#1`), in natural order of the label; over several
+                // devices the n-th rows merge.
+                let per_device: Vec<Vec<String>> = devices
+                    .iter()
+                    .map(|d| {
+                        let mut labels: Vec<String> = q
+                            .idx()
+                            .functions_of_device(*d)
+                            .flat_map(|function| {
+                                q.get::<ew_derive::FunctionCps>(function)
+                                    .iter()
+                                    .map(|cp| {
+                                        cp_label(
+                                            q,
+                                            ew_derive::CpRef {
+                                                function,
+                                                idx: cp.idx,
+                                            },
+                                        )
+                                    })
+                                    .collect::<Vec<_>>()
+                            })
+                            .collect();
+                        labels.sort_by(|a, b| ew_mltext::natural_cmp(a, b).then_with(|| a.cmp(b)));
+                        labels
+                    })
+                    .collect();
+                let rows = per_device.iter().map(Vec::len).max().unwrap_or(0);
+                for n in 0..rows {
+                    let per: Vec<(Option<Value>, Provenance)> = per_device
+                        .iter()
+                        .map(|labels| {
+                            (
+                                labels.get(n).map(|l| Value::String(l.clone())),
+                                Provenance::Derived {
+                                    via: "function definition".into(),
+                                },
+                            )
+                        })
+                        .collect();
+                    let (value, provenance) = merge(cx, &FieldType::Text, per);
+                    out.push(derived(
+                        "device",
+                        &format!("cp[{n}]"),
+                        None,
+                        Category::ConnectionPoints,
+                        FieldType::Text,
+                        value,
+                        provenance,
+                        Vec::new(),
+                    ));
+                }
             }
             Kind::Connection => {
                 let conns: Vec<Id<Connection>> = targets.iter().map(|t| Id::from_uuid(*t)).collect();

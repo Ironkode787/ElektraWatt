@@ -903,3 +903,58 @@ fn selected_page_item_properties_refresh_after_edit() {
     assert_eq!(shell.selection(), &selection);
     shell.shutdown();
 }
+
+/// FT-512: a selected terminal lists its connection points under Properties ▸ Connection points, one read-only row
+/// each with the label `cp_label` prints, in natural order; a device's CPs likewise.
+#[test]
+fn a_terminal_lists_its_connection_point_labels() {
+    let tmp = Tmp::new("props-ft512");
+    let mut shell = writable(&tmp, "101");
+    done(&mut shell, "select.set", json!({"refs": ["tag:1X1:1"]}));
+    assert_eq!(text(&shell, "device/derived.cp[0]"), "1X1:1/a");
+    assert_eq!(text(&shell, "device/derived.cp[1]"), "1X1:1/b");
+    assert_eq!(
+        provenance(&shell, "device/derived.cp[0]"),
+        Provenance::Derived {
+            via: "function definition".into()
+        }
+    );
+    let d = shell.describe();
+    assert!(d.contains("  category \"Connection points\" expanded"), "{d}");
+    assert!(
+        d.contains("    row \"device/derived.cp[0]\" \"Connection point\" \"1X1:1/a\" derived \"function definition\""),
+        "{d}"
+    );
+    // Read-only: no action, and an edit is refused.
+    let sheet = shell.properties().sheet().unwrap();
+    let (_, row) = find_row(sheet, "device/derived.cp[1]").unwrap();
+    assert!(row.actions.is_empty());
+    // Two terminals: the n-th rows merge.
+    done(
+        &mut shell,
+        "select.set",
+        json!({"refs": ["tag:1X1:1", "tag:1X1:2"]}),
+    );
+    let sheet = shell.properties().sheet().unwrap();
+    let (_, row) = find_row(sheet, "device/derived.cp[0]").unwrap();
+    assert!(
+        matches!(&row.value, RowValue::Varies { count: 2, texts } if texts == &["1X1:1/a", "1X1:2/a"]),
+        "{:?}",
+        row.value
+    );
+    // A breaker's CPs.
+    done(&mut shell, "select.set", json!({"refs": ["tag:-101F1"]}));
+    let sheet = shell.properties().sheet().unwrap();
+    let labels: Vec<String> = sheet.sections[0]
+        .rows
+        .iter()
+        .filter(|r| r.key.starts_with("device/derived.cp["))
+        .map(|r| match &r.value {
+            RowValue::One { text, .. } => text.clone(),
+            other => format!("{other:?}"),
+        })
+        .collect();
+    assert!(!labels.is_empty());
+    assert!(labels.iter().all(|l| l.starts_with("-101F1:")), "{labels:?}");
+    shell.shutdown();
+}

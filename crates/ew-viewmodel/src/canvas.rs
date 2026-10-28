@@ -710,6 +710,15 @@ impl CanvasModel {
             .and_then(|i| self.page.cps.get(i))
     }
 
+    /// The connection point under the pointer: the nearest within [`HOVER_SLOP_PT`] at the current zoom, as
+    /// [`CanvasModel::cursor_cp`] finds it at the grid cursor (FT-512: the window's CP tooltip names its label).
+    pub fn hovered_cp(&self) -> Option<&PageCp> {
+        let at = self.pointer?;
+        self.page
+            .cp_near(at, HOVER_SLOP_PT / self.points_per_nm())
+            .and_then(|i| self.page.cps.get(i))
+    }
+
     /// The link under the pointer.
     pub fn hovered_link(&self) -> Option<&PageLink> {
         self.hover_link.and_then(|i| self.page.links.get(i))
