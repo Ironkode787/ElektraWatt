@@ -178,31 +178,37 @@ impl Dock {
     pub fn show(&mut self, ui: &mut Ui, pane_ui: &mut dyn FnMut(&mut Ui, PaneKind)) {
         let tokens = crate::theme::current(ui.ctx());
         let height = ui.available_height();
-        self.keep_bottom_min(height, tokens.size_dock_bottom_min);
+        let clamps = self.keep_bottom_min(height, tokens.size_dock_bottom_min);
         let mut behavior = DockBehavior {
             pane_ui,
             chosen: None,
             tokens,
         };
         self.tree.ui(&mut behavior, ui);
+        self.restore(&clamps);
         if let Some((group, child)) = behavior.chosen {
             self.activate(group, child);
             ui.ctx().request_repaint();
         }
     }
 
-    // W31-1
-    /// Keeps the bottom dock (D14) at least `min` points tall: in every vertical split, the child that holds a bottom
-    /// pane gets at least `min` of the split's height (the split's last shown height, `fallback` before the first
-    /// frame), and never more than two thirds of it, so the page view keeps its place.
-    fn keep_bottom_min(&mut self, fallback: f32, min: f32) {
-        fn holds_bottom(tiles: &Tiles<PaneKind>, id: TileId) -> bool {
+    // W31-1, R2-2 of cycle 31
+    /// Keeps the bottom dock (D14) at least `min` points tall on show: in the vertical split that holds the page
+    /// view, the child that holds a bottom pane is shown with at least `min` of the split's height (the split's last
+    /// shown height, `fallback` before the first frame), and never more than two thirds of it, so the page view keeps
+    /// its place. Display only: returns the shares it changed, which [`Dock::restore`] puts back after the frame, so
+    /// the user's shares stay the layout (no rewrite of the workspace file, no share that only ever grows). Other
+    /// vertical splits (a column where Messages was docked) are left alone.
+    fn keep_bottom_min(&mut self, fallback: f32, min: f32) -> Vec<Clamp> {
+        fn holds(tiles: &Tiles<PaneKind>, id: TileId, pred: &dyn Fn(&PaneKind) -> bool) -> bool {
             match tiles.get(id) {
-                Some(Tile::Pane(p)) => PaneKind::BOTTOM.contains(p),
-                Some(Tile::Container(c)) => c.children().any(|c| holds_bottom(tiles, *c)),
+                Some(Tile::Pane(p)) => pred(p),
+                Some(Tile::Container(c)) => c.children().any(|c| holds(tiles, *c, pred)),
                 None => false,
             }
         }
+        let is_bottom = |p: &PaneKind| PaneKind::BOTTOM.contains(p);
+        let is_page = |p: &PaneKind| *p == PaneKind::PageView;
         let splits: Vec<TileId> = self
             .tree
             .tiles
@@ -212,20 +218,23 @@ impl Dock {
                 _ => None,
             })
             .collect();
+        let mut clamps = Vec::new();
         for id in splits {
             let height = self.tree.tiles.rect(id).map_or(fallback, |r| r.height());
             let Some(Tile::Container(Container::Linear(linear))) = self.tree.tiles.get(id) else {
                 continue;
             };
             let children = linear.children.clone();
+            let tiles = &self.tree.tiles;
+            let page = children.iter().copied().find(|c| holds(tiles, *c, &is_page));
             let Some(bottom) = children
                 .iter()
                 .copied()
-                .find(|c| holds_bottom(&self.tree.tiles, *c))
+                .find(|c| holds(tiles, *c, &is_bottom) && Some(*c) != page)
             else {
                 continue;
             };
-            if height <= 0.0 {
+            if page.is_none() || height <= 0.0 {
                 continue;
             }
             let want = (min / height).min(2.0 / 3.0);
@@ -237,9 +246,37 @@ impl Dock {
             if total <= 0.0 || own / total >= want {
                 continue;
             }
+            let user: Vec<(TileId, f32)> = children.iter().map(|c| (*c, linear.shares[*c])).collect();
             // The others keep their ratios; the bottom child's share grows to `want` of the total.
             let others = total - own;
             linear.shares.set_share(bottom, want / (1.0 - want) * others);
+            let shown: Vec<(TileId, f32)> = children.iter().map(|c| (*c, linear.shares[*c])).collect();
+            clamps.push(Clamp {
+                split: id,
+                user,
+                shown,
+            });
+        }
+        clamps
+    }
+
+    /// Puts back the user's shares of every split [`Dock::keep_bottom_min`] changed for the frame, unless the user
+    /// moved one of its splitters during the frame (then the shares on show are the user's new ones).
+    fn restore(&mut self, clamps: &[Clamp]) {
+        for clamp in clamps {
+            let Some(Tile::Container(Container::Linear(linear))) = self.tree.tiles.get_mut(clamp.split)
+            else {
+                continue;
+            };
+            let untouched = clamp
+                .shown
+                .iter()
+                .all(|(c, share)| linear.children.contains(c) && linear.shares[*c] == *share);
+            if untouched {
+                for (c, share) in &clamp.user {
+                    linear.shares.set_share(*c, *share);
+                }
+            }
         }
     }
 
@@ -265,6 +302,15 @@ impl Dock {
             _ => None,
         }
     }
+}
+
+/// The shares of one split before and after [`Dock::keep_bottom_min`] raised its bottom child for a frame.
+struct Clamp {
+    split: TileId,
+    /// The user's shares (the layout).
+    user: Vec<(TileId, f32)>,
+    /// The shares on show this frame.
+    shown: Vec<(TileId, f32)>,
 }
 
 /// The panes of a tab group, each with its tile, in tab order (FT-509's menu).
@@ -429,8 +475,126 @@ impl egui_tiles::Behavior<PaneKind> for DockBehavior<'_> {
 #[cfg(test)]
 mod tests {
     use ew_viewmodel::layout::{LayoutNode, PaneKind, SplitDir};
+    use ew_viewmodel::navigators::NavKind;
 
     use super::*;
+
+    /// One frame of `dock` in a `w` × `h` window.
+    fn frame(ctx: &egui::Context, dock: &mut Dock, w: f32, h: f32) {
+        let input = egui::RawInput {
+            screen_rect: Some(egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(w, h))),
+            ..Default::default()
+        };
+        let mut out = ctx.run_ui(input, |ui| {
+            egui::CentralPanel::default().show(ui, |ui| dock.show(ui, &mut |_, _| {}));
+        });
+        // Nothing paints the frame; its texture changes are dropped on purpose.
+        out.textures_delta.clear();
+    }
+
+    /// The height `pane` was shown with on the last frame.
+    fn shown_height(dock: &Dock, pane: PaneKind) -> f32 {
+        let id = dock.tree.tiles.find_pane(&pane).unwrap();
+        dock.tree.tiles.rect(id).unwrap().height()
+    }
+
+    /// The page view above the Messages pane (650 : 350), beside the page list.
+    fn page_over_messages() -> Layout {
+        Layout {
+            root: LayoutNode::Split {
+                dir: SplitDir::Horizontal,
+                children: vec![
+                    (200, LayoutNode::Pane(PaneKind::Pages)),
+                    (
+                        800,
+                        LayoutNode::Split {
+                            dir: SplitDir::Vertical,
+                            children: vec![
+                                (650, LayoutNode::Pane(PaneKind::PageView)),
+                                (350, LayoutNode::Pane(PaneKind::Navigator(NavKind::Messages))),
+                            ],
+                        },
+                    ),
+                ],
+            },
+        }
+    }
+
+    /// R2-2 of cycle 31: at 1280 × 800 the Messages pane is shown at least 300 pt tall, but the clamp is display
+    /// only: the layout after the frames equals the layout before them (no rewrite of the workspace file).
+    #[test]
+    fn the_bottom_clamp_is_shown_but_not_persisted() {
+        let layout = page_over_messages();
+        let mut dock = Dock::new(&layout, 0);
+        let ctx = egui::Context::default();
+        for _ in 0..3 {
+            frame(&ctx, &mut dock, 1280.0, 800.0);
+            assert_eq!(dock.layout().as_ref(), Some(&layout), "the layout is the user's");
+        }
+        let h = shown_height(&dock, PaneKind::Navigator(NavKind::Messages));
+        assert!(h >= 299.0, "the Messages pane is shown {h} pt tall");
+    }
+
+    /// R2-2 of cycle 31: a short window then a tall one does not raise the share: on the tall frame the Messages pane
+    /// has its own share (350 of 1000) again, not the two thirds of the short frame.
+    #[test]
+    fn a_short_then_tall_window_does_not_ratchet_the_share() {
+        let layout = page_over_messages();
+        let mut dock = Dock::new(&layout, 0);
+        let ctx = egui::Context::default();
+        frame(&ctx, &mut dock, 1280.0, 400.0);
+        frame(&ctx, &mut dock, 1280.0, 400.0);
+        let short = shown_height(&dock, PaneKind::Navigator(NavKind::Messages));
+        let page = shown_height(&dock, PaneKind::PageView);
+        assert!(short > page, "short: Messages {short}, page view {page}");
+        assert_eq!(dock.layout().as_ref(), Some(&layout));
+        frame(&ctx, &mut dock, 1280.0, 1400.0);
+        frame(&ctx, &mut dock, 1280.0, 1400.0);
+        assert_eq!(dock.layout().as_ref(), Some(&layout));
+        let tall = shown_height(&dock, PaneKind::Navigator(NavKind::Messages));
+        let page = shown_height(&dock, PaneKind::PageView);
+        let ratio = tall / (tall + page);
+        assert!(
+            (0.33..0.37).contains(&ratio),
+            "tall: Messages {tall}, page view {page}"
+        );
+    }
+
+    /// R2-2 of cycle 31: a left column where Messages was docked under the page list is not the page view's split,
+    /// so it is not clamped.
+    #[test]
+    fn a_left_column_holding_messages_is_not_clamped() {
+        let layout = Layout {
+            root: LayoutNode::Split {
+                dir: SplitDir::Horizontal,
+                children: vec![
+                    (
+                        300,
+                        LayoutNode::Split {
+                            dir: SplitDir::Vertical,
+                            children: vec![
+                                (500, LayoutNode::Pane(PaneKind::Pages)),
+                                (500, LayoutNode::Pane(PaneKind::Navigator(NavKind::Messages))),
+                            ],
+                        },
+                    ),
+                    (700, LayoutNode::Pane(PaneKind::PageView)),
+                ],
+            },
+        };
+        let mut dock = Dock::new(&layout, 0);
+        let ctx = egui::Context::default();
+        frame(&ctx, &mut dock, 1280.0, 500.0);
+        frame(&ctx, &mut dock, 1280.0, 500.0);
+        assert_eq!(dock.layout().as_ref(), Some(&layout));
+        let messages = shown_height(&dock, PaneKind::Navigator(NavKind::Messages));
+        let pages = shown_height(&dock, PaneKind::Pages);
+        assert!(messages < 300.0, "Messages {messages}");
+        assert!(
+            (messages - pages).abs() < 1.0,
+            "an even split: Messages {messages}, Pages {pages}"
+        );
+    }
 
     #[test]
     fn the_schematic_workspace_round_trips_through_the_tree() {
