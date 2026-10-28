@@ -156,7 +156,8 @@ pub enum SvgHazard {
     /// an ancestor's, a class whose rule names one, or any element when a rule with another selector names one), a
     /// style sheet with more selector groups than [`MAX_SVG_CSS_RULES`] or more cloned declarations than
     /// [`MAX_SVG_CSS_DECLARATIONS`] (upper bounds counted without parsing, so no string, comment or at-rule hides
-    /// them), a long run of close-path commands.
+    /// them), a long run of close-path commands, marker applications beyond [`MAX_SVG_MARKER_WORK`] (FT-470) or
+    /// style matching and application beyond [`MAX_SVG_CSS_WORK`] (FT-471).
     TooComplex,
     /// A number beyond [`MAX_SVG_NUMBER`] in an attribute or a style sheet.
     HugeNumber,
@@ -482,6 +483,8 @@ fn svg_elements(bytes: &[u8]) -> usize {
         .count()
 }
 
+mod work;
+
 /// The deepest element nesting an SVG asset may have (the parser recurses per level; FT-384 audit).
 pub const MAX_SVG_DEPTH: usize = 64;
 /// The most elements an SVG asset may expand to through its references (`use`, clip paths, masks, patterns,
@@ -504,6 +507,22 @@ pub const MAX_SVG_CSS_RULES: u64 = 4_096;
 /// `:` count (audit of simplecss 0.2.2, `supply-chain/audits.toml`: "selector-group x declaration clone growth";
 /// FT-418). The largest real exporter file seen holds a bound of 3,526.
 pub const MAX_SVG_CSS_DECLARATIONS: u64 = 262_144;
+/// The most marker work an SVG asset may cause, in elements converted (FT-470): usvg converts a marker's content
+/// once per vertex it is drawn at, and the vertices of a shape are those of the path it makes of it (an arc's cubic
+/// pieces included). The bound sums, over every shape conversion (the document's and every reference's, as the
+/// expansion counts them) that can carry a marker property, its segments times the largest marker content a
+/// `marker-mid` names plus the largest a `marker-start` and a `marker-end` name. The same element budget as
+/// [`MAX_SVG_EXPANSION`]; the largest real exporter file seen (Visio, arrowheads through class rules) holds a bound
+/// of 48, so the limit has a margin of over 4,000 (`asset/work/tests.rs` asserts the corpus bounds).
+pub const MAX_SVG_MARKER_WORK: u64 = 200_000;
+/// The most style work an SVG asset may cause, in match steps (FT-471): usvg matches every style rule against every
+/// element it parses (clones of `use` included), simplecss backtracks through the ancestors once per descendant
+/// combinator, and every matching rule's declarations are applied. The bound sums, over every element conversion,
+/// each selector's most expensive match at the element's depth (`asset/work.rs`), the declarations of every rule
+/// that may match it times their insertion cost, and its own `style` declarations. The largest real exporter file
+/// seen (Inkscape, a 2,791-element map whose commented sheet is not plain) holds a bound of 430,667,782, so the limit
+/// 2^34 (17,179,869,184) has a margin of about 40 (`asset/work/tests.rs` asserts the corpus bounds).
+pub const MAX_SVG_CSS_WORK: u64 = 1 << 34;
 
 /// The first reason to refuse an SVG file before any parser or renderer reads it, or `None` (FT-383, doc 05 §13.3,
 /// doc 18 §11 TM-18). Sniffing is not sanitising: the sniffer reads only the root element, so this scanner reads the
@@ -547,12 +566,64 @@ pub const MAX_SVG_CSS_DECLARATIONS: u64 = 262_144;
 /// as a plain value keeps the sheet exact. Real exporters' sheets are plain (Illustrator, Inkscape, CorelDRAW,
 /// Visio) or carry no such reference (`@keyframes`, comments).
 ///
+/// Two work bounds follow, computed from the same pass (arithmetic in `asset/work.rs`) and refused as
+/// [`SvgHazard::TooComplex`]:
+///
+/// - *marker applications* (FT-470): over every shape conversion (the document's and every reference's) that can
+///   carry a marker property (its own, an ancestor's, a class rule's, or any when a `use` converts it again), its
+///   path segments (one per command, the move-to svgtypes inserts after a close-path, and every cubic piece kurbo
+///   cuts an arc into) times the largest marker content a `marker-mid` names, plus the largest a `marker-start` and a
+///   `marker-end` name; beyond [`MAX_SVG_MARKER_WORK`];
+/// - *style work* (FT-471): over every element conversion, each selector's most expensive simplecss match at the
+///   element's depth (the backtracking over ancestors per descendant combinator), the declarations of every rule
+///   that may match it and of its `style` attribute times their insertion cost; beyond [`MAX_SVG_CSS_WORK`].
+///   Selectors are known exactly in a plain sheet; in any other sheet every span that can end a valid selector is
+///   one (with comments that can host a statement), and a sheet with an escape is one selector of all its parts.
+///
+/// Where the scan cannot tell what usvg will apply, it counts the larger case: a length in `em`, `ex` or `%` is as
+/// large as `f32` allows, path data it cannot follow is bounded from its digits, a combinator it cannot tell walks
+/// every ancestor and the sibling, and a rule's declarations may apply to every element unless its selector requires
+/// a class.
+///
 /// Calibrated against real exporters' files (FT-418, `tests/fixtures/svg-exporters/`).
 ///
-/// Linear in the length of the file (the reference graph is walked once). The drawing pipeline parses an admitted SVG
+/// Linear in the length of the file (the reference graph is walked a few times; a style sheet's selectors cost
+/// their compounds times the 64 depths). The drawing pipeline parses an admitted SVG
 /// with external references disabled and inside `catch_unwind` besides (FT-384), so this is the first of two guards,
 /// not the only one.
 pub fn svg_hazard(bytes: &[u8]) -> Option<SvgHazard> {
+    svg_work(bytes).err()
+}
+
+/// The work bounds of an admitted SVG document (the counts its limits are checked against).
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+struct Work {
+    /// Elements converted, references expanded ([`MAX_SVG_EXPANSION`]).
+    expansion: u64,
+    /// Marker content elements converted ([`MAX_SVG_MARKER_WORK`], FT-470).
+    markers: u64,
+    /// Style match and application steps ([`MAX_SVG_CSS_WORK`], FT-471).
+    css: u64,
+}
+
+/// The upper bound [`svg_hazard`] uses for the segments usvg 0.48.1 makes of the path data `d` (FT-470), for the
+/// test that checks it against usvg itself (`ew-scene`); not part of the asset API.
+#[doc(hidden)]
+pub fn svg_path_segment_bound(d: &str) -> u64 {
+    work::path_segments(d)
+}
+
+/// [`svg_hazard`]'s scan: the first refusal, or the work bounds of an admitted document.
+fn svg_work(bytes: &[u8]) -> Result<Work, SvgHazard> {
+    let mut scan = Scan::default();
+    if let Some(hazard) = read_markup(bytes, &mut scan) {
+        return Err(hazard);
+    }
+    scan.finish()
+}
+
+/// [`svg_hazard`]'s markup reader: the first refusal while reading, with the document's facts left in `scan`.
+fn read_markup(bytes: &[u8], scan: &mut Scan) -> Option<SvgHazard> {
     let Ok(text) = std::str::from_utf8(bytes) else {
         return Some(SvgHazard::NotUtf8);
     };
@@ -561,7 +632,6 @@ pub fn svg_hazard(bytes: &[u8]) -> Option<SvgHazard> {
     if lower.contains("<!entity") {
         return Some(SvgHazard::Entity);
     }
-    let mut scan = Scan::default();
     let b = lower.as_bytes();
     let find = |from: usize, needle: &str| lower[from..].find(needle).map(|k| from + k);
     let mut i = 0;
@@ -583,6 +653,7 @@ pub fn svg_hazard(bytes: &[u8]) -> Option<SvgHazard> {
             let Some(end) = find(i + 4, "-->") else {
                 return Some(SvgHazard::Malformed);
             };
+            scan.non_element();
             i = end + 3;
             continue;
         }
@@ -630,6 +701,7 @@ pub fn svg_hazard(bytes: &[u8]) -> Option<SvgHazard> {
             if target == "xml-stylesheet" {
                 return Some(SvgHazard::ExternalReference);
             }
+            scan.non_element();
             i = end + 2;
             continue;
         }
@@ -719,7 +791,7 @@ pub fn svg_hazard(bytes: &[u8]) -> Option<SvgHazard> {
         }
         i = j;
     }
-    scan.finish()
+    None
 }
 
 /// One element of the document, in document order: its parent's record, whether it carries a marker property
@@ -728,6 +800,14 @@ struct Record {
     parent: Option<usize>,
     marker_attr: bool,
     classes: Vec<String>,
+    /// Its ancestors (0 for the root).
+    depth: usize,
+    /// The segments of the path usvg makes of it when it is a shape ([`work::shape_segments`]), else 0.
+    segments: u64,
+    /// The markers its own marker attributes and `style` name, per property.
+    markers: work::MarkerTargets,
+    /// The declarations (`:` count) and bytes of its `style` attribute, applied to it and to each clone.
+    style: (u64, u64),
 }
 
 /// A graph node (an element with an id, gradients and stops excepted).
@@ -758,8 +838,32 @@ struct Scan {
     nodes: Vec<Node>,
     /// Every element, in document order.
     records: Vec<Record>,
-    /// References outside any node, and the elements of the document.
-    top: (u64, std::collections::BTreeMap<String, u64>),
+    /// The elements of the document.
+    elements: u64,
+    /// Every reference with its count, from any element: the document's own conversion makes each one once (a
+    /// reference inside an element with an id counts here too, not only in that node's edges).
+    all_refs: std::collections::BTreeMap<String, u64>,
+    /// The ids `use` elements reference: usvg converts their subtrees again under the `use`, where they inherit
+    /// the `use`'s marker properties.
+    use_targets: std::collections::BTreeSet<String>,
+    /// The markers each class rule names, per property.
+    class_markers: std::collections::BTreeMap<String, [std::collections::BTreeSet<String>; 3]>,
+    /// The most attributes of an element, and the longest value per attribute name.
+    max_attrs: u64,
+    value_len: std::collections::BTreeMap<String, u64>,
+    /// Per open element (and the document before the root, index 0), the nodes that are not elements since its
+    /// last element child; the most seen before an element.
+    gaps: Vec<u64>,
+    max_gap: u64,
+    /// The selectors of every style sheet (FT-471).
+    selectors: Vec<work::Selector>,
+    /// The declarations (count, bytes) usvg may apply to every element, and to the elements with each class.
+    apply_all: (u64, u64),
+    apply_class: std::collections::BTreeMap<String, (u64, u64)>,
+    /// Whether a style sheet or `style` attribute holds `inherit` (usvg then walks the ancestors per declaration)
+    /// or may hold the `font` shorthand (fourteen attributes per declaration).
+    css_inherit: bool,
+    css_font: bool,
     /// The ids each class rule references, by class.
     class_targets: std::collections::BTreeMap<String, std::collections::BTreeSet<String>>,
     /// The classes whose rule names a marker property.
@@ -810,10 +914,23 @@ impl Scan {
                 }
             }
         }
+        // Path data is case-sensitive (absolute and relative commands): the shape's segments are bounded first.
+        let segments = work::shape_segments(name, attrs);
         // All following hazard/graph logic retains the scanner's conservative ASCII-insensitive behaviour.
         for (_, value) in attrs.iter_mut() {
             value.make_ascii_lowercase();
         }
+        // What a selector match on this element can cost (FT-471): its attribute count and value lengths, and the
+        // nodes before it that are not elements (the previous-sibling walk).
+        self.max_attrs = self.max_attrs.max(attrs.len() as u64);
+        for (attr, value) in attrs.iter() {
+            let len = value.len() as u64;
+            let longest = self.value_len.entry((*attr).to_owned()).or_insert(0);
+            *longest = (*longest).max(len);
+        }
+        let gap = self.gap_slot();
+        let before = std::mem::take(gap);
+        self.max_gap = self.max_gap.max(before);
         let id = attrs
             .iter()
             .find(|(a, _)| *a == "id")
@@ -845,6 +962,10 @@ impl Scan {
             parent: self.open.last().map(|(_, _, record)| *record),
             marker_attr: false,
             classes: Vec::new(),
+            depth: self.open.len(),
+            segments,
+            markers: Default::default(),
+            style: (0, 0),
         });
         let node = match id {
             Some(id) if !matches!(name, "lineargradient" | "radialgradient" | "stop") && !id.is_empty() => {
@@ -862,9 +983,25 @@ impl Scan {
             _ => None,
         };
         self.open.push((name.to_owned(), node, record));
+        self.gaps.push(0);
         self.count_element();
         for (attr, value) in attrs {
             let value = value.as_str();
+            work::attribute_markers(attr, value, &mut self.records[record].markers);
+            if *attr == "style" {
+                let found = work::declaration_markers(value);
+                for (kind, targets) in self.records[record].markers.iter_mut().zip(found) {
+                    kind.extend(targets);
+                }
+                self.records[record].style = (value.matches(':').count() as u64, value.len() as u64);
+                self.css_inherit |= value.contains("inherit");
+                self.css_font |= work::may_hold_font_shorthand(value);
+            }
+            if name == "use" && *attr == "href" {
+                if let Some(target) = value.trim().strip_prefix('#') {
+                    self.use_targets.insert(target.trim().to_owned());
+                }
+            }
             if *attr == "transform-origin" {
                 return Some(SvgHazard::Unsupported);
             }
@@ -916,6 +1053,7 @@ impl Scan {
     /// Pop the innermost element; a closed `style` element's whole text is analysed once.
     fn close(&mut self) -> Option<SvgHazard> {
         if let Some((name, _, _)) = self.open.pop() {
+            self.gaps.truncate(self.open.len() + 1);
             if name == "style" {
                 let text = std::mem::take(&mut self.style_text);
                 return self.style_sheet(&text);
@@ -924,9 +1062,23 @@ impl Scan {
         None
     }
 
+    /// The count of nodes that are not elements since the innermost open element's last element child (the
+    /// document's before the root).
+    fn gap_slot(&mut self) -> &mut u64 {
+        self.gaps.resize(self.open.len() + 1, 0);
+        &mut self.gaps[self.open.len()]
+    }
+
+    /// A node that is not an element (text, a comment, a CDATA section, a processing instruction): one more step
+    /// for a previous-sibling walk that passes it.
+    fn non_element(&mut self) {
+        let gap = self.gap_slot();
+        *gap = gap.saturating_add(1);
+    }
+
     /// One more element in every open node's subtree and in the document.
     fn count_element(&mut self) {
-        self.top.0 += 1;
+        self.elements += 1;
         for (_, node, _) in &self.open {
             if let Some(k) = node {
                 self.nodes[*k].size += 1;
@@ -936,21 +1088,18 @@ impl Scan {
 
     /// A reference to `target` from the innermost element: an edge from every open node, or from the document.
     fn reference(&mut self, target: &str) {
-        let mut any = false;
         for (_, node, _) in &self.open {
             if let Some(k) = node {
                 *self.nodes[*k].refs.entry(target.to_owned()).or_insert(0) += 1;
-                any = true;
             }
         }
-        if !any {
-            *self.top.1.entry(target.to_owned()).or_insert(0) += 1;
-        }
+        *self.all_refs.entry(target.to_owned()).or_insert(0) += 1;
     }
 
     /// Character data: outside `style` the text checks; inside it every chunk is kept for [`Scan::style_sheet`],
     /// which runs once when the element closes (roxmltree merges the chunks into one text node).
     fn text(&mut self, text: &str) -> Option<SvgHazard> {
+        self.non_element();
         if self.open.last().is_some_and(|(name, _, _)| name == "style") {
             self.style_text.push_str(text);
             return None;
@@ -976,6 +1125,8 @@ impl Scan {
         }
         self.css_comments += text.matches("/*").count();
         self.drop_shadows += text.matches("drop-shadow(").count();
+        self.css_inherit |= text.contains("inherit");
+        self.css_font |= work::may_hold_font_shorthand(text);
         // The group bound without parsing: every selector group needs a `,` or a `{`. The declaration bound is
         // exact for a plain sheet (below); a sheet that is not plain keeps the raw product of the group bound and
         // the `:` count, a declaration needing a `:`.
@@ -1004,6 +1155,46 @@ impl Scan {
                 .saturating_add(groups_bound.saturating_mul(text.matches(':').count() as u64));
             if self.css_declarations > MAX_SVG_CSS_DECLARATIONS {
                 return Some(SvgHazard::TooComplex);
+            }
+            // FT-471: the candidate selectors ([`work::sheet_selectors`], or the whole sheet up to the group bound
+            // times when an escape can hide a boundary or the candidates are too many). Each rule takes one block's
+            // declarations: at most every
+            // `:` and every byte of the sheet, applied to the elements of the class its selector's last compound
+            // requires, or to every element.
+            let colons = text.matches(':').count() as u64;
+            let block = (colons, text.len() as u64);
+            // More candidates than the rule bound (cuts at `/` are not counted by it) fall back to the whole sheet:
+            // simplecss makes at most `groups_bound` rules, so memory stays bounded.
+            match work::sheet_selectors(text, &clean).filter(|spans| spans.len() as u64 <= MAX_SVG_CSS_RULES)
+            {
+                Some(spans) => {
+                    for span in spans {
+                        self.selectors.push(work::Selector {
+                            shape: work::uniform(span),
+                            copies: 1,
+                        });
+                        let apply = match work::last_class(span.trim()) {
+                            Some(class) => self.apply_class.entry(class).or_insert((0, 0)),
+                            None => &mut self.apply_all,
+                        };
+                        apply.0 = apply.0.saturating_add(block.0);
+                        apply.1 = apply.1.saturating_add(block.1);
+                    }
+                }
+                None => {
+                    self.selectors.push(work::Selector {
+                        shape: work::uniform(text),
+                        copies: groups_bound.max(1),
+                    });
+                    self.apply_all.0 = self
+                        .apply_all
+                        .0
+                        .saturating_add(groups_bound.saturating_mul(block.0));
+                    self.apply_all.1 = self
+                        .apply_all
+                        .1
+                        .saturating_add(groups_bound.saturating_mul(block.1));
+                }
             }
             self.css_wild = true;
             self.wild_targets.extend(url_targets(text));
@@ -1037,11 +1228,26 @@ impl Scan {
                 Some(close) => (&after[..close], Some(&after[close + 1..])),
                 None => (after, None),
             };
-            declarations = declarations.saturating_add(
-                (groups.len() as u64).saturating_mul((body.matches(':').count() as u64).max(1)),
-            );
+            let per_group = (body.matches(':').count() as u64).max(1);
+            declarations = declarations.saturating_add((groups.len() as u64).saturating_mul(per_group));
+            // FT-471: each group is a selector; its rule's declarations apply to the elements of the class its last
+            // compound requires, or to every element.
+            for group in &groups {
+                let group = group.trim();
+                self.selectors.push(work::Selector {
+                    shape: work::group_shape(group),
+                    copies: 1,
+                });
+                let apply = match work::last_class(group) {
+                    Some(class) => self.apply_class.entry(class).or_insert((0, 0)),
+                    None => &mut self.apply_all,
+                };
+                apply.0 = apply.0.saturating_add(per_group);
+                apply.1 = apply.1.saturating_add(body.len() as u64);
+            }
             let targets = url_targets(body);
             let carries_marker = body.contains("marker");
+            let markers = work::declaration_markers(body);
             // A class rule selects only plain class names; every other selector is a wild rule.
             let class_rule = groups.iter().all(|g| {
                 g.trim().strip_prefix('.').is_some_and(|class| {
@@ -1060,6 +1266,10 @@ impl Scan {
                             .extend(targets.iter().cloned());
                         if carries_marker {
                             marker_classes.insert(class.to_owned());
+                        }
+                        let entry = self.class_markers.entry(class.to_owned()).or_default();
+                        for (kind, found) in entry.iter_mut().zip(&markers) {
+                            kind.extend(found.iter().cloned());
                         }
                     }
                 }
@@ -1099,19 +1309,19 @@ impl Scan {
     }
 
     /// The checks that need the whole document: style-sheet totals, marker rules, cycles and the expansion.
-    fn finish(mut self) -> Option<SvgHazard> {
+    fn finish(mut self) -> Result<Work, SvgHazard> {
         // A `style` element still open at the end of the file is analysed too.
         if self.open.iter().any(|(name, _, _)| name == "style") {
             let text = std::mem::take(&mut self.style_text);
             if let Some(h) = self.style_sheet(&text) {
-                return Some(h);
+                return Err(h);
             }
         }
         if self.css_comments > 64 || self.drop_shadows > 16 {
-            return Some(SvgHazard::TooComplex);
+            return Err(SvgHazard::TooComplex);
         }
         if chain_hazard(&self.chains) {
-            return Some(SvgHazard::TooComplex);
+            return Err(SvgHazard::TooComplex);
         }
         // The graph: node k, then one class node per class rule (in the map's order), then the wild node.
         let n = self.nodes.len();
@@ -1163,6 +1373,8 @@ impl Scan {
         let mut cost: Vec<Option<u64>> = vec![None; total_nodes];
         let mut depth = vec![0usize; total_nodes];
         let mut grey = vec![false; total_nodes];
+        // The nodes in the order they finish: every node after the targets of its edges.
+        let mut order: Vec<usize> = Vec::with_capacity(total_nodes);
         for root in 0..total_nodes {
             if cost[root].is_some() {
                 continue;
@@ -1173,7 +1385,7 @@ impl Scan {
                 if let Some(&(j, _)) = out.get(*at) {
                     *at += 1;
                     if grey[j] {
-                        return Some(SvgHazard::TooComplex);
+                        return Err(SvgHazard::TooComplex);
                     }
                     if cost[j].is_none() {
                         grey[j] = true;
@@ -1187,31 +1399,35 @@ impl Scan {
                     acc.saturating_add(c.saturating_mul(cost[*j].unwrap_or(0)))
                 });
                 if total > MAX_SVG_EXPANSION {
-                    return Some(SvgHazard::TooComplex);
+                    return Err(SvgHazard::TooComplex);
                 }
                 // The longest chain of references from this node (class and wild nodes are no link of their own).
                 let below = out.iter().map(|(j, _)| depth[*j]).max().unwrap_or(0);
                 depth[k] = below + usize::from(k < n);
                 if depth[k] > MAX_SVG_REF_DEPTH {
-                    return Some(SvgHazard::TooComplex);
+                    return Err(SvgHazard::TooComplex);
                 }
                 cost[k] = Some(total);
                 grey[k] = false;
+                order.push(k);
                 stack.pop();
             }
         }
+        // Whether an element or one of its ancestors carries a marker property (an attribute, its `style`, or a
+        // class whose rule names one): records come in document order, every parent before its children.
+        let mut chain_bad = vec![false; self.records.len()];
+        for (r, record) in self.records.iter().enumerate() {
+            chain_bad[r] = record.marker_attr
+                || record.classes.iter().any(|c| self.marker_classes.contains(c))
+                || record.parent.is_some_and(|parent| chain_bad[parent]);
+        }
+        let has_markers = self.nodes.iter().any(|node| node.is_marker);
         // Marker content may not itself carry a marker property, from any source: a marker whose subtree holds
         // such an element, or a class or wild rule that names one, can nest marker expansion without bound (usvg
         // inherits the marker properties; only the same marker re-entering itself is stopped).
-        if self.nodes.iter().any(|node| node.is_marker) {
+        if has_markers {
             if self.css_marker_wild {
-                return Some(SvgHazard::TooComplex);
-            }
-            let mut chain_bad = vec![false; self.records.len()];
-            for (r, record) in self.records.iter().enumerate() {
-                chain_bad[r] = record.marker_attr
-                    || record.classes.iter().any(|c| self.marker_classes.contains(c))
-                    || record.parent.is_some_and(|parent| chain_bad[parent]);
+                return Err(SvgHazard::TooComplex);
             }
             let bad = |k: usize| -> bool {
                 if k < n {
@@ -1233,7 +1449,7 @@ impl Scan {
             }
             while let Some(k) = queue.pop_front() {
                 if bad(k) {
-                    return Some(SvgHazard::TooComplex);
+                    return Err(SvgHazard::TooComplex);
                 }
                 for (j, _) in edges(k) {
                     if !seen[j] {
@@ -1243,14 +1459,145 @@ impl Scan {
                 }
             }
         }
-        let mut total = self.top.1.iter().fold(self.top.0, |acc, (t, c)| {
-            let k = index(t);
-            acc.saturating_add(c.saturating_mul(k.and_then(|k| cost[k]).unwrap_or(0)))
-        });
-        if self.css_wild {
-            total = total.saturating_add(cost[wild].unwrap_or(0));
+        let cost: Vec<u64> = cost.into_iter().map(|c| c.unwrap_or(0)).collect();
+        // The sum of a per-element weight over every conversion of an element: the document converts each element
+        // once, and every reference (wherever it is) converts its target's subtree once more, with the references
+        // inside that subtree, as `cost` counts elements. Subtree sums come from a reverse pass over the records
+        // (every parent before its children), node sums in `order` (every node after its edges' targets).
+        let instances = |weight: &[u64]| -> u64 {
+            let mut subtree = weight.to_vec();
+            for r in (0..self.records.len()).rev() {
+                if let Some(parent) = self.records[r].parent {
+                    subtree[parent] = subtree[parent].saturating_add(subtree[r]);
+                }
+            }
+            let mut node_weight = vec![0u64; total_nodes];
+            for &k in &order {
+                let own = if k < n { subtree[self.nodes[k].record] } else { 0 };
+                node_weight[k] = edges(k).iter().fold(own, |acc, (j, c)| {
+                    acc.saturating_add(c.saturating_mul(node_weight[*j]))
+                });
+            }
+            let direct = weight.iter().fold(0u64, |acc, w| acc.saturating_add(*w));
+            let referenced = self.all_refs.iter().fold(0u64, |acc, (target, c)| {
+                acc.saturating_add(c.saturating_mul(index(target).map_or(0, |k| node_weight[k])))
+            });
+            let wild_weight = if self.css_wild { node_weight[wild] } else { 0 };
+            direct.saturating_add(referenced).saturating_add(wild_weight)
+        };
+        let mut work = Work {
+            expansion: instances(&vec![1; self.records.len()]),
+            ..Work::default()
+        };
+        if work.expansion > MAX_SVG_EXPANSION {
+            return Err(SvgHazard::TooComplex);
         }
-        (total > MAX_SVG_EXPANSION).then_some(SvgHazard::TooComplex)
+        // FT-470: marker applications. The largest marker content (its expansion cost) each property names
+        // anywhere; a shape that can carry a marker property (its own or an ancestor's, or any when a `use`
+        // converts it again under other ancestors) is drawn with at most one start, one end and one mid marker per
+        // segment.
+        if has_markers {
+            let mut largest = [0u64; 3];
+            let mut consider = |kind: usize, target: &String| {
+                let content = self
+                    .ids
+                    .get(target.as_str())
+                    .filter(|k| self.nodes[**k].is_marker)
+                    .map_or(0, |k| cost[*k]);
+                largest[kind] = largest[kind].max(content);
+            };
+            for record in &self.records {
+                for (kind, targets) in record.markers.iter().enumerate() {
+                    targets.iter().for_each(|t| consider(kind, t));
+                }
+            }
+            for kinds in self.class_markers.values() {
+                for (kind, targets) in kinds.iter().enumerate() {
+                    targets.iter().for_each(|t| consider(kind, t));
+                }
+            }
+            let mut converted_again = vec![false; self.records.len()];
+            for target in &self.use_targets {
+                if let Some(&k) = self.ids.get(target.as_str()) {
+                    converted_again[self.nodes[k].record] = true;
+                }
+            }
+            for r in 0..self.records.len() {
+                if let Some(parent) = self.records[r].parent {
+                    converted_again[r] |= converted_again[parent];
+                }
+            }
+            let weight: Vec<u64> = self
+                .records
+                .iter()
+                .enumerate()
+                .map(|(r, record)| {
+                    if record.segments > 0 && (chain_bad[r] || converted_again[r]) {
+                        record
+                            .segments
+                            .saturating_mul(largest[1])
+                            .saturating_add(largest[0])
+                            .saturating_add(largest[2])
+                    } else {
+                        0
+                    }
+                })
+                .collect();
+            work.markers = instances(&weight);
+            if work.markers > MAX_SVG_MARKER_WORK {
+                return Err(SvgHazard::TooComplex);
+            }
+        }
+        // FT-471: style work. Per element conversion, every selector's most expensive match at the element's
+        // depth, then the declarations of every rule that may match it and of its own `style` attribute: each
+        // inserts up to fourteen attributes (the `font` shorthand) or three (`marker`), an insertion searches the
+        // element's attributes (its own and at most 256 attribute ids of usvg 0.48.1) and copies the value, and an
+        // `inherit` value walks the parsed tree's ancestors (its depth: the nesting times the reference chain, at
+        // most usvg's 1024).
+        let stats = work::Stats {
+            attrs: self.max_attrs,
+            value_len: &self.value_len,
+            sibling_walk: self.max_gap.saturating_add(1),
+        };
+        let mut per_depth = [0u64; work::DEPTHS];
+        for selector in &self.selectors {
+            let costs = work::selector_costs(&selector.shape, &stats);
+            for (total, c) in per_depth.iter_mut().zip(costs) {
+                *total = total.saturating_add(c.saturating_mul(selector.copies));
+            }
+        }
+        let chain = depth.iter().copied().max().unwrap_or(0) as u64;
+        let tree_depth = chain
+            .saturating_add(1)
+            .saturating_mul(work::DEPTHS as u64)
+            .min(1024);
+        let inserts: u64 = if self.css_font { 14 } else { 3 };
+        let insert = (1 + 256u64)
+            .saturating_add(self.max_attrs)
+            .saturating_mul(if self.css_inherit { 1 + tree_depth } else { 1 });
+        let apply = |(count, bytes): (u64, u64)| -> u64 {
+            count
+                .saturating_mul(inserts.saturating_mul(insert))
+                .saturating_add(bytes.saturating_mul(inserts))
+        };
+        let everywhere = apply(self.apply_all);
+        let weight: Vec<u64> = self
+            .records
+            .iter()
+            .map(|record| {
+                record.classes.iter().fold(
+                    per_depth[record.depth]
+                        .saturating_add(everywhere)
+                        .saturating_add(apply(record.style)),
+                    |acc, class| acc.saturating_add(self.apply_class.get(class).copied().map_or(0, apply)),
+                )
+            })
+            .collect();
+        work.css = instances(&weight);
+        if work.css > MAX_SVG_CSS_WORK {
+            return Err(SvgHazard::TooComplex);
+        }
+        Ok(work)
     }
 }
 

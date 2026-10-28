@@ -602,3 +602,113 @@ mod tests {
         );
     }
 }
+
+/// FT-470: the path segment bound of the SVG pre-scan (`ew_schema::svg_path_segment_bound`) is an upper bound of the
+/// segments usvg 0.48.1 makes, the vertices it draws markers at (oracle: usvg itself).
+#[cfg(test)]
+mod path_bound_oracle {
+    use proptest::prelude::*;
+
+    fn count(group: &usvg::Group) -> u64 {
+        group
+            .children()
+            .iter()
+            .map(|node| match node {
+                usvg::Node::Group(child) => count(child),
+                usvg::Node::Path(p) => p.data().segments().count() as u64,
+                usvg::Node::Image(_) | usvg::Node::Text(_) => 0,
+            })
+            .sum()
+    }
+
+    fn usvg_segments(d: &str) -> u64 {
+        let text = format!(
+            r#"<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><path d="{d}" fill="black"/></svg>"#
+        );
+        usvg::Tree::from_str(&text, &usvg::Options::default()).map_or(0, |tree| count(tree.root()))
+    }
+
+    fn number() -> impl Strategy<Value = String> {
+        prop_oneof![
+            (-1000i32..1000).prop_map(|v| v.to_string()),
+            (-1000i32..1000).prop_map(|v| format!("{v}.5")),
+            Just("1000000000".to_owned()),
+            Just("-1000000000".to_owned()),
+            Just("0".to_owned()),
+        ]
+    }
+
+    fn radius() -> impl Strategy<Value = String> {
+        prop_oneof![
+            Just("0.00002".to_owned()),
+            Just("0.00001".to_owned()),
+            Just("1".to_owned()),
+            Just("5".to_owned()),
+            Just("1000".to_owned()),
+            Just("1000000000".to_owned()),
+        ]
+    }
+
+    fn command() -> impl Strategy<Value = String> {
+        let letter = |set: &'static [&'static str]| proptest::sample::select(set);
+        prop_oneof![
+            (letter(&["M", "m", "L", "l", "T", "t"]), number(), number())
+                .prop_map(|(c, x, y)| format!("{c}{x} {y}")),
+            (letter(&["H", "h", "V", "v"]), number()).prop_map(|(c, x)| format!("{c}{x}")),
+            (
+                letter(&["Q", "q", "S", "s"]),
+                number(),
+                number(),
+                number(),
+                number()
+            )
+                .prop_map(|(c, a, b, x, y)| format!("{c}{a} {b} {x} {y}")),
+            (
+                letter(&["C", "c"]),
+                number(),
+                number(),
+                number(),
+                number(),
+                number(),
+                number()
+            )
+                .prop_map(|(c, a, b, e, f, x, y)| format!("{c}{a} {b} {e} {f} {x} {y}")),
+            (
+                letter(&["A", "a"]),
+                radius(),
+                radius(),
+                number(),
+                0u8..2,
+                0u8..2,
+                number(),
+                number()
+            )
+                .prop_map(|(c, rx, ry, rot, large, sweep, x, y)| format!(
+                    "{c}{rx} {ry} {rot} {large}{sweep} {x} {y}"
+                )),
+            letter(&["Z", "z"]).prop_map(str::to_owned),
+        ]
+    }
+
+    proptest! {
+        #![proptest_config(ProptestConfig::with_cases(128))]
+
+        #[test]
+        fn the_bound_holds_for_usvg_paths(commands in proptest::collection::vec(command(), 0..10)) {
+            let d = format!("M0 0 {}", commands.join(" "));
+            let made = usvg_segments(&d);
+            let bound = ew_schema::svg_path_segment_bound(&d);
+            prop_assert!(made <= bound, "{}: usvg made {}, the bound is {}", d, made, bound);
+        }
+    }
+
+    /// The arc case of FT-470: one arc command of a tiny radius over a long chord is thousands of segments in usvg,
+    /// and the bound covers them.
+    #[test]
+    fn a_tiny_radius_arc_is_thousands_of_usvg_segments() {
+        let d = "M0 0 A0.00002 1000000000 0 0 0 1000000000 0";
+        let made = usvg_segments(d);
+        assert!(made > 1_000, "{made}");
+        assert!(made <= ew_schema::svg_path_segment_bound(d));
+    }
+}
