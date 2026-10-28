@@ -8,7 +8,8 @@
 
 mod common;
 
-use common::{Tmp, done};
+use common::{Tmp, click, done, entity_points};
+use ew_viewmodel::ew_api::output::ew_dl::EntityRef;
 use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
 use serde_json::{Value, json};
 
@@ -113,4 +114,115 @@ fn item2_the_strip_rows_designation_wins_over_the_symbol_rows() {
         "{labels:?}"
     );
     assert!(!labels.iter().any(|l| l.contains(":5/")), "{labels:?}");
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Item 3: the keyboard move of a terminal placed through the text interface.
+
+/// The insertion point of the page's only representation.
+fn only_rep(s: &ShellModel) -> (EntityRef, (i64, i64)) {
+    let reps = &s.canvas().unwrap().page().tables.reps;
+    assert_eq!(reps.len(), 1);
+    (EntityRef(reps[0].id), reps[0].pos)
+}
+
+/// Selects the page's only representation with a click on it.
+fn select_only_rep(s: &mut ShellModel) {
+    let (rep, _) = only_rep(s);
+    let p = entity_points(s.canvas().unwrap())
+        .into_iter()
+        .find(|(e, _)| *e == rep)
+        .map(|(_, p)| p)
+        .expect("a point picks the terminal");
+    click(s, p, json!({}));
+    assert_eq!(s.selection().primary, Some(rep));
+}
+
+#[test]
+fn item3_the_move_shifts_the_terminal_by_the_cursors_displacement_from_where_it_was_armed() {
+    let tmp = Tmp::new("bd16-3");
+    let mut s = new_project_with_strip(&tmp);
+    place_terminal(&mut s, "101-D2", json!({}), json!({}));
+    let (_, before) = only_rep(&s);
+    select_only_rep(&mut s);
+    // The drafter's first try: the cursor stood in D4 when Move was armed, so going to D3 is one cell to the left;
+    // Escape cancels and nothing moves.
+    done(&mut s, "nav.goto", json!({"text": "101-D4"}));
+    done(&mut s, "tool.move", json!({}));
+    done(&mut s, "nav.goto", json!({"text": "101-D3"}));
+    done(&mut s, "ui.dismiss", json!({}));
+    assert_eq!(only_rep(&s).1, before);
+    // The cursor on the start cell, Move, the target cell, Enter: one cell to the right.
+    done(&mut s, "nav.goto", json!({"text": "101-D2"}));
+    done(&mut s, "tool.move", json!({}));
+    done(&mut s, "nav.goto", json!({"text": "101-D3"}));
+    done(&mut s, "canvas.activate", json!({}));
+    let (_, after) = only_rep(&s);
+    assert_eq!(after.1, before.1);
+    assert!(after.0 > before.0, "{before:?} -> {after:?}");
+    // The same move back with `cursor.set`: the cursor at the printed position of a CP, Move, the cursor one
+    // cell width to the left, Enter.
+    let cp = s.canvas().unwrap().page().cps[0].at_nm;
+    let dx = after.0 - before.0;
+    done(&mut s, "cursor.set", common::at(cp, json!({})));
+    done(&mut s, "tool.move", json!({}));
+    done(&mut s, "cursor.set", common::at((cp.0 - dx, cp.1), json!({})));
+    done(&mut s, "canvas.activate", json!({}));
+    assert_eq!(only_rep(&s).1, before);
+}
+
+/// The representations' insertion points by ID.
+fn rep_positions(s: &ShellModel) -> Vec<(EntityRef, (i64, i64))> {
+    s.canvas()
+        .unwrap()
+        .page()
+        .tables
+        .reps
+        .iter()
+        .map(|r| (EntityRef(r.id), r.pos))
+        .collect()
+}
+
+#[test]
+fn item3_a_terminal_stacked_on_another_moves_off_it_by_keyboard_and_by_drag() {
+    let tmp = Tmp::new("bd16-3b");
+    let mut s = new_project_with_strip(&tmp);
+    // The drafter's stack: two terminals placed on one point (Alt places without snapping to the other's CPs).
+    place_terminal(&mut s, "101-D2", json!({}), json!({}));
+    place_terminal(&mut s, "101-D2", json!({}), json!({}));
+    let before = rep_positions(&s);
+    assert_eq!(before.len(), 2);
+    assert_eq!(before[0].1, before[1].1);
+    // A click picks the top one.
+    let (top, p) = entity_points(s.canvas().unwrap())
+        .into_iter()
+        .find(|(e, _)| before.iter().any(|(r, _)| r == e))
+        .expect("a point picks a terminal");
+    click(&mut s, p, json!({}));
+    assert_eq!(s.selection().primary, Some(top));
+    // Armed from D4 and cancelled, then armed on D2 and committed on D3: the selected terminal moves, the other
+    // stays.
+    done(&mut s, "nav.goto", json!({"text": "101-D4"}));
+    done(&mut s, "tool.move", json!({}));
+    done(&mut s, "ui.dismiss", json!({}));
+    done(&mut s, "nav.goto", json!({"text": "101-D2"}));
+    done(&mut s, "tool.move", json!({}));
+    done(&mut s, "nav.goto", json!({"text": "101-D3"}));
+    done(&mut s, "canvas.activate", json!({}));
+    let after = rep_positions(&s);
+    let pos = |v: &[(EntityRef, (i64, i64))], e: EntityRef| v.iter().find(|(r, _)| *r == e).unwrap().1;
+    let other = before.iter().find(|(r, _)| *r != top).unwrap().0;
+    assert_eq!(pos(&after, other), pos(&before, other));
+    let dx = pos(&after, top).0 - pos(&before, top).0;
+    assert!(dx > 0, "{before:?} -> {after:?}");
+    // The pointer drags it back by the same distance (press on it, move, release).
+    let p = entity_points(s.canvas().unwrap())
+        .into_iter()
+        .find(|(e, _)| *e == top)
+        .map(|(_, p)| p)
+        .unwrap();
+    done(&mut s, "canvas.press", common::at(p, json!({})));
+    done(&mut s, "canvas.pointer", common::at((p.0 - dx, p.1), json!({})));
+    done(&mut s, "canvas.release", common::at((p.0 - dx, p.1), json!({})));
+    assert_eq!(rep_positions(&s), before);
 }
