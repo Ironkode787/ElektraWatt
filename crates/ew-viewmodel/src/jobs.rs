@@ -117,12 +117,54 @@ pub struct JobsState {
     pub(crate) next: u64,
     /// The window's repaint request; `None` headless.
     pub(crate) waker: Option<Waker>,
-    /// The test gate (`ShellModel::set_job_gate_for_tests`, feature `testkit`); never set by the product.
-    pub(crate) gate: Option<Gate>,
-    /// A test fault (`ShellModel::set_job_panic_for_tests`, feature `testkit`): the body panics at this step.
-    pub(crate) panic_at: Option<&'static str>,
+    /// The test gate and fault of the jobs started from now on (empty without the feature `testkit`).
+    pub(crate) hooks: TestHooks,
     /// The `file://` URL the window must hand to the system opener (Open PDF), taken once.
     pub(crate) open_request: Option<String>,
+}
+
+/// The test hooks of the export jobs (feature `testkit`): a gate and a fault. Without the feature the struct is empty,
+/// no job gets a gate and the body checks no fault, so neither is compiled into the product.
+#[derive(Clone, Default)]
+pub(crate) struct TestHooks {
+    /// The test gate (`ShellModel::set_job_gate_for_tests`).
+    #[cfg(feature = "testkit")]
+    pub(crate) gate: Option<Gate>,
+    /// A test fault (`ShellModel::set_job_panic_for_tests`): the body panics at this step.
+    #[cfg(feature = "testkit")]
+    pub(crate) panic_at: Option<&'static str>,
+}
+
+#[cfg(feature = "testkit")]
+impl TestHooks {
+    /// The gate a new job gets.
+    fn gate(&self) -> Option<Gate> {
+        self.gate.clone()
+    }
+
+    /// Lets the gate go: it would hold a cancelled job at its checkpoint.
+    fn release(&mut self) {
+        self.gate = None;
+    }
+
+    /// Panics when the test asked for a fault at `step`.
+    fn fault(&self, step: &'static str) {
+        assert!(self.panic_at != Some(step), "a test fault at {step}");
+    }
+}
+
+#[cfg(not(feature = "testkit"))]
+impl TestHooks {
+    /// No gate.
+    fn gate(&self) -> Option<Gate> {
+        None
+    }
+
+    /// Nothing to let go.
+    fn release(&mut self) {}
+
+    /// No fault.
+    fn fault(&self, _step: &'static str) {}
 }
 
 impl std::fmt::Debug for JobsState {
@@ -178,11 +220,11 @@ impl JobsState {
         let options = JobOptions {
             name: JobKind::Pdf.word().to_owned(),
             waker: self.waker.clone(),
-            gate: self.gate.clone(),
+            gate: self.hooks.gate(),
         };
-        let panic_at = self.panic_at;
+        let hooks = self.hooks.clone();
         let to = target.clone();
-        let handle = Job::spawn(options, move |ctl| export_body(job, ctl, &to, &sibling, panic_at))?;
+        let handle = Job::spawn(options, move |ctl| export_body(job, ctl, &to, &sibling, &hooks))?;
         self.next += 1;
         let number = self.next;
         self.entries.push_back(JobEntry {
@@ -212,7 +254,7 @@ impl JobsState {
     /// already written its file is done, not cancelled (ID-719).
     pub(crate) fn stop_all(&mut self) -> Vec<(u64, JobEnd<ExportDone>)> {
         // A test gate would hold a cancelled job at its checkpoint: it is let go.
-        self.gate = None;
+        self.hooks.release();
         let handles: Vec<(u64, Job<ExportDone>)> = self
             .entries
             .iter_mut()
@@ -269,7 +311,7 @@ fn export_body(
     ctl: &JobCtl,
     target: &Path,
     sibling: &Path,
-    panic_at: Option<&'static str>,
+    hooks: &TestHooks,
 ) -> Result<ExportDone, JobError> {
     let export = job.run(ctl)?;
     let mut guard = Sibling {
@@ -281,11 +323,8 @@ fn export_body(
     file.write_all(&export.bytes).map_err(failed)?;
     file.sync_all().map_err(failed)?;
     drop(file);
-    // A test fault (feature `testkit` only sets it): a panic with the sibling on disk.
-    assert!(
-        panic_at != Some("sibling"),
-        "a test fault after the sibling was written"
-    );
+    // A test fault (feature `testkit` only): a panic with the sibling on disk.
+    hooks.fault("sibling");
     ctl.checkpoint("rename")?;
     std::fs::rename(sibling, target).map_err(failed)?;
     guard.armed = false;

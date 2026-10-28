@@ -135,14 +135,14 @@ impl ShellModel {
     /// The test gate of the jobs started from now on (feature `testkit`; the product never sets one).
     #[cfg(feature = "testkit")]
     pub fn set_job_gate_for_tests(&mut self, gate: Option<Gate>) {
-        self.jobs.gate = gate;
+        self.jobs.hooks.gate = gate;
     }
 
     /// A test fault of the export jobs started from now on (feature `testkit`): `Some("sibling")` makes the body panic
     /// right after the sibling file is written and synced, before the rename.
     #[cfg(feature = "testkit")]
     pub fn set_job_panic_for_tests(&mut self, at: Option<&'static str>) {
-        self.jobs.panic_at = at;
+        self.jobs.hooks.panic_at = at;
     }
 
     // -----------------------------------------------------------------------------------------------------------
