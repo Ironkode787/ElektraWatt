@@ -36,6 +36,7 @@ use ew_api::output::ew_dl::ew_units::{Nm, Rect};
 use ew_api::output::ew_dl::{Destination, DisplayList, EntityRef};
 use ew_api::output::{LinkTarget, PageCells, PageCp, PageGrid, PageRow, PageTables};
 
+use crate::shell::natural_cmp;
 use crate::tools::Snapper;
 
 /// A page of the page order by its stable identity (`PageRow::id`), held as the page's own PDF destination
@@ -94,9 +95,22 @@ pub fn reading_key(cells: Option<&PageCells>, p: (i64, i64)) -> (u32, u32, i64, 
     (c, r, p.1, p.0)
 }
 
-/// Sorts `links` into reading order (ties: paint order).
+/// Sorts `links` into reading order. Links at the same reading key go by what is printed, the label of their target
+/// (its cell, else its folio) in natural order, a link without a target last; only links that print the same keep
+/// the destination and then the paint order, which both follow random IDs (FT-483, as `Session::page_cps` does for
+/// coincident connection points), so two copies of a project list them alike.
 pub fn sort_links(links: &mut [PageLink], cells: Option<&PageCells>) {
-    links.sort_by_key(|l| (reading_key(cells, rect_centre(l.rect)), l.paint));
+    links.sort_by(|a, b| {
+        let key = |l: &PageLink| reading_key(cells, rect_centre(l.rect));
+        key(a)
+            .cmp(&key(b))
+            .then_with(|| match (a.label(), b.label()) {
+                (Some(x), Some(y)) => natural_cmp(&x, &y).then_with(|| x.cmp(&y)),
+                (x, y) => x.is_none().cmp(&y.is_none()),
+            })
+            .then_with(|| a.dest.cmp(&b.dest))
+            .then_with(|| a.paint.cmp(&b.paint))
+    });
 }
 
 /// `num / den` rounded to the nearest integer, halves away from zero (`den > 0`).

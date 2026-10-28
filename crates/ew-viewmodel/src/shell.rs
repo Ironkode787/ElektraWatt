@@ -44,6 +44,7 @@ mod editing;
 // WP-S2.05 part 2
 mod find;
 mod interruption;
+pub(crate) use interruption::natural_cmp;
 mod navigation;
 mod onboarding;
 // FT-410
