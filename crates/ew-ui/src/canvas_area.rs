@@ -182,6 +182,9 @@ impl CanvasAreaHost {
         canvas: &mut CanvasHost,
         events: &mut Vec<Event>,
     ) {
+        // WP-S2.06 part 1: the chip line "Not on this page" above the canvas (§6.5).
+        crate::navigator::chip_line(ui, shell, events);
+        let drop_rect = ui.available_rect_before_wrap();
         let Some(area) = shell.area() else {
             self.tree = None;
             self.built = None;
@@ -202,6 +205,14 @@ impl CanvasAreaHost {
             events,
         };
         tree.ui(&mut behavior, ui);
+        // WP-S2.06 part 1 (§6.7): an unplaced function dropped from the Devices navigator arms the Place tool with it.
+        let released = ui.input(|i| i.pointer.any_released());
+        if released
+            && ui.rect_contains_pointer(drop_rect)
+            && let Some(f) = egui::DragAndDrop::take_payload::<crate::navigator::FunctionDrag>(ui.ctx())
+        {
+            events.push(Event::Action("place.pick", json!({ "function": f.0 })));
+        }
         // A structural change of the tree: a single move becomes `tab.move`; the tree is rebuilt from the model.
         let shown = tree_groups(tree);
         let model = model_groups(area);

@@ -147,6 +147,13 @@ pub struct PageNavigator {
     collapsed: BTreeSet<String>,
     /// The row cursor's key, when the user moved it; else the current page's row.
     row: Option<String>,
+    // WP-S2.06 part 1
+    /// The keys of the marked rows (multi-selection, §6.4).
+    pub(crate) marked: BTreeSet<String>,
+    /// The key a Shift range starts from.
+    pub(crate) anchor: Option<String>,
+    /// The selection generation the navigator last applied or followed (the generation guard, §6.5).
+    pub(crate) applied: Option<u64>,
 }
 
 /// One node of the full tree.
@@ -224,12 +231,22 @@ impl PageNavigator {
         order
     }
 
-    fn matches(&self, row: &PageRow) -> bool {
+    /// Whether a page row passes the filter: the framework's filter (WP-S2.06 §6.3) over the row's label
+    /// `<folio> <title>`, its tokens and its facets (`page:<folio>`, `kind:page`). A substring of the folio or of the
+    /// title is a substring of the label, so the as-built matches are kept (D6).
+    fn matches(&self, row: &PageRow, query: &crate::navigators::Query) -> bool {
         if self.filter.is_empty() {
             return true;
         }
-        let f = self.filter.to_lowercase();
-        row.folio.to_lowercase().contains(&f) || row.title.to_lowercase().contains(&f)
+        let label = format!("{} {}", row.folio, row.title);
+        let mut tokens = ew_api::output::nav_tokens(&label);
+        tokens.sort();
+        tokens.dedup();
+        let facets = [
+            ("page".to_owned(), row.folio.to_lowercase()),
+            ("kind".to_owned(), "page".to_owned()),
+        ];
+        query.matches(&tokens, &facets, &label)
     }
 
     /// The full tree of the rows the filter keeps.
@@ -257,9 +274,10 @@ impl PageNavigator {
             (key, label)
         };
         let none = || strings::text("nav-none").to_owned();
+        let query = crate::navigators::Query::parse(&self.filter);
         for i in self.sorted(rows) {
             let row = &rows[i];
-            if !self.matches(row) {
+            if !self.matches(row, &query) {
                 continue;
             }
             match self.mode {
@@ -383,6 +401,41 @@ impl PageNavigator {
     /// script names a row itself).
     pub fn moved_row(&self, visible: &[NavRow]) -> Option<String> {
         self.row.clone().filter(|k| visible.iter().any(|r| &r.key == k))
+    }
+
+    // WP-S2.06 part 1
+    /// The key of page row `i` in the current view (as [`PageNavigator::visible`] would key it without a filter).
+    pub fn key_of(&self, rows: &[PageRow], i: usize) -> String {
+        let row = &rows[i];
+        let section = match &row.section {
+            None => "s:front".to_owned(),
+            Some((n, _)) => format!("s:{n}"),
+        };
+        match self.mode {
+            NavMode::Flat => page_key("", row),
+            NavMode::Section => page_key(&section, row),
+            NavMode::Structure => {
+                let f = row
+                    .function
+                    .as_deref()
+                    .map_or_else(|| "f:-".to_owned(), |f| format!("f:{f}"));
+                let l = row
+                    .location
+                    .as_deref()
+                    .map_or_else(|| format!("{f}/l:-"), |l| format!("{f}/l:{l}"));
+                page_key(&format!("{l}/{section}"), row)
+            }
+        }
+    }
+
+    /// The marked keys.
+    pub fn marked(&self) -> &BTreeSet<String> {
+        &self.marked
+    }
+
+    /// Whether a row is marked.
+    pub fn is_marked(&self, key: &str) -> bool {
+        self.marked.contains(key)
     }
 
     /// The row index of the page a row key names (`…/p:<uuid>`).

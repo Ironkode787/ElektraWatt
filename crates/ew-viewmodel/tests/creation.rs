@@ -499,10 +499,11 @@ fn the_window_asks_for_the_fields_and_keeps_a_refusal_in_the_dialog() {
     };
     assert_eq!(form.action, "page.new");
     let values: Vec<(&str, &str)> = form.fields.iter().map(|f| (f.name, f.value.as_str())).collect();
+    // WP-S2.06 part 1 (FT-461): the folio field holds the proposal after the current page 1.
     assert_eq!(
         values,
         [
-            ("folio", ""),
+            ("folio", "2"),
             ("type", "multi_line"),
             ("title", "Typed first"),
             ("section", "")
@@ -510,6 +511,7 @@ fn the_window_asks_for_the_fields_and_keeps_a_refusal_in_the_dialog() {
     );
     assert!(form.fields[1].choices.contains(&"single_line") && !form.fields[1].choices.contains(&"report"));
     // Enter with no folio says what is missing and stays open.
+    shell.set_form_field("folio", "");
     assert!(matches!(shell.submit_form(), Outcome::Failed { .. }));
     let Some(Dialog::Form(form)) = shell.dialog() else {
         panic!()

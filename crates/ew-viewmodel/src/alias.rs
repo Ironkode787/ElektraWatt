@@ -245,6 +245,9 @@ pub enum ParamForm {
     IdRef,
     /// A text with UUIDs inside it (a navigator row key, `s:1/p:@3`).
     Embedded,
+    // WP-S2.06 part 1
+    /// A list of texts with UUIDs inside them (the row keys of `navigator.select`).
+    EmbeddedList,
     /// Command parameters, whose command-log references `{"ref": "@3"}` resolve to `{"ref": "id:<uuid>"}`.
     CommandRefs,
 }
@@ -265,6 +268,12 @@ pub const ALIAS_PARAMS: &[(&str, &str, ParamForm)] = &[
     ("pages.toggle", "key", ParamForm::Embedded),
     ("pages.row", "key", ParamForm::Embedded),
     ("pages.open", "key", ParamForm::Embedded),
+    // WP-S2.06 part 1: the navigators' row keys.
+    ("navigator.toggle", "key", ParamForm::Embedded),
+    ("navigator.row", "key", ParamForm::Embedded),
+    ("navigator.open", "key", ParamForm::Embedded),
+    ("navigator.mark", "key", ParamForm::Embedded),
+    ("navigator.select", "keys", ParamForm::EmbeddedList),
     ("props.input", "text", ParamForm::IdRef),
     ("props.set", "value", ParamForm::IdRef),
     ("structure.new", "parent", ParamForm::Whole),
@@ -292,6 +301,16 @@ pub fn resolve_params(
             (ParamForm::Whole, Value::String(s)) => resolve_whole(table, s)?.map(Value::String),
             (ParamForm::Embedded, Value::String(s)) => resolve_embedded(table, s)?.map(Value::String),
             (ParamForm::IdRef, Value::String(s)) => resolve_id_ref(table, s)?.map(Value::String),
+            (ParamForm::EmbeddedList, Value::Array(items)) => {
+                let mut list: Option<Vec<Value>> = None;
+                for (i, v) in items.iter().enumerate() {
+                    let Some(s) = v.as_str() else { continue };
+                    if let Some(u) = resolve_embedded(table, s)? {
+                        list.get_or_insert_with(|| items.clone())[i] = Value::String(u);
+                    }
+                }
+                list.map(Value::Array)
+            }
             (ParamForm::List | ParamForm::RefList, Value::Array(items)) => {
                 let mut list: Option<Vec<Value>> = None;
                 for (i, v) in items.iter().enumerate() {

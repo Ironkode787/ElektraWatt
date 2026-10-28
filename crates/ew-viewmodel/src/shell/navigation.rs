@@ -34,8 +34,8 @@ pub const RECENT_PAGES: usize = 8;
 /// Where the keyboard focus is (WP-S2.03 §6.6): it decides which context's shortcuts the window binds.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Focus {
-    /// The page navigator.
-    Navigator,
+    /// A navigator (WP-S2.06 §6.8): the Pages navigator, or another open one.
+    Navigator(crate::navigators::NavKind),
     /// The canvas of a group.
     Canvas(usize),
     /// The property grid (WP-S2.05).
@@ -91,6 +91,9 @@ pub struct SessionCalls {
     pub parse_fragment: u64,
     /// `Session::tag_list`: `edit.copy_tags`.
     pub tag_list: u64,
+    // WP-S2.06 part 1
+    /// `Session::navigator_table`: once per open navigator other than Pages and revision.
+    pub navigator_table: u64,
 }
 
 /// Counts one of the shell's `Session` calls (a free function, so that a call can be counted while the project is
@@ -267,6 +270,13 @@ impl ShellModel {
     /// earlier `@n` never names another record (ID-630 (b), FT-422).
     pub(super) fn install_view(&mut self) {
         self.navigator = PageNavigator::new();
+        // WP-S2.06 part 1: a project's navigator states and chips go with it (the panes stay in the layout).
+        for n in self.navs.values_mut() {
+            *n = crate::navigators::Navigator::new(n.kind);
+        }
+        self.chips.clear();
+        self.chips_for = None;
+        self.last_page = None;
         self.cache = PageCache::default();
         self.focus = None;
         self.area = None;
@@ -557,6 +567,21 @@ impl ShellModel {
         {
             a.groups[g].active_tab_mut().history.record(from);
         }
+    }
+
+    // WP-S2.06 part 1
+    /// A jump of group `g`'s active tab to `page` (a navigator row's target): one back-history entry.
+    pub(super) fn jump_to(&mut self, g: usize, page: PageId) {
+        self.jump(g, page, None, CursorAt::None);
+    }
+
+    /// Opens `page` in a new tab of group `g`.
+    pub(super) fn open_in_new_tab(&mut self, g: usize, page: PageId) -> Outcome {
+        let out = self.area_op(|a| a.open(page, g), "");
+        if out == Outcome::Done {
+            self.show(g, page, Arrival::Remembered);
+        }
+        out
     }
 
     /// The canvas of group `g`'s active tab, to change.
@@ -1009,6 +1034,11 @@ impl ShellModel {
             Ok(None) => failed("error-missing-param", &["mode"]),
             Ok(Some(w)) => match NavMode::from_word(w) {
                 Some(m) => {
+                    if self.navigator.mode != m {
+                        // WP-S2.06 part 1: the keys change with the view, so the marks go.
+                        self.navigator.marked.clear();
+                        self.navigator.anchor = None;
+                    }
                     self.navigator.mode = m;
                     self.navigator.reset_row();
                     Outcome::Done
@@ -1149,7 +1179,16 @@ impl ShellModel {
         };
         match area.as_str() {
             "navigator" => {
-                self.focus = Some(Focus::Navigator);
+                // WP-S2.06 part 1: `kind` names an open navigator (default Pages).
+                let kind = match string_param(p, "kind") {
+                    Err(e) => return e,
+                    Ok(None) => crate::navigators::NavKind::Pages,
+                    Ok(Some(w)) => match crate::navigators::NavKind::from_word(w) {
+                        Some(k) if k == crate::navigators::NavKind::Pages || self.navs.contains_key(&k) => k,
+                        _ => return failed("error-bad-param", &["kind"]),
+                    },
+                };
+                self.focus = Some(Focus::Navigator(kind));
                 Outcome::Done
             }
             "properties" => {
@@ -1180,7 +1219,9 @@ impl ShellModel {
     /// find pane while their panes are in the layout, cyclic.
     pub(super) fn act_focus_cycle(&mut self, step: isize) -> Outcome {
         let groups = self.area.as_ref().map_or(0, |a| a.groups.len());
-        let ring: Vec<Focus> = std::iter::once(Focus::Navigator)
+        let ring: Vec<Focus> = std::iter::once(Focus::Navigator(crate::navigators::NavKind::Pages))
+            // WP-S2.06 part 1: the open navigators after Pages.
+            .chain(self.navs.keys().map(|k| Focus::Navigator(*k)))
             .chain((0..groups).map(Focus::Canvas))
             .chain(self.properties_shown().then_some(Focus::Properties))
             // WP-S2.05 part 2

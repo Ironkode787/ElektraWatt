@@ -719,7 +719,10 @@ fn v9_the_transcript_members_and_describe_lines() {
     done(&mut shell, "ui.focus_next", json!({}));
     assert_eq!(shell.focus(), Some(Focus::Properties));
     done(&mut shell, "ui.focus_next", json!({}));
-    assert_eq!(shell.focus(), Some(Focus::Navigator));
+    assert_eq!(
+        shell.focus(),
+        Some(Focus::Navigator(ew_viewmodel::navigators::NavKind::Pages))
+    );
     done(&mut shell, "ui.focus_previous", json!({}));
     assert_eq!(shell.focus(), Some(Focus::Properties));
     done(&mut shell, "ui.focus_previous", json!({}));

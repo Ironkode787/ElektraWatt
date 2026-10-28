@@ -1663,6 +1663,8 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
     // FT-408 and FT-409: the creation dialogs, the first with a refusal under its fields.
     done(&mut shell, "page.new", json!({}));
     texts.push(shell.describe());
+    // WP-S2.06 part 1 (FT-461): the proposed folio is cleared, so Enter is refused.
+    shell.set_form_field("folio", "");
     assert!(matches!(shell.submit_form(), Outcome::Failed { .. }));
     texts.push(shell.describe());
     for action in ["structure.new", "external_ref.new"] {
@@ -2005,7 +2007,9 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
             // `marker` and `boxes`; the drawing tools' words and `unknown` come with the later units of part 4b.
             || ew_viewmodel::describe::ITEM_WORDS.contains(*w)
             // WP-S2.04 part 5: `image` comes with the Image tool: `tests/part5_image.rs` reaches it.
-            || ew_viewmodel::describe::IMAGE_WORDS.contains(*w)),
+            || ew_viewmodel::describe::IMAGE_WORDS.contains(*w)
+            // WP-S2.06 part 1: the navigator words need open navigators: `tests/navigators.rs` reaches them.
+            || ew_viewmodel::describe::NAV_WORDS.contains(*w)),
         "words of the vocabulary no state used: {unused:?}"
     );
 }

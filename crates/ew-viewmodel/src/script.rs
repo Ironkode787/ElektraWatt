@@ -324,7 +324,9 @@ pub fn state_json(shell: &ShellModel) -> String {
             "focus",
             &match shell.focus() {
                 None => Value::Null,
-                Some(Focus::Navigator) => Value::from("navigator"),
+                // WP-S2.06 part 1: `navigator` for Pages, `navigator.<kind>` for the others (§6.8).
+                Some(Focus::Navigator(crate::navigators::NavKind::Pages)) => Value::from("navigator"),
+                Some(Focus::Navigator(k)) => Value::from(format!("navigator.{}", k.word())),
                 Some(Focus::Canvas(_)) => Value::from("canvas"),
                 Some(Focus::Properties) => Value::from("properties"),
                 // WP-S2.05 part 2

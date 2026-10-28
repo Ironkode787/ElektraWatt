@@ -18,7 +18,25 @@
 
 use serde_json::{Map, Value, json};
 
+use crate::navigators::NavKind;
 use crate::strings;
+
+/// The key of a navigator pane's title in [`crate::strings`] (WP-S2.06 §6.8).
+pub fn nav_title_key(kind: NavKind) -> &'static str {
+    match kind {
+        NavKind::Pages => "pane-pages",
+        NavKind::Devices => "nav-title-devices",
+        NavKind::Connections => "nav-title-connections",
+        NavKind::Strips => "nav-title-strips",
+        NavKind::Cables => "nav-title-cables",
+        NavKind::Plc => "nav-title-plc",
+        NavKind::Potentials => "nav-title-potentials",
+        NavKind::Ips => "nav-title-ips",
+        NavKind::Structure => "nav-title-structure",
+        NavKind::Parts => "nav-title-parts",
+        NavKind::Blocks => "nav-title-blocks",
+    }
+}
 
 /// The `$schema` of a workspace file.
 pub const SCHEMA: &str = "ew.workspace/1";
@@ -34,6 +52,9 @@ pub enum PaneKind {
     Properties,
     /// The find pane (WP-S2.05 part 2): opened by Ctrl+F or Ctrl+H below the page view.
     Find,
+    // WP-S2.06 part 1
+    /// A navigator other than Pages (§6.8): docked as a tab beside the Pages pane; its workspace key is the kind word.
+    Navigator(NavKind),
 }
 
 impl PaneKind {
@@ -52,12 +73,17 @@ impl PaneKind {
             PaneKind::PageView => "page-view",
             PaneKind::Properties => "properties",
             PaneKind::Find => "find",
+            PaneKind::Navigator(k) => k.word(),
         }
     }
 
     /// The pane of a name in a workspace file.
     pub fn from_key(key: &str) -> Option<PaneKind> {
-        PaneKind::ALL.into_iter().find(|p| p.key() == key)
+        PaneKind::ALL.into_iter().find(|p| p.key() == key).or_else(|| {
+            NavKind::from_word(key)
+                .filter(|k| *k != NavKind::Pages)
+                .map(PaneKind::Navigator)
+        })
     }
 
     /// The key of the pane's title in [`crate::strings`].
@@ -67,6 +93,7 @@ impl PaneKind {
             PaneKind::PageView => "pane-page-view",
             PaneKind::Properties => "pane-properties",
             PaneKind::Find => "pane-find",
+            PaneKind::Navigator(k) => nav_title_key(k),
         }
     }
 }
@@ -219,6 +246,83 @@ impl Layout {
         Layout {
             root: put(&self.root),
         }
+    }
+
+    // WP-S2.06 part 1
+    /// The layout with a navigator pane (View ▸ Navigators, §6.8): the Pages pane at the left of a horizontal root
+    /// split (160 of the shares), another navigator as a new tab beside the Pages pane (the Pages pane's place becomes
+    /// tabs, or the tabs it is in get one more), shown; without a Pages pane, at the left like Pages. Unchanged when
+    /// the pane is in it.
+    pub fn with_navigator(&self, pane: PaneKind) -> Layout {
+        fn put(n: &LayoutNode, pane: PaneKind) -> Option<LayoutNode> {
+            match n {
+                LayoutNode::Pane(PaneKind::Pages) => Some(LayoutNode::Tabs {
+                    children: vec![LayoutNode::Pane(PaneKind::Pages), LayoutNode::Pane(pane)],
+                    active: 1,
+                }),
+                LayoutNode::Pane(_) => None,
+                LayoutNode::Tabs { children, .. }
+                    if children.contains(&LayoutNode::Pane(PaneKind::Pages)) =>
+                {
+                    let mut children = children.clone();
+                    children.push(LayoutNode::Pane(pane));
+                    let active = children.len() - 1;
+                    Some(LayoutNode::Tabs { children, active })
+                }
+                LayoutNode::Tabs { children, active } => {
+                    let mut out = children.clone();
+                    for (i, c) in children.iter().enumerate() {
+                        if let Some(new) = put(c, pane) {
+                            out[i] = new;
+                            return Some(LayoutNode::Tabs {
+                                children: out,
+                                active: *active,
+                            });
+                        }
+                    }
+                    None
+                }
+                LayoutNode::Split { dir, children } => {
+                    let mut out = children.clone();
+                    for (i, (share, c)) in children.iter().enumerate() {
+                        if let Some(new) = put(c, pane) {
+                            out[i] = (*share, new);
+                            return Some(LayoutNode::Split {
+                                dir: *dir,
+                                children: out,
+                            });
+                        }
+                    }
+                    None
+                }
+            }
+        }
+        if self.panes().contains(&pane) {
+            return self.clone();
+        }
+        if pane != PaneKind::Pages
+            && let Some(root) = put(&self.root, pane)
+        {
+            return Layout { root };
+        }
+        let root = match &self.root {
+            LayoutNode::Split {
+                dir: SplitDir::Horizontal,
+                children,
+            } => {
+                let mut children = children.clone();
+                children.insert(0, (160, LayoutNode::Pane(pane)));
+                LayoutNode::Split {
+                    dir: SplitDir::Horizontal,
+                    children,
+                }
+            }
+            other => LayoutNode::Split {
+                dir: SplitDir::Horizontal,
+                children: vec![(160, LayoutNode::Pane(pane)), (840, other.clone())],
+            },
+        };
+        Layout { root }
     }
 
     /// The layout without `pane`: a container left with one child is replaced by it, an empty one goes. The page view

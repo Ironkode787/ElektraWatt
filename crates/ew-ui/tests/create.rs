@@ -45,6 +45,11 @@ fn page_new_asks_for_the_fields_enter_creates_and_escape_cancels() {
     assert!(matches!(h.state().shell().dialog(), Some(Dialog::Form(f)) if f.action == "page.new"));
     // The navigator's button and the dialog's title.
     assert_eq!(h.query_all_by_label("New page").count(), 2);
+    // WP-S2.06 part 1 (FT-461): the folio field holds the proposal after the current page 1 (2 is the generated table
+    // of contents, 3 a page record).
+    assert_eq!(form_values(&h)[0], ("folio".into(), "4".into()));
+    h.state_mut().shell_mut().set_form_field("folio", "");
+    settle(&mut h);
     // The folio field has the focus when the dialog opens: type the folio; Tab moves on (to the type's list, then the
     // title), where the rest is typed.
     field(&h, "Folio").type_text("999");
@@ -68,6 +73,8 @@ fn page_new_asks_for_the_fields_enter_creates_and_escape_cancels() {
     settle(&mut h);
     h.get_by_label("New page...").click();
     settle(&mut h);
+    h.state_mut().shell_mut().set_form_field("folio", "");
+    settle(&mut h);
     field(&h, "Folio").type_text("998");
     settle(&mut h);
     h.key_press(Key::Escape);
@@ -90,6 +97,8 @@ fn a_refusal_stays_in_the_dialog_and_the_type_is_a_choice() {
     assert!(matches!(h.state().shell().dialog(), Some(Dialog::Form(f)) if f.action == "page.new"));
     // The folio of an existing page: the command's refusal is shown under the fields, the dialog stays open.
     let existing = h.state().shell().page_labels()[0].clone();
+    h.state_mut().shell_mut().set_form_field("folio", "");
+    settle(&mut h);
     field(&h, "Folio").type_text(&existing);
     settle(&mut h);
     h.get_by_label("Create").click();

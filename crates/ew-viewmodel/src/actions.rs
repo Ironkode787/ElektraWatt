@@ -94,6 +94,9 @@ pub enum Submenu {
     Pan,
     /// View, Page navigator: its three views and two sort orders (WP-S2.03).
     PageNavigator,
+    // WP-S2.06 part 1
+    /// View, Navigators: one checked item per navigator kind (`navigator.show`).
+    Navigators,
     /// Insert, Graphic: one item per shape of the Graphic tool (WP-S2.04 §10.5).
     Graphic,
     /// Tools, Wire markers: the marker mode's four settable modes and the as-built one (WP-S2.04 §10.6).
@@ -111,6 +114,7 @@ impl Submenu {
             Submenu::Workspace => "submenu-workspace",
             Submenu::Pan => "submenu-pan",
             Submenu::PageNavigator => "submenu-page-navigator",
+            Submenu::Navigators => "submenu-navigators",
             Submenu::Graphic => "submenu-graphic",
             Submenu::WireMarkers => "submenu-wire-markers",
         }
@@ -642,6 +646,26 @@ fn card_shown(m: &ShellModel) -> Result<(), &'static str> {
 fn card_writable(m: &ShellModel) -> Result<(), &'static str> {
     writable(m)?;
     card_shown(m)
+}
+
+// WP-S2.06 part 1
+/// `navigator.apply`: a writable project with the Pages pane's reorder card on show.
+fn reorder_card(m: &ShellModel) -> Result<(), &'static str> {
+    writable(m)?;
+    if m.properties()
+        .card()
+        .is_some_and(|c| matches!(c.origin, crate::properties::CardOrigin::Reorder { .. }))
+    {
+        Ok(())
+    } else {
+        Err("reason-no-card")
+    }
+}
+
+/// The page reorder actions: a writable project with pages.
+fn pages_writable(m: &ShellModel) -> Result<(), &'static str> {
+    writable(m)?;
+    has_pages(m)
 }
 
 // WP-S2.05 part 3
@@ -2390,8 +2414,168 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
         ))),
     ),
+    // WP-S2.06 part 1: the navigator framework (§6.9).
     with_params(
-        "area:enum(navigator|canvas|properties|find), group?:uint",
+        "kind:enum(pages|devices|connections|strips|cables|plc|potentials|ips|structure|parts|blocks), on?:bool",
+        needs_parameters(act(
+            "navigator.show",
+            View,
+            "action-navigator-show",
+            Menu::View,
+            &[],
+            has_pages,
+            sub(Menu::View, Submenu::Navigators, false),
+        )),
+    ),
+    with_params(
+        "kind:text, view:text",
+        hidden(act(
+            "navigator.view",
+            View,
+            "action-navigator-view",
+            Menu::View,
+            &[],
+            has_pages,
+            None,
+        )),
+    ),
+    with_params(
+        "kind:text, by:text, descending?:bool",
+        hidden(act(
+            "navigator.sort",
+            View,
+            "action-navigator-sort",
+            Menu::View,
+            &[],
+            has_pages,
+            None,
+        )),
+    ),
+    with_params(
+        "kind:text, text:text",
+        hidden(act(
+            "navigator.filter",
+            View,
+            "action-navigator-filter",
+            Menu::View,
+            &[],
+            has_pages,
+            None,
+        )),
+    ),
+    with_params(
+        "kind:text, key:text",
+        hidden(in_navigator(act(
+            "navigator.toggle",
+            View,
+            "action-navigator-toggle",
+            Menu::View,
+            &[],
+            has_pages,
+            None,
+        ))),
+    ),
+    with_params(
+        "kind:text, key?:text, step?:int, to?:enum(first|last), extend?:bool",
+        hidden(in_navigator(act(
+            "navigator.row",
+            View,
+            "action-navigator-row",
+            Menu::View,
+            &[],
+            has_pages,
+            None,
+        ))),
+    ),
+    with_params(
+        "kind:text, key?:text, new_tab?:bool",
+        hidden(in_navigator(act(
+            "navigator.open",
+            View,
+            "action-navigator-open",
+            Menu::View,
+            &[],
+            has_pages,
+            None,
+        ))),
+    ),
+    with_params(
+        "kind:text, keys:list(text), add?:bool",
+        hidden(act(
+            "navigator.select",
+            View,
+            "action-navigator-select",
+            Menu::View,
+            &[],
+            has_pages,
+            None,
+        )),
+    ),
+    with_params(
+        "kind?:text, key?:text",
+        hidden(in_navigator(act(
+            "navigator.mark",
+            View,
+            "action-navigator-mark",
+            Menu::View,
+            &["Space"],
+            has_pages,
+            None,
+        ))),
+    ),
+    with_params(
+        "kind:text, prefix:text",
+        hidden(in_navigator(act(
+            "navigator.jump",
+            View,
+            "action-navigator-jump",
+            Menu::View,
+            &[],
+            has_pages,
+            None,
+        ))),
+    ),
+    hidden(in_navigator(act(
+        "navigator.apply",
+        Command,
+        "action-navigator-apply",
+        Menu::Edit,
+        &[],
+        reorder_card,
+        None,
+    ))),
+    with_params(
+        "pages?:list(text), before?:text, end?:bool",
+        hidden(in_navigator(act(
+            "pages.reorder",
+            Command,
+            "action-pages-reorder",
+            Menu::Page,
+            &[],
+            pages_writable,
+            None,
+        ))),
+    ),
+    in_navigator(act(
+        "pages.move_up",
+        Command,
+        "action-pages-move-up",
+        Menu::Page,
+        &["Alt+Arrow Up"],
+        pages_writable,
+        None,
+    )),
+    in_navigator(act(
+        "pages.move_down",
+        Command,
+        "action-pages-move-down",
+        Menu::Page,
+        &["Alt+Arrow Down"],
+        pages_writable,
+        None,
+    )),
+    with_params(
+        "area:enum(navigator|canvas|properties|find), group?:uint, kind?:text",
         hidden(act(
             "ui.focus",
             View,
@@ -3079,6 +3263,23 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
             }
             items
         }
+        // WP-S2.06 part 1: one checked item per navigator.
+        Submenu::Navigators => {
+            let mut items = Vec::new();
+            for kind in crate::navigators::NavKind::ALL {
+                let mut item = item_of(meta, model);
+                item.label = strings::text(crate::layout::nav_title_key(kind)).to_owned();
+                let open = model.navigator_open(kind);
+                item.params = if open {
+                    json!({ "kind": kind.word(), "on": false })
+                } else {
+                    json!({ "kind": kind.word() })
+                };
+                item.checked = open;
+                items.push(item);
+            }
+            items
+        }
         Submenu::Pan => metas.iter().map(|m| item_of(m, model)).collect(),
         Submenu::Workspace => {
             let active = model.workspace();
@@ -3407,6 +3608,10 @@ mod tests {
         "ui.focus_previous",
         "ui.dismiss",
         "ui.describe",
+        // WP-S2.06 part 1: the reorder card's Apply and the page moves read the navigator's state.
+        "navigator.apply",
+        "pages.move_up",
+        "pages.move_down",
         // The picker, the tools and the proposals.
         "tool.finish",
         "tool.next_proposal",

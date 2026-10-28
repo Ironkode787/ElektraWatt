@@ -108,7 +108,7 @@ fn page_down_changes_the_page_in_the_status_bar() {
 }
 
 #[test]
-fn a_click_in_the_page_list_goes_to_that_page() {
+fn a_click_in_the_page_list_marks_and_enter_goes_to_that_page() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
@@ -123,7 +123,13 @@ fn a_click_in_the_page_list_goes_to_that_page() {
         .unwrap();
     let name =
         ew_ui::ew_viewmodel::navigator::PageNavigator::accessible_name(&row, &rows, shell.current_page());
+    // WP-S2.06 §6.4: a click marks the row and moves the cursor without switching the page; Enter opens it.
     h.get_by_label(&name).click();
+    settle(&mut h);
+    assert_eq!(h.state().shell().page_index(), 0);
+    assert!(h.state().shell().navigator().is_marked(&row.key));
+    // Enter on the cursor row (the click put it there and focused the navigator) opens the page.
+    h.key_press(egui::Key::Enter);
     settle(&mut h);
     assert_eq!(h.state().shell().page_index(), 3);
     h.state_mut().shell_mut().shutdown();

@@ -323,7 +323,55 @@ pub const VOCABULARY: &[&str] = &[
     "unknown",
     // The Image tool (WP-S2.04 part 5, §11; ID-474 extended): 1 word, a reviewed vocabulary change.
     "image",
+    // The navigators (WP-S2.06 part 1, §6.10; ID-474 extended, ID-688): the 18 words of `NAV_WORDS`, a reviewed
+    // vocabulary change (`connections` and `structure` are older).
+    "kind",
+    "pages",
+    "devices",
+    "strips",
+    "cables",
+    "plc",
+    "potentials",
+    "ips",
+    "parts",
+    "blocks",
+    "tree",
+    "ascending",
+    "descending",
+    "showing",
+    "to",
+    "elsewhere",
+    "aux",
+    "reorder",
 ];
+
+// WP-S2.06 part 1
+/// The 18 words WP-S2.06 part 1 adds to [`VOCABULARY`] (§6.10): the navigator kinds, the header's `kind`, `tree`,
+/// `ascending`, `descending`, `showing` and `to`, the canvas section's `elsewhere`, the badge word `aux` and the card's
+/// origin word `reorder`.
+pub const NAV_WORDS: &[&str] = &[
+    "kind",
+    "pages",
+    "devices",
+    "strips",
+    "cables",
+    "plc",
+    "potentials",
+    "ips",
+    "parts",
+    "blocks",
+    "tree",
+    "ascending",
+    "descending",
+    "showing",
+    "to",
+    "elsewhere",
+    "aux",
+    "reorder",
+];
+
+/// The most rows a navigator prints in the describe text (§6.10): a window around the cursor.
+pub const NAV_WINDOW: usize = 50;
 
 /// The 10 words of WP-S2.04 §9.6, of which part 3 adds the last 5 to [`VOCABULARY`] (WP-S6.13 part 1 added the
 /// first 5): `arrange`, `by` and `potential` name the parameters of `ip.arrange_selected` (FT-314's harness help
@@ -681,11 +729,30 @@ fn wizard(model: &ShellModel, lines: &mut Vec<String>) {
     lines.push(format!("  button \"{}\"", strings::text("wizard-cancel")));
 }
 
-/// The navigator lines (WP-S2.03 §6.10): the header, then one line per row on show.
+/// The first row of the describe window (§6.10): `clamp(cursor − 10, 0, max(0, n − 50))`.
+fn window_start(n: usize, cursor: Option<usize>) -> usize {
+    cursor
+        .unwrap_or(0)
+        .saturating_sub(10)
+        .min(n.saturating_sub(NAV_WINDOW))
+}
+
+/// The navigator lines (WP-S2.03 §6.10): the header, then one line per row on show; with more than 50 rows (WP-S2.06
+/// §6.10) the header ends with `showing <a> to <b>` and only the window around the cursor is printed.
 fn navigator_lines(model: &ShellModel, lines: &mut Vec<String>) {
     let nav = model.navigator();
+    let all = model.navigator_rows();
+    let cursor = model.navigator_row_key();
+    let at = cursor.as_ref().and_then(|c| all.iter().position(|r| &r.key == c));
+    let start = window_start(all.len(), at);
+    let end = (start + NAV_WINDOW).min(all.len());
+    let showing = if all.len() > NAV_WINDOW {
+        format!(" showing {} to {end}", start + 1)
+    } else {
+        String::new()
+    };
     lines.push(format!(
-        "navigator \"{}\" mode {} sort {} filter \"{}\"",
+        "navigator \"{}\" mode {} sort {} filter \"{}\"{showing}",
         strings::text("pages-title"),
         nav.mode.word(),
         nav.sort.word(),
@@ -693,8 +760,7 @@ fn navigator_lines(model: &ShellModel, lines: &mut Vec<String>) {
     ));
     let rows = model.page_rows();
     let current = model.current_page();
-    let cursor = model.navigator_row_key();
-    for row in model.navigator_rows() {
+    for row in all.into_iter().skip(start).take(NAV_WINDOW) {
         let mut line = format!("  row level {}", row.level);
         match &row.kind {
             RowKind::Node { label, .. } => {
@@ -717,11 +783,76 @@ fn navigator_lines(model: &ShellModel, lines: &mut Vec<String>) {
                 }
             }
         }
+        // WP-S2.06 part 1: a marked row (D5: no Pages line changes while nothing is marked).
+        if nav.is_marked(&row.key) {
+            line.push_str(" selected");
+        }
         if cursor.as_deref() == Some(row.key.as_str()) {
             line.push_str(" cursor");
         }
         lines.push(line);
     }
+}
+
+// WP-S2.06 part 1
+/// The lines of every open navigator other than Pages (§6.10): the header with the kind, the view, the sort, the
+/// filter, the row count and the window, then one line per row of the window around the cursor.
+fn other_navigator_lines(model: &ShellModel, lines: &mut Vec<String>) {
+    for kind in model.open_navigators() {
+        let Some(nav) = model.nav(kind) else { continue };
+        let rows = model.shown_rows(kind);
+        let cursor = model.nav_cursor(kind);
+        let at = cursor
+            .as_ref()
+            .and_then(|c| rows.iter().position(|r| &r.key == c));
+        let start = window_start(rows.len(), at);
+        let end = (start + NAV_WINDOW).min(rows.len());
+        lines.push(format!(
+            "navigator \"{}\" kind {} view {} sort \"{}\" {} filter \"{}\" rows {} showing {} to {end}",
+            strings::text(crate::layout::nav_title_key(kind)),
+            kind.word(),
+            nav.view.word(),
+            user(&nav.sort_label()),
+            if nav.descending { "descending" } else { "ascending" },
+            user(&nav.filter),
+            rows.len(),
+            if rows.is_empty() { 0 } else { start + 1 },
+        ));
+        let table = nav.table();
+        for r in rows.iter().skip(start).take(NAV_WINDOW) {
+            let mut line = format!(
+                "  row level {} {} \"{}\"",
+                r.level,
+                r.role,
+                user(&label_of(table, &r.key))
+            );
+            if let Some(n) = table.and_then(|t| t.nodes.iter().find(|n| n.key == r.key)) {
+                for b in &n.badges {
+                    line.push_str(&format!(" badge \"{}\"", user(b)));
+                }
+            }
+            match r.expanded {
+                Some(true) => line.push_str(" expanded"),
+                Some(false) => line.push_str(" collapsed"),
+                None => {}
+            }
+            if r.marked {
+                line.push_str(" selected");
+            }
+            if cursor.as_deref() == Some(r.key.as_str()) {
+                line.push_str(" cursor");
+            }
+            lines.push(line);
+        }
+    }
+}
+
+/// The label of a row of a navigator table.
+fn label_of(table: Option<&std::sync::Arc<crate::navigators::NavTable>>, key: &str) -> String {
+    table
+        .and_then(|t| t.nodes.iter().find(|n| n.key == key))
+        .map(|n| n.label.clone())
+        .unwrap_or_default()
 }
 
 /// The tab lines (WP-S2.03 §6.10): per group its header, then one line per tab; the selected tab with its history.
@@ -747,7 +878,11 @@ fn tab_lines(model: &ShellModel, lines: &mut Vec<String>) {
         }
     }
     match model.focus() {
-        Some(Focus::Navigator) => lines.push("focus navigator".to_owned()),
+        Some(Focus::Navigator(crate::navigators::NavKind::Pages)) => {
+            lines.push("focus navigator".to_owned());
+        }
+        // WP-S2.06 part 1
+        Some(Focus::Navigator(k)) => lines.push(format!("focus navigator kind {}", k.word())),
         Some(Focus::Canvas(g)) => lines.push(format!("focus canvas group {}", g + 1)),
         Some(Focus::Properties) => lines.push("focus properties".to_owned()),
         // WP-S2.05 part 2
@@ -980,15 +1115,25 @@ fn card_and_toast_lines(model: &ShellModel, lines: &mut Vec<String>) {
                     card.preview.status(rev).word(),
                     user(&card.preview.name),
                 )),
-                _ => lines.push(format!(
-                    "card {} \"{}\" targets {} changes {} tags {} xrefs {}",
-                    card.preview.status(rev).word(),
-                    user(&card.preview.name),
-                    card.targets,
-                    card.changes,
-                    card.preview.derived.tags.len(),
-                    card.preview.derived.xrefs.len()
-                )),
+                _ => {
+                    let mut line = format!(
+                        "card {} \"{}\" targets {} changes {} tags {} xrefs {}",
+                        card.preview.status(rev).word(),
+                        user(&card.preview.name),
+                        card.targets,
+                        card.changes,
+                        card.preview.derived.tags.len(),
+                        card.preview.derived.xrefs.len()
+                    );
+                    // WP-S2.06 part 1: the reorder card names its origin and its folio changes.
+                    if let crate::properties::CardOrigin::Reorder { notices } = &card.origin {
+                        line.push_str(" reorder");
+                        for n in notices {
+                            line.push_str(&format!(" \"{}\"", user(n)));
+                        }
+                    }
+                    lines.push(line);
+                }
             },
         }
     }
@@ -1040,6 +1185,8 @@ fn row_line(
 
 fn project_view(model: &ShellModel, lines: &mut Vec<String>) {
     navigator_lines(model, lines);
+    // WP-S2.06 part 1
+    other_navigator_lines(model, lines);
     properties_lines(model, lines);
     // WP-S2.05 part 2
     find_lines(model, lines);
@@ -1123,6 +1270,15 @@ fn canvas_lines(model: &ShellModel, lines: &mut Vec<String>) {
         lines.push("canvas statistics shown".to_owned());
     }
     lines.push(format!("canvas renderer {}", crate::script::renderer_word(model)));
+    // WP-S2.06 part 1: the chip line "Not on this page" (§6.5).
+    if !model.chips().is_empty() {
+        let chips: Vec<String> = model
+            .chips()
+            .iter()
+            .map(|c| format!("\"{}\"", user(&c.text())))
+            .collect();
+        lines.push(format!("  elsewhere {}", chips.join(" ")));
+    }
     tool_lines(model, lines);
 }
 

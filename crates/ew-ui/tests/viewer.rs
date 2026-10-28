@@ -175,7 +175,8 @@ fn v12_the_viewer_without_a_pointer() {
     settle(&mut h);
     assert_eq!(h.state().shell().area().unwrap().focused, 0);
     // F6 to the navigator, Down, Enter: the next row opens.
-    while h.state().shell().focus() != Some(Focus::Navigator) {
+    while h.state().shell().focus() != Some(Focus::Navigator(ew_ui::ew_viewmodel::navigators::NavKind::Pages))
+    {
         h.key_press(Key::F6);
         settle(&mut h);
     }

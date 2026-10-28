@@ -1,60 +1,116 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The page navigator pane (WP-S2.03 part 1, spec section 6.1): the shell's `PageNavigator` drawn as a filter field
-//! and a tree of rows with egui's row virtualisation, replacing WP-S2.01's page list in the `pages` pane.
+//! The navigator panes (WP-S2.03 part 1 §6.1; WP-S2.06 part 1 §6.4, §6.6, §6.8): one generic tree widget for every
+//! navigator, the shell's rows on show (`ShellModel::shown_rows`) drawn as a filter field and a tree of rows with
+//! egui's row virtualisation (only the rows in view are painted).
 //!
-//! **Input.** A click opens a page row (`pages.open`, a jump) or toggles a node; a middle click opens in a new tab.
-//! While the navigator has the shell's focus: Up and Down move the row cursor, Home and End go to the first and last
-//! row, Left collapses a node (or moves to the parent), Right expands it, Enter opens (Ctrl+Enter in a new tab). Every
-//! one is a registry action.
+//! **Input.** A click marks one row and moves the cursor (`navigator.select`), Ctrl+click toggles its mark
+//! (`navigator.mark`), Shift+click marks the range (`navigator.row` with `extend`), a double click opens it, a middle
+//! click opens it in a new tab; the `+`/`-` glyph of a node toggles it. While the navigator has the shell's focus: Up
+//! and Down move the cursor, Shift+Up and Shift+Down extend the marked range, Left collapses a node (or moves to the
+//! parent), Right expands it, Home and End go to the first and last row, Enter opens (a node toggles), Ctrl+Enter
+//! applies the reorder card when it is shown and otherwise opens in a new tab. Space (`navigator.mark`) and Alt+Up,
+//! Alt+Down (`pages.move_up`, `pages.move_down`) are registry shortcuts of the navigator context. Typing a printable
+//! character other than Space without Ctrl or Alt appends it to a type-ahead buffer, reset after one second of no
+//! typing on the window's clock, and moves the cursor with `navigator.jump`. The Pages navigator keeps its as-built
+//! actions (`pages.row`, `pages.toggle`, `pages.open`, `pages.filter`) for the moves it had.
 //!
-//! **Accessibility.** The list is a node with the role `Tree`; a row is a `TreeItem` named as
-//! `PageNavigator::accessible_name` says, with AccessKit's own `level`, `position_in_set`, `size_of_set` and
-//! `expanded` properties.
+//! **Drag and drop.** A page record row (flat and section views) drags its folio, or every marked page when it is
+//! marked; a drop on a page row of the Pages navigator dispatches `pages.reorder` before it, a drop on a section node
+//! to that section's end. An unplaced function row of the Devices navigator drags its function; the canvas area takes
+//! the drop (`place.pick {function}`).
+//!
+//! **Accessibility.** The list is a node with the role `Tree`; a row is a `TreeItem` named `<label>, <role>[,
+//! <badges>]` (the Pages rows as built, `PageNavigator::accessible_name`), with AccessKit's own `level`,
+//! `position_in_set`, `size_of_set`, `expanded` and `selected` (marked) properties.
 
 use std::rc::Rc;
 
 use egui::{Key, Modifiers, PointerButton, Sense, TextEdit, Ui};
-use ew_viewmodel::navigator::{NavRow, PageNavigator, RowKind};
-use ew_viewmodel::shell::{Focus, ShellModel};
+use ew_viewmodel::navigators::{NavKind, NavStamp};
+use ew_viewmodel::properties::CardOrigin;
+use ew_viewmodel::shell::{DragSource, Focus, ShellModel, ShownRow};
 use ew_viewmodel::strings;
-use serde_json::json;
+use serde_json::{Value, json};
 
 use crate::app::Event;
 
 /// The height of one row in points.
-const ROW_HEIGHT: f32 = 20.0;
+pub const ROW_HEIGHT: f32 = 20.0;
 
 /// The indent of one level in points.
 const INDENT: f32 = 14.0;
 
-/// The navigator pane's state between frames.
-#[derive(Default)]
+/// How long the type-ahead buffer lives without typing, in seconds.
+const TYPE_AHEAD_RESET: f64 = 1.0;
+
+/// The pages a drag of a page row carries (their folios).
+#[derive(Clone, Debug)]
+pub struct PagesDrag(pub Vec<String>);
+
+/// The function a drag of an unplaced function row carries (its ID text).
+#[derive(Clone, Debug)]
+pub struct FunctionDrag(pub String);
+
+/// What the rows on show were built for.
+#[derive(Clone, PartialEq, Debug)]
+enum Stamp {
+    /// The Pages navigator: the page-row fetches, the revision, its state and the current page.
+    Pages(
+        u64,
+        Option<u64>,
+        ew_viewmodel::navigator::PageNavigator,
+        Option<ew_viewmodel::canvas::PageId>,
+    ),
+    /// Another navigator: its state.
+    Other(NavStamp),
+}
+
+/// A navigator pane's state between frames.
 pub struct NavigatorPane {
+    /// Which navigator.
+    kind: NavKind,
     /// The filter field's text (the shell's filter is set from it).
     filter: String,
     /// The row cursor last scrolled to.
     scrolled_to: Option<String>,
-    /// The rows on show, built once per (revision, navigator state).
-    cache: Option<RowCache>,
+    /// The rows on show and what they were built for.
+    cache: Option<(Stamp, Rc<Vec<ShownRow>>)>,
     /// How many times the rows were built (tests: a frame without a change builds none).
     rebuilds: u64,
+    /// The type-ahead buffer and the time of its last character.
+    typed: (String, f64),
+    /// How many rows the last frame painted (tests: the virtualisation).
+    painted: usize,
+    /// The rows the last frame painted: a cursor inside them is not scrolled to (a click does not move the list).
+    view: std::ops::Range<usize>,
 }
 
-/// The rows on show for one (page rows, revision, navigator state).
-struct RowCache {
-    /// The fetches of the page rows (a new revision or project takes new rows) and the model's revision.
-    stamp: (u64, Option<u64>),
-    /// The navigator state the rows were built for.
-    state: PageNavigator,
-    rows: Rc<Vec<NavRow>>,
+impl Default for NavigatorPane {
+    fn default() -> NavigatorPane {
+        NavigatorPane::new()
+    }
 }
 
 impl NavigatorPane {
-    /// A pane with an empty filter.
+    /// The Pages navigator's pane with an empty filter.
     pub fn new() -> NavigatorPane {
-        NavigatorPane::default()
+        NavigatorPane::of(NavKind::Pages)
+    }
+
+    /// The pane of navigator `kind`.
+    pub fn of(kind: NavKind) -> NavigatorPane {
+        NavigatorPane {
+            kind,
+            filter: String::new(),
+            scrolled_to: None,
+            cache: None,
+            rebuilds: 0,
+            typed: (String::new(), f64::NEG_INFINITY),
+            painted: 0,
+            view: 0..0,
+        }
     }
 
     /// How many times the navigator's rows were built (tests).
@@ -62,45 +118,69 @@ impl NavigatorPane {
         self.rebuilds
     }
 
-    /// The rows on show: the cached ones while the page rows, the revision and the navigator state are those they
-    /// were built for, else built again (`PageNavigator::visible` walks the whole page order).
-    fn visible_rows(&mut self, shell: &ShellModel) -> Rc<Vec<NavRow>> {
-        let stamp = (shell.session_calls().page_rows, shell.revision());
-        let nav = shell.navigator();
-        if let Some(c) = &self.cache
-            && c.stamp == stamp
-            && c.state == *nav
-        {
-            return Rc::clone(&c.rows);
+    /// How many rows the last frame painted (tests).
+    pub fn painted(&self) -> usize {
+        self.painted
+    }
+
+    fn stamp(&self, shell: &ShellModel) -> Option<Stamp> {
+        match self.kind {
+            NavKind::Pages => Some(Stamp::Pages(
+                shell.session_calls().page_rows,
+                shell.revision(),
+                shell.navigator().clone(),
+                shell.current_page(),
+            )),
+            k => shell.nav(k).map(|n| Stamp::Other(n.stamp())),
         }
-        let rows = Rc::new(shell.navigator_rows());
+    }
+
+    /// The rows on show: the cached ones while what they depend on is unchanged, else built again.
+    fn visible_rows(&mut self, shell: &ShellModel) -> Rc<Vec<ShownRow>> {
+        let stamp = self.stamp(shell);
+        if let (Some(s), Some((c, rows))) = (&stamp, &self.cache)
+            && s == c
+        {
+            return Rc::clone(rows);
+        }
+        let rows = Rc::new(shell.shown_rows(self.kind));
         self.rebuilds += 1;
-        self.cache = Some(RowCache {
-            stamp,
-            state: nav.clone(),
-            rows: Rc::clone(&rows),
-        });
+        if let Some(s) = stamp {
+            self.cache = Some((s, Rc::clone(&rows)));
+        }
         rows
+    }
+
+    /// The `kind` member of a `navigator.*` action's parameters.
+    fn kind_word(&self) -> &'static str {
+        self.kind.word()
     }
 
     /// Paints the navigator of `shell` into `ui`.
     pub(crate) fn show(&mut self, ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
-        let nav = shell.navigator();
-        if self.filter != nav.filter && !ui.ctx().text_edit_focused() {
-            self.filter = nav.filter.clone();
+        let pages = self.kind == NavKind::Pages;
+        let shell_filter = match self.kind {
+            NavKind::Pages => shell.navigator().filter.clone(),
+            k => shell.nav(k).map(|n| n.filter.clone()).unwrap_or_default(),
+        };
+        if self.filter != shell_filter && !ui.ctx().text_edit_focused() {
+            self.filter = shell_filter;
         }
-        // The New page entry (FT-408) beside the filter: the same action as Page, New page, disabled with its reason.
-        let new_page = ew_viewmodel::actions::find("page.new").map(|a| (a.enabled)(shell));
         let field = ui
             .horizontal(|ui| {
-                let enabled = matches!(new_page, Some(Ok(())));
-                let button = ui.add_enabled(enabled, egui::Button::new(strings::text("nav-new-page")));
-                let button = match new_page {
-                    Some(Err(reason)) => button.on_disabled_hover_text(strings::text(reason)),
-                    _ => button,
-                };
-                if button.clicked() {
-                    events.push(Event::Action("page.new", serde_json::Value::Null));
+                if pages {
+                    // The New page entry (FT-408) beside the filter: the same action as Page, New page, disabled with
+                    // its reason.
+                    let new_page = ew_viewmodel::actions::find("page.new").map(|a| (a.enabled)(shell));
+                    let enabled = matches!(new_page, Some(Ok(())));
+                    let button = ui.add_enabled(enabled, egui::Button::new(strings::text("nav-new-page")));
+                    let button = match new_page {
+                        Some(Err(reason)) => button.on_disabled_hover_text(strings::text(reason)),
+                        _ => button,
+                    };
+                    if button.clicked() {
+                        events.push(Event::Action("page.new", Value::Null));
+                    }
                 }
                 ui.add(
                     TextEdit::singleline(&mut self.filter)
@@ -110,19 +190,34 @@ impl NavigatorPane {
             })
             .inner;
         if field.changed() {
-            events.push(Event::Action("pages.filter", json!({ "text": self.filter })));
+            if pages {
+                events.push(Event::Action("pages.filter", json!({ "text": self.filter })));
+            } else {
+                events.push(Event::Action(
+                    "navigator.filter",
+                    json!({ "kind": self.kind_word(), "text": self.filter }),
+                ));
+            }
         }
-        let rows = shell.page_rows();
+        if pages {
+            reorder_card(ui, shell, events);
+        }
         let visible = self.visible_rows(shell);
-        let cursor = nav.row_key(&visible, rows, shell.current_page());
-        let current = shell.current_page();
+        let cursor = shell.nav_cursor(self.kind);
         // The list itself: one focusable node with the role `Tree`.
         let list_rect = ui.available_rect_before_wrap();
-        let list_id = ui.scope_id().with("page-navigator");
+        let list_id = ui.scope_id().with(("navigator", self.kind_word()));
         let list = ui.interact(list_rect, list_id, Sense::focusable_noninteractive());
-        let tree_name = strings::text("submenu-page-navigator").to_owned();
+        let tree_name = if pages {
+            strings::text("submenu-page-navigator").to_owned()
+        } else {
+            strings::format(
+                "nav-tree-name",
+                &[strings::text(ew_viewmodel::layout::nav_title_key(self.kind))],
+            )
+        };
         list.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Tree, true, &tree_name));
-        let ours = shell.focus() == Some(Focus::Navigator);
+        let ours = shell.focus() == Some(Focus::Navigator(self.kind));
         if ours && !list.has_focus() && !ui.ctx().text_edit_focused() && shell.dialog().is_none() {
             list.request_focus();
         }
@@ -138,136 +233,391 @@ impl NavigatorPane {
                     },
                 );
             });
-            self.keys(ui, &visible, cursor.as_deref(), events);
+            self.keys(ui, shell, &visible, cursor.as_deref(), events);
         }
         if list.gained_focus() && !ours {
-            events.push(Event::Action("ui.focus", json!({"area": "navigator"})));
+            events.push(Event::Action(
+                "ui.focus",
+                json!({"area": "navigator", "kind": self.kind_word()}),
+            ));
         }
+        // The cursor is scrolled into view when it moved to a row outside the rows on show (the first and last ones may
+        // be cut).
+        let inside = |i: usize| self.view.start < i && i + 1 < self.view.end;
         let scroll_to = cursor
             .as_ref()
             .filter(|c| self.scrolled_to.as_ref() != Some(*c))
-            .and_then(|c| visible.iter().position(|r| &r.key == c));
+            .and_then(|c| visible.iter().position(|r| &r.key == c))
+            .filter(|i| !inside(*i));
         self.scrolled_to.clone_from(&cursor);
-        let mut area = egui::ScrollArea::vertical().auto_shrink([false, false]);
+        let mut area = egui::ScrollArea::vertical()
+            .id_salt(("navigator-scroll", self.kind_word()))
+            .auto_shrink([false, false]);
         if let Some(i) = scroll_to {
             area = area.vertical_scroll_offset((i as f32 * ROW_HEIGHT - 2.0 * ROW_HEIGHT).max(0.0));
         }
+        let kind = self.kind;
+        let mut painted = 0;
+        let mut view = 0..0;
         // The rows are made in a scope whose AccessKit parent is the list, so they are the Tree's items (§6.9).
         ui.scope_builder(egui::UiBuilder::new().accessibility_parent(list_id), |ui| {
             area.show_rows(ui, ROW_HEIGHT, visible.len(), |ui, range| {
+                view = range.clone();
                 for row in &visible[range] {
-                    let text = match &row.kind {
-                        RowKind::Node { label, .. } => {
-                            format!("{} {label}", if row.expanded { "-" } else { "+" })
-                        }
-                        RowKind::Page(i) => {
-                            let r = &rows[*i];
-                            let mut t = format!("{} {}", r.folio, r.title);
-                            if r.generated {
-                                t.push_str(&format!(" [{}]", strings::text("badge-generated")));
-                            }
-                            if r.qet_grid {
-                                t.push_str(&format!(" [{}]", strings::text("badge-qet-grid")));
-                            }
-                            t
-                        }
-                    };
-                    let is_current = matches!(row.kind, RowKind::Page(i)
-                        if Some(ew_viewmodel::canvas::PageId::of(&rows[i])) == current);
-                    let selected = cursor.as_deref() == Some(row.key.as_str());
-                    let response = ui
-                        .horizontal(|ui| {
-                            ui.add_space(INDENT * (row.level.saturating_sub(1)) as f32);
-                            let rich = if is_current {
-                                egui::RichText::new(text).strong()
-                            } else {
-                                egui::RichText::new(text)
-                            };
-                            ui.add(egui::Button::selectable(selected, rich).frame(false))
-                        })
-                        .inner;
-                    let name = PageNavigator::accessible_name(row, rows, current);
-                    response.widget_info(|| {
-                        egui::WidgetInfo::selected(egui::Role::TreeItem, true, selected, &name)
-                    });
-                    let (level, position, size, expanded) =
-                        (row.level, row.position, row.set_size, row.expanded);
-                    let node = matches!(row.kind, RowKind::Node { .. });
-                    ui.ctx().accesskit_node_builder(response.id, |n| {
-                        n.set_level(level);
-                        n.set_position_in_set(position);
-                        n.set_size_of_set(size);
-                        if node {
-                            n.set_expanded(expanded);
-                        }
-                    });
-                    if response.clicked_by(PointerButton::Middle) {
-                        if matches!(row.kind, RowKind::Page(_)) {
-                            events.push(Event::Action(
-                                "pages.open",
-                                json!({"key": row.key, "new_tab": true}),
-                            ));
-                        }
-                    } else if response.clicked() {
-                        events.push(Event::Action("ui.focus", json!({"area": "navigator"})));
-                        events.push(Event::Action(
-                            if node { "pages.toggle" } else { "pages.open" },
-                            json!({"key": row.key}),
-                        ));
-                    }
+                    painted += 1;
+                    row_ui(ui, kind, row, cursor.as_deref(), &visible, events);
                 }
             });
         });
+        self.painted = painted;
+        self.view = view;
     }
 
-    /// The navigator's keys while it has the focus (WP-S2.03 §6.1).
-    fn keys(&self, ui: &Ui, visible: &[NavRow], cursor: Option<&str>, events: &mut Vec<Event>) {
+    /// The navigator's keys while it has the focus (WP-S2.03 §6.1, WP-S2.06 §6.4).
+    fn keys(
+        &mut self,
+        ui: &Ui,
+        shell: &ShellModel,
+        visible: &[ShownRow],
+        cursor: Option<&str>,
+        events: &mut Vec<Event>,
+    ) {
+        let pages = self.kind == NavKind::Pages;
+        let kind = self.kind_word();
         let row = cursor.and_then(|c| visible.iter().find(|r| r.key == c));
         let pressed = |m: Modifiers, k: Key| ui.ctx().input_mut(|i| i.consume_key(m, k));
-        if pressed(Modifiers::NONE, Key::ArrowDown) {
-            events.push(Event::Action("pages.row", json!({"step": 1})));
+        let step = |events: &mut Vec<Event>, s: i64| {
+            if pages {
+                events.push(Event::Action("pages.row", json!({"step": s})));
+            } else {
+                events.push(Event::Action("navigator.row", json!({"kind": kind, "step": s})));
+            }
+        };
+        let to = |events: &mut Vec<Event>, k: &str| {
+            if pages {
+                events.push(Event::Action("pages.row", json!({ "key": k })));
+            } else {
+                events.push(Event::Action("navigator.row", json!({"kind": kind, "key": k})));
+            }
+        };
+        let toggle = |events: &mut Vec<Event>, k: &str| {
+            if pages {
+                events.push(Event::Action("pages.toggle", json!({ "key": k })));
+            } else {
+                events.push(Event::Action("navigator.toggle", json!({"kind": kind, "key": k})));
+            }
+        };
+        let card = shell
+            .properties()
+            .card()
+            .is_some_and(|c| matches!(c.origin, CardOrigin::Reorder { .. }));
+        if pressed(Modifiers::SHIFT, Key::ArrowDown) {
+            events.push(Event::Action(
+                "navigator.row",
+                json!({"kind": kind, "step": 1, "extend": true}),
+            ));
+        } else if pressed(Modifiers::SHIFT, Key::ArrowUp) {
+            events.push(Event::Action(
+                "navigator.row",
+                json!({"kind": kind, "step": -1, "extend": true}),
+            ));
+        } else if pressed(Modifiers::NONE, Key::ArrowDown) {
+            step(events, 1);
         } else if pressed(Modifiers::NONE, Key::ArrowUp) {
-            events.push(Event::Action("pages.row", json!({"step": -1})));
+            step(events, -1);
         } else if pressed(Modifiers::NONE, Key::Home) {
-            events.push(Event::Action("pages.row", json!({"to": "first"})));
+            if pages {
+                events.push(Event::Action("pages.row", json!({"to": "first"})));
+            } else {
+                events.push(Event::Action(
+                    "navigator.row",
+                    json!({"kind": kind, "to": "first"}),
+                ));
+            }
         } else if pressed(Modifiers::NONE, Key::End) {
-            events.push(Event::Action("pages.row", json!({"to": "last"})));
+            if pages {
+                events.push(Event::Action("pages.row", json!({"to": "last"})));
+            } else {
+                events.push(Event::Action(
+                    "navigator.row",
+                    json!({"kind": kind, "to": "last"}),
+                ));
+            }
         } else if pressed(Modifiers::NONE, Key::ArrowLeft) {
             if let Some(r) = row {
-                match (&r.kind, r.expanded, &r.parent) {
-                    (RowKind::Node { .. }, true, _) => {
-                        events.push(Event::Action("pages.toggle", json!({"key": r.key})));
-                    }
-                    (_, _, Some(parent)) => {
-                        events.push(Event::Action("pages.row", json!({"key": parent})));
-                    }
+                match (r.expanded, &r.parent) {
+                    (Some(true), _) => toggle(events, &r.key),
+                    (_, Some(parent)) => to(events, parent),
                     _ => {}
                 }
             }
         } else if pressed(Modifiers::NONE, Key::ArrowRight) {
             if let Some(r) = row
-                && matches!(r.kind, RowKind::Node { .. })
-                && !r.expanded
+                && r.expanded == Some(false)
             {
-                events.push(Event::Action("pages.toggle", json!({"key": r.key})));
+                toggle(events, &r.key);
             }
         } else if pressed(Modifiers::COMMAND, Key::Enter) {
-            if let Some(r) = row
-                && matches!(r.kind, RowKind::Page(_))
+            if card {
+                events.push(Event::Action("navigator.apply", Value::Null));
+            } else if let Some(r) = row
+                && r.openable
             {
-                events.push(Event::Action(
-                    "pages.open",
-                    json!({"key": r.key, "new_tab": true}),
-                ));
+                open(events, self.kind, &r.key, true);
             }
-        } else if pressed(Modifiers::NONE, Key::Enter)
-            && let Some(r) = row
-        {
-            let action = match r.kind {
-                RowKind::Page(_) => "pages.open",
-                RowKind::Node { .. } => "pages.toggle",
-            };
-            events.push(Event::Action(action, json!({"key": r.key})));
+        } else if pressed(Modifiers::NONE, Key::Enter) {
+            if let Some(r) = row {
+                if r.openable {
+                    open(events, self.kind, &r.key, false);
+                } else if r.expanded.is_some() {
+                    toggle(events, &r.key);
+                }
+            }
+        } else {
+            self.type_ahead(ui, events);
         }
     }
+
+    /// Type-ahead (§6.4): printable characters other than Space, without Ctrl or Alt, extend the buffer.
+    fn type_ahead(&mut self, ui: &Ui, events: &mut Vec<Event>) {
+        let (typed, now) = ui.ctx().input_mut(|i| {
+            let mut typed = String::new();
+            if !(i.modifiers.ctrl || i.modifiers.command || i.modifiers.alt) {
+                i.events.retain(|e| match e {
+                    egui::Event::Text(t) if !t.trim().is_empty() && !t.contains(' ') => {
+                        typed.push_str(t);
+                        false
+                    }
+                    _ => true,
+                });
+            }
+            (typed, i.time)
+        });
+        if typed.is_empty() {
+            return;
+        }
+        if now - self.typed.1 > TYPE_AHEAD_RESET {
+            self.typed.0.clear();
+        }
+        self.typed.0.push_str(&typed);
+        self.typed.1 = now;
+        events.push(Event::Action(
+            "navigator.jump",
+            json!({"kind": self.kind_word(), "prefix": self.typed.0}),
+        ));
+    }
+}
+
+/// Opens a row: `pages.open` for a page row of the Pages navigator, `navigator.open` otherwise.
+fn open(events: &mut Vec<Event>, kind: NavKind, key: &str, new_tab: bool) {
+    let mut p = json!({ "key": key });
+    if new_tab {
+        p["new_tab"] = Value::Bool(true);
+    }
+    if kind == NavKind::Pages {
+        events.push(Event::Action("pages.open", p));
+    } else {
+        p["kind"] = Value::from(kind.word());
+        events.push(Event::Action("navigator.open", p));
+    }
+}
+
+/// One row: its glyph, its text, its input, drag and drop, and its AccessKit node.
+fn row_ui(
+    ui: &mut Ui,
+    kind: NavKind,
+    row: &ShownRow,
+    cursor: Option<&str>,
+    visible: &[ShownRow],
+    events: &mut Vec<Event>,
+) {
+    let is_cursor = cursor == Some(row.key.as_str());
+    let (glyph_clicked, response) = ui
+        .horizontal(|ui| {
+            ui.add_space(INDENT * (row.level.saturating_sub(1)) as f32);
+            let glyph = match row.expanded {
+                Some(true) => ui.add(egui::Button::new("-").frame(false).small()).clicked(),
+                Some(false) => ui.add(egui::Button::new("+").frame(false).small()).clicked(),
+                None => false,
+            };
+            let rich = if row.current {
+                egui::RichText::new(&row.text).strong()
+            } else {
+                egui::RichText::new(&row.text)
+            };
+            let selected = row.marked || is_cursor;
+            let button = egui::Button::selectable(selected, rich)
+                .frame(false)
+                .sense(Sense::click_and_drag());
+            (glyph, ui.add(button))
+        })
+        .inner;
+    response.widget_info(|| egui::WidgetInfo::selected(egui::Role::TreeItem, true, row.marked, &row.name));
+    let (level, position, size, expanded) = (row.level, row.position, row.set_size, row.expanded);
+    ui.ctx().accesskit_node_builder(response.id, |n| {
+        n.set_level(level);
+        n.set_position_in_set(position);
+        n.set_size_of_set(size);
+        if let Some(e) = expanded {
+            n.set_expanded(e);
+        }
+    });
+    let word = kind.word();
+    if glyph_clicked {
+        let action = if kind == NavKind::Pages {
+            ("pages.toggle", json!({"key": row.key}))
+        } else {
+            ("navigator.toggle", json!({"kind": word, "key": row.key}))
+        };
+        events.push(Event::Action(action.0, action.1));
+        return;
+    }
+    // Drag sources.
+    match &row.drag {
+        Some(DragSource::Page(folio)) => {
+            let folios: Vec<String> = if row.marked {
+                visible
+                    .iter()
+                    .filter(|r| r.marked)
+                    .filter_map(|r| match &r.drag {
+                        Some(DragSource::Page(f)) => Some(f.clone()),
+                        _ => None,
+                    })
+                    .collect()
+            } else {
+                vec![folio.clone()]
+            };
+            response.dnd_set_drag_payload(PagesDrag(folios));
+        }
+        Some(DragSource::Function(id)) => response.dnd_set_drag_payload(FunctionDrag(id.clone())),
+        None => {}
+    }
+    // A drop of pages on a row of the Pages navigator.
+    if kind == NavKind::Pages
+        && let Some(payload) = response.dnd_release_payload::<PagesDrag>()
+    {
+        let pages = payload.0.clone();
+        match &row.drag {
+            Some(DragSource::Page(target)) => {
+                if !pages.contains(target) {
+                    events.push(Event::Action(
+                        "pages.reorder",
+                        json!({"pages": pages, "before": target}),
+                    ));
+                }
+            }
+            _ if row.expanded.is_some() => {
+                events.push(Event::Action(
+                    "pages.reorder",
+                    json!({"pages": pages, "end": true}),
+                ));
+            }
+            _ => {}
+        }
+        return;
+    }
+    let modifiers = ui.input(|i| i.modifiers);
+    if response.clicked_by(PointerButton::Middle) {
+        if row.openable {
+            open(events, kind, &row.key, true);
+        }
+    } else if response.double_clicked() {
+        if row.openable {
+            open(events, kind, &row.key, false);
+        } else if row.expanded.is_some() {
+            let action = if kind == NavKind::Pages {
+                ("pages.toggle", json!({"key": row.key}))
+            } else {
+                ("navigator.toggle", json!({"kind": word, "key": row.key}))
+            };
+            events.push(Event::Action(action.0, action.1));
+        }
+    } else if response.clicked() {
+        events.push(Event::Action(
+            "ui.focus",
+            json!({"area": "navigator", "kind": word}),
+        ));
+        if modifiers.command {
+            events.push(Event::Action(
+                "navigator.mark",
+                json!({"kind": word, "key": row.key}),
+            ));
+        } else if modifiers.shift {
+            events.push(Event::Action(
+                "navigator.row",
+                json!({"kind": word, "key": row.key, "extend": true}),
+            ));
+        } else {
+            events.push(Event::Action(
+                "navigator.select",
+                json!({"kind": word, "keys": [row.key]}),
+            ));
+        }
+    }
+}
+
+/// The reorder card in the Pages pane (§6.6): "Preview: reorder pages · 106 → 103, 103 → 106 · <n> tags, <m>
+/// cross-reference texts", Apply and Cancel.
+fn reorder_card(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
+    let (Some(card), Some(rev)) = (shell.properties().card(), shell.revision()) else {
+        return;
+    };
+    let CardOrigin::Reorder { notices } = &card.origin else {
+        return;
+    };
+    ui.group(|ui| {
+        let mut line = strings::format(
+            "card-reorder",
+            &[
+                &notices.join(", "),
+                &card.preview.derived.tags.len().to_string(),
+                &card.preview.derived.xrefs.len().to_string(),
+            ],
+        );
+        match (&card.preview.result, card.preview.status(rev)) {
+            (Err(m), _) => line = strings::format("card-failed", &[m]),
+            (_, ew_viewmodel::tools::PreviewStatus::Stale) => {
+                line.push_str(&format!(" [{}]", strings::text("card-stale")));
+            }
+            _ => {}
+        }
+        let response = ui.label(&line);
+        ui.ctx().accesskit_node_builder(response.id, |n| {
+            n.set_live(egui::accesskit::Live::Polite);
+            n.set_value(line);
+        });
+        ui.horizontal(|ui| {
+            if ui.button(strings::text("card-apply")).clicked() {
+                events.push(Event::Action("navigator.apply", Value::Null));
+            }
+            if ui.button(strings::text("card-cancel")).clicked() {
+                events.push(Event::Action("preview.cancel", Value::Null));
+            }
+        });
+    });
+}
+
+/// The chip line "Not on this page" above the canvas (§6.5): one button per chip, named `Open <folio>-<cell>`, that
+/// opens the page and selects the drawable there.
+pub(crate) fn chip_line(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
+    let chips = shell.chips();
+    if chips.is_empty() {
+        return;
+    }
+    ui.horizontal_wrapped(|ui| {
+        ui.label(strings::text("chips-label"));
+        for c in chips {
+            let text = c.text();
+            let name = strings::format("chip-name", &[&text]);
+            let response = ui.button(&text);
+            response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &name));
+            if response.clicked() {
+                events.push(Event::Action("page.goto", json!({ "folio": c.folio })));
+                events.push(Event::Action(
+                    "select.set",
+                    json!({ "ids": [c.record.to_string()] }),
+                ));
+            }
+        }
+    });
 }

@@ -46,6 +46,8 @@ mod find;
 mod interruption;
 pub(crate) use interruption::natural_cmp;
 mod navigation;
+// WP-S2.06 part 1
+mod navigators;
 mod onboarding;
 // FT-410
 mod parts;
@@ -59,6 +61,8 @@ mod workspaces;
 pub use creation::{FormDialog, FormField, PAGE_TYPES, STRUCTURE_KINDS};
 pub use drawing::TextPopup;
 pub use navigation::{Focus, RECENT_PAGES, SessionCalls};
+// WP-S2.06 part 1
+pub use navigators::{Chip, DragSource, MAX_CHIPS, ShownRow};
 pub use tools::SnapIndicator;
 
 /// Who drives the shell: the window or the headless runner. They share `dispatch`; the modes differ only where a
@@ -350,6 +354,16 @@ pub struct ShellModel {
     area: Option<CanvasArea>,
     /// The page navigator (WP-S2.03 §6.1).
     navigator: PageNavigator,
+    // WP-S2.06 part 1
+    /// The open navigators other than Pages, by kind.
+    navs: std::collections::BTreeMap<crate::navigators::NavKind, crate::navigators::Navigator>,
+    /// The chips of the line "Not on this page" (§6.5), and the (selection generation, page) they were made for.
+    chips: Vec<navigators::Chip>,
+    chips_for: Option<(u64, Option<crate::canvas::PageId>)>,
+    /// The page the focused tab showed at the end of the last dispatch (a page switch moves the Pages cursor).
+    last_page: Option<crate::canvas::PageId>,
+    /// Counted up by every dispatch (the navigator widget's cache key).
+    nav_version: u64,
     /// Where the keyboard focus is.
     focus: Option<Focus>,
     /// The page content of the current revision by folio (WP-S2.03 §6.2).
@@ -531,6 +545,16 @@ fn clears_banner(id: &str) -> bool {
             | "pages.toggle"
             | "pages.row"
             | "pages.open"
+            | "navigator.show"
+            | "navigator.view"
+            | "navigator.sort"
+            | "navigator.filter"
+            | "navigator.toggle"
+            | "navigator.row"
+            | "navigator.open"
+            | "navigator.select"
+            | "navigator.mark"
+            | "navigator.jump"
             | "ui.focus"
             | "ui.focus_next"
             | "ui.focus_previous"
@@ -698,6 +722,11 @@ impl ShellModel {
             last_help: None,
             area: None,
             navigator: PageNavigator::new(),
+            navs: std::collections::BTreeMap::new(),
+            chips: Vec::new(),
+            chips_for: None,
+            last_page: None,
+            nav_version: 0,
             focus: None,
             cache: navigation::PageCache::default(),
             calls: Cell::new(SessionCalls::default()),
@@ -1165,6 +1194,8 @@ impl ShellModel {
         self.sync_junction_editor();
         // WP-S2.04 part 3: the grips of a selected black box.
         self.sync_box_grips();
+        // WP-S2.06 part 1: the navigators follow the revision, the page and the selection (§6.5).
+        self.sync_navigators();
         self.sync_properties();
         self.sync_find();
         outcome
@@ -1243,6 +1274,21 @@ impl ShellModel {
             "pages.toggle" => self.act_pages_toggle(p),
             "pages.row" => self.act_pages_row(p),
             "pages.open" => self.act_pages_open(p),
+            // WP-S2.06 part 1
+            "navigator.show" => self.act_navigator_show(p),
+            "navigator.view" => self.act_navigator_view(p),
+            "navigator.sort" => self.act_navigator_sort(p),
+            "navigator.filter" => self.act_navigator_filter(p),
+            "navigator.toggle" => self.act_navigator_toggle(p),
+            "navigator.row" => self.act_navigator_row(p),
+            "navigator.open" => self.act_navigator_open(p),
+            "navigator.select" => self.act_navigator_select(p),
+            "navigator.mark" => self.act_navigator_mark(p),
+            "navigator.jump" => self.act_navigator_jump(p),
+            "navigator.apply" => self.act_navigator_apply(),
+            "pages.reorder" => self.act_pages_reorder(p),
+            "pages.move_up" => self.act_pages_move(true),
+            "pages.move_down" => self.act_pages_move(false),
             "ui.focus" => self.act_focus(p),
             "ui.focus_next" => self.act_focus_cycle(1),
             "ui.focus_previous" => self.act_focus_cycle(-1),
@@ -1934,6 +1980,16 @@ impl ShellModel {
         }
         if let Some(outcome) = self.dismiss_properties() {
             return outcome;
+        }
+        // WP-S2.06 part 1: Escape in a navigator cancels the reorder card.
+        if matches!(self.focus, Some(Focus::Navigator(_)))
+            && self
+                .props
+                .card()
+                .is_some_and(|c| matches!(c.origin, crate::properties::CardOrigin::Reorder { .. }))
+        {
+            self.props.card = None;
+            return Outcome::Done;
         }
         // WP-S2.05 part 2
         if let Some(outcome) = self.dismiss_find() {

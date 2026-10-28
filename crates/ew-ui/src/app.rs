@@ -164,6 +164,9 @@ pub struct App {
     canvas_area: CanvasAreaHost,
     /// The page navigator pane (WP-S2.03).
     navigator: NavigatorPane,
+    // WP-S2.06 part 1
+    /// The panes of the other open navigators, by kind.
+    navigators: std::collections::BTreeMap<ew_viewmodel::navigators::NavKind, NavigatorPane>,
     /// The property grid pane (WP-S2.05).
     properties: PropertiesPane,
     /// The find pane (WP-S2.05 part 2).
@@ -229,6 +232,7 @@ impl App {
             canvas: CanvasHost::new(),
             canvas_area: CanvasAreaHost::new(),
             navigator: NavigatorPane::new(),
+            navigators: std::collections::BTreeMap::new(),
             properties: PropertiesPane::new(),
             find: FindPane::new(),
             toast_since: None,
@@ -275,6 +279,17 @@ impl App {
     #[doc(hidden)]
     pub fn navigator_rebuilds(&self) -> u64 {
         self.navigator.rebuilds()
+    }
+
+    // WP-S2.06 part 1
+    /// How many times navigator `kind`'s pane built its rows, and how many rows its last frame painted (tests).
+    pub fn navigator_pane_stats(&self, kind: ew_viewmodel::navigators::NavKind) -> Option<(u64, usize)> {
+        match kind {
+            ew_viewmodel::navigators::NavKind::Pages => {
+                Some((self.navigator.rebuilds(), self.navigator.painted()))
+            }
+            k => self.navigators.get(&k).map(|p| (p.rebuilds(), p.painted())),
+        }
     }
 
     /// The engine counters of the canvas (tests: tiles requested, rastered, uploaded; scenes built).
@@ -548,13 +563,20 @@ impl App {
                     canvas,
                     canvas_area,
                     navigator,
+                    navigators,
                     properties,
                     find,
                     area_splitters,
                     ..
                 } = self;
+                navigators.retain(|k, _| shell.navigator_open(*k));
                 dock.show(ui, &mut |ui, pane| match pane {
                     PaneKind::Pages => navigator.show(ui, shell, &mut events),
+                    // WP-S2.06 part 1
+                    PaneKind::Navigator(k) => navigators
+                        .entry(k)
+                        .or_insert_with(|| NavigatorPane::of(k))
+                        .show(ui, shell, &mut events),
                     PaneKind::Properties => properties.show(ui, shell, &mut events),
                     PaneKind::Find => find.show(ui, shell, &mut events),
                     PaneKind::PageView => {
@@ -724,7 +746,7 @@ impl App {
         // The focused context's chords first, then the global ones (WP-S2.03 §6.6); while the navigator has the
         // focus its own keys (arrows, Home, End, Enter) stay with it.
         let focused = match self.shell.focus() {
-            Some(Focus::Navigator) => Context::Navigator,
+            Some(Focus::Navigator(_)) => Context::Navigator,
             Some(Focus::Canvas(_)) => Context::Canvas,
             Some(Focus::Properties) => Context::Properties,
             Some(Focus::Find) => Context::Find,

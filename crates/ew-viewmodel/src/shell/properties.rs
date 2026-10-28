@@ -1466,6 +1466,10 @@ impl ShellModel {
         if matches!(card.origin, CardOrigin::Import { .. }) {
             return self.apply_import_card(card);
         }
+        // WP-S2.06 part 1: a reorder card is the Pages navigator's (`pages.reorder`).
+        if matches!(card.origin, CardOrigin::Reorder { .. }) {
+            return self.apply_reorder_card(card);
+        }
         let Some(rev) = self.revision() else {
             return Outcome::Done;
         };

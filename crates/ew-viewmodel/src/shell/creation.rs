@@ -474,6 +474,20 @@ impl ShellModel {
         }
         let [folio, ty, title, section] = <[String; 4]>::try_from(v).expect("four fields");
         if folio.is_empty() {
+            // WP-S2.06 part 1 (FT-461): the dialog opens with the proposed folio and section filled in.
+            if !self.in_form(&PAGE_NEW) {
+                let (proposal, proposed_section) = self.new_page_proposal();
+                let mut filled = p.clone();
+                if !proposal.is_empty() {
+                    filled.insert("folio".into(), Value::String(proposal));
+                }
+                if section.is_empty() && !proposed_section.is_empty() {
+                    filled.insert("section".into(), Value::String(proposed_section));
+                }
+                if self.mode == Mode::Gui {
+                    return self.open_dialog(Dialog::Form(PAGE_NEW.dialog(&filled)));
+                }
+            }
             return self.form_missing(&PAGE_NEW, p, "folio");
         }
         let (number, label) = match parse_folio(&folio) {

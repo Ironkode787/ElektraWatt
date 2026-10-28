@@ -196,15 +196,23 @@ pub enum CardOrigin {
         /// The copies it skips: their key exists already.
         skipped: usize,
     },
+    // WP-S2.06 part 1
+    /// The Pages navigator's reorder (`pages.reorder`, §6.6): the card in the Pages pane, with the preview's folio
+    /// changes `"<old> → <new>"` in position order.
+    Reorder {
+        /// The notices of `page.reorder`'s preview.
+        notices: Vec<String>,
+    },
 }
 
 impl CardOrigin {
-    /// The transcript's word (`properties`, `find`, `import`).
+    /// The transcript's word (`properties`, `find`, `import`, `reorder`).
     pub fn word(&self) -> &'static str {
         match self {
             CardOrigin::Properties => "properties",
             CardOrigin::Find { .. } => "find",
             CardOrigin::Import { .. } => "import",
+            CardOrigin::Reorder { .. } => "reorder",
         }
     }
 }

@@ -33,6 +33,8 @@ pub mod help;
 pub mod history;
 pub mod layout;
 pub mod navigator;
+// WP-S2.06 part 1
+pub mod navigators;
 pub mod properties;
 pub mod script;
 pub mod settings;
