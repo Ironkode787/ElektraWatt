@@ -725,11 +725,71 @@ pub fn chip_text(p: &Provenance) -> String {
     }
 }
 
+/// The provenance chip's one word (doc 16a §6.8): the value's source, "page" for a value inherited from a page (or
+/// from a structure box on a page), "inherited" for any other inheritance, else the kind ("derived", "override",
+/// "frozen", "library", "generated", "varies"); an authored value has no chip (the word is empty). [`chip_text`] is
+/// the whole text (the tooltip and the accessible description).
+pub fn chip_word(p: &Provenance) -> &'static str {
+    match p {
+        Provenance::Authored => "",
+        Provenance::Inherited { from } if from.starts_with("page ") || from.contains(" on page ") => {
+            strings::text("chip-word-page")
+        }
+        Provenance::Inherited { .. } => strings::text("chip-word-inherited"),
+        Provenance::Derived { .. } => strings::text("chip-word-derived"),
+        Provenance::Overridden { .. } => strings::text("chip-word-override"),
+        Provenance::Frozen { .. } => strings::text("chip-word-frozen"),
+        Provenance::Library { .. } => strings::text("chip-word-library"),
+        Provenance::Generated { .. } => strings::text("chip-word-generated"),
+        Provenance::Varies { .. } => strings::text("chip-word-varies"),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use serde_json::json;
 
     use super::*;
+
+    /// Doc 16a §6.8: the chip names the source in one word; an authored value has none.
+    #[test]
+    fn the_chip_word_names_the_source() {
+        let inherited = |from: &str| Provenance::Inherited { from: from.into() };
+        assert_eq!(chip_word(&Provenance::Authored), "");
+        assert_eq!(chip_word(&inherited("page 101")), "page");
+        assert_eq!(chip_word(&inherited("structure box on page 103")), "page");
+        assert_eq!(chip_word(&inherited("project description")), "inherited");
+        assert_eq!(chip_word(&inherited("-X1")), "inherited");
+        assert_eq!(
+            chip_word(&Provenance::Derived {
+                via: "numbering".into()
+            }),
+            "derived"
+        );
+        assert_eq!(
+            chip_word(&Provenance::Overridden {
+                note: "override".into()
+            }),
+            "override"
+        );
+        assert_eq!(
+            chip_word(&Provenance::Frozen {
+                note: "frozen".into()
+            }),
+            "frozen"
+        );
+        assert_eq!(
+            chip_word(&Provenance::Library {
+                item: "l/i v1".into()
+            }),
+            "library"
+        );
+        assert_eq!(
+            chip_word(&Provenance::Generated { block: "b".into() }),
+            "generated"
+        );
+        assert_eq!(chip_word(&Provenance::Varies { count: 2 }), "varies");
+    }
 
     #[test]
     fn the_policy_follows_fr_ui_044() {

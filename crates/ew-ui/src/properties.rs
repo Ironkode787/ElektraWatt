@@ -26,7 +26,8 @@
 use egui::{Key, Modifiers, RichText, Sense, TextEdit, Ui, Vec2};
 use ew_viewmodel::properties::{
     ChoiceKind, FieldType, PropRow, PropertySheet, Provenance, RowAction, RowValue, SheetSection,
-    advanced_count, chip_text, group_key, groups, is_header, read_only_reason, row_label, value_text,
+    advanced_count, chip_text, chip_word, group_key, groups, is_header, read_only_reason, row_label,
+    value_text,
 };
 use ew_viewmodel::shell::{Focus, ShellModel};
 use ew_viewmodel::strings;
@@ -49,6 +50,8 @@ pub struct PropertiesPane {
     /// The options list box of the row being edited and where it was drawn in the last frame: a pointer press on it
     /// takes the field's focus, and that focus loss must not commit the buffer before the click chooses.
     choices_rect: Option<(String, egui::Rect)>,
+    /// The nesting level of the shallowest rows of the group being drawn (their labels are not indented).
+    base_depth: u8,
 }
 
 /// `text` ellipsised in the middle at [`MAX_SHOWN`] characters.
@@ -156,6 +159,13 @@ impl PropertiesPane {
                             if shut {
                                 continue;
                             }
+                            // A category's shallowest rows are its first level: the label indent counts from them.
+                            // Main gathers fields from several levels without their parent rows, so it indents none.
+                            self.base_depth = if matches!(group, ew_viewmodel::properties::RowGroup::Main) {
+                                u8::MAX
+                            } else {
+                                rows.iter().map(|r| r.depth).min().unwrap_or(0)
+                            };
                             for row in rows {
                                 self.row(ui, shell, sheet, section, row, focused.as_deref(), events);
                             }
@@ -376,8 +386,10 @@ impl PropertiesPane {
         if let Some(e) = &error {
             description.push_str(&format!("; {e}"));
         }
-        // Doc 16a §6.8: rows of `size.row`, the label column `size.property_label`, value cells
-        // `size.control.inline`; a nested row is indented by `space.3` per level (16a sets no property indent).
+        // Doc 16a §6.8 (the mockup's `.prow`): rows of `size.row` with `space.4` side padding; the label left-aligned
+        // in `type.small` and `color.text.secondary` in the `size.property_label` column, ellipsised with the whole
+        // label in the tooltip; `space.3` to the value cell (`size.control.inline`); a nested row is indented by
+        // `space.3` per level (16a sets no property indent).
         let t = crate::theme::current(ui.ctx());
         let (row_height, label_width, indent) = (t.size_row, t.size_property_label, t.space_3);
         let width = ui.available_width();
@@ -390,35 +402,89 @@ impl PropertiesPane {
         ui.ctx().accesskit_node_builder(group_id, |n| {
             n.set_description(desc);
         });
+        let selected = focused == Some(row.key.as_str());
+        // The cursor row: the Selected state of a tree row (§6.6), `color.accent.subtle` and the 2-px accent bar.
+        if selected {
+            ui.painter()
+                .rect_filled(rect, crate::theme::SQUARE, t.accent_subtle.color32());
+            let bar = egui::Rect::from_min_max(
+                egui::pos2(rect.left(), rect.top() + t.space_1),
+                egui::pos2(rect.left() + t.focus_width, rect.bottom() - t.space_1),
+            );
+            ui.painter()
+                .rect_filled(bar, crate::theme::radius(t.radius_mark), t.accent.color32());
+        }
+        // Tertiary parts on `color.accent.subtle` are drawn in `color.text.secondary` (§4.15).
+        let tertiary = if selected {
+            t.text_secondary
+        } else {
+            t.text_tertiary
+        };
         let mut child = ui.new_child(
             egui::UiBuilder::new()
-                .max_rect(rect)
+                .max_rect(rect.shrink2(Vec2::new(t.space_4, 0.0)))
                 .accessibility_parent(group_id)
                 .layout(egui::Layout::left_to_right(egui::Align::Center)),
         );
         child.spacing_mut().interact_size.y = t.size_control_inline;
-        child.add_space(indent * f32::from(row.depth));
-        let selected = focused == Some(row.key.as_str());
-        let label_button = child.add_sized(
-            [
-                label_width - indent * f32::from(row.depth).min(6.0),
-                t.size_control_inline,
-            ],
-            egui::Button::selectable(selected, middle(&label)).frame(false),
+        child.spacing_mut().item_spacing.x = t.space_3;
+        let depth = indent * f32::from(row.depth.saturating_sub(self.base_depth)).min(6.0);
+        let (label_rect, label_button) =
+            child.allocate_exact_size(Vec2::new(label_width, t.size_control_inline), Sense::click());
+        let label_name = middle(&label);
+        label_button
+            .widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, selected, &label_name));
+        let mut job = egui::text::LayoutJob::single_section(
+            label.clone(),
+            egui::TextFormat::simple(crate::theme::font(&t.type_small), t.text_secondary.color32()),
         );
+        job.wrap = egui::text::TextWrapping::truncate_at_width(label_width - depth);
+        let galley = child.painter().layout_job(job);
+        let elided = galley.elided;
+        child.painter().galley(
+            egui::pos2(
+                label_rect.left() + depth,
+                label_rect.center().y - galley.size().y / 2.0,
+            ),
+            galley,
+            t.text_secondary.color32(),
+        );
+        let label_button = if elided {
+            label_button.on_hover_text(&label)
+        } else {
+            label_button
+        };
         if label_button.clicked() {
             events.push(Event::Action("ui.focus", json!({"area": "properties"})));
             events.push(Event::Action("props.row", json!({"to": row.key})));
         }
         let editing = props.edit().is_some_and(|e| e.row == row.key);
+        // The chip's word: the source in one word, the whole text in the tooltip (doc 16a §6.8).
+        let word = chip_word(&row.provenance);
         if editing {
             self.editor(&mut child, shell, row, &label, events);
         } else {
+            let actions_w = if row.actions.is_empty() {
+                0.0
+            } else {
+                t.size_control_inline + t.space_3
+            };
+            let value_w = (child.available_width() - actions_w).max(t.size_control_inline);
             if let (FieldType::Bool, true) = (row.ty.inner(), row.actions.contains(&RowAction::Edit)) {
                 // A checkbox (§6.5): a click sets the other value.
+                let area =
+                    egui::Rect::from_min_size(child.cursor().min, Vec2::new(value_w, t.size_control_inline));
                 let mut on = matches!(&row.value, RowValue::One { json, .. } if json.as_bool() == Some(true));
                 let was = on;
-                let response = child.checkbox(&mut on, "");
+                let response = child
+                    .scope_builder(
+                        egui::UiBuilder::new()
+                            .max_rect(area)
+                            .layout(egui::Layout::left_to_right(egui::Align::Center)),
+                        |ui| ui.checkbox(&mut on, ""),
+                    )
+                    .inner;
+                child.advance_cursor_after_rect(area);
                 let name = label.clone();
                 response.widget_info(|| egui::WidgetInfo::selected(egui::Role::CheckBox, true, was, &name));
                 if on != was {
@@ -428,18 +494,25 @@ impl PropertiesPane {
                         json!({"row": row.key, "value": if on { "yes" } else { "no" }}),
                     ));
                 }
+                if show_chip {
+                    let chip_rect = crate::components::paint_provenance_chip(
+                        &child,
+                        &t,
+                        word,
+                        tertiary,
+                        egui::pos2(area.right() - t.space_icon, area.center().y),
+                    );
+                    child
+                        .interact(chip_rect, group_id.with("chip"), Sense::hover())
+                        .on_hover_text(&chip);
+                }
             } else {
-                // The value cell: a click edits in place (doc 16a §6.8); an empty value is an em dash.
+                // The value cell (the mockup's `.val`): a click edits in place; a transparent 1-px border that turns
+                // `color.border.control` on hover; `space.icon` padding; an empty value is an em dash in
+                // `color.text.tertiary`; the provenance chip at the cell's right end.
                 let editable = !header && row.actions.contains(&RowAction::Edit);
-                let actions_w = if row.actions.is_empty() {
-                    0.0
-                } else {
-                    t.size_control_inline
-                };
-                let chip_w = if show_chip { t.size_property_label } else { 0.0 };
-                let cell_w = (child.available_width() - actions_w - chip_w).max(t.size_control_inline);
                 let (cell, response) = child.allocate_exact_size(
-                    Vec2::new(cell_w, t.size_control_inline),
+                    Vec2::new(value_w, t.size_control_inline),
                     if editable { Sense::click() } else { Sense::hover() },
                 );
                 let shown = if value.is_empty() && !header {
@@ -459,41 +532,65 @@ impl PropertiesPane {
                     child.painter().rect_stroke(
                         cell,
                         crate::theme::radius(t.radius_sm),
-                        crate::theme::stroke(t.border_width, t.border_default),
+                        crate::theme::stroke(t.border_width, t.border_control),
                         egui::StrokeKind::Inside,
                     );
                 }
+                let mut text_right = cell.right() - t.space_icon;
+                let mut on_chip = false;
+                if show_chip {
+                    let chip_rect = crate::components::paint_provenance_chip(
+                        &child,
+                        &t,
+                        word,
+                        tertiary,
+                        egui::pos2(text_right, cell.center().y),
+                    );
+                    text_right = chip_rect.left() - t.space_2;
+                    on_chip = response.hover_pos().is_some_and(|p| chip_rect.contains(p));
+                }
                 let colour = if value.is_empty() {
-                    t.text_tertiary
+                    tertiary
                 } else {
                     t.text_primary
                 };
-                child.painter().with_clip_rect(cell).text(
-                    egui::pos2(cell.left() + t.space_2, cell.center().y),
-                    egui::Align2::LEFT_CENTER,
-                    &shown,
-                    crate::theme::font(&t.type_body),
+                // The value ellipsised at the chip (or the cell's end), the whole value in the tooltip.
+                let mut job = egui::text::LayoutJob::single_section(
+                    shown.clone(),
+                    egui::TextFormat::simple(crate::theme::font(&t.type_body), colour.color32()),
+                );
+                job.wrap = egui::text::TextWrapping::truncate_at_width(
+                    (text_right - cell.left() - t.space_icon).max(0.0),
+                );
+                let galley = child.painter().layout_job(job);
+                let cut = galley.elided;
+                child.painter().galley(
+                    egui::pos2(
+                        cell.left() + t.space_icon,
+                        cell.center().y - galley.size().y / 2.0,
+                    ),
+                    galley,
                     colour.color32(),
                 );
-                if value.chars().count() > MAX_SHOWN {
-                    response.clone().on_hover_text(&value);
-                }
+                // The tooltip: the chip's whole text over the chip, else a read-only value's reason, else a long
+                // value's whole text.
+                let long = (cut || value.chars().count() > MAX_SHOWN).then(|| value.clone());
+                let tip = if on_chip {
+                    Some(chip.clone())
+                } else if !editable && !header {
+                    reason.clone().or(long)
+                } else {
+                    long
+                };
+                let response = match tip {
+                    Some(tip) => response.on_hover_text(tip),
+                    None => response,
+                };
                 if response.clicked() {
                     events.push(Event::Action("ui.focus", json!({"area": "properties"})));
                     events.push(Event::Action("props.row", json!({"to": row.key})));
                     events.push(Event::Action("props.edit", json!({})));
                 }
-            }
-            if show_chip {
-                // The chip: its kind ("f derived"), the whole text in the tooltip.
-                let short = chip.split(" · ").next().unwrap_or_default().to_owned();
-                child
-                    .label(
-                        RichText::new(short)
-                            .font(crate::theme::font(&t.type_caption))
-                            .color(t.text_secondary.color32()),
-                    )
-                    .on_hover_text(&chip);
             }
             if !row.actions.is_empty() {
                 // The actions menu: one "…" button on the cursor row, on hover and on focus.
@@ -532,47 +629,28 @@ impl PropertiesPane {
                 }
             }
         }
-        // Below the row: its error, its choices, the notes of the last commit, the popups.
+        // Below the row: its error (§6.1: the icon and the message in `color.error`, `type.small`), its choices, the
+        // notes of the last commit, the popups.
         if let Some(e) = error {
-            ui.label(RichText::new(e).italics());
+            ui.horizontal(|ui| {
+                ui.add_space(t.space_4);
+                let (r, _) = ui.allocate_exact_size(Vec2::splat(t.icon_sm), Sense::hover());
+                crate::icons::paint(
+                    ui.painter(),
+                    crate::icons::IconId::circle_x,
+                    r,
+                    t.error.color32(),
+                    t.icon_stroke,
+                );
+                ui.label(
+                    RichText::new(e)
+                        .font(crate::theme::font(&t.type_small))
+                        .color(t.error.color32()),
+                );
+            });
         }
         if let Some(c) = props.choices().filter(|c| c.row == row.key) {
-            // The options of a choice editor (a combo for enums and colours, a filtered picker for parts and structure
-            // nodes) and the readings of an ambiguous number: a list box, Up and Down move the highlight, Enter or a
-            // click chooses (§6.5, §6.9).
-            let list_id = ui.scope_id().with(("prop-choices", &row.key));
-            let list_rect = ui.available_rect_before_wrap();
-            let list = ui.interact(
-                egui::Rect::from_min_size(list_rect.min, Vec2::new(list_rect.width(), 1.0)),
-                list_id,
-                Sense::hover(),
-            );
-            let list_name = strings::format("props-options", &[&label]);
-            list.widget_info(|| egui::WidgetInfo::labeled(egui::Role::ListBox, true, &list_name));
-            ui.scope_builder(egui::UiBuilder::new().accessibility_parent(list_id), |ui| {
-                egui::ScrollArea::vertical()
-                    .id_salt(("prop-choices-scroll", &row.key))
-                    .max_height(t.size_row * t.size_chooser_rows as f32)
-                    .show(ui, |ui| {
-                        let top = ui.min_rect().min;
-                        for (i, (text, _)) in c.items.iter().enumerate() {
-                            let selected = c.index == Some(i);
-                            let response = ui.add(egui::Button::selectable(selected, text));
-                            let name = text.clone();
-                            response.widget_info(|| {
-                                egui::WidgetInfo::selected(egui::Role::ListBoxOption, true, selected, &name)
-                            });
-                            if selected {
-                                response.scroll_to_me(None);
-                            }
-                            if response.clicked() {
-                                events.push(Event::Action("props.choose", json!({ "index": i })));
-                            }
-                        }
-                        let rect = egui::Rect::from_min_max(top, ui.min_rect().max);
-                        self.choices_rect = Some((row.key.clone(), ui.clip_rect().intersect(rect)));
-                    });
-            });
+            self.choices(ui, &t, &label, &row.key, rect, c, events);
         } else if self.choices_rect.as_ref().is_some_and(|(r, _)| *r == row.key) {
             self.choices_rect = None;
         }
@@ -596,6 +674,103 @@ impl PropertiesPane {
                 ui.label(RichText::new(strings::format("props-notes", &[n])).small());
             }
         }
+    }
+
+    /// The options of a choice editor (a combo for enums and colours, a filtered picker for parts and structure nodes)
+    /// and the readings of an ambiguous number: a list box in a popup over the grid, Up and Down move the highlight,
+    /// Enter or a click chooses (§6.5, §6.9). The popup (doc 16a §6.22's look: `color.surface.raised`,
+    /// `elevation.1`, `radius.md`, `space.2` padding, rows of `size.row`, at most `size.chooser` rows before it
+    /// scrolls) opens under the row when it fits above the status bar, else over it, and is clamped to the window's
+    /// free area (no part of it under the status bar or outside the window): `choices_placement`.
+    #[allow(clippy::too_many_arguments)]
+    fn choices(
+        &mut self,
+        ui: &mut Ui,
+        t: &crate::theme::Tokens,
+        label: &str,
+        key: &str,
+        anchor: egui::Rect,
+        c: &ew_viewmodel::properties::Choices,
+        events: &mut Vec<Event>,
+    ) {
+        let bound = ui
+            .data(|d| d.get_temp::<egui::Rect>(free_area_id()))
+            .unwrap_or_else(|| ui.ctx().content_rect());
+        let width = anchor
+            .width()
+            .clamp(t.size_chooser_min_width, t.size_chooser_max_width);
+        let rows = c.items.len().min(t.size_chooser_rows as usize).max(1);
+        let content = t.size_row * rows as f32;
+        let pad = t.space_2 + t.border_width;
+        let (pos, max_height) = choices_placement(anchor, bound, width, content, pad, t.space_1);
+        let list_id = ui.scope_id().with(("prop-choices", key));
+        let area = egui::Area::new(list_id.with("area"))
+            .order(egui::Order::Foreground)
+            .fixed_pos(pos)
+            .constrain_to(bound)
+            .show(ui.ctx(), |ui| {
+                crate::components::card_frame(t)
+                    .fill(t.surface_raised.color32())
+                    .corner_radius(crate::theme::radius(t.radius_md))
+                    .shadow(crate::theme::shadow(&t.elevation_1))
+                    .inner_margin(egui::Margin::same(t.space_2 as i8))
+                    .show(ui, |ui| {
+                        ui.set_width(width - 2.0 * pad);
+                        let list_rect = egui::Rect::from_min_size(
+                            ui.max_rect().min,
+                            Vec2::new(width - 2.0 * pad, max_height),
+                        );
+                        let list = ui.interact(list_rect, list_id, Sense::hover());
+                        let list_name = strings::format("props-options", &[label]);
+                        list.widget_info(|| egui::WidgetInfo::labeled(egui::Role::ListBox, true, &list_name));
+                        ui.scope_builder(egui::UiBuilder::new().accessibility_parent(list_id), |ui| {
+                            egui::ScrollArea::vertical()
+                                .id_salt(("prop-choices-scroll", key))
+                                .max_height(max_height)
+                                .show(ui, |ui| {
+                                    ui.spacing_mut().item_spacing.y = 0.0;
+                                    for (i, (text, _)) in c.items.iter().enumerate() {
+                                        let selected = c.index == Some(i);
+                                        let (r, response) = ui.allocate_exact_size(
+                                            Vec2::new(ui.available_width(), t.size_row),
+                                            Sense::click(),
+                                        );
+                                        let name = text.clone();
+                                        response.widget_info(|| {
+                                            egui::WidgetInfo::selected(
+                                                egui::Role::ListBoxOption,
+                                                true,
+                                                selected,
+                                                &name,
+                                            )
+                                        });
+                                        // The active row has the hover overlay (§6.22: as menus, never the accent).
+                                        if selected || response.hovered() {
+                                            ui.painter().rect_filled(
+                                                r,
+                                                crate::theme::radius(t.radius_sm),
+                                                t.state_hover.color32(),
+                                            );
+                                        }
+                                        ui.painter().text(
+                                            egui::pos2(r.left() + t.space_2, r.center().y),
+                                            egui::Align2::LEFT_CENTER,
+                                            text,
+                                            crate::theme::font(&t.type_body),
+                                            t.text_primary.color32(),
+                                        );
+                                        if selected {
+                                            response.scroll_to_me(None);
+                                        }
+                                        if response.clicked() {
+                                            events.push(Event::Action("props.choose", json!({ "index": i })));
+                                        }
+                                    }
+                                });
+                        });
+                    });
+            });
+        self.choices_rect = Some((key.to_owned(), area.response.rect));
     }
 
     /// The row's editor: a text input labelled by the field. Enter, Tab and leaving it commit; Escape reverts;
@@ -634,11 +809,28 @@ impl PropertiesPane {
                 events.push(Event::Action("props.choose", json!({"step": -1})));
             }
         }
-        let response = ui.add(
+        // Doc 16a §6.8 (the mockup's `.val.edit`): the value cell in its editing look, `color.surface.panel` with a
+        // 1-px `color.accent` border and a 1-px accent ring, `radius.sm`, `space.icon` padding.
+        let t = crate::theme::current(ui.ctx());
+        let background = ui.painter().add(egui::Shape::Noop);
+        let response = ui.add_sized(
+            Vec2::new(ui.available_width(), t.size_control_inline),
             TextEdit::singleline(&mut self.buffer)
+                .frame(egui::Frame::NONE)
+                .margin(egui::Margin::symmetric(t.space_icon as i8, 0))
                 .desired_width(f32::INFINITY)
                 .hint_text(label),
         );
+        let radius = crate::theme::radius(t.radius_sm);
+        ui.painter().set(
+            background,
+            egui::epaint::RectShape::filled(response.rect, radius, t.surface_panel.color32()),
+        );
+        let accent = crate::theme::stroke(t.border_width, t.accent);
+        ui.painter()
+            .rect_stroke(response.rect, radius, accent, egui::StrokeKind::Inside);
+        ui.painter()
+            .rect_stroke(response.rect, radius, accent, egui::StrokeKind::Outside);
         crate::focus::report_focus(
             &response,
             shell.focus() == Some(Focus::Properties),
@@ -715,6 +907,46 @@ impl PropertiesPane {
     }
 }
 
+/// The key of the window's free area in the context's memory.
+fn free_area_id() -> egui::Id {
+    egui::Id::NULL.with("properties-free-area")
+}
+
+/// Remembers `ui`'s rectangle, the central panel's (the window less the command bar, the rails and the status bar),
+/// as the area a property popup must stay inside this frame.
+pub(crate) fn remember_free_area(ui: &Ui) {
+    let rect = ui.max_rect();
+    ui.data_mut(|d| d.insert_temp(free_area_id(), rect));
+}
+
+/// Where the options popup of a choice editor opens (the top-left corner) and how high its list may be before it
+/// scrolls: under `anchor` (the row) when the list's `content` height and its frame (`pad` on each side) fit between
+/// the row and `bound`'s bottom (the status bar), else over the row when they fit above it, else on the side with
+/// more room with the list cut to that room. `gap` separates the popup from the row. The popup is `width` wide, its
+/// left edge at the row's, moved left as far as needed to stay inside `bound`.
+pub(crate) fn choices_placement(
+    anchor: egui::Rect,
+    bound: egui::Rect,
+    width: f32,
+    content: f32,
+    pad: f32,
+    gap: f32,
+) -> (egui::Pos2, f32) {
+    let full = content + 2.0 * pad;
+    let below = bound.bottom() - (anchor.bottom() + gap);
+    let above = (anchor.top() - gap) - bound.top();
+    let x = anchor.left().min(bound.right() - width).max(bound.left());
+    if full <= below {
+        (egui::pos2(x, anchor.bottom() + gap), content)
+    } else if full <= above {
+        (egui::pos2(x, anchor.top() - gap - full), content)
+    } else if below >= above {
+        (egui::pos2(x, anchor.bottom() + gap), (below - 2.0 * pad).max(0.0))
+    } else {
+        (egui::pos2(x, bound.top()), (above - 2.0 * pad).max(0.0))
+    }
+}
+
 /// The focused row's key and value when it is an editable boolean (Space toggles it).
 fn bool_row(shell: &ShellModel, key: &str) -> Option<(String, bool)> {
     let sheet = shell.properties().sheet()?;
@@ -747,8 +979,9 @@ pub fn is_grid_key(s: &egui::KeyboardShortcut) -> bool {
     (plain && grid) || alt_arrow
 }
 
-/// A group's heading (doc 16a §6.8): a chevron and the title in `type.label`, a button that collapses or expands the
-/// group; `true` when clicked.
+/// A group's heading (doc 16a §6.8, the mockup's `.psec`): `size.row` high with `space.4` side padding, a chevron and
+/// the title in `type.small` SemiBold `color.text.secondary`, as written ("Main", not upper case); a button that
+/// collapses or expands the group; `true` when clicked.
 fn group_heading(ui: &mut Ui, t: &crate::theme::Tokens, title: &str, key: &str, shut: bool) -> bool {
     let (rect, _) = ui.allocate_exact_size(Vec2::new(ui.available_width(), t.size_row), Sense::hover());
     let id = ui.scope_id().with(("prop-group", key));
@@ -758,20 +991,19 @@ fn group_heading(ui: &mut Ui, t: &crate::theme::Tokens, title: &str, key: &str, 
     crate::command_bar::state_overlay(ui, t, &response, true, t.radius_sm);
     let chevron = if shut { "chevron-right" } else { "chevron-down" };
     let icon = egui::Rect::from_min_size(
-        egui::pos2(rect.left(), rect.center().y - t.icon_sm / 2.0),
+        egui::pos2(rect.left() + t.space_4, rect.center().y - t.icon_sm / 2.0),
         Vec2::splat(t.icon_sm),
     );
     crate::command_bar::paint_icon(ui, chevron, icon, t.text_secondary.color32(), t.icon_stroke);
-    let text = if t.type_label.upper {
-        title.to_uppercase()
-    } else {
-        title.to_owned()
-    };
+    let font = crate::theme::font(&crate::theme::TypeToken {
+        semibold: true,
+        ..t.type_small
+    });
     ui.painter().text(
         egui::pos2(icon.right() + t.space_icon, rect.center().y),
         egui::Align2::LEFT_CENTER,
-        text,
-        crate::theme::font(&t.type_label),
+        title,
+        font,
         t.text_secondary.color32(),
     );
     if response.has_focus() {
@@ -783,4 +1015,55 @@ fn group_heading(ui: &mut Ui, t: &crate::theme::Tokens, title: &str, key: &str, 
         );
     }
     response.clicked()
+}
+
+#[cfg(test)]
+mod tests {
+    use egui::{Rect, pos2};
+
+    use super::choices_placement;
+
+    /// The free area of a 1280 by 800 window: above the status bar, between the rails.
+    fn bound() -> Rect {
+        Rect::from_min_max(pos2(40.0, 117.0), pos2(1240.0, 774.0))
+    }
+
+    #[test]
+    fn the_options_open_under_the_row_when_they_fit() {
+        let row = Rect::from_min_max(pos2(60.0, 300.0), pos2(320.0, 328.0));
+        let (at, h) = choices_placement(row, bound(), 260.0, 224.0, 9.0, 4.0);
+        assert_eq!(at, pos2(60.0, 332.0));
+        assert_eq!(h, 224.0);
+    }
+
+    #[test]
+    fn the_options_open_over_the_row_near_the_status_bar() {
+        let row = Rect::from_min_max(pos2(60.0, 600.0), pos2(320.0, 628.0));
+        let (at, h) = choices_placement(row, bound(), 260.0, 224.0, 9.0, 4.0);
+        // The list and its frame (224 + 2 × 9) end 4 px over the row.
+        assert_eq!(at, pos2(60.0, 600.0 - 4.0 - 242.0));
+        assert_eq!(h, 224.0);
+    }
+
+    #[test]
+    fn a_list_taller_than_both_sides_takes_the_larger_side_and_scrolls() {
+        let bound = Rect::from_min_max(pos2(0.0, 100.0), pos2(400.0, 400.0));
+        // Above: 196 px, below: 68 px; the popup starts at the bound's top, its list 196 - 18 high.
+        let row = Rect::from_min_max(pos2(10.0, 300.0), pos2(200.0, 328.0));
+        let (at, h) = choices_placement(row, bound, 260.0, 500.0, 9.0, 4.0);
+        assert_eq!(at, pos2(10.0, 100.0));
+        assert_eq!(h, 178.0);
+        // Above: 46 px, below: 218 px; under the row, its list 218 - 18 high.
+        let row = Rect::from_min_max(pos2(10.0, 150.0), pos2(200.0, 178.0));
+        let (at, h) = choices_placement(row, bound, 260.0, 500.0, 9.0, 4.0);
+        assert_eq!(at, pos2(10.0, 182.0));
+        assert_eq!(h, 200.0);
+    }
+
+    #[test]
+    fn the_options_stay_inside_the_window_horizontally() {
+        let row = Rect::from_min_max(pos2(1100.0, 300.0), pos2(1230.0, 328.0));
+        let (at, _) = choices_placement(row, bound(), 260.0, 224.0, 9.0, 4.0);
+        assert_eq!(at.x, 1240.0 - 260.0);
+    }
 }

@@ -711,6 +711,7 @@ impl App {
         }
         let mut page_pane = None;
         CentralPanel::default().show(ui, |ui| {
+            crate::properties::remember_free_area(ui);
             if self.shell.first_run().is_some() {
                 first_run::show(ui, &self.shell, &mut events);
             } else if self.shell.wizard().is_some() {

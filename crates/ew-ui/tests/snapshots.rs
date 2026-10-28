@@ -93,6 +93,12 @@ fn record(name: &str, image: &ew_render_cpu::RgbaImage, gated: bool) -> Option<S
 /// The main window on a copy of Golden A in `theme` and `density`, with the temporary directory that holds the copy:
 /// the caller drops it after the harness, so no copy is left in the temporary directory.
 fn main_window(theme: &str, density: &str) -> (Harness<'static, App>, offscreen::Recorder, Tmp) {
+    main_window_at(theme, density, 1.0)
+}
+
+/// [`main_window`] at `ppp` physical pixels per point (the system's display scale; the window stays 1280 × 800
+/// points).
+fn main_window_at(theme: &str, density: &str, ppp: f32) -> (Harness<'static, App>, offscreen::Recorder, Tmp) {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut shell = ShellModel::new(Mode::Gui, tmp.config());
@@ -106,7 +112,7 @@ fn main_window(theme: &str, density: &str) -> (Harness<'static, App>, offscreen:
     let app = App::new(shell, Box::new(Scripted::default()), Some(dir));
     let mut h = Harness::builder()
         .with_size(Vec2::new(1280.0, 800.0))
-        .with_pixels_per_point(1.0)
+        .with_pixels_per_point(ppp)
         .with_context_setup(setup)
         .renderer(recorder.clone())
         .build_ui_state(|ui, app: &mut App| app.ui(ui), app);
@@ -141,6 +147,21 @@ fn the_main_window_in_every_theme_and_density() {
         }
     }
     assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
+
+/// DK7's 300 % variant, for review only (not gated, as the gallery at ppp 2): the main window, light and Comfortable,
+/// at 1280 × 800 points on a 300 % display (3840 × 2400 pixels). The setting `ui_scale` stops at 200 %
+/// (`UI_SCALES`), so 300 % is the system's scale (egui's native pixels per point), which is how a 300 % display
+/// reaches the window. Not gated: a 3840 × 2400 blessed image would be re-blessed with every chrome change.
+#[test]
+fn the_main_window_at_300_percent_for_review() {
+    let dev = device();
+    let (h, recorder, tmp) = main_window_at("light", "comfortable", 3.0);
+    let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
+    assert_eq!((image.width, image.height), (3840, 2400));
+    assert_eq!(record("main-light-comfortable-300", &image, false), None);
+    drop(h);
+    drop(tmp);
 }
 
 /// For review only (not gated): the Devices navigator in table mode and the history panel, light and dark.

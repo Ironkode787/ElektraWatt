@@ -247,6 +247,75 @@ pub(crate) fn key_chip(ui: &mut Ui, shortcut: &str) -> Response {
     response
 }
 
+/// The size of [`caption_chip`] for `text`, and its laid-out text.
+pub(crate) fn caption_chip_layout(ui: &Ui, t: &Tokens, text: &str) -> (std::sync::Arc<egui::Galley>, Vec2) {
+    let galley = ui.painter().layout_no_wrap(
+        text.to_owned(),
+        theme::font(&t.type_caption),
+        t.text_secondary.color32(),
+    );
+    let size = galley.size() + Vec2::new(2.0 * t.space_2, t.space_1);
+    (galley, size)
+}
+
+/// Paints a caption chip laid out by [`caption_chip_layout`] into `rect` (no node: a caller that paints the chip
+/// inside another widget names it in that widget's accessible name).
+pub(crate) fn paint_caption_chip(
+    painter: &egui::Painter,
+    t: &Tokens,
+    rect: egui::Rect,
+    galley: std::sync::Arc<egui::Galley>,
+) {
+    painter.rect_filled(rect, theme::radius(t.radius_sm), t.surface_sunken.color32());
+    painter.galley(
+        rect.center() - galley.size() / 2.0,
+        galley,
+        t.text_secondary.color32(),
+    );
+}
+
+/// A caption chip, the badge of a tree row and a canvas tab (doc 16a §6.6, §6.16; "QET grid", "generated"):
+/// `type.caption` in `color.text.secondary` on `color.surface.sunken`, `radius.sm`; a `Label` node named by the text.
+pub(crate) fn caption_chip(ui: &mut Ui, text: &str) -> Response {
+    let t = tokens(ui);
+    let (galley, size) = caption_chip_layout(ui, &t, text);
+    let (rect, response) = ui.allocate_exact_size(size, Sense::hover());
+    let name = text.to_owned();
+    response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, &name));
+    paint_caption_chip(ui.painter(), &t, rect, galley);
+    response
+}
+
+/// A property row's provenance chip (doc 16a §6.8, the mockup's `.chip`): a pill (`radius.pill`) `size.chip` high
+/// with a 1-px `color.border.default`, the source's word in `type.caption` and `colour` (`color.text.tertiary`, or
+/// `color.text.secondary` on a selected row), its right edge's middle at `right_centre`. No node: the row's
+/// description carries the chip's whole text. Returns its rectangle.
+pub(crate) fn paint_provenance_chip(
+    ui: &Ui,
+    t: &Tokens,
+    word: &str,
+    colour: Rgba,
+    right_centre: egui::Pos2,
+) -> egui::Rect {
+    let galley = ui
+        .painter()
+        .layout_no_wrap(word.to_owned(), theme::font(&t.type_caption), colour.color32());
+    let size = Vec2::new(galley.size().x + 2.0 * t.space_icon, t.size_chip);
+    let rect = egui::Rect::from_min_size(
+        egui::pos2(right_centre.x - size.x, right_centre.y - size.y / 2.0),
+        size,
+    );
+    let painter = ui.painter();
+    painter.rect_stroke(
+        rect,
+        theme::radius(t.radius_pill),
+        theme::stroke(t.border_width, t.border_default),
+        egui::StrokeKind::Inside,
+    );
+    painter.galley(rect.center() - galley.size() / 2.0, galley, colour.color32());
+    rect
+}
+
 /// An empty state (doc 16a §6.17), centred in the space left: a 32-px icon in `color.text.tertiary`, the line in
 /// `type.body.strong`, the sentence in `color.text.secondary`, and at most one action (a Primary button). A `Group`
 /// node named by the line. Returns the action's response.

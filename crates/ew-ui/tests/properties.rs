@@ -339,8 +339,9 @@ fn a_boolean_row_is_a_checkbox() {
 fn a_choice_editor_option_is_picked_with_the_mouse() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "103");
-    // WP-S2.17 part 3 (D10): Properties is the lower half of the left column; the option list needs room below it.
-    h.set_size(egui::Vec2::new(1000.0, 1400.0));
+    // WP-S2.17 (J32): at 1280 by 800 Properties is the lower half of the left column and the colour row sits in its
+    // lower half, so the option list opens over the row, inside the window and above the status bar.
+    h.set_size(egui::Vec2::new(1280.0, 800.0));
     settle(&mut h);
     dispatch(&mut h, "select.set", json!({ "ids": [W29] }));
     settle(&mut h);
@@ -349,7 +350,9 @@ fn a_choice_editor_option_is_picked_with_the_mouse() {
     row_to(&mut h, "connection/derived.colour");
     press(&mut h, Key::Enter);
     // "B" alone is no colour: a commit of the field instead of the click would fail.
+    assert_options_inside_the_window(&h);
     type_into_field(&mut h, "Colour", "B");
+    assert_options_inside_the_window(&h);
     let before = h.state().shell().recorded_commands().len();
     h.get_all_by_role(egui::Role::ListBoxOption)
         .find(|n| n.accesskit_node().label().as_deref() == Some("BU"))
@@ -371,5 +374,105 @@ fn a_choice_editor_option_is_picked_with_the_mouse() {
                 note: "override (CDP)".into()
             }
         )
+    );
+}
+
+/// The option list of the open choice editor lies inside the window and above the status bar, and every option the
+/// list shows (its rectangle meets the list's) lies inside the list: no option is cut off under the status bar.
+fn assert_options_inside_the_window(h: &Harness<'_, App>) {
+    let window = h.ctx.content_rect();
+    // The status bar's top: `size.status` above the frame's bottom (the harness frames the app with 8 px).
+    let tokens = ew_ui::theme::current(&h.ctx);
+    let status_top = window.shrink(8.0).bottom() - tokens.size_status;
+    let ready = h.get_by_role_and_label(egui::Role::Label, "Ready").rect();
+    assert!(ready.top() >= status_top - 0.5, "{ready:?} under {status_top}");
+    let list = h
+        .get_all_by_role(egui::Role::ListBox)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Options of Colour"))
+        .expect("the colour options")
+        .rect();
+    assert!(window.contains_rect(list), "{list:?} in {window:?}");
+    assert!(list.bottom() <= status_top + 0.5, "{list:?} above {status_top}");
+    let options: Vec<egui::Rect> = h
+        .get_all_by_role(egui::Role::ListBoxOption)
+        .map(|n| n.rect())
+        .filter(|r| r.intersect(list).height() > 0.5)
+        .collect();
+    assert!(!options.is_empty(), "the list shows options");
+    for r in &options {
+        assert!(list.expand(0.5).contains_rect(*r), "{r:?} inside {list:?}");
+        assert!(
+            window.contains_rect(*r) && r.bottom() <= status_top + 0.5,
+            "{r:?}"
+        );
+    }
+}
+
+/// The texts the last frame painted, with where each starts.
+fn painted_texts(h: &Harness<'_, App>) -> Vec<(String, egui::Pos2)> {
+    fn walk(shape: &egui::Shape, out: &mut Vec<(String, egui::Pos2)>) {
+        match shape {
+            egui::Shape::Vec(v) => v.iter().for_each(|s| walk(s, out)),
+            egui::Shape::Text(t) => out.push((t.galley.text().to_owned(), t.pos)),
+            _ => {}
+        }
+    }
+    let mut out = Vec::new();
+    for c in &h.output().shapes {
+        walk(&c.shape, &mut out);
+    }
+    out
+}
+
+/// J32 (doc 16a §6.8, the mockup's `.prow` and `.psec`): on folio 101's page sheet at 1280 by 800 every property
+/// label is painted at the left edge of its 96-px label column (not centred), the group headings read as written
+/// ("Main", not "MAIN"), the inherited Description shows its one-word chip ("inherited", no glyph) in its row, and
+/// no painted text carries the old glyph chips ("^ inherited", "= authored", "f derived").
+#[test]
+fn j32_property_rows_are_left_aligned_with_one_word_chips() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "101");
+    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    settle(&mut h);
+    let tokens = ew_ui::theme::current(&h.ctx);
+    let texts = painted_texts(&h);
+    for label in ["Number", "Section", "Description", "Title"] {
+        let column = h
+            .get_all_by_role(egui::Role::Button)
+            .find(|n| {
+                n.accesskit_node().label().as_deref() == Some(label)
+                    && (n.rect().width() - tokens.size_property_label).abs() < 0.5
+            })
+            .unwrap_or_else(|| panic!("the label {label}"))
+            .rect();
+        let (_, at) = texts
+            .iter()
+            .find(|(t, p)| t == label && column.expand(1.0).contains(*p))
+            .unwrap_or_else(|| panic!("the painted label {label} in {column:?}"));
+        assert!(
+            (at.x - column.left()).abs() < 0.5,
+            "{label} starts at {} in the column {column:?}",
+            at.x
+        );
+    }
+    let painted: Vec<&str> = texts.iter().map(|(t, _)| t.as_str()).collect();
+    assert!(painted.contains(&"Main"), "{painted:?}");
+    assert!(!painted.contains(&"MAIN"), "{painted:?}");
+    let description = h
+        .get_all_by_role(egui::Role::Group)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Description"))
+        .expect("the Description row")
+        .rect();
+    assert!(
+        texts
+            .iter()
+            .any(|(t, p)| t == "inherited" && description.contains(*p)),
+        "the one-word chip in {description:?}"
+    );
+    assert!(
+        !painted
+            .iter()
+            .any(|t| t.starts_with("^ ") || t.starts_with("= ") || t.starts_with("f ")),
+        "{painted:?}"
     );
 }

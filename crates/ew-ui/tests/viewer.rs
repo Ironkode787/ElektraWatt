@@ -466,3 +466,54 @@ fn the_navigator_rows_are_built_once_per_revision_and_navigator_state() {
     assert_eq!(h.state().navigator_rebuilds(), built + 1);
     h.state_mut().shell_mut().shutdown();
 }
+
+/// J32 (doc 16a §6.6, WP-S2.17 part 3's DK2 for the canvas tabs): no canvas tab's label carries a bracketed word; the
+/// badges are the page rows' caption chips painted inside the tab, and the accessible name reads them after a comma.
+#[test]
+fn j32_canvas_tab_badges_are_chips_not_bracketed_words() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp);
+    dispatch(&mut h, "page.goto", json!({"folio": "101"}));
+    wait_for_page(&mut h);
+    h.key_press_modifiers(Modifiers::COMMAND, Key::T);
+    settle(&mut h);
+    dispatch(&mut h, "page.goto", json!({"folio": "2"}));
+    wait_for_page(&mut h);
+    settle(&mut h);
+    let tabs: Vec<(String, egui::Rect)> = support::view_tabs(&h)
+        .iter()
+        .map(|n| (n.accesskit_node().label().unwrap_or_default(), n.rect()))
+        .filter(|(l, _)| l.starts_with("101 ") || l.starts_with("2 "))
+        .collect();
+    assert_eq!(tabs.len(), 2, "{tabs:?}");
+    for (label, _) in &tabs {
+        assert!(!label.contains('['), "{label}");
+    }
+    let qet = tabs.iter().find(|(l, _)| l.starts_with("101 ")).unwrap();
+    assert!(qet.0.ends_with(", QET grid"), "{}", qet.0);
+    let generated = tabs.iter().find(|(l, _)| l.starts_with("2 ")).unwrap();
+    assert!(generated.0.ends_with(", generated"), "{}", generated.0);
+    // The chips' words are painted inside their tabs.
+    let mut painted = Vec::new();
+    fn walk(shape: &egui::Shape, out: &mut Vec<(String, egui::Pos2)>) {
+        match shape {
+            egui::Shape::Vec(v) => v.iter().for_each(|s| walk(s, out)),
+            egui::Shape::Text(t) => out.push((t.galley.text().to_owned(), t.pos)),
+            _ => {}
+        }
+    }
+    for c in &h.output().shapes {
+        walk(&c.shape, &mut painted);
+    }
+    for ((_, rect), word) in [(qet, "QET grid"), (generated, "generated")] {
+        assert!(
+            painted.iter().any(|(t, p)| t == word && rect.contains(*p)),
+            "{word} in {rect:?}"
+        );
+    }
+    assert!(
+        !painted.iter().any(|(t, _)| t.contains("[QET grid]")),
+        "no bracketed badge is painted"
+    );
+    h.state_mut().shell_mut().shutdown();
+}

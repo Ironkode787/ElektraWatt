@@ -12,12 +12,13 @@
 //! drag between the groups stays in the tree (its share is host state) and reaches the model only as each group's
 //! `view.canvas_resize`. The registry owns Ctrl+Tab: `cycle_tabs_with_keyboard` is false.
 //!
-//! **Accessibility.** Each tab is a node with the role `Tab`, its title as the name and the `selected` state on the
+//! **Accessibility.** Each tab is a node with the role `Tab`, its title and then its badges after commas as the name
+//! ("101 Power Supply 1, QET grid"; the badges are painted as caption chips, WP-S2.17) and the `selected` state on the
 //! active one; its close button is named `Close <folio>`. egui_tiles 0.18.0 exposes no node for the tab bar, so the
 //! `TabList` role is a follow-up joined with FT-338 (the splitter names); the splitter between the groups has no
 //! accessible name and is counted by [`CanvasAreaHost::splitter_count`].
 
-use egui::{Id, Response, Sense, TextStyle, Ui, Vec2, WidgetText, vec2};
+use egui::{Id, Response, Sense, Ui, Vec2, WidgetText, vec2};
 use egui_tiles::{
     Behavior, Container, Linear, LinearDir, SimplificationOptions, TabState, Tabs, Tile, TileId, Tiles, Tree,
     UiResponse,
@@ -260,22 +261,22 @@ impl AreaBehavior<'_> {
             .map(|(g, i, _)| (g, i))
     }
 
-    /// A tab's title (`<folio> <title>` with its badges) and its folio.
-    fn title(&self, id: u32) -> (String, String) {
+    /// A tab's title (`<folio> <title>`), its badges ("QET grid", "generated") and its folio.
+    fn title(&self, id: u32) -> (String, Vec<&'static str>, String) {
         let Some(tab) = self.area.tabs().find(|(_, _, t)| t.id == id).map(|(_, _, t)| t) else {
-            return (String::new(), String::new());
+            return (String::new(), Vec::new(), String::new());
         };
         let Some(row) = self.shell.tab_row(tab) else {
-            return (String::new(), String::new());
+            return (String::new(), Vec::new(), String::new());
         };
-        let mut title = self.shell.tab_title(tab);
+        let mut badges = Vec::new();
         if row.qet_grid {
-            title.push_str(&format!(" [{}]", strings::text("badge-qet-grid")));
+            badges.push(strings::text("badge-qet-grid"));
         }
         if row.generated {
-            title.push_str(&format!(" [{}]", strings::text("badge-generated")));
+            badges.push(strings::text("badge-generated"));
         }
-        (title, row.folio.clone())
+        (self.shell.tab_title(tab), badges, row.folio.clone())
     }
 }
 
@@ -334,34 +335,65 @@ impl Behavior<TabPane> for AreaBehavior<'_> {
             Some(Tile::Pane(p)) => Some(*p),
             _ => None,
         };
-        let (title, folio) = pane.map_or((String::new(), String::new()), |p| self.title(p.0));
-        let font = TextStyle::Button.resolve(ui.style());
-        let galley = WidgetText::from(title.clone()).into_galley(
-            ui,
-            Some(egui::TextWrapMode::Extend),
-            f32::INFINITY,
-            font,
-        );
-        let margin = crate::theme::current(ui.ctx()).space_3;
+        let (title, badges, folio) =
+            pane.map_or((String::new(), Vec::new(), String::new()), |p| self.title(p.0));
+        // WP-S2.17 (doc 16a §5.5, §6.4, the mockup's `.ctab`): the title in `type.small`, secondary on an inactive tab
+        // and primary SemiBold on the active one; the badges are the tree rows' caption chips after it (no bracketed
+        // words), and the accessible name reads them after a comma ("101 Power Supply 1, QET grid").
+        let t = crate::theme::current(ui.ctx());
+        let selected = state.active;
+        let font = crate::theme::font(&crate::theme::TypeToken {
+            semibold: selected,
+            ..t.type_small
+        });
+        let colour = if selected {
+            t.text_primary
+        } else {
+            t.text_secondary
+        };
+        let galley = ui.painter().layout_no_wrap(title.clone(), font, colour.color32());
+        let chips: Vec<_> = badges
+            .iter()
+            .map(|b| crate::components::caption_chip_layout(ui, &t, b))
+            .collect();
+        let chips_w: f32 = chips.iter().map(|(_, s)| s.x + t.space_2).sum();
+        let margin = t.space_3;
         let close = Vec2::splat(self.close_button_outer_size());
-        let width = galley.size().x + 2.0 * margin + 4.0 + close.x;
+        let width = galley.size().x + chips_w + 2.0 * margin + t.space_1 + close.x;
         let (_, rect) = ui.allocate_space(vec2(width, ui.available_height()));
         let response = ui.interact(rect, id, Sense::click_and_drag());
-        let selected = state.active;
-        response.widget_info(|| egui::WidgetInfo::selected(egui::Role::Tab, true, selected, &title));
-        let visuals = ui.visuals();
-        let fill = if selected {
-            visuals.panel_fill
-        } else {
-            visuals.extreme_bg_color
-        };
+        let mut name = title.clone();
+        for b in &badges {
+            name.push_str(", ");
+            name.push_str(b);
+        }
+        response.widget_info(|| egui::WidgetInfo::selected(egui::Role::Tab, true, selected, &name));
         if !state.is_being_dragged {
-            ui.painter()
-                .rect_filled(rect.shrink(0.5), crate::theme::SQUARE, fill);
+            let painter = ui.painter();
+            if selected {
+                painter.rect_filled(
+                    rect.shrink(0.5),
+                    crate::theme::SQUARE,
+                    t.canvas_surround.color32(),
+                );
+                let border = crate::theme::stroke(t.border_width, t.border_default);
+                let r = rect.shrink(0.5);
+                painter.line_segment([r.left_bottom(), r.left_top()], border);
+                painter.line_segment([r.left_top(), r.right_top()], border);
+                painter.line_segment([r.right_top(), r.right_bottom()], border);
+            }
             let text_at = egui::Align2::LEFT_CENTER
                 .align_size_within_rect(galley.size(), rect.shrink(margin))
                 .min;
-            ui.painter().galley(text_at, galley, visuals.text_color());
+            let mut x = text_at.x + galley.size().x;
+            painter.galley(text_at, galley, colour.color32());
+            for (chip, size) in chips {
+                x += t.space_2;
+                let chip_rect =
+                    egui::Rect::from_min_size(egui::pos2(x, rect.center().y - size.y / 2.0), size);
+                crate::components::paint_caption_chip(painter, &t, chip_rect, chip);
+                x += size.x;
+            }
         }
         let close_rect = egui::Align2::RIGHT_CENTER.align_size_within_rect(close, rect.shrink(margin));
         let close_id = id.with("close");
