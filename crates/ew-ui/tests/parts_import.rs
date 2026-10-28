@@ -386,7 +386,7 @@ fn no_input_reaches_the_shell_while_a_file_dialog_is_open() {
     // File > Open, Discard: the dialog is open with `discard` already given.
     h.get_by_label("File").click();
     settle(&mut h);
-    h.get_by_label("Open... Ctrl+O").click();
+    h.get_by_label_contains("Open...").click();
     settle(&mut h);
     assert!(matches!(
         h.state().shell().dialog(),
@@ -409,7 +409,7 @@ fn no_input_reaches_the_shell_while_a_file_dialog_is_open() {
     h.get_by_label("Edit").click();
     h.step();
     h.step();
-    h.get_all_by_label("Undo Ctrl+Z")
+    h.get_all_by_label_contains("Undo")
         .next()
         .expect("the Edit menu's Undo")
         .click();
