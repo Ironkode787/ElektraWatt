@@ -351,6 +351,51 @@ pub const VOCABULARY: &[&str] = &[
     "manufacturer",
     "highlight",
     "slot",
+    // The jobs, the notifications log and the recovery dialog (WP-S2.09 part 1, §6.8; ID-474 extended, ID-698): the 18
+    // words of `JOB_WORDS`, a reviewed vocabulary change (`pages` is WP-S2.06 part 1's, `failed`, `undo` and `toast` are
+    // older).
+    "jobs",
+    "job",
+    "running",
+    "pdf",
+    "done",
+    "kib",
+    "rev",
+    "now",
+    "cancelled",
+    "notifications",
+    "notification",
+    "open",
+    "expired",
+    "recovery",
+    "transactions",
+    "base",
+    "matches",
+    "moved",
+];
+
+// WP-S2.09 part 1
+/// The 18 words WP-S2.09 part 1 adds to [`VOCABULARY`] (§6.8): the `jobs` and `notifications` sections, the toast's
+/// action words and the recovery dialog's line (the specification's 19 tokens less `pages`, WP-S2.06 part 1's).
+pub const JOB_WORDS: &[&str] = &[
+    "jobs",
+    "job",
+    "running",
+    "pdf",
+    "done",
+    "kib",
+    "rev",
+    "now",
+    "cancelled",
+    "notifications",
+    "notification",
+    "open",
+    "expired",
+    "recovery",
+    "transactions",
+    "base",
+    "matches",
+    "moved",
 ];
 
 // WP-S2.06 part 2
@@ -1154,11 +1199,65 @@ fn card_and_toast_lines(model: &ShellModel, lines: &mut Vec<String>) {
             },
         }
     }
-    if let Some(t) = props.toast() {
+    toast_lines(model, lines);
+}
+
+// WP-S2.09 part 1
+/// The visible toasts (§6.8), oldest first and the newest last: `toast "<text>"`, then the action's word and
+/// `expired` when it is no longer valid.
+fn toast_lines(model: &ShellModel, lines: &mut Vec<String>) {
+    for n in model.notifications().visible() {
+        lines.push(format!("toast \"{}\"{}", user(&n.text), action_words(model, n)));
+    }
+}
+
+/// ` undo`, ` open expired`, or nothing: a notification's action and whether it is still valid.
+fn action_words(model: &ShellModel, n: &crate::notifications::Notification) -> String {
+    match n.action() {
+        None => String::new(),
+        Some(a) if model.notification_valid(n) => format!(" {}", a.word()),
+        Some(a) => format!(" {} expired", a.word()),
+    }
+}
+
+/// The Jobs pane while it is open (§6.8): `jobs running <k>`, then one line per entry, oldest first. A running job
+/// prints no number (they depend on timing).
+fn jobs_lines(model: &ShellModel, lines: &mut Vec<String>) {
+    if !model.jobs_shown() {
+        return;
+    }
+    let jobs = model.jobs();
+    lines.push(format!("jobs running {}", jobs.running()));
+    for e in jobs.entries() {
+        let head = format!("  job {} {} \"{}\"", e.number, e.kind.word(), user(&e.name));
+        lines.push(match &e.status {
+            crate::jobs::JobStatus::Running => format!("{head} running"),
+            crate::jobs::JobStatus::Done { pages, kib, now } => {
+                let mut line = format!("{head} done pages {pages} kib {kib} rev {}", e.rev);
+                if let Some(m) = now {
+                    line.push_str(&format!(" now {m}"));
+                }
+                line
+            }
+            crate::jobs::JobStatus::Cancelled => format!("{head} cancelled"),
+            crate::jobs::JobStatus::Failed(cause) => format!("{head} failed \"{}\"", user(cause)),
+        });
+    }
+}
+
+/// The notifications log while its popup is open (§6.8): `notifications <n>`, then the entries, newest first.
+fn notification_lines(model: &ShellModel, lines: &mut Vec<String>) {
+    let log = model.notifications();
+    if !log.popup_open() {
+        return;
+    }
+    lines.push(format!("notifications {}", log.len()));
+    for n in log.entries() {
         lines.push(format!(
-            "toast \"{}\"{}",
-            user(&t.text),
-            if t.undo { " undo" } else { "" }
+            "  notification {} \"{}\"{}",
+            n.serial,
+            user(&n.text),
+            action_words(model, n)
         ));
     }
 }
@@ -1207,6 +1306,8 @@ fn project_view(model: &ShellModel, lines: &mut Vec<String>) {
     properties_lines(model, lines);
     // WP-S2.05 part 2
     find_lines(model, lines);
+    // WP-S2.09 part 1
+    jobs_lines(model, lines);
     card_and_toast_lines(model, lines);
     // WP-S2.05 part 3: what the clipboard holds, never its text.
     lines.push(model.clipboard().describe_line());
@@ -1660,6 +1761,34 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
                 lines.push(format!("  button \"{}\"", strings::text(key)));
             }
         }
+        // WP-S2.09 part 1 (§6.6): the time of the last change is the window's only (never in the transcript).
+        Some(Dialog::Recovery {
+            name,
+            transactions,
+            base_matches,
+            failed,
+            ..
+        }) => {
+            lines.push(format!("dialog \"{}\"", strings::text("recovery-title")));
+            lines.push(format!(
+                "  label \"{}\"",
+                user(&strings::format("recovery-text", &[name]))
+            ));
+            let base = if *base_matches { "matches" } else { "moved" };
+            let mut line = format!("  recovery transactions {transactions} base {base}");
+            if let Some(reason) = failed {
+                line.push_str(&format!(" failed \"{}\"", user(reason)));
+            }
+            lines.push(line);
+            if failed.is_none() {
+                lines.push(format!(
+                    "  button \"{}\"",
+                    strings::text("action-journal-recover")
+                ));
+            }
+            lines.push(format!("  button \"{}\"", strings::text("action-journal-keep")));
+            lines.push(format!("  button \"{}\"", strings::text("recovery-discard")));
+        }
         Some(Dialog::GotoPage { text }) => {
             lines.push(format!("dialog \"{}\"", strings::text("goto-title")));
             lines.push(format!("  field \"{}\": \"{text}\"", strings::text("goto-hint")));
@@ -2083,8 +2212,12 @@ pub fn describe(model: &ShellModel) -> String {
         project_view(model, &mut lines);
     } else {
         start_page(model, &mut lines);
+        // WP-S2.09 part 1: a toast can outlive its project (an export's end, a recovery's failure).
+        toast_lines(model, &mut lines);
     }
     lines.push(format!("status bar: {}", model.status_fields(false).join(" | ")));
+    // WP-S2.09 part 1: the notifications log is a popup.
+    notification_lines(model, &mut lines);
     if let Some(palette) = model.palette() {
         lines.push(format!(
             "palette \"{}\": query \"{}\"",

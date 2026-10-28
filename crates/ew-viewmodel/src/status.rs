@@ -9,8 +9,9 @@
 //! the cursor `102-H15 · x 255.0 y 172.5 mm` (the cell where one exists, then sheet coordinates: the pointer over
 //! the focused canvas, else the grid cursor, else left out; WP-S2.03 §6.5, FT-345), the zoom `156 %`, the grid (`QET 10 px`, a pitch
 //! such as `4 mm`, or `Grid off`), the save state (`*` unsaved, `saved`, or `read-only: <reason>`), the canvas
-//! backend (`CPU`, `WARP` or `GPU <backend>`), the UI language, and while an export runs the export label. Without
-//! a project the page and save fields are left out; without a canvas the cursor, zoom and grid.
+//! backend (`CPU`, `WARP` or `GPU <backend>`), the UI language, `Notifications <n>` while the notifications log is not
+//! empty, and while a job runs the job field (WP-S2.09 part 1). Without a project the page and save fields are left
+//! out; without a canvas the cursor, zoom and grid.
 
 use crate::canvas::{GridLabel, grid_label, mm1, zoom_percent_text};
 use crate::shell::{AccessMode, ShellModel};
@@ -111,8 +112,10 @@ pub fn hint(model: &ShellModel) -> String {
     }
 }
 
-/// The status-bar fields of `model`; `exporting` adds the label of a running export.
-pub fn fields(model: &ShellModel, exporting: bool) -> Vec<String> {
+/// The status-bar fields of `model` (WP-S2.09 §6.4, §6.5): after the language, `Notifications <n>` while the log is
+/// not empty, and last, while a job runs and `hide_job` is false, the job field: `PDF export <p> %` in the window,
+/// `PDF export` headless (no progress number in a transcript, §9 item 2).
+pub fn fields(model: &ShellModel, hide_job: bool) -> Vec<String> {
     let mut out = Vec::new();
     match model.project_name() {
         None => out.push(strings::text("status-hint-start").to_owned()),
@@ -152,8 +155,39 @@ pub fn fields(model: &ShellModel, exporting: bool) -> Vec<String> {
     }
     out.push(model.canvas_backend().label());
     out.push(strings::text("status-language").to_owned());
-    if exporting {
-        out.push(strings::text("status-exporting").to_owned());
+    let log = model.notifications();
+    if !log.is_empty() {
+        out.push(strings::format("status-notifications", &[&log.len().to_string()]));
+    }
+    if !hide_job && let Some(job) = model.jobs().newest_running() {
+        out.push(job_field(model, job));
     }
     out
+}
+
+/// The job field of a running job: its kind's label and, in the window, the per cent done (`done × 100 / total`,
+/// integer; the phase text while indeterminate).
+pub fn job_field(model: &ShellModel, job: &crate::jobs::JobEntry) -> String {
+    let label = strings::text(job.kind.label_key());
+    if model.mode() == crate::shell::Mode::Headless {
+        return label.to_owned();
+    }
+    match job.progress() {
+        Some(p) if p.total > 0 => {
+            let pct = u64::from(p.done) * 100 / u64::from(p.total);
+            strings::format("status-job", &[label, &pct.to_string()])
+        }
+        Some(p) => strings::format("status-job-phase", &[label, &phase_text(p.phase)]),
+        None => label.to_owned(),
+    }
+}
+
+/// The phase word of a job's progress as text (`building` reads "building pages").
+pub fn phase_text(phase: &str) -> String {
+    match phase {
+        "building" => strings::text("job-phase-building").to_owned(),
+        "drawing" => strings::text("job-phase-drawing").to_owned(),
+        "writing" => strings::text("job-phase-writing").to_owned(),
+        other => other.to_owned(),
+    }
 }

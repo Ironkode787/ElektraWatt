@@ -62,6 +62,8 @@ pub(crate) enum Event {
     OpenPrivacy,
     /// The junction sequence editor's focused row (WP-S2.04 part 2; a view change of the popup).
     JunctionRow(usize),
+    /// A toast's Close (WP-S2.09 §6.5): the toast leaves the screen, the log keeps it.
+    DismissToast(u64),
 }
 
 /// What a file dialog came back with.
@@ -146,13 +148,11 @@ impl Platform for NoPlatform {
     }
 }
 
-/// An action that waits for one painted frame so that the status bar shows it running (the PDF export).
-struct Deferred {
-    action: &'static str,
-    params: Value,
-    /// Whether a frame with the label has been painted.
-    painted: bool,
-}
+/// How long a toast stays on screen (WP-S2.09 D6), measured by the window.
+const TOAST_SECONDS: u64 = 8;
+
+/// A job younger than this shows no status-bar field (WP-S2.09 §6.4).
+const JOB_FIELD_AFTER: Duration = Duration::from_millis(200);
 
 /// The application frame: the shell model and what the window needs besides it.
 pub struct App {
@@ -171,9 +171,13 @@ pub struct App {
     properties: PropertiesPane,
     /// The find pane (WP-S2.05 part 2).
     find: FindPane,
-    /// The toast on show and when the window first painted it: it goes after 8 seconds measured by the window, never
-    /// by the model (WP-S2.05 §6.6).
-    toast_since: Option<(u64, std::time::Instant)>,
+    /// The visible toasts by serial and when the window first painted each: a toast goes after 8 seconds measured by
+    /// the window, never by the model (WP-S2.09 D6).
+    toast_since: std::collections::BTreeMap<u64, std::time::Instant>,
+    /// The running jobs by number and when the window first saw each (the elapsed time and the 200 ms rule, §6.4).
+    job_started: std::collections::BTreeMap<u64, std::time::Instant>,
+    /// Whether the shell has the window's repaint request as its jobs' waker.
+    waker_set: bool,
     /// The canvas area's splitter handles on screen in the last frame.
     area_splitters: usize,
     /// The page view of the wizard's preview.
@@ -186,8 +190,6 @@ pub struct App {
     /// Whether the picker was open in the previous frame (its filter field takes the focus when it opens).
     picker_was_open: bool,
     dialog_was_open: bool,
-    /// An action that waits one frame so that the status bar can show it running (the PDF export).
-    deferred: Option<Deferred>,
     /// The file dialog that is open off the window's thread, with the request it answers (FT-467).
     pending_pick: Option<(PromptRequest, Receiver<Pick>)>,
     /// The `ui_scale` last given to egui: the zoom is set when the setting changes, not every frame, so that
@@ -235,7 +237,9 @@ impl App {
             navigators: std::collections::BTreeMap::new(),
             properties: PropertiesPane::new(),
             find: FindPane::new(),
-            toast_since: None,
+            toast_since: std::collections::BTreeMap::new(),
+            job_started: std::collections::BTreeMap::new(),
+            waker_set: false,
             area_splitters: 0,
             preview_view: PageView::new(),
             dock,
@@ -245,7 +249,6 @@ impl App {
             palette_was_open: false,
             picker_was_open: false,
             dialog_was_open: false,
-            deferred: None,
             pending_pick: None,
             applied_scale: None,
             applied_theme: None,
@@ -438,16 +441,40 @@ impl App {
                 self.dispatch("app.quit", &Value::Null);
             }
         }
-        // The export runs in the frame after the one that painted its label.
-        if let Some(d) = self.deferred.as_mut() {
-            if d.painted {
-                if let Some(d) = self.deferred.take() {
-                    self.dispatch(d.action, &d.params);
-                }
+        // WP-S2.09 part 1: the jobs wake the window after each progress report and at their end, and every frame takes
+        // the ends that are in (no `Session` call).
+        if !self.waker_set {
+            let waker = ctx.clone();
+            self.shell
+                .set_job_waker(Some(std::sync::Arc::new(move || waker.request_repaint())));
+            self.waker_set = true;
+        }
+        self.shell.poll_jobs();
+        let now = ew_render2d::stats::now();
+        let running: Vec<u64> = self
+            .shell
+            .jobs()
+            .entries()
+            .filter(|e| e.is_running())
+            .map(|e| e.number)
+            .collect();
+        self.job_started.retain(|n, _| running.contains(n));
+        for n in &running {
+            self.job_started.entry(*n).or_insert(now);
+        }
+        // The 200 ms rule: a job that ends sooner shows no status-bar field; one that runs on shows it from then.
+        let hide_job = self
+            .shell
+            .jobs()
+            .newest_running()
+            .and_then(|e| self.job_started.get(&e.number))
+            .is_some_and(|t| now.saturating_duration_since(*t) < JOB_FIELD_AFTER);
+        if !running.is_empty() {
+            ctx.request_repaint_after(if hide_job {
+                JOB_FIELD_AFTER
             } else {
-                d.painted = true;
-                ctx.request_repaint();
-            }
+                Duration::from_millis(500)
+            });
         }
         if let Some(dir) = self.initial.take() {
             self.dispatch("file.open", &json!({ "dir": dir.to_string_lossy() }));
@@ -478,7 +505,6 @@ impl App {
             ));
         }
 
-        let exporting = self.deferred.is_some();
         Panel::top("menu-bar").show(ui, |ui| menu::show(ui, &self.shell, &mut events));
         if let Some(banner) = self.shell.banner() {
             Panel::top("banner").show(ui, |ui| {
@@ -495,7 +521,7 @@ impl App {
                 });
             });
         }
-        Panel::bottom("status-bar").show(ui, |ui| status_bar::show(ui, &self.shell, exporting));
+        Panel::bottom("status-bar").show(ui, |ui| status_bar::show(ui, &self.shell, hide_job, &mut events));
         let tool_epoch = self.shell.tool_epoch();
         if self.drawing_fields_epoch != Some(tool_epoch) {
             self.marker_csa.clear();
@@ -575,6 +601,7 @@ impl App {
                     properties,
                     find,
                     area_splitters,
+                    job_started,
                     ..
                 } = self;
                 navigators.retain(|k, _| shell.navigator_open(*k));
@@ -587,6 +614,8 @@ impl App {
                         .show(ui, shell, &mut events),
                     PaneKind::Properties => properties.show(ui, shell, &mut events),
                     PaneKind::Find => find.show(ui, shell, &mut events),
+                    // WP-S2.09 part 1
+                    PaneKind::Jobs => crate::jobs::show(ui, shell, job_started, now, &mut events),
                     PaneKind::PageView => {
                         canvas_area.show(ui, shell, canvas, &mut events);
                         *area_splitters = canvas_area.splitter_count(shell);
@@ -617,6 +646,9 @@ impl App {
         crate::junction::show(&ctx, &self.shell, &mut events);
         crate::text_popup::show(&ctx, &self.shell, &mut self.text_buffer, &mut events);
         crate::parts_card::show(&ctx, &self.shell, &mut events);
+        // WP-S2.09 part 1: the toasts and the notifications log.
+        crate::notifications::show_toasts(&ctx, &self.shell, &mut events);
+        crate::notifications::show_log(&ctx, &self.shell, &mut events);
         let dialog_open = self.shell.dialog().is_some();
         about::show(
             &ctx,
@@ -644,20 +676,20 @@ impl App {
         if !events.is_empty() {
             ctx.request_repaint();
         }
-        // The toast's timeout is the window's (WP-S2.05 §6.6): 8 seconds after the frame that first showed it.
-        let serial = self.shell.properties().toast().map(|t| t.serial);
-        match (serial, self.toast_since) {
-            (None, _) => self.toast_since = None,
-            (Some(s), Some((t, since))) if s == t => {
-                if ew_render2d::stats::now() - since >= Duration::from_secs(8) {
-                    events.push(Event::Action("toast.dismiss", Value::Null));
-                    self.toast_since = None;
-                } else {
-                    ctx.request_repaint_after(Duration::from_millis(500));
-                }
-            }
-            (Some(s), _) => {
-                self.toast_since = Some((s, ew_render2d::stats::now()));
+        // The toasts' timeouts are the window's (WP-S2.09 D6): 8 seconds each after the frame that first showed it.
+        let visible: Vec<u64> = self
+            .shell
+            .notifications()
+            .visible()
+            .iter()
+            .map(|n| n.serial)
+            .collect();
+        self.toast_since.retain(|s, _| visible.contains(s));
+        for serial in visible {
+            let since = *self.toast_since.entry(serial).or_insert(now);
+            if now.saturating_duration_since(since) >= Duration::from_secs(TOAST_SECONDS) {
+                events.push(Event::DismissToast(serial));
+            } else {
                 ctx.request_repaint_after(Duration::from_millis(500));
             }
         }
@@ -695,6 +727,7 @@ impl App {
             self.canvas.release();
         }
         self.open_documentation();
+        self.open_results();
 
         // The layout the user made is the shell's; it is written a second after the last change.
         let now = ctx.input(|i| i.time);
@@ -727,7 +760,9 @@ impl App {
         // stay with it. The text popup is one too (WP-S2.04 part 4b §10.5).
         let picker_open = self.shell.picker().is_some()
             || self.shell.junction_editor().is_some()
-            || self.shell.text_popup().is_some();
+            || self.shell.text_popup().is_some()
+            // WP-S2.09 §6.5: the notifications log is a popup too.
+            || self.shell.notifications().popup_open();
         let overlay = palette_open || dialog_open || picker_open;
         if overlay && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
             events.push(Event::Action("ui.dismiss", Value::Null));
@@ -890,6 +925,7 @@ impl App {
                 self.shell.submit_form();
             }
             Event::DismissBanner => self.shell.dismiss_banner(),
+            Event::DismissToast(serial) => self.shell.dismiss_toast(serial),
             Event::JunctionRow(row) => self.shell.set_junction_row(row),
             Event::OpenPrivacy => {
                 if !self.platform.open_url(ew_viewmodel::about::PRIVACY_URL) {
@@ -947,16 +983,8 @@ impl App {
             request.param.to_owned(),
             Value::String(path.to_string_lossy().into_owned()),
         );
-        if request.action == "file.export_pdf" {
-            // The export is synchronous in part 1: one frame with the label on screen, then the export.
-            self.deferred = Some(Deferred {
-                action: request.action,
-                params: Value::Object(params),
-                painted: false,
-            });
-        } else {
-            self.dispatch(request.action, &Value::Object(params));
-        }
+        // WP-S2.09 part 1: the PDF export is a job now (its request carries `replace`: the save dialog asked).
+        self.dispatch(request.action, &Value::Object(params));
         self.prompt_answered(ctx);
     }
 
@@ -965,6 +993,15 @@ impl App {
         // The menu the dialog was opened from is closed in the frame that paints the answer.
         egui::Popup::close_all(ctx);
         ctx.request_repaint();
+    }
+
+    /// Open PDF (WP-S2.09 §6.4): the written file in the system's viewer; a banner when it could not be opened.
+    fn open_results(&mut self) {
+        while let Some(url) = self.shell.take_open_request() {
+            if !self.platform.open_url(&url) {
+                self.shell.show_banner(strings::text("open-failed"));
+            }
+        }
     }
 
     /// The documentation page F1 asked for: opened in the system browser when the user guide is installed, else a

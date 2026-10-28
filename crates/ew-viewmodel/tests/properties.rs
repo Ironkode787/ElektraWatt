@@ -91,7 +91,7 @@ fn pg3_varies_one_commit_per_edit_and_escape_reverts() {
     assert_eq!(steps(&shell), before + 1);
     assert_eq!(shell.recorded_commands().last().unwrap().cmd, "fields.set");
     assert_eq!(text(&shell, "device/function_text"), "24 V distribution");
-    assert!(shell.properties().toast().is_none(), "one target: no toast");
+    assert!(shell.toast().is_none(), "one target: no toast");
     done(&mut shell, "edit.undo", json!({}));
     assert_eq!(text(&shell, "device/function_text"), old);
     shell.shutdown();
@@ -185,13 +185,13 @@ fn pg6_twenty_terminals_get_a_part_in_one_command() {
     assert_eq!(step.cmd, "fields.set");
     assert_eq!(step.params["targets"].as_array().unwrap().len(), 20);
     assert_eq!(step.params["path"], "parts");
-    let toast = shell.properties().toast().expect("a toast");
+    let toast = shell.toast().expect("a toast");
     assert_eq!(toast.text, "Set Part on 20 devices");
     assert!(text(&shell, "device/parts[0].part").starts_with(other));
     // Undo through the toast: one step.
     done(&mut shell, "toast.undo", json!({}));
     assert_eq!(text(&shell, "device/parts[0].part"), current);
-    assert!(shell.properties().toast().is_none());
+    assert!(shell.toast().is_none());
     shell.shutdown();
 }
 

@@ -33,10 +33,13 @@ pub mod help;
 // WP-S2.06 part 2
 pub mod highlight;
 pub mod history;
+// WP-S2.09 part 1: the jobs (the PDF export) and the notifications.
+pub mod jobs;
 pub mod layout;
 pub mod navigator;
 // WP-S2.06 part 1
 pub mod navigators;
+pub mod notifications;
 pub mod properties;
 pub mod script;
 pub mod settings;

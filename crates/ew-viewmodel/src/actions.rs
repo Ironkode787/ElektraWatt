@@ -492,6 +492,16 @@ fn can_discard_journal(m: &ShellModel) -> Result<(), &'static str> {
     }
 }
 
+// WP-S2.09 part 1
+/// The recovery dialog's answers need the dialog (§6.6).
+fn recovery_open(m: &ShellModel) -> Result<(), &'static str> {
+    if matches!(m.dialog(), Some(crate::shell::Dialog::Recovery { .. })) {
+        Ok(())
+    } else {
+        Err("reason-no-recovery")
+    }
+}
+
 fn wizard_open(m: &ShellModel) -> Result<(), &'static str> {
     if m.wizard().is_some() {
         Ok(())
@@ -806,8 +816,10 @@ pub static ACTIONS: &[ActionMeta] = &[
             slot(Menu::File),
         ),
     ),
+    // WP-S2.09 part 1: the export runs as a job (§6.3); `replace` confirms an existing file, `wait` (headless) returns at
+    // once.
     with_params(
-        "path?:path",
+        "path?:path, replace?:bool, wait?:bool",
         act(
             "file.export_pdf",
             Command,
@@ -1250,6 +1262,31 @@ pub static ACTIONS: &[ActionMeta] = &[
             &[],
             project_open,
             slot_sep(Menu::View),
+        ),
+    ),
+    // WP-S2.09 part 1 (§6.8): View ▸ Jobs and View ▸ Notifications.
+    with_params(
+        "on?:bool",
+        act(
+            "jobs.show",
+            View,
+            "action-jobs-show",
+            Menu::View,
+            &[],
+            project_open,
+            slot(Menu::View),
+        ),
+    ),
+    with_params(
+        "on?:bool",
+        act(
+            "notifications.show",
+            View,
+            "action-notifications-show",
+            Menu::View,
+            &[],
+            always,
+            slot(Menu::View),
         ),
     ),
     with_params(
@@ -2972,6 +3009,73 @@ pub static ACTIONS: &[ActionMeta] = &[
         project_open,
         None,
     )),
+    // WP-S2.09 part 1 (§6.8): the jobs' and the notifications' own controls, and the recovery dialog's answers.
+    with_params(
+        "job?:uint",
+        hidden(act(
+            "jobs.cancel",
+            Command,
+            "action-jobs-cancel",
+            Menu::View,
+            &[],
+            always,
+            None,
+        )),
+    ),
+    with_params(
+        "job?:uint",
+        headless(hidden(act(
+            "jobs.wait",
+            View,
+            "action-jobs-wait",
+            Menu::View,
+            &[],
+            always,
+            None,
+        ))),
+    ),
+    with_params(
+        "job?:uint",
+        hidden(act(
+            "jobs.open_result",
+            View,
+            "action-jobs-open-result",
+            Menu::View,
+            &[],
+            always,
+            None,
+        )),
+    ),
+    with_params(
+        "entry:uint, action:text",
+        hidden(act(
+            "notifications.run",
+            Command,
+            "action-notifications-run",
+            Menu::View,
+            &[],
+            always,
+            None,
+        )),
+    ),
+    hidden(act(
+        "journal.recover",
+        Command,
+        "action-journal-recover",
+        Menu::File,
+        &[],
+        recovery_open,
+        None,
+    )),
+    hidden(act(
+        "journal.keep",
+        View,
+        "action-journal-keep",
+        Menu::File,
+        &[],
+        recovery_open,
+        None,
+    )),
     // WP-S2.05 part 2: the find pane's own controls (§7.6); the pane handles Enter, Up and Down itself.
     hidden(in_find(act(
         "find.close",
@@ -3248,6 +3352,9 @@ fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
                 .layout()
                 .panes()
                 .contains(&crate::layout::PaneKind::Properties),
+            // WP-S2.09 part 1.
+            "jobs.show" => model.jobs_shown(),
+            "notifications.show" => model.notifications().popup_open(),
             "tool.select" | "tool.measure" => meta.id.strip_prefix("tool.") == Some(model.tool().name()),
             // WP-S2.04 part 2.
             "tool.wire" => model.tool().name() == "wire",
@@ -3661,6 +3768,9 @@ mod tests {
         "find.close",
         "find.run",
         "find.jump",
+        // WP-S2.09 part 1: the recovery dialog's answers.
+        "journal.recover",
+        "journal.keep",
     ];
 
     #[test]

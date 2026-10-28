@@ -41,6 +41,9 @@ skrifa = { version = "0.44.0", default-features = false, features = ["std"] }
 [dev-dependencies]
 # Interaction tests and the accessible-name walker, without rendering (no snapshot or wgpu feature).
 egui_kittest = { version = "=0.37.0", default-features = false }
+# WP-S2.09 part 1: the window's running export is held at a gate (`ShellModel::set_job_gate_for_tests`, feature
+# `testkit`, dev-only by `ci/dep-rules.toml`); the normal edge above is the same package.
+ew-viewmodel = { path = "../ew-viewmodel", features = ["testkit"] }
 
 # The canvas frame-time bench (WP-S2.02 section 9); `cargo xtask perf-gate` runs it once per gate run.
 [[bench]]

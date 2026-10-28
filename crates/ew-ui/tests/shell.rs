@@ -356,36 +356,5 @@ fn the_zoom_is_set_when_the_setting_changes_not_every_frame() {
     assert_eq!(h.ctx.zoom_factor(), 1.5);
 }
 
-/// The status bar shows "Exporting PDF..." in a frame of its own before the export runs.
-#[test]
-fn the_export_label_is_painted_before_the_export_runs() {
-    let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
-    let pdf = tmp.0.join("out.pdf");
-    let platform = Scripted::default();
-    platform.answers.borrow_mut().push_back(Pick::Path(pdf.clone()));
-    let mut h = harness(&tmp, platform.clone(), Some(dir));
-    settle(&mut h);
-    assert!(h.state().shell().has_project());
-    // Export asks for a path: the shell raises the prompt, the frame that sees it asks the file dialog.
-    h.state_mut()
-        .shell_mut()
-        .dispatch("file.export_pdf", &serde_json::Value::Null);
-    // Frame 1: the prompt is answered and the export deferred.
-    h.step();
-    assert_eq!(platform.asked.borrow().as_slice(), [Prompt::SavePdf]);
-    assert!(!pdf.exists());
-    // Frame 2: the label is painted; the export waits.
-    h.step();
-    assert!(
-        h.query_by_label("Exporting PDF...").is_some(),
-        "the label is on screen"
-    );
-    assert!(!pdf.exists(), "the export waits for the frame after the label");
-    // Frame 3: the export runs.
-    h.step();
-    assert!(pdf.exists(), "the export ran");
-    h.step();
-    assert!(h.query_by_label("Exporting PDF...").is_none());
-    h.state_mut().shell_mut().shutdown();
-}
+// WP-S2.09 part 1: the one-frame "Exporting PDF..." label went with the export job; `tests/jobs.rs` holds the
+// window's export (the save dialog, the job, its progress and its end).

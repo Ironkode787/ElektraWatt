@@ -27,10 +27,13 @@ mod focus;
 pub mod fonts;
 pub mod gpu;
 pub mod headless;
+// WP-S2.09 part 1: the Jobs pane, the toasts and the notifications log.
+mod jobs;
 pub mod keys;
 mod latest;
 mod menu;
 pub mod navigator;
+mod notifications;
 pub mod page_view;
 mod palette;
 // FT-410: the parts table import card.

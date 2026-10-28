@@ -530,8 +530,10 @@ fn a_leftover_journal_is_discarded_from_the_banner() {
     let mut h = harness_with(gui_shell(&tmp), Scripted::default(), Some(dir));
     settle(&mut h);
     assert!(h.state().shell().can_discard_journal());
+    // The banner, and since WP-S2.09 part 1 the recovery dialog too, say it.
     assert!(
-        h.query_by_label_contains("unsaved changes from a session that ended")
+        h.query_all_by_label_contains("unsaved changes from a session that ended")
+            .next()
             .is_some()
     );
     h.get_by_label("Discard unsaved changes of the earlier session...")

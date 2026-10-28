@@ -7,8 +7,9 @@
 //! read-only reasons ([`read_only_reason`]) and the rows on show ([`visible_rows`]).
 //!
 //! Only the shell (`ShellModel`'s `props.*` actions) calls the `Session`: once per sheet key for the sheet
-//! (`Session::property_sheet`), once per edit for its preview (`Session::preview_with`), then the commit. The card and
-//! the toast are the stand-ins of WP-S2.09's preview tab and notifications log (D5).
+//! (`Session::property_sheet`), once per edit for its preview (`Session::preview_with`), then the commit. The card is
+//! the stand-in of WP-S2.09's preview tab (D5); the toast of a commit with several targets is a notification of the
+//! shell since WP-S2.09 part 1 (`crate::notifications`).
 
 use std::collections::BTreeSet;
 use std::sync::Arc;
@@ -234,17 +235,6 @@ pub struct Card {
     pub origin: CardOrigin,
 }
 
-/// The toast after a direct commit with several targets (§6.6).
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct Toast {
-    /// `Set <label> on <n> <kind plural>`.
-    pub text: String,
-    /// Whether Undo is offered.
-    pub undo: bool,
-    /// Counted up per toast (the window's timer keys on it).
-    pub serial: u64,
-}
-
 /// The grid's state in the shell.
 #[derive(Default, Debug)]
 pub struct PropertiesState {
@@ -256,14 +246,12 @@ pub struct PropertiesState {
     pub(crate) choices: Option<Choices>,
     pub(crate) popup: Option<Popup>,
     pub(crate) card: Option<Card>,
-    pub(crate) toast: Option<Toast>,
     pub(crate) notes: Vec<String>,
     /// `props.project` shows the project record until the selection changes (its generation then).
     pub(crate) project_mode: Option<u64>,
     /// The selection generation and the page it was made on: the pane shows the selection only while that page is on
     /// show; a page change with nothing selected there shows the page's own sheet (window check, item 6).
     pub(crate) selection_page: Option<(u64, Option<PageId>)>,
-    pub(crate) toasts: u64,
 }
 
 impl PropertiesState {
@@ -295,11 +283,6 @@ impl PropertiesState {
     /// The preview card.
     pub fn card(&self) -> Option<&Card> {
         self.card.as_ref()
-    }
-
-    /// The toast.
-    pub fn toast(&self) -> Option<&Toast> {
-        self.toast.as_ref()
     }
 
     /// The notes of the last commit (confusable code points, an alias that resolved a node).

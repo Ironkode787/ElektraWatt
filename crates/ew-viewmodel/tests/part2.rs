@@ -2011,7 +2011,10 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
             // WP-S2.06 part 1: the navigator words need open navigators: `tests/navigators.rs` reaches them.
             || ew_viewmodel::describe::NAV_WORDS.contains(*w)
             // WP-S2.06 part 2: the further navigators' and the highlights' words: `tests/navigators_part2.rs`.
-            || ew_viewmodel::describe::NAV2_WORDS.contains(*w)),
+            || ew_viewmodel::describe::NAV2_WORDS.contains(*w)
+            // WP-S2.09 part 1: the job, log and recovery words need a job, the log popup or a leftover journal:
+            // `tests/jobs.rs`, `tests/notifications.rs` and `tests/recovery.rs` reach them.
+            || ew_viewmodel::describe::JOB_WORDS.contains(*w)),
         "words of the vocabulary no state used: {unused:?}"
     );
 }

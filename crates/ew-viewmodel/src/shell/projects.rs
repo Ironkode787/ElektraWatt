@@ -303,9 +303,20 @@ impl ShellModel {
         if !flag(p, "confirm") {
             return match self.mode {
                 Mode::Headless => failed("error-confirm-needed", &[]),
-                Mode::Gui => self.open_dialog(Dialog::ConfirmJournalDiscard),
+                Mode::Gui => {
+                    // WP-S2.09 §6.6: Discard... of the recovery dialog; Cancel returns to it.
+                    if matches!(self.dialog, Some(Dialog::Recovery { .. })) {
+                        self.recovery_stash = self.dialog.take();
+                    }
+                    self.open_dialog(Dialog::ConfirmJournalDiscard)
+                }
             };
         }
+        // The confirmed discard answers the recovery dialog too.
+        if matches!(self.dialog, Some(Dialog::Recovery { .. })) {
+            self.dialog = None;
+        }
+        self.recovery_stash = None;
         let Some(dir) = self.project.as_ref().map(|p| p.dir.clone()) else {
             return Outcome::Refused {
                 reason_key: "reason-no-project",

@@ -485,13 +485,17 @@ fn card_json(shell: &ShellModel) -> String {
     ])
 }
 
-/// The `toast` member: the toast or `null`.
+/// The `toast` member: the newest visible toast or `null`; `undo` says whether it offers Undo (WP-S2.09: the describe
+/// text lists every visible toast with its action's validity).
 fn toast_json(shell: &ShellModel) -> String {
-    match shell.properties().toast() {
+    match shell.toast() {
         None => "null".to_owned(),
         Some(t) => object(vec![
             member("text", &Value::from(t.text.as_str())),
-            member("undo", &Value::from(t.undo)),
+            member(
+                "undo",
+                &Value::from(t.action() == Some(crate::notifications::NoteAction::Undo)),
+            ),
         ]),
     }
 }
@@ -835,6 +839,8 @@ pub fn run_step(
     number: usize,
     step: &Step,
 ) -> StepResult {
+    // WP-S2.09 §6.3 item 5: the ends of the jobs that finished since the last step are taken first.
+    shell.poll_jobs();
     let outcome = match actions::find(&step.action).map(|m| (m.enabled)(shell)) {
         Some(Err(reason_key)) => Outcome::Refused { reason_key },
         _ => match ext.handle(shell, &step.action, &step.params) {

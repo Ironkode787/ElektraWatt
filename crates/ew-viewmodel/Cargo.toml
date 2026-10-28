@@ -17,8 +17,10 @@ workspace = true
 [features]
 # Test-only (WP-S2.03 §7.6): `ShellModel::set_tool_for_tests`, which installs a tool outside the registry, so that the
 # probe tool of `tests/probe.rs` can exercise the commit path that no shipped tool takes; and (FT-439)
-# `ShellModel::set_id_source_for_tests`, the ID source of `tests/replay_order.rs`. A non-dev edge must never
-# request it: `ci/dep-rules.toml` bans it outside dev-dependencies (`cargo xtask check-features`).
+# `ShellModel::set_id_source_for_tests`, the ID source of `tests/replay_order.rs`; and (WP-S2.09 part 1)
+# `ShellModel::set_job_gate_for_tests` and `set_job_panic_for_tests`, the held gate and the fault of `tests/jobs.rs`.
+# A non-dev edge must never request it: `ci/dep-rules.toml` bans it outside dev-dependencies
+# (`cargo xtask check-features`).
 testkit = []
 
 [[test]]
@@ -28,6 +30,12 @@ required-features = ["testkit"]
 # FT-439's guard: one script under an ascending and a descending ID source (`ShellModel::set_id_source_for_tests`).
 [[test]]
 name = "replay_order"
+required-features = ["testkit"]
+
+# WP-S2.09 part 1: the export jobs with a held gate or a fault (`ShellModel::set_job_gate_for_tests`,
+# `set_job_panic_for_tests`).
+[[test]]
+name = "jobs"
 required-features = ["testkit"]
 
 [dependencies]

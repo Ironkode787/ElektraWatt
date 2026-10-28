@@ -28,7 +28,7 @@ use super::navigation::{Focus, bump};
 use super::{Mode, Outcome, RecordedCommand, ShellModel, failed, string_param};
 use crate::properties::{
     Card, CardOrigin, ChoiceKind, Choices, Decision, EditBuffer, PendingEdit, Popup, PropRow,
-    PropertiesState, PropertySheet, Provenance, RowAction, RowValue, SheetKey, SheetSection, Toast, compose,
+    PropertiesState, PropertySheet, Provenance, RowAction, RowValue, SheetKey, SheetSection, compose,
     find_row, is_derived, item_default, kind_plural, member_path, policy, read_only_reason, visible_rows,
 };
 use crate::strings;
@@ -1036,9 +1036,8 @@ impl ShellModel {
                 self.props.choices = None;
                 self.props.popup = None;
                 if edit.targets.len() > 1 {
-                    self.props.toasts += 1;
-                    self.props.toast = Some(Toast {
-                        text: strings::format(
+                    self.notify(
+                        strings::format(
                             "toast-set",
                             &[
                                 &edit.label,
@@ -1046,9 +1045,8 @@ impl ShellModel {
                                 &kind_plural(&edit.kind, edit.targets.len()),
                             ],
                         ),
-                        undo: true,
-                        serial: self.props.toasts,
-                    });
+                        true,
+                    );
                 }
             }
             Outcome::Failed { message } => {
@@ -1525,16 +1523,11 @@ impl ShellModel {
         self.run_edit(rebuilt, true)
     }
 
-    /// Shows `text` as the toast (FT-485): what a command did that the page does not show by itself (a new strip, an
-    /// export, the wires a placement drew). It stays until it is dismissed or the next command replaces it; `undo`
-    /// offers Undo.
+    /// Shows `text` as a toast (FT-485): what a command did that the page does not show by itself (a new strip, the
+    /// wires a placement drew); `undo` offers Undo. WP-S2.09 D6: the toasts of these callers share the key `edit`, so a
+    /// newer one replaces an older one on screen; every one enters the notifications log.
     pub(super) fn notify(&mut self, text: String, undo: bool) {
-        self.props.toasts += 1;
-        self.props.toast = Some(Toast {
-            text,
-            undo,
-            serial: self.props.toasts,
-        });
+        self.notify_with(text, "edit", undo);
     }
 
     /// `preview.cancel` (the card's Cancel, Escape): the preview is dropped.
@@ -1544,22 +1537,6 @@ impl ShellModel {
                 reason_key: "reason-no-card",
             };
         }
-        Outcome::Done
-    }
-
-    /// `toast.undo`: the registry's undo; the toast goes.
-    pub(super) fn act_toast_undo(&mut self) -> Outcome {
-        if self.props.toast.take().is_none() {
-            return Outcome::Refused {
-                reason_key: "reason-no-toast",
-            };
-        }
-        self.dispatch("edit.undo", &Value::Null)
-    }
-
-    /// `toast.dismiss`: the toast goes.
-    pub(super) fn act_toast_dismiss(&mut self) -> Outcome {
-        self.props.toast = None;
         Outcome::Done
     }
 

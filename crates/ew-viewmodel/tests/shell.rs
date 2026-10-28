@@ -341,9 +341,13 @@ fn save_as_writes_a_new_project_directory() {
     assert!(!shell.is_dirty());
     assert!(target.join("manifest.json").is_file());
     shell.shutdown();
-    // A second Save As into the same, now occupied directory fails without a path in the message.
+    // A second Save As into the same, now occupied directory fails without a path in the message. The original keeps
+    // the journal of the edit that went to the copy, so it opens with the recovery dialog (WP-S2.09 D7): Open read-only
+    // answers it first.
     let mut again = ShellModel::new(Mode::Headless, tmp.config());
     open(&mut again, &dir);
+    assert!(matches!(again.dialog(), Some(Dialog::Recovery { .. })));
+    assert_eq!(again.dispatch("journal.keep", &json!({})), Outcome::Done);
     match again.dispatch("file.save_as", &json!({ "dir": target.to_string_lossy() })) {
         Outcome::Failed { message } => {
             assert!(!message.contains(&*tmp.0.to_string_lossy()), "{message}");

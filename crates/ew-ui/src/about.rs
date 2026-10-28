@@ -5,8 +5,9 @@
 //! the page-view renderer, the privacy state, the licence, the repository, the engineering-verification
 //! disclaimer and the support status, with buttons for the third-party notices and the documentation), the
 //! notices, the keyboard shortcuts, the unsaved-changes question, the question about an earlier session's journal,
-//! Go to page, Save layout as and the creation dialogs of pages, structure nodes and external references (FT-408,
-//! FT-409). Each answer is an [`Event`]; Escape closes the dialog through `ui.dismiss`.
+//! the recovery dialog (WP-S2.09 part 1), Go to page, Save layout as and the creation dialogs of pages, structure nodes
+//! and external references (FT-408, FT-409). Each answer is an [`Event`]; Escape closes the dialog through
+//! `ui.dismiss`.
 
 use egui::{Align2, Id, ScrollArea, TextEdit, Ui, Window};
 use ew_viewmodel::actions::ACTIONS;
@@ -23,6 +24,19 @@ fn window(title_key: &str) -> Window<'static> {
         .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
         .collapsible(false)
         .resizable(false)
+}
+
+/// The time of epoch milliseconds `ms` as `2026-10-28 14:03` (UTC: the standard library has no local time zone and the
+/// application takes no new dependency for one); `None` for 0 (unknown).
+fn utc_text(ms: u64) -> Option<String> {
+    if ms == 0 {
+        return None;
+    }
+    let d = ew_viewmodel::ew_api::output::date_from_epoch(i64::try_from(ms / 1000).ok()?)?;
+    Some(format!(
+        "{:04}-{:02}-{:02} {:02}:{:02}",
+        d.year, d.month, d.day, d.hour, d.minute
+    ))
 }
 
 fn close_button(ui: &mut Ui, events: &mut Vec<Event>) {
@@ -141,6 +155,43 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                         if ui.button(strings::text(key)).clicked() {
                             events.push(Event::Confirm(answer));
                         }
+                    }
+                });
+            });
+        }
+        // WP-S2.09 part 1 (D7, §6.6): Recover, Open read-only (also Escape), Discard... (its confirmation as built).
+        Some(Dialog::Recovery {
+            name,
+            transactions,
+            base_matches,
+            last_change_ms,
+            failed,
+        }) => {
+            window("recovery-title").show(ctx, |ui| {
+                ui.set_max_width(460.0);
+                ui.label(strings::format("recovery-text", &[name]));
+                ui.label(strings::format("recovery-count", &[&transactions.to_string()]));
+                if let Some(when) = utc_text(*last_change_ms) {
+                    ui.label(strings::format("recovery-last-change", &[&when]));
+                }
+                if !base_matches {
+                    ui.label(strings::text("recovery-moved"));
+                }
+                if let Some(reason) = failed {
+                    ui.colored_label(
+                        ui.visuals().error_fg_color,
+                        strings::format("recovery-failed", &[reason]),
+                    );
+                }
+                ui.horizontal(|ui| {
+                    if failed.is_none() && ui.button(strings::text("action-journal-recover")).clicked() {
+                        events.push(Event::Action("journal.recover", Value::Null));
+                    }
+                    if ui.button(strings::text("action-journal-keep")).clicked() {
+                        events.push(Event::Action("journal.keep", Value::Null));
+                    }
+                    if ui.button(strings::text("recovery-discard")).clicked() {
+                        events.push(Event::Action("file.discard_journal", Value::Null));
                     }
                 });
             });

@@ -97,6 +97,9 @@ pub struct SessionCalls {
     // WP-S2.06 part 2
     /// `Session::highlight_members`: once per highlight and revision.
     pub highlight_members: u64,
+    // WP-S2.09 part 1
+    /// `Session::export_job`: once per started PDF export (§9 item 5); no other `Session` call runs off this thread.
+    pub export_job: u64,
 }
 
 /// Counts one of the shell's `Session` calls (a free function, so that a call can be counted while the project is

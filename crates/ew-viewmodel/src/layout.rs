@@ -55,16 +55,23 @@ pub enum PaneKind {
     // WP-S2.06 part 1
     /// A navigator other than Pages (§6.8): docked as a tab beside the Pages pane; its workspace key is the kind word.
     Navigator(NavKind),
+    // WP-S2.09 part 1
+    /// The Jobs pane (§6.4): the PDF exports with their progress and results, in the bottom dock (D14).
+    Jobs,
 }
 
 impl PaneKind {
-    /// Every pane kind.
-    pub const ALL: [PaneKind; 4] = [
+    /// Every pane kind but the navigators.
+    pub const ALL: [PaneKind; 5] = [
         PaneKind::Pages,
         PaneKind::PageView,
         PaneKind::Properties,
         PaneKind::Find,
+        PaneKind::Jobs,
     ];
+
+    /// The panes of the bottom dock (D14): they share one tab group below the page view.
+    pub const BOTTOM: [PaneKind; 2] = [PaneKind::Find, PaneKind::Jobs];
 
     /// The name in a workspace file.
     pub fn key(self) -> &'static str {
@@ -74,6 +81,7 @@ impl PaneKind {
             PaneKind::Properties => "properties",
             PaneKind::Find => "find",
             PaneKind::Navigator(k) => k.word(),
+            PaneKind::Jobs => "jobs",
         }
     }
 
@@ -94,6 +102,7 @@ impl PaneKind {
             PaneKind::Properties => "pane-properties",
             PaneKind::Find => "pane-find",
             PaneKind::Navigator(k) => nav_title_key(k),
+            PaneKind::Jobs => "pane-jobs",
         }
     }
 }
@@ -216,35 +225,92 @@ impl Layout {
     }
 
     // WP-S2.05 part 2
-    /// The layout with the find pane below the page view (Ctrl+F, Ctrl+H; the bottom dock of doc 16 §3.4): the page
-    /// view's place becomes a vertical split of the page view and the find pane (750 : 250). Unchanged when the find
-    /// pane is in it.
+    /// The layout with the find pane below the page view (Ctrl+F, Ctrl+H; the bottom dock of doc 16 §3.4): see
+    /// [`Layout::with_bottom`].
     pub fn with_find(&self) -> Layout {
-        fn put(n: &LayoutNode) -> LayoutNode {
+        self.with_bottom(PaneKind::Find)
+    }
+
+    // WP-S2.09 part 1
+    /// The layout with `pane` in the bottom dock (D14; Find, Jobs): beside the bottom pane that is in the layout
+    /// already, as a new shown tab of its tab group (its place becomes tabs, or its tabs get one more); with none, the
+    /// page view's place becomes a vertical split of the page view and `pane` (750 : 250), which the first of them
+    /// creates. Unchanged when `pane` is in it.
+    pub fn with_bottom(&self, pane: PaneKind) -> Layout {
+        fn below(n: &LayoutNode, pane: PaneKind) -> LayoutNode {
             match n {
                 LayoutNode::Pane(PaneKind::PageView) => LayoutNode::Split {
                     dir: SplitDir::Vertical,
                     children: vec![
                         (750, LayoutNode::Pane(PaneKind::PageView)),
-                        (250, LayoutNode::Pane(PaneKind::Find)),
+                        (250, LayoutNode::Pane(pane)),
                     ],
                 },
                 LayoutNode::Pane(p) => LayoutNode::Pane(*p),
                 LayoutNode::Tabs { children, active } => LayoutNode::Tabs {
-                    children: children.iter().map(put).collect(),
+                    children: children.iter().map(|c| below(c, pane)).collect(),
                     active: *active,
                 },
                 LayoutNode::Split { dir, children } => LayoutNode::Split {
                     dir: *dir,
-                    children: children.iter().map(|(s, c)| (*s, put(c))).collect(),
+                    children: children.iter().map(|(s, c)| (*s, below(c, pane))).collect(),
                 },
             }
         }
-        if self.panes().contains(&PaneKind::Find) {
+        /// `pane` as a tab beside the first bottom pane met; `None` when the subtree has none.
+        fn beside(n: &LayoutNode, pane: PaneKind) -> Option<LayoutNode> {
+            match n {
+                LayoutNode::Pane(p) if PaneKind::BOTTOM.contains(p) => Some(LayoutNode::Tabs {
+                    children: vec![LayoutNode::Pane(*p), LayoutNode::Pane(pane)],
+                    active: 1,
+                }),
+                LayoutNode::Pane(_) => None,
+                LayoutNode::Tabs { children, .. }
+                    if children
+                        .iter()
+                        .any(|c| matches!(c, LayoutNode::Pane(p) if PaneKind::BOTTOM.contains(p))) =>
+                {
+                    let mut children = children.clone();
+                    children.push(LayoutNode::Pane(pane));
+                    let active = children.len() - 1;
+                    Some(LayoutNode::Tabs { children, active })
+                }
+                LayoutNode::Tabs { children, active } => {
+                    let mut out = children.clone();
+                    for (i, c) in children.iter().enumerate() {
+                        if let Some(new) = beside(c, pane) {
+                            out[i] = new;
+                            return Some(LayoutNode::Tabs {
+                                children: out,
+                                active: *active,
+                            });
+                        }
+                    }
+                    None
+                }
+                LayoutNode::Split { dir, children } => {
+                    let mut out = children.clone();
+                    for (i, (share, c)) in children.iter().enumerate() {
+                        if let Some(new) = beside(c, pane) {
+                            out[i] = (*share, new);
+                            return Some(LayoutNode::Split {
+                                dir: *dir,
+                                children: out,
+                            });
+                        }
+                    }
+                    None
+                }
+            }
+        }
+        if self.panes().contains(&pane) {
             return self.clone();
         }
+        if let Some(root) = beside(&self.root, pane) {
+            return Layout { root };
+        }
         Layout {
-            root: put(&self.root),
+            root: below(&self.root, pane),
         }
     }
 
@@ -665,6 +731,25 @@ mod tests {
         assert_eq!(full.with_find(), full, "added once");
         assert_eq!(Layout::parse(&full.to_json("Find")).unwrap().1, full);
         assert_eq!(full.without(PaneKind::Find), Layout::schematic());
+    }
+
+    // WP-S2.09 part 1
+    #[test]
+    fn the_bottom_panes_share_one_tab_group_below_the_page_view() {
+        let jobs = Layout::schematic().with_bottom(PaneKind::Jobs);
+        assert_eq!(
+            jobs.describe(),
+            "split horizontal [\"Pages\" 16%, split vertical [\"Page view\" 75%, \"Jobs\" 25%] 64%, \"Properties\" 20%]"
+        );
+        let both = jobs.with_find();
+        assert_eq!(
+            both.describe(),
+            "split horizontal [\"Pages\" 16%, split vertical [\"Page view\" 75%, tabs [\"Jobs\", \"Find and replace\" (shown)] 25%] 64%, \"Properties\" 20%]"
+        );
+        assert_eq!(both.with_bottom(PaneKind::Jobs), both, "added once");
+        assert_eq!(Layout::parse(&both.to_json("Bottom")).unwrap().1, both);
+        assert_eq!(both.without(PaneKind::Jobs), Layout::schematic().with_find());
+        assert_eq!(PaneKind::from_key("jobs"), Some(PaneKind::Jobs));
     }
 
     #[test]

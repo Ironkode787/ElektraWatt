@@ -45,6 +45,8 @@ mod editing;
 mod find;
 mod interruption;
 pub(crate) use interruption::natural_cmp;
+// WP-S2.09 part 1: the export job, the notifications, the recovery dialog.
+mod jobs;
 mod navigation;
 // WP-S2.06 part 1
 mod navigators;
@@ -230,6 +232,30 @@ pub enum Dialog {
     /// Page ▸ New page, Insert ▸ Structure node, Insert ▸ External reference (FT-408, FT-409): the fields of the
     /// action, which Enter dispatches.
     Form(FormDialog),
+    /// Recover unsaved changes (WP-S2.09 part 1, D7, §6.6): opened with the read-only project when an editing open
+    /// found the journal of a session that ended with unsaved changes. Recover (`journal.recover`), Open read-only
+    /// (`journal.keep`, Escape) or Discard... (`file.discard_journal`); after a failed recovery only the last two.
+    Recovery {
+        /// The project's directory name.
+        name: String,
+        /// The unsaved transactions of the journal.
+        transactions: usize,
+        /// Whether the project on disk is still the journal's base.
+        base_matches: bool,
+        /// The time of the last change, epoch milliseconds (the window shows it; never in the transcript).
+        last_change_ms: u64,
+        /// Why the last Recover failed.
+        failed: Option<String>,
+    },
+}
+
+/// A marker line of the history (WP-S2.09 D13, view state, never a `History` entry): an export, a recovery.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct HistoryMarker {
+    /// The revision it belongs after.
+    pub rev: u64,
+    /// The text (`Exported PDF to golden.pdf`).
+    pub text: String,
 }
 
 /// What the file dialog of the window must ask for.
@@ -309,6 +335,8 @@ struct Opened {
     report: OpenReport,
     access: AccessMode,
     banner: Option<String>,
+    /// The leftover journal that made it read-only: (transactions, base matches, last change in epoch ms).
+    recovery: Option<(usize, bool, u64)>,
 }
 
 struct Project {
@@ -406,6 +434,15 @@ pub struct ShellModel {
     /// The source of new record IDs for the sessions the shell opens or creates: `None` (the system clock and OS
     /// entropy) except in a test that replays one script under different IDs (FT-439's guard, feature `testkit`).
     id_source: Option<fn() -> Box<dyn IdSource + Send>>,
+    // WP-S2.09 part 1
+    /// The jobs (the PDF export) and the Jobs pane's entries.
+    jobs: crate::jobs::JobsState,
+    /// The visible toasts and the notifications log.
+    notes: crate::notifications::NotificationLog,
+    /// The history's marker lines of the open project session (exports, recoveries), by revision.
+    markers: Vec<HistoryMarker>,
+    /// The recovery dialog that Discard... replaced with its confirmation: Cancel returns to it.
+    recovery_stash: Option<Dialog>,
 }
 
 /// A maker of [`IdSource`]s for `ShellModel::set_id_source_for_tests` (feature `testkit`).
@@ -667,6 +704,33 @@ fn clears_banner(id: &str) -> bool {
             | "find.row"
             | "find.jump"
             | "find.replace_all"
+            // WP-S2.09 part 1: the jobs, the notifications and Open read-only leave it standing (the recovery banner
+            // stays with the read-only access, §6.6).
+            | "jobs.show"
+            | "jobs.cancel"
+            | "jobs.wait"
+            | "jobs.open_result"
+            | "notifications.show"
+            | "notifications.run"
+            | "journal.keep"
+    )
+}
+
+/// The actions that go while the recovery dialog is open (WP-S2.09 §6.6): its answers, Escape, what only observes (the
+/// describe text, F1) or ends the run (Quit closes the read-only project; the journal stays), and the window's own
+/// canvas geometry (`view.canvas_resize`, which the frame sends until the shell has the pane's size: refused, it would
+/// be sent again every frame). Any other action refuses `reason-dialog-open`.
+fn answers_recovery(id: &str) -> bool {
+    matches!(
+        id,
+        "journal.recover"
+            | "journal.keep"
+            | "file.discard_journal"
+            | "ui.dismiss"
+            | "ui.describe"
+            | "help.documentation"
+            | "app.quit"
+            | "view.canvas_resize"
     )
 }
 
@@ -752,6 +816,10 @@ impl ShellModel {
             clip: crate::clipboard::ClipboardState::default(),
             aliases: std::cell::RefCell::new(crate::alias::AliasTable::new()),
             id_source: None,
+            jobs: crate::jobs::JobsState::default(),
+            notes: crate::notifications::NotificationLog::default(),
+            markers: Vec::new(),
+            recovery_stash: None,
         };
         model.load_active_workspace();
         model
@@ -958,10 +1026,11 @@ impl ShellModel {
         self.prompt.take()
     }
 
-    /// The status-bar fields, left to right (spec section 5.3); `exporting` adds the export label of a window
-    /// that has started an export and not yet finished it.
-    pub fn status_fields(&self, exporting: bool) -> Vec<String> {
-        status::fields(self, exporting)
+    /// The status-bar fields, left to right (spec section 5.3; WP-S2.09 §6.4, §6.5): with the notifications field
+    /// while the log is not empty and, last, the job field while a job runs; `hide_job` leaves the job field out (the
+    /// window's 200 ms rule: a job younger than that shows none; the describe text and the transcript pass `false`).
+    pub fn status_fields(&self, hide_job: bool) -> Vec<String> {
+        status::fields(self, hide_job)
     }
 
     /// The reason text of a read-only project.
@@ -1168,6 +1237,14 @@ impl ShellModel {
             Value::Null => &empty,
             _ => return failed("error-params-object", &[]),
         };
+        // WP-S2.09 §6.6: while the recovery dialog is open only its answers (and what observes or ends the run) go; the
+        // others refuse (with their own reason when they are disabled anyway, as the script runner's check gives it),
+        // and the recovery banner stays.
+        if matches!(self.dialog, Some(Dialog::Recovery { .. })) && !answers_recovery(meta.id) {
+            return Outcome::Refused {
+                reason_key: (meta.enabled)(self).err().unwrap_or("reason-dialog-open"),
+            };
+        }
         if clears_banner(meta.id) {
             self.banner = None;
         }
@@ -1183,10 +1260,9 @@ impl ShellModel {
         if !keeps_link_preview(meta.id) {
             self.tools.link_preview = None;
         }
-        // The toast stays until it is dismissed or replaced by the next committing action (WP-S2.05 §6.6).
-        if meta.kind == actions::ActionKind::Command && !meta.id.starts_with("toast.") {
-            self.props.toast = None;
-        }
+        // WP-S2.09 D6: a toast stays until it is dismissed, replaced by a toast of its key or pushed out by a fourth
+        // (and, in the window, for 8 seconds); a later commit only expires its Undo (WP-S2.05 §6.6's rule that the next
+        // committing action removed it gives way to the stack).
         let outcome = self.run_action(meta.id, p);
         // The canvases follow the pages and the revision the action left (WP-S2.02 section 6.1, WP-S2.03 §6.2), and a
         // busy tool is escaped when its canvas changed (WP-S2.03 §7.2); the property grid fetches its sheet when its
@@ -1432,6 +1508,15 @@ impl ShellModel {
             "preview.cancel" => self.act_preview_cancel(),
             "toast.undo" => self.act_toast_undo(),
             "toast.dismiss" => self.act_toast_dismiss(),
+            // WP-S2.09 part 1
+            "jobs.show" => self.act_jobs_show(p),
+            "jobs.cancel" => self.act_jobs_cancel(p),
+            "jobs.wait" => self.act_jobs_wait(p),
+            "jobs.open_result" => self.act_jobs_open_result(p),
+            "notifications.show" => self.act_notifications_show(p),
+            "notifications.run" => self.act_notifications_run(p),
+            "journal.recover" => self.act_journal_recover(),
+            "journal.keep" => self.act_journal_keep(),
             // WP-S2.05 part 2
             "find.open" => self.act_find_open(false),
             "find.open_replace" => self.act_find_open(true),
@@ -1602,6 +1687,7 @@ impl ShellModel {
             report,
             access,
             banner,
+            recovery,
         } = match opened {
             Ok(o) => o,
             Err(e) => {
@@ -1637,6 +1723,17 @@ impl ShellModel {
             };
         }
         self.epochs += 1;
+        // WP-S2.09 D7: the read-only project of a leftover journal comes with the recovery dialog.
+        if let Some((transactions, base_matches, last_change_ms)) = recovery {
+            self.palette = None;
+            self.dialog = Some(Dialog::Recovery {
+                name: name.clone(),
+                transactions,
+                base_matches,
+                last_change_ms,
+                failed: None,
+            });
+        }
         self.project = Some(Project {
             session,
             epoch: self.epochs,
@@ -1701,9 +1798,10 @@ impl ShellModel {
         report: OpenReport,
         read_only: bool,
     ) -> Result<Opened, OpenError> {
-        if !read_only && report.recovery.is_some() {
+        if !read_only && let Some(info) = &report.recovery {
             // The editing session is closed again (its own journal goes, the leftover one stays) and the project
-            // re-opens through `open_read_only`; recovery itself is FT-313.
+            // re-opens through `open_read_only`; the recovery dialog answers the rest (WP-S2.09 D7).
+            let recovery = Some((info.transactions, info.base_matches, info.last_change_ms));
             session.close();
             let (again, again_report) = Session::open_read_only(dir, &self.config.app_version)?;
             return Ok(Opened {
@@ -1713,6 +1811,7 @@ impl ShellModel {
                     reason_key: "readonly-recovery",
                 },
                 banner: Some(strings::text("banner-recovery").to_owned()),
+                recovery,
             });
         }
         Ok(match &report.access {
@@ -1721,6 +1820,7 @@ impl ShellModel {
                 report,
                 access: AccessMode::Edit,
                 banner: None,
+                recovery: None,
             },
             Access::ReadOnly(reason) => {
                 let key = read_only_key(reason);
@@ -1730,6 +1830,7 @@ impl ShellModel {
                     report,
                     access: AccessMode::ReadOnly { reason_key: key },
                     banner,
+                    recovery: None,
                 }
             }
         })
@@ -1747,6 +1848,10 @@ impl ShellModel {
         self.focus = None;
         self.reset_tools();
         self.props = crate::properties::PropertiesState::default();
+        // WP-S2.09: the toasts of the project go with it (the log keeps them; their Undo expires with the session), and
+        // so do its history markers.
+        self.notes.clear_visible();
+        self.markers.clear();
     }
 
     /// Ends the shell at the end of a run or of the window (also on a log-off): a clean project is closed, a dirty
@@ -1754,6 +1859,9 @@ impl ShellModel {
     /// any other exit leaves it for the next open to offer (crash-recovery semantics, doc 05 section 8).
     pub fn shutdown(&mut self) {
         self.flush_layout();
+        // WP-S2.09: a running export is cancelled and waited for (it stops at its next page), so no job outlives the
+        // shell and no sibling file is left by a killed thread.
+        self.jobs.stop_all();
         match self.project.take() {
             Some(p) if p.session.is_dirty() => drop(p),
             Some(p) => p.session.close(),
@@ -1826,46 +1934,6 @@ impl ShellModel {
                 Outcome::Failed { message }
             }
         }
-    }
-
-    fn act_export_pdf(&mut self, p: &Map<String, Value>) -> Outcome {
-        let path = match string_param(p, "path") {
-            Err(e) => return e,
-            Ok(Some(path)) => PathBuf::from(path),
-            Ok(None) => return self.need_path("file.export_pdf", Prompt::SavePdf, "path", p),
-        };
-        let Some(project) = &self.project else {
-            return Outcome::Refused {
-                reason_key: "reason-no-project",
-            };
-        };
-        let export = match project.session.export_pdf(&ExportOptions::default()) {
-            Ok(export) => export,
-            Err(e) => {
-                let message = strings::format("error-export", &[&e.to_string()]);
-                self.banner = Some(message.clone());
-                return Outcome::Failed { message };
-            }
-        };
-        if std::fs::write(&path, &export.bytes).is_err() {
-            let message = strings::format("error-export", &[strings::text("error-write")]);
-            self.banner = Some(message.clone());
-            return Outcome::Failed { message };
-        }
-        // FT-485 item 11: the file's name (never its folder: no file system path in the output), the page count and
-        // the size.
-        let name = path
-            .file_name()
-            .map_or_else(String::new, |n| n.to_string_lossy().into_owned());
-        let kib = export.bytes.len().div_ceil(1024);
-        self.notify(
-            strings::format(
-                "toast-export-pdf",
-                &[&name, &export.pages.to_string(), &kib.to_string()],
-            ),
-            false,
-        );
-        Outcome::Done
     }
 
     fn act_close(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -1979,8 +2047,17 @@ impl ShellModel {
     /// a tool other than Select is replaced by Select and Select's selection is cleared. A banner has a button of its
     /// own, [`ShellModel::dismiss_banner`].
     fn act_dismiss(&mut self) -> Outcome {
+        // WP-S2.09 §6.6: Escape in the confirmation that Discard... opened returns to the recovery dialog.
+        if matches!(self.dialog, Some(Dialog::ConfirmJournalDiscard))
+            && let Some(stashed) = self.recovery_stash.take()
+        {
+            self.dialog = Some(stashed);
+            return Outcome::Done;
+        }
         if self.palette.take().is_some()
             || self.dialog.take().is_some()
+            // WP-S2.09 §6.5: the notifications log is a popup.
+            || std::mem::take(&mut self.notes.popup)
             || self.tools.picker.take().is_some()
             || self.tools.junction_editor.take().is_some()
             || self.tools.link_preview.take().is_some()
@@ -2016,11 +2093,16 @@ impl ShellModel {
     /// `discard`) or Cancel (nothing).
     pub fn answer_confirm(&mut self, answer: ConfirmAnswer) -> Outcome {
         if matches!(self.dialog, Some(Dialog::ConfirmJournalDiscard)) {
-            // The question about the earlier session's journal: Discard deletes it, anything else keeps it.
+            // The question about the earlier session's journal: Discard deletes it, anything else keeps it (and returns
+            // to the recovery dialog it came from, WP-S2.09 §6.6).
             self.dialog = None;
+            let stashed = self.recovery_stash.take();
             return match answer {
                 ConfirmAnswer::Discard => self.dispatch("file.discard_journal", &json!({ "confirm": true })),
-                ConfirmAnswer::Save | ConfirmAnswer::Cancel => Outcome::Done,
+                ConfirmAnswer::Save | ConfirmAnswer::Cancel => {
+                    self.dialog = stashed;
+                    Outcome::Done
+                }
             };
         }
         let Some(Dialog::ConfirmDiscard { pending }) = self.dialog.clone() else {

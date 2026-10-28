@@ -1,4 +1,4 @@
-# ew.blindvocab/1: the 285 structural words of the describe text, then its free-text markers
+# ew.blindvocab/1: the 303 structural words of the describe text, then its free-text markers
 title:
 menu
 submenu
@@ -284,6 +284,24 @@ to
 elsewhere
 aux
 reorder
+jobs
+job
+running
+pdf
+done
+kib
+rev
+now
+cancelled
+notifications
+notification
+open
+expired
+recovery
+transactions
+base
+matches
+moved
 markers:
 title:
 banner:

@@ -502,7 +502,7 @@ impl ShellModel {
 /// Percent-encodes every byte of `path` that is not unreserved (`A-Z a-z 0-9 - . _ ~`) or a path separator, a
 /// Windows drive's colon after one letter excepted, so that nothing in a directory name can end the URL or be read as
 /// part of a command line (`&`, `^`, `%`, quotes, spaces, `#`, `?`, non-ASCII).
-fn encode_path(path: &str) -> String {
+pub(super) fn encode_path(path: &str) -> String {
     let mut out = String::with_capacity(path.len());
     for (i, byte) in path.bytes().enumerate() {
         let drive_colon = byte == b':'

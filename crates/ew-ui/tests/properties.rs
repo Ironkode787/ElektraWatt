@@ -303,7 +303,7 @@ fn pg11_the_window_fetches_a_sheet_once_per_key() {
         json!({"row": "device/function_text", "value": "Spare"}),
     );
     settle(&mut h);
-    assert!(h.state().shell().properties().toast().is_some());
+    assert!(h.state().shell().toast().is_some());
     assert!(h.query_by_label("Undo").is_some(), "the toast's Undo");
 }
 

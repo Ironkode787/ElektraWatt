@@ -343,9 +343,8 @@ impl ShellModel {
                 self.tools.before_commit = self.canvas().map(|c| Arc::clone(&c.page().tables));
                 // FT-485 item 3: the wires a placement draws by its autoconnect hints, said in the toast.
                 let connects = self.autoconnect_words(cmd.as_ref());
-                // A tool's commit is a committing action, although the canvas action that reaches it is a view
-                // action: the toast of an earlier commit goes (WP-S2.05 §6.6).
-                self.props.toast = None;
+                // WP-S2.09 D6: an earlier toast stays (its Undo expires with this commit); a new toast of key `edit`
+                // replaces it.
                 let out = self.run_commit(cmd.as_ref());
                 if out == Outcome::Done
                     && let Some((count, list)) = connects

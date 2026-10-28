@@ -1,19 +1,20 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The property grid pane (WP-S2.05 part 1, spec §6.9): the shell's sheet drawn as the inline preview card, the toast,
-//! the header and one block per section with collapsible categories; each row its label, its value or editor, the
-//! provenance chip (an icon glyph and words, never colour alone) and its action buttons.
+//! The property grid pane (WP-S2.05 part 1, spec §6.9): the shell's sheet drawn as the inline preview card, the header
+//! and one block per section with collapsible categories; each row its label, its value or editor, the provenance chip
+//! (an icon glyph and words, never colour alone) and its action buttons. The toast of a commit with several targets is
+//! one of the window's toasts since WP-S2.09 part 1 (`crate::notifications`).
 //!
-//! **Input.** Every gesture is a registry action (`props.*`, `preview.*`, `toast.*`); the pane builds no command.
+//! **Input.** Every gesture is a registry action (`props.*`, `preview.*`); the pane builds no command.
 //! While the grid has the shell's focus and no field is being edited: Up, Down, Home and End move the row cursor,
 //! Left and Right collapse and expand the focused category, Enter or F2 edits, typing a character starts the edit with
 //! it, Insert, Delete, Alt+Up and Alt+Down change a list. In the field: Enter or Tab commit (as does leaving it),
 //! Escape reverts, Shift+Enter opens the multi-language popup.
 //!
 //! **Accessibility.** A row is a node with the role `Group`, named by its label, with the value, the provenance and
-//! the error in its description; the editor is a text input labelled by the field; the card and the toast are polite
-//! live regions. The pane announces nothing on a selection change.
+//! the error in its description; the editor is a text input labelled by the field; the card is a polite live region.
+//! The pane announces nothing on a selection change.
 
 use egui::{Key, Modifiers, RichText, Sense, TextEdit, Ui, Vec2};
 use ew_viewmodel::properties::{
@@ -109,7 +110,6 @@ impl PropertiesPane {
         }
         ui.scope_builder(egui::UiBuilder::new().accessibility_parent(pane_id), |ui| {
             self.card(ui, shell, events);
-            self.toast(ui, shell, events);
             let Some(sheet) = props.sheet() else {
                 ui.label(strings::text("props-empty"));
                 return;
@@ -316,29 +316,6 @@ impl PropertiesPane {
                 }
                 if ui.button(strings::text("card-cancel")).clicked() {
                     events.push(Event::Action("preview.cancel", json!({})));
-                }
-            });
-        });
-    }
-
-    /// The toast (§6.6): a polite live region with Undo and Close; it never takes the focus.
-    fn toast(&self, ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
-        let Some(toast) = shell.properties().toast() else {
-            return;
-        };
-        egui::Frame::group(ui.style()).show(ui, |ui| {
-            ui.horizontal_wrapped(|ui| {
-                let response = ui.label(&toast.text);
-                let live = toast.text.clone();
-                ui.ctx().accesskit_node_builder(response.id, |n| {
-                    n.set_live(egui::accesskit::Live::Polite);
-                    n.set_value(live);
-                });
-                if toast.undo && ui.button(strings::text("toast-undo")).clicked() {
-                    events.push(Event::Action("toast.undo", json!({})));
-                }
-                if ui.button(strings::text("toast-close")).clicked() {
-                    events.push(Event::Action("toast.dismiss", json!({})));
                 }
             });
         });
