@@ -440,6 +440,9 @@ jobs:
       # many-test, well-parallelised bulk). The acceptance tests and the command fuzzer are in part 1 only.
       # The xtask tests run `cargo metadata`, which needs the registry sources; they are in this part only (no other test binary
       # starts cargo: FT-479), so parts 1 and 2 skip the fetch (62 s and 64 s in runs 40611786232 and 40607950237).
+      # WP-S2.17's pixel gate `ew-ui::snapshots` (feature `snapshots`, Windows only) runs in this part on WARP against
+      # the blessed PNG files of crates/ew-ui/tests/expected/snapshots; it is never blessed here. On a failure its
+      # images and diff images are uploaded below.
       - name: cargo fetch
         shell: bash
         run: cargo fetch --locked
@@ -470,6 +473,14 @@ jobs:
               print(f"::error title=nextest {tc.get('classname')}::{tc.get('name')}::{text}")
           print(f"{n} failed test case(s) annotated")
           PY
+      # WP-S2.17 DL6: the chrome snapshots and the diff images of a failed pixel gate, for review.
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: failure()
+        with:
+          name: ew-ui-snapshots
+          path: target/ew-ui-snapshots/
+          if-no-files-found: ignore
+          retention-days: 7
 
   # FT-438: test-macos is split in two jobs that run in parallel, as the Windows run is (FT-387): this one is the default-features
   # half (build, the filtered nextest run, the default-features doctests), test-macos-all-features the other (the unfiltered

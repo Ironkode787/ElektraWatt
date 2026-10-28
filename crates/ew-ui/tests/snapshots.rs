@@ -4,13 +4,17 @@
 //! Chrome snapshots of WP-S2.17 (§11 item 3, DL6, DK7): the main window on Golden A folio 101 at 1280 × 800 in
 //! every theme and density, and the component gallery at ppp 1 and 2, rendered offscreen (`offscreen`) and written
 //! as PNG files under `target/ew-ui-snapshots/` (or `EW_SNAPSHOT_DIR`) for the reviewer, who compares them with the
-//! mockup side by side. Behind the `snapshots` feature; a host without a graphics adapter prints the reason and
-//! passes, except on Windows, where WARP must be there.
+//! mockup side by side.
 //!
-//! The pixel comparison against blessed images (D7: `egui_kittest`'s `snapshot` feature and `kittest.toml`) waits
-//! for the D7 supply-chain ruling: these images are evidence, not yet a gate.
+//! The pixel gate (D7 as amended: no `egui_kittest` render feature): the main window in light and dark at both
+//! densities and the gallery in the four themes at ppp 1 are compared with the blessed PNG files under
+//! `tests/expected/snapshots/`. A pixel differs when a channel differs by more than
+//! [`offscreen::CHANNEL_TOLERANCE`]; an image fails with more than [`offscreen::MAX_DIFFERING_PIXELS`] differing
+//! pixels, and a diff image (differences in red) is written next to the output. `EW_BLESS=1` writes the blessed
+//! files. Behind the `snapshots` feature and on Windows only (DX12 WARP: one platform keeps the pixels stable); no
+//! adapter there is a failure.
 
-#![cfg(feature = "snapshots")]
+#![cfg(all(feature = "snapshots", windows))]
 
 mod gallery;
 mod offscreen;
@@ -40,16 +44,50 @@ fn out_dir() -> PathBuf {
     )
 }
 
-fn device() -> Option<ew_render2d::gpu::HeadlessDevice> {
-    let dev = offscreen::device();
-    if dev.is_none() {
-        // On Windows an adapter must be found (DX12 WARP at least).
-        #[cfg(windows)]
-        panic!("no adapter: on Windows DX12 WARP at least must be found");
-        #[cfg(not(windows))]
-        println!("skipped: no adapter");
+/// Whether this run writes the blessed images.
+// Program boundary of the test binary: the bless switch of the repository's tests (`EW_BLESS=1`).
+#[allow(clippy::disallowed_methods)]
+fn bless() -> bool {
+    std::env::var_os("EW_BLESS").is_some_and(|v| v == "1")
+}
+
+fn device() -> ew_render2d::gpu::HeadlessDevice {
+    offscreen::device().expect("no adapter: on Windows DX12 WARP at least must be found")
+}
+
+/// Writes `image` for review as `name` and, when `gated`, compares it with the blessed file (or blesses it). Returns
+/// the failure, if any.
+fn record(name: &str, image: &ew_render_cpu::RgbaImage, gated: bool) -> Option<String> {
+    let out = out_dir();
+    offscreen::write_png(image, &out.join(format!("{name}.png")));
+    if !gated {
+        return None;
     }
-    dev
+    let blessed = PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/expected/snapshots"))
+        .join(format!("{name}.png"));
+    if bless() {
+        offscreen::write_png(image, &blessed);
+        return None;
+    }
+    let Some(old) = offscreen::read_png(&blessed) else {
+        return Some(format!("{name}: no blessed image (run with EW_BLESS=1)"));
+    };
+    match offscreen::compare(&old, image) {
+        None => Some(format!(
+            "{name}: {}x{} against the blessed {}x{}",
+            image.width, image.height, old.width, old.height
+        )),
+        Some((count, diff)) if count > offscreen::MAX_DIFFERING_PIXELS => {
+            let path = out.join(format!("{name}.diff.png"));
+            offscreen::write_png(&diff, &path);
+            Some(format!(
+                "{name}: {count} pixels differ (at most {} may); see {}",
+                offscreen::MAX_DIFFERING_PIXELS,
+                path.display()
+            ))
+        }
+        Some(_) => None,
+    }
 }
 
 fn main_window(theme: &str, density: &str) -> (Harness<'static, App>, offscreen::Recorder) {
@@ -86,22 +124,26 @@ fn main_window(theme: &str, density: &str) -> (Harness<'static, App>, offscreen:
 
 #[test]
 fn the_main_window_in_every_theme_and_density() {
-    let Some(dev) = device() else { return };
+    let dev = device();
+    let mut failures = Vec::new();
     for theme in ["light", "dark", "hc-dark", "hc-light"] {
         for density in ["comfortable", "compact"] {
             let (h, recorder) = main_window(theme, density);
             let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
             assert_eq!((image.width, image.height), (1280, 800));
-            offscreen::write_png(&image, &out_dir().join(format!("main-{theme}-{density}.png")));
+            let gated = matches!(theme, "light" | "dark");
+            failures.extend(record(&format!("main-{theme}-{density}"), &image, gated));
         }
     }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
 #[test]
 fn the_component_gallery_in_every_theme_at_ppp_1_and_2() {
-    let Some(dev) = device() else { return };
+    let dev = device();
+    let mut failures = Vec::new();
     for theme in ["light", "dark", "hc-dark", "hc-light"] {
-        for ppp in [1.0_f32, 2.0] {
+        for (ppp, gated) in [(1.0_f32, true), (2.0, false)] {
             let recorder = offscreen::Recorder::default();
             let mut h = Harness::builder()
                 .with_size(Vec2::new(640.0, 560.0))
@@ -111,7 +153,8 @@ fn the_component_gallery_in_every_theme_at_ppp_1_and_2() {
                 .build_ui_state(move |ui, _: &mut ()| gallery::show(ui, theme), ());
             h.run_ok();
             let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
-            offscreen::write_png(&image, &out_dir().join(format!("gallery-{theme}-ppp{ppp}.png")));
+            failures.extend(record(&format!("gallery-{theme}-ppp{ppp}"), &image, gated));
         }
     }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
 }

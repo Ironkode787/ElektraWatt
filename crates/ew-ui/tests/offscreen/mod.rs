@@ -167,3 +167,67 @@ pub fn write_png(image: &RgbaImage, path: &std::path::Path) {
     }
     std::fs::write(path, ew_render_cpu::encode_png(image, None)).unwrap();
 }
+
+/// The pixel gate's tolerance: a pixel differs when one of its channels differs by more than this (of 255).
+pub const CHANNEL_TOLERANCE: u8 = 4;
+
+/// The pixel gate's allowance: at most this many differing pixels per image.
+pub const MAX_DIFFERING_PIXELS: usize = 10;
+
+/// Reads a PNG written by [`write_png`] (8-bit RGBA, or 8-bit grey when every pixel is opaque grey).
+pub fn read_png(path: &std::path::Path) -> Option<RgbaImage> {
+    let bytes = std::fs::read(path).ok()?;
+    let mut decoder = png::Decoder::new(std::io::Cursor::new(bytes));
+    decoder.set_transformations(png::Transformations::normalize_to_color8() | png::Transformations::ALPHA);
+    let mut reader = decoder.read_info().ok()?;
+    let mut buf = vec![0u8; reader.output_buffer_size()?];
+    let info = reader.next_frame(&mut buf).ok()?;
+    buf.truncate(info.buffer_size());
+    let pixels = match info.color_type {
+        png::ColorType::Rgba => buf,
+        png::ColorType::GrayscaleAlpha => buf
+            .as_chunks::<2>()
+            .0
+            .iter()
+            .flat_map(|&[g, a]| [g, g, g, a])
+            .collect(),
+        _ => return None,
+    };
+    Some(RgbaImage {
+        width: info.width,
+        height: info.height,
+        pixels,
+    })
+}
+
+/// The number of pixels of `new` that differ from `old` beyond [`CHANNEL_TOLERANCE`], and an image of the
+/// differences (`new` dimmed to a quarter, each differing pixel opaque red). `None` when the sizes differ.
+pub fn compare(old: &RgbaImage, new: &RgbaImage) -> Option<(usize, RgbaImage)> {
+    if (old.width, old.height) != (new.width, new.height) {
+        return None;
+    }
+    let mut count = 0;
+    let mut pixels = Vec::with_capacity(new.pixels.len());
+    for (a, b) in old
+        .pixels
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .zip(new.pixels.as_chunks::<4>().0)
+    {
+        if a.iter().zip(b).any(|(x, y)| x.abs_diff(*y) > CHANNEL_TOLERANCE) {
+            count += 1;
+            pixels.extend_from_slice(&[255, 0, 0, 255]);
+        } else {
+            pixels.extend_from_slice(&[b[0] / 4, b[1] / 4, b[2] / 4, 255]);
+        }
+    }
+    Some((
+        count,
+        RgbaImage {
+            width: new.width,
+            height: new.height,
+            pixels,
+        },
+    ))
+}
