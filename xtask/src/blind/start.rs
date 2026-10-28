@@ -8,14 +8,15 @@
 //! the reference files are copied into the folder. The sample project is not: `EW_SAMPLE_DIR` points at an empty
 //! folder, and `golden/` is hashed here and again at `stop` (D16).
 
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, bail};
 
 use super::compose::{ComposeIn, REFERENCE_FILES, compose, run_files};
 use super::run::{
-    Counts, HARNESS_VERSION, Kind, RUN_SCHEMA, Run, RunJson, copy_dir, script_header, tree_sha, turns_header,
-    valid_run_id,
+    Counts, GOLDEN_PROJECT_DIR, GOLDEN_SCOPE_PROJECT, HARNESS_VERSION, Kind, RUN_SCHEMA, Run, RunJson,
+    copy_dir, golden_digest, script_header, turns_header, valid_run_id,
 };
 
 /// The arguments of `start`.
@@ -67,16 +68,23 @@ pub fn inside_repo(root: &Path, dir: &Path) -> bool {
     full.starts_with(&root)
 }
 
-/// The SHA-256 over `golden/` and a check that two such digests agree.
+/// Compares the golden digest recorded in `rj` with the fixture now, by the run's `golden_scope` (D16): the golden
+/// project fixture for a run recorded since FT-484, all of `golden/` for an older run (legacy scheme).
 ///
 /// # Errors
 ///
-/// The hash cannot be taken, or `golden/` changed.
-pub fn check_golden(root: &Path, expected: &str) -> Result<()> {
-    let now = tree_sha(&root.join("golden"))?;
-    if now != expected {
+/// The hash cannot be taken, or the fixture changed.
+pub fn check_golden(root: &Path, rj: &RunJson) -> Result<()> {
+    let now = golden_digest(root, rj.golden_scope.as_deref())?;
+    if now != rj.golden {
+        let what = if rj.golden_scope.is_some() {
+            GOLDEN_PROJECT_DIR
+        } else {
+            "golden/"
+        };
         bail!(
-            "golden/ changed during the run (digest {now}, at the start {expected}): the fixture is read through copies only"
+            "golden/ changed during the run ({what} digest {now}, at the start {}): the fixture is read through copies only",
+            rj.golden
         );
     }
     Ok(())
@@ -158,7 +166,13 @@ pub fn prepare(root: &Path, a: &StartArgs, version: &dyn Fn(&Path) -> Result<Str
         None
     };
     let folios = run_folios(root, a, drafter.as_ref())?;
-    let golden = tree_sha(&root.join("golden"))?;
+    let golden = golden_digest(root, Some(GOLDEN_SCOPE_PROJECT))?;
+    // Every option is validated here, before anything is created: the composition checks the persona, the task and the
+    // kind (FT-484), and the sources are looked up now.
+    let blind = run.blind_command();
+    let inp = compose_input(root, a, &blind, &folios);
+    let composed = compose(&inp)?;
+    let files = run_files(&inp, &composed)?;
     let bin = a.bin.clone().unwrap_or_else(|| root.join("target/debug"));
     let own = std::env::current_exe().ok();
     // The copied harness is the build's `xtask` next to the product binaries, else the one that is running.
@@ -166,6 +180,58 @@ pub fn prepare(root: &Path, a: &StartArgs, version: &dyn Fn(&Path) -> Result<Str
         .into_iter()
         .find(|p| p.is_file())
         .context("no xtask binary to copy")?;
+    // A refusal part-way removes only the folder this call created, never one that was there before.
+    let existed = run.dir.exists();
+    let built = populate(
+        root,
+        a,
+        version,
+        &run,
+        &Inputs {
+            bin,
+            xtask_from,
+            drafter,
+            composed,
+            files,
+            folios,
+            golden,
+        },
+    );
+    if built.is_err() && !existed {
+        let _ = std::fs::remove_dir_all(&run.dir);
+    }
+    built?;
+    Ok(run)
+}
+
+/// What `prepare` has validated and computed before it creates the run folder.
+struct Inputs {
+    bin: PathBuf,
+    xtask_from: PathBuf,
+    drafter: Option<Run>,
+    composed: super::compose::Composed,
+    files: BTreeMap<String, String>,
+    folios: Vec<String>,
+    golden: String,
+}
+
+/// Creates the run folder's content and `run.json` (the part of `prepare` that writes).
+fn populate(
+    root: &Path,
+    a: &StartArgs,
+    version: &dyn Fn(&Path) -> Result<String>,
+    run: &Run,
+    inputs: &Inputs,
+) -> Result<()> {
+    let Inputs {
+        bin,
+        xtask_from,
+        drafter,
+        composed,
+        files,
+        folios,
+        golden,
+    } = inputs;
     for sub in [
         "bin",
         ".harness/bin",
@@ -178,7 +244,7 @@ pub fn prepare(root: &Path, a: &StartArgs, version: &dyn Fn(&Path) -> Result<Str
     ] {
         std::fs::create_dir_all(run.path(sub))?;
     }
-    copy_file(&xtask_from, &run.harness_exe())?;
+    copy_file(xtask_from, &run.harness_exe())?;
     for name in ["elektrawatt", "ew"] {
         copy_file(&bin.join(exe_name(name)), &run.product_exe(name))?;
     }
@@ -202,16 +268,12 @@ pub fn prepare(root: &Path, a: &StartArgs, version: &dyn Fn(&Path) -> Result<Str
     }
     copy_file(&root.join("tools/blind/HELP.md"), &run.path(".harness/HELP.md"))?;
 
-    let blind = run.blind_command();
-    let inp = compose_input(root, a, &blind, &folios);
-    let composed = compose(&inp)?;
-    let files = run_files(&inp, &composed)?;
     std::fs::write(run.path("prompt.md"), &composed.text)?;
 
     // The prelude: the task's own, or the harness's for a check run (the drafter's project, opened).
-    let prelude = if let Some(drafter) = &drafter {
-        seed_from(drafter, &run)?;
-        copy_reports(drafter, &run)?;
+    let prelude = if let Some(drafter) = drafter {
+        seed_from(drafter, run)?;
+        copy_reports(drafter, run)?;
         format!(
             "{}\n{}\n",
             script_header("check prelude"),
@@ -240,10 +302,11 @@ pub fn prepare(root: &Path, a: &StartArgs, version: &dyn Fn(&Path) -> Result<Str
         task: a.task.clone(),
         persona: a.persona.clone(),
         of: a.of.clone(),
-        folios,
+        folios: folios.clone(),
         caps: a.kind.caps(),
-        files,
-        golden,
+        files: files.clone(),
+        golden: golden.clone(),
+        golden_scope: Some(GOLDEN_SCOPE_PROJECT.to_owned()),
         app_version,
         harness_version: HARNESS_VERSION.to_owned(),
         stateless: a.stateless,
@@ -258,7 +321,7 @@ pub fn prepare(root: &Path, a: &StartArgs, version: &dyn Fn(&Path) -> Result<Str
         golden_changed: false,
     };
     run.save(&json)?;
-    Ok(run)
+    Ok(())
 }
 
 fn compose_input<'a>(
@@ -350,6 +413,7 @@ pub fn start(root: &Path, a: &StartArgs) -> Result<Run> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::blind::run::tree_sha;
     use crate::blind::testkit::Tmp;
 
     /// A repository root of a test: golden, content, tools/blind and a `target/debug` of dummy binaries.
@@ -430,7 +494,7 @@ mod tests {
                 .is_none()
         );
         let rj = run.load().unwrap();
-        assert_eq!(rj.golden, tree_sha(&root.join("golden")).unwrap());
+        assert_eq!(rj.golden, tree_sha(&root.join("golden/J-E-2416.ew")).unwrap());
         assert_eq!(rj.app_version, "0.0.0");
         assert!(rj.files.contains_key("tools/blind/HELP.md"));
         let prompt = std::fs::read_to_string(run.path("prompt.md")).unwrap();
@@ -591,20 +655,137 @@ mod tests {
         assert!(reseed_check_project(&check).is_err());
     }
 
-    /// BD10: `golden/` is hashed at the start and compared at the stop; a changed byte fails the run.
+    /// BD10 (FT-484): the golden project fixture is hashed at the start and compared at the stop; a changed byte or a
+    /// new file under it fails the run, a change next to it (`expected/`, the README) does not.
     #[test]
     fn a_changed_golden_fails_the_check() {
         let tmp = Tmp::new("start-golden");
         let root = fake_repo(&tmp);
-        let before = tree_sha(&root.join("golden")).unwrap();
-        check_golden(&root, &before).unwrap();
-        std::fs::write(root.join("golden/J-E-2416.ew/project.json"), "{ }\n").unwrap();
-        let err = check_golden(&root, &before).unwrap_err();
+        let mut rj = crate::blind::testkit::new_run_json("g", Kind::Free);
+        rj.golden = golden_digest(&root, Some(GOLDEN_SCOPE_PROJECT)).unwrap();
+        rj.golden_scope = Some(GOLDEN_SCOPE_PROJECT.to_owned());
+        check_golden(&root, &rj).unwrap();
+        // Expected outputs and documents beside the project may change during a run.
+        std::fs::create_dir_all(root.join("golden/J-E-2416/expected")).unwrap();
+        std::fs::write(
+            root.join("golden/J-E-2416/expected/x.csv"),
+            "a
+",
+        )
+        .unwrap();
+        std::fs::write(
+            root.join("golden/J-E-2416/README.md"),
+            "r
+",
+        )
+        .unwrap();
+        std::fs::create_dir_all(tmp.0.join("runs/d1/work/project")).unwrap();
+        check_golden(&root, &rj).unwrap();
+        std::fs::write(
+            root.join("golden/J-E-2416.ew/project.json"),
+            "{ }
+",
+        )
+        .unwrap();
+        let err = check_golden(&root, &rj).unwrap_err();
         assert!(err.to_string().contains("golden/ changed"), "{err}");
-        std::fs::write(root.join("golden/J-E-2416.ew/project.json"), "{}\n").unwrap();
-        check_golden(&root, &before).unwrap();
+        std::fs::write(
+            root.join("golden/J-E-2416.ew/project.json"),
+            "{}
+",
+        )
+        .unwrap();
+        check_golden(&root, &rj).unwrap();
         // A new file (a lock, a journal) is a change too.
         std::fs::write(root.join("golden/J-E-2416.ew/lock"), "").unwrap();
-        assert!(check_golden(&root, &before).is_err());
+        assert!(check_golden(&root, &rj).is_err());
+    }
+
+    /// A run folder recorded before FT-484 has no `golden_scope`: its digest covers all of `golden/` (legacy scheme).
+    #[test]
+    fn an_old_scheme_run_is_compared_with_the_whole_golden_digest() {
+        let tmp = Tmp::new("start-golden-legacy");
+        let root = fake_repo(&tmp);
+        let mut rj = crate::blind::testkit::new_run_json("g", Kind::Free);
+        assert_eq!(rj.golden_scope, None);
+        rj.golden = tree_sha(&root.join("golden")).unwrap();
+        check_golden(&root, &rj).unwrap();
+        // The field is absent from an old run.json and defaults to the legacy scheme.
+        let text = serde_json::to_string(&rj).unwrap();
+        assert!(!text.contains("golden_scope"), "{text}");
+        let back: RunJson = serde_json::from_str(&text).unwrap();
+        assert_eq!(back.golden_scope, None);
+        // Under the legacy scheme a change beside the project voids the run.
+        std::fs::create_dir_all(root.join("golden/J-E-2416/expected")).unwrap();
+        std::fs::write(
+            root.join("golden/J-E-2416/expected/x.csv"),
+            "a
+",
+        )
+        .unwrap();
+        assert!(check_golden(&root, &rj).is_err());
+        // A new run records the project scope.
+        let run = prepare(&root, &args(&tmp, "new"), &|_| Ok("0".to_owned())).unwrap();
+        assert_eq!(
+            run.load().unwrap().golden_scope.as_deref(),
+            Some(GOLDEN_SCOPE_PROJECT)
+        );
+    }
+
+    /// FT-484: a refused `start` leaves no run folder behind; the next correct `start` of the same name succeeds.
+    #[test]
+    fn a_refused_start_leaves_no_run_folder() {
+        let tmp = Tmp::new("start-refused-clean");
+        let root = fake_repo(&tmp);
+        // A task whose prompt takes a persona (the selftest's takes none).
+        for rel in [
+            "tools/blind/CHECKER.md",
+            "tools/blind/BLIND_DRAFTER.md",
+            "tools/blind/tasks/t1/task.md",
+        ] {
+            let p = root.join(rel);
+            std::fs::create_dir_all(p.parent().unwrap()).unwrap();
+            std::fs::write(p, "x\n").unwrap();
+        }
+        // A stopped drafter run to check.
+        prepare(&root, &args(&tmp, "d1"), &|_| Ok("0".to_owned())).unwrap();
+        std::fs::write(
+            tmp.0.join("runs/d1/out/report.md"),
+            "r
+",
+        )
+        .unwrap();
+        std::fs::create_dir_all(tmp.0.join("runs/d1/work/project")).unwrap();
+        let mut check = args(&tmp, "r1");
+        check.kind = Kind::Check;
+        check.task = "t1".to_owned();
+        check.of = Some("d1".to_owned());
+        check.persona = Some("x".to_owned());
+        let err = prepare(&root, &check, &|_| Ok("0".to_owned())).unwrap_err();
+        assert!(err.to_string().contains("a check run has no persona"), "{err}");
+        assert!(!tmp.0.join("runs/r1").exists());
+        // A drafter run refused for its persona leaves nothing either.
+        let mut a = args(&tmp, "r2");
+        a.task = "t1".to_owned();
+        a.persona = Some("no-such-persona".to_owned());
+        assert!(prepare(&root, &a, &|_| Ok("0".to_owned())).is_err());
+        assert!(!tmp.0.join("runs/r2").exists());
+        // A failure part-way (the version cannot be read) removes the folder this call created.
+        let a = args(&tmp, "r3");
+        assert!(prepare(&root, &a, &|_| anyhow::bail!("no version")).is_err());
+        assert!(!tmp.0.join("runs/r3").exists());
+        // The same names then start (r1 as the check run it was refused as, without the persona).
+        check.persona = None;
+        prepare(&root, &check, &|_| Ok("0".to_owned())).unwrap();
+        prepare(&root, &a, &|_| Ok("0".to_owned())).unwrap();
+        // A folder that existed before (empty) survives a refusal.
+        std::fs::create_dir_all(tmp.0.join("runs/r4")).unwrap();
+        let mut a = args(&tmp, "r4");
+        a.kind = Kind::Check;
+        a.task = "t1".to_owned();
+        a.of = Some("d1".to_owned());
+        a.persona = Some("x".to_owned());
+        assert!(prepare(&root, &a, &|_| Ok("0".to_owned())).is_err());
+        assert!(tmp.0.join("runs/r4").is_dir());
     }
 }

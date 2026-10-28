@@ -211,7 +211,7 @@ pub fn stop(root: &Path, run: &Run, backend: &mut dyn Backend, reason: &str) -> 
     } else {
         run_exports(run)?
     };
-    let golden = check_golden(root, &rj.golden);
+    let golden = check_golden(root, &rj);
     let rj = run.update(|j| {
         if reason == "orchestrator" && j.end.is_none() {
             j.end = Some("orchestrator".to_owned());
@@ -440,6 +440,44 @@ mod tests {
             t.iter().any(|l| l.contains("\"action\":\"page.describe\"")
                 && l.contains("\"describe\":\"page \\\"101\\\""))
         );
+    }
+
+    /// FT-484: a run of the project scheme stops cleanly when only `expected/` or a document changed, and fails when the
+    /// golden project changed.
+    #[test]
+    fn only_the_golden_project_voids_a_run_of_the_project_scheme() {
+        let mut f = fixture(Kind::Free);
+        let root = f.tmp.0.join("repo");
+        std::fs::create_dir_all(root.join("golden/J-E-2416.ew")).unwrap();
+        std::fs::create_dir_all(root.join("golden/J-E-2416/expected")).unwrap();
+        std::fs::write(root.join("golden/J-E-2416.ew/p.json"), "1").unwrap();
+        std::fs::write(root.join("golden/J-E-2416/README.md"), "a").unwrap();
+        let sha = crate::blind::run::golden_digest(&root, Some("project")).unwrap();
+        f.run
+            .update(|j| {
+                j.golden = sha;
+                j.golden_scope = Some("project".to_owned());
+            })
+            .unwrap();
+        std::fs::write(root.join("golden/J-E-2416/README.md"), "b").unwrap();
+        std::fs::write(root.join("golden/J-E-2416/expected/x.csv"), "c").unwrap();
+        stop(&root, &f.run, &mut f.backend, "orchestrator").unwrap();
+        assert!(!f.run.load().unwrap().golden_changed);
+
+        let mut g = fixture(Kind::Free);
+        let root = g.tmp.0.join("repo");
+        std::fs::create_dir_all(root.join("golden/J-E-2416.ew")).unwrap();
+        std::fs::write(root.join("golden/J-E-2416.ew/p.json"), "1").unwrap();
+        let sha = crate::blind::run::golden_digest(&root, Some("project")).unwrap();
+        g.run
+            .update(|j| {
+                j.golden = sha;
+                j.golden_scope = Some("project".to_owned());
+            })
+            .unwrap();
+        std::fs::write(root.join("golden/J-E-2416.ew/p.json"), "2").unwrap();
+        assert!(stop(&root, &g.run, &mut g.backend, "orchestrator").is_err());
+        assert!(g.run.load().unwrap().golden_changed);
     }
 
     /// BD10: a changed golden fails the stop, after the report is written.

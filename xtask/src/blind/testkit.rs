@@ -44,6 +44,7 @@ pub fn new_run_json(id: &str, kind: Kind) -> RunJson {
         caps: kind.caps(),
         files: Default::default(),
         golden: "0".to_owned(),
+        golden_scope: None,
         app_version: "0.0.0".to_owned(),
         harness_version: HARNESS_VERSION.to_owned(),
         stateless: false,
