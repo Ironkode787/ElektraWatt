@@ -128,7 +128,7 @@ Each is a lead ruling that the owner may reverse. The design pass records them a
 | D6 | **Filter:** a row matches when every query token is a prefix of one of the row's tokens, or the whole query is a substring of its label (both case-folded and NFC); facets from a closed list (§6.3); ancestors of a match stay shown and expand. **It always runs on the UI thread** over the precomputed tokens; doc 16 §15.2's job path above 20,000 nodes is not built | The union keeps the as-built Pages filter a subset (recordings); a linear scan of precomputed tokens is well inside 100 ms at 100k rows by estimate; the job path waits for the release-phase measurement (FT-491) |
 | D7 | **Selection.** Each navigator keeps its own set of marked rows. Navigator → canvas: the window `Selection` becomes the marked rows' drawables on the shown page if there are any, else their records; the page is never switched, and a chip line names the drawables elsewhere. Canvas (or any other origin) → navigators: the rows of the selected records are marked and revealed, the row cursor moves to the first of them, and the focus stays. A generation guard stops loops. Enter opens a row's target in the focused tab as a jump (doc 16 §5.4, §15.3) | FR-UI-007 both ways with no page jump on selection; the property grid shows what the user picked in a navigator even off the page |
 | D8 | **`page.reorder`**, a new command: the dragged page records are put before a page of the same section, and the folio keys (number, label) of the range of positions that changed are given to the pages of that range in their new order; pages outside the range keep theirs. Always previewed (cost `Bulk`), as the card in the Pages pane until WP-S2.09's tab | A permutation of the section's own folio keys cannot collide with any page outside the range and touches the fewest pages; the trade-off is that 106 dragged before 103 yields 106 → 103 and 103 → 106, not a shift to 104 (§5.1) |
-| D9 | **Tables use egui_table `=0.11.0`** (the release for egui 0.37, MSRV 1.95, MIT OR Apache-2.0; it adds `egui_table` and `vec1 1.12.1`, both `MIT OR Apache-2.0`); **trees stay `ew-ui`'s own rows on `ScrollArea::show_rows`**, and egui_ltreeview is not adopted. ADR-0014 amendment 4 records it | egui_table gives sticky key columns, column resize and row virtualisation from the egui author's own crate; the as-built Pages tree already virtualises with AccessKit tree roles, so a tree crate would only add an upgrade |
+| D9 | **Tables use egui_table `=0.11.0`** (the release for egui 0.37, MSRV 1.95, MIT OR Apache-2.0; it adds `egui_table` and `vec1 1.12.1`, both `MIT OR Apache-2.0`, and `enumn 0.1.14`, `MIT OR Apache-2.0`, through egui's `serde` feature: enumn accepted by the orchestrator, cycle 31, transitive via egui/serde); **trees stay `ew-ui`'s own rows on `ScrollArea::show_rows`**, and egui_ltreeview is not adopted. ADR-0014 amendment 4 records it | egui_table gives sticky key columns, column resize and row virtualisation from the egui author's own crate; the as-built Pages tree already virtualises with AccessKit tree roles, so a tree crate would only add an upgrade |
 | D10 | **Editable cells are a closed table** (§8.2): a column is editable only when it is listed there, its route is an `EditRoute::FieldsSet` of WP-S2.05's catalogue, and the route's `FieldType` is a scalar (Text, Ident, MlText, Bool, Int, Dec3, Quantity, Csa, Nm, Colour, Enum, or Optional of one); the targets of a cell are all records of the row of the route's kind. Every other cell is read-only with its reason | The table cannot do what the grid and a script cannot; group, list, link and JSON values stay in the property grid |
 | D11 | **One gesture, one command.** A cell edit, a multi-row commit, a fill-down, a pattern fill, a paste or a clear compiles to `fields.set` when every cell has the same (path, value), else to one `fields.set_many`; the FR-UI-044 policy rules 1 to 3 are evaluated on its preview; a direct commit shows the toast, any other the card in the navigator pane | Doc 16 §7.2; one undo step; the same path as the property grid |
 | D12 | **Pattern fill and paste are closed grammars** (§8.5, §8.6): the template language of doc 16 §7.3 with an exact grammar, and the TSV parser of doc 16 §15.4 with English headers only until WP-S2.08's locales; no row inserts at M-PP; every cell text goes through `parse_field_input` | Deterministic, testable, no second parser of field values |
@@ -156,9 +156,11 @@ Each is a lead ruling that the owner may reverse. The design pass records them a
 1. **Only the public items of §4.2 and the command of §5** are added below the shell, each first and in its own commit
    with tests. Any other missing item stops the lane.
 2. **New packages, exactly:** part 3 adds `egui_table =0.11.0` (default features off) to `ew-ui`, which brings `vec1
-   1.12.1`; `cargo tree -p elektrawatt` grows by exactly these two (stated in the commit message), and the lane adds
-   their cargo-vet exemptions at `safe-to-deploy` (ID-447's rule: the lane writes no audit) and runs `cargo deny` and
-   `cargo vet`. A third new package, a new licence or a build script stops the lane. Parts 1 and 2 add no package. **No
+   1.12.1` and, through egui's `serde` feature and `accesskit/serde`, `enumn 0.1.14` (enumn accepted by the
+   orchestrator, cycle 31, transitive via egui/serde); `cargo tree -p elektrawatt` grows by exactly these three (stated
+   in the commit message), and the lane adds their cargo-vet exemptions at `safe-to-deploy` (ID-447's rule: the lane
+   writes no audit) and runs `cargo deny` and `cargo vet`. A fourth new package, a new licence or a build script stops
+   the lane. Parts 1 and 2 add no package. **No
    new workspace edge**: `ew-api → ew-reports` exists. `cargo xtask check-deps` green.
 3. **One mutation path.** Every model change is a registered command committed by the host path (preview, then commit
    or the card). Highlights, filters, sorts, columns, marks and expansion are view state and never a command.
@@ -690,21 +692,35 @@ The card's invalid cells print as `  cell <i> "<row label>" "<column label>" inv
 
 ### 8.9 As built in cycle 31 (part 3, lane A31)
 
-**The model half of part 3 is delivered; the table widget is not.** TB1 to TB6 and TB8 pass; TB7 is open. Counts: 55
-commands, 239 actions (225 + the 14 of §8.8) and 315 describe words (309 + the 6 of §8.8). Built as §8 says, with
-these points:
+**Part 3 is delivered.** TB1 to TB8 pass. Counts: 55 commands, 239 actions (225 + the 14 of §8.8) and 315 describe
+words (309 + the 6 of §8.8). Built as §8 says, with these points:
 
-- **The widget is not built (TB7 open).** `egui_table` 0.11.0 brings a third new package, `enumn` (through egui's
-  `serde` feature and `accesskit/serde`), against §4.1 rule 2 and D9's "exactly two new packages"; that is a D-row
-  change and waits for a ruling. Without it the window's navigator pane lists a table's rows with its row widget (the
-  key column's text), and the table's columns, cell cursor, editing, fill, pattern and paste are reached through the
-  actions (the hidden ones by script or the command palette), the shortcuts of §8.8, the platform's copy and paste
-  events and the table card in the pane.
+- **Packages (§4.1 rule 2 and D9 amended).** `egui_table =0.11.0` turns on egui's `serde` feature, which brings
+  `enumn 0.1.14` through `accesskit/serde`: three new packages, `egui_table`, `vec1` and `enumn` (enumn accepted by
+  the orchestrator, cycle 31, transitive via egui/serde), each `MIT OR Apache-2.0` without a build script and exempted
+  at `safe-to-deploy`. The same feature adds `serde` edges, no package, to accesskit, ahash, ecolor, egui, emath,
+  epaint, font-types and smallvec; egui's `persistence` stays off, so egui_table's column widths live in egui's
+  memory and never reach a file.
+- **The widget** (`ew-ui/src/nav_table.rs`). A navigator in table mode draws an egui_table with one sticky column, the
+  key column, and one header row; the header row's cells are buttons named `Sort by <column label>` (an arrow marks
+  the sorted column; a second click reverses it); a cell is an AccessKit `Cell` named `<column label> <cell text>, row
+  <i> of <n>` (the label alone for an empty cell), with `, read-only` for a cell with §8.2's reason, which is its
+  tooltip; derived columns are italic. The list node is a `Table` named `<navigator> table`. A Table toggle sits beside
+  the filter of every navigator, and a Columns menu above the table holds a check box per column (the key column's is
+  disabled) and Move left and Move right for the columns on show (`table.columns`). Column widths start at 110 pt and
+  are resizable; the resize handles are named `Resize <label> column` (role splitter) for the accessible-name walker.
+  The cursor cell is scrolled into view when it moves. Keys while the table has the focus: the arrows, Tab and
+  Shift+Tab move the cell cursor, Home and End to the first and last column, Ctrl+Home and Ctrl+End to the first and
+  last row, Shift+Up and Shift+Down extend the marks, Enter opens the row, Ctrl+Enter applies the card, a printable
+  character starts the edit with it; F2, Delete, Ctrl+D, Ctrl+Shift+D, Space and the clipboard are the registry's.
+  The cell editor commits on Enter, on Ctrl+Enter for every marked row, and on leaving it, and Escape reverts it. The
+  pattern dialog shows its field and "Values: <first five>" or the pattern's error.
 - **Columns.** `ew-api` holds the closed table of §8.2 (`EDITABLE_COLUMNS`, 16 routes) and the derived columns
   (8: a row's potential, folios and counts); `NavColumn` carries `route`, `derived` and `read_only` with §8.2's reason.
-  TB1's test checks each route against `field_catalogue`: every route is a scalar `FieldsSet` route; the identifier
-  flags follow the catalogue, which marks `terminal.designation` an identifier but neither `potential_def.name` nor
-  `structure_node.code` (§8.2 says yes for both): rule 2 follows the catalogue.
+  TB1's test checks each route against `field_catalogue`: every route is a scalar `FieldsSet` route, and the identifier
+  flags are §8.2's: WP-S2.05's catalogue marks `potential_def.name` and `structure_node.code` as identifiers since
+  cycle 31 (the orchestrator's ruling: names that must be unique are identifiers), so a change of either on more than
+  one record opens the card under rule 2, in the table and in the property grid.
 - **Pages in table mode** is a framework navigator beside the as-built Pages navigator; while it exists the project
   view's as-built Pages lines are not printed and the Pages pane draws it.
 - **Editing.** `table.input` replaces the whole buffer; Enter (`table.commit`) with unchanged text closes the edit and
@@ -726,7 +742,8 @@ these points:
   and rebuilds. The window draws it in the navigator's pane with a button per reading, Drop, Apply and Cancel;
   Ctrl+Enter applies it.
 - **Window.** With a navigator in table mode focused, the platform's copy event runs `table.copy` (the TSV goes to the
-  system clipboard) and its paste event runs `table.paste` with the clipboard's text.
+  system clipboard) and its paste event runs `table.paste` with the clipboard's text. TB7's kittests and the window
+  halves of TB2 to TB4 drive the table with keys and AccessKit actions only (`ew-ui/tests/table_widget.rs`).
 - **Fuzzing.** The fuzzer arms (random text into the TSV parser and into the pattern parser, no panic, the TSV round
   trip) are unit tests in `ew-viewmodel`, since `ci/dep-rules.toml` allows `ew-testkit` no edge to `ew-viewmodel`.
 - **Determinism.** `create.rs`'s `a_table_script_runs_twice_identically_and_its_record_replays` runs the TB2 flow
@@ -798,7 +815,7 @@ for a lead ruling.
 | TB5 | The policy: designations of 2 terminals edited at once open the card (rule 2); a 501-row fill on a synthetic project opens it (rule 1); a single-cell edit of a potential's name opens no card (one target); a clear of an enum is invalid | `ew-viewmodel` tests | §8.3 |
 | TB6 | Copy: the marked rows' TSV with header, byte-equal to an expected text for -X1032's 5 terminals; paste of that text back into the same rows changes nothing (the command is empty and commits nothing) | `ew-viewmodel` test | §8.6 |
 | TB7 | The table widget: the key column stays visible while scrolling right; the column chooser hides and orders columns; header click sorts; the AccessKit cell names of §8.1; keyboard-only flows of TB2 to TB4 without pointer events | `ew-ui` tests | §8.1 |
-| TB8 | Transcript, describe, the 6 words (297), 231 actions re-blessed; scripts twice byte-identical; replay; exact counts; golden unchanged; exactly two new packages with their exemptions, `cargo deny` and `cargo vet` green; targeted checks as NV12 | lane; tests | §8.8, §9, §4.1 rule 2 |
+| TB8 | Transcript, describe, the 6 words (297), 231 actions re-blessed; scripts twice byte-identical; replay; exact counts; golden unchanged; exactly three new packages with their exemptions (two before cycle 31's enumn ruling), `cargo deny` and `cargo vet` green; targeted checks as NV12 | lane; tests | §8.8, §9, §4.1 rule 2 |
 
 The workspace suite, the acceptance runner and the performance runs are not run by the lanes (testing policy, ID-512);
 the integrating session runs `cargo xtask ci` at the cycle delivery.

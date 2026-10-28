@@ -60,7 +60,10 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    binary know egui; only the renderers know wgpu.
 4. **Tables and trees** (2026-10-28; decision log ID-686, [WP-S2.06's specification](../plan/specs/WP-S2.06-navigators-and-table-mode.md)
    D9). Tables use **egui_table 0.11.0**, the release for egui 0.37 (the 0.10.0 of the context table needs egui 0.36,
-   as egui_tiles 0.17.1 did, ID-490); it adds `egui_table` and `vec1`, both `MIT OR Apache-2.0`, to the shipped graph.
+   as egui_tiles 0.17.1 did, ID-490); it adds `egui_table` and `vec1`, both `MIT OR Apache-2.0`, to the shipped graph,
+   and `enumn` (`MIT OR Apache-2.0`, a proc-macro without dependencies of its own) through egui's `serde` feature,
+   which egui_table turns on, and `accesskit/serde`: enumn accepted by the orchestrator, cycle 31, transitive via
+   egui/serde (three new packages; the feature adds `serde` edges to egui's crates and no other package).
    **egui_ltreeview is not adopted:** navigator trees are rows that `ew-ui` draws itself on egui's virtualised
    `ScrollArea::show_rows` with AccessKit tree roles, as the Pages navigator has done since cycle 23 (ID-556), so a tree
    crate would add a quarterly upgrade and a second selection model without adding a capability. Decision 1 reads
