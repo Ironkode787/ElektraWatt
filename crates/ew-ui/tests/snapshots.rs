@@ -264,6 +264,12 @@ fn part4_dialogs_toasts_menu_palette_and_preview_in_light_and_dark() {
         let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
         failures.extend(record(&format!("part4-dialog-toast-{theme}"), &image, true));
         let _ = h.state_mut().shell_mut().dispatch("ui.dismiss", &json!(null));
+        // The toast leaves on the wall clock, so it is dismissed before the shots that do not show it.
+        let shell = h.state_mut().shell_mut();
+        let serials: Vec<u64> = shell.notifications().visible().iter().map(|n| n.serial).collect();
+        for serial in serials {
+            shell.dismiss_toast(serial);
+        }
         h.run_ok();
         // The app menu with its File submenu.
         support::open_menu(&mut h, &["File"]);
@@ -285,12 +291,8 @@ fn part4_dialogs_toasts_menu_palette_and_preview_in_light_and_dark() {
         failures.extend(record(&format!("part4-palette-{theme}"), &image, true));
         h.key_press(egui::Key::Escape);
         h.run_ok();
-        // A card in the Preview tab and the grid's strip; the toast (it leaves on the wall clock) is dismissed first.
+        // A card in the Preview tab and the grid's strip.
         let shell = h.state_mut().shell_mut();
-        let serials: Vec<u64> = shell.notifications().visible().iter().map(|n| n.serial).collect();
-        for serial in serials {
-            shell.dismiss_toast(serial);
-        }
         for (action, params) in [
             ("select.set", json!({"refs": ["tag:-101F1", "tag:-102F1"]})),
             ("props.show", json!({"on": true})),
