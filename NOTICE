@@ -46,3 +46,29 @@ assets/fonts/NotoSansMath-Regular.ttf
   Retrieved: 2026-10-20
   SHA-256:   b127e84699212b6b2ef50aff58e0ebebeec04ffe6db1b9eb9e209c8c3d97b4aa
   Size:      657440 bytes
+
+Bundled icons (assets/icons/tabler/, WP-S2.17 D9)
+-------------------------------------------------
+
+Tabler Icons, version 3.50.0, licensed under the MIT License (LICENSES/MIT.txt). Only the outline SVG files the
+application uses are committed (96 files); `cargo xtask gen-icons` converts them into
+crates/ew-ui/src/icons/generated.rs.
+
+  Copyright: Copyright (c) 2020-2026 Paweł Kuna
+  Source:    https://registry.npmjs.org/@tabler/icons/-/icons-3.50.0.tgz (npm package @tabler/icons 3.50.0, files
+             package/icons/outline/<name>.svg; project https://github.com/tabler/tabler-icons)
+  Retrieved: 2026-10-28
+  SHA-256:   4c2eb678ed71cdcbf57a3e899c4e91f3445d680fbc1d57d27c7083a321c47303 (the package archive)
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+  documentation files (the "Software"), to deal in the Software without restriction, including without
+  limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+  Software, and to permit persons to whom the Software is furnished to do so, subject to the following
+  conditions: The above copyright notice and this permission notice shall be included in all copies or
+  substantial portions of the Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+  OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE
+  AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+  OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+The project's own glyphs (assets/icons/ew/) are part of ElektraWatt (GPL-3.0-or-later).

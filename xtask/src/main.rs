@@ -19,6 +19,7 @@ mod deps;
 mod docs_gen;
 mod features;
 mod governance;
+mod icons;
 mod licence;
 mod ordered;
 mod perf;
@@ -80,6 +81,9 @@ commands:
                        one page per command (crates/ew-commands/schemas/) and per rule pack
                        (crates/ew-checks/catalogue/rules.json); --check changes nothing and fails when a
                        committed page differs
+  gen-icons [--check]  the icon table of ew-ui (crates/ew-ui/src/icons/generated.rs) from the vendored Tabler
+                       Icons (assets/icons/tabler/) and the project's glyphs (assets/icons/ew/); --check changes
+                       nothing and fails when the committed table differs
   acceptance [--milestone] <report.md>
                        the acceptance runner of gate M1 over the golden project (WP-S6.01): writes the
                        Markdown report and a JUnit file (target/nextest/ci/junit.xml) and exits non-zero when an
@@ -216,6 +220,18 @@ fn main() -> ExitCode {
             Some(other) => {
                 eprint!(
                     "docs-gen: unknown argument `{other}`
+
+{USAGE}"
+                );
+                Ok(false)
+            }
+        },
+        "gen-icons" => match args.get(1).map(String::as_str) {
+            None => icons::run(&workspace_root(), false),
+            Some("--check") => icons::run(&workspace_root(), true),
+            Some(other) => {
+                eprint!(
+                    "gen-icons: unknown argument `{other}`
 
 {USAGE}"
                 );
@@ -448,6 +464,11 @@ fn check_docs_gen() -> Result<Violations> {
     docs_gen::violations(&workspace_root())
 }
 
+/// `gen-icons --check` as an in-process check: the generated icon table of ew-ui is current.
+fn check_gen_icons() -> Result<Violations> {
+    icons::violations(&workspace_root())
+}
+
 /// `acceptance [--milestone] <report.md>`: runs the `#[ignore]`d test `gate` of
 /// `crates/ew-api/tests/acceptance.rs` with nextest and its `ci` profile (which writes the JUnit file of doc 18
 /// §3.10 step 5). The test evaluates the M1 acceptance criteria over the golden project, writes the Markdown
@@ -649,7 +670,7 @@ fn ci() -> Result<bool> {
             &["test", "--doc", "--workspace", "--all-features", "--locked"],
         ),
     ];
-    let checks: [Check; 12] = [
+    let checks: [Check; 13] = [
         ("check-deps", check_deps),
         ("check-features", check_features),
         ("check-raw-read", check_raw_read),
@@ -662,6 +683,7 @@ fn ci() -> Result<bool> {
         ("check-anonymisation", check_anonymisation),
         ("check-governance-files", check_governance_files),
         ("docs-gen-check", check_docs_gen),
+        ("gen-icons-check", check_gen_icons),
     ];
 
     let mut summary: Vec<(&str, bool)> = Vec::new();

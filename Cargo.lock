@@ -5442,6 +5442,7 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "cargo_metadata",
+ "kurbo",
  "serde",
  "serde_json",
  "sha2",

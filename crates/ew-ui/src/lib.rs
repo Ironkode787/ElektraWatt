@@ -27,6 +27,7 @@ mod focus;
 pub mod fonts;
 pub mod gpu;
 pub mod headless;
+pub mod icons;
 // WP-S2.09 part 3
 mod history;
 // WP-S2.09 part 1: the Jobs pane, the toasts and the notifications log.

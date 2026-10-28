@@ -335,6 +335,16 @@ allowed = ["CC-BY-SA-4.0"]
 glob = "assets/fonts/**"
 allowed = ["OFL-1.1"]
 
+# L14: the vendored Tabler Icons outline SVGs (MIT, WP-S2.17 D9); REUSE.toml annotations, provenance in NOTICE.
+[[path]]
+glob = "assets/icons/tabler/**"
+allowed = ["MIT"]
+
+# L1: the project's own icon glyphs (WP-S2.17 D9), the application's licence; REUSE.toml annotations.
+[[path]]
+glob = "assets/icons/ew/**"
+allowed = ["GPL-3.0-or-later"]
+
 # ---------------------------------------------------------------------------------------------------------------
 # L9: documentation and the root prose files (CC-BY-4.0). LICENSE.md is L11 (below).
 [[path]]
@@ -503,6 +513,8 @@ third_party = [
   "CODE_OF_CONDUCT.md",
   "crates/ew-import-qet/src/qet_port/**",
   "assets/fonts/**",
+  "assets/icons/tabler/**",
+  "crates/ew-ui/src/icons/generated.rs",
   "crates/ew-schema/tests/fixtures/svg-exporters/**",
   "crates/ew-export/tests/fixtures/raster-exporters/**",
 ]
