@@ -66,4 +66,6 @@ mod text_popup;
 // WP-S2.17 part 1: the design tokens, themes and their mapping onto egui.
 pub mod theme;
 pub mod tool_view;
+// WP-S2.17 part 3 (DK6, FT-348): window memory.
+pub mod window_memory;
 mod wizard;

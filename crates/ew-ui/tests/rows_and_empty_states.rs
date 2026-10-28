@@ -368,3 +368,31 @@ fn cp5_the_empty_states_of_messages_find_history_and_the_navigators() {
     support::assert_named(&h);
     h.state_mut().shell_mut().shutdown();
 }
+
+/// DK6 (FT-348): a window's geometry recorded in the shell is written at the end of the window and read by the next
+/// start; a run that recorded none leaves no `[window]` table.
+#[test]
+fn dk6_the_window_geometry_survives_a_restart() {
+    use ew_ui::ew_viewmodel::window::WindowGeometry;
+    let tmp = Tmp::new();
+    let mut shell = ShellModel::new(Mode::Gui, tmp.config());
+    assert_eq!(shell.settings().window, None);
+    shell.shutdown();
+    let mut shell = ShellModel::new(Mode::Gui, tmp.config());
+    assert_eq!(shell.settings().window, None, "nothing recorded, nothing written");
+    let g = WindowGeometry {
+        x: 120.0,
+        y: 64.0,
+        width: 1440.0,
+        height: 900.0,
+        maximized: true,
+    };
+    shell.set_window(g);
+    shell.shutdown();
+    let shell = ShellModel::new(Mode::Gui, tmp.config());
+    assert_eq!(shell.settings().window, Some(g));
+    let builder = ew_ui::window_memory::restore(egui::ViewportBuilder::default(), shell.settings().window);
+    assert_eq!(builder.inner_size, Some(egui::vec2(1440.0, 900.0)));
+    assert_eq!(builder.position, Some(egui::pos2(120.0, 64.0)));
+    assert_eq!(builder.maximized, Some(true));
+}

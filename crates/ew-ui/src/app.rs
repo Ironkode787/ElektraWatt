@@ -510,6 +510,8 @@ impl App {
         // The switch rule (WP-S2.02 section 7.2): the setting is effective at once, a failure moves the canvas to the
         // CPU with one banner, and the status bar shows the result.
         self.canvas.update_backend(&mut self.shell);
+        // WP-S2.17 part 3 (DK6, FT-348): the window's geometry, written at the end of the window.
+        crate::window_memory::remember(&ctx, &mut self.shell);
         if ctx.input(|i| i.viewport().close_requested()) && !self.shell.should_quit() {
             ctx.send_viewport_cmd(ViewportCommand::CancelClose);
             // While a file dialog is open nothing the user does reaches the shell (see below): the window stays open.

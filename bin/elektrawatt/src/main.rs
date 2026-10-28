@@ -382,11 +382,16 @@ fn run_gui(initial: Option<PathBuf>, no_gpu: bool) -> i32 {
         shell.start_first_run_if_needed();
     }
     let flags = Flags { no_gpu };
-    let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default()
+    // WP-S2.17 part 3 (DK6, FT-348): the last size, position and maximised state, restored.
+    let viewport = ew_ui::window_memory::restore(
+        egui::ViewportBuilder::default()
             .with_title(strings::text("window-title-start"))
             .with_inner_size([1280.0, 800.0])
             .with_min_inner_size([640.0, 400.0]),
+        shell.settings().window,
+    );
+    let options = eframe::NativeOptions {
+        viewport,
         renderer: eframe::Renderer::Wgpu,
         wgpu_options: wgpu_configuration(flags),
         ..eframe::NativeOptions::default()

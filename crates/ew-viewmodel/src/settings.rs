@@ -79,6 +79,9 @@ pub struct Settings {
     pub properties_collapsed: Vec<String>,
     /// Whether the property grid shows the Advanced rows (`[properties] show_advanced`, WP-S2.17 D11).
     pub properties_show_advanced: bool,
+    /// The main window's last size, position and maximised state (`[window]`, WP-S2.17 part 3 item 9, FT-348); `None`
+    /// until a window has closed.
+    pub window: Option<crate::window::WindowGeometry>,
     /// Keys this version does not know, kept and written back.
     extra: toml::Table,
 }
@@ -100,6 +103,7 @@ impl Default for Settings {
             canvas_backend: CANVAS_BACKENDS[0].to_owned(),
             properties_collapsed: Vec::new(),
             properties_show_advanced: false,
+            window: None,
             extra: toml::Table::new(),
         }
     }
@@ -196,6 +200,12 @@ impl Settings {
         }
         properties_collapsed.sort();
         properties_collapsed.dedup();
+        // WP-S2.17 part 3 (FT-348): `[window]`. A table this version cannot read is dropped, not the whole file: the
+        // window then opens at its default size.
+        let window = match table.remove("window") {
+            Some(toml::Value::Table(w)) => crate::window::WindowGeometry::from_toml(&w),
+            _ => None,
+        };
         let mut settings = Settings {
             recent_projects: Vec::new(),
             ui_scale: if scale_index(ui_scale).is_some() {
@@ -215,6 +225,7 @@ impl Settings {
             canvas_backend,
             properties_collapsed,
             properties_show_advanced,
+            window,
             extra: table,
         };
         // The list is normalised on read: no duplicates, at most MAX_RECENT, first occurrence wins.
@@ -289,6 +300,15 @@ impl Settings {
                 props.insert("show_advanced".to_owned(), toml::Value::Boolean(true));
             }
             table.insert("properties".to_owned(), toml::Value::Table(props));
+        }
+        // Written only once a window has closed, so a settings file of the headless mode keeps its bytes.
+        match &self.window {
+            Some(w) => {
+                table.insert("window".to_owned(), toml::Value::Table(w.to_toml()));
+            }
+            None => {
+                table.remove("window");
+            }
         }
         // A table of plain values always serialises.
         toml::to_string(&table).unwrap_or_default()
@@ -614,5 +634,26 @@ mod tests {
         assert_eq!(s.ui_scale, 1.0);
         let s = Settings::parse("ui_scale = 2\n").unwrap();
         assert_eq!(s.ui_scale, 2.0);
+    }
+
+    /// DK6 (FT-348): `[window]` is written only once a window recorded it, read back equal, and a table this version
+    /// cannot read is dropped without making the file bad.
+    #[test]
+    fn dk6_the_window_table() {
+        let mut s = Settings::default();
+        assert!(!s.to_toml().contains("[window]"));
+        s.window = Some(crate::window::WindowGeometry {
+            x: -1200.0,
+            y: 40.0,
+            width: 1280.0,
+            height: 800.0,
+            maximized: true,
+        });
+        let text = s.to_toml();
+        assert!(text.contains("[window]"), "{text}");
+        assert_eq!(Settings::parse(&text).unwrap(), s);
+        let bad = Settings::parse("theme = \"dark\"\n[window]\nx = \"left\"\n").unwrap();
+        assert_eq!(bad.window, None);
+        assert_eq!(bad.theme, "dark");
     }
 }

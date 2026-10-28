@@ -913,6 +913,12 @@ impl ShellModel {
         &self.settings
     }
 
+    /// Records the main window's geometry (WP-S2.17 part 3, FT-348): kept in memory and written to `settings.toml` by
+    /// [`ShellModel::shutdown`], not on every move.
+    pub fn set_window(&mut self, geometry: crate::window::WindowGeometry) {
+        self.settings.window = Some(geometry);
+    }
+
     /// Whether a project is open.
     pub fn has_project(&self) -> bool {
         self.project.is_some()
@@ -1971,6 +1977,10 @@ impl ShellModel {
         }
         self.area = None;
         self.focus = None;
+        // FT-348: the window's geometry, recorded only by a real window, is written once at its end.
+        if self.mode == Mode::Gui && self.settings.window.is_some() {
+            self.save_settings();
+        }
     }
 
     fn save_settings(&mut self) {

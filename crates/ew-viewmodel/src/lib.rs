@@ -57,5 +57,6 @@ pub mod strings;
 pub mod tools;
 // WP-S2.09 part 3
 pub mod undo_history;
+pub mod window;
 pub mod wizard;
 mod wizard_data;
