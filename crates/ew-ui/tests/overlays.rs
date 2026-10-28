@@ -23,6 +23,7 @@ use ew_render2d::view::{PxRect, View};
 use ew_ui::app::App;
 use ew_ui::canvas_chips::ChipKind;
 use ew_ui::ew_viewmodel::canvas::HOVER_SLOP_PT;
+use ew_ui::ew_viewmodel::canvas::chip::CHIP_OFFSET;
 use ew_ui::ew_viewmodel::ew_api::output::ew_dl::ew_units::{Nm, Rect as SheetRect};
 use ew_ui::ew_viewmodel::highlight::SLOT_COLOURS;
 use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
@@ -526,35 +527,89 @@ fn ov4_the_link_preview_has_a_named_region() {
 }
 
 /// OV2, OV6, FT-508: the window reports the tool HUD's and the zoom control's frames over the canvas
-/// (`chrome_obstacles` holds both), and with the Place ghost near the bottom centre and the bottom right no canvas chip
-/// (the ghost's label, the statistics panel) stands on either.
+/// (`chrome_obstacles` holds both). The Place ghost is aimed so that its label's preferred spot (measured in free
+/// space mid-sheet) overlaps the top left corner of the HUD and then of the zoom control; with the frames as
+/// obstacles the label moves to a free candidate (not faded) and no canvas chip stands on either.
 #[test]
 fn ov2_the_chips_keep_off_the_hud_and_the_zoom_control() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "101");
     dispatch(&mut h, "place.pick", json!({"symbol": "ew.iec.mcb-1p@qet10"}));
     settle(&mut h);
+    let bounds = h
+        .get_all_by_role(egui::Role::Canvas)
+        .next()
+        .expect("the canvas node")
+        .accesskit_node()
+        .raw_bounds()
+        .expect("bounds");
+    let origin = egui::Pos2::new(bounds.x0 as f32, bounds.y0 as f32);
+    let (centre, pane, k) = {
+        let c = h.state().shell().canvas().unwrap();
+        (c.centre(), c.pane(), c.points_per_nm())
+    };
+    let to_screen = |p: (i64, i64)| {
+        origin
+            + egui::vec2(
+                ((p.0 - centre.0) as f64 * k + pane.0 / 2.0) as f32,
+                ((p.1 - centre.1) as f64 * k + pane.1 / 2.0) as f32,
+            )
+    };
+    let to_sheet = |s: egui::Pos2| {
+        (
+            centre.0 + (((s.x - origin.x) as f64 - pane.0 / 2.0) / k) as i64,
+            centre.1 + (((s.y - origin.y) as f64 - pane.1 / 2.0) / k) as i64,
+        )
+    };
+    let label = |h: &mut Harness<'_, App>| {
+        h.state_mut()
+            .canvas_host()
+            .canvas_chips(0)
+            .iter()
+            .find(|c| c.kind == ChipKind::Label)
+            .map(|c| c.rect)
+            .expect("the ghost's label")
+    };
+    // The label's preferred spot relative to the ghost, in free space.
     let (w, hh) = h.state().shell().canvas().unwrap().sheet();
-    for p in [(w / 2, hh * 19 / 20), (w * 19 / 20, hh * 19 / 20)] {
-        dispatch(&mut h, "canvas.pointer", at(p));
+    let free = (w / 3, hh / 3);
+    dispatch(&mut h, "canvas.pointer", at(free));
+    settle(&mut h);
+    let free_label = label(&mut h);
+    let offset = free_label.center() - to_screen(free);
+    let size = free_label.size();
+    let (_, hud, _) = h.state().command_surface_rects();
+    let hud = hud.expect("the HUD over the page view");
+    let chrome = h.state_mut().canvas_host().chrome_obstacles(0).to_vec();
+    assert_eq!(chrome.len(), 2, "the HUD and the zoom control: {chrome:?}");
+    assert_eq!(chrome[0], hud);
+    let zoom = chrome[1];
+    assert!(!zoom.intersects(hud), "two frames: {zoom:?} {hud:?}");
+    for (name, frame) in [("HUD", hud), ("zoom control", zoom)] {
+        // The label's anchor by the frame's top left corner (6 points in, so above left still fits on the canvas):
+        // the preferred spot (above right) and the next (below right) overlap the frame, above left is free.
+        let anchor = egui::pos2(frame.left() - CHIP_OFFSET + 6.0, frame.top() + 12.0);
+        let spot = anchor + egui::vec2(CHIP_OFFSET + size.x / 2.0, -CHIP_OFFSET - size.y / 2.0);
+        let target = to_sheet(spot - offset);
+        dispatch(&mut h, "canvas.pointer", at(target));
         settle(&mut h);
         settle(&mut h);
-        let (_, hud, _) = h.state().command_surface_rects();
-        let hud = hud.expect("the HUD over the page view");
-        let chrome = h.state_mut().canvas_host().chrome_obstacles(0).to_vec();
-        assert_eq!(chrome.len(), 2, "the HUD and the zoom control: {chrome:?}");
-        assert_eq!(chrome[0], hud);
-        let zoom = chrome[1];
-        assert!(!zoom.intersects(hud), "two frames: {zoom:?} {hud:?}");
-        let chips = h.state_mut().canvas_host().canvas_chips(0).to_vec();
+        // Without the obstacles the label would stand on the frame.
+        let preferred = egui::Rect::from_center_size(to_screen(target) + offset, label(&mut h).size());
         assert!(
-            chips.iter().any(|c| c.kind == ChipKind::Label),
-            "the ghost's label at {p:?}"
+            preferred.intersects(frame),
+            "{preferred:?} would stand on the {name} {frame:?}"
         );
+        let chips = h.state_mut().canvas_host().canvas_chips(0).to_vec();
         for c in &chips {
             assert!(
+                !c.faded,
+                "{:?} placed on a free candidate (aimed at the {name})",
+                c.kind
+            );
+            assert!(
                 !c.rect.intersects(hud) && !c.rect.intersects(zoom),
-                "{:?} {:?} off the HUD {hud:?} and the zoom control {zoom:?} (ghost at {p:?})",
+                "{:?} {:?} off the HUD {hud:?} and the zoom control {zoom:?} (aimed at the {name})",
                 c.kind,
                 c.rect
             );
