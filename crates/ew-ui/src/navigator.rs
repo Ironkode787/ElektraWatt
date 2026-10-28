@@ -202,6 +202,21 @@ impl NavigatorPane {
         if pages {
             reorder_card(ui, shell, events);
         }
+        // WP-S2.09 part 2: the message panel's header line and quick-fix card above the rows, its detail block and
+        // footer below them.
+        if self.kind == NavKind::Messages {
+            crate::messages::header(ui, shell, events);
+            // At most half of a short pane, scrolled, so the rows keep their share and nothing spills below the pane.
+            let max = (ui.available_height() / 2.0).max(1.0);
+            egui::Panel::bottom(ui.scope_id().with("messages-detail"))
+                .resizable(false)
+                .max_size(max)
+                .show(ui, |ui| {
+                    egui::ScrollArea::vertical()
+                        .id_salt("messages-detail-scroll")
+                        .show(ui, |ui| crate::messages::detail_and_footer(ui, shell, events));
+                });
+        }
         let visible = self.visible_rows(shell);
         let cursor = shell.nav_cursor(self.kind);
         // The list itself: one focusable node with the role `Tree`.
@@ -307,10 +322,11 @@ impl NavigatorPane {
                 events.push(Event::Action("navigator.toggle", json!({"kind": kind, "key": k})));
             }
         };
-        let card = shell
-            .properties()
-            .card()
-            .is_some_and(|c| matches!(c.origin, CardOrigin::Reorder { .. }));
+        let card = shell.properties().card().is_some_and(|c| match c.origin {
+            CardOrigin::Reorder { .. } => pages,
+            CardOrigin::QuickFix { .. } => self.kind == NavKind::Messages,
+            _ => false,
+        });
         if pressed(Modifiers::SHIFT, Key::ArrowDown) {
             events.push(Event::Action(
                 "navigator.row",
@@ -440,10 +456,18 @@ fn row_ui(
                 Some(false) => ui.add(egui::Button::new("+").frame(false).small()).clicked(),
                 None => false,
             };
+            // WP-S2.09 part 2: a finding row's severity icon; a pending one is muted.
+            if let Some(look) = row.finding {
+                crate::messages::severity_icon(ui, look);
+            }
             let rich = if row.current {
                 egui::RichText::new(&row.text).strong()
             } else {
                 egui::RichText::new(&row.text)
+            };
+            let rich = match row.finding {
+                Some(look) if look.pending => rich.color(ui.visuals().weak_text_color()),
+                _ => rich,
             };
             let selected = row.marked || is_cursor;
             let button = egui::Button::selectable(selected, rich)

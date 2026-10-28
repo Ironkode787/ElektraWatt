@@ -32,6 +32,8 @@ mod jobs;
 pub mod keys;
 mod latest;
 mod menu;
+// WP-S2.09 part 2: the message panel's header, card, detail block and icons.
+mod messages;
 pub mod navigator;
 mod notifications;
 pub mod page_view;
