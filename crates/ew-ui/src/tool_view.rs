@@ -475,8 +475,9 @@ pub fn layout_chips(
 
 /// Paints the semantic ghost of the kept preview (§7.3): its command and status, then one chip per changed tag
 /// and cross-reference text (`before → after`), each by the changed tag's position on the page from the page
-/// tables (above the top-left corner of the body of the device's first representation on the page, or of the
-/// representation whose cross-reference changes; a device the page does not draw yet stands above the Place tool's
+/// tables (above the printed tag text of the device's first representation on the page, `TableRep::tag_at`, FT-502,
+/// else above the top-left corner of its body; above the body of the representation whose cross-reference changes;
+/// a device the page does not draw yet stands above the Place tool's
 /// floating insertion point), never over the statistics panel `avoid` (FT-389; the layout of
 /// [`layout_chips`]). `origin` is the pane's top-left corner in points, `ppp` pixels per point, `transform` maps
 /// sheet nm to the pane's pixels. Returns the chips' texts and frames (the window keeps them for tests).
@@ -534,7 +535,8 @@ pub fn paint_preview(
             .reps
             .iter()
             .find(|r| r.device == Some(id))
-            .map(|r| r.body)
+            // FT-502: above the printed tag text where the page tables give it, else above the body.
+            .map(|r| r.tag_at.map_or(r.body, |t| [t.0, t.1, t.0, t.1]))
             .or(floating)
             .map(above);
         texts.push((strings::format("preview-chip-change", &[&c.before, &c.after]), at));

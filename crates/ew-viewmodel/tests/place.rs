@@ -912,3 +912,73 @@ fn a_pending_keyboard_move_is_cancelled_by_delete_and_undo() {
     assert_eq!(ghost(&s), Value::Null);
     assert!(s.tool_overlay().is_empty());
 }
+
+/// A numbering scheme whose tags print the anchor cell's column (`-101F1.8`), set on a copy of Golden A, so that a
+/// move of an existing device changes its tag (FT-502: Golden A's own page-based tags change neither with a move on
+/// the page nor with a structure box, whose location the displayed tag omits).
+fn column_numbering(s: &mut ShellModel) {
+    let numbering = json!({"default": "page-based", "schemes": [
+        {"key": "page-based", "format": "{page}{letter}{counter}.{column}", "rules": []}]});
+    done(
+        s,
+        "command.run",
+        json!({"cmd": "project.settings.set", "params": {"member": "numbering", "value": numbering}}),
+    );
+}
+
+/// FT-502, the end-to-end flow of an existing device: with a numbering scheme that prints the column, the keyboard
+/// move of -101F1 to the right keeps a preview that names its tag change, and the page tables give the device's
+/// printed tag position (`TableRep::tag_at`), by its body.
+#[test]
+fn ft502_moving_an_existing_device_changes_its_tag_in_the_preview() {
+    let tmp = Tmp::new("ft502");
+    let mut s = shell(&tmp, "101");
+    column_numbering(&mut s);
+    let before = rep_with(&s, "ew.iec.mcb-1pn@qet10");
+    let centre = (
+        (before.body[0] + before.body[2]) / 2,
+        (before.body[1] + before.body[3]) / 2,
+    );
+    let c = sheet(&s, centre);
+    click(&mut s, c, json!({}));
+    done(&mut s, "cursor.set", json!({}));
+    done(&mut s, "tool.move", json!({}));
+    for _ in 0..12 {
+        done(&mut s, "cursor.right", json!({}));
+    }
+    done(&mut s, "canvas.dwell", json!({"ms": 80}));
+    assert_eq!(state(&s)["canvas"]["preview"]["command"], "rep.move");
+    let p = s.preview_state().expect("a kept preview");
+    let changes: Vec<(String, String)> = p
+        .derived
+        .tags
+        .iter()
+        .map(|c| (c.before.clone(), c.after.clone()))
+        .collect();
+    assert_eq!(changes.len(), 1, "{changes:?}");
+    assert!(
+        changes[0].0.starts_with("-101F1.") && changes[0].1.starts_with("-101F1."),
+        "{changes:?}"
+    );
+    assert_ne!(changes[0].0, changes[0].1);
+    assert_eq!(p.derived.tags[0].key.as_uuid(), before.device.unwrap());
+    // The device prints its tag: the tables give where, by the body.
+    let at = before.tag_at.expect("-101F1 prints its tag");
+    let (w, h) = (before.body[2] - before.body[0], before.body[3] - before.body[1]);
+    assert!(
+        (before.body[0] - w..=before.body[2] + w).contains(&at.0)
+            && (before.body[1] - h..=before.body[3] + h).contains(&at.1),
+        "{at:?} by {:?}",
+        before.body
+    );
+    // An interruption point prints no tag.
+    assert!(
+        tables(&s)
+            .reps
+            .iter()
+            .filter(|r| r.ip.is_some())
+            .all(|r| r.tag_at.is_none())
+    );
+    done(&mut s, "ui.dismiss", json!({}));
+    s.shutdown();
+}

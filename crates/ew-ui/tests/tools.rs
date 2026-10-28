@@ -1121,3 +1121,69 @@ fn r30_the_image_hint_follows_a_threaded_file_answer_without_a_pointer_move() {
     assert!(h.query_all_by_label_contains("first corner").next().is_some());
     h.state_mut().shell_mut().shutdown();
 }
+
+/// FT-502: the chip of a tag change on an existing device stands above its printed tag text (`TableRep::tag_at`),
+/// not the body's corner. The flow: on a copy of Golden A with a numbering scheme that prints the column (Golden A's
+/// own tags change with no move on a page), -101F1 is selected, moved to the right with the keyboard and rested on.
+#[test]
+fn the_chip_of_an_existing_devices_tag_change_stands_above_its_printed_tag() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "101");
+    let numbering = json!({"default": "page-based", "schemes": [
+        {"key": "page-based", "format": "{page}{letter}{counter}.{column}", "rules": []}]});
+    dispatch(
+        &mut h,
+        "command.run",
+        json!({"cmd": "project.settings.set", "params": {"member": "numbering", "value": numbering}}),
+    );
+    settle(&mut h);
+    let rep = h
+        .state()
+        .shell()
+        .canvas()
+        .unwrap()
+        .page()
+        .tables
+        .reps
+        .iter()
+        .find(|r| r.symbol_key == "ew.iec.mcb-1pn@qet10")
+        .cloned()
+        .expect("-101F1");
+    let tag_at = rep.tag_at.expect("-101F1 prints its tag");
+    let snap = h.state().shell().canvas().unwrap().page().snapper.clone();
+    let centre = snap.page_to_sheet(((rep.body[0] + rep.body[2]) / 2, (rep.body[1] + rep.body[3]) / 2));
+    dispatch(
+        &mut h,
+        "cursor.set",
+        json!({"x_mm": centre.0 as f64 / 1e6, "y_mm": centre.1 as f64 / 1e6}),
+    );
+    dispatch(&mut h, "canvas.activate", json!({}));
+    dispatch(&mut h, "cursor.set", json!({}));
+    dispatch(&mut h, "tool.move", json!({}));
+    for _ in 0..12 {
+        dispatch(&mut h, "cursor.right", json!({}));
+    }
+    dispatch(&mut h, "canvas.dwell", json!({"ms": 80}));
+    settle(&mut h);
+    let (chips, _) = h.state().preview_chips();
+    assert!(chips.len() >= 2, "{chips:?}");
+    assert!(chips[0].0.contains("rep.move"), "{chips:?}");
+    let (text, frame) = &chips[1];
+    assert!(text.contains("-101F1."), "{chips:?}");
+    let anchor = screen_of(&h, snap.page_to_sheet(tag_at));
+    assert!(
+        (frame.left() - (anchor.x - 3.0)).abs() < 1.0,
+        "{frame:?} by {anchor:?}"
+    );
+    assert!(
+        (frame.bottom() - (anchor.y - 1.0)).abs() < 1.0,
+        "{frame:?} above {anchor:?}"
+    );
+    // Not the body's corner, where FT-389 put it.
+    let corner = screen_of(&h, snap.page_to_sheet((rep.body[0], rep.body[1])));
+    assert!(
+        (frame.left() - (corner.x - 3.0)).abs() > 1.0 || (frame.bottom() - (corner.y - 1.0)).abs() > 1.0,
+        "{frame:?} is at the body's corner {corner:?}"
+    );
+    h.state_mut().shell_mut().shutdown();
+}

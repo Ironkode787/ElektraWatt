@@ -468,6 +468,7 @@ mod tests {
             rep_type: "multi_line".into(),
             pos: (0, 5 * G),
             body: [-2 * G, 4 * G, 2 * G, 6 * G],
+            tag_at: None,
             ip: None,
             black_box: None,
         });

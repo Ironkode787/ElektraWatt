@@ -1056,6 +1056,13 @@ pub struct TableRep {
     pub pos: (i64, i64),
     /// The symbol's body under the orientation, translated to the insertion point, `[x0, y0, x1, y1]`.
     pub body: [i64; 4],
+    /// Where the printed tag text stands (FT-502): the anchor of the symbol's tag slot where the scene prints it
+    /// (visible by the representation's override, else its arrangement, else the slot's default; at the override's
+    /// position or the slot's, under the orientation, translated to the insertion point), raised by the em height
+    /// of the slot's text style, so that it is at or above the top of the text whatever its vertical alignment (for
+    /// text that reads horizontally); `None` for a representation that prints no tag (no device, an interruption
+    /// point, no visible tag slot). A preview chip stands above it.
+    pub tag_at: Option<(i64, i64)>,
     /// The interruption point the representation draws.
     pub ip: Option<TableIp>,
     /// The black box's geometry, absolute.
@@ -1271,6 +1278,29 @@ fn page_rect(q: &Q, page: PageRef) -> Rect {
 }
 
 /// The body of a shape under orientation `o`, translated to `pos`.
+/// The position in the symbol frame of the tag text `rep` prints with `def` (FT-502), by the scene's rules
+/// (`ew_scene::page`'s labels): the first tag slot, visible by the representation's override, else by its named
+/// arrangement, else by the slot's default; the override's position, else the slot's. With it the em height (nm)
+/// of the slot's text style.
+fn tag_anchor(rep: &Representation, def: &SymbolDef) -> Option<(Pt2, i64)> {
+    let (i, slot) = def
+        .text_slots
+        .iter()
+        .enumerate()
+        .find(|(_, s)| matches!(s.kind, ew_derive::ew_schema::SlotKind::Tag))?;
+    let index = u16::try_from(i).ok()?;
+    let ov = rep.text_slots.iter().find(|o| o.slot == index);
+    let visible = ov.and_then(|o| o.visible).unwrap_or_else(|| {
+        rep.arrangement
+            .as_ref()
+            .and_then(|name| def.arrangements.iter().find(|a| a.name == *name))
+            .map_or(slot.visible, |a| a.slots.contains(&index))
+    });
+    let (style, _) = ew_scene::symbol::slot_style_key(slot);
+    let em = ew_text::builtin().resolve(style).map_or(0, |t| t.size.0.max(0));
+    visible.then(|| (ov.and_then(|o| o.pos).unwrap_or(slot.pos), em))
+}
+
 fn placed_body(body: [i64; 4], o: u8, pos: (i64, i64)) -> [i64; 4] {
     let a = orient_point(o, (body[0], body[1]));
     let b = orient_point(o, (body[2], body[3]));
@@ -1361,6 +1391,20 @@ impl Session {
                         .collect(),
                 }
             });
+            let tag_at = (first.as_ref().is_some_and(|f| f.device.is_some() && ip.is_none()))
+                .then(|| {
+                    q.symbols()
+                        .get(rep.symbol)
+                        .and_then(|s| tag_anchor(&rep, &s.item))
+                })
+                .flatten()
+                .map(|(p, em)| {
+                    let r = orient_point(o, pt(p));
+                    (
+                        r.0.saturating_add(pos.0),
+                        r.1.saturating_add(pos.1).saturating_sub(em),
+                    )
+                });
             reps.push(TableRep {
                 id: rid.as_uuid(),
                 functions: rep.functions.iter().map(|f| f.as_uuid()).collect(),
@@ -1373,6 +1417,7 @@ impl Session {
                 body: shape
                     .as_ref()
                     .map_or([pos.0, pos.1, pos.0, pos.1], |s| placed_body(s.body, o, pos)),
+                tag_at,
                 ip,
                 black_box,
             });
