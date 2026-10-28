@@ -340,10 +340,16 @@ impl NavigatorPane {
         }
         // The cursor is scrolled into view when it moved to a row outside the rows on show (the first and last ones may
         // be cut).
-        // K32: the rows on show end where this frame's list ends, not where last frame's did (a list that just got
-        // shorter no longer shows the rows below its new foot).
+        // K32: in the Messages pane the rows on show end where this frame's list ends, not where last frame's did (the
+        // detail block that opens with the cursor shortens the list). The other navigators keep the as-built rule: it
+        // would also scroll the Pages list to the current page on the first frames, a change of the main window's
+        // images left to its own decision.
         let fits = (list_rect.height().max(0.0) / row_height(ui.ctx())).floor() as usize;
-        let shown_end = self.view.end.min(self.view.start + fits);
+        let shown_end = if self.kind == NavKind::Messages {
+            self.view.end.min(self.view.start + fits)
+        } else {
+            self.view.end
+        };
         let inside = |i: usize| self.view.start < i && i + 1 < shown_end;
         // W31-1: a list that got shorter (the Messages detail block opened below it) scrolls its cursor back into view.
         let shrunk = list_rect.height() + 0.5 < self.list_height;
