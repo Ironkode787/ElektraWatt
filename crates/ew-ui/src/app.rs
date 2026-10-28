@@ -993,6 +993,9 @@ impl App {
         // The menu the dialog was opened from is closed in the frame that paints the answer.
         egui::Popup::close_all(ctx);
         ctx.request_repaint();
+        // A native dialog may still be closing while that frame paints (the window not yet enabled again); a second
+        // frame shortly after shows the answer's state (the tool's hint) without waiting for a pointer move (R30 F3).
+        ctx.request_repaint_after(Duration::from_millis(100));
     }
 
     /// Open PDF (WP-S2.09 §6.4): the written file in the system's viewer; a banner when it could not be opened.

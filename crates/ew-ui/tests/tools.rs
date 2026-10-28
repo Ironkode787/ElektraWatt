@@ -1008,3 +1008,108 @@ fn the_chip_layout_keeps_out_of_the_panel_and_off_each_other() {
     assert_eq!(frames[0].left_top(), Pos2::new(9.0, 9.0));
     assert!(frames[1].top() > frames[0].bottom() && frames[2].top() > frames[1].bottom());
 }
+
+/// R30 F3 in the window: after Insert ▸ Image…'s file dialog answers, the status hint is the armed tool's at once,
+/// without a pointer event over the canvas.
+#[test]
+fn r30_the_image_hint_follows_the_file_answer_without_a_pointer_move() {
+    let tmp = Tmp::new();
+    let mut png = [0x89u8, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a].to_vec();
+    png.extend_from_slice(&13u32.to_be_bytes());
+    png.extend_from_slice(b"IHDR");
+    png.extend_from_slice(&8u32.to_be_bytes());
+    png.extend_from_slice(&2u32.to_be_bytes());
+    png.extend_from_slice(&[8, 6, 0, 0, 0]);
+    let file = tmp.0.join("pick.png");
+    std::fs::write(&file, &png).unwrap();
+    let scripted = Scripted::default();
+    let dir = tmp.golden("g.ew");
+    let mut h = harness(&tmp, scripted.clone(), Some(dir));
+    settle(&mut h);
+    wait_for_page(&mut h);
+    settle(&mut h);
+    scripted
+        .answers
+        .borrow_mut()
+        .push_back(ew_ui::app::Pick::Path(file));
+    dispatch(&mut h, "page.goto", json!({"folio": "101"}));
+    settle(&mut h);
+    wait_for_page(&mut h);
+    dispatch(&mut h, "tool.image", json!({}));
+    h.run_ok();
+    let shell = h.state().shell();
+    assert_eq!(shell.tool().state(), "armed");
+    let fields = shell.status_fields(false);
+    assert!(
+        !fields.iter().any(|f| f.contains("Choose an image asset")),
+        "{fields:?}"
+    );
+    assert!(fields.iter().any(|f| f.contains("first corner")), "{fields:?}");
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// A platform whose Open image dialog answers `path` from its own thread, as the window's native dialog does (FT-467).
+struct ThreadedImage(std::path::PathBuf);
+
+impl ew_ui::app::Platform for ThreadedImage {
+    fn pick(&mut self, _: ew_ui::ew_viewmodel::shell::Prompt) -> ew_ui::app::Pick {
+        panic!("a threaded platform is asked through start_pick");
+    }
+
+    fn start_pick(
+        &mut self,
+        _: ew_ui::ew_viewmodel::shell::Prompt,
+        ctx: &egui::Context,
+    ) -> ew_ui::app::PickReply {
+        let path = self.0.clone();
+        ew_ui::app::PickReply::Later(
+            ew_ui::app::spawn_pick(ctx, move || ew_ui::app::Pick::Path(path)).unwrap(),
+        )
+    }
+}
+
+/// R30 F3 through the dialog's thread: the frames that follow the answer show the armed hint in the status bar
+/// without any pointer event.
+#[test]
+fn r30_the_image_hint_follows_a_threaded_file_answer_without_a_pointer_move() {
+    let tmp = Tmp::new();
+    let mut png = [0x89u8, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a].to_vec();
+    png.extend_from_slice(&13u32.to_be_bytes());
+    png.extend_from_slice(b"IHDR");
+    png.extend_from_slice(&8u32.to_be_bytes());
+    png.extend_from_slice(&2u32.to_be_bytes());
+    png.extend_from_slice(&[8, 6, 0, 0, 0]);
+    let file = tmp.0.join("pick.png");
+    std::fs::write(&file, &png).unwrap();
+    let dir = tmp.golden("g.ew");
+    let shell =
+        ew_ui::ew_viewmodel::shell::ShellModel::new(ew_ui::ew_viewmodel::shell::Mode::Gui, tmp.config());
+    let app = App::new(shell, Box::new(ThreadedImage(file)), Some(dir));
+    let mut h = Harness::builder()
+        .with_size(egui::Vec2::new(1000.0, 700.0))
+        .with_context_setup(ew_ui::app::setup)
+        .build_ui_state(|ui, app: &mut App| app.ui(ui), app);
+    settle(&mut h);
+    wait_for_page(&mut h);
+    dispatch(&mut h, "page.goto", json!({"folio": "101"}));
+    settle(&mut h);
+    wait_for_page(&mut h);
+    dispatch(&mut h, "tool.image", json!({}));
+    // The dialog's thread answers at once; a bounded number of frames waits for it (no wall clock in tests).
+    for _ in 0..1000 {
+        if h.state().shell().tool().state() == "armed" {
+            break;
+        }
+        std::thread::yield_now();
+        h.step();
+    }
+    h.step();
+    assert_eq!(h.state().shell().tool().state(), "armed");
+    assert!(
+        h.query_all_by_label_contains("Choose an image asset")
+            .next()
+            .is_none()
+    );
+    assert!(h.query_all_by_label_contains("first corner").next().is_some());
+    h.state_mut().shell_mut().shutdown();
+}
