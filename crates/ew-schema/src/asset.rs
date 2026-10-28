@@ -156,8 +156,9 @@ pub enum SvgHazard {
     /// an ancestor's, a class whose rule names one, or any element when a rule with another selector names one), a
     /// style sheet with more selector groups than [`MAX_SVG_CSS_RULES`] or more cloned declarations than
     /// [`MAX_SVG_CSS_DECLARATIONS`] (upper bounds counted without parsing, so no string, comment or at-rule hides
-    /// them), a long run of close-path commands, marker applications beyond [`MAX_SVG_MARKER_WORK`] (FT-470) or
-    /// style matching and application beyond [`MAX_SVG_CSS_WORK`] (FT-471).
+    /// them), a long run of close-path commands, path segments beyond [`MAX_SVG_PATH_SEGMENTS`] or an arc of more
+    /// than [`MAX_SVG_ARC_PIECES`] pieces, marker applications beyond [`MAX_SVG_MARKER_WORK`] (FT-470) or style
+    /// matching and application beyond [`MAX_SVG_CSS_WORK`] (FT-471).
     TooComplex,
     /// A number beyond [`MAX_SVG_NUMBER`] in an attribute or a style sheet.
     HugeNumber,
@@ -523,6 +524,20 @@ pub const MAX_SVG_MARKER_WORK: u64 = 200_000;
 /// seen (Inkscape, a 2,791-element map whose commented sheet is not plain) holds a bound of 430,667,782, so the limit
 /// 2^34 (17,179,869,184) has a margin of about 40 (`asset/work/tests.rs` asserts the corpus bounds).
 pub const MAX_SVG_CSS_WORK: u64 = 1 << 34;
+/// The most path segments an SVG asset may convert to (FT-470 follow-up): over every shape conversion (the
+/// document's and every reference's), the segments of the path usvg makes of it, an arc's cubic pieces included
+/// (kurbo cuts an arc whose radius is scaled up over a long chord, or a radius in `em` from nested font sizes, into
+/// thousands to millions of pieces; the scan counts a radius in `em`, `ex` or `%` as `f32::MAX`, so one circle,
+/// ellipse or rounded rectangle with such a radius is over the limit). 2^22 (4,194,304): the largest real exporter
+/// file seen (Illustrator, a 2,552-element map) holds a bound of 33,896, a margin of over 120 (`asset/work/tests.rs`
+/// asserts the corpus bounds).
+pub const MAX_SVG_PATH_SEGMENTS: u64 = 1 << 22;
+/// The most cubic pieces one elliptical arc of path data may make (FT-470 follow-up): svgtypes 0.16.1 hands an arc's
+/// pieces out of a buffer it drains from the front (`Vec::remove(0)`), so an arc of `n` pieces costs about `n²/2`
+/// moves. kurbo makes at most 55 (the scan's bound) of an arc whose radius is at most [`MAX_SVG_NUMBER`]; more only
+/// come from radii scaled up over a chord much longer than the smaller radius, which no drawing needs. A path with
+/// such an arc counts as unbounded.
+pub const MAX_SVG_ARC_PIECES: u64 = 64;
 
 /// The first reason to refuse an SVG file before any parser or renderer reads it, or `None` (FT-383, doc 05 §13.3,
 /// doc 18 §11 TM-18). Sniffing is not sanitising: the sniffer reads only the root element, so this scanner reads the
@@ -566,9 +581,12 @@ pub const MAX_SVG_CSS_WORK: u64 = 1 << 34;
 /// as a plain value keeps the sheet exact. Real exporters' sheets are plain (Illustrator, Inkscape, CorelDRAW,
 /// Visio) or carry no such reference (`@keyframes`, comments).
 ///
-/// Two work bounds follow, computed from the same pass (arithmetic in `asset/work.rs`) and refused as
+/// Three work bounds follow, computed from the same pass (arithmetic in `asset/work.rs`) and refused as
 /// [`SvgHazard::TooComplex`]:
 ///
+/// - *path segments* (FT-470 follow-up): over every shape conversion, marker or not, the segments of the path usvg
+///   makes of it; beyond [`MAX_SVG_PATH_SEGMENTS`], or any arc of path data beyond [`MAX_SVG_ARC_PIECES`] pieces
+///   (svgtypes drains them quadratically);
 /// - *marker applications* (FT-470): over every shape conversion (the document's and every reference's) that can
 ///   carry a marker property (its own, an ancestor's, a class rule's, or any when a `use` converts it again), its
 ///   path segments (one per command, the move-to svgtypes inserts after a close-path, and every cubic piece kurbo
@@ -600,6 +618,8 @@ pub fn svg_hazard(bytes: &[u8]) -> Option<SvgHazard> {
 struct Work {
     /// Elements converted, references expanded ([`MAX_SVG_EXPANSION`]).
     expansion: u64,
+    /// Path segments of every shape conversion ([`MAX_SVG_PATH_SEGMENTS`], FT-470 follow-up).
+    segments: u64,
     /// Marker content elements converted ([`MAX_SVG_MARKER_WORK`], FT-470).
     markers: u64,
     /// Style match and application steps ([`MAX_SVG_CSS_WORK`], FT-471).
@@ -1490,6 +1510,13 @@ impl Scan {
             ..Work::default()
         };
         if work.expansion > MAX_SVG_EXPANSION {
+            return Err(SvgHazard::TooComplex);
+        }
+        // The path segments usvg makes of every shape conversion, with or without markers: an arc of a tiny radius
+        // over a long chord is thousands of cubic pieces, and a radius in `em` can be as large as f32 allows.
+        let segments: Vec<u64> = self.records.iter().map(|record| record.segments).collect();
+        work.segments = instances(&segments);
+        if work.segments > MAX_SVG_PATH_SEGMENTS {
             return Err(SvgHazard::TooComplex);
         }
         // FT-470: marker applications. The largest marker content (its expansion cost) each property names

@@ -23,7 +23,7 @@
 
 use std::collections::BTreeMap;
 
-use super::MAX_SVG_DEPTH;
+use super::{MAX_SVG_ARC_PIECES, MAX_SVG_DEPTH};
 
 /// The marker targets an element's declarations name, per property: `marker-start`, `marker-mid`, `marker-end`.
 pub(super) type MarkerTargets = [Vec<String>; 3];
@@ -163,18 +163,15 @@ pub(super) fn digit_runs(text: &str) -> u64 {
 }
 
 /// The bound of [`path_segments`] for path data the cursor could not follow: every number a segment, every `z` a
-/// segment, and, when an arc may be among them, a fifth of the numbers arcs of the largest radius any admitted path
-/// can produce (radii and coordinates are at most [`super::MAX_SVG_NUMBER`] in magnitude, a current point is a sum
-/// of at most 4 Mi of them, and a radius above 1e-5 scales by at most the half chord over it: below 1e31).
+/// segment; when an arc may be among them, unbounded (its pieces cannot be shown to stay within
+/// [`MAX_SVG_ARC_PIECES`]).
 fn rough_segments(rest: &str, arcs: bool) -> u64 {
+    if arcs {
+        return u64::MAX;
+    }
     let numbers = digit_runs(rest);
     let closes = rest.bytes().filter(|c| matches!(c, b'z' | b'Z')).count() as u64;
-    let base = numbers.saturating_add(closes).saturating_add(1);
-    if arcs {
-        base.saturating_add((numbers / 5 + 1).saturating_mul(radius_pieces(1.0e31)))
-    } else {
-        base
-    }
+    numbers.saturating_add(closes).saturating_add(1)
 }
 
 /// An upper bound of the segments usvg 0.48.1 makes of the path data `d` (in its original case): svgtypes'
@@ -184,7 +181,8 @@ fn rough_segments(rest: &str, arcs: bool) -> u64 {
 /// arithmetic (relative coordinates add to the current point in `f64`); where svgtypes would stop at an error, the
 /// rest is bounded by [`rough_segments`] instead, so a difference between the two readers only makes the bound larger.
 /// After an arc the current point is kurbo's last piece end, not the arc's end point: the bound tracks a slack of a
-/// millionth of the arc's scale and coordinates, which widens the chord of a later arc.
+/// millionth of the arc's scale and coordinates, which widens the chord of a later arc. An arc of more than
+/// [`MAX_SVG_ARC_PIECES`] pieces makes the path unbounded (`u64::MAX`): svgtypes' buffer drain is quadratic in them.
 pub(super) fn path_segments(d: &str) -> u64 {
     let mut s = PathCursor {
         b: d.as_bytes(),
@@ -275,6 +273,10 @@ pub(super) fn path_segments(d: &str) -> u64 {
                 let to = (args[5] + dx, args[6] + dy);
                 let to_slack = if relative { slack } else { 0.0 };
                 let (pieces, scale) = arc_pieces((x, y), to, args[0], args[1], slack + to_slack);
+                // svgtypes drains an arc's pieces from the front of a buffer: quadratic in their number.
+                if pieces > MAX_SVG_ARC_PIECES {
+                    return u64::MAX;
+                }
                 segments = segments.saturating_add(pieces);
                 // kurbo's last piece ends near, not at, the end point.
                 slack = to_slack + 1.0e-6 * (scale + x.abs() + y.abs() + to.0.abs() + to.1.abs());

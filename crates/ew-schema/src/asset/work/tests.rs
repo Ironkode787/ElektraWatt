@@ -9,8 +9,8 @@ use std::collections::BTreeMap;
 use proptest::prelude::*;
 
 use super::super::{
-    AssetError, MAX_SVG_CSS_WORK, MAX_SVG_EXPANSION, MAX_SVG_MARKER_WORK, SvgHazard, sniff, svg_hazard,
-    svg_work,
+    AssetError, MAX_SVG_ARC_PIECES, MAX_SVG_CSS_WORK, MAX_SVG_EXPANSION, MAX_SVG_MARKER_WORK,
+    MAX_SVG_PATH_SEGMENTS, SvgHazard, sniff, svg_hazard, svg_work,
 };
 use super::*;
 
@@ -46,22 +46,35 @@ fn path_segments_count_commands_moves_after_a_close_and_arc_pieces() {
 }
 
 #[test]
-fn a_tiny_radius_and_a_long_chord_make_thousands_of_pieces() {
-    // kurbo scales rx = 2e-5, ry = 1e9 over a chord of 1e9 by 2.5e13: an ellipse of radius 2.5e22, cut into
-    // about 4,000 cubics for this half turn.
-    let one = path_segments("M0 0 A0.00002 1000000000 0 0 0 1000000000 0");
-    assert!(one > 4_000, "{one}");
+fn arcs_scaled_up_over_their_chord_count_more_pieces_and_too_many_are_unbounded() {
+    // rx = 1, ry = 1000 over a chord of 2000: kurbo scales both by 1000, an ellipse of radius 1e6.
+    let scaled = path_segments("M0 0 A1 1000 0 0 0 2000 0");
+    assert_eq!(scaled, 1 + pieces(1.0e6));
+    assert!(pieces(1.0e6) > pieces(1000.0));
     // The bound follows the current point through relative commands.
-    let relative = path_segments("m0 0 h1000000000 a0.00002 1000000000 0 0 0 -1000000000 0");
-    assert_eq!(relative, one + 1);
+    let relative = path_segments("m0 0 h2000 a1 1000 0 0 0 -2000 0");
+    assert_eq!(relative, scaled + 1);
+    // The largest radius a number may have stays within the per-arc cap.
+    assert_eq!(pieces(1.0e9), 55);
+    assert_eq!(
+        path_segments("M0 0 A1000000000 1000000000 0 0 1 1000000000 0"),
+        56
+    );
+    // kurbo scales rx = 2e-5, ry = 1e9 over a chord of 1e9 by 2.5e13: an ellipse of radius 2.5e22, about 4,000
+    // cubics that svgtypes drains quadratically. The path is unbounded.
+    assert!(pieces(2.5e22) > MAX_SVG_ARC_PIECES);
+    assert_eq!(
+        path_segments("M0 0 A0.00002 1000000000 0 0 0 1000000000 0"),
+        u64::MAX
+    );
 }
 
 #[test]
 fn path_data_the_cursor_cannot_follow_is_bounded_roughly() {
     // A missing number: the rest is bounded by its digit runs and closes, plus one.
     assert_eq!(path_segments("M0 0 L1"), 1 + 2);
-    // An arc that cannot be read counts arcs of the largest admitted radius.
-    assert!(path_segments("M0 0 A1 1 0 2 0 5 5") > 1_000);
+    // An arc that cannot be read cannot be shown to stay within the per-arc cap.
+    assert_eq!(path_segments("M0 0 A1 1 0 2 0 5 5"), u64::MAX);
     // A number after a close-path stops svgtypes; the bound continues roughly.
     assert!(path_segments("M0 0 Z 1 1") >= 2);
 }
@@ -533,6 +546,60 @@ fn style_work_beyond_the_budget_is_refused() {
     }
 }
 
+/// FT-470 follow-up: the path segments of every shape conversion, markers or not, are bounded before usvg runs.
+#[test]
+fn path_segments_beyond_the_budget_are_refused() {
+    let large_arcs =
+        "A1000000000 1000000000 0 0 1 1000000000 0 A1000000000 1000000000 0 0 1 0 0 ".repeat(40_000);
+    let circles: String = (0..2_000)
+        .map(|k| format!(r#"<circle cx="{k}" cy="{k}" r="5"/><rect width="9" height="9" rx="2"/>"#))
+        .collect();
+    let mut wrapped = format!(r#"<svg {NS}><defs><g id="lines">"#);
+    wrapped.push_str(&polylines(100, ""));
+    wrapped.push_str("</g></defs>");
+    wrapped.push_str(&r##"<use href="#lines"/>"##.repeat(250));
+    wrapped.push_str("</svg>");
+    let cases: Vec<(&str, String, Option<SvgHazard>)> = vec![
+        (
+            "one arc of a tiny radius over a long chord",
+            format!(
+                r#"<svg {NS}><path d="M0 0 A0.00002 1000000000 0 0 0 1000000000 0" fill="black"/></svg>"#
+            ),
+            Some(SvgHazard::TooComplex),
+        ),
+        (
+            "a circle whose radius in em nested font sizes make as large as f32 allows",
+            format!(
+                r#"<svg {NS}><g font-size="1000000000"><g font-size="1000000000em"><g font-size="1000000000em"><g font-size="1000000000em"><circle r="340em"/></g></g></g></g></svg>"#
+            ),
+            Some(SvgHazard::TooComplex),
+        ),
+        (
+            "80,000 arcs of the largest radius",
+            format!(r#"<svg {NS}><path d="M0 0 {large_arcs}" fill="black"/></svg>"#),
+            Some(SvgHazard::TooComplex),
+        ),
+        (
+            "100 polylines of 100 points converted 251 times through use",
+            wrapped,
+            Some(SvgHazard::TooComplex),
+        ),
+        (
+            "2,000 circles and 2,000 rounded rectangles",
+            format!(r#"<svg {NS}>{circles}</svg>"#),
+            None,
+        ),
+    ];
+    for (what, text, expected) in &cases {
+        assert_eq!(svg_hazard(text.as_bytes()), *expected, "{what}");
+    }
+    let work = svg_work(cases[4].1.as_bytes()).unwrap();
+    assert_eq!(
+        work.segments,
+        2_000 * (4 * pieces(5.0) + 2) + 2_000 * (4 * pieces(2.0) + 6)
+    );
+}
+
 /// The real-exporter corpus (FT-418) stays under both limits with the margins `MAX_SVG_MARKER_WORK` and
 /// `MAX_SVG_CSS_WORK` document: the largest bounds are pinned here, so a change of the arithmetic shows.
 #[test]
@@ -552,7 +619,11 @@ fn the_exporter_corpus_stays_far_below_the_work_limits() {
             };
             accepted += 1;
             let name = file.file_name().unwrap().to_string_lossy().into_owned();
-            for (bound, value) in [("markers", work.markers), ("css", work.css)] {
+            for (bound, value) in [
+                ("segments", work.segments),
+                ("markers", work.markers),
+                ("css", work.css),
+            ] {
                 let entry = largest.entry(bound).or_insert((0, String::new()));
                 if value > entry.0 {
                     *entry = (value, name.clone());
@@ -561,6 +632,11 @@ fn the_exporter_corpus_stays_far_below_the_work_limits() {
         }
     }
     assert_eq!(accepted, 24);
+    assert_eq!(
+        largest["segments"],
+        (33_896, "beetle-range-css-hex.svg".to_owned())
+    );
+    assert!(largest["segments"].0 * 120 < MAX_SVG_PATH_SEGMENTS);
     assert_eq!(largest["markers"], (48, "spaghetti-markers.svg".to_owned()));
     assert_eq!(
         largest["css"],
