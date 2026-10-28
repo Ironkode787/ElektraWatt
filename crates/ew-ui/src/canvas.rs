@@ -545,6 +545,9 @@ pub struct CanvasHost {
     chip_plans: [Vec<CanvasChip>; GROUPS],
     /// The frames of the chrome drawn over each group's canvas (the tool HUD, the zoom control), points.
     chrome: [Vec<Rect>; GROUPS],
+    /// The canvas rectangle (points), the pixels per point and the transform each group's canvas was drawn with last:
+    /// the exact one while the view moves, the settled one (whole dpi, whole-pixel origin) once it rests (tests).
+    drawn: [Option<(Rect, f32, DrawTransform)>; GROUPS],
 }
 
 impl Default for CanvasHost {
@@ -636,6 +639,7 @@ impl CanvasHost {
             chips: (Vec::new(), None),
             chip_plans: Default::default(),
             chrome: Default::default(),
+            drawn: Default::default(),
         }
     }
 
@@ -663,6 +667,17 @@ impl CanvasHost {
     /// The chrome frames reported for `group` ([`CanvasHost::set_chrome_obstacles`]).
     pub fn chrome_obstacles(&self, group: usize) -> &[Rect] {
         self.chrome.get(group).map_or(&[], Vec::as_slice)
+    }
+
+    /// The screen point (points) of the sheet point `nm` on the canvas of `group` as its last frame drew it, with
+    /// the transform the overlay and the chips used: once the view rests, the settled one (`round(D)` dpi, the
+    /// origin on a whole pixel), which differs from the model's exact zoom by up to a few points away from the pane's
+    /// centre. `None` before the group's canvas was drawn.
+    #[doc(hidden)]
+    pub fn drawn_screen_of(&self, group: usize, nm: (i64, i64)) -> Option<egui::Pos2> {
+        let (rect, ppp, t) = self.drawn.get(group).copied().flatten()?;
+        let (x, y) = t.to_screen((nm.0 as f64, nm.1 as f64));
+        Some(rect.min + Vec2::new(x as f32, y as f32) / ppp)
     }
 
     /// The GPU side of the first group's canvas (the switch rule runs there).
@@ -882,6 +897,7 @@ impl CanvasHost {
             }
         }
         self.chip_plans[group] = chips;
+        self.drawn[group] = Some((rect, ppp, transform));
         if shell.frame_stats_shown() {
             self.paint_statistics(ui, rect, shell);
         }

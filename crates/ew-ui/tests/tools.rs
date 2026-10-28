@@ -878,23 +878,6 @@ fn a_view_change_with_a_stationary_pointer_replays_the_pointer() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// The window position (points) of the sheet point `p` on the focused canvas.
-fn screen_of(h: &Harness<'_, App>, p: (i64, i64)) -> Pos2 {
-    let bounds = h
-        .get_all_by_role(egui::Role::Canvas)
-        .next()
-        .expect("the canvas node")
-        .accesskit_node()
-        .raw_bounds()
-        .expect("bounds");
-    let c = h.state().shell().canvas().unwrap();
-    let k = c.points_per_nm();
-    Pos2::new(
-        bounds.x0 as f32 + ((p.0 - c.centre().0) as f64 * k + c.pane().0 / 2.0) as f32,
-        bounds.y0 as f32 + ((p.1 - c.centre().1) as f64 * k + c.pane().1 / 2.0) as f32,
-    )
-}
-
 /// The Place tool armed with a terminal of strip -X1031 on folio 103, its ghost moved by the grid cursor and rested
 /// on: the preview names the new terminal's tag. Returns the ghost's insertion point (page nm).
 fn place_and_rest(h: &mut Harness<'_, App>) -> (i64, i64) {
@@ -928,6 +911,16 @@ fn by_point(frame: egui::Rect, anchor: Pos2) -> bool {
     )
     .iter()
     .any(|c| (c.min.x - frame.min.x).abs() < 1.0 && (c.min.y - frame.min.y).abs() < 1.0)
+}
+
+/// The screen point of the sheet point `p` on the focused canvas as its last frame drew it: with the transform the
+/// chips were placed by, which once the view rests is the settled one (`round(D)` dpi, a whole-pixel origin) and not
+/// the model's exact zoom; away from the pane's centre the two differ by a few points.
+fn drawn_of(h: &mut Harness<'_, App>, p: (i64, i64)) -> Pos2 {
+    h.state_mut()
+        .canvas_host()
+        .drawn_screen_of(0, p)
+        .expect("a drawn canvas")
 }
 
 /// Every chip of the focused canvas: no two intersect, none is faded, none covers `panel`.
@@ -983,7 +976,7 @@ fn ov2_the_place_ghost_draws_its_tag_once_and_its_chips_keep_apart() {
         "the tag once: {:?}",
         labels[0].text
     );
-    let anchor = screen_of(&h, tl);
+    let anchor = drawn_of(&mut h, tl);
     let (text, frame) = &chips[1];
     assert!(text.contains("-X1031:30"), "{chips:?}");
     assert!(by_point(*frame, anchor), "{frame:?} by {anchor:?}");
@@ -1001,23 +994,40 @@ fn ov2_the_place_ghost_draws_its_tag_once_and_its_chips_keep_apart() {
     );
 
     // The statistics shown, and the view panned so that the anchor lies just left of their panel, level with its
-    // middle: the candidates right of the anchor fall on the panel, and the chips take the free ones.
+    // middle: the candidates right of the anchor fall on the panel, and the chips take the free ones. The panel is
+    // anchored at the canvas's top right and sized by its live text (frame rate and p99 timings, measured against
+    // the wall clock), so its left edge moves by a few points from frame to frame: the pan aims at the panel of one
+    // frame, and the checks read the panel, the chips and the anchor of one later frame, all drawn together.
     dispatch(&mut h, "view.frame_stats", json!({}));
     settle(&mut h);
     let panel = h.state().preview_chips().1.expect("the statistics panel");
     let d = Pos2::new(panel.left() - 4.0, panel.center().y) - anchor;
     dispatch(&mut h, "view.pan", json!({"dx": d.x, "dy": d.y}));
     settle(&mut h);
-    let anchor = screen_of(&h, tl);
+    let anchor = drawn_of(&mut h, tl);
     let (chips, stats) = h.state().preview_chips();
     let panel = stats.expect("the statistics panel");
-    assert!(
-        (anchor.x - (panel.left() - 4.0)).abs() < 1.0,
-        "the anchor {anchor:?} beside the panel {panel:?}"
-    );
     assert!(chips.len() >= 2, "the preview is kept: {chips:?}");
+    // The setting holds in this frame: both candidates right of the anchor (8 points off, the change chip's size)
+    // fall on the panel, so the rule has to take a left one.
+    {
+        use ew_ui::ew_viewmodel::canvas::chip::{Pos2 as P, Rect as R, Vec2 as V, candidates};
+        let size = chips[1].1.size();
+        let c = candidates(R::point(P::new(anchor.x, anchor.y)), V::new(size.x, size.y));
+        for right in [&c[0], &c[1]] {
+            let r = egui::Rect::from_min_max(
+                Pos2::new(right.min.x, right.min.y),
+                Pos2::new(right.max.x, right.max.y),
+            );
+            assert!(
+                r.intersects(panel),
+                "the right-hand candidate {r:?} of the anchor {anchor:?} falls on the panel {panel:?}"
+            );
+        }
+    }
     assert_chips_apart(&mut h, Some(panel));
     assert!(by_point(chips[1].1, anchor), "still by the tag: {:?}", chips[1]);
+    assert!(chips[1].1.right() <= anchor.x, "a left candidate: {:?}", chips[1]);
     h.state_mut().shell_mut().shutdown();
 }
 
@@ -1183,11 +1193,11 @@ fn the_chip_of_an_existing_devices_tag_change_stands_above_its_printed_tag() {
     assert!(chips[0].0.contains("rep.move"), "{chips:?}");
     let (text, frame) = &chips[1];
     assert!(text.contains("-101F1."), "{chips:?}");
-    let anchor = screen_of(&h, snap.page_to_sheet(tag_at));
+    let anchor = drawn_of(&mut h, snap.page_to_sheet(tag_at));
     // By the printed tag text, by the chip rule of WP-S2.17 D13 (one of its four candidates).
     assert!(by_point(*frame, anchor), "{frame:?} by {anchor:?}");
     // Not by the body's corner, where FT-389 put it.
-    let corner = screen_of(&h, snap.page_to_sheet((rep.body[0], rep.body[1])));
+    let corner = drawn_of(&mut h, snap.page_to_sheet((rep.body[0], rep.body[1])));
     assert!(
         !by_point(*frame, corner),
         "{frame:?} is by the body's corner {corner:?}"
