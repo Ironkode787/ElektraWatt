@@ -11,7 +11,7 @@
 
 use serde_json::{Value, json};
 
-use crate::settings::UI_SCALES;
+use crate::settings::{DENSITIES, THEMES, UI_SCALES};
 use crate::shell::ShellModel;
 use crate::strings;
 use crate::tools::{Ghost, GraphicShape};
@@ -88,6 +88,10 @@ pub enum Submenu {
     Import,
     /// View, UI scale: one item per scale.
     UiScale,
+    /// View, Theme: one item per theme (WP-S2.17 part 1).
+    Theme,
+    /// View, Density: Comfortable and Compact (WP-S2.17 part 1).
+    Density,
     /// View, Workspace: one item per workspace, then save and reset.
     Workspace,
     /// View, Pan: left, right, up, down.
@@ -111,6 +115,8 @@ impl Submenu {
             Submenu::Export => "submenu-export",
             Submenu::Import => "submenu-import",
             Submenu::UiScale => "submenu-ui-scale",
+            Submenu::Theme => "submenu-theme",
+            Submenu::Density => "submenu-density",
             Submenu::Workspace => "submenu-workspace",
             Submenu::Pan => "submenu-pan",
             Submenu::PageNavigator => "submenu-page-navigator",
@@ -1408,6 +1414,32 @@ pub static ACTIONS: &[ActionMeta] = &[
             &[],
             always,
             sub(Menu::View, Submenu::UiScale, true),
+        )),
+    ),
+    // WP-S2.17 part 1: View ▸ Theme and View ▸ Density (doc 16a §4.13, D5, D6). The theme words of the spec
+    // (`hc-dark`, `hc-light`) are not words of the signature grammar, so `value` is text, checked against `THEMES`.
+    with_params(
+        "value:text",
+        needs_parameters(act(
+            "view.theme",
+            View,
+            "action-view-theme",
+            Menu::View,
+            &[],
+            always,
+            sub(Menu::View, Submenu::Theme, false),
+        )),
+    ),
+    with_params(
+        "value:enum(comfortable|compact)",
+        needs_parameters(act(
+            "view.density",
+            View,
+            "action-view-density",
+            Menu::View,
+            &[],
+            always,
+            sub(Menu::View, Submenu::Density, false),
         )),
     ),
     with_params(
@@ -3847,6 +3879,24 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
                 })
                 .collect()
         }
+        Submenu::Theme | Submenu::Density => {
+            let (prefix, choices, current): (&str, &[&str], &str) = if submenu == Submenu::Theme {
+                ("theme", &THEMES, &model.settings().theme)
+            } else {
+                ("density", &DENSITIES, &model.settings().density)
+            };
+            choices
+                .iter()
+                .map(|value| {
+                    let mut item = item_of(meta, model);
+                    item.label = strings::text(&format!("{prefix}-{value}")).to_owned();
+                    item.params = json!({ "value": value });
+                    item.shortcut = String::new();
+                    item.checked = *value == current;
+                    item
+                })
+                .collect()
+        }
         Submenu::Graphic => {
             let active = match model.tool_ghost() {
                 Some(Ghost::Graphic { shape, .. }) => Some(shape),
@@ -4002,6 +4052,8 @@ mod tests {
             Submenu::Export,
             Submenu::Import,
             Submenu::UiScale,
+            Submenu::Theme,
+            Submenu::Density,
             Submenu::Workspace,
             Submenu::Pan,
             Submenu::Graphic,

@@ -19,7 +19,7 @@ use super::{
 };
 use crate::first_run::{self, FirstRun, FirstRunStep, START_CHOICES};
 use crate::help;
-use crate::settings::{CANVAS_BACKENDS, KEYMAPS, LANGUAGES, ORIGINS, THEMES};
+use crate::settings::{CANVAS_BACKENDS, DENSITIES, KEYMAPS, LANGUAGES, ORIGINS, THEMES};
 use crate::strings;
 use crate::wizard::{CHECK_SCHEME_FIELD, DRAFT_FILE, Draft, Step, Wizard, run_commands};
 
@@ -48,6 +48,7 @@ impl ShellModel {
             "language" => self.settings.language = choice(&LANGUAGES)?,
             "keymap" => self.settings.keymap = choice(&KEYMAPS)?,
             "theme" => self.settings.theme = choice(&THEMES)?,
+            "density" => self.settings.density = choice(&DENSITIES)?,
             "canvas_backend" => self.settings.canvas_backend = choice(&CANVAS_BACKENDS)?,
             "comes_from" => {
                 self.settings.comes_from = match text {
@@ -71,6 +72,18 @@ impl ShellModel {
         }
         self.save_settings();
         Ok(())
+    }
+
+    /// `view.theme { value }` and `view.density { value }` (WP-S2.17 part 1): the setting `key` from the `value`
+    /// parameter; an unknown value is refused with `error-bad-param`.
+    pub(super) fn act_view_setting(&mut self, key: &str, p: &Map<String, Value>) -> Outcome {
+        let Some(value) = p.get("value") else {
+            return failed("error-missing-param", &["value"]);
+        };
+        match self.apply_setting(key, value) {
+            Ok(()) => Outcome::Done,
+            Err(e) => e,
+        }
     }
 
     pub(super) fn act_settings_set(&mut self, p: &Map<String, Value>) -> Outcome {

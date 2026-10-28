@@ -1627,6 +1627,9 @@ impl ShellModel {
             "structure.new" => self.act_structure_new(p),
             "external_ref.new" => self.act_external_ref_new(p),
             "view.ui_scale" => self.act_ui_scale(p),
+            // WP-S2.17 part 1
+            "view.theme" => self.act_view_setting("theme", p),
+            "view.density" => self.act_view_setting("density", p),
             "tools.palette" => self.act_palette(p),
             "help.shortcuts" => self.open_dialog(Dialog::Shortcuts),
             "help.about" => self.open_dialog(Dialog::About),

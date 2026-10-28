@@ -5,7 +5,7 @@
 //!
 //! `version = 1`, `recent_projects` (at most [`MAX_RECENT`], most recent first, no duplicates), `ui_scale` (one
 //! of [`UI_SCALES`]) and, since part 2, the first-run answers and quick switches: `first_run_done`, `language`,
-//! `keymap`, `theme`, `comes_from`, `update_check` (an opt-in, off by default, NFR-PRIV-03), the default basic
+//! `keymap`, `theme`, `density` (WP-S2.17), `comes_from`, `update_check` (an opt-in, off by default, NFR-PRIV-03), the default basic
 //! project `basic_project` (FR-PRJ-009), the active workspace `workspace` (FR-UI-002) and, since WP-S2.02 part 2,
 //! the canvas renderer `canvas_backend` (`auto`, or `cpu` for View, Use the CPU renderer). Unknown keys are kept
 //! and written back; a `toml::Table` holds them sorted, so the file is deterministic. An unreadable file yields
@@ -29,8 +29,12 @@ pub const LANGUAGES: [&str; 1] = ["en"];
 /// preset is recorded and takes effect with the keymap files of WP-S2.08 (doc 16 section 4.4).
 pub const KEYMAPS: [&str; 2] = ["ew", "kicad"];
 
-/// The themes (egui's own light and dark visuals).
-pub const THEMES: [&str; 3] = ["system", "light", "dark"];
+/// The themes of the design language (doc 16a §4, WP-S2.17 part 1): follow the system (light or dark), light, dark and
+/// the two high-contrast themes.
+pub const THEMES: [&str; 5] = ["system", "light", "dark", "hc-dark", "hc-light"];
+
+/// The densities (doc 16a §4.13, WP-S2.17 D6): Comfortable (the default) and Compact.
+pub const DENSITIES: [&str; 2] = ["comfortable", "compact"];
 
 /// What the user comes from (first-run step 2, doc 16 section 9.1); the empty text is "not answered".
 pub const ORIGINS: [&str; 4] = ["eplan", "qet", "kicad", "other"];
@@ -58,6 +62,8 @@ pub struct Settings {
     pub keymap: String,
     /// The theme, one of [`THEMES`].
     pub theme: String,
+    /// The density, one of [`DENSITIES`] (WP-S2.17 D6).
+    pub density: String,
     /// What the user comes from, one of [`ORIGINS`], or empty.
     pub comes_from: String,
     /// The update-check opt-in (off by default; this version has no update check, NFR-PRIV-03).
@@ -84,6 +90,7 @@ impl Default for Settings {
             language: LANGUAGES[0].to_owned(),
             keymap: KEYMAPS[0].to_owned(),
             theme: THEMES[0].to_owned(),
+            density: DENSITIES[0].to_owned(),
             comes_from: String::new(),
             update_check: false,
             basic_project: None,
@@ -148,6 +155,7 @@ impl Settings {
         let language = take_choice(&mut table, "language", &LANGUAGES)?;
         let keymap = take_choice(&mut table, "keymap", &KEYMAPS)?;
         let theme = take_choice(&mut table, "theme", &THEMES)?;
+        let density = take_choice(&mut table, "density", &DENSITIES)?;
         let canvas_backend = take_choice(&mut table, "canvas_backend", &CANVAS_BACKENDS)?;
         let comes_from = match take_string(&mut table, "comes_from")? {
             Some(v) if ORIGINS.contains(&v.as_str()) => v,
@@ -189,6 +197,7 @@ impl Settings {
             language,
             keymap,
             theme,
+            density,
             comes_from,
             update_check,
             basic_project,
@@ -232,6 +241,7 @@ impl Settings {
             ("language", &self.language),
             ("keymap", &self.keymap),
             ("theme", &self.theme),
+            ("density", &self.density),
             ("comes_from", &self.comes_from),
             ("workspace", &self.workspace),
             ("canvas_backend", &self.canvas_backend),
