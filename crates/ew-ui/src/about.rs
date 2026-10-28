@@ -202,11 +202,16 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                 ui.set_max_width(460.0);
                 ui.label(strings::format("recovery-text", &[name]));
                 ui.label(strings::format("recovery-count", &[&transactions.to_string()]));
-                // FT-503: the elapsed time against the store's clock; the exact time (UTC, no time-zone source) on hover.
+                // FT-503: the elapsed time against the store's clock; the exact time (UTC, no time-zone source) as a
+                // small secondary line under it (W31-5: a hover tooltip covered the buttons).
                 if let Some(when) = utc_text(*last_change_ms) {
                     let ago = strings::elapsed_text(*last_change_ms, now_ms());
-                    ui.label(strings::format("recovery-last-change", &[&ago]))
-                        .on_hover_text(strings::format("recovery-last-change-utc", &[&when]));
+                    ui.label(strings::format("recovery-last-change", &[&ago]));
+                    ui.label(
+                        egui::RichText::new(strings::format("recovery-last-change-utc", &[&when]))
+                            .small()
+                            .weak(),
+                    );
                 }
                 if !base_matches {
                     ui.label(strings::text("recovery-moved"));
