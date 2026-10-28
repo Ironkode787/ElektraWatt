@@ -57,6 +57,7 @@ set. The project has no code yet; the documents are the product of the design ph
 | [14 Interop](design/14-interop.md) | Importers and exporters, QET migration, EPLAN data, DXF/DWG, spreadsheets |
 | [15 Checks, revisions, collaboration](design/15-checks-revisions-collaboration.md) | Rule catalogue, release workflow, revisions, working without a server |
 | [16 UX and UI](design/16-ux-ui.md) | Workspace, navigators, property grid, command palette, wizards |
+| [16a Design language](design/16a-design-language.md) | Pillars, tokens, layout, components, command bar, wording |
 | [17 Extensibility](design/17-extensibility.md) | CLI, Session API, rhai, SQL projection, MCP, WASM plugins, Python |
 | [18 Quality, security, release](design/18-quality-security-release.md) | Test strategy, performance, security, build, signing, support |
 | [19 Open-source governance](design/19-open-source-governance.md) | Licences per layer, DCO, legal gates, roles, decision process |

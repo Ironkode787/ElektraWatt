@@ -1936,7 +1936,7 @@ and the re-baseline at G-M1 are in the plan.
   - no salsa, no ECS, no SQLite or other database as the live model, no stored derived data;
   - no parallel memo evaluation and no memo merge-back;
   - no CRDT or real-time co-editing (the op log stays CRDT-ready; Loro is the candidate).
-- **UI:** no custom UI toolkit, no ribbon, no free-form native undocking.
+- **UI:** no custom UI toolkit, no multi-row ribbon with contextual tabs (the single-row command bar of [ADR-0031](../adr/0031-design-language-and-task-ordered-command-bar.md) is not one), no free-form native undocking.
 - **Plugins and scripting:** no native dylib plugins, no embedded CPython.
 - **Geometry:** no B-rep kernel of our own, no routing in the interactive path.
 - **Writes and semantics:** no SQL write path for anyone; no autoconnect as model semantics.

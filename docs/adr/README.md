@@ -2,7 +2,7 @@
 
 **Status:** Draft v0.1 · **Date:** 2026-10-18 · **Part of:** ElektraWatt document set
 
-**Purpose.** This page lists every architecture decision record (ADR) of ElektraWatt (EW) with its status and the decision in one line. 25 ADRs are Accepted and 5 are Proposed. Status and date are read from each file; "amended 2026-10-18" means the Accepted record was revised in the consistency pass of that date; "2026-10-19" marks the amendments from the sixth implementation cycle.
+**Purpose.** This page lists every architecture decision record (ADR) of ElektraWatt (EW) with its status and the decision in one line. 25 ADRs are Accepted and 6 are Proposed. Status and date are read from each file; "amended 2026-10-18" means the Accepted record was revised in the consistency pass of that date; "2026-10-19" marks the amendments from the sixth implementation cycle.
 
 | ADR | Title | Status | Date | Decision |
 |---|---|---|---|---|
@@ -36,6 +36,7 @@
 | [0028](0028-default-drawing-fonts.md) | Default drawing fonts | Proposed | 2026-10-17 | Default drawing fonts (pending pilot input; the Noto Sans default is in force since 2026-10-18) |
 | [0029](0029-network-telemetry-crash-reporting-policy.md) | Network, telemetry and crash-reporting policy | Proposed | 2026-10-17 | Network, telemetry and crash-reporting policy (pending) |
 | [0030](0030-legal-steward-cra-role-support-signing.md) | Legal steward, CRA role, support period and signing identity | Proposed | 2026-10-17 | Legal steward, CRA role, support period and signing identity (pending) |
+| [0031](0031-design-language-and-task-ordered-command-bar.md) | Design language and the task-ordered command bar | Proposed | 2026-10-28 | Design language (doc 16a), one token source, a single-row task-ordered command bar, Volt-blue accent, Tabler icons (pending the owner's look; the default in force for WP-S2.17) |
 
 ## How to add an ADR
 
