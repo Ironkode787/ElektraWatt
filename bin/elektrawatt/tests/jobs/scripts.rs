@@ -251,7 +251,7 @@ fn jb7_the_recovery_script_is_byte_identical_twice() {
         assert_eq!(lines[1]["state"]["dirty"], true);
         assert_eq!(
             lines[1]["state"]["toast"]["text"],
-            "Recovered 1 changes; save to keep them"
+            "Recovered 1 change; save to keep it"
         );
         let d = lines[2]["describe"].as_str().unwrap();
         assert!(d.contains("page \"996\""), "the recovered page: {d}");
