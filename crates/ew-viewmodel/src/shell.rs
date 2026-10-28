@@ -260,7 +260,7 @@ pub enum Dialog {
     /// Tools, Purge unused images (WP-S2.09 part 3, §8.6): the image files that go, which undo does not bring back;
     /// Purge (`project.assets.purge` with `confirm`) or Cancel (Escape).
     ConfirmPurge {
-        /// The library files that are deleted, in their order.
+        /// The unused image files that are deleted, in their order.
         files: Vec<String>,
         /// The assets they hold (the parameter of the purge).
         assets: Vec<String>,
