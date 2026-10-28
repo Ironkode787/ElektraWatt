@@ -6,7 +6,7 @@
 use std::sync::Arc;
 
 use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{Device, ReportBlock, ReportSource};
+use ew_derive::ew_schema::{Device, ManualSelection, ReportBlock, ReportKind, ReportSource};
 use ew_derive::{Cycle, DeviceTag, GeneratedPage, Policy, Q, Query, ReportPagesProvider, map_ml};
 
 use crate::arrange::{Arrangement, arrange};
@@ -218,4 +218,45 @@ pub fn engine() -> Arc<dyn ReportPagesProvider> {
 /// The arranged rows of a block (`q.get::<BlockRows>(block)`).
 pub fn rows_of(q: &Q, block: Id<ReportBlock>) -> Arc<RowSet> {
     q.get::<BlockRows>(block)
+}
+
+/// The rows of the built-in report kind `kind` for the whole project (WP-S2.06 §4.2, D3): the rows a block of that kind
+/// would list with no manual selection, no filter, no sort keys, no grouping and no page limits, in the kind's default
+/// order; for `terminal_diagram` the rows of the strip `include`. The navigators read their tables from it, so a
+/// printed list and its navigator never disagree.
+///
+/// `None` for an unknown kind, and for `terminal_diagram` without `include`. Not memoised (the navigator fetches it once
+/// per revision for an open navigator only); it reads what the kind's row query reads and never `page_order`.
+pub fn project_rows(q: &Q, kind: &str, include: Option<ew_derive::ew_ids::Uuid>) -> Option<RowSet> {
+    let def = Registry::builtin().by_name(kind)?;
+    let parsed: ReportKind = serde_json::from_value(serde_json::Value::from(kind)).ok()?;
+    if kind_name(&parsed) != Some(def.name()) {
+        return None;
+    }
+    let mut manual = ManualSelection::default();
+    match include {
+        Some(u) => {
+            manual.include.insert(Id::from_uuid(u));
+        }
+        None if kind == "terminal_diagram" => return None,
+        None => {}
+    }
+    let block = ReportBlock {
+        id: Id::from_uuid(ew_derive::ew_ids::Uuid::nil()),
+        v: 1,
+        source: ReportSource::Kind(parsed),
+        manual,
+        sort: Vec::new(),
+        group: None,
+        form: Id::from_uuid(ew_derive::ew_ids::Uuid::nil()),
+        section: None,
+        first_folio: None,
+        continuation: Default::default(),
+        title: Default::default(),
+        empty: Default::default(),
+        embedded: None,
+        source_ref: None,
+        extra: Default::default(),
+    };
+    Some(def.rows(q, &block))
 }

@@ -572,3 +572,48 @@ fn rows_and_page_order_are_deterministic() {
         );
     }
 }
+
+/// NV1 (WP-S2.06 §4.2, D3): `project_rows` over an unfiltered block agrees with the stored blocks of Golden A, so a
+/// navigator's table and the printed list never disagree; an unknown kind and a terminal diagram without its strip give
+/// `None`; the stored blocks' rows are unchanged by it.
+#[test]
+fn project_rows_agree_with_the_golden_blocks() {
+    let s = common::golden_session();
+    let q = s.query();
+    let blocks: Vec<ReportBlock> = common::golden_batch()
+        .records
+        .iter()
+        .filter_map(|r| match r {
+            Record::ReportBlock(b) => Some(b.clone()),
+            _ => None,
+        })
+        .collect();
+    let before: Vec<RowSet> = KEYS
+        .iter()
+        .map(|k| (*q.get::<BlockRows>(block(k))).clone())
+        .collect();
+    for key in ["901", "903", "904", "905", "906", "907", "908", "909", "910"] {
+        let id = block(key);
+        let b = blocks.iter().find(|b| b.id == id).expect("the block");
+        let kind = match &b.source {
+            ew_derive::ew_schema::ReportSource::Kind(k) => ew_reports::kind_name(k).expect("a known kind"),
+            _ => panic!("block {key} is a kind block"),
+        };
+        let include = if kind == "terminal_diagram" {
+            b.manual.include.as_slice().first().map(|a| a.as_uuid())
+        } else {
+            None
+        };
+        let rows = ew_reports::project_rows(&q, kind, include).expect("a built-in kind");
+        let printed = q.get::<BlockRows>(id);
+        assert_eq!(rows.columns, printed.columns, "block {key}: columns");
+        assert_eq!(rows.rows, printed.rows, "block {key} ({kind}): rows");
+    }
+    assert!(ew_reports::project_rows(&q, "no_such_kind", None).is_none());
+    assert!(ew_reports::project_rows(&q, "terminal_diagram", None).is_none());
+    let after: Vec<RowSet> = KEYS
+        .iter()
+        .map(|k| (*q.get::<BlockRows>(block(k))).clone())
+        .collect();
+    assert_eq!(before, after, "the stored blocks' rows are unchanged");
+}
