@@ -154,3 +154,41 @@ fn pv5_the_history_panel_lists_the_steps_with_undo_to_here_and_show_changes() {
     ));
     h.state_mut().shell_mut().shutdown();
 }
+
+/// W31-2: at 1280×800 the renumber card's first tag change is on show in the Preview tab without a click: Tags is the
+/// list that carries the change, first and open, below Apply and Cancel.
+#[test]
+fn w31_2_the_first_tag_change_is_on_show_at_1280_by_800() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let mut h = harness(&tmp, Scripted::default(), Some(dir));
+    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    settle(&mut h);
+    dispatch(
+        &mut h,
+        "command.run",
+        json!({"cmd": "project.settings.set", "params": {"member": "numbering", "value": {"default": "page-based",
+            "schemes": [{"key": "page-based", "format": "{page}{letter}{counter}", "rules": [], "child_separator": "-"}]}}}),
+    );
+    dispatch(&mut h, "devices.renumber", json!({}));
+    settle(&mut h);
+    h.state_mut().shell_mut().set_form_field("include_frozen", "true");
+    settle(&mut h);
+    h.get_by_label("Renumber").click();
+    settle(&mut h);
+    settle(&mut h);
+    let pane = h
+        .get_all_by_role(egui::Role::Group)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Preview"))
+        .expect("the Preview tab")
+        .rect();
+    let first = h.get_by_label("-XPE → -101X2").rect();
+    assert!(
+        pane.expand(1.0).contains_rect(first) && first.bottom() <= 800.0,
+        "the first tag change {first:?} inside the tab {pane:?}"
+    );
+    let apply = h.get_by_label("Apply").rect();
+    assert!(apply.bottom() <= first.top(), "Apply {apply:?} above the lists");
+    assert!(h.query_by_label("Tags (11)").is_some());
+    h.state_mut().shell_mut().shutdown();
+}

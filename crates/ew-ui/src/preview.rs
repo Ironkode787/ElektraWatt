@@ -5,8 +5,9 @@
 //! it is open.
 //!
 //! **The tab** shows the open card: the header "Preview: <command> · as of rev <r>" with the stale badge, the summary
-//! (records, tags, cross-reference texts, pages; an import's created and skipped counts), then Entities, Tags, Xrefs and
-//! Pages, each virtualised, and Apply and Cancel. Without a card it says "No preview is open". The lists are the shell's
+//! (records, tags, cross-reference texts, pages; an import's created and skipped counts), Apply and Cancel, then the
+//! lists in a scroll area, each virtualised: the one that carries the change first and open (Tags for a renumber,
+//! Entities otherwise), then the others closed (W31-2), Xrefs and Pages last. Without a card it says "No preview is open". The lists are the shell's
 //! ([`ShellModel::preview_pane`]); the tab reads nothing of its own.
 //!
 //! **The chip** ([`chip`]): "Preview open: <summary>" with Apply, Cancel and Show in the origin pane, in place of its
@@ -24,14 +25,14 @@ use serde_json::{Value, json};
 
 use crate::app::Event;
 
-/// The rows of one list, virtualised, in a collapsing section headed `title (<n>)`.
-fn list(ui: &mut Ui, title: &str, rows: &[String]) {
+/// The rows of one list, virtualised, in a collapsing section headed `title (<n>)`, open at first when `open`.
+fn list(ui: &mut Ui, title: &str, rows: &[String], open: bool) {
     if rows.is_empty() {
         return;
     }
     egui::CollapsingHeader::new(format!("{title} ({})", rows.len()))
         .id_salt(title)
-        .default_open(true)
+        .default_open(open)
         .show(ui, |ui| {
             // Rows of `size.row`, at most `size.preview_list` of them on show (doc 16a §6.22).
             let t = crate::theme::current(ui.ctx());
@@ -44,7 +45,12 @@ fn list(ui: &mut Ui, title: &str, rows: &[String]) {
                     ui.spacing_mut().item_spacing.y = 0.0;
                     for r in &rows[range] {
                         let width = ui.available_width();
-                        ui.add_sized([width, row], egui::Label::new(r).truncate());
+                        // Left-aligned in the row (W31-2: `add_sized` centred them).
+                        ui.allocate_ui_with_layout(
+                            egui::vec2(width, row),
+                            egui::Layout::left_to_right(egui::Align::Center),
+                            |ui| ui.add(egui::Label::new(r).truncate()),
+                        );
                     }
                 });
         });
@@ -118,16 +124,24 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                         t
                     })
                     .collect();
-                list(ui, strings::text("preview-entities"), &entities);
                 let tags: Vec<String> = pane.tags().iter().map(|(a, b)| format!("{a} → {b}")).collect();
-                list(ui, strings::text("preview-tags"), &tags);
                 let xrefs: Vec<String> = pane
                     .xrefs()
                     .iter()
                     .map(|x| format!("{}: {} → {}", x.folio, x.before, x.after))
                     .collect();
-                list(ui, strings::text("preview-xrefs"), &xrefs);
-                list(ui, strings::text("preview-pages"), pane.pages());
+                // W31-2: the list that carries the change comes first and open (Tags for a renumber, the changed
+                // entities otherwise); the others follow, closed.
+                let renumber = card.preview.name.ends_with("renumber") && !tags.is_empty();
+                if renumber {
+                    list(ui, strings::text("preview-tags"), &tags, true);
+                    list(ui, strings::text("preview-entities"), &entities, false);
+                } else {
+                    list(ui, strings::text("preview-entities"), &entities, true);
+                    list(ui, strings::text("preview-tags"), &tags, false);
+                }
+                list(ui, strings::text("preview-xrefs"), &xrefs, false);
+                list(ui, strings::text("preview-pages"), pane.pages(), false);
             });
     });
 }
