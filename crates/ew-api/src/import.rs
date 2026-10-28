@@ -264,6 +264,10 @@ fn starter_fndefs() -> &'static ew_import_tables::BuiltinLibrary {
 /// project `project` (`ew_import_tables::parse_parts_tables` with the starter FnDefs). `source` is the chosen file's
 /// name; only its base name is kept.
 ///
+/// A table that a spreadsheet saved with a byte-order mark (one leading U+FEFF) is read without it (FT-464): the
+/// user's path of `parts.import` and `ew import parts` accepts it, while the golden bootstrap, which calls
+/// `ew_import_tables` directly, stays strict.
+///
 /// # Errors
 ///
 /// The first problem of any table, with its pointer (strict).
@@ -273,8 +277,17 @@ pub fn parse_parts_tables(
     project: ew_derive::ew_ids::Uuid,
     source: &str,
 ) -> Result<PartsImport, ImportError> {
+    fn unmarked(t: &str) -> &str {
+        t.strip_prefix('\u{feff}').unwrap_or(t)
+    }
+    let siblings = &SiblingTables {
+        part_cps: siblings.part_cps.map(unmarked),
+        part_templates: siblings.part_templates.map(unmarked),
+        cable_cores: siblings.cable_cores.map(unmarked),
+        part_plc: siblings.part_plc.map(unmarked),
+    };
     let copies = ew_import_tables::parse_parts_tables(
-        parts_csv,
+        unmarked(parts_csv),
         siblings,
         ew_derive::ew_ids::Id::from_uuid(project),
         source,

@@ -84,3 +84,50 @@ fn a_parts_table_above_the_size_limit_is_refused_before_it_is_read() {
         "{result:?}"
     );
 }
+
+/// JB8, FT-464: a `parts.csv` and sibling tables that a spreadsheet saved with a byte-order mark import the same copies
+/// as the tables without it, through the user's path (`read_parts_tables`, which `parts.import` and `ew import parts`
+/// both call); the bootstrap's own reader stays strict.
+#[test]
+fn jb8_a_bom_prefixed_parts_table_imports_the_same_copies() {
+    let dir = std::env::temp_dir().join(format!("ew-parts-bom-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let golden = golden_parts();
+    let tables = golden.parent().unwrap();
+    for file in [
+        "parts.csv",
+        "part_cps.csv",
+        "part_templates.csv",
+        "cable_cores.csv",
+        "part_plc.csv",
+    ] {
+        let text = std::fs::read_to_string(tables.join(file)).unwrap();
+        assert!(!text.starts_with('\u{feff}'), "{file} has no BOM of its own");
+        std::fs::write(dir.join(file), format!("\u{feff}{text}")).unwrap();
+    }
+    let project = session().query().project().id.as_uuid();
+    let plain = read_parts_tables(&golden, project).expect("the golden tables read");
+    let marked = read_parts_tables(&dir.join("parts.csv"), project);
+    std::fs::remove_dir_all(&dir).unwrap();
+    let marked = marked.expect("the BOM-prefixed tables read");
+    assert_eq!(marked.siblings, plain.siblings);
+    assert_eq!(marked.copies.len(), 29);
+    assert_eq!(marked.copies, plain.copies, "the same part copies");
+    // The bootstrap's reader keeps refusing the mark.
+    let strict = ew_import_tables::csv::parse(
+        "\u{feff}a\n".as_bytes(),
+        &ew_import_tables::TableLimits::default(),
+    );
+    assert!(strict.is_err(), "ew_import_tables stays strict");
+    // And `parts.import` commits them like the plain ones.
+    let mut s = session();
+    let cmd = AnyCommand {
+        name: PARTS_IMPORT.into(),
+        params: marked.params(),
+    };
+    let preview = s
+        .preview_with(&cmd, ew_api::Submit::from(ew_api::Origin::Gui))
+        .unwrap();
+    let r = s.commit(preview).unwrap();
+    assert_eq!(r.outcome.note.as_deref(), Some("created 29, skipped 0"));
+}
