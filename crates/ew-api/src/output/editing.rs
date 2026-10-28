@@ -1277,7 +1277,6 @@ fn page_rect(q: &Q, page: PageRef) -> Rect {
     }
 }
 
-/// The body of a shape under orientation `o`, translated to `pos`.
 /// The position in the symbol frame of the tag text `rep` prints with `def` (FT-502), by the scene's rules
 /// (`ew_scene::page`'s labels): the first tag slot, visible by the representation's override, else by its named
 /// arrangement, else by the slot's default; the override's position, else the slot's. With it the em height (nm)
@@ -1301,6 +1300,7 @@ fn tag_anchor(rep: &Representation, def: &SymbolDef) -> Option<(Pt2, i64)> {
     visible.then(|| (ov.and_then(|o| o.pos).unwrap_or(slot.pos), em))
 }
 
+/// The body of a shape under orientation `o`, translated to `pos`.
 fn placed_body(body: [i64; 4], o: u8, pos: (i64, i64)) -> [i64; 4] {
     let a = orient_point(o, (body[0], body[1]));
     let b = orient_point(o, (body[2], body[3]));
