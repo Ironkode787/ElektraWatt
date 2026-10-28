@@ -217,10 +217,7 @@ fn jb7_the_recovery_dialog_offers_recover_open_read_only_and_discard() {
     assert_eq!(shell.access(), Some(AccessMode::Edit));
     assert!(shell.is_dirty());
     assert!(shell.page_labels().iter().any(|l| l == "996"));
-    assert!(
-        h.query_by_label("Recovered 1 changes; save to keep them")
-            .is_some()
-    );
+    assert!(h.query_by_label("Recovered 1 change; save to keep it").is_some());
     h.state_mut()
         .shell_mut()
         .dispatch("file.close", &json!({"discard": true}));

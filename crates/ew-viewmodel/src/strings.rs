@@ -675,8 +675,10 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         }
         "toast-export-internal" => "Export failed: an internal error",
         "toast-recovered" => "Recovered {0} changes; save to keep them",
+        "toast-recovered-one" => "Recovered 1 change; save to keep it",
         "marker-export" => "Exported PDF to {0}",
         "marker-recovered" => "Recovered {0} changes from the journal",
+        "marker-recovered-one" => "Recovered 1 change from the journal",
         "action-jobs-show" => "Jobs",
         "action-jobs-cancel" => "Cancel job",
         "action-jobs-wait" => "Wait for job",
@@ -1337,9 +1339,42 @@ pub fn format(key: &str, args: &[&str]) -> String {
     out
 }
 
+/// A count-dependent string: `<key>-one` for exactly one, `<key>` with the count as `{0}` otherwise.
+pub fn format_count(key: &str, count: usize) -> String {
+    if count == 1 {
+        text(&format!("{key}-one")).to_owned()
+    } else {
+        format(key, &[&count.to_string()])
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn format_count_is_singular_for_one_and_plural_otherwise() {
+        assert_eq!(
+            format_count("toast-recovered", 1),
+            "Recovered 1 change; save to keep it"
+        );
+        assert_eq!(
+            format_count("toast-recovered", 3),
+            "Recovered 3 changes; save to keep them"
+        );
+        assert_eq!(
+            format_count("toast-recovered", 0),
+            "Recovered 0 changes; save to keep them"
+        );
+        assert_eq!(
+            format_count("marker-recovered", 1),
+            "Recovered 1 change from the journal"
+        );
+        assert_eq!(
+            format_count("marker-recovered", 2),
+            "Recovered 2 changes from the journal"
+        );
+    }
 
     #[test]
     fn placeholders_are_filled() {

@@ -155,9 +155,9 @@ fn jb7_recover_opens_the_project_editable_and_dirty_with_the_edits() {
     assert_eq!(s.access(), Some(AccessMode::Edit));
     assert!(s.is_dirty(), "recovered changes are unsaved");
     assert!(title(&s).contains("Unsaved"), "the edit is back: {}", title(&s));
-    assert_eq!(s.toast().unwrap().text, "Recovered 1 changes; save to keep them");
+    assert_eq!(s.toast().unwrap().text, "Recovered 1 change; save to keep it");
     assert_eq!(s.markers().len(), 1);
-    assert_eq!(s.markers()[0].text, "Recovered 1 changes from the journal");
+    assert_eq!(s.markers()[0].text, "Recovered 1 change from the journal");
     assert_eq!(s.banner(), None);
     done(&mut s, "file.save", json!({}));
     done(&mut s, "file.close", json!({}));

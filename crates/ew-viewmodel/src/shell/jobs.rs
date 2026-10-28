@@ -619,12 +619,12 @@ impl ShellModel {
         }
         self.install_project(&dir, session, AccessMode::Edit);
         self.banner = None;
-        let count = transactions.to_string();
-        self.notify_with(strings::format("toast-recovered", &[&count]), "recovery", false);
+        let count = transactions;
+        self.notify_with(strings::format_count("toast-recovered", count), "recovery", false);
         if let Some(rev) = self.revision() {
             self.markers.push(HistoryMarker {
                 rev,
-                text: strings::format("marker-recovered", &[&count]),
+                text: strings::format_count("marker-recovered", count),
             });
         }
         Outcome::Done
