@@ -178,7 +178,12 @@ impl Dock {
     pub fn show(&mut self, ui: &mut Ui, pane_ui: &mut dyn FnMut(&mut Ui, PaneKind)) {
         let tokens = crate::theme::current(ui.ctx());
         let height = ui.available_height();
-        let clamps = self.keep_bottom_min(height, tokens.size_dock_bottom_min);
+        let (clamps, guessed) = self.keep_bottom_min(height, tokens.size_dock_bottom_min);
+        if guessed {
+            // R3-4: a split without a last shown height was clamped against the guess; the next frame uses its
+            // real height.
+            ui.ctx().request_repaint();
+        }
         let mut behavior = DockBehavior {
             pane_ui,
             chosen: None,
@@ -199,7 +204,8 @@ impl Dock {
     /// its place. Display only: returns the shares it changed, which [`Dock::restore`] puts back after the frame, so
     /// the user's shares stay the layout (no rewrite of the workspace file, no share that only ever grows). Other
     /// vertical splits (a column where Messages was docked) are left alone.
-    fn keep_bottom_min(&mut self, fallback: f32, min: f32) -> Vec<Clamp> {
+    /// The flag is true when a split had no last shown height, so `fallback` was used.
+    fn keep_bottom_min(&mut self, fallback: f32, min: f32) -> (Vec<Clamp>, bool) {
         fn holds(tiles: &Tiles<PaneKind>, id: TileId, pred: &dyn Fn(&PaneKind) -> bool) -> bool {
             match tiles.get(id) {
                 Some(Tile::Pane(p)) => pred(p),
@@ -219,8 +225,15 @@ impl Dock {
             })
             .collect();
         let mut clamps = Vec::new();
+        let mut guessed = false;
         for id in splits {
-            let height = self.tree.tiles.rect(id).map_or(fallback, |r| r.height());
+            let height = match self.tree.tiles.rect(id) {
+                Some(r) => r.height(),
+                None => {
+                    guessed = true;
+                    fallback
+                }
+            };
             let Some(Tile::Container(Container::Linear(linear))) = self.tree.tiles.get(id) else {
                 continue;
             };
@@ -257,7 +270,7 @@ impl Dock {
                 shown,
             });
         }
-        clamps
+        (clamps, guessed)
     }
 
     /// Puts back the user's shares of every split [`Dock::keep_bottom_min`] changed for the frame, unless the user
