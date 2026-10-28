@@ -15,7 +15,7 @@
     "refusals": 50
   },
   "files": {
-    "tools/blind/HELP.md": "557e01abd66edb235a08141247dab5523a548a3daabe6d219ee01657f2c0b554",
+    "tools/blind/HELP.md": "7e401db6605385ee777cfe63bf21e7e6342709cd9677730d74fc4dea76705259",
     "tools/blind/reference/actions.txt": "af6052278899ed6a66d42e082dad5e763b759397f54fd30afae4385788733565",
     "tools/blind/reference/vocabulary.txt": "4bd32f1a1e9a996064f33502c52e74437140a13b9bc2a5d18ad373ff8e167ace",
     "tools/blind/tasks/selftest/agent.jsonl": "0d30d3415f394f62189979813cbd51e0729cbcb3884c115ca283c376f6f88862",

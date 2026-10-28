@@ -1,6 +1,6 @@
 ---
 prompt: blind-help
-version: 2
+version: 3
 ---
 # The harness: how to work with it
 
@@ -69,7 +69,9 @@ A line is structure and text. The words outside quotation marks are the applicat
 `title:`, `banner:`, `disabled:` or `error:`, is a user's or the application's wording of a label, a name or a reason.
 `@n` is the application's name for one record in this run; use it wherever an action asks for an ID or a reference.
 Positions are millimetres on the page; a page has a frame of cells (rows A to H, columns 0 to 16) that you can name in
-Go to.
+Go to. These positions are the coordinates that `canvas.press` and `cursor.set` take. A `wire` line ends with `at X Y mm`: a
+press there selects that wire. You can also select a wire by its ends:
+`select.set refs='["wire:<one end> -> <other end>"]'`, with the ends as the page text prints them.
 
 `look --page` describes the content of one page, in reading order (row A to H of the anchor cell, then column 0 to 16):
 the header gives the folio, the title and the counts (`reps` representations, `connections` drawn connections,
