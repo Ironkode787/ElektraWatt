@@ -384,6 +384,59 @@ rail), `table_widget` TB7 (FT-523) and `command_surface` CB4 (65 % again).
 - **Snapshots re-blessed:** `main-{light,dark}-{comfortable,compact}` and the eight `part4-*` images (their window
   shows Properties and the canvas tab); nothing else changed.
 
+**K32 (cycle 32, the second lane of part 3):** DK10, DK11's icon half, DK12 and DK6. Tests: `ew-ui`
+`tests/rows_and_empty_states.rs` (DK10, DK11, DK6's restart), the unit tests of `messages.rs` (DK10's shapes, words
+and colours), `history.rs` (DK11's state icons and undone tone) and `window_memory.rs` (DK6's recording and builder),
+`ew-viewmodel` `window.rs` (DK6's clamp on three layouts) and `settings.rs` (`[window]`), and the DK12 snapshots.
+
+- **Messages (DK10).** The severity icons are Tabler `circle-x`, `alert-triangle` and `info-circle` at
+  `size.severity_icon` in `color.error`, `color.warning.icon` and `color.accent` (the filled shapes are gone); a
+  finding row paints the icon and the severity word ("Error") in `type.small` SemiBold in the severity's text tone,
+  the look of doc 16a §5.7's severity cell, in tree mode as well. A severity group row has its icon in place of the
+  folder; it shows no count (the provider gives group rows none). A pending row draws icon, word and title in
+  `color.text.tertiary` and carries the "Pending" status badge (neutral, `pencil`); `fix` and `waived` are the "Fix"
+  (accent, `wand`) and "Waived" (neutral, `check`) status badges; a rule row's count is a count badge. In the Messages
+  pane the badges are right-aligned and the title is cut with an ellipsis before them (the other navigators keep
+  their as-built row layout). The header paints the scheme, one count badge per severity (12-px icon, subtle fill)
+  and "waived n", "pending n" in tertiary; it is one `Label` node named by the as-built sentence, a polite live
+  region. The detail block has a 1-px `color.border.subtle` rule, the rule ID and title in `type.body.strong`, the
+  kind line in `type.small` secondary, Fix… as a Secondary button (disabled on a read-only project; its tooltip is
+  `messages.fix`'s refusal reason when the action gives one) and Rule page as an accent link; the footer is
+  `type.caption` tertiary under a rule line. The table-mode clause waits for FT-522 (ID-732). **Deviation:** Golden
+  A's online scheme reports no warning, so the kittest proves an error, infos and a pending finding, and the
+  warning's icon and colour are proved by the unit tests. **Fix:** the W31-1 rule that scrolls the cursor row back
+  into view when the detail block shortens the list compared the cursor with last frame's rows; in the Messages pane
+  it now compares with the rows that fit this frame (an opened detail block left the cursor row below the list).
+- **History (DK11, DK12).** Rows of `size.row`: the state icon column (`arrow-right` in `color.accent` for the
+  current entry, `arrow-back-up` in `color.history.undone` for an undone one), the number right-aligned in 28 px in
+  `type.small` tertiary, the label in `type.body` (`type.body.strong` current, `color.history.undone` undone, secondary
+  on the cursor row), origin and pages in `type.small` tertiary, the "merged n" caption badge and the "Not undoable"
+  status badge (`lock`). The italics are gone (the icon carries the state; the name still ends ", undone"). The row
+  cursor takes `color.accent.subtle`. The row actions are 24-px icon buttons with their as-built names as tooltips:
+  Undo to here (`history`), Redo to here (`arrow-forward-up`, not named by doc 16a) and Show changes
+  (`list-details`). A marker line is a `Splitter` node named by its text (AccessKit has no separator role), the text
+  in `type.small` tertiary with a 1-px `color.border.subtle` rule to the row's end. The header is `type.small`
+  secondary. Show changes is a non-modal `egui::Window` in the dialog frame's tokens (`color.surface.raised`,
+  `radius.lg`, `elevation.2`, `space.5`), 440 px, its title painted in `type.title` (the window's node carries the
+  name), the records as `size.row` rows, Close as a Secondary button; Escape closes it as built. **Not built:** the
+  chip line's jump chips keep their as-built buttons (named "Open `<folio>-<cell>`"); their pill look is a follow-up.
+- **Snapshots (DK12).** Gated, light and dark at both densities, each cropped to its pane: `dk12-messages-*` (the
+  rows with an error and a pending finding), `dk12-messages-detail-*` (the cursor on the pending finding with its
+  detail block) and `dk12-history-*` (three steps, the save marker, one undone): twelve new images; no other image
+  changed. The Terminal strips grid of DK12 is DK9's (lane J32).
+- **Window memory (DK6, FT-348).** `settings.toml` keeps `[window]` (`x`, `y`, `width`, `height` in whole points,
+  `maximized`), written only once a window recorded it (at the end of the window, by `ShellModel::shutdown` in the GUI
+  mode), so headless runs and tests keep their settings bytes; a table that cannot be read is dropped, not the file.
+  `ew_viewmodel::window::restore` is the pure clamp (size at least 640 × 400 and at most the largest monitor; the
+  position stays while a 48-px grip of the title bar lies on a monitor, else the window moves into the primary as
+  close to its place as fits; maximised kept), tested on one monitor, two with one at negative coordinates, and a
+  removed monitor, and idempotent over a grid. The window records its outer position and inner size each frame
+  (only a real window: egui reports the monitor's size only there; a maximised window keeps its normal geometry);
+  `elektrawatt` builds the viewport from the saved geometry. **Not built:** the position clamp at start runs with no
+  monitor list (eframe 0.37 without its `persistence` feature exposes none before or after the window opens), so a
+  window saved on a monitor that is gone opens off-screen until the list is wired; eframe still clamps the size to
+  the largest monitor. A follow-up FT.
+
 ## 8. Part 4: cards, toasts, dialogs, menus, palette and empty states
 
 1. **Dialogs**: one dialog frame in `ew-ui` (`dialog.rs`) for every modal of the shell (about, keyboard shortcuts, go
@@ -452,6 +505,19 @@ rail), `table_widget` TB7 (FT-523) and `command_surface` CB4 (65 % again).
 - **Snapshots (CP6, CP9).** Gated, light and dark: the quit prompt over the edit toast, the app menu's File submenu,
   the palette, and the Preview tab with the property grid's card and its strip. **Not taken:** the other dialogs one
   by one, the quick-fix card and the table card images.
+
+**K32 (cycle 32, CP5's missing empty states):** `components::empty_state` now also serves the History panel
+("Nothing to undo yet", `history` icon), the Messages pane ("No findings", `circle-check`), Find (before a search "Find
+in the project", after one without hits `Nothing matches "<text>"`, `search`) and every navigator in tree mode (one
+line per kind, "No devices yet" … "No report blocks yet", the rail's icon, and one shared sentence; Pages "No pages
+yet" with its own). A navigator whose filter hides every row says `Nothing matches "<filter>"` with **Clear filter**
+(Primary), which clears the filter (`pages.filter` or `navigator.filter`). Each is a `Group` node named by its line;
+it shows only once the list's rows are built (a project is open, the navigator's table read). Test:
+`tests/rows_and_empty_states.rs` `cp5_…` on a new project (History, the Pages filter and Clear filter, Devices,
+Messages, Find before and after a search) with the walker. Strings added: `empty-nav-*`, `severity-*`, `badge-pending`,
+`badge-waived`, `badge-fix`, `badge-not-undoable`, `messages-header-waived`, `messages-header-pending`; components
+added: the `Pending`, `Waived`, `Fix` and `NotUndoable` status badges and `caption_badge`. **Not built:** the empty
+state of a navigator in table mode (the data grid, DK9's file).
 
 ## 9. Part 5: canvas overlays
 
