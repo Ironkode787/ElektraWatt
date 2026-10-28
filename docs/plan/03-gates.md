@@ -845,10 +845,10 @@ proposal 2 and the evidence for NL-1 … NL-4.
 | **Authorises** | The pilot's use of the preview on its own machines for small real projects, with QET remaining the production tool until G-M2 ([global plan §12](01-global-plan.md#12-pilot-user-engagement)); the first preview issue list; R0 on this build (CP-05) |
 | **Timing** | **Month 26 (Dec 2028)** with three developers; month 24 (Oct 2028) with four; month 37 (Nov 2029) with two; month 33 at −20 % capacity, 22 at +20 % (the generated tables of §2.2). The UI chain WP-S2.01 → WP-S2.03 → WP-S2.04 decides it, so a fourth developer brings it forward by only two months |
 | **Decision makers** | Chair: project lead, who decides *Go* or *Not yet*. Concurrence: the pilot user (the criterion is theirs). Present: S2 owner. No project-owner decision, no counsel |
-| **WBS link** | The 15 WPs of M-PP: WP-S1.11 … WP-S1.15, WP-S1.16a, WP-S1.19a, WP-S2.01 … WP-S2.06, WP-S2.09, WP-S6.13 ([global plan §5.3](01-global-plan.md#53-pilot-preview-m-pp-and-gate-g-pp), `milestone_lean` = `M-PP` in [work-packages.csv](work-packages.csv)) |
+| **WBS link** | The 16 WPs of M-PP: WP-S1.11 … WP-S1.15, WP-S1.16a, WP-S1.19a, WP-S2.01 … WP-S2.06, WP-S2.09, WP-S2.17, WP-S6.13 ([global plan §5.3](01-global-plan.md#53-pilot-preview-m-pp-and-gate-g-pp), `milestone_lean` = `M-PP` in [work-packages.csv](work-packages.csv)) |
 
 **Entry criteria**
-- The 15 WPs of M-PP are done, or listed with a dated plan; the scope is the one confirmed with the pilot at G-M0
+- The 16 WPs of M-PP are done, or listed with a dated plan; the scope is the one confirmed with the pilot at G-M0
   (PD-14, G-M0-16) and re-confirmed at G-M1 (G-M1-24).
 - A preview build exists from CI on the tag `pp`, labelled "unsigned development build, pilot only"; the nightly
   runner report shows that the M1 acceptance rows (AC-01 … AC-13) still pass on it.
@@ -891,7 +891,7 @@ plan; the re-forecast of G-M2 … G-M6; the one-row gate record.
 | **Kind and length** | Release gate, 3 hours on the release candidate (RC on the first working day of the month, release the following week if no blocker), plus 30 minutes go/no-go at the final candidate |
 | **Timing** | **Month 41 (Mar 2030)**; month 51 at −20 % capacity, 34 at +20 %; 2 developers: month 60; 4 developers: month 36 (§2.2) |
 | **Decision makers** | Chair: project lead. **Go decided by the project owner.** Concurrence: pilot user (R1 result, SC-3 start, pilot switch); counsel (LG-3, LG-4, steward checklist). Present: release manager, UX researcher, steward liaison, all developers |
-| **WBS link** | The 27 WPs of M2 in the lean scope (`milestone_lean` = `M2`; the 15 WPs of M-PP are already behind G-PP), closed by WP-S6.08; with lever (b) the QET project import WPs WP-S3.10, WP-S3.11 and WP-S3.13 move to G-M3 and AC-25 … AC-27 with them |
+| **WBS link** | The 27 WPs of M2 in the lean scope (`milestone_lean` = `M2`; the 16 WPs of M-PP are already behind G-PP), closed by WP-S6.08; with lever (b) the QET project import WPs WP-S3.10, WP-S3.11 and WP-S3.13 move to G-M3 and AC-25 … AC-27 with them |
 
 **Entry criteria**
 - All M2 WPs of the lean scope are done, including WP-S6.04 (security and CRA readiness), WP-S6.05 (privacy and
