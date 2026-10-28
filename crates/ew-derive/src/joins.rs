@@ -195,7 +195,7 @@ fn daisy_ends(q: &Q, w: &PhysicalWire) -> Vec<CpRef> {
 /// A CP as one text, as the junction notation prints it (doc 08 §3.8 "Wire-end locus"): a device CP
 /// `tag:designation` with `#n` where the function's printed designations repeat (`-102G1:−#1`, the n-th CP of
 /// that designation in index order), a terminal `strip:terminal/clamp` (`-X1031:1/b`) with `#n` where the
-/// function's clamps of one level repeat a letter (`1X1:1/a#2`), an interruption
+/// function's clamps of one level repeat a letter (a third-party FnDef: `-X1:1/a#2`), an interruption
 /// point its name; empty for an unknown function.
 pub fn cp_label(q: &Q, cp: CpRef) -> String {
     let Some(f) = q.functions().get(cp.function) else {
@@ -225,9 +225,10 @@ pub fn cp_label(q: &Q, cp: CpRef) -> String {
         let Some(ew_schema::ClampKey::Clamp(ch)) = &this.clamp else {
             return short;
         };
-        // A clamp letter that repeats on the function (the starter FnDef `ew.fn.terminal` names clamp `a` on both
-        // sides) takes `#n` like a repeated device designation, the n-th CP of that level and clamp in index order,
-        // so that each clamp prints a distinct label (`1X1:1/a#1`, `1X1:1/a#2`).
+        // A clamp letter that repeats on the function (a third-party FnDef naming clamp `a` on both sides; the
+        // starter `ew.fn.terminal` names side 2 `b` since FT-505) takes `#n` like a repeated device designation, the
+        // n-th CP of that level and clamp in index order, so that each clamp prints a distinct label (`-X1:1/a#1`,
+        // `-X1:1/a#2`).
         let mut same: Vec<u16> = cps
             .iter()
             .filter(|c| c.level == this.level && c.clamp == this.clamp)

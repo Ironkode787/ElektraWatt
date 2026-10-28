@@ -441,9 +441,10 @@ physical_wires_of(potential):                              // memo per potential
   (`-102G1:+ #1`). `cp_label` of `ew-derive` is the one owner
   of this label; the From/To CP columns of the wire list (`conn::end_text` in `ew-reports`) still drop `#n` and are to
   converge on it (FT-102; decision log ID-348). A terminal end whose function repeats a clamp letter within one level
-  prints `#n` after the clamp, the n-th CP of that level and clamp in index order (`1X1:1/a#2`); `cp_label` owns it
-  (cycle 30, O30; decision log ID-711). It applies to the starter terminal FnDefs, which give side 2 the clamp `a`
-  where §6.1 and §6.3 say `b`; once their data is corrected (FT-505) it remains only for third-party FnDefs.
+  prints `#n` after the clamp, the n-th CP of that level and clamp in index order (`-X1:1/a#2`); `cp_label` owns it
+  (cycle 30, O30; decision log ID-711). The starter terminal FnDefs give side 1 clamp `a` and side 2 clamp `b` (§6.1,
+  §6.3; FT-505, cycle 31), so the golden 1X1 prints `1X1:1/a` and `1X1:1/b`; the rule applies only to third-party
+  FnDefs that repeat a letter.
 
 *As built (cycle 7, WP-S1.07; decision log ID-146 to ID-151).* The families of §3.3 to §3.8 exist in `ew-derive`,
 Memo by policy and cold in phase 1. Decisions the code had to fix:

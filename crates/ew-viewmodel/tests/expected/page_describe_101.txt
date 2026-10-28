@@ -18,14 +18,14 @@ page "101" "Power Supply 1 - Main Current" reps 17 connections 21 junctions 2
     cp "T55:5" at 210.725 67.200 mm wires 1 potential "N-55"
     cp "T55:3" at 210.725 75.028 mm wires 1 potential "N-55T"
   rep "1X1:1" cell "101-D2" symbol "ew.iec.terminal@qet10" variant "A" at 48.933 88.076 mm
-    cp "1X1:1/a#1" at 48.933 90.686 mm wires 1 potential "L"
-    cp "1X1:1/a#2" at 48.933 85.467 mm wires 1 potential "L"
+    cp "1X1:1/a" at 48.933 90.686 mm wires 1 potential "L"
+    cp "1X1:1/b" at 48.933 85.467 mm wires 1 potential "L"
   rep "1X1:2" cell "101-D2" symbol "ew.iec.terminal@qet10" variant "A" at 54.152 88.076 mm
-    cp "1X1:2/a#1" at 54.152 90.686 mm wires 1 potential "N"
-    cp "1X1:2/a#2" at 54.152 85.467 mm wires 1 potential "N"
+    cp "1X1:2/a" at 54.152 90.686 mm wires 1 potential "N"
+    cp "1X1:2/b" at 54.152 85.467 mm wires 1 potential "N"
   rep "1X1:PE" cell "101-D2" symbol "ew.iec.terminal-pe@qet10" variant "A" at 59.371 88.076 mm
-    cp "1X1:PE/a#1" at 59.371 90.686 mm wires 1 potential "PE"
-    cp "1X1:PE/a#2" at 59.371 85.467 mm wires 1 potential "PE"
+    cp "1X1:PE/a" at 59.371 90.686 mm wires 1 potential "PE"
+    cp "1X1:PE/b" at 59.371 85.467 mm wires 1 potential "PE"
   rep "-XPE" cell "101-D5" symbol "ew.iec.pe@qet10" variant "A" at 101.124 88.076 mm
     cp "-XPE:PE" at 101.124 88.076 mm wires 1 potential "PE"
   rep "S56" cell "101-D14" symbol "ew.iec.position-switch-no@qet10" variant "A" at 242.039 88.076 mm
@@ -54,15 +54,15 @@ page "101" "Power Supply 1 - Main Current" reps 17 connections 21 junctions 2
   wire "-101F1:2" -> "L-1" route provisional bends 1 at 209.420 168.972 mm
   wire "-101F1:N#1" -> "F55:N#1" route provisional bends 0
   wire "-101F1:N#2" -> "N-1" route provisional bends 1 at 153.315 112.867 mm
-  wire "1X1:1/a#1" -> "S51:2" route provisional bends 1 at 48.933 72.419 mm
-  wire "1X1:2/a#1" -> "S51:4" route provisional bends 1 at 54.152 72.419 mm
-  wire "1X1:PE/a#1" -> "-XPE:PE" route provisional bends 1 at 80.248 88.076 mm
+  wire "1X1:1/a" -> "S51:2" route provisional bends 1 at 48.933 72.419 mm
+  wire "1X1:2/a" -> "S51:4" route provisional bends 1 at 54.152 72.419 mm
+  wire "1X1:PE/a" -> "-XPE:PE" route provisional bends 1 at 80.248 88.076 mm
   wire "E55:PE" -> "PE-1.1" route provisional bends 1 at 229.970 108.952 mm
   wire "F55:2" -> junction 1 route provisional bends 1 at 208.115 59.371 mm
   wire "F55:N#2" -> junction 2 route provisional bends 1 at 215.944 59.371 mm
-  wire "J-E-206-L" -> "1X1:1/a#2" route provisional bends 1 at 48.933 115.476 mm
-  wire "J-E-206-N" -> "1X1:2/a#2" route provisional bends 1 at 54.152 118.086 mm
-  wire "J-E-206-PE" -> "1X1:PE/a#2" route provisional bends 1 at 59.371 120.695 mm
+  wire "J-E-206-L" -> "1X1:1/b" route provisional bends 1 at 48.933 115.476 mm
+  wire "J-E-206-N" -> "1X1:2/b" route provisional bends 1 at 54.152 118.086 mm
+  wire "J-E-206-PE" -> "1X1:PE/b" route provisional bends 1 at 59.371 120.695 mm
   wire "S51:1" -> "-101F1:1" route provisional bends 1 at 54.152 43.388 mm
   wire "S51:3" -> "-101F1:N#1" route provisional bends 1 at 59.371 43.714 mm
   wire "S56:14" -> "E56:X1" route provisional bends 0

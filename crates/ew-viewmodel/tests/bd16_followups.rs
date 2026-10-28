@@ -72,9 +72,10 @@ fn item1_the_two_clamps_of_a_starter_terminal_print_distinct_labels() {
     let labels = cp_labels(&s);
     assert_eq!(labels.len(), 2, "{labels:?}");
     assert_ne!(labels[0], labels[1], "{labels:?}");
-    // `ew.fn.terminal` names clamp `a` on both sides: the label takes `#n` in CP index order (side 1, then side 2).
-    assert!(labels[0].ends_with(":1/a#1"), "{labels:?}");
-    assert!(labels[1].ends_with(":1/a#2"), "{labels:?}");
+    // `ew.fn.terminal` names clamp `a` on side 1 and `b` on side 2 (FT-505); a FnDef that repeats a letter takes
+    // `#n` (ew-derive `a_repeated_clamp_letter_takes_a_suffix_and_distinct_letters_do_not`).
+    assert!(labels[0].ends_with(":1/a"), "{labels:?}");
+    assert!(labels[1].ends_with(":1/b"), "{labels:?}");
 }
 
 // ---------------------------------------------------------------------------------------------------------------

@@ -29,6 +29,9 @@
 //! - `a_bond_wire_falls_to_the_anchor_cell`: a wire between two potentials is not compared by distance.
 //! - FT-478, the orientation's step 3 without minted IDs: `the_orientation_tie_is_decided_by_the_cp_label_and_not_by_the_ids`
 //!   and `the_cell_of_a_function_drawn_twice_is_its_smallest_not_its_first_minted`.
+//! - `a_repeated_clamp_letter_takes_a_suffix_and_distinct_letters_do_not`: `cp_label` of a terminal whose FnDef
+//!   repeats a clamp letter on one level (a third-party FnDef) prints `/a#1`, `/a#2`; distinct letters print
+//!   `/a`, `/b` (FT-505).
 
 mod common;
 
@@ -37,7 +40,7 @@ use std::sync::Arc;
 
 use common::{Fx, id, uid};
 use ew_derive::{
-    CpFlowDistanceOf, CpFlowDistances, CpRef, PhysicalWiresOf, PotentialPartition, Q, WireNumbers,
+    CpFlowDistanceOf, CpFlowDistances, CpRef, PhysicalWiresOf, PotentialPartition, Q, WireNumbers, cp_label,
     orient_wire,
 };
 use ew_model::Model;
@@ -923,4 +926,45 @@ fn the_cell_of_a_function_drawn_twice_is_its_smallest_not_its_first_minted() {
         cpr(0x1001, 0),
         "the upper cell has the larger rep ID"
     );
+}
+
+/// `cp_label` of a terminal (cycle 30, FT-505): a FnDef that repeats a clamp letter on one level (a third-party
+/// FnDef; the starter `ew.fn.terminal` names side 2 `b` since FT-505) prints `#n` in CP index order, a FnDef with
+/// distinct letters prints the letters alone.
+#[test]
+fn a_repeated_clamp_letter_takes_a_suffix_and_distinct_letters_do_not() {
+    const FN_TERM_AA: u128 = 0x50a;
+    let mut fx = fixture();
+    fx.lib_item(
+        "fndef",
+        FN_TERM_AA,
+        json!({
+            "meta": {}, "category": ["Misc", "Misc", "Terminal"], "contact_kind": "terminal",
+            "cps": [
+                {"idx": 0, "designation": "1", "level": 1, "side": "side1", "clamp": {"clamp": "a"}},
+                {"idx": 1, "designation": "1", "level": 1, "side": "side2", "clamp": {"clamp": "a"}},
+            ],
+        }),
+    );
+    fx.device(0x4000, "X", Some(1)).with("strip", json!({}));
+    fx.function(0x4001, Some(0x4000), FN_STRIP, true);
+    for (n, seq, def) in [(0x4010, 1, FN_TERM), (0x4020, 2, FN_TERM_AA)] {
+        fx.device(n, "X", None).with(
+            "terminal",
+            json!({"strip": uid(0x4000), "seq": seq, "designation": seq.to_string()}),
+        );
+        fx.function(n + 1, Some(n), def, true);
+    }
+    let m = fx.build();
+    let q = Q::new(&m);
+    let labels: Vec<String> = [(0x4011, 0), (0x4011, 1), (0x4021, 0), (0x4021, 1)]
+        .into_iter()
+        .map(|(f, idx)| cp_label(&q, cpr(f, idx)))
+        .collect();
+    // The strip's printed tag (`-?X1` without a location) is not the subject; the part after it is.
+    let tails: Vec<&str> = labels
+        .iter()
+        .map(|l| l.split_once(':').map_or(l.as_str(), |(_, t)| t))
+        .collect();
+    assert_eq!(tails, ["1/a", "1/b", "2/a#1", "2/a#2"], "{labels:?}");
 }
