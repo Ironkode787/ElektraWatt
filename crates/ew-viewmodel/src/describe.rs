@@ -1927,38 +1927,18 @@ const FRACTIONS: [i64; 31] = [
     30, 1, 31,
 ];
 
-/// A sheet point on the drawn polyline of `wire` that the Select tool's press picks as this wire (WP-S2.04 §6.6;
-/// FT-485 item 4), so a reader of the page text can hover, select or delete it: no other entity's rectangle, inflated
-/// by the pick reach at 50 % zoom (else at 90 %), contains it, and no other connection passes as near. The candidates
-/// are the points at n/32 of each segment ([`FRACTIONS`]: the middle first, then outward), longer segments first
-/// (ties: the segment's order); `None` when no candidate is unambiguous (a provisional route that runs inside a
-/// symbol's body or along another wire for its whole length).
+/// A sheet point on the drawn polyline of `wire` that the Select tool's press picks as this wire (WP-S2.04 §6.6 as
+/// FT-500 amends it; FT-485 item 4), so a reader of the page text can hover, select or delete it: with the pick reach
+/// at 50 % zoom (else at 90 %), the wire is first in the pick stack there ([`crate::tools::pick_stack`]) and no other
+/// connection is in it, and no link is under it (a press on a link follows it). The candidates are the points at n/32 of each segment ([`FRACTIONS`]: the middle first, then
+/// outward), longer segments first (ties: the segment's order); `None` when no candidate is unambiguous (a provisional
+/// route that runs along other wires for its whole length; a repeated click there walks the stack).
 fn wire_point(page: &CanvasPage, wire: &ew_api::output::TableConnection) -> Option<(i64, i64)> {
-    use crate::tools::segment_dist2;
-    let sheet = |pts: &[(i64, i64)]| -> Vec<(i64, i64)> {
-        pts.iter().map(|p| page.snapper.page_to_sheet(*p)).collect()
-    };
-    let wires: std::collections::BTreeSet<_> = page.tables.connections.iter().map(|c| c.id).collect();
-    let boxes: std::collections::BTreeSet<_> = page.tables.structure_boxes.iter().map(|b| b.id).collect();
-    let others: Vec<_> = page
-        .entities
+    let own: Vec<(i64, i64)> = wire
+        .polyline
         .iter()
-        .filter(|(e, _)| !wires.contains(&e.0) && !boxes.contains(&e.0))
-        .map(|(_, r)| (r.min(), r.max()))
+        .map(|p| page.snapper.page_to_sheet(*p))
         .collect();
-    let lines: Vec<(_, Vec<(i64, i64)>)> = page
-        .tables
-        .connections
-        .iter()
-        .map(|c| (c.id, sheet(&c.polyline)))
-        .collect();
-    let dist = |pts: &[(i64, i64)], p: (i64, i64)| -> i128 {
-        pts.windows(2)
-            .map(|w| segment_dist2(p, w[0], w[1]))
-            .min()
-            .unwrap_or(i128::MAX)
-    };
-    let own = sheet(&wire.polyline);
     let mut segments: Vec<(i128, usize)> = own
         .windows(2)
         .enumerate()
@@ -1966,22 +1946,20 @@ fn wire_point(page: &CanvasPage, wire: &ew_api::output::TableConnection) -> Opti
         .filter(|(len, _)| *len > 0)
         .collect();
     segments.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.cmp(&b.1)));
+    let wires: std::collections::BTreeSet<_> = page.tables.connections.iter().map(|c| c.id).collect();
+    let me = ew_api::output::ew_dl::EntityRef(wire.id);
     // The pick reach of 4 points at 50 % and at 90 % zoom, nm (1 pt = 25.4 mm / 72).
     for reach in [25_400_000 * 4 * 2 / 72, 25_400_000 * 4 * 10 / 72 / 9] {
-        let reach = i64::from(reach);
         for &(_, i) in &segments {
             let (a, b) = (own[i], own[i + 1]);
             for n in FRACTIONS {
                 let p = (a.0 + (b.0 - a.0) * n / 32, a.1 + (b.1 - a.1) * n / 32);
-                let covered = others.iter().any(|(lo, hi)| {
-                    p.0 >= lo.x.0 - reach
-                        && p.0 <= hi.x.0 + reach
-                        && p.1 >= lo.y.0 - reach
-                        && p.1 <= hi.y.0 + reach
-                });
-                let r2 = i128::from(reach) * i128::from(reach);
-                let rival = lines.iter().any(|(id, pts)| *id != wire.id && dist(pts, p) <= r2);
-                if !covered && !rival {
+                let stack = crate::tools::pick_stack(page, &page.snapper, p, f64::from(reach));
+                let alone = stack.iter().filter(|e| wires.contains(&e.0)).count() == 1;
+                let link =
+                    crate::tools::link_at(&page.links, p, crate::canvas::HOVER_SLOP_PT / f64::from(reach))
+                        .is_some();
+                if stack.first() == Some(&me) && alone && !link {
                     return Some(p);
                 }
             }

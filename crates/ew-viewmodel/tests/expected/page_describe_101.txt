@@ -52,23 +52,23 @@ page "101" "Power Supply 1 - Main Current" reps 17 connections 21 junctions 2
     cp "N-1" at 273.353 174.191 mm wires 1 potential "N-1"
   wire "-101F1:1" -> "F55:1" route provisional bends 0
   wire "-101F1:2" -> "L-1" route provisional bends 1 at 209.420 168.972 mm
-  wire "-101F1:N#1" -> "F55:N#1" route provisional bends 0
+  wire "-101F1:N#1" -> "F55:N#1" route provisional bends 0 at 212.029 41.104 mm
   wire "-101F1:N#2" -> "N-1" route provisional bends 1 at 153.315 112.867 mm
   wire "1X1:1/a" -> "S51:2" route provisional bends 1 at 48.933 72.419 mm
   wire "1X1:2/a" -> "S51:4" route provisional bends 1 at 54.152 72.419 mm
   wire "1X1:PE/a" -> "-XPE:PE" route provisional bends 1 at 80.248 88.076 mm
-  wire "E55:PE" -> "PE-1.1" route provisional bends 1 at 229.970 108.952 mm
+  wire "E55:PE" -> "PE-1.1" route provisional bends 1 at 235.515 108.952 mm
   wire "F55:2" -> junction 1 route provisional bends 1 at 208.115 59.371 mm
   wire "F55:N#2" -> junction 2 route provisional bends 1 at 215.944 59.371 mm
   wire "J-E-206-L" -> "1X1:1/b" route provisional bends 1 at 48.933 115.476 mm
   wire "J-E-206-N" -> "1X1:2/b" route provisional bends 1 at 54.152 118.086 mm
   wire "J-E-206-PE" -> "1X1:PE/b" route provisional bends 1 at 59.371 120.695 mm
-  wire "S51:1" -> "-101F1:1" route provisional bends 1 at 54.152 43.388 mm
-  wire "S51:3" -> "-101F1:N#1" route provisional bends 1 at 59.371 43.714 mm
+  wire "S51:1" -> "-101F1:1" route provisional bends 1 at 54.152 43.714 mm
+  wire "S51:3" -> "-101F1:N#1" route provisional bends 1 at 59.371 44.040 mm
   wire "S56:14" -> "E56:X1" route provisional bends 0
-  wire "T55:3" -> "E55:N" route provisional bends 0
-  wire junction 1 -> "E55:L" route provisional bends 1
-  wire junction 1 -> "E56:X2" route provisional bends 1
+  wire "T55:3" -> "E55:N" route provisional bends 0 at 210.725 106.832 mm
+  wire junction 1 -> "E55:L" route provisional bends 1 at 210.725 71.767 mm
+  wire junction 1 -> "E56:X2" route provisional bends 1 at 242.039 91.990 mm
   wire junction 2 -> "S56:13" route provisional bends 1
   wire junction 2 -> "T55:5" route provisional bends 0
   junction 1 cell "101-C11" at 195.067 67.200 mm style dot wiring star sequence "F55:2" "E55:L" "E56:X2"

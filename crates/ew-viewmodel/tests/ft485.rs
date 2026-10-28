@@ -115,10 +115,11 @@ fn item4_a_wire_is_selected_by_its_printed_point_or_by_its_ends() {
         .map(str::to_owned)
         .collect();
     assert_eq!(wires.len(), 21);
-    // Folio 101's provisional routes overlap: eight wires run along another wire or through a symbol's body for their
-    // whole length, so no point picks them and the line prints none.
+    // Folio 101's provisional routes overlap: four wires run along other wires for their whole length, so no point
+    // picks them alone and the line prints none (a repeated click walks to them, FT-500). The four that ran through a
+    // symbol's body or along its edge print a point since FT-500.
     let pointless: Vec<&String> = wires.iter().filter(|l| at_of(l).is_none()).collect();
-    assert_eq!(pointless.len(), 8, "{pointless:#?}");
+    assert_eq!(pointless.len(), 4, "{pointless:#?}");
     assert!(pointless.iter().all(|l| l.contains(" route provisional ")));
     let t = tables(&s);
     let ends_of = |id| {

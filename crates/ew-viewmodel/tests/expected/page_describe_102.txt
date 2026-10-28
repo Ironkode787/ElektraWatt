@@ -47,17 +47,17 @@ page "102" "Power Supply 2 - Control Current" reps 12 connections 19 junctions 4
   wire "-102G1:+#1" -> junction 1 route provisional bends 1 at 119.391 60.676 mm
   wire "-102G1:+#2" -> junction 1 route provisional bends 1 at 124.610 60.676 mm
   wire "-102G1:PE" -> "PE-1.2" route provisional bends 1 at 193.763 22.838 mm
-  wire "-102G1:−#1" -> junction 2 route provisional bends 1 at 129.829 58.393 mm
-  wire "-102G1:−#2" -> junction 3 route provisional bends 1 at 135.048 58.393 mm
-  wire "L-1" -> "-102G1:L" route provisional bends 1
-  wire "N-1" -> "-102G1:N" route provisional bends 1
-  wire junction 1 -> "-102F1:1" route provisional bends 1
-  wire junction 2 -> "-102F2:GND#1" route provisional bends 1 at 145.486 97.046 mm
+  wire "-102G1:−#1" -> junction 2 route provisional bends 1 at 129.829 71.114 mm
+  wire "-102G1:−#2" -> junction 3 route provisional bends 1 at 135.048 71.114 mm
+  wire "L-1" -> "-102G1:L" route provisional bends 1 at 38.495 24.306 mm
+  wire "N-1" -> "-102G1:N" route provisional bends 1 at 121.919 38.495 mm
+  wire junction 1 -> "-102F1:1" route provisional bends 1 at 126.567 67.200 mm
+  wire junction 2 -> "-102F2:GND#1" route provisional bends 1 at 145.486 94.600 mm
   wire junction 2 -> "PE-0VDC" route provisional bends 1
-  wire junction 3 -> "-102F2:GND#2" route provisional bends 1 at 150.705 90.115 mm
+  wire junction 3 -> "-102F2:GND#2" route provisional bends 1 at 150.705 94.600 mm
   wire junction 3 -> "0VDC" route provisional bends 1 at 257.696 76.333 mm
-  wire junction 4 -> "-102F2:24VDC#1" route provisional bends 1 at 135.048 92.969 mm
-  wire junction 4 -> "-102F2:24VDC#2" route provisional bends 1 at 140.267 94.192 mm
+  wire junction 4 -> "-102F2:24VDC#1" route provisional bends 1 at 135.048 94.600 mm
+  wire junction 4 -> "-102F2:24VDC#2" route provisional bends 1 at 140.267 94.600 mm
   junction 1 cell "102-C6" at 116.781 67.200 mm style bevel wiring chain sequence "-102G1:+#1" "-102F1:1" "-102G1:+#2"
   junction 2 cell "102-D5" at 101.124 88.076 mm style bevel wiring star sequence "-102G1:−#1" "-102F2:GND#1" "PE-0VDC"
   junction 3 cell "102-D6" at 116.781 88.076 mm style bevel wiring star sequence "-102G1:−#2" "-102F2:GND#2" "0VDC"

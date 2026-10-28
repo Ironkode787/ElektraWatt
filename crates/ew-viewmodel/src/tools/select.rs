@@ -44,6 +44,14 @@
 //! structure boxes. Picking uses WP-S2.02's entity rectangles (an entity may have several: it lies inside a band
 //! when all do, and touches it when one does) plus the exact segment distance of connections and structure-box
 //! outlines (§6.6). A release on empty canvas within 3 points clears the selection (Shift keeps it).
+//!
+//! **FT-500** (picking where routes overlap). The pick is the first of the pick stack ([`super::pick_stack`]): a
+//! wire's drawn line goes before the representation rectangle the press is in when it is strictly nearer than that
+//! rectangle's centre. A press there that becomes a drag still moves the representation. A plain click repeated within
+//! 3 points of the last plain click's press, on the same page and revision, while the selection is still exactly what
+//! that click selected, selects the next entity of the pick stack, the last wrapping to the first; this also holds for
+//! the click that a press on a selected connection's segment becomes, and for `Activate`. Shift and Ctrl clicks never
+//! walk, and any other release ends the walk.
 
 use ew_api::output::ew_dl::ew_units::Rect;
 use ew_api::output::ew_dl::{Destination, EntityRef};
@@ -75,7 +83,9 @@ enum State {
         entity: EntityRef,
         at: (i64, i64),
         mods: Mods,
-        movable: bool,
+        /// The entity a drag from here moves: the pressed entity when it is movable, the representation whose
+        /// rectangle the press is in when a wire's line took the press (FT-500), else none (a drag is a band).
+        drag: Option<EntityRef>,
     },
     /// A rubber band from `from` to `to`.
     Band {
@@ -134,6 +144,18 @@ pub struct SelectTool {
     origin: (u64, u64),
     /// The autoconnect proposals of the moved CPs at the current steps, as the describe text names them (shown only).
     proposals: Vec<(String, Option<String>)>,
+    /// The last plain click and what it selected, for the repeated click that walks the pick stack (FT-500).
+    last: Option<LastClick>,
+}
+
+/// A plain click (no Shift, no Ctrl) of the Select tool: where it pressed, on which page and revision, and the entity
+/// it selected.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+struct LastClick {
+    at: (i64, i64),
+    page: ew_api::output::Uuid,
+    rev: u64,
+    picked: EntityRef,
 }
 
 impl Default for SelectTool {
@@ -194,7 +216,50 @@ impl SelectTool {
             cursor: None,
             origin: (0, 0),
             proposals: Vec::new(),
+            last: None,
         }
+    }
+
+    /// A click pressed at `at` on `entity` (the pick, or the selected connection whose segment was pressed). A plain
+    /// click repeated where the last plain click pressed (within [`CLICK_SLOP_PT`]), on the same page and revision,
+    /// while the selection is still exactly what that click selected, selects the entity after that one in the pick
+    /// stack at `at`, the last wrapping to the first (FT-500); otherwise `entity`. Shift and Ctrl clicks never walk.
+    fn click(
+        &mut self,
+        last: Option<LastClick>,
+        entity: EntityRef,
+        at: (i64, i64),
+        mods: Mods,
+        cx: &ToolCx<'_>,
+    ) -> ToolOutput {
+        if mods.shift || mods.ctrl {
+            return SelectTool::click_entity(entity, mods);
+        }
+        let page = cx.page.tables.page;
+        let repeat = last.filter(|l| {
+            l.page == page
+                && l.rev == cx.page.rev
+                && cx.within(l.at, at, CLICK_SLOP_PT)
+                && cx.selection.items.as_slice() == [l.picked]
+        });
+        let picked = match repeat {
+            Some(l) => {
+                let stack = cx.pick_stack(at);
+                match stack.iter().position(|e| *e == l.picked) {
+                    Some(i) => stack[(i + 1) % stack.len()],
+                    None => entity,
+                }
+            }
+            None => entity,
+        };
+        self.last = Some(LastClick {
+            // A walk keeps the place of its first click, so that small pointer drift never moves it away.
+            at: repeat.map_or(at, |l| l.at),
+            page,
+            rev: cx.page.rev,
+            picked,
+        });
+        SelectTool::click_entity(picked, mods)
     }
 
     /// The overlay of a move of `moved` by `steps`; the proposals of the moved CPs are kept for the ghost (shown only).
@@ -425,16 +490,33 @@ impl SelectTool {
             };
             return ToolOutput::None;
         }
-        if let Some(entity) = cx.pick(at) {
-            let movable = matches!(
-                entity_kind(&cx.page.tables, entity),
-                Some(EntityKind::Rep | EntityKind::Item | EntityKind::StructureBox)
-            );
+        let stack = cx.pick_stack(at);
+        if let Some(&entity) = stack.first() {
+            let tables = &cx.page.tables;
+            let movable = |e: EntityRef| {
+                matches!(
+                    entity_kind(tables, e),
+                    Some(EntityKind::Rep | EntityKind::Item | EntityKind::StructureBox)
+                )
+            };
+            // A wire's line picked inside a representation's rectangle (FT-500): a drag still moves the representation,
+            // as before the wires took the press there.
+            let drag = if movable(entity) {
+                Some(entity)
+            } else if entity_kind(tables, entity) == Some(EntityKind::Connection) {
+                stack
+                    .iter()
+                    .copied()
+                    .find(|e| entity_kind(tables, *e) != Some(EntityKind::Connection))
+                    .filter(|e| entity_kind(tables, *e) == Some(EntityKind::Rep))
+            } else {
+                None
+            };
             self.state = State::Pressed {
                 entity,
                 at,
                 mods,
-                movable,
+                drag,
             };
             return ToolOutput::None;
         }
@@ -455,6 +537,7 @@ impl SelectTool {
                 _ => return ToolOutput::None,
             };
             self.state = State::Idle;
+            self.last = None;
             return match cmd {
                 Ok(Some(c)) => ToolOutput::Commit(c),
                 Ok(None) => SelectTool::click_entity(rep, mods),
@@ -462,6 +545,8 @@ impl SelectTool {
             };
         }
         let state = std::mem::replace(&mut self.state, State::Idle);
+        // Every release but a click forgets the last click; a click sets it again.
+        let last = self.last.take();
         match state {
             State::Idle | State::Grip { .. } | State::BoxCp { .. } => ToolOutput::None,
             State::Link { dest, at: from } => {
@@ -483,7 +568,7 @@ impl SelectTool {
                     alt: pressed.alt || mods.alt,
                 };
                 if cx.within(from, at, CLICK_SLOP_PT) {
-                    SelectTool::click_entity(entity, held)
+                    self.click(last, entity, from, held, cx)
                 } else {
                     SelectTool::finish_band(from, at, held, cx)
                 }
@@ -506,13 +591,14 @@ impl SelectTool {
             } => {
                 let steps = steps_between(cx, from, at);
                 if steps == (0, 0) {
-                    SelectTool::click_entity(pressed, held)
+                    self.click(last, pressed, from, held, cx)
                 } else {
                     ToolOutput::Commit(move_command(&cx.page.tables, &moved, steps))
                 }
             }
             moving @ State::Moving { .. } => {
                 self.state = moving;
+                self.last = last;
                 ToolOutput::None
             }
             State::Segment {
@@ -527,7 +613,7 @@ impl SelectTool {
                 let grid = PageGridMap::new(cx.page.tables.grid);
                 match moved_route(&line, seg, k, grid).filter(|_| k != 0) {
                     Some(route) => ToolOutput::Commit(route_command(connection, &route)),
-                    None => SelectTool::click_entity(connection, held),
+                    None => self.click(last, connection, from, held, cx),
                 }
             }
         }
@@ -567,13 +653,13 @@ impl SelectTool {
                 entity,
                 at: from,
                 mods,
-                movable,
+                drag,
             } => {
                 if cx.within(from, at, CLICK_SLOP_PT) {
                     return ToolOutput::None;
                 }
-                if movable {
-                    let moved = moved_set(cx, entity);
+                if let Some(dragged) = drag {
+                    let moved = moved_set(cx, dragged);
                     let steps = steps_between(cx, from, at);
                     let out = self.move_out(cx, &moved, steps);
                     self.origin = (cx.selection.generation, cx.page.rev);

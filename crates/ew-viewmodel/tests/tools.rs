@@ -352,8 +352,13 @@ fn t6_enter_selects_and_measure_from_the_keyboard_alone() {
     for (_, p) in entity_points(shell.canvas().unwrap()) {
         done(&mut shell, "cursor.set", at(p, json!({})));
         let c = shell.canvas().unwrap();
+        // The hover's entity, where the Select tool's pick (WP-S2.04 §6.6 with FT-500) agrees with it.
+        let page = c.page();
+        let slop = ew_viewmodel::canvas::HOVER_SLOP_PT / c.points_per_nm();
         if c.cursor_link().is_none()
             && let Some((e, _)) = c.cursor_entity()
+            && let Some(p) = c.cursor()
+            && ew_viewmodel::tools::pick_stack(page, &page.snapper, p, slop).first() == Some(&e)
         {
             under = Some(e);
             break;

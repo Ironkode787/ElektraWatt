@@ -250,18 +250,26 @@ fn t10_the_primary_button_is_the_tools_input() {
 fn a_press_and_its_release_in_one_frame_still_click() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "103");
-    // An entity whose centre is no link and picks it.
+    // An entity whose centre is no link and picks it, with no wire within reach (the Select tool takes a wire's line
+    // drawn through a symbol's middle first, FT-500, and the tap's point is rounded to the screen).
     let (entity, p) = {
         let c = h.state().shell().canvas().unwrap();
         let slop = ew_ui::ew_viewmodel::canvas::HOVER_SLOP_PT / c.points_per_nm();
-        c.page()
-            .entities
+        let page = c.page();
+        page.entities
             .iter()
             .map(|(e, r)| (*e, ew_ui::ew_viewmodel::canvas::rect_centre(*r)))
             .find(|(e, p)| {
                 c.link_at(*p).is_none()
-                    && ew_ui::ew_viewmodel::canvas::pick(&c.page().entities, Some(*p), slop).map(|x| x.0)
+                    && ew_ui::ew_viewmodel::canvas::pick(&page.entities, Some(*p), slop).map(|x| x.0)
                         == Some(*e)
+                    && {
+                        let stack = ew_ui::ew_viewmodel::tools::pick_stack(page, &page.snapper, *p, slop);
+                        stack.first() == Some(e)
+                            && stack
+                                .iter()
+                                .all(|x| page.tables.connections.iter().all(|w| w.id != x.0))
+                    }
             })
             .expect("an entity off the links")
     };

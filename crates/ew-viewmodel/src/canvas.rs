@@ -900,6 +900,32 @@ pub fn pick(
     best.map(|(_, id, r)| (id, r))
 }
 
+/// Every entity of `entities` whose rectangle inflated by `slop` nm contains `pointer`, once each, in the order of
+/// [`pick`]: the smallest area first, ties to the later in paint order (an entity with several rectangles takes the
+/// place of its best one). The first is [`pick`]'s.
+pub fn rect_hits(entities: &[(EntityRef, Rect)], pointer: (i64, i64), slop: f64) -> Vec<EntityRef> {
+    let (px, py) = pointer;
+    let slop = if slop.is_finite() { slop.max(0.0) } else { 0.0 };
+    let mut hits: Vec<(i128, std::cmp::Reverse<usize>, EntityRef)> = Vec::new();
+    for (i, &(id, r)) in entities.iter().enumerate() {
+        let (a, b) = (r.min(), r.max());
+        let inside =
+            |p: i64, lo: Nm, hi: Nm| p as f64 >= lo.0 as f64 - slop && p as f64 <= hi.0 as f64 + slop;
+        if inside(px, a.x, b.x) && inside(py, a.y, b.y) {
+            let area = i128::from(b.x.0 - a.x.0) * i128::from(b.y.0 - a.y.0);
+            hits.push((area, std::cmp::Reverse(i), id));
+        }
+    }
+    hits.sort();
+    let mut out: Vec<EntityRef> = Vec::with_capacity(hits.len());
+    for (_, _, e) in hits {
+        if !out.contains(&e) {
+            out.push(e);
+        }
+    }
+    out
+}
+
 /// The centre of a rectangle (toward zero).
 pub fn rect_centre(r: Rect) -> (i64, i64) {
     let (a, b) = (r.min(), r.max());

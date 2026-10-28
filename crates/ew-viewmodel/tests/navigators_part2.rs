@@ -272,8 +272,9 @@ fn np3_highlighting_24vdc_1_from_the_potentials_navigator() {
 
 /// NP4 (§6.5), the model half: with Connections and Potentials open, selecting W29 on folio 103 from the canvas marks its
 /// wire row in both (in Potentials under 24VDC-1), reveals them and leaves the focus on the canvas. On Golden A, W29's
-/// drawn route on 103 runs on W30's (a pointer press on it takes W30's segment), so the test drives W29's selection by
-/// `select.set`, and checks a real canvas click with the wire it picks (deviation N30-3).
+/// provisional route on 103 lies on other wires' routes end to end, so the first click there picks the first wire of
+/// the pick stack and repeated clicks walk to W29 (FT-500, which closes deviation N30-3); every click marks the row of
+/// the wire it selects.
 #[test]
 fn np4_selecting_w29_on_the_canvas_marks_its_rows_in_both_navigators() {
     let tmp = Tmp::new("nav2-sync");
@@ -334,8 +335,30 @@ fn np4_selecting_w29_on_the_canvas_marks_its_rows_in_both_navigators() {
     assert_eq!(in_pots.len(), 1);
     assert!(in_pots.iter().next().unwrap().contains("/connection:"));
     assert_eq!(state(&shell)["focus"], "canvas");
-    // W29 itself.
-    done(&mut shell, "select.set", json!({"ids": [w29.to_string()]}));
+    // W29 itself: the same click repeated walks the pick stack to it.
+    let stack = {
+        let c = shell.canvas().unwrap();
+        let page = c.page();
+        ew_viewmodel::tools::pick_stack(
+            page,
+            &page.snapper,
+            p,
+            ew_viewmodel::canvas::HOVER_SLOP_PT / c.points_per_nm(),
+        )
+    };
+    assert_eq!(
+        picked[0], stack[0],
+        "the first click picks the first of the stack"
+    );
+    let at_w29 = stack
+        .iter()
+        .position(|e| e.0 == w29)
+        .expect("W29 is in the pick stack at its route");
+    for (k, next) in stack.iter().enumerate().take(at_w29 + 1).skip(1) {
+        click(&mut shell, p, json!({}));
+        assert_eq!(shell.selection().items, vec![*next], "click {}", k + 1);
+    }
+    assert_eq!(shell.selection().items[0].0, w29);
     assert_eq!(
         marked(&shell, NavKind::Connections),
         BTreeSet::from([row.clone()])

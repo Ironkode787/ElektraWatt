@@ -458,33 +458,17 @@ impl ToolCx<'_> {
         crate::canvas::pick(&self.page.entities, Some(at), self.nm_of_points(HOVER_SLOP_PT)).map(|(e, _)| e)
     }
 
-    /// The entity under `at` by WP-S2.04 §6.6: the smallest entity rectangle containing it inflated by 4 points
-    /// (ties to the later in paint order) among the entities that are neither connections nor structure boxes; else
-    /// the connection whose drawn polyline passes within 4 points of it by exact integer distance (ties by the smaller
-    /// distance, then by ID); else the structure box whose closed outline passes within 4 points (ties by the smaller
-    /// distance, then by ID). A press inside a structure box away from its outline therefore picks nothing. Without
-    /// page tables, the rectangle pick of [`ToolCx::entity_at`].
+    /// The entity under `at` by WP-S2.04 §6.6 as FT-500 amends it: the first of [`ToolCx::pick_stack`]. A press inside
+    /// a structure box away from its outline picks nothing. Without page tables, the rectangle pick of
+    /// [`ToolCx::entity_at`].
     pub fn pick(&self, at: (i64, i64)) -> Option<EntityRef> {
-        let tables = &self.page.tables;
-        if tables.connections.is_empty() && tables.structure_boxes.is_empty() {
-            return self.entity_at(at);
-        }
-        let wires: std::collections::BTreeSet<_> = tables.connections.iter().map(|c| c.id).collect();
-        let boxes: std::collections::BTreeSet<_> = tables.structure_boxes.iter().map(|b| b.id).collect();
-        let others: Vec<(EntityRef, Rect)> = self
-            .page
-            .entities
-            .iter()
-            .filter(|(e, _)| !wires.contains(&e.0) && !boxes.contains(&e.0))
-            .copied()
-            .collect();
-        if let Some((e, _)) = crate::canvas::pick(&others, Some(at), self.nm_of_points(HOVER_SLOP_PT)) {
-            return Some(e);
-        }
-        if let Some((e, _)) = self.connection_at(at) {
-            return Some(e);
-        }
-        self.structure_box_at(at).map(|(e, _)| e)
+        self.pick_stack(at).first().copied()
+    }
+
+    /// Every entity a press at `at` can pick, in pick order ([`pick_stack`] with the reach of 4 points at the current
+    /// zoom): the first is the pick, and a repeated click at the same place walks the rest (FT-500).
+    pub fn pick_stack(&self, at: (i64, i64)) -> Vec<EntityRef> {
+        pick_stack(self.page, self.snapper, at, self.nm_of_points(HOVER_SLOP_PT))
     }
 
     /// The connection whose drawn polyline (the page tables', mapped to the sheet) passes within 4 points of `at`,
@@ -555,6 +539,94 @@ impl ToolCx<'_> {
         let r = self.nm_of_points(pt);
         dx * dx + dy * dy <= r * r
     }
+}
+
+/// The pick stack of a press at the sheet point `at` with the reach `reach` nm (4 points at the zoom; WP-S2.04 §6.6
+/// as FT-500 amends it): every entity a press there can pick, each once, in pick order.
+///
+/// Three groups are formed: **R**, the entities that are neither connections nor structure boxes whose rectangle
+/// inflated by `reach` contains `at` ([`crate::canvas::rect_hits`]: the smallest area first, ties to the later in
+/// paint order); **C**, the connections whose drawn polyline (the page tables', mapped to the sheet by `snapper`)
+/// passes within `reach` of `at` by exact integer distance (the nearer first, then by ID); **B**, the structure boxes
+/// whose closed outline passes within `reach` (the nearer first, then by ID). The stack is `C, R, B` when R is empty,
+/// or when R's first is a representation and the nearest connection's line is strictly nearer to `at` than the
+/// nearest centre of that representation's rectangles that contain `at`; else `R, C, B`. A representation's rectangle
+/// is the bounding box of its drawing, so a press on a wire's drawn line inside it picks the wire, while a press at
+/// the representation's centre still picks the representation (FT-500: a provisional route that runs through a
+/// symbol's body, or along a symbol's edge, could not be picked at all); a junction, a page item or another rectangle
+/// keeps its place before the wires. Without page tables (no connections and no structure boxes), R alone over every
+/// entity.
+pub fn pick_stack(page: &CanvasPage, snapper: &Snapper, at: (i64, i64), reach: f64) -> Vec<EntityRef> {
+    let tables = &page.tables;
+    if tables.connections.is_empty() && tables.structure_boxes.is_empty() {
+        return crate::canvas::rect_hits(&page.entities, at, reach);
+    }
+    let wires: std::collections::BTreeSet<_> = tables.connections.iter().map(|c| c.id).collect();
+    let boxes: std::collections::BTreeSet<_> = tables.structure_boxes.iter().map(|b| b.id).collect();
+    let others: Vec<(EntityRef, Rect)> = page
+        .entities
+        .iter()
+        .filter(|(e, _)| !wires.contains(&e.0) && !boxes.contains(&e.0))
+        .copied()
+        .collect();
+    let rects = crate::canvas::rect_hits(&others, at, reach);
+    let r = if reach.is_finite() {
+        reach.max(0.0).floor().min(9.0e15) as i128
+    } else {
+        0
+    };
+    let within = |pts: Vec<(i64, i64)>, closed: bool| -> Option<i128> {
+        let d = match pts.as_slice() {
+            [] => return None,
+            [p] => dist2(*p, at),
+            _ => {
+                let open = pts.windows(2).map(|w| segment_dist2(at, w[0], w[1]));
+                let last = closed.then(|| segment_dist2(at, pts[pts.len() - 1], pts[0]));
+                open.chain(last).min().unwrap_or(i128::MAX)
+            }
+        };
+        (d <= r * r).then_some(d)
+    };
+    let mut conns: Vec<(i128, EntityRef)> = tables
+        .connections
+        .iter()
+        .filter_map(|c| {
+            let pts = c.polyline.iter().map(|p| snapper.page_to_sheet(*p)).collect();
+            within(pts, false).map(|d| (d, EntityRef(c.id)))
+        })
+        .collect();
+    conns.sort();
+    let mut outlines: Vec<(i128, EntityRef)> = tables
+        .structure_boxes
+        .iter()
+        .filter_map(|b| {
+            let pts = b.outline.iter().map(|p| snapper.page_to_sheet(*p)).collect();
+            within(pts, true).map(|d| (d, EntityRef(b.id)))
+        })
+        .collect();
+    outlines.sort();
+    // The nearest centre of the first representation's rectangles that contain `at` (inflated), squared.
+    let centre = |e: EntityRef| -> i128 {
+        others
+            .iter()
+            .filter(|(x, r)| *x == e && !crate::canvas::rect_hits(&[(e, *r)], at, reach).is_empty())
+            .map(|(_, r)| dist2(crate::canvas::rect_centre(*r), at))
+            .min()
+            .unwrap_or(i128::MAX)
+    };
+    let wires_first = match (rects.first(), conns.first()) {
+        (None, _) => true,
+        (Some(&e), Some(&(d, _))) => entity_kind(tables, e) == Some(EntityKind::Rep) && d < centre(e),
+        (Some(_), None) => false,
+    };
+    let conns = conns.into_iter().map(|(_, e)| e);
+    let mut out: Vec<EntityRef> = if wires_first {
+        conns.chain(rects).collect()
+    } else {
+        rects.into_iter().chain(conns).collect()
+    };
+    out.extend(outlines.into_iter().map(|(_, e)| e));
+    out
 }
 
 /// The link of `links` whose rectangle, inflated by [`HOVER_SLOP_PT`] at `points_per_nm`, contains `p`: the
