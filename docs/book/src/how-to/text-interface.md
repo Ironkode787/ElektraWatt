@@ -43,6 +43,10 @@ choose the terminal symbol in the symbol picker, and a second picker lists the s
 its counter is given with its first terminal; the `@n` at the end of its row selects it (`select.set` with `ids`
 `["@n"]`), and `edit.delete_selection` deletes a strip that has no terminals.
 
+A terminal's connection points print `strip:terminal/clamp` (`-X1031:1/b`). Where two clamps of one level carry the same
+letter, as on a terminal without a part, the label adds `#1` for side 1 (internal) and `#2` for side 2 (field):
+`1X1:1/a#1` and `1X1:1/a#2`.
+
 ## External points
 
 1. `structure.new` with `kind` `location` and the location (`+J-E-206`), then `external_ref.new` with the location, the

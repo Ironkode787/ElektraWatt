@@ -549,8 +549,8 @@ fn page_describe_lists_items_and_boxes() {
             "kind": {"free_text": {"text": "40x60", "at": [50_000_000, 100_000_000]}}}}),
     );
     let t = tables(&s);
-    let w4 = connection_between(&t, "1X1:1/a", "S51:2");
-    let w5 = connection_between(&t, "1X1:2/a", "S51:4");
+    let w4 = connection_between(&t, "1X1:1/a#1", "S51:2");
+    let w5 = connection_between(&t, "1X1:2/a#1", "S51:4");
     done(
         &mut s,
         "command.run",

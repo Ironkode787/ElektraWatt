@@ -456,7 +456,7 @@ fn run_coincident(tag: &str, ids: Ids) -> String {
 /// The blind replay of `gpp-dry-101` differed between two fresh folders (cycle 29, lane H29): coincident CPs were
 /// ordered by their v5 IDs in `page_cps` (the snap's label, `cp.next`), and a potential's fallback name took the CP
 /// with the smaller v5 ID among the CPs of one anchor cell. Both ties now go to the label or the name in natural
-/// order: four runs under four ID sets print the same bytes, the snap names `-X1991:1/a` and the potential is
+/// order: four runs under four ID sets print the same bytes, the snap names `-X1991:1/a#2` and the potential is
 /// `-X1991:1:1`.
 #[test]
 fn coincident_cps_and_fallback_names_do_not_depend_on_new_ids() {
@@ -482,7 +482,7 @@ fn coincident_cps_and_fallback_names_do_not_depend_on_new_ids() {
         .map(|v| v["state"]["canvas"]["snap"].clone())
         .unwrap();
     assert_eq!(snap["kind"], "cp", "{a}");
-    assert_eq!(snap["label"], "-X1991:1/a", "{a}");
+    assert_eq!(snap["label"], "-X1991:1/a#2", "{a}");
     let describe = steps
         .iter()
         .find(|v| v["action"] == "page.describe")

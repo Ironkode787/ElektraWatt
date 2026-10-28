@@ -191,10 +191,10 @@ fn item7_a_route_that_ends_on_a_wire_names_that_wire_by_its_ends() {
     let tmp = Tmp::new("ft485-7");
     let mut s = golden(&tmp, "101");
     let text = page_text(&mut s, "101");
-    // The two wires of the drafter's mistake run side by side through one cell (`1X1:1/a` and `1X1:2/a` up to S51).
+    // The two wires of the drafter's mistake run side by side through one cell (`1X1:1/a#1`, `1X1:2/a#1` to S51).
     let line = text
         .lines()
-        .find(|l| l.starts_with("  wire \"1X1:1/a\" -> \"S51:2\""))
+        .find(|l| l.starts_with("  wire \"1X1:1/a#1\" -> \"S51:2\""))
         .expect("the wire");
     let p = at_of(line).unwrap();
     let ends: Vec<&str> = line.split('"').skip(1).step_by(2).take(2).collect();
