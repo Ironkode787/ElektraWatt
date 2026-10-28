@@ -188,6 +188,10 @@ impl ShellModel {
         if first {
             return;
         }
+        // A press held across the change: the tool is escaped below and the release that follows is dropped (FT-392).
+        if std::mem::take(&mut self.tools.press_held) {
+            self.tools.drop_release = true;
+        }
         if let Some(out) = self.run_tool(&CanvasEvent::Escape) {
             let _ = self.apply_tool_output(out);
         }
@@ -673,7 +677,8 @@ impl ShellModel {
 
     /// `canvas.press` and `canvas.release` (§7.9): `x_mm`, `y_mm`, optional `button` (`primary`, `middle`),
     /// `shift`, `ctrl`, `alt` and `group`. A press in the other group focuses it first; the middle button reaches
-    /// no tool (it pans).
+    /// no tool (it pans). A primary release after the tool's context changed under its press is dropped: no focus,
+    /// pointer, tool or selection change (FT-392).
     pub(super) fn act_press(&mut self, p: &Map<String, Value>, release: bool) -> Outcome {
         let at = match point_mm(p) {
             Ok(Some(at)) => at,
@@ -688,6 +693,15 @@ impl ShellModel {
                 _ => return failed("error-bad-param", &["button"]),
             },
         };
+        if button == Button::Primary {
+            if release && std::mem::take(&mut self.tools.drop_release) {
+                return Outcome::Done;
+            }
+            // A new press: a release that never came is forgotten (before the focus moves, so the press's own
+            // context change drops nothing).
+            self.tools.press_held = false;
+            self.tools.drop_release = false;
+        }
         let g = match self.group_param(p) {
             Ok(g) => g,
             Err(e) => return e,
@@ -726,6 +740,7 @@ impl ShellModel {
         } else {
             CanvasEvent::Press { at, button, mods }
         };
+        self.tools.press_held = !release;
         self.send_tool(&ev)
     }
 

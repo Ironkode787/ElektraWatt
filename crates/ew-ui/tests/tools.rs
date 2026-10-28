@@ -346,6 +346,122 @@ fn a_press_on_the_splitter_between_the_groups_is_no_tool_input() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// The canvases' bounds, left to right.
+fn canvas_bounds(h: &Harness<'_, App>) -> Vec<(f64, f64, f64, f64)> {
+    let mut v: Vec<_> = h
+        .get_all_by_role(egui::Role::Canvas)
+        .map(|n| {
+            let r = n.accesskit_node().raw_bounds().expect("bounds");
+            (r.x0, r.y0, r.x1, r.y1)
+        })
+        .collect();
+    v.sort_by(|a, b| a.0.total_cmp(&b.0));
+    v
+}
+
+fn button(h: &mut Harness<'_, App>, pos: Pos2, pressed: bool) {
+    h.event(egui::Event::PointerButton {
+        pos,
+        button: PointerButton::Primary,
+        pressed,
+        modifiers: Modifiers::NONE,
+    });
+    h.run_ok();
+}
+
+/// FT-392: a canvas group hidden while a primary press is held on it (View ▸ Side by side off) escapes the tool as a
+/// focus change does, and the release that follows reaches no tool, now or from a later click: no selection change,
+/// no focus jump to the group when it shows again.
+#[test]
+fn a_group_hidden_while_a_press_is_held_drops_the_release() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "103");
+    dispatch(&mut h, "view.side_by_side", json!({}));
+    settle(&mut h);
+    wait_for_page(&mut h);
+    settle(&mut h);
+    let bounds = canvas_bounds(&h);
+    assert_eq!(bounds.len(), 2);
+    let right = bounds[1];
+    let centre = |r: (f64, f64, f64, f64)| Pos2::new(((r.0 + r.2) / 2.0) as f32, ((r.1 + r.3) / 2.0) as f32);
+    // A band started in the right group (group 1), the button still down.
+    let from = centre(right);
+    let before = h.state().shell().selection().clone();
+    h.event(egui::Event::PointerMoved(from));
+    h.run_ok();
+    button(&mut h, from, true);
+    let to = from + Vec2::new(40.0, 30.0);
+    h.event(egui::Event::PointerMoved(to));
+    h.run_ok();
+    assert_eq!(h.state().shell().tool().state(), "rubber-band");
+    assert_eq!(h.state().shell().area().expect("area").focused, 1);
+    // Side by side off while it is held: the band is escaped, as for a focus change.
+    dispatch(&mut h, "view.side_by_side", json!({}));
+    settle(&mut h);
+    assert_eq!(canvas_bounds(&h).len(), 1);
+    assert_eq!(h.state().shell().tool().state(), "idle");
+    assert!(h.state().shell().tool_overlay().is_empty());
+    // The release reaches no tool: the selection is unchanged.
+    button(&mut h, to, false);
+    settle(&mut h);
+    assert_eq!(
+        h.state().shell().selection(),
+        &before,
+        "the selection is unchanged"
+    );
+    assert_eq!(h.state().shell().tool().state(), "idle");
+    // Side by side again (group 1 focused), then a click in the left group: the left group keeps the focus; no
+    // release left over from the hidden group's press goes to group 1.
+    dispatch(&mut h, "view.side_by_side", json!({}));
+    settle(&mut h);
+    wait_for_page(&mut h);
+    settle(&mut h);
+    let left = canvas_bounds(&h)[0];
+    let at = centre(left);
+    h.event(egui::Event::PointerMoved(at));
+    h.run_ok();
+    button(&mut h, at, true);
+    button(&mut h, at, false);
+    settle(&mut h);
+    assert_eq!(
+        h.state().shell().area().expect("area").focused,
+        0,
+        "the left group keeps the focus"
+    );
+    assert_eq!(h.state().shell().tool().state(), "idle");
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// FT-392 headless: `canvas.release` after the pressed group was hidden is dropped (it names a group that no longer
+/// exists and changes nothing), and the next press works as usual.
+#[test]
+fn a_release_after_the_pressed_group_was_hidden_is_dropped() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "103");
+    dispatch(&mut h, "view.side_by_side", json!({}));
+    settle(&mut h);
+    wait_for_page(&mut h);
+    let shell = h.state_mut().shell_mut();
+    let (w, hh) = shell.canvas().expect("canvas").sheet();
+    let p = |x: i64, y: i64| json!({"x_mm": x as f64 / 1e6, "y_mm": y as f64 / 1e6, "group": 1});
+    let before = shell.selection().clone();
+    assert_eq!(shell.dispatch("canvas.press", &p(w / 4, hh / 4)), Outcome::Done);
+    assert_eq!(
+        shell.dispatch("canvas.pointer", &p(w * 3 / 5, hh * 3 / 5)),
+        Outcome::Done
+    );
+    assert_eq!(shell.tool().state(), "rubber-band");
+    assert_eq!(shell.dispatch("view.side_by_side", &json!({})), Outcome::Done);
+    assert_eq!(shell.tool().state(), "idle");
+    assert_eq!(
+        shell.dispatch("canvas.release", &p(w * 3 / 5, hh * 3 / 5)),
+        Outcome::Done
+    );
+    assert_eq!(shell.selection(), &before);
+    assert_eq!(shell.area().expect("area").groups.len(), 1);
+    shell.shutdown();
+}
+
 #[test]
 fn the_physical_bracket_key_steps_the_connection_points() {
     let tmp = Tmp::new();

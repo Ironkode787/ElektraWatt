@@ -707,6 +707,14 @@ impl CanvasHost {
                 v.gpu.release_frame();
             }
         }
+        // A group the area no longer shows (View ▸ Side by side off, its last tab closed) forgets a press held on it:
+        // its release would otherwise reach the tool from a later click anywhere (FT-392; the shell escaped the tool
+        // and drops a release that still comes).
+        let groups = shell.area().map_or(0, |a| a.groups.len());
+        for v in self.views.iter_mut().skip(groups) {
+            v.pressed = false;
+            v.last_press = None;
+        }
     }
 
     /// Ends the frame's statistics: adds the time the frame spent dispatching the canvas's actions to its input

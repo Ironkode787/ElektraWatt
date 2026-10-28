@@ -138,6 +138,13 @@ pub(crate) struct ToolHost {
     pub black_box_pick: bool,
     /// The grips overlay of a selected black box the host set last (WP-S2.04 §9.4): cleared while the overlay is it.
     pub grips: Option<Overlay>,
+    // FT-392
+    /// Whether the active tool got a primary press whose release has not come yet.
+    pub press_held: bool,
+    /// Whether the next primary release is dropped: the (group, tab, page) the tool works on changed while a press was
+    /// held (its group hidden by View ▸ Side by side off or by closing its last tab, a tab switch, a jump), so the
+    /// tool was escaped and the release belongs to no gesture (FT-392). The next primary press clears it.
+    pub drop_release: bool,
 }
 
 impl ToolHost {
@@ -166,6 +173,8 @@ impl ToolHost {
             ip_memory: IpMemory::default(),
             black_box_pick: false,
             grips: None,
+            press_held: false,
+            drop_release: false,
         }
     }
 }
