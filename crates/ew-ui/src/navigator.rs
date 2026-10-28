@@ -324,6 +324,20 @@ impl NavigatorPane {
             self.painted = self.table.painted;
             return;
         }
+        // WP-S2.17 part 4 (CP5, doc 16a §6.17; K32): an empty list says why and what to do, once its rows are built.
+        if visible.is_empty() {
+            let built = if pages {
+                shell.has_project()
+            } else {
+                shell.nav(self.kind).and_then(|n| n.table()).is_some()
+            };
+            if built {
+                self.painted = 0;
+                self.view = 0..0;
+                self.empty_state(ui, pages, events);
+            }
+            return;
+        }
         // The cursor is scrolled into view when it moved to a row outside the rows on show (the first and last ones may
         // be cut).
         let inside = |i: usize| self.view.start < i && i + 1 < self.view.end;
@@ -366,6 +380,36 @@ impl NavigatorPane {
         });
         self.painted = painted;
         self.view = view;
+    }
+
+    /// The empty state of a list without rows (doc 16a §6.17): with a filter, "Nothing matches "abc"" and Clear filter;
+    /// without, the navigator's own line ("No devices yet", Messages "No findings") and what fills it.
+    fn empty_state(&mut self, ui: &mut Ui, pages: bool, events: &mut Vec<Event>) {
+        use crate::icons::IconId;
+        if !self.filter.is_empty() {
+            let line = strings::format("empty-nav-filter", &[&self.filter]);
+            let clear = crate::components::empty_state(
+                ui,
+                IconId::filter,
+                &line,
+                strings::text("empty-nav-filter-text"),
+                Some(strings::text("empty-nav-clear")),
+            );
+            if clear.is_some_and(|r| r.clicked()) {
+                self.filter.clear();
+                if pages {
+                    events.push(Event::Action("pages.filter", json!({ "text": "" })));
+                } else {
+                    events.push(Event::Action(
+                        "navigator.filter",
+                        json!({ "kind": self.kind_word(), "text": "" }),
+                    ));
+                }
+            }
+            return;
+        }
+        let (icon, line, sentence) = empty_texts(self.kind);
+        crate::components::empty_state(ui, icon, line, sentence, None);
     }
 
     /// The navigator's keys while it has the focus (WP-S2.03 §6.1, WP-S2.06 §6.4).
@@ -520,6 +564,39 @@ fn open(events: &mut Vec<Event>, kind: NavKind, pages: bool, key: &str, new_tab:
     }
 }
 
+/// The icon, line and sentence of the empty state of navigator `kind` without a filter (doc 16a §6.17).
+pub(crate) fn empty_texts(kind: NavKind) -> (crate::icons::IconId, &'static str, &'static str) {
+    use crate::icons::IconId;
+    let (icon, line) = match kind {
+        NavKind::Messages => {
+            return (
+                IconId::circle_check,
+                strings::text("empty-messages"),
+                strings::text("empty-messages-text"),
+            );
+        }
+        NavKind::Pages => {
+            return (
+                IconId::files,
+                strings::text("empty-nav-pages"),
+                strings::text("empty-nav-pages-text"),
+            );
+        }
+        // The rail's icons (`ew_viewmodel::rail::LEFT`).
+        NavKind::Devices => (IconId::ew_black_box, "empty-nav-devices"),
+        NavKind::Connections => (IconId::plug_connected, "empty-nav-connections"),
+        NavKind::Strips => (IconId::ew_terminal_strip, "empty-nav-strips"),
+        NavKind::Cables => (IconId::ew_cable, "empty-nav-cables"),
+        NavKind::Plc => (IconId::cpu, "empty-nav-plc"),
+        NavKind::Potentials => (IconId::ew_potential, "empty-nav-potentials"),
+        NavKind::Ips => (IconId::ew_interruption_point, "empty-nav-ips"),
+        NavKind::Structure => (IconId::sitemap, "empty-nav-structure"),
+        NavKind::Parts => (IconId::packages, "empty-nav-parts"),
+        NavKind::Blocks => (IconId::report, "empty-nav-blocks"),
+    };
+    (icon, strings::text(line), strings::text("empty-nav-text"))
+}
+
 /// One row: its glyph, its text, its input, drag and drop, and its AccessKit node.
 fn row_ui(
     ui: &mut Ui,
@@ -540,8 +617,17 @@ fn row_ui(
                 Some(false) => ui.add(egui::Button::new("+").frame(false).small()).clicked(),
                 None => false,
             };
-            // WP-S2.09 part 2: a finding row's severity icon; a pending one is muted.
+            // WP-S2.09 part 2: a finding row's severity icon; a pending one is muted. WP-S2.17 part 3 (doc 16a §6.24,
+            // K32): the icon and the word; a severity group row has its icon in place of the folder.
             if let Some(look) = row.finding {
+                crate::messages::severity_cell(ui, look);
+            } else if kind == NavKind::Messages
+                && let Some(severity) = crate::messages::group_severity(&row.key)
+            {
+                let look = ew_viewmodel::shell::FindingLook {
+                    severity,
+                    pending: false,
+                };
                 crate::messages::severity_icon(ui, look);
             }
             // WP-S2.17 part 3 (doc 16a §6.6): the current page in `type.body.strong`; the badges are chips after the
@@ -553,7 +639,7 @@ fn row_ui(
                 egui::RichText::new(&row.label)
             };
             let rich = match row.finding {
-                Some(look) if look.pending => rich.color(ui.visuals().weak_text_color()),
+                Some(look) if look.pending => rich.color(t.text_tertiary.color32()),
                 _ => rich,
             };
             let selected = row.marked || is_cursor;
@@ -561,8 +647,22 @@ fn row_ui(
                 .frame(false)
                 .sense(Sense::click_and_drag());
             let response = ui.add(button);
-            for b in &row.badges {
-                crate::components::caption_chip(ui, b);
+            if kind == NavKind::Messages {
+                // K32 (doc 16a §6.24): a finding's `fix`, `waived` and `pending` are status badges (its severity word
+                // is the severity cell's); a rule row's finding count is a count badge.
+                for b in &row.badges {
+                    if let Some(status) = crate::messages::finding_badge(b) {
+                        crate::components::status_badge(ui, status);
+                    } else if row.finding.is_none()
+                        && let Ok(n) = b.parse::<usize>()
+                    {
+                        crate::components::count_badge(ui, n);
+                    }
+                }
+            } else {
+                for b in &row.badges {
+                    crate::components::caption_chip(ui, b);
+                }
             }
             (glyph, response)
         })

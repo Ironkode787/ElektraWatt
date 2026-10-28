@@ -330,9 +330,31 @@ impl FindPane {
     /// The results: a list box of one line per hit, the matches bold and underlined, the cursor's line selected.
     fn results(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         let f = shell.find_state();
+        // WP-S2.17 part 4 (CP5, doc 16a §6.17; K32): before a search, and after one without hits, the empty state.
         let Some(r) = f.results() else {
+            crate::components::empty_state(
+                ui,
+                crate::icons::IconId::search,
+                strings::text("empty-find-start"),
+                strings::text("empty-find-start-text"),
+                None,
+            );
             return;
         };
+        if r.hits.is_empty() && r.error.is_none() {
+            let line = match f.last_query().map(|q| q.text.as_str()) {
+                Some(text) if !text.is_empty() => strings::format("empty-nav-filter", &[text]),
+                _ => strings::text("find-no-results").to_owned(),
+            };
+            crate::components::empty_state(
+                ui,
+                crate::icons::IconId::search,
+                &line,
+                strings::text("empty-find-text"),
+                None,
+            );
+            return;
+        }
         let list_id = ui.scope_id().with("find-results");
         let list_rect = ui.available_rect_before_wrap();
         let list = ui.interact(

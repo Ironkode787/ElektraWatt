@@ -141,6 +141,14 @@ pub(crate) enum Badge {
     Done,
     /// "Cancelled": the neutral style.
     Cancelled,
+    /// "Pending": a pending finding (doc 16a §6.24), the neutral style.
+    Pending,
+    /// "Waived": a waived finding, the neutral style.
+    Waived,
+    /// "Fix": a finding with a quick fix, the accent style with the `wand` icon.
+    Fix,
+    /// "Not undoable": a History entry that is no undo step (doc 16a §6.24), neutral with the `lock` icon.
+    NotUndoable,
 }
 
 impl Badge {
@@ -151,6 +159,10 @@ impl Badge {
             Badge::Failed => "badge-failed",
             Badge::Done => "badge-done",
             Badge::Cancelled => "badge-cancelled",
+            Badge::Pending => "badge-pending",
+            Badge::Waived => "badge-waived",
+            Badge::Fix => "badge-fix",
+            Badge::NotUndoable => "badge-not-undoable",
         })
     }
 
@@ -160,6 +172,10 @@ impl Badge {
             Badge::Failed => (t.error_subtle, t.error, IconId::circle_x),
             Badge::Done => (t.success_subtle, t.success, IconId::circle_check),
             Badge::Cancelled => (t.surface_sunken, t.text_secondary, IconId::x),
+            Badge::Pending => (t.surface_sunken, t.text_secondary, IconId::pencil),
+            Badge::Waived => (t.surface_sunken, t.text_secondary, IconId::check),
+            Badge::Fix => (t.accent_subtle, t.accent, IconId::wand),
+            Badge::NotUndoable => (t.surface_sunken, t.text_secondary, IconId::lock),
         }
     }
 }
@@ -213,6 +229,32 @@ pub(crate) fn count_badge(ui: &mut Ui, count: usize) -> Response {
     );
     let (rect, response) = ui.allocate_exact_size(size, Sense::hover());
     response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, &text));
+    ui.painter()
+        .rect_filled(rect, theme::radius(t.radius_pill), t.surface_sunken.color32());
+    ui.painter().galley(
+        rect.center() - galley.size() / 2.0,
+        galley,
+        t.text_secondary.color32(),
+    );
+    response
+}
+
+/// A count badge with a word ("merged 3", doc 16a §6.24): the count badge's look (`radius.pill`, `type.caption`, 18 px
+/// high, `color.surface.sunken`, `color.text.secondary`) around `text`; a label node named by it.
+pub(crate) fn caption_badge(ui: &mut Ui, text: &str) -> Response {
+    let t = tokens(ui);
+    let galley = ui.painter().layout_no_wrap(
+        text.to_owned(),
+        theme::font(&t.type_caption),
+        t.text_secondary.color32(),
+    );
+    let size = Vec2::new(
+        (galley.size().x + 2.0 * t.space_2).max(t.size_badge),
+        t.size_badge,
+    );
+    let (rect, response) = ui.allocate_exact_size(size, Sense::hover());
+    let name = text.to_owned();
+    response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, &name));
     ui.painter()
         .rect_filled(rect, theme::radius(t.radius_pill), t.surface_sunken.color32());
     ui.painter().galley(
