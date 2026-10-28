@@ -27,6 +27,8 @@
 //! - `a_rail_bond_is_not_a_hop`: a CP reachable only through a rail bond has no distance, rule 3 decides.
 //! - `unreached_and_tied_ends_fall_to_the_anchor_cell`: no entry, and two ends at equal distance.
 //! - `a_bond_wire_falls_to_the_anchor_cell`: a wire between two potentials is not compared by distance.
+//! - FT-478, the orientation's step 3 without minted IDs: `the_orientation_tie_is_decided_by_the_cp_label_and_not_by_the_ids`
+//!   and `the_cell_of_a_function_drawn_twice_is_its_smallest_not_its_first_minted`.
 
 mod common;
 
@@ -866,4 +868,59 @@ fn a_bond_wire_falls_to_the_anchor_cell() {
     assert_eq!(from[&0x2001], (cpr(0x1000, 0), cpr(0x1001, 0)));
     assert_eq!(from[&0x2002], (cpr(0x1010, 0), cpr(0x1011, 0)));
     assert_eq!(from[&0x2003], (cpr(0x1011, 0), cpr(0x1012, 0)));
+}
+
+/// FT-478: in step 3, ends in one cell are told apart by their printed CP labels (natural order), not by the minted
+/// function IDs: the wire between K1 and K2 starts at K1 whichever of the two functions has the smaller ID.
+#[test]
+fn the_orientation_tie_is_decided_by_the_cp_label_and_not_by_the_ids() {
+    let from_of = |counter_of_low_id: u32| {
+        let mut fx = fixture();
+        node_tagged(&mut fx, 0x1001, P1, 4, 1, counter_of_low_id);
+        node_tagged(&mut fx, 0x1002, P1, 4, 1, 3 - counter_of_low_id);
+        wire(&mut fx, 0x2001, Some(P1), 0x1001, 0x1002);
+        let m = fx.build();
+        let q = Q::new(&m);
+        oriented(&q)[&0x2001].0
+    };
+    assert_eq!(
+        from_of(1),
+        cpr(0x1001, 0),
+        "the lower function ID has the lower label"
+    );
+    assert_eq!(
+        from_of(2),
+        cpr(0x1002, 0),
+        "the lower function ID has the higher label"
+    );
+}
+
+/// FT-478: the cell of a function drawn twice on the page is its smallest cell, not the cell of the representation
+/// with the smallest ID: F (rows 1 and 5) starts the wire to G (row 3) whichever representation was minted first.
+#[test]
+fn the_cell_of_a_function_drawn_twice_is_its_smallest_not_its_first_minted() {
+    let from_of = |upper_rep: u128, lower_rep: u128| {
+        let mut fx = fixture();
+        fx.device(0x1001 + 0x20_000, "K", Some(1));
+        fx.function(0x1001, Some(0x1001 + 0x20_000), FN_PLAIN, true);
+        for (rep, row) in [(upper_rep, 1), (lower_rep, 5)] {
+            let p = at(2, row);
+            fx.rep(rep, P1, SYM_PLAIN, &[0x1001], p.x.0, p.y.0);
+        }
+        node(&mut fx, 0x1002, P1, 2, 3);
+        wire(&mut fx, 0x2001, Some(P1), 0x1002, 0x1001);
+        let m = fx.build();
+        let q = Q::new(&m);
+        oriented(&q)[&0x2001].0
+    };
+    assert_eq!(
+        from_of(0x30_001, 0x30_002),
+        cpr(0x1001, 0),
+        "the upper cell has the smaller rep ID"
+    );
+    assert_eq!(
+        from_of(0x30_002, 0x30_001),
+        cpr(0x1001, 0),
+        "the upper cell has the larger rep ID"
+    );
 }

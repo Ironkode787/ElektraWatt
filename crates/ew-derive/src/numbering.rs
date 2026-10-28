@@ -262,7 +262,9 @@ fn entry(q: &Q, order: &crate::pages::PageOrderV, wire: &PhysicalWire) -> Entry 
 /// 2. on one page, the end with the smaller flow distance ([`CpFlowDistanceOf`]: hops over the potential's
 ///    wires, bridges and terminal shorts from the CPs where the potential enters; FT-101), when both ends lie
 ///    in the wire's one potential and the walk reaches both with different distances;
-/// 3. otherwise the end with the smaller anchor cell (row, then column), then the smaller CP ID.
+/// 3. otherwise the end with the smaller anchor cell (row, then column; of several representations on the page the
+///    smallest cell), then the smaller CP label in natural order ([`cp_label`]), then the places the function is drawn
+///    at (page order, cell), then the smaller CP ID: what is printed decides, the minted IDs only last (FT-478).
 ///
 /// The page of an end is the page of the constituent that ends there. A function that no representation draws
 /// on the page, a terminal drawn only by a strip segment, has no anchor: its cell is that of its CP in the
@@ -281,23 +283,39 @@ pub fn orient_wire(q: &Q, w: &mut PhysicalWire) -> bool {
         _ => match by_flow_distance(q, w) {
             Some(swap) => swap,
             None => {
+                // The anchor cell of an end on the wire's page: the smallest cell of the function's
+                // representations there (a printed value, not the cell of the smallest minted representation ID).
                 let cell = |e: &WireEnd, page: Option<Id<Page>>| -> (u32, u32) {
                     let Some(page) = page else {
                         return (u32::MAX, u32::MAX);
                     };
-                    let mut reps: Vec<_> = q
-                        .idx()
+                    q.idx()
                         .reps_of_function(e.cp.function)
                         .filter(|r| q.reps().get(*r).is_some_and(|r| r.page == page))
+                        .filter_map(|r| q.get::<RepAnchorCell>(r).as_ref().clone())
+                        .map(|c| (c.row, c.column))
+                        .min()
+                        .or_else(|| cp_cell(q, e.cp.function, e.cp.idx, page).map(|c| (c.row, c.column)))
+                        .unwrap_or((u32::MAX, u32::MAX))
+                };
+                // All the places the function is drawn at, as the page order and the cell: what the tie falls
+                // back on when the cells and the CP labels are equal (FT-478).
+                let places = |e: &WireEnd| -> Vec<(usize, u32, u32)> {
+                    let mut v: Vec<_> = q
+                        .idx()
+                        .reps_of_function(e.cp.function)
+                        .filter_map(|r| {
+                            let page = q.reps().get(r)?.page;
+                            let c = q.get::<RepAnchorCell>(r).as_ref().clone()?;
+                            Some((position(page), c.row, c.column))
+                        })
                         .collect();
-                    reps.sort();
-                    reps.first()
-                        .and_then(|r| q.get::<RepAnchorCell>(*r).as_ref().clone())
-                        .or_else(|| cp_cell(q, e.cp.function, e.cp.idx, page))
-                        .map_or((u32::MAX, u32::MAX), |c| (c.row, c.column))
+                    v.sort_unstable();
+                    v
                 };
                 let page = pa.or(pb);
-                (cell(&w.ends[1], page), w.ends[1].cp) < (cell(&w.ends[0], page), w.ends[0].cp)
+                let key = |e: &WireEnd| (cell(e, page), natural_key(&cp_label(q, e.cp)), places(e), e.cp);
+                key(&w.ends[1]) < key(&w.ends[0])
             }
         },
     };
