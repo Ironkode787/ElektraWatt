@@ -191,7 +191,7 @@ fn golden_b(mode: Mode) {
     );
     assert_eq!(
         ew_viewmodel::script::card_summary(&shell).as_deref(),
-        Some("Preview: numbering.renumber · 8 records · 11 tags · 0 cross-reference texts · 1 pages")
+        Some("Preview: Renumber · 8 records · 11 tags · 0 cross-reference texts · 1 pages")
     );
     let entities: Vec<&str> = section
         .iter()

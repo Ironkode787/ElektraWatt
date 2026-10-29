@@ -395,7 +395,10 @@ impl PropertiesPane {
             return;
         }
         let kind = card.edit.kind.clone();
-        let title = strings::format("card-title-properties", &[&card.preview.name]);
+        let title = strings::format(
+            "card-title-properties",
+            &[strings::command_title(&card.preview.name)],
+        );
         let summary = strings::format(
             "card-line",
             &[

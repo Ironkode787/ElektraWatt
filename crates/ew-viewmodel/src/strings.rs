@@ -148,7 +148,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "reason-not-editable" => "Symbols are placed on drawn pages of a project that can be changed",
         "banner-host-commit" => "{0} failed: {1}",
         "tool-strip-new" => "New strip",
-        "reason-page-type-no-symbols" => "This page type takes no symbols or wires",
+        "reason-page-type-no-symbols" => "This page type takes no symbols or wires: draw on a schematic page",
         // WP-S2.04 part 2 (wiring; the strip chooser of FT-421). Begin.
         "picker-title-strip" => "Choose a terminal strip",
         "picker-title-black-box" => "Insert black box",
@@ -1838,6 +1838,80 @@ pub fn kind_plural(kind: &str) -> String {
     }
 }
 
+/// The human titles of the commands (cycle 35 play-test): what the window says for a command it previews ("Preview of
+/// Place device"), verb first, sentence case. The parameters, the describe text and the scripts keep the command ID.
+const COMMAND_TITLES: &[(&str, &str)] = &[
+    ("assembly.attach", "Attach assembly"),
+    ("bond.create", "Bond potentials"),
+    ("box.black", "Draw black box"),
+    ("box.reshape", "Reshape box"),
+    ("box.structure", "Draw structure box"),
+    ("cable.create", "Create cable"),
+    ("conductor.add", "Add conductor"),
+    ("connection.delete", "Delete wire"),
+    ("connection.draw", "Draw wire"),
+    ("connection.draw_many", "Draw wires"),
+    ("connection.draw_to_ip", "Draw wire to interruption point"),
+    ("connection.route", "Route wire"),
+    ("device.create", "Create device"),
+    ("device.link", "Link device"),
+    ("device.place", "Place device"),
+    ("edit.delete", "Delete"),
+    ("edit.paste", "Paste"),
+    ("external_ref.create", "Create external reference"),
+    ("fields.set", "Set property"),
+    ("fields.set_many", "Set properties"),
+    ("ip.arrange", "Arrange interruption points"),
+    ("ip.continue", "Continue interruption point"),
+    ("ip.place", "Place interruption point"),
+    ("item.place", "Place item"),
+    ("junction.edit", "Edit junction"),
+    ("library.embed", "Embed library item"),
+    ("library.update", "Update library item"),
+    ("marker.place", "Place wire marker"),
+    ("numbering.renumber", "Renumber"),
+    ("page.create", "Create page"),
+    ("page.delete", "Delete page"),
+    ("page.renumber", "Renumber pages"),
+    ("page.reorder", "Reorder pages"),
+    ("part.assign", "Assign part"),
+    ("parts.import", "Import parts"),
+    ("plc.bind_channel", "Bind PLC channel"),
+    ("plc.config_project.create", "Create PLC configuration project"),
+    ("plc.set_module_part", "Set PLC module part"),
+    ("potential.define", "Define potential"),
+    ("project.assets.purge", "Purge unused assets"),
+    ("project.checks.set", "Set checks"),
+    ("project.company.set", "Set company"),
+    ("project.drawing.set", "Set drawing data"),
+    ("project.frames.set", "Set frames"),
+    ("project.languages.set", "Set languages"),
+    ("project.settings.set", "Set project settings"),
+    ("project.supply.set", "Set supply"),
+    ("rep.exchange_symbol", "Exchange symbol"),
+    ("rep.move", "Move"),
+    ("rep.set_anchor_policy", "Set anchor policy"),
+    ("rep.transform", "Rotate or mirror"),
+    ("report_block.create", "Create report block"),
+    ("revision.create", "Create revision"),
+    ("section.create", "Create section"),
+    ("structure.create_node", "Create structure node"),
+    ("terminal.add", "Add terminal"),
+    ("terminal.designate", "Designate terminal"),
+    ("terminal.insert", "Insert terminal"),
+    ("terminal.move", "Move terminal"),
+    ("valve.add", "Add valve"),
+];
+
+/// The human title of the command `name` ("Place device" for `device.place`); the ID itself for a command without
+/// one.
+pub fn command_title(name: &str) -> &str {
+    COMMAND_TITLES
+        .iter()
+        .find(|(n, _)| *n == name)
+        .map_or(name, |(_, title)| title)
+}
+
 /// The text of `key`; the key itself for a key without a text (a missing text is a bug a test catches).
 pub fn text(key: &str) -> &'static str {
     lookup(key).unwrap_or("?")
@@ -1885,6 +1959,37 @@ mod tests {
     use super::*;
 
     const NOW: u64 = 1_793_000_000_000;
+
+    /// Cycle 35 play-test: the preview card and chip name the command by its title, not its ID.
+    #[test]
+    fn the_preview_texts_name_the_command_by_its_title() {
+        assert_eq!(command_title("device.place"), "Place device");
+        assert_eq!(
+            format("preview-chip", &[command_title("device.place")]),
+            "Preview of Place device"
+        );
+        assert_eq!(
+            format("card-title-properties", &[command_title("fields.set")]),
+            "Preview of Set property"
+        );
+        // A command without a title keeps its ID.
+        assert_eq!(command_title("plugin.custom"), "plugin.custom");
+        // Every built-in command has a title.
+        let untitled: Vec<&str> = ew_api::CommandRegistry::builtin()
+            .names()
+            .filter(|n| command_title(n) == *n)
+            .collect();
+        assert!(untitled.is_empty(), "commands without a title: {untitled:?}");
+    }
+
+    /// Cycle 35 play-test: the refusal of a page type without symbols names the remedy, as the paste refusal does.
+    #[test]
+    fn the_page_type_refusal_names_the_remedy() {
+        assert_eq!(
+            text("reason-page-type-no-symbols"),
+            "This page type takes no symbols or wires: draw on a schematic page"
+        );
+    }
 
     /// FT-558: the form dialogs show doc 16a §8's words, never the raw parameter value.
     #[test]

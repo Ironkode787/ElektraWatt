@@ -893,7 +893,7 @@ pub fn card_summary(shell: &ShellModel) -> Option<String> {
         CardOrigin::Bulk | CardOrigin::Table { .. } => format!(
             "{} · {}",
             shell.table_gesture().map_or_else(
-                || strings::format("preview-title", &[&card.preview.name]),
+                || strings::format("preview-title", &[strings::command_title(&card.preview.name)]),
                 |g| g.title()
             ),
             shell.preview_summary().unwrap_or_default()

@@ -152,7 +152,8 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         ui.horizontal(|ui| {
             ui.add_space(pad);
             ui.spacing_mut().item_spacing.x = t.space_3;
-            let title = strings::format("preview-title", &[&card.preview.name]);
+            let command = strings::command_title(&card.preview.name);
+            let title = strings::format("preview-title", &[command]);
             let response = ui.label(
                 RichText::new(&title)
                     .font(theme::font(&t.type_body_strong))
@@ -160,7 +161,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             );
             let mut header = strings::format(
                 "preview-header",
-                &[&card.preview.name, &card.preview.base_rev.to_string()],
+                &[command, &card.preview.base_rev.to_string()],
             );
             if status == CardStatus::Stale {
                 header.push_str(&format!(" [{}]", strings::text("preview-stale")));

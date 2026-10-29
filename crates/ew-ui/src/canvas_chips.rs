@@ -239,10 +239,11 @@ fn preview(
     {
         return;
     }
+    let title = strings::command_title(&p.name);
     let header = match (&p.result, status) {
-        (Err(message), _) => strings::format("preview-chip-failed", &[&p.name, message]),
-        (_, PreviewStatus::Stale) => strings::format("preview-chip-stale", &[&p.name]),
-        _ => strings::format("preview-chip", &[&p.name]),
+        (Err(message), _) => strings::format("preview-chip-failed", &[title, message]),
+        (_, PreviewStatus::Stale) => strings::format("preview-chip-stale", &[title]),
+        _ => strings::format("preview-chip", &[title]),
     };
     let page = canvas.page();
     let tables = &page.tables;
