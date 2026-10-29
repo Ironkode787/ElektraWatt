@@ -452,8 +452,11 @@ and colours), `history.rs` (DK11's state icons and undone tone) and `window_memo
   monitor list (eframe 0.37 without its `persistence` feature exposes none before the window opens), so a window
   saved on a monitor that is gone opened off-screen; eframe still clamps the size to the largest monitor. A
   follow-up: FT-526, *closed in the cycle-32 review loop (R1-4): on the first frame the monitors come from eframe's
-  winit window and the same pure clamp moves a window that is on no monitor onto the primary one.* The geometry is
-  saved in points at the zoom 1 (the review's R1-1: egui's reported points times the UI scale); on exit only
+  winit window and the same pure clamp moves a window that is on no monitor onto the primary one.* The size is
+  saved in points at the zoom 1 (the review's R1-1: egui's reported points times the UI scale) and the position in
+  physical pixels (R2-1: a logical position drifted on a desktop whose monitors have different scales); the builder
+  takes the position only as a first guess, and the first frame moves the window to the saved pixels and clamps it
+  there. On exit only
   `[window]` is merged into the settings file as it is on disk, and nothing is written when it is unchanged, so a
   second instance's settings stay (R1-5); members of `[window]` this version does not know are kept (R1-6).
 

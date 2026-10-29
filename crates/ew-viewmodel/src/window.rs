@@ -5,10 +5,11 @@
 //! maximised state, kept in `settings.toml` as `[window]` and restored at the next start, clamped so that the window
 //! opens on a monitor the system still has.
 //!
-//! **Units.** Logical points of the desktop (egui's points at the UI scale 1, that is the physical pixels divided by
-//! the native scale; the window records egui's reported points times its zoom factor), whole numbers in the file.
-//! The position is the outer top-left corner (title bar included), the size the inner size: the two values a window
-//! builder takes, which eframe applies at the zoom 1.
+//! **Units** (R2-1). The size is in logical points of the desktop (egui's points at the UI scale 1, the physical
+//! pixels divided by the native scale), the position in physical pixels of the desktop (one space for monitors of
+//! different scales, where a logical position drifts); whole numbers in the file. The position is the outer top-left
+//! corner (title bar included), the size the inner size. Until R2-1 (cycle 32, never released) `x` and `y` were
+//! points; such a value is read as pixels, and the window's first frame clamps it onto a monitor.
 //!
 //! **The clamp** ([`restore`]) is a pure function of the saved geometry and the monitors' areas: the size is at least
 //! [`MIN_SIZE`] and at most the largest monitor; the saved position stays when a grip of the title bar ([`GRIP`] wide
@@ -25,12 +26,12 @@ pub const GRIP: f32 = 48.0;
 /// The members of `[window]` this version reads and writes; the table's other members are kept as they are.
 pub const KEYS: [&str; 5] = ["x", "y", "width", "height", "maximized"];
 
-/// The window's geometry, in points.
+/// The window's geometry: the position in physical pixels, the size in points (see the module documentation).
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct WindowGeometry {
-    /// The outer left edge.
+    /// The outer left edge, in physical pixels.
     pub x: f32,
-    /// The outer top edge.
+    /// The outer top edge, in physical pixels.
     pub y: f32,
     /// The inner width.
     pub width: f32,

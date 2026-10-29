@@ -323,7 +323,8 @@ struct ShellApp(App, bool);
 impl eframe::App for ShellApp {
     fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
         if !self.1 {
-            place_on_screen(ui.ctx(), frame);
+            let saved = self.0.shell().settings().window.map(|g| (g.x, g.y));
+            place_on_screen(ui.ctx(), frame, saved);
             self.1 = true;
         }
         self.0.ui(ui);
@@ -336,11 +337,12 @@ impl eframe::App for ShellApp {
     }
 }
 
-/// FT-526 (R1-4): on the first frame, a window restored at a position on no monitor (its monitor gone) moves onto
-/// the primary monitor. This reads winit's physical values; the conversion and the clamp are the pure
-/// `ew_ui::window_memory::first_frame_position` (R2-2). A maximised, minimised or full-screen window, a window without
-/// a known position (Wayland) and a frame without a winit window are left alone.
-fn place_on_screen(ctx: &egui::Context, frame: &eframe::Frame) {
+/// FT-526 (R1-4, R2-1): on the first frame the window goes to its saved outer position `saved` (physical pixels), and
+/// one whose position is on no monitor (its monitor gone) moves onto the primary monitor. This reads winit's physical
+/// values; the conversion and the clamp are the pure `ew_ui::window_memory::first_frame_position` (R2-2). A maximised,
+/// minimised or full-screen window, a window without a known position (Wayland) and a frame without a winit window
+/// are left alone.
+fn place_on_screen(ctx: &egui::Context, frame: &eframe::Frame, saved: Option<(f32, f32)>) {
     let Some(window) = frame.winit_window() else {
         return;
     };
@@ -366,6 +368,7 @@ fn place_on_screen(ctx: &egui::Context, frame: &eframe::Frame) {
         .collect();
     let inner = window.inner_size();
     if let Some(to) = ew_ui::window_memory::first_frame_position(
+        saved,
         (outer.x as f32, outer.y as f32),
         (inner.width as f32, inner.height as f32),
         &monitors,
