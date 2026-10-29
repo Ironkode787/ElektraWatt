@@ -137,3 +137,9 @@ page "103" "Power Supply 3 - Control Current Distribution" reps 23 connections 2
   wire "PE-0VDC" -> "-X1032:2/a" route provisional bends 1 at 56.762 129.829 mm
   wire "PE-1.1" -> "-X1032:1/b" route provisional bends 1
   wire "PE-1.2" -> "-X1032:2/b" route provisional bends 1
+  bridge "BR1" "-X1031:1" "-X1031:2" "-X1031:3" "-X1031:4"
+  bridge "BR2" "-X1031:5" "-X1031:6"
+  bridge "BR3" "-X1031:7" "-X1031:8"
+  bridge "BR4" "-X1031:9" "-X1031:10"
+  bridge "BR5" "-X1031:11" "-X1031:12" "-X1031:13" "-X1031:14" "-X1031:15" "-X1031:16" "-X1031:17" "-X1031:18" "-X1031:19" "-X1031:20"
+  bridge "BR6" "-X1032:1" "-X1032:2" "-X1032:3" "-X1032:4" "-X1032:5"

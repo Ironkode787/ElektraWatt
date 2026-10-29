@@ -289,6 +289,8 @@ pub const VOCABULARY: &[&str] = &[
     "potential",
     // G-PP triage row 21: a terminal CP's side, `internal` (`field` is older), a reviewed vocabulary change.
     "internal",
+    // FT-621 (WP-S2.07 part 2): the page text's line of a strip's bridge, a reviewed vocabulary change.
+    "bridge",
     // The clipboard (WP-S2.05 part 3, §8.8; ID-474 extended): the 6 words of `CLIP_WORDS`, a reviewed vocabulary change
     // (`lines`, `none`, `at`, `mm`, `text` and `ghost` are older).
     "clipboard",
@@ -647,7 +649,8 @@ pub const PLACE_WORDS: &[&str] = &[
 /// `stored` and `provisional`, the interruption point's `ip`, `direction`, `source`, `undirected` and `potential` (WP-S2.04
 /// part 3's words, which Golden A prints) and `connections` (part 4b's). The other words of its lines (`page`, `rep`,
 /// `cell`, `symbol`, `variant`, `at`, `mm`, `cp`, `none`, `wire`, `->`, `route`, `bends`, `junction`, `style`, `dot`,
-/// `bevel`, `wiring`, `star`, `chain`, `sequence`) are older.
+/// `bevel`, `wiring`, `star`, `chain`, `sequence`) are older. The G-PP triage added a terminal CP's `internal` and
+/// FT-621 a strip's `bridge` line.
 pub const PAGE_WORDS: &[&str] = &[
     "reps",
     "connections",
@@ -661,6 +664,7 @@ pub const PAGE_WORDS: &[&str] = &[
     "undirected",
     "potential",
     "internal",
+    "bridge",
 ];
 
 /// The markers after which the rest of the line is user text (a title, a banner, an error, a reason, a folio, a
@@ -2679,6 +2683,30 @@ pub fn page_describe(page: &CanvasPage) -> String {
         ));
     }
     lines.join("\n")
+}
+
+/// The bridge lines `page.describe` appends (FT-621): one `  bridge "BR<n>" "<terminal>" …` per bridge group of which
+/// the strip or a terminal is drawn on `page`, in `BR<n>` order, its terminals in (`seq`, ID) order. Bridges have no page (they are
+/// defined in the strip editor), so the page lists the bridges of the strips it draws.
+pub fn page_bridge_lines(page: &CanvasPage, bridges: &[ew_api::output::BridgeRow]) -> Vec<String> {
+    bridges
+        .iter()
+        .filter(|b| {
+            // A strip segment draws the strip's device; a terminal symbol draws the terminal's.
+            page.tables.reps.iter().any(|r| {
+                r.device
+                    .is_some_and(|d| d == b.strip || b.terminals.iter().any(|(t, _)| *t == d))
+            })
+        })
+        .map(|b| {
+            let mut line = format!("  bridge {}", page_quoted(&b.label));
+            for (_, name) in &b.terminals {
+                line.push(' ');
+                line.push_str(&page_quoted(name));
+            }
+            line
+        })
+        .collect()
 }
 
 /// The text of the visible user interface of `model`, lines separated by `\n`, without a final newline, with record IDs

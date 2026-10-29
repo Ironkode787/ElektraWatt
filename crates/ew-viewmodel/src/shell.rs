@@ -1812,7 +1812,20 @@ impl ShellModel {
         }
         match self.page_for(&folio) {
             Ok(page) => {
-                self.page_text = Some(crate::describe::page_describe(&page));
+                let mut text = crate::describe::page_describe(&page);
+                // FT-621: the bridges of the strips the page draws, asked only of a page that draws a terminal (a
+                // terminal CP has a side) or a strip segment.
+                let draws_strip = page.tables.cps.iter().any(|c| c.side.is_some())
+                    || page.tables.reps.iter().any(|r| r.rep_type == "strip_segment");
+                let bridges = match &self.project {
+                    Some(p) if draws_strip => p.session.bridges(),
+                    _ => Vec::new(),
+                };
+                for line in crate::describe::page_bridge_lines(&page, &bridges) {
+                    text.push('\n');
+                    text.push_str(&line);
+                }
+                self.page_text = Some(text);
                 Outcome::Done
             }
             Err(message) => Outcome::Failed { message },

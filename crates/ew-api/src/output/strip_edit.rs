@@ -171,7 +171,55 @@ struct Work {
     order: Vec<(u8, usize)>,
 }
 
+/// One bridge group as the page description lists it (FT-621): its label `BR<n>` and its terminals in (`seq`, ID)
+/// order, each as its device and its printed name `<strip>:<designation>`.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct BridgeRow {
+    /// `BR<n>`, numbered as the terminal diagrams and the strip editor number them.
+    pub label: String,
+    /// The strip device.
+    pub strip: Uuid,
+    /// The terminals: (device, `-X1031:1`).
+    pub terminals: Vec<(Uuid, String)>,
+}
+
 impl Session {
+    /// Every bridge group of the project (FT-621), in `BR<n>` order (WP-S2.07 D6's `bridge_groups`).
+    pub fn bridges(&self) -> Vec<BridgeRow> {
+        let q = self.query();
+        let tag = |d: Id<Device>| {
+            q.get::<ew_derive::DeviceTag>(d)
+                .as_ref()
+                .as_ref()
+                .map(ew_derive::Tag::short)
+                .unwrap_or_default()
+        };
+        ew_reports::bridge_groups(&q)
+            .into_iter()
+            .map(|(label, strip, g)| {
+                let strip_tag = tag(strip);
+                let terminals = g
+                    .terminals
+                    .iter()
+                    .map(|t| {
+                        let designation = q
+                            .devices()
+                            .get(*t)
+                            .and_then(|d| d.aspects.terminal.as_ref())
+                            .map(|a| a.designation.as_str().to_owned())
+                            .unwrap_or_default();
+                        (t.as_uuid(), format!("{strip_tag}:{designation}"))
+                    })
+                    .collect();
+                BridgeRow {
+                    label,
+                    strip: strip.as_uuid(),
+                    terminals,
+                }
+            })
+            .collect()
+    }
+
     /// The one command of a strip gesture (§4.2): the door through which the view model compiles every strip gesture.
     ///
     /// # Errors

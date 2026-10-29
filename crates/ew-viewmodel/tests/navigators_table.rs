@@ -776,7 +776,8 @@ fn tb8_describe_lines_words_and_counts() {
     // WP-S2.07 part 1: the strip editor's word `accessory` and six actions.
     // WP-S1.19 part 1: the kind word `macro_instance`.
     // WP-S2.18 part 1: the Join chooser's word `chooser` and four actions (`place.join`, `chooser.*`).
-    assert_eq!(VOCABULARY.len(), 358);
+    // WP-S2.07 part 2: the page line's word `bridge` (FT-621).
+    assert_eq!(VOCABULARY.len(), 359);
     assert_eq!(ew_viewmodel::actions::ACTIONS.len(), 272);
     for (id, keys) in [
         ("table.edit", &["F2"][..]),
