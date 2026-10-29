@@ -32,9 +32,9 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use ew_api::Session;
 use ew_derive::{
-    ConnWireProps, DeriveNote, EdgeKind, PhysicalWire, PhysicalWiresOf, PotentialAttrsOf, PotentialFlow,
-    PotentialId, PotentialNameOf, PotentialPartition, PropSource, Q, SizeRule, StitchGraphQ, WireNumbers,
-    WirePropsOf, cp_cell,
+    ConnWireProps, DeriveNote, EdgeKind, NameSource, PhysicalWire, PhysicalWiresOf, PotentialAttrsOf,
+    PotentialFlow, PotentialId, PotentialNameOf, PotentialPartition, PropSource, Q, SizeRule, StitchGraphQ,
+    WireNumbers, WirePropsOf, cp_cell,
 };
 use ew_import_tables::ew_interop_api::ImportBatch;
 use ew_schema::{BondKind, CircuitClass, Connection, ConnectionKind, Endpoint, PotentialType, Record};
@@ -265,6 +265,28 @@ fn pot_id(q: &Q, name: &str) -> PotentialId {
 
 // ---------------------------------------------------------------------------------------------------------
 // Tests
+
+/// WP-S1.16 P1-6 (§5.2): every Golden A potential is named by a definition or a source interruption point
+/// (doc 08 §3.5 steps 1 and 2), so neither the supply name (step 2b) nor the fallback (step 3) changes a
+/// golden name, export byte or finding.
+#[test]
+fn no_golden_potential_is_named_by_the_supply_or_the_fallback() {
+    let batch = batch();
+    let s = session(&batch);
+    let q = Q::new(&s.world().model);
+    let part = q.get::<PotentialPartition>(());
+    let by_later_steps: Vec<String> = part
+        .potentials()
+        .map(|p| q.get::<PotentialNameOf>(p.id).name.clone())
+        .filter(|n| !matches!(n.source, NameSource::Def(_) | NameSource::SourceIp(_)))
+        .map(|n| n.text)
+        .collect();
+    assert_eq!(part.potential_count(), 19);
+    assert!(
+        by_later_steps.is_empty(),
+        "named by step 2b or 3: {by_later_steps:?}"
+    );
+}
 
 #[test]
 fn potential_partition_matches_section_7_3() {
