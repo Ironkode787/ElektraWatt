@@ -1,6 +1,44 @@
 {
   "rules": [
     {
+      "code": "100008",
+      "id": "EW-CORE-008",
+      "kind": "integrity",
+      "modes": [
+        "release"
+      ],
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": true
+        }
+      ],
+      "scope": "project",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Dangling reference",
+      "waivable": false
+    },
+    {
       "code": "101023",
       "id": "EW-CORE-023",
       "kind": "hygiene",
@@ -37,6 +75,85 @@
       "severity": "info",
       "supersedes": [],
       "title": "Title-block override",
+      "waivable": true
+    },
+    {
+      "code": "003031",
+      "id": "EW-CORE-031",
+      "kind": "conflict",
+      "modes": [
+        "online",
+        "prevent",
+        "release"
+      ],
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "cable",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Invalid core colour",
+      "waivable": true
+    },
+    {
+      "code": "003032",
+      "id": "EW-CORE-032",
+      "kind": "conflict",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "cable",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Core differs from the part",
       "waivable": true
     },
     {
@@ -79,6 +196,317 @@
       "waivable": true
     },
     {
+      "code": "003034",
+      "id": "EW-CORE-034",
+      "kind": "completeness",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "page",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "External connection without cable",
+      "waivable": true
+    },
+    {
+      "code": "003036",
+      "id": "EW-CORE-036",
+      "kind": "conflict",
+      "modes": [
+        "online",
+        "prevent"
+      ],
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "cable",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Core assigned twice",
+      "waivable": true
+    },
+    {
+      "code": "003037",
+      "id": "EW-CORE-037",
+      "kind": "completeness",
+      "modes": [
+        "online"
+      ],
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": false
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": false
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": false
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": false
+        }
+      ],
+      "scope": "cable",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Shield not connected",
+      "waivable": true
+    },
+    {
+      "code": "102041",
+      "id": "EW-CORE-041",
+      "kind": "completeness",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "device",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Device without part",
+      "waivable": true
+    },
+    {
+      "code": "102042",
+      "id": "EW-CORE-042",
+      "kind": "completeness",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "device",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Incomplete part data",
+      "waivable": true
+    },
+    {
+      "code": "102043",
+      "id": "EW-CORE-043",
+      "kind": "completeness",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": "error",
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "device",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Placeholder part",
+      "waivable": true
+    },
+    {
+      "code": "102044",
+      "id": "EW-CORE-044",
+      "kind": "completeness",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": "error",
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "device",
+      "severity": "info",
+      "supersedes": [],
+      "title": "Open Tbd value",
+      "waivable": true
+    },
+    {
+      "code": "102045",
+      "id": "EW-CORE-045",
+      "kind": "conflict",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "device",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Auxiliary contacts exceed the part",
+      "waivable": true
+    },
+    {
       "code": "102047",
       "id": "EW-CORE-047",
       "kind": "completeness",
@@ -115,6 +543,45 @@
       "severity": "warning",
       "supersedes": [],
       "title": "Device not in the schematic",
+      "waivable": true
+    },
+    {
+      "code": "102048",
+      "id": "EW-CORE-048",
+      "kind": "conflict",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "device",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Order codes do not cover the children",
       "waivable": true
     },
     {

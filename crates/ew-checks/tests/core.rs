@@ -249,6 +249,9 @@ fn clean_model_has_no_finding_from_any_shipped_rule() {
     fx.conn(0x2001, P1, cp(0x1001), cp(0x1002), &Value::Null);
     // Both connection points of each function connected (EW-POT-009).
     fx.conn(0x2002, P1, Ep::Cp(0x1001, 1), Ep::Cp(0x1002, 1), &Value::Null);
+    // Both devices have a part (EW-CORE-041).
+    fx.part(0x7100, "P-1", &json!({"description": "Relay"}));
+    fx.with_parts(0x21001, &[0x7100]).with_parts(0x21002, &[0x7100]);
     let m = fx.build();
     let report = run(&Q::new(&m), &FULL, CheckMode::Online);
     assert!(report.findings.is_empty(), "{:#?}", report.findings);

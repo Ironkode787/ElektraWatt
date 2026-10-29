@@ -9,9 +9,21 @@ use crate::rules as shipped;
 
 /// Every shipped rule implementation, in rule-ID order.
 static RULES: &[&dyn Rule] = &[
+    &shipped::device::DanglingFrameForm,
     &shipped::core::TitleBlockOverride,
+    &shipped::cable::InvalidCoreColour,
+    &shipped::cable::CoreDiffersFromPart,
     &shipped::core::CableWithoutLength,
+    &shipped::cable::ExternalWithoutCable,
+    &shipped::cable::CoreAssignedTwice,
+    &shipped::cable::ShieldNotConnected,
+    &shipped::device::DeviceWithoutPart,
+    &shipped::device::IncompletePartData,
+    &shipped::device::PlaceholderPart,
+    &shipped::device::OpenTbdValue,
+    &shipped::device::ContactsExceedPart,
     &shipped::core::DeviceNotInSchematic,
+    &shipped::device::OrderCodesCover,
     &shipped::core::UnpairedInterruptionPoint,
     &shipped::core::AmbiguousInterruptionPoint,
     &shipped::core::XrefCellInvalid,

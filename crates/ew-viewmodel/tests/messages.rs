@@ -36,6 +36,21 @@ fn findings(shell: &ShellModel, rule: &str, subject: &str) -> Vec<NavNode> {
         .collect()
 }
 
+/// The open completeness findings on page `folio`: the rows that turn pending while it is the editing page (D16).
+fn completeness_on(shell: &ShellModel, folio: &str) -> usize {
+    let has = |n: &NavNode, k: &str, v: &str| n.facets.iter().any(|(a, b)| a == k && b == v);
+    table(shell)
+        .nodes
+        .iter()
+        .filter(|n| {
+            n.role == NavRole::Finding
+                && has(n, "kind", "completeness")
+                && has(n, "state", "open")
+                && has(n, "page", folio)
+        })
+        .count()
+}
+
 fn finding(shell: &ShellModel, rule: &str, subject: &str) -> NavNode {
     let v = findings(shell, rule, subject);
     assert_eq!(v.len(), 1, "one {rule} finding on {subject}");
@@ -219,6 +234,8 @@ fn ms2_a_new_unpaired_point_on_the_editing_page_is_pending_until_the_tab_moves()
     done(&mut shell, "view.zoom_actual", json!({}));
     done(&mut shell, "messages.show", json!({}));
     let e0 = errors(&shell);
+    // Golden A's page 101 already holds open completeness findings (EW-CORE-034, EW-CORE-041): they turn pending too.
+    let p0 = completeness_on(&shell, "101");
     assert!(findings(&shell, "EW-CORE-051", "MSGTEST").is_empty());
     place_ip(&mut shell, "MSGTEST", (60, 3), "target");
     assert_eq!(shell.editing_folio().as_deref(), Some("101"));
@@ -228,8 +245,8 @@ fn ms2_a_new_unpaired_point_on_the_editing_page_is_pending_until_the_tab_moves()
     let counts = shell.messages_counts().unwrap();
     assert_eq!(
         (counts.errors, counts.pending),
-        (e0, 1),
-        "errors unchanged, pending 1"
+        (e0, p0 + 1),
+        "errors unchanged, the new finding pending"
     );
     let shown = shell
         .shown_rows(NavKind::Messages)
@@ -250,7 +267,7 @@ fn ms2_a_new_unpaired_point_on_the_editing_page_is_pending_until_the_tab_moves()
         "{}",
         shell.describe()
     );
-    assert!(line(&shell, "  messages scheme ").ends_with(" pending 1"));
+    assert!(line(&shell, "  messages scheme ").ends_with(&format!(" pending {}", p0 + 1)));
     // The tab shows 102: the editing page is gone and the finding is an error.
     done(&mut shell, "page.goto", json!({"folio": "102"}));
     assert_eq!(shell.editing_folio(), None);
@@ -312,7 +329,12 @@ fn ms2_run_checks_ends_pending_and_a_conflict_is_never_pending() {
     assert!(shell.row_pending(NavKind::Messages, &row.key));
     // The conflict counts as an error; MSGTEST's finding left the errors for `pending`.
     assert_eq!(errors(&shell), e_before);
-    assert_eq!(shell.messages_counts().unwrap().pending, 1);
+    // Pending: MSGTEST's finding and the open completeness findings Golden A already has on 101.
+    assert_eq!(
+        shell.messages_counts().unwrap().pending,
+        completeness_on(&shell, "101")
+    );
+    assert!(completeness_on(&shell, "101") >= 1);
     shell.shutdown();
 }
 

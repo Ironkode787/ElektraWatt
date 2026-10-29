@@ -6,6 +6,7 @@
 use std::fmt;
 
 use ew_derive::ew_ids::Id;
+use ew_derive::ew_mltext::natural_cmp;
 use ew_derive::ew_schema::{AnyId, Kind, Page};
 use sha2::{Digest, Sha256};
 
@@ -121,8 +122,8 @@ pub struct QuickFix {
 
 /// One finding (doc 15 §2.1, §2.5): what a rule reports about a set of records.
 ///
-/// Findings sort by `(code, fingerprint)` (doc 15 §3.9) and hold no wall-clock data, so two platforms give
-/// identical finding lists.
+/// Findings sort by code, then their printed subject and message, then the fingerprint (doc 15 §3.9, FT-594) and
+/// hold no wall-clock data, so two platforms, and two fresh copies of one project, give identical finding lists.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Finding {
     /// The rule ID.
@@ -217,19 +218,24 @@ impl Finding {
         self.state == FindingState::Open
     }
 
-    /// The canonical order: `(code, fingerprint)`, then the remaining fields so that the order is total.
-    pub fn order_key(&self) -> (&'static str, Fingerprint, &'static str) {
-        (self.code, self.fingerprint, self.rule)
+    /// The canonical order (doc 15 §3.9, FT-594): the code, then the printed subject in natural order (then by
+    /// bytes), then the message, and only then the fingerprint and the rule. Findings of one code thus print in an
+    /// order that follows the project's content: the fingerprint follows record IDs, which are random in a new
+    /// project (ID-677), so it decides only between two findings that print alike.
+    pub fn order_cmp(&self, other: &Finding) -> std::cmp::Ordering {
+        self.code
+            .cmp(other.code)
+            .then_with(|| natural_cmp(&self.subject, &other.subject))
+            .then_with(|| self.subject.cmp(&other.subject))
+            .then_with(|| self.message.cmp(&other.message))
+            .then_with(|| self.fingerprint.cmp(&other.fingerprint))
+            .then_with(|| self.rule.cmp(other.rule))
     }
 }
 
-/// Sorts findings in the canonical order (doc 15 §3.9) and drops exact duplicates.
+/// Sorts findings in the canonical order ([`Finding::order_cmp`]) and drops exact duplicates.
 pub fn sort_findings(findings: &mut Vec<Finding>) {
-    findings.sort_by(|a, b| {
-        a.order_key()
-            .cmp(&b.order_key())
-            .then_with(|| a.message.cmp(&b.message))
-    });
+    findings.sort_by(Finding::order_cmp);
     findings.dedup();
 }
 

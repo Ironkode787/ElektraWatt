@@ -451,3 +451,102 @@ fn golden_a_d21_unbonded_x1032_is_one_pe_island() {
         islands[0].message
     );
 }
+
+// ---------------------------------------------------------------------------------------------------------
+// WP-S1.16 part 3: cables, parts and devices on Golden A (doc 20 §18.1; P3-2, P3-3).
+
+/// P3-3 / doc 20 §18.1: the EW-CORE rules of part 3 report on Golden A the rows of EF-07 (EW-CORE-034: +J-E-206 → 1X1,
+/// D-19), EF-17 (EW-CORE-043: the four TBD parts, errors in release mode, D-04) and EF-04 (EW-CORE-041: S56, E56), and
+/// nothing for EW-CORE-008, -031, -032, -036, -042, -044, -045 and -048; the online-only EW-CORE-037 reports nothing
+/// in the drafting scheme.
+///
+/// EW-CORE-041 also reports two known deviations from EF-04 until their packages land: -XPE (EF-19, waived by W-1
+/// once waivers are typed, WP-S1.16 part 5) and the process valves -203Q1 to -203Q8 (supplied by others, exempt once
+/// `supply_scope` exists, FT-209, decision log ID-322).
+#[test]
+fn golden_a_ew_core_part3_reports_the_ef_rows() {
+    let batch = golden_common::batch();
+    let s = golden_common::session(&batch);
+    let report = s.check(&PRE_DELIVERY, CheckMode::Release);
+    assert_eq!(
+        subjects(&report, "EW-CORE-034"),
+        expected(&[("warning", "+J-E-206 → 1X1")])
+    );
+    let ef07 = report
+        .findings
+        .iter()
+        .find(|f| f.rule == "EW-CORE-034")
+        .expect("EF-07");
+    assert!(
+        ef07.message
+            .starts_with("the external connection +J-E-206 → 1X1 has no cable: wires "),
+        "{}",
+        ef07.message
+    );
+    assert_eq!(
+        subjects(&report, "EW-CORE-043"),
+        expected(&[
+            ("error", "TBD DIN rail TS 35"),
+            ("error", "TBD End bracket"),
+            ("error", "TBD Plug-in bridge"),
+            ("error", "TBD Wiring duct 40×60"),
+        ])
+    );
+    let mut ef04: Vec<(&str, String)> = ["S56", "E56", "XPE"]
+        .iter()
+        .map(|t| ("warning", format!("=P01+J-E-2416-{t}")))
+        .collect();
+    ef04.extend((1..=8).map(|n| ("warning", format!("=P01+FIELD-203Q{n}"))));
+    let ef04: Vec<(&str, &str)> = ef04.iter().map(|(a, b)| (*a, b.as_str())).collect();
+    assert_eq!(subjects(&report, "EW-CORE-041"), expected(&ef04));
+    for zero in [
+        "EW-CORE-008",
+        "EW-CORE-031",
+        "EW-CORE-032",
+        "EW-CORE-036",
+        "EW-CORE-042",
+        "EW-CORE-044",
+        "EW-CORE-045",
+        "EW-CORE-048",
+    ] {
+        assert!(
+            report.rules.iter().any(|r| r.id == zero),
+            "{zero} ran in the pre-delivery scheme"
+        );
+        assert_eq!(subjects(&report, zero), Vec::<(String, String)>::new(), "{zero}");
+    }
+    let online = s.check(&checks::DRAFTING, CheckMode::Online);
+    assert_eq!(subjects(&online, "EW-CORE-037"), Vec::<(String, String)>::new());
+}
+
+/// D-15 (P3-2): a `Tbd` channel address is an open item: EW-CORE-044 reports it as an error in release mode (EW-PLC-015
+/// supersedes it once built).
+#[test]
+fn golden_a_d15_a_tbd_channel_address_is_an_open_item() {
+    let batch = golden_common::batch();
+    let mut done = false;
+    let s = golden_common::session_with(&batch, |_, records| {
+        for r in records.iter_mut() {
+            if let Record::Channel(c) = r
+                && !done
+            {
+                c.address = ew_schema::AddrSpec::Tbd;
+                done = true;
+            }
+        }
+    });
+    let report = s.check(&PRE_DELIVERY, CheckMode::Release);
+    let open: Vec<&checks::Finding> = report
+        .findings
+        .iter()
+        .filter(|f| f.rule == "EW-CORE-044")
+        .collect();
+    assert_eq!(open.len(), 1, "{open:#?}");
+    assert_eq!(open[0].severity, checks::Severity::Error);
+    assert_eq!(open[0].discriminator, "address");
+    assert!(
+        open[0].message.contains("is TBD; enter it before release"),
+        "{}",
+        open[0].message
+    );
+}

@@ -349,6 +349,37 @@ impl Fx {
         self.push(r);
     }
 
+    /// A part copy `n` with part number `number` and the extra item members `extra` (`description`, `kind`,
+    /// `contacts`, `sections`); the manufacturer reference names "ACME" unless `extra` replaces it.
+    pub fn part(&mut self, n: u128, number: &str, extra: &Value) -> &mut Fx {
+        let mut item = json!({
+            "meta": {},
+            "manufacturer": {"library": us(LIBRARY), "item": us(0x7FFF), "version_req": "*", "key": "ACME"},
+            "part_number": number,
+        });
+        for (k, v) in extra.as_object().expect("extra is an object") {
+            item[k] = v.clone();
+        }
+        self.lib_item("part", n, &item);
+        self
+    }
+
+    /// Gives the record with ID `n` (a device) the part uses `parts`, one piece each.
+    pub fn with_parts(&mut self, n: u128, parts: &[u128]) -> &mut Fx {
+        let id = us(n);
+        let uses: Vec<Value> = parts
+            .iter()
+            .map(|p| json!({"part": {"copy": us(*p)}, "qty": "1"}))
+            .collect();
+        let r = self
+            .records
+            .iter_mut()
+            .find(|r| r["id"] == json!(id))
+            .expect("the device record");
+        r["parts"] = json!(uses);
+        self
+    }
+
     /// The model.
     pub fn build(&self) -> Model {
         model_json(self.settings.clone(), &self.records, &self.lib)

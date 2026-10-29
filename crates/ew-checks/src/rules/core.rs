@@ -766,6 +766,18 @@ const fn integrity(
     }
 }
 
+/// EW-CORE-008 "Dangling reference" (doc 15 §4.2): integrity, n r, error, project. The store reports the dangling
+/// references of opening a project ([`INTEGRITY`]); the registered rule
+/// [`DanglingFrameForm`](crate::rules::device::DanglingFrameForm) reports the frame defaults that name a form copy the
+/// project does not hold (FT-368).
+pub const DANGLING_REFERENCE: RuleMeta = integrity(
+    "EW-CORE-008",
+    "100008",
+    "Dangling reference",
+    "r",
+    Severity::Error,
+);
+
 /// The integrity rules EW-CORE-001 … 019 (doc 15 §4.2; detection in the store, doc 05 §6.3). They run on
 /// open (mode n, not modelled) and, where the catalogue lists `r`, in release mode; the engine does not run
 /// them: [`CheckReport::with_integrity`](crate::CheckReport::with_integrity) joins the store's findings.
@@ -789,13 +801,7 @@ pub const INTEGRITY: &[RuleMeta] = &[
         Severity::Error,
     ),
     integrity("EW-CORE-007", "100007", "Schema violation", "r", Severity::Error),
-    integrity(
-        "EW-CORE-008",
-        "100008",
-        "Dangling reference",
-        "r",
-        Severity::Error,
-    ),
+    DANGLING_REFERENCE,
     integrity(
         "EW-CORE-009",
         "100009",

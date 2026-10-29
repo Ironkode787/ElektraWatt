@@ -5,7 +5,9 @@
 //! `RuleMeta` constant that copies its row of the catalogue (ID, code, pack, kind, modes, severities,
 //! scope) and implements [`Rule`](crate::Rule).
 
+pub mod cable;
 pub mod core;
+pub mod device;
 pub mod num;
 pub mod pot;
 pub mod rds;

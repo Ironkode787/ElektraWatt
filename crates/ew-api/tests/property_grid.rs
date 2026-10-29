@@ -412,7 +412,9 @@ fn pg2_frozen_tags_wire_chips_and_the_page_description() {
         }
     );
     assert_eq!(d.path, "description_override");
-    assert!(sheet.header.findings.is_empty(), "{:?}", sheet.header.findings);
+    // Page 101 holds the supply's external connection, which has no cable (EW-CORE-034, doc 20 EF-07).
+    let rules: Vec<&str> = sheet.header.findings.iter().map(|f| f.rule.as_str()).collect();
+    assert_eq!(rules, ["EW-CORE-034"], "{:?}", sheet.header.findings);
 }
 
 #[test]

@@ -22,7 +22,7 @@
 //!   scope kinds are project, page, strip, device, cable and potential.
 //! - **Runs.** [`run`] evaluates a scheme over a snapshot and applies effective severities, supersession,
 //!   waivers (the reserved `waiver` records, matched by [`Fingerprint`]) and EW-CORE-081; the
-//!   [`CheckReport`] is sorted by `(code, fingerprint)` and carries the totals and `ew check`'s exit code.
+//!   [`CheckReport`] is in canonical order (code, printed subject and message, fingerprint) and carries the totals and `ew check`'s exit code.
 //!   [`prevent`] is the commit validator's entry (ADR-0009): `ew-api` installs it as the model's
 //!   `PreventHook`.
 //!

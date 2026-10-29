@@ -111,7 +111,8 @@ pub struct CheckReport {
     pub mode: CheckMode,
     /// The rules the run evaluated, in ID order.
     pub rules: Vec<&'static RuleMeta>,
-    /// The findings: open and waived (superseded findings are hidden), sorted by `(code, fingerprint)`.
+    /// The findings: open and waived (superseded findings are hidden), in canonical order (code, printed
+    /// subject, message, fingerprint; [`Finding::order_cmp`]).
     pub findings: Vec<Finding>,
     /// The totals.
     pub counts: Counts,
@@ -254,7 +255,7 @@ fn supersede(findings: Vec<Finding>) -> Vec<Finding> {
 /// Runs `scheme` in `mode` over the snapshot of `q` (doc 15 §3): every enabled shipped rule in every
 /// scope of its kind, through the memo family [`CheckOf`]; then the effective severities (§3.2),
 /// supersession (§3.6), waivers (§2.5) and EW-CORE-081 for waivers that match nothing; the findings sorted
-/// by `(code, fingerprint)` (§3.9).
+/// in canonical order ([`Finding::order_cmp`], §3.9, FT-594).
 pub fn run(q: &Q, scheme: &Scheme, mode: CheckMode) -> CheckReport {
     let mut evaluated: Vec<&'static RuleMeta> = Vec::new();
     let mut findings: Vec<Finding> = Vec::new();
