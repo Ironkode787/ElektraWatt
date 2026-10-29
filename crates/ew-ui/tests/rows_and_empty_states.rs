@@ -403,5 +403,6 @@ fn dk6_the_window_geometry_survives_a_restart() {
     let builder = ew_ui::window_memory::restore(egui::ViewportBuilder::default(), shell.settings().window);
     assert_eq!(builder.inner_size, Some(egui::vec2(1440.0, 900.0)));
     assert_eq!(builder.position, Some(egui::pos2(120.0, 64.0)));
-    assert_eq!(builder.maximized, Some(true));
+    // R3-1: the builder never maximises; the first frame places the window, then maximises it (`first_frame`).
+    assert_eq!(builder.maximized, None);
 }
