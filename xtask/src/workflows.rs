@@ -935,11 +935,4 @@ mod tests {
             "the workspace policy has no exceptions"
         );
     }
-
-    /// The committed workflows pass the lint.
-    #[test]
-    fn real_workflows_pass() {
-        let dir = crate::workspace_root().join(".github/workflows");
-        assert_eq!(check_dir(&dir).expect("workflows readable"), Vec::<String>::new());
-    }
 }

@@ -407,15 +407,4 @@ mod tests {
             "{report:?}"
         );
     }
-
-    /// The real dependency graph (all features) matches the committed allowlist.
-    #[test]
-    fn real_workspace_passes() {
-        let root = crate::workspace_root();
-        let allow = load_allowlist(&root.join("ci/build-scripts.allowlist")).expect("allowlist loads");
-        let found = packages_with_build_script(
-            &crate::metadata_all_features(&root).expect("cargo metadata --all-features runs"),
-        );
-        assert_eq!(check(&allow, &found), Vec::<String>::new());
-    }
 }

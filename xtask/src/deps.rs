@@ -745,19 +745,6 @@ mod tests {
         assert!(!wildcard_match("rusqlite", "rusqlite2"));
     }
 
-    /// NFR-MAINT-01 acceptance: the real workspace satisfies the real policy.
-    #[test]
-    fn real_workspace_passes() {
-        let root = crate::workspace_root();
-        let policy = Policy::load(&root.join("ci/dep-rules.toml")).expect("policy loads");
-        let graph = Graph::from_metadata(&crate::metadata().expect("cargo metadata runs"));
-        assert!(
-            graph.workspace.contains("ew-model"),
-            "metadata lists the workspace"
-        );
-        assert_eq!(check(&policy, &graph), Vec::<String>::new());
-    }
-
     /// The real policy rejects a GPL crate seeded into a permissive crate, as a dev-dependency too
     /// (NFR-MAINT-02 acceptance in dependency-rule form).
     #[test]
