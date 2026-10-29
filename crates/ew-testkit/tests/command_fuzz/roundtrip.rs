@@ -18,7 +18,8 @@
 //! initial model.
 
 use std::fmt::Write as _;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use ew_api::{MemoMode, Session, StoreOptions};
 use ew_derive::{DeviceTag, PageOrder, PotentialPartition};
@@ -38,26 +39,44 @@ pub enum Depth {
 
 /// The scratch project of a run.
 pub struct Disk {
-    dir: PathBuf,
-    created: bool,
+    /// The folder the scratch project's folder is made in.
+    base: PathBuf,
+    seed: u64,
+    /// The scratch project's folder, once the first round trip has made it.
+    dir: Option<PathBuf>,
     /// The number of round trips so far.
     pub trips: usize,
 }
 
+/// The numbers of this process's scratch folders.
+static SCRATCH_COUNTER: AtomicUsize = AtomicUsize::new(0);
+
+/// A new, empty folder `<base>/ew-fuzz-<pid>-<seed>-<n>` (`n` from `counter`) that this call created (FT-602; the rule
+/// of `ew-testdir`'s `fresh_dir_in`, copied because the cargo-fuzz crate, a workspace of its own, includes this module
+/// and cannot depend on it): `base` is created first when it does not exist yet; a leftover folder of a killed run
+/// whose PID was reused is skipped, not adopted, and the next number is taken instead.
+fn fresh_scratch(base: &Path, seed: u64, counter: &AtomicUsize) -> Result<PathBuf, String> {
+    std::fs::create_dir_all(base).map_err(|e| format!("scratch parent {}: {e}", base.display()))?;
+    loop {
+        let n = counter.fetch_add(1, Ordering::Relaxed);
+        let dir = base.join(format!("ew-fuzz-{}-{seed}-{n}", std::process::id()));
+        match std::fs::create_dir(&dir) {
+            Ok(()) => return Ok(dir),
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(e) => return Err(format!("scratch directory {}: {e}", dir.display())),
+        }
+    }
+}
+
 impl Disk {
     pub fn new(seed: u64) -> Disk {
-        static N: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
         // The target directory's scratch space when cargo provides one (an integration test), else the system's
         // (the cargo-fuzz crate, FT-297, which includes this module).
         let base = option_env!("CARGO_TARGET_TMPDIR").map_or_else(std::env::temp_dir, PathBuf::from);
-        let dir = base.join(format!(
-            "ew-fuzz-{}-{seed}-{}",
-            std::process::id(),
-            N.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
-        ));
         Disk {
-            dir,
-            created: false,
+            base,
+            seed,
+            dir: None,
             trips: 0,
         }
     }
@@ -78,19 +97,24 @@ impl Disk {
                 eprintln!("  round trip, {what}: {:?}", started.elapsed());
             }
         };
-        if self.created {
-            session.save().map_err(|e| format!("save failed: {e:?}"))?;
-        } else {
-            std::fs::create_dir_all(&self.dir).map_err(|e| format!("scratch directory: {e}"))?;
-            session
-                .create(&self.dir, Disk::options())
-                .map_err(|e| format!("create failed: {e:?}"))?;
-            self.created = true;
-        }
+        let dir = match &self.dir {
+            Some(dir) => {
+                session.save().map_err(|e| format!("save failed: {e:?}"))?;
+                dir.clone()
+            }
+            None => {
+                let dir = fresh_scratch(&self.base, self.seed, &SCRATCH_COUNTER)?;
+                // Kept before the create, so that a failed create's folder is still removed (or kept on a panic).
+                self.dir = Some(dir.clone());
+                session
+                    .create(&dir, Disk::options())
+                    .map_err(|e| format!("create failed: {e:?}"))?;
+                dir
+            }
+        };
         lap("saved");
-        let (reader, report) =
-            Session::open_reader_with(&self.dir, "ElektraWatt fuzz", "check", MemoMode::Off)
-                .map_err(|e| format!("reload failed: {e:?}"))?;
+        let (reader, report) = Session::open_reader_with(&dir, "ElektraWatt fuzz", "check", MemoMode::Off)
+            .map_err(|e| format!("reload failed: {e:?}"))?;
         lap("reloaded");
         if !report.findings.is_empty() {
             return Err(format!(
@@ -109,14 +133,13 @@ impl Disk {
 
     /// The closing round trip: the saved project, reloaded, equals `initial`.
     pub fn closing(&mut self, session: &mut Session, initial: &Model) -> Result<(), String> {
-        if !self.created {
+        let Some(dir) = self.dir.clone() else {
             return Ok(());
-        }
+        };
         self.trips += 1;
         session.save().map_err(|e| format!("save failed: {e:?}"))?;
-        let (reader, report) =
-            Session::open_reader_with(&self.dir, "ElektraWatt fuzz", "check", MemoMode::Off)
-                .map_err(|e| format!("reload failed: {e:?}"))?;
+        let (reader, report) = Session::open_reader_with(&dir, "ElektraWatt fuzz", "check", MemoMode::Off)
+            .map_err(|e| format!("reload failed: {e:?}"))?;
         if !report.findings.is_empty() {
             return Err(format!(
                 "the project saved after undo-all opens with {} integrity finding(s), first: {:?}",
@@ -132,9 +155,9 @@ impl Disk {
 impl Drop for Disk {
     fn drop(&mut self) {
         // A failing run keeps its directory for the diagnosis; the next run of the same target dir does not
-        // collide (the name has the process ID and a counter).
-        if !std::thread::panicking() {
-            let _ = std::fs::remove_dir_all(&self.dir);
+        // adopt it (the folder is created new, FT-602).
+        if let (false, Some(dir)) = (std::thread::panicking(), &self.dir) {
+            let _ = std::fs::remove_dir_all(dir);
         }
     }
 }
@@ -211,4 +234,33 @@ fn derived_agree(live: &Session, back: &Session, depth: Depth) -> Result<(), Str
         }
     }
     Ok(())
+}
+
+/// FT-602: the scratch folder's parent is created when it is missing (a fresh runner's `target/tmp`), and a leftover
+/// folder of the same PID and number (a killed run's) is skipped, not adopted, and left as it was.
+#[test]
+fn a_scratch_folder_is_created_new_under_a_missing_parent() {
+    let stamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_nanos());
+    let root = std::env::temp_dir().join(format!("ew-fuzz-scratch-{}-{stamp}", std::process::id()));
+    let base = root.join("target").join("tmp");
+    assert!(!base.exists());
+    let counter = AtomicUsize::new(0);
+    let pid = std::process::id();
+    let first = fresh_scratch(&base, 7, &counter).unwrap();
+    assert_eq!(first, base.join(format!("ew-fuzz-{pid}-7-0")));
+    assert!(first.is_dir());
+    let leftover = base.join(format!("ew-fuzz-{pid}-7-1"));
+    std::fs::create_dir(&leftover).unwrap();
+    std::fs::write(leftover.join("left.txt"), "kept\n").unwrap();
+    let next = fresh_scratch(&base, 7, &counter).unwrap();
+    assert_eq!(next, base.join(format!("ew-fuzz-{pid}-7-2")));
+    assert_eq!(
+        std::fs::read_dir(&next).unwrap().count(),
+        0,
+        "a new, empty folder"
+    );
+    assert!(leftover.join("left.txt").is_file(), "the leftover is not touched");
+    std::fs::remove_dir_all(&root).unwrap();
 }
