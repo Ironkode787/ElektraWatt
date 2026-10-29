@@ -1982,6 +1982,8 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
                 | "revision"
                 | "page_item"
                 | "structure_box"
+                // WP-S1.19 part 1: no command creates a macro instance yet, so no state selects one.
+                | "macro_instance"
                 | "inherited"
                 | "frozen"
                 | "library"

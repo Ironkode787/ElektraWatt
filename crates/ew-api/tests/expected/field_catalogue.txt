@@ -5,6 +5,9 @@
 # `<kind> <path> <type> <category> <route>[ identifier]`; a group header (a group or list without a route of its
 # own whose members are editable) shows `-` for its route (FT-427).
 project $v int[0..65535] identity read-only:identity
+project basic_project group? other read-only:no-command
+project basic_project.generation int[0..] other read-only:no-command
+project basic_project.id uuid other read-only:no-command
 project control_voltage quantity? other read-only:no-command
 project derivation_profile ident other read-only:no-command
 project id uuid identity read-only:identity
@@ -462,6 +465,15 @@ report_block source_ref group? other read-only:no-command
 report_block source_ref.key text other read-only:no-command
 report_block source_ref.lineage uuid other read-only:no-command
 report_block title mltext texts fields.set:title
+macro_instance $v int[0..65535] identity read-only:identity
+macro_instance id uuid identity read-only:identity
+macro_instance macro uuid other read-only:no-command
+macro_instance members list<json> other read-only:no-command
+macro_instance members[] json other read-only:no-command
+macro_instance page uuid placement read-only:no-command
+macro_instance value_set ident? other read-only:no-command
+macro_instance values json other read-only:no-command
+macro_instance variant ident other read-only:no-command
 revision $v int[0..65535] identity read-only:identity
 revision author enum(customer|end_user|panel_builder|author|checker|engineer)? other read-only:narrowed
 revision checker enum(customer|end_user|panel_builder|author|checker|engineer)? other read-only:narrowed

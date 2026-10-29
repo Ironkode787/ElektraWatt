@@ -419,7 +419,8 @@ fn np6_the_six_words_and_the_two_actions() {
     // (`props.accept_tag_proposal`) a terminal CP's side `internal` and
     // View ▸ Bottom dock (`view.bottom_dock`).
     // WP-S2.07 part 1: the strip editor's word `accessory` and six actions.
-    assert_eq!(VOCABULARY.len(), 356);
+    // WP-S1.19 part 1: the kind word `macro_instance`.
+    assert_eq!(VOCABULARY.len(), 357);
     assert_eq!(ew_viewmodel::actions::ACTIONS.len(), 268);
     let hl = ew_viewmodel::actions::ACTIONS
         .iter()

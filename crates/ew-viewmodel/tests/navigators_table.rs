@@ -774,7 +774,8 @@ fn tb8_describe_lines_words_and_counts() {
     // Merged with WP-S2.09 parts 2 and 3 (16 + 13 words, 5 + 8 actions) and WP-S2.17 part 1 (2 actions) and part 3 (6 words, 2 actions),
     // and FT-541 (`props.filter`), and the G-PP triage's Draw ▸ Bond (`bond.draw`).
     // WP-S2.07 part 1: the strip editor's word `accessory` and six actions.
-    assert_eq!(VOCABULARY.len(), 356);
+    // WP-S1.19 part 1: the kind word `macro_instance`.
+    assert_eq!(VOCABULARY.len(), 357);
     assert_eq!(ew_viewmodel::actions::ACTIONS.len(), 268);
     for (id, keys) in [
         ("table.edit", &["F2"][..]),
