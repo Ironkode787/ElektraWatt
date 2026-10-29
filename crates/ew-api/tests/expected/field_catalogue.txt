@@ -226,7 +226,13 @@ function cp_overrides[].unused bool connection_points fields.set:cp_overrides
 function def uuid other read-only:no-command
 function device uuid? other read-only:no-command
 function id uuid identity read-only:identity
-function kind json identity read-only:no-command
+function kind group identity -
+function kind.ip group? identity -
+function kind.ip.direction enum(source|target|undirected) identity fields.set:kind.ip.direction
+function kind.ip.external uuid? identity read-only:ip.place
+function kind.ip.name ident identity fields.set:kind.ip.name
+function kind.ip.sort int[..]? identity fields.set:kind.ip.sort
+function kind.ip.star_source bool identity fields.set:kind.ip.star_source
 function role enum(main|aux) other read-only:no-command
 function source_ref group? other read-only:no-command
 function source_ref.key text other read-only:no-command

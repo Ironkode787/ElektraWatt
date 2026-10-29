@@ -433,11 +433,21 @@ fn ref_name(node: &Value) -> Option<&str> {
     node.get("$ref")?.as_str()?.rsplit('/').next()
 }
 
+/// The enums whose unit variants the grid leaves out so that the payload variants open as a group (FT-399): a
+/// function's `kind` (`normal` and `black_box` have no member, an interruption point's `ip` has its name, direction,
+/// sort and star). Data, as the narrowing table: the other enums of that shape (a PLC slot, a channel address, a
+/// junction style) keep their JSON editor.
+const UNIT_VARIANT_GROUPS: &[&str] = &["FunctionKind"];
+
 /// The variants of an externally tagged enum whose every variant carries an object payload (`{"graphic": {…}}`,
-/// WP-S2.04 part 4a): a group of the variants, each optional (one is present); `None` for any other `oneOf`.
-fn tagged_variants(root: &Value, branches: &[Value], depth: usize) -> Option<Vec<FieldNode>> {
+/// WP-S2.04 part 4a): a group of the variants, each optional (one is present); `None` for any other `oneOf`. With
+/// `units` (an enum of [`UNIT_VARIANT_GROUPS`]) its unit variants (a `const` word) are left out, so long as one variant
+/// carries a payload.
+fn tagged_variants(root: &Value, branches: &[Value], depth: usize, units: bool) -> Option<Vec<FieldNode>> {
+    let unit = |b: &Value| units && b.get("const").is_some_and(Value::is_string);
     let variants: Option<Vec<FieldNode>> = branches
         .iter()
+        .filter(|b| !unit(b))
         .map(|b| {
             let props = b.get("properties").and_then(Value::as_object)?;
             let (tag, payload) = props.iter().next().filter(|_| props.len() == 1)?;
@@ -462,7 +472,7 @@ fn is_tagged_enum(root: &Value, node: &Value, depth: usize) -> bool {
     };
     node.get("oneOf")
         .and_then(Value::as_array)
-        .is_some_and(|b| tagged_variants(root, b, depth).is_some())
+        .is_some_and(|b| tagged_variants(root, b, depth, false).is_some())
 }
 
 /// The schema type of `node` (§6.1.1's table).
@@ -483,6 +493,11 @@ fn node_type(root: &Value, node: &Value, depth: usize) -> FieldType {
             "Slot" => FieldType::Slot,
             "Uuid" => FieldType::Uuid,
             other => match root.get("$defs").and_then(|d| d.get(other)) {
+                Some(def) if UNIT_VARIANT_GROUPS.contains(&other) => def
+                    .get("oneOf")
+                    .and_then(Value::as_array)
+                    .and_then(|b| tagged_variants(root, b, depth + 1, true))
+                    .map_or_else(|| node_type(root, def, depth + 1), FieldType::Group),
                 Some(def) => node_type(root, def, depth + 1),
                 None => FieldType::Json,
             },
@@ -503,7 +518,7 @@ fn node_type(root: &Value, node: &Value, depth: usize) -> FieldType {
         }
     }
     if let Some(branches) = node.get("oneOf").and_then(Value::as_array) {
-        if let Some(variants) = tagged_variants(root, branches, depth) {
+        if let Some(variants) = tagged_variants(root, branches, depth, false) {
             return FieldType::Group(variants);
         }
         let options: Option<Vec<String>> = branches
@@ -672,6 +687,8 @@ const OTHER_COMMANDS: &[(&str, &str, &str, Option<&str>)] = &[
     ("device", "position", "assembly.attach", None),
     ("project", "supply.origin.source", "project.supply.set", None),
     ("representation", "anchor", "rep.set_anchor_policy", None),
+    // An external connection point's target is chosen when it is placed (the IP tool's external field, FT-399).
+    ("function", "kind.ip.external", "ip.place", Some("the canvas")),
 ];
 
 /// The confirmed step of a `HumanOnly` command that the table does not name.
@@ -1088,7 +1105,8 @@ pub(crate) fn format_with(cx: &dyn DisplayCx, ty: &FieldType, value: &Value) -> 
             }
             other => compact_json(other),
         },
-        FieldType::Group(_) => String::new(),
+        // A unit variant of a tagged enum (a function's `black_box`) is its word.
+        FieldType::Group(_) => value.as_str().map(str::to_owned).unwrap_or_default(),
         FieldType::Json => compact_json(value),
     }
 }

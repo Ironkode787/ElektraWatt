@@ -111,6 +111,59 @@ fn ft543_a_designation_on_a_device_says_where_its_tag_is_set() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
+// FT-399: an interruption point renamed from the grid.
+
+/// A selected interruption point's grid has its name, direction, sort and star as editable rows of its function
+/// (`fields.set` `kind.ip.*`); typing a name renames it in one undo step, and the direction takes its words.
+#[test]
+fn ft399_an_interruption_point_is_renamed_and_redirected_from_the_grid() {
+    let tmp = Tmp::new("m34-399");
+    let mut s = golden(&tmp, "103");
+    let (rep, name) = {
+        let t = &s.canvas().unwrap().page().tables;
+        let r = t.reps.iter().find(|r| r.ip.is_some()).expect("an IP on 103");
+        (r.id.to_string(), r.ip.as_ref().unwrap().name.clone())
+    };
+    done(&mut s, "select.set", json!({"ids": [rep]}));
+    done(&mut s, "props.focus", json!({}));
+    let sheet = s.properties().sheet().expect("the selection's sheet");
+    for member in ["name", "direction", "sort", "star_source"] {
+        let key = format!("function/kind.ip.{member}");
+        let row = sheet
+            .sections
+            .iter()
+            .flat_map(|sec| sec.rows.iter())
+            .find(|r| r.key == key)
+            .unwrap_or_else(|| panic!("no row {key}"));
+        assert!(row.route.is_editable(), "{key}: {:?}", row.route);
+    }
+    let rev = s.revision();
+    done(
+        &mut s,
+        "props.set",
+        json!({"row": "function/kind.ip.name", "value": "RENAMED-1"}),
+    );
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "one undo step");
+    done(
+        &mut s,
+        "props.set",
+        json!({"row": "function/kind.ip.direction", "value": "undirected"}),
+    );
+    let t = &s.canvas().unwrap().page().tables;
+    let ip = t
+        .reps
+        .iter()
+        .find(|r| r.id.to_string() == rep)
+        .and_then(|r| r.ip.clone())
+        .unwrap();
+    assert_eq!(
+        (ip.name.as_str(), ip.direction.as_str()),
+        ("RENAMED-1", "undirected")
+    );
+    assert_ne!(name, "RENAMED-1");
+}
+
+// ---------------------------------------------------------------------------------------------------------------
 // FT-547: the IP tool keeps the chosen direction; a deleted IP says it took its wire.
 
 /// The page's interruption points as (name, direction), sorted.

@@ -837,3 +837,74 @@ fn reshape_rejections_write_nothing() {
     assert_eq!(e.model().rev(), rev);
     assert_eq!(lines(e.model()), before);
 }
+
+// ---------------------------------------------------------------------------------------------------------
+// FT-399: an interruption point's members through `fields.set`
+
+fn set_ip(f: Id<Function>, member: &str, value: serde_json::Value) -> ew_commands::commands::SetFields {
+    ew_commands::commands::SetFields {
+        kind: ew_commands::commands::KindName::Function,
+        targets: vec![f.cast()],
+        path: format!("kind.ip.{member}"),
+        value,
+    }
+}
+
+fn spec_of(e: &Engine, f: Id<Function>) -> ew_schema::IpSpec {
+    match row(e, f).kind {
+        FunctionKind::Ip(spec) => spec,
+        _ => panic!("an IP function"),
+    }
+}
+
+/// `kind.ip.name`, `direction`, `sort` and `star_source` are settable on an interruption point (renaming it from the
+/// grid), each one undo step; `null` clears the sort; the external target and the rest of the record stay.
+#[test]
+fn fields_set_renames_an_ip_and_sets_its_direction_sort_and_star() {
+    let mut e = engine(arrange_model(|_| {}));
+    let before = row(&e, IP_A);
+    e.execute(&set_ip(IP_A, "name", serde_json::json!("L-9")))
+        .unwrap();
+    e.execute(&set_ip(IP_A, "direction", serde_json::json!("undirected")))
+        .unwrap();
+    e.execute(&set_ip(IP_A, "star_source", serde_json::json!(true)))
+        .unwrap();
+    e.execute(&set_ip(IP_A, "sort", serde_json::json!(3))).unwrap();
+    let spec = spec_of(&e, IP_A);
+    assert_eq!(spec.name.as_str(), "L-9");
+    assert_eq!(spec.direction, IpDirection::Undirected);
+    assert!(spec.star_source);
+    assert_eq!(spec.sort, Some(3));
+    e.execute(&set_ip(IP_A, "sort", serde_json::Value::Null)).unwrap();
+    assert_eq!(spec_of(&e, IP_A).sort, None);
+    let after = row(&e, IP_A);
+    assert_eq!(
+        (after.def, after.device, after.role),
+        (before.def, before.device, before.role)
+    );
+    // Undo takes the steps back one at a time.
+    e.undo(&Origin::Gui).unwrap();
+    assert_eq!(spec_of(&e, IP_A).sort, Some(3));
+}
+
+/// An IP member on a function that is no interruption point is refused at `/path`; a value the member does not take
+/// at `/value`; the external target is not settable here.
+#[test]
+fn fields_set_refuses_ip_members_on_other_functions_and_bad_values() {
+    let mut e = engine(arrange_model(|_| {}));
+    let rev = e.model().rev();
+    invalid_at(
+        e.execute(&set_ip(FN_T3, "name", serde_json::json!("L-9"))),
+        "/path",
+    );
+    invalid_at(
+        e.execute(&set_ip(IP_A, "direction", serde_json::json!("sideways"))),
+        "/value",
+    );
+    invalid_at(e.execute(&set_ip(IP_A, "name", serde_json::json!(""))), "/value");
+    invalid_at(
+        e.execute(&set_ip(IP_A, "external", serde_json::Value::Null)),
+        "/path",
+    );
+    assert_eq!(e.model().rev(), rev);
+}

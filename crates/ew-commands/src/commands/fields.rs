@@ -9,8 +9,8 @@ use std::collections::BTreeSet;
 
 use ew_model::Entity;
 use ew_schema::{
-    AnyId, Conductor, Connection, Device, ExternalRef, Function, Kind, Page, PageItem, PotentialDef,
-    ReportBlock, Representation, Revision, Section, StructureBox, StructureNode,
+    AnyId, Conductor, Connection, Device, ExternalRef, Function, FunctionKind, IpDirection, Kind, Page,
+    PageItem, PotentialDef, ReportBlock, Representation, Revision, Section, StructureBox, StructureNode,
 };
 use schemars::JsonSchema;
 use serde::de::DeserializeOwned;
@@ -48,6 +48,10 @@ use crate::tx::TxBuilder;
 /// (FR-REV-009) and refused at `/targets/<i>`. Its `state` is not settable (Open → Released is
 /// `revision.release`). A `page_notes` value names existing pages, one note per page (EW-INV-019), and its
 /// notes take no member other than `page` and `description`.
+///
+/// An interruption point's `name`, `direction`, `sort` and `star_source` are settable on its function as
+/// `kind.ip.<member>` (FT-399: renaming an interruption point from the grid); on any other function they are refused
+/// at `/path`. Its `external` keeps `ip.place`'s route.
 ///
 /// The project row (kind `project`, its one ID as the target) takes `master.description`, the project
 /// description that title blocks and bound free texts print (FT-447, FR-SYM-024); the other project members
@@ -92,7 +96,16 @@ pub const SETTABLE: &[(KindName, &[&str])] = &[
             "plc_module.part_use",
         ],
     ),
-    (KindName::Function, &["cp_overrides"]),
+    (
+        KindName::Function,
+        &[
+            "cp_overrides",
+            "kind.ip.name",
+            "kind.ip.direction",
+            "kind.ip.sort",
+            "kind.ip.star_source",
+        ],
+    ),
     (
         KindName::Page,
         &[
@@ -274,7 +287,13 @@ impl SetFields {
         for t in &self.targets {
             match self.kind {
                 KindName::Device => set_one::<Device>(tx, *t, path, value)?,
-                KindName::Function => set_one::<Function>(tx, *t, path, value)?,
+                KindName::Function => {
+                    refuse_not_ip(tx, *t, path)?;
+                    set_one::<Function>(tx, *t, path, value)?;
+                    if path == "kind.ip.direction" {
+                        refuse_unknown_direction(tx, *t)?;
+                    }
+                }
                 KindName::Page => set_one::<Page>(tx, *t, path, value)?,
                 KindName::Representation => set_one::<Representation>(tx, *t, path, value)?,
                 KindName::Connection => {
@@ -551,6 +570,38 @@ fn refuse_other_variant(tx: &TxBuilder<'_>, target: AnyId, path: &str) -> Result
             SetFields::NAME,
             "/path",
             format!("page item {target} is a {own}, not a {variant}; `{path}` is not one of its fields"),
+        ));
+    }
+    Ok(())
+}
+
+/// An interruption point's members (`kind.ip.*`, FT-399) on a function that is not one: refused at `/path`.
+fn refuse_not_ip(tx: &TxBuilder<'_>, target: AnyId, path: &str) -> Result<(), CmdError> {
+    if !path.starts_with("kind.ip.") {
+        return Ok(());
+    }
+    let f = tx.require::<Function>(target.cast())?;
+    if !matches!(f.kind, FunctionKind::Ip(_)) {
+        return Err(CmdError::invalid_params(
+            SetFields::NAME,
+            "/path",
+            format!("function {target} is not an interruption point; `{path}` is not one of its fields"),
+        ));
+    }
+    Ok(())
+}
+
+/// An interruption point's direction as read back must be one this build knows (`IpDirection` keeps a newer word
+/// verbatim for files, never for an edit): refused at `/value`.
+fn refuse_unknown_direction(tx: &TxBuilder<'_>, target: AnyId) -> Result<(), CmdError> {
+    let f = tx.require::<Function>(target.cast())?;
+    if let FunctionKind::Ip(ip) = &f.kind
+        && let IpDirection::Unknown(v) = &ip.direction
+    {
+        return Err(CmdError::invalid_params(
+            SetFields::NAME,
+            "/value",
+            format!("{v} is not a direction; give source, target or undirected"),
         ));
     }
     Ok(())
