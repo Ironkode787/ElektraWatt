@@ -685,7 +685,12 @@ fn ft532_table_mode_without_rows_shows_the_empty_state() {
     settle(&mut h);
     settle(&mut h);
     assert!(
-        h.state().shell().nav(NavKind::Strips).unwrap().visible().is_empty(),
+        h.state()
+            .shell()
+            .nav(NavKind::Strips)
+            .unwrap()
+            .visible()
+            .is_empty(),
         "no row matches"
     );
     assert!(
@@ -703,7 +708,12 @@ fn ft532_table_mode_without_rows_shows_the_empty_state() {
     settle(&mut h);
     settle(&mut h);
     assert!(
-        !h.state().shell().nav(NavKind::Strips).unwrap().visible().is_empty(),
+        !h.state()
+            .shell()
+            .nav(NavKind::Strips)
+            .unwrap()
+            .visible()
+            .is_empty(),
         "the filter is cleared"
     );
     assert!(
@@ -732,7 +742,12 @@ fn ft532_table_mode_without_rows_shows_the_empty_state() {
     settle(&mut h);
     settle(&mut h);
     assert!(
-        h.state().shell().nav(NavKind::Strips).unwrap().table_mode().is_some(),
+        h.state()
+            .shell()
+            .nav(NavKind::Strips)
+            .unwrap()
+            .table_mode()
+            .is_some(),
         "in table mode"
     );
     assert!(
@@ -797,7 +812,11 @@ fn ft536_the_move_items_are_arrow_icon_buttons() {
     let shapes = painted(&h);
     for (name, icon, enabled) in [
         ("Move Function text left", ew_ui::icons::IconId::arrow_left, true),
-        ("Move Function text right", ew_ui::icons::IconId::arrow_right, true),
+        (
+            "Move Function text right",
+            ew_ui::icons::IconId::arrow_right,
+            true,
+        ),
         ("Move Terminal left", ew_ui::icons::IconId::arrow_left, false),
         ("Move State right", ew_ui::icons::IconId::arrow_right, false),
     ] {

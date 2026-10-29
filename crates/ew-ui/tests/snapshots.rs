@@ -494,3 +494,150 @@ fn dk12_messages_and_history_in_light_and_dark_at_both_densities() {
     }
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
+
+/// A drag with the primary button from `from` by `by`, in eight steps, one frame each.
+fn drag(h: &mut Harness<'_, App>, from: egui::Pos2, by: egui::Vec2) {
+    let button = |pos, pressed| egui::Event::PointerButton {
+        pos,
+        button: egui::PointerButton::Primary,
+        pressed,
+        modifiers: egui::Modifiers::NONE,
+    };
+    h.input_mut().events.push(egui::Event::PointerMoved(from));
+    h.run_ok();
+    h.input_mut().events.push(button(from, true));
+    h.run_ok();
+    for i in 1..=8 {
+        let at = from + by * (i as f32 / 8.0);
+        h.input_mut().events.push(egui::Event::PointerMoved(at));
+        h.run_ok();
+    }
+    h.input_mut().events.push(button(from + by, false));
+    h.run_ok();
+    // The pointer leaves the window so that no hover is painted.
+    h.input_mut().events.push(egui::Event::PointerGone);
+    h.run_ok();
+}
+
+/// DK12's grid (FT-532, doc 16a §6.21): Golden A's Terminal strips navigator in table mode, filtered `x1031`, sorted
+/// by Terminal, with the derived Potential column moved next to Terminal so that it is on show, two marked rows and
+/// the cursor cell in the second (`dk12-grid-*`), then the editing cell opened on the cursor cell
+/// (`dk12-grid-edit-*`; the editor opens where the cursor is, so the cursor ring and the editor are two images).
+/// Cropped to the pane from its tool line to the grid's bottom, light and dark at both densities, gated.
+#[test]
+fn dk12_the_data_grid_in_light_and_dark_at_both_densities() {
+    let dev = device();
+    let mut failures = Vec::new();
+    for theme in ["light", "dark"] {
+        for density in ["comfortable", "compact"] {
+            let (mut h, recorder, tmp) = main_window(theme, density);
+            // The editor's caret blinks on the wall clock: steady for a stable image.
+            h.ctx.all_styles_mut(|s| s.visuals.text_cursor.blink = false);
+            let shell = h.state_mut().shell_mut();
+            for (action, params) in [
+                ("props.show", json!({"on": false})),
+                ("navigator.show", json!({"kind": "strips"})),
+                ("navigator.table", json!({"kind": "strips"})),
+                ("navigator.filter", json!({"kind": "strips", "text": "x1031"})),
+                ("navigator.sort", json!({"kind": "strips", "by": "terminal"})),
+            ] {
+                assert_eq!(shell.dispatch(action, &params), Outcome::Done, "{action}");
+            }
+            // The derived Potential column right after Terminal.
+            let order: Vec<String> = {
+                let nav = shell
+                    .nav(ew_ui::ew_viewmodel::navigators::NavKind::Strips)
+                    .unwrap();
+                let table = nav.table().unwrap();
+                let movable: Vec<&ew_ui::ew_viewmodel::ew_api::output::NavColumn> = nav
+                    .table_mode()
+                    .unwrap()
+                    .shown_columns(table)
+                    .into_iter()
+                    .map(|c| &table.columns[c])
+                    .filter(|c| !c.key_column)
+                    .collect();
+                let derived = movable
+                    .iter()
+                    .find(|c| c.derived)
+                    .map(|c| c.key.clone())
+                    .expect("a derived column on show");
+                let mut order: Vec<String> = movable
+                    .iter()
+                    .map(|c| c.key.clone())
+                    .filter(|k| *k != derived)
+                    .collect();
+                order.insert(1, derived);
+                order
+            };
+            for (action, params) in [
+                ("table.columns", json!({"kind": "strips", "order": order})),
+                ("ui.focus", json!({"area": "navigator", "kind": "strips"})),
+            ] {
+                assert_eq!(shell.dispatch(action, &params), Outcome::Done, "{action}");
+            }
+            support::settle(&mut h);
+            // The left column dragged 200 points wider by its splitter, so that the derived column is on show.
+            let splitter = h
+                .get_all_by_role(egui::Role::Splitter)
+                .find(|n| {
+                    use egui_kittest::kittest::NodeT as _;
+                    n.accesskit_node()
+                        .label()
+                        .is_some_and(|l| l.ends_with(" and Page view"))
+                })
+                .map(|n| n.rect().center())
+                .expect("the left column's splitter");
+            drag(&mut h, splitter, egui::vec2(200.0, 0.0));
+            support::settle(&mut h);
+            h.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::Home);
+            support::settle(&mut h);
+            h.key_press(egui::Key::ArrowRight);
+            support::settle(&mut h);
+            h.key_press_modifiers(egui::Modifiers::SHIFT, egui::Key::ArrowDown);
+            support::settle(&mut h);
+            let shell = h.state_mut().shell_mut();
+            assert_eq!(
+                shell
+                    .nav(ew_ui::ew_viewmodel::navigators::NavKind::Strips)
+                    .unwrap()
+                    .marked()
+                    .len(),
+                2,
+                "two marked rows"
+            );
+            let serials: Vec<u64> = shell.notifications().visible().iter().map(|n| n.serial).collect();
+            for serial in serials {
+                shell.dismiss_toast(serial);
+            }
+            for (name, edit) in [("grid", false), ("grid-edit", true)] {
+                if edit {
+                    assert_eq!(
+                        h.state_mut()
+                            .shell_mut()
+                            .dispatch("table.edit", &json!({"kind": "strips"})),
+                        Outcome::Done
+                    );
+                }
+                h.run_ok();
+                h.run_ok();
+                let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
+                let grid = node_rect(&h, "Terminal strips table").expect("the grid");
+                let top = node_rect(&h, "Table").map_or(grid.top(), |r| r.top());
+                let pane = egui::Rect::from_min_max(
+                    egui::pos2(grid.left(), top - 4.0),
+                    egui::pos2(grid.right(), grid.bottom()),
+                );
+                failures.extend(record(
+                    &format!("dk12-{name}-{theme}-{density}"),
+                    &crop(&image, pane),
+                    true,
+                ));
+            }
+            h.state_mut().shell_mut().shutdown();
+            drop(h);
+            drop(tmp);
+        }
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
