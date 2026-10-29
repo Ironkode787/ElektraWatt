@@ -1,6 +1,6 @@
 # Design language
 
-**Status:** v1.3, accepted 2026-10-28; v1.3: WP-S2.17 parts 2 to 5 as built, the deliberate departures noted in §5.2, §5.4, §5.5, §5.8, §6.8, §6.10, §6.12, §6.14, §6.16, §7.1, §7.2 and §9.2 (decision log ID-747 to ID-757); v1.2: the bottom dock's height as built, `size.dock.bottom_min` (decision log ID-743); v1.1 adds the built widgets (§4.15, §6.21 to §6.25); cycle-31 design pass: the
+**Status:** v1.3, accepted 2026-10-28; v1.3: WP-S2.17 parts 2 to 5 as built, the deliberate departures noted in §5.2, §5.4, §5.5, §5.8, §6.8, §6.10, §6.12, §6.14, §6.16, §7.1, §7.2 and §9.2, the Project tab's Import group and the search placeholder in §5.2 and §5.3 (decision log ID-747 to ID-757); v1.2: the bottom dock's height as built, `size.dock.bottom_min` (decision log ID-743); v1.1 adds the built widgets (§4.15, §6.21 to §6.25); cycle-31 design pass: the
 Messages pane has no table mode as built, the History keys as built, the follow-ups numbered (decision log ID-727, ID-732) · **Date:** 2026-10-28 · **Decision:** [ADR-0031](../adr/0031-design-language-and-task-ordered-command-bar.md)
 (Accepted) · **Visual reference:** [the mockup](assets/design-language-mockup.html) (approved by the owner) · **Work package:**
 [WP-S2.17](../plan/specs/WP-S2.17-design-language-and-ui-polish.md) · **Part of:** ElektraWatt design document set
@@ -485,7 +485,7 @@ The window is [the mockup](assets/design-language-mockup.html)'s (open it in a b
 
 ```text
 +-------------------------------------------------------------------------------------------------------+
-| [# ElektraWatt v] | [S][U][R] | Project  Page  [Draw]  Check  Output  View    [Q Search commands, devices, pages  Ctrl K] | tab row 32, chrome
+| [# ElektraWatt v] | [S][U][R] | Project  Page  [Draw]  Check  Output  View    [Q Search commands and devices      Ctrl K] | tab row 32, chrome
 |-------------------------------------------------------------------------------------------------------|
 | [Select] | [Symbol] [Device] Terminal  | [Wire] Potential    | [Text] Measure | Rotate  Align     [Check project] | command row 52, panel
 |          |                   Black box |        Interruption |                | Mirror  Renumber                  |
@@ -535,7 +535,7 @@ the bar.
    (`radius.mark`), the others `color.text.secondary`; hover shows the hover overlay. One click switches; the tab row
    is a `TabList` with `Tab` children for AccessKit.
 4. **Command search**, right-aligned, `size.search` (280 × 24): `color.surface.panel` fill, a 1-px
-   `color.border.default`, `radius.md`, a 16-px search icon, the placeholder "Search commands, devices, pages" in
+   `color.border.default`, `radius.md`, a 16-px search icon, the placeholder "Search commands and devices" (as built, decision log ID-756) in
    `color.text.tertiary` and the key chip "Ctrl K" at its right end. The icon and the placeholder identify the
    field (WCAG 1.4.11). Focusing it opens the command palette (§6.14) anchored under the field.
 
@@ -577,7 +577,7 @@ placed action has an icon, a label and a docs anchor, and that each tab's groups
 
 | Tab | Groups, left to right (large buttons in **bold**; bar labels) | Next step · notes |
 |---|---|---|
-| Project | Project: **Properties**, Structure · Parts: **Import parts**, Project parts · Standards: Schemes, Company standard · Import: Import QET | None · set up once; New, Open and Save are in the app menu and quick access, never duplicated here |
+| Project | Project: **Properties**, Structure · Parts: Project parts · Standards: Schemes, Company standard · Import: **Import parts**, Import QElectroTech project… (as built, decision log ID-756) | None · set up once; New, Open and Save are in the app menu and quick access, never duplicated here |
 | Page | Pages: **New page**, Page properties, Delete page · Order: Renumber pages, Move up, Move down · Go: **Go to** (Ctrl+G), Back (Alt+Left), Forward (Alt+Right), Follow reference (F) | None · folio navigation and page set-up |
 | **Draw** (home) | Select: **Select** · Place: **Symbol** (I), **Device** (Shift+I), Terminal, Black box (B) · Connect: **Wire** (W), Potential (Shift+P), Interruption (P) · Annotate: **Text** (T), Measure · Arrange: Rotate (R), Mirror (X, Y), Align, Renumber | **Check project** (F7) · the core loop and the tab that opens with a project; exactly the mockup's fourteen commands and its next step. Move, Delete, Wire marker, Graphic, Image, Structure box, Properties and Change symbol are reached by their keys, the context menu, the app menu's Draw and the palette; Align arrives with its package |
 | Check | Run: **Check project** (F7), Check scheme ▾ · Findings: **Messages**, Next finding (F8), Previous finding (Shift+F8) · Numbering: Freeze tag, Unfreeze tag · Trace: Highlight potential (Ctrl+Shift+H), Clear highlights | **Export PDF** · make it right before output; Renumber lives on Draw (the mockup) |
