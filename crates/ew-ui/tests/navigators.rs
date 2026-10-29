@@ -139,6 +139,9 @@ fn nv5_the_devices_pane_and_the_chip_line() {
     assert_eq!(chips, ["201-E4", "203-B4"]);
     assert!(h.query_by_label("Open 201-E4").is_some());
     assert!(h.query_by_label("Open 203-B4").is_some());
+    // FT-531: the chips are doc 16a §6.24's pill jump chips, 20 px high (egui's button was the row height).
+    let chip = h.get_by_role_and_label(egui::Role::Button, "Open 201-E4").rect();
+    assert!((chip.height() - 20.0).abs() < 0.5, "jump chip {chip:?}");
     let item = h
         .get_all_by_role(egui::Role::TreeItem)
         .find(|n| {

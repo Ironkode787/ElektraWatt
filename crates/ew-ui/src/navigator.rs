@@ -954,20 +954,25 @@ fn table_card(ui: &mut Ui, shell: &ShellModel, kind: NavKind, events: &mut Vec<E
     });
 }
 
-/// The chip line "Not on this page" above the canvas (§6.5): one button per chip, named `Open <folio>-<cell>`, that
-/// opens the page and selects the drawable there.
+/// The chip line "Not on this page" above the canvas (§6.5): the label in `type.small` `color.text.secondary`, then
+/// one jump chip (doc 16a §6.24) per chip, named `Open <folio>-<cell>`, that opens the page and selects the drawable
+/// there.
 pub(crate) fn chip_line(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     let chips = shell.chips();
     if chips.is_empty() {
         return;
     }
     ui.horizontal_wrapped(|ui| {
-        ui.label(strings::text("chips-label"));
+        let t = crate::components::tokens(ui);
+        ui.label(
+            egui::RichText::new(strings::text("chips-label"))
+                .font(crate::theme::font(&t.type_small))
+                .color(t.text_secondary.color32()),
+        );
         for c in chips {
             let text = c.text();
             let name = strings::format("chip-name", &[&text]);
-            let response = ui.button(&text);
-            response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &name));
+            let response = crate::components::jump_chip(ui, &text, &name);
             if response.clicked() {
                 events.push(Event::Action("page.goto", json!({ "folio": c.folio })));
                 events.push(Event::Action(

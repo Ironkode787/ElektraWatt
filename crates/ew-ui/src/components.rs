@@ -388,6 +388,52 @@ pub(crate) fn paint_provenance_chip(
     rect
 }
 
+/// The height of a jump chip (doc 16a §6.24).
+pub(crate) const JUMP_CHIP_HEIGHT: f32 = 20.0;
+/// The size of a jump chip's `file` icon (doc 16a §6.24).
+pub(crate) const JUMP_CHIP_ICON: f32 = 12.0;
+
+/// A jump chip of the chip line (doc 16a §6.24): the provenance chip's pill (`radius.pill`, 1-px
+/// `color.border.default`) 20 px high with `space.icon` padding, a 12-px `file` icon and `text` in `type.small`
+/// `color.accent`, the hover overlay and the focus ring. A button node named `name`.
+pub(crate) fn jump_chip(ui: &mut Ui, text: &str, name: &str) -> Response {
+    let t = tokens(ui);
+    let galley = ui
+        .painter()
+        .layout_no_wrap(text.to_owned(), theme::font(&t.type_small), t.accent.color32());
+    let size = Vec2::new(
+        t.space_icon + JUMP_CHIP_ICON + t.space_1 + galley.size().x + t.space_icon,
+        JUMP_CHIP_HEIGHT,
+    );
+    let (rect, response) = ui.allocate_exact_size(size, Sense::click());
+    let n = name.to_owned();
+    response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &n));
+    crate::command_bar::state_overlay(ui, &t, &response, true, t.radius_pill);
+    let painter = ui.painter();
+    let (width, colour) = if response.has_focus() {
+        (t.focus_width, t.focus)
+    } else {
+        (t.border_width, t.border_default)
+    };
+    painter.rect_stroke(
+        rect,
+        theme::radius(t.radius_pill),
+        theme::stroke(width, colour),
+        egui::StrokeKind::Inside,
+    );
+    let icon = egui::Rect::from_center_size(
+        egui::pos2(rect.left() + t.space_icon + JUMP_CHIP_ICON / 2.0, rect.center().y),
+        Vec2::splat(JUMP_CHIP_ICON),
+    );
+    icons::paint(painter, IconId::file, icon, t.accent.color32(), t.icon_stroke);
+    painter.galley(
+        egui::pos2(icon.right() + t.space_1, rect.center().y - galley.size().y / 2.0),
+        galley,
+        t.accent.color32(),
+    );
+    response
+}
+
 /// An empty state (doc 16a §6.17), centred in the space left: a 32-px icon in `color.text.tertiary`, the line in
 /// `type.body.strong`, the sentence in `color.text.secondary`, and at most one action (a Primary button). A `Group`
 /// node named by the line. Returns the action's response.
