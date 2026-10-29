@@ -57,7 +57,16 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
     let Some(d) = shell.dialog() else {
         return;
     };
-    let spec = ew_viewmodel::dialogs::spec(d, shell);
+    let mut spec = ew_viewmodel::dialogs::spec(d, shell);
+    // About (doc 16a §6.12, small dialog): the footer keeps the Primary (Close) only; the privacy statement, the
+    // notices and the documentation are links in the body, so the footer fits the 440-px frame and shares its left
+    // edge with the title and the body.
+    let links = if matches!(d, Dialog::About) {
+        std::mem::take(&mut spec.secondary)
+    } else {
+        Vec::new()
+    };
+    let mut link_clicked: Option<DialogAnswer> = None;
     let has_field = matches!(
         d,
         Dialog::GotoPage { .. } | Dialog::SaveWorkspace { .. } | Dialog::Form(_)
@@ -66,7 +75,16 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
     let mut submit_text: Option<String> = None;
     let mut submit = false;
     let clicked = crate::dialog::show(ctx, &spec, just_opened && !has_field, |ui| match d {
-        Dialog::About => {}
+        Dialog::About => {
+            ui.horizontal_wrapped(|ui| {
+                ui.spacing_mut().item_spacing.x = crate::theme::current(ui.ctx()).space_4;
+                for b in &links {
+                    if ui.link(&b.label).clicked() {
+                        link_clicked = Some(b.answer.clone());
+                    }
+                }
+            });
+        }
         Dialog::Notices => {
             let text = ew_viewmodel::about::notices_text(shell);
             let t = crate::theme::current(ui.ctx());
@@ -147,6 +165,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
         Dialog::ConfirmDiscard { .. } | Dialog::ConfirmCheckScheme { .. } | Dialog::ConfirmJournalDiscard => {
         }
     });
+    let clicked = clicked.or(link_clicked);
     if clicked == Some(DialogAnswer::Submit) {
         submit = true;
     }

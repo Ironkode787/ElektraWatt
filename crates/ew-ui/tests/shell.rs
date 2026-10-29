@@ -164,6 +164,19 @@ fn help_about_opens_and_closes() {
             .is_some()
     );
     assert!(h.query_by_label("Licence: GPL-3.0-or-later").is_some());
+    // The footer fits the small dialog (doc 16a §6.12): its buttons and the links lie inside the extent of the
+    // title and the body, which share one left edge.
+    let title = h.get_by_label("About ElektraWatt").rect();
+    let body = h.get_by_label("Licence: GPL-3.0-or-later").rect();
+    assert!((title.min.x - body.min.x).abs() < 1.0, "{title:?} {body:?}");
+    for label in ["Close", "Documentation", "Third-party notices"] {
+        let r = h.get_by_label(label).rect();
+        assert!(
+            r.min.x >= body.min.x - 1.0 && r.max.x <= body.min.x + 440.0,
+            "{label} {r:?} outside the body from x {}",
+            body.min.x
+        );
+    }
     h.get_by_label("Close").click();
     settle(&mut h);
     assert!(h.state().shell().dialog().is_none());
