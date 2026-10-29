@@ -13,6 +13,13 @@ use ew_derive::{DeviceTag, GeneratedPage, PageOrder, PageOrderV, PageRef, Q};
 use ew_reports::render::{RenderOptions, render};
 use ew_reports::{BlockRows, Cell, RowKind, RowSet, RowSetStatus};
 
+/// The data rows of a committed golden table (one row per line after the header).
+fn table_rows(name: &str) -> usize {
+    let path = common::repo().join("golden/J-E-2416/tables").join(name);
+    let text = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+    text.lines().skip(1).filter(|l| !l.trim().is_empty()).count()
+}
+
 /// The block of a golden `report_blocks` row.
 fn block(key: &str) -> Id<ReportBlock> {
     let want = format!("report_blocks|{key}");
@@ -268,14 +275,17 @@ fn structure_overview_910_has_four_nodes_and_68_non_terminal_devices() {
     let rows = q.get::<BlockRows>(b);
     assert!(rows.is_derived());
     // Doc 20 §16: 4 + 68 = 72 (the 28 terminal devices are left out).
-    assert_eq!(rows.rows.len(), 72);
+    assert_eq!(
+        rows.rows.len(),
+        table_rows("structure.csv") + table_rows("devices.csv")
+    );
     let kind = rows.column("kind").unwrap();
     let structure = rows
         .rows
         .iter()
         .filter(|r| matches!(&r.cells[kind], Cell::Text(t) if text(t) == "Structure"))
         .count();
-    assert_eq!(structure, 4);
+    assert_eq!(structure, table_rows("structure.csv"));
     assert_eq!(
         page_summary(&order, b),
         vec![
@@ -306,7 +316,7 @@ fn plc_overview_908_lists_the_56_channels_of_the_valve_terminal() {
     );
     let set = q.get::<BlockRows>(b);
     assert!(set.is_derived());
-    assert_eq!(set.rows.len(), 56);
+    assert_eq!(set.rows.len(), table_rows("channels.csv"));
     let col = |k: &str| set.column(k).unwrap_or_else(|| panic!("column {k}"));
     let rows: Vec<Vec<String>> = (0..set.rows.len()).map(|i| printed(&q, &set, i)).collect();
     let addresses: Vec<&str> = rows.iter().map(|r| r[col("address")].as_str()).collect();

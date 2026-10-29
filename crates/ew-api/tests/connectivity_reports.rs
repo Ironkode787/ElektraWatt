@@ -34,6 +34,16 @@ use ew_derive::{GeneratedPage, PageOrder, Q};
 use ew_reports::{BlockPages, BlockRows, Cell, RowKind, RowSet, RowSetStatus};
 use golden_common::{block, plain, rows_csv, rows_of, texts};
 
+/// The row kinds (`data` / `heading`) of a committed row file `golden/J-E-2416/expected/rows/<key>.csv`.
+fn committed_kinds(key: &str) -> Vec<String> {
+    let path = golden_common::repo().join(format!("golden/J-E-2416/expected/rows/{key}.csv"));
+    let text = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+    text.lines()
+        .skip(1)
+        .map(|l| l.split(',').next().unwrap_or_default().to_owned())
+        .collect()
+}
+
 fn col(set: &RowSet, key: &str) -> usize {
     set.column(key).unwrap_or_else(|| panic!("no column `{key}`"))
 }
@@ -56,12 +66,17 @@ fn wire_list_has_44_wires_then_six_bridges() {
     let q = plain(&s);
     let set = rows_of(&q, &batch, "907");
 
-    // 44 physical wires (W1 to W44), a heading, the six bridges BR1 to BR6.
-    assert_eq!(set.rows.len(), 51);
+    // The physical wires (W1 to W44), a heading, the six bridges BR1 to BR6, as in the committed rows.
+    let committed = committed_kinds("907");
+    let wires = committed
+        .iter()
+        .position(|k| k == "heading")
+        .expect("a heading row");
+    assert_eq!(set.rows.len(), committed.len());
     let kinds: Vec<RowKind> = set.rows.iter().map(|r| r.kind).collect();
-    assert!(kinds[..44].iter().all(|k| *k == RowKind::Data));
-    assert_eq!(kinds[44], RowKind::Heading);
-    assert!(kinds[45..].iter().all(|k| *k == RowKind::Data));
+    assert!(kinds[..wires].iter().all(|k| *k == RowKind::Data));
+    assert_eq!(kinds[wires], RowKind::Heading);
+    assert!(kinds[wires + 1..].iter().all(|k| *k == RowKind::Data));
     let no = col(&set, "no");
     let via = col(&set, "via");
     for (i, (label, span)) in [
@@ -75,7 +90,7 @@ fn wire_list_has_44_wires_then_six_bridges() {
     .into_iter()
     .enumerate()
     {
-        let t = texts(&q, &set, 45 + i);
+        let t = texts(&q, &set, wires + 1 + i);
         assert_eq!(t[no], label);
         assert!(
             t[via].contains(&format!("terminals {span}")),
@@ -88,7 +103,7 @@ fn wire_list_has_44_wires_then_six_bridges() {
     let mut ids: Vec<String> = set.rows.iter().map(|r| r.id.to_string()).collect();
     ids.sort();
     ids.dedup();
-    assert_eq!(ids.len(), 51);
+    assert_eq!(ids.len(), committed.len());
 
     // Doc 20 §16: 50 rows over three pages (907, 907.1, 907.2); the heading takes a row of its own.
     assert_eq!(
@@ -336,16 +351,17 @@ fn cable_overview_has_three_cables_thirteen_cores_and_four_headings() {
     let s = golden_common::session_with_profiles(&batch);
     let q = plain(&s);
     let set = rows_of(&q, &batch, "906");
-    // Doc 20 §16: 3 + 13 cores + 4 headings = 20 rows.
-    assert_eq!(set.rows.len(), 20);
+    // Doc 20 §16: 3 + 13 cores + 4 headings = 20 rows, as in the committed rows.
+    let committed = committed_kinds("906");
+    assert_eq!(set.rows.len(), committed.len());
     let headings = set.rows.iter().filter(|r| r.kind == RowKind::Heading).count();
-    assert_eq!(headings, 4);
+    assert_eq!(headings, committed.iter().filter(|k| *k == "heading").count());
     let cores = set
         .rows
         .iter()
         .filter(|r| r.kind == RowKind::Data && r.cells[col(&set, "core")] != Cell::Empty)
         .count();
-    assert_eq!(cores, 13);
+    assert_eq!(cores, golden_common::table("conductors.csv").len());
     assert_eq!(pages(&q, &batch, "906"), vec![("906".to_owned(), 0..20)]);
 
     let (cable, part, core, colour, csa, from, to, length) = (

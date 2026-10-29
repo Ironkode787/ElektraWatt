@@ -115,9 +115,10 @@ fn every_view_has_its_documented_columns_and_the_golden_counts() {
     // the 27 rows of folio 901, one bond (B1). 18 of the 19 potentials of §7.3 (the DP bus potential needs
     // the Bus connections, FT-111) and 34 of the 36 pages of §5 (908.1 and 908.2 need PLC channel records):
     // the M1 gap list of the acceptance report.
-    assert_eq!(count("api_v1_terminal"), "28");
+    let rows = |table: &str| golden_common::table(table).len().to_string();
+    assert_eq!(count("api_v1_terminal"), rows("terminals.csv"));
     assert_eq!(count("api_v1_cable"), "3");
-    assert_eq!(count("api_v1_conductor"), "13");
+    assert_eq!(count("api_v1_conductor"), rows("conductors.csv"));
     assert_eq!(count("api_v1_wire"), "50");
     assert_eq!(
         reader
@@ -128,8 +129,8 @@ fn every_view_has_its_documented_columns_and_the_golden_counts() {
         "6"
     );
     assert_eq!(count("api_v1_bom_component"), "27");
-    assert_eq!(count("api_v1_bond"), "1");
-    assert_eq!(count("api_v1_potential"), "19");
+    assert_eq!(count("api_v1_bond"), rows("bonds.csv"));
+    assert_eq!(count("api_v1_potential"), rows("potentials.csv"));
     assert_eq!(count("api_v1_page"), "36");
     assert_eq!(count("api_v1_meta"), "1");
     // The counts the projection reports equal the views'.
