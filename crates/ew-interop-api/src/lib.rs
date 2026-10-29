@@ -62,6 +62,13 @@ mod input;
 mod report;
 
 pub use ew_schema::SourceRef;
+
+/// The record types importers emit (WP-S1.19 D11): an importer names them through this re-export, so it needs no
+/// dependency on `ew-schema` of its own (`ew-import-catalog` depends on this crate only).
+pub use ew_schema;
+
+/// The ID types and the UUIDv5 rules of imported identities (ADR-0004 amendment 4), re-exported for the same reason.
+pub use ew_ids;
 pub use importer::{
     Detection, ImportBatch, ImportContext, ImportError, ImportMode, Importer, Limits, LineageInfo,
 };

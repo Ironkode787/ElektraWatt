@@ -23,6 +23,8 @@ repository = "https://github.com/Ironkode787/ElektraWatt"
 # work packages.
 [workspace.dependencies]
 anyhow = "1.0.104"
+# The XLSX reader of the parts import (ew-import-catalog, WP-S1.19 part 4, D11): read-only, no formulas evaluated.
+calamine = { version = "=0.37.0", default-features = false }
 cargo_metadata = "0.23.1"
 serde = { version = "1.0.229", features = ["derive"] }
 sha2 = "0.10.9"
