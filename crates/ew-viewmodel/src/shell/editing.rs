@@ -772,12 +772,27 @@ impl ShellModel {
             return self.send_tool(&CanvasEvent::Key(key));
         }
         if self.tools.tool.name() == "select" {
-            let reps = self.canvas().map_or(0, |c| {
-                selection_kinds(&self.tools.selection, &c.page().tables)
-                    .iter()
-                    .filter(|(_, k)| *k == EntityKind::Rep)
-                    .count()
-            });
+            let count_reps = |s: &Self| {
+                s.canvas().map_or(0, |c| {
+                    selection_kinds(&s.tools.selection, &c.page().tables)
+                        .iter()
+                        .filter(|(_, k)| *k == EntityKind::Rep)
+                        .count()
+                })
+            };
+            let mut reps = count_reps(self);
+            if reps == 0 {
+                // A device or a function selected by reference (`select.set` with a tag, `-X1011:2`) is transformed as
+                // the representations the page shown draws of it, as Delete and Cut take it (FT-485 items 9 and 10):
+                // the selection becomes those representations.
+                let drawn = self.drawn_reps_of_selection();
+                if !drawn.is_empty() {
+                    self.tools
+                        .selection
+                        .apply(&crate::tools::SelectionChange::Replace(drawn));
+                    reps = count_reps(self);
+                }
+            }
             match key {
                 ToolKey::NextRepType => {
                     return Outcome::Refused {
@@ -921,6 +936,18 @@ impl ShellModel {
                 reason_key: "reason-no-cursor",
             },
         }
+    }
+
+    /// The representations of the page shown that the selection names by reference: for a selected device or function
+    /// the page tables do not list, the representations drawing it; empty when nothing of the selection is drawn here.
+    fn drawn_reps_of_selection(&self) -> Vec<EntityRef> {
+        let Some(page) = self.canvas().map(|c| Arc::clone(c.page())) else {
+            return Vec::new();
+        };
+        self.copy_targets()
+            .into_iter()
+            .filter(|e| crate::tools::entity_kind(&page.tables, *e) == Some(EntityKind::Rep))
+            .collect()
     }
 
     /// `edit.delete_selection` (Delete, §7.4): `edit.delete` with every entity of the selection the page tables
