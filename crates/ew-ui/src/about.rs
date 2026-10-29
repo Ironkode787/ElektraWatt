@@ -110,12 +110,31 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
             });
         }
         Dialog::Notices => {
-            let text = reflow(&ew_viewmodel::about::notices_text(shell));
+            let blocks = notice_blocks(&ew_viewmodel::about::notices_text(shell));
             let t = crate::theme::current(ui.ctx());
             ScrollArea::vertical()
                 .max_height(t.size_row * 12.0)
                 .show(ui, |ui| {
-                    ui.add(egui::Label::new(egui::RichText::new(text).monospace()).wrap());
+                    // FT-559: the underlined headings in `type.body.strong`, the text between them reflowed.
+                    for (i, block) in blocks.iter().enumerate() {
+                        match block {
+                            NoticeBlock::Heading(h) => {
+                                if i > 0 {
+                                    ui.add_space(t.space_3);
+                                }
+                                ui.label(
+                                    egui::RichText::new(h)
+                                        .font(crate::theme::font(&t.type_body_strong))
+                                        .color(t.text_primary.color32()),
+                                );
+                            }
+                            NoticeBlock::Text(text) => {
+                                ui.add(
+                                    egui::Label::new(egui::RichText::new(reflow(text)).monospace()).wrap(),
+                                );
+                            }
+                        }
+                    }
                 });
         }
         Dialog::Shortcuts => {
@@ -292,6 +311,54 @@ fn form_fields(ui: &mut Ui, form: &FormDialog, just_opened: bool, events: &mut V
     submit
 }
 
+/// One block of the notices text: an underlined heading, or the text up to the next heading.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) enum NoticeBlock {
+    Heading(String),
+    Text(String),
+}
+
+/// The notices text as headings and text (FT-559): the SPDX header lines of each notices file are dropped (they are
+/// the files' licensing, not notices), a line underlined by a line of "=" or "-" (three or more) becomes a heading
+/// without its rule, and the blank lines at a block's ends are trimmed.
+pub(crate) fn notice_blocks(text: &str) -> Vec<NoticeBlock> {
+    fn rule(line: &str) -> bool {
+        let t = line.trim();
+        t.len() >= 3 && (t.chars().all(|c| c == '=') || t.chars().all(|c| c == '-'))
+    }
+    let lines: Vec<&str> = text
+        .lines()
+        .filter(|l| {
+            let t = l.trim_start();
+            !(t.starts_with("SPDX-FileCopyrightText:") || t.starts_with("SPDX-License-Identifier:"))
+        })
+        .collect();
+    let mut out = Vec::new();
+    let mut body: Vec<&str> = Vec::new();
+    let flush = |body: &mut Vec<&str>, out: &mut Vec<NoticeBlock>| {
+        let text = body.join("\n");
+        let text = text.trim_matches('\n');
+        if !text.trim().is_empty() {
+            out.push(NoticeBlock::Text(text.to_owned()));
+        }
+        body.clear();
+    };
+    let mut i = 0;
+    while i < lines.len() {
+        let line = lines[i];
+        if !line.trim().is_empty() && !rule(line) && lines.get(i + 1).is_some_and(|n| rule(n)) {
+            flush(&mut body, &mut out);
+            out.push(NoticeBlock::Heading(line.trim().to_owned()));
+            i += 2;
+            continue;
+        }
+        body.push(line);
+        i += 1;
+    }
+    flush(&mut body, &mut out);
+    out
+}
+
 /// The notices text with its hard line breaks inside a paragraph joined, so the label's own wrap is the only one (the
 /// file's hard wrap wrapped again left orphan words such as "user"). A line keeps its break when it or the
 /// previous line is empty, or when it starts a list item, an underline or an SPDX header line, or is indented (licence
@@ -325,7 +392,40 @@ pub(crate) fn reflow(text: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::reflow;
+    use super::{NoticeBlock, notice_blocks, reflow};
+
+    /// FT-559: no SPDX header line and no underline rule reaches the dialog; the underlined lines are headings.
+    #[test]
+    fn notice_blocks_drop_the_spdx_header_and_turn_rules_into_headings() {
+        let text = "SPDX-FileCopyrightText: 2026 X\nSPDX-License-Identifier: CC0-1.0\n\nTitle\n=====\n\nIntro line.\n\n\
+                    Fonts\n-----\n\nA font.\n  Indented: 1\n";
+        assert_eq!(
+            notice_blocks(text),
+            [
+                NoticeBlock::Heading("Title".into()),
+                NoticeBlock::Text("Intro line.".into()),
+                NoticeBlock::Heading("Fonts".into()),
+                NoticeBlock::Text("A font.\n  Indented: 1".into()),
+            ]
+        );
+    }
+
+    #[test]
+    fn the_notices_show_no_spdx_line_and_no_rule() {
+        let blocks = notice_blocks(ew_viewmodel::about::NOTICE);
+        assert!(matches!(&blocks[0], NoticeBlock::Heading(h) if h == "ElektraWatt third-party notices"));
+        for b in &blocks {
+            let (NoticeBlock::Heading(t) | NoticeBlock::Text(t)) = b;
+            for line in t.lines() {
+                assert!(!line.trim_start().starts_with("SPDX-"), "{line}");
+                let l = line.trim();
+                assert!(
+                    !(l.len() >= 3 && (l.chars().all(|c| c == '=') || l.chars().all(|c| c == '-'))),
+                    "{line}"
+                );
+            }
+        }
+    }
 
     #[test]
     fn reflow_joins_the_lines_of_a_paragraph() {
