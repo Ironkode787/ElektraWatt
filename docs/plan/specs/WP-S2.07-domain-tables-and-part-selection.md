@@ -22,12 +22,11 @@ is escalated, never guessed (`CLAUDE.md`, rule 2).
 `strip.accessories` through `fields.set`, the derived query `strip_bridges` with the bridge BOM line and
 `bridge_groups`, the part resolver's kinds and description form, the strip editor below the shell
 (`Session::strip_edit`), and the six actions of §6.9 in the shell (268 actions; with WP-S1.19 part 1's word, 357
-describe words). Two items of part 1 are **not built and move to part 2**: §6.8 (Enter on an unplaced terminal row
-dispatching `place.pick`, and the row as a drag source onto a canvas), and the Alt+Up and Alt+Down shortcut of
-`strip.move` (§6.4, §6.9): the keymap test forbids a second binding of those chords in the navigator context, where
-they are `pages.move_up` and `pages.move_down`, so `strip.move` has no shortcut as built and runs as a registered action
-(the palette, `command.run`, a script); the Pos cell's read-only reason already names the keys. The lead ruling for part 2: **Alt+Up and Alt+Down are `strip.move` while the Terminal strips
-navigator has the focus, and `pages.move_up` and `pages.move_down` elsewhere.** SE7's order is corrected below to the
+describe words). One item of part 1 is **not built and moves to part 2**: §6.8 (Enter on an unplaced terminal row
+dispatching `place.pick`, and the row as a drag source onto a canvas). **Alt+Up and Alt+Down are `strip.move`
+(`step` −1 and +1) while the Terminal strips navigator has the focus, and `pages.move_up` and `pages.move_down`
+elsewhere** (the lead's ruling, built in the cycle's fix round, ce9bad22: the shell maps the page-move chords to
+`strip.move` in that focus, so the keymap keeps one binding per chord). SE7's order is corrected below to the
 as-built natural order of the tags, which the tests assert.
 
 ---
@@ -378,7 +377,7 @@ terminal's row opens its drawing as built.
 | `strip.edit` | View | Strip editor | Edit | — | global | `strip?:text` |
 | `strip.insert` | Command | Insert terminal | — | Insert | strips navigator | `count?:uint, designation?:text` |
 | `strip.delete_rows` | Command | Delete rows | — | Ctrl+Delete | strips navigator | `` |
-| `strip.move` | Command | Move terminals | — | Alt+Arrow Up, Alt+Arrow Down (as built: none, part 2; see the as-built note at the top) | strips navigator | `step?:int, before?:text` |
+| `strip.move` | Command | Move terminals | — | Alt+Arrow Up, Alt+Arrow Down (in the Strips navigator's focus; ce9bad22) | strips navigator | `step?:int, before?:text` |
 | `strip.add_accessory` | Command | Add accessory | Edit | — | strips navigator | `kind?:enum(end_plate\|end_clamp\|partition\|marker\|cover), part?:text` |
 | `strip.unbridge` | Command | Remove bridge | — | — | strips navigator | `` |
 
