@@ -8,7 +8,7 @@
 
 mod common;
 
-use common::{Tmp, click, done, empty_point, refused, state};
+use common::{Tmp, click, done, empty_point, state};
 use ew_viewmodel::ew_api::checks;
 use ew_viewmodel::ew_api::output::Uuid;
 use ew_viewmodel::ew_api::{BomMode, Export, Session};
@@ -122,7 +122,7 @@ fn row1_parts_are_chosen_by_part_number_and_reach_the_bom() {
 
 /// Finding 2: `place.pick part="PT 2.5-TWIN" strip=… designation=…` places a terminal of that strip with that
 /// designation, and the terminal carries the part (the run made a free device -103X1 and said nothing). Golden A's
-/// -X1031:1 is deleted and placed again from its part; a strip that does not exist is refused with its reason.
+/// -X1031:1 is deleted and placed again from its part; a strip that does not exist fails and lists the strips.
 #[test]
 fn row2_a_terminal_part_joins_its_strip_with_its_designation_and_carries_the_part() {
     let tmp = Tmp::new("gpp-parts-2");
@@ -145,15 +145,17 @@ fn row2_a_terminal_part_joins_its_strip_with_its_designation_and_carries_the_par
     done(&mut s, "tool.select", json!({}));
     done(&mut s, "select.set", json!({"refs": ["tag:-X1031:1"]}));
     assert_eq!(parts_text(&s), "PT 2.5-TWIN × 1");
-    // A strip that does not exist is refused with its reason, not turned into a free device.
-    assert_eq!(
-        refused(
-            &mut s,
-            "place.pick",
-            json!({"part": "PT 2.5-TWIN", "strip": "-X9999", "designation": "1"})
-        ),
-        "reason-no-strip"
+    // A strip that does not exist fails and lists the project's strips (lane K33), not turned into a free device.
+    let message = failed(
+        &mut s,
+        "place.pick",
+        json!({"part": "PT 2.5-TWIN", "strip": "-X9999", "designation": "1"}),
     );
+    assert!(
+        message.starts_with("No terminal strip -X9999 in the project; its strips are "),
+        "{message}"
+    );
+    assert!(s.picker().is_none(), "nothing is armed");
     let bom = bom(&tmp, &mut s);
     let line = line_of(&bom, "PT 2.5-TWIN").expect("PT 2.5-TWIN in the BOM");
     assert!(line.contains("-X1031:1"), "{line}");
