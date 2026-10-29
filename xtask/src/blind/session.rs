@@ -334,6 +334,7 @@ pub mod fake {
                     dirty: false,
                     changed,
                     quit: false,
+                    selection: None,
                 }),
                 "{\"$schema\":\"ew.uitranscript/1\",\"version\":\"0.0.0\"}".to_owned(),
             ))
@@ -346,6 +347,8 @@ pub mod fake {
         dirty: bool,
         changed: bool,
         quit: bool,
+        /// What `select.set` selected (its parameters), shown as the canvas selection (FT-582).
+        selection: Option<String>,
     }
 
     impl Product for Fake {
@@ -372,6 +375,12 @@ pub mod fake {
             if action == "app.quit" {
                 self.quit = true;
             }
+            if action == "select.set" {
+                self.selection = Some(v["params"].to_string());
+            }
+            let selection = self.selection.as_ref().map_or(String::new(), |s| {
+                format!(",\"selection\":[{}]", Value::from(s.as_str()))
+            });
             let describe = match action.as_str() {
                 "ui.describe" => Some("title: Fake\nmenu File\n  item \"New\" enabled\npage \"101\"\n  label \"x\"\nstatus bar: ready".to_owned()),
                 "page.describe" => Some(format!(
@@ -381,7 +390,7 @@ pub mod fake {
                 _ => None,
             };
             let mut out = format!(
-                "{{\"step\":{},\"action\":{},\"outcome\":\"{outcome}\",\"reason\":{},\"message\":{},\"state\":{{\"title\":\"Fake\",\"dirty\":{},\"page\":\"101\",\"canvas\":{{\"zoom\":{}}}}}",
+                "{{\"step\":{},\"action\":{},\"outcome\":\"{outcome}\",\"reason\":{},\"message\":{},\"state\":{{\"title\":\"Fake\",\"dirty\":{},\"page\":\"101\",\"canvas\":{{\"zoom\":{}{selection}}}}}",
                 self.step,
                 Value::from(action.as_str()),
                 reason.map_or("null".to_owned(), |r| Value::from(r).to_string()),

@@ -326,13 +326,40 @@ pub struct NotDone {
     /// The reason key of a refusal or the message of a failure.
     #[serde(default)]
     pub reason: Option<String>,
+    /// FT-582: the digest of the selection the step acted on ([`selection_digest`]), absent when nothing was selected.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selection: Option<String>,
 }
 
 impl NotDone {
-    /// The key of the exact step (action and parameters) the broken rule refuses.
+    /// The key of the exact step (action, parameters and selection) the broken rule refuses.
     pub fn step_key(&self) -> String {
-        format!("{} {}", self.action, self.params)
+        step_key(&self.action, &self.params, self.selection.as_deref())
     }
+}
+
+/// The "same step" key of the broken rule (§5.2.2 item 4, FT-582): the action and its canonical parameters, and the
+/// digest of the selection when something was selected, so that a step that acts on the selection (`strip.bridge {}`)
+/// is a new step once the selection changed.
+pub fn step_key(action: &str, params: &str, selection: Option<&str>) -> String {
+    match selection {
+        None => format!("{action} {params}"),
+        Some(d) => format!("{action} {params} selection {d}"),
+    }
+}
+
+/// FT-582: the digest of what a step reads besides its parameters, from the transcript state before it: the canvas
+/// selection and the navigator's row (12 hex digits of the SHA-256 of their canonical JSON), `None` when neither holds
+/// anything.
+pub fn selection_digest(state: &Value) -> Option<String> {
+    let canvas = state["canvas"]["selection"].clone();
+    let row = state["navigator"]["row"].clone();
+    let empty = |v: &Value| v.is_null() || v.as_array().is_some_and(Vec::is_empty);
+    if empty(&canvas) && empty(&row) {
+        return None;
+    }
+    let both = serde_json::json!({"canvas": canvas, "row": row});
+    Some(sha256_hex(canonical(&both).as_bytes())[..12].to_owned())
 }
 
 /// One line of `turns.jsonl` (format `ew.blindturns/1`).
@@ -659,6 +686,7 @@ mod tests {
                     params: "{}".to_owned(),
                     outcome: "refused".to_owned(),
                     reason: Some("reason-nothing-to-redo".to_owned()),
+                    selection: None,
                 }),
                 ..Turn::default()
             })

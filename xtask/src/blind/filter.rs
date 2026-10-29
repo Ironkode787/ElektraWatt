@@ -159,9 +159,9 @@ impl StepIn {
         Value::Object(self.params.clone())
     }
 
-    /// The key of the exact step for the broken rule.
-    pub fn step_key(&self) -> String {
-        format!("{} {}", self.action, canonical(&self.params_value()))
+    /// The key of the exact step for the broken rule, acting on the selection of digest `selection` (FT-582).
+    pub fn step_key(&self, selection: Option<&str>) -> String {
+        super::run::step_key(&self.action, &canonical(&self.params_value()), selection)
     }
 }
 
@@ -215,7 +215,8 @@ pub fn bare_name(name: &str) -> bool {
     !name.is_empty() && !name.contains(['/', '\\', ':']) && !name.contains("..")
 }
 
-/// Checks one step against §5.3 in the table's order. `broken` holds the keys of the steps marked broken.
+/// Checks one step against §5.3 in the table's order. `broken` holds the keys of the steps marked broken and
+/// `selection` the digest of the selection the step would act on (FT-582).
 ///
 /// # Errors
 ///
@@ -225,6 +226,7 @@ pub fn check_step(
     kind: Kind,
     step: &StepIn,
     broken: &BTreeSet<String>,
+    selection: Option<&str>,
 ) -> Result<(), String> {
     let Some(action) = reference.find(&step.action) else {
         return Err(format!("harness: unknown action {}", step.action));
@@ -264,7 +266,7 @@ pub fn check_step(
     if canonical(&step.params_value()).len() > MAX_PARAMS_BYTES {
         return Err("harness: parameters too large".to_owned());
     }
-    if broken.contains(&step.step_key()) {
+    if broken.contains(&step.step_key(selection)) {
         return Err("harness: marked broken, move on".to_owned());
     }
     Ok(())
@@ -394,7 +396,7 @@ mod tests {
     }
 
     fn check(kind: Kind, s: &StepIn) -> Result<(), String> {
-        check_step(&test_reference(), kind, s, &BTreeSet::new())
+        check_step(&test_reference(), kind, s, &BTreeSet::new(), None)
     }
 
     /// BD6: every refusal of §5.3 with its text.
@@ -507,9 +509,19 @@ mod tests {
         let at_limit = "x".repeat(MAX_PARAMS_BYTES - r#"{"text":""}"#.len());
         assert_eq!(check(free, &step("find.text", json!({"text": at_limit}))), Ok(()));
         // Marked broken: the exact step only.
-        let broken: BTreeSet<String> = [step("edit.redo", json!({})).step_key()].into();
+        let broken: BTreeSet<String> = [
+            step("edit.redo", json!({})).step_key(None),
+            step("edit.undo", json!({})).step_key(Some("0123456789ab")),
+        ]
+        .into();
         assert_eq!(
-            check_step(&test_reference(), free, &step("edit.redo", json!({})), &broken),
+            check_step(
+                &test_reference(),
+                free,
+                &step("edit.redo", json!({})),
+                &broken,
+                None
+            ),
             Err("harness: marked broken, move on".to_owned())
         );
         assert_eq!(
@@ -517,10 +529,20 @@ mod tests {
                 &test_reference(),
                 free,
                 &step("pages.row", json!({"to": "first"})),
-                &broken
+                &broken,
+                None
             ),
             Ok(())
         );
+        // FT-582: the same parameters on another selection are another step; on the same selection the same.
+        let undo = step("edit.undo", json!({}));
+        assert_eq!(
+            check_step(&test_reference(), free, &undo, &broken, Some("0123456789ab")),
+            Err("harness: marked broken, move on".to_owned())
+        );
+        for other in [None, Some("ba9876543210")] {
+            assert_eq!(check_step(&test_reference(), free, &undo, &broken, other), Ok(()));
+        }
     }
 
     #[test]
@@ -604,7 +626,13 @@ mod tests {
                 params: Vec::new(),
             });
             assert_eq!(
-                check_step(&with_drag, Kind::Check, &step(id, json!({})), &BTreeSet::new()),
+                check_step(
+                    &with_drag,
+                    Kind::Check,
+                    &step(id, json!({})),
+                    &BTreeSet::new(),
+                    None
+                ),
                 refusal,
                 "{id}"
             );

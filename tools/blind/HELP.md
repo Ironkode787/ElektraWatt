@@ -32,9 +32,10 @@ possible now) or `failed` (with its message), and then the parts of the interfac
 leaves a preview card open adds the line `  preview: <summary>; Apply or Cancel`: nothing is changed until you apply
 it (`preview.apply`) or cancel it (`preview.cancel`).
 
-If one step fails twice in a row with the same parameters, the harness marks it broken and refuses that exact step for the
-rest of the run (`harness: marked broken, move on`). Three notes in a row with patience 2 or less, or five with flow 2 or
-less, end the run; you then file your hand-back. The run also ends at its caps: {turns} turns, {steps} steps,
+If one step fails twice in a row with the same parameters on the same selection, the harness marks it broken and refuses
+that exact step on that selection for the rest of the run (`harness: marked broken, move on`); a step that acts on the
+selection is a new step once the selection changed. Three notes in a row with patience 2 or less, or five with flow 2
+or less, end the run; you then file your hand-back. The run also ends at its caps: {turns} turns, {steps} steps,
 {looks} looks and {refusals} refused steps.
 
 ## What the harness refuses

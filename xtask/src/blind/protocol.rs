@@ -15,7 +15,9 @@ use anyhow::Result;
 use serde_json::Value;
 
 use super::filter::{Reference, StepIn, check_step};
-use super::run::{Kind, NotDone, Run, RunJson, Turn, append, canonical, step_line, write_atomic};
+use super::run::{
+    Kind, NotDone, Run, RunJson, Turn, append, canonical, selection_digest, step_line, write_atomic,
+};
 use super::session::{Backend, Diverged, Lost, Sent, Step};
 use super::stop::CHECKER_HEADINGS;
 
@@ -215,7 +217,9 @@ pub fn do_steps(
             let _ = writeln!(out, "{number} {} skipped", s.action);
             continue;
         }
-        if let Err(text) = check_step(reference, kind, s, &st.broken) {
+        // FT-582: the selection the step acts on is part of "the same step".
+        let selection = selection_digest(&shown);
+        if let Err(text) = check_step(reference, kind, s, &st.broken, selection.as_deref()) {
             let _ = writeln!(out, "{text}");
             refusal = Some(text);
             continue;
@@ -266,6 +270,7 @@ pub fn do_steps(
                 params: canonical(&step.params),
                 outcome: sent.outcome().to_owned(),
                 reason: sent.reason(),
+                selection: selection.clone(),
             });
         }
     }
@@ -934,6 +939,22 @@ pub mod tests {
         let out = f.run_do(&[s("file.open", serde_json::json!({"dir": "other"}))]);
         assert!(out.contains("file.open failed"), "{out}");
         f.note("patience 5 flow 5 other");
+        // FT-582: the same failing step on a changed selection is another step; on the same selection it repeats.
+        let mut h = fixture(Kind::Free);
+        h.run_do(&[fail()]);
+        h.note("patience 5 flow 5 a");
+        let select = s("select.set", serde_json::json!({"refs": ["-X1"]}));
+        let out = h.run_do(&[select, fail()]);
+        assert!(out.contains("file.open failed"), "{out}");
+        assert_eq!(h.run.load().unwrap().counts.broken, 0);
+        let turns = h.run.turns().unwrap();
+        let nd = turns.last().unwrap().first_not_done.clone().unwrap();
+        assert_eq!(nd.selection.as_ref().map(String::len), Some(12));
+        h.note("patience 5 flow 5 b");
+        h.run_do(&[fail()]);
+        assert_eq!(h.run.load().unwrap().counts.broken, 1);
+        let drafter = std::fs::read_to_string(h.run.path("drafter.md")).unwrap();
+        assert!(drafter.contains("broken: file.open"), "{drafter}");
         // A failure that is not repeated in the next turn is not broken.
         let mut g = fixture(Kind::Free);
         g.run_do(&[fail()]);
