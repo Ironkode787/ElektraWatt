@@ -1869,8 +1869,9 @@ fn lib_create_list_search_and_rebuild() {
     assert_eq!(stderr(&o).trim(), "nothing found");
     let o = run(&["lib", "index", "--rebuild"]);
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    // The count includes the compiled-in starter parts (WP-S2.18 D5), so it is not pinned.
     assert!(
-        stdout(&o).starts_with("index rebuilt: 0 parts, "),
+        stdout(&o).starts_with("index rebuilt: ") && stdout(&o).contains(" parts, "),
         "{}",
         stdout(&o)
     );
