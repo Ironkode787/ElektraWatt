@@ -1152,12 +1152,12 @@ impl App {
                     self.shell.properties().card().is_some_and(|c| {
                         matches!(c.origin, ew_viewmodel::properties::CardOrigin::Find { .. })
                     });
-                let action = if binding.action == "find.replace_all" && replace_card {
-                    "preview.apply"
+                let (action, params) = if binding.action == "find.replace_all" && replace_card {
+                    ("preview.apply", Value::Null)
                 } else {
-                    binding.action
+                    self.shell.shortcut_action(binding.action)
                 };
-                events.push(Event::Action(action, Value::Null));
+                events.push(Event::Action(action, params));
                 return;
             }
         }

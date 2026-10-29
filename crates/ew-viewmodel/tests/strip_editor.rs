@@ -466,6 +466,69 @@ fn se9_gestures_need_the_strip_editor() {
     shell.shutdown();
 }
 
+/// Runs the shortcut bound to `action` the way the window does: `shortcut_action` picks the action and parameters for
+/// the focus, then dispatch.
+fn key(shell: &mut ShellModel, action: &'static str) -> &'static str {
+    let (a, p) = shell.shortcut_action(action);
+    done(shell, a, p);
+    a
+}
+
+/// The WP-S2.07 part 1 ruling: Alt+Up and Alt+Down (`pages.move_up`, `pages.move_down`) run `strip.move` while the
+/// Terminal strips navigator has the focus, one undo step each; elsewhere they keep `pages.move_*`.
+#[test]
+fn alt_arrows_move_strip_rows_while_the_strips_navigator_has_the_focus() {
+    let tmp = Tmp::new("se9-alt-arrows");
+    let mut shell = editor(&tmp, "-X1031");
+    done(
+        &mut shell,
+        "ui.focus",
+        json!({"area": "navigator", "kind": "strips"}),
+    );
+    assert_eq!(shell.focused_navigator(), Some(NavKind::Strips));
+    let k2 = row(&shell, "Terminal", "2");
+    mark(&mut shell, std::slice::from_ref(&k2));
+    let n = steps(&shell);
+    // Alt+Down: the row moves down one place, one step.
+    assert_eq!(key(&mut shell, "pages.move_down"), "strip.move");
+    assert_eq!(texts(&shell, "Terminal")[..4], ["1", "3", "2", "4"]);
+    assert_eq!(steps(&shell), n + 1);
+    assert_eq!(last(&shell).0, "terminal.move");
+    // Alt+Up: back.
+    assert_eq!(key(&mut shell, "pages.move_up"), "strip.move");
+    assert_eq!(texts(&shell, "Terminal"), SEQ_1_TO_20);
+    assert_eq!(steps(&shell), n + 2);
+    // At the first row Alt+Up is refused as `strip.move` is; nothing changes.
+    let k1 = row(&shell, "Terminal", "1");
+    mark(&mut shell, std::slice::from_ref(&k1));
+    let (a, p) = shell.shortcut_action("pages.move_up");
+    assert_eq!((a, &p), ("strip.move", &json!({"step": -1})));
+    assert_eq!(refused(&mut shell, a, p), "reason-strip-move-none");
+    assert_eq!(texts(&shell, "Terminal"), SEQ_1_TO_20);
+    assert_eq!(steps(&shell), n + 2);
+    // The Pages navigator or the canvas focused: the page moves keep the keys.
+    for area in [
+        json!({"area": "navigator", "kind": "pages"}),
+        json!({"area": "canvas"}),
+    ] {
+        done(&mut shell, "ui.focus", area);
+        for action in ["pages.move_up", "pages.move_down"] {
+            assert_eq!(shell.shortcut_action(action), (action, Value::Null));
+        }
+    }
+    // Other bindings are untouched in the strips navigator.
+    done(
+        &mut shell,
+        "ui.focus",
+        json!({"area": "navigator", "kind": "strips"}),
+    );
+    assert_eq!(
+        shell.shortcut_action("strip.delete_rows"),
+        ("strip.delete_rows", Value::Null)
+    );
+    shell.shutdown();
+}
+
 /// SE14 (§6.10): the describe lines of the strip editor: the header with `sort "Order"` and the `strip:` filter, an
 /// accessory row printed with the row word `accessory` and its cells.
 #[test]

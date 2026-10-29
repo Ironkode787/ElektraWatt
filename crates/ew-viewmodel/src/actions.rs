@@ -2449,9 +2449,9 @@ pub static ACTIONS: &[ActionMeta] = &[
         strips_editor,
         None,
     )),
-    // Alt+Arrow Up and Alt+Arrow Down are `pages.move_up` and `pages.move_down` in the navigator context (the keymap
-    // test forbids a second binding): the shortcut is left to a lead ruling (reported), the action runs from the
-    // palette, a script and the row menu.
+    // Alt+Arrow Up and Alt+Arrow Down stay bound to `pages.move_up` and `pages.move_down` (the keymap test forbids a
+    // second binding); while the Terminal strips navigator has the focus they run this action with `step` -1 or 1
+    // (`ShellModel::shortcut_action`, WP-S2.07 part 1 ruling).
     with_params(
         "step?:int, before?:text",
         in_navigator(act(

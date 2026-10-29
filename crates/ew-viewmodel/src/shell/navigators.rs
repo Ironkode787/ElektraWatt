@@ -189,6 +189,18 @@ impl ShellModel {
         }
     }
 
+    /// The action and parameters a keyboard shortcut bound to `action` runs with the current focus (WP-S2.07 part 1
+    /// ruling): Alt+Up and Alt+Down (`pages.move_up`, `pages.move_down`) run `strip.move {step: -1 | 1}` while the
+    /// Terminal strips navigator has the focus; every other binding runs its own action without parameters.
+    pub fn shortcut_action(&self, action: &'static str) -> (&'static str, Value) {
+        let strips = self.focused_navigator() == Some(NavKind::Strips);
+        match action {
+            "pages.move_up" if strips => ("strip.move", json!({ "step": -1 })),
+            "pages.move_down" if strips => ("strip.move", json!({ "step": 1 })),
+            _ => (action, Value::Null),
+        }
+    }
+
     /// The FnDef key of a function, from an open navigator's function row (its label, §6.1 item 2).
     pub(super) fn function_fndef_key(&self, function: &str) -> Option<String> {
         self.navs.values().find_map(|n| {
