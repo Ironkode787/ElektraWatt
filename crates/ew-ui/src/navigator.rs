@@ -177,43 +177,77 @@ impl NavigatorPane {
         if self.filter != shell_filter && !ui.ctx().text_edit_focused() {
             self.filter = shell_filter;
         }
+        // X32b (doc 16a §5.4, §6.2, §6.5, §6.21): the tool line under the panel header, inset `space.4` from the pane's
+        // sides and `size.control` high: New page and the Table toggle as 24-px icon buttons (one button kind), the
+        // filter field taking what is left, then in table mode the Columns menu as a Subtle button with a chevron. One
+        // row at any width: the filter shrinks first.
+        let t = crate::theme::current(ui.ctx());
+        let line = {
+            let free = ui.available_rect_before_wrap();
+            egui::Rect::from_min_size(free.min, egui::vec2(free.width(), t.size_control))
+                .shrink2(egui::vec2(t.space_4, 0.0))
+        };
         let field = ui
-            .horizontal(|ui| {
-                if pages {
-                    // The New page entry (FT-408) beside the filter: the same action as Page, New page, disabled with
-                    // its reason.
-                    let new_page = ew_viewmodel::actions::find("page.new").map(|a| (a.enabled)(shell));
-                    let enabled = matches!(new_page, Some(Ok(())));
-                    let button = ui.add_enabled(enabled, egui::Button::new(strings::text("nav-new-page")));
-                    let button = match new_page {
-                        Some(Err(reason)) => button.on_disabled_hover_text(strings::text(reason)),
-                        _ => button,
-                    };
-                    if button.clicked() {
-                        events.push(Event::Action("page.new", Value::Null));
+            .scope_builder(
+                egui::UiBuilder::new()
+                    .max_rect(line)
+                    .layout(egui::Layout::left_to_right(egui::Align::Center)),
+                |ui| {
+                    ui.set_min_size(line.size());
+                    ui.spacing_mut().item_spacing.x = t.space_2;
+                    if pages {
+                        // The New page entry (FT-408) beside the filter: the same action as Page, New page, disabled
+                        // with its reason.
+                        let new_page = ew_viewmodel::actions::find("page.new").map(|a| (a.enabled)(shell));
+                        let enabled = matches!(new_page, Some(Ok(())));
+                        let button = crate::components::icon_toggle(
+                            ui,
+                            crate::icons::IconId::file_plus,
+                            strings::text("nav-new-page"),
+                            enabled,
+                            None,
+                        );
+                        let button = match new_page {
+                            Some(Err(reason)) => button.on_disabled_hover_text(strings::text(reason)),
+                            _ => button,
+                        };
+                        if button.clicked() {
+                            events.push(Event::Action("page.new", Value::Null));
+                        }
                     }
-                }
-                // WP-S2.06 part 3: the Table toggle (§8.1, `navigator.table`); the Messages pane (WP-S2.09 part 2) has
-                // no table mode, so no toggle.
-                if self.kind != NavKind::Messages {
-                    let toggle = ui.add(egui::Button::selectable(in_table, strings::text("table-toggle")));
-                    let name = strings::text("table-toggle");
-                    toggle
-                        .widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, in_table, name));
-                    if toggle.clicked() {
-                        events.push(Event::Action(
-                            "navigator.table",
-                            json!({"kind": self.kind_word(), "on": !in_table}),
-                        ));
+                    // WP-S2.06 part 3: the Table toggle (§8.1, `navigator.table`); the Messages pane (WP-S2.09 part 2)
+                    // has no table mode, so no toggle.
+                    if self.kind != NavKind::Messages {
+                        let toggle = crate::components::icon_toggle(
+                            ui,
+                            crate::icons::IconId::table,
+                            strings::text("table-toggle"),
+                            true,
+                            Some(in_table),
+                        );
+                        if toggle.clicked() {
+                            events.push(Event::Action(
+                                "navigator.table",
+                                json!({"kind": self.kind_word(), "on": !in_table}),
+                            ));
+                        }
                     }
-                }
-                ui.add(
-                    TextEdit::singleline(&mut self.filter)
-                        .hint_text(strings::text("nav-filter-hint"))
-                        .desired_width(f32::INFINITY),
-                )
-            })
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        ui.spacing_mut().item_spacing.x = t.space_2;
+                        if let Some(nav) = table_nav {
+                            crate::nav_table::chooser(ui, nav, events);
+                        }
+                        ui.add(
+                            TextEdit::singleline(&mut self.filter)
+                                .hint_text(strings::text("nav-filter-hint"))
+                                .desired_width(f32::INFINITY),
+                        )
+                    })
+                    .inner
+                },
+            )
             .inner;
+        ui.add_space(t.space_2);
         if field.changed() {
             if pages {
                 events.push(Event::Action("pages.filter", json!({ "text": self.filter })));
@@ -234,24 +268,42 @@ impl NavigatorPane {
             // W31-1: header, the rows in their own scroll area, the detail block (at most half the pane, ID-730, and
             // never so tall that fewer than three rows fit), then the footer, which is always on show.
             let row = row_height(ui.ctx());
+            // X32b: the footer and the detail block keep the pane's `space.4` gutter.
+            let frame =
+                egui::Frame::new().inner_margin(egui::Margin::symmetric(t.space_4 as i8, t.space_1 as i8));
             egui::Panel::bottom(ui.scope_id().with("messages-footer"))
                 .resizable(false)
+                .frame(frame)
                 .show(ui, crate::messages::footer);
             if shell.messages_detail().is_some() {
                 let pane = ui.available_height();
-                let size = (pane / 2.0).min(pane - 3.0 * row).max(row);
-                egui::Panel::bottom(ui.scope_id().with("messages-detail"))
+                // X32b: the detail block is as tall as its content (measured on the last frame; half the pane until
+                // then), so its Rule page link is not cut, but never so tall that fewer than three rows fit; beyond
+                // that it scrolls.
+                let id = ui.scope_id().with("messages-detail");
+                let content = id.with("content-height");
+                let wanted = ui
+                    .data(|d| d.get_temp::<f32>(content))
+                    .map_or(pane / 2.0, |h| h + 2.0 * t.space_1);
+                let size = wanted.min(pane - 3.0 * row).max(row);
+                egui::Panel::bottom(id)
                     .resizable(false)
                     .exact_size(size)
+                    .frame(frame)
                     .show(ui, |ui| {
                         // Scrolled inside the panel's own height: egui's default minimum of 64 points would grow the
                         // panel past `size` and push its top over the rows.
                         let inner = ui.available_height().max(0.0);
-                        egui::ScrollArea::vertical()
+                        let shown = egui::ScrollArea::vertical()
                             .id_salt("messages-detail-scroll")
                             .max_height(inner)
                             .min_scrolled_height(inner)
                             .show(ui, |ui| crate::messages::detail(ui, shell, events));
+                        let measured = shown.content_size.y;
+                        if ui.data(|d| d.get_temp::<f32>(content)) != Some(measured) {
+                            ui.data_mut(|d| d.insert_temp(content, measured));
+                            ui.ctx().request_repaint();
+                        }
                     });
             }
         }
@@ -621,11 +673,39 @@ fn row_ui(
     let is_cursor = cursor == Some(row.key.as_str());
     let (glyph_clicked, response) = ui
         .horizontal(|ui| {
-            let indent = crate::theme::current(ui.ctx()).size_tree_indent;
-            ui.add_space(indent * (row.level.saturating_sub(1)) as f32);
+            // X32b (doc 16a §6.6): the row's `space.4` padding, then 20 px of indent per level.
+            let t = crate::theme::current(ui.ctx());
+            ui.add_space(t.space_4 + t.size_tree_indent * (row.level.saturating_sub(1)) as f32);
+            // The chevron column of a node (`chevron-right` closed, `chevron-down` open, `color.text.tertiary`), as
+            // wide as the indent less the gap after it, so a child's title lines up under its parent's.
             let glyph = match row.expanded {
-                Some(true) => ui.add(egui::Button::new("-").frame(false).small()).clicked(),
-                Some(false) => ui.add(egui::Button::new("+").frame(false).small()).clicked(),
+                Some(open) => {
+                    let w = t.size_tree_indent - t.space_3;
+                    let h = ui.spacing().interact_size.y;
+                    let (rect, glyph) = ui.allocate_exact_size(egui::vec2(w, h), Sense::click());
+                    let name = strings::text("action-navigator-toggle");
+                    glyph.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, name));
+                    ui.ctx()
+                        .accesskit_node_builder(glyph.id, |n| n.set_expanded(open));
+                    let icon = if open {
+                        crate::icons::IconId::chevron_down
+                    } else {
+                        crate::icons::IconId::chevron_right
+                    };
+                    let colour = if glyph.hovered() {
+                        t.text_primary
+                    } else {
+                        t.text_tertiary
+                    };
+                    crate::icons::paint(
+                        ui.painter(),
+                        icon,
+                        egui::Rect::from_center_size(rect.center(), egui::Vec2::splat(w)),
+                        colour.color32(),
+                        t.icon_stroke,
+                    );
+                    glyph.clicked()
+                }
                 None => false,
             };
             // WP-S2.09 part 2: a finding row's severity icon; a pending one is muted. WP-S2.17 part 3 (doc 16a §6.24,
@@ -643,12 +723,12 @@ fn row_ui(
             }
             // WP-S2.17 part 3 (doc 16a §6.6): the current page in `type.body.strong`; the badges are chips after the
             // text, not bracketed words.
-            let t = crate::theme::current(ui.ctx());
-            let rich = if row.current {
-                egui::RichText::new(&row.label).font(crate::theme::font(&t.type_body_strong))
+            let font = if row.current {
+                crate::theme::font(&t.type_body_strong)
             } else {
-                egui::RichText::new(&row.label)
+                egui::TextStyle::Body.resolve(ui.style())
             };
+            let rich = egui::RichText::new(&row.label).font(font.clone());
             let rich = match row.finding {
                 Some(look) if look.pending => rich.color(t.text_tertiary.color32()),
                 _ => rich,
@@ -656,36 +736,43 @@ fn row_ui(
             let selected = row.marked || is_cursor;
             let button = egui::Button::selectable(selected, rich)
                 .frame(false)
-                .sense(Sense::click_and_drag());
-            if kind == NavKind::Messages {
-                // K32 (doc 16a §6.6, §6.24): the badges right-aligned, the title cut with an ellipsis before them. A
-                // finding's `fix`, `waived` and `pending` are status badges (its severity word is the severity
-                // cell's); a rule row's finding count is a count badge.
-                let response = ui
-                    .with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        ui.add_space(t.space_4);
-                        for b in row.badges.iter().rev() {
-                            if let Some(status) = crate::messages::finding_badge(b) {
-                                crate::components::status_badge(ui, status);
-                            } else if row.finding.is_none()
-                                && let Ok(n) = b.parse::<usize>()
-                            {
-                                crate::components::count_badge(ui, n);
-                            }
-                        }
-                        ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
-                            ui.add(button.truncate())
-                        })
-                        .inner
-                    })
-                    .inner;
-                return (glyph, response);
-            }
-            let response = ui.add(button);
-            for b in &row.badges {
-                crate::components::caption_chip(ui, b);
-            }
-            (glyph, response)
+                .sense(Sense::click_and_drag())
+                .truncate();
+            // K32, generalised to every navigator by X32b (doc 16a §6.6, §6.24): the badges right-aligned at the row's
+            // `space.4` padding, the title cut with an ellipsis before them and whole in its tooltip. A finding's
+            // `fix`, `waived` and `pending` are status badges (its severity word is the severity cell's); a Messages
+            // rule row's finding count is a count badge; another navigator's badges are caption chips.
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                ui.add_space(t.space_4);
+                for b in row.badges.iter().rev() {
+                    if kind != NavKind::Messages {
+                        crate::components::caption_chip(ui, b);
+                    } else if let Some(status) = crate::messages::finding_badge(b) {
+                        crate::components::status_badge(ui, status);
+                    } else if row.finding.is_none()
+                        && let Ok(n) = b.parse::<usize>()
+                    {
+                        crate::components::count_badge(ui, n);
+                    }
+                }
+                ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                    let room = ui.available_width() - 2.0 * ui.spacing().button_padding.x;
+                    let full = ui
+                        .painter()
+                        .layout_no_wrap(row.label.clone(), font, t.text_primary.color32())
+                        .size()
+                        .x;
+                    let response = ui.add(button);
+                    let response = if full > room {
+                        response.on_hover_text(&row.label)
+                    } else {
+                        response
+                    };
+                    (glyph, response)
+                })
+                .inner
+            })
+            .inner
         })
         .inner;
     response.widget_info(|| egui::WidgetInfo::selected(egui::Role::TreeItem, true, row.marked, &row.name));

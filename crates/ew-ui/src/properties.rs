@@ -464,16 +464,26 @@ impl PropertiesPane {
         if editing {
             self.editor(&mut child, shell, row, &label, events);
         } else {
-            let actions_w = if row.actions.is_empty() {
-                0.0
+            // X32b (doc 16a §6.8, the mockup's `.prow`: `96px 1fr`): the value cell takes the rest of the row up to its
+            // `space.4` padding. The row's "…" button sits over the cell's right end and only while it shows (the
+            // cursor row, hover, focus) does the cell's text and chip make room for it.
+            let actions_id = group_id.with("actions");
+            let actions_on = !row.actions.is_empty()
+                && (selected
+                    || child.rect_contains_pointer(rect)
+                    || child.memory(|m| m.has_focus(actions_id)));
+            let reserve = if actions_on {
+                t.size_control_inline + t.space_1
             } else {
-                t.size_control_inline + t.space_3
+                0.0
             };
-            let value_w = (child.available_width() - actions_w).max(t.size_control_inline);
+            let value_w = child.available_width().max(t.size_control_inline);
+            let value_rect;
             if let (FieldType::Bool, true) = (row.ty.inner(), row.actions.contains(&RowAction::Edit)) {
                 // A checkbox (§6.5): a click sets the other value.
                 let area =
                     egui::Rect::from_min_size(child.cursor().min, Vec2::new(value_w, t.size_control_inline));
+                value_rect = area;
                 let mut on = matches!(&row.value, RowValue::One { json, .. } if json.as_bool() == Some(true));
                 let was = on;
                 let response = child
@@ -500,7 +510,7 @@ impl PropertiesPane {
                         &t,
                         word,
                         tertiary,
-                        egui::pos2(area.right() - t.space_icon, area.center().y),
+                        egui::pos2(area.right() - t.space_icon - reserve, area.center().y),
                     );
                     child
                         .interact(chip_rect, group_id.with("chip"), Sense::hover())
@@ -536,7 +546,8 @@ impl PropertiesPane {
                         egui::StrokeKind::Inside,
                     );
                 }
-                let mut text_right = cell.right() - t.space_icon;
+                value_rect = cell;
+                let mut text_right = cell.right() - t.space_icon - reserve;
                 let mut on_chip = false;
                 if show_chip {
                     let chip_rect = crate::components::paint_provenance_chip(
@@ -594,8 +605,11 @@ impl PropertiesPane {
             }
             if !row.actions.is_empty() {
                 // The actions menu: one "…" button on the cursor row, on hover and on focus.
-                let id = group_id.with("actions");
-                let (r, _) = child.allocate_exact_size(Vec2::splat(t.size_control_inline), Sense::hover());
+                let id = actions_id;
+                let r = egui::Rect::from_min_size(
+                    egui::pos2(value_rect.right() - t.size_control_inline, value_rect.top()),
+                    Vec2::splat(t.size_control_inline),
+                );
                 let name = strings::format("props-row-menu", &[&label]);
                 let response = crate::command_bar::button_response(
                     &child,
@@ -609,8 +623,7 @@ impl PropertiesPane {
                         sense: Sense::click(),
                     },
                 );
-                let hovered = child.rect_contains_pointer(rect);
-                if selected || hovered || response.has_focus() {
+                if actions_on || response.has_focus() {
                     crate::command_bar::state_overlay(&child, &t, &response, true, t.radius_sm);
                     let icon = egui::Rect::from_center_size(r.center(), Vec2::splat(t.icon_sm));
                     crate::command_bar::paint_icon(

@@ -200,6 +200,8 @@ pub(crate) fn header(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         let row = ui.horizontal(|ui| {
             ui.set_min_height(t.size_row);
             ui.spacing_mut().item_spacing.x = t.space_2;
+            // X32b: the pane's `space.4` gutter.
+            ui.add_space(t.space_4);
             let small = |ui: &mut Ui, text: &str, colour: Rgba| {
                 let galley = ui.painter().layout_no_wrap(
                     text.to_owned(),
@@ -260,7 +262,7 @@ fn fix_card(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
 /// The detail block of the cursor's finding, below the rows (doc 16a §6.24): a 1-px `color.border.subtle` line, the
 /// rule ID and title in `type.body.strong`, the kind and severity in `type.small` `color.text.secondary`, the message
 /// in `type.body`, "Quick fix: `<label>`" in `type.small` with **Fix…** as a Secondary button (disabled with its reason
-/// as the tooltip on a read-only project), and **Rule page** as a link in `color.accent`.
+/// as the tooltip on a read-only project), and **Rule page** as a link in `color.accent` at the title line's right end.
 pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     let Some(d) = shell.messages_detail() else {
         return;
@@ -269,11 +271,38 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     rule_line(ui, &t);
     ui.spacing_mut().item_spacing.y = t.space_1;
     ui.add_space(t.space_1);
-    ui.label(
-        RichText::new(strings::format("messages-detail-rule", &[&d.rule, &d.title]))
-            .font(theme::font(&t.type_body_strong))
-            .color(t.text_primary.color32()),
-    );
+    // X32b: the Rule page link at the right end of the title line, the title cut with an ellipsis before it (whole
+    // in its tooltip), so the block keeps its link in view in a short pane.
+    let title = strings::format("messages-detail-rule", &[&d.rule, &d.title]);
+    ui.scope(|ui| {
+        ui.spacing_mut().interact_size.y = 0.0;
+        ui.horizontal(|ui| {
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                let link = ui.add(egui::Link::new(
+                    RichText::new(strings::text("messages-rule-page"))
+                        .font(theme::font(&t.type_small))
+                        .color(t.accent.color32()),
+                ));
+                if link.clicked() {
+                    events.push(Event::Action(
+                        "ui.focus",
+                        json!({"area": "navigator", "kind": NavKind::Messages.word()}),
+                    ));
+                    events.push(Event::Action("help.documentation", Value::Null));
+                }
+                ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                    ui.add(
+                        egui::Label::new(
+                            RichText::new(&title)
+                                .font(theme::font(&t.type_body_strong))
+                                .color(t.text_primary.color32()),
+                        )
+                        .truncate(),
+                    );
+                });
+            });
+        });
+    });
     ui.label(
         RichText::new(strings::format("messages-detail-kind", &[&d.kind, &d.severity]))
             .font(theme::font(&t.type_small))
@@ -287,9 +316,9 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         )
         .wrap(),
     );
-    ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing.x = t.space_3;
-        if let Some(fix) = &d.fix {
+    if let Some(fix) = &d.fix {
+        ui.horizontal(|ui| {
+            ui.spacing_mut().item_spacing.x = t.space_3;
             ui.label(
                 RichText::new(strings::format("messages-detail-fix", &[fix]))
                     .font(theme::font(&t.type_small))
@@ -313,20 +342,8 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             if button.clicked() {
                 events.push(Event::Action("messages.fix", Value::Null));
             }
-        }
-        let link = ui.add(egui::Link::new(
-            RichText::new(strings::text("messages-rule-page"))
-                .font(theme::font(&t.type_small))
-                .color(t.accent.color32()),
-        ));
-        if link.clicked() {
-            events.push(Event::Action(
-                "ui.focus",
-                json!({"area": "navigator", "kind": NavKind::Messages.word()}),
-            ));
-            events.push(Event::Action("help.documentation", Value::Null));
-        }
-    });
+        });
+    }
 }
 
 /// A 1-px `color.border.subtle` line across the space left.

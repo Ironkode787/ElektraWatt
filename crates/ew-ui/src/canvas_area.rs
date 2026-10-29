@@ -357,9 +357,11 @@ impl Behavior<TabPane> for AreaBehavior<'_> {
             .map(|b| crate::components::caption_chip_layout(ui, &t, b))
             .collect();
         let chips_w: f32 = chips.iter().map(|(_, s)| s.x + t.space_2).sum();
-        let margin = t.space_3;
+        // X32b: `space.4` padding (doc 16a §5.5), the inset of the panel headers' titles, and `space.2` between the
+        // last chip and the close button.
+        let margin = t.space_4;
         let close = Vec2::splat(self.close_button_outer_size());
-        let width = galley.size().x + chips_w + 2.0 * margin + t.space_1 + close.x;
+        let width = galley.size().x + chips_w + 2.0 * margin + t.space_2 + close.x;
         let (_, rect) = ui.allocate_space(vec2(width, ui.available_height()));
         let response = ui.interact(rect, id, Sense::click_and_drag());
         let mut name = title.clone();

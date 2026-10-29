@@ -95,13 +95,13 @@ impl TableUi {
         // Doc 16a §6.21: rows of `size.row`, the header `size.table_header`, columns start at `size.table_column`
         // (egui_table sizes them to their content on the first frame) within its range.
         let tokens = crate::theme::current(ui.ctx());
-        // The column chooser and the edit's error.
-        ui.horizontal(|ui| {
-            Self::chooser(ui, kind, table, &shown, events);
-            if let Some(e) = mode.error() {
+        // The edit's error (the column chooser is on the pane's tool line, X32b).
+        if let Some(e) = mode.error() {
+            ui.horizontal(|ui| {
+                ui.add_space(tokens.space_4);
                 ui.colored_label(tokens.error.color32(), e);
-            }
-        });
+            });
+        }
         // The pattern fill dialog (§8.5).
         self.pattern_dialog(ui, nav, preview, events);
         // The cell editor's buffer follows the shell's while the editor does not have the keyboard.
@@ -196,6 +196,14 @@ impl TableUi {
                 band.bottom() - tokens.border_width / 2.0,
                 theme::stroke(tokens.border_width, tokens.border_subtle),
             );
+            // X32b: the scroll bars stay on show while columns or rows overflow (egui's thin bars, visible when
+            // dormant, the handle in the text colour since the theme's widget fill is the panel's), so a grid wider
+            // than its pane shows that it scrolls sideways.
+            ui.spacing_mut().scroll = egui::style::ScrollStyle {
+                foreground_color: true,
+                dormant_background_opacity: 0.0,
+                ..egui::style::ScrollStyle::thin()
+            };
             let w = &mut ui.visuals_mut().widgets;
             w.noninteractive.bg_stroke = egui::Stroke::NONE;
             w.hovered.bg_stroke = theme::stroke(tokens.border_width, tokens.accent);
@@ -217,60 +225,80 @@ impl TableUi {
         });
         self.painted = delegate.painted;
     }
+}
 
-    /// The column chooser (§8.1, `table.columns`): a menu with a check box per column (the key column cannot be
-    /// hidden) and Move left and Move right for the columns on show.
-    fn chooser(ui: &mut Ui, kind: NavKind, table: &NavTable, shown: &[usize], events: &mut Vec<Event>) {
-        let word = kind.word();
-        ui.menu_button(strings::text("table-columns"), |ui| {
-            let movable: Vec<String> = shown
-                .iter()
-                .filter(|c| !table.columns[**c].key_column)
-                .map(|c| table.columns[*c].key.clone())
-                .collect();
-            for (i, c) in table.columns.iter().enumerate() {
-                ui.horizontal(|ui| {
-                    let mut on = shown.contains(&i);
-                    let check = ui.add_enabled(!c.key_column, egui::Checkbox::new(&mut on, c.label.as_str()));
-                    if check.changed() {
-                        let member = if on { "show" } else { "hide" };
+/// The column chooser (§8.1, `table.columns`) of navigator `nav` in table mode, on the pane's tool line: the Columns
+/// menu button, a Subtle button with a chevron (doc 16a §6.21), whose menu has a check box per column (the key column
+/// cannot be hidden) and Move left and Move right for the columns on show.
+pub(crate) fn chooser(ui: &mut Ui, nav: &Navigator, events: &mut Vec<Event>) {
+    let (Some(table), Some(mode)) = (nav.table(), nav.table_mode()) else {
+        return;
+    };
+    let shown = mode.shown_columns(table);
+    let shown = shown.as_slice();
+    let word = nav.kind.word();
+    let t = crate::theme::current(ui.ctx());
+    let label = RichText::new(strings::text("table-columns"))
+        .font(theme::font(&t.type_body))
+        .color(t.text_primary.color32());
+    let chevron = crate::components::icon_atom(
+        IconId::chevron_down,
+        t.icon_sm,
+        Some(t.text_secondary),
+        t.icon_stroke,
+    );
+    let button = egui::Button::new((label, chevron))
+        .frame(false)
+        .min_size(vec2(0.0, t.size_control_inline));
+    let (response, _) = egui::containers::menu::MenuButton::from_button(button).ui(ui, |ui| {
+        let movable: Vec<String> = shown
+            .iter()
+            .filter(|c| !table.columns[**c].key_column)
+            .map(|c| table.columns[*c].key.clone())
+            .collect();
+        for (i, c) in table.columns.iter().enumerate() {
+            ui.horizontal(|ui| {
+                let mut on = shown.contains(&i);
+                let check = ui.add_enabled(!c.key_column, egui::Checkbox::new(&mut on, c.label.as_str()));
+                if check.changed() {
+                    let member = if on { "show" } else { "hide" };
+                    events.push(Event::Action(
+                        "table.columns",
+                        json!({"kind": word, member: [c.key]}),
+                    ));
+                }
+                if let Some(at) = movable.iter().position(|k| *k == c.key) {
+                    let mut order = movable.clone();
+                    let left = ui.add_enabled(at > 0, egui::Button::new(strings::text("table-move-left")));
+                    let name = strings::format("table-move-left-name", &[&c.label]);
+                    left.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, at > 0, &name));
+                    if left.clicked() {
+                        order.swap(at, at - 1);
                         events.push(Event::Action(
                             "table.columns",
-                            json!({"kind": word, member: [c.key]}),
+                            json!({"kind": word, "order": order}),
                         ));
                     }
-                    if let Some(at) = movable.iter().position(|k| *k == c.key) {
+                    let last = at + 1 < movable.len();
+                    let right = ui.add_enabled(last, egui::Button::new(strings::text("table-move-right")));
+                    let name = strings::format("table-move-right-name", &[&c.label]);
+                    right.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, last, &name));
+                    if right.clicked() {
                         let mut order = movable.clone();
-                        let left =
-                            ui.add_enabled(at > 0, egui::Button::new(strings::text("table-move-left")));
-                        let name = strings::format("table-move-left-name", &[&c.label]);
-                        left.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, at > 0, &name));
-                        if left.clicked() {
-                            order.swap(at, at - 1);
-                            events.push(Event::Action(
-                                "table.columns",
-                                json!({"kind": word, "order": order}),
-                            ));
-                        }
-                        let last = at + 1 < movable.len();
-                        let right =
-                            ui.add_enabled(last, egui::Button::new(strings::text("table-move-right")));
-                        let name = strings::format("table-move-right-name", &[&c.label]);
-                        right.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, last, &name));
-                        if right.clicked() {
-                            let mut order = movable.clone();
-                            order.swap(at, at + 1);
-                            events.push(Event::Action(
-                                "table.columns",
-                                json!({"kind": word, "order": order}),
-                            ));
-                        }
+                        order.swap(at, at + 1);
+                        events.push(Event::Action(
+                            "table.columns",
+                            json!({"kind": word, "order": order}),
+                        ));
                     }
-                });
-            }
-        });
-    }
+                }
+            });
+        }
+    });
+    crate::command_bar::state_overlay(ui, &t, &response, true, t.radius_sm);
+}
 
+impl TableUi {
     /// The pattern fill dialog (§8.5): the pattern field and the first five values (or the pattern's error); Enter
     /// applies (`table.commit`), Escape closes it (`ui.dismiss`).
     fn pattern_dialog(

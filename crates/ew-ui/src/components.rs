@@ -109,13 +109,43 @@ pub(crate) fn button_with_icon(
 /// A 24-px Subtle icon button with `icon.sm` in `color.text.secondary` (doc 16a §6.3), named `name`, with `name` as
 /// its tooltip.
 pub(crate) fn icon_button(ui: &mut Ui, id: IconId, name: &str) -> Response {
+    icon_toggle(ui, id, name, true, None)
+}
+
+/// [`icon_button`] that may be disabled (`color.text.disabled`, no hover) and may be a toggle: `Some(on)` draws the
+/// Selected state while on (`color.accent.subtle` fill, the icon in `color.accent`; doc 16a §6.1) and gives the node
+/// its selected state, as the navigators' Table toggle (§6.21).
+pub(crate) fn icon_toggle(ui: &mut Ui, id: IconId, name: &str, enabled: bool, on: Option<bool>) -> Response {
     let t = tokens(ui);
     let size = Vec2::splat(t.size_control_inline);
-    let (rect, response) = ui.allocate_exact_size(size, Sense::click());
+    // A disabled button is allocated in a disabled scope, so its caller's `on_disabled_hover_text` shows the reason.
+    let (rect, response) = ui
+        .add_enabled_ui(enabled, |ui| ui.allocate_exact_size(size, Sense::click()))
+        .inner;
     let n = name.to_owned();
-    response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &n));
-    crate::command_bar::state_overlay(ui, &t, &response, true, t.radius_sm);
-    let colour = if response.hovered() {
+    response.widget_info(|| match on {
+        Some(on) => egui::WidgetInfo::selected(egui::Role::Button, enabled, on, &n),
+        None => egui::WidgetInfo::labeled(egui::Role::Button, enabled, &n),
+    });
+    let selected = on == Some(true);
+    if selected {
+        ui.painter()
+            .rect_filled(rect, theme::radius(t.radius_sm), t.accent_subtle.color32());
+    }
+    crate::command_bar::state_overlay(ui, &t, &response, enabled, t.radius_sm);
+    if response.has_focus() {
+        ui.painter().rect_stroke(
+            rect,
+            theme::radius(t.radius_sm),
+            theme::stroke(t.focus_width, t.focus),
+            egui::StrokeKind::Inside,
+        );
+    }
+    let colour = if !enabled {
+        t.text_disabled
+    } else if selected {
+        t.accent
+    } else if response.hovered() {
         t.text_primary
     } else {
         t.text_secondary

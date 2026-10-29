@@ -311,4 +311,14 @@ fn w31_1_the_selected_row_and_its_detail_are_both_on_show_at_1280_by_800() {
         footer.top() >= rule.bottom() && footer.bottom() <= 800.0,
         "the footer {footer:?} below the detail {rule:?}"
     );
+    // X32b: the Rule page link stands on the detail's title line, whole above the footer and inside the pane.
+    let link = h.get_by_label("Rule page").rect();
+    assert!(
+        link.top() >= list.bottom() - 0.5 && link.bottom() <= footer.top() + 0.5,
+        "the link {link:?} between the rows {list:?} and the footer {footer:?}"
+    );
+    assert!(
+        (link.center().y - rule.center().y).abs() <= 2.0 && link.right() <= list.right() + 0.5,
+        "the link {link:?} at the right end of the title line {rule:?}"
+    );
 }
