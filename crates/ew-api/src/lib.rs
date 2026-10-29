@@ -63,6 +63,8 @@
 
 #![forbid(unsafe_code)]
 
+// WP-S1.19 part 4: the CSV and XLSX parts import with its column maps (D11).
+pub mod catalog;
 mod cmdlog;
 pub mod geometry;
 pub mod import;
@@ -123,7 +125,7 @@ pub use ew_store::{
     Access, Clock, OpenError, OpenReport, PurgeError, PurgeFile, PurgePlan, ReadOnlyReason, SaveError,
     StoreOptions, SystemClock,
 };
-pub use new_project::{NewProjectKind, ProjectTemplate};
+pub use new_project::{NewProjectKind, ProjectTemplate, SaveAsBasicError};
 
 pub use ew_commands::{
     AnyCommand, Change, ChangeKind, CmdError, CommandRegistry, DerivedChange, DerivedDiff, DynCommand,

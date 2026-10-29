@@ -589,3 +589,232 @@ fn a_missing_frame_copy_falls_through_in_the_page_output_and_the_cell_grid_alike
     assert_eq!(grids, [Some(ew_derive::default_frame_grid())]);
     assert!(built_in, "the cell grid says it used the built-in frame");
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// WP-S1.19 part 4 (D14): the basic project is recorded and saved
+
+/// The project line of a session.
+fn project_line(session: &Session) -> serde_json::Value {
+    lines_of(session)
+        .into_iter()
+        .find(|v| v["$k"] == "project")
+        .unwrap()
+}
+
+/// The number of lines of each kind.
+fn kind_counts(session: &Session) -> std::collections::BTreeMap<String, usize> {
+    let mut out = std::collections::BTreeMap::new();
+    for v in lines_of(session) {
+        *out.entry(v["$k"].as_str().unwrap().to_owned()).or_default() += 1;
+    }
+    out
+}
+
+/// The titles and first folios of a session's report blocks, sorted.
+fn report_blocks(session: &Session) -> Vec<String> {
+    let mut out: Vec<String> = lines_of(session)
+        .into_iter()
+        .filter(|v| v["$k"] == "report_block")
+        .map(|v| format!("{} {}", v["first_folio"], v["title"]))
+        .collect();
+    out.sort();
+    out
+}
+
+/// [`report_blocks`] of the blocks with pages of their own (a block embedded in a drawn page goes with the page).
+fn report_blocks_with_own_pages(session: &Session) -> Vec<String> {
+    let mut out: Vec<String> = lines_of(session)
+        .into_iter()
+        .filter(|v| v["$k"] == "report_block" && v.get("first_folio").is_some())
+        .map(|v| format!("{} {}", v["first_folio"], v["title"]))
+        .collect();
+    out.sort();
+    assert!(out.len() > 5, "{out:?}");
+    out
+}
+
+/// BP-1 (FR-PRJ-009): a project made from a company basic project records `basic_project` with the basic
+/// project's ID and its manifest generation when copied; the built-in basic project records nothing.
+#[test]
+fn a_project_from_a_basic_project_records_it() {
+    let work = temp("bp1");
+    let state = work.join("state");
+    let mut basic =
+        Session::new_project(ProjectTemplate::Builtin, NewProjectKind::Basic, options(11)).unwrap();
+    assert_eq!(project_line(&basic).get("basic_project"), None);
+    let basic_dir = work.join("company.ew");
+    basic.create(&basic_dir, store(&state)).unwrap();
+    // A second generation: the record names the generation that was copied, not the first.
+    run_cmd(
+        &mut basic,
+        "section.create",
+        serde_json::json!({"number": 1, "folio_range": [100, 199], "title": "A", "divider": false}),
+    );
+    basic.save().unwrap();
+    let basic_id = project_line(&basic)["id"].clone();
+    basic.close();
+
+    let mut copy = Session::new_project(
+        ProjectTemplate::Directory(&basic_dir),
+        NewProjectKind::Schematic,
+        options(12),
+    )
+    .unwrap();
+    let line = project_line(&copy);
+    assert_ne!(line["id"], basic_id);
+    assert_eq!(
+        line["basic_project"],
+        serde_json::json!({"id": basic_id, "generation": 2})
+    );
+    // It is written with the project.
+    let dir = work.join("new.ew");
+    copy.create(&dir, store(&state)).unwrap();
+    copy.close();
+    let text = project_text(&dir);
+    assert!(text.contains("\"basic_project\":{"), "{text}");
+
+    // Golden A as a template: its project ID and the generation of its manifest.
+    let golden = project_line(
+        &Session::open_read_only(Path::new(GOLDEN_A), "ElektraWatt test")
+            .unwrap()
+            .0,
+    );
+    let manifest: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(Path::new(GOLDEN_A).join("manifest.json")).unwrap()).unwrap();
+    assert_eq!(
+        project_line(&copy_of_golden(13))["basic_project"],
+        serde_json::json!({"id": golden["id"], "generation": manifest["generation"]})
+    );
+    let _ = std::fs::remove_dir_all(&work);
+}
+
+/// The frame of folio 1 as the page output resolves it: the frame form, its title block and its geometry.
+fn folio_1_frame(
+    session: &Session,
+) -> (
+    ew_schema::FormDef,
+    Option<ew_schema::FormDef>,
+    ew_scene::forms::FrameGeometry,
+) {
+    let q = session.query();
+    let order = q.get::<ew_derive::PageOrder>(());
+    let entry = order.entries.first().expect("folio 1");
+    let frame = (*q.get::<ew_api::output::PageFrameOf>(entry.page))
+        .clone()
+        .expect("folio 1 has a frame");
+    let tb = frame.title_block.as_deref().cloned();
+    let geometry = ew_scene::forms::FrameGeometry::of(&frame.form, tb.as_ref()).expect("a frame grid");
+    ((*frame.form).clone(), tb, geometry)
+}
+
+/// BP-2 (FR-MAC-011, D14): Golden A saved as a basic project without devices is a project of kind basic under a
+/// new ID that keeps the frames and forms, the project's profiles and settings, the sections, the structure, the
+/// report blocks and the pages, and has no device, function, representation or connection.
+/// BP-3 (FR-PRJ-010's check): a project made from it draws folio 1 in the frame and title block of Golden A, exactly
+/// (stricter than the ±0.2 mm of REF-096).
+#[test]
+fn golden_a_saved_as_basic_without_devices_keeps_its_conventions() {
+    let work = temp("bp2");
+    let state = work.join("state");
+    let (golden, _) = Session::open_read_only(Path::new(GOLDEN_A), "ElektraWatt test").unwrap();
+    let dir = work.join("basic.ew");
+    golden.save_as_basic(&dir, false, true, store(&state)).unwrap();
+    let (basic, report) =
+        Session::open(&dir, store(&state), SessionOptions::default(), Recovery::Keep).unwrap();
+    assert!(matches!(report.access, ew_api::Access::Edit));
+    assert!(
+        ew_api::integrity_items(&report)
+            .iter()
+            .all(|i| i.severity == ew_api::checks::Severity::Info),
+        "{:?}",
+        ew_api::integrity_items(&report)
+    );
+    let (g, b) = (project_line(&golden), project_line(&basic));
+    assert_eq!(b["kind"], "basic");
+    assert_ne!(b["id"], g["id"], "a new project ID");
+    assert_eq!(b.get("basic_project"), None);
+    for member in ["settings", "master", "derivation_profile", "languages"] {
+        assert_eq!(b.get(member), g.get(member), "the project's {member}");
+    }
+    let (gc, bc) = (kind_counts(&golden), kind_counts(&basic));
+    for kind in [
+        "device",
+        "function",
+        "representation",
+        "connection",
+        "conductor",
+        "junction",
+    ] {
+        assert!(
+            gc.get(kind).copied().unwrap_or(0) > 0,
+            "Golden A has {kind} lines"
+        );
+        assert_eq!(bc.get(kind), None, "no {kind} is left");
+    }
+    for kind in ["page", "section", "structure_node", "report_block"] {
+        assert!(
+            gc.get(kind).copied().unwrap_or(0) > 0,
+            "Golden A has {kind} lines"
+        );
+        assert_eq!(bc.get(kind), gc.get(kind), "every {kind} is kept");
+    }
+    // The report blocks of one strip or module are kept (they lose the omitted devices from their lists).
+    assert_eq!(report_blocks(&basic), report_blocks(&golden));
+    // The library copies (the frames and forms among them) are kept under their IDs.
+    let lib_ids = |s: &Session| -> BTreeSet<String> {
+        ew_commands::rows::model_lines(&s.world().model)
+            .unwrap()
+            .into_iter()
+            .filter(|(key, _)| key.0.to_string().starts_with("lib"))
+            .map(|(key, _)| key.1.to_string())
+            .collect()
+    };
+    assert_eq!(lib_ids(&basic), lib_ids(&golden));
+    assert_eq!(
+        frame_of_folio_1(&basic),
+        frame_of_folio_1(&golden),
+        "folio 1 keeps its frame"
+    );
+
+    // BP-3: a project from this basic project draws folio 1 as Golden A does.
+    let copy = Session::new_project(
+        ProjectTemplate::Directory(&dir),
+        NewProjectKind::Schematic,
+        options(14),
+    )
+    .unwrap();
+    assert_eq!(project_line(&copy)["basic_project"]["id"], b["id"]);
+    let (gf, gt, gg) = folio_1_frame(&golden);
+    let (cf, ct, cg) = folio_1_frame(&copy);
+    assert_eq!(cf, gf, "the frame form");
+    assert!(gt.is_some(), "Golden A's folio 1 has a title block");
+    assert_eq!(ct, gt, "the title-block form");
+    assert_eq!(cg, gg, "the frame and title-block geometry");
+    basic.close();
+    let _ = std::fs::remove_dir_all(&work);
+}
+
+/// FR-MAC-011: without pages and devices the basic project keeps the sections, the structure and the report blocks
+/// and has no page; the session that saved it is unchanged, and a directory that holds a project is refused.
+#[test]
+fn a_basic_project_without_pages_and_devices() {
+    let work = temp("bp2-nopages");
+    let state = work.join("state");
+    let (golden, _) = Session::open_read_only(Path::new(GOLDEN_A), "ElektraWatt test").unwrap();
+    let before = kind_counts(&golden);
+    let dir = work.join("basic.ew");
+    golden.save_as_basic(&dir, true, true, store(&state)).unwrap();
+    assert_eq!(kind_counts(&golden), before, "the session is not changed");
+    let (basic, _) = Session::open_read_only(&dir, "ElektraWatt test").unwrap();
+    let counts = kind_counts(&basic);
+    for kind in ["page", "device", "representation"] {
+        assert_eq!(counts.get(kind), None, "no {kind} is left");
+    }
+    for kind in ["section", "structure_node"] {
+        assert_eq!(counts.get(kind), before.get(kind), "every {kind} is kept");
+    }
+    assert_eq!(report_blocks(&basic), report_blocks_with_own_pages(&golden));
+    let err = golden.save_as_basic(&dir, true, true, store(&state)).unwrap_err();
+    assert!(matches!(err, ew_api::SaveAsBasicError::Write(_)), "{err}");
+    let _ = std::fs::remove_dir_all(&work);
+}

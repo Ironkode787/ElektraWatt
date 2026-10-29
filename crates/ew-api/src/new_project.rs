@@ -13,22 +13,29 @@
 //! project record keeps its schemes, profiles and settings under a new project ID and the requested kind. A
 //! reference between records follows the new IDs. Unknown records are carried over the same way.
 //!
-//! Not recorded yet: the schema has the member `Project.basic_project = {id, generation}` since WP-S1.19 part 1
-//! (D14, doc 07 §2.8), and the new project leaves it unset until the part that records it.
+//! A project made from a directory records `Project.basic_project = {id, generation}`: the basic project's project
+//! ID and its manifest generation when it was copied (D14, doc 07 §2.8; WP-S1.19 part 4). The built-in basic
+//! project is no directory and records nothing.
+//!
+//! **Save as basic project** (FR-MAC-011, D14): [`Session::save_as_basic`] writes the session's model as a new
+//! basic project directory under new identities, optionally without its pages, its devices or both.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
+use ew_commands::{AnyCommand, CmdError};
 use ew_derive::ew_ids::{Id, IdSource, Uuid, V7Generator, v5};
 use ew_derive::ew_mltext::MlText;
 use ew_derive::ew_units::Grid;
 use ew_model::{Asset, Model};
 use ew_schema::{
-    AssetFormat, AssetRef, Extra, Folio, Page, PageType, Project, ProjectKind, ProjectSettings, Record,
-    SchemaError, StructureAssignment,
+    AssetFormat, AssetRef, BasicProjectRef, Extra, Folio, Page, PageType, Project, ProjectKind,
+    ProjectSettings, Record, SchemaError, StructureAssignment,
 };
-use ew_store::OpenError;
 use ew_store::ew_format::{self, EntryKind, Limits, Manifest};
+use ew_store::mem::{DirSync, MemVfs};
+use ew_store::{OpenError, Store, StoreOptions};
 use serde_json::Value;
 
 use crate::{Session, SessionOptions};
@@ -114,7 +121,109 @@ impl Session {
         }
         Ok(Session::new(model, options))
     }
+
+    /// Save as basic project (FR-MAC-011, D14): writes the session's model into `dir` (a directory without a
+    /// project) as a new project of kind [`NewProjectKind::Basic`] under a new project ID (a UUIDv7 of the system
+    /// clock) and new record IDs, as [`Session::new_project`] copies a directory. Schemes, profiles, frames and
+    /// forms, sections, structure, report blocks and library copies are kept; `omit_pages` leaves out every page
+    /// (and what the pages own), `omit_devices` every device, function, representation and connection, and the
+    /// junctions, conductors and bonds of the wiring. The omission runs `edit.delete` on a scratch session over a
+    /// copy of the model, so the delete policies decide what goes along (a report block embedded in a page goes
+    /// with the page; a block that lists omitted devices, such as the terminal diagram of one strip, stays and
+    /// loses them from its list); the session itself, its history and its project directory are not touched. The
+    /// new project records no `basic_project`.
+    ///
+    /// # Errors
+    ///
+    /// [`SaveAsBasicError::Omit`] when the delete is refused (a forbid link); [`SaveAsBasicError::Write`] when
+    /// `dir` holds a project, the lock is held or the write fails.
+    pub fn save_as_basic(
+        &self,
+        dir: &Path,
+        omit_pages: bool,
+        omit_devices: bool,
+        store: StoreOptions,
+    ) -> Result<(), SaveAsBasicError> {
+        let mut scratch = Session::new(self.engine.model().clone(), SessionOptions::default());
+        let targets: Vec<Value> = {
+            let q = scratch.query();
+            let mut targets = Vec::new();
+            let mut add = |kind: &str, ids: Vec<Uuid>| {
+                targets.extend(
+                    ids.into_iter()
+                        .map(|id| serde_json::json!({"kind": kind, "id": id.hyphenated().to_string()})),
+                );
+            };
+            if omit_devices {
+                add("device", q.devices().ids().map(|i| i.as_uuid()).collect());
+                add("function", q.functions().ids().map(|i| i.as_uuid()).collect());
+                add("representation", q.reps().ids().map(|i| i.as_uuid()).collect());
+                add("connection", q.connections().ids().map(|i| i.as_uuid()).collect());
+                add("junction", q.junctions().ids().map(|i| i.as_uuid()).collect());
+                add("conductor", q.conductors().ids().map(|i| i.as_uuid()).collect());
+                add("bond", q.bonds().ids().map(|i| i.as_uuid()).collect());
+            }
+            if omit_pages {
+                add("page", q.pages().ids().map(|i| i.as_uuid()).collect());
+            }
+            targets
+        };
+        if !targets.is_empty() {
+            let delete = AnyCommand {
+                name: "edit.delete".into(),
+                params: serde_json::json!({ "targets": targets }),
+            };
+            let preview = scratch.preview(&delete).map_err(SaveAsBasicError::Omit)?;
+            scratch.commit(preview).map_err(SaveAsBasicError::Omit)?;
+        }
+        // The scratch model as files in memory, read back as a template: the copy of a directory, exactly.
+        let mem = Arc::new(MemVfs::new(DirSync::Implicit));
+        let mut in_memory = store.clone();
+        in_memory.vfs = mem.clone();
+        in_memory.state_dir = None;
+        let root = Path::new("/basic.ew");
+        Store::create(root, scratch.engine.model(), in_memory)
+            .map_err(SaveAsBasicError::Write)?
+            .close();
+        let (template, _) = read_records_in_memory(&mem.files(root)).map_err(SaveAsBasicError::Write)?;
+        let (mut project, records, lib, assets) =
+            copy_template(template, Id::new_v7(), NewProjectKind::Basic).map_err(SaveAsBasicError::Write)?;
+        project.basic_project = None;
+        let mut model = Model::from_records(project, records, lib).map_err(|error| {
+            SaveAsBasicError::Write(OpenError::Model {
+                error,
+                findings: Vec::new(),
+            })
+        })?;
+        for asset in assets {
+            model.put_asset(asset);
+        }
+        Store::create(dir, &model, store)
+            .map_err(SaveAsBasicError::Write)?
+            .close();
+        Ok(())
+    }
 }
+
+/// Why [`Session::save_as_basic`] wrote nothing.
+#[derive(Debug)]
+pub enum SaveAsBasicError {
+    /// The pages or devices to leave out cannot be deleted (a forbid link).
+    Omit(CmdError),
+    /// The basic project cannot be written (or the copy cannot be read back).
+    Write(OpenError),
+}
+
+impl std::fmt::Display for SaveAsBasicError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SaveAsBasicError::Omit(e) => write!(f, "the pages or devices cannot be left out: {e}"),
+            SaveAsBasicError::Write(e) => write!(f, "the basic project cannot be written: {e}"),
+        }
+    }
+}
+
+impl std::error::Error for SaveAsBasicError {}
 
 /// The built-in basic project: the record with the shipped defaults and the empty first page.
 fn builtin(id: Id<Project>, kind: NewProjectKind) -> (Project, Vec<Record>, Vec<ew_schema::LibDocument>) {
@@ -206,8 +315,9 @@ type Template = (Project, Vec<Record>, Vec<ew_schema::LibDocument>, Vec<Asset>);
 
 /// Reads the typed records of a project directory without opening a store: no lock, no journal. A directory whose
 /// files the format reader could not read in full is an error, not a partial template. Its assets are the asset
-/// files whose bytes match their name and sniff as the format of their extension (doc 05 §13.3).
-fn read_records(dir: &Path) -> Result<Template, OpenError> {
+/// files whose bytes match their name and sniff as the format of their extension (doc 05 §13.3). Also returns the
+/// manifest's generation (0 without a usable manifest).
+fn read_records(dir: &Path) -> Result<(Template, u64), OpenError> {
     let limits = Limits::default();
     let listing = list_files(dir)?;
     let manifest_path = dir.join("manifest.json");
@@ -216,14 +326,45 @@ fn read_records(dir: &Path) -> Result<Template, OpenError> {
         Err(_) => None,
     };
     let plan = ew_format::plan(manifest.as_ref(), &listing, &limits);
-    let mut findings = plan.findings;
     let mut files = BTreeMap::new();
     for path in plan.read {
         let full: PathBuf = dir.join(path.as_str());
         let bytes = std::fs::read(&full).map_err(|error| OpenError::Io { path: full, error })?;
         files.insert(path, bytes);
     }
-    let loaded = ew_format::load(manifest.as_ref(), &files, &limits);
+    load_template(manifest.as_ref(), &files, plan.findings, &limits)
+}
+
+/// Reads the typed records of a project held in memory: `all` maps project-relative paths to their bytes (what
+/// [`ew_store::mem::MemVfs::files`] gives after a [`Store::create`]).
+fn read_records_in_memory(all: &BTreeMap<String, Vec<u8>>) -> Result<(Template, u64), OpenError> {
+    let limits = Limits::default();
+    let manifest = all
+        .get("manifest.json")
+        .and_then(|bytes| Manifest::parse(bytes, &limits).ok());
+    let listing: BTreeMap<String, EntryKind> = all.keys().map(|k| (k.clone(), EntryKind::File)).collect();
+    let plan = ew_format::plan(manifest.as_ref(), &listing, &limits);
+    let mut files = BTreeMap::new();
+    for path in plan.read {
+        let Some(bytes) = all.get(path.as_str()) else {
+            return Err(OpenError::Format(format!(
+                "the file {} of the basic project is missing",
+                path.as_str()
+            )));
+        };
+        files.insert(path, bytes.clone());
+    }
+    load_template(manifest.as_ref(), &files, plan.findings, &limits)
+}
+
+/// The template of the files a read plan named, and the manifest's generation.
+fn load_template(
+    manifest: Option<&Manifest>,
+    files: &BTreeMap<ew_format::FilePath, Vec<u8>>,
+    mut findings: Vec<ew_format::Finding>,
+    limits: &Limits,
+) -> Result<(Template, u64), OpenError> {
+    let loaded = ew_format::load(manifest, files, limits);
     let unreadable = loaded.read_only;
     findings.extend(loaded.findings);
     if unreadable || findings.iter().any(|f| f.kind.forces_read_only()) {
@@ -243,7 +384,8 @@ fn read_records(dir: &Path) -> Result<Template, OpenError> {
         .iter()
         .filter_map(|(path, hash)| template_asset(path.as_str(), hash, files.get(path)?))
         .collect();
-    Ok((project, loaded.records, loaded.lib, assets))
+    let generation = manifest.map_or(0, |m| m.generation);
+    Ok(((project, loaded.records, loaded.lib, assets), generation))
 }
 
 /// The asset of the file `path` with `bytes` hashing to `hash`, when it is an asset file of a known format whose name
@@ -298,9 +440,27 @@ fn read_back(mut value: Value) -> Result<Record, OpenError> {
     Err(cannot("too many lists out of order".to_owned()))
 }
 
-/// Copies a basic project directory into a new project: new project ID, new record IDs, the requested kind.
+/// Copies a basic project directory into a new project: new project ID, new record IDs, the requested kind, and
+/// `basic_project` naming the directory's project and its manifest generation (D14).
 fn from_directory(dir: &Path, new_id: Id<Project>, kind: NewProjectKind) -> Result<Template, OpenError> {
-    let (project, records, lib, assets) = read_records(dir)?;
+    let (template, generation) = read_records(dir)?;
+    let basic = template.0.id.cast();
+    let (mut project, records, lib, assets) = copy_template(template, new_id, kind)?;
+    project.basic_project = Some(BasicProjectRef {
+        id: basic,
+        generation,
+        extra: Extra::new(),
+    });
+    Ok((project, records, lib, assets))
+}
+
+/// Copies a template under a new project ID: new record IDs (module documentation) and the requested kind.
+fn copy_template(
+    template: Template,
+    new_id: Id<Project>,
+    kind: NewProjectKind,
+) -> Result<Template, OpenError> {
+    let (project, records, lib, assets) = template;
     let json = |r: &Record| {
         serde_json::to_value(r)
             .map_err(|e| OpenError::Format(format!("a record of the basic project cannot be copied: {e}")))
