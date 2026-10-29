@@ -6,6 +6,13 @@
 [profile.default]
 retries = 0
 fail-fast = false
+# FT-524, FT-538: an intermittent failure's output is printed again at the end of the run (a long run's scrollback
+# loses it) and kept in target/nextest/default/junit.xml with the test's stdout and stderr, so the next sighting of a
+# failure seen only under load leaves its log.
+failure-output = "immediate-final"
+
+[profile.default.junit]
+path = "junit.xml"
 
 # Two slow test binaries run ONCE per CI test job (decision log ID-381, ID-437):
 #   - the headless acceptance tests (crates/ew-api/tests/acceptance.rs: the report equality test, in three shards
