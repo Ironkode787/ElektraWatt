@@ -42,32 +42,56 @@ fn run_limited(importer: &TablesImporter, devices: &str) -> Result<(), ImportErr
     importer.import(&inputs, &common::context()).map(|_| ())
 }
 
-/// A table with more rows than `max_rows` is refused.
+/// A table at a row, column or cell-length limit imports and one above it is refused with `LimitExceeded`, one
+/// case per limit. For the cell, 20 bytes fit (the longest header cell of project.csv is 18); 21 do not.
 #[test]
-fn too_many_rows_are_refused() {
-    let importer = limited(3, 1_024, 32 * 1024);
-    assert!(run_limited(&importer, "key,letter\na,F\nb,F\nc,F\n").is_ok());
-    let r = run_limited(&importer, "key,letter\na,F\nb,F\nc,F\nd,F\n");
-    assert!(matches!(r, Err(ImportError::LimitExceeded { .. })), "{r:?}");
-}
-
-/// A table with more columns than `max_columns` is refused.
-#[test]
-fn too_many_columns_are_refused() {
-    let importer = limited(3, 3, 32 * 1024);
-    assert!(run_limited(&importer, "key,letter,counter\na,F,1\n").is_ok());
-    let r = run_limited(&importer, "key,letter,counter,parent\na,F,1,\n");
-    assert!(matches!(r, Err(ImportError::LimitExceeded { .. })), "{r:?}");
-}
-
-/// A cell longer than `max_cell_bytes` is refused.
-#[test]
-fn a_long_cell_is_refused() {
-    // 20 bytes fit (the longest header cell of project.csv is 18); 21 do not.
-    let importer = limited(3, 8, 20);
-    assert!(run_limited(&importer, "key,letter\naaaaaaaaaaaaaaaaaaaa,F\n").is_ok());
-    let r = run_limited(&importer, "key,letter\naaaaaaaaaaaaaaaaaaaaa,F\n");
-    assert!(matches!(r, Err(ImportError::LimitExceeded { .. })), "{r:?}");
+fn table_limits_are_refused_above_and_kept_at() {
+    let cases = [
+        (
+            "too_many_rows_are_refused",
+            limited(3, 1_024, 32 * 1024),
+            "key,letter
+a,F
+b,F
+c,F
+",
+            "key,letter
+a,F
+b,F
+c,F
+d,F
+",
+        ),
+        (
+            "too_many_columns_are_refused",
+            limited(3, 3, 32 * 1024),
+            "key,letter,counter
+a,F,1
+",
+            "key,letter,counter,parent
+a,F,1,
+",
+        ),
+        (
+            "a_long_cell_is_refused",
+            limited(3, 8, 20),
+            "key,letter
+aaaaaaaaaaaaaaaaaaaa,F
+",
+            "key,letter
+aaaaaaaaaaaaaaaaaaaaa,F
+",
+        ),
+    ];
+    for (name, importer, at, above) in cases {
+        let r = run_limited(&importer, at);
+        assert!(r.is_ok(), "case {name}: {r:?}");
+        let r = run_limited(&importer, above);
+        assert!(
+            matches!(r, Err(ImportError::LimitExceeded { .. })),
+            "case {name}: {r:?}"
+        );
+    }
 }
 
 /// 1,500 failing rows list `MAX_REPORT_ENTRIES` findings and one EW-IMP-001 summary.

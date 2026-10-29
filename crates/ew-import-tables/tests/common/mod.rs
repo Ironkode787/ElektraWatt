@@ -7,6 +7,7 @@
 #![allow(dead_code)]
 
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 
 use ew_ids::Id;
 use ew_import_tables::{BuiltinLibrary, TablesImporter};
@@ -41,12 +42,18 @@ pub fn content_docs(sub: &str) -> Vec<LibDocument> {
         .collect()
 }
 
-/// The built-in library of the golden project: the `@qet10` symbols, the FnDefs and the forms.
+/// The built-in library of the golden project: the `@qet10` symbols, the FnDefs and the forms. Read from
+/// `content/` once per test binary; every call returns a copy.
 pub fn library() -> BuiltinLibrary {
-    let mut docs = content_docs("symbols/qet10");
-    docs.extend(content_docs("fndefs"));
-    docs.extend(content_docs("forms"));
-    BuiltinLibrary::new(docs).expect("the starter content is a valid built-in library")
+    static LIBRARY: OnceLock<BuiltinLibrary> = OnceLock::new();
+    LIBRARY
+        .get_or_init(|| {
+            let mut docs = content_docs("symbols/qet10");
+            docs.extend(content_docs("fndefs"));
+            docs.extend(content_docs("forms"));
+            BuiltinLibrary::new(docs).expect("the starter content is a valid built-in library")
+        })
+        .clone()
 }
 
 /// Inputs from `(file name, text)` pairs.

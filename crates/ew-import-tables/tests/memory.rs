@@ -62,22 +62,10 @@ fn a_comma_heavy_table_stays_within_the_memory_bound() {
     );
 }
 
-/// The default budget of 4,000,000 cells (header included) refuses a table above it.
-#[test]
-fn the_cell_budget_refuses_a_table_above_max_cells() {
-    let limits = TableLimits::default();
-    assert_eq!(limits.max_cells, 4_000_000);
-    // (rows + 1) × 1,024 cells: 3,920 rows are 4,015,104.
-    let above = comma_table(3_920);
-    assert_eq!(
-        csv::parse(above.as_bytes(), &limits),
-        Err(CsvError::TooManyCells { limit: 4_000_000 })
-    );
-}
-
-/// The budget counts header cells and refuses at the cell above it.
+/// The budget counts header cells and refuses at the cell above it; the default budget is 4,000,000 cells.
 #[test]
 fn the_cell_budget_is_exact() {
+    assert_eq!(TableLimits::default().max_cells, 4_000_000);
     let limits = |max_cells| TableLimits {
         max_cells,
         ..TableLimits::default()

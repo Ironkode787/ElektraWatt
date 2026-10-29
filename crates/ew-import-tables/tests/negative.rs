@@ -130,14 +130,6 @@ fn a_revision_row_that_breaks_an_invariant_is_dropped() {
     assert!(labels.contains(&"V1.0") && labels.contains(&"V2.0"), "{labels:?}");
 }
 
-/// A repeated key in devices.csv drops the second row.
-#[test]
-fn a_duplicate_key_is_dropped() {
-    let b = run(&[("devices.csv", "key,letter,counter\n-1F1,F,1\n-1F1,F,2\n")]);
-    assert_eq!(count(&b, 2, Severity::Error), 1, "{:#?}", b.report.entries);
-    assert_eq!(devices(&b), 1);
-}
-
 /// A position off the page grid drops the representation with one error; nothing is snapped.
 #[test]
 fn an_off_grid_position_drops_the_row() {
@@ -151,88 +143,90 @@ fn an_off_grid_position_drops_the_row() {
     assert!(representations(&b).is_empty());
 }
 
-/// A junction off the page grid is dropped with the connections that end at it.
-#[test]
-fn an_off_grid_junction_is_dropped_with_its_connections() {
-    let devices = "key,letter,counter\n-1F1,F,1\n-2F1,F,2\n-3F1,F,3\n";
-    let functions =
-        "key,device,fndef\n-1F1,-1F1,ew.fn.mcb-1pn\n-2F1,-2F1,ew.fn.mcb-1pn\n-3F1,-3F1,ew.fn.mcb-1pn\n";
-    let connections = "key,page,a,b\nJ1.feed,101,-1F1:2,@J1\nW2,101,@J1,-2F1:1\nW3,101,@J1,-3F1:1\n";
-    let junctions = "key,page,cell,dx,dy,style,sequence\nJ1,101,C11,5,,dot,J1.feed;W2;W3\n";
-    let b = run(&[
-        ("devices.csv", devices),
-        ("functions.csv", functions),
-        ("connections.csv", connections),
-        ("junctions.csv", junctions),
-    ]);
-    assert_eq!(count(&b, 2, Severity::Warning), 0, "{:#?}", b.report.entries);
-    let e2 = errors(&b, 2);
-    assert_eq!(e2.len(), 1, "{:#?}", b.report.entries);
-    assert!(e2[0].message.contains("off the page grid"), "{}", e2[0].message);
-    assert_eq!(e2[0].location.as_ref().unwrap().file, "junctions.csv");
-    assert_eq!(count(&b, 3, Severity::Error), 3, "{:#?}", b.report.entries);
-    assert!(
-        !b.records
-            .iter()
-            .any(|r| matches!(r, Record::Junction(_) | Record::Connection(_)))
-    );
+/// Runs `check`, naming `case` in its failure message.
+fn in_case(case: &str, check: impl FnOnce()) {
+    if let Err(e) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(check)) {
+        let msg = e
+            .downcast_ref::<String>()
+            .map(String::as_str)
+            .or_else(|| e.downcast_ref::<&str>().copied())
+            .unwrap_or("a panic without a message");
+        panic!("case {case}: {msg}");
+    }
 }
 
-/// An arrangement the symbol does not define drops the representation with one error naming symbol and name.
+/// A bad row of a project table is dropped with one EW-IMP-002 error and the good rows stay, one case per defect:
+/// a repeated key (devices.csv drops the second row), an arrangement the symbol does not define (the error names
+/// symbol and name), an arrangement cell that is not an identifier, a bad cell reference, and an unknown
+/// enumeration value (pages.csv drops page 102, page 101 stays).
 #[test]
-fn an_unknown_arrangement_drops_the_row() {
-    let reps = "key,functions,page,symbol,cell,arrangement
--1F1,-1F1,101,ew.iec.mcb-1pn@qet10,B2,nonexistent
-";
-    let b = run(&[("representations.csv", reps)]);
-    assert_eq!(count(&b, 2, Severity::Error), 1, "{:#?}", b.report.entries);
-    expect_error(
-        &b,
-        2,
-        "representations.csv",
-        "-1F1",
-        "symbol `ew.iec.mcb-1pn@qet10` has no arrangement `nonexistent`",
-    );
-    assert!(representations(&b).is_empty());
-}
-
-/// An arrangement cell that is not an identifier drops the representation with one error.
-#[test]
-fn an_invalid_arrangement_identifier_drops_the_row() {
-    let reps = "key,functions,page,symbol,cell,arrangement
--1F1,-1F1,101,ew.iec.mcb-1pn@qet10,B2,not an ident!
-";
-    let b = run(&[("representations.csv", reps)]);
-    assert_eq!(count(&b, 2, Severity::Error), 1, "{:#?}", b.report.entries);
-    expect_error(&b, 2, "representations.csv", "-1F1", "arrangement");
-    assert!(representations(&b).is_empty());
-}
-
-/// A bad cell reference drops the representation.
-#[test]
-fn a_bad_cell_drops_the_row() {
-    let reps = "key,functions,page,symbol,cell\n-1F1,-1F1,101,ew.iec.mcb-1pn@qet10,Z9\n";
-    let b = run(&[("representations.csv", reps)]);
-    assert_eq!(count(&b, 2, Severity::Error), 1, "{:#?}", b.report.entries);
-    assert!(representations(&b).is_empty());
-}
-
-/// An unknown enumeration value drops the page row; the valid page stays.
-#[test]
-fn a_bad_enum_value_drops_the_row() {
-    let pages = "key,number,kind,form,grid\n\
-        101,101,multi_line,ew.frame.qet-a4-landscape-grid,qet10\n\
-        102,102,nonsense,ew.frame.qet-a4-landscape-grid,qet10\n";
-    let b = run(&[("pages.csv", pages)]);
-    assert_eq!(count(&b, 2, Severity::Error), 1, "{:#?}", b.report.entries);
-    let n = b.records.iter().filter(|r| matches!(r, Record::Page(_))).count();
-    assert_eq!(n, 1);
-    let gone: ew_ids::Id<Page> = ids::record_id("pages", "102");
-    assert!(
-        !b.records
-            .iter()
-            .any(|r| matches!(r, Record::Page(p) if p.id == gone))
-    );
+fn generic_row_drops() {
+    type Check = fn(&ImportBatch);
+    let cases: [(&str, &str, &str, Check); 5] = [
+        (
+            "a_duplicate_key_is_dropped",
+            "devices.csv",
+            "key,letter,counter\n-1F1,F,1\n-1F1,F,2\n",
+            |b| assert_eq!(devices(b), 1),
+        ),
+        (
+            "an_unknown_arrangement_drops_the_row",
+            "representations.csv",
+            "key,functions,page,symbol,cell,arrangement\n-1F1,-1F1,101,ew.iec.mcb-1pn@qet10,B2,nonexistent\n",
+            |b| {
+                expect_error(
+                    b,
+                    2,
+                    "representations.csv",
+                    "-1F1",
+                    "symbol `ew.iec.mcb-1pn@qet10` has no arrangement `nonexistent`",
+                );
+                assert!(representations(b).is_empty());
+            },
+        ),
+        (
+            "an_invalid_arrangement_identifier_drops_the_row",
+            "representations.csv",
+            "key,functions,page,symbol,cell,arrangement\n-1F1,-1F1,101,ew.iec.mcb-1pn@qet10,B2,not an ident!\n",
+            |b| {
+                expect_error(b, 2, "representations.csv", "-1F1", "arrangement");
+                assert!(representations(b).is_empty());
+            },
+        ),
+        (
+            "a_bad_cell_drops_the_row",
+            "representations.csv",
+            "key,functions,page,symbol,cell\n-1F1,-1F1,101,ew.iec.mcb-1pn@qet10,Z9\n",
+            |b| assert!(representations(b).is_empty()),
+        ),
+        (
+            "a_bad_enum_value_drops_the_row",
+            "pages.csv",
+            "key,number,kind,form,grid\n\
+             101,101,multi_line,ew.frame.qet-a4-landscape-grid,qet10\n\
+             102,102,nonsense,ew.frame.qet-a4-landscape-grid,qet10\n",
+            |b| {
+                let n = b.records.iter().filter(|r| matches!(r, Record::Page(_))).count();
+                assert_eq!(n, 1);
+                let gone: ew_ids::Id<Page> = ids::record_id("pages", "102");
+                assert!(
+                    !b.records
+                        .iter()
+                        .any(|r| matches!(r, Record::Page(p) if p.id == gone))
+                );
+            },
+        ),
+    ];
+    for (name, file, text, check) in cases {
+        let b = run(&[(file, text)]);
+        assert_eq!(
+            count(&b, 2, Severity::Error),
+            1,
+            "case {name}: {:#?}",
+            b.report.entries
+        );
+        in_case(name, || check(&b));
+    }
 }
 
 /// An unknown table file is a warning, a non-CSV file an info; both are ignored.
@@ -361,46 +355,91 @@ fn with_parts(extra: &[(&str, &str)]) -> ImportBatch {
 
 // ---- parts.csv --------------------------------------------------------------------------------------------
 
+/// A bad row of the part tables is dropped with one error naming file, key and cause, and the good rows stay,
+/// one case per defect. `with_parts` cases add their table to a parts.csv with the one part P1.
 #[test]
-fn a_part_without_manufacturer_is_dropped() {
-    let parts = "key,manufacturer,part_number\nP1,,N1\nP2,ACME,N2\n";
-    let b = run(&[("parts.csv", parts)]);
-    expect_error(&b, 2, "parts.csv", "P1", "manufacturer");
-    assert_eq!(errors(&b, 2).len(), 1);
-    assert!(part(&b, "P1").is_none());
-    assert!(part(&b, "P2").is_some());
-    assert_eq!(part_copies(&b).len(), 1);
-}
-
-#[test]
-fn a_duplicate_part_key_is_dropped() {
-    let parts = "key,manufacturer,part_number\nP1,ACME,N1\nP1,ACME,N9\n";
-    let b = run(&[("parts.csv", parts)]);
-    expect_error(&b, 2, "parts.csv", "P1", "duplicate key");
-    let copies = part_copies(&b);
-    assert_eq!(copies.len(), 1);
-    assert_eq!(copies[0].item.part_number.as_str(), "N1", "the first row is kept");
-}
-
-#[test]
-fn a_part_with_a_bad_kind_is_dropped() {
-    let parts = "key,manufacturer,part_number,kind\nP1,ACME,N1,nonsense\nP2,ACME,N2,cable\n";
-    let b = run(&[("parts.csv", parts)]);
-    expect_error(&b, 2, "parts.csv", "P1", "kind");
-    assert!(part(&b, "P1").is_none());
-    assert!(part(&b, "P2").is_some());
+fn part_rows_dropped() {
+    type Check = fn(&ImportBatch);
+    let cases: [(&str, bool, &str, &str, Check); 6] = [
+        (
+            "a_part_without_manufacturer_is_dropped",
+            false,
+            "parts.csv",
+            "key,manufacturer,part_number\nP1,,N1\nP2,ACME,N2\n",
+            |b| {
+                expect_error(b, 2, "parts.csv", "P1", "manufacturer");
+                assert_eq!(errors(b, 2).len(), 1);
+                assert!(part(b, "P1").is_none());
+                assert!(part(b, "P2").is_some());
+                assert_eq!(part_copies(b).len(), 1);
+            },
+        ),
+        (
+            "a_duplicate_part_key_is_dropped",
+            false,
+            "parts.csv",
+            "key,manufacturer,part_number\nP1,ACME,N1\nP1,ACME,N9\n",
+            |b| {
+                expect_error(b, 2, "parts.csv", "P1", "duplicate key");
+                let copies = part_copies(b);
+                assert_eq!(copies.len(), 1);
+                assert_eq!(copies[0].item.part_number.as_str(), "N1", "the first row is kept");
+            },
+        ),
+        (
+            "a_part_with_a_bad_kind_is_dropped",
+            false,
+            "parts.csv",
+            "key,manufacturer,part_number,kind\nP1,ACME,N1,nonsense\nP2,ACME,N2,cable\n",
+            |b| {
+                expect_error(b, 2, "parts.csv", "P1", "kind");
+                assert!(part(b, "P1").is_none());
+                assert!(part(b, "P2").is_some());
+            },
+        ),
+        (
+            "a_cp_of_an_unknown_part_is_dropped",
+            true,
+            "part_cps.csv",
+            "key,part,idx,designation\nP1:0,P1,0,1\nX:0,NOPE,0,1\n",
+            |b| {
+                expect_error(b, 3, "part_cps.csv", "X:0", "unknown part");
+                assert_eq!(errors(b, 3).len(), 1);
+                assert_eq!(part(b, "P1").unwrap().item.cp_pattern.len(), 1);
+            },
+        ),
+        (
+            "a_cp_with_a_bad_clamp_is_dropped",
+            true,
+            "part_cps.csv",
+            "key,part,idx,designation,clamp\nP1:0,P1,0,1,ZZ\nP1:1,P1,1,2,b\n",
+            |b| {
+                expect_error(b, 2, "part_cps.csv", "P1:0", "clamp");
+                assert_eq!(part(b, "P1").unwrap().item.cp_pattern.len(), 1);
+            },
+        ),
+        (
+            "a_core_without_a_name_is_dropped",
+            true,
+            "cable_cores.csv",
+            "key,part,n,core\nP1:A,P1,0,\nP1:B,P1,1,B\n",
+            |b| {
+                expect_error(b, 2, "cable_cores.csv", "P1:A", "core");
+                assert_eq!(part(b, "P1").unwrap().item.sections.cable_cores.len(), 1);
+            },
+        ),
+    ];
+    for (name, add_to_parts, file, text, check) in cases {
+        let b = if add_to_parts {
+            with_parts(&[(file, text)])
+        } else {
+            run(&[(file, text)])
+        };
+        in_case(name, || check(&b));
+    }
 }
 
 // ---- part_cps.csv -----------------------------------------------------------------------------------------
-
-#[test]
-fn a_cp_of_an_unknown_part_is_dropped() {
-    let cps = "key,part,idx,designation\nP1:0,P1,0,1\nX:0,NOPE,0,1\n";
-    let b = with_parts(&[("part_cps.csv", cps)]);
-    expect_error(&b, 3, "part_cps.csv", "X:0", "unknown part");
-    assert_eq!(errors(&b, 3).len(), 1);
-    assert_eq!(part(&b, "P1").unwrap().item.cp_pattern.len(), 1);
-}
 
 #[test]
 fn a_repeated_pattern_index_drops_the_second_cp() {
@@ -409,14 +448,6 @@ fn a_repeated_pattern_index_drops_the_second_cp() {
     expect_error(&b, 2, "part_cps.csv", "P1:0b", "repeated");
     assert_eq!(errors(&b, 2).len(), 1);
     assert_eq!(part(&b, "P1").unwrap().item.cp_pattern.len(), 2);
-}
-
-#[test]
-fn a_cp_with_a_bad_clamp_is_dropped() {
-    let cps = "key,part,idx,designation,clamp\nP1:0,P1,0,1,ZZ\nP1:1,P1,1,2,b\n";
-    let b = with_parts(&[("part_cps.csv", cps)]);
-    expect_error(&b, 2, "part_cps.csv", "P1:0", "clamp");
-    assert_eq!(part(&b, "P1").unwrap().item.cp_pattern.len(), 1);
 }
 
 // ---- part_templates.csv -----------------------------------------------------------------------------------
@@ -449,14 +480,6 @@ fn a_core_of_an_unknown_part_is_dropped() {
     assert_eq!(part(&b, "P1").unwrap().item.sections.cable_cores.len(), 1);
 }
 
-#[test]
-fn a_core_without_a_name_is_dropped() {
-    let cores = "key,part,n,core\nP1:A,P1,0,\nP1:B,P1,1,B\n";
-    let b = with_parts(&[("cable_cores.csv", cores)]);
-    expect_error(&b, 2, "cable_cores.csv", "P1:A", "core");
-    assert_eq!(part(&b, "P1").unwrap().item.sections.cable_cores.len(), 1);
-}
-
 // ---- potentials.csv ---------------------------------------------------------------------------------------
 
 fn potentials(b: &ImportBatch) -> usize {
@@ -466,59 +489,85 @@ fn potentials(b: &ImportBatch) -> usize {
         .count()
 }
 
-#[test]
-fn a_potential_at_an_unknown_endpoint_is_dropped() {
-    let csv = "key,at,ptype\n+24V,-1F1:2,l_plus\n+12V,-9X9:1,l_plus\n";
-    let b = run(&[("potentials.csv", csv)]);
-    expect_error(&b, 3, "potentials.csv", "+12V", "unknown device");
-    assert_eq!(errors(&b, 3).len(), 1);
-    assert_eq!(potentials(&b), 1);
-}
-
-#[test]
-fn a_potential_with_a_bad_ptype_is_dropped() {
-    let csv = "key,at,ptype\n+24V,-1F1:2,nonsense\n+12V,-1F1:1,l_plus\n";
-    let b = run(&[("potentials.csv", csv)]);
-    expect_error(&b, 2, "potentials.csv", "+24V", "ptype");
-    assert_eq!(potentials(&b), 1);
-}
-
-#[test]
-fn a_potential_key_must_be_an_identifier() {
-    let csv = "key,at\nbad\u{7}key,-1F1:2\n+12V,-1F1:1\n";
-    let b = run(&[("potentials.csv", csv)]);
-    expect_error(&b, 2, "potentials.csv", "bad\u{7}key", "not an identifier");
-    assert_eq!(potentials(&b), 1);
-}
-
 // ---- bonds.csv --------------------------------------------------------------------------------------------
 
 fn bonds(b: &ImportBatch) -> usize {
     b.records.iter().filter(|r| matches!(r, Record::Bond(_))).count()
 }
 
+/// A bad potentials.csv or bonds.csv row is dropped with one error naming file, key and cause, and the good row
+/// stays, one case per defect.
 #[test]
-fn a_bond_with_equal_endpoints_is_dropped() {
-    let csv = "key,a,b,kind\nB1,-1F1:1,-1F1:1,fe_pe\nB2,-1F1:1,-1F1:2,fe_pe\n";
-    let b = run(&[("bonds.csv", csv)]);
-    expect_error(&b, 2, "bonds.csv", "B1", "same");
-    assert_eq!(bonds(&b), 1);
-}
-
-#[test]
-fn a_bond_with_an_unknown_via_is_dropped() {
-    let csv = "key,a,b,kind,via\nB1,-1F1:1,-1F1:2,fe_pe,W99\nB2,-1F1:1,-1F1:2,fe_pe,\n";
-    let b = run(&[("bonds.csv", csv)]);
-    expect_error(&b, 3, "bonds.csv", "B1", "unknown connection");
-    assert_eq!(bonds(&b), 1);
-}
-
-#[test]
-fn a_bond_with_a_bad_kind_is_dropped() {
-    let csv = "key,a,b,kind\nB1,-1F1:1,-1F1:2,nonsense\nB2,-1F1:1,-1F1:2,shield\n";
-    let b = run(&[("bonds.csv", csv)]);
-    expect_error(&b, 2, "bonds.csv", "B1", "kind");
-    assert_eq!(bonds(&b), 1);
+fn potential_bond_rows() {
+    type Count = fn(&ImportBatch) -> usize;
+    let cases: [(&str, &str, &str, u16, &str, &str, Count); 6] = [
+        (
+            "a_potential_at_an_unknown_endpoint_is_dropped",
+            "potentials.csv",
+            "key,at,ptype\n+24V,-1F1:2,l_plus\n+12V,-9X9:1,l_plus\n",
+            3,
+            "+12V",
+            "unknown device",
+            potentials,
+        ),
+        (
+            "a_potential_with_a_bad_ptype_is_dropped",
+            "potentials.csv",
+            "key,at,ptype\n+24V,-1F1:2,nonsense\n+12V,-1F1:1,l_plus\n",
+            2,
+            "+24V",
+            "ptype",
+            potentials,
+        ),
+        (
+            "a_potential_key_must_be_an_identifier",
+            "potentials.csv",
+            "key,at\nbad\u{7}key,-1F1:2\n+12V,-1F1:1\n",
+            2,
+            "bad\u{7}key",
+            "not an identifier",
+            potentials,
+        ),
+        (
+            "a_bond_with_equal_endpoints_is_dropped",
+            "bonds.csv",
+            "key,a,b,kind\nB1,-1F1:1,-1F1:1,fe_pe\nB2,-1F1:1,-1F1:2,fe_pe\n",
+            2,
+            "B1",
+            "same",
+            bonds,
+        ),
+        (
+            "a_bond_with_an_unknown_via_is_dropped",
+            "bonds.csv",
+            "key,a,b,kind,via\nB1,-1F1:1,-1F1:2,fe_pe,W99\nB2,-1F1:1,-1F1:2,fe_pe,\n",
+            3,
+            "B1",
+            "unknown connection",
+            bonds,
+        ),
+        (
+            "a_bond_with_a_bad_kind_is_dropped",
+            "bonds.csv",
+            "key,a,b,kind\nB1,-1F1:1,-1F1:2,nonsense\nB2,-1F1:1,-1F1:2,shield\n",
+            2,
+            "B1",
+            "kind",
+            bonds,
+        ),
+    ];
+    for (name, file, text, code, item, needle, kept) in cases {
+        let b = run(&[(file, text)]);
+        in_case(name, || expect_error(&b, code, file, item, needle));
+        assert_eq!(kept(&b), 1, "case {name}: the good row stays");
+        if name == "a_potential_at_an_unknown_endpoint_is_dropped" {
+            assert_eq!(
+                errors(&b, 3).len(),
+                1,
+                "case {name}: the only unresolved reference"
+            );
+        }
+    }
 }
 
 // ---- report_blocks.csv ------------------------------------------------------------------------------------

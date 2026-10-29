@@ -694,176 +694,207 @@ mod tests {
         assert_eq!(t.row(2), ["a\""]);
     }
 
+    /// Accepted tables, one case per shape: the header, every row with its 1-based starting line.
     #[test]
-    fn simple_table() {
-        let t = p("a,b\n1,2\n3,\n").unwrap();
-        assert_eq!(t.header, ["a", "b"]);
-        assert_eq!(t.row_count(), 2);
-        assert_eq!(t.line(0), 2);
-        assert_eq!(t.row(0), ["1", "2"]);
-        assert_eq!(t.line(1), 3);
-        assert_eq!(t.row(1), ["3", ""]);
+    fn accepts() {
+        struct Case {
+            name: &'static str,
+            text: &'static str,
+            header: &'static [&'static str],
+            rows: &'static [(u32, &'static [&'static str])],
+        }
+        let cases = [
+            Case {
+                name: "simple_table",
+                text: "a,b\n1,2\n3,\n",
+                header: &["a", "b"],
+                rows: &[(2, &["1", "2"]), (3, &["3", ""])],
+            },
+            Case {
+                name: "quoted_fields",
+                text: "a,b\n\"x,y\",\"he said \"\"hi\"\"\"\n\"l1\nl2\",\"c\rd\"\nz,w\n",
+                header: &["a", "b"],
+                rows: &[
+                    (2, &["x,y", "he said \"hi\""]),
+                    (3, &["l1\nl2", "c\rd"]),
+                    (5, &["z", "w"]),
+                ],
+            },
+            Case {
+                name: "crlf_records",
+                text: "a,b\r\n1,\"2\"\r\n3,4\r\n",
+                header: &["a", "b"],
+                rows: &[(2, &["1", "2"]), (3, &["3", "4"])],
+            },
+            Case {
+                name: "missing_final_lf",
+                text: "a,b\n1,2",
+                header: &["a", "b"],
+                rows: &[(2, &["1", "2"])],
+            },
+            Case {
+                name: "missing_final_lf after a quoted field",
+                text: "a\n\"x\"",
+                header: &["a"],
+                rows: &[(2, &["x"])],
+            },
+            Case {
+                name: "missing_final_lf after an empty cell",
+                text: "a,b\n1,",
+                header: &["a", "b"],
+                rows: &[(2, &["1", ""])],
+            },
+            Case {
+                name: "header_only",
+                text: "a,b\n",
+                header: &["a", "b"],
+                rows: &[],
+            },
+            Case {
+                name: "header_only without a final LF",
+                text: "a,b",
+                header: &["a", "b"],
+                rows: &[],
+            },
+        ];
+        for c in &cases {
+            let t = p(c.text).unwrap_or_else(|e| panic!("case {}: {e:?}", c.name));
+            assert_eq!(t.header, c.header, "case {}", c.name);
+            assert_eq!(t.row_count(), c.rows.len(), "case {}", c.name);
+            for (i, (line, row)) in c.rows.iter().enumerate() {
+                assert_eq!(t.line(i), *line, "case {} row {i}", c.name);
+                assert_eq!(t.row(i), *row, "case {} row {i}", c.name);
+            }
+        }
     }
 
+    /// Refused tables, one case per error: the input, the limits and the exact error.
     #[test]
-    fn quoted_fields() {
-        let t = p("a,b\n\"x,y\",\"he said \"\"hi\"\"\"\n\"l1\nl2\",\"c\rd\"\nz,w\n").unwrap();
-        assert_eq!(t.row(0), ["x,y", "he said \"hi\""]);
-        assert_eq!(t.row(1), ["l1\nl2", "c\rd"]);
-        assert_eq!(t.line(1), 3);
-        assert_eq!(t.line(2), 5);
-    }
-
-    #[test]
-    fn crlf_records() {
-        let t = p("a,b\r\n1,\"2\"\r\n3,4\r\n").unwrap();
-        assert_eq!(t.row(0), ["1", "2"]);
-        assert_eq!(t.row(1), ["3", "4"]);
-        assert_eq!(
-            p("a,b\r\n1,2\r\n\"q\"\r\n"),
-            Err(CsvError::RaggedRow {
-                line: 3,
-                expected: 2,
-                found: 1
-            })
-        );
-    }
-
-    #[test]
-    fn missing_final_lf() {
-        let t = p("a,b\n1,2").unwrap();
-        assert_eq!(t.row(0), ["1", "2"]);
-        let t = p("a\n\"x\"").unwrap();
-        assert_eq!(t.row(0), ["x"]);
-        let t = p("a,b\n1,").unwrap();
-        assert_eq!(t.row(0), ["1", ""]);
-    }
-
-    #[test]
-    fn header_only() {
-        assert_eq!(p("a,b\n").unwrap().row_count(), 0);
-        assert_eq!(p("a,b").unwrap().header, ["a", "b"]);
-    }
-
-    #[test]
-    fn err_too_large() {
-        assert_eq!(
-            parse(b"a\n1\n", &lim(10, 10, 10, 3)),
-            Err(CsvError::TooLarge { limit: 3 })
-        );
-    }
-
-    #[test]
-    fn err_too_many_rows() {
-        assert_eq!(
-            parse(b"a\n1\n2\n3\n", &lim(2, 10, 10, 100)),
-            Err(CsvError::TooManyRows { limit: 2 })
-        );
-    }
-
-    #[test]
-    fn err_too_many_columns() {
-        assert_eq!(
-            parse(b"a,b\n1,2,3\n", &lim(10, 2, 10, 100)),
-            Err(CsvError::TooManyColumns { line: 2, limit: 2 })
-        );
-    }
-
-    #[test]
-    fn err_cell_too_long() {
-        assert_eq!(
-            parse(b"a,b\n1,123456\n", &lim(10, 10, 5, 100)),
-            Err(CsvError::CellTooLong {
-                line: 2,
-                column: 2,
-                limit: 5
-            })
-        );
-        assert_eq!(
-            parse(b"a,b\n1,\"12\n3456\"\n", &lim(10, 10, 5, 100)),
-            Err(CsvError::CellTooLong {
-                line: 2,
-                column: 2,
-                limit: 5
-            })
-        );
-    }
-
-    #[test]
-    fn err_bom() {
-        assert_eq!(p("\u{feff}a\n"), Err(CsvError::Bom));
-    }
-
-    #[test]
-    fn err_not_utf8() {
-        assert_eq!(
-            parse(b"a\nb\n\xff\n", &TableLimits::default()),
-            Err(CsvError::NotUtf8 { line: 3 })
-        );
-    }
-
-    #[test]
-    fn err_empty() {
-        assert_eq!(p(""), Err(CsvError::Empty));
-    }
-
-    #[test]
-    fn err_empty_column_name() {
-        assert_eq!(p("a,,c\n"), Err(CsvError::EmptyColumnName { column: 2 }));
-    }
-
-    #[test]
-    fn err_duplicate_column() {
-        assert_eq!(p("a,b,a\n"), Err(CsvError::DuplicateColumn { name: "a".into() }));
-    }
-
-    #[test]
-    fn err_empty_line() {
-        assert_eq!(p("a\n1\n\n2\n"), Err(CsvError::EmptyLine { line: 3 }));
-        assert_eq!(p("a\n1\n\n"), Err(CsvError::EmptyLine { line: 3 }));
-        assert_eq!(p("\na\n"), Err(CsvError::EmptyLine { line: 1 }));
-        assert_eq!(p("a\r\n1\r\n\r\n"), Err(CsvError::EmptyLine { line: 3 }));
-    }
-
-    #[test]
-    fn err_stray_quote() {
-        assert_eq!(p("a\nx\"y\n"), Err(CsvError::StrayQuote { line: 2 }));
-        assert_eq!(p("a\n\"x\"y\n"), Err(CsvError::StrayQuote { line: 2 }));
-        assert_eq!(p("a,b\n\"x\ny\"z,1\n"), Err(CsvError::StrayQuote { line: 3 }));
-    }
-
-    #[test]
-    fn err_stray_cr() {
-        assert_eq!(p("a\nx\ry\n"), Err(CsvError::StrayCr { line: 2 }));
-        assert_eq!(p("a\n1\r"), Err(CsvError::StrayCr { line: 2 }));
-    }
-
-    #[test]
-    fn err_unterminated_quote() {
-        assert_eq!(
-            p("a\n1\n\"abc\ndef\n"),
-            Err(CsvError::UnterminatedQuote { line: 3 })
-        );
-    }
-
-    #[test]
-    fn err_ragged_row() {
-        assert_eq!(
-            p("a,b\n1,2\n1,2,3\n"),
-            Err(CsvError::RaggedRow {
-                line: 3,
-                expected: 2,
-                found: 3
-            })
-        );
-        assert_eq!(
-            p("a,b\n1\n"),
-            Err(CsvError::RaggedRow {
-                line: 2,
-                expected: 2,
-                found: 1
-            })
-        );
+    fn errors() {
+        let d = TableLimits::default();
+        let ragged = |line, expected, found| CsvError::RaggedRow {
+            line,
+            expected,
+            found,
+        };
+        let too_long = CsvError::CellTooLong {
+            line: 2,
+            column: 2,
+            limit: 5,
+        };
+        let cases: Vec<(&str, &[u8], TableLimits, CsvError)> = vec![
+            (
+                "err_too_large",
+                b"a\n1\n",
+                lim(10, 10, 10, 3),
+                CsvError::TooLarge { limit: 3 },
+            ),
+            (
+                "err_too_many_rows",
+                b"a\n1\n2\n3\n",
+                lim(2, 10, 10, 100),
+                CsvError::TooManyRows { limit: 2 },
+            ),
+            (
+                "err_too_many_columns",
+                b"a,b\n1,2,3\n",
+                lim(10, 2, 10, 100),
+                CsvError::TooManyColumns { line: 2, limit: 2 },
+            ),
+            (
+                "err_cell_too_long",
+                b"a,b\n1,123456\n",
+                lim(10, 10, 5, 100),
+                too_long.clone(),
+            ),
+            (
+                "err_cell_too_long quoted",
+                b"a,b\n1,\"12\n3456\"\n",
+                lim(10, 10, 5, 100),
+                too_long,
+            ),
+            ("err_bom", "\u{feff}a\n".as_bytes(), d, CsvError::Bom),
+            ("err_not_utf8", b"a\nb\n\xff\n", d, CsvError::NotUtf8 { line: 3 }),
+            ("err_empty", b"", d, CsvError::Empty),
+            (
+                "err_empty_column_name",
+                b"a,,c\n",
+                d,
+                CsvError::EmptyColumnName { column: 2 },
+            ),
+            (
+                "err_duplicate_column",
+                b"a,b,a\n",
+                d,
+                CsvError::DuplicateColumn { name: "a".into() },
+            ),
+            (
+                "err_empty_line",
+                b"a\n1\n\n2\n",
+                d,
+                CsvError::EmptyLine { line: 3 },
+            ),
+            (
+                "err_empty_line at the end",
+                b"a\n1\n\n",
+                d,
+                CsvError::EmptyLine { line: 3 },
+            ),
+            (
+                "err_empty_line first",
+                b"\na\n",
+                d,
+                CsvError::EmptyLine { line: 1 },
+            ),
+            (
+                "err_empty_line crlf",
+                b"a\r\n1\r\n\r\n",
+                d,
+                CsvError::EmptyLine { line: 3 },
+            ),
+            (
+                "err_stray_quote",
+                b"a\nx\"y\n",
+                d,
+                CsvError::StrayQuote { line: 2 },
+            ),
+            (
+                "err_stray_quote after a quoted field",
+                b"a\n\"x\"y\n",
+                d,
+                CsvError::StrayQuote { line: 2 },
+            ),
+            (
+                "err_stray_quote after a multi-line field",
+                b"a,b\n\"x\ny\"z,1\n",
+                d,
+                CsvError::StrayQuote { line: 3 },
+            ),
+            ("err_stray_cr", b"a\nx\ry\n", d, CsvError::StrayCr { line: 2 }),
+            (
+                "err_stray_cr at the end",
+                b"a\n1\r",
+                d,
+                CsvError::StrayCr { line: 2 },
+            ),
+            (
+                "err_unterminated_quote",
+                b"a\n1\n\"abc\ndef\n",
+                d,
+                CsvError::UnterminatedQuote { line: 3 },
+            ),
+            ("err_ragged_row long", b"a,b\n1,2\n1,2,3\n", d, ragged(3, 2, 3)),
+            ("err_ragged_row short", b"a,b\n1\n", d, ragged(2, 2, 1)),
+            (
+                "crlf_records ragged",
+                b"a,b\r\n1,2\r\n\"q\"\r\n",
+                d,
+                ragged(3, 2, 1),
+            ),
+        ];
+        for (name, input, limits, want) in cases {
+            assert_eq!(parse(input, &limits), Err(want), "case {name}");
+        }
     }
 
     #[test]

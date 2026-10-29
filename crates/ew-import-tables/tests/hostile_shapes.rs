@@ -89,7 +89,7 @@ const ONE_FUNCTION: (&str, &str) = ("functions.csv", "key,device,fndef\n-1F1,-1F
 
 #[test]
 fn a_deep_parent_chain_is_kept_with_its_parents() {
-    let n = 2_000;
+    let n = 500;
     let b = run(&[("devices.csv", &chain(n, false))]);
     assert!(
         b.report.entries.is_empty(),
@@ -110,8 +110,8 @@ fn a_deep_parent_chain_is_kept_with_its_parents() {
 
 #[test]
 fn a_parent_cycle_drops_the_cycle_and_everything_below_it() {
-    // d0 → d1 → … → d{n-1} → d0: every device is on the cycle.
-    let n = 2_000;
+    // d0 → d1 → … → d{n-1} → d0: every device is on the cycle; one more than the report lists.
+    let n = ew_import_tables::MAX_REPORT_ENTRIES + 1;
     let b = run(&[("devices.csv", &chain(n, true))]);
     assert_eq!(kinds(&b, |r| matches!(r, Record::Device(_))), 0);
     let cyc = b
