@@ -21,6 +21,7 @@ use crate::canvas::PageId;
 use crate::layout::PaneKind;
 use crate::navigators::messages::{self, FindingDetail, MessageCounts};
 use crate::navigators::{NavRole, Navigator, Query, visible_rows};
+use crate::notifications::NoteTone;
 use crate::properties::{Card, CardOrigin, EditRoute, FieldReadOnly, PendingEdit};
 use crate::strings;
 use crate::tools::PreviewState;
@@ -228,7 +229,7 @@ impl ShellModel {
             Some(messages::counts(&table, self.editing_folio().as_deref()))
         });
         if let Some(c) = counts {
-            self.notify(check_summary(c), false);
+            self.notify_toned(check_summary(c), check_tone(c));
         }
         Outcome::Done
     }
@@ -411,9 +412,39 @@ pub(crate) fn check_summary(c: MessageCounts) -> String {
     }
     strings::format("toast-check", &[&parts.join(", ")])
 }
+/// The icon of the check's toast (doc 16a §6.10, §6.24): the worst severity present, error before warning before info;
+/// a check that finds nothing is a success. Waived and pending findings set no tone.
+pub(crate) fn check_tone(c: MessageCounts) -> NoteTone {
+    if c.errors > 0 {
+        NoteTone::Error
+    } else if c.warnings > 0 {
+        NoteTone::Warning
+    } else if c.infos > 0 {
+        NoteTone::Info
+    } else {
+        NoteTone::Success
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn check_tone_follows_the_worst_severity_present() {
+        let c = |errors, warnings, infos| MessageCounts {
+            errors,
+            warnings,
+            infos,
+            waived: 2,
+            pending: 1,
+        };
+        assert_eq!(check_tone(c(4, 25, 12)), NoteTone::Error);
+        assert_eq!(check_tone(c(1, 0, 0)), NoteTone::Error);
+        assert_eq!(check_tone(c(0, 25, 12)), NoteTone::Warning);
+        assert_eq!(check_tone(c(0, 0, 12)), NoteTone::Info);
+        assert_eq!(check_tone(c(0, 0, 0)), NoteTone::Success, "clean");
+    }
 
     #[test]
     fn check_summary_names_errors_and_warnings_always_and_the_rest_when_present() {

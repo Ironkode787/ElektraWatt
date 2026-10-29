@@ -6,8 +6,10 @@
 //!
 //! **Toasts.** At most three, stacked at the canvas's top right, `space.4` from its edges (under the canvas tabs), the
 //! newest at the top: 300 px wide, `color.surface.raised`, `elevation.2`, `radius.lg`, `space.4` padding; three
-//! columns with `space.3` gaps: the 20-px semantic icon (a check in `color.success` for a toast with an action, the
-//! info icon otherwise), the text in `type.body.strong` and the action as a text link in `type.small` SemiBold
+//! columns with `space.3` gaps: the 20-px semantic icon ([`tone_icon`]: a result's worst severity with the icons of
+//! §6.24, else a check in `color.success` for a toast with an action, the info icon otherwise), the title in
+//! `type.body.strong` with a result's line of counts under it in `type.small` and `color.text.secondary` (the check's
+//! "4 errors, 25 warnings, 12 infos" on one line), and the action as a text link in `type.small` SemiBold
 //! `color.accent` (Undo, Open; disabled once it is no longer valid), and a 24-px Dismiss icon button. Each is a polite
 //! live region. Without a canvas (the start page) they stand at the window's top right under the command bar. Each
 //! goes 8 seconds after the frame that first showed it, on the window's clock ([`crate::app::App`] keeps the times); the
@@ -18,7 +20,7 @@
 //! so.
 
 use egui::{Align, Align2, Context, Layout, Rect, RichText, Ui, Vec2};
-use ew_viewmodel::notifications::Notification;
+use ew_viewmodel::notifications::{NoteTone, Notification};
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
 use serde_json::json;
@@ -64,6 +66,18 @@ fn live_text(ui: &mut Ui, n: &Notification, font: egui::FontId, colour: egui::Co
     });
 }
 
+/// The icon of a toast's tone and its colour (doc 16a §6.10, the severity icons of §6.24): error `circle-x` in
+/// `color.error`, warning `alert-triangle` in the warning icon colour, info `info-circle` in `color.info`, success a
+/// check in `color.success`.
+pub(crate) fn tone_icon(t: &Tokens, tone: NoteTone) -> (IconId, theme::Rgba) {
+    match tone {
+        NoteTone::Error => (IconId::circle_x, t.error),
+        NoteTone::Warning => (IconId::alert_triangle, t.warning_icon),
+        NoteTone::Info => (IconId::info_circle, t.info),
+        NoteTone::Success => (IconId::circle_check, t.success),
+    }
+}
+
 /// One toast (doc 16a §6.10).
 fn toast(ui: &mut Ui, t: &Tokens, shell: &ShellModel, n: &Notification, events: &mut Vec<Event>) {
     let frame = egui::Frame::new()
@@ -77,18 +91,39 @@ fn toast(ui: &mut Ui, t: &Tokens, shell: &ShellModel, n: &Notification, events: 
             ui.set_width(inner);
             ui.horizontal_top(|ui| {
                 ui.spacing_mut().item_spacing.x = t.space_3;
-                let (icon, colour) = if n.action().is_some() {
-                    (IconId::circle_check, t.success)
-                } else {
-                    (IconId::info_circle, t.info)
-                };
+                let (icon, colour) = tone_icon(t, n.tone());
                 let (r, _) = ui.allocate_exact_size(Vec2::splat(t.icon_md), egui::Sense::hover());
                 icons::paint(ui.painter(), icon, r, colour.color32(), t.icon_stroke);
                 let text_w = inner - t.icon_md - t.size_control_inline - 2.0 * t.space_3;
                 ui.vertical(|ui| {
                     ui.set_width(text_w);
                     ui.spacing_mut().item_spacing.y = t.space_icon;
-                    live_text(ui, n, theme::font(&t.type_body_strong), t.text_primary.color32());
+                    match n.lines() {
+                        (title, Some(line)) => {
+                            // The title carries the whole text as the live region; the counts stay on one line.
+                            let response = ui.label(
+                                RichText::new(title)
+                                    .font(theme::font(&t.type_body_strong))
+                                    .color(t.text_primary.color32()),
+                            );
+                            let live = n.text.clone();
+                            ui.ctx().accesskit_node_builder(response.id, |node| {
+                                node.set_live(egui::accesskit::Live::Polite);
+                                node.set_value(live);
+                            });
+                            ui.add(
+                                egui::Label::new(
+                                    RichText::new(line)
+                                        .font(theme::font(&t.type_small))
+                                        .color(t.text_secondary.color32()),
+                                )
+                                .wrap(),
+                            );
+                        }
+                        (_, None) => {
+                            live_text(ui, n, theme::font(&t.type_body_strong), t.text_primary.color32());
+                        }
+                    }
                     action_link(ui, t, shell, n, events);
                 });
                 if components::icon_button(ui, IconId::x, strings::text("toast-dismiss")).clicked() {
@@ -219,4 +254,25 @@ pub(crate) fn show_log(ctx: &Context, shell: &ShellModel, events: &mut Vec<Event
                     });
                 });
         });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::theme::{Density, Theme};
+
+    #[test]
+    fn the_toast_icon_follows_the_tone() {
+        let t = theme::tokens(Theme::Light, Density::Comfortable);
+        assert_eq!(tone_icon(&t, NoteTone::Error), (IconId::circle_x, t.error));
+        assert_eq!(
+            tone_icon(&t, NoteTone::Warning),
+            (IconId::alert_triangle, t.warning_icon)
+        );
+        assert_eq!(tone_icon(&t, NoteTone::Info), (IconId::info_circle, t.info));
+        assert_eq!(
+            tone_icon(&t, NoteTone::Success),
+            (IconId::circle_check, t.success)
+        );
+    }
 }

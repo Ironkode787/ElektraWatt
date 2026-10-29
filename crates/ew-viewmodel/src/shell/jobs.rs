@@ -24,7 +24,7 @@ use super::{
 };
 use crate::jobs::{ExportDone, JobStatus, JobsState};
 use crate::layout::PaneKind;
-use crate::notifications::{NoteAction, Notification, NotificationLog, Validity};
+use crate::notifications::{NoteAction, NoteTone, Notification, NotificationLog, Validity};
 use crate::strings;
 
 /// A `uint` parameter: `Ok(None)` when absent, `Err` when present with another type.
@@ -189,6 +189,11 @@ impl ShellModel {
             None
         };
         self.notes.push(text, key, action);
+    }
+
+    /// Shows a result's `text` as a toast of key `edit` whose icon follows `tone` (the check's worst severity).
+    pub(super) fn notify_toned(&mut self, text: String, tone: NoteTone) {
+        self.notes.push_toned(text, "edit", None, Some(tone));
     }
 
     /// `notifications.show {on?}` (View ▸ Notifications, the status bar's field): the log popup.

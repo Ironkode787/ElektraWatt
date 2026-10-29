@@ -57,6 +57,20 @@ impl NoteAction {
     }
 }
 
+/// What a toast's icon says (doc 16a §6.10 with the severity icons of §6.24): a finished outcome (a check in
+/// `color.success`), plain information, or the worst severity a result reports.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum NoteTone {
+    /// Done, or a result with nothing to report: `circle-check`.
+    Success,
+    /// Information: `info-circle`.
+    Info,
+    /// The result has warnings and no errors: `alert-triangle`.
+    Warning,
+    /// The result has errors: `circle-x`.
+    Error,
+}
+
 /// What keeps an action valid (the shell's facts at the time of the notification; never printed).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub(crate) enum Validity {
@@ -86,12 +100,34 @@ pub struct Notification {
     /// The key: a toast of a key that is visible replaces that one (`edit`, `export`, `recovery`).
     pub key: &'static str,
     pub(crate) action: Option<(NoteAction, Validity)>,
+    /// The tone a result set (the check's worst severity); `None` for every other notification.
+    pub(crate) tone: Option<NoteTone>,
 }
 
 impl Notification {
     /// The action it offers, valid or not.
     pub fn action(&self) -> Option<NoteAction> {
         self.action.as_ref().map(|(a, _)| *a)
+    }
+
+    /// The tone of its icon: the tone the result set, else success for a toast with an action, else info.
+    pub fn tone(&self) -> NoteTone {
+        match (self.tone, &self.action) {
+            (Some(tone), _) => tone,
+            (None, Some(_)) => NoteTone::Success,
+            (None, None) => NoteTone::Info,
+        }
+    }
+
+    /// The title and the optional line of the toast (doc 16a §6.10): a toned result's text splits at its first `": "`
+    /// into the title ("Check") and the line of counts ("4 errors, 25 warnings"); any other text is the title alone.
+    pub fn lines(&self) -> (&str, Option<&str>) {
+        if self.tone.is_some()
+            && let Some((title, line)) = self.text.split_once(": ")
+        {
+            return (title, Some(line));
+        }
+        (&self.text, None)
     }
 
     /// The file an Open action opens.
@@ -123,6 +159,17 @@ impl NotificationLog {
         key: &'static str,
         action: Option<(NoteAction, Validity)>,
     ) -> u64 {
+        self.push_toned(text, key, action, None)
+    }
+
+    /// [`Self::push`] with the tone a result sets (the check's worst severity).
+    pub(crate) fn push_toned(
+        &mut self,
+        text: String,
+        key: &'static str,
+        action: Option<(NoteAction, Validity)>,
+        tone: Option<NoteTone>,
+    ) -> u64 {
         self.serials += 1;
         let serial = self.serials;
         let entries = &self.entries;
@@ -141,6 +188,7 @@ impl NotificationLog {
             text,
             key,
             action,
+            tone,
         });
         while self.entries.len() > MAX_LOG {
             if let Some(gone) = self.entries.pop_front() {
@@ -242,6 +290,33 @@ mod tests {
         assert_eq!(log.entries().last().map(|n| n.serial), Some(2));
         assert_eq!(log.entries().next().map(|n| n.serial), Some(101));
         assert_eq!(log.visible().len(), 1, "one key, one toast");
+    }
+
+    #[test]
+    fn the_tone_is_the_result_s_else_success_with_an_action_else_info() {
+        let mut log = NotificationLog::default();
+        let plain = log.push("Placed -K1".into(), "edit", None);
+        let open = log.push(
+            "Exported PDF".into(),
+            "export",
+            Some((NoteAction::Open, Validity::Open { path: PathBuf::new() })),
+        );
+        let checked = log.push_toned(
+            "Check: 1 error, 0 warnings".into(),
+            "edit",
+            None,
+            Some(NoteTone::Error),
+        );
+        let tone = |s| log.get(s).map(Notification::tone);
+        assert_eq!(tone(plain), Some(NoteTone::Info));
+        assert_eq!(tone(open), Some(NoteTone::Success));
+        assert_eq!(tone(checked), Some(NoteTone::Error));
+        // A toned result splits into the title and the line of counts; any other text is the title alone.
+        assert_eq!(
+            log.get(checked).map(Notification::lines),
+            Some(("Check", Some("1 error, 0 warnings")))
+        );
+        assert_eq!(log.get(plain).map(Notification::lines), Some(("Placed -K1", None)));
     }
 
     #[test]
