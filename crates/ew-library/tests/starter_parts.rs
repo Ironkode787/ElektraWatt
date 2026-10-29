@@ -426,6 +426,7 @@ fn files_of(dir: &Path) -> BTreeMap<String, String> {
 
 /// The text of `crates/ew-library/src/starter_parts.rs` for the records files `paths`.
 fn module_text(paths: &[&String]) -> String {
+    // The header of the generated file, not of this one. REUSE-IgnoreStart
     let mut s = String::from(
         "// SPDX-FileCopyrightText: 2026 The ElektraWatt contributors\n\
          // SPDX-License-Identifier: GPL-3.0-or-later\n\n\
@@ -437,6 +438,7 @@ fn module_text(paths: &[&String]) -> String {
          /// The records files the manifest names, as `(path, text)`.\n\
          pub(crate) const FILES: &[(&str, &str)] = &[\n",
     );
+    // REUSE-IgnoreEnd
     for p in paths {
         s.push_str(&format!(
             "    (\n        \"{p}\",\n        include_str!(\"../../../content/libraries/ew-starter-parts.ewlib/{p}\"),\n    ),\n"

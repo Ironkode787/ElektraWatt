@@ -491,8 +491,11 @@ jobs:
     runs-on: macos-15
     # The GPU canvas tests fail instead of skipping when no adapter is found: these runners have one (Mesa's lavapipe
     # on Linux, WARP on Windows, Metal on macOS), so a skip here would hide a broken setup (WP-S2.02 part 2, spec section 8).
+    # The runner ran out of disk linking the test binaries with line tables (ld errno 28, cycle-35 delivery): this job
+    # builds without debug info; panics keep their messages, and the Linux and Windows jobs keep file and line.
     env:
       EW_REQUIRE_GPU_ADAPTER: "1"
+      CARGO_PROFILE_DEV_DEBUG: "0"
     timeout-minutes: 50
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
