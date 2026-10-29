@@ -35,6 +35,7 @@ mod toc;
 mod wire_list;
 
 pub use cable_overview::CableOverview;
+pub use conn::bridge_groups;
 pub use numbering_report::NumberingReport;
 pub use part_data::PartData;
 pub use parts::{PartsList, PartsSummary};

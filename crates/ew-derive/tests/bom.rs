@@ -700,3 +700,88 @@ fn configured_rows_follow_the_assembly_config_order() {
         ["32P-VGL-R", "51E-F13GCQP-D+H2GG"]
     );
 }
+
+// WP-S2.07 part 1 (D6, SE4)
+/// A bridge connection `n` of `group` between CP 0 of the main functions of terminals `a` and `b` (function = device
+/// + 1), with `part` on `overrides.wire_part` when given.
+fn bridge(fx: &mut Fx, n: u128, group: u16, a: u128, b: u128, part: Option<u128>) {
+    let mut r = json!({
+        "$k": "connection", "id": uid(n),
+        "a": {"cp": [uid(a + 1), 0]}, "b": {"cp": [uid(b + 1), 0]},
+        "kind": {"bridge": {"kind": "plug_in", "group": group, "shaft": 1}},
+    });
+    if let Some(p) = part {
+        r["overrides"] = json!({"wire_part": {"copy": uid(p)}});
+    }
+    fx.push(r);
+}
+
+/// A strip with four terminals: BR group 1 over :1 to :3 (two connections, the part on the second, which has the
+/// smaller ID but the higher sequence), group 2 over :3 and :4 without a part.
+fn bridged() -> Fx {
+    let mut fx = base();
+    strip(&mut fx, 0x4000, "X9", false, &[]);
+    for (k, seq) in [(0x4010, 1), (0x4020, 2), (0x4030, 3), (0x4040, 4)] {
+        terminal(&mut fx, k, 0x4000, seq, &seq.to_string(), P_UK5N, PAGE103);
+    }
+    // Connection IDs chosen against the (seq, ID) order: 2-3 has the smaller ID.
+    bridge(&mut fx, 0x4102, 1, 0x4010, 0x4020, None);
+    bridge(&mut fx, 0x4101, 1, 0x4020, 0x4030, Some(P_SPARE));
+    bridge(&mut fx, 0x4103, 2, 0x4030, 0x4040, None);
+    fx
+}
+
+#[test]
+fn strip_bridges_group_the_connections_and_name_the_carrier() {
+    use ew_derive::StripBridges;
+    let m = bridged().build();
+    let q = Q::new(&m);
+    let groups = q.get::<StripBridges>(id(0x4000));
+    assert_eq!(groups.len(), 2);
+    let g1 = &groups[0];
+    assert_eq!(g1.group, 1);
+    assert_eq!(g1.terminals, [id(0x4010), id(0x4020), id(0x4030)]);
+    // (lower seq, ID) order: 1-2 (seq 1) before 2-3 (seq 2) although 2-3 has the smaller ID.
+    assert_eq!(g1.connections, [id(0x4102), id(0x4101)]);
+    // D6: the first connection with a part is the carrier.
+    assert_eq!(g1.carrier, id(0x4101));
+    assert_eq!(g1.part.as_ref().map(|p| p.copy), Some(id(P_SPARE)));
+    let g2 = &groups[1];
+    assert_eq!(g2.group, 2);
+    assert_eq!(g2.carrier, id(0x4103));
+    assert!(g2.part.is_none());
+    // A terminal is not a strip: it has no bridges of its own.
+    assert!(q.get::<StripBridges>(id(0x4010)).is_empty());
+
+    // One Bridge line, for group 1 only.
+    let lines = q.get::<DevicePartLines>(id(0x4000));
+    let bridge_lines: Vec<_> = lines.iter().filter(|l| l.source == LineSource::Bridge).collect();
+    assert_eq!(bridge_lines.len(), 1);
+    assert_eq!(bridge_lines[0].part, id(P_SPARE));
+    assert_eq!(bridge_lines[0].qty, Dec3::ONE);
+
+    // The BOM counts it once, on the strip.
+    let out = rows(&bridged(), BomMode::Component);
+    let spare = row(&out, "D-SPARE");
+    assert_eq!(spare.qty, Dec3(1_000));
+    assert_eq!(spare.devices, [id(0x4000)]);
+}
+
+#[test]
+fn a_bridge_without_any_part_takes_its_first_connection_as_carrier() {
+    use ew_derive::StripBridges;
+    let mut fx = bridged();
+    if let Some(o) = fx.record(0x4101).as_object_mut() {
+        o.remove("overrides");
+    }
+    let m = fx.build();
+    let q = Q::new(&m);
+    let groups = q.get::<StripBridges>(id(0x4000));
+    assert_eq!(groups[0].carrier, id(0x4102));
+    assert!(groups[0].part.is_none());
+    assert!(
+        q.get::<DevicePartLines>(id(0x4000))
+            .iter()
+            .all(|l| l.source != LineSource::Bridge)
+    );
+}

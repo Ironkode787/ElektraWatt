@@ -41,6 +41,7 @@ mod rowset;
 
 pub use arrange::{Arrangement, Filter, FilterOp, arrange};
 pub use kind::{Registry, ReportKindDef, kind_name};
+pub use kinds::bridge_groups;
 pub use layout::{Layouts, PageLayout};
 pub use paginate::{BlockSpec, Break, Continuation, FixedLines, RowLines, Slice, paginate};
 pub use queries::{BlockPages, BlockRows, ReportEngine, arranged, engine, project_rows, rows_of};

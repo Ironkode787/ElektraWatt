@@ -78,6 +78,7 @@ mod q;
 mod query;
 mod settings;
 mod stitch;
+mod strip_bridges;
 mod structure;
 mod tag;
 mod title_block;
@@ -163,6 +164,7 @@ pub use stitch::{
     EdgeKind, IpGroup, IpInfo, Level, PairMode, ShortSource, StitchEdge, StitchGraph, StitchGraphQ,
     StitchNode,
 };
+pub use strip_bridges::{BridgeGroup, StripBridges};
 pub use structure::{
     DEVICE_ASPECTS, DevicesByStructure, NodePath, PAGE_ASPECTS, PageStructure, ResolvedSlot,
     ResolvedStructure, SlotSource, StructureOf, StructurePath,
@@ -273,6 +275,7 @@ pub const FAMILIES: &[(&str, Policy)] = &[
     (SettingsMember::FAMILY, SettingsMember::POLICY),
     (SolenoidPositions::FAMILY, SolenoidPositions::POLICY),
     (StitchGraphQ::FAMILY, StitchGraphQ::POLICY),
+    (StripBridges::FAMILY, StripBridges::POLICY),
     (StructureOf::FAMILY, StructureOf::POLICY),
     (StructurePath::FAMILY, StructurePath::POLICY),
     (TitleBlockValues::FAMILY, TitleBlockValues::POLICY),

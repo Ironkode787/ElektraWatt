@@ -18,6 +18,7 @@ use crate::Q;
 use crate::cell::RepAnchorCell;
 use crate::pages::{DrawnPageOrder, PageOrderV, PageRef};
 use crate::query::{Policy, Query};
+use crate::strip_bridges::StripBridges;
 use crate::tag::{DeviceTag, MainFunction, MainRep};
 
 /// The two BOM modes (FR-REP-005).
@@ -37,6 +38,9 @@ pub enum LineSource {
     Device,
     /// A strip accessory (`Strip.accessories[].part`), one piece each.
     StripAccessory,
+    /// A bridge group of the strip with a part (the carrier's `overrides.wire_part`, WP-S2.07 D6), one piece
+    /// each.
+    Bridge,
     /// An order code of the device's assembly aspect (`Assembly.configs[].part`), one set each; assembly
     /// mode only.
     AssemblyConfig,
@@ -63,7 +67,8 @@ pub struct PartLine {
 ///
 /// A missing device and a device that is not fitted have no lines. Otherwise one line per part use of the
 /// device (`Device.parts` order), then, for a strip device, one line of quantity 1 per strip accessory
-/// (mounting order). A line whose part copy is missing is dropped.
+/// (mounting order), then one line of quantity 1 per bridge group of the strip that has a part
+/// ([`StripBridges`], group order; WP-S2.07 D6). A line whose part copy is missing is dropped.
 #[derive(Debug)]
 pub struct DevicePartLines;
 
@@ -100,6 +105,11 @@ impl Query for DevicePartLines {
         if let Some(strip) = &dev.aspects.strip {
             for a in &strip.accessories {
                 push(&a.part, Dec3::ONE, LineSource::StripAccessory);
+            }
+            for g in q.get::<StripBridges>(*key).iter() {
+                if let Some(part) = &g.part {
+                    push(part, Dec3::ONE, LineSource::Bridge);
+                }
             }
         }
         Arc::new(lines)
