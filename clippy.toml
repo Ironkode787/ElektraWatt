@@ -39,6 +39,8 @@ disallowed-methods = [
     { path = "ew_model::BaseIndexes::terminals_by_strip", reason = "raw reader of ew-model (raw-read feature, ADR-0001 amendment 2): read through Q in queries or TxBuilder in commands" },
     { path = "ew_model::LibraryCopies::fndefs", reason = "raw reader of ew-model (raw-read feature, ADR-0001 amendment 2): read through Q in queries or TxBuilder in commands" },
     { path = "ew_model::LibraryCopies::forms", reason = "raw reader of ew-model (raw-read feature, ADR-0001 amendment 2): read through Q in queries or TxBuilder in commands" },
+    { path = "ew_model::LibraryCopies::macros", reason = "raw reader of ew-model (raw-read feature, ADR-0001 amendment 2): read through Q in queries or TxBuilder in commands" },
+    { path = "ew_model::LibraryCopies::manufacturers", reason = "raw reader of ew-model (raw-read feature, ADR-0001 amendment 2): read through Q in queries or TxBuilder in commands" },
     { path = "ew_model::LibraryCopies::parts", reason = "raw reader of ew-model (raw-read feature, ADR-0001 amendment 2): read through Q in queries or TxBuilder in commands" },
     { path = "ew_model::LibraryCopies::symbols", reason = "raw reader of ew-model (raw-read feature, ADR-0001 amendment 2): read through Q in queries or TxBuilder in commands" },
     { path = "ew_model::Model::apply_unchecked", reason = "raw reader of ew-model (raw-read feature, ADR-0001 amendment 2): read through Q in queries or TxBuilder in commands" },

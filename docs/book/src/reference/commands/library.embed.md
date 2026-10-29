@@ -7,8 +7,8 @@ carries its lineage `{library_id, item_id, version, sha256}` (doc 05 §13.2), su
 without grid that generated section dividers and report pages need (doc 20 §20.2 step 4).
 
 `copies` holds library documents in the `lib/` JSON form (doc 05 §3.4: `$k`, `id`, the copy metadata,
-then the item's members) of the kinds `part`, `symbol`, `fndef` and `form`; every copy is inserted as it
-is, in one transaction. At least one. Each copy is checked, at `/copies/i`:
+then the item's members) of the kinds `part`, `symbol`, `fndef`, `form`, `macro` and `manufacturer`; every copy
+is inserted as it is, in one transaction. At least one. Each copy is checked, at `/copies/i`:
 - it reads as a library document of one of those kinds (else invalid);
 - its `id` is the copy identity `v5(NS_LIBCOPY, library_id ‖ item_id)` (ADR-0004 amendment 2; a "keep
   both" copy belongs to a paste, not to embedding);
