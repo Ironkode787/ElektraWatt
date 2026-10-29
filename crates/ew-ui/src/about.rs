@@ -240,12 +240,14 @@ fn form_fields(ui: &mut Ui, form: &FormDialog, just_opened: bool, events: &mut V
 
 /// The notices text with its hard line breaks inside a paragraph joined, so the label's own wrap is the only one (the
 /// file's hard wrap wrapped again left orphan words such as "user"). A line keeps its break when it or the
-/// previous line is empty, or when it starts a list item or is indented (licence texts keep their layout).
+/// previous line is empty, or when it starts a list item, an underline or an SPDX header line, or is indented (licence
+/// texts keep their layout).
 pub(crate) fn reflow(text: &str) -> String {
     fn keeps_break(line: &str) -> bool {
         let t = line.trim_start();
         line.len() != t.len()
-            || t.starts_with(['-', '*', '•', '#', '=', '('])
+            || t.starts_with(['-', '*', '•', '#', '='])
+            || t.starts_with("SPDX-")
             || t.split_once(['.', ')']).is_some_and(|(n, _)| {
                 !n.is_empty() && n.len() <= 3 && n.chars().all(|c| c.is_ascii_alphanumeric())
             })
