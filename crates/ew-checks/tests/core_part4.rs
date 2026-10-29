@@ -177,30 +177,78 @@ fn core025_a_settled_toc_reports_nothing() {
 // ---------------------------------------------------------------------------------------------------------
 // Texts and graphics: EW-CORE-061, -063, -071
 
-/// EW-CORE-061 (D-31, EF-12): one finding per built-in text style below the 1.2 mm cap height, `cp.small` and
-/// `marker`, with no target; a project without texts reports them too (the table is the project's).
+/// The message of EW-CORE-061 for a style of 0.94 mm.
+fn small_text(key: &str) -> (String, String) {
+    (
+        key.to_owned(),
+        format!("text style {key} prints with a cap height of 0.94 mm, below the minimum of 1.20 mm"),
+    )
+}
+
+/// Two functions on P1 (0x1001 and 0x1002) whose symbol has the text slots `slots`.
+fn slots_fx(slots: Value) -> Fx {
+    let mut fx = Fx::base();
+    fx.with_symbol_slots(slots);
+    fx.func(0x1001, P1);
+    fx.func(0x1002, P1);
+    fx
+}
+
+/// The CP-designation slots of both CPs, shown when `visible`.
+fn cp_slots(visible: bool) -> Value {
+    json!([
+        {"kind": {"cp_designation": 0}, "pos": [-1_000_000, 0], "align": "middle_right", "visible": visible},
+        {"kind": {"cp_designation": 1}, "pos": [-1_000_000, 1_000_000], "align": "middle_right", "visible": visible},
+    ])
+}
+
+/// EW-CORE-061 (D-31, EF-12): only a text style the project prints with is reported; a project without drawn texts
+/// (a new one, or one whose symbols carry no texts) reports none, though `cp.small` and `marker` are below the
+/// minimum.
 #[test]
-fn core061_reports_each_small_text_style_once() {
-    let f = findings_of(&Fx::new().build(), "EW-CORE-061");
-    assert_eq!(
-        texts(&f),
-        [
-            (
-                "cp.small".to_owned(),
-                "text style cp.small prints with a cap height of 0.94 mm, below the minimum of 1.20 mm"
-                    .to_owned()
-            ),
-            (
-                "marker".to_owned(),
-                "text style marker prints with a cap height of 0.94 mm, below the minimum of 1.20 mm"
-                    .to_owned()
-            ),
-        ]
-    );
+fn core061_reports_nothing_without_drawn_texts() {
+    assert!(findings_of(&Fx::new().build(), "EW-CORE-061").is_empty());
+    assert!(findings_of(&Fx::base().build(), "EW-CORE-061").is_empty());
+    let mut fx = Fx::base();
+    fx.func(0x1001, P1);
+    fx.func(0x1002, P1);
+    fx.conn(0x3001, P1, cp(0x1001), cp(0x1002), &json!({}));
+    assert!(findings_of(&fx.build(), "EW-CORE-061").is_empty());
+    // Hidden CP-designation slots print nothing.
+    assert!(findings_of(&slots_fx(cp_slots(false)).build(), "EW-CORE-061").is_empty());
+}
+
+/// EW-CORE-061: drawn CP labels (`cp.small`) give one finding for that style, however many labels there are, with no
+/// target (FR-CHK-051); the other small style (`marker`) is not drawn and not reported.
+#[test]
+fn core061_reports_a_drawn_cp_label_style_once() {
+    let f = findings_of(&slots_fx(cp_slots(true)).build(), "EW-CORE-061");
+    assert_eq!(texts(&f), [small_text("cp.small")]);
     assert_eq!(f[0].code, "104061");
     assert_eq!(f[0].severity, Severity::Warning);
     assert_eq!(f[0].discriminator, "cp.small");
     assert!(f[0].targets.is_empty());
+    // A slot that names a larger style of the table prints with that style instead.
+    let restyled = json!([
+        {"kind": {"cp_designation": 0}, "pos": [0, 0], "align": "middle_right", "visible": true, "style": "pin"},
+    ]);
+    assert!(findings_of(&slots_fx(restyled).build(), "EW-CORE-061").is_empty());
+}
+
+/// EW-CORE-061: a shown wire marker prints in `marker`; with the CP labels both small styles are reported, in the
+/// table's order.
+#[test]
+fn core061_reports_a_shown_wire_marker() {
+    let mut fx = slots_fx(cp_slots(true));
+    fx.conn(
+        0x3001,
+        P1,
+        cp(0x1001),
+        cp(0x1002),
+        &json!({"overrides": {"csa": "2.5", "colour": ["BK"], "show_marker": true}}),
+    );
+    let f = findings_of(&fx.build(), "EW-CORE-061");
+    assert_eq!(texts(&f), [small_text("cp.small"), small_text("marker")]);
     // Every other style of the table is at or above the minimum.
     let small: Vec<&str> = ew_checks::rules::page::TEXT_STYLES
         .iter()
@@ -675,7 +723,7 @@ fn part4_findings_do_not_follow_record_ids() {
             coverage_fx(json!({"include": [us(0x8200)]})),
             vec![(0x8200, 0x8300), (0x8201, 0x8301)],
         ),
-        ("EW-CORE-061", Fx::new(), vec![]),
+        ("EW-CORE-061", slots_fx(cp_slots(true)), vec![(0x1001, 0x1002)]),
         ("EW-CORE-063", two_texts, vec![(0x8600, 0x8601)]),
         ("EW-CORE-071", line_fx(0), vec![(0x8700, 0x1001)]),
         ("EW-CORE-008", channel_fx(false), vec![]),

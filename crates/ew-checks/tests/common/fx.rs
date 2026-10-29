@@ -258,6 +258,18 @@ impl Fx {
         self.rep(n, SYM, page);
     }
 
+    /// Gives the plain two-CP symbol (the one [`Fx::func`] draws) the text slots `slots`.
+    pub fn with_symbol_slots(&mut self, slots: Value) -> &mut Fx {
+        let id = us(SYM);
+        let sym = self
+            .lib
+            .iter_mut()
+            .find(|d| d["$k"] == "symbol" && d["id"] == id.as_str())
+            .expect("the plain symbol");
+        sym["text_slots"] = slots;
+        self
+    }
+
     /// A plain two-CP function `n` drawn on `page`.
     pub fn func(&mut self, n: u128, page: u128) {
         self.func_of(n, FNDEF, SYM, page);

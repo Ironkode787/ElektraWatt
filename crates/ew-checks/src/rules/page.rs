@@ -16,11 +16,14 @@ use std::collections::{BTreeMap, BTreeSet};
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::natural_cmp;
 use ew_derive::ew_schema::{
-    AnyId, Device, Function, GraphicShape, Kind, Page, PageItem, PageItemKind, ReportBlock, ReportKind,
-    ReportSource,
+    AnyId, Device, Function, GraphicShape, Kind, Page, PageItem, PageItemKind, Primitive, ReportBlock,
+    ReportKind, ReportSource, SlotKind, TextSlot,
 };
 use ew_derive::ew_units::Pt2;
-use ew_derive::{CpRef, FunctionCps, Origin, PageOrder, PageRef, Q, cp_label, cp_point, folio_label};
+use ew_derive::{
+    CpRef, FunctionCps, Origin, PageOrder, PageRef, Q, box_caption, connection_marker, cp_label, cp_point,
+    folio_label, free_text, group_marker, live_connections,
+};
 
 use crate::engine::touched_ids;
 use crate::finding::{Finding, Severity, Target};
@@ -481,10 +484,11 @@ pub const TEXT_BELOW_MINIMUM: RuleMeta = RuleMeta {
     release: Release::Mvp,
 };
 
-/// EW-CORE-061: a text style whose cap height (the ISO 3098 nominal size: the em height of [`TEXT_STYLES`] times the
-/// face's cap ratio 0.714) is below the minimum of 1.2 mm (FR-CHK-023, FR-CHK-051; D-31, EF-12). One finding per
-/// text style, not per text (FR-CHK-051): no target, discriminator the style's key. On Golden A exactly `cp.small`
-/// and `marker` (0.94 mm).
+/// EW-CORE-061: a text style the project prints with ([`used_text_styles`]) whose cap height (the ISO 3098 nominal
+/// size: the em height of [`TEXT_STYLES`] times the face's cap ratio 0.714) is below the minimum of 1.2 mm
+/// (FR-CHK-023, FR-CHK-051; D-31, EF-12). One finding per text style, not per text (FR-CHK-051): no target,
+/// discriminator the style's key. A style no text of the project prints with is not reported, so a new project has
+/// none; on Golden A exactly `cp.small` and `marker` (0.94 mm). The project has no style overrides yet (FR-SYM-013).
 #[derive(Clone, Copy, Debug)]
 pub struct TextBelowMinimum;
 
@@ -493,30 +497,151 @@ impl Rule for TextBelowMinimum {
         &TEXT_BELOW_MINIMUM
     }
 
-    fn run(&self, _q: &Q, scope: &Scope) -> Vec<Finding> {
+    fn run(&self, q: &Q, scope: &Scope) -> Vec<Finding> {
         if *scope != Scope::Project {
             return Vec::new();
         }
-        TEXT_STYLES
+        let small: Vec<(&str, i64)> = TEXT_STYLES
             .iter()
-            .filter_map(|(key, px)| {
-                let cap = em_nm(*px) * CAP_RATIO_MILLI / 1000;
-                (cap < MIN_CAP_HEIGHT_NM).then(|| {
-                    Finding::new(
-                        &TEXT_BELOW_MINIMUM,
-                        [],
-                        *key,
-                        *key,
-                        format!(
-                            "text style {key} prints with a cap height of {} mm, below the minimum of {} mm",
-                            mm2(cap),
-                            mm2(MIN_CAP_HEIGHT_NM)
-                        ),
-                    )
-                })
+            .map(|(key, px)| (*key, em_nm(*px) * CAP_RATIO_MILLI / 1000))
+            .filter(|(_, cap)| *cap < MIN_CAP_HEIGHT_NM)
+            .collect();
+        if small.is_empty() {
+            return Vec::new();
+        }
+        let used = used_text_styles(q);
+        small
+            .into_iter()
+            .filter(|(key, _)| used.contains(key))
+            .map(|(key, cap)| {
+                Finding::new(
+                    &TEXT_BELOW_MINIMUM,
+                    [],
+                    key,
+                    key,
+                    format!(
+                        "text style {key} prints with a cap height of {} mm, below the minimum of {} mm",
+                        mm2(cap),
+                        mm2(MIN_CAP_HEIGHT_NM)
+                    ),
+                )
             })
             .collect()
     }
+}
+
+/// The default text style of a text without one, and the style an unknown key prints with (doc 20 §17.5; the scene's
+/// `ew_text::DEFAULT_STYLE_KEY`).
+const DEFAULT_TEXT_STYLE: &str = "text.normal";
+
+/// The key a text naming `key` prints with: `key` when it is one of [`TEXT_STYLES`], else the default style (the
+/// scene's fallback for an absent or unknown key).
+fn printed_style(key: Option<&str>) -> &str {
+    match key {
+        Some(k) if TEXT_STYLES.iter().any(|(t, _)| *t == k) => k,
+        _ => DEFAULT_TEXT_STYLE,
+    }
+}
+
+/// The style a symbol's text slot prints with: its own `style` when that is one of [`TEXT_STYLES`], else the style
+/// bound to its kind (doc 20 §17.5; decision log ID-197, ID-227; the scene's `symbol::slot_style_key`).
+fn slot_style(slot: &TextSlot) -> &str {
+    match slot.style.as_ref().map(|s| s.as_str()) {
+        Some(k) if TEXT_STYLES.iter().any(|(t, _)| *t == k) => k,
+        _ => match slot.kind {
+            SlotKind::Tag => "tag.main",
+            SlotKind::CpDesignation(_) => "cp.small",
+            SlotKind::Unknown(_) => DEFAULT_TEXT_STYLE,
+            _ => "data.small",
+        },
+    }
+}
+
+/// The text styles the project prints with, by key, mirroring the page scene's bindings (`ew-scene`, which this crate
+/// may not link): the free texts that print something (their style, else the default), the shown wire markers of
+/// wire-marker items and of single connections (`marker`), the structure-box captions (`tag.main`), the static texts
+/// and the visible slots of every placed representation's symbol (slots only on a representation with a function;
+/// the kind's style unless the slot names a table style), and the texts and cells of the forms the project holds
+/// (its frames and title blocks). A set of keys, independent of record IDs.
+pub fn used_text_styles(q: &Q) -> BTreeSet<&'static str> {
+    let mut used: BTreeSet<&'static str> = BTreeSet::new();
+    let mut mark = |key: Option<&str>| {
+        let k = printed_style(key);
+        if let Some((t, _)) = TEXT_STYLES.iter().find(|(t, _)| *t == k) {
+            used.insert(*t);
+        }
+    };
+    let mut grouped = BTreeSet::new();
+    let mut marker = false;
+    for (_, item) in q.page_items().iter() {
+        match &item.kind {
+            PageItemKind::FreeText(t) => {
+                if !free_text(q, item.page, t).is_empty() {
+                    mark(t.style.as_ref().map(|s| s.as_str()));
+                }
+            }
+            PageItemKind::WireMarker(_) => {
+                grouped.extend(live_connections(q, item).iter().map(|c| c.id));
+                marker |= group_marker(q, item).is_some_and(|g| g.shown && !g.text.is_empty());
+            }
+            _ => {}
+        }
+    }
+    marker = marker
+        || q.connections().iter().any(|(_, c)| {
+            c.page.is_some()
+                && connection_marker(q, c, grouped.contains(&c.id)).is_some_and(|m| !m.is_empty())
+        });
+    if marker {
+        mark(Some("marker"));
+    }
+    if q.structure_boxes()
+        .iter()
+        .any(|(_, b)| !box_caption(q, b).is_empty())
+    {
+        mark(Some("tag.main"));
+    }
+    let symbols = q.symbols();
+    for (_, rep) in q.reps().iter() {
+        let Some(def) = symbols.get(rep.symbol).map(|s| &s.item) else {
+            continue;
+        };
+        for prim in &def.graphics {
+            if let Primitive::Text(t) = prim {
+                mark(t.style.as_ref().map(|s| s.as_str()));
+            }
+        }
+        if rep.functions.is_empty() {
+            continue;
+        }
+        let arrangement = rep
+            .arrangement
+            .as_ref()
+            .and_then(|name| def.arrangements.iter().find(|a| a.name == *name));
+        for (i, slot) in def.text_slots.iter().enumerate() {
+            let idx = u16::try_from(i).unwrap_or(u16::MAX);
+            let visible = rep
+                .text_slots
+                .iter()
+                .find(|o| o.slot == idx)
+                .and_then(|o| o.visible)
+                .unwrap_or_else(|| arrangement.map_or(slot.visible, |a| a.slots.contains(&idx)));
+            if visible {
+                mark(Some(slot_style(slot)));
+            }
+        }
+    }
+    for (_, form) in q.forms().iter() {
+        for prim in &form.item.graphics {
+            if let Primitive::Text(t) = prim {
+                mark(t.style.as_ref().map(|s| s.as_str()));
+            }
+        }
+        for cell in &form.item.cells {
+            mark(Some(cell.style.as_str()));
+        }
+    }
+    used
 }
 
 /// EW-CORE-063 "Unstyled text size" (doc 15 §4.2): hygiene, o, info, page.

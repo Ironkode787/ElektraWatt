@@ -5,5 +5,4 @@ warning EW-POT-009 005009 -101K2:14: -101K2:14 is not connected; connect it or m
 warning EW-CORE-041 102041 -101K1: -101K1 has no part; assign one, or mark it as supplied by others
 warning EW-CORE-041 102041 -101K2: -101K2 has no part; assign one, or mark it as supplied by others
 warning EW-CORE-061 104061 cp.small: text style cp.small prints with a cap height of 0.94 mm, below the minimum of 1.20 mm
-warning EW-CORE-061 104061 marker: text style marker prints with a cap height of 0.94 mm, below the minimum of 1.20 mm
-0 errors, 8 warnings, 0 infos, 0 waived
+0 errors, 7 warnings, 0 infos, 0 waived
