@@ -334,6 +334,28 @@ fn draw_many_refuses_no_entry_and_a_bad_entry_whole() {
     assert_eq!(lines(e.model()), before);
 }
 
+/// Cycle 33 review finding 10: the cost is interactive up to 500 entries and Bulk above (`BULK_ABOVE`); more than
+/// 10,000 entries (`DRAW_MANY_MAX`) are refused at `/connections` and nothing is drawn.
+#[test]
+fn draw_many_cost_and_entry_limit() {
+    use ew_commands::{Command, Cost};
+    let mut e = engine(golden_model());
+    let many = |n: usize| ConnectMany {
+        connections: vec![bridge(FN_T1, FN_T2); n],
+    };
+    assert_eq!(many(500).cost(e.model()), Cost::Interactive);
+    assert_eq!(many(501).cost(e.model()), Cost::Bulk);
+    assert_eq!(many(10_000).cost(e.model()), Cost::Bulk);
+    let before = lines(e.model());
+    let r = e.preview(&many(10_001));
+    assert!(
+        matches!(&r, Err(CmdError::InvalidParams { path, message, .. })
+            if path == "/connections" && message.contains("10001 connections are more than the 10000")),
+        "{r:?}"
+    );
+    assert_eq!(lines(e.model()), before);
+}
+
 // ---------------------------------------------------------------------------------------------------------
 // connection.route
 

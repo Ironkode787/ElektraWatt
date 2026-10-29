@@ -221,7 +221,9 @@ pub const DRAW_MANY_MAX: usize = 10_000;
 /// Each entry is applied exactly as `connection.draw` with those parameters would be, in order, on the records the
 /// earlier entries left. Rejected with [`CmdError::InvalidParams`] at `/connections`: no entry, or more than
 /// 10,000; an entry's own parameter error keeps its message with its JSON Pointer prefixed by `/connections/<i>`,
-/// and its refusal keeps its reason prefixed by `entry <i>: `. Cost: `Bulk` above 500 entries (`BULK_ABOVE`), else
+/// and its refusal keeps its reason prefixed by `entry <i>: `. Every other error passes through unprefixed:
+/// [`CmdError::NotFound`] carries only the missing record's key (which names the record, not the entry), and a model
+/// or prevention error is the transaction's, not one entry's. Cost: `Bulk` above 500 entries (`BULK_ABOVE`), else
 /// interactive. Outcome: the first new connection.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -272,6 +274,7 @@ impl Command for ConnectMany {
                 CmdError::Rejected { source, reason } => {
                     CmdError::rejected(source, format!("entry {i}: {reason}"))
                 }
+                // NotFound names the missing record by its key; it has no field an index could prefix (see above).
                 other => other,
             })?;
             first = first.or(out.primary);
