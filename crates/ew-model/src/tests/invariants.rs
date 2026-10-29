@@ -1122,7 +1122,13 @@ fn every_catalogue_rule_has_a_test() {
     let catalogue = include_str!("../../invariants.md");
     let invariant_tests = include_str!("invariants.rs");
     let ops_tests = include_str!("ops.rs");
-    assert_eq!(RULES.len(), 25);
+    let rows = catalogue
+        .lines()
+        .skip_while(|l| !l.starts_with("| ID | Class |"))
+        .skip(2)
+        .take_while(|l| l.starts_with("| "))
+        .count();
+    assert_eq!(RULES.len(), rows, "one catalogue row per rule");
     for rule in RULES {
         let names = catalogue_tests(catalogue, rule.id);
         assert!(!names.is_empty(), "{} names no tests in invariants.md", rule.id);
