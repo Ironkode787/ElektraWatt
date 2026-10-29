@@ -109,3 +109,90 @@ fn ft543_a_designation_on_a_device_says_where_its_tag_is_set() {
     assert!(text.contains("terminal designation"), "{text}");
     assert!(text.contains("a device's tag is set in its properties"), "{text}");
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// FT-547: the IP tool keeps the chosen direction; a deleted IP says it took its wire.
+
+/// The page's interruption points as (name, direction), sorted.
+fn ips(s: &ShellModel) -> Vec<(String, String)> {
+    let t = &s.canvas().unwrap().page().tables;
+    let mut v: Vec<_> = t
+        .reps
+        .iter()
+        .filter_map(|r| r.ip.as_ref().map(|i| (i.name.clone(), i.direction.clone())))
+        .collect();
+    v.sort();
+    v
+}
+
+/// The grid cursor to grid index `k`, then Enter.
+fn enter_k(s: &mut ShellModel, k: (i64, i64)) {
+    let p = {
+        let sn = &s.canvas().unwrap().page().snapper;
+        sn.page_to_sheet((sn.page_of_index(k.0), sn.page_of_index(k.1)))
+    };
+    done(s, "cursor.set", common::at(p, json!({})));
+    done(s, "canvas.activate", json!({}));
+}
+
+/// The direction chosen once stays for every next placement, in the left quarter (which proposes a target) and the
+/// right one (a source) alike; setting an external reference makes the point a target.
+#[test]
+fn ft547_the_ip_tool_keeps_the_chosen_direction_and_an_external_point_is_a_target() {
+    let tmp = Tmp::new("m34-547");
+    let mut s = golden(&tmp, "102");
+    done(&mut s, "view.zoom_actual", json!({}));
+    let before = ips(&s);
+    done(&mut s, "tool.ip", json!({}));
+    done(&mut s, "tool.ip_direction", json!({"direction": "undirected"}));
+    for (i, k) in [(4, 40), (6, 40), (140, 40)].into_iter().enumerate() {
+        done(&mut s, "ip.name", json!({"text": format!("KEEP-{i}")}));
+        enter_k(&mut s, k);
+        assert_eq!(ghost(&s)["direction"], "undirected", "after placement {i}");
+    }
+    let placed: Vec<(String, String)> = ips(&s).into_iter().filter(|p| !before.contains(p)).collect();
+    assert_eq!(
+        placed,
+        [0, 1, 2].map(|i| (format!("KEEP-{i}"), "undirected".to_owned())),
+        "every placement undirected"
+    );
+    // An external reference flips the direction to target (the one flip the tool makes).
+    let external = s
+        .external_choices()
+        .first()
+        .cloned()
+        .expect("Golden A's references")
+        .0;
+    done(&mut s, "ip.external", json!({"external": external}));
+    assert_eq!(ghost(&s)["direction"], "target");
+}
+
+/// Deleting an interruption point that has a wire at its connection point takes the wire with it, and the toast says
+/// so.
+#[test]
+fn ft547_deleting_an_ip_with_its_wire_says_so_in_the_toast() {
+    let tmp = Tmp::new("m34-547b");
+    let mut s = golden(&tmp, "103");
+    let (rep, name, wire) = {
+        let t = &s.canvas().unwrap().page().tables;
+        t.reps
+            .iter()
+            .filter(|r| r.ip.is_some())
+            .find_map(|r| {
+                let cp = t.cps.iter().find(|c| c.rep == r.id && c.connections.len() == 1)?;
+                Some((r.id.to_string(), r.ip.as_ref()?.name.clone(), cp.connections[0]))
+            })
+            .expect("an IP of 103 with one wire")
+    };
+    done(&mut s, "select.set", json!({"ids": [rep]}));
+    done(&mut s, "edit.delete_selection", json!({}));
+    let t = &s.canvas().unwrap().page().tables;
+    assert!(
+        !t.connections.iter().any(|c| c.id == wire),
+        "the wire went with it"
+    );
+    assert_eq!(
+        toast(&s),
+        format!("Deleted the interruption point {name} and the wire connected to it")
+    );
+}

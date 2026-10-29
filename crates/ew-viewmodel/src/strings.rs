@@ -783,6 +783,12 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "toast-external-ref-new" => {
             "Created the external reference {0}; the Interruption point tool links an external point to it by this label"
         }
+        "toast-ip-deleted-wire" => "Deleted the interruption point {0} and the wire connected to it",
+        "toast-ip-deleted-wires" => "Deleted the interruption point {0} and the {1} wires connected to it",
+        "toast-ips-deleted-wire" => "Deleted the interruption points {0} and the wire connected to them",
+        "toast-ips-deleted-wires" => {
+            "Deleted the interruption points {0} and the {1} wires connected to them"
+        }
         "toast-autoconnect" => {
             "Placed and connected {0}: {1}. Alt+Click or Alt+Enter places without connecting"
         }

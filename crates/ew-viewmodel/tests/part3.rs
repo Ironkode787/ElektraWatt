@@ -186,15 +186,14 @@ fn ib2_the_ip_tool_proposes_names_by_series_and_direction_and_d_and_star_toggle(
     assert_eq!(after.len(), before.len() + 1);
     let placed = ip(&tables(&s), "24VDC-1", "undirected");
     assert_eq!(placed.pos, right);
-    // The direction chosen with D and the star are cleared after the commit; the next proposal at the same point is
-    // a source again, and the remembered name 24VDC-1 is free among the sources.
-    assert_eq!(canvas(&s)["ghost"]["direction"], "source");
+    // FT-547: the direction chosen with D stays after the commit (no flip after a placement), in either quarter; the
+    // star is cleared, and the remembered name's series goes on among the undirected points.
+    assert_eq!(canvas(&s)["ghost"]["direction"], "undirected");
     assert_eq!(canvas(&s)["ghost"]["star"], false);
-    assert_eq!(canvas(&s)["ghost"]["name"], "24VDC-1");
-    // In the left quarter the remembered name is a proposal: the four 24VDC targets of 103 use the series up to 4.
+    assert_eq!(canvas(&s)["ghost"]["name"], "24VDC-2");
     cursor(&mut s, left);
-    assert_eq!(canvas(&s)["ghost"]["direction"], "target");
-    assert_eq!(canvas(&s)["ghost"]["name"], "24VDC-5");
+    assert_eq!(canvas(&s)["ghost"]["direction"], "undirected");
+    assert_eq!(canvas(&s)["ghost"]["name"], "24VDC-2");
     // Escape ends the tool without a change.
     let rev = s.revision();
     done(&mut s, "ui.dismiss", json!({}));

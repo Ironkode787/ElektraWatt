@@ -21,8 +21,10 @@
 //! proposal, the next name of its numbered series ([`next_in_series`]: `24VDC-1` → `24VDC-2`, `L` → `L-1`). **The direction** is the one D chose, else `target` for
 //! an external point, else `source` in the right or bottom quarter of the page's drawing area and `target` in the left
 //! or top quarter ([`quarter_direction`]: the horizontal quarters first), else the last committed one. After a commit
-//! the typed name, the chosen direction and the star are cleared, and the committed name and direction are
-//! remembered ([`IpMemory`], kept by the host across tools).
+//! the typed name and the star are cleared and the committed name and direction are remembered ([`IpMemory`], kept by
+//! the host across tools); **the chosen direction stays** for the next placements (FT-547: no flip after a placement)
+//! until D or `tool.ip_direction` chooses another, and setting an external reference clears it, so that the external
+//! point is a target.
 //!
 //! **External connection points** (FR-XRF-012): while the host has set an external reference, the ghost and the
 //! commit use the external-arrow symbol the host gives, `ip.place` carries `external`, and the star is refused.
@@ -280,6 +282,10 @@ impl IpTool {
         shape: Arc<SymbolShape>,
         cx: &ToolCx<'_>,
     ) -> Overlay {
+        // An external connection point is a target (FT-547: the one change of direction the tool makes itself).
+        if external.is_some() {
+            self.chosen = None;
+        }
         self.external = external;
         self.outline = shape.outline.clone().into();
         self.shape = shape;
@@ -472,8 +478,8 @@ impl Tool for IpTool {
                 last_name: Some(name),
                 last_direction: direction,
             };
+            // The chosen direction stays (FT-547).
             self.typed = None;
-            self.chosen = None;
             self.star = false;
         }
     }

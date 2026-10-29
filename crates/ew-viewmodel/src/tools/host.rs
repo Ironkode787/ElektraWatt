@@ -145,6 +145,21 @@ pub(crate) struct ToolHost {
     /// held (its group hidden by View ▸ Side by side off or by closing its last tab, a tab switch, a jump), so the
     /// tool was escaped and the release belongs to no gesture (FT-392). The next primary press clears it.
     pub drop_release: bool,
+    /// What the toast says once the page tables of the commit that set it are read, at the end of its dispatch.
+    pub result_note: Option<ResultNote>,
+}
+
+/// A commit's result line, said in the toast once the page tables show the result (FT-546, FT-547).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum ResultNote {
+    /// A delete of interruption points: their names and the connections at their connection points that the
+    /// selection did not name (said only for those the delete removed).
+    IpsDeleted {
+        /// The names.
+        names: Vec<String>,
+        /// The connections.
+        wires: Vec<EntityRef>,
+    },
 }
 
 impl ToolHost {
@@ -175,6 +190,7 @@ impl ToolHost {
             grips: None,
             press_held: false,
             drop_release: false,
+            result_note: None,
         }
     }
 }

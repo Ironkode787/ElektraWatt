@@ -15,7 +15,7 @@
 use std::sync::Arc;
 
 use ew_api::output::ew_dl::EntityRef;
-use ew_api::output::{CatalogueSymbol, PlaceCatalogue, SymbolShape};
+use ew_api::output::{CatalogueSymbol, PageTables, PlaceCatalogue, SymbolShape};
 use ew_api::{AnyCommand, Session};
 use serde_json::{Map, Value, json};
 
@@ -23,8 +23,8 @@ use super::{Outcome, ShellModel, failed, string_param};
 use crate::strings;
 use crate::tools::{
     BlackBoxTool, BoxTarget, CanvasEvent, EntityKind, ExchangeTool, Ghost, PendingTerminal, Picker,
-    PickerMode, PickerRow, PlaceTarget, PlaceTool, SelectTool, SelectionChange, Tool, ToolCx, ToolKey,
-    ToolOutput, entity_kind, selection_kinds, transform,
+    PickerMode, PickerRow, PlaceTarget, PlaceTool, ResultNote, SelectTool, SelectionChange, Tool, ToolCx,
+    ToolKey, ToolOutput, entity_kind, selection_kinds, transform,
 };
 
 /// What a choice of the picker or a `place.pick` arms.
@@ -49,7 +49,67 @@ fn terminal_designation(p: &Map<String, Value>) -> Result<Option<&str>, Outcome>
     }
 }
 
+/// The result note of a delete of the representations `reps` (FT-547): the names of the interruption points among
+/// them, in page-table order, and the connections at their connection points that `drawn` does not name; `None`
+/// when no interruption point is deleted.
+fn ips_deleted(reps: &[EntityRef], drawn: &crate::tools::Selection, t: &PageTables) -> Option<ResultNote> {
+    let ips: Vec<&ew_api::output::TableRep> = t
+        .reps
+        .iter()
+        .filter(|r| r.ip.is_some() && reps.contains(&EntityRef(r.id)))
+        .collect();
+    if ips.is_empty() {
+        return None;
+    }
+    let mut wires: Vec<EntityRef> = Vec::new();
+    for r in &ips {
+        for c in t.cps.iter().filter(|c| c.rep == r.id) {
+            for w in &c.connections {
+                let w = EntityRef(*w);
+                if !drawn.items.contains(&w) && !wires.contains(&w) {
+                    wires.push(w);
+                }
+            }
+        }
+    }
+    Some(ResultNote::IpsDeleted {
+        names: ips
+            .iter()
+            .filter_map(|r| r.ip.as_ref().map(|ip| ip.name.clone()))
+            .collect(),
+        wires,
+    })
+}
+
 impl ShellModel {
+    /// The toast of the result note the dispatch's commit left (FT-546, FT-547), read on the page tables after it.
+    fn say_result(&mut self, _before: &PageTables, now: &PageTables) {
+        let Some(note) = self.tools.result_note.take() else {
+            return;
+        };
+        match note {
+            ResultNote::IpsDeleted { names, wires } => {
+                let gone = wires
+                    .iter()
+                    .filter(|w| !now.connections.iter().any(|c| c.id == w.0))
+                    .count();
+                if gone == 0 {
+                    return;
+                }
+                let key = match (names.len(), gone) {
+                    (1, 1) => "toast-ip-deleted-wire",
+                    (1, _) => "toast-ip-deleted-wires",
+                    (_, 1) => "toast-ips-deleted-wire",
+                    _ => "toast-ips-deleted-wires",
+                };
+                self.notify(
+                    strings::format(key, &[&names.join(", "), &gone.to_string()]),
+                    true,
+                );
+            }
+        }
+    }
+
     // -----------------------------------------------------------------------------------------------------------
     // Getters
 
@@ -897,7 +957,13 @@ impl ShellModel {
                 },
             };
         };
-        self.commit_from_host(cmd.as_ref())
+        // FT-547: an interruption point takes the wires at its connection point with it; the toast says so.
+        let note = ips_deleted(&reps, &drawn, &page.tables);
+        let out = self.commit_from_host(cmd.as_ref());
+        if out == Outcome::Done {
+            self.tools.result_note = note;
+        }
+        out
     }
 
     /// The devices that deleting the representations `reps` leaves without any representation, in ID order: every
@@ -1099,11 +1165,17 @@ impl ShellModel {
         self.refresh_strip_tag();
         self.cancel_stale_move();
         let Some(before) = self.tools.before_commit.take() else {
+            self.tools.result_note = None;
             return;
         };
         let Some(now) = self.canvas().map(|c| Arc::clone(&c.page().tables)) else {
+            self.tools.result_note = None;
             return;
         };
+        self.say_result(&before, &now);
+        // The IP tool's ghost proposes its next name on the page as the commit left it (its kept direction may meet
+        // the name it just placed; FT-547).
+        self.after_ip_commit();
         let kept: Vec<EntityRef> = self
             .tools
             .selection
