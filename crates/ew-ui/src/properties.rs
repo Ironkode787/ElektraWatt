@@ -252,11 +252,7 @@ impl PropertiesPane {
                     .layout(egui::Layout::left_to_right(egui::Align::Center)),
                 |ui| {
                     ui.set_min_size(line.size());
-                    ui.add(
-                        TextEdit::singleline(&mut self.filter)
-                            .hint_text(hint)
-                            .desired_width(f32::INFINITY),
-                    )
+                    crate::components::filter_field(ui, &mut self.filter, hint)
                 },
             )
             .inner;

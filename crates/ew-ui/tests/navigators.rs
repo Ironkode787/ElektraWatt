@@ -371,3 +371,27 @@ fn r30_double_clicking_a_paged_report_block_goes_to_its_first_folio() {
     );
     h.state_mut().shell_mut().shutdown();
 }
+
+/// Doc 16a §6.5: the shared filter field has a trailing clear button only while it holds text; the button empties the
+/// filter and leaves the keyboard focus in the field.
+#[test]
+fn the_filter_field_clear_button_empties_the_filter_and_keeps_the_focus() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp);
+    assert!(
+        h.query_by_label("Clear the filter").is_none(),
+        "an empty field has no clear button"
+    );
+    dispatch(&mut h, "pages.filter", json!({"text": "10"}));
+    settle(&mut h);
+    settle(&mut h);
+    h.get_by_label("Clear the filter").click();
+    settle(&mut h);
+    assert_eq!(h.state().shell().navigator().filter, "");
+    assert!(
+        h.get_all_by_role(egui::Role::TextInput).any(|n| n.is_focused()),
+        "the field keeps the focus"
+    );
+    assert!(h.query_by_label("Clear the filter").is_none());
+    h.state_mut().shell_mut().shutdown();
+}

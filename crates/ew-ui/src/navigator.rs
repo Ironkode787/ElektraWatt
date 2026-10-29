@@ -30,7 +30,7 @@
 
 use std::rc::Rc;
 
-use egui::{Key, Modifiers, PointerButton, Sense, TextEdit, Ui};
+use egui::{Key, Modifiers, PointerButton, Sense, Ui};
 use ew_viewmodel::navigators::{NavKind, NavStamp};
 use ew_viewmodel::properties::CardOrigin;
 use ew_viewmodel::shell::{DragSource, Focus, ShellModel, ShownRow};
@@ -237,10 +237,10 @@ impl NavigatorPane {
                         if let Some(nav) = table_nav {
                             crate::nav_table::chooser(ui, nav, events);
                         }
-                        ui.add(
-                            TextEdit::singleline(&mut self.filter)
-                                .hint_text(strings::text("nav-filter-hint"))
-                                .desired_width(f32::INFINITY),
+                        crate::components::filter_field(
+                            ui,
+                            &mut self.filter,
+                            strings::text("nav-filter-hint"),
                         )
                     })
                     .inner

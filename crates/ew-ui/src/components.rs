@@ -106,6 +106,61 @@ pub(crate) fn button_with_icon(
     response
 }
 
+/// The shared filter field (doc 16a §6.5) of the navigators and Properties: a one-line field filling the width, a
+/// leading 16-px filter icon in `color.text.tertiary` and, when not empty, a trailing clear button ("Clear the filter")
+/// that empties the text and keeps the focus in the field. The response is the field's; it reports a change for typing
+/// and for the clear button alike.
+pub(crate) fn filter_field(ui: &mut Ui, text: &mut String, hint: &str) -> Response {
+    let t = tokens(ui);
+    let lead = t.space_2 + t.icon_sm + t.space_2;
+    let trail = if text.is_empty() {
+        t.space_3
+    } else {
+        t.size_control_inline + t.space_1
+    };
+    let mut field = ui.add(
+        egui::TextEdit::singleline(text)
+            .hint_text(hint)
+            .margin(egui::Margin {
+                left: lead as i8,
+                right: trail as i8,
+                top: t.space_1 as i8,
+                bottom: t.space_1 as i8,
+            })
+            .desired_width(f32::INFINITY),
+    );
+    let rect = field.rect;
+    let icon = egui::Rect::from_center_size(
+        egui::pos2(rect.left() + t.space_2 + t.icon_sm / 2.0, rect.center().y),
+        Vec2::splat(t.icon_sm),
+    );
+    icons::paint(
+        ui.painter(),
+        IconId::filter,
+        icon,
+        t.text_tertiary.color32(),
+        t.icon_stroke,
+    );
+    if !text.is_empty() {
+        let at = egui::Rect::from_center_size(
+            egui::pos2(
+                rect.right() - t.space_1 - t.size_control_inline / 2.0,
+                rect.center().y,
+            ),
+            Vec2::splat(t.size_control_inline),
+        );
+        // A child that does not move the parent's cursor: the button lies over the field's right margin.
+        let mut child = ui.new_child(egui::UiBuilder::new().max_rect(at));
+        let clear = icon_button(&mut child, IconId::x, strings::text("filter-clear"));
+        if clear.clicked() {
+            text.clear();
+            field.mark_changed();
+            field.request_focus();
+        }
+    }
+    field
+}
+
 /// A 24-px Subtle icon button with `icon.sm` in `color.text.secondary` (doc 16a §6.3), named `name`, with `name` as
 /// its tooltip.
 pub(crate) fn icon_button(ui: &mut Ui, id: IconId, name: &str) -> Response {

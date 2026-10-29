@@ -906,6 +906,8 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "empty-nav-filter" => "Nothing matches \"{0}\"",
         "empty-nav-filter-text" => "Change the filter or clear it to see every row.",
         "empty-nav-clear" => "Clear filter",
+        // Doc 16a §6.5: the filter field's trailing clear button.
+        "filter-clear" => "Clear the filter",
         "empty-nav-pages" => "No pages yet",
         "empty-nav-devices" => "No devices yet",
         "empty-nav-connections" => "No connections yet",
