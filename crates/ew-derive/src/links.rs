@@ -243,6 +243,21 @@ fn own_locations(q: &Q) -> Vec<Id<StructureNode>> {
         .collect()
 }
 
+/// The location a device belongs to for the PE rules (doc 08 §3.7, §8.1; EW-POT-008): its own location node; without
+/// one, the project's only own location, or the implicit main location when the project has none; `None` when it has
+/// none and the project has two or more own locations, or when its structure has a cycle. The same reading as the rail
+/// of a rail-bonded terminal ([`RailTerminal::rail`]).
+pub fn device_location(q: &Q, dev: Id<Device>) -> Option<RailLocation> {
+    match q.try_get::<StructureOf>(dev).ok()?.node(Aspect::Location) {
+        Some(node) => Some(RailLocation::Node(node)),
+        None => match own_locations(q).as_slice() {
+            [] => Some(RailLocation::Main),
+            [only] => Some(RailLocation::Node(*only)),
+            _ => None,
+        },
+    }
+}
+
 /// The value of [`RailTerminalOf`]: one rail-bonded terminal.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct RailTerminal {

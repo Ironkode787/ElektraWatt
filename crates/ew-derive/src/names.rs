@@ -4,8 +4,8 @@
 //! The names and own attributes of a potential, split out of the partition (ADR-0002 amendment 4: "a folio
 //! renumber or a move re-derives names and not the topology"; ARCH §6.4 `potential_names`; WP-S1.07 part 2).
 //!
-//! - **`potential_name(p)`** (doc 08 §3.5): the first definition's name in ID order (another name is noted as
-//!   EW-POT-017); else the first non-external source interruption point in page order (page position, anchor
+//! - **`potential_name(p)`** (doc 08 §3.5): the name of the first definition in rank order ([`ranked_defs`]: natural
+//!   order of the name, the defining point's printed text, the ID; WP-S1.16 D9) (another name is noted as EW-POT-017); else the first non-external source interruption point in page order (page position, anchor
 //!   row, anchor column, ID); else the first external source interruption point in that order (review decision
 //!   D6); else (doc 08 §3.5 step 2b, WP-S1.16 D1) the supply's name `<root>/<tag>:<designation>` when the
 //!   potential is entered through the pass-through pair of a function f (its flow `upstream`): `<root>` is the
@@ -17,7 +17,8 @@
 //!   §9.6) are named on the bond, not on the potential. A signal takes the first IP name inside it, in page
 //!   order. The family also pushes the EW-POT-001 notes of the potential's attributes, which name it.
 //! - **`potential_attrs(p)`** (doc 03 §9.4): type, voltage, environment and class from the first definition in
-//!   ID order that sets each; the type else from the member CPs' `potential_role`; roles that disagree are
+//!   rank order ([`ranked_defs`]) that sets each; the conflict texts name definitions and CPs by their printed text,
+//!   in printed order, never by ID (FT-587); the type else from the member CPs' `potential_role`; roles that disagree are
 //!   ranked by the fixed role order of `role_rank` (PE, PEN, FE, N, L1, L2, L3, L, L+, L−, M, signal,
 //!   undefined), never by the CP order, which follows the random IDs of a new project.
 //!   Nothing merges silently (doc 08 §3.6): every later definition whose value differs, and every member role
@@ -32,7 +33,7 @@ use std::sync::Arc;
 
 use ew_ids::Id;
 use ew_mltext::natural_cmp;
-use ew_schema::{Function, IpDirection, PotentialDef, PotentialType};
+use ew_schema::{Endpoint, Function, IpDirection, PotentialDef, PotentialType};
 
 use crate::flow::FlowBfs;
 use crate::heap::HeapBytes;
@@ -128,20 +129,18 @@ impl Query for PotentialNameOf {
         ip_names.sort_by(|a, b| natural_cmp(a, b).then_with(|| a.cmp(b)));
         ip_names.dedup();
 
-        let def_rows: Vec<(Id<PotentialDef>, Arc<PotentialDef>)> = p
-            .defs
-            .iter()
-            .filter_map(|d| q.potential_defs().get(*d).map(|r| (*d, Arc::clone(r))))
-            .collect();
+        let def_rows = ranked_defs(q, p);
         let name = if let Some((d0, first)) = def_rows.first() {
-            for (d, other) in def_rows.iter().skip(1) {
+            for (_, other) in def_rows.iter().skip(1) {
                 if other.name != first.name {
                     notes.push(DeriveNote::Connectivity {
                         code: "EW-POT-017",
                         subject: format!("potential {}", first.name.as_str()),
                         detail: format!(
-                            "definition {d} names it {}; the first definition in ID order ({d0}) wins",
-                            other.name.as_str()
+                            "{} names it {}; the first definition in natural order ({}) wins",
+                            def_text(q, other),
+                            other.name.as_str(),
+                            def_text(q, first)
                         ),
                     });
                 }
@@ -242,9 +241,60 @@ fn supply_name(q: &Q, key: PotentialId) -> Option<PotentialName> {
     })
 }
 
+/// A definition and its record, as [`ranked_defs`] lists them.
+pub type RankedDef = (Id<PotentialDef>, Arc<PotentialDef>);
+
+/// The definitions of a potential in their rank (doc 08 §3.6, ID-175; WP-S1.16 D9, FT-587): natural order of the
+/// name, then the defining point's printed text (`<tag>:<designation>` of its CP, a junction's after every CP's), then
+/// the ID. The first applies its values and names the potential; the ID decides only between two definitions that
+/// print alike, so the applied values and the texts do not follow the random IDs of a new project. A potential with
+/// one definition reads nothing else.
+pub fn ranked_defs(q: &Q, p: &Potential) -> Vec<RankedDef> {
+    let mut rows: Vec<RankedDef> = p
+        .defs
+        .iter()
+        .filter_map(|d| q.potential_defs().get(*d).map(|r| (*d, Arc::clone(r))))
+        .collect();
+    if rows.len() < 2 {
+        return rows;
+    }
+    let mut keyed: Vec<(Option<String>, RankedDef)> = rows
+        .drain(..)
+        .map(|(d, r)| (def_point_text(q, &r), (d, r)))
+        .collect();
+    keyed.sort_by(|(ta, (da, ra)), (tb, (db, rb))| {
+        natural_cmp(ra.name.as_str(), rb.name.as_str())
+            .then_with(|| ra.name.as_str().cmp(rb.name.as_str()))
+            .then_with(|| match (ta, tb) {
+                (Some(a), Some(b)) => natural_cmp(a, b).then_with(|| a.cmp(b)),
+                (a, b) => a.is_none().cmp(&b.is_none()),
+            })
+            .then_with(|| da.cmp(db))
+    });
+    keyed.into_iter().map(|(_, row)| row).collect()
+}
+
+/// The printed text of a definition's point: `<tag>:<designation>` of its CP; `None` for a junction or a point of a
+/// newer format.
+fn def_point_text(q: &Q, def: &PotentialDef) -> Option<String> {
+    match def.at {
+        Endpoint::Cp(f, idx) => Some(cp_text(q, CpRef::new(f, idx))),
+        _ => None,
+    }
+}
+
+/// A definition as a message prints it: `definition <name> at <tag>:<designation>` (`definition <name>` at a junction),
+/// never its ID (FT-587).
+pub fn def_text(q: &Q, def: &PotentialDef) -> String {
+    match def_point_text(q, def) {
+        Some(at) => format!("definition {} at {at}", def.name.as_str()),
+        None => format!("definition {}", def.name.as_str()),
+    }
+}
+
 /// `<tag>:<designation>` of a CP: its function's device tag as a report prints it (`?` without one) and the CP's
 /// designation (its index without one).
-pub(crate) fn cp_text(q: &Q, cp: CpRef) -> String {
+pub fn cp_text(q: &Q, cp: CpRef) -> String {
     let tag = q
         .functions()
         .get(cp.function)
@@ -365,11 +415,7 @@ impl Query for PotentialAttrsOf {
 
 fn attrs_of(q: &Q, p: &Potential) -> PotentialAttrsV {
     let mut conflicts: Vec<String> = Vec::new();
-    let def_rows: Vec<(Id<PotentialDef>, Arc<PotentialDef>)> = p
-        .defs
-        .iter()
-        .filter_map(|d| q.potential_defs().get(*d).map(|r| (*d, Arc::clone(r))))
-        .collect();
+    let def_rows = ranked_defs(q, p);
     let ptype = def_rows.iter().find_map(|(d, r)| {
         r.ptype.clone().map(|v| Attr {
             value: v,
@@ -377,23 +423,34 @@ fn attrs_of(q: &Q, p: &Potential) -> PotentialAttrsV {
         })
     });
     if let Some(t) = &ptype {
-        for (d, r) in &def_rows {
+        for (_, r) in &def_rows {
             if let Some(other) = &r.ptype
                 && *other != t.value
             {
                 conflicts.push(format!(
-                    "definition {d} sets type {other:?}; {:?} applies",
+                    "{} sets type {other:?}; {:?} applies (first definition in natural order)",
+                    def_text(q, r),
                     t.value
                 ));
             }
         }
-        for (cp, role) in member_roles(q, p) {
-            if !role_compatible(&t.value, &role) {
-                conflicts.push(format!(
-                    "member CP {}:{} has role {role:?}; the defined type {:?} applies",
-                    cp.function, cp.idx, t.value
-                ));
-            }
+        let mut contradicting: Vec<(String, PotentialType)> = member_roles(q, p)
+            .into_iter()
+            .filter(|(_, role)| !role_compatible(&t.value, role))
+            .map(|(cp, role)| (cp_text(q, cp), role))
+            .collect();
+        // The printed order, never the CP (ID) order (FT-587).
+        contradicting.sort_by(|(a, ra), (b, rb)| {
+            natural_cmp(a, b)
+                .then_with(|| a.cmp(b))
+                .then_with(|| format!("{ra:?}").cmp(&format!("{rb:?}")))
+        });
+        contradicting.dedup();
+        for (text, role) in contradicting {
+            conflicts.push(format!(
+                "member CP {text} has role {role:?}; the defined type {:?} applies",
+                t.value
+            ));
         }
     }
     let ptype = ptype.or_else(|| role_type(q, p, &mut conflicts));
@@ -404,12 +461,13 @@ fn attrs_of(q: &Q, p: &Potential) -> PotentialAttrsV {
         })
     });
     if let Some(w) = &voltage {
-        for (d, r) in &def_rows {
+        for (_, r) in &def_rows {
             if let Some(other) = r.voltage
                 && other != w.value
             {
                 conflicts.push(format!(
-                    "definition {d} sets voltage {other}; {} applies (first definition in ID order)",
+                    "{} sets voltage {other}; {} applies (first definition in natural order)",
+                    def_text(q, r),
                     w.value
                 ));
             }
@@ -422,11 +480,13 @@ fn attrs_of(q: &Q, p: &Potential) -> PotentialAttrsV {
         })
     });
     if let Some(w) = &env {
-        for (d, r) in &def_rows {
+        for (_, r) in &def_rows {
             if !r.env.is_empty() && r.env != w.value {
                 conflicts.push(format!(
-                    "definition {d} sets environment {:?}; {:?} applies (first definition in ID order)",
-                    r.env, w.value
+                    "{} sets environment {:?}; {:?} applies (first definition in natural order)",
+                    def_text(q, r),
+                    r.env,
+                    w.value
                 ));
             }
         }
@@ -438,12 +498,13 @@ fn attrs_of(q: &Q, p: &Potential) -> PotentialAttrsV {
         })
     });
     if let Some(w) = &circuit_class {
-        for (d, r) in &def_rows {
+        for (_, r) in &def_rows {
             if let Some(other) = &r.circuit_class
                 && *other != w.value
             {
                 conflicts.push(format!(
-                    "definition {d} sets circuit class {other:?}; {:?} applies (first definition in ID order)",
+                    "{} sets circuit class {other:?}; {:?} applies (first definition in natural order)",
+                    def_text(q, r),
                     w.value
                 ));
             }

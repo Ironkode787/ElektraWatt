@@ -589,9 +589,22 @@ pub(crate) fn potential_id_at(q: &Q, at: EndpointKey) -> Option<PotentialId> {
 }
 
 /// The partition, read as part [`PartKey::Potential`] of `id`: the caller reads the topology of `id` only
-/// (`Partition::get`, `Partition::component_of`).
-pub(crate) fn potential_part(q: &Q, id: PotentialId) -> Arc<Partition> {
+/// (`Partition::get`, `Partition::component_of`), so a topology edit elsewhere does not reach it (FT-236).
+pub fn potential_part(q: &Q, id: PotentialId) -> Arc<Partition> {
     q.get_part::<PotentialPartition>((), PartKey::Potential(id))
+}
+
+/// The bonds with an end on the potential `id`, in bond ID order, read as the parts [`PartKey::Bonds`] (the bond
+/// records) and [`PartKey::BondsOf`] of `id` (which bonds end on it) instead of the whole partition (FT-236): a
+/// topology change re-runs only the readers of the potentials it touches.
+pub fn bonds_of_potential(q: &Q, id: PotentialId) -> Vec<BondLink> {
+    let _ = q.get_part::<PotentialPartition>((), PartKey::Bonds);
+    q.get_part::<PotentialPartition>((), PartKey::BondsOf(id))
+        .bonds()
+        .iter()
+        .filter(|b| b.a == Some(id) || b.b == Some(id))
+        .cloned()
+        .collect()
 }
 
 /// The bonds between potentials (doc 03 §9.6), in bond ID order.

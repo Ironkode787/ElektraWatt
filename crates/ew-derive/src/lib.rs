@@ -117,7 +117,7 @@ pub use items::{
 pub use joins::{JoinStyle, JoinWiring, JunctionJoin, WireJoin, cp_label, wire_join};
 pub use links::{
     BondPath, BondPaths, BondPathsQ, DeclaredLink, FunctionLinks, FunctionLinksOf, RailBonds, RailBondsQ,
-    RailLocation, RailTerminal, RailTerminalOf,
+    RailLocation, RailTerminal, RailTerminalOf, device_location,
 };
 pub use memo_keys::{MemoInput, PartKey};
 pub use memo_store::MemoStore;
@@ -129,7 +129,10 @@ pub use bond_carrier::{BondCarrierQ, Carrier};
 pub use ew_model::EndpointKey;
 pub use flow::{Flow, FlowBfs, FlowConflict, FlowEntry, FlowNotes, Load, PotentialFlow, Upstream};
 pub use flow_distance::{CpFlowDistanceOf, CpFlowDistances};
-pub use names::{PotentialAttrsOf, PotentialAttrsV, PotentialNameOf, PotentialNames, potential_named};
+pub use names::{
+    PotentialAttrsOf, PotentialAttrsV, PotentialNameOf, PotentialNames, cp_text, def_text, potential_named,
+    ranked_defs,
+};
 pub use nets::{CpRef, LocalNet, LocalNets, NetId, NetMember, PageLocalNets, joins_net};
 pub use note::{DeriveNote, EW_CORE_018, NoteSeverity, SchemeIssue};
 pub use numbering::{NumberedWire, WireNumber, WireNumbers, WireNumbersV, orient_wire};
@@ -147,7 +150,8 @@ pub use plc::{
 };
 pub use potentials::{
     Attr, AttrSource, BondLink, Component, NameSource, Partition, Potential, PotentialAttrs, PotentialId,
-    PotentialName, PotentialPartition, Signal, bus_line_cables, bus_line_pages,
+    PotentialName, PotentialPartition, Signal, bonds_of_potential, bus_line_cables, bus_line_pages,
+    potential_part,
 };
 pub use profile::{
     CounterScope, DerivationProfile, NumberingRule, NumberingScheme, NumberingSettings, NumberingSettingsOf,
@@ -179,7 +183,7 @@ pub use wire_profile::{
 };
 pub use wire_props::{
     ConnWireProps, EffectiveProps, EndClass, EndScope, PropSource, Prov, SizeRule, WirePropsMap, WirePropsOf,
-    pick,
+    pick, wire_props_below_overrides,
 };
 pub use wires::{EndKind, PhysicalWire, PhysicalWires, PhysicalWiresOf, WireEnd};
 

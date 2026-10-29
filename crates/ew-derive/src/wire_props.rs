@@ -40,7 +40,7 @@ use crate::wire_profile::{
     Attrs, ProfileKey, ProfileRow, ProfileRowFor, WireDefaultProps, WireProfileNotes, attrs_of,
     builtin_colour_for, builtin_csa, own_class,
 };
-use crate::wires::{EndKind, PhysicalWire, PhysicalWiresOf, WireEnd};
+use crate::wires::{EndKind, OverrideSources, PhysicalWire, PhysicalWiresOf, WireEnd};
 use crate::{FunctionCps, Q};
 
 /// Which size rule gave a level-2 cross-section (doc 08 §4.2).
@@ -232,6 +232,22 @@ impl Query for WirePropsOf {
         map.notes = notes.as_ref().clone();
         Arc::new(map)
     }
+}
+
+/// The effective properties of `wire` (a physical wire of the potential `key`) with its level-7 values (the CDP
+/// overrides) left out: what each property would be without the override (EW-POT-016 "Redundant override", doc 08
+/// §8.1, FR-CON-025). It reads what [`WirePropsOf`] reads for one wire; it is no query (only the rule asks for it,
+/// and only for a wire that carries an override).
+pub fn wire_props_below_overrides(q: &Q, key: PotentialId, wire: &PhysicalWire) -> EffectiveProps {
+    let ctx = Ctx {
+        q,
+        default: q.get_value_part::<WireDefaultProps>(()),
+        version: profile::resolve(&settings::profile_key(q)).0.version.clone(),
+    };
+    let mut bare = wire.clone();
+    bare.overrides = Default::default();
+    bare.override_sources = OverrideSources::default();
+    ctx.props_of(&bare, key)
 }
 
 /// `wire_props(conn)`: a cold lookup into [`WirePropsOf`] of the connection's potential(s) (ARCH §6.3):
