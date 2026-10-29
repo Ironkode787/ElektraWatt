@@ -386,61 +386,77 @@ fn sample(kind: Kind) -> Value {
 }
 
 /// Asserts that `line` is valid, applies `mutate`, and asserts that the result is not.
-fn assert_mutation_rejected(kind: Kind, what: &str, mutate: impl FnOnce(&mut Value)) {
-    let validator = Validator::new();
+fn assert_mutation_rejected(validator: &Validator, kind: Kind, what: &str, mutate: impl FnOnce(&mut Value)) {
     let schema = kind_schema(kind).expect("schema");
     let mut line = sample(kind);
-    assert_valid(&validator, &schema, &line);
+    assert_valid(validator, &schema, &line);
     mutate(&mut line);
     let errors = validator.errors(&schema, &line);
     assert!(!errors.is_empty(), "{what} must fail schema validation: {line}");
 }
 
-#[test]
-fn a_float_where_an_integer_is_required_fails() {
-    assert_mutation_rejected(Kind::StructureNode, "a float order", |l| l["order"] = json!(1.5));
-    assert_mutation_rejected(Kind::StructureNode, "an integral float order", |l| {
-        l["order"] = serde_json::from_str("1.0").unwrap();
-    });
-    assert_mutation_rejected(Kind::Representation, "a float coordinate", |l| {
-        l["pos"][0] = json!(1.5)
-    });
-}
+/// One mutation of a valid example line.
+type Mutation = Box<dyn Fn(&mut Value)>;
 
+/// The negative controls: a float where an integer is required, a missing required member, a malformed UUID
+/// and an identifier with leading or trailing white space each fail the schema of their kind.
 #[test]
-fn a_missing_required_member_fails() {
-    assert_mutation_rejected(Kind::StructureNode, "a missing code", |l| {
-        l.as_object_mut().unwrap().remove("code");
-    });
-    assert_mutation_rejected(Kind::StructureNode, "a missing $k", |l| {
-        l.as_object_mut().unwrap().remove("$k");
-    });
-}
-
-#[test]
-fn a_malformed_uuid_fails() {
-    assert_mutation_rejected(Kind::StructureNode, "an upper-case UUID", |l| {
-        l["id"] = json!(l["id"].as_str().unwrap().to_uppercase());
-    });
-    assert_mutation_rejected(Kind::StructureNode, "an unhyphenated UUID", |l| {
-        l["id"] = json!(l["id"].as_str().unwrap().replace('-', ""));
-    });
-    assert_mutation_rejected(Kind::Representation, "a UUID with a trailing character", |l| {
-        l["page"] = json!(format!("{}0", l["page"].as_str().unwrap()));
-    });
-}
-
-#[test]
-fn a_dec3_of_minus_zero_or_another_non_canonical_form_fails() {
-    for bad in [
-        "-0", "-0.0", "0.750", "+1", "01", "1e3", ".5", "5.", " 1", "1.2345",
-    ] {
-        assert_mutation_rejected(Kind::Device, bad, |l| l["parts"][0]["qty"] = json!(bad));
-    }
-}
-
-#[test]
-fn an_ident_with_leading_white_space_fails() {
+fn negative_cases() {
+    let validator = Validator::new();
+    let mut cases: Vec<(&str, Kind, String, Mutation)> = vec![
+        (
+            "a_float_where_an_integer_is_required_fails",
+            Kind::StructureNode,
+            "a float order".into(),
+            Box::new(|l| l["order"] = json!(1.5)),
+        ),
+        (
+            "a_float_where_an_integer_is_required_fails",
+            Kind::StructureNode,
+            "an integral float order".into(),
+            Box::new(|l| l["order"] = serde_json::from_str("1.0").unwrap()),
+        ),
+        (
+            "a_float_where_an_integer_is_required_fails",
+            Kind::Representation,
+            "a float coordinate".into(),
+            Box::new(|l| l["pos"][0] = json!(1.5)),
+        ),
+        (
+            "a_missing_required_member_fails",
+            Kind::StructureNode,
+            "a missing code".into(),
+            Box::new(|l| {
+                l.as_object_mut().unwrap().remove("code");
+            }),
+        ),
+        (
+            "a_missing_required_member_fails",
+            Kind::StructureNode,
+            "a missing $k".into(),
+            Box::new(|l| {
+                l.as_object_mut().unwrap().remove("$k");
+            }),
+        ),
+        (
+            "a_malformed_uuid_fails",
+            Kind::StructureNode,
+            "an upper-case UUID".into(),
+            Box::new(|l| l["id"] = json!(l["id"].as_str().unwrap().to_uppercase())),
+        ),
+        (
+            "a_malformed_uuid_fails",
+            Kind::StructureNode,
+            "an unhyphenated UUID".into(),
+            Box::new(|l| l["id"] = json!(l["id"].as_str().unwrap().replace('-', ""))),
+        ),
+        (
+            "a_malformed_uuid_fails",
+            Kind::Representation,
+            "a UUID with a trailing character".into(),
+            Box::new(|l| l["page"] = json!(format!("{}0", l["page"].as_str().unwrap()))),
+        ),
+    ];
     for bad in [
         " J-E-2416",
         "J-E-2416 ",
@@ -451,7 +467,27 @@ fn an_ident_with_leading_white_space_fails() {
         "J\u{0085}K",
         "",
     ] {
-        assert_mutation_rejected(Kind::StructureNode, bad, |l| l["code"] = json!(bad));
+        cases.push((
+            "an_ident_with_leading_white_space_fails",
+            Kind::StructureNode,
+            format!("{bad:?}"),
+            Box::new(move |l| l["code"] = json!(bad)),
+        ));
+    }
+    for (name, kind, what, mutate) in &cases {
+        assert_mutation_rejected(&validator, *kind, &format!("case {name}: {what}"), mutate);
+    }
+}
+
+#[test]
+fn a_dec3_of_minus_zero_or_another_non_canonical_form_fails() {
+    let validator = Validator::new();
+    for bad in [
+        "-0", "-0.0", "0.750", "+1", "01", "1e3", ".5", "5.", " 1", "1.2345",
+    ] {
+        assert_mutation_rejected(&validator, Kind::Device, bad, |l| {
+            l["parts"][0]["qty"] = json!(bad)
+        });
     }
 }
 
