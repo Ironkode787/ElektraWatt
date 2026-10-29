@@ -13,7 +13,7 @@
 [[allow]]
 crate = "elektrawatt"
 item = "fn bin_exe"
-count = 8
+count = 9
 
 [[allow]]
 crate = "elektrawatt"
