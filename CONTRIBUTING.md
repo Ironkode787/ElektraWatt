@@ -29,6 +29,18 @@ the full per-PR CI set and how to reproduce each job locally.
 The golden-project commands (`ew export pdf golden/J-E-2416.ew --out out/J-E-2416.pdf`, and the acceptance runner
 `ew-testkit accept`) follow with M1.
 
+### Tests
+
+A test must not break because an unrelated feature added a command, word, action, rule, part, row or file.
+
+- Do not pin the total of a set that grows: the number of registered commands, vocabulary words, actions, rules,
+  starter parts, menu entries or kinds.
+- Derive such a number from its source (`CommandRegistry::builtin()`, the enum's `ALL`, the rule catalogue, the
+  committed golden table or expected file), or assert a relation instead (set equality, subset, "one example per
+  command", "not empty").
+- Counts of the test's own fixture, and numbers a design document gives as the oracle (such as the Golden A
+  finding rows of doc 20 §18.1), are fine to write as literals.
+
 ## Branches, commits and pull requests
 
 Work on a branch and open a pull request against `main`. Pull requests are squash-merged. The PR title becomes the
