@@ -852,6 +852,50 @@ pub mod tests {
         }
     }
 
+    /// BV10: `report connections`, `pages` and `pdf` serve a check run (the copies of the drafter's exports, and the
+    /// path of the drafter's own PDF) and are refused to any other run.
+    #[test]
+    fn bv10_the_checkers_reports_serve_a_check_run_only() {
+        let f = fixture(Kind::Free);
+        for which in ["connections", "pages", "pdf"] {
+            assert_eq!(
+                report(&f.run, which).unwrap(),
+                "harness: report connections, pages and pdf are the checker's\n"
+            );
+        }
+        assert_eq!(
+            report(&f.run, "inputs").unwrap(),
+            "harness: report check, bom, score, connections, pages or pdf, not `inputs`\n"
+        );
+
+        let c = fixture(Kind::Check);
+        // The drafter's run beside the check run, with its PDF.
+        let drafter = Run {
+            dir: c.tmp.0.join("d1"),
+        };
+        std::fs::create_dir_all(drafter.path("out")).unwrap();
+        drafter.save(&new_run_json("d1", Kind::Free)).unwrap();
+        c.run.update(|j| j.of = Some("d1".to_owned())).unwrap();
+        assert_eq!(
+            report(&c.run, "pdf").unwrap(),
+            "harness: the drafter's out/project-t1.pdf does not exist\n"
+        );
+        std::fs::write(drafter.path("out/project-t1.pdf"), b"%PDF-1.7").unwrap();
+        assert_eq!(
+            report(&c.run, "pdf").unwrap(),
+            format!("{}\n", drafter.path("out/project-t1.pdf").display())
+        );
+        assert_eq!(
+            report(&c.run, "connections").unwrap(),
+            "harness: reports/connections.txt does not exist yet\n"
+        );
+        std::fs::create_dir_all(c.run.path("reports")).unwrap();
+        std::fs::write(c.run.path("reports/connections.txt"), "== wires ==\nseq\n").unwrap();
+        std::fs::write(c.run.path("reports/pages.txt"), "== page.describe 101 ==\n").unwrap();
+        assert_eq!(report(&c.run, "connections").unwrap(), "== wires ==\nseq\n");
+        assert_eq!(report(&c.run, "pages").unwrap(), "== page.describe 101 ==\n");
+    }
+
     /// FT-584: the agent's steps are numbered from 1 over its `do` calls; a look's step before them does not count.
     #[test]
     fn do_steps_are_numbered_from_one_after_a_look() {
