@@ -80,8 +80,8 @@ unique. Two rows with the same module and number are a duplicate channel: the se
 Library items:
 
 - Starter symbols, function definitions and forms are referenced **by key** (`ew.iec.mcb-1pn@qet10`, `ew.fn.ip`,
-  `ew.frame.qet-a4-landscape-grid`) and embedded as the built-in copies (`BUILTIN_LIBRARY`, doc 05 §13.2:
-  `item_id = v5(BUILTIN_LIBRARY, key)`, copy `id = v5(NS_LIBCOPY, library ‖ item)`). Golden A sits on the QET 10 px
+  `ew.frame.qet-a4-landscape-grid`) and embedded as the built-in copies (`ew_interop_api::SYSTEM_LIBRARY`, doc 05 §13.2:
+  `item_id = v5(SYSTEM_LIBRARY, key)`, copy `id = v5(NS_LIBCOPY, library ‖ item)`). Golden A sits on the QET 10 px
   grid, so it places the `@qet10` edition (doc 20 §2.1 rule 4, doc 07 §9.1).
 - Parts are project-local test-catalogue items: `library_id` = the project ID, `item_id = v5(ns, "parts|{key}")`.
 

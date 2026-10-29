@@ -7,10 +7,10 @@
 use std::collections::BTreeMap;
 
 use ew_ids::{Id, Uuid, v5};
-use ew_import_qet::{BUILTIN_LIBRARY, ElementSource, QetElementImporter, read_element};
+use ew_import_qet::{ElementSource, QetElementImporter, read_element};
 use ew_interop_api::{
     Code, Detection, ImportBatch, ImportContext, ImportError, ImportInput, Importer, InputNameError, Limits,
-    LineageInfo, Severity,
+    LineageInfo, SYSTEM_LIBRARY, Severity,
 };
 use ew_schema::{
     AnchorPolicy, Colour, ContactKind, Dash, Dir4, FnDef, InternalKind, LibCopy, LibDocument,
@@ -418,12 +418,12 @@ fn interruption_points_reference_the_builtin() {
     let batch = QetElementImporter.import(&input, &mut ctx()).unwrap();
     let (s, f) = parts(&batch);
     assert!(f.is_none());
-    assert_eq!(s.item.fndef.library.as_uuid(), BUILTIN_LIBRARY);
+    assert_eq!(s.item.fndef.library.as_uuid(), SYSTEM_LIBRARY);
     assert_eq!(s.item.fndef.extra["key"], "ew.fn.ip");
     assert_eq!(s.item.fndef.version_req, "^0.1");
     assert_eq!(
         s.item.fndef.item.as_uuid(),
-        Uuid::new_v5(&BUILTIN_LIBRARY, b"ew.fn.ip")
+        Uuid::new_v5(&SYSTEM_LIBRARY, b"ew.fn.ip")
     );
     assert_eq!(batch.report.stats.per_kind.get("fndef"), None);
     assert_eq!(batch.report.stats.per_kind["symbol"], 1);

@@ -8,7 +8,8 @@
 use std::path::{Path, PathBuf};
 
 use ew_ids::Uuid;
-use ew_import_qet::{BUILTIN_FNDEF_KEYS, BUILTIN_LIBRARY, BUILTIN_VERSION_REQ, IP_FNDEF_KEY};
+use ew_import_qet::{BUILTIN_FNDEF_KEYS, BUILTIN_VERSION_REQ, IP_FNDEF_KEY};
+use ew_interop_api::SYSTEM_LIBRARY;
 use ew_schema::LibDocument;
 
 fn content_dir(sub: &str) -> PathBuf {
@@ -81,10 +82,10 @@ fn every_builtin_fndef_key_exists_in_the_content_with_the_expected_reference() {
         let (name, copy) = found[0];
         assert_eq!(
             copy.item_id.as_uuid(),
-            Uuid::new_v5(&BUILTIN_LIBRARY, key.as_bytes()),
-            "{name}: item_id is not v5(BUILTIN_LIBRARY, {key})"
+            Uuid::new_v5(&SYSTEM_LIBRARY, key.as_bytes()),
+            "{name}: item_id is not v5(SYSTEM_LIBRARY, {key})"
         );
-        assert_eq!(copy.library_id.as_uuid(), BUILTIN_LIBRARY, "{name}: library_id");
+        assert_eq!(copy.library_id.as_uuid(), SYSTEM_LIBRARY, "{name}: library_id");
         assert!(
             satisfies(&copy.version, BUILTIN_VERSION_REQ),
             "{name}: version {} does not satisfy {BUILTIN_VERSION_REQ}",
