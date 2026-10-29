@@ -16,8 +16,10 @@
 //! **The command** is `box.black {page, symbol: the black-box symbol, pos: the top-left corner, box: {outline: the
 //! rectangle relative to pos (v0 top-left, then clockwise), cps}, target}`. **Default CPs** for a part target: the
 //! template entry's CPs in template order, the first `⌈n/2⌉` on the top edge and the rest on the bottom edge, left to
-//! right one grid step apart starting one grid step from the left corner, leaving up and down; when an edge is too
-//! short the rectangle grows to the right until they fit with one grid step to spare. Without a part, no CPs.
+//! right, leaving up and down; when an edge is too short the rectangle grows to the right until they fit one grid step
+//! apart with one grid step to spare at each corner. On a wider box the CPs of an edge spread over its drawn length
+//! (FT-550): one common pitch, the largest whole number of grid steps that fits `m + 1` times into the edge, the group
+//! centred (half a step to the left when it cannot be centred exactly). Without a part, no CPs.
 //!
 //! **Grips** ([`grip_points`], [`reshape_by_grip`]): for an outline of `n` vertices in stored order, grips `0 … n−1`
 //! are the vertices and grips `n … 2n−1` the midpoints of the edges `v0v1, …, v(n−1)v0`. On a rectangle a vertex grip
@@ -92,17 +94,29 @@ pub fn layout(grid: PageGridMap, a: (i64, i64), b: (i64, i64), cps: &[(u16, Stri
     let pos = (grid.coord(kx0), grid.coord(ky0));
     let (w, h) = (grid.coord(kx1) - pos.0, grid.coord(ky1) - pos.1);
     let outline = vec![(0, 0), (w, 0), (w, h), (0, h)];
+    let width = kx1 - kx0;
     let mut out = Vec::with_capacity(n);
     for (i, (idx, _)) in cps.iter().enumerate() {
-        let (k, y, dir) = if i < top {
-            (i, 0, Dir::Up)
+        let (k, m, y, dir) = if i < top {
+            (i, top, 0, Dir::Up)
         } else {
-            (i - top, h, Dir::Down)
+            (i - top, bottom, h, Dir::Down)
         };
         let k = i64::try_from(k).unwrap_or(0);
-        out.push((*idx, (grid.coord(kx0 + 1 + k) - pos.0, y), dir));
+        let m = i64::try_from(m).unwrap_or(1);
+        out.push((*idx, (grid.coord(kx0 + spread(width, m, k)) - pos.0, y), dir));
     }
     Some((pos, outline, out))
+}
+
+/// The grid offset of CP `k` of `m` on an edge `width` grid steps long (FT-550): the CPs one common pitch apart, the
+/// largest whole number of grid steps that fits `m + 1` times into the edge (at least one), and the group centred on
+/// the edge (half a step to the left when it cannot be centred exactly). Every CP lies at least one grid step from both
+/// corners whenever `width ≥ m + 1`, which the layout guarantees.
+fn spread(width: i64, m: i64, k: i64) -> i64 {
+    let pitch = (width / (m + 1)).max(1);
+    let start = (width - (m - 1) * pitch) / 2;
+    start + k * pitch
 }
 
 /// The JSON of a box CP (`{idx, pos, dir}`).
@@ -594,6 +608,40 @@ mod tests {
             layout(g, (0, 0), (0, 5_000_000), &[]).is_none(),
             "no width and no CP"
         );
+    }
+
+    /// FT-550: on a box drawn wider than the CPs need, the CPs spread over the edge one common whole-grid pitch apart,
+    /// the group centred, instead of packed from the left corner.
+    #[test]
+    fn the_default_cps_spread_over_the_drawn_edge_on_the_grid() {
+        let g = PageGridMap::new((1_000_000, 1));
+        let cps: Vec<(u16, String)> = (0..5).map(|i| (i, i.to_string())).collect();
+        // Twelve steps wide: three on top at pitch 3 (12 / 4), from 3; two below at pitch 4 (12 / 3), from 4.
+        let (_, outline, laid) = layout(g, (0, 0), (12_000_000, 6_000_000), &cps).unwrap();
+        assert_eq!(outline[1], (12_000_000, 0), "the drawn width is kept");
+        let xs: Vec<(i64, Dir)> = laid.iter().map(|(_, p, d)| (p.0 / 1_000_000, *d)).collect();
+        assert_eq!(
+            xs,
+            [
+                (3, Dir::Up),
+                (6, Dir::Up),
+                (9, Dir::Up),
+                (4, Dir::Down),
+                (8, Dir::Down)
+            ]
+        );
+        // Every CP is a grid point strictly inside its edge, for any width the layout allows.
+        for width in 1..40 {
+            for m in 1..8 {
+                let w = width.max(m + 1);
+                let offsets: Vec<i64> = (0..m).map(|k| spread(w, m, k)).collect();
+                assert!(
+                    offsets[0] >= 1 && offsets[offsets.len() - 1] <= w - 1,
+                    "{w} {m} {offsets:?}"
+                );
+                assert!(offsets.windows(2).all(|p| p[1] > p[0]), "{w} {m} {offsets:?}");
+            }
+        }
     }
 
     #[test]
