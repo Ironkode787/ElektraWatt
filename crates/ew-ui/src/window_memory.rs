@@ -9,25 +9,31 @@
 //! reports neither), so a test's settings file keeps its bytes. A minimised or full-screen window records nothing; a
 //! maximised one keeps its last normal size and position with `maximized = true`.
 //!
-//! **Units.** The size is in points at the zoom 1, the position in physical pixels of the desktop (R2-1).
+//! **Units.** The size is in points at the zoom 1 on every platform; the position is in the desktop's uniform space,
+//! which depends on the platform ([`CoordSpace`], R2-1 and R3-2).
 //!
 //! - *The size.* egui reports the window's rectangles in its points at the current zoom (the physical pixels divided
 //!   by the native scale times egui's zoom factor, which is the UI scale); the recorded size is the reported one times
 //!   the zoom factor of the frame the report was made with, the logical size. eframe opens the window at the zoom 1,
 //!   so the builder takes it back, and the system keeps a window's logical size when it moves to a monitor of another
 //!   scale: the size survives every UI scale and every monitor scale.
-//! - *The position* is the reported outer corner times the zoom and the native scale of that report: physical pixels,
-//!   one space for every monitor. A logical position does not survive a desktop whose monitors have different scales:
-//!   it is divided by the scale of the monitor the window was on and multiplied back by the scale of the monitor the
-//!   window is created on, so the window drifted at every start (2200 → 3300 → 4950 px with a 150 % primary and the
-//!   window on a 100 % secondary). The builder gets the saved position only as a first guess; the first frame moves
-//!   the window to the saved physical position ([`first_frame_position`]) and runs the clamp there.
+//! - *The position on Windows and X11* ([`CoordSpace::Physical`]) is in physical pixels: the reported outer corner
+//!   times the zoom and the native scale of that report. There the physical pixels are one space for every monitor; a
+//!   logical position is not: it is divided by the scale of the monitor the window was on and multiplied back by the
+//!   scale of the monitor the window is created on, so the window drifted at every start (2200 → 3300 → 4950 px with a
+//!   150 % primary and the window on a 100 % secondary).
+//! - *The position on macOS* ([`CoordSpace::Logical`]) is in global logical points (the reported outer corner times
+//!   the zoom): there winit's "physical" values are each display's logical values times that display's own scale, not
+//!   one space, while the global logical points are. Each monitor is mapped with its own scale.
+//! - *Wayland* reports no window position: nothing is placed there.
+//! - The builder gets the saved position only as a first guess; the first frame moves the window to the saved
+//!   position ([`first_frame`]) and runs the clamp there.
 //! - A frame's report is made before the frame applies a new zoom factor (egui applies
 //!   [`egui::Context::set_zoom_factor`] at the start of the next pass), so a frame whose zoom differs from the previous
 //!   frame's records nothing.
 //!
-//! `[window] x/y` were points before R2-1 (cycle 32, never released); such a value is read as pixels, and the clamp
-//! of the first frame keeps the window on a monitor whatever it is.
+//! `[window] x/y` were points everywhere before R2-1 (cycle 32, never released); such a value is read in the space of
+//! the platform, and the clamp of the first frame keeps the window on a monitor whatever it is.
 //!
 //! **The clamp at start** (FT-526). eframe 0.37 without its `persistence` feature knows no monitor before the window
 //! opens, so the builder gets the saved geometry with the size bounds of [`ew_viewmodel::window::restore`] only (and
@@ -46,6 +52,39 @@
 use egui::{ViewportBuilder, ViewportInfo};
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::window::{self, MonitorArea, WindowGeometry};
+
+/// The desktop's uniform space for the window's position (R3-2): the one platform switch of the window memory, chosen
+/// at the call site by [`CoordSpace::of_this_platform`] and passed into the pure functions, so both spaces are tested
+/// on every platform.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum CoordSpace {
+    /// Physical pixels of the virtual desktop (Windows, X11): monitors of different scales keep their places in it.
+    Physical,
+    /// Global logical points (macOS): each display's winit position and size divided by that display's own scale.
+    Logical,
+}
+
+impl CoordSpace {
+    /// The space of the platform this build runs on: logical points on macOS, physical pixels elsewhere.
+    pub fn of_this_platform() -> CoordSpace {
+        if cfg!(target_os = "macos") {
+            CoordSpace::Logical
+        } else {
+            CoordSpace::Physical
+        }
+    }
+}
+
+/// A monitor as winit reports it: its area in winit's physical pixels, its own scale, and whether it is the primary.
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub struct Display {
+    /// The position and size, in winit's physical pixels.
+    pub area_px: MonitorArea,
+    /// The display's own scale factor.
+    pub scale: f32,
+    /// Whether it is the primary monitor.
+    pub primary: bool,
+}
 
 /// The window builder `builder` with the saved geometry `saved` restored: its size and its position as a first guess
 /// (the saved pixels taken as points); never maximised, even when the saved state is: [`first_frame`] places the
@@ -72,20 +111,22 @@ pub enum FirstFrameStep {
 /// (`outer_px`; Wayland reports none) and the window must move, then the maximise when the saved state is maximised.
 /// The arguments are those of [`first_frame_position`], with the whole saved geometry.
 pub fn first_frame(
+    space: CoordSpace,
     saved: Option<WindowGeometry>,
     outer_px: Option<(f32, f32)>,
     inner_px: (f32, f32),
-    monitors_px: &[(MonitorArea, bool)],
+    displays: &[Display],
     scale: f32,
     zoom: f32,
 ) -> Vec<FirstFrameStep> {
     let mut steps = Vec::new();
     if let Some(to) = outer_px.and_then(|outer| {
         first_frame_position(
+            space,
             saved.map(|g| (g.x, g.y)),
             outer,
             inner_px,
-            monitors_px,
+            displays,
             scale,
             zoom,
         )
@@ -116,34 +157,47 @@ pub fn placement(at: (f32, f32), size: (f32, f32), monitors: &[MonitorArea]) -> 
     ((g.x, g.y) != at).then_some((g.x, g.y))
 }
 
-/// The first frame's move of the window (FT-526, R2-1, R2-2): the `OuterPosition` to send, in points at the zoom
-/// `zoom`, or `None` when the window stays. The saved outer position `saved_px` (when there is one), the window's outer
-/// top-left corner `outer_px` and inner size `inner_px` as it opened, and the system's monitors `monitors_px` (each
-/// with whether it is the primary) are physical pixels; `scale` is the window's native scale. The window goes to the
-/// saved position, clamped onto a monitor: the clamp runs on one uniform space, the physical pixels over `scale`
-/// (monitors of different scales keep their places in it), with the primary monitor first and the others in the
-/// system's order. egui-winit turns the result back into physical pixels by multiplying it by `zoom × scale`. Without
-/// a monitor nothing moves.
+/// The first frame's move of the window (FT-526, R2-1, R2-2, R3-2): the `OuterPosition` to send, in points at the
+/// zoom `zoom`, or `None` when the window stays. `saved` is the saved outer position in the desktop space `space` (when
+/// there is one); the window's outer top-left corner `outer_px` and inner size `inner_px` as it opened and the
+/// `displays` are winit's physical values; `scale` is the window's native scale. The window goes to the saved
+/// position, clamped onto a monitor, with the primary monitor first and the others in the system's order. The clamp
+/// runs in points of one uniform space:
+///
+/// - [`CoordSpace::Physical`]: the physical pixels over the window's `scale` (monitors and window alike);
+/// - [`CoordSpace::Logical`]: global logical points, each display over its own scale, the window over its scale.
+///
+/// In both, egui-winit sends the result times `zoom × scale` to winit as physical pixels, which winit turns into the
+/// saved position (Windows and X11 take it as is; macOS divides it by the window's scale). Without a monitor nothing
+/// moves.
 pub fn first_frame_position(
-    saved_px: Option<(f32, f32)>,
+    space: CoordSpace,
+    saved: Option<(f32, f32)>,
     outer_px: (f32, f32),
     inner_px: (f32, f32),
-    monitors_px: &[(MonitorArea, bool)],
+    displays: &[Display],
     scale: f32,
     zoom: f32,
 ) -> Option<egui::Pos2> {
-    if !(scale.is_finite() && scale > 0.0 && zoom.is_finite() && zoom > 0.0) {
+    let positive = |v: f32| v.is_finite() && v > 0.0;
+    if !(positive(scale) && positive(zoom)) {
         return None;
     }
-    let monitors: Vec<MonitorArea> = monitors_px
+    let monitors: Vec<MonitorArea> = displays
         .iter()
-        .filter(|(_, primary)| *primary)
-        .chain(monitors_px.iter().filter(|(_, primary)| !*primary))
-        .map(|(m, _)| MonitorArea {
-            x: m.x / scale,
-            y: m.y / scale,
-            width: m.width / scale,
-            height: m.height / scale,
+        .filter(|d| d.primary)
+        .chain(displays.iter().filter(|d| !d.primary))
+        .filter_map(|d| {
+            let s = match space {
+                CoordSpace::Physical => scale,
+                CoordSpace::Logical => d.scale,
+            };
+            positive(s).then(|| MonitorArea {
+                x: d.area_px.x / s,
+                y: d.area_px.y / s,
+                width: d.area_px.width / s,
+                height: d.area_px.height / s,
+            })
         })
         .filter(|m| m.width > 0.0 && m.height > 0.0)
         .collect();
@@ -151,19 +205,27 @@ pub fn first_frame_position(
         return None;
     }
     let now = (outer_px.0 / scale, outer_px.1 / scale);
-    let want = saved_px
+    let want = saved
         .filter(|(x, y)| x.is_finite() && y.is_finite())
-        .map_or(now, |(x, y)| (x / scale, y / scale));
+        .map_or(now, |(x, y)| match space {
+            CoordSpace::Physical => (x / scale, y / scale),
+            CoordSpace::Logical => (x, y),
+        });
     let size = (inner_px.0 / scale, inner_px.1 / scale);
     let to = placement(want, size, &monitors).unwrap_or(want);
     (to != now).then(|| egui::pos2(to.0 / zoom, to.1 / zoom))
 }
 
 /// The geometry a running window reports in `info`, its rectangles in points at the zoom factor `zoom` and its native
-/// scale, given the last one recorded: the size in points at the zoom 1, the position in physical pixels (see the
-/// module documentation); `None` when there is nothing to record (no real window, no native scale, minimised, full
-/// screen).
-pub fn observed(info: &ViewportInfo, zoom: f32, last: Option<WindowGeometry>) -> Option<WindowGeometry> {
+/// scale, given the last one recorded: the size in points at the zoom 1, the position in the desktop space `space`
+/// (see the module documentation); `None` when there is nothing to record (no real window, no native scale,
+/// minimised, full screen).
+pub fn observed(
+    info: &ViewportInfo,
+    zoom: f32,
+    space: CoordSpace,
+    last: Option<WindowGeometry>,
+) -> Option<WindowGeometry> {
     if info.monitor_size.is_none() || info.minimized == Some(true) || info.fullscreen == Some(true) {
         return None;
     }
@@ -171,7 +233,10 @@ pub fn observed(info: &ViewportInfo, zoom: f32, last: Option<WindowGeometry>) ->
         .native_pixels_per_point
         .filter(|s| s.is_finite() && *s > 0.0)?;
     let inner = info.inner_rect? * zoom;
-    let outer = info.outer_rect? * (zoom * native);
+    let outer = match space {
+        CoordSpace::Physical => info.outer_rect? * (zoom * native),
+        CoordSpace::Logical => info.outer_rect? * zoom,
+    };
     if info.maximized == Some(true) {
         // The size and position before it was maximised stay.
         let normal = last.unwrap_or(WindowGeometry {
@@ -206,7 +271,8 @@ pub(crate) fn remember(ctx: &egui::Context, shell: &mut ShellModel, last_zoom: &
         return;
     }
     let last = shell.settings().window;
-    if let Some(g) = ctx.input(|i| observed(i.viewport(), zoom, last))
+    let space = CoordSpace::of_this_platform();
+    if let Some(g) = ctx.input(|i| observed(i.viewport(), zoom, space, last))
         && Some(g) != last
     {
         shell.set_window(g);
@@ -233,7 +299,7 @@ mod tests {
     /// with `maximized`; a harness without a monitor and a minimised window record nothing.
     #[test]
     fn dk6_what_the_window_records() {
-        let normal = observed(&info(false), 1.0, None).unwrap();
+        let normal = observed(&info(false), 1.0, CoordSpace::Physical, None).unwrap();
         assert_eq!(
             normal,
             WindowGeometry {
@@ -244,7 +310,7 @@ mod tests {
                 maximized: false
             }
         );
-        let max = observed(&info(true), 1.0, Some(normal)).unwrap();
+        let max = observed(&info(true), 1.0, CoordSpace::Physical, Some(normal)).unwrap();
         assert_eq!(
             max,
             WindowGeometry {
@@ -252,17 +318,23 @@ mod tests {
                 ..normal
             }
         );
-        assert_eq!(observed(&ViewportInfo::default(), 1.0, Some(normal)), None);
+        assert_eq!(
+            observed(&ViewportInfo::default(), 1.0, CoordSpace::Physical, Some(normal)),
+            None
+        );
         let minimised = ViewportInfo {
             minimized: Some(true),
             ..info(false)
         };
-        assert_eq!(observed(&minimised, 1.0, Some(normal)), None);
+        assert_eq!(
+            observed(&minimised, 1.0, CoordSpace::Physical, Some(normal)),
+            None
+        );
         let unscaled = ViewportInfo {
             native_pixels_per_point: None,
             ..info(false)
         };
-        assert_eq!(observed(&unscaled, 1.0, Some(normal)), None);
+        assert_eq!(observed(&unscaled, 1.0, CoordSpace::Physical, Some(normal)), None);
     }
 
     /// R1-1, R2-1: at the UI scale 2 and the native scale 1.5 egui reports a window of 1280 × 800 logical points
@@ -279,7 +351,7 @@ mod tests {
             ..ViewportInfo::default()
         };
         assert_eq!(
-            observed(&at_zoom_2, 2.0, None),
+            observed(&at_zoom_2, 2.0, CoordSpace::Physical, None),
             Some(WindowGeometry {
                 x: 150.0,
                 y: 75.0,
@@ -314,6 +386,7 @@ mod tests {
             // winit creates the window on the primary and converts the builder's points with its scale 1.5.
             let created = 1.5;
             let to = first_frame_position(
+                CoordSpace::Physical,
                 Some((saved.x, saved.y)),
                 (guess.x * created, guess.y * created),
                 (size.x * created, size.y * created),
@@ -335,7 +408,7 @@ mod tests {
                 native_pixels_per_point: Some(1.0),
                 ..ViewportInfo::default()
             };
-            let next = observed(&reported, zoom, Some(saved)).unwrap();
+            let next = observed(&reported, zoom, CoordSpace::Physical, Some(saved)).unwrap();
             assert!(
                 (next.x - 2200.0).abs() < 1e-3 && (next.y - 100.0).abs() < 1e-3,
                 "{next:?}"
@@ -355,6 +428,7 @@ mod tests {
     fn dk6_the_first_frame_clamps_the_saved_position() {
         let monitors = desk(&[(0.0, 0.0, 1920.0, 1080.0, true)]);
         let to = first_frame_position(
+            CoordSpace::Physical,
             Some((-2400.0, 40.0)),
             (100.0, 100.0),
             (1280.0, 800.0),
@@ -364,6 +438,7 @@ mod tests {
         );
         assert_eq!(to, Some(pos2(0.0, 40.0)));
         let huge = first_frame_position(
+            CoordSpace::Physical,
             Some((1e30, 1e30)),
             (100.0, 100.0),
             (1280.0, 800.0),
@@ -373,6 +448,7 @@ mod tests {
         );
         assert_eq!(huge, Some(pos2(640.0, 280.0)));
         let stays = first_frame_position(
+            CoordSpace::Physical,
             Some((100.0, 50.0)),
             (100.0, 50.0),
             (1280.0, 800.0),
@@ -381,9 +457,18 @@ mod tests {
             1.0,
         );
         assert_eq!(stays, None);
-        let none = first_frame_position(None, (100.0, 50.0), (1280.0, 800.0), &monitors, 1.0, 1.0);
+        let none = first_frame_position(
+            CoordSpace::Physical,
+            None,
+            (100.0, 50.0),
+            (1280.0, 800.0),
+            &monitors,
+            1.0,
+            1.0,
+        );
         assert_eq!(none, None);
         let nan = first_frame_position(
+            CoordSpace::Physical,
             Some((f32::NAN, 0.0)),
             (100.0, 50.0),
             (1280.0, 800.0),
@@ -428,12 +513,136 @@ mod tests {
         assert_eq!(placement((-2400.0, 40.0), (1280.0, 800.0), &[]), None);
     }
 
-    /// Monitor areas in physical pixels, each with whether it is the primary.
-    fn desk(areas: &[(f32, f32, f32, f32, bool)]) -> Vec<(MonitorArea, bool)> {
+    /// Displays in winit's physical pixels at the scale 1, each with whether it is the primary (the physical space does
+    /// not read a display's own scale).
+    fn desk(areas: &[(f32, f32, f32, f32, bool)]) -> Vec<Display> {
         areas
             .iter()
-            .map(|&(x, y, width, height, primary)| (MonitorArea { x, y, width, height }, primary))
+            .map(|&(x, y, width, height, primary)| Display {
+                area_px: MonitorArea { x, y, width, height },
+                scale: 1.0,
+                primary,
+            })
             .collect()
+    }
+
+    /// R3-2: macOS, a 2× Retina primary of 1440 × 900 points (winit: 2880 × 1800 at (0, 0)) and a 1× external display
+    /// to its right at logical x = 1440 (2560 × 1440). A window on the Retina display at logical (1000, 100), reported
+    /// at the UI scale 1.25, records logical (1000, 100) (the physical space would record 2000, which reopens on the
+    /// external display). Restored there it stays; created on the external display by mistake it moves back onto the
+    /// Retina display; a window saved on the external display (logical 1500) is not taken as on the Retina display,
+    /// because the two do not overlap in logical points.
+    #[test]
+    fn dk6_macos_keeps_a_window_on_its_retina_display() {
+        let displays = [
+            Display {
+                area_px: MonitorArea {
+                    x: 0.0,
+                    y: 0.0,
+                    width: 2880.0,
+                    height: 1800.0,
+                },
+                scale: 2.0,
+                primary: true,
+            },
+            Display {
+                area_px: MonitorArea {
+                    x: 1440.0,
+                    y: 0.0,
+                    width: 2560.0,
+                    height: 1440.0,
+                },
+                scale: 1.0,
+                primary: false,
+            },
+        ];
+        let zoom = 1.25;
+        let reported = ViewportInfo {
+            monitor_size: Some(vec2(1440.0, 900.0) / zoom),
+            outer_rect: Some(Rect::from_min_size(pos2(1000.0, 100.0), vec2(1280.0, 828.0)) / zoom),
+            inner_rect: Some(Rect::from_min_size(pos2(1000.0, 128.0), vec2(1280.0, 800.0)) / zoom),
+            maximized: Some(false),
+            native_pixels_per_point: Some(2.0),
+            ..ViewportInfo::default()
+        };
+        let saved = observed(&reported, zoom, CoordSpace::Logical, None).unwrap();
+        assert_eq!((saved.x, saved.y, saved.width), (1000.0, 100.0, 1280.0));
+        let physical = observed(&reported, zoom, CoordSpace::Physical, None).unwrap();
+        assert_eq!(
+            physical.x, 2000.0,
+            "the physical space's value, on the external display"
+        );
+        let space = CoordSpace::Logical;
+        // Restored from the builder's guess onto the Retina display (winit: logical × 2).
+        let b = restore(ViewportBuilder::default(), Some(saved));
+        let guess = b.position.unwrap();
+        let on_retina = (guess.x * 2.0, guess.y * 2.0);
+        let steps = first_frame(
+            space,
+            Some(saved),
+            Some(on_retina),
+            (2560.0, 1600.0),
+            &displays,
+            2.0,
+            1.0,
+        );
+        assert!(steps.is_empty(), "it stays on the Retina display: {steps:?}");
+        // Created on the external display at logical 1600: moved back to logical 1000 (winit divides the command's
+        // physical value, `pos × zoom × scale`, by the window's scale 1).
+        let steps = first_frame(
+            space,
+            Some(saved),
+            Some((1600.0, 100.0)),
+            (1280.0, 800.0),
+            &displays,
+            1.0,
+            1.0,
+        );
+        assert_eq!(steps, [FirstFrameStep::MoveTo(pos2(1000.0, 100.0))]);
+        // Saved on the external display at logical 1500 and created there: it stays.
+        let external = WindowGeometry { x: 1500.0, ..saved };
+        let steps = first_frame(
+            space,
+            Some(external),
+            Some((1500.0, 100.0)),
+            (1280.0, 800.0),
+            &displays,
+            1.0,
+            1.0,
+        );
+        assert!(steps.is_empty(), "{steps:?}");
+        // Saved at logical 2500 on the external display while the window was created at the Retina display's scale 2
+        // (winit: 5000): each display is mapped with its own scale, so 2500 lies on the external display and nothing
+        // moves (over the window's scale the external display would end at logical 2000 and the window would be sent to
+        // the primary).
+        let far = WindowGeometry { x: 2500.0, ..saved };
+        let steps = first_frame(
+            space,
+            Some(far),
+            Some((5000.0, 200.0)),
+            (2560.0, 1600.0),
+            &displays,
+            2.0,
+            1.0,
+        );
+        assert!(steps.is_empty(), "{steps:?}");
+        // A display with a scale that is not a positive number is left out.
+        let broken = [Display {
+            scale: 0.0,
+            ..displays[1]
+        }];
+        assert!(
+            first_frame(
+                space,
+                Some(saved),
+                Some((1600.0, 100.0)),
+                (1280.0, 800.0),
+                &broken,
+                1.0,
+                1.0
+            )
+            .is_empty()
+        );
     }
 
     /// R2-2: the first frame's conversion at the scale 1.5 and the zoom 2. The primary (listed second) is at 150 %:
@@ -447,28 +656,78 @@ mod tests {
         ]);
         let (scale, zoom) = (1.5, 2.0);
         let size = (1920.0, 1200.0);
-        let to = first_frame_position(None, (-3000.0, 60.0), size, &monitors, scale, zoom).unwrap();
+        let to = first_frame_position(
+            CoordSpace::Physical,
+            None,
+            (-3000.0, 60.0),
+            size,
+            &monitors,
+            scale,
+            zoom,
+        )
+        .unwrap();
         assert_eq!((to.x * zoom * scale, to.y * zoom * scale), (0.0, 60.0));
         // On the secondary monitor: it stays.
         assert_eq!(
-            first_frame_position(None, (3000.0, 60.0), size, &monitors, scale, zoom),
+            first_frame_position(
+                CoordSpace::Physical,
+                None,
+                (3000.0, 60.0),
+                size,
+                &monitors,
+                scale,
+                zoom
+            ),
             None
         );
         // The primary comes first whatever the system's order: a window off every monitor lands on it, not on the
         // secondary that is listed first.
-        let to = first_frame_position(None, (9000.0, 60.0), size, &monitors, scale, zoom).unwrap();
+        let to = first_frame_position(
+            CoordSpace::Physical,
+            None,
+            (9000.0, 60.0),
+            size,
+            &monitors,
+            scale,
+            zoom,
+        )
+        .unwrap();
         assert!(to.x * zoom * scale < 2880.0, "{to:?}");
         // No monitor, or a scale or zoom that is not a positive number: nothing moves.
         assert_eq!(
-            first_frame_position(None, (-3000.0, 60.0), size, &[], scale, zoom),
+            first_frame_position(
+                CoordSpace::Physical,
+                None,
+                (-3000.0, 60.0),
+                size,
+                &[],
+                scale,
+                zoom
+            ),
             None
         );
         assert_eq!(
-            first_frame_position(None, (-3000.0, 60.0), size, &monitors, 0.0, zoom),
+            first_frame_position(
+                CoordSpace::Physical,
+                None,
+                (-3000.0, 60.0),
+                size,
+                &monitors,
+                0.0,
+                zoom
+            ),
             None
         );
         assert_eq!(
-            first_frame_position(None, (-3000.0, 60.0), size, &monitors, scale, f32::NAN),
+            first_frame_position(
+                CoordSpace::Physical,
+                None,
+                (-3000.0, 60.0),
+                size,
+                &monitors,
+                scale,
+                f32::NAN
+            ),
             None
         );
     }
@@ -493,7 +752,15 @@ mod tests {
         let guess = b.position.unwrap();
         let opened = (guess.x * scale, guess.y * scale);
         let inner = (1280.0 * scale, 800.0 * scale);
-        let steps = first_frame(Some(saved), Some(opened), inner, &monitors, scale, zoom);
+        let steps = first_frame(
+            CoordSpace::Physical,
+            Some(saved),
+            Some(opened),
+            inner,
+            &monitors,
+            scale,
+            zoom,
+        );
         let [FirstFrameStep::MoveTo(to), FirstFrameStep::Maximize] = steps[..] else {
             panic!("move, then maximise: {steps:?}");
         };
@@ -502,13 +769,37 @@ mod tests {
             maximized: false,
             ..saved
         };
-        let steps = first_frame(Some(normal), Some(opened), inner, &monitors, scale, zoom);
+        let steps = first_frame(
+            CoordSpace::Physical,
+            Some(normal),
+            Some(opened),
+            inner,
+            &monitors,
+            scale,
+            zoom,
+        );
         assert!(matches!(steps[..], [FirstFrameStep::MoveTo(_)]), "{steps:?}");
-        let steps = first_frame(Some(saved), Some((2700.0, 100.0)), inner, &monitors, scale, zoom);
+        let steps = first_frame(
+            CoordSpace::Physical,
+            Some(saved),
+            Some((2700.0, 100.0)),
+            inner,
+            &monitors,
+            scale,
+            zoom,
+        );
         assert_eq!(steps, [FirstFrameStep::Maximize]);
-        let steps = first_frame(Some(saved), None, inner, &monitors, scale, zoom);
+        let steps = first_frame(
+            CoordSpace::Physical,
+            Some(saved),
+            None,
+            inner,
+            &monitors,
+            scale,
+            zoom,
+        );
         assert_eq!(steps, [FirstFrameStep::Maximize]);
-        assert!(first_frame(None, Some(opened), inner, &[], scale, zoom).is_empty());
+        assert!(first_frame(CoordSpace::Physical, None, Some(opened), inner, &[], scale, zoom).is_empty());
     }
 
     /// DK6: the builder takes the saved geometry, the size raised to the minimum; without one it is unchanged.

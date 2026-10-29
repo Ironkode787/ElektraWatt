@@ -454,7 +454,9 @@ and colours), `history.rs` (DK11's state icons and undone tone) and `window_memo
   follow-up: FT-526, *closed in the cycle-32 review loop (R1-4): on the first frame the monitors come from eframe's
   winit window and the same pure clamp moves a window that is on no monitor onto the primary one.* The size is
   saved in points at the zoom 1 (the review's R1-1: egui's reported points times the UI scale) and the position in
-  physical pixels (R2-1: a logical position drifted on a desktop whose monitors have different scales); the builder
+  the platform's uniform desktop space: physical pixels on Windows and X11 (R2-1: a logical position drifted on a
+  desktop whose monitors have different scales), global logical points on macOS, each display mapped with its own
+  scale (R3-2: winit's physical values are scaled per display there); Wayland reports no position; the builder
   takes the position only as a first guess, and the first frame moves the window to the saved pixels and clamps it
   there; a window saved maximised is built un-maximised, placed, then maximised on that frame, so its normal
   rectangle is the saved, clamped one (R3-1). On exit only

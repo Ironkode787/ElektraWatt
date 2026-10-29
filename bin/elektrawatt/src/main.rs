@@ -36,7 +36,7 @@ use ew_ui::ew_viewmodel::strings;
 use ew_ui::ew_viewmodel::window::{MonitorArea, WindowGeometry};
 use ew_ui::gpu::{Flags, adapter_count, wgpu_configuration};
 use ew_ui::headless::{self, HeadlessArgs, ScriptSource};
-use ew_ui::window_memory::FirstFrameStep;
+use ew_ui::window_memory::{CoordSpace, Display, FirstFrameStep};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -338,8 +338,8 @@ impl eframe::App for ShellApp {
     }
 }
 
-/// FT-526 (R1-4, R2-1, R3-1): on the first frame the window goes to the saved outer position of `saved` (physical
-/// pixels), one whose position is on no monitor (its monitor gone) moves onto the primary monitor, and a window saved
+/// FT-526 (R1-4, R2-1, R3-1, R3-2): on the first frame the window goes to the saved outer position of `saved` (in the
+/// platform's desktop space: physical pixels, logical points on macOS), one whose position is on no monitor (its monitor gone) moves onto the primary monitor, and a window saved
 /// maximised is maximised after the move (the builder never maximises it). This reads winit's physical values; the
 /// conversion, the clamp and the order of the steps are the pure `ew_ui::window_memory::first_frame`. A minimised or
 /// full-screen window and a frame without a winit window are left alone; a window without a known position (Wayland)
@@ -353,25 +353,29 @@ fn place_on_screen(ctx: &egui::Context, frame: &eframe::Frame, saved: Option<Win
     }
     let outer = window.outer_position().ok().map(|p| (p.x as f32, p.y as f32));
     let primary = window.primary_monitor();
-    let monitors: Vec<(MonitorArea, bool)> = window
+    let displays: Vec<Display> = window
         .available_monitors()
         .map(|m| {
             let (at, size) = (m.position(), m.size());
-            let area = MonitorArea {
-                x: at.x as f32,
-                y: at.y as f32,
-                width: size.width as f32,
-                height: size.height as f32,
-            };
-            (area, primary.as_ref() == Some(&m))
+            Display {
+                area_px: MonitorArea {
+                    x: at.x as f32,
+                    y: at.y as f32,
+                    width: size.width as f32,
+                    height: size.height as f32,
+                },
+                scale: m.scale_factor() as f32,
+                primary: primary.as_ref() == Some(&m),
+            }
         })
         .collect();
     let inner = window.inner_size();
     let steps = ew_ui::window_memory::first_frame(
+        CoordSpace::of_this_platform(),
         saved,
         outer,
         (inner.width as f32, inner.height as f32),
-        &monitors,
+        &displays,
         window.scale_factor() as f32,
         ctx.zoom_factor(),
     );
