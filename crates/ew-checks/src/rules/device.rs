@@ -116,12 +116,12 @@ pub const INCOMPLETE_PART_DATA: RuleMeta = RuleMeta {
 };
 
 /// What a part copy lacks for EW-CORE-042, in a fixed order: `description`, `manufacturer`.
-fn missing_part_data(part: &Part) -> Vec<&'static str> {
+fn missing_part_data(q: &Q, part: &Part) -> Vec<&'static str> {
     let mut out = Vec::new();
     if part.description.is_empty() {
         out.push("description");
     }
-    if manufacturer_name(&part.manufacturer).is_empty() {
+    if manufacturer_name(q, &part.manufacturer).is_empty() {
         out.push("manufacturer");
     }
     out
@@ -151,7 +151,7 @@ impl Rule for IncompletePartData {
         };
         let mut out = Vec::new();
         for (id, part) in parts_of(q, d) {
-            let missing = missing_part_data(&part.item);
+            let missing = missing_part_data(q, &part.item);
             if missing.is_empty() {
                 continue;
             }
