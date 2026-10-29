@@ -390,6 +390,10 @@ pub struct Tokens {
     pub table_cursor_idle: Rgba,
     pub history_undone: Rgba,
     pub card_strip: Rgba,
+    /// FT-561: the fill of a count badge on `color.surface.chrome` (the bottom dock's tab row), where
+    /// `color.surface.sunken` is the chrome itself: `color.border.subtle`; the high-contrast themes keep the sunken
+    /// fill and outline the pill with `color.border.default`.
+    pub badge_on_chrome: Rgba,
 
     // Radii and borders (§4.10).
     pub radius_none: f32,
@@ -494,6 +498,7 @@ pub const PAIRS: &[Pair] = &[
     pair("color.text.primary", "color.accent.subtle", PairKind::Text),
     pair("color.text.secondary", "color.surface.panel", PairKind::Text),
     pair("color.text.secondary", "color.surface.chrome", PairKind::Text),
+    pair("color.text.secondary", "color.badge.on_chrome", PairKind::Text),
     pair("color.text.secondary", "color.surface.raised", PairKind::Text),
     // §4.15: a selected or marked row draws its tertiary parts in secondary text.
     pair("color.text.secondary", "color.accent.subtle", PairKind::Text),
@@ -681,6 +686,7 @@ impl Tokens {
             ("color.table.cursor_idle", Colour(self.table_cursor_idle)),
             ("color.history.undone", Colour(self.history_undone)),
             ("color.card.strip", Colour(self.card_strip)),
+            ("color.badge.on_chrome", Colour(self.badge_on_chrome)),
             ("radius.none", Px(self.radius_none)),
             ("radius.mark", Px(self.radius_mark)),
             ("radius.sm", Px(self.radius_sm)),
@@ -1067,6 +1073,11 @@ pub fn tokens(theme: Theme, density: Density) -> Tokens {
         table_cursor_idle: p.accent,
         history_undone: p.tertiary,
         card_strip: p.sunken,
+        badge_on_chrome: if theme.is_high_contrast() {
+            p.sunken
+        } else {
+            p.border_subtle
+        },
         radius_none: 0.0,
         radius_mark: 2.0,
         radius_sm: 4.0,

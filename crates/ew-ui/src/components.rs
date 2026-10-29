@@ -379,7 +379,8 @@ pub(crate) fn count_badge_layout(ui: &Ui, t: &Tokens, count: usize) -> (std::syn
     (galley, size)
 }
 
-/// Paints a count badge laid out by [`count_badge_layout`] in `rect` (a dock tab's count chip, doc 16a §5.7).
+/// Paints a count badge laid out by [`count_badge_layout`] in `rect` on a panel: `color.surface.sunken`,
+/// `color.text.secondary` (doc 16a §6.16).
 pub(crate) fn paint_count_badge(
     painter: &egui::Painter,
     t: &Tokens,
@@ -387,6 +388,31 @@ pub(crate) fn paint_count_badge(
     galley: std::sync::Arc<egui::Galley>,
 ) {
     painter.rect_filled(rect, theme::radius(t.radius_pill), t.surface_sunken.color32());
+    painter.galley(
+        rect.center() - galley.size() / 2.0,
+        galley,
+        t.text_secondary.color32(),
+    );
+}
+
+/// [`paint_count_badge`] on the chrome (a dock tab's count chip, doc 16a §5.7): `color.badge.on_chrome`, since
+/// `color.surface.sunken` is the chrome's own colour (FT-561); in the high-contrast themes with a
+/// `color.border.default` outline.
+pub(crate) fn paint_count_badge_on_chrome(
+    painter: &egui::Painter,
+    t: &Tokens,
+    rect: egui::Rect,
+    galley: std::sync::Arc<egui::Galley>,
+) {
+    painter.rect_filled(rect, theme::radius(t.radius_pill), t.badge_on_chrome.color32());
+    if t.border_raised_width > 0.0 {
+        painter.rect_stroke(
+            rect,
+            theme::radius(t.radius_pill),
+            theme::stroke(t.border_raised_width, t.border_default),
+            egui::StrokeKind::Inside,
+        );
+    }
     painter.galley(
         rect.center() - galley.size() / 2.0,
         galley,

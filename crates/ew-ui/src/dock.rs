@@ -775,7 +775,7 @@ impl egui_tiles::Behavior<PaneKind> for DockBehavior<'_> {
             if let Some((chip, size)) = chip {
                 let r =
                     Rect::from_min_size(pos2(text_right + t.space_2, rect.center().y - size.y / 2.0), size);
-                crate::components::paint_count_badge(ui.painter(), &t, r, chip);
+                crate::components::paint_count_badge_on_chrome(ui.painter(), &t, r, chip);
             }
             if look.underline {
                 let line = Rect::from_min_max(
@@ -844,9 +844,12 @@ impl egui_tiles::Behavior<PaneKind> for DockBehavior<'_> {
         if panes.len() < 2 {
             return;
         }
+        // FT-562: "All tabs" is a Subtle 24-px icon button without a border (doc 16a §6.3), its list a menu (§6.13).
         let name = strings::text("dock-all-tabs");
-        let response = ui
-            .menu_button("≡", |ui| {
+        let response = crate::components::icon_button(ui, crate::icons::IconId::dots, name);
+        egui::Popup::menu(&response)
+            .style(crate::menu::menu_style(&self.tokens))
+            .show(|ui| {
                 for (child, pane) in &panes {
                     let title = strings::text(pane.title_key());
                     if ui.selectable_label(tabs.is_active(*child), title).clicked() {
@@ -854,10 +857,7 @@ impl egui_tiles::Behavior<PaneKind> for DockBehavior<'_> {
                         ui.close();
                     }
                 }
-            })
-            .response;
-        response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, name));
-        response.on_hover_text(name);
+            });
     }
 }
 
