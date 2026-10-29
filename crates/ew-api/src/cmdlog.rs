@@ -20,12 +20,13 @@
 //! before its line runs, by the value it names in the then-current model. v0 resolves `section:<number>` (the
 //! section's ID), `id:<uuid>` (the text itself, once a record with that ID exists), `tag:<tag>` (the one
 //! device whose derived tag prints `<tag>`, short form such as `-X1031` or `S51`, or full designation) and
-//! `folio:<label>` (the one drawn page whose printed folio label is `<label>`, in `page_order`). Tag and
+//! `folio:<label>` (the one drawn page whose printed folio label is `<label>`, in `page_order`); any other text
+//! is a bare tag, read as `tag:<text>` (FT-544: `-101Q1`, a terminal as `-X1031:5`). Tag and
 //! folio references match exactly, against the derived values of the then-current model; until the `find`
 //! surface of doc 17 §3.5 exists they do not search patterns. A reference that names nothing, or more than
 //! one device or page (an unnumbered `-101A?`, a duplicate terminal designation), cannot be resolved: it
 //! stops the replay with [`CmdLogError::Reference`] (exit code 2, [`CmdLogError::exit_code`]), never as a
-//! failing command; such targets need `id:<uuid>`.
+//! failing command; such targets need `id:<uuid>`, and an ambiguous tag's message names every candidate.
 //!
 //! **Semantics.** Each line commits as its own transaction with origin [`Origin::CmdLog`]: an interactive
 //! command through `execute`, a command that is bulk by its cost for these parameters (a command whose registry
@@ -369,20 +370,7 @@ impl Session {
                     .map(|(id, _)| id.cast())
                     .ok_or_else(|| format!("`{text}`: the project has no section {number}"))
             }
-            Some(("tag", tag)) => {
-                let q = self.query();
-                unique(
-                    q.devices().ids().filter(|id| {
-                        q.get::<DeviceTag>(*id)
-                            .as_ref()
-                            .as_ref()
-                            .is_some_and(|t| t.full == tag || t.short() == tag)
-                    }),
-                    text,
-                    "device prints this tag",
-                )
-                .map(|id| id.cast())
-            }
+            Some(("tag", tag)) => self.tag_target(tag, text),
             Some(("folio", label)) => {
                 let q = self.query();
                 let order = q.get::<PageOrder>(());
@@ -396,9 +384,50 @@ impl Session {
                 )
                 .map(|id| id.cast())
             }
-            _ => Err(format!(
-                "`{text}`: v0 resolves `section:<number>`, `id:<uuid>`, `tag:<tag>` and `folio:<label>` only"
-            )),
+            // FT-544: a bare tag (`-101Q1`, a CP as `-X1031:5`) stands for `tag:<tag>` when one device prints it.
+            _ => self.tag_target(text, text).map_err(|reason| {
+                if reason.contains("no device prints this tag") {
+                    format!(
+                        "`{text}`: no device prints this tag; a reference is a tag (`-101Q1`, a terminal as \
+                         `-X1031:5`), `tag:<tag>`, `section:<number>`, `folio:<label>` or `id:<uuid>`"
+                    )
+                } else {
+                    reason
+                }
+            }),
+        }
+    }
+
+    /// The one device whose derived tag prints `tag` (short form or full designation). When several do, the
+    /// error names their full designations, so the caller can pick one; it never guesses (FT-544).
+    fn tag_target(&self, tag: &str, text: &str) -> Result<AnyId, String> {
+        let q = self.query();
+        let mut matches: Vec<(AnyId, String)> = q
+            .devices()
+            .ids()
+            .filter_map(|id| {
+                let t = q.get::<DeviceTag>(id);
+                let t = t.as_ref().as_ref()?;
+                (t.full == tag || t.short() == tag).then(|| (id.cast(), t.full.to_string()))
+            })
+            .collect();
+        match matches.len() {
+            0 => Err(format!("`{text}`: no device prints this tag")),
+            1 => Ok(matches.remove(0).0),
+            n => {
+                // Each candidate by its full designation and its ID, so a duplicate designation still names
+                // which record is meant.
+                let mut names: Vec<String> = matches
+                    .into_iter()
+                    .map(|(id, full)| format!("{full} as `id:{}`", id.as_uuid()))
+                    .collect();
+                names.sort();
+                Err(format!(
+                    "`{text}` is ambiguous: {n} devices print this tag ({}); name one by its full designation \
+                     or its `id:<uuid>`",
+                    names.join(", ")
+                ))
+            }
         }
     }
 

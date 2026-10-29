@@ -75,6 +75,11 @@ Go to. These positions are the coordinates that `canvas.press` and `cursor.set` 
 press there selects that wire. You can also select a wire by its ends:
 `select.set refs='["wire:<one end> -> <other end>"]'`, with the ends as the page text prints them.
 
+A reference (an entry of `select.set refs`, or any parameter that takes one) is one of: a tag as the page prints it
+(`-101Q1`, or a terminal as `-X1031:5`, the tag and the terminal after a colon), the same with `tag:` in front
+(`tag:-101Q1`), `section:<number>`, `folio:<label>`, or an alias `@n`. A tag that more than one device prints is
+refused with a sentence that names the candidates; pick one of them.
+
 `look --page` describes the content of one page, in reading order (row A to H of the anchor cell, then column 0 to 16):
 the header gives the folio, the title and the counts (`reps` representations, `connections` drawn connections,
 `junctions`); each `rep` line is one drawn device or symbol with the label it prints in quotation marks, its cell, its

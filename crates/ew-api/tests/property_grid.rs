@@ -683,7 +683,46 @@ fn the_command_meta_and_the_reference_resolver() {
     let err = s.resolve_reference("tag:-999Z9").unwrap_err();
     assert!(err.contains("no device prints this tag"), "{err}");
     assert!(s.resolve_reference("folio:101").is_ok());
-    assert!(s.resolve_reference("bogus").unwrap_err().contains("v0 resolves"));
+    let err = s.resolve_reference("bogus").unwrap_err();
+    assert!(err.contains("a reference is a tag"), "{err}");
+}
+
+/// FT-544: a bare tag resolves like `tag:<tag>` when one device prints it, a terminal as `TAG:pin` included; an
+/// ambiguous one is refused with a sentence naming the candidates, never guessed.
+#[test]
+fn ft544_a_bare_tag_is_a_reference() {
+    let s = golden();
+    assert_eq!(
+        s.resolve_reference("-101F1").unwrap(),
+        s.resolve_reference("tag:-101F1").unwrap()
+    );
+    assert_eq!(
+        s.resolve_reference("-X1032:5").unwrap(),
+        s.resolve_reference("tag:-X1032:5").unwrap()
+    );
+    let err = s.resolve_reference("-999Z9").unwrap_err();
+    assert!(err.contains("no device prints this tag"), "{err}");
+    // Two devices frozen to the same text print the same tag: refused, and the sentence names the candidates.
+    let mut s = s;
+    let ids = [device(&s, "-102F1"), device(&s, "-102F2")];
+    for id in ids {
+        let cmd = AnyCommand {
+            name: "fields.set".into(),
+            params: json!({"kind": "device", "targets": [id.to_string()], "path": "tag.frozen",
+                "value": {"text": "K9", "sign": "shown"}}),
+        };
+        s.execute(&cmd).unwrap();
+    }
+    let err = s.resolve_reference("-K9").unwrap_err();
+    eprintln!("{err}");
+    assert!(
+        err.starts_with("`-K9` is ambiguous: 2 devices print this tag ("),
+        "{err}"
+    );
+    for id in ids {
+        assert!(err.contains(&format!("`id:{id}`")), "{err}");
+    }
+    assert_eq!(err.matches("=P01+J-E-2416-K9 as `id:").count(), 2, "{err}");
 }
 
 /// FT-450: the page item and structure box placement members read their narrowing reasons (a page item's kind and a

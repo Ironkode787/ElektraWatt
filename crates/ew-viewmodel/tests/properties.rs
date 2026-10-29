@@ -998,3 +998,27 @@ fn a_terminal_lists_its_connection_point_labels() {
     assert!(labels.iter().all(|l| l.starts_with("-101F1:")), "{labels:?}");
     shell.shutdown();
 }
+
+/// FT-544: `select.set` takes a bare tag as the page prints it, a terminal as `TAG:pin` included, and selects the
+/// same record as `tag:<tag>`; a tag no device prints fails with a sentence that lists the reference forms.
+#[test]
+fn ft544_select_set_takes_a_bare_tag() {
+    let tmp = Tmp::new("props-ft544");
+    let mut shell = writable(&tmp, "101");
+    done(&mut shell, "select.set", json!({"refs": ["-101F1", "-X1032:5"]}));
+    let bare = shell.properties().sheet().unwrap().sections.len();
+    let st = state(&shell);
+    done(
+        &mut shell,
+        "select.set",
+        json!({"refs": ["tag:-101F1", "tag:-X1032:5"]}),
+    );
+    assert_eq!(state(&shell)["properties"], st["properties"]);
+    assert!(bare >= 1);
+    match shell.dispatch("select.set", &json!({"refs": ["-999Z9"]})) {
+        Outcome::Failed { message } => {
+            assert!(message.contains("no device prints this tag"), "{message}");
+        }
+        other => panic!("{other:?}"),
+    }
+}

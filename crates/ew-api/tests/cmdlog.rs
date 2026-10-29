@@ -414,7 +414,11 @@ fn tag_and_folio_references_name_exactly_one_device_or_drawn_page() {
             committed,
         } => {
             assert_eq!((*line, *committed), (3, 1));
-            assert!(message.contains("2 matches"), "{message}");
+            assert!(
+                message.contains("is ambiguous: 2 devices print this tag (")
+                    && message.matches("as `id:").count() == 2,
+                "{message}"
+            );
         }
         other => panic!("expected a reference error, got {other:?}"),
     }
