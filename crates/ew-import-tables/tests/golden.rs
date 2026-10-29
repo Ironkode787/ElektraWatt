@@ -22,6 +22,12 @@ fn golden() -> ImportBatch {
     common::import(&common::golden_inputs()).expect("the golden tables import")
 }
 
+/// The data rows of a committed golden table (one row per line after the header).
+fn table_rows(name: &str) -> usize {
+    let text = std::fs::read_to_string(common::tables_dir().join(name)).expect("a golden table");
+    text.lines().skip(1).filter(|l| !l.trim().is_empty()).count()
+}
+
 fn connection(batch: &ImportBatch, key: &str) -> Connection {
     let id: Id<Connection> = record_id("connections", key);
     batch
@@ -132,35 +138,38 @@ fn the_profiles_are_project_settings() {
 #[test]
 fn the_per_kind_counts_are_those_of_doc_20() {
     let b = golden();
-    let n = |k: &str| b.report.stats.per_kind.get(k).copied().unwrap_or(0);
+    let n = |k: &str| b.report.stats.per_kind.get(k).map_or(0, |c| *c as usize);
     // doc 20 §5: 13 drawn pages.
-    assert_eq!(n("page"), 13);
+    assert_eq!(n("page"), table_rows("pages.csv"));
     // doc 20 §4.3: sections 1, 2, 9; =P01, +J-E-2416, +J-E-206, +FIELD; four external points (§15).
-    assert_eq!(n("section"), 3);
-    assert_eq!(n("structure_node"), 4);
-    assert_eq!(n("external_ref"), 4);
+    assert_eq!(n("section"), table_rows("sections.csv"));
+    assert_eq!(n("structure_node"), table_rows("structure.csv"));
+    assert_eq!(n("external_ref"), table_rows("external_refs.csv"));
     // doc 20 §6.1 and §9: 68 devices plus 28 terminal devices.
-    assert_eq!(n("device"), 96);
+    assert_eq!(
+        n("device"),
+        table_rows("devices.csv") + table_rows("terminals.csv")
+    );
     // doc 20 §8.2, §8.3, §11.1: 72 drawn wire parts, 19 bridge connections and the 2 bus connections of DP.
-    assert_eq!(n("connection"), 93);
+    assert_eq!(n("connection"), table_rows("connections.csv"));
     // doc 20 §8.3: J1 to J6; §10: 13 conductors; §7.3: 19 potentials (DP included); §7.4: B1.
-    assert_eq!(n("junction"), 6);
-    assert_eq!(n("conductor"), 13);
-    assert_eq!(n("potential_def"), 19);
-    assert_eq!(n("bond"), 1);
+    assert_eq!(n("junction"), table_rows("junctions.csv"));
+    assert_eq!(n("conductor"), table_rows("conductors.csv"));
+    assert_eq!(n("potential_def"), table_rows("potentials.csv"));
+    assert_eq!(n("bond"), table_rows("bonds.csv"));
     // doc 20 §11.2: one configuration project; §11.3: 56 channels; §6.2: 8 device links.
-    assert_eq!(n("plc_config_project"), 1);
-    assert_eq!(n("channel"), 56);
-    assert_eq!(n("device_link"), 8);
+    assert_eq!(n("plc_config_project"), table_rows("plc_config_projects.csv"));
+    assert_eq!(n("channel"), table_rows("channels.csv"));
+    assert_eq!(n("device_link"), table_rows("device_links.csv"));
     // doc 20 §16, §17.3: 11 page-oriented and 4 embedded report blocks.
-    assert_eq!(n("report_block"), 15);
+    assert_eq!(n("report_block"), table_rows("report_blocks.csv"));
     // doc 20 §14.1: 27 BOM rows, 23 with a part number and the 4 TBD parts of rows 24-27; §14.2: the 2 configured
     // products.
-    assert_eq!(n("part"), 29);
+    assert_eq!(n("part"), table_rows("parts.csv"));
     assert_eq!(n("project"), 1);
     assert_eq!(n("import_lineage"), 1);
     // doc 20 §4.1: the revisions V1.0 and V2.0.
-    assert_eq!(n("revision"), 2);
+    assert_eq!(n("revision"), table_rows("revisions.csv"));
 }
 
 /// The four TBD parts of doc 20 §14.1 rows 24-27 are test parts used by the enclosure (rail, duct) and the
@@ -770,7 +779,7 @@ fn the_56_channels_are_those_of_doc_20() {
             _ => None,
         })
         .collect();
-    assert_eq!(channels.len(), 56);
+    assert_eq!(channels.len(), table_rows("channels.csv"));
     for module in MODULES {
         let module_id: Id<Device> = record_id("devices", module);
         for number in 0..8u16 {
