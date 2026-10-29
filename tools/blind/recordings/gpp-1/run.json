@@ -56,7 +56,7 @@
   "handed_back": true,
   "diverged_at": null,
   "ci": "nightly",
-  "stale": null,
+  "stale": "cycle 33 J33: the run's Parts edits (step 35 props.set device/parts 533356), part-first terminals and deletes now succeed by design (G-PP findings 1, 2, 5); re-record",
   "clean_before_epilogue": true,
   "child_exit": 1,
   "golden_changed": false
