@@ -11,7 +11,6 @@
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::sync::atomic::{AtomicU32, Ordering};
 use std::time::SystemTime;
 
 use ew_api::{AnyCommand, Recovery, Session, SessionOptions};
@@ -23,17 +22,7 @@ use ew_store::{Access, ManualClock, ReadOnlyReason, SaveError, StoreOptions, Vfs
 const PROJECT: &str = r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1"}"#;
 
 fn temp(tag: &str) -> PathBuf {
-    static N: AtomicU32 = AtomicU32::new(0);
-    let nanos = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .map_or(0, |d| d.as_nanos());
-    let dir = std::env::temp_dir().join(format!(
-        "ew-api-persistence-{tag}-{}-{}-{nanos}",
-        std::process::id(),
-        N.fetch_add(1, Ordering::Relaxed)
-    ));
-    std::fs::create_dir_all(&dir).unwrap();
-    dir
+    ew_testdir::fresh_dir(&format!("ew-api-persistence-{tag}"))
 }
 
 fn store_options(state: &Path) -> StoreOptions {

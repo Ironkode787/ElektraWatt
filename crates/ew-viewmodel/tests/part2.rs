@@ -5,8 +5,7 @@
 //! QElectroTech import and the tutorials copy (FT-312), the journal discard (FT-313's first part), first run, the
 //! company-standard wizard with its preview (FT-308), workspaces (FT-309), F1 and the quick switches (FT-311).
 
-#[path = "common/fresh_dir.rs"]
-mod fresh_dir;
+use ew_testdir as fresh_dir;
 
 use std::path::{Path, PathBuf};
 

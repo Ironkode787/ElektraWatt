@@ -6,7 +6,6 @@
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU32, Ordering};
 
 use ew_api::{NewProjectKind, ProjectTemplate, Recovery, Session, SessionOptions, StoreOptions};
 use ew_commands::testkit::seeded_ids;
@@ -14,14 +13,7 @@ use ew_commands::testkit::seeded_ids;
 const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
 
 fn temp(tag: &str) -> PathBuf {
-    static N: AtomicU32 = AtomicU32::new(0);
-    let dir = std::env::temp_dir().join(format!(
-        "ew-api-newproject-{tag}-{}-{}",
-        std::process::id(),
-        N.fetch_add(1, Ordering::Relaxed)
-    ));
-    std::fs::create_dir_all(&dir).unwrap();
-    dir
+    ew_testdir::fresh_dir(&format!("ew-api-newproject-{tag}"))
 }
 
 fn store(state: &Path) -> StoreOptions {

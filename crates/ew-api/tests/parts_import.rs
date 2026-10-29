@@ -66,8 +66,7 @@ fn the_golden_parts_table_imports_into_a_new_project_once() {
 
 #[test]
 fn a_parts_table_above_the_size_limit_is_refused_before_it_is_read() {
-    let dir = std::env::temp_dir().join(format!("ew-parts-limit-{}", std::process::id()));
-    std::fs::create_dir_all(&dir).unwrap();
+    let dir = ew_testdir::fresh_dir("ew-parts-limit");
     let path = dir.join("parts.csv");
     let limit = ew_import_tables::TableLimits::default().max_file_bytes;
     let file = std::fs::File::create(&path).unwrap();
@@ -90,8 +89,7 @@ fn a_parts_table_above_the_size_limit_is_refused_before_it_is_read() {
 /// both call); the bootstrap's own reader stays strict.
 #[test]
 fn jb8_a_bom_prefixed_parts_table_imports_the_same_copies() {
-    let dir = std::env::temp_dir().join(format!("ew-parts-bom-{}", std::process::id()));
-    std::fs::create_dir_all(&dir).unwrap();
+    let dir = ew_testdir::fresh_dir("ew-parts-bom");
     let golden = golden_parts();
     let tables = golden.parent().unwrap();
     for file in [

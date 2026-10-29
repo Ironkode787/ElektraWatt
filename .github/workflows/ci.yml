@@ -1042,4 +1042,4 @@ jobs:
           cargo +"$RUST_MSRV" generate-lockfile
           cargo +"$RUST_MSRV" check --locked \
             -p ew-units -p ew-ids -p ew-mltext -p ew-rds -p ew-schema -p ew-format -p ew-interop-api \
-            -p ew-dl -p ew-step-proto -p ew-memo -p ew-plcaddr -p ew-caex -p ew-devdesc -p ew-ewpp
+            -p ew-dl -p ew-step-proto -p ew-memo -p ew-plcaddr -p ew-caex -p ew-devdesc -p ew-ewpp -p ew-testdir

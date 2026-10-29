@@ -2455,12 +2455,7 @@ fn ac13_pdfa(c: &Ctx) -> Outcome {
 
 /// A unique scratch directory under the system temp directory.
 fn scratch_dir(tag: &str) -> std::path::PathBuf {
-    let nanos = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map_or(0, |d| d.as_nanos());
-    let dir = std::env::temp_dir().join(format!("ew-acceptance-{tag}-{}-{nanos}", std::process::id()));
-    std::fs::create_dir_all(&dir).expect("a scratch directory");
-    dir
+    ew_testdir::fresh_dir(&format!("ew-acceptance-{tag}"))
 }
 
 fn copy_dir(from: &std::path::Path, to: &std::path::Path) {

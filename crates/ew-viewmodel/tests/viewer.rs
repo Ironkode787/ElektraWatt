@@ -5,8 +5,7 @@
 //! V5, V9 and the model half of V10): the canvas area, walks, jumps and the per-tab history, the page navigator, the
 //! keyboard grid cursor, links, Go to, the transcript and describe members and the exact counts.
 
-#[path = "common/fresh_dir.rs"]
-mod fresh_dir;
+use ew_testdir as fresh_dir;
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};

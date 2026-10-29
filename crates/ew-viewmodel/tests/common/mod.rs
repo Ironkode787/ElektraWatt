@@ -15,7 +15,7 @@ use serde_json::{Value, json};
 
 pub const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
 
-pub mod fresh_dir;
+pub use ew_testdir as fresh_dir;
 
 /// A fresh temporary directory, removed on drop.
 pub struct Tmp(pub PathBuf);

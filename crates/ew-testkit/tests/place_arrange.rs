@@ -11,7 +11,6 @@
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::sync::atomic::{AtomicU32, Ordering};
 
 use ew_api::{AnyCommand, CmdError, Receipt, Recovery, Session, SessionOptions, StoreOptions};
 use ew_commands::commands::library_copy_hash;
@@ -75,17 +74,12 @@ fn id<T>(s: &str) -> Id<T> {
 // ---------------------------------------------------------------------------------------------------------
 // A temporary copy of Golden A
 
-static COUNTER: AtomicU32 = AtomicU32::new(0);
-
 /// A temporary directory, removed when dropped (declare it before the session that uses it).
 struct Work(PathBuf);
 
 impl Work {
     fn new() -> Work {
-        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
-        let dir = std::env::temp_dir().join(format!("ew-testkit-place-arrange-{}-{n}", std::process::id()));
-        std::fs::create_dir_all(&dir).expect("a temporary directory");
-        Work(dir)
+        Work(ew_testdir::fresh_dir("ew-testkit-place-arrange"))
     }
 }
 

@@ -38,6 +38,8 @@ serde_json = "1.0.154"
 # The G-SP spike (WP-S1.05, `benches/spike.rs`): the connectivity families of ew-derive measured cold and
 # through its memo backend `MemoStore` (dev-only edge, `[allowed_dev_edges]`).
 ew-derive = { path = "../ew-derive" }
+# The fresh temporary directory of the tests (FT-569; dev-only edge, `[allowed_dev_edges]`).
+ew-testdir = { path = "../ew-testdir" }
 
 [[bench]]
 name = "cold_ops"

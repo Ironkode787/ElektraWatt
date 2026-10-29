@@ -58,6 +58,8 @@ ew-viewmodel = { path = "../ew-viewmodel", features = ["testkit"] }
 sha2 = { workspace = true }
 # WP-S2.17 DL6: the snapshot gate reads its blessed PNG files (the version ew-render-cpu writes them with).
 png = "0.18.1"
+# The fresh temporary directory of the tests (FT-586; dev-only edge, `[allowed_dev_edges]`).
+ew-testdir = { path = "../ew-testdir" }
 
 # The canvas frame-time bench (WP-S2.02 section 9); `cargo xtask perf-gate` runs it once per gate run.
 [[bench]]

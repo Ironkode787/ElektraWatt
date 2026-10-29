@@ -11,7 +11,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use ew_store::lock::{TakeoverError, new_session_id};
@@ -49,16 +48,7 @@ struct Scratch {
 
 impl Scratch {
     fn new() -> Scratch {
-        static COUNTER: AtomicU64 = AtomicU64::new(0);
-        // Only names the scratch directory.
-        let nanos = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map_or(0, |d| d.as_nanos());
-        let base = std::env::temp_dir().join(format!(
-            "ew-store-lock-{}-{}-{nanos}",
-            std::process::id(),
-            COUNTER.fetch_add(1, Ordering::Relaxed)
-        ));
+        let base = ew_testdir::fresh_dir("ew-store-lock");
         let project = base.join("J-E-2416.ew");
         let state = base.join("state");
         std::fs::create_dir_all(&state).unwrap();

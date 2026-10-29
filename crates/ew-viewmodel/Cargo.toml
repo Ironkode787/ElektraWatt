@@ -44,3 +44,7 @@ ew-api = { path = "../ew-api" }
 serde_json = "1.0.154"
 # settings.toml; a `toml::Table` keeps unknown keys, sorted.
 toml = { workspace = true }
+
+[dev-dependencies]
+# The fresh temporary directory of the tests (FT-586; dev-only edge, `[allowed_dev_edges]`).
+ew-testdir = { path = "../ew-testdir" }

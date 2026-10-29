@@ -10,7 +10,7 @@ use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::AtomicU32;
 use std::time::Duration;
 
 use egui::Vec2;
@@ -60,21 +60,10 @@ impl Drop for Tmp {
     }
 }
 
-/// A new, empty directory `<parent>/<stem>-<pid>-<n>` that this call created (FT-524, FT-538). A test process that is
-/// killed (a cancelled or timed-out run) leaves its directory behind with the project's lock, the journal, the
-/// settings and the dock layout in it; a later test process that gets the same PID (Windows and Linux reuse them)
-/// used to adopt it through `create_dir_all`, and opened the project read-only, with a recovery offer or another
-/// layout. `create_dir` fails on such a leftover, and the next number is taken instead; the leftover is not touched.
+/// A new, empty directory `<parent>/<stem>-<pid>-<n>` that this call created (FT-524, FT-538): the shared helper
+/// [`ew_testdir::fresh_dir_in`] (FT-586).
 pub fn fresh_dir(parent: &Path, stem: &str, counter: &AtomicU32) -> PathBuf {
-    loop {
-        let n = counter.fetch_add(1, Ordering::Relaxed);
-        let dir = parent.join(format!("{stem}-{}-{n}", std::process::id()));
-        match std::fs::create_dir(&dir) {
-            Ok(()) => return dir,
-            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => continue,
-            Err(e) => panic!("cannot create the test directory {}: {e}", dir.display()),
-        }
-    }
+    ew_testdir::fresh_dir_in(parent, stem, counter)
 }
 
 fn copy_dir(from: &Path, to: &Path) {

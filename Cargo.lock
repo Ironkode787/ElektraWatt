@@ -1217,6 +1217,7 @@ dependencies = [
  "ew-script",
  "ew-sqlview",
  "ew-store",
+ "ew-testdir",
  "ew-testkit",
  "ew-text",
  "ew-units",
@@ -1610,6 +1611,7 @@ version = "0.0.0"
 dependencies = [
  "ew-checks",
  "ew-derive",
+ "ew-testdir",
  "rusqlite",
  "serde",
  "serde_json",
@@ -1635,10 +1637,15 @@ version = "0.0.0"
 dependencies = [
  "ew-format",
  "ew-model",
+ "ew-testdir",
  "proptest",
  "serde_json",
  "sha2",
 ]
+
+[[package]]
+name = "ew-testdir"
+version = "0.0.0"
 
 [[package]]
 name = "ew-testkit"
@@ -1653,6 +1660,7 @@ dependencies = [
  "ew-model",
  "ew-rds",
  "ew-schema",
+ "ew-testdir",
  "ew-units",
  "serde",
  "serde_json",
@@ -1683,6 +1691,7 @@ dependencies = [
  "ew-render-cpu",
  "ew-render2d",
  "ew-render3d",
+ "ew-testdir",
  "ew-viewmodel",
  "png",
  "serde_json",
@@ -1705,6 +1714,7 @@ name = "ew-viewmodel"
 version = "0.0.0"
 dependencies = [
  "ew-api",
+ "ew-testdir",
  "serde_json",
  "toml",
 ]

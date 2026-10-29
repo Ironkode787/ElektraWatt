@@ -10,6 +10,7 @@
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::AtomicU32;
 
 use ew_api::{AnyCommand, CmdLog, HistoryLimits, Session, SessionOptions};
 use ew_commands::Cost;
@@ -290,11 +291,12 @@ fn the_command_log_replays_and_every_step_undoes() {
 
 /// A fresh scratch project directory under the test target directory.
 fn scratch_dir(name: &str) -> PathBuf {
-    let dir = PathBuf::from(env!("CARGO_TARGET_TMPDIR"))
-        .join(format!("ew-golden-dsl-{name}-{}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&dir);
-    std::fs::create_dir_all(&dir).expect("scratch directory");
-    dir
+    static COUNTER: AtomicU32 = AtomicU32::new(0);
+    ew_testdir::fresh_dir_in(
+        Path::new(env!("CARGO_TARGET_TMPDIR")),
+        &format!("ew-golden-dsl-{name}"),
+        &COUNTER,
+    )
 }
 
 /// Store options without a journal (the test is not a crash test).

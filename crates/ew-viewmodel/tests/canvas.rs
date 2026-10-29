@@ -4,8 +4,7 @@
 //! The canvas model through the shell on a temporary copy of Golden A (WP-S2.02 part 1, acceptance checks A1, A2,
 //! A5, A8 and the model half of A9).
 
-#[path = "common/fresh_dir.rs"]
-mod fresh_dir;
+use ew_testdir as fresh_dir;
 
 use std::path::{Path, PathBuf};
 

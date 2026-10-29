@@ -25,3 +25,7 @@ rusqlite = { version = "0.40.2", default-features = false, features = ["bundled"
 # JSON array columns, the `_ml` columns and `ew_ml`, and the JSON result (`ew.sql-result/1`).
 serde = { workspace = true }
 serde_json = "1.0.154"
+
+[dev-dependencies]
+# The fresh temporary directory of the tests (FT-569; dev-only edge, `[allowed_dev_edges]`).
+ew-testdir = { path = "../ew-testdir" }

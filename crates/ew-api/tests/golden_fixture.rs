@@ -80,13 +80,7 @@ fn manifest_without_generator(bytes: &[u8]) -> Manifest {
 }
 
 fn unique_dir(tag: &str) -> PathBuf {
-    let nanos = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
-    let dir = std::env::temp_dir().join(format!("ew-golden-fixture-{tag}-{}-{nanos}", std::process::id()));
-    std::fs::create_dir_all(&dir).unwrap();
-    dir
+    ew_testdir::fresh_dir(&format!("ew-golden-fixture-{tag}"))
 }
 
 fn copy_dir(from: &Path, to: &Path) {

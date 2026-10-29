@@ -24,10 +24,7 @@ struct Tmp(PathBuf);
 
 impl Tmp {
     fn new(tag: &str) -> Tmp {
-        let dir = std::env::temp_dir().join(format!("ew-api-job-{tag}-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(&dir).unwrap();
-        Tmp(dir)
+        Tmp(ew_testdir::fresh_dir(&format!("ew-api-job-{tag}")))
     }
 }
 

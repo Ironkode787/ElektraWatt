@@ -183,7 +183,7 @@ count = 1
 [[allow]]
 crate = "ew-store"
 item = "impl Scratch > fn new > call SystemTime::now"
-count = 2
+count = 1
 
 [[allow]]
 crate = "ew-testkit"

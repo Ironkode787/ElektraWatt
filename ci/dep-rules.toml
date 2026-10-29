@@ -31,7 +31,7 @@ banned_crates = ["egui_mcp"]
 # MIT OR Apache-2.0; closed under dependencies (ADR-0024 decision 2).
 permissive = [
   "ew-units", "ew-ids", "ew-mltext", "ew-rds", "ew-schema", "ew-format", "ew-interop-api", "ew-dl",
-  "ew-step-proto", "ew-memo", "ew-plcaddr", "ew-caex", "ew-devdesc", "ew-ewpp",
+  "ew-step-proto", "ew-memo", "ew-plcaddr", "ew-caex", "ew-devdesc", "ew-ewpp", "ew-testdir",
 ]
 # GPL-3.0-or-later application layer, including the binaries.
 gpl = [
@@ -64,6 +64,8 @@ planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "e
 "ew-caex" = []
 "ew-devdesc" = []
 "ew-ewpp" = []
+# The fresh temporary directory of the tests (FT-569, FT-586): dev-only, no dependencies.
+"ew-testdir" = []
 "ew-model" = ["ew-schema", "ew-ids", "ew-units", "ew-mltext", "ew-rds"]
 "ew-rhai" = []
 "ew-derive" = ["ew-model", "ew-memo", "ew-rhai", "ew-plcaddr", "ew-schema", "ew-ids", "ew-units", "ew-mltext", "ew-rds"]
@@ -123,7 +125,7 @@ planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "e
 # ew-testkit's tests and benches load generated projects through the Session facade and run commands
 # (WP-S1.05 benchmark harness); the G-SP spike bench measures the ew-derive queries cold and through its memo
 # backend `MemoStore` (WP-S1.05, WP-S1.07, `benches/spike.rs`).
-"ew-testkit" = ["ew-api", "ew-commands", "ew-derive"]
+"ew-testkit" = ["ew-api", "ew-commands", "ew-derive", "ew-testdir"]
 
 # ew-derive's agreement tests compare its main-representation and tag rules with the numbering of ew-commands.
 "ew-derive" = ["ew-commands"]
@@ -131,13 +133,19 @@ planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "e
 # tables (the importer may not depend on the model, so the test lives in ew-api). Its page-output test (WP-S3.04)
 # renders the PNGs of the golden folios (ew-text and ew-dl are normal edges since the export job, FT-59). The
 # acceptance runner builds AC-15's path (b) with the golden builder DSL of ew-testkit (WP-S6.01).
-"ew-api" = ["ew-derive", "ew-render-cpu", "ew-ids", "ew-testkit"]
+"ew-api" = ["ew-derive", "ew-render-cpu", "ew-ids", "ew-testkit", "ew-testdir"]
 # The renderer's and the PDF writer's tests shape their text with the bundled fonts (WP-S3.04).
 "ew-render-cpu" = ["ew-text", "ew-units"]
 "ew-export" = ["ew-text", "ew-units"]
 
 # ew-reports' unit tests build small model snapshots to run report row queries over a `Q` (no `raw-read`).
 "ew-reports" = ["ew-model"]
+
+# FT-569, FT-586: the tests take their fresh temporary directory (`ew_testdir::fresh_dir`) from ew-testdir.
+"ew-store" = ["ew-testdir"]
+"ew-sqlview" = ["ew-testdir"]
+"ew-viewmodel" = ["ew-testdir"]
+"ew-ui" = ["ew-testdir"]
 # ew-checks' unit tests build small model snapshots to evaluate rules over a `Q` (no `raw-read`).
 "ew-checks" = ["ew-model"]
 
