@@ -188,10 +188,29 @@ fn rep_positions(s: &ShellModel) -> Vec<(EntityRef, (i64, i64))> {
 fn item3_a_terminal_stacked_on_another_moves_off_it_by_keyboard_and_by_drag() {
     let tmp = Tmp::new("bd16-3b");
     let mut s = new_project_with_strip(&tmp);
-    // The drafter's stack: two terminals placed on one point (Alt places without snapping to the other's CPs).
+    // The drafter's stack: two terminals on one point. Since FT-622 the Place tool puts the second two grid steps to the
+    // right of the first, so it is moved back onto it (a stack of an older project, or of a move).
     place_terminal(&mut s, "101-D2", json!({}), json!({}));
     place_terminal(&mut s, "101-D2", json!({}), json!({}));
+    let placed = rep_positions(&s);
+    assert_eq!(placed.len(), 2);
+    let (right, left) = if placed[0].1.0 > placed[1].1.0 {
+        (placed[0].0, placed[1].0)
+    } else {
+        (placed[1].0, placed[0].0)
+    };
+    assert_ne!(
+        placed[0].1, placed[1].1,
+        "FT-622: the second terminal does not stack"
+    );
+    done(
+        &mut s,
+        "command.run",
+        json!({"cmd": "rep.move", "params": {"reps": [right.0.to_string()], "steps": [-2, 0]}}),
+    );
     let before = rep_positions(&s);
+    let at = |e: EntityRef| before.iter().find(|(r, _)| *r == e).unwrap().1;
+    assert_eq!(at(right), at(left));
     assert_eq!(before.len(), 2);
     assert_eq!(before[0].1, before[1].1);
     // A click picks the top one.

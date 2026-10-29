@@ -19,7 +19,8 @@
 //! target, except that a `new_device` target whose insertion point lies inside the outline of a black box on the
 //! page (even-odd, the boundary inside; the innermost by area, ties by ID) becomes `join_device {device: the box's
 //! device, role: aux}` (doc 06 §2.7). A `new_terminal` target advances its designation after each commit when it is
-//! decimal digits. A join target ([`PlaceTarget::Join`], WP-S2.18 D1) sends `existing_function` with the device's
+//! decimal digits, and lands on the next free point two grid steps to the right while a terminal of the same strip
+//! sits on its point (FT-622; the proposals are then not sent). A join target ([`PlaceTarget::Join`], WP-S2.18 D1) sends `existing_function` with the device's
 //! next unplaced slot of the symbol's FnDef, else `join_device {device, role: aux}`; its label reads `join -K1`.
 //!
 //! **Autoconnect** (WP-S2.04 part 2, §8.3): on a page whose type autoconnects, every move of the ghost computes the
@@ -401,13 +402,46 @@ impl PlaceTool {
         }
     }
 
+    /// The insertion point of a placement at `at` (FT-622, the orchestrator's ruling): a new terminal on a page point
+    /// where a terminal of the same strip already sits moves to the right, two grid steps at a time, until the point
+    /// is free (Golden A's 1X1 draws its three terminals of one cell 20 QET px apart). A terminal of the same strip is
+    /// a representation whose connection points print `<strip>:…`; every other target, and a terminal of another
+    /// strip, stays at `at`.
+    fn stacked_pos(&self, cx: &ToolCx<'_>, at: (i64, i64)) -> (i64, i64) {
+        let PlaceTarget::Terminal { strip_tag, .. } = &self.target else {
+            return at;
+        };
+        let prefix = format!("{strip_tag}:");
+        let tables = &cx.page.tables;
+        let taken = |p: (i64, i64)| {
+            tables.reps.iter().any(|r| {
+                r.pos == p && {
+                    let mut cps = tables.cps.iter().filter(|c| c.rep == r.id).peekable();
+                    cps.peek().is_some() && cps.all(|c| c.label.starts_with(&prefix))
+                }
+            })
+        };
+        // By grid index, so that the point stays on a grid of a fractional step (QET's 10 px).
+        let grid = super::wire::PageGridMap::new(tables.grid);
+        let mut pos = at;
+        // Bounded by the page's representations: each step passes at most one of them.
+        for _ in 0..=tables.reps.len() {
+            if !taken(pos) {
+                break;
+            }
+            pos.0 = grid.coord(grid.index(pos.0) + 2);
+        }
+        pos
+    }
+
     /// The command at the current point, with the proposals as hints unless `alt`; `None` while the tool asks for
     /// a designation.
     fn command(&self, cx: &ToolCx<'_>, alt: bool) -> Option<Box<AnyCommand>> {
         if self.ask {
             return None;
         }
-        let (_, pos) = self.at?;
+        let (_, at) = self.at?;
+        let pos = self.stacked_pos(cx, at);
         let (target, _, _) = self.effective_target(cx, pos);
         let mut params = json!({
             "page": cx.page.tables.page.to_string(),
@@ -416,7 +450,12 @@ impl PlaceTool {
             "orient": ORIENT_NAMES[usize::from(self.orient % 8)],
             "target": target,
         });
-        let hints = if alt { Vec::new() } else { self.proposals.hints() };
+        // The proposals belong to the ghost's point: a terminal moved along its strip connects nothing by them.
+        let hints = if alt || pos != at {
+            Vec::new()
+        } else {
+            self.proposals.hints()
+        };
         if !hints.is_empty() {
             params["connect"] = Value::Array(hints);
         }
