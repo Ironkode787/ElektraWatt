@@ -13,7 +13,8 @@
 //! - an input line (`{"input":"click","x":412,"y":96}`, spec §4.1): the egui events of the input in one or more
 //!   frames, then frames until the window settles; one transcript line `{"step","input","dispatched","state"}`, with
 //!   `"closed":true` once the application has closed;
-//! - a frame line (`{"frame":"t0003.png"}`, optional `"settle":false` for a look and `"zoom":[x,y,w,h]`): the
+//! - a frame line (`{"frame":"t0003.png"}`, optional `"settle":false` for a look, `"zoom":[x,y,w,h]`, and
+//!   `"paint":false` for a replay that settles as the run did but paints nothing): the
 //!   current frame painted to `<frames>/<file>`; one transcript line `{"frame","sha256"}` without a step number (a
 //!   look is not a step). Without `--frames` or with `--no-frames` nothing is painted and `sha256` is null.
 //!
@@ -368,6 +369,9 @@ pub struct FrameRequest {
     pub settle: bool,
     /// A region of the frame to enlarge twice, in frame pixels.
     pub zoom: Option<[u32; 4]>,
+    /// Whether the frame is painted (`"paint":false`: a replay settles as the run did and paints nothing, the
+    /// harness's replay of a frame it already has).
+    pub paint: bool,
 }
 
 /// Reads a frame line's object.
@@ -378,7 +382,7 @@ pub struct FrameRequest {
 pub fn parse_frame(o: &Map<String, Value>) -> Result<FrameRequest, String> {
     if let Some(extra) = o
         .keys()
-        .find(|k| !["frame", "settle", "zoom"].contains(&k.as_str()))
+        .find(|k| !["frame", "settle", "zoom", "paint"].contains(&k.as_str()))
     {
         return Err(bad(format!("unknown member `{extra}` of a frame line")));
     }
@@ -396,6 +400,11 @@ pub fn parse_frame(o: &Map<String, Value>) -> Result<FrameRequest, String> {
         None => true,
         Some(Value::Bool(b)) => *b,
         Some(_) => return Err(bad("`settle` is true or false")),
+    };
+    let paint = match o.get("paint") {
+        None => true,
+        Some(Value::Bool(b)) => *b,
+        Some(_) => return Err(bad("`paint` is true or false")),
     };
     let zoom = match o.get("zoom") {
         None => None,
@@ -427,6 +436,7 @@ pub fn parse_frame(o: &Map<String, Value>) -> Result<FrameRequest, String> {
         file: file.to_owned(),
         settle,
         zoom,
+        paint,
     })
 }
 
@@ -933,6 +943,9 @@ impl Driver {
         if request.settle || self.frames == 0 {
             self.settle();
         }
+        if !request.paint {
+            return Ok(None);
+        }
         let Some(dir) = self.frames_dir.clone() else {
             return Ok(None);
         };
@@ -1081,10 +1094,23 @@ fn read_line(parser: &mut ScriptParser, raw: &str, number: usize) -> Result<Line
     })
 }
 
-/// Runs the visual mode (`--headless --visual`) and returns the process exit code; the transcript goes to `out`.
+/// Runs the visual mode (`--headless --visual`) and returns the process exit code; the transcript goes to `out`. The
+/// file dialogs answer with names in the working directory (the run's `work/`).
 pub fn run(
+    config: ShellConfig,
+    args: &HeadlessArgs,
+    stdin: &mut dyn BufRead,
+    out: &mut dyn Write,
+    err: &mut dyn Write,
+) -> i32 {
+    run_in_folder(config, args, PathBuf::new(), stdin, out, err)
+}
+
+/// [`run`] whose file dialogs answer with names in `base` (tests: never the crate's own folder).
+pub fn run_in_folder(
     mut config: ShellConfig,
     args: &HeadlessArgs,
+    base: PathBuf,
     stdin: &mut dyn BufRead,
     out: &mut dyn Write,
     err: &mut dyn Write,
@@ -1093,7 +1119,7 @@ pub fn run(
         config = ShellConfig::in_dir(dir, &config.app_version);
     }
     let frames_dir = if args.no_frames { None } else { args.frames.clone() };
-    let mut driver = match Driver::new(config.clone(), frames_dir) {
+    let mut driver = match Driver::in_folder(config.clone(), frames_dir, base) {
         Ok(d) => d,
         Err(message) => {
             let _ = writeln!(err, "error: {message}");

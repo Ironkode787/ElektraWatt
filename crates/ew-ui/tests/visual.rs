@@ -49,7 +49,8 @@ fn run(tmp: &Tmp, name: &str, lines: &[Value], frames: bool) -> (Vec<Value>, i32
     let mut err = Vec::new();
     let a = args(script, frames.then(|| dir.join("frames")));
     let config = ShellConfig::in_dir(&dir.join("config"), "0.0.0-test");
-    let code = visual::run(config, &a, &mut std::io::empty(), &mut out, &mut err);
+    // The dialogs answer inside the run's folder, never in the crate's (the test's working directory).
+    let code = visual::run_in_folder(config, &a, dir.clone(), &mut std::io::empty(), &mut out, &mut err);
     let transcript = String::from_utf8(out)
         .unwrap()
         .lines()
@@ -179,7 +180,16 @@ fn bv2_the_inputs_check_their_members_and_bounds() {
         json!({"frame": "t0001-z1.png", "settle": false, "zoom": [10, 20, 768, 497]}),
     ))
     .unwrap();
-    assert_eq!((f.settle, f.zoom), (false, Some([10, 20, 768, 497])));
+    assert_eq!(
+        (f.settle, f.zoom, f.paint),
+        (false, Some([10, 20, 768, 497]), true)
+    );
+    assert!(
+        !parse_frame(&obj(json!({"frame": "t1.png", "paint": false})))
+            .unwrap()
+            .paint
+    );
+    assert!(parse_frame(&obj(json!({"frame": "t1.png", "paint": 0}))).is_err());
     assert!(parse_frame(&obj(json!({"frame": "../x.png"}))).is_err());
     assert!(parse_frame(&obj(json!({"frame": "t1.png", "zoom": [0, 0, 769, 10]}))).is_err());
     assert!(parse_frame(&obj(json!({"frame": "t1.png", "zoom": [1000, 0, 768, 10]}))).is_err());
@@ -423,4 +433,29 @@ fn the_application_closes_and_later_lines_say_so() {
     assert_eq!(t[4]["dispatched"], json!([]));
     assert_eq!(t[5]["closed"], true);
     assert_eq!(t[6]["outcome"], "done", "the epilogue's shell: {:?}", t[6]);
+}
+
+/// The harness (xtask, which has no edge to this crate) checks a chord against its own copy of the key names; every
+/// name of that copy must be a key here, alone and after modifiers.
+#[test]
+fn the_harness_key_names_are_keys() {
+    let source = std::fs::read_to_string(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../xtask/src/blind/visual.rs"),
+    )
+    .unwrap();
+    let start = source.find("pub const KEY_NAMES").unwrap();
+    let body = &source[start..start + source[start..].find("];").unwrap()];
+    let body = &body[body.find("= &[").unwrap() + 4..];
+    let names: Vec<&str> = body
+        .split("\",")
+        .map(|n| n.trim().trim_matches('"'))
+        .filter(|n| !n.is_empty())
+        .collect();
+    assert!(names.len() > 80, "{names:?}");
+    for name in &names {
+        let (k, _) = parse_chord(name).unwrap_or_else(|e| panic!("`{name}`: {e}"));
+        assert!(k.is_some(), "`{name}` is a key");
+        let (k, m) = parse_chord(&format!("ctrl+shift+{name}")).unwrap_or_else(|e| panic!("`{name}`: {e}"));
+        assert!(k.is_some() && m.ctrl && m.shift, "`ctrl+shift+{name}`");
+    }
 }
