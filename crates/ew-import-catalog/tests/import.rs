@@ -709,6 +709,57 @@ fn an_entry_that_inflates_beyond_its_declared_size_is_refused() {
     );
 }
 
+/// Review C35 M1: a shared string is copied into every cell that names it. A workbook of about 2 KB (one 1 MB
+/// shared string named by 1,000 cells) once parsed to a gigabyte of cells; the cells' text is now bounded by a
+/// multiple (8) of the unpacked sheet and shared-strings size, so it is refused within the hostile-input budget
+/// (doc 14 §11: 256 MB extra allocation). A real list repeating its texts through shared strings still reads.
+#[test]
+fn a_shared_string_named_by_many_cells_is_refused_within_the_memory_budget() {
+    let long = "A".repeat(1_000_000);
+    let mut sheet = String::from(
+        r#"<worksheet><sheetData><row r="1"><c t="inlineStr"><is><t>part_number</t></is></c></row>"#,
+    );
+    sheet += r#"<row r="2">"#;
+    sheet += &r#"<c t="s"><v>0</v></c>"#.repeat(1_000);
+    sheet += "</row></sheetData></worksheet>";
+    let files = [
+        (
+            "_rels/.rels",
+            r#"<Relationships><Relationship Id="r1" Type="x/officeDocument" Target="xl/workbook.xml"/></Relationships>"#
+                .to_owned(),
+        ),
+        (
+            "xl/workbook.xml",
+            r#"<workbook xmlns:r="r"><sheets><sheet name="S" r:id="rId1"/></sheets></workbook>"#.to_owned(),
+        ),
+        (
+            "xl/_rels/workbook.xml.rels",
+            r#"<Relationships><Relationship Id="rId1" Type="x/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="x/sharedStrings" Target="sharedStrings.xml"/></Relationships>"#
+                .to_owned(),
+        ),
+        ("xl/worksheets/sheet1.xml", sheet),
+        ("xl/sharedStrings.xml", format!("<sst><si><t>{long}</t></si></sst>")),
+    ];
+    let bomb = zip_with(&files, true, &|_, size| size);
+    assert!(bomb.len() < 8 * 1024, "{} bytes packed", bomb.len());
+    // The workspace forbids `unsafe`, so no counting allocator measures the parse; the bound is the budget itself:
+    // the cells may hold at most eight times the ~1 MB unpacked, far under the 256 MB rule.
+    let err = import_bytes("bomb.xlsx", bomb, &target()).unwrap_err();
+    assert!(
+        matches!(&err, ImportError::LimitExceeded { what, limit } if what == "cell text size" && *limit < 16 << 20),
+        "{err}"
+    );
+
+    // Shared strings repeated as a real list repeats its manufacturers and descriptions read as before.
+    let rows = list_rows();
+    let mut many = rows.clone();
+    for _ in 0..50 {
+        many.extend(rows[1..].iter().cloned());
+    }
+    let book = xlsx_with(&[("Teile", many)], true, true, &|_, size| size);
+    assert!(import_bytes("liste.xlsx", book, &target()).is_ok());
+}
+
 /// A named sheet is read; a missing one refuses the file.
 #[test]
 fn a_named_sheet_is_read_and_a_missing_one_refuses_the_file() {

@@ -13,7 +13,10 @@
 //! **The XML** (quick-xml, streamed): `_rels/.rels` names the workbook, the workbook's relationships its sheets and
 //! shared strings. The shared-strings table is bounded by the loader limits: at most `max_xml_nodes` strings, each at
 //! most `max_text_bytes`, all together at most `max_input_bytes`. Elements nest at most `max_xml_depth` deep. Cells
-//! are streamed into the rows they name; at most [`MAX_COLUMNS`] columns and [`MAX_ROWS`] rows.
+//! are streamed into the rows they name; at most [`MAX_COLUMNS`] columns and [`MAX_ROWS`] rows. The cells' text
+//! together may not exceed [`CELL_TEXT_FACTOR`] times the unpacked size of the sheet and shared-strings parts, and
+//! never `max_input_bytes`: a shared string is copied into every cell that names it, so without this bound a
+//! workbook of a few kilobytes (one 1 MB string named by a thousand cells) would allocate a gigabyte.
 //!
 //! **Values.** A shared or inline string as it is (phonetic runs left out); a number in its shortest form (`2904602`,
 //! `2.5`; a date is its serial number, as number formats are not read); a boolean `TRUE` or `FALSE`; an error value
@@ -29,6 +32,12 @@ use crate::table::{Cell, MAX_COLUMNS, MAX_ROWS, malformed, too_many};
 
 /// The most entries of an XLSX workbook (the loader's file count, doc 05 §3.6).
 const MAX_ZIP_ENTRIES: usize = 100_000;
+
+/// The most text the cells of a sheet may hold, as a multiple of the unpacked size of the sheet and shared-strings
+/// parts (and never above `limits.max_input_bytes`). A shared-string reference costs at least about 20 bytes of sheet
+/// XML, so a real catalogue repeating its longer texts stays far below; a workbook amplifying one long string through
+/// many references is refused.
+pub(crate) const CELL_TEXT_FACTOR: u64 = 8;
 
 /// The relationship types the reader follows (their last path segment).
 const OFFICE_DOCUMENT: &str = "/officeDocument";
@@ -485,16 +494,21 @@ pub(crate) fn read(
         .values()
         .find(|(_, kind)| kind.ends_with(SHARED_STRINGS))
         .map(|(t, _)| t.clone());
-    let strings = match strings_path {
+    let (strings, strings_size) = match strings_path {
         Some(p) => match book.text(&p, limits)? {
-            Some(xml) => shared_strings(&xml, limits)?,
-            None => Vec::new(),
+            Some(xml) => (shared_strings(&xml, limits)?, xml.len() as u64),
+            None => (Vec::new(), 0),
         },
-        None => Vec::new(),
+        None => (Vec::new(), 0),
     };
     let xml = book
         .text(&path, limits)?
         .ok_or_else(|| unreadable(format!("no sheet part {path}")))?;
+    let text_budget = (xml.len() as u64)
+        .saturating_add(strings_size)
+        .saturating_mul(CELL_TEXT_FACTOR)
+        .min(limits.max_input_bytes);
+    let mut text_total = 0u64;
 
     let mut grid: BTreeMap<u32, BTreeMap<usize, Cell>> = BTreeMap::new();
     let (mut row, mut next_column) = (0u32, 0usize);
@@ -541,6 +555,16 @@ pub(crate) fn read(
                 b"c" => {
                     if let Some(c) = cell.take() {
                         let value = display(&c.kind, &c.value, &c.inline, &strings)?;
+                        let size = match &value {
+                            Cell::Text(t) | Cell::Error(t) => t.len() as u64,
+                        };
+                        text_total = text_total.saturating_add(size);
+                        if text_total > text_budget {
+                            return Err(ImportError::LimitExceeded {
+                                what: "cell text size".into(),
+                                limit: text_budget,
+                            });
+                        }
                         if value != Cell::Text(String::new()) {
                             if !grid.contains_key(&row) && grid.len() > MAX_ROWS {
                                 return Err(too_many("row count", MAX_ROWS));
