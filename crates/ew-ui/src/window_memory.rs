@@ -32,16 +32,24 @@
 //! **The clamp at start** (FT-526). eframe 0.37 without its `persistence` feature knows no monitor before the window
 //! opens, so the builder gets the saved geometry with the size bounds of [`ew_viewmodel::window::restore`] only (and
 //! eframe's own clamp of the size to the largest monitor). On the first frame the executable reads the monitors from
-//! eframe's winit window and [`first_frame_position`] moves the window to its saved position and runs the same pure
-//! clamp ([`placement`]) there: a window whose title bar is on no monitor (its monitor gone) moves onto the primary
-//! one. A window restored maximised is left where the system maximised it.
+//! eframe's winit window and [`first_frame`] moves the window to its saved position and runs the same pure clamp
+//! ([`placement`]) there: a window whose title bar is on no monitor (its monitor gone) moves onto the primary one.
+//!
+//! **A window restored maximised** (R3-1) is built un-maximised and maximised on the first frame, after the move: had
+//! the builder maximised it, the system would keep its normal rectangle where the builder's first guess put it,
+//! uncorrected and unclamped, and un-maximising would send it there (off the panel at a monitor scale above 100 %).
+//! The first frame's commands (`OuterPosition`, then `Maximized`) are applied in that order in one frame: egui-winit
+//! processes a frame's viewport commands in the order they were sent. eframe shows the window at the end of the first
+//! frame's paint, just before it applies that frame's commands, so the window may show for one frame at the builder's
+//! guess before it moves (a cosmetic flash; eframe 0.37 offers no hook before the first show).
 
 use egui::{ViewportBuilder, ViewportInfo};
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::window::{self, MonitorArea, WindowGeometry};
 
-/// The window builder `builder` with the saved geometry `saved` restored: its size, its maximised state and its
-/// position as a first guess (the saved pixels taken as points; the first frame puts the window at the saved pixels).
+/// The window builder `builder` with the saved geometry `saved` restored: its size and its position as a first guess
+/// (the saved pixels taken as points); never maximised, even when the saved state is: [`first_frame`] places the
+/// window and then maximises it (R3-1).
 pub fn restore(builder: ViewportBuilder, saved: Option<WindowGeometry>) -> ViewportBuilder {
     let Some(g) = saved.map(|g| window::restore(g, &[])) else {
         return builder;
@@ -49,7 +57,45 @@ pub fn restore(builder: ViewportBuilder, saved: Option<WindowGeometry>) -> Viewp
     builder
         .with_inner_size([g.width, g.height])
         .with_position([g.x, g.y])
-        .with_maximized(g.maximized)
+}
+
+/// One step of the first frame, in the order they are sent.
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum FirstFrameStep {
+    /// `ViewportCommand::OuterPosition` to this position, in points at the frame's zoom.
+    MoveTo(egui::Pos2),
+    /// `ViewportCommand::Maximized(true)`.
+    Maximize,
+}
+
+/// The first frame's steps (FT-526, R3-1): the move of [`first_frame_position`] when the window's position is known
+/// (`outer_px`; Wayland reports none) and the window must move, then the maximise when the saved state is maximised.
+/// The arguments are those of [`first_frame_position`], with the whole saved geometry.
+pub fn first_frame(
+    saved: Option<WindowGeometry>,
+    outer_px: Option<(f32, f32)>,
+    inner_px: (f32, f32),
+    monitors_px: &[(MonitorArea, bool)],
+    scale: f32,
+    zoom: f32,
+) -> Vec<FirstFrameStep> {
+    let mut steps = Vec::new();
+    if let Some(to) = outer_px.and_then(|outer| {
+        first_frame_position(
+            saved.map(|g| (g.x, g.y)),
+            outer,
+            inner_px,
+            monitors_px,
+            scale,
+            zoom,
+        )
+    }) {
+        steps.push(FirstFrameStep::MoveTo(to));
+    }
+    if saved.is_some_and(|g| g.maximized) {
+        steps.push(FirstFrameStep::Maximize);
+    }
+    steps
 }
 
 /// Where a window that opened with its outer top-left corner at `at` and the inner size `size` moves to so that it
@@ -427,6 +473,44 @@ mod tests {
         );
     }
 
+    /// R3-1: a window saved maximised on a single 150 % panel (3840 × 2160 px) with its normal corner at (2700, 100) px
+    /// opens un-maximised from the builder's guess (2700 points → 4050 px, off the panel); the first frame moves it to
+    /// its saved normal place and then maximises it. Saved un-maximised it only moves; at its place and maximised it
+    /// only maximises; without a known position (Wayland) a maximised window is still maximised.
+    #[test]
+    fn dk6_a_window_saved_maximised_is_placed_then_maximised() {
+        let monitors = desk(&[(0.0, 0.0, 3840.0, 2160.0, true)]);
+        let (scale, zoom) = (1.5, 1.0);
+        let saved = WindowGeometry {
+            x: 2700.0,
+            y: 100.0,
+            width: 1280.0,
+            height: 800.0,
+            maximized: true,
+        };
+        let b = restore(ViewportBuilder::default(), Some(saved));
+        assert_eq!(b.maximized, None, "built un-maximised");
+        let guess = b.position.unwrap();
+        let opened = (guess.x * scale, guess.y * scale);
+        let inner = (1280.0 * scale, 800.0 * scale);
+        let steps = first_frame(Some(saved), Some(opened), inner, &monitors, scale, zoom);
+        let [FirstFrameStep::MoveTo(to), FirstFrameStep::Maximize] = steps[..] else {
+            panic!("move, then maximise: {steps:?}");
+        };
+        assert_eq!((to.x * zoom * scale, to.y * zoom * scale), (2700.0, 100.0));
+        let normal = WindowGeometry {
+            maximized: false,
+            ..saved
+        };
+        let steps = first_frame(Some(normal), Some(opened), inner, &monitors, scale, zoom);
+        assert!(matches!(steps[..], [FirstFrameStep::MoveTo(_)]), "{steps:?}");
+        let steps = first_frame(Some(saved), Some((2700.0, 100.0)), inner, &monitors, scale, zoom);
+        assert_eq!(steps, [FirstFrameStep::Maximize]);
+        let steps = first_frame(Some(saved), None, inner, &monitors, scale, zoom);
+        assert_eq!(steps, [FirstFrameStep::Maximize]);
+        assert!(first_frame(None, Some(opened), inner, &[], scale, zoom).is_empty());
+    }
+
     /// DK6: the builder takes the saved geometry, the size raised to the minimum; without one it is unchanged.
     #[test]
     fn dk6_the_builder_restores_the_saved_geometry() {
@@ -440,7 +524,7 @@ mod tests {
         let b = restore(ViewportBuilder::default(), Some(saved));
         assert_eq!(b.inner_size, Some(vec2(640.0, 900.0)));
         assert_eq!(b.position, Some(pos2(-300.0, 20.0)));
-        assert_eq!(b.maximized, Some(true));
+        assert_eq!(b.maximized, None, "maximised on the first frame (R3-1)");
         let none = restore(ViewportBuilder::default().with_inner_size([1280.0, 800.0]), None);
         assert_eq!(none.inner_size, Some(vec2(1280.0, 800.0)));
         assert_eq!(none.position, None);

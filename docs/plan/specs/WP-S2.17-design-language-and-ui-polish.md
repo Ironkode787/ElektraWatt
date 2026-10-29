@@ -456,7 +456,8 @@ and colours), `history.rs` (DK11's state icons and undone tone) and `window_memo
   saved in points at the zoom 1 (the review's R1-1: egui's reported points times the UI scale) and the position in
   physical pixels (R2-1: a logical position drifted on a desktop whose monitors have different scales); the builder
   takes the position only as a first guess, and the first frame moves the window to the saved pixels and clamps it
-  there. On exit only
+  there; a window saved maximised is built un-maximised, placed, then maximised on that frame, so its normal
+  rectangle is the saved, clamped one (R3-1). On exit only
   `[window]` is merged into the settings file as it is on disk, and nothing is written when it is unchanged, so a
   second instance's settings stay (R1-5); members of `[window]` this version does not know are kept (R1-6).
 

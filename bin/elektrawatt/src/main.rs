@@ -33,9 +33,10 @@ use eframe::egui;
 use ew_ui::app::{App, Pick, PickReply, Platform, setup, spawn_pick};
 use ew_ui::ew_viewmodel::shell::{Mode, Prompt, Resources, ShellConfig, ShellModel};
 use ew_ui::ew_viewmodel::strings;
-use ew_ui::ew_viewmodel::window::MonitorArea;
+use ew_ui::ew_viewmodel::window::{MonitorArea, WindowGeometry};
 use ew_ui::gpu::{Flags, adapter_count, wgpu_configuration};
 use ew_ui::headless::{self, HeadlessArgs, ScriptSource};
+use ew_ui::window_memory::FirstFrameStep;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -323,7 +324,7 @@ struct ShellApp(App, bool);
 impl eframe::App for ShellApp {
     fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
         if !self.1 {
-            let saved = self.0.shell().settings().window.map(|g| (g.x, g.y));
+            let saved = self.0.shell().settings().window;
             place_on_screen(ui.ctx(), frame, saved);
             self.1 = true;
         }
@@ -337,21 +338,20 @@ impl eframe::App for ShellApp {
     }
 }
 
-/// FT-526 (R1-4, R2-1): on the first frame the window goes to its saved outer position `saved` (physical pixels), and
-/// one whose position is on no monitor (its monitor gone) moves onto the primary monitor. This reads winit's physical
-/// values; the conversion and the clamp are the pure `ew_ui::window_memory::first_frame_position` (R2-2). A maximised,
-/// minimised or full-screen window, a window without a known position (Wayland) and a frame without a winit window
-/// are left alone.
-fn place_on_screen(ctx: &egui::Context, frame: &eframe::Frame, saved: Option<(f32, f32)>) {
+/// FT-526 (R1-4, R2-1, R3-1): on the first frame the window goes to the saved outer position of `saved` (physical
+/// pixels), one whose position is on no monitor (its monitor gone) moves onto the primary monitor, and a window saved
+/// maximised is maximised after the move (the builder never maximises it). This reads winit's physical values; the
+/// conversion, the clamp and the order of the steps are the pure `ew_ui::window_memory::first_frame`. A minimised or
+/// full-screen window and a frame without a winit window are left alone; a window without a known position (Wayland)
+/// is only maximised when it was.
+fn place_on_screen(ctx: &egui::Context, frame: &eframe::Frame, saved: Option<WindowGeometry>) {
     let Some(window) = frame.winit_window() else {
         return;
     };
-    if window.is_maximized() || window.is_minimized() == Some(true) || window.fullscreen().is_some() {
+    if window.is_minimized() == Some(true) || window.fullscreen().is_some() {
         return;
     }
-    let Ok(outer) = window.outer_position() else {
-        return;
-    };
+    let outer = window.outer_position().ok().map(|p| (p.x as f32, p.y as f32));
     let primary = window.primary_monitor();
     let monitors: Vec<(MonitorArea, bool)> = window
         .available_monitors()
@@ -367,15 +367,20 @@ fn place_on_screen(ctx: &egui::Context, frame: &eframe::Frame, saved: Option<(f3
         })
         .collect();
     let inner = window.inner_size();
-    if let Some(to) = ew_ui::window_memory::first_frame_position(
+    let steps = ew_ui::window_memory::first_frame(
         saved,
-        (outer.x as f32, outer.y as f32),
+        outer,
         (inner.width as f32, inner.height as f32),
         &monitors,
         window.scale_factor() as f32,
         ctx.zoom_factor(),
-    ) {
-        ctx.send_viewport_cmd(egui::ViewportCommand::OuterPosition(to));
+    );
+    // egui-winit applies a frame's commands in the order they were sent: the move, then the maximise.
+    for step in steps {
+        ctx.send_viewport_cmd(match step {
+            FirstFrameStep::MoveTo(to) => egui::ViewportCommand::OuterPosition(to),
+            FirstFrameStep::Maximize => egui::ViewportCommand::Maximized(true),
+        });
     }
 }
 
