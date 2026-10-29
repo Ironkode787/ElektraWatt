@@ -210,21 +210,8 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             });
             return;
         }
-        let pane = shell.preview_pane();
-        let summary = strings::format(
-            "preview-summary",
-            &[
-                &card
-                    .preview
-                    .result
-                    .as_ref()
-                    .map_or(0, |p| p.diff().len())
-                    .to_string(),
-                &pane.tags().len().to_string(),
-                &pane.xrefs().len().to_string(),
-                &pane.pages().len().to_string(),
-            ],
-        );
+        // FT-580: one summary line, shared with the text interface.
+        let summary = shell.preview_summary().unwrap_or_default();
         inset(ui, &mut |ui| {
             components::live_line(ui, &summary, false);
             if let CardOrigin::Import { created, skipped, .. } = &card.origin {

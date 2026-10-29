@@ -184,6 +184,15 @@ fn golden_b(mode: Mode) {
         ],
         "{section:#?}"
     );
+    // FT-580: the bulk card's one summary line, shared by the window's Preview tab and the text interface.
+    assert_eq!(
+        shell.preview_summary().as_deref(),
+        Some("8 records · 11 tags · 0 cross-reference texts · 1 pages")
+    );
+    assert_eq!(
+        ew_viewmodel::script::card_summary(&shell).as_deref(),
+        Some("Preview: numbering.renumber · 8 records · 11 tags · 0 cross-reference texts · 1 pages")
+    );
     let entities: Vec<&str> = section
         .iter()
         .filter(|l| l.starts_with("  entity "))

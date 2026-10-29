@@ -102,6 +102,23 @@ impl ShellModel {
         &self.preview
     }
 
+    /// The Preview tab's summary line of the open card (§8.1): its records, tags, cross-reference texts and pages
+    /// (`preview-summary`), or `None` without a card. The window paints it under the tab's header; the text interface
+    /// prints it for a bulk or table card, which has no inline card of its own (FT-580).
+    pub fn preview_summary(&self) -> Option<String> {
+        let card = self.props.card()?;
+        let records = card.preview.result.as_ref().map_or(0, |p| p.diff().len());
+        Some(strings::format(
+            "preview-summary",
+            &[
+                &records.to_string(),
+                &self.preview.tags().len().to_string(),
+                &self.preview.xrefs().len().to_string(),
+                &self.preview.pages().len().to_string(),
+            ],
+        ))
+    }
+
     /// Whether the Preview tab is in the layout.
     pub fn preview_shown(&self) -> bool {
         self.layout.panes().contains(&PaneKind::Preview)

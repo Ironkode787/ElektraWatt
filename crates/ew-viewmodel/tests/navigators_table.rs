@@ -503,6 +503,14 @@ fn tb4_an_ambiguous_number_is_resolved_on_the_card() {
     assert!(lines_with(&shell, "card ").iter().any(|l| l.ends_with(" table")));
     // WP-S2.09 part 3 (§8.1): the table card opens in the Preview tab like every origin; it stays the navigator's.
     assert!(shell.preview_shown());
+    // FT-580: the text prints the gesture's title and the Preview tab's summary line, as the window shows them.
+    let line = ew_viewmodel::script::card_summary(&shell).unwrap();
+    let title = shell.table_gesture().unwrap().title();
+    assert_eq!(line, format!("{title} · {}", shell.preview_summary().unwrap()));
+    assert!(
+        line.starts_with("Preview: ") && line.contains(" records · "),
+        "{line}"
+    );
     let m = failed(&mut shell, "navigator.apply", json!({}));
     assert_eq!(m, "1 cell is invalid or ambiguous; resolve or drop it first.");
     done(&mut shell, "table.resolve", json!({"cell": 2, "choice": 1}));

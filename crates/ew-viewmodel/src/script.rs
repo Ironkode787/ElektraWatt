@@ -830,8 +830,8 @@ pub fn renderer_word(shell: &ShellModel) -> &'static str {
 }
 
 /// The summary line of the open preview card as the window shows it (the card's own summary string), or `None`
-/// without a card: a failed card prints its failure; a card whose summary the window builds from a gesture (a bulk or
-/// table card) prints its counts with `card-fix`, prefixed by its command.
+/// without a card: a failed card prints its failure; a bulk or table card, which the window shows only in the Preview
+/// tab, prints that tab's title and summary line, `<title> · <summary>` (FT-580, [`ShellModel::preview_summary`]).
 pub fn card_summary(shell: &ShellModel) -> Option<String> {
     use crate::properties::CardOrigin;
     let card = shell.properties().card()?;
@@ -874,10 +874,14 @@ pub fn card_summary(shell: &ShellModel) -> Option<String> {
         CardOrigin::QuickFix { .. } => {
             strings::format("card-fix", &[&card.changes.to_string(), &tags, &xrefs])
         }
+        // FT-580: the Preview tab's title (a table card's gesture title) and its summary line, as the window shows them.
         CardOrigin::Bulk | CardOrigin::Table { .. } => format!(
-            "{}: {}",
-            card.preview.name,
-            strings::format("card-fix", &[&card.changes.to_string(), &tags, &xrefs])
+            "{} · {}",
+            shell.table_gesture().map_or_else(
+                || strings::format("preview-title", &[&card.preview.name]),
+                |g| g.title()
+            ),
+            shell.preview_summary().unwrap_or_default()
         ),
     })
 }
