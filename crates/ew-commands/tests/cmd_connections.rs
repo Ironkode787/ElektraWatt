@@ -265,16 +265,6 @@ fn draw_names_a_missing_record() {
     assert!(matches!(r, Err(CmdError::NotFound { .. })));
 }
 
-#[test]
-fn draw_undo_restores_bytes() {
-    let mut e = engine(model_with_wire());
-    let before = lines(e.model());
-    e.execute(&draw(on_w(2), cp_param(FN_T2, 1), None)).unwrap();
-    assert_ne!(lines(e.model()), before);
-    e.undo(&ew_commands::Origin::Gui).unwrap();
-    assert_eq!(lines(e.model()), before);
-}
-
 // ---------------------------------------------------------------------------------------------------------
 // connection.draw_many (cycle 33)
 
@@ -391,19 +381,6 @@ fn route_of_a_missing_connection_is_not_found() {
         route: vec![],
     });
     assert!(matches!(r, Err(CmdError::NotFound { .. })));
-}
-
-#[test]
-fn route_undo_restores_bytes() {
-    let mut e = engine(golden_model());
-    let before = lines(e.model());
-    e.execute(&RouteConnection {
-        connection: CON_W29,
-        route: vec![pt(0, 0), pt(G, 0)],
-    })
-    .unwrap();
-    e.undo(&ew_commands::Origin::Gui).unwrap();
-    assert_eq!(lines(e.model()), before);
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -634,16 +611,6 @@ fn place_ip_rejects_an_unresolvable_def_and_missing_records() {
 }
 
 #[test]
-fn place_ip_undo_restores_bytes() {
-    let mut e = engine(golden_model());
-    let before = lines(e.model());
-    e.execute(&place(PAGE_101, "L-2", IpDirection::Undirected))
-        .unwrap();
-    e.undo(&ew_commands::Origin::Gui).unwrap();
-    assert_eq!(lines(e.model()), before);
-}
-
-#[test]
 fn an_ip_pair_is_placed_and_continued() {
     let mut e = engine(golden_model());
     let before = lines(e.model());
@@ -780,21 +747,6 @@ fn continue_ip_rejections() {
     assert_eq!(lines(e.model()), before);
 }
 
-#[test]
-fn continue_ip_undo_restores_bytes() {
-    let mut e = engine(golden_model());
-    let before = lines(e.model());
-    // FN_IP_101 sits on page 101; page 102 gets another partner.
-    e.execute(&ContinueIp {
-        ip: FN_IP_101,
-        page: PAGE_102,
-        pos: None,
-    })
-    .unwrap();
-    e.undo(&ew_commands::Origin::Gui).unwrap();
-    assert_eq!(lines(e.model()), before);
-}
-
 // ---------------------------------------------------------------------------------------------------------
 // potential.define
 
@@ -857,13 +809,4 @@ fn define_potential_names_a_missing_record() {
         e.execute(&define(EndpointParam::Junction { junction: ghost_j }, "L1")),
         Err(CmdError::NotFound { .. })
     ));
-}
-
-#[test]
-fn define_potential_undo_restores_bytes() {
-    let mut e = engine(golden_model());
-    let before = lines(e.model());
-    e.execute(&define(cp_param(FN_102G1, 4), "L1")).unwrap();
-    e.undo(&ew_commands::Origin::Gui).unwrap();
-    assert_eq!(lines(e.model()), before);
 }

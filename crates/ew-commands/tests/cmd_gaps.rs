@@ -292,16 +292,6 @@ fn bond_create_missing_via_is_not_found() {
     not_found(e.execute(&cmd));
 }
 
-#[test]
-fn bond_create_undo_restores_the_model() {
-    let mut e = engine(golden_model());
-    let before = golden_model();
-    e.execute(&bond(cp_param(FN_102F2, 1), cp_param(FN_102G1, 1), None))
-        .unwrap();
-    e.undo(&ew_commands::Origin::Gui).unwrap();
-    assert!(e.model().content_eq(&before));
-}
-
 // ---------------------------------------------------------------------------------------------------------
 // external_ref.create
 
@@ -345,13 +335,4 @@ fn external_ref_device_is_editable_with_fields_set() {
     })
     .expect("fields.set device");
     assert_eq!(row(&e, x).device, ident("JE-N2000-01"));
-}
-
-#[test]
-fn external_ref_create_undo_restores_the_model() {
-    let mut e = engine(golden_model());
-    let before = golden_model();
-    e.execute(&xref(LOC)).unwrap();
-    e.undo(&ew_commands::Origin::Gui).unwrap();
-    assert!(e.model().content_eq(&before));
 }

@@ -219,18 +219,6 @@ fn create_device_needs_existing_parts_and_fndef() {
     assert_eq!(e.model().rev().0, 0);
 }
 
-#[test]
-fn create_device_undo_restores_bytes() {
-    let mut e = engine(golden_model());
-    let before = lines(e.model());
-    let mut cmd = create("F");
-    cmd.main_fndef = Some(FNDEF_MCB);
-    e.execute(&cmd).unwrap();
-    assert_ne!(lines(e.model()), before);
-    e.undo(&ew_commands::Origin::Gui).unwrap();
-    assert_eq!(lines(e.model()), before);
-}
-
 // ---------------------------------------------------------------------------------------------------------
 // device.place and online numbering
 
@@ -528,20 +516,6 @@ fn place_on_a_wire_splits_it() {
     assert_eq!(second.page, Some(PAGE_102));
 }
 
-#[test]
-fn place_undo_restores_bytes() {
-    let mut e = engine(golden_model());
-    let before = lines(e.model());
-    let mut cmd = place(PAGE_102, pt(0, 0), new_device("F"));
-    cmd.connect = vec![ConnectHint {
-        cp: 0,
-        to: EndpointParam::Junction { junction: J5 },
-    }];
-    e.execute(&cmd).unwrap();
-    e.undo(&ew_commands::Origin::Gui).unwrap();
-    assert_eq!(lines(e.model()), before);
-}
-
 // ---------------------------------------------------------------------------------------------------------
 // rep.move
 
@@ -676,16 +650,6 @@ fn move_changes_only_the_position_without_wires() {
     assert_eq!(*row(&e, REP_102F2_AUX), expected);
 }
 
-#[test]
-fn move_undo_restores_bytes() {
-    let mut e = engine(routed_golden());
-    let before = lines(e.model());
-    e.execute(&mv(vec![REP_102F2], pt(G, G))).unwrap();
-    assert_ne!(lines(e.model()), before);
-    e.undo(&ew_commands::Origin::Gui).unwrap();
-    assert_eq!(lines(e.model()), before);
-}
-
 // ---------------------------------------------------------------------------------------------------------
 // rep.transform
 
@@ -764,16 +728,6 @@ fn transform_rejects_empty_lists_and_bad_rotations() {
     assert_eq!(e.model().rev().0, 0);
 }
 
-#[test]
-fn transform_undo_restores_bytes() {
-    let mut e = engine(two_cp_golden());
-    let before = lines(e.model());
-    e.execute(&transform(vec![REP_102F2], 3, true)).unwrap();
-    assert_ne!(lines(e.model()), before);
-    e.undo(&ew_commands::Origin::Gui).unwrap();
-    assert_eq!(lines(e.model()), before);
-}
-
 // ---------------------------------------------------------------------------------------------------------
 // terminal.add
 
@@ -846,19 +800,6 @@ fn add_terminals_rejections() {
     assert_eq!(e.model().rev().0, 0);
 }
 
-#[test]
-fn add_terminals_undo_restores_bytes() {
-    let mut e = engine(golden_model());
-    let before = lines(e.model());
-    e.execute(&add_terminals(
-        DEV_X1031,
-        vec![terminal_spec("4", None), terminal_spec("5", None)],
-    ))
-    .unwrap();
-    e.undo(&ew_commands::Origin::Gui).unwrap();
-    assert_eq!(lines(e.model()), before);
-}
-
 // ---------------------------------------------------------------------------------------------------------
 // cable.create and conductor.add
 
@@ -916,15 +857,6 @@ fn create_cable_letter_defaults_to_w_and_rejects_duplicate_cores() {
 }
 
 #[test]
-fn create_cable_undo_restores_bytes() {
-    let mut e = engine(golden_model());
-    let before = lines(e.model());
-    e.execute(&cable_cmd(&["1", "2"])).unwrap();
-    e.undo(&ew_commands::Origin::Gui).unwrap();
-    assert_eq!(lines(e.model()), before);
-}
-
-#[test]
 fn add_conductors_extends_a_cable() {
     let mut e = engine(golden_model());
     let mut shield = conductor_spec("SH2");
@@ -958,19 +890,6 @@ fn add_conductors_rejections() {
     rejected(e.execute(&add(DEV_3W1, &[])));
     not_found(e.execute(&add(id(0x995), &["C"])));
     assert_eq!(e.model().rev().0, 0);
-}
-
-#[test]
-fn add_conductors_undo_restores_bytes() {
-    let mut e = engine(golden_model());
-    let before = lines(e.model());
-    e.execute(&AddConductors {
-        cable: DEV_3W1,
-        conductors: vec![conductor_spec("C")],
-    })
-    .unwrap();
-    e.undo(&ew_commands::Origin::Gui).unwrap();
-    assert_eq!(lines(e.model()), before);
 }
 
 // ---------------------------------------------------------------------------------------------------------

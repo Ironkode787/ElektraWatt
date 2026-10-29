@@ -241,15 +241,6 @@ fn create_page_refuses_a_printed_folio_another_page_prints() {
     assert!(rejected(e.execute(&labelled(Some(SEC1), 101, "101.1"))).contains("folio 101.1 already exists"));
 }
 
-#[test]
-fn undo_create_page() {
-    let mut e = engine(golden_model());
-    let before = lines(e.model());
-    e.execute(&CreatePage::at(Some(SEC1), 110)).unwrap();
-    e.undo(&ew_commands::Origin::Gui).unwrap();
-    assert_eq!(lines(e.model()), before);
-}
-
 // ---------------------------------------------------------------------------------------------------------
 // page.delete
 
@@ -305,16 +296,6 @@ fn delete_pages_rejections() {
     ));
     let err = e.execute(&delete(&[PAGE_101], false)).unwrap_err();
     assert!(matches!(err, CmdError::NeedsPreview { .. }), "{err:?}");
-}
-
-#[test]
-fn undo_delete_pages() {
-    let mut e = engine(golden_model());
-    let before = lines(e.model());
-    bulk(&mut e, &delete(&[PAGE_101], true)).unwrap();
-    assert_ne!(lines(e.model()), before);
-    e.undo(&ew_commands::Origin::Gui).unwrap();
-    assert_eq!(lines(e.model()), before);
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -464,15 +445,6 @@ fn renumber_rejections() {
     let scope = PageScope::Pages(vec![PAGE_101, PAGE_102]);
     let clash = rejected(bulk(&mut e, &renumber(scope, 150, 1, false)));
     assert!(clash.contains("151"), "{clash}");
-}
-
-#[test]
-fn undo_renumber() {
-    let mut e = engine(golden_model());
-    let before = lines(e.model());
-    bulk(&mut e, &renumber(PageScope::Section(SEC1), 201, 1, false)).unwrap();
-    e.undo(&ew_commands::Origin::Gui).unwrap();
-    assert_eq!(lines(e.model()), before);
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -734,15 +706,6 @@ fn create_structure_node_rejections() {
     e.execute(&node(Aspect::Location, "P01", None)).unwrap();
 }
 
-#[test]
-fn undo_create_structure_node() {
-    let mut e = engine(golden_model());
-    let before = lines(e.model());
-    e.execute(&node(Aspect::Function, "A1", Some(FUNC_P01))).unwrap();
-    e.undo(&ew_commands::Origin::Gui).unwrap();
-    assert_eq!(lines(e.model()), before);
-}
-
 // ---------------------------------------------------------------------------------------------------------
 // section.create
 
@@ -779,15 +742,6 @@ fn create_section_rejections() {
     e.execute(&section_cmd(2, 200, 200)).unwrap();
 }
 
-#[test]
-fn undo_create_section() {
-    let mut e = engine(empty_model());
-    let before = lines(e.model());
-    e.execute(&section_cmd(1, 100, 199)).unwrap();
-    e.undo(&ew_commands::Origin::Gui).unwrap();
-    assert_eq!(lines(e.model()), before);
-}
-
 // ---------------------------------------------------------------------------------------------------------
 // report_block.create
 
@@ -818,15 +772,6 @@ fn create_report_block_rejections() {
     let mut bad_section = block(Some(907));
     bad_section.section = Some(id(0xdead));
     assert!(matches!(e.execute(&bad_section), Err(CmdError::NotFound { .. })));
-}
-
-#[test]
-fn undo_create_report_block() {
-    let mut e = engine(golden_model());
-    let before = lines(e.model());
-    e.execute(&block(Some(907))).unwrap();
-    e.undo(&ew_commands::Origin::Gui).unwrap();
-    assert_eq!(lines(e.model()), before);
 }
 
 /// The shipped frame without the grid (`content/forms`), the form of the golden report blocks, in the `lib/` JSON

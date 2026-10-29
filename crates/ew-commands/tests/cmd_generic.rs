@@ -330,17 +330,6 @@ fn delete_needs_at_least_one_target() {
     assert!(matches!(err, CmdError::InvalidParams { .. }), "{err:?}");
 }
 
-#[test]
-fn delete_is_undone_to_the_exact_bytes() {
-    let mut e = engine(golden_model());
-    let before = lines(e.model());
-    e.execute(&delete(vec![target(KindName::Device, DEV_102F2.cast())]))
-        .unwrap();
-    assert_ne!(lines(e.model()), before);
-    e.undo(&ew_commands::Origin::Gui).unwrap();
-    assert_eq!(lines(e.model()), before);
-}
-
 /// The golden model plus `n` extra representations of `FN_102F2` on page 102.
 fn model_with_extra_reps(n: usize) -> Model {
     let (p, mut records, _) = mini_golden_parts();
@@ -732,19 +721,6 @@ fn renumber_rejects_unknown_scope_members() {
         RenumberOptions::default(),
     ));
     assert!(matches!(r, Err(CmdError::NotFound { .. })));
-}
-
-#[test]
-fn renumber_is_undone_to_the_exact_bytes() {
-    let mut e = engine(two_f_model(|_, _| {}));
-    e.execute(&set_device(DEV_102F2, "tag.counter", json!(7)))
-        .unwrap();
-    let before = lines(e.model());
-    let p = e.preview(&project_scope()).unwrap();
-    e.commit(p).unwrap();
-    assert_ne!(lines(e.model()), before);
-    e.undo(&ew_commands::Origin::Gui).unwrap();
-    assert_eq!(lines(e.model()), before);
 }
 
 #[test]

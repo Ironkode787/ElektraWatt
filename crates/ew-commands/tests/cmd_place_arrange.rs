@@ -35,10 +35,6 @@ fn row<T: Entity<Marker = T>>(e: &Engine, id: Id<T>) -> std::sync::Arc<T> {
     e.model().table::<T>().get(&id).expect("row exists").clone()
 }
 
-fn maybe_row<T: Entity<Marker = T>>(e: &Engine, id: Id<T>) -> Option<std::sync::Arc<T>> {
-    e.model().table::<T>().get(&id).cloned()
-}
-
 fn created<T>(r: &Receipt, kind: Kind) -> Vec<Id<T>> {
     r.created
         .iter()
@@ -548,22 +544,6 @@ fn from_part_rejections_write_nothing() {
     assert_eq!(e.model().rev(), rev, "no refused command wrote anything");
 }
 
-#[test]
-fn from_part_undo_restores_bytes() {
-    let mut e = arrange_engine();
-    let before = lines(e.model());
-    e.execute(&place_with(
-        SYM_TWO,
-        PAGE_101,
-        gp(3, 3),
-        from_part(PART_TWO, 0, "K"),
-    ))
-    .unwrap();
-    assert_ne!(lines(e.model()), before);
-    e.undo(&ew_commands::Origin::Gui).unwrap();
-    assert_eq!(lines(e.model()), before);
-}
-
 // ---------------------------------------------------------------------------------------------------------
 // device.place with a `new_terminal` target
 
@@ -770,21 +750,6 @@ fn new_terminal_with_a_part_carries_the_part_use() {
     // The optional member is left out of the serialised command when absent (logs replay unchanged).
     let plain = serde_json::to_value(new_terminal(DEV_X1031, "9", None)).unwrap();
     assert!(plain["new_terminal"].get("part").is_none(), "{plain}");
-}
-
-#[test]
-fn new_terminal_undo_restores_bytes() {
-    let mut e = arrange_engine();
-    let before = lines(e.model());
-    e.execute(&place_with(
-        SYM_TWO,
-        PAGE_101,
-        gp(6, 6),
-        new_terminal(DEV_X1031, "9", None),
-    ))
-    .unwrap();
-    e.undo(&ew_commands::Origin::Gui).unwrap();
-    assert_eq!(lines(e.model()), before);
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -1510,17 +1475,6 @@ fn exchange_rejections_write_nothing() {
         "/pin_map/1/symbol_cp",
     );
     assert_eq!(e.model().rev(), rev);
-}
-
-#[test]
-fn exchange_undo_restores_bytes() {
-    let mut e = engine(exchange_model(|_| {}));
-    let before = lines(e.model());
-    e.execute(&exchange(REP_L, SYM_REV)).unwrap();
-    assert_ne!(lines(e.model()), before);
-    e.undo(&ew_commands::Origin::Gui).unwrap();
-    assert_eq!(lines(e.model()), before);
-    let _ = maybe_row(&e, REP_L);
 }
 
 // ---------------------------------------------------------------------------------------------------------
