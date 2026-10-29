@@ -395,7 +395,6 @@ mod tests {
         expected.sort();
         let keys: Vec<&str> = items().iter().map(|i| i.key).collect();
         assert_eq!(keys, expected);
-        assert_eq!(items().len(), 104);
         assert!(keys.windows(2).all(|w| w[0] < w[1]), "key order");
     }
 

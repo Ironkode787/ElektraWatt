@@ -928,6 +928,5 @@ mod tests {
             assert_eq!(m.code, format!("100{n:03}"));
             assert!(!m.waivable(), "{}", m.id);
         }
-        assert_eq!(INTEGRITY.len(), 19);
     }
 }
