@@ -15,7 +15,7 @@ agent saves its own work) and quits.
 the recording `tools/blind/recordings/selftest/` and replays that recording twice. A change of the product that breaks
 the recording is repaired by running the self-test again in the same change.
 
-<!-- file: tools/blind/HELP.md sha256 02a8d131728790a8976fa4deaf145ef9bd9c37dd4fd8eeabef8eba93aca81c0f -->
+<!-- file: tools/blind/HELP.md sha256 4d14ea420172e86b28a997ce5b39fbe1bfb4a61227b96e1c323f579bb3b1c09e -->
 ---
 prompt: blind-help
 version: 5
@@ -92,6 +92,11 @@ Positions are millimetres on the page; a page has a frame of cells (rows A to H,
 Go to. These positions are the coordinates that `canvas.press` and `cursor.set` take. A `wire` line ends with `at X Y mm`: a
 press there selects that wire. You can also select a wire by its ends:
 `select.set refs='["wire:<one end> -> <other end>"]'`, with the ends as the page text prints them.
+
+A reference (an entry of `select.set refs`, or any parameter that takes one) is one of: a tag as the page prints it
+(`-101Q1`, or a terminal as `-X1031:5`, the tag and the terminal after a colon), the same with `tag:` in front
+(`tag:-101Q1`), `section:<number>`, `folio:<label>`, or an alias `@n`. A tag that more than one device prints is
+refused with a sentence that names the candidates; pick one of them.
 
 `look --page` describes the content of one page, in reading order (row A to H of the anchor cell, then column 0 to 16):
 the header gives the folio, the title and the counts (`reps` representations, `connections` drawn connections,
