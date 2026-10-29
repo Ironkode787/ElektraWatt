@@ -57,7 +57,10 @@ pub struct Carrier {
     pub b: EndpointKey,
 }
 
-/// `bond_carrier(potential)`: see the module documentation. Policy Memo; note-free.
+/// `bond_carrier(potential)`: see the module documentation. Policy Cold, note-free: only EW-POT-001 asks for it, and
+/// only on a potential whose member CPs carry both `M` and `PE`; the families it reads (partition, stitch graph, rail
+/// bonds, physical wires, wire numbers) are memoised themselves. (A `Memo` policy would add a family to the memo
+/// sweep of AC-16 and so change Golden A's acceptance report; WP-S1.16 part 1 keeps that report byte-equal.)
 #[derive(Debug)]
 pub struct BondCarrierQ;
 
@@ -65,7 +68,7 @@ impl Query for BondCarrierQ {
     type Key = PotentialId;
     type Value = Option<Carrier>;
     const FAMILY: &'static str = "bond_carrier";
-    const POLICY: Policy = Policy::Memo;
+    const POLICY: Policy = Policy::Cold;
 
     fn run(q: &Q, key: &PotentialId) -> Arc<Option<Carrier>> {
         Arc::new(carrier(q, *key))
