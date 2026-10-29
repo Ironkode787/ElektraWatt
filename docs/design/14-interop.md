@@ -1,6 +1,6 @@
 # Interoperability: import, export and migration
 
-**Status:** Draft v0.3 · **Date:** 2026-10-21 (v0.3: cycle-12 design pass: the grid-line nudge (§4.2), the migration scheme on imports (§2.5, §4.16), the importer detections still missing; v0.2: the QET project importer as built in cycle 11, decision log ID-273 to ID-284) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.3 · **Date:** 2026-10-21 (cycle-35 design pass 2026-10-29: the parts import as built, §1.2, decision log ID-824, ID-827; v0.3: cycle-12 design pass: the grid-line nudge (§4.2), the migration scheme on imports (§2.5, §4.16), the importer detections still missing; v0.2: the QET project importer as built in cycle 11, decision log ID-273 to ID-284) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) reads and writes foreign formats: the permissive
 importer and exporter contracts, the QElectroTech (QET) migration path in detail, EPLAN part and report data, DXF
@@ -72,6 +72,15 @@ C-15 `%f` versus `%F`).
 | BMEcat 2005, ETIM xChange, ECLASS XML | read | `ew-import-eplan` sibling module `catalogue` | 1.x | FR-PRT-020 (07) |
 | QET `.qet` 0.100 | write | `ew-export` | 1.x | FR-EXP-010 |
 | EPLAN-importable XML | write | — | Later | FR-EXP-011 |
+
+*As built (cycle 35, WP-S1.19 part 4; decision log ID-824, ID-827).* **The parts import** (row "Parts CSV/XLSX") is in
+`ew-import-catalog` behind `ew-interop-api`, which re-exports `ew_schema` and `ew_ids` so the importer keeps its one
+edge. It reads CSV (UTF-8 with or without a BOM, comma or semicolon from the header line, RFC 4180 quoting) and XLSX
+with an **own bounded reader** on `miniz_oxide` and `quick-xml`, not calamine, whose zip changed Golden A's PDF bytes
+through flate2's backend (ID-827; FT-652). A saved column map per source key turns rows into part copies with item IDs
+`v5(lineage(catalog, library), parts|<maker key>|<pn_norm>)` ([07](07-symbols-parts-macros.md) §3.6).
+`ew import parts --map` writes into a project, `ew lib import parts` (`--bump`, `--take-over`) into a user or company library; every row
+is reported with its line. The window's mapping card is FT-649, a CSV and XLSX fuzz arm FT-650.
 
 ### 1.3 Two kinds of import
 

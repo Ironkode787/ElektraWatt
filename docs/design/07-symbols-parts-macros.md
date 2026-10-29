@@ -1,6 +1,6 @@
 # Symbols, parts and macros
 
-**Status:** Draft v0.1 · **Date:** 2026-10-21 (2026-10-29, cycle-34 design pass, WP-S1.19 part 1 as built: the typed part members, manufacturer and macro copies, `MacroInstance`, `Project.basic_project` and `SYSTEM_LIBRARY`, §2.5, §2.7, §2.8, open question 17, decision log ID-334, ID-783; cycle-12 design pass: typed technical data in slot texts, the two appended symbol slots, decision log ID-314 and ID-315; cycle-11 design pass: symbol rulings for the pilot corpus, decision log ID-294 to ID-296; generated pole-count families, §3.2 rule 10) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-21 (2026-10-29, cycle-35 design pass, WP-S1.19 parts 2 to 4 and WP-S2.18 parts 2 and 3 as built: the generic starter parts in `ew-starter-parts`, the tiers and the index, `part.assign`, `library.update`, the parts import and the manufacturer copies, §2.1, §2.2, §3.1, §3.3, §3.6, §4.5, §4.7, §9.2, decision log ID-818, ID-820, ID-824, ID-830; 2026-10-29, cycle-34 design pass, WP-S1.19 part 1 as built: the typed part members, manufacturer and macro copies, `MacroInstance`, `Project.basic_project` and `SYSTEM_LIBRARY`, §2.5, §2.7, §2.8, open question 17, decision log ID-334, ID-783; cycle-12 design pass: typed technical data in slot texts, the two appended symbol slots, decision log ID-314 and ID-315; cycle-11 design pass: symbol rulings for the pilot corpus, decision log ID-294 to ID-296; generated pole-count families, §3.2 rule 10) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies ElektraWatt's (EW) master data: symbols and function definitions (FnDefs), the
 parts database, macros with value sets, basic projects (company templates), and the libraries and governance that
@@ -132,6 +132,20 @@ part's accessories, a macro's parts.
   `LibCopy<T>{id, library_id, item_id, version, sha256, item: T}` (`id` is the copy ID, typed `Id<T>`) with `item`
   flattened on write.
 
+*As built (cycle 35, WP-S2.18 parts 2 and 3; decision log ID-818, ID-830).* The system tier holds two compiled-in
+libraries: the starter (`ew-starter`: symbols, FnDefs, forms) and **`ew-starter-parts`**, the generic starter parts.
+`ew-starter-parts` (`content/libraries/ew-starter-parts.ewlib`, version 0.1.0, CC0-1.0) holds the manufacturer
+"Generic" and sixteen parts numbered `EW-GEN-<kind>-<n>`: a relay with four change-over contacts (RLY-1), a contactor
+with three main NO and the auxiliary NO 13-14 (CON-1), MCBs 1P and 1P+N (MCB-1, MCB-2), a fuse holder (FUS-1), a
+pushbutton (PB-1), a selector switch with two NO (SEL-1), a position switch (POS-1), a pilot lamp (LMP-1), a
+three-phase motor (MOT-1), a 230 V AC to 24 V DC power supply (PSU-1), a 5/2 solenoid valve (VLV-1), a feed-through and
+a PE terminal (TRM-1, TRM-2) and 8-channel digital input and output cards (DI-1, DO-1). Each carries its template
+functions on starter FnDefs, its CP pattern, contact data and the technical data the starter symbols print, and no
+order or catalogue data; item IDs are `v5(library, "<kind>:<key>")`. The directory is written by a test
+(`crates/ew-library/tests/starter_parts.rs`) with the library writer and compiled in, so every session holds it with
+or without configured tiers; a directory library of the same ID replaces the compiled-in copy. The relay and the
+contactor template their coil only and list their contacts as contact data (FT-655).
+
 ### 2.2 Library directory and index
 
 A library has the same on-disk form as a project. The same writer, manifest-last save, lock file and merge driver
@@ -162,6 +176,14 @@ library's manifest generation changes, and from scratch when it is missing or co
 
 ARCH §7.7 and the tier table of [05](05-project-format-and-persistence.md) §13.1 use the same form (Open
 question 1).
+
+*As built (cycle 35, WP-S1.19 part 2; decision log ID-818).* `ew-library` opens the four tiers (system: the
+compiled-in libraries of §2.1 and `content/libraries/*.ewlib`; community; company, from the settings' paths and a
+repeatable `--company`; user). The `.ewlib` reader applies the project loader's limits; the writer writes the shards
+first and `library.json` last; a library lock follows [05](05-project-format-and-persistence.md) §7.4: a live lock is
+`Locked`, a stale one `Stale`, taken over only on explicit confirmation. The per-user SQLite FTS5 index lives in the
+cache directory. A session opens the tiers at its first library use and falls back to the compiled-in libraries,
+saying why, when they cannot be opened. `ew lib list|search|index --rebuild|create` drive it from the command line.
 
 ### 2.3 Symbols
 
@@ -561,6 +583,14 @@ copied, because a basic project has no semantic version. Nothing writes it yet; 
 - Within a project a `LibRef{library, item, version_req}` resolves to the embedded copy of `(library, item)`.
   If that copy's version does not satisfy `version_req`, the embedding command stops and proposes "update from
   library" instead of embedding a second copy silently (§2.1, keeping two versions).
+- *As built (cycle 35, WP-S1.19 part 3 and WP-S2.18 part 2; decision log ID-820, ID-830).* `library.embed` takes the
+  copies themselves; `ew-api`'s `embed_command` builds them from library references with their closure.
+  `part.assign` carries the missing closure in its `copies` and embeds it in its own transaction, reusing a held copy
+  of the same hash. The tables
+  bootstrap and the parts import write one project-local manufacturer copy per manufacturer name, and part references
+  name it with no `key` (a legacy `key` is still read). A part chosen from a system library in the Parts row is one
+  `part.assign` that carries the closure; from the picker it is a `library.embed` before the placement, two undo steps
+  (FT-656).
 
 **Unused copies stay until purged.**
 - A copy whose last reference disappears is **not** deleted implicitly, so undo and basic-project palettes stay
@@ -680,6 +710,17 @@ preview shows:
 **Replace part** (FR-PRT-023) is `AssignPart` over a set of devices, as one previewed transaction. **Configured
 products** (FR-PRT-006) assign like parts; their components feed the component-mode BOM (FR-REP-005).
 
+*As built (cycle 35, WP-S1.19 part 3; decision log ID-820, ID-830).* The command is **`part.assign`** `{devices, part,
+copies?, mode?, from?, qty?}` with `mode` `append` (the default: a further part use), `replace_all` (the part becomes
+the devices' only use) or `replace` with `from` (each use of `from` swapped, its quantity kept); it is Interactive below
+50 devices and `Bulk` from 50. It carries the library documents it needs in `copies` and never reads a library, so it
+replays without one; it embeds what the project lacks, reuses a held copy of the same hash and refuses a held copy of another version ("update
+from library first"). A device's main part is the part use whose template provides the main function (rule 6,
+FT-208). The Properties Parts row sends `part.assign` (`replace_all`) when its new value is one use of a system
+library's part the project does not hold, else its own `fields.set`. Rules 2 and 3's matching is not changed by the
+command; the CP derivation finds a function's template entry by FnDef alone, so a part does not yet template several
+functions of one FnDef (FT-655).
+
 ### 3.4 Data quality levels
 
 The quality level is **derived, never stored** (FR-PRT-021). For each category a requirement profile (data, editable
@@ -743,6 +784,18 @@ company library**, never directly into a project. A project then picks the resul
 | EPLAN parts XML | 1.0 | `partsmanagement` with variants, function templates, free properties, accessory lists, `length-unit` (FR-IMP-028) | into a company library |
 | BMEcat 2005, ETIM xChange | 1.x | product identification, ETIM or ECLASS feature blocks (feature system name, class, feature name, value, unit), order and price details (element names to verify against the specification) | FR-PRT-020; prices go to L4 with source and as-of date |
 | DXF blocks | 1.0 | DXF-to-symbol wizard (FR-IMP-034); vendor DXF as 2D front outline or drilling pattern (FR-IMP-035) | CPs snap to the target library's connection grid (FR-IMP-034) |
+
+*As built (cycle 35, WP-S1.19 part 4; decision log ID-824, ID-827).* The CSV/XLSX row is built in
+`ew-import-catalog`: a column map (`member ← header`, saved as TOML per source key), a CSV reader (UTF-8 with or without
+a BOM, comma or semicolon from the header line, RFC 4180 quoting), an own bounded XLSX reader (no calamine, ID-827),
+and rows into part copies with item IDs `v5(lineage(catalog, library), parts|<maker key>|<pn_norm>)`, deduplicated on
+manufacturer and normalised part number; manufacturers resolve through the libraries' master list (every tier's,
+the starter parts' "Generic" included), an alias reported EW-IMP-007, an unknown name EW-IMP-005, "A / B" split into two
+flagged candidates, unmapped columns EW-IMP-004; every row is reported new, updated, unchanged, duplicate or rejected
+with its line. Unlike the paragraph above, the import may also target a project (`ew import parts --map`), which embeds
+the parts with project-local manufacturer copies; `ew lib import parts` writes a library and refuses changed content
+under a held version unless `--bump`, taking a stale lock over only with `--take-over`. The window's column-mapping
+card is FT-649.
 
 **The EDZ terms notice reads, in substance:**
 - files from the EPLAN Data Portal may be subject to terms that restrict their use to EPLAN products;
@@ -918,6 +971,17 @@ For each embedded copy `c` with a newer library version `n`:
    only where step 3 remaps them. Show `diff_model` (entities), `diff_query` (BOM, wires, xref texts) and the
    rendered pages that changed.
 
+*As built (cycle 35, WP-S1.19 part 3; decision log ID-820).* `classify_update` in `ew-commands` gives patch, minor or
+major with the field diff: major by step 2's list (a CP gone or re-designated, a FnDef or category change, a template
+function added or removed by FnDef reference, a macro variable removed), patch when only data that no derived structure
+or geometry reads differs (`meta`, a part's manufacturer, numbers, description, technical data and free properties, a
+symbol's name and keywords, every manufacturer member), else minor; the major rules apply whether or not the item is
+in use. **`library.update`** `{copies, cp_maps?}` (`Bulk`, so always previewed) replaces held copies in place and maps
+CPs by the explicit pairs, else by index with the same designation, else designation k-th to k-th; it rewrites
+connection, potential, bond and channel endpoints and CP overrides, and refuses a connected CP left without a CP (an
+overridden one does not block), a downgrade and a copy the project does not hold. `ew-api`'s `update_from_library`
+plans it from a preview on a throwaway engine. It does not yet embed the new version's missing closure (FT-640).
+
 ### 4.6 Macro insertion pipeline
 
 ```mermaid
@@ -951,6 +1015,12 @@ On start-up and on a watcher event:
 
 A full rebuild is the same loop with an empty file table. The index stores `(library_id, generation)`, so a stale
 index is detected, never trusted. The target is NFR-PERF-21.
+
+*As built (cycle 35, WP-S1.19 part 2; decision log ID-818).* The index is one SQLite FTS5 database per user in the
+cache directory (rusqlite bundled), rebuilt by `ew lib index --rebuild`; search ranks by the specification's rank tiers
+and tie-breaks (WP-S1.19 D6), and `Session::part_search` marks the hits the project holds. The compiled-in libraries
+are indexed under a pseudo path. IX-1 to IX-8 run in `crates/ew-library/tests/registry.rs`; the 500,000-part test IX-9
+is `#[ignore]`d (not measured, the owner's rule).
 
 ---
 
@@ -1144,6 +1214,10 @@ Seven further symbols join the starter set for the pilot corpus (§2.3, decision
   ▲U-26. Without dimensions they stay below "layout-ready" and folio 902 warns.
 - **S56, E56.** They have no parts, so FR-CHK-024 reports them (EF-04). Golden A-R assigns `TEST-DOORSW-1` and
   `TEST-LAMP-1` with confidence `test`.
+- *As built (cycle 35, WP-S1.19 part 3; decision log ID-820).* **Manufacturer copies.** Golden A holds eight
+  project-local manufacturer copies, one per manufacturer name, and its 29 part copies name them with no `key`; the
+  readers take the name from the held copy and fall back to a legacy `key`, so a file written before part 3 derives
+  the same. Every exported output stayed byte-equal ([20](20-golden-project.md) ▲U-45).
 
 ### 9.3 Macros on the golden project
 

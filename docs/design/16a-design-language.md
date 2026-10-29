@@ -1,6 +1,6 @@
 # Design language
 
-**Status:** v1.3, accepted 2026-10-28; amended 2026-10-29, cycle 34: the component tokens `size.dialog.label` and `color.badge.on_chrome` (§4.15, §6.12, §6.16), the dark dialog backdrop black at 40 % (§6.12, FT-557) and FT-581's ruling on the disabled Primary (§6.1), as built; amended 2026-10-29, cycle 33: the data grid's cursor bar, scroll handle and editor baseline (§6.21) and the disabled Primary (§6.1) as built (decision log ID-764, ID-775); v1.3: WP-S2.17 parts 2 to 5 as built, the deliberate departures noted in §5.2, §5.4, §5.5, §5.8, §6.8, §6.10, §6.12, §6.14, §6.16, §7.1, §7.2 and §9.2, the Project tab's Import group and the search placeholder in §5.2 and §5.3 (decision log ID-747 to ID-757); v1.2: the bottom dock's height as built, `size.dock.bottom_min` (decision log ID-743); v1.1 adds the built widgets (§4.15, §6.21 to §6.25); cycle-31 design pass: the
+**Status:** v1.3, accepted 2026-10-28; amended 2026-10-29, cycle 35: the chooser list's two uses as built (§6.22, decision log ID-782, ID-817) and FT-595's ruling on a merged 0 V/PE potential's colour (§7.5, ID-828); amended 2026-10-29, cycle 34: the component tokens `size.dialog.label` and `color.badge.on_chrome` (§4.15, §6.12, §6.16), the dark dialog backdrop black at 40 % (§6.12, FT-557) and FT-581's ruling on the disabled Primary (§6.1), as built; amended 2026-10-29, cycle 33: the data grid's cursor bar, scroll handle and editor baseline (§6.21) and the disabled Primary (§6.1) as built (decision log ID-764, ID-775); v1.3: WP-S2.17 parts 2 to 5 as built, the deliberate departures noted in §5.2, §5.4, §5.5, §5.8, §6.8, §6.10, §6.12, §6.14, §6.16, §7.1, §7.2 and §9.2, the Project tab's Import group and the search placeholder in §5.2 and §5.3 (decision log ID-747 to ID-757); v1.2: the bottom dock's height as built, `size.dock.bottom_min` (decision log ID-743); v1.1 adds the built widgets (§4.15, §6.21 to §6.25); cycle-31 design pass: the
 Messages pane has no table mode as built, the History keys as built, the follow-ups numbered (decision log ID-727, ID-732) · **Date:** 2026-10-28 · **Decision:** [ADR-0031](../adr/0031-design-language-and-task-ordered-command-bar.md)
 (Accepted) · **Visual reference:** [the mockup](assets/design-language-mockup.html) (approved by the owner) · **Work package:**
 [WP-S2.17](../plan/specs/WP-S2.17-design-language-and-ui-polish.md) · **Part of:** ElektraWatt design document set
@@ -991,9 +991,18 @@ the pointer's 16-px box. A last line in `type.caption` `color.text.tertiary` sho
 everything as it was. AccessKit: a `ListBox` named by the question ("Objects here"), its rows `ListBoxOption`s with
 position and set size; the active row is announced. **Density** changes the row height only.
 
-*Not built.* No widget uses it yet: FT-500's pick stack is walked by repeated clicks (§6.25), and its chooser is a
-proposed follow-up. The component is fixed here so that the follow-up, and any later "which one?" choice, gets this
-look and not a new one.
+*Not built* (as of cycle 33). No widget uses it yet: FT-500's pick stack is walked by repeated clicks (§6.25), and its
+chooser is a proposed follow-up. The component is fixed here so that the follow-up, and any later "which one?" choice,
+gets this look and not a new one.
+
+*As built (cycles 34 and 35; decision log ID-782, ID-817).* **Two uses.** The first is the strip editor's accessory
+part choice when several parts fit (WP-S2.07 part 1). The second is the Place tool's **Join chooser** (WP-S2.18 D2, J;
+doc 16 §4.4): "New device" first, then the device's unplaced slots with the kind word "slot 13-14", then the devices
+whose family takes auxiliary functions, in natural tag order, type-ahead on the tag; Enter arms the target (the ghost
+label reads `join -K1`), Escape closes it and keeps the target. Its active row's device shows the hover outline of
+§7.1 (`ShellModel::chooser_object`), and it is in the pixel gate as `join-chooser-{light,dark}-comfortable`. The
+chooser's rows and keys are registry actions (`chooser.row`, `chooser.type`, `chooser.choose`), so the headless mode
+drives it. FT-500's pick-stack chooser is still not built.
 
 ### 6.23 Preview card, the Preview tab and the card strip
 
@@ -1142,6 +1151,11 @@ they take their slot's hue with a black label (§4.6).
 
 As built (doc 16 §10.3 as-built note) with the hues of §4.6: halos with hatch patterns and a name chip, at most four,
 painted above the overlays and below the chips.
+
+*Ruled (cycle 35, FT-595; decision log ID-828).* **The colour a merged 0 V/PE potential shows.** FT-595 found that
+the potential highlight and the wire colour take the role of the potential's name. The ruling: an unbonded potential
+that merges a 0 V and a PE definition shows doc 08 §3.6's PE colour, not the colour of its name 0V (FT-587's natural
+order names it 0V); EW-POT-001's conflict colour overrides it. Not yet built: FT-654.
 
 ### 7.6 Measurement
 
