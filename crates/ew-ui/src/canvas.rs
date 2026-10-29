@@ -20,7 +20,7 @@
 //!    and the pointer's rest become registry actions with the group (`view.zoom_to`, `view.pan`, `canvas.pointer`,
 //!    `canvas.press`, `canvas.release`, `canvas.dwell`, `view.canvas_resize`, `nav.back`, `ui.focus`), dispatched by
 //!    the frame after painting like every other input, so a script and the window take the same path; the rest is
-//!    measured with `ew_render2d::stats::now` and sent after 80 ms and after 300 ms (D11), never kept in the model;
+//!    measured on egui's frame time and sent after 80 ms and after 300 ms (D11, FT-570), never kept in the model;
 //! 2. **scene**: the page content of the group's canvas becomes a tile scene once per (session, revision, folio);
 //!    the previous scene's tiles stay visible for the same folio until the new ones arrive;
 //! 3. **render**: on the GPU, one render submitted when the view or the scene changed; on the CPU, the planner's
@@ -46,7 +46,7 @@
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use egui::{
     Color32, ColorImage, Event as EguiEvent, Key, Mesh, Modifiers, MouseWheelUnit, PointerButton, Pos2, Rect,
@@ -56,7 +56,9 @@ use ew_render_cpu::{FontBytes, FontResolver, SheetSize};
 use ew_render2d::gpu::GpuView;
 use ew_render2d::overlay::{self, GridSpec, Overlay, OverlayInput, Theme};
 use ew_render2d::pool::{Scene, TilePool, worker_count};
-use ew_render2d::stats::{FrameSample, FrameStats, Phase, now};
+use ew_render2d::stats::{FrameSample, FrameStats, Phase};
+
+use crate::clock::{Stamp, now};
 use ew_render2d::tiles::{DEFAULT_CACHE_BYTES, Plan, Planner, TileCache, TileKey};
 use ew_render2d::view::{DrawTransform, PxRect, View};
 use ew_viewmodel::canvas::{
@@ -499,7 +501,8 @@ type RestKey = (Option<(i64, i64)>, Option<(i64, i64)>, Viewport);
 struct Rest {
     group: usize,
     key: RestKey,
-    since: Instant,
+    /// The frame time (egui's `input.time`, seconds) the rest began.
+    since: f64,
     sent: u8,
 }
 
@@ -531,7 +534,7 @@ pub struct CanvasHost {
     frame: u64,
     stats: FrameStats,
     sample: FrameSample,
-    frame_started: Option<Instant>,
+    frame_started: Option<Stamp>,
     memo_at_start: Option<(u64, u64)>,
     counters: CanvasCounters,
     fonts: Arc<dyn FontResolver + Send + Sync>,
@@ -1391,7 +1394,8 @@ impl CanvasHost {
     }
 
     /// The pointer's or the grid cursor's rest on the focused canvas (D11): `canvas.dwell` once after 80 ms and once
-    /// after 300 ms without a move, measured with `ew_render2d::stats::now`; nothing timed reaches the model.
+    /// after 300 ms without a move, measured on egui's frame time (FT-570: the wall clock in the window, the driver's
+    /// frames in a test or a visual run); nothing timed reaches the model.
     fn dwell(&mut self, ui: &Ui, canvas: &CanvasModel, group: usize, events: &mut Vec<Event>) {
         // Input this frame means it has not rested since; a queued pointer or view action would otherwise let the
         // previous state's rest clock fire a link preview (or a tool preview) for a pointer that just moved or a view
@@ -1401,7 +1405,7 @@ impl CanvasHost {
             return;
         }
         let key = (canvas.pointer(), canvas.cursor(), canvas.viewport());
-        let at = now();
+        let at = ui.input(|i| i.time);
         let fresh = !matches!(&self.rest, Some(r) if r.group == group && r.key == key);
         if fresh {
             self.rest = Some(Rest {
@@ -1415,7 +1419,7 @@ impl CanvasHost {
         if key.0.is_none() && key.1.is_none() {
             return;
         }
-        let waited = at.saturating_duration_since(rest.since);
+        let waited = Duration::from_secs_f64((at - rest.since).max(0.0));
         for (i, ms) in DWELLS_MS.iter().enumerate() {
             let n = u8::try_from(i + 1).unwrap_or(u8::MAX);
             if rest.sent < n && waited >= Duration::from_millis(u64::from(*ms)) {

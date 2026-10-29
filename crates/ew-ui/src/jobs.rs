@@ -10,7 +10,6 @@
 //! <name>` with its value in per cent; the buttons are named by their text.
 
 use std::collections::BTreeMap;
-use std::time::Instant;
 
 use egui::Ui;
 use ew_viewmodel::jobs::{JobEntry, JobStatus};
@@ -20,12 +19,13 @@ use serde_json::json;
 
 use crate::app::Event;
 
-/// Paints the Jobs pane of `shell`: `started` holds the window's start time of each running job, `now` the frame's.
+/// Paints the Jobs pane of `shell`: `started` holds the frame time (seconds) the window first saw each running job,
+/// `now` this frame's.
 pub fn show(
     ui: &mut Ui,
     shell: &ShellModel,
-    started: &BTreeMap<u64, Instant>,
-    now: Instant,
+    started: &BTreeMap<u64, f64>,
+    now: f64,
     events: &mut Vec<Event>,
 ) {
     let rect = ui.available_rect_before_wrap();
@@ -51,7 +51,9 @@ pub fn show(
                     entry(
                         ui,
                         e,
-                        started.get(&e.number).map(|t| now.saturating_duration_since(*t)),
+                        started
+                            .get(&e.number)
+                            .map(|t| std::time::Duration::from_secs_f64((now - t).max(0.0))),
                         events,
                     );
                     ui.separator();

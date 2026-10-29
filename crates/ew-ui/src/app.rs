@@ -178,8 +178,9 @@ pub struct App {
     /// the wall clock in the window and the harness's steps in a test, so no test depends on how fast a loaded machine
     /// runs (FT-524).
     toast_since: std::collections::BTreeMap<u64, f64>,
-    /// The running jobs by number and when the window first saw each (the elapsed time and the 200 ms rule, §6.4).
-    job_started: std::collections::BTreeMap<u64, std::time::Instant>,
+    /// The running jobs by number and the frame time (egui's `input.time`, seconds) the window first saw each (the
+    /// elapsed time and the 200 ms rule, §6.4; FT-570: the frame clock, like the toasts').
+    job_started: std::collections::BTreeMap<u64, f64>,
     /// Whether the shell has the window's repaint request as its jobs' waker.
     waker_set: bool,
     /// The canvas area's splitter handles on screen in the last frame.
@@ -554,7 +555,7 @@ impl App {
             self.waker_set = true;
         }
         self.shell.poll_jobs();
-        let now = ew_render2d::stats::now();
+        let now = ctx.input(|i| i.time);
         let running: Vec<u64> = self
             .shell
             .jobs()
@@ -572,7 +573,7 @@ impl App {
             .jobs()
             .newest_running()
             .and_then(|e| self.job_started.get(&e.number))
-            .is_some_and(|t| now.saturating_duration_since(*t) < JOB_FIELD_AFTER);
+            .is_some_and(|t| now - *t < JOB_FIELD_AFTER.as_secs_f64());
         if !running.is_empty() {
             ctx.request_repaint_after(if hide_job {
                 JOB_FIELD_AFTER
@@ -875,7 +876,7 @@ impl App {
                 ctx.request_repaint_after(Duration::from_millis(500));
             }
         }
-        let dispatch_started = ew_render2d::stats::now();
+        let dispatch_started = crate::clock::now();
         // The window repaints after an action that changed the model or the tool's marks without pointer motion
         // (an undo, a key-driven commit, a gesture's release; WP-S2.04 part 2, window check): once at once, and once
         // shortly after, when the page's new tiles have had time to arrive.
@@ -897,7 +898,7 @@ impl App {
         if canvas_shown {
             // The canvas's input phase includes dispatching the frame's actions (WP-S2.02 section 9).
             self.canvas
-                .end_frame(ew_render2d::stats::now() - dispatch_started, &self.shell);
+                .end_frame(crate::clock::now() - dispatch_started, &self.shell);
         } else if self.shell.has_project()
             && self.shell.first_run().is_none()
             && self.shell.wizard().is_none()

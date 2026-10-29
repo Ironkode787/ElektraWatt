@@ -115,8 +115,11 @@ fn jb3_a_running_export_is_a_named_progress_indicator_with_cancel_and_the_job_fi
         .find(|n| n.accesskit_node().label().as_deref() == Some("PDF export held.pdf"))
         .expect("the running entry is a named progress indicator");
     assert_eq!(bar.accesskit_node().numeric_value(), Some(0.0));
-    // The job field shows once the job is 200 ms old (a job that ends sooner shows none).
-    std::thread::sleep(Duration::from_millis(250));
+    // The job field shows once the job is 200 ms old (a job that ends sooner shows none), measured on the frame clock
+    // (FT-570): 15 frames of 1/60 s, however long the machine takes for them.
+    for _ in 0..15 {
+        h.step();
+    }
     settle(&mut h);
     assert!(h.query_by_label("PDF export 0 %").is_some(), "the job field");
     h.get_by_label("Cancel").click();

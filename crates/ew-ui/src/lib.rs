@@ -23,6 +23,7 @@ pub mod app;
 pub mod canvas;
 pub mod canvas_area;
 pub mod canvas_chips;
+pub mod clock;
 // WP-S2.17 part 2: the command bar and the tool HUD.
 mod command_bar;
 // WP-S2.17 part 4: the small components (buttons, badges, chips, empty states, cards) and the dialog frame.
