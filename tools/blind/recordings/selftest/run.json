@@ -15,12 +15,12 @@
     "refusals": 50
   },
   "files": {
-    "tools/blind/HELP.md": "3d17fdde0a1afb2ed430cdc2c0585852cde67bef813415690d488ce0bde262c8",
+    "tools/blind/HELP.md": "d05854152eb7dd672f84aa5d591cf6a5ec028c3b9aefc257981a68c38f236c2b",
     "tools/blind/reference/actions.txt": "8118b019a20f5320d225f72112d02076c44c94fc7d7cb9f0fdca6fe8c7752e41",
     "tools/blind/reference/vocabulary.txt": "9ffbee0eb162ffc3af612f26c8fea1c7b6c0c88b790571e7a6e050f36955c6db",
-    "tools/blind/tasks/selftest/agent.jsonl": "0d30d3415f394f62189979813cbd51e0729cbcb3884c115ca283c376f6f88862",
+    "tools/blind/tasks/selftest/agent.jsonl": "cd698fab1d35d760d7c4777772bb745aa136acb223a3f60658ae323c6f657f20",
     "tools/blind/tasks/selftest/prelude.uiscript": "9f4d237925c52b4bb3ef91f708236f752fee11846f1582fe2737b05f3c99bb4c",
-    "tools/blind/tasks/selftest/task.md": "973376ea5c9193284ee9b3ee73ac6237cb334ac8d0b668d5f418aa895a8de6ab"
+    "tools/blind/tasks/selftest/task.md": "8dc13e819e7de7afe56f8ee4a21719f1ec5a0825f13b9a1e442f13f0242afd0c"
   },
   "golden": "a2efc2659f7d817cd5fa22e0453653851d73bb6c9c9c47b06ad678ab2e893057",
   "golden_scope": "project",
