@@ -570,7 +570,7 @@ cycle by the polish-cycle rule of items 2 and 3.
    checker; the lead's triage. Its findings are parked (item 5), except blockers in stable areas. It is the only
    visual run of cycle 34: `brief-relays-valves` is not runnable on this build (§6.3), and `gpp-101-103` visual is
    not part of it.
-   Result: recorded at the cycle-34 gate (ID-pending).
+   Result: recorded at the cycle-34 gate (ID-810).
 2. **A visual round runs only at the gate of a pure UI-polish cycle**, a cycle with no feature WP in it: at least
    three personas on at least two briefs, one of them the brief whose areas the cycle's polish touches most, plus a
    text run of one of them for the pairing rule (§7.4). A cycle with a feature WP runs no visual round, however much
@@ -650,7 +650,7 @@ through `ew-api`; no new package).
 | BV11 | `selftest-visual` runs through the keeper and the copied binaries, blessed `ci = pr`; `replay --twice` passes R1v and R2; `blind_replay` replays it in CI; R4 is reported. *As built:* the scripted agent sends 18 inputs in 7 turns (not about 40), with looks, a zoom, one friction entry, two refused calls (an action line and a text look) and the eight-heading hand-back; recording `tools/blind/recordings/selftest-visual` | lane; `elektrawatt` test | §5.3 |
 | BV12 | Targeted nextest and clippy for `ew-ui`, `ew-viewmodel`, `elektrawatt`, `xtask`; `cargo fmt --all --check`; `check-deps` (no new edge); `reuse lint`; `check-licence-map`; `check-anonymisation`; `Cargo.lock` and `golden/` unchanged | lane | testing policy |
 | BV13 | **Reading probe** (orchestrator, after part 4): one frame of a Golden A copy's window with 20 marked texts (device tags on the canvas, menu and command-bar labels, status bar, Properties rows); an Opus agent at `low` transcribes them; 18 or more exact keeps the default; fewer makes `PLAYTESTER.md` require a zoom before acting on tag-sized text, and the result is recorded | orchestrator | §3.1, §12 |
-| BV14 | **Calibration round** (orchestrator, cycle 34): the reading probe and the runs of §9.1 item 1 valid by their tool-log audits; the checker's acceptance table for `brief-valve-switch`; the lead's triage, its findings parked except blockers in stable areas; the token use of each run recorded for §12. Result: recorded at the cycle-34 gate (ID-pending) | orchestrator, lead | §9.1 |
+| BV14 | **Calibration round** (orchestrator, cycle 34): the reading probe and the runs of §9.1 item 1 valid by their tool-log audits; the checker's acceptance table for `brief-valve-switch`; the lead's triage, its findings parked except blockers in stable areas; the token use of each run recorded for §12. Result: recorded at the cycle-34 gate (ID-810) | orchestrator, lead | §9.1 |
 | BV15 | Part 5: three briefs pass `check-brief` and one sanity text run each; the two personas; `PLAYCHECKER.md` with the six headings; `report inputs` flags silent and refused-unseen inputs on a fixture; `friction-report` merges two runs; the ledger parses and ranks a fixture | lane; `xtask` tests | §6.3, §7.2, §7.3, §8 |
 
 ## 12. Risks
