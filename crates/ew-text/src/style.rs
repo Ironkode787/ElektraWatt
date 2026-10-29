@@ -205,6 +205,10 @@ mod tests {
         (scaled + unit / 2).div_euclid(unit) * step
     }
 
+    /// The rows, their keys and order, and every row against doc 20 §17.5, one row per case: only `section.id` is bold; the native size in milli-pt,
+    /// the em, the printed size (rounded to 0.01 pt) and the printed em are those of the doc. Doc 20 gives the
+    /// printed em rounded to 0.01 mm (decision log ID-38), so the exact printed em (em × 0.986282578, truncated
+    /// to nm) must lie within half a step, 0.005 mm, of the doc value.
     #[test]
     fn rows_keys_and_order() {
         let rows = builtin().rows();
@@ -219,49 +223,28 @@ mod tests {
         assert!(builtin().resolve(DEFAULT_STYLE_KEY).is_some());
         assert!(builtin().get("unknown").is_none());
         assert!(builtin().resolve("unknown").is_none());
-    }
-
-    #[test]
-    fn only_section_id_is_bold() {
-        for r in builtin().rows() {
-            let want = if r.key == "section.id" {
+        for (i, r) in rows.iter().enumerate() {
+            let case = r.key;
+            let bold = if r.key == "section.id" {
                 Weight::Bold
             } else {
                 Weight::Regular
             };
-            assert_eq!(r.weight, want, "{}", r.key);
-        }
-    }
-
-    #[test]
-    fn native_milli_pt_matches_doc() {
-        for (r, want) in builtin().rows().iter().zip(NATIVE_MILLI_PT) {
-            assert_eq!(r.native_milli_pt(), want, "{}", r.key);
-        }
-    }
-
-    #[test]
-    fn em_matches_doc() {
-        for (r, want) in builtin().rows().iter().zip(EM_NM) {
-            assert_eq!(r.em(), Nm(want), "{}", r.key);
-        }
-    }
-
-    #[test]
-    fn printed_pt_matches_doc() {
-        for (r, want) in builtin().rows().iter().zip(PRINTED_MILLI_PT) {
-            let got = printed(i128::from(r.native_milli_pt()), 10);
-            assert_eq!(got, want, "{}", r.key);
-        }
-    }
-
-    /// Doc 20 §17.5 gives the printed em rounded to 0.01 mm (decision log ID-38), so the exact printed em
-    /// (em × 0.986282578, truncated to nm) must lie within half a step, 0.005 mm, of the doc value.
-    #[test]
-    fn printed_em_matches_doc() {
-        for (r, want) in builtin().rows().iter().zip(PRINTED_EM_NM) {
+            assert_eq!(r.weight, bold, "case {case}: weight");
+            assert_eq!(
+                r.native_milli_pt(),
+                NATIVE_MILLI_PT[i],
+                "case {case}: native milli-pt"
+            );
+            assert_eq!(r.em(), Nm(EM_NM[i]), "case {case}: em");
+            let printed_pt = printed(i128::from(r.native_milli_pt()), 10);
+            assert_eq!(printed_pt, PRINTED_MILLI_PT[i], "case {case}: printed milli-pt");
             let exact = (i128::from(r.em().0) * PRINT_FACTOR) / 1_000_000_000;
-            assert!((exact - want).abs() <= 5_000, "{}: {exact} vs {want}", r.key);
+            let want = PRINTED_EM_NM[i];
+            assert!(
+                (exact - want).abs() <= 5_000,
+                "case {case}: printed em {exact} vs {want}"
+            );
         }
     }
 
