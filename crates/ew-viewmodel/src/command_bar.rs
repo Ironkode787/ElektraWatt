@@ -559,11 +559,27 @@ pub fn hud(model: &ShellModel) -> HudModel {
         None => hint(),
         // Doc 16a §5.5: "Place -X1031:21 · R rotates · V variant · Esc done": the predicted tag or terminal (the symbol
         // until the pointer gives it one), then the keys; the ghost's line in `ui.describe` keeps the rest.
+        // FT-545: while autoconnect proposes wires, the count and the way to place without them come before the keys,
+        // so the strip says it before the first placement does.
         Some(Ghost::Place {
-            symbol, strip, tag, ..
+            symbol,
+            strip,
+            tag,
+            hints,
+            ..
         }) => {
             target = tag.or(strip);
-            let what = target.clone().unwrap_or(symbol);
+            let mut what = target.clone().unwrap_or(symbol);
+            if hints > 0 {
+                let count = strings::format(
+                    if hints == 1 { "count-wire" } else { "count-wires" },
+                    &[&hints.to_string()],
+                );
+                what = format!(
+                    "{what} \u{b7} {}",
+                    strings::format("hud-place-wires", &[&count, &key_of("canvas.activate_alt")])
+                );
+            }
             format!(
                 "{what} \u{b7} {}",
                 strings::format(

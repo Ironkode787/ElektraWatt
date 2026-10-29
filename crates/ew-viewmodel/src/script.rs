@@ -26,7 +26,7 @@
 //! "label"}` or `null`), `selection` (the selected entities' aliases in selection order), `preview` (`{"command",
 //! "state": "ready" | "stale" | "failed", "tags", "xrefs"}` or `null`), `overlay` (the number of overlay items) and
 //! `link_preview` (the link preview's target folio or `null`), then (WP-S2.04 part 1, §7.7) `ghost` (`null`, or
-//! `{"kind": "place", "symbol", "variant", "rep_type", "at_nm", "target", "tag", "hints"}`, `{"kind": "move",
+//! `{"kind": "place", "symbol", "variant", "rep_type", "at_nm", "target", "tag", "hints", "wires"}`, `{"kind": "move",
 //! "count", "steps"}` or `{"kind": "exchange", "symbol", "unmapped"}`) and `picker` (`null` or `{"mode", "filter",
 //! "rows", "row"}`; `mode` also `strip`, the strip chooser), then (WP-S2.04 part 2, §8.7) `route` (`null` or
 //! `{"from", "bends", "points", "end"}`: the labels of the Wire tool's start and target, the bends fixed by clicks,
@@ -606,8 +606,9 @@ fn junction_editor_json(shell: &ShellModel) -> String {
 }
 
 /// The `ghost` member of the canvas (WP-S2.04 §7.7): `null`, or `{"kind": "place", "symbol", "variant",
-/// "rep_type", "at_nm", "target", "tag", "hints"}`, `{"kind": "move", "count", "steps"}` or `{"kind": "exchange",
-/// "symbol", "unmapped"}`, and the part 4b forms (`text`, `graphic`, `marker`, `structure_box`) and part 5's `image`.
+/// "rep_type", "at_nm", "target", "tag", "hints", "wires"}` (`wires` the proposals the commit connects, FT-545),
+/// `{"kind": "move", "count", "steps"}` or `{"kind": "exchange", "symbol", "unmapped"}`, and the part 4b forms
+/// (`text`, `graphic`, `marker`, `structure_box`) and part 5's `image`.
 fn ghost_json(shell: &ShellModel) -> String {
     use crate::tools::Ghost;
     match shell.tool_ghost() {
@@ -620,6 +621,7 @@ fn ghost_json(shell: &ShellModel) -> String {
             target,
             tag,
             hints,
+            proposals,
             ..
         }) => object(vec![
             member("kind", &Value::from("place")),
@@ -633,6 +635,19 @@ fn ghost_json(shell: &ShellModel) -> String {
             member("target", &Value::from(target)),
             member("tag", &tag.map_or(Value::Null, Value::from)),
             member("hints", &Value::from(hints)),
+            // FT-545: the wires the commit draws, before it: `"<cp>" -> "<target>"` each (a split names its segment).
+            member(
+                "wires",
+                &Value::from(
+                    proposals
+                        .iter()
+                        .map(|(cp, t)| match t {
+                            Some(t) => format!("{cp} -> \"{t}\""),
+                            None => format!("{cp} -> segment"),
+                        })
+                        .collect::<Vec<_>>(),
+                ),
+            ),
         ]),
         Some(Ghost::Move { count, steps, .. }) => object(vec![
             member("kind", &Value::from("move")),

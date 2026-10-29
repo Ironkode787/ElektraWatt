@@ -448,6 +448,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "hud-stack" => "{0} here \u{b7} click again for the next",
         "hud-selected" => "{0} selected \u{b7} Del deletes \u{b7} {1} rotates",
         "hud-keys-place" => "{0} rotates \u{b7} {1} variant \u{b7} Esc done",
+        "hud-place-wires" => "connects {0}; Alt+Click or {1} places without",
         "hud-tool-options" => "Tool options",
         "zoom-control" => "Zoom",
         "action-tools-palette" => "Command palette",

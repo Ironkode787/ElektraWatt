@@ -305,3 +305,62 @@ fn ft546_every_place_commit_names_the_tag_and_the_cell() {
     done(&mut s, "canvas.activate_alt", json!({}));
     assert_eq!(toast(&s), "Placed -X1031:40");
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// FT-545: autoconnect shows its wires before the commit, and the way to place without them.
+
+/// While the ghost proposes wires, the transcript's ghost lists them, the HUD says how many and how to place without
+/// them (before any commit), and the commit connects exactly the wires the ghost listed.
+#[test]
+fn ft545_the_ghost_lists_the_wires_and_the_strip_says_how_to_place_without_them() {
+    let tmp = Tmp::new("m34-545");
+    let mut s = golden(&tmp, "101");
+    done(
+        &mut s,
+        "place.pick",
+        json!({"symbol": "ew.iec.contact-no@qet10", "letter": "K"}),
+    );
+    // Two contacts one above the other (the second without wires), then the ghost between them faces both.
+    let span = 4;
+    let p = grid(&s, (60, 38));
+    done(&mut s, "cursor.set", common::at(p, json!({})));
+    assert_eq!(ghost(&s)["wires"], json!([]));
+    let h = ew_viewmodel::command_bar::hud(&s);
+    assert!(!h.prompt.contains("places without"), "{}", h.prompt);
+    done(&mut s, "canvas.activate_alt", json!({}));
+    let p = grid(&s, (60, 38 + 3 * span + 2));
+    done(&mut s, "cursor.set", common::at(p, json!({})));
+    done(&mut s, "canvas.activate_alt", json!({}));
+    let p = grid(&s, (60, 38 + span + 1));
+    done(&mut s, "cursor.set", common::at(p, json!({})));
+    let g = ghost(&s);
+    let wires: Vec<String> = g["wires"]
+        .as_array()
+        .expect("a wires list")
+        .iter()
+        .map(|w| w.as_str().unwrap().to_owned())
+        .collect();
+    assert_eq!(wires.len() as u64, g["hints"].as_u64().unwrap());
+    assert!(!wires.is_empty());
+    assert!(wires.iter().all(|w| w.contains(" -> \"-101K")), "{wires:?}");
+    let h = ew_viewmodel::command_bar::hud(&s);
+    let count = if wires.len() == 1 {
+        "1 wire".to_owned()
+    } else {
+        format!("{} wires", wires.len())
+    };
+    assert!(
+        h.prompt.contains(&format!(
+            "connects {count}; Alt+Click or Ctrl+Enter places without"
+        )),
+        "{}",
+        h.prompt
+    );
+    assert!(h.prompt.ends_with("Esc done"), "{}", h.prompt);
+    done(&mut s, "canvas.activate", json!({}));
+    let t = toast(&s);
+    assert!(
+        t.contains(&format!("and connected {count}: {}.", wires.join(", "))),
+        "{t} / {wires:?}"
+    );
+}
