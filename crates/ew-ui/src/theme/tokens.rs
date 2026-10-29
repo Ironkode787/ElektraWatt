@@ -288,7 +288,7 @@ pub struct Tokens {
     pub success_subtle: Rgba,
     pub info: Rgba,
     pub info_subtle: Rgba,
-    /// The dialog backdrop (§6.12: `slate-900` at 24 %).
+    /// The dialog backdrop over the whole window (§6.12: light `slate-900` at 24 %, dark black at 40 %, FT-557).
     pub backdrop: Rgba,
 
     // Canvas tokens (§4.6); the sheet is white in every theme.
@@ -751,6 +751,7 @@ struct Palette {
     success: Rgba,
     success_subtle: Rgba,
     surround: Rgba,
+    backdrop: Rgba,
     elevation_1: Elevation,
     elevation_2: Elevation,
     raised_border: f32,
@@ -799,6 +800,8 @@ fn palette(theme: Theme) -> Palette {
             success: SUCCESS_LIGHT,
             success_subtle: SUCCESS_SUBTLE_LIGHT,
             surround: SLATE_150,
+            // slate-900 at 24 % (§6.12).
+            backdrop: SLATE_900.alpha(61),
             elevation_1: Elevation {
                 layers: [layer(0, 1, 2, 0, INK.alpha(26)), layer(0, 0, 0, 1, INK.alpha(10))],
             },
@@ -840,6 +843,9 @@ fn palette(theme: Theme) -> Palette {
             success: SUCCESS_DARK,
             success_subtle: SUCCESS_SUBTLE_DARK,
             surround: SURROUND_DARK,
+            // FT-557: black at 40 % (the alpha of the dark `elevation.1` shadow); slate-900 at 24 % left the chrome
+            // (itself slate-900) and the panels undimmed.
+            backdrop: BLACK.alpha(102),
             elevation_1: Elevation {
                 layers: [
                     layer(0, 1, 2, 0, BLACK.alpha(102)),
@@ -883,6 +889,7 @@ fn palette(theme: Theme) -> Palette {
             success: HC_DARK_SUCCESS,
             success_subtle: BLACK,
             surround: HC_DARK_SURROUND,
+            backdrop: BLACK.alpha(102),
             elevation_1: Elevation::NONE,
             elevation_2: Elevation::NONE,
             raised_border: 1.0,
@@ -916,6 +923,7 @@ fn palette(theme: Theme) -> Palette {
             success: HC_LIGHT_SUCCESS,
             success_subtle: WHITE,
             surround: HC_LIGHT_SURROUND,
+            backdrop: SLATE_900.alpha(61),
             elevation_1: Elevation::NONE,
             elevation_2: Elevation::NONE,
             raised_border: 1.0,
@@ -961,8 +969,9 @@ pub fn tokens(theme: Theme, density: Density) -> Tokens {
         success_subtle: p.success_subtle,
         info: p.accent,
         info_subtle: p.accent_subtle,
-        // slate-900 at 24 % (§6.12); opaque-free in high contrast is not required for a backdrop.
-        backdrop: SLATE_900.alpha(61),
+        // Light: slate-900 at 24 % (§6.12); dark: black at 40 % (FT-557). Opaque-free in high contrast is not required
+        // for a backdrop.
+        backdrop: p.backdrop,
         canvas_surround: p.surround,
         canvas_sheet: WHITE,
         canvas_sheet_line: BLACK,

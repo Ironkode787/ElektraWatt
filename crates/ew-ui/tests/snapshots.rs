@@ -300,6 +300,13 @@ fn the_command_bar_on_every_tab() {
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
+/// The luma (Rec. 709 weights, 0 to 255) of the pixel at `x`, `y`.
+fn luma(image: &ew_render_cpu::RgbaImage, x: u32, y: u32) -> f32 {
+    let i = ((y * image.width + x) * 4) as usize;
+    let p = &image.pixels[i..i + 3];
+    0.2126 * f32::from(p[0]) + 0.7152 * f32::from(p[1]) + 0.0722 * f32::from(p[2])
+}
+
 /// WP-S2.17 part 4 (CP6, CP9): the quit prompt over the toast, the app menu's File submenu, the command palette and
 /// the Preview tab with the property grid's "Preview open" strip, in light and dark, gated.
 #[test]
@@ -325,6 +332,18 @@ fn part4_dialogs_toasts_menu_palette_and_preview_in_light_and_dark() {
         h.run_ok();
         h.run_ok();
         let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
+        // FT-557: the scrim dims the whole window, the command bar, the rail, the navigator, Properties and the status
+        // bar included, not only the canvas.
+        for (x, y, part) in [
+            (900, 60, "command bar"),
+            (20, 400, "rail"),
+            (200, 330, "navigator"),
+            (200, 700, "Properties"),
+            (500, 780, "status bar"),
+        ] {
+            let (a, b) = (luma(&before, x, y), luma(&image, x, y));
+            assert!(a - b >= 8.0, "{theme}: the scrim dims the {part} ({a} to {b})");
+        }
         failures.extend(record(&format!("part4-dialog-toast-{theme}"), &image, true));
         let _ = h.state_mut().shell_mut().dispatch("ui.dismiss", &json!(null));
         // The toast leaves on the wall clock, so it is dismissed before the shots that do not show it.
