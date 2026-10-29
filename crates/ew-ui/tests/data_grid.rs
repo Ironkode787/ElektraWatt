@@ -504,7 +504,7 @@ fn dk9_the_key_column_stays_and_paints_the_frozen_edge() {
 }
 
 /// DK9: two marked rows paint `color.accent.subtle` across the row; the cursor row paints the 2-px accent bar at the
-/// key cell's left edge, inset `space.2` top and bottom; the cursor cell paints a 2-px `color.table.cursor` ring inside
+/// key cell's left, just inside the grid's focus ring, inset `space.2` top and bottom; the cursor cell paints a 2-px `color.table.cursor` ring inside
 /// it while the grid has the keyboard and a 1-px `color.table.cursor_idle` ring once the focus is on the canvas.
 #[test]
 fn dk9_marked_rows_the_cursor_row_bar_and_the_cursor_ring() {
@@ -533,11 +533,15 @@ fn dk9_marked_rows_the_cursor_row_bar_and_the_cursor_ring() {
         !marked.iter().any(|r| r.intersects(unmarked.shrink(1.0))),
         "row 3 is not marked"
     );
-    // The cursor is in row 2, column Terminal.
+    // The cursor is in row 2, column Terminal. The bar sits inside the grid's focus ring (inset 1 px, `focus_width`
+    // wide): it starts at the ring's inner edge, in one place whether or not the grid has the keyboard (the cycle-33
+    // ruling).
     let key = cell(&h, "Strip", 2);
+    let grid = h.get_by_label("Terminal strips table").rect();
+    let inner = grid.left() + 1.0 + t.focus_width;
     let bar = egui::Rect::from_min_max(
-        egui::pos2(key.left(), key.top() + t.space_2),
-        egui::pos2(key.left() + t.focus_width, key.bottom() - t.space_2),
+        egui::pos2(inner, key.top() + t.space_2),
+        egui::pos2(inner + t.focus_width, key.bottom() - t.space_2),
     );
     let accent = fills(&shapes, t.accent.color32());
     assert!(
@@ -571,6 +575,12 @@ fn dk9_marked_rows_the_cursor_row_bar_and_the_cursor_ring() {
         "the 1-px ring when the focus is elsewhere"
     );
     assert!(!ring(&shapes, t.focus_width, t.table_cursor.color32()));
+    assert!(
+        fills(&shapes, t.accent.color32())
+            .iter()
+            .any(|r| same_rect(*r, bar)),
+        "the bar stays where it was when the focus leaves the grid"
+    );
     h.state_mut().shell_mut().shutdown();
 }
 
@@ -854,4 +864,117 @@ fn ft536_the_move_items_are_arrow_icon_buttons() {
     h.key_press(Key::Escape);
     settle(&mut h);
     h.state_mut().shell_mut().shutdown();
+}
+
+/// The baseline (y) and the left edge (x) of the first glyph of the text `text` painted inside `region`.
+fn text_origin(shapes: &[egui::Shape], region: egui::Rect, text: &str) -> Option<egui::Pos2> {
+    shapes.iter().find_map(|s| match s {
+        egui::Shape::Text(ts) if ts.galley.text() == text && region.contains(ts.pos) => {
+            let row = ts.galley.rows.first()?;
+            let glyph = row.row.glyphs.first()?;
+            Some(ts.pos + row.pos.to_vec2() + glyph.pos.to_vec2())
+        }
+        _ => None,
+    })
+}
+
+/// Doc 16a §6.21 (B33): the cell editor shows its text where the cell showed it, so nothing jumps when it opens: the
+/// first glyph's baseline and left edge equal the cell label's within half a point.
+#[test]
+fn the_editor_text_sits_on_the_cell_text_baseline() {
+    let tmp = Tmp::new();
+    let mut h = strips(&tmp);
+    show_column(&mut h, "Function text");
+    let target = cell(&h, "Function text", 2);
+    let text = {
+        let n = h.state().shell().nav(NavKind::Strips).unwrap();
+        let table = n.table().unwrap();
+        let c = table
+            .columns
+            .iter()
+            .position(|c| c.label == "Function text")
+            .unwrap();
+        let row = n.visible()[1].node as usize;
+        table.nodes[row].cells[c].clone()
+    };
+    assert!(!text.is_empty(), "the cell has a text");
+    let before = text_origin(&painted(&h), target, &text).expect("the cell's label");
+    double_click(&mut h, target.center());
+    settle(&mut h);
+    assert!(
+        h.state()
+            .shell()
+            .nav(NavKind::Strips)
+            .unwrap()
+            .table_mode()
+            .unwrap()
+            .edit()
+            .is_some(),
+        "the editor is open"
+    );
+    let after = text_origin(&painted(&h), target, &text).expect("the editor's text");
+    assert!(
+        (after.y - before.y).abs() <= 0.5,
+        "the baseline: label {before:?}, editor {after:?}"
+    );
+    assert!(
+        (after.x - before.x).abs() <= 0.5,
+        "the left edge: label {before:?}, editor {after:?}"
+    );
+    h.key_press(Key::Escape);
+    settle(&mut h);
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// B33: the horizontal scroll handle of a grid wider than its pane stays on show at rest (X32b) in
+/// `color.border.control`, never in the text colour (a near-white bar on the dark panel), in light and dark.
+#[test]
+fn the_scroll_handle_is_a_quiet_boundary_not_the_text_colour() {
+    for theme in ["light", "dark"] {
+        let tmp = Tmp::new();
+        let dir = tmp.golden("g.ew");
+        let mut shell = ShellModel::new(Mode::Gui, tmp.config());
+        done(
+            &mut shell,
+            "settings.set",
+            json!({"key": "theme", "value": theme}),
+        );
+        let mut h: Harness<'static, App> = harness_with(shell, Scripted::default(), Some(dir));
+        h.set_size(egui::Vec2::new(1000.0, 900.0));
+        settle(&mut h);
+        wait_for_page(&mut h);
+        let shell = h.state_mut().shell_mut();
+        for (action, params) in [
+            ("props.show", json!({"on": false})),
+            ("navigator.show", json!({"kind": "strips"})),
+            ("navigator.table", json!({"kind": "strips"})),
+            ("navigator.filter", json!({"kind": "strips", "text": "x1031"})),
+        ] {
+            done(shell, action, params);
+        }
+        settle(&mut h);
+        let t = ew_ui::theme::current(&h.ctx);
+        let grid = h.get_by_label("Terminal strips table").rect();
+        let key = cell(&h, "Strip", 1);
+        // The bottom band of the grid, right of the frozen key column: where the horizontal handle runs.
+        let band =
+            egui::Rect::from_min_max(egui::pos2(key.right(), grid.bottom() - 12.0), grid.right_bottom());
+        let shapes = painted(&h);
+        let in_band = |colour: egui::Color32| {
+            fills(&shapes, colour)
+                .into_iter()
+                .filter(|r| band.contains_rect(*r) && r.width() > r.height())
+                .count()
+        };
+        assert!(
+            in_band(t.border_control.color32()) >= 1,
+            "{theme}: the handle in color.border.control"
+        );
+        assert_eq!(
+            in_band(t.text_primary.color32()),
+            0,
+            "{theme}: no handle in the text colour"
+        );
+        h.state_mut().shell_mut().shutdown();
+    }
 }

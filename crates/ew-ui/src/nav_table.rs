@@ -56,6 +56,9 @@ pub(crate) struct TableUi {
     pub(crate) painted: usize,
 }
 
+/// How far the grid's focus ring is inset into the pane (doc 16a §6.21: 1 px).
+const RING_INSET: f32 = 1.0;
+
 /// The egui_table ID of the column with key `key` (its width survives hiding and reordering).
 fn column_id(key: &str) -> egui::Id {
     egui::Id::unique(("nav-table-column", key))
@@ -204,14 +207,20 @@ impl TableUi {
                 theme::stroke(tokens.border_width, tokens.border_subtle),
             );
             // X32b: the scroll bars stay on show while columns or rows overflow (egui's thin bars, visible when
-            // dormant, the handle in the text colour since the theme's widget fill is the panel's), so a grid wider
-            // than its pane shows that it scrolls sideways.
+            // dormant, the handle in the widgets' foreground colour since the theme's widget fill is the panel's), so
+            // a grid wider than its pane shows that it scrolls sideways. B33: that foreground is the text colour, a
+            // near-white bar on the dark panel; the handle is a component boundary, so at rest it takes
+            // `color.border.control` (3:1 on the panel in both themes) and `color.text.secondary` under the pointer
+            // and while dragged. The grid's own texts are painted with explicit colours, so nothing else changes.
             ui.spacing_mut().scroll = egui::style::ScrollStyle {
                 foreground_color: true,
                 dormant_background_opacity: 0.0,
                 ..egui::style::ScrollStyle::thin()
             };
             let w = &mut ui.visuals_mut().widgets;
+            w.inactive.fg_stroke.color = tokens.border_control.color32();
+            w.hovered.fg_stroke.color = tokens.text_secondary.color32();
+            w.active.fg_stroke.color = tokens.text_secondary.color32();
             w.noninteractive.bg_stroke = egui::Stroke::NONE;
             w.hovered.bg_stroke = theme::stroke(tokens.border_width, tokens.accent);
             w.active.bg_stroke = theme::stroke(tokens.border_width, tokens.accent);
@@ -235,7 +244,7 @@ impl TableUi {
         // (2-px `color.focus`, `radius.sm`) is drawn around the whole grid, inset 1 px into the pane.
         if focused {
             ui.painter().rect_stroke(
-                area.shrink(1.0),
+                area.shrink(RING_INSET),
                 theme::radius(tokens.radius_sm),
                 theme::stroke(tokens.focus_width, tokens.focus),
                 StrokeKind::Inside,
@@ -567,6 +576,9 @@ impl Delegate<'_> {
         painter.rect_stroke(frame, r, edge, StrokeKind::Inside);
         painter.rect_stroke(frame, r, edge, StrokeKind::Outside);
         let field = frame.shrink2(vec2(t.space_4 - t.space_1, 0.0));
+        // The field is exactly `field` high, so that its centred text sits on the cell text's baseline: egui would
+        // grow it to `interact_size.y` (the row's height) downwards and the text would drop by the difference.
+        ui.spacing_mut().interact_size.y = field.height();
         let response = ui.put(
             field,
             TextEdit::singleline(self.buffer)
@@ -761,11 +773,14 @@ impl TableDelegate for Delegate<'_> {
         let content = rect.shrink2(vec2(t.space_4, 0.0));
         paint_text(ui, content, &text, theme::font(&t.type_small), colour);
         let painter = ui.painter();
-        // The cursor row: a 2-px accent bar at the key cell's left edge, inset `space.2` top and bottom.
+        // The cursor row: a 2-px accent bar at the key cell's left, inset `space.2` top and bottom. It sits just inside
+        // the grid's focus ring (inset `RING_INSET`, `focus_width` wide), in the same place whether or not the grid has
+        // the keyboard, so the two never overlap and nothing moves when the focus does (cycle-33 ruling).
         if on_cursor_row && cell.col_nr == 0 {
+            let left = rect.left() + RING_INSET + t.focus_width;
             let bar = Rect::from_min_max(
-                pos2(rect.left(), rect.top() + t.space_2),
-                pos2(rect.left() + t.focus_width, rect.bottom() - t.space_2),
+                pos2(left, rect.top() + t.space_2),
+                pos2(left + t.focus_width, rect.bottom() - t.space_2),
             );
             painter.rect_filled(bar, theme::radius(t.radius_mark), t.accent.color32());
         }
