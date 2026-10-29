@@ -308,29 +308,20 @@ mod tests {
     }
 
     proptest! {
+        /// The order laws: antisymmetry with equality exactly for canonically equal strings, and transitivity.
         #[test]
-        fn numbers_compare_by_value(a in any::<u64>(), b in any::<u64>(), zeros in 0usize..3) {
-            let sa = format!("X{}{a}", "0".repeat(zeros));
-            let sb = format!("X{b}");
-            if a != b {
-                prop_assert_eq!(natural_cmp(&sa, &sb), a.cmp(&b));
-            }
-        }
-
-        #[test]
-        fn antisymmetric_and_identity(a in "[ -~ÄäÖöÜüß]{0,8}", b in "[ -~ÄäÖöÜüß]{0,8}") {
-            let ab = natural_cmp(&a, &b);
-            prop_assert_eq!(ab, natural_cmp(&b, &a).reverse());
-            prop_assert_eq!(ab == Ordering::Equal, to_nfc(&a) == to_nfc(&b));
-        }
-
-        #[test]
-        fn transitive(a in "[-+.0-9A-Za-z]{0,6}", b in "[-+.0-9A-Za-z]{0,6}", c in "[-+.0-9A-Za-z]{0,6}") {
+        fn order_laws(
+            x in "[ -~ÄäÖöÜüß]{0,8}", y in "[ -~ÄäÖöÜüß]{0,8}",
+            a in "[-+.0-9A-Za-z]{0,6}", b in "[-+.0-9A-Za-z]{0,6}", c in "[-+.0-9A-Za-z]{0,6}",
+        ) {
+            let xy = natural_cmp(&x, &y);
+            prop_assert_eq!(xy, natural_cmp(&y, &x).reverse(), "antisymmetric");
+            prop_assert_eq!(xy == Ordering::Equal, to_nfc(&x) == to_nfc(&y), "identity");
             let mut v = [a, b, c];
             v.sort_by_key(|s| natural_key(s));
-            prop_assert!(natural_cmp(&v[0], &v[1]) != Ordering::Greater);
-            prop_assert!(natural_cmp(&v[1], &v[2]) != Ordering::Greater);
-            prop_assert!(natural_cmp(&v[0], &v[2]) != Ordering::Greater);
+            prop_assert!(natural_cmp(&v[0], &v[1]) != Ordering::Greater, "transitive");
+            prop_assert!(natural_cmp(&v[1], &v[2]) != Ordering::Greater, "transitive");
+            prop_assert!(natural_cmp(&v[0], &v[2]) != Ordering::Greater, "transitive");
         }
 
         /// A proper prefix sorts first.

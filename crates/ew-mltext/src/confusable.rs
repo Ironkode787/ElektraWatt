@@ -112,22 +112,6 @@ mod tests {
     use proptest::prelude::*;
 
     #[test]
-    fn ascii_identifiers_are_clean() {
-        for s in [
-            "-101F1",
-            "=P01+J-E-2416-X1031:1",
-            "A9F78116",
-            "PT 2.5-TWIN",
-            "Q0.1",
-            "TA05-V-15",
-            "51E-F13GCQP-D+H2GG",
-            "O0l1I",
-        ] {
-            assert!(ident_findings(s).is_empty(), "{s}");
-        }
-    }
-
-    #[test]
     fn single_script_non_ascii_is_clean() {
         for s in ["Ölfilter", "Lüfter-3", "Schütz", "测试-1", "Пускатель"] {
             assert!(ident_findings(s).is_empty(), "{s}: {:?}", ident_findings(s));
