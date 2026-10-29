@@ -480,57 +480,72 @@ mod tests {
         (out, entries)
     }
 
+    /// The four end types at end 2 of a vertical line (`length2="3"`), one case each: the marker is the second
+    /// graphic, after the line itself.
     #[test]
-    fn end_marker_simple() {
+    fn end_markers() {
         let (n, l) = (px("10").0, px("3").0);
         let h = l / 2;
-        let (out, entries) = vertical("simple");
-        assert!(entries.is_empty());
-        assert_eq!(out.graphics.len(), 2);
-        let Primitive::Polyline(m) = &out.graphics[1] else {
-            panic!()
-        };
-        assert_eq!(m.points, vec![p(-h, n - l), p(0, n), p(h, n - l)]);
-        assert_eq!(m.stroke, default_stroke());
-    }
-
-    #[test]
-    fn end_marker_triangle() {
-        let (n, l) = (px("10").0, px("3").0);
-        let h = l / 2;
-        let (out, _) = vertical("triangle");
-        let Primitive::Polygon(m) = &out.graphics[1] else {
-            panic!()
-        };
-        assert_eq!(m.points, vec![p(0, n), p(-h, n - l), p(h, n - l)]);
-        assert!(m.closed);
-        assert_eq!(m.fill, Some(Colour::ByLayer));
-        assert_eq!(m.stroke, default_stroke());
-    }
-
-    #[test]
-    fn end_marker_circle() {
-        let (n, l) = (px("10").0, px("3").0);
-        let h = l / 2;
-        let (out, _) = vertical("circle");
-        let Primitive::Circle(m) = &out.graphics[1] else {
-            panic!()
-        };
-        assert_eq!((m.centre, m.r), (p(0, n - h), Nm(h)));
-        assert_eq!(m.fill, Some(Colour::ByLayer));
-    }
-
-    #[test]
-    fn end_marker_diamond() {
-        let (n, l) = (px("10").0, px("3").0);
-        let h = l / 2;
-        let (out, _) = vertical("diamond");
-        let Primitive::Polygon(m) = &out.graphics[1] else {
-            panic!()
-        };
-        assert_eq!(m.points, vec![p(0, n), p(-h, n - h), p(0, n - l), p(h, n - h)]);
-        assert!(m.closed);
-        assert_eq!(m.fill, Some(Colour::ByLayer));
+        type Check = Box<dyn Fn(&Primitive)>;
+        let cases: [(&str, Check); 4] = [
+            (
+                "simple",
+                Box::new(move |g| {
+                    let Primitive::Polyline(m) = g else {
+                        panic!("case simple: {g:?}")
+                    };
+                    assert_eq!(m.points, vec![p(-h, n - l), p(0, n), p(h, n - l)], "case simple");
+                    assert_eq!(m.stroke, default_stroke(), "case simple");
+                }),
+            ),
+            (
+                "triangle",
+                Box::new(move |g| {
+                    let Primitive::Polygon(m) = g else {
+                        panic!("case triangle: {g:?}")
+                    };
+                    assert_eq!(
+                        m.points,
+                        vec![p(0, n), p(-h, n - l), p(h, n - l)],
+                        "case triangle"
+                    );
+                    assert!(m.closed, "case triangle");
+                    assert_eq!(m.fill, Some(Colour::ByLayer), "case triangle");
+                    assert_eq!(m.stroke, default_stroke(), "case triangle");
+                }),
+            ),
+            (
+                "circle",
+                Box::new(move |g| {
+                    let Primitive::Circle(m) = g else {
+                        panic!("case circle: {g:?}")
+                    };
+                    assert_eq!((m.centre, m.r), (p(0, n - h), Nm(h)), "case circle");
+                    assert_eq!(m.fill, Some(Colour::ByLayer), "case circle");
+                }),
+            ),
+            (
+                "diamond",
+                Box::new(move |g| {
+                    let Primitive::Polygon(m) = g else {
+                        panic!("case diamond: {g:?}")
+                    };
+                    assert_eq!(
+                        m.points,
+                        vec![p(0, n), p(-h, n - h), p(0, n - l), p(h, n - h)],
+                        "case diamond"
+                    );
+                    assert!(m.closed, "case diamond");
+                    assert_eq!(m.fill, Some(Colour::ByLayer), "case diamond");
+                }),
+            ),
+        ];
+        for (kind, check) in &cases {
+            let (out, entries) = vertical(kind);
+            assert!(entries.is_empty(), "case {kind}: {entries:?}");
+            assert_eq!(out.graphics.len(), 2, "case {kind}");
+            check(&out.graphics[1]);
+        }
     }
 
     #[test]

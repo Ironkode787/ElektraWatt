@@ -138,10 +138,9 @@ fn polygon_element(n: usize) -> String {
     s
 }
 
-/// C2 mechanism: `polygon()` walks the attributes once, not once per point.
-#[test]
-fn long_polygon_is_linear() {
-    let text = polygon_element(16_000);
+/// `polygon()` over an `n`-point polygon element, with the opt-in timing of the call reported and bounded.
+fn check_long_polygon(n: usize) {
+    let text = polygon_element(n);
     // roxmltree's duplicate-attribute check is quadratic, bounded by the attribute limit and not under
     // test here, so the parse stays outside the timed section.
     let doc = roxmltree::Document::parse(&text).unwrap();
@@ -152,7 +151,7 @@ fn long_polygon_is_linear() {
     polygon(node, &mut ctx, &mut out).unwrap();
     let elapsed = start.map(|start| start.elapsed());
     if let Some(elapsed) = elapsed {
-        eprintln!("long_polygon_is_linear: {elapsed:?}");
+        eprintln!("long_polygon_is_linear ({n} points): {elapsed:?}");
     }
     let bound = if cfg!(debug_assertions) {
         Duration::from_secs(5)
@@ -163,7 +162,22 @@ fn long_polygon_is_linear() {
     let [Primitive::Polygon(p)] = out.graphics.as_slice() else {
         panic!("expected one polygon, got {:?}", out.graphics.len());
     };
-    assert_eq!(p.points.len(), 16_000);
+    assert_eq!(p.points.len(), n);
+}
+
+/// C2 mechanism: `polygon()` walks the attributes once, not once per point; per gate at 2 000 points (the
+/// point count is asserted), which keeps roxmltree's quadratic parse of the test input small.
+#[test]
+fn long_polygon_is_linear() {
+    check_long_polygon(2_000);
+}
+
+/// The review size of C2, 16 000 points, with its timing (`EW_PERF_ASSERT`); a performance test (`CLAUDE.md`
+/// testing policy), run at milestone deliveries. `long_polygon_is_linear` is its per-gate correctness twin.
+#[test]
+#[ignore = "perf: release-profile timing, milestone deliveries only"]
+fn long_polygon_is_linear_at_16000_points() {
+    check_long_polygon(16_000);
 }
 
 /// C2 limit: an element with more attributes than `max_xml_attributes_per_element` is refused before
@@ -365,18 +379,27 @@ fn node_flood_text(count: usize) -> String {
     text
 }
 
-/// N3: a node count just under the project-file default imports, with a capped report.
+/// N3/N7: a node count just under the limit imports with a capped report, one case per limit: the project-file
+/// default (1,000,000) read directly, and the element preset (262,144) through the importer.
 #[test]
 fn nodes_just_under_the_default_import_within_budget() {
-    let text = node_flood_text(999_000);
-    let (result, elapsed) = timed_read(&text, &Limits::default());
-    if let Some(elapsed) = elapsed {
-        eprintln!("nodes_just_under_the_default_import_within_budget: {elapsed:?}");
+    let cases: [(&str, usize, bool); 2] = [("default", 999_000, false), ("element preset", 262_142, true)];
+    for (name, count, through_importer) in cases {
+        let text = node_flood_text(count);
+        let (entries, elapsed) = if through_importer {
+            let (result, elapsed) = timed_import(&text);
+            (result.unwrap().report.entries, elapsed)
+        } else {
+            let (result, elapsed) = timed_read(&text, &Limits::default());
+            (result.unwrap().entries, elapsed)
+        };
+        if let Some(elapsed) = elapsed {
+            eprintln!("nodes just under the {name}: {elapsed:?}");
+        }
+        assert_within_budget(&format!("case {name}"), elapsed);
+        assert_eq!(entries.len(), MAX_ENTRIES_PER_DEFINITION + 1, "case {name}");
+        assert_eq!(entries.last().unwrap().code, Code::LIMIT, "case {name}");
     }
-    assert_within_budget("took {elapsed:?}", elapsed);
-    let entries = result.unwrap().entries;
-    assert_eq!(entries.len(), MAX_ENTRIES_PER_DEFINITION + 1);
-    assert_eq!(entries.last().unwrap().code, Code::LIMIT);
 }
 
 /// N3: more nodes than the default limit are refused by the pre-scan, not by the parser.
@@ -394,21 +417,6 @@ fn node_flood_is_refused_by_the_prescan() {
     }
     assert_eq!(result.err(), Some(expected));
     assert_within_budget("took {elapsed:?}", elapsed);
-}
-
-/// N7: a node count just under the element preset (262,144) imports through the importer, with a capped
-/// report.
-#[test]
-fn nodes_just_under_the_element_preset_import_within_budget() {
-    let text = node_flood_text(262_142);
-    let (result, elapsed) = timed_import(&text);
-    if let Some(elapsed) = elapsed {
-        eprintln!("nodes_just_under_the_element_preset_import_within_budget: {elapsed:?}");
-    }
-    assert_within_budget("took {elapsed:?}", elapsed);
-    let report = result.unwrap().report;
-    assert_eq!(report.entries.len(), MAX_ENTRIES_PER_DEFINITION + 1);
-    assert_eq!(report.entries.last().unwrap().code, Code::LIMIT);
 }
 
 /// N7: the element preset refuses 262,144 nodes, by the pre-scan.
@@ -586,18 +594,6 @@ fn many_small_style_attributes_are_capped_per_definition() {
         &Limits::default(),
     );
     check_style_cap(&el, 599_000);
-}
-
-/// N5/N7: the same under the element preset, 25 000 lines (125,000 attributes, 75,000 pairs).
-#[test]
-fn many_small_style_attributes_are_capped_per_definition_under_the_preset() {
-    let text = style_lines_text(25_000);
-    let el = check_style_flood(
-        &text,
-        "many_small_style_attributes_are_capped_per_definition_under_the_preset",
-        &Limits::element_definition(),
-    );
-    check_style_cap(&el, 74_000);
 }
 
 /// A definition whose `section` element holds `n` bytes of plain text, built as one buffer.

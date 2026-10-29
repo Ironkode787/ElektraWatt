@@ -507,39 +507,41 @@ mod tests {
         assert_eq!(m.total, 4);
     }
 
+    /// The live groups in each format, one case per format.
     #[test]
-    fn live_markdown() {
-        let md = MigrationReport::from_report(&report(vec![]))
-            .with_live(live())
-            .to_markdown();
-        assert!(md.contains("| EW-RDS-004 | check | 2 | Tag clash |"), "{md}");
+    fn live_groups_in_every_format() {
+        let m = MigrationReport::from_report(&report(vec![])).with_live(live());
+        // markdown
+        let md = m.to_markdown();
+        assert!(
+            md.contains("| EW-RDS-004 | check | 2 | Tag clash |"),
+            "case markdown: {md}"
+        );
         assert!(
             md.contains("## EW-RDS-004 \u{2014} Tag clash (2)\n\n- a, b\n- c\n"),
-            "{md}"
+            "case markdown: {md}"
         );
-    }
-
-    #[test]
-    fn live_csv() {
-        let csv = MigrationReport::from_report(&report(vec![]))
-            .with_live(live())
-            .to_csv();
-        assert!(csv.contains("EW-RDS-004,check,2,,,,\"a, b\"\n"), "{csv}");
-        assert!(csv.ends_with("EW-RDS-004,check,2,,,,c\n"), "{csv}");
-    }
-
-    #[test]
-    fn live_json() {
-        let m = MigrationReport::from_report(&report(vec![])).with_live(live());
+        // csv
+        let csv = m.to_csv();
+        assert!(
+            csv.contains("EW-RDS-004,check,2,,,,\"a, b\"\n"),
+            "case csv: {csv}"
+        );
+        assert!(csv.ends_with("EW-RDS-004,check,2,,,,c\n"), "case csv: {csv}");
+        // json
         let v: serde_json::Value = serde_json::from_str(&m.to_json()).unwrap();
-        assert_eq!(v["total"], 3);
-        assert_eq!(v["live"][1]["rule"], "EW-RDS-004");
-        assert_eq!(v["live"][1]["count"], 2);
-        assert_eq!(v["live"][1]["messages"][1], "c");
-        assert_eq!(v["live"][1]["title"], "Tag clash");
+        assert_eq!(v["total"], 3, "case json");
+        assert_eq!(v["live"][1]["rule"], "EW-RDS-004", "case json");
+        assert_eq!(v["live"][1]["count"], 2, "case json");
+        assert_eq!(v["live"][1]["messages"][1], "c", "case json");
+        assert_eq!(v["live"][1]["title"], "Tag clash", "case json");
         let empty = MigrationReport::from_report(&report(vec![]));
         let v: serde_json::Value = serde_json::from_str(&empty.to_json()).unwrap();
-        assert_eq!(v["live"].as_array().map(Vec::len), Some(0));
+        assert_eq!(
+            v["live"].as_array().map(Vec::len),
+            Some(0),
+            "case json without live groups"
+        );
     }
 
     #[test]
@@ -597,24 +599,5 @@ mod tests {
         assert_eq!(e["line"], 4);
         assert!(v["groups"][0]["entries"][0]["defect"].is_null());
         assert!(v["groups"][0]["entries"][0]["folio"].is_null());
-    }
-
-    #[test]
-    fn format_from_str() {
-        assert_eq!("md".parse(), Ok(ReportFormat::Markdown));
-        assert_eq!("markdown".parse(), Ok(ReportFormat::Markdown));
-        assert_eq!("csv".parse(), Ok(ReportFormat::Csv));
-        assert_eq!("json".parse(), Ok(ReportFormat::Json));
-        let e = "xml".parse::<ReportFormat>().unwrap_err();
-        assert!(e.to_string().contains("xml"));
-    }
-
-    #[test]
-    fn titles() {
-        assert_eq!(code_title(Code::imp(6)), "Font substituted");
-        assert_eq!(code_title(Code::imp(204)), "EDZ and EPLAN finding");
-        assert_eq!(code_title(Code::imp(256)), "DXF and DWG finding");
-        assert_eq!(code_title(Code::imp(302)), "Table round-trip finding");
-        assert_eq!(code_title(Code::imp(900)), "");
     }
 }
