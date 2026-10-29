@@ -95,6 +95,22 @@ fn core047_reports_a_device_whose_functions_are_not_drawn() {
     assert_eq!(r[0].severity, Severity::Error, "release blocks");
 }
 
+/// Cycle 33 review finding 8: EW-CORE-047 asks for a schematic representation; a device drawn only on a panel
+/// front is reported, one drawn in a multi-line schematic is not.
+#[test]
+fn core047_a_device_drawn_only_on_a_panel_front_is_reported() {
+    let mut fx = Fx::base();
+    fx.drawn_device(0x101, "K", Some(1), P1);
+    fx.drawn_device(0x102, "H", Some(1), P1);
+    fx.with("rep_type", json!("panel_front"));
+    let f = findings_of(&fx.build(), "EW-CORE-047");
+    assert_eq!(f.len(), 1, "{f:#?}");
+    assert_eq!(
+        (f[0].targets[0].kind, f[0].targets[0].id),
+        (Kind::Device, uid(0x102))
+    );
+}
+
 /// A function wired to an interruption point `name` with no partner.
 fn lonely_ip() -> Fx {
     let mut fx = Fx::base();
