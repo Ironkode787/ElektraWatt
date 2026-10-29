@@ -137,12 +137,29 @@ fn np1_strips_are_the_terminal_diagrams() {
         let strip = b.manual.include.as_slice()[0].as_uuid();
         blocks.insert(strip, block_rows(&s, key));
     }
+    // WP-S2.07 D2, D6 (SE7): `pos` after `strip`, `bridge_part` after `bridge`; the other columns are the diagram's.
+    let keys: Vec<&str> = t.columns.iter().map(|c| c.key.as_str()).collect();
+    let pos = keys.iter().position(|k| *k == "pos").expect("a pos column");
+    let bridge_part = keys
+        .iter()
+        .position(|k| *k == "bridge_part")
+        .expect("a bridge part column");
+    assert_eq!((pos, keys[bridge_part - 1]), (1, "bridge"));
     for strip in &strips {
         let rows: Vec<Vec<String>> = children(&t, strip)
             .iter()
-            .map(|n| {
+            .enumerate()
+            .map(|(i, n)| {
                 assert_eq!(n.cells[0], strip.label);
-                n.cells[1..].to_vec()
+                // Golden A's terminals: `pos` is the seq (1-based, gapless), no bridge has a part.
+                assert_eq!(n.cells[pos], (i + 1).to_string(), "{}: pos", strip.label);
+                assert_eq!(n.cells[bridge_part], "", "{}: bridge part", strip.label);
+                n.cells
+                    .iter()
+                    .enumerate()
+                    .filter(|(i, _)| *i != 0 && *i != pos && *i != bridge_part)
+                    .map(|(_, c)| c.clone())
+                    .collect()
             })
             .collect();
         assert_eq!(

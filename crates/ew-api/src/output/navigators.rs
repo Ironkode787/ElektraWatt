@@ -131,6 +131,8 @@ pub enum NavRole {
     Strip,
     /// A terminal.
     Terminal,
+    /// A strip accessory (WP-S2.07 D3): a row of the Terminal strips navigator.
+    Accessory,
     /// A cable.
     Cable,
     /// A cable conductor.
@@ -175,6 +177,7 @@ impl NavRole {
             NavRole::Potential => "potential",
             NavRole::Strip => "strip",
             NavRole::Terminal => "terminal",
+            NavRole::Accessory => "accessory",
             NavRole::Cable => "cable",
             NavRole::Conductor => "conductor",
             NavRole::Station => "station",
@@ -208,6 +211,8 @@ pub struct NavColumn {
     pub route: Option<(String, String)>,
     /// Why the column is read-only, when it is.
     pub read_only: Option<String>,
+    /// A strip-editor column whose cells compile through `Session::strip_edit` (WP-S2.07 §6.3); `None` elsewhere.
+    pub strip_cell: Option<super::strip_edit::StripCell>,
 }
 
 /// A representation or connection that draws a row.
@@ -357,6 +362,7 @@ fn column(key: &str, label: &str, key_column: bool, route: Option<(&str, &str)>)
         key_column,
         route: route.map(|(k, p)| (k.to_owned(), p.to_owned())),
         read_only: route.is_none().then(|| "no command yet".to_owned()),
+        strip_cell: None,
     }
 }
 
@@ -434,10 +440,22 @@ const DERIVED_COLUMNS: [(NavKind, &str); 8] = [
     (NavKind::Blocks, "pages"),
 ];
 
+/// The strip-editor columns of the Terminal strips navigator (WP-S2.07 §6.2, §6.3): (column key, its compile).
+const STRIP_CELLS: [(&str, super::strip_edit::StripCell); 3] = [
+    ("group", super::strip_edit::StripCell::Group),
+    ("bridge_part", super::strip_edit::StripCell::BridgePart),
+    ("part", super::strip_edit::StripCell::AccessoryPart),
+];
+
 /// The columns of a navigator (§6.6, §7.1) with the routes of §8.2's table and the derived flags.
 fn columns_of(kind: NavKind) -> Vec<NavColumn> {
     let mut columns = plain_columns_of(kind);
     for c in &mut columns {
+        if kind == NavKind::Strips
+            && let Some((_, cell)) = STRIP_CELLS.iter().find(|(k, _)| *k == c.key)
+        {
+            c.strip_cell = Some(*cell);
+        }
         if DERIVED_COLUMNS.contains(&(kind, c.key.as_str())) {
             c.derived = true;
             c.route = None;
@@ -471,12 +489,18 @@ fn plain_columns_of(kind: NavKind) -> Vec<NavColumn> {
         ],
         NavKind::Devices => kind_columns("structure_overview"),
         NavKind::Connections => kind_columns("wire_list"),
+        // WP-S2.07 D2, D6: `pos` after `strip`, `bridge_part` after `bridge`.
         NavKind::Strips => {
             let mut c = own(&["strip"]);
-            c.extend(kind_columns("terminal_diagram").into_iter().map(|mut c| {
-                c.key_column = false;
-                c
-            }));
+            c.push(column("pos", "Pos", false, None));
+            for mut k in kind_columns("terminal_diagram") {
+                k.key_column = false;
+                let bridge = k.key == "bridge";
+                c.push(k);
+                if bridge {
+                    c.push(column("bridge_part", "Bridge part", false, None));
+                }
+            }
             c
         }
         NavKind::Cables => kind_columns("cable_overview_diagrams"),
@@ -500,6 +524,7 @@ fn plain_columns_of(kind: NavKind) -> Vec<NavColumn> {
                 key_column: *k == "rule",
                 route: None,
                 read_only: Some("derived".to_owned()),
+                strip_cell: None,
             })
             .collect(),
     }
@@ -1312,15 +1337,32 @@ fn short_tag(q: &Q, d: Id<Device>) -> String {
         .unwrap_or_default()
 }
 
-/// Terminal strips (§7.1): strip → terminal rows; the table is each strip's terminal diagram with a leading `strip`
-/// column.
+/// Terminal strips (§7.1; WP-S2.07 D2, D3): strip → its rows in mounting order: the accessories placed before the
+/// first terminal, then each terminal (from the strip's terminal diagram) followed by the accessories placed after it.
+/// The table has a leading `strip` column, `pos` (the terminal's `seq`, an accessory's `<after_seq>.<k>`) and
+/// `bridge_part` (the part number of the terminal's bridge, D6). Every node of a strip carries the facet `strip` (the
+/// case-folded strip tag).
 fn strips_table(q: &Q, b: &mut Builder) {
     let folios = folios(q);
+    // The bridge parts by terminal (D6): the part number of the group's part, when it has one.
+    let mut bridge_parts: BTreeMap<Id<Device>, String> = BTreeMap::new();
+    for (_, _, g) in ew_reports::bridge_groups(q) {
+        let number = g
+            .part
+            .as_ref()
+            .and_then(|p| q.parts().get(p.copy))
+            .map(|c| c.item.part_number.as_str().to_owned())
+            .unwrap_or_default();
+        for t in &g.terminals {
+            bridge_parts.entry(*t).or_insert_with(|| number.clone());
+        }
+    }
     for strip in strips(q) {
         let Some(set) = ew_reports::project_rows(q, "terminal_diagram", Some(strip.as_uuid())) else {
             continue;
         };
         let tag = short_tag(q, strip);
+        let strip_facet = ("strip".to_owned(), tag.to_lowercase());
         let mut terminals = Vec::new();
         for (i, r) in set.rows.iter().enumerate() {
             if r.kind != ew_reports::RowKind::Data {
@@ -1340,7 +1382,8 @@ fn strips_table(q: &Q, b: &mut Builder) {
         if n_spare > 0 {
             badges.push(format!("{n_spare} spare"));
         }
-        let facets = base_facets(NavRole::Strip, &drawables);
+        let mut facets = base_facets(NavRole::Strip, &drawables);
+        facets.push(strip_facet.clone());
         let snode = b.push(
             None,
             NavRole::Strip,
@@ -1352,11 +1395,64 @@ fn strips_table(q: &Q, b: &mut Builder) {
             None,
             facets,
         );
-        for (i, t) in terminals {
+        // D3: the accessories in (after_seq, list index) order, each with its `pos` and the index of the terminal
+        // it follows (`None`: before the first terminal).
+        let seqs: Vec<u32> = terminals
+            .iter()
+            .map(|(_, t)| {
+                q.devices()
+                    .get(Id::from_uuid(*t))
+                    .and_then(|d| d.aspects.terminal.as_ref())
+                    .map_or(0, |a| a.seq)
+            })
+            .collect();
+        let accessories = accessory_rows(q, strip, &seqs);
+        let mut next_accessory = 0;
+        let mut push_accessories = |b: &mut Builder, after: Option<usize>| {
+            while let Some(a) = accessories.get(next_accessory)
+                && a.after == after
+            {
+                let cells = vec![
+                    tag.clone(),
+                    a.pos.clone(),
+                    String::new(),
+                    a.word.to_owned(),
+                    String::new(),
+                    a.part.clone(),
+                    String::new(),
+                    String::new(),
+                    String::new(),
+                    String::new(),
+                    String::new(),
+                    String::new(),
+                ];
+                let mut facets = vec![("kind".to_owned(), "accessory".to_owned()), strip_facet.clone()];
+                if !a.part.is_empty() {
+                    facets.push(("part".to_owned(), a.part.to_lowercase()));
+                }
+                b.push(
+                    Some(snode),
+                    NavRole::Accessory,
+                    &format!("accessory:{}", a.index),
+                    a.word.to_owned(),
+                    Vec::new(),
+                    Vec::new(),
+                    Vec::new(),
+                    Some(cells),
+                    facets,
+                );
+                next_accessory += 1;
+            }
+        };
+        push_accessories(b, None);
+        // `bridge_part` follows `bridge`.
+        let bridge_part_at = set.column("bridge").map_or(usize::MAX, |c| c + 1);
+        for (k, (i, t)) in terminals.into_iter().enumerate() {
             let texts = ew_reports::csv::row_texts(q, &set, i);
             let id: Id<Device> = Id::from_uuid(t);
             let drawables = device_drawables(q, &folios, id);
             let mut facets = base_facets(NavRole::Terminal, &drawables);
+            facets.push(strip_facet.clone());
             let mut badges = Vec::new();
             if let Some(d) = q.devices().get(id) {
                 if d.state == DeviceState::Spare {
@@ -1373,8 +1469,18 @@ fn strips_table(q: &Q, b: &mut Builder) {
                 facets.push(("part".to_owned(), part.to_lowercase()));
             }
             let label = cell_of(&set, &texts, "terminal").to_owned();
-            let mut cells = vec![tag.clone()];
-            cells.extend(texts);
+            let mut cells = vec![tag.clone(), seqs[k].to_string()];
+            let bridge_part = bridge_parts.get(&id).cloned().unwrap_or_default();
+            let n = texts.len();
+            for (c, text) in texts.into_iter().enumerate() {
+                if c == bridge_part_at {
+                    cells.push(bridge_part.clone());
+                }
+                cells.push(text);
+            }
+            if bridge_part_at >= n {
+                cells.push(bridge_part);
+            }
             b.push(
                 Some(snode),
                 NavRole::Terminal,
@@ -1386,11 +1492,66 @@ fn strips_table(q: &Q, b: &mut Builder) {
                 Some(cells),
                 facets,
             );
+            push_accessories(b, Some(k));
         }
     }
 }
 
-/// Cables (§7.1): the per-cable rows of the cable overview as cable rows, the core rows as conductor rows under them;
+/// One accessory row of a strip (WP-S2.07 D3).
+struct AccessoryRow {
+    /// Its index in `Strip.accessories`.
+    index: usize,
+    /// The index of the terminal (in mounting order) it follows; `None` before the first terminal.
+    after: Option<usize>,
+    /// `<after_seq>.<k>`.
+    pos: String,
+    /// The kind word (`End bracket`).
+    word: &'static str,
+    /// The part number, empty when the copy is missing.
+    part: String,
+}
+
+/// The accessory rows of `strip` over its terminals' `seqs` (mounting order): each placed after the terminal whose
+/// `seq` is the greatest not above its `after_seq` (before the first terminal when none is), in (after_seq, list
+/// index) order; `k` counts from 1 among equal `after_seq` in list order.
+fn accessory_rows(q: &Q, strip: Id<Device>, seqs: &[u32]) -> Vec<AccessoryRow> {
+    let Some(aspect) = q.devices().get(strip).and_then(|d| d.aspects.strip.clone()) else {
+        return Vec::new();
+    };
+    let mut order: Vec<(u32, usize)> = aspect
+        .accessories
+        .iter()
+        .enumerate()
+        .map(|(i, a)| (a.after_seq, i))
+        .collect();
+    order.sort_unstable();
+    let mut out = Vec::with_capacity(order.len());
+    let mut k = 0u32;
+    let mut last: Option<u32> = None;
+    for (after_seq, index) in order {
+        k = if last == Some(after_seq) { k + 1 } else { 1 };
+        last = Some(after_seq);
+        let a = &aspect.accessories[index];
+        let after = seqs.iter().rposition(|s| *s <= after_seq);
+        let part = q
+            .parts()
+            .get(a.part.copy)
+            .map(|c| c.item.part_number.as_str().to_owned())
+            .unwrap_or_default();
+        out.push(AccessoryRow {
+            index,
+            after,
+            pos: format!("{after_seq}.{k}"),
+            word: crate::output::strip_edit::accessory_word(&a.kind),
+            part,
+        });
+    }
+    // Stable by placement, so that the rows follow the terminals in one pass.
+    out.sort_by_key(|a| a.after.map_or(0, |x| x + 1));
+    out
+}
+
+// Cables (§7.1): the per-cable rows of the cable overview as cable rows, the core rows as conductor rows under them;
 /// the headings are dropped.
 fn cables_table(q: &Q, b: &mut Builder) {
     use ew_derive::ew_schema::{Conductor, ConnectionKind};

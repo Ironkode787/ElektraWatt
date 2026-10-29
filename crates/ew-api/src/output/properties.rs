@@ -470,16 +470,19 @@ impl ParseCx for SheetCx<'_> {
             .unwrap_or_default()
     }
 
-    fn part_copies(&self) -> Vec<(String, String, String)> {
+    fn part_copies(&self) -> Vec<super::fields::PartCopyText> {
         self.q
             .parts()
             .iter()
-            .map(|(id, p)| {
-                (
-                    id.as_uuid().hyphenated().to_string(),
-                    p.item.part_number.as_str().to_owned(),
-                    ew_derive::manufacturer_name(&p.item.manufacturer),
-                )
+            .map(|(id, p)| super::fields::PartCopyText {
+                id: id.as_uuid().hyphenated().to_string(),
+                number: p.item.part_number.as_str().to_owned(),
+                manufacturer: ew_derive::manufacturer_name(&p.item.manufacturer),
+                kind: serde_json::to_value(&p.item.kind)
+                    .ok()
+                    .and_then(|v| v.as_str().map(str::to_owned))
+                    .unwrap_or_default(),
+                description: neutral_or_first(&p.item.description),
             })
             .collect()
     }
@@ -505,6 +508,18 @@ impl ParseCx for SheetCx<'_> {
             })
             .collect()
     }
+}
+
+/// The neutral text of an `MlText`, else the text of its first language, else empty.
+pub(super) fn neutral_or_first(text: &ew_derive::ew_mltext::MlText) -> String {
+    if let Some(n) = text.as_neutral() {
+        return n.to_owned();
+    }
+    text.languages()
+        .next()
+        .and_then(|l| text.get(l))
+        .unwrap_or_default()
+        .to_owned()
 }
 
 /// A short title of the record `id`: a device's tag, a page's folio and title, a node's path, a name.
@@ -724,6 +739,78 @@ struct Picked {
     reach: BTreeMap<Kind, BTreeSet<Uuid>>,
     /// The report block of a generated page.
     generated: Option<String>,
+}
+
+/// WP-S2.07 D13: for devices that all have the terminal aspect, the rows "Printed label" (the `function_text` row
+/// under its own key, its route unchanged) and "Group" (the label of the strip group covering each terminal, edited
+/// through `Session::strip_edit`), inserted after the Designation row of the Terminal section.
+fn terminal_rows(q: &Q, cx: &SheetCx<'_>, targets: &[Uuid], built: &mut Vec<Built>) {
+    let terminals: Vec<(Id<Device>, u32)> = targets
+        .iter()
+        .filter_map(|t| {
+            let a = q.devices().get(Id::from_uuid(*t))?.aspects.terminal.as_ref()?;
+            Some((a.strip, a.seq))
+        })
+        .collect();
+    if terminals.is_empty() || terminals.len() != targets.len() {
+        return;
+    }
+    let Some(at) = built
+        .iter()
+        .position(|b| b.row.key == "device/terminal.designation")
+    else {
+        return;
+    };
+    let depth = built[at].row.depth;
+    let mut rows = Vec::new();
+    if let Some(text) = built.iter().find(|b| b.row.key == "device/function_text") {
+        let mut row = text.row.clone();
+        row.key = "device/derived.printed_label".to_owned();
+        row.label_key = super::fields::label_key("device", "derived.printed_label");
+        row.category = Category::Terminal;
+        row.depth = depth;
+        rows.push(Built { row, derived: true });
+    }
+    let per: Vec<(Option<Value>, Provenance)> = terminals
+        .iter()
+        .map(|(strip, seq)| {
+            let label = q
+                .devices()
+                .get(*strip)
+                .and_then(|d| d.aspects.strip.as_ref())
+                .and_then(|a| a.groups.iter().find(|g| g.from_seq <= *seq && *seq <= g.to_seq))
+                .map(|g| neutral_or_first(&g.label))
+                .filter(|l| !l.is_empty());
+            (
+                label.map(Value::String),
+                Provenance::Derived {
+                    via: "strip groups".into(),
+                },
+            )
+        })
+        .collect();
+    let (value, provenance) = merge(cx, &FieldType::Text, per);
+    let mut group = derived(
+        "device",
+        "group",
+        Some((
+            "derived.group",
+            EditRoute::FieldsSet {
+                kind: "device".to_owned(),
+                path: "strip.groups".to_owned(),
+            },
+            false,
+        )),
+        Category::Terminal,
+        FieldType::Text,
+        value,
+        provenance,
+        vec![RowAction::Edit],
+    );
+    group.row.depth = depth;
+    rows.push(group);
+    let at = at + 1;
+    built.splice(at..at, rows);
 }
 
 /// One row before the category order: whether it is derived.
@@ -1191,6 +1278,9 @@ impl Session {
         }
         // Category order, derived rows first in their category, else catalogue order (a stable sort).
         built.sort_by_key(|b| (b.row.category, !b.derived));
+        if kind == Kind::Device {
+            terminal_rows(q, cx, &targets, &mut built);
+        }
         SheetSection {
             kind: name.to_owned(),
             targets,

@@ -57,6 +57,8 @@ mod navigators;
 // WP-S2.09 part 3: the labelled entity list of a preview (§4.2).
 mod preview;
 mod properties;
+// WP-S2.07 part 1: the strip editor's gestures (§4.2).
+mod strip_edit;
 mod view;
 
 use std::collections::BTreeMap;
@@ -107,6 +109,10 @@ pub use navigators::{
 };
 pub use properties::{
     FindingChip, PropRow, PropertySheet, Provenance, RowAction, RowValue, SheetHeader, SheetSection,
+};
+// WP-S2.07 part 1
+pub use strip_edit::{
+    ACCESSORY_KINDS, StripCell, StripEdit, StripEditError, accessory_part_kinds, accessory_word,
 };
 pub use view::{
     CpTargetsByPage, FrameForms, GENERIC_SYMBOL_SEALS, GENERIC_SYMBOLS_PROFILE, GenericSymbols, NOGRID_FRAME,

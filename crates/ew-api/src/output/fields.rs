@@ -1149,12 +1149,44 @@ pub struct FieldChoice {
     pub note: Option<String>,
 }
 
+/// One part copy as the part resolver reads it (WP-S2.07 D7).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub(crate) struct PartCopyText {
+    /// The copy ID (hyphenated UUID).
+    pub id: String,
+    /// The part number.
+    pub number: String,
+    /// The manufacturer's name.
+    pub manufacturer: String,
+    /// The part kind's word (`terminal`, `end_bracket`, `accessory`).
+    pub kind: String,
+    /// The description's neutral text (else its first language), `""` without one.
+    pub description: String,
+}
+
+impl PartCopyText {
+    /// The display form `<part number> (<manufacturer>)`.
+    pub fn short(&self) -> String {
+        format!("{} ({})", self.number, self.manufacturer)
+    }
+
+    /// The display form with the description, `<part number> (<manufacturer>) · <description>` (D7); the short form
+    /// when the description is empty.
+    pub fn long(&self) -> String {
+        if self.description.is_empty() {
+            self.short()
+        } else {
+            format!("{} \u{b7} {}", self.short(), self.description)
+        }
+    }
+}
+
 /// What parsing needs from the project.
 pub(crate) trait ParseCx {
     /// The company codes of the project's colour profile (`ew_derive::settings::company_codes`).
     fn company_codes(&self) -> Vec<(String, String)>;
-    /// The part copies: (copy ID, part number, manufacturer).
-    fn part_copies(&self) -> Vec<(String, String, String)>;
+    /// The part copies.
+    fn part_copies(&self) -> Vec<PartCopyText>;
     /// The structure nodes of the aspect of a slot named `member` (`location`): (ID, printed code path, aliases).
     fn slot_nodes(&self, member: &str) -> Vec<(String, String, Vec<String>)>;
 }
@@ -1470,7 +1502,7 @@ pub(crate) fn parse_input(
                 })
                 .ok_or_else(|| invalid(format!("`{t}` is not one of {}", options.join(", "))))
         }
-        FieldType::Link { kind } if kind == "part" => resolve_part(cx, text).map(|copy| ParsedInput {
+        FieldType::Link { kind } if kind == "part" => resolve_part(cx, text, None).map(|copy| ParsedInput {
             value: serde_json::json!({ "copy": copy }),
             notes: Vec::new(),
         }),
@@ -1513,21 +1545,77 @@ pub(crate) fn parse_input(
     }
 }
 
-/// The copy ID of the part typed as `text`: `id:<uuid>`, a part number, or the display form `<part number>
-/// (<manufacturer>)`, matched without regard to case.
-fn resolve_part(cx: &dyn ParseCx, text: &str) -> Result<String, InputError> {
+/// The copy ID of the part typed as `text`: `id:<uuid>`, a part number, the display form `<part number>
+/// (<manufacturer>)`, or the long display form `<part number> (<manufacturer>) · <description>` (WP-S2.07 D7),
+/// matched without regard to case, among the copies of the `kinds` given (every kind for `None`). Two or more matches
+/// are [`InputError::Ambiguous`] with every match as a choice (its long form, the value `{"copy": <id>}`).
+pub(crate) fn resolve_part(
+    cx: &dyn ParseCx,
+    text: &str,
+    kinds: Option<&[&str]>,
+) -> Result<String, InputError> {
+    match find_part(cx, text, kinds) {
+        Ok(id) => Ok(id),
+        Err(PartMiss::Unknown(t)) => Err(InputError::UnknownPart(t)),
+        Err(PartMiss::Invalid(m)) => Err(invalid(m)),
+        Err(PartMiss::Ambiguous(hits)) => Err(InputError::Ambiguous {
+            choices: hits
+                .into_iter()
+                .map(|c| (c.long(), serde_json::json!({ "copy": c.id })))
+                .collect(),
+        }),
+    }
+}
+
+/// Why a part text did not resolve to one copy.
+pub(crate) enum PartMiss {
+    /// No copy matches (the text as typed, trimmed).
+    Unknown(String),
+    /// A malformed `id:` text.
+    Invalid(String),
+    /// Two or more copies match, in the order of [`part_order`].
+    Ambiguous(Vec<PartCopyText>),
+}
+
+/// The order of part choices (WP-S2.07 §10 item 3): natural part number, then manufacturer, description, ID.
+pub(crate) fn part_order(a: &PartCopyText, b: &PartCopyText) -> std::cmp::Ordering {
+    ew_mltext::natural_cmp(&a.number, &b.number)
+        .then_with(|| ew_mltext::natural_cmp(&a.manufacturer, &b.manufacturer))
+        .then_with(|| ew_mltext::natural_cmp(&a.description, &b.description))
+        .then_with(|| a.id.cmp(&b.id))
+}
+
+/// [`resolve_part`]'s matching, with the matches of an ambiguous text.
+pub(crate) fn find_part(cx: &dyn ParseCx, text: &str, kinds: Option<&[&str]>) -> Result<String, PartMiss> {
     let t = text.trim();
-    let copies = cx.part_copies();
+    let copies: Vec<PartCopyText> = cx
+        .part_copies()
+        .into_iter()
+        .filter(|c| kinds.is_none_or(|k| k.contains(&c.kind.as_str())))
+        .collect();
     if let Some(id) = t.strip_prefix("id:") {
-        return match copies.iter().find(|(c, _, _)| c == id) {
-            Some((c, _, _)) => Ok(c.clone()),
-            None => Err(invalid(format!("the project has no part copy `{id}`"))),
+        return match copies.iter().find(|c| c.id == id) {
+            Some(c) => Ok(c.id.clone()),
+            None => Err(PartMiss::Invalid(format!("the project has no part copy `{id}`"))),
         };
     }
-    let mut hits: Vec<&(String, String, String)> = copies
+    let mut hits: Vec<&PartCopyText> = copies
         .iter()
-        .filter(|(_, pn, _)| pn.eq_ignore_ascii_case(t))
+        .filter(|c| c.number.eq_ignore_ascii_case(t))
         .collect();
+    // The long display form `<part number> (<manufacturer>) · <description>` parses back.
+    if hits.is_empty()
+        && let Some((short, description)) = t.split_once(" \u{b7} ")
+    {
+        let description = description.trim();
+        hits = copies
+            .iter()
+            .filter(|c| {
+                c.short().eq_ignore_ascii_case(short.trim())
+                    && c.description.eq_ignore_ascii_case(description)
+            })
+            .collect();
+    }
     // The display form `<part number> (<manufacturer>)` parses back.
     if hits.is_empty()
         && let Some((pn, rest)) = t.rsplit_once(" (")
@@ -1535,24 +1623,27 @@ fn resolve_part(cx: &dyn ParseCx, text: &str) -> Result<String, InputError> {
     {
         hits = copies
             .iter()
-            .filter(|(_, p, m)| p.eq_ignore_ascii_case(pn) && m.eq_ignore_ascii_case(mfr))
+            .filter(|c| c.number.eq_ignore_ascii_case(pn) && c.manufacturer.eq_ignore_ascii_case(mfr))
             .collect();
     }
     match hits.as_slice() {
-        [one] => Ok(one.0.clone()),
-        [] => Err(InputError::UnknownPart(t.to_owned())),
-        _ => Err(invalid(format!(
-            "{} part copies have the part number `{t}`; use id:<uuid>",
-            hits.len()
-        ))),
+        [one] => Ok(one.id.clone()),
+        [] => Err(PartMiss::Unknown(t.to_owned())),
+        _ => {
+            let mut all: Vec<PartCopyText> = hits.into_iter().cloned().collect();
+            all.sort_by(part_order);
+            Err(PartMiss::Ambiguous(all))
+        }
     }
 }
 
 /// A list of part uses typed as text (the minimal part chooser): part numbers separated by commas, each optionally
 /// followed by `× <quantity>` (the row's display form, `533356 × 1`), quantity 1 when left out; an empty text is the
-/// empty list. A text starting with `[` is the list's strict JSON instead (`parse_input`).
+/// empty list. A text starting with `[` is the list's strict JSON instead (`parse_input`). An ambiguous item (D7)
+/// makes the whole list ambiguous: one choice per match of the first ambiguous item, each the whole list.
 fn parse_part_uses(cx: &dyn ParseCx, text: &str) -> Result<ParsedInput, InputError> {
     let mut uses = Vec::new();
+    let mut ambiguous: Option<(usize, Vec<PartCopyText>)> = None;
     for item in text.split(',').map(str::trim).filter(|i| !i.is_empty()) {
         let (part, qty) = match item.rsplit_once('\u{d7}') {
             Some((p, q)) => {
@@ -1565,8 +1656,29 @@ fn parse_part_uses(cx: &dyn ParseCx, text: &str) -> Result<ParsedInput, InputErr
             }
             None => (item, "1".to_owned()),
         };
-        let copy = resolve_part(cx, part)?;
+        let copy = match find_part(cx, part, None) {
+            Ok(copy) => copy,
+            Err(PartMiss::Unknown(t)) => return Err(InputError::UnknownPart(t)),
+            Err(PartMiss::Invalid(m)) => return Err(invalid(m)),
+            Err(PartMiss::Ambiguous(hits)) => {
+                if ambiguous.is_none() {
+                    ambiguous = Some((uses.len(), hits.clone()));
+                }
+                hits[0].id.clone()
+            }
+        };
         uses.push(serde_json::json!({ "part": { "copy": copy }, "qty": qty }));
+    }
+    if let Some((at, hits)) = ambiguous {
+        let choices = hits
+            .into_iter()
+            .map(|c| {
+                let mut list = uses.clone();
+                list[at]["part"]["copy"] = Value::String(c.id.clone());
+                (c.long(), Value::Array(list))
+            })
+            .collect();
+        return Err(InputError::Ambiguous { choices });
     }
     Ok(ParsedInput {
         value: Value::Array(uses),
@@ -1574,7 +1686,7 @@ fn parse_part_uses(cx: &dyn ParseCx, text: &str) -> Result<ParsedInput, InputErr
     })
 }
 
-/// The notes of an identifier: its mixed scripts and confusable code points (FR-I18N-011, FR-NUM-016).
+// The notes of an identifier: its mixed scripts and confusable code points (FR-I18N-011, FR-NUM-016).
 fn ident_notes(text: &str) -> Vec<String> {
     use ew_mltext::IdentFinding;
     ident_findings(text)
@@ -1658,12 +1770,12 @@ pub(crate) fn choices(cx: &dyn ParseCx, ty: &FieldType, member: &str, filter: &s
 /// The project's part copies as options, `<part number> (<manufacturer>)` in natural order, each writing `value(id)`.
 fn part_choices(cx: &dyn ParseCx, value: impl Fn(&str) -> Value) -> Vec<FieldChoice> {
     let mut copies = cx.part_copies();
-    copies.sort_by(|a, b| ew_mltext::natural_cmp(&a.1, &b.1).then_with(|| a.0.cmp(&b.0)));
+    copies.sort_by(|a, b| ew_mltext::natural_cmp(&a.number, &b.number).then_with(|| a.id.cmp(&b.id)));
     copies
         .into_iter()
-        .map(|(id, pn, mfr)| FieldChoice {
-            text: format!("{pn} ({mfr})"),
-            value: value(&id),
+        .map(|c| FieldChoice {
+            text: c.short(),
+            value: value(&c.id),
             note: None,
         })
         .collect()
@@ -1706,10 +1818,19 @@ mod tests {
         fn company_codes(&self) -> Vec<(String, String)> {
             vec![("DBU".into(), "BU".into())]
         }
-        fn part_copies(&self) -> Vec<(String, String, String)> {
+        fn part_copies(&self) -> Vec<PartCopyText> {
+            let copy = |id: &str, number: &str, kind: &str, description: &str| PartCopyText {
+                id: id.into(),
+                number: number.into(),
+                manufacturer: "Schneider".into(),
+                kind: kind.into(),
+                description: description.into(),
+            };
             vec![
-                ("c1".into(), "A9F78116".into(), "Schneider".into()),
-                ("c2".into(), "A9P52610".into(), "Schneider".into()),
+                copy("c1", "A9F78116", "device", "MCB"),
+                copy("c2", "A9P52610", "device", "MCB 1P+N"),
+                copy("c3", "TBD", "end_bracket", "End bracket"),
+                copy("c4", "TBD", "accessory", "Plug-in bridge"),
             ]
         }
         fn slot_nodes(&self, _member: &str) -> Vec<(String, String, Vec<String>)> {
@@ -1930,14 +2051,14 @@ mod tests {
         fn part_text(&self, copy: &str) -> Option<String> {
             self.part_copies()
                 .into_iter()
-                .find(|(c, _, _)| c == copy)
-                .map(|(_, pn, m)| format!("{pn} ({m})"))
+                .find(|c| c.id == copy)
+                .map(|c| c.short())
         }
         fn part_number(&self, copy: &str) -> Option<String> {
             self.part_copies()
                 .into_iter()
-                .find(|(c, _, _)| c == copy)
-                .map(|(_, pn, _)| pn)
+                .find(|c| c.id == copy)
+                .map(|c| c.number)
         }
         fn node_text(&self, node: &str) -> Option<String> {
             self.slot_nodes("")

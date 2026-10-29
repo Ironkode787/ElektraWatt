@@ -105,6 +105,7 @@ pub const SWEPT: &[&str] = &[
     "settings_member",
     "solenoid_positions",
     "stitch_graph",
+    "strip_bridges",
     "tag_class_members",
     "title_block",
     "toc_rows",
@@ -285,6 +286,7 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     check::<ProfileRowFor>(memo, cold, keys.profile_keys.iter().cloned(), o);
     check::<SettingsMember>(memo, cold, ALL_MEMBERS, o);
     check::<StitchGraphQ>(memo, cold, [()], o);
+    check::<ew_derive::StripBridges>(memo, cold, keys.devices.iter().copied(), o);
     check::<TitleBlockValues>(memo, cold, keys.page_refs.iter().copied(), o);
     check::<TocRows>(memo, cold, [()], o);
     check::<WireDefaultProps>(memo, cold, [()], o);
