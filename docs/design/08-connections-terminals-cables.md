@@ -162,6 +162,11 @@ pub struct TerminalGroup { from_seq: u32, to_seq: u32, label: MlText }   // "Pne
   strip editor creates BR1 (-X1031:1–4) as three connections 1–2, 2–3 and 3–4 with group 1.
 - **`ClampKey`.** Wires end on clamps. Plug-in bridges end on shaft CPs. Rail-bonded PE terminals have a rail-foot
   CP for carrier bonding at 1.0. A shaft and a rail foot are joined to the level's clamps by FnDef `Short` links.
+  *Amended by cycle 33 (G-PP ruling #4):* a terminal whose part has no shaft, or that has no part yet, is bridged at
+  the lowest side-1 CP of its function definition, so bridges can be drawn before parts are chosen; Edit ▸ Bridge
+  terminals draws the chain over two or more selected terminals of one strip (consecutive in `seq` order) in one
+  undo step, one `connection.draw` for a pair and one `connection.draw_many` for a longer chain ([06](06-schematic-editor.md) §3.1).
+  The BOM's bridge row stays WP-S2.07.
 - **Strip groups** label ranges of terminals. The terminal's own `function_text` holds its printed label ("1+").
   This follows [20](20-golden-project.md) §9, where "1+" is the printed function text and "Pneumatics" is the group
   label.

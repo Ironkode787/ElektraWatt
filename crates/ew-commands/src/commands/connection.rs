@@ -211,6 +211,78 @@ impl Command for Connect {
     }
 }
 
+/// The most entries one `connection.draw_many` takes.
+pub const DRAW_MANY_MAX: usize = 10_000;
+
+/// `connection.draw_many` (`ConnectMany`, cycle 33): several [`Connect`]s, in the given order, in **one**
+/// transaction (one undo step). Edit ▸ Bridge terminals draws the chain of bridges over three or more terminals of
+/// a strip with it (BR1 = 1-2, 2-3, 3-4).
+///
+/// Each entry is applied exactly as `connection.draw` with those parameters would be, in order, on the records the
+/// earlier entries left. Rejected with [`CmdError::InvalidParams`] at `/connections`: no entry, or more than
+/// 10,000; an entry's own parameter error keeps its message with its JSON Pointer prefixed by `/connections/<i>`,
+/// and its refusal keeps its reason prefixed by `entry <i>: `. Cost: `Bulk` above 500 entries (`BULK_ABOVE`), else
+/// interactive. Outcome: the first new connection.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ConnectMany {
+    /// The connections, each the parameters of one `connection.draw` (1 to 10,000).
+    pub connections: Vec<Connect>,
+}
+
+impl Command for ConnectMany {
+    const NAME: &'static str = "connection.draw_many";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn cost(&self, _model: &ew_model::Model) -> crate::meta::Cost {
+        if self.connections.len() > crate::commands::BULK_ABOVE {
+            crate::meta::Cost::Bulk
+        } else {
+            crate::meta::Cost::Interactive
+        }
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        if self.connections.is_empty() {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/connections",
+                "give at least one connection",
+            ));
+        }
+        if self.connections.len() > DRAW_MANY_MAX {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/connections",
+                format!(
+                    "{} connections are more than the {DRAW_MANY_MAX} one command takes",
+                    self.connections.len()
+                ),
+            ));
+        }
+        let mut first = None;
+        for (i, c) in self.connections.iter().enumerate() {
+            let out = c.run(tx).map_err(|err| match err {
+                CmdError::InvalidParams { path, message, .. } => {
+                    CmdError::invalid_params(Self::NAME, format!("/connections/{i}{path}"), message)
+                }
+                CmdError::Rejected { source, reason } => {
+                    CmdError::rejected(source, format!("entry {i}: {reason}"))
+                }
+                other => other,
+            })?;
+            first = first.or(out.primary);
+        }
+        Ok(Outcome {
+            primary: first,
+            ..Outcome::default()
+        })
+    }
+}
+
 /// `connection.route`: replaces a connection's route (FR-CON-007). Connectivity is unchanged. On a page
 /// the route must be on the page's connection grid and its ends must meet their CPs (D3,
 /// `geometry::require_route`). Outcome: the connection. Coalesce route drags with a key.

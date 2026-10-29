@@ -85,6 +85,12 @@ pub const ARMS: &[Arm] = &[
         weight: 4,
         build: connection_draw,
     },
+    // Cycle 33
+    Arm {
+        command: "connection.draw_many",
+        weight: 2,
+        build: connection_draw_many,
+    },
     // WP-S2.04 part 3
     Arm {
         command: "connection.draw_to_ip",
@@ -1494,6 +1500,44 @@ fn connection_draw(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         )
         .counts(&[(Table::Connections, 1)]),
     )
+}
+
+// Cycle 33: the chain of bridges of Edit ▸ Bridge terminals.
+fn connection_draw_many(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let (_, functions) = rng.pick(&live.page_functions)?;
+    match rng.below(10) {
+        // Refused: no entry.
+        0 => Some(Step::cmd("connection.draw_many", json!({"connections": []})).refuse()),
+        // Refused: the last entry names a function that does not exist; the first entry is not kept either.
+        1 => {
+            let (a, b) = pick2(functions, rng)?;
+            let bad = json!(rng.uuid());
+            Some(
+                Step::cmd(
+                    "connection.draw_many",
+                    json!({"connections": [
+                        {"a": cp_end(a, 0), "b": cp_end(b, 0)},
+                        {"a": cp_end(&bad, 0), "b": cp_end(b, 1)},
+                    ]}),
+                )
+                .refuse(),
+            )
+        }
+        // One to three page-less connections between two CPs each (nothing is split): that many new connections.
+        _ => {
+            let n = 1 + rng.below(3);
+            let mut connections = Vec::with_capacity(n);
+            for _ in 0..n {
+                let (a, b) = pick2(functions, rng)?;
+                connections.push(json!({"a": cp_end(a, small_idx(rng)), "b": cp_end(b, small_idx(rng))}));
+            }
+            let count = isize::try_from(n).unwrap_or(1);
+            Some(
+                Step::cmd("connection.draw_many", json!({"connections": connections}))
+                    .counts(&[(Table::Connections, count)]),
+            )
+        }
+    }
 }
 
 fn potential_define(live: &Live, rng: &mut SplitMix64) -> Option<Step> {

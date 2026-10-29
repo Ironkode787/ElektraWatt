@@ -1,16 +1,22 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The tool host's duty of FT-411 (WP-S2.04 §10.7): Edit ▸ Bridge terminals, the host command on the selection
-//! that draws the page-less `connection.draw` between two selected terminals' bridge shafts.
+//! The tool host's duty of FT-411 (WP-S2.04 §10.7), widened by cycle 33 (G-PP ruling #4): Edit ▸ Bridge terminals,
+//! the host command on the selection that draws page-less bridges between two or more selected terminals of one
+//! strip, consecutive in the strip's terminal order (BR1 over :1 to :4 is 1-2, 2-3, 3-4), in one undo step.
 //!
-//! **Reads.** The focused page's tables resolve the selection; the terminal aspects, the part copies and the
-//! connections come from the project's base tables through the session's query when the action runs (and when its
-//! menu item is evaluated). No memoised query is read, and a variant the shell cannot name (the connection kind,
-//! an endpoint, a clamp key) is inspected through its record's JSON form.
+//! **Ends.** A terminal's bridge end is its part's bridge shaft (the lowest CP of the first part use whose copy has
+//! a shaft-1 entry); a terminal without one (no part chosen yet, or a part without a shaft) bridges at the lowest
+//! side-1 CP of its function definition, so a bridge can be drawn before the parts are chosen.
+//!
+//! **Reads.** The focused page's tables resolve the selection; the terminal aspects, the part copies, the function
+//! definitions and the connections come from the project's base tables through the session's query when the action
+//! runs (and when its menu item is evaluated). No memoised query is read, and a variant the shell cannot name (the
+//! connection kind, an endpoint, a clamp key, a CP side) is inspected through its record's JSON form.
 //!
 //! **Commit.** The parameters go through the tool's commit path (`execute_with` in the window, `run_script`
-//! headless), one undo step per bridge.
+//! headless): one bridge is one `connection.draw`, a chain of two or more one `connection.draw_many`; either is one
+//! undo step.
 
 use ew_api::AnyCommand;
 use serde_json::{Value, json};
@@ -23,13 +29,13 @@ use crate::tools::{EntityKind, selection_kinds};
 type CpKey = (String, u16);
 
 /// One selected terminal as the bridge rule needs it: its function, its strip, its sequence and designation, and
-/// (after the shaft rule) its bridge-shaft CP index.
+/// (after the end rule) its bridge end's CP index.
 struct Terminal {
     function: String,
     seq: u32,
     designation: String,
     strip: String,
-    shaft: Option<u16>,
+    end: u16,
 }
 
 /// A bridge connection as the group rule reads it: its group, its two CP ends (a junction end is none) and the
@@ -42,34 +48,31 @@ struct Bridge {
 }
 
 impl ShellModel {
-    /// Whether `strip.bridge` can act on the selection (FT-411): `Ok(command parameters)` or `Err(reason key)`.
+    /// Whether `strip.bridge` can act on the selection: `Ok(the command)` or `Err(reason key)`.
     ///
-    /// `pub(crate)` because the action's enabled predicate in `actions.rs` calls it: the Edit menu evaluates it. Its
-    /// cost is linear in the project's connections plus the two selected terminals' keyed lookups.
-    pub(crate) fn bridge_params(&self) -> Result<Value, &'static str> {
+    /// `pub(crate)` because the action's enabled predicate in `actions.rs` calls it: the Draw menu evaluates it. Its
+    /// cost is linear in the project's connections plus the selected terminals' keyed lookups.
+    pub(crate) fn bridge_command(&self) -> Result<AnyCommand, &'static str> {
         let selection: &'static str = "reason-bridge-selection";
-        // 1. The focused page's tables; exactly two selected representations, each with one function and a
-        // terminal device.
+        // 1. The focused page's tables; two or more selected representations, each with one function and a
+        // terminal device. Two representations of one terminal count once.
         let tables = self
             .canvas()
             .map(|c| std::sync::Arc::clone(&c.page().tables))
             .ok_or(selection)?;
         let kinds = selection_kinds(&self.tools.selection, &tables);
-        let [(a_entity, EntityKind::Rep), (b_entity, EntityKind::Rep)] = kinds.as_slice() else {
+        if kinds.len() < 2 || kinds.iter().any(|(_, kind)| *kind != EntityKind::Rep) {
             return Err(selection);
-        };
-        let Some(a_rep) = tables.reps.iter().find(|r| r.id == a_entity.0) else {
-            return Err(selection);
-        };
-        let Some(b_rep) = tables.reps.iter().find(|r| r.id == b_entity.0) else {
-            return Err(selection);
-        };
+        }
         let project = self.project.as_ref().ok_or(selection)?;
         let q = project.session.query();
 
-        let mut terminals = Vec::with_capacity(2);
-        let mut devices = Vec::with_capacity(2);
-        for rep in [a_rep, b_rep] {
+        let mut terminals: Vec<Terminal> = Vec::with_capacity(kinds.len());
+        let mut devices = Vec::with_capacity(kinds.len());
+        for (entity, _) in &kinds {
+            let Some(rep) = tables.reps.iter().find(|r| r.id == entity.0) else {
+                return Err(selection);
+            };
             // The page tables and the selection carry UUIDs; the typed row ID comes from the record's canonical
             // text, which `q.reps().get` fixes by inference (the shell names no schema type).
             let Ok(rep_id) = rep.id.to_string().parse() else {
@@ -93,23 +96,31 @@ impl ShellModel {
             let Some(terminal) = device.aspects.terminal.as_ref() else {
                 return Err(selection);
             };
+            let function_text = function.id.as_uuid().to_string();
+            if terminals.iter().any(|t| t.function == function_text) {
+                continue;
+            }
             terminals.push(Terminal {
-                function: function.id.as_uuid().to_string(),
+                function: function_text,
                 seq: terminal.seq,
                 designation: terminal.designation.as_str().to_owned(),
                 strip: terminal.strip.as_uuid().to_string(),
-                shaft: None,
+                end: 0,
             });
-            devices.push(device_id);
+            devices.push((device_id, function.def));
         }
-
-        // 2. Both terminals belong to the same strip.
-        if terminals[0].strip != terminals[1].strip {
+        if terminals.len() < 2 {
             return Err(selection);
         }
 
-        // 3. Each terminal's bridge shaft: the lowest CP of the first part use whose copy has a shaft-1 entry.
-        for (terminal, device_id) in terminals.iter_mut().zip(&devices) {
+        // 2. Every terminal belongs to the same strip.
+        if terminals.iter().any(|t| t.strip != terminals[0].strip) {
+            return Err("reason-bridge-strips");
+        }
+
+        // 3. Each terminal's bridge end: the lowest CP of the first part use whose copy has a shaft-1 entry, else
+        // the lowest side-1 CP of the function's definition.
+        for (terminal, (device_id, def)) in terminals.iter_mut().zip(&devices) {
             let Some(device) = q.devices().get(*device_id) else {
                 return Err("reason-bridge-no-shaft");
             };
@@ -119,21 +130,32 @@ impl ShellModel {
                 let Some(part) = q.parts().get(use_.part.copy) else {
                     return Err("reason-bridge-no-shaft");
                 };
-                let mut lowest: Option<u16> = None;
-                for cp in part.item.cp_pattern.iter() {
-                    let Ok(clamp) = serde_json::to_value(&cp.clamp) else {
-                        continue;
-                    };
-                    if clamp.get("shaft").and_then(Value::as_u64) == Some(1) {
-                        lowest = Some(lowest.map_or(cp.idx, |m| m.min(cp.idx)));
-                    }
-                }
+                let lowest = part
+                    .item
+                    .cp_pattern
+                    .iter()
+                    .filter(|cp| {
+                        serde_json::to_value(&cp.clamp)
+                            .is_ok_and(|clamp| clamp.get("shaft").and_then(Value::as_u64) == Some(1))
+                    })
+                    .map(|cp| cp.idx)
+                    .min();
                 if lowest.is_some() {
                     shaft = lowest;
                     break;
                 }
             }
-            terminal.shaft = Some(shaft.ok_or("reason-bridge-no-shaft")?);
+            let end = shaft.or_else(|| {
+                let fndef = q.fndefs().get(*def)?;
+                fndef
+                    .item
+                    .cps
+                    .iter()
+                    .filter(|cp| serde_json::to_value(&cp.side).is_ok_and(|side| side == "side1"))
+                    .map(|cp| cp.idx)
+                    .min()
+            });
+            terminal.end = end.ok_or("reason-bridge-no-shaft")?;
         }
 
         // The strip's bridges: every bridge connection whose `a` end is a CP of one of the strip's terminal
@@ -170,37 +192,41 @@ impl ShellModel {
             bridges.push(Bridge { group, a, b, strip });
         }
 
-        // The terminals in the rule's order: lower sequence first, then the natural order of the designation,
-        // then the function ID.
+        // The terminals in the strip's order: lower sequence first, then the natural order of the designation,
+        // then the function ID. Consecutive terminals of that order are the chain's pairs.
         terminals.sort_by(|x, y| {
             x.seq
                 .cmp(&y.seq)
                 .then_with(|| natural_cmp(&x.designation, &y.designation))
                 .then_with(|| x.function.cmp(&y.function))
         });
-        let (a, b) = (&terminals[0], &terminals[1]);
-        let a_cp = (a.function.clone(), a.shaft.unwrap_or_default());
-        let b_cp = (b.function.clone(), b.shaft.unwrap_or_default());
+        let ends: Vec<CpKey> = terminals.iter().map(|t| (t.function.clone(), t.end)).collect();
 
-        // 4. An existing bridge between exactly these two CPs (either order).
-        let same_ends = |bridge: &Bridge| {
-            (bridge.a.as_ref() == Some(&a_cp) && bridge.b.as_ref() == Some(&b_cp))
-                || (bridge.a.as_ref() == Some(&b_cp) && bridge.b.as_ref() == Some(&a_cp))
+        // 4. A pair already bridged between exactly these two CPs (either order) is kept; when every pair is, the
+        // command is refused.
+        let same_ends = |bridge: &Bridge, a: &CpKey, b: &CpKey| {
+            (bridge.a.as_ref() == Some(a) && bridge.b.as_ref() == Some(b))
+                || (bridge.a.as_ref() == Some(b) && bridge.b.as_ref() == Some(a))
         };
-        if bridges.iter().any(same_ends) {
+        let pairs: Vec<(&CpKey, &CpKey)> = ends
+            .windows(2)
+            .map(|w| (&w[0], &w[1]))
+            .filter(|(a, b)| !bridges.iter().any(|bridge| same_ends(bridge, a, b)))
+            .collect();
+        if pairs.is_empty() {
             return Err("reason-bridge-exists");
         }
 
-        // 5. The group: the smallest group of the strip's bridges that ends at one of the two shafts, else the
+        // 5. The group: the smallest group of the strip's bridges that ends at one of the chain's ends, else the
         // largest group of the strip's bridges plus one, else 1.
-        let strip = a.strip.as_str();
+        let strip = terminals[0].strip.as_str();
         let strip_bridges: Vec<&Bridge> = bridges
             .iter()
             .filter(|bridge| bridge.strip.as_deref() == Some(strip))
             .collect();
         let touches = |bridge: &Bridge| {
-            bridge.a.as_ref().is_some_and(|cp| cp == &a_cp || cp == &b_cp)
-                || bridge.b.as_ref().is_some_and(|cp| cp == &a_cp || cp == &b_cp)
+            bridge.a.as_ref().is_some_and(|cp| ends.contains(cp))
+                || bridge.b.as_ref().is_some_and(|cp| ends.contains(cp))
         };
         let group: u64 = if let Some(group) = strip_bridges
             .iter()
@@ -215,22 +241,31 @@ impl ShellModel {
             1
         };
 
-        // 6. The command's parameters: no page and no route (a page-less bridge).
-        Ok(json!({
-            "a": {"cp": {"function": a.function, "idx": a.shaft.unwrap_or_default()}},
-            "b": {"cp": {"function": b.function, "idx": b.shaft.unwrap_or_default()}},
-            "kind": {"bridge": {"kind": "plug_in", "group": group, "shaft": 1}},
-        }))
+        // 6. The command: no page and no route (page-less bridges).
+        let connection = |(a, b): &(&CpKey, &CpKey)| {
+            json!({
+                "a": {"cp": {"function": a.0, "idx": a.1}},
+                "b": {"cp": {"function": b.0, "idx": b.1}},
+                "kind": {"bridge": {"kind": "plug_in", "group": group, "shaft": 1}},
+            })
+        };
+        Ok(match pairs.as_slice() {
+            [one] => AnyCommand {
+                name: "connection.draw".into(),
+                params: connection(one),
+            },
+            many => AnyCommand {
+                name: "connection.draw_many".into(),
+                params: json!({"connections": many.iter().map(connection).collect::<Vec<_>>()}),
+            },
+        })
     }
 
-    /// `strip.bridge` (Edit ▸ Bridge terminals, FT-411): the page-less `connection.draw` between the two selected
-    /// terminals' bridge shafts, one undo step.
+    /// `strip.bridge` (Edit ▸ Bridge terminals, FT-411, cycle 33): the page-less bridges between the selected
+    /// terminals, consecutive in the strip's order, one undo step.
     pub(super) fn act_strip_bridge(&mut self) -> Outcome {
-        match self.bridge_params() {
-            Ok(params) => self.commit_from_host(&AnyCommand {
-                name: "connection.draw".into(),
-                params,
-            }),
+        match self.bridge_command() {
+            Ok(cmd) => self.commit_from_host(&cmd),
             Err(reason_key) => Outcome::Refused { reason_key },
         }
     }

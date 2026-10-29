@@ -26,6 +26,7 @@
     - [`conductor.add`](reference/commands/conductor.add.md)
     - [`connection.delete`](reference/commands/connection.delete.md)
     - [`connection.draw`](reference/commands/connection.draw.md)
+    - [`connection.draw_many`](reference/commands/connection.draw_many.md)
     - [`connection.draw_to_ip`](reference/commands/connection.draw_to_ip.md)
     - [`connection.route`](reference/commands/connection.route.md)
     - [`device.create`](reference/commands/device.create.md)

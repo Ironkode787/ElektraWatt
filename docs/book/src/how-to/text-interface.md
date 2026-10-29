@@ -48,6 +48,18 @@ A terminal's connection points print `strip:terminal/clamp` (`-X1031:1/b`): the 
 (internal) and `b` on side 2 (field), `1X1:1/a` and `1X1:1/b`. Where two clamps of one level carry the same letter, as on
 a library terminal that names them so, the label adds `#n` in connection-point order: `-X1:1/a#1` and `-X1:1/a#2`.
 
+### Bridge terminals
+
+Select two or more terminals of one strip on the page (click the first terminal symbol, Shift+click the others, or
+`select.set` with their representations), then run `strip.bridge` (Draw ▸ Bridge terminals). It draws a plug-in bridge
+between each two terminals that follow each other in the strip's order among the selected ones, in one undo step:
+selecting `-X1031:1` to `:4` draws 1-2, 2-3 and 3-4, whatever order you selected them in. The bridges join the group of
+a bridge they touch, or else the strip's next free group. A bridge ends on the terminal's bridge shaft when its part
+has one; a terminal without a part (or with a part that has no shaft) is bridged at its lowest side-1 connection point,
+so you can draw the bridges before choosing the parts. A pair that is bridged already is left as it is. The command is
+refused when fewer than two terminals are selected, when they belong to more than one strip, or when every pair is
+bridged already; the refusal names the reason.
+
 ## External points
 
 1. `structure.new` with `kind` `location` and the location (`+J-E-206`), then `external_ref.new` with the location, the

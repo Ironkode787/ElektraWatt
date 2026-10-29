@@ -11,8 +11,8 @@ mod common;
 use common::fixture::*;
 use common::*;
 use ew_commands::commands::{
-    Connect, ContinueIp, DefinePotential, DeleteConnections, EditJunction, EndpointParam, PlaceIp,
-    RouteConnection, WiringChoice,
+    Connect, ConnectMany, ContinueIp, DefinePotential, DeleteConnections, EditJunction, EndpointParam,
+    PlaceIp, RouteConnection, WiringChoice,
 };
 use ew_commands::{CmdError, Engine};
 use ew_ids::Id;
@@ -272,6 +272,65 @@ fn draw_undo_restores_bytes() {
     e.execute(&draw(on_w(2), cp_param(FN_T2, 1), None)).unwrap();
     assert_ne!(lines(e.model()), before);
     e.undo(&ew_commands::Origin::Gui).unwrap();
+    assert_eq!(lines(e.model()), before);
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// connection.draw_many (cycle 33)
+
+fn bridge(a: Id<Function>, b: Id<Function>) -> Connect {
+    let mut c = draw(cp_param(a, 1), cp_param(b, 1), None);
+    c.kind = ConnectionKind::Bridge(ew_schema::BridgeSpec {
+        kind: ew_schema::BridgeKind::PlugIn,
+        group: 7,
+        shaft: 1,
+        extra: ew_schema::Extra::new(),
+    });
+    c
+}
+
+#[test]
+fn draw_many_draws_every_entry_in_one_undo_step() {
+    let mut e = engine(golden_model());
+    let before = lines(e.model());
+    let cmd = ConnectMany {
+        connections: vec![bridge(FN_T1, FN_T2), bridge(FN_T2, FN_T3)],
+    };
+    let r = e.execute(&cmd).expect("connection.draw_many");
+    let first = row(&e, typed::<Connection>(r.outcome.primary.expect("primary")));
+    assert_eq!((first.a.clone(), first.b.clone()), (cp(FN_T1, 1), cp(FN_T2, 1)));
+    let new: Vec<Connection> = e
+        .model()
+        .table::<Connection>()
+        .iter()
+        .filter(|(_, c)| matches!(&c.kind, ConnectionKind::Bridge(s) if s.group == 7))
+        .map(|(_, c)| (**c).clone())
+        .collect();
+    assert_eq!(new.len(), 2, "both bridges are drawn");
+    assert!(new.iter().all(|c| c.page.is_none()), "page-less bridges");
+    assert!(new.iter().any(|c| c.a == cp(FN_T2, 1) && c.b == cp(FN_T3, 1)));
+    e.undo(&ew_commands::Origin::Gui).unwrap();
+    assert_eq!(lines(e.model()), before, "one undo step takes back both");
+}
+
+#[test]
+fn draw_many_refuses_no_entry_and_a_bad_entry_whole() {
+    let mut e = engine(golden_model());
+    let before = lines(e.model());
+    let r = e.execute(&ConnectMany { connections: vec![] });
+    assert!(
+        matches!(&r, Err(CmdError::InvalidParams { path, .. }) if path == "/connections"),
+        "{r:?}"
+    );
+    // The second entry has the same endpoint at both ends: nothing of the first is kept.
+    let r = e.execute(&ConnectMany {
+        connections: vec![bridge(FN_T1, FN_T2), bridge(FN_T3, FN_T3)],
+    });
+    assert!(
+        matches!(&r, Err(CmdError::Rejected { source, reason })
+            if source == "connection.draw_many" && reason.starts_with("entry 1: ")),
+        "{r:?}"
+    );
     assert_eq!(lines(e.model()), before);
 }
 

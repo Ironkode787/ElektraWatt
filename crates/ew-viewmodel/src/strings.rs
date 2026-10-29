@@ -228,9 +228,14 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "reason-text-tool-only" => "Choose the Text tool first",
         "reason-text-bound" => "This text shows a project or page field; change that field instead",
         "reason-select-one-text" => "Select exactly one free text",
-        "reason-bridge-selection" => "Select exactly two terminals of one strip",
-        "reason-bridge-no-shaft" => "Both terminals need a part with a bridge shaft",
-        "reason-bridge-exists" => "These two terminals are bridged already",
+        "reason-bridge-selection" => "Select two or more terminals of one strip",
+        "reason-bridge-strips" => {
+            "The selected terminals belong to more than one strip; select terminals of one strip"
+        }
+        "reason-bridge-no-shaft" => {
+            "Each terminal needs a bridge shaft on its part or a side-1 connection point"
+        }
+        "reason-bridge-exists" => "These terminals are bridged already",
         // WP-S2.04 part 5 (images, §11).
         "action-tool-image" => "Image…",
         "action-image-pick" => "Image asset",

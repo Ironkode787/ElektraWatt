@@ -104,6 +104,17 @@
       "confirmation": "none",
       "cost": "interactive",
       "exposure": "edit",
+      "name": "connection.draw_many",
+      "params_version": 1,
+      "schema": "connection.draw_many.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
       "name": "connection.draw_to_ip",
       "params_version": 1,
       "schema": "connection.draw_to_ip.schema.json",

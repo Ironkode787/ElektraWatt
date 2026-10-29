@@ -4,7 +4,7 @@
 
 A command is the one way to change a project (`Command` → `Transaction` → `Op`). The same command runs from the user interface, from a command log replayed by `ew apply`, from scripts and from the Session API. Each page below gives the command's registry entry, its parameters with types and constraints, and the exit codes of `ew apply`.
 
-55 commands, from the parameter schemas in [`crates/ew-commands/schemas`](https://github.com/Ironkode787/ElektraWatt/tree/main/crates/ew-commands/schemas). The catalogue of the command registry is [doc 17 §2.1](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md#21-command-registry).
+56 commands, from the parameter schemas in [`crates/ew-commands/schemas`](https://github.com/Ironkode787/ElektraWatt/tree/main/crates/ew-commands/schemas). The catalogue of the command registry is [doc 17 §2.1](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md#21-command-registry).
 
 | Command | Summary | Cost | Exposure | Stability |
 |---|---|---|---|---|
@@ -17,6 +17,7 @@ A command is the one way to change a project (`Command` → `Transaction` → `O
 | [`conductor.add`](conductor.add.md) | conductors of an existing cable. Rejected: the device has no cable aspect; a core already used in the cable or twice in the list. Outcome: the first new conductor. | interactive | edit | preview |
 | [`connection.delete`](connection.delete.md) | removes connections through the delete policies (they leave junction sequences; bonds lose their `via`). A junction left with two or fewer connections is cleaned up by normaliser #8. Every connection must exist. Outcome: none. | interactive | edit | preview |
 | [`connection.draw`](connection.draw.md) | `connection.draw` (`Connect`, doc 06 §3.5, §4.4): one explicit connection. | interactive | edit | preview |
+| [`connection.draw_many`](connection.draw_many.md) | `connection.draw_many` (`ConnectMany`, cycle 33): several `Connect`s, in the given order, in **one** transaction (one undo step). Edit ▸ Bridge terminals draws the chain of bridges over three or more terminals of a strip with it (BR1 = 1-2, 2-3, 3-4). | interactive | edit | preview |
 | [`connection.draw_to_ip`](connection.draw_to_ip.md) | `connection.draw_to_ip` (`DrawToIp`, doc 06 §4.4 "P", WP-S2.04 §5.1, §9.2): a wire that ends in a new interruption point, in one transaction and one undo step. | interactive | edit | preview |
 | [`connection.route`](connection.route.md) | replaces a connection's route (FR-CON-007). Connectivity is unchanged. On a page the route must be on the page's connection grid and its ends must meet their CPs (D3, `geometry::require_route`). Outcome: the connection. Coalesce route drags with a key. | interactive | edit | preview |
 | [`device.create`](device.create.md) | a device without a representation (FR-DEV-001), optionally with its main function. | interactive | edit | preview |

@@ -485,11 +485,11 @@ fn one_free_text(m: &ShellModel) -> Result<(), &'static str> {
     m.text_edit_target().map(|_| ())
 }
 
-/// An editable page whose selection is exactly two terminals of one strip not yet bridged (Edit ▸ Bridge
-/// terminals; FT-411, §10.7).
+/// An editable page whose selection is two or more terminals of one strip not all bridged yet (Edit ▸ Bridge
+/// terminals; FT-411, §10.7, cycle 33).
 fn two_strip_terminals(m: &ShellModel) -> Result<(), &'static str> {
     editable_page(m)?;
-    m.bridge_params().map(|_| ())
+    m.bridge_command().map(|_| ())
 }
 
 /// The junction sequence editor is open on a project that can be changed (WP-S2.04 part 2, §8.5).

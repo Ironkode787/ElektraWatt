@@ -61,6 +61,7 @@
 //! | `item.place` | [`PlaceItem`] | Interactive |
 //! | `marker.place` | [`PlaceMarker`] | Interactive |
 //! | `parts.import` | [`ImportParts`] | Bulk |
+//! | `connection.draw_many` | [`ConnectMany`] | Interactive; Bulk above 500 entries |
 //!
 //! Every command is of stability `Preview` and undoable except `project.assets.purge`, a marker line whose file side
 //! (deleting asset files nothing names) runs in the session (ADR-0008 amendment 1, FT-380); every one is of exposure
@@ -103,8 +104,8 @@ pub use checks::{CHECKS_MEMBER, SHIPPED_CHECK_SCHEMES, SetCheckSchemes};
 pub use common::{EndpointParam, KindName, TargetRef};
 pub use company::{COMPANY_MEMBER, SetCompany};
 pub use connection::{
-    ArrangeIps, Connect, ContinueIp, CreateBond, DefinePotential, DeleteConnections, DrawToIp, EditJunction,
-    IpAtEnd, PlaceIp, RouteConnection, WiringChoice,
+    ArrangeIps, Connect, ConnectMany, ContinueIp, CreateBond, DefinePotential, DeleteConnections, DrawToIp,
+    EditJunction, IpAtEnd, PlaceIp, RouteConnection, WiringChoice,
 };
 pub use device::{
     ConnectHint, CreateDevice, MoveReps, PlaceBlackBox, PlaceSymbol, PlaceTarget, SetAnchorPolicy,
@@ -201,4 +202,6 @@ pub fn register_all(r: &mut CommandRegistry) {
     r.register::<PlaceMarker>();
     // FT-410
     r.register::<ImportParts>();
+    // Cycle 33: the chain of bridges of Edit ▸ Bridge terminals
+    r.register::<ConnectMany>();
 }

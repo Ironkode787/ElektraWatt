@@ -846,6 +846,21 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         })
     }
 
+    /// `connection.draw_many` (cycle 33): page-less connections of one `kind` between each pair of `ends`, in one
+    /// transaction (a chain of bridges).
+    ///
+    /// # Errors
+    ///
+    /// A command's error.
+    pub fn connect_many(&mut self, ends: &[(End, End)], kind: &ConnectionKind) -> Result<()> {
+        let connections: Vec<Value> = ends
+            .iter()
+            .map(|(a, b)| json!({"a": a.param(), "b": b.param(), "kind": kind}))
+            .collect();
+        self.run("connection.draw_many", json!({"connections": connections}))
+            .map(|_| ())
+    }
+
     /// `fields.set` of a connection's `overrides` members and `number`; its ends, page and kind are written
     /// by `connection.draw`; a stored `route` is noted as not written.
     ///

@@ -3,8 +3,9 @@
 
 //! WP-S2.04 part 4b in the view model (acceptance check PI10, FT-411): `strip.bridge` (Edit ▸ Bridge terminals)
 //! on the folio-103 demo variant, the bridge group the action derives, one undo step per bridge, and the refusals of
-//! a selection that is not two terminals of one strip and of terminals without a bridge shaft. Every test works on
-//! a writable temporary copy of Golden A.
+//! a selection that is not terminals of one strip; and (cycle 33) the chain over three or more terminals in one undo
+//! step and the side-1 end of terminals without a bridge shaft. Every test works on a writable temporary copy of
+//! Golden A.
 
 mod common;
 
@@ -397,10 +398,10 @@ fn bridging_twice_is_refused() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// PI10: the selection must be two terminals of one strip
+// PI10, cycle 33: the selection must be two or more terminals of one strip
 
 #[test]
-fn the_selection_must_be_two_terminals_of_one_strip() {
+fn the_selection_must_be_terminals_of_one_strip() {
     assert_golden_endpoints();
     let tmp = Tmp::new("bridge-selection");
     let mut s = shell(&tmp, "103");
@@ -410,6 +411,12 @@ fn the_selection_must_be_two_terminals_of_one_strip() {
     assert_eq!(
         refused(&mut s, "strip.bridge", json!({})),
         "reason-bridge-selection"
+    );
+    let item = edit_item(&s, "strip.bridge");
+    assert!(!item.enabled);
+    assert_eq!(
+        item.reason.as_deref(),
+        Some("Select two or more terminals of one strip")
     );
     // A terminal and a non-terminal representation.
     let other = tables(&s)
@@ -424,30 +431,97 @@ fn the_selection_must_be_two_terminals_of_one_strip() {
         refused(&mut s, "strip.bridge", json!({})),
         "reason-bridge-selection"
     );
-    // Two terminals of different strips.
+    // Two terminals of different strips: their own reason.
     select_ids(&mut s, &[reps[0].id.to_string(), reps[1].id.to_string()]);
-    assert_eq!(
-        refused(&mut s, "strip.bridge", json!({})),
-        "reason-bridge-selection"
-    );
+    let rev = s.revision();
+    assert_eq!(refused(&mut s, "strip.bridge", json!({})), "reason-bridge-strips");
+    assert_eq!(s.revision(), rev, "a refused bridge commits nothing");
     let item = edit_item(&s, "strip.bridge");
     assert!(!item.enabled);
     assert_eq!(
         item.reason.as_deref(),
-        Some("Select exactly two terminals of one strip")
+        Some("The selected terminals belong to more than one strip; select terminals of one strip")
     );
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// PI10: terminals without a bridge shaft are refused
+// Cycle 33 (G-PP ruling #4): four terminals are one chain in one undo step
 
 #[test]
-fn terminals_without_a_shaft_are_refused() {
-    let tmp = Tmp::new("bridge-no-shaft");
+fn four_terminals_draw_the_chain_in_one_undo_step() {
+    assert_golden_endpoints();
+    let tmp = Tmp::new("bridge-chain");
     let mut s = shell(&tmp, "103");
-    done(&mut s, "strip.new", json!({"letter": "X"}));
+    delete_connections(&mut s, &BR1);
+    let reps = place_terminals(&mut s, &X1031);
+    // Selected out of order: the chain follows the strip's order, :1-:2, :2-:3, :3-:4.
+    let selection: Vec<String> = [3, 0, 2, 1].iter().map(|k| reps[*k].id.to_string()).collect();
+    select_ids(&mut s, &selection);
+    assert!(edit_item(&s, "strip.bridge").enabled);
+    let rev = s.revision();
+    let steps = s.recorded_commands().len();
+    done(&mut s, "strip.bridge", json!({}));
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "one transaction");
+    assert_eq!(s.recorded_commands().len(), steps + 1, "one recorded step");
+    let last = s.recorded_commands().last().expect("the commit").clone();
+    assert_eq!(last.cmd, "connection.draw_many");
+    let connections = last.params["connections"].as_array().expect("the entries");
+    assert_eq!(connections.len(), 3, "{}", last.params);
+    for (k, c) in connections.iter().enumerate() {
+        assert_eq!(c["a"], json!({"cp": {"function": X1031[k], "idx": 3}}));
+        assert_eq!(c["b"], json!({"cp": {"function": X1031[k + 1], "idx": 3}}));
+        // BR2 to BR5 remain on -X1031 in groups 2 to 5, so the chain takes group 6.
+        assert_eq!(
+            c["kind"],
+            json!({"bridge": {"kind": "plug_in", "group": 6, "shaft": 1}})
+        );
+        assert!(c.get("page").is_none() && c.get("route").is_none(), "{c}");
+    }
+    // Every pair is bridged now.
+    assert_eq!(refused(&mut s, "strip.bridge", json!({})), "reason-bridge-exists");
+    // One undo takes back the whole chain: each pair can be bridged again.
+    done(&mut s, "edit.undo", json!({}));
+    assert_eq!(s.recorded_commands().len(), steps);
+    for k in 0..3 {
+        select_ids(&mut s, &[reps[k].id.to_string(), reps[k + 1].id.to_string()]);
+        assert!(
+            edit_item(&s, "strip.bridge").enabled,
+            "pair {k} is bridgeable after the undo"
+        );
+    }
+    // Redo puts it back.
+    done(&mut s, "edit.redo", json!({}));
+    select_ids(&mut s, &selection);
+    assert_eq!(refused(&mut s, "strip.bridge", json!({})), "reason-bridge-exists");
+}
+
+#[test]
+fn a_chain_draws_only_the_pairs_not_bridged_yet() {
+    assert_golden_endpoints();
+    let tmp = Tmp::new("bridge-chain-gap");
+    let mut s = shell(&tmp, "103");
+    // BR1 loses its middle bridge :2-:3; :1-:2 and :3-:4 stay in group 1.
+    delete_connections(&mut s, &BR1[1..2]);
+    let reps = place_terminals(&mut s, &X1031);
+    let selection: Vec<String> = reps.iter().map(|r| r.id.to_string()).collect();
+    select_ids(&mut s, &selection);
+    done(&mut s, "strip.bridge", json!({}));
+    let last = s.recorded_commands().last().expect("the commit");
+    assert_eq!(last.cmd, "connection.draw", "one missing pair is one bridge");
+    assert_eq!(last.params["a"], json!({"cp": {"function": X1031[1], "idx": 3}}));
+    assert_eq!(last.params["b"], json!({"cp": {"function": X1031[2], "idx": 3}}));
+    assert_eq!(last.params["kind"]["bridge"]["group"], 1, "{}", last.params);
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Cycle 33 (G-PP ruling #4): terminals without a part shaft bridge at their lowest side-1 CP
+
+/// A new strip on 103 with `n` terminals placed by symbol (no part, so no shaft): their page table rows, in
+/// designation order 1 to `n`.
+fn partless_strip(s: &mut ShellModel, n: usize) -> Vec<TableRep> {
+    done(s, "strip.new", json!({"letter": "X"}));
     // The new strip's ID, through the strip chooser's catalogue (it has no terminals yet).
-    done(&mut s, "place.pick", json!({"symbol": TERMINAL_SYMBOL}));
+    done(s, "place.pick", json!({"symbol": TERMINAL_SYMBOL}));
     let strip = {
         let picker = s.picker().expect("the strip chooser");
         picker
@@ -459,21 +533,12 @@ fn terminals_without_a_shaft_are_refused() {
             .id
             .to_string()
     };
-    done(&mut s, "ui.dismiss", json!({}));
-    let before: Vec<_> = tables(&s).reps.iter().map(|r| r.id).collect();
-    let points = free_row(&s, 2);
+    done(s, "ui.dismiss", json!({}));
+    let before: Vec<_> = tables(s).reps.iter().map(|r| r.id).collect();
+    let points = free_row(s, n);
     for point in points {
-        place_terminal_at(&mut s, point, json!({"symbol": TERMINAL_SYMBOL, "strip": strip}));
+        place_terminal_at(s, point, json!({"symbol": TERMINAL_SYMBOL, "strip": strip}));
     }
-    // The two placements are designations 1 and 2 on the new strip.
-    let placed = tables(&s);
-    let reps: Vec<TableRep> = placed
-        .reps
-        .iter()
-        .filter(|r| !before.contains(&r.id))
-        .cloned()
-        .collect();
-    assert_eq!(reps.len(), 2);
     let designations: Vec<String> = s
         .recorded_commands()
         .iter()
@@ -484,10 +549,82 @@ fn terminals_without_a_shaft_are_refused() {
                 .map(str::to_owned)
         })
         .collect();
-    assert_eq!(designations, ["1", "2"]);
-    select_ids(&mut s, &[reps[0].id.to_string(), reps[1].id.to_string()]);
+    let expected: Vec<String> = (1..=n).map(|k| k.to_string()).collect();
+    assert_eq!(designations, expected);
+    let placed = tables(s);
+    let reps: Vec<TableRep> = placed
+        .reps
+        .iter()
+        .filter(|r| !before.contains(&r.id))
+        .cloned()
+        .collect();
+    assert_eq!(reps.len(), n);
+    reps
+}
+
+/// The function ID text of a placed terminal representation.
+fn function_of(rep: &TableRep) -> String {
+    assert_eq!(rep.functions.len(), 1);
+    rep.functions[0].to_string()
+}
+
+#[test]
+fn partless_terminals_bridge_at_their_side1_cp() {
+    let tmp = Tmp::new("bridge-partless");
+    let mut s = shell(&tmp, "103");
+    let reps = partless_strip(&mut s, 2);
+    select_ids(&mut s, &[reps[1].id.to_string(), reps[0].id.to_string()]);
+    let rev = s.revision();
+    done(&mut s, "strip.bridge", json!({}));
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "one undo step");
+    let last = s.recorded_commands().last().expect("the commit");
+    assert_eq!(last.cmd, "connection.draw");
+    // The starter terminal's side-1 CP is index 0 (clamp a); the new strip has no bridge, so group 1.
     assert_eq!(
-        refused(&mut s, "strip.bridge", json!({})),
-        "reason-bridge-no-shaft"
+        last.params["a"],
+        json!({"cp": {"function": function_of(&reps[0]), "idx": 0}})
     );
+    assert_eq!(
+        last.params["b"],
+        json!({"cp": {"function": function_of(&reps[1]), "idx": 0}})
+    );
+    assert_eq!(
+        last.params["kind"],
+        json!({"bridge": {"kind": "plug_in", "group": 1, "shaft": 1}})
+    );
+}
+
+/// Folio 103's BR1, BR5 and BR6 as the G-PP drafter drew them: on new strips whose terminals were placed by symbol
+/// and carry no part, a chain of four, a pair and a chain of three, each in one step and its own group.
+#[test]
+fn folio_103_bridges_draw_on_terminals_placed_by_symbol() {
+    let tmp = Tmp::new("bridge-gpp-103");
+    let mut s = shell(&tmp, "103");
+    let reps = partless_strip(&mut s, 9);
+    let mut groups = Vec::new();
+    for (range, cmd) in [
+        (0..4, "connection.draw_many"),
+        (4..6, "connection.draw"),
+        (6..9, "connection.draw_many"),
+    ] {
+        let selection: Vec<String> = reps[range.clone()].iter().map(|r| r.id.to_string()).collect();
+        select_ids(&mut s, &selection);
+        let rev = s.revision();
+        done(&mut s, "strip.bridge", json!({}));
+        assert_eq!(s.revision(), rev.map(|r| r + 1), "one undo step");
+        let last = s.recorded_commands().last().expect("the commit");
+        assert_eq!(last.cmd, cmd);
+        let entries: Vec<Value> = match last.params.get("connections") {
+            Some(list) => list.as_array().expect("the entries").clone(),
+            None => vec![last.params.clone()],
+        };
+        assert_eq!(entries.len(), range.len() - 1);
+        let functions: Vec<String> = reps[range].iter().map(function_of).collect();
+        for (k, e) in entries.iter().enumerate() {
+            assert_eq!(e["a"], json!({"cp": {"function": functions[k], "idx": 0}}));
+            assert_eq!(e["b"], json!({"cp": {"function": functions[k + 1], "idx": 0}}));
+        }
+        groups.push(entries[0]["kind"]["bridge"]["group"].as_u64().expect("a group"));
+    }
+    assert_eq!(groups, [1, 2, 3], "each chain takes the next free group");
 }
