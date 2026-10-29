@@ -1098,6 +1098,35 @@ fn ft469_command_sequence_regression_passes() {
     assert!(stats.committed() > 0);
 }
 
+/// Cycle 33 `fuzz-smoke` finding: seed 286 720 002 built a Z-shaped `connection.route` whose bend line ran
+/// through an end, so the route repeated a vertex; the product refuses that (FT-437) while the model expected it to
+/// commit. The route generator now drops repeated vertices.
+#[test]
+fn command_sequence_route_repeated_vertex_regression_passes() {
+    let bytes = std::fs::read(repo().join("fuzz/regressions/command_sequence/route-repeated-vertex"))
+        .expect("the preserved route input");
+    assert_eq!(bytes.len(), 9);
+    let seed = u64::from_le_bytes(bytes[..8].try_into().expect("eight seed bytes"));
+    let steps = 1 + usize::from(bytes[8]) % 8;
+    assert_eq!(seed, 286_720_002);
+    assert_eq!(steps, 8);
+    let stats = run_fuzz_tape(
+        seed,
+        &bytes[9..],
+        steps,
+        &Cadence {
+            sample_every: 0,
+            check_every: 0,
+            verify_every: 0,
+            full_end: false,
+            save_weight: 1,
+            import_weight: 0,
+            deep: false,
+        },
+    );
+    assert!(stats.committed() > 0);
+}
+
 /// The placement and arrangement steps of WP-S2.04 on Golden A: the `from_part` and `new_terminal` targets of
 /// `device.place`, the `from_part` target of `box.black`, `rep.move` by grid steps, `rep.exchange_symbol`,
 /// `project.drawing.set`, `connection.draw_to_ip`, `ip.arrange` and `box.reshape` are all generated, and each kind

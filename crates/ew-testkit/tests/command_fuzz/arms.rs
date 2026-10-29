@@ -2385,6 +2385,21 @@ fn connection_route(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         })
     };
     let (a, b, n) = (r.a, r.b, r.grid_num);
+    // A well-formed route is tidy (FT-437): no vertex repeats the one before it and no segment runs over another.
+    // A bend line through an end (or ends on one vertical or horizontal line) would repeat a vertex, and a Z whose
+    // ends share an x doubles back on that line; such routes become the straight route between the ends.
+    let tidy = |route: Vec<(i64, i64)>| -> Vec<(i64, i64)> {
+        let mut out: Vec<(i64, i64)> = Vec::with_capacity(route.len());
+        for v in route {
+            if out.last() != Some(&v) {
+                out.push(v);
+            }
+        }
+        if out.len() > 2 && (a.0 == b.0 || a.1 == b.1) {
+            out = vec![a, b];
+        }
+        out
+    };
     // A grid coordinate between the ends, for the bends.
     let mid = ((a.1 + b.1) / 2 / n + rng.range(-2, 2)) * n;
     match rng.below(10) {
@@ -2430,7 +2445,7 @@ fn connection_route(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         // A dog-leg: its bend takes the x of one end and the y of the other, so both are the coordinates of
         // an end that meets its CP, whether or not they are on the grid.
         4..=6 => {
-            let route = vec![a, (b.0, a.1), b];
+            let route = tidy(vec![a, (b.0, a.1), b]);
             Some(verified(
                 Step::cmd(
                     "connection.route",
@@ -2442,7 +2457,7 @@ fn connection_route(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         }
         // A Z-shaped route through a bend line on the grid.
         _ => {
-            let route = vec![a, (a.0, mid), (b.0, mid), b];
+            let route = tidy(vec![a, (a.0, mid), (b.0, mid), b]);
             Some(verified(
                 Step::cmd(
                     "connection.route",
