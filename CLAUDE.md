@@ -75,8 +75,9 @@ work is done by Claude subagents; there is no external coder.
   (panics keep file and line; the PDBs lose most of their size), `CARGO_INCREMENTAL=0` and `CARGO_BUILD_JOBS=8`. Do
   not override them in a worktree; a full-debuginfo build is a deliberate, one-off choice.
 - **Build jobs scale to the free cores (owner, 2026-10-28; the machine has 24 cores and 32 GB of RAM):** 8 jobs per
-  builder while up to three builders run (the settings default); a verify chain or gate that runs as the only
-  builder exports `CARGO_BUILD_JOBS=16`. Memory, not cores, is the limit: the WSL VM holds about 11 GB once it has
+  builder while up to three builders run (the settings default); a verify chain that runs as the only builder
+  exports `CARGO_BUILD_JOBS=16`, and a full gate 12 on either host (a 16-job Windows gate ran out of system
+  resources in cycle 32; after a resource failure, `cargo clean` before the re-run). Memory, not cores, is the limit: the WSL VM holds about 11 GB once it has
   built, so the Windows and WSL gates run one after the other, not in parallel (two 12-job gates ran out of memory:
   LNK1104, E0463). The three-builder and disk rules are unchanged.
 - A worktree's `target` is deleted the moment its work is integrated and re-verified (`cmd //c "rmdir /s /q
