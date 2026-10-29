@@ -89,3 +89,23 @@ impl From<rusqlite::Error> for BuildError {
         BuildError(e.to_string())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::SqlError;
+
+    /// The refusal texts users and scripts see on stderr (`ew sql` exits 2 with them) name the denied statement in
+    /// parentheses. The CLI test of `ATTACH` was folded away (test audit g6), so the text is pinned here, next to
+    /// its source.
+    #[test]
+    fn refusals_name_the_denied_statement() {
+        assert_eq!(
+            SqlError::NotAQuery("attach".into()).to_string(),
+            "statement denied by the projection sandbox (ATTACH): only SELECT, WITH or VALUES may run"
+        );
+        assert_eq!(
+            SqlError::Denied("ATTACH".into()).to_string(),
+            "statement denied by the projection sandbox (ATTACH)"
+        );
+    }
+}
