@@ -27,9 +27,9 @@ A turn is one `do` call. Before the next `do` you give exactly one note: `patien
 need no note, but you may make at most 3 between two `do` calls.
 
 The harness sends the steps of a batch in order and stops at the first step that is not done; the rest are reported
-`skipped` and not sent. Each step prints `<n> <action> <outcome>`: `done`, `refused` (with the reason: the action is not
-possible now) or `failed` (with its message), and then the parts of the interface's state that changed. A step that
-leaves a preview card open adds the line `  preview: <summary>; Apply or Cancel`: nothing is changed until you apply
+`skipped` and not sent. Each step prints `<n> <action> <outcome>` (`<n>` counts the steps of your `do` calls from 1):
+`done`, `refused` (with the reason: the action is not possible now) or `failed` (with its message), and then the parts
+of the interface's state that changed. A step that leaves a preview card open adds the line `  preview: <summary>; Apply or Cancel`: nothing is changed until you apply
 it (`preview.apply`) or cancel it (`preview.cancel`).
 
 If one step fails twice in a row with the same parameters on the same selection, the harness marks it broken and refuses

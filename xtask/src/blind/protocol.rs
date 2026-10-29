@@ -55,6 +55,8 @@ pub struct State {
     pub low_patience: u32,
     /// How many of the last notes in a row had a flow of 2 or less.
     pub low_flow: u32,
+    /// The steps sent by the `do` calls so far (FT-584: the number of the next is one more).
+    pub do_steps: usize,
 }
 
 /// Derives the state from the turn lines.
@@ -66,6 +68,7 @@ pub fn derive_state(turns: &[Turn]) -> State {
                 st.turns = t.turn.unwrap_or(st.turns + 1);
                 st.pending_note = Some(st.turns);
                 st.looks_since_do = 0;
+                st.do_steps += t.steps.map_or(0, |[a, b]| (b + 1).saturating_sub(a) as usize);
                 st.prev_not_done.clone_from(&t.first_not_done);
                 if let Some(b) = &t.broken {
                     st.broken.insert(b.step_key());
@@ -211,7 +214,8 @@ pub fn do_steps(
     let mut shown = last_state(run);
     let mut folio: Option<String> = None;
     for (i, s) in steps.iter().enumerate() {
-        let number = before + i + 1;
+        // FT-584: the agent's steps are numbered from 1 over its `do` calls (a look's step does not count).
+        let number = st.do_steps + i + 1;
         let stopped = first_not_done.is_some() || refusal.is_some() || cap_hit || lost || diverged.is_some();
         if stopped {
             let _ = writeln!(out, "{number} {} skipped", s.action);
@@ -810,6 +814,24 @@ pub mod tests {
         pub fn note(&self, text: &str) -> String {
             note(&self.run, text).unwrap()
         }
+    }
+
+    /// FT-584: the agent's steps are numbered from 1 over its `do` calls; a look's step before them does not count.
+    #[test]
+    fn do_steps_are_numbered_from_one_after_a_look() {
+        let mut f = fixture(Kind::Free);
+        look(&f.run, &mut f.backend, &LookOpts::default()).unwrap();
+        assert_eq!(f.run.steps().unwrap().len(), 1, "the look sent a step");
+        let out = f.run_do(&[s("help.about", serde_json::json!({}))]);
+        assert!(out.starts_with("1 help.about done"), "{out}");
+        f.note("patience 6 flow 6 ok");
+        look(&f.run, &mut f.backend, &LookOpts::default()).unwrap();
+        let out = f.run_do(&[
+            s("help.about", serde_json::json!({})),
+            s("help.about", serde_json::json!({})),
+        ]);
+        assert!(out.starts_with("2 help.about done"), "{out}");
+        assert!(out.contains("\n3 help.about done"), "{out}");
     }
 
     #[test]
