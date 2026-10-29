@@ -993,7 +993,7 @@ fn ov2_the_place_ghost_draws_its_tag_once_and_its_chips_keep_apart() {
         "the chip keeps off the ghost's label"
     );
     let head = chips[0].1;
-    assert!(chips[0].0.contains("device.place"), "{chips:?}");
+    assert_eq!(chips[0].0, "Preview of Place device", "{chips:?}");
     // The header's target is the point 8 points left of the change's top-left corner: straight above the change
     // where that is free; here the ghost's label takes that place, and the header takes the rule's next free one.
     assert!(
@@ -1198,7 +1198,7 @@ fn the_chip_of_an_existing_devices_tag_change_stands_above_its_printed_tag() {
     settle(&mut h);
     let (chips, _) = h.state().preview_chips();
     assert!(chips.len() >= 2, "{chips:?}");
-    assert!(chips[0].0.contains("rep.move"), "{chips:?}");
+    assert_eq!(chips[0].0, "Preview of Move", "{chips:?}");
     let (text, frame) = &chips[1];
     assert!(text.contains("-101F1."), "{chips:?}");
     let anchor = drawn_of(&mut h, snap.page_to_sheet(tag_at));

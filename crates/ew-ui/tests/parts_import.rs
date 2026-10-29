@@ -71,7 +71,9 @@ fn the_entry_prompts_and_ctrl_enter_applies_the_card() {
         "the card's line"
     );
     assert!(
-        h.query_by_label_contains("Import parts").is_some(),
+        h.query_all_by_label_contains("Preview: Import parts")
+            .next()
+            .is_some(),
         "the card's title (in the strip while the Preview tab shows it)"
     );
     // WP-S2.09 part 3: the Preview tab shows the card too; its chip and the tab each have the button.
