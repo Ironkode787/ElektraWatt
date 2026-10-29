@@ -29,7 +29,8 @@ use super::{Mode, Outcome, RecordedCommand, ShellModel, failed, string_param};
 use crate::properties::{
     Card, CardOrigin, ChoiceKind, Choices, Decision, EditBuffer, PendingEdit, Popup, PropRow,
     PropertiesState, PropertySheet, Provenance, RowAction, RowValue, SheetKey, SheetSection, compose,
-    find_row, is_derived, item_default, kind_plural, member_path, policy, read_only_reason, visible_rows,
+    filter_shown, find_row, is_derived, item_default, kind_plural, member_path, policy, read_only_reason,
+    visible_rows,
 };
 use crate::strings;
 use crate::tools::PreviewState;
@@ -153,11 +154,51 @@ impl ShellModel {
         Outcome::Done
     }
 
+    /// FT-541 (doc 16a §6.8): whether the grid shows its filter field, the open categories holding more than twelve
+    /// rows.
+    pub fn properties_filter_shown(&self) -> bool {
+        self.props.sheet().is_some_and(|sheet| {
+            filter_shown(
+                sheet,
+                &self.properties_collapsed(),
+                self.settings.properties_show_advanced,
+            )
+        })
+    }
+
+    /// The filter in force: the field's text while the field is on show, else empty (a filter whose field is not on
+    /// show hides nothing).
+    pub fn properties_filter(&self) -> &str {
+        if self.properties_filter_shown() {
+            self.props.filter.trim()
+        } else {
+            ""
+        }
+    }
+
+    /// `props.filter {text}`: sets the text of the grid's filter field (FT-541); the rows on show are those whose label
+    /// or value contains it, case-folded, while the field is on show.
+    pub(super) fn act_props_filter(&mut self, p: &Map<String, Value>) -> Outcome {
+        let text = match string_param(p, "text") {
+            Err(e) => return e,
+            Ok(None) => return failed("error-missing-param", &["text"]),
+            Ok(Some(t)) => t.to_owned(),
+        };
+        self.props.filter = text;
+        self.props.popup = None;
+        Outcome::Done
+    }
+
     /// The focused row: the row the cursor was moved to while it is on show, else the first row on show.
     pub fn properties_row(&self) -> Option<String> {
         let sheet = self.props.sheet()?;
         let collapsed = self.properties_collapsed();
-        let rows = visible_rows(sheet, &collapsed, self.settings.properties_show_advanced);
+        let rows = visible_rows(
+            sheet,
+            &collapsed,
+            self.settings.properties_show_advanced,
+            self.properties_filter(),
+        );
         if let Some(moved) = self.props.moved_row()
             && rows.iter().any(|r| r.row.key == moved)
         {
@@ -445,7 +486,13 @@ impl ShellModel {
             };
         };
         let collapsed = self.properties_collapsed();
-        let rows = visible_rows(&sheet, &collapsed, self.settings.properties_show_advanced);
+        let filter = self.properties_filter().to_owned();
+        let rows = visible_rows(
+            &sheet,
+            &collapsed,
+            self.settings.properties_show_advanced,
+            &filter,
+        );
         if rows.is_empty() {
             return Outcome::Refused {
                 reason_key: "reason-no-row",

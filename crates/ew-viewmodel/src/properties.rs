@@ -272,6 +272,8 @@ pub struct PropertiesState {
     /// The selection generation and the page it was made on: the pane shows the selection only while that page is on
     /// show; a page change with nothing selected there shows the page's own sheet (window check, item 6).
     pub(crate) selection_page: Option<(u64, Option<PageId>)>,
+    /// FT-541: the text of the filter field (`props.filter`); it applies only while the field is on show.
+    pub(crate) filter: String,
 }
 
 impl PropertiesState {
@@ -308,6 +310,11 @@ impl PropertiesState {
     /// The notes of the last commit (confusable code points, an alias that resolved a node).
     pub fn notes(&self) -> &[String] {
         &self.notes
+    }
+
+    /// The text of the filter field (FT-541); `ShellModel::properties_filter` is the filter in force.
+    pub fn filter(&self) -> &str {
+        &self.filter
     }
 
     /// The row the cursor was moved to, if it still exists.
@@ -486,11 +493,12 @@ pub fn group_of(section: &SheetSection, row: &PropRow) -> RowGroup {
 }
 
 /// The rows on show: every row of every expanded group, in display order ([`groups`]); the Advanced rows only while
-/// `advanced` is on.
+/// `advanced` is on; with a non-empty `filter`, only the rows it matches ([`row_matches`]).
 pub fn visible_rows<'s>(
     sheet: &'s PropertySheet,
     collapsed: &BTreeSet<String>,
     advanced: bool,
+    filter: &str,
 ) -> Vec<VisibleRow<'s>> {
     let mut out = Vec::new();
     for s in &sheet.sections {
@@ -498,10 +506,36 @@ pub fn visible_rows<'s>(
             if collapsed.contains(&group_key(&s.kind, g)) {
                 continue;
             }
-            out.extend(rows.into_iter().map(|row| VisibleRow { section: s, row }));
+            out.extend(
+                rows.into_iter()
+                    .filter(|row| row_matches(s, row, filter))
+                    .map(|row| VisibleRow { section: s, row }),
+            );
         }
     }
     out
+}
+
+/// FT-541 (doc 16a §6.8): the filter field "Filter properties" appears only when the open categories hold more than
+/// this many rows.
+pub const FILTER_ROWS: usize = 12;
+
+/// Whether the Properties filter field is on show: the rows of the open categories, unfiltered, are more than
+/// [`FILTER_ROWS`].
+pub fn filter_shown(sheet: &PropertySheet, collapsed: &BTreeSet<String>, advanced: bool) -> bool {
+    visible_rows(sheet, collapsed, advanced, "").len() > FILTER_ROWS
+}
+
+/// Whether `row` matches the Properties filter `filter`: an empty filter matches every row, else the row's label or
+/// its value text contains the filter, case-folded.
+pub fn row_matches(section: &SheetSection, row: &PropRow, filter: &str) -> bool {
+    let filter = filter.trim();
+    if filter.is_empty() {
+        return true;
+    }
+    let needle = filter.to_lowercase();
+    row_label(section, row).to_lowercase().contains(&needle)
+        || value_text(row).to_lowercase().contains(&needle)
 }
 
 /// The section and row of `key`.
@@ -709,6 +743,18 @@ pub fn value_text(row: &PropRow) -> String {
         RowValue::Varies { count, .. } => strings::format("props-varies", &[&count.to_string()]),
         RowValue::Absent => String::new(),
     }
+}
+
+/// The label of a row action in the row's actions menu (FT-530; doc 16a §6.8: "Reset to derived", "Freeze").
+pub fn action_label(action: RowAction) -> &'static str {
+    strings::text(match action {
+        RowAction::Edit => "props-action-edit",
+        RowAction::Clear => "props-action-clear",
+        RowAction::Override => "props-action-override",
+        RowAction::Reset => "props-action-reset",
+        RowAction::Freeze => "props-action-freeze",
+        RowAction::Unfreeze => "props-action-unfreeze",
+    })
 }
 
 /// The provenance chip's text (an icon glyph and words, never colour alone; FR-UI-025).

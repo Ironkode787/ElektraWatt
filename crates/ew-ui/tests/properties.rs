@@ -476,3 +476,244 @@ fn j32_property_rows_are_left_aligned_with_one_word_chips() {
         "{painted:?}"
     );
 }
+
+/// The severity word of a finding chip.
+fn severity_word(severity: &str) -> &'static str {
+    match severity {
+        "error" => "Error",
+        "warning" => "Warning",
+        _ => "Info",
+    }
+}
+
+/// FT-530 (doc 16a §6.8, §6.13, §6.16): the header's findings are severity chips, a named `Label` node each
+/// ("<word>, <rule>: <message>") with the rule and message as the tooltip, no "[severity] rule message" text; the row's
+/// actions are a popup menu anchored on its "…" button, whose items choose and which Escape closes.
+#[test]
+fn ft530_header_severity_chips_and_the_actions_menu_on_the_dots_button() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "101");
+    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    settle(&mut h);
+    // F8: the first finding, its object selected, so the grid shows its sheet with the finding in the header.
+    dispatch(&mut h, "messages.next", json!({}));
+    settle(&mut h);
+    settle(&mut h);
+    let findings = h
+        .state()
+        .shell()
+        .properties()
+        .sheet()
+        .expect("a sheet")
+        .header
+        .findings
+        .clone();
+    assert!(
+        !findings.is_empty(),
+        "the finding's object has findings in the header"
+    );
+    let painted: Vec<String> = painted_texts(&h).into_iter().map(|(t, _)| t).collect();
+    for f in &findings {
+        let name = format!("{}, {}: {}", severity_word(&f.severity), f.rule, f.message);
+        let chip = h
+            .query_by_label(&name)
+            .unwrap_or_else(|| panic!("the chip {name}"));
+        assert_eq!(
+            chip.accesskit_node().role(),
+            egui::accesskit::Role::Label,
+            "{name}"
+        );
+        assert!(
+            painted.iter().any(|t| t == severity_word(&f.severity)),
+            "the chip paints its word: {painted:?}"
+        );
+        assert!(
+            !painted
+                .iter()
+                .any(|t| t.starts_with(&format!("[{}]", f.severity))),
+            "no bracketed finding text: {painted:?}"
+        );
+        // The tooltip: the rule and the message.
+        chip.hover();
+        h.run_steps(40);
+        let tip = format!("{}: {}", f.rule, f.message);
+        assert!(h.query_by_label(&tip).is_some(), "the tooltip {tip}");
+    }
+    // The actions menu: the cursor on a row with actions, its "…" button, the popup below or above it.
+    let sheet = h.state().shell().properties().sheet().unwrap().clone();
+    let (section, prow) = sheet
+        .sections
+        .iter()
+        .flat_map(|s| s.rows.iter().map(move |r| (s, r)))
+        .find(|(s, r)| {
+            !r.actions.is_empty()
+                && ew_ui::ew_viewmodel::properties::is_primary(&s.kind, r)
+                && !ew_ui::ew_viewmodel::properties::is_header(s, r)
+        })
+        .expect("a Main row with actions");
+    let label = ew_ui::ew_viewmodel::properties::row_label(section, prow);
+    dispatch(&mut h, "ui.focus", json!({"area": "properties"}));
+    dispatch(&mut h, "props.row", json!({ "to": prow.key }));
+    dispatch(&mut h, "props.row_menu", json!({}));
+    settle(&mut h);
+    settle(&mut h);
+    let dots = h
+        .get_all_by_role(egui::Role::Button)
+        .find(|n| n.accesskit_node().label().as_deref() == Some(format!("Actions of {label}").as_str()))
+        .expect("the row's … button")
+        .rect();
+    let items: Vec<(String, egui::Rect)> = h
+        .get_all_by_role(egui::Role::MenuItem)
+        .filter_map(|n| n.accesskit_node().label().map(|l| (l, n.rect())))
+        .collect();
+    let words: Vec<&str> = prow
+        .actions
+        .iter()
+        .map(|a| ew_ui::ew_viewmodel::properties::action_label(*a))
+        .collect();
+    assert_eq!(
+        items.iter().map(|(l, _)| l.as_str()).collect::<Vec<_>>(),
+        words,
+        "one menu item per action"
+    );
+    let top = items.iter().map(|(_, r)| r.top()).fold(f32::INFINITY, f32::min);
+    let bottom = items
+        .iter()
+        .map(|(_, r)| r.bottom())
+        .fold(f32::NEG_INFINITY, f32::max);
+    assert!(
+        (top >= dots.bottom() - 0.5 && top <= dots.bottom() + 16.0)
+            || (bottom <= dots.top() + 0.5 && bottom >= dots.top() - 16.0),
+        "the menu {top}..{bottom} is anchored on the button {dots:?}"
+    );
+    // Escape closes it.
+    press(&mut h, Key::Escape);
+    settle(&mut h);
+    assert!(
+        h.state().shell().properties().popup().is_none(),
+        "Escape closes the menu"
+    );
+    assert_eq!(h.query_all_by_role(egui::Role::MenuItem).count(), 0);
+    // A click on an item chooses it: Edit (or the first action) opens the editor or writes.
+    dispatch(&mut h, "props.row_menu", json!({}));
+    settle(&mut h);
+    settle(&mut h);
+    h.get_all_by_role(egui::Role::MenuItem)
+        .find(|n| n.accesskit_node().label().as_deref() == Some(words[0]))
+        .expect("the first item")
+        .click();
+    settle(&mut h);
+    settle(&mut h);
+    assert!(
+        h.state().shell().properties().popup().is_none(),
+        "a choice closes the menu"
+    );
+    if prow.actions[0] == ew_ui::ew_viewmodel::properties::RowAction::Edit {
+        assert!(
+            h.state().shell().properties().edit().is_some(),
+            "Edit opens the editor"
+        );
+    }
+}
+
+/// FT-541 (doc 16a §6.8): "Filter properties" stands under the header only while the open categories hold more than
+/// twelve rows; typing keeps the rows whose label or value contains the text; a filter without hits says so with Clear
+/// filter.
+#[test]
+fn ft541_the_properties_filter_for_more_than_twelve_rows() {
+    use ew_ui::ew_viewmodel::properties::{FILTER_ROWS, visible_rows};
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "101");
+    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    settle(&mut h);
+    let open_rows = |h: &Harness<'_, App>| {
+        let shell = h.state().shell();
+        let sheet = shell.properties().sheet().expect("a sheet");
+        visible_rows(
+            sheet,
+            &shell.properties_collapsed(),
+            shell.properties_show_advanced(),
+            "",
+        )
+        .len()
+    };
+    let field = |h: &Harness<'_, App>| {
+        h.get_all_by_role(egui::Role::TextInput)
+            .find(|n| n.accesskit_node().label().as_deref() == Some("Filter properties"))
+            .map(|n| n.rect())
+    };
+    // The page's sheet: the field stands exactly when its open rows are more than twelve.
+    let n = open_rows(&h);
+    assert_eq!(field(&h).is_some(), n > FILTER_ROWS, "{n} open rows");
+    // The project's sheet holds more than twelve rows.
+    dispatch(&mut h, "props.project", json!({}));
+    settle(&mut h);
+    settle(&mut h);
+    let n = open_rows(&h);
+    assert!(n > FILTER_ROWS, "the project sheet has {n} open rows");
+    assert!(field(&h).is_some(), "the filter field under the header");
+    let row_names = |h: &Harness<'_, App>| -> Vec<String> {
+        let shell = h.state().shell();
+        let sheet = shell.properties().sheet().unwrap();
+        let keys: Vec<String> = visible_rows(
+            sheet,
+            &shell.properties_collapsed(),
+            shell.properties_show_advanced(),
+            shell.properties_filter(),
+        )
+        .iter()
+        .map(|r| ew_ui::ew_viewmodel::properties::row_label(r.section, r.row))
+        .collect();
+        keys
+    };
+    let all = row_names(&h);
+    let probe = all[0].clone();
+    let needle: String = probe.chars().take(4).collect();
+    let filter_node = |h: &Harness<'static, App>| {
+        h.get_all_by_role(egui::Role::TextInput)
+            .find(|n| n.accesskit_node().label().as_deref() == Some("Filter properties"))
+            .map(|n| n.rect().center())
+            .unwrap()
+    };
+    let at = filter_node(&h);
+    h.get_all_by_role(egui::Role::TextInput)
+        .find(|n| n.rect().center() == at)
+        .unwrap()
+        .click();
+    settle(&mut h);
+    h.get_all_by_role(egui::Role::TextInput)
+        .find(|n| n.rect().center() == at)
+        .unwrap()
+        .type_text(&needle);
+    settle(&mut h);
+    settle(&mut h);
+    assert_eq!(h.state().shell().properties().filter(), needle);
+    let kept = row_names(&h);
+    assert!(kept.contains(&probe), "{probe} kept by {needle}: {kept:?}");
+    assert!(kept.len() < all.len(), "the filter hides rows: {kept:?}");
+    // The painted rows are the kept rows: every row `Group` of the grid matches.
+    let painted_rows: Vec<String> = h
+        .get_all_by_role(egui::Role::Group)
+        .filter_map(|n| n.accesskit_node().label())
+        .filter(|l| all.contains(l))
+        .collect();
+    for l in &painted_rows {
+        assert!(kept.contains(l), "the painted row {l} matches {needle}");
+    }
+    // A filter without hits: the empty state and Clear filter.
+    dispatch(&mut h, "props.filter", json!({"text": "zzzz-no-such-row"}));
+    settle(&mut h);
+    settle(&mut h);
+    assert!(
+        h.query_all_by_label("Nothing matches \"zzzz-no-such-row\"")
+            .next()
+            .is_some(),
+        "the empty state names the filter"
+    );
+    h.get_by_role_and_label(egui::Role::Button, "Clear filter")
+        .click();
+    settle(&mut h);
+    settle(&mut h);
+    assert_eq!(h.state().shell().properties().filter(), "");
+    assert_eq!(row_names(&h), all, "every row again");
+}

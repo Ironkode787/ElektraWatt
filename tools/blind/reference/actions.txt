@@ -221,6 +221,7 @@ wizard.finish Command "Wizard: create the basic project" menu none shortcut none
 wizard.apply_check_scheme Command "Wizard: apply the check scheme" menu none shortcut none context global hidden params "confirm?:bool"
 select.set View "Select records" menu none shortcut none context global hidden params "ids?:list(ref), refs?:list(ref)"
 props.row View "Move the property cursor" menu none shortcut none context properties hidden params "step?:int, to?:enum(first|last)"
+props.filter View "Filter the properties" menu none shortcut none context properties hidden params "text:text"
 props.category View "Collapse or expand a property category" menu none shortcut none context properties hidden params "category:text, expanded?:bool"
 props.edit View "Edit the property" menu none shortcut "F2" context properties hidden params "row?:text"
 props.input View "Type into the property field" menu none shortcut none context properties hidden params "text:text"

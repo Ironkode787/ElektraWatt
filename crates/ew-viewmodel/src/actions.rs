@@ -3547,6 +3547,19 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
         ))),
     ),
+    // FT-541 (doc 16a §6.8): the filter field of a grid whose open categories hold more than twelve rows.
+    with_params(
+        "text:text",
+        hidden(in_properties(act(
+            "props.filter",
+            View,
+            "action-props-filter",
+            Menu::Edit,
+            &[],
+            grid_shown,
+            None,
+        ))),
+    ),
     with_params(
         "category:text, expanded?:bool",
         hidden(in_properties(act(

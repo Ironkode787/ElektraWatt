@@ -731,6 +731,7 @@ fn clears_banner(id: &str) -> bool {
             | "props.set"
             | "props.choose"
             | "props.row_menu"
+            | "props.filter"
             | "props.action"
             | "props.list"
             | "props.mltext"
@@ -1599,6 +1600,7 @@ impl ShellModel {
             "props.set" => self.act_props_set(p),
             "props.choose" => self.act_props_choose(p),
             "props.row_menu" => self.act_props_row_menu(p),
+            "props.filter" => self.act_props_filter(p),
             "props.action" => self.act_props_action(p),
             "props.list" => self.act_props_list(p),
             "props.mltext" => self.act_props_mltext(p),

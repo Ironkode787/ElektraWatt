@@ -179,6 +179,56 @@ fn count_badge(ui: &mut Ui, t: &Tokens, severity: &'static str, count: usize) {
     );
 }
 
+/// A severity chip (FT-530; doc 16a §6.8's findings in the Properties header, drawn as §6.16's status badge): `radius.sm`,
+/// the severity's subtle fill, its icon and word in `type.caption` in its text colour; a `Label` node named "<word>,
+/// <rule>: <message>", the rule and message as the tooltip.
+pub(crate) fn severity_chip(ui: &mut Ui, severity: &str, rule: &str, message: &str) -> egui::Response {
+    let t = theme::current(ui.ctx());
+    let (fill, text) = count_colours(&t, severity);
+    let word = severity_word(severity);
+    let galley = ui
+        .painter()
+        .layout_no_wrap(word.to_owned(), theme::font(&t.type_caption), text.color32());
+    let icon = t.type_caption.size + t.space_1;
+    let size = Vec2::new(
+        t.space_2 + icon + t.space_1 + galley.size().x + t.space_2,
+        t.size_badge,
+    );
+    let (rect, response) = ui.allocate_exact_size(size, Sense::hover());
+    let name = strings::format("props-finding-chip", &[word, rule, message]);
+    response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, &name));
+    let painter = ui.painter();
+    painter.rect_filled(rect, theme::radius(t.radius_sm), fill.color32());
+    let icon_rect = egui::Rect::from_center_size(
+        egui::pos2(rect.left() + t.space_2 + icon / 2.0, rect.center().y),
+        Vec2::splat(icon),
+    );
+    let look = FindingLook {
+        severity: match severity {
+            "error" => "error",
+            "warning" => "warning",
+            _ => "info",
+        },
+        pending: false,
+    };
+    icons::paint(
+        painter,
+        severity_icon_id(severity),
+        icon_rect,
+        colour_of(&t, look),
+        t.icon_stroke,
+    );
+    painter.galley(
+        egui::pos2(
+            icon_rect.right() + t.space_1,
+            rect.center().y - galley.size().y / 2.0,
+        ),
+        galley,
+        text.color32(),
+    );
+    response.on_hover_text(strings::format("props-finding-tip", &[rule, message]))
+}
+
 /// The header (doc 16a §6.24): the scheme in `type.small` `color.text.secondary`, one count badge per severity, then
 /// "waived n" and "pending n" in `color.text.tertiary`; one `Label` node named by the as-built sentence, a polite live
 /// region. Then the quick-fix card.

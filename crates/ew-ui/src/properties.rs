@@ -25,9 +25,9 @@
 
 use egui::{Key, Modifiers, RichText, Sense, TextEdit, Ui, Vec2};
 use ew_viewmodel::properties::{
-    ChoiceKind, FieldType, PropRow, PropertySheet, Provenance, RowAction, RowValue, SheetSection,
-    advanced_count, chip_text, chip_word, group_key, groups, is_header, read_only_reason, row_label,
-    value_text,
+    ChoiceKind, FieldType, Popup, PropRow, PropertySheet, Provenance, RowAction, RowValue, SheetSection,
+    action_label, advanced_count, chip_text, chip_word, group_key, groups, is_header, read_only_reason,
+    row_label, row_matches, value_text,
 };
 use ew_viewmodel::shell::{Focus, ShellModel};
 use ew_viewmodel::strings;
@@ -52,6 +52,8 @@ pub struct PropertiesPane {
     choices_rect: Option<(String, egui::Rect)>,
     /// The nesting level of the shallowest rows of the group being drawn (their labels are not indented).
     base_depth: u8,
+    /// The filter field's text (FT-541; the shell's filter is set from it).
+    filter: String,
 }
 
 /// `text` ellipsised in the middle at [`MAX_SHOWN`] characters.
@@ -116,6 +118,12 @@ impl PropertiesPane {
                 return;
             };
             Self::header(ui, sheet);
+            // FT-541 (doc 16a §6.8): "Filter properties" under the header while the open categories hold more than
+            // twelve rows.
+            let filter = shell.properties_filter().to_owned();
+            if shell.properties_filter_shown() {
+                self.filter_field(ui, shell, events);
+            }
             if sheet.sections.is_empty() {
                 let text = if sheet.missing > 0 && sheet.header.items == 0 {
                     strings::text("props-gone-title").to_owned()
@@ -132,6 +140,24 @@ impl PropertiesPane {
             let collapsed = shell.properties_collapsed();
             let advanced = shell.properties_show_advanced();
             let t = crate::theme::current(ui.ctx());
+            // A filter that hides every row says so, with Clear filter (doc 16a §6.17).
+            if !filter.is_empty()
+                && ew_viewmodel::properties::visible_rows(sheet, &collapsed, advanced, &filter).is_empty()
+            {
+                let line = strings::format("empty-nav-filter", &[&filter]);
+                let clear = crate::components::empty_state(
+                    ui,
+                    crate::icons::IconId::filter,
+                    &line,
+                    strings::text("empty-nav-filter-text"),
+                    Some(strings::text("empty-nav-clear")),
+                );
+                if clear.is_some_and(|r| r.clicked()) {
+                    self.filter.clear();
+                    events.push(Event::Action("props.filter", json!({ "text": "" })));
+                }
+                return;
+            }
             egui::ScrollArea::vertical()
                 .auto_shrink([false, false])
                 .show(ui, |ui| {
@@ -149,6 +175,14 @@ impl PropertiesPane {
                         for (group, rows) in groups(section, advanced) {
                             let key = group_key(&section.kind, group);
                             let shut = collapsed.contains(&key);
+                            // FT-541: the filter keeps the rows it matches; an open group left without rows hides.
+                            let rows: Vec<&PropRow> = rows
+                                .into_iter()
+                                .filter(|r| row_matches(section, r, &filter))
+                                .collect();
+                            if !shut && rows.is_empty() {
+                                continue;
+                            }
                             if group_heading(ui, &t, group.title(), &key, shut) {
                                 events.push(Event::Action("ui.focus", json!({"area": "properties"})));
                                 events.push(Event::Action(
@@ -195,6 +229,42 @@ impl PropertiesPane {
                     }
                 });
         });
+    }
+
+    /// The filter field (FT-541; doc 16a §6.5, §6.8): "Filter properties", inset `space.4` from the pane's sides and
+    /// `size.control` high, as the navigator's filter; a change is `props.filter`.
+    fn filter_field(&mut self, ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
+        let t = crate::theme::current(ui.ctx());
+        let wanted = shell.properties().filter();
+        if self.filter != wanted && !ui.ctx().text_edit_focused() {
+            self.filter = wanted.to_owned();
+        }
+        let line = {
+            let free = ui.available_rect_before_wrap();
+            egui::Rect::from_min_size(free.min, Vec2::new(free.width(), t.size_control))
+                .shrink2(Vec2::new(t.space_4, 0.0))
+        };
+        let hint = strings::text("props-filter-hint");
+        let field = ui
+            .scope_builder(
+                egui::UiBuilder::new()
+                    .max_rect(line)
+                    .layout(egui::Layout::left_to_right(egui::Align::Center)),
+                |ui| {
+                    ui.set_min_size(line.size());
+                    ui.add(
+                        TextEdit::singleline(&mut self.filter)
+                            .hint_text(hint)
+                            .desired_width(f32::INFINITY),
+                    )
+                },
+            )
+            .inner;
+        field.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, hint));
+        ui.add_space(t.space_2);
+        if field.changed() {
+            events.push(Event::Action("props.filter", json!({ "text": self.filter })));
+        }
     }
 
     /// The grid's keys while it has the focus and no field is edited (§6.9).
@@ -284,10 +354,22 @@ impl PropertiesPane {
     }
 
     /// The header (§6.2): title, subtitle, location, finding chips (doc 16a §6.8: the title in `type.title`, the
-    /// subtitle and the location in `type.small`, secondary).
+    /// subtitle and the location in `type.small`, secondary; FT-530: one severity chip per finding at the right of the
+    /// title line, its icon and word, the rule and message as the tooltip and in its node's name).
     fn header(ui: &mut Ui, sheet: &PropertySheet) {
         let t = crate::theme::current(ui.ctx());
-        ui.label(RichText::new(&sheet.header.title).font(crate::theme::font(&t.type_title)));
+        ui.horizontal(|ui| {
+            ui.label(RichText::new(&sheet.header.title).font(crate::theme::font(&t.type_title)));
+            if !sheet.header.findings.is_empty() {
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    ui.spacing_mut().item_spacing.x = t.space_1;
+                    // Right to left: the last finding first, so the chips read in the header's order.
+                    for f in sheet.header.findings.iter().rev() {
+                        crate::messages::severity_chip(ui, &f.severity, &f.rule, &f.message);
+                    }
+                });
+            }
+        });
         let small = |s: &str| {
             RichText::new(s)
                 .font(crate::theme::font(&t.type_small))
@@ -298,9 +380,6 @@ impl PropertiesPane {
         }
         if let Some(l) = &sheet.header.location {
             ui.label(small(l));
-        }
-        for f in &sheet.header.findings {
-            ui.label(format!("[{}] {} {}", f.severity, f.rule, f.message));
         }
         if let Some(r) = &sheet.read_only {
             ui.label(RichText::new(r).italics());
@@ -635,10 +714,21 @@ impl PropertiesPane {
                     );
                 }
                 let response = response.on_hover_text(&name);
+                let open = matches!(
+                    props.popup(),
+                    Some(ew_viewmodel::properties::Popup::Actions { row: r, .. }) if *r == row.key
+                );
                 if response.clicked() {
                     events.push(Event::Action("ui.focus", json!({"area": "properties"})));
-                    events.push(Event::Action("props.row", json!({"to": row.key})));
-                    events.push(Event::Action("props.row_menu", json!({})));
+                    if open {
+                        // A second click on "…" closes its menu.
+                        events.push(Event::Action("props.cancel", json!({})));
+                    } else {
+                        events.push(Event::Action("props.row", json!({"to": row.key})));
+                        events.push(Event::Action("props.row_menu", json!({})));
+                    }
+                } else if let Some(Popup::Actions { index, .. }) = props.popup().filter(|_| open) {
+                    actions_menu(&t, &response, &name, row, *index, events);
                 }
             }
         }
@@ -668,14 +758,8 @@ impl PropertiesPane {
             self.choices_rect = None;
         }
         match props.popup() {
-            Some(ew_viewmodel::properties::Popup::Actions { row: r, index }) if *r == row.key => {
-                for (i, a) in row.actions.iter().enumerate() {
-                    if ui.add(egui::Button::selectable(i == *index, a.word())).clicked() {
-                        events.push(Event::Action("props.choose", json!({ "index": i })));
-                    }
-                }
-            }
-            Some(ew_viewmodel::properties::Popup::MlText { row: r }) if *r == row.key => {
+            // FT-530: the actions menu is a popup anchored on the row's "…" button (`actions_menu`), not drawn here.
+            Some(Popup::MlText { row: r }) if *r == row.key => {
                 self.mltext_popup(ui, sheet, row, events);
             }
             _ => {
@@ -990,6 +1074,57 @@ pub fn is_grid_key(s: &egui::KeyboardShortcut) -> bool {
             | Key::Space
     );
     (plain && grid) || alt_arrow
+}
+
+/// The row's actions menu (FT-530; doc 16a §6.8, §6.13): a popup menu anchored on the row's "…" button (`anchor`),
+/// named `name`; one row of `size.row` per action with an empty 16-px icon column and its label, the highlighted one
+/// (`index`, Up and Down: `props.row_menu`) and the hovered one under the hover overlay, never the accent. A click
+/// chooses (`props.choose`); a click elsewhere or Escape closes it (`props.cancel`).
+fn actions_menu(
+    t: &crate::theme::Tokens,
+    anchor: &egui::Response,
+    name: &str,
+    row: &PropRow,
+    index: usize,
+    events: &mut Vec<Event>,
+) {
+    let config = crate::menu::menu_config(t);
+    let mut chose = false;
+    let shown = egui::Popup::menu(anchor)
+        .open(true)
+        .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside)
+        .style(config.style.clone())
+        .accessible_name(name)
+        .width(t.size_chooser_min_width)
+        .show(|ui| {
+            ui.spacing_mut().item_spacing.y = 0.0;
+            for (i, a) in row.actions.iter().enumerate() {
+                let label = action_label(*a);
+                let (r, response) =
+                    ui.allocate_exact_size(Vec2::new(ui.available_width(), t.size_row), Sense::click());
+                response.widget_info(|| {
+                    egui::WidgetInfo::selected(egui::Role::MenuItem, true, i == index, label)
+                });
+                if i == index || response.hovered() {
+                    ui.painter()
+                        .rect_filled(r, crate::theme::radius(t.radius_sm), t.state_hover.color32());
+                }
+                ui.painter().text(
+                    egui::pos2(r.left() + t.space_2 + t.icon_sm + t.space_2, r.center().y),
+                    egui::Align2::LEFT_CENTER,
+                    label,
+                    crate::theme::font(&t.type_body),
+                    t.text_primary.color32(),
+                );
+                if response.clicked() {
+                    chose = true;
+                    events.push(Event::Action("props.choose", json!({ "index": i })));
+                }
+            }
+        });
+    if !chose && shown.is_some_and(|s| s.response.should_close()) {
+        events.push(Event::Action("props.cancel", json!({})));
+    }
 }
 
 /// A group's heading (doc 16a §6.8, the mockup's `.psec`): `size.row` high with `space.4` side padding, a chevron and

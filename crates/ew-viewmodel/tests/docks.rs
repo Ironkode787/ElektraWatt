@@ -249,3 +249,59 @@ fn ft519_the_history_focus() {
     }
     assert_eq!(shell.focus(), Some(Focus::History));
 }
+
+/// FT-541 (doc 16a §6.8): the filter field stands while the open categories hold more than twelve rows; `props.filter`
+/// keeps the rows whose label or value contains its text (case-folded), the row cursor moves among them, and a filter
+/// whose field is not on show hides nothing.
+#[test]
+fn ft541_props_filter_keeps_the_matching_rows_while_its_field_is_on_show() {
+    use ew_viewmodel::properties::{FILTER_ROWS, groups, row_matches, visible_rows};
+    let tmp = Tmp::new("docks-ft541");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    done(&mut shell, "select.set", json!({"refs": ["tag:-101F1"]}));
+    let open = |shell: &ShellModel| {
+        let sheet = shell.properties().sheet().unwrap();
+        visible_rows(sheet, &shell.properties_collapsed(), false, "").len()
+    };
+    let n = open(&shell);
+    assert!(n > FILTER_ROWS, "-101F1 has {n} open rows");
+    assert!(shell.properties_filter_shown());
+    done(&mut shell, "props.filter", json!({"text": "TAG"}));
+    assert_eq!(shell.properties_filter(), "TAG");
+    let sheet = shell.properties().sheet().unwrap().clone();
+    let kept = visible_rows(&sheet, &shell.properties_collapsed(), false, "TAG");
+    assert!(
+        !kept.is_empty() && kept.len() < n,
+        "{} of {n} rows kept",
+        kept.len()
+    );
+    for r in &kept {
+        assert!(row_matches(r.section, r.row, "tag"), "case-folded match");
+    }
+    // The cursor moves among the kept rows only.
+    done(&mut shell, "props.row", json!({"to": "last"}));
+    assert_eq!(
+        shell.properties_row().as_deref(),
+        Some(kept.last().unwrap().row.key.as_str())
+    );
+    // Every category collapsed: the field is not on show and the filter hides nothing.
+    for (group, _) in groups(&sheet.sections[0], false) {
+        done(
+            &mut shell,
+            "props.category",
+            json!({"category": group.word(), "expanded": false}),
+        );
+    }
+    assert!(!shell.properties_filter_shown());
+    assert_eq!(shell.properties_filter(), "");
+    assert_eq!(shell.properties().filter(), "TAG", "the field keeps its text");
+    for (group, _) in groups(&sheet.sections[0], false) {
+        done(
+            &mut shell,
+            "props.category",
+            json!({"category": group.word(), "expanded": true}),
+        );
+    }
+    done(&mut shell, "props.filter", json!({"text": ""}));
+    assert_eq!(open(&shell), n);
+}
