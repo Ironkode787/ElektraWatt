@@ -337,9 +337,8 @@ impl eframe::App for ShellApp {
 }
 
 /// FT-526 (R1-4): on the first frame, a window restored at a position on no monitor (its monitor gone) moves onto
-/// the primary monitor, by the pure clamp of `ew_ui::window_memory::placement`. The monitors come from eframe's
-/// winit window, in physical pixels; the clamp works in points at the zoom 1 (physical pixels over the window's
-/// native scale, the unit of the saved geometry). A maximised, minimised or full-screen window, a window without
+/// the primary monitor. This reads winit's physical values; the conversion and the clamp are the pure
+/// `ew_ui::window_memory::first_frame_position` (R2-2). A maximised, minimised or full-screen window, a window without
 /// a known position (Wayland) and a frame without a winit window are left alone.
 fn place_on_screen(ctx: &egui::Context, frame: &eframe::Frame) {
     let Some(window) = frame.winit_window() else {
@@ -351,36 +350,29 @@ fn place_on_screen(ctx: &egui::Context, frame: &eframe::Frame) {
     let Ok(outer) = window.outer_position() else {
         return;
     };
-    let scale = window.scale_factor() as f32;
-    if !(scale.is_finite() && scale > 0.0) {
-        return;
-    }
     let primary = window.primary_monitor();
-    let mut handles: Vec<_> = window.available_monitors().collect();
-    // The primary first (a stable sort keeps the system's order of the others).
-    handles.sort_by_key(|m| primary.as_ref() != Some(m));
-    let monitors: Vec<MonitorArea> = handles
-        .iter()
+    let monitors: Vec<(MonitorArea, bool)> = window
+        .available_monitors()
         .map(|m| {
             let (at, size) = (m.position(), m.size());
-            MonitorArea {
-                x: at.x as f32 / scale,
-                y: at.y as f32 / scale,
-                width: size.width as f32 / scale,
-                height: size.height as f32 / scale,
-            }
+            let area = MonitorArea {
+                x: at.x as f32,
+                y: at.y as f32,
+                width: size.width as f32,
+                height: size.height as f32,
+            };
+            (area, primary.as_ref() == Some(&m))
         })
         .collect();
     let inner = window.inner_size();
-    let at = (outer.x as f32 / scale, outer.y as f32 / scale);
-    let size = (inner.width as f32 / scale, inner.height as f32 / scale);
-    if let Some((x, y)) = ew_ui::window_memory::placement(at, size, &monitors) {
-        // `OuterPosition` is in points at the current zoom (egui-winit multiplies it by zoom × native scale).
-        let zoom = ctx.zoom_factor();
-        ctx.send_viewport_cmd(egui::ViewportCommand::OuterPosition(egui::pos2(
-            x / zoom,
-            y / zoom,
-        )));
+    if let Some(to) = ew_ui::window_memory::first_frame_position(
+        (outer.x as f32, outer.y as f32),
+        (inner.width as f32, inner.height as f32),
+        &monitors,
+        window.scale_factor() as f32,
+        ctx.zoom_factor(),
+    ) {
+        ctx.send_viewport_cmd(egui::ViewportCommand::OuterPosition(to));
     }
 }
 

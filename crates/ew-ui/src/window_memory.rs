@@ -56,6 +56,39 @@ pub fn placement(at: (f32, f32), size: (f32, f32), monitors: &[MonitorArea]) -> 
     ((g.x, g.y) != at).then_some((g.x, g.y))
 }
 
+/// The first frame's move of the window (FT-526, R2-2): the `OuterPosition` to send, in points at the zoom `zoom`, or
+/// `None` when the window stays. The window's outer top-left corner `outer_px` and inner size `inner_px`, and the
+/// system's monitors `monitors_px` (each with whether it is the primary), are physical pixels as winit reports them;
+/// `scale` is the window's native scale. The clamp runs on one uniform space, the physical pixels over `scale`
+/// (monitors of different scales keep their places in it), with the primary monitor first and the others in the
+/// system's order; egui-winit turns the result back into physical pixels by multiplying it by `zoom × scale`.
+pub fn first_frame_position(
+    outer_px: (f32, f32),
+    inner_px: (f32, f32),
+    monitors_px: &[(MonitorArea, bool)],
+    scale: f32,
+    zoom: f32,
+) -> Option<egui::Pos2> {
+    if !(scale.is_finite() && scale > 0.0 && zoom.is_finite() && zoom > 0.0) {
+        return None;
+    }
+    let monitors: Vec<MonitorArea> = monitors_px
+        .iter()
+        .filter(|(_, primary)| *primary)
+        .chain(monitors_px.iter().filter(|(_, primary)| !*primary))
+        .map(|(m, _)| MonitorArea {
+            x: m.x / scale,
+            y: m.y / scale,
+            width: m.width / scale,
+            height: m.height / scale,
+        })
+        .filter(|m| m.width > 0.0 && m.height > 0.0)
+        .collect();
+    let at = (outer_px.0 / scale, outer_px.1 / scale);
+    let size = (inner_px.0 / scale, inner_px.1 / scale);
+    placement(at, size, &monitors).map(|(x, y)| egui::pos2(x / zoom, y / zoom))
+}
+
 /// The geometry a running window reports in `info`, its rectangles in points at the zoom factor `zoom`, given the last
 /// one recorded; in points at the zoom 1 (see the module documentation); `None` when there is nothing to record (no
 /// real window, minimised, full screen).
@@ -238,6 +271,51 @@ mod tests {
             Some((100.0, 280.0))
         );
         assert_eq!(placement((-2400.0, 40.0), (1280.0, 800.0), &[]), None);
+    }
+
+    /// Monitor areas in physical pixels, each with whether it is the primary.
+    fn desk(areas: &[(f32, f32, f32, f32, bool)]) -> Vec<(MonitorArea, bool)> {
+        areas
+            .iter()
+            .map(|&(x, y, width, height, primary)| (MonitorArea { x, y, width, height }, primary))
+            .collect()
+    }
+
+    /// R2-2: the first frame's conversion at the scale 1.5 and the zoom 2. The primary (listed second) is at 150 %:
+    /// 2880 × 1620 px at (0, 0); a window that opened at (-3000, 60) px, on a monitor that is gone, moves onto the
+    /// primary at x = 0 and keeps its y; egui-winit maps the command back to physical pixels by `zoom × scale`.
+    #[test]
+    fn dk6_the_first_frame_converts_physical_pixels_at_a_scale_and_a_zoom() {
+        let monitors = desk(&[
+            (2880.0, 0.0, 2560.0, 1440.0, false),
+            (0.0, 0.0, 2880.0, 1620.0, true),
+        ]);
+        let (scale, zoom) = (1.5, 2.0);
+        let size = (1920.0, 1200.0);
+        let to = first_frame_position((-3000.0, 60.0), size, &monitors, scale, zoom).unwrap();
+        assert_eq!((to.x * zoom * scale, to.y * zoom * scale), (0.0, 60.0));
+        // On the secondary monitor: it stays.
+        assert_eq!(
+            first_frame_position((3000.0, 60.0), size, &monitors, scale, zoom),
+            None
+        );
+        // The primary comes first whatever the system's order: a window off every monitor lands on it, not on the
+        // secondary that is listed first.
+        let to = first_frame_position((9000.0, 60.0), size, &monitors, scale, zoom).unwrap();
+        assert!(to.x * zoom * scale < 2880.0, "{to:?}");
+        // No monitor, or a scale or zoom that is not a positive number: nothing moves.
+        assert_eq!(
+            first_frame_position((-3000.0, 60.0), size, &[], scale, zoom),
+            None
+        );
+        assert_eq!(
+            first_frame_position((-3000.0, 60.0), size, &monitors, 0.0, zoom),
+            None
+        );
+        assert_eq!(
+            first_frame_position((-3000.0, 60.0), size, &monitors, scale, f32::NAN),
+            None
+        );
     }
 
     /// DK6: the builder takes the saved geometry, the size raised to the minimum; without one it is unchanged.
