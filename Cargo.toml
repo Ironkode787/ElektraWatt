@@ -23,9 +23,13 @@ repository = "https://github.com/Ironkode787/ElektraWatt"
 # work packages.
 [workspace.dependencies]
 anyhow = "1.0.104"
-# The XLSX reader of the parts import (ew-import-catalog, WP-S1.19 part 4, D11): read-only, no formulas evaluated.
-calamine = { version = "=0.37.0", default-features = false }
 cargo_metadata = "0.23.1"
+# The XLSX reader of the parts import (ew-import-catalog, WP-S1.19 part 4, D11): miniz_oxide inflates the archive's
+# entries with an output cap, quick-xml streams the workbook's XML. Both at the versions the graph already holds
+# (png's miniz_oxide, wayland-scanner's quick-xml) and with no feature beyond those the graph enables: a ZIP crate
+# would turn on flate2's zlib-rs backend, through which krilla compresses, and change the PDF bytes.
+miniz_oxide = { version = "=0.8.9", default-features = false, features = ["with-alloc"] }
+quick-xml = { version = "=0.41.0", default-features = false }
 serde = { version = "1.0.229", features = ["derive"] }
 sha2 = "0.10.9"
 spdx = "0.13.6"

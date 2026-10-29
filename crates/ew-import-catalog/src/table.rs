@@ -2,14 +2,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The two table readers (D11): CSV (UTF-8 with or without a byte-order mark, `,` or `;` found from the header line,
-//! RFC 4180 quoting) and XLSX (calamine, the first or the named sheet, each cell as its displayed text; a formula's
+//! RFC 4180 quoting) and XLSX ([`crate::xlsx`], the first or the named sheet, each cell as its displayed text; a formula's
 //! cached value is read and never evaluated). Both give a [`Sheet`]: the header row and the data rows with their
 //! 1-based line (CSV) or row number (XLSX).
 
-use std::collections::BTreeMap;
-use std::io::Cursor;
-
-use calamine::{DataRef, Reader, Xlsx};
 use ew_interop_api::{ImportError, Limits};
 
 /// The most data rows of one table.
@@ -17,9 +13,6 @@ pub const MAX_ROWS: usize = 1_000_000;
 
 /// The most columns of one table.
 pub const MAX_COLUMNS: usize = 1_024;
-
-/// The most entries of an XLSX workbook (the loader's file count, doc 05 §3.6).
-const MAX_ZIP_ENTRIES: usize = 100_000;
 
 /// The format of a parts table.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -81,14 +74,14 @@ pub(crate) struct Sheet {
     pub overhang: usize,
 }
 
-fn malformed(message: impl Into<String>, line: Option<u32>) -> ImportError {
+pub(crate) fn malformed(message: impl Into<String>, line: Option<u32>) -> ImportError {
     ImportError::Malformed {
         message: message.into(),
         line,
     }
 }
 
-fn too_many(what: &str, limit: usize) -> ImportError {
+pub(crate) fn too_many(what: &str, limit: usize) -> ImportError {
     ImportError::LimitExceeded {
         what: what.to_owned(),
         limit: limit as u64,
@@ -246,136 +239,11 @@ pub(crate) fn read_csv(bytes: &[u8], limits: &Limits) -> Result<Sheet, ImportErr
 // -------------------------------------------------------------------------------------------------------------------
 // XLSX
 
-fn u16_at(b: &[u8], at: usize) -> Option<usize> {
-    Some(usize::from(u16::from_le_bytes(
-        b.get(at..at + 2)?.try_into().ok()?,
-    )))
-}
-
-fn u32_at(b: &[u8], at: usize) -> Option<u64> {
-    Some(u64::from(u32::from_le_bytes(b.get(at..at + 4)?.try_into().ok()?)))
-}
-
-/// The sum of the unpacked sizes a ZIP archive's central directory declares, before anything is unpacked: a
-/// workbook may not unpack to more than the input limit (a compression bomb is refused, not read). `None` for an
-/// archive whose directory cannot be found (the workbook reader then refuses it).
-fn declared_unpacked_size(bytes: &[u8]) -> Result<Option<u64>, ImportError> {
-    const EOCD: [u8; 4] = [0x50, 0x4b, 0x05, 0x06];
-    const CDH: [u8; 4] = [0x50, 0x4b, 0x01, 0x02];
-    let from = bytes.len().saturating_sub(22 + 65_535);
-    let Some(eocd) = (from..bytes.len().saturating_sub(21))
-        .rev()
-        .find(|&i| bytes[i..i + 4] == EOCD)
-    else {
-        return Ok(None);
-    };
-    let (Some(entries), Some(offset)) = (u16_at(bytes, eocd + 10), u32_at(bytes, eocd + 16)) else {
-        return Ok(None);
-    };
-    if entries == 0xffff || offset == 0xffff_ffff {
-        return Err(ImportError::Unsupported {
-            message: "a ZIP64 workbook".into(),
-        });
-    }
-    if entries > MAX_ZIP_ENTRIES {
-        return Err(too_many("workbook entry count", MAX_ZIP_ENTRIES));
-    }
-    let mut at = usize::try_from(offset).unwrap_or(usize::MAX);
-    let mut total: u64 = 0;
-    for _ in 0..entries {
-        if bytes.get(at..at + 4) != Some(&CDH[..]) {
-            return Ok(None);
-        }
-        let (Some(size), Some(n), Some(e), Some(c)) = (
-            u32_at(bytes, at + 24),
-            u16_at(bytes, at + 28),
-            u16_at(bytes, at + 30),
-            u16_at(bytes, at + 32),
-        ) else {
-            return Ok(None);
-        };
-        if size == 0xffff_ffff {
-            return Err(ImportError::Unsupported {
-                message: "a ZIP64 workbook".into(),
-            });
-        }
-        total = total.saturating_add(size);
-        at += 46 + n + e + c;
-    }
-    Ok(Some(total))
-}
-
-/// The displayed text of a cell value: numbers in their shortest form (`2904602`, `2.5`), booleans as `TRUE` and
-/// `FALSE`, a date as its serial number.
-fn display(value: &DataRef<'_>) -> Cell {
-    Cell::Text(match value {
-        DataRef::Int(i) => i.to_string(),
-        DataRef::Float(f) => f.to_string(),
-        DataRef::String(s) => s.clone(),
-        DataRef::SharedString(s) => (*s).to_owned(),
-        DataRef::Bool(b) => if *b { "TRUE" } else { "FALSE" }.to_owned(),
-        DataRef::DateTime(d) => d.as_f64().to_string(),
-        DataRef::DateTimeIso(s) | DataRef::DurationIso(s) => s.clone(),
-        DataRef::Error(e) => return Cell::Error(e.to_string()),
-        DataRef::Empty => String::new(),
-    })
-}
-
-/// Reads the sheet `sheet` (the first when `None`) of an XLSX workbook. The archive's declared unpacked size is
-/// checked against `limits.max_input_bytes` before it is opened; cells are streamed (no rectangle of the sheet's
-/// stated dimensions is allocated), at most [`MAX_COLUMNS`] columns and [`MAX_ROWS`] rows.
+/// Reads the sheet `sheet` (the first when `None`) of an XLSX workbook ([`crate::xlsx`]: the archive's declared and
+/// actual unpacked sizes bounded by `limits.max_input_bytes`, the shared strings by the loader limits), at most
+/// [`MAX_COLUMNS`] columns and [`MAX_ROWS`] rows.
 pub(crate) fn read_xlsx(bytes: &[u8], sheet: Option<&str>, limits: &Limits) -> Result<Sheet, ImportError> {
-    if let Some(total) = declared_unpacked_size(bytes)?
-        && total > limits.max_input_bytes
-    {
-        return Err(ImportError::LimitExceeded {
-            what: "unpacked workbook size".into(),
-            limit: limits.max_input_bytes,
-        });
-    }
-    let unreadable =
-        |e: &dyn std::fmt::Display| malformed(format!("not a readable XLSX workbook: {e}"), None);
-    let mut book: Xlsx<_> = Xlsx::new(Cursor::new(bytes)).map_err(|e| unreadable(&e))?;
-    let names = book.sheet_names();
-    let name = match sheet {
-        Some(s) => names
-            .iter()
-            .find(|n| *n == s)
-            .cloned()
-            .ok_or_else(|| malformed(format!("the workbook has no sheet named `{s}`"), None))?,
-        None => names
-            .first()
-            .cloned()
-            .ok_or_else(|| malformed("the workbook has no sheet", None))?,
-    };
-    let mut cells = book.worksheet_cells_reader(&name).map_err(|e| unreadable(&e))?;
-    let mut grid: BTreeMap<u32, BTreeMap<u32, Cell>> = BTreeMap::new();
-    while let Some(cell) = cells.next_cell().map_err(|e| unreadable(&e))? {
-        let (row, col) = cell.get_position();
-        if col as usize >= MAX_COLUMNS {
-            return Err(too_many("column count", MAX_COLUMNS));
-        }
-        let value = display(cell.get_value());
-        if value == Cell::Text(String::new()) {
-            continue;
-        }
-        if !grid.contains_key(&row) && grid.len() > MAX_ROWS {
-            return Err(too_many("row count", MAX_ROWS));
-        }
-        grid.entry(row).or_default().insert(col, value);
-    }
-    let records = grid
-        .into_iter()
-        .map(|(row, cols)| {
-            let width = cols.keys().next_back().map_or(0, |c| *c as usize + 1);
-            let mut line = vec![Cell::Text(String::new()); width];
-            for (c, v) in cols {
-                line[c as usize] = v;
-            }
-            (row.saturating_add(1), line)
-        })
-        .collect();
-    sheet_of(records, limits)
+    sheet_of(crate::xlsx::read(bytes, sheet, limits)?, limits)
 }
 
 #[cfg(test)]

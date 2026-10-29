@@ -10,7 +10,8 @@
 //!   `tech_data.<key>` and `free_props.<key>`, and an XLSX sheet by name; saved per source as a TOML file whose text
 //!   this crate reads and prints ([`ColumnMap::from_toml`], [`ColumnMap::to_toml`], [`check_source_key`]).
 //! - **The tables**: CSV (UTF-8 with or without a byte-order mark, `,` or `;` found from the header line) and XLSX
-//!   (calamine, read-only: the first or the named sheet, each value as its displayed text, a formula's cached value),
+//!   (its own reader over miniz_oxide and quick-xml: the first or the named sheet, each value as its displayed text, a
+//!   formula's cached value; every unpacked entry capped, the shared strings bounded by the loader limits),
 //!   told apart by content ([`SourceFormat::detect`]).
 //! - **[`parse_parts`]**: the rows into part documents of a target library (a writable library, or the project for
 //!   project-local copies), deduplicated on (manufacturer key, [`pn_norm`]), the manufacturer resolved through the
@@ -30,6 +31,7 @@
 mod map;
 mod parts;
 mod table;
+mod xlsx;
 
 /// The importer contract this crate implements, re-exported for the hosts (`ImportInput`, `ImportReport`, ...).
 pub use ew_interop_api;

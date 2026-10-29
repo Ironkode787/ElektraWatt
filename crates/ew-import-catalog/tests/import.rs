@@ -273,7 +273,8 @@ fn another_header_dialect_through_its_own_map_gives_the_same_parts() {
 }
 
 // -------------------------------------------------------------------------------------------------------------------
-// A minimal XLSX writer for the tests: a stored (uncompressed) ZIP with the workbook parts calamine reads.
+// A minimal XLSX writer for the tests: a ZIP (stored, or deflated with miniz_oxide) with the workbook parts the reader
+// follows, the texts inline or in a shared-strings table.
 
 fn crc32(bytes: &[u8]) -> u32 {
     let mut crc = 0xffff_ffffu32;
@@ -290,13 +291,21 @@ fn crc32(bytes: &[u8]) -> u32 {
     !crc
 }
 
-fn zip(files: &[(&str, String)]) -> Vec<u8> {
+/// A ZIP of `files`, deflated when `deflate`, each entry's declared size `declared(name, true size)`.
+fn zip_with(files: &[(&str, String)], deflate: bool, declared: &dyn Fn(&str, u32) -> u32) -> Vec<u8> {
     let mut out = Vec::new();
     let mut central = Vec::new();
     for (name, body) in files {
         let offset = out.len() as u32;
         let crc = crc32(body.as_bytes());
-        let size = body.len() as u32;
+        let size = declared(name, body.len() as u32);
+        let data = if deflate {
+            miniz_oxide::deflate::compress_to_vec(body.as_bytes(), 6)
+        } else {
+            body.as_bytes().to_vec()
+        };
+        let packed = data.len() as u32;
+        let method: u16 = if deflate { 8 } else { 0 };
         let header = |sig: u32, central: bool| {
             let mut h = Vec::new();
             h.extend(sig.to_le_bytes());
@@ -305,10 +314,10 @@ fn zip(files: &[(&str, String)]) -> Vec<u8> {
             }
             h.extend(20u16.to_le_bytes()); // version needed
             h.extend(0u16.to_le_bytes()); // flags
-            h.extend(0u16.to_le_bytes()); // stored
+            h.extend(method.to_le_bytes());
             h.extend(0u32.to_le_bytes()); // time, date
             h.extend(crc.to_le_bytes());
-            h.extend(size.to_le_bytes());
+            h.extend(packed.to_le_bytes());
             h.extend(size.to_le_bytes());
             h.extend((name.len() as u16).to_le_bytes());
             h.extend(0u16.to_le_bytes()); // extra
@@ -323,7 +332,7 @@ fn zip(files: &[(&str, String)]) -> Vec<u8> {
             h
         };
         out.extend(header(0x0403_4b50, false));
-        out.extend(body.as_bytes());
+        out.extend(&data);
         central.extend(header(0x0201_4b50, true));
     }
     let cd_offset = out.len() as u32;
@@ -355,13 +364,14 @@ fn escape(s: &str) -> String {
 }
 
 /// A cell: text, a number, or a formula with its cached text.
+#[derive(Clone)]
 enum X<'a> {
     T(&'a str),
     N(f64),
     F(&'a str, &'a str),
 }
 
-fn sheet_xml(rows: &[Vec<X<'_>>]) -> String {
+fn sheet_xml(rows: &[Vec<X<'_>>], shared: &mut Option<Vec<String>>) -> String {
     let mut xml = String::from(
         r#"<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>"#,
     );
@@ -371,7 +381,13 @@ fn sheet_xml(rows: &[Vec<X<'_>>]) -> String {
             let at = format!("{}{}", column(c), r + 1);
             xml += &match cell {
                 X::T("") => continue,
-                X::T(t) => format!(r#"<c r="{at}" t="inlineStr"><is><t>{}</t></is></c>"#, escape(t)),
+                X::T(t) => match shared.as_mut() {
+                    Some(table) => {
+                        table.push((*t).to_owned());
+                        format!(r#"<c r="{at}" t="s"><v>{}</v></c>"#, table.len() - 1)
+                    }
+                    None => format!(r#"<c r="{at}" t="inlineStr"><is><t>{}</t></is></c>"#, escape(t)),
+                },
                 X::N(n) => format!(r#"<c r="{at}"><v>{n}</v></c>"#),
                 X::F(f, v) => format!(
                     r#"<c r="{at}" t="str"><f>{}</f><v>{}</v></c>"#,
@@ -386,6 +402,18 @@ fn sheet_xml(rows: &[Vec<X<'_>>]) -> String {
 }
 
 fn xlsx(sheets: &[(&str, Vec<Vec<X<'_>>>)]) -> Vec<u8> {
+    xlsx_with(sheets, false, false, &|_, size| size)
+}
+
+/// [`xlsx`], deflated when `deflate`, the texts in a shared-strings table when `shared`, with the declared sizes
+/// `declared` gives.
+fn xlsx_with(
+    sheets: &[(&str, Vec<Vec<X<'_>>>)],
+    deflate: bool,
+    shared: bool,
+    declared: &dyn Fn(&str, u32) -> u32,
+) -> Vec<u8> {
+    let mut table = shared.then(Vec::new);
     let mut files = vec![
         (
             "[Content_Types].xml",
@@ -414,7 +442,24 @@ fn xlsx(sheets: &[(&str, Vec<Vec<X<'_>>>)]) -> Vec<u8> {
             i + 1,
             i + 1
         );
-        bodies.push((format!("xl/worksheets/sheet{}.xml", i + 1), sheet_xml(rows)));
+        bodies.push((
+            format!("xl/worksheets/sheet{}.xml", i + 1),
+            sheet_xml(rows, &mut table),
+        ));
+    }
+    if let Some(table) = table {
+        rels += r#"<Relationship Id="rIdS" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="/xl/sharedStrings.xml"/>"#;
+        let items: String = table
+            .iter()
+            .map(|t| format!("<si><t>{}</t></si>", escape(t)))
+            .collect();
+        bodies.push((
+            "xl/sharedStrings.xml".to_owned(),
+            format!(
+                r#"<?xml version="1.0" encoding="UTF-8"?><sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="{0}" uniqueCount="{0}">{items}</sst>"#,
+                table.len()
+            ),
+        ));
     }
     book += "</sheets></workbook>";
     rels += "</Relationships>";
@@ -424,7 +469,7 @@ fn xlsx(sheets: &[(&str, Vec<Vec<X<'_>>>)]) -> Vec<u8> {
         .into_iter()
         .chain(bodies.iter().map(|(n, b)| (n.as_str(), b.clone())))
         .collect();
-    zip(&named)
+    zip_with(&named, deflate, declared)
 }
 
 /// The list of [`LIST`] as workbook rows: part numbers as numbers where a spreadsheet keeps them so, one type
@@ -547,6 +592,64 @@ fn the_same_list_as_xlsx_gives_the_same_parts_and_report() {
     assert_eq!(statuses(&x), statuses(&c));
     assert_eq!(comparable(&x), comparable(&c));
     assert_eq!(x.manufacturers, c.manufacturers);
+}
+
+/// A deflated workbook whose texts are in a shared-strings table reads as the stored one with inline texts.
+#[test]
+fn a_deflated_workbook_with_shared_strings_reads_the_same() {
+    let plain = import_bytes("liste.xlsx", xlsx(&[("Teile", list_rows())]), &target()).unwrap();
+    let book = xlsx_with(&[("Teile", list_rows())], true, true, &|_, size| size);
+    let packed = import_bytes("liste.xlsx", book, &target()).unwrap();
+    assert_eq!(statuses(&packed), statuses(&plain));
+    assert_eq!(comparable(&packed), comparable(&plain));
+}
+
+/// The compression-bomb residual is closed: an entry that inflates to more than its directory declares stops at the
+/// cap (declared size plus one byte) and refuses the workbook; one that inflates to less refuses it too; the cap
+/// never exceeds the input limit.
+#[test]
+fn an_entry_that_inflates_beyond_its_declared_size_is_refused() {
+    let sheet = "xl/worksheets/sheet1.xml";
+    let under = xlsx_with(&[("Teile", list_rows())], true, false, &|name, size| {
+        if name == sheet { size / 4 } else { size }
+    });
+    let err = import_bytes("liste.xlsx", under, &target()).unwrap_err();
+    assert!(
+        matches!(&err, ImportError::LimitExceeded { what, .. } if what == "unpacked size of xl/worksheets/sheet1.xml"),
+        "{err}"
+    );
+    let over = xlsx_with(&[("Teile", list_rows())], true, false, &|name, size| {
+        if name == sheet { size + 10 } else { size }
+    });
+    let err = import_bytes("liste.xlsx", over, &target()).unwrap_err();
+    assert!(err.to_string().contains("unpacks to"), "{err}");
+    // A highly compressible sheet of 4 MiB declared truthfully, under an input limit of 1 MiB: refused from the
+    // directory; declared as 1 KiB: the inflation stops at the cap.
+    let big = "x".repeat(4 << 20);
+    let mut rows: Vec<Vec<X<'_>>> = list_rows();
+    rows.push(vec![X::T(&big)]);
+    let tight = CatalogTarget {
+        limits: Limits {
+            max_input_bytes: 1 << 20,
+            ..Limits::default()
+        },
+        ..CatalogTarget::new(TARGET)
+    };
+    let truthful = xlsx_with(&[("Teile", rows.clone())], true, false, &|_, size| size);
+    assert!(truthful.len() < 1 << 20, "{} bytes packed", truthful.len());
+    let err = import_bytes("liste.xlsx", truthful, &tight).unwrap_err();
+    assert!(
+        matches!(&err, ImportError::LimitExceeded { what, .. } if what == "unpacked workbook size"),
+        "{err}"
+    );
+    let bomb = xlsx_with(&[("Teile", rows)], true, false, &|name, size| {
+        if name == sheet { 1024 } else { size }
+    });
+    let err = import_bytes("liste.xlsx", bomb, &tight).unwrap_err();
+    assert!(
+        matches!(&err, ImportError::LimitExceeded { what, limit } if what == "unpacked size of xl/worksheets/sheet1.xml" && *limit == 1024),
+        "{err}"
+    );
 }
 
 /// A named sheet is read; a missing one refuses the file.

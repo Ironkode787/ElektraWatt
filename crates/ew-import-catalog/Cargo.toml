@@ -5,8 +5,7 @@
 name = "ew-import-catalog"
 version.workspace = true
 edition.workspace = true
-# calamine 0.37 needs Rust 1.88; the GPL crates build with the toolchain of rust-toolchain.toml.
-rust-version = "1.92"
+rust-version.workspace = true
 license = "GPL-3.0-or-later"
 description = "Parts import from CSV and XLSX, later BMEcat and ETIM xChange."
 repository.workspace = true
@@ -18,8 +17,9 @@ workspace = true
 [dependencies]
 ew-interop-api = { path = "../ew-interop-api" }
 # The record types and IDs come through ew-interop-api's re-exports (`ew_schema`, `ew_ids`; D11): no other edge.
-# XLSX: the first or the named sheet's cells, formulas' cached values (D11).
-calamine.workspace = true
+# XLSX (D11): the archive's entries inflated with a hard output cap, the workbook's XML streamed.
+miniz_oxide.workspace = true
+quick-xml.workspace = true
 # Parts are built as their JSON form and read back through `ew_schema`'s strict readers; the item hash.
 serde_json = "1.0.154"
 sha2.workspace = true

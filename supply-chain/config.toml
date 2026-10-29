@@ -123,11 +123,6 @@ criteria = "safe-to-deploy"
 version = "0.1.92"
 criteria = "safe-to-deploy"
 
-[[exemptions.atoi_simd]]
-version = "0.18.1"
-criteria = "safe-to-deploy"
-notes = "WP-S1.19 part 4 (2026-10-29, cycle 35 lane J35): a dependency of calamine (integer parsing of XLSX cell values). NOT audited line by line (3.5k lines, scanned): SIMD integer parsing with 44 unsafe sites (target-feature intrinsics), no build.rs, no fs/net/env/process. Licence MIT OR Apache-2.0. Licence checked against ADR-0024 by cargo deny. An exemption, as the lane writes no audit (ID-447); the owner confirms or audits it before any distributed binary (FT-326 list). No allowed import covers this version."
-
 [[exemptions.atspi]]
 version = "0.29.0"
 criteria = "safe-to-deploy"
@@ -164,11 +159,6 @@ criteria = "safe-to-deploy"
 version = "1.12.1"
 criteria = "safe-to-deploy"
 
-[[exemptions.byteorder]]
-version = "1.5.0"
-criteria = "safe-to-deploy"
-notes = "WP-S1.19 part 4 (2026-10-29, cycle 35 lane J35): a dependency of calamine (the binary XLS/XLSB readers, which ElektraWatt does not call). NOT audited line by line (5.6k lines, scanned): endian reads and writes with 44 unsafe sites (pointer copies), no build.rs, no fs/net/env/process. Licence Unlicense OR MIT. Licence checked against ADR-0024 by cargo deny. An exemption, as the lane writes no audit (ID-447); the owner confirms or audits it before any distributed binary (FT-326 list). No allowed import covers this version."
-
 [[exemptions.byteorder-lite]]
 version = "0.1.0"
 criteria = "safe-to-deploy"
@@ -176,11 +166,6 @@ criteria = "safe-to-deploy"
 [[exemptions.bytes]]
 version = "1.12.1"
 criteria = "safe-to-deploy"
-
-[[exemptions.calamine]]
-version = "0.37.0"
-criteria = "safe-to-deploy"
-notes = "WP-S1.19 part 4 (2026-10-29, cycle 35 lane J35): the XLSX reader of the parts import in ew-import-catalog (D11), default-features = false (no chrono, no picture). NOT audited line by line (17.9k lines, scanned): no unsafe, no build.rs; the only file-system use is the path-opening convenience API (open_workbook, auto.rs), which the importer does not call (it reads in-memory bytes through Xlsx::new over a Cursor and streams cells with worksheet_cells_reader); no net/env/process. Licence MIT. Licence checked against ADR-0024 by cargo deny. An exemption, as the lane writes no audit (ID-447); the owner confirms or audits it before any distributed binary (FT-326 list). No allowed import covers this version."
 
 [[exemptions.calloop]]
 version = "0.13.0"
@@ -205,11 +190,6 @@ criteria = "safe-to-deploy"
 [[exemptions.chacha20]]
 version = "0.10.2"
 criteria = "safe-to-deploy"
-
-[[exemptions.codepage]]
-version = "0.1.3"
-criteria = "safe-to-deploy"
-notes = "WP-S1.19 part 4 (2026-10-29, cycle 35 lane J35): a dependency of calamine (code-page numbers to encoding_rs encodings for XLS). Read in full (260 lines): a lookup table, no unsafe, no build.rs, no fs/net/env/process. Licence Apache-2.0 OR MIT. Licence checked against ADR-0024 by cargo deny. An exemption, as the lane writes no audit (ID-447); the owner confirms or audits it before any distributed binary (FT-326 list). No allowed import covers this version."
 
 [[exemptions.color]]
 version = "0.3.3"
@@ -250,11 +230,6 @@ criteria = "safe-to-deploy"
 [[exemptions.cursor-icon]]
 version = "1.2.0"
 criteria = "safe-to-deploy"
-
-[[exemptions.debug_unsafe]]
-version = "0.1.4"
-criteria = "safe-to-deploy"
-notes = "WP-S1.19 part 4 (2026-10-29, cycle 35 lane J35): a dependency of atoi_simd. Read in full (81 lines): unchecked slice access in release and checked access in debug builds (4 unsafe sites), no build.rs, no fs/net/env/process. Licence MIT OR Apache-2.0. Licence checked against ADR-0024 by cargo deny. An exemption, as the lane writes no audit (ID-447); the owner confirms or audits it before any distributed binary (FT-326 list). No allowed import covers this version."
 
 [[exemptions.digest]]
 version = "0.10.7"
@@ -333,11 +308,6 @@ criteria = "safe-to-deploy"
 version = "0.37.0"
 criteria = "safe-to-deploy"
 
-[[exemptions.encoding_rs]]
-version = "0.8.35"
-criteria = "safe-to-deploy"
-notes = "WP-S1.19 part 4 (2026-10-29, cycle 35 lane J35): a dependency of calamine and quick-xml (text decoding of workbook parts). NOT audited line by line (138k lines, mostly generated tables; scanned): 271 unsafe sites in the SIMD and ASCII fast paths, no build.rs, no fs/net/env/process. Licence (Apache-2.0 OR MIT) AND BSD-3-Clause. Licence checked against ADR-0024 by cargo deny. An exemption, as the lane writes no audit (ID-447); the owner confirms or audits it before any distributed binary (FT-326 list). No allowed import covers this version."
-
 [[exemptions.endi]]
 version = "1.1.1"
 criteria = "safe-to-deploy"
@@ -374,11 +344,6 @@ criteria = "safe-to-deploy"
 [[exemptions.event-listener-strategy]]
 version = "0.5.4"
 criteria = "safe-to-deploy"
-
-[[exemptions.fast-float2]]
-version = "0.2.4"
-criteria = "safe-to-deploy"
-notes = "WP-S1.19 part 4 (2026-10-29, cycle 35 lane J35): a dependency of calamine (float parsing of XLSX cell values). NOT audited line by line (2.3k lines, scanned): 34 unsafe sites (unchecked indexing in the parser), no build.rs, no fs/net/env/process. Licence MIT OR Apache-2.0. Licence checked against ADR-0024 by cargo deny. An exemption, as the lane writes no audit (ID-447); the owner confirms or audits it before any distributed binary (FT-326 list). No allowed import covers this version."
 
 [[exemptions.fastrand]]
 version = "2.5.0"
@@ -732,11 +697,6 @@ criteria = "safe-to-deploy"
 version = "0.6.0+11769913"
 criteria = "safe-to-deploy"
 
-[[exemptions.nix]]
-version = "0.31.3"
-criteria = "safe-to-deploy"
-notes = "WP-S1.19 part 4 (2026-10-29, cycle 35 lane J35): a Unix-only dependency of zip 9 (file metadata on extraction, which ElektraWatt does not use). NOT audited line by line (35.8k lines, scanned): libc bindings with 910 unsafe sites, a build.rs that only sets cfg aliases (cfg_aliases); its fs, env and socket modules are the bound system calls. Licence MIT. Licence checked against ADR-0024 by cargo deny. An exemption, as the lane writes no audit (ID-447); the owner confirms or audits it before any distributed binary (FT-326 list). No allowed import covers this version."
-
 [[exemptions.nom]]
 version = "8.0.0"
 criteria = "safe-to-deploy"
@@ -976,11 +936,6 @@ criteria = "safe-to-deploy"
 [[exemptions.quick-xml]]
 version = "0.41.0"
 criteria = "safe-to-deploy"
-
-[[exemptions.quick-xml]]
-version = "0.42.0"
-criteria = "safe-to-deploy"
-notes = "WP-S1.19 part 4 (2026-10-29, cycle 35 lane J35): calamine 0.37's XML reader (a second version beside quick-xml 0.41.0 of the existing graph). NOT audited line by line (35.3k lines, scanned): 9 unsafe sites, no build.rs; the fs mentions are the reader-from-file conveniences, unused here; no net/env/process. Licence MIT. Licence checked against ADR-0024 by cargo deny. An exemption, as the lane writes no audit (ID-447); the owner confirms or audits it before any distributed binary (FT-326 list). No allowed import covers this version."
 
 [[exemptions.r-efi]]
 version = "5.3.0"
@@ -1275,11 +1230,6 @@ criteria = "safe-to-deploy"
 [[exemptions.type-map]]
 version = "0.5.1"
 criteria = "safe-to-deploy"
-
-[[exemptions.typed-path]]
-version = "0.13.0"
-criteria = "safe-to-deploy"
-notes = "WP-S1.19 part 4 (2026-10-29, cycle 35 lane J35): a dependency of zip 9 (archive entry paths). NOT audited line by line (20.2k lines, scanned): 36 unsafe sites (byte-slice to path casts), no build.rs, no fs/net/env/process. Licence MIT OR Apache-2.0. Licence checked against ADR-0024 by cargo deny. An exemption, as the lane writes no audit (ID-447); the owner confirms or audits it before any distributed binary (FT-326 list). No allowed import covers this version."
 
 [[exemptions.typenum]]
 version = "1.20.1"
@@ -1606,11 +1556,6 @@ criteria = "safe-to-deploy"
 version = "0.11.6"
 criteria = "safe-to-deploy"
 
-[[exemptions.zip]]
-version = "9.1.3"
-criteria = "safe-to-deploy"
-notes = "WP-S1.19 part 4 (2026-10-29, cycle 35 lane J35): calamine 0.37's archive reader, with the deflate features calamine enables (flate2 over zlib-rs, zopfli). NOT audited line by line (22.1k lines, scanned): 41 unsafe sites, no build.rs; the fs uses are extraction to a directory and the writer, which ElektraWatt does not call (the importer opens an in-memory archive and checks the central directory's declared sizes against the input limit first); no net/process. Licence MIT. Licence checked against ADR-0024 by cargo deny. An exemption, as the lane writes no audit (ID-447); the owner confirms or audits it before any distributed binary (FT-326 list). No allowed import covers this version."
-
 [[exemptions.zlib-rs]]
 version = "0.6.8"
 criteria = "safe-to-deploy"
@@ -1618,11 +1563,6 @@ criteria = "safe-to-deploy"
 [[exemptions.zmij]]
 version = "1.0.23"
 criteria = "safe-to-deploy"
-
-[[exemptions.zopfli]]
-version = "0.8.3"
-criteria = "safe-to-deploy"
-notes = "WP-S1.19 part 4 (2026-10-29, cycle 35 lane J35): a dependency of zip 9's deflate feature (compression for the writer, unused by a reader). NOT audited line by line (4.7k lines, scanned): 4 unsafe sites, no build.rs, no fs/net/env/process. Licence Apache-2.0. Licence checked against ADR-0024 by cargo deny. An exemption, as the lane writes no audit (ID-447); the owner confirms or audits it before any distributed binary (FT-326 list). No allowed import covers this version."
 
 [[exemptions.zune-core]]
 version = "0.5.3"
