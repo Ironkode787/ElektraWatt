@@ -1,11 +1,14 @@
 # WP-S6.13 parts 4 and 5: visual play-test runs and open design briefs (closed specification)
 
-**Status:** specified in cycle 34 (documents only) as two new parts of WP-S6.13 and the runs that follow them: part 4
+**Status:** **part 4 built in cycle 34** (lane P34; §3 to §11 state what was built, each difference from the specified
+text in an "As built (cycle 34)" note; the build wins) · specified in cycle 34 (documents only) as two new parts of
+WP-S6.13 and the runs that follow them: part 4
 (V1: the visual run kind in the product and the harness, the friction log, the brief task kind with one brief, the
 `first-timer` persona and a visual self-test recording; 1.2 pw, one Opus lane in one cycle), part 5 (V2: the rest of
 the brief library, the `keyboard-expert` and `reviewer` personas, the play-test checker and the cross-run friction
-ledger; 0.6 pw), and the runs (the baseline after part 4, then the visual runs at the gates of §8; from the 20 %
-reserve, as part 3) · **Date:** 2026-10-29 · **Work package:**
+ledger; 0.6 pw), and the runs (the calibration round after part 4, then the visual rounds at the gates of the
+polish cycles of §9; from the 20 % reserve, as part 3) · **Amended:** cycle-34 design pass: as built, owner rulings of
+2026-10-29 (§1, §9) · **Date:** 2026-10-29 · **Work package:**
 [WP-S6.13](../02-work-packages.md#wp-s613-blind-drafter-gate-agent-harness-personas-and-prompt) · **Decision log:**
 ID-785 to ID-794; ID-341 amended for the visual kind only (ID-787); follow-ups FT-592, FT-593 · **Part of:**
 ElektraWatt plan, specifications
@@ -32,7 +35,7 @@ document and the base specification differ, this document governs visual runs an
 6. [Tasks: open briefs and the regression task](#6-tasks-open-briefs-and-the-regression-task)
 7. [The friction log, the checks and the hand-backs](#7-the-friction-log-the-checks-and-the-hand-backs)
 8. [Personas](#8-personas)
-9. [Where it runs: the gate rule and the UI cycles](#9-where-it-runs-the-gate-rule-and-the-ui-cycles)
+9. [Where it runs: the gate rule and the polish cycles](#9-where-it-runs-the-gate-rule-and-the-polish-cycles)
 10. [Parts, estimates and routing](#10-parts-estimates-and-routing)
 11. [Acceptance checks](#11-acceptance-checks)
 12. [Risks](#12-risks)
@@ -52,7 +55,22 @@ document and the base specification differ, this document governs visual runs an
    valves" and execute it their own way, logging unclarities, confusing things and workarounds as they go. Open briefs
    are the main task form; the copy task `gpp-101-103` stays as the comparable regression task. Personas have
    different backgrounds and an honest voice. Offscreen renders only, input by coordinates and keys, never the
-   desktop, deterministic replay, and a baseline run as soon as the harness exists.
+   desktop, deterministic replay, and a first run as soon as the harness exists (since ruling 4: the calibration
+   round of §9.1).
+
+Rulings 1 and 2 are superseded in their placement of the visual runs by the owner's further rulings of the same day,
+recorded in the cycle-34 design pass:
+
+4. **Visual rounds run only at the gates of pure UI-polish cycles**, cycles with no feature WP in them. The "UI-heavy
+   cycle" rule of the first specification is withdrawn.
+5. **One polish cycle is placed right before each milestone gate**, so the milestone's visual round is that polish
+   cycle's gate round.
+6. **Briefs only on frozen areas.** A visual round runs only briefs whose areas (the brief's `areas`, §6.1) are on the
+   freeze list for the coming cycles, which the plan keeps in [the global plan](../01-global-plan.md).
+7. **Friction in areas still in feature work is parked** in the ledger (§7.3), not fixed.
+8. **Text runs stay at feature gates.**
+9. **Cycle 34 runs a calibration round only**: the reading probe and `brief-valve-switch` visual and text; its
+   findings are parked, except blockers in stable areas.
 
 **Goal.** At the end of part 4 the orchestrator starts a visual brief run with one command, hands the composed prompt
 to an agent that can read images, and gets back a run folder with the agent's frames, its inputs, its notes, its
@@ -90,7 +108,7 @@ Each is a lead ruling the owner may reverse; the decision-log rows are ID-785 to
 | V-D8 | **The friction log is the main deliverable**: `{blind} friction` appends a structured entry (turn, frame, wanted, expected, saw, severity, category) to `friction.jsonl` without ending the turn; the checker and the lead turn the logs into ranked FT drafts, de-duplicated across runs and personas in a committed ledger (§7) (ID-790) | Friction recorded at the moment it happens is more precise than a hand-back written afterwards; a structured entry makes de-duplication and ranking mechanical enough for a lead to do per round |
 | V-D9 | **Personas as play-testers**: `first-timer` (an electrician new to ECAD), `qet-veteran` and `switcher` (another tool's habits), `keyboard-expert` (hurried, shortcuts), optionally `reviewer` (careful); each speaks in its own voice in the log (§8) (ID-791) | Different backgrounds find different friction; the same friction found by several personas ranks higher (§7.3) |
 | V-D10 | **The UI checks U1 to U7** (discoverability, dead ends, input cost, visual misreads, unreadable or clipped text, missing feedback, layout against the design language) are scored by the checker from the frames, the inputs, the dispatched-action log and the friction log; the hand-backs gain fixed headings and the FT drafts a fixed format (§7) (ID-792) | Makes a visual run's reading comparable between rounds and directly usable by a fix lane |
-| V-D11 | **The gate rule**: a baseline visual round as soon as part 4 lands; then a visual round at the gate of every UI-heavy cycle and at every milestone gate from G-M2; M2's heavy UI work grouped into two UI cycles (§9) (ID-793) | The owner's rulings 1 and 2; two UI cycles keep the visual rounds few and each round meaningful |
+| V-D11 | **The gate rule**: a calibration round in cycle 34, the cycle that built part 4 (the reading probe and `brief-valve-switch` visual and text); then a visual round only at the gate of a pure UI-polish cycle, with one polish cycle right before each milestone gate from G-M2, whose round is the milestone's; briefs only on frozen areas; friction in areas still in feature work parked; text runs at feature gates (§9) (ID-793; *amended in the cycle-34 design pass by the owner's rulings 4 to 9 of 2026-10-29, §1*) | The owner's rulings 4 to 9 (which replace the first specification's baseline round and its UI-heavy-cycle rule) |
 | V-D12 | **Parts and routing**: part 4 (1.2 pw) one Opus lane in one cycle; part 5 (0.6 pw); runs from the reserve; a de-scope order (§10) (ID-794) | The owner's sizing: one lane delivers the harness, one brief and the friction log |
 
 ## 3. What the agent sees
@@ -123,6 +141,25 @@ Each is a lead ruling the owner may reverse; the decision-log rows are ID-785 to
   the run folder (outside the repository) and are never committed; a recording keeps their SHA-256 (§5.3), and
   `replay --frames` regenerates them.
 
+*As built (cycle 34).* The driver is `ew_ui::visual` (`crates/ew-ui/src/visual.rs`) and the moved renderer core
+`ew_ui::offscreen`; the pixel gate stayed byte-equal (13 of 13). The product flags are
+`elektrawatt --headless --visual [--frames <dir> | --no-frames]`: `--visual` without `--headless`, `--frames` or
+`--no-frames` without `--visual`, or both of them, is a usage error with exit code 2 (`--visual needs --headless`,
+`--frames and --no-frames need --visual`, `--frames and --no-frames exclude each other`). Differences from the text
+above:
+
+- **The title strip is 34 pixels** (`STRIP_PX`, 28⅓ points), not 28 points (33.6 pixels): the window is
+  1280 × 800 points = 1536 × 960 pixels at 1.2 pixels per point and the frame `1536 × (960 + 34)` = **1536 × 994**
+  pixels, as specified. The PNG's resolution chunk says 115 dpi.
+- **A zoom is a doubled region of the normal frame** (each pixel drawn twice as wide and high), not a re-render at
+  2.4 pixels per point; the region is at most 768 × 497 frame pixels inside the frame, as specified, and stays a
+  picture only.
+- **No `--theme` or `--density` at `start`** (de-scope order, §10): every run uses the fixed rendering inputs.
+- **Settling** also waits, on the frame clock only, for the canvas tiles and the page view's image within the frame.
+- **The wall clock** in the frame path is read only through `ew_ui::clock` (the frame-phase statistics), which a
+  visual run switches off and counts (BV4); the dwells, the job-field rule and the Jobs pane's elapsed time read
+  egui's frame time (FT-570 closed).
+
 ### 3.2 What `do` and `look` print
 
 `do` prints exactly one line, `frame frames/t<turn>.png`, or a harness refusal (`harness: …`). `look` prints the path of
@@ -141,6 +178,11 @@ text reaches the agent only as pixels.
 **The user guide stays readable** (the run's `book/`, as in text runs): a user of a real product has its manual. Every
 time the tester opens the guide because the window did not tell it what to do, it logs a friction entry of category
 `discoverability` (the persona prompts say so), which turns the guide's use into a signal instead of a leak.
+
+*As built (cycle 34).* `HELP-VISUAL.md` (`prompt: blind-help-visual`, version 1) is the harness help of a visual run;
+`PLAYTESTER.md` (`prompt: play-tester`, version 1) says the guide rule, and `HELP-VISUAL.md` says it again under the
+friction log. A refused text view or action line is recorded as a turn of kind `refusal` and counts against the
+refusal cap. `look --zoom` in a text run is refused (`harness: --zoom belongs to a visual run`).
 
 ## 4. What the agent does
 
@@ -183,6 +225,13 @@ a batch is sent** (a hand does not stop after a click that did nothing; the agen
 **the broken rule does not apply** (the agent cannot know that an input was refused; the dead inputs are U2's and U6's
 evidence, §7.2). The caps are counts, never times. The orchestrator may lower them for a round (§12, token cost).
 
+*As built (cycle 34).* The visual caps are those of the table (`Kind::caps_for`); a **text** brief run has a free
+run's text caps (300 turns, 800 steps, 400 looks, 50 refusals); a check run is always text. The input vocabulary is
+§4.1's; `scroll` needs at least one of `dx` and `dy`. Batch refusals: `harness: a batch has 1 to 12 inputs`,
+`harness: a batch waits at most 10000 ms`, `harness: line <n>: <what is wrong>` (for example
+`` harness: line 1: `x` is outside the frame (0 to 1535) ``), `harness: look cap per turn`; the harness's copy of
+the key names is checked against `ew-ui`'s `parse_chord` by a test (xtask has no edge to `ew-ui`).
+
 ### 4.3 What the driver answers in place of the system
 
 - **File dialogs** (the `Platform` of `ew-ui`): the visual driver's platform answers without a dialog, with bare names
@@ -195,6 +244,11 @@ evidence, §7.2). The caps are counts, never times. The orchestrator may lower t
   prelude, `page.describe` in the epilogue); the filter refuses action lines from the agent (§3.3).
 - **The dispatch log.** `ShellModel` gains an off-by-default log of every `dispatch` (action ID, outcome, reason key),
   which the visual driver drains per input; it is the replay's evidence (§5.3) and the checker's, never the agent's.
+
+*As built (cycle 34).* As specified: new, opened and saved projects are `project`, a PDF `project.pdf`, a QET import is
+cancelled, `open_url` returns false. `visual::run` (the binary's path) answers in the working directory;
+`visual::run_in_folder` answers in a given folder (the tests' path). The dispatch log records, while it is on, the
+action, the outcome's word and a refusal's reason key, in the order the calls started.
 
 ## 5. Determinism, recording and replay
 
@@ -243,6 +297,18 @@ then opens `work/project` in a fresh headless shell for the epilogue (an unsaved
 the brief's hard item). `start` refuses a visual run on a host without an offscreen adapter (`harness: no offscreen
 adapter for a visual run`).
 
+*As built (cycle 34).* A frame line of the script is `{"frame":"t0003.png"}` with the optional members
+`"settle": false` (a look), `"zoom": [x, y, w, h]` and `"paint": false` (default true): the keeper's stateless calls
+and `replay` settle as the run did and **paint only the frames they do not have**, rather than "without frames" in
+general; `replay --frames <dir>` paints them. `blind_replay` replays visual recordings with `--visual --no-frames`.
+`bless` records `friction.jsonl` (in text and visual runs), `frames.sha256` (`<sha256>  <file>` per painted frame)
+and `checker.md` when the run has one, never a PNG. `start` probes for the adapter by running
+`elektrawatt --headless --visual` on an empty script; the visual run's `run.json` carries `senses = "visual"`,
+`ppp = 1.2` and `window = [1280, 800]` (absent in a text run, whose `run.json` is unchanged). When an input closes
+the application, the `do` that sent it prints `harness: the application has closed`, the inputs after it in the batch
+are not sent, the turn has no frame and the run ends `app-closed`; a later `do` prints
+`harness: the run has ended (app-closed)`, and the hand-back is still filed.
+
 ## 6. Tasks: open briefs and the regression task
 
 ### 6.1 The brief task kind
@@ -259,6 +325,25 @@ A brief lives in `tools/blind/tasks/brief-<name>/`:
 `check-brief <task>` (part 4) asserts: `task.toml` valid; at least three hard items, each with a `how`; every prelude
 line `setup`; the brief text free of customer or personal names, project or drawing numbers and EW action IDs
 (`check-anonymisation` and a word scan against `reference/actions.txt`).
+
+*As built (cycle 34).* The brief kind goes further than the text above:
+
+- **`solution.uiscript`**, a reference solution in the text vocabulary, is a sixth file of every brief.
+- **`task.toml`** has, besides `kind`, `grade`, `version`, `turn_budget` and `senses`, two members:
+  **`requires`**, what the brief needs of the product (`action: <id>`, `fndef: <id>`, `symbol: <name>`,
+  `part: <number>`), each checked against the current build; and **`areas`** (required, not empty), the window's
+  areas the brief exercises, in plain words (`brief-valve-switch`: "new page", "symbol picker", "terminal strips",
+  "wiring", "save and export"). A visual round picks briefs by `areas` against the freeze list (§9.1).
+- **`check-brief <task> [--bin <dir>]`** checks the files as above (unknown members refused; `grade` 1 to 3;
+  `version` and `turn_budget` 1 or more; at least three hard items, each with a `how`; a setup-only prelude; the
+  anonymisation deny-list; no action ID in the brief) and then **proves the brief runnable on the current build**: it
+  replays the prelude and the reference solution headless in a scratch folder with the built `elektrawatt` and `ew`,
+  makes the exports and decides every acceptance item on them (§6.2). A solution line in the command form
+  (`command.run`) is reported as a finding (the window has no path for it). It prints one line per item
+  (`A1 hard: met`), the findings and problems, and a last line saying the brief is runnable or
+`` brief `<task>` is NOT runnable: <n> problem(s) ``.
+- **`start --kind brief`** refuses a brief that is not runnable
+  (`` harness: the brief `<task>` is not runnable on this build: `` followed by the problems).
 
 ### 6.2 The acceptance list
 
@@ -288,12 +373,26 @@ end tags, CPs, potential name and type per wire), `pages` (the epilogue's `page.
 the harness's PDF, which the checker may read as images); `check`, `bom` and `score` stay. The checker may read these
 text exports; the tester may not (`report` stays refused to a drafter).
 
+*As built (cycle 34).* An item's deciding output is named inline rather than by a `queries.sql` file: `how` is one or
+more of `check`, `bom`, `connections`, `pages`, `pdf`, `outcomes`, `work` and `handback`, joined by `, `; an item may
+carry a read-only `query` (a SELECT over the `api_v1_*` views) and an `expect` on its row count (`>= 3`, `== 0`, …),
+which `check-brief` runs on the reference solution's project; an item without a query is decided by its output
+(`check`: no error in the check report; `pdf`: the solution exported `project.pdf` itself; `bom`: the parts list has
+rows). A **soft** item the current build cannot meet carries **`infeasible = "<reason / package>"`** and is decided
+`infeasible (…)` instead of failing the brief; a **hard** item marked `infeasible`, or a hard item not met, makes the
+brief not runnable. `brief-valve-switch` marks A7 (named and typed potentials: the window cannot name or type a
+potential yet) and A8 (parts on every device: no starter parts library, FT-592) infeasible. The run outcomes `met`,
+`partly met`, `not met` and `incomplete` are the checker's, unchanged. `report <run> connections|pages|pdf` serves a
+check run only (BV10), and `stop` writes `out/connections.txt` and `out/pages.txt` for the checker; neither is in a
+recording.
+
 ### 6.3 The brief library
 
 | Brief | Grade | The goal (summary of `task.md`) | In |
 |---|---|---|---|
+| `brief-valve-switch` | 1 | *Added as built.* One 24 V DC solenoid valve in the field switched by an on/off switch on the cabinet door; +24 V and 0 V arrive on two terminals of a strip; a fuse right after the incoming +24 V; the valve only through terminals; the project saved and a PDF exported; one page or more as the tester likes. Turn budget 30 | **Part 4, runnable: the calibration brief** (§9.1) |
 | `brief-24v-supply` | 1 | A 24 V DC control supply from a 230 V AC feed: incoming terminals, main switch, circuit breaker, power supply unit, fused 24 V distribution to two outgoing terminals, PE; one page | Part 5 |
-| `brief-relays-valves` | 2 | **The owner's example:** three relays switching three 24 V DC solenoid valves in the field, each relay commanded by its own selector switch on the cabinet door; 24 V supply from 230 V AC with protection on both sides; the valves and the door switches through a terminal strip; parts list and PDF | **Part 4** |
+| `brief-relays-valves` | 2 | **The owner's example:** three relays switching three 24 V DC solenoid valves in the field, each relay commanded by its own selector switch on the cabinet door; 24 V supply from 230 V AC with protection on both sides; the valves and the door switches through a terminal strip; parts list and PDF | **Part 4, files committed, not runnable on this build** (below) |
 | `brief-dol-starter` | 2 | A direct-on-line starter for a 400 V three-phase motor: motor protection circuit breaker, contactor, start and stop with self-holding, a run lamp, 24 V control voltage, the motor through terminals; power and control on two pages with cross-references | Part 5 |
 | `brief-pump-duty-standby` | 3 | Two pumps in duty and standby with a selector, a level switch and a fault input from the field through one cable onto a terminal strip, fault lamps, three pages | Part 5 |
 | `brief-plc-io` | 3 | `brief-relays-valves` driven by a small PLC with a digital input and output card instead of selector logic | When WP-S1.21's PLC scope and WP-S2.07 part 3 are delivered (FT-593) |
@@ -305,6 +404,17 @@ ran it once as a text run and it was doable (a sanity run, not a recording); (5)
 brief whose meaning a product change alters gets a version bump with a history line in `task.md`, never a silent edit;
 a brief no longer useful is retired, not deleted, so old recordings keep their source.
 
+*As built (cycle 34).* Part 4 delivered two briefs instead of one. **`brief-valve-switch`** (grade 1, version 1,
+`senses = ["text", "visual"]`, prelude: the company-standard wizard with its defaults and a new project, no part copy)
+passes `check-brief`: every hard item (A1 to A6) is met by its reference solution, the soft A7 and A8 are infeasible
+and A9 is met. It is the calibration brief of §9.1. **`brief-relays-valves`** (grade 2, turn budget 120, its prelude
+embeds the power supply's part copy, FT-592) is committed but **not runnable on this build**: the window cannot place
+a normally open contact on an existing relay, because `device.place` with `/target/existing_function/function` gets
+the relay's 6-character tag where a 36-character ID is required; its reference solution therefore misses A1 and A2
+(each relay's coil and contact on one device, the contact switching its valve), while A3 to A8 are met. `start --kind
+brief` refuses it until a window path exists. Rule (4) above is, as built, checked by `check-brief`'s replay of the
+reference solution rather than by a sanity text run.
+
 ### 6.4 The regression task
 
 `gpp-101-103` runs unchanged as a visual gate run (the copy task with its oracle, H1 to H7 and S1 to S8), so its score,
@@ -315,6 +425,11 @@ only text that names tags and cells; it is the drawing the user would get on pap
 
 Every brief also runs as a text run (`--senses text`) with the base specification's prompt, which gains the friction
 command (`HELP.md` version 7). The pairing rule of §7.4 reads both.
+
+*As built (cycle 34).* `HELP.md` version 7 adds the friction command without `--frame` and `--region` (a text run
+has no frames; the last step sent is the entry's reference) and the section "The friction log" with the seven
+categories of §7.1; its hand-back keeps seven headings. The text self-test logs one friction entry and was re-blessed
+(prompt and file digests changed; steps, transcript and outcomes unchanged).
 
 ## 7. The friction log, the checks and the hand-backs
 
@@ -334,6 +449,21 @@ needs no note and opens no turn; at most 300 entries per run; append-only (no ed
 **The rule the prompts give the tester:** log an entry **every time** it is unsure, confused, surprised, stuck, has to
 guess, has to open the user guide, or works around something, at that moment and not afterwards; the turn note keeps
 the two scores and the mood, the friction entry the facts.
+
+*As built (cycle 34).* `ew.blindfriction/1` as specified (a header line `{"$schema":"ew.blindfriction/1"}`, then one
+JSON object per entry with `n`, `turn`, `step`, `frame`, `region` as `[x, y, w, h]`, `wanted`, `expected`, `saw`,
+`severity`, `category`, `workaround`), with one difference: **a seventh category, `missing-feature`**, "the program
+cannot do what the job needs, as far as you can tell". It is a finding about the product, not the window: the checker
+does not count it against the window (U1 to U7) and the pairing rule (§7.4) reads it as a product finding. Further
+refusals as built: `harness: a friction text has at most 400 characters`,
+`harness: a text run has no frames; the step is the reference` (`--frame` or `--region` in a text run),
+`harness: no frame <name> in this run`, `harness: --region is x,y,w,h in frame pixels inside the frame` and
+`harness: the hand-back is filed`. The command prints `friction <n> logged`. An example entry, from the visual
+self-test recording:
+
+```json
+{"n":1,"turn":2,"step":6,"frame":"t0002.png","region":[640,390,280,40],"wanted":"read the tags of the two contacts","expected":"tags I can read at the page's first zoom","saw":"the tags are small; I zoomed into the frame to read them","severity":"cosmetic","category":"layout-legibility","workaround":"look --zoom"}
+```
 
 ### 7.2 The UI checks
 
@@ -355,7 +485,7 @@ actions and whether the frame hash changed, and flags **silent inputs** (no done
 
 ### 7.3 Triage: FT drafts and the ledger
 
-**The checker** (prompt `play-checker`, `tools/blind/PLAYCHECKER.md`, part 5; part 4's baseline uses the base
+**The checker** (prompt `play-checker`, `tools/blind/PLAYCHECKER.md`, part 5; the calibration round uses the base
 specification's checker for the acceptance list and the lead for the rest) works in two passes, in this order: first
 the acceptance list from the exports only, written before it opens anything of the tester's; then the friction log,
 the notes, the inputs and the frames, for U1 to U7 and the FT drafts. Its audit `checker.md` has six headings:
@@ -366,13 +496,13 @@ the notes, the inputs and the frames, for U1 to U7 and the FT drafts. Its audit 
 
 ```text
 ### D<n> [blocker|confusing|annoying|cosmetic] <one-line title>
-- category: <one of the six>
+- category: <one of the seven>
 - friction: <run>#<entry>[, <run>#<entry> …]; ledger FX-<k> when known
 - where: frame t0042 region 812,96,140,22 (or: step 311 in a text run)
 - seen: <what the tester saw or did>
 - expected: <what it expected; the doc 16a section where the design language says so>
 - cost: <inputs or turns lost, or blocked>
-- owner: <the owning package, or "UI fix lane">; due: next UI cycle (a blocker: §9.1)
+- owner: <the owning package, or "UI fix lane">; due: as §9.1 says (parked while its area is in feature work)
 ```
 
 Ranked by severity, then the number of distinct personas, then the number of runs, then cost.
@@ -384,6 +514,10 @@ per distinct friction (`id = "FX-<k>"`, `title`, `category`, `severity` (the hig
 design pass lists the top of the ledger per round, so cross-run trends are visible. Clustering is the lead's judgement;
 `cargo xtask blind friction-report <run> …` (part 5) merges the runs' logs grouped by category and frame region to
 help it. A cluster closed as `fixed` that recurs is reopened with its history.
+
+*Amended in the cycle-34 design pass (the owner's ruling 7, §1):* friction in an area still in feature work is
+**parked** in the ledger, not turned into a fix; §9.1 says which findings are not parked. The ledger and
+`friction-report` are part 5's and not built in cycle 34.
 
 ### 7.4 The pairing rule (text against visual)
 
@@ -398,6 +532,9 @@ The play-tester's hand-back (prompt `play-tester`, `tools/blind/PLAYTESTER.md`; 
 tool is`, `4. Broken`, `5. My design against the brief` (what it built, what it would still do, and the time it would
 need in its usual tool), `6. Flow chart`, `7. Good`, `8. What I could not read` (frames and regions; in a text run
 "none"). The harness checks the headings.
+
+*As built (cycle 34).* As specified: `PLAYTESTER.md` lists the eight headings and the harness checks them for a
+visual run (`handback.md`); a text run, briefs included, keeps the drafter's seven headings of `HELP.md`.
 
 ## 8. Personas
 
@@ -416,39 +553,54 @@ Every persona file ends with a **voice** paragraph: how this person writes frict
 …, I didn't know …"; the expert: terse, with the shortcut tried). A visual run's composed prompt is `PLAYTESTER.md`,
 the persona, the brief or task sheet and `HELP-VISUAL.md`, by the base specification's `compose`.
 
-## 9. Where it runs: the gate rule and the UI cycles
+*As built (cycle 34).* `tools/blind/personas/first-timer.md` (`persona: first-timer`, version 1) as specified, with
+the sections "Your habits and terms", "What you do not know", "Your standard" and "Your voice"; `compose` and
+`start` take `--senses text|visual` and `--persona <p>`. `keyboard-expert` and `reviewer` stay part 5's.
+
+## 9. Where it runs: the gate rule and the polish cycles
+
+*Amended in the cycle-34 design pass:* the owner's rulings 4 to 9 of 2026-10-29 (§1) replace the first
+specification's baseline round by the calibration round of item 1, and its visual round at the gate of every UI-heavy
+cycle by the polish-cycle rule of items 2 and 3.
 
 ### 9.1 The gate rule
 
-1. **Baseline round, as soon as part 4 lands** (in the cycle that integrates it, after the merged-tip verify): the
-   reading probe (BV13), then `brief-relays-valves` visual with `first-timer`, the same brief as a text run with
-   `first-timer`, and `gpp-101-103` visual with `qet-veteran` on `--folios 101`; the checker; the lead's triage into FT
-   drafts.
-2. **At the gate of every UI-heavy cycle**, a visual round: at least three personas on at least two briefs, one of them
-   the brief the cycle's work touches most, plus a text run of one of them for the pairing rule. A cycle is UI-heavy
-   when the orchestrator's cycle-start table marks it so; a cycle where half or more of the lanes change `ew-ui` or the
-   window's flows is marked UI-heavy by default.
-3. **At every milestone gate from G-M2**, a visual round of the full brief library available then, every persona once,
-   and `gpp-101-103` visual as the regression run, read beside the gate's other evidence.
-4. **Never a criterion** (ID-341, ID-612): a round is evidence. One binding consequence: a `blocker` cluster that two
+1. **Calibration round, cycle 34** (the cycle that built part 4, after the merged-tip verify): the reading probe
+   (BV13), then `brief-valve-switch` visual with `first-timer` and the same brief as a text run with `first-timer`; the
+   checker; the lead's triage. Its findings are parked (item 5), except blockers in stable areas. It is the only
+   visual run of cycle 34: `brief-relays-valves` is not runnable on this build (§6.3), and `gpp-101-103` visual is
+   not part of it.
+   Result: recorded at the cycle-34 gate (ID-pending).
+2. **A visual round runs only at the gate of a pure UI-polish cycle**, a cycle with no feature WP in it: at least
+   three personas on at least two briefs, one of them the brief whose areas the cycle's polish touches most, plus a
+   text run of one of them for the pairing rule (§7.4). A cycle with a feature WP runs no visual round, however much
+   it changes the window.
+3. **One polish cycle is placed right before each milestone gate from G-M2**, and its gate round is the milestone's
+   visual round: the brief library available then (within item 4), every persona once, and `gpp-101-103` visual as the
+   regression run, read beside the gate's other evidence.
+4. **Briefs only on frozen areas.** A round runs a brief only when its `areas` (§6.1) are frozen for the coming
+   cycles, by the freeze list the plan keeps in [the global plan](../01-global-plan.md).
+5. **Parking.** Friction in an area still in feature work is parked in the ledger (§7.3), not fixed.
+6. **Text runs stay at feature gates**: the base specification's runs and the text runs of briefs run at the gates of
+   feature cycles.
+7. **Never a criterion** (ID-341, ID-612): a round is evidence. One binding consequence: a `blocker` cluster that two
    or more personas hit is due before the next milestone gate, and the gate record names it.
-5. Testers and checkers run on Opus at `low` (ID-700), the lead's triage on Opus; the orchestrator may lower the caps
-   of §4.2 for a round after the baseline's token count (§12).
+8. Testers and checkers run on Opus at `low` (ID-700), the lead's triage on Opus; the orchestrator may lower the caps
+   of §4.2 for a round after the calibration round's token count (§12).
 
-### 9.2 M2's UI cycles
+### 9.2 M2's cycles and its visual round
 
-M2's heavy UI work is grouped into **two UI cycles**, with the non-UI packages (WP-S1.19's catalogues, WP-S1.16's rule
-packs, WP-S1.21, WP-S1.18, WP-S3.06, WP-S4.01, WP-S4.02, WP-S7.03) in the cycles around them:
+M2's heavy UI feature work stays grouped into **two UI cycles**, with the non-UI packages (WP-S1.19's catalogues,
+WP-S1.16's rule packs, WP-S1.21, WP-S1.18, WP-S3.06, WP-S4.01, WP-S4.02, WP-S7.03) in the cycles around them. Both
+carry feature WPs, so by item 2 their gates run no visual round and by item 6 they run text runs; M2's visual round is
+the round of the polish cycle right before G-M2 (item 3).
 
 | Cycle | When | Content | Gate |
 |---|---|---|---|
-| Harness cycle | The cycle after cycle 34 (cycle 35) | WP-S6.13 part 4 (one Opus lane) beside the cycle's other lanes | The baseline round (§9.1 item 1) |
-| **UI cycle 1** | When WP-S1.19 parts 1 to 5 and WP-S2.07 part 1 are delivered | WP-S2.07 parts 2 and 4 (the edit-cable table, the part selection dialog and part editor), WP-S1.19 part 6 (the library panes), the baseline round's FT drafts, what is left of W33's items (FT-557 to FT-567, FT-571, FT-581) after cycle 34, and the open window follow-ups FT-518, FT-520, FT-522 and FT-568; part 5 of this package beside them | A visual round (§9.1 item 2) with part 5's personas and briefs |
-| **UI cycle 2** | The last feature cycle before the R1 release candidate (WP-S2.12, six weeks before M2) | WP-S2.08 (palette modes, keymaps, accessibility names, Fluent with English and Dutch, pseudo-locale), WP-S2.07 part 3 (the PLC navigator and grid, after WP-S1.21), and UI cycle 1's round's FT drafts | A visual round, then G-M2's milestone round (§9.1 item 3) |
-
-Between the two, a cycle that changes the window only in passing runs no visual round; the next UI cycle's round
-covers it. Two cycles rather than one because WP-S2.07 part 3 and WP-S2.08's localisation come late in M2's dependency
-order, and rather than three because each round costs a day of agent time and a lead triage.
+| Harness cycle | Cycle 34 (*as built*: part 4 was built in cycle 34 by lane P34, not in cycle 35 as specified) | WP-S6.13 part 4 (one Opus lane) beside the cycle's other lanes | The calibration round (item 1) |
+| **UI cycle 1** | When WP-S1.19 parts 1 to 5 and WP-S2.07 part 1 are delivered | WP-S2.07 parts 2 and 4 (the edit-cable table, the part selection dialog and part editor), WP-S1.19 part 6 (the library panes), what is left of W33's items (FT-557 to FT-567, FT-571, FT-581) after cycle 34, and the open window follow-ups FT-518, FT-520, FT-522 and FT-568; part 5 of this package beside them | Text runs (a feature cycle, item 6) |
+| **UI cycle 2** | The last feature cycle before the R1 release candidate (WP-S2.12, six weeks before M2) | WP-S2.08 (palette modes, keymaps, accessibility names, Fluent with English and Dutch, pseudo-locale), WP-S2.07 part 3 (the PLC navigator and grid, after WP-S1.21) | Text runs (a feature cycle, item 6) |
+| **M2 polish cycle** | Right before G-M2 | UI polish only, no feature WP | The polish round, which is G-M2's milestone round (items 2 and 3) |
 
 ## 10. Parts, estimates and routing
 
@@ -456,7 +608,7 @@ order, and rather than three because each round costs a day of agent time and a 
 |---|---|---|---|
 | **4 (V1)** | The visual driver and `--visual` with the dispatch log and the moved offscreen renderer; FT-570's clocks onto the frame clock; the harness's `--senses visual` (filter, inputs, caps, frames, zoom, keeper and stateless); the friction command (both senses); the brief kind with `check-brief` and `report connections\|pages\|pdf`; `brief-relays-valves`; `PLAYTESTER.md`, `HELP-VISUAL.md`, `HELP.md` version 7, the `first-timer` persona; a visual self-test recording replayed in CI | **1.2 pw** | One Opus lane at `high` in one cycle (product determinism and a new driver; the harness patterns exist) |
 | **5 (V2)** | The briefs `brief-24v-supply`, `brief-dol-starter`, `brief-pump-duty-standby` with their sanity runs; the personas `keyboard-expert` and `reviewer`; `PLAYCHECKER.md`; `report <run> inputs` with silent and refused-unseen inputs; `friction-report`; the ledger format with its rank | **0.6 pw** | Opus at `medium` (writing to this outline plus small harness code) |
-| Runs | The baseline round, then the rounds of §9.1 | 0.2 to 0.3 pw a round | Orchestrator; the lead's triage on Opus; from the 20 % reserve, as part 3 |
+| Runs | The calibration round, then the polish rounds of §9.1 | 0.2 to 0.3 pw a round | Orchestrator; the lead's triage on Opus; from the 20 % reserve, as part 3 |
 
 **Part 4's build list, in order:** (1) move the offscreen renderer core into `ew-ui/src/offscreen.rs`, tests re-pointed,
 pixel gate green; (2) the frame clock and FT-570's two rules; (3) `ShellModel`'s dispatch log; (4) `ew-ui/src/visual.rs`:
@@ -472,6 +624,15 @@ about 40 inputs, blessed `ci = pr`; (11) targeted checks.
 whether frames must grow), `--stateless` for visual runs, the `--theme` and `--density` options, the replay on macOS and
 Linux (Windows only); the lane reports which left.
 
+*As built (cycle 34).* Part 4 was built in cycle 34 by one Opus lane (P34) in nine commits, in the build-list order:
+the renderer move, FT-570's clocks, the dispatch log, the driver, the binary's flags, the dialogs' folder and the
+frame line's `paint`, the harness with the friction log and the briefs, BV10, and the re-blessed self-test recordings
+on the merged tip. Of the de-scope order only **`--theme` and `--density`** were left out; the zoom, `--stateless` for
+visual runs and the visual replay in CI were built. Item (9) delivered **two briefs**, `brief-valve-switch` (runnable)
+and `brief-relays-valves` (not runnable on this build, §6.3); the brief kind also gained `solution.uiscript`,
+`requires` and `areas` (§6.1). `sha2` moved from a dev-dependency to a dependency of `ew-ui` (already in the graph
+through `ew-api`; no new package).
+
 ## 11. Acceptance checks
 
 | # | Check | Where | Proves |
@@ -484,19 +645,19 @@ Linux (Windows only); the lane reports which left.
 | BV6 | The platform's fixed answers for new, save, open and PDF; a QET import cancelled; `open_url` false | `ew-ui` test | §4.3 |
 | BV7 | The visual filter: text looks, `look --page`, action lines and a batch of 13 refused with their texts; caps end the run; every input of a batch is sent; no broken rule; `do` prints only the frame path | `xtask` tests with a fake product | §3.2, §3.3, §4.2 |
 | BV8 | `friction`: required fields, enums, length and cap refusals; numbering, turn, step and frame filled in; works in a text run; append-only; `bless` records `friction.jsonl` | `xtask` tests | §7.1 |
-| BV9 | `check-brief brief-relays-valves` passes; a brief with two hard items, a `drawing` prelude line or an action ID in its text fails | `xtask` tests | §6.1 |
+| BV9 | `check-brief brief-relays-valves` passes; a brief with two hard items, a `drawing` prelude line or an action ID in its text fails. *As built:* `check-brief brief-valve-switch` passes with every hard item met on its replayed reference solution; `brief-relays-valves` fails only on its relay contacts (A1, A2, the `existing_function` target), with A3 to A8 met; a hard item marked `infeasible` or an unmet `requires` fails | `xtask` tests | §6.1 |
 | BV10 | `report connections`, `pages` and `pdf` serve a check run and are refused to a tester | `xtask` tests | §6.2 |
-| BV11 | `selftest-visual` runs through the keeper and the copied binaries, blessed `ci = pr`; `replay --twice` passes R1v and R2; `blind_replay` replays it in CI; R4 is reported | lane; `elektrawatt` test | §5.3 |
+| BV11 | `selftest-visual` runs through the keeper and the copied binaries, blessed `ci = pr`; `replay --twice` passes R1v and R2; `blind_replay` replays it in CI; R4 is reported. *As built:* the scripted agent sends 18 inputs in 7 turns (not about 40), with looks, a zoom, one friction entry, two refused calls (an action line and a text look) and the eight-heading hand-back; recording `tools/blind/recordings/selftest-visual` | lane; `elektrawatt` test | §5.3 |
 | BV12 | Targeted nextest and clippy for `ew-ui`, `ew-viewmodel`, `elektrawatt`, `xtask`; `cargo fmt --all --check`; `check-deps` (no new edge); `reuse lint`; `check-licence-map`; `check-anonymisation`; `Cargo.lock` and `golden/` unchanged | lane | testing policy |
 | BV13 | **Reading probe** (orchestrator, after part 4): one frame of a Golden A copy's window with 20 marked texts (device tags on the canvas, menu and command-bar labels, status bar, Properties rows); an Opus agent at `low` transcribes them; 18 or more exact keeps the default; fewer makes `PLAYTESTER.md` require a zoom before acting on tag-sized text, and the result is recorded | orchestrator | §3.1, §12 |
-| BV14 | **Baseline round** (orchestrator): the runs of §9.1 item 1 valid by their tool-log audits; the checker's acceptance table for the brief; the lead's FT drafts; the token use of each run recorded for §12 | orchestrator, lead | §9.1 |
+| BV14 | **Calibration round** (orchestrator, cycle 34): the reading probe and the runs of §9.1 item 1 valid by their tool-log audits; the checker's acceptance table for `brief-valve-switch`; the lead's triage, its findings parked except blockers in stable areas; the token use of each run recorded for §12. Result: recorded at the cycle-34 gate (ID-pending) | orchestrator, lead | §9.1 |
 | BV15 | Part 5: three briefs pass `check-brief` and one sanity text run each; the two personas; `PLAYCHECKER.md` with the six headings; `report inputs` flags silent and refused-unseen inputs on a fixture; `friction-report` merges two runs; the ledger parses and ranks a fixture | lane; `xtask` tests | §6.3, §7.2, §7.3, §8 |
 
 ## 12. Risks
 
 | Risk | Effect | Mitigation |
 |---|---|---|
-| **Token cost per run** | About 2,000 image tokens per frame; a brief run of 100 to 150 turns with looks reads 150 to 250 frames (0.3 to 0.5 M image tokens fresh), and the agent's growing context multiplies the total; not measured (owner's rule) | Caps (§4.2); one frame per batch of up to 12 inputs; looks capped per turn; the prompt tells the tester the newest frame is the only one it needs; the baseline records the cost and the orchestrator sets the round caps from it |
+| **Token cost per run** | About 2,000 image tokens per frame; a brief run of 100 to 150 turns with looks reads 150 to 250 frames (0.3 to 0.5 M image tokens fresh), and the agent's growing context multiplies the total; not measured (owner's rule) | Caps (§4.2); one frame per batch of up to 12 inputs; looks capped per turn; the prompt tells the tester the newest frame is the only one it needs; the calibration round records the cost and the orchestrator sets the round caps from it |
 | **Image size** | 80 to 200 KB per frame, tens of MB per run | Frames never committed; hashes only; `replay --frames` regenerates them |
 | **Flaky renders** | WARP or driver updates shift pixels; a frame differs between hosts | Replay decides on the dispatch log (R1v), frames are R4, a report; one host class (Windows) paints for live runs and readers |
 | **Layout differs across OSes** | R1v differs on Linux or macOS for the same inputs | Detected by BV4 and BV11; the de-scope keeps the visual replay on Windows only |
@@ -511,18 +672,24 @@ Linux (Windows only); the lane reports which left.
 clock, the module lines), `crates/ew-ui/tests/offscreen/mod.rs` and the snapshot tests (re-pointed only),
 `crates/ew-viewmodel/src/shell.rs` (the dispatch log), `bin/elektrawatt/src/main.rs` and its `tests/blind_replay.rs`,
 `xtask/src/blind/**`, `tools/blind/{PLAYTESTER.md,HELP-VISUAL.md,HELP.md}`, `tools/blind/personas/first-timer.md`,
-`tools/blind/tasks/brief-relays-valves/**`, `tools/blind/tasks/selftest-visual/**`,
+`tools/blind/tasks/brief-relays-valves/**`, `tools/blind/tasks/brief-valve-switch/**` (*as built*),
+`tools/blind/tasks/selftest-visual/**`,
 `tools/blind/recordings/selftest-visual/**`. **Part 5:** `tools/blind/tasks/brief-{24v-supply,dol-starter,pump-duty-standby}/**`,
 `tools/blind/personas/{keyboard-expert,reviewer}.md`, `tools/blind/PLAYCHECKER.md`, `tools/blind/friction/ledger.toml`,
 `xtask/src/blind/**` (`report inputs`, `friction-report`). Read-only: `golden/**`, `ci/**`, `deny.toml`,
 `supply-chain/**`, `.github/**`, `docs/**`.
+
+*As built (cycle 34).* Part 4 also changed `crates/ew-ui/src/{clock.rs (new),jobs.rs,page_view.rs,headless.rs}`,
+`crates/ew-ui/Cargo.toml` (`sha2` as a dependency), `crates/ew-ui/tests/{visual.rs (new),jobs.rs,tools.rs}`, the
+text self-test's `tools/blind/tasks/selftest/**` and its recording `tools/blind/recordings/selftest/**` (one friction
+entry, re-blessed); `Cargo.lock` and `golden/` are unchanged.
 
 **Out of scope:** the system's file dialogs; pixel comparison as a check; a model in CI; the moderated rounds
 (WP-S2.12, WP-S2.16); visual runs on the owner's desktop or any real window (never); `brief-plc-io` until FT-593.
 
 **Documents the design passes update.** After part 4: doc 18 §3.17 (the visual kind, the friction log, the brief kind
 as built), doc 16 §3.9 (`--visual`), the base specification's status line, plan 02's WP-S6.13 status, FT-570 closed.
-After the baseline: plan 01 §3.8 (the round and its drafts), the decision log. After part 5: doc 18 §3.17, gates §5.5
+After the calibration round: plan 01 §3.8 (the round and its findings), the decision log. After part 5: doc 18 §3.17, gates §5.5
 if the round's form changes.
 
 ---

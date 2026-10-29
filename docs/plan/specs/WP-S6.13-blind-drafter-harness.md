@@ -1,6 +1,6 @@
 # WP-S6.13: the blind-drafter harness, personas and prompts (closed specification)
 
-**Status:** **parts 4 and 5, the visual play-test runs and open design briefs, specified in cycle 34** in the companion [specification](WP-S6.13-visual-playtest-runs.md) (decision log ID-785 to ID-794; this document governs text runs unchanged) · part 3 delivered in cycle 33, so parts 1 to 3 are complete (§12.9; decision log ID-768, ID-776, ID-777); §5.2.3 as built · specified in cycle 25 (documents only; fix round after the independent Opus review, whose amended rulings
+**Status:** **parts 4 and 5, the visual play-test runs and open design briefs, specified in cycle 34, part 4 built in cycle 34** in the companion [specification](WP-S6.13-visual-playtest-runs.md) (decision log ID-785 to ID-794; this document governs text runs unchanged) · part 3 delivered in cycle 33, so parts 1 to 3 are complete (§12.9; decision log ID-768, ID-776, ID-777); §5.2.3 as built · specified in cycle 25 (documents only; fix round after the independent Opus review, whose amended rulings
 the orchestrator accepted) for three parts: part 1 (the harness `cargo xtask blind`, the session keeper, the three
 product additions it needs and the replay in CI, 1.1 pw, D3), part 2 (the prompts, the personas, the G-PP task sheet
 with its prelude, oracle and scoring, and a dry run on folio 101 after WP-S2.04 part 1, 0.5 pw, D3), part 3 (the full
@@ -1012,7 +1012,10 @@ play-test form of open design briefs with a live friction log. Both are specifie
 [specification](WP-S6.13-visual-playtest-runs.md) as parts 4 (1.2 pw) and 5 (0.6 pw), built in M2, with the runs from the
 20 % reserve as part 3's (ID-786, ID-794). ID-341 and this document's D4 are amended for visual runs only (ID-787); every
 text run, recording and check of this document is unchanged, except that `HELP.md` version 7 gains the friction command
-and text runs of briefs use it.
+and text runs of briefs use it. *Cycle-34 design pass:* part 4 was built in cycle 34 (the companion's §3 to §11 as
+built); the text self-test logs one friction entry and was re-blessed with `HELP.md` version 7 (steps, transcript and
+outcomes unchanged). By the owner's rulings of 2026-10-29 text runs stay at the gates of feature cycles, and visual
+rounds run only at the gates of pure UI-polish cycles (the companion's §9).
 
 ---
 
