@@ -17,7 +17,9 @@ use crate::query::{Policy, Query};
 pub struct BridgeGroup {
     /// The group number on the strip (`BridgeSpec.group`).
     pub group: u16,
-    /// The bridge kind: the kind of the group's connection with the smallest ID.
+    /// The bridge kind: the kind of the group's first connection in [`BridgeGroup::connections`] order (the
+    /// specification does not reconcile mixed kinds; the first in printed order keeps the result independent of IDs,
+    /// NFR-REL-07).
     pub kind: BridgeKind,
     /// The devices the group's connections end at, each once, in (`seq`, ID) order (a device without a terminal
     /// aspect first; a bridge joins terminals, so there is none in a well-formed project).
@@ -31,15 +33,15 @@ pub struct BridgeGroup {
     pub part: Option<PartRef>,
 }
 
+/// One bridge connection of a group: the lower seq of its terminal ends, its ID and the record.
+type Member = (Option<u32>, Id<Connection>, Arc<Connection>);
+
 /// `strip_bridges(strip)`: the bridges of a strip, in group order.
 ///
 /// A bridge connection (`ConnectionKind::Bridge`) belongs to the strip of its first terminal end, `a` then `b`
 /// (an end whose function's device has a terminal aspect). The strip's bridge connections are found from its
 /// terminals' connected CPs and grouped by `BridgeSpec.group`; each group is a [`BridgeGroup`]. A strip without
 /// terminals, a missing device and a device without bridges have none. The result does not depend on a hash
-/// One bridge connection of a group: the lower seq of its terminal ends, its ID and the record.
-type Member = (Option<u32>, Id<Connection>, Arc<Connection>);
-
 /// order (NFR-REL-07).
 #[derive(Debug)]
 pub struct StripBridges;
@@ -108,13 +110,10 @@ impl Query for StripBridges {
             .into_iter()
             .filter_map(|(group, mut members)| {
                 members.sort_by_key(|(lower, id, _)| (*lower, *id));
-                let kind = members
-                    .iter()
-                    .min_by_key(|(_, id, _)| *id)
-                    .and_then(|(_, _, c)| match &c.kind {
-                        ConnectionKind::Bridge(spec) => Some(spec.kind.clone()),
-                        _ => None,
-                    })?;
+                let kind = members.first().and_then(|(_, _, c)| match &c.kind {
+                    ConnectionKind::Bridge(spec) => Some(spec.kind.clone()),
+                    _ => None,
+                })?;
                 let mut terminals: Vec<Id<Device>> = Vec::new();
                 for (_, _, c) in &members {
                     for d in [end_device(&c.a), end_device(&c.b)].into_iter().flatten() {

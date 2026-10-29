@@ -785,3 +785,27 @@ fn a_bridge_without_any_part_takes_its_first_connection_as_carrier() {
             .all(|l| l.source != LineSource::Bridge)
     );
 }
+
+/// A group of mixed kinds takes the kind of its first connection in (lower seq, ID) order, whichever connection has
+/// the smaller ID (ID-677, NFR-REL-07): the kind follows what is printed, not random IDs.
+#[test]
+fn a_mixed_kind_group_takes_the_kind_of_its_first_connection_in_seq_order() {
+    use ew_derive::StripBridges;
+    use ew_schema::BridgeKind;
+    for (first, second) in [(0x4102, 0x4101), (0x4101, 0x4102)] {
+        let mut fx = base();
+        strip(&mut fx, 0x4000, "X9", false, &[]);
+        for (k, seq) in [(0x4010, 1), (0x4020, 2), (0x4030, 3)] {
+            terminal(&mut fx, k, 0x4000, seq, &seq.to_string(), P_UK5N, PAGE103);
+        }
+        bridge(&mut fx, first, 1, 0x4010, 0x4020, None);
+        bridge(&mut fx, second, 1, 0x4020, 0x4030, None);
+        fx.record(second)["kind"]["bridge"]["kind"] = json!("saddle");
+        let m = fx.build();
+        let q = Q::new(&m);
+        let groups = q.get::<StripBridges>(id(0x4000));
+        assert_eq!(groups.len(), 1);
+        assert_eq!(groups[0].connections, [id(first), id(second)]);
+        assert_eq!(groups[0].kind, BridgeKind::PlugIn, "first {first:#x}");
+    }
+}
