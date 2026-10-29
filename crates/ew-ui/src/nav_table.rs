@@ -21,6 +21,13 @@
 //! a button named `Sort by <column label>` (FT-523: the sorted one adds ", sorted ascending" or ", sorted
 //! descending"); a cell is a node with the role `Cell` named `<column label> <cell text>,
 //! row <i> of <n>`, with `, read-only` for a read-only cell (§8.1).
+//!
+//! **The strip editor (WP-S2.07 part 1).** An accessory row is a row of the grid like a terminal row; its texts are
+//! `color.text.secondary` (a fitting between the terminals, not a terminal), except its editable Part cell. While
+//! `strip.add_accessory` finds several parts, the chooser list of doc 16a §6.22 (its first use) opens under the cursor
+//! row: a `ListBox` named by its question, its rows `ListBoxOption`s with position and set size; Up and Down (wrapping),
+//! Home and End move the active row, Enter or a click picks (`strip.add_accessory` again with `kind` and `part`), Escape
+//! closes it (`ui.dismiss`).
 
 use std::collections::BTreeSet;
 
@@ -31,7 +38,7 @@ use egui::{FontId, Key, Modifiers, Rect, RichText, Sense, StrokeKind, TextEdit, 
 use egui_table::{CellInfo, Column, HeaderCellInfo, HeaderRow, Table, TableDelegate};
 use ew_viewmodel::ew_api::output::NavTable;
 use ew_viewmodel::navigators::table::cell_reason;
-use ew_viewmodel::navigators::{NavKind, Navigator, SortBy, VisRow};
+use ew_viewmodel::navigators::{NavKind, NavRole, Navigator, SortBy, VisRow};
 use ew_viewmodel::strings;
 use serde_json::{Value, json};
 
@@ -54,6 +61,10 @@ pub(crate) struct TableUi {
     scrolled_to: Option<(String, usize)>,
     /// How many cells the last frame painted (tests: the virtualisation).
     pub(crate) painted: usize,
+    /// The row the chooser list was opened at (WP-S2.07 §6.5), while it is open.
+    chooser_for: Option<String>,
+    /// The chooser list's active row.
+    chooser_active: usize,
 }
 
 /// How far the grid's focus ring is inset into the pane (doc 16a §6.21: 1 px).
@@ -148,7 +159,7 @@ impl TableUi {
                 .iter()
                 .position(|s| table.columns[*s].key == *k)
                 .map(|i| (i, nav.descending)),
-            SortBy::Label => None,
+            SortBy::Label | SortBy::Order => None,
         };
         let columns: Vec<Column> = shown
             .iter()
@@ -189,6 +200,7 @@ impl TableUi {
             edit_id: table_id.with("edit"),
             events,
             painted: 0,
+            cursor_rect: None,
         };
         let column_ids: Vec<(egui::Id, String)> = shown
             .iter()
@@ -242,6 +254,7 @@ impl TableUi {
             }
         });
         self.painted = delegate.painted;
+        let anchor = delegate.cursor_rect;
         // Doc 16a §6.21 (FT-532): the grid is the focusable node, so while it has the keyboard the focus ring of §6.1
         // (2-px `color.focus`, `radius.sm`) is drawn around the whole grid, inset 1 px into the pane.
         if focused {
@@ -252,7 +265,161 @@ impl TableUi {
                 StrokeKind::Inside,
             );
         }
+        self.chooser_list(ui, nav, anchor, events);
         true
+    }
+
+    /// The chooser list of `strip.add_accessory` (WP-S2.07 §6.5; doc 16a §6.22): a popup under the cursor row in
+    /// `color.surface.raised`, `elevation.1`, `radius.md`, `space.2` padding, `size.chooser` wide; rows of `size.row`
+    /// with the 16-px kind icon in `color.text.secondary`, the part in `type.body` and the accessory's kind word
+    /// right-aligned in `type.small` `color.text.tertiary`; the active row has the hover overlay; a last line of key
+    /// chips.
+    fn chooser_list(&mut self, ui: &mut Ui, nav: &Navigator, anchor: Option<Rect>, events: &mut Vec<Event>) {
+        let Some(ch) = nav.table_mode().and_then(|m| m.chooser()) else {
+            self.chooser_for = None;
+            return;
+        };
+        if self.chooser_for.as_deref() != Some(ch.row.as_str()) {
+            self.chooser_for = Some(ch.row.clone());
+            self.chooser_active = 0;
+        }
+        let n = ch.items.len();
+        if n == 0 {
+            return;
+        }
+        let pick = |events: &mut Vec<Event>, i: usize| {
+            events.push(Event::Action(
+                "strip.add_accessory",
+                json!({"kind": ch.kind, "part": ch.items[i].1}),
+            ));
+        };
+        // The keys (§6.22): Up and Down wrap, Home, End, Enter picks, Escape closes.
+        let pressed = |k: Key| ui.ctx().input_mut(|i| i.consume_key(Modifiers::NONE, k));
+        if pressed(Key::ArrowDown) {
+            self.chooser_active = (self.chooser_active + 1) % n;
+        } else if pressed(Key::ArrowUp) {
+            self.chooser_active = (self.chooser_active + n - 1) % n;
+        } else if pressed(Key::Home) {
+            self.chooser_active = 0;
+        } else if pressed(Key::End) {
+            self.chooser_active = n - 1;
+        } else if pressed(Key::Enter) {
+            pick(events, self.chooser_active.min(n - 1));
+            return;
+        } else if pressed(Key::Escape) {
+            events.push(Event::Action("ui.dismiss", Value::Null));
+            return;
+        }
+        let active = self.chooser_active.min(n - 1);
+        let t = crate::theme::current(ui.ctx());
+        let bound = ui.ctx().content_rect();
+        let width = t.size_chooser_max_width.min(bound.width());
+        let rows = n.min(t.size_chooser_rows as usize);
+        let max_height = t.size_row * rows as f32;
+        let at = anchor.map_or(bound.center(), |r| r.left_bottom() + vec2(0.0, t.space_2));
+        let list_id = ui.scope_id().with(("strip-chooser", nav.kind.word()));
+        let word = ew_viewmodel::ew_api::output::accessory_kind_word(&ch.kind);
+        let question = strings::text("chooser-accessory-part");
+        egui::Area::new(list_id.with("area"))
+            .order(egui::Order::Foreground)
+            .fixed_pos(at)
+            .constrain_to(bound)
+            .show(ui.ctx(), |ui| {
+                crate::components::card_frame(&t)
+                    .fill(t.surface_raised.color32())
+                    .corner_radius(theme::radius(t.radius_md))
+                    .shadow(theme::shadow(&t.elevation_1))
+                    .inner_margin(egui::Margin::same(t.space_2 as i8))
+                    .show(ui, |ui| {
+                        let inner = width - 2.0 * (t.space_2 + t.border_width);
+                        ui.set_width(inner);
+                        let list_rect = Rect::from_min_size(ui.max_rect().min, vec2(inner, max_height));
+                        let list = ui.interact(list_rect, list_id, Sense::hover());
+                        list.widget_info(|| egui::WidgetInfo::labeled(egui::Role::ListBox, true, question));
+                        ui.scope_builder(egui::UiBuilder::new().accessibility_parent(list_id), |ui| {
+                            egui::ScrollArea::vertical()
+                                .id_salt(("strip-chooser-scroll", nav.kind.word()))
+                                .max_height(max_height)
+                                .show(ui, |ui| {
+                                    ui.spacing_mut().item_spacing.y = 0.0;
+                                    for (i, (text, _)) in ch.items.iter().enumerate() {
+                                        let selected = i == active;
+                                        let (r, response) = ui.allocate_exact_size(
+                                            vec2(ui.available_width(), t.size_row),
+                                            Sense::click(),
+                                        );
+                                        let name = text.clone();
+                                        response.widget_info(|| {
+                                            egui::WidgetInfo::selected(
+                                                egui::Role::ListBoxOption,
+                                                true,
+                                                selected,
+                                                &name,
+                                            )
+                                        });
+                                        ui.ctx().accesskit_node_builder(response.id, |node| {
+                                            node.set_selected(selected);
+                                            node.set_position_in_set(i + 1);
+                                            node.set_size_of_set(n);
+                                        });
+                                        if selected || response.hovered() {
+                                            ui.painter().rect_filled(
+                                                r,
+                                                theme::radius(t.radius_sm),
+                                                t.state_hover.color32(),
+                                            );
+                                        }
+                                        let icon = Rect::from_center_size(
+                                            pos2(r.left() + t.space_2 + t.icon_sm / 2.0, r.center().y),
+                                            vec2(t.icon_sm, t.icon_sm),
+                                        );
+                                        icons::paint(
+                                            ui.painter(),
+                                            IconId::package,
+                                            icon,
+                                            t.text_secondary.color32(),
+                                            t.icon_stroke,
+                                        );
+                                        let kind = text_width(ui, word, theme::font(&t.type_small));
+                                        let text_rect = Rect::from_min_max(
+                                            pos2(icon.right() + t.space_2, r.top()),
+                                            pos2(r.right() - kind - 2.0 * t.space_2, r.bottom()),
+                                        );
+                                        paint_text(
+                                            ui,
+                                            text_rect,
+                                            text,
+                                            theme::font(&t.type_body),
+                                            t.text_primary,
+                                        );
+                                        let word_rect = Rect::from_min_max(
+                                            pos2(r.right() - kind - t.space_2, r.top()),
+                                            pos2(r.right() - t.space_2, r.bottom()),
+                                        );
+                                        paint_text(
+                                            ui,
+                                            word_rect,
+                                            word,
+                                            theme::font(&t.type_small),
+                                            t.text_tertiary,
+                                        );
+                                        if selected {
+                                            response.scroll_to_me(None);
+                                        }
+                                        if response.clicked() {
+                                            pick(events, i);
+                                        }
+                                    }
+                                });
+                        });
+                        ui.add_space(t.space_2);
+                        ui.horizontal(|ui| {
+                            for chip in ["\u{2191} \u{2193}", "Enter", "Esc"] {
+                                crate::components::key_chip(ui, chip);
+                            }
+                        });
+                    });
+            });
     }
 }
 
@@ -408,6 +575,10 @@ pub(crate) fn keys(ui: &Ui, nav: &Navigator, card: bool, events: &mut Vec<Event>
     let (Some(table), Some(mode)) = (nav.table(), nav.table_mode()) else {
         return;
     };
+    // WP-S2.07 §6.5: the chooser list has the keys while it is open (`TableUi::chooser_list`).
+    if mode.chooser().is_some() {
+        return;
+    }
     let shown = mode.shown_columns(table);
     let rows = nav.visible();
     let pressed = |m: Modifiers, k: Key| ui.ctx().input_mut(|i| i.consume_key(m, k));
@@ -504,13 +675,24 @@ fn paint_text(ui: &Ui, rect: Rect, text: &str, font: FontId, colour: Rgba) -> f3
 /// wide as `content` (the unwrapped content's width) plus `space.4` on either side when that is wider, so that a
 /// column starts at `size.table_column` and fits its widest cell on show (doc 16a §6.21; as built every column
 /// shrank to its 40-px minimum).
-fn cell_rect(ui: &Ui, t: &Tokens, content: impl FnOnce() -> f32) -> Rect {
+fn cell_rect(ui: &Ui, t: &Tokens, key: &str, content: impl FnOnce() -> f32) -> Rect {
     let rect = ui.max_rect();
     if ui.is_sizing_pass() {
-        let width = (content() + 2.0 * t.space_4).max(t.size_table_column);
+        let width = (content() + 2.0 * t.space_4).max(start_width(t, key));
         Rect::from_min_size(rect.min, vec2(width, rect.height()))
     } else {
         rect
+    }
+}
+
+/// The width a column starts at before its content widens it: `size.table_column`, except the strip editor's Pos
+/// column (WP-S2.07 D2), a short number like a row gutter, which starts at `size.table_column.min` so that it does not
+/// push the Terminal column out of a narrow pane.
+fn start_width(t: &Tokens, key: &str) -> f32 {
+    if key == "pos" {
+        t.size_table_column_min
+    } else {
+        t.size_table_column
     }
 }
 
@@ -558,6 +740,8 @@ struct Delegate<'a> {
     edit_id: egui::Id,
     events: &'a mut Vec<Event>,
     painted: usize,
+    /// The cursor row's key cell as painted this frame (the chooser list opens under it).
+    cursor_rect: Option<Rect>,
 }
 
 impl Delegate<'_> {
@@ -647,7 +831,7 @@ impl TableDelegate for Delegate<'_> {
         let derived = column.derived.then_some((IconId::math_function, t.text_tertiary));
         let icons: Vec<(IconId, Rgba)> = icon.into_iter().chain(derived).collect();
         let icon_room = icons.len() as f32 * (t.icon_sm + t.space_2);
-        let rect = cell_rect(ui, &t, || {
+        let rect = cell_rect(ui, &t, &column.key, || {
             text_width(ui, &column.label, small_strong(&t)) + icon_room
         });
         let response = ui.allocate_rect(rect, Sense::click());
@@ -763,11 +947,15 @@ impl TableDelegate for Delegate<'_> {
         }
         let is_cursor = self.cursor == Some((at, cell.col_nr));
         let on_cursor_row = self.cursor.is_some_and(|(r, _)| r == at);
-        let rect = cell_rect(ui, &t, || text_width(ui, &text, theme::font(&t.type_small)));
+        let rect = cell_rect(ui, &t, &column.key, || {
+            text_width(ui, &text, theme::font(&t.type_small))
+        });
         let response = ui.allocate_rect(rect, Sense::click());
         // Doc 16a §6.21: text in `type.small`, primary (a derived cell secondary), `space.4` padding, cut with an
         // ellipsis at the column (W31-3).
-        let colour = if column.derived {
+        // WP-S2.07 part 1: an accessory row's texts are secondary, except its editable Part cell.
+        let accessory = node.role == NavRole::Accessory && reason.is_some();
+        let colour = if column.derived || accessory {
             t.text_secondary
         } else {
             t.text_primary
@@ -779,6 +967,7 @@ impl TableDelegate for Delegate<'_> {
         // the grid's focus ring (inset `RING_INSET`, `focus_width` wide), in the same place whether or not the grid has
         // the keyboard, so the two never overlap and nothing moves when the focus does (cycle-33 ruling).
         if on_cursor_row && cell.col_nr == 0 {
+            self.cursor_rect = Some(rect);
             let left = rect.left() + RING_INSET + t.focus_width;
             let bar = Rect::from_min_max(
                 pos2(left, rect.top() + t.space_2),

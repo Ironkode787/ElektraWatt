@@ -36,6 +36,10 @@ fn table(tmp: &Tmp, kind: &str, filter: &str) -> Harness<'static, App> {
     let shell = h.state_mut().shell_mut();
     done(shell, "navigator.show", json!({ "kind": kind }));
     done(shell, "navigator.table", json!({ "kind": kind }));
+    if kind == "strips" {
+        // WP-S2.07's Pos column is hidden: these checks are WP-S2.06's grid in its as-built layout.
+        done(shell, "table.columns", json!({"kind": kind, "hide": ["pos"]}));
+    }
     done(shell, "navigator.filter", json!({"kind": kind, "text": filter}));
     done(shell, "ui.focus", json!({"area": "navigator", "kind": kind}));
     settle(&mut h);
@@ -120,7 +124,8 @@ fn tb7_the_key_column_stays_while_the_table_scrolls_right() {
             .unwrap()
             .cursor_cell()
             .map(|c| c.1),
-        Some(9),
+        // WP-S2.07 part 1: State is the table's column 11 (Pos and Bridge part came before it).
+        Some(11),
         "the cursor is on the last column"
     );
     assert!(state(&h), "State scrolled into view");

@@ -144,7 +144,7 @@ pub struct TableMode {
     /// The pattern fill dialog's pattern, while the dialog is open.
     pub(crate) pattern: Option<String>,
     /// WP-S2.07 §6.5: the chooser list of `strip.add_accessory` while several parts fit (doc 16a §6.22).
-    pub(crate) chooser: Option<Chooser>,
+    pub(crate) chooser: Option<Box<Chooser>>,
 }
 
 /// The chooser list of `strip.add_accessory` (WP-S2.07 §6.5; doc 16a §6.22, its first use): open at a row while
@@ -168,7 +168,7 @@ impl TableMode {
 
     /// The chooser list, while it is open (WP-S2.07 §6.5).
     pub fn chooser(&self) -> Option<&Chooser> {
-        self.chooser.as_ref()
+        self.chooser.as_deref()
     }
 
     /// The error under the edited cell.

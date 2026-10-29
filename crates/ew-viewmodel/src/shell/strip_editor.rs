@@ -674,7 +674,7 @@ impl ShellModel {
                         .generic_mut(NavKind::Strips)
                         .and_then(|n| n.table_mode.as_mut())
                     {
-                        m.chooser = Some(Chooser { row, kind, items });
+                        m.chooser = Some(Box::new(Chooser { row, kind, items }));
                         return Outcome::Done;
                     }
                 }

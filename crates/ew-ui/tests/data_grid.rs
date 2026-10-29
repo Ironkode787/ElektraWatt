@@ -48,6 +48,8 @@ fn strips_in(tmp: &Tmp, density: Option<&str>) -> Harness<'static, App> {
     done(shell, "props.show", json!({"on": false}));
     done(shell, "navigator.show", json!({"kind": "strips"}));
     done(shell, "navigator.table", json!({"kind": "strips"}));
+    // WP-S2.07's Pos column is hidden: these checks are WP-S2.06's grid in its as-built layout.
+    done(shell, "table.columns", json!({"kind": "strips", "hide": ["pos"]}));
     done(
         shell,
         "navigator.filter",
@@ -356,7 +358,13 @@ fn cell(h: &Harness<'static, App>, column: &str, row: usize) -> egui::Rect {
                 .label()
                 .is_some_and(|l| l.starts_with(&column) && l.contains(&row))
         })
-        .unwrap_or_else(|| panic!("the cell {column}{row}"))
+        .unwrap_or_else(|| {
+            let cells: Vec<String> = h
+                .get_all_by_role(egui::Role::Cell)
+                .filter_map(|n| n.accesskit_node().label())
+                .collect();
+            panic!("the cell {column}{row} among {cells:?}")
+        })
         .rect()
 }
 

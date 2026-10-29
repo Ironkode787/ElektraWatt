@@ -601,6 +601,8 @@ fn dk12_the_data_grid_in_light_and_dark_at_both_densities() {
                 ("props.show", json!({"on": false})),
                 ("navigator.show", json!({"kind": "strips"})),
                 ("navigator.table", json!({"kind": "strips"})),
+                // WP-S2.07's Pos column is hidden: this image is WP-S2.06's grid in its as-built layout.
+                ("table.columns", json!({"kind": "strips", "hide": ["pos"]})),
                 ("navigator.filter", json!({"kind": "strips", "text": "x1031"})),
                 ("navigator.sort", json!({"kind": "strips", "by": "terminal"})),
             ] {

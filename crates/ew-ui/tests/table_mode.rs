@@ -81,7 +81,11 @@ fn copy_and_paste_events_run_the_table_actions() {
             _ => None,
         })
         .expect("the frame hands the TSV to the system clipboard");
-    assert!(copied.starts_with("Strip\tTerminal\tFunction text\t"), "{copied}");
+    // WP-S2.07 part 1: the Pos column after the key column.
+    assert!(
+        copied.starts_with("Strip\tPos\tTerminal\tFunction text\t"),
+        "{copied}"
+    );
     assert_eq!(copied.lines().count(), 2, "the header and the cursor row");
     settle(&mut h);
     let rev = h.state().shell().revision();
@@ -159,6 +163,122 @@ fn ft509_every_tab_of_the_left_dock_is_reachable() {
     assert_eq!(
         h.state().dock_active_beside(PaneKind::Pages),
         Some(PaneKind::Navigator(NavKind::Devices))
+    );
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// The key of the Terminal strips row on show whose cell in column `label` is `text`.
+fn strips_row(shell: &ShellModel, label: &str, text: &str) -> String {
+    let n = shell.nav(NavKind::Strips).expect("the navigator");
+    let t = n.table().expect("its table");
+    let c = t
+        .columns
+        .iter()
+        .position(|c| c.label == label)
+        .expect("the column");
+    n.visible()
+        .iter()
+        .map(|r| &t.nodes[r.node as usize])
+        .find(|node| node.cells[c] == text)
+        .unwrap_or_else(|| panic!("no row with {label} {text}"))
+        .key
+        .clone()
+}
+
+/// The text of the cell in column `label` of row `key`.
+fn strips_cell(shell: &ShellModel, key: &str, label: &str) -> String {
+    let n = shell.nav(NavKind::Strips).expect("the navigator");
+    let t = n.table().expect("its table");
+    let c = t
+        .columns
+        .iter()
+        .position(|c| c.label == label)
+        .expect("the column");
+    t.nodes.iter().find(|x| x.key == key).expect("the row").cells[c].clone()
+}
+
+/// WP-S2.07 part 1 in the window (SE15's walker, §6.5): the strip editor on -X1031 is the Terminal strips grid; an
+/// accessory row is a row of the grid (its cells named like a terminal row's); with two end-bracket parts in the
+/// project, Add accessory opens the chooser list (a `ListBox` named "Choose the part", its rows `ListBoxOption`s with
+/// position and set size), Down and Enter pick the second part (one `fields.set` of `strip.accessories`), and the list
+/// closes; the accessible-name walker after every step.
+#[test]
+fn se15_the_strip_editor_and_its_chooser_list() {
+    let tmp = Tmp::new();
+    let mut h = window(&tmp);
+    // A second end bracket, so that Add accessory has to ask.
+    let csv = tmp.0.join("brackets.csv");
+    std::fs::write(
+        &csv,
+        "key,manufacturer,part_number,kind,type_designation,description,unit,test_data,tech_data\n\
+         ACME end bracket,ACME,EB-1,end_bracket,,End bracket,piece,,\n",
+    )
+    .expect("the parts table");
+    {
+        let shell = h.state_mut().shell_mut();
+        done(shell, "parts.import", json!({"path": csv.to_string_lossy()}));
+        done(shell, "preview.apply", json!({}));
+        done(shell, "strip.edit", json!({"strip": "-X1031"}));
+        let k20 = strips_row(shell, "Terminal", "20");
+        done(shell, "table.cell", json!({"kind": "strips", "row": k20}));
+    }
+    settle(&mut h);
+    support::assert_named(&h);
+    // Add accessory: two parts fit, the chooser list opens at the row.
+    let rev = h.state().shell().revision();
+    done(h.state_mut().shell_mut(), "strip.add_accessory", json!({}));
+    settle(&mut h);
+    support::assert_named(&h);
+    assert_eq!(h.state().shell().revision(), rev, "nothing committed yet");
+    let items = h
+        .state()
+        .shell()
+        .nav(NavKind::Strips)
+        .and_then(|n| n.table_mode())
+        .and_then(|m| m.chooser())
+        .expect("the chooser list")
+        .items
+        .clone();
+    assert_eq!(items.len(), 2, "{items:?}");
+    let list = h.get_by_label("Choose the part");
+    assert_eq!(list.accesskit_node().role(), egui::accesskit::Role::ListBox);
+    for (i, (text, _)) in items.iter().enumerate() {
+        let option = h.get_by_label(text);
+        let node = option.accesskit_node();
+        assert_eq!(node.role(), egui::accesskit::Role::ListBoxOption);
+        assert_eq!(node.position_in_set(), Some(i + 1));
+        assert_eq!(node.size_of_set(), Some(2));
+        assert_eq!(
+            node.is_selected() == Some(true),
+            i == 0,
+            "the first row is active"
+        );
+    }
+    // Down, Enter: the second part.
+    h.key_press(egui::Key::ArrowDown);
+    settle(&mut h);
+    h.key_press(egui::Key::Enter);
+    settle(&mut h);
+    support::assert_named(&h);
+    assert_eq!(h.state().shell().revision(), rev.map(|r| r + 1), "one step");
+    let last = h
+        .state()
+        .shell()
+        .recorded_commands()
+        .last()
+        .expect("the commit")
+        .clone();
+    assert_eq!(last.cmd, "fields.set", "{}", last.params);
+    assert_eq!(last.params["path"], "strip.accessories");
+    assert!(h.query_by_label("Choose the part").is_none(), "the list closed");
+    let shell = h.state().shell();
+    let acc = strips_row(shell, "Pos", "20.1");
+    let number = items[1].0.split(" (").next().expect("the part number");
+    assert_eq!(strips_cell(shell, &acc, "Part"), number);
+    // The accessory row is a row of the grid: its cells are named like a terminal row's.
+    assert!(
+        h.query_by_label_contains("Pos 20.1, row 21 of 21").is_some(),
+        "the accessory row's Pos cell"
     );
     h.state_mut().shell_mut().shutdown();
 }
