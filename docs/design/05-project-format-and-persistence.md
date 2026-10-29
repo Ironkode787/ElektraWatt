@@ -1,6 +1,6 @@
 # Project format and persistence
 
-**Status:** Draft v0.3 · Amended 2026-10-28, cycle 30: the journal recovery dialog as built, §8.3, decision log ID-714, ID-715. · Amended 2026-10-26, cycle 28: accepted implementation; final local validation and publication status in ID-665; hosted CI pending at publication; hold after delivery; scoped follow-ups (ID-659 to ID-666); merged references/raster validation and accepted window corrections recorded; scoped Windows window checks passed. · **Date:** 2026-10-21 (amended 2026-10-25, cycle 27: the page-item records as written and an older build's lines rewritten canonically, §2.2, §10.3, decision log ID-647; the project fragment, §12, ID-648; the parts import's copies, §13.2, ID-651; amended 2026-10-24, cycle 24: the purge command (`HumanOnly`, the data-safety rules of lane C's fix round, ID-620), the export's image findings, the SVG hazard checks, the drawn image subset and the mechanical asset-presence guard as built, §13.3, decision log ID-605; amended 2026-10-23, cycle 23: the asset store as built and the rule that a save never removes an asset file, §13.3; the asset temps, the journal's assets and the logo reference form, §2.1, §8.1, §10.3, §17.2; `page_item` and `structure_box` specified and implemented additively under ADR-0011 amendment 4, §2.2, §10.3, decision log ID-566, ID-573 to ID-575; amended 2026-10-22, cycle 22: the members written by the four commands of FT-336 stay in `extra`, no schema change, §10.3, §17.2, decision log ID-545, ID-547; amended 2026-10-22, cycle 19: the journal kept on a dirty exit and the shell's read-only open with the recovery banner, §8.1, §8.3, decision log ID-475; the replay on a moved base and a removed library copy that a `LibRef` still names, §8.2 step 4, ID-479; amended 2026-10-22, cycle 17: the typed `revision` kind and the open failure of old revision files that break an invariant, §10.3, decision log ID-428; v0.3, cycle 13: the member order of the flattened device aspects as built, §3.1, decision log ID-337; additive implementation of reserved kinds, §10.3, ID-334; v0.2: the persistence core as built and reviewed in cycle 8,
+**Status:** Draft v0.3 · Amended 2026-10-29, cycle-34 design pass, WP-S1.19 part 1 as built: `macro_instance`, `macro` and `manufacturer` implemented, a part copy with `mech`, the typed part members within 0.1 and manufacturer and macro copies, §2.2, §3.5, §10.3, §13.2, decision log ID-334, ID-783. · Amended 2026-10-28, cycle 30: the journal recovery dialog as built, §8.3, decision log ID-714, ID-715. · Amended 2026-10-26, cycle 28: accepted implementation; final local validation and publication status in ID-665; hosted CI pending at publication; hold after delivery; scoped follow-ups (ID-659 to ID-666); merged references/raster validation and accepted window corrections recorded; scoped Windows window checks passed. · **Date:** 2026-10-21 (amended 2026-10-25, cycle 27: the page-item records as written and an older build's lines rewritten canonically, §2.2, §10.3, decision log ID-647; the project fragment, §12, ID-648; the parts import's copies, §13.2, ID-651; amended 2026-10-24, cycle 24: the purge command (`HumanOnly`, the data-safety rules of lane C's fix round, ID-620), the export's image findings, the SVG hazard checks, the drawn image subset and the mechanical asset-presence guard as built, §13.3, decision log ID-605; amended 2026-10-23, cycle 23: the asset store as built and the rule that a save never removes an asset file, §13.3; the asset temps, the journal's assets and the logo reference form, §2.1, §8.1, §10.3, §17.2; `page_item` and `structure_box` specified and implemented additively under ADR-0011 amendment 4, §2.2, §10.3, decision log ID-566, ID-573 to ID-575; amended 2026-10-22, cycle 22: the members written by the four commands of FT-336 stay in `extra`, no schema change, §10.3, §17.2, decision log ID-545, ID-547; amended 2026-10-22, cycle 19: the journal kept on a dirty exit and the shell's read-only open with the recovery banner, §8.1, §8.3, decision log ID-475; the replay on a moved base and a removed library copy that a `LibRef` still names, §8.2 step 4, ID-479; amended 2026-10-22, cycle 17: the typed `revision` kind and the open failure of old revision files that break an invariant, §10.3, decision log ID-428; v0.3, cycle 13: the member order of the flattened device aspects as built, §3.1, decision log ID-337; additive implementation of reserved kinds, §10.3, ID-334; v0.2: the persistence core as built and reviewed in cycle 8,
 ADR-0010 amendment 3, decision log ID-200 to ID-217; cycle 11: journal granularity of `project.settings.set`, Golden B1 files, ID-290) · **Part of:** ElektraWatt design document set
 
 > **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
@@ -217,6 +217,19 @@ of the golden project (Golden A has neither kind; IDs shortened, the connection 
   by the derivation and the drawing, and the project opens; the next edit of that marker writes a clean list.
 - **Migration test.** A page file that holds both kinds and an unknown `page_item` variant is read and written back byte
   for byte (an unknown variant is `Unknown(Value)`, written back unchanged, §10.3). *As built (cycle 27, decision log ID-647):* that file round-trips byte for byte; the same records as a build before part 4a wrote them (reserved kinds, so every object's members in byte-wise order) load typed with a `NonCanonical` finding and are rewritten in the typed kinds' member order (§10.3; the revision precedent, FT-165). `free_text.text` is omitted when empty, `arc.start` when 0 and `$v` when 1, so an explicit `"$v": 1` is not canonical.
+
+**`macro_instance`, `macro` and `manufacturer`** (as built, cycle 34, WP-S1.19 part 1; decision log ID-334, ID-783).
+The three kinds turn `Implemented`, each at schema version 1, under the same rule (ADR-0011 amendment 4, §10.3 rule 2):
+`schemas/0.1` is re-blessed with the new `macro.schema.json`, `macro_instance.schema.json` and
+`manufacturer.schema.json`, no format and no `$v` bump, no `required` list changed and no property removed.
+- **`macro_instance`** (rank 46) lives in the page file of its `page` member, the anchor page:
+  `{"$k", "id", "$v"?, "macro", "variant", "value_set"?, "values"?, "members"?, "page"}`, where `macro` is the macro
+  copy's ID and `members` a list of `[fragment-local ID, created ID]` pairs ([03](03-domain-model.md) §7). Its links:
+  `page` cascade, `macro` forbid, `members[][1]` a kind-erased unlink (a deleted member leaves the list; the instance
+  stays). An older 0.1 build keeps its lines verbatim as a reserved kind and does not apply these links.
+- **`macro` and `manufacturer`** are library copies under `lib/macros/` and `lib/manufacturers/`, one pretty document
+  each (§3.4), read and written and hashed like the other library kinds (§13.2).
+- **`placeholder_group`** (rank 47) stays reserved (WP-S1.19 D15).
 
 Channel IDs are `v5(module, "channel", number)` ([10](10-plc-and-bus.md) §2.4, ADR-0004 amendment 2), so a channel
 keeps its file and line position however often its module is re-addressed.
@@ -506,6 +519,45 @@ copy of that item under `lib/manufacturers/` ([07](07-symbols-parts-macros.md) �
 ```
 
 `meta` is the part's provenance object (§3.4); the part's version is the copy metadata `version` alone.
+
+**A part with `mech`** (as built, cycle 34, WP-S1.19 part 1; decision log ID-334, ID-783). Golden A's part copies
+carry no L3 data, so this excerpt is the `ew-format` test fixture of 2904602 (dimensions and offsets are test values,
+not checked against a datasheet), with an alternative and a macro link; library IDs and the hash abbreviated. Lengths
+are nanometres, the mass grams. The typed members follow `cp_pattern` in the order of
+[07](07-symbols-parts-macros.md) §2.5 (`contacts`, `mech`, `sections`, `alternatives`, `configured`, `macros`). The
+line breaks follow §3.4, except that the abbreviated `LibRef` objects are shown inline: with their full IDs they
+exceed 100 bytes and the writer breaks them over lines.
+
+```json
+{
+  "$k": "part",
+  "id": "e5d2a8f1-0c37-5b94-8e6a-4f1d93c7b025",
+  "library_id": "6a1d0f3e-…",
+  "item_id": "8b42c7d9-…",
+  "version": "1.2.0",
+  "sha256": "sha256:…",
+  "meta": {"key": "pxc.2904602", "licence": "CC0-1.0"},
+  "manufacturer": {"library": "6a1d0f3e-…", "item": "0f7b2c94-…", "version_req": "^1"},
+  "part_number": "2904602",
+  "description": {"en-GB": "Power supply 1 AC / 24 V DC, 20 A"},
+  "cp_pattern": [{"idx": 0, "designation": "L"}, {"idx": 1, "designation": "N"}],
+  "mech": {
+    "width": 60000000,
+    "height": 130000000,
+    "depth": 125000000,
+    "mount_kind": "ts35x7_5",
+    "rail_offset": [30000000, 65000000],
+    "clearance": {"top": 50000000, "bottom": 50000000},
+    "front_2d": [[[0, 0], [60000000, 0], [60000000, 130000000], [0, 130000000]]],
+    "mass": 1100
+  },
+  "alternatives": [{"part": {"library": "6a1d0f3e-…", "item": "…", "version_req": "^1"}, "kind": "successor"}],
+  "macros": [{"rep_type": "multi_line", "macro": {"library": "6a1d0f3e-…", "item": "…", "version_req": "^1"}}]
+}
+```
+
+A clearance side that is absent is 0. A copy that an older build wrote with `mech` in `extra` (members in byte-wise
+order) is read typed, reported not canonical and rewritten in this order at the next save (§10.3).
 
 ### 3.6 Loader limits
 
@@ -1081,7 +1133,14 @@ amendment 1):
 1. **New members** are optional with a default, are **appended** after the existing members of their kind, and
    carry `since = "1.n"`, which feeds `min_reader`.
 2. **New kinds** take a new rank and declare their ownership.
-   *As built (cycle 13; decision log ID-334, ADR-0011 amendment 4).* A kind that the registry already reserves with a rank and ownership (§2.2), and a device aspect or part section that this document already names, may get its typed table within the current unreleased 0.x format: no format bump, no `$v` bump, and `schemas/0.1` is re-blessed. This is additive. An older 0.1 build keeps such records verbatim (a reserved kind, ID-206) or their members in `extra`, but it does not enforce their links: an older build that deletes a module leaves its channels dangling (FT-229 reports them, FT-230 tests that case). *Cycle 15 (decision log ID-378):* the typed assembly aspect adds the unlink cascade of `configs[].covers[]` and the forbid link of `configs[].part.copy`. An older 0.1 build that deletes a covered device leaves a dangling cover, and `Model::from_records` then refuses the project (`OpenError::Model`); the current build must open it, report the dangling cover and then unlink it (FT-266, the analogue of FT-229 and FT-230). Exposure is nil: no earlier build wrote covers. *Cycle 17 (decision log ID-428, FT-165):* the reserved kind `revision` (rank 60, `revisions.jsonl`) is typed. A `revisions.jsonl` of an earlier build opens as typed records with every member kept, is reported not canonical (info) and is rewritten at the next save; one whose revisions break EW-INV-016, EW-INV-018 or EW-INV-019 fails to open with `OpenError::Model`, accepted for the unreleased 0.1 because no released build wrote revisions. After a format release, typing a reserved kind that adds cascade links or other semantics an older reader must apply is a minor bump that raises `min_reader`; typing without such semantics stays additive. Precedent: FT-84, decision log ID-197. *Cycle 23 (decision log ID-566):* the rule applies again to the reserved kinds `page_item` and `structure_box` (§2.2). An older 0.1 build keeps their records verbatim and does not enforce their delete links (the cascade of a deleted page, the wire marker's connection list), so the current build opens a project whose marker lists a deleted connection or one on another page, reports it and ignores the stale entry; it neither refuses the project nor rewrites the record.
+   *As built (cycle 13; decision log ID-334, ADR-0011 amendment 4).* A kind that the registry already reserves with a rank and ownership (§2.2), and a device aspect or part section that this document already names, may get its typed table within the current unreleased 0.x format: no format bump, no `$v` bump, and `schemas/0.1` is re-blessed. This is additive. An older 0.1 build keeps such records verbatim (a reserved kind, ID-206) or their members in `extra`, but it does not enforce their links: an older build that deletes a module leaves its channels dangling (FT-229 reports them, FT-230 tests that case). *Cycle 15 (decision log ID-378):* the typed assembly aspect adds the unlink cascade of `configs[].covers[]` and the forbid link of `configs[].part.copy`. An older 0.1 build that deletes a covered device leaves a dangling cover, and `Model::from_records` then refuses the project (`OpenError::Model`); the current build must open it, report the dangling cover and then unlink it (FT-266, the analogue of FT-229 and FT-230). Exposure is nil: no earlier build wrote covers. *Cycle 17 (decision log ID-428, FT-165):* the reserved kind `revision` (rank 60, `revisions.jsonl`) is typed. A `revisions.jsonl` of an earlier build opens as typed records with every member kept, is reported not canonical (info) and is rewritten at the next save; one whose revisions break EW-INV-016, EW-INV-018 or EW-INV-019 fails to open with `OpenError::Model`, accepted for the unreleased 0.1 because no released build wrote revisions. After a format release, typing a reserved kind that adds cascade links or other semantics an older reader must apply is a minor bump that raises `min_reader`; typing without such semantics stays additive. Precedent: FT-84, decision log ID-197. *Cycle 23 (decision log ID-566):* the rule applies again to the reserved kinds `page_item` and `structure_box` (§2.2). An older 0.1 build keeps their records verbatim and does not enforce their delete links (the cascade of a deleted page, the wire marker's connection list), so the current build opens a project whose marker lists a deleted connection or one on another page, reports it and ignores the stale entry; it neither refuses the project nor rewrites the record. *Cycle 34 (WP-S1.19 part 1; decision log ID-783):* the rule
+   applies to the reserved kinds `macro_instance`, `macro` and `manufacturer` (§2.2) and to the part members of
+   [07](07-symbols-parts-macros.md) §2.5 that the document already named. The new part members take their places in
+   07 §2.5's member order rather than being appended (WP-S1.19 D2), which is possible only while 0.1 is unreleased: a
+   part copy of an older build that carries them in `extra` is read typed, reported not canonical (info) and rewritten
+   in the typed order at the next save, with its stored `sha256` kept, so EW-CORE-014 reports the copy where the
+   canonical order differs; this is accepted within 0.1 (ID-334). Golden A carries none of the new members, so no
+   golden copy hash moved.
 3. **Enums.** Every persisted enum has an `Unknown(serde_json::Value)` catch-all, so adding a variant is additive.
    Derivations treat `Unknown` conservatively: an unknown connection kind joins no net and is drawn grey and dashed.
    It blocks release where it affects outputs, as here (EW-CORE-016).
@@ -1408,6 +1467,13 @@ Libraries are `.ewlib` text directories in the project format at every tier
     with `library_id` = the project ID. The "QET import" library's human key is `qet-import`; the importer
     receives the project ID as `ImportCx.project` ([14](14-interop.md) §2.1), because importers never read the
     model (decision log ID-24).
+  - Manufacturer and macro copies (as built, cycle 34, WP-S1.19 part 1; decision log ID-783) follow the same
+    identity, metadata and hash rules under `lib/manufacturers/` and `lib/macros/`. `library.embed` embeds them with
+    the checks of parts, symbols, FnDefs and forms (a copy listed twice, copy identity, hash, an edited member, a
+    project-local item), refuses one that is already held; `edit.paste` refuses a fragment that carries either kind, since a fragment's
+    closure names neither. A
+    part's `manufacturer` `LibRef` is not yet resolved to the embedded manufacturer copy (WP-S1.19 part 3); a
+    `macro_instance` names its macro copy by copy ID, a forbid link (§2.2).
   - Project-local part copies made by the parts import (FT-410; decision log ID-651) take the IDs the golden emitter mints: `library_id` = the project ID, `item_id` = `v5(ns, "parts|{key}")` from the part's key in the namespace of `ew-import-tables`' bootstrap, so an import and the bootstrap give the same copy; `meta.source` is the file's base name, no import date is stored (FR-PRT-017's reading, [02a](02a-requirements-core.md)), and an absent licence is `NOASSERTION`. `library.embed` still refuses project-local items.
 - **Metadata** is `{library_id, item_id, version, sha256}` (ARCH §4.2), with `version` the item's semantic version.
   `ItemMeta` carries no `version`. An embedded copy stores the version once, in this metadata; a library record

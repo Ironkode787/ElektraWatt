@@ -1,6 +1,6 @@
 # Symbols, parts and macros
 
-**Status:** Draft v0.1 · **Date:** 2026-10-21 (cycle-12 design pass: typed technical data in slot texts, the two appended symbol slots, decision log ID-314 and ID-315; cycle-11 design pass: symbol rulings for the pilot corpus, decision log ID-294 to ID-296; generated pole-count families, §3.2 rule 10) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-21 (2026-10-29, cycle-34 design pass, WP-S1.19 part 1 as built: the typed part members, manufacturer and macro copies, `MacroInstance`, `Project.basic_project` and `SYSTEM_LIBRARY`, §2.5, §2.7, §2.8, open question 17, decision log ID-334, ID-783; cycle-12 design pass: typed technical data in slot texts, the two appended symbol slots, decision log ID-314 and ID-315; cycle-11 design pass: symbol rulings for the pilot corpus, decision log ID-294 to ID-296; generated pole-count families, §3.2 rule 10) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies ElektraWatt's (EW) master data: symbols and function definitions (FnDefs), the
 parts database, macros with value sets, basic projects (company templates), and the libraries and governance that
@@ -229,8 +229,9 @@ pub enum Primitive { Line, Polyline, Rect{rx, ry, shadow: Option<Nm>}, Circle, E
   and a FnDef must never share one, so FnDefs are keyed `ew.fn.<name>`: the interruption point is the symbol
   `ew.gen.ip` with the FnDef `ew.fn.ip`. Every starter item is version 0.1.0 with status `draft`. Importers
   reference a built-in FnDef by key with `version_req` `^0.1`: `ew-import-qet` has exactly one, `ew.fn.ip`
-  ([14](14-interop.md) §4.3). Until WP-S1.19a names the system library, the starter content and the importer use
-  the provisional `library_id` 7202fd8b-1024-4bf1-9e99-670772eaa589 (open question 17).
+  ([14](14-interop.md) §4.3). The starter content and the importer use the `library_id`
+  7202fd8b-1024-4bf1-9e99-670772eaa589, since cycle 34 the system library's ID `ew_interop_api::SYSTEM_LIBRARY`
+  (open question 17, resolved by WP-S1.19 D4).
 - **Coverage of the pilot corpus** ([23](23-symbol-coverage-pilot-corpus.md)). Against the 81 QET element types that the
   pilot's three real projects use (2,170 placed elements), the 36-symbol starter set covers 37 types and 74 % of the uses,
   two more types (the nomenclature block and a mounting plate) are covered by report blocks and panel layout, 29 types
@@ -411,6 +412,36 @@ Projects embed the manufacturers they use as copies under `lib/manufacturers/` (
 [05](05-project-format-and-persistence.md) §2.2); a part references its manufacturer by `LibRef`, as in the part
 copy example of 05 §3.5.
 
+**As built (cycle 34, WP-S1.19 part 1; decision log ID-334, ID-783).** `ew-schema` types the MVP members of the
+struct above within the unreleased format 0.1 (ADR-0011 amendment 4), in this order: `meta, kind, manufacturer,
+part_number, type_designation, order_number, gtin, description, category, tech_data, free_props, unit, cp_pattern,
+function_template, contacts, mech, sections, alternatives, configured, macros`, then `extra`. The order is fixed now
+(WP-S1.19 D2) because a copy's `sha256` is taken over the item's compact JSON in member order, so a later
+re-ordering would re-hash every existing copy. The members typed in this step:
+
+| Member | As built | Requirement |
+|---|---|---|
+| `contacts` | `Vec<ContactData{kind: ContactKind (the FnDef enum: no, nc, co), cps: Vec<Ident> such as ["13", "14"], seq?: u8, special?: Ident}>` | FR-PRT-009 |
+| `mech` | `MechData{width?, height?, depth?: Nm, mount_kind?: MountKind, rail_offset?: Pt2 (rail pose to part origin), clearance?{top, bottom, left, right, front: Nm, an absent side is 0}, front_2d: Vec<Vec<Pt2>>, mass?: u32 grams}`; `MountKind` is `ts35x7_5, ts35x15, ts32, ts15, screw, busbar_adapter, door_cutout, on_parent, none` | FR-PRT-011 (L3) |
+| `cp_pattern[]` | `CpData` gains, after `clamp`, `clamp_type?: screw \| spring \| push_in \| idc \| ring_stud \| plug`, `csa_min?`, `csa_max?: Dec3` mm², `max_conductors?: u8`, `twin_ferrule: bool` | FR-PRT-008 |
+| `sections` | `PartSections` gains, after `cable_cores` and `plc`, `enclosure?{width, height, depth, wall: Nm, plate?: LibRef}`, `duct?{inner_width, inner_height, slot_pitch}`, `rail?{profile: MountKind, stock_length?}`, `mounting_plate?{width, height, thickness}` | FR-PRT-024 |
+| `alternatives` | `Vec<AlternativeRef{part: LibRef, kind: equivalent \| successor \| approved}>` | FR-PRT-004 |
+| `configured` | `Configured{order_code, components: Vec<{part: LibRef, qty: Dec3}>}` | FR-PRT-006 |
+| `macros` | `Vec<MacroLink{rep_type, macro: LibRef}>` | FR-PRT-027 |
+
+Every new member is optional and default-omitted, every new enum keeps `Unknown(Value)` and every new object its own
+`extra`. The members of the struct that are not in the list (`classification`, `model3d`, `cp3d`, `drilling`,
+`accessories`, `variants`, `commercial`, `logistics`, `docs`, the optional `i_load` of a CP, the thermal, wire,
+ferrule and tube sections) stay in `extra` until their work package types them, at the place this struct gives them.
+The `LibRef`s of these members name library items, not project records: the library resolves them. A copy that an
+older build wrote, with such a member in `extra` (byte-wise member order), opens with the member typed, is reported
+not canonical (info) and is rewritten in the member order above at the next save; its stored `sha256` is kept, so
+EW-CORE-014 reports it where the canonical order differs, which is accepted within 0.1
+([05](05-project-format-and-persistence.md) §10.3). The manufacturer is the kind `manufacturer`, `{meta, key, name:
+MlText, aliases, brands}`, embedded under `lib/manufacturers/` by `library.embed` with the checks of the other kinds;
+the slot texts still read the manufacturer name from the `LibRef`'s `extra["key"]` until WP-S1.19 part 3 resolves the
+`LibRef` to the embedded copy (FT-39). No Golden A copy uses a typed member, so no golden file or hash changed.
+
 ### 2.6 Classification: ETIM bundled, ECLASS identifiers only
 
 | Scheme | Shipped | Stored per part | Use |
@@ -463,6 +494,22 @@ id)>}`. It is a record of [03](03-domain-model.md) §7, stored in the anchor pag
 rank 46 of [05](05-project-format-and-persistence.md) §2.2), and gives the macro's provenance and "where used".
 From 1.0 it is also the placeholder object that a different value set can be re-applied to (FR-MAC-008).
 
+**As built (cycle 34, WP-S1.19 part 1; decision log ID-334, ID-783).** The kinds `macro` and `macro_instance` are
+typed in `ew-schema` within format 0.1; no command creates or inserts a macro yet (WP-S1.19 part 5).
+- **`MacroDef`** is written in the member order of the struct above: `meta, name, description, kind (window | symbol
+  | page), variants, variables, groups, value_sets, thumbnail`, then `extra`. A variant is `{rep_type, key,
+  fragment}`; the `fragment` is the `#ew-fragment v1` text format of ARCH §5.5, kept as JSON in the permissive schema
+  crate and parsed by `ew-commands`, so the `Fragment` struct above is not a schema type. A variable is `{name, ty,
+  bindings: Vec<{record (fragment-local ID), field}>, default?}` with `VarType` `text, ident, number, bool, state,
+  part, process_tag, channel_binding, address, tag_counter, device_ref`; the 1.0 `formula` stays in `extra`. A
+  placeholder group is `{name, members (fragment-local IDs), include?}` and lives only inside the macro, so the
+  project kind `placeholder_group` (rank 47) stays reserved (WP-S1.19 D15). The copy lives under `lib/macros/` and
+  `library.embed` embeds it with the checks of the other kinds.
+- **`MacroInstance`** is `{id, $v?, macro, variant, value_set?, values, members, page}` in the anchor page's file.
+  Its links are those of [03](03-domain-model.md) §7: the anchor page cascades, the macro copy is a forbid link (it
+  cannot be removed while an instance names it), and each created member is a kind-erased unlink link, so deleting a
+  member removes it from the list and the instance stays, also with an empty list.
+
 **Addresses stay derived.** A value set normally sets the module position and the channel binding
 ("channel = 2*pos+1, module = {slot}", FR-MAC-015). Q0.1 then follows from `channel_addresses`; it is never typed
 into the macro. Formula-computed `Address` variables exist for projects with manual addressing only (Open
@@ -496,6 +543,11 @@ leave out pages, devices or both (FR-MAC-011).
   `new_project_id` is the new project's UUIDv7;
 - keeps library copies unchanged, because their IDs derive from library and item, not from the project;
 - records `Project.basic_project = {id, version}` for later comparison.
+
+*As built (cycle 34, WP-S1.19 part 1, the schema half of D14; decision log ID-783).* The member is typed as
+`Project.basic_project = {id, generation}`: the basic project's project ID and its manifest generation when it was
+copied, because a basic project has no semantic version. Nothing writes it yet; WP-S1.19 part 4 records it and adds
+"save as basic project".
 
 ---
 
@@ -1339,4 +1391,11 @@ The eleven rows this document proposed are in the catalogues:
     while no released file exists (decision log ID-24). *Still open (2026-10-18):* the starter content of WP-S7.02
     uses the same provisional UUID 7202fd8b-1024-4bf1-9e99-670772eaa589 for its symbols and FnDefs, so content and
     importer switch together; the importer's one built-in FnDef key is `ew.fn.ip` with `version_req` `^0.1`
-    (decision log ID-33).
+    (decision log ID-33). **Resolved (WP-S1.19 D4, FT-24; as built in cycle 34):** the system library is the
+    compiled-in starter `ew-starter`, and its ID is the constant `ew_interop_api::SYSTEM_LIBRARY`, held in the
+    permissive contract crate rather than in `ew-ids` because importers may depend neither on each other nor on the
+    library crate. The value is the provisional UUID above, so no copy ID moved. `ew-import-qet` and
+    `ew-import-tables` use it; `ew-import-tables` dropped its own constant, and `ew-import-qet` keeps
+    `BUILTIN_LIBRARY` for one cycle as an alias of `SYSTEM_LIBRARY` because tests outside that part still name it.
+    A test checks that every starter document carries `library_id` = `SYSTEM_LIBRARY` and `item_id` =
+    `v5(SYSTEM_LIBRARY, meta.key)`.

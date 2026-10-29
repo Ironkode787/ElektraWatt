@@ -1,6 +1,6 @@
 # Domain model
 
-**Status:** Draft v0.1 · **Date:** 2026-10-21 (cycle 11: frozen tags change only by explicit user action, segment-less strips, the `project.settings.set` command; decision log ID-290, ID-292, ID-293; cycle 12: the colour and size profile rows and their display order, §5.1, decision log ID-319; cycle 13: the PLC kinds and `DeviceLink` as built, §7, §13, §14, decision log ID-333 to ID-335; 2026-10-22, cycle 17: the typed `Revision` as built and the `Revision.withdraws` forbid link, §4.2, §18, decision log ID-427 to ID-431; 2026-10-22, cycle 22: the stored shapes written by the four commands of FT-336 and the frame fall-through rule, §5.1, §19, decision log ID-545 to ID-547; 2026-10-23, cycle 23: the `StructureBox` and `PageItem` shapes specified for WP-S2.04 part 4a with their two invariants and their derivation, §4.2, §5, §6, §8.2, decision log ID-566; the `settings.extra.drawing` member, §5.1, ID-567, ID-568; the company logo reference as built, §5.1, ID-573; 2026-10-24, cycle 25: `project.drawing.set` registered, §5.1, ID-625; revision author and checker read-only in the property grid, §18, ID-626; 2026-10-25, cycle 27: the `PageItem` notes as built (`text` optional, `arc.start`'s default, `$v`) and the wire markers' unlink on a cross-page move, §6, ID-647) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-21 (cycle 11: frozen tags change only by explicit user action, segment-less strips, the `project.settings.set` command; decision log ID-290, ID-292, ID-293; cycle 12: the colour and size profile rows and their display order, §5.1, decision log ID-319; cycle 13: the PLC kinds and `DeviceLink` as built, §7, §13, §14, decision log ID-333 to ID-335; 2026-10-22, cycle 17: the typed `Revision` as built and the `Revision.withdraws` forbid link, §4.2, §18, decision log ID-427 to ID-431; 2026-10-22, cycle 22: the stored shapes written by the four commands of FT-336 and the frame fall-through rule, §5.1, §19, decision log ID-545 to ID-547; 2026-10-23, cycle 23: the `StructureBox` and `PageItem` shapes specified for WP-S2.04 part 4a with their two invariants and their derivation, §4.2, §5, §6, §8.2, decision log ID-566; the `settings.extra.drawing` member, §5.1, ID-567, ID-568; the company logo reference as built, §5.1, ID-573; 2026-10-24, cycle 25: `project.drawing.set` registered, §5.1, ID-625; revision author and checker read-only in the property grid, §18, ID-626; 2026-10-25, cycle 27: the `PageItem` notes as built (`text` optional, `arc.start`'s default, `$v`) and the wire markers' unlink on a cross-page move, §6, ID-647; 2026-10-29, cycle-34 design pass, WP-S1.19 part 1 as built: the typed part members, `Manufacturer`, `MacroDef` and `MacroInstance` with its links, `Project.basic_project`, §7, decision log ID-334, ID-783) · **Part of:** ElektraWatt design document set
 
 > **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
 
@@ -1040,6 +1040,7 @@ classDiagram
     +value_set: Ident?
     +values: VarName to Value
     +members: local id to Id
+    +page: PageId
   }
   FnDef *-- CpDef
   Function ..> FnDef : def
@@ -1075,6 +1076,42 @@ classDiagram
 | `MacroInstance` (added): provenance of one placed macro | A, the file of its anchor page (rank 46 of [05](05-project-format-and-persistence.md) §2.2) | `macro` (copy ID of the `MacroDef`), `variant`, `value_set?`, `values: BTreeMap<VarName, Value>` (the values used), `members: Vec<(local_id, Id)>` (fragment-local ID → created record) | "Where used" and provenance at MVP; from 1.0 the placeholder object to which another value set can be re-applied (FR-MAC-008) | — |
 
 **As built (cycle 13; decision log ID-333, ID-334).** `device_link` (rank 42, in the shard of `from`) is typed in `ew-schema` with `from`, `to` and `kind` (`drives` or `linkage`), plus the import-provenance member `source_ref`. Deleting either device deletes the link. Golden A has eight links: the valves -201U3-Q1 … Q4 and -201U4-Q1 … Q4 drive the field devices -203Q1 … -203Q8. Since cycle 16 the command `device.link` creates a link (no self-link, no duplicate of the same kind; decision log ID-395). The `DeviceLink` half of FT-80 is done; the half that prints the tracked process tag in a used valve's function-text slot stays open.
+
+**As built (cycle 34, WP-S1.19 part 1; decision log ID-334, ID-783).** The part, manufacturer and macro data are typed
+in `ew-schema` within the unreleased format 0.1 (ADR-0011 amendment 4): every new member is optional and
+default-omitted, every new enum keeps `Unknown(Value)` and every new object its own `extra`
+([05](05-project-format-and-persistence.md) §10.3). Golden A uses none of them, so no golden file and no copy hash
+changed.
+- **`PartCopy`** (`LibCopy<Part>`) gains, in the member order of [07](07-symbols-parts-macros.md) §2.5, `contacts:
+  Vec<ContactData{kind: ContactKind, cps: Vec<Ident>, seq?: u8, special?}>` (FR-PRT-009), `mech?: MechData{width,
+  height, depth: Nm?, mount_kind?: MountKind, rail_offset?: Pt2, clearance?{top, bottom, left, right, front},
+  front_2d: Vec<Vec<Pt2>>, mass?: u32 grams}` (the L3 level), `alternatives: Vec<{part: LibRef, kind: equivalent |
+  successor | approved}>` (FR-PRT-004), `configured?{order_code, components: Vec<{part: LibRef, qty: Dec3}>}`
+  (FR-PRT-006) and `macros: Vec<{rep_type, macro: LibRef}>` (FR-PRT-027). `CpData` gains `clamp_type?`, `csa_min?`,
+  `csa_max?` (`Dec3` mm²), `max_conductors?` and `twin_ferrule` (FR-PRT-008); `PartSections` gains `enclosure`,
+  `duct`, `rail` and `mounting_plate`. The other members of the `PartCopy` row (classification, the 3D and drilling
+  data, accessories, variants, the thermal, wire, ferrule and tube sections) stay in `extra` until their work package
+  types them. These `LibRef`s are not model links: the library resolves them, not the project.
+- **`Manufacturer`** (kind `manufacturer`, `lib/manufacturers/`) is `{meta, key, name: MlText, aliases, brands}`;
+  `library.embed` embeds it with the checks of the other kinds. A part's `manufacturer` `LibRef` is not yet resolved to
+  the embedded copy (WP-S1.19 part 3).
+- **`MacroDef`** (kind `macro`, `lib/macros/`) is `{meta, name, description, kind: window | symbol | page, variants:
+  Vec<{rep_type, key, fragment}>, variables: Vec<{name, ty, bindings: Vec<{record, field}>, default?}>, groups:
+  Vec<PlaceholderGroup{name, members, include?}>, value_sets: Vec<{name, values}>, thumbnail?}`. The `fragment` is
+  kept as JSON in the permissive schema crate; `ew-commands` parses it. Placeholder groups live only inside the macro,
+  so the kind `placeholder_group` (rank 47) stays reserved (WP-S1.19 D15).
+- **`MacroInstance`** (kind `macro_instance`, rank 46, the anchor page's file) is `{id, $v?, macro, variant,
+  value_set?, values, members: Vec<(fragment-local ID, created ID)>, page}`. Its three links: `page` is a cascade
+  (deleting the anchor page deletes the instance); `macro` is a forbid link that stores the copy ID, so the macro copy
+  cannot be removed while an instance names it; `members[][1]` is an unlink link of a new sort, **kind-erased**
+  (`LinkDecl::kind_erased`): a member is a bare ID that may name a record of any kind a fragment creates (page,
+  device, function, representation, connection, junction, conductor, channel, potential definition, bond, device link,
+  page item, structure box, report block), so a deleted member leaves the list and the instance stays, also when the
+  list is left empty. No command creates an instance yet (WP-S1.19 part 5); the property grid lists its fields
+  read-only, and the describe vocabulary gains the kind word `macro_instance` (357 words).
+- **`Project.basic_project`** is typed as `{id, generation}`: the basic project's project ID and its manifest
+  generation when it was copied, since a basic project has no semantic version ([07](07-symbols-parts-macros.md)
+  §2.8; WP-S1.19 D14, the schema half).
 
 **Device kinds.** `DeviceKind` is a hint for UI defaults and for the selectors of numbering rules (§5.1, §8.2), never
 a type: behaviour comes from aspects and functions. It is an open enum persisted as a snake_case string. The v0 list
