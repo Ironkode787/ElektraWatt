@@ -648,7 +648,7 @@ fn function_label(q: &Q, f: Id<Function>) -> String {
 }
 
 /// The order key of a record of `kind` in shell output: its printed label and its place (see [`order_records`]).
-fn order_key(q: &Q, kind: Kind, id: Uuid, source: Option<&str>) -> (String, Place) {
+pub(crate) fn order_key(q: &Q, kind: Kind, id: Uuid, source: Option<&str>) -> (String, Place) {
     match kind {
         Kind::Device => {
             let d: Id<Device> = Id::from_uuid(id);

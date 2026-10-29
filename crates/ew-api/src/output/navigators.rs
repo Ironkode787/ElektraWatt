@@ -2385,6 +2385,17 @@ impl Session {
     }
 }
 
+/// The drawables of a finding's primary target among `candidates` (the place key of each target's first drawable,
+/// its printed label, its drawables, in target order): the smallest place key, a tie broken on the label in natural
+/// order and then by bytes (FT-588); the target order decides only between equal labels.
+fn primary_drawables<K: Ord>(candidates: impl Iterator<Item = (K, String, Vec<Drawable>)>) -> Vec<Drawable> {
+    candidates
+        .map(|(key, label, ds)| (key, natural_key(&label), label, ds))
+        .min_by(|a, b| (&a.0, &a.1, &a.2).cmp(&(&b.0, &b.1, &b.2)))
+        .map(|(_, _, _, ds)| ds)
+        .unwrap_or_default()
+}
+
 /// One finding row (§7.1): its records are the targets, its drawables theirs; its page is the finding's page, else the
 /// page of the primary target's first drawable; Enter opens that page with the targets' drawables on it selected.
 fn finding_node(
@@ -2414,13 +2425,16 @@ fn finding_node(
             )
         })
     };
-    let primary: Vec<Drawable> = f
-        .targets
-        .iter()
-        .map(|t| target_drawables(q, folios, t))
-        .filter(|ds| !ds.is_empty())
-        .min_by(|a, b| first_key(a).cmp(&first_key(b)))
-        .unwrap_or_default();
+    // A tie (two targets drawn first in the same cell) breaks on the targets' printed labels in natural order
+    // (FT-588), never on the target (ID) order.
+    let label = |t: &crate::checks::Target| super::properties::order_key(q, t.kind, t.id.as_uuid(), None).0;
+    let primary = primary_drawables(
+        f.targets
+            .iter()
+            .map(|t| (target_drawables(q, folios, t), t))
+            .filter(|(ds, _)| !ds.is_empty())
+            .map(|(ds, t)| (first_key(&ds), label(t), ds)),
+    );
     let page: Option<(String, Uuid)> = match f.page {
         Some(p) => folios.get(&p).map(|(_, folio, u)| (folio.clone(), *u)),
         None => primary.first().map(|d| (d.folio.clone(), d.page)),
@@ -2506,6 +2520,35 @@ mod tests {
         assert_eq!(tokens("Wire list (1),x_y"), ["wire", "list", "1", "x", "y"]);
         assert_eq!(tokens("  "), Vec::<String>::new());
         assert_eq!(tokens("Ä1"), ["ä", "1"]);
+    }
+
+    /// FT-588: two targets drawn first in the same cell; the primary is the one whose label prints first in natural
+    /// order (`-K2` before `-K10`), in either target (ID) order.
+    #[test]
+    fn a_primary_target_tie_breaks_on_the_printed_label() {
+        let drawable = |record: u128| Drawable {
+            page: Uuid::from_u128(1),
+            folio: "1".to_owned(),
+            cell: "E4".to_owned(),
+            record: Uuid::from_u128(record),
+            main: true,
+        };
+        let key = (false, 0usize, natural_key("E4"));
+        let k10 = (key.clone(), "-K10:1".to_owned(), vec![drawable(10)]);
+        let k2 = (key.clone(), "-K2:1".to_owned(), vec![drawable(2)]);
+        for order in [vec![k10.clone(), k2.clone()], vec![k2.clone(), k10.clone()]] {
+            let p = primary_drawables(order.into_iter());
+            assert_eq!(p[0].record, Uuid::from_u128(2));
+        }
+        // The place key still decides first.
+        let earlier = (
+            (false, 0usize, natural_key("A1")),
+            "-K10:1".to_owned(),
+            vec![drawable(10)],
+        );
+        let p = primary_drawables([k2, earlier].into_iter());
+        assert_eq!(p[0].record, Uuid::from_u128(10));
+        assert!(primary_drawables(std::iter::empty::<((), String, Vec<Drawable>)>()).is_empty());
     }
 
     #[test]
