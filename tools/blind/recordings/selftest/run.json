@@ -22,7 +22,7 @@
     "tools/blind/tasks/selftest/prelude.uiscript": "9f4d237925c52b4bb3ef91f708236f752fee11846f1582fe2737b05f3c99bb4c",
     "tools/blind/tasks/selftest/task.md": "973376ea5c9193284ee9b3ee73ac6237cb334ac8d0b668d5f418aa895a8de6ab"
   },
-  "golden": "124e802a1fab37f307aab01e83111f45afc8da1057e78459830e1165d1580a8d",
+  "golden": "a2efc2659f7d817cd5fa22e0453653851d73bb6c9c9c47b06ad678ab2e893057",
   "golden_scope": "project",
   "app_version": "0.0.0",
   "harness_version": "0.0.0",
