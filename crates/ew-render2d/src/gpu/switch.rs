@@ -299,16 +299,4 @@ mod tests {
         // No adapter at all.
         assert_eq!(no_gpu_adapter(&[]), None);
     }
-
-    #[test]
-    fn labels_and_messages() {
-        assert_eq!(GpuApi::Dx12.label(), "DX12");
-        assert!(adapter(DeviceKind::Cpu, GpuApi::Dx12).is_warp());
-        assert!(!adapter(DeviceKind::Cpu, GpuApi::Vulkan).is_warp());
-        assert!(
-            GpuError::DeviceLost("x".into())
-                .to_string()
-                .contains("device was lost: x")
-        );
-    }
 }

@@ -355,8 +355,8 @@ fn assert_parity(
     }
 }
 
-#[test]
-fn a_png_item_is_drawn_inside_its_rectangle() {
+/// Case `a_png_item_is_drawn_inside_its_rectangle` of the image table.
+fn a_png_item_is_drawn_inside_its_rectangle(devs: &[HeadlessDevice]) {
     let red = png_of(8, 2, |_, _| [255, 0, 0, 255]);
     let mut list = DisplayList::new();
     list.push(image_item(
@@ -368,8 +368,8 @@ fn a_png_item_is_drawn_inside_its_rectangle() {
     let mut cache = MeshCache::default();
     let scene = prepare(1, &list, &NoFonts, &mut cache);
     assert_eq!((scene.stats.images, scene.stats.images_skipped), (1, 0));
-    for d in devices() {
-        let image = gpu_image(&d, &list, 300, 100);
+    for d in devs {
+        let image = gpu_image(d, &list, 300, 100);
         let k = 96.0 / 25.4;
         let mut red_pixels = 0;
         for y in 0..image.height {
@@ -392,8 +392,8 @@ fn a_png_item_is_drawn_inside_its_rectangle() {
     }
 }
 
-#[test]
-fn a_jpeg_item_matches_the_cpu_raster() {
+/// Case `a_jpeg_item_matches_the_cpu_raster` of the image table.
+fn a_jpeg_item_matches_the_cpu_raster(devs: &[HeadlessDevice]) {
     let jpeg = jpeg::baseline(jpeg::Layout::Ycbcr420, 64, 32);
     let mut list = DisplayList::new();
     list.push(image_item(
@@ -403,8 +403,8 @@ fn a_jpeg_item_matches_the_cpu_raster() {
         mm_rect(5.0, 5.0, 45.0, 25.0),
     ));
     let cpu = cpu_image(&list, 200, 120);
-    for d in devices() {
-        let gpu = gpu_image(&d, &list, 200, 120);
+    for d in devs {
+        let gpu = gpu_image(d, &list, 200, 120);
         // The JPEG's pixels inside the rectangle: the centre matches the CPU raster closely.
         let (g, c) = (at_mm(&gpu, 25.0, 15.0), at_mm(&cpu, 25.0, 15.0));
         assert!(near(g, c, 3), "{g:?} against the CPU's {c:?}");
@@ -418,8 +418,8 @@ fn a_jpeg_item_matches_the_cpu_raster() {
     }
 }
 
-#[test]
-fn an_image_with_alpha_over_a_filled_path_blends_in_paint_order() {
+/// Case `an_image_with_alpha_over_a_filled_path_blends_in_paint_order` of the image table.
+fn an_image_with_alpha_over_a_filled_path_blends_in_paint_order(devs: &[HeadlessDevice]) {
     let half_red = png_of(4, 4, |_, _| [255, 0, 0, 128]);
     let mut list = DisplayList::new();
     list.push(Item::path(
@@ -436,8 +436,8 @@ fn an_image_with_alpha_over_a_filled_path_blends_in_paint_order() {
     let cpu = cpu_image(&list, 120, 80);
     let over = at_mm(&cpu, 15.0, 10.0);
     assert!(near(over, [128, 0, 127, 255], 2), "the CPU blend {over:?}");
-    for d in devices() {
-        let gpu = gpu_image(&d, &list, 120, 80);
+    for d in devs {
+        let gpu = gpu_image(d, &list, 120, 80);
         let got = at_mm(&gpu, 15.0, 10.0);
         assert!(
             near(got, over, 2),
@@ -452,8 +452,8 @@ fn an_image_with_alpha_over_a_filled_path_blends_in_paint_order() {
     }
 }
 
-#[test]
-fn a_path_painted_after_an_image_covers_it() {
+/// Case `a_path_painted_after_an_image_covers_it` of the image table.
+fn a_path_painted_after_an_image_covers_it(devs: &[HeadlessDevice]) {
     let green = png_of(4, 4, |_, _| [0, 200, 0, 255]);
     let half_green = png_of(4, 4, |_, _| [0, 200, 0, 100]);
     for (sha, bytes) in [(6, green), (7, half_green)] {
@@ -474,8 +474,8 @@ fn a_path_painted_after_an_image_covers_it() {
         let cpu = cpu_image(&list, 120, 120);
         let image_px = at_mm(&cpu, 5.0, 5.0);
         assert!(image_px[0] <= 160, "image {sha} on the CPU path: {image_px:?}");
-        for d in devices() {
-            let gpu = gpu_image(&d, &list, 120, 120);
+        for d in devs {
+            let gpu = gpu_image(d, &list, 120, 120);
             assert_eq!(
                 at_mm(&gpu, 15.0, 15.0),
                 [0, 0, 0, 255],
@@ -490,8 +490,8 @@ fn a_path_painted_after_an_image_covers_it() {
     }
 }
 
-#[test]
-fn a_clipped_image_is_clipped() {
+/// Case `a_clipped_image_is_clipped` of the image table.
+fn a_clipped_image_is_clipped(devs: &[HeadlessDevice]) {
     let blue = png_of(4, 4, |_, _| [0, 0, 255, 255]);
     let mut list = DisplayList::new();
     // The image's left half only.
@@ -506,8 +506,8 @@ fn a_clipped_image_is_clipped() {
         )],
     ));
     let cpu = cpu_image(&list, 140, 80);
-    for d in devices() {
-        let gpu = gpu_image(&d, &list, 140, 80);
+    for d in devs {
+        let gpu = gpu_image(d, &list, 140, 80);
         assert_eq!(at_mm(&gpu, 15.0, 10.0), [0, 0, 255, 255], "inside the clip");
         assert_eq!(at_mm(&gpu, 25.0, 10.0), [255, 255, 255, 255], "outside the clip");
         assert_eq!(
@@ -518,10 +518,43 @@ fn a_clipped_image_is_clipped() {
     }
 }
 
-/// Images at several scales, turned and mirrored, with alpha over paths and under a later path, against the CPU
-/// raster: the parity rule of §8 item 3 and a mean channel difference bound.
+/// The image cases above on one device start, then images at several scales, turned and mirrored, with alpha over
+/// paths and under a later path, against the CPU raster: the parity rule of §8 item 3 and a mean channel difference
+/// bound.
 #[test]
 fn images_match_the_cpu_raster_within_the_parity_rule() {
+    // One device start for every image case.
+    let devs = devices();
+    type Case = fn(&[HeadlessDevice]);
+    let cases: [(&str, Case); 5] = [
+        (
+            "a_png_item_is_drawn_inside_its_rectangle",
+            a_png_item_is_drawn_inside_its_rectangle,
+        ),
+        (
+            "a_jpeg_item_matches_the_cpu_raster",
+            a_jpeg_item_matches_the_cpu_raster,
+        ),
+        (
+            "an_image_with_alpha_over_a_filled_path_blends_in_paint_order",
+            an_image_with_alpha_over_a_filled_path_blends_in_paint_order,
+        ),
+        (
+            "a_path_painted_after_an_image_covers_it",
+            a_path_painted_after_an_image_covers_it,
+        ),
+        ("a_clipped_image_is_clipped", a_clipped_image_is_clipped),
+    ];
+    for (name, case) in cases {
+        if let Err(e) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| case(&devs))) {
+            let msg = e
+                .downcast_ref::<String>()
+                .map(String::as_str)
+                .or_else(|| e.downcast_ref::<&str>().copied())
+                .unwrap_or("a panic without a message");
+            panic!("case {name}: {msg}");
+        }
+    }
     // A pattern with smooth and hard edges and an alpha ramp.
     let pattern = png_of(16, 12, |x, y| {
         let a = if y < 6 { 255 } else { (64 + x * 12) as u8 };
@@ -581,8 +614,8 @@ fn images_match_the_cpu_raster_within_the_parity_rule() {
         None,
     ));
     let cpu = cpu_image(&list, 560, 300);
-    for d in devices() {
-        let gpu = gpu_image(&d, &list, 560, 300);
+    for d in &devs {
+        let gpu = gpu_image(d, &list, 560, 300);
         assert_parity(
             &format!("images on {:?}", d.summary.kind),
             &gpu,
