@@ -71,11 +71,9 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
             if filter != picker.filter {
                 events.push(Event::Action("picker.filter", json!({ "text": filter })));
             }
-            if picker.rows.is_empty() {
+            if let Some(empty) = picker.empty_text() {
                 ui.add_space(t.space_3);
-                ui.label(
-                    egui::RichText::new(strings::text("picker-empty")).color(t.text_secondary.color32()),
-                );
+                ui.label(egui::RichText::new(strings::text(empty)).color(t.text_secondary.color32()));
             }
             ScrollArea::vertical()
                 .max_height(t.size_row * 13.0)

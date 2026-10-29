@@ -180,6 +180,24 @@ impl Picker {
         (before != Some(here)).then_some(here)
     }
 
+    /// The string key of the text the picker shows instead of rows; `None` while it has rows. With a filter typed it
+    /// is `picker-empty` ("Nothing matches the filter"); with the filter empty the list itself is empty, and the text
+    /// says what is missing for the mode (a fresh project has no part copies, so Device lists nothing).
+    pub fn empty_text(&self) -> Option<&'static str> {
+        if !self.rows.is_empty() {
+            return None;
+        }
+        if !self.filter.is_empty() {
+            return Some("picker-empty");
+        }
+        Some(match self.mode {
+            PickerMode::Parts => "picker-empty-parts",
+            PickerMode::Strip => "picker-empty-strips",
+            PickerMode::BlackBox => "picker-empty-black-box",
+            PickerMode::Place | PickerMode::Exchange => "picker-empty-page",
+        })
+    }
+
     /// Sets the filter.
     pub fn set_filter(&mut self, text: &str) {
         self.filter = text.to_owned();
