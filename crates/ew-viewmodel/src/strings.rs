@@ -1299,6 +1299,11 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "table-no-column" => "no column",
         // FT-515/FT-535: a cell whose row has no record of the column's kind (a CP-only potential's definition cells).
         "table-no-record" => "no record of this kind",
+        // The other read-only reasons of a table cell (`cell_reason`, §8.2's precedence; FT-535 follow-up).
+        "table-reason-derived" => "derived",
+        "table-reason-generated" => "generated",
+        "table-reason-no-command" => "no command yet",
+        "table-reason-property-grid" => "edit in the property grid",
         "table-not-clearable" => "cannot be cleared",
         "card-table-drop" => "Drop",
         // WP-S2.06 part 3: the table widget (§8.1).

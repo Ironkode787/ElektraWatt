@@ -215,21 +215,25 @@ pub fn is_scalar(ty: &FieldType) -> bool {
 pub fn cell_reason(table: &NavTable, node: &NavNode, column: usize) -> Option<String> {
     let c = table.columns.get(column)?;
     if c.derived {
-        return Some("derived".to_owned());
+        return Some(crate::strings::text("table-reason-derived").to_owned());
     }
     if table.kind == NavKind::Pages && node.badges.iter().any(|b| b == "generated") {
-        return Some("generated".to_owned());
+        return Some(crate::strings::text("table-reason-generated").to_owned());
     }
     let Some((kind, path)) = &c.route else {
-        return Some(c.read_only.clone().unwrap_or_else(|| "no command yet".to_owned()));
+        return Some(
+            c.read_only
+                .clone()
+                .unwrap_or_else(|| crate::strings::text("table-reason-no-command").to_owned()),
+        );
     };
     if row_targets(node, kind).is_empty() {
         return Some(crate::strings::text("table-no-record").to_owned());
     }
     match route_type(kind, path) {
         Some(ty) if is_scalar(&ty) => None,
-        Some(_) => Some("edit in the property grid".to_owned()),
-        None => Some("no command yet".to_owned()),
+        Some(_) => Some(crate::strings::text("table-reason-property-grid").to_owned()),
+        None => Some(crate::strings::text("table-reason-no-command").to_owned()),
     }
 }
 

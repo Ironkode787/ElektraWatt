@@ -169,7 +169,7 @@ impl ShellModel {
             None => view.table.columns[col]
                 .route
                 .clone()
-                .ok_or_else(|| "no command yet".to_owned()),
+                .ok_or_else(|| strings::text("table-reason-no-command").to_owned()),
         }
     }
 
