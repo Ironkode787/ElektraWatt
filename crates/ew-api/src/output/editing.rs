@@ -96,7 +96,7 @@ pub struct CatalogueSymbol {
     pub letter: Option<String>,
     /// Whether the FnDef's contact kind is `black_box` (placed with the black box tool).
     pub black_box: bool,
-    /// Whether the FnDef's first category is `Terminal` (placed as a terminal of a strip).
+    /// Whether the FnDef's first category is `Terminal` or `TerminalEarth` (placed as a terminal of a strip).
     pub terminal: bool,
     /// Whether the page's type allows the symbol's representation type.
     pub allowed: bool,
@@ -266,9 +266,10 @@ fn symbol_row(
         black_box: def
             .as_ref()
             .is_some_and(|d| d.item.contact_kind == ContactKind::BlackBox),
+        // A PE terminal's category is `TerminalEarth` (FT-618): it is placed into a strip like every terminal.
         terminal: def
             .as_ref()
-            .is_some_and(|d| d.item.category.0.as_str() == "Terminal"),
+            .is_some_and(|d| matches!(d.item.category.0.as_str(), "Terminal" | "TerminalEarth")),
         allowed: rep_type_allowed(page, &symbol.rep_type),
     }
 }

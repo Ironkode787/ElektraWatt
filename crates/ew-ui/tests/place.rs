@@ -253,3 +253,54 @@ fn a_double_click_with_the_place_tool_places_once() {
     assert_eq!(h.state().shell().tool().name(), "place");
     h.state_mut().shell_mut().shutdown();
 }
+
+/// FT-605: in a project without terminal strips, choosing the terminal symbol in the picker opens the strip chooser
+/// on its empty state, which says why and offers New terminal strip; the button creates a strip, which the chooser
+/// lists as its current row, and choosing it arms the Place tool.
+#[test]
+fn ft605_a_terminal_without_strips_says_why_and_offers_a_new_strip() {
+    use ew_ui::ew_viewmodel::shell::{Mode, ShellModel};
+    use ew_ui::ew_viewmodel::tools::PickerMode;
+    let tmp = Tmp::new();
+    let dir = tmp.0.join("blank.ew");
+    let mut shell = ShellModel::new(Mode::Gui, tmp.config());
+    for (action, params) in [
+        (
+            "file.new",
+            json!({"dir": dir.to_string_lossy(), "template": "builtin"}),
+        ),
+        (
+            "page.new",
+            json!({"folio": "101", "type": "multi_line", "title": "Power"}),
+        ),
+    ] {
+        assert_eq!(shell.dispatch(action, &params), Outcome::Done, "{action}");
+    }
+    let mut h: Harness<'static, App> = support::harness_with(shell, Scripted::default(), None);
+    settle(&mut h);
+    wait_for_page(&mut h);
+    dispatch(&mut h, "tool.place", json!({}));
+    dispatch(&mut h, "picker.filter", json!({"text": "ew.iec.terminal@"}));
+    settle(&mut h);
+    // Chosen in the picker, the terminal opens the empty strip chooser instead of doing nothing.
+    dispatch(&mut h, "picker.choose", json!({}));
+    settle(&mut h);
+    let picker = h.state().shell().picker().expect("the strip chooser is open");
+    assert_eq!(picker.mode, PickerMode::Strip);
+    assert!(picker.rows.is_empty());
+    assert!(
+        h.get_all_by_role(egui::Role::Group)
+            .any(|n| n.accesskit_node().label().as_deref() == Some("No terminal strips in this project yet")),
+        "the empty state says why"
+    );
+    h.get_by_label("New terminal strip…").click();
+    settle(&mut h);
+    settle(&mut h);
+    let picker = h.state().shell().picker().expect("the chooser stays open");
+    assert_eq!(picker.mode, PickerMode::Strip);
+    assert_eq!(picker.rows.len(), 1, "the new strip is listed");
+    dispatch(&mut h, "picker.choose", json!({}));
+    settle(&mut h);
+    assert_eq!(h.state().shell().tool().name(), "place");
+    h.state_mut().shell_mut().shutdown();
+}

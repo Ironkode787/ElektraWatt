@@ -71,7 +71,21 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
             if filter != picker.filter {
                 events.push(Event::Action("picker.filter", json!({ "text": filter })));
             }
-            if let Some(empty) = picker.empty_text() {
+            // FT-605: a terminal chosen in a project without strips opens the strip chooser on an empty state that
+            // says why and offers New terminal strip (doc 16a §6.17); `strip.new` lists the new strip as the current
+            // row.
+            if picker.mode == PickerMode::Strip && picker.empty_text() == Some("picker-empty-strips") {
+                let new = crate::components::empty_state(
+                    ui,
+                    crate::icons::IconId::ew_terminal_strip,
+                    strings::text("picker-empty-strips"),
+                    strings::text("picker-empty-strips-text"),
+                    Some(strings::text("picker-new-strip")),
+                );
+                if new.is_some_and(|r| r.clicked()) {
+                    events.push(Event::Action("strip.new", json!({})));
+                }
+            } else if let Some(empty) = picker.empty_text() {
                 ui.add_space(t.space_3);
                 ui.label(egui::RichText::new(strings::text(empty)).color(t.text_secondary.color32()));
             }

@@ -96,6 +96,10 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "picker-empty" => "Nothing matches the filter",
         "picker-empty-parts" => "No parts in this project yet",
         "picker-empty-strips" => "No terminal strips in this project yet",
+        "picker-empty-strips-text" => {
+            "A terminal goes into a terminal strip. Create one here, then choose it."
+        }
+        "picker-new-strip" => "New terminal strip…",
         "picker-empty-black-box" => "No black-box symbols or parts to place",
         "picker-empty-page" => "Nothing can be placed on this page",
         "reason-letter-needed" => "Give a letter code: the symbol's category maps to none",

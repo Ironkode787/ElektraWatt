@@ -419,8 +419,8 @@ impl ShellModel {
                 reason_key: "reason-unknown-symbol",
             };
         };
-        // A terminal: a terminal symbol, or any symbol or part given a strip or a designation (a PE terminal's category
-        // is `TerminalEarth`, not `Terminal`). A part-first terminal joins the strip and carries its part (G-PP
+        // A terminal: a terminal symbol (a PE terminal's category `TerminalEarth` counts too, FT-618), or any symbol or
+        // part given a strip or a designation. A part-first terminal joins the strip and carries its part (G-PP
         // finding 2: the part route ignored `strip` and `designation` and made a free device).
         let terminal = row.terminal
             || p.contains_key("strip")
@@ -450,7 +450,10 @@ impl ShellModel {
                     Ok(v) => v,
                     Err(e) => return e,
                 };
-                if cat.strips.is_empty() {
+                // Without a strip in the project a terminal has nowhere to go. Chosen in the picker (the window's
+                // path) the strip chooser opens on its empty state, which says why and offers New terminal strip
+                // (FT-605); `strip.new` then lists the new strip as the current row. A direct `place.pick` refuses.
+                if cat.strips.is_empty() && (strip.is_some() || self.tools.picker.is_none()) {
                     return Outcome::Refused {
                         reason_key: "reason-no-strip",
                     };
