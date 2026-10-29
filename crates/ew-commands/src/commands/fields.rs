@@ -73,6 +73,7 @@ pub const SETTABLE: &[(KindName, &[&str])] = &[
             "structure",
             "strip.label_mode",
             "strip.designation_scheme",
+            "strip.accessories",
             "strip.tag_print",
             "strip.groups",
             "strip.field_side",
