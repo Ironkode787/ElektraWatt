@@ -1000,7 +1000,7 @@ part choice when several parts fit (WP-S2.07 part 1). The second is the Place to
 doc 16 §4.4): "New device" first, then the device's unplaced slots with the kind word "slot 13-14", then the devices
 whose family takes auxiliary functions, in natural tag order, type-ahead on the tag; Enter arms the target (the ghost
 label reads `join -K1`), Escape closes it and keeps the target. Its active row's device shows the hover outline of
-§7.1 (`ShellModel::chooser_object`), and it is in the pixel gate as `join-chooser-{light,dark}-comfortable`. The
+§7.1 (`ShellModel::chooser_object`), and it is in the pixel gate as `join-chooser-light-comfortable`. The
 chooser's rows and keys are registry actions (`chooser.row`, `chooser.type`, `chooser.choose`), so the headless mode
 drives it. FT-500's pick-stack chooser is still not built.
 

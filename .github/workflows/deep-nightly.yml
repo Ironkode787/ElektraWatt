@@ -24,6 +24,8 @@
 #                      The nightly is for the fuzz jobs and this job only; every other job uses the stable toolchain.
 #                      The dispatch input `asan_odr_level1` runs this job with `ASAN_OPTIONS=detect_odr_violation=1` (FT-343,
 #                      default off): the trial of ODR level 1, whose verdict is the job's.
+#   gpu-parity         the `#[ignore]`d GPU canvas tests of `ew-ui` (`binary(gpu)`, `--run-ignored only`: the dense A3
+#                      parity of B2) on Mesa's lavapipe, debug profile (test audit, 2026-10-29).
 #
 # The jobs are independent and run in parallel, so the workflow takes as long as the longest job, below two hours:
 # asan-command-fuzz builds in about 15 minutes, starts no seed after 55 minutes and a seed in flight finishes within
@@ -627,3 +629,37 @@ jobs:
             target/fuzz/log.txt
           if-no-files-found: warn
           retention-days: 90
+
+  # The GPU canvas's stress parity (WP-S2.02 part 2, B2; test audit 2026-10-29): `b2_the_dense_a3_page_matches_the_cpu_raster`
+  # of `ew-ui`'s `gpu` binary is `#[ignore]`d, so the pull-request runs skip it (about 30 s); the same parity on the
+  # real page, `b2_folio_103_at_150_dpi_matches_the_cpu_raster`, stays per pull request. Debug profile, as the pull
+  # request's GPU tests, on Mesa's lavapipe; a missing adapter fails the job (EW_REQUIRE_GPU_ADAPTER).
+  gpu-parity:
+    name: gpu-parity
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      EW_REQUIRE_GPU_ADAPTER: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          shared-key: ew-deep-gpu
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      # NFR-REL-07: ICU4X_DATA_DIR swaps the ICU segmentation data at build time and changes line breaks.
+      - name: assert ICU4X_DATA_DIR is unset
+        shell: bash
+        run: test -z "${ICU4X_DATA_DIR:-}"
+      - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
+        with:
+          tool: cargo-nextest@0.9.148
+      - name: install Mesa's lavapipe for the GPU canvas tests
+        run: sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 update -qq && sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 install -y -qq --no-install-recommends mesa-vulkan-drivers
+      - name: the ignored GPU parity tests
+        shell: bash
+        run: cargo nextest run --locked --profile ci -p ew-ui -E 'binary(gpu)' --run-ignored only --no-fail-fast

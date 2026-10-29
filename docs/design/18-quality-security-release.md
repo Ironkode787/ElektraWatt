@@ -879,15 +879,23 @@ compiled behind `ew-ui`'s `snapshots` feature, runs on **Windows only** (WARP), 
 | Gated images (`crates/ew-ui/tests/expected/`) | Count |
 |---|---|
 | `snapshots/main-{light,dark}-{comfortable,compact}`: the main window on Golden A folio 101 at 1280 × 800 | 4 |
-| `snapshots/gallery*`: the component gallery in the four themes at ppp 1 | 4 |
-| `snapshots/command-bar-<tab>-{light-comfortable,dark-compact}`: the command bar cropped per tab (CB7) | 12 |
-| `snapshots/part4-*`: dialog with toast, menu, palette and the Preview tab, light and dark (part 4) | 8 |
-| `snapshots/dk12-{messages,messages-detail,history}-*`: Messages and History cropped to their pane, light and dark in both densities (DK12) | 12 |
+| `snapshots/main-light-comfortable-300`: the main window at 300 % (DK7, FT-537) | 1 |
+| `snapshots/gallery-*-ppp1`: the component gallery in the four themes at ppp 1 (the only gated high-contrast images) | 4 |
+| `snapshots/command-bar-<tab>-light-comfortable`: the command bar cropped per tab (CB7) | 6 |
+| `snapshots/part4-*`: dialog with toast, menu, palette and the Preview tab, light and dark (part 4; the scrim is measured per theme) | 8 |
+| `snapshots/dk12-{messages,messages-detail,history}-light-comfortable`, `dk12-messages-detail-dark-compact`: Messages and History cropped to their pane (DK12) | 4 |
+| `snapshots/dk12-{grid,grid-edit}-{light-comfortable,dark-compact}`: the Terminal strips grid cropped to its pane (DK12, FT-532) | 4 |
+| `snapshots/cp6-dialog-*-light`: every dialog cropped to its frame, the four fixture dialogs included (CP6, FT-533, FT-571) | 14 |
+| `snapshots/cp9-{fix-card,table-card}-light`: the quick-fix card and the table card (CP9) | 2 |
+| `snapshots/{dock-tabs,chip-line,join-chooser}-light-comfortable`, `tooltip-save-light`: single widgets (doc 16a §6.4, §6.24, §6.22, §6.18) | 4 |
+| `snapshots/ft625-*-light-comfortable`: the FT-625 window details | 5 |
 | `canvas/101-{selection,selection-highlights,measure,ghost}`: the canvas overlays of folio 101 (OV5) | 4 |
 
-**Written for review, not gated:** the main window at 300 % (DK7, FT-537), the high-contrast main windows, the gallery
-at ppp 2 and the table review image `table-history-*`. CB7's light Compact and dark Comfortable bars (FT-533) and the
-DK12 grid snapshots (FT-532) are not built.
+**One image per screen** (test audit, 2026-10-29): a cropped screen is gated in light Comfortable only, plus dark
+Compact for the DK12 panes; the theme tokens are gated by `theme.rs` (the token dump and the density rule) and the
+whole window in light and dark at both densities by `main-*`, so a dark or Compact copy of every crop guards nothing
+more. Nothing is rendered for review only: the high-contrast main windows, the gallery at ppp 2 and the review image
+`table-history-*` were dropped.
 
 ---
 

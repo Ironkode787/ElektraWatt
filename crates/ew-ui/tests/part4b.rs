@@ -205,23 +205,21 @@ fn activate(h: &mut Harness<'_, App>, action: &str) {
     settle(h);
 }
 
-#[test]
-fn rearming_marker_resets_visible_fields_to_tool_defaults() {
-    let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
-    activate(&mut h, "tool.marker");
+/// Re-arming the marker tool, after another tool or directly, empties its fields and its ghost text.
+fn rearm_marker(h: &mut Harness<'_, App>) {
+    activate(h, "tool.marker");
     for switch_away in [true, false] {
-        type_field(&mut h, "action-marker-csa", "2.5", true);
-        type_field(&mut h, "action-marker-colours", "BK BU", true);
+        type_field(h, "action-marker-csa", "2.5", true);
+        type_field(h, "action-marker-colours", "BK BU", true);
         assert!(
             matches!(h.state().shell().tool_ghost(),Some(Ghost::Marker{text:Some(text),..}) if text=="2.5 BK BU")
         );
         if switch_away {
-            activate(&mut h, "tool.text");
+            activate(h, "tool.text");
         }
-        activate(&mut h, "tool.marker");
-        assert_field(&h, "action-marker-csa", "");
-        assert_field(&h, "action-marker-colours", "");
+        activate(h, "tool.marker");
+        assert_field(h, "action-marker-csa", "");
+        assert_field(h, "action-marker-colours", "");
         assert!(matches!(
             h.state().shell().tool_ghost(),
             Some(Ghost::Marker {
@@ -243,10 +241,12 @@ fn outline_box(h: &mut Harness<'_, App>) {
     assert_eq!(h.state().shell().tool().state(), "typing");
 }
 
+/// The marker tool and then the structure box tool in one window: re-arming either empties its visible fields.
 #[test]
-fn rearming_structure_box_resets_visible_fields_to_tool_defaults() {
+fn rearming_marker_and_structure_box_resets_visible_fields_to_tool_defaults() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "101");
+    rearm_marker(&mut h);
     activate(&mut h, "tool.structure_box");
     for switch_away in [true, false] {
         type_field(&mut h, "action-structure-box-caption", "Spare", true);

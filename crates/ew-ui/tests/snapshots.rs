@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Chrome snapshots of WP-S2.17 (§11 item 3, DL6, DK7): the main window on Golden A folio 101 at 1280 × 800 in
-//! every theme and density, and the component gallery at ppp 1 and 2, rendered offscreen (`offscreen`) and written
-//! as PNG files under `target/ew-ui-snapshots/` (or `EW_SNAPSHOT_DIR`) for the reviewer, who compares them with the
-//! mockup side by side.
+//! light and dark at both densities, and the component gallery in the four themes, rendered offscreen (`offscreen`)
+//! and written as PNG files under `target/ew-ui-snapshots/` (or `EW_SNAPSHOT_DIR`) for the reviewer, who compares
+//! them with the mockup side by side.
 //!
 //! The pixel gate (D7 as amended: no `egui_kittest` render feature): the main window in light and dark at both
 //! densities and the gallery in the four themes at ppp 1 are compared with the blessed PNG files under
@@ -13,6 +13,12 @@
 //! pixels, and a diff image (differences in red) is written next to the output. `EW_BLESS=1` writes the blessed
 //! files. Behind the `snapshots` feature and on Windows only (DX12 WARP: one platform keeps the pixels stable); no
 //! adapter there is a failure.
+//!
+//! One image per screen (test audit, 2026-10-29): each cropped screen is gated in light Comfortable, plus dark
+//! Compact for the DK12 panes. The theme tokens are gated by `theme.rs` (`dl2_the_dump_equals_the_blessed_file`,
+//! `dl2_density_changes_sizes_only`, `dl3_apply_maps_the_tokens_onto_egui`) and the whole window in light and dark at
+//! both densities by `main-*`, so a dark or Compact copy of every crop guards nothing more. Every image this file
+//! writes is gated: nothing is rendered for review only.
 
 #![cfg(all(feature = "snapshots", windows))]
 
@@ -147,17 +153,17 @@ fn window_on(
     (h, recorder)
 }
 
+/// The main window in light and dark at both densities (the high-contrast themes are gated by the gallery).
 #[test]
-fn the_main_window_in_every_theme_and_density() {
+fn the_main_window_in_light_and_dark_at_both_densities() {
     let dev = device();
     let mut failures = Vec::new();
-    for theme in ["light", "dark", "hc-dark", "hc-light"] {
+    for theme in ["light", "dark"] {
         for density in ["comfortable", "compact"] {
             let (h, recorder, tmp) = main_window(theme, density);
             let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
             assert_eq!((image.width, image.height), (1280, 800));
-            let gated = matches!(theme, "light" | "dark");
-            failures.extend(record(&format!("main-{theme}-{density}"), &image, gated));
+            failures.extend(record(&format!("main-{theme}-{density}"), &image, true));
             // The project closes before its directory is removed.
             drop(h);
             drop(tmp);
@@ -181,45 +187,22 @@ fn the_main_window_at_300_percent_for_review() {
     drop(tmp);
 }
 
-/// For review only (not gated): the Devices navigator in table mode and the history panel, light and dark.
+/// The component gallery in the four themes at ppp 1 (the only gated image of the high-contrast themes).
 #[test]
-fn the_table_and_the_history_panel_for_review() {
-    let dev = device();
-    for theme in ["light", "dark"] {
-        let (mut h, recorder, tmp) = main_window(theme, "comfortable");
-        let shell = h.state_mut().shell_mut();
-        for (action, params) in [
-            ("navigator.show", json!({"kind": "devices"})),
-            ("navigator.table", json!({"kind": "devices"})),
-            ("history.show", json!({})),
-        ] {
-            assert_eq!(shell.dispatch(action, &params), Outcome::Done, "{action}");
-        }
-        h.run_ok();
-        let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
-        assert_eq!(record(&format!("table-history-{theme}"), &image, false), None);
-        drop(h);
-        drop(tmp);
-    }
-}
-
-#[test]
-fn the_component_gallery_in_every_theme_at_ppp_1_and_2() {
+fn the_component_gallery_in_every_theme() {
     let dev = device();
     let mut failures = Vec::new();
     for theme in ["light", "dark", "hc-dark", "hc-light"] {
-        for (ppp, gated) in [(1.0_f32, true), (2.0, false)] {
-            let recorder = offscreen::Recorder::default();
-            let mut h = Harness::builder()
-                .with_size(Vec2::new(640.0, 560.0))
-                .with_pixels_per_point(ppp)
-                .with_context_setup(setup)
-                .renderer(recorder.clone())
-                .build_ui_state(move |ui, _: &mut ()| gallery::show(ui, theme), ());
-            h.run_ok();
-            let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
-            failures.extend(record(&format!("gallery-{theme}-ppp{ppp}"), &image, gated));
-        }
+        let recorder = offscreen::Recorder::default();
+        let mut h = Harness::builder()
+            .with_size(Vec2::new(640.0, 560.0))
+            .with_pixels_per_point(1.0)
+            .with_context_setup(setup)
+            .renderer(recorder.clone())
+            .build_ui_state(move |ui, _: &mut ()| gallery::show(ui, theme), ());
+        h.run_ok();
+        let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
+        failures.extend(record(&format!("gallery-{theme}-ppp1"), &image, true));
     }
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
@@ -262,18 +245,14 @@ fn crop(image: &ew_render_cpu::RgbaImage, rect: egui::Rect) -> ew_render_cpu::Rg
     }
 }
 
-/// CB7 (§12.2): the command bar alone, cropped to its frame, for each of the six tabs, in light and dark at both
-/// densities (gated; FT-533 added light Compact and dark Comfortable).
+/// CB7 (§12.2): the command bar alone, cropped to its frame, for each of the six tabs, light Comfortable (gated; the
+/// bar in dark and Compact is in the `main-*` images).
 #[test]
 fn the_command_bar_on_every_tab() {
     let dev = device();
     let mut failures = Vec::new();
-    for (theme, density) in [
-        ("light", "comfortable"),
-        ("light", "compact"),
-        ("dark", "comfortable"),
-        ("dark", "compact"),
-    ] {
+    {
+        let (theme, density) = ("light", "comfortable");
         let (mut h, recorder, tmp) = main_window(theme, density);
         for tab in ["project", "page", "draw", "check", "output", "view"] {
             assert_eq!(
@@ -438,14 +417,15 @@ fn messages_pane(h: &Harness<'_, App>) -> egui::Rect {
 }
 
 /// DK12 (WP-S2.17 part 3, lane K32): the Messages pane in tree mode (Golden A's error and a pending finding, then the
-/// cursor on the pending finding with its detail block) and the History panel (three steps, a save marker, one undone), each cropped to its pane, in light
-/// and dark at both densities, gated.
+/// cursor on the pending finding with its detail block) and the History panel (three steps, a save marker, one undone), each cropped to its pane,
+/// gated: all three in light Comfortable, the detail block in dark Compact.
 #[test]
-fn dk12_messages_and_history_in_light_and_dark_at_both_densities() {
+fn dk12_messages_and_history_in_light_with_one_dark_compact() {
     let dev = device();
     let mut failures = Vec::new();
-    for theme in ["light", "dark"] {
-        for density in ["comfortable", "compact"] {
+    for (theme, density) in [("light", "comfortable"), ("dark", "compact")] {
+        let light = theme == "light";
+        {
             let (mut h, recorder, tmp) = main_window(theme, density);
             assert_eq!(
                 h.state_mut().shell_mut().dispatch("messages.show", &json!({})),
@@ -510,12 +490,21 @@ fn dk12_messages_and_history_in_light_and_dark_at_both_densities() {
                 }
                 h.run_ok();
                 h.run_ok();
+                if !light && !cursor {
+                    continue;
+                }
                 let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
                 failures.extend(record(
                     &format!("dk12-{name}-{theme}-{density}"),
                     &crop(&image, messages_pane(&h)),
                     true,
                 ));
+            }
+            if !light {
+                h.state_mut().shell_mut().shutdown();
+                drop(h);
+                drop(tmp);
+                continue;
             }
             // History: three steps, a save, one undone.
             let shell = h.state_mut().shell_mut();
@@ -592,13 +581,13 @@ fn drag(h: &mut Harness<'_, App>, from: egui::Pos2, by: egui::Vec2) {
 /// by Terminal, with the derived Potential column moved next to Terminal so that it is on show, two marked rows and
 /// the cursor cell in the second (`dk12-grid-*`), then the editing cell opened on the cursor cell
 /// (`dk12-grid-edit-*`; the editor opens where the cursor is, so the cursor ring and the editor are two images).
-/// Cropped to the pane from its tool line to the grid's bottom, light and dark at both densities, gated.
+/// Cropped to the pane from its tool line to the grid's bottom, light Comfortable and dark Compact, gated.
 #[test]
-fn dk12_the_data_grid_in_light_and_dark_at_both_densities() {
+fn dk12_the_data_grid_in_light_comfortable_and_dark_compact() {
     let dev = device();
     let mut failures = Vec::new();
-    for theme in ["light", "dark"] {
-        for density in ["comfortable", "compact"] {
+    for (theme, density) in [("light", "comfortable"), ("dark", "compact")] {
+        {
             let (mut h, recorder, tmp) = main_window(theme, density);
             // The editor's caret blinks on the wall clock: steady for a stable image.
             h.ctx.all_styles_mut(|s| s.visuals.text_cursor.blink = false);
@@ -748,14 +737,15 @@ fn around(rects: impl IntoIterator<Item = egui::Rect>, margin: f32) -> egui::Rec
 }
 
 /// CP6 (FT-533): every dialog of the shell one by one that Golden A opens with one action, each cropped to the dialog's
-/// frame with its shadow, in light and dark, Comfortable, gated. Not here: the quit prompt (`part4-dialog-toast-*`)
+/// frame with its shadow, light Comfortable, gated. Not here: the quit prompt (`part4-dialog-toast-*`)
 /// and the four dialogs that need a fixture (the recovery dialog, the question of discarding its journal, the
-/// check-scheme question and the purge question), gated by [`cp6_the_fixture_dialogs_in_light_and_dark`] (FT-571).
+/// check-scheme question and the purge question), gated by [`cp6_the_fixture_dialogs_in_light`] (FT-571).
 #[test]
-fn cp6_every_dialog_one_by_one_in_light_and_dark() {
+fn cp6_every_dialog_one_by_one_in_light() {
     let dev = device();
     let mut failures = Vec::new();
-    for theme in ["light", "dark"] {
+    {
+        let theme = "light";
         let (mut h, recorder, tmp) = main_window(theme, "comfortable");
         // The fields' caret blinks on the wall clock: steady for a stable image.
         h.ctx.all_styles_mut(|s| s.visuals.text_cursor.blink = false);
@@ -876,18 +866,19 @@ fn pin_journal_times(dir: &std::path::Path, t: u64) {
     }
 }
 
-/// CP6 (FT-571): the four dialogs that need a fixture, each cropped to the dialog's frame with its shadow, in light and
-/// dark, Comfortable, gated: the recovery dialog (an earlier session's journal on a copy of Golden A, its last change
+/// CP6 (FT-571): the four dialogs that need a fixture, each cropped to the dialog's frame with its shadow, light
+/// Comfortable, gated: the recovery dialog (an earlier session's journal on a copy of Golden A, its last change
 /// pinned to 2026-10-28 12:00 UTC and the dialog's clock to two hours later), the question of discarding that journal
 /// (Discard… of the recovery dialog), the check-scheme question (Apply the check scheme of the finished
 /// company-standard wizard) and the purge question (a copy of Golden A whose first new logo was replaced and saved,
 /// re-opened).
 #[test]
-fn cp6_the_fixture_dialogs_in_light_and_dark() {
+fn cp6_the_fixture_dialogs_in_light() {
     use ew_ui::ew_viewmodel::shell::Dialog;
     let dev = device();
     let mut failures = Vec::new();
-    for theme in ["light", "dark"] {
+    {
+        let theme = "light";
         // The recovery dialog and the question of discarding the journal.
         let tmp = Tmp::new();
         let dir = tmp.golden("g.ew");
@@ -1059,12 +1050,13 @@ fn buttons(h: &Harness<'_, App>, labels: &[&str]) -> Vec<egui::Rect> {
 
 /// CP9 (FT-533): the quick-fix card in the Messages pane (EW-CORE-023's fix on folio 102, cropped to the pane with the
 /// card) and the table card in the Terminal strips pane (a paste onto a read-only cell, cropped to the grid with the
-/// card), in light and dark, Comfortable, gated.
+/// card), light Comfortable, gated.
 #[test]
-fn cp9_the_quick_fix_card_and_the_table_card_in_light_and_dark() {
+fn cp9_the_quick_fix_card_and_the_table_card_in_light() {
     let dev = device();
     let mut failures = Vec::new();
-    for theme in ["light", "dark"] {
+    {
+        let theme = "light";
         // The quick-fix card.
         let (mut h, recorder, tmp) = main_window(theme, "comfortable");
         let shell = h.state_mut().shell_mut();
@@ -1182,12 +1174,13 @@ fn cp9_the_quick_fix_card_and_the_table_card_in_light_and_dark() {
 }
 
 /// Doc 16a §6.4 (FT-540's restyle): the bottom dock with Messages and History open, History active, cropped to the
-/// dock's tab bar, in light and dark, Comfortable, gated.
+/// dock's tab bar, light Comfortable, gated.
 #[test]
-fn the_bottom_dock_tab_bar_in_light_and_dark() {
+fn the_bottom_dock_tab_bar_in_light() {
     let dev = device();
     let mut failures = Vec::new();
-    for theme in ["light", "dark"] {
+    {
+        let theme = "light";
         let (mut h, recorder, tmp) = main_window(theme, "comfortable");
         let shell = h.state_mut().shell_mut();
         for action in ["messages.show", "history.show"] {
@@ -1245,13 +1238,13 @@ fn the_bottom_dock_tab_bar_in_light_and_dark() {
 }
 
 /// Doc 16a §6.24 (FT-531's restyle): the chip line "Not on this page" with its pill jump chips, for -201U3 selected on
-/// folio 102 (its other representations are on 201 and 203), cropped to the chip line, in light and dark,
-/// Comfortable, gated.
+/// folio 102 (its other representations are on 201 and 203), cropped to the chip line, light Comfortable, gated.
 #[test]
-fn the_chip_line_in_light_and_dark() {
+fn the_chip_line_in_light() {
     let dev = device();
     let mut failures = Vec::new();
-    for theme in ["light", "dark"] {
+    {
+        let theme = "light";
         let (mut h, recorder, tmp) = main_window(theme, "comfortable");
         let shell = h.state_mut().shell_mut();
         for (action, params) in [
@@ -1338,12 +1331,13 @@ fn rep_at(h: &Harness<'_, App>, k: (i64, i64)) -> (String, String) {
 
 /// Doc 16a §6.22, second use (WP-S2.18 D2): the Place tool holding a NO contact on folio 101 with the Join chooser
 /// open: "New device", a slot row ("slot 13-14", a relay whose contact was deleted) and the relays as "auxiliary"
-/// rows, the slot row active; cropped to the popup with its shadow, in light and dark, Comfortable, gated.
+/// rows, the slot row active; cropped to the popup with its shadow, light Comfortable, gated.
 #[test]
-fn the_join_chooser_in_light_and_dark() {
+fn the_join_chooser_in_light() {
     let dev = device();
     let mut failures = Vec::new();
-    for theme in ["light", "dark"] {
+    {
+        let theme = "light";
         let (mut h, recorder, tmp) = main_window(theme, "comfortable");
         // Two relays on the empty lower right of folio 101; the second gets a slot (a contact placed, then deleted).
         for k in [(60, 30), (60, 40)] {
@@ -1411,13 +1405,14 @@ fn the_join_chooser_in_light_and_dark() {
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
-/// FT-597 (doc 16a §6.18): the quick-access Save button's tooltip, cropped to the button and the tooltip under it, in
-/// light and dark, Comfortable, gated: the tooltip is drawn on `color.surface.inverse` with `color.text.on_inverse`.
+/// FT-597 (doc 16a §6.18): the quick-access Save button's tooltip, cropped to the button and the tooltip under it,
+/// light Comfortable, gated: the tooltip is drawn on `color.surface.inverse` with `color.text.on_inverse`.
 #[test]
-fn the_save_tooltip_in_light_and_dark() {
+fn the_save_tooltip_in_light() {
     let dev = device();
     let mut failures = Vec::new();
-    for theme in ["light", "dark"] {
+    {
+        let theme = "light";
         let (mut h, recorder, tmp) = main_window(theme, "comfortable");
         dismiss_toasts(&mut h);
         support::settle(&mut h);
@@ -1435,14 +1430,10 @@ fn the_save_tooltip_in_light_and_dark() {
         }
         h.run_ok();
         let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
-        // The tooltip's fill beside its text is the inverse surface: dark in light, light in dark.
+        // The tooltip's fill beside its text is the inverse surface: dark in light.
         let label = node_rect(&h, "Save (Ctrl+S)").expect("the tooltip's text");
         let fill = luma(&image, (label.left() - 4.0) as u32, label.center().y as u32);
-        if theme == "light" {
-            assert!(fill < 80.0, "light: the tooltip's fill is dark ({fill})");
-        } else {
-            assert!(fill > 170.0, "dark: the tooltip's fill is light ({fill})");
-        }
+        assert!(fill < 80.0, "light: the tooltip's fill is dark ({fill})");
         let region =
             egui::Rect::from_min_size(save.left_top() - egui::vec2(8.0, 8.0), egui::vec2(360.0, 120.0));
         failures.extend(record(
@@ -1457,14 +1448,28 @@ fn the_save_tooltip_in_light_and_dark() {
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
-/// FT-625 (FT-545): the Place tool holding a NO contact between two contacts on folio 101, its ghost facing both
-/// with the wires autoconnect will draw, and the HUD saying how many and how to place without them; cropped to the
-/// page pane, in light and dark, Comfortable, gated.
+/// FT-625: four window details, each in its own window on a fresh copy of Golden A (their
+/// edits would show in each other's crops), light Comfortable, gated.
 #[test]
-fn ft625_the_place_ghost_wires_and_hud_hint_in_light_and_dark() {
+fn ft625_the_window_details_in_light() {
     let dev = device();
     let mut failures = Vec::new();
-    for theme in ["light", "dark"] {
+    ft625_the_place_ghost_wires_and_hud_hint(&dev, &mut failures);
+    ft625_the_counted_toasts(&dev, &mut failures);
+    ft625_the_wire_marker_row(&dev, &mut failures);
+    ft625_the_potential_name_cell(&dev, &mut failures);
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
+
+/// FT-625 (FT-545): the Place tool holding a NO contact between two contacts on folio 101, its ghost facing both
+/// with the wires autoconnect will draw, and the HUD saying how many and how to place without them; cropped to the
+/// page pane, light Comfortable.
+fn ft625_the_place_ghost_wires_and_hud_hint(
+    dev: &ew_render2d::gpu::HeadlessDevice,
+    failures: &mut Vec<String>,
+) {
+    {
+        let theme = "light";
         let (mut h, recorder, tmp) = main_window(theme, "comfortable");
         let pick = json!({"symbol": "ew.iec.contact-no@qet10", "letter": "K"});
         // Two contacts one above the other without wires (as `gpp_m34`'s FT-545 test places them).
@@ -1486,7 +1491,7 @@ fn ft625_the_place_ghost_wires_and_hud_hint_in_light_and_dark() {
         dismiss_toasts(&mut h);
         support::settle(&mut h);
         h.run_ok();
-        let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
+        let image = offscreen::render(dev, &h.ctx, h.output(), &recorder);
         let (_, hud_rect, pane) = h.state().command_surface_rects();
         let (hud_rect, pane) = (hud_rect.expect("the HUD"), pane.expect("the page pane"));
         assert!(pane.contains_rect(hud_rect), "the HUD in the page pane");
@@ -1499,17 +1504,14 @@ fn ft625_the_place_ghost_wires_and_hud_hint_in_light_and_dark() {
         drop(h);
         drop(tmp);
     }
-    assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
 /// FT-625 (FT-549, FT-554): the counted toasts one after the other, Run checks by severity (`check`) and the
-/// marker-mode switch's count (`marker`), at the canvas's top right; cropped to the toast with its shadow, in light and
-/// dark, Comfortable, gated.
-#[test]
-fn ft625_the_counted_toasts_in_light_and_dark() {
-    let dev = device();
-    let mut failures = Vec::new();
-    for theme in ["light", "dark"] {
+/// marker-mode switch's count (`marker`), at the canvas's top right; cropped to the toast with its shadow, light
+/// Comfortable.
+fn ft625_the_counted_toasts(dev: &ew_render2d::gpu::HeadlessDevice, failures: &mut Vec<String>) {
+    {
+        let theme = "light";
         let (mut h, recorder, tmp) = main_window(theme, "comfortable");
         for (name, action, params, text) in [
             ("check", "messages.check", json!({}), "Check: "),
@@ -1526,7 +1528,7 @@ fn ft625_the_counted_toasts_in_light_and_dark() {
             assert!(toast.starts_with(text), "{toast}");
             h.run_ok();
             h.run_ok();
-            let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
+            let image = offscreen::render(dev, &h.ctx, h.output(), &recorder);
             // The toasts' area (`ew_ui`'s `notifications::TOASTS_AREA`, as `tests/part4_cards.rs` names it).
             let area = egui::Id::unique("ew-toasts");
             let toasts = h.ctx.memory(|m| m.area_rect(area)).expect("the toasts' area");
@@ -1540,16 +1542,13 @@ fn ft625_the_counted_toasts_in_light_and_dark() {
         drop(h);
         drop(tmp);
     }
-    assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
 /// FT-625 (FT-554): Properties of the wire W29 on folio 103, the Main group with "Wire marker" right after the
-/// cross-section and the colour; cropped to those rows in the Properties pane, in light and dark, Comfortable, gated.
-#[test]
-fn ft625_the_wire_marker_row_in_light_and_dark() {
-    let dev = device();
-    let mut failures = Vec::new();
-    for theme in ["light", "dark"] {
+/// cross-section and the colour; cropped to those rows in the Properties pane, light Comfortable.
+fn ft625_the_wire_marker_row(dev: &ew_render2d::gpu::HeadlessDevice, failures: &mut Vec<String>) {
+    {
+        let theme = "light";
         let (mut h, recorder, tmp) = main_window(theme, "comfortable");
         act(&mut h, "page.goto", json!({"folio": "103"}));
         support::wait_for_page(&mut h);
@@ -1563,7 +1562,7 @@ fn ft625_the_wire_marker_row_in_light_and_dark() {
         support::settle(&mut h);
         support::wait_for_page(&mut h);
         h.run_ok();
-        let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
+        let image = offscreen::render(dev, &h.ctx, h.output(), &recorder);
         let row = node_rect(&h, "Wire marker").expect("the Wire marker row");
         let first = node_rect(&h, "Cross-section").expect("the cross-section row");
         // The left column's right edge: its splitter with the page view.
@@ -1590,18 +1589,15 @@ fn ft625_the_wire_marker_row_in_light_and_dark() {
         drop(h);
         drop(tmp);
     }
-    assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
 /// FT-625 (FT-577): the Potentials table with a potential known only at its connection points (24VDC-4's definition
-/// deleted), its Name cell in the editor with a typed name; cropped to the grid, in light and dark, Comfortable,
-/// gated.
-#[test]
-fn ft625_the_potential_name_cell_in_light_and_dark() {
+/// deleted), its Name cell in the editor with a typed name; cropped to the grid, light
+/// Comfortable.
+fn ft625_the_potential_name_cell(dev: &ew_render2d::gpu::HeadlessDevice, failures: &mut Vec<String>) {
     use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
-    let dev = device();
-    let mut failures = Vec::new();
-    for theme in ["light", "dark"] {
+    {
+        let theme = "light";
         let (mut h, recorder, tmp) = main_window(theme, "comfortable");
         // The editor's caret blinks on the wall clock: steady for a stable image.
         h.ctx.all_styles_mut(|s| s.visuals.text_cursor.blink = false);
@@ -1655,7 +1651,7 @@ fn ft625_the_potential_name_cell_in_light_and_dark() {
         dismiss_toasts(&mut h);
         support::settle(&mut h);
         h.run_ok();
-        let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
+        let image = offscreen::render(dev, &h.ctx, h.output(), &recorder);
         let grid = node_rect(&h, "Potentials table").expect("the grid");
         let top = node_rect(&h, "Table").map_or(grid.top(), |r| r.top());
         // The tool line, the header and the two rows the filter leaves (the empty grid below them is cut).
@@ -1672,5 +1668,4 @@ fn ft625_the_potential_name_cell_in_light_and_dark() {
         drop(h);
         drop(tmp);
     }
-    assert!(failures.is_empty(), "{}", failures.join("\n"));
 }

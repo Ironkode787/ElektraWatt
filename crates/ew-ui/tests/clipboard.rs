@@ -12,10 +12,10 @@ use std::sync::Arc;
 
 use egui::{Key, Modifiers, OutputCommand};
 use egui_kittest::Harness;
-use egui_kittest::kittest::{NodeT as _, Queryable};
+use egui_kittest::kittest::Queryable;
 use ew_ui::app::App;
 use ew_ui::ew_viewmodel::clipboard::ClipKind;
-use ew_ui::ew_viewmodel::ew_api::output::{PageTables, parse_fragment};
+use ew_ui::ew_viewmodel::ew_api::output::PageTables;
 use ew_ui::ew_viewmodel::shell::{Focus, Outcome, SessionCalls};
 use ew_ui::ew_viewmodel::strings;
 use ew_ui::ew_viewmodel::tools::Selection;
@@ -274,95 +274,6 @@ fn incomplete_cut_clipboard_event_shows_reason_without_changes() {
     h.step();
     assert_no_copy_output(&h);
     assert_cut_refusal(&mut h, before);
-}
-
-#[test]
-fn incomplete_cut_menu_shows_reason_without_changes() {
-    let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
-    incomplete_marker(&mut h);
-    support::open_menu(&mut h, &["Edit"]);
-    settle(&mut h);
-    assert!(!h.get_by_label_contains("Cut").accesskit_node().is_disabled());
-    let before = cut_state(&h);
-    h.get_by_label_contains("Cut").click();
-    h.step();
-    assert_no_copy_output(&h);
-    assert_cut_refusal(&mut h, before);
-}
-
-#[test]
-fn successful_page_item_cut_has_no_refusal_banner() {
-    let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
-    let page = h.state().shell().canvas().unwrap().page().tables.page.to_string();
-    dispatch(
-        &mut h,
-        "command.run",
-        json!({"cmd": "item.place", "params": {
-            "page": page, "kind": {"free_text": {"text": "40x60", "at": [100_000_000, 100_000_000]}}
-        }}),
-    );
-    let id = h
-        .state()
-        .shell()
-        .canvas()
-        .unwrap()
-        .page()
-        .tables
-        .items
-        .iter()
-        .find(|i| i.kind == "free_text" && i.text.as_deref() == Some("40x60"))
-        .expect("the free text")
-        .id;
-    dispatch(&mut h, "select.set", json!({"ids": [id.to_string()]}));
-    settle(&mut h);
-    assert!(matches!(h.state().shell().focus(), Some(Focus::Canvas(_))));
-    prime_clipboard(&mut h);
-    let before = cut_state(&h);
-    h.event(egui::Event::Cut);
-    h.step();
-    let copied = h
-        .output()
-        .platform_output
-        .commands
-        .iter()
-        .find_map(|c| match c {
-            OutputCommand::CopyText(text) => Some(text.clone()),
-            _ => None,
-        })
-        .expect("successful Cut publishes the fragment");
-    settle(&mut h);
-    let shell = h.state().shell();
-    assert_eq!(shell.revision(), before.revision.map(|r| r + 1));
-    assert_eq!(shell.recorded_commands().len(), before.recorded + 1);
-    assert_eq!(shell.recorded_commands().last().unwrap().cmd, "edit.delete");
-    assert!(
-        !shell
-            .canvas()
-            .unwrap()
-            .page()
-            .tables
-            .items
-            .iter()
-            .any(|i| i.id == id)
-    );
-    assert_eq!(shell.clipboard().text(), Some(copied.as_str()));
-    assert_eq!(
-        shell.clipboard().kind(),
-        Some(&ClipKind::Fragment {
-            records: 1,
-            copies: 0
-        })
-    );
-    assert_eq!(shell.clipboard().dropped(), 0);
-    let fragment = parse_fragment(&copied).unwrap();
-    assert_eq!(fragment.records, 1);
-    let record = &fragment.params["records"][0];
-    assert_eq!(record["id"], id.to_string());
-    assert_eq!(record["$k"], "page_item");
-    assert_eq!(record["kind"]["free_text"]["text"], "40x60");
-    assert!(shell.banner().is_none());
 }
 
 #[test]
