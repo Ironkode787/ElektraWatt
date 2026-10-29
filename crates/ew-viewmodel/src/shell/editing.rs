@@ -37,6 +37,18 @@ enum Pick {
     Function(String, usize),
 }
 
+/// The names of a terminal's designation in `place.pick` and `picker.choose`: `terminal_designation`, and
+/// `designation`, its old name (FT-543: the old name invited a device tag).
+const TERMINAL_DESIGNATION: [&str; 2] = ["terminal_designation", "designation"];
+
+/// The terminal designation of `p`: `terminal_designation`, else its old name `designation`.
+fn terminal_designation(p: &Map<String, Value>) -> Result<Option<&str>, Outcome> {
+    match string_param(p, TERMINAL_DESIGNATION[0])? {
+        Some(d) => Ok(Some(d)),
+        None => string_param(p, TERMINAL_DESIGNATION[1]),
+    }
+}
+
 impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // Getters
@@ -322,7 +334,9 @@ impl ShellModel {
         // A terminal: a terminal symbol, or any symbol or part given a strip or a designation (a PE terminal's category
         // is `TerminalEarth`, not `Terminal`). A part-first terminal joins the strip and carries its part (G-PP
         // finding 2: the part route ignored `strip` and `designation` and made a free device).
-        let terminal = row.terminal || p.contains_key("strip") || p.contains_key("designation");
+        let terminal = row.terminal
+            || p.contains_key("strip")
+            || TERMINAL_DESIGNATION.iter().any(|k| p.contains_key(*k));
         let target = match (pick, part) {
             (Pick::Function(function, _), _) => PlaceTarget::Function { function },
             (_, Some((part, template, number))) if !terminal => {
@@ -367,7 +381,7 @@ impl ShellModel {
                     return failed("error-unknown-strip", &[strip, &tags.join(", ")]);
                 };
                 let st = &cat.strips[i];
-                let designation = match string_param(p, "designation") {
+                let designation = match terminal_designation(p) {
                     Ok(Some(d)) => d.to_owned(),
                     Ok(None) => st.next_designation.clone(),
                     Err(e) => return e,
@@ -520,6 +534,12 @@ impl ShellModel {
                 // The parameters of this choice (`designation`, `letter`, `strip`) win over those of the choice that
                 // opened the chooser; the strip is the current row's unless this choice names one.
                 let mut params = pending.params.clone();
+                // A designation of this choice replaces the earlier one under either of its names (FT-543).
+                if TERMINAL_DESIGNATION.iter().any(|k| p.contains_key(*k)) {
+                    for k in TERMINAL_DESIGNATION {
+                        params.remove(k);
+                    }
+                }
                 params.extend(p.iter().map(|(k, v)| (k.clone(), v.clone())));
                 if params.get("strip").is_none_or(Value::is_null) {
                     params.insert("strip".into(), Value::from(cat.strips[i].id.to_string()));

@@ -1849,7 +1849,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         ),
     ),
     with_params(
-        "symbol?:text, part?:text, function?:ref, template?:uint, letter?:text, strip?:text, designation?:text",
+        "symbol?:text, part?:text, function?:ref, template?:uint, letter?:text, strip?:text, terminal_designation?:text, designation?:text",
         hidden(in_canvas(act(
             "place.pick",
             Command,
@@ -1885,8 +1885,9 @@ pub static ACTIONS: &[ActionMeta] = &[
         )),
     ),
     hidden(with_params(
-        // `arm` reads the optional device letter and, for a terminal, the strip and its designation.
-        "letter?:text, strip?:text, designation?:text",
+        // `arm` reads the optional device letter and, for a terminal, the strip and its designation
+        // (`terminal_designation`; FT-543 keeps `designation` as its old name).
+        "letter?:text, strip?:text, terminal_designation?:text, designation?:text",
         act(
             "picker.choose",
             Command,
@@ -4803,7 +4804,7 @@ mod tests {
         // The picker's Enter arms the pick with the same optional parameters as `place.pick` (fix round).
         assert_eq!(
             sig("picker.choose"),
-            "letter?:text, strip?:text, designation?:text"
+            "letter?:text, strip?:text, terminal_designation?:text, designation?:text"
         );
         let new = parse_signature(sig("file.new")).unwrap();
         let template = new.iter().find(|p| p.name == "template").unwrap();

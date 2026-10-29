@@ -105,7 +105,9 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "reason-no-symbol-for-function" => "No symbol for this function on this page",
         "reason-no-catalogue" => "Nothing can be placed on this page",
         "reason-unknown-symbol" => "No such symbol, part or function for this page",
-        "reason-no-strip" => "No terminal strip to add to: create one (Insert, Terminal strip)",
+        "reason-no-strip" => {
+            "No terminal strip to add to: create one (Insert, Terminal strip). A terminal designation numbers a terminal;              a device's tag is set in its properties (Frozen tag)"
+        }
         "reason-designation-needed" => "Give the terminal's designation",
         "reason-ip-exchange" => "An interruption point keeps its symbol",
         "reason-no-next-rep-type" => "No other symbol draws this function on this page",
