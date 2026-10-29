@@ -286,31 +286,6 @@ fn missing_font_is_skipped_and_reported_once() {
 }
 
 #[test]
-fn garbage_font_bytes_do_not_panic() {
-    let key = FontKey {
-        sha256: [9; 32],
-        face_index: 0,
-    };
-    let mut fonts: BTreeMap<FontKey, FontBytes> = BTreeMap::new();
-    fonts.insert(
-        key,
-        FontBytes {
-            data: Arc::from(vec![0u8; 64]),
-            index: 3,
-        },
-    );
-    let mut run = text_run("HHHH", mm(40, 60));
-    run.font = key;
-    let list = DisplayList {
-        items: vec![Item::glyphs(Arc::new(run))],
-    };
-    let (img, report) = render(&list, a4(), &RenderOptions::default(), &fonts, None).expect("renders");
-    assert_eq!(pixel(&img, 10, 10), [255, 255, 255, 255]);
-    // A file the glyph machinery cannot open counts as a missing font.
-    assert_eq!(report.missing_fonts, vec![key]);
-}
-
-#[test]
 fn invalid_font_bytes_are_validated_once_per_key_and_reported_missing() {
     let key = FontKey {
         sha256: [0xAB; 32],

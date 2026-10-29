@@ -259,7 +259,8 @@ fn a_region_of_a_sheet_beyond_the_full_raster_limit_renders() {
 
 #[test]
 fn region_size_errors() {
-    let list = page();
+    // The size refusals need no drawing: an empty list.
+    let list = DisplayList::new();
     let fonts = bundled_fonts();
     for (w, h) in [(0, 10), (10, 0), (4097, 10), (10, 4097)] {
         assert_eq!(
@@ -302,25 +303,42 @@ fn item_bounds_cover_what_each_item_draws() {
         ],
     };
     let bounds = ItemBounds::of(&list, None);
-    for dpi in [96, 1200] {
-        let (w, h) = pixel_size(a4(), dpi);
-        let mut y = 0i64;
-        while y < h as i64 {
-            let mut x = 0i64;
-            while x < w as i64 {
-                let o = region(dpi, x, y, 512, 512);
-                assert_eq!(
-                    cut(&list, Some(&bounds), &o),
-                    cut(&list, None, &o),
-                    "{dpi} dpi at ({x}, {y})"
-                );
-                x += 512;
-            }
-            y += 512;
-            if dpi > 100 && y > 4096 {
-                break;
+    // 96 dpi: every 512-px tile of the sheet.
+    let (w, h) = pixel_size(a4(), 96);
+    let mut tiles = Vec::new();
+    for y in (0..h as i64).step_by(512) {
+        for x in (0..w as i64).step_by(512) {
+            tiles.push((96, x, y));
+        }
+    }
+    // 1200 dpi: the tiles within 1,024 px of the two drawn points ((10, 10) mm and (50, 50) mm), where a too-small
+    // box would show, and four tiles far from every item, which must stay paper.
+    let (w, h) = (pixel_size(a4(), 1200).0 as i64, pixel_size(a4(), 1200).1 as i64);
+    let mut near = std::collections::BTreeSet::new();
+    for c_mm in [10i64, 50] {
+        let c = c_mm * 1200 * 10 / 254;
+        let first = ((c - 1024).max(0) / 512) * 512;
+        for y in (first..=(c + 1024).min(h - 1)).step_by(512) {
+            for x in (first..=(c + 1024).min(w - 1)).step_by(512) {
+                near.insert((x, y));
             }
         }
+    }
+    let far = |v: i64| (v - 512) / 512 * 512;
+    near.extend([
+        (far(w), 0),
+        (0, far(h)),
+        (far(w), far(h)),
+        (far(w / 2), far(h / 2)),
+    ]);
+    tiles.extend(near.into_iter().map(|(x, y)| (1200, x, y)));
+    for (dpi, x, y) in tiles {
+        let o = region(dpi, x, y, 512, 512);
+        assert_eq!(
+            cut(&list, Some(&bounds), &o),
+            cut(&list, None, &o),
+            "{dpi} dpi at ({x}, {y})"
+        );
     }
 }
 
