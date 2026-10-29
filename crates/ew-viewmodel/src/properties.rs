@@ -442,6 +442,8 @@ const PRIMARY: &[(&str, &[&str])] = &[
             "derived.potential",
             "derived.csa",
             "derived.colour",
+            // FT-554: whether the wire prints its marker, beside the cross-section and the colour it prints.
+            "overrides.show_marker",
         ],
     ),
 ];
@@ -482,6 +484,7 @@ pub fn groups(section: &SheetSection, advanced: bool) -> Vec<(RowGroup, Vec<&Pro
         .filter(shown)
         .filter(|r| is_primary(&section.kind, r))
         .collect();
+    let main = marker_beside_colour(main);
     let mut out = Vec::new();
     if !main.is_empty() {
         out.push((RowGroup::Main, main));
@@ -497,6 +500,21 @@ pub fn groups(section: &SheetSection, advanced: bool) -> Vec<(RowGroup, Vec<&Pro
         }
     }
     out
+}
+
+/// The Main rows with a connection's `overrides.show_marker` moved right after the colour it prints (FT-554); the rows
+/// as they are when either is absent.
+fn marker_beside_colour(mut rows: Vec<&PropRow>) -> Vec<&PropRow> {
+    let Some(from) = rows.iter().position(|r| r.path == "overrides.show_marker") else {
+        return rows;
+    };
+    let marker = rows.remove(from);
+    let at = rows
+        .iter()
+        .position(|r| r.key.ends_with("/derived.colour"))
+        .map_or(from, |i| i + 1);
+    rows.insert(at, marker);
+    rows
 }
 
 /// The number of Advanced rows of `sheet` (the "Show advanced (n)" link).

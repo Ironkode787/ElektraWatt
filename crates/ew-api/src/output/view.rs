@@ -877,6 +877,19 @@ fn segment_terminals(q: &Q, rep: &Representation) -> Vec<SegmentTerminal> {
         .collect()
 }
 
+impl crate::Session {
+    /// How many connections carry a wire marker of their own under the project's current marker mode (FT-554): the
+    /// count that `project.marker_mode` reports after a switch (`0 wires carry a marker`).
+    pub fn marker_wire_count(&self) -> usize {
+        let q = self.query();
+        let mode = ew_derive::marker_mode(&q);
+        q.connections()
+            .iter()
+            .filter(|(_, c)| ew_derive::shows_marker(&q, c, mode))
+            .count()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

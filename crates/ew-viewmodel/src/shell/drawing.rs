@@ -18,6 +18,7 @@ use ew_api::AnyCommand;
 use serde_json::{Map, Value, json};
 
 use super::{Mode, Outcome, Prompt, ShellModel, failed, string_param};
+use crate::strings;
 use crate::tools::{
     BINDABLE, EntityKind, Ghost, GraphicShape, GraphicTool, ImageAsset, ImageTool, MarkerTool,
     StructureBoxTool, TextEditTool, TextTool, selection_kinds, tool_named,
@@ -468,6 +469,7 @@ impl ShellModel {
             Some(_) => return failed("error-bad-param", &["mode"]),
         };
         if mode == self.marker_mode_word() {
+            self.notify_marker_count(false);
             return Outcome::Done;
         }
         let value = if mode == "per_wire" {
@@ -479,6 +481,18 @@ impl ShellModel {
             name: "project.drawing.set".into(),
             params: json!({ "marker_mode": value }),
         };
-        self.run_commit(&cmd)
+        let outcome = self.run_commit(&cmd);
+        if matches!(outcome, Outcome::Done) {
+            self.notify_marker_count(true);
+        }
+        outcome
+    }
+
+    /// FT-554: the toast of a marker-mode switch, how many wires carry a marker now (`0 wires carry a marker`), so a
+    /// mode that selects no wire on this project does not look like a mode that did nothing.
+    fn notify_marker_count(&mut self, undo: bool) {
+        let Some(project) = &self.project else { return };
+        let n = project.session.marker_wire_count();
+        self.notify(strings::format_count("toast-marker-count", n), undo);
     }
 }

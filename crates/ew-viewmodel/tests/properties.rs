@@ -1022,3 +1022,46 @@ fn ft544_select_set_takes_a_bare_tag() {
         other => panic!("{other:?}"),
     }
 }
+
+/// FT-554: a wire's Main rows hold "Wire marker" (`overrides.show_marker`) right after the cross-section and the
+/// colour; switching the marker mode to explicit reports how many wires carry a marker.
+#[test]
+fn ft554_wire_marker_beside_colour_and_the_mode_switch_counts_markers() {
+    use ew_viewmodel::properties::{RowGroup, groups};
+    let tmp = Tmp::new("props-ft554");
+    let mut shell = writable(&tmp, "103");
+    done(&mut shell, "select.set", json!({"ids": [W29]}));
+    let sheet = shell.properties().sheet().unwrap();
+    let section = &sheet.sections[0];
+    let (group, rows) = &groups(section, false)[0];
+    assert_eq!(*group, RowGroup::Main);
+    let keys: Vec<&str> = rows.iter().map(|r| r.key.as_str()).collect();
+    let colour = keys
+        .iter()
+        .position(|k| *k == "connection/derived.colour")
+        .unwrap();
+    assert_eq!(keys[colour - 1], "connection/derived.csa", "{keys:?}");
+    assert_eq!(keys[colour + 1], "connection/overrides.show_marker", "{keys:?}");
+    assert_eq!(
+        ew_viewmodel::strings::field_label("connection", "overrides.show_marker"),
+        "Wire marker"
+    );
+    // Golden A has ten connections with an explicit cross-section or colour: the explicit mode marks those ten.
+    done(&mut shell, "project.marker_mode", json!({"mode": "explicit"}));
+    assert_eq!(shell.toast().unwrap().text, "10 wires carry a marker");
+    // The same mode again commits nothing and still reports the count.
+    let rev = shell.revision();
+    done(&mut shell, "project.marker_mode", json!({"mode": "explicit"}));
+    assert_eq!(shell.revision(), rev);
+    assert_eq!(shell.toast().unwrap().text, "10 wires carry a marker");
+    // No markers: says so, in the plural.
+    done(&mut shell, "project.marker_mode", json!({"mode": "none"}));
+    assert_eq!(shell.toast().unwrap().text, "0 wires carry a marker");
+    // Every wire: a count above one, in the plural.
+    done(&mut shell, "project.marker_mode", json!({"mode": "all"}));
+    let all = shell.toast().unwrap().text.clone();
+    assert!(
+        all.ends_with(" wires carry a marker") && !all.starts_with("0 "),
+        "{all}"
+    );
+}
