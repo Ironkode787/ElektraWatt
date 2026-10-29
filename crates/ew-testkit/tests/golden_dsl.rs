@@ -4,9 +4,9 @@
 //! Build path (b) of Golden A (doc 20 §3.2, WP-S6.01): the builder DSL constructs the golden project
 //! through commands only, from the shell; the acceptance SQL over it is compared with the expected CSVs.
 //!
-//! The acceptance runner (`crates/ew-api/tests/acceptance.rs`, AC-15) reports the comparison; these tests
-//! pin what the builder writes and leaves out, its determinism, the replay of its command log, the undo of
-//! every step and a save after it.
+//! The acceptance runner (`crates/ew-api/tests/acceptance.rs`, AC-15) makes the comparison with the expected
+//! CSVs (the six SQL results and both parts lists); these tests pin what the builder writes and leaves out,
+//! record for record, its determinism, the replay of its command log, the undo of every step and a save after it.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -16,15 +16,6 @@ use ew_api::{AnyCommand, CmdLog, HistoryLimits, Session, SessionOptions};
 use ew_commands::Cost;
 use ew_testkit::golden::dsl::Done;
 use ew_testkit::golden::{self, Built};
-
-const SQL: [&str; 6] = [
-    "terminals_1X1",
-    "terminals_X1031",
-    "terminals_X1032",
-    "wires",
-    "potentials",
-    "cables",
-];
 
 fn repo() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
@@ -86,118 +77,8 @@ fn built(seed: u64) -> (Session, Built) {
     (session, built)
 }
 
-/// The result of every acceptance SQL file over `session`, as CSV.
-fn sql_results(session: &Session) -> BTreeMap<&'static str, String> {
-    let checks = session.check(&ew_api::checks::PRE_DELIVERY, ew_api::checks::CheckMode::Release);
-    let projection = session
-        .sql_projection(Some(&checks))
-        .expect("the projection builds");
-    SQL.iter()
-        .map(|name| {
-            let sql = std::fs::read_to_string(repo().join(format!("golden/J-E-2416/acceptance/{name}.sql")))
-                .expect("the SQL file reads");
-            let csv = projection
-                .reader(ew_api::sql::Profile::EW_SQL)
-                .and_then(|r| r.query(&sql))
-                .map(|set| set.to_csv())
-                .unwrap_or_else(|e| format!("error: {e}"));
-            (*name, csv)
-        })
-        .collect()
-}
-
-/// The fields of one CSV line of the golden dialect (quoted fields, doubled quotes).
-fn csv_fields(line: &str) -> Vec<String> {
-    let mut out = Vec::new();
-    let mut field = String::new();
-    let mut quoted = false;
-    let mut chars = line.chars().peekable();
-    while let Some(c) = chars.next() {
-        match c {
-            '"' if quoted && chars.peek() == Some(&'"') => {
-                field.push('"');
-                chars.next();
-            }
-            '"' => quoted = !quoted,
-            ',' if !quoted => out.push(std::mem::take(&mut field)),
-            c => field.push(c),
-        }
-    }
-    out.push(field);
-    out
-}
-
-fn expected(name: &str) -> String {
-    std::fs::read_to_string(repo().join(format!("golden/J-E-2416/expected/csv/{name}.csv")))
-        .expect("expected CSV")
-}
-
-/// AC-15 path (b): the acceptance SQL over the command-built project returns the expected CSVs, both
-/// parts lists equal theirs (the valve-terminal assembly is built by `assembly.attach`, `valve.add` and
-/// the `assembly` aspect, FT-169), and no representation of the tables is refused (the page-type rule as
-/// amended by the owner ruling on ID-55: the cable markers are graphic on folios 106 and 3, the CPX black
-/// boxes multi-line on 203 … 206).
-#[test]
-fn path_b_returns_the_expected_csvs() {
-    let (session, built) = built(1);
-    for (name, csv) in sql_results(&session) {
-        assert_eq!(csv, expected(name), "acceptance/{name}.sql over path (b)");
-    }
-    let parts = session
-        .export_csv(ew_api::Export::Bom(ew_api::BomMode::Component))
-        .expect("the parts list exports");
-    assert_eq!(
-        parts,
-        expected("bom_parts"),
-        "export bom --mode parts over path (b)"
-    );
-    let assembly = session
-        .export_csv(ew_api::Export::Bom(ew_api::BomMode::Assembly))
-        .expect("the assembly parts list exports");
-    assert_eq!(
-        assembly,
-        expected("bom_assembly"),
-        "export bom --mode assembly over path (b)"
-    );
-    // the fields of the golden dialect still parse the expected rows (the helper stays exercised)
-    assert_eq!(
-        csv_fields(expected("bom_parts").lines().nth(1).unwrap_or_default())[5],
-        "532216"
-    );
-    assert!(
-        !built
-            .unwritten
-            .keys()
-            .any(|k| k.starts_with("representation (refused")),
-        "{}",
-        built.unwritten_summary()
-    );
-}
-
-/// What path (b) issues and what it cannot write yet (no command): pinned, so that a new command or a
-/// table change shows here. Since FT-165 path (b) writes every record: nothing is left out.
-#[test]
-fn path_b_issues_these_commands_and_leaves_out_these_records() {
-    let (_, built) = built(1);
-    let commands: Vec<String> = built
-        .by_command
-        .iter()
-        .map(|(k, n)| format!("{k}: {n}"))
-        .collect();
-    assert_eq!(
-        commands.join(", "),
-        "assembly.attach: 2, bond.create: 1, box.black: 11, cable.create: 3, connection.draw: 87, \
-         device.create: 37, device.link: 8, device.place: 76, external_ref.create: 4, fields.set: 204, \
-         ip.place: 48, junction.edit: 6, library.embed: 1, page.create: 13, plc.bind_channel: 28, \
-         plc.config_project.create: 1, potential.define: 19, project.settings.set: 3, \
-         project.supply.set: 1, report_block.create: 15, revision.create: 2, section.create: 3, \
-         structure.create_node: 4, terminal.add: 4, valve.add: 28"
-    );
-    assert_eq!(built.unwritten_summary(), "");
-    assert!(built.unwritten.is_empty());
-}
-
-/// The same seed builds the same model; another seed mints other IDs and gives the same SQL results.
+/// The same seed builds the same model and the same script. That the SQL results do not depend on the minted IDs is
+/// AC-15's comparison of paths (a), (b) and (c), which mint different IDs (test audit g7).
 #[test]
 fn path_b_is_deterministic_and_compares_by_content() {
     let (a, built_a) = built(1);
@@ -207,16 +88,6 @@ fn path_b_is_deterministic_and_compares_by_content() {
         "same seed, same model"
     );
     assert_eq!(built_a.script, built_b.script);
-    let (c, _) = built(2);
-    assert!(
-        !a.world().model.content_eq(&c.world().model),
-        "another seed mints other IDs"
-    );
-    assert_eq!(
-        sql_results(&a),
-        sql_results(&c),
-        "the SQL results do not depend on the IDs"
-    );
 }
 
 /// The command log of path (b) replays with `Session::run_script` (`ew apply`) on the shell with the same
@@ -330,33 +201,8 @@ fn the_builder_embeds_the_non_local_library_copies() {
         batch.lib.len(),
         "nothing else is dropped"
     );
-    let (session, built) = built(1);
-    let (name, params) = &built.script[0];
-    assert_eq!(name, "library.embed", "the first command embeds the copies");
-    assert_eq!(params["copies"].as_array().map(Vec::len), Some(copies.len()));
-    assert_eq!(built.by_command.get("library.embed"), Some(&1));
-    let lib_rows = |s: &Session| {
-        rows_by_key(s)
-            .into_keys()
-            .filter(|k| {
-                ["part:", "symbol:", "fndef:", "form:"]
-                    .iter()
-                    .any(|p| k.starts_with(p))
-            })
-            .collect::<Vec<_>>()
-    };
-    let a = Session::from_records(
-        golden::shell(&batch).project,
-        [],
-        batch.lib.clone(),
-        SessionOptions::default(),
-    )
-    .expect("the library alone is a valid model");
-    assert_eq!(
-        lib_rows(&session),
-        lib_rows(&a),
-        "path (b) holds the library copies of path (a)"
-    );
+    // The build half (the first command is the one `library.embed` of all the copies; path (b) holds the library
+    // of path (a)) is asserted on the one build of `path_b_equals_path_a_record_by_record_up_to_ids`.
 }
 
 /// Batch ID text to built ID text over a JSON value, the way the builder remaps a record: a sorted list
@@ -449,7 +295,12 @@ fn the_logo_and_library_form_verbs_send_their_command_parameters() {
 /// Path (b) holds the records of path (a) record for record, up to the IDs the commands minted: every
 /// record of the bootstrap (its `source_ref` aside), with its references remapped to the built IDs,
 /// equals the built record under the built ID, and path (b) holds no other record. The import lineage is
-/// path (a)'s own. The revisions (typed since FT-165) are compared like every other record.
+/// path (a)'s own. The revisions (typed since FT-165) are compared like every other record, and so are the
+/// library copies (FT-278).
+///
+/// On the same build: what path (b) issues and what it cannot write yet (no command), pinned so that a new command
+/// or a table change shows here (since FT-165 path (b) writes every record: nothing is left out); and FT-278's
+/// build half: the first command is the one `library.embed` of every non-local copy.
 #[test]
 fn path_b_equals_path_a_record_by_record_up_to_ids() {
     use ew_schema::Record;
@@ -470,6 +321,29 @@ fn path_b_equals_path_a_record_by_record_up_to_ids() {
     let a = Session::from_records(project, records, batch.lib.clone(), SessionOptions::default())
         .expect("path (a) is a valid model");
     let (b, built) = built(1);
+    let commands: Vec<String> = built
+        .by_command
+        .iter()
+        .map(|(k, n)| format!("{k}: {n}"))
+        .collect();
+    assert_eq!(
+        commands.join(", "),
+        "assembly.attach: 2, bond.create: 1, box.black: 11, cable.create: 3, connection.draw: 87, \
+         device.create: 37, device.link: 8, device.place: 76, external_ref.create: 4, fields.set: 204, \
+         ip.place: 48, junction.edit: 6, library.embed: 1, page.create: 13, plc.bind_channel: 28, \
+         plc.config_project.create: 1, potential.define: 19, project.settings.set: 3, \
+         project.supply.set: 1, report_block.create: 15, revision.create: 2, section.create: 3, \
+         structure.create_node: 4, terminal.add: 4, valve.add: 28"
+    );
+    assert_eq!(built.unwritten_summary(), "");
+    assert!(built.unwritten.is_empty());
+    let (name, params) = &built.script[0];
+    assert_eq!(name, "library.embed", "the first command embeds the copies");
+    assert_eq!(
+        params["copies"].as_array().map(Vec::len),
+        Some(golden::embedded_copies(&batch).len()),
+        "one library.embed of every non-local copy"
+    );
     let ids: BTreeMap<String, String> = built.ids.clone();
     let a_rows = rows_by_key(&a);
     let b_rows = rows_by_key(&b);

@@ -306,7 +306,7 @@ Locally: `EW_FUZZ_SEEDS=17 EW_FUZZ_STEPS=200 EW_FUZZ_REPORT=target/fuzz/findings
 --test command_fuzz fuzz_long -- --ignored --nocapture` (or in the dev profile for the debug checks, about seven times
 slower); the cadences of the costly oracles are `EW_FUZZ_SAMPLE_EVERY`, `EW_FUZZ_CHECK_EVERY` and
 `EW_FUZZ_VERIFY_EVERY`, the step mix `EW_FUZZ_SAVE_WEIGHT` and `EW_FUZZ_IMPORT_WEIGHT`, the wall-clock budget
-`EW_FUZZ_BUDGET_SECS`. `fuzz_smoke` (2 seeds of 30 steps, 15 to 19 s in a debug build) stays in the targeted tests (`cargo nextest run -p ew-testkit`) and runs once per CI test job and in `cargo xtask ci`, in the all-features nextest run (the default-features run skips the `command_fuzz` binary: FT-306, decision log ID-437).
+`EW_FUZZ_BUDGET_SECS`. `fuzz_smoke` (1 seed of 30 steps since the test audit of 2026-10-29; 2 seeds took 15 to 19 s in a debug build) stays in the targeted tests (`cargo nextest run -p ew-testkit`) and runs once per CI test job and in `cargo xtask ci`, in the all-features nextest run (the default-features run skips the `command_fuzz` binary: FT-306, decision log ID-437).
 
 ## Deep nightly (`deep-nightly.yml`, CI-N-02 and CI-N-03)
 

@@ -728,8 +728,10 @@ fn moving_a_load_updates_the_routes_of_its_wires() {
     );
 }
 
-/// Consecutive free CPs of a page take a wire (what `connection.draw` of the benchmark does).
+/// Consecutive free CPs of a page take a wire (what `connection.draw` of the benchmark does). A check of the bench
+/// fixture, not of a product path: it runs with the performance spike (test audit g7).
 #[test]
+#[ignore = "bench fixture: runs with the performance spike (milestone rule)"]
 fn consecutive_free_cps_take_a_wire() {
     let g = synth::project(SizeClass::S, 1);
     let free = g.handles.free_cps.clone();

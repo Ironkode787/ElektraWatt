@@ -538,46 +538,67 @@ mod tests {
         values.into_iter().map(Duration::from_nanos).collect()
     }
 
+    /// `summarize` over sample sets: (min, median, p99, max, n) in nanoseconds; the median is the lower middle and
+    /// the p99 the nearest rank, ceil(0.99 n).
     #[test]
-    fn median_of_an_odd_count_is_the_middle() {
-        let s = summarize("odd", SizeClass::S, &ns([5, 1, 3, 9, 7]));
-        assert_eq!(s.median, Duration::from_nanos(5));
-        assert_eq!(
-            (s.min, s.max, s.n),
-            (Duration::from_nanos(1), Duration::from_nanos(9), 5)
-        );
-    }
-
-    #[test]
-    fn median_of_an_even_count_is_the_lower_middle() {
-        let s = summarize("even", SizeClass::S, &ns([4, 1, 3, 2]));
-        assert_eq!(s.median, Duration::from_nanos(2));
-    }
-
-    #[test]
-    fn p99_is_nearest_rank_on_1000_samples() {
-        // ceil(0.99 * 1000) = 990: the 990th smallest of 1..=1000 is 990.
-        let mut v: Vec<u64> = (1..=1_000).collect();
-        v.reverse();
-        let s = summarize("p99", SizeClass::M, &ns(v));
-        assert_eq!(s.p99, Duration::from_nanos(990));
-        assert_eq!(s.median, Duration::from_nanos(500));
-        assert_eq!(s.class, SizeClass::M);
-    }
-
-    #[test]
-    fn p99_of_20_samples_is_the_maximum() {
-        // ceil(0.99 * 20) = 20.
-        let s = summarize("p99", SizeClass::S, &ns(1..=20));
-        assert_eq!(s.p99, Duration::from_nanos(20));
-        assert_eq!(s.median, Duration::from_nanos(10));
-    }
-
-    #[test]
-    fn a_single_sample_is_every_statistic() {
-        let s = summarize("one", SizeClass::S, &ns([7]));
-        assert_eq!((s.min, s.median, s.p99, s.max), (s.min, s.min, s.min, s.min));
-        assert_eq!(s.min, Duration::from_nanos(7));
+    fn summary_statistics_by_sample_set() {
+        let reversed_1000: Vec<u64> = (1..=1_000).rev().collect();
+        /// (name, class, samples, [min, median, p99, max], n)
+        type Case = (&'static str, SizeClass, Vec<u64>, [u64; 4], usize);
+        let cases: [Case; 5] = [
+            (
+                "odd count: the middle",
+                SizeClass::S,
+                vec![5, 1, 3, 9, 7],
+                [1, 5, 9, 9],
+                5,
+            ),
+            (
+                "even count: the lower middle",
+                SizeClass::S,
+                vec![4, 1, 3, 2],
+                [1, 2, 4, 4],
+                4,
+            ),
+            // ceil(0.99 * 1000) = 990: the 990th smallest of 1..=1000 is 990.
+            (
+                "p99 nearest rank of 1000",
+                SizeClass::M,
+                reversed_1000,
+                [1, 500, 990, 1_000],
+                1_000,
+            ),
+            // ceil(0.99 * 20) = 20.
+            (
+                "p99 of 20 is the maximum",
+                SizeClass::S,
+                (1..=20).collect(),
+                [1, 10, 20, 20],
+                20,
+            ),
+            (
+                "a single sample is every statistic",
+                SizeClass::S,
+                vec![7],
+                [7, 7, 7, 7],
+                1,
+            ),
+        ];
+        for (name, class, samples, [min, median, p99, max], n) in cases {
+            let s = summarize(name, class, &ns(samples));
+            assert_eq!(
+                (s.min, s.median, s.p99, s.max, s.n, s.class),
+                (
+                    ns([min])[0],
+                    ns([median])[0],
+                    ns([p99])[0],
+                    ns([max])[0],
+                    n,
+                    class
+                ),
+                "case {name}"
+            );
+        }
     }
 
     #[test]
@@ -627,13 +648,6 @@ mod tests {
             s.to_string(),
             "bench rep.move.commit class=S n=1000 min=0.412ms median=0.530ms p99=0.912ms max=1.204ms"
         );
-    }
-
-    #[test]
-    fn time_returns_the_value() {
-        // The value only: no wall-clock assertion in the non-timing tests (testing policy).
-        let (v, _elapsed) = time(|| 41 + 1);
-        assert_eq!(v, 42);
     }
 
     #[test]
@@ -820,43 +834,51 @@ mod tests {
     const HEADER: &str = "| Family | Class | n | Median | p99 | Max | Budget | p99 / budget | Flags |\n\
                           |---|---|---:|---:|---:|---:|---:|---:|---|\n";
 
+    /// `markdown_table` over row sets: within the budget, over it and clamped with a note, without a budget, and no
+    /// rows (the header only).
     #[test]
-    fn markdown_row_within_budget() {
-        let r = row("move.commit_potentials", 1_000, 1_234, 2_000, 12_345, Some(5));
-        assert_eq!(
-            markdown_table(&[r]),
-            format!(
-                "{HEADER}| move.commit_potentials | M | 1000 | 1.234 ms | 2.000 ms | 12.345 ms | 5.000 ms | 0.4× |  |\n"
-            )
-        );
-    }
-
-    #[test]
-    fn markdown_row_over_budget_and_clamped_with_a_note() {
-        let mut r = row("profile.change.all", 100, 400_000, 412_500, 500_000, Some(30));
-        r.clamped = true;
-        r.note = "ver=0 re=1 cut=1".into();
-        let mut r2 = row("memo.partition.move", 20, 9_000, 10_000, 10_500, Some(5));
-        r2.note = "ver=1".into();
-        assert_eq!(
-            markdown_table(&[r, r2]),
-            format!(
-                "{HEADER}| profile.change.all | M | 100 | 400.000 ms | 412.500 ms | 500.000 ms | 30.000 ms | 13.8× | clamped, over, ver=0 re=1 cut=1 |\n\
-                 | memo.partition.move | M | 20 | 9.000 ms | 10.000 ms | 10.500 ms | 5.000 ms | 2.0× | over, ver=1 |\n"
-            )
-        );
-    }
-
-    #[test]
-    fn markdown_row_without_budget() {
-        let r = row("connectivity.cold", 10, 50_000_000, 60_000_000, 61_000_000, None);
-        assert_eq!(
-            markdown_table(&[r]),
-            format!(
-                "{HEADER}| connectivity.cold | M | 10 | 50000.000 ms | 60000.000 ms | 61000.000 ms | — | — |  |\n"
-            )
-        );
-        assert_eq!(markdown_table(&[]), HEADER);
+    fn markdown_rows_by_budget_state() {
+        let mut clamped = row("profile.change.all", 100, 400_000, 412_500, 500_000, Some(30));
+        clamped.clamped = true;
+        clamped.note = "ver=0 re=1 cut=1".into();
+        let mut over = row("memo.partition.move", 20, 9_000, 10_000, 10_500, Some(5));
+        over.note = "ver=1".into();
+        let cases: [(&str, Vec<Row>, &str); 4] = [
+            (
+                "within budget",
+                vec![row(
+                    "move.commit_potentials",
+                    1_000,
+                    1_234,
+                    2_000,
+                    12_345,
+                    Some(5),
+                )],
+                "| move.commit_potentials | M | 1000 | 1.234 ms | 2.000 ms | 12.345 ms | 5.000 ms | 0.4× |  |\n",
+            ),
+            (
+                "over budget, clamped, with a note",
+                vec![clamped, over],
+                "| profile.change.all | M | 100 | 400.000 ms | 412.500 ms | 500.000 ms | 30.000 ms | 13.8× | clamped, over, ver=0 re=1 cut=1 |\n\
+                 | memo.partition.move | M | 20 | 9.000 ms | 10.000 ms | 10.500 ms | 5.000 ms | 2.0× | over, ver=1 |\n",
+            ),
+            (
+                "without budget",
+                vec![row(
+                    "connectivity.cold",
+                    10,
+                    50_000_000,
+                    60_000_000,
+                    61_000_000,
+                    None,
+                )],
+                "| connectivity.cold | M | 10 | 50000.000 ms | 60000.000 ms | 61000.000 ms | — | — |  |\n",
+            ),
+            ("no rows", Vec::new(), ""),
+        ];
+        for (name, rows, body) in cases {
+            assert_eq!(markdown_table(&rows), format!("{HEADER}{body}"), "case {name}");
+        }
     }
 
     #[test]

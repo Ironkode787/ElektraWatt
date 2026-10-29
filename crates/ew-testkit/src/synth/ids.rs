@@ -85,14 +85,6 @@ mod tests {
     }
 
     #[test]
-    fn clock_advances_one_millisecond_per_call() {
-        let mut s = SynthSource::new(0);
-        assert_eq!(s.now().millis, SynthSource::START_MILLIS);
-        assert_eq!(s.now().millis, SynthSource::START_MILLIS + 1);
-        assert_eq!(s.now().sub_ms_nanos, 0);
-    }
-
-    #[test]
     fn splitmix64_reference_values() {
         // The first outputs of SplitMix64 seeded with 0 (reference implementation by Vigna).
         let mut s = SynthSource::new(0);

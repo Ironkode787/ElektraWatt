@@ -312,7 +312,7 @@ Golden A (path (a), oracle mode, the shipped prevent rules). After every changin
 reads whose oracle mismatches must be empty; at a configurable cadence the pre-delivery check (no `EW-TERM-002`
 finding the project did not already have, i.e. none slipped past the prevent hook) and `verify_derived`; at the end
 every step is undone and the model must equal the initial one. A failure prints the seed, the step and the command
-log. `fuzz_smoke` (2 seeds × 30 steps, sampled oracle, integrity and undo-all) runs in the targeted tests;
+log. `fuzz_smoke` (1 seed × 30 steps since the test audit of 2026-10-29; seed 2 runs in `fuzz_long`’s range, sampled oracle, integrity and undo-all) runs in the targeted tests;
 `fuzz_long` is `#[ignore]`d (`EW_FUZZ_SEEDS`, `EW_FUZZ_STEPS`). A first run of 20 seeds × 200 steps (2,324 commits,
 426 undo/redo) found no defect. The fuzzer picks its targets by index into the live records, so the no-op rule of §3.3
 holds by construction.

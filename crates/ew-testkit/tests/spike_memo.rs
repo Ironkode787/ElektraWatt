@@ -144,8 +144,12 @@ fn counters(store: &MemoStore, family: &str) -> Counters {
     store.commit_stats().family(family)
 }
 
+/// The G-SP spike's companion: in the deep nightly with the bench's other checks (test audit g7). Per gate the
+/// same families after a move, a wire and a colour edit are checked by `ew-api`'s
+/// `memo_equals_cold_over_every_state` and `ew-derive`'s `incremental_partition_equals_cold`.
 #[test]
-fn memoised_connectivity_equals_cold_after_hit_unrelated_edit_move_and_wire() {
+#[ignore = "deep nightly (CI-N-02): the spike bench's memo path under Oracle::Every on the synthetic S project"]
+fn nightly_memoised_connectivity_equals_cold_after_hit_unrelated_edit_move_and_wire() {
     let g = synth::project(SizeClass::S, 1);
     let handles = g.handles.clone();
     let (conductor, colour) = g

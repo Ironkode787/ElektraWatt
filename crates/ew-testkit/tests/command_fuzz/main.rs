@@ -39,7 +39,7 @@
 //! `ew.cmdlog/1` format; the diagnostic steps are marker lines such as `{"cmd":"#undo"}`).
 //!
 //! Tests:
-//! - `fuzz_smoke`: two seeds, 30 steps each.
+//! - `fuzz_smoke`: one seed, 30 steps.
 //! - `every_registered_command_has_a_generator_arm`, `every_arm_commits_and_refuses_what_it_should`,
 //!   `save_and_reload_of_golden_a_round_trips`, `embed_then_undo_of_a_named_fndef_restores_golden_a`,
 //!   `table_import_oracles_hold`.
@@ -176,6 +176,14 @@ fn golden_batch() -> &'static ew_import_tables::ew_interop_api::ImportBatch {
 }
 
 fn open_session(seed: u64) -> Session {
+    open_session_with(seed, MemoMode::Oracle)
+}
+
+/// [`open_session`] with another memo mode. The validity tests (every arm commits what it calls well-formed, refuses
+/// what it calls malformed and leaves the model unchanged, and undoes to the golden project) read no memoised value
+/// that an oracle would check, so they open with [`MemoMode::On`]: the oracle's cold re-runs were most of their cost
+/// (test audit g7). The memo oracle in the fuzz loop stays in `fuzz_smoke` and `fuzz_long`.
+fn open_session_with(seed: u64, memo: MemoMode) -> Session {
     let batch = golden_batch();
     let mut project = None;
     let mut records = Vec::new();
@@ -191,7 +199,7 @@ fn open_session(seed: u64) -> Session {
         records,
         batch.lib.clone(),
         SessionOptions {
-            memo: MemoMode::Oracle,
+            memo,
             ids: Some(Box::new(ew_testkit::synth::SynthSource::new(seed))),
             history: HistoryLimits {
                 max_steps: 10_000,
@@ -851,17 +859,17 @@ fn smoke_cadence() -> Cadence {
 
 #[test]
 fn fuzz_smoke() {
-    for seed in [1, 2] {
-        // A debug build derives the page order cold in oracle mode on every read after a page-affecting commit
-        // (seconds): the smoke test samples every 15th step and skips the closing sweeps (`fuzz_long` runs them).
-        let stats = run_fuzz_with(seed, 30, &smoke_cadence());
-        eprintln!("{}", report(&format!("seed {seed}"), &stats));
-        assert!(
-            stats.committed() >= 3,
-            "seed {seed}: the generator is degenerate, only {} commands committed",
-            stats.committed()
-        );
-    }
+    // One seed per gate (test audit g7); `fuzz_long` runs the seeds 1..=20, seed 2 among them, every night.
+    let seed = 1;
+    // A debug build derives the page order cold in oracle mode on every read after a page-affecting commit
+    // (seconds): the smoke test samples every 15th step and skips the closing sweeps (`fuzz_long` runs them).
+    let stats = run_fuzz_with(seed, 30, &smoke_cadence());
+    eprintln!("{}", report(&format!("seed {seed}"), &stats));
+    assert!(
+        stats.committed() >= 3,
+        "seed {seed}: the generator is degenerate, only {} commands committed",
+        stats.committed()
+    );
 }
 
 /// The coverage rule of FT-279: every registered command has a generator arm, and every arm is a registered
@@ -896,7 +904,7 @@ fn every_registered_command_has_a_generator_arm() {
 /// attempt starts from the golden project.
 #[test]
 fn every_arm_commits_and_refuses_what_it_should() {
-    let mut session = open_session(7);
+    let mut session = open_session_with(7, MemoMode::On);
     session.take_oracle_mismatches();
     let fixture = Rc::new(Fixture::of(&session.query()));
     let initial = session.world().model.clone();
@@ -1215,16 +1223,24 @@ fn the_placement_and_arrangement_steps_commit_and_refuse_on_golden_a_3_of_3() {
 
 /// One group of [`PLACEMENT_GROUPS`] on a fresh Golden A session.
 fn placement_steps(group: PlacementGroup) {
-    let mut session = open_session(13);
+    let mut session = open_session_with(13, MemoMode::On);
     session.take_oracle_mismatches();
     let fixture = Rc::new(Fixture::of(&session.query()));
     let initial = session.world().model.clone();
     let mut stats = FuzzStats::default();
     let mut committed: BTreeMap<&'static str, usize> = BTreeMap::new();
     let mut refused: BTreeMap<&'static str, usize> = BTreeMap::new();
-    for &(command, attempts, _) in group {
+    for &(command, attempts, kinds) in group {
         let arm = ARMS.iter().find(|a| a.command == command).expect("an arm");
+        let done = |kind: &str, committed: &BTreeMap<&str, usize>, refused: &BTreeMap<&str, usize>| {
+            committed.get(kind).copied().unwrap_or(0) >= 2 && refused.get(kind).copied().unwrap_or(0) >= 1
+        };
         for attempt in 0..attempts {
+            // The attempt count is a cap: a command stops once each of its kinds has committed twice and been
+            // refused once (the assertions below need one of each).
+            if kinds.iter().all(|k| done(k, &committed, &refused)) {
+                break;
+            }
             let mut rng = SplitMix64::new(50_000 + attempt);
             let live = Live::read(&session.query(), &fixture);
             let Some(Step::Cmd(c)) = (arm.build)(&live, &mut rng) else {
@@ -1240,6 +1256,9 @@ fn placement_steps(group: PlacementGroup) {
                     ("rep.move", "steps") => "rep.move steps",
                     _ => command,
                 });
+            if kinds.contains(&kind) && done(kind, &committed, &refused) {
+                continue;
+            }
             let applied = apply(&mut session, &c, &mut stats).unwrap_or_else(|e| {
                 panic!(
                     "`{command}` attempt {attempt}: {e}\nstep: {}",
@@ -1284,13 +1303,17 @@ fn placement_steps(group: PlacementGroup) {
 /// rules (EW-INV-016 to EW-INV-020, FR-REV-009) all go the way the arms say, and the title block follows.
 #[test]
 fn the_revision_steps_hold_on_golden_a() {
-    let mut session = open_session(11);
+    let mut session = open_session_with(11, MemoMode::On);
     session.take_oracle_mismatches();
     let fixture = Rc::new(Fixture::of(&session.query()));
     let initial = session.world().model.clone();
     let mut stats = FuzzStats::default();
     let (mut committed, mut refused) = (0, 0);
     for attempt in 0..400u64 {
+        // The attempt count is a cap: the run stops once both counts reach the floor the assertion below needs.
+        if committed >= 20 && refused >= 20 {
+            break;
+        }
         let mut rng = SplitMix64::new(9_000 + attempt);
         let live = Live::read(&session.query(), &fixture);
         let step = match attempt % 3 {
@@ -1347,7 +1370,7 @@ step: {line}"
 #[test]
 fn the_generator_is_reproducible_from_the_seed() {
     let steps = |seed: u64| -> Vec<String> {
-        let session = open_session(seed);
+        let session = open_session_with(seed, MemoMode::Off);
         let fixture = Rc::new(Fixture::of(&session.query()));
         let mut rng = SplitMix64::new(seed);
         (0..20)
@@ -1362,7 +1385,7 @@ fn the_generator_is_reproducible_from_the_seed() {
 /// compare; undo everything, save, reload: the initial project.
 #[test]
 fn save_and_reload_of_golden_a_round_trips() {
-    let mut session = open_session(3);
+    let mut session = open_session_with(3, MemoMode::On);
     let initial = session.world().model.clone();
     let mut disk = roundtrip::Disk::new(3);
     disk.round_trip(&mut session, roundtrip::Depth::Sample)
