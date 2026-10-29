@@ -38,9 +38,9 @@ expect = "== 0"
 [[item]]
 id = "A5"
 kind = "hard"
-what = "The three valves and the three selector switches are each connected at both ends."
+what = "The three valves and the three selector switches are each connected at both ends, and each valve coil's return terminal (A2) is on 0 V, the potential of the power supply's - output."
 how = "connections"
-query = "SELECT w.seq FROM api_v1_wire w JOIN api_v1_device a ON a.tag = w.from_tag JOIN api_v1_device b ON b.tag = w.to_tag WHERE a.letter IN ('Y', 'S') OR b.letter IN ('Y', 'S')"
+query = "SELECT w.seq FROM api_v1_wire w JOIN api_v1_device a ON a.tag = w.from_tag JOIN api_v1_device b ON b.tag = w.to_tag WHERE (a.letter IN ('Y', 'S') OR b.letter IN ('Y', 'S')) AND NOT EXISTS (SELECT 1 FROM api_v1_device y WHERE y.letter = 'Y' AND NOT EXISTS (SELECT 1 FROM api_v1_wire r WHERE ((r.from_tag = y.tag AND r.from_cp = 'A2') OR (r.to_tag = y.tag AND r.to_cp = 'A2')) AND r.potential_id IN (SELECT m.potential_id FROM api_v1_wire m JOIN api_v1_device g ON (g.tag = m.from_tag AND m.from_cp = '-') OR (g.tag = m.to_tag AND m.to_cp = '-') WHERE g.part_number = 'EW-GEN-PSU-1')))"
 expect = ">= 12"
 
 [[item]]
