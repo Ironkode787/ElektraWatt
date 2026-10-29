@@ -64,6 +64,8 @@
 //! | `connection.draw_many` | [`ConnectMany`] | Interactive; Bulk above 500 entries |
 //! | `terminal.insert` | [`InsertTerminals`] | Interactive |
 //! | `terminal.move` | [`MoveTerminals`] | Interactive |
+//! | `part.assign` | [`AssignPart`] | Interactive; Bulk from 50 devices |
+//! | `library.update` | [`UpdateLibraryCopies`] | Bulk |
 //!
 //! Every command is of stability `Preview` and undoable except `project.assets.purge`, a marker line whose file side
 //! (deleting asset files nothing names) runs in the session (ADR-0008 amendment 1, FT-380); every one is of exposure
@@ -72,6 +74,7 @@
 
 mod assembly;
 mod assets;
+mod assign;
 mod box_reshape;
 mod checks;
 pub mod common;
@@ -86,6 +89,7 @@ mod frames;
 pub(crate) mod items;
 mod languages;
 pub(crate) mod library;
+mod library_update;
 mod page;
 // WP-S2.05 part 3
 mod parts;
@@ -101,6 +105,7 @@ mod terminal;
 
 pub use assembly::{AddValve, AttachChildren, ChildSpec, LinkDevices};
 pub use assets::PurgeAssets;
+pub use assign::{ASSIGN_BULK_FROM, AssignModeParam, AssignPart};
 pub use box_reshape::ReshapeBox;
 pub use checks::{CHECKS_MEMBER, SHIPPED_CHECK_SCHEMES, SetCheckSchemes};
 pub use common::{EndpointParam, KindName, TargetRef};
@@ -124,6 +129,9 @@ pub use items::{
 };
 pub use languages::SetProjectLanguages;
 pub use library::{EmbedLibraryCopies, library_copy_hash};
+pub use library_update::{
+    ChangeClass, CopyDiff, CpMapParam, FieldChange, UpdateLibraryCopies, classify_update,
+};
 pub use page::{CreatePage, DeletePages, PageScope, RenumberPages, ReorderPages};
 // WP-S2.05 part 3
 pub use parts::{ImportParts, import_counts};
@@ -209,4 +217,7 @@ pub fn register_all(r: &mut CommandRegistry) {
     // WP-S2.07 part 1: the strip editor's insert and move
     r.register::<InsertTerminals>();
     r.register::<MoveTerminals>();
+    // WP-S1.19 part 3
+    r.register::<AssignPart>();
+    r.register::<UpdateLibraryCopies>();
 }

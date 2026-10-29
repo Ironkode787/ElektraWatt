@@ -1,0 +1,90 @@
+{
+  "$defs": {
+    "AssignModeParam": {
+      "description": "How `part.assign` changes a device's part uses (FR-PRT-023).",
+      "oneOf": [
+        {
+          "const": "append",
+          "description": "Adds a part use after the device's existing ones (the default).",
+          "type": "string"
+        },
+        {
+          "const": "replace_all",
+          "description": "Replaces every part use of the device by the one part use.",
+          "type": "string"
+        },
+        {
+          "const": "replace",
+          "description": "Replaces each part use of the copy `from` by the part (a device that does not use `from` is refused).",
+          "type": "string"
+        }
+      ]
+    },
+    "CmdDec3": {
+      "description": "A canonical decimal string with at most three fraction digits, no trailing fraction zeros and no unit (doc 05 §3.2).",
+      "maxLength": 21,
+      "pattern": "^(?:0|-?[1-9][0-9]{0,15}(?:\\.[0-9]{0,2}[1-9])?|-?0\\.[0-9]{0,2}[1-9])$",
+      "type": "string"
+    },
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`part.assign` (`AssignPart`, WP-S1.19 D8, FT-168): assigns a part to devices in one undo step, embedding the\nlibrary copies it needs (D7: the command carries the documents, never reads a library).\n\nEach document of `copies` (the `lib/` JSON form, the part's closure as the caller resolved it) is checked as\n`library.embed` checks it, at `/copies/i`; a copy the project holds with the same hash is reused (not inserted\nagain), one it holds with another hash (another version of the item) is refused: \"update from library first\"\n(`library.update`, FR-PRT-014). The others are inserted. Then each device's part uses change by `mode`:\n- `append` (the default): a part use `{part, qty}` is added after the existing ones;\n- `replace_all`: the part uses become the one `{part, qty}`;\n- `replace`: every part use of the copy `from` becomes `{part, qty}` (without `qty`: the replaced use's\n  quantity); the variant is dropped. A device without a part use of `from` is refused.\n\n`qty` defaults to 1. Template functions are not matched onto existing functions (D8: part-first placement\ndoes that). Rejected, with the pointer: an empty device list (`/devices`), a device listed twice or that does\nnot exist (`/devices/i`), `part` neither held nor in `copies` (`/part`), a copy listed twice or held at another\nversion (`/copies/i`), `replace` without `from` and `from` with another mode (`/from`), a device that does not\nuse `from` (`/devices/i`), `qty` ≤ 0 (`/qty`). Cost: `Interactive` below 50 devices, `Bulk` from 50\n([`ASSIGN_BULK_FROM`]). Outcome: the first device.",
+  "properties": {
+    "copies": {
+      "description": "The library documents to embed (`lib/` JSON form): the part and its closure; may be empty when the\nproject holds them.",
+      "items": true,
+      "type": "array"
+    },
+    "devices": {
+      "description": "The devices, at least one.",
+      "items": {
+        "$ref": "#/$defs/CmdUuid"
+      },
+      "type": "array"
+    },
+    "from": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CmdUuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The copy ID of the part to replace; with mode `replace` only."
+    },
+    "mode": {
+      "$ref": "#/$defs/AssignModeParam",
+      "description": "How the part uses change; default `append`."
+    },
+    "part": {
+      "$ref": "#/$defs/CmdUuid",
+      "description": "The part's copy ID, `v5(NS_LIBCOPY, library ‖ item)`: held by the project or in `copies`."
+    },
+    "qty": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CmdDec3"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The quantity in the part's order unit; default 1 (`replace`: the replaced use's quantity)."
+    }
+  },
+  "required": [
+    "devices",
+    "part"
+  ],
+  "title": "part.assign",
+  "type": "object"
+}

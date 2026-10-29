@@ -148,6 +148,9 @@ pub struct Finding {
     pub message: String,
     /// A quick fix, where the rule offers one.
     pub fix: Option<QuickFix>,
+    /// Whether the rule read library data of a confidence other than `verified` (FR-PRT-031, FT-323's marker,
+    /// [`ew_derive::part_confidence`]): the finding is then marked as resting on unverified data.
+    pub unverified_data: bool,
     /// The fingerprint.
     pub fingerprint: Fingerprint,
 }
@@ -179,6 +182,7 @@ impl Finding {
             page: None,
             message: message.into(),
             fix: None,
+            unverified_data: false,
         }
     }
 
@@ -210,6 +214,23 @@ impl Finding {
     #[must_use]
     pub fn with_fix(mut self, fix: QuickFix) -> Finding {
         self.fix = Some(fix);
+        self
+    }
+
+    /// The same finding marked as resting on library data that is not verified (FR-PRT-031, FT-323's marker).
+    #[must_use]
+    pub fn marked_unverified(mut self) -> Finding {
+        self.unverified_data = true;
+        self
+    }
+
+    /// The same finding, marked as resting on unverified data when `confidence` (what the rule read, through
+    /// [`ew_derive::part_confidence`]) is not `verified` (WP-S1.19 §8).
+    #[must_use]
+    pub fn reading(mut self, confidence: &ew_derive::ew_schema::Confidence) -> Finding {
+        if *confidence != ew_derive::ew_schema::Confidence::Verified {
+            self.unverified_data = true;
+        }
         self
     }
 

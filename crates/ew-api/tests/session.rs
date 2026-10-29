@@ -148,7 +148,7 @@ fn the_origin_and_context_are_recorded() {
 fn the_registry_lists_every_command() {
     let s = session(6);
     let names: Vec<&str> = s.registry().names().collect();
-    assert_eq!(names.len(), 58);
+    assert_eq!(names.len(), 60);
     assert!(names.contains(&"parts.import"));
     assert!(names.contains(&"fields.set_many"));
     assert!(names.contains(&"project.assets.purge"));

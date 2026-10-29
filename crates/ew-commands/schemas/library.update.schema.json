@@ -1,0 +1,63 @@
+{
+  "$defs": {
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    },
+    "CpMapParam": {
+      "additionalProperties": false,
+      "description": "A CP mapping of one copy for `library.update`: pairs `[old_idx, new_idx]` of the held copy's and the new\ndocument's CP indices.",
+      "properties": {
+        "copy": {
+          "$ref": "#/$defs/CmdUuid",
+          "description": "The copy ID the mapping is for (a copy of `copies`)."
+        },
+        "map": {
+          "description": "The pairs `[old_idx, new_idx]`.",
+          "items": {
+            "items": {
+              "format": "uint16",
+              "maximum": 65535,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "copy",
+        "map"
+      ],
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`library.update` (`UpdateLibraryCopies`, WP-S1.19 D9, doc 07 §4.5, FR-PRT-014, FR-SYM-016): replaces held library\ncopies by other versions of the same items, in place (same copy ID), remapping the connection points the change\nmoves.\n\n`copies` holds library documents in the `lib/` JSON form (read and checked as `library.embed` reads them, at\n`/copies/i`; a project-local copy may be updated too). For each: the same hash as the held copy changes nothing;\notherwise the copy is replaced. Its CPs are mapped (doc 07 §4.5 step 3): by the pairs of `cp_maps` for that\ncopy, else by index where the designation is unchanged, else by designation; the accepted mapping rewrites the\n`Cp{function, idx}` endpoints of connections, potential definitions, bonds and channel bindings and the\n`cp_overrides` of the affected functions (a FnDef's: the functions of that definition; a part's: the functions\nof its devices that its template or pattern gives CPs; a symbol's: the functions its representations draw, by\nthe FnDef CP each symbol CP draws). Referencing records change nowhere else.\n\nRejected: no copy (`/copies`), a copy listed twice, one the project does not hold (`/copies/i`), a version that\nis not semantic or is lower than the held one (`/copies/i/version`, a downgrade), a mapping for a copy not in\n`copies` or listed twice (`/cp_maps/j/copy`), a pair whose index is no CP of the held or new copy\n(`/cp_maps/j/map/k/0` or `/1`), two updated copies that map one function CP differently, and a CP with a\nconnection, potential definition, bond or channel binding that the mapping leaves without a CP (the list in the\nrefusal). **Bulk**: always previewed; the session's update plan shows the class ([`classify_update`]), the field\ndiff, the devices and representations touched and the BOM rows that change. Outcome: the first copy.",
+  "properties": {
+    "copies": {
+      "description": "The new library documents (`lib/` JSON form), at least one.",
+      "items": true,
+      "type": "array"
+    },
+    "cp_maps": {
+      "description": "CP mappings, per copy.",
+      "items": {
+        "$ref": "#/$defs/CpMapParam"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "copies"
+  ],
+  "title": "library.update",
+  "type": "object"
+}

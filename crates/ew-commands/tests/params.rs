@@ -282,6 +282,16 @@ fn examples() -> Vec<(&'static str, Value)> {
             "terminal.move",
             json!({"terminals": [DEV_T3.to_string()], "before": DEV_T1.to_string()}),
         ),
+        // WP-S1.19 part 3
+        (
+            "part.assign",
+            json!({"devices": [DEV_T3.to_string()], "part": FNDEF_TERMINAL.to_string(), "mode": "replace",
+                "from": FNDEF_TERMINAL.to_string(), "qty": "2"}),
+        ),
+        (
+            "library.update",
+            json!({"copies": [{"$k": "part"}], "cp_maps": [{"copy": FNDEF_TERMINAL.to_string(), "map": [[1, 2]]}]}),
+        ),
     ]
 }
 
@@ -309,7 +319,7 @@ fn every_registered_command_has_an_example() {
     let registry = CommandRegistry::builtin();
     let registered: BTreeSet<&str> = registry.commands().map(|c| c.meta().name).collect();
     let covered: BTreeSet<&str> = examples().iter().map(|(n, _)| *n).collect();
-    assert_eq!(registered.len(), 58);
+    assert_eq!(registered.len(), 60);
     assert_eq!(registered, covered);
     assert_eq!(examples().len(), covered.len(), "one example per command");
 }

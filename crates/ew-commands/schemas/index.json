@@ -291,6 +291,17 @@
     {
       "aliases": [],
       "confirmation": "none",
+      "cost": "bulk",
+      "exposure": "edit",
+      "name": "library.update",
+      "params_version": 1,
+      "schema": "library.update.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
       "cost": "interactive",
       "exposure": "edit",
       "name": "marker.place",
@@ -351,6 +362,17 @@
       "name": "page.reorder",
       "params_version": 1,
       "schema": "page.reorder.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "part.assign",
+      "params_version": 1,
+      "schema": "part.assign.schema.json",
       "stability": "preview",
       "undoable": true
     },
