@@ -854,6 +854,34 @@ below).
 
 *Amended (cycle 30; decision log ID-703, ID-714):* `tools/blind/HELP.md` is at version 4. Version 3 says that the page text's positions are the coordinates `canvas.press` and `cursor.set` take, that a `wire` line's `at X Y mm` point selects that wire, and that `select.set refs='["wire:<one end> -> <other end>"]'` selects a wire by its ends (FT-485); version 4 adds the `jobs` and `notifications` describe sections of WP-S2.09 part 1, which the drafter reads. The D16 guard digests the golden project fixture only (FT-484, ID-705).
 
+
+*As built (cycle 32, WP-S2.17; decision log ID-739, ID-747 to ID-750, ID-757).* **What the drafter reads.** The UI it
+drives is the command bar of doc 16a §5.2: `ui.describe` gains the `commandbar` section (the active tab, its groups and
+the next step) and the `hud` line (the active tool and its prompt), and `view.command_tab` and `view.command_bar` join
+the registry. At the merged tip the counts are **55 commands, 258 actions and 354 words**; the blind reference
+(`tools/blind/reference/actions.txt`, `vocabulary.txt`) was re-blessed once over the new labels and the app menu by tab
+and group, and NP6 asserts both counts.
+
+**The pixel gate.** The chrome is checked by an in-house offscreen pixel gate, not by `egui_kittest`'s `snapshot` and
+`wgpu` features (rejected for the 13 packages they bring into the lock, ID-739): egui-wgpu on `ew-render2d`'s headless
+device renders the window, and each image is compared with its blessed PNG within a channel tolerance of 4/255 and a
+small bound on differing pixels (at most 10 for the chrome images; at most one in 2,000 for the canvas images). It is
+compiled behind `ew-ui`'s `snapshots` feature, runs on **Windows only** (WARP), in the `test-windows-3` job through
+`--all-features`, and uploads the images on failure; elsewhere it is not compiled.
+
+| Gated images (`crates/ew-ui/tests/expected/`) | Count |
+|---|---|
+| `snapshots/main-{light,dark}-{comfortable,compact}`: the main window on Golden A folio 101 at 1280 × 800 | 4 |
+| `snapshots/gallery*`: the component gallery in the four themes at ppp 1 | 4 |
+| `snapshots/command-bar-<tab>-{light-comfortable,dark-compact}`: the command bar cropped per tab (CB7) | 12 |
+| `snapshots/part4-*`: dialog with toast, menu, palette and the Preview tab, light and dark (part 4) | 8 |
+| `snapshots/dk12-{messages,messages-detail,history}-*`: Messages and History cropped to their pane, light and dark in both densities (DK12) | 12 |
+| `canvas/101-{selection,selection-highlights,measure,ghost}`: the canvas overlays of folio 101 (OV5) | 4 |
+
+**Written for review, not gated:** the main window at 300 % (DK7, FT-537), the high-contrast main windows, the gallery
+at ppp 2 and the table review image `table-history-*`. CB7's light Compact and dark Comfortable bars (FT-533) and the
+DK12 grid snapshots (FT-532) are not built.
+
 ---
 
 ## 4. Performance and memory gate

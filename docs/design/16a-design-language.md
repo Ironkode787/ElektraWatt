@@ -1,6 +1,6 @@
 # Design language
 
-**Status:** v1.2, accepted 2026-10-28; v1.2: the bottom dock's height as built, `size.dock.bottom_min` (decision log ID-743); v1.1 adds the built widgets (§4.15, §6.21 to §6.25); cycle-31 design pass: the
+**Status:** v1.3, accepted 2026-10-28; v1.3: WP-S2.17 parts 2 to 5 as built, the deliberate departures noted in §5.2, §5.4, §5.5, §5.8, §6.8, §6.10, §6.12, §6.14, §6.16, §7.1, §7.2 and §9.2 (decision log ID-747 to ID-757); v1.2: the bottom dock's height as built, `size.dock.bottom_min` (decision log ID-743); v1.1 adds the built widgets (§4.15, §6.21 to §6.25); cycle-31 design pass: the
 Messages pane has no table mode as built, the History keys as built, the follow-ups numbered (decision log ID-727, ID-732) · **Date:** 2026-10-28 · **Decision:** [ADR-0031](../adr/0031-design-language-and-task-ordered-command-bar.md)
 (Accepted) · **Visual reference:** [the mockup](assets/design-language-mockup.html) (approved by the owner) · **Work package:**
 [WP-S2.17](../plan/specs/WP-S2.17-design-language-and-ui-polish.md) · **Part of:** ElektraWatt design document set
@@ -571,6 +571,8 @@ size, bar_label }>` and `icon: IconId`, and each tab names its next-step action;
 placement, in that order. A registry test asserts that every
 placed action has an icon, a label and a docs anchor, and that each tab's groups follow §5.3's order.
 
+*As built (cycle 32; decision log ID-747, ID-757).* The command bar is built as above: a tab row with the app button, quick access (Save, Undo, Redo), the six tabs and the command search; a command row with groups of large, small and split buttons, More and the next step. Ctrl+F1 collapses the bar to 33 px; Alt alone or F10 opens the app menu. The fields of the old tool strip (IP name, Text binding, Wire marker, Structure box) moved to a floating **tool options card** at the page view's top left, shown only while one of those tools runs. Commands with no registry action yet are listed by name and drawn nowhere. F6 cycles command bar, navigator, canvas, Properties (and History while it is shown). The registry holds 258 actions for 55 commands.
+
 ### 5.3 The tabs
 
 | Tab | Groups, left to right (large buttons in **bold**; bar labels) | Next step · notes |
@@ -608,6 +610,8 @@ live in the app menu's Edit, the canvas context menu and their keys, as everywhe
 - Both remain egui_tiles panes: the rail is a view of the left tab group whose own tab bar is not drawn, so docking,
   the workspace file `ew.workspace/1` and its determinism stay as built (doc 16 §2.5).
 
+*As built (cycle 32; decision log ID-749).* The rails are egui side panels outside the dock, views of the view model's rail state, not a view of the left tab group: the dock's tab bars are hidden through egui_tiles' own switch, so the workspace file stays as built. The right rail's Symbols and Parts open the existing pickers. The dock tabs' restyle of §6.4 is not built (FT-540).
+
 ### 5.5 Centre: canvas tabs, canvas, HUD
 
 - **Canvas tabs**: a `size.dock_tab_bar` bar on `color.surface.chrome` with a `color.border.default` line under it
@@ -632,6 +636,8 @@ live in the app menu's Edit, the canvas context menu and their keys, as everywhe
   vertical stack of three 28-px icon buttons (Zoom in, Zoom out, Fit page) on `color.surface.raised`, `radius.md`,
   `elevation.1`.
 - **Toasts** appear at the canvas's top right (§6.10).
+
+*As built (cycle 32; decision log ID-747, ID-755).* The HUD is one status node holding the zoom control, **centred on the page-view pane** (not on the canvas sheet), on the inverse surface (light in dark mode, as specified). The Place prompt reads "`<target>` · R rotates · V variant · Esc done"; a repeated click on a pick stack reads "`<n>` here · click again for the next". The tool strip's fields are on the tool options card (§5.2).
 
 ### 5.6 Right: the palettes
 
@@ -689,6 +695,8 @@ The page field leaves the bar: the active canvas tab and the selected navigator 
 
 The language field leaves the status bar (it stays on the start page and in Settings): a setting that changes once a
 year does not belong in the busiest strip of the window.
+
+*As built (cycle 32; decision log ID-749).* The save-state field shows exactly the three texts above: "Saved", "Unsaved changes" and "Read-only".
 
 ### 5.9 Focus order
 
@@ -796,14 +804,16 @@ the `size.property_label` column with ellipsis and tooltip; the value in a `size
 `space.icon` padding, a transparent 1-px border that turns `color.border.control` on hover and `color.accent` with a
 1-px accent ring while editing) in `color.text.primary`; unit as suffix; at the cell's right end a **provenance chip
 only when the value is not authored**: a pill in `type.caption` and `color.text.tertiary` with a 1-px
-`color.border.default` naming the source in one word, "part", "page", "derived", "override", "frozen", "library"
-or "generated", with doc 16 §6.2's full chip text as tooltip and accessible description.
+`color.border.default` naming the source in one word, "inherited", "varies", "page", "derived", "override", "frozen",
+"library" or "generated", with doc 16 §6.2's full chip text as tooltip and accessible description.
 An authored value shows nothing, so the eye finds the exceptions. An empty authored value shows an em dash in
 `color.text.tertiary`. **Editing is in place:** a click or Enter on an editable value turns it into its editor;
 Enter commits, Escape cancels; a read-only value shows no editor and its reason as tooltip. There are no "edit"
 buttons. The row's actions (Reset to derived, Freeze, Why this value?) are in its context menu and in a "…" icon
 button that appears on hover and focus. Two rows never share a label: duplicate labels (today "Tag" and "Tag",
 "Parts" and "Parts") get distinct names in the field catalogue.
+
+*As built (cycle 32; decision log ID-749).* The chip words "inherited" and "varies" were added and "part" dropped, because the model has no part source of its own for a property value. Properties shows Main and Advanced as categories; **the other categories are open by default** (a deviation from the closed default of the spec's D11), and a collapse the user makes is kept in the settings. The header's finding chips and actions popup are FT-530; a filter for more than twelve rows is not built (FT-541).
 
 ### 6.9 Cards
 
@@ -823,6 +833,8 @@ fade in (`motion.base`) and leave after 8 s; hovering or focusing one pauses it;
 action depends on its time (NFR-A11Y-04). The **notifications log** is a popover from the status bar's bell: a list
 in tree-row style, newest first, each with its time, message and still-valid actions; "Clear" at its foot.
 
+*As built (cycle 32; decision log ID-750).* The notification model has no severity and no secondary line, so **the toast's icon follows from whether it offers an action**, and the line row is not drawn. The log's foot has Close, not Clear.
+
 ### 6.11 Banners
 
 A banner is for a state of the whole project (read-only, recovery pending, integrity findings, GPU fallback): full
@@ -839,6 +851,8 @@ Modal only when the work cannot continue without the answer (doc 16 §4.1). `col
 right-aligned in the platform's order (Windows: Primary then Secondary; macOS and Linux: Secondary then Primary), a
 destructive action left-aligned and apart from the others. Escape cancels; Enter runs the Primary; the first focus is
 the Primary unless it is destructive. No close cross: Cancel is the way out.
+
+*As built (cycle 32; decision log ID-750).* Every dialog is drawn modal over the `color.backdrop` scrim. **In a confirmation of a destructive step (journal discard, purge) Cancel is the Primary**, so Enter keeps the data; the step is the danger button, and the Primary is drawn as a Secondary beside it. The button order on Linux and macOS has no test yet (FT-534).
 
 ### 6.13 Menus and context menus
 
@@ -857,6 +871,8 @@ the breadcrumb in `color.text.tertiary` ("Draw · Place"), the key as key chips 
 the enabled ones with their reason in `color.text.secondary`. Actions that cannot run from the window in this build
 are not listed (P3); scripts still reach them.
 
+*As built (cycle 32; decision log ID-750).* The palette has no title, shows breadcrumbs and key chips, and **lists neither actions that need parameters nor model commands**; both stay reachable headless through `command.run`.
+
 ### 6.15 The symbol and part palettes
 
 Grid of tiles, 88 × 104 px: a 72-px thumbnail on `color.surface.sunken` with `radius.md`, the name in `type.small`
@@ -870,7 +886,7 @@ hover overlay and a tooltip with the full name, library and version. Selected or
 | Kind | Drawing | Example |
 |---|---|---|
 | Count badge | `radius.pill`, `type.caption`, 18 px high, `space.icon` padding; the semantic subtle fill with the semantic text, or `color.surface.sunken` with `color.text.secondary` | a finding count on a tree row, "3" on the Messages tab |
-| Provenance chip | `radius.pill`, `type.caption`, `color.text.tertiary`, 1-px `color.border.default`, 16 px high | "part", "page" (§6.8) |
+| Provenance chip | `radius.pill`, `type.caption`, `color.text.tertiary`, 1-px `color.border.default`, 16 px high | "inherited", "page" (§6.8) |
 | Status badge | `radius.sm`, subtle semantic fill, icon + word in `type.caption` | "Pending", "Stale", "Read-only" |
 | Key chip | `radius.sm`, 1-px `color.border.default`, `type.caption`, `color.text.tertiary`, `space.2` padding; the keys separated by a space | "Ctrl K", "R" |
 | Canvas chip | §7.4 | "-X1031:21", "24VDC-1" |
@@ -1087,15 +1103,18 @@ display list), and keep 3:1 on the white sheet.
 
 ### 7.1 Selection, hover and handles
 
-Selection: a 2s-px `canvas.selection` outline around the representation's bounds with a 1s-px white casing outside it,
-so it reads over black lines; handles are 8s-px squares at the corners, white fill, 1.5s-px accent stroke. Hover: a 1s-px dashed accent
+Selection: a 2s-px `canvas.selection` outline around the representation's bounds with a 1s-px white casing on both sides of it
+(as built, cycle 32: the mockup draws it so and wins, decision log ID-748), so it reads over black lines; handles are 8s-px squares at the corners, white fill, 1.5s-px accent stroke. Hover: a 1s-px dashed accent
 outline (4s on, 4s off). A selected object under the pointer shows the selection only.
 
 ### 7.2 Connection points, snap and the grid cursor
 
 CP rings 8s + 1 px in the accent on hover and while a wire tool is active; the snap target a crosshair with a 6-px gap;
 the keyboard grid cursor a 1s-px accent cross with its cell in the status bar (doc 16 §3.6). A hovered CP shows a
-tooltip with its printed label and its function (FT-512's tooltip half): "-X1031 : 21 · terminal · 24VDC-1".
+tooltip with its printed label, its symbol name and its potential (FT-512's tooltip half), in the inverse look:
+"`<printed label> · <symbol name> · <potential>`", for example "1X1:1/a · terminal · L" on Golden A. *As built (cycle
+32; decision log ID-748):* this replaces the earlier "-X1031 : 21 · terminal · 24VDC-1" form; a part the page tables
+do not know is left out.
 
 ### 7.3 Ghosts and their labels
 
@@ -1174,12 +1193,14 @@ first and is the large one. The user's eye reads the bar like a checklist.
 ### 9.2 The app menu
 
 The app menu holds every action of the registry, in this order: **File** (New project, Open…, Open recent ▸, Close,
-Save, Save as…, Save a copy…, Import ▸, Export ▸, Settings…, Quit), **Edit** (Undo, Redo, Cut, Copy, Paste,
+Save, Save as…, Save a copy…, Settings…, Quit), **Edit** (Undo, Redo, Cut, Copy, Paste,
 Duplicate, Delete, Select all, Find and replace…, Properties), then **Project**, **Page**, **Draw**, **Check**,
 **Output** and **View** with the same groups and order as the tabs (a group is a submenu when it holds more than three
 commands, otherwise a separated block), then **Window** and **Help**. The as-built menus map onto it: Insert becomes
 Draw; Tools dissolves (Command palette into View and the search field, Settings into File, Renumber devices into
 Draw); Window and Help stay. The menu opens from the app button (§5.2).
+
+*As built (cycle 32; decision log ID-747).* **File has no Import ▸ and Export ▸:** each action appears once in the app menu, and the imports and exports sit in their tabs' groups (Project and Output). The app menu is built by tab and group; the blind reference was re-blessed over it (ID-757).
 
 ### 9.3 The palette
 

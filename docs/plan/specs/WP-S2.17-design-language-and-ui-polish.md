@@ -338,7 +338,7 @@ rail), `table_widget` TB7 (FT-523) and `command_surface` CB4 (65 % again).
   edits in place on a click (`props.row` then `props.edit`) with a hover border; an empty value is an em dash; the
   chip shows only for a value that is not authored, in short form ("f derived") with the whole text as its tooltip;
   the row's actions are one "…" icon button (`props.row_menu`) painted on the cursor row, on hover and on focus. The
-  filter for more than twelve rows is not built.
+  filter for more than twelve rows is not built (FT-541).
 - **Status bar:** `status::bar` gives D12's fields with a tone and a tooltip; the window and the describe line
   `status bar:` use it. The transcripts' `status` member keeps the older `fields()` (so the scripts' outputs are
   unchanged). The findings field reads the open Messages pane's counts, so it shows only while Messages is open.
@@ -354,8 +354,8 @@ rail), `table_widget` TB7 (FT-523) and `command_surface` CB4 (65 % again).
   (DK10), History's icons (the rest of DK11), the DK12 snapshots, the dock tabs' restyle of doc 16a §6.4 and window
   memory (DK6, the rest of FT-348): candidates for the next cycle. *(Later in cycle 32: K32 built DK10, DK11's icons,
   the DK12 snapshots of Messages and History, and DK6 except the position clamp at start, FT-526; L32 built DK9, whose
-  grid snapshots are FT-532. The dock tabs' restyle of doc 16a §6.4 and the Properties filter for more than twelve rows
-  are still not built.)*
+  grid snapshots are FT-532. The dock tabs' restyle of doc 16a §6.4 (FT-540) and the Properties filter for more than
+  twelve rows (FT-541) are still not built.)*
 
 **J32 (cycle 32, the Properties, choice-list and canvas-tab side):**
 

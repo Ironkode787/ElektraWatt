@@ -1,6 +1,6 @@
 # Glossary
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-28, cycle 30: the entries job, marker line and notifications log, decision log ID-714; amended 2026-10-25, cycle 27: the entries blind drafter, bound text, marker mode and project fragment, and the exposure class entry, decision log ID-645, ID-647 to ID-649; amended 2026-10-24, cycle 26: the entries hop, junction ordinal and wire kind per page type, and the ID alias as built, decision log ID-635, ID-640; amended 2026-10-24, cycle 25: the entries edit route, field catalogue, ID alias and property sheet, decision log ID-626, ID-630; amended 2026-10-23, cycle 23: the entries asset store, page item and starter library, and the structure box and wire marker entries brought up to the WP-S2.04 specification, decision log ID-566, ID-573) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-29, cycle 32: the entries caption chip, command bar, count badge, empty state, HUD, rail (UI), status badge and tool options card, decision log ID-747 to ID-750; amended 2026-10-28, cycle 30: the entries job, marker line and notifications log, decision log ID-714; amended 2026-10-25, cycle 27: the entries blind drafter, bound text, marker mode and project fragment, and the exposure class entry, decision log ID-645, ID-647 to ID-649; amended 2026-10-24, cycle 26: the entries hop, junction ordinal and wire kind per page type, and the ID alias as built, decision log ID-635, ID-640; amended 2026-10-24, cycle 25: the entries edit route, field catalogue, ID alias and property sheet, decision log ID-626, ID-630; amended 2026-10-23, cycle 23: the entries asset store, page item and starter library, and the structure box and wire marker entries brought up to the WP-S2.04 specification, decision log ID-566, ID-573) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This glossary fixes the meaning of every domain and project term that the ElektraWatt (EW) document set
 uses: IEC 81346 aspects and prefixes, EPLAN and QElectroTech (QET) vocabulary, EW-specific concepts such as
@@ -124,6 +124,7 @@ The IEC 81346 prefixes that appear in tags:
 | **Cable** | A device with the `Cable` aspect, holding conductors (cores) and optionally a shield. Its definition line and conductor assignment are on the cable page. | Cable | Cable (QET 0.9 cable data) | [08 §7](08-connections-terminals-cables.md) |
 | **CAEX** | The XML schema (IEC 62424) underlying AutomationML; implemented by the permissive `ew-caex` crate. | — | — | [10 §4](10-plc-and-bus.md), [04 §3](04-architecture.md) |
 | **Canonical JSON Lines** | The byte-exact file encoding of a project: one record per line, sorted by the ID's random bits, no machine- or time-specific data. It gives clean git diffs and reproducible hashes. | — (binary EDB) | — (one XML file) | [05 §3](05-project-format-and-persistence.md), [ADR-0010](../adr/0010-project-storage-jsonl-directory.md) |
+| **Caption chip** | A small pill on a canvas or panel that names an object in `type.caption`, such as a highlight's name or a Place ghost's tag; placed clear of the pointer and the chrome. | — | — | [16a §6.16, §7.4](16a-design-language.md) |
 | **Carrier** | A rail, duct or similar mounting element on a mounting surface that devices are placed on. | Mounting rail, wiring duct | — | [03 §16](03-domain-model.md), [12 §2.4](12-panel-layout.md) |
 | **Cascading wire properties** | See Wire-property inheritance. | — | — | [08 §4.1](08-connections-terminals-cables.md) |
 | **CDP (connection definition point)** | A marker that sets explicit overrides (colour, size, length, ends) for one connection. In EW it is `Connection.overrides`, optionally drawn as a wire marker. | Connection definition point | Conductor text and properties | [03 §1.2](03-domain-model.md), [08 §4.5](08-connections-terminals-cables.md) |
@@ -141,6 +142,7 @@ The IEC 81346 prefixes that appear in tags:
 | **Colour profile** | A data set that maps potential types and circuit classes to wire colours (for example "DBU/WH 24 V"). It drives automatic wire colours with provenance. | Connection properties by potential | Per-conductor colour | [08 §4.2](08-connections-terminals-cables.md), [20 §7.1](20-golden-project.md) |
 | **Colour spec (`ColourSpec`)** | One or two colour codes; GNYE is [GN, YE]. | Two-colour wire | — | [03 §3.4](03-domain-model.md) |
 | **Command** | A serialisable, previewable request to change the model. Every front end (GUI, CLI, script, plugin, MCP) submits commands; they become transactions of ops. | Action | Undo command (QUndoCommand) | [04 §5](04-architecture.md), [ADR-0008](../adr/0008-transactions-undo-preview.md) |
+| **Command bar** | The window's top band: a tab row (app button, quick access, the tabs Project, Page, Draw, Check, Output and View, the command search) over a command row of grouped buttons and the next step, generated from the action registry. | Ribbon | Menu and toolbars | [16a §5.2](16a-design-language.md) |
 | **Committed computation (`Committed<T>`)** | A stored output of an explicit command, such as routes, lengths and frozen numbers, with the hash of the inputs it read (`input_hash`) and a revision. A check flags it when the inputs change. | — (recalculated on demand) | — | [04 §6.5](04-architecture.md), [ADR-0003](../adr/0003-freshness-contract.md) |
 | **Component mode (BOM)** | A bill-of-materials mode that lists every component part (the other mode is assembly mode). | Parts list | Nomenclature | [20 §14.1](20-golden-project.md) |
 | **Conductor** | A core or shield inside a cable (`Conductor`), carried by a `Connection{kind: Core}` when wired. Also QET's name for a drawn wire. | Core, conductor | Conductor (a drawn wire) | [08 §7](08-connections-terminals-cables.md) |
@@ -150,6 +152,7 @@ The IEC 81346 prefixes that appear in tags:
 | **Consumables summary** | A manufacturing report that totals ferrules, markers and wire stock needed for an order. | Smart Production consumables | — | [13 §3.6](13-manufacturing-outputs.md) |
 | **Contact image** | A representation that shows the contacts of a coil or relay and the pages where they are used, derived from the device's functions. | Contact image | Cross-reference (xref) box | [03 §10](03-domain-model.md), [06 §2.8](06-schematic-editor.md) |
 | **Core** | A conductor of a cable; the production wire record has kind `core` for it. | Core | Conductor in a cable | [13 §2.1](13-manufacturing-outputs.md) |
+| **Count badge** | A pill holding a number beside a row, tab or section, such as a Preview section's count or a page row's findings. | — | — | [16a §6.16](16a-design-language.md) |
 | **Cover (title page)** | A `FormDef` of kind Cover that renders the project master data on folio 1. | Title page / cover sheet (`.f26`) | Cover page | [09 §2.4](09-reports-forms-output.md) |
 | **Cross-reference (xref)** | A derived pointer between related representations: main to auxiliary functions, coils to contact images, interruption points to partners, same-function relations. | Cross-reference | Cross-ref (`xrefs`) | [06 §2.8](06-schematic-editor.md), [02a XRF](02a-requirements-core.md) |
 | **Csa** | Cross-section value type: mm², AWG or kcmil, kept in its original unit. | Cross-section | Section text | [03 §3.2](03-domain-model.md) |
@@ -188,6 +191,7 @@ The IEC 81346 prefixes that appear in tags:
 |---|---|---|---|---|
 | **Edit route** | How the property grid edits one field: through `fields.set` on its settable path, through one `project.settings.set` member, or not at all (read-only, with the reason: identity, another command, a `HumanOnly` command, no command yet, or the narrowing table). A route whose command is `HumanOnly` is always read-only; the grid builds no other command. | — | — | [WP-S2.05](../plan/specs/WP-S2.05-property-grid-find-replace-clipboard.md) §6.1.3 |
 | **EDZ** | EPLAN's exchange container for manufacturer part data (a 7-Zip or ZIP archive with XML and macros). EW reads it at 1.0 to update library parts through a previewed command. | EDZ (Data Portal download) | — | [14 §5.2](14-interop.md) |
+| **Empty state** | What a pane, navigator or list shows when it has nothing to show: an icon, one line saying why and, where one exists, the action that fills it. | — | — | [16a §6.17](16a-design-language.md) |
 | **EN 81346-2:2009** | The classification with single-letter codes used by default for device tags in new projects (the legacy letters F, G, S, T, E, X, W, U, Q, K, M). | DT letter table | — | [ADR-0026](../adr/0026-default-device-tag-identifier-set.md) |
 | **Enclosure** | A cabinet or housing in a layout space, holding mounting surfaces. | Enclosure (Pro Panel) | Layout page (shapes only) | [03 §16](03-domain-model.md), [12 §3.1](12-panel-layout.md) |
 | **EntityRef** | A typed reference to a record by UUID, used by comments, findings and waivers so they survive renumbering. | — | — | [03 §5](03-domain-model.md) |
@@ -253,6 +257,7 @@ The IEC 81346 prefixes that appear in tags:
 | **Hole table** | A list of drilling positions and sizes per mounting surface. | Drilling list | — | [13 §9.2](13-manufacturing-outputs.md) |
 | **Hop** | A crossing of two connections drawn as a half circle on the horizontal segment instead of a plain cross, when the project's drawing setting `crossings` is `hops` (FR-CON-031); presentation only, nothing in the model changes (decision log ID-635). | — | — | [06 §5.4](06-schematic-editor.md) |
 | **Hostile input limits** | Size, depth and time limits applied to every imported file, backed by fuzzing. | — | — | [14 §11](14-interop.md) |
+| **HUD** | The tool heads-up display: an opaque pill centred on the page view that shows the active tool, the quick tools, the tool's prompt and the zoom control; it never takes focus. | — | — | [16a §5.5](16a-design-language.md) |
 
 ### I
 
@@ -421,6 +426,7 @@ The IEC 81346 prefixes that appear in tags:
 
 | Term | Definition | EPLAN | QElectroTech | Defined in |
 |---|---|---|---|---|
+| **Rail (UI)** | A narrow column of icon entries at a window edge that chooses what its panel shows: the left rail the navigators (Project to Structure, History at the foot), the right rail Symbols and Parts. | — | — | [16a §5.4](16a-design-language.md) |
 | **Rail bonding** | The joining of adjacent terminals by the rail or a bridge into one potential. | Bridging by rail | — | [08 §3.7](08-connections-terminals-cables.md) |
 | **Rail cut length** | A derived length of a DIN rail that fits a terminal strip and its accessories. | Rail length | — | [13 §6.2](13-manufacturing-outputs.md) |
 | **Record kind** | A type of persisted record (device, page, connection) with a rank and file placement in the kind registry. | — | — | [05 §2.2](05-project-format-and-persistence.md) |
@@ -460,6 +466,7 @@ The IEC 81346 prefixes that appear in tags:
 | **Stale badge** | A visual mark on Class II results ("810 mm, re-routing…", "as of revision n") whose inputs changed. | — | — | [ADR-0003](../adr/0003-freshness-contract.md), [16 §8.3](16-ux-ui.md) |
 | **Star pairing and chain pairing** | Two modes of pairing interruption points: one source with many sinks, or a chain of partners. | Interruption point partners | Folio report pairs | [06 §2.8](06-schematic-editor.md), [03 §10](03-domain-model.md) |
 | **Starter library** | The symbols and function definitions that ship with the application (`content/symbols`, `content/fndefs`), compiled into `ew_library::starter`. A new project holds no symbol copies, so the symbol picker lists the starter symbols too, and placing one embeds it with its FnDef as its own undo step first (WP-S2.04 D8). | The symbol library delivered with the software | The built-in element collection | [WP-S2.04](../plan/specs/WP-S2.04-placement-wiring-drawing-tools.md) D8, [07](07-symbols-parts-macros.md) |
+| **Status badge** | A small label with an icon and one word on a subtle semantic fill that states an object's state, such as "Pending", "Stale", "Read-only" or a finished job's "Done". | — | — | [16a §6.16](16a-design-language.md) |
 | **STEP** | ISO 10303 CAD exchange (AP214, AP242); used for 3D parts and ECAD-to-MCAD export. | STEP import and export | — | [12 §6.2](12-panel-layout.md) |
 | **STEP worker (`ew-step-worker`)** | An out-of-process program using OCCT that tessellates STEP files and returns meshes over a defined protocol; results are cached by content hash (freshness Class III). | — | — | [04 §8.6](04-architecture.md), [ADR-0016](../adr/0016-3d-renderer-wgpu-and-out-of-process-step-worker.md) |
 | **Strict mode** | A project mode that rejects prevent-rule violations at commit; the default for native projects. | — | — | [15 §3.5](15-checks-revisions-collaboration.md) |
@@ -484,6 +491,7 @@ The IEC 81346 prefixes that appear in tags:
 | **Terminal diagram** | A derived report of a strip's terminals with their connected wires and cores. | Terminal diagram | Terminal strip table | [09 §2.4](09-reports-forms-output.md) |
 | **Thermal calculation** | A derived power-loss and temperature estimate for a cabinet following IEC 61439; 1.x with lever (c). | Cabinet thermal calculation | — | [12 §11](12-panel-layout.md) |
 | **Title block** | The frame area with bound fields (project, page, revision, author); fields are driven from project properties, never typed per page. | Title block | Title-block template | [09 §2.7](09-reports-forms-output.md) |
+| **Tool options card** | A floating card at the page view's top left that holds a running tool's fields (IP name, text binding, wire marker, structure box); shown only while such a tool runs. | — | — | [16a §5.2](16a-design-language.md) |
 | **Topology (representation)** | A representation type for bus topology pages with bus ports and connectors. | Topology | — | [06 §2.2](06-schematic-editor.md) |
 | **Transaction** | A set of ops applied atomically; evaluated on the candidate snapshot at its end. | — | Undo group | [04 §5.2](04-architecture.md) |
 | **Transmittal** | A record of what was issued to whom and in which revision. | Transmittal | — | [15 §5.9](15-checks-revisions-collaboration.md) |
