@@ -312,3 +312,50 @@ fn one_step_one_row_and_the_cells_that_stay_read_only() {
     assert_eq!(shell.recorded_commands().len(), steps);
     shell.shutdown();
 }
+
+/// Cycle 33 review finding 3 (pinned, behaviour unchanged): a potential known only at its CPs is defined from the
+/// table with the name it shows, which `potential.define` stores as intent. A later renumber of the device that name
+/// came from does not rename the definition: the stored name stays the old shown text. (The blessed gpp-2 blind
+/// recording replays this path; a change is a decision-log row first.)
+#[test]
+fn a_potential_defined_from_the_table_keeps_its_name_when_the_device_is_renumbered() {
+    let tmp = Tmp::new("potdef-renumber");
+    let mut shell = undefined(&tmp);
+    let shown = potential_at(&mut shell, "102", "-102F1:1");
+    assert_eq!(
+        shown, "-102G1:+",
+        "an undefined potential shows its source CP's name"
+    );
+    done(&mut shell, "navigator.show", json!({"kind": "potentials"}));
+    assert_eq!(
+        row(&shell, &shown, "Type").1,
+        "cp",
+        "{shown} is known only at its CPs"
+    );
+    type_cell(&mut shell, &shown, "Type", "L+");
+    let last = shell.recorded_commands().last().unwrap();
+    assert_eq!(last.cmd, "potential.define");
+    assert_eq!(last.params["name"], shown.as_str(), "the shown name is stored");
+    // Renumber -102G1 to a free counter.
+    done(&mut shell, "page.goto", json!({"folio": "102"}));
+    done(&mut shell, "select.set", json!({"refs": ["tag:-102G1"]}));
+    done(
+        &mut shell,
+        "props.set",
+        json!({"row": "device/tag.counter", "value": "97"}),
+    );
+    assert_eq!(
+        shell.dispatch("select.set", &json!({"refs": ["tag:-102G97"]})),
+        Outcome::Done,
+        "-102G1 is -102G97 now"
+    );
+    done(&mut shell, "navigator.show", json!({"kind": "potentials"}));
+    let (_, kind, _) = row(&shell, &shown, "Type");
+    assert_eq!(kind, "potential_def", "the definition keeps the old name {shown}");
+    assert_eq!(
+        potential_at(&mut shell, "102", "-102F1:1"),
+        shown,
+        "the page prints the stored name, not -102G97:+"
+    );
+    shell.shutdown();
+}
