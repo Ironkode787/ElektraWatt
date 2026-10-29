@@ -10,6 +10,7 @@ use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
+use std::sync::OnceLock;
 use std::sync::atomic::AtomicU32;
 use std::time::Duration;
 
@@ -46,10 +47,17 @@ impl Tmp {
         })
     }
 
-    /// A copy of Golden A in this directory.
+    /// A copy of Golden A in this directory, written from the bytes the test binary read once ([`golden_files`]):
+    /// every test gets its own files, so no test sees another's edits.
     pub fn golden(&self, name: &str) -> PathBuf {
         let target = self.0.join(name);
-        copy_dir(Path::new(GOLDEN_A), &target);
+        for (rel, bytes) in golden_files() {
+            let path = target.join(rel);
+            if let Some(parent) = path.parent() {
+                std::fs::create_dir_all(parent).unwrap();
+            }
+            std::fs::write(&path, bytes).unwrap();
+        }
         target
     }
 }
@@ -66,15 +74,27 @@ pub fn fresh_dir(parent: &Path, stem: &str, counter: &AtomicU32) -> PathBuf {
     ew_testdir::fresh_dir_in(parent, stem, counter)
 }
 
-fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).unwrap();
-    for entry in std::fs::read_dir(from).unwrap() {
-        let entry = entry.unwrap();
-        let target = to.join(entry.file_name());
+/// The files of Golden A (path relative to the project directory, bytes), read once per test binary and only read:
+/// `golden/J-E-2416.ew` is never opened for writing or locked, the tests open their own copies.
+fn golden_files() -> &'static [(PathBuf, Vec<u8>)] {
+    static FILES: OnceLock<Vec<(PathBuf, Vec<u8>)>> = OnceLock::new();
+    FILES.get_or_init(|| {
+        let mut files = Vec::new();
+        read_dir_into(Path::new(GOLDEN_A), Path::new(""), &mut files);
+        files
+    })
+}
+
+fn read_dir_into(dir: &Path, rel: &Path, out: &mut Vec<(PathBuf, Vec<u8>)>) {
+    // Sorted, so that the copies are written in one order on every platform.
+    let mut entries: Vec<_> = std::fs::read_dir(dir).unwrap().map(Result::unwrap).collect();
+    entries.sort_by_key(std::fs::DirEntry::file_name);
+    for entry in entries {
+        let rel = rel.join(entry.file_name());
         if entry.file_type().unwrap().is_dir() {
-            copy_dir(&entry.path(), &target);
+            read_dir_into(&entry.path(), &rel, out);
         } else {
-            std::fs::copy(entry.path(), target).unwrap();
+            out.push((rel, std::fs::read(entry.path()).unwrap()));
         }
     }
 }
@@ -114,7 +134,9 @@ pub fn harness_with<'a>(shell: ShellModel, platform: Scripted, initial: Option<P
         .build_ui_state(|ui, app: &mut App| app.ui(ui), app)
 }
 
-/// Runs the frame until it settles, then checks that every input widget has a name.
+/// Runs the frame until it settles, then checks that every input widget has a name. The walk costs about 1 ms
+/// against about 10 ms per frame of the window (debug build, measured 2026-10-29), and the tree a settle ends on is
+/// not the one of the settle before, so it runs on every settle.
 #[track_caller]
 pub fn settle(harness: &mut Harness<'_, App>) {
     harness.run_ok();
