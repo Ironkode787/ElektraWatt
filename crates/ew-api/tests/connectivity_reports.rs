@@ -20,10 +20,10 @@
 //!   `golden/J-E-2416/expected/rows/<block>.csv` (`EW_BLESS=1` rewrites them), over the golden tables with
 //!   the colour and size profiles of doc 20 §7.1, §7.2, which the page goldens do not have yet. Candidates
 //!   for the FT-10 approval, compared with doc 20 by hand (README, "Connectivity report rows").
-//! - `rows_do_not_depend_on_record_order` (NFR-REL-07).
 //! - `a_query_with_the_report_engine_paginates_the_connectivity_kinds`: the four kinds get their derived rows and
 //!   pages (907 in three) inside the pagination, equal to the rows of a `Q` without the engine.
-//! - `rows_and_pages_do_not_depend_on_the_order_they_are_read_in`.
+//! - `rows_and_pages_do_not_depend_on_the_order_they_are_read_in`: the order the queries and the records are read in
+//!   (NFR-REL-07).
 
 // Test target: bless and diagnostic environment flags (EW_*), which only choose whether a committed file is rewritten or a line is printed; the compared result never depends on them.
 #![allow(clippy::disallowed_methods)]
@@ -438,22 +438,6 @@ fn the_row_texts_match_the_committed_files() {
 }
 
 #[test]
-fn rows_do_not_depend_on_record_order() {
-    let batch = golden_common::batch();
-    let a = golden_common::session_with_profiles(&batch);
-    let b = golden_common::session_with(&batch, |p, records| {
-        golden_common::with_profiles(p);
-        records.reverse();
-    });
-    let (qa, qb) = (plain(&a), plain(&b));
-    for key in ["903", "904", "905", "906", "907", "909"] {
-        let id = block(&batch, key);
-        let (ra, rb) = (qa.get::<BlockRows>(id), qb.get::<BlockRows>(id));
-        assert_eq!(*ra, *rb, "{key}");
-    }
-}
-
-#[test]
 fn a_query_with_the_report_engine_paginates_the_connectivity_kinds() {
     let batch = golden_common::batch();
     let s = golden_common::session_with_profiles(&batch);
@@ -525,5 +509,17 @@ fn rows_and_pages_do_not_depend_on_the_order_they_are_read_in() {
         assert!(!rows_first.contains("NotDerived"), "{key}");
         assert!(!rows_first.contains("Not derived"), "{key}");
         assert!(rows_first.ends_with("[]"), "{key}: no notes, {rows_first}");
+    }
+    // The order the records are read in: a session of the reversed records gives the same rows.
+    let a = golden_common::session_with_profiles(&batch);
+    let b = golden_common::session_with(&batch, |p, records| {
+        golden_common::with_profiles(p);
+        records.reverse();
+    });
+    let (qa, qb) = (plain(&a), plain(&b));
+    for key in ["903", "904", "905", "906", "907", "909"] {
+        let id = block(&batch, key);
+        let (ra, rb) = (qa.get::<BlockRows>(id), qb.get::<BlockRows>(id));
+        assert_eq!(*ra, *rb, "block {key}, reversed records");
     }
 }

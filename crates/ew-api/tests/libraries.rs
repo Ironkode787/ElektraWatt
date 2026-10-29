@@ -63,40 +63,60 @@ fn the_starter_library_is_the_system_library() {
     );
 }
 
-/// Without tiers the session has the starter and the compiled-in starter parts (WP-S2.18 D5), read from no file.
-#[test]
-fn without_tiers_the_session_has_the_starter() {
-    let s = session(None, Vec::new());
-    let libs = s.libraries().libraries();
-    assert_eq!(libs.len(), 2);
-    assert_eq!((libs[0].key.as_str(), libs[0].tier), ("ew-starter", Tier::System));
-    assert_eq!(
-        (libs[1].id, libs[1].tier),
-        (library::starter_parts_library(), Tier::System)
-    );
-    assert!(s.libraries().index_path().is_none());
-    assert!(s.library_error().is_none());
-    let hits = s.part_search(&PartQuery::default());
-    assert!(!hits.is_empty());
-    assert!(
-        hits.iter().all(|h| h.library == library::starter_parts_library()),
-        "the starter parts only"
-    );
-}
-
-/// Tiers that cannot be opened: the session falls back to the starter and reports why.
+/// Without tiers, and with tiers that cannot be opened, the session has the starter and the compiled-in starter
+/// parts (WP-S2.18 D5), read from no file; only the tiers that cannot be opened report why.
 #[test]
 fn tiers_that_cannot_be_opened_fall_back_to_the_starter() {
-    let root = Dir(ew_testdir::fresh_dir("ew-api-libraries-broken"));
-    std::fs::create_dir_all(&root.0).unwrap();
-    let mut t = tiers(&root.0);
-    // The cache directory is a file.
-    t.cache = root.0.join("cache-is-a-file");
-    std::fs::write(&t.cache, b"x").unwrap();
-    let s = session(Some(t), Vec::new());
-    // The starter and the compiled-in starter parts (WP-S2.18 D5).
-    assert_eq!(s.libraries().libraries().len(), 2);
-    assert!(s.library_error().is_some());
+    struct Case {
+        name: &'static str,
+        unopenable: bool,
+    }
+    for c in [
+        Case {
+            name: "without tiers",
+            unopenable: false,
+        },
+        Case {
+            name: "tiers that cannot be opened",
+            unopenable: true,
+        },
+    ] {
+        let root = Dir(ew_testdir::fresh_dir("ew-api-libraries-broken"));
+        let t = c.unopenable.then(|| {
+            std::fs::create_dir_all(&root.0).unwrap();
+            let mut t = tiers(&root.0);
+            // The cache directory is a file.
+            t.cache = root.0.join("cache-is-a-file");
+            std::fs::write(&t.cache, b"x").unwrap();
+            t
+        });
+        let s = session(t, Vec::new());
+        let libs = s.libraries().libraries();
+        assert_eq!(libs.len(), 2, "case {}", c.name);
+        assert_eq!(
+            (libs[0].key.as_str(), libs[0].tier),
+            ("ew-starter", Tier::System),
+            "case {}",
+            c.name
+        );
+        assert_eq!(
+            (libs[1].id, libs[1].tier),
+            (library::starter_parts_library(), Tier::System),
+            "case {}",
+            c.name
+        );
+        assert_eq!(s.library_error().is_some(), c.unopenable, "case {}", c.name);
+        if !c.unopenable {
+            assert!(s.libraries().index_path().is_none(), "case {}", c.name);
+            let hits = s.part_search(&PartQuery::default());
+            assert!(!hits.is_empty(), "case {}", c.name);
+            assert!(
+                hits.iter().all(|h| h.library == library::starter_parts_library()),
+                "case {}: the starter parts only",
+                c.name
+            );
+        }
+    }
 }
 
 /// `part_search` ranks the parts the project holds first inside their rank tier.

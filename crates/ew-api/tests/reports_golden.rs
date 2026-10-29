@@ -555,6 +555,12 @@ fn rows_and_page_order_do_not_depend_on_record_order() {
     let (qa, qb): (Q, Q) = (a.query(), b.query());
 
     assert_eq!(qa.get::<PageOrder>(()).labels(), qb.get::<PageOrder>(()).labels());
+    // The whole page order (titles, notes, blocks), not only its labels.
+    assert_eq!(
+        format!("{:?}", qa.get::<PageOrder>(())),
+        format!("{:?}", qb.get::<PageOrder>(())),
+        "the page order"
+    );
     for key in KEYS {
         let id = block(key);
         let (ra, rb) = (qa.get::<BlockRows>(id), qb.get::<BlockRows>(id));
@@ -562,24 +568,6 @@ fn rows_and_page_order_do_not_depend_on_record_order() {
         let ids = |r: &RowSet| r.rows.iter().map(|x| x.id.clone()).collect::<Vec<_>>();
         assert_eq!(ids(&ra), ids(&rb), "{key}: row IDs");
         assert_eq!(*ra, *rb, "{key}: rows");
-    }
-}
-
-#[test]
-fn rows_and_page_order_are_deterministic() {
-    let (a, b) = (common::golden_session(), common::golden_session());
-    let (qa, qb): (Q, Q) = (a.query(), b.query());
-    assert_eq!(
-        format!("{:?}", qa.get::<PageOrder>(())),
-        format!("{:?}", qb.get::<PageOrder>(()))
-    );
-    for key in KEYS {
-        let id = block(key);
-        assert_eq!(
-            format!("{:?}", qa.get::<BlockRows>(id)),
-            format!("{:?}", qb.get::<BlockRows>(id)),
-            "{key}"
-        );
     }
 }
 

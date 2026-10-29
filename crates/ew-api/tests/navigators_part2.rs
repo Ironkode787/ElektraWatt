@@ -523,16 +523,6 @@ fn np3_members_of_24vdc_1_are_its_wire_list_connections() {
     assert!(s.highlight_members(&HighlightTarget::Net(unknown)).is_empty());
 }
 
-#[test]
-fn every_kind_is_deterministic_and_keeps_its_keys() {
-    let s = common::golden_session();
-    for k in NavKind::ALL {
-        let a = s.navigator_table(k);
-        assert_eq!(a, s.navigator_table(k), "{k:?}");
-        assert!(!a.nodes.is_empty(), "{k:?} has rows");
-    }
-}
-
 /// R1-10 (FT-515): the third row kind of the Potentials overview. On Golden A without the definition of 24VDC-4 that
 /// potential is known only by its name at connection points, so its row's record is a CP and its kind `cp`; every
 /// other row keeps its definition or its bond, and the overview keeps its 20 rows.

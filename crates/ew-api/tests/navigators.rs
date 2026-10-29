@@ -172,11 +172,12 @@ fn keys_are_stable_across_a_revision() {
     let c = s.navigator_table(NavKind::Connections);
     assert!(!c.nodes.is_empty());
     assert!(!c.columns.is_empty());
-    // Determinism: two builds are equal.
-    assert_eq!(
-        s.navigator_table(NavKind::Devices),
-        s.navigator_table(NavKind::Devices)
-    );
+    // Determinism: two builds of every kind are equal, and every kind has rows on Golden A.
+    for k in NavKind::ALL {
+        let a = s.navigator_table(k);
+        assert_eq!(a, s.navigator_table(k), "{k:?}");
+        assert!(!a.nodes.is_empty(), "{k:?} has rows");
+    }
 }
 
 /// NFR-PERF-15 at XL (§11): the Devices table of the XL synthetic fixture and a 5-character filter over its tokens.

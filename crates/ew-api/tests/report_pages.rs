@@ -412,13 +412,3 @@ fn a_generated_page_on_a_drawn_folio_follows_the_drawn_page() {
     assert_eq!(order.entries[i].origin, Origin::Drawn);
     assert_eq!(order.entries[i + 1].origin, Origin::Generated);
 }
-
-#[test]
-fn the_page_order_is_deterministic_with_the_report_engine() {
-    let a = common::golden_session();
-    let b = common::golden_session();
-    assert_eq!(
-        format!("{:?}", a.query().get::<PageOrder>(())),
-        format!("{:?}", b.query().get::<PageOrder>(()))
-    );
-}

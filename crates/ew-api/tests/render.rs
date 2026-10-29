@@ -90,126 +90,115 @@ fn folio_and_cell_ref_print_the_folio_label() {
     assert_eq!(render(&q, &Cell::CellRef(first.page, cell), &opts), "101-H16");
 }
 
+/// The value cells (doc 09 §3.6): decimals with either separator, quantities with units and the language's
+/// separator, the absent values and markers, dates, booleans, numbers and identifiers, a text's language fallback,
+/// and the full and displayed tag forms. One case per value; the case name is in every failure message.
 #[test]
-fn decimals() {
-    assert_eq!(decimal(Dec3(750), false), "0.75");
-    assert_eq!(decimal(Dec3(750), true), "0,75");
-    assert_eq!(decimal(Dec3(1500), false), "1.5");
-    assert_eq!(decimal(Dec3(2000), false), "2");
-    assert_eq!(decimal(Dec3(-5), false), "-0.005");
-    assert_eq!(decimal(Dec3(0), false), "0");
-    assert_eq!(decimal(Dec3(-1250), true), "-1,25");
-}
-
-#[test]
-fn quantities_with_units_and_language() {
-    let s = common::golden_session();
-    let q = s.query();
-    let mm2 = Cell::Qty(Dec3(750), QtyUnit::Unit(Unit::Mm2));
-    assert_eq!(render(&q, &mm2, &RenderOptions::default()), "0.75 mm²");
-    let nl = RenderOptions {
-        lang: Some(lang("nl-NL")),
-        ..RenderOptions::default()
-    };
-    assert_eq!(render(&q, &mm2, &nl), "0,75 mm²");
-    let en = RenderOptions {
-        lang: Some(lang("en-GB")),
-        ..RenderOptions::default()
-    };
-    assert_eq!(render(&q, &mm2, &en), "0.75 mm²");
-    let d = RenderOptions::default();
-    assert_eq!(render(&q, &Cell::Qty(Dec3(2000), QtyUnit::None), &d), "2");
-    assert_eq!(
-        render(&q, &Cell::Qty(Dec3(24_000), QtyUnit::Unit(Unit::DegC)), &d),
-        "24 °C"
-    );
-}
-
-#[test]
-fn absent_values_and_markers() {
+fn values_render_by_kind_language_and_form() {
     let s = common::golden_session();
     let q = s.query();
     let d = RenderOptions::default();
-    assert_eq!(render(&q, &Cell::Tbd, &d), "TBD");
-    let custom = RenderOptions {
+    let in_lang = |l: &str| RenderOptions {
+        lang: Some(lang(l)),
+        ..RenderOptions::default()
+    };
+    let offen = RenderOptions {
         tbd: "offen".to_owned(),
         ..RenderOptions::default()
     };
-    assert_eq!(render(&q, &Cell::Tbd, &custom), "offen");
-    assert_eq!(
-        render(&q, &Cell::Missing(MissingReason::Length), &d),
-        "length missing"
-    );
-    assert_eq!(
-        render(&q, &Cell::Missing(MissingReason::Part), &d),
-        "part missing"
-    );
-    assert_eq!(
-        render(&q, &Cell::Missing(MissingReason::CrossSection), &d),
-        "cross-section missing"
-    );
-    assert_eq!(
-        render(&q, &Cell::Missing(MissingReason::Colour), &d),
-        "colour missing"
-    );
-    assert_eq!(render(&q, &Cell::Empty, &d), "");
+    let mm2 = Cell::Qty(Dec3(750), QtyUnit::Unit(Unit::Mm2));
     let stale = Cell::Stale(Box::new(Cell::Qty(Dec3(810_000), QtyUnit::Unit(Unit::M))), Rev(3));
-    assert_eq!(render(&q, &stale, &d), "≈ 810 m");
-}
-
-#[test]
-fn date_bool_number_ident() {
-    let s = common::golden_session();
-    let q = s.query();
-    let d = RenderOptions::default();
-    let date = Date::new(2025, 3, 3).unwrap();
-    assert_eq!(render(&q, &Cell::Date(date), &d), "03-03-2025");
-    assert_eq!(render(&q, &Cell::Bool(true), &d), "yes");
-    assert_eq!(render(&q, &Cell::Bool(false), &d), "no");
-    assert_eq!(render(&q, &Cell::Number(-12), &d), "-12");
-    assert_eq!(render(&q, &Cell::Ident("UK 5 N".to_owned()), &d), "UK 5 N");
-}
-
-#[test]
-fn text_language_fallback() {
-    let s = common::golden_session();
-    let q = s.query();
-    let ml = MlText::from_langs([
+    let ml = Cell::Text(MlText::from_langs([
         (lang("en"), "Heater".to_owned()),
         (lang("nl"), "Verwarming".to_owned()),
-    ]);
-    let nl = RenderOptions {
-        lang: Some(lang("nl")),
-        ..RenderOptions::default()
-    };
-    assert_eq!(render(&q, &Cell::Text(ml.clone()), &nl), "Verwarming");
-    // A language the text lacks falls back to the first language present.
-    let de = RenderOptions {
-        lang: Some(lang("de")),
-        ..RenderOptions::default()
-    };
-    assert_eq!(render(&q, &Cell::Text(ml.clone()), &de), "Heater");
-    assert_eq!(render(&q, &Cell::Text(ml), &RenderOptions::default()), "Heater");
-    let neutral = Cell::Text(MlText::neutral("Plate"));
-    assert_eq!(render(&q, &neutral, &nl), "Plate");
-    assert_eq!(render(&q, &Cell::Text(MlText::neutral("")), &nl), "");
-}
-
-#[test]
-fn tag_full_and_displayed() {
-    let s = common::golden_session();
-    let q = s.query();
-    let row = bom_row(&q, "571334");
-    let dev = row.devices[0];
-    let short = RenderOptions::default();
+    ]));
+    let date = Date::new(2025, 3, 3).unwrap();
+    let cases: Vec<(&str, String, &str)> = vec![
+        // decimal()
+        ("decimal 0.75", decimal(Dec3(750), false), "0.75"),
+        ("decimal 0,75", decimal(Dec3(750), true), "0,75"),
+        ("decimal 1.5", decimal(Dec3(1500), false), "1.5"),
+        ("decimal 2", decimal(Dec3(2000), false), "2"),
+        ("decimal -0.005", decimal(Dec3(-5), false), "-0.005"),
+        ("decimal 0", decimal(Dec3(0), false), "0"),
+        ("decimal -1,25", decimal(Dec3(-1250), true), "-1,25"),
+        // Quantities with units and language.
+        ("mm² default", render(&q, &mm2, &d), "0.75 mm²"),
+        ("mm² nl-NL", render(&q, &mm2, &in_lang("nl-NL")), "0,75 mm²"),
+        ("mm² en-GB", render(&q, &mm2, &in_lang("en-GB")), "0.75 mm²"),
+        (
+            "quantity without unit",
+            render(&q, &Cell::Qty(Dec3(2000), QtyUnit::None), &d),
+            "2",
+        ),
+        (
+            "°C",
+            render(&q, &Cell::Qty(Dec3(24_000), QtyUnit::Unit(Unit::DegC)), &d),
+            "24 °C",
+        ),
+        // Absent values and markers.
+        ("TBD", render(&q, &Cell::Tbd, &d), "TBD"),
+        ("TBD text of the options", render(&q, &Cell::Tbd, &offen), "offen"),
+        (
+            "length missing",
+            render(&q, &Cell::Missing(MissingReason::Length), &d),
+            "length missing",
+        ),
+        (
+            "part missing",
+            render(&q, &Cell::Missing(MissingReason::Part), &d),
+            "part missing",
+        ),
+        (
+            "cross-section missing",
+            render(&q, &Cell::Missing(MissingReason::CrossSection), &d),
+            "cross-section missing",
+        ),
+        (
+            "colour missing",
+            render(&q, &Cell::Missing(MissingReason::Colour), &d),
+            "colour missing",
+        ),
+        ("empty", render(&q, &Cell::Empty, &d), ""),
+        ("stale", render(&q, &stale, &d), "≈ 810 m"),
+        // Dates, booleans, numbers, identifiers.
+        ("date", render(&q, &Cell::Date(date), &d), "03-03-2025"),
+        ("true", render(&q, &Cell::Bool(true), &d), "yes"),
+        ("false", render(&q, &Cell::Bool(false), &d), "no"),
+        ("number", render(&q, &Cell::Number(-12), &d), "-12"),
+        (
+            "identifier",
+            render(&q, &Cell::Ident("UK 5 N".to_owned()), &d),
+            "UK 5 N",
+        ),
+        // A text's language; a language the text lacks falls back to the first language present.
+        ("text nl", render(&q, &ml, &in_lang("nl")), "Verwarming"),
+        ("text de falls back", render(&q, &ml, &in_lang("de")), "Heater"),
+        ("text without a language", render(&q, &ml, &d), "Heater"),
+        (
+            "neutral text",
+            render(&q, &Cell::Text(MlText::neutral("Plate")), &in_lang("nl")),
+            "Plate",
+        ),
+        (
+            "empty neutral text",
+            render(&q, &Cell::Text(MlText::neutral("")), &in_lang("nl")),
+            "",
+        ),
+    ];
+    for (name, got, want) in &cases {
+        assert_eq!(got, want, "case {name}");
+    }
+    // The tag forms: the displayed tag, and the full tag that ends with it.
+    let dev = bom_row(&q, "571334").devices[0];
     let full = RenderOptions {
         tag_form: TagForm::Full,
         ..RenderOptions::default()
     };
-    let short_text = render(&q, &Cell::Tag(dev), &short);
+    let short_text = render(&q, &Cell::Tag(dev), &d);
     let full_text = render(&q, &Cell::Tag(dev), &full);
-    assert_eq!(short_text, "-201U3-Q1");
-    assert!(full_text.starts_with('='), "{full_text}");
-    assert!(full_text.ends_with(&short_text), "{full_text}");
-    assert_ne!(full_text, short_text);
+    assert_eq!(short_text, "-201U3-Q1", "case tag displayed");
+    assert!(full_text.starts_with('='), "case tag full: {full_text}");
+    assert!(full_text.ends_with(&short_text), "case tag full: {full_text}");
+    assert_ne!(full_text, short_text, "case tag full");
 }

@@ -140,6 +140,12 @@ fn the_golden_batch_loads_with_the_counts_of_doc_20() {
         .filter(|d| matches!(d, LibDocument::Part(_)))
         .count();
     assert_eq!(parts, 27 + 2);
+    // Derived counts of the golden batch: doc 20 does not state them, they follow from its tables (functions: one
+    // per device function and interruption point, §6, §9, §15; representations: one per drawn symbol, §6.1, §9,
+    // §15). A change is a change of the fixture, never noise.
+    let records = |f: fn(&Record) -> bool| batch.records.iter().filter(|r| f(r)).count();
+    assert_eq!(records(|r| matches!(r, Record::Function(_))), 160);
+    assert_eq!(records(|r| matches!(r, Record::Representation(_))), 135);
 }
 
 /// The rows of one committed golden table by key: column name → cell. The golden tables quote no field
@@ -319,30 +325,4 @@ fn list(cps: &[ew_derive::Cp]) -> String {
         })
         .collect();
     format!("[{}]", items.join(", "))
-}
-
-/// Derived counts of the golden batch: doc 20 does not state them, they follow from its tables (functions:
-/// one per device function and interruption point, §6, §9, §15; representations: one per drawn symbol, §6.1,
-/// §9, §15). A change is a change of the fixture, never noise.
-#[test]
-fn the_golden_batch_has_160_functions_and_135_representations() {
-    let batch = golden_batch();
-    let n = |f: fn(&Record) -> bool| batch.records.iter().filter(|r| f(r)).count();
-    assert_eq!(n(|r| matches!(r, Record::Function(_))), 160);
-    assert_eq!(n(|r| matches!(r, Record::Representation(_))), 135);
-}
-
-#[test]
-fn the_golden_import_is_deterministic() {
-    let a = golden_batch();
-    let b = golden_batch();
-    let lines = |batch: &ImportBatch| -> Vec<String> {
-        batch
-            .records
-            .iter()
-            .map(|r| serde_json::to_string(r).unwrap())
-            .chain(batch.lib.iter().map(|d| serde_json::to_string(d).unwrap()))
-            .collect()
-    };
-    assert_eq!(lines(&a), lines(&b));
 }
