@@ -138,9 +138,8 @@ fn term002_fingerprint_is_stable_across_renaming_the_strip() {
     assert_eq!(fp(&a), fp(&b));
 }
 
-/// The prevent check of EW-TERM-002 over plain before/after drawings: a plain table, since `prevent` is not
-/// `findings_of`. Each row is (case name, before, after, touched keys, check of the violations).
-/// One row of [`term002_prevent_cases`]: the name, the drawing before and after, the touched keys, the check.
+/// One row of `term002_prevent_cases`: the case name, the drawing before and after, the touched keys and the
+/// check of the violations.
 type PreventRow = (
     &'static str,
     ew_model::Model,

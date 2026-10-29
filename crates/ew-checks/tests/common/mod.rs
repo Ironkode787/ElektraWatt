@@ -72,11 +72,14 @@ pub fn findings_of(m: &Model, rule: &str) -> Vec<ew_checks::Finding> {
         .collect()
 }
 
+/// The check of a case: it receives the case name and the rule's findings.
+pub type CaseCheck = Box<dyn Fn(&str, &[ew_checks::Finding])>;
+
 /// One case of a rule table: a named model and the check of the rule's findings over it.
 pub struct Case {
     pub name: &'static str,
     pub model: Model,
-    pub check: Box<dyn Fn(&str, &[ew_checks::Finding])>,
+    pub check: CaseCheck,
 }
 
 impl Case {

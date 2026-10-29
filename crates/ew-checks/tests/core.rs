@@ -537,25 +537,32 @@ fn release_findings(m: &ew_model::Model, rule: &str) -> Vec<ew_checks::Finding> 
         .collect()
 }
 
+/// EW-CORE-065 in a release run over a part description: (name, description, the sorted discriminators).
 #[test]
-fn core065_a_plain_description_has_no_finding() {
-    assert!(release_findings(&part_model("Thermostat"), "EW-CORE-065").is_empty());
-}
-
-#[test]
-fn core065_a_rating_and_a_glued_unit_are_two_warnings() {
-    let f = release_findings(&part_model("Miniature circuit breaker, 10A C"), "EW-CORE-065");
-    let mut found: Vec<&str> = f.iter().map(|f| f.discriminator.as_str()).collect();
-    found.sort_unstable();
-    assert_eq!(found, ["rating", "unit-format"], "{f:#?}");
-    for finding in &f {
-        assert_eq!(finding.code, "104065");
-        assert_eq!(finding.severity, Severity::Warning);
-        assert_eq!(finding.targets.len(), 1);
-        assert_eq!(
-            (finding.targets[0].kind, finding.targets[0].id),
-            (Kind::Part, uid(0x8000))
-        );
+fn core065_release_cases() {
+    let cases: [(&str, &str, &[&str]); 2] = [
+        ("a plain description has no finding", "Thermostat", &[]),
+        (
+            "a rating and a glued unit are two warnings",
+            "Miniature circuit breaker, 10A C",
+            &["rating", "unit-format"],
+        ),
+    ];
+    for (name, description, want) in cases {
+        let f = release_findings(&part_model(description), "EW-CORE-065");
+        let mut found: Vec<&str> = f.iter().map(|f| f.discriminator.as_str()).collect();
+        found.sort_unstable();
+        assert_eq!(found, want, "case {name}: {f:#?}");
+        for finding in &f {
+            assert_eq!(finding.code, "104065", "case {name}");
+            assert_eq!(finding.severity, Severity::Warning, "case {name}");
+            assert_eq!(finding.targets.len(), 1, "case {name}");
+            assert_eq!(
+                (finding.targets[0].kind, finding.targets[0].id),
+                (Kind::Part, uid(0x8000)),
+                "case {name}"
+            );
+        }
     }
 }
 
