@@ -1035,6 +1035,24 @@ fn box_rows(q: &Q, page: Id<Page>) -> Vec<TableStructureBox> {
     rows
 }
 
+/// The side of a terminal CP in the model's words: `field` when the CP's side is its strip's `field_side` (side 2
+/// when the terminal has no strip aspect to read), `internal` for the other side, `None` for a CP without a side.
+fn terminal_side(q: &Q, function: Id<Function>, idx: u16) -> Option<&'static str> {
+    use ew_derive::ew_schema::Side;
+    let cps = q.get::<FunctionCps>(function);
+    let side = cps.iter().find(|c| c.idx == idx)?.side.clone()?;
+    let field = q
+        .functions()
+        .get(function)
+        .and_then(|f| f.device)
+        .and_then(|d| q.devices().get(d))
+        .and_then(|d| d.aspects.terminal.as_ref().map(|t| t.strip))
+        .and_then(|s| q.devices().get(s))
+        .and_then(|s| s.aspects.strip.as_ref().map(|s| s.field_side.clone()))
+        .unwrap_or(Side::Side2);
+    Some(if side == field { "field" } else { "internal" })
+}
+
 /// A representation row of the page tables.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct TableRep {
@@ -1108,6 +1126,9 @@ pub struct TableCp {
     pub connections: Vec<Uuid>,
     /// The derived name of its potential.
     pub potential: Option<String>,
+    /// A terminal CP's side in the model's words (doc 08 §2.1): `field` when its side is the strip's
+    /// `field_side`, `internal` for the other side; `None` for a CP without a side.
+    pub side: Option<&'static str>,
 }
 
 /// One end of a [`TableConnection`].
@@ -1453,6 +1474,7 @@ impl Session {
                 dir,
                 connections,
                 potential,
+                side: terminal_side(&q, function, idx),
             });
         }
         cps.sort_by(|a, b| {

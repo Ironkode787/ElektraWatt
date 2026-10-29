@@ -519,6 +519,12 @@ pub(super) fn record_title(q: &Q, id: Uuid, source: Option<&str>) -> Option<Stri
         }
         Kind::StructureNode => SheetCx::new(q).node_path(Id::from_uuid(id)).unwrap_or_default(),
         Kind::Connection => wire_number_text(q, Id::from_uuid(id)),
+        // G-PP triage row 12: a page item is named by its kind in words (`wire marker`, `free text`), not `page_item`.
+        Kind::PageItem => json
+            .get("kind")
+            .and_then(|k| k.as_object())
+            .and_then(|k| k.keys().next().cloned())
+            .map_or_else(|| kind.name().to_owned(), |k| k.replace('_', " ")),
         _ => json
             .get("name")
             .or_else(|| json.get("label"))

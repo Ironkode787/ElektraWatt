@@ -415,8 +415,9 @@ fn np6_the_six_words_and_the_two_actions() {
     // WP-S2.09 part 2 adds the message panel's sixteen words and five actions; part 3 the Preview tab's and the
     // history panel's thirteen words and eight actions; WP-S2.06 part 3 table mode's six words and fourteen actions;
     // WP-S2.17 part 1 View ▸ Theme and View ▸ Density; part 3 the rails' six words and two actions; FT-541
-    // `props.filter`; the G-PP triage's Draw ▸ Bond (`bond.draw`).
-    assert_eq!(VOCABULARY.len(), 354);
+    // `props.filter`; the G-PP triage's Draw ▸ Bond (`bond.draw`), the tag proposal
+    // (`props.accept_tag_proposal`) and a terminal CP's side `internal`.
+    assert_eq!(VOCABULARY.len(), 355);
     assert_eq!(ew_viewmodel::actions::ACTIONS.len(), 261);
     let hl = ew_viewmodel::actions::ACTIONS
         .iter()

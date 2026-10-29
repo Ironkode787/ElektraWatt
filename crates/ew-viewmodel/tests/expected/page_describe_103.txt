@@ -4,69 +4,69 @@ page "103" "Power Supply 3 - Control Current Distribution" reps 23 connections 2
   rep ip "24VDC-1" direction target cell "103-A1" symbol "ew.gen.ip@qet10" variant "A" at 38.495 30.666 mm
     cp "24VDC-1" at 38.495 28.057 mm wires 1 potential "24VDC-1"
   rep "-X1031:1" cell "103-A3" symbol "ew.gen.strip-segment@qet10" variant "A" at 69.809 25.447 mm
-    cp "-X1031:1/a" at 72.419 25.447 mm wires 1 potential "24VDC-1"
-    cp "-X1031:10/a" at 95.905 25.447 mm wires 0
-    cp "-X1031:2/a" at 75.028 25.447 mm wires 0
-    cp "-X1031:3/a" at 77.638 25.447 mm wires 0
-    cp "-X1031:4/a" at 80.248 25.447 mm wires 0
-    cp "-X1031:5/a" at 82.857 25.447 mm wires 1 potential "24VDC-2"
-    cp "-X1031:6/a" at 85.467 25.447 mm wires 0
-    cp "-X1031:7/a" at 88.076 25.447 mm wires 1 potential "24VDC-3"
-    cp "-X1031:8/a" at 90.686 25.447 mm wires 0
-    cp "-X1031:9/a" at 93.295 25.447 mm wires 1 potential "24VDC-4"
-    cp "-X1031:1/b" at 72.419 33.276 mm wires 1 potential "24VDC-1"
-    cp "-X1031:10/b" at 95.905 33.276 mm wires 0
-    cp "-X1031:2/b" at 75.028 33.276 mm wires 1 potential "24VDC-1"
-    cp "-X1031:3/b" at 77.638 33.276 mm wires 1 potential "24VDC-1"
-    cp "-X1031:4/b" at 80.248 33.276 mm wires 1 potential "24VDC-1"
-    cp "-X1031:5/b" at 82.857 33.276 mm wires 0
-    cp "-X1031:6/b" at 85.467 33.276 mm wires 0
-    cp "-X1031:7/b" at 88.076 33.276 mm wires 0
-    cp "-X1031:8/b" at 90.686 33.276 mm wires 0
-    cp "-X1031:9/b" at 93.295 33.276 mm wires 0
-    cp "-X1031:1/c" at 72.419 33.276 mm wires 0
-    cp "-X1031:10/c" at 95.905 33.276 mm wires 0
-    cp "-X1031:2/c" at 75.028 33.276 mm wires 0
-    cp "-X1031:3/c" at 77.638 33.276 mm wires 0
-    cp "-X1031:4/c" at 80.248 33.276 mm wires 0
-    cp "-X1031:5/c" at 82.857 33.276 mm wires 0
-    cp "-X1031:6/c" at 85.467 33.276 mm wires 0
-    cp "-X1031:7/c" at 88.076 33.276 mm wires 0
-    cp "-X1031:8/c" at 90.686 33.276 mm wires 0
-    cp "-X1031:9/c" at 93.295 33.276 mm wires 0
+    cp "-X1031:1/a" internal at 72.419 25.447 mm wires 1 potential "24VDC-1"
+    cp "-X1031:10/a" internal at 95.905 25.447 mm wires 0
+    cp "-X1031:2/a" internal at 75.028 25.447 mm wires 0
+    cp "-X1031:3/a" internal at 77.638 25.447 mm wires 0
+    cp "-X1031:4/a" internal at 80.248 25.447 mm wires 0
+    cp "-X1031:5/a" internal at 82.857 25.447 mm wires 1 potential "24VDC-2"
+    cp "-X1031:6/a" internal at 85.467 25.447 mm wires 0
+    cp "-X1031:7/a" internal at 88.076 25.447 mm wires 1 potential "24VDC-3"
+    cp "-X1031:8/a" internal at 90.686 25.447 mm wires 0
+    cp "-X1031:9/a" internal at 93.295 25.447 mm wires 1 potential "24VDC-4"
+    cp "-X1031:1/b" field at 72.419 33.276 mm wires 1 potential "24VDC-1"
+    cp "-X1031:10/b" field at 95.905 33.276 mm wires 0
+    cp "-X1031:2/b" field at 75.028 33.276 mm wires 1 potential "24VDC-1"
+    cp "-X1031:3/b" field at 77.638 33.276 mm wires 1 potential "24VDC-1"
+    cp "-X1031:4/b" field at 80.248 33.276 mm wires 1 potential "24VDC-1"
+    cp "-X1031:5/b" field at 82.857 33.276 mm wires 0
+    cp "-X1031:6/b" field at 85.467 33.276 mm wires 0
+    cp "-X1031:7/b" field at 88.076 33.276 mm wires 0
+    cp "-X1031:8/b" field at 90.686 33.276 mm wires 0
+    cp "-X1031:9/b" field at 93.295 33.276 mm wires 0
+    cp "-X1031:1/c" field at 72.419 33.276 mm wires 0
+    cp "-X1031:10/c" field at 95.905 33.276 mm wires 0
+    cp "-X1031:2/c" field at 75.028 33.276 mm wires 0
+    cp "-X1031:3/c" field at 77.638 33.276 mm wires 0
+    cp "-X1031:4/c" field at 80.248 33.276 mm wires 0
+    cp "-X1031:5/c" field at 82.857 33.276 mm wires 0
+    cp "-X1031:6/c" field at 85.467 33.276 mm wires 0
+    cp "-X1031:7/c" field at 88.076 33.276 mm wires 0
+    cp "-X1031:8/c" field at 90.686 33.276 mm wires 0
+    cp "-X1031:9/c" field at 93.295 33.276 mm wires 0
   rep ip "24VDC-AIR1" direction source cell "103-A6" symbol "ew.gen.ip@qet10" variant "A" at 116.781 25.447 mm
     cp "24VDC-AIR1" at 116.781 22.838 mm wires 1 potential "24VDC-1"
   rep "-X1031:11" cell "103-A10" symbol "ew.gen.strip-segment@qet10" variant "A" at 179.410 25.447 mm
-    cp "-X1031:11/a" at 182.020 25.447 mm wires 1 potential "0V"
-    cp "-X1031:12/a" at 184.629 25.447 mm wires 0
-    cp "-X1031:13/a" at 187.239 25.447 mm wires 0
-    cp "-X1031:14/a" at 189.848 25.447 mm wires 0
-    cp "-X1031:15/a" at 192.458 25.447 mm wires 0
-    cp "-X1031:16/a" at 195.067 25.447 mm wires 0
-    cp "-X1031:17/a" at 197.677 25.447 mm wires 0
-    cp "-X1031:18/a" at 200.286 25.447 mm wires 0
-    cp "-X1031:19/a" at 202.896 25.447 mm wires 0
-    cp "-X1031:20/a" at 205.505 25.447 mm wires 0
-    cp "-X1031:11/b" at 182.020 33.276 mm wires 1 potential "0V"
-    cp "-X1031:12/b" at 184.629 33.276 mm wires 1 potential "0V"
-    cp "-X1031:13/b" at 187.239 33.276 mm wires 1 potential "0V"
-    cp "-X1031:14/b" at 189.848 33.276 mm wires 1 potential "0V"
-    cp "-X1031:15/b" at 192.458 33.276 mm wires 0
-    cp "-X1031:16/b" at 195.067 33.276 mm wires 0
-    cp "-X1031:17/b" at 197.677 33.276 mm wires 0
-    cp "-X1031:18/b" at 200.286 33.276 mm wires 0
-    cp "-X1031:19/b" at 202.896 33.276 mm wires 0
-    cp "-X1031:20/b" at 205.505 33.276 mm wires 0
-    cp "-X1031:11/c" at 182.020 33.276 mm wires 0
-    cp "-X1031:12/c" at 184.629 33.276 mm wires 0
-    cp "-X1031:13/c" at 187.239 33.276 mm wires 0
-    cp "-X1031:14/c" at 189.848 33.276 mm wires 0
-    cp "-X1031:15/c" at 192.458 33.276 mm wires 0
-    cp "-X1031:16/c" at 195.067 33.276 mm wires 0
-    cp "-X1031:17/c" at 197.677 33.276 mm wires 0
-    cp "-X1031:18/c" at 200.286 33.276 mm wires 0
-    cp "-X1031:19/c" at 202.896 33.276 mm wires 0
-    cp "-X1031:20/c" at 205.505 33.276 mm wires 0
+    cp "-X1031:11/a" internal at 182.020 25.447 mm wires 1 potential "0V"
+    cp "-X1031:12/a" internal at 184.629 25.447 mm wires 0
+    cp "-X1031:13/a" internal at 187.239 25.447 mm wires 0
+    cp "-X1031:14/a" internal at 189.848 25.447 mm wires 0
+    cp "-X1031:15/a" internal at 192.458 25.447 mm wires 0
+    cp "-X1031:16/a" internal at 195.067 25.447 mm wires 0
+    cp "-X1031:17/a" internal at 197.677 25.447 mm wires 0
+    cp "-X1031:18/a" internal at 200.286 25.447 mm wires 0
+    cp "-X1031:19/a" internal at 202.896 25.447 mm wires 0
+    cp "-X1031:20/a" internal at 205.505 25.447 mm wires 0
+    cp "-X1031:11/b" field at 182.020 33.276 mm wires 1 potential "0V"
+    cp "-X1031:12/b" field at 184.629 33.276 mm wires 1 potential "0V"
+    cp "-X1031:13/b" field at 187.239 33.276 mm wires 1 potential "0V"
+    cp "-X1031:14/b" field at 189.848 33.276 mm wires 1 potential "0V"
+    cp "-X1031:15/b" field at 192.458 33.276 mm wires 0
+    cp "-X1031:16/b" field at 195.067 33.276 mm wires 0
+    cp "-X1031:17/b" field at 197.677 33.276 mm wires 0
+    cp "-X1031:18/b" field at 200.286 33.276 mm wires 0
+    cp "-X1031:19/b" field at 202.896 33.276 mm wires 0
+    cp "-X1031:20/b" field at 205.505 33.276 mm wires 0
+    cp "-X1031:11/c" field at 182.020 33.276 mm wires 0
+    cp "-X1031:12/c" field at 184.629 33.276 mm wires 0
+    cp "-X1031:13/c" field at 187.239 33.276 mm wires 0
+    cp "-X1031:14/c" field at 189.848 33.276 mm wires 0
+    cp "-X1031:15/c" field at 192.458 33.276 mm wires 0
+    cp "-X1031:16/c" field at 195.067 33.276 mm wires 0
+    cp "-X1031:17/c" field at 197.677 33.276 mm wires 0
+    cp "-X1031:18/c" field at 200.286 33.276 mm wires 0
+    cp "-X1031:19/c" field at 202.896 33.276 mm wires 0
+    cp "-X1031:20/c" field at 205.505 33.276 mm wires 0
   rep ip "0VDC-AIR1" direction source cell "103-A14" symbol "ew.gen.ip@qet10" variant "A" at 242.039 25.447 mm
     cp "0VDC-AIR1" at 242.039 22.838 mm wires 1 potential "0V"
   rep ip "24VDC-AIR4" direction source cell "103-B6" symbol "ew.gen.ip@qet10" variant "A" at 116.781 41.104 mm
@@ -88,21 +88,21 @@ page "103" "Power Supply 3 - Control Current Distribution" reps 23 connections 2
   rep ip "24VDC-4" direction target cell "103-F1" symbol "ew.gen.ip@qet10" variant "A" at 38.495 129.829 mm
     cp "24VDC-4" at 38.495 127.219 mm wires 1 potential "24VDC-4"
   rep "-X1032:1" cell "103-F3" symbol "ew.gen.strip-segment@qet10" variant "A" at 69.809 129.829 mm
-    cp "-X1032:1/a" at 72.419 129.829 mm wires 1 potential "PE"
-    cp "-X1032:2/a" at 75.028 129.829 mm wires 1 potential "PE"
-    cp "-X1032:3/a" at 77.638 129.829 mm wires 1 potential "PE"
-    cp "-X1032:4/a" at 80.248 129.829 mm wires 0
-    cp "-X1032:5/a" at 82.857 129.829 mm wires 0
-    cp "-X1032:1/b" at 72.419 137.657 mm wires 1 potential "PE"
-    cp "-X1032:2/b" at 75.028 137.657 mm wires 1 potential "PE"
-    cp "-X1032:3/b" at 77.638 137.657 mm wires 1 potential "PE"
-    cp "-X1032:4/b" at 80.248 137.657 mm wires 1 potential "PE"
-    cp "-X1032:5/b" at 82.857 137.657 mm wires 0
-    cp "-X1032:1/c" at 72.419 137.657 mm wires 0
-    cp "-X1032:2/c" at 75.028 137.657 mm wires 0
-    cp "-X1032:3/c" at 77.638 137.657 mm wires 0
-    cp "-X1032:4/c" at 80.248 137.657 mm wires 0
-    cp "-X1032:5/c" at 82.857 137.657 mm wires 0
+    cp "-X1032:1/a" internal at 72.419 129.829 mm wires 1 potential "PE"
+    cp "-X1032:2/a" internal at 75.028 129.829 mm wires 1 potential "PE"
+    cp "-X1032:3/a" internal at 77.638 129.829 mm wires 1 potential "PE"
+    cp "-X1032:4/a" internal at 80.248 129.829 mm wires 0
+    cp "-X1032:5/a" internal at 82.857 129.829 mm wires 0
+    cp "-X1032:1/b" field at 72.419 137.657 mm wires 1 potential "PE"
+    cp "-X1032:2/b" field at 75.028 137.657 mm wires 1 potential "PE"
+    cp "-X1032:3/b" field at 77.638 137.657 mm wires 1 potential "PE"
+    cp "-X1032:4/b" field at 80.248 137.657 mm wires 1 potential "PE"
+    cp "-X1032:5/b" field at 82.857 137.657 mm wires 0
+    cp "-X1032:1/c" field at 72.419 137.657 mm wires 0
+    cp "-X1032:2/c" field at 75.028 137.657 mm wires 0
+    cp "-X1032:3/c" field at 77.638 137.657 mm wires 0
+    cp "-X1032:4/c" field at 80.248 137.657 mm wires 0
+    cp "-X1032:5/c" field at 82.857 137.657 mm wires 0
   rep ip "PE-AIR2" direction target cell "103-G1" symbol "ew.gen.ip@qet10" variant "A" at 38.495 145.486 mm
     cp "PE-AIR2" at 38.495 142.877 mm wires 1 potential "PE"
   rep ip "PE-0VDC" direction target cell "103-G1" symbol "ew.gen.ip@qet10" variant "A" at 38.495 150.705 mm

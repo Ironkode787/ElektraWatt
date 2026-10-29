@@ -600,6 +600,39 @@ fn page_describe_lists_items_and_boxes() {
             );
         }
     }
+    // G-PP triage row 12: every item line has a position in mm, and the marker's position picks the marker, whose
+    // selection title names its kind in words.
+    for line in text.lines().filter(|l| l.starts_with("  item ")) {
+        assert!(line.contains(" mm"), "{line}");
+    }
+    let marker = text
+        .lines()
+        .find(|l| l.starts_with("  item marker cell "))
+        .expect("the marker line");
+    let at: Vec<&str> = marker
+        .split(" at ")
+        .nth(1)
+        .expect("an at")
+        .split(' ')
+        .take(2)
+        .collect();
+    let p = json!({"x_mm": at[0].parse::<f64>().unwrap(), "y_mm": at[1].parse::<f64>().unwrap()});
+    done(&mut s, "canvas.press", p.clone());
+    done(&mut s, "canvas.release", p);
+    let sheet = s.properties().sheet().expect("a sheet");
+    assert_eq!(sheet.sections[0].kind, "page_item", "{marker}");
+    assert_eq!(sheet.header.title, "wire marker");
+    // G-PP triage row 21: a terminal CP names its side beside its clamp (the strip's field side is side 2, /b).
+    assert!(
+        text.lines()
+            .any(|l| l.starts_with("    cp \"1X1:1/a\" internal at ")),
+        "{text}"
+    );
+    assert!(
+        text.lines()
+            .any(|l| l.starts_with("    cp \"1X1:1/b\" field at ")),
+        "{text}"
+    );
 }
 
 /// Only replacing the active tool advances the epoch; a host reset cannot recycle its previous value.

@@ -419,6 +419,7 @@ mod tests {
             dir: Some(dir),
             connections: Vec::new(),
             potential: None,
+            side: None,
         }
     }
 

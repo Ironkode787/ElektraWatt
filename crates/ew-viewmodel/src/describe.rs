@@ -287,6 +287,8 @@ pub const VOCABULARY: &[&str] = &[
     "source",
     "undirected",
     "potential",
+    // G-PP triage row 21: a terminal CP's side, `internal` (`field` is older), a reviewed vocabulary change.
+    "internal",
     // The clipboard (WP-S2.05 part 3, §8.8; ID-474 extended): the 6 words of `CLIP_WORDS`, a reviewed vocabulary change
     // (`lines`, `none`, `at`, `mm`, `text` and `ghost` are older).
     "clipboard",
@@ -646,6 +648,7 @@ pub const PAGE_WORDS: &[&str] = &[
     "source",
     "undirected",
     "potential",
+    "internal",
 ];
 
 /// The markers after which the rest of the line is user text (a title, a banner, an error, a reason, a folio, a
@@ -2539,8 +2542,10 @@ pub fn page_describe(page: &CanvasPage) -> String {
             page_at(page, r.pos)
         ));
         for cp in cps {
+            // G-PP triage row 21: a terminal CP names its side beside its clamp (`"1X1:1/a" internal`).
+            let side = cp.side.map_or_else(String::new, |s| format!(" {s}"));
             let mut line = format!(
-                "    cp {} {} wires {}",
+                "    cp {}{side} {} wires {}",
                 page_quoted(&cp.label),
                 page_at(page, cp.at),
                 cp.connections.len()
@@ -2611,9 +2616,13 @@ pub fn page_describe(page: &CanvasPage) -> String {
             "image" => "image",
             _ => "unknown",
         };
+        // G-PP triage row 12: the middle of the bounds, a point that picks the item, like a rep's or a wire's `at`.
+        let [x0, y0, x1, y1] = item.bounds;
+        let mid = (x0 + (x1 - x0) / 2, y0 + (y1 - y0) / 2);
         let mut line = format!(
-            "  item {word} cell {}",
-            cell_word(page, (item.bounds[0], item.bounds[1]))
+            "  item {word} cell {} {}",
+            cell_word(page, (x0, y0)),
+            page_at(page, mid)
         );
         if matches!(word, "text" | "marker")
             && let Some(text) = &item.text

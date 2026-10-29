@@ -18,14 +18,14 @@ page "101" "Power Supply 1 - Main Current" reps 17 connections 21 junctions 2
     cp "T55:5" at 210.725 67.200 mm wires 1 potential "N-55"
     cp "T55:3" at 210.725 75.028 mm wires 1 potential "N-55T"
   rep "1X1:1" cell "101-D2" symbol "ew.iec.terminal@qet10" variant "A" at 48.933 88.076 mm
-    cp "1X1:1/a" at 48.933 90.686 mm wires 1 potential "L"
-    cp "1X1:1/b" at 48.933 85.467 mm wires 1 potential "L"
+    cp "1X1:1/a" internal at 48.933 90.686 mm wires 1 potential "L"
+    cp "1X1:1/b" field at 48.933 85.467 mm wires 1 potential "L"
   rep "1X1:2" cell "101-D2" symbol "ew.iec.terminal@qet10" variant "A" at 54.152 88.076 mm
-    cp "1X1:2/a" at 54.152 90.686 mm wires 1 potential "N"
-    cp "1X1:2/b" at 54.152 85.467 mm wires 1 potential "N"
+    cp "1X1:2/a" internal at 54.152 90.686 mm wires 1 potential "N"
+    cp "1X1:2/b" field at 54.152 85.467 mm wires 1 potential "N"
   rep "1X1:PE" cell "101-D2" symbol "ew.iec.terminal-pe@qet10" variant "A" at 59.371 88.076 mm
-    cp "1X1:PE/a" at 59.371 90.686 mm wires 1 potential "PE"
-    cp "1X1:PE/b" at 59.371 85.467 mm wires 1 potential "PE"
+    cp "1X1:PE/a" internal at 59.371 90.686 mm wires 1 potential "PE"
+    cp "1X1:PE/b" field at 59.371 85.467 mm wires 1 potential "PE"
   rep "-XPE" cell "101-D5" symbol "ew.iec.pe@qet10" variant "A" at 101.124 88.076 mm
     cp "-XPE:PE" at 101.124 88.076 mm wires 1 potential "PE"
   rep "S56" cell "101-D14" symbol "ew.iec.position-switch-no@qet10" variant "A" at 242.039 88.076 mm
