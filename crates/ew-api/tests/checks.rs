@@ -298,34 +298,11 @@ fn subjects(report: &checks::CheckReport, rule: &str) -> Vec<(String, String)> {
     out
 }
 
-/// Findings of Golden A that doc 20 §18.1 does not list and that the rules report as specified, because two items
-/// of the golden data contradict the design (WP-S1.16 §11.2 item 2, reported by lane I34 for a lead ruling; the data
-/// is read-only to the lane):
-/// - EW-POT-003 on the CPX earth screws -201U1:FE and -202U1:FE: doc 08 §3.7 gives them the role PE, the golden part
-///   data (`tables/part_cps.csv`, part 550208, CP 5) the role FE;
-/// - EW-POT-013 on the MCBs F55 and -101F1: doc 08 §8.2 says their 1P+N definition sets `switches_n_with_l`,
-///   `content/fndefs/ew.fn.mcb-1pn.json` (and the golden library copy) does not.
-///
-/// When the data is corrected these entries disappear and this list must be emptied (the test fails until it is).
-const KNOWN_DATA_DEVIATIONS: &[(&str, &str, &str)] = &[
-    ("EW-POT-003", "warning", "-201U1:FE"),
-    ("EW-POT-003", "warning", "-202U1:FE"),
-    ("EW-POT-013", "error", "-101F1"),
-    ("EW-POT-013", "error", "F55"),
-];
-
-/// The expected open findings of `rule` on Golden A: doc 20 §18.1's rows plus the known data deviations.
-fn expected(rule: &str, ef: &[(&str, &str)]) -> Vec<(String, String)> {
+/// The expected open findings of `rule` on Golden A (doc 20 §18.1's rows), as `(severity, subject)` sorted.
+fn expected(ef: &[(&str, &str)]) -> Vec<(String, String)> {
     let mut out: Vec<(String, String)> = ef
         .iter()
-        .copied()
-        .chain(
-            KNOWN_DATA_DEVIATIONS
-                .iter()
-                .filter(|(r, _, _)| *r == rule)
-                .map(|(_, sev, subject)| (*sev, *subject)),
-        )
-        .map(|(a, b)| (a.to_owned(), b.to_owned()))
+        .map(|(a, b)| ((*a).to_owned(), (*b).to_owned()))
         .collect();
     out.sort();
     out
@@ -333,8 +310,7 @@ fn expected(rule: &str, ef: &[(&str, &str)]) -> Vec<(String, String)> {
 
 /// P2-2 / doc 20 §18.1: the EW-POT pack of the pre-delivery scheme reports on Golden A exactly the rows of EF-01
 /// (EW-POT-013: T55, S56), EF-06 (EW-POT-006: W6, numbered 101.8), EF-09 (EW-POT-009: -102F2:13, :14), EF-10
-/// (EW-POT-003: -201U1:3, -202U1:3) and EF-11 (EW-POT-005: the BU cores W36 and W41 of -106W1 and -106W2), plus the
-/// known data deviations, and nothing for EW-POT-001, -002, -004, -008, -014, -015 and -017; the online-only rules
+/// (EW-POT-003: -201U1:3, -202U1:3) and EF-11 (EW-POT-005: the BU cores W36 and W41 of -106W1 and -106W2), and nothing for EW-POT-001, -002, -004, -008, -014, -015 and -017; the online-only rules
 /// EW-POT-011, -012 and -016 report nothing in the drafting scheme.
 #[test]
 fn golden_a_ew_pot_pack_reports_the_ef_rows() {
@@ -352,7 +328,7 @@ fn golden_a_ew_pot_pack_reports_the_ef_rows() {
     };
     assert_eq!(
         subjects(&report, "EW-POT-013"),
-        expected("EW-POT-013", &[("error", "T55"), ("error", "S56")]),
+        expected(&[("error", "T55"), ("error", "S56")]),
         "EF-01"
     );
     assert_eq!(
@@ -365,7 +341,7 @@ fn golden_a_ew_pot_pack_reports_the_ef_rows() {
     );
     assert_eq!(
         subjects(&report, "EW-POT-006"),
-        expected("EW-POT-006", &[("error", "101.8")]),
+        expected(&[("error", "101.8")]),
         "EF-06"
     );
     let w6 = first("EW-POT-006", "101.8");
@@ -381,23 +357,17 @@ fn golden_a_ew_pot_pack_reports_the_ef_rows() {
     );
     assert_eq!(
         subjects(&report, "EW-POT-009"),
-        expected(
-            "EW-POT-009",
-            &[("warning", "-102F2:13"), ("warning", "-102F2:14")]
-        ),
+        expected(&[("warning", "-102F2:13"), ("warning", "-102F2:14")]),
         "EF-09"
     );
     assert_eq!(
         subjects(&report, "EW-POT-003"),
-        expected("EW-POT-003", &[("warning", "-201U1:3"), ("warning", "-202U1:3")]),
+        expected(&[("warning", "-201U1:3"), ("warning", "-202U1:3")]),
         "EF-10"
     );
     assert_eq!(
         subjects(&report, "EW-POT-005"),
-        expected(
-            "EW-POT-005",
-            &[("warning", "-106W1/BU"), ("warning", "-106W2/BU")]
-        ),
+        expected(&[("warning", "-106W1/BU"), ("warning", "-106W2/BU")]),
         "EF-11"
     );
     let cores: std::collections::BTreeSet<String> = report
