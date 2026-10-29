@@ -200,11 +200,24 @@ impl Settings {
         }
         properties_collapsed.sort();
         properties_collapsed.dedup();
-        // WP-S2.17 part 3 (FT-348): `[window]`. A table this version cannot read is dropped, not the whole file: the
-        // window then opens at its default size.
+        // WP-S2.17 part 3 (FT-348): `[window]`. Known members this version cannot read are dropped, not the whole
+        // file: the window then opens at its default size. Other members of the table are kept (R1-6).
         let window = match table.remove("window") {
-            Some(toml::Value::Table(w)) => crate::window::WindowGeometry::from_toml(&w),
-            _ => None,
+            Some(toml::Value::Table(mut w)) => {
+                let geometry = crate::window::WindowGeometry::from_toml(&w);
+                for key in crate::window::KEYS {
+                    w.remove(key);
+                }
+                if !w.is_empty() {
+                    table.insert("window".to_owned(), toml::Value::Table(w));
+                }
+                geometry
+            }
+            Some(other) => {
+                table.insert("window".to_owned(), other);
+                None
+            }
+            None => None,
         };
         let mut settings = Settings {
             recent_projects: Vec::new(),
@@ -301,14 +314,15 @@ impl Settings {
             }
             table.insert("properties".to_owned(), toml::Value::Table(props));
         }
-        // Written only once a window has closed, so a settings file of the headless mode keeps its bytes.
-        match &self.window {
-            Some(w) => {
-                table.insert("window".to_owned(), toml::Value::Table(w.to_toml()));
-            }
-            None => {
-                table.remove("window");
-            }
+        // Written only once a window has closed, so a settings file of the headless mode keeps its bytes; merged
+        // into the kept members of the table.
+        if let Some(w) = &self.window {
+            let mut members = match table.remove("window") {
+                Some(toml::Value::Table(t)) => t,
+                _ => toml::Table::new(),
+            };
+            members.extend(w.to_toml());
+            table.insert("window".to_owned(), toml::Value::Table(members));
         }
         // A table of plain values always serialises.
         toml::to_string(&table).unwrap_or_default()
@@ -655,5 +669,28 @@ mod tests {
         let bad = Settings::parse("theme = \"dark\"\n[window]\nx = \"left\"\n").unwrap();
         assert_eq!(bad.window, None);
         assert_eq!(bad.theme, "dark");
+    }
+
+    /// R1-6: members of `[window]` this version does not know are kept and written back, also when the geometry
+    /// changes and when the known members are unreadable.
+    #[test]
+    fn dk6_the_window_table_keeps_unknown_members() {
+        let mut s =
+            Settings::parse("[window]\nx = 10\ny = 20\nwidth = 800\nheight = 600\nmonitor = \"DP-1\"\n")
+                .unwrap();
+        assert_eq!(s.window.map(|w| w.width), Some(800.0));
+        assert!(s.to_toml().contains("monitor = \"DP-1\""), "{}", s.to_toml());
+        s.window = s
+            .window
+            .map(|w| crate::window::WindowGeometry { width: 1024.0, ..w });
+        let text = s.to_toml();
+        assert!(text.contains("monitor = \"DP-1\""), "{text}");
+        assert!(text.contains("width = 1024"), "{text}");
+        assert_eq!(Settings::parse(&text).unwrap(), s);
+        let bad = Settings::parse("[window]\nx = \"left\"\nmonitor = \"DP-1\"\n").unwrap();
+        assert_eq!(bad.window, None);
+        let text = bad.to_toml();
+        assert!(text.contains("monitor = \"DP-1\""), "{text}");
+        assert!(!text.contains("left"), "{text}");
     }
 }

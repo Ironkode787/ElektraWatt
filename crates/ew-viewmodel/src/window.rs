@@ -22,6 +22,9 @@ pub const MIN_SIZE: (f32, f32) = (640.0, 400.0);
 /// window's top-left corner, across and down (enough to grab and move it).
 pub const GRIP: f32 = 48.0;
 
+/// The members of `[window]` this version reads and writes; the table's other members are kept as they are.
+pub const KEYS: [&str; 5] = ["x", "y", "width", "height", "maximized"];
+
 /// The window's geometry, in points.
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct WindowGeometry {
