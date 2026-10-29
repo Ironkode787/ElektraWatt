@@ -676,6 +676,7 @@ fn a_hundred_thousand_nodes_flatten_filter_and_sort() {
             badges: Vec::new(),
             records: Vec::new(),
             kinds: Vec::new(),
+            define_at: None,
             drawables: Vec::new(),
             open: None,
             cells: Vec::new(),

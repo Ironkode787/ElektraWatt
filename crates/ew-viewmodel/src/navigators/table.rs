@@ -165,6 +165,80 @@ pub fn row_targets(node: &NavNode, route_kind: &str) -> Vec<Uuid> {
     picked.into_iter().filter(|u| seen.insert(*u)).collect()
 }
 
+/// Where a cell of a potential known only at connection points defines it (the G-PP triage's row 8, amending ID-752):
+/// the CP (`NavNode::define_at`) and the potential's name as the row shows it.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct DefineAt {
+    /// The function of the CP.
+    pub function: Uuid,
+    /// The CP index.
+    pub idx: u16,
+    /// The name the definition gets: the potential's name on show, so that defining it renames nothing.
+    pub name: String,
+}
+
+/// The paths of a potential definition that a potential without one can be given in table mode: Type and Voltage.
+pub const DEFINING_PATHS: [&str; 2] = ["ptype", "voltage"];
+
+/// Where a cell of route (`kind`, `path`) on `node` defines the row's potential: a Potentials row of a potential
+/// known only at connection points (record kind `cp`, with its CP), the `potential_def` route of Type or Voltage.
+/// `None` for every other cell (the other definition cells stay read-only with "no record of this kind", ID-752).
+pub fn define_point(node: &NavNode, kind: &str, path: &str) -> Option<DefineAt> {
+    if kind != "potential_def"
+        || !DEFINING_PATHS.contains(&path)
+        || node.role != NavRole::Potential
+        || !node.kinds.first().is_some_and(|k| k == "cp")
+    {
+        return None;
+    }
+    let (function, idx) = node.define_at?;
+    Some(DefineAt {
+        function,
+        idx,
+        name: node.label.clone(),
+    })
+}
+
+/// The typed text of a potential definition cell as the field parser takes it, and the further leaf it sets (the G-PP
+/// triage's row 8): Type takes the printed `L+` and `L-` (`l_plus`, `l_minus`); Voltage takes the printed form with
+/// its unit and current, `230 V AC`, `24 V DC`, `24VDC`, `24 V` or `24`, whose `AC` or `DC` also sets `env.ac_dc`.
+/// Every other route's text is returned as it is.
+pub fn potential_input(kind: &str, path: &str, text: &str) -> (String, Option<(String, Value)>) {
+    if kind != "potential_def" {
+        return (text.to_owned(), None);
+    }
+    let t = text.trim();
+    match path {
+        "ptype" => {
+            let word = match t {
+                "L+" | "l+" => "l_plus",
+                "L-" | "l-" | "L\u{2212}" | "l\u{2212}" => "l_minus",
+                other => other,
+            };
+            (word.to_owned(), None)
+        }
+        "voltage" => {
+            let compact: String = t.chars().filter(|c| !c.is_whitespace()).collect();
+            let upper = compact.to_ascii_uppercase();
+            for (suffix, ac_dc) in [
+                ("VAC", Some("ac")),
+                ("VDC", Some("dc")),
+                ("AC", Some("ac")),
+                ("DC", Some("dc")),
+                ("V", None),
+            ] {
+                if upper.len() > suffix.len() && upper.ends_with(suffix) {
+                    let number = compact[..compact.len() - suffix.len()].to_owned();
+                    let extra = ac_dc.map(|w| ("env.ac_dc".to_owned(), Value::String(w.to_owned())));
+                    return (number, extra);
+                }
+            }
+            (t.to_owned(), None)
+        }
+        _ => (text.to_owned(), None),
+    }
+}
+
 /// The value type of a route's field, from WP-S2.05's catalogue.
 pub fn route_type(kind: &str, path: &str) -> Option<FieldType> {
     field_catalogue(kind)?
@@ -227,7 +301,7 @@ pub fn cell_reason(table: &NavTable, node: &NavNode, column: usize) -> Option<St
                 .unwrap_or_else(|| crate::strings::text("table-reason-no-command").to_owned()),
         );
     };
-    if row_targets(node, kind).is_empty() {
+    if row_targets(node, kind).is_empty() && define_point(node, kind, path).is_none() {
         return Some(crate::strings::text("table-no-record").to_owned());
     }
     match route_type(kind, path) {
@@ -273,18 +347,29 @@ pub struct GestureCell {
     pub conflict: Option<usize>,
     /// Dropped from the gesture (`table.drop`).
     pub dropped: bool,
+    /// Where the cell defines a potential known only at connection points (its targets are empty).
+    pub define: Option<DefineAt>,
+    /// Further leaves of the same records that the text sets beside the route's (Voltage's `env.ac_dc`).
+    pub extra: Vec<(String, Value)>,
+    /// A defining cell in a gesture with cells of another row or of a defined record (one `potential.define` per
+    /// gesture).
+    pub define_clash: bool,
 }
 
 impl GestureCell {
     /// Whether the cell keeps Apply from going (invalid, ambiguous or a conflict) and is not dropped.
     pub fn blocking(&self) -> bool {
-        !self.dropped && (self.conflict.is_some() || !matches!(self.value, CellValue::Valid(_)))
+        !self.dropped
+            && (self.conflict.is_some() || self.define_clash || !matches!(self.value, CellValue::Valid(_)))
     }
 
     /// The reason a blocking cell is invalid (`None` for an ambiguous one and an applicable one).
     pub fn reason(&self) -> Option<String> {
         if let Some(n) = self.conflict {
             return Some(format!("same record as row {n}"));
+        }
+        if self.define_clash {
+            return Some(crate::strings::text("table-define-alone").to_owned());
         }
         match &self.value {
             CellValue::Invalid(r) => Some(r.clone()),
@@ -437,6 +522,19 @@ pub fn compose_leaf(
 
 /// Marks the same-record conflicts of a gesture (D13), in cell order, over the cells that are not dropped and parse.
 pub fn mark_conflicts(gesture: &mut Gesture) {
+    // A defining cell compiles to its own `potential.define`: it may share the gesture only with defining cells of
+    // its row.
+    let live = |c: &GestureCell| !c.dropped && c.route.is_some();
+    let define_rows: BTreeSet<String> = gesture
+        .cells
+        .iter()
+        .filter(|c| live(c) && c.define.is_some())
+        .map(|c| c.row.clone())
+        .collect();
+    let others = gesture.cells.iter().any(|c| live(c) && c.define.is_none());
+    for cell in &mut gesture.cells {
+        cell.define_clash = live(cell) && cell.define.is_some() && (define_rows.len() > 1 || others);
+    }
     // (target, kind, path) -> the first value set on it and that cell's row number.
     let mut seen: BTreeMap<(Uuid, String, String), (Value, usize)> = BTreeMap::new();
     for cell in &mut gesture.cells {
@@ -464,6 +562,22 @@ pub fn mark_conflicts(gesture: &mut Gesture) {
 /// Compiles the applicable cells of a gesture (after [`mark_conflicts`]) into one command; `base(kind, target,
 /// member)` reads a target's stored member for a composed leaf or a language object. `None` when no cell applies.
 pub fn compile(gesture: &Gesture, base: &mut dyn FnMut(&str, Uuid, &str) -> MemberBase) -> Option<Compiled> {
+    let applicable = |c: &&GestureCell| {
+        matches!(c.value, CellValue::Valid(_))
+            && c.route.is_some()
+            && !c.dropped
+            && c.conflict.is_none()
+            && !c.define_clash
+    };
+    let defining: Vec<&GestureCell> = gesture
+        .cells
+        .iter()
+        .filter(applicable)
+        .filter(|c| c.define.is_some())
+        .collect();
+    if !defining.is_empty() {
+        return compile_define(&defining);
+    }
     // (kind, member, target) -> composed value, in the order of first appearance; `at_of` indexes it.
     let mut values: Vec<((String, String, Uuid), Value)> = Vec::new();
     let mut at_of: BTreeMap<(String, String, Uuid), usize> = BTreeMap::new();
@@ -475,47 +589,49 @@ pub fn compile(gesture: &Gesture, base: &mut dyn FnMut(&str, Uuid, &str) -> Memb
         else {
             continue;
         };
-        let member = route_member(kind, path).unwrap_or_else(|| path.clone());
-        let mltext = route_type(kind, path).is_some_and(|t| matches!(t.inner(), FieldType::MlText));
-        let leaf = path != &member || mltext;
-        if route_identifier(kind, path) {
-            identifier_routes
-                .entry((kind.clone(), path.clone()))
-                .or_default()
-                .extend(cell.targets.iter().copied());
-        }
-        for t in &cell.targets {
-            let key = (kind.clone(), member.clone(), *t);
-            let at = at_of.get(&key).copied();
-            let new = if leaf {
-                // The stored member, read once per target; a second leaf composes onto the first one's result.
-                let stored = match bases.get(&key) {
-                    Some(b) => b.clone(),
-                    None => {
-                        let b = base(kind, *t, &member);
-                        bases.insert(key.clone(), b.clone());
-                        b
+        for (path, v) in std::iter::once((path, v)).chain(cell.extra.iter().map(|(p, x)| (p, x))) {
+            let member = route_member(kind, path).unwrap_or_else(|| path.clone());
+            let mltext = route_type(kind, path).is_some_and(|t| matches!(t.inner(), FieldType::MlText));
+            let leaf = path != &member || mltext;
+            if route_identifier(kind, path) {
+                identifier_routes
+                    .entry((kind.clone(), path.clone()))
+                    .or_default()
+                    .extend(cell.targets.iter().copied());
+            }
+            for t in &cell.targets {
+                let key = (kind.clone(), member.clone(), *t);
+                let at = at_of.get(&key).copied();
+                let new = if leaf {
+                    // The stored member, read once per target; a second leaf composes onto the first one's result.
+                    let stored = match bases.get(&key) {
+                        Some(b) => b.clone(),
+                        None => {
+                            let b = base(kind, *t, &member);
+                            bases.insert(key.clone(), b.clone());
+                            b
+                        }
+                    };
+                    let b = match at {
+                        Some(i) => MemberBase {
+                            value: Some(values[i].1.clone()),
+                            language: stored.language,
+                        },
+                        None => stored,
+                    };
+                    match compose_leaf(&member, path, &b, v, mltext) {
+                        Some(x) => x,
+                        None => continue,
                     }
+                } else {
+                    v.clone()
                 };
-                let b = match at {
-                    Some(i) => MemberBase {
-                        value: Some(values[i].1.clone()),
-                        language: stored.language,
-                    },
-                    None => stored,
-                };
-                match compose_leaf(&member, path, &b, v, mltext) {
-                    Some(x) => x,
-                    None => continue,
-                }
-            } else {
-                v.clone()
-            };
-            match at {
-                Some(i) => values[i].1 = new,
-                None => {
-                    at_of.insert(key.clone(), values.len());
-                    values.push((key, new));
+                match at {
+                    Some(i) => values[i].1 = new,
+                    None => {
+                        at_of.insert(key.clone(), values.len());
+                        values.push((key, new));
+                    }
                 }
             }
         }
@@ -561,6 +677,40 @@ pub fn compile(gesture: &Gesture, base: &mut dyn FnMut(&str, Uuid, &str) -> Memb
         params: json!({ "edits": edits }),
         targets,
         identifier,
+    })
+}
+
+/// The `potential.define` of the defining cells of one row (the G-PP triage's row 8): at the row's CP, with the
+/// potential's name on show and the Type, Voltage and `env.ac_dc` the cells set; `None` when they set nothing (a
+/// clear).
+fn compile_define(cells: &[&GestureCell]) -> Option<Compiled> {
+    let at = cells[0].define.as_ref()?;
+    let mut params = json!({
+        "at": {"cp": {"function": at.function.to_string(), "idx": at.idx}},
+        "name": at.name,
+    });
+    let mut set = false;
+    for cell in cells {
+        let (Some((_, path)), CellValue::Valid(v)) = (&cell.route, &cell.value) else {
+            continue;
+        };
+        for (path, v) in std::iter::once((path, v)).chain(cell.extra.iter().map(|(p, x)| (p, x))) {
+            if v.is_null() {
+                continue;
+            }
+            match path.as_str() {
+                "ptype" | "voltage" => params[path.as_str()] = v.clone(),
+                "env.ac_dc" => params["env"] = json!({ "ac_dc": v }),
+                _ => continue,
+            }
+            set = true;
+        }
+    }
+    set.then_some(Compiled {
+        name: "potential.define",
+        params,
+        targets: 1,
+        identifier: false,
     })
 }
 
@@ -675,6 +825,9 @@ mod tests {
             value: CellValue::Valid(v),
             conflict: None,
             dropped: false,
+            define: None,
+            extra: Vec::new(),
+            define_clash: false,
         }
     }
 
@@ -786,6 +939,113 @@ mod tests {
         assert_eq!(
             compose_leaf("function_text", "function_text", &plain, &json!("New"), true),
             Some(json!("New"))
+        );
+    }
+
+    /// The G-PP triage's row 8: the printed Type and Voltage forms parse; `AC`/`DC` also set `env.ac_dc`.
+    #[test]
+    fn potential_inputs_take_the_printed_forms() {
+        let ac = Some(("env.ac_dc".to_owned(), json!("ac")));
+        let dc = Some(("env.ac_dc".to_owned(), json!("dc")));
+        for (text, want) in [
+            ("230 V AC", ("230", ac.clone())),
+            ("230VAC", ("230", ac.clone())),
+            ("24 v dc", ("24", dc.clone())),
+            ("24 DC", ("24", dc)),
+            ("24 V", ("24", None)),
+            ("24", ("24", None)),
+            ("0.5 V AC", ("0.5", ac)),
+        ] {
+            assert_eq!(
+                potential_input("potential_def", "voltage", text),
+                (want.0.to_owned(), want.1),
+                "{text}"
+            );
+        }
+        assert_eq!(potential_input("potential_def", "ptype", "L+").0, "l_plus");
+        assert_eq!(potential_input("potential_def", "ptype", " L- ").0, "l_minus");
+        assert_eq!(potential_input("potential_def", "ptype", "M").0, "M");
+        // Another route's text is untouched.
+        assert_eq!(
+            potential_input("device", "voltage", "24 V"),
+            ("24 V".to_owned(), None)
+        );
+    }
+
+    /// The G-PP triage's row 8: defining cells of one row compile to one `potential.define` with every value they
+    /// set; with a cell of another row or a defined record each is a clash; a clear defines nothing.
+    #[test]
+    fn defining_cells_compile_to_one_potential_define() {
+        let define = |row: usize, path: &str, v: Value| {
+            let mut c = cell(row, path, path, &[], v);
+            c.route = Some(("potential_def".to_owned(), path.to_owned()));
+            c.define = Some(DefineAt {
+                function: uuid(9),
+                idx: 2,
+                name: format!("P{row}"),
+            });
+            c
+        };
+        let mut voltage = define(1, "voltage", json!("230"));
+        voltage.extra = vec![("env.ac_dc".to_owned(), json!("ac"))];
+        let mut g = gesture(vec![define(1, "ptype", json!("l")), voltage]);
+        mark_conflicts(&mut g);
+        assert_eq!(g.blocking(), 0);
+        let c = compile(&g, &mut no_base).unwrap();
+        assert_eq!(c.name, "potential.define");
+        assert_eq!(
+            c.params,
+            json!({"at": {"cp": {"function": uuid(9).to_string(), "idx": 2}}, "name": "P1", "ptype": "l",
+                   "voltage": "230", "env": {"ac_dc": "ac"}})
+        );
+
+        let mut two = gesture(vec![
+            define(1, "ptype", json!("l")),
+            define(2, "ptype", json!("n")),
+        ]);
+        mark_conflicts(&mut two);
+        assert_eq!(two.blocking(), 2);
+        assert!(compile(&two, &mut no_base).is_none());
+        two.cells[1].dropped = true;
+        mark_conflicts(&mut two);
+        assert_eq!(two.blocking(), 0, "dropping the other row clears the clash");
+
+        let mut mixed = gesture(vec![
+            define(1, "ptype", json!("l")),
+            cell(2, "state", "state", &[2], json!("spare")),
+        ]);
+        mark_conflicts(&mut mixed);
+        assert!(mixed.cells[0].define_clash);
+        assert_eq!(
+            mixed.cells[0].reason().as_deref(),
+            Some("a potential without a definition is defined on its own row alone")
+        );
+
+        let mut cleared = gesture(vec![define(1, "ptype", Value::Null)]);
+        mark_conflicts(&mut cleared);
+        assert!(compile(&cleared, &mut no_base).is_none());
+    }
+
+    /// The G-PP triage's row 8: a defined row's Voltage with its current is two members of one record.
+    #[test]
+    fn a_voltage_with_its_current_sets_two_members() {
+        let mut c = cell(1, "voltage", "voltage", &[1], json!("24"));
+        c.route = Some(("potential_def".to_owned(), "voltage".to_owned()));
+        c.extra = vec![("env.ac_dc".to_owned(), json!("dc"))];
+        let g = gesture(vec![c]);
+        let mut base = |_: &str, _: Uuid, _: &str| MemberBase {
+            value: Some(json!({"earthing": "pelv"})),
+            language: "en".to_owned(),
+        };
+        let out = compile(&g, &mut base).unwrap();
+        assert_eq!(out.name, "fields.set_many");
+        assert_eq!(
+            out.params["edits"],
+            json!([
+                {"kind": "potential_def", "targets": [uuid(1).to_string()], "path": "voltage", "value": "24"},
+                {"kind": "potential_def", "targets": [uuid(1).to_string()], "path": "env",
+                 "value": {"earthing": "pelv", "ac_dc": "dc"}},
+            ])
         );
     }
 

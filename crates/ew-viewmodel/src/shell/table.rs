@@ -28,7 +28,8 @@ use crate::navigators::paste::{parse_tsv, write_tsv};
 use crate::navigators::pattern::Template;
 use crate::navigators::table::{
     CellEdit, CellValue, Compiled, Gesture, GestureCell, GestureKind, MemberBase, TableMode, cell_reason,
-    cell_text, compile, gesture_rows, mark_conflicts, pattern_texts, route_type, row_targets, rows_word,
+    cell_text, compile, define_point, gesture_rows, mark_conflicts, pattern_texts, potential_input,
+    route_type, row_targets, rows_word,
 };
 use crate::properties::{
     Card, CardOrigin, Decision, EditRoute, FieldReadOnly, PendingEdit, RowValue, find_row, policy,
@@ -147,21 +148,31 @@ impl ShellModel {
     /// A cell of node `i`, column `col`, with `text` parsed for the column's route (§8.2, §8.3); a read-only cell is
     /// invalid with its reason.
     fn text_cell(&self, view: &TableView, i: u32, col: usize, text: &str) -> GestureCell {
+        let mut extra = None;
         let value = match self.cell_route(view, i, col) {
             Err(reason) => CellValue::Invalid(reason),
             Ok((kind, path)) => match &self.project {
                 None => CellValue::Invalid(strings::text("reason-no-project").to_owned()),
-                Some(project) => match project.session.parse_field_input(&kind, &path, text) {
-                    Ok(parsed) => CellValue::Valid(parsed.value),
-                    Err(InputError::Invalid(message)) => CellValue::Invalid(message),
-                    Err(InputError::UnknownPart(typed)) => {
-                        CellValue::Invalid(strings::format("error-no-part", &[&typed]))
+                Some(project) => {
+                    // The G-PP triage's row 8: a potential's Type and Voltage take their printed forms.
+                    let (input, leaf) = potential_input(&kind, &path, text);
+                    extra = leaf;
+                    match project.session.parse_field_input(&kind, &path, &input) {
+                        Ok(parsed) => CellValue::Valid(parsed.value),
+                        Err(InputError::Invalid(message)) => CellValue::Invalid(message),
+                        Err(InputError::UnknownPart(typed)) => {
+                            CellValue::Invalid(strings::format("error-no-part", &[&typed]))
+                        }
+                        Err(InputError::Ambiguous { choices }) => CellValue::Ambiguous(choices),
                     }
-                    Err(InputError::Ambiguous { choices }) => CellValue::Ambiguous(choices),
-                },
+                }
             },
         };
-        self.cell(view, i, col, text, value)
+        let mut cell = self.cell(view, i, col, text, value);
+        if cell.route.is_some() {
+            cell.extra = extra.into_iter().collect();
+        }
+        cell
     }
 
     /// The route of an editable cell, or why it is read-only.
@@ -188,6 +199,11 @@ impl ShellModel {
             .as_ref()
             .map(|(k, _)| row_targets(node, k))
             .unwrap_or_default();
+        // The G-PP triage's row 8: a Type or Voltage cell of a potential without a definition defines it.
+        let define = route
+            .as_ref()
+            .filter(|_| targets.is_empty())
+            .and_then(|(k, p)| define_point(node, k, p));
         GestureCell {
             row: node.key.clone(),
             row_label: node.label.clone(),
@@ -200,6 +216,9 @@ impl ShellModel {
             value,
             conflict: None,
             dropped: false,
+            define,
+            extra: Vec::new(),
+            define_clash: false,
         }
     }
 
@@ -460,10 +479,10 @@ impl ShellModel {
                 return Outcome::Done;
             };
             let c = Compiled {
-                name: if edit.name == "fields.set" {
-                    "fields.set"
-                } else {
-                    "fields.set_many"
+                name: match edit.name.as_str() {
+                    "fields.set" => "fields.set",
+                    "potential.define" => "potential.define",
+                    _ => "fields.set_many",
                 },
                 params: edit.params,
                 targets,
@@ -485,7 +504,7 @@ impl ShellModel {
             return gesture;
         };
         for cell in &mut gesture.cells {
-            let Some((kind, _)) = cell.route.clone() else {
+            let Some((kind, path)) = cell.route.clone() else {
                 continue;
             };
             match view.table.nodes.iter().find(|n| n.key == cell.row) {
@@ -493,10 +512,17 @@ impl ShellModel {
                     cell.value = CellValue::Invalid(strings::text("table-no-row").to_owned());
                     cell.route = None;
                     cell.targets.clear();
+                    cell.define = None;
                 }
                 Some(node) => {
                     cell.targets = row_targets(node, &kind);
-                    if cell.targets.is_empty() {
+                    // A potential defined meanwhile is set like any definition; one still without defines it.
+                    cell.define = if cell.targets.is_empty() {
+                        define_point(node, &kind, &path)
+                    } else {
+                        None
+                    };
+                    if cell.targets.is_empty() && cell.define.is_none() {
                         cell.value = CellValue::Invalid(strings::text("table-no-record").to_owned());
                         cell.route = None;
                     }
@@ -1093,6 +1119,9 @@ impl ShellModel {
                             value: CellValue::Invalid(strings::text(reason).to_owned()),
                             conflict: None,
                             dropped: false,
+                            define: None,
+                            extra: Vec::new(),
+                            define_clash: false,
                         });
                     }
                 }

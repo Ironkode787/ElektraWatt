@@ -252,6 +252,10 @@ pub struct NavNode {
     /// The records' kinds for edit routing, aligned with `records`; empty where the builder does not state them (not
     /// printed).
     pub kinds: Vec<String>,
+    /// For a Potentials row of a potential known only at connection points (`kinds` is `cp`): the CP its record names
+    /// (the function and the CP index), where Type or Voltage typed in table mode defines it with `potential.define`
+    /// (the G-PP triage's row 8, amending ID-752); `None` elsewhere (not printed).
+    pub define_at: Option<(Uuid, u16)>,
     /// What draws them, main first, then page order, cell row, cell column, ID.
     pub drawables: Vec<Drawable>,
     /// What Enter opens.
@@ -381,7 +385,7 @@ fn kind_columns(kind: &str) -> Vec<NavColumn> {
 
 /// The editable columns of table mode (WP-S2.06 part 3, §8.2; D10): (navigator, column key, route kind, route path).
 /// Every other column is read-only.
-const EDITABLE_COLUMNS: [(NavKind, &str, &str, &str); 16] = [
+const EDITABLE_COLUMNS: [(NavKind, &str, &str, &str); 18] = [
     (NavKind::Pages, "title", "page", "title"),
     (NavKind::Pages, "type", "page", "kind"),
     (NavKind::Devices, "function_text", "device", "function_text"),
@@ -398,6 +402,10 @@ const EDITABLE_COLUMNS: [(NavKind, &str, &str, &str); 16] = [
     (NavKind::Cables, "colour", "conductor", "colour"),
     (NavKind::Cables, "cross_section", "conductor", "csa"),
     (NavKind::Potentials, "potential", "potential_def", "name"),
+    // The G-PP triage's row 8: Type and Voltage set a definition's `ptype` and `voltage`; on a potential without one
+    // they define it (the view model compiles `potential.define` at `NavNode::define_at`).
+    (NavKind::Potentials, "kind", "potential_def", "ptype"),
+    (NavKind::Potentials, "voltage", "potential_def", "voltage"),
     (NavKind::Potentials, "class", "potential_def", "circuit_class"),
     (NavKind::Potentials, "colour", "potential_def", "props.colour"),
     (NavKind::Potentials, "cross_section", "potential_def", "props.csa"),
@@ -550,6 +558,7 @@ impl Builder {
             badges,
             records,
             kinds: Vec::new(),
+            define_at: None,
             drawables,
             open,
             cells,
@@ -1576,6 +1585,7 @@ fn potentials_table(q: &Q, b: &mut Builder) {
     };
     let wires = wire_list_rows(q);
     let pages = folio_pages(q);
+    let partition = q.get::<ew_derive::PotentialPartition>(());
     for (i, r) in set.rows.iter().enumerate() {
         if r.kind != ew_reports::RowKind::Data {
             continue;
@@ -1622,6 +1632,13 @@ fn potentials_table(q: &Q, b: &mut Builder) {
             "cp"
         };
         b.nodes[n as usize].kinds = vec![kind.to_owned()];
+        if kind == "cp" {
+            b.nodes[n as usize].define_at = partition
+                .potentials()
+                .flat_map(|p| p.cps.iter())
+                .find(|cp| cp.id().as_uuid() == record)
+                .map(|cp| (cp.function.as_uuid(), cp.idx));
+        }
         b.nodes[n as usize].open = first.and_then(|f| pages.get(&f)).map(|p| NavOpen {
             page: *p,
             select: Vec::new(),

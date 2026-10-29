@@ -1333,6 +1333,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "table-no-column" => "no column",
         // FT-515/FT-535: a cell whose row has no record of the column's kind (a CP-only potential's definition cells).
         "table-no-record" => "no record of this kind",
+        "table-define-alone" => "a potential without a definition is defined on its own row alone",
         // The other read-only reasons of a table cell (`cell_reason`, §8.2's precedence; FT-535 follow-up).
         "table-reason-derived" => "derived",
         "table-reason-generated" => "generated",

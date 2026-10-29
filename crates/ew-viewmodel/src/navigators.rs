@@ -522,6 +522,7 @@ mod tests {
             badges: Vec::new(),
             records: Vec::new(),
             kinds: Vec::new(),
+            define_at: None,
             drawables: Vec::new(),
             open: None,
             cells: Vec::new(),

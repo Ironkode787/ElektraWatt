@@ -175,6 +175,7 @@ mod tests {
             badges: vec![severity.to_owned()],
             records: Vec::new(),
             kinds: Vec::new(),
+            define_at: None,
             drawables: Vec::new(),
             open: None,
             cells: vec![
