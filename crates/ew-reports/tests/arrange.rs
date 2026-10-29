@@ -504,22 +504,22 @@ fn sort_ties_break_by_row_id_ascending() {
 
 #[test]
 fn sort_unknown_columns() {
-    let cases: [(&str, Vec<Row>, &[(&str, bool)], [&str; 2]); 2] = [
+    let cases = [
         (
             "an unknown sort column is skipped",
             vec![row(0, "b", "", 1), row(1, "a", "", 1)],
-            &[("nope", false), ("name", false)],
+            vec![("nope", false), ("name", false)],
             ["a", "b"],
         ),
         (
             "sort keys that name no column keep the kind's order",
             vec![row(1, "b", "", 1), row(0, "a", "", 1)],
-            &[("nope", false)],
+            vec![("nope", false)],
             ["b", "a"],
         ),
     ];
     for (name, rows, keys, want) in cases {
-        assert_eq!(sorted(rows, keys), want, "case {name}");
+        assert_eq!(sorted(rows, &keys), want, "case {name}");
     }
 }
 
@@ -735,7 +735,7 @@ fn footer_sum_cases() {
         r3.cells[QTY] = Cell::Tbd;
         vec![r1, row(1, "b", "L", 1000), r3]
     };
-    let cases: [(&str, Vec<Row>, Vec<(usize, Cell)>); 3] = [
+    let cases = [
         (
             "the sum counts stale cells and skips non-quantity cells",
             stale,
