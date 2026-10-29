@@ -1891,3 +1891,161 @@ fn lib_create_list_search_and_rebuild() {
     assert_eq!(o.status.code(), Some(2));
     assert!(!system.exists());
 }
+
+/// A supplier list with its own headers (invented generic parts and public catalogue numbers).
+const SUPPLIER_LIST: &str = "Maker,Order code,Text,Category\n\
+Schneider Electric,A9P52610,Circuit breaker,device\n\
+Phoenix Contact,3209510,Feed-through terminal,terminal\n\
+Phoenix Contact,3209510,Feed-through terminal,terminal\n\
+Generic Panels,,No number,device\n";
+
+const SUPPLIER_MAP: &str = "[columns]\nmanufacturer = \"Maker\"\npart_number = \"Order code\"\n\
+description = \"Text\"\nkind = \"Category\"\n";
+
+/// WP-S1.19 part 4: `ew lib import parts` writes a mapped list into a user library, refuses changed content under
+/// the published version unless `--bump`, and `ew import parts --map` imports the same list into a project.
+#[test]
+fn lib_import_parts_and_import_parts_with_a_map() {
+    let tmp = Tmp::new();
+    let home = tmp.0.join("home");
+    let data = tmp.0.join("data");
+    let cache = tmp.0.join("cache");
+    let run = |args: &[&std::ffi::OsStr]| {
+        let mut cmd = Command::new(bin_exe());
+        cmd.args(args)
+            .env_remove("EW_CONTENT_DIR")
+            .env("EW_DATA_DIR", &data)
+            .env("EW_CACHE_DIR", &cache);
+        for d in [
+            "HOME",
+            "USERPROFILE",
+            "LOCALAPPDATA",
+            "APPDATA",
+            "XDG_STATE_HOME",
+            "XDG_DATA_HOME",
+        ] {
+            let dir = home.join(d.to_ascii_lowercase());
+            std::fs::create_dir_all(&dir).unwrap();
+            cmd.env(d, &dir);
+        }
+        cmd.output().unwrap()
+    };
+    let lib = data.join("libraries").join("std.ewlib");
+    let o = run(&[
+        "lib".as_ref(),
+        "create".as_ref(),
+        lib.as_os_str(),
+        "--key".as_ref(),
+        "std".as_ref(),
+        "--name".as_ref(),
+        "Standard".as_ref(),
+        "--licence".as_ref(),
+        "CC0-1.0".as_ref(),
+    ]);
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    let list = tmp.0.join("supplier.csv");
+    let map = tmp.0.join("supplier.toml");
+    std::fs::write(&list, SUPPLIER_LIST).unwrap();
+    std::fs::write(&map, SUPPLIER_MAP).unwrap();
+    let import = |extra: &[&str]| {
+        let mut args: Vec<&std::ffi::OsStr> = vec![
+            "lib".as_ref(),
+            "import".as_ref(),
+            "parts".as_ref(),
+            "std".as_ref(),
+            list.as_os_str(),
+            "--map".as_ref(),
+            map.as_os_str(),
+            "--as-of".as_ref(),
+            "2026-10-29".as_ref(),
+        ];
+        args.extend(extra.iter().map(std::ffi::OsStr::new));
+        run(&args)
+    };
+    let o = import(&[]);
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    let out = stdout(&o);
+    assert!(
+        out.contains("EW-IMP-002 error: line 5: "),
+        "the rejected row with its line: {out}"
+    );
+    assert!(
+        out.ends_with(
+            "imported supplier.csv into std: 2 new, 0 updated, 0 unchanged, 1 duplicate, 1 rejected; \
+             written: 4 added, 0 updated, 0 unchanged (generation 2)\n"
+        ),
+        "{out}"
+    );
+    // The changed list: refused without `--bump`, nothing written; written as 1.0.1 with it.
+    std::fs::write(
+        &list,
+        SUPPLIER_LIST.replace("Circuit breaker", "Miniature circuit breaker"),
+    )
+    .unwrap();
+    let o = import(&[]);
+    assert_eq!(o.status.code(), Some(2));
+    assert!(
+        stderr(&o).contains("line 2: A9P52610 (1.0.0)") && stderr(&o).contains("`--bump`"),
+        "{}",
+        stderr(&o)
+    );
+    let o = import(&["--bump"]);
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    assert!(
+        stdout(&o).contains(
+            ": 0 new, 1 updated, 1 unchanged, 1 duplicate, 1 rejected; written: 0 added, 1 updated"
+        ),
+        "{}",
+        stdout(&o)
+    );
+    let o = run(&["lib".as_ref(), "search".as_ref(), "A9P52610".as_ref()]);
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    assert!(stdout(&o).contains("A9P52610"), "{}", stdout(&o));
+    // An unknown library is refused.
+    let o = run(&[
+        "lib".as_ref(),
+        "import".as_ref(),
+        "parts".as_ref(),
+        "nope".as_ref(),
+        list.as_os_str(),
+        "--map".as_ref(),
+        map.as_os_str(),
+        "--as-of".as_ref(),
+        "2026-10-29".as_ref(),
+    ]);
+    assert_eq!(o.status.code(), Some(2));
+    assert!(stderr(&o).contains("no library `nope`"), "{}", stderr(&o));
+
+    // Into a project: the manufacturers resolve through the library written above.
+    let project = parts_target(&tmp, "mapped.ew");
+    let into_project = || {
+        run(&[
+            "import".as_ref(),
+            "parts".as_ref(),
+            list.as_os_str(),
+            "--map".as_ref(),
+            map.as_os_str(),
+            "--as-of".as_ref(),
+            "2026-10-29".as_ref(),
+            "--project".as_ref(),
+            project.as_os_str(),
+        ])
+    };
+    let o = into_project();
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    assert!(
+        stdout(&o).ends_with(
+            "imported supplier.csv: 2 new, 0 updated, 0 unchanged, 1 duplicate, 1 rejected; 2 created, 0 skipped; saved\n"
+        ),
+        "{}",
+        stdout(&o)
+    );
+    assert_eq!(tree(&project.join("lib/parts")).len(), 2);
+    let o = into_project();
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    assert!(
+        stdout(&o).contains(": 0 new, 0 updated, 2 unchanged, 1 duplicate, 1 rejected; 0 created, 0 skipped"),
+        "{}",
+        stdout(&o)
+    );
+}

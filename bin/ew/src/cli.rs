@@ -17,6 +17,7 @@ pub const USAGE: &str = "usage:
   ew --version | -V
   ew import qet <file.qet> [--content <dir>] [--report md|csv|json] [--report-out <file>] [--strict]
   ew import parts <parts.csv> [--project <dir>]
+  ew import parts <table.csv|table.xlsx> --map <map.toml> [--as-of <date>] [--project <dir>] [--company <dir>]...
   ew check [<project-dir>] [--scheme <name>] [--mode release|online] [--format text|md|json] [--out <file>]
   ew sql [<project-dir>] \"<select>\" [--format csv|json] [--timeout <seconds>] [--out <file>]
   ew sql [<project-dir>] --file <query.sql> [--format csv|json] [--timeout <seconds>] [--out <file>]
@@ -34,6 +35,8 @@ pub const USAGE: &str = "usage:
   ew lib search <text> [--kind <kind>]... [--all] [--limit <n>] [--company <dir>]... [--json]
   ew lib index --rebuild [--company <dir>]...
   ew lib create <dir> --key <key> --name <name> --licence <spdx> [--company <dir>]...
+  ew lib import parts <library> <table.csv|table.xlsx> --map <map.toml> --as-of <date> [--bump] [--take-over]
+      [--company <dir>]...
   ew help | --help | -h
 
 `import qet` exits 0 when the import completes, even with findings; `--strict` exits 1 on lost connections or
@@ -44,6 +47,13 @@ error findings. With `--report` and no `--report-out` stdout is exactly the repo
 default: the nearest ancestor of the current directory holding `manifest.json`) as project-local part copies
 (`parts.import`) and saves; a part whose key the project has already is skipped. Exit 0 when imported (counts on
 stdout), 2 on everything else (usage, a refused table with its line and column, open and save errors).
+With `--map` it reads any supplier's parts table instead, CSV (UTF-8, comma or semicolon) or XLSX (the first sheet
+unless the map names one), through a column map (a TOML file: `sheet` and a `[columns]` table from `manufacturer`,
+`part_number`, `type_designation`, `order_number`, `gtin`, `description`, `description.<lang>`, `kind`, `unit`,
+`tech_data.<key>` and `free_props.<key>` to the column headers). Manufacturer names resolve through the manufacturers
+of the libraries (`--company` as for `lib`); `--as-of` (YYYY-MM-DD) stamps the parts. Every row is reported: new,
+unchanged (the project holds it), duplicate, rejected with the reason; an `A / B` part number becomes two candidates
+flagged for review. The new parts are imported with `parts.import` and the project is saved.
 
 `check` runs a check scheme (mode `release`, format `text`) over a project directory
 (default: the nearest ancestor of the current directory holding `manifest.json`) and exits 0 with no unwaived
@@ -104,8 +114,13 @@ finds parts by part number, manufacturer and description (`--kind part`, the def
 macros and manufacturers by key and name (`--kind symbol|fndef|form|macro|manufacturer`); `--all` includes
 deprecated and withdrawn items, `--limit` caps the hits (default 50, 0: all). `lib index --rebuild` rebuilds the
 index from the libraries. `lib create` makes an empty library in `<dir>` (absent or empty) with a new ID; it is
-listed when `<dir>` lies in the user tier or a `--company` directory. `--json` prints JSON. Exit 0 on success, 2 on
-everything else (usage, unreadable tiers, a refused write, an index error).";
+listed when `<dir>` lies in the user tier or a `--company` directory. `lib import parts` imports a parts table
+through a column map (as `import parts --map`) into the writable library `<library>` (its key or ID) under the
+library's lock, with the parts' import date `--as-of` (YYYY-MM-DD); new manufacturers are written with the parts. A
+second import of a changed list updates the parts in place (same item IDs); a part whose content changed under its
+published version refuses the whole file unless `--bump` writes it as the next patch version. A library locked by a
+live session is refused; a stale lock is taken over only with `--take-over`. `--json` prints JSON. Exit 0 on
+success, 2 on everything else (usage, unreadable tiers, a refused write or import, an index error).";
 
 /// A parsed command line.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -170,6 +185,21 @@ pub enum LibAction {
         name: String,
         /// `--licence`.
         licence: String,
+    },
+    /// `lib import parts`.
+    ImportParts {
+        /// The target library's key or ID.
+        library: String,
+        /// The parts table.
+        file: PathBuf,
+        /// The column map (`--map`).
+        map: PathBuf,
+        /// The import date (`--as-of`).
+        as_of: ew_api::catalog::Date,
+        /// Write changed parts as the next patch version (`--bump`).
+        bump: bool,
+        /// Take over a stale library lock (`--take-over`).
+        take_over: bool,
     },
 }
 
@@ -358,6 +388,12 @@ pub struct ImportPartsArgs {
     pub file: PathBuf,
     /// The project directory (`--project`).
     pub project: Option<PathBuf>,
+    /// The column map (`--map`): a supplier's table instead of the golden dialect.
+    pub map: Option<PathBuf>,
+    /// The import date (`--as-of`, with `--map`).
+    pub as_of: Option<ew_api::catalog::Date>,
+    /// The company library paths (`--company`, with `--map`): their manufacturers resolve the names.
+    pub company: Vec<PathBuf>,
 }
 
 /// Parses the arguments after the program name.
@@ -440,9 +476,15 @@ fn parse_import_qet(mut it: impl Iterator<Item = String>) -> Result<Command, Str
 fn parse_import_parts(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
     let mut file = None;
     let mut project = None;
+    let mut map = None;
+    let mut as_of = None;
+    let mut company = Vec::new();
     while let Some(a) = it.next() {
         match a.as_str() {
             "--project" => project = Some(PathBuf::from(value(&mut it, "--project")?)),
+            "--map" => map = Some(PathBuf::from(value(&mut it, "--map")?)),
+            "--as-of" => as_of = Some(date(&value(&mut it, "--as-of")?)?),
+            "--company" => company.push(PathBuf::from(value(&mut it, "--company")?)),
             opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
             _ => {
                 if file.replace(PathBuf::from(&a)).is_some() {
@@ -452,7 +494,22 @@ fn parse_import_parts(mut it: impl Iterator<Item = String>) -> Result<Command, S
         }
     }
     let file = file.ok_or_else(|| "`import parts` needs a parts table (<parts.csv>)".to_owned())?;
-    Ok(Command::ImportParts(ImportPartsArgs { file, project }))
+    if map.is_none() && (as_of.is_some() || !company.is_empty()) {
+        return Err("`--as-of` and `--company` need `--map`".to_owned());
+    }
+    Ok(Command::ImportParts(ImportPartsArgs {
+        file,
+        project,
+        map,
+        as_of,
+        company,
+    }))
+}
+
+/// An import date `YYYY-MM-DD`.
+fn date(v: &str) -> Result<ew_api::catalog::Date, String> {
+    v.parse()
+        .map_err(|_| format!("`--as-of` needs a date YYYY-MM-DD, not `{v}`"))
 }
 
 fn parse_check(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
@@ -800,7 +857,7 @@ fn parse_sql_dump(mut it: impl Iterator<Item = String>) -> Result<Command, Strin
 fn parse_lib(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
     let sub = it
         .next()
-        .ok_or_else(|| "`lib` takes `list`, `search`, `index` or `create`".to_owned())?;
+        .ok_or_else(|| "`lib` takes `list`, `search`, `index`, `create` or `import`".to_owned())?;
     let mut company = Vec::new();
     let mut json = false;
     let mut positional: Vec<String> = Vec::new();
@@ -809,8 +866,13 @@ fn parse_lib(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
     let mut limit = None;
     let mut rebuild = false;
     let (mut key, mut name, mut licence) = (None, None, None);
+    let (mut map, mut as_of, mut bump, mut take_over) = (None, None, false, false);
     while let Some(a) = it.next() {
         match (sub.as_str(), a.as_str()) {
+            ("import", "--map") => map = Some(PathBuf::from(value(&mut it, "--map")?)),
+            ("import", "--as-of") => as_of = Some(date(&value(&mut it, "--as-of")?)?),
+            ("import", "--bump") => bump = true,
+            ("import", "--take-over") => take_over = true,
             (_, "--company") => company.push(PathBuf::from(value(&mut it, "--company")?)),
             ("list" | "search", "--json") => json = true,
             ("search", "--kind") => {
@@ -878,9 +940,29 @@ fn parse_lib(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
                 licence: need(licence, "--licence")?,
             }
         }
+        "import" => {
+            let mut p = positional.into_iter();
+            if p.next().as_deref() != Some("parts") {
+                return Err("`lib import` takes `parts`".to_owned());
+            }
+            let (Some(library), Some(file)) = (p.next(), p.next()) else {
+                return Err("`lib import parts` needs a library and a parts table".to_owned());
+            };
+            if let Some(extra) = p.next() {
+                return Err(format!("unexpected argument `{extra}`"));
+            }
+            LibAction::ImportParts {
+                library,
+                file: PathBuf::from(file),
+                map: map.ok_or_else(|| "`lib import parts` needs `--map`".to_owned())?,
+                as_of: as_of.ok_or_else(|| "`lib import parts` needs `--as-of`".to_owned())?,
+                bump,
+                take_over,
+            }
+        }
         other => {
             return Err(format!(
-                "unknown `lib` command `{other}` (list, search, index, create)"
+                "unknown `lib` command `{other}` (list, search, index, create, import)"
             ));
         }
     };
@@ -2002,13 +2084,179 @@ fn run_lib(a: &LibArgs) -> i32 {
                 2
             }
         },
+        LibAction::ImportParts {
+            library,
+            file,
+            map,
+            as_of,
+            bump,
+            take_over,
+        } => {
+            let Some(target) = libs
+                .iter()
+                .find(|l| l.key == *library || l.id.to_string() == *library)
+                .map(|l| (l.id, l.key.clone()))
+            else {
+                eprintln!("error: no library `{library}` (see `ew lib list`)");
+                return 2;
+            };
+            let (map, input) = match read_map_and_table(map, file) {
+                Ok(r) => r,
+                Err(code) => return code,
+            };
+            match ew_api::catalog::import_into_library(
+                &mut reg,
+                target.0,
+                &input,
+                &map,
+                Some(*as_of),
+                *bump,
+                *take_over,
+            ) {
+                Ok(done) => {
+                    print_catalog_rows(&done.import);
+                    let written = done.write.as_ref().map_or_else(
+                        || "nothing to write".to_owned(),
+                        |w| {
+                            format!(
+                                "written: {} added, {} updated, {} unchanged (generation {})",
+                                w.added.len(),
+                                w.updated.len(),
+                                w.unchanged.len(),
+                                w.generation
+                            )
+                        },
+                    );
+                    println!(
+                        "imported {} into {}: {}; {written}",
+                        input.name(),
+                        target.1,
+                        counts_text(&done.import)
+                    );
+                    0
+                }
+                Err(e) => {
+                    eprintln!("error: {e}");
+                    if matches!(
+                        e,
+                        ew_api::catalog::CatalogError::Library(ew_api::library::LibraryError::Stale { .. })
+                    ) {
+                        eprintln!("note: pass `--take-over` to take the stale lock over");
+                    }
+                    2
+                }
+            }
+        }
     }
+}
+
+/// Reads the column map and the table of a mapped parts import (exit code 2 on failure).
+fn read_map_and_table(
+    map: &Path,
+    file: &Path,
+) -> Result<(ew_api::catalog::ColumnMap, ew_api::catalog::ImportInput), i32> {
+    let map = ew_api::catalog::read_column_map(map).map_err(|e| {
+        eprintln!("error: the column map: {e}");
+        2
+    })?;
+    let input = ew_api::catalog::read_input(file, &ew_api::catalog::Limits::default()).map_err(|e| {
+        eprintln!("error: {e}");
+        2
+    })?;
+    Ok((map, input))
+}
+
+/// The counts of a mapped parts import, as text.
+fn counts_text(i: &ew_api::catalog::PartsImport) -> String {
+    let c = i.counts();
+    format!(
+        "{} new, {} updated, {} unchanged, {} duplicate, {} rejected",
+        c.new, c.updated, c.unchanged, c.duplicate, c.rejected
+    )
+}
+
+/// Prints the report of a mapped parts import: one line per finding (unmapped columns, rejected rows, split part
+/// numbers, aliases, new manufacturers).
+fn print_catalog_rows(i: &ew_api::catalog::PartsImport) {
+    for e in &i.report.entries {
+        let severity = match e.severity {
+            ew_api::catalog::Severity::Info => "info",
+            ew_api::catalog::Severity::Warning => "warning",
+            ew_api::catalog::Severity::Error => "error",
+        };
+        let at = e
+            .location
+            .as_ref()
+            .and_then(|l| l.line)
+            .map_or_else(String::new, |n| format!("line {n}: "));
+        println!("{} {severity}: {at}{}", e.code, e.message);
+    }
+}
+
+/// `ew import parts --map`: a supplier's table through a column map into the project.
+fn run_import_parts_mapped(a: &ImportPartsArgs, map: &Path, dir: &Path) -> i32 {
+    let (map, input) = match read_map_and_table(map, &a.file) {
+        Ok(r) => r,
+        Err(code) => return code,
+    };
+    let master = match open_libraries(&a.company) {
+        Ok(reg) => ew_api::catalog::manufacturer_master(&reg),
+        Err(code) => return code,
+    };
+    let origin = ew_api::Origin::Cli {
+        subcommand: "import parts".into(),
+        confirmed: false,
+    };
+    let Ok(mut session) = open_for_writing(dir, origin.clone()) else {
+        return 2;
+    };
+    let (import, cmd) = match session.catalog_parts(&input, &map, &master, a.as_of) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("error: {e}");
+            session.close();
+            return 2;
+        }
+    };
+    print_catalog_rows(&import);
+    let (mut created, mut skipped) = (0, 0);
+    if let Some(cmd) = cmd {
+        let receipt = match session
+            .preview_with(&cmd, ew_api::Submit::from(origin))
+            .and_then(|preview| session.commit(preview))
+        {
+            Ok(r) => r,
+            Err(e) => {
+                eprintln!("error: {e}");
+                session.close();
+                return 2;
+            }
+        };
+        (created, skipped) =
+            ew_api::import::parts_import_counts(receipt.outcome.note.as_deref().unwrap_or_default())
+                .unwrap_or((0, 0));
+        if let Err(e) = session.save() {
+            eprintln!("error: the save failed: {e:?}");
+            session.close();
+            return 2;
+        }
+    }
+    println!(
+        "imported {}: {}; {created} created, {skipped} skipped; saved",
+        input.name(),
+        counts_text(&import)
+    );
+    session.close();
+    0
 }
 
 fn run_import_parts(a: &ImportPartsArgs) -> i32 {
     let Some(dir) = project_dir(a.project.as_ref()) else {
         return 2;
     };
+    if let Some(map) = &a.map {
+        return run_import_parts_mapped(a, map, &dir);
+    }
     let origin = ew_api::Origin::Cli {
         subcommand: "import parts".into(),
         confirmed: false,
@@ -2240,10 +2488,13 @@ mod tests {
             )
         );
         for (args, error) in [
-            (&["lib"][..], "`lib` takes `list`, `search`, `index` or `create`"),
+            (
+                &["lib"][..],
+                "`lib` takes `list`, `search`, `index`, `create` or `import`",
+            ),
             (
                 &["lib", "frob"],
-                "unknown `lib` command `frob` (list, search, index, create)",
+                "unknown `lib` command `frob` (list, search, index, create, import)",
             ),
             (&["lib", "list", "x"], "unexpected argument `x`"),
             (&["lib", "search"], "`lib search` needs the text to search for"),
@@ -2495,6 +2746,90 @@ SELECT 1"
         assert!(p(&["import", "parts", "a", "b"]).is_err());
         assert!(p(&["import", "parts", "a", "--bogus"]).is_err());
         assert!(p(&["import", "parts", "a", "--project"]).is_err());
+    }
+
+    /// WP-S1.19 part 4: `import parts --map` and `lib import parts`.
+    #[test]
+    fn mapped_parts_imports() {
+        let Ok(Command::ImportParts(a)) = p(&[
+            "import",
+            "parts",
+            "list.xlsx",
+            "--map",
+            "m.toml",
+            "--as-of",
+            "2026-10-29",
+            "--company",
+            "c",
+        ]) else {
+            panic!("import parts --map");
+        };
+        assert_eq!(a.map, Some(PathBuf::from("m.toml")));
+        assert_eq!(a.as_of, Some("2026-10-29".parse().unwrap()));
+        assert_eq!(a.company, [PathBuf::from("c")]);
+        let Ok(Command::ImportParts(b)) = p(&["import", "parts", "parts.csv"]) else {
+            panic!("import parts");
+        };
+        assert_eq!((b.map, b.as_of, b.company), (None, None, Vec::new()));
+        assert_eq!(
+            p(&[
+                "lib",
+                "import",
+                "parts",
+                "std",
+                "list.csv",
+                "--map",
+                "m.toml",
+                "--as-of",
+                "2026-10-29",
+                "--bump",
+                "--take-over",
+                "--company",
+                "c"
+            ]),
+            Ok(Command::Lib(LibArgs {
+                action: LibAction::ImportParts {
+                    library: "std".into(),
+                    file: PathBuf::from("list.csv"),
+                    map: PathBuf::from("m.toml"),
+                    as_of: "2026-10-29".parse().unwrap(),
+                    bump: true,
+                    take_over: true,
+                },
+                company: vec![PathBuf::from("c")],
+                json: false,
+            }))
+        );
+        for (args, error) in [
+            (
+                &["import", "parts", "a.csv", "--as-of", "2026-10-29"][..],
+                "`--as-of` and `--company` need `--map`",
+            ),
+            (
+                &["import", "parts", "a.csv", "--map", "m", "--as-of", "29.10.2026"],
+                "`--as-of` needs a date YYYY-MM-DD, not `29.10.2026`",
+            ),
+            (&["lib", "import", "macros"], "`lib import` takes `parts`"),
+            (
+                &["lib", "import", "parts", "std"],
+                "`lib import parts` needs a library and a parts table",
+            ),
+            (
+                &["lib", "import", "parts", "std", "a.csv", "--as-of", "2026-10-29"],
+                "`lib import parts` needs `--map`",
+            ),
+            (
+                &["lib", "import", "parts", "std", "a.csv", "--map", "m"],
+                "`lib import parts` needs `--as-of`",
+            ),
+            (
+                &["lib", "import", "parts", "std", "a.csv", "b.csv"],
+                "unexpected argument `b.csv`",
+            ),
+            (&["lib", "list", "--bump"], "unknown option `--bump`"),
+        ] {
+            assert_eq!(p(args), Err(error.to_owned()), "{args:?}");
+        }
     }
 
     #[test]
