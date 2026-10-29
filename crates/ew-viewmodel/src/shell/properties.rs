@@ -270,6 +270,7 @@ impl ShellModel {
             // Another selection: an open edit, its choices, a popup and the card go; the row cursor follows.
             self.props.edit = None;
             self.props.error = None;
+            self.props.tag_proposal = None;
             self.props.choices = None;
             self.props.popup = None;
             // The grid's card goes; a replace card is the find pane's and does not follow the selection (WP-S2.05 part 2).
@@ -630,6 +631,7 @@ impl ShellModel {
             buffer,
         });
         self.props.error = None;
+        self.props.tag_proposal = None;
         self.props.choices = None;
         self.props.popup = None;
         // A choice editor lists its options (§6.5).
@@ -736,6 +738,7 @@ impl ShellModel {
             e.buffer.clone_from(&text);
         }
         self.props.error = None;
+        self.props.tag_proposal = None;
         // A choice editor filters its options by the buffer; other choices go.
         let options = self
             .props
@@ -756,6 +759,7 @@ impl ShellModel {
     pub(super) fn act_props_cancel(&mut self) -> Outcome {
         self.props.edit = None;
         self.props.error = None;
+        self.props.tag_proposal = None;
         self.props.choices = None;
         self.props.popup = None;
         Outcome::Done
@@ -918,6 +922,7 @@ impl ShellModel {
         if unchanged && !(is_derived(&row) && row.path == member) {
             self.props.edit = None;
             self.props.error = None;
+            self.props.tag_proposal = None;
             return Outcome::Done;
         }
         let edit = self.pending_edit(&section, &row, &member, value, new, base, typed);
@@ -1019,11 +1024,18 @@ impl ShellModel {
         match (decision, result) {
             (Decision::Error, Err(e)) => {
                 let mut message = self.refusal(&e, section.as_ref());
-                if let Some(proposal) = self.tag_proposal_for(&edit, &message) {
-                    message = strings::format("props-tag-proposal", &[&message, &proposal.tag]);
+                let mut shown = message.clone();
+                if let Some(proposal) = self.tag_proposal_for(&edit) {
+                    shown = strings::format("props-tag-proposal", &[&message, &proposal.tag]);
+                    // The window offers the "Use …" button; a script or blind transcript is told the action instead.
+                    message = if self.mode == Mode::Headless {
+                        strings::format("props-tag-proposal-script", &[&message, &proposal.tag])
+                    } else {
+                        shown.clone()
+                    };
                     self.props.tag_proposal = Some(proposal);
                 }
-                self.props.error = Some((row, message.clone()));
+                self.props.error = Some((row, shown));
                 self.props.card = None;
                 Outcome::Failed { message }
             }
@@ -1059,6 +1071,7 @@ impl ShellModel {
                 });
                 self.props.edit = None;
                 self.props.error = None;
+                self.props.tag_proposal = None;
                 Outcome::Done
             }
         }
@@ -1120,6 +1133,7 @@ impl ShellModel {
             Outcome::Done => {
                 self.props.edit = None;
                 self.props.error = None;
+                self.props.tag_proposal = None;
                 self.props.choices = None;
                 self.props.popup = None;
                 if edit.targets.len() > 1 {
@@ -1144,28 +1158,17 @@ impl ShellModel {
         outcome
     }
 
-    /// The proposal of a tag-letter edit refused for a colliding counter (FR-NUM-029: refused with the next free
-    /// counter proposed, never replaced silently): the letter with the counter cleared, which online numbering
-    /// (FR-NUM-007) fills with the next free one in the same transaction. `None` for any other refusal, several
-    /// targets, or a proposal whose preview fails.
-    fn tag_proposal_for(
-        &mut self,
-        edit: &PendingEdit,
-        message: &str,
-    ) -> Option<crate::properties::TagProposal> {
+    /// The proposal of a refused single-device tag-letter edit (FR-NUM-029: refused with the next free counter
+    /// proposed, never replaced silently): the letter with the counter cleared, which online numbering (FR-NUM-007)
+    /// fills with the next free one in the same transaction. The proposal is structural, never read from the
+    /// refusal's text: its preview must succeed and change the device's printed tag, and the tag and counter come
+    /// from that preview's derived tag change. `None` for several targets, another field, a proposal whose preview
+    /// fails, or one that changes no tag (a refusal the cleared counter does not cure).
+    fn tag_proposal_for(&mut self, edit: &PendingEdit) -> Option<crate::properties::TagProposal> {
         if edit.kind != "device" || edit.path != "tag.letter" || edit.targets.len() != 1 {
             return None;
         }
-        let counter = message
-            .split(", the next free counter")
-            .next()
-            .filter(|head| head.len() < message.len())?
-            .rsplit("use ")
-            .next()?
-            .trim();
-        if counter.is_empty() || !counter.bytes().all(|b| b.is_ascii_digit()) {
-            return None;
-        }
+        let base_rev = self.revision()?;
         let letter = match edit.params.get("path").and_then(Value::as_str) {
             Some("tag.letter") => edit.params.get("value")?.clone(),
             Some("tag") => edit.params.get("value")?.get("letter")?.clone(),
@@ -1183,18 +1186,25 @@ impl ShellModel {
         let submit = self.props_submit();
         let project = self.project.as_mut()?;
         let preview = project.session.preview_with(&cmd, submit).ok()?;
-        let tag = project
+        let change = project
             .session
             .derived_diff(&preview)
             .tags
             .into_iter()
-            .find(|t| t.key.to_string() == *target)?
-            .after;
+            .find(|t| t.key.to_string() == *target)
+            .filter(|t| t.after != t.before)?;
+        // The counter online numbering gave: the printed tag's trailing digits (`-102F3` -> `3`).
+        let digits = change.after.bytes().rev().take_while(u8::is_ascii_digit).count();
+        let counter = change.after[change.after.len() - digits..].to_owned();
+        if counter.is_empty() {
+            return None;
+        }
         Some(crate::properties::TagProposal {
             row: edit.row.clone(),
-            tag,
-            counter: counter.to_owned(),
+            tag: change.after,
+            counter,
             params,
+            base_rev,
         })
     }
 
@@ -1206,11 +1216,20 @@ impl ShellModel {
                 reason_key: "reason-no-tag-proposal",
             };
         };
+        // A proposal is accepted only while its refusal is on show and the project has not changed since (a stale
+        // proposal would set another device's or another state's tag).
+        let on_show = self.props.error.as_ref().is_some_and(|(r, _)| *r == proposal.row);
+        if !on_show || self.revision() != Some(proposal.base_rev) {
+            return Outcome::Refused {
+                reason_key: "reason-no-tag-proposal",
+            };
+        }
         let section = self.props_find(&proposal.row).map(|(s, _)| s);
         let outcome = self.run_logged_or_commit("fields.set_many", &proposal.params, section.as_ref());
         if outcome == Outcome::Done {
             self.props.edit = None;
             self.props.error = None;
+            self.props.tag_proposal = None;
             self.notify(
                 strings::format("toast-tag-proposal", &[&proposal.tag, &proposal.counter]),
                 true,

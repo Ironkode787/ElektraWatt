@@ -92,9 +92,13 @@ fn row6_a_refused_letter_edit_offers_the_next_free_counter_in_one_step() {
     };
     assert!(message.contains("use 3, the next free counter"), "{message}");
     assert!(
-        message.contains("props.accept_tag_proposal takes -102F3"),
-        "{message}"
+        message.ends_with(". Use -102F3 to accept it: props.accept_tag_proposal takes it."),
+        "the script's failure names the action: {message}"
     );
+    // Cycle 33 review finding 5: the window's text under the field names the tag, never the action ID.
+    let (_, shown) = s.properties().error().expect("the refusal under the field");
+    assert!(shown.ends_with(". Use -102F3 to accept it."), "{shown}");
+    assert!(!shown.contains("props."), "{shown}");
     let proposal = s.properties().tag_proposal().expect("a proposal").clone();
     assert_eq!(proposal.tag, "-102F3");
     let rev = s.revision();
@@ -115,4 +119,50 @@ fn row6_a_refused_letter_edit_offers_the_next_free_counter_in_one_step() {
         s.dispatch("props.accept_tag_proposal", &json!({})) != Outcome::Done,
         "nothing to accept any more"
     );
+}
+
+/// Cycle 33 review finding 6: a proposal is accepted only while its refusal is on show on the same revision. A
+/// refused letter edit of -102G1, then another device selected: `props.accept_tag_proposal` is refused and nothing is
+/// committed; a refused edit followed by any commit (the project changed) is refused too.
+#[test]
+fn row6_a_stale_tag_proposal_is_refused() {
+    let tmp = Tmp::new("m33-row6-stale");
+    let mut s = tmp.shell_in(Mode::Headless, true, "102");
+    done(&mut s, "select.set", json!({"refs": ["tag:-102G1"]}));
+    assert!(matches!(
+        s.dispatch("props.set", &json!({"row": "device/tag.letter", "value": "F"})),
+        Outcome::Failed { .. }
+    ));
+    assert!(s.properties().tag_proposal().is_some());
+    done(&mut s, "select.set", json!({"refs": ["tag:-102F1"]}));
+    let rev = s.revision();
+    assert_eq!(
+        s.dispatch("props.accept_tag_proposal", &json!({})),
+        Outcome::Refused {
+            reason_key: "reason-no-tag-proposal"
+        },
+        "another selection: the proposal is stale"
+    );
+    assert_eq!(s.revision(), rev, "nothing committed");
+
+    // The proposal outlived by a commit elsewhere (the refusal still under the field).
+    done(&mut s, "select.set", json!({"refs": ["tag:-102G1"]}));
+    assert!(matches!(
+        s.dispatch("props.set", &json!({"row": "device/tag.letter", "value": "F"})),
+        Outcome::Failed { .. }
+    ));
+    assert!(s.properties().tag_proposal().is_some());
+    done(
+        &mut s,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-102F2"}],
+            "path": "function_text", "value": "x"}}),
+    );
+    let rev = s.revision();
+    assert_ne!(
+        s.dispatch("props.accept_tag_proposal", &json!({})),
+        Outcome::Done,
+        "the project changed: the proposal is stale"
+    );
+    assert_eq!(s.revision(), rev, "nothing committed");
 }

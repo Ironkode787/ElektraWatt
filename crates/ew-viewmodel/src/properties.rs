@@ -293,6 +293,8 @@ pub struct TagProposal {
     pub counter: String,
     /// The `fields.set_many` parameters that accept it.
     pub(crate) params: Value,
+    /// The revision the proposal was computed on: accepting it on another is refused.
+    pub(crate) base_rev: u64,
 }
 
 impl PropertiesState {
