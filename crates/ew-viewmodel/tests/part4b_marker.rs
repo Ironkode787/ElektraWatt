@@ -177,6 +177,24 @@ fn cross_w4_w5(s: &mut ShellModel) -> ((i64, i64), (i64, i64), Vec<String>) {
     (from, to, order)
 }
 
+/// G-PP blind run, draft row 13: a press and a release at another point with no pointer move between take the
+/// release point as the end of the line, so the crossed wires go to typing in line order.
+#[test]
+fn a_press_and_a_release_without_moves_mark_the_crossed_wires() {
+    let tmp = Tmp::new("marker-press-release");
+    let mut s = shell(&tmp, "101");
+    done(&mut s, "tool.marker", json!({}));
+    let (from, to, order) = w4_w5_line(&s);
+    press(&mut s, from);
+    release(&mut s, to);
+    assert_eq!(s.tool().state(), "typing");
+    assert_eq!(canvas(&s)["ghost"]["connections"], 2, "the crossed wires");
+    done(&mut s, "tool.finish", json!({}));
+    let last = s.recorded_commands().last().expect("the commit");
+    assert_eq!(last.cmd, "marker.place");
+    assert_eq!(last.params["connections"], json!(order));
+}
+
 /// A line that meets no wire: below every connection of the page.
 fn empty_marker_line(s: &ShellModel) -> ((i64, i64), (i64, i64)) {
     let t = tables(s);

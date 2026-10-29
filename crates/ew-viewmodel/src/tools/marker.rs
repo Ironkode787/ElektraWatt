@@ -487,15 +487,24 @@ impl Tool for MarkerTool {
                 }
             }
             CanvasEvent::Release {
+                at,
                 button: Button::Primary,
                 ..
-            } => match &self.state {
-                State::Crossing { from, to } => {
-                    let (from, to) = (*from, *to);
-                    self.take(from, to, cx)
+            } => {
+                // The release point ends the line, so a press and a release without moves between still take
+                // the wires they cross (G-PP blind run, draft row 13).
+                if !matches!(&self.state, State::Crossing { .. }) {
+                    return ToolOutput::None;
                 }
-                _ => ToolOutput::None,
-            },
+                let _ = self.moved(*at, cx);
+                match &self.state {
+                    State::Crossing { from, to } => {
+                        let (from, to) = (*from, *to);
+                        self.take(from, to, cx)
+                    }
+                    _ => ToolOutput::None,
+                }
+            }
             CanvasEvent::Key(ToolKey::Finish) => self.finish(cx),
             CanvasEvent::Dwell { ms } if *ms >= super::PREVIEW_DWELL_MS => self.preview(cx),
             CanvasEvent::Escape => match &self.state {
