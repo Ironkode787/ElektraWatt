@@ -10,7 +10,9 @@
 //!
 //! **Transcript** (`ew.uitranscript/1`, JSON Lines). A header `{"$schema":"ew.uitranscript/1","version":"..."}`,
 //! then one object per step: `step`, `action`, `outcome` (`done`, `refused` or `failed`), `reason` (the key of a
-//! refusal or null), `message` (the text of a failure or null), `state`, and for `ui.describe` the member
+//! refusal or null), `reason_text` (the sentence of that key, or null; G-PP triage row 10), `message` (the text of a
+//! failure or null), `pending` (the summary line of a preview card left open after the step, as the window shows it,
+//! or null), `state`, and for `ui.describe` the member
 //! `describe`. `state` holds, in this order: `title`, `project` (the directory name, never a path), `access`,
 //! `dirty`, `page`, `page_index` (0-based), `page_count`, `can_undo`, `can_redo`, `banner`, `status`, `canvas`, `tabs`,
 //! `focus`, `navigator`.
@@ -827,6 +829,59 @@ pub fn renderer_word(shell: &ShellModel) -> &'static str {
     if shell.cpu_canvas_setting() { "cpu" } else { "auto" }
 }
 
+/// The summary line of the open preview card as the window shows it (the card's own summary string), or `None`
+/// without a card: a failed card prints its failure; a card whose summary the window builds from a gesture (a bulk or
+/// table card) prints its counts with `card-fix`, prefixed by its command.
+pub fn card_summary(shell: &ShellModel) -> Option<String> {
+    use crate::properties::CardOrigin;
+    let card = shell.properties().card()?;
+    let tags = card.preview.derived.tags.len().to_string();
+    let xrefs = card.preview.derived.xrefs.len().to_string();
+    if let Err(message) = &card.preview.result {
+        return Some(strings::format("card-failed", &[message]));
+    }
+    Some(match &card.origin {
+        CardOrigin::Properties => strings::format(
+            "card-line",
+            &[
+                &card.targets.to_string(),
+                &crate::properties::kind_plural(&card.edit.kind, card.targets),
+                &card.changes.to_string(),
+                &tags,
+                &xrefs,
+            ],
+        ),
+        CardOrigin::Find { .. } => strings::format(
+            "find-card-line",
+            &[
+                &card.changes.to_string(),
+                &card.targets.to_string(),
+                &tags,
+                &xrefs,
+            ],
+        ),
+        CardOrigin::Import {
+            source,
+            created,
+            skipped,
+        } => strings::format(
+            "parts-card-line",
+            &[source, &created.to_string(), &skipped.to_string(), "0"],
+        ),
+        CardOrigin::Reorder { notices } => {
+            strings::format("card-reorder", &[&notices.join(", "), &tags, &xrefs])
+        }
+        CardOrigin::QuickFix { .. } => {
+            strings::format("card-fix", &[&card.changes.to_string(), &tags, &xrefs])
+        }
+        CardOrigin::Bulk | CardOrigin::Table { .. } => format!(
+            "{}: {}",
+            card.preview.name,
+            strings::format("card-fix", &[&card.changes.to_string(), &tags, &xrefs])
+        ),
+    })
+}
+
 /// What one executed step produced.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct StepResult {
@@ -857,12 +912,21 @@ pub fn run_step(
         Outcome::Refused { reason_key } => ("refused", Value::from(*reason_key), Value::Null),
         Outcome::Failed { message } => ("failed", Value::Null, Value::from(message.as_str())),
     };
+    // G-PP triage row 10: the sentence of a refusal's key beside the key (which stays as it is: recordings compare
+    // `reason` by key), and the summary of a preview card the step leaves pending.
+    let reason_text = match &outcome {
+        Outcome::Refused { reason_key } => Value::from(strings::text(reason_key)),
+        _ => Value::Null,
+    };
+    let pending = card_summary(shell).map_or(Value::Null, Value::from);
     let mut members = vec![
         member("step", &Value::from(number)),
         member("action", &Value::from(step.action.as_str())),
         member("outcome", &Value::from(word)),
         member("reason", &reason),
+        member("reason_text", &reason_text),
         member("message", &message),
+        member("pending", &pending),
         format!("\"state\":{}", state_json(shell)),
     ];
     if step.action == "ui.describe" && outcome == Outcome::Done {
@@ -1075,6 +1139,10 @@ mod tests {
         let step: Value = serde_json::from_str(&lines[1]).unwrap();
         assert_eq!(step["outcome"], "refused");
         assert_eq!(step["reason"], "reason-no-project");
+        // G-PP triage row 10: the key's sentence stands beside the key.
+        assert_eq!(step["reason_text"], strings::text("reason-no-project"));
+        assert_ne!(step["reason_text"], "?");
+        assert_eq!(step["pending"], Value::Null);
         assert_eq!(step["state"]["project"], Value::Null);
         assert_eq!(step["state"]["title"], "ElektraWatt");
     }
@@ -1095,7 +1163,9 @@ mod tests {
             "\"action\"",
             "\"outcome\"",
             "\"reason\"",
+            "\"reason_text\"",
             "\"message\"",
+            "\"pending\"",
             "\"state\"",
             "\"describe\"",
         ];

@@ -100,15 +100,22 @@ fn last_state(run: &Run) -> Value {
         .unwrap_or(Value::Null)
 }
 
-/// One `do` step's line (§5.2.3): `<n> <action> <outcome>[ <reason>][ "<message>"]`.
+/// One `do` step's line (§5.2.3): `<n> <action> <outcome>[ <reason>[: <sentence>]][ "<message>"]`, then (G-PP triage
+/// row 10) `  preview: <card summary>; Apply or Cancel` when the step leaves a preview card open.
 fn step_text(n: usize, sent: &Sent) -> String {
     let action = sent.value["action"].as_str().unwrap_or("?");
     let mut line = format!("{n} {action} {}", sent.outcome());
     if let Some(r) = sent.value["reason"].as_str() {
         let _ = write!(line, " {r}");
+        if let Some(t) = sent.value["reason_text"].as_str() {
+            let _ = write!(line, ": {t}");
+        }
     }
     if let Some(m) = sent.value["message"].as_str() {
         let _ = write!(line, " {}", Value::from(m));
+    }
+    if let Some(p) = sent.value["pending"].as_str() {
+        let _ = write!(line, "\n  preview: {p}; Apply or Cancel");
     }
     line
 }
@@ -691,6 +698,33 @@ pub mod tests {
     use crate::blind::run::turns_header;
     use crate::blind::session::{Product, Spawner};
     use crate::blind::testkit::{Tmp, new_run_json};
+
+    /// G-PP triage row 10: a refusal prints its sentence beside its key; a pending card prints its summary on a line
+    /// of its own; a line without the new members prints as before.
+    #[test]
+    fn a_step_prints_the_refusal_sentence_and_the_pending_card() {
+        let refused = Sent::parse(
+            r#"{"step":2,"action":"bridge.place","outcome":"refused","reason":"reason-bridge-selection","reason_text":"Select two terminals of one strip.","message":null,"pending":null,"state":{}}"#.to_owned(),
+        )
+        .unwrap();
+        assert_eq!(
+            step_text(2, &refused),
+            "2 bridge.place refused reason-bridge-selection: Select two terminals of one strip."
+        );
+        let pending = Sent::parse(
+            r#"{"step":3,"action":"props.set","outcome":"done","reason":null,"reason_text":null,"message":null,"pending":"4 devices · 4 changes · 4 tags, 0 cross-reference texts","state":{}}"#.to_owned(),
+        )
+        .unwrap();
+        assert_eq!(
+            step_text(3, &pending),
+            "3 props.set done\n  preview: 4 devices · 4 changes · 4 tags, 0 cross-reference texts; Apply or Cancel"
+        );
+        let old = Sent::parse(
+            r#"{"step":1,"action":"edit.redo","outcome":"refused","reason":"reason-nothing-to-redo","message":null,"state":{}}"#.to_owned(),
+        )
+        .unwrap();
+        assert_eq!(step_text(1, &old), "1 edit.redo refused reason-nothing-to-redo");
+    }
 
     /// A backend straight on a fake product.
     pub struct Direct {

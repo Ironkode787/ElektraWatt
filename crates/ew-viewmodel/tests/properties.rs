@@ -195,6 +195,44 @@ fn pg6_twenty_terminals_get_a_part_in_one_command() {
     shell.shutdown();
 }
 
+/// G-PP triage row 10: a step that leaves a preview card open says so in its transcript line, with the card's own
+/// summary; the step after Cancel carries none.
+#[test]
+fn a_step_that_leaves_a_card_names_it_in_pending() {
+    let tmp = Tmp::new("props-pending");
+    let mut shell = writable(&tmp, "102");
+    done(
+        &mut shell,
+        "select.set",
+        json!({"refs": ["tag:-101F1", "tag:-102F1"]}),
+    );
+    let run = |shell: &mut ShellModel, n: usize, action: &str, params: Value| -> Value {
+        let step = ew_viewmodel::script::Step {
+            line: n,
+            action: action.to_owned(),
+            params,
+        };
+        let r = ew_viewmodel::script::run_step(shell, &mut ew_viewmodel::script::NoExtension, n, &step);
+        serde_json::from_str(&r.line).unwrap()
+    };
+    let line = run(
+        &mut shell,
+        1,
+        "props.set",
+        json!({"row": "device/tag.counter", "value": "9"}),
+    );
+    assert_eq!(line["outcome"], "done");
+    let pending = line["pending"].as_str().expect("a pending card");
+    assert!(pending.starts_with("2 devices · "), "{pending}");
+    assert_eq!(
+        ew_viewmodel::script::card_summary(&shell).as_deref(),
+        Some(pending)
+    );
+    let line = run(&mut shell, 2, "preview.cancel", json!({}));
+    assert_eq!(line["pending"], Value::Null);
+    shell.shutdown();
+}
+
 #[test]
 fn pg7_the_policy_card_and_its_stale_rule() {
     let tmp = Tmp::new("props-pg7");

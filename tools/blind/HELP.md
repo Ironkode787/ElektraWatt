@@ -1,6 +1,6 @@
 ---
 prompt: blind-help
-version: 4
+version: 5
 ---
 # The harness: how to work with it
 
@@ -28,7 +28,9 @@ need no note, but you may make at most 3 between two `do` calls.
 
 The harness sends the steps of a batch in order and stops at the first step that is not done; the rest are reported
 `skipped` and not sent. Each step prints `<n> <action> <outcome>`: `done`, `refused` (with the reason: the action is not
-possible now) or `failed` (with its message), and then the parts of the interface's state that changed.
+possible now) or `failed` (with its message), and then the parts of the interface's state that changed. A step that
+leaves a preview card open adds the line `  preview: <summary>; Apply or Cancel`: nothing is changed until you apply
+it (`preview.apply`) or cancel it (`preview.cancel`).
 
 If one step fails twice in a row with the same parameters, the harness marks it broken and refuses that exact step for the
 rest of the run (`harness: marked broken, move on`). Three notes in a row with patience 2 or less, or five with flow 2 or
@@ -56,8 +58,8 @@ A refused step is never sent. The texts are:
 Every step the application takes ends in one of three words:
 
 - `done`: the application did it.
-- `refused`: the application did not do it because it is not possible now; the reason follows (a word such as
-  `reason-no-project`: the text after `reason-` is the reason in short form).
+- `refused`: the application did not do it because it is not possible now; the reason follows: a key such as
+  `reason-no-project`, then a colon and the sentence the window shows (`reason-no-project: <sentence>`).
 - `failed`: the application tried and could not; the message says why.
 
 `skipped` is the harness's own word: the step was not sent because an earlier step of the batch was not done.
