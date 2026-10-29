@@ -536,29 +536,27 @@ fn ov2_the_chips_keep_off_the_hud_and_the_zoom_control() {
     let mut h = on_golden(&tmp, "101");
     dispatch(&mut h, "place.pick", json!({"symbol": "ew.iec.mcb-1p@qet10"}));
     settle(&mut h);
-    let bounds = h
-        .get_all_by_role(egui::Role::Canvas)
-        .next()
-        .expect("the canvas node")
-        .accesskit_node()
-        .raw_bounds()
-        .expect("bounds");
-    let origin = egui::Pos2::new(bounds.x0 as f32, bounds.y0 as f32);
-    let (centre, pane, k) = {
-        let c = h.state().shell().canvas().unwrap();
-        (c.centre(), c.pane(), c.points_per_nm())
-    };
-    let to_screen = |p: (i64, i64)| {
-        origin
-            + egui::vec2(
-                ((p.0 - centre.0) as f64 * k + pane.0 / 2.0) as f32,
-                ((p.1 - centre.1) as f64 * k + pane.1 / 2.0) as f32,
-            )
-    };
-    let to_sheet = |s: egui::Pos2| {
+    let (w, hh) = h.state().shell().canvas().unwrap().sheet();
+    // FT-538: points are mapped with the transform the last frame drew (and placed the chips) with, the settled one
+    // once the view rests, not the model's exact zoom, which differs by a few points away from the pane's centre
+    // (as the tools tests since fc1fbd97); whether the view has rested then depends on how many frames ran.
+    let drawn = |h: &mut Harness<'_, App>| {
+        let host = h.state_mut().canvas_host();
+        let a = host.drawn_screen_of(0, (0, 0)).expect("a drawn canvas");
+        let b = host.drawn_screen_of(0, (w, hh)).expect("a drawn canvas");
         (
-            centre.0 + (((s.x - origin.x) as f64 - pane.0 / 2.0) / k) as i64,
-            centre.1 + (((s.y - origin.y) as f64 - pane.1 / 2.0) / k) as i64,
+            a,
+            f64::from(b.x - a.x) / w as f64,
+            f64::from(b.y - a.y) / hh as f64,
+        )
+    };
+    let to_screen = |map: (egui::Pos2, f64, f64), p: (i64, i64)| {
+        map.0 + egui::vec2((p.0 as f64 * map.1) as f32, (p.1 as f64 * map.2) as f32)
+    };
+    let to_sheet = |map: (egui::Pos2, f64, f64), s: egui::Pos2| {
+        (
+            (f64::from(s.x - map.0.x) / map.1) as i64,
+            (f64::from(s.y - map.0.y) / map.2) as i64,
         )
     };
     let label = |h: &mut Harness<'_, App>| {
@@ -571,12 +569,12 @@ fn ov2_the_chips_keep_off_the_hud_and_the_zoom_control() {
             .expect("the ghost's label")
     };
     // The label's preferred spot relative to the ghost, in free space.
-    let (w, hh) = h.state().shell().canvas().unwrap().sheet();
     let free = (w / 3, hh / 3);
     dispatch(&mut h, "canvas.pointer", at(free));
     settle(&mut h);
     let free_label = label(&mut h);
-    let offset = free_label.center() - to_screen(free);
+    let mut map = drawn(&mut h);
+    let offset = free_label.center() - to_screen(map, free);
     let size = free_label.size();
     let (_, hud, _) = h.state().command_surface_rects();
     let hud = hud.expect("the HUD over the page view");
@@ -590,12 +588,13 @@ fn ov2_the_chips_keep_off_the_hud_and_the_zoom_control() {
         // the preferred spot (above right) and the next (below right) overlap the frame, above left is free.
         let anchor = egui::pos2(frame.left() - CHIP_OFFSET + 6.0, frame.top() + 12.0);
         let spot = anchor + egui::vec2(CHIP_OFFSET + size.x / 2.0, -CHIP_OFFSET - size.y / 2.0);
-        let target = to_sheet(spot - offset);
+        let target = to_sheet(map, spot - offset);
         dispatch(&mut h, "canvas.pointer", at(target));
         settle(&mut h);
         settle(&mut h);
         // Without the obstacles the label would stand on the frame.
-        let preferred = egui::Rect::from_center_size(to_screen(target) + offset, label(&mut h).size());
+        map = drawn(&mut h);
+        let preferred = egui::Rect::from_center_size(to_screen(map, target) + offset, label(&mut h).size());
         assert!(
             preferred.intersects(frame),
             "{preferred:?} would stand on the {name} {frame:?}"
