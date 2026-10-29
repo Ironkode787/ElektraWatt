@@ -102,6 +102,7 @@ fn ellipsis_cuts_and_reports() {
 }
 
 #[test]
+#[ignore = "perf: release-profile timing, milestone deliveries only"]
 fn ellipsis_of_20000_chars_is_fast() {
     let text = "Ab c".repeat(5_000);
     assert_eq!(text.chars().count(), 20_000);

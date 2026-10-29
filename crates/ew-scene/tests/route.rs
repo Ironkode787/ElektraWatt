@@ -37,87 +37,88 @@ fn all_dirs() -> Vec<Option<Dir4>> {
     ]
 }
 
+/// The provisional-route rules, one named case per rule and direction pair: rule 1, a and b at one position, is a
+/// single point; rule 2, a shared x or y, is straight; rule 3, an L, goes vertical first when a leaves up or down,
+/// horizontal first when a leaves left or right, defers to b when a's direction is unknown (b vertical: corner
+/// (b.x, a.y); b horizontal: corner (a.x, b.y)), and goes horizontal first when both are unknown.
 #[test]
-fn rule1_same_position_is_a_single_point() {
-    for a_dir in all_dirs() {
-        for b_dir in all_dirs() {
-            let r = route(end(100, 200, a_dir.clone()), end(100, 200, b_dir));
-            assert_eq!(r, vec![p(100, 200)]);
-        }
-    }
-}
-
-#[test]
-fn rule2_same_x_or_same_y_is_straight() {
-    for a_dir in all_dirs() {
-        assert_eq!(
-            route(end(100, 100, a_dir.clone()), end(100, 400, Some(Dir4::Up))),
-            vec![p(100, 100), p(100, 400)]
-        );
-        assert_eq!(
-            route(end(100, 100, a_dir), end(700, 100, None)),
-            vec![p(100, 100), p(700, 100)]
-        );
-    }
-}
-
-#[test]
-fn rule3_a_up_or_down_goes_vertical_first() {
-    for a_dir in [Dir4::Up, Dir4::Down] {
-        for b_dir in all_dirs() {
-            assert_eq!(
-                route(end(100, 100, Some(a_dir.clone())), end(400, 300, b_dir)),
-                vec![p(100, 100), p(100, 300), p(400, 300)]
-            );
-        }
-    }
-}
-
-#[test]
-fn rule3_a_left_or_right_goes_horizontal_first() {
-    for a_dir in [Dir4::Left, Dir4::Right] {
-        for b_dir in all_dirs() {
-            assert_eq!(
-                route(end(100, 100, Some(a_dir.clone())), end(400, 300, b_dir)),
-                vec![p(100, 100), p(400, 100), p(400, 300)]
-            );
-        }
-    }
-}
-
-#[test]
-fn rule3_unknown_a_dir_defers_to_b() {
-    for a_dir in [None, Some(Dir4::Unknown(Value::Null))] {
-        // b leaves vertically: arrive along b's vertical axis, corner (b.x, a.y).
-        for b_dir in [Dir4::Up, Dir4::Down] {
-            assert_eq!(
-                route(end(100, 100, a_dir.clone()), end(400, 300, Some(b_dir))),
-                vec![p(100, 100), p(400, 100), p(400, 300)]
-            );
-        }
-        // b leaves horizontally: corner (a.x, b.y).
-        for b_dir in [Dir4::Left, Dir4::Right] {
-            assert_eq!(
-                route(end(100, 100, a_dir.clone()), end(400, 300, Some(b_dir))),
-                vec![p(100, 100), p(100, 300), p(400, 300)]
-            );
-        }
-    }
-}
-
-#[test]
-fn rule3_both_unknown_is_horizontal_first() {
-    assert_eq!(
-        route(end(100, 100, None), end(400, 300, None)),
-        vec![p(100, 100), p(400, 100), p(400, 300)]
+fn the_route_rules() {
+    let unknown = || Some(Dir4::Unknown(Value::Null));
+    let (h_first, v_first) = (
+        vec![p(100, 100), p(400, 100), p(400, 300)],
+        vec![p(100, 100), p(100, 300), p(400, 300)],
     );
-    assert_eq!(
-        route(
-            end(100, 100, Some(Dir4::Unknown(Value::Null))),
-            end(400, 300, Some(Dir4::Unknown(Value::Null)))
+    let mut cases: Vec<(String, RouteEnd, RouteEnd, Vec<Pt2>)> = Vec::new();
+    for a_dir in all_dirs() {
+        for b_dir in all_dirs() {
+            cases.push((
+                format!("rule1_same_position_is_a_single_point {a_dir:?} {b_dir:?}"),
+                end(100, 200, a_dir.clone()),
+                end(100, 200, b_dir),
+                vec![p(100, 200)],
+            ));
+        }
+        cases.push((
+            format!("rule2_same_x_or_same_y_is_straight same x {a_dir:?}"),
+            end(100, 100, a_dir.clone()),
+            end(100, 400, Some(Dir4::Up)),
+            vec![p(100, 100), p(100, 400)],
+        ));
+        cases.push((
+            format!("rule2_same_x_or_same_y_is_straight same y {a_dir:?}"),
+            end(100, 100, a_dir),
+            end(700, 100, None),
+            vec![p(100, 100), p(700, 100)],
+        ));
+    }
+    for (a_dir, want) in [
+        (Dir4::Up, &v_first),
+        (Dir4::Down, &v_first),
+        (Dir4::Left, &h_first),
+        (Dir4::Right, &h_first),
+    ] {
+        for b_dir in all_dirs() {
+            cases.push((
+                format!("rule3 a leaves {a_dir:?}, b {b_dir:?}"),
+                end(100, 100, Some(a_dir.clone())),
+                end(400, 300, b_dir),
+                want.clone(),
+            ));
+        }
+    }
+    for a_dir in [None, unknown()] {
+        for (b_dir, want) in [
+            (Dir4::Up, &h_first),
+            (Dir4::Down, &h_first),
+            (Dir4::Left, &v_first),
+            (Dir4::Right, &v_first),
+        ] {
+            cases.push((
+                format!("rule3_unknown_a_dir_defers_to_b a {a_dir:?}, b {b_dir:?}"),
+                end(100, 100, a_dir.clone()),
+                end(400, 300, Some(b_dir)),
+                want.clone(),
+            ));
+        }
+    }
+    for (name, a_dir, b_dir) in [
+        ("rule3_both_unknown_is_horizontal_first none", None, None),
+        (
+            "rule3_both_unknown_is_horizontal_first unknown",
+            unknown(),
+            unknown(),
         ),
-        vec![p(100, 100), p(400, 100), p(400, 300)]
-    );
+    ] {
+        cases.push((
+            name.to_owned(),
+            end(100, 100, a_dir),
+            end(400, 300, b_dir),
+            h_first.clone(),
+        ));
+    }
+    for (name, a, b, want) in cases {
+        assert_eq!(route(a, b), want, "case {name}");
+    }
 }
 
 #[test]

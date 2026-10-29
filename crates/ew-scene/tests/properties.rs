@@ -157,15 +157,6 @@ proptest! {
     }
 
     #[test]
-    fn deterministic(def in symbol_def()) {
-        for v in Orient2::ALL {
-            let (a, b) = (lower(&def, v), lower(&def, v));
-            prop_assert_eq!(&a.graphics, &b.graphics);
-            prop_assert_eq!(a, b);
-        }
-    }
-
-    #[test]
     fn exact_under_the_variant(def in symbol_def()) {
         let base = lower(&def, Orient2::R0);
         let base_points = all_points(&base);

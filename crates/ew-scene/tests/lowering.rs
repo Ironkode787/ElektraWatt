@@ -64,22 +64,99 @@ fn text_prim(style: Option<&str>) -> TextPrim {
     }
 }
 
+/// Each stroked or filled shape lowers to one path item with the shape's path, the house stroke and the fill, one
+/// case per shape; a rect with neither stroke nor fill draws nothing.
 #[test]
 fn line_is_one_stroked_path() {
-    let prim = Primitive::Line(LinePrim {
-        from: pt(0, 0),
-        to: pt(5 * MM, 7 * MM),
-        stroke: Some(schema_stroke()),
-        extra: Extra::new(),
-    });
-    let items = lower_primitive(&prim);
-    assert_eq!(items.len(), 1);
-    let p = path_item(&items[0]);
-    assert_eq!(p.path, Path::line(pt(0, 0), pt(5 * MM, 7 * MM)));
-    assert_eq!(p.stroke, Some(dl_stroke()));
-    assert_eq!(p.fill, None);
+    let r = rect(0, 0, 10 * MM, 6 * MM);
+    let pts = [pt(0, 0), pt(MM, 0), pt(MM, MM)];
+    let white = Colour::Rgb(Rgb([255, 255, 255]));
+    let white_brush = Some(Brush::Solid(Color::from_rgb8(255, 255, 255)));
+    let stroked = Some(schema_stroke());
+    type Drawn = Option<(Path, Option<DlStroke>, Option<Brush>)>;
+    let cases: Vec<(&str, Primitive, Drawn)> = vec![
+        (
+            "line_is_one_stroked_path",
+            Primitive::Line(LinePrim {
+                from: pt(0, 0),
+                to: pt(5 * MM, 7 * MM),
+                stroke: stroked.clone(),
+                extra: Extra::new(),
+            }),
+            Some((Path::line(pt(0, 0), pt(5 * MM, 7 * MM)), Some(dl_stroke()), None)),
+        ),
+        (
+            "polyline",
+            Primitive::Polyline(PolylinePrim {
+                points: pts.to_vec(),
+                stroke: stroked.clone(),
+                extra: Extra::new(),
+            }),
+            Some((Path::polyline(&pts), Some(dl_stroke()), None)),
+        ),
+        (
+            "rect_without_radii_is_plain_rect",
+            Primitive::Rect(rect_prim(r, 0, 0, None, stroked.clone(), None)),
+            Some((Path::rect(r), Some(dl_stroke()), None)),
+        ),
+        (
+            "rect_with_radii_is_rounded_rect",
+            Primitive::Rect(rect_prim(r, MM, 2 * MM, None, stroked.clone(), None)),
+            Some((Path::rounded_rect(r, Nm(MM), Nm(2 * MM)), Some(dl_stroke()), None)),
+        ),
+        (
+            "rect_fill_is_a_solid_brush",
+            Primitive::Rect(rect_prim(r, 0, 0, None, stroked.clone(), Some(white.clone()))),
+            Some((Path::rect(r), Some(dl_stroke()), white_brush)),
+        ),
+        (
+            "rect_fill_is_a_solid_brush: a fill alone also draws",
+            Primitive::Rect(rect_prim(r, 0, 0, None, None, Some(white))),
+            Some((Path::rect(r), None, white_brush)),
+        ),
+        (
+            "rect_fill_is_a_solid_brush: neither draws nothing",
+            Primitive::Rect(rect_prim(r, 0, 0, None, None, None)),
+            None,
+        ),
+        (
+            "circle",
+            Primitive::Circle(CirclePrim {
+                centre: pt(3 * MM, 4 * MM),
+                r: Nm(2 * MM),
+                stroke: stroked,
+                fill: None,
+                extra: Extra::new(),
+            }),
+            Some((
+                Path::circle(pt(3 * MM, 4 * MM), Nm(2 * MM)),
+                Some(dl_stroke()),
+                None,
+            )),
+        ),
+        (
+            "ellipse_over_an_even_box",
+            ellipse_prim(rect(MM, 2 * MM, 11 * MM, 8 * MM)),
+            Some((
+                Path::ellipse(pt(6 * MM, 5 * MM), Nm(5 * MM), Nm(3 * MM)),
+                Some(dl_stroke()),
+                None,
+            )),
+        ),
+    ];
+    for (name, prim, want) in cases {
+        let items = lower_primitive(&prim);
+        let Some((path, stroke, fill)) = want else {
+            assert!(items.is_empty(), "case {name}: {items:?}");
+            continue;
+        };
+        assert_eq!(items.len(), 1, "case {name}");
+        let p = path_item(&items[0]);
+        assert_eq!(p.path, path, "case {name}");
+        assert_eq!(p.stroke, stroke, "case {name}");
+        assert_eq!(p.fill, fill, "case {name}");
+    }
 }
-
 #[test]
 fn line_without_stroke_draws_nothing() {
     let prim = Primitive::Line(LinePrim {
@@ -88,70 +165,6 @@ fn line_without_stroke_draws_nothing() {
         stroke: None,
         extra: Extra::new(),
     });
-    assert!(lower_primitive(&prim).is_empty());
-}
-
-#[test]
-fn polyline() {
-    let pts = [pt(0, 0), pt(MM, 0), pt(MM, MM)];
-    let prim = Primitive::Polyline(PolylinePrim {
-        points: pts.to_vec(),
-        stroke: Some(schema_stroke()),
-        extra: Extra::new(),
-    });
-    let items = lower_primitive(&prim);
-    assert_eq!(items.len(), 1);
-    let p = path_item(&items[0]);
-    assert_eq!(p.path, Path::polyline(&pts));
-    assert_eq!(p.stroke, Some(dl_stroke()));
-    assert_eq!(p.fill, None);
-}
-
-#[test]
-fn rect_without_radii_is_plain_rect() {
-    let r = rect(0, 0, 10 * MM, 6 * MM);
-    let prim = Primitive::Rect(rect_prim(r, 0, 0, None, Some(schema_stroke()), None));
-    let items = lower_primitive(&prim);
-    assert_eq!(items.len(), 1);
-    assert_eq!(path_item(&items[0]).path, Path::rect(r));
-}
-
-#[test]
-fn rect_with_radii_is_rounded_rect() {
-    let r = rect(0, 0, 10 * MM, 6 * MM);
-    let prim = Primitive::Rect(rect_prim(r, MM, 2 * MM, None, Some(schema_stroke()), None));
-    let items = lower_primitive(&prim);
-    assert_eq!(items.len(), 1);
-    assert_eq!(
-        path_item(&items[0]).path,
-        Path::rounded_rect(r, Nm(MM), Nm(2 * MM))
-    );
-}
-
-#[test]
-fn rect_fill_is_a_solid_brush() {
-    let r = rect(0, 0, 10 * MM, 6 * MM);
-    let white = Colour::Rgb(Rgb([255, 255, 255]));
-    let prim = Primitive::Rect(rect_prim(
-        r,
-        0,
-        0,
-        None,
-        Some(schema_stroke()),
-        Some(white.clone()),
-    ));
-    let items = lower_primitive(&prim);
-    assert_eq!(items.len(), 1);
-    let p = path_item(&items[0]);
-    assert_eq!(p.fill, Some(Brush::Solid(Color::from_rgb8(255, 255, 255))));
-    assert_eq!(p.stroke, Some(dl_stroke()));
-    // A fill alone also draws.
-    let prim = Primitive::Rect(rect_prim(r, 0, 0, None, None, Some(white)));
-    let items = lower_primitive(&prim);
-    assert_eq!(items.len(), 1);
-    assert_eq!(path_item(&items[0]).stroke, None);
-    // Neither: nothing.
-    let prim = Primitive::Rect(rect_prim(r, 0, 0, None, None, None));
     assert!(lower_primitive(&prim).is_empty());
 }
 
@@ -280,22 +293,6 @@ fn drop_shadow_larger_than_the_box_is_the_full_offset_box() {
     );
 }
 
-#[test]
-fn circle() {
-    let prim = Primitive::Circle(CirclePrim {
-        centre: pt(3 * MM, 4 * MM),
-        r: Nm(2 * MM),
-        stroke: Some(schema_stroke()),
-        fill: None,
-        extra: Extra::new(),
-    });
-    let items = lower_primitive(&prim);
-    assert_eq!(items.len(), 1);
-    let p = path_item(&items[0]);
-    assert_eq!(p.path, Path::circle(pt(3 * MM, 4 * MM), Nm(2 * MM)));
-    assert_eq!(p.stroke, Some(dl_stroke()));
-}
-
 fn ellipse_prim(r: Rect) -> Primitive {
     Primitive::Ellipse(EllipsePrim {
         rect: Bounds(r),
@@ -303,16 +300,6 @@ fn ellipse_prim(r: Rect) -> Primitive {
         fill: None,
         extra: Extra::new(),
     })
-}
-
-#[test]
-fn ellipse_over_an_even_box() {
-    let items = lower_primitive(&ellipse_prim(rect(MM, 2 * MM, 11 * MM, 8 * MM)));
-    assert_eq!(items.len(), 1);
-    assert_eq!(
-        path_item(&items[0]).path,
-        Path::ellipse(pt(6 * MM, 5 * MM), Nm(5 * MM), Nm(3 * MM))
-    );
 }
 
 #[test]
