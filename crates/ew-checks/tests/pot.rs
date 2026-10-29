@@ -48,6 +48,52 @@ fn pot001_reports_conflicting_definition_attributes_once_per_potential() {
     assert!(f[0].message.contains("voltage"), "{}", f[0].message);
 }
 
+/// A PE-role CP and an M-role CP on one wire, without a definition; `pe_first` gives the PE function the
+/// lower ID. Returns the model and the IDs of the PE and the M function.
+fn pe_meets_m(pe_first: bool) -> (Model, u128, u128) {
+    let (pe, m) = if pe_first {
+        (0x1001, 0x1002)
+    } else {
+        (0x1002, 0x1001)
+    };
+    let mut fx = Fx::base();
+    fx.func_pe(pe, P1);
+    fx.func_m(m, P1);
+    fx.conn(0x2001, P1, Ep::Cp(pe, 1), Ep::Cp(m, 1), &none());
+    (fx.build(), pe, m)
+}
+
+#[test]
+fn pot001_member_role_conflict_does_not_depend_on_the_id_order() {
+    // The two ID orders of one drawing (a new project mints random IDs): the applied role, the text and the
+    // targets are the same in both. Before the fix the CP (ID) order chose the applied role ("Pe meet M" in
+    // one order) and the one target (the function of the smallest CP), so a properties sheet of the PE
+    // terminal showed the finding in one copy of a project and not in the other (blind replay gpp-2).
+    for pe_first in [true, false] {
+        let (m, pe, mf) = pe_meets_m(pe_first);
+        let f: Vec<_> = findings_of(&m, "EW-POT-001")
+            .into_iter()
+            .filter(|f| f.discriminator.starts_with("attrs"))
+            .collect();
+        assert_eq!(f.len(), 1, "pe_first {pe_first}: {f:#?}");
+        let mut want = vec![target(Kind::Function, pe), target(Kind::Function, mf)];
+        want.sort();
+        assert_eq!(
+            f[0].targets, want,
+            "pe_first {pe_first}: every member is a target"
+        );
+        assert!(
+            f[0].message.contains("M meet Pe"),
+            "pe_first {pe_first}: {}",
+            f[0].message
+        );
+        assert_eq!(
+            f[0].message, "member roles M meet Pe; the first in role order applies",
+            "pe_first {pe_first}"
+        );
+    }
+}
+
 #[test]
 fn pot001_joins_several_conflicts_into_one_finding() {
     let m = two_defs(
@@ -137,10 +183,11 @@ fn pot011_reports_an_ambiguous_junction_feed() {
     assert_eq!(f.len(), 1, "{f:#?}");
     assert_eq!(f[0].code, "005011");
     assert_eq!(f[0].severity, Severity::Warning);
-    // A potential without a definition is identified by one of its functions.
-    assert_eq!(f[0].targets.len(), 1);
-    assert_eq!(f[0].targets[0].kind, Kind::Function);
-    assert!([uid(0x1001), uid(0x1002)].contains(&f[0].targets[0].id));
+    // A potential without a definition targets every member function, whatever their ID order.
+    assert_eq!(
+        f[0].targets,
+        vec![target(Kind::Function, 0x1001), target(Kind::Function, 0x1002)]
+    );
     assert!(!f[0].discriminator.is_empty());
     assert!(!f[0].message.is_empty());
 }
@@ -216,7 +263,9 @@ fn pot014_reports_constituents_that_name_different_conductors() {
     assert_eq!(f[0].severity, Severity::Error);
     // The wire is carried by the connection at the target point; its ID is the discriminator.
     assert_eq!(f[0].discriminator, us(0x2002));
-    assert_eq!(f[0].targets.len(), 1);
+    // Every member function: the two functions and the two interruption points.
+    assert_eq!(f[0].targets.len(), 4);
+    assert!(f[0].targets.iter().all(|t| t.kind == Kind::Function));
 }
 
 #[test]

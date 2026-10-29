@@ -13,7 +13,9 @@
 //!   §9.6) are named on the bond, not on the potential. A signal takes the first IP name inside it, in page
 //!   order. The family also pushes the EW-POT-001 notes of the potential's attributes, which name it.
 //! - **`potential_attrs(p)`** (doc 03 §9.4): type, voltage, environment and class from the first definition in
-//!   ID order that sets each; the type else from the member CPs' `potential_role` (the first in CP order).
+//!   ID order that sets each; the type else from the member CPs' `potential_role`; roles that disagree are
+//!   ranked by the fixed role order of `role_rank` (PE, PEN, FE, N, L1, L2, L3, L, L+, L−, M, signal,
+//!   undefined), never by the CP order, which follows the random IDs of a new project.
 //!   Nothing merges silently (doc 08 §3.6): every later definition whose value differs, and every member role
 //!   that contradicts a defined type (FE on PE or PEN, PE or N on PEN are compatible, doc 08 §3.7), is a
 //!   conflict, which `potential_name` reports as EW-POT-001 with the potential's name. The family is
@@ -436,34 +438,54 @@ fn role_compatible(defined: &PotentialType, role: &PotentialType) -> bool {
     defined == role || matches!((defined, role), (Pe | Pen, Fe) | (Pen, Pe | N))
 }
 
-/// The type from member CP roles: the first role in CP order; another distinct role is a conflict.
-fn role_type(q: &Q, p: &Potential, conflicts: &mut Vec<String>) -> Option<Attr<PotentialType>> {
-    let mut found: Option<Attr<PotentialType>> = None;
-    let mut others: BTreeSet<String> = BTreeSet::new();
-    for (cp, role) in member_roles(q, p) {
-        match &found {
-            None => {
-                found = Some(Attr {
-                    value: role,
-                    source: AttrSource::Role(cp),
-                });
-            }
-            Some(f) if f.value != role => {
-                others.insert(format!("{role:?}"));
-            }
-            Some(_) => {}
-        }
+/// The rank of a member CP role when the roles of a potential disagree (the lowest applies): the protective
+/// roles first, then the neutral, the phases, DC, signal and undefined, a role of a newer format last. The
+/// order is fixed so that the applied type and the conflict text never follow the CP order, which is the ID
+/// order and so random in a new project (the blind replay `gpp-2` differed on it).
+fn role_rank(role: &PotentialType) -> u8 {
+    use PotentialType::{Fe, L, L1, L2, L3, LMinus, LPlus, M, N, Pe, Pen, Signal, Undefined, Unknown};
+    match role {
+        Pe => 0,
+        Pen => 1,
+        Fe => 2,
+        N => 3,
+        L1 => 4,
+        L2 => 5,
+        L3 => 6,
+        L => 7,
+        LPlus => 8,
+        LMinus => 9,
+        M => 10,
+        Signal => 11,
+        Undefined => 12,
+        Unknown(_) => 13,
     }
-    if let Some(f) = &found
-        && !others.is_empty()
-    {
+}
+
+/// The type from member CP roles: the first role in [`role_rank`] order (two newer-format roles by their
+/// text); every other distinct role is a conflict. The source is the first member CP with that role.
+fn role_type(q: &Q, p: &Potential, conflicts: &mut Vec<String>) -> Option<Attr<PotentialType>> {
+    let roles = member_roles(q, p);
+    let key = |r: &PotentialType| (role_rank(r), format!("{r:?}"));
+    let (cp, applied) = roles
+        .iter()
+        .min_by(|(a_cp, a), (b_cp, b)| key(a).cmp(&key(b)).then_with(|| a_cp.cmp(b_cp)))
+        .cloned()?;
+    let others: BTreeSet<String> = roles
+        .iter()
+        .filter(|(_, r)| *r != applied)
+        .map(|(_, r)| format!("{r:?}"))
+        .collect();
+    if !others.is_empty() {
         conflicts.push(format!(
-            "member roles {} meet {:?}; the first in CP order applies",
+            "member roles {} meet {applied:?}; the first in role order applies",
             others.into_iter().collect::<Vec<_>>().join(", "),
-            f.value
         ));
     }
-    found
+    Some(Attr {
+        value: applied,
+        source: AttrSource::Role(cp),
+    })
 }
 
 /// The potential named `name` (its canonical name), the first in ID order. Reads `potential_name` of every

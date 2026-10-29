@@ -121,6 +121,46 @@ fn row6_a_refused_letter_edit_offers_the_next_free_counter_in_one_step() {
     );
 }
 
+/// Cycle 33 re-review item A: the toast's counter is the device's `tag.counter` after the proposal, never the
+/// printed tag's trailing digits, which in the strip format `{letter}{page}{counter}` also hold the page
+/// (`-Y1031` is counter 1, not 1031). Strips -X1031 and -X1032 of folio 103: -X1031 becomes -Y1031 and then -Y1032
+/// (counter 2), so the letter edit of -X1032 to Y collides with it and is refused with a proposal.
+#[test]
+fn row6_a_strip_tag_proposal_names_the_counter_not_the_page_digits() {
+    let tmp = Tmp::new("m33-row6-strip");
+    let mut s = tmp.shell_in(Mode::Headless, true, "103");
+    done(
+        &mut s,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-X1031"}],
+            "path": "tag.letter", "value": "Y"}}),
+    );
+    done(
+        &mut s,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-Y1031"}],
+            "path": "tag.counter", "value": 2}}),
+    );
+    done(&mut s, "select.set", json!({"refs": ["tag:-X1032"]}));
+    let message = match s.dispatch("props.set", &json!({"row": "device/tag.letter", "value": "Y"})) {
+        Outcome::Failed { message } => message,
+        other => panic!("{other:?}"),
+    };
+    let proposal = s.properties().tag_proposal().expect("a proposal").clone();
+    assert!(proposal.tag.starts_with("-Y103"), "{proposal:?} {message}");
+    assert_eq!(
+        proposal.counter,
+        proposal.tag["-Y103".len()..],
+        "the counter is the tag's own counter, without the page digits"
+    );
+    done(&mut s, "props.accept_tag_proposal", json!({}));
+    let t = toast(&s);
+    assert!(
+        t.contains(&format!("counter {}", proposal.counter)) && !t.contains("counter 103"),
+        "{t}"
+    );
+}
+
 /// Cycle 33 review finding 6: a proposal is accepted only while its refusal is on show on the same revision. A
 /// refused letter edit of -102G1, then another device selected: `props.accept_tag_proposal` is refused and nothing is
 /// committed; a refused edit followed by any commit (the project changed) is refused too.

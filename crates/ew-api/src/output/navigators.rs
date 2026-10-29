@@ -2238,10 +2238,25 @@ fn finding_node(
     }
     let mut seen = std::collections::BTreeSet::new();
     drawables.retain(|d| seen.insert(d.record));
+    // The primary target is the one drawn first (main drawables first, then page order and cell), not the first in
+    // target order: targets sort by ID, which is random in a new project, so a finding over several members (a
+    // potential's) would open another page in another copy of the project.
+    let positions: BTreeMap<Uuid, usize> = folios.values().map(|(pos, _, u)| (*u, *pos)).collect();
+    let first_key = |ds: &[Drawable]| {
+        ds.first().map(|d| {
+            (
+                !d.main,
+                positions.get(&d.page).copied().unwrap_or(usize::MAX),
+                natural_key(&d.cell),
+            )
+        })
+    };
     let primary: Vec<Drawable> = f
         .targets
-        .first()
+        .iter()
         .map(|t| target_drawables(q, folios, t))
+        .filter(|ds| !ds.is_empty())
+        .min_by(|a, b| first_key(a).cmp(&first_key(b)))
         .unwrap_or_default();
     let page: Option<(String, Uuid)> = match f.page {
         Some(p) => folios.get(&p).map(|(_, folio, u)| (folio.clone(), *u)),

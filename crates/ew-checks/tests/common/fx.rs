@@ -69,6 +69,9 @@ pub const FNDEF_PASS: u128 = 0x502;
 pub const FNDEF_PE: u128 = 0x503;
 /// The interruption-point definition without a connection point.
 pub const FNDEF_IP0: u128 = 0x504;
+/// The function definition with an M-role (0 V) CP 1.
+pub const FNDEF_M: u128 = 0x505;
+const SYM_M: u128 = 0x515;
 const SYM: u128 = 0x510;
 const SYM_IP: u128 = 0x511;
 const SYM_PASS: u128 = 0x512;
@@ -171,6 +174,12 @@ impl Fx {
             &no_links,
         );
         fx.fndef(FNDEF_IP0, SYM_IP0, &[], &no_links);
+        fx.fndef(
+            FNDEF_M,
+            SYM_M,
+            &[(0, "1", Value::Null), (1, "-", json!({"potential_role": "m"}))],
+            &no_links,
+        );
         for (n, page) in [(P1, 1), (P2, 2)] {
             fx.push(json!({
                 "$k": "page", "id": us(n), "folio": {"number": page}, "kind": "multi_line",
@@ -214,6 +223,16 @@ impl Fx {
     /// A plain two-CP function `n` drawn on `page`.
     pub fn func(&mut self, n: u128, page: u128) {
         self.func_of(n, FNDEF, SYM, page);
+    }
+
+    /// A function `n` with a PE-role CP 1, drawn on `page`.
+    pub fn func_pe(&mut self, n: u128, page: u128) {
+        self.func_of(n, FNDEF_PE, SYM_PE, page);
+    }
+
+    /// A function `n` with an M-role CP 1, drawn on `page`.
+    pub fn func_m(&mut self, n: u128, page: u128) {
+        self.func_of(n, FNDEF_M, SYM_M, page);
     }
 
     /// A pass-through function `n` drawn on `page`.

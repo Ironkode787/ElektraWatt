@@ -16,10 +16,13 @@ use crate::rules::term::full_tag;
 /// The targets of a potential and the suffix its findings' discriminators carry.
 ///
 /// A potential with a definition is identified by its smallest definition: that `PotentialDef` is the
-/// target and the suffix is empty. A potential without one is identified by the smallest of its member
-/// connection points: the function of that CP is the target and the CP index is the suffix (`@3`), so two
-/// findings about two potentials of one function stay apart. Neither holds a tag, a name, a folio or a
-/// count, so a renumber or a move keeps the fingerprint.
+/// target and the suffix is empty. A potential without one targets the function of every member connection
+/// point (interruption points included), so the finding shows on whichever member is selected; picking one
+/// member, as before, picked the smallest CP ID, which is random in a new project, so a properties sheet
+/// showed the finding in one copy of a project and not in another (the blind replay `gpp-2`). The suffix
+/// names the smallest member CP (`@<function>:<idx>`), so two potentials over the same functions stay apart;
+/// it enters only the fingerprint and the report's discriminator, never a printed text or an order. Neither
+/// holds a tag, a name, a folio or a count, so a renumber or a move keeps the fingerprint.
 pub(crate) fn potential_targets(q: &Q, p: PotentialId) -> (Vec<Target>, String) {
     match p {
         PotentialId::Def(d) => (vec![Target::new(Kind::PotentialDef, d)], String::new()),
@@ -33,13 +36,15 @@ pub(crate) fn potential_targets(q: &Q, p: PotentialId) -> (Vec<Target>, String) 
                 .iter()
                 .find(|c| c.id() == cp)
                 .or_else(|| potential.cps.iter().min_by_key(|c| c.id()));
-            match member {
-                Some(c) => (
-                    vec![Target::new(Kind::Function, c.function)],
-                    format!("@{}", c.idx),
-                ),
-                None => (Vec::new(), String::new()),
-            }
+            let Some(member) = member else {
+                return (Vec::new(), String::new());
+            };
+            let targets = potential
+                .cps
+                .iter()
+                .map(|c| Target::new(Kind::Function, c.function))
+                .collect();
+            (targets, format!("@{}:{}", member.function, member.idx))
         }
     }
 }

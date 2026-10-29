@@ -1161,8 +1161,8 @@ impl ShellModel {
     /// The proposal of a refused single-device tag-letter edit (FR-NUM-029: refused with the next free counter
     /// proposed, never replaced silently): the letter with the counter cleared, which online numbering (FR-NUM-007)
     /// fills with the next free one in the same transaction. The proposal is structural, never read from the
-    /// refusal's text: its preview must succeed and change the device's printed tag, and the tag and counter come
-    /// from that preview's derived tag change. `None` for several targets, another field, a proposal whose preview
+    /// refusal's text: its preview must succeed and change the device's printed tag; the tag comes from that preview's
+    /// derived tag change and the counter from the device's `tag.counter` in the preview's after-state. `None` for several targets, another field, a proposal whose preview
     /// fails, or one that changes no tag (a refusal the cleared counter does not cure).
     fn tag_proposal_for(&mut self, edit: &PendingEdit) -> Option<crate::properties::TagProposal> {
         if edit.kind != "device" || edit.path != "tag.letter" || edit.targets.len() != 1 {
@@ -1193,12 +1193,11 @@ impl ShellModel {
             .into_iter()
             .find(|t| t.key.to_string() == *target)
             .filter(|t| t.after != t.before)?;
-        // The counter online numbering gave: the printed tag's trailing digits (`-102F3` -> `3`).
-        let digits = change.after.bytes().rev().take_while(u8::is_ascii_digit).count();
-        let counter = change.after[change.after.len() - digits..].to_owned();
-        if counter.is_empty() {
-            return None;
-        }
+        // The counter online numbering gave, read from the device in the preview's after-state: never from the printed
+        // tag's trailing digits, which also hold the page in the strip format `{letter}{page}{counter}` (`-X1031`) and a
+        // parent's digits in a child tag.
+        let after = project.session.query_over(preview.candidate());
+        let counter = after.devices().get(change.key)?.tag.counter?.to_string();
         Some(crate::properties::TagProposal {
             row: edit.row.clone(),
             tag: change.after,
