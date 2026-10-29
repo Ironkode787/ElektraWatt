@@ -112,6 +112,16 @@ fn the_picker_lists_the_grid_family_embeds_a_starter_symbol_once_and_disables_ro
     done(&mut s, "picker.row", json!({"step": 5}));
     assert_eq!(s.picker().unwrap().row, n - 1);
     done(&mut s, "picker.row", json!({"to": 0}));
+    // Cycle 35 play-test: the signature's words work without `step`.
+    done(&mut s, "picker.row", json!({"to": "last"}));
+    assert_eq!(s.picker().unwrap().row, n - 1);
+    done(&mut s, "picker.row", json!({"to": "first"}));
+    assert_eq!(s.picker().unwrap().row, 0);
+    // A word outside the signature is refused by name.
+    match s.dispatch("picker.row", &json!({"to": "middle"})) {
+        Outcome::Failed { message } => assert!(message.contains("`to`"), "{message}"),
+        other => panic!("{other:?}"),
+    }
     // A starter symbol (Golden A has no NO contact): one `library.embed`, then the tool floats it.
     done(&mut s, "picker.filter", json!({"text": "contact-no@"}));
     assert!(describe_line(&s, "  row symbol \"ew.iec.contact-no@qet10\"").contains("starter"));

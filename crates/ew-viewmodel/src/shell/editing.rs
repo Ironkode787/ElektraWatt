@@ -588,10 +588,22 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `picker.row {step | to}`: Up, Down (`step` −1, 1), Home (`to` 0), End (`to` −1 or a large number).
+    /// `picker.row {step | to}`: Up, Down (`step` −1, 1), Home (`to` `first` or 0), End (`to` `last`, −1 or a large
+    /// number). Either parameter alone is enough (the signature lists both as optional).
     pub(super) fn act_picker_row(&mut self, p: &Map<String, Value>) -> Outcome {
         let step = p.get("step").and_then(Value::as_i64);
-        let to = p.get("to").and_then(Value::as_i64);
+        let to = match p.get("to") {
+            None => None,
+            Some(Value::String(word)) => match word.as_str() {
+                "first" => Some(0),
+                "last" => Some(-1),
+                _ => return failed("error-bad-param", &["to"]),
+            },
+            Some(v) => match v.as_i64() {
+                Some(t) => Some(t),
+                None => return failed("error-bad-param", &["to"]),
+            },
+        };
         if step.is_none() && to.is_none() {
             return failed("error-missing-param", &["step"]);
         }
