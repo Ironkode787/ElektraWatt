@@ -636,7 +636,7 @@ mod tests {
                 let w = width.max(m + 1);
                 let offsets: Vec<i64> = (0..m).map(|k| spread(w, m, k)).collect();
                 assert!(
-                    offsets[0] >= 1 && offsets[offsets.len() - 1] <= w - 1,
+                    offsets[0] >= 1 && offsets[offsets.len() - 1] < w,
                     "{w} {m} {offsets:?}"
                 );
                 assert!(offsets.windows(2).all(|p| p[1] > p[0]), "{w} {m} {offsets:?}");
