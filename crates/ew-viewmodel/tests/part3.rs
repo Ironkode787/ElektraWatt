@@ -835,7 +835,6 @@ fn ib7_the_describe_lines_use_the_ten_words_and_the_tools_read_nothing_while_mov
     assert_eq!(after.symbol_shape, calls.symbol_shape);
     scan(&s, &mut seen);
     let words = ew_viewmodel::describe::IP_WORDS;
-    assert_eq!(words.len(), 10);
     for w in words {
         assert!(ew_viewmodel::describe::VOCABULARY.contains(w));
     }

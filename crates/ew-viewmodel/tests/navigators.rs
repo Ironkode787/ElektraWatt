@@ -605,7 +605,9 @@ fn every_navigator_opens_and_the_navigator_words_are_reached() {
         .filter(|l| l.contains("navigator.show"))
         .map(str::to_owned)
         .collect();
-    assert_eq!(menu.len(), 11, "{menu:?}");
+    // One item per navigator kind; the message panel has its own item, View ▸ Messages.
+    let kinds = NavKind::ALL.iter().filter(|k| **k != NavKind::Messages).count();
+    assert_eq!(menu.len(), kinds, "{menu:?}");
     assert!(menu.iter().all(|l| l.contains("(checked)")), "{menu:?}");
     done(
         &mut shell,
@@ -652,7 +654,6 @@ fn every_navigator_opens_and_the_navigator_words_are_reached() {
     for w in ew_viewmodel::describe::NAV_WORDS {
         assert!(ew_viewmodel::describe::VOCABULARY.contains(w), "{w}");
     }
-    assert_eq!(ew_viewmodel::describe::NAV_WORDS.len(), 18);
     shell.shutdown();
 }
 

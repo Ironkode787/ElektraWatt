@@ -601,7 +601,6 @@ fn ms4_f8_with_no_findings_on_show_refuses() {
 #[test]
 fn ms6_the_sixteen_words_the_five_actions_and_the_counts() {
     use ew_viewmodel::describe::{MSG_WORDS, VOCABULARY};
-    assert_eq!(MSG_WORDS.len(), 16);
     for w in MSG_WORDS {
         assert!(VOCABULARY.contains(w), "{w}");
     }

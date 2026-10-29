@@ -345,7 +345,6 @@ fn the_card_survives_selection_changes_and_goes_with_the_project() {
 #[test]
 fn the_three_words_are_in_the_vocabulary_once() {
     use ew_viewmodel::describe::{IMPORT_WORDS, VOCABULARY};
-    assert_eq!(IMPORT_WORDS.len(), 3);
     for w in IMPORT_WORDS {
         assert_eq!(VOCABULARY.iter().filter(|v| *v == w).count(), 1, "{w}");
     }

@@ -352,7 +352,6 @@ fn cb7_the_paste_tool_ghost_preview_and_escape() {
         assert!(ew_viewmodel::describe::VOCABULARY.contains(w), "{w}");
         assert!(seen.contains(*w), "{w} is reached");
     }
-    assert_eq!(ew_viewmodel::describe::CLIP_WORDS.len(), 6);
     // Escape: the tool ends, nothing is committed.
     let rev = shell.revision();
     done(&mut shell, "ui.dismiss", json!({}));

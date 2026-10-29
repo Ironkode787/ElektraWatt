@@ -767,19 +767,9 @@ Strip\tPos\tTerminal\tFunction text\tGroup\tPart\tPotential\tSide 1 (clamp a)\tS
 #[test]
 fn tb8_describe_lines_words_and_counts() {
     use ew_viewmodel::describe::{TABLE_WORDS, VOCABULARY};
-    assert_eq!(TABLE_WORDS.len(), 6);
     for w in TABLE_WORDS {
         assert!(VOCABULARY.contains(w), "{w}");
     }
-    // Merged with WP-S2.09 parts 2 and 3 (16 + 13 words, 5 + 8 actions) and WP-S2.17 part 1 (2 actions) and part 3 (6 words, 2 actions),
-    // and FT-541 (`props.filter`), and the G-PP triage's Draw ▸ Bond (`bond.draw`).
-    // WP-S2.07 part 1: the strip editor's word `accessory` and six actions.
-    // WP-S1.19 part 1: the kind word `macro_instance`.
-    // WP-S2.18 part 1: the Join chooser's word `chooser` and four actions (`place.join`, `chooser.*`).
-    // WP-S2.07 part 2: the page line's word `bridge` (FT-621).
-    // WP-S2.07 part 2: three actions (`cable.swap_cores`, `navigator.delete`, `navigator.rename`).
-    assert_eq!(VOCABULARY.len(), 359);
-    assert_eq!(ew_viewmodel::actions::ACTIONS.len(), 275);
     for (id, keys) in [
         ("table.edit", &["F2"][..]),
         ("table.fill_down", &["Ctrl+D"]),

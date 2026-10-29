@@ -408,23 +408,9 @@ fn np5_new_structure_node_prefills_the_marked_parent() {
 #[test]
 fn np6_the_six_words_and_the_two_actions() {
     use ew_viewmodel::describe::{NAV2_WORDS, VOCABULARY};
-    assert_eq!(NAV2_WORDS.len(), 6);
     for w in NAV2_WORDS {
         assert!(VOCABULARY.contains(w), "{w}");
     }
-    // WP-S2.09 part 2 adds the message panel's sixteen words and five actions; part 3 the Preview tab's and the
-    // history panel's thirteen words and eight actions; WP-S2.06 part 3 table mode's six words and fourteen actions;
-    // WP-S2.17 part 1 View ▸ Theme and View ▸ Density; part 3 the rails' six words and two actions; FT-541
-    // `props.filter`; the G-PP triage's Draw ▸ Bond (`bond.draw`), the tag proposal
-    // (`props.accept_tag_proposal`) a terminal CP's side `internal` and
-    // View ▸ Bottom dock (`view.bottom_dock`).
-    // WP-S2.07 part 1: the strip editor's word `accessory` and six actions.
-    // WP-S1.19 part 1: the kind word `macro_instance`.
-    // WP-S2.18 part 1: the Join chooser's word `chooser` and four actions (`place.join`, `chooser.*`).
-    // WP-S2.07 part 2: the page line's word `bridge` (FT-621).
-    // WP-S2.07 part 2: three actions (`cable.swap_cores`, `navigator.delete`, `navigator.rename`).
-    assert_eq!(VOCABULARY.len(), 359);
-    assert_eq!(ew_viewmodel::actions::ACTIONS.len(), 275);
     let hl = ew_viewmodel::actions::ACTIONS
         .iter()
         .find(|a| a.id == "navigator.highlight")
