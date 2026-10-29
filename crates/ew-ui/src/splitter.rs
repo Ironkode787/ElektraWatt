@@ -130,16 +130,55 @@ pub(crate) fn show<P>(
         };
         let Some(delta) = delta else { continue };
         let (wa, wb) = (size(ra), size(rb));
-        let delta = delta.clamp(MIN_SIZE - wa, wb - MIN_SIZE);
-        if delta == 0.0 || wa + wb <= 0.0 {
-            continue;
-        }
-        if let Some(Tile::Container(Container::Linear(linear))) = tree.tiles.get_mut(h.container) {
-            let (sa, sb) = (linear.shares[h.a], linear.shares[h.b]);
-            let per_point = (sa + sb) / (wa + wb);
-            linear.shares.set_share(h.a, sa + delta * per_point);
-            linear.shares.set_share(h.b, sb - delta * per_point);
+        if let Some(Tile::Container(Container::Linear(linear))) = tree.tiles.get_mut(h.container)
+            && let Some((na, nb)) = traded((linear.shares[h.a], linear.shares[h.b]), (wa, wb), delta)
+        {
+            linear.shares.set_share(h.a, na);
+            linear.shares.set_share(h.b, nb);
             ui.ctx().request_repaint();
         }
+    }
+}
+
+/// The shares of two neighbours with `shares` and sizes `sizes` (points) after the handle between them moved by
+/// `delta` points: each keeps at least [`MIN_SIZE`]. `None` when nothing changes: no movement, or two neighbours
+/// together smaller than twice the minimum (the handle then does nothing, R1-3).
+fn traded(shares: (f32, f32), sizes: (f32, f32), delta: f32) -> Option<(f32, f32)> {
+    let ((sa, sb), (wa, wb)) = (shares, sizes);
+    // Before the clamp, whose bounds cross (and panic) below twice the minimum; a NaN size or delta fails here too.
+    if !(wa + wb >= 2.0 * MIN_SIZE && delta.is_finite()) {
+        return None;
+    }
+    let delta = delta.clamp(MIN_SIZE - wa, wb - MIN_SIZE);
+    if delta == 0.0 {
+        return None;
+    }
+    let per_point = (sa + sb) / (wa + wb);
+    Some((sa + delta * per_point, sb - delta * per_point))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A drag trades share between the neighbours, each kept at least the minimum.
+    #[test]
+    fn a_drag_trades_share_within_the_minimum() {
+        assert_eq!(traded((1.0, 1.0), (100.0, 100.0), 10.0), Some((1.1, 0.9)));
+        // 100 → at most 168 (the other keeps 32).
+        let (a, b) = traded((1.0, 1.0), (100.0, 100.0), 500.0).unwrap();
+        assert!((a - 1.68).abs() < 1e-5 && (b - 0.32).abs() < 1e-5, "{a} {b}");
+        assert_eq!(traded((1.0, 1.0), (100.0, 100.0), 0.0), None);
+    }
+
+    /// R1-3: two neighbours of 20 points each (less than twice the minimum together) neither panic nor change, on a
+    /// drag or on a double click (which centres: a delta of 0 here, and of any size on a lopsided pair).
+    #[test]
+    fn small_neighbours_do_not_panic() {
+        assert_eq!(traded((1.0, 1.0), (20.0, 20.0), 5.0), None);
+        assert_eq!(traded((1.0, 1.0), (20.0, 20.0), -5.0), None);
+        assert_eq!(traded((1.0, 1.0), (20.0, 20.0), 0.0), None);
+        assert_eq!(traded((1.0, 3.0), (10.0, 30.0), (30.0 - 10.0) / 2.0), None);
+        assert_eq!(traded((1.0, 1.0), (f32::NAN, 20.0), 5.0), None);
     }
 }
