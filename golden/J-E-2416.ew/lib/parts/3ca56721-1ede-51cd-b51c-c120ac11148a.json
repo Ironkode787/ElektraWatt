@@ -4,7 +4,7 @@
   "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
   "item_id": "cdfc15d3-6c80-529b-85a7-dbe96e16f6dc",
   "version": "1.0.0",
-  "sha256": "sha256:8573d2457c143328dc854bccfd06f7f1ee426a775841aca5e32ad24fa07747a6",
+  "sha256": "sha256:ba8dc8e8d73e3fc8035bfdf116785884023d6a27b6b7a34fc258aff94181a45f",
   "meta": {
     "key": "TBD DIN rail",
     "sources": ["golden.table:parts|TBD DIN rail"],
@@ -14,8 +14,7 @@
   "manufacturer": {
     "library": "d76f5765-c456-5393-935c-4cec32a87b01",
     "item": "9ec896f8-f264-52e9-9bc2-cefa41e0435f",
-    "version_req": "*",
-    "key": "TBD"
+    "version_req": "*"
   },
   "part_number": "TBD",
   "description": "DIN rail TS 35",

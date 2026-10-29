@@ -386,7 +386,7 @@ impl<'q> SheetCx<'q> {
         let p = self.q.parts().get(Id::from_uuid(uuid))?;
         Some((
             p.item.part_number.as_str().to_owned(),
-            ew_derive::manufacturer_name(&p.item.manufacturer),
+            ew_derive::manufacturer_name(self.q, &p.item.manufacturer),
         ))
     }
 
@@ -477,7 +477,7 @@ impl ParseCx for SheetCx<'_> {
             .map(|(id, p)| super::fields::PartCopyText {
                 id: id.as_uuid().hyphenated().to_string(),
                 number: p.item.part_number.as_str().to_owned(),
-                manufacturer: ew_derive::manufacturer_name(&p.item.manufacturer),
+                manufacturer: ew_derive::manufacturer_name(self.q, &p.item.manufacturer),
                 kind: serde_json::to_value(&p.item.kind)
                     .ok()
                     .and_then(|v| v.as_str().map(str::to_owned))

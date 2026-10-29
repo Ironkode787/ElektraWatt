@@ -4,13 +4,12 @@
   "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
   "item_id": "e8fc05ea-24ba-5f99-927e-77b67cbeaa9d",
   "version": "1.0.0",
-  "sha256": "sha256:a95c22932aa4409cecf0feca558bff2d89a5b36475d2f8d87d436f1e765237ab",
+  "sha256": "sha256:2dcc32d2a63ec2b2ec3026ba40a72602f1afa39b16c8b17a6d24aa3af3c97b7b",
   "meta": {"key": "552286", "sources": ["golden.table:parts|552286"]},
   "manufacturer": {
     "library": "d76f5765-c456-5393-935c-4cec32a87b01",
     "item": "52dbf48a-f70f-55c9-8e9b-577475b13a4e",
-    "version_req": "*",
-    "key": "Festo"
+    "version_req": "*"
   },
   "part_number": "552286",
   "description": "VMPA-FB-EPLM-G pneumatic interface"

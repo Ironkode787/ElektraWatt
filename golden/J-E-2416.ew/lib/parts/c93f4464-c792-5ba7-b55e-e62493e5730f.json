@@ -4,13 +4,12 @@
   "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
   "item_id": "95217c92-41d2-5178-b4aa-925da4e94272",
   "version": "1.0.0",
-  "sha256": "sha256:c0f98b7eb27f5eda716be1a7975f11dd0f9b0a664d06e18c826c54cc8b518b16",
+  "sha256": "sha256:55e7813a190826ad4ed4d85fa872d121ef0d0e01a83352f95bd8998b7c10a9af",
   "meta": {"key": "A9P52610", "sources": ["golden.table:parts|A9P52610"]},
   "manufacturer": {
     "library": "d76f5765-c456-5393-935c-4cec32a87b01",
     "item": "1bd48037-1c0b-5035-b88c-1576b03a7e74",
-    "version_req": "*",
-    "key": "Schneider Electric"
+    "version_req": "*"
   },
   "part_number": "A9P52610",
   "description": "Miniature circuit breaker 1P+N",

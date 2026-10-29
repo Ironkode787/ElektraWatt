@@ -219,12 +219,15 @@ pub struct PartsImport {
     pub siblings: Vec<String>,
     /// The project-local part copies in the `lib/` JSON form, in `parts.csv` row order.
     pub copies: Vec<serde_json::Value>,
+    /// The project-local manufacturer copies the parts name (WP-S1.19 D10), in the `lib/` JSON form, in name order.
+    pub manufacturers: Vec<serde_json::Value>,
 }
 
 impl PartsImport {
-    /// The parameters of `parts.import`: `{"copies": [...]}`.
+    /// The parameters of `parts.import`: `{"copies": [...]}`, the part copies, then the manufacturer copies.
     pub fn params(&self) -> serde_json::Value {
-        serde_json::json!({ "copies": self.copies })
+        let copies: Vec<&serde_json::Value> = self.copies.iter().chain(&self.manufacturers).collect();
+        serde_json::json!({ "copies": copies })
     }
 }
 
@@ -305,7 +308,13 @@ pub fn parse_parts_tables(
         .filter(|(_, t)| t.is_some())
         .map(|(n, _)| (*n).to_owned())
         .collect();
+    let manufacturers = copies
+        .manufacturers
+        .into_iter()
+        .map(|c| serde_json::to_value(LibDocument::Manufacturer(c)).unwrap_or_default())
+        .collect();
     let copies = copies
+        .parts
         .into_iter()
         .map(|c| serde_json::to_value(LibDocument::Part(c)).unwrap_or_default())
         .collect();
@@ -313,6 +322,7 @@ pub fn parse_parts_tables(
         source,
         siblings,
         copies,
+        manufacturers,
     })
 }
 

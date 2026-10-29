@@ -1,0 +1,11 @@
+{
+  "$k": "manufacturer",
+  "id": "d1e6cb2a-bd95-5636-8de7-7360606571af",
+  "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
+  "item_id": "1bd48037-1c0b-5035-b88c-1576b03a7e74",
+  "version": "1.0.0",
+  "sha256": "sha256:51158c5a247a185b1be73efbbebd2104328fd33275593a836f8d0d332d4f2d54",
+  "meta": {"sources": ["golden.table:parts|A9F78116"]},
+  "key": "Schneider Electric",
+  "name": "Schneider Electric"
+}

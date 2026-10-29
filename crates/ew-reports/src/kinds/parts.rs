@@ -8,7 +8,9 @@ use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{NaturalKey, natural_key};
 use ew_derive::ew_schema::{Device, LibRef, OrderUnit, Part, ReportBlock};
 use ew_derive::ew_units::Dec3;
-use ew_derive::{BomMode, BomRows, DevicePartLines, DeviceTag, PartLine, Q};
+use ew_derive::{
+    BomMode, BomRows, DevicePartLines, DeviceTag, PartLine, Q, manufacturer_copy, manufacturer_name,
+};
 
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, LinkRef, LinkTarget, QtyUnit, Row, RowId, RowKey, RowSet};
@@ -98,7 +100,7 @@ impl PartsSummary {
                 Cell::Ident(pos),
                 qty_cell(row.qty),
                 Cell::Ident(unit_symbol(&row.unit)),
-                Cell::Ident(manufacturer_text(&row.manufacturer)),
+                Cell::Ident(manufacturer_text(q, &row.manufacturer)),
                 part_number_cell(&row.part_number),
                 Cell::Text(row.description.clone()),
                 Cell::Range(row.devices.clone()),
@@ -161,7 +163,7 @@ impl ReportKindDef for PartsList {
                         Cell::Tag(device),
                         qty_cell(line.qty),
                         Cell::Ident(unit_symbol(&part.unit)),
-                        Cell::Ident(manufacturer_text(&part.manufacturer)),
+                        Cell::Ident(manufacturer_text(q, &part.manufacturer)),
                         part_number_cell(part.part_number.as_str()),
                         Cell::Text(part.description.clone()),
                     ],
@@ -220,13 +222,14 @@ pub(super) fn unit_symbol(unit: &OrderUnit) -> String {
     }
 }
 
-/// A readable text of a manufacturer reference: the `key` an importer keeps on the reference (the project
-/// has no manufacturer table the queries can read), else the item ID.
-pub(super) fn manufacturer_text(m: &LibRef) -> String {
-    match m.extra.get("key").and_then(|k| k.as_str()) {
-        Some(k) => k.to_owned(),
-        None => m.item.as_uuid().to_string(),
+/// A readable text of a manufacturer reference: the name of the embedded manufacturer copy, else the `key` a file
+/// written before WP-S1.19 part 3 keeps on the reference (`ew_derive::manufacturer_name`), else the item ID.
+pub(super) fn manufacturer_text(q: &Q, m: &LibRef) -> String {
+    let name = manufacturer_name(q, m);
+    if name.is_empty() && manufacturer_copy(q, m).is_none() {
+        return m.item.as_uuid().to_string();
     }
+    name
 }
 
 /// The part-number cell: `Tbd` when empty or "TBD".
@@ -239,9 +242,9 @@ pub(super) fn part_number_cell(part_number: &str) -> Cell {
 }
 
 /// The manufacturer, part-number and description cells of a part.
-pub(super) fn part_cells(part: &Part) -> [Cell; 3] {
+pub(super) fn part_cells(q: &Q, part: &Part) -> [Cell; 3] {
     [
-        Cell::Ident(manufacturer_text(&part.manufacturer)),
+        Cell::Ident(manufacturer_text(q, &part.manufacturer)),
         part_number_cell(part.part_number.as_str()),
         Cell::Text(part.description.clone()),
     ]

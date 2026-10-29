@@ -80,7 +80,7 @@ fn push_configs(q: &Q, set: &mut RowSet, source: Id<Device>) -> bool {
         };
         let copy = config.part.as_ref().and_then(|p| q.parts().get(p.copy));
         let [manufacturer, part_number, description] = match copy {
-            Some(copy) => part_cells(&copy.item),
+            Some(copy) => part_cells(q, &copy.item),
             None => [
                 Cell::Empty,
                 Cell::Ident(config.order_code.as_str().to_owned()),
@@ -107,7 +107,7 @@ fn push_row(q: &Q, set: &mut RowSet, source: Id<Device>, lines: &[PartLine], ind
     let Some(copy) = q.parts().get(line.part) else {
         return;
     };
-    let [manufacturer, part_number, description] = part_cells(&copy.item);
+    let [manufacturer, part_number, description] = part_cells(q, &copy.item);
     let prefix = RowId(vec![
         RowKey::Entity(source.as_uuid()),
         RowKey::Entity(line.device.as_uuid()),

@@ -79,7 +79,7 @@ pub use csv::TableLimits;
 pub use ew_interop_api;
 pub use import::TablesImporter;
 pub use library::{BuiltinLibrary, LibraryError};
-pub use parts::{PARTS_FILE, SiblingTables, parse_parts_tables};
+pub use parts::{PARTS_FILE, PartsTables, SiblingTables, parse_parts_tables};
 /// The foreign colour notations and their IEC 60757 codes (doc 14 §4.12; the property grid's colour suggestions, WP-S2.05
 /// §4.2).
 pub use table::COLOUR_ALIASES;

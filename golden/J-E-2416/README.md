@@ -420,9 +420,10 @@ profile data of its own: everything is in these three tables.
 
 ## Stopgaps
 
-- **Manufacturer.** A part's manufacturer is a `LibRef` to `v5(ns, "manufacturers|<name>")` whose name lives only in its
-  `extra.key` member; no manufacturer copy is emitted yet. It stays this way until a manufacturer library copy exists
-  (follow-up with the parts work package; recorded by the design lead).
+- **Manufacturer** (closed in cycle 35, WP-S1.19 D10, FT-39). A part's manufacturer is a `LibRef` to `v5(ns,
+  "manufacturers|<name>")`, which resolves to the project-local manufacturer copy the bootstrap emits for every
+  manufacturer name (key and name the name, no aliases or brands). Files written before carry the name in the
+  reference's `extra.key` member instead, which the readers still take when no copy resolves.
 
 ## Test inputs (▲)
 
@@ -715,11 +716,13 @@ The filter runs the comparing test alone: nextest runs the tests of a file in pa
 `golden_fixture.rs` read the fixture while bless writes it. Bless mode only writes files; it never deletes one. A
 file the tables no longer produce is named in the failure message and removed by hand.
 
-It holds 169 files (about 0.8 MB): `manifest.json`, `project.jsonl`, `structure.jsonl`, `report-blocks.jsonl`,
-`revisions.jsonl` (the two revisions), 13 page files in `pages/`, 79 of the 256 anchor shards in `devices/` and 72
-library copies in `lib/` (fndefs, forms, parts, symbols). It holds no `waivers.jsonl`,
-`layout/`, `lib/manufacturers/` or `assets/` yet, because the bootstrap emits no records of those kinds: the
-waiver, layout and manufacturer kinds are reserved in `ew-schema` v0.
+It holds 180 files (about 0.8 MB): `manifest.json`, `project.jsonl`, `structure.jsonl`, `report-blocks.jsonl`,
+`revisions.jsonl` (the two revisions), 13 page files in `pages/`, 79 of the 256 anchor shards in `devices/` and 83
+library copies in `lib/` (21 fndefs, 4 forms, 8 manufacturers, 29 parts, 21 symbols). The 8 manufacturer copies are
+project-local like the parts (WP-S1.19 D10, cycle 35): one per manufacturer name of `parts.csv`, `item_id = v5(ns,
+"manufacturers|<name>")`, key and name the name; the parts' manufacturer references name them and carry no `key`
+member. It holds no `waivers.jsonl`, `layout/` or `assets/` yet, because the bootstrap emits no records of those
+kinds: the waiver and layout kinds are reserved in `ew-schema` v0.
 
 The test `the_fixture_is_byte_identical_to_the_bootstrap` (`crates/ew-api/tests/golden_fixture.rs`) regenerates
 the files and compares them with the directory byte for byte. It ignores only the manifest's `generator` member

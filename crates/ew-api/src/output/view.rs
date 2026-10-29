@@ -79,7 +79,7 @@ use ew_derive::ew_units::Grid;
 use ew_derive::{
     DisplayedTag, FunctionCps, GeneratedPage, PageOrder, PageRef, Policy, Q, Query, TbValue,
     TitleBlockValues, XrefTextOf, box_caption, connection_marker, frame_form_of, free_text, group_marker,
-    grouped_connections, main_part, manufacturer_name, order_code_text, tech_data_text,
+    grouped_connections, main_part, manufacturer_name, order_code_part, order_code_text, tech_data_text,
 };
 use ew_dl::Destination;
 use ew_reports::render::{RenderOptions, render};
@@ -669,9 +669,18 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &Representation, def: &SymbolDef) -> 
                 .as_ref()
                 .and_then(|d| d.process_tag.as_ref().map(|t| t.as_str().to_owned())),
             SlotKind::TechData => device.map(|d| tech_data_text(q, d)),
+            // FT-265: beside an `order_code` slot the manufacturer is the configured part's of that order code (the
+            // DP port of folio 3), else the main part's.
             SlotKind::Manufacturer => device
-                .and_then(|d| main_part(q, d))
-                .map(|p| manufacturer_name(&p.item.manufacturer)),
+                .and_then(|d| {
+                    def.text_slots
+                        .iter()
+                        .any(|s| matches!(s.kind, SlotKind::OrderCode))
+                        .then(|| order_code_part(q, d))
+                        .flatten()
+                        .or_else(|| main_part(q, d))
+                })
+                .map(|p| manufacturer_name(q, &p.item.manufacturer)),
             SlotKind::PartNumber => device
                 .and_then(|d| main_part(q, d))
                 .map(|p| p.item.part_number.as_str().to_owned()),

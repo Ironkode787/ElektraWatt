@@ -1,0 +1,11 @@
+{
+  "$k": "manufacturer",
+  "id": "221fd06e-3263-5cab-bbb9-27aee71c8d79",
+  "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
+  "item_id": "286a5453-18d1-5590-87d6-888b1c63e833",
+  "version": "1.0.0",
+  "sha256": "sha256:d36eebb3a0e958578488899b13e1304711ed9eb0b7ec98ec3f2a22e321e4f621",
+  "meta": {"sources": ["golden.table:parts|5SY4204-7"]},
+  "key": "Siemens",
+  "name": "Siemens"
+}

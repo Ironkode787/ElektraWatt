@@ -252,7 +252,7 @@ fn devices(q: &Q) -> Vec<Row> {
                 .set("has_part", !d.parts.is_empty())
                 .set(
                     "manufacturer",
-                    part.as_ref().map(|p| manufacturer_name(&p.item.manufacturer)),
+                    part.as_ref().map(|p| manufacturer_name(q, &p.item.manufacturer)),
                 )
                 .set(
                     "part_number",
@@ -986,7 +986,7 @@ fn bom(q: &Q, mode: BomMode, view: &'static View) -> Vec<Row> {
                 .set("configured", b.configured)
                 .set("part_id", uuid(b.key.part))
                 .set("variant", b.key.variant.as_ref().map(|v| v.as_str().to_owned()))
-                .set("manufacturer", manufacturer_name(&b.manufacturer))
+                .set("manufacturer", manufacturer_name(q, &b.manufacturer))
                 .set("part_number", b.part_number.as_str())
                 .set("type", b.type_designation.clone())
                 .set("description", ml_text(&b.description))

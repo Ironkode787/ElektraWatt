@@ -4,7 +4,7 @@
   "library_id": "7e570000-0000-4000-8000-000000000001",
   "item_id": "7e570000-0000-4000-8000-000000000033",
   "version": "1.0.0",
-  "sha256": "sha256:760f4f3f424e349f8f68f3a2740645b69b97f3520de42b46d70979c7499a8128",
+  "sha256": "sha256:ea113d0e781c0d47ffcdb6a2766a79e35cbccf7711dc6e7855305a721ba74b18",
   "meta": {
     "key": "MICO 4.10",
     "sources": [
@@ -14,8 +14,7 @@
   "manufacturer": {
     "library": "d76f5765-c456-5393-935c-4cec32a87b01",
     "item": "ff34c214-73ba-5dd0-b856-fac9e5216242",
-    "version_req": "*",
-    "key": "Murrelektronik"
+    "version_req": "*"
   },
   "part_number": "MICO 4.10 STARTER",
   "description": "Electronic load distribution, 4 channels",

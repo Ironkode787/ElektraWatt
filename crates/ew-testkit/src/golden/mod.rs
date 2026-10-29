@@ -149,7 +149,7 @@ pub fn embedded_copies(batch: &ImportBatch) -> Vec<LibDocument> {
 pub struct Shell {
     /// The project row.
     pub project: Project,
-    /// The project-local library items (the parts).
+    /// The project-local library items (the parts and the manufacturer copies they name, WP-S1.19 D10).
     pub lib: Vec<LibDocument>,
 }
 

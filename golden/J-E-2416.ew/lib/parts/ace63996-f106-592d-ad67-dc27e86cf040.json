@@ -4,14 +4,13 @@
   "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
   "item_id": "c4220274-08f7-5b62-90b8-a5731323cb8a",
   "version": "1.0.0",
-  "sha256": "sha256:ddc7dfb0a08e45e4cf1ebd245e757ccd03a7366c3b37e17c0ffb7a459ad2ad52",
+  "sha256": "sha256:6770a8223c3a7516ae87e2ab2eb7638c7c756dc32c17e919ca9e907069380350",
   "meta": {"key": "UK 5 N", "sources": ["golden.table:parts|UK 5 N"]},
   "kind": "terminal",
   "manufacturer": {
     "library": "d76f5765-c456-5393-935c-4cec32a87b01",
     "item": "c7cc7426-9bee-56de-807e-d6db02ca0d01",
-    "version_req": "*",
-    "key": "Phoenix Contact"
+    "version_req": "*"
   },
   "part_number": "UK 5 N",
   "description": "Feed-through terminal"

@@ -90,7 +90,7 @@ mod wires;
 mod xref;
 mod xref_format;
 
-pub use assembly::{AssemblyBreakMarks, BreakMark, BreakSide, order_code_text};
+pub use assembly::{AssemblyBreakMarks, BreakMark, BreakSide, order_code_part, order_code_text};
 pub use bom::{BomMode, BomRow, BomRowKey, BomRows, DevicePartLines, LineSource, PartLine};
 pub use cell::{
     Cell, CellOf, FrameGridOf, FrameSettings, FrameSettingsValue, FrameTypeEntry, RepAnchorCell,
@@ -140,7 +140,9 @@ pub use pages::{
     GeneratedPage, Origin, PageEntry, PageOrder, PageOrderV, PageRef, PageRefStructure, PageTitle,
     SectionStructure, folio_label, map_ml, report_pages,
 };
-pub use part_text::{main_part, manufacturer_name, tech_data_text, unit_symbol};
+pub use part_text::{
+    main_part, manufacturer_copy, manufacturer_name, part_confidence, tech_data_text, unit_symbol,
+};
 pub use pattern::{PatternError, expand_pattern};
 pub use plc::{
     ChannelAddr, ChannelAddrEntry, ChannelAddresses, ChannelStates, ChannelTarget, ChannelTargets,

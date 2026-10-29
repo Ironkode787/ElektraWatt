@@ -13,8 +13,8 @@ use ew_ids::Id;
 use ew_model::{EndpointKey, Entity, IndexName, Model, Rev, RevIndex, RowId, Table};
 use ew_schema::{
     Bond, Conductor, Connection, Device, ExternalRef, FnDef, FormDef, Function, Junction, Kind, LibCopy,
-    Page, PageItem, Part, PotentialDef, Project, Record, ReportBlock, Representation, Section, StructureBox,
-    StructureNode, SymbolDef,
+    Manufacturer, Page, PageItem, Part, PotentialDef, Project, Record, ReportBlock, Representation, Section,
+    StructureBox, StructureNode, SymbolDef,
 };
 
 use crate::memo_keys::{self, MemoInput, PartKey};
@@ -720,6 +720,11 @@ impl Q {
 
     /// Embedded form copies.
     pub fn forms(&self) -> TableView<'_, LibCopy<FormDef>> {
+        self.table()
+    }
+
+    /// Embedded manufacturer copies (WP-S1.19 D10).
+    pub fn manufacturers(&self) -> TableView<'_, LibCopy<Manufacturer>> {
         self.table()
     }
 

@@ -902,6 +902,15 @@ impl Session {
                 _ => {}
             }
         }
+        // A part's closure holds its manufacturer (WP-S1.19 D10): the held manufacturer copy travels with the part.
+        let makers: Vec<Uuid> = named
+            .iter()
+            .filter(|(k, _)| *k == Kind::Part)
+            .filter_map(|(_, id)| q.parts().get(Id::from_uuid(*id)).cloned())
+            .filter_map(|p| ew_derive::manufacturer_copy(&q, &p.item.manufacturer))
+            .map(|m| m.id.as_uuid())
+            .collect();
+        named.extend(makers.into_iter().map(|id| (Kind::Manufacturer, id)));
         let mut libs: Vec<((Kind, String, Uuid), String)> = Vec::new();
         for (kind, id) in named {
             let doc = match kind {
@@ -917,6 +926,10 @@ impl Session {
                     .fndefs()
                     .get(Id::from_uuid(id))
                     .map(|c| LibDocument::Fndef((**c).clone())),
+                Kind::Manufacturer => q
+                    .manufacturers()
+                    .get(Id::from_uuid(id))
+                    .map(|c| LibDocument::Manufacturer((**c).clone())),
                 _ => None,
             };
             let Some(doc) = doc else { continue };

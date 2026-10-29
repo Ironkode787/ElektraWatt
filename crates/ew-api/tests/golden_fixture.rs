@@ -231,7 +231,7 @@ fn the_committed_fixture_opens_read_only_without_a_lock() {
 
 #[test]
 fn the_fixture_paths_are_portable() {
-    const FIXED: [&str; 12] = [
+    const FIXED: [&str; 13] = [
         "project.jsonl",
         "structure.jsonl",
         "report-blocks.jsonl",
@@ -244,6 +244,7 @@ fn the_fixture_paths_are_portable() {
         "symbols",
         "fndefs",
         "forms",
+        "manufacturers",
     ];
     let paths = committed();
     assert!(!paths.is_empty());

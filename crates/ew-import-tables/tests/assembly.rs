@@ -76,10 +76,17 @@ fn the_golden_valve_terminal_carries_its_two_order_codes() {
             })
             .expect("the part");
         assert_eq!(part.kind, PartKind::Configured, "{key}");
-        assert_eq!(
-            part.manufacturer.extra.get("key").and_then(|v| v.as_str()),
-            Some("Festo")
-        );
+        // WP-S1.19 D10: the reference names the project-local manufacturer copy of Festo, no longer a `key`.
+        assert!(part.manufacturer.extra.is_empty(), "{key}");
+        let festo = b
+            .lib
+            .iter()
+            .find_map(|d| match d {
+                LibDocument::Manufacturer(m) if m.item_id == part.manufacturer.item => Some(&m.item),
+                _ => None,
+            })
+            .expect("the manufacturer copy");
+        assert_eq!(festo.name.as_neutral(), Some("Festo"));
     }
     // A1 covers the head itself, A2 the 11 children and the 28 valves; the lists are disjoint.
     assert_eq!(configs[0].covers.as_slice(), [device_id("-201U1")]);

@@ -10,7 +10,7 @@ use ew_ids::Id;
 use ew_ids::v5;
 use ew_schema::{
     CableCore, ClampKey, Confidence, CpData, ItemMeta, KeyedList, LibCopy, LibDocument, LibItem, LibRef,
-    Library, OrderUnit, Part, PartKind, PartSections, PotentialType, Sha256, Side, TemplateFn,
+    Library, Manufacturer, OrderUnit, Part, PartKind, PartSections, PotentialType, Sha256, Side, TemplateFn,
 };
 use serde::Serialize;
 use sha2::Digest;
@@ -183,6 +183,9 @@ pub(crate) fn emit(
     let mut tpls = by_part(cx, templates, &keys);
     let mut cable = by_part(cx, cores, &keys);
     let library = Id::<Library>::from_uuid(cx.project.as_uuid());
+    // The manufacturers the emitted parts name (WP-S1.19 D10), by name, with the source of the first part naming
+    // each: one project-local manufacturer copy each, after the parts.
+    let mut manufacturers: BTreeMap<String, (ew_mltext::Ident, String)> = BTreeMap::new();
 
     for (row, manufacturer, part_number, kind, type_designation, description, unit, test_data, tech_data) in
         heads
@@ -308,14 +311,16 @@ pub(crate) fn emit(
             cx.malformed(row, "CP pattern indexes repeat");
             continue;
         };
-        let mut manufacturer_extra = ew_schema::Extra::new();
-        manufacturer_extra.insert("key".into(), serde_json::Value::String(manufacturer.to_string()));
+        let source = match &cx.part_source {
+            Some(file) => file.clone(),
+            None => format!("golden.table:{}", source_key("parts", &key)),
+        };
+        manufacturers
+            .entry(manufacturer.as_str().to_owned())
+            .or_insert_with(|| (manufacturer.clone(), source.clone()));
         let mut meta = ItemMeta {
             key: parse_ident(&key).ok(),
-            sources: vec![match &cx.part_source {
-                Some(file) => file.clone(),
-                None => format!("golden.table:{}", source_key("parts", &key)),
-            }],
+            sources: vec![source],
             ..ItemMeta::default()
         };
         if test_data {
@@ -330,7 +335,7 @@ pub(crate) fn emit(
                 library,
                 item: record_id::<LibItem>("manufacturers", manufacturer.as_str()),
                 version_req: "*".into(),
-                extra: manufacturer_extra,
+                extra: Default::default(),
             },
             part_number,
             type_designation,
@@ -385,6 +390,31 @@ pub(crate) fn emit(
             },
         );
         cx.local_lib.push(LibDocument::Part(copy));
+    }
+    // WP-S1.19 D10 (FT-39): the manufacturer master copies the parts name, project-local like them (doc 20 ▲U-45:
+    // `item_id = v5(ns, "manufacturers|<name>")`), keyed and named by the name the table gives, in name order.
+    for (name, (ident, source)) in manufacturers {
+        let item = Manufacturer {
+            meta: ItemMeta {
+                sources: vec![source],
+                ..ItemMeta::default()
+            },
+            key: ident,
+            name: ew_mltext::MlText::neutral(&name),
+            aliases: Vec::new(),
+            brands: Vec::new(),
+            extra: Default::default(),
+        };
+        let item_id = record_id::<LibItem>("manufacturers", &name);
+        cx.local_lib.push(LibDocument::Manufacturer(LibCopy {
+            id: v5::lib_copy_id(library.as_uuid(), item_id.as_uuid()),
+            v: 1,
+            library_id: library,
+            item_id,
+            version: "1.0.0".into(),
+            sha256: item_sha256(&item),
+            item,
+        }));
     }
     super::plc::report_unknown_parts(cx, plc);
 }

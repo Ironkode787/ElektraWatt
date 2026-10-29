@@ -544,7 +544,7 @@ impl Session {
                     let text = ew_mltext::to_nfc(&format!(
                         "{} ({})",
                         p.item.part_number.as_str(),
-                        ew_derive::manufacturer_name(&p.item.manufacturer)
+                        ew_derive::manufacturer_name(&q, &p.item.manufacturer)
                     ))
                     .into_owned();
                     let mut c = base(format!("parts[{i}].part"), "find-field-part-number", text);

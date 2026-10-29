@@ -4,13 +4,12 @@
   "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
   "item_id": "70fcc693-b22b-51b9-a7d3-2c97adc24577",
   "version": "1.0.0",
-  "sha256": "sha256:d2d7adbef32df1b65342622c67abab2145500ec05dee1ad77e41eafb1edb5103",
+  "sha256": "sha256:01b6ed18303184f9555fe625a75045403a51e0f9101bc0e6688fd276428ad07b",
   "meta": {"key": "MICO 4.10", "sources": ["golden.table:parts|MICO 4.10"]},
   "manufacturer": {
     "library": "d76f5765-c456-5393-935c-4cec32a87b01",
     "item": "ff34c214-73ba-5dd0-b856-fac9e5216242",
-    "version_req": "*",
-    "key": "Murrelektronik"
+    "version_req": "*"
   },
   "part_number": "MICO 4.10",
   "description": "Electronic load distribution, 4 channels",

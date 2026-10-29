@@ -7,7 +7,9 @@
 mod common;
 
 use common::{Fx, LIBRARY, id, uid};
-use ew_derive::{Q, main_part, manufacturer_name, tech_data_text};
+use ew_derive::ew_ids::{Id, Uuid, v5};
+use ew_derive::ew_schema::Confidence;
+use ew_derive::{Q, main_part, manufacturer_name, part_confidence, tech_data_text};
 use serde_json::{Value, json};
 
 const P_MCB: u128 = 0x601;
@@ -127,7 +129,7 @@ fn the_main_part_is_the_first_part_use_and_names_its_manufacturer() {
     let q = Q::new(&m);
     let p = main_part(&q, id(0x1010)).expect("a main part");
     assert_eq!(p.item.part_number.as_str(), "533356");
-    assert_eq!(manufacturer_name(&p.item.manufacturer), "Eaton");
+    assert_eq!(manufacturer_name(&q, &p.item.manufacturer), "Eaton");
     let p = main_part(&q, id(0x1020)).expect("a main part");
     assert_eq!(p.item.part_number.as_str(), "SK 3110.000");
 }
@@ -148,5 +150,103 @@ fn a_manufacturer_without_a_name_prints_nothing() {
     let m = fx.build();
     let q = Q::new(&m);
     let p = main_part(&q, id(0x1050)).expect("a main part");
-    assert_eq!(manufacturer_name(&p.item.manufacturer), "");
+    assert_eq!(manufacturer_name(&q, &p.item.manufacturer), "");
+}
+
+/// The copy ID `v5(NS_LIBCOPY, LIBRARY ‖ item)` as text.
+fn copy_uid(item: u128) -> String {
+    v5::lib_copy_id::<()>(Uuid::from_u128(LIBRARY), Uuid::from_u128(item))
+        .as_uuid()
+        .to_string()
+}
+
+#[test]
+fn an_embedded_manufacturer_copy_names_the_manufacturer_before_the_key() {
+    // WP-S1.19 D10: the reference resolves to the copy of (library, item); the `key` of an older file is the fallback.
+    let mut fx = fixture();
+    fx.lib(json!({
+        "$k": "manufacturer", "id": copy_uid(0x9000), "library_id": uid(LIBRARY), "item_id": uid(0x9000),
+        "version": "1.0.0", "sha256": common::sha(7), "key": "ETN", "name": "Eaton Industries",
+    }));
+    let m = fx.build();
+    let q = Q::new(&m);
+    let p = main_part(&q, id(0x1010)).expect("a main part");
+    assert_eq!(manufacturer_name(&q, &p.item.manufacturer), "Eaton Industries");
+    // Without the copy the key prints, as before.
+    let m = fixture().build();
+    let q = Q::new(&m);
+    let p = main_part(&q, id(0x1010)).expect("a main part");
+    assert_eq!(manufacturer_name(&q, &p.item.manufacturer), "Eaton");
+}
+
+/// Two parts whose templates provide the main functions of FnDef items 0x50 and 0x51, and a device 0x1070 using both
+/// whose main function has the FnDef of item `main_def`, or that has no main function.
+fn two_part_device(main_def: Option<u128>) -> ew_model::Model {
+    let mut fx = fixture();
+    for item in [0x50, 0x51] {
+        fx.lib(json!({
+            "$k": "fndef", "id": copy_uid(item), "library_id": uid(LIBRARY), "item_id": uid(item),
+            "version": "1.0.0", "sha256": common::sha(9), "meta": {}, "category": ["A", "B", "C"],
+            "contact_kind": "pole", "cps": [],
+        }));
+    }
+    let template = |item: u128| json!([{"fndef": {"library": uid(LIBRARY), "item": uid(item), "version_req": "*"}, "main": true, "cps": []}]);
+    for (n, number, item) in [(0x611, "FIRST", 0x50), (0x612, "SECOND", 0x51)] {
+        fx.lib_item(
+            "part",
+            n,
+            json!({
+                "meta": {}, "kind": "device",
+                "manufacturer": {"library": uid(LIBRARY), "item": uid(0x9000), "version_req": "*", "key": "M"},
+                "part_number": number, "description": "Part", "unit": "piece", "function_template": template(item),
+            }),
+        );
+    }
+    device(&mut fx, 0x1070, &[0x611, 0x612], json!([]));
+    if let Some(item) = main_def {
+        let def = Uuid::parse_str(&copy_uid(item)).expect("uuid").as_u128();
+        fx.function(0x2070, Some(0x1070), def, true);
+    }
+    fx.build()
+}
+
+fn main_number(main_def: Option<u128>) -> String {
+    let m = two_part_device(main_def);
+    let q = Q::new(&m);
+    let p = main_part(&q, id(0x1070)).expect("a main part");
+    p.item.part_number.as_str().to_owned()
+}
+
+#[test]
+fn the_main_part_provides_the_main_function() {
+    // WP-S1.19 D8 (FT-208): the second use's template has a main function with the main function's FnDef.
+    assert_eq!(main_number(Some(0x51)), "SECOND");
+    // The first use when it provides the main function, or when no use does.
+    assert_eq!(main_number(Some(0x50)), "FIRST");
+    assert_eq!(main_number(None), "FIRST");
+}
+
+#[test]
+fn part_confidence_reads_the_section_then_its_head_then_verified() {
+    let mut fx = fixture();
+    fx.lib_item(
+        "part",
+        0x620,
+        json!({
+            "meta": {"confidence": {"sections": "test", "cp_pattern": "unverified"}}, "kind": "device",
+            "manufacturer": {"library": uid(LIBRARY), "item": uid(0x9000), "version_req": "*"},
+            "part_number": "C1", "description": "Part", "unit": "piece",
+        }),
+    );
+    let m = fx.build();
+    let q = Q::new(&m);
+    let copy = q
+        .parts()
+        .get(Id::from_uuid(Uuid::from_u128(0x620)))
+        .expect("copy")
+        .clone();
+    assert_eq!(part_confidence(&copy, "cp_pattern"), Confidence::Unverified);
+    assert_eq!(part_confidence(&copy, "sections"), Confidence::Test);
+    assert_eq!(part_confidence(&copy, "sections.plc"), Confidence::Test);
+    assert_eq!(part_confidence(&copy, "mech"), Confidence::Verified);
 }

@@ -4,13 +4,12 @@
   "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
   "item_id": "36e90052-56f9-5141-900d-0e162f2c5e88",
   "version": "1.0.0",
-  "sha256": "sha256:cf6fc59e51bc8fde272d66ad8ee5822e732cd88f07fa536f163a6be714cf43ae",
+  "sha256": "sha256:b0b41e54b26ceef7057866cbdb1e71828f5f468194410d07b92a05fb6aa575f7",
   "meta": {"key": "5SY4204-7", "sources": ["golden.table:parts|5SY4204-7"]},
   "manufacturer": {
     "library": "d76f5765-c456-5393-935c-4cec32a87b01",
     "item": "286a5453-18d1-5590-87d6-888b1c63e833",
-    "version_req": "*",
-    "key": "Siemens"
+    "version_req": "*"
   },
   "part_number": "5SY4204-7",
   "description": "Miniature circuit breaker 1P+N",

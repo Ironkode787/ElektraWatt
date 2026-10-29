@@ -331,6 +331,7 @@ fn held_sha(row: &ew_model::AnyRow) -> Option<ew_schema::Sha256> {
         AnyRow::Symbol(c) => Some(c.sha256),
         AnyRow::Fndef(c) => Some(c.sha256),
         AnyRow::Form(c) => Some(c.sha256),
+        AnyRow::Manufacturer(c) => Some(c.sha256),
         _ => None,
     }
 }
@@ -533,11 +534,13 @@ impl PasteFragment {
                 LibDocument::Symbol(c) => (c.id.cast(), c.sha256),
                 LibDocument::Fndef(c) => (c.id.cast(), c.sha256),
                 LibDocument::Form(c) => (c.id.cast(), c.sha256),
-                // a fragment carries the closure of its records (doc 07 §3.5), which names no macro or manufacturer
-                LibDocument::Macro(_) | LibDocument::Manufacturer(_) | LibDocument::Unknown(_) => {
+                // A part's closure holds its manufacturer (WP-S1.19 D10).
+                LibDocument::Manufacturer(c) => (c.id.cast(), c.sha256),
+                // a fragment carries the closure of its records (doc 07 §3.5), which names no macro
+                LibDocument::Macro(_) | LibDocument::Unknown(_) => {
                     return Err(Self::invalid(
                         &at,
-                        "not a library document of kind part, symbol, fndef or form",
+                        "not a library document of kind part, symbol, fndef, form or manufacturer",
                     ));
                 }
             };
@@ -822,7 +825,10 @@ impl Command for PasteFragment {
                 LibDocument::Form(c) => {
                     tx.insert(c)?;
                 }
-                LibDocument::Macro(_) | LibDocument::Manufacturer(_) | LibDocument::Unknown(_) => {
+                LibDocument::Manufacturer(c) => {
+                    tx.insert(c)?;
+                }
+                LibDocument::Macro(_) | LibDocument::Unknown(_) => {
                     unreachable!("refused by `copies`")
                 }
             }

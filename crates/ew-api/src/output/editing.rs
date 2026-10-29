@@ -209,7 +209,11 @@ fn fndef_copy(r: &LibRef) -> Id<FnDef> {
 
 /// The key a `LibRef` carries (`"key"` member), else empty.
 fn ref_key(r: &LibRef) -> String {
-    manufacturer_name(r)
+    r.extra
+        .get("key")
+        .and_then(|k| k.as_str())
+        .unwrap_or_default()
+        .to_owned()
 }
 
 /// An item key, else the copy's UUID text.
@@ -386,7 +390,7 @@ impl Session {
             parts.push(CataloguePart {
                 copy: id.as_uuid(),
                 part_number: part.part_number.as_str().to_owned(),
-                manufacturer: manufacturer_name(&part.manufacturer),
+                manufacturer: manufacturer_name(&q, &part.manufacturer),
                 functions,
             });
         }

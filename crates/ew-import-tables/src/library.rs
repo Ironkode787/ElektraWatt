@@ -194,6 +194,8 @@ pub(crate) fn doc_id(d: &LibDocument) -> Option<Uuid> {
         LibDocument::Symbol(c) => Some(c.id.as_uuid()),
         LibDocument::Fndef(c) => Some(c.id.as_uuid()),
         LibDocument::Form(c) => Some(c.id.as_uuid()),
+        LibDocument::Macro(c) => Some(c.id.as_uuid()),
+        LibDocument::Manufacturer(c) => Some(c.id.as_uuid()),
         _ => None,
     }
 }

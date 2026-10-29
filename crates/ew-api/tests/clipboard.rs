@@ -177,7 +177,8 @@ fn cb1_the_fragment_of_102f1_is_byte_equal_and_matches_the_expected_file() {
     let a = s.copy_fragment(&reps).unwrap();
     let b = golden().copy_fragment(&reps).unwrap();
     assert_eq!(a.text, b.text, "two runs give equal bytes");
-    assert_eq!((a.records, a.copies, a.dropped_connections), (4, 3, 0));
+    // The part, its manufacturer (WP-S1.19 D10), the symbol and the FnDef.
+    assert_eq!((a.records, a.copies, a.dropped_connections), (4, 4, 0));
     assert!(a.skipped.is_empty());
     assert!(
         a.text
@@ -205,6 +206,7 @@ fn cb1_the_fragment_of_102f1_is_byte_equal_and_matches_the_expected_file() {
             "function",
             "representation",
             "potential_def",
+            "$lib",
             "$lib",
             "$lib",
             "$lib",
@@ -534,7 +536,7 @@ fn cb3_every_rejection_at_its_pointer() {
     let mut twice = frag.clone();
     let first = twice["copies"][0].clone();
     twice["copies"].as_array_mut().unwrap().push(first);
-    assert_eq!(pointer(run(page, at, &twice).unwrap_err()), "/fragment/copies/3");
+    assert_eq!(pointer(run(page, at, &twice).unwrap_err()), "/fragment/copies/4");
     // More than 10,000 records.
     let mut many = frag.clone();
     many["records"] = json!(vec![Value::Null; 10_001]);

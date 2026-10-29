@@ -1,0 +1,11 @@
+{
+  "$k": "manufacturer",
+  "id": "35eacba5-ccf5-59f0-86c7-d0156b0a1889",
+  "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
+  "item_id": "52dbf48a-f70f-55c9-8e9b-577475b13a4e",
+  "version": "1.0.0",
+  "sha256": "sha256:9f3ff8f26aca7055fa901a4239f5988f5049c75e7077fdff37bbf916b7d471d1",
+  "meta": {"sources": ["golden.table:parts|32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS"]},
+  "key": "Festo",
+  "name": "Festo"
+}

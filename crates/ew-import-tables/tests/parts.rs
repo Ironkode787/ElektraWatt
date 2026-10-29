@@ -32,7 +32,63 @@ fn parse(
     for (n, t) in siblings {
         assert!(s.set(n, t));
     }
-    parse_parts_tables(parts, &s, project, "some/dir/parts.csv", &library())
+    parse_parts_tables(parts, &s, project, "some/dir/parts.csv", &library()).map(|t| t.parts)
+}
+
+#[test]
+fn the_golden_tables_give_the_bootstraps_manufacturer_copies() {
+    // WP-S1.19 D10 (FT-39): one project-local manufacturer copy per manufacturer name, in name order, the bootstrap's
+    // but for the provenance; the part references name them and keep no `key`.
+    let (parts, siblings) = golden();
+    let mut s = SiblingTables::default();
+    for (n, t) in &siblings {
+        assert!(s.set(n, t));
+    }
+    let golden_project = ids::project_id("J-E-2416");
+    let read =
+        parse_parts_tables(&parts, &s, golden_project, "parts.csv", &library()).expect("the tables import");
+    let names: Vec<&str> = read
+        .manufacturers
+        .iter()
+        .map(|m| m.item.name.as_neutral().expect("a neutral name"))
+        .collect();
+    assert_eq!(
+        names,
+        [
+            "Eaton",
+            "Festo",
+            "Murrelektronik",
+            "Phoenix Contact",
+            "Rittal",
+            "Schneider Electric",
+            "Siemens",
+            "TBD"
+        ]
+    );
+    let batch = TablesImporter::new(library())
+        .import(&golden_inputs(), &bootstrap_context())
+        .unwrap();
+    for m in &read.manufacturers {
+        assert_eq!(m.library_id.as_uuid(), golden_project.as_uuid());
+        assert_eq!(m.item.key.as_str(), m.item.name.as_neutral().unwrap_or_default());
+        let b = batch
+            .lib
+            .iter()
+            .find_map(|d| match d {
+                LibDocument::Manufacturer(b) if b.id == m.id => Some(b),
+                _ => None,
+            })
+            .expect("the bootstrap's copy");
+        assert_eq!((&b.item.key, &b.item.name), (&m.item.key, &m.item.name));
+    }
+    for p in &read.parts {
+        assert!(p.item.manufacturer.extra.is_empty(), "{}", p.item.part_number);
+        assert!(
+            read.manufacturers
+                .iter()
+                .any(|m| m.item_id == p.item.manufacturer.item)
+        );
+    }
 }
 
 fn project() -> Id<Project> {

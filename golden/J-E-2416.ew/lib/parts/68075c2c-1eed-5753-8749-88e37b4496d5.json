@@ -4,13 +4,12 @@
   "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
   "item_id": "801e4bf5-b638-575e-81cb-175e0345d825",
   "version": "1.0.0",
-  "sha256": "sha256:2a5d48e1ebaab1e7227cff7919ec30d2c58459bbf208fd9f1b3e58717ac61f1b",
+  "sha256": "sha256:f229e9beebe96f92e19ec7b73b0ccf548db354aaae54dea2e34ef5d0e19ca9b1",
   "meta": {"key": "2904602", "sources": ["golden.table:parts|2904602"]},
   "manufacturer": {
     "library": "d76f5765-c456-5393-935c-4cec32a87b01",
     "item": "c7cc7426-9bee-56de-807e-d6db02ca0d01",
-    "version_req": "*",
-    "key": "Phoenix Contact"
+    "version_req": "*"
   },
   "part_number": "2904602",
   "description": "Power supply 1 AC / DC",

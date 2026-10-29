@@ -1,0 +1,11 @@
+{
+  "$k": "manufacturer",
+  "id": "5b28f02a-2f37-52bc-824e-d8005ea07ebc",
+  "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
+  "item_id": "9ec896f8-f264-52e9-9bc2-cefa41e0435f",
+  "version": "1.0.0",
+  "sha256": "sha256:3a015f358515fe800228e658e1a468c20bba27a1d20234447aa37e8b93dc428b",
+  "meta": {"sources": ["golden.table:parts|TBD DIN rail"]},
+  "key": "TBD",
+  "name": "TBD"
+}

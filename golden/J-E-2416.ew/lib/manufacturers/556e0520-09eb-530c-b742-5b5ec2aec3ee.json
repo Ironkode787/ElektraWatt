@@ -1,0 +1,11 @@
+{
+  "$k": "manufacturer",
+  "id": "556e0520-09eb-530c-b742-5b5ec2aec3ee",
+  "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
+  "item_id": "e8264efc-acd3-543a-a11d-96f1be4fb97e",
+  "version": "1.0.0",
+  "sha256": "sha256:26e0f09244c8cd5658ec2d6f02cabd69aecb37b615bd4f6c824b3cf3ede3acb8",
+  "meta": {"sources": ["golden.table:parts|533356"]},
+  "key": "Eaton",
+  "name": "Eaton"
+}

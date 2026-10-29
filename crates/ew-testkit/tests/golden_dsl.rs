@@ -315,11 +315,13 @@ fn the_builder_embeds_the_non_local_library_copies() {
     let project = shell.project.id.as_uuid();
     let local = |d: &ew_schema::LibDocument| match d {
         ew_schema::LibDocument::Part(c) => c.library_id.as_uuid() == project,
+        // WP-S1.19 D10: the manufacturer copies the parts name are project-local like them.
+        ew_schema::LibDocument::Manufacturer(c) => c.library_id.as_uuid() == project,
         _ => false,
     };
     assert!(
         !shell.lib.is_empty() && shell.lib.iter().all(local),
-        "the shell keeps only project-local parts"
+        "the shell keeps only project-local parts and manufacturers"
     );
     let copies = golden::embedded_copies(&batch);
     assert!(!copies.is_empty() && !copies.iter().any(local));

@@ -19,7 +19,7 @@ use std::sync::Arc;
 
 use ew_ids::Id;
 use ew_interop_api::{ImportError, ImportMode, ReportEntry};
-use ew_schema::{LibCopy, LibDocument, Part, Project};
+use ew_schema::{LibCopy, LibDocument, Manufacturer, Part, Project};
 
 use crate::csv::{self, TableLimits};
 use crate::emit::{self, Cx};
@@ -132,7 +132,7 @@ fn load(name: &str, file: &str, text: &str, findings: &mut Findings) -> Result<O
 }
 
 /// Parses a `parts.csv` of the golden dialect and its sibling tables into project-local part copies of project
-/// `project`, in `parts.csv` row order.
+/// `project`, in `parts.csv` row order, with the manufacturer copies they name ([`PartsTables`]).
 ///
 /// `source` names the chosen file; its base name (never a path) is the copies' provenance (`meta.sources`, FR-PRT-017;
 /// no import date: the revision carries the time) and the file name of the pointers. FnDef keys of the templates
@@ -151,7 +151,7 @@ pub fn parse_parts_tables(
     project: Id<Project>,
     source: &str,
     library: &BuiltinLibrary,
-) -> Result<Vec<LibCopy<Part>>, ImportError> {
+) -> Result<PartsTables, ImportError> {
     let file = base_name(source);
     let file = if file.is_empty() { PARTS_FILE } else { file };
     let mut findings = Findings::default();
@@ -182,13 +182,26 @@ pub fn parse_parts_tables(
         plc.as_ref(),
     );
     strict(std::mem::take(&mut cx.findings))?;
-    Ok(std::mem::take(&mut cx.local_lib)
-        .into_iter()
-        .filter_map(|d| match d {
-            LibDocument::Part(c) => Some(c),
-            _ => None,
-        })
-        .collect())
+    let mut out = PartsTables::default();
+    for doc in std::mem::take(&mut cx.local_lib) {
+        match doc {
+            LibDocument::Part(c) => out.parts.push(c),
+            LibDocument::Manufacturer(c) => out.manufacturers.push(c),
+            _ => {}
+        }
+    }
+    Ok(out)
+}
+
+/// What [`parse_parts_tables`] reads: the project-local part copies in `parts.csv` row order, and the project-local
+/// manufacturer copies they name in name order (WP-S1.19 D10: `item_id = v5(ns, "manufacturers|<name>")`, the key
+/// and name the table's manufacturer cell).
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct PartsTables {
+    /// The part copies.
+    pub parts: Vec<LibCopy<Part>>,
+    /// The manufacturer copies the parts name.
+    pub manufacturers: Vec<LibCopy<Manufacturer>>,
 }
 
 #[cfg(test)]
