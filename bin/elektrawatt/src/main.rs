@@ -57,6 +57,7 @@ enum Cli {
 
 const USAGE: &str = "usage: elektrawatt [--no-gpu] [<project-dir>]\n\
        elektrawatt --headless --script <file|-> [--record <file.ewcmd>] [--config-dir <dir>] [--keep-going]\n\
+                   [--visual [--frames <dir> | --no-frames]]\n\
        elektrawatt --smoke <project-dir>\n\
        elektrawatt --version | --help";
 
@@ -67,6 +68,9 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Cli, String> {
     let mut record: Option<PathBuf> = None;
     let mut config_dir: Option<PathBuf> = None;
     let mut keep_going = false;
+    let mut visual = false;
+    let mut frames: Option<PathBuf> = None;
+    let mut no_frames = false;
     let mut smoke: Option<PathBuf> = None;
     let mut project: Option<PathBuf> = None;
     let mut no_gpu = false;
@@ -88,6 +92,9 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Cli, String> {
             "--record" => record = Some(PathBuf::from(value("--record")?)),
             "--config-dir" => config_dir = Some(PathBuf::from(value("--config-dir")?)),
             "--keep-going" => keep_going = true,
+            "--visual" => visual = true,
+            "--frames" => frames = Some(PathBuf::from(value("--frames")?)),
+            "--no-frames" => no_frames = true,
             "--smoke" => smoke = Some(PathBuf::from(value("--smoke")?)),
             "--no-gpu" => no_gpu = true,
             flag if flag.starts_with("--") => return Err(format!("unknown option {flag}")),
@@ -101,12 +108,25 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Cli, String> {
     if no_gpu && (headless || smoke.is_some()) {
         return Err("--no-gpu is for the window (the headless and smoke modes use no GPU)".to_owned());
     }
+    // WP-S6.13 part 4 (BV1): the visual driver is a headless mode; its frame options need it.
+    if visual && !headless {
+        return Err("--visual needs --headless".to_owned());
+    }
+    if (frames.is_some() || no_frames) && !visual {
+        return Err("--frames and --no-frames need --visual".to_owned());
+    }
+    if frames.is_some() && no_frames {
+        return Err("--frames and --no-frames exclude each other".to_owned());
+    }
     match (headless, script, smoke) {
         (true, Some(script), None) if project.is_none() => Ok(Cli::Headless(HeadlessArgs {
             script,
             record,
             config_dir,
             keep_going,
+            visual,
+            frames,
+            no_frames,
         })),
         (true, None, _) => Err("--headless needs --script <file|->".to_owned()),
         (true, _, _) => Err("--headless takes a script and no project or --smoke".to_owned()),
@@ -602,7 +622,10 @@ mod tests {
                 script: ScriptSource::File(PathBuf::from("s.jsonl")),
                 record: None,
                 config_dir: None,
-                keep_going: false
+                keep_going: false,
+                visual: false,
+                frames: None,
+                no_frames: false
             }))
         );
         assert_eq!(
@@ -611,7 +634,10 @@ mod tests {
                 script: ScriptSource::Stdin,
                 record: Some(PathBuf::from("r.ewcmd")),
                 config_dir: None,
-                keep_going: false
+                keep_going: false,
+                visual: false,
+                frames: None,
+                no_frames: false
             }))
         );
         assert_eq!(
@@ -620,7 +646,10 @@ mod tests {
                 script: ScriptSource::Stdin,
                 record: None,
                 config_dir: None,
-                keep_going: true
+                keep_going: true,
+                visual: false,
+                frames: None,
+                no_frames: false
             }))
         );
         assert_eq!(
@@ -629,7 +658,10 @@ mod tests {
                 script: ScriptSource::File(PathBuf::from("s")),
                 record: None,
                 config_dir: Some(PathBuf::from("c")),
-                keep_going: false
+                keep_going: false,
+                visual: false,
+                frames: None,
+                no_frames: false
             }))
         );
         assert!(parse(&["--config-dir", "c"]).is_err());
@@ -642,6 +674,61 @@ mod tests {
         assert!(parse(&["--record", "r"]).is_err());
         assert!(parse(&["--headless", "--script"]).is_err());
         assert!(parse(&["--headless", "--script", "s", "p.ew"]).is_err());
+    }
+
+    /// WP-S6.13 part 4 BV1: `--visual` only with `--headless` (else a usage error, exit 2); `--frames` and
+    /// `--no-frames` only with `--visual`, and not together.
+    #[test]
+    fn the_visual_flags_belong_to_the_headless_mode() {
+        assert_eq!(
+            parse(&[
+                "--headless",
+                "--visual",
+                "--script",
+                "-",
+                "--frames",
+                "f",
+                "--keep-going"
+            ]),
+            Ok(Cli::Headless(HeadlessArgs {
+                script: ScriptSource::Stdin,
+                record: None,
+                config_dir: None,
+                keep_going: true,
+                visual: true,
+                frames: Some(PathBuf::from("f")),
+                no_frames: false
+            }))
+        );
+        assert!(matches!(
+            parse(&["--headless", "--visual", "--script", "s", "--no-frames"]),
+            Ok(Cli::Headless(HeadlessArgs {
+                visual: true,
+                no_frames: true,
+                frames: None,
+                ..
+            }))
+        ));
+        assert_eq!(parse(&["--visual"]), Err("--visual needs --headless".to_owned()));
+        assert_eq!(
+            parse(&["--visual", "p.ew"]),
+            Err("--visual needs --headless".to_owned())
+        );
+        assert!(parse(&["--headless", "--script", "s", "--frames", "f"]).is_err());
+        assert!(parse(&["--headless", "--script", "s", "--no-frames"]).is_err());
+        assert!(
+            parse(&[
+                "--headless",
+                "--visual",
+                "--script",
+                "s",
+                "--frames",
+                "f",
+                "--no-frames"
+            ])
+            .is_err()
+        );
+        assert!(USAGE.contains("--visual"));
     }
 
     #[test]
