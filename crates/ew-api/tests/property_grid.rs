@@ -5,9 +5,9 @@
 //! field catalogue against `tests/expected/field_catalogue.txt`, the routes, the property sheet of Golden A's records
 //! with its derived rows and chips, and the editors' parse and display rules on the project's data.
 //!
-//! A stale expected catalogue fails the test, which writes the catalogue as built to
-//! `target/tmp/field_catalogue.txt` (`CARGO_TARGET_TMPDIR`): review the difference and copy it over; a missing one is
-//! written. The reviewer reads its settable paths that fall back to `json`.
+//! A stale expected catalogue fails the test, which writes the catalogue as built to `field_catalogue.txt` in a new
+//! folder under `target/tmp` (`CARGO_TARGET_TMPDIR`, created when missing, FT-627; the failure names the path): review
+//! the difference and copy it over; a missing one is written. The reviewer reads its settable paths that fall back to `json`.
 
 mod golden_common;
 
@@ -85,7 +85,14 @@ fn pg1_the_catalogue_is_the_expected_one() {
         .unwrap_or_default()
         .replace("\r\n", "\n");
     if expected != text {
-        let actual = Path::new(env!("CARGO_TARGET_TMPDIR")).join("field_catalogue.txt");
+        // FT-627: `target/tmp` can be missing on a fresh runner (a nextest archive run); `fresh_dir_in` creates it.
+        static COUNTER: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+        let dir = ew_testdir::fresh_dir_in(
+            Path::new(env!("CARGO_TARGET_TMPDIR")),
+            "field-catalogue",
+            &COUNTER,
+        );
+        let actual = dir.join("field_catalogue.txt");
         std::fs::write(&actual, &text).unwrap();
         panic!(
             "tests/expected/field_catalogue.txt is stale: the catalogue as built is in {}; review the difference and \
