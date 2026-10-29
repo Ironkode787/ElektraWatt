@@ -519,6 +519,62 @@ fn golden_a_ew_core_part3_reports_the_ef_rows() {
     assert_eq!(subjects(&online, "EW-CORE-037"), Vec::<(String, String)>::new());
 }
 
+/// WP-S1.16 part 4 on Golden A (doc 20 §18.1): EF-12 is EW-CORE-061 twice (the styles `cp.small` and `marker`,
+/// D-31), EF-18 is EW-RDS-003 once (T55, a temperature switch with the letter T); every other rule of pages, texts,
+/// designations and terminals reports nothing in the pre-delivery scheme, and the rule system itself (EW-CORE-083,
+/// -084) is quiet. Online in the drafting scheme EW-RDS-002 reports the two location codes with a separator
+/// (J-E-206, J-E-2416), and EW-CORE-063, -071 and EW-TERM-003 report nothing.
+#[test]
+fn golden_a_part4_reports_the_ef_rows() {
+    let batch = golden_common::batch();
+    let s = golden_common::session(&batch);
+    let report = s.check(&PRE_DELIVERY, CheckMode::Release);
+    assert_eq!(
+        subjects(&report, "EW-CORE-061"),
+        expected(&[("warning", "cp.small"), ("warning", "marker")])
+    );
+    assert_eq!(
+        subjects(&report, "EW-RDS-003"),
+        expected(&[("warning", "=P01+J-E-2416-T55")])
+    );
+    for zero in [
+        "EW-CORE-008",
+        "EW-CORE-021",
+        "EW-CORE-022",
+        "EW-CORE-025",
+        "EW-CORE-026",
+        "EW-CORE-083",
+        "EW-CORE-084",
+        "EW-NUM-002",
+        "EW-RDS-001",
+        "EW-RDS-007",
+        "EW-RDS-009",
+        "EW-RDS-010",
+        "EW-TERM-004",
+    ] {
+        assert!(
+            report.rules.iter().any(|r| r.id == zero),
+            "{zero} ran in the pre-delivery scheme"
+        );
+        assert_eq!(subjects(&report, zero), Vec::<(String, String)>::new(), "{zero}");
+    }
+    let online = s.check(&checks::DRAFTING, CheckMode::Online);
+    for f in online
+        .findings
+        .iter()
+        .filter(|f| ["EW-RDS-002", "EW-CORE-063", "EW-CORE-071", "EW-TERM-003"].contains(&f.rule))
+    {
+        println!("  {} {} {}: {}", f.severity, f.rule, f.subject, f.message);
+    }
+    assert_eq!(
+        subjects(&online, "EW-RDS-002"),
+        expected(&[("info", "+J-E-206"), ("info", "+J-E-2416")])
+    );
+    for zero in ["EW-CORE-063", "EW-CORE-071", "EW-TERM-003"] {
+        assert_eq!(subjects(&online, zero), Vec::<(String, String)>::new(), "{zero}");
+    }
+}
+
 /// D-15 (P3-2): a `Tbd` channel address is an open item: EW-CORE-044 reports it as an error in release mode (EW-PLC-015
 /// supersedes it once built).
 #[test]
@@ -549,4 +605,16 @@ fn golden_a_d15_a_tbd_channel_address_is_an_open_item() {
         "{}",
         open[0].message
     );
+}
+
+/// EW-CORE-061 and -063 read a copy of the built-in text-style table (ew-checks may not depend on ew-text,
+/// `ci/dep-rules.toml`); the copy holds the same keys and sizes in the same order.
+#[test]
+fn text_styles_of_the_checks_match_ew_text() {
+    let theirs: Vec<(&str, u16)> = ew_text::builtin()
+        .rows()
+        .iter()
+        .map(|r| (r.key, r.qet_px))
+        .collect();
+    assert_eq!(checks::rules::page::TEXT_STYLES, theirs.as_slice());
 }

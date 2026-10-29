@@ -287,9 +287,13 @@ fn integrity_items_join_the_counts_in_release_mode_only() {
             },
         ]
     };
+    // The project-wide rules report on the strip without items too (EW-CORE-061's two text styles, EW-CORE-026's
+    // strip without a terminal diagram): the items add to those counts.
+    let base = run(&Q::new(&m), &PRE_DELIVERY, CheckMode::Release);
+    assert_eq!(base.counts.errors, 0, "{:#?}", base.findings);
     let release = run(&Q::new(&m), &PRE_DELIVERY, CheckMode::Release).with_integrity(items());
     assert_eq!(release.counts.errors, 1, "{:#?}", release.findings);
-    assert_eq!(release.counts.warnings, 0);
+    assert_eq!(release.counts.warnings, base.counts.warnings);
     assert_eq!(release.exit_code(), 1);
     assert!(
         release

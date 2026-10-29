@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! EW-CORE device and part rules of the 04x block (doc 15 §4.2; WP-S1.16 part 3): EW-CORE-041 to -045 and -048,
-//! and EW-CORE-008's `form` half (FT-368). EW-CORE-047 is in [`core`](super::core).
+//! and EW-CORE-008's `form` half (FT-368) and `channel` half (FT-229, part 4). EW-CORE-047 is in [`core`](super::core).
 //!
 //! # Determinism (WP-S1.16 §10)
 //!
@@ -13,7 +13,9 @@ use std::collections::BTreeMap;
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::natural_cmp;
-use ew_derive::ew_schema::{AddrSpec, BomBasis, ContactKind, Device, FormDef, Kind, LibCopy, Page, Part};
+use ew_derive::ew_schema::{
+    AddrSpec, BomBasis, Channel, ContactKind, Device, FormDef, Kind, LibCopy, Page, Part,
+};
 use ew_derive::{ChannelsByModule, FrameSettings, Q, folio_label, manufacturer_name};
 
 use crate::finding::{Finding, Severity, Target};
@@ -561,18 +563,26 @@ impl Rule for OrderCodesCover {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// EW-CORE-008, the `form` half (FT-368)
+// EW-CORE-008, the `form` (FT-368) and `channel` (FT-229) halves
 
-/// EW-CORE-008 `form`: a page without a form of its own whose frame defaults (`settings.frames`, doc 03 §5.1) name a
-/// form copy the project does not hold, so its frame falls through to the next rule (decision log ID-547 item 4,
-/// FT-368). A page's own `form` is a checked link (`Model::from_records` refuses a dangling one); the frame defaults
-/// are a settings member that is not. Reported per stored page, as the cell grid resolves it (`FrameGridOf`): the
-/// entry of the page's type, then the default, whichever the resolution consults and finds missing. Target the page, discriminator `form`. An integrity rule of release mode: it runs in `ew check` and the
-/// release gate, not online.
+/// EW-CORE-008, the dangling references a loaded model can hold. An integrity rule of release mode: it runs in `ew
+/// check` and the release gate, not online. Two halves, by discriminator:
+///
+/// - **`form`** (FT-368): a page without a form of its own whose frame defaults (`settings.frames`, doc 03 §5.1)
+///   name a form copy the project does not hold, so its frame falls through to the next rule (decision log ID-547
+///   item 4). A page's own `form` is a checked link (`Model::from_records` refuses a dangling one); the frame
+///   defaults are a settings member that is not. Reported per stored page, as the cell grid resolves it
+///   (`FrameGridOf`): the entry of the page's type, then the default, whichever the resolution consults and finds
+///   missing. Target the page.
+/// - **`channel`** (FT-229, WP-S1.16 part 4): a PLC channel whose module carries no `plc_module` aspect, which an
+///   older build that deleted the module's aspect leaves behind (ID-334; a missing module is a checked link the model
+///   refuses on open). Target the channel and the device, subject `<device tag>:<channel number>`. The delete quick
+///   fix of FT-229 waits for a command that deletes a channel (`edit.delete` does not take one; WP-S1.16 §11.2
+///   item 6).
 #[derive(Clone, Copy, Debug)]
-pub struct DanglingFrameForm;
+pub struct DanglingReference;
 
-impl Rule for DanglingFrameForm {
+impl Rule for DanglingReference {
     fn meta(&self) -> &'static RuleMeta {
         &DANGLING_REFERENCE
     }
@@ -581,62 +591,108 @@ impl Rule for DanglingFrameForm {
         if *scope != Scope::Project {
             return Vec::new();
         }
-        let settings = q.get::<FrameSettings>(());
-        let forms = q.forms();
-        let held = |id: Id<FormDef>| forms.contains(id);
-        let mut pages: Vec<(Id<Page>, String)> = q
-            .pages()
-            .iter()
-            .filter(|(_, p)| p.form.is_none())
-            .map(|(id, p)| (id, folio_label(p)))
-            .collect();
-        pages.sort_by(|a, b| {
-            natural_cmp(&a.1, &b.1)
-                .then_with(|| a.1.cmp(&b.1))
-                .then_with(|| a.0.cmp(&b.0))
-        });
-        let mut out = Vec::new();
-        for (id, folio) in pages {
-            let Some(page) = q.pages().get(id) else {
-                continue;
-            };
-            let type_name = serde_json::to_value(&page.kind)
-                .ok()
-                .and_then(|v| v.as_str().map(str::to_owned))
-                .unwrap_or_default();
-            let mut missing: Vec<String> = Vec::new();
-            let entry = settings
-                .per_page_type
-                .iter()
-                .find(|e| e.page_type == type_name)
-                .and_then(|e| e.form);
-            match entry {
-                Some(f) if held(f) => continue,
-                Some(f) => missing.push(format!("the frame for page type {type_name} names form copy {f}")),
-                None => {}
-            }
-            if let Some(f) = settings.default
-                && !held(f)
-            {
-                missing.push(format!("the default frame names form copy {f}"));
-            }
-            if missing.is_empty() {
-                continue;
-            }
-            out.push(
-                Finding::new(
-                    &DANGLING_REFERENCE,
-                    [Target::new(Kind::Page, id)],
-                    "form",
-                    format!("folio {folio}"),
-                    format!(
-                        "folio {folio}: {}, which the project does not hold; the page takes the next frame",
-                        missing.join(", and ")
-                    ),
-                )
-                .on_page(id),
-            );
-        }
+        let mut out = dangling_frame_forms(q);
+        out.extend(orphan_channels(q));
         out
     }
+}
+
+/// EW-CORE-008 `channel`: the channels whose module is not a PLC module, in natural order of their printed subject.
+fn orphan_channels(q: &Q) -> Vec<Finding> {
+    type Row = (String, (Id<Channel>, Id<Device>));
+    let devices = q.devices();
+    let mut rows: Vec<Row> = q
+        .table::<Channel>()
+        .iter()
+        .filter(|(_, c)| {
+            devices
+                .get(c.module)
+                .is_some_and(|d| d.aspects.plc_module.is_none())
+        })
+        .map(|(id, c)| {
+            let tag = full_tag(q, c.module, "device");
+            (format!("{tag}:{}", c.number), (id, c.module))
+        })
+        .collect();
+    rows.sort_by(|a, b| {
+        natural_cmp(&a.0, &b.0)
+            .then_with(|| a.0.cmp(&b.0))
+            .then_with(|| a.1.cmp(&b.1))
+    });
+    rows.into_iter()
+        .map(|(subject, (id, module))| {
+            let tag = full_tag(q, module, "device");
+            Finding::new(
+                &DANGLING_REFERENCE,
+                [Target::new(Kind::Channel, id), Target::new(Kind::Device, module)],
+                "channel",
+                subject.clone(),
+                format!(
+                    "channel {subject} belongs to {tag}, which is not a PLC module; delete the channel or make {tag} a \
+                     module again"
+                ),
+            )
+        })
+        .collect()
+}
+
+/// EW-CORE-008 `form`: the pages whose frame defaults name a form copy the project does not hold.
+fn dangling_frame_forms(q: &Q) -> Vec<Finding> {
+    let settings = q.get::<FrameSettings>(());
+    let forms = q.forms();
+    let held = |id: Id<FormDef>| forms.contains(id);
+    let mut pages: Vec<(Id<Page>, String)> = q
+        .pages()
+        .iter()
+        .filter(|(_, p)| p.form.is_none())
+        .map(|(id, p)| (id, folio_label(p)))
+        .collect();
+    pages.sort_by(|a, b| {
+        natural_cmp(&a.1, &b.1)
+            .then_with(|| a.1.cmp(&b.1))
+            .then_with(|| a.0.cmp(&b.0))
+    });
+    let mut out = Vec::new();
+    for (id, folio) in pages {
+        let Some(page) = q.pages().get(id) else {
+            continue;
+        };
+        let type_name = serde_json::to_value(&page.kind)
+            .ok()
+            .and_then(|v| v.as_str().map(str::to_owned))
+            .unwrap_or_default();
+        let mut missing: Vec<String> = Vec::new();
+        let entry = settings
+            .per_page_type
+            .iter()
+            .find(|e| e.page_type == type_name)
+            .and_then(|e| e.form);
+        match entry {
+            Some(f) if held(f) => continue,
+            Some(f) => missing.push(format!("the frame for page type {type_name} names form copy {f}")),
+            None => {}
+        }
+        if let Some(f) = settings.default
+            && !held(f)
+        {
+            missing.push(format!("the default frame names form copy {f}"));
+        }
+        if missing.is_empty() {
+            continue;
+        }
+        out.push(
+            Finding::new(
+                &DANGLING_REFERENCE,
+                [Target::new(Kind::Page, id)],
+                "form",
+                format!("folio {folio}"),
+                format!(
+                    "folio {folio}: {}, which the project does not hold; the page takes the next frame",
+                    missing.join(", and ")
+                ),
+            )
+            .on_page(id),
+        );
+    }
+    out
 }

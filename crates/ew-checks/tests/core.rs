@@ -213,7 +213,7 @@ fn shipped_rules_carry_their_catalogue_metadata() {
     let table = [
         ("EW-CORE-033", "003033", "Cable without length", Completeness, (true, false, true), Error, Cable),
         ("EW-CORE-051", "103051", "Unpaired interruption point", Completeness, (true, false, true), Error, Project),
-        ("EW-CORE-052", "103052", "Ambiguous interruption point", Conflict, (true, false, true), Error, Project),
+        ("EW-CORE-052", "103052", "Ambiguous interruption point", Conflict, (true, true, true), Error, Project),
         ("EW-POT-001", "005001", "Type or voltage conflict", Conflict, (true, false, true), Error, Potential),
         ("EW-POT-008", "005008", "PE island", Conflict, (true, false, true), Warning, Project),
         ("EW-POT-011", "005011", "Junction feed ambiguous", Conflict, (true, false, false), Warning, Potential),
@@ -254,7 +254,14 @@ fn clean_model_has_no_finding_from_any_shipped_rule() {
     fx.with_parts(0x21001, &[0x7100]).with_parts(0x21002, &[0x7100]);
     let m = fx.build();
     let report = run(&Q::new(&m), &FULL, CheckMode::Online);
-    assert!(report.findings.is_empty(), "{:#?}", report.findings);
+    // EW-CORE-061 reports the project's text styles below the minimum cap height, and the built-in table has two
+    // (`cp.small`, `marker`) in every project until project text styles exist (WP-S1.12).
+    let findings: Vec<_> = report
+        .findings
+        .iter()
+        .filter(|f| f.rule != "EW-CORE-061")
+        .collect();
+    assert!(findings.is_empty(), "{findings:#?}");
     assert!(report.rules.len() >= 12, "every online rule ran");
 }
 

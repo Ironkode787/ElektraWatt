@@ -15,7 +15,7 @@ use common::{Tmp, at, done, refused};
 use ew_viewmodel::layout::PaneKind;
 use ew_viewmodel::navigators::{NavKind, NavNode, NavRole};
 use ew_viewmodel::properties::CardOrigin;
-use ew_viewmodel::shell::{Focus, Mode, ShellModel};
+use ew_viewmodel::shell::{Focus, Mode, Outcome, ShellModel};
 use serde_json::json;
 
 fn table(shell: &ShellModel) -> std::sync::Arc<ew_viewmodel::navigators::NavTable> {
@@ -96,6 +96,15 @@ fn grid_point(s: &ShellModel, k: (i64, i64)) -> (i64, i64) {
 
 /// Places an interruption point named `name` at grid index `k` of the shown page, with direction `direction`.
 fn place_ip(s: &mut ShellModel, name: &str, k: (i64, i64), direction: &str) {
+    arm_ip(s, name, k, direction);
+    let rev = s.revision();
+    done(s, "canvas.activate", json!({}));
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "one IP placed");
+    done(s, "ui.dismiss", json!({}));
+}
+
+/// Arms the IP tool with name `name` and direction `direction` at grid index `k` of the shown page.
+fn arm_ip(s: &mut ShellModel, name: &str, k: (i64, i64), direction: &str) {
     done(s, "tool.ip", json!({}));
     let p = grid_point(s, k);
     let q = sheet(s, p);
@@ -109,10 +118,6 @@ fn place_ip(s: &mut ShellModel, name: &str, k: (i64, i64), direction: &str) {
         done(s, "tool.ip_direction", json!({}));
     }
     assert_eq!(common::state(s)["canvas"]["ghost"]["direction"], direction);
-    let rev = s.revision();
-    done(s, "canvas.activate", json!({}));
-    assert_eq!(s.revision(), rev.map(|r| r + 1), "one IP placed");
-    done(s, "ui.dismiss", json!({}));
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -306,8 +311,7 @@ fn ms2_run_checks_ends_pending_and_a_conflict_is_never_pending() {
             && toast.contains(&format!("{} warning", c.warnings)),
         "{toast} / {c:?}"
     );
-    // A second source of an existing name on 101: EW-CORE-052 (conflict), never pending, while the new commit makes
-    // 101 the editing page again (so MSGTEST's finding is pending once more).
+    // A second source of an existing name on 101 is EW-CORE-052, which prevents the commit (FT-194).
     let e_before = errors(&shell);
     done(&mut shell, "navigator.show", json!({"kind": "ips"}));
     let ips = shell.nav(NavKind::Ips).and_then(|n| n.table()).cloned().unwrap();
@@ -318,8 +322,28 @@ fn ms2_run_checks_ends_pending_and_a_conflict_is_never_pending() {
         .map(|n| n.cells[0].clone())
         .expect("a source point in Golden A");
     done(&mut shell, "navigator.show", json!({"kind": "ips", "on": false}));
-    place_ip(&mut shell, &source, (60, 6), "source");
-    let conflict = finding(&shell, "EW-CORE-052", &source);
+    let rev = shell.revision();
+    arm_ip(&mut shell, &source, (60, 6), "source");
+    match shell.dispatch("canvas.activate", &json!({})) {
+        Outcome::Failed { message } => assert!(message.contains("EW-CORE-052"), "{message}"),
+        other => panic!("{other:?}"),
+    }
+    assert_eq!(shell.revision(), rev, "nothing committed");
+    done(&mut shell, "ui.dismiss", json!({}));
+    // Page 101 renumbered to 250, outside section 1's range: EW-CORE-021 (conflict), never pending, while the commit
+    // makes the page the editing page again (so MSGTEST's finding is pending once more).
+    let page = shell
+        .page_rows()
+        .iter()
+        .find(|r| r.folio == "101")
+        .map(|r| r.id.to_string())
+        .unwrap();
+    done(
+        &mut shell,
+        "command.run",
+        json!({"cmd": "page.renumber", "params": {"scope": {"pages": [page]}, "start": 250}}),
+    );
+    let conflict = finding(&shell, "EW-CORE-021", "folio 250");
     assert!(
         conflict
             .facets
@@ -329,12 +353,12 @@ fn ms2_run_checks_ends_pending_and_a_conflict_is_never_pending() {
     assert!(shell.row_pending(NavKind::Messages, &row.key));
     // The conflict counts as an error; MSGTEST's finding left the errors for `pending`.
     assert_eq!(errors(&shell), e_before);
-    // Pending: MSGTEST's finding and the open completeness findings Golden A already has on 101.
+    // Pending: MSGTEST's finding and the open completeness findings Golden A already has on the page.
     assert_eq!(
         shell.messages_counts().unwrap().pending,
-        completeness_on(&shell, "101")
+        completeness_on(&shell, "250")
     );
-    assert!(completeness_on(&shell, "101") >= 1);
+    assert!(completeness_on(&shell, "250") >= 1);
     shell.shutdown();
 }
 
@@ -506,6 +530,7 @@ fn ms4_f8_walks_and_wraps_and_opens_the_pane_and_f1_opens_the_rule_page() {
     );
     // Shift+F8 twice wraps to the last finding.
     done(&mut shell, "messages.previous", json!({}));
+    // The last finding has no page (EW-RDS-002 on a structure node): the cursor goes to it and nothing opens.
     done(&mut shell, "messages.previous", json!({}));
     assert_eq!(
         shell.nav_cursor(NavKind::Messages).as_deref(),

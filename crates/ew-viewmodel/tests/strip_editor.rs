@@ -326,8 +326,9 @@ fn se8_group_labels_through_the_table_and_the_properties_row() {
 
 /// SE9 (§6.4, D12, D14, FR-TRM-015): Insert before -X1031:5 (one `terminal.insert`, the toast, the cursor on the new
 /// row); Ctrl+Delete on two terminal rows opens the card with their bridges and wires and commits nothing; on an
-/// accessory row it commits with the toast; on a mix it is refused; Alt+Up on :13 three times puts it at seq 10's place
-/// in three steps, undone by three undos. (Enter-to-place, §6.8, is descoped from part 1.)
+/// accessory row it commits with the toast; on a mix it is refused; Alt+Up on :15 three times puts it at seq 12's place
+/// in three steps (inside bridge group BR5), undone by three undos; a move that takes :2 out of BR1 fails with
+/// EW-TERM-004 (CI-06, a prevent invariant). (Enter-to-place, §6.8, is descoped from part 1.)
 #[test]
 fn se9_insert_delete_and_move_rows() {
     let tmp = Tmp::new("se9");
@@ -397,9 +398,9 @@ fn se9_insert_delete_and_move_rows() {
     );
     done(&mut shell, "edit.undo", json!({}));
 
-    // Move :13 up three times.
-    let k13 = row(&shell, "Terminal", "13");
-    mark(&mut shell, std::slice::from_ref(&k13));
+    // Move :15 up three times: it stays inside BR5 (11 to 20), so every bridge group stays consecutive (CI-06).
+    let k15 = row(&shell, "Terminal", "15");
+    mark(&mut shell, std::slice::from_ref(&k15));
     let n = steps(&shell);
     for k in 1..=3 {
         done(&mut shell, "strip.move", json!({"step": -1}));
@@ -411,8 +412,8 @@ fn se9_insert_delete_and_move_rows() {
         ["toast \"Moved 1 terminal of -X1031\" undo"]
     );
     let terminals = texts(&shell, "Terminal");
-    assert_eq!(terminals[8..13], ["9", "13", "10", "11", "12"]);
-    assert_eq!(cursor(&shell), k13, "the cursor follows the row");
+    assert_eq!(terminals[10..15], ["11", "15", "12", "13", "14"]);
+    assert_eq!(cursor(&shell), k15, "the cursor follows the row");
     // The first row cannot move up.
     let k1 = row(&shell, "Terminal", "1");
     mark(&mut shell, std::slice::from_ref(&k1));
@@ -429,8 +430,14 @@ fn se9_insert_delete_and_move_rows() {
     mark(&mut shell, std::slice::from_ref(&k2));
     done(&mut shell, "strip.move", json!({"step": 1}));
     assert_eq!(texts(&shell, "Terminal")[..4], ["1", "3", "2", "4"]);
-    done(&mut shell, "strip.move", json!({"before": "end"}));
-    assert_eq!(texts(&shell, "Terminal").last().map(String::as_str), Some("2"));
+    // To the end: :2 would leave bridge group BR1 (1 to 4), which EW-TERM-004 prevents; nothing is committed.
+    let n = steps(&shell);
+    match shell.dispatch("strip.move", &json!({"before": "end"})) {
+        Outcome::Failed { message } => assert!(message.contains("EW-TERM-004"), "{message}"),
+        other => panic!("{other:?}"),
+    }
+    assert_eq!(steps(&shell), n, "nothing committed");
+    assert_eq!(texts(&shell, "Terminal")[..4], ["1", "3", "2", "4"]);
     done(&mut shell, "strip.move", json!({"before": "1"}));
     assert_eq!(texts(&shell, "Terminal")[..3], ["2", "1", "3"]);
     shell.shutdown();

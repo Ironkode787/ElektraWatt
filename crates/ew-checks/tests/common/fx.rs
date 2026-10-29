@@ -364,6 +364,16 @@ impl Fx {
         self
     }
 
+    /// A report form copy `n` (A4 landscape) for report blocks.
+    pub fn form(&mut self, n: u128) -> &mut Fx {
+        self.lib_item(
+            "form",
+            n,
+            &json!({"kind": "report", "sheet": {"width": 297_000_000, "height": 210_000_000}}),
+        );
+        self
+    }
+
     /// Gives the record with ID `n` (a device) the part uses `parts`, one piece each.
     pub fn with_parts(&mut self, n: u128, parts: &[u128]) -> &mut Fx {
         let id = us(n);

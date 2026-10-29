@@ -13,8 +13,11 @@ use ew_derive::{Policy, PotentialPartition, Q, Query};
 
 use crate::finding::{Finding, FindingState, Fingerprint, Severity, Target, sort_findings};
 use crate::registry::{rule, rules};
-use crate::rule::{RuleMeta, Scope, ScopeKind, Touched};
+use crate::rule::{Rule, RuleMeta, Scope, ScopeKind, Touched};
 use crate::rules::core::{INTEGRITY, WAIVER_MATCHES_NOTHING};
+use crate::rules::system::{
+    DataTable, PACK_NOT_EVALUATED, data_tables, pack_findings, prevent_caught, run_caught,
+};
 use crate::scheme::{CheckMode, Scheme};
 
 /// `check_findings(rule, scope)`: the findings of one shipped rule in one scope, at the rule's own
@@ -50,7 +53,7 @@ impl Query for CheckOf {
     fn run(q: &Q, key: &(&'static str, Scope)) -> Arc<Vec<Finding>> {
         let (id, scope) = key;
         let mut out = match rule(id) {
-            Some(r) if r.meta().scope == scope.kind() => r.run(q, scope),
+            Some(r) if r.meta().scope == scope.kind() => run_caught(r, q, scope),
             _ => Vec::new(),
         };
         sort_findings(&mut out);
@@ -256,13 +259,31 @@ fn supersede(findings: Vec<Finding>) -> Vec<Finding> {
 /// scope of its kind, through the memo family [`CheckOf`]; then the effective severities (§3.2),
 /// supersession (§3.6), waivers (§2.5) and EW-CORE-081 for waivers that match nothing; the findings sorted
 /// in canonical order ([`Finding::order_cmp`], §3.9, FT-594).
+///
+/// A rule that panics in a scope yields EW-CORE-083 there and leaves every other finding as it is; a rule whose data
+/// table does not load is not evaluated and EW-CORE-084 names it (WP-S1.16 part 4).
 pub fn run(q: &Q, scheme: &Scheme, mode: CheckMode) -> CheckReport {
+    run_rules(q, scheme, mode, rules(), &data_tables(), true)
+}
+
+/// [`run`] over `list` with the data tables `tables`. With `memo` the rules are evaluated through [`CheckOf`] (they
+/// must be registered); without it directly, each under `catch_unwind`, which lets the unit tests add a rule that
+/// panics (P4-3).
+fn run_rules(
+    q: &Q,
+    scheme: &Scheme,
+    mode: CheckMode,
+    list: &[&'static dyn Rule],
+    tables: &[DataTable],
+    memo: bool,
+) -> CheckReport {
+    let (pack_issues, skipped) = pack_findings(tables);
     let mut evaluated: Vec<&'static RuleMeta> = Vec::new();
     let mut findings: Vec<Finding> = Vec::new();
     let mut scope_cache: BTreeMap<ScopeKind, Vec<Scope>> = BTreeMap::new();
-    for r in rules() {
+    for r in list {
         let meta = r.meta();
-        if !scheme.enabled(meta, mode) {
+        if !scheme.enabled(meta, mode) || skipped.contains(&meta.id) {
             continue;
         }
         evaluated.push(meta);
@@ -270,11 +291,26 @@ pub fn run(q: &Q, scheme: &Scheme, mode: CheckMode) -> CheckReport {
             .entry(meta.scope)
             .or_insert_with(|| scopes(q, meta.scope));
         for scope in instances.iter() {
-            for f in q.get::<CheckOf>((meta.id, *scope)).iter() {
+            let found = if memo {
+                q.get::<CheckOf>((meta.id, *scope))
+            } else {
+                let mut out = run_caught(*r, q, scope);
+                sort_findings(&mut out);
+                Arc::new(out)
+            };
+            for f in found.iter() {
                 let mut f = f.clone();
-                f.severity = mode.severity(meta, f.severity);
+                // A caught panic is EW-CORE-083's finding inside this rule's memo: its own severities apply.
+                let own = rule(f.rule).map_or(meta, |r| r.meta());
+                f.severity = mode.severity(own, f.severity);
                 findings.push(f);
             }
+        }
+    }
+    if scheme.enabled(&PACK_NOT_EVALUATED, mode) {
+        for mut f in pack_issues {
+            f.severity = mode.severity(&PACK_NOT_EVALUATED, f.severity);
+            findings.push(f);
         }
     }
     let mut findings = supersede(findings);
@@ -368,7 +404,7 @@ pub fn prevent(before: &Q, after: &Q, touched: &Touched) -> Vec<Finding> {
     let mut out = Vec::new();
     for r in rules() {
         if r.meta().modes.prevent {
-            out.extend(r.prevent(before, after, touched));
+            out.extend(prevent_caught(*r, before, after, touched));
         }
     }
     sort_findings(&mut out);
@@ -381,4 +417,154 @@ pub(crate) fn touched_ids<T>(touched: &Touched, kind: Kind) -> impl Iterator<Ite
         .iter()
         .filter(move |(k, _)| *k == kind)
         .map(|(_, id)| id.cast::<T>())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::FULL;
+    use crate::rule::{Modes, Release, RuleKind};
+    use ew_derive::ew_ids::Uuid;
+    use ew_derive::ew_schema::{Project, Record};
+    use ew_model::Model;
+    use serde_json::json;
+
+    fn us(n: u128) -> String {
+        Uuid::from_u128(n).to_string()
+    }
+
+    /// A strip with two terminals designated `1`: one EW-TERM-002 finding.
+    fn duplicate_strip() -> Model {
+        let project: Project =
+            serde_json::from_value(json!({"id": us(0xF000), "derivation_profile": "2027.1"}))
+                .expect("project");
+        let mut records: Vec<Record> = vec![
+            serde_json::from_value(
+                json!({"$k": "device", "id": us(1), "tag": {"letter": "X", "counter": 1}, "strip": {}}),
+            )
+            .expect("strip"),
+        ];
+        for (n, seq) in [(2, 1), (3, 2)] {
+            records.push(
+                serde_json::from_value(json!({
+                    "$k": "device", "id": us(n), "tag": {"letter": "X"}, "kind": "terminal",
+                    "terminal": {"strip": us(1), "seq": seq, "designation": "1"}
+                }))
+                .expect("terminal"),
+            );
+        }
+        Model::from_records(project, records, []).expect("the model loads")
+    }
+
+    const PANICS: RuleMeta = RuleMeta {
+        id: "EW-TERM-099",
+        code: "001099",
+        pack: "EW-TERM",
+        title: "Panics",
+        kind: RuleKind::Conflict,
+        modes: Modes::letters("por"),
+        severity: Severity::Error,
+        release_severity: None,
+        scope: ScopeKind::Strip,
+        supersedes: &[],
+        release: Release::Mvp,
+    };
+
+    /// A rule that panics in every scope, in `run` and in `prevent`.
+    struct Panics;
+
+    impl Rule for Panics {
+        fn meta(&self) -> &'static RuleMeta {
+            &PANICS
+        }
+
+        fn run(&self, _q: &Q, _scope: &Scope) -> Vec<Finding> {
+            panic!("a defect in a rule");
+        }
+
+        fn prevent(&self, _before: &Q, _after: &Q, _touched: &Touched) -> Vec<Finding> {
+            panic!("a defect in a prevent rule");
+        }
+    }
+
+    static PANICS_RULE: Panics = Panics;
+
+    fn printed(findings: &[Finding]) -> Vec<String> {
+        findings
+            .iter()
+            .map(|f| format!("{} {} {}: {}", f.rule, f.severity, f.subject, f.message))
+            .collect()
+    }
+
+    /// P4-3: a rule that panics yields EW-CORE-083 (warning online, error in release) and every other rule's findings
+    /// stay as they are.
+    #[test]
+    fn a_panicking_rule_yields_ew_core_083_and_leaves_the_other_findings() {
+        let m = duplicate_strip();
+        let q = Q::new(&m);
+        let tables = data_tables();
+        for (mode, severity) in [
+            (CheckMode::Online, Severity::Warning),
+            (CheckMode::Release, Severity::Error),
+        ] {
+            let base = run_rules(&q, &FULL, mode, rules(), &tables, false);
+            assert_eq!(
+                printed(&base.findings),
+                printed(&run(&q, &FULL, mode).findings),
+                "direct equals memoised"
+            );
+            assert!(base.findings.iter().any(|f| f.rule == "EW-TERM-002"));
+            let mut list: Vec<&'static dyn Rule> = rules().to_vec();
+            list.push(&PANICS_RULE);
+            let with = run_rules(&q, &FULL, mode, &list, &tables, false);
+            let (caught, rest): (Vec<Finding>, Vec<Finding>) =
+                with.findings.into_iter().partition(|f| f.rule == "EW-CORE-083");
+            assert_eq!(caught.len(), 1, "{caught:#?}");
+            let f = &caught[0];
+            assert_eq!(f.code, "105083");
+            assert_eq!(f.severity, severity, "{mode:?}");
+            assert_eq!(f.subject, "EW-TERM-099");
+            assert_eq!(f.discriminator, "EW-TERM-099:strip");
+            assert_eq!(
+                f.targets,
+                [Target::new(Kind::Device, Id::<()>::from_uuid(Uuid::from_u128(1)))]
+            );
+            assert_eq!(
+                f.message,
+                "rule EW-TERM-099 could not be evaluated for -?X1: it stopped with an internal error, so its findings \
+                 there are missing; report the defect"
+            );
+            assert!(!rule("EW-CORE-083").expect("registered").meta().waivable());
+            assert_eq!(printed(&rest), printed(&base.findings));
+        }
+        // Prevent: the panic refuses the batch with EW-CORE-083.
+        let v = prevent_caught(&PANICS_RULE, &q, &q, &[]);
+        assert_eq!(v.len(), 1);
+        assert_eq!(v[0].rule, "EW-CORE-083");
+        assert_eq!(v[0].severity, Severity::Error);
+    }
+
+    /// A rule whose data table does not load is not evaluated; EW-CORE-084 names it, at error in release mode.
+    #[test]
+    fn a_rule_without_its_data_table_is_not_evaluated() {
+        let m = duplicate_strip();
+        let q = Q::new(&m);
+        let tables = [DataTable {
+            rule: "EW-TERM-002",
+            pack: "EW-TERM",
+            file: "data/x.toml",
+            error: Some("missing".to_owned()),
+        }];
+        let report = run_rules(&q, &FULL, CheckMode::Release, rules(), &tables, false);
+        assert!(!report.findings.iter().any(|f| f.rule == "EW-TERM-002"));
+        assert!(!report.rules.iter().any(|m| m.id == "EW-TERM-002"));
+        let f: Vec<&Finding> = report
+            .findings
+            .iter()
+            .filter(|f| f.rule == "EW-CORE-084")
+            .collect();
+        assert_eq!(f.len(), 1, "{f:#?}");
+        assert_eq!(f[0].severity, Severity::Error);
+        assert_eq!(report.exit_code(), 1);
+    }
 }

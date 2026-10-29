@@ -3,8 +3,10 @@
 
 //! EW-NUM rules, pack EW-IEC81346 (doc 15 §4.3; numbering in doc 07, doc 03 §8).
 
-use ew_derive::ew_schema::Kind;
-use ew_derive::{Q, rule_product};
+use ew_derive::ew_ids::Id;
+use ew_derive::ew_mltext::natural_cmp;
+use ew_derive::ew_schema::{Connection, Kind, NumberSpec};
+use ew_derive::{Q, WireNumbers, rule_product};
 
 use crate::finding::{Finding, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
@@ -73,5 +75,83 @@ impl Rule for TagDeviates {
             )
             .with_severity(Severity::Info),
         ]
+    }
+}
+
+/// EW-NUM-002 "Frozen value deviates" (doc 15 §4.3): hygiene, o r, info, project.
+pub const FROZEN_VALUE_DEVIATES: RuleMeta = RuleMeta {
+    id: "EW-NUM-002",
+    code: "017102",
+    pack: "EW-IEC81346",
+    title: "Frozen value deviates",
+    kind: RuleKind::Hygiene,
+    modes: Modes::letters("or"),
+    severity: Severity::Info,
+    release_severity: None,
+    scope: ScopeKind::Project,
+    supersedes: &[],
+    release: Release::Mvp,
+};
+
+/// EW-NUM-002: a frozen wire number (`NumberSpec::Frozen` on a connection, doc 08 §5.3) that differs from the number
+/// the numbering rule derives for the wire (`wire_numbers`; FR-CHK-037, FR-NUM-022). The same comparison as the
+/// numbering report's `status` column (`ew-reports`, FR-REP-022): a wire the rule does not number (a cable core, a
+/// wire drawn on no page, a constituent that is not the wire's carrier) has no rule value and deviates. Frozen tags
+/// are EW-NUM-001's (it supersedes this rule for tags); a manual PLC address is EW-PLC-012's (WP-S1.21), which
+/// supersedes it for addresses. One finding per connection: target the connection, discriminator `wire-number`.
+#[derive(Clone, Copy, Debug)]
+pub struct FrozenValueDeviates;
+
+impl Rule for FrozenValueDeviates {
+    fn meta(&self) -> &'static RuleMeta {
+        &FROZEN_VALUE_DEVIATES
+    }
+
+    fn run(&self, q: &Q, scope: &Scope) -> Vec<Finding> {
+        if *scope != Scope::Project {
+            return Vec::new();
+        }
+        let frozen: Vec<(Id<Connection>, String)> = q
+            .connections()
+            .iter()
+            .filter_map(|(id, c)| match &c.number {
+                NumberSpec::Frozen(t) => Some((id, t.as_str().to_owned())),
+                _ => None,
+            })
+            .collect();
+        if frozen.is_empty() {
+            return Vec::new();
+        }
+        let numbers = q.get::<WireNumbers>(());
+        let mut rows: Vec<(String, String, Id<Connection>)> = frozen
+            .into_iter()
+            .filter_map(|(id, text)| {
+                let rule = numbers.number(id).map(|n| n.label.clone()).unwrap_or_default();
+                (rule != text).then_some((text, rule, id))
+            })
+            .collect();
+        rows.sort_by(|a, b| {
+            natural_cmp(&a.0, &b.0)
+                .then_with(|| a.0.cmp(&b.0))
+                .then_with(|| natural_cmp(&a.1, &b.1))
+                .then_with(|| a.1.cmp(&b.1))
+                .then_with(|| a.2.cmp(&b.2))
+        });
+        rows.into_iter()
+            .map(|(text, rule, id)| {
+                let derived = if rule.is_empty() {
+                    "the rule derives no number for the wire".to_owned()
+                } else {
+                    format!("rule-derived value {rule}")
+                };
+                Finding::new(
+                    &FROZEN_VALUE_DEVIATES,
+                    [Target::new(Kind::Connection, id)],
+                    "wire-number",
+                    format!("wire {text}"),
+                    format!("wire number {text}: frozen, deviates from the rule ({derived})"),
+                )
+            })
+            .collect()
     }
 }

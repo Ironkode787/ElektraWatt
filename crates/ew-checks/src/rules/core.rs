@@ -5,12 +5,14 @@
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::MlText;
-use ew_derive::ew_schema::{Function, IpDirection, Kind, LengthSource, Primitive, RepType, Representation};
+use ew_derive::ew_schema::{
+    Function, FunctionKind, IpDirection, Kind, LengthSource, Primitive, RepType, Representation,
+};
 use ew_derive::ew_units::{Nm, Pt2};
 use ew_derive::{CellOf, IpPairingQ, PairMode, Q, XrefRelationOf, XrefTextOf, folio_label};
 
-use crate::finding::{Finding, QuickFix, Severity, Target};
-use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
+use crate::finding::{Finding, Fingerprint, QuickFix, Severity, Target};
+use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind, Touched};
 use crate::rules::term::full_tag;
 
 /// EW-CORE-033 "Cable without length" (doc 15 §4.2): completeness, o r, error, cable.
@@ -217,7 +219,7 @@ pub const AMBIGUOUS_INTERRUPTION_POINT: RuleMeta = RuleMeta {
     pack: "EW-CORE",
     title: "Ambiguous interruption point",
     kind: RuleKind::Conflict,
-    modes: Modes::letters("or"),
+    modes: Modes::letters("opr"),
     severity: Severity::Error,
     release_severity: None,
     scope: ScopeKind::Project,
@@ -229,9 +231,47 @@ pub const AMBIGUOUS_INTERRUPTION_POINT: RuleMeta = RuleMeta {
 /// (FR-CHK-017): more than one point flagged as star source, or none flagged and two or more source points.
 /// The derivation picks the smallest ID as the source and pairs; the finding asks for the decision. One
 /// finding per group: targets every member's function, discriminator `star-source`. An odd chain-mode group
-/// leaves a point without a partner, which EW-CORE-051 reports.
+/// leaves a point without a partner, which EW-CORE-051 reports (FT-195).
+///
+/// Prevent (FT-194, ADR-0009 amendment 1): a batch that touches an interruption-point function (in the base or the
+/// candidate), a representation or the project settings, and leaves an ambiguous group the base did not hold, is
+/// refused; an ambiguity the base already held does not refuse an edit.
 #[derive(Clone, Copy, Debug)]
 pub struct AmbiguousInterruptionPoint;
+
+/// The EW-CORE-052 findings of a snapshot.
+fn ambiguous_groups(q: &Q) -> Vec<Finding> {
+    let pairing = q.get::<IpPairingQ>(());
+    let mut out = Vec::new();
+    for g in pairing.groups.iter().filter(|g| g.mode == PairMode::Star) {
+        let count = |pred: &dyn Fn(&ew_derive::IpInfo) -> bool| {
+            g.members
+                .iter()
+                .filter(|f| pairing.ips.get(f).is_some_and(pred))
+                .count()
+        };
+        let flagged = count(&|i| i.star_source);
+        let sources = count(&|i| i.direction == IpDirection::Source);
+        let why = if flagged > 1 {
+            format!("{flagged} points are flagged as star source")
+        } else if flagged == 0 && sources >= 2 {
+            format!("{sources} source points and no star source")
+        } else {
+            continue;
+        };
+        out.push(Finding::new(
+                &AMBIGUOUS_INTERRUPTION_POINT,
+                g.members.iter().map(|f| Target::new(Kind::Function, *f)),
+                "star-source",
+                format!("interruption point {}", g.name),
+                format!(
+                    "interruption point {}: {why}; the point with the smallest ID is the source until one is chosen",
+                    g.name
+                ),
+            ));
+    }
+    out
+}
 
 impl Rule for AmbiguousInterruptionPoint {
     fn meta(&self) -> &'static RuleMeta {
@@ -242,36 +282,37 @@ impl Rule for AmbiguousInterruptionPoint {
         if *scope != Scope::Project {
             return Vec::new();
         }
-        let pairing = q.get::<IpPairingQ>(());
-        let mut out = Vec::new();
-        for g in pairing.groups.iter().filter(|g| g.mode == PairMode::Star) {
-            let count = |pred: &dyn Fn(&ew_derive::IpInfo) -> bool| {
-                g.members
-                    .iter()
-                    .filter(|f| pairing.ips.get(f).is_some_and(pred))
-                    .count()
-            };
-            let flagged = count(&|i| i.star_source);
-            let sources = count(&|i| i.direction == IpDirection::Source);
-            let why = if flagged > 1 {
-                format!("{flagged} points are flagged as star source")
-            } else if flagged == 0 && sources >= 2 {
-                format!("{sources} source points and no star source")
-            } else {
-                continue;
-            };
-            out.push(Finding::new(
-                &AMBIGUOUS_INTERRUPTION_POINT,
-                g.members.iter().map(|f| Target::new(Kind::Function, *f)),
-                "star-source",
-                format!("interruption point {}", g.name),
-                format!(
-                    "interruption point {}: {why}; the point with the smallest ID is the source until one is chosen",
-                    g.name
-                ),
-            ));
+        ambiguous_groups(q)
+    }
+
+    fn prevent(&self, before: &Q, after: &Q, touched: &Touched) -> Vec<Finding> {
+        let is_ip = |q: &Q, f: Id<Function>| {
+            q.functions()
+                .get(f)
+                .is_some_and(|f| matches!(f.kind, FunctionKind::Ip(_)))
+        };
+        let draws_ip = |q: &Q, r: Id<Representation>| {
+            q.reps()
+                .get(r)
+                .is_some_and(|r| r.functions.iter().any(|f| is_ip(q, *f)))
+        };
+        let relevant = touched.iter().any(|(k, id)| match k {
+            Kind::Function => is_ip(before, id.cast()) || is_ip(after, id.cast()),
+            Kind::Representation => draws_ip(before, id.cast()) || draws_ip(after, id.cast()),
+            Kind::Project => true,
+            _ => false,
+        });
+        if !relevant {
+            return Vec::new();
         }
-        out
+        let held: Vec<(Fingerprint, String)> = ambiguous_groups(before)
+            .into_iter()
+            .map(|f| (f.fingerprint, f.message))
+            .collect();
+        ambiguous_groups(after)
+            .into_iter()
+            .filter(|f| !held.contains(&(f.fingerprint, f.message.clone())))
+            .collect()
     }
 }
 
@@ -768,8 +809,8 @@ const fn integrity(
 
 /// EW-CORE-008 "Dangling reference" (doc 15 §4.2): integrity, n r, error, project. The store reports the dangling
 /// references of opening a project ([`INTEGRITY`]); the registered rule
-/// [`DanglingFrameForm`](crate::rules::device::DanglingFrameForm) reports the frame defaults that name a form copy the
-/// project does not hold (FT-368).
+/// [`DanglingReference`](crate::rules::device::DanglingReference) reports the frame defaults that name a form copy the
+/// project does not hold (FT-368) and the channels whose module is not a PLC module (FT-229).
 pub const DANGLING_REFERENCE: RuleMeta = integrity(
     "EW-CORE-008",
     "100008",

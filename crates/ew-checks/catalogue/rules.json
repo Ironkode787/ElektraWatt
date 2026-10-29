@@ -39,6 +39,85 @@
       "waivable": false
     },
     {
+      "code": "101021",
+      "id": "EW-CORE-021",
+      "kind": "conflict",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "page",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Folio outside its section",
+      "waivable": true
+    },
+    {
+      "code": "101022",
+      "id": "EW-CORE-022",
+      "kind": "conflict",
+      "modes": [
+        "online",
+        "prevent",
+        "release"
+      ],
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "project",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Folio collision",
+      "waivable": true
+    },
+    {
       "code": "101023",
       "id": "EW-CORE-023",
       "kind": "hygiene",
@@ -75,6 +154,84 @@
       "severity": "info",
       "supersedes": [],
       "title": "Title-block override",
+      "waivable": true
+    },
+    {
+      "code": "101025",
+      "id": "EW-CORE-025",
+      "kind": "hygiene",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "project",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "TOC fixpoint not reached",
+      "waivable": true
+    },
+    {
+      "code": "101026",
+      "id": "EW-CORE-026",
+      "kind": "completeness",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": "warning",
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "project",
+      "severity": "info",
+      "supersedes": [],
+      "title": "Report coverage gap",
       "waivable": true
     },
     {
@@ -629,6 +786,7 @@
       "kind": "conflict",
       "modes": [
         "online",
+        "prevent",
         "release"
       ],
       "pack": "EW-CORE",
@@ -702,6 +860,83 @@
       "waivable": true
     },
     {
+      "code": "104061",
+      "id": "EW-CORE-061",
+      "kind": "hygiene",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "project",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Text below minimum height",
+      "waivable": true
+    },
+    {
+      "code": "104063",
+      "id": "EW-CORE-063",
+      "kind": "hygiene",
+      "modes": [
+        "online"
+      ],
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": false
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": false
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": false
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": false
+        }
+      ],
+      "scope": "page",
+      "severity": "info",
+      "supersedes": [],
+      "title": "Unstyled text size",
+      "waivable": true
+    },
+    {
       "code": "104065",
       "id": "EW-CORE-065",
       "kind": "hygiene",
@@ -738,6 +973,44 @@
       "severity": "warning",
       "supersedes": [],
       "title": "Description lint",
+      "waivable": true
+    },
+    {
+      "code": "104071",
+      "id": "EW-CORE-071",
+      "kind": "hygiene",
+      "modes": [
+        "online"
+      ],
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": false
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": false
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": false
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": false
+        }
+      ],
+      "scope": "page",
+      "severity": "info",
+      "supersedes": [],
+      "title": "Graphic line on a CP",
       "waivable": true
     },
     {
@@ -780,6 +1053,90 @@
       "waivable": true
     },
     {
+      "code": "105083",
+      "id": "EW-CORE-083",
+      "kind": "integrity",
+      "modes": [
+        "online",
+        "offline",
+        "prevent",
+        "release",
+        "export"
+      ],
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": "error",
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "project",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Rule not evaluated",
+      "waivable": false
+    },
+    {
+      "code": "105084",
+      "id": "EW-CORE-084",
+      "kind": "integrity",
+      "modes": [
+        "online",
+        "offline",
+        "prevent",
+        "release",
+        "export"
+      ],
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": "error",
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "project",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Rule pack not evaluated",
+      "waivable": false
+    },
+    {
       "code": "017101",
       "id": "EW-NUM-001",
       "kind": "hygiene",
@@ -819,6 +1176,45 @@
         "EW-RDS-001"
       ],
       "title": "Tag deviates from the scheme",
+      "waivable": true
+    },
+    {
+      "code": "017102",
+      "id": "EW-NUM-002",
+      "kind": "hygiene",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-IEC81346",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "project",
+      "severity": "info",
+      "supersedes": [],
+      "title": "Frozen value deviates",
       "waivable": true
     },
     {
@@ -1404,6 +1800,122 @@
       "waivable": true
     },
     {
+      "code": "017001",
+      "id": "EW-RDS-001",
+      "kind": "conflict",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-IEC81346",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "device",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Designation does not parse",
+      "waivable": true
+    },
+    {
+      "code": "017002",
+      "id": "EW-RDS-002",
+      "kind": "hygiene",
+      "modes": [
+        "online"
+      ],
+      "pack": "EW-IEC81346",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": false
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": false
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": false
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": false
+        }
+      ],
+      "scope": "project",
+      "severity": "info",
+      "supersedes": [],
+      "title": "Separator in a structure code",
+      "waivable": true
+    },
+    {
+      "code": "017003",
+      "id": "EW-RDS-003",
+      "kind": "hygiene",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-IEC81346",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "device",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Letter code against function",
+      "waivable": true
+    },
+    {
       "code": "017004",
       "id": "EW-RDS-004",
       "kind": "conflict",
@@ -1440,6 +1952,124 @@
       "severity": "error",
       "supersedes": [],
       "title": "Duplicate designation",
+      "waivable": true
+    },
+    {
+      "code": "017007",
+      "id": "EW-RDS-007",
+      "kind": "hygiene",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-IEC81346",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "device",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Reserved letters",
+      "waivable": true
+    },
+    {
+      "code": "017009",
+      "id": "EW-RDS-009",
+      "kind": "conflict",
+      "modes": [
+        "online",
+        "prevent",
+        "release"
+      ],
+      "pack": "EW-IEC81346",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "device",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Confusable character",
+      "waivable": true
+    },
+    {
+      "code": "017010",
+      "id": "EW-RDS-010",
+      "kind": "conflict",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-IEC81346",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "project",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Structure-code variants",
       "waivable": true
     },
     {
@@ -1520,6 +2150,83 @@
       "severity": "error",
       "supersedes": [],
       "title": "Duplicate designation",
+      "waivable": true
+    },
+    {
+      "code": "001003",
+      "id": "EW-TERM-003",
+      "kind": "conflict",
+      "modes": [
+        "online"
+      ],
+      "pack": "EW-TERM",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": false
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": false
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": false
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": false
+        }
+      ],
+      "scope": "strip",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Spare wired on the field side",
+      "waivable": true
+    },
+    {
+      "code": "001004",
+      "id": "EW-TERM-004",
+      "kind": "conflict",
+      "modes": [
+        "online",
+        "prevent"
+      ],
+      "pack": "EW-TERM",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "strip",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Bridge group invalid",
       "waivable": true
     },
     {

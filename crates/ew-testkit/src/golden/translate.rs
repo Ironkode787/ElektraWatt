@@ -247,6 +247,57 @@ fn endpoint_function(e: &Endpoint) -> Option<Id<Function>> {
     }
 }
 
+/// `connections` in drawing order: the batch order, except that the bridges of one group (one strip, one kind) are
+/// drawn together where the group's first bridge stands, each next one touching a terminal the group already reaches.
+/// Every intermediate group then runs over consecutive terminals, which EW-TERM-004 prevents otherwise (CI-06).
+fn drawing_order<'a>(
+    connections: &[&'a Connection],
+    by_id: &BTreeMap<Id<Function>, &Function>,
+    strip_of: &BTreeMap<Id<Device>, Id<Device>>,
+) -> Vec<&'a Connection> {
+    let group = |c: &Connection| -> Option<(Option<Id<Device>>, ConnectionKind)> {
+        if !matches!(c.kind, ConnectionKind::Bridge(_)) {
+            return None;
+        }
+        let strip = endpoint_function(&c.a)
+            .and_then(|f| by_id.get(&f))
+            .and_then(|f| f.device)
+            .and_then(|d| strip_of.get(&d).copied());
+        Some((strip, c.kind.clone()))
+    };
+    let mut out: Vec<&Connection> = Vec::with_capacity(connections.len());
+    let mut emitted: BTreeSet<Id<Connection>> = BTreeSet::new();
+    for (i, c) in connections.iter().enumerate() {
+        if emitted.contains(&c.id) {
+            continue;
+        }
+        let Some(key) = group(c) else {
+            out.push(c);
+            continue;
+        };
+        let mut rest: Vec<&Connection> = connections[i..]
+            .iter()
+            .copied()
+            .filter(|x| group(x).as_ref() == Some(&key))
+            .collect();
+        let mut reached: BTreeSet<Id<Function>> = BTreeSet::new();
+        while !rest.is_empty() {
+            let touches = |x: &Connection| {
+                [&x.a, &x.b]
+                    .into_iter()
+                    .filter_map(endpoint_function)
+                    .any(|f| reached.contains(&f))
+            };
+            let at = rest.iter().position(|x| touches(x)).unwrap_or(0);
+            let next = rest.remove(at);
+            reached.extend([&next.a, &next.b].into_iter().filter_map(endpoint_function));
+            emitted.insert(next.id);
+            out.push(next);
+        }
+    }
+    out
+}
+
 /// Builds Golden A through commands from the bootstrap `batch` (path (b) of doc 20 §3.2), running every
 /// command through `sink` against a session that holds the [`super::shell`] of `batch`.
 ///
@@ -648,7 +699,10 @@ pub fn build<S: CommandSink + ?Sized>(batch: &ImportBatch, sink: &mut S) -> Resu
             done.insert(c.id);
         }
     }
-    for c in &connections {
+    let strip_of: BTreeMap<Id<Device>, Id<Device>> = of!(Device)
+        .filter_map(|d| Some((d.id, d.aspects.terminal.as_ref()?.strip)))
+        .collect();
+    for c in &drawing_order(&connections, &by_id, &strip_of) {
         if done.contains(&c.id) {
             continue;
         }
