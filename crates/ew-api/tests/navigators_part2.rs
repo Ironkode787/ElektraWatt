@@ -498,3 +498,33 @@ fn every_kind_is_deterministic_and_keeps_its_keys() {
         assert!(!a.nodes.is_empty(), "{k:?} has rows");
     }
 }
+
+/// R1-10 (FT-515): the third row kind of the Potentials overview. On Golden A without the definition of 24VDC-4 that
+/// potential is known only by its name at connection points, so its row's record is a CP and its kind `cp`; every
+/// other row keeps its definition or its bond, and the overview keeps its 20 rows.
+#[test]
+fn a_potential_without_a_definition_routes_to_its_connection_point() {
+    let batch = common::golden_batch();
+    let (project, mut records) = common::split(&batch);
+    let before = records.len();
+    records.retain(|r| !matches!(r, Record::PotentialDef(d) if d.name.to_string() == "24VDC-4"));
+    assert_eq!(records.len(), before - 1, "Golden A defines 24VDC-4 once");
+    let s = common::session_of(project, records, batch.lib.clone());
+    let t = s.navigator_table(NavKind::Potentials);
+    assert_tree_contract(&t);
+    assert_eq!(table_rows(&t).len(), 20, "19 potentials and the bond");
+    let cp_rows: Vec<&NavNode> = table_rows(&t).into_iter().filter(|n| n.kinds == ["cp"]).collect();
+    assert_eq!(cp_rows.len(), 1, "one potential without a definition");
+    assert_eq!(cp_rows[0].label, "24VDC-4");
+    assert_eq!(cp_rows[0].records.len(), 1, "its record is one CP");
+    for n in table_rows(&t) {
+        if n.kinds != ["cp"] {
+            let want = if n.label.starts_with("B1 ") {
+                "bond"
+            } else {
+                "potential_def"
+            };
+            assert_eq!(n.kinds, [want], "{}", n.label);
+        }
+    }
+}
