@@ -78,9 +78,9 @@ pub const DEVICE_NOT_IN_SCHEMATIC: RuleMeta = RuleMeta {
 
 /// EW-CORE-047: a device with functions none of which has a representation on any page (FR-REV-007). A terminal or a
 /// strip is left out (terminal diagrams and strip segments show them, not a schematic symbol); a device without
-/// functions has nothing to draw (a cable has functions and counts, drawn as a graphic). A device with a part says that the parts list still counts it (the G-PP run's
-/// phantom `-?G1`: a device left behind after its only representation was deleted). Target: the device; no
-/// discriminator.
+/// functions has nothing to draw (a cable has functions and counts, drawn as a graphic). A device with a part says
+/// that the parts list still counts it (the G-PP run's phantom `-?G1`: a device left behind after its only
+/// representation was deleted). Target: the device; no discriminator.
 #[derive(Clone, Copy, Debug)]
 pub struct DeviceNotInSchematic;
 

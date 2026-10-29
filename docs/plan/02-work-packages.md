@@ -3652,6 +3652,8 @@ CSV and every total are unchanged. A task is closed by the commit that implement
 | FT-586 | The test helper `fresh_dir` (E33, ID-766) exists in three copies: `ew-viewmodel` `src` under `cfg(test)`, `ew-viewmodel` `tests/common` and `ew-ui` `tests/support`. Share one copy (for example in `ew-testkit`), the behaviour unchanged | WP-S6.02 (CI) | M2 (low) | ID-766; ID-780 |
 | FT-587 | A potential with two or more definitions takes its type, voltage, environment and class from the first definition in ID order, and its findings target that definition alone, so in a new project (random IDs) the applied value of a conflict and the finding's target can differ between two copies (the role half is fixed, ID-781); the EW-POT-001 text "member CP <function>:<idx> has role …" also prints IDs in ID order. Rank definitions by a stable key (doc 08 §3.6 says natural order, ID-175) and target every definition, with an ID-permutation test | WP-S1.16 (EW-POT); WP-S1.14 | M2 | ID-781 |
 
+| FT-588 | Two leftovers of the EW-POT target change (ID-781): (1) a potential without a definition targets every member function, so its findings' fingerprint changes when a member is added or removed and a waiver on EW-POT-001, -002, -011, -012 or -014 stops matching; compute the fingerprint from the discriminator member only (a fingerprint override for these rules) while keeping every member as a display target, or record the trade-off in doc 15 §2.5; (2) `finding_node`'s primary target falls back to ID order when two targets' first drawables share main flag, folio and cell; break the tie on a printed key. With a test for each | WP-S1.16 (EW-POT); WP-S1.14; WP-S2.09 | M2 | ID-781 |
+
 ---
 
 ## Sources
