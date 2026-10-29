@@ -14,6 +14,7 @@ use ew_viewmodel::strings;
 use serde_json::{Value, json};
 
 use crate::app::Event;
+use crate::components::Tip as _;
 
 fn action(events: &mut Vec<Event>, id: &'static str, params: Value) {
     events.push(Event::Action(id, params));
@@ -64,7 +65,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 for (i, name) in names.iter().enumerate() {
                     let response = ui.button(name.as_str());
                     let response = match shell.recent_paths().get(i) {
-                        Some(path) => response.on_hover_text(path.as_str()),
+                        Some(path) => response.tip(path.as_str()),
                         None => response,
                     };
                     if response.clicked() {
@@ -80,7 +81,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             if sample.clicked() {
                 action(events, "file.open_sample", Value::Null);
             }
-            sample.on_disabled_hover_text(strings::text("error-no-sample"));
+            sample.disabled_tip(strings::text("error-no-sample"));
             if ui.button(strings::text("start-import-qet")).clicked() {
                 action(events, "file.import_qet", Value::Null);
             }

@@ -24,6 +24,7 @@ use ew_viewmodel::strings;
 use serde_json::{Value, json};
 
 use crate::app::Event;
+use crate::components::Tip as _;
 
 /// The colour of a finding row's icon: the severity's token, the tertiary text while it is pending (doc 16a §6.24).
 pub(crate) fn icon_colour(ui: &Ui, look: FindingLook) -> Color32 {
@@ -226,7 +227,7 @@ pub(crate) fn severity_chip(ui: &mut Ui, severity: &str, rule: &str, message: &s
         galley,
         text.color32(),
     );
-    response.on_hover_text(strings::format("props-finding-tip", &[rule, message]))
+    response.tip(strings::format("props-finding-tip", &[rule, message]))
 }
 
 /// The header (doc 16a §6.24): the scheme in `type.small` `color.text.secondary`, one count badge per severity, then
@@ -386,7 +387,7 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 0.0,
             );
             let button = match reason {
-                Some(r) if !enabled => button.on_disabled_hover_text(r),
+                Some(r) if !enabled => button.disabled_tip(r),
                 _ => button,
             };
             if button.clicked() {

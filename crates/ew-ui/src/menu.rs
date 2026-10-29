@@ -15,6 +15,7 @@ use ew_viewmodel::strings;
 use serde_json::json;
 
 use crate::app::Event;
+use crate::components::Tip as _;
 use crate::icons::IconId;
 use crate::keys;
 
@@ -81,9 +82,9 @@ pub(crate) fn item(ui: &mut Ui, item: &ActionItem, events: &mut Vec<Event>) {
     });
     let mut response = response.inner;
     if let Some(reason) = &item.reason {
-        response = response.on_disabled_hover_text(reason.as_str());
+        response = response.disabled_tip(reason.as_str());
     } else if item.topic.is_some() {
-        response = response.on_hover_text(strings::text("tooltip-learn-more"));
+        response = response.tip(strings::text("tooltip-learn-more"));
     }
     if let Some(topic) = item.topic
         && response.contains_pointer()

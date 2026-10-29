@@ -42,6 +42,69 @@ pub(crate) fn tokens(ui: &Ui) -> std::sync::Arc<Tokens> {
     theme::current(ui.ctx())
 }
 
+/// Shows `tooltip` in doc 16a §6.18's style: `color.surface.inverse` with `color.text.on_inverse` in `type.small`,
+/// `radius.md`, `elevation.1`, at most `size.tooltip.max` wide. egui's own tooltip (`on_hover_text`) draws on the
+/// popup frame, `color.surface.raised` (the window fill), which hardly stands off the chrome (FT-597).
+pub(crate) fn show_tip(ctx: &egui::Context, tooltip: egui::containers::Tooltip<'_>, text: &str) {
+    let t = theme::current(ctx);
+    let mut tooltip = tooltip;
+    let frame = egui::Frame::new()
+        .fill(t.surface_inverse.color32())
+        .corner_radius(theme::radius(t.radius_md))
+        .inner_margin(egui::Margin::symmetric(t.space_3 as i8, t.space_2 as i8))
+        .shadow(theme::shadow(&t.elevation_1));
+    tooltip.popup = tooltip.popup.frame(frame);
+    tooltip.show(|ui| {
+        ui.set_max_width(t.size_tooltip_max);
+        ui.add(egui::Label::new(
+            RichText::new(text)
+                .font(theme::font(&t.type_small))
+                .color(t.text_on_inverse.color32()),
+        ));
+    });
+}
+
+/// The tooltips of the window in doc 16a §6.18's style ([`show_tip`]), in place of egui's `on_hover_text` and
+/// `on_disabled_hover_text` (FT-597).
+pub(crate) trait Tip: Sized {
+    /// The tooltip `text` while the widget is enabled and hovered; like `on_hover_text`, the text is also the
+    /// widget's accessible description, and its name when it has none (an icon-only button).
+    fn tip(self, text: impl Into<String>) -> Self;
+    /// The tooltip `text` while the widget is disabled and hovered (its reason).
+    fn disabled_tip(self, text: impl Into<String>) -> Self;
+}
+
+impl Tip for Response {
+    fn tip(self, text: impl Into<String>) -> Response {
+        let text = text.into();
+        // As egui's `on_hover_text` describes the widget (its `describe_for_accessibility` is private).
+        if self.ctx.has_accesskit_node(self.id) {
+            self.ctx.accesskit_node_builder(self.id, |node| {
+                if node.description().is_none() {
+                    node.set_description(text.as_str());
+                }
+                if node.role() != egui::accesskit::Role::Label
+                    && node.labelled_by().is_empty()
+                    && node.label().is_none_or(str::is_empty)
+                {
+                    node.set_label(text.as_str());
+                }
+            });
+        }
+        show_tip(&self.ctx, egui::containers::Tooltip::for_enabled(&self), &text);
+        self
+    }
+
+    fn disabled_tip(self, text: impl Into<String>) -> Response {
+        show_tip(
+            &self.ctx,
+            egui::containers::Tooltip::for_disabled(&self),
+            &text.into(),
+        );
+        self
+    }
+}
+
 /// An icon atom of `size` in `colour` (the text colour of its widget when `None`).
 pub(crate) fn icon_atom(id: IconId, size: f32, colour: Option<Rgba>, stroke: f32) -> Atom<'static> {
     Atom::paint(Vec2::splat(size), move |ui, args| {
@@ -267,7 +330,7 @@ pub(crate) fn icon_toggle(ui: &mut Ui, id: IconId, name: &str, enabled: bool, on
         colour.color32(),
         t.icon_stroke,
     );
-    response.on_hover_text(name)
+    response.tip(name)
 }
 
 /// The kind of a status badge (doc 16a §6.16, §6.19).
@@ -781,7 +844,7 @@ pub(crate) fn apply_cancel_blocked(
                     0.0,
                 );
                 let r = match blocked {
-                    Some(reason) => r.on_disabled_hover_text(reason),
+                    Some(reason) => r.disabled_tip(reason),
                     None => r,
                 };
                 if r.clicked() {
@@ -905,7 +968,7 @@ pub(crate) fn card_strip(ui: &mut Ui, shell: &ShellModel, line: &str, events: &m
                 let blocked = card.preview.result.as_ref().err();
                 let apply = ui.add_enabled_ui(blocked.is_none(), |ui| small(ui, "preview-apply", true));
                 let apply = match blocked {
-                    Some(reason) => apply.inner.on_disabled_hover_text(reason),
+                    Some(reason) => apply.inner.disabled_tip(reason),
                     None => apply.inner,
                 };
                 if apply.clicked() {
@@ -937,11 +1000,7 @@ pub(crate) fn card_strip(ui: &mut Ui, shell: &ShellModel, line: &str, events: &m
                 let galley = ui.painter().layout_job(job);
                 let cut = galley.elided || shown != text.as_str();
                 let response = ui.add(egui::Label::new(galley).selectable(false));
-                let response = if cut {
-                    response.on_hover_text(&text)
-                } else {
-                    response
-                };
+                let response = if cut { response.tip(&text) } else { response };
                 let live = text.clone();
                 ui.ctx().accesskit_node_builder(response.id, |n| {
                     n.set_live(egui::accesskit::Live::Polite);

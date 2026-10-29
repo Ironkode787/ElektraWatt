@@ -1404,3 +1404,49 @@ fn the_join_chooser_in_light_and_dark() {
     }
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
+
+/// FT-597 (doc 16a §6.18): the quick-access Save button's tooltip, cropped to the button and the tooltip under it, in
+/// light and dark, Comfortable, gated: the tooltip is drawn on `color.surface.inverse` with `color.text.on_inverse`.
+#[test]
+fn the_save_tooltip_in_light_and_dark() {
+    let dev = device();
+    let mut failures = Vec::new();
+    for theme in ["light", "dark"] {
+        let (mut h, recorder, tmp) = main_window(theme, "comfortable");
+        dismiss_toasts(&mut h);
+        support::settle(&mut h);
+        let save = h
+            .get_all_by_role(egui::Role::Button)
+            .find(|n| {
+                use egui_kittest::kittest::NodeT as _;
+                n.accesskit_node().label().as_deref() == Some("Save")
+            })
+            .map(|n| n.rect())
+            .expect("the Save button");
+        h.hover_at(save.center());
+        for _ in 0..60 {
+            h.step();
+        }
+        h.run_ok();
+        let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
+        // The tooltip's fill beside its text is the inverse surface: dark in light, light in dark.
+        let label = node_rect(&h, "Save (Ctrl+S)").expect("the tooltip's text");
+        let fill = luma(&image, (label.left() - 4.0) as u32, label.center().y as u32);
+        if theme == "light" {
+            assert!(fill < 80.0, "light: the tooltip's fill is dark ({fill})");
+        } else {
+            assert!(fill > 170.0, "dark: the tooltip's fill is light ({fill})");
+        }
+        let region =
+            egui::Rect::from_min_size(save.left_top() - egui::vec2(8.0, 8.0), egui::vec2(360.0, 120.0));
+        failures.extend(record(
+            &format!("tooltip-save-{theme}"),
+            &crop(&image, region),
+            true,
+        ));
+        h.state_mut().shell_mut().shutdown();
+        drop(h);
+        drop(tmp);
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}

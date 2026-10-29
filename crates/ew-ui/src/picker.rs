@@ -13,6 +13,7 @@ use ew_viewmodel::tools::{PickerMode, PickerRow};
 use serde_json::json;
 
 use crate::app::Event;
+use crate::components::Tip as _;
 
 /// Paints the picker when it is open. `just_opened` puts the keyboard focus into its filter field.
 pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: &mut Vec<Event>) {
@@ -130,7 +131,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                         .selected(i == picker.row)
                         .frame_when_inactive(false)
                         .min_size(egui::vec2(ui.available_width(), t.size_row));
-                        let response = ui.add_enabled(enabled, button).on_hover_text(&tooltip);
+                        let response = ui.add_enabled(enabled, button).tip(&tooltip);
                         if response.clicked() {
                             events.push(Event::Action("picker.row", json!({ "to": i })));
                             events.push(Event::Action("picker.choose", json!({})));

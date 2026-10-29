@@ -43,6 +43,7 @@ use ew_viewmodel::strings;
 use serde_json::{Value, json};
 
 use crate::app::Event;
+use crate::components::Tip as _;
 use crate::icons::{self, IconId};
 use crate::theme::{self, Rgba, Tokens, TypeToken};
 
@@ -871,7 +872,7 @@ impl TableDelegate for Delegate<'_> {
         };
         response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &name));
         let response = if column.derived {
-            response.on_hover_text(strings::text("table-derived"))
+            response.tip(strings::text("table-derived"))
         } else {
             response
         };
@@ -1000,7 +1001,7 @@ impl TableDelegate for Delegate<'_> {
         }
         response.widget_info(|| egui::WidgetInfo::selected(egui::Role::Cell, true, is_cursor, &name));
         let response = match &reason {
-            Some(r) => response.on_hover_text(r.as_str()),
+            Some(r) => response.tip(r.as_str()),
             None => response,
         };
         let word = self.kind.word();

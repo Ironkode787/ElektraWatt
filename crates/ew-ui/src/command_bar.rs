@@ -25,6 +25,7 @@ use ew_viewmodel::strings;
 use serde_json::{Value, json};
 
 use crate::app::Event;
+use crate::components::Tip as _;
 use crate::icons::{self, IconId};
 use crate::theme::{self, Density, Tokens};
 
@@ -374,7 +375,7 @@ fn command_button(ui: &Ui, t: &Tokens, b: &CommandButton, rect: Rect) -> (Respon
             sense: Sense::click(),
         },
     )
-    .on_hover_text(tooltip(b));
+    .tip(tooltip(b));
     let chevron = split.then(|| {
         let r = Rect::from_min_max(pos2(main_rect.right(), rect.top()), rect.max);
         let name = format!("{} {}", b.bar_label, strings::text("commandbar-variants"));
@@ -666,7 +667,7 @@ impl CommandBarHost {
                 sense: Sense::click(),
             },
         )
-        .on_hover_text(format!("{menu_name} (Alt)"));
+        .tip(format!("{menu_name} (Alt)"));
         ui.ctx().accesskit_node_builder(response.id, |n| {
             n.set_description(name.to_owned());
             n.set_has_popup(egui::accesskit::HasPopup::Menu);
@@ -740,7 +741,7 @@ impl CommandBarHost {
                     sense: Sense::click(),
                 },
             )
-            .on_hover_text(tooltip(b));
+            .tip(tooltip(b));
             state_overlay(ui, t, &response, b.enabled, t.radius_sm);
             let colour = if b.enabled {
                 t.text_secondary
@@ -990,7 +991,7 @@ fn next_step(ui: &Ui, t: &Tokens, b: &CommandButton, rect: Rect, events: &mut Ve
             sense: Sense::click(),
         },
     )
-    .on_hover_text(tooltip(b));
+    .tip(tooltip(b));
     let (fill, text) = if !b.enabled {
         (t.border_subtle, t.text_disabled)
     } else if response.hovered() {

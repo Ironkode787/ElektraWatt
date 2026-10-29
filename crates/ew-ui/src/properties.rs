@@ -34,6 +34,7 @@ use ew_viewmodel::strings;
 use serde_json::json;
 
 use crate::app::Event;
+use crate::components::Tip as _;
 
 /// A text longer than this many characters is ellipsised in the middle (the whole text in the tooltip).
 const MAX_SHOWN: usize = 48;
@@ -536,7 +537,7 @@ impl PropertiesPane {
             t.text_secondary.color32(),
         );
         let label_button = if elided {
-            label_button.on_hover_text(&label)
+            label_button.tip(&label)
         } else {
             label_button
         };
@@ -600,7 +601,7 @@ impl PropertiesPane {
                     );
                     child
                         .interact(chip_rect, group_id.with("chip"), Sense::hover())
-                        .on_hover_text(&chip);
+                        .tip(&chip);
                 }
             } else {
                 // The value cell (the mockup's `.val`): a click edits in place; a transparent 1-px border that turns
@@ -680,7 +681,7 @@ impl PropertiesPane {
                     long
                 };
                 let response = match tip {
-                    Some(tip) => response.on_hover_text(tip),
+                    Some(tip) => response.tip(tip),
                     None => response,
                 };
                 if response.clicked() {
@@ -720,7 +721,7 @@ impl PropertiesPane {
                         t.icon_stroke,
                     );
                 }
-                let response = response.on_hover_text(&name);
+                let response = response.tip(&name);
                 let open = matches!(
                     props.popup(),
                     Some(ew_viewmodel::properties::Popup::Actions { row: r, .. }) if *r == row.key

@@ -16,6 +16,7 @@ use serde_json::{Value, json};
 
 use crate::app::Event;
 use crate::command_bar::{Spec, button_response, paint_icon, state_overlay};
+use crate::components::Tip as _;
 use crate::theme::{self, Tokens};
 
 /// The id of the rail button `word` on `side` (tests find the buttons by name; the id keeps them apart).
@@ -72,7 +73,7 @@ fn button(ui: &Ui, t: &Tokens, side: Side, b: &RailButton, rect: Rect, events: &
     } else {
         format!("{} ({})", b.label, crate::keys::display(&b.shortcut))
     };
-    let response = response.on_hover_text(tip);
+    let response = response.tip(tip);
     if response.clicked() {
         events.push(click(side, b));
     }

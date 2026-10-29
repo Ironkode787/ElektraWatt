@@ -1927,23 +1927,10 @@ fn statistics_size(ctx: &egui::Context, v: &StatValues) -> Vec2 {
 /// tooltip delay, 12 points off the pointer.
 fn cp_tooltip(response: &egui::Response, tip: String) {
     let t = crate::theme::current(&response.ctx);
-    let mut tooltip = egui::containers::Tooltip::for_enabled(response)
+    let tooltip = egui::containers::Tooltip::for_enabled(response)
         .at_pointer()
         .gap(t.space_4);
-    let frame = egui::Frame::new()
-        .fill(t.surface_inverse.color32())
-        .corner_radius(crate::theme::radius(t.radius_md))
-        .inner_margin(egui::Margin::symmetric(t.space_3 as i8, t.space_2 as i8))
-        .shadow(crate::theme::shadow(&t.elevation_1));
-    tooltip.popup = tooltip.popup.frame(frame);
-    tooltip.show(|ui| {
-        ui.set_max_width(t.size_tooltip_max);
-        ui.add(egui::Label::new(
-            egui::RichText::new(tip)
-                .font(crate::theme::font(&t.type_small))
-                .color(t.text_on_inverse.color32()),
-        ));
-    });
+    crate::components::show_tip(&response.ctx, tooltip, &tip);
 }
 
 /// The zoom text of a canvas as its accessible description reads it (tests).

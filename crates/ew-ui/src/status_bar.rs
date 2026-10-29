@@ -16,6 +16,7 @@ use serde_json::json;
 
 use crate::app::Event;
 use crate::command_bar::{paint_icon, state_overlay};
+use crate::components::Tip as _;
 use crate::theme::{self, Tokens, TypeToken};
 
 /// What a click on a field of `kind` asks for.
@@ -116,7 +117,7 @@ fn field(ui: &mut Ui, t: &Tokens, shell: &ShellModel, f: &StatusField, events: &
     let response = if f.tip.is_empty() {
         response
     } else {
-        response.on_hover_text(f.tip.as_str())
+        response.tip(f.tip.as_str())
     };
     if response.clicked()
         && let Some(e) = event

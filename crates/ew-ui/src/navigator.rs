@@ -38,6 +38,7 @@ use ew_viewmodel::strings;
 use serde_json::{Value, json};
 
 use crate::app::Event;
+use crate::components::Tip as _;
 
 /// The height of one row in points: `size.row` of the theme on show (doc 16a §6.6; 28, Compact 24).
 pub fn row_height(ctx: &egui::Context) -> f32 {
@@ -212,7 +213,7 @@ impl NavigatorPane {
                             None,
                         );
                         let button = match new_page {
-                            Some(Err(reason)) => button.on_disabled_hover_text(strings::text(reason)),
+                            Some(Err(reason)) => button.disabled_tip(strings::text(reason)),
                             _ => button,
                         };
                         if button.clicked() {
@@ -853,7 +854,7 @@ fn row_ui(
                         .x;
                     let response = ui.add(button);
                     let response = if full > room {
-                        response.on_hover_text(&row.label)
+                        response.tip(&row.label)
                     } else {
                         response
                     };
