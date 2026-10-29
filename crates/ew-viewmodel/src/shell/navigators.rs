@@ -222,6 +222,36 @@ impl ShellModel {
         }
     }
 
+    /// The key of the row on show in navigator `kind` that `given` names (cycle 33, G-PP finding 7): its key; else
+    /// the one row whose printed label is `given`; else the one row whose parent's label, a colon and its own label
+    /// is `given` (a strip terminal row prints `terminal "1"` under `strip "-X1031"`, and the tag `-X1031:1` names
+    /// it). `None` when nothing or more than one row matches.
+    pub(super) fn resolve_nav_key(&self, kind: NavKind, given: &str) -> Option<String> {
+        let vis = self.vis_keys(kind);
+        if vis.iter().any(|k| k == given) {
+            return Some(given.to_owned());
+        }
+        let n = self.generic(kind)?;
+        let t = n.table()?;
+        let rows: Vec<&crate::navigators::NavNode> =
+            n.visible().iter().map(|r| &t.nodes[r.node as usize]).collect();
+        let unique = |found: Vec<&&crate::navigators::NavNode>| match found.as_slice() {
+            [one] => Some(one.key.clone()),
+            _ => None,
+        };
+        unique(rows.iter().filter(|node| node.label == given).collect()).or_else(|| {
+            unique(
+                rows.iter()
+                    .filter(|node| {
+                        node.parent
+                            .and_then(|p| t.nodes.get(p as usize))
+                            .is_some_and(|parent| format!("{}:{}", parent.label, node.label) == given)
+                    })
+                    .collect(),
+            )
+        })
+    }
+
     /// The row cursor's key of navigator `kind`.
     pub fn nav_cursor(&self, kind: NavKind) -> Option<String> {
         match kind {
@@ -552,8 +582,10 @@ impl ShellModel {
     ) -> Result<Option<String>, Outcome> {
         match string_param(p, name)? {
             None => Ok(None),
-            Some(k) if self.vis_keys(kind).iter().any(|v| v == k) => Ok(Some(k.to_owned())),
-            Some(k) => Err(failed("error-nav-key", &[k, kind.word()])),
+            Some(k) => match self.resolve_nav_key(kind, k) {
+                Some(key) => Ok(Some(key)),
+                None => Err(failed("error-nav-key", &[k, kind.word()])),
+            },
         }
     }
 
@@ -1115,16 +1147,15 @@ impl ShellModel {
         let Some(Value::Array(list)) = p.get("keys") else {
             return failed("error-missing-param", &["keys"]);
         };
-        let vis = self.vis_keys(kind);
         let mut keys = Vec::new();
         for v in list {
             let Some(k) = v.as_str() else {
                 return failed("error-bad-param", &["keys"]);
             };
-            if !vis.iter().any(|x| x == k) {
+            let Some(key) = self.resolve_nav_key(kind, k) else {
                 return failed("error-nav-key", &[k, kind.word()]);
-            }
-            keys.push(k.to_owned());
+            };
+            keys.push(key);
         }
         let mut marks = if flag(p, "add") {
             self.marks(kind)

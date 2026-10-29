@@ -355,10 +355,11 @@ impl ShellModel {
                     self.tools.picker = Some(Picker::strips(&folio, Arc::clone(&cat), pending));
                     return Outcome::Done;
                 };
+                // An unknown strip name says which strips there are (cycle 33, G-PP finding 9): a new strip's
+                // `-X??` takes its counter with its first terminal, so the name the toast gave may have changed.
                 let Some(i) = Self::catalogue_strip(&cat, strip) else {
-                    return Outcome::Refused {
-                        reason_key: "reason-no-strip",
-                    };
+                    let tags: Vec<&str> = cat.strips.iter().map(|st| st.tag.as_str()).collect();
+                    return failed("error-unknown-strip", &[strip, &tags.join(", ")]);
                 };
                 let st = &cat.strips[i];
                 let designation = match string_param(p, "designation") {

@@ -866,10 +866,12 @@ impl ShellModel {
             Some(keys) => {
                 let mut out = Vec::new();
                 for k in &keys {
+                    // A printed label or `<strip>:<terminal>` names the row too (cycle 33).
+                    let key = self.resolve_nav_key(kind, k).unwrap_or_else(|| k.clone());
                     match view
                         .rows
                         .iter()
-                        .find(|i| view.table.nodes[**i as usize].key == *k)
+                        .find(|i| view.table.nodes[**i as usize].key == key)
                     {
                         Some(i) => out.push(*i),
                         None => return failed("error-nav-key", &[k, kind.word()]),

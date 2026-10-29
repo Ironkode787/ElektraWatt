@@ -1379,6 +1379,9 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "error-nav-kind" => "Unknown navigator {0}; use one of {1}.",
         "error-nav-closed" => "The {0} navigator is not open; show it first (navigator.show).",
         "error-nav-key" => "No row {0} is on show in the {1} navigator.",
+        "error-unknown-strip" => {
+            "No terminal strip {0} in the project; its strips are {1}. A new strip's tag (-X??) takes its counter with its first terminal"
+        }
         "error-nav-no-table" => "The {0} pane has no table mode; its rows are findings.",
         "error-nav-value" => "Unknown {0} {1}; use one of {2}.",
         "error-generated-page-order" => "A generated page has no folio of its own.",

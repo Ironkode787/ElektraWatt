@@ -42,7 +42,13 @@ choose the terminal symbol in the symbol picker, and a second picker lists the s
 "<next>" @<n>`); choose the strip there. The terminal takes the row's proposed designation unless the choice names one
 (`picker.choose` with `designation` `PE`, on either picker). A strip without terminals prints its tag with question marks in it (`-X??`) because
 its counter is given with its first terminal; the `@n` at the end of its row selects it (`select.set` with `ids`
-`["@n"]`), and `edit.delete_selection` deletes a strip that has no terminals.
+`["@n"]`), and `edit.delete_selection` deletes a strip that has no terminals. After its first terminal the strip has
+its real tag (`-X1011`); `place.pick` with a strip name the project does not have fails with a message that lists the
+project's strips.
+
+In the Terminal strips navigator a row is named by what it prints: a terminal by its tag, the strip's label, a colon
+and its own (`-X1031:1`), and a strip by its tag (`-X1031`). `navigator.select` with `keys` and `table.set` with `rows`
+take these names (`table.set` with `kind` `strips`, `rows` `["-X1031:1","-X1031:2"]`, a `column` and a `value`).
 
 A terminal's connection points print `strip:terminal/clamp` (`-X1031:1/b`): the starter terminal has clamp `a` on side 1
 (internal) and `b` on side 2 (field), `1X1:1/a` and `1X1:1/b`. Where two clamps of one level carry the same letter, as on
