@@ -219,56 +219,109 @@ mod tests {
         assert_eq!(FADED_OPACITY, 0.8);
     }
 
-    /// FT-508: the frame-statistics panel at the canvas's top right is an obstacle like any chip.
-    #[test]
-    fn ov2_the_statistics_panel_is_an_obstacle() {
-        let panel = Rect::from_min_max(Pos2::new(600.0, 12.0), Pos2::new(788.0, 140.0));
-        let t = Rect::point(Pos2::new(650.0, 135.0));
-        let mut obstacles = canvas();
-        let free = place_chip(t, SIZE, &obstacles, None);
-        assert!(
-            free.rect.overlaps(&panel),
-            "without the panel the chip would stand under it"
-        );
-        obstacles.push(panel);
-        let p = place_chip(t, SIZE, &obstacles, None);
-        assert!(!p.faded);
-        assert!(!p.rect.overlaps(&panel), "{p:?}");
-        assert_eq!(p.rect, candidates(t, SIZE)[1], "below right, under the panel");
+    /// One obstacle case: the target, the obstacles besides the canvas outside, the pointer, the expected
+    /// candidate (by index) and a rectangle the chip must or must not cover.
+    struct ObstacleCase {
+        name: &'static str,
+        target: Rect,
+        extra: Vec<Rect>,
+        pointer: Option<Pos2>,
+        want: Option<usize>,
+        avoids: Option<Rect>,
+        covers: Option<Rect>,
     }
 
-    /// The tool HUD at the canvas's bottom centre is an obstacle.
+    /// The frame-statistics panel (FT-508), the tool HUD and the pointer's 16-point box are obstacles like any
+    /// chip.
     #[test]
     fn ov2_the_hud_is_an_obstacle() {
+        // The statistics panel at the canvas's top right.
+        let panel = Rect::from_min_max(Pos2::new(600.0, 12.0), Pos2::new(788.0, 140.0));
+        let under_panel = Rect::point(Pos2::new(650.0, 135.0));
+        // The tool HUD at the canvas's bottom centre.
         let hud = Rect::from_min_max(Pos2::new(250.0, 548.0), Pos2::new(550.0, 584.0));
-        let t = Rect::point(Pos2::new(300.0, 530.0));
-        let mut obstacles = canvas();
-        obstacles.push(hud);
-        let p = place_chip(t, SIZE, &obstacles, None);
-        assert!(!p.rect.overlaps(&hud));
-        assert_eq!(p.rect, candidates(t, SIZE)[0], "above right stays free");
-        // Below the target only: the HUD takes both lower candidates, the upper ones are free.
-        let t = Rect::point(Pos2::new(300.0, 530.0));
-        let blocked = [candidates(t, SIZE)[0], hud];
-        let mut obstacles = canvas();
-        obstacles.extend(blocked);
-        let p = place_chip(t, SIZE, &obstacles, None);
-        assert_eq!(p.rect, candidates(t, SIZE)[2], "above left");
-    }
-
-    /// The pointer's 16-point box is an obstacle.
-    #[test]
-    fn ov2_the_pointer_box_is_an_obstacle() {
-        let c = candidates(target(), SIZE);
-        // The pointer inside the preferred candidate.
-        let p = place_chip(target(), SIZE, &canvas(), Some(Pos2::new(230.0, 185.0)));
-        assert_eq!(p.rect, c[1]);
-        // The pointer's box reaches into the candidate from 7 points outside its left edge.
-        let p = place_chip(target(), SIZE, &canvas(), Some(Pos2::new(201.0, 180.0)));
-        assert_eq!(p.rect, c[1]);
-        // 8 points outside: the box only touches the edge, the candidate stays.
-        let p = place_chip(target(), SIZE, &canvas(), Some(Pos2::new(200.0, 180.0)));
-        assert_eq!(p.rect, c[0]);
+        let over_hud = Rect::point(Pos2::new(300.0, 530.0));
+        let cases = [
+            ObstacleCase {
+                name: "without the panel the chip would stand under it",
+                target: under_panel,
+                extra: vec![],
+                pointer: None,
+                want: None,
+                avoids: None,
+                covers: Some(panel),
+            },
+            ObstacleCase {
+                name: "the statistics panel: below right, under the panel",
+                target: under_panel,
+                extra: vec![panel],
+                pointer: None,
+                want: Some(1),
+                avoids: Some(panel),
+                covers: None,
+            },
+            ObstacleCase {
+                name: "the HUD: above right stays free",
+                target: over_hud,
+                extra: vec![hud],
+                pointer: None,
+                want: Some(0),
+                avoids: Some(hud),
+                covers: None,
+            },
+            // Below the target only: the HUD takes both lower candidates, the upper ones are free.
+            ObstacleCase {
+                name: "the HUD with above right taken: above left",
+                target: over_hud,
+                extra: vec![candidates(over_hud, SIZE)[0], hud],
+                pointer: None,
+                want: Some(2),
+                avoids: None,
+                covers: None,
+            },
+            ObstacleCase {
+                name: "the pointer inside the preferred candidate",
+                target: target(),
+                extra: vec![],
+                pointer: Some(Pos2::new(230.0, 185.0)),
+                want: Some(1),
+                avoids: None,
+                covers: None,
+            },
+            ObstacleCase {
+                name: "the pointer's box reaches in from 7 points outside the left edge",
+                target: target(),
+                extra: vec![],
+                pointer: Some(Pos2::new(201.0, 180.0)),
+                want: Some(1),
+                avoids: None,
+                covers: None,
+            },
+            ObstacleCase {
+                name: "8 points outside the box only touches the edge, the candidate stays",
+                target: target(),
+                extra: vec![],
+                pointer: Some(Pos2::new(200.0, 180.0)),
+                want: Some(0),
+                avoids: None,
+                covers: None,
+            },
+        ];
+        for c in cases {
+            let mut obstacles = canvas();
+            obstacles.extend(c.extra);
+            let p = place_chip(c.target, SIZE, &obstacles, c.pointer);
+            assert!(!p.faded, "case {}: {p:?}", c.name);
+            if let Some(i) = c.want {
+                assert_eq!(p.rect, candidates(c.target, SIZE)[i], "case {}", c.name);
+            }
+            if let Some(r) = c.avoids {
+                assert!(!p.rect.overlaps(&r), "case {}: {p:?}", c.name);
+            }
+            if let Some(r) = c.covers {
+                assert!(p.rect.overlaps(&r), "case {}: {p:?}", c.name);
+            }
+        }
         assert_eq!(pointer_box(Pos2::new(10.0, 10.0)).width(), 16.0);
     }
 

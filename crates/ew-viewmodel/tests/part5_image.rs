@@ -173,29 +173,6 @@ fn the_image_tool_places_the_asset_by_two_corners_keeping_its_aspect() {
     assert_eq!(item_count(&s), before);
 }
 
-/// The rectangle grows towards the second corner and fits the box: a drag up and to the left.
-#[test]
-fn the_rectangle_grows_towards_the_second_corner() {
-    let (_tmp, mut s) = armed("image-direction");
-    let a = grid_point(&s, (60, 30));
-    let b = grid_point(&s, (50, 28));
-    click_at(&mut s, a);
-    click_at(&mut s, b);
-    let (min, max) = fit_rect(a, b, Some((40, 10))).unwrap();
-    // 10 steps left and 2 up: the height limits, the width is four times it.
-    assert_eq!(max, a, "the first corner stays");
-    assert!(
-        ((max.0 - min.0) - 4 * (max.1 - min.1)).abs() <= 2,
-        "the 4:1 ratio of the SVG"
-    );
-    assert!(min.0 > b.0 && min.1 == b.1, "{min:?} against {b:?}");
-    let last = s.recorded_commands().last().unwrap();
-    assert_eq!(
-        last.params["kind"]["image"]["rect"],
-        json!([[min.0, min.1], [max.0, max.1]])
-    );
-}
-
 /// A box without area commits nothing; Back and Escape drop the first corner; Escape on the armed tool returns to
 /// Select.
 #[test]

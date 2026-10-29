@@ -2011,36 +2011,27 @@ mod tests {
         }
     }
 
+    /// `elapsed_text` (FT-503): (name, last change, expected text) against `NOW`.
     #[test]
-    fn elapsed_text_is_just_now_under_a_minute() {
-        assert_eq!(elapsed_text(NOW, NOW), "just now");
-        assert_eq!(elapsed_text(NOW - 59_999, NOW), "just now");
-    }
-
-    #[test]
-    fn elapsed_text_counts_minutes() {
-        assert_eq!(elapsed_text(NOW - 60_000, NOW), "1 minute ago");
-        assert_eq!(elapsed_text(NOW - 12 * 60_000 - 5, NOW), "12 minutes ago");
-        assert_eq!(elapsed_text(NOW - 3_599_999, NOW), "59 minutes ago");
-    }
-
-    #[test]
-    fn elapsed_text_counts_hours() {
-        assert_eq!(elapsed_text(NOW - 3_600_000, NOW), "1 hour ago");
-        assert_eq!(elapsed_text(NOW - 5 * 3_600_000 - 1, NOW), "5 hours ago");
-    }
-
-    #[test]
-    fn elapsed_text_counts_days() {
-        assert_eq!(elapsed_text(NOW - 86_400_000, NOW), "1 day ago");
-        assert_eq!(elapsed_text(NOW - 40 * 86_400_000, NOW), "40 days ago");
-        assert_eq!(elapsed_text(0, NOW), "20752 days ago");
-    }
-
-    #[test]
-    fn elapsed_text_of_a_future_last_change_is_just_now() {
-        assert_eq!(elapsed_text(NOW + 1, NOW), "just now");
-        assert_eq!(elapsed_text(NOW + 86_400_000, NOW), "just now");
+    fn elapsed_text_table() {
+        let cases = [
+            ("now", NOW, "just now"),
+            ("just under a minute", NOW - 59_999, "just now"),
+            ("one minute", NOW - 60_000, "1 minute ago"),
+            ("minutes round down", NOW - 12 * 60_000 - 5, "12 minutes ago"),
+            ("just under an hour", NOW - 3_599_999, "59 minutes ago"),
+            ("one hour", NOW - 3_600_000, "1 hour ago"),
+            ("hours round down", NOW - 5 * 3_600_000 - 1, "5 hours ago"),
+            ("one day", NOW - 86_400_000, "1 day ago"),
+            ("forty days", NOW - 40 * 86_400_000, "40 days ago"),
+            ("since the epoch", 0, "20752 days ago"),
+            // A last change in the future (clock skew) is never negative.
+            ("a millisecond ahead", NOW + 1, "just now"),
+            ("a day ahead", NOW + 86_400_000, "just now"),
+        ];
+        for (name, last, want) in cases {
+            assert_eq!(elapsed_text(last, NOW), want, "case {name}");
+        }
     }
 
     #[test]

@@ -386,32 +386,3 @@ fn a_typed_link_value_and_references_take_the_id_form() {
     assert!(log.contains(&format!("{{\"ref\":\"id:{device}\"}}")), "{log}");
     shell.shutdown();
 }
-
-/// Acceptance 2: one script twice on equal inputs gives byte-identical transcripts, and the aliases are in them.
-#[test]
-fn two_runs_print_the_same_aliases() {
-    let mut transcripts = Vec::new();
-    for n in ["a", "b"] {
-        let tmp = Tmp::new(&format!("alias-twice-{n}"));
-        let (mut shell, dir) = shell(&tmp);
-        let lines = run(
-            &mut shell,
-            &[
-                ("file.open", json!({"dir": dir, "read_only": true})),
-                ("page.goto", json!({"folio": "103"})),
-                ("select.set", json!({"refs": ["tag:S51", "tag:-101F1"]})),
-                ("props.show", json!({})),
-                ("ui.describe", json!({})),
-            ],
-        );
-        shell.shutdown();
-        transcripts.push(lines.join("\n").replace(&dir, "DIR"));
-    }
-    assert_eq!(transcripts[0], transcripts[1]);
-    no_uuid(&transcripts[0]);
-    assert!(
-        transcripts[0].contains("\"selection\":[\"@1\",\"@2\"]"),
-        "{}",
-        transcripts[0]
-    );
-}

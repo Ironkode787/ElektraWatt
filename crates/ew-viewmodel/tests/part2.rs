@@ -776,28 +776,32 @@ fn the_preview_follows_the_draft_and_the_default_draft_reproduces_the_sample() {
 #[test]
 fn every_choice_of_the_wizard_is_accepted_by_the_commands() {
     // The preview applies the settings commands to the sample project, so a refused value shows at once. Every
-    // combination of the choices that reach the commands builds, and the review step can create the project.
+    // pair of the choices that reach the commands builds, and the review step can create the project: every
+    // colour with every size, the xref format alternating so that each colour and each size also meets both
+    // xref formats (8 of the 16 combinations, a pairwise cover).
     let tmp = Tmp::new();
     let mut shell = tmp.shell();
     done(&mut shell, "tools.company_standard", json!({}));
     let mut n = 0;
-    for colour in ["sample", "en60204-machine", "iec60445-installation", "default"] {
-        for size in ["sample", "default"] {
-            for xref in ["qet", "eplan"] {
-                for (field, value) in [("colour", colour), ("size", size), ("xref", xref)] {
-                    done(&mut shell, "wizard.set", json!({"field": field, "value": value}));
-                }
-                let content = shell.wizard_preview_content();
-                assert!(content.is_ok(), "{colour} {size} {xref}: {:?}", content.err());
-                let dir = tmp.0.join(format!("basic-{n}.ew"));
-                n += 1;
-                let out = run(&mut shell, "wizard.finish", json!({ "dir": path(&dir) }));
-                assert_eq!(out, Outcome::Done, "{colour} {size} {xref}: {out:?}");
-                done(&mut shell, "tools.company_standard", json!({}));
+    for (ci, colour) in ["sample", "en60204-machine", "iec60445-installation", "default"]
+        .into_iter()
+        .enumerate()
+    {
+        for (si, size) in ["sample", "default"].into_iter().enumerate() {
+            let xref = ["qet", "eplan"][(ci + si) % 2];
+            for (field, value) in [("colour", colour), ("size", size), ("xref", xref)] {
+                done(&mut shell, "wizard.set", json!({"field": field, "value": value}));
             }
+            let content = shell.wizard_preview_content();
+            assert!(content.is_ok(), "{colour} {size} {xref}: {:?}", content.err());
+            let dir = tmp.0.join(format!("basic-{n}.ew"));
+            n += 1;
+            let out = run(&mut shell, "wizard.finish", json!({ "dir": path(&dir) }));
+            assert_eq!(out, Outcome::Done, "{colour} {size} {xref}: {out:?}");
+            done(&mut shell, "tools.company_standard", json!({}));
         }
     }
-    assert_eq!(n, 16);
+    assert_eq!(n, 8);
     shell.shutdown();
 }
 

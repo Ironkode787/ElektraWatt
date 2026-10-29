@@ -286,22 +286,32 @@ impl Tool for ImageTool {
 mod tests {
     use super::*;
 
+    /// `fit_rect`: (name, first corner, second corner, asset size, expected rectangle).
     #[test]
-    fn a_wide_box_is_limited_by_its_height() {
-        // 2:1 asset, box 100 by 20: the height 20 gives the width 40.
-        assert_eq!(
-            fit_rect((0, 0), (100, 20), Some((200, 100))),
-            Some(((0, 0), (40, 20)))
-        );
-    }
-
-    #[test]
-    fn a_tall_box_is_limited_by_its_width() {
-        // 2:1 asset, box 20 by 100: the width 20 gives the height 10.
-        assert_eq!(
-            fit_rect((0, 0), (20, 100), Some((200, 100))),
-            Some(((0, 0), (20, 10)))
-        );
+    fn image_fit_table() {
+        #[rustfmt::skip]
+        let cases = [
+            // 2:1 asset, box 100 by 20: the height 20 gives the width 40.
+            ("a wide box is limited by its height", (0, 0), (100, 20), Some((200, 100)), Some(((0, 0), (40, 20)))),
+            // 2:1 asset, box 20 by 100: the width 20 gives the height 10.
+            ("a tall box is limited by its width", (0, 0), (20, 100), Some((200, 100)), Some(((0, 0), (20, 10)))),
+            // The fitted side is rounded half up. 3:2 asset, width 5: height 3.33 -> 3; width 7: height 4.67 -> 5.
+            ("3:2 at width 5 rounds down", (0, 0), (5, 100), Some((3, 2)), Some(((0, 0), (5, 3)))),
+            ("3:2 at width 7 rounds up", (0, 0), (7, 100), Some((3, 2)), Some(((0, 0), (7, 5)))),
+            // The half case 1:2 with width 1 gives 2.
+            ("1:2 at width 1", (0, 0), (1, 100), Some((1, 2)), Some(((0, 0), (1, 2)))),
+            ("2:1 at width 1, the half rounds up", (0, 0), (1, 100), Some((2, 1)), Some(((0, 0), (1, 1)))),
+            // A box without area gives nothing.
+            ("no height", (0, 0), (10, 0), Some((1, 1)), None),
+            ("no width, unknown size", (0, 0), (0, 10), None, None),
+            ("a height that rounds to 0", (0, 0), (1, 100), Some((10, 1)), None),
+            // An unknown size fills the box.
+            ("an unknown size fills the box", (10, 10), (0, 40), None, Some(((0, 10), (10, 40)))),
+            ("a size with a zero side fills the box", (10, 10), (0, 40), Some((0, 5)), Some(((0, 10), (10, 40)))),
+        ];
+        for (name, p0, p, size, want) in cases {
+            assert_eq!(fit_rect(p0, p, size), want, "case {name}");
+        }
     }
 
     #[test]
@@ -313,33 +323,6 @@ mod tests {
         assert_eq!(
             fit_rect((100, 100), (120, 40), Some((100, 200))),
             Some(((100, 60), (120, 100)))
-        );
-    }
-
-    #[test]
-    fn the_fitted_side_is_rounded_half_up() {
-        // 3:2 asset, width 5: height 3.33 -> 3; width 7: height 4.67 -> 5; width 3: 2.
-        assert_eq!(fit_rect((0, 0), (5, 100), Some((3, 2))), Some(((0, 0), (5, 3))));
-        assert_eq!(fit_rect((0, 0), (7, 100), Some((3, 2))), Some(((0, 0), (7, 5))));
-        // 1:1 asset, box 3 by 1: width 1; the half case 1:2 with width 1 gives 2.
-        assert_eq!(fit_rect((0, 0), (1, 100), Some((1, 2))), Some(((0, 0), (1, 2))));
-        assert_eq!(fit_rect((0, 0), (1, 100), Some((2, 1))), Some(((0, 0), (1, 1))));
-    }
-
-    #[test]
-    fn a_box_without_area_gives_nothing() {
-        assert_eq!(fit_rect((0, 0), (10, 0), Some((1, 1))), None);
-        assert_eq!(fit_rect((0, 0), (0, 10), None), None);
-        // A height that rounds to 0.
-        assert_eq!(fit_rect((0, 0), (1, 100), Some((10, 1))), None);
-    }
-
-    #[test]
-    fn an_unknown_size_fills_the_box() {
-        assert_eq!(fit_rect((10, 10), (0, 40), None), Some(((0, 10), (10, 40))));
-        assert_eq!(
-            fit_rect((10, 10), (0, 40), Some((0, 5))),
-            Some(((0, 10), (10, 40)))
         );
     }
 }

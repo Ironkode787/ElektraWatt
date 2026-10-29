@@ -540,33 +540,46 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
+    /// Loading a file that is not a usable settings file gives the defaults: an absent file without a copy, a
+    /// corrupted one with a numbered copy.
     #[test]
     fn a_corrupted_file_gives_defaults_and_a_numbered_copy() {
-        let dir = temp_dir("bad");
-        std::fs::write(dir.join(FILE_NAME), "this is = not [ toml").unwrap();
-        let loaded = Settings::load(&dir);
-        assert_eq!(loaded.settings, Settings::default());
-        assert_eq!(loaded.bad_copy.as_deref(), Some("settings.toml.bad-1"));
-        assert!(dir.join("settings.toml.bad-1").is_file());
-        // The next bad file takes the next free number.
-        let again = Settings::load(&dir);
-        assert_eq!(again.bad_copy.as_deref(), Some("settings.toml.bad-2"));
-        // A well-formed file with a wrong type for a known key is bad too.
-        std::fs::write(dir.join(FILE_NAME), "recent_projects = 3\n").unwrap();
-        assert_eq!(
-            Settings::load(&dir).bad_copy.as_deref(),
-            Some("settings.toml.bad-3")
-        );
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn an_absent_file_gives_defaults_without_a_copy() {
-        let dir = temp_dir("absent");
-        let loaded = Settings::load(&dir);
-        assert_eq!(loaded.settings, Settings::default());
-        assert_eq!(loaded.bad_copy, None);
-        let _ = std::fs::remove_dir_all(&dir);
+        type Case = (&'static str, fn(&str));
+        let cases: [Case; 2] = [
+            ("an absent file", |c| {
+                let dir = temp_dir("absent");
+                let loaded = Settings::load(&dir);
+                assert_eq!(loaded.settings, Settings::default(), "case {c}");
+                assert_eq!(loaded.bad_copy, None, "case {c}");
+                let _ = std::fs::remove_dir_all(&dir);
+            }),
+            ("a corrupted file", |c| {
+                let dir = temp_dir("bad");
+                std::fs::write(dir.join(FILE_NAME), "this is = not [ toml").unwrap();
+                let loaded = Settings::load(&dir);
+                assert_eq!(loaded.settings, Settings::default(), "case {c}");
+                assert_eq!(
+                    loaded.bad_copy.as_deref(),
+                    Some("settings.toml.bad-1"),
+                    "case {c}"
+                );
+                assert!(dir.join("settings.toml.bad-1").is_file(), "case {c}");
+                // The next bad file takes the next free number.
+                let again = Settings::load(&dir);
+                assert_eq!(again.bad_copy.as_deref(), Some("settings.toml.bad-2"), "case {c}");
+                // A well-formed file with a wrong type for a known key is bad too.
+                std::fs::write(dir.join(FILE_NAME), "recent_projects = 3\n").unwrap();
+                assert_eq!(
+                    Settings::load(&dir).bad_copy.as_deref(),
+                    Some("settings.toml.bad-3"),
+                    "case {c}"
+                );
+                let _ = std::fs::remove_dir_all(&dir);
+            }),
+        ];
+        for (name, case) in cases {
+            case(name);
+        }
     }
 
     #[test]
@@ -692,47 +705,56 @@ mod tests {
     }
 
     /// DK6 (FT-348): `[window]` is written only once a window recorded it, read back equal, and a table this version
-    /// cannot read is dropped without making the file bad.
+    /// cannot read is dropped without making the file bad; members of the table this version does not know are kept.
     #[test]
     fn dk6_the_window_table() {
-        let mut s = Settings::default();
-        assert!(!s.to_toml().contains("[window]"));
-        s.window = Some(crate::window::WindowGeometry {
-            x: -1200.0,
-            y: 40.0,
-            width: 1280.0,
-            height: 800.0,
-            maximized: true,
-        });
-        let text = s.to_toml();
-        assert!(text.contains("[window]"), "{text}");
-        assert_eq!(Settings::parse(&text).unwrap(), s);
-        let bad = Settings::parse("theme = \"dark\"\n[window]\nx = \"left\"\n").unwrap();
-        assert_eq!(bad.window, None);
-        assert_eq!(bad.theme, "dark");
-    }
-
-    /// R1-6: members of `[window]` this version does not know are kept and written back, also when the geometry
-    /// changes and when the known members are unreadable.
-    #[test]
-    fn dk6_the_window_table_keeps_unknown_members() {
-        let mut s =
-            Settings::parse("[window]\nx = 10\ny = 20\nwidth = 800\nheight = 600\nmonitor = \"DP-1\"\n")
+        type Case = (&'static str, fn(&str));
+        let cases: [Case; 2] = [
+            ("written once recorded, a bad table dropped", |c| {
+                let mut s = Settings::default();
+                assert!(!s.to_toml().contains("[window]"), "case {c}");
+                s.window = Some(crate::window::WindowGeometry {
+                    x: -1200.0,
+                    y: 40.0,
+                    width: 1280.0,
+                    height: 800.0,
+                    maximized: true,
+                });
+                let text = s.to_toml();
+                assert!(text.contains("[window]"), "case {c}: {text}");
+                assert_eq!(Settings::parse(&text).unwrap(), s, "case {c}");
+                let bad = Settings::parse("theme = \"dark\"\n[window]\nx = \"left\"\n").unwrap();
+                assert_eq!(bad.window, None, "case {c}");
+                assert_eq!(bad.theme, "dark", "case {c}");
+            }),
+            ("unknown members are kept", |c| {
+                let mut s = Settings::parse(
+                    "[window]\nx = 10\ny = 20\nwidth = 800\nheight = 600\nmonitor = \"DP-1\"\n",
+                )
                 .unwrap();
-        assert_eq!(s.window.map(|w| w.width), Some(800.0));
-        assert!(s.to_toml().contains("monitor = \"DP-1\""), "{}", s.to_toml());
-        s.window = s
-            .window
-            .map(|w| crate::window::WindowGeometry { width: 1024.0, ..w });
-        let text = s.to_toml();
-        assert!(text.contains("monitor = \"DP-1\""), "{text}");
-        assert!(text.contains("width = 1024"), "{text}");
-        assert_eq!(Settings::parse(&text).unwrap(), s);
-        let bad = Settings::parse("[window]\nx = \"left\"\nmonitor = \"DP-1\"\n").unwrap();
-        assert_eq!(bad.window, None);
-        let text = bad.to_toml();
-        assert!(text.contains("monitor = \"DP-1\""), "{text}");
-        assert!(!text.contains("left"), "{text}");
+                assert_eq!(s.window.map(|w| w.width), Some(800.0), "case {c}");
+                assert!(
+                    s.to_toml().contains("monitor = \"DP-1\""),
+                    "case {c}: {}",
+                    s.to_toml()
+                );
+                s.window = s
+                    .window
+                    .map(|w| crate::window::WindowGeometry { width: 1024.0, ..w });
+                let text = s.to_toml();
+                assert!(text.contains("monitor = \"DP-1\""), "case {c}: {text}");
+                assert!(text.contains("width = 1024"), "case {c}: {text}");
+                assert_eq!(Settings::parse(&text).unwrap(), s, "case {c}");
+                let bad = Settings::parse("[window]\nx = \"left\"\nmonitor = \"DP-1\"\n").unwrap();
+                assert_eq!(bad.window, None, "case {c}");
+                let text = bad.to_toml();
+                assert!(text.contains("monitor = \"DP-1\""), "case {c}: {text}");
+                assert!(!text.contains("left"), "case {c}: {text}");
+            }),
+        ];
+        for (name, case) in cases {
+            case(name);
+        }
     }
 
     /// R1-5: two instances' settings on one file. The later exit merges only its window geometry into the file on
