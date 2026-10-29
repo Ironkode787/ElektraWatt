@@ -175,6 +175,14 @@ impl ShellModel {
         cell
     }
 
+    /// Whether cell (node `i`, column `col`) defines a potential known only at its CPs (G-PP triage row 8): its own
+    /// text typed or pasted again still defines it, the user's intent to fix what the CP roles only suggest.
+    fn defines(&self, view: &TableView, i: u32, col: usize) -> bool {
+        let node = &view.table.nodes[i as usize];
+        self.cell_route(view, i, col)
+            .is_ok_and(|(k, p)| row_targets(node, &k).is_empty() && define_point(node, &k, &p).is_some())
+    }
+
     /// The route of an editable cell, or why it is read-only.
     fn cell_route(&self, view: &TableView, i: u32, col: usize) -> Result<(String, String), String> {
         let node = &view.table.nodes[i as usize];
@@ -838,8 +846,11 @@ impl ShellModel {
         };
         let row = u32::try_from(row).unwrap_or(u32::MAX);
         let all = flag(p, "all");
-        // The cell's own text committed unchanged: nothing to write.
-        if !all && view.table.nodes[row as usize].cells.get(col) == Some(&edit.buffer) {
+        // The cell's own text committed unchanged: nothing to write, except on a defining cell (G-PP triage row 8).
+        if !all
+            && view.table.nodes[row as usize].cells.get(col) == Some(&edit.buffer)
+            && !self.defines(&view, row, col)
+        {
             self.close_edit(kind);
             return Outcome::Done;
         }
@@ -1094,7 +1105,9 @@ impl ShellModel {
                 let col = map.get(j).copied().flatten();
                 match (at, col) {
                     (Some(i), Some(c)) => {
-                        if view.table.nodes[i as usize].cells.get(c) == Some(text) {
+                        if view.table.nodes[i as usize].cells.get(c) == Some(text)
+                            && !self.defines(&view, i, c)
+                        {
                             continue;
                         }
                         cells.push(self.text_cell(&view, i, c, text));

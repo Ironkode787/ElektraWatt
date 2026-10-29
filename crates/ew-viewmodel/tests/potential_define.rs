@@ -189,8 +189,8 @@ fn typed_type_and_voltage_define_drawn_potentials_and_colour_their_wires() {
         assert_eq!(last.cmd, "fields.set_many", "{name}: {}", last.params);
         assert_eq!(row(&shell, name, "Voltage").2, voltage, "{name}");
     }
-    // +24V and 0V show the type of their supply's CP roles (L+, M): Voltage defines them; the same Type typed again
-    // changes nothing.
+    // +24V and 0V show the type of their supply's CP roles (L+, M): Voltage defines them; the same Type typed again on
+    // the now defined row changes nothing.
     for (name, ptype, voltage) in [(&plus, "L+", "24 V DC"), (&zero, "M", "24 V DC")] {
         assert_eq!(row(&shell, name, "Type").2, ptype, "{name}: the role's type");
         let steps = shell.recorded_commands().len();
@@ -213,6 +213,36 @@ fn typed_type_and_voltage_define_drawn_potentials_and_colour_their_wires() {
     }
     assert_eq!(marker_text(&mut shell, "101", &W4_W5), "2.5 BK BU");
     assert_eq!(marker_text(&mut shell, "102", &W20_TO_W23), "1.5 DBU DBU WH WH");
+    shell.shutdown();
+}
+
+/// Round 2's ruling: on an undefined row, typing the Type it already shows (from its CP roles) defines it, one
+/// `potential.define` with that type; typed again on the now defined row it adds no step (the same-text rule).
+#[test]
+fn typing_the_shown_type_on_an_undefined_row_defines_it() {
+    let tmp = Tmp::new("potdef-shown");
+    let mut shell = undefined(&tmp);
+    let plus = potential_at(&mut shell, "102", "-102F1:1");
+    done(&mut shell, "navigator.show", json!({"kind": "potentials"}));
+    let (_, kind, shown) = row(&shell, &plus, "Type");
+    assert_eq!(
+        (kind.as_str(), shown.as_str()),
+        ("cp", "L+"),
+        "the role's type on show"
+    );
+    let steps = shell.recorded_commands().len();
+    type_cell(&mut shell, &plus, "Type", "L+");
+    assert_eq!(shell.recorded_commands().len(), steps + 1, "one step");
+    let last = shell.recorded_commands().last().unwrap();
+    assert_eq!(last.cmd, "potential.define");
+    assert_eq!(last.params["ptype"], "l_plus", "{}", last.params);
+    assert_eq!(row(&shell, &plus, "Type").1, "potential_def");
+    type_cell(&mut shell, &plus, "Type", "L+");
+    assert_eq!(
+        shell.recorded_commands().len(),
+        steps + 1,
+        "a defined row: nothing to change"
+    );
     shell.shutdown();
 }
 
