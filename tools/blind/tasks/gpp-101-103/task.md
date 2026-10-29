@@ -25,11 +25,14 @@ parts of the devices below are already in the project as copies. None of the fol
 
 How to read the tables: the cell is the anchor cell of the symbol (folio and cell of the frame); a tag with "(frozen)"
 is typed as written and stays; "field" and "internal" name the two sides of a terminal, a and b the clamps of a
-terminal; the sizes and colours follow the colour and size profile of the project (DBU/WH 24 V) and are not drawn,
-except the cross sections set by hand, which print as wire markers (below). In the IP tables ▷ marks an outgoing end
-and ◁ an incoming one. In marker mode "only explicit overrides" exactly four marker groups print: below and above S51
-on folio 101, below -102G1 and above -102F2 on folio 102. A marker prints the cross section and the colours of its
-wires.
+terminal (on 1X1 the internal side is clamp a and the field side clamp b); the sizes and colours follow the colour and size profile of the project (DBU/WH 24 V) and are not drawn,
+except the cross sections set by hand, which print as wire markers (below). In the IP tables the source is the end
+the potential leaves its folio by and the target the end it arrives at: give each end that direction. In marker mode
+"only explicit overrides" exactly four marker groups print: below and above S51 on folio 101, below -102G1 and above
+-102F2 on folio 102. A marker prints the cross section and the colours of the wires it crosses.
+
+A potential is named and typed in the Potentials table once it is drawn; each folio lists its potentials by a member
+connection point.
 
 <!-- folio 101 -->
 ## Folio 101: Power Supply 1 - Main Current
@@ -56,16 +59,17 @@ connections L, N and PE, so that the external points can name it.
 | 1X1 (frozen) | Incoming supply strip | terminals UK 5 N ×2, USLKG 5 ×1 | 101-D2 | terminals 1, 2, PE; field and internal side |
 | -XPE | Main PE point (plate PE stud), drawn as earth symbol without tag | none | 101-D5 | PE |
 
--XPE is drawn as an earth symbol without a printed tag. The three external points J-E-206-L, J-E-206-N and J-E-206-PE
-stand at 101-G0 and print "+J-E-206 / JE-N1000-03".
+The three terminals of 1X1 stack at 101-D2, the strip's cell: 1, 2 and PE in that order; drawn side by side they run on
+along row D to the right. -XPE is drawn as an earth symbol without a printed tag. The three external points
+J-E-206-L, J-E-206-N and J-E-206-PE stand at 101-G0 and print "+J-E-206 / JE-N1000-03".
 
 **Interruption points**
 
-| Name | One end | Other end |
+| Name | Source | Target |
 |---|---|---|
-| L-1 | 101-H16 ▷ | 102-A1 ▷ |
-| N-1 | 101-H16 ▷ | 102-A1 ▷ |
-| PE-1.1 | 101-G15 ▷ | 103-G6 ◁ |
+| L-1 | 101-H16 | 102-A1 |
+| N-1 | 101-H16 | 102-A1 |
+| PE-1.1 | 101-G15 | 103-G6 |
 
 **Connections** (every wire as it is drawn on this folio)
 
@@ -102,8 +106,24 @@ stand at 101-G0 and print "+J-E-206 / JE-N1000-03".
 
 The bevels of the top bus are daisy chains on the CPs of -101F1, not junctions.
 
-**Cross sections set by hand** (2.5 mm², printed as markers): 1X1:1 internal to S51:2, 1X1:2 internal to S51:4, S51:1 to
--101F1:1 and S51:3 to -101F1:N#1.
+**Cross sections set by hand** (2.5 mm², printed as markers): the marker below S51 crosses 1X1:1 internal to S51:2 and
+1X1:2 internal to S51:4; the marker above S51 crosses S51:1 to -101F1:1 and S51:3 to -101F1:N#1.
+
+**Potentials**
+
+| Potential | Type, voltage | Member |
+|---|---|---|
+| L | L, 230 V AC | 1X1:1 |
+| N | N, 230 V AC | 1X1:2 |
+| L-S | L, 230 V AC | S51:1 |
+| N-S | N, 230 V AC | S51:3 |
+| L-1 | L, 230 V AC | -101F1:2 |
+| N-1 | N, 230 V AC | -101F1:N#2 |
+| L-55 | L, 230 V AC | F55:2 |
+| N-55 | N, 230 V AC | F55:N#2 |
+| N-55T | N switched, named only | T55:3 |
+| N-55S | N switched, named only | S56:14 |
+| PE | PE | 1X1:PE |
 <!-- /folio -->
 
 <!-- folio 102 -->
@@ -123,13 +143,13 @@ IPs below.
 
 **Interruption points**
 
-| Name | One end | Other end |
+| Name | Source | Target |
 |---|---|---|
-| L-1 | 101-H16 ▷ | 102-A1 ▷ |
-| N-1 | 101-H16 ▷ | 102-A1 ▷ |
-| PE-1.2 | 102-A15 ▷ | 103-G6 ◁ |
-| 0VDC | 102-C15 ▷ | 103-A1 ▷ |
-| PE-0VDC | 102-D15 ▷ | 103-G1 ▷ |
+| L-1 | 101-H16 | 102-A1 |
+| N-1 | 101-H16 | 102-A1 |
+| PE-1.2 | 102-A15 | 103-G6 |
+| 0VDC | 102-C15 | 103-A1 |
+| PE-0VDC | 102-D15 | 103-G1 |
 | 24VDC-1 | 102-H15 | 103-A1 |
 | 24VDC-2 | 102-H15 | 103-C1 |
 | 24VDC-3 | 102-G15 | 103-D1 |
@@ -170,8 +190,24 @@ IPs below.
 
 J5 and J6 are set to Star by hand (a bevel is a chain by default).
 
-**Cross sections set by hand** (1.5 mm², printed as markers): -102G1:+#1 to -102F1:1 and -102G1:+#2 to -102F1:1,
--102G1:−#1 to -102F2:GND#1 and -102G1:−#2 to -102F2:GND#2, -102F1:2 to -102F2:24VDC#1 and -102F1:2 to -102F2:24VDC#2.
+**Cross sections set by hand** (1.5 mm², printed as markers): the marker below -102G1 crosses the four wires
+-102G1:+#1 to -102F1:1, -102G1:+#2 to -102F1:1, -102G1:−#1 to -102F2:GND#1 and -102G1:−#2 to -102F2:GND#2; the
+marker above -102F2 crosses -102F1:2 to -102F2:24VDC#1 and -102F1:2 to -102F2:24VDC#2.
+
+**Potentials**
+
+| Potential | Type, voltage | Member |
+|---|---|---|
+| +24V | L+, 24 V DC | -102G1:+#1 |
+| +24V-F | L+, 24 V DC | -102F1:2 |
+| 24VDC-1 | L+, 24 V DC | -102F2:Out1 |
+| 24VDC-2 | L+, 24 V DC | -102F2:Out2 |
+| 24VDC-3 | L+, 24 V DC | -102F2:Out3 |
+| 24VDC-4 | L+, 24 V DC | -102F2:Out4 |
+| 0V | M, 24 V DC | -102G1:−#1 |
+
+**Bond.** 0V and PE stay two potentials joined by one bond, B1 (PELV, 0 V to PE), between -102G1:−#1 and -X1032:2, over
+the wire from J5 to PE-0VDC.
 <!-- /folio -->
 
 <!-- folio 103 -->
@@ -208,12 +244,12 @@ The terminals have three clamps; a is the feed side, b the outgoing side.
 
 **Interruption points**
 
-| Name | One end | Other end |
+| Name | Source | Target |
 |---|---|---|
-| PE-1.1 | 101-G15 ▷ | 103-G6 ◁ |
-| PE-1.2 | 102-A15 ▷ | 103-G6 ◁ |
-| 0VDC | 102-C15 ▷ | 103-A1 ▷ |
-| PE-0VDC | 102-D15 ▷ | 103-G1 ▷ |
+| PE-1.1 | 101-G15 | 103-G6 |
+| PE-1.2 | 102-A15 | 103-G6 |
+| 0VDC | 102-C15 | 103-A1 |
+| PE-0VDC | 102-D15 | 103-G1 |
 | 24VDC-1 | 102-H15 | 103-A1 |
 | 24VDC-2 | 102-H15 | 103-C1 |
 | 24VDC-3 | 102-G15 | 103-D1 |
@@ -226,10 +262,10 @@ The terminals have three clamps; a is the feed side, b the outgoing side.
 | 0VDC-AIR2 | 103-B14 | 106-F1 |
 | 0VDC-AIR3 | 103-B14 | 106-B1 |
 | 0VDC-AIR4 | 103-B14 | 106-C1 |
-| PE-AIR1 | 106-E1 ◁ | 103-G1 ▷ |
-| PE-AIR2 | 106-B1 ◁ | 103-G1 ▷ |
-| PE-1.3 | 106-D1 ◁ | 103-G6 ◁ |
-| PE-1.4 | 106-A1 ◁ | 103-G6 ◁ |
+| PE-AIR1 | 106-E1 | 103-G1 |
+| PE-AIR2 | 106-B1 | 103-G1 |
+| PE-1.3 | 106-D1 | 103-G6 |
+| PE-1.4 | 106-A1 | 103-G6 |
 
 **Connections**
 
