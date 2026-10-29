@@ -17,3 +17,15 @@ workspace = true
 [dependencies]
 ew-schema = { path = "../ew-schema" }
 ew-format = { path = "../ew-format" }
+# The copy IDs `v5(NS_LIBCOPY, library ‖ item)` and new library IDs (ADR-0004: ew-ids owns the formulas).
+ew-ids = { path = "../ew-ids" }
+# ARCH §3 rule 2: the derived per-user search index (FTS5 with the trigram tokenizer, doc 07 §4.3). The same pin as
+# ew-sqlview; `bundled` compiles the vendored SQLite with FTS5.
+rusqlite = { version = "0.40.2", default-features = false, features = ["bundled"] }
+# Library record lines, `library.json` and the index columns of typed values. Never with `preserve_order`.
+serde = { workspace = true }
+serde_json = "1.0.154"
+
+[dev-dependencies]
+# The fresh temporary directory of the tests (FT-569; dev-only edge, `[allowed_dev_edges]`).
+ew-testdir = { path = "../ew-testdir" }

@@ -1413,7 +1413,12 @@ name = "ew-library"
 version = "0.0.0"
 dependencies = [
  "ew-format",
+ "ew-ids",
  "ew-schema",
+ "ew-testdir",
+ "rusqlite",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

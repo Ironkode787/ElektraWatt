@@ -42,6 +42,11 @@ count = 1
 
 [[allow]]
 crate = "ew-api"
+item = "fn nfr_perf_21_part_search_over_500k_parts"
+count = 1
+
+[[allow]]
+crate = "ew-api"
 item = "inner attribute"
 count = 9
 
@@ -118,6 +123,21 @@ count = 1
 [[allow]]
 crate = "ew-import-tables"
 item = "inner attribute"
+count = 1
+
+[[allow]]
+crate = "ew-library"
+item = "fn env_path"
+count = 1
+
+[[allow]]
+crate = "ew-library"
+item = "fn env_text"
+count = 1
+
+[[allow]]
+crate = "ew-library"
+item = "fn now"
 count = 1
 
 [[allow]]

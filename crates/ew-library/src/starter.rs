@@ -9,6 +9,13 @@
 //! The picker of the place tool lists the starter symbols a project has not embedded; choosing one embeds the symbol
 //! and its function definition through `library.embed` (the host's commit, an undo step of its own).
 
+/// The library ID of the starter, the system library `ew-starter`: equal to `ew_interop_api::SYSTEM_LIBRARY`
+/// (FT-24; `ew-library` does not depend on `ew-interop-api`, so `ew-api`'s tests assert the equality).
+pub const LIBRARY: ew_ids::Uuid = ew_ids::Uuid::from_u128(0x7202fd8b_1024_4bf1_9e99_670772eaa589);
+
+/// The starter's library key.
+pub const KEY: &str = "ew-starter";
+
 /// What a starter item is.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum StarterKind {
@@ -390,6 +397,19 @@ mod tests {
         assert_eq!(keys, expected);
         assert_eq!(items().len(), 104);
         assert!(keys.windows(2).all(|w| w[0] < w[1]), "key order");
+    }
+
+    #[test]
+    fn every_item_names_the_starter_library() {
+        for i in items() {
+            let doc = LibDocument::from_json(i.json).unwrap();
+            let lib = match &doc {
+                LibDocument::Symbol(c) => c.library_id.as_uuid(),
+                LibDocument::Fndef(c) => c.library_id.as_uuid(),
+                _ => panic!("{}: kind", i.key),
+            };
+            assert_eq!(lib, LIBRARY, "{}", i.key);
+        }
     }
 
     #[test]

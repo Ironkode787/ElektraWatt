@@ -72,7 +72,7 @@ planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "e
 "ew-commands" = ["ew-derive", "ew-model", "ew-schema", "ew-ids", "ew-units", "ew-mltext", "ew-rds"]
 "ew-checks" = ["ew-derive", "ew-rhai"]
 "ew-sqlview" = ["ew-derive", "ew-checks"]
-"ew-library" = ["ew-schema", "ew-format"]
+"ew-library" = ["ew-schema", "ew-format", "ew-ids"]
 "ew-store" = ["ew-format", "ew-model"]
 "ew-text" = ["ew-dl", "ew-units"]
 "ew-reports" = ["ew-derive", "ew-sqlview", "ew-text"]
@@ -143,6 +143,7 @@ planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "e
 
 # FT-569, FT-586: the tests take their fresh temporary directory (`ew_testdir::fresh_dir`) from ew-testdir.
 "ew-store" = ["ew-testdir"]
+"ew-library" = ["ew-testdir"]
 "ew-sqlview" = ["ew-testdir"]
 "ew-viewmodel" = ["ew-testdir"]
 "ew-ui" = ["ew-testdir"]

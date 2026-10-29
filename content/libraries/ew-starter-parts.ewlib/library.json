@@ -1,0 +1,12 @@
+{
+  "id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
+  "key": "ew-starter-parts",
+  "name": "ElektraWatt starter parts",
+  "version": "0.1.0",
+  "licence": "CC-BY-SA-4.0",
+  "format": "0.1",
+  "min_reader": "0.1",
+  "generation": 1,
+  "depends": [],
+  "files": {}
+}
