@@ -708,8 +708,9 @@ fn a_table_script_runs_twice_identically_and_its_record_replays() {
         "{filled}"
     );
     for t in ["13", "14", "15", "16", "17"] {
+        // WP-S2.07 D2: the Pos cell (the terminal's seq) after the strip.
         assert!(
-            filled.contains(&format!("\n  row \"-X1031\" \"{t}\" \"Spare\" ")),
+            filled.contains(&format!("\n  row \"-X1031\" \"{t}\" \"{t}\" \"Spare\" ")),
             "terminal {t}: {filled}"
         );
     }
