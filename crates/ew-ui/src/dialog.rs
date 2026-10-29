@@ -69,6 +69,44 @@ pub(crate) fn show(
     clicked
 }
 
+/// The desktop platform whose footer order a dialog follows.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum Platform {
+    Windows,
+    MacOs,
+    Linux,
+}
+
+impl Platform {
+    /// The platform the application runs on (anything but Windows and macOS follows the Linux order).
+    pub(crate) fn host() -> Self {
+        if cfg!(target_os = "windows") {
+            Self::Windows
+        } else if cfg!(target_os = "macos") {
+            Self::MacOs
+        } else {
+            Self::Linux
+        }
+    }
+}
+
+/// One slot of the footer's right-hand group: the Primary, or the n-th other button.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum Slot {
+    Primary,
+    Other(usize),
+}
+
+/// The reading order (left to right) of the footer's right-hand group on `platform` with `others` other buttons:
+/// Windows puts the Primary first, macOS and Linux put it last.
+pub(crate) fn footer_order(platform: Platform, others: usize) -> Vec<Slot> {
+    let rest = (0..others).map(Slot::Other);
+    match platform {
+        Platform::Windows => std::iter::once(Slot::Primary).chain(rest).collect(),
+        Platform::MacOs | Platform::Linux => rest.chain(std::iter::once(Slot::Primary)).collect(),
+    }
+}
+
 /// The footer: the destructive button at the left, the Primary and the others at the right in the platform's order.
 fn footer(ui: &mut Ui, spec: &DialogSpec, focus_primary: bool) -> Clicked {
     let t = components::tokens(ui);
@@ -102,11 +140,14 @@ fn footer(ui: &mut Ui, spec: &DialogSpec, focus_primary: bool) -> Clicked {
             // Right to left: the last button of the reading order first.
             let primary = (&spec.primary, primary_kind, focus_primary);
             let others = spec.secondary.iter().map(|b| (b, Kind::Secondary, false));
-            let mut order: Vec<(&DialogButton, Kind, bool)> = if cfg!(target_os = "windows") {
-                std::iter::once(primary).chain(others).collect()
-            } else {
-                others.chain(std::iter::once(primary)).collect()
-            };
+            let mut order: Vec<(&DialogButton, Kind, bool)> = Vec::new();
+            let mut others = others;
+            for slot in footer_order(Platform::host(), spec.secondary.len()) {
+                match slot {
+                    Slot::Primary => order.push(primary),
+                    Slot::Other(_) => order.extend(others.next()),
+                }
+            }
             order.reverse();
             for (b, kind, focus) in order {
                 press(ui, b, kind, focus);
@@ -114,4 +155,37 @@ fn footer(ui: &mut Ui, spec: &DialogSpec, focus_primary: bool) -> Clicked {
         });
     });
     clicked
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Platform, Slot, footer_order};
+
+    #[test]
+    fn windows_puts_the_primary_first() {
+        assert_eq!(
+            footer_order(Platform::Windows, 2),
+            [Slot::Primary, Slot::Other(0), Slot::Other(1)]
+        );
+    }
+
+    #[test]
+    fn linux_puts_the_primary_last() {
+        assert_eq!(
+            footer_order(Platform::Linux, 2),
+            [Slot::Other(0), Slot::Other(1), Slot::Primary]
+        );
+    }
+
+    #[test]
+    fn macos_puts_the_primary_last() {
+        assert_eq!(footer_order(Platform::MacOs, 1), [Slot::Other(0), Slot::Primary]);
+    }
+
+    #[test]
+    fn a_lone_primary_is_the_whole_group_everywhere() {
+        for p in [Platform::Windows, Platform::MacOs, Platform::Linux] {
+            assert_eq!(footer_order(p, 0), [Slot::Primary]);
+        }
+    }
 }
