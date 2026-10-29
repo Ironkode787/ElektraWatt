@@ -44,7 +44,7 @@ const HELP: &str = "\
 cargo xtask blind <subcommand> (the agent runs <run>/bin/xtask blind <subcommand>)
 
 For the agent:
-  help                                        this text, the protocol, the vocabulary and the actions
+  help [<page>]                               the protocol, the vocabulary and the actions, a page at a time
   do <run> <action> [key=value ...]           one step; values are typed by the action's signature
   do <run> -                                  a batch of 1 to 20 steps as JSON Lines on stdin
   look <run> [section ...] [--diff] [--menus] the interface as text, by sections
@@ -200,7 +200,18 @@ pub fn run(args: &[String], root: &Path) -> Result<bool> {
     let locate = |arg: &str, out: Option<&str>| run::locate(arg, out.map(Path::new), exe.as_deref());
     match command {
         "help" | "--help" | "-h" => {
-            print!("{}", help_text(repo, copy.as_ref())?);
+            let pages = help_pages(&help_text(repo, copy.as_ref())?, HELP_PAGE_BYTES);
+            let page = match rest.first() {
+                None => 1,
+                Some(n) => match n.parse::<usize>() {
+                    Ok(k) if (1..=pages.len()).contains(&k) => k,
+                    _ => {
+                        println!("harness: help has pages 1 to {}", pages.len());
+                        return Ok(false);
+                    }
+                },
+            };
+            print!("{}", help_page(&pages, page));
             Ok(true)
         }
         "serve" => {
@@ -595,6 +606,45 @@ pub fn resume(run: &Run) -> Result<String> {
     }
 }
 
+/// The most bytes of one page of `help` (FT-556): well below what an agent's shell shows inline, so the text never
+/// overflows into a side file.
+pub const HELP_PAGE_BYTES: usize = 12_000;
+
+/// `text` cut into pages of at most `max` bytes at line ends (a longer line is a page of its own); the pages joined
+/// are `text`.
+pub fn help_pages(text: &str, max: usize) -> Vec<String> {
+    let mut pages: Vec<String> = Vec::new();
+    let mut page = String::new();
+    for line in text.split_inclusive('\n') {
+        if !page.is_empty() && page.len() + line.len() > max {
+            pages.push(std::mem::take(&mut page));
+        }
+        page.push_str(line);
+    }
+    if !page.is_empty() || pages.is_empty() {
+        pages.push(page);
+    }
+    pages
+}
+
+/// Page `k` (1-based) of `pages` with its footer: which page it is and the command for the next.
+pub fn help_page(pages: &[String], k: usize) -> String {
+    let n = pages.len();
+    let mut out = pages.get(k - 1).cloned().unwrap_or_default();
+    if !out.ends_with('\n') {
+        out.push('\n');
+    }
+    if k < n {
+        out.push_str(&format!(
+            "\n== help page {k} of {n}; the next: help {} ==\n",
+            k + 1
+        ));
+    } else {
+        out.push_str(&format!("\n== help page {k} of {n}, the last ==\n"));
+    }
+    out
+}
+
 /// The text of `help`: the harness help, the vocabulary and the actions, and what the copied binaries print.
 fn help_text(repo: Option<&Path>, run: Option<&Run>) -> Result<String> {
     let read = |own: &str, rel: &str| -> Result<String> {
@@ -638,6 +688,32 @@ fn help_text(repo: Option<&Path>, run: Option<&Run>) -> Result<String> {
 mod tests {
     use super::*;
     use crate::blind::testkit::{Tmp, test_run};
+
+    /// FT-556: `help` pages its text at line ends; the pages joined are the text, each page fits, and the footer names
+    /// the next page or the last.
+    #[test]
+    fn help_is_paged_at_line_ends() {
+        let text = "aaaa\nbbbb\ncccc\n";
+        assert_eq!(help_pages(text, 10), ["aaaa\nbbbb\n", "cccc\n"]);
+        // A line longer than a page is a page of its own; an empty text is one empty page.
+        assert_eq!(
+            help_pages("x\nyyyyyyyyyyyy\nz\n", 4),
+            ["x\n", "yyyyyyyyyyyy\n", "z\n"]
+        );
+        assert_eq!(help_pages("", 4), [""]);
+        let pages = help_pages(text, 10);
+        assert_eq!(
+            help_page(&pages, 1),
+            "aaaa\nbbbb\n\n== help page 1 of 2; the next: help 2 ==\n"
+        );
+        assert_eq!(help_page(&pages, 2), "cccc\n\n== help page 2 of 2, the last ==\n");
+        // The committed help text: several pages, none over the budget, nothing lost.
+        let full = help_text(Some(&crate::workspace_root()), None).unwrap();
+        let pages = help_pages(&full, HELP_PAGE_BYTES);
+        assert!(pages.len() >= 3, "{}", pages.len());
+        assert!(pages.iter().all(|p| p.len() <= HELP_PAGE_BYTES));
+        assert_eq!(pages.concat(), full);
+    }
 
     /// ID-621: the run's copy of the harness runs the agent's commands only.
     #[test]

@@ -1,12 +1,12 @@
 ---
 prompt: blind-help
-version: 5
+version: 6
 ---
 # The harness: how to work with it
 
 You work with ElektraWatt through one program, `{blind}`, and nothing else. You never see a picture: you read text, and
 you act through the application's own actions. `{blind} help` prints this text, the application's vocabulary and every
-action with its parameters.
+action with its parameters, a page at a time: each page ends with the line that names the next (`{blind} help 2`, …).
 
 ## The commands
 
