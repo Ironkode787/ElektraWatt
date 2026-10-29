@@ -1,0 +1,221 @@
+{
+  "$schema": "ew.blindscore/1",
+  "run": "gpp-r1",
+  "task": "gpp-101-103",
+  "outcome": "pass-with-gaps",
+  "hard": [
+    {
+      "id": "H1",
+      "what": "Exact counts on folio 101",
+      "want": "reps 17 connections 21 junctions 2",
+      "got": "reps 17 connections 21 junctions 2",
+      "status": "ok",
+      "misses": []
+    },
+    {
+      "id": "H2",
+      "what": "Exact counts on folio 102",
+      "want": "reps 12 connections 19 junctions 4",
+      "got": "reps 12 connections 19 junctions 4",
+      "status": "ok",
+      "misses": []
+    },
+    {
+      "id": "H3",
+      "what": "Exact counts on folio 103",
+      "want": "reps 35 connections 20 junctions 0 terminals 15 strips 2",
+      "got": "reps 35 connections 20 junctions 0 terminals 15 strips 2",
+      "status": "ok",
+      "misses": []
+    },
+    {
+      "id": "H4",
+      "what": "The parts list equals the oracle's (part number, description, quantity)",
+      "want": "14 rows",
+      "got": "2 rows",
+      "status": "gap",
+      "gap": "WP-S2.07",
+      "misses": [
+        "missing: 2904602 | Power supply 1 AC / DC | 1",
+        "extra: 2904602 | Power supply 1 AC / DC | 2",
+        "missing: 533356 | Main switch, 2-pole | 1",
+        "missing: 5SY4204-7 | Miniature circuit breaker 1P+N | 1",
+        "missing: A9F78116 | Miniature circuit breaker 1P | 1",
+        "missing: A9P52610 | Miniature circuit breaker 1P+N | 1",
+        "missing: PT 2.5-TWIN | Feed-through terminal, 3 connections | 11",
+        "missing: PT 2.5-TWIN-PE | PE terminal, 3 connections | 4",
+        "missing: SK 3102.000 | Enclosure heater | 1",
+        "missing: SK 3110.000 | Thermostat | 1",
+        "missing: TBD | End bracket | 4",
+        "missing: TBD | Plug-in bridge | 3",
+        "missing: UK 5 N | Feed-through terminal | 2",
+        "missing: USLKG 5 | PE terminal | 1"
+      ]
+    },
+    {
+      "id": "H5",
+      "what": "The agent exported the PDF itself",
+      "want": "a `file.export_pdf` step of the agent done, its file in work/",
+      "got": "1 done, file present",
+      "status": "ok",
+      "misses": []
+    },
+    {
+      "id": "H6",
+      "what": "The agent saved its work itself",
+      "want": "a `file.save` step of the agent done and the project clean after its last step",
+      "got": "1 saves done, project clean",
+      "status": "ok",
+      "misses": []
+    },
+    {
+      "id": "H7",
+      "what": "No prelude line of class drawing",
+      "want": "0 drawing lines",
+      "got": "0 drawing lines",
+      "status": "ok",
+      "misses": []
+    }
+  ],
+  "soft": [
+    {
+      "id": "S1",
+      "what": "Anchor cells of every representation, by device tag and symbol",
+      "want": "49 rows",
+      "got": "49 rows",
+      "status": "miss",
+      "misses": [
+        "missing: 101 | 1X1:2 | ew.iec.terminal@qet10 | 101-D2",
+        "extra: 101 | 1X1:2 | ew.iec.terminal@qet10 | 101-D3",
+        "missing: 101 | 1X1:PE | ew.iec.terminal-pe@qet10 | 101-D2",
+        "extra: 101 | 1X1:PE | ew.iec.terminal-pe@qet10 | 101-D4"
+      ]
+    },
+    {
+      "id": "S2",
+      "what": "Endpoint labels of the drawn connections, up to orientation",
+      "want": "32 rows",
+      "got": "44 rows",
+      "status": "miss",
+      "misses": [
+        "missing: 101 | -XPE:PE | 1X1:PE/a | 101",
+        "extra: 101 | -XPE:PE | 1X1:PE/b | 101",
+        "missing: 101 | 1X1:1/a | S51:2 | 101",
+        "extra: 101 | 1X1:1/b | S51:2 | 101",
+        "missing: 101 | 1X1:2/a | S51:4 | 101",
+        "extra: 101 | 1X1:2/b | S51:4 | 101",
+        "extra: 103 | -X1031:1/b | ext 24VDC-AIR1 | 103",
+        "extra: 103 | -X1031:11/b | ext 0VDC-AIR1 | 103",
+        "extra: 103 | -X1031:12/b | ext 0VDC-AIR2 | 103",
+        "extra: 103 | -X1031:13/b | ext 0VDC-AIR3 | 103",
+        "extra: 103 | -X1031:14/b | ext 0VDC-AIR4 | 103",
+        "extra: 103 | -X1031:2/b | ext 24VDC-AIR2 | 103",
+        "extra: 103 | -X1031:3/b | ext 24VDC-AIR3 | 103",
+        "extra: 103 | -X1031:4/b | ext 24VDC-AIR4 | 103",
+        "extra: 103 | -X1032:1/a | ext PE-AIR2 | 103",
+        "extra: 103 | -X1032:3/a | ext PE-AIR1 | 103",
+        "extra: 103 | -X1032:3/b | ext PE-1.3 | 103",
+        "extra: 103 | -X1032:4/b | ext PE-1.4 | 103"
+      ]
+    },
+    {
+      "id": "S3",
+      "what": "Junction sequences by far-end labels",
+      "want": "6 rows",
+      "got": "6 rows",
+      "status": "ok",
+      "misses": []
+    },
+    {
+      "id": "S4",
+      "what": "Cross-reference texts among the folios of the run",
+      "want": "23 rows",
+      "got": "23 rows",
+      "status": "ok",
+      "misses": []
+    },
+    {
+      "id": "S5",
+      "what": "Tags, frozen tags included",
+      "want": "49 rows",
+      "got": "49 rows",
+      "status": "ok",
+      "misses": []
+    },
+    {
+      "id": "S6",
+      "what": "Page titles",
+      "want": "3 rows",
+      "got": "3 rows",
+      "status": "ok",
+      "misses": []
+    },
+    {
+      "id": "S7",
+      "what": "Marker texts",
+      "want": "4 rows",
+      "got": "4 rows",
+      "status": "miss",
+      "misses": [
+        "extra: 101 | 2.5 BK BK",
+        "missing: 101 | 2.5 BK BU",
+        "extra: 102 | 1.5 BK BK GNYE GNYE",
+        "extra: 102 | 1.5 BU GNYE GNYE",
+        "missing: 102 | 1.5 DBU DBU",
+        "missing: 102 | 1.5 DBU DBU WH WH"
+      ]
+    },
+    {
+      "id": "S8",
+      "what": "Findings on the drawn devices (rule, severity, tag)",
+      "want": "7 rows",
+      "got": "8 rows",
+      "status": "miss",
+      "misses": [
+        "extra: EW-NUM-001 | info | -102F2"
+      ]
+    }
+  ],
+  "protocol": {
+    "counts": {
+      "turns": 92,
+      "steps": 632,
+      "looks": 73,
+      "refusals": 1,
+      "refused": 4,
+      "failed": 7,
+      "broken": 1
+    },
+    "end": "handback",
+    "handed_back": true,
+    "folios": [
+      "101",
+      "102",
+      "103"
+    ],
+    "turns_by_folio": {
+      "101": {
+        "turns": 39,
+        "budget": 250
+      },
+      "102": {
+        "turns": 23,
+        "budget": 250
+      },
+      "103": {
+        "turns": 30,
+        "budget": 400
+      }
+    },
+    "prelude": {
+      "setup": 5,
+      "drawing": 0
+    },
+    "observations": {
+      "clean_before_epilogue": true,
+      "product_exit": 1,
+      "pdfs_identical": true,
+      "ew_check_exit": 1
+    }
+  }
+}

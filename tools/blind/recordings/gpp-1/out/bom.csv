@@ -1,0 +1,3 @@
+row,Pos,Qty,Unit,Manufacturer,Part number,Description,Tags,Folios
+data,1,2,pc,Phoenix Contact,2904602,Power supply 1 AC / DC,"-?G1, -102G1",102
+data,2,1,pc,Murrelektronik,MICO 4.10,"Electronic load distribution, 4 channels",-102F2,102
