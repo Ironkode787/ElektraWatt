@@ -713,3 +713,45 @@ fn escape_leaves_the_banner_alone() {
     shell.dismiss_banner();
     assert_eq!(shell.banner(), None);
 }
+
+/// R1-5 (FT-348, doc 16 "the same project twice"): two window instances on one settings file. B starts, then A starts,
+/// changes the theme and opens a project (written at once); A exits, then B exits with its window geometry. B merges
+/// only `[window]` into the file on disk, so A's theme and recent project stay; an exit with the geometry the file
+/// already holds writes nothing.
+#[test]
+fn a_window_exit_merges_only_its_geometry_into_the_settings_on_disk() {
+    use ew_viewmodel::settings::{FILE_NAME, Settings};
+    use ew_viewmodel::window::WindowGeometry;
+    let tmp = Tmp::new();
+    let dir = tmp.golden("r15.ew");
+    let mut b = ShellModel::new(Mode::Gui, tmp.config());
+    let mut a = ShellModel::new(Mode::Gui, tmp.config());
+    assert_eq!(
+        a.dispatch("settings.set", &json!({"key": "theme", "value": "dark"})),
+        Outcome::Done
+    );
+    assert_eq!(open(&mut a, &dir), Outcome::Done);
+    a.shutdown();
+    let g = WindowGeometry {
+        x: 120.0,
+        y: 40.0,
+        width: 1280.0,
+        height: 800.0,
+        maximized: false,
+    };
+    b.set_window(g);
+    b.shutdown();
+    let config = tmp.0.join("config");
+    let after = Settings::load(&config).settings;
+    assert_eq!(after.theme, "dark", "A's theme");
+    assert_eq!(after.recent_projects.len(), 1, "A's recent project");
+    assert_eq!(after.window, Some(g), "B's window");
+    // Unchanged geometry: no write (the file keeps its bytes and its time).
+    let bytes = std::fs::read(config.join(FILE_NAME)).unwrap();
+    std::fs::write(config.join(FILE_NAME), [bytes.as_slice(), b"# kept\n"].concat()).unwrap();
+    let mut c = ShellModel::new(Mode::Gui, tmp.config());
+    c.set_window(g);
+    c.shutdown();
+    let now = std::fs::read(config.join(FILE_NAME)).unwrap();
+    assert!(now.ends_with(b"# kept\n"), "{}", String::from_utf8_lossy(&now));
+}

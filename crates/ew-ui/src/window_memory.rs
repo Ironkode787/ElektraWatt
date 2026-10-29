@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Window memory in the window (WP-S2.17 part 3 item 9, DK6; FT-348): the window builder from the saved geometry, and
-//! the geometry the running window reports, recorded in the shell's settings (written once, at the end of the window).
+//! the geometry the running window reports, recorded in the shell's settings (written once, at the end of the window,
+//! as a merge of `[window]` into the settings file on disk: `ew_viewmodel::settings::Settings::save_window`).
 //!
 //! Only a real window records: egui reports the outer rectangle and the monitor's size only there (a test harness
 //! reports neither), so a test's settings file keeps its bytes. A minimised or full-screen window records nothing; a

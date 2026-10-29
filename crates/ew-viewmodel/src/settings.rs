@@ -357,12 +357,61 @@ impl Settings {
     ///
     /// The I/O error of the first step that failed.
     pub fn save(&self, dir: &Path) -> std::io::Result<()> {
-        std::fs::create_dir_all(dir)?;
-        let path = dir.join(FILE_NAME);
-        let tmp = dir.join(format!("{FILE_NAME}.tmp"));
-        std::fs::write(&tmp, self.to_toml())?;
-        std::fs::rename(&tmp, &path)
+        write_atomically(dir, &self.to_toml())
     }
+
+    /// Merges the window geometry `geometry` into `<dir>/settings.toml` as the file is on disk now (R1-5): only the
+    /// known members of `[window]` change, every other key and table stays as another instance may have written it
+    /// meanwhile. Nothing is written when the file already holds this geometry (as whole points), or when it is
+    /// unreadable (the next start copies it aside); an absent file gets the defaults with the geometry. Written
+    /// through a temporary file and a rename, as [`Settings::save`]. Returns whether it wrote.
+    ///
+    /// # Errors
+    ///
+    /// The I/O error of the read or of the first write step that failed.
+    pub fn save_window(dir: &Path, geometry: crate::window::WindowGeometry) -> std::io::Result<bool> {
+        let bytes = match std::fs::read(dir.join(FILE_NAME)) {
+            Ok(bytes) => bytes,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                let fresh = Settings {
+                    window: Some(geometry),
+                    ..Settings::default()
+                };
+                fresh.save(dir)?;
+                return Ok(true);
+            }
+            Err(e) => return Err(e),
+        };
+        let Some(text) = std::str::from_utf8(&bytes).ok() else {
+            return Ok(false);
+        };
+        let (Some(on_disk), Ok(mut table)) = (Settings::parse(text), toml::from_str::<toml::Table>(text))
+        else {
+            return Ok(false);
+        };
+        let wanted = geometry.to_toml();
+        if on_disk.window.map(|w| w.to_toml()) == Some(wanted.clone()) {
+            return Ok(false);
+        }
+        let mut members = match table.remove("window") {
+            Some(toml::Value::Table(t)) => t,
+            _ => toml::Table::new(),
+        };
+        members.extend(wanted);
+        table.insert("window".to_owned(), toml::Value::Table(members));
+        let text = toml::to_string(&table).map_err(std::io::Error::other)?;
+        write_atomically(dir, &text)?;
+        Ok(true)
+    }
+}
+
+/// Writes `text` as `<dir>/settings.toml` through a temporary file and a rename; creates `dir` if needed.
+fn write_atomically(dir: &Path, text: &str) -> std::io::Result<()> {
+    std::fs::create_dir_all(dir)?;
+    let path = dir.join(FILE_NAME);
+    let tmp = dir.join(format!("{FILE_NAME}.tmp"));
+    std::fs::write(&tmp, text)?;
+    std::fs::rename(&tmp, &path)
 }
 
 /// Removes a boolean key: absent is `false`, another type makes the file bad (`None`).
@@ -692,5 +741,63 @@ mod tests {
         let text = bad.to_toml();
         assert!(text.contains("monitor = \"DP-1\""), "{text}");
         assert!(!text.contains("left"), "{text}");
+    }
+
+    /// R1-5: two instances' settings on one file. The later exit merges only its window geometry into the file on
+    /// disk, so the earlier instance's recent project and theme stay; the same geometry again writes nothing; an
+    /// unreadable file is left alone; an absent one gets the defaults with the geometry.
+    #[test]
+    fn a_window_exit_merges_only_the_geometry() {
+        let dir = temp_dir("savewindow");
+        std::fs::write(
+            dir.join(FILE_NAME),
+            "version = 1
+[future]
+key = 3
+",
+        )
+        .unwrap();
+        let mut a = Settings::load(&dir).settings;
+        let b = Settings::load(&dir).settings;
+        a.push_recent("y");
+        a.theme = "dark".to_owned();
+        a.save(&dir).unwrap();
+        let g = crate::window::WindowGeometry {
+            x: -1200.4,
+            y: 40.0,
+            width: 1280.0,
+            height: 800.0,
+            maximized: false,
+        };
+        assert_eq!(b.recent_projects, Vec::<String>::new());
+        assert!(Settings::save_window(&dir, g).unwrap());
+        let after = Settings::load(&dir).settings;
+        assert_eq!(after.recent_projects, ["y"]);
+        assert_eq!(after.theme, "dark");
+        assert_eq!(after.window.map(|w| w.x), Some(-1200.0));
+        assert!(after.to_toml().contains("[future]"));
+        // The same geometry (as whole points): nothing written.
+        assert!(!Settings::save_window(&dir, crate::window::WindowGeometry { x: -1199.6, ..g }).unwrap());
+        // An unreadable file stays as it is.
+        std::fs::write(
+            dir.join(FILE_NAME),
+            "version = = 1
+",
+        )
+        .unwrap();
+        assert!(!Settings::save_window(&dir, g).unwrap());
+        assert_eq!(
+            std::fs::read_to_string(dir.join(FILE_NAME)).unwrap(),
+            "version = = 1
+"
+        );
+        // An absent file: the defaults and the geometry.
+        std::fs::remove_file(dir.join(FILE_NAME)).unwrap();
+        assert!(Settings::save_window(&dir, g).unwrap());
+        assert_eq!(
+            Settings::load(&dir).settings.window.map(|w| w.width),
+            Some(1280.0)
+        );
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

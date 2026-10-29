@@ -1980,9 +1980,13 @@ impl ShellModel {
         }
         self.area = None;
         self.focus = None;
-        // FT-348: the window's geometry, recorded only by a real window, is written once at its end.
-        if self.mode == Mode::Gui && self.settings.window.is_some() {
-            self.save_settings();
+        // FT-348: the window's geometry, recorded only by a real window, is written once at its end, merged into the
+        // file as it is on disk now (R1-5): another instance may have changed other settings meanwhile.
+        if self.mode == Mode::Gui
+            && let (Some(geometry), Some(dir)) = (self.settings.window, &self.config.config_dir)
+            && Settings::save_window(dir, geometry).is_err()
+        {
+            self.banner = Some(strings::text("banner-settings-write").to_owned());
         }
     }
 

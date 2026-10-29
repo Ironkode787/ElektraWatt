@@ -453,7 +453,9 @@ and colours), `history.rs` (DK11's state icons and undone tone) and `window_memo
   saved on a monitor that is gone opened off-screen; eframe still clamps the size to the largest monitor. A
   follow-up: FT-526, *closed in the cycle-32 review loop (R1-4): on the first frame the monitors come from eframe's
   winit window and the same pure clamp moves a window that is on no monitor onto the primary one.* The geometry is
-  saved in points at the zoom 1 (the review's R1-1: egui's reported points times the UI scale).
+  saved in points at the zoom 1 (the review's R1-1: egui's reported points times the UI scale); on exit only
+  `[window]` is merged into the settings file as it is on disk, and nothing is written when it is unchanged, so a
+  second instance's settings stay (R1-5); members of `[window]` this version does not know are kept (R1-6).
 
 **L32 (cycle 32, the data grid of doc 16a §6.21, DK9):**
 
