@@ -148,6 +148,8 @@ pub(crate) fn filter_field(ui: &mut Ui, text: &mut String, hint: &str) -> Respon
                 top: t.space_1 as i8,
                 bottom: t.space_1 as i8,
             })
+            .vertical_align(egui::Align::Center)
+            .min_size(Vec2::new(0.0, t.size_control))
             .desired_width(f32::INFINITY),
     );
     let rect = field.rect;

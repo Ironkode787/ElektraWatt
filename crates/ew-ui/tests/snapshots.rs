@@ -209,6 +209,26 @@ fn the_component_gallery_in_every_theme_at_ppp_1_and_2() {
 }
 
 /// `image`'s pixels inside `rect` (points at ppp 1), clamped to the image.
+/// The vertical centre of the ink (pixels that differ from the field's fill) between `x0` and `x1` inside `field`,
+/// 3 px in from its top and bottom (the border).
+fn ink_centre(image: &ew_render_cpu::RgbaImage, field: egui::Rect, x0: f32, x1: f32) -> f32 {
+    let at = |x: u32, y: u32| {
+        let i = ((y * image.width + x) * 4) as usize;
+        [image.pixels[i], image.pixels[i + 1], image.pixels[i + 2]]
+    };
+    let fill = at(field.center().x as u32, (field.top() + 4.0) as u32);
+    let ink =
+        |y: u32| (x0 as u32..x1 as u32).any(|x| at(x, y).iter().zip(fill).any(|(a, b)| a.abs_diff(b) > 60));
+    let rows: Vec<u32> = ((field.top() + 3.0) as u32..(field.bottom() - 3.0) as u32)
+        .filter(|y| ink(*y))
+        .collect();
+    let (first, last) = (
+        rows.first().copied().unwrap_or(0),
+        rows.last().copied().unwrap_or(0),
+    );
+    (first + last) as f32 / 2.0
+}
+
 fn crop(image: &ew_render_cpu::RgbaImage, rect: egui::Rect) -> ew_render_cpu::RgbaImage {
     let x0 = (rect.left().max(0.0) as u32).min(image.width);
     let y0 = (rect.top().max(0.0) as u32).min(image.height);
@@ -633,6 +653,22 @@ fn dk12_the_data_grid_in_light_and_dark_at_both_densities() {
                     egui::pos2(grid.left(), top - 4.0),
                     egui::pos2(grid.right(), grid.bottom()),
                 );
+                if !edit {
+                    // Doc 16a §6.5: the filter's text is centred on the field like its leading icon (it sat 3 px high).
+                    let field = h
+                        .get_all_by_role(egui::Role::TextInput)
+                        .map(|n| n.rect())
+                        .find(|r| (r.center().y - (top + 12.0)).abs() < 16.0 && r.left() > grid.left())
+                        .expect("the filter field");
+                    let (icon, text) = (
+                        ink_centre(&image, field, field.left() + 6.0, field.left() + 24.0),
+                        ink_centre(&image, field, field.left() + 28.0, field.left() + 60.0),
+                    );
+                    assert!(
+                        (icon - text).abs() <= 1.0,
+                        "{theme} {density}: filter text centre {text}, icon centre {icon}"
+                    );
+                }
                 failures.extend(record(
                     &format!("dk12-{name}-{theme}-{density}"),
                     &crop(&image, pane),
