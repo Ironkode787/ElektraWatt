@@ -84,57 +84,11 @@ pub const SYSTEM_LIBRARY: ew_ids::Uuid = ew_ids::Uuid::from_u128(0x7202fd8b_1024
 #[cfg(test)]
 mod tests {
     use super::SYSTEM_LIBRARY;
-    use std::path::{Path, PathBuf};
 
-    /// The JSON documents of one starter content directory, sorted by file name.
-    fn documents(dir: &str) -> Vec<(PathBuf, serde_json::Value)> {
-        let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../content")
-            .join(dir);
-        let mut paths: Vec<PathBuf> = std::fs::read_dir(&root)
-            .unwrap_or_else(|e| panic!("{}: {e}", root.display()))
-            .map(|entry| entry.expect("directory entry").path())
-            .filter(|p| p.extension().is_some_and(|e| e == "json"))
-            .collect();
-        paths.sort();
-        paths
-            .into_iter()
-            .map(|p| {
-                let text = std::fs::read_to_string(&p).unwrap_or_else(|e| panic!("{}: {e}", p.display()));
-                let doc = serde_json::from_str(&text).unwrap_or_else(|e| panic!("{}: {e}", p.display()));
-                (p, doc)
-            })
-            .collect()
-    }
-
-    /// L1-5 (FT-24): the constant is the decided value, and every starter document carries it as its
-    /// `library_id`, with `item_id = v5(SYSTEM_LIBRARY, meta.key)`.
+    /// L1-5 (FT-24): the constant is the decided value. That every starter document under `content/` carries it is
+    /// checked by `ew-import-tables`' integration test `system_library`, outside this permissive crate.
     #[test]
-    fn system_library_is_the_library_id_of_every_starter_document() {
+    fn system_library_is_the_decided_value() {
         assert_eq!(SYSTEM_LIBRARY.to_string(), "7202fd8b-1024-4bf1-9e99-670772eaa589");
-        let mut seen = 0;
-        for dir in ["symbols", "symbols/qet10", "fndefs", "forms"] {
-            let docs = documents(dir);
-            assert!(!docs.is_empty(), "content/{dir} holds no starter documents");
-            for (path, doc) in docs {
-                let name = path.display();
-                assert_eq!(
-                    doc["library_id"].as_str(),
-                    Some(SYSTEM_LIBRARY.to_string().as_str()),
-                    "{name}: library_id"
-                );
-                let key = doc["meta"]["key"]
-                    .as_str()
-                    .unwrap_or_else(|| panic!("{name}: no meta.key"));
-                let item = ew_ids::Uuid::new_v5(&SYSTEM_LIBRARY, key.as_bytes());
-                assert_eq!(
-                    doc["item_id"].as_str(),
-                    Some(item.to_string().as_str()),
-                    "{name}: item_id"
-                );
-                seen += 1;
-            }
-        }
-        assert!(seen > 70, "only {seen} starter documents found");
     }
 }
