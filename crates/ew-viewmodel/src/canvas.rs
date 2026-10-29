@@ -478,6 +478,8 @@ pub struct CanvasModel {
     cursor: Option<(i64, i64)>,
     /// The index into the page's links of the link under the pointer.
     hover_link: Option<usize>,
+    /// Logical points at the pane's bottom that a fit keeps clear (the tool HUD's band, doc 16a §5.5; 0 headless).
+    fit_inset: f64,
 }
 
 impl CanvasModel {
@@ -495,6 +497,7 @@ impl CanvasModel {
             ui_scale: 1.0,
             cursor: None,
             hover_link: None,
+            fit_inset: 0.0,
         };
         m.fit();
         m
@@ -610,16 +613,46 @@ impl CanvasModel {
         self.centre = (self.centre.0.clamp(0, w.max(0)), self.centre.1.clamp(0, h.max(0)));
     }
 
-    /// Fits the sheet into the pane with [`FIT_MARGIN_PT`] on each side, centred.
+    /// The bottom band in logical points that a fit keeps clear.
+    pub fn fit_inset(&self) -> f64 {
+        self.fit_inset
+    }
+
+    /// Sets the bottom band a fit keeps clear (a finite non-negative number of points, anything else is 0, at most
+    /// half the pane); a fitted view fits again. Panning can still move content under the band.
+    pub fn set_fit_inset(&mut self, bottom: f64) {
+        let bottom = if bottom.is_finite() && bottom > 0.0 {
+            bottom
+        } else {
+            0.0
+        };
+        if (bottom - self.fit_inset).abs() < 1e-9 {
+            return;
+        }
+        self.fit_inset = bottom;
+        if self.fitted {
+            self.fit();
+        }
+    }
+
+    /// Fits the sheet into the pane above the fit inset with [`FIT_MARGIN_PT`] on each side, centred in that area.
     pub fn fit(&mut self) {
         let (w, h) = self.page.sheet;
         let pt = POINTS_PER_INCH / NM_PER_INCH / self.ui_scale;
         let (sw, sh) = (w as f64 * pt, h as f64 * pt);
+        let inset = self.fit_inset.min(self.pane.1 / 2.0);
         let zx = (self.pane.0 - 2.0 * FIT_MARGIN_PT) / sw;
-        let zy = (self.pane.1 - 2.0 * FIT_MARGIN_PT) / sh;
+        let zy = (self.pane.1 - inset - 2.0 * FIT_MARGIN_PT) / sh;
         let z = zx.min(zy);
         self.zoom = clamp_zoom(if z.is_finite() && z > 0.0 { z } else { ZOOM_MIN });
+        // The sheet's centre sits at the centre of the area above the inset: the view's centre lies `inset / 2`
+        // points below it (screen y grows with sheet y).
+        let down = (inset / 2.0 / self.points_per_nm()).trunc() as i64;
         self.centre = (w / 2, h / 2);
+        if down != 0 {
+            self.centre.1 = self.centre.1.saturating_add(down);
+            self.clamp_centre();
+        }
         self.fitted = true;
         self.update_hover();
     }
@@ -1111,6 +1144,26 @@ mod tests {
         m.fit();
         m.zoom_out();
         assert_eq!(m.zoom(), std::f64::consts::FRAC_1_SQRT_2);
+    }
+
+    #[test]
+    fn a_fit_inset_keeps_the_bottom_band_clear() {
+        let mut m = CanvasModel::new(page(Vec::new()), (2000.0, 600.0), 1.0);
+        m.set_fit_inset(100.0);
+        assert!(m.is_fitted());
+        let k = m.points_per_nm();
+        // The sheet fits the 500 points above the band with 16 on each side ...
+        assert!((210_000_000.0 * k - (500.0 - 32.0)).abs() < 1e-6);
+        // ... centred in them: its bottom edge lies 16 + 100 points above the pane's.
+        let bottom = 300.0 + (210_000_000.0 - m.centre().1 as f64) * k;
+        assert!((bottom - (600.0 - 116.0)).abs() < 0.01, "{bottom}");
+        // A user view is left alone; a bad inset is 0.
+        m.zoom_in();
+        let v = m.viewport();
+        m.set_fit_inset(f64::NAN);
+        assert_eq!(m.viewport(), v);
+        m.fit();
+        assert_eq!(m.centre(), (148_500_000, 105_000_000));
     }
 
     #[test]

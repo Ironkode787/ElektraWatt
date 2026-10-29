@@ -484,6 +484,7 @@ impl ShellModel {
         let folio = self.page_rows()[i].folio.clone();
         let built = self.page_for(&folio);
         let ui_scale = self.canvas_ui_scale();
+        let fit_inset = self.canvas_fit_inset;
         let Some(area) = &mut self.area else { return };
         let Some(group) = area.groups.get_mut(g) else {
             return;
@@ -494,6 +495,7 @@ impl ShellModel {
         tab.canvas = built.ok().map(|content| {
             let mut c = CanvasModel::new(content, pane, ppp);
             c.set_ui_scale(ui_scale);
+            c.set_fit_inset(fit_inset);
             match arrival {
                 Arrival::Remembered => {
                     if let Some(v) = tab.recall(page) {

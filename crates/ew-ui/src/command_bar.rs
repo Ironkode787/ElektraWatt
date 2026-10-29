@@ -699,7 +699,15 @@ impl CommandBarHost {
             t.text_secondary.color32(),
             t.icon_stroke,
         );
-        Popup::menu(&response).show(|ui| crate::menu::app_menu(ui, shell, events));
+        // Doc 16a §6.13: the menu container's border and the submenus' gap.
+        let config = crate::menu::menu_config(t);
+        Popup::menu(&response)
+            .style(config.style.clone())
+            .info(
+                egui::UiStackInfo::new(egui::UiKind::Menu)
+                    .with_tag_value(egui::containers::menu::MenuConfig::MENU_CONFIG_TAG, config),
+            )
+            .show(|ui| crate::menu::app_menu(ui, shell, events));
         x = app.right();
         // Quick access between two separators.
         let separator = |ui: &Ui, x: &mut f32| {

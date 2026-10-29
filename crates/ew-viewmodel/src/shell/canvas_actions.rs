@@ -131,6 +131,23 @@ impl ShellModel {
         }
     }
 
+    /// Sets the bottom band every canvas's fit keeps clear (the window's tool HUD band, doc 16a §5.5); fitted views
+    /// fit again. The headless mode never sets it, so no transcript or golden depends on it.
+    pub fn set_canvas_fit_inset(&mut self, bottom: f64) {
+        if (bottom - self.canvas_fit_inset).abs() < 1e-9 {
+            return;
+        }
+        self.canvas_fit_inset = bottom;
+        let Some(area) = &mut self.area else { return };
+        for g in &mut area.groups {
+            for tab in &mut g.tabs {
+                if let Some(c) = &mut tab.canvas {
+                    c.set_fit_inset(bottom);
+                }
+            }
+        }
+    }
+
     /// Hands a changed UI scale to every tab's canvas (the zoom stays: it is in paper units).
     pub(super) fn sync_canvas_ui_scale(&mut self) {
         let ui_scale = self.canvas_ui_scale();

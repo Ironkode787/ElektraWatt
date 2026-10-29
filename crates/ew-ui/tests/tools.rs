@@ -735,7 +735,13 @@ fn a_page_change_without_pointer_input_paints_no_dashed_rectangle() {
 fn a_page_change_after_a_hover_paints_no_dashed_rectangle() {
     let tmp = Tmp::new();
     let mut h = quick_golden(&tmp, "102");
-    h.event(egui::Event::PointerMoved(Pos2::new(500.0, 350.0)));
+    // The centre of an entity, wherever the fit put the sheet.
+    let at = {
+        let c = h.state().shell().canvas().unwrap();
+        let p = ew_ui::ew_viewmodel::canvas::rect_centre(c.page().entities[0].1);
+        screen(&h, p)
+    };
+    h.event(egui::Event::PointerMoved(at));
     settle(&mut h);
     assert!(
         h.state().shell().canvas().unwrap().hover().is_some(),

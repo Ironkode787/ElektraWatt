@@ -607,6 +607,9 @@ impl App {
         // The chrome paints `color.surface.chrome` itself (doc 16a §4.14); panels take `color.surface.panel`.
         let tokens = crate::theme::current(&ctx);
         let chrome = tokens.surface_chrome.color32();
+        // Doc 16a §5.5: a fit keeps the sheet above the tool HUD's band.
+        self.shell
+            .set_canvas_fit_inset(f64::from(crate::hud::fit_inset(&tokens)));
         // WP-S2.17 part 2: the command bar replaces the menu bar (doc 16a §5.2); the app button opens the app menu.
         let bar_height = crate::command_bar::bar_height(&tokens, self.shell.command_bar_collapsed());
         let command_bar = &mut self.command_bar;
@@ -811,9 +814,11 @@ impl App {
         // WP-S2.17 part 4: at the canvas's top right (doc 16a §6.10).
         let bar_bottom = self.command_bar.bar_rect().map_or(0.0, |r| r.bottom());
         let anchor = crate::notifications::toast_anchor(&tokens, &ctx, self.page_pane, bar_bottom);
-        crate::notifications::show_toasts(&ctx, &self.shell, anchor, &mut events);
-        crate::notifications::show_log(&ctx, &self.shell, &mut events);
         let dialog_open = self.shell.dialog().is_some();
+        // Doc 16a §6.12: under a modal the toasts go below its backdrop, which dims them with the rest.
+        let under_modal = dialog_open || ctx.memory(|m| m.top_modal_layer().is_some());
+        crate::notifications::show_toasts(&ctx, &self.shell, anchor, under_modal, &mut events);
+        crate::notifications::show_log(&ctx, &self.shell, &mut events);
         about::show(
             &ctx,
             &self.shell,

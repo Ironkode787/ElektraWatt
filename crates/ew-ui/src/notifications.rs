@@ -116,17 +116,32 @@ pub(crate) fn toast_anchor(t: &Tokens, ctx: &Context, canvas: Option<Rect>, bar_
     }
 }
 
-/// The visible toasts of `shell`, the newest at the top, anchored at `anchor` (their top-right corner).
-pub(crate) fn show_toasts(ctx: &Context, shell: &ShellModel, anchor: egui::Pos2, events: &mut Vec<Event>) {
+/// The id of the toasts' area (tests: its layer).
+pub const TOASTS_AREA: &str = "ew-toasts";
+
+/// The visible toasts of `shell`, the newest at the top, anchored at `anchor` (their top-right corner); `under_modal`
+/// puts them in the middle order, below a modal dialog's backdrop (doc 16a §6.12), so the dialog is the only focus.
+pub(crate) fn show_toasts(
+    ctx: &Context,
+    shell: &ShellModel,
+    anchor: egui::Pos2,
+    under_modal: bool,
+    events: &mut Vec<Event>,
+) {
     let visible = shell.notifications().visible();
     if visible.is_empty() {
         return;
     }
     let t = theme::current(ctx);
-    egui::Area::new(egui::Id::unique("ew-toasts"))
+    let order = if under_modal {
+        egui::Order::Middle
+    } else {
+        egui::Order::Foreground
+    };
+    egui::Area::new(egui::Id::unique(TOASTS_AREA))
         .pivot(Align2::RIGHT_TOP)
         .fixed_pos(anchor)
-        .order(egui::Order::Foreground)
+        .order(order)
         .interactable(true)
         .show(ctx, |ui| {
             ui.spacing_mut().item_spacing.y = t.space_3;

@@ -40,6 +40,11 @@ fn small_strong(t: &Tokens) -> TypeToken {
     }
 }
 
+/// The bottom band of the page view a fit keeps clear: the HUD's height with `space.5` above and below it.
+pub(crate) fn fit_inset(t: &Tokens) -> f32 {
+    t.size_control + 2.0 * t.space_2 + 2.0 * t.space_5
+}
+
 /// The HUD's rectangle of width `width` in the page view `pane` (doc 16a §5.5): centred, `space.5` above the bottom;
 /// `space.4` under the canvas tab bar when `raised`.
 pub(crate) fn hud_rect(t: &Tokens, pane: Rect, width: f32, raised: bool) -> Rect {

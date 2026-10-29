@@ -142,6 +142,53 @@ fn cp2_cp7_the_toasts_stand_at_the_canvas_top_right_newest_on_top() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// Doc 16a §6.12: with the quit prompt open the toast is not a second focus: its layer lies below the modal's
+/// (the backdrop dims it); without a dialog it stands in the foreground.
+#[test]
+fn a_modal_dialog_puts_the_toasts_below_its_backdrop() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let mut h = harness(&tmp, Scripted::default(), Some(dir));
+    settle(&mut h);
+    dispatch(&mut h, "page.goto", json!({"folio": "101"}));
+    dispatch(
+        &mut h,
+        "select.set",
+        json!({"refs": ["tag:-101F1", "tag:-102F1"]}),
+    );
+    dispatch(
+        &mut h,
+        "props.set",
+        json!({"row": "device/function_text", "value": "Spare"}),
+    );
+    h.run_ok();
+    let toasts = egui::Id::unique("ew-toasts");
+    let layer_of = |h: &Harness<'_, App>| {
+        h.ctx
+            .memory(|m| m.layer_ids().filter(|l| l.id == toasts).last())
+            .expect("the toasts' layer")
+    };
+    assert_eq!(layer_of(&h).order, egui::Order::Foreground);
+    let _ = h.state_mut().shell_mut().dispatch("file.close", &json!({}));
+    h.run_ok();
+    h.run_ok();
+    let modal = h
+        .ctx
+        .memory(|m| m.top_modal_layer())
+        .expect("the quit prompt is modal");
+    let toast = egui::LayerId::new(egui::Order::Middle, toasts);
+    assert!(
+        h.ctx.memory(|m| m.areas().is_visible(&toast)),
+        "the toast is shown in the middle order"
+    );
+    let order: Vec<egui::LayerId> = h.ctx.memory(|m| m.layer_ids().collect());
+    let at = |l: egui::LayerId| order.iter().position(|o| *o == l);
+    assert!(
+        at(toast) < at(modal) && !h.ctx.memory(|m| m.is_above_modal_layer(toast)),
+        "the toast {toast:?} lies below the modal {modal:?}: {order:?}"
+    );
+}
+
 #[test]
 fn cp4_the_palette_rows_carry_breadcrumbs_and_key_chips() {
     let tmp = Tmp::new();

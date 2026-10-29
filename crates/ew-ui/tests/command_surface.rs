@@ -180,6 +180,37 @@ fn cb3_the_command_surface_from_the_keyboard() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// Doc 16a §5.5: after a fit on Golden A 101 at 1280 by 800 the sheet ends above the HUD (the fit keeps the HUD's
+/// band clear) and keeps off the zoom control; the view is still the fit.
+#[test]
+fn a_fitted_sheet_ends_above_the_hud() {
+    for density in ["comfortable", "compact"] {
+        let tmp = Tmp::new();
+        let mut h = window(&tmp, density);
+        assert!(h.state_mut().shell_mut().dispatch("view.fit_page", &json!({})) == Outcome::Done);
+        settle(&mut h);
+        wait_for_page(&mut h);
+        settle(&mut h);
+        let (_, hud, pane) = h.state().command_surface_rects();
+        let (hud, pane) = (hud.unwrap(), pane.unwrap());
+        let canvas = h.state().shell().canvas_of(0).unwrap();
+        assert!(canvas.is_fitted() && canvas.fit_inset() > 0.0, "{density}");
+        let (w, ht) = canvas.sheet();
+        let host = h.state_mut().canvas_host();
+        let (a, b) = (
+            host.drawn_screen_of(0, (0, 0)).unwrap(),
+            host.drawn_screen_of(0, (w, ht)).unwrap(),
+        );
+        let sheet = Rect::from_two_pos(a, b);
+        assert!(
+            !sheet.intersects(hud),
+            "{density}: the sheet {sheet:?} under the HUD {hud:?}"
+        );
+        assert!(sheet.bottom() < hud.top(), "{density}: {sheet:?} above {hud:?}");
+        assert!(pane.contains_rect(sheet), "{density}: {sheet:?} in {pane:?}");
+    }
+}
+
 /// CB4: the geometry of doc 16a §5 at 1280 by 800, Comfortable and Compact: the bar, its tab row and command row,
 /// the large and small buttons, the search field, the quick-access buttons, the HUD (36 high, 16 above the page
 /// view's bottom, centred on it) and a page view of at least 65 % of the width.

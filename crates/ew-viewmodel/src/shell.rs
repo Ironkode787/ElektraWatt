@@ -424,6 +424,8 @@ pub struct ShellModel {
     /// The canvas pane of a new project's first group in logical points and its pixels per point.
     canvas_pane: (f64, f64),
     canvas_ppp: f64,
+    /// The bottom band every canvas's fit keeps clear, in logical points (the window's tool HUD; 0 headless).
+    canvas_fit_inset: f64,
     /// Whether the page grid is drawn.
     grid_on: bool,
     /// Whether the frame-statistics overlay is shown.
@@ -853,6 +855,7 @@ impl ShellModel {
             calls: Cell::new(SessionCalls::default()),
             canvas_pane: HEADLESS_PANE,
             canvas_ppp: 1.0,
+            canvas_fit_inset: 0.0,
             grid_on: true,
             frame_stats: false,
             canvas_backend: CanvasBackend::Cpu,

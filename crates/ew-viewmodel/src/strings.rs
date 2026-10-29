@@ -416,7 +416,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "commandbar-app" => "ElektraWatt",
         "commandbar-menu" => "Menu",
         "commandbar-quick-access" => "Quick access",
-        "commandbar-search" => "Search commands, devices, pages",
+        "commandbar-search" => "Search commands and devices",
         "commandbar-search-key" => "Ctrl K",
         "commandbar-more" => "More",
         "commandbar-next" => "Next step",

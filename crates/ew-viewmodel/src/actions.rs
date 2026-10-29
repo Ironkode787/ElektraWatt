@@ -878,7 +878,7 @@ pub static ACTIONS: &[ActionMeta] = &[
     with_params(
         "file?:path, dir?:path, discard?:bool",
         placed(
-            place(Group::Import, 1, CommandSize::Small, Some("bar-import-qet")),
+            place(Group::Import, 2, CommandSize::Small, Some("bar-import-qet")),
             "file-import",
             act(
                 "file.import_qet",
@@ -896,7 +896,8 @@ pub static ACTIONS: &[ActionMeta] = &[
     with_params(
         "path?:path",
         placed(
-            place(Group::Parts, 1, CommandSize::Large, Some("bar-import-parts")),
+            // Cycle 32: both imports in one group, Import (the window check), the parts table first.
+            place(Group::Import, 1, CommandSize::Large, Some("bar-import-parts")),
             "database-import",
             act(
                 "parts.import",

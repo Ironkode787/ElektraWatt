@@ -107,7 +107,11 @@ fn a10_home_fits_and_ctrl_arrow_right_moves_the_view() {
     settle(&mut h);
     assert_eq!(zoom(&h), fit);
     assert!(h.state().shell().canvas().unwrap().is_fitted());
-    assert_eq!(centre(&h), (148_500_000, 105_000_000));
+    // Centred across; the view's centre lies below the sheet's by half the HUD band the fit keeps clear (16a §5.5).
+    let c = h.state().shell().canvas().unwrap();
+    let down = (c.fit_inset() / 2.0 / c.points_per_nm()).trunc() as i64;
+    assert!(down > 0);
+    assert_eq!(centre(&h), (148_500_000, 105_000_000 + down));
     h.state_mut().shell_mut().shutdown();
 }
 

@@ -18,6 +18,26 @@ use crate::app::Event;
 use crate::icons::IconId;
 use crate::keys;
 
+/// The style of the app menu and its submenus (doc 16a §6.13): egui's menu style with a visible 1-px
+/// `color.border.default` container border on `elevation.1`, and `space.2` side padding in the rows so no label
+/// touches the menu's edge.
+pub(crate) fn menu_style(t: &crate::theme::Tokens) -> egui::style::StyleModifier {
+    let (border, side) = (crate::theme::stroke(t.border_width, t.border_default), t.space_2);
+    egui::style::StyleModifier::new(move |style: &mut egui::Style| {
+        egui::containers::menu::menu_style(style);
+        style.visuals.window_stroke = border;
+        style.spacing.button_padding.x = side;
+    })
+}
+
+/// The menu configuration of the app menu: [`menu_style`], and a `space.1` gap between a menu and the submenu it
+/// opens, so a submenu never covers its parent column.
+pub(crate) fn menu_config(t: &crate::theme::Tokens) -> egui::containers::menu::MenuConfig {
+    egui::containers::menu::MenuConfig::new()
+        .style(menu_style(t))
+        .submenu_gap(t.space_1)
+}
+
 /// One menu item (WP-S2.17 part 4, doc 16a §6.13): a row of `size.row` with a 16-px icon column (the action's icon,
 /// a check icon when checked, else empty so the labels align), the label, and the key in `color.text.secondary`
 /// right-aligned; hover uses the hover overlay, never the accent. Disabled with its reason as the tooltip.
