@@ -88,6 +88,7 @@ pub fn marks_of(shell: &ShellModel, group: usize) -> Vec<ToolMark> {
 /// The Text tool's binding in the tool options (WP-S2.04 §10.5; the tool strip until WP-S2.17 part 2): one choice per [`BINDABLE`] name and "-" for none.
 pub(crate) fn text_fields(ui: &mut Ui, current_bind: Option<&str>, events: &mut Vec<crate::app::Event>) {
     egui::ComboBox::from_label(strings::text("action-text-bind"))
+        .icon(crate::components::combo_chevron)
         .selected_text(current_bind.unwrap_or("-"))
         .show_ui(ui, |ui| {
             if ui.selectable_label(current_bind.is_none(), "-").clicked() {
@@ -145,6 +146,7 @@ pub(crate) fn structure_box_fields(
     events: &mut Vec<crate::app::Event>,
 ) {
     egui::ComboBox::from_label(strings::text("action-structure-box-style"))
+        .icon(crate::components::combo_chevron)
         .selected_text("…")
         .show_ui(ui, |ui| {
             for style in ["dotted", "dash_dot"] {
@@ -178,6 +180,7 @@ pub(crate) fn structure_box_fields(
     }
     if !externals.is_empty() {
         egui::ComboBox::from_label(strings::text("action-ip-external"))
+            .icon(crate::components::combo_chevron)
             .selected_text("…")
             .show_ui(ui, |ui| {
                 if ui.selectable_label(false, "-").clicked() {
@@ -221,6 +224,7 @@ pub(crate) fn ip_fields(
     }
     if !externals.is_empty() {
         egui::ComboBox::from_label(strings::text("action-ip-external"))
+            .icon(crate::components::combo_chevron)
             .selected_text("…")
             .show_ui(ui, |ui| {
                 if ui.selectable_label(false, "-").clicked() {

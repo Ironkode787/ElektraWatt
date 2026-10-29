@@ -464,7 +464,7 @@ fn group_menu(ui: &mut Ui, g: &GroupModel, events: &mut Vec<Event>) {
     for b in &g.buttons {
         match &b.kind {
             ButtonKind::Menu(items) => {
-                ui.menu_button(b.label.as_str(), |ui| items_menu(ui, items, events));
+                crate::components::submenu(ui, b.label.as_str(), |ui| items_menu(ui, items, events));
             }
             ButtonKind::Plain | ButtonKind::Split(_) => {
                 let item = ActionItem {
@@ -967,7 +967,7 @@ fn command_row(ui: &mut Ui, t: &Tokens, model: &CommandBarModel, row: Rect, even
         Popup::menu(&response).show(|ui| {
             for gi in &layout.more {
                 let g = &model.groups[*gi];
-                ui.menu_button(g.label.as_str(), |ui| group_menu(ui, g, events));
+                crate::components::submenu(ui, g.label.as_str(), |ui| group_menu(ui, g, events));
             }
         });
     }

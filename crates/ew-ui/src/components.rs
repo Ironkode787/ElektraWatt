@@ -50,6 +50,39 @@ pub(crate) fn icon_atom(id: IconId, size: f32, colour: Option<Rgba>, stroke: f32
     })
 }
 
+/// Paints doc 16a §6.13's `chevron-down` (16 px, `color.text.secondary`) as a combo box's icon, in place of egui's
+/// filled triangle (FT-563). The signature is `egui::ComboBox::icon`'s.
+pub(crate) fn combo_chevron(ui: &Ui, rect: egui::Rect, _visuals: &egui::style::WidgetVisuals, _open: bool) {
+    let t = tokens(ui);
+    icons::paint(
+        ui.painter(),
+        IconId::chevron_down,
+        egui::Rect::from_center_size(rect.center(), Vec2::splat(t.icon_sm)),
+        t.text_secondary.color32(),
+        t.icon_stroke,
+    );
+}
+
+/// A submenu row of a menu (doc 16a §6.13): the row's atoms and, at its right end, the 16-px `chevron-right` in
+/// `color.text.secondary`, in place of egui's filled triangle (FT-563). Returns the row's response.
+pub(crate) fn submenu<'a, R>(
+    ui: &mut Ui,
+    atoms: impl egui::IntoAtoms<'a>,
+    content: impl FnOnce(&mut Ui) -> R,
+) -> Response {
+    let t = tokens(ui);
+    let chevron = icon_atom(
+        IconId::chevron_right,
+        t.icon_sm,
+        Some(t.text_secondary),
+        t.icon_stroke,
+    );
+    let button = Button::new(atoms).right_text(chevron);
+    egui::containers::menu::SubMenuButton::from_button(button)
+        .ui(ui, content)
+        .0
+}
+
 /// The fill, text colour, border and font of a button of `kind` (doc 16a §6.2). Disabled, every kind takes
 /// `color.text.disabled`; a disabled Primary (or red Primary) loses its fill and draws as a Secondary (the
 /// `color.surface.panel` fill and the 1-px `color.border.default`), so its label stays legible (cycle 33 ruling).

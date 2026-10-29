@@ -111,7 +111,7 @@ fn entries(ui: &mut Ui, list: &[MenuEntry], events: &mut Vec<Event>) {
             }
             MenuEntry::Item(i) => item(ui, i, events),
             MenuEntry::Submenu { label, items, .. } => {
-                ui.menu_button((blank_column(ui), label.as_str()), |ui| {
+                crate::components::submenu(ui, (blank_column(ui), label.as_str()), |ui| {
                     for i in items {
                         item(ui, i, events);
                     }
@@ -122,7 +122,7 @@ fn entries(ui: &mut Ui, list: &[MenuEntry], events: &mut Vec<Event>) {
                 entries: inner,
                 ..
             } => {
-                ui.menu_button((blank_column(ui), label.as_str()), |ui| {
+                crate::components::submenu(ui, (blank_column(ui), label.as_str()), |ui| {
                     entries(ui, inner, events)
                 });
             }
@@ -133,6 +133,6 @@ fn entries(ui: &mut Ui, list: &[MenuEntry], events: &mut Vec<Event>) {
 /// The app menu's content (the popup of the command bar's app button): one submenu per menu of `shell`.
 pub(crate) fn app_menu(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     for menu in menu_model(shell) {
-        ui.menu_button(menu.label.as_str(), |ui| entries(ui, &menu.entries, events));
+        crate::components::submenu(ui, menu.label.as_str(), |ui| entries(ui, &menu.entries, events));
     }
 }
