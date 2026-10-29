@@ -150,17 +150,17 @@ fn the_main_window_in_every_theme_and_density() {
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
-/// DK7's 300 % variant, for review only (not gated, as the gallery at ppp 2): the main window, light and Comfortable,
-/// at 1280 × 800 points on a 300 % display (3840 × 2400 pixels). The setting `ui_scale` stops at 200 %
-/// (`UI_SCALES`), so 300 % is the system's scale (egui's native pixels per point), which is how a 300 % display
-/// reaches the window. Not gated: a 3840 × 2400 blessed image would be re-blessed with every chrome change.
+/// DK7's 300 % variant: the main window, light and Comfortable, at 1280 × 800 points on a 300 % display (3840 × 2400
+/// pixels). The setting `ui_scale` stops at 200 % (`UI_SCALES`), so 300 % is the system's scale (egui's native pixels
+/// per point), which is how a 300 % display reaches the window. Gated since FT-537 (the orchestrator's ruling) and
+/// re-blessed with the main-window images; the test keeps its name from before the ruling.
 #[test]
 fn the_main_window_at_300_percent_for_review() {
     let dev = device();
     let (h, recorder, tmp) = main_window_at("light", "comfortable", 3.0);
     let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
     assert_eq!((image.width, image.height), (3840, 2400));
-    assert_eq!(record("main-light-comfortable-300", &image, false), None);
+    assert_eq!(record("main-light-comfortable-300", &image, true), None);
     drop(h);
     drop(tmp);
 }
@@ -226,13 +226,18 @@ fn crop(image: &ew_render_cpu::RgbaImage, rect: egui::Rect) -> ew_render_cpu::Rg
     }
 }
 
-/// CB7 (§12.2): the command bar alone, cropped to its frame, for each of the six tabs, in light comfortable and dark
-/// compact (gated).
+/// CB7 (§12.2): the command bar alone, cropped to its frame, for each of the six tabs, in light and dark at both
+/// densities (gated; FT-533 added light Compact and dark Comfortable).
 #[test]
 fn the_command_bar_on_every_tab() {
     let dev = device();
     let mut failures = Vec::new();
-    for (theme, density) in [("light", "comfortable"), ("dark", "compact")] {
+    for (theme, density) in [
+        ("light", "comfortable"),
+        ("light", "compact"),
+        ("dark", "comfortable"),
+        ("dark", "compact"),
+    ] {
         let (mut h, recorder, tmp) = main_window(theme, density);
         for tab in ["project", "page", "draw", "check", "output", "view"] {
             assert_eq!(
@@ -638,6 +643,340 @@ fn dk12_the_data_grid_in_light_and_dark_at_both_densities() {
             drop(h);
             drop(tmp);
         }
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
+
+/// Dismisses every toast on show: they leave on the wall clock, so no gated image may show one.
+fn dismiss_toasts(h: &mut Harness<'_, App>) {
+    let shell = h.state_mut().shell_mut();
+    let serials: Vec<u64> = shell.notifications().visible().iter().map(|n| n.serial).collect();
+    for serial in serials {
+        shell.dismiss_toast(serial);
+    }
+}
+
+/// The smallest rectangle around `rects`, grown by `margin` on every side.
+fn around(rects: impl IntoIterator<Item = egui::Rect>, margin: f32) -> egui::Rect {
+    rects
+        .into_iter()
+        .reduce(|a, b| a.union(b))
+        .expect("at least one rectangle")
+        .expand(margin)
+}
+
+/// CP6 (FT-533): every dialog of the shell one by one that Golden A opens with one action, each cropped to the dialog's
+/// frame with its shadow, in light and dark, Comfortable, gated. Not here: the quit prompt (`part4-dialog-toast-*`),
+/// the recovery dialog (its text carries the wall clock's elapsed time and UTC stamp) and the question of discarding
+/// its journal (only an earlier session's journal opens it), the check-scheme question (only the finished wizard opens
+/// it) and the purge question (Golden A has no unused image).
+#[test]
+fn cp6_every_dialog_one_by_one_in_light_and_dark() {
+    let dev = device();
+    let mut failures = Vec::new();
+    for theme in ["light", "dark"] {
+        let (mut h, recorder, tmp) = main_window(theme, "comfortable");
+        // The fields' caret blinks on the wall clock: steady for a stable image.
+        h.ctx.all_styles_mut(|s| s.visuals.text_cursor.blink = false);
+        for (name, action) in [
+            ("about", "help.about"),
+            ("shortcuts", "help.shortcuts"),
+            ("notices", "help.notices"),
+            ("goto", "nav.goto"),
+            ("save-layout", "view.workspace_save"),
+            ("new-page", "page.new"),
+            ("new-structure", "structure.new"),
+            ("new-external-ref", "external_ref.new"),
+            ("renumber-pages", "pages.renumber"),
+            ("renumber-devices", "devices.renumber"),
+        ] {
+            assert_eq!(
+                h.state_mut().shell_mut().dispatch(action, &json!({})),
+                Outcome::Done,
+                "{action}"
+            );
+            dismiss_toasts(&mut h);
+            // A few frames: the modal's area sizes itself and centres on the frames after it opens.
+            for _ in 0..4 {
+                h.run_ok();
+            }
+            assert!(h.state().shell().dialog().is_some(), "{action}: a dialog");
+            let area = h
+                .ctx
+                .memory(|m| m.area_rect(egui::Id::unique("ew-dialog")))
+                .expect("the dialog's area");
+            // A footer wider than the dialog grows to the left of the area's rectangle (the About dialog's four
+            // buttons): the footer row's buttons (the lowest row of buttons inside the area, and the buttons on its
+            // line) are taken in.
+            let all: Vec<egui::Rect> = h.get_all_by_role(egui::Role::Button).map(|n| n.rect()).collect();
+            let footer_top = all
+                .iter()
+                .filter(|r| area.contains_rect(**r))
+                .map(|r| r.top())
+                .fold(f32::NEG_INFINITY, f32::max);
+            let frame = around(
+                std::iter::once(area).chain(
+                    all.into_iter()
+                        .filter(|r| (r.top() - footer_top).abs() < 1.0 && r.right() > area.left() - 300.0),
+                ),
+                0.0,
+            );
+            let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
+            failures.extend(record(
+                &format!("cp6-dialog-{name}-{theme}"),
+                &crop(&image, frame.expand(24.0)),
+                true,
+            ));
+            let _ = h.state_mut().shell_mut().dispatch("ui.dismiss", &json!(null));
+            h.run_ok();
+            assert!(h.state().shell().dialog().is_none(), "{action}: dismissed");
+        }
+        h.state_mut().shell_mut().shutdown();
+        drop(h);
+        drop(tmp);
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
+
+/// The rectangles of the buttons named one of `labels`.
+fn buttons(h: &Harness<'_, App>, labels: &[&str]) -> Vec<egui::Rect> {
+    use egui_kittest::kittest::NodeT as _;
+    h.get_all_by_role(egui::Role::Button)
+        .filter(|n| {
+            n.accesskit_node()
+                .label()
+                .is_some_and(|l| labels.contains(&l.as_str()))
+        })
+        .map(|n| n.rect())
+        .collect()
+}
+
+/// CP9 (FT-533): the quick-fix card in the Messages pane (EW-CORE-023's fix on folio 102, cropped to the pane with the
+/// card) and the table card in the Terminal strips pane (a paste onto a read-only cell, cropped to the grid with the
+/// card), in light and dark, Comfortable, gated.
+#[test]
+fn cp9_the_quick_fix_card_and_the_table_card_in_light_and_dark() {
+    let dev = device();
+    let mut failures = Vec::new();
+    for theme in ["light", "dark"] {
+        // The quick-fix card.
+        let (mut h, recorder, tmp) = main_window(theme, "comfortable");
+        let shell = h.state_mut().shell_mut();
+        assert_eq!(
+            shell.dispatch("page.goto", &json!({"folio": "102"})),
+            Outcome::Done
+        );
+        let page = shell
+            .page_rows()
+            .iter()
+            .find(|r| r.folio == "102")
+            .map(|r| r.id.to_string())
+            .expect("folio 102");
+        for (action, params) in [
+            (
+                "command.run",
+                json!({"cmd": "fields.set", "params": {"kind": "page", "targets": [page],
+                    "path": "description_override", "value": "Overridden"}}),
+            ),
+            ("messages.show", json!({})),
+        ] {
+            assert_eq!(shell.dispatch(action, &params), Outcome::Done, "{action}");
+        }
+        let key = shell
+            .nav(ew_ui::ew_viewmodel::navigators::NavKind::Messages)
+            .and_then(|n| n.table())
+            .and_then(|t| {
+                t.nodes
+                    .iter()
+                    .find(|n| n.badges.iter().any(|b| b == "fix"))
+                    .map(|n| n.key.clone())
+            })
+            .expect("a finding with a fix");
+        // Every card opens the Preview tab (closing it cancels the card), where the inline card stands as its strip:
+        // the Messages tab brought back to the front shows the card's strip.
+        assert_eq!(
+            shell.dispatch("messages.fix", &json!({"key": key})),
+            Outcome::Done
+        );
+        support::settle(&mut h);
+        h.get_by_role_and_label(egui::Role::Button, "Messages").click();
+        support::settle(&mut h);
+        // The pointer leaves the window so that no hover is painted.
+        h.input_mut().events.push(egui::Event::PointerGone);
+        dismiss_toasts(&mut h);
+        support::wait_for_page(&mut h);
+        h.run_ok();
+        h.run_ok();
+        assert!(
+            h.state().shell().properties().card().is_some(),
+            "the quick-fix card"
+        );
+        let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
+        let mut parts = vec![messages_pane(&h)];
+        parts.extend(buttons(&h, &["Apply", "Cancel"]));
+        failures.extend(record(
+            &format!("cp9-fix-card-{theme}"),
+            &crop(&image, around(parts, 4.0)),
+            true,
+        ));
+        h.state_mut().shell_mut().shutdown();
+        drop(h);
+        drop(tmp);
+
+        // The table card.
+        let (mut h, recorder, tmp) = main_window(theme, "comfortable");
+        let shell = h.state_mut().shell_mut();
+        for (action, params) in [
+            ("props.show", json!({"on": false})),
+            ("navigator.show", json!({"kind": "strips"})),
+            ("navigator.table", json!({"kind": "strips"})),
+            ("navigator.filter", json!({"kind": "strips", "text": "x1032"})),
+            ("navigator.sort", json!({"kind": "strips", "by": "terminal"})),
+            ("ui.focus", json!({"area": "navigator", "kind": "strips"})),
+        ] {
+            assert_eq!(shell.dispatch(action, &params), Outcome::Done, "{action}");
+        }
+        support::settle(&mut h);
+        h.event(egui::Event::Paste("X".into()));
+        support::settle(&mut h);
+        assert!(h.state().shell().table_gesture().is_some(), "the table card");
+        dismiss_toasts(&mut h);
+        h.run_ok();
+        h.run_ok();
+        let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
+        let grid = node_rect(&h, "Terminal strips table").expect("the grid");
+        let top = node_rect(&h, "Table").map_or(grid.top(), |r| r.top());
+        let mut parts = vec![egui::Rect::from_min_max(egui::pos2(grid.left(), top), grid.max)];
+        // The card's buttons, not the Preview tab's.
+        parts.extend(
+            buttons(&h, &["Apply", "Cancel", "Drop"])
+                .into_iter()
+                .filter(|r| r.right() <= grid.right()),
+        );
+        failures.extend(record(
+            &format!("cp9-table-card-{theme}"),
+            &crop(&image, around(parts, 4.0)),
+            true,
+        ));
+        h.state_mut().shell_mut().shutdown();
+        drop(h);
+        drop(tmp);
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
+
+/// Doc 16a §6.4 (FT-540's restyle): the bottom dock with Messages and History open, History active, cropped to the
+/// dock's tab bar, in light and dark, Comfortable, gated.
+#[test]
+fn the_bottom_dock_tab_bar_in_light_and_dark() {
+    let dev = device();
+    let mut failures = Vec::new();
+    for theme in ["light", "dark"] {
+        let (mut h, recorder, tmp) = main_window(theme, "comfortable");
+        let shell = h.state_mut().shell_mut();
+        for action in ["messages.show", "history.show"] {
+            assert_eq!(shell.dispatch(action, &json!({})), Outcome::Done, "{action}");
+        }
+        dismiss_toasts(&mut h);
+        support::settle(&mut h);
+        h.run_ok();
+        let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
+        let pane = h
+            .get_all_by_role(egui::Role::Group)
+            .find(|n| {
+                use egui_kittest::kittest::NodeT as _;
+                n.accesskit_node().label().as_deref() == Some("History")
+            })
+            .map(|n| n.rect())
+            .expect("the History panel");
+        let tabs: Vec<egui::Rect> = h
+            .get_all_by_role(egui::Role::Button)
+            .filter_map(|n| {
+                use egui_kittest::kittest::NodeT as _;
+                let label = n.accesskit_node().label()?;
+                let r = n.rect();
+                ((label.starts_with("Messages") || label.starts_with("History"))
+                    && r.bottom() <= pane.top() + 1.0
+                    && r.top() >= pane.top() - 60.0)
+                    .then_some(r)
+            })
+            .collect();
+        assert!(tabs.len() >= 2, "two dock tabs: {tabs:?}");
+        let bar = around(tabs, 0.0);
+        let bar = egui::Rect::from_min_max(
+            egui::pos2(pane.left(), bar.top()),
+            egui::pos2(pane.right(), bar.bottom() + 1.0),
+        );
+        failures.extend(record(
+            &format!("dock-tabs-{theme}-comfortable"),
+            &crop(&image, bar),
+            true,
+        ));
+        h.state_mut().shell_mut().shutdown();
+        drop(h);
+        drop(tmp);
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
+
+/// Doc 16a §6.24 (FT-531's restyle): the chip line "Not on this page" with its pill jump chips, for -201U3 selected on
+/// folio 102 (its other representations are on 201 and 203), cropped to the chip line, in light and dark,
+/// Comfortable, gated.
+#[test]
+fn the_chip_line_in_light_and_dark() {
+    let dev = device();
+    let mut failures = Vec::new();
+    for theme in ["light", "dark"] {
+        let (mut h, recorder, tmp) = main_window(theme, "comfortable");
+        let shell = h.state_mut().shell_mut();
+        for (action, params) in [
+            ("navigator.show", json!({"kind": "devices"})),
+            ("page.goto", json!({"folio": "102"})),
+        ] {
+            assert_eq!(shell.dispatch(action, &params), Outcome::Done, "{action}");
+        }
+        support::wait_for_page(&mut h);
+        // -201U3 is under -201U1: revealed by its row, then marked (the navigator's selection makes the chips).
+        let shell = h.state_mut().shell_mut();
+        let key = shell
+            .nav(ew_ui::ew_viewmodel::navigators::NavKind::Devices)
+            .and_then(|n| n.table())
+            .and_then(|t| {
+                t.nodes
+                    .iter()
+                    .find(|n| {
+                        n.role == ew_ui::ew_viewmodel::navigators::NavRole::Device && n.label == "-201U3"
+                    })
+                    .map(|n| n.key.clone())
+            })
+            .expect("the -201U3 row");
+        for (action, params) in [
+            ("navigator.row", json!({"kind": "devices", "key": key})),
+            ("navigator.select", json!({"kind": "devices", "keys": [key]})),
+        ] {
+            assert_eq!(shell.dispatch(action, &params), Outcome::Done, "{action}");
+        }
+        dismiss_toasts(&mut h);
+        support::settle(&mut h);
+        h.run_ok();
+        assert!(!h.state().shell().chips().is_empty(), "chips for -201U3");
+        let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
+        let mut parts = vec![node_rect(&h, "Not on this page:").expect("the chip line's label")];
+        parts.extend(h.get_all_by_role(egui::Role::Button).filter_map(|n| {
+            use egui_kittest::kittest::NodeT as _;
+            n.accesskit_node()
+                .label()
+                .is_some_and(|l| l.starts_with("Open "))
+                .then(|| n.rect())
+        }));
+        failures.extend(record(
+            &format!("chip-line-{theme}-comfortable"),
+            &crop(&image, around(parts, 4.0)),
+            true,
+        ));
+        h.state_mut().shell_mut().shutdown();
+        drop(h);
+        drop(tmp);
     }
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
