@@ -477,6 +477,17 @@ impl PropertiesPane {
         ui.ctx().accesskit_node_builder(group_id, |n| {
             n.set_description(desc);
         });
+        // Doc 16a §6.8: a right-click anywhere on the row opens the same actions menu as its "…" button (on the
+        // cursor row, so the menu anchors on that button).
+        let right_click = ui.input(|i| {
+            i.pointer.button_clicked(egui::PointerButton::Secondary)
+                && i.pointer.interact_pos().is_some_and(|p| rect.contains(p))
+        });
+        if right_click && !row.actions.is_empty() && ui.is_rect_visible(rect) {
+            events.push(Event::Action("ui.focus", json!({"area": "properties"})));
+            events.push(Event::Action("props.row", json!({"to": row.key})));
+            events.push(Event::Action("props.row_menu", json!({})));
+        }
         let selected = focused == Some(row.key.as_str());
         // The cursor row: the Selected state of a tree row (§6.6), `color.accent.subtle` and the 2-px accent bar.
         if selected {

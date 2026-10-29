@@ -636,6 +636,41 @@ fn ft530_header_severity_chips_and_the_actions_menu_on_the_dots_button() {
         "Escape closes the menu"
     );
     assert_eq!(h.query_all_by_role(egui::Role::MenuItem).count(), 0);
+    // Doc 16a §6.8: a right-click on the row opens the same menu.
+    let row_at = h
+        .get_all_by_role(egui::Role::Group)
+        .find(|n| n.accesskit_node().label().as_deref() == Some(label.as_str()))
+        .expect("the row's group")
+        .rect()
+        .left_center()
+        + egui::vec2(8.0, 0.0);
+    h.input_mut().events.push(egui::Event::PointerMoved(row_at));
+    h.run_ok();
+    for pressed in [true, false] {
+        h.input_mut().events.push(egui::Event::PointerButton {
+            pos: row_at,
+            button: egui::PointerButton::Secondary,
+            pressed,
+            modifiers: egui::Modifiers::NONE,
+        });
+    }
+    settle(&mut h);
+    settle(&mut h);
+    assert!(
+        matches!(
+            h.state().shell().properties().popup(),
+            Some(ew_ui::ew_viewmodel::properties::Popup::Actions { row, .. }) if *row == prow.key
+        ),
+        "a right-click opens the row's actions menu"
+    );
+    assert_eq!(
+        h.query_all_by_role(egui::Role::MenuItem).count(),
+        words.len(),
+        "the same items as the … button's"
+    );
+    press(&mut h, Key::Escape);
+    settle(&mut h);
+    assert!(h.state().shell().properties().popup().is_none());
     // A click on an item chooses it: Edit (or the first action) opens the editor or writes.
     dispatch(&mut h, "props.row_menu", json!({}));
     settle(&mut h);
