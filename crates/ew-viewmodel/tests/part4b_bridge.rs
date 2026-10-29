@@ -628,3 +628,50 @@ fn folio_103_bridges_draw_on_terminals_placed_by_symbol() {
     }
     assert_eq!(groups, [1, 2, 3], "each chain takes the next free group");
 }
+
+/// Cycle 33 review finding 9 (pinned, behaviour unchanged): a part added after a part-less bridge. Two part-less
+/// terminals are bridged at their side-1 CP (index 0), stored as a plug-in bridge on shaft 1; once both carry
+/// PT 2.5-TWIN, whose shaft-1 entry is CP index 3, Bridge terminals is not refused as "already bridged": it draws a
+/// second bridge between the shaft CPs, in a new group, and the side-1 bridge stays.
+#[test]
+fn a_part_added_after_a_partless_bridge_draws_a_second_bridge_on_the_shaft() {
+    let tmp = Tmp::new("bridge-partless-then-part");
+    let mut s = shell(&tmp, "103");
+    let reps = partless_strip(&mut s, 2);
+    let ids = [reps[0].id.to_string(), reps[1].id.to_string()];
+    select_ids(&mut s, &ids);
+    done(&mut s, "strip.bridge", json!({}));
+    let first = s.recorded_commands().last().expect("the first bridge").clone();
+    assert_eq!(first.params["a"]["cp"]["idx"], 0, "{}", first.params);
+    assert_eq!(
+        first.params["kind"],
+        json!({"bridge": {"kind": "plug_in", "group": 1, "shaft": 1}})
+    );
+    for id in &ids {
+        select_ids(&mut s, std::slice::from_ref(id));
+        done(
+            &mut s,
+            "props.set",
+            json!({"row": "device/parts", "value": "PT 2.5-TWIN"}),
+        );
+    }
+    select_ids(&mut s, &ids);
+    let rev = s.revision();
+    done(&mut s, "strip.bridge", json!({}));
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "one undo step");
+    let second = s.recorded_commands().last().expect("the second bridge").clone();
+    assert_eq!(second.cmd, "connection.draw");
+    assert_eq!(
+        second.params["a"],
+        json!({"cp": {"function": function_of(&reps[0]), "idx": 3}})
+    );
+    assert_eq!(
+        second.params["b"],
+        json!({"cp": {"function": function_of(&reps[1]), "idx": 3}})
+    );
+    assert_eq!(
+        second.params["kind"],
+        json!({"bridge": {"kind": "plug_in", "group": 2, "shaft": 1}}),
+        "a new group: the side-1 bridge's ends are not the chain's ends"
+    );
+}
