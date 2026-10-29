@@ -665,6 +665,17 @@
                   "$ref": "#/$defs/CmdIdent",
                   "description": "The terminal's designation, unique within the strip."
                 },
+                "part": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/CmdUuid"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "The terminal's part copy (part-first placement of a terminal part): the terminal gets the part use\n`{part, qty: 1}`; when the part has a function template, its main entry's FnDef must be the symbol's."
+                },
                 "seq": {
                   "description": "The sequence number; default one more than the highest in the strip.",
                   "format": "uint32",

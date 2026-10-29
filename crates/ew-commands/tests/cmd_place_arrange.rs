@@ -572,6 +572,7 @@ fn new_terminal(strip: Id<Device>, designation: &str, seq: Option<u32>) -> Place
         strip,
         designation: ident(designation),
         seq,
+        part: None,
     }
 }
 
@@ -722,6 +723,53 @@ fn new_terminal_rejections() {
         "/target/new_terminal",
     );
     assert_eq!(e.model().rev(), rev);
+}
+
+/// G-PP finding 2: a part-first terminal (`new_terminal` with `part`) is the terminal `terminal.add` creates, with
+/// the part use `{part, qty 1}`; a part whose main template entry is another FnDef than the symbol's, and a missing
+/// part copy, are refused and write nothing; without `part` the target serialises as before.
+#[test]
+fn new_terminal_with_a_part_carries_the_part_use() {
+    let mut e = arrange_engine();
+    let with_part = |part| PlaceTarget::NewTerminal {
+        strip: DEV_X1031,
+        designation: ident("9"),
+        seq: None,
+        part: Some(part),
+    };
+    let rev = e.model().rev();
+    rejected_with(
+        e.execute(&place_with(SYM_TWO, PAGE_101, gp(6, 6), with_part(PART_WRONG))),
+        "is no terminal of the symbol's function definition",
+    );
+    not_found(e.execute(&place_with(SYM_TWO, PAGE_101, gp(6, 6), with_part(id(0x1fe)))));
+    assert_eq!(e.model().rev(), rev);
+    let r = e
+        .execute(&place_with(SYM_TWO, PAGE_101, gp(6, 6), with_part(PART_TWO)))
+        .expect("device.place");
+    let t = row(&e, created::<Device>(&r, Kind::Device)[0]);
+    assert_eq!(
+        t.parts,
+        vec![PartUse {
+            part: PartRef {
+                copy: PART_TWO,
+                variant: None,
+                extra: Extra::new()
+            },
+            qty: dec3("1"),
+            extra: Extra::new()
+        }]
+    );
+    assert_eq!(
+        t.aspects
+            .terminal
+            .as_ref()
+            .map(|a| (a.strip, a.designation.as_str())),
+        Some((DEV_X1031, "9"))
+    );
+    // The optional member is left out of the serialised command when absent (logs replay unchanged).
+    let plain = serde_json::to_value(new_terminal(DEV_X1031, "9", None)).unwrap();
+    assert!(plain["new_terminal"].get("part").is_none(), "{plain}");
 }
 
 #[test]

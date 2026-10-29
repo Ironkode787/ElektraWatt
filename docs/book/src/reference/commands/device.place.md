@@ -21,7 +21,9 @@ target requires.
   entry must not be a black box (`box.black` places those).
 - `new_terminal` (AC-28): one terminal of the strip, created as `terminal.add` creates it (the strip's letter,
   structure and the sequence number as counter; the next sequence number when `seq` is absent) with its main
-  function `{def: the symbol's FnDef}`, then placed.
+  function `{def: the symbol's FnDef}`, then placed. With `part` (part-first placement of a terminal part) the
+  terminal also gets `parts: [the part, quantity 1]`; the part copy must exist and, when it has a function
+  template, its main entry's FnDef must be the symbol's.
 - Every hint creates a wire `{a: the hint's CP, b: to, page}` without a route; the hint's symbol CP is
   mapped to a function CP as the derived pin map does (`(functions[0], fn_cp)`); an unknown symbol CP
   is rejected. A hint ending at a junction appends the wire to the junction's sequence; a hint ending
@@ -172,11 +174,11 @@ One of the following forms:
 
 5. **Form 5**: One new terminal of an existing strip, created as `terminal.add` creates it and placed (`device.place` only; AC-28, WP-S2.04 D9).
 
-   Shape: object { `new_terminal`: object { `designation`: [`CmdIdent`](#cmdident), `seq?`: integer (format `uint32`, min 0) or `null`, `strip`: [`CmdUuid`](#cmduuid) } }
+   Shape: object { `new_terminal`: object { `designation`: [`CmdIdent`](#cmdident), `part?`: [`CmdUuid`](#cmduuid) or `null`, `seq?`: integer (format `uint32`, min 0) or `null`, `strip`: [`CmdUuid`](#cmduuid) } }
 
    | Name | Type | Required | Default | Description |
    |---|---|---|---|---|
-   | `new_terminal` | object { `designation`: [`CmdIdent`](#cmdident), `seq?`: integer (format `uint32`, min 0) or `null`, `strip`: [`CmdUuid`](#cmduuid) } | yes |  |  |
+   | `new_terminal` | object { `designation`: [`CmdIdent`](#cmdident), `part?`: [`CmdUuid`](#cmduuid) or `null`, `seq?`: integer (format `uint32`, min 0) or `null`, `strip`: [`CmdUuid`](#cmduuid) } | yes |  |  |
 
 ### CmdIdent
 

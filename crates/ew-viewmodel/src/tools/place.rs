@@ -77,6 +77,8 @@ pub enum PlaceTarget {
         strip_tag: String,
         /// The terminal's designation.
         designation: String,
+        /// The part copy of a part-first terminal (G-PP finding 2): the terminal carries the part.
+        part: Option<String>,
     },
 }
 
@@ -313,8 +315,14 @@ impl PlaceTool {
                 strip,
                 strip_tag,
                 designation,
+                part,
             } => (
-                json!({"new_terminal": {"strip": strip, "designation": designation}}),
+                match part {
+                    Some(part) => {
+                        json!({"new_terminal": {"strip": strip, "designation": designation, "part": part}})
+                    }
+                    None => json!({"new_terminal": {"strip": strip, "designation": designation}}),
+                },
                 "terminal",
                 strings::format(
                     "place-target-terminal",

@@ -67,6 +67,9 @@ pub struct PendingTerminal {
     pub symbol: String,
     /// The parameters of the choice (an explicit `designation` wins over the strip's next one).
     pub params: serde_json::Map<String, serde_json::Value>,
+    /// The part copy and template entry of a part-first terminal (G-PP finding 2): the chosen strip's terminal
+    /// carries the part.
+    pub part: Option<(String, u16)>,
 }
 
 /// The picker's state.

@@ -314,9 +314,13 @@ impl ShellModel {
                 reason_key: "reason-unknown-symbol",
             };
         };
+        // A terminal: a terminal symbol, or any symbol or part given a strip or a designation (a PE terminal's category
+        // is `TerminalEarth`, not `Terminal`). A part-first terminal joins the strip and carries its part (G-PP
+        // finding 2: the part route ignored `strip` and `designation` and made a free device).
+        let terminal = row.terminal || p.contains_key("strip") || p.contains_key("designation");
         let target = match (pick, part) {
             (Pick::Function(function, _), _) => PlaceTarget::Function { function },
-            (_, Some((part, template, number))) => {
+            (_, Some((part, template, number))) if !terminal => {
                 let Some(letter) = letter_param.or(row.letter.clone()) else {
                     return Outcome::Refused {
                         reason_key: "reason-letter-needed",
@@ -329,9 +333,7 @@ impl ShellModel {
                     number,
                 }
             }
-            // A terminal symbol, or any symbol given a strip or a designation (a PE terminal's category is
-            // `TerminalEarth`, not `Terminal`).
-            _ if row.terminal || p.contains_key("strip") || p.contains_key("designation") => {
+            (_, part) if terminal => {
                 let strip = match string_param(p, "strip") {
                     Ok(v) => v,
                     Err(e) => return e,
@@ -347,6 +349,7 @@ impl ShellModel {
                     let pending = PendingTerminal {
                         symbol: row.key.clone(),
                         params: p.clone(),
+                        part: part.map(|(copy, template, _)| (copy, template)),
                     };
                     self.palette = None;
                     self.tools.picker = Some(Picker::strips(&folio, Arc::clone(&cat), pending));
@@ -367,6 +370,7 @@ impl ShellModel {
                     strip: st.id.to_string(),
                     strip_tag: st.tag.clone(),
                     designation,
+                    part: part.map(|(copy, _, _)| copy),
                 }
             }
             _ => {
@@ -514,7 +518,20 @@ impl ShellModel {
                 if params.get("strip").is_none_or(Value::is_null) {
                     params.insert("strip".into(), Value::from(cat.strips[i].id.to_string()));
                 }
-                self.arm(cat, Pick::Symbol(symbol), &params)
+                // A part-first terminal picks its part again (G-PP finding 2).
+                let pick = pending
+                    .part
+                    .as_ref()
+                    .and_then(|(copy, template)| {
+                        let pi = cat.parts.iter().position(|r| r.copy.to_string() == *copy)?;
+                        let fi = cat.parts[pi]
+                            .functions
+                            .iter()
+                            .position(|f| f.index == *template)?;
+                        Some(Pick::PartFn(pi, fi))
+                    })
+                    .unwrap_or(Pick::Symbol(symbol));
+                self.arm(cat, pick, &params)
             }
         }
     }

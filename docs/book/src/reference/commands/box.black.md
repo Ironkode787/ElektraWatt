@@ -146,11 +146,11 @@ One of the following forms:
 
 5. **Form 5**: One new terminal of an existing strip, created as `terminal.add` creates it and placed (`device.place` only; AC-28, WP-S2.04 D9).
 
-   Shape: object { `new_terminal`: object { `designation`: [`CmdIdent`](#cmdident), `seq?`: integer (format `uint32`, min 0) or `null`, `strip`: [`CmdUuid`](#cmduuid) } }
+   Shape: object { `new_terminal`: object { `designation`: [`CmdIdent`](#cmdident), `part?`: [`CmdUuid`](#cmduuid) or `null`, `seq?`: integer (format `uint32`, min 0) or `null`, `strip`: [`CmdUuid`](#cmduuid) } }
 
    | Name | Type | Required | Default | Description |
    |---|---|---|---|---|
-   | `new_terminal` | object { `designation`: [`CmdIdent`](#cmdident), `seq?`: integer (format `uint32`, min 0) or `null`, `strip`: [`CmdUuid`](#cmduuid) } | yes |  |  |
+   | `new_terminal` | object { `designation`: [`CmdIdent`](#cmdident), `part?`: [`CmdUuid`](#cmduuid) or `null`, `seq?`: integer (format `uint32`, min 0) or `null`, `strip`: [`CmdUuid`](#cmduuid) } | yes |  |  |
 
 ### CmdIdent
 

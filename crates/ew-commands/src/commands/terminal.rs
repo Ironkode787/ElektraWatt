@@ -170,7 +170,7 @@ impl Command for AddTerminals {
                     "sequence number {seq} is already used in the strip; choose another"
                 ));
             }
-            let (device, _) = insert_terminal(tx, self.strip, &strip, self.fndef, spec, seq)?;
+            let (device, _) = insert_terminal(tx, self.strip, &strip, self.fndef, spec, seq, Vec::new())?;
             first.get_or_insert(device);
         }
         Ok(Outcome {
@@ -196,8 +196,9 @@ pub(crate) fn strip_usage(tx: &TxBuilder<'_>, strip: Id<Device>) -> (BTreeSet<Id
 
 /// Inserts one terminal of `strip` as `terminal.add` creates it: a device `{tag: {letter: the strip's letter,
 /// counter: seq}, kind: terminal, structure: the strip's structure, function_text, terminal: {strip, seq,
-/// designation, levels, rail_bonded}}` and its main function `{def: fndef}`. The caller checks the designation and
-/// the sequence number. Returns the device and the function.
+/// designation, levels, rail_bonded}, parts}` and its main function `{def: fndef}` (`parts` is empty for
+/// `terminal.add`; a part-first `new_terminal` passes its part use). The caller checks the designation, the sequence
+/// number and the parts. Returns the device and the function.
 pub(crate) fn insert_terminal(
     tx: &mut TxBuilder<'_>,
     strip_id: Id<Device>,
@@ -205,6 +206,7 @@ pub(crate) fn insert_terminal(
     fndef: Id<FnDef>,
     spec: &TerminalSpec,
     seq: u32,
+    parts: Vec<PartUse>,
 ) -> Result<(Id<Device>, Id<Function>), CmdError> {
     let device: Id<Device> = tx.mint();
     tx.insert(Device {
@@ -215,7 +217,7 @@ pub(crate) fn insert_terminal(
         parent: None,
         position: None,
         structure: strip.structure.clone(),
-        parts: Vec::new(),
+        parts,
         function_text: spec.function_text.clone(),
         process_tag: None,
         tech_data: Default::default(),

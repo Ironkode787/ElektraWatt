@@ -8,7 +8,7 @@
 
 mod common;
 
-use common::{Tmp, done};
+use common::{Tmp, click, done, empty_point, refused, state};
 use ew_viewmodel::ew_api::{BomMode, Export, Session};
 use ew_viewmodel::properties::{RowValue, find_row};
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
@@ -116,4 +116,76 @@ fn row1_parts_are_chosen_by_part_number_and_reach_the_bom() {
     assert!(f1.contains("-101F1"), "{f1}");
     let x = line_of(&bom, "PT 2.5-TWIN").expect("PT 2.5-TWIN in the BOM");
     assert!(x.contains("-X1031:1"), "{x}");
+}
+
+/// Finding 2: `place.pick part="PT 2.5-TWIN" strip=… designation=…` places a terminal of that strip with that
+/// designation, and the terminal carries the part (the run made a free device -103X1 and said nothing). Golden A's
+/// -X1031:1 is deleted and placed again from its part; a strip that does not exist is refused with its reason.
+#[test]
+fn row2_a_terminal_part_joins_its_strip_with_its_designation_and_carries_the_part() {
+    let tmp = Tmp::new("gpp-parts-2");
+    let mut s = golden(&tmp, "103");
+    done(&mut s, "select.set", json!({"refs": ["tag:-X1031:1"]}));
+    done(&mut s, "edit.delete_selection", json!({}));
+    assert!(
+        s.dispatch("select.set", &json!({"refs": ["tag:-X1031:1"]})) != Outcome::Done,
+        "-X1031:1 is gone"
+    );
+    done(
+        &mut s,
+        "place.pick",
+        json!({"part": "PT 2.5-TWIN", "strip": "-X1031", "designation": "1"}),
+    );
+    let ghost = state(&s)["canvas"]["ghost"].clone();
+    assert_eq!(ghost["target"], "terminal", "{ghost}");
+    let p = empty_point(s.canvas().unwrap());
+    click(&mut s, p, json!({}));
+    done(&mut s, "tool.select", json!({}));
+    done(&mut s, "select.set", json!({"refs": ["tag:-X1031:1"]}));
+    assert_eq!(parts_text(&s), "PT 2.5-TWIN × 1");
+    // A strip that does not exist is refused with its reason, not turned into a free device.
+    assert_eq!(
+        refused(
+            &mut s,
+            "place.pick",
+            json!({"part": "PT 2.5-TWIN", "strip": "-X9999", "designation": "1"})
+        ),
+        "reason-no-strip"
+    );
+    let bom = bom(&tmp, &mut s);
+    let line = line_of(&bom, "PT 2.5-TWIN").expect("PT 2.5-TWIN in the BOM");
+    assert!(line.contains("-X1031:1"), "{line}");
+    assert!(!line.contains("-103X"), "no free device: {line}");
+}
+
+/// Finding 2, the run's own step: a new strip `-X??` and its first terminal placed from the part.
+#[test]
+fn row2_the_first_terminal_of_a_new_strip_from_its_part() {
+    let tmp = Tmp::new("gpp-parts-2b");
+    let mut s = golden(&tmp, "103");
+    let qty = |bom: &[String]| -> String {
+        let line = line_of(bom, "PT 2.5-TWIN").expect("PT 2.5-TWIN in the BOM");
+        line.split(',').nth(2).unwrap_or_default().to_owned()
+    };
+    let before = qty(&bom(&tmp, &mut s));
+    done(&mut s, "strip.new", json!({"letter": "X"}));
+    done(
+        &mut s,
+        "place.pick",
+        json!({"part": "PT 2.5-TWIN", "strip": "-X??", "designation": "1"}),
+    );
+    assert_eq!(state(&s)["canvas"]["ghost"]["target"], "terminal");
+    let p = empty_point(s.canvas().unwrap());
+    click(&mut s, p, json!({}));
+    done(&mut s, "tool.select", json!({}));
+    assert!(
+        s.dispatch("select.set", &json!({"refs": ["tag:-103X1"]})) != Outcome::Done,
+        "no free device -103X1"
+    );
+    let after = qty(&bom(&tmp, &mut s));
+    assert_eq!(
+        after.parse::<u32>().unwrap(),
+        before.parse::<u32>().unwrap() + 1,
+        "the new terminal carries PT 2.5-TWIN ({before} -> {after})"
+    );
 }

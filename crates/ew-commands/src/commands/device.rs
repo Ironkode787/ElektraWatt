@@ -171,6 +171,11 @@ pub enum PlaceTarget {
         /// The sequence number; default one more than the highest in the strip.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         seq: Option<u32>,
+        /// The terminal's part copy (part-first placement of a terminal part): the terminal gets the part use
+        /// `{part, qty: 1}`; when the part has a function template, its main entry's FnDef must be the symbol's.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[schemars(with = "Option<UuidS>")]
+        part: Option<Id<Part>>,
     },
 }
 
@@ -208,7 +213,9 @@ pub struct ConnectHint {
 ///   entry must not be a black box (`box.black` places those).
 /// - `new_terminal` (AC-28): one terminal of the strip, created as `terminal.add` creates it (the strip's letter,
 ///   structure and the sequence number as counter; the next sequence number when `seq` is absent) with its main
-///   function `{def: the symbol's FnDef}`, then placed.
+///   function `{def: the symbol's FnDef}`, then placed. With `part` (part-first placement of a terminal part) the
+///   terminal also gets `parts: [the part, quantity 1]`; the part copy must exist and, when it has a function
+///   template, its main entry's FnDef must be the symbol's.
 /// - Every hint creates a wire `{a: the hint's CP, b: to, page}` without a route; the hint's symbol CP is
 ///   mapped to a function CP as the derived pin map does (`(functions[0], fn_cp)`); an unknown symbol CP
 ///   is rejected. A hint ending at a junction appends the wire to the junction's sequence; a hint ending
@@ -311,9 +318,10 @@ impl Command for PlaceSymbol {
                 strip,
                 designation,
                 seq,
+                part,
             } => {
                 let def = place_fndef(tx, &symbol, None)?;
-                insert_new_terminal(tx, *strip, designation, *seq, def)?
+                insert_new_terminal(tx, *strip, designation, *seq, def, *part)?
             }
         };
         let rep: Id<Representation> = tx.mint();
@@ -1519,10 +1527,36 @@ fn insert_new_terminal(
     designation: &Ident,
     seq: Option<u32>,
     def: Id<FnDef>,
+    part: Option<Id<Part>>,
 ) -> Result<Id<Function>, CmdError> {
     let strip = tx.require::<Device>(strip_id)?;
     if strip.aspects.strip.is_none() {
         return tx.reject("the device is not a terminal strip; pick a device with the strip aspect");
+    }
+    let mut parts = Vec::new();
+    if let Some(part) = part {
+        let copy = tx.require::<LibCopy<Part>>(part)?;
+        let main = copy.item.function_template.iter().find(|e| e.main);
+        if let Some(e) = main {
+            let main_def: Id<FnDef> =
+                ew_ids::v5::lib_copy_id(e.fndef.library.as_uuid(), e.fndef.item.as_uuid());
+            if main_def != def {
+                return tx.reject(format!(
+                    "part {} is no terminal of the symbol's function definition; pick a symbol of the part's \
+                     main function or another part",
+                    copy.item.part_number.as_str()
+                ));
+            }
+        }
+        parts.push(PartUse {
+            part: PartRef {
+                copy: part,
+                variant: None,
+                extra: Extra::new(),
+            },
+            qty: Dec3::ONE,
+            extra: Extra::new(),
+        });
     }
     let (designations, seqs) = strip_usage(tx, strip_id);
     if designations.contains(designation) {
@@ -1549,7 +1583,7 @@ fn insert_new_terminal(
         levels: Vec::new(),
         rail_bonded: false,
     };
-    let (_, function) = insert_terminal(tx, strip_id, &strip, def, &spec, seq)?;
+    let (_, function) = insert_terminal(tx, strip_id, &strip, def, &spec, seq, parts)?;
     Ok(function)
 }
 
