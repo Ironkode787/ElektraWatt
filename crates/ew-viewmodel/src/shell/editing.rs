@@ -203,12 +203,17 @@ impl ShellModel {
         };
         let mut box_cps: Option<Vec<(u16, String)>> = None;
         let mut part_copy = None;
+        let mut part_cps: Vec<(u16, String)> = Vec::new();
         let (row_index, part) = match &pick {
             Pick::Symbol(i) | Pick::Function(_, i) => (*i, None),
             Pick::PartFn(pi, fi) => {
                 let part = &cat.parts[*pi];
                 let f = &part.functions[*fi];
                 part_copy = Some(part.copy);
+                // The CPs come from the part's `cp_pattern`, which the catalogue lists whether or not the FnDef is
+                // embedded yet; `f.black_box` is false until it is (the first black box of a project arms through
+                // the starter symbol row instead), so the CPs are kept apart from that test (cycle 33, row 4).
+                part_cps = f.cps.clone();
                 if f.black_box {
                     box_cps = Some(f.cps.clone());
                 }
@@ -293,7 +298,7 @@ impl ShellModel {
                         template,
                         letter,
                         number,
-                        cps: box_cps.unwrap_or_default(),
+                        cps: part_cps,
                     }
                 }
                 None => {
