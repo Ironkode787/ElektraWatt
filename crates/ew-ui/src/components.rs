@@ -116,12 +116,11 @@ pub(crate) fn button_with_icon(
         None => b.stroke(theme::stroke(0.0, t.border_default)),
     };
     // The disabled look is the colours above (doc 16a §6.1: `color.text.disabled`), not egui's extra fade.
-    let response = ui
-        .scope(|ui| {
-            ui.visuals_mut().disabled_alpha = 1.0;
-            ui.add_enabled(enabled, b)
-        })
-        .inner;
+    // (Set and restored in place: a scope would give the button another id.)
+    let alpha = ui.visuals().disabled_alpha;
+    ui.visuals_mut().disabled_alpha = 1.0;
+    let response = ui.add_enabled(enabled, b);
+    ui.visuals_mut().disabled_alpha = alpha;
     // The state overlay (doc 16a §6.1): an explicit fill hides egui's own hover fill.
     crate::command_bar::state_overlay(ui, &t, &response, enabled, t.radius_md);
     response
