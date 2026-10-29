@@ -420,3 +420,32 @@ fn ft528_navigator_row_into_a_collapsed_group_expands_it_and_scrolls_the_row_int
         "the last finding is scrolled into view"
     );
 }
+
+/// Doc 16a §5.7, §6.4 (the rest of FT-540): the Messages dock tab carries a count chip of the open findings (its
+/// node's value), and the bottom dock's tab row has one close button that closes every pane of the dock.
+#[test]
+fn the_dock_tab_counts_the_findings_and_the_close_button_closes_the_dock() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, Scripted::default());
+    h.set_size(egui::Vec2::new(1000.0, 800.0));
+    dispatch(&mut h, "messages.show", json!({"on": true}));
+    dispatch(&mut h, "history.show", json!({"on": true}));
+    settle(&mut h);
+    let c = h.state().shell().messages_counts().unwrap();
+    let open = c.errors + c.warnings + c.infos;
+    assert!(open > 0, "Golden A has open findings");
+    let tab = h
+        .get_all_by_role(egui::Role::Button)
+        .find(|n| {
+            n.accesskit_node().label().as_deref() == Some("Messages")
+                && n.accesskit_node().value().is_some()
+        })
+        .expect("the Messages dock tab with its count");
+    assert_eq!(tab.accesskit_node().value(), Some(open.to_string()));
+    h.get_by_label("Close the bottom dock").click();
+    settle(&mut h);
+    let shell = h.state().shell();
+    assert!(!shell.navigator_open(NavKind::Messages), "Messages closed");
+    assert!(!shell.history_shown(), "History closed");
+    assert!(h.query_by_label("Close the bottom dock").is_none());
+}

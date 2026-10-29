@@ -748,7 +748,14 @@ impl App {
                 } = self;
                 navigators.retain(|k, _| shell.navigator_open(*k));
                 let collapsed = shell.rail_collapsed();
-                let headers = dock.show(ui, collapsed, &mut |ui, pane| match pane {
+                // Doc 16a §5.7: the Messages tab's count chip shows the open findings.
+                let counts = [(
+                    PaneKind::Navigator(ew_viewmodel::navigators::NavKind::Messages),
+                    shell
+                        .messages_counts()
+                        .map_or(0, |c| c.errors + c.warnings + c.infos),
+                )];
+                let headers = dock.show(ui, collapsed, &counts, &mut |ui, pane| match pane {
                     PaneKind::Pages => navigator.show(ui, shell, &mut events),
                     // WP-S2.06 part 1
                     PaneKind::Navigator(k) => navigators

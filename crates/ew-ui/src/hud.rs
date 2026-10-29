@@ -95,6 +95,8 @@ pub(crate) fn show(ctx: &egui::Context, shell: &ShellModel, pane: Rect, events: 
         .order(egui::Order::Middle)
         .show(ctx, |ui| {
             ui.set_min_size(rect.size());
+            // The shadow stays on the page view: it must not spill onto the bottom dock's tab bar below it.
+            ui.set_clip_rect(pane);
             let status_id = Id::unique("tool-hud-status");
             let status = ui.interact(rect, status_id, Sense::hover());
             let name = strings::text("hud-name").to_owned();
@@ -230,6 +232,8 @@ pub(crate) fn show_zoom(ctx: &egui::Context, shell: &ShellModel, pane: Rect, eve
         .order(egui::Order::Middle)
         .show(ctx, |ui| {
             ui.set_min_size(rect.size());
+            // The shadow stays on the page view: it must not spill onto the bottom dock's tab bar below it.
+            ui.set_clip_rect(pane);
             ui.painter()
                 .add(theme::shadow(&t.elevation_1).as_shape(rect, theme::radius(t.radius_md)));
             ui.painter()

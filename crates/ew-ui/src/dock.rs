@@ -177,11 +177,14 @@ impl Dock {
 
     /// Paints the tree; `pane_ui` paints one pane. A tab picked from a tab group's "All tabs" menu (FT-509) becomes
     /// that group's active tab. `collapsed` hides the left column (the root's child that holds the navigator group;
-    /// doc 16a §5.4). Returns what the panel headers' controls asked for (the segmented control's `rail.show`).
+    /// doc 16a §5.4). `counts` are the count chips of the dock tabs (doc 16a §5.7: Messages' open findings); a pane
+    /// absent or at zero has none. Returns what the panel headers' and the tab bars' controls asked for (the segmented
+    /// control's `rail.show`, the bottom dock's close button).
     pub(crate) fn show(
         &mut self,
         ui: &mut Ui,
         collapsed: bool,
+        counts: &[(PaneKind, usize)],
         pane_ui: &mut dyn FnMut(&mut Ui, PaneKind),
     ) -> Vec<Event> {
         let tokens = crate::theme::current(ui.ctx());
@@ -200,6 +203,7 @@ impl Dock {
             tokens: tokens.clone(),
             chrome,
             events: Vec::new(),
+            counts,
         };
         self.tree.ui(&mut behavior, ui);
         let events = std::mem::take(&mut behavior.events);
@@ -529,6 +533,22 @@ struct DockBehavior<'a> {
     chrome: Chrome,
     /// What the headers' controls asked for this frame.
     events: Vec<Event>,
+    /// The count chips of the dock tabs.
+    counts: &'a [(PaneKind, usize)],
+}
+
+/// The actions that close each pane of the bottom dock (doc 16a §5.7: the tab row's close button closes the dock).
+fn bottom_close(pane: PaneKind) -> Option<(&'static str, serde_json::Value)> {
+    use ew_viewmodel::navigators::NavKind;
+    let off = json!({ "on": false });
+    match pane {
+        PaneKind::Find => Some(("find.close", json!({}))),
+        PaneKind::Jobs => Some(("jobs.show", off)),
+        PaneKind::Navigator(NavKind::Messages) => Some(("messages.show", off)),
+        PaneKind::Preview => Some(("preview.show", off)),
+        PaneKind::History => Some(("history.show", off)),
+        _ => None,
+    }
 }
 
 impl DockBehavior<'_> {
@@ -726,8 +746,15 @@ impl egui_tiles::Behavior<PaneKind> for DockBehavior<'_> {
         let galley = ui
             .painter()
             .layout_no_wrap(title.clone(), look.font, look.colour.color32());
+        // Doc 16a §5.7: a tab whose pane has items carries a count chip (§6.16's count badge) after its title.
+        let count = match tiles.get(tile_id) {
+            Some(Tile::Pane(p)) => self.counts.iter().find(|(k, _)| k == p).map_or(0, |(_, n)| *n),
+            _ => 0,
+        };
+        let chip = (count > 0).then(|| crate::components::count_badge_layout(ui, &t, count));
+        let chip_w = chip.as_ref().map_or(0.0, |(_, size)| t.space_2 + size.x);
         let (_, rect) = ui.allocate_space(vec2(
-            galley.size().x + 2.0 * DOCK_TAB_PADDING,
+            galley.size().x + chip_w + 2.0 * DOCK_TAB_PADDING,
             ui.available_height(),
         ));
         let draggable = self.is_tile_draggable(tiles, tile_id);
@@ -745,14 +772,25 @@ impl egui_tiles::Behavior<PaneKind> for DockBehavior<'_> {
         response.widget_info(|| {
             egui::WidgetInfo::selected(egui::Role::Button, ui.is_enabled(), state.active, &title)
         });
+        if count > 0 {
+            ui.ctx()
+                .accesskit_node_builder(response.id, |n| n.set_value(count.to_string()));
+        }
         if ui.is_rect_visible(rect) && !state.is_being_dragged {
             if !state.active {
                 crate::command_bar::state_overlay(ui, &t, &response, true, t.radius_sm);
             }
-            let at = egui::Align2::CENTER_CENTER
-                .align_size_within_rect(galley.size(), rect)
-                .min;
+            let at = pos2(
+                rect.left() + DOCK_TAB_PADDING,
+                rect.center().y - galley.size().y / 2.0,
+            );
+            let text_right = at.x + galley.size().x;
             ui.painter().galley(at, galley, look.colour.color32());
+            if let Some((chip, size)) = chip {
+                let r =
+                    Rect::from_min_size(pos2(text_right + t.space_2, rect.center().y - size.y / 2.0), size);
+                crate::components::paint_count_badge(ui.painter(), &t, r, chip);
+            }
             if look.underline {
                 let line = Rect::from_min_max(
                     pos2(rect.left() + DOCK_TAB_PADDING, rect.bottom() - t.space_1),
@@ -808,6 +846,16 @@ impl egui_tiles::Behavior<PaneKind> for DockBehavior<'_> {
         _scroll_offset: &mut f32,
     ) {
         let panes = tab_panes(tiles, tabs);
+        // Doc 16a §5.7: one close button at the right end of the bottom dock's tab row closes the dock.
+        let closes: Vec<_> = panes.iter().filter_map(|(_, p)| bottom_close(*p)).collect();
+        if !closes.is_empty() {
+            ui.add_space(self.tokens.space_2);
+            let name = strings::text("dock-close");
+            if crate::components::icon_button(ui, crate::icons::IconId::x, name).clicked() {
+                self.events
+                    .extend(closes.into_iter().map(|(a, p)| Event::Action(a, p)));
+            }
+        }
         if panes.len() < 2 {
             return;
         }
@@ -857,7 +905,7 @@ mod tests {
             ..Default::default()
         };
         let mut out = ctx.run_ui(input, |ui| {
-            egui::CentralPanel::default().show(ui, |ui| dock.show(ui, false, &mut |_, _| {}));
+            egui::CentralPanel::default().show(ui, |ui| dock.show(ui, false, &[], &mut |_, _| {}));
         });
         // Nothing paints the frame; its texture changes are dropped on purpose.
         out.textures_delta.clear();

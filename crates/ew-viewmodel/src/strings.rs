@@ -1363,6 +1363,8 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "table-resize" => "Resize {0} column",
         // FT-509: the tab group's menu of every tab.
         "dock-all-tabs" => "All tabs",
+        // Doc 16a §5.7: the bottom dock's close button.
+        "dock-close" => "Close the bottom dock",
         "submenu-navigators" => "Navigators",
         "nav-title-devices" => "Devices",
         "nav-title-connections" => "Connections",

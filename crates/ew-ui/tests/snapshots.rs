@@ -907,9 +907,22 @@ fn the_bottom_dock_tab_bar_in_light_and_dark() {
             egui::pos2(pane.left(), bar.top()),
             egui::pos2(pane.right(), bar.bottom() + 1.0),
         );
+        let strip = crop(&image, bar);
+        // The bar's top rows between the tabs and the right-hand buttons are its plain fill: no band from the page
+        // view's floating HUD (its shadow used to spill onto the bar, cycle 33).
+        let at = |x: u32, y: u32| {
+            let i = ((y * strip.width + x) * 4) as usize;
+            strip.pixels[i..i + 3].to_vec()
+        };
+        let fill = at(strip.width / 2, strip.height / 2);
+        for y in 0..3 {
+            for x in strip.width / 5..strip.width * 4 / 5 {
+                assert_eq!(at(x, y), fill, "{theme}: the tab bar's fill at ({x}, {y})");
+            }
+        }
         failures.extend(record(
             &format!("dock-tabs-{theme}-comfortable"),
-            &crop(&image, bar),
+            &strip,
             true,
         ));
         h.state_mut().shell_mut().shutdown();

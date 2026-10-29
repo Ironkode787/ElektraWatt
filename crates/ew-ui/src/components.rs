@@ -247,9 +247,18 @@ pub(crate) fn status_badge(ui: &mut Ui, badge: Badge) -> Response {
 /// A count badge: `radius.pill`, `type.caption`, 18 px high, on `color.surface.sunken` in `color.text.secondary`.
 pub(crate) fn count_badge(ui: &mut Ui, count: usize) -> Response {
     let t = tokens(ui);
+    let (galley, size) = count_badge_layout(ui, &t, count);
+    let (rect, response) = ui.allocate_exact_size(size, Sense::hover());
     let text = count.to_string();
+    response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, &text));
+    paint_count_badge(ui.painter(), &t, rect, galley);
+    response
+}
+
+/// The count badge's text and size for `count` ([`count_badge`]).
+pub(crate) fn count_badge_layout(ui: &Ui, t: &Tokens, count: usize) -> (std::sync::Arc<egui::Galley>, Vec2) {
     let galley = ui.painter().layout_no_wrap(
-        text.clone(),
+        count.to_string(),
         theme::font(&t.type_caption),
         t.text_secondary.color32(),
     );
@@ -257,16 +266,22 @@ pub(crate) fn count_badge(ui: &mut Ui, count: usize) -> Response {
         (galley.size().x + 2.0 * t.space_icon).max(t.size_badge),
         t.size_badge,
     );
-    let (rect, response) = ui.allocate_exact_size(size, Sense::hover());
-    response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, &text));
-    ui.painter()
-        .rect_filled(rect, theme::radius(t.radius_pill), t.surface_sunken.color32());
-    ui.painter().galley(
+    (galley, size)
+}
+
+/// Paints a count badge laid out by [`count_badge_layout`] in `rect` (a dock tab's count chip, doc 16a §5.7).
+pub(crate) fn paint_count_badge(
+    painter: &egui::Painter,
+    t: &Tokens,
+    rect: egui::Rect,
+    galley: std::sync::Arc<egui::Galley>,
+) {
+    painter.rect_filled(rect, theme::radius(t.radius_pill), t.surface_sunken.color32());
+    painter.galley(
         rect.center() - galley.size() / 2.0,
         galley,
         t.text_secondary.color32(),
     );
-    response
 }
 
 /// A count badge with a word ("merged 3", doc 16a §6.24): the count badge's look (`radius.pill`, `type.caption`, 18 px
