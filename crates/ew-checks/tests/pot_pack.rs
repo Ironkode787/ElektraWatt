@@ -163,6 +163,64 @@ fn pot005_bu_without_a_neutral_in_the_project_or_on_n_is_silent() {
     assert!(findings_of(&m, "EW-POT-005").is_empty());
 }
 
+/// [`coloured`] with no colour set anywhere: the wire takes the built-in colour of its potential (doc 08 §4.3).
+fn default_coloured(def: &Value) -> Model {
+    let mut fx = Fx::base();
+    fx.func(0x1001, P1);
+    fx.func(0x1002, P1);
+    fx.conn(0x2001, P1, cp(0x1001), cp(0x1002), &none());
+    fx.def(0x5001, cp(0x1001), def);
+    fx.func(0x1003, P1);
+    fx.func(0x1004, P1);
+    fx.conn(0x2002, P1, cp(0x1003), cp(0x1004), &none());
+    fx.def(0x5002, cp(0x1003), &json!({"name": "N", "ptype": "n"}));
+    fx.build()
+}
+
+/// EW-POT-005 judges a colour the project chose, not the built-in default: 24 V and 0 V wires the program colours
+/// BU (L+, M, a DC signal; EN 60204-1 13.2.4) raise nothing in a project with N, typed with or without AC/DC
+/// (the cycle-35 play-test drew them from a power supply with no voltage or AC/DC set).
+#[test]
+fn pot005_the_built_in_bu_of_a_dc_control_wire_is_silent() {
+    for def in [
+        json!({"name": "24V", "ptype": "l_plus"}),
+        json!({"name": "0V", "ptype": "m"}),
+        json!({"name": "0V", "ptype": "m", "voltage": "24", "env": {"ac_dc": "dc"}}),
+        json!({"name": "S1", "ptype": "signal", "env": {"ac_dc": "dc"}}),
+    ] {
+        let m = default_coloured(&def);
+        let q = ew_derive::Q::new(&m);
+        let wire = ew_derive::ew_ids::Id::<ew_derive::ew_schema::Connection>::from_uuid(
+            ew_derive::ew_ids::Uuid::from_u128(0x2001),
+        );
+        let props = q.get::<ew_derive::ConnWireProps>(wire);
+        let colour = props[0].1.colour.clone().expect("a colour");
+        assert!(
+            matches!(
+                colour.value.codes(),
+                [ew_derive::ew_schema::ColourCode::Iec(
+                    ew_derive::ew_schema::IecColour::Bu
+                )]
+            ),
+            "{def}: {colour:?}"
+        );
+        assert!(
+            matches!(colour.source, ew_derive::PropSource::BuiltIn { .. }),
+            "{def}: {colour:?}"
+        );
+        assert!(findings_of(&m, "EW-POT-005").is_empty(), "{def}");
+    }
+}
+
+/// EW-POT-005: BU the user sets on an AC line conductor (a wire override) is still reported.
+#[test]
+fn pot005_bu_set_by_the_user_on_an_ac_line_is_reported() {
+    let def = json!({"ptype": "l", "voltage": "230", "env": {"ac_dc": "ac"}});
+    let f = findings_of(&coloured(&["BU"], &def, true), "EW-POT-005");
+    assert_eq!(f.len(), 1, "{f:#?}");
+    assert_eq!(f[0].targets, vec![target(Kind::Connection, 0x2001)]);
+}
+
 // ---------------------------------------------------------------------------------------------------------
 // EW-POT-006
 

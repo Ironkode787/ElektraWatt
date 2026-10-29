@@ -693,6 +693,11 @@ pub const BU_ON_NON_N: RuleMeta = RuleMeta {
 /// EW-POT-005: a wire or core whose effective colour is exactly the IEC code BU (not a company code such as DBU) on a
 /// potential that is not N, in a project that has an N potential (doc 08 §8.1, FR-CHK-031, STD M-10). One finding
 /// per wire, target the carrier connection. Golden A: the vendor cores W36 and W41, BU on 0V (EF-11).
+///
+/// The rule judges a colour the project chose (an override, a core's conductor, a potential definition, a colour
+/// profile row, the project default), not the program's built-in fallback (level 0 of doc 08 §4.1): the built-in
+/// table gives BU to L+, L-, M and DC signals by EN 60204-1 13.2.4 (doc 08 §4.3) when the project has no colour of
+/// its own, and a warning on the program's own default is not one the drafter chose (cycle-35 play-test).
 #[derive(Clone, Copy, Debug)]
 pub struct BuOnNonN;
 
@@ -712,7 +717,11 @@ impl Rule for BuOnNonN {
         let wires: Vec<_> = owned_wires(q, p)
             .into_iter()
             .filter(|(w, props)| {
-                w.bond.is_none() && colour_is(props.colour.as_ref().map(|c| &c.value), &[IecColour::Bu])
+                let chosen = props
+                    .colour
+                    .as_ref()
+                    .filter(|c| !matches!(c.source, ew_derive::PropSource::BuiltIn { .. }));
+                w.bond.is_none() && colour_is(chosen.map(|c| &c.value), &[IecColour::Bu])
             })
             .collect();
         if wires.is_empty() || !project_has_n(q) {
