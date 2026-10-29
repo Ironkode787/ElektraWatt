@@ -77,6 +77,11 @@ fn range(from: u16, to: u16) -> Vec<u16> {
 
 /// The generic starter parts of D5 (the MCB 3P and the valve 3/2 are de-scoped: the starter set has no FnDef or
 /// symbol for them).
+///
+/// The relay and the contactor template their coil only; their contacts are the contact image (`contacts`), and a
+/// contact joins the device as an auxiliary function with its FnDef's designations. A template with several entries
+/// of one FnDef would give every such function the CPs of the first entry (the CP derivation matches a function to
+/// its template entry by FnDef alone), so no part here has one.
 fn defs() -> Vec<Def> {
     let relay_cps = cps(&[
         "A1", "A2", "11", "12", "14", "21", "22", "24", "31", "32", "34", "41", "42", "44",
@@ -96,13 +101,7 @@ fn defs() -> Vec<Def> {
             kind: None,
             description: "Relay with four changeover contacts",
             cps: relay_cps,
-            template: vec![
-                ("ew.fn.coil", true, vec![0, 1]),
-                ("ew.fn.contact-co", false, vec![2, 3, 4]),
-                ("ew.fn.contact-co", false, vec![5, 6, 7]),
-                ("ew.fn.contact-co", false, vec![8, 9, 10]),
-                ("ew.fn.contact-co", false, vec![11, 12, 13]),
-            ],
+            template: vec![("ew.fn.coil", true, vec![0, 1])],
             contacts: vec![
                 ("co", vec!["11", "12", "14"]),
                 ("co", vec!["21", "22", "24"]),
@@ -117,13 +116,7 @@ fn defs() -> Vec<Def> {
             kind: None,
             description: "Contactor with three main contacts and one auxiliary normally open contact",
             cps: cps(&["A1", "A2", "1", "2", "3", "4", "5", "6", "13", "14"]),
-            template: vec![
-                ("ew.fn.coil", true, vec![0, 1]),
-                ("ew.fn.contact-no", false, vec![2, 3]),
-                ("ew.fn.contact-no", false, vec![4, 5]),
-                ("ew.fn.contact-no", false, vec![6, 7]),
-                ("ew.fn.contact-no", false, vec![8, 9]),
-            ],
+            template: vec![("ew.fn.coil", true, vec![0, 1])],
             contacts: vec![
                 ("no", vec!["1", "2"]),
                 ("no", vec!["3", "4"]),
@@ -584,13 +577,9 @@ fn the_compiled_in_registry_resolves_a_part_with_its_closure() {
     };
     let closure = reg.closure(&r).unwrap();
     let kinds: Vec<Option<Kind>> = closure.iter().map(LibDocument::kind).collect();
+    // The part, its coil's FnDef (the contacts are its contact image) and the manufacturer.
     assert_eq!(
         kinds,
-        [
-            Some(Kind::Part),
-            Some(Kind::Fndef),
-            Some(Kind::Fndef),
-            Some(Kind::Manufacturer)
-        ]
+        [Some(Kind::Part), Some(Kind::Fndef), Some(Kind::Manufacturer)]
     );
 }

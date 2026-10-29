@@ -2,7 +2,7 @@
 # brief-relays-valves` proves it runnable by replaying `solution.uiscript` and deciding `acceptance.toml` on its exports.
 kind = "brief"
 grade = 2
-version = 1
+version = 2
 turn_budget = 120
 senses = ["text", "visual"]
 requires = [
@@ -13,7 +13,7 @@ requires = [
     "symbol: ew.iec.contact-no@qet10",
     "symbol: ew.iec.terminal@qet10",
     "symbol: ew.iec.terminal-pe@qet10",
-    "part: 2904602",
+    "part: EW-GEN-PSU-1",
     "action: tool.place_part",
     "action: strip.new",
     "action: tool.wire",

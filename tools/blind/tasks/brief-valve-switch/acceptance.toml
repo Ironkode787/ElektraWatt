@@ -61,9 +61,8 @@ id = "A8"
 kind = "soft"
 what = "Every placed device carries a part, and the parts list has nothing foreign."
 how = "bom"
-query = "SELECT tag FROM api_v1_device WHERE has_part = 0 AND COALESCE(kind, '') NOT IN ('terminal', 'strip')"
+query = "SELECT tag FROM api_v1_device WHERE has_part = 0 AND COALESCE(kind, '') NOT IN ('terminal', 'strip') AND COALESCE(aspects, '') NOT LIKE '%strip%'"
 expect = "== 0"
-infeasible = "no starter parts library: the project has no part for a fuse, a switch or a valve (FT-592)"
 
 [[item]]
 id = "A9"

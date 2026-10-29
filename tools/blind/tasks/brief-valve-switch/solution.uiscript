@@ -9,12 +9,12 @@
 {"action":"ui.dismiss","params":{}}
 {"action":"nav.goto","params":{"text":"101-B5"}}
 {"action":"tool.place","params":{}}
-{"action":"place.pick","params":{"symbol":"ew.iec.fuse@qet10"}}
+{"action":"place.pick","params":{"part":"EW-GEN-FUS-1"}}
 {"action":"canvas.activate","params":{"alt":true}}
 {"action":"ui.dismiss","params":{}}
 {"action":"nav.goto","params":{"text":"101-C5"}}
 {"action":"tool.place","params":{}}
-{"action":"place.pick","params":{"symbol":"ew.iec.switch-2p-manual@qet10","letter":"S"}}
+{"action":"place.pick","params":{"part":"EW-GEN-SEL-1","letter":"S"}}
 {"action":"canvas.activate","params":{"alt":true}}
 {"action":"ui.dismiss","params":{}}
 {"action":"nav.goto","params":{"text":"101-D5"}}
@@ -24,7 +24,7 @@
 {"action":"ui.dismiss","params":{}}
 {"action":"nav.goto","params":{"text":"101-F5"}}
 {"action":"tool.place","params":{}}
-{"action":"place.pick","params":{"symbol":"ew.iec.coil@qet10","letter":"Y"}}
+{"action":"place.pick","params":{"part":"EW-GEN-VLV-1","letter":"Y"}}
 {"action":"canvas.activate","params":{"alt":true}}
 {"action":"ui.dismiss","params":{}}
 {"action":"nav.goto","params":{"text":"101-G5"}}

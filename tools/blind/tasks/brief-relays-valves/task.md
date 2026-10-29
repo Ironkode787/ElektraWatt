@@ -10,8 +10,8 @@ Run `{run}` is a `{kind}` run with the caps {turns} turns, {steps} steps, {looks
 ## The situation
 
 - The cabinet is fed with 230 V AC (line, neutral and protective earth) on terminals of a terminal strip.
-- The 24 V DC for the controls comes from a power supply unit in the cabinet, fed from the 230 V. Its part is already
-  in the project's parts.
+- The 24 V DC for the controls comes from a power supply unit in the cabinet, fed from the 230 V. Its part is among
+  the program's generic starter parts.
 - The three valves sit on the machine, outside the cabinet; each has a coil with two connections.
 - The three selector switches sit on the cabinet door, which is wired to the cabinet through terminals as well.
 
@@ -34,3 +34,5 @@ give and how many pages you use is up to you, as you would do it for a customer.
 ## History
 
 - Version 1: the owner's example brief (grade 2).
+- Version 2: the power supply unit's part is a generic starter part, no longer one the prelude embeds (WP-S2.18 D8,
+  FT-592).

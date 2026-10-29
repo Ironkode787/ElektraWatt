@@ -127,6 +127,11 @@ count = 1
 
 [[allow]]
 crate = "ew-library"
+item = "fn bless"
+count = 1
+
+[[allow]]
+crate = "ew-library"
 item = "fn env_path"
 count = 1
 

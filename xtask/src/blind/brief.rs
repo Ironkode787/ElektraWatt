@@ -217,7 +217,11 @@ fn requirement(root: &Path, dir: &Path, actions: &BTreeSet<String>, req: &str) -
     let met = match form.trim() {
         "action" => actions.contains(value),
         "fndef" | "symbol" => starter(),
-        "part" => std::fs::read_to_string(dir.join("prelude.uiscript")).is_ok_and(|t| t.contains(value)),
+        // A part the prelude embeds, or one of the shipped starter parts (WP-S2.18 D5), which every new project lists.
+        "part" => {
+            std::fs::read_to_string(dir.join("prelude.uiscript")).is_ok_and(|t| t.contains(value))
+                || tree_holds(&root.join("content/libraries"), value)
+        }
         _ => {
             return Err(format!(
                 "cannot see `{req}` met (a requirement is action:, fndef:, symbol: or part: and a value)"
