@@ -1297,14 +1297,14 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "table-nothing" => "No cell can be applied.",
         "table-no-row" => "no row",
         "table-no-column" => "no column",
+        // FT-515/FT-535: a cell whose row has no record of the column's kind (a CP-only potential's definition cells).
+        "table-no-record" => "no record of this kind",
         "table-not-clearable" => "cannot be cleared",
         "card-table-drop" => "Drop",
         // WP-S2.06 part 3: the table widget (§8.1).
         "table-toggle" => "Table",
         "table-name" => "{0} table",
         "table-columns" => "Columns",
-        "table-move-left" => "Move left",
-        "table-move-right" => "Move right",
         "table-move-left-name" => "Move {0} left",
         "table-move-right-name" => "Move {0} right",
         "table-sort-by" => "Sort by {0}",

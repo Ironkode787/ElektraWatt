@@ -494,7 +494,7 @@ impl ShellModel {
                 Some(node) => {
                     cell.targets = row_targets(node, &kind);
                     if cell.targets.is_empty() {
-                        cell.value = CellValue::Invalid("no record of this kind".to_owned());
+                        cell.value = CellValue::Invalid(strings::text("table-no-record").to_owned());
                         cell.route = None;
                     }
                 }

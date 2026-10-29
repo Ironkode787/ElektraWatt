@@ -224,7 +224,7 @@ pub fn cell_reason(table: &NavTable, node: &NavNode, column: usize) -> Option<St
         return Some(c.read_only.clone().unwrap_or_else(|| "no command yet".to_owned()));
     };
     if row_targets(node, kind).is_empty() {
-        return Some("no record of this kind".to_owned());
+        return Some(crate::strings::text("table-no-record").to_owned());
     }
     match route_type(kind, path) {
         Some(ty) if is_scalar(&ty) => None,
