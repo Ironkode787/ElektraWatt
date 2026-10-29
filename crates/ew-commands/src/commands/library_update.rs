@@ -164,10 +164,14 @@ pub(crate) fn copy_cps(doc: &LibDocument) -> Option<BTreeMap<u16, CopyCp>> {
 }
 
 /// Classifies the change from the held copy `old` to the library's document `new` of the same item (doc 07 §4.5),
-/// whatever the declared versions say: major when a CP disappears or an index changes its designation (by
-/// [`copy_cps`]), the FnDef (a symbol's `fndef`) or the category (a part's, a FnDef's) changes, a template function
-/// is added or removed (a part's `function_template` by FnDef reference), or a macro variable is removed (by name);
-/// else minor when a member outside [`patch_members`] differs; else patch. Equal items give patch with no fields.
+/// whatever the declared versions say: major when a CP disappears or an index changes its designation (a FnDef's
+/// `cps`, a part's `cp_pattern`, a symbol's `cps` by the FnDef CP each draws), the FnDef (a symbol's `fndef`) or the
+/// category (a part's, a FnDef's) changes, a template function is added or removed (a part's `function_template` by
+/// FnDef reference), or a macro variable is removed (by name); else minor when a member differs that is not a patch
+/// member; else patch. The patch members are the data no derived structure or geometry reads: `meta` of every kind; a
+/// part's manufacturer, numbers, description, technical data, free properties, alternatives and macro links; a
+/// symbol's name, keywords and standard references; a form's name and description; a macro's name, description and
+/// thumbnail; every member of a manufacturer. Equal items give patch with no fields.
 pub fn classify_update(old: &LibDocument, new: &LibDocument) -> CopyDiff {
     let (a, b) = (item_object(old), item_object(new));
     let members: BTreeSet<&String> = a.keys().chain(b.keys()).collect();

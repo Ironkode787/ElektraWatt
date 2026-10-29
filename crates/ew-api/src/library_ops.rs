@@ -439,10 +439,13 @@ impl Session {
         qty: Dec3,
     ) -> Result<AnyCommand, ApiError> {
         let copy: Id<Part> = ew_derive::ew_ids::v5::lib_copy_id(part.library.as_uuid(), part.item.as_uuid());
-        let item = self.libraries().resolve(part).map_err(|error| ApiError::Library {
-            reference: ref_text(part),
-            error,
-        })?;
+        let item = self
+            .libraries()
+            .resolve(part)
+            .map_err(|error| ApiError::Library {
+                reference: ref_text(part),
+                error,
+            })?;
         if !matches!(item, LibDocument::Part(_)) {
             return Err(ApiError::NotAPart(copy.as_uuid()));
         }

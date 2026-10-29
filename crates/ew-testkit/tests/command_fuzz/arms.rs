@@ -176,6 +176,12 @@ pub const ARMS: &[Arm] = &[
         weight: 2,
         build: library_embed,
     },
+    // WP-S1.19 part 3
+    Arm {
+        command: "library.update",
+        weight: 2,
+        build: library_update,
+    },
     // WP-S2.04 part 4a
     Arm {
         command: "marker.place",
@@ -206,6 +212,12 @@ pub const ARMS: &[Arm] = &[
         command: "page.reorder",
         weight: 2,
         build: page_reorder,
+    },
+    // WP-S1.19 part 3
+    Arm {
+        command: "part.assign",
+        weight: 2,
+        build: part_assign,
     },
     Arm {
         command: "parts.import",
@@ -4439,6 +4451,120 @@ fn library_embed(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                             .contains(id)
                             .then_some(())
                             .ok_or_else(|| "the embedded copy is not in the project".to_owned())
+                    }),
+            )
+        }
+    }
+}
+
+/// `part.assign` (WP-S1.19 D8): a held part, or a part of another library embedded with the command, assigned to a
+/// plain device. Refused: no devices, a device twice or unknown, a part neither held nor given, `replace` without
+/// `from`, `from` without `replace`, a quantity of 0, a copy listed twice.
+fn part_assign(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let (held, template) = rng.pick(&live.fixture.part_json)?;
+    let device = rng.pick(&live.plain_devices)?.clone();
+    let cmd = |p: Value| Step::cmd("part.assign", p);
+    let uses = move |after: &ew_derive::Q, device: &Value, part: &Value| -> Result<(), String> {
+        let d = typed::<ew_schema::Device>(device).ok_or("a device ID")?;
+        let p = typed::<ew_schema::Part>(part).ok_or("a part ID")?;
+        after
+            .devices()
+            .get(d)
+            .is_some_and(|dev| dev.parts.iter().any(|u| u.part.copy == p))
+            .then_some(())
+            .ok_or_else(|| "the device does not use the assigned part".to_owned())
+    };
+    match rng.below(12) {
+        0 => Some(cmd(json!({"devices": [], "part": held})).refuse()),
+        1 => Some(cmd(json!({"devices": [device, device], "part": held})).refuse()),
+        2 => Some(cmd(json!({"devices": [rng.uuid()], "part": held})).refuse()),
+        3 => Some(cmd(json!({"devices": [device], "part": rng.uuid()})).refuse()),
+        4 => Some(cmd(json!({"devices": [device], "part": held, "mode": "replace"})).refuse()),
+        5 => Some(cmd(json!({"devices": [device], "part": held, "from": held})).refuse()),
+        6 => Some(cmd(json!({"devices": [device], "part": held, "qty": "0"})).refuse()),
+        7 => {
+            let c = relineaged(template, &rng.uuid(), &rng.uuid())?;
+            let id = c["id"].clone();
+            Some(cmd(json!({"devices": [device], "part": id, "copies": [c.clone(), c]})).refuse())
+        }
+        // Either: the device may or may not use the part it replaces.
+        8 => {
+            let (part, d) = (held.clone(), device.clone());
+            Some(
+                cmd(json!({"devices": [device], "part": held, "mode": "replace", "from": held}))
+                    .check(move |_, after| uses(after, &d, &part)),
+            )
+        }
+        // A part of another library, embedded with the command.
+        9 | 10 => {
+            let c = relineaged(template, &rng.uuid(), &rng.uuid())?;
+            let id = c["id"].clone();
+            let d = device.clone();
+            Some(
+                cmd(json!({"devices": [device], "part": id, "copies": [c], "mode": "replace_all", "qty": "2"}))
+                    .accept()
+                    .counts(&[(Table::Parts, 1)])
+                    .check(move |_, after| uses(after, &d, &id)),
+            )
+        }
+        _ => {
+            let (part, d) = (held.clone(), device.clone());
+            Some(
+                cmd(json!({"devices": [device], "part": held}))
+                    .accept()
+                    .counts(&[(Table::Parts, 0)])
+                    .check(move |_, after| uses(after, &d, &part)),
+            )
+        }
+    }
+}
+
+/// `library.update` (Bulk, WP-S1.19 D9): a held part copy replaced by another version with another description.
+/// Refused: no copies, a copy the project does not hold, a version that is not semantic, a copy twice, a mapping for a
+/// copy not given. The version is drawn at random, so an update may be a downgrade of an earlier one: either.
+fn library_update(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let (held, template) = rng.pick(&live.fixture.part_json)?;
+    let library = template["library_id"].as_str()?.to_owned();
+    let item = template["item_id"].as_str()?.to_owned();
+    let cmd = |p: Value| Step::cmd("library.update", p);
+    let next = |rng: &mut SplitMix64, version: String| -> Option<Value> {
+        let mut t = template.clone();
+        t["version"] = json!(version);
+        t["description"] = json!(format!("fuzz {}", &rng.uuid()[..8]));
+        relineaged(&t, &library, &item)
+    };
+    match rng.below(10) {
+        0 => Some(cmd(json!({"copies": []})).refuse()),
+        1 => {
+            let c = relineaged(template, &rng.uuid(), &rng.uuid())?;
+            Some(cmd(json!({"copies": [c]})).refuse())
+        }
+        2 => {
+            let c = next(rng, "one".to_owned())?;
+            Some(cmd(json!({"copies": [c]})).refuse())
+        }
+        3 => {
+            let c = next(rng, "9.0.0".to_owned())?;
+            Some(cmd(json!({"copies": [c.clone(), c]})).refuse())
+        }
+        4 => {
+            let c = next(rng, "9.0.0".to_owned())?;
+            Some(cmd(json!({"copies": [c], "cp_maps": [{"copy": rng.uuid(), "map": []}]})).refuse())
+        }
+        _ => {
+            let minor = rng.below(50);
+            let c = next(rng, format!("1.{minor}.0"))?;
+            let description = c["description"].clone();
+            let id = held.clone();
+            Some(
+                cmd(json!({"copies": [c]}))
+                    .counts(&[(Table::Parts, 0)])
+                    .check(move |_, after| {
+                        let id = typed::<ew_schema::Part>(&id).ok_or("a copy ID")?;
+                        let copy = after.parts().get(id).ok_or("the updated copy is gone")?;
+                        (json!(copy.item.description) == description)
+                            .then_some(())
+                            .ok_or_else(|| "the copy does not carry the new description".to_owned())
                     }),
             )
         }

@@ -69,7 +69,11 @@ fn a_rule_reading_a_test_section_marks_its_finding() {
         part(0x10, "TEST-PLC", json!({"plc": "test"})),
         part(0x11, "VERIFIED", json!({"plc": "verified"})),
         part(0x12, "UNSTATED", json!({})),
-        part(0x13, "HEAD", json!({"plc.channels": "verified", "plc": "unverified"})),
+        part(
+            0x13,
+            "HEAD",
+            json!({"plc.channels": "verified", "plc": "unverified"}),
+        ),
     ];
     let m = model_json(Value::Null, &[], &lib);
     let q = Q::new(&m);

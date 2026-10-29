@@ -682,6 +682,84 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         self.run("terminal.move", Value::Object(p)).map(|_| ())
     }
 
+    // WP-S1.19 part 3
+    /// `part.assign` (WP-S1.19 D8): the part copy `part` assigned to `devices`, embedding the library documents
+    /// `copies` the project lacks (the part's closure; empty when the project holds it). `mode` is `"append"`,
+    /// `"replace_all"` or `"replace"` (with `from`, the part copy it replaces); `qty` defaults to 1.
+    ///
+    /// # Errors
+    ///
+    /// The command's error, or a document that does not serialise.
+    pub fn assign_part(
+        &mut self,
+        devices: &[Id<Device>],
+        part: Id<ew_schema::Part>,
+        copies: &[LibDocument],
+        mode: &str,
+        from: Option<Id<ew_schema::Part>>,
+        qty: Option<&str>,
+    ) -> Result<()> {
+        let mut p = Map::new();
+        p.insert("devices".into(), json!(devices));
+        p.insert("part".into(), json!(part));
+        if !copies.is_empty() {
+            p.insert(
+                "copies".into(),
+                Value::Array(self.lib_values("part.assign", copies)?),
+            );
+        }
+        p.insert("mode".into(), json!(mode));
+        if let Some(from) = from {
+            p.insert("from".into(), json!(from));
+        }
+        if let Some(qty) = qty {
+            p.insert("qty".into(), json!(qty));
+        }
+        self.run("part.assign", Value::Object(p)).map(|_| ())
+    }
+
+    /// `library.update` (WP-S1.19 D9): the held copies replaced by the documents `copies` (same copy IDs), with the
+    /// CP maps `cp_maps` (`(copy, [(old_idx, new_idx)])`). The command is Bulk: the sink previews and commits it.
+    ///
+    /// # Errors
+    ///
+    /// The command's error, or a document that does not serialise.
+    pub fn update_library(
+        &mut self,
+        copies: &[LibDocument],
+        cp_maps: &[(ew_ids::Uuid, Vec<(u16, u16)>)],
+    ) -> Result<()> {
+        let mut p = Map::new();
+        p.insert(
+            "copies".into(),
+            Value::Array(self.lib_values("library.update", copies)?),
+        );
+        if !cp_maps.is_empty() {
+            let maps: Vec<Value> = cp_maps
+                .iter()
+                .map(|(copy, map)| {
+                    let pairs: Vec<[u16; 2]> = map.iter().map(|(a, b)| [*a, *b]).collect();
+                    json!({"copy": copy.to_string(), "map": pairs})
+                })
+                .collect();
+            p.insert("cp_maps".into(), Value::Array(maps));
+        }
+        self.run("library.update", Value::Object(p)).map(|_| ())
+    }
+
+    /// Library documents as command parameter values.
+    fn lib_values(&self, command: &str, docs: &[LibDocument]) -> Result<Vec<Value>> {
+        docs.iter()
+            .map(|d| {
+                serde_json::to_value(d).map_err(|e| BuildError {
+                    command: command.into(),
+                    params: Value::Null,
+                    message: format!("a library document does not serialise: {e}"),
+                })
+            })
+            .collect()
+    }
+
     /// `cable.create` with its conductors, then `fields.set` of the remaining device members.
     ///
     /// # Errors
