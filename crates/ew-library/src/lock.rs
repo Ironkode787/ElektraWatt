@@ -356,6 +356,25 @@ pub fn take_over(dir: &Path, me: &Identity, policy: &LockPolicy) -> Result<(), L
     if !is_stale(found.record.as_ref(), found.modified, policy, me) {
         return Err(held_error(&found, policy, me));
     }
+    displace(dir, me, policy, &found)
+}
+
+/// Whether the existing stale copy `target` is the leftover of a takeover that crashed after linking the lock to it
+/// and before unlinking the lock: the copy holds the stale bytes `found` and so does the lock `path` still. Pruning
+/// such a copy loses nothing. When the lock holds anything else, another takeover has already moved the stale lock
+/// aside and put its own live lock in place, which must not be renamed away (review C35 M2; `ew-store`'s
+/// `left_by_a_crashed_takeover`, review cycle 8 5(e)).
+fn left_by_a_crashed_takeover(path: &Path, target: &Path, found: &Found) -> bool {
+    let (Ok(lock), Ok(copy)) = (std::fs::read(path), std::fs::read(target)) else {
+        return false;
+    };
+    lock == found.bytes && copy == found.bytes
+}
+
+/// Steps 1 to 3 of the takeover (doc 05 §7.4) of the stale lock `found` read from `dir`: rename it aside without
+/// replacement, create ours, re-read after the settle time.
+fn displace(dir: &Path, me: &Identity, policy: &LockPolicy, found: &Found) -> Result<(), LibraryError> {
+    let path = dir.join(LOCK);
     let stale_session = found
         .record
         .as_ref()
@@ -372,8 +391,9 @@ pub fn take_over(dir: &Path, me: &Identity, policy: &LockPolicy) -> Result<(), L
             }
             Err(e) if e.kind() == io::ErrorKind::NotFound => break,
             Err(e) if e.kind() == io::ErrorKind::AlreadyExists => {
-                // A crashed takeover left the same bytes under the target: redundant, pruned, one more try.
-                if std::fs::read(&target).is_ok_and(|b| b == found.bytes) {
+                // A crashed takeover left the same bytes under the target while the lock still holds them:
+                // redundant, pruned, one more try. Otherwise another takeover won; ours fails at the create.
+                if left_by_a_crashed_takeover(&path, &target, found) {
                     let _ = std::fs::remove_file(&target);
                     continue;
                 }
@@ -538,6 +558,36 @@ mod tests {
                 .unwrap()
                 .session,
             me.session
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Review C35 M2: B read the stale lock S, then A moved S aside to `stale-<S>` and created its live lock. B's
+    /// rename meets the copy of S, but the lock no longer holds S: B must not prune the copy and rename A's live lock
+    /// aside; it loses with `Locked` and A's lock stays as it is.
+    #[test]
+    fn a_takeover_that_lost_the_race_leaves_the_winners_lock_alone() {
+        let dir = ew_testdir::fresh_dir("ew-library-lock-lost");
+        plant(&dir, &other("elsewhere"), Duration::from_secs(3600));
+        let path = dir.join(LOCK);
+        let found = read(&path).unwrap().unwrap();
+        // A wins: S moved aside, A's lock created.
+        let target = dir.join(format!("{STALE_PREFIX}{}", other("x").session));
+        std::fs::rename(&path, &target).unwrap();
+        let a = Identity::current("test");
+        create(&path, &a).unwrap();
+        let a_bytes = std::fs::read(&path).unwrap();
+        // B continues from its read of S.
+        let b = Identity::current("test");
+        match displace(&dir, &b, &quick(), &found) {
+            Err(LibraryError::Locked { .. }) => {}
+            r => panic!("{r:?}"),
+        }
+        assert_eq!(std::fs::read(&path).unwrap(), a_bytes, "A's lock is untouched");
+        assert_eq!(
+            std::fs::read(&target).unwrap(),
+            found.bytes,
+            "the stale copy stays"
         );
         let _ = std::fs::remove_dir_all(&dir);
     }
