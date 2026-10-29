@@ -570,7 +570,12 @@ cycle by the polish-cycle rule of items 2 and 3.
    checker; the lead's triage. Its findings are parked (item 5), except blockers in stable areas. It is the only
    visual run of cycle 34: `brief-relays-valves` is not runnable on this build (§6.3), and `gpp-101-103` visual is
    not part of it.
-   Result: recorded at the cycle-34 gate (ID-810).
+   **Result (ID-810):** run as specified. The probe read 20 of 20 exactly, so the default frame stays. The text run
+   bv-txt-2 was done (16 turns, keep 7/10; A7 and A8 infeasible as marked), the visual run bv-vis-2 nearly done (21
+   turns, keep 7/10; A9 and the 0 V return missed); all five agents valid by their tool-log audits; about 115k to
+   125k tokens a drafter and 70k a checker, 3 to 4 minutes each at Opus/`low`. Sight found one blocker the text run
+   could not (a terminal picked with no strip is silent, FT-605); the friction is FT-605 to FT-616, parked by item 5
+   unless its area is in feature work.
 2. **A visual round runs only at the gate of a pure UI-polish cycle**, a cycle with no feature WP in it: at least
    three personas on at least two briefs, one of them the brief whose areas the cycle's polish touches most, plus a
    text run of one of them for the pairing rule (§7.4). A cycle with a feature WP runs no visual round, however much
@@ -649,8 +654,8 @@ through `ew-api`; no new package).
 | BV10 | `report connections`, `pages` and `pdf` serve a check run and are refused to a tester | `xtask` tests | §6.2 |
 | BV11 | `selftest-visual` runs through the keeper and the copied binaries, blessed `ci = pr`; `replay --twice` passes R1v and R2; `blind_replay` replays it in CI; R4 is reported. *As built:* the scripted agent sends 18 inputs in 7 turns (not about 40), with looks, a zoom, one friction entry, two refused calls (an action line and a text look) and the eight-heading hand-back; recording `tools/blind/recordings/selftest-visual` | lane; `elektrawatt` test | §5.3 |
 | BV12 | Targeted nextest and clippy for `ew-ui`, `ew-viewmodel`, `elektrawatt`, `xtask`; `cargo fmt --all --check`; `check-deps` (no new edge); `reuse lint`; `check-licence-map`; `check-anonymisation`; `Cargo.lock` and `golden/` unchanged | lane | testing policy |
-| BV13 | **Reading probe** (orchestrator, after part 4): one frame of a Golden A copy's window with 20 marked texts (device tags on the canvas, menu and command-bar labels, status bar, Properties rows); an Opus agent at `low` transcribes them; 18 or more exact keeps the default; fewer makes `PLAYTESTER.md` require a zoom before acting on tag-sized text, and the result is recorded | orchestrator | §3.1, §12 |
-| BV14 | **Calibration round** (orchestrator, cycle 34): the reading probe and the runs of §9.1 item 1 valid by their tool-log audits; the checker's acceptance table for `brief-valve-switch`; the lead's triage, its findings parked except blockers in stable areas; the token use of each run recorded for §12. Result: recorded at the cycle-34 gate (ID-810) | orchestrator, lead | §9.1 |
+| BV13 | **Reading probe** (orchestrator, after part 4): one frame of a Golden A copy's window with 20 marked texts (device tags on the canvas, menu and command-bar labels, status bar, Properties rows); an Opus agent at `low` transcribes them; 18 or more exact keeps the default; fewer makes `PLAYTESTER.md` require a zoom before acting on tag-sized text, and the result is recorded. **As run (ID-810):** 20 of 20 exact (the three 6 to 7 px part numbers marked unsure but right); the default is kept; the marked boxes were given, so the probe measures reading, not finding | orchestrator | §3.1, §12 |
+| BV14 | **Calibration round** (orchestrator, cycle 34): the reading probe and the runs of §9.1 item 1 valid by their tool-log audits; the checker's acceptance table for `brief-valve-switch`; the lead's triage, its findings parked except blockers in stable areas; the token use of each run recorded for §12. **As run (ID-810):** both runs and both checkers valid; text done, visual nearly done; about 115k to 125k tokens a drafter, 70k a checker; one blocker found by sight (FT-605), the rest parked or owned by WP-S2.07 and WP-S2.18 (FT-606 to FT-616) | orchestrator, lead | §9.1 |
 | BV15 | Part 5: three briefs pass `check-brief` and one sanity text run each; the two personas; `PLAYCHECKER.md` with the six headings; `report inputs` flags silent and refused-unseen inputs on a fixture; `friction-report` merges two runs; the ledger parses and ranks a fixture | lane; `xtask` tests | §6.3, §7.2, §7.3, §8 |
 
 ## 12. Risks
