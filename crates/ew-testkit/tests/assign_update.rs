@@ -131,6 +131,17 @@ fn the_assign_and_update_verbs_change_part_uses_and_copies() {
             .update_library(std::slice::from_ref(&next), &[(Uuid::nil(), Vec::new())])
             .unwrap_err();
         assert!(e.message.contains("/cp_maps/0/copy"), "{e}");
+        // Review C35 m2: a CP map that is not injective is refused at the repeated index (the PSU's CPs 3 and 4
+        // are both `+`).
+        let psu_copy = copy_id(&psu).as_uuid();
+        let e = b
+            .update_library(std::slice::from_ref(&next), &[(psu_copy, vec![(3, 3), (4, 3)])])
+            .unwrap_err();
+        assert!(e.message.contains("/cp_maps/0/map/1/1"), "{e}");
+        let e = b
+            .update_library(std::slice::from_ref(&next), &[(psu_copy, vec![(3, 3), (3, 4)])])
+            .unwrap_err();
+        assert!(e.message.contains("/cp_maps/0/map/1/0"), "{e}");
         b.update_library(&[next], &[]).unwrap();
     }
     let q = s.query();

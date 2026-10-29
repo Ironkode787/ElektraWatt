@@ -4535,7 +4535,7 @@ fn part_assign(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 
 /// `library.update` (Bulk, WP-S1.19 D9): a held part copy replaced by another version with another description.
 /// Refused: no copies, a copy the project does not hold, a version that is not semantic, a copy twice, a mapping for a
-/// copy not given. The version is drawn at random, so an update may be a downgrade of an earlier one: either.
+/// copy not given, a CP mapping that is not injective (an old CP twice, or two old CPs onto one new). The version is drawn at random, so an update may be a downgrade of an earlier one: either.
 fn library_update(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let (held, template) = rng.pick(&live.fixture.part_json)?;
     let library = template["library_id"].as_str()?.to_owned();
@@ -4564,6 +4564,21 @@ fn library_update(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         4 => {
             let c = next(rng, "9.0.0".to_owned())?;
             Some(cmd(json!({"copies": [c], "cp_maps": [{"copy": rng.uuid(), "map": []}]})).refuse())
+        }
+        5 => {
+            let idx: Vec<u64> = template["cp_pattern"]
+                .as_array()?
+                .iter()
+                .filter_map(|c| c["idx"].as_u64())
+                .collect();
+            let (a, b) = (*idx.first()?, *idx.get(1)?);
+            let c = next(rng, "9.0.0".to_owned())?;
+            let map = if rng.below(2) == 0 {
+                json!([[a, a], [b, a]])
+            } else {
+                json!([[a, a], [a, b]])
+            };
+            Some(cmd(json!({"copies": [c], "cp_maps": [{"copy": held, "map": map}]})).refuse())
         }
         _ => {
             let minor = rng.below(50);

@@ -247,6 +247,38 @@ pub fn classify_update(old: &LibDocument, new: &LibDocument) -> CopyDiff {
 /// remaining old CP whose index the new copy has with the same designation keeps its index; then the remaining old
 /// CPs pair with the remaining new CPs of the same designation, the k-th old with the k-th new in index order (a
 /// designation may repeat, REF-029). An old CP that finds no partner is absent from the map.
+/// An explicit CP map `[old, new]` of one copy as a map, checked: every old index a CP of the held copy, every new
+/// one a CP of the new copy, and the map injective (no old index given twice, no new index the target of two old
+/// ones: two CPs joined into one would silently merge their connections). A refusal gives the pair's position, the
+/// side (0 old, 1 new) and the reason.
+pub(crate) fn explicit_map(
+    pairs: &[[u16; 2]],
+    old: &BTreeMap<u16, CopyCp>,
+    new: &BTreeMap<u16, CopyCp>,
+) -> Result<BTreeMap<u16, u16>, (usize, u8, String)> {
+    let mut out = BTreeMap::new();
+    let mut targets = BTreeSet::new();
+    for (k, [o, n]) in pairs.iter().enumerate() {
+        if !old.contains_key(o) {
+            return Err((k, 0, format!("{o} is no CP index of the held copy")));
+        }
+        if !new.contains_key(n) {
+            return Err((k, 1, format!("{n} is no CP index of the new copy")));
+        }
+        if out.insert(*o, *n).is_some() {
+            return Err((k, 0, format!("CP {o} of the held copy is mapped twice")));
+        }
+        if !targets.insert(*n) {
+            return Err((
+                k,
+                1,
+                format!("CP {n} of the new copy is the target of two CPs of the held copy"),
+            ));
+        }
+    }
+    Ok(out)
+}
+
 pub(crate) fn cp_mapping(
     old: &BTreeMap<u16, CopyCp>,
     new: &BTreeMap<u16, CopyCp>,
@@ -505,27 +537,9 @@ impl Command for UpdateLibraryCopies {
             );
             let explicit: BTreeMap<u16, u16> = match maps.get(&key.1) {
                 None => BTreeMap::new(),
-                Some((j, m)) => {
-                    let mut e = BTreeMap::new();
-                    for (k, [o, n]) in m.map.iter().enumerate() {
-                        if !old_cps.contains_key(o) {
-                            return Err(CmdError::invalid_params(
-                                name,
-                                format!("/cp_maps/{j}/map/{k}/0"),
-                                format!("{o} is no CP index of the held copy"),
-                            ));
-                        }
-                        if !new_cps.contains_key(n) {
-                            return Err(CmdError::invalid_params(
-                                name,
-                                format!("/cp_maps/{j}/map/{k}/1"),
-                                format!("{n} is no CP index of the new copy"),
-                            ));
-                        }
-                        e.insert(*o, *n);
-                    }
-                    e
-                }
+                Some((j, m)) => explicit_map(&m.map, &old_cps, &new_cps).map_err(|(k, side, why)| {
+                    CmdError::invalid_params(name, format!("/cp_maps/{j}/map/{k}/{side}"), why)
+                })?,
             };
             if !changed {
                 continue;
@@ -694,7 +708,7 @@ mod tests {
 
     use proptest::prelude::*;
 
-    use super::{CopyCp, cp_mapping, semver_core};
+    use super::{CopyCp, cp_mapping, explicit_map, semver_core};
 
     fn cps(designations: &[&str]) -> BTreeMap<u16, CopyCp> {
         designations
@@ -743,7 +757,57 @@ mod tests {
         assert!(semver_core("1.10.0") > semver_core("1.9.9"));
     }
 
+    #[test]
+    fn an_explicit_map_is_injective() {
+        let (old, new) = (cps(&["1", "2", "3"]), cps(&["1", "2", "3"]));
+        assert_eq!(
+            explicit_map(&[[0, 1], [1, 0]], &old, &new),
+            Ok(BTreeMap::from([(0, 1), (1, 0)]))
+        );
+        let (k, side, why) = explicit_map(&[[0, 1], [2, 1]], &old, &new).unwrap_err();
+        assert_eq!((k, side), (1, 1), "{why}");
+        let (k, side, why) = explicit_map(&[[0, 1], [0, 2]], &old, &new).unwrap_err();
+        assert_eq!((k, side), (1, 0), "{why}");
+        assert_eq!(explicit_map(&[[3, 0]], &old, &new).unwrap_err().0, 0);
+        assert_eq!(explicit_map(&[[0, 3]], &old, &new).unwrap_err().1, 1);
+    }
+
     proptest! {
+        /// Review C35 m2: an explicit map is accepted exactly when every pair names CPs of both copies and no old or
+        /// new index repeats; what it accepts is an injection holding every pair.
+        #[test]
+        fn an_explicit_map_is_accepted_only_as_an_injection(
+            n_old in 0usize..5,
+            n_new in 0usize..5,
+            pairs in proptest::collection::vec((0u16..6, 0u16..6), 0..6),
+        ) {
+            let names = ["a", "b", "c", "d", "e"];
+            let (old, new) = (cps(&names[..n_old]), cps(&names[..n_new]));
+            let pairs: Vec<[u16; 2]> = pairs.into_iter().map(|(o, n)| [o, n]).collect();
+            let olds: BTreeSet<u16> = pairs.iter().map(|p| p[0]).collect();
+            let news: BTreeSet<u16> = pairs.iter().map(|p| p[1]).collect();
+            let valid = pairs.iter().all(|[o, n]| old.contains_key(o) && new.contains_key(n))
+                && olds.len() == pairs.len()
+                && news.len() == pairs.len();
+            match explicit_map(&pairs, &old, &new) {
+                Ok(m) => {
+                    prop_assert!(valid);
+                    prop_assert_eq!(m.len(), pairs.len());
+                    let targets: BTreeSet<u16> = m.values().copied().collect();
+                    prop_assert_eq!(targets.len(), m.len());
+                    for [o, n] in &pairs {
+                        prop_assert_eq!(m.get(o), Some(n));
+                    }
+                }
+                Err((k, side, _)) => {
+                    prop_assert!(!valid);
+                    prop_assert!(k < pairs.len() && side <= 1);
+                    // The pairs before the refused one are a valid injection.
+                    prop_assert!(explicit_map(&pairs[..k], &old, &new).is_ok());
+                }
+            }
+        }
+
         /// The mapping is a partial injection from old to new indices that joins equal designations, as many pairs per
         /// designation as both sides allow.
         #[test]
