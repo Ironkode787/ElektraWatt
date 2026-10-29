@@ -15,16 +15,16 @@ agent saves its own work) and quits.
 the recording `tools/blind/recordings/selftest/` and replays that recording twice. A change of the product that breaks
 the recording is repaired by running the self-test again in the same change.
 
-<!-- file: tools/blind/HELP.md sha256 4d14ea420172e86b28a997ce5b39fbe1bfb4a61227b96e1c323f579bb3b1c09e -->
+<!-- file: tools/blind/HELP.md sha256 3d17fdde0a1afb2ed430cdc2c0585852cde67bef813415690d488ce0bde262c8 -->
 ---
 prompt: blind-help
-version: 5
+version: 6
 ---
 # The harness: how to work with it
 
 You work with ElektraWatt through one program, `«run»\bin/xtask.exe blind`, and nothing else. You never see a picture: you read text, and
 you act through the application's own actions. `«run»\bin/xtask.exe blind help` prints this text, the application's vocabulary and every
-action with its parameters.
+action with its parameters, a page at a time: each page ends with the line that names the next (`«run»\bin/xtask.exe blind help 2`, …).
 
 ## The commands
 
@@ -45,14 +45,15 @@ A turn is one `do` call. Before the next `do` you give exactly one note: `patien
 need no note, but you may make at most 3 between two `do` calls.
 
 The harness sends the steps of a batch in order and stops at the first step that is not done; the rest are reported
-`skipped` and not sent. Each step prints `<n> <action> <outcome>`: `done`, `refused` (with the reason: the action is not
-possible now) or `failed` (with its message), and then the parts of the interface's state that changed. A step that
-leaves a preview card open adds the line `  preview: <summary>; Apply or Cancel`: nothing is changed until you apply
+`skipped` and not sent. Each step prints `<n> <action> <outcome>` (`<n>` counts the steps of your `do` calls from 1):
+`done`, `refused` (with the reason: the action is not possible now) or `failed` (with its message), and then the parts
+of the interface's state that changed. A step that leaves a preview card open adds the line `  preview: <summary>; Apply or Cancel`: nothing is changed until you apply
 it (`preview.apply`) or cancel it (`preview.cancel`).
 
-If one step fails twice in a row with the same parameters, the harness marks it broken and refuses that exact step for the
-rest of the run (`harness: marked broken, move on`). Three notes in a row with patience 2 or less, or five with flow 2 or
-less, end the run; you then file your hand-back. The run also ends at its caps: 300 turns, 800 steps,
+If one step fails twice in a row with the same parameters on the same selection, the harness marks it broken and refuses
+that exact step on that selection for the rest of the run (`harness: marked broken, move on`); a step that acts on the
+selection is a new step once the selection changed. Three notes in a row with patience 2 or less, or five with flow 2
+or less, end the run; you then file your hand-back. The run also ends at its caps: 300 turns, 800 steps,
 400 looks and 50 refused steps.
 
 ## What the harness refuses
