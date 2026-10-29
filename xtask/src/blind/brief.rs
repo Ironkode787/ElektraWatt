@@ -395,12 +395,14 @@ pub fn check_files(root: &Path, task: &str) -> Result<(BriefCheck, Option<Accept
     Ok((c, acceptance))
 }
 
-/// A scratch folder for one check of a brief.
-fn scratch(task: &str) -> PathBuf {
+static CHECKS: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+
+/// A fresh scratch folder for one check of a brief under `parent`: `<parent>/<task>-<token>-<pid>-<n>`, so no two
+/// checks share one, in one process or in several.
+fn scratch(parent: &Path, task: &str) -> PathBuf {
+    let n = CHECKS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     let token: String = super::keeper::new_token().chars().take(8).collect();
-    std::env::temp_dir()
-        .join("ew-blind-brief")
-        .join(format!("{task}-{token}"))
+    parent.join(format!("{task}-{token}-{}-{n}", std::process::id()))
 }
 
 /// Runs the copied tools' `ew` with `args` in `dir`; its exit code and standard output.
@@ -426,6 +428,15 @@ fn ew(root: &Path, exe: &Path, args: &[&str], dir: &Path) -> Result<(Option<i32>
 ///
 /// A file that cannot be read, a binary that does not start.
 pub fn check_brief(root: &Path, task: &str, bin: &Path) -> Result<BriefCheck> {
+    check_brief_in(root, task, bin, &std::env::temp_dir().join("ew-blind-brief"))
+}
+
+/// [`check_brief`] with its scratch folder under `parent` (a test passes its own folder, removed after it).
+///
+/// # Errors
+///
+/// As [`check_brief`].
+pub fn check_brief_in(root: &Path, task: &str, bin: &Path, parent: &Path) -> Result<BriefCheck> {
     let (mut c, acceptance) = check_files(root, task)?;
     let Some(acceptance) = acceptance else {
         return Ok(c);
@@ -452,7 +463,7 @@ pub fn check_brief(root: &Path, task: &str, bin: &Path) -> Result<BriefCheck> {
             ));
         }
     }
-    let scratch = scratch(task);
+    let scratch = scratch(parent, task);
     let result = prove(root, &mut c, &acceptance, &prelude, &solution, &scratch, &exe);
     let _ = std::fs::remove_dir_all(&scratch);
     result?;
@@ -745,10 +756,20 @@ mod tests {
         );
     }
 
+    /// Two checks of one brief never share a scratch folder, in one process or under one parent.
+    #[test]
+    fn bv9_every_check_gets_its_own_scratch_folder() {
+        let parent = Path::new("parent");
+        let (a, b) = (scratch(parent, "brief-x"), scratch(parent, "brief-x"));
+        assert_ne!(a, b);
+        assert_eq!(a.parent(), Some(parent));
+    }
+
     /// BV9 and the feasibility rule: the reference solutions replayed on the built product. Both briefs are runnable
     /// (every hard item met, the soft ones met or marked infeasible): `brief-relays-valves` since WP-S2.18 part 1, whose
     /// `place.pick device=<tag>` puts each relay's contact on its relay (FT-599). Needs `elektrawatt` and `ew` built in
-    /// `target/debug` (the workspace run builds them); without them the test says so and checks nothing.
+    /// `target/debug` (the workspace run builds them); without them the test says so and checks nothing. Its scratch
+    /// folders live in a temporary folder of its own, removed after it, so a parallel run shares none of them.
     #[test]
     fn bv9_check_brief_replays_the_reference_solutions() {
         let root = crate::workspace_root();
@@ -760,8 +781,9 @@ mod tests {
             eprintln!("bv9: elektrawatt and ew are not built in target/debug; the replay is not checked");
             return;
         }
+        let tmp = crate::blind::testkit::Tmp::new("bv9-check");
         for brief in ["brief-valve-switch", "brief-relays-valves"] {
-            let c = check_brief(&root, brief, &bin).unwrap();
+            let c = check_brief_in(&root, brief, &bin, &tmp.0).unwrap();
             assert!(c.runnable(), "{}", c.text(brief));
             assert!(
                 c.items
