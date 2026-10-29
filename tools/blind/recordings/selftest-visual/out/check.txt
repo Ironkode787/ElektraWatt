@@ -1,5 +1,7 @@
-warning EW-POT-009 005009 -101K2:14: -101K2:14 is not connected; connect it or mark it unused
 warning EW-POT-009 005009 -101K1:13: -101K1:13 is not connected; connect it or mark it unused
 warning EW-POT-009 005009 -101K1:14: -101K1:14 is not connected; connect it or mark it unused
 warning EW-POT-009 005009 -101K2:13: -101K2:13 is not connected; connect it or mark it unused
-0 errors, 4 warnings, 0 infos, 0 waived
+warning EW-POT-009 005009 -101K2:14: -101K2:14 is not connected; connect it or mark it unused
+warning EW-CORE-041 102041 -101K1: -101K1 has no part; assign one, or mark it as supplied by others
+warning EW-CORE-041 102041 -101K2: -101K2 has no part; assign one, or mark it as supplied by others
+0 errors, 6 warnings, 0 infos, 0 waived
