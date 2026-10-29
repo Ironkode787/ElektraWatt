@@ -43,6 +43,22 @@ impl ShellModel {
         self.tools.chooser.as_ref()
     }
 
+    /// The canvas object of the chooser's active row, which shows the hover outline while the row is active (doc 16a
+    /// §6.22, §7.1): the row's device's first representation on the focused page (in the page table's order); none
+    /// for "New device" or a device not drawn on this page.
+    pub fn chooser_object(&self) -> Option<ew_api::output::ew_dl::EntityRef> {
+        let ChooserValue::Join { device, .. } = &self.chooser()?.current()?.value else {
+            return None;
+        };
+        let device = Uuid::parse_str(device).ok()?;
+        let page = self.canvas()?.page();
+        page.tables
+            .reps
+            .iter()
+            .find(|r| r.device == Some(device))
+            .map(|r| ew_api::output::ew_dl::EntityRef(r.id))
+    }
+
     /// The active Place tool, if any.
     fn place_tool(&mut self) -> Option<&mut PlaceTool> {
         self.tools

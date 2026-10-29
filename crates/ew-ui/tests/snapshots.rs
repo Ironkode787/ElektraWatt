@@ -1299,3 +1299,108 @@ fn the_chip_line_in_light_and_dark() {
     }
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
+
+/// Dispatches `action` with `params` on the window's shell; it must be done.
+fn act(h: &mut Harness<'_, App>, action: &str, params: serde_json::Value) {
+    let outcome = h.state_mut().shell_mut().dispatch(action, &params);
+    assert_eq!(outcome, Outcome::Done, "{action} {params}");
+}
+
+/// The page point and the sheet point of grid index `k` on the focused page.
+fn grid_points(h: &Harness<'_, App>, k: (i64, i64)) -> ((i64, i64), (i64, i64)) {
+    let sn = &h.state().shell().canvas().unwrap().page().snapper;
+    let p = (sn.page_of_index(k.0), sn.page_of_index(k.1));
+    (p, sn.page_to_sheet(p))
+}
+
+/// A press and a release with Alt (no autoconnect wires) at grid index `k`.
+fn place_at(h: &mut Harness<'_, App>, k: (i64, i64)) {
+    let (_, s) = grid_points(h, k);
+    let at = json!({"x_mm": s.0 as f64 / 1e6, "y_mm": s.1 as f64 / 1e6, "alt": true});
+    act(h, "canvas.press", at.clone());
+    act(h, "canvas.release", at);
+}
+
+/// The representation at grid index `k`: its ID and the tag it prints.
+fn rep_at(h: &Harness<'_, App>, k: (i64, i64)) -> (String, String) {
+    let (p, _) = grid_points(h, k);
+    let t = std::sync::Arc::clone(&h.state().shell().canvas().unwrap().page().tables);
+    let rep = t.reps.iter().find(|r| r.pos == p).expect("a representation");
+    let label = &t.cps.iter().find(|c| c.rep == rep.id).unwrap().label;
+    (rep.id.to_string(), label.rsplit_once(':').unwrap().0.to_owned())
+}
+
+/// Doc 16a §6.22, second use (WP-S2.18 D2): the Place tool holding a NO contact on folio 101 with the Join chooser
+/// open: "New device", a slot row ("slot 13-14", a relay whose contact was deleted) and the relays as "auxiliary"
+/// rows, the slot row active; cropped to the popup with its shadow, in light and dark, Comfortable, gated.
+#[test]
+fn the_join_chooser_in_light_and_dark() {
+    let dev = device();
+    let mut failures = Vec::new();
+    for theme in ["light", "dark"] {
+        let (mut h, recorder, tmp) = main_window(theme, "comfortable");
+        // Two relays on the empty lower right of folio 101; the second gets a slot (a contact placed, then deleted).
+        for k in [(60, 30), (60, 40)] {
+            act(
+                &mut h,
+                "place.pick",
+                json!({"symbol": "ew.iec.coil@qet10", "letter": "K"}),
+            );
+            place_at(&mut h, k);
+            act(&mut h, "ui.dismiss", json!({}));
+        }
+        let (_, k2) = rep_at(&h, (60, 40));
+        act(
+            &mut h,
+            "place.pick",
+            json!({"symbol": "ew.iec.contact-no@qet10", "device": k2}),
+        );
+        place_at(&mut h, (66, 40));
+        act(&mut h, "ui.dismiss", json!({}));
+        let (contact, _) = rep_at(&h, (66, 40));
+        act(&mut h, "select.set", json!({"ids": [contact]}));
+        act(&mut h, "edit.delete_selection", json!({}));
+        act(&mut h, "ui.dismiss", json!({}));
+        act(
+            &mut h,
+            "place.pick",
+            json!({"symbol": "ew.iec.contact-no@qet10", "letter": "K"}),
+        );
+        act(&mut h, "place.join", json!({}));
+        act(&mut h, "chooser.row", json!({"step": 1}));
+        // The page image of the edited page behind the popup's shadow (the render worker is slower under load).
+        support::wait_for_page(&mut h);
+        let ch = h.state().shell().chooser().expect("the chooser").clone();
+        assert_eq!(ch.rows[0].name, "New device");
+        assert_eq!((ch.row, ch.rows[1].kind.as_str()), (1, "slot 13-14"));
+        assert!(ch.rows.iter().any(|r| r.kind == "auxiliary"), "{:?}", ch.rows);
+        // The active row's object, -K2's coil, has the hover outline (§6.22, §7.1).
+        let (coil, _) = rep_at(&h, (60, 40));
+        let shell = h.state().shell();
+        let c = shell.canvas().unwrap();
+        let outline = c
+            .page()
+            .entities
+            .iter()
+            .find(|(e, _)| e.0.to_string() == coil)
+            .map(|(_, r)| *r);
+        assert_eq!(ew_ui::canvas::hover_rect(shell, 0, c), outline);
+        assert!(outline.is_some());
+        dismiss_toasts(&mut h);
+        support::settle(&mut h);
+        h.run_ok();
+        let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
+        let area = egui::Id::unique("join-chooser").with("area");
+        let popup = h.ctx.memory(|m| m.area_rect(area)).expect("the chooser's popup");
+        // The popup's shadow (elevation.1) spills a few points around its frame.
+        failures.extend(record(
+            &format!("join-chooser-{theme}-comfortable"),
+            &crop(&image, popup.expand(16.0)),
+            true,
+        ));
+        h.state_mut().shell_mut().shutdown();
+        drop(h);
+        drop(tmp);
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}

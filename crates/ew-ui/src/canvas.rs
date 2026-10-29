@@ -92,8 +92,18 @@ pub(crate) const GROUPS: usize = 2;
 /// The hover outline of a canvas while the active tool shows the hover (WP-S2.03 §6.4, §7.1): the hovered link's
 /// rectangle, else, while an entity is hovered, the rectangle of the first entity of the pick stack under the pointer
 /// (the one a click picks, FT-500; WP-S2.17 part 5, doc 16a §6.25), else the hovered entity's; none on a selected
-/// entity (doc 16a §7.1: the selection only).
+/// entity (doc 16a §7.1: the selection only). While the Join chooser is open, its active row's object instead (doc 16a
+/// §6.22, WP-S2.18).
 pub fn hover_rect(shell: &ShellModel, group: usize, c: &CanvasModel) -> Option<SheetRect> {
+    if shell.chooser().is_some() {
+        let object = shell.chooser_object()?;
+        return c
+            .page()
+            .entities
+            .iter()
+            .find(|(e, _)| *e == object)
+            .map(|(_, r)| *r);
+    }
     if !shell.tool().wants_hover() {
         return None;
     }

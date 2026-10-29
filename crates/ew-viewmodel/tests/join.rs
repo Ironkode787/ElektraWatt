@@ -294,8 +294,11 @@ fn the_join_chooser_lists_slots_then_relays_and_arms_the_join() {
     assert!(text.contains("  \"New device\" current"), "{text}");
     assert!(text.contains(&format!("  \"{t2}\" \"slot 13-14\"")), "{text}");
     // Type-ahead moves to K1; Enter arms the join.
+    assert_eq!(s.chooser_object(), None, "\"New device\" has no object");
     done(&mut s, "chooser.type", json!({"text": t1}));
     assert_eq!(s.chooser().unwrap().row, k1_row);
+    // The active row's object shows the hover outline (§6.22): K1's coil.
+    assert_eq!(s.chooser_object().map(|e| e.0), Some(k1.id));
     done(&mut s, "chooser.choose", json!({}));
     assert!(s.chooser().is_none());
     let g = ghost(&s);
