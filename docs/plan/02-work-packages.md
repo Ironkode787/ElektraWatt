@@ -3727,6 +3727,7 @@ CSV and every total are unchanged. A task is closed by the commit that implement
 | FT-623 | In the full-window `main-*` images the expanded Section 2 shows no child row: its page row is clipped at the Pages and Properties divider at that pane height; keep one row of a just-expanded node in view | WP-S2.06; WP-S2.17 | Parked: the next polish cycle | ID-811 (A) |
 | FT-624 | W34 reads the modal scrim as dimming only the canvas, while FT-557's fix (0fb94ab6) paints `color.backdrop` over the whole viewport: confirm against doc 16a §6.12 on the window's own render in light and dark, and strengthen the light scrim if the chrome does not visibly dim; a toast stays at full brightness over a modal (cosmetic) | WP-S2.17 | M2 cycle 2 | ID-811 (B, C) |
 | FT-625 | The pixel gate has no image of the place ghost's wires and HUD hint (FT-545), the counted toasts (FT-549), the Wire marker row (FT-554) or the potential Name cell (FT-577): add them | WP-S2.17 (pixel gate); WP-S2.11 | M2 cycle 2 | ID-811 |
+| FT-626 | A refused transform key still replaces the selection: `act_tool_key` swaps a by-reference selection for its drawn representations before the refusals (Shift+V `reason-place-only`, V with more than one representation `reason-one-rep`), so a refused key changes the selection and the dispatch log does not show it; compute the representations, check the refusals on them, replace the selection only when the key is sent | WP-S2.03; WP-S2.04 | M2 cycle 2 | ID-814 |
 
 ---
 
