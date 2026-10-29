@@ -1,13 +1,13 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! EW-CORE rules (cable length, interruption-point pairing), the registered catalogue metadata and the
-//! determinism of a check run.
+//! EW-CORE rules (cable length, interruption-point pairing) and the determinism of a check run. The registered
+//! catalogue metadata is pinned by `catalogue::committed_catalogue_matches_the_registry`.
 
 mod common;
 
 use common::*;
-use ew_checks::{CheckMode, FULL, Release, RuleKind, ScopeKind, Severity, run};
+use ew_checks::{CheckMode, FULL, Release, Severity, run};
 use ew_derive::Q;
 use ew_derive::ew_schema::Kind;
 use serde_json::{Value, json};
@@ -200,45 +200,6 @@ fn core052_one_source_is_not_ambiguous() {
     let m = fx.build();
     assert!(findings_of(&m, "EW-CORE-052").is_empty());
     assert!(findings_of(&m, "EW-CORE-051").is_empty());
-}
-
-/// The catalogue columns of every shipped rule of this work package: id, code, title, kind, modes
-/// (online, prevent, release), severity, scope.
-#[test]
-fn shipped_rules_carry_their_catalogue_metadata() {
-    use RuleKind::{Completeness, Conflict, Hygiene};
-    use ScopeKind::{Cable, Potential, Project, Strip};
-    use Severity::{Error, Warning};
-    #[rustfmt::skip]
-    let table = [
-        ("EW-CORE-033", "003033", "Cable without length", Completeness, (true, false, true), Error, Cable),
-        ("EW-CORE-051", "103051", "Unpaired interruption point", Completeness, (true, false, true), Error, Project),
-        ("EW-CORE-052", "103052", "Ambiguous interruption point", Conflict, (true, true, true), Error, Project),
-        ("EW-POT-001", "005001", "Type or voltage conflict", Conflict, (true, false, true), Error, Potential),
-        ("EW-POT-008", "005008", "PE island", Conflict, (true, false, true), Warning, Project),
-        ("EW-POT-011", "005011", "Junction feed ambiguous", Conflict, (true, false, false), Warning, Potential),
-        ("EW-POT-012", "005012", "Ring in the drawing graph", Hygiene, (true, false, false), Warning, Potential),
-        ("EW-POT-014", "005014", "Physical-wire conflict", Conflict, (true, false, true), Error, Potential),
-        ("EW-RDS-004", "017004", "Duplicate designation", Conflict, (true, false, true), Error, Project),
-        ("EW-TERM-001", "001001", "Terminal without designation", Conflict, (true, true, true), Error, Strip),
-        ("EW-TERM-005", "001005", "Rail bonding on a non-PE terminal", Conflict, (true, false, false), Error, Strip),
-    ];
-    for (id, code, title, kind, (online, prevent, release), severity, scope) in table {
-        let m = ew_checks::rule(id)
-            .unwrap_or_else(|| panic!("{id} is not registered"))
-            .meta();
-        assert_eq!(m.code, code, "{id}");
-        assert_eq!(m.title, title, "{id}");
-        assert_eq!(m.kind, kind, "{id}");
-        assert_eq!(
-            (m.modes.online, m.modes.prevent, m.modes.release),
-            (online, prevent, release),
-            "{id}"
-        );
-        assert_eq!(m.severity, severity, "{id}");
-        assert_eq!(m.release_severity, None, "{id}");
-        assert_eq!(m.scope, scope, "{id}");
-    }
 }
 
 #[test]

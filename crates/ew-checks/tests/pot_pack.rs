@@ -90,20 +90,29 @@ fn fe_on(def: &Value, bonded: bool) -> Model {
 }
 
 #[test]
-fn pot003_reports_an_fe_pin_on_pe() {
-    let f = findings_of(&fe_on(&json!({"ptype": "pe"}), false), "EW-POT-003");
-    assert_eq!(f.len(), 1, "{f:#?}");
-    assert_eq!(f[0].code, "005003");
-    assert_eq!(f[0].severity, Severity::Warning);
-    assert_eq!(f[0].discriminator, "fe:1");
-    assert_eq!(f[0].targets, vec![target(Kind::Function, 0x1001)]);
-    assert!(f[0].message.contains("role FE"), "{}", f[0].message);
-}
-
-#[test]
-fn pot003_an_fe_pin_on_fe_or_with_a_bond_is_silent() {
-    assert!(findings_of(&fe_on(&json!({"ptype": "fe"}), false), "EW-POT-003").is_empty());
-    assert!(findings_of(&fe_on(&json!({"ptype": "pe"}), true), "EW-POT-003").is_empty());
+fn pot003_cases() {
+    rule_table(
+        "EW-POT-003",
+        vec![
+            Case::reports(
+                "an FE pin on PE is reported",
+                fe_on(&json!({"ptype": "pe"}), false),
+                |c, f| {
+                    assert_eq!(f.len(), 1, "case {c}: {f:#?}");
+                    assert_eq!(f[0].code, "005003", "case {c}");
+                    assert_eq!(f[0].severity, Severity::Warning, "case {c}");
+                    assert_eq!(f[0].discriminator, "fe:1", "case {c}");
+                    assert_eq!(f[0].targets, vec![target(Kind::Function, 0x1001)], "case {c}");
+                    assert!(f[0].message.contains("role FE"), "case {c}: {}", f[0].message);
+                },
+            ),
+            Case::silent("an FE pin on FE", fe_on(&json!({"ptype": "fe"}), false)),
+            Case::silent(
+                "an FE pin on PE with a bond",
+                fe_on(&json!({"ptype": "pe"}), true),
+            ),
+        ],
+    );
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -128,39 +137,63 @@ fn coloured(colour: &[&str], def: &Value, with_n: bool) -> Model {
 }
 
 #[test]
-fn pot004_reports_gnye_on_a_non_pe_potential() {
-    let f = findings_of(
-        &coloured(&["GN", "YE"], &json!({"ptype": "l"}), false),
+fn pot004_cases() {
+    rule_table(
         "EW-POT-004",
+        vec![
+            Case::reports(
+                "GNYE on a non-PE potential is reported",
+                coloured(&["GN", "YE"], &json!({"ptype": "l"}), false),
+                |c, f| {
+                    assert_eq!(f.len(), 1, "case {c}: {f:#?}");
+                    assert_eq!(f[0].code, "005004", "case {c}");
+                    assert_eq!(f[0].severity, Severity::Error, "case {c}");
+                    assert_eq!(f[0].targets, vec![target(Kind::Connection, 0x2001)], "case {c}");
+                    assert!(f[0].message.contains("GNYE"), "case {c}: {}", f[0].message);
+                },
+            ),
+            Case::silent(
+                "GNYE on PE",
+                coloured(&["GN", "YE"], &json!({"ptype": "pe"}), false),
+            ),
+        ],
     );
-    assert_eq!(f.len(), 1, "{f:#?}");
-    assert_eq!(f[0].code, "005004");
-    assert_eq!(f[0].severity, Severity::Error);
-    assert_eq!(f[0].targets, vec![target(Kind::Connection, 0x2001)]);
-    assert!(f[0].message.contains("GNYE"), "{}", f[0].message);
 }
 
+/// The colour cases of EW-POT-005; the built-in BU of DC control wires is
+/// `pot005_the_built_in_bu_of_a_dc_control_wire_is_silent`.
 #[test]
-fn pot004_gnye_on_pe_is_silent() {
-    let m = coloured(&["GN", "YE"], &json!({"ptype": "pe"}), false);
-    assert!(findings_of(&m, "EW-POT-004").is_empty());
-}
-
-#[test]
-fn pot005_reports_bu_on_a_non_n_conductor_in_a_project_with_n() {
-    let f = findings_of(&coloured(&["BU"], &json!({"ptype": "m"}), true), "EW-POT-005");
-    assert_eq!(f.len(), 1, "{f:#?}");
-    assert_eq!(f[0].code, "005005");
-    assert_eq!(f[0].severity, Severity::Warning);
-    assert_eq!(f[0].targets, vec![target(Kind::Connection, 0x2001)]);
-}
-
-#[test]
-fn pot005_bu_without_a_neutral_in_the_project_or_on_n_is_silent() {
-    let m = coloured(&["BU"], &json!({"ptype": "m"}), false);
-    assert!(findings_of(&m, "EW-POT-005").is_empty());
-    let m = coloured(&["BU"], &json!({"ptype": "n"}), true);
-    assert!(findings_of(&m, "EW-POT-005").is_empty());
+fn pot005_cases() {
+    let ac_line = json!({"ptype": "l", "voltage": "230", "env": {"ac_dc": "ac"}});
+    rule_table(
+        "EW-POT-005",
+        vec![
+            Case::reports(
+                "BU on a non-N conductor in a project with N is reported",
+                coloured(&["BU"], &json!({"ptype": "m"}), true),
+                |c, f| {
+                    assert_eq!(f.len(), 1, "case {c}: {f:#?}");
+                    assert_eq!(f[0].code, "005005", "case {c}");
+                    assert_eq!(f[0].severity, Severity::Warning, "case {c}");
+                    assert_eq!(f[0].targets, vec![target(Kind::Connection, 0x2001)], "case {c}");
+                },
+            ),
+            Case::silent(
+                "BU without a neutral in the project",
+                coloured(&["BU"], &json!({"ptype": "m"}), false),
+            ),
+            Case::silent("BU on N", coloured(&["BU"], &json!({"ptype": "n"}), true)),
+            // BU the user sets on an AC line conductor (a wire override) is still reported.
+            Case::reports(
+                "BU set by the user on an AC line is reported",
+                coloured(&["BU"], &ac_line, true),
+                |c, f| {
+                    assert_eq!(f.len(), 1, "case {c}: {f:#?}");
+                    assert_eq!(f[0].targets, vec![target(Kind::Connection, 0x2001)], "case {c}");
+                },
+            ),
+        ],
+    );
 }
 
 /// [`coloured`] with no colour set anywhere: the wire takes the built-in colour of its potential (doc 08 §4.3).
@@ -212,15 +245,6 @@ fn pot005_the_built_in_bu_of_a_dc_control_wire_is_silent() {
     }
 }
 
-/// EW-POT-005: BU the user sets on an AC line conductor (a wire override) is still reported.
-#[test]
-fn pot005_bu_set_by_the_user_on_an_ac_line_is_reported() {
-    let def = json!({"ptype": "l", "voltage": "230", "env": {"ac_dc": "ac"}});
-    let f = findings_of(&coloured(&["BU"], &def, true), "EW-POT-005");
-    assert_eq!(f.len(), 1, "{f:#?}");
-    assert_eq!(f[0].targets, vec![target(Kind::Connection, 0x2001)]);
-}
-
 // ---------------------------------------------------------------------------------------------------------
 // EW-POT-006
 
@@ -240,30 +264,36 @@ fn pe_sized(pe_csa: &str) -> Model {
 }
 
 #[test]
-fn pot006_reports_an_undersized_pe_and_says_the_table_is_unverified() {
-    let f = findings_of(&pe_sized("1.5"), "EW-POT-006");
-    assert_eq!(f.len(), 1, "{f:#?}");
-    assert_eq!(f[0].code, "005006");
-    assert_eq!(f[0].severity, Severity::Error);
-    assert_eq!(f[0].targets, vec![target(Kind::Connection, 0x2002)]);
-    assert!(
-        f[0].message
-            .contains("below the 2.5 mm² required for the 2.5 mm² line conductors"),
-        "{}",
-        f[0].message
+fn pot006_cases() {
+    rule_table(
+        "EW-POT-006",
+        vec![
+            Case::reports(
+                "an undersized PE is reported and the table is called unverified",
+                pe_sized("1.5"),
+                |c, f| {
+                    assert_eq!(f.len(), 1, "case {c}: {f:#?}");
+                    assert_eq!(f[0].code, "005006", "case {c}");
+                    assert_eq!(f[0].severity, Severity::Error, "case {c}");
+                    assert_eq!(f[0].targets, vec![target(Kind::Connection, 0x2002)], "case {c}");
+                    assert!(
+                        f[0].message
+                            .contains("below the 2.5 mm² required for the 2.5 mm² line conductors"),
+                        "case {c}: {}",
+                        f[0].message
+                    );
+                    // P2-4: the shipped table is `verified = false`, and the finding says so.
+                    assert!(
+                        f[0].message
+                            .ends_with("(the sizing table is not verified against the standard)"),
+                        "case {c}: {}",
+                        f[0].message
+                    );
+                },
+            ),
+            Case::silent("a PE as large as the line", pe_sized("2.5")),
+        ],
     );
-    // P2-4: the shipped table is `verified = false`, and the finding says so.
-    assert!(
-        f[0].message
-            .ends_with("(the sizing table is not verified against the standard)"),
-        "{}",
-        f[0].message
-    );
-}
-
-#[test]
-fn pot006_a_pe_as_large_as_the_line_is_silent() {
-    assert!(findings_of(&pe_sized("2.5"), "EW-POT-006").is_empty());
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -290,77 +320,96 @@ fn two_pe(joined: bool) -> Model {
 }
 
 #[test]
-fn pot008_reports_two_pe_potentials_in_one_location() {
-    let f = findings_of(&two_pe(false), "EW-POT-008");
-    assert_eq!(f.len(), 1, "{f:#?}");
-    assert_eq!(f[0].severity, Severity::Warning);
-    assert_eq!(f[0].discriminator, "island");
-    assert_eq!(
-        f[0].message,
-        "+A holds 2 PE potentials: PE1, PE2; join them through a bonded rail or a PE wire"
-    );
-    assert_eq!(
-        f[0].targets,
+fn pot008_pe_cases() {
+    rule_table(
+        "EW-POT-008",
         vec![
-            target(Kind::StructureNode, LOC),
-            target(Kind::PotentialDef, 0x5001),
-            target(Kind::PotentialDef, 0x5002),
-        ]
-        .into_iter()
-        .collect::<std::collections::BTreeSet<_>>()
-        .into_iter()
-        .collect::<Vec<_>>()
+            Case::reports(
+                "two PE potentials in one location are reported",
+                two_pe(false),
+                |c, f| {
+                    assert_eq!(f.len(), 1, "case {c}: {f:#?}");
+                    assert_eq!(f[0].severity, Severity::Warning, "case {c}");
+                    assert_eq!(f[0].discriminator, "island", "case {c}");
+                    assert_eq!(
+                        f[0].message,
+                        "+A holds 2 PE potentials: PE1, PE2; join them through a bonded rail or a PE wire",
+                        "case {c}"
+                    );
+                    assert_eq!(
+                        f[0].targets,
+                        vec![
+                            target(Kind::StructureNode, LOC),
+                            target(Kind::PotentialDef, 0x5001),
+                            target(Kind::PotentialDef, 0x5002),
+                        ]
+                        .into_iter()
+                        .collect::<std::collections::BTreeSet<_>>()
+                        .into_iter()
+                        .collect::<Vec<_>>(),
+                        "case {c}"
+                    );
+                    // Keyed on the location: the fingerprint survives a third island joining it.
+                    assert_eq!(
+                        f[0].fingerprint,
+                        ew_checks::Fingerprint::of("EW-POT-008", &[uid(LOC)], "island"),
+                        "case {c}"
+                    );
+                },
+            ),
+            Case::silent("one PE potential per location", two_pe(true)),
+        ],
     );
-    // Keyed on the location: the fingerprint survives a third island joining it.
-    assert_eq!(
-        f[0].fingerprint,
-        ew_checks::Fingerprint::of("EW-POT-008", &[uid(LOC)], "island")
-    );
-}
-
-#[test]
-fn pot008_one_pe_potential_per_location_is_silent() {
-    assert!(findings_of(&two_pe(true), "EW-POT-008").is_empty());
 }
 
 // ---------------------------------------------------------------------------------------------------------
 // EW-POT-009
 
 #[test]
-fn pot009_reports_an_unconnected_cp_and_an_unused_one_as_info() {
-    let mut fx = Fx::base();
-    fx.func(0x1001, P1);
-    fx.func_unused(0x1002, 1, P1);
-    fx.conn(0x2001, P1, cp(0x1001), cp(0x1002), &none());
-    let f = findings_of(&fx.build(), "EW-POT-009");
-    assert_eq!(f.len(), 2, "{f:#?}");
-    let warning = f
-        .iter()
-        .find(|x| x.targets == vec![target(Kind::Function, 0x1001)]);
-    let warning = warning.expect("the open CP of -K4097");
-    assert_eq!(warning.code, "005009");
-    assert_eq!(warning.severity, Severity::Warning);
-    assert_eq!(warning.discriminator, "1");
-    assert_eq!(
-        warning.message,
-        "-1K4097:2 is not connected; connect it or mark it unused"
+fn pot009_cases() {
+    let mut open = Fx::base();
+    open.func(0x1001, P1);
+    open.func_unused(0x1002, 1, P1);
+    open.conn(0x2001, P1, cp(0x1001), cp(0x1002), &none());
+    let mut connected = Fx::base();
+    connected.func(0x1001, P1);
+    connected.func(0x1002, P1);
+    connected.conn(0x2001, P1, cp(0x1001), cp(0x1002), &none());
+    connected.conn(0x2002, P1, Ep::Cp(0x1001, 1), Ep::Cp(0x1002, 1), &none());
+    rule_table(
+        "EW-POT-009",
+        vec![
+            Case::reports(
+                "an unconnected CP is reported and an unused one is an info",
+                open.build(),
+                |c, f| {
+                    assert_eq!(f.len(), 2, "case {c}: {f:#?}");
+                    let warning = f
+                        .iter()
+                        .find(|x| x.targets == vec![target(Kind::Function, 0x1001)]);
+                    let warning = warning.unwrap_or_else(|| panic!("case {c}: the open CP of -K4097"));
+                    assert_eq!(warning.code, "005009", "case {c}");
+                    assert_eq!(warning.severity, Severity::Warning, "case {c}");
+                    assert_eq!(warning.discriminator, "1", "case {c}");
+                    assert_eq!(
+                        warning.message, "-1K4097:2 is not connected; connect it or mark it unused",
+                        "case {c}"
+                    );
+                    let info = f
+                        .iter()
+                        .find(|x| x.targets == vec![target(Kind::Function, 0x1002)]);
+                    let info = info.unwrap_or_else(|| panic!("case {c}: the unused CP of -K4098"));
+                    assert_eq!(info.severity, Severity::Info, "case {c}");
+                    assert!(
+                        info.message.contains("marked unused"),
+                        "case {c}: {}",
+                        info.message
+                    );
+                },
+            ),
+            Case::silent("connected CPs", connected.build()),
+        ],
     );
-    let info = f
-        .iter()
-        .find(|x| x.targets == vec![target(Kind::Function, 0x1002)]);
-    let info = info.expect("the unused CP of -K4098");
-    assert_eq!(info.severity, Severity::Info);
-    assert!(info.message.contains("marked unused"), "{}", info.message);
-}
-
-#[test]
-fn pot009_connected_cps_are_silent() {
-    let mut fx = Fx::base();
-    fx.func(0x1001, P1);
-    fx.func(0x1002, P1);
-    fx.conn(0x2001, P1, cp(0x1001), cp(0x1002), &none());
-    fx.conn(0x2002, P1, Ep::Cp(0x1001, 1), Ep::Cp(0x1002, 1), &none());
-    assert!(findings_of(&fx.build(), "EW-POT-009").is_empty());
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -392,60 +441,58 @@ fn n_def() -> Value {
 }
 
 #[test]
-fn pot013_reports_a_switched_neutral_and_the_load_left_on_l() {
-    let f = findings_of(&switch(&none(), &n_def(), false), "EW-POT-013");
-    assert_eq!(f.len(), 1, "{f:#?}");
-    assert_eq!(f[0].code, "005013");
-    assert_eq!(f[0].severity, Severity::Error);
-    assert_eq!(f[0].discriminator, "pair:0-1");
-    assert_eq!(f[0].targets, vec![target(Kind::Function, 0x1003)]);
-    assert!(
-        f[0].message.contains("switches the neutral N → ") && f[0].message.contains("stays connected to L."),
-        "{}",
-        f[0].message
-    );
-}
-
-#[test]
-fn pot013_a_two_pole_switch_flagged_to_switch_n_with_l_is_silent() {
+fn pot013_cases() {
     let flags = json!({"switches_n_with_l": true});
-    assert!(findings_of(&switch(&flags, &n_def(), true), "EW-POT-013").is_empty());
-    // The flag without a line pole does not excuse it.
-    assert_eq!(
-        findings_of(&switch(&flags, &n_def(), false), "EW-POT-013").len(),
-        1
-    );
-    // A switch on L is no N switching.
-    let l = json!({"name": "L0", "ptype": "l"});
-    assert!(findings_of(&switch(&none(), &l, false), "EW-POT-013").is_empty());
-}
-
-#[test]
-fn pot013_an_n_isolating_terminal_is_an_info() {
-    let f = findings_of(
-        &switch(&json!({"n_isolation": true}), &n_def(), false),
+    rule_table(
         "EW-POT-013",
+        vec![
+            Case::reports(
+                "a switched neutral and the load left on L are reported",
+                switch(&none(), &n_def(), false),
+                |c, f| {
+                    assert_eq!(f.len(), 1, "case {c}: {f:#?}");
+                    assert_eq!(f[0].code, "005013", "case {c}");
+                    assert_eq!(f[0].severity, Severity::Error, "case {c}");
+                    assert_eq!(f[0].discriminator, "pair:0-1", "case {c}");
+                    assert_eq!(f[0].targets, vec![target(Kind::Function, 0x1003)], "case {c}");
+                    assert!(
+                        f[0].message.contains("switches the neutral N → ")
+                            && f[0].message.contains("stays connected to L."),
+                        "case {c}: {}",
+                        f[0].message
+                    );
+                },
+            ),
+            Case::silent(
+                "a two-pole switch flagged to switch N with L",
+                switch(&flags, &n_def(), true),
+            ),
+            Case::reports(
+                "the flag without a line pole does not excuse it",
+                switch(&flags, &n_def(), false),
+                |c, f| assert_eq!(f.len(), 1, "case {c}: {f:#?}"),
+            ),
+            Case::silent(
+                "a switch on L is no N switching",
+                switch(&none(), &json!({"name": "L0", "ptype": "l"}), false),
+            ),
+            Case::reports(
+                "an N-isolating terminal is an info",
+                switch(&json!({"n_isolation": true}), &n_def(), false),
+                |c, f| {
+                    assert_eq!(f.len(), 1, "case {c}: {f:#?}");
+                    assert_eq!(f[0].severity, Severity::Info, "case {c}");
+                    assert!(f[0].message.contains("N-isolating"), "case {c}: {}", f[0].message);
+                },
+            ),
+        ],
     );
-    assert_eq!(f.len(), 1, "{f:#?}");
-    assert_eq!(f[0].severity, Severity::Info);
-    assert!(f[0].message.contains("N-isolating"), "{}", f[0].message);
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// EW-POT-015
-
-#[test]
-fn pot015_derived_wire_numbers_are_unique() {
-    // The derivation gives every wire its own label; the duplicate case is the unit test
-    // `duplicate_wire_numbers_are_one_finding_per_label` (stored numbers arrive with FR-NUM-020).
-    let mut fx = Fx::base();
-    for n in [0x1001, 0x1002, 0x1003] {
-        fx.func(n, P1);
-    }
-    fx.conn(0x2001, P1, cp(0x1001), cp(0x1002), &none());
-    fx.conn(0x2002, P1, Ep::Cp(0x1002, 1), cp(0x1003), &none());
-    assert!(findings_of(&fx.build(), "EW-POT-015").is_empty());
-}
+// EW-POT-015: the derivation gives every wire its own label, so a clean model raises nothing
+// (`core::clean_model_has_no_finding_from_any_shipped_rule`); the duplicate case is the unit test
+// `duplicate_wire_numbers_are_one_finding_per_label` (stored numbers arrive with FR-NUM-020).
 
 // ---------------------------------------------------------------------------------------------------------
 // EW-POT-016
@@ -469,19 +516,29 @@ fn core_override(csa: &str) -> Model {
 }
 
 #[test]
-fn pot016_reports_an_override_equal_to_the_value_below_it() {
-    let f = findings_of(&core_override("1"), "EW-POT-016");
-    assert_eq!(f.len(), 1, "{f:#?}");
-    assert_eq!(f[0].code, "005016");
-    assert_eq!(f[0].severity, Severity::Info);
-    assert_eq!(f[0].discriminator, "csa");
-    assert_eq!(f[0].targets, vec![target(Kind::Connection, 0x2001)]);
-    assert!(f[0].message.contains("remove the override"), "{}", f[0].message);
-}
-
-#[test]
-fn pot016_an_override_that_changes_the_value_is_silent() {
-    assert!(findings_of(&core_override("2.5"), "EW-POT-016").is_empty());
+fn pot016_cases() {
+    rule_table(
+        "EW-POT-016",
+        vec![
+            Case::reports(
+                "an override equal to the value below it is reported",
+                core_override("1"),
+                |c, f| {
+                    assert_eq!(f.len(), 1, "case {c}: {f:#?}");
+                    assert_eq!(f[0].code, "005016", "case {c}");
+                    assert_eq!(f[0].severity, Severity::Info, "case {c}");
+                    assert_eq!(f[0].discriminator, "csa", "case {c}");
+                    assert_eq!(f[0].targets, vec![target(Kind::Connection, 0x2001)], "case {c}");
+                    assert!(
+                        f[0].message.contains("remove the override"),
+                        "case {c}: {}",
+                        f[0].message
+                    );
+                },
+            ),
+            Case::silent("an override that changes the value", core_override("2.5")),
+        ],
+    );
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -499,30 +556,37 @@ fn named(a: &str, b: &str) -> Model {
 }
 
 #[test]
-fn pot017_reports_two_names_in_one_potential() {
-    let f = findings_of(&named("P10", "P2"), "EW-POT-017");
-    assert_eq!(f.len(), 1, "{f:#?}");
-    assert_eq!(f[0].code, "005017");
-    assert_eq!(f[0].severity, Severity::Warning);
-    assert_eq!(f[0].discriminator, "names");
-    assert_eq!(f[0].subject, "P2");
-    assert_eq!(
-        f[0].message,
-        "the definitions of one potential name it P2, P10; the first in natural order (P2) applies"
+fn pot017_cases() {
+    rule_table(
+        "EW-POT-017",
+        vec![
+            Case::reports(
+                "two names in one potential are reported",
+                named("P10", "P2"),
+                |c, f| {
+                    assert_eq!(f.len(), 1, "case {c}: {f:#?}");
+                    assert_eq!(f[0].code, "005017", "case {c}");
+                    assert_eq!(f[0].severity, Severity::Warning, "case {c}");
+                    assert_eq!(f[0].discriminator, "names", "case {c}");
+                    assert_eq!(f[0].subject, "P2", "case {c}");
+                    assert_eq!(
+                        f[0].message,
+                        "the definitions of one potential name it P2, P10; the first in natural order (P2) applies",
+                        "case {c}"
+                    );
+                    assert_eq!(f[0].targets.len(), 2, "case {c}");
+                },
+            ),
+            Case::silent("one name", named("P", "P")),
+        ],
     );
-    assert_eq!(f[0].targets.len(), 2);
     // FT-188: the derivation note of the same fact is not reported again as a second finding.
     let all = run_online(&named("P10", "P2"));
     assert_eq!(
         all.iter().filter(|x| x.rule == "EW-POT-017").count(),
         1,
-        "{all:#?}"
+        "case two names in one potential, all rules: {all:#?}"
     );
-}
-
-#[test]
-fn pot017_one_name_is_silent() {
-    assert!(findings_of(&named("P", "P"), "EW-POT-017").is_empty());
 }
 
 fn run_online(m: &Model) -> Vec<ew_checks::Finding> {

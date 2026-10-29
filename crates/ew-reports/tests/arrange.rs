@@ -274,39 +274,108 @@ fn filtered(rows: RowSet, f: Filter) -> Vec<String> {
     names(&a.run(rows))
 }
 
+/// The column filter (doc 09 §3.3): one case per operator, combinator and cell class.
 #[test]
-fn eq_and_ne_compare_the_cell_text() {
-    let s = located(&["+A", "+B", "+A"]);
-    assert_eq!(
-        filtered(s.clone(), col("loc", FilterOp::Eq("+A".into()))),
-        ["r0", "r2"]
-    );
-    assert_eq!(filtered(s, col("loc", FilterOp::Ne("+A".into()))), ["r1"]);
-}
-
-#[test]
-fn within_matches_the_value_and_its_dotted_children_only() {
-    let s = located(&[
-        "+J-E-2416",
-        "+J-E-2416.1",
-        "+J-E-24160",
-        "+J-E-2417",
-        "+J-E-2416-x",
-        "",
-        "+J",
-    ]);
-    assert_eq!(
-        filtered(s, col("loc", FilterOp::Within("+J-E-2416".into()))),
-        ["r0", "r1", "r4"]
-    );
-}
-
-#[test]
-fn present_and_absent_judge_the_value() {
+fn filter_cases() {
+    let abc = located(&["+A", "+B", "+C"]);
+    let a = || col("loc", FilterOp::Eq("+A".into()));
+    let b = || col("loc", FilterOp::Eq("+B".into()));
+    // (name, rows, filter, the names of the rows that pass)
+    let mut cases: Vec<(String, RowSet, Filter, Vec<&str>)> = vec![
+        // Eq and Ne compare the cell text.
+        (
+            "eq".into(),
+            located(&["+A", "+B", "+A"]),
+            col("loc", FilterOp::Eq("+A".into())),
+            vec!["r0", "r2"],
+        ),
+        (
+            "ne".into(),
+            located(&["+A", "+B", "+A"]),
+            col("loc", FilterOp::Ne("+A".into())),
+            vec!["r1"],
+        ),
+        // Within matches the value and its dotted children only.
+        (
+            "within".into(),
+            located(&[
+                "+J-E-2416",
+                "+J-E-2416.1",
+                "+J-E-24160",
+                "+J-E-2417",
+                "+J-E-2416-x",
+                "",
+                "+J",
+            ]),
+            col("loc", FilterOp::Within("+J-E-2416".into())),
+            vec!["r0", "r1", "r4"],
+        ),
+        // Combinators and unknown columns.
+        (
+            "all of nothing".into(),
+            abc.clone(),
+            Filter::All(vec![]),
+            vec!["r0", "r1", "r2"],
+        ),
+        ("any of nothing".into(), abc.clone(), Filter::Any(vec![]), vec![]),
+        (
+            "any of two".into(),
+            abc.clone(),
+            Filter::Any(vec![a(), b()]),
+            vec!["r0", "r1"],
+        ),
+        (
+            "all of two".into(),
+            abc.clone(),
+            Filter::All(vec![a(), b()]),
+            vec![],
+        ),
+        (
+            "not".into(),
+            abc.clone(),
+            Filter::Not(Box::new(a())),
+            vec!["r1", "r2"],
+        ),
+        (
+            "unknown column present".into(),
+            abc.clone(),
+            col("nope", FilterOp::Present),
+            vec![],
+        ),
+        (
+            "unknown column absent".into(),
+            abc.clone(),
+            col("nope", FilterOp::Absent),
+            vec![],
+        ),
+        (
+            "not unknown column present".into(),
+            abc,
+            Filter::Not(Box::new(col("nope", FilterOp::Present))),
+            vec!["r0", "r1", "r2"],
+        ),
+    ];
+    // The filter works on the text of typed cells.
+    let mut typed = row(0, "x", "y", 1500);
+    typed.cells[NAME] = Cell::Number(42);
+    let typed = set(vec![typed]);
+    cases.push((
+        "typed number".into(),
+        typed.clone(),
+        col("name", FilterOp::Eq("42".into())),
+        vec!["Number(42)"],
+    ));
+    cases.push((
+        "typed quantity".into(),
+        typed,
+        col("qty", FilterOp::Eq("1.5".into())),
+        vec!["Number(42)"],
+    ));
+    // Present and absent judge the value.
     let mk = |c: Cell| {
         let mut r = row(0, "x", "", 1);
         r.cells[LOC] = c;
-        r
+        set(vec![r])
     };
     let cells = [
         (Cell::Ident("v".into()), true),
@@ -319,48 +388,23 @@ fn present_and_absent_judge_the_value() {
         (Cell::Bool(false), true),
     ];
     for (cell, present) in cells {
-        let s = set(vec![mk(cell.clone())]);
-        assert_eq!(
-            filtered(s.clone(), col("loc", FilterOp::Present)).len(),
-            usize::from(present),
-            "present {cell:?}"
-        );
-        assert_eq!(
-            filtered(s, col("loc", FilterOp::Absent)).len(),
-            usize::from(!present),
-            "absent {cell:?}"
-        );
+        let when = |on: bool| if on { vec!["x"] } else { vec![] };
+        cases.push((
+            format!("present {cell:?}"),
+            mk(cell.clone()),
+            col("loc", FilterOp::Present),
+            when(present),
+        ));
+        cases.push((
+            format!("absent {cell:?}"),
+            mk(cell),
+            col("loc", FilterOp::Absent),
+            when(!present),
+        ));
     }
-}
-
-#[test]
-fn filter_combinators_and_unknown_columns() {
-    let s = located(&["+A", "+B", "+C"]);
-    let a = || col("loc", FilterOp::Eq("+A".into()));
-    let b = || col("loc", FilterOp::Eq("+B".into()));
-    assert_eq!(filtered(s.clone(), Filter::All(vec![])), ["r0", "r1", "r2"]);
-    assert!(filtered(s.clone(), Filter::Any(vec![])).is_empty());
-    assert_eq!(filtered(s.clone(), Filter::Any(vec![a(), b()])), ["r0", "r1"]);
-    assert!(filtered(s.clone(), Filter::All(vec![a(), b()])).is_empty());
-    assert_eq!(filtered(s.clone(), Filter::Not(Box::new(a()))), ["r1", "r2"]);
-    assert!(filtered(s.clone(), col("nope", FilterOp::Present)).is_empty());
-    assert!(filtered(s.clone(), col("nope", FilterOp::Absent)).is_empty());
-    assert_eq!(
-        filtered(s, Filter::Not(Box::new(col("nope", FilterOp::Present)))),
-        ["r0", "r1", "r2"]
-    );
-}
-
-#[test]
-fn filter_works_on_the_text_of_typed_cells() {
-    let mut r = row(0, "x", "y", 1500);
-    r.cells[NAME] = Cell::Number(42);
-    let s = set(vec![r]);
-    assert_eq!(
-        filtered(s.clone(), col("name", FilterOp::Eq("42".into()))),
-        ["Number(42)"]
-    );
-    assert_eq!(filtered(s, col("qty", FilterOp::Eq("1.5".into()))).len(), 1);
+    for (name, rows, f, want) in cases {
+        assert_eq!(filtered(rows, f), want, "case {name}");
+    }
 }
 
 #[test]
@@ -459,15 +503,24 @@ fn sort_ties_break_by_row_id_ascending() {
 }
 
 #[test]
-fn an_unknown_sort_column_is_skipped() {
-    let rows = vec![row(0, "b", "", 1), row(1, "a", "", 1)];
-    assert_eq!(sorted(rows, &[("nope", false), ("name", false)]), ["a", "b"]);
-}
-
-#[test]
-fn sort_keys_that_name_no_column_keep_the_kinds_order() {
-    let rows = vec![row(1, "b", "", 1), row(0, "a", "", 1)];
-    assert_eq!(sorted(rows, &[("nope", false)]), ["b", "a"]);
+fn sort_unknown_columns() {
+    let cases: [(&str, Vec<Row>, &[(&str, bool)], [&str; 2]); 2] = [
+        (
+            "an unknown sort column is skipped",
+            vec![row(0, "b", "", 1), row(1, "a", "", 1)],
+            &[("nope", false), ("name", false)],
+            ["a", "b"],
+        ),
+        (
+            "sort keys that name no column keep the kind's order",
+            vec![row(1, "b", "", 1), row(0, "a", "", 1)],
+            &[("nope", false)],
+            ["b", "a"],
+        ),
+    ];
+    for (name, rows, keys, want) in cases {
+        assert_eq!(sorted(rows, keys), want, "case {name}");
+    }
 }
 
 #[test]
@@ -556,130 +609,160 @@ fn group_rows_keep_the_sort_order() {
     assert_eq!(names(&a.run(set(rows))), ["c", "d", "a", "b"]);
 }
 
+/// One grouping case with group headers and/or footers.
+struct GroupRowsCase {
+    name: &'static str,
+    rows: Vec<Row>,
+    header: bool,
+    footer: bool,
+    kinds: Vec<RowKind>,
+    /// The checked groups: (row range, text); `None` leaves the groups unchecked.
+    groups: Option<Vec<(std::ops::Range<u32>, &'static str)>>,
+    /// Further checks of the arranged rows.
+    extra: fn(&str, &RowSet),
+}
+
 #[test]
-fn group_headers_and_footers_with_ranges() {
-    let rows = vec![
-        row(0, "a", "L2", 1500),
-        row(1, "b", "L1", 2000),
-        row(2, "c", "L2", 250),
+fn group_headers_and_footers() {
+    use RowKind::{Data, GroupFooter, GroupHeader};
+    let cases = [
+        GroupRowsCase {
+            name: "headers and footers with ranges",
+            rows: vec![
+                row(0, "a", "L2", 1500),
+                row(1, "b", "L1", 2000),
+                row(2, "c", "L2", 250),
+            ],
+            header: true,
+            footer: true,
+            kinds: vec![
+                GroupHeader,
+                Data,
+                GroupFooter,
+                GroupHeader,
+                Data,
+                Data,
+                GroupFooter,
+            ],
+            groups: Some(vec![(0..3, "L1"), (3..7, "L2")]),
+            extra: |c, out| {
+                let header = &out.rows[0];
+                assert_eq!(
+                    header.id,
+                    RowId(vec![
+                        RowKey::Name("group-header".into()),
+                        RowKey::Name("L1".into())
+                    ]),
+                    "case {c}"
+                );
+                assert_eq!(
+                    header.cells,
+                    vec![Cell::Empty, Cell::Ident("L1".into()), Cell::Empty],
+                    "case {c}: only the key column is filled"
+                );
+                assert!(header.links.is_empty() && header.sources.is_empty(), "case {c}");
+
+                let footer = &out.rows[2];
+                assert_eq!(
+                    footer.id,
+                    RowId(vec![
+                        RowKey::Name("group-footer".into()),
+                        RowKey::Name("L1".into())
+                    ]),
+                    "case {c}"
+                );
+                assert_eq!(footer.cells[LOC], Cell::Ident("L1".into()), "case {c}");
+                assert_eq!(footer.cells[NAME], Cell::Empty, "case {c}");
+                assert_eq!(footer.cells[QTY], qty(2000), "case {c}");
+
+                let footer2 = &out.rows[6];
+                assert_eq!(footer2.cells[QTY], qty(1750), "case {c}: 1.5 + 0.25");
+            },
+        },
+        GroupRowsCase {
+            name: "only headers",
+            rows: vec![row(0, "a", "L", 1000), row(1, "b", "L", 1000)],
+            header: true,
+            footer: false,
+            kinds: vec![GroupHeader, Data, Data],
+            groups: Some(vec![(0..3, "L")]),
+            extra: |_, _| {},
+        },
+        GroupRowsCase {
+            name: "only footers",
+            rows: vec![row(0, "a", "L", 1000), row(1, "b", "L", 1000)],
+            header: false,
+            footer: true,
+            kinds: vec![Data, Data, GroupFooter],
+            groups: None,
+            extra: |c, out| assert_eq!(out.rows[2].cells[QTY], qty(2000), "case {c}"),
+        },
     ];
-    let mut a = Args::new();
-    a.group = Some(group("loc"));
-    a.header = true;
-    a.footer = true;
-    let out = a.run(set(rows));
-    let kinds: Vec<RowKind> = out.rows.iter().map(|r| r.kind).collect();
-    assert_eq!(
-        kinds,
-        [
-            RowKind::GroupHeader,
-            RowKind::Data,
-            RowKind::GroupFooter,
-            RowKind::GroupHeader,
-            RowKind::Data,
-            RowKind::Data,
-            RowKind::GroupFooter,
-        ]
-    );
-    assert_eq!(out.groups.len(), 2);
-    assert_eq!(
-        (out.groups[0].rows.clone(), out.groups[0].text.as_str()),
-        (0..3, "L1")
-    );
-    assert_eq!(
-        (out.groups[1].rows.clone(), out.groups[1].text.as_str()),
-        (3..7, "L2")
-    );
-
-    let header = &out.rows[0];
-    assert_eq!(
-        header.id,
-        RowId(vec![
-            RowKey::Name("group-header".into()),
-            RowKey::Name("L1".into())
-        ])
-    );
-    assert_eq!(
-        header.cells,
-        vec![Cell::Empty, Cell::Ident("L1".into()), Cell::Empty],
-        "only the key column is filled"
-    );
-    assert!(header.links.is_empty() && header.sources.is_empty());
-
-    let footer = &out.rows[2];
-    assert_eq!(
-        footer.id,
-        RowId(vec![
-            RowKey::Name("group-footer".into()),
-            RowKey::Name("L1".into())
-        ])
-    );
-    assert_eq!(footer.cells[LOC], Cell::Ident("L1".into()));
-    assert_eq!(footer.cells[NAME], Cell::Empty);
-    assert_eq!(footer.cells[QTY], qty(2000));
-
-    let footer2 = &out.rows[6];
-    assert_eq!(footer2.cells[QTY], qty(1750), "1.5 + 0.25");
+    for c in cases {
+        let mut a = Args::new();
+        a.group = Some(group("loc"));
+        a.header = c.header;
+        a.footer = c.footer;
+        let out = a.run(set(c.rows));
+        let kinds: Vec<RowKind> = out.rows.iter().map(|r| r.kind).collect();
+        assert_eq!(kinds, c.kinds, "case {}", c.name);
+        if let Some(groups) = c.groups {
+            let got: Vec<(std::ops::Range<u32>, &str)> = out
+                .groups
+                .iter()
+                .map(|g| (g.rows.clone(), g.text.as_str()))
+                .collect();
+            assert_eq!(got, groups, "case {}", c.name);
+        }
+        (c.extra)(c.name, &out);
+    }
 }
 
+/// The quantity sum of a group footer: (name, rows, the footers as (row index, quantity cell)).
 #[test]
-fn only_headers_or_only_footers() {
-    let rows = vec![row(0, "a", "L", 1000), row(1, "b", "L", 1000)];
-    let mut a = Args::new();
-    a.group = Some(group("loc"));
-    a.header = true;
-    let out = a.run(set(rows.clone()));
-    assert_eq!(out.rows.len(), 3);
-    assert_eq!(out.rows[0].kind, RowKind::GroupHeader);
-    assert_eq!(out.groups[0].rows, 0..3);
-
-    a.header = false;
-    a.footer = true;
-    let out = a.run(set(rows));
-    assert_eq!(out.rows.len(), 3);
-    assert_eq!(out.rows[2].kind, RowKind::GroupFooter);
-    assert_eq!(out.rows[2].cells[QTY], qty(2000));
-}
-
-#[test]
-fn footer_sums_stale_cells_and_skips_non_qty_cells() {
-    let mut r1 = row(0, "a", "L", 1000);
-    r1.cells[QTY] = Cell::Stale(Box::new(qty(1000)), Rev(2));
-    let mut r2 = row(1, "b", "L", 1000);
-    r2.cells[QTY] = Cell::Empty;
-    let r3 = row(2, "c", "L", 3000);
-    let mut a = Args::new();
-    a.group = Some(group("loc"));
-    a.footer = true;
-    let out = a.run(set(vec![r1, r2, r3]));
-    assert_eq!(out.rows[3].cells[QTY], qty(4000));
-}
-
-#[test]
-fn footer_of_mixed_units_or_no_quantities_is_empty() {
-    let mut r1 = row(0, "a", "L", 1000);
-    r1.cells[QTY] = Cell::Qty(Dec3(1000), QtyUnit::Unit(Unit::Mm2));
-    let r2 = row(1, "b", "L", 1000);
-    let mut r3 = row(2, "c", "M", 1000);
-    r3.cells[QTY] = Cell::Tbd;
-    let mut a = Args::new();
-    a.group = Some(group("loc"));
-    a.footer = true;
-    let out = a.run(set(vec![r1, r2, r3]));
-    assert_eq!(out.rows[2].kind, RowKind::GroupFooter);
-    assert_eq!(out.rows[2].cells[QTY], Cell::Empty, "mixed units");
-    assert_eq!(out.rows[4].kind, RowKind::GroupFooter);
-    assert_eq!(out.rows[4].cells[QTY], Cell::Empty, "no quantities");
-}
-
-#[test]
-fn footer_sum_saturates() {
-    let rows = vec![row(0, "a", "L", i64::MAX), row(1, "b", "L", 5)];
-    let mut a = Args::new();
-    a.group = Some(group("loc"));
-    a.footer = true;
-    let out = a.run(set(rows));
-    assert_eq!(out.rows[2].cells[QTY], qty(i64::MAX));
+fn footer_sum_cases() {
+    let stale = {
+        let mut r1 = row(0, "a", "L", 1000);
+        r1.cells[QTY] = Cell::Stale(Box::new(qty(1000)), Rev(2));
+        let mut r2 = row(1, "b", "L", 1000);
+        r2.cells[QTY] = Cell::Empty;
+        vec![r1, r2, row(2, "c", "L", 3000)]
+    };
+    let mixed = {
+        let mut r1 = row(0, "a", "L", 1000);
+        r1.cells[QTY] = Cell::Qty(Dec3(1000), QtyUnit::Unit(Unit::Mm2));
+        let mut r3 = row(2, "c", "M", 1000);
+        r3.cells[QTY] = Cell::Tbd;
+        vec![r1, row(1, "b", "L", 1000), r3]
+    };
+    let cases: [(&str, Vec<Row>, Vec<(usize, Cell)>); 3] = [
+        (
+            "the sum counts stale cells and skips non-quantity cells",
+            stale,
+            vec![(3, qty(4000))],
+        ),
+        // L mixes units, M has no quantity: both footers are empty.
+        (
+            "mixed units or no quantities give an empty footer",
+            mixed,
+            vec![(2, Cell::Empty), (4, Cell::Empty)],
+        ),
+        (
+            "the sum saturates",
+            vec![row(0, "a", "L", i64::MAX), row(1, "b", "L", 5)],
+            vec![(2, qty(i64::MAX))],
+        ),
+    ];
+    for (name, rows, footers) in cases {
+        let mut a = Args::new();
+        a.group = Some(group("loc"));
+        a.footer = true;
+        let out = a.run(set(rows));
+        for (i, want) in footers {
+            assert_eq!(out.rows[i].kind, RowKind::GroupFooter, "case {name}: row {i}");
+            assert_eq!(out.rows[i].cells[QTY], want, "case {name}: row {i}");
+        }
+    }
 }
 
 #[test]
@@ -868,11 +951,13 @@ fn cell_text_picks_the_source_language() {
     assert_eq!(cell_text(&q0, &both), "Motor");
 }
 
+/// `cell_key` is a total order over the value classes and orders text naturally: (name, a, b, a against b).
 #[test]
-fn cell_key_is_a_total_order_over_classes() {
+fn cell_key_order() {
+    use std::cmp::Ordering::{Equal, Less};
     let m = model();
     let q = Q::new(&m);
-    let k = |c: Cell| cell_key(&q, &c);
+    let ident = |s: &str| Cell::Ident(s.to_owned());
     let ascending = [
         Cell::Text(MlText::neutral("zzz")),
         Cell::Ident("a".into()),
@@ -889,28 +974,41 @@ fn cell_key_is_a_total_order_over_classes() {
         Cell::Missing(MissingReason::Colour),
         Cell::Empty,
     ];
-    for w in ascending.windows(2) {
-        assert!(k(w[0].clone()) < k(w[1].clone()), "{:?} < {:?}", w[0], w[1]);
+    let mut cases: Vec<(String, Cell, Cell, std::cmp::Ordering)> = ascending
+        .windows(2)
+        .map(|w| {
+            (
+                format!("class {:?} < {:?}", w[0], w[1]),
+                w[0].clone(),
+                w[1].clone(),
+                Less,
+            )
+        })
+        .collect();
+    cases.extend([
+        (
+            "a stale cell ranks as its value".to_owned(),
+            Cell::Number(1),
+            Cell::Stale(Box::new(Cell::Number(1)), Rev(3)),
+            Equal,
+        ),
+        (
+            "the unit does not rank".to_owned(),
+            Cell::Qty(Dec3(5), QtyUnit::None),
+            qty(5),
+            Equal,
+        ),
+        ("natural X2 < X10".to_owned(), ident("X2"), ident("X10"), Less),
+        ("natural X10 < X10a".to_owned(), ident("X10"), ident("X10a"), Less),
+        ("natural -F1 < -F12".to_owned(), ident("-F1"), ident("-F12"), Less),
+    ]);
+    for (name, a, b, want) in cases {
+        assert_eq!(
+            cell_key(&q, &a).partial_cmp(&cell_key(&q, &b)),
+            Some(want),
+            "case {name}"
+        );
     }
-    assert_eq!(
-        k(Cell::Number(1)),
-        k(Cell::Stale(Box::new(Cell::Number(1)), Rev(3)))
-    );
-    assert_eq!(
-        k(Cell::Qty(Dec3(5), QtyUnit::None)),
-        k(qty(5)),
-        "the unit does not rank"
-    );
-}
-
-#[test]
-fn cell_key_orders_text_naturally() {
-    let m = model();
-    let q = Q::new(&m);
-    let k = |s: &str| cell_key(&q, &Cell::Ident(s.to_owned()));
-    assert!(k("X2") < k("X10"));
-    assert!(k("X10") < k("X10a"));
-    assert!(k("-F1") < k("-F12"));
 }
 
 // ---------------------------------------------------------------------------------------------------------

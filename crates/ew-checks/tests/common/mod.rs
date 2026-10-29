@@ -72,6 +72,45 @@ pub fn findings_of(m: &Model, rule: &str) -> Vec<ew_checks::Finding> {
         .collect()
 }
 
+/// One case of a rule table: a named model and the check of the rule's findings over it.
+pub struct Case {
+    pub name: &'static str,
+    pub model: Model,
+    pub check: Box<dyn Fn(&str, &[ew_checks::Finding])>,
+}
+
+impl Case {
+    /// A case on which the rule reports nothing.
+    pub fn silent(name: &'static str, model: Model) -> Case {
+        Case {
+            name,
+            model,
+            check: Box::new(|c, f| assert!(f.is_empty(), "case {c}: expected no finding, got {f:#?}")),
+        }
+    }
+
+    /// A case whose findings `check` judges; `check` receives the case name for its failure messages.
+    pub fn reports(
+        name: &'static str,
+        model: Model,
+        check: impl Fn(&str, &[ew_checks::Finding]) + 'static,
+    ) -> Case {
+        Case {
+            name,
+            model,
+            check: Box::new(check),
+        }
+    }
+}
+
+/// Runs `rule` (online, `full` scheme) over the model of every case and applies the case's check.
+pub fn rule_table(rule: &str, cases: Vec<Case>) {
+    for c in &cases {
+        let f = findings_of(&c.model, rule);
+        (c.check)(c.name, &f);
+    }
+}
+
 /// The touched key of a device.
 pub fn dev_key(n: u128) -> (Kind, AnyId) {
     (Kind::Device, uid(n))
