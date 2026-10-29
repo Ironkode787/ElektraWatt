@@ -4,7 +4,7 @@
 
 A command is the one way to change a project (`Command` → `Transaction` → `Op`). The same command runs from the user interface, from a command log replayed by `ew apply`, from scripts and from the Session API. Each page below gives the command's registry entry, its parameters with types and constraints, and the exit codes of `ew apply`.
 
-56 commands, from the parameter schemas in [`crates/ew-commands/schemas`](https://github.com/Ironkode787/ElektraWatt/tree/main/crates/ew-commands/schemas). The catalogue of the command registry is [doc 17 §2.1](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md#21-command-registry).
+58 commands, from the parameter schemas in [`crates/ew-commands/schemas`](https://github.com/Ironkode787/ElektraWatt/tree/main/crates/ew-commands/schemas). The catalogue of the command registry is [doc 17 §2.1](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md#21-command-registry).
 
 | Command | Summary | Cost | Exposure | Stability |
 |---|---|---|---|---|
@@ -63,4 +63,6 @@ A command is the one way to change a project (`Command` → `Transaction` → `O
 | [`structure.create_node`](structure.create_node.md) | one identifier in one aspect tree (doc 03 §5, FR-PRJ-017). | interactive | edit | preview |
 | [`terminal.add`](terminal.add.md) | terminals of a strip; a terminal is a device with the terminal aspect (doc 03 §11). | interactive | edit | preview |
 | [`terminal.designate`](terminal.designate.md) | sets the designations of one or more terminals in one transaction (doc 03 §11). | interactive | edit | preview |
+| [`terminal.insert`](terminal.insert.md) | new terminals of a strip at a position, the following terminals moved up (WP-S2.07 §5.1, D4). | interactive | edit | preview |
+| [`terminal.move`](terminal.move.md) | terminals of one strip put before another terminal of the strip, or at its end (WP-S2.07 §5.2, D4). | interactive | edit | preview |
 | [`valve.add`](valve.add.md) | `valve.add` (`AddValve`, doc 11 §4.3 `valve.add{module, position?, part}`): adds a valve child to a module (sub-base) of a valve terminal. | interactive | edit | preview |

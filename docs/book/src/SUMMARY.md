@@ -72,6 +72,8 @@
     - [`structure.create_node`](reference/commands/structure.create_node.md)
     - [`terminal.add`](reference/commands/terminal.add.md)
     - [`terminal.designate`](reference/commands/terminal.designate.md)
+    - [`terminal.insert`](reference/commands/terminal.insert.md)
+    - [`terminal.move`](reference/commands/terminal.move.md)
     - [`valve.add`](reference/commands/valve.add.md)
   - [Rule reference](reference/rules/index.md)
     - [EW-CORE](reference/rules/ew-core.md)
