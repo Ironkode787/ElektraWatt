@@ -1176,6 +1176,8 @@ save budgets (milestone performance run).
 | Acceptance | AC-21, AC-24 |
 | Owner role | Core developer |
 
+*Status (2026-10-29, cycle 34).* **Specified, cycle 34** ([closed specification](specs/WP-S1.16-mvp-rule-packs.md); decision log ID-784): five parts filling the 4.7 pw PERT with no reserve and a de-scope rule on a > 20 % overrun. Part 1 (0.5 pw, lane F34 in cycle 34) closes FT-551 and FT-577: a potential with no definition and no source IP takes its supply's name `<root>/<tag>:<CP>` (step 2b of doc 08 §3.5) before the CP fallback; EW-POT-001's 0 V–PE role conflict gets the quick fix "Declare 0 V–PE bond (PELV)" (`bond.create` on the one carrier wire, else no fix); the Potentials table's Name cell defines a CP-only row and Type or Voltage refuse until it is named; `gpp-2` re-blessed. Part 2 completes EW-POT (FT-188, FT-189, FT-236, FT-587, FT-588), part 3 the EW-CORE rules of cables, parts and devices, part 4 pages, texts, designations, terminals and the rule system, part 5 Fluent messages, waivers (FT-494) and the four-pack subset of AC-21 with the package's AC-24 rows. Follow-ups FT-589 (AC-21's other packs) and FT-590 (the blind task's bond). No ADR changes.
+
 #### WP-S1.17 Collaboration: external change, migrations, integrity, merge driver
 
 | Field | Value |
@@ -1225,6 +1227,8 @@ save budgets (milestone performance run).
 
 *Note (2026-10-25, cycle 27, ID-651).* The parts import of this package exists in its strict form since FT-410: `parse_parts_tables` in `ew-import-tables` (path-free), the command `parts.import` (project-local copies as the golden emitter mints them, provenance the file's base name, no import date, an absent licence `NOASSERTION`) and `ew import parts`; the column mapping (FT-463), a leading byte-order mark (FT-464) and the update of held parts (FR-PRT-014) remain.
 
+*Note (2026-10-29, cycle 34, ID-783).* The open remainder of this package (FT-24, FT-39, FT-168, FT-208, FT-463) is built by [WP-S1.19](#wp-s119-parts-libraries-and-macros) parts 1, 3 and 4 on 1.0 pw of this package's PERT; this package closes with WP-S1.19 part 4.
+
 #### WP-S1.19 Parts, libraries and macros
 
 | Field | Value |
@@ -1241,6 +1245,8 @@ save budgets (milestone performance run).
 | Owner role | Core developer |
 
 *Status (2026-10-22, cycle 16).* Built ahead of the WP: `library.embed` (raw library documents with their lineage, the copy identity and the hash rule, the caller owning the closure; decision log ID-397). Open in this WP's scope: the library-reference form through `ew-library` (FT-274), "update from library" (FR-PRT-014), the Golden C step 4 line (FT-167, FT-166).
+
+*Status (2026-10-29, cycle 34).* **Specified, cycle 34** ([closed specification](specs/WP-S1.19-parts-libraries-and-macros.md); decision log ID-783): six parts filling 6.8 pw (the 5.8 pw PERT plus 1.0 pw of WP-S1.19a's open remainder, which this package builds) with no reserve and a de-scope rule on a > 20 % overrun: part 1 the typed part, manufacturer and macro data within format 0.1 (1.2 pw, Opus at `xhigh`), part 2 the `.ewlib` tiers and the per-user FTS5 index in `ew-library` (1.4 pw; the libraries stay JSONL directories, SQLite is the derived index only, never on a share), part 3 embedding by reference, `part.assign`, `library.update` and the manufacturer copies with Golden A's `lib/` re-blessed (1.3 pw), part 4 the CSV and XLSX import with column mapping and the basic project (0.8 pw), part 5 save and insert macros with the valve typical of folios 203 to 206 as the oracle (1.5 pw), part 6 the Macros and Libraries navigators (0.6 pw). WP-S2.07 part 4 waits for part 3, WP-S4.01 for part 1, WP-S7.03 for parts 2 and 4. Follow-up FT-591. No ADR changes.
 
 #### WP-S1.20 Fluid power model (MVP)
 
@@ -3653,8 +3659,10 @@ CSV and every total are unchanged. A task is closed by the commit that implement
 | FT-585 | A bridge drawn at the side-1 clamp fallback (a terminal without a part, or with a part without a shaft) is stored as `plug_in` on shaft 1; when a part with a shaft is chosen later, Bridge terminals does not see the pair as bridged (it compares CPs) and adds a second bridge on the shaft beside it, in a new group unless an existing bridge ends at those CPs. Store a clamp-end kind for the fallback bridge, or re-seat it on the shaft when the part is chosen, with a test | WP-S2.07; WP-S1.14 | M2 | ID-771; ID-780 |
 | FT-586 | The test helper `fresh_dir` (E33, ID-766) exists in three copies: `ew-viewmodel` `src` under `cfg(test)`, `ew-viewmodel` `tests/common` and `ew-ui` `tests/support`. Share one copy (for example in `ew-testkit`), the behaviour unchanged | WP-S6.02 (CI) | M2 (low) | ID-766; ID-780 |
 | FT-587 | A potential with two or more definitions takes its type, voltage, environment and class from the first definition in ID order, and its findings target that definition alone, so in a new project (random IDs) the applied value of a conflict and the finding's target can differ between two copies (the role half is fixed, ID-781); the EW-POT-001 text "member CP <function>:<idx> has role …" also prints IDs in ID order. Rank definitions by a stable key (doc 08 §3.6 says natural order, ID-175) and target every definition, with an ID-permutation test | WP-S1.16 (EW-POT); WP-S1.14 | M2 | ID-781 |
-
 | FT-588 | Two leftovers of the EW-POT target change (ID-781): (1) a potential without a definition targets every member function, so its findings' fingerprint changes when a member is added or removed and a waiver on EW-POT-001, -002, -011, -012 or -014 stops matching; compute the fingerprint from the discriminator member only (a fingerprint override for these rules) while keeping every member as a display target, or record the trade-off in doc 15 §2.5; (2) `finding_node`'s primary target falls back to ID order when two targets' first drawables share main flag, folio and cell; break the tie on a printed key. With a test for each | WP-S1.16 (EW-POT); WP-S1.14; WP-S2.09 | M2 | ID-781 |
+| FT-589 | AC-21's rows of the other packs: EW-PLC-012 (EF-02), EW-BUS-001 (EF-03) and EW-BUS-004 (EF-16) in WP-S1.21, EW-FL-001 (EF-13) and EW-FL-004 (EF-14) in WP-S1.20, EW-LAY-001 (EF-05) in WP-S4.01; when the last is built, switch the AC-21 test from WP-S1.16's four-pack subset to the whole `findings_mvp.csv` (WP-S1.16 spec D10) | WP-S1.21; WP-S1.20; WP-S4.01 | M2 | ID-784 |
+| FT-590 | The blind task gpp-101-103 never asks for the 0 V–PE bond, so its oracle's "no EW-POT-001" is reachable only through the quick fix of WP-S1.16 part 1: state bond B1 (PE-0VDC, kind PELV, via the PE-0VDC wire) in the task text and the prelude's checks, and re-bless what the change touches | WP-S6.13 | M2 | ID-784 |
+| FT-591 | Palette pins of library copies and `library.purge_unused` (doc 07 §2.8, §3.1): left out of WP-S1.19 (its spec D14, §15.3) | WP-S1.28 | 1.0 | ID-783 |
 
 ---
 
