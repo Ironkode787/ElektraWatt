@@ -173,11 +173,11 @@ device source_ref.key text other read-only:no-command
 device source_ref.lineage uuid other read-only:no-command
 device state enum(used|spare|reserved|not_fitted) identity fields.set:state
 device strip group? terminal -
-device strip.accessories list<group> terminal read-only:no-command
-device strip.accessories[] group terminal read-only:no-command
-device strip.accessories[].after_seq int[0..] terminal read-only:no-command
-device strip.accessories[].kind enum(end_plate|end_clamp|partition|marker|cover) terminal read-only:no-command
-device strip.accessories[].part link(part) terminal read-only:no-command
+device strip.accessories list<group> terminal fields.set:strip.accessories
+device strip.accessories[] group terminal fields.set:strip.accessories
+device strip.accessories[].after_seq int[0..] terminal fields.set:strip.accessories
+device strip.accessories[].kind enum(end_plate|end_clamp|partition|marker|cover) terminal fields.set:strip.accessories
+device strip.accessories[].part link(part) terminal fields.set:strip.accessories
 device strip.designation_scheme ident? terminal fields.set:strip.designation_scheme
 device strip.field_side enum(side1|side2) terminal fields.set:strip.field_side
 device strip.groups list<group> terminal fields.set:strip.groups
