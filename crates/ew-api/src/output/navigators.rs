@@ -1378,6 +1378,8 @@ fn strips_table(q: &Q, b: &mut Builder) {
         };
         let n_spare = terminals.iter().filter(|(_, t)| spare(*t)).count();
         let drawables = device_drawables(q, &folios, strip);
+        // The strip's own drawables are its strip segments.
+        let strip_drawn = !drawables.is_empty();
         let mut badges = Vec::new();
         if n_spare > 0 {
             badges.push(format!("{n_spare} spare"));
@@ -1454,6 +1456,12 @@ fn strips_table(q: &Q, b: &mut Builder) {
             let mut facets = base_facets(NavRole::Terminal, &drawables);
             facets.push(strip_facet.clone());
             let mut badges = Vec::new();
+            // §6.8: a terminal with no representation of its own on a strip that no strip segment draws is unplaced
+            // (a strip's segments draw all its terminals).
+            if drawables.is_empty() && !strip_drawn {
+                badges.push("unplaced".to_owned());
+                facets.push(("unplaced".to_owned(), String::new()));
+            }
             if let Some(d) = q.devices().get(id) {
                 if d.state == DeviceState::Spare {
                     badges.push("spare".to_owned());

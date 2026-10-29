@@ -290,6 +290,47 @@ fn nv9_an_unplaced_function_is_dragged_onto_the_canvas() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// WP-S2.07 §6.8 in the window: in the strip editor (table mode) a terminal inserted into 1X1 (no strip segment, so
+/// unplaced) is a drag source; dragging its row onto the canvas of folio 101 arms the Place tool with its function.
+#[test]
+fn s68_an_unplaced_terminal_row_is_dragged_onto_the_canvas() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let mut h = harness(&tmp, Scripted::default(), Some(dir));
+    // Tall enough that the strip editor's rows stand clear of the dock's splitter.
+    h.set_size(egui::Vec2::new(1400.0, 1100.0));
+    settle(&mut h);
+    wait_for_page(&mut h);
+    dispatch(&mut h, "page.goto", json!({"folio": "101"}));
+    dispatch(&mut h, "strip.edit", json!({"strip": "1X1"}));
+    dispatch(&mut h, "strip.insert", json!({"designation": "9"}));
+    settle(&mut h);
+    settle(&mut h);
+    let from = h
+        .get_all_by_role(egui::Role::Cell)
+        .find(|n| {
+            n.accesskit_node()
+                .label()
+                .is_some_and(|l| l.starts_with("Terminal 9,") || l.starts_with("Terminal 9 "))
+        })
+        .expect("the new row's Terminal cell")
+        .rect()
+        .center();
+    let canvas = h
+        .get_all_by_role(egui::Role::Canvas)
+        .next()
+        .expect("the canvas")
+        .rect()
+        .center();
+    drag(&mut h, from, canvas);
+    assert_eq!(
+        h.state().shell().tool().name(),
+        "place",
+        "the Place tool is armed"
+    );
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// NV4 and NV11 in the window (§9 item 4, §11): the Devices pane paints at most the rows in view plus two; opening it
 /// makes one `navigator_table` call; scrolling makes none and builds no rows.
 #[test]

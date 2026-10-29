@@ -72,7 +72,8 @@ impl Chip {
 pub enum DragSource {
     /// A page record row of the Pages navigator: its folio.
     Page(String),
-    /// An unplaced function row of the Devices navigator: the function's ID text.
+    /// An unplaced function row of the Devices navigator (the function's ID text), or an unplaced terminal row of the
+    /// Terminal strips navigator (the terminal device's ID text, WP-S2.07 §6.8).
     Function(String),
 }
 
@@ -357,8 +358,12 @@ impl ShellModel {
                             text.push_str(&format!(" [{b}]"));
                         }
                         let badges: Vec<String> = badges.iter().map(|b| (*b).to_owned()).collect();
-                        let drag = (node.role == ew_api::output::NavRole::Function
-                            && node.badges.iter().any(|b| b == "unplaced"))
+                        // An unplaced function row, and an unplaced terminal row of the Terminal strips navigator
+                        // (WP-S2.07 §6.8: its record is the terminal device; `place.pick` takes its main function).
+                        let drag = (matches!(
+                            node.role,
+                            ew_api::output::NavRole::Function | ew_api::output::NavRole::Terminal
+                        ) && node.badges.iter().any(|b| b == "unplaced"))
                         .then(|| node.records.first().map(|r| DragSource::Function(r.to_string())))
                         .flatten();
                         ShownRow {
@@ -1119,6 +1124,23 @@ impl ShellModel {
         let Some((_, node)) = self.generic(kind).and_then(|n| n.node_of(&key)) else {
             return failed("error-nav-key", &[&key, kind.word()]);
         };
+        // WP-S2.07 §6.8: Enter on an unplaced terminal row arms the Place tool with its terminal's main function on the
+        // page of the focused tab (the drop of the row onto a canvas does the same).
+        if kind == NavKind::Strips
+            && node.role == ew_api::output::NavRole::Terminal
+            && node.badges.iter().any(|b| b == "unplaced")
+            && let Some(terminal) = node.records.first().copied()
+        {
+            if self.current_folio().is_none() {
+                return Outcome::Refused {
+                    reason_key: "reason-no-page",
+                };
+            }
+            self.set_cursor(kind, &key);
+            let mut q = Map::new();
+            q.insert("function".into(), Value::String(terminal.to_string()));
+            return self.act_place_pick(&q);
+        }
         let Some(open) = node.open.clone() else {
             let mut q = Map::new();
             q.insert("kind".into(), Value::from(kind.word()));

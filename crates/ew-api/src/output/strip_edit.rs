@@ -220,6 +220,23 @@ impl Session {
             .collect()
     }
 
+    /// The main function of the device `record` and the key of its function definition (WP-S2.07 §6.8: an unplaced
+    /// terminal row places its terminal's main function); `None` when `record` is no device or the device has no
+    /// function. The key is empty for a definition without one.
+    pub fn main_function(&self, record: Uuid) -> Option<(Uuid, String)> {
+        let q = self.query();
+        let device: Id<Device> = Id::from_uuid(record);
+        q.devices().get(device)?;
+        let main = (*q.get::<MainFunction>(device))?;
+        let key = q
+            .functions()
+            .get(main)
+            .and_then(|f| q.fndefs().get(f.def).cloned())
+            .and_then(|d| d.item.meta.key.as_ref().map(|k| k.as_str().to_owned()))
+            .unwrap_or_default();
+        Some((main.as_uuid(), key))
+    }
+
     /// The one command of a strip gesture (§4.2): the door through which the view model compiles every strip gesture.
     ///
     /// # Errors

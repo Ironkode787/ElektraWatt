@@ -15,7 +15,7 @@
 use std::sync::Arc;
 
 use ew_api::output::ew_dl::EntityRef;
-use ew_api::output::{CatalogueSymbol, PageTables, PlaceCatalogue, SymbolShape};
+use ew_api::output::{CatalogueSymbol, PageTables, PlaceCatalogue, SymbolShape, Uuid};
 use ew_api::{AnyCommand, Session};
 use serde_json::{Map, Value, json};
 
@@ -738,10 +738,20 @@ impl ShellModel {
                 Pick::PartFn(pi, fi)
             }
             (_, Ok(Some(function))) => {
+                // WP-S2.07 §6.8: an unplaced terminal row names its terminal device, which places the device's main
+                // function.
+                let main = Uuid::parse_str(function)
+                    .ok()
+                    .and_then(|u| self.project.as_ref()?.session.main_function(u))
+                    .map(|(f, key)| (f.to_string(), key));
+                let function = main.as_ref().map_or(function, |(f, _)| f.as_str());
                 // WP-S2.06 part 1 (§6.7): without `symbol`, the drop of an unplaced function row takes the first
                 // catalogue symbol that draws the function's FnDef (the Devices navigator's function row names it).
                 let symbol = symbol.or_else(|| {
-                    let fndef = self.function_fndef_key(function)?;
+                    let fndef = match &main {
+                        Some((_, key)) => key.clone(),
+                        None => self.function_fndef_key(function)?,
+                    };
                     cat.symbols
                         .iter()
                         .find(|s| s.fndef_key == fndef && s.allowed && !s.black_box)

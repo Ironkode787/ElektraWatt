@@ -9,6 +9,7 @@
 mod common;
 
 use common::{Tmp, done, refused, state};
+use ew_viewmodel::navigators::NavKind;
 use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
 use ew_viewmodel::tools::PickerMode;
 use serde_json::json;
@@ -121,13 +122,145 @@ fn ft621_the_page_description_lists_a_strips_bridges() {
     assert!(!page_text(&mut s, "101").contains("\n  bridge "));
     // Bridging two terminals of 1X1 shows on folio 101's description.
     done(&mut s, "select.set", json!({"refs": ["tag:1X1:1", "tag:1X1:2"]}));
-    let out = s.dispatch("strip.bridge", &json!({}));
-    assert_eq!(out, ew_viewmodel::shell::Outcome::Done, "{}", s.describe());
+    done(&mut s, "strip.bridge", json!({}));
     let text = page_text(&mut s, "101");
     let line = text
         .lines()
         .find(|l| l.starts_with("  bridge "))
         .unwrap_or_else(|| panic!("{text}"));
     assert!(line.ends_with("\"1X1:1\" \"1X1:2\""), "{line}");
+    s.shutdown();
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Strip editor helpers (as in strip_editor.rs)
+
+/// The texts of the Terminal strips column labelled `label` on show, with the row keys.
+fn column(s: &ShellModel, label: &str) -> Vec<(String, String)> {
+    let n = s.nav(NavKind::Strips).unwrap();
+    let t = n.table().unwrap();
+    let c = t.columns.iter().position(|c| c.label == label).unwrap();
+    n.visible()
+        .iter()
+        .map(|r| {
+            let node = &t.nodes[r.node as usize];
+            (node.key.clone(), node.cells[c].clone())
+        })
+        .collect()
+}
+
+fn texts(s: &ShellModel, label: &str) -> Vec<String> {
+    column(s, label).into_iter().map(|(_, t)| t).collect()
+}
+
+fn row(s: &ShellModel, label: &str, text: &str) -> String {
+    column(s, label)
+        .into_iter()
+        .find(|(_, t)| t == text)
+        .unwrap_or_else(|| panic!("no row with {label} {text}"))
+        .0
+}
+
+fn cursor(s: &ShellModel) -> String {
+    s.nav(NavKind::Strips)
+        .and_then(|n| n.cursor_key())
+        .expect("a cursor row")
+}
+
+fn toast(s: &ShellModel) -> String {
+    state(s)["toast"]["text"].as_str().unwrap_or_default().to_owned()
+}
+
+/// A writable copy of Golden A, headless, with the strip editor open on `strip` (table mode, filtered).
+fn editor(tmp: &Tmp, strip: &str) -> ShellModel {
+    let mut s = tmp.shell_in(Mode::Headless, true, "103");
+    done(&mut s, "strip.edit", json!({ "strip": strip }));
+    s
+}
+
+fn at(s: &mut ShellModel, key: &str) {
+    done(s, "table.cell", json!({"kind": "strips", "row": key}));
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// FT-600
+
+/// Table mode reaches the start of a strip: Add accessory with `before` on the first terminal row adds the accessory
+/// at `after_seq` 0 (Pos 0.1), on a later terminal directly before it (after the terminal before it and the accessories
+/// already there); one undo step each. Without `before` it goes after the row as built.
+#[test]
+fn ft600_add_accessory_before_the_first_terminal_in_table_mode() {
+    let tmp = Tmp::new("s207p2-600");
+    let mut s = editor(&tmp, "-X1031");
+    let k1 = row(&s, "Terminal", "1");
+    assert_eq!(cursor(&s), k1);
+    let steps = s.recorded_commands().len();
+    done(&mut s, "strip.add_accessory", json!({"before": true}));
+    assert_eq!(s.recorded_commands().len(), steps + 1, "one command");
+    assert_eq!(toast(&s), "Added End bracket before -X1031:1");
+    assert_eq!(texts(&s, "Pos")[..2], ["0.1", "1"]);
+    assert_eq!(cursor(&s), row(&s, "Pos", "0.1"));
+    // Before terminal 5: after terminal 4.
+    let k5 = row(&s, "Terminal", "5");
+    at(&mut s, &k5);
+    done(&mut s, "strip.add_accessory", json!({"before": true}));
+    let pos = texts(&s, "Pos");
+    let i = pos.iter().position(|p| p == "4.1").expect("4.1");
+    assert_eq!(pos[i - 1..=i + 1], ["4", "4.1", "5"]);
+    // An undo removes the last one only.
+    done(&mut s, "edit.undo", json!({}));
+    assert!(!texts(&s, "Pos").contains(&"4.1".to_owned()));
+    assert_eq!(texts(&s, "Pos")[0], "0.1");
+    s.shutdown();
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// §6.8
+
+/// A terminal row whose terminal has no representation on a strip without strip segments carries the `unplaced` badge
+/// and is a drag source naming its terminal; Enter (`navigator.open`) on it arms the Place tool with the terminal's
+/// main function on the page shown, and a click places it, so the badge goes. Terminals drawn by a strip segment
+/// (-X1031) are not unplaced.
+#[test]
+fn s68_enter_on_an_unplaced_terminal_row_arms_place_with_its_function() {
+    let tmp = Tmp::new("s207p2-68");
+    let mut s = tmp.shell_in(Mode::Headless, true, "101");
+    done(&mut s, "view.zoom_actual", json!({}));
+    done(&mut s, "strip.edit", json!({"strip": "1X1"}));
+    // A new terminal at the end of 1X1 (it has no strip segment): unplaced.
+    let last = row(&s, "Terminal", "PE");
+    at(&mut s, &last);
+    done(&mut s, "strip.insert", json!({"designation": "9"}));
+    let new = row(&s, "Terminal", "9");
+    let rows = s.shown_rows(NavKind::Strips);
+    let r = rows.iter().find(|r| r.key == new).expect("the new row");
+    assert!(r.badges.iter().any(|b| b == "unplaced"), "{:?}", r.badges);
+    assert!(matches!(
+        &r.drag,
+        Some(ew_viewmodel::shell::DragSource::Function(_))
+    ));
+    let placed = row(&s, "Terminal", "1");
+    let r1 = rows.iter().find(|r| r.key == placed).unwrap();
+    assert!(!r1.badges.iter().any(|b| b == "unplaced"));
+    // Enter on the row (in the tree view) arms Place with the terminal's function.
+    done(&mut s, "navigator.table", json!({"kind": "strips", "on": false}));
+    done(&mut s, "navigator.open", json!({"kind": "strips", "key": new}));
+    assert_eq!(s.tool().name(), "place");
+    let ghost = &state(&s)["canvas"]["ghost"];
+    assert_eq!(ghost["target"], "function", "{ghost}");
+    // A click places it: the row loses the badge.
+    let p = common::empty_point(s.canvas().unwrap());
+    common::click(&mut s, p, json!({}));
+    let rows = s.shown_rows(NavKind::Strips);
+    let r = rows.iter().find(|r| r.key == new).expect("the row");
+    assert!(!r.badges.iter().any(|b| b == "unplaced"), "{:?}", r.badges);
+    // -X1031's terminals are drawn by its strip segments.
+    done(
+        &mut s,
+        "navigator.filter",
+        json!({"kind": "strips", "text": "strip:-x1031"}),
+    );
+    let rows = s.shown_rows(NavKind::Strips);
+    assert!(rows.iter().all(|r| !r.badges.iter().any(|b| b == "unplaced")));
     s.shutdown();
 }

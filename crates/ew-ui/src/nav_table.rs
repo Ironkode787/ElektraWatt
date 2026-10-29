@@ -950,7 +950,20 @@ impl TableDelegate for Delegate<'_> {
         let rect = cell_rect(ui, &t, &column.key, || {
             text_width(ui, &text, theme::font(&t.type_small))
         });
-        let response = ui.allocate_rect(rect, Sense::click());
+        // WP-S2.07 §6.8: an unplaced terminal row is a drag source onto a canvas (its terminal device; the drop arms
+        // Place with the terminal's main function).
+        let unplaced = (node.role == NavRole::Terminal && node.badges.iter().any(|b| b == "unplaced"))
+            .then(|| node.records.first())
+            .flatten();
+        let sense = if unplaced.is_some() {
+            Sense::click_and_drag()
+        } else {
+            Sense::click()
+        };
+        let response = ui.allocate_rect(rect, sense);
+        if let Some(record) = unplaced {
+            response.dnd_set_drag_payload(crate::navigator::FunctionDrag(record.to_string()));
+        }
         // Doc 16a §6.21: text in `type.small`, primary (a derived cell secondary), `space.4` padding, cut with an
         // ellipsis at the column (W31-3).
         // WP-S2.07 part 1: an accessory row's texts are secondary, except its editable Part cell.
