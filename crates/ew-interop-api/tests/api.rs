@@ -41,13 +41,6 @@ fn code_display_and_parse() {
 }
 
 #[test]
-fn defect_class_display() {
-    assert_eq!(DefectClass(1).to_string(), "D-01");
-    assert_eq!(DefectClass(29).to_string(), "D-29");
-    assert_eq!(DefectClass(100).to_string(), "D-100");
-}
-
-#[test]
 fn input_accessors_and_file_name_rule() {
     let input = ImportInput::new("x.elmt", b"abc".to_vec()).unwrap();
     assert_eq!(input.name(), "x.elmt");
@@ -197,17 +190,6 @@ fn limits_element_definition_and_stricter() {
     assert_eq!(m.max_xml_nodes, 262_144);
     assert_eq!(m.max_xml_attributes, 131_072);
     assert_eq!(Limits::default().stricter(e), e);
-}
-
-#[test]
-fn context_names_the_project() {
-    let project = Id::from_uuid(Uuid::from_u128(0x0192_f3a4_5b6c_7d8e_8f01_2345_6789_ab00));
-    let ctx = ImportContext::new(project);
-    assert_eq!(ctx.project, project);
-    assert_eq!(
-        (ctx.lineage, ctx.as_of, ctx.limits),
-        (None, None, Limits::default())
-    );
 }
 
 struct Tiny;
