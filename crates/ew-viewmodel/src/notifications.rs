@@ -316,7 +316,10 @@ mod tests {
             log.get(checked).map(Notification::lines),
             Some(("Check", Some("1 error, 0 warnings")))
         );
-        assert_eq!(log.get(plain).map(Notification::lines), Some(("Placed -K1", None)));
+        assert_eq!(
+            log.get(plain).map(Notification::lines),
+            Some(("Placed -K1", None))
+        );
     }
 
     #[test]

@@ -62,10 +62,7 @@ fn pv2_renumber_devices_through_the_dialog_and_the_preview_tab() {
     settle(&mut h);
     assert!(h.state().shell().dialog().is_none());
     assert!(group_named(&h, "Preview"), "the Preview tab");
-    assert!(
-        has_text(&h, "Preview: Renumber · as of rev 1"),
-        "the header"
-    );
+    assert!(has_text(&h, "Preview: Renumber · as of rev 1"), "the header");
     assert!(has_text(
         &h,
         "8 records · 11 tags · 0 cross-reference texts · 1 pages"

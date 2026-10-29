@@ -159,10 +159,8 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                     .font(theme::font(&t.type_body_strong))
                     .color(t.text_primary.color32()),
             );
-            let mut header = strings::format(
-                "preview-header",
-                &[command, &card.preview.base_rev.to_string()],
-            );
+            let mut header =
+                strings::format("preview-header", &[command, &card.preview.base_rev.to_string()]);
             if status == CardStatus::Stale {
                 header.push_str(&format!(" [{}]", strings::text("preview-stale")));
             }
