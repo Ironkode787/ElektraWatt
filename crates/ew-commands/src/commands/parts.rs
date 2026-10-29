@@ -7,6 +7,7 @@
 
 use std::collections::BTreeSet;
 
+use ew_ids::Uuid;
 use ew_schema::{Kind, LibCopy, LibDocument, Manufacturer, Part};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -34,9 +35,11 @@ use super::library::read_copy;
 ///   invalid.
 ///
 /// **Duplicates.** A part copy whose key a project-local part copy of the project has already, or whose copy ID
-/// exists, is skipped and counted; a manufacturer copy whose copy ID exists is skipped; nothing is updated (updating a
-/// part is FR-PRT-014's previewed command). The rest are inserted in the given order, in one transaction (one undo
-/// step); when every copy is skipped the transaction is empty.
+/// exists, is skipped and counted; nothing is updated (updating a part is FR-PRT-014's previewed command). The rest
+/// are inserted in the given order, in one transaction (one undo step). A manufacturer copy is inserted only when an
+/// inserted part copy names it (its `library_id` and `item_id` are the part's `manufacturer` reference) and its copy
+/// ID does not exist yet, so no manufacturer copy is left without a part; when every part copy is skipped the
+/// transaction is empty.
 ///
 /// Cost `Bulk` (always previewed: the shell shows the card with the created and skipped counts), exposure `Edit` (the
 /// GUI, `ew import parts`, and a command log replayed by `ew apply`). Outcome: the first inserted part copy; the note
@@ -131,6 +134,8 @@ impl Command for ImportParts {
             .collect();
         let (mut created, mut skipped) = (0usize, 0usize);
         let mut primary = None;
+        // The manufacturers (library, item) the inserted part copies name.
+        let mut named: BTreeSet<(Uuid, Uuid)> = BTreeSet::new();
         for copy in copies {
             let key = copy
                 .item
@@ -143,12 +148,16 @@ impl Command for ImportParts {
                 skipped += 1;
                 continue;
             }
+            let maker = &copy.item.manufacturer;
+            named.insert((maker.library.as_uuid(), maker.item.as_uuid()));
             let id = tx.insert(copy)?;
             primary.get_or_insert((Kind::Part, id.cast()));
             created += 1;
         }
         for copy in makers {
-            if tx.row(&(Kind::Manufacturer, copy.id.cast())).is_none() {
+            if named.contains(&(copy.library_id.as_uuid(), copy.item_id.as_uuid()))
+                && tx.row(&(Kind::Manufacturer, copy.id.cast())).is_none()
+            {
                 tx.insert(copy)?;
             }
         }

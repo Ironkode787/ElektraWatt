@@ -11,7 +11,7 @@ mod common;
 use common::*;
 use ew_commands::commands::{ImportParts, import_counts};
 use ew_commands::{CmdError, Cost, Engine, Origin, Receipt};
-use ew_schema::{Kind, LibCopy, LibDocument, Part};
+use ew_schema::{Kind, LibCopy, LibDocument, Manufacturer, Part};
 use serde_json::{Value, json};
 
 /// The golden project's part copies (`golden/J-E-2416.ew/lib/parts`), re-homed as project-local copies of the test
@@ -94,6 +94,77 @@ fn a_second_import_skips_every_key_and_undo_removes_the_first() {
     assert_eq!(parts(&e), before + 5);
     e.undo(&Origin::Gui).unwrap();
     assert_eq!(parts(&e), before);
+}
+
+/// The golden project's manufacturer copies, re-homed as project-local copies like [`local_copies`].
+fn local_manufacturers() -> Vec<LibCopy<Manufacturer>> {
+    let dir =
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew/lib/manufacturers");
+    let mut paths: Vec<_> = std::fs::read_dir(dir)
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .collect();
+    paths.sort();
+    let project = project().id.as_uuid();
+    paths
+        .iter()
+        .map(|p| {
+            let LibDocument::Manufacturer(mut c) =
+                LibDocument::from_json(&std::fs::read_to_string(p).unwrap()).unwrap()
+            else {
+                panic!("a manufacturer copy")
+            };
+            c.library_id = ew_ids::Id::from_uuid(project);
+            c.id = ew_ids::v5::lib_copy_id(project, c.item_id.as_uuid());
+            c
+        })
+        .collect()
+}
+
+fn makers(e: &Engine) -> usize {
+    e.model().table::<LibCopy<Manufacturer>>().len()
+}
+
+/// Review C35 m4: only the manufacturer copies an inserted part copy names are inserted; an import whose part copies
+/// are all skipped inserts none and is an empty transaction (no undo step).
+#[test]
+fn only_the_manufacturers_of_inserted_parts_are_inserted() {
+    let project = project().id.as_uuid();
+    let all = local_manufacturers();
+    // The first part names a project-local copy of its manufacturer; its hash follows the changed reference.
+    let mut part = local_copies(1).remove(0);
+    let maker_item = part["manufacturer"]["item"].as_str().unwrap().to_owned();
+    part["manufacturer"]["library"] = json!(project.to_string());
+    let doc = LibDocument::from_value(part).unwrap();
+    let hash = ew_commands::commands::library_copy_hash(&doc).unwrap();
+    let mut part = serde_json::to_value(&doc).unwrap();
+    part["sha256"] = json!(ew_schema::Sha256(hash).to_string());
+    let named = all
+        .iter()
+        .find(|m| m.item_id.as_uuid().to_string() == maker_item)
+        .expect("the part's manufacturer")
+        .clone();
+    let other = all
+        .iter()
+        .find(|m| m.item_id != named.item_id)
+        .expect("another manufacturer")
+        .clone();
+    let value =
+        |m: &LibCopy<Manufacturer>| serde_json::to_value(LibDocument::Manufacturer(m.clone())).unwrap();
+    let mut e = engine(empty_model());
+    let before = makers(&e);
+    let r = import(&mut e, vec![part.clone(), value(&named), value(&other)]).unwrap();
+    assert_eq!(r.outcome.note.as_deref().and_then(import_counts), Some((1, 0)));
+    assert_eq!(makers(&e), before + 1, "only the named manufacturer");
+    let held = e.model().table::<LibCopy<Manufacturer>>();
+    assert!(held.iter().any(|(id, _)| *id == named.id));
+    assert!(held.iter().all(|(id, _)| *id != other.id));
+    // Every part skipped: no manufacturer inserted, no undo step.
+    let r = import(&mut e, vec![part, value(&other)]).unwrap();
+    assert_eq!(r.outcome.note.as_deref().and_then(import_counts), Some((0, 1)));
+    assert_eq!(makers(&e), before + 1);
+    e.undo(&Origin::Gui).unwrap();
+    assert_eq!(makers(&e), before, "the undo step was the first import");
 }
 
 #[test]
