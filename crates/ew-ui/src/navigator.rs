@@ -89,6 +89,9 @@ pub struct NavigatorPane {
     view: std::ops::Range<usize>,
     /// The list's height on the last frame (W31-1: a shorter list scrolls its cursor back into view).
     list_height: f32,
+    /// FT-560: the list's scroll area as last shown, and whether it came new (a dock change rebuilt the pane's ids,
+    /// so the area starts at the top again): the cursor is then scrolled into view as if it had moved.
+    scroll_area: (Option<egui::Id>, bool),
     /// Table mode's widget state (WP-S2.06 part 3).
     table: crate::nav_table::TableUi,
 }
@@ -117,6 +120,7 @@ impl NavigatorPane {
             painted: 0,
             view: 0..0,
             list_height: 0.0,
+            scroll_area: (None, false),
             table: crate::nav_table::TableUi::default(),
         }
     }
@@ -410,10 +414,11 @@ impl NavigatorPane {
         self.list_height = list_rect.height();
         let scroll_to = cursor
             .as_ref()
-            .filter(|c| self.scrolled_to.as_ref() != Some(*c) || shrunk)
+            .filter(|c| self.scrolled_to.as_ref() != Some(*c) || shrunk || self.scroll_area.1)
             .and_then(|c| visible.iter().position(|r| &r.key == c))
             .filter(|i| !inside(*i));
         self.scrolled_to.clone_from(&cursor);
+        self.scroll_area.1 = false;
         let row = row_height(ui.ctx());
         // The list keeps to that room: neither the rest of the pane nor egui's default minimum of 64 points may run
         // it under the Messages detail block, which the token sizes made reachable in a short pane.
@@ -437,7 +442,7 @@ impl NavigatorPane {
             // Rows of `size.row`, edge to edge (doc 16a §6.6): the row's widgets take the row's height, no gap.
             ui.spacing_mut().item_spacing.y = 0.0;
             ui.spacing_mut().interact_size.y = row;
-            area.show_rows(ui, row, visible.len(), |ui, range| {
+            let shown = area.show_rows(ui, row, visible.len(), |ui, range| {
                 if let Some(i) = scroll_to {
                     // The closure's rectangle starts at the first row it paints, `range.start`.
                     let first = ui.max_rect().top() - range.start as f32 * row;
@@ -458,6 +463,13 @@ impl NavigatorPane {
                     row_ui(ui, kind, pages, row, cursor.as_deref(), &visible, events);
                 }
             });
+            if self.scroll_area.0 != Some(shown.id) {
+                // A new area (the pane's ids changed): scroll to the cursor on the next frame.
+                self.scroll_area = (Some(shown.id), self.scroll_area.0.is_some());
+                if self.scroll_area.1 {
+                    ui.ctx().request_repaint();
+                }
+            }
         });
         self.painted = painted;
         self.view = view;
