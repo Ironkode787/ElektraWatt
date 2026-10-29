@@ -612,6 +612,28 @@
       "confirmation": "none",
       "cost": "interactive",
       "exposure": "edit",
+      "name": "terminal.insert",
+      "params_version": 1,
+      "schema": "terminal.insert.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "terminal.move",
+      "params_version": 1,
+      "schema": "terminal.move.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
       "name": "valve.add",
       "params_version": 1,
       "schema": "valve.add.schema.json",

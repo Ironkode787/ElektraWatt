@@ -1,0 +1,41 @@
+{
+  "$defs": {
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`terminal.move`: terminals of one strip put before another terminal of the strip, or at its end (WP-S2.07 §5.2,\nD4).\n\nLet T be the strip's terminals in (`seq`, ID) order. The new order O is T without the moved terminals, with them\n(in their T order) inserted directly before `before` (absent: at the end). For every index i from the first to the\nlast where T and O differ, the terminal at index i of O takes the old `seq` of the one at index i of T: the\nsequence values of the changed range are permuted (the rule of `page.reorder`). Groups, accessories and\ndesignations stay, so a moved terminal takes the group of its new place. Rejected: no terminal; a terminal listed\ntwice; a device that is not a terminal; terminals of two strips; a `before` that is one of the moved terminals or\nnot a terminal of their strip; an order that does not change. A missing device is `NotFound`. Cost Interactive, Outcome none.",
+  "properties": {
+    "before": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CmdUuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The terminal of the same strip they are put before; absent or null: after the last terminal of the strip."
+    },
+    "terminals": {
+      "description": "The terminal devices to move, at least one, all of one strip, in any order (they are taken in strip order).",
+      "items": {
+        "$ref": "#/$defs/CmdUuid"
+      },
+      "minItems": 1,
+      "type": "array"
+    }
+  },
+  "required": [
+    "terminals"
+  ],
+  "title": "terminal.move",
+  "type": "object"
+}

@@ -62,6 +62,8 @@
 //! | `marker.place` | [`PlaceMarker`] | Interactive |
 //! | `parts.import` | [`ImportParts`] | Bulk |
 //! | `connection.draw_many` | [`ConnectMany`] | Interactive; Bulk above 500 entries |
+//! | `terminal.insert` | [`InsertTerminals`] | Interactive |
+//! | `terminal.move` | [`MoveTerminals`] | Interactive |
 //!
 //! Every command is of stability `Preview` and undoable except `project.assets.purge`, a marker line whose file side
 //! (deleting asset files nothing names) runs in the session (ADR-0008 amendment 1, FT-380); every one is of exposure
@@ -134,8 +136,8 @@ pub use structure::{CreateExternalRef, CreateReportBlock, CreateSection, CreateS
 pub use structure_box::{BoxStyleParam, CreateStructureBox};
 pub use supply::{SETTABLE_SUPPLY, SetProjectSupply};
 pub use terminal::{
-    AddConductors, AddTerminals, ConductorSpec, CreateCable, DesignateTerminals, TerminalDesignation,
-    TerminalSpec,
+    AddConductors, AddTerminals, ConductorSpec, CreateCable, DesignateTerminals, InsertTerminals,
+    MoveTerminals, TerminalDesignation, TerminalSpec,
 };
 
 use crate::registry::CommandRegistry;
@@ -204,4 +206,7 @@ pub fn register_all(r: &mut CommandRegistry) {
     r.register::<ImportParts>();
     // Cycle 33: the chain of bridges of Edit ▸ Bridge terminals
     r.register::<ConnectMany>();
+    // WP-S2.07 part 1: the strip editor's insert and move
+    r.register::<InsertTerminals>();
+    r.register::<MoveTerminals>();
 }

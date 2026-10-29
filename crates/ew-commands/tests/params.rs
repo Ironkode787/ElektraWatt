@@ -272,6 +272,16 @@ fn examples() -> Vec<(&'static str, Value)> {
             "connection.draw_many",
             json!({"connections": [{"a": fn_a, "b": fn_b}]}),
         ),
+        // WP-S2.07 part 1
+        (
+            "terminal.insert",
+            json!({"strip": DEV_X1031.to_string(), "before": DEV_T2.to_string(),
+                "fndef": FNDEF_TERMINAL.to_string(), "terminals": [{"designation": "9"}]}),
+        ),
+        (
+            "terminal.move",
+            json!({"terminals": [DEV_T3.to_string()], "before": DEV_T1.to_string()}),
+        ),
     ]
 }
 
@@ -299,7 +309,7 @@ fn every_registered_command_has_an_example() {
     let registry = CommandRegistry::builtin();
     let registered: BTreeSet<&str> = registry.commands().map(|c| c.meta().name).collect();
     let covered: BTreeSet<&str> = examples().iter().map(|(n, _)| *n).collect();
-    assert_eq!(registered.len(), 56);
+    assert_eq!(registered.len(), 58);
     assert_eq!(registered, covered);
     assert_eq!(examples().len(), covered.len(), "one example per command");
 }

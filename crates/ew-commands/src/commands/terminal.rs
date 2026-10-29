@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Terminal and cable commands (doc 03 §11–§12): `terminal.add`, `terminal.designate`, `cable.create`,
-//! `conductor.add`.
+//! Terminal and cable commands (doc 03 §11–§12): `terminal.add`, `terminal.designate`, `terminal.insert`,
+//! `terminal.move`, `cable.create`, `conductor.add`.
 
 use std::collections::BTreeSet;
 
@@ -249,6 +249,313 @@ pub(crate) fn insert_terminal(
         extra: Extra::new(),
     })?;
     Ok((device, function))
+}
+
+/// `terminal.insert`: new terminals of a strip at a position, the following terminals moved up (WP-S2.07 §5.1, D4).
+///
+/// Let s be the `seq` of `before` (absent: one more than the strip's highest `seq`, or 1 for an empty strip) and n
+/// the number of terminals. In one transaction every terminal of the strip with `seq ≥ s` gets `seq + n` (its tag
+/// and designation stay), every group bound (`from_seq`, `to_seq`) and every accessory `after_seq` at or above s is
+/// raised by n, and the new terminals are inserted as `terminal.add` inserts them, with `seq` s, s + 1, … in list
+/// order and `parts` on each. Rejected: the strip is not a device with the strip aspect; `before` is not a terminal of
+/// the strip; no terminal; a spec with `seq`; a designation already used in the strip or twice in the list; a
+/// sequence number beyond 4294967295. A missing strip, `before`, function definition or part copy is `NotFound`.
+/// Cost Interactive. Outcome: the first new terminal device.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct InsertTerminals {
+    /// The strip device.
+    #[schemars(with = "UuidS")]
+    pub strip: Id<Device>,
+    /// The terminal of the strip the new terminals go before; absent or null: after the last terminal.
+    #[serde(default)]
+    #[schemars(with = "Option<UuidS>")]
+    pub before: Option<Id<Device>>,
+    /// The terminal FnDef copy.
+    #[schemars(with = "UuidS")]
+    pub fndef: Id<FnDef>,
+    /// The terminals, at least one, in mounting order; their position follows from `before`, so `seq` is not
+    /// allowed.
+    #[schemars(length(min = 1))]
+    pub terminals: Vec<TerminalSpec>,
+    /// The part uses each new terminal gets.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub parts: Vec<PartUse>,
+}
+
+impl InsertTerminals {
+    /// A rejection of the parameters at the JSON Pointer `path`.
+    fn bad<T>(path: impl Into<String>, message: impl Into<String>) -> Result<T, CmdError> {
+        Err(CmdError::invalid_params(Self::NAME, path, message))
+    }
+}
+
+/// The message of a sequence number that would pass `u32::MAX`.
+const SEQ_OVERFLOW: &str = "the sequence numbers would pass 4294967295; insert at a lower position";
+
+impl Command for InsertTerminals {
+    const NAME: &'static str = "terminal.insert";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        let strip = tx.require::<Device>(self.strip)?;
+        let Some(mut aspect) = strip.aspects.strip.clone() else {
+            return Self::bad(
+                "/strip",
+                "the device is not a terminal strip; pick a device with the strip aspect",
+            );
+        };
+        tx.require::<LibCopy<FnDef>>(self.fndef)?;
+        for part in &self.parts {
+            tx.require::<LibCopy<Part>>(part.part.copy)?;
+        }
+        let at = match self.before {
+            Some(b) => {
+                let device = tx.require::<Device>(b)?;
+                match device.aspects.terminal.as_ref() {
+                    Some(t) if t.strip == self.strip => Some(t.seq),
+                    _ => return Self::bad("/before", "the device is not a terminal of the strip"),
+                }
+            }
+            None => None,
+        };
+        if self.terminals.is_empty() {
+            return Self::bad("/terminals", "give at least one terminal to insert");
+        }
+        for (i, spec) in self.terminals.iter().enumerate() {
+            if spec.seq.is_some() {
+                return Self::bad(
+                    format!("/terminals/{i}/seq"),
+                    "the position follows from `before`; leave out `seq`",
+                );
+            }
+        }
+        let (existing, seqs) = strip_usage(tx, self.strip);
+        let mut listed: BTreeSet<&Ident> = BTreeSet::new();
+        for (i, spec) in self.terminals.iter().enumerate() {
+            if existing.contains(&spec.designation) {
+                return Self::bad(
+                    format!("/terminals/{i}/designation"),
+                    format!(
+                        "designation {} is already used in the strip; choose another",
+                        spec.designation.as_str()
+                    ),
+                );
+            }
+            if !listed.insert(&spec.designation) {
+                return Self::bad(
+                    format!("/terminals/{i}/designation"),
+                    format!(
+                        "designation {} is given twice; choose another",
+                        spec.designation.as_str()
+                    ),
+                );
+            }
+        }
+        let s = match at {
+            Some(seq) => seq,
+            None => match seqs.last() {
+                Some(max) => match max.checked_add(1) {
+                    Some(s) => s,
+                    None => return Self::bad("/terminals", SEQ_OVERFLOW),
+                },
+                None => 1,
+            },
+        };
+        let Ok(n) = u32::try_from(self.terminals.len()) else {
+            return Self::bad("/terminals", SEQ_OVERFLOW);
+        };
+        let shift = |v: u32| -> Result<u32, CmdError> {
+            if v >= s {
+                v.checked_add(n)
+                    .map_or_else(|| Self::bad("/terminals", SEQ_OVERFLOW), Ok)
+            } else {
+                Ok(v)
+            }
+        };
+        // The new terminals take s … s + n − 1.
+        if s.checked_add(n - 1).is_none() {
+            return Self::bad("/terminals", SEQ_OVERFLOW);
+        }
+        // The strip's terminals at or after s move up by n (only the sequence number changes).
+        let mut moved: Vec<(Id<Device>, u32)> = Vec::new();
+        let mut terminals = tx.terminals_of_strip(self.strip);
+        terminals.sort();
+        for id in terminals {
+            if let Some(t) = tx.get::<Device>(id).and_then(|d| d.aspects.terminal.clone()) {
+                let new = shift(t.seq)?;
+                if new != t.seq {
+                    moved.push((id, new));
+                }
+            }
+        }
+        // The groups and accessories at or after s move with them.
+        for g in &mut aspect.groups {
+            g.from_seq = shift(g.from_seq)?;
+            g.to_seq = shift(g.to_seq)?;
+        }
+        for a in &mut aspect.accessories {
+            a.after_seq = shift(a.after_seq)?;
+        }
+        for (id, seq) in moved {
+            tx.update::<Device>(id, |d| {
+                if let Some(t) = d.aspects.terminal.as_mut() {
+                    t.seq = seq;
+                }
+            })?;
+        }
+        tx.update::<Device>(self.strip, |d| d.aspects.strip = Some(aspect))?;
+        let mut first = None;
+        for (k, spec) in (0..n).zip(&self.terminals) {
+            let (device, _) = insert_terminal(
+                tx,
+                self.strip,
+                &strip,
+                self.fndef,
+                spec,
+                s + k,
+                self.parts.clone(),
+            )?;
+            first.get_or_insert(device);
+        }
+        Ok(Outcome {
+            primary: first.map(|d| (Kind::Device, d.cast())),
+            note: None,
+            notices: Vec::new(),
+        })
+    }
+}
+
+/// `terminal.move`: terminals of one strip put before another terminal of the strip, or at its end (WP-S2.07 §5.2,
+/// D4).
+///
+/// Let T be the strip's terminals in (`seq`, ID) order. The new order O is T without the moved terminals, with them
+/// (in their T order) inserted directly before `before` (absent: at the end). For every index i from the first to the
+/// last where T and O differ, the terminal at index i of O takes the old `seq` of the one at index i of T: the
+/// sequence values of the changed range are permuted (the rule of `page.reorder`). Groups, accessories and
+/// designations stay, so a moved terminal takes the group of its new place. Rejected: no terminal; a terminal listed
+/// twice; a device that is not a terminal; terminals of two strips; a `before` that is one of the moved terminals or
+/// not a terminal of their strip; an order that does not change. A missing device is `NotFound`. Cost Interactive, Outcome none.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct MoveTerminals {
+    /// The terminal devices to move, at least one, all of one strip, in any order (they are taken in strip order).
+    #[schemars(with = "Vec<UuidS>", length(min = 1))]
+    pub terminals: Vec<Id<Device>>,
+    /// The terminal of the same strip they are put before; absent or null: after the last terminal of the strip.
+    #[serde(default)]
+    #[schemars(with = "Option<UuidS>")]
+    pub before: Option<Id<Device>>,
+}
+
+impl MoveTerminals {
+    /// A rejection of the parameters at the JSON Pointer `path`.
+    fn bad<T>(path: impl Into<String>, message: impl Into<String>) -> Result<T, CmdError> {
+        Err(CmdError::invalid_params(Self::NAME, path, message))
+    }
+}
+
+impl Command for MoveTerminals {
+    const NAME: &'static str = "terminal.move";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        if self.terminals.is_empty() {
+            return Self::bad("/terminals", "name at least one terminal");
+        }
+        let mut seen: BTreeSet<Id<Device>> = BTreeSet::new();
+        for (i, id) in self.terminals.iter().enumerate() {
+            if !seen.insert(*id) {
+                return Self::bad(
+                    format!("/terminals/{i}"),
+                    format!("terminal {id} is listed twice"),
+                );
+            }
+        }
+        let mut strip: Option<Id<Device>> = None;
+        for (i, id) in self.terminals.iter().enumerate() {
+            let device = tx.require::<Device>(*id)?;
+            let Some(t) = device.aspects.terminal.as_ref() else {
+                return Self::bad(format!("/terminals/{i}"), "the device is not a terminal");
+            };
+            match strip {
+                None => strip = Some(t.strip),
+                Some(s) if s != t.strip => {
+                    return Self::bad(
+                        format!("/terminals/{i}"),
+                        "the terminal is of another strip; move the terminals of one strip at a time",
+                    );
+                }
+                Some(_) => {}
+            }
+        }
+        let Some(strip) = strip else {
+            return Err(CmdError::internal("a named terminal has no strip"));
+        };
+        if let Some(b) = self.before {
+            if seen.contains(&b) {
+                return Self::bad(
+                    "/before",
+                    "the terminal to put the terminals before is one of the moved terminals; name a terminal that stays",
+                );
+            }
+            let device = tx.require::<Device>(b)?;
+            if device.aspects.terminal.as_ref().is_none_or(|t| t.strip != strip) {
+                return Self::bad("/before", "the device is not a terminal of the same strip");
+            }
+        }
+        // T: the strip's terminals in (seq, ID) order.
+        let mut current: Vec<(u32, Id<Device>)> = tx
+            .terminals_of_strip(strip)
+            .into_iter()
+            .filter_map(|id| {
+                tx.get::<Device>(id)
+                    .and_then(|d| d.aspects.terminal.as_ref().map(|t| (t.seq, id)))
+            })
+            .collect();
+        current.sort();
+        // O: T without the moved terminals, which go in as one block (in T order) before `before`, or at the end.
+        let moved: Vec<Id<Device>> = current
+            .iter()
+            .map(|(_, id)| *id)
+            .filter(|id| seen.contains(id))
+            .collect();
+        let mut order: Vec<Id<Device>> = current
+            .iter()
+            .map(|(_, id)| *id)
+            .filter(|id| !seen.contains(id))
+            .collect();
+        let at = match self.before {
+            Some(b) => order.iter().position(|id| *id == b).ok_or_else(|| {
+                CmdError::internal("the terminal to put the terminals before is not in its strip")
+            })?,
+            None => order.len(),
+        };
+        order.splice(at..at, moved);
+        let changed: Vec<usize> = (0..order.len()).filter(|&k| order[k] != current[k].1).collect();
+        let (Some(&first), Some(&last)) = (changed.first(), changed.last()) else {
+            return Self::bad("/terminals", "the terminals are already there");
+        };
+        // The terminal that comes to position k takes the sequence number of the terminal that held k.
+        for k in first..=last {
+            if order[k] == current[k].1 {
+                continue;
+            }
+            let seq = current[k].0;
+            tx.update::<Device>(order[k], |d| {
+                if let Some(t) = d.aspects.terminal.as_mut() {
+                    t.seq = seq;
+                }
+            })?;
+        }
+        Ok(Outcome::default())
+    }
 }
 
 /// One conductor of `cable.create` and `conductor.add`.
