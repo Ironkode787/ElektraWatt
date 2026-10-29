@@ -364,6 +364,9 @@ potential_flow(potential):                              // memo per potential; t
   ID-184), definitions that disagree on voltage, environment or class, and a
   pass-through pair whose two reached sides have different types without a converting function. They are errors; the
   first definition in natural order still gives the value (decision log ID-175). Nothing merges silently.
+  *As built (cycle 33 review round; decision log ID-781):* member roles that disagree on a potential without a
+  definition are ranked by a fixed role order (PE, PEN, FE, N, L1, L2, L3, L, L+, L−, M, signal, undefined), never by
+  CP or ID order, and the finding targets every member function; the definition half still follows ID order (FT-587).
 - **Loads** (FR-REP-026; decision log ID-172). A load of a potential is a consuming function on it: the upstream
   feeding function and every function with a pass-through pair touching the potential are excluded, and end
   consumers such as coils, lamps and PLC inputs are loads.
