@@ -2288,6 +2288,10 @@ fn ip_continue(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 .filter(|p| p.kind == "multi_line" && p.id != ip.page && p.grid == ip.grid)
                 .collect();
             let page = *rng.pick(&pages)?;
+            // Refused (FT-194): the partner of a target is a source, a second one of a name that has a source.
+            if !ip.continues_cleanly {
+                return Some(Step::cmd("ip.continue", json!({"ip": ip.function, "page": page.id})).refuse());
+            }
             let name = ip.name.clone();
             let function = ip.function.clone();
             Some(
@@ -3126,8 +3130,17 @@ fn terminal_insert(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 .map(|d| json!({"designation": d, "function_text": rng.word(4)}))
                 .collect();
             let mut p = json!({"strip": strip.id, "fndef": fndef, "terminals": terminals});
+            let mut order: Vec<Value> = strip.order.iter().map(|(_, t)| t.clone()).collect();
+            let mut at = order.len();
             if !strip.order.is_empty() && !rng.chance(4) {
-                p["before"] = rng.pick(&strip.order)?.1.clone();
+                let before = rng.pick(&strip.order)?.1.clone();
+                at = order.iter().position(|t| *t == before)?;
+                p["before"] = before;
+            }
+            // Refused (CI-06, EW-TERM-004): new terminals between two terminals of one bridge group.
+            order.insert(at, Value::Null);
+            if strip.splits_a_bridge_group(&order) {
+                return Some(cmd(p).refuse());
             }
             let total = strip.order.len() + n;
             let n = isize::try_from(n).unwrap_or(1);
@@ -3231,7 +3244,8 @@ fn terminal_move(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 None => order.len(),
             };
             order.splice(at..at, block.clone());
-            if order == ids {
+            // Refused: no change, or (CI-06, EW-TERM-004) an order that splits a bridge group.
+            if order == ids || strip.splits_a_bridge_group(&order) {
                 return Some(cmd(p).refuse());
             }
             let seqs_before: Vec<u32> = strip.order.iter().map(|(s, _)| *s).collect();

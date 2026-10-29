@@ -227,12 +227,16 @@ fn move_13_before_11_on_golden_a() {
     assert_eq!(bridges(&s), bridges_before);
     s.undo(&Origin::Gui).expect("one undo step");
     assert_eq!(lines(&s), before);
-    // To the end: :1 takes 20 and the others close up.
+    // To the end: :1 would leave bridge group BR1 (1 to 4) over terminals that are not consecutive, which
+    // EW-TERM-004 prevents (CI-06); nothing changes.
     let t1 = device(&s, "1");
-    with_builder(&mut s, |b| b.terminal_move(&[t1], None)).expect("terminal.move commits");
-    assert_eq!(seq(&s, "1"), 20);
-    for n in 2..=20u32 {
-        assert_eq!(seq(&s, &n.to_string()), n - 1, "terminal {n} closes up");
-    }
+    let err = with_builder(&mut s, |b| b.terminal_move(&[t1], None)).expect_err("EW-TERM-004 refuses");
+    assert!(err.message.contains("EW-TERM-004"), "{err:?}");
+    assert_eq!(lines(&s), before);
+    // :20, the end of BR5, before :11: BR5's terminals stay consecutive, so the move commits.
+    let (t20, t11) = (device(&s, "20"), device(&s, "11"));
+    with_builder(&mut s, |b| b.terminal_move(&[t20], Some(t11))).expect("terminal.move commits");
+    assert_eq!((seq(&s, "20"), seq(&s, "11"), seq(&s, "19")), (11, 12, 20));
     assert_eq!(groups(&s), groups_before);
+    assert_eq!(bridges(&s), bridges_before);
 }

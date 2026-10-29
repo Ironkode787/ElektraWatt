@@ -113,6 +113,24 @@ pub struct StripInfo {
     pub seqs: BTreeSet<u32>,
     /// The terminals in mounting order: (seq, terminal device), sorted by seq, then ID (WP-S2.07).
     pub order: Vec<(u32, Value)>,
+    /// The terminals of each bridge group of the strip.
+    pub bridge_groups: Vec<Vec<Value>>,
+}
+
+impl StripInfo {
+    /// Whether the mounting order `order` (terminal devices; a new terminal is any value not in a group) leaves a
+    /// bridge group over terminals that are not consecutive (CI-06, which EW-TERM-004 prevents).
+    pub fn splits_a_bridge_group(&self, order: &[Value]) -> bool {
+        self.bridge_groups.iter().any(|g| {
+            let at: Vec<usize> = order
+                .iter()
+                .enumerate()
+                .filter(|(_, t)| g.contains(t))
+                .map(|(i, _)| i)
+                .collect();
+            at.windows(2).any(|w| w[1] != w[0] + 1)
+        })
+    }
 }
 
 pub struct CableInfo {
@@ -149,6 +167,10 @@ pub struct IpInfo {
     pub page: Value,
     pub grid: (u64, u64),
     pub name: String,
+    /// Whether `ip.continue` of it leaves its name with at most one source point: it is no target, or no other
+    /// point of its name is a source, or one of them is the flagged star source (a second source without a star
+    /// source is EW-CORE-052, which prevents it, FT-194).
+    pub continues_cleanly: bool,
 }
 
 pub struct RouteInfo {
@@ -376,7 +398,13 @@ impl Live {
                     }
                 }
                 order.sort();
+                let bridge_groups = q
+                    .get::<ew_derive::StripBridges>(id)
+                    .iter()
+                    .map(|g| g.terminals.iter().map(|t| id_json(*t)).collect())
+                    .collect();
                 strip_infos.push(StripInfo {
+                    bridge_groups,
                     id: id_json(id),
                     terminals,
                     seqs,
@@ -606,6 +634,17 @@ impl Live {
         let mut bb_syms = Vec::new();
         let mut ip_infos = Vec::new();
         let mut term_fndef = None;
+        // Per name: the source points and the flagged star sources among them.
+        let mut sources: BTreeMap<String, (usize, usize)> = BTreeMap::new();
+        for (_, f) in q.functions().iter() {
+            if let FunctionKind::Ip(spec) = &f.kind
+                && spec.direction == ew_schema::IpDirection::Source
+            {
+                let e = sources.entry(spec.name.as_str().to_owned()).or_default();
+                e.0 += 1;
+                e.1 += usize::from(spec.star_source);
+            }
+        }
         for (id, f) in q.functions().iter() {
             let first_rep = q.idx().reps_of_function(id).next().and_then(|r| q.reps().get(r));
             match (&f.kind, first_rep) {
@@ -624,6 +663,8 @@ impl Live {
                             page: id_json(r.page),
                             grid,
                             name: spec.name.as_str().to_owned(),
+                            continues_cleanly: spec.direction != ew_schema::IpDirection::Target
+                                || matches!(sources.get(spec.name.as_str()), None | Some((_, 1))),
                         });
                     }
                 }
