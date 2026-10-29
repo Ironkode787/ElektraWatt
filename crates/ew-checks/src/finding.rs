@@ -195,6 +195,16 @@ impl Finding {
         self
     }
 
+    /// The same finding with its fingerprint computed from `key` (and the discriminator) instead of every target:
+    /// the display targets stay, the identity a waiver matches does not follow them. A potential's findings key on
+    /// the potential's identity (WP-S1.16 D8, FT-588): a waiver survives a member added to or removed from it.
+    #[must_use]
+    pub fn keyed_on(mut self, key: &[Target]) -> Finding {
+        let ids: Vec<AnyId> = key.iter().map(|t| t.id).collect();
+        self.fingerprint = Fingerprint::of(self.rule, &ids, &self.discriminator);
+        self
+    }
+
     /// The same finding with a quick fix.
     #[must_use]
     pub fn with_fix(mut self, fix: QuickFix) -> Finding {

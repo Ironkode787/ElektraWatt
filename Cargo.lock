@@ -1241,6 +1241,7 @@ dependencies = [
  "ew-rhai",
  "serde_json",
  "sha2",
+ "toml",
 ]
 
 [[package]]

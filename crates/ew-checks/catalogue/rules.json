@@ -433,6 +433,162 @@
       "waivable": true
     },
     {
+      "code": "005003",
+      "id": "EW-POT-003",
+      "kind": "conflict",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-POT",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "potential",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "FE pin on PE",
+      "waivable": true
+    },
+    {
+      "code": "005004",
+      "id": "EW-POT-004",
+      "kind": "safety",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-POT",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "potential",
+      "severity": "error",
+      "supersedes": [],
+      "title": "GNYE on a non-PE potential",
+      "waivable": true
+    },
+    {
+      "code": "005005",
+      "id": "EW-POT-005",
+      "kind": "conflict",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-POT",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "potential",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "BU on a non-N conductor",
+      "waivable": true
+    },
+    {
+      "code": "005006",
+      "id": "EW-POT-006",
+      "kind": "safety",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-POT",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "potential",
+      "severity": "error",
+      "supersedes": [],
+      "title": "PE undersized",
+      "waivable": true
+    },
+    {
       "code": "005008",
       "id": "EW-POT-008",
       "kind": "conflict",
@@ -469,6 +625,45 @@
       "severity": "warning",
       "supersedes": [],
       "title": "PE island",
+      "waivable": true
+    },
+    {
+      "code": "005009",
+      "id": "EW-POT-009",
+      "kind": "completeness",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-POT",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "page",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Unconnected CP",
       "waivable": true
     },
     {
@@ -548,6 +743,45 @@
       "waivable": true
     },
     {
+      "code": "005013",
+      "id": "EW-POT-013",
+      "kind": "safety",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-POT",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "potential",
+      "severity": "error",
+      "supersedes": [],
+      "title": "N switching",
+      "waivable": true
+    },
+    {
       "code": "005014",
       "id": "EW-POT-014",
       "kind": "conflict",
@@ -584,6 +818,122 @@
       "severity": "error",
       "supersedes": [],
       "title": "Physical-wire conflict",
+      "waivable": true
+    },
+    {
+      "code": "005015",
+      "id": "EW-POT-015",
+      "kind": "conflict",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-POT",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "project",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Wire-number conflict",
+      "waivable": true
+    },
+    {
+      "code": "005016",
+      "id": "EW-POT-016",
+      "kind": "hygiene",
+      "modes": [
+        "online"
+      ],
+      "pack": "EW-POT",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": false
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": false
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": false
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": false
+        }
+      ],
+      "scope": "potential",
+      "severity": "info",
+      "supersedes": [],
+      "title": "Redundant override",
+      "waivable": true
+    },
+    {
+      "code": "005017",
+      "id": "EW-POT-017",
+      "kind": "hygiene",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-POT",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "potential",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Two potential names",
       "waivable": true
     },
     {

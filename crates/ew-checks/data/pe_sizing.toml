@@ -1,0 +1,31 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# Rule data of EW-POT-006 "PE undersized" (doc 08 §8.2, D-38; FR-CHK-020, STD M-04; WP-S1.16 D5).
+#
+# The minimum cross-section of a copper protective conductor for the largest associated line conductor S, as the
+# rule implements it. It follows the sizing rule of IEC 60364-5-54 (clause 543.1.2, the table of minimum
+# cross-sectional areas of protective conductors) and EN 60204-1 (clause 8.2.2); the standards are cited, not
+# reproduced. The values have NOT been checked against the standards by a person with access to them
+# (NFR-COMP-05, doc 02a OQ8): `verified = false`, and every finding from this table says so. A person who checks
+# them sets `verified = true` in the same change that records the check.
+
+verified = false
+source = "IEC 60364-5-54 clause 543.1.2; EN 60204-1 clause 8.2.2 (copper conductors)"
+
+# The potential types whose wires are line conductors (doc 08 §8.2: L+ is excluded, Open question 8).
+line_types = ["l", "l1", "l2", "l3"]
+
+# Rows in ascending order of `up_to_mm2` (the largest line cross-section S the row covers, inclusive; the last row
+# has none and covers every larger S). `pe` is the minimum PE cross-section: "s" (equal to S), "half" (S / 2) or a
+# fixed value in mm².
+[[rows]]
+up_to_mm2 = "16"
+pe = "s"
+
+[[rows]]
+up_to_mm2 = "35"
+pe = "16"
+
+[[rows]]
+pe = "half"

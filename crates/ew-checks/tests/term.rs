@@ -238,8 +238,8 @@ fn term002_skips_the_importers_fallback_strip_but_counts_real_strips() {
 #[test]
 fn a_waiver_for_a_rule_that_did_not_run_is_not_evaluated() {
     let mut records = three_terminals(["1", "2", "3"]);
-    // EW-POT-013 is not implemented; EW-TERM-005 does not run in release mode.
-    for (n, rule) in [(0x910, "EW-POT-013"), (0x911, "EW-TERM-005")] {
+    // EW-POT-007 is not implemented (a 1.0 rule); EW-TERM-005 does not run in release mode.
+    for (n, rule) in [(0x910, "EW-POT-007"), (0x911, "EW-TERM-005")] {
         records.push(record(json!({
             "$k": "waiver", "id": us(n), "rule": rule,
             "target": {"finding": "00000000000000000000000000000001"}, "reason": {"en-GB": "not evaluated here"}

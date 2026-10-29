@@ -247,6 +247,8 @@ fn clean_model_has_no_finding_from_any_shipped_rule() {
     fx.func(0x1001, P1);
     fx.func(0x1002, P1);
     fx.conn(0x2001, P1, cp(0x1001), cp(0x1002), &Value::Null);
+    // Both connection points of each function connected (EW-POT-009).
+    fx.conn(0x2002, P1, Ep::Cp(0x1001, 1), Ep::Cp(0x1002, 1), &Value::Null);
     let m = fx.build();
     let report = run(&Q::new(&m), &FULL, CheckMode::Online);
     assert!(report.findings.is_empty(), "{:#?}", report.findings);

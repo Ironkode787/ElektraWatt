@@ -43,9 +43,146 @@ fn pot001_reports_conflicting_definition_attributes_once_per_potential() {
     assert_eq!(f[0].code, "005001");
     assert_eq!(f[0].severity, Severity::Error);
     assert_eq!(f[0].discriminator, "attrs");
-    assert_eq!(f[0].targets, vec![target(Kind::PotentialDef, 0x5001)]);
+    // FT-587 (WP-S1.16 D9): every definition is a target; the fingerprint stays keyed on the potential's ID.
+    assert_eq!(
+        f[0].targets,
+        vec![
+            target(Kind::PotentialDef, 0x5001),
+            target(Kind::PotentialDef, 0x5002)
+        ]
+    );
+    assert_eq!(
+        f[0].fingerprint,
+        ew_checks::Fingerprint::of("EW-POT-001", &[uid(0x5001)], &f[0].discriminator)
+    );
     assert_eq!(f[0].subject, "P");
     assert!(f[0].message.contains("voltage"), "{}", f[0].message);
+}
+
+/// Two definitions with the attributes `at_a` (at the function tagged -K1) and `at_b` (at -K2); `swap` swaps
+/// the definition IDs and the function IDs, so the ID order runs against the printed order.
+fn two_defs_permuted(at_a: &Value, at_b: &Value, swap: bool) -> Model {
+    let (fa, fb, da, db) = if swap {
+        (0x1002, 0x1001, 0x5002, 0x5001)
+    } else {
+        (0x1001, 0x1002, 0x5001, 0x5002)
+    };
+    let mut fx = Fx::base();
+    fx.func_tagged(fa, 1, P1);
+    fx.func_tagged(fb, 2, P1);
+    fx.conn(0x2001, P1, cp(fa), cp(fb), &none());
+    fx.def(db, cp(fb), at_b);
+    fx.def(da, cp(fa), at_a);
+    fx.build()
+}
+
+#[test]
+fn ft587_definitions_rank_in_natural_order_not_in_id_order() {
+    // The definition at -K1 is first in natural order in both ID orders: its voltage applies, the text names
+    // the other definition by its printed key, and both definitions are targets.
+    let mut messages = Vec::new();
+    for swap in [false, true] {
+        let m = two_defs_permuted(&json!({"voltage": "24"}), &json!({"voltage": "230"}), swap);
+        let f = findings_of(&m, "EW-POT-001");
+        assert_eq!(f.len(), 1, "swap {swap}: {f:#?}");
+        assert_eq!(f[0].targets.len(), 2, "swap {swap}");
+        assert!(
+            f[0].message.contains("24 applies"),
+            "swap {swap}: {}",
+            f[0].message
+        );
+        assert!(
+            !f[0].message.contains(&us(0x5001)) && !f[0].message.contains(&us(0x5002)),
+            "swap {swap}: no ID in the text: {}",
+            f[0].message
+        );
+        messages.push(f[0].message.clone());
+        let q = ew_derive::Q::new(&m);
+        let part = q.get::<ew_derive::PotentialPartition>(());
+        let p = part
+            .potential_at(ew_model::EndpointKey::Cp(uid(0x1001).cast(), 0))
+            .expect("a potential");
+        let attrs = q.get::<ew_derive::PotentialAttrsOf>(p.id);
+        assert_eq!(
+            attrs.attrs.voltage.as_ref().map(|a| a.value.to_string()),
+            Some("24".to_string()),
+            "swap {swap}: the first definition in natural order applies"
+        );
+    }
+    assert_eq!(messages[0], messages[1]);
+}
+
+#[test]
+fn ft587_the_first_name_in_natural_order_wins_whatever_the_ids() {
+    // Names rank first: "P2" sorts before "P10" in natural order (and after it in byte order).
+    for swap in [false, true] {
+        let m = two_defs_permuted(
+            &json!({"name": "P10", "voltage": "230"}),
+            &json!({"name": "P2", "voltage": "24"}),
+            swap,
+        );
+        let f = findings_of(&m, "EW-POT-001");
+        assert_eq!(f.len(), 1, "swap {swap}: {f:#?}");
+        assert_eq!(f[0].subject, "P2", "swap {swap}");
+        assert!(
+            f[0].message.contains("24 applies"),
+            "swap {swap}: {}",
+            f[0].message
+        );
+        let names = findings_of(&m, "EW-POT-017");
+        assert_eq!(names.len(), 1, "swap {swap}: {names:#?}");
+        assert_eq!(names[0].targets.len(), 2, "swap {swap}");
+        assert!(
+            names[0].message.contains("P2"),
+            "swap {swap}: {}",
+            names[0].message
+        );
+    }
+}
+
+/// A PE-role function tagged -K1 and an M-role function tagged -K2 on one wire, without a definition; `swap`
+/// swaps their IDs; `extra` adds a plain function tagged -K9 to the wire.
+fn role_conflict(swap: bool, extra: bool) -> (Model, u128) {
+    let (pe, m) = if swap { (0x1002, 0x1001) } else { (0x1001, 0x1002) };
+    let mut fx = Fx::base();
+    fx.func_role_tagged(pe, true, 1, P1);
+    fx.func_role_tagged(m, false, 2, P1);
+    fx.conn(0x2001, P1, Ep::Cp(pe, 1), Ep::Cp(m, 1), &none());
+    if extra {
+        fx.func_tagged(0x1009, 9, P1);
+        fx.conn(0x2002, P1, Ep::Cp(m, 1), cp(0x1009), &none());
+    }
+    (fx.build(), pe)
+}
+
+fn attrs_finding(m: &Model) -> ew_checks::Finding {
+    let f: Vec<_> = findings_of(m, "EW-POT-001")
+        .into_iter()
+        .filter(|f| f.discriminator.starts_with("attrs"))
+        .collect();
+    assert_eq!(f.len(), 1, "{f:#?}");
+    f[0].clone()
+}
+
+#[test]
+fn ft588_an_undefined_potential_is_keyed_on_its_discriminator_member() {
+    for swap in [false, true] {
+        let (m, pe) = role_conflict(swap, false);
+        let f = attrs_finding(&m);
+        // The discriminator member is the first member by its printed key (-K1:…), whatever the IDs.
+        assert_eq!(f.discriminator, format!("attrs@{}:1", us(pe)), "swap {swap}");
+        assert_eq!(
+            f.fingerprint,
+            ew_checks::Fingerprint::of("EW-POT-001", &[uid(pe)], &f.discriminator),
+            "swap {swap}: keyed on the discriminator member's function only"
+        );
+        assert_eq!(f.targets.len(), 2, "swap {swap}: every member is a target");
+        // A new member of the potential keeps the fingerprint (a waiver keeps matching) and joins the targets.
+        let (grown, _) = role_conflict(swap, true);
+        let g = attrs_finding(&grown);
+        assert_eq!(g.fingerprint, f.fingerprint, "swap {swap}");
+        assert_eq!(g.targets.len(), 3, "swap {swap}");
+    }
 }
 
 /// A PE-role CP and an M-role CP on one wire, without a definition; `pe_first` gives the PE function the
@@ -229,7 +366,22 @@ fn pot012_a_chain_has_no_ring() {
 /// A cable with the conductors 0x6101 and 0x6102 and an interruption-point pair joining the functions
 /// 0x1001 and 0x1002 through the connections 0x2001 and 0x2002, which carry `core1` and `core2`.
 fn conflict_fixture(core1: u128, core2: u128) -> Model {
+    conflict_fixture_bonded(core1, core2, false)
+}
+
+/// [`conflict_fixture`], with `bonded` a 0 V–PE bond from -K4097:1 to a second potential (function 0x1003 wired
+/// to 0x1004), so that the conflicting wire lies in a bond closure of two potentials (FT-188).
+fn conflict_fixture_bonded(core1: u128, core2: u128, bonded: bool) -> Model {
     let mut fx = Fx::base();
+    if bonded {
+        fx.func(0x1003, P1);
+        fx.func(0x1004, P1);
+        fx.conn(0x2003, P1, cp(0x1003), cp(0x1004), &none());
+        fx.push(json!({
+            "$k": "bond", "id": us(0x4001), "a": {"cp": [us(0x1001), 0]}, "b": {"cp": [us(0x1003), 0]},
+            "kind": "pelv_0v_pe",
+        }));
+    }
     fx.push(json!({"$k": "device", "id": us(0x6000), "tag": {"letter": "W", "counter": 1}, "cable": {}}));
     for (n, core, csa) in [(0x6101, "1", "1"), (0x6102, "2", "4")] {
         fx.push(json!({"$k": "conductor", "id": us(n), "cable": us(0x6000), "core": core, "csa": csa}));
@@ -266,6 +418,22 @@ fn pot014_reports_constituents_that_name_different_conductors() {
     // Every member function: the two functions and the two interruption points.
     assert_eq!(f[0].targets.len(), 4);
     assert!(f[0].targets.iter().all(|t| t.kind == Kind::Function));
+}
+
+#[test]
+fn ft188_a_wire_note_in_a_bond_closure_is_reported_once() {
+    // Both potentials of the bond closure read the closure's physical wires; the note belongs to the potential
+    // of the wire, and the bonded potential does not report it again.
+    let m = conflict_fixture_bonded(0x6101, 0x6102, true);
+    let q = ew_derive::Q::new(&m);
+    assert_eq!(
+        q.get::<ew_derive::PotentialPartition>(()).potential_count(),
+        2,
+        "two potentials joined by the bond"
+    );
+    let f = findings_of(&m, "EW-POT-014");
+    assert_eq!(f.len(), 1, "{f:#?}");
+    assert_eq!(f[0].discriminator, us(0x2002));
 }
 
 #[test]

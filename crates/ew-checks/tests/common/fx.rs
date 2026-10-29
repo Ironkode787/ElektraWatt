@@ -115,6 +115,18 @@ impl Fx {
     /// A function definition with copy ID `n`, its symbol `sym`, CPs `(idx, designation, extra members)`
     /// and internal links.
     fn fndef(&mut self, n: u128, sym: u128, cps: &[(u16, &str, Value)], internal: &Value) {
+        self.fndef_with(n, sym, cps, internal, &json!({}));
+    }
+
+    /// A function definition as [`Fx::fndef`] gives it, with the extra item members `extra` (such as `flags`).
+    pub fn fndef_with(
+        &mut self,
+        n: u128,
+        sym: u128,
+        cps: &[(u16, &str, Value)],
+        internal: &Value,
+        extra: &Value,
+    ) {
         let cp_json: Vec<Value> = cps
             .iter()
             .map(|(idx, d, extra)| {
@@ -127,14 +139,14 @@ impl Fx {
                 c
             })
             .collect();
-        self.lib_item(
-            "fndef",
-            n,
-            &json!({
-                "meta": {}, "category": ["Misc", "Misc", "Plain"], "contact_kind": "pole",
-                "cps": cp_json, "internal": internal,
-            }),
-        );
+        let mut item = json!({
+            "meta": {}, "category": ["Misc", "Misc", "Plain"], "contact_kind": "pole",
+            "cps": cp_json, "internal": internal,
+        });
+        for (k, v) in extra.as_object().expect("extra is an object") {
+            item[k] = v.clone();
+        }
+        self.lib_item("fndef", n, &item);
         let pins: Vec<Value> = (0..cps.len())
             .map(|i| json!({"idx": i, "fn_cp": i, "pos": [0, i as i64 * 1_000_000], "dir": "up"}))
             .collect();
@@ -198,8 +210,8 @@ impl Fx {
         self.push(json!({"$k": "device", "id": us(n), "tag": tag}))
     }
 
-    /// A function `n` of the definition `def` (symbol `sym`) with its own device, drawn on `page`.
-    fn func_of(&mut self, n: u128, def: u128, sym: u128, page: u128) {
+    /// A function `n` of the definition `def` (symbol `sym`) with its own device (tag `-K<n>`), drawn on `page`.
+    pub fn func_of(&mut self, n: u128, def: u128, sym: u128, page: u128) {
         self.device(n + 0x20_000, "K", Some(n as u32));
         self.push(json!({"$k": "function", "id": us(n), "device": us(n + 0x20_000), "def": us(def)}));
         self.rep(n, sym, page);
@@ -218,6 +230,32 @@ impl Fx {
         self.device(n, letter, counter);
         self.push(json!({"$k": "function", "id": us(n + 0x1000), "device": us(n), "def": us(FNDEF)}));
         self.rep(n + 0x1000, SYM, page);
+    }
+
+    /// A function `n` of the PE-role definition (`pe`) or the M-role one, whose device has the tag `-K<counter>`
+    /// whatever its ID: for ID-permutation tests, where the printed key must not follow the ID order.
+    pub fn func_role_tagged(&mut self, n: u128, pe: bool, counter: u32, page: u128) {
+        let (def, sym) = if pe { (FNDEF_PE, SYM_PE) } else { (FNDEF_M, SYM_M) };
+        self.device(n + 0x20_000, "K", Some(counter));
+        self.push(json!({"$k": "function", "id": us(n), "device": us(n + 0x20_000), "def": us(def)}));
+        self.rep(n, sym, page);
+    }
+
+    /// A plain two-CP function `n` drawn on `page`, its CP `idx` marked unused.
+    pub fn func_unused(&mut self, n: u128, idx: u16, page: u128) {
+        self.device(n + 0x20_000, "K", Some(n as u32));
+        self.push(json!({
+            "$k": "function", "id": us(n), "device": us(n + 0x20_000), "def": us(FNDEF),
+            "cp_overrides": [{"idx": idx, "unused": true}],
+        }));
+        self.rep(n, SYM, page);
+    }
+
+    /// A plain two-CP function `n` whose device has the tag `-K<counter>`, drawn on `page`.
+    pub fn func_tagged(&mut self, n: u128, counter: u32, page: u128) {
+        self.device(n + 0x20_000, "K", Some(counter));
+        self.push(json!({"$k": "function", "id": us(n), "device": us(n + 0x20_000), "def": us(FNDEF)}));
+        self.rep(n, SYM, page);
     }
 
     /// A plain two-CP function `n` drawn on `page`.
