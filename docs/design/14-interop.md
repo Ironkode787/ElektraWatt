@@ -579,9 +579,9 @@ Each distinct definition (identified by the hash of its canonical XML, not by it
 `SymbolDef` and a generated `FnDef` in the per-project "QET import" library (FR-SYM-018, FR-IMP-008), with source
 element name, path, UUID and definition version as provenance. The library's `library_id` is the target project's
 ID (`ImportCx.project`, §2.1) and its human key is `qet-import` ([05](05-project-format-and-persistence.md) §13.2).
-Built-in FnDefs that the importer references live in the system library, whose `library_id` is not named yet:
-`ew-import-qet` uses the provisional 7202fd8b-1024-4bf1-9e99-670772eaa589, the same as the starter content, until
-WP-S1.19a names it ([07](07-symbols-parts-macros.md) open question 17). The importer has exactly one built-in FnDef,
+Built-in FnDefs that the importer references live in the system library, whose `library_id` is
+`ew_interop_api::SYSTEM_LIBRARY` (7202fd8b-1024-4bf1-9e99-670772eaa589, the starter content's ID; named in cycle 34
+by WP-S1.19 part 1, FT-24, which settles [07](07-symbols-parts-macros.md) open question 17). The importer has exactly one built-in FnDef,
 the interruption point `ew.fn.ip` of §4.6 (`BUILTIN_FNDEF_KEYS`), referenced by key in `LibRef.extra["key"]` with
 `version_req` `^0.1` (`BUILTIN_VERSION_REQ`), because every starter item is version 0.1.0; `ew.gen.ip` is its
 *symbol* key ([07](07-symbols-parts-macros.md) §2.3; decision log ID-33). The generic black box of EW-IMP-119 is not

@@ -8,7 +8,7 @@
 
 ## Summary for decision makers
 
-**Result in one paragraph.** The catalogues hold 1081 requirements (934 FR, 147 NFR). The 125 WPs cover 1059 of them (98.0 %). No MVP or 1.0 Must or Should requirement that the plan promises lacks a WP (§3). In the full scope, no MVP Must/Should requirements are covered only by WPs after M2; in the lean scope of record, 24 such requirements, because the scope levers move their WPs until the catalogues are re-labelled (§4). No WP cites a token that is not a requirement ID or that names no requirement (§5).
+**Result in one paragraph.** The catalogues hold 1081 requirements (934 FR, 147 NFR). The 126 WPs cover 1059 of them (98.0 %). No MVP or 1.0 Must or Should requirement that the plan promises lacks a WP (§3). In the full scope, no MVP Must/Should requirements are covered only by WPs after M2; in the lean scope of record, 24 such requirements, because the scope levers move their WPs until the catalogues are re-labelled (§4). No WP cites a token that is not a requirement ID or that names no requirement (§5).
 
 **What is asked of the plan owner.** (1) Treat the gap lists of §3 as input to the next WP revision: each listed ID either joins an existing WP, gets a new WP, or is re-labelled in the catalogue (release or priority) with a decision record. (2) Fix the invalid citations of §5, which are typing errors, not scope decisions. (3) Re-run `python3 -I docs/plan/tools/trace.py` after every change of the CSV or the catalogues; the gate reviews of [gates](03-gates.md) use this document as their scope check.
 
@@ -407,13 +407,13 @@ Source: [golden project](../design/20-golden-project.md) §19 (rule that fires o
 | D-35 | BOM description misuse | FR-CHK-040, FR-DEV-010 | WP-S1.13, WP-S1.30 | G-M1 | ok |
 | D-36 | Order code vs components | FR-DEV-020, FR-REP-005 | WP-S1.06, WP-S1.13, WP-S3.03 | G-M1 | ok |
 | D-37 | Colour-profile basis | FR-CON-020 | WP-S1.07, WP-S7.03 | G-M1 | ok |
-| D-38 | PE smaller than line | rules EW-POT-006; FR-CHK-020 | WP-S1.16 | G-M2 | ok |
+| D-38 | PE smaller than line | rules EW-POT-006; FR-CHK-020 | WP-S1.16 | G-M2 | unknown FR: FR-COMP-05 |
 | D-39 | IP order not systematic | FR-XRF-013 | WP-S2.04 | G-M2 | ok |
 | D-40 | CPX block inside MPA section | rules EW-FL-003; FR-FLU-022 | WP-S1.34 | 1.x | ok |
 | D-41 | Assembly tagged from two pages | FR-DEV-022 | WP-S1.13 | G-M1 | ok |
 | D-42 | Strip drawn twice | FR-IMP-013, FR-TRM-011 | WP-S1.14, WP-S3.11 | G-M1 | ok |
 
-42 defects parsed. Defects with a flag: none. D-40 is a 1.x plugin feature by design; its "NO WP" or uncovered flag is expected.
+42 defects parsed. Defects with a flag: D-38. D-40 is a 1.x plugin feature by design; its "NO WP" or uncovered flag is expected.
 
 ---
 
@@ -460,7 +460,7 @@ Full REF table (REF, requirement count, covered, WP count, first WPs):
 | REF-017 | 2 | 2 | 2 | WP-S1.08, WP-S1.16a | fully carried |
 | REF-018 | 2 | 2 | 2 | WP-S1.08, WP-S1.12 | fully carried |
 | REF-019 | 1 | 1 | 2 | WP-S1.12, WP-S2.04 | fully carried |
-| REF-020 | 4 | 4 | 3 | WP-S1.03, WP-S1.08, WP-S1.13 | fully carried |
+| REF-020 | 4 | 4 | 4 | WP-S1.03, WP-S1.08, WP-S1.13, WP-S2.18 | fully carried |
 | REF-021 | 2 | 2 | 2 | WP-S1.08, WP-S3.01 | fully carried |
 | REF-022 | 2 | 2 | 2 | WP-S1.06, WP-S1.12 | fully carried |
 | REF-023 | 1 | 1 | 1 | WP-S1.11 | fully carried |

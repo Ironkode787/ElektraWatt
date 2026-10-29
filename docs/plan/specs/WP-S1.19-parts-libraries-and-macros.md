@@ -5,7 +5,7 @@ and macro data within format 0.1 (1.2 pw, D5), part 2 the library tiers and the 
 (1.4 pw, D5), part 3 embedding by reference, `part.assign`, update from library and the manufacturer copies (1.3 pw,
 D4), part 4 the CSV and XLSX parts import with column mapping and the basic-project backend (0.8 pw, D3), part 5 save
 and insert macros with value sets and include flags (1.5 pw, D5), part 6 the macro and library panes (0.6 pw, D3);
-part 1 first; parts 2 and 4 after it in any order; part 3 after part 2; part 5 after parts 1 and 3; part 6 last ·
+part 1 first; parts 2 and 4 after it in any order; part 3 after part 2; part 5 after parts 1 and 3; part 6 last · **Part 1 built in cycle 34** (lane K34, decision log ID-806; as built, two details differ from §6: `MechData.rail_offset` is a `Pt2`, FT-604, and the one-cycle alias `BUILTIN_LIBRARY` has no `#[deprecated]` attribute so that the tests naming it stay warning-free, FT-596); WP-S2.18 part 2 fills the system library `ew-starter-parts` with the generic starter parts after parts 2 and 3 (ID-812) ·
 **Date:** 2026-10-29 · **Work package:** [WP-S1.19](../02-work-packages.md#wp-s119-parts-libraries-and-macros) ·
 **Decision log:** ID-783 · **Part of:** ElektraWatt plan, specifications
 
