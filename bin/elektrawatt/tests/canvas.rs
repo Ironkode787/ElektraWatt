@@ -792,6 +792,10 @@ fn t7_the_snapshot_composites_the_tool_overlay() {
         ("cp.next", json!({})),
         ("canvas.activate", json!({})),
         ("canvas.snapshot", json!({"path": p("measure.png")})),
+        // R1-8: the snap markers and the cursor share the accent; the same overlay with the cursor hidden tells them
+        // apart.
+        ("cursor.set", json!({})),
+        ("canvas.snapshot", json!({"path": p("markers.png")})),
         ("ui.describe", json!({})),
         ("ui.dismiss", json!({})),
         ("cursor.set", json!({})),
@@ -816,6 +820,7 @@ fn t7_the_snapshot_composites_the_tool_overlay() {
     assert!(describe.contains("canvas overlay 4 label \"dx "), "{describe}");
     let read = |name: &str| std::fs::read(out.join(name)).unwrap();
     let (plain, measure, band) = (read("plain.png"), read("measure.png"), read("band.png"));
+    let markers = read("markers.png");
     let again = run_script(&tmp, "t7.jsonl", &text);
     assert_eq!(again.status.code(), Some(0));
     assert_eq!(read("measure.png"), measure, "byte-identical");
@@ -823,12 +828,20 @@ fn t7_the_snapshot_composites_the_tool_overlay() {
     let (_, _, plain) = decode_rgba(&plain);
     let (_, _, measure) = decode_rgba(&measure);
     let (_, _, band) = decode_rgba(&band);
+    let (_, _, markers) = decode_rgba(&markers);
     assert_eq!(count(&plain, MEASURE), 0);
     assert_eq!(count(&plain, ACCENT), 0);
     assert!(count(&measure, MEASURE) > 20, "the measure line");
+    // The two snap markers alone (the cursor hidden; the measure line stays, with the pixels the cursor covered),
+    // then the cursor's own pixels.
     assert!(
-        count(&measure, ACCENT) >= 32 + 20,
-        "the snap markers and the grid cursor"
+        count(&markers, MEASURE) >= count(&measure, MEASURE),
+        "the measure line stays"
+    );
+    assert!(count(&markers, ACCENT) >= 32, "the snap markers");
+    assert!(
+        count(&measure, ACCENT) >= count(&markers, ACCENT) + 20,
+        "the grid cursor"
     );
     assert!(
         count(&band, ACCENT) > count(&plain, ACCENT) + 100,
