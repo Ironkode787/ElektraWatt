@@ -202,6 +202,21 @@ fn a_list_imports_into_a_project_through_its_saved_map() {
     let parts = q.parts();
     assert_eq!(parts.len(), 3);
     assert!(parts.iter().all(|(_, p)| p.library_id.as_uuid() == project));
+    // The manufacturers the parts name are embedded as project copies (WP-S1.19 D10), the master's two and the new
+    // one, and the parts print their names; no reference keeps a `key`.
+    assert_eq!(cmd.params["copies"].as_array().unwrap().len(), 6);
+    let makers = q.manufacturers();
+    assert_eq!(makers.len(), 3);
+    assert!(makers.iter().all(|(_, m)| m.library_id.as_uuid() == project));
+    let mut names: Vec<String> = parts
+        .iter()
+        .map(|(_, p)| {
+            assert!(p.item.manufacturer.extra.is_empty());
+            ew_derive::manufacturer_name(&q, &p.item.manufacturer)
+        })
+        .collect();
+    names.sort();
+    assert_eq!(names, ["Generic Panels", "Phoenix Contact", "Schneider Electric"]);
 
     drop(q);
     // A second run: every part is held and unchanged, no command.

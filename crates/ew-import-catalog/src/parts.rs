@@ -78,10 +78,15 @@ pub struct CatalogTarget<'a> {
     pub limits: Limits,
     /// The target's current part of an item ID, if it holds one.
     pub existing: &'a dyn Fn(Uuid) -> Option<LibCopy<Part>>,
+    /// Give every manufacturer a master record of another library resolves to a copy in the target (a project, whose
+    /// parts name embedded manufacturer copies, WP-S1.19 D10): item [`manufacturer_item`]`(library, key)`, version
+    /// [`FIRST_VERSION`], the record's content; the parts name the copy. Without it the parts name the master record.
+    pub local_manufacturers: bool,
 }
 
 impl CatalogTarget<'static> {
-    /// A target `library` that holds no part yet, without a date, no bump, the default limits.
+    /// A target `library` that holds no part yet, without a date, no bump, the default limits, the parts naming the
+    /// master's manufacturer records.
     pub fn new(library: Uuid) -> CatalogTarget<'static> {
         CatalogTarget {
             library,
@@ -89,6 +94,7 @@ impl CatalogTarget<'static> {
             bump: false,
             limits: Limits::default(),
             existing: &no_existing,
+            local_manufacturers: false,
         }
     }
 }
@@ -159,7 +165,9 @@ pub struct RowCounts {
 pub struct PartsImport {
     /// The part documents, new, updated and unchanged, in row order.
     pub parts: Vec<LibDocument>,
-    /// The manufacturers the import creates in the target (names no master record matched), by item ID.
+    /// The manufacturer copies the parts name in the target, by item ID: the manufacturers the import creates (names
+    /// no master record matched) and, with [`CatalogTarget::local_manufacturers`], the copies of the master records
+    /// the parts resolve to.
     pub manufacturers: Vec<LibDocument>,
     /// One outcome per part of a row (two for an "A / B" part number), in row order; empty rows are skipped.
     pub rows: Vec<RowOutcome>,
@@ -278,14 +286,21 @@ struct Makers<'m> {
     /// Folded alias or brand → the records that have it.
     alias: BTreeMap<String, Vec<usize>>,
     master: &'m [LibCopy<Manufacturer>],
+    /// The target library, and whether a master record of another library becomes a copy in it.
+    library: Uuid,
+    local: bool,
     /// Folded name → the created manufacturer.
-    created: BTreeMap<String, (Maker, LibCopy<Manufacturer>)>,
+    created: BTreeMap<String, Maker>,
+    /// Master index → its copy in the target.
+    copied: BTreeMap<usize, Maker>,
+    /// The manufacturer copies of the target, created or copied, by item ID.
+    emitted: BTreeMap<Uuid, LibCopy<Manufacturer>>,
     /// Cell texts already reported (alias, new).
     reported: BTreeMap<String, ()>,
 }
 
 impl<'m> Makers<'m> {
-    fn new(master: &'m [LibCopy<Manufacturer>]) -> Makers<'m> {
+    fn new(master: &'m [LibCopy<Manufacturer>], library: Uuid, local: bool) -> Makers<'m> {
         let mut direct: BTreeMap<String, Vec<usize>> = BTreeMap::new();
         let mut alias: BTreeMap<String, Vec<usize>> = BTreeMap::new();
         for (i, m) in master.iter().enumerate() {
@@ -309,19 +324,44 @@ impl<'m> Makers<'m> {
             direct,
             alias,
             master,
+            library,
+            local,
             created: BTreeMap::new(),
+            copied: BTreeMap::new(),
+            emitted: BTreeMap::new(),
             reported: BTreeMap::new(),
         }
     }
 
-    fn maker(&self, i: usize) -> Maker {
-        let m = &self.master[i];
-        Maker {
-            key: m.item.key.to_string(),
-            library: m.library_id.as_uuid(),
-            item: m.item_id.as_uuid(),
-            version: m.version.clone(),
+    /// The manufacturer of master record `i`: the record itself, or its copy in the target (made on first use) when
+    /// the target keeps local copies and the record is of another library.
+    fn maker(&mut self, i: usize) -> Maker {
+        let master = self.master;
+        let m = &master[i];
+        let key = m.item.key.to_string();
+        if !self.local || m.library_id.as_uuid() == self.library {
+            return Maker {
+                key,
+                library: m.library_id.as_uuid(),
+                item: m.item_id.as_uuid(),
+                version: m.version.clone(),
+            };
         }
+        if let Some(made) = self.copied.get(&i) {
+            return made.clone();
+        }
+        let item = manufacturer_item(self.library, &key);
+        let made = Maker {
+            key,
+            library: self.library,
+            item,
+            version: FIRST_VERSION.to_owned(),
+        };
+        self.emitted
+            .entry(item)
+            .or_insert_with(|| copy(self.library, item, FIRST_VERSION, m.item.clone()));
+        self.copied.insert(i, made.clone());
+        made
     }
 
     /// Resolves a manufacturer cell: a master record's key or name, then its aliases and brands (EW-IMP-007), then a
@@ -347,12 +387,14 @@ impl<'m> Makers<'m> {
             }
         };
         if let Some(hits) = self.direct.get(&f) {
-            return Ok(self.maker(pick(hits, self.master)?));
+            let i = pick(hits, self.master)?;
+            return Ok(self.maker(i));
         }
         if let Some(hits) = self.alias.get(&f) {
-            let m = self.maker(pick(hits, self.master)?);
+            let i = pick(hits, self.master)?;
+            let m = self.maker(i);
             if self.reported.insert(format!("alias|{f}"), ()).is_none() {
-                let name = self.master[pick(hits, self.master)?].item.name.clone();
+                let name = self.master[i].item.name.clone();
                 let name = ml_texts(&serde_json::to_value(name).unwrap_or_default())
                     .into_iter()
                     .next()
@@ -371,7 +413,7 @@ impl<'m> Makers<'m> {
             }
             return Ok(m);
         }
-        if let Some((m, _)) = self.created.get(&f) {
+        if let Some(m) = self.created.get(&f) {
             return Ok(m.clone());
         }
         let name = clean(text);
@@ -380,14 +422,19 @@ impl<'m> Makers<'m> {
             return Err(format!("the manufacturer `{text}` has no letters or digits"));
         }
         let item = manufacturer_item(library, &key);
-        let doc: Manufacturer = serde_json::from_value(json!({"key": key, "name": name}))
-            .map_err(|e| format!("the manufacturer `{text}` cannot be recorded: {e}"))?;
         let maker = Maker {
             key: key.clone(),
             library,
             item,
             version: FIRST_VERSION.to_owned(),
         };
+        if self.emitted.contains_key(&item) {
+            // Another text with the same key (`A-B`, `AB`): the copy made for it.
+            self.created.insert(f, maker.clone());
+            return Ok(maker);
+        }
+        let doc: Manufacturer = serde_json::from_value(json!({"key": key, "name": name}))
+            .map_err(|e| format!("the manufacturer `{text}` cannot be recorded: {e}"))?;
         report.push(
             ReportEntry::new(
                 Code::imp(5),
@@ -399,8 +446,8 @@ impl<'m> Makers<'m> {
             .at(at.clone()),
         );
         report.stats.inferred += 1;
-        self.created
-            .insert(f, (maker.clone(), copy(library, item, FIRST_VERSION, doc)));
+        self.emitted.insert(item, copy(library, item, FIRST_VERSION, doc));
+        self.created.insert(f, maker.clone());
         Ok(maker)
     }
 }
@@ -711,8 +758,8 @@ fn same_content(new: &Part, held: &Part) -> bool {
 /// file's name and `meta.as_of` the target's date. The manufacturer cell resolves through `master` (key or name;
 /// aliases and brands, reported EW-IMP-007); a name no record knows becomes a new manufacturer of the target
 /// (EW-IMP-005), returned in [`PartsImport::manufacturers`]. The part's `manufacturer` reference names the record's
-/// library and item and keeps the key in `extra["key"]`, which the derivations read until manufacturer copies are
-/// resolved (FT-39).
+/// library and item; with [`CatalogTarget::local_manufacturers`] a record of another library is copied into the target
+/// and the reference names the copy, which is returned in [`PartsImport::manufacturers`] too.
 ///
 /// Rows: **new**; **updated** (the target holds the item with other content: the held version, or its next patch
 /// version with `target.bump`); **unchanged** (the held document is returned as it is); **duplicate** (an earlier row
@@ -767,7 +814,7 @@ pub fn parse_parts(
         .map(|(m, i)| (m.clone(), sheet.headers[*i].clone()))
         .collect();
     let library = target.library;
-    let mut makers = Makers::new(master);
+    let mut makers = Makers::new(master, library, target.local_manufacturers);
     let mut rows: Vec<RowOutcome> = Vec::new();
     let mut parts: Vec<LibDocument> = Vec::new();
     // (manufacturer key, pn_norm) → (line, the part as first read).
@@ -880,7 +927,6 @@ pub fn parse_parts(
                 "library": maker.library.hyphenated().to_string(),
                 "item": maker.item.hyphenated().to_string(),
                 "version_req": caret(&maker.version),
-                "key": maker.key,
             });
             let mut meta = json!({
                 "key": format!("{}.{}", maker.key.to_lowercase(), norm.to_lowercase()),
@@ -967,9 +1013,8 @@ pub fn parse_parts(
             parts.push(LibDocument::Part(doc));
         }
     }
-    let mut manufacturers: Vec<LibCopy<Manufacturer>> =
-        makers.created.into_values().map(|(_, c)| c).collect();
-    manufacturers.sort_by_key(|c| c.item_id.as_uuid());
+    // By item ID (the map's order).
+    let manufacturers: Vec<LibCopy<Manufacturer>> = makers.emitted.into_values().collect();
     report
         .stats
         .per_kind

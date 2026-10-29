@@ -53,7 +53,8 @@ unless the map names one), through a column map (a TOML file: `sheet` and a `[co
 `tech_data.<key>` and `free_props.<key>` to the column headers). Manufacturer names resolve through the manufacturers
 of the libraries (`--company` as for `lib`); `--as-of` (YYYY-MM-DD) stamps the parts. Every row is reported: new,
 unchanged (the project holds it), duplicate, rejected with the reason; an `A / B` part number becomes two candidates
-flagged for review. The new parts are imported with `parts.import` and the project is saved.
+flagged for review. The new parts are imported with `parts.import`, with copies of the manufacturers they name, and
+the project is saved.
 
 `check` runs a check scheme (mode `release`, format `text`) over a project directory
 (default: the nearest ancestor of the current directory holding `manifest.json`) and exits 0 with no unwaived

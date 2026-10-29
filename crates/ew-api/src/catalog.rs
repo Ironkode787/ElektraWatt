@@ -264,6 +264,7 @@ pub fn import_into_library(
             bump,
             limits: Limits::default(),
             existing: &held,
+            local_manufacturers: false,
         };
         parse_parts(input, map, &master, &target)?
     };
@@ -306,8 +307,9 @@ impl Session {
     /// [`Session::libraries`] in the shell, of the `--company` tiers in the CLI), the project's own part copies as
     /// what the target holds. Returns the import and the `parts.import` command of its
     /// new parts (`None` when there is none): `parts.import` creates them in one undoable step and skips a key the
-    /// project holds; it never updates a part (updating is the previewed `library.update`). The manufacturers the
-    /// import would create are reported, not embedded (a project-local part keeps the name in its reference's `key`).
+    /// project holds; it never updates a part (updating is the previewed `library.update`). The command embeds the
+    /// manufacturer copies the new parts name (WP-S1.19 D10): the manufacturers the import creates and the project's
+    /// copies of the master records they resolve to (`parts.import` skips one the project holds).
     ///
     /// # Errors
     ///
@@ -334,6 +336,7 @@ impl Session {
             bump: false,
             limits: Limits::default(),
             existing: &existing,
+            local_manufacturers: true,
         };
         let import = parse_parts(input, map, master, &target)?;
         let new: std::collections::BTreeSet<_> = import
@@ -342,12 +345,31 @@ impl Session {
             .filter(|r| r.status == RowStatus::New)
             .filter_map(|r| r.item)
             .collect();
-        let copies: Vec<serde_json::Value> = import
+        let parts: Vec<&LibDocument> = import
             .parts
             .iter()
             .filter(|d| matches!(d, LibDocument::Part(p) if new.contains(&p.item_id.as_uuid())))
-            .map(|d| serde_json::to_value(d).unwrap_or_default())
             .collect();
+        let named: std::collections::BTreeSet<_> = parts
+            .iter()
+            .filter_map(|d| match d {
+                LibDocument::Part(p) => Some(p.item.manufacturer.item),
+                _ => None,
+            })
+            .collect();
+        let makers = import
+            .manufacturers
+            .iter()
+            .filter(|d| matches!(d, LibDocument::Manufacturer(m) if named.contains(&m.item_id)));
+        let copies: Vec<serde_json::Value> = if parts.is_empty() {
+            Vec::new()
+        } else {
+            parts
+                .into_iter()
+                .chain(makers)
+                .map(|d| serde_json::to_value(d).unwrap_or_default())
+                .collect()
+        };
         let cmd = (!copies.is_empty()).then(|| AnyCommand {
             name: PARTS_IMPORT.into(),
             params: serde_json::json!({ "copies": copies }),

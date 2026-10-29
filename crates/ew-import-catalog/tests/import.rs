@@ -8,7 +8,8 @@
 use std::collections::BTreeMap;
 
 use ew_import_catalog::{
-    CatalogTarget, ColumnMap, PartsImport, RowStatus, SourceFormat, parse_parts, part_item, pn_norm,
+    CatalogTarget, ColumnMap, PartsImport, RowStatus, SourceFormat, manufacturer_item, parse_parts,
+    part_item, pn_norm,
 };
 use ew_interop_api::ew_ids::Uuid;
 use ew_interop_api::ew_schema::{Date, LibCopy, LibDocument, Manufacturer, Part, PartKind};
@@ -229,7 +230,7 @@ fn a_mapped_list_imports_with_a_report_of_every_row() {
         serde_json::to_value(&mcb.item).unwrap(),
         json!({
             "meta": {"key": "se.a9p52610", "sources": ["liste.csv"], "as_of": "2026-10-29"},
-            "manufacturer": {"library": MASTER.to_string(), "item": se.to_string(), "version_req": "^1", "key": "SE"},
+            "manufacturer": {"library": MASTER.to_string(), "item": se.to_string(), "version_req": "^1"},
             "part_number": "A9P52610",
             "type_designation": "iC40N 1P+N C10",
             "description": {"de": "Leitungsschutzschalter"},
@@ -270,6 +271,62 @@ fn another_header_dialect_through_its_own_map_gives_the_same_parts() {
     let a = parse_parts(&input, &map, &master(), &target()).unwrap();
     let b = import_bytes("liste.csv", LIST.as_bytes().to_vec(), &target()).unwrap();
     assert_eq!(a.parts[0], b.parts[0]);
+}
+
+/// A project target (WP-S1.19 D10): every manufacturer a part names is a copy in the target, the master records it
+/// resolves to copied (not reported as new), the created ones as before; no reference keeps a `key`.
+#[test]
+fn a_project_target_copies_the_master_manufacturers_it_resolves() {
+    let project = CatalogTarget {
+        local_manufacturers: true,
+        ..target()
+    };
+    let i = import_bytes("liste.csv", LIST.as_bytes().to_vec(), &project).unwrap();
+    let makers: Vec<&LibCopy<Manufacturer>> = i
+        .manufacturers
+        .iter()
+        .map(|d| match d {
+            LibDocument::Manufacturer(m) => m,
+            other => panic!("not a manufacturer: {:?}", other.kind()),
+        })
+        .collect();
+    let keys: Vec<String> = makers.iter().map(|m| m.item.key.to_string()).collect();
+    assert_eq!(keys.len(), 3, "SE, PXC and the created one: {keys:?}");
+    for m in &makers {
+        assert_eq!(m.library_id.as_uuid(), TARGET);
+        assert_eq!(
+            m.item_id.as_uuid(),
+            manufacturer_item(TARGET, m.item.key.as_ref())
+        );
+        assert_eq!(m.version, "1.0.0");
+        LibDocument::Manufacturer((*m).clone()).validate().unwrap();
+    }
+    let se = makers.iter().find(|m| m.item.key.as_ref() == "SE").unwrap();
+    let master_se = &master()[0];
+    assert_eq!(
+        se.item, master_se.item,
+        "the copy holds the master record's content"
+    );
+    // Only the created manufacturer is reported as new.
+    assert_eq!(
+        i.report
+            .with_code(Code::imp(5))
+            .filter(|e| e.message.starts_with("manufacturer `"))
+            .count(),
+        1
+    );
+    for d in &i.parts {
+        let LibDocument::Part(p) = d else {
+            panic!("not a part")
+        };
+        let named = &p.item.manufacturer;
+        assert_eq!(named.library.as_uuid(), TARGET);
+        assert!(makers.iter().any(|m| m.item_id == named.item));
+        assert!(named.extra.is_empty(), "no `key` on the reference");
+    }
+    // The library target names the master's records and copies none.
+    let library = import_bytes("liste.csv", LIST.as_bytes().to_vec(), &target()).unwrap();
+    assert_eq!(library.manufacturers.len(), 1);
 }
 
 // -------------------------------------------------------------------------------------------------------------------
