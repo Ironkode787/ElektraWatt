@@ -118,7 +118,7 @@ pub enum StripEditError {
 }
 
 /// The word an accessory row shows for its kind (D3).
-pub fn accessory_word(kind: &AccessoryKind) -> &'static str {
+pub(crate) fn accessory_word(kind: &AccessoryKind) -> &'static str {
     match kind {
         AccessoryKind::EndPlate => "End plate",
         AccessoryKind::EndClamp => "End bracket",
@@ -126,6 +126,19 @@ pub fn accessory_word(kind: &AccessoryKind) -> &'static str {
         AccessoryKind::Marker => "Marker carrier",
         AccessoryKind::Cover => "Cover",
         AccessoryKind::Unknown(_) => "Accessory",
+    }
+}
+
+/// The word an accessory row shows for the kind's parameter word (`end_clamp` → `End bracket`), for the shell, which
+/// names no schema type.
+pub fn accessory_kind_word(kind: &str) -> &'static str {
+    match kind {
+        "end_plate" => "End plate",
+        "end_clamp" => "End bracket",
+        "partition" => "Partition plate",
+        "marker" => "Marker carrier",
+        "cover" => "Cover",
+        _ => "Accessory",
     }
 }
 

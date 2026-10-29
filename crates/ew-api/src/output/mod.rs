@@ -112,7 +112,7 @@ pub use properties::{
 };
 // WP-S2.07 part 1
 pub use strip_edit::{
-    ACCESSORY_KINDS, StripCell, StripEdit, StripEditError, accessory_part_kinds, accessory_word,
+    ACCESSORY_KINDS, StripCell, StripEdit, StripEditError, accessory_kind_word, accessory_part_kinds,
 };
 pub use view::{
     CpTargetsByPage, FrameForms, GENERIC_SYMBOL_SEALS, GENERIC_SYMBOLS_PROFILE, GenericSymbols, NOGRID_FRAME,
