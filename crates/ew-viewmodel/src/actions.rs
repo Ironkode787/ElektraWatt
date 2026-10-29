@@ -442,6 +442,35 @@ fn one_connection(m: &ShellModel) -> Result<(), &'static str> {
     }
 }
 
+/// An editable page whose selection gives a bond its two ends: exactly one selected connection (Draw ▸ Bond, FT-578).
+/// The headless form that names the two ends (`a` and `b`) needs only the editable page ([`enabled_with`]).
+fn bond_ends(m: &ShellModel) -> Result<(), &'static str> {
+    editable_page(m)?;
+    if m.one_connection_selected() {
+        Ok(())
+    } else {
+        Err("reason-bond-selection")
+    }
+}
+
+/// Whether the action `meta` can run now with the parameters `p`: its predicate, except where the parameters supply
+/// what the predicate reads from the selection (`bond.draw` with `a` or `b` names its two ends itself, FT-578). The
+/// menus and the palette, which send no such parameters, read the predicate alone.
+///
+/// # Errors
+///
+/// The reason key of the refusal.
+pub fn enabled_with(
+    meta: &ActionMeta,
+    m: &ShellModel,
+    p: &serde_json::Map<String, Value>,
+) -> Result<(), &'static str> {
+    if meta.id == "bond.draw" && (p.contains_key("a") || p.contains_key("b")) {
+        return editable_page(m);
+    }
+    (meta.enabled)(m)
+}
+
 /// An editable page with exactly one junction selected (Edit ▸ Junction sequence…; WP-S2.04 part 2, window check).
 fn one_junction(m: &ShellModel) -> Result<(), &'static str> {
     editable_page(m)?;
@@ -2387,7 +2416,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             "action-bond-draw",
             Menu::Draw,
             &[],
-            editable_page,
+            bond_ends,
             grp_sub(Group::Connect, Submenu::Bond),
         )),
     ),

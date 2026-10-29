@@ -246,7 +246,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "bond-kind-equipotential" => "Equipotential bond",
         "bond-kind-shield" => "Shield bond",
         "reason-bond-selection" => {
-            "Select the one wire that bonds the two potentials, or name its two connection points"
+            "Select the one wire between the two potentials: the bond joins its two ends"
         }
         "reason-bond" => "A bond is previewed first",
         "error-bond-end" => {

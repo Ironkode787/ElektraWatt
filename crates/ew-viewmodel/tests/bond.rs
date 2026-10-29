@@ -167,7 +167,14 @@ fn the_cp_form_the_kinds_and_the_refusals() {
     let m = failed(&mut shell, "bond.draw", json!({"a": "PE-0VDC", "b": "PE-0VDC"}));
     assert!(m.contains("two different"), "{m}");
     failed(&mut shell, "bond.draw", json!({"a": "PE-0VDC"}));
+    // Without a selection and without ends the action is disabled before its parameters are read (FT-578).
+    assert_eq!(
+        refused(&mut shell, "bond.draw", json!({"kind": "copper"})),
+        "reason-bond-selection"
+    );
+    done(&mut shell, "select.set", json!({"refs": [W27]}));
     failed(&mut shell, "bond.draw", json!({"kind": "copper"}));
+    done(&mut shell, "ui.dismiss", json!({}));
     assert!(shell.properties().card().is_none());
 
     done(
@@ -188,16 +195,28 @@ fn the_cp_form_the_kinds_and_the_refusals() {
 }
 
 /// Draw ▸ Connect ▸ Bond lists the four kinds of `bond.create`, the default first, each dispatching `bond.draw` with
-/// its kind.
+/// its kind; they are disabled with their reason until the selection gives the bond two ends (FT-578).
 #[test]
 fn the_bond_submenu_lists_the_four_kinds() {
     let tmp = Tmp::new("bond-menu");
-    let shell = tmp.shell_in(Mode::Headless, true, "103");
-    let draw = menu_model(&shell)
-        .into_iter()
-        .find(|m| m.menu == Menu::Draw)
-        .expect("the Draw menu");
-    let items = draw.submenu(Submenu::Bond).expect("the Bond submenu").to_vec();
+    let mut shell = tmp.shell_in(Mode::Headless, true, "103");
+    let bond_items = |shell: &ShellModel| {
+        let draw = menu_model(shell)
+            .into_iter()
+            .find(|m| m.menu == Menu::Draw)
+            .expect("the Draw menu");
+        draw.submenu(Submenu::Bond).expect("the Bond submenu").to_vec()
+    };
+    let items = bond_items(&shell);
+    let reason = ew_viewmodel::strings::text("reason-bond-selection");
+    assert!(
+        items
+            .iter()
+            .all(|i| i.id == "bond.draw" && !i.enabled && i.reason.as_deref() == Some(reason)),
+        "{items:?}"
+    );
+    done(&mut shell, "select.set", json!({"refs": [W27]}));
+    let items = bond_items(&shell);
     assert!(items.iter().all(|i| i.id == "bond.draw" && i.enabled));
     let kinds: Vec<&str> = items.iter().map(|i| i.params["kind"].as_str().unwrap()).collect();
     assert_eq!(kinds, ["pelv_0v_pe", "fe_pe", "equipotential", "shield"]);

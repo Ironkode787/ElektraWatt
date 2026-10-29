@@ -904,7 +904,9 @@ pub fn run_step(
 ) -> StepResult {
     // WP-S2.09 §6.3 item 5: the ends of the jobs that finished since the last step are taken first.
     shell.poll_jobs();
-    let outcome = match actions::find(&step.action).map(|m| (m.enabled)(shell)) {
+    let empty = Map::new();
+    let params = step.params.as_object().unwrap_or(&empty);
+    let outcome = match actions::find(&step.action).map(|m| actions::enabled_with(m, shell, params)) {
         Some(Err(reason_key)) => Outcome::Refused { reason_key },
         _ => match ext.handle(shell, &step.action, &step.params) {
             Some(outcome) => outcome,

@@ -1367,7 +1367,7 @@ impl ShellModel {
         if clears_banner(meta.id) {
             self.banner = None;
         }
-        if let Err(reason_key) = (meta.enabled)(self) {
+        if let Err(reason_key) = actions::enabled_with(meta, self, p) {
             return Outcome::Refused { reason_key };
         }
         // An alias `@n` in a parameter that takes a UUID or a reference resolves before the action reads it (FT-422).
