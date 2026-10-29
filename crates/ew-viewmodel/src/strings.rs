@@ -68,7 +68,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "tool-exchange" => "Change symbol",
         "hint-place" => "Click or Enter to place; R, X, Y and V turn it; Escape ends",
         "hint-place-proposals" => {
-            "Click or Enter to place and connect the proposed wires; Alt+Click or Alt+Enter places without them; Tab tries the next target; Escape ends"
+            "Click or Enter to place and connect the proposed wires; Alt+Click or Ctrl+Enter places without them; Tab tries the next target; Escape ends"
         }
         "hint-select-move" => "Release, click or Enter to move; Escape cancels",
         "hint-exchange" => "Click or Enter to change the symbol; Escape cancels",
@@ -790,8 +790,10 @@ pub fn lookup(key: &str) -> Option<&'static str> {
             "Deleted the interruption points {0} and the {1} wires connected to them"
         }
         "toast-autoconnect" => {
-            "Placed and connected {0}: {1}. Alt+Click or Alt+Enter places without connecting"
+            "{0} and connected {1}: {2}. Alt+Click or Ctrl+Enter places without connecting"
         }
+        "toast-placed" => "Placed {0} at {1}",
+        "toast-placed-no-cell" => "Placed {0}",
         "toast-undo" => "Undo",
         "toast-close" => "Close",
         // WP-S2.09 part 1: the jobs, the notifications and the recovery dialog.

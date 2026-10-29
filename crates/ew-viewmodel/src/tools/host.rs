@@ -152,6 +152,14 @@ pub(crate) struct ToolHost {
 /// A commit's result line, said in the toast once the page tables show the result (FT-546, FT-547).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum ResultNote {
+    /// A `device.place` at the insertion point `pos` (page nm), with the wires its autoconnect hints draw: their
+    /// count and their list in words (FT-485 item 3), or `None` for a placement without wires.
+    Placed {
+        /// The insertion point.
+        pos: (i64, i64),
+        /// The wires' count and list.
+        wires: Option<(String, String)>,
+    },
     /// A delete of interruption points: their names and the connections at their connection points that the
     /// selection did not name (said only for those the delete removed).
     IpsDeleted {

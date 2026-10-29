@@ -401,16 +401,17 @@ fn item3_the_hint_offers_alt_and_the_toast_names_the_wires_a_placement_drew() {
         state(&s)["status"][0]
             .as_str()
             .unwrap()
-            .contains("Alt+Click or Alt+Enter places without them"),
+            .contains("Alt+Click or Ctrl+Enter places without them"),
         "{}",
         state(&s)["status"]
     );
     done(&mut s, "canvas.activate", json!({}));
     let t = toast(&s);
-    assert!(t.starts_with("Placed and connected "), "{t}");
+    assert!(t.starts_with("Placed -101K"), "{t}");
+    assert!(t.contains(" and connected "), "{t}");
     assert!(t.contains(" -> \"-101K"), "{t}");
     assert!(
-        t.ends_with("Alt+Click or Alt+Enter places without connecting"),
+        t.ends_with("Alt+Click or Ctrl+Enter places without connecting"),
         "{t}"
     );
 }

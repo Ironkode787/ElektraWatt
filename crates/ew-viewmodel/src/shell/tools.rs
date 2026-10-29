@@ -32,8 +32,8 @@ use crate::canvas::{CanvasModel, CanvasPage, PageId, reading_key};
 use crate::strings;
 use crate::tools::{
     Button, CanvasEvent, LINK_PREVIEW_DWELL_MS, LINK_PREVIEW_PANE, LinkPreview, MarkerKind, Mods, Overlay,
-    PreviewInfo, PreviewState, PreviewStatus, Selection, SelectionChange, Tool, ToolCx, ToolOutput,
-    tool_label, tool_named,
+    PreviewInfo, PreviewState, PreviewStatus, ResultNote, Selection, SelectionChange, Tool, ToolCx,
+    ToolOutput, tool_label, tool_named,
 };
 use ew_api::output::ew_dl::EntityRef;
 
@@ -346,10 +346,17 @@ impl ShellModel {
                 // WP-S2.09 D6: an earlier toast stays (its Undo expires with this commit); a new toast of key `edit`
                 // replaces it.
                 let out = self.run_commit(cmd.as_ref());
+                // FT-546: every placement answers with its result line (the tag and the cell, and the wires it drew),
+                // said at the end of the dispatch, once the page tables show it.
                 if out == Outcome::Done
-                    && let Some((count, list)) = connects
+                    && cmd.name() == "device.place"
+                    && let Ok(json) = cmd.to_json()
+                    && let (Some(x), Some(y)) = (json["pos"][0].as_i64(), json["pos"][1].as_i64())
                 {
-                    self.notify(strings::format("toast-autoconnect", &[&count, &list]), true);
+                    self.tools.result_note = Some(ResultNote::Placed {
+                        pos: (x, y),
+                        wires: connects,
+                    });
                 }
                 self.tools.tool.on_commit(out == Outcome::Done);
                 self.tools.overlay = Overlay::default();

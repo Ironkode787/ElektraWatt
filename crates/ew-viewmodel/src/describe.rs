@@ -2376,7 +2376,7 @@ fn variant_letter(orient: u8) -> char {
 
 /// The tag a representation prints: its device's short tag, read off the labels of its connection points (a CP's
 /// label is `tag:designation`, a terminal's `tag/clamp`, an interruption point's its name); `None` without one.
-fn rep_tag(cps: &[&TableCp]) -> Option<String> {
+pub(crate) fn rep_tag(cps: &[&TableCp]) -> Option<String> {
     let label = &cps.first()?.label;
     // A terminal's label is `-X1031:11/a` (its tag is `-X1031:11`); a device's is `-101F1:2` or `-101F1:2#2`.
     if let Some((tag, _clamp)) = label.rsplit_once('/') {

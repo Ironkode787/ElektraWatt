@@ -83,11 +83,37 @@ fn ips_deleted(reps: &[EntityRef], drawn: &crate::tools::Selection, t: &PageTabl
 
 impl ShellModel {
     /// The toast of the result note the dispatch's commit left (FT-546, FT-547), read on the page tables after it.
-    fn say_result(&mut self, _before: &PageTables, now: &PageTables) {
+    fn say_result(&mut self, before: &PageTables, now: &PageTables) {
         let Some(note) = self.tools.result_note.take() else {
             return;
         };
         match note {
+            ResultNote::Placed { pos, wires } => {
+                // The representation the placement added at its insertion point (the lowest ID if several).
+                let Some(rep) = now
+                    .reps
+                    .iter()
+                    .filter(|r| r.pos == pos && !before.reps.iter().any(|b| b.id == r.id))
+                    .min_by_key(|r| r.id)
+                else {
+                    return;
+                };
+                let cps: Vec<&ew_api::output::TableCp> = now.cps.iter().filter(|c| c.rep == rep.id).collect();
+                let tag = crate::describe::rep_tag(&cps).unwrap_or_else(|| rep.symbol_key.clone());
+                let cell = self.canvas().and_then(|c| {
+                    let page = c.page();
+                    page.cell_text(page.snapper.page_to_sheet(pos))
+                });
+                let placed = match cell {
+                    Some(cell) => strings::format("toast-placed", &[&tag, &cell]),
+                    None => strings::format("toast-placed-no-cell", &[&tag]),
+                };
+                let text = match wires {
+                    Some((count, list)) => strings::format("toast-autoconnect", &[&placed, &count, &list]),
+                    None => placed,
+                };
+                self.notify(text, true);
+            }
             ResultNote::IpsDeleted { names, wires } => {
                 let gone = wires
                     .iter()

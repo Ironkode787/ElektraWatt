@@ -249,3 +249,59 @@ fn ft547_deleting_an_ip_with_its_wire_says_so_in_the_toast() {
         format!("Deleted the interruption point {name} and the wire connected to it")
     );
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// FT-546: every placement answers with its result line.
+
+/// The sheet point of grid index `k` on the shown page.
+fn grid(s: &ShellModel, k: (i64, i64)) -> (i64, i64) {
+    let sn = &s.canvas().unwrap().page().snapper;
+    sn.page_to_sheet((sn.page_of_index(k.0), sn.page_of_index(k.1)))
+}
+
+/// A plain commit, an Alt commit (the click's modifier and the keyboard's) and a terminal each say the placed tag and
+/// its frame cell in the toast; on a page without frame cells (Golden A's QET frames) the tag alone.
+#[test]
+fn ft546_every_place_commit_names_the_tag_and_the_cell() {
+    let tmp = Tmp::new("m34-546");
+    let mut s = new_project(&tmp);
+    done(&mut s, "view.zoom_actual", json!({}));
+    done(
+        &mut s,
+        "place.pick",
+        json!({"symbol": "ew.iec.contact-no@qet10", "letter": "K"}),
+    );
+    for (k, action, params) in [
+        ((20, 20), "canvas.activate", json!({})),
+        ((40, 20), "canvas.activate", json!({"alt": true})),
+        ((60, 20), "canvas.activate_alt", json!({})),
+    ] {
+        let p = grid(&s, k);
+        done(&mut s, "cursor.set", common::at(p, json!({})));
+        let cell = s
+            .canvas()
+            .unwrap()
+            .page()
+            .cell_text(p)
+            .unwrap_or_else(|| panic!("no cell at {p:?}: {}", state(&s)["status"]));
+        done(&mut s, action, params);
+        let t = toast(&s);
+        assert!(t.starts_with("Placed -"), "{action}: {t}");
+        assert!(t.contains('K'), "{action}: {t}");
+        assert!(t.ends_with(&format!(" at {cell}")), "{action}: {t} / {cell}");
+    }
+    // A terminal on Golden A's strip names the terminal; Golden A's frames have no cells.
+    let tmp = Tmp::new("m34-546b");
+    let mut s = golden(&tmp, "103");
+    done(&mut s, "view.zoom_actual", json!({}));
+    done(
+        &mut s,
+        "place.pick",
+        json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X1031", "terminal_designation": "40"}),
+    );
+    let p = grid(&s, (110, 30));
+    done(&mut s, "cursor.set", common::at(p, json!({})));
+    assert_eq!(s.canvas().unwrap().page().cell_text(p), None);
+    done(&mut s, "canvas.activate_alt", json!({}));
+    assert_eq!(toast(&s), "Placed -X1031:40");
+}
