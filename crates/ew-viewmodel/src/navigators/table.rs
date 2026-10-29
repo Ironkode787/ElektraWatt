@@ -26,7 +26,109 @@ use serde_json::{Value, json};
 
 use super::pattern::{RowError, Template};
 use super::{NavKind, NavNode, NavRole, NavTable, Navigator, Query, SortBy, VisRow};
-use ew_api::output::{EditRoute, FieldType, Uuid, field_catalogue};
+use ew_api::output::{EditRoute, FieldType, StripCell, Uuid, field_catalogue};
+
+/// The pseudo-route kind of a strip-editor cell (WP-S2.07 §6.3): its cells compile through `Session::strip_edit`, not
+/// through `parse_field_input`. The path is `group`, `bridge_part:<strip>:<bridge>` (one key per bridge group, so that
+/// two rows of one group setting different parts are a conflict, "same bridge as row <n>") or `accessory_part:<index>`.
+pub const STRIP_ROUTE: &str = "@strip";
+
+/// The route of a strip-editor cell of `node` in `column` (WP-S2.07 §6.2): Group and Bridge part on a terminal row, the
+/// accessory's Part on an accessory row; `None` for every other cell.
+pub fn strip_route(table: &NavTable, node: &NavNode, column: usize) -> Option<(String, String)> {
+    if table.kind != NavKind::Strips {
+        return None;
+    }
+    let c = table.columns.get(column)?;
+    let path = match (c.strip_cell?, node.role) {
+        (StripCell::Group, NavRole::Terminal) => "group".to_owned(),
+        (StripCell::BridgePart, NavRole::Terminal) => {
+            let bridge = cell_of(table, node, "bridge");
+            if bridge.is_empty() {
+                return None;
+            }
+            format!(
+                "bridge_part:{}:{bridge}",
+                node.cells.first().map_or("", String::as_str)
+            )
+        }
+        (StripCell::AccessoryPart, NavRole::Accessory) => {
+            format!("accessory_part:{}", accessory_index(node)?)
+        }
+        _ => return None,
+    };
+    Some((STRIP_ROUTE.to_owned(), path))
+}
+
+/// The records a strip-editor cell of `node` on `path` is keyed by: a Group cell's terminal device; a Bridge part
+/// cell's and an accessory row's strip device (so that the conflict rule reads one bridge group, or one accessory, as
+/// one record).
+pub fn strip_targets(table: &NavTable, node: &NavNode, path: &str) -> Vec<Uuid> {
+    if path == "group" {
+        return node.records.clone();
+    }
+    node.parent
+        .and_then(|p| table.nodes.get(p as usize))
+        .map(|s| s.records.clone())
+        .unwrap_or_default()
+}
+
+/// The terminal device of a terminal row (its key's last segment `terminal:<uuid>`).
+pub fn row_terminal(row_key: &str) -> Option<Uuid> {
+    row_key
+        .rsplit('/')
+        .next()?
+        .strip_prefix("terminal:")?
+        .parse()
+        .ok()
+}
+
+/// The index in `Strip.accessories` of an accessory row (its key's last segment `accessory:<index>`).
+pub fn accessory_index(node: &NavNode) -> Option<u32> {
+    node.key
+        .rsplit('/')
+        .next()?
+        .strip_prefix("accessory:")?
+        .parse()
+        .ok()
+}
+
+/// The text of `node`'s cell in the column `key` (empty when the table has no such column).
+fn cell_of<'n>(table: &NavTable, node: &'n NavNode, key: &str) -> &'n str {
+    table
+        .columns
+        .iter()
+        .position(|c| c.key == key)
+        .and_then(|i| node.cells.get(i))
+        .map_or("", String::as_str)
+}
+
+/// The strip editor's read-only reasons (WP-S2.07 §6.2): `Some(None)` for an editable strip-editor cell, `Some(reason)`
+/// for an accessory row's other cells, the Pos column and a Bridge part cell of a terminal without a bridge; `None` for
+/// every other cell (the rules of §8.2 apply).
+fn strip_reason(table: &NavTable, node: &NavNode, column: usize) -> Option<Option<String>> {
+    if table.kind != NavKind::Strips {
+        return None;
+    }
+    let c = table.columns.get(column)?;
+    let editable = strip_route(table, node, column).is_some();
+    if node.role == NavRole::Accessory {
+        return Some((!editable).then(|| crate::strings::text("table-accessory-row").to_owned()));
+    }
+    if c.key == "pos" {
+        return Some(Some(crate::strings::text("table-pos-move").to_owned()));
+    }
+    if node.role == NavRole::Terminal {
+        return match c.strip_cell {
+            Some(StripCell::BridgePart) if !editable => {
+                Some(Some(crate::strings::text("table-no-bridge").to_owned()))
+            }
+            Some(StripCell::Group | StripCell::BridgePart) => Some(None),
+            _ => None,
+        };
+    }
+    None
+}
 
 /// The state of a navigator in table mode.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
@@ -41,12 +143,32 @@ pub struct TableMode {
     pub(crate) error: Option<String>,
     /// The pattern fill dialog's pattern, while the dialog is open.
     pub(crate) pattern: Option<String>,
+    /// WP-S2.07 §6.5: the chooser list of `strip.add_accessory` while several parts fit (doc 16a §6.22).
+    pub(crate) chooser: Option<Chooser>,
+}
+
+/// The chooser list of `strip.add_accessory` (WP-S2.07 §6.5; doc 16a §6.22, its first use): open at a row while
+/// several part copies fit the accessory; picking an item dispatches `strip.add_accessory` again with `kind` and the
+/// item's `part`.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct Chooser {
+    /// The row it opened at.
+    pub row: String,
+    /// The accessory kind's word (`end_clamp`).
+    pub kind: String,
+    /// The items: (`<part number> (<manufacturer>) · <description>`, the `part` text that picks it).
+    pub items: Vec<(String, String)>,
 }
 
 impl TableMode {
     /// The cell being edited.
     pub fn edit(&self) -> Option<&CellEdit> {
         self.edit.as_ref()
+    }
+
+    /// The chooser list, while it is open (WP-S2.07 §6.5).
+    pub fn chooser(&self) -> Option<&Chooser> {
+        self.chooser.as_ref()
     }
 
     /// The error under the edited cell.
@@ -109,11 +231,16 @@ pub struct CellEdit {
 /// label), natural, ascending or descending, ties by node order. One level, a pure function.
 pub fn table_rows(table: &NavTable, sort: &SortBy, descending: bool, query: &Query) -> Vec<VisRow> {
     let col = match sort {
-        SortBy::Label => None,
+        SortBy::Label | SortBy::Order => None,
         SortBy::Column(c) => table.columns.iter().position(|x| x.key == *c),
     };
+    let by_order = *sort == SortBy::Order;
     let key = |i: usize| {
         let n = &table.nodes[i];
+        if by_order {
+            // `Order` (WP-S2.07 D2): the node order alone, through the tie-break.
+            return None;
+        }
         match col {
             Some(c) => n.natural.get(c + 1),
             None => n.natural.first(),
@@ -127,6 +254,10 @@ pub fn table_rows(table: &NavTable, sort: &SortBy, descending: bool, query: &Que
         })
         .collect();
     rows.sort_by(|&a, &b| {
+        if by_order && descending {
+            // `Order` descending: the node order reversed.
+            return b.cmp(&a);
+        }
         let k = key(a).cmp(&key(b));
         let k = if descending { k.reverse() } else { k };
         k.then(a.cmp(&b))
@@ -285,6 +416,9 @@ pub fn is_scalar(ty: &FieldType) -> bool {
 /// kind", "edit in the property grid", "no command yet".
 pub fn cell_reason(table: &NavTable, node: &NavNode, column: usize) -> Option<String> {
     let c = table.columns.get(column)?;
+    if let Some(reason) = strip_reason(table, node, column) {
+        return reason;
+    }
     if c.derived {
         return Some(crate::strings::text("table-reason-derived").to_owned());
     }
@@ -369,6 +503,14 @@ impl GestureCell {
     /// The reason a blocking cell is invalid (`None` for an ambiguous one and an applicable one).
     pub fn reason(&self) -> Option<String> {
         if let Some(n) = self.conflict {
+            // WP-S2.07 §6.3: two rows of one bridge group with different parts.
+            if self
+                .route
+                .as_ref()
+                .is_some_and(|(k, p)| k == STRIP_ROUTE && p.starts_with("bridge_part:"))
+            {
+                return Some(format!("same bridge as row {n}"));
+            }
             return Some(format!("same record as row {n}"));
         }
         if self.define_clash {
@@ -611,6 +753,10 @@ pub fn compile(gesture: &Gesture, base: &mut dyn FnMut(&str, Uuid, &str) -> Memb
         else {
             continue;
         };
+        // A strip-editor cell compiles through `Session::strip_edit` (WP-S2.07 §6.3), in the shell.
+        if kind == STRIP_ROUTE {
+            continue;
+        }
         for (path, v) in std::iter::once((path, v)).chain(cell.extra.iter().map(|(p, x)| (p, x))) {
             let member = route_member(kind, path).unwrap_or_else(|| path.clone());
             let mltext = route_type(kind, path).is_some_and(|t| matches!(t.inner(), FieldType::MlText));

@@ -520,8 +520,16 @@ fn one_free_text(m: &ShellModel) -> Result<(), &'static str> {
 /// An editable page whose selection is two or more terminals of one strip not all bridged yet (Edit ▸ Bridge
 /// terminals; FT-411, §10.7, cycle 33).
 fn two_strip_terminals(m: &ShellModel) -> Result<(), &'static str> {
-    editable_page(m)?;
+    // WP-S2.07 D9: a writable project, not an editable page (the selection may be records).
+    writable(m)?;
     m.bridge_command().map(|_| ())
+}
+
+/// The strip editor's gestures (WP-S2.07 §6.9): a writable project with the Terminal strips navigator open and focused
+/// (headless: open).
+fn strips_editor(m: &ShellModel) -> Result<(), &'static str> {
+    writable(m)?;
+    m.strip_editor_shown()
 }
 
 /// The junction sequence editor is open on a project that can be changed (WP-S2.04 part 2, §8.5).
@@ -2406,6 +2414,76 @@ pub static ACTIONS: &[ActionMeta] = &[
         &[],
         two_strip_terminals,
         grp(Group::Connect),
+    )),
+    // WP-S2.07 part 1: the strip editor (§6.9; 262 → 268).
+    with_params(
+        "strip?:text",
+        act(
+            "strip.edit",
+            View,
+            "action-strip-edit",
+            Menu::Edit,
+            &[],
+            project_open,
+            slot(Menu::Edit),
+        ),
+    ),
+    with_params(
+        "count?:uint, designation?:text",
+        in_navigator(act(
+            "strip.insert",
+            Command,
+            "action-strip-insert",
+            Menu::Edit,
+            &["Insert"],
+            strips_editor,
+            None,
+        )),
+    ),
+    in_navigator(act(
+        "strip.delete_rows",
+        Command,
+        "action-strip-delete-rows",
+        Menu::Edit,
+        &["Ctrl+Delete"],
+        strips_editor,
+        None,
+    )),
+    // Alt+Arrow Up and Alt+Arrow Down are `pages.move_up` and `pages.move_down` in the navigator context (the keymap
+    // test forbids a second binding): the shortcut is left to a lead ruling (reported), the action runs from the
+    // palette, a script and the row menu.
+    with_params(
+        "step?:int, before?:text",
+        in_navigator(act(
+            "strip.move",
+            Command,
+            "action-strip-move",
+            Menu::Edit,
+            &[],
+            strips_editor,
+            None,
+        )),
+    ),
+    with_params(
+        "kind?:enum(end_plate|end_clamp|partition|marker|cover), part?:text",
+        in_navigator(act(
+            "strip.add_accessory",
+            Command,
+            "action-strip-add-accessory",
+            Menu::Edit,
+            &[],
+            strips_editor,
+            slot(Menu::Edit),
+        )),
+    ),
+    in_navigator(act(
+        "strip.unbridge",
+        Command,
+        "action-strip-unbridge",
+        Menu::Edit,
+        &[],
+        strips_editor,
+        None,
     )),
     // G-PP triage row 7: Draw ▸ Bond, `bond.create` on the selected connection or two named CPs, previewed.
     with_params(

@@ -17,7 +17,7 @@
 
 use std::sync::Arc;
 
-use ew_api::output::{InputError, NavKind, NavTable, Uuid};
+use ew_api::output::{InputError, NavKind, NavTable, StripEdit, StripEditError, Uuid};
 use ew_api::{AnyCommand, Exposure, Submit};
 use serde_json::{Map, Value};
 
@@ -27,9 +27,9 @@ use crate::navigators::Navigator;
 use crate::navigators::paste::{parse_tsv, write_tsv};
 use crate::navigators::pattern::Template;
 use crate::navigators::table::{
-    CellEdit, CellValue, Compiled, Gesture, GestureCell, GestureKind, MemberBase, TableMode, cell_reason,
-    cell_text, compile, define_point, gesture_rows, mark_conflicts, pattern_texts, potential_input,
-    route_type, row_targets, rows_word,
+    CellEdit, CellValue, Compiled, Gesture, GestureCell, GestureKind, MemberBase, STRIP_ROUTE, TableMode,
+    cell_reason, cell_text, compile, define_point, gesture_rows, mark_conflicts, pattern_texts,
+    potential_input, route_type, row_targets, row_terminal, rows_word, strip_route, strip_targets,
 };
 use crate::properties::{
     Card, CardOrigin, Decision, EditRoute, FieldReadOnly, PendingEdit, RowValue, find_row, policy,
@@ -97,6 +97,148 @@ fn list_param(p: &Map<String, Value>, name: &str) -> Result<Option<Vec<String>>,
     }
 }
 
+/// The strip edit of one strip-editor cell (WP-S2.07 §6.3) on `path` of row `row`, keyed by `targets`, with `text`.
+fn strip_edit_of(path: &str, row: &str, targets: &[Uuid], text: &str) -> Option<StripEdit> {
+    if path == "group" {
+        return Some(StripEdit::GroupLabel {
+            terminals: targets.to_vec(),
+            label: text.to_owned(),
+        });
+    }
+    if path.starts_with("bridge_part:") {
+        return Some(StripEdit::BridgePart {
+            terminals: vec![row_terminal(row)?],
+            part: text.to_owned(),
+        });
+    }
+    let index = path.strip_prefix("accessory_part:")?.parse().ok()?;
+    Some(StripEdit::AccessoryPart {
+        strip: *targets.first()?,
+        index,
+        part: text.to_owned(),
+    })
+}
+
+/// The strip edits of a gesture's applicable strip-editor cells (WP-S2.07 §6.3): one `GroupLabel` per distinct text
+/// (its rows' terminals, in row order) at the place of its first cell, then each Bridge part and accessory Part cell in
+/// cell order.
+fn strip_edits_of(gesture: &Gesture) -> Vec<StripEdit> {
+    let mut out: Vec<StripEdit> = Vec::new();
+    for cell in &gesture.cells {
+        let (CellValue::Valid(Value::String(text)), Some((kind, path)), false, None) =
+            (&cell.value, &cell.route, cell.dropped, cell.conflict)
+        else {
+            continue;
+        };
+        if kind != STRIP_ROUTE {
+            continue;
+        }
+        if path == "group" {
+            let merged = out.iter_mut().find_map(|e| match e {
+                StripEdit::GroupLabel { terminals, label } if label == text => Some(terminals),
+                _ => None,
+            });
+            match merged {
+                Some(terminals) => terminals.extend(cell.targets.iter().copied()),
+                None => out.push(StripEdit::GroupLabel {
+                    terminals: cell.targets.clone(),
+                    label: text.clone(),
+                }),
+            }
+            continue;
+        }
+        if let Some(edit) = strip_edit_of(path, &cell.row, &cell.targets, text) {
+            out.push(edit);
+        }
+    }
+    out
+}
+
+/// The number of targets over the entries of a `fields.set` or `fields.set_many`.
+fn command_targets(name: &str, params: &Value) -> usize {
+    let count = |e: &Value| e.get("targets").and_then(Value::as_array).map_or(0, Vec::len);
+    if name == "fields.set_many" {
+        params
+            .get("edits")
+            .and_then(Value::as_array)
+            .map_or(0, |edits| edits.iter().map(count).sum())
+    } else {
+        count(params)
+    }
+}
+
+/// The one command of a gesture's plain cells (`plain`) and its strip-editor cells (`strip`): either alone, or one
+/// `fields.set_many` with the plain entries first.
+fn merge_compiled(plain: Option<Compiled>, strip: Option<AnyCommand>) -> Option<Compiled> {
+    let Some(strip) = strip else {
+        return plain;
+    };
+    let entries = |name: &str, params: &Value| -> Vec<Value> {
+        if name == "fields.set_many" {
+            params
+                .get("edits")
+                .and_then(Value::as_array)
+                .cloned()
+                .unwrap_or_default()
+        } else {
+            vec![params.clone()]
+        }
+    };
+    let strip_name: &'static str = if strip.name == "fields.set" {
+        "fields.set"
+    } else {
+        "fields.set_many"
+    };
+    match plain {
+        None => Some(Compiled {
+            name: strip_name,
+            targets: command_targets(&strip.name, &strip.params),
+            params: strip.params,
+            identifier: false,
+        }),
+        // A defining cell compiles alone (it is never mixed: `define_clash`).
+        Some(p) if p.name == "potential.define" => Some(p),
+        Some(p) => {
+            let mut edits = entries(p.name, &p.params);
+            edits.extend(entries(&strip.name, &strip.params));
+            let params = serde_json::json!({ "edits": edits });
+            Some(Compiled {
+                name: "fields.set_many",
+                targets: command_targets("fields.set_many", &params),
+                params,
+                identifier: p.identifier,
+            })
+        }
+    }
+}
+
+impl ShellModel {
+    /// The command of a gesture's strip-editor cells (WP-S2.07 §6.3): `Ok(None)` without any; a refusal of the
+    /// combined edits refuses the gesture.
+    fn strip_compiled(&self, gesture: &Gesture) -> Result<Option<AnyCommand>, Outcome> {
+        let edits = strip_edits_of(gesture);
+        if edits.is_empty() {
+            return Ok(None);
+        }
+        let Some(project) = &self.project else {
+            return Ok(None);
+        };
+        match project.session.strip_edits(&edits) {
+            Ok(cmd) => Ok(Some(cmd)),
+            Err(StripEditError::Refused(reason_key)) => Err(Outcome::Refused { reason_key }),
+            Err(StripEditError::Invalid(message)) => Err(Outcome::Failed { message }),
+            Err(StripEditError::Ambiguous(choices)) => Err(failed(
+                "error-accessory-part-ambiguous",
+                &[&choices
+                    .iter()
+                    .map(|c| c.text.as_str())
+                    .collect::<Vec<_>>()
+                    .join("; ")],
+            )),
+        }
+    }
+}
+
 impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // State
@@ -151,6 +293,7 @@ impl ShellModel {
         let mut extra = None;
         let value = match self.cell_route(view, i, col) {
             Err(reason) => CellValue::Invalid(reason),
+            Ok((kind, path)) if kind == STRIP_ROUTE => self.strip_cell_value(view, i, &path, text),
             Ok((kind, path)) => match &self.project {
                 None => CellValue::Invalid(strings::text("reason-no-project").to_owned()),
                 Some(project) => {
@@ -188,10 +331,29 @@ impl ShellModel {
         let node = &view.table.nodes[i as usize];
         match cell_reason(&view.table, node, col) {
             Some(reason) => Err(reason),
-            None => view.table.columns[col]
-                .route
-                .clone()
+            None => strip_route(&view.table, node, col)
+                .or_else(|| view.table.columns[col].route.clone())
                 .ok_or_else(|| strings::text("table-reason-no-command").to_owned()),
+        }
+    }
+
+    /// The value of a strip-editor cell (WP-S2.07 §6.3): the text, when `Session::strip_edit` compiles the cell's
+    /// own edit; else its refusal, reason or readings (each reading's value the text `id:<uuid>` that resolves to it).
+    fn strip_cell_value(&self, view: &TableView, i: u32, path: &str, text: &str) -> CellValue {
+        let Some(project) = &self.project else {
+            return CellValue::Invalid(strings::text("reason-no-project").to_owned());
+        };
+        let node = &view.table.nodes[i as usize];
+        let Some(edit) = strip_edit_of(path, &node.key, &strip_targets(&view.table, node, path), text) else {
+            return CellValue::Invalid(strings::text("table-no-record").to_owned());
+        };
+        match project.session.strip_edit(&edit) {
+            Ok(_) => CellValue::Valid(Value::String(text.to_owned())),
+            Err(StripEditError::Refused(key)) => CellValue::Invalid(strings::text(key).to_owned()),
+            Err(StripEditError::Invalid(message)) => CellValue::Invalid(message),
+            Err(StripEditError::Ambiguous(choices)) => {
+                CellValue::Ambiguous(choices.into_iter().map(|c| (c.text, c.value)).collect())
+            }
         }
     }
 
@@ -205,7 +367,13 @@ impl ShellModel {
         };
         let targets = route
             .as_ref()
-            .map(|(k, _)| row_targets(node, k))
+            .map(|(k, p)| {
+                if k == STRIP_ROUTE {
+                    strip_targets(&view.table, node, p)
+                } else {
+                    row_targets(node, k)
+                }
+            })
             .unwrap_or_default();
         // The G-PP triage's row 8: a Type or Voltage cell of a potential without a definition defines it.
         let define = route
@@ -274,6 +442,11 @@ impl ShellModel {
         };
         mark_conflicts(&mut gesture);
         let compiled = compile(&gesture, &mut |k, t, m| self.member_base(k, t, m));
+        // WP-S2.07 §6.3: the strip-editor cells compile through `Session::strip_edits`, into the same one command.
+        let compiled = match self.strip_compiled(&gesture) {
+            Ok(strip) => merge_compiled(compiled, strip),
+            Err(outcome) => return outcome,
+        };
         let blocking = gesture.blocking();
         let Some(c) = compiled else {
             if blocking == 0 {
@@ -516,6 +689,26 @@ impl ShellModel {
             let Some((kind, path)) = cell.route.clone() else {
                 continue;
             };
+            if kind == STRIP_ROUTE {
+                // A strip-editor cell: its row and column again (a bridge's key may have changed).
+                let col = view.table.columns.iter().position(|c| c.key == cell.column);
+                let node = view.table.nodes.iter().find(|n| n.key == cell.row);
+                match node
+                    .zip(col)
+                    .and_then(|(n, c)| strip_route(&view.table, n, c).map(|r| (n, r)))
+                {
+                    Some((n, route)) => {
+                        cell.targets = strip_targets(&view.table, n, &route.1);
+                        cell.route = Some(route);
+                    }
+                    None => {
+                        cell.value = CellValue::Invalid(strings::text("table-no-row").to_owned());
+                        cell.route = None;
+                        cell.targets.clear();
+                    }
+                }
+                continue;
+            }
             match view.table.nodes.iter().find(|n| n.key == cell.row) {
                 None => {
                     cell.value = CellValue::Invalid(strings::text("table-no-row").to_owned());
@@ -1209,6 +1402,7 @@ impl ShellModel {
             .map(|i| {
                 let value = match self.cell_route(&view, *i, col) {
                     Err(reason) => CellValue::Invalid(reason),
+                    Ok((k, path)) if k == STRIP_ROUTE => self.strip_cell_value(&view, *i, &path, ""),
                     Ok((k, path)) => match cleared(route_type(&k, &path).as_ref()) {
                         Some(v) => CellValue::Valid(v),
                         None => CellValue::Invalid(strings::text("table-not-clearable").to_owned()),
@@ -1293,11 +1487,12 @@ impl ShellModel {
     /// card. `None` when neither is open.
     pub(super) fn dismiss_table(&mut self, kind: NavKind) -> Option<Outcome> {
         if let Some(m) = self.mode_mut(kind)
-            && (m.edit.is_some() || m.pattern.is_some() || m.error.is_some())
+            && (m.edit.is_some() || m.pattern.is_some() || m.error.is_some() || m.chooser.is_some())
         {
             m.edit = None;
             m.pattern = None;
             m.error = None;
+            m.chooser = None;
             return Some(Outcome::Done);
         }
         self.take_table_card().map(|_| Outcome::Done)

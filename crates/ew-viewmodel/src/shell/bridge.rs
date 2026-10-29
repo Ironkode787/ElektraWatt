@@ -9,22 +9,33 @@
 //! a shaft-1 entry); a terminal without one (no part chosen yet, or a part without a shaft) bridges at the lowest
 //! side-1 CP of its function definition, so a bridge can be drawn before the parts are chosen.
 //!
-//! **Reads.** The focused page's tables resolve the selection; the terminal aspects, the part copies, the function
-//! definitions and the connections come from the project's base tables through the session's query when the action
-//! runs (and when its menu item is evaluated). No memoised query is read, and a variant the shell cannot name (the
-//! connection kind, an endpoint, a clamp key, a CP side) is inspected through its record's JSON form.
+//! **Selection by records (WP-S2.07 D9, FT-548).** The window selection's items of any kind count: a representation
+//! with one function, a function, or a device; each resolves to the terminal function of a terminal device (a device:
+//! its function). No canvas and no page is needed.
+//!
+//! **Terminals, not CPs (D10, FT-585).** Two terminals are bridged when a bridge connection joins any CP of one to any
+//! CP of the other; such a pair is kept, and the command is refused when every pair is; the group rule's "touches"
+//! reads terminals. The stored CPs stay what was drawn.
+//!
+//! **Remove bridge (D11).** `strip.unbridge` deletes the bridge connections with both ends on the selected terminals in
+//! one `edit.delete`, and refuses when that would leave a group in two pieces.
+//!
+//! **Reads.** The terminal aspects, the part copies, the function definitions and the connections come from the
+//! project's base tables through the session's query when the action runs (and when its menu item is evaluated). No
+//! memoised query is read, and a variant the shell cannot name (the connection kind, an endpoint, a clamp key, a CP
+//! side) is inspected through its record's JSON form.
 //!
 //! **Commit.** The parameters go through the tool's commit path (`execute_with` in the window, `run_script`
 //! headless): one bridge is one `connection.draw`, a chain of two or more one `connection.draw_many`; either is one
 //! undo step.
 
 use ew_api::AnyCommand;
+use ew_api::output::Uuid;
 use serde_json::{Value, json};
 
 use super::interruption::natural_cmp;
 use super::{Outcome, ShellModel};
 use crate::strings;
-use crate::tools::{EntityKind, selection_kinds};
 
 /// A connection point: the function's ID text and the CP index.
 type CpKey = (String, u16);
@@ -39,13 +50,29 @@ struct Terminal {
     end: u16,
 }
 
-/// A bridge connection as the group rule reads it: its group, its two CP ends (a junction end is none) and the
+/// A bridge connection as the group rule reads it: its ID, its group, its two CP ends (a junction end is none) and the
 /// strip the `a` end belongs to, when that end is a terminal CP.
 struct Bridge {
+    id: String,
     group: u16,
     a: Option<CpKey>,
     b: Option<CpKey>,
     strip: Option<String>,
+}
+
+impl Bridge {
+    /// The function of each end (D10: a bridge joins terminals).
+    fn ends(&self) -> (Option<&str>, Option<&str>) {
+        (
+            self.a.as_ref().map(|(f, _)| f.as_str()),
+            self.b.as_ref().map(|(f, _)| f.as_str()),
+        )
+    }
+
+    /// Whether it joins the terminals of functions `x` and `y` (either order).
+    fn joins(&self, x: &str, y: &str) -> bool {
+        matches!(self.ends(), (Some(a), Some(b)) if (a == x && b == y) || (a == y && b == x))
+    }
 }
 
 impl ShellModel {
@@ -55,40 +82,16 @@ impl ShellModel {
     /// cost is linear in the project's connections plus the selected terminals' keyed lookups.
     pub(crate) fn bridge_command(&self) -> Result<AnyCommand, &'static str> {
         let selection: &'static str = "reason-bridge-selection";
-        // 1. The focused page's tables; two or more selected representations, each with one function and a
-        // terminal device. Two representations of one terminal count once.
-        let tables = self
-            .canvas()
-            .map(|c| std::sync::Arc::clone(&c.page().tables))
-            .ok_or(selection)?;
-        let kinds = selection_kinds(&self.tools.selection, &tables);
-        if kinds.len() < 2 || kinds.iter().any(|(_, kind)| *kind != EntityKind::Rep) {
-            return Err(selection);
-        }
+        // 1. The selection's terminals (D9): each item a representation with one function, a function or a device,
+        // resolving to a terminal device's function; one terminal counts once.
         let project = self.project.as_ref().ok_or(selection)?;
         let q = project.session.query();
-
-        let mut terminals: Vec<Terminal> = Vec::with_capacity(kinds.len());
-        let mut devices = Vec::with_capacity(kinds.len());
-        for (entity, _) in &kinds {
-            let Some(rep) = tables.reps.iter().find(|r| r.id == entity.0) else {
-                return Err(selection);
-            };
-            // The page tables and the selection carry UUIDs; the typed row ID comes from the record's canonical
-            // text, which `q.reps().get` fixes by inference (the shell names no schema type).
-            let Ok(rep_id) = rep.id.to_string().parse() else {
-                return Err(selection);
-            };
-            let Some(record) = q.reps().get(rep_id) else {
-                return Err(selection);
-            };
-            let [function] = record.functions.as_slice() else {
-                return Err(selection);
-            };
-            let Some(function) = q.functions().get(*function) else {
-                return Err(selection);
-            };
-            let Some(device_id) = function.device else {
+        let found = self.selected_terminals().ok_or(selection)?;
+        let mut terminals: Vec<Terminal> = Vec::with_capacity(found.len());
+        let mut devices = Vec::with_capacity(found.len());
+        for (function, device) in found {
+            let (Ok(function_id), Ok(device_id)) = (function.to_string().parse(), device.to_string().parse())
+            else {
                 return Err(selection);
             };
             let Some(device) = q.devices().get(device_id) else {
@@ -97,18 +100,15 @@ impl ShellModel {
             let Some(terminal) = device.aspects.terminal.as_ref() else {
                 return Err(selection);
             };
-            let function_text = function.id.as_uuid().to_string();
-            if terminals.iter().any(|t| t.function == function_text) {
-                continue;
-            }
+            let def = q.functions().get(function_id).map(|f| f.def).ok_or(selection)?;
             terminals.push(Terminal {
-                function: function_text,
+                function: function.to_string(),
                 seq: terminal.seq,
                 designation: terminal.designation.as_str().to_owned(),
                 strip: terminal.strip.as_uuid().to_string(),
                 end: 0,
             });
-            devices.push((device_id, function.def));
+            devices.push((device_id, def));
         }
         if terminals.len() < 2 {
             return Err(selection);
@@ -159,39 +159,7 @@ impl ShellModel {
             terminal.end = end.ok_or("reason-bridge-no-shaft")?;
         }
 
-        // The strip's bridges: every bridge connection whose `a` end is a CP of one of the strip's terminal
-        // functions; with their two CP ends and the group. Only the `a` end's function, device and terminal aspect
-        // are read, through the keyed tables, so the menu's enabled predicate stays linear in the bridges.
-        let mut bridges: Vec<Bridge> = Vec::new();
-        for (_, connection) in q.connections().iter() {
-            let Ok(kind) = serde_json::to_value(&connection.kind) else {
-                continue;
-            };
-            let Some(spec) = kind.get("bridge") else {
-                continue;
-            };
-            let Some(group) = spec
-                .get("group")
-                .and_then(Value::as_u64)
-                .and_then(|g| u16::try_from(g).ok())
-            else {
-                continue;
-            };
-            let end = |endpoint: &Value| -> Option<CpKey> {
-                let cp = endpoint.get("cp")?;
-                let function = cp.get(0)?.as_str()?.to_owned();
-                let idx = u16::try_from(cp.get(1)?.as_u64()?).ok()?;
-                Some((function, idx))
-            };
-            let a = serde_json::to_value(&connection.a).ok().and_then(|e| end(&e));
-            let b = serde_json::to_value(&connection.b).ok().and_then(|e| end(&e));
-            let strip = connection.a.function().and_then(|function| {
-                let function = q.functions().get(function)?;
-                let device = q.devices().get(function.device?)?;
-                Some(device.aspects.terminal.as_ref()?.strip.as_uuid().to_string())
-            });
-            bridges.push(Bridge { group, a, b, strip });
-        }
+        let bridges = self.project_bridges();
 
         // The terminals in the strip's order: lower sequence first, then the natural order of the designation,
         // then the function ID. Consecutive terminals of that order are the chain's pairs.
@@ -203,16 +171,12 @@ impl ShellModel {
         });
         let ends: Vec<CpKey> = terminals.iter().map(|t| (t.function.clone(), t.end)).collect();
 
-        // 4. A pair already bridged between exactly these two CPs (either order) is kept; when every pair is, the
-        // command is refused.
-        let same_ends = |bridge: &Bridge, a: &CpKey, b: &CpKey| {
-            (bridge.a.as_ref() == Some(a) && bridge.b.as_ref() == Some(b))
-                || (bridge.a.as_ref() == Some(b) && bridge.b.as_ref() == Some(a))
-        };
+        // 4. A pair of terminals already joined by a bridge (any CP of one to any CP of the other, D10) is kept; when
+        // every pair is, the command is refused.
         let pairs: Vec<(&CpKey, &CpKey)> = ends
             .windows(2)
             .map(|w| (&w[0], &w[1]))
-            .filter(|(a, b)| !bridges.iter().any(|bridge| same_ends(bridge, a, b)))
+            .filter(|(a, b)| !bridges.iter().any(|bridge| bridge.joins(&a.0, &b.0)))
             .collect();
         if pairs.is_empty() {
             return Err("reason-bridge-exists");
@@ -225,9 +189,11 @@ impl ShellModel {
             .iter()
             .filter(|bridge| bridge.strip.as_deref() == Some(strip))
             .collect();
+        // D10: a bridge touches the chain when it ends on one of the chain's terminals (any CP of it).
+        let functions: Vec<&str> = ends.iter().map(|(f, _)| f.as_str()).collect();
         let touches = |bridge: &Bridge| {
-            bridge.a.as_ref().is_some_and(|cp| ends.contains(cp))
-                || bridge.b.as_ref().is_some_and(|cp| ends.contains(cp))
+            let (a, b) = bridge.ends();
+            a.is_some_and(|f| functions.contains(&f)) || b.is_some_and(|f| functions.contains(&f))
         };
         let group: u64 = if let Some(group) = strip_bridges
             .iter()
@@ -293,4 +259,175 @@ impl ShellModel {
             Err(reason_key) => Outcome::Refused { reason_key },
         }
     }
+}
+
+impl ShellModel {
+    /// The terminals of the window selection (D9): (terminal function, terminal device) for each item — a
+    /// representation with one function, a function, or a device (its function) — each terminal once, in selection
+    /// order; `None` when an item is none of these or not a terminal.
+    pub(super) fn selected_terminals(&self) -> Option<Vec<(Uuid, Uuid)>> {
+        let project = self.project.as_ref()?;
+        let q = project.session.query();
+        let mut out: Vec<(Uuid, Uuid)> = Vec::new();
+        for item in &self.tools.selection.items {
+            let text = item.0.to_string();
+            let function = if let Some(rep) = text.parse().ok().and_then(|id| q.reps().get(id)) {
+                let [function] = rep.functions.as_slice() else {
+                    return None;
+                };
+                *function
+            } else if let Some(id) = text.parse().ok().filter(|id| q.functions().get(*id).is_some()) {
+                id
+            } else {
+                // A device: its function (a terminal has one; the lowest ID when it has several).
+                let device = text.parse().ok().filter(|id| q.devices().get(*id).is_some())?;
+                q.functions()
+                    .iter()
+                    .filter(|(_, f)| f.device == Some(device))
+                    .map(|(id, _)| id)
+                    .min()?
+            };
+            let f = q.functions().get(function)?;
+            let device = f.device?;
+            q.devices().get(device)?.aspects.terminal.as_ref()?;
+            let pair = (function.as_uuid(), device.as_uuid());
+            if !out.iter().any(|(x, _)| *x == pair.0) {
+                out.push(pair);
+            }
+        }
+        Some(out)
+    }
+
+    /// `strip.unbridge` (Remove bridge, D11): the bridge connections with both ends on the selected terminals, in one
+    /// `edit.delete`; refused when none joins them (`reason-unbridge-none`) or when the deletion would leave a group in
+    /// two pieces (`reason-unbridge-split`).
+    pub(crate) fn unbridge_command(&self) -> Result<AnyCommand, &'static str> {
+        let terminals = self.selected_terminals().ok_or("reason-bridge-selection")?;
+        let functions: Vec<String> = terminals.iter().map(|(f, _)| f.to_string()).collect();
+        let bridges = self.project_bridges();
+        let on = |b: &Bridge| matches!(b.ends(), (Some(a), Some(z)) if functions.iter().any(|f| f == a) && functions.iter().any(|f| f == z));
+        let removed: Vec<&Bridge> = bridges.iter().filter(|b| on(b)).collect();
+        if removed.is_empty() {
+            return Err("reason-unbridge-none");
+        }
+        // Each touched group: what stays must be one piece (connected over its terminals).
+        let groups: std::collections::BTreeSet<(Option<&str>, u16)> =
+            removed.iter().map(|b| (b.strip.as_deref(), b.group)).collect();
+        for (strip, group) in groups {
+            let kept: Vec<(&str, &str)> = bridges
+                .iter()
+                .filter(|b| b.strip.as_deref() == strip && b.group == group && !on(b))
+                .filter_map(|b| match b.ends() {
+                    (Some(a), Some(z)) => Some((a, z)),
+                    _ => None,
+                })
+                .collect();
+            if pieces(&kept) > 1 {
+                return Err("reason-unbridge-split");
+            }
+        }
+        let targets: Vec<Value> = removed
+            .iter()
+            .map(|b| json!({"kind": "connection", "id": b.id}))
+            .collect();
+        Ok(AnyCommand {
+            name: "edit.delete".into(),
+            params: json!({ "targets": targets }),
+        })
+    }
+
+    /// `strip.unbridge` (the strip editor's row menu, D11): one `edit.delete`, the toast.
+    pub(super) fn act_strip_unbridge(&mut self) -> Outcome {
+        match self.unbridge_command() {
+            Ok(cmd) => {
+                let n = cmd.params["targets"].as_array().map_or(0, Vec::len);
+                let outcome = self.commit_from_host(&cmd);
+                if outcome == Outcome::Done {
+                    let text = if n == 1 {
+                        strings::format("toast-unbridged-one", &["1"])
+                    } else {
+                        strings::format("toast-unbridged", &[&n.to_string()])
+                    };
+                    self.notify(text, true);
+                }
+                outcome
+            }
+            Err(reason_key) => Outcome::Refused { reason_key },
+        }
+    }
+
+    /// Every bridge connection of the project with its ID, group, two CP ends and the strip of its `a` end (the
+    /// strip's bridges are those whose `a` end is a CP of one of its terminal functions). Only the `a` end's function,
+    /// device and terminal aspect are read, through the keyed tables, so the menu's enabled predicate stays linear in
+    /// the bridges.
+    fn project_bridges(&self) -> Vec<Bridge> {
+        let Some(project) = self.project.as_ref() else {
+            return Vec::new();
+        };
+        let q = project.session.query();
+        let mut bridges: Vec<Bridge> = Vec::new();
+        for (id, connection) in q.connections().iter() {
+            let Ok(kind) = serde_json::to_value(&connection.kind) else {
+                continue;
+            };
+            let Some(spec) = kind.get("bridge") else {
+                continue;
+            };
+            let Some(group) = spec
+                .get("group")
+                .and_then(Value::as_u64)
+                .and_then(|g| u16::try_from(g).ok())
+            else {
+                continue;
+            };
+            let end = |endpoint: &Value| -> Option<CpKey> {
+                let cp = endpoint.get("cp")?;
+                let function = cp.get(0)?.as_str()?.to_owned();
+                let idx = u16::try_from(cp.get(1)?.as_u64()?).ok()?;
+                Some((function, idx))
+            };
+            let a = serde_json::to_value(&connection.a).ok().and_then(|e| end(&e));
+            let b = serde_json::to_value(&connection.b).ok().and_then(|e| end(&e));
+            let strip = connection.a.function().and_then(|function| {
+                let function = q.functions().get(function)?;
+                let device = q.devices().get(function.device?)?;
+                Some(device.aspects.terminal.as_ref()?.strip.as_uuid().to_string())
+            });
+            bridges.push(Bridge {
+                id: id.as_uuid().to_string(),
+                group,
+                a,
+                b,
+                strip,
+            });
+        }
+        bridges
+    }
+}
+
+/// The number of connected pieces of the terminals joined by `links` (0 without links).
+fn pieces(links: &[(&str, &str)]) -> usize {
+    let mut nodes: Vec<&str> = links.iter().flat_map(|(a, b)| [*a, *b]).collect();
+    nodes.sort_unstable();
+    nodes.dedup();
+    let mut parent: Vec<usize> = (0..nodes.len()).collect();
+    fn root(parent: &mut [usize], mut i: usize) -> usize {
+        while parent[i] != i {
+            parent[i] = parent[parent[i]];
+            i = parent[i];
+        }
+        i
+    }
+    for (a, b) in links {
+        let (Ok(x), Ok(y)) = (nodes.binary_search(a), nodes.binary_search(b)) else {
+            continue;
+        };
+        let (rx, ry) = (root(&mut parent, x), root(&mut parent, y));
+        if rx != ry {
+            parent[rx] = ry;
+        }
+    }
+    (0..nodes.len())
+        .filter(|i| root(&mut parent.clone(), *i) == *i)
+        .count()
 }

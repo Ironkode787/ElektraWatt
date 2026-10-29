@@ -903,10 +903,16 @@ impl ShellModel {
             .unwrap_or_default();
         let sort = if by == "label" {
             SortBy::Label
+        } else if by == "order" && kind == NavKind::Strips {
+            // WP-S2.07 D2: the mounting order.
+            SortBy::Order
         } else if columns.contains(&by) {
             SortBy::Column(by)
         } else {
             let mut valid = vec!["label".to_owned()];
+            if kind == NavKind::Strips {
+                valid.push("order".to_owned());
+            }
             valid.extend(columns);
             return failed("error-nav-value", &["by", &by, &valid.join(", ")]);
         };

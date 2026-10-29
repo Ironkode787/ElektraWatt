@@ -58,6 +58,8 @@ mod navigation;
 mod navigators;
 // WP-S2.06 part 3
 mod onboarding;
+// WP-S2.07 part 1: the strip editor's row gestures (§6.4, §6.5).
+mod strip_editor;
 mod table;
 // FT-410
 mod parts;
@@ -1639,6 +1641,13 @@ impl ShellModel {
             "text.edit" => self.act_text_edit(),
             // FT-411: Edit ▸ Bridge terminals.
             "strip.bridge" => self.act_strip_bridge(),
+            // WP-S2.07 part 1: the strip editor (§6.9).
+            "strip.edit" => self.act_strip_edit(p),
+            "strip.insert" => self.act_strip_insert(p),
+            "strip.delete_rows" => self.act_strip_delete_rows(),
+            "strip.move" => self.act_strip_move(p),
+            "strip.add_accessory" => self.act_strip_add_accessory(p),
+            "strip.unbridge" => self.act_strip_unbridge(),
             // G-PP triage row 7: Draw ▸ Bond.
             "bond.draw" => self.act_bond_draw(p),
             // WP-S2.04 part 4b (marker and structure box, §10.5 to §10.7).

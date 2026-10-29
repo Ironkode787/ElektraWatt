@@ -345,12 +345,14 @@ fn tb4_paste_maps_parses_and_refuses_as_specified() {
     let tmp = Tmp::new("tb4");
     let mut shell = strips(&tmp, "x1031");
     let hide: Vec<String> = [
+        "Pos",
         "Group",
         "Part",
         "Potential",
         "Side 1 (clamp a)",
         "Side 2 (clamp b)",
         "Bridge",
+        "Bridge part",
     ]
     .iter()
     .map(|l| col(&shell, NavKind::Strips, l))
@@ -425,10 +427,10 @@ fn tb4_paste_maps_parses_and_refuses_as_specified() {
     done(
         &mut shell,
         "table.columns",
-        json!({"kind": "strips", "show": [hide[1]]}),
+        json!({"kind": "strips", "show": [hide[2]]}),
     );
     let k20 = terminal(&shell, "20");
-    done(&mut shell, "table.cell", json!({"row": k20, "column": hide[1]}));
+    done(&mut shell, "table.cell", json!({"row": k20, "column": hide[2]}));
     let n = steps(&shell);
     done(&mut shell, "table.paste", json!({"text": "X\r\nY\r\n"}));
     assert_eq!(
@@ -750,13 +752,14 @@ fn tb6_copy_then_paste_back_changes_nothing() {
 }
 
 /// The TSV of -X1032's five terminals with the header row (CRLF after every row).
+// WP-S2.07 part 1 (§6.1): the Pos and Bridge part columns.
 const EXPECTED_X1032: &str = "\
-Strip\tTerminal\tFunction text\tGroup\tPart\tPotential\tSide 1 (clamp a)\tSide 2 (clamp b)\tBridge\tState\r\n\
--X1032\t1\tPE\t\tPT 2.5-TWIN-PE\tPE\t-202U1:3 via -106W2 GNYE\tE55:PE\tBR6\tused\r\n\
--X1032\t2\tPE\t\tPT 2.5-TWIN-PE\tPE\t-102G1:−\t-102G1:PE\tBR6\tused\r\n\
--X1032\t3\tPE\t\tPT 2.5-TWIN-PE\tPE\t-201U1:3 via -106W1 GNYE\t-201U1:FE\tBR6\tused\r\n\
--X1032\t4\tPE\t\tPT 2.5-TWIN-PE\tPE\t\t-202U1:FE\tBR6\tused\r\n\
--X1032\t5\tPE\t\tPT 2.5-TWIN-PE\tPE\t\t\tBR6\tspare\r\n";
+Strip\tPos\tTerminal\tFunction text\tGroup\tPart\tPotential\tSide 1 (clamp a)\tSide 2 (clamp b)\tBridge\tBridge part\tState\r\n\
+-X1032\t1\t1\tPE\t\tPT 2.5-TWIN-PE\tPE\t-202U1:3 via -106W2 GNYE\tE55:PE\tBR6\t\tused\r\n\
+-X1032\t2\t2\tPE\t\tPT 2.5-TWIN-PE\tPE\t-102G1:−\t-102G1:PE\tBR6\t\tused\r\n\
+-X1032\t3\t3\tPE\t\tPT 2.5-TWIN-PE\tPE\t-201U1:3 via -106W1 GNYE\t-201U1:FE\tBR6\t\tused\r\n\
+-X1032\t4\t4\tPE\t\tPT 2.5-TWIN-PE\tPE\t\t-202U1:FE\tBR6\t\tused\r\n\
+-X1032\t5\t5\tPE\t\tPT 2.5-TWIN-PE\tPE\t\t\tBR6\t\tspare\r\n";
 
 /// TB8's model half (§8.8): the table's describe lines (header, `columns`, rows with the cursor column, the edit, the
 /// pattern dialog), Pages in table mode, the refusal outside table mode, the six words and the 239 actions; switching
@@ -770,8 +773,9 @@ fn tb8_describe_lines_words_and_counts() {
     }
     // Merged with WP-S2.09 parts 2 and 3 (16 + 13 words, 5 + 8 actions) and WP-S2.17 part 1 (2 actions) and part 3 (6 words, 2 actions),
     // and FT-541 (`props.filter`), and the G-PP triage's Draw ▸ Bond (`bond.draw`).
-    assert_eq!(VOCABULARY.len(), 355);
-    assert_eq!(ew_viewmodel::actions::ACTIONS.len(), 262);
+    // WP-S2.07 part 1: the strip editor's word `accessory` and six actions.
+    assert_eq!(VOCABULARY.len(), 356);
+    assert_eq!(ew_viewmodel::actions::ACTIONS.len(), 268);
     for (id, keys) in [
         ("table.edit", &["F2"][..]),
         ("table.fill_down", &["Ctrl+D"]),
@@ -802,7 +806,7 @@ fn tb8_describe_lines_words_and_counts() {
     done(
         &mut shell,
         "table.cell",
-        json!({"kind": "strips", "step": 12, "across": 2}),
+        json!({"kind": "strips", "step": 12, "across": 3}),
     );
     done(
         &mut shell,
@@ -813,12 +817,12 @@ fn tb8_describe_lines_words_and_counts() {
     let d = shell.describe();
     assert!(
         d.contains(
-            "navigator \"Terminal strips\" kind strips view tree table sort \"Terminal\" ascending filter \"x1031\" rows 20 showing 1 to 20\n  columns \"Strip\" \"Terminal\" \"Function text\" \"Group\" \"Part\" \"Potential\" \"Side 1 (clamp a)\" \"Side 2 (clamp b)\" \"Bridge\" \"State\"\n  row \"-X1031\" \"1\" \"1+\" \"Pneumatics\" \"PT 2.5-TWIN\" \"24VDC-1\" \"-102F2:Out1\" \"-201U1:5 via -106W1 BN\" \"BR1\" \"used\"\n"
+            "navigator \"Terminal strips\" kind strips view tree table sort \"Terminal\" ascending filter \"x1031\" rows 20 showing 1 to 20\n  columns \"Strip\" \"Pos\" \"Terminal\" \"Function text\" \"Group\" \"Part\" \"Potential\" \"Side 1 (clamp a)\" \"Side 2 (clamp b)\" \"Bridge\" \"Bridge part\" \"State\"\n  row \"-X1031\" \"1\" \"1\" \"1+\" \"Pneumatics\" \"PT 2.5-TWIN\" \"24VDC-1\" \"-102F2:Out1\" \"-201U1:5 via -106W1 BN\" \"BR1\" \"\" \"used\"\n"
         ),
         "{d}"
     );
     assert!(
-        d.contains("\n  row \"-X1031\" \"13\" \"1-\" \"Pneumatics\" \"PT 2.5-TWIN\" \"0V\" \"\" \"-202U1:2 via -106W2 BU\" \"BR5\" \"used\" cursor \"Function text\"\n"),
+        d.contains("\n  row \"-X1031\" \"13\" \"13\" \"1-\" \"Pneumatics\" \"PT 2.5-TWIN\" \"0V\" \"\" \"-202U1:2 via -106W2 BU\" \"BR5\" \"\" \"used\" cursor \"Function text\"\n"),
         "{d}"
     );
     assert!(

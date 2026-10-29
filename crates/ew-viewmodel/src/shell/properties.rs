@@ -80,6 +80,22 @@ pub(super) fn replace_uuids(text: &str, name: &dyn Fn(&str) -> String) -> String
     out
 }
 
+/// WP-S2.07 D13: the key of a terminal's Group row and of its Printed label row.
+const GROUP_ROW: &str = "device/derived.group";
+const PRINTED_LABEL_ROW: &str = "device/derived.printed_label";
+
+/// The sentence of a strip edit's refusal (the Group row's error line).
+fn message_of(result: &Result<AnyCommand, ew_api::output::StripEditError>) -> String {
+    match result {
+        Err(ew_api::output::StripEditError::Invalid(m)) => m.clone(),
+        Err(ew_api::output::StripEditError::Refused(k)) => strings::text(k).to_owned(),
+        Err(ew_api::output::StripEditError::Ambiguous(c)) => {
+            c.iter().map(|x| x.text.as_str()).collect::<Vec<_>>().join("; ")
+        }
+        Ok(_) => String::new(),
+    }
+}
+
 impl ShellModel {
     /// A command refusal as the grid shows it: [`refusal_text`] with the target named by its label (the header's title
     /// for one target, else the title of that record's own sheet: one `Session::property_sheet` call, on a refusal
@@ -809,6 +825,10 @@ impl ShellModel {
         let Some((section, row)) = self.props_find(key) else {
             return failed("error-no-row", &[key]);
         };
+        // WP-S2.07 D13: a terminal's Group row compiles through `Session::strip_edit` (D8).
+        if row.key == GROUP_ROW {
+            return self.commit_group_label(&section, &row, text);
+        }
         if self
             .props
             .choices
@@ -919,7 +939,8 @@ impl ShellModel {
             base.clone()
         };
         let unchanged = current.as_ref() == Some(&new) || (current.is_none() && new.is_null());
-        if unchanged && !(is_derived(&row) && row.path == member) {
+        // WP-S2.07 D13: the Printed label row is the function text under another key, not an override.
+        if unchanged && (!(is_derived(&row) && row.path == member) || row.key == PRINTED_LABEL_ROW) {
             self.props.edit = None;
             self.props.error = None;
             self.props.tag_proposal = None;
@@ -928,6 +949,61 @@ impl ShellModel {
         let edit = self.pending_edit(&section, &row, &member, value, new, base, typed);
         self.props.notes = notes;
         self.run_edit(edit, false)
+    }
+
+    /// The Group row of terminals (WP-S2.07 D13): one `StripEdit::GroupLabel` over the section's terminals, through
+    /// the commit path of every edit (one preview, the policy, the commit or the card); the same text builds no command.
+    fn commit_group_label(
+        &mut self,
+        section: &crate::properties::SheetSection,
+        row: &crate::properties::PropRow,
+        text: &str,
+    ) -> Outcome {
+        let label = text.trim().to_owned();
+        let current = match &row.value {
+            RowValue::One { text, .. } => Some(text.clone()),
+            RowValue::Absent => Some(String::new()),
+            RowValue::Varies { .. } => None,
+        };
+        if current.as_deref() == Some(label.as_str()) {
+            self.props.edit = None;
+            self.props.error = None;
+            return Outcome::Done;
+        }
+        let Some(project) = &self.project else {
+            return Outcome::Refused {
+                reason_key: "reason-no-project",
+            };
+        };
+        let edit = ew_api::output::StripEdit::GroupLabel {
+            terminals: section.targets.clone(),
+            label: label.clone(),
+        };
+        let cmd = match project.session.strip_edit(&edit) {
+            Ok(c) => c,
+            Err(ew_api::output::StripEditError::Refused(reason_key)) => {
+                return Outcome::Refused { reason_key };
+            }
+            Err(e) => {
+                let message = message_of(&Err(e));
+                self.props.error = Some((row.key.clone(), message.clone()));
+                return Outcome::Failed { message };
+            }
+        };
+        let pending = PendingEdit {
+            row: row.key.clone(),
+            kind: section.kind.clone(),
+            targets: section.targets.iter().map(ToString::to_string).collect(),
+            route: row.route.clone(),
+            path: row.path.clone(),
+            leaf: None,
+            base: None,
+            name: cmd.name,
+            params: cmd.params,
+            typed: text.to_owned(),
+            label: crate::properties::row_label(section, row),
+        };
+        self.run_edit(pending, false)
     }
 
     /// The command of an edit.

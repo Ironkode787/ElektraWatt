@@ -418,8 +418,9 @@ fn np6_the_six_words_and_the_two_actions() {
     // `props.filter`; the G-PP triage's Draw ▸ Bond (`bond.draw`), the tag proposal
     // (`props.accept_tag_proposal`) a terminal CP's side `internal` and
     // View ▸ Bottom dock (`view.bottom_dock`).
-    assert_eq!(VOCABULARY.len(), 355);
-    assert_eq!(ew_viewmodel::actions::ACTIONS.len(), 262);
+    // WP-S2.07 part 1: the strip editor's word `accessory` and six actions.
+    assert_eq!(VOCABULARY.len(), 356);
+    assert_eq!(ew_viewmodel::actions::ACTIONS.len(), 268);
     let hl = ew_viewmodel::actions::ACTIONS
         .iter()
         .find(|a| a.id == "navigator.highlight")

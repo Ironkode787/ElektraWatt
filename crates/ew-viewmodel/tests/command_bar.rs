@@ -24,6 +24,11 @@ use serde_json::json;
 const KEY_ONLY: &[&str] = &[
     "canvas.activate",
     "tool.back",
+    // WP-S2.07 part 1 (§6.9): the strip editor's row actions, reached through its row menu and keys.
+    "strip.insert",
+    "strip.delete_rows",
+    "strip.move",
+    "strip.unbridge",
     "command.run",
     "table.fill_down",
     "table.pattern_fill",

@@ -429,7 +429,14 @@ pub const VOCABULARY: &[&str] = &[
     "foot",
     "advanced",
     "hidden",
+    // WP-S2.07 part 1 (§6.10): the strip editor's accessory rows.
+    "accessory",
 ];
+
+// WP-S2.07 part 1
+/// The word WP-S2.07 part 1 adds to [`VOCABULARY`] (§6.10): an accessory row of the strip editor prints as `accessory`
+/// with its cells, where a terminal row prints `row`.
+pub const STRIP_EDITOR_WORDS: &[&str] = &["accessory"];
 
 // WP-S2.17 part 3
 /// The 6 words WP-S2.17 part 3 adds to [`VOCABULARY`] (D15): the `rail left` and `rail right` lines with the left rail's
@@ -1097,8 +1104,14 @@ fn table_lines(
         let Some(node) = table.nodes.iter().find(|n| n.key == r.key) else {
             continue;
         };
+        // WP-S2.07 §6.10: an accessory row of the strip editor has its own row word.
+        let word = if node.role == crate::navigators::NavRole::Accessory {
+            "accessory"
+        } else {
+            "row"
+        };
         let mut line = format!(
-            "  row{}",
+            "  {word}{}",
             quoted(
                 &mut shown
                     .iter()

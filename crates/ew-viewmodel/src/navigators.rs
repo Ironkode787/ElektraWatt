@@ -35,7 +35,7 @@ use std::sync::Arc;
 pub use ew_api::output::{Drawable, NaturalKey, NavKind, NavNode, NavRole, NavTable};
 
 /// The facets of the closed list that take a value (§6.1 item 5).
-pub const FACETS: [&str; 5] = ["page", "potential", "state", "kind", "part"];
+pub const FACETS: [&str; 6] = ["page", "potential", "state", "kind", "part", "strip"];
 
 /// The flags that a query word alone matches.
 pub const FLAGS: [&str; 2] = ["unplaced", "frozen"];
@@ -73,6 +73,19 @@ pub enum SortBy {
     Label,
     /// A column, by its key.
     Column(String),
+    /// The provider's node order (WP-S2.07 D2: the Terminal strips navigator's mounting order, its default).
+    Order,
+}
+
+impl SortBy {
+    /// The default sort of a navigator kind: `Order` for Terminal strips (WP-S2.07 D2), else the label.
+    pub fn default_for(kind: NavKind) -> SortBy {
+        if kind == NavKind::Strips {
+            SortBy::Order
+        } else {
+            SortBy::Label
+        }
+    }
 }
 
 /// A parsed filter query (§6.3).
@@ -238,7 +251,7 @@ impl Navigator {
         Navigator {
             kind,
             view: NavView::Tree,
-            sort: SortBy::Label,
+            sort: SortBy::default_for(kind),
             descending: false,
             filter: String::new(),
             collapsed: BTreeSet::new(),
@@ -367,6 +380,7 @@ impl Navigator {
                 .map_or_else(|| c.clone(), |x| x.label.clone()),
             SortBy::Label if self.kind == NavKind::Devices => "Tag".to_owned(),
             SortBy::Label => "Label".to_owned(),
+            SortBy::Order => "Order".to_owned(),
         }
     }
 
@@ -392,9 +406,10 @@ pub fn visible_rows(
 ) -> Vec<VisRow> {
     let n = table.nodes.len();
     let col = match sort {
-        SortBy::Label => None,
+        SortBy::Label | SortBy::Order => None,
         SortBy::Column(c) => table.columns.iter().position(|x| x.key == *c),
     };
+    let by_order = *sort == SortBy::Order;
     let sort_key = |i: usize| -> Option<&NaturalKey> {
         let node = &table.nodes[i];
         match col {
@@ -404,7 +419,17 @@ pub fn visible_rows(
     };
     let order = |v: &mut Vec<usize>| {
         v.sort_by(|&a, &b| {
-            let k = sort_key(a).cmp(&sort_key(b));
+            // `Order`: the node order alone (ascending or descending).
+            let k = if by_order {
+                std::cmp::Ordering::Equal
+            } else {
+                sort_key(a).cmp(&sort_key(b))
+            };
+            let k = if by_order && descending {
+                a.cmp(&b).reverse()
+            } else {
+                k
+            };
             let k = if descending { k.reverse() } else { k };
             k.then(a.cmp(&b))
         });
