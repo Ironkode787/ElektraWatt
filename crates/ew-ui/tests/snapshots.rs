@@ -343,9 +343,15 @@ fn part4_dialogs_toasts_menu_palette_and_preview_in_light_and_dark() {
             (200, 330, "navigator"),
             (200, 700, "Properties"),
             (500, 780, "status bar"),
+            // FT-624: the toast goes below the backdrop and dims with the rest (a plain spot of its fill).
+            (1150, 205, "toast"),
         ] {
             let (a, b) = (luma(&before, x, y), luma(&image, x, y));
-            assert!(a - b >= 8.0, "{theme}: the scrim dims the {part} ({a} to {b})");
+            // FT-624: visibly, not only measurably: at least 15 % darker (light measured about 21 %, dark about 39 %).
+            assert!(
+                a - b >= 8.0 && b <= 0.85 * a,
+                "{theme}: the scrim dims the {part} ({a} to {b})"
+            );
         }
         failures.extend(record(&format!("part4-dialog-toast-{theme}"), &image, true));
         let _ = h.state_mut().shell_mut().dispatch("ui.dismiss", &json!(null));
