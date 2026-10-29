@@ -760,7 +760,10 @@ pub(crate) fn apply_cancel_blocked(
     events: &mut Vec<Event>,
 ) {
     let t = tokens(ui);
-    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+    // FT-564: the row is one control high. A right-to-left layout over the rest of the parent would centre the buttons
+    // in all of the room below, so a card in a tall pane stretched to the pane's height (doc 16a §6.9: content-sized).
+    let size = Vec2::new(ui.available_width(), t.size_control);
+    ui.allocate_ui_with_layout(size, Layout::right_to_left(Align::Center), |ui| {
         ui.spacing_mut().item_spacing.x = t.space_3;
         // Right to left: the last button of the reading order is added first.
         let order: [bool; 2] = if cfg!(target_os = "windows") {
