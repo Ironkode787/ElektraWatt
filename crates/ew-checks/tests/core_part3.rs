@@ -546,6 +546,41 @@ fn core045_reports_contacts_beyond_the_part() {
     assert!(findings_of(&contacts(&[], &["no", "no", "no"]), "EW-CORE-045").is_empty());
 }
 
+/// EW-CORE-045 (ID-821): a change-over contact of the part serves one normally open or one normally closed function,
+/// each change-over at most once; a change-over function needs a change-over contact.
+#[test]
+fn core045_a_change_over_contact_serves_one_no_or_nc_function() {
+    // A relay's change-over contact used as a normally open or a normally closed contact.
+    assert!(findings_of(&contacts(&["co"], &["no"]), "EW-CORE-045").is_empty());
+    assert!(findings_of(&contacts(&["co"], &["nc"]), "EW-CORE-045").is_empty());
+    // A four-change-over relay with one normally open and one normally closed contact drawn.
+    let relay = ["co", "co", "co", "co"];
+    assert!(findings_of(&contacts(&relay, &["no", "nc"]), "EW-CORE-045").is_empty());
+    assert!(findings_of(&contacts(&relay, &["no", "no", "nc", "co"]), "EW-CORE-045").is_empty());
+    // One change-over serves one function, not two.
+    let f = findings_of(&contacts(&["co"], &["no", "no"]), "EW-CORE-045");
+    assert_eq!(f.len(), 1, "{f:#?}");
+    assert!(
+        f[0].message
+            .ends_with("uses 2 NO, 0 NC, 0 CO contacts; its parts have 0 NO, 0 NC, 1 CO"),
+        "{}",
+        f[0].message
+    );
+    assert_eq!(
+        findings_of(&contacts(&["co"], &["no", "nc"]), "EW-CORE-045").len(),
+        1
+    );
+    assert_eq!(
+        findings_of(&contacts(&relay, &["no", "no", "nc", "co", "nc"]), "EW-CORE-045").len(),
+        1
+    );
+    // A change-over function is not served by a normally open and a normally closed contact.
+    assert_eq!(
+        findings_of(&contacts(&["no", "nc"], &["co"]), "EW-CORE-045").len(),
+        1
+    );
+}
+
 /// An assembly `-U1` with children `-U1-Q1` and `-U1-Q2` (both with parts), its order codes covering `covers`.
 fn assembly_fx(covers: &[&[u128]], basis: &str) -> Fx {
     let mut fx = Fx::new();
