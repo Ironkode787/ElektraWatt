@@ -138,6 +138,20 @@ fn the_png_pdf_seeds_decode_and_print() {
     }
 }
 
+/// The fuzz finding of CI run 40897313649 (`regressions/png_pdf/plte-length-not-a-multiple-of-3`, 93 bytes): a 2 × 2
+/// palette PNG whose `PLTE` is 14 bytes long, which made `png` 0.18.1 panic in its palette code (`range end index 3
+/// out of range for slice of length 2`). Fixed by the chunk check of `ew_render_cpu`: the target's entry point refuses
+/// it cleanly (the decoder does not accept it, so nothing is printed), with no panic.
+#[test]
+fn the_png_pdf_plte_finding_is_refused_without_a_panic() {
+    let bytes = inputs_named(&inputs("regressions/png_pdf"), "plte-length-not-a-multiple-of-3");
+    assert_eq!(bytes.len(), 93);
+    assert_eq!(
+        ew_fuzz::png_pdf::check(&bytes),
+        ew_fuzz::png_pdf::Outcome { decoded: false }
+    );
+}
+
 /// The reported findings: each input of `regressions/<target>/` is replayed in this ordinary test process, where a
 /// panic is caught and the generator's own failure text (the seed, the step, the oracle and the command log of
 /// `command_sequence`) is printed, which libFuzzer's aborting panic hook never lets the fuzz target do. Nothing is
@@ -147,7 +161,7 @@ fn the_png_pdf_seeds_decode_and_print() {
 fn the_regressions_are_replayed_and_reported() {
     use std::panic::{AssertUnwindSafe, catch_unwind};
     type Check = fn(&[u8]);
-    let targets: [(&str, Check); 3] = [
+    let targets: [(&str, Check); 4] = [
         ("regressions/jsonl_loader", |b| {
             let _ = loader::check(b);
         }),
@@ -156,6 +170,9 @@ fn the_regressions_are_replayed_and_reported() {
         }),
         ("regressions/command_sequence", |b| {
             let _ = ew_fuzz::command::check(b);
+        }),
+        ("regressions/png_pdf", |b| {
+            let _ = ew_fuzz::png_pdf::check(b);
         }),
     ];
     for (dir, check) in targets {

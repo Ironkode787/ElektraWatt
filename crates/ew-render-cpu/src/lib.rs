@@ -29,6 +29,7 @@ mod fonts;
 mod image;
 mod mono;
 mod png;
+mod png_chunks;
 mod render;
 
 pub use crate::png::encode_png;

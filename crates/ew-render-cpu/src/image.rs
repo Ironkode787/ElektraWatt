@@ -28,8 +28,10 @@ pub struct DecodedImage {
 /// do not decode completely (a truncated JPEG is refused, not padded: it must end its last scan with the EOI marker,
 /// see `has_eoi_after_last_scan`), a side is zero or exceeds `u16::MAX`, or the
 /// image has more than [`MAX_IMAGE_PIXELS`]. A 16-bit PNG is reduced to 8 bits; a greyscale or CMYK JPEG is converted
-/// to RGB by the decoder. The decoders run inside `catch_unwind` (it works with `panic = "unwind"`, the workspace
-/// profiles' setting), so hostile bytes give `None`, never a panic.
+/// to RGB by the decoder. A PNG whose `PLTE` or `tRNS` breaks the specification's length rules, or a palette image
+/// without `PLTE`, is refused before it reaches the decoder (see `png_chunks`). The decoders run inside
+/// `catch_unwind` as a second line (it works with `panic = "unwind"`, the workspace profiles' setting), so hostile
+/// bytes give `None`, never a panic.
 ///
 /// Deliberate limitations (ruled): EXIF orientation is ignored here and in the PDF writer, so a JPEG prints as its
 /// stored pixel grid on both paths; an embedded ICC profile is ignored here, while krilla embeds it in the PDF (a
@@ -82,7 +84,13 @@ fn checked_size(w: u64, h: u64) -> Option<(u16, u16)> {
     (w > 0 && h > 0).then_some((w, h))
 }
 
-fn decode_png(bytes: &[u8]) -> Option<DecodedImage> {
+/// The pixels of PNG `bytes`. The chunk structure is checked first (`png_chunks`): `png` 0.18.1 panics on a
+/// malformed `PLTE`, and the `catch_unwind` of [`decode_image`] is no defence where a panic aborts (a `panic = "abort"`
+/// build, libFuzzer's panic hook).
+pub(crate) fn decode_png(bytes: &[u8]) -> Option<DecodedImage> {
+    if !crate::png_chunks::chunks_are_sound(bytes) {
+        return None;
+    }
     let mut decoder = png::Decoder::new(std::io::Cursor::new(bytes));
     decoder.set_transformations(png::Transformations::normalize_to_color8() | png::Transformations::ALPHA);
     decoder.set_limits(png::Limits {
