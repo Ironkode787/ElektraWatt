@@ -10,7 +10,7 @@ work as a user works: you read what the program tells you, you try things, you g
 say honestly how it felt. Your persona below tells you who you are and what you are used to; it tells you nothing about
 EW, and you know nothing about EW except what EW itself and its user guide teach you.
 
-This is run `gpp-r2`, a `gate` run. Your job is on the task sheet below. After it comes the harness help, which says
+This is run `gpp-r3`, a `gate` run. Your job is on the task sheet below. After it comes the harness help, which says
 exactly how to work.
 
 ## You never see a picture
@@ -38,7 +38,7 @@ The details are in the harness help; in short:
 
 1. Send one `do` call: one step, or a batch of 1 to 20 steps. The harness sends them in order and stops at the first
    step that is not done (the rest are reported `skipped`). It prints what each step did and what changed.
-2. Give exactly one note for that turn with `«run»\bin/xtask.exe blind note gpp-r2 "patience <0-10> flow <0-10> <text>"` before your next
+2. Give exactly one note for that turn with `«run»\bin/xtask.exe blind note gpp-r3 "patience <0-10> flow <0-10> <text>"` before your next
    `do`.
 3. `look` calls are free and need no note, but at most 3 between two `do` calls.
 
@@ -63,7 +63,7 @@ Be honest with both. They are not a grade of EW to please anyone; they are your 
 
 ## What you hand back
 
-When you have finished the task, or cannot go on, file your hand-back with `«run»\bin/xtask.exe blind handback gpp-r2 -` and the text on
+When you have finished the task, or cannot go on, file your hand-back with `«run»\bin/xtask.exe blind handback gpp-r3 -` and the text on
 standard input. It has exactly these seven headings, in this order, each on a line of its own that starts with its
 number and title:
 
@@ -121,14 +121,14 @@ clearer or stranger, and why.
 You would keep a program that lets you draw this job faster than QET and gives you a parts list and a PDF you can hand
 to a customer. You would drop one that makes you fight for each symbol.
 
-<!-- file: tools/blind/tasks/gpp-101-103/task.md sha256 690a2ffb85a6f99d9a65c49fe18978d8fb19b8f040bcdd48dd0a606a860b8a56 -->
+<!-- file: tools/blind/tasks/gpp-101-103/task.md sha256 119c04cca9a572c1524e2a134cfad8dc4b72aa5558c61b4ab51c782ff429d40a -->
 # Job sheet J-E-2416: the power supply folios
 
 You are a draftsman on the control cabinet J-E-2416. A colleague has left you this job sheet: the folios of the
 schematic below, to draw in the new project that is already open, and the drawing set to hand in as a saved project
 and a PDF. Everything you need is on this sheet; draw what it says, where it says it.
 
-Run `gpp-r2` is a `gate` run with the caps 900 turns, 3000 steps, 1500 looks and 100 refused steps.
+Run `gpp-r3` is a `gate` run with the caps 900 turns, 3000 steps, 1500 looks and 100 refused steps.
 
 ## The project as you find it
 
@@ -149,11 +149,14 @@ parts of the devices below are already in the project as copies. None of the fol
 
 How to read the tables: the cell is the anchor cell of the symbol (folio and cell of the frame); a tag with "(frozen)"
 is typed as written and stays; "field" and "internal" name the two sides of a terminal, a and b the clamps of a
-terminal; the sizes and colours follow the colour and size profile of the project (DBU/WH 24 V) and are not drawn,
-except the cross sections set by hand, which print as wire markers (below). In the IP tables ▷ marks an outgoing end
-and ◁ an incoming one. In marker mode "only explicit overrides" exactly four marker groups print: below and above S51
-on folio 101, below -102G1 and above -102F2 on folio 102. A marker prints the cross section and the colours of its
-wires.
+terminal (on 1X1 the internal side is clamp a and the field side clamp b); the sizes and colours follow the colour and size profile of the project (DBU/WH 24 V) and are not drawn,
+except the cross sections set by hand, which print as wire markers (below). In the IP tables the source is the end
+the potential leaves its folio by and the target the end it arrives at: give each end that direction. In marker mode
+"only explicit overrides" exactly four marker groups print: below and above S51 on folio 101, below -102G1 and above
+-102F2 on folio 102. A marker prints the cross section and the colours of the wires it crosses.
+
+A potential is named and typed in the Potentials table once it is drawn; each folio lists its potentials by a member
+connection point.
 
 ## Folio 101: Power Supply 1 - Main Current
 
@@ -179,16 +182,17 @@ connections L, N and PE, so that the external points can name it.
 | 1X1 (frozen) | Incoming supply strip | terminals UK 5 N ×2, USLKG 5 ×1 | 101-D2 | terminals 1, 2, PE; field and internal side |
 | -XPE | Main PE point (plate PE stud), drawn as earth symbol without tag | none | 101-D5 | PE |
 
--XPE is drawn as an earth symbol without a printed tag. The three external points J-E-206-L, J-E-206-N and J-E-206-PE
-stand at 101-G0 and print "+J-E-206 / JE-N1000-03".
+The three terminals of 1X1 stack at 101-D2, the strip's cell: 1, 2 and PE in that order; drawn side by side they run on
+along row D to the right. -XPE is drawn as an earth symbol without a printed tag. The three external points
+J-E-206-L, J-E-206-N and J-E-206-PE stand at 101-G0 and print "+J-E-206 / JE-N1000-03".
 
 **Interruption points**
 
-| Name | One end | Other end |
+| Name | Source | Target |
 |---|---|---|
-| L-1 | 101-H16 ▷ | 102-A1 ▷ |
-| N-1 | 101-H16 ▷ | 102-A1 ▷ |
-| PE-1.1 | 101-G15 ▷ | 103-G6 ◁ |
+| L-1 | 101-H16 | 102-A1 |
+| N-1 | 101-H16 | 102-A1 |
+| PE-1.1 | 101-G15 | 103-G6 |
 
 **Connections** (every wire as it is drawn on this folio)
 
@@ -225,8 +229,24 @@ stand at 101-G0 and print "+J-E-206 / JE-N1000-03".
 
 The bevels of the top bus are daisy chains on the CPs of -101F1, not junctions.
 
-**Cross sections set by hand** (2.5 mm², printed as markers): 1X1:1 internal to S51:2, 1X1:2 internal to S51:4, S51:1 to
--101F1:1 and S51:3 to -101F1:N#1.
+**Cross sections set by hand** (2.5 mm², printed as markers): the marker below S51 crosses 1X1:1 internal to S51:2 and
+1X1:2 internal to S51:4; the marker above S51 crosses S51:1 to -101F1:1 and S51:3 to -101F1:N#1.
+
+**Potentials**
+
+| Potential | Type, voltage | Member |
+|---|---|---|
+| L | L, 230 V AC | 1X1:1 |
+| N | N, 230 V AC | 1X1:2 |
+| L-S | L, 230 V AC | S51:1 |
+| N-S | N, 230 V AC | S51:3 |
+| L-1 | L, 230 V AC | -101F1:2 |
+| N-1 | N, 230 V AC | -101F1:N#2 |
+| L-55 | L, 230 V AC | F55:2 |
+| N-55 | N, 230 V AC | F55:N#2 |
+| N-55T | N switched, named only | T55:3 |
+| N-55S | N switched, named only | S56:14 |
+| PE | PE | 1X1:PE |
 
 ## Folio 102: Power Supply 2 - Control Current
 
@@ -244,13 +264,13 @@ IPs below.
 
 **Interruption points**
 
-| Name | One end | Other end |
+| Name | Source | Target |
 |---|---|---|
-| L-1 | 101-H16 ▷ | 102-A1 ▷ |
-| N-1 | 101-H16 ▷ | 102-A1 ▷ |
-| PE-1.2 | 102-A15 ▷ | 103-G6 ◁ |
-| 0VDC | 102-C15 ▷ | 103-A1 ▷ |
-| PE-0VDC | 102-D15 ▷ | 103-G1 ▷ |
+| L-1 | 101-H16 | 102-A1 |
+| N-1 | 101-H16 | 102-A1 |
+| PE-1.2 | 102-A15 | 103-G6 |
+| 0VDC | 102-C15 | 103-A1 |
+| PE-0VDC | 102-D15 | 103-G1 |
 | 24VDC-1 | 102-H15 | 103-A1 |
 | 24VDC-2 | 102-H15 | 103-C1 |
 | 24VDC-3 | 102-G15 | 103-D1 |
@@ -291,8 +311,24 @@ IPs below.
 
 J5 and J6 are set to Star by hand (a bevel is a chain by default).
 
-**Cross sections set by hand** (1.5 mm², printed as markers): -102G1:+#1 to -102F1:1 and -102G1:+#2 to -102F1:1,
--102G1:−#1 to -102F2:GND#1 and -102G1:−#2 to -102F2:GND#2, -102F1:2 to -102F2:24VDC#1 and -102F1:2 to -102F2:24VDC#2.
+**Cross sections set by hand** (1.5 mm², printed as markers): the marker below -102G1 crosses the four wires
+-102G1:+#1 to -102F1:1, -102G1:+#2 to -102F1:1, -102G1:−#1 to -102F2:GND#1 and -102G1:−#2 to -102F2:GND#2; the
+marker above -102F2 crosses -102F1:2 to -102F2:24VDC#1 and -102F1:2 to -102F2:24VDC#2.
+
+**Potentials**
+
+| Potential | Type, voltage | Member |
+|---|---|---|
+| +24V | L+, 24 V DC | -102G1:+#1 |
+| +24V-F | L+, 24 V DC | -102F1:2 |
+| 24VDC-1 | L+, 24 V DC | -102F2:Out1 |
+| 24VDC-2 | L+, 24 V DC | -102F2:Out2 |
+| 24VDC-3 | L+, 24 V DC | -102F2:Out3 |
+| 24VDC-4 | L+, 24 V DC | -102F2:Out4 |
+| 0V | M, 24 V DC | -102G1:−#1 |
+
+**Bond.** 0V and PE stay two potentials joined by one bond, B1 (PELV, 0 V to PE), between -102G1:−#1 and -X1032:2, over
+the wire from J5 to PE-0VDC.
 
 ## Folio 103: Power Supply 3 - Control Current Distribution
 
@@ -327,12 +363,12 @@ The terminals have three clamps; a is the feed side, b the outgoing side.
 
 **Interruption points**
 
-| Name | One end | Other end |
+| Name | Source | Target |
 |---|---|---|
-| PE-1.1 | 101-G15 ▷ | 103-G6 ◁ |
-| PE-1.2 | 102-A15 ▷ | 103-G6 ◁ |
-| 0VDC | 102-C15 ▷ | 103-A1 ▷ |
-| PE-0VDC | 102-D15 ▷ | 103-G1 ▷ |
+| PE-1.1 | 101-G15 | 103-G6 |
+| PE-1.2 | 102-A15 | 103-G6 |
+| 0VDC | 102-C15 | 103-A1 |
+| PE-0VDC | 102-D15 | 103-G1 |
 | 24VDC-1 | 102-H15 | 103-A1 |
 | 24VDC-2 | 102-H15 | 103-C1 |
 | 24VDC-3 | 102-G15 | 103-D1 |
@@ -345,10 +381,10 @@ The terminals have three clamps; a is the feed side, b the outgoing side.
 | 0VDC-AIR2 | 103-B14 | 106-F1 |
 | 0VDC-AIR3 | 103-B14 | 106-B1 |
 | 0VDC-AIR4 | 103-B14 | 106-C1 |
-| PE-AIR1 | 106-E1 ◁ | 103-G1 ▷ |
-| PE-AIR2 | 106-B1 ◁ | 103-G1 ▷ |
-| PE-1.3 | 106-D1 ◁ | 103-G6 ◁ |
-| PE-1.4 | 106-A1 ◁ | 103-G6 ◁ |
+| PE-AIR1 | 106-E1 | 103-G1 |
+| PE-AIR2 | 106-B1 | 103-G1 |
+| PE-1.3 | 106-D1 | 103-G6 |
+| PE-1.4 | 106-A1 | 103-G6 |
 
 **Connections**
 
@@ -384,28 +420,29 @@ does not place, so they stay undrawn; BR5 and BR6 join the placed terminals only
 | BR5 | -X1031 | 11-14 | 0V |
 | BR6 | -X1032 | 1-4 | PE |
 
-<!-- file: tools/blind/HELP.md sha256 02a8d131728790a8976fa4deaf145ef9bd9c37dd4fd8eeabef8eba93aca81c0f -->
+<!-- file: tools/blind/HELP.md sha256 d05854152eb7dd672f84aa5d591cf6a5ec028c3b9aefc257981a68c38f236c2b -->
 ---
 prompt: blind-help
-version: 5
+version: 7
 ---
 # The harness: how to work with it
 
 You work with ElektraWatt through one program, `«run»\bin/xtask.exe blind`, and nothing else. You never see a picture: you read text, and
 you act through the application's own actions. `«run»\bin/xtask.exe blind help` prints this text, the application's vocabulary and every
-action with its parameters.
+action with its parameters, a page at a time: each page ends with the line that names the next (`«run»\bin/xtask.exe blind help 2`, …).
 
 ## The commands
 
 | Command | What it does |
 |---|---|
-| `«run»\bin/xtask.exe blind do gpp-r2 <action> [key=value ...]` | One step. A value is typed by the action's parameters: `x_mm=254` is a number, `shift=true` a switch, `folio=101` the text `101`; a list or an object is JSON (`fields='["tag","text"]'`). `key=null` leaves an optional parameter out. |
-| `«run»\bin/xtask.exe blind do gpp-r2 -` | A batch of 1 to 20 steps, one JSON object per line on standard input: `{"action":"canvas.press","params":{"x_mm":254,"y_mm":127}}`. |
-| `«run»\bin/xtask.exe blind look gpp-r2 [section ...] [--diff] [--menus]` | The interface as text, by sections (`title:`, `banner:`, `page`, `navigator`, `canvas`, `properties`, `card`, `toast`, `find`, `jobs`, `preview`, `history`, `clipboard`, `status`, `notifications`, `palette`, `dialog`, `wizard`, `first`, `start`, `workspace`, `help:`, `notices:`). `jobs` shows while View ▸ Jobs is open, `notifications` while View ▸ Notifications is, `preview` while the Preview tab is open (it opens with every preview card) and `history` while Edit ▸ History is. The menus are left out unless you ask with `--menus`. With `--diff` you get only the lines added (`+`) or removed (`-`) since your last look at the same sections. |
-| `«run»\bin/xtask.exe blind look gpp-r2 --page [<folio>]` | The content of a page as text: what is drawn on it, in reading order. |
-| `«run»\bin/xtask.exe blind note gpp-r2 "patience <0-10> flow <0-10> <text>"` | The note of your last turn. |
-| `«run»\bin/xtask.exe blind handback gpp-r2 -` | Your hand-back on standard input; it ends the run. |
-| `«run»\bin/xtask.exe blind report gpp-r2 <which>` | For reviewers (a check run) only: `<which>` is `check`, `bom` or `score`, the check report, the parts list and the score of the drafter's project. A drafter has nothing to read here. |
+| `«run»\bin/xtask.exe blind do gpp-r3 <action> [key=value ...]` | One step. A value is typed by the action's parameters: `x_mm=254` is a number, `shift=true` a switch, `folio=101` the text `101`; a list or an object is JSON (`fields='["tag","text"]'`). `key=null` leaves an optional parameter out. |
+| `«run»\bin/xtask.exe blind do gpp-r3 -` | A batch of 1 to 20 steps, one JSON object per line on standard input: `{"action":"canvas.press","params":{"x_mm":254,"y_mm":127}}`. |
+| `«run»\bin/xtask.exe blind look gpp-r3 [section ...] [--diff] [--menus]` | The interface as text, by sections (`title:`, `banner:`, `page`, `navigator`, `canvas`, `properties`, `card`, `toast`, `find`, `jobs`, `preview`, `history`, `clipboard`, `status`, `notifications`, `palette`, `dialog`, `wizard`, `first`, `start`, `workspace`, `help:`, `notices:`). `jobs` shows while View ▸ Jobs is open, `notifications` while View ▸ Notifications is, `preview` while the Preview tab is open (it opens with every preview card) and `history` while Edit ▸ History is. The menus are left out unless you ask with `--menus`. With `--diff` you get only the lines added (`+`) or removed (`-`) since your last look at the same sections. |
+| `«run»\bin/xtask.exe blind look gpp-r3 --page [<folio>]` | The content of a page as text: what is drawn on it, in reading order. |
+| `«run»\bin/xtask.exe blind note gpp-r3 "patience <0-10> flow <0-10> <text>"` | The note of your last turn. |
+| `«run»\bin/xtask.exe blind friction gpp-r3 --severity <s> --category <c> --wanted "…" --expected "…" --saw "…" [--workaround "…"]` | One entry of the friction log (see below). |
+| `«run»\bin/xtask.exe blind handback gpp-r3 -` | Your hand-back on standard input; it ends the run. |
+| `«run»\bin/xtask.exe blind report gpp-r3 <which>` | For reviewers (a check run) only: `<which>` is `check`, `bom` or `score`, the check report, the parts list and the score of the drafter's project. A drafter has nothing to read here. |
 
 ## A turn
 
@@ -414,14 +451,15 @@ A turn is one `do` call. Before the next `do` you give exactly one note: `patien
 need no note, but you may make at most 3 between two `do` calls.
 
 The harness sends the steps of a batch in order and stops at the first step that is not done; the rest are reported
-`skipped` and not sent. Each step prints `<n> <action> <outcome>`: `done`, `refused` (with the reason: the action is not
-possible now) or `failed` (with its message), and then the parts of the interface's state that changed. A step that
-leaves a preview card open adds the line `  preview: <summary>; Apply or Cancel`: nothing is changed until you apply
+`skipped` and not sent. Each step prints `<n> <action> <outcome>` (`<n>` counts the steps of your `do` calls from 1):
+`done`, `refused` (with the reason: the action is not possible now) or `failed` (with its message), and then the parts
+of the interface's state that changed. A step that leaves a preview card open adds the line `  preview: <summary>; Apply or Cancel`: nothing is changed until you apply
 it (`preview.apply`) or cancel it (`preview.cancel`).
 
-If one step fails twice in a row with the same parameters, the harness marks it broken and refuses that exact step for the
-rest of the run (`harness: marked broken, move on`). Three notes in a row with patience 2 or less, or five with flow 2 or
-less, end the run; you then file your hand-back. The run also ends at its caps: 900 turns, 3000 steps,
+If one step fails twice in a row with the same parameters on the same selection, the harness marks it broken and refuses
+that exact step on that selection for the rest of the run (`harness: marked broken, move on`); a step that acts on the
+selection is a new step once the selection changed. Three notes in a row with patience 2 or less, or five with flow 2
+or less, end the run; you then file your hand-back. The run also ends at its caps: 900 turns, 3000 steps,
 1500 looks and 100 refused steps.
 
 ## What the harness refuses
@@ -462,6 +500,11 @@ Go to. These positions are the coordinates that `canvas.press` and `cursor.set` 
 press there selects that wire. You can also select a wire by its ends:
 `select.set refs='["wire:<one end> -> <other end>"]'`, with the ends as the page text prints them.
 
+A reference (an entry of `select.set refs`, or any parameter that takes one) is one of: a tag as the page prints it
+(`-101Q1`, or a terminal as `-X1031:5`, the tag and the terminal after a colon), the same with `tag:` in front
+(`tag:-101Q1`), `section:<number>`, `folio:<label>`, or an alias `@n`. A tag that more than one device prints is
+refused with a sentence that names the candidates; pick one of them.
+
 `look --page` describes the content of one page, in reading order (row A to H of the anchor cell, then column 0 to 16):
 the header gives the folio, the title and the counts (`reps` representations, `connections` drawn connections,
 `junctions`); each `rep` line is one drawn device or symbol with the label it prints in quotation marks, its cell, its
@@ -469,6 +512,26 @@ symbol and variant and its position, followed by its `cp` lines (the connection 
 drawn to each and the `potential` where there is one); `wire` lines name the two ends of a drawn connection; a
 `junction` line names its cell, style, wiring and the sequence of the far ends. Words inside quotation marks are the
 user's text (tags, titles, symbol keys); the rest are the application's own words.
+
+## The friction log
+
+Log a friction entry **every time** you are unsure, confused, surprised or stuck, have to guess, open the user guide,
+or work around something, at that moment and not afterwards. The note keeps the two scores and your mood; the friction
+entry keeps the facts. An entry needs:
+
+- `--severity`: `blocker` (you could not go on), `confusing` (you did not understand), `annoying` (it cost you steps or
+  patience), `cosmetic` (it read wrong but did not stop you).
+- `--category`: `discoverability` (you could not find how to do it), `feedback` (you could not tell what happened),
+  `layout-legibility` (you could not read or tell things apart), `wording` (the words misled you), `flow-dead-end` (you
+  got into a state you could not leave), `behaviour-bug` (it did something wrong), or `missing-feature` (the program
+  cannot do what the job needs, as far as you can tell).
+- `--wanted`, `--expected`, `--saw`: what you wanted to do, what you expected to happen and what you saw or did
+  instead, each at most 400 characters.
+
+The harness adds the turn and the last step you sent, which is the entry's reference. `--workaround` says how you got
+round it, if you did. The log takes at most 300 entries and cannot be edited; it needs no note and is not a turn. Its
+refusals: `harness: friction needs severity, category, wanted, expected and saw`, `harness: unknown severity <s>`,
+`harness: unknown category <c>`, `harness: friction cap`.
 
 ## The hand-back
 

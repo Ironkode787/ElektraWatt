@@ -1,0 +1,32 @@
+error EW-POT-001 005001 PE-1.1: member roles M meet Pe; the first in role order applies
+warning EW-POT-005 005005 102.4: wire 102.4 is BU on the potential -102G1:+ (type LPlus); in a project with a neutral, BU marks the neutral conductor
+warning EW-POT-005 005005 102.1: wire 102.1 is BU on the potential -102G1:+ (type LPlus); in a project with a neutral, BU marks the neutral conductor
+warning EW-POT-008 005008 the main location: the main location holds 2 PE potentials: -X1011:PE:1, PE-1.1; join them through a bonded rail or a PE wire
+warning EW-POT-009 005009 -102F2:14: -102F2:14 is not connected; connect it or mark it unused
+warning EW-POT-009 005009 -102F2:13: -102F2:13 is not connected; connect it or mark it unused
+error EW-POT-013 005013 F55: F55 switches the neutral S51:3 → F55:N.
+error EW-POT-013 005013 S56: S56 switches the neutral F55:N → S56:14; load E56 stays connected to F55:2.
+error EW-POT-013 005013 -101F1: -101F1 switches the neutral S51:3 → N-1.
+error EW-POT-013 005013 T55: T55 switches the neutral F55:N → T55:3; load E55 stays connected to F55:2.
+info EW-NUM-001 017101 -E56: E56: frozen, deviates from scheme (rule-derived value 101E2)
+info EW-NUM-001 017101 -S56: S56: frozen, deviates from scheme (rule-derived value 101B2)
+info EW-NUM-001 017101 -102G1: 102G1: frozen, deviates from scheme (rule-derived value 102A1)
+info EW-NUM-001 017101 -102F2: 102F2: frozen, deviates from scheme (rule-derived value 102A2)
+info EW-NUM-001 017101 -XPE: XPE: frozen, deviates from scheme (rule-derived value 101W1)
+info EW-NUM-001 017101 -F55: F55: frozen, deviates from scheme (rule-derived value 101F2)
+info EW-NUM-001 017101 -E55: E55: frozen, deviates from scheme (rule-derived value 101E1)
+info EW-NUM-001 017101 -S51: S51: frozen, deviates from scheme (rule-derived value 101Q1)
+info EW-NUM-001 017101 -T55: T55: frozen, deviates from scheme (rule-derived value 101B1)
+error EW-CORE-051 103051 interruption point 24VDC-AIR1: interruption point 24VDC-AIR1 has no partner; its wire stays open-ended
+error EW-CORE-051 103051 interruption point PE-1.4: interruption point PE-1.4 has no partner; its wire stays open-ended
+error EW-CORE-051 103051 interruption point 0VDC-AIR1: interruption point 0VDC-AIR1 has no partner; its wire stays open-ended
+error EW-CORE-051 103051 interruption point 0VDC-AIR3: interruption point 0VDC-AIR3 has no partner; its wire stays open-ended
+error EW-CORE-051 103051 interruption point 24VDC-AIR3: interruption point 24VDC-AIR3 has no partner; its wire stays open-ended
+error EW-CORE-051 103051 interruption point 0VDC-AIR2: interruption point 0VDC-AIR2 has no partner; its wire stays open-ended
+error EW-CORE-051 103051 interruption point 0VDC-AIR4: interruption point 0VDC-AIR4 has no partner; its wire stays open-ended
+error EW-CORE-051 103051 interruption point 24VDC-AIR4: interruption point 24VDC-AIR4 has no partner; its wire stays open-ended
+error EW-CORE-051 103051 interruption point 24VDC-AIR2: interruption point 24VDC-AIR2 has no partner; its wire stays open-ended
+error EW-CORE-051 103051 interruption point PE-AIR2: interruption point PE-AIR2 has no partner; its wire stays open-ended
+error EW-CORE-051 103051 interruption point PE-AIR1: interruption point PE-AIR1 has no partner; its wire stays open-ended
+error EW-CORE-051 103051 interruption point PE-1.3: interruption point PE-1.3 has no partner; its wire stays open-ended
+17 errors, 5 warnings, 9 infos, 0 waived

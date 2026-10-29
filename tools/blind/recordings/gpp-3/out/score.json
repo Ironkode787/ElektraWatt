@@ -1,6 +1,6 @@
 {
   "$schema": "ew.blindscore/1",
-  "run": "gpp-r2",
+  "run": "gpp-r3",
   "task": "gpp-101-103",
   "outcome": "pass-with-gaps",
   "hard": [
@@ -32,12 +32,14 @@
       "id": "H4",
       "what": "The parts list equals the oracle's (part number, description, quantity)",
       "want": "14 rows",
-      "got": "12 rows",
+      "got": "10 rows",
       "status": "gap",
       "gap": "WP-S2.07",
       "misses": [
         "missing: TBD | End bracket | 4",
-        "missing: TBD | Plug-in bridge | 3"
+        "missing: TBD | Plug-in bridge | 3",
+        "missing: UK 5 N | Feed-through terminal | 2",
+        "missing: USLKG 5 | PE terminal | 1"
       ]
     },
     {
@@ -71,8 +73,27 @@
       "what": "Anchor cells of every representation, by device tag and symbol",
       "want": "49 rows",
       "got": "49 rows",
-      "status": "ok",
-      "misses": []
+      "status": "miss",
+      "misses": [
+        "extra: 101 | -X1011:1 | ew.iec.terminal@qet10 | 101-D2",
+        "extra: 101 | -X1011:2 | ew.iec.terminal@qet10 | 101-D3",
+        "extra: 101 | -X1011:PE | ew.iec.terminal-pe@qet10 | 101-D4",
+        "missing: 101 | 1X1:1 | ew.iec.terminal@qet10 | 101-D2",
+        "missing: 101 | 1X1:2 | ew.iec.terminal@qet10 | 101-D2",
+        "missing: 101 | 1X1:PE | ew.iec.terminal-pe@qet10 | 101-D2",
+        "missing: 101 | J-E-206-PE | ew.gen.external-arrow@qet10 | 101-G0",
+        "extra: 101 | J-E-206-PE | ew.gen.external-arrow@qet10 | 101-G1",
+        "missing: 103 | 0VDC-AIR4 | ew.gen.ip@qet10 | 103-B14",
+        "extra: 103 | 0VDC-AIR4 | ew.gen.ip@qet10 | 103-B15",
+        "missing: 103 | 24VDC-AIR4 | ew.gen.ip@qet10 | 103-B6",
+        "extra: 103 | 24VDC-AIR4 | ew.gen.ip@qet10 | 103-B7",
+        "missing: 103 | PE-1.3 | ew.gen.ip@qet10 | 103-G6",
+        "extra: 103 | PE-1.3 | ew.gen.ip@qet10 | 103-G7",
+        "missing: 103 | PE-1.4 | ew.gen.ip@qet10 | 103-G6",
+        "extra: 103 | PE-1.4 | ew.gen.ip@qet10 | 103-G7",
+        "missing: 103 | PE-AIR2 | ew.gen.ip@qet10 | 103-G1",
+        "extra: 103 | PE-AIR2 | ew.gen.ip@qet10 | 103-G2"
+      ]
     },
     {
       "id": "S2",
@@ -81,6 +102,20 @@
       "got": "44 rows",
       "status": "miss",
       "misses": [
+        "extra: 101 | -X1011:1/a | S51:2 | 101",
+        "extra: 101 | -X1011:1/b | ext J-E-206-L | 101",
+        "extra: 101 | -X1011:2/a | S51:4 | 101",
+        "extra: 101 | -X1011:2/b | ext J-E-206-N | 101",
+        "extra: 101 | -X1011:PE/a | -XPE:PE | 101",
+        "extra: 101 | -X1011:PE/b | ext J-E-206-PE | 101",
+        "missing: 101 | -XPE:PE | 1X1:PE/a | 101",
+        "missing: 101 | 1X1:1/a | S51:2 | 101",
+        "missing: 101 | 1X1:1/b | ext J-E-206-L | 101",
+        "missing: 101 | 1X1:2/a | S51:4 | 101",
+        "missing: 101 | 1X1:2/b | ext J-E-206-N | 101",
+        "missing: 101 | 1X1:PE/b | ext J-E-206-PE | 101",
+        "missing: 102 | -102F1:2 | -102F2:24VDC | 102",
+        "extra: 102 | -102F2:24VDC | -102F2:24VDC | 102",
         "extra: 103 | -X1031:1/b | ext 24VDC-AIR1 | 103",
         "extra: 103 | -X1031:11/b | ext 0VDC-AIR1 | 103",
         "extra: 103 | -X1031:12/b | ext 0VDC-AIR2 | 103",
@@ -100,8 +135,11 @@
       "what": "Junction sequences by far-end labels",
       "want": "6 rows",
       "got": "6 rows",
-      "status": "ok",
-      "misses": []
+      "status": "miss",
+      "misses": [
+        "extra: 102 | bevel | chain | -102F1:2 | -102F2:24VDC#1 | -102F2:24VDC#2",
+        "missing: 102 | bevel | chain | -102F2:24VDC#1 | -102F1:2 | -102F2:24VDC#2"
+      ]
     },
     {
       "id": "S4",
@@ -116,8 +154,15 @@
       "what": "Tags, frozen tags included",
       "want": "49 rows",
       "got": "49 rows",
-      "status": "ok",
-      "misses": []
+      "status": "miss",
+      "misses": [
+        "extra: 101 | normal | -X1011:1",
+        "extra: 101 | normal | -X1011:2",
+        "extra: 101 | normal | -X1011:PE",
+        "missing: 101 | normal | 1X1:1",
+        "missing: 101 | normal | 1X1:2",
+        "missing: 101 | normal | 1X1:PE"
+      ]
     },
     {
       "id": "S6",
@@ -144,19 +189,23 @@
       "id": "S8",
       "what": "Findings on the drawn devices (rule, severity, tag)",
       "want": "7 rows",
-      "got": "7 rows",
-      "status": "ok",
-      "misses": []
+      "got": "10 rows",
+      "status": "miss",
+      "misses": [
+        "extra: EW-NUM-001 | info | -102F2",
+        "extra: EW-NUM-001 | info | -102G1",
+        "extra: EW-POT-013 | error | -101F1"
+      ]
     }
   ],
   "protocol": {
     "counts": {
-      "turns": 68,
-      "steps": 664,
-      "looks": 25,
+      "turns": 55,
+      "steps": 564,
+      "looks": 49,
       "refusals": 0,
-      "refused": 3,
-      "failed": 1,
+      "refused": 4,
+      "failed": 0,
       "broken": 0
     },
     "end": "handback",
@@ -168,15 +217,15 @@
     ],
     "turns_by_folio": {
       "101": {
-        "turns": 28,
+        "turns": 25,
         "budget": 250
       },
       "102": {
-        "turns": 17,
+        "turns": 12,
         "budget": 250
       },
       "103": {
-        "turns": 23,
+        "turns": 18,
         "budget": 400
       }
     },
