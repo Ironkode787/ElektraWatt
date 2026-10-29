@@ -253,8 +253,9 @@ pub struct NavNode {
     /// printed).
     pub kinds: Vec<String>,
     /// For a Potentials row of a potential known only at connection points (`kinds` is `cp`): the CP its record names
-    /// (the function and the CP index), where Type or Voltage typed in table mode defines it with `potential.define`
-    /// (the G-PP triage's row 8, amending ID-752); `None` elsewhere (not printed).
+    /// (the function and the CP index), where a Name typed in table mode, with Type and Voltage if typed with it,
+    /// defines it with `potential.define` (the G-PP triage's row 8, amending ID-752; WP-S1.16 D4); `None` elsewhere
+    /// (not printed). It carries no name: the definition takes the typed one.
     pub define_at: Option<(Uuid, u16)>,
     /// What draws them, main first, then page order, cell row, cell column, ID.
     pub drawables: Vec<Drawable>,
@@ -403,7 +404,8 @@ const EDITABLE_COLUMNS: [(NavKind, &str, &str, &str); 18] = [
     (NavKind::Cables, "cross_section", "conductor", "csa"),
     (NavKind::Potentials, "potential", "potential_def", "name"),
     // The G-PP triage's row 8: Type and Voltage set a definition's `ptype` and `voltage`; on a potential without one
-    // they define it (the view model compiles `potential.define` at `NavNode::define_at`).
+    // the Name defines it, with Type and Voltage typed in the same gesture (WP-S1.16 D4; the view model compiles
+    // `potential.define` at `NavNode::define_at`).
     (NavKind::Potentials, "kind", "potential_def", "ptype"),
     (NavKind::Potentials, "voltage", "potential_def", "voltage"),
     (NavKind::Potentials, "class", "potential_def", "circuit_class"),

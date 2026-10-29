@@ -886,8 +886,9 @@ fn the_messages_pane_has_no_table_mode() {
 }
 
 /// FT-515: a potential known only by a name at a connection point (its definition deleted) has its CP as the
-/// Potentials row's record; the row's potential-definition cells are read-only ("no record of this kind") and compile
-/// no `fields.set` on the CP; a potential with a definition still edits.
+/// Potentials row's record; the row's potential-definition cells other than the defining Name, Type and Voltage
+/// (WP-S1.16 D4) are read-only ("no record of this kind") and compile no `fields.set` on the CP; a potential with a
+/// definition still edits.
 #[test]
 fn a_potential_without_a_definition_has_read_only_definition_cells() {
     let tmp = Tmp::new("ft515");
@@ -919,16 +920,17 @@ fn a_potential_without_a_definition_has_read_only_definition_cells() {
             .clone()
     };
     let pot = col(&shell, NavKind::Potentials, "Potential");
+    let class = col(&shell, NavKind::Potentials, "Class");
     let n = steps(&shell);
     let m = failed(
         &mut shell,
         "table.edit",
-        json!({"kind": "potentials", "row": key, "column": pot}),
+        json!({"kind": "potentials", "row": key, "column": class}),
     );
-    assert_eq!(m, "Potential is read-only here: no record of this kind.");
+    assert_eq!(m, "Class is read-only here: no record of this kind.");
     // A paste over the cell is invalid with the same reason and commits nothing.
-    done(&mut shell, "table.cell", json!({"row": key, "column": pot}));
-    done(&mut shell, "table.paste", json!({"text": "X-1\n"}));
+    done(&mut shell, "table.cell", json!({"row": key, "column": class}));
+    done(&mut shell, "table.paste", json!({"text": "control\n"}));
     assert_eq!(
         lines_with(&shell, "  cell ")
             .iter()

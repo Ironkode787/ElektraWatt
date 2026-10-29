@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The G-PP triage's row 8 in the window: in the Potentials table, a potential known only at its connection points
-//! (its definition deleted) has an editable Type cell (its AccessKit name no longer ends ", read-only")
-//! while its name stays read-only (ID-752); a double click on it opens the cell editor, and the typed type
-//! defines the potential in one step.
+//! The G-PP triage's row 8 in the window, as amended by WP-S1.16 D4 (FT-577): in the Potentials table, a potential
+//! known only at its connection points (its definition deleted) has editable Name and Type cells (their AccessKit
+//! names do not end ", read-only"); a double click on the Name opens the cell editor, and the typed name defines the
+//! potential in one step.
 
 mod support;
 
@@ -108,15 +108,16 @@ fn the_type_cell_of_an_undefined_potential_is_editable() {
     // The pane shows the key column and Type; Voltage is right of the pane (the table scrolls there).
     let shell = h.state().shell();
     let ty = cell_name(shell, node, "Type");
-    let name = format!("{}, read-only", cell_name(shell, node, "Potential"));
-    assert!(h.query_by_label(&ty).is_some(), "{ty} is editable");
-    assert!(
-        h.query_by_label(&format!("{ty}, read-only")).is_none(),
-        "{ty} is not read-only"
-    );
-    assert!(h.query_by_label(&name).is_some(), "{name}");
+    let name = cell_name(shell, node, "Potential");
+    for cell in [&ty, &name] {
+        assert!(h.query_by_label(cell).is_some(), "{cell} is editable");
+        assert!(
+            h.query_by_label(&format!("{cell}, read-only")).is_none(),
+            "{cell} is not read-only"
+        );
+    }
 
-    let at = h.get_by_label(&ty).rect().center();
+    let at = h.get_by_label(&name).rect().center();
     double_click(&mut h, at);
     let edit = h
         .state()
@@ -125,20 +126,19 @@ fn the_type_cell_of_an_undefined_potential_is_editable() {
         .and_then(|n| n.table_mode())
         .and_then(|m| m.edit().cloned())
         .expect("the double click opens the cell editor");
-    assert_eq!(edit.column, "kind");
+    assert_eq!(edit.column, "potential");
     let steps = h.state().shell().recorded_commands().len();
     let shell = h.state_mut().shell_mut();
     done(
         shell,
         "table.input",
-        json!({"kind": "potentials", "text": "signal"}),
+        json!({"kind": "potentials", "text": "24VDC-9"}),
     );
     done(shell, "table.commit", json!({"kind": "potentials"}));
     settle(&mut h);
     assert_eq!(h.state().shell().recorded_commands().len(), steps + 1);
-    assert_eq!(
-        h.state().shell().recorded_commands().last().unwrap().cmd,
-        "potential.define"
-    );
+    let last = h.state().shell().recorded_commands().last().unwrap();
+    assert_eq!(last.cmd, "potential.define");
+    assert_eq!(last.params["name"], "24VDC-9", "{}", last.params);
     h.state_mut().shell_mut().shutdown();
 }

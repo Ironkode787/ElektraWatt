@@ -166,23 +166,24 @@ pub fn row_targets(node: &NavNode, route_kind: &str) -> Vec<Uuid> {
 }
 
 /// Where a cell of a potential known only at connection points defines it (the G-PP triage's row 8, amending ID-752):
-/// the CP (`NavNode::define_at`) and the potential's name as the row shows it.
+/// the CP (`NavNode::define_at`, the row's minimum member CP). The definition's name is the one typed in the row's Name
+/// cell (WP-S1.16 D4, FT-577), never the name on show.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct DefineAt {
     /// The function of the CP.
     pub function: Uuid,
     /// The CP index.
     pub idx: u16,
-    /// The name the definition gets: the potential's name on show, so that defining it renames nothing.
-    pub name: String,
 }
 
-/// The paths of a potential definition that a potential without one can be given in table mode: Type and Voltage.
-pub const DEFINING_PATHS: [&str; 2] = ["ptype", "voltage"];
+/// The paths of a potential definition that a potential without one can be given in table mode: Name, Type and
+/// Voltage (WP-S1.16 D4: the Name cell defines the row; Type and Voltage only with a name in the same gesture).
+pub const DEFINING_PATHS: [&str; 3] = ["name", "ptype", "voltage"];
 
 /// Where a cell of route (`kind`, `path`) on `node` defines the row's potential: a Potentials row of a potential
-/// known only at connection points (record kind `cp`, with its CP), the `potential_def` route of Type or Voltage.
-/// `None` for every other cell (the other definition cells stay read-only with "no record of this kind", ID-752).
+/// known only at connection points (record kind `cp`, with its CP), the `potential_def` route of Name, Type or
+/// Voltage. `None` for every other cell (the other definition cells stay read-only with "no record of this kind",
+/// ID-752).
 pub fn define_point(node: &NavNode, kind: &str, path: &str) -> Option<DefineAt> {
     if kind != "potential_def"
         || !DEFINING_PATHS.contains(&path)
@@ -192,11 +193,7 @@ pub fn define_point(node: &NavNode, kind: &str, path: &str) -> Option<DefineAt> 
         return None;
     }
     let (function, idx) = node.define_at?;
-    Some(DefineAt {
-        function,
-        idx,
-        name: node.label.clone(),
-    })
+    Some(DefineAt { function, idx })
 }
 
 /// The typed text of a potential definition cell as the field parser takes it, and the further leaf it sets (the G-PP
@@ -354,13 +351,19 @@ pub struct GestureCell {
     /// A defining cell in a gesture with cells of another row or of a defined record (one `potential.define` per
     /// gesture).
     pub define_clash: bool,
+    /// A defining Type or Voltage cell whose row gets no name in the gesture (WP-S1.16 D4, FT-577: "Name the
+    /// potential first").
+    pub define_unnamed: bool,
 }
 
 impl GestureCell {
     /// Whether the cell keeps Apply from going (invalid, ambiguous or a conflict) and is not dropped.
     pub fn blocking(&self) -> bool {
         !self.dropped
-            && (self.conflict.is_some() || self.define_clash || !matches!(self.value, CellValue::Valid(_)))
+            && (self.conflict.is_some()
+                || self.define_clash
+                || self.define_unnamed
+                || !matches!(self.value, CellValue::Valid(_)))
     }
 
     /// The reason a blocking cell is invalid (`None` for an ambiguous one and an applicable one).
@@ -370,6 +373,9 @@ impl GestureCell {
         }
         if self.define_clash {
             return Some(crate::strings::text("table-define-alone").to_owned());
+        }
+        if self.define_unnamed {
+            return Some(crate::strings::text("table-define-name-first").to_owned());
         }
         match &self.value {
             CellValue::Invalid(r) => Some(r.clone()),
@@ -535,6 +541,21 @@ pub fn mark_conflicts(gesture: &mut Gesture) {
     for cell in &mut gesture.cells {
         cell.define_clash = live(cell) && cell.define.is_some() && (define_rows.len() > 1 || others);
     }
+    // WP-S1.16 D4 (FT-577): a potential is defined under a name the user types; Type, Voltage or `env.ac_dc` typed on
+    // a row known only at its CPs, without a Name in the same gesture, refuses ("Name the potential first").
+    let sets = |c: &GestureCell| {
+        live(c) && c.define.is_some() && matches!(&c.value, CellValue::Valid(v) if !v.is_null())
+    };
+    let named: BTreeSet<String> = gesture
+        .cells
+        .iter()
+        .filter(|c| sets(c) && c.route.as_ref().is_some_and(|(_, p)| p == "name"))
+        .map(|c| c.row.clone())
+        .collect();
+    for cell in &mut gesture.cells {
+        cell.define_unnamed =
+            sets(cell) && cell.route.as_ref().is_some_and(|(_, p)| p != "name") && !named.contains(&cell.row);
+    }
     // (target, kind, path) -> the first value set on it and that cell's row number.
     let mut seen: BTreeMap<(Uuid, String, String), (Value, usize)> = BTreeMap::new();
     for cell in &mut gesture.cells {
@@ -568,6 +589,7 @@ pub fn compile(gesture: &Gesture, base: &mut dyn FnMut(&str, Uuid, &str) -> Memb
             && !c.dropped
             && c.conflict.is_none()
             && !c.define_clash
+            && !c.define_unnamed
     };
     let defining: Vec<&GestureCell> = gesture
         .cells
@@ -680,16 +702,15 @@ pub fn compile(gesture: &Gesture, base: &mut dyn FnMut(&str, Uuid, &str) -> Memb
     })
 }
 
-/// The `potential.define` of the defining cells of one row (the G-PP triage's row 8): at the row's CP, with the
-/// potential's name on show and the Type, Voltage and `env.ac_dc` the cells set; `None` when they set nothing (a
-/// clear).
+/// The `potential.define` of the defining cells of one row (the G-PP triage's row 8; WP-S1.16 D4): at the row's CP,
+/// with the name typed in the row's Name cell and the Type, Voltage and `env.ac_dc` the cells set; `None` when no
+/// cell names it (a clear, or Type and Voltage alone, which [`mark_conflicts`] refuses).
 fn compile_define(cells: &[&GestureCell]) -> Option<Compiled> {
     let at = cells[0].define.as_ref()?;
     let mut params = json!({
         "at": {"cp": {"function": at.function.to_string(), "idx": at.idx}},
-        "name": at.name,
     });
-    let mut set = false;
+    let mut named = false;
     for cell in cells {
         let (Some((_, path)), CellValue::Valid(v)) = (&cell.route, &cell.value) else {
             continue;
@@ -699,14 +720,17 @@ fn compile_define(cells: &[&GestureCell]) -> Option<Compiled> {
                 continue;
             }
             match path.as_str() {
+                "name" => {
+                    params["name"] = v.clone();
+                    named = true;
+                }
                 "ptype" | "voltage" => params[path.as_str()] = v.clone(),
                 "env.ac_dc" => params["env"] = json!({ "ac_dc": v }),
                 _ => continue,
             }
-            set = true;
         }
     }
-    set.then_some(Compiled {
+    named.then_some(Compiled {
         name: "potential.define",
         params,
         targets: 1,
@@ -828,6 +852,7 @@ mod tests {
             define: None,
             extra: Vec::new(),
             define_clash: false,
+            define_unnamed: false,
         }
     }
 
@@ -972,8 +997,10 @@ mod tests {
         );
     }
 
-    /// The G-PP triage's row 8: defining cells of one row compile to one `potential.define` with every value they
-    /// set; with a cell of another row or a defined record each is a clash; a clear defines nothing.
+    /// The G-PP triage's row 8 as amended by WP-S1.16 D4 (FT-577): defining cells of one row compile to one
+    /// `potential.define` with the typed name and every value they set; Type or Voltage without a Name refuses with
+    /// "Name the potential first"; with a cell of another row or a defined record each is a clash; a clear defines
+    /// nothing.
     #[test]
     fn defining_cells_compile_to_one_potential_define() {
         let define = |row: usize, path: &str, v: Value| {
@@ -982,13 +1009,16 @@ mod tests {
             c.define = Some(DefineAt {
                 function: uuid(9),
                 idx: 2,
-                name: format!("P{row}"),
             });
             c
         };
         let mut voltage = define(1, "voltage", json!("230"));
         voltage.extra = vec![("env.ac_dc".to_owned(), json!("ac"))];
-        let mut g = gesture(vec![define(1, "ptype", json!("l")), voltage]);
+        let mut g = gesture(vec![
+            define(1, "name", json!("P1")),
+            define(1, "ptype", json!("l")),
+            voltage.clone(),
+        ]);
         mark_conflicts(&mut g);
         assert_eq!(g.blocking(), 0);
         let c = compile(&g, &mut no_base).unwrap();
@@ -999,9 +1029,34 @@ mod tests {
                    "voltage": "230", "env": {"ac_dc": "ac"}})
         );
 
-        let mut two = gesture(vec![
+        // A name alone defines the potential with that name.
+        let mut name = gesture(vec![define(1, "name", json!("24V-AUX"))]);
+        mark_conflicts(&mut name);
+        assert_eq!(name.blocking(), 0);
+        assert_eq!(
+            compile(&name, &mut no_base).unwrap().params,
+            json!({"at": {"cp": {"function": uuid(9).to_string(), "idx": 2}}, "name": "24V-AUX"})
+        );
+
+        // Type or Voltage without a name: refused, nothing compiles; the name typed with them lifts it.
+        let mut unnamed = gesture(vec![define(1, "ptype", json!("l")), voltage]);
+        mark_conflicts(&mut unnamed);
+        assert_eq!(unnamed.blocking(), 2);
+        assert_eq!(
+            unnamed.cells[0].reason().as_deref(),
+            Some("Name the potential first")
+        );
+        assert!(compile(&unnamed, &mut no_base).is_none());
+        let mut cleared_name = gesture(vec![
+            define(1, "name", Value::Null),
             define(1, "ptype", json!("l")),
-            define(2, "ptype", json!("n")),
+        ]);
+        mark_conflicts(&mut cleared_name);
+        assert!(cleared_name.cells[1].define_unnamed, "a cleared name is no name");
+
+        let mut two = gesture(vec![
+            define(1, "name", json!("P1")),
+            define(2, "name", json!("P2")),
         ]);
         mark_conflicts(&mut two);
         assert_eq!(two.blocking(), 2);
@@ -1011,7 +1066,7 @@ mod tests {
         assert_eq!(two.blocking(), 0, "dropping the other row clears the clash");
 
         let mut mixed = gesture(vec![
-            define(1, "ptype", json!("l")),
+            define(1, "name", json!("P1")),
             cell(2, "state", "state", &[2], json!("spare")),
         ]);
         mark_conflicts(&mut mixed);
@@ -1023,6 +1078,7 @@ mod tests {
 
         let mut cleared = gesture(vec![define(1, "ptype", Value::Null)]);
         mark_conflicts(&mut cleared);
+        assert_eq!(cleared.blocking(), 0, "a clear is not refused");
         assert!(compile(&cleared, &mut no_base).is_none());
     }
 

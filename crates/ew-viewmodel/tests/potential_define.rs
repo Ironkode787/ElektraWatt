@@ -1,11 +1,13 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A drawn potential is given its type and voltage in the Potentials table (G-PP triage row 8, amending ID-752): on a
-//! copy of Golden A whose 19 potential definitions are deleted (every potential is then known only at its connection
-//! points, as on a freshly drawn folio), typing Type and Voltage of L, N, +24V and 0V creates each one's
-//! `potential_def` at its CP in one undo step, the profile colours them BK, BU, DBU and WH, and the wire markers of
-//! folios 101 and 102 read "2.5 BK BU" and "1.5 DBU DBU WH WH". The other definition cells of such a row stay
+//! A drawn potential is named, typed and given its voltage in the Potentials table (G-PP triage row 8, amending
+//! ID-752; WP-S1.16 D4, FT-577): on a copy of Golden A whose 19 potential definitions are deleted (every potential is
+//! then known only at its connection points, as on a freshly drawn folio), the Name cell of a row defines its
+//! potential with the typed name at the row's CP in one undo step, alone or with Type and Voltage typed in the same
+//! gesture; Type or Voltage typed without a name refuses with "Name the potential first" and creates nothing. Once L,
+//! N, +24V and 0V are named and typed, the profile colours them BK, BU, DBU and WH and the wire markers of folios 101
+//! and 102 read "2.5 BK BU" and "1.5 DBU DBU WH WH". The class, colour and cross-section of such a row stay
 //! read-only, a gesture over two such rows is refused per cell, and a defined row's Voltage sets `env.ac_dc` too.
 
 mod common;
@@ -80,6 +82,39 @@ fn type_cell(shell: &mut ShellModel, name: &str, label: &str, text: &str) {
     assert_eq!(out, Outcome::Done, "{name} {label} {text}");
 }
 
+/// Pastes one row of `cells` (column label, text) into the row named `name`, from the leftmost of the columns: the
+/// columns must be adjacent in the table's order (the paste fills them left to right).
+fn paste_row(shell: &mut ShellModel, name: &str, cells: &[(&str, &str)]) {
+    let labels: Vec<String> = {
+        let t = shell.nav(NavKind::Potentials).and_then(|n| n.table()).unwrap();
+        t.columns.iter().map(|c| c.label.clone()).collect()
+    };
+    let mut at: Vec<(usize, &str)> = cells
+        .iter()
+        .map(|(l, t)| {
+            let i = labels
+                .iter()
+                .position(|x| x == l)
+                .unwrap_or_else(|| panic!("no column {l}"));
+            (i, *t)
+        })
+        .collect();
+    at.sort_unstable();
+    assert!(
+        at.windows(2).all(|w| w[1].0 == w[0].0 + 1),
+        "the columns {cells:?} are adjacent in {labels:?}"
+    );
+    let (key, _, _) = row(shell, name, &labels[at[0].0]);
+    let first = col(shell, &labels[at[0].0]);
+    done(shell, "table.cell", json!({"row": key, "column": first}));
+    let text: Vec<&str> = at.iter().map(|(_, t)| *t).collect();
+    done(
+        shell,
+        "table.paste",
+        json!({"text": format!("{}\n", text.join("\t"))}),
+    );
+}
+
 /// The texts of a wire marker placed over the wires of the page shown whose end labels are `ends` (in that order).
 fn marker_text(shell: &mut ShellModel, folio: &str, ends: &[(&str, &str)]) -> String {
     done(shell, "page.goto", json!({ "folio": folio }));
@@ -138,6 +173,12 @@ fn undefined(tmp: &Tmp) -> ShellModel {
     shell
 }
 
+/// The `invalid "…"` lines of the open preview card with this reason.
+fn invalid_lines(shell: &ShellModel, reason: &str) -> usize {
+    let tail = format!("invalid \"{reason}\"");
+    shell.describe().lines().filter(|l| l.ends_with(&tail)).count()
+}
+
 const W4_W5: [(&str, &str); 2] = [("1X1:1/a", "S51:2"), ("1X1:2/a", "S51:4")];
 const W20_TO_W23: [(&str, &str); 4] = [
     ("junction 1", "-102F1:1"),
@@ -146,12 +187,12 @@ const W20_TO_W23: [(&str, &str); 4] = [
     ("junction 3", "-102F2:GND#2"),
 ];
 
-/// Done criterion of row 8: L, N, 24 V and 0 V of folios drawn without definitions print BK, BU, DBU and WH by the
-/// project's profile once Type and Voltage are typed in the Potentials table; each typed cell is one step, the first
-/// a `potential.define` at the CP with the potential's name, the second a `fields.set_many` of the voltage and its
-/// current; the markers read "2.5 BK BU" and "1.5 DBU DBU WH WH".
+/// Done criterion of row 8 under FT-577 (P1-4): L, N, 24 V and 0 V of folios drawn without definitions print BK, BU,
+/// DBU and WH by the project's profile once they are named and typed in the Potentials table. Naming a row is one
+/// step, a `potential.define` at the CP with the typed name; Type and Voltage of the now defined row set its
+/// definition (`fields.set`, `fields.set_many` with the current); the markers read "2.5 BK BU" and "1.5 DBU DBU WH WH".
 #[test]
-fn typed_type_and_voltage_define_drawn_potentials_and_colour_their_wires() {
+fn named_and_typed_drawn_potentials_colour_their_wires() {
     let tmp = Tmp::new("potdef-colours");
     let mut shell = undefined(&tmp);
     let l = potential_at(&mut shell, "101", "S51:2");
@@ -162,6 +203,7 @@ fn typed_type_and_voltage_define_drawn_potentials_and_colour_their_wires() {
     let before_102 = marker_text(&mut shell, "102", &W20_TO_W23);
     assert_ne!(before_101, "2.5 BK BU", "without definitions N is not BU");
     assert_ne!(before_102, "1.5 DBU DBU WH WH");
+    done(&mut shell, "navigator.show", json!({"kind": "potentials"}));
     for name in [&l, &n, &plus, &zero] {
         assert_eq!(
             row(&shell, name, "Type").1,
@@ -170,45 +212,36 @@ fn typed_type_and_voltage_define_drawn_potentials_and_colour_their_wires() {
         );
     }
 
-    // L and N: Type first (it defines the potential), then Voltage (the definition's voltage and current).
-    for (name, ptype, voltage) in [(&l, "L", "230 V AC"), (&n, "N", "230 V AC")] {
+    for (shown, typed, ptype, voltage) in [
+        (&l, "L", Some("L"), "230 V AC"),
+        (&n, "N", Some("N"), "230 V AC"),
+        (&plus, "24V", None, "24 V DC"),
+        (&zero, "0V", None, "24 V DC"),
+    ] {
+        // The name defines the potential: one step, at the row's CP, with the typed name.
         let steps = shell.recorded_commands().len();
-        type_cell(&mut shell, name, "Type", ptype);
-        assert_eq!(shell.recorded_commands().len(), steps + 1, "{name}: one step");
+        type_cell(&mut shell, shown, "Potential", typed);
+        assert_eq!(shell.recorded_commands().len(), steps + 1, "{typed}: one step");
         let last = shell.recorded_commands().last().unwrap();
-        assert_eq!(last.cmd, "potential.define", "{name}");
-        assert_eq!(last.params["name"], name.as_str());
+        assert_eq!(last.cmd, "potential.define", "{typed}");
+        assert_eq!(last.params["name"], typed, "{}", last.params);
         assert!(last.params["at"]["cp"]["function"].is_string(), "{}", last.params);
-        let (_, kind, shown) = row(&shell, name, "Type");
-        assert_eq!(kind, "potential_def", "{name} is defined now");
-        assert_eq!(shown, ptype, "{name}");
-
-        type_cell(&mut shell, name, "Voltage", voltage);
-        assert_eq!(shell.recorded_commands().len(), steps + 2, "{name}: one step");
+        assert!(last.params.get("ptype").is_none(), "{}", last.params);
+        let (_, kind, _) = row(&shell, typed, "Type");
+        assert_eq!(kind, "potential_def", "{typed} is defined now");
+        // Type and Voltage set the definition as on any defined row.
+        if let Some(ptype) = ptype {
+            type_cell(&mut shell, typed, "Type", ptype);
+            let last = shell.recorded_commands().last().unwrap();
+            assert_eq!(last.cmd, "fields.set", "{typed}: {}", last.params);
+            assert_eq!(row(&shell, typed, "Type").2, ptype, "{typed}");
+        }
+        type_cell(&mut shell, typed, "Voltage", voltage);
         let last = shell.recorded_commands().last().unwrap();
-        assert_eq!(last.cmd, "fields.set_many", "{name}: {}", last.params);
-        assert_eq!(row(&shell, name, "Voltage").2, voltage, "{name}");
+        assert_eq!(last.cmd, "fields.set_many", "{typed}: {}", last.params);
+        assert_eq!(row(&shell, typed, "Voltage").2, voltage, "{typed}");
     }
-    // +24V and 0V show the type of their supply's CP roles (L+, M): Voltage defines them; the same Type typed again on
-    // the now defined row changes nothing.
-    for (name, ptype, voltage) in [(&plus, "L+", "24 V DC"), (&zero, "M", "24 V DC")] {
-        assert_eq!(row(&shell, name, "Type").2, ptype, "{name}: the role's type");
-        let steps = shell.recorded_commands().len();
-        type_cell(&mut shell, name, "Voltage", voltage);
-        assert_eq!(shell.recorded_commands().len(), steps + 1, "{name}: one step");
-        let last = shell.recorded_commands().last().unwrap();
-        assert_eq!(last.cmd, "potential.define", "{name}");
-        assert_eq!(last.params["voltage"], "24", "{}", last.params);
-        assert_eq!(last.params["env"]["ac_dc"], "dc", "{}", last.params);
-        assert_eq!(row(&shell, name, "Voltage").2, voltage, "{name}");
-        type_cell(&mut shell, name, "Type", ptype);
-        assert_eq!(
-            shell.recorded_commands().len(),
-            steps + 1,
-            "{name}: nothing to change"
-        );
-    }
-    for (name, colour) in [(&l, "BK"), (&n, "BU"), (&plus, "DBU"), (&zero, "WH")] {
+    for (name, colour) in [("L", "BK"), ("N", "BU"), ("24V", "DBU"), ("0V", "WH")] {
         assert_eq!(row(&shell, name, "Colour").2, colour, "{name}");
     }
     assert_eq!(marker_text(&mut shell, "101", &W4_W5), "2.5 BK BU");
@@ -216,55 +249,81 @@ fn typed_type_and_voltage_define_drawn_potentials_and_colour_their_wires() {
     shell.shutdown();
 }
 
-/// Round 2's ruling: on an undefined row, typing the Type it already shows (from its CP roles) defines it, one
-/// `potential.define` with that type; typed again on the now defined row it adds no step (the same-text rule).
+/// P1-4: Name and Type pasted in one gesture on an undefined row give one `potential.define` with both (and Voltage
+/// with its current when pasted too); Undo takes the definition back.
 #[test]
-fn typing_the_shown_type_on_an_undefined_row_defines_it() {
-    let tmp = Tmp::new("potdef-shown");
+fn name_and_type_in_one_gesture_are_one_potential_define() {
+    let tmp = Tmp::new("potdef-paste");
     let mut shell = undefined(&tmp);
-    let plus = potential_at(&mut shell, "102", "-102F1:1");
+    let l = potential_at(&mut shell, "101", "S51:2");
     done(&mut shell, "navigator.show", json!({"kind": "potentials"}));
-    let (_, kind, shown) = row(&shell, &plus, "Type");
-    assert_eq!(
-        (kind.as_str(), shown.as_str()),
-        ("cp", "L+"),
-        "the role's type on show"
-    );
+
     let steps = shell.recorded_commands().len();
-    type_cell(&mut shell, &plus, "Type", "L+");
+    paste_row(&mut shell, &l, &[("Potential", "L"), ("Type", "L")]);
     assert_eq!(shell.recorded_commands().len(), steps + 1, "one step");
     let last = shell.recorded_commands().last().unwrap();
     assert_eq!(last.cmd, "potential.define");
-    assert_eq!(last.params["ptype"], "l_plus", "{}", last.params);
-    assert_eq!(row(&shell, &plus, "Type").1, "potential_def");
-    type_cell(&mut shell, &plus, "Type", "L+");
-    assert_eq!(
-        shell.recorded_commands().len(),
-        steps + 1,
-        "a defined row: nothing to change"
-    );
+    assert_eq!(last.params["name"], "L", "{}", last.params);
+    assert_eq!(last.params["ptype"], "l", "{}", last.params);
+    assert_eq!(row(&shell, "L", "Type").1, "potential_def");
+    done(&mut shell, "edit.undo", json!({}));
+    assert_eq!(row(&shell, &l, "Type").1, "cp", "Undo takes the definition back");
     shell.shutdown();
 }
 
-/// One gesture defines one potential in one step: Undo takes the definition back and the row is known only at its CP
-/// again; Type and Voltage pasted together on the row define it with both and the current; the potential's other
-/// definition cells stay read-only (ID-752); a paste over two undefined rows is refused per cell.
+/// P1-5 (FT-577): Type or Voltage typed on an undefined row without a name refuses with "Name the potential first"
+/// and creates nothing; on a defined row Type sets as built.
 #[test]
-fn one_step_one_row_and_the_cells_that_stay_read_only() {
+fn type_or_voltage_without_a_name_refuses() {
+    let tmp = Tmp::new("potdef-unnamed");
+    let mut shell = undefined(&tmp);
+    let l = potential_at(&mut shell, "101", "S51:2");
+    done(&mut shell, "navigator.show", json!({"kind": "potentials"}));
+    let (key, kind, _) = row(&shell, &l, "Type");
+    assert_eq!(kind, "cp");
+
+    for (label, value) in [("Type", "L"), ("Voltage", "230 V AC")] {
+        let steps = shell.recorded_commands().len();
+        let column = col(&shell, label);
+        done(
+            &mut shell,
+            "table.set",
+            json!({"kind": "potentials", "rows": [key], "column": column, "value": value}),
+        );
+        assert_eq!(
+            invalid_lines(&shell, "Name the potential first"),
+            1,
+            "{label}: {}",
+            shell.describe()
+        );
+        failed(&mut shell, "preview.apply", json!({}));
+        done(&mut shell, "preview.cancel", json!({}));
+        assert_eq!(shell.recorded_commands().len(), steps, "{label}: nothing commits");
+        assert_eq!(row(&shell, &l, "Type").1, "cp", "{label}: nothing defined");
+    }
+
+    // Named, the row is defined; Type then sets its definition as built.
+    type_cell(&mut shell, &l, "Potential", "L");
+    type_cell(&mut shell, "L", "Type", "L");
+    let last = shell.recorded_commands().last().unwrap();
+    assert_eq!(last.cmd, "fields.set", "{}", last.params);
+    assert_eq!(row(&shell, "L", "Type").2, "L");
+    shell.shutdown();
+}
+
+/// The other definition cells of an undefined row stay read-only (ID-752); a gesture over two undefined rows is
+/// refused per cell.
+#[test]
+fn the_cells_that_stay_read_only_and_one_row_per_gesture() {
     let tmp = Tmp::new("potdef-rules");
     let mut shell = undefined(&tmp);
     let l = potential_at(&mut shell, "101", "S51:2");
     let n = potential_at(&mut shell, "101", "S51:4");
     done(&mut shell, "navigator.show", json!({"kind": "potentials"}));
 
-    type_cell(&mut shell, &l, "Type", "L");
-    assert_eq!(row(&shell, &l, "Type").1, "potential_def");
-    done(&mut shell, "edit.undo", json!({}));
-    assert_eq!(row(&shell, &l, "Type").1, "cp", "Undo takes the definition back");
-
-    // The name, class, colour and cross-section of an undefined potential stay read-only.
+    // The class, colour and cross-section of an undefined potential stay read-only.
     let (key, _, _) = row(&shell, &l, "Type");
-    for label in ["Potential", "Class", "Colour"] {
+    for label in ["Class", "Colour"] {
         let column = col(&shell, label);
         let m = failed(
             &mut shell,
@@ -274,88 +333,28 @@ fn one_step_one_row_and_the_cells_that_stay_read_only() {
         assert_eq!(m, format!("{label} is read-only here: no record of this kind."));
     }
 
-    // Type and Voltage pasted together: one potential.define with both and the current.
-    let ty = col(&shell, "Type");
-    let steps = shell.recorded_commands().len();
-    done(&mut shell, "table.cell", json!({"row": key, "column": ty}));
-    done(&mut shell, "table.paste", json!({"text": "L\t230 V AC\n"}));
-    assert_eq!(shell.recorded_commands().len(), steps + 1);
-    let last = shell.recorded_commands().last().unwrap();
-    assert_eq!(last.cmd, "potential.define");
-    assert_eq!(last.params["ptype"], "l");
-    assert_eq!(last.params["voltage"], "230");
-    assert_eq!(last.params["env"]["ac_dc"], "ac");
-    assert_eq!(row(&shell, &l, "Voltage").2, "230 V AC");
-    done(&mut shell, "edit.undo", json!({}));
-
-    // Two undefined rows in one gesture: each defining cell is invalid, nothing commits.
+    // Two undefined rows named in one gesture: each defining cell is invalid, nothing commits.
     let (k1, _, _) = row(&shell, &l, "Type");
     let (k2, _, _) = row(&shell, &n, "Type");
-    let voltage = col(&shell, "Voltage");
+    let name = col(&shell, "Potential");
     let steps = shell.recorded_commands().len();
     done(
         &mut shell,
         "table.set",
-        json!({"kind": "potentials", "rows": [k1, k2], "column": voltage, "value": "230 V AC"}),
+        json!({"kind": "potentials", "rows": [k1, k2], "column": name, "value": "P"}),
     );
-    let invalid = shell
-        .describe()
-        .lines()
-        .filter(|l| {
-            l.ends_with("invalid \"a potential without a definition is defined on its own row alone\"")
-        })
-        .count();
-    assert_eq!(invalid, 2, "{}", shell.describe());
+    assert_eq!(
+        invalid_lines(
+            &shell,
+            "a potential without a definition is defined on its own row alone"
+        ),
+        2,
+        "{}",
+        shell.describe()
+    );
     assert_eq!(shell.recorded_commands().len(), steps, "nothing commits");
     failed(&mut shell, "preview.apply", json!({}));
     done(&mut shell, "preview.cancel", json!({}));
     assert_eq!(shell.recorded_commands().len(), steps);
-    shell.shutdown();
-}
-
-/// Cycle 33 review finding 3 (pinned, behaviour unchanged): a potential known only at its CPs is defined from the
-/// table with the name it shows, which `potential.define` stores as intent. A later renumber of the device that name
-/// came from does not rename the definition: the stored name stays the old shown text. (The blessed gpp-2 blind
-/// recording replays this path; a change is a decision-log row first.)
-#[test]
-fn a_potential_defined_from_the_table_keeps_its_name_when_the_device_is_renumbered() {
-    let tmp = Tmp::new("potdef-renumber");
-    let mut shell = undefined(&tmp);
-    let shown = potential_at(&mut shell, "102", "-102F1:1");
-    assert_eq!(
-        shown, "-102G1:+",
-        "an undefined potential shows its source CP's name"
-    );
-    done(&mut shell, "navigator.show", json!({"kind": "potentials"}));
-    assert_eq!(
-        row(&shell, &shown, "Type").1,
-        "cp",
-        "{shown} is known only at its CPs"
-    );
-    type_cell(&mut shell, &shown, "Type", "L+");
-    let last = shell.recorded_commands().last().unwrap();
-    assert_eq!(last.cmd, "potential.define");
-    assert_eq!(last.params["name"], shown.as_str(), "the shown name is stored");
-    // Renumber -102G1 to a free counter.
-    done(&mut shell, "page.goto", json!({"folio": "102"}));
-    done(&mut shell, "select.set", json!({"refs": ["tag:-102G1"]}));
-    done(
-        &mut shell,
-        "props.set",
-        json!({"row": "device/tag.counter", "value": "97"}),
-    );
-    assert_eq!(
-        shell.dispatch("select.set", &json!({"refs": ["tag:-102G97"]})),
-        Outcome::Done,
-        "-102G1 is -102G97 now"
-    );
-    done(&mut shell, "navigator.show", json!({"kind": "potentials"}));
-    let (_, kind, _) = row(&shell, &shown, "Type");
-    assert_eq!(kind, "potential_def", "the definition keeps the old name {shown}");
-    assert_eq!(
-        potential_at(&mut shell, "102", "-102F1:1"),
-        shown,
-        "the page prints the stored name, not -102G97:+"
-    );
     shell.shutdown();
 }

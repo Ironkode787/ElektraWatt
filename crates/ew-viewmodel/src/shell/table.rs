@@ -227,6 +227,7 @@ impl ShellModel {
             define,
             extra: Vec::new(),
             define_clash: false,
+            define_unnamed: false,
         }
     }
 
@@ -1135,6 +1136,7 @@ impl ShellModel {
                             define: None,
                             extra: Vec::new(),
                             define_clash: false,
+                            define_unnamed: false,
                         });
                     }
                 }
