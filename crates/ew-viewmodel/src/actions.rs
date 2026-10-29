@@ -122,6 +122,8 @@ pub enum Submenu {
     WireMarkers,
     /// View, Layout, Command tab: one item per tab of the command bar (WP-S2.17 part 2).
     CommandTab,
+    /// Draw, Connect, Bond: one item per bond kind of `bond.create` (G-PP triage row 7).
+    Bond,
 }
 
 impl Submenu {
@@ -138,6 +140,7 @@ impl Submenu {
             Submenu::Navigators => "submenu-navigators",
             Submenu::Graphic => "submenu-graphic",
             Submenu::WireMarkers => "submenu-wire-markers",
+            Submenu::Bond => "submenu-bond",
             Submenu::CommandTab => "submenu-command-tab",
         }
     }
@@ -2361,6 +2364,19 @@ pub static ACTIONS: &[ActionMeta] = &[
         two_strip_terminals,
         grp(Group::Connect),
     )),
+    // G-PP triage row 7: Draw ▸ Bond, `bond.create` on the selected connection or two named CPs, previewed.
+    with_params(
+        "kind?:enum(pelv_0v_pe|fe_pe|equipotential|shield), a?:text, b?:text",
+        in_canvas(act(
+            "bond.draw",
+            Command,
+            "action-bond-draw",
+            Menu::Draw,
+            &[],
+            editable_page,
+            grp_sub(Group::Connect, Submenu::Bond),
+        )),
+    ),
     // WP-S2.04 part 4b: the Wire marker and Structure box tools, their fields and the marker mode.
     in_canvas(with_icon(
         "ew-cable",
@@ -4345,6 +4361,15 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
                 })
                 .collect()
         }
+        Submenu::Bond => crate::shell::BOND_KINDS
+            .iter()
+            .map(|kind| {
+                let mut item = item_of(meta, model);
+                item.label = strings::text(&format!("bond-kind-{kind}")).to_owned();
+                item.params = json!({ "kind": kind });
+                item
+            })
+            .collect(),
         Submenu::WireMarkers => {
             let current = model.marker_mode_word();
             ["per_wire", "all", "deviations", "explicit", "none"]
@@ -4575,6 +4600,7 @@ mod tests {
             Submenu::Pan,
             Submenu::Graphic,
             Submenu::WireMarkers,
+            Submenu::Bond,
         ] {
             assert!(strings::lookup(s.label_key()).is_some());
         }

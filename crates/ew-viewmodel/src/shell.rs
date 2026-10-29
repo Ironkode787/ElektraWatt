@@ -40,6 +40,8 @@ mod clipboard;
 mod drawing;
 // WP-S2.04 part 4b: FT-411, Edit ▸ Bridge terminals.
 mod bridge;
+// G-PP triage row 7: Draw ▸ Bond.
+mod bond;
 // WP-S2.09 part 3: the Preview tab, the renumber dialogs and the purge.
 mod bulk;
 mod editing;
@@ -74,6 +76,7 @@ pub use navigation::{Focus, RECENT_PAGES, SessionCalls};
 // WP-S2.06 part 1
 pub use navigators::{Chip, DragSource, FindingLook, MAX_CHIPS, ShownRow};
 // WP-S2.09 part 3
+pub use bond::BOND_KINDS;
 pub use bulk::PURGE_LISTED;
 pub use tools::SnapIndicator;
 
@@ -708,6 +711,7 @@ fn clears_banner(id: &str) -> bool {
             | "text.bind"
             | "text.edit"
             | "strip.bridge"
+            | "bond.draw"
             | "tool.marker"
             | "marker.fields"
             | "tool.structure_box"
@@ -1629,6 +1633,8 @@ impl ShellModel {
             "text.edit" => self.act_text_edit(),
             // FT-411: Edit ▸ Bridge terminals.
             "strip.bridge" => self.act_strip_bridge(),
+            // G-PP triage row 7: Draw ▸ Bond.
+            "bond.draw" => self.act_bond_draw(p),
             // WP-S2.04 part 4b (marker and structure box, §10.5 to §10.7).
             "tool.marker" => self.act_tool_marker(),
             "marker.fields" => self.act_marker_fields(p),

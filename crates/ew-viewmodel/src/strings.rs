@@ -236,6 +236,22 @@ pub fn lookup(key: &str) -> Option<&'static str> {
             "Each terminal needs a bridge shaft on its part or a side-1 connection point"
         }
         "reason-bridge-exists" => "These terminals are bridged already",
+        // G-PP triage row 7: Draw ▸ Bond.
+        "action-bond-draw" => "Bond",
+        "submenu-bond" => "Bond",
+        "bond-kind-pelv_0v_pe" => "0 V–PE bond (PELV)",
+        "bond-kind-fe_pe" => "FE–PE bond",
+        "bond-kind-equipotential" => "Equipotential bond",
+        "bond-kind-shield" => "Shield bond",
+        "reason-bond-selection" => {
+            "Select the one wire that bonds the two potentials, or name its two connection points"
+        }
+        "reason-bond" => "A bond is previewed first",
+        "error-bond-end" => {
+            "No connection point of the page shown is printed \"{0}\"; name it as the page text does"
+        }
+        "error-bond-end-ambiguous" => "Several connection points of the page shown are printed \"{0}\"",
+        "error-bond-same-end" => "Both ends of the bond are \"{0}\"; name two different connection points",
         // WP-S2.04 part 5 (images, §11).
         "action-tool-image" => "Image…",
         "action-image-pick" => "Image asset",

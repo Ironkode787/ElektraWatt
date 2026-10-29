@@ -214,6 +214,13 @@ impl ShellModel {
     /// Previews the `Bulk` command `name` with `params` through the host's path and shows its `bulk` card; a refused
     /// preview opens no card and is the outcome's message.
     pub(super) fn preview_bulk(&mut self, name: &str, params: Value) -> Outcome {
+        self.preview_host_card(name, params, "reason-bulk")
+    }
+
+    /// Previews the command `name` that a host action built (a renumber dialog, Draw ▸ Bond) and shows its card with
+    /// the reason `reason`; Apply goes through [`ShellModel::apply_bulk_card`]. A refused preview opens no card and is
+    /// the outcome's message.
+    pub(super) fn preview_host_card(&mut self, name: &str, params: Value, reason: &'static str) -> Outcome {
         let Some(rev) = self.revision() else {
             return Outcome::Refused {
                 reason_key: "reason-no-project",
@@ -263,7 +270,7 @@ impl ShellModel {
             edit,
             targets: changes,
             changes,
-            reason: "reason-bulk",
+            reason,
             origin: CardOrigin::Bulk,
         });
         Outcome::Done
@@ -284,7 +291,7 @@ impl ShellModel {
             let Card { preview, edit, .. } = card;
             return self.commit_kept(preview, &edit.name, &edit.params, None);
         }
-        self.preview_bulk(&card.edit.name, card.edit.params)
+        self.preview_host_card(&card.edit.name, card.edit.params, card.reason)
     }
 
     // -----------------------------------------------------------------------------------------------------------

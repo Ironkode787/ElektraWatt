@@ -120,6 +120,7 @@ tool.graphic Command "Graphic" menu "Draw ▸ Graphic" shortcut "L" context canv
 text.bind View "Text binding" menu none shortcut none context canvas hidden params "bind:text"
 text.edit Command "Edit text" menu "Draw" shortcut "F2" context canvas params ""
 strip.bridge Command "Bridge terminals" menu "Draw" shortcut none context canvas params ""
+bond.draw Command "Bond" menu "Draw ▸ Bond" shortcut none context canvas params "kind?:enum(pelv_0v_pe|fe_pe|equipotential|shield), a?:text, b?:text"
 tool.marker Command "Wire marker" menu "Draw" shortcut "Shift+W" context canvas params ""
 marker.fields View "Marker fields" menu none shortcut none context canvas hidden params "csa?:text, colours?:text"
 tool.structure_box Command "Structure box" menu "Draw" shortcut "Shift+B" context canvas params ""
