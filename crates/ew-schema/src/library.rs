@@ -16,7 +16,7 @@ use std::str::FromStr;
 
 use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
-use ew_units::{Angle2, Dec3, Grid, Nm, Pt2};
+use ew_units::{Angle2, Dec3, Grid, Nm, Pt2, Vec2Nm};
 use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
 use serde::de::{DeserializeOwned, Error as _};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -25,7 +25,7 @@ use serde_json::{Map, Value};
 use crate::SchemaError;
 use crate::connect::PotentialType;
 use crate::json::{Extra, de_extra, is_default, is_false, is_true, is_v1, r#true, v1};
-use crate::proxy::{Angle2S, Dec3S, GridS, IdentS, MlTextS, NmS, Pt2S, UuidS};
+use crate::proxy::{Angle2S, Dec3S, GridS, IdentS, MlTextS, NmS, Pt2S, UuidS, Vec2NmS};
 use crate::set::{KeyedList, Set, keyed};
 use crate::track::{buffer, de_here, de_member, invalid, open_enum, raise};
 use crate::value::{AnyId, Bounds, ColourSpec, Csa, Date, LibRef, Sha256, TechValue};
@@ -1317,8 +1317,8 @@ pub struct MechData {
     pub mount_kind: Option<MountKind>,
     /// The vector from the rail pose to the part origin, `[x, y]` in nanometres.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[schemars(with = "Option<Pt2S>")]
-    pub rail_offset: Option<Pt2>,
+    #[schemars(with = "Option<Vec2NmS>")]
+    pub rail_offset: Option<Vec2Nm>,
     /// The clearance kept free around the part.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub clearance: Option<Clearance>,

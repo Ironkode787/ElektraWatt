@@ -104,6 +104,23 @@ proxy!(
 );
 
 proxy!(
+    /// `Vec2Nm`: `[dx, dy]` in nanometres, an offset (FT-604).
+    Vec2NmS,
+    "Vec2Nm",
+    {
+        "type": "array",
+        "prefixItems": [
+            {"type": "integer", "minimum": -MAX_SAFE_INTEGER, "maximum": MAX_SAFE_INTEGER},
+            {"type": "integer", "minimum": -MAX_SAFE_INTEGER, "maximum": MAX_SAFE_INTEGER}
+        ],
+        "items": false,
+        "minItems": 2,
+        "maxItems": 2,
+        "description": "An offset [dx, dy] in nanometres, y downwards (doc 05 §3.2): a vector, not a position."
+    }
+);
+
+proxy!(
     /// `Grid`: a reduced rational step in nanometres.
     GridS,
     "Grid",

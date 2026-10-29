@@ -1055,7 +1055,7 @@
         "rail_offset": {
           "anyOf": [
             {
-              "$ref": "#/$defs/Pt2"
+              "$ref": "#/$defs/Vec2Nm"
             },
             {
               "type": "null"
@@ -1840,6 +1840,25 @@
       "minLength": 36,
       "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
       "type": "string"
+    },
+    "Vec2Nm": {
+      "description": "An offset [dx, dy] in nanometres, y downwards (doc 05 §3.2): a vector, not a position.",
+      "items": false,
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      ],
+      "type": "array"
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",

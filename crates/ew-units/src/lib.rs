@@ -84,4 +84,4 @@ pub use json::MAX_SAFE_INTEGER;
 pub use nm::Nm;
 pub use orient::Orient2;
 pub use pose::{Pose3, Quat9};
-pub use pt::{Pt2, Rect};
+pub use pt::{Pt2, Rect, Vec2Nm};

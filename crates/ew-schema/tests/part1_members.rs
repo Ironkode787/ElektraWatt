@@ -14,7 +14,7 @@ use ew_schema::{
     AlternativeKind, ClampType, ContactKind, FileRule, Kind, KindStatus, LibDocument, MacroKind, MountKind,
     PartKind, Record, RepType, VarType,
 };
-use ew_units::{Nm, Pt2};
+use ew_units::{Nm, Vec2Nm};
 
 fn lib(needle: &str) -> LibDocument {
     let mut found = GOLDEN_LIB.iter().filter(|t| t.contains(needle));
@@ -48,7 +48,10 @@ fn the_mech_fixture_types_dimensions_mounting_and_offset() {
         (Some(nm(60)), Some(nm(130)), Some(nm(125)))
     );
     assert_eq!(mech.mount_kind, Some(MountKind::Ts35x7_5));
-    assert_eq!(mech.rail_offset, Some(Pt2::new(nm(30), nm(65))));
+    // FT-604: the rail offset is a vector (`Vec2Nm`), written `[dx, dy]` exactly as a `Pt2`.
+    let offset: Option<Vec2Nm> = mech.rail_offset;
+    assert_eq!(offset, Some(Vec2Nm::new(nm(30), nm(65))));
+    assert_eq!(serde_json::to_string(&offset).unwrap(), "[30000000,65000000]");
     let clearance = mech.clearance.expect("clearance");
     assert_eq!((clearance.top, clearance.bottom), (nm(50), nm(50)));
     assert_eq!(
