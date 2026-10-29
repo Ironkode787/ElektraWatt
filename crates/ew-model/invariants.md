@@ -66,7 +66,7 @@ a row here, and that every test named in its row exists, with at least one accep
 
 | ID | Class | Statement | Touched keys considered | Tests |
 |----|-------|-----------|-------------------------|-------|
-| EW-INV-001 | Structural | Every link field of a record names an existing record of its target kind (link table in section 4). A removed record has no referrer left. A referrer through a forbid link makes the removal `ModelError::Referenced`. A referrer through a cascade or unlink link is a violation: the transaction must include `Model::delete_plan`. A `LibRef` link takes part in neither half: its missing target is not dangling, and neither is a referrer that the removal of its copy leaves behind (its keep-alive is EW-INV-021). | Outgoing links of every touched record. For every removed key, its referrers through each link other than a `LibRef` link (named base index or the generic referrer index). | `inv001_refs_resolve_ok`<br>`inv001_lib_ref_referrer_left_by_removal_ok`<br>`inv001_refs_resolve_rejected`<br>`inv001_removed_target_with_cascade_referrer_rejected`<br>`inv001_forbid_referenced`<br>`integrity_check_on_load_rejected`<br>`ops::lib_ref_unembedded_target_is_not_a_link` |
+| EW-INV-001 | Structural | Every link field of a record names an existing record of its target kind (link table in section 4). A removed record has no referrer left. A referrer through a forbid link makes the removal `ModelError::Referenced`. A referrer through a cascade or unlink link is a violation: the transaction must include `Model::delete_plan`. A `LibRef` link takes part in neither half: its missing target is not dangling, and neither is a referrer that the removal of its copy leaves behind (its keep-alive is EW-INV-021). The kind-erased link `macro_instance.members[][1]` resolves when a record of any of its member kinds has the ID (section 4). | Outgoing links of every touched record. For every removed key, its referrers through each link other than a `LibRef` link (named base index or the generic referrer index). | `inv001_refs_resolve_ok`<br>`inv001_lib_ref_referrer_left_by_removal_ok`<br>`inv001_refs_resolve_rejected`<br>`inv001_removed_target_with_cascade_referrer_rejected`<br>`inv001_forbid_referenced`<br>`integrity_check_on_load_rejected`<br>`ops::lib_ref_unembedded_target_is_not_a_link` |
 | EW-INV-002 | Structural | A device that has functions has exactly one function of role Main (FR-DEV-004). A device without functions is allowed in v0. | Touched devices. The old and the new `device` of every touched function. | `inv002_one_main_function_ok`<br>`inv002_zero_functions_ok`<br>`inv002_one_main_function_rejected`<br>`inv002_main_moved_away_rejected` |
 | EW-INV-003 | Structural | `Function.device` is None if and only if the function's kind is `Ip` (ADR-0009 amendment 2). | Touched functions. | `inv003_device_iff_not_ip_ok`<br>`inv003_device_iff_not_ip_rejected`<br>`inv003_ip_with_device_rejected` |
 | CI-01 | Structural | Both endpoints of a connection exist and differ. Existence is reported through EW-INV-001 (the endpoint links). | Touched connections. | `ci01_endpoints_differ_ok`<br>`ci01_endpoints_differ_rejected` |
@@ -130,6 +130,14 @@ empty is dropped (deleted in the same plan); a batch that removes a listed conne
 Its presence half is EW-INV-023's: a listed connection that does not exist, or lies on another page, is judged for
 the entries an edit adds, never on load, because a build from before part 4a kept the records verbatim and a stale
 entry is a load finding (ADR-0009 amendment 8).
+
+**The kind-erased link** (`LinkDecl::kind_erased`, WP-S1.19 part 1). `macro_instance.members[][1]` stores the
+records a placed macro created as bare IDs (`(fragment-local, created)` pairs, doc 03 §7), so the link names a record
+of any kind of `MACRO_MEMBER_KINDS` (page, device, function, representation, connection, junction, conductor, channel,
+potential definition, bond, device link, page item, structure box, report block). It resolves when a record of one of
+those kinds has the ID; the generic referrer index keys it under the nominal `to` (page); the removal of a record of
+any of the kinds consults it. Its policy is unlink: a deleted member leaves the list and the instance stays, also
+when the list is left empty (it is still the record of the placement). Tests: `macro_links::*`.
 
 **Reading the model.** The untracked read API (`Model::table`, `row`, `lib`, `indexes`, `referrers`, `delete_plan`
 and the table and index getters) is behind the cargo feature `raw-read` of `ew-model` (ARCH §3 rule 1, ADR-0002
@@ -211,6 +219,9 @@ Fields are written as `kind.path`. "referrers" means the generic referrer index.
 | report_block.section | section | forbid | referrers |
 | report_block.embedded.page | page | cascade | referrers |
 | report_block.source_ref.lineage | import_lineage | forbid | referrers |
+| macro_instance.macro | macro | forbid | referrers |
+| macro_instance.members[][1] | any of `MACRO_MEMBER_KINDS` (kind-erased) | unlink (member removed; the instance stays) | referrers |
+| macro_instance.page | page | cascade | referrers |
 | revision.withdraws | revision | forbid | referrers |
 | revision.source_ref.lineage | import_lineage | forbid | referrers |
 | form.title_block | form | forbid | referrers |
@@ -235,6 +246,7 @@ state after it is right. Every forbid link stores its target's ID, except the tw
 | device.parts[].part.copy, device.strip.accessories[].part.copy, device.assembly.configs[].part.copy, connection.overrides.wire_part.copy, potential_def.props.wire_part.copy | part | structural | `PartRef.copy` stores the copy ID; the command that uses a part embeds it in the same transaction (FR-PRT-013), so a part use never names an item that is not embedded |
 | function.def | fndef | structural | A stored copy ID; the function's CPs instantiate from it |
 | representation.symbol | symbol | structural | A stored copy ID; the representation draws it |
+| macro_instance.macro | macro | structural | A stored copy ID; the instance records which macro version was placed (WP-S1.19 part 1) |
 | page.form, report_block.form, form.title_block, form.continuation | form | structural | Stored copy IDs; a form is embedded with the forms it names (the closure of `library.embed`), and a page or report block cannot render without its form |
 | revision.withdraws | revision | structural | History: a withdrawal record names the revision it withdraws (FR-REV-009) |
 | symbol.fndef.item, part.function_template[].fndef.item | fndef | delete-time (EW-INV-021) | `LibRef`: the target ID is computed from the referring row, and a `LibRef` to an item the project does not embed names nothing (NFR-REL-11) |

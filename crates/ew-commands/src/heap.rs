@@ -92,11 +92,14 @@ pub fn row_bytes(row: &AnyRow) -> usize {
         AnyRow::PageItem(r) => of(&**r),
         AnyRow::StructureBox(r) => of(&**r),
         AnyRow::ReportBlock(r) => of(&**r),
+        AnyRow::MacroInstance(r) => of(&**r),
         AnyRow::Revision(r) => of(&**r),
         AnyRow::Part(r) => of(&**r),
         AnyRow::Symbol(r) => of(&**r),
         AnyRow::Fndef(r) => of(&**r),
         AnyRow::Form(r) => of(&**r),
+        AnyRow::Macro(r) => of(&**r),
+        AnyRow::Manufacturer(r) => of(&**r),
     }
 }
 
@@ -210,7 +213,7 @@ impl HeapSize for Value {
 macro_rules! plain {
     ($($t:ty),* $(,)?) => { $( impl HeapSize for $t { fn heap_size(&self) -> usize { 0 } } )* };
 }
-plain!(u8, u16, u32, ew_units::Pt2);
+plain!(u8, u16, u32, ew_units::Pt2, ew_units::Nm, ew_units::Dec3);
 
 /// Structs whose only owned heap is `extra`.
 macro_rules! extra_only {
@@ -234,6 +237,10 @@ extra_only!(
     StructureAssignment,
     PotentialEnv,
     BoxCp,
+    ew_schema::Clearance,
+    ew_schema::DuctSection,
+    ew_schema::PlateSection,
+    ew_schema::BasicProjectRef,
 );
 
 impl HeapSize for TextSlot {
@@ -466,6 +473,7 @@ impl HeapSize for Project {
             + self.languages.heap_size()
             + self.derivation_profile.heap_size()
             + self.source_ref.heap_size()
+            + self.basic_project.heap_size()
             + self.extra.heap_size()
     }
 }
@@ -910,6 +918,54 @@ impl HeapSize for CpData {
     }
 }
 
+impl HeapSize for ew_schema::ContactData {
+    fn heap_size(&self) -> usize {
+        self.cps.heap_size() + self.special.heap_size() + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for ew_schema::MechData {
+    fn heap_size(&self) -> usize {
+        self.clearance.heap_size() + self.front_2d.heap_size() + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for ew_schema::AlternativeRef {
+    fn heap_size(&self) -> usize {
+        self.part.heap_size() + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for ew_schema::ConfiguredComponent {
+    fn heap_size(&self) -> usize {
+        self.part.heap_size() + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for ew_schema::Configured {
+    fn heap_size(&self) -> usize {
+        self.order_code.heap_size() + self.components.heap_size() + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for ew_schema::MacroLink {
+    fn heap_size(&self) -> usize {
+        self.macro_ref.heap_size() + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for ew_schema::EnclosureSection {
+    fn heap_size(&self) -> usize {
+        self.plate.heap_size() + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for ew_schema::RailSection {
+    fn heap_size(&self) -> usize {
+        self.extra.heap_size()
+    }
+}
+
 impl HeapSize for TemplateFn {
     fn heap_size(&self) -> usize {
         self.fndef.heap_size() + self.cps.heap_size() + self.extra.heap_size()
@@ -924,7 +980,13 @@ impl HeapSize for CableCore {
 
 impl HeapSize for PartSections {
     fn heap_size(&self) -> usize {
-        self.cable_cores.heap_size() + self.plc.heap_size() + self.extra.heap_size()
+        self.cable_cores.heap_size()
+            + self.plc.heap_size()
+            + self.enclosure.heap_size()
+            + self.duct.heap_size()
+            + self.rail.heap_size()
+            + self.mounting_plate.heap_size()
+            + self.extra.heap_size()
     }
 }
 
@@ -941,7 +1003,78 @@ impl HeapSize for Part {
             + self.free_props.heap_size()
             + self.cp_pattern.heap_size()
             + self.function_template.heap_size()
+            + self.contacts.heap_size()
+            + self.mech.heap_size()
             + self.sections.heap_size()
+            + self.alternatives.heap_size()
+            + self.configured.heap_size()
+            + self.macros.heap_size()
+            + self.extra.heap_size()
+    }
+}
+
+// ---- manufacturers and macros (WP-S1.19 part 1) ----
+
+impl HeapSize for ew_schema::Manufacturer {
+    fn heap_size(&self) -> usize {
+        self.meta.heap_size()
+            + self.key.heap_size()
+            + self.name.heap_size()
+            + self.aliases.heap_size()
+            + self.brands.heap_size()
+            + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for ew_schema::MacroVariant {
+    fn heap_size(&self) -> usize {
+        self.key.heap_size() + self.fragment.heap_size() + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for ew_schema::VarBinding {
+    fn heap_size(&self) -> usize {
+        self.field.heap_size() + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for ew_schema::VarDef {
+    fn heap_size(&self) -> usize {
+        self.name.heap_size() + self.bindings.heap_size() + self.default.heap_size() + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for ew_schema::PlaceholderGroup {
+    fn heap_size(&self) -> usize {
+        self.name.heap_size() + self.members.heap_size() + self.include.heap_size() + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for ew_schema::ValueSet {
+    fn heap_size(&self) -> usize {
+        self.name.heap_size() + self.values.heap_size() + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for ew_schema::MacroDef {
+    fn heap_size(&self) -> usize {
+        self.meta.heap_size()
+            + self.name.heap_size()
+            + self.description.heap_size()
+            + self.variants.heap_size()
+            + self.variables.heap_size()
+            + self.groups.heap_size()
+            + self.value_sets.heap_size()
+            + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for ew_schema::MacroInstance {
+    fn heap_size(&self) -> usize {
+        self.variant.heap_size()
+            + self.value_set.heap_size()
+            + self.values.heap_size()
+            + self.members.capacity() * std::mem::size_of::<(ew_schema::AnyId, ew_schema::AnyId)>()
             + self.extra.heap_size()
     }
 }

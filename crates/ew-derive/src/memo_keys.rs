@@ -127,18 +127,21 @@ macro_rules! by_kind {
             Kind::PageItem => $f::<PageItem>($($arg),*),
             Kind::StructureBox => $f::<StructureBox>($($arg),*),
             Kind::ReportBlock => $f::<ReportBlock>($($arg),*),
+            Kind::MacroInstance => $f::<ew_schema::MacroInstance>($($arg),*),
             Kind::Revision => $f::<ew_schema::Revision>($($arg),*),
             Kind::Part => $f::<LibCopy<Part>>($($arg),*),
             Kind::Symbol => $f::<LibCopy<SymbolDef>>($($arg),*),
             Kind::Fndef => $f::<LibCopy<FnDef>>($($arg),*),
             Kind::Form => $f::<LibCopy<FormDef>>($($arg),*),
+            Kind::Macro => $f::<LibCopy<ew_schema::MacroDef>>($($arg),*),
+            Kind::Manufacturer => $f::<LibCopy<ew_schema::Manufacturer>>($($arg),*),
             _ => $other,
         }
     };
 }
 
-/// The page a row is drawn on: a representation's, a connection's (when it has one), a junction's, a page item's
-/// and a structure box's.
+/// The page a row is drawn on: a representation's, a connection's (when it has one), a junction's, a page item's,
+/// a structure box's and a macro instance's anchor page.
 fn page_of(row: &AnyRow) -> Option<Id<Page>> {
     match row {
         AnyRow::Representation(r) => Some(r.page),
@@ -146,6 +149,7 @@ fn page_of(row: &AnyRow) -> Option<Id<Page>> {
         AnyRow::Junction(j) => Some(j.page),
         AnyRow::PageItem(i) => Some(i.page),
         AnyRow::StructureBox(b) => Some(b.page),
+        AnyRow::MacroInstance(m) => Some(m.page),
         _ => None,
     }
 }
@@ -277,7 +281,10 @@ pub(crate) fn stamp(model: &Model, dep: &DepKey) -> Rev {
 
 /// Whether a kind is an embedded library copy.
 fn is_library(kind: Kind) -> bool {
-    matches!(kind, Kind::Part | Kind::Symbol | Kind::Fndef | Kind::Form)
+    matches!(
+        kind,
+        Kind::Part | Kind::Symbol | Kind::Fndef | Kind::Form | Kind::Macro | Kind::Manufacturer
+    )
 }
 
 /// The durability of a kind's rows and table.
@@ -292,7 +299,7 @@ fn kind_durability(kind: Kind) -> Durability {
 }
 
 /// The durability of an input (ADR-0002 decision 4): the project row is `Settings`; rows and tables of the
-/// embedded library copies (`Part`, `Symbol`, `Fndef`, `Form`) are `Library`; everything else, the
+/// embedded library copies (`Part`, `Symbol`, `Fndef`, `Form`, `Macro`, `Manufacturer`) are `Library`; everything else, the
 /// registration keys, the asset store and parts included, is `Drawing` (a drawing commit brings assets in).
 pub(crate) fn durability(input: &MemoInput) -> Durability {
     match input {

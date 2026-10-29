@@ -63,6 +63,9 @@
       "$ref": "report_block.schema.json"
     },
     {
+      "$ref": "macro_instance.schema.json"
+    },
+    {
       "$ref": "revision.schema.json"
     }
   ],

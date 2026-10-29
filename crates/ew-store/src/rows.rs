@@ -99,6 +99,10 @@ macro_rules! with_row {
                 let $kind = Kind::ReportBlock;
                 $body
             }
+            AnyRow::MacroInstance($r) => {
+                let $kind = Kind::MacroInstance;
+                $body
+            }
             AnyRow::Revision($r) => {
                 let $kind = Kind::Revision;
                 $body
@@ -117,6 +121,14 @@ macro_rules! with_row {
             }
             AnyRow::Form($r) => {
                 let $kind = Kind::Form;
+                $body
+            }
+            AnyRow::Macro($r) => {
+                let $kind = Kind::Macro;
+                $body
+            }
+            AnyRow::Manufacturer($r) => {
+                let $kind = Kind::Manufacturer;
                 $body
             }
         }
@@ -146,8 +158,14 @@ pub(crate) fn row_record(row: &AnyRow) -> Option<Record> {
         AnyRow::PageItem(r) => Record::PageItem((**r).clone()),
         AnyRow::StructureBox(r) => Record::StructureBox((**r).clone()),
         AnyRow::ReportBlock(r) => Record::ReportBlock((**r).clone()),
+        AnyRow::MacroInstance(r) => Record::MacroInstance((**r).clone()),
         AnyRow::Revision(r) => Record::Revision((**r).clone()),
-        AnyRow::Part(_) | AnyRow::Symbol(_) | AnyRow::Fndef(_) | AnyRow::Form(_) => return None,
+        AnyRow::Part(_)
+        | AnyRow::Symbol(_)
+        | AnyRow::Fndef(_)
+        | AnyRow::Form(_)
+        | AnyRow::Macro(_)
+        | AnyRow::Manufacturer(_) => return None,
     })
 }
 
@@ -174,6 +192,7 @@ pub(crate) fn record_row(record: Record) -> Option<AnyRow> {
         Record::PageItem(r) => AnyRow::of(r),
         Record::StructureBox(r) => AnyRow::of(r),
         Record::ReportBlock(r) => AnyRow::of(r),
+        Record::MacroInstance(r) => AnyRow::of(r),
         Record::Revision(r) => AnyRow::of(r),
         Record::Unknown(_) => return None,
     })
@@ -186,6 +205,8 @@ pub(crate) fn document_row(doc: LibDocument) -> Option<AnyRow> {
         LibDocument::Symbol(d) => AnyRow::of(d),
         LibDocument::Fndef(d) => AnyRow::of(d),
         LibDocument::Form(d) => AnyRow::of(d),
+        LibDocument::Macro(d) => AnyRow::of(d),
+        LibDocument::Manufacturer(d) => AnyRow::of(d),
         LibDocument::Unknown(_) => return None,
     })
 }

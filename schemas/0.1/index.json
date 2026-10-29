@@ -205,9 +205,9 @@
       "file": "pages/<page>.jsonl",
       "kind": "macro_instance",
       "rank": 46,
-      "schema": null,
-      "status": "reserved",
-      "v": null
+      "schema": "macro_instance.schema.json",
+      "status": "implemented",
+      "v": 1
     },
     {
       "file": "pages/<page>.jsonl",
@@ -389,17 +389,17 @@
       "file": "lib/macros/<id>.json",
       "kind": "macro",
       "rank": null,
-      "schema": null,
-      "status": "reserved",
-      "v": null
+      "schema": "macro.schema.json",
+      "status": "implemented",
+      "v": 1
     },
     {
       "file": "lib/manufacturers/<id>.json",
       "kind": "manufacturer",
       "rank": null,
-      "schema": null,
-      "status": "reserved",
-      "v": null
+      "schema": "manufacturer.schema.json",
+      "status": "implemented",
+      "v": 1
     },
     {
       "file": "lib/plc-profiles/<id>.json",

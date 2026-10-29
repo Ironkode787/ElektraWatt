@@ -147,7 +147,7 @@ pub use invariants::{
     REVISION_LABEL_UNIQUE, REVISION_PAGE_NOTE_UNIQUE, RULES, Rule, RuleClass, STRUCTURE_ACYCLIC,
     STRUCTURE_SAME_ASPECT, TERMINAL_STRIP,
 };
-pub use links::{IndexName, LINKS, LinkDecl, LinkId, NOT_LINKS, Policy};
+pub use links::{IndexName, LINKS, LinkDecl, LinkId, MACRO_MEMBER_KINDS, NOT_LINKS, Policy};
 pub use model::Model;
 pub use op::{Op, invert_batch};
 pub use prevent::{ApplyOptions, PreventHook, PreventViolation, Strictness};

@@ -468,7 +468,12 @@ pub(crate) fn part(part_id: Id<Part>, part_number: &str) -> LibCopy<Part> {
         unit: Default::default(),
         cp_pattern: Default::default(),
         function_template: vec![],
+        contacts: vec![],
+        mech: None,
         sections: Default::default(),
+        alternatives: vec![],
+        configured: None,
+        macros: vec![],
         extra: Extra::new(),
     };
     lib_copy(part_id, item)
@@ -542,6 +547,7 @@ pub(crate) fn mini_golden_parts() -> (Project, Vec<Record>, Vec<LibDocument>) {
         derivation_profile: ident("2027.1"),
         kind: ProjectKind::Schematic,
         source_ref: None,
+        basic_project: None,
         extra: Extra::new(),
     };
 
@@ -820,6 +826,63 @@ pub(crate) fn external_ref(
         device: Ident::from_input("JE-N1000-03").expect("an ident"),
         connection: None,
         source_ref: None,
+        extra: Extra::new(),
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Macros and manufacturers (WP-S1.19 part 1)
+
+/// A window macro copy without variants (the model does not read its content).
+pub(crate) fn macro_copy(copy_id: Id<ew_schema::MacroDef>) -> LibCopy<ew_schema::MacroDef> {
+    lib_copy(
+        copy_id,
+        ew_schema::MacroDef {
+            meta: Default::default(),
+            name: MlText::neutral("PSU block"),
+            description: MlText::default(),
+            kind: ew_schema::MacroKind::Window,
+            variants: vec![],
+            variables: vec![],
+            groups: vec![],
+            value_sets: vec![],
+            thumbnail: None,
+            extra: Extra::new(),
+        },
+    )
+}
+
+/// A manufacturer copy.
+pub(crate) fn manufacturer_copy(copy_id: Id<ew_schema::Manufacturer>) -> LibCopy<ew_schema::Manufacturer> {
+    lib_copy(
+        copy_id,
+        ew_schema::Manufacturer {
+            meta: Default::default(),
+            key: ident("EATON"),
+            name: MlText::neutral("Eaton"),
+            aliases: vec![],
+            brands: vec![],
+            extra: Extra::new(),
+        },
+    )
+}
+
+/// A macro instance on `page` placed from `copy`, with `members` as `(fragment-local, created)` pairs.
+pub(crate) fn macro_instance(
+    instance: Id<ew_schema::MacroInstance>,
+    copy: Id<ew_schema::MacroDef>,
+    page: Id<Page>,
+    members: Vec<(ew_schema::AnyId, ew_schema::AnyId)>,
+) -> ew_schema::MacroInstance {
+    ew_schema::MacroInstance {
+        id: instance,
+        v: 1,
+        macro_copy: copy,
+        variant: ident("A"),
+        value_set: None,
+        values: Default::default(),
+        members,
+        page,
         extra: Extra::new(),
     }
 }

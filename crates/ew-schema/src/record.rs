@@ -11,7 +11,7 @@ use serde_json::{Map, Value};
 
 use crate::MalformedVariant;
 use crate::kind::{FileRule, Kind};
-use crate::library::{FnDef, FormDef, LibCopy, Part, SymbolDef};
+use crate::library::{FnDef, FormDef, LibCopy, MacroDef, MacroInstance, Manufacturer, Part, SymbolDef};
 use crate::track::{buffer_strict, check_value_at, de_here, parse_value, raise, with_context};
 use crate::value::Endpoint;
 use crate::{
@@ -159,6 +159,8 @@ pub enum Record {
     StructureBox(StructureBox),
     /// `report_block` (45).
     ReportBlock(ReportBlock),
+    /// `macro_instance` (46).
+    MacroInstance(MacroInstance),
     /// `revision` (60).
     Revision(Revision),
     /// A record of a kind this reader does not implement, with its `$k`, kept verbatim.
@@ -192,6 +194,7 @@ impl Record {
             Record::PageItem(_) => Kind::PageItem,
             Record::StructureBox(_) => Kind::StructureBox,
             Record::ReportBlock(_) => Kind::ReportBlock,
+            Record::MacroInstance(_) => Kind::MacroInstance,
             Record::Revision(_) => Kind::Revision,
             Record::Unknown(_) => return None,
         })
@@ -228,6 +231,7 @@ impl Record {
             Record::PageItem(r) => r.id.as_uuid(),
             Record::StructureBox(r) => r.id.as_uuid(),
             Record::ReportBlock(r) => r.id.as_uuid(),
+            Record::MacroInstance(r) => r.id.as_uuid(),
             Record::Revision(r) => r.id.as_uuid(),
             Record::Unknown(v) => {
                 return v
@@ -259,6 +263,7 @@ impl Record {
             Record::Junction(r) => AnchorRef::Direct(r.page.as_uuid()),
             Record::PageItem(r) => AnchorRef::Direct(r.page.as_uuid()),
             Record::StructureBox(r) => AnchorRef::Direct(r.page.as_uuid()),
+            Record::MacroInstance(r) => AnchorRef::Direct(r.page.as_uuid()),
             Record::Connection(r) => match r.page {
                 Some(p) => AnchorRef::Direct(p.as_uuid()),
                 None => endpoint_anchor(&r.a),
@@ -330,6 +335,7 @@ impl Serialize for Record {
             Record::PageItem(r) => tagged(Kind::PageItem, r, serializer),
             Record::StructureBox(r) => tagged(Kind::StructureBox, r, serializer),
             Record::ReportBlock(r) => tagged(Kind::ReportBlock, r, serializer),
+            Record::MacroInstance(r) => tagged(Kind::MacroInstance, r, serializer),
             Record::Revision(r) => tagged(Kind::Revision, r, serializer),
             Record::Unknown(v) => v.serialize(serializer),
         }
@@ -414,6 +420,7 @@ impl Record {
             Kind::PageItem => Record::PageItem(typed(kind, map, |r: &PageItem| r.v)?),
             Kind::StructureBox => Record::StructureBox(typed(kind, map, |r: &StructureBox| r.v)?),
             Kind::ReportBlock => Record::ReportBlock(typed(kind, map, |r: &ReportBlock| r.v)?),
+            Kind::MacroInstance => Record::MacroInstance(typed(kind, map, |r: &MacroInstance| r.v)?),
             Kind::Revision => Record::Revision(typed(kind, map, |r: &Revision| r.v)?),
             k => return Err(SchemaError::UnknownKind(k.name().into())),
         })
@@ -442,6 +449,10 @@ pub enum LibDocument {
     Fndef(LibCopy<FnDef>),
     /// `form`.
     Form(LibCopy<FormDef>),
+    /// `macro`.
+    Macro(LibCopy<MacroDef>),
+    /// `manufacturer`.
+    Manufacturer(LibCopy<Manufacturer>),
     /// A library document of a kind this reader does not implement, kept verbatim.
     Unknown(Value),
 }
@@ -454,6 +465,8 @@ impl LibDocument {
             LibDocument::Symbol(_) => Kind::Symbol,
             LibDocument::Fndef(_) => Kind::Fndef,
             LibDocument::Form(_) => Kind::Form,
+            LibDocument::Macro(_) => Kind::Macro,
+            LibDocument::Manufacturer(_) => Kind::Manufacturer,
             LibDocument::Unknown(_) => return None,
         })
     }
@@ -469,6 +482,8 @@ impl Serialize for LibDocument {
             LibDocument::Symbol(d) => tagged(Kind::Symbol, d, serializer),
             LibDocument::Fndef(d) => tagged(Kind::Fndef, d, serializer),
             LibDocument::Form(d) => tagged(Kind::Form, d, serializer),
+            LibDocument::Macro(d) => tagged(Kind::Macro, d, serializer),
+            LibDocument::Manufacturer(d) => tagged(Kind::Manufacturer, d, serializer),
             LibDocument::Unknown(v) => v.serialize(serializer),
         }
     }
@@ -517,6 +532,10 @@ impl LibDocument {
             Kind::Symbol => LibDocument::Symbol(typed(kind, map, |d: &LibCopy<SymbolDef>| d.v)?),
             Kind::Fndef => LibDocument::Fndef(typed(kind, map, |d: &LibCopy<FnDef>| d.v)?),
             Kind::Form => LibDocument::Form(typed(kind, map, |d: &LibCopy<FormDef>| d.v)?),
+            Kind::Macro => LibDocument::Macro(typed(kind, map, |d: &LibCopy<MacroDef>| d.v)?),
+            Kind::Manufacturer => {
+                LibDocument::Manufacturer(typed(kind, map, |d: &LibCopy<Manufacturer>| d.v)?)
+            }
             k => return Err(SchemaError::UnknownKind(k.name().into())),
         })
     }

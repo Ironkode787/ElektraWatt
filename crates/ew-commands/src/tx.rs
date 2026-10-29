@@ -173,11 +173,14 @@ fn row_changed_at(model: &Model, key: &AnyKey) -> Option<Rev> {
         Kind::PageItem => at::<ew_schema::PageItem>(model, id),
         Kind::StructureBox => at::<ew_schema::StructureBox>(model, id),
         Kind::ReportBlock => at::<ReportBlock>(model, id),
+        Kind::MacroInstance => at::<ew_schema::MacroInstance>(model, id),
         Kind::Revision => at::<ew_schema::Revision>(model, id),
         Kind::Part => at::<LibCopy<Part>>(model, id),
         Kind::Symbol => at::<LibCopy<SymbolDef>>(model, id),
         Kind::Fndef => at::<LibCopy<FnDef>>(model, id),
         Kind::Form => at::<LibCopy<FormDef>>(model, id),
+        Kind::Macro => at::<LibCopy<ew_schema::MacroDef>>(model, id),
+        Kind::Manufacturer => at::<LibCopy<ew_schema::Manufacturer>>(model, id),
         _ => None,
     }
 }
@@ -208,11 +211,14 @@ fn table_changed_at(model: &Model, kind: Kind) -> Rev {
         Kind::PageItem => at::<ew_schema::PageItem>(model),
         Kind::StructureBox => at::<ew_schema::StructureBox>(model),
         Kind::ReportBlock => at::<ReportBlock>(model),
+        Kind::MacroInstance => at::<ew_schema::MacroInstance>(model),
         Kind::Revision => at::<ew_schema::Revision>(model),
         Kind::Part => at::<LibCopy<Part>>(model),
         Kind::Symbol => at::<LibCopy<SymbolDef>>(model),
         Kind::Fndef => at::<LibCopy<FnDef>>(model),
         Kind::Form => at::<LibCopy<FormDef>>(model),
+        Kind::Macro => at::<LibCopy<ew_schema::MacroDef>>(model),
+        Kind::Manufacturer => at::<LibCopy<ew_schema::Manufacturer>>(model),
         _ => Rev::ZERO,
     }
 }

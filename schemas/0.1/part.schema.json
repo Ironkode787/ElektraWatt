@@ -1,5 +1,44 @@
 {
   "$defs": {
+    "AlternativeKind": {
+      "description": "How an alternative part relates to a part (FR-PRT-004).",
+      "oneOf": [
+        {
+          "const": "equivalent",
+          "description": "Equivalent in form, fit and function.",
+          "type": "string"
+        },
+        {
+          "const": "successor",
+          "description": "The successor of this part.",
+          "type": "string"
+        },
+        {
+          "const": "approved",
+          "description": "Approved as a replacement.",
+          "type": "string"
+        }
+      ]
+    },
+    "AlternativeRef": {
+      "additionalProperties": true,
+      "description": "A part that may replace another (FR-PRT-004).",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/AlternativeKind",
+          "description": "How it relates to this part."
+        },
+        "part": {
+          "$ref": "#/$defs/LibRef",
+          "description": "The alternative part."
+        }
+      },
+      "required": [
+        "part",
+        "kind"
+      ],
+      "type": "object"
+    },
     "CableCore": {
       "additionalProperties": true,
       "description": "One core of a cable part.",
@@ -191,6 +230,68 @@
         }
       ]
     },
+    "ClampType": {
+      "description": "The kind of a CP's clamp (FR-PRT-008, doc 12 §2.5).",
+      "oneOf": [
+        {
+          "const": "screw",
+          "description": "Screw clamp.",
+          "type": "string"
+        },
+        {
+          "const": "spring",
+          "description": "Spring clamp.",
+          "type": "string"
+        },
+        {
+          "const": "push_in",
+          "description": "Push-in clamp.",
+          "type": "string"
+        },
+        {
+          "const": "idc",
+          "description": "Insulation displacement.",
+          "type": "string"
+        },
+        {
+          "const": "ring_stud",
+          "description": "Ring-tongue stud.",
+          "type": "string"
+        },
+        {
+          "const": "plug",
+          "description": "Plug.",
+          "type": "string"
+        }
+      ]
+    },
+    "Clearance": {
+      "additionalProperties": true,
+      "description": "The clearance around a part (doc 12 §2.5), in nanometres; an absent side is zero.",
+      "properties": {
+        "bottom": {
+          "$ref": "#/$defs/Nm",
+          "description": "Below the part."
+        },
+        "front": {
+          "$ref": "#/$defs/Nm",
+          "description": "In front of the part."
+        },
+        "left": {
+          "$ref": "#/$defs/Nm",
+          "description": "Left of the part."
+        },
+        "right": {
+          "$ref": "#/$defs/Nm",
+          "description": "Right of the part."
+        },
+        "top": {
+          "$ref": "#/$defs/Nm",
+          "description": "Above the part."
+        }
+      },
+      "type": "object"
+    },
     "ColourCode": {
       "anyOf": [
         {
@@ -240,9 +341,146 @@
         }
       ]
     },
+    "Configured": {
+      "additionalProperties": true,
+      "description": "A configured product (FR-PRT-006): its order code and its components.",
+      "properties": {
+        "components": {
+          "description": "The components.",
+          "items": {
+            "$ref": "#/$defs/ConfiguredComponent"
+          },
+          "type": "array"
+        },
+        "order_code": {
+          "$ref": "#/$defs/Ident",
+          "description": "The order code."
+        }
+      },
+      "required": [
+        "order_code"
+      ],
+      "type": "object"
+    },
+    "ConfiguredComponent": {
+      "additionalProperties": true,
+      "description": "One component of a configured product (doc 07 §2.5 `Component`).",
+      "properties": {
+        "part": {
+          "$ref": "#/$defs/LibRef",
+          "description": "The component part."
+        },
+        "qty": {
+          "$ref": "#/$defs/Dec3",
+          "description": "The quantity in the component part's order unit."
+        }
+      },
+      "required": [
+        "part",
+        "qty"
+      ],
+      "type": "object"
+    },
+    "ContactData": {
+      "additionalProperties": true,
+      "description": "One contact of a part's contact image (FR-PRT-009, doc 07 §2.5).",
+      "properties": {
+        "cps": {
+          "description": "The designations of the contact's CPs, such as `[\"13\", \"14\"]`.",
+          "items": {
+            "$ref": "#/$defs/Ident"
+          },
+          "type": "array"
+        },
+        "kind": {
+          "$ref": "#/$defs/ContactKind",
+          "description": "The contact kind, the function definitions' enum (`no`, `nc`, `co` for a change-over)."
+        },
+        "seq": {
+          "description": "The sequence digit.",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "special": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A special-function key."
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "type": "object"
+    },
+    "ContactKind": {
+      "description": "Contact kinds (doc 03 §7).",
+      "oneOf": [
+        {
+          "const": "no",
+          "description": "Normally open.",
+          "type": "string"
+        },
+        {
+          "const": "nc",
+          "description": "Normally closed.",
+          "type": "string"
+        },
+        {
+          "const": "co",
+          "description": "Change-over.",
+          "type": "string"
+        },
+        {
+          "const": "coil",
+          "description": "Coil.",
+          "type": "string"
+        },
+        {
+          "const": "pole",
+          "description": "Pole.",
+          "type": "string"
+        },
+        {
+          "const": "terminal",
+          "description": "Terminal.",
+          "type": "string"
+        },
+        {
+          "const": "black_box",
+          "description": "Black box.",
+          "type": "string"
+        },
+        {
+          "const": "plc_io",
+          "description": "PLC input or output.",
+          "type": "string"
+        },
+        {
+          "const": "bus_port",
+          "description": "Bus port.",
+          "type": "string"
+        },
+        {
+          "const": "valve",
+          "description": "Valve.",
+          "type": "string"
+        }
+      ]
+    },
     "CpData": {
       "additionalProperties": true,
-      "description": "One CP of a part's pattern (doc 07 §2.5, L1). Clamp ranges, maximum conductors, twin-ferrule permission\nand load current (1.0) are kept in `extra` until their work packages.",
+      "description": "One CP of a part's pattern (doc 07 §2.5, L1), with the clamp data of FR-PRT-008 (clamp type, cross-section\nrange, maximum conductors, twin-ferrule permission). The load current (1.0) is kept in `extra` until its\nwork package.",
       "properties": {
         "clamp": {
           "anyOf": [
@@ -254,6 +492,39 @@
             }
           ],
           "description": "Terminal clamp."
+        },
+        "clamp_type": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ClampType"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The kind of clamp (FR-PRT-008)."
+        },
+        "csa_max": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Dec3"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The largest conductor cross-section the clamp takes, in mm²."
+        },
+        "csa_min": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Dec3"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The smallest conductor cross-section the clamp takes, in mm²."
         },
         "designation": {
           "$ref": "#/$defs/Ident",
@@ -268,6 +539,16 @@
         },
         "level": {
           "description": "Terminal level.",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "max_conductors": {
+          "description": "The most conductors the clamp takes.",
           "format": "uint8",
           "maximum": 255,
           "minimum": 0,
@@ -297,6 +578,10 @@
             }
           ],
           "description": "Terminal side."
+        },
+        "twin_ferrule": {
+          "description": "The clamp takes a twin ferrule.",
+          "type": "boolean"
         }
       },
       "required": [
@@ -364,6 +649,108 @@
             }
           ],
           "description": "The successor."
+        }
+      },
+      "type": "object"
+    },
+    "DuctSection": {
+      "additionalProperties": true,
+      "description": "The duct section of a part (FR-PRT-024, doc 12 §2.5), lengths in nanometres.",
+      "properties": {
+        "inner_height": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Inner height."
+        },
+        "inner_width": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Inner width."
+        },
+        "slot_pitch": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Slot pitch."
+        }
+      },
+      "type": "object"
+    },
+    "EnclosureSection": {
+      "additionalProperties": true,
+      "description": "The enclosure section of a part (FR-PRT-024, doc 12 §2.5), lengths in nanometres.",
+      "properties": {
+        "depth": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Outer depth."
+        },
+        "height": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Outer height."
+        },
+        "plate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LibRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The mounting plate part."
+        },
+        "wall": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Wall thickness."
+        },
+        "width": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Outer width."
         }
       },
       "type": "object"
@@ -563,6 +950,25 @@
       ],
       "type": "object"
     },
+    "MacroLink": {
+      "additionalProperties": true,
+      "description": "The macro of a part for one representation type (FR-PRT-027).",
+      "properties": {
+        "macro": {
+          "$ref": "#/$defs/LibRef",
+          "description": "The macro, written `macro`."
+        },
+        "rep_type": {
+          "$ref": "#/$defs/RepType",
+          "description": "The representation type."
+        }
+      },
+      "required": [
+        "rep_type",
+        "macro"
+      ],
+      "type": "object"
+    },
     "MapSpec": {
       "anyOf": [
         {
@@ -578,6 +984,98 @@
         }
       ],
       "description": "A part-data map (doc 10 §2.6): an expression \"<k>n[+<c>]\" or \"<k>p[+<c>]\", or an explicit list."
+    },
+    "MechData": {
+      "additionalProperties": true,
+      "description": "Mechanical data of a part, level L3 (FR-PRT-011, doc 12 §2.5): lengths in nanometres, the mass in grams.",
+      "properties": {
+        "clearance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Clearance"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The clearance kept free around the part."
+        },
+        "depth": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Depth."
+        },
+        "front_2d": {
+          "description": "The 2D front outline: polylines in the part frame.",
+          "items": {
+            "items": {
+              "$ref": "#/$defs/Pt2"
+            },
+            "type": "array"
+          },
+          "type": "array"
+        },
+        "height": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Height."
+        },
+        "mass": {
+          "description": "The mass in grams.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "mount_kind": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MountKind"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "How the part mounts."
+        },
+        "rail_offset": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Pt2"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The vector from the rail pose to the part origin, `[x, y]` in nanometres."
+        },
+        "width": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Width."
+        }
+      },
+      "type": "object"
     },
     "MlText": {
       "anyOf": [
@@ -598,6 +1096,62 @@
         }
       ],
       "description": "Multilingual text: a neutral string, or an object keyed by canonical BCP 47 tags with non-empty string values (doc 05 §3.2). JSON Schema cannot express that all text is NFC or that the keys are in ascending byte order; the reader rejects both."
+    },
+    "MountKind": {
+      "description": "How a part mounts (doc 12 §2.5); also the profile of a rail section.",
+      "oneOf": [
+        {
+          "const": "ts35x7_5",
+          "description": "Top-hat rail 35 × 7.5 mm.",
+          "type": "string"
+        },
+        {
+          "const": "ts35x15",
+          "description": "Top-hat rail 35 × 15 mm.",
+          "type": "string"
+        },
+        {
+          "const": "ts32",
+          "description": "G rail 32 mm.",
+          "type": "string"
+        },
+        {
+          "const": "ts15",
+          "description": "Miniature top-hat rail 15 mm.",
+          "type": "string"
+        },
+        {
+          "const": "screw",
+          "description": "Screwed to the mounting surface.",
+          "type": "string"
+        },
+        {
+          "const": "busbar_adapter",
+          "description": "On a busbar adapter.",
+          "type": "string"
+        },
+        {
+          "const": "door_cutout",
+          "description": "In a door cut-out.",
+          "type": "string"
+        },
+        {
+          "const": "on_parent",
+          "description": "On its parent device.",
+          "type": "string"
+        },
+        {
+          "const": "none",
+          "description": "Not mounted.",
+          "type": "string"
+        }
+      ]
+    },
+    "Nm": {
+      "description": "A length in nanometres (doc 05 §3.2). Written without fraction or exponent; JSON Schema cannot tell 5 from 5.0, the reader rejects the latter.",
+      "maximum": 9007199254740991,
+      "minimum": -9007199254740991,
+      "type": "integer"
     },
     "OrderUnit": {
       "description": "Order unit of a part (FR-PRT-026).",
@@ -701,7 +1255,7 @@
     },
     "PartSections": {
       "additionalProperties": true,
-      "description": "Domain sections of a part (FR-PRT-010). Typed: the cable cores and the PLC section.",
+      "description": "Domain sections of a part (FR-PRT-010). Typed: the cable cores, the PLC section and the carrier sections of\nFR-PRT-024 (enclosure, duct, rail, mounting plate); the other sections stay in `extra`.",
       "properties": {
         "cable_cores": {
           "description": "Cores of a cable part, from which conductors are generated (FR-CBL-004).",
@@ -709,6 +1263,39 @@
             "$ref": "#/$defs/CableCore"
           },
           "type": "array"
+        },
+        "duct": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DuctSection"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The duct section: inner dimensions and slot pitch."
+        },
+        "enclosure": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EnclosureSection"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The enclosure section: outer and wall dimensions and the mounting plate (doc 12 §2.5)."
+        },
+        "mounting_plate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PlateSection"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The mounting-plate section: its dimensions."
         },
         "plc": {
           "anyOf": [
@@ -720,6 +1307,17 @@
             }
           ],
           "description": "The PLC section (doc 10 §2.6)."
+        },
+        "rail": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RailSection"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The rail section: profile and stock length."
         }
       },
       "type": "object"
@@ -738,6 +1336,46 @@
         }
       ],
       "description": "A channel → pin map (doc 10 §3.3): a designation pattern with `{<expression in n>}` placeholders (\"X2:{n+1}\"), or an explicit list of pin designations."
+    },
+    "PlateSection": {
+      "additionalProperties": true,
+      "description": "The mounting-plate section of a part (FR-PRT-024, doc 12 §2.5), lengths in nanometres.",
+      "properties": {
+        "height": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Height."
+        },
+        "thickness": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Thickness."
+        },
+        "width": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Width."
+        }
+      },
+      "type": "object"
     },
     "PlcRole": {
       "description": "The PLC role of a part.",
@@ -924,6 +1562,25 @@
         }
       ]
     },
+    "Pt2": {
+      "description": "A point [x, y] in nanometres, y downwards (doc 05 §3.2).",
+      "items": false,
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      ],
+      "type": "array"
+    },
     "Quantity": {
       "additionalProperties": true,
       "description": "A decimal value with its unit (doc 03 §3.2): `{\"value\": Dec3, \"unit\": Unit}`. Rendering (\"0.75 mm²\",\ndecimal comma in nl and de) is a query, never stored text (D-18).\n\n```\nuse ew_schema::{Quantity, Unit};\n\nlet q: Quantity = serde_json::from_str(r#\"{\"value\":\"20\",\"unit\":\"A\"}\"#).unwrap();\nassert_eq!(q.unit, Unit::A);\nassert_eq!(serde_json::to_string(&q).unwrap(), r#\"{\"value\":\"20\",\"unit\":\"A\"}\"#);\n```",
@@ -942,6 +1599,81 @@
         "unit"
       ],
       "type": "object"
+    },
+    "RailSection": {
+      "additionalProperties": true,
+      "description": "The rail section of a part (FR-PRT-024, doc 12 §2.5).",
+      "properties": {
+        "profile": {
+          "$ref": "#/$defs/MountKind",
+          "description": "The rail profile."
+        },
+        "stock_length": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The stock length in nanometres."
+        }
+      },
+      "required": [
+        "profile"
+      ],
+      "type": "object"
+    },
+    "RepType": {
+      "description": "Representation types (doc 03 §6, doc 07 §2.3). `panel_front` is a symbol type only: panel-front\nrepresentations are derived, never stored (ADR-0006 amendment 3).",
+      "oneOf": [
+        {
+          "const": "multi_line",
+          "description": "Multi-line (the default).",
+          "type": "string"
+        },
+        {
+          "const": "single_line",
+          "description": "Single-line.",
+          "type": "string"
+        },
+        {
+          "const": "overview",
+          "description": "Overview.",
+          "type": "string"
+        },
+        {
+          "const": "fluid",
+          "description": "Fluid.",
+          "type": "string"
+        },
+        {
+          "const": "topology",
+          "description": "Bus topology.",
+          "type": "string"
+        },
+        {
+          "const": "contact_image",
+          "description": "Contact image.",
+          "type": "string"
+        },
+        {
+          "const": "panel_front",
+          "description": "Panel front (symbol graphics only).",
+          "type": "string"
+        },
+        {
+          "const": "strip_segment",
+          "description": "Strip segment.",
+          "type": "string"
+        },
+        {
+          "const": "graphic",
+          "description": "Graphic.",
+          "type": "string"
+        }
+      ]
     },
     "Sha256": {
       "description": "A SHA-256 digest sha256:<64 lower-case hex> (doc 05 §3.2).",
@@ -1125,6 +1857,13 @@
       "minimum": 0,
       "type": "integer"
     },
+    "alternatives": {
+      "description": "Alternative parts (FR-PRT-004).",
+      "items": {
+        "$ref": "#/$defs/AlternativeRef"
+      },
+      "type": "array"
+    },
     "category": {
       "description": "Function category for compatibility filters.",
       "maxItems": 3,
@@ -1144,6 +1883,24 @@
         "array",
         "null"
       ]
+    },
+    "configured": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Configured"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The order code and components of a configured product (FR-PRT-006), beside [`PartKind::Configured`]."
+    },
+    "contacts": {
+      "description": "Contact data: the contacts of the part's contact image (FR-PRT-009).",
+      "items": {
+        "$ref": "#/$defs/ContactData"
+      },
+      "type": "array"
     },
     "cp_pattern": {
       "description": "CP pattern, keyed by `idx` (FR-PRT-008).",
@@ -1197,9 +1954,27 @@
       "$ref": "#/$defs/Uuid",
       "description": "The library's UUID (the project ID for project-local items)."
     },
+    "macros": {
+      "description": "Macros per representation type (FR-PRT-027).",
+      "items": {
+        "$ref": "#/$defs/MacroLink"
+      },
+      "type": "array"
+    },
     "manufacturer": {
       "$ref": "#/$defs/LibRef",
       "description": "The manufacturer record."
+    },
+    "mech": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/MechData"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Mechanical data, level L3 (FR-PRT-011, doc 12 §2.5)."
     },
     "meta": {
       "$ref": "#/$defs/ItemMeta",

@@ -116,14 +116,17 @@ pub use error::{MalformedVariant, SchemaError};
 pub use json::{Extra, MAX_SAFE_INTEGER, Open, check_value, normalize_nfc};
 pub use kind::{FORMAT, FileRule, Kind, KindRegistry, KindStatus, PERSONAL_DATA_FIELDS, SCHEMA_VERSIONS};
 pub use library::{
-    Align, AnchorPolicy, ArcPrim, Arrangement, CableCore, CategoryKey, CirclePrim, ClampKey, Colour,
-    Confidence, ContactKind, CpData, CpDef, Dash, DataArea, Deprecation, Dir4, Discipline, EllipsePrim,
-    ExtraVariant, ExtraVariantKind, FnDef, FnFlags, FormCell, FormDef, FormKind, FrameColumns, FrameGrid,
-    FrameRows, FreeProp, ImagePrim, InternalKind, InternalLinkDef, ItemMeta, ItemStatus, LibCopy, LibItem,
-    Library, LinePrim, NamedPoint, OrderUnit, Overflow, Part, PartCopy, PartKind, PartSections,
-    PassThroughSpec, Pen, PolygonPrim, PolylinePrim, Primitive, RectPrim, RepType, Rgb, RowTemplate,
-    RowTemplates, SheetSpec, SheetTransform, ShrinkSpec, Side, SlotKind, Stroke, SymbolCp, SymbolDef,
-    TableStyle, TemplateFn, TextPrim, TextSlot, WrapPolicy,
+    Align, AlternativeKind, AlternativeRef, AnchorPolicy, ArcPrim, Arrangement, CableCore, CategoryKey,
+    CirclePrim, ClampKey, ClampType, Clearance, Colour, Confidence, Configured, ConfiguredComponent,
+    ContactData, ContactKind, CpData, CpDef, Dash, DataArea, Deprecation, Dir4, Discipline, DuctSection,
+    EllipsePrim, EnclosureSection, ExtraVariant, ExtraVariantKind, FnDef, FnFlags, FormCell, FormDef,
+    FormKind, FrameColumns, FrameGrid, FrameRows, FreeProp, ImagePrim, InternalKind, InternalLinkDef,
+    ItemMeta, ItemStatus, LibCopy, LibItem, Library, LinePrim, MacroDef, MacroInstance, MacroKind, MacroLink,
+    MacroVariant, Manufacturer, MechData, MountKind, NamedPoint, OrderUnit, Overflow, Part, PartCopy,
+    PartKind, PartSections, PassThroughSpec, Pen, PlaceholderGroup, PlateSection, PolygonPrim, PolylinePrim,
+    Primitive, RailSection, RectPrim, RepType, Rgb, RowTemplate, RowTemplates, SheetSpec, SheetTransform,
+    ShrinkSpec, Side, SlotKind, Stroke, SymbolCp, SymbolDef, TableStyle, TemplateFn, TextPrim, TextSlot,
+    ValueSet, VarBinding, VarDef, VarType, WrapPolicy,
 };
 pub use page::{
     BoxCp, BoxSpec, ContinuationPolicy, EmbedSpec, EmptyPolicy, Folio, GroupBreak, GroupSpec,
@@ -141,10 +144,10 @@ pub use plc::{
     PlcSection, PlcSize, PlcStation, PositionMap, RackSlot, SlotPath, SolenoidChannel, StationRole,
 };
 pub use project::{
-    Address, DateFormat, DecimalSeparator, EarthingSystem, ExternalRef, Formatting, ImportLineage, ImportRun,
-    IpPairing, IpPairingMode, IpPairingScope, LineageAnchor, LineageCopy, MasterData, Party, PartyRole,
-    Project, ProjectKind, ProjectLanguages, ProjectSettings, Section, StructureNode, SupplyOrigin,
-    SupplySpec, TagCase,
+    Address, BasicProjectRef, DateFormat, DecimalSeparator, EarthingSystem, ExternalRef, Formatting,
+    ImportLineage, ImportRun, IpPairing, IpPairingMode, IpPairingScope, LineageAnchor, LineageCopy,
+    MasterData, Party, PartyRole, Project, ProjectKind, ProjectLanguages, ProjectSettings, Section,
+    StructureNode, SupplyOrigin, SupplySpec, TagCase,
 };
 pub use record::{AnchorRef, AnyRecord, LibDocument, Record};
 pub use revision::{PageNote, Revision, RevisionState};

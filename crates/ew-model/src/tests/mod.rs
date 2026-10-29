@@ -10,6 +10,7 @@ mod content_diff;
 mod field_mask;
 pub(crate) mod fixture;
 mod invariants;
+mod macro_links;
 mod ops;
 mod plc_links;
 mod props;

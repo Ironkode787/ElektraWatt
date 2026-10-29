@@ -11,8 +11,9 @@ use std::sync::Arc;
 use ew_ids::Id;
 use ew_schema::{
     AnyId, Bond, Channel, Conductor, Connection, Device, DeviceLink, ExternalRef, FnDef, FormDef, Function,
-    ImportLineage, Junction, Kind, LibCopy, Page, PageItem, Part, PlcConfigProject, PotentialDef, Project,
-    ReportBlock, Representation, Revision, Section, StructureBox, StructureNode, SymbolDef,
+    ImportLineage, Junction, Kind, LibCopy, MacroDef, MacroInstance, Manufacturer, Page, PageItem, Part,
+    PlcConfigProject, PotentialDef, Project, ReportBlock, Representation, Revision, Section, StructureBox,
+    StructureNode, SymbolDef,
 };
 
 use crate::diff::Presence;
@@ -38,7 +39,7 @@ mod sealed {
 }
 
 /// A record type stored in its own [`Table`] of the [`Model`]: every implemented record kind of
-/// `ew-schema` except the project row, and the four library-copy kinds.
+/// `ew-schema` except the project row, and the six library-copy kinds.
 ///
 /// The trait is sealed: the set of entities is the persisted schema (ADR-0001 decision 1), not an
 /// extension point.
@@ -65,13 +66,16 @@ pub trait Entity: sealed::Sealed + Clone + PartialEq + fmt::Debug + Send + Sync 
     }
 }
 
-/// The embedded library copies of a project (ARCH §4.1 `LibraryCopies`), one table per v0 library kind.
+/// The embedded library copies of a project (ARCH §4.1 `LibraryCopies`), one table per implemented library
+/// kind.
 #[derive(Clone, Debug, Default)]
 pub struct LibraryCopies {
     pub(crate) parts: Table<LibCopy<Part>>,
     pub(crate) symbols: Table<LibCopy<SymbolDef>>,
     pub(crate) fndefs: Table<LibCopy<FnDef>>,
     pub(crate) forms: Table<LibCopy<FormDef>>,
+    pub(crate) macros: Table<LibCopy<MacroDef>>,
+    pub(crate) manufacturers: Table<LibCopy<Manufacturer>>,
 }
 
 impl LibraryCopies {
@@ -100,6 +104,20 @@ impl LibraryCopies {
         /// Form copies.
         fn forms(&self) -> &Table<LibCopy<FormDef>> {
             &self.forms
+        }
+    }
+
+    raw_read! {
+        /// Macro copies (WP-S1.19 part 1).
+        fn macros(&self) -> &Table<LibCopy<MacroDef>> {
+            &self.macros
+        }
+    }
+
+    raw_read! {
+        /// Manufacturer copies (WP-S1.19 part 1).
+        fn manufacturers(&self) -> &Table<LibCopy<Manufacturer>> {
+            &self.manufacturers
         }
     }
 }
@@ -254,11 +272,14 @@ entities! {
     PageItem: PageItem, PageItem, page_items;
     StructureBox: StructureBox, StructureBox, structure_boxes;
     ReportBlock: ReportBlock, ReportBlock, report_blocks;
+    MacroInstance: MacroInstance, MacroInstance, macro_instances;
     Revision: Revision, Revision, revisions;
     Part: LibCopy<Part>, Part, lib.parts;
     Symbol: LibCopy<SymbolDef>, SymbolDef, lib.symbols;
     Fndef: LibCopy<FnDef>, FnDef, lib.fndefs;
     Form: LibCopy<FormDef>, FormDef, lib.forms;
+    Macro: LibCopy<MacroDef>, MacroDef, lib.macros;
+    Manufacturer: LibCopy<Manufacturer>, Manufacturer, lib.manufacturers;
 }
 
 impl AnyRow {

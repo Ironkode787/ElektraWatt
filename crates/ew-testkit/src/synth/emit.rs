@@ -460,6 +460,7 @@ pub(super) fn emit(plan: &Plan, seed: u64, options: &Options) -> Generated {
         derivation_profile: ident("2027.1"),
         kind: ProjectKind::Schematic,
         source_ref: None,
+        basic_project: None,
         extra: Extra::new(),
     };
 

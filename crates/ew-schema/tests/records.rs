@@ -135,6 +135,16 @@ fn golden_library_documents_are_canonical() {
             Some(Kind::Fndef),
             Some(Kind::Symbol),
             Some(Kind::Form),
+            Some(Kind::Part),
+            Some(Kind::Macro),
+            Some(Kind::Manufacturer),
+            Some(Kind::Part),
+            Some(Kind::Part),
+            Some(Kind::Part),
+            Some(Kind::Part),
+            Some(Kind::Part),
+            Some(Kind::Part),
+            Some(Kind::Part),
             Some(Kind::Part)
         ]
     );

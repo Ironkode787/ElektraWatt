@@ -39,6 +39,13 @@
 //! therefore not judged by EW-INV-001; EW-INV-023 judges the entries an edit adds. Its removal half is an ordinary
 //! unlink link: a deleted connection leaves the list, and a marker left empty is deleted in the same plan.
 //!
+//! One link is **kind-erased** ([`LinkDecl::kind_erased`]): `macro_instance.members[][1]`, the records a placed
+//! macro created (doc 03 §7, WP-S1.19 part 1). A member is stored as a bare ID, so the link names a record of any
+//! kind of [`MACRO_MEMBER_KINDS`]: it resolves when a record of one of those kinds has the ID, its reverse map is
+//! keyed by the ID under the link's nominal `to` kind (the first of the list), and the removal of a record of any
+//! of the kinds consults it. Its policy is unlink: a deleted member leaves the instance, which stays (an instance
+//! without members is still the record of the placement).
+//!
 //! [`NOT_LINKS`] lists every other ID-valued member of the persisted schema with the reason it is not a
 //! link. The field-mask test checks `LINKS ∪ NOT_LINKS ∪ {every kind's own id}` against the JSON Schemas
 //! in `schemas/0.1`, so adding an ID field to a record without declaring it fails CI.
@@ -149,6 +156,10 @@ pub struct LinkDecl {
     /// EW-INV-001 (EW-INV-023 judges the entries an edit adds, a loaded file's stale entry is a load finding);
     /// a removed target with a referrer left is, as for every unlink link.
     pub load_tolerant: bool,
+    /// The kinds of a kind-erased link (module documentation), `to` first; empty for every other link. The
+    /// target is a record of any of these kinds with the stored ID: EW-INV-001 looks the ID up in each, the
+    /// generic referrer index keys it under `to`, and [`links_to`] lists the link for each of the kinds.
+    pub kind_erased: &'static [Kind],
     pub(crate) targets: TargetsFn,
     pub(crate) unlink: Option<UnlinkFn>,
 }
@@ -182,6 +193,7 @@ impl std::fmt::Debug for LinkDecl {
             .field("index", &self.index)
             .field("lib_ref", &self.lib_ref)
             .field("load_tolerant", &self.load_tolerant)
+            .field("kind_erased", &self.kind_erased)
             .finish()
     }
 }
@@ -265,6 +277,7 @@ macro_rules! link {
             index: $index,
             lib_ref: false,
             load_tolerant: false,
+            kind_erased: &[],
             targets: |row, $out| {
                 if let AnyRow::$from($v) = row {
                     $body
@@ -287,6 +300,7 @@ macro_rules! fndef_lib_ref_link {
             index: None,
             lib_ref: true,
             load_tolerant: false,
+            kind_erased: &[],
             targets: |row, $out| {
                 if let AnyRow::$from($v) = row {
                     $body
@@ -364,6 +378,44 @@ const MARKER_LIST_LINK: LinkDecl = LinkDecl {
             }
         }
         Some(AnyRow::PageItem(Arc::new(item)))
+    }))
+};
+
+/// The kinds of the records a placed macro creates and its `macro_instance` lists as members (doc 07 §4.6; WP-S1.19
+/// D13): the kinds a fragment carries, the pages of a page macro and the records that live in them or in the
+/// device shards. The order is [`Kind`]'s; the first is the nominal `to` of the kind-erased link.
+pub const MACRO_MEMBER_KINDS: &[Kind] = &[
+    Kind::Page,
+    Kind::Device,
+    Kind::Function,
+    Kind::Representation,
+    Kind::Connection,
+    Kind::Junction,
+    Kind::Conductor,
+    Kind::Channel,
+    Kind::PotentialDef,
+    Kind::Bond,
+    Kind::DeviceLink,
+    Kind::PageItem,
+    Kind::StructureBox,
+    Kind::ReportBlock,
+];
+
+/// `macro_instance.members[][1]`: unlink, kind-erased; a deleted member leaves the instance.
+const MACRO_MEMBERS_LINK: LinkDecl = LinkDecl {
+    kind_erased: MACRO_MEMBER_KINDS,
+    ..link!(MacroInstance."members[][1]" -> Page, Unlink, None,
+    |v, out| {
+        for (_, created) in &v.members {
+            out.push(Target::Id(*created));
+        }
+    },
+    Some(|row, del| {
+        let AnyRow::MacroInstance(mi) = row else { return Some(row.clone()) };
+        let mut mi = (**mi).clone();
+        mi.members
+            .retain(|(_, created)| !MACRO_MEMBER_KINDS.iter().any(|k| del.contains(&(*k, *created))));
+        Some(AnyRow::MacroInstance(Arc::new(mi)))
     }))
 };
 
@@ -638,6 +690,11 @@ pub static LINKS: &[LinkDecl] = &[
     link!(ReportBlock."section" -> Section, Forbid, None, |v, out| opt(v.section, out)),
     link!(ReportBlock."embedded.page" -> Page, Cascade, None, |v, out| opt(v.embedded.as_ref().map(|e| e.page), out)),
     lineage_link!(ReportBlock),
+    // macro_instance (WP-S1.19 part 1; doc 03 §7): the macro copy is a stored copy ID (structural forbid, as
+    // `representation.symbol`), the members a kind-erased unlink, the anchor page a cascade
+    link!(MacroInstance."macro" -> Macro, Forbid, None, |v, out| id(v.macro_copy, out)),
+    MACRO_MEMBERS_LINK,
+    link!(MacroInstance."page" -> Page, Cascade, None, |v, out| id(v.page, out)),
     // revision (`page_notes[].page` is not a link: NOT_LINKS)
     link!(Revision."withdraws" -> Revision, Forbid, None, |v, out| opt(v.withdraws, out)),
     lineage_link!(Revision),
@@ -715,12 +772,52 @@ pub static NOT_LINKS: &[(&str, &str, &str)] = &[
     (
         "part",
         "manufacturer.library",
-        "LibRef to a manufacturer record, which has no library-copy table in v0",
+        "LibRef to a manufacturer item; its resolution to the embedded manufacturer copy is WP-S1.19 part 3's (D10)",
     ),
     (
         "part",
         "manufacturer.item",
-        "LibRef to a manufacturer record, which has no library-copy table in v0",
+        "LibRef to a manufacturer item; its resolution to the embedded manufacturer copy is WP-S1.19 part 3's (D10)",
+    ),
+    (
+        "part",
+        "alternatives[].part.library",
+        "LibRef to an alternative part offered from the library (FR-PRT-004), never resolved to an embedded copy",
+    ),
+    (
+        "part",
+        "alternatives[].part.item",
+        "LibRef to an alternative part offered from the library (FR-PRT-004), never resolved to an embedded copy",
+    ),
+    (
+        "part",
+        "configured.components[].part.library",
+        "LibRef to a component part of a configured product (FR-PRT-006), resolved by the library, not in the project",
+    ),
+    (
+        "part",
+        "configured.components[].part.item",
+        "LibRef to a component part of a configured product (FR-PRT-006), resolved by the library, not in the project",
+    ),
+    (
+        "part",
+        "macros[].macro.library",
+        "LibRef to a macro offered with the part (FR-PRT-027), resolved by the library, not in the project",
+    ),
+    (
+        "part",
+        "macros[].macro.item",
+        "LibRef to a macro offered with the part (FR-PRT-027), resolved by the library, not in the project",
+    ),
+    (
+        "part",
+        "sections.enclosure.plate.library",
+        "LibRef to an enclosure's mounting plate part, resolved by the library, not in the project",
+    ),
+    (
+        "part",
+        "sections.enclosure.plate.item",
+        "LibRef to an enclosure's mounting plate part, resolved by the library, not in the project",
     ),
     (
         "part",
@@ -788,11 +885,74 @@ pub static NOT_LINKS: &[(&str, &str, &str)] = &[
         "meta.status.deprecated.successor.item",
         "LibRef to a library item offered by update from library, never resolved to an embedded copy",
     ),
+    (
+        "macro",
+        "library_id",
+        "library identity of the copy, not a reference",
+    ),
+    (
+        "macro",
+        "item_id",
+        "library identity of the copy, not a reference",
+    ),
+    (
+        "macro",
+        "meta.status.deprecated.successor.library",
+        "LibRef to a library item offered by update from library, never resolved to an embedded copy",
+    ),
+    (
+        "macro",
+        "meta.status.deprecated.successor.item",
+        "LibRef to a library item offered by update from library, never resolved to an embedded copy",
+    ),
+    (
+        "macro",
+        "variables[].bindings[].record",
+        "a fragment-local ID of the macro's own fragment (doc 07 §4.6), not a record of the project",
+    ),
+    (
+        "macro",
+        "groups[].members[]",
+        "fragment-local IDs of the macro's own fragment (doc 07 §4.6), not records of the project",
+    ),
+    (
+        "manufacturer",
+        "library_id",
+        "library identity of the copy, not a reference",
+    ),
+    (
+        "manufacturer",
+        "item_id",
+        "library identity of the copy, not a reference",
+    ),
+    (
+        "manufacturer",
+        "meta.status.deprecated.successor.library",
+        "LibRef to a library item offered by update from library, never resolved to an embedded copy",
+    ),
+    (
+        "manufacturer",
+        "meta.status.deprecated.successor.item",
+        "LibRef to a library item offered by update from library, never resolved to an embedded copy",
+    ),
+    (
+        "macro_instance",
+        "members[][0]",
+        "the fragment-local ID of a member in the macro's fragment; the created record is `members[][1]` (WP-S1.19 D13)",
+    ),
+    (
+        "project",
+        "basic_project.id",
+        "the ID of the basic project this project was created from (D14), another project, not a record",
+    ),
 ];
 
-/// The links whose target is `kind`, with their positions.
+/// The links whose target is `kind`, with their positions: a kind-erased link is listed for each of its kinds.
 pub(crate) fn links_to(kind: Kind) -> impl Iterator<Item = (LinkId, &'static LinkDecl)> {
-    LINKS.iter().enumerate().filter(move |(_, l)| l.to == kind)
+    LINKS
+        .iter()
+        .enumerate()
+        .filter(move |(_, l)| l.to == kind || l.kind_erased.contains(&kind))
 }
 
 /// The links held by records of `kind`, with their positions.

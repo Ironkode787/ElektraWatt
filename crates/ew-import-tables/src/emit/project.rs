@@ -681,6 +681,7 @@ pub(crate) fn emit_project(
         derivation_profile,
         kind: ProjectKind::Schematic,
         source_ref: Some(source_ref("project", row.key())),
+        basic_project: None,
         extra: Default::default(),
     }));
     Some(())

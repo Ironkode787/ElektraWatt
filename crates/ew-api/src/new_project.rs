@@ -13,7 +13,8 @@
 //! project record keeps its schemes, profiles and settings under a new project ID and the requested kind. A
 //! reference between records follows the new IDs. Unknown records are carried over the same way.
 //!
-//! Not recorded yet: `Project.basic_project = {id, version}` (doc 07 §2.8) has no member in the schema.
+//! Not recorded yet: the schema has the member `Project.basic_project = {id, generation}` since WP-S1.19 part 1
+//! (D14, doc 07 §2.8), and the new project leaves it unset until the part that records it.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -135,6 +136,7 @@ fn builtin(id: Id<Project>, kind: NewProjectKind) -> (Project, Vec<Record>, Vec<
             .unwrap_or_else(|_| unreachable!("the profile name is an identifier")),
         kind: kind_of(kind),
         source_ref: None,
+        basic_project: None,
         extra: Extra::new(),
     };
     let page = Page {

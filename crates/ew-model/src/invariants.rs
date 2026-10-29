@@ -332,6 +332,9 @@ pub(crate) fn check(m: &Model, scope: &Scope) -> Result<(), ModelError> {
 /// dangling (NFR-REL-11), so neither is a referrer left behind by the removal of its copy. Its keep-alive is
 /// the delete-time rule EW-INV-021 ([`check_delete_time`]), which the history path does not evaluate: the undo
 /// of `library.embed` restores the state before the embedding, where the `LibRef` named nothing (FT-316).
+///
+/// A kind-erased link ([`crate::LinkDecl::kind_erased`], `macro_instance.members[][1]`) resolves when a record of
+/// any of its kinds has the ID; its removal half is the ordinary one, for each of the kinds.
 fn refs_resolve(m: &Model, scope: &Scope) -> Result<(), ModelError> {
     for key in &scope.keys {
         match get_row(m, key) {
@@ -339,7 +342,14 @@ fn refs_resolve(m: &Model, scope: &Scope) -> Result<(), ModelError> {
                 for (_, link) in links_from(key.0) {
                     for t in link.targets_of(&row) {
                         let target = (link.to, t.id());
-                        if get_row(m, &target).is_none() && !link.lib_ref && !link.load_tolerant {
+                        let present = if link.kind_erased.is_empty() {
+                            get_row(m, &target).is_some()
+                        } else {
+                            link.kind_erased
+                                .iter()
+                                .any(|k| get_row(m, &(*k, t.id())).is_some())
+                        };
+                        if !present && !link.lib_ref && !link.load_tolerant {
                             return Err(violation(
                                 REFS_RESOLVE,
                                 format!(

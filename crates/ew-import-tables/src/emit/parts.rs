@@ -227,6 +227,11 @@ pub(crate) fn emit(
                 level,
                 side,
                 clamp,
+                clamp_type: None,
+                csa_min: None,
+                csa_max: None,
+                max_conductors: None,
+                twin_ferrule: false,
                 extra: Default::default(),
             });
         }
@@ -346,11 +351,16 @@ pub(crate) fn emit(
                     extra: Default::default(),
                 })
                 .collect(),
+            contacts: Vec::new(),
+            mech: None,
             sections: PartSections {
                 cable_cores: core_rows.into_iter().map(|c| c.1).collect(),
                 plc: plc.remove(&key).map(|(_, section)| section),
-                extra: Default::default(),
+                ..PartSections::default()
             },
+            alternatives: Vec::new(),
+            configured: None,
+            macros: Vec::new(),
             extra: Default::default(),
         };
         let item_id = record_id::<LibItem>("parts", &key);

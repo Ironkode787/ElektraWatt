@@ -460,7 +460,12 @@ pub fn part(part_id: Id<Part>, part_number: &str) -> LibCopy<Part> {
         unit: Default::default(),
         cp_pattern: Default::default(),
         function_template: vec![],
+        contacts: vec![],
+        mech: None,
         sections: Default::default(),
+        alternatives: vec![],
+        configured: None,
+        macros: vec![],
         extra: Extra::new(),
     };
     lib_copy(part_id, item)
@@ -534,6 +539,7 @@ pub fn mini_golden_parts() -> (Project, Vec<Record>, Vec<LibDocument>) {
         derivation_profile: ident("2027.1"),
         kind: ProjectKind::Schematic,
         source_ref: None,
+        basic_project: None,
         extra: Extra::new(),
     };
 

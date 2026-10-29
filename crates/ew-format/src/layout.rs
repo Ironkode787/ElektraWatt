@@ -61,7 +61,7 @@ fn junction_anchor_file(j: AnyId, anchors: &dyn Anchors) -> FilePath {
 /// | `page` | `pages/<own id>.jsonl` |
 /// | `device` | `devices/<last byte of own id>.jsonl` |
 /// | `function` | the shard of its device; an interruption point (no device) the page of its representation |
-/// | `representation`, `junction`, embedded `report_block` | the page file of their page |
+/// | `representation`, `junction`, `page_item`, `structure_box`, `macro_instance`, embedded `report_block` | the page file of their page |
 /// | `connection` | its page file; page-less: the file of endpoint `a`'s anchor |
 /// | `conductor` | the shard of its cable |
 /// | `potential_def`, `bond` | the file of endpoint `at` / `a`'s anchor |
@@ -100,6 +100,7 @@ pub fn record_file(record: &Record, anchors: &dyn Anchors) -> Result<FilePath, F
         Record::Junction(r) => FilePath::page(r.page.cast()),
         Record::PageItem(r) => FilePath::page(r.page.cast()),
         Record::StructureBox(r) => FilePath::page(r.page.cast()),
+        Record::MacroInstance(r) => FilePath::page(r.page.cast()),
         Record::Conductor(r) => FilePath::shard(r.cable.cast()),
         Record::Channel(r) => FilePath::shard(r.module.cast()),
         Record::DeviceLink(r) => FilePath::shard(r.from.cast()),
@@ -162,6 +163,8 @@ pub fn lib_key(doc: &LibDocument) -> Option<(Kind, AnyId)> {
         LibDocument::Symbol(d) => (Kind::Symbol, d.id.cast()),
         LibDocument::Fndef(d) => (Kind::Fndef, d.id.cast()),
         LibDocument::Form(d) => (Kind::Form, d.id.cast()),
+        LibDocument::Macro(d) => (Kind::Macro, d.id.cast()),
+        LibDocument::Manufacturer(d) => (Kind::Manufacturer, d.id.cast()),
         LibDocument::Unknown(_) => return None,
     })
 }

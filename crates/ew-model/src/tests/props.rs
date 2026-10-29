@@ -771,6 +771,8 @@ fn lib_row(doc: LibDocument) -> AnyRow {
         LibDocument::Part(c) => AnyRow::of(c),
         LibDocument::Fndef(c) => AnyRow::of(c),
         LibDocument::Form(c) => AnyRow::of(c),
+        LibDocument::Macro(c) => AnyRow::of(c),
+        LibDocument::Manufacturer(c) => AnyRow::of(c),
         LibDocument::Unknown(_) => unreachable!("the property makes no unknown document"),
     }
 }

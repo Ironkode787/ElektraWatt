@@ -533,7 +533,8 @@ impl PasteFragment {
                 LibDocument::Symbol(c) => (c.id.cast(), c.sha256),
                 LibDocument::Fndef(c) => (c.id.cast(), c.sha256),
                 LibDocument::Form(c) => (c.id.cast(), c.sha256),
-                LibDocument::Unknown(_) => {
+                // a fragment carries the closure of its records (doc 07 §3.5), which names no macro or manufacturer
+                LibDocument::Macro(_) | LibDocument::Manufacturer(_) | LibDocument::Unknown(_) => {
                     return Err(Self::invalid(
                         &at,
                         "not a library document of kind part, symbol, fndef or form",
@@ -821,7 +822,9 @@ impl Command for PasteFragment {
                 LibDocument::Form(c) => {
                     tx.insert(c)?;
                 }
-                LibDocument::Unknown(_) => unreachable!("refused by check_copy"),
+                LibDocument::Macro(_) | LibDocument::Manufacturer(_) | LibDocument::Unknown(_) => {
+                    unreachable!("refused by `copies`")
+                }
             }
         }
         // Effect 5: representations, junctions, page items and structure boxes by grid steps; routes follow their

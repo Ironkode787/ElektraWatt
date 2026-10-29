@@ -553,6 +553,8 @@ fn starter_id(json: &str) -> Option<Uuid> {
             LibDocument::Fndef(c) => Some(c.id.as_uuid()),
             LibDocument::Part(c) => Some(c.id.as_uuid()),
             LibDocument::Form(c) => Some(c.id.as_uuid()),
+            LibDocument::Macro(c) => Some(c.id.as_uuid()),
+            LibDocument::Manufacturer(c) => Some(c.id.as_uuid()),
             LibDocument::Unknown(_) => None,
         })
 }

@@ -208,9 +208,11 @@ fn run(texts: &[(String, bool)], tally: &mut Tally) {
 /// PLC lines added five refusing enum wrappers and payloads (`address`, `output`, `slot`, `binding`,
 /// `comment`); the assembly line two multi-language `label`s, which are no extensible objects; the revision
 /// line two multi-language `description`s; the page-item lines (WP-S2.04 part 4a) seven enum wrappers (the
-/// five `kind` variants and two graphic `shape`s).
-const MIN_SURVIVORS: usize = 184;
-const MAX_REJECTED: usize = 91;
+/// five `kind` variants and two graphic `shape`s); WP-S1.19 part 1 three multi-language texts (the macro's `name`
+/// and `description`, a part fixture's `description`). The survivor floor was raised to the 298 objects counted
+/// then, so the new part, manufacturer, macro and macro-instance objects stay extensible.
+const MIN_SURVIVORS: usize = 298;
+const MAX_REJECTED: usize = 94;
 
 fn examples() -> Vec<(String, bool)> {
     let mut all: Vec<(String, bool)> = DOC05_LINES.iter().map(|l| (fill(l), false)).collect();

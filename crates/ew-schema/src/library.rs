@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 //! Library documents embedded in a project under `lib/` (doc 05 §3.4, §13.2; doc 07 §2; doc 09 §2.5):
-//! `part` (the part copy), `symbol`, `fndef` and `form`, each a [`LibCopy`] of its item.
+//! `part` (the part copy), `symbol`, `fndef`, `form`, `manufacturer` and `macro`, each a [`LibCopy`] of its
+//! item; and the project record `macro_instance` that a placed macro leaves (doc 03 §7).
 //!
 //! Strings are NFC (doc 05 §3.1): `MlText` and `Ident` members reject other text, and plain `String`
 //! members are normalised with every other string by the loader's [`normalize_nfc`](crate::normalize_nfc)
@@ -15,7 +16,7 @@ use std::str::FromStr;
 
 use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
-use ew_units::{Angle2, Grid, Nm, Pt2};
+use ew_units::{Angle2, Dec3, Grid, Nm, Pt2};
 use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
 use serde::de::{DeserializeOwned, Error as _};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -24,10 +25,10 @@ use serde_json::{Map, Value};
 use crate::SchemaError;
 use crate::connect::PotentialType;
 use crate::json::{Extra, de_extra, is_default, is_false, is_true, is_v1, r#true, v1};
-use crate::proxy::{Angle2S, GridS, IdentS, MlTextS, NmS, Pt2S, UuidS};
+use crate::proxy::{Angle2S, Dec3S, GridS, IdentS, MlTextS, NmS, Pt2S, UuidS};
 use crate::set::{KeyedList, Set, keyed};
 use crate::track::{buffer, de_here, de_member, invalid, open_enum, raise};
-use crate::value::{Bounds, ColourSpec, Csa, Date, LibRef, Sha256, TechValue};
+use crate::value::{AnyId, Bounds, ColourSpec, Csa, Date, LibRef, Sha256, TechValue};
 
 // ---------------------------------------------------------------------------------------------------------
 // Copy envelope and item metadata
@@ -1054,10 +1055,14 @@ impl FnFlags {
 
 /// A catalogue part (doc 07 §2.5), library item kind `part`; embedded as a [`PartCopy`].
 ///
-/// v0 holds the MVP data levels L0 and L1 and the cable cores of L2. Classification, contact data,
-/// mechanical, 3D, PLC, thermal and fluid sections, accessories, alternatives, configured products,
-/// variants, macros, commercial and logistics data arrive with their work packages and are kept in
-/// `extra` (or in `sections.extra`) until then.
+/// The typed members follow doc 07 §2.5's order (WP-S1.19 D2): a copy's `sha256` is taken over the item's
+/// compact JSON in declaration order, so the order is fixed once, before the first format release, including the
+/// places of the members that are not typed yet. The MVP data levels L0 to L3 are typed: identity, technical
+/// data, CP pattern, function template, contact data, mechanical data, the cable-core, PLC and carrier
+/// sections, alternatives, the configured product and macro links. Classification (after `category`), 3D
+/// model, 3D CPs and drilling (after `mech`), accessories (before `alternatives`), variants (after
+/// `configured`), commercial, logistics and documents (after `macros`) arrive with their work packages and
+/// are kept in `extra` (or in `sections.extra`) until then.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct Part {
     /// Provenance.
@@ -1106,9 +1111,24 @@ pub struct Part {
     /// Function template (FR-PRT-007).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub function_template: Vec<TemplateFn>,
+    /// Contact data: the contacts of the part's contact image (FR-PRT-009).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub contacts: Vec<ContactData>,
+    /// Mechanical data, level L3 (FR-PRT-011, doc 12 §2.5).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mech: Option<MechData>,
     /// Domain sections.
     #[serde(default, skip_serializing_if = "PartSections::is_empty")]
     pub sections: PartSections,
+    /// Alternative parts (FR-PRT-004).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub alternatives: Vec<AlternativeRef>,
+    /// The order code and components of a configured product (FR-PRT-006), beside [`PartKind::Configured`].
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub configured: Option<Configured>,
+    /// Macros per representation type (FR-PRT-027).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub macros: Vec<MacroLink>,
     /// Unknown members and plugin keys.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
@@ -1189,8 +1209,9 @@ pub struct FreeProp {
     pub extra: Extra,
 }
 
-/// One CP of a part's pattern (doc 07 §2.5, L1). Clamp ranges, maximum conductors, twin-ferrule permission
-/// and load current (1.0) are kept in `extra` until their work packages.
+/// One CP of a part's pattern (doc 07 §2.5, L1), with the clamp data of FR-PRT-008 (clamp type, cross-section
+/// range, maximum conductors, twin-ferrule permission). The load current (1.0) is kept in `extra` until its
+/// work package.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct CpData {
     /// Index.
@@ -1210,6 +1231,234 @@ pub struct CpData {
     /// Terminal clamp.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub clamp: Option<ClampKey>,
+    /// The kind of clamp (FR-PRT-008).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub clamp_type: Option<ClampType>,
+    /// The smallest conductor cross-section the clamp takes, in mm².
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<Dec3S>")]
+    pub csa_min: Option<Dec3>,
+    /// The largest conductor cross-section the clamp takes, in mm².
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<Dec3S>")]
+    pub csa_max: Option<Dec3>,
+    /// The most conductors the clamp takes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_conductors: Option<u8>,
+    /// The clamp takes a twin ferrule.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub twin_ferrule: bool,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The kind of a CP's clamp (FR-PRT-008, doc 12 §2.5).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "ClampType")]
+pub enum ClampType {
+    /// Screw clamp.
+    Screw,
+    /// Spring clamp.
+    Spring,
+    /// Push-in clamp.
+    PushIn,
+    /// Insulation displacement.
+    Idc,
+    /// Ring-tongue stud.
+    RingStud,
+    /// Plug.
+    Plug,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
+}
+
+/// One contact of a part's contact image (FR-PRT-009, doc 07 §2.5).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct ContactData {
+    /// The contact kind, the function definitions' enum (`no`, `nc`, `co` for a change-over).
+    pub kind: ContactKind,
+    /// The designations of the contact's CPs, such as `["13", "14"]`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[schemars(with = "Vec<IdentS>")]
+    pub cps: Vec<Ident>,
+    /// The sequence digit.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub seq: Option<u8>,
+    /// A special-function key.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<IdentS>")]
+    pub special: Option<Ident>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// Mechanical data of a part, level L3 (FR-PRT-011, doc 12 §2.5): lengths in nanometres, the mass in grams.
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct MechData {
+    /// Width.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub width: Option<Nm>,
+    /// Height.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub height: Option<Nm>,
+    /// Depth.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub depth: Option<Nm>,
+    /// How the part mounts.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mount_kind: Option<MountKind>,
+    /// The vector from the rail pose to the part origin, `[x, y]` in nanometres.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<Pt2S>")]
+    pub rail_offset: Option<Pt2>,
+    /// The clearance kept free around the part.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub clearance: Option<Clearance>,
+    /// The 2D front outline: polylines in the part frame.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[schemars(with = "Vec<Vec<Pt2S>>")]
+    pub front_2d: Vec<Vec<Pt2>>,
+    /// The mass in grams.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mass: Option<u32>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// How a part mounts (doc 12 §2.5); also the profile of a rail section.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "MountKind")]
+pub enum MountKind {
+    /// Top-hat rail 35 × 7.5 mm.
+    #[serde(rename = "ts35x7_5")]
+    Ts35x7_5,
+    /// Top-hat rail 35 × 15 mm.
+    #[serde(rename = "ts35x15")]
+    Ts35x15,
+    /// G rail 32 mm.
+    #[serde(rename = "ts32")]
+    Ts32,
+    /// Miniature top-hat rail 15 mm.
+    #[serde(rename = "ts15")]
+    Ts15,
+    /// Screwed to the mounting surface.
+    Screw,
+    /// On a busbar adapter.
+    BusbarAdapter,
+    /// In a door cut-out.
+    DoorCutout,
+    /// On its parent device.
+    OnParent,
+    /// Not mounted.
+    None,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
+}
+
+/// The clearance around a part (doc 12 §2.5), in nanometres; an absent side is zero.
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct Clearance {
+    /// Above the part.
+    #[serde(default, skip_serializing_if = "is_default")]
+    #[schemars(with = "NmS")]
+    pub top: Nm,
+    /// Below the part.
+    #[serde(default, skip_serializing_if = "is_default")]
+    #[schemars(with = "NmS")]
+    pub bottom: Nm,
+    /// Left of the part.
+    #[serde(default, skip_serializing_if = "is_default")]
+    #[schemars(with = "NmS")]
+    pub left: Nm,
+    /// Right of the part.
+    #[serde(default, skip_serializing_if = "is_default")]
+    #[schemars(with = "NmS")]
+    pub right: Nm,
+    /// In front of the part.
+    #[serde(default, skip_serializing_if = "is_default")]
+    #[schemars(with = "NmS")]
+    pub front: Nm,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// A part that may replace another (FR-PRT-004).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct AlternativeRef {
+    /// The alternative part.
+    pub part: LibRef,
+    /// How it relates to this part.
+    pub kind: AlternativeKind,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// How an alternative part relates to a part (FR-PRT-004).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "AlternativeKind")]
+pub enum AlternativeKind {
+    /// Equivalent in form, fit and function.
+    Equivalent,
+    /// The successor of this part.
+    Successor,
+    /// Approved as a replacement.
+    Approved,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
+}
+
+/// A configured product (FR-PRT-006): its order code and its components.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct Configured {
+    /// The order code.
+    #[schemars(with = "IdentS")]
+    pub order_code: Ident,
+    /// The components.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub components: Vec<ConfiguredComponent>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// One component of a configured product (doc 07 §2.5 `Component`).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct ConfiguredComponent {
+    /// The component part.
+    pub part: LibRef,
+    /// The quantity in the component part's order unit.
+    #[schemars(with = "Dec3S")]
+    pub qty: Dec3,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The macro of a part for one representation type (FR-PRT-027).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct MacroLink {
+    /// The representation type.
+    pub rep_type: RepType,
+    /// The macro, written `macro`.
+    #[serde(rename = "macro")]
+    pub macro_ref: LibRef,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
@@ -1231,7 +1480,8 @@ pub struct TemplateFn {
     pub extra: Extra,
 }
 
-/// Domain sections of a part (FR-PRT-010). Typed: the cable cores and the PLC section.
+/// Domain sections of a part (FR-PRT-010). Typed: the cable cores, the PLC section and the carrier sections of
+/// FR-PRT-024 (enclosure, duct, rail, mounting plate); the other sections stay in `extra`.
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct PartSections {
     /// Cores of a cable part, from which conductors are generated (FR-CBL-004).
@@ -1240,7 +1490,100 @@ pub struct PartSections {
     /// The PLC section (doc 10 §2.6).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub plc: Option<crate::PlcSection>,
+    /// The enclosure section: outer and wall dimensions and the mounting plate (doc 12 §2.5).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enclosure: Option<EnclosureSection>,
+    /// The duct section: inner dimensions and slot pitch.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub duct: Option<DuctSection>,
+    /// The rail section: profile and stock length.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rail: Option<RailSection>,
+    /// The mounting-plate section: its dimensions.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mounting_plate: Option<PlateSection>,
     /// Unknown members (other sections).
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The enclosure section of a part (FR-PRT-024, doc 12 §2.5), lengths in nanometres.
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct EnclosureSection {
+    /// Outer width.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub width: Option<Nm>,
+    /// Outer height.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub height: Option<Nm>,
+    /// Outer depth.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub depth: Option<Nm>,
+    /// Wall thickness.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub wall: Option<Nm>,
+    /// The mounting plate part.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub plate: Option<LibRef>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The duct section of a part (FR-PRT-024, doc 12 §2.5), lengths in nanometres.
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct DuctSection {
+    /// Inner width.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub inner_width: Option<Nm>,
+    /// Inner height.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub inner_height: Option<Nm>,
+    /// Slot pitch.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub slot_pitch: Option<Nm>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The rail section of a part (FR-PRT-024, doc 12 §2.5).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct RailSection {
+    /// The rail profile.
+    pub profile: MountKind,
+    /// The stock length in nanometres.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub stock_length: Option<Nm>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The mounting-plate section of a part (FR-PRT-024, doc 12 §2.5), lengths in nanometres.
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct PlateSection {
+    /// Width.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub width: Option<Nm>,
+    /// Height.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub height: Option<Nm>,
+    /// Thickness.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub thickness: Option<Nm>,
+    /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
 }
@@ -1577,6 +1920,243 @@ impl TableStyle {
     }
 }
 
+// ---------------------------------------------------------------------------------------------------------
+// Manufacturer
+
+/// A manufacturer master record (FR-PRT-002, doc 07 §2.5), library item kind `manufacturer`; embedded under
+/// `lib/manufacturers/` as a `LibCopy<Manufacturer>`.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct Manufacturer {
+    /// Provenance.
+    #[serde(default, skip_serializing_if = "ItemMeta::is_empty")]
+    pub meta: ItemMeta,
+    /// The short code ("PXC").
+    #[schemars(with = "IdentS")]
+    pub key: Ident,
+    /// The name ("Phoenix Contact").
+    #[schemars(with = "MlTextS")]
+    pub name: MlText,
+    /// Other spellings that importers resolve to this record ("Schneider").
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[schemars(with = "Vec<IdentS>")]
+    pub aliases: Vec<Ident>,
+    /// Brands of the manufacturer ("Holec").
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[schemars(with = "Vec<IdentS>")]
+    pub brands: Vec<Ident>,
+    /// Unknown members and plugin keys.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Macro
+
+/// A reusable fragment (doc 07 §2.7, doc 03 §7), library item kind `macro`; embedded under `lib/macros/` as a
+/// `LibCopy<MacroDef>`. Placeholder groups live inside the macro, so `placeholder_group` stays a reserved
+/// record kind (WP-S1.19 D15).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct MacroDef {
+    /// Provenance.
+    #[serde(default, skip_serializing_if = "ItemMeta::is_empty")]
+    pub meta: ItemMeta,
+    /// Name.
+    #[schemars(with = "MlTextS")]
+    pub name: MlText,
+    /// Description.
+    #[serde(default, skip_serializing_if = "MlText::is_empty")]
+    #[schemars(with = "MlTextS")]
+    pub description: MlText,
+    /// Window, symbol or page macro.
+    pub kind: MacroKind,
+    /// The variants, one per representation type and key.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub variants: Vec<MacroVariant>,
+    /// The variables (FR-MAC-004).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub variables: Vec<VarDef>,
+    /// The placeholder groups (FR-MAC-018).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub groups: Vec<PlaceholderGroup>,
+    /// The value sets.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub value_sets: Vec<ValueSet>,
+    /// The thumbnail asset `assets/<sha256>.<ext>`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub thumbnail: Option<Sha256>,
+    /// Unknown members and plugin keys.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The kind of a macro (FR-MAC-001, FR-MAC-002, FR-MAC-012).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "MacroKind")]
+pub enum MacroKind {
+    /// A window macro: a selection on one page.
+    Window,
+    /// A symbol macro.
+    Symbol,
+    /// A page macro: whole pages.
+    Page,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
+}
+
+/// One variant of a macro.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct MacroVariant {
+    /// The representation type it is drawn for.
+    pub rep_type: RepType,
+    /// The variant key.
+    #[schemars(with = "IdentS")]
+    pub key: Ident,
+    /// The project fragment (`#ew-fragment v1`, WP-S1.19 D12), kept as JSON here; `ew-commands` parses it.
+    pub fragment: Value,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// A macro variable (FR-MAC-004).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct VarDef {
+    /// The variable name.
+    #[schemars(with = "IdentS")]
+    pub name: Ident,
+    /// The variable type.
+    pub ty: VarType,
+    /// The field paths the variable sets.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub bindings: Vec<VarBinding>,
+    /// The default value.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default: Option<Value>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The type of a macro variable (doc 07 §2.7).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "VarType")]
+pub enum VarType {
+    /// A multilingual text.
+    Text,
+    /// An identifier.
+    Ident,
+    /// A number with its unit.
+    Number,
+    /// A boolean; a placeholder group's `include`.
+    Bool,
+    /// A device state (used, spare, reserved, not fitted).
+    State,
+    /// A part (a library reference).
+    Part,
+    /// A process tag.
+    ProcessTag,
+    /// The channel number in a module.
+    ChannelBinding,
+    /// A manual PLC address.
+    Address,
+    /// A tag counter.
+    TagCounter,
+    /// An existing device chosen at insertion.
+    DeviceRef,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
+}
+
+/// Where a variable's value goes (doc 07 §2.7 `Binding`): a field path of one fragment record.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct VarBinding {
+    /// The fragment-local record ID.
+    #[schemars(with = "UuidS")]
+    pub record: AnyId,
+    /// The field path, such as `device.function_text`.
+    pub field: String,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// A placeholder group (FR-MAC-018): fragment records that a boolean variable includes or omits.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct PlaceholderGroup {
+    /// The group name.
+    #[schemars(with = "IdentS")]
+    pub name: Ident,
+    /// The fragment-local record IDs of the group.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[schemars(with = "Vec<UuidS>")]
+    pub members: Vec<AnyId>,
+    /// The name of the boolean variable that includes the group; absent means always included.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub include: Option<String>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// A named set of variable values.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct ValueSet {
+    /// The value-set name.
+    #[schemars(with = "IdentS")]
+    pub name: Ident,
+    /// The values, by variable name.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub values: BTreeMap<String, Value>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// One placed macro (doc 03 §7, doc 07 §2.7), record kind `macro_instance` (rank 46), in the file of its anchor
+/// page: its provenance and "where used".
+///
+/// Links (`crates/ew-model/invariants.md` §4): `page` cascades (deleting the anchor page deletes the instance),
+/// `members` unlinks (a deleted member leaves the list), `macro` forbids removing the macro copy.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct MacroInstance {
+    /// The instance ID.
+    #[schemars(with = "UuidS")]
+    pub id: Id<MacroInstance>,
+    /// Per-kind schema version `$v`, omitted when 1.
+    #[serde(rename = "$v", default = "v1", skip_serializing_if = "is_v1")]
+    pub v: u16,
+    /// The macro copy (`lib/macros/`), written `macro`.
+    #[serde(rename = "macro")]
+    #[schemars(with = "UuidS")]
+    pub macro_copy: Id<MacroDef>,
+    /// The key of the variant placed.
+    #[schemars(with = "IdentS")]
+    pub variant: Ident,
+    /// The value set used, by name.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<IdentS>")]
+    pub value_set: Option<Ident>,
+    /// The values used, by variable name.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub values: BTreeMap<String, Value>,
+    /// Fragment-local ID → the record created from it, in insertion order.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[schemars(with = "Vec<(UuidS, UuidS)>")]
+    pub members: Vec<(AnyId, AnyId)>,
+    /// The anchor page.
+    #[schemars(with = "UuidS")]
+    pub page: Id<crate::Page>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
 keyed!(SymbolCp, idx: u16);
 keyed!(CpDef, idx: u16);
 keyed!(CpData, idx: u16);
@@ -1602,7 +2182,12 @@ open_enum!(
     InternalKind,
     PartKind,
     OrderUnit,
+    ClampType,
+    MountKind,
+    AlternativeKind,
     FormKind,
     Overflow,
     WrapPolicy,
+    MacroKind,
+    VarType,
 );

@@ -660,9 +660,10 @@ impl BaseIndexes {
         let link = &LINKS[link_id];
         let t = target.1;
         match link.index {
+            // keyed under the link's `to`: the target's own kind, or for a kind-erased link its nominal kind
             None => self
                 .referrers
-                .get(target)
+                .get(&(link.to, t))
                 .filter(|(l, _)| *l == link_id)
                 .map(|(_, src)| *src)
                 .collect(),

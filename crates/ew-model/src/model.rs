@@ -9,8 +9,9 @@ use std::sync::Arc;
 
 use ew_schema::{
     Bond, Channel, Conductor, Connection, Device, DeviceLink, ExternalRef, Function, FunctionKind,
-    ImportLineage, Junction, Kind, KindRegistry, LibDocument, Page, PageItem, PlcConfigProject, PotentialDef,
-    Project, Record, ReportBlock, Representation, Revision, Section, StructureBox, StructureNode,
+    ImportLineage, Junction, Kind, KindRegistry, LibDocument, MacroInstance, Page, PageItem,
+    PlcConfigProject, PotentialDef, Project, Record, ReportBlock, Representation, Revision, Section,
+    StructureBox, StructureNode,
 };
 
 use crate::asset::Asset;
@@ -52,6 +53,7 @@ pub struct Model {
     pub(crate) page_items: Table<PageItem>,
     pub(crate) structure_boxes: Table<StructureBox>,
     pub(crate) report_blocks: Table<ReportBlock>,
+    pub(crate) macro_instances: Table<MacroInstance>,
     pub(crate) revisions: Table<Revision>,
     pub(crate) lib: LibraryCopies,
     /// Records of unknown or reserved kinds, kept for the writer in the line order of doc 05 §3.3; they
@@ -89,6 +91,7 @@ impl Model {
             page_items: Table::default(),
             structure_boxes: Table::default(),
             report_blocks: Table::default(),
+            macro_instances: Table::default(),
             revisions: Table::default(),
             lib: LibraryCopies::default(),
             unknown: Arc::new(Vec::new()),
@@ -142,6 +145,7 @@ impl Model {
                 Record::PageItem(r) => Some(AnyRow::of(r)),
                 Record::StructureBox(r) => Some(AnyRow::of(r)),
                 Record::ReportBlock(r) => Some(AnyRow::of(r)),
+                Record::MacroInstance(r) => Some(AnyRow::of(r)),
                 Record::Revision(r) => Some(AnyRow::of(r)),
                 other => {
                     unknown.push(other);
@@ -156,6 +160,8 @@ impl Model {
                 LibDocument::Symbol(d) => Some(AnyRow::of(d)),
                 LibDocument::Fndef(d) => Some(AnyRow::of(d)),
                 LibDocument::Form(d) => Some(AnyRow::of(d)),
+                LibDocument::Macro(d) => Some(AnyRow::of(d)),
+                LibDocument::Manufacturer(d) => Some(AnyRow::of(d)),
                 other => {
                     unknown_lib.push(other);
                     None

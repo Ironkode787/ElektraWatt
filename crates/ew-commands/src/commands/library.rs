@@ -23,8 +23,8 @@ use crate::tx::TxBuilder;
 /// without grid that generated section dividers and report pages need (doc 20 §20.2 step 4).
 ///
 /// `copies` holds library documents in the `lib/` JSON form (doc 05 §3.4: `$k`, `id`, the copy metadata,
-/// then the item's members) of the kinds `part`, `symbol`, `fndef` and `form`; every copy is inserted as it
-/// is, in one transaction. At least one. Each copy is checked, at `/copies/i`:
+/// then the item's members) of the kinds `part`, `symbol`, `fndef`, `form`, `macro` and `manufacturer`; every copy
+/// is inserted as it is, in one transaction. At least one. Each copy is checked, at `/copies/i`:
 /// - it reads as a library document of one of those kinds (else invalid);
 /// - its `id` is the copy identity `v5(NS_LIBCOPY, library_id ‖ item_id)` (ADR-0004 amendment 2; a "keep
 ///   both" copy belongs to a paste, not to embedding);
@@ -70,6 +70,8 @@ pub fn library_copy_hash(doc: &LibDocument) -> Option<[u8; 32]> {
         LibDocument::Symbol(c) => hash(&c.item),
         LibDocument::Fndef(c) => hash(&c.item),
         LibDocument::Form(c) => hash(&c.item),
+        LibDocument::Macro(c) => hash(&c.item),
+        LibDocument::Manufacturer(c) => hash(&c.item),
         LibDocument::Unknown(_) => None,
     }
 }
@@ -86,7 +88,7 @@ fn lineage<T: Serialize>(c: &LibCopy<T>, doc: &LibDocument) -> Lineage {
 }
 
 /// Checks one library document of a command parameter at `at` (the rules of [`EmbedLibraryCopies`]): it reads as
-/// a library document of kind part, symbol, fndef or form; its `id` is the copy identity; its `library_id` is not
+/// a library document of an implemented kind; its `id` is the copy identity; its `library_id` is not
 /// the project's (`project`); its `sha256` is the hash of its item. Returns the document and its lineage.
 pub(crate) fn check_copy(
     command: &'static str,
@@ -106,7 +108,8 @@ pub(crate) fn check_copy(
 }
 
 /// Reads one library document of a command parameter at `at` and checks it without regard to its library: it reads as
-/// a library document of kind part, symbol, fndef or form, its `id` is the copy identity and its `sha256` the hash of
+/// a library document of an implemented kind (part, symbol, fndef, form, macro or manufacturer; the caller narrows
+/// the kinds it takes), its `id` is the copy identity and its `sha256` the hash of
 /// its item ([`check_copy`] without the library rule; `parts.import` requires the opposite one).
 pub(crate) fn read_copy(
     command: &'static str,
@@ -120,11 +123,13 @@ pub(crate) fn read_copy(
         LibDocument::Symbol(c) => lineage(c, &doc),
         LibDocument::Fndef(c) => lineage(c, &doc),
         LibDocument::Form(c) => lineage(c, &doc),
+        LibDocument::Macro(c) => lineage(c, &doc),
+        LibDocument::Manufacturer(c) => lineage(c, &doc),
         LibDocument::Unknown(_) => {
             return Err(CmdError::invalid_params(
                 command,
                 at.to_owned(),
-                "not a library document of kind part, symbol, fndef or form",
+                "not a library document of kind part, symbol, fndef, form, macro or manufacturer",
             ));
         }
     };
@@ -198,6 +203,8 @@ impl Command for EmbedLibraryCopies {
                 LibDocument::Symbol(c) => tx.insert(c)?.cast(),
                 LibDocument::Fndef(c) => tx.insert(c)?.cast(),
                 LibDocument::Form(c) => tx.insert(c)?.cast(),
+                LibDocument::Macro(c) => tx.insert(c)?.cast(),
+                LibDocument::Manufacturer(c) => tx.insert(c)?.cast(),
                 LibDocument::Unknown(_) => unreachable!("rejected above"),
             };
             primary.get_or_insert((kind, id));

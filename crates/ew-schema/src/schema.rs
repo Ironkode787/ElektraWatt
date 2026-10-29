@@ -13,7 +13,7 @@ use schemars::generate::SchemaSettings;
 use serde_json::{Map, Value, json};
 
 use crate::kind::{FORMAT, Kind, KindStatus};
-use crate::library::{FnDef, FormDef, LibCopy, Part, SymbolDef};
+use crate::library::{FnDef, FormDef, LibCopy, MacroDef, MacroInstance, Manufacturer, Part, SymbolDef};
 use crate::{
     Bond, Channel, Conductor, Connection, Device, DeviceLink, ExternalRef, Function, ImportLineage, Junction,
     Page, PageItem, PlcConfigProject, PotentialDef, Project, ReportBlock, Representation, Revision, Section,
@@ -75,11 +75,14 @@ pub fn kind_schema(kind: Kind) -> Option<Value> {
         Kind::PageItem => generate::<PageItem>(kind),
         Kind::StructureBox => generate::<StructureBox>(kind),
         Kind::ReportBlock => generate::<ReportBlock>(kind),
+        Kind::MacroInstance => generate::<MacroInstance>(kind),
         Kind::Revision => generate::<Revision>(kind),
         Kind::Part => generate::<LibCopy<Part>>(kind),
         Kind::Symbol => generate::<LibCopy<SymbolDef>>(kind),
         Kind::Fndef => generate::<LibCopy<FnDef>>(kind),
         Kind::Form => generate::<LibCopy<FormDef>>(kind),
+        Kind::Macro => generate::<LibCopy<MacroDef>>(kind),
+        Kind::Manufacturer => generate::<LibCopy<Manufacturer>>(kind),
         _ => return None,
     })
 }

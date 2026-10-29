@@ -503,6 +503,7 @@ pub fn map(
             .unwrap_or_else(|_| unreachable!("a valid profile key")),
         kind: Default::default(),
         source_ref: Some(ids.source_ref(super::PROJECT_KEY)),
+        basic_project: None,
         extra: pextra,
     };
     PagesOut {

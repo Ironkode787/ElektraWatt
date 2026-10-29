@@ -72,7 +72,24 @@ pub struct Project {
     /// Import provenance (doc 14 §2.3).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_ref: Option<SourceRef>,
+    /// The basic project this project was created from (FR-PRJ-009, doc 07 §2.8; WP-S1.19 D14).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub basic_project: Option<BasicProjectRef>,
     /// Unknown members and plugin keys.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The basic project a project was created from (FR-PRJ-009, WP-S1.19 D14): its project ID and its manifest
+/// generation when it was copied (a basic project has no semantic version).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct BasicProjectRef {
+    /// The basic project's project ID.
+    #[schemars(with = "UuidS")]
+    pub id: AnyId,
+    /// The basic project's manifest generation when it was copied.
+    pub generation: u64,
+    /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
 }

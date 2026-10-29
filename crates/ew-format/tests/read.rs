@@ -810,10 +810,10 @@ fn library_document_with_two_boms_is_opaque() {
 fn library_document_of_a_newer_kind_is_opaque_and_in_lib() {
     let id = "5d1ab4de-706a-5b85-b463-8b15311c4f39";
     let unknown = format!("{{\n  \"$k\": \"gadget\",\n  \"id\": \"{id}\",\n  \"z\": 1\n}}\n");
-    let reserved = format!("{{\n  \"$k\": \"manufacturer\",\n  \"id\": \"{id}\"\n}}\n");
+    let reserved = format!("{{\n  \"$k\": \"plc_profile\",\n  \"id\": \"{id}\"\n}}\n");
     let mut files = Files::new();
     put(&mut files, &format!("lib/fndefs/{id}.json"), &unknown);
-    put(&mut files, &format!("lib/manufacturers/{id}.json"), &reserved);
+    put(&mut files, &format!("lib/plc-profiles/{id}.json"), &reserved);
     let loaded = load_plain(&files);
     assert_eq!(kinds(&loaded), [FindingKind::NewerData]);
     assert_eq!(loaded.findings[0].file, Some(p(&format!("lib/fndefs/{id}.json"))));
