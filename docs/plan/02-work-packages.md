@@ -3601,6 +3601,7 @@ CSV and every total are unchanged. A task is closed by the commit that implement
 | FT-539 | Doc 18 §3.14's as-built text (cycle 16, FT-268, FT-269) still names the unsharded acceptance test `the_headless_report_equals_the_committed_report` and its 112 s: since the tooling lane (ID-746) the report test runs as three shards plus a coverage test. Restate the paragraph as built, with the filterset unchanged | Doc 18 (design); WP-S6.02 | The next design pass | ID-746 |
 | FT-540 | The dock tabs' restyle of doc 16a §6.4 is not built: the bottom dock's tabs keep the earlier look (WP-S2.17 part 3, §7.1) | `ew-ui` (code); WP-S2.17 | M2 | ID-749 |
 | FT-541 | The Properties filter for more than twelve rows of doc 16a §6.8 is not built (WP-S2.17 part 3, §7.1) | `ew-ui`, `ew-viewmodel` (code); WP-S2.17 | M2 | ID-749 |
+| FT-542 | Window memory on real windows (the cycle-32 review, R4-2): on Windows with two monitors of different DPI, on X11 at scale 2 and on macOS with a Retina and a 1× display, close the window normal and maximised on each monitor and restart three times; it reopens where it was, a maximised window un-maximises to its saved normal place, and the one-frame show at the builder's guess is cosmetic only. If X11 saves the builder's guess as the normal rectangle (the move and the maximise applied by the window manager on later frames), `remember` records nothing until the window reports maximised after the first frame asked for it | `ew-ui`, `bin/elektrawatt` (code); WP-S2.17 | Before G-PP (Windows); M2 (X11, macOS) | ID-760 |
 
 ---
 
