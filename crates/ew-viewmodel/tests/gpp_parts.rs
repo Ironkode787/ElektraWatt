@@ -9,6 +9,8 @@
 mod common;
 
 use common::{Tmp, click, done, empty_point, refused, state};
+use ew_viewmodel::ew_api::checks;
+use ew_viewmodel::ew_api::output::Uuid;
 use ew_viewmodel::ew_api::{BomMode, Export, Session};
 use ew_viewmodel::properties::{RowValue, find_row};
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
@@ -156,6 +158,120 @@ fn row2_a_terminal_part_joins_its_strip_with_its_designation_and_carries_the_par
     let line = line_of(&bom, "PT 2.5-TWIN").expect("PT 2.5-TWIN in the BOM");
     assert!(line.contains("-X1031:1"), "{line}");
     assert!(!line.contains("-103X"), "no free device: {line}");
+}
+
+/// The device of the only selected item (a `tag:` reference selects the device).
+fn selected_device(s: &ShellModel) -> Uuid {
+    let items = &s.selection().items;
+    assert_eq!(items.len(), 1, "{items:?}");
+    items[0].0
+}
+
+/// The page's representations of device `d`.
+fn reps_of(s: &ShellModel, d: Uuid) -> Vec<Uuid> {
+    s.canvas()
+        .unwrap()
+        .page()
+        .tables
+        .reps
+        .iter()
+        .filter(|r| r.device == Some(d))
+        .map(|r| r.id)
+        .collect()
+}
+
+/// The EW-CORE-047 findings of the saved project.
+fn core047(tmp: &Tmp, s: &mut ShellModel) -> Vec<String> {
+    done(s, "file.save", json!({}));
+    let (session, _) = Session::open_read_only(&tmp.golden_copy(), "test").unwrap();
+    let q = session.query();
+    checks::run(&q, &checks::FULL, checks::CheckMode::Online)
+        .findings
+        .into_iter()
+        .filter(|f| f.rule == "EW-CORE-047")
+        .map(|f| f.message)
+        .collect()
+}
+
+/// Finding 5: deleting the only representation of -102G1 (the run's black box) deletes the device and its part use
+/// in the same command, so the parts list has no phantom `-?G1`; one undo restores both. A device left without a
+/// representation by a delete of its representation alone is EW-CORE-047.
+#[test]
+fn row5_deleting_the_last_representation_deletes_the_device_and_one_undo_restores_both() {
+    let tmp = Tmp::new("gpp-parts-5");
+    let mut s = golden(&tmp, "102");
+    let g = core047(&tmp, &mut s);
+    assert!(g.is_empty(), "Golden A draws every device: {g:#?}");
+    done(&mut s, "select.set", json!({"refs": ["tag:-102G1"]}));
+    let device = selected_device(&s);
+    let reps = reps_of(&s, device);
+    assert_eq!(reps.len(), 1, "-102G1 is one black box");
+    let before = bom(&tmp, &mut s);
+    let psu = line_of(&before, "2904602").expect("2904602 in the BOM").clone();
+    assert!(psu.contains("-102G1"), "{psu}");
+    let commands = s.recorded_commands().len();
+    done(&mut s, "edit.delete_selection", json!({}));
+    assert_eq!(s.recorded_commands().len(), commands + 1, "one command");
+    assert!(
+        s.dispatch("select.set", &json!({"refs": ["tag:-102G1"]})) != Outcome::Done,
+        "the device went with its last representation"
+    );
+    let after = bom(&tmp, &mut s);
+    assert!(
+        line_of(&after, "2904602").is_none_or(|l| !l.contains("G1")),
+        "no phantom -?G1: {after:?}"
+    );
+    assert!(core047(&tmp, &mut s).is_empty());
+    // One undo step restores the device, its part and its box.
+    done(&mut s, "edit.undo", json!({}));
+    done(&mut s, "select.set", json!({"refs": ["tag:-102G1"]}));
+    assert_eq!(reps_of(&s, selected_device(&s)).len(), 1);
+    assert_eq!(bom(&tmp, &mut s), before);
+    // The representation deleted alone (a script's own command) leaves the device and its part: EW-CORE-047 reports
+    // it, saying that the parts list still counts it.
+    done(
+        &mut s,
+        "command.run",
+        json!({"cmd": "edit.delete", "params": {"targets": [{"kind": "representation", "id": reps[0].to_string()}]}}),
+    );
+    let found = core047(&tmp, &mut s);
+    assert_eq!(found.len(), 1, "{found:?}");
+    assert!(
+        found[0].ends_with("has a part but no representation on any page; the parts list still counts it"),
+        "{found:?}"
+    );
+}
+
+/// Finding 5's limit: a device with another representation keeps its device when one representation is deleted.
+#[test]
+fn row5_a_device_with_another_representation_is_kept() {
+    let tmp = Tmp::new("gpp-parts-5b");
+    let mut s = golden(&tmp, "101");
+    // A device that a page of Golden A draws more than once.
+    let mut found = None;
+    for folio in ["101", "102", "103", "104", "105", "106"] {
+        if s.dispatch("page.goto", &json!({ "folio": folio })) != Outcome::Done {
+            continue;
+        }
+        let tables = std::sync::Arc::clone(&s.canvas().unwrap().page().tables);
+        found = tables
+            .reps
+            .iter()
+            .filter_map(|r| r.device)
+            .find(|d| tables.reps.iter().filter(|r| r.device == Some(*d)).count() > 1);
+        if found.is_some() {
+            break;
+        }
+    }
+    let device = found.expect("a device drawn twice on one page");
+    let reps = reps_of(&s, device);
+    done(&mut s, "select.set", json!({ "ids": [reps[0].to_string()] }));
+    done(&mut s, "edit.delete_selection", json!({}));
+    assert_eq!(
+        reps_of(&s, device),
+        reps[1..],
+        "the device keeps its other representations"
+    );
 }
 
 /// Finding 2, the run's own step: a new strip `-X??` and its first terminal placed from the part.

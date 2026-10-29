@@ -61,6 +61,69 @@ impl Rule for CableWithoutLength {
     }
 }
 
+/// EW-CORE-047 "Device not in the schematic" (doc 15 §4.2): completeness, o r, warning (release: error), device.
+pub const DEVICE_NOT_IN_SCHEMATIC: RuleMeta = RuleMeta {
+    id: "EW-CORE-047",
+    code: "102047",
+    pack: "EW-CORE",
+    title: "Device not in the schematic",
+    kind: RuleKind::Completeness,
+    modes: Modes::letters("or"),
+    severity: Severity::Warning,
+    release_severity: Some(Severity::Error),
+    scope: ScopeKind::Device,
+    supersedes: &[],
+    release: Release::Mvp,
+};
+
+/// EW-CORE-047: a device with functions none of which has a representation on any page (FR-REV-007). A terminal or a
+/// strip is left out (terminal diagrams and strip segments show them, not a schematic symbol); a device without
+/// functions (a cable) has nothing to draw. A device with a part says that the parts list still counts it (the G-PP run's
+/// phantom `-?G1`: a device left behind after its only representation was deleted). Target: the device; no
+/// discriminator.
+#[derive(Clone, Copy, Debug)]
+pub struct DeviceNotInSchematic;
+
+impl Rule for DeviceNotInSchematic {
+    fn meta(&self) -> &'static RuleMeta {
+        &DEVICE_NOT_IN_SCHEMATIC
+    }
+
+    fn run(&self, q: &Q, scope: &Scope) -> Vec<Finding> {
+        let Scope::Device(device) = *scope else {
+            return Vec::new();
+        };
+        let Some(d) = q.devices().get(device) else {
+            return Vec::new();
+        };
+        if d.aspects.terminal.is_some() || d.aspects.strip.is_some() {
+            return Vec::new();
+        }
+        let idx = q.idx();
+        let functions: Vec<Id<Function>> = idx.functions_of_device(device).collect();
+        if functions.is_empty()
+            || functions
+                .iter()
+                .any(|f| idx.reps_of_function(*f).next().is_some())
+        {
+            return Vec::new();
+        }
+        let tag = full_tag(q, device, "device");
+        let message = if d.parts.is_empty() {
+            format!("{tag} has no representation on any page")
+        } else {
+            format!("{tag} has a part but no representation on any page; the parts list still counts it")
+        };
+        vec![Finding::new(
+            &DEVICE_NOT_IN_SCHEMATIC,
+            [Target::new(Kind::Device, device)],
+            "",
+            tag,
+            message,
+        )]
+    }
+}
+
 /// EW-CORE-051 "Unpaired interruption point" (doc 15 §4.2): completeness, o r, error, project.
 pub const UNPAIRED_INTERRUPTION_POINT: RuleMeta = RuleMeta {
     id: "EW-CORE-051",

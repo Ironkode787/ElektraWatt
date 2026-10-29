@@ -11,6 +11,7 @@ use crate::rules as shipped;
 static RULES: &[&dyn Rule] = &[
     &shipped::core::TitleBlockOverride,
     &shipped::core::CableWithoutLength,
+    &shipped::core::DeviceNotInSchematic,
     &shipped::core::UnpairedInterruptionPoint,
     &shipped::core::AmbiguousInterruptionPoint,
     &shipped::core::XrefCellInvalid,

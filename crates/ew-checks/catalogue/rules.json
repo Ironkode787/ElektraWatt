@@ -79,6 +79,45 @@
       "waivable": true
     },
     {
+      "code": "102047",
+      "id": "EW-CORE-047",
+      "kind": "completeness",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": "error",
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "device",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Device not in the schematic",
+      "waivable": true
+    },
+    {
       "code": "103051",
       "id": "EW-CORE-051",
       "kind": "completeness",

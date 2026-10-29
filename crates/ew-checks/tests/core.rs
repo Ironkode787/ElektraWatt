@@ -54,6 +54,47 @@ fn core033_a_model_without_cables_has_no_finding() {
     assert!(findings_of(&fx.build(), "EW-CORE-033").is_empty());
 }
 
+/// EW-CORE-047: a device whose only function has no representation is a warning (an error in release mode); a
+/// drawn device, a terminal and a device without functions are not reported.
+#[test]
+fn core047_reports_a_device_whose_functions_are_not_drawn() {
+    let mut fx = Fx::base();
+    fx.drawn_device(0x101, "K", Some(1), P1);
+    fx.device(0x102, "G", Some(1));
+    fx.push(json!({"$k": "function", "id": us(0x1102), "device": us(0x102), "def": us(FNDEF)}));
+    fx.device(0x103, "A", Some(1));
+    fx.push(json!({"$k": "device", "id": us(0x104), "tag": {"letter": "X", "counter": 1}, "strip": {}}));
+    fx.push(json!({
+        "$k": "device", "id": us(0x105), "tag": {"letter": "X"}, "kind": "terminal",
+        "terminal": {"strip": us(0x104), "seq": 1, "designation": "1"}
+    }));
+    fx.push(json!({"$k": "function", "id": us(0x1105), "device": us(0x105), "def": us(FNDEF)}));
+    fx.push(json!({"$k": "function", "id": us(0x1104), "device": us(0x104), "def": us(FNDEF)}));
+    let m = fx.build();
+    let f = findings_of(&m, "EW-CORE-047");
+    assert_eq!(f.len(), 1, "{f:#?}");
+    assert_eq!(f[0].code, "102047");
+    assert_eq!(f[0].severity, Severity::Warning);
+    assert_eq!(
+        (f[0].targets[0].kind, f[0].targets[0].id),
+        (Kind::Device, uid(0x102))
+    );
+    assert!(
+        f[0].message.ends_with("has no representation on any page"),
+        "{}",
+        f[0].message
+    );
+    let q = Q::new(&m);
+    let release = run(&q, &FULL, CheckMode::Release);
+    let r: Vec<_> = release
+        .findings
+        .iter()
+        .filter(|f| f.rule == "EW-CORE-047")
+        .collect();
+    assert_eq!(r.len(), 1);
+    assert_eq!(r[0].severity, Severity::Error, "release blocks");
+}
+
 /// A function wired to an interruption point `name` with no partner.
 fn lonely_ip() -> Fx {
     let mut fx = Fx::base();

@@ -832,7 +832,20 @@ impl ShellModel {
                 .filter(|e| crate::tools::entity_kind(&page.tables, *e).is_some())
                 .collect(),
         ));
-        let (unused, elsewhere) = self.undrawn_devices(&targets, &page.tables);
+        let (mut unused, elsewhere) = self.undrawn_devices(&targets, &page.tables);
+        // G-PP finding 5: a device that loses its last representation with this delete goes with it in the same
+        // command (one undo step), unless it has another function or a terminal role; the run left a phantom `-?G1`
+        // with its part in the parts list.
+        let reps: Vec<EntityRef> = selection_kinds(&drawn, &page.tables)
+            .into_iter()
+            .filter(|(_, k)| *k == EntityKind::Rep)
+            .map(|(e, _)| e)
+            .collect();
+        for d in self.devices_left_undrawn(&reps) {
+            if !unused.contains(&d) {
+                unused.push(d);
+            }
+        }
         let mut cmd = transform::delete_command(&drawn, &page);
         if !unused.is_empty() {
             let mut list: Vec<Value> = cmd
@@ -859,6 +872,54 @@ impl ShellModel {
             };
         };
         self.commit_from_host(cmd.as_ref())
+    }
+
+    /// The devices that deleting the representations `reps` leaves without any representation, in ID order: every
+    /// function of the device is drawn only by `reps`. A device is kept (its functions stay unplaced, as before) when
+    /// it has a function `reps` do not draw, a terminal or strip role, child devices, or a cable, assembly or PLC
+    /// aspect, whose intent a delete of a drawing must not take along.
+    fn devices_left_undrawn(&self, reps: &[EntityRef]) -> Vec<EntityRef> {
+        let Some(project) = &self.project else {
+            return Vec::new();
+        };
+        let q = project.session.query();
+        let idx = q.idx();
+        let deleted: std::collections::BTreeSet<_> =
+            reps.iter().filter_map(|e| e.0.to_string().parse().ok()).collect();
+        let mut functions = std::collections::BTreeSet::new();
+        for r in &deleted {
+            if let Some(rep) = q.reps().get(*r) {
+                functions.extend(rep.functions.iter().copied());
+            }
+        }
+        let devices: std::collections::BTreeSet<_> = functions
+            .iter()
+            .filter_map(|f| q.functions().get(*f).and_then(|f| f.device))
+            .collect();
+        let mut out = Vec::new();
+        for id in devices {
+            let Some(d) = q.devices().get(id) else {
+                continue;
+            };
+            let a = &d.aspects;
+            if a.terminal.is_some()
+                || a.strip.is_some()
+                || a.cable.is_some()
+                || a.assembly.is_some()
+                || a.plc_station.is_some()
+                || a.plc_module.is_some()
+                || q.devices().iter().any(|(_, c)| c.parent == Some(id))
+            {
+                continue;
+            }
+            let all_gone = idx
+                .functions_of_device(id)
+                .all(|f| functions.contains(&f) && idx.reps_of_function(f).all(|r| deleted.contains(&r)));
+            if all_gone {
+                out.push(EntityRef(id.as_uuid()));
+            }
+        }
+        out
     }
 
     /// Of `targets`, the entities the page tables do not hold: the devices no representation of the project draws
