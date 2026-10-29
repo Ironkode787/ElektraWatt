@@ -881,9 +881,11 @@ impl ShellModel {
     }
 
     /// The devices that deleting the representations `reps` leaves without any representation, in ID order: every
-    /// function of the device is drawn only by `reps`. A device is kept (its functions stay unplaced, as before) when
-    /// it has a function `reps` do not draw, a terminal or strip role, child devices, or a cable, assembly or PLC
-    /// aspect, whose intent a delete of a drawing must not take along.
+    /// function of the device is drawn only by `reps`. A device is kept (its functions stay unplaced, as before, and
+    /// EW-CORE-047 reports it) when it has a function `reps` do not draw, a terminal or strip role, child devices, or
+    /// a cable, assembly or PLC aspect, or when one of its functions carries intent beyond the deleted drawing: a
+    /// potential definition or a bond at one of its CPs, or a connection that is page-less or drawn on a page other
+    /// than the deleted representations' pages. Deleting the device would drop or cascade that intent unseen.
     fn devices_left_undrawn(&self, reps: &[EntityRef]) -> Vec<EntityRef> {
         let Some(project) = &self.project else {
             return Vec::new();
@@ -902,6 +904,23 @@ impl ShellModel {
             .iter()
             .filter_map(|f| q.functions().get(*f).and_then(|f| f.device))
             .collect();
+        let pages: std::collections::BTreeSet<_> = deleted
+            .iter()
+            .filter_map(|r| q.reps().get(*r).map(|r| r.page))
+            .collect();
+        let carries_intent = |f| {
+            q.potential_defs().iter().any(|(_, p)| p.at.function() == Some(f))
+                || q.bonds()
+                    .iter()
+                    .any(|(_, b)| b.a.function() == Some(f) || b.b.function() == Some(f))
+                || idx.connected_cps_of_function(f).iter().any(|(_, cs)| {
+                    cs.iter().any(|c| {
+                        q.connections()
+                            .get(*c)
+                            .is_some_and(|c| c.page.is_none_or(|p| !pages.contains(&p)))
+                    })
+                })
+        };
         let mut out = Vec::new();
         for id in devices {
             let Some(d) = q.devices().get(id) else {
@@ -918,9 +937,11 @@ impl ShellModel {
             {
                 continue;
             }
-            let all_gone = idx
-                .functions_of_device(id)
-                .all(|f| functions.contains(&f) && idx.reps_of_function(f).all(|r| deleted.contains(&r)));
+            let all_gone = idx.functions_of_device(id).all(|f| {
+                functions.contains(&f)
+                    && idx.reps_of_function(f).all(|r| deleted.contains(&r))
+                    && !carries_intent(f)
+            });
             if all_gone {
                 out.push(EntityRef(id.as_uuid()));
             }

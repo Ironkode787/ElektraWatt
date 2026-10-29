@@ -195,39 +195,45 @@ fn core047(tmp: &Tmp, s: &mut ShellModel) -> Vec<String> {
         .collect()
 }
 
-/// Finding 5: deleting the only representation of -102G1 (the run's black box) deletes the device and its part use
-/// in the same command, so the parts list has no phantom `-?G1`; one undo restores both. A device left without a
-/// representation by a delete of its representation alone is EW-CORE-047.
+/// The device E55 of folio 101 (the cabinet light, part SK 3102.000): one representation, a part, and no potential
+/// definition, bond, page-less or off-page connection at its CPs.
+const E55: &str = "85760c34-951e-5b8a-bbe2-3253c69e3db2";
+
+/// Finding 5: deleting the only representation of a device deletes the device and its part use in the same command,
+/// so the parts list has no phantom `-?G1`; one undo restores both. A device left without a representation by a
+/// delete of its representation alone is EW-CORE-047. (Cycle 33 review finding 1: the run's -102G1 is kept now, as it
+/// carries the +24V and 0V definitions and a bond; this row runs on E55, which carries no such intent.)
 #[test]
 fn row5_deleting_the_last_representation_deletes_the_device_and_one_undo_restores_both() {
     let tmp = Tmp::new("gpp-parts-5");
-    let mut s = golden(&tmp, "102");
+    let mut s = golden(&tmp, "101");
     let g = core047(&tmp, &mut s);
     assert!(g.is_empty(), "Golden A draws every device: {g:#?}");
-    done(&mut s, "select.set", json!({"refs": ["tag:-102G1"]}));
-    let device = selected_device(&s);
+    let device: Uuid = E55.parse().unwrap();
     let reps = reps_of(&s, device);
-    assert_eq!(reps.len(), 1, "-102G1 is one black box");
+    assert_eq!(reps.len(), 1, "E55 is one symbol");
+    done(&mut s, "select.set", json!({ "ids": [reps[0].to_string()] }));
     let before = bom(&tmp, &mut s);
-    let psu = line_of(&before, "2904602").expect("2904602 in the BOM").clone();
-    assert!(psu.contains("-102G1"), "{psu}");
+    let light = line_of(&before, "SK 3102.000")
+        .expect("SK 3102.000 in the BOM")
+        .clone();
+    assert!(light.contains("E55"), "{light}");
     let commands = s.recorded_commands().len();
     done(&mut s, "edit.delete_selection", json!({}));
     assert_eq!(s.recorded_commands().len(), commands + 1, "one command");
     assert!(
-        s.dispatch("select.set", &json!({"refs": ["tag:-102G1"]})) != Outcome::Done,
+        format!("{:?}", s.recorded_commands()[commands]).contains(E55),
         "the device went with its last representation"
     );
     let after = bom(&tmp, &mut s);
     assert!(
-        line_of(&after, "2904602").is_none_or(|l| !l.contains("G1")),
-        "no phantom -?G1: {after:?}"
+        line_of(&after, "SK 3102.000").is_none_or(|l| !l.contains("E55")),
+        "no phantom E55: {after:?}"
     );
     assert!(core047(&tmp, &mut s).is_empty());
-    // One undo step restores the device, its part and its box.
+    // One undo step restores the device, its part and its symbol.
     done(&mut s, "edit.undo", json!({}));
-    done(&mut s, "select.set", json!({"refs": ["tag:-102G1"]}));
-    assert_eq!(reps_of(&s, selected_device(&s)).len(), 1);
+    assert_eq!(reps_of(&s, device).len(), 1);
     assert_eq!(bom(&tmp, &mut s), before);
     // The representation deleted alone (a script's own command) leaves the device and its part: EW-CORE-047 reports
     // it, saying that the parts list still counts it.
@@ -242,6 +248,45 @@ fn row5_deleting_the_last_representation_deletes_the_device_and_one_undo_restore
         found[0].ends_with("has a part but no representation on any page; the parts list still counts it"),
         "{found:?}"
     );
+}
+
+/// The potential definition names (sorted), the bond count and the device IDs of the saved project.
+fn connect_intent(tmp: &Tmp, s: &mut ShellModel) -> (Vec<String>, usize, Vec<Uuid>) {
+    done(s, "file.save", json!({}));
+    let (session, _) = Session::open_read_only(&tmp.golden_copy(), "test").unwrap();
+    let q = session.query();
+    let mut names: Vec<String> = q
+        .potential_defs()
+        .iter()
+        .map(|(_, p)| p.name.to_string())
+        .collect();
+    names.sort();
+    let devices = q.devices().iter().map(|(id, _)| id.as_uuid()).collect();
+    (names, q.bonds().iter().count(), devices)
+}
+
+/// Cycle 33 review finding 1: deleting the only box of -102G1 on folio 102 keeps the device, because its CPs carry
+/// the +24V and 0V definitions and the 0V-PE bond, which a delete of the drawing must not drop unseen. The device is
+/// left to EW-CORE-047.
+#[test]
+fn row5_a_device_whose_cps_carry_potentials_and_a_bond_is_kept() {
+    let tmp = Tmp::new("gpp-parts-5c");
+    let mut s = golden(&tmp, "102");
+    let (names_before, bonds_before, _) = connect_intent(&tmp, &mut s);
+    assert!(names_before.iter().any(|n| n == "+24V"), "{names_before:?}");
+    assert!(names_before.iter().any(|n| n == "0V"), "{names_before:?}");
+    done(&mut s, "select.set", json!({"refs": ["tag:-102G1"]}));
+    let device = selected_device(&s);
+    assert_eq!(reps_of(&s, device).len(), 1, "-102G1 is one black box");
+    done(&mut s, "edit.delete_selection", json!({}));
+    assert!(reps_of(&s, device).is_empty(), "the box is deleted");
+    let (names_after, bonds_after, devices) = connect_intent(&tmp, &mut s);
+    assert!(devices.contains(&device), "the device remains");
+    assert_eq!(names_after, names_before, "+24V and 0V are still defined");
+    assert_eq!(bonds_after, bonds_before, "the bond still exists");
+    let found = core047(&tmp, &mut s);
+    assert_eq!(found.len(), 1, "{found:?}");
+    assert!(found[0].contains("G1"), "{found:?}");
 }
 
 /// Finding 5's limit: a device with another representation keeps its device when one representation is deleted.
