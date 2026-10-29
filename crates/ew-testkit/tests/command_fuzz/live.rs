@@ -111,6 +111,8 @@ pub struct StripInfo {
     /// (terminal device, designation)
     pub terminals: Vec<(Value, String)>,
     pub seqs: BTreeSet<u32>,
+    /// The terminals in mounting order: (seq, terminal device), sorted by seq, then ID (WP-S2.07).
+    pub order: Vec<(u32, Value)>,
 }
 
 pub struct CableInfo {
@@ -365,16 +367,20 @@ impl Live {
             if d.aspects.strip.is_some() {
                 let mut terminals = Vec::new();
                 let mut seqs = BTreeSet::new();
+                let mut order = Vec::new();
                 for t in q.idx().terminals_of_strip(id) {
                     if let Some(td) = q.devices().get(t).and_then(|x| x.aspects.terminal.clone()) {
                         seqs.insert(td.seq);
+                        order.push((td.seq, t));
                         terminals.push((id_json(t), td.designation.as_str().to_owned()));
                     }
                 }
+                order.sort();
                 strip_infos.push(StripInfo {
                     id: id_json(id),
                     terminals,
                     seqs,
+                    order: order.into_iter().map(|(seq, t)| (seq, id_json(t))).collect(),
                 });
             }
             if d.aspects.cable.is_some() {

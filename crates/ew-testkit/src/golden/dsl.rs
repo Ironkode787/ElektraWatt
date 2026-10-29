@@ -25,8 +25,8 @@ use ew_model::AnyKey;
 use ew_schema::{
     AnyId, Bond, Channel, Conductor, Connection, ConnectionKind, Device, DeviceLink, Endpoint, ExternalRef,
     FnDef, FnRole, Function, FunctionKind, IpSpec, Junction, Kind, LibDocument, Page, PageItem, Part,
-    PlcConfigProject, PotentialDef, Record, ReportBlock, Representation, Revision, RevisionState, Section,
-    StructureBox, StructureNode, SymbolDef,
+    PartUse, PlcConfigProject, PotentialDef, Record, ReportBlock, Representation, Revision, RevisionState,
+    Section, StructureBox, StructureNode, SymbolDef,
 };
 use ew_units::Pt2;
 use serde_json::{Map, Value, json};
@@ -634,6 +634,52 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
             )?;
         }
         Ok(devices.into_iter().zip(functions).collect())
+    }
+
+    // WP-S2.07 part 1
+    /// `terminal.insert` (WP-S2.07 §5.1): the `terminals` (`TerminalSpec` JSON objects without `seq`) of the strip
+    /// `strip`, with main functions of `fndef` and the part uses `parts` on each, put before the terminal `before`, or
+    /// after the strip's last terminal when `None`; the following terminals, group bounds and accessories move up.
+    /// Returns the first new terminal device (the command's primary record).
+    ///
+    /// # Errors
+    ///
+    /// The command's error, or no primary record.
+    pub fn terminal_insert(
+        &mut self,
+        strip: Id<Device>,
+        before: Option<Id<Device>>,
+        fndef: Id<FnDef>,
+        terminals: &[Value],
+        parts: &[PartUse],
+    ) -> Result<Id<Device>> {
+        let mut p = Map::new();
+        p.insert("strip".into(), json!(strip));
+        if let Some(before) = before {
+            p.insert("before".into(), json!(before));
+        }
+        p.insert("fndef".into(), json!(fndef));
+        p.insert("terminals".into(), json!(terminals));
+        if !parts.is_empty() {
+            p.insert("parts".into(), json!(parts));
+        }
+        self.primary::<Device>("terminal.insert", Value::Object(p))
+            .map(|(id, _)| id)
+    }
+
+    /// `terminal.move` (WP-S2.07 §5.2): the terminals `terminals` of one strip put before the terminal `before`, or
+    /// after the strip's last terminal when `None`; the sequence numbers of the changed range are permuted.
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn terminal_move(&mut self, terminals: &[Id<Device>], before: Option<Id<Device>>) -> Result<()> {
+        let mut p = Map::new();
+        p.insert("terminals".into(), json!(terminals));
+        if let Some(before) = before {
+            p.insert("before".into(), json!(before));
+        }
+        self.run("terminal.move", Value::Object(p)).map(|_| ())
     }
 
     /// `cable.create` with its conductors, then `fields.set` of the remaining device members.
@@ -1631,6 +1677,62 @@ mod tests {
         assert_eq!(seen[0].1, json!({"pages": [a], "before": b}));
         assert_eq!(seen[1].1, json!({"pages": [a, b], "section": s}));
         assert_eq!(seen[2].1, json!({"pages": [a]}));
+    }
+
+    // WP-S2.07 part 1
+    /// `terminal_insert` and `terminal_move` issue one `terminal.insert` / `terminal.move` each, with `before` only
+    /// when given and `parts` only when not empty; `terminal_insert` returns the command's primary record.
+    #[test]
+    fn terminal_insert_and_move_issue_one_command_with_or_without_before() {
+        let strip: Id<Device> = Id::from_uuid(ew_ids::Uuid::from_u128(1));
+        let t1: Id<Device> = Id::from_uuid(ew_ids::Uuid::from_u128(2));
+        let t2: Id<Device> = Id::from_uuid(ew_ids::Uuid::from_u128(3));
+        let fndef: Id<FnDef> = Id::from_uuid(ew_ids::Uuid::from_u128(4));
+        let part: Id<Part> = Id::from_uuid(ew_ids::Uuid::from_u128(5));
+        let new: Id<Device> = Id::from_uuid(ew_ids::Uuid::from_u128(6));
+        let mut seen: Vec<(String, Value)> = Vec::new();
+        let mut sink = |name: &str, params: Value| {
+            seen.push((name.to_owned(), params));
+            Ok(Done {
+                primary: (name == "terminal.insert").then_some((Kind::Device, new.cast())),
+                created: Vec::new(),
+            })
+        };
+        let parts: Vec<PartUse> =
+            serde_json::from_value(json!([{"part": {"copy": part}, "qty": "1"}])).unwrap();
+        let mut builder = Builder::new(&mut sink);
+        let first = builder
+            .terminal_insert(strip, Some(t1), fndef, &[json!({"designation": "21"})], &parts)
+            .unwrap();
+        assert_eq!(first, new);
+        builder
+            .terminal_insert(strip, None, fndef, &[json!({"designation": "22"})], &[])
+            .unwrap();
+        builder.terminal_move(&[t1, t2], Some(strip)).unwrap();
+        builder.terminal_move(&[t2], None).unwrap();
+        assert_eq!(builder.script().len(), 4);
+        drop(builder);
+        let names: Vec<&str> = seen.iter().map(|(n, _)| n.as_str()).collect();
+        assert_eq!(
+            names,
+            [
+                "terminal.insert",
+                "terminal.insert",
+                "terminal.move",
+                "terminal.move"
+            ]
+        );
+        assert_eq!(
+            seen[0].1,
+            json!({"strip": strip, "before": t1, "fndef": fndef, "terminals": [{"designation": "21"}],
+                "parts": [{"part": {"copy": part}, "qty": "1"}]})
+        );
+        assert_eq!(
+            seen[1].1,
+            json!({"strip": strip, "fndef": fndef, "terminals": [{"designation": "22"}]})
+        );
+        assert_eq!(seen[2].1, json!({"terminals": [t1, t2], "before": strip}));
+        assert_eq!(seen[3].1, json!({"terminals": [t2]}));
     }
 
     // WP-S2.05 part 3

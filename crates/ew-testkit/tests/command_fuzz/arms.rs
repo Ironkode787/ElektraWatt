@@ -323,6 +323,16 @@ pub const ARMS: &[Arm] = &[
         build: terminal_designate,
     },
     Arm {
+        command: "terminal.insert",
+        weight: 3,
+        build: terminal_insert,
+    },
+    Arm {
+        command: "terminal.move",
+        weight: 3,
+        build: terminal_move,
+    },
+    Arm {
         command: "valve.add",
         weight: 3,
         build: valve_add,
@@ -3012,6 +3022,241 @@ fn terminal_add(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                         .then_some(())
                         .ok_or_else(|| "a new terminal is not in the strip afterwards".to_owned())
                 }),
+            )
+        }
+    }
+}
+
+/// The strip's terminals in mounting order ((seq, ID) order) after a step, as JSON IDs.
+fn mounting_order(after: &ew_derive::Q, strip: &Value) -> Result<Vec<(u32, Value)>, String> {
+    let strip = typed::<ew_schema::Device>(strip).ok_or("a strip ID")?;
+    let mut order: Vec<(u32, ew_ids::Id<ew_schema::Device>)> = after
+        .idx()
+        .terminals_of_strip(strip)
+        .filter_map(|t| {
+            after
+                .devices()
+                .get(t)
+                .and_then(|d| d.aspects.terminal.as_ref().map(|a| (a.seq, t)))
+        })
+        .collect();
+    order.sort();
+    Ok(order.into_iter().map(|(seq, t)| (seq, id_json(t))).collect())
+}
+
+// WP-S2.07 part 1
+fn terminal_insert(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let fndef = live
+        .term_fndef
+        .as_ref()
+        .or_else(|| live.fndefs.first().map(|f| &f.id))?;
+    let strip = rng.pick(&live.strip_infos)?;
+    let taken: std::collections::BTreeSet<&str> = strip.terminals.iter().map(|(_, d)| d.as_str()).collect();
+    let fresh = |rng: &mut SplitMix64| loop {
+        let d = format!("Z{}", rng.below(10_000));
+        if !taken.contains(d.as_str()) {
+            break d;
+        }
+    };
+    let cmd = |p: Value| Step::cmd("terminal.insert", p);
+    match rng.below(12) {
+        // Refused: a designation the strip has.
+        0 => {
+            let (_, d) = rng.pick(&strip.terminals)?;
+            Some(cmd(json!({"strip": strip.id, "fndef": fndef, "terminals": [{"designation": d}]})).refuse())
+        }
+        // Refused: not a strip.
+        1 => {
+            let d = rng.pick(&live.plain_devices)?;
+            Some(cmd(json!({"strip": d, "fndef": fndef, "terminals": [{"designation": "Z1"}]})).refuse())
+        }
+        // Refused: nothing to insert.
+        2 => Some(cmd(json!({"strip": strip.id, "fndef": fndef, "terminals": []})).refuse()),
+        // Refused: a spec with `seq` (the position follows from `before`).
+        3 => Some(
+            cmd(json!({"strip": strip.id, "fndef": fndef,
+                "terminals": [{"designation": fresh(rng), "seq": 1 + rng.below(30)}]}))
+            .refuse(),
+        ),
+        // Refused: the same designation twice in the list.
+        4 => {
+            let d = fresh(rng);
+            Some(
+                cmd(json!({"strip": strip.id, "fndef": fndef,
+                    "terminals": [{"designation": d}, {"designation": d}]}))
+                .refuse(),
+            )
+        }
+        // Refused: `before` is not a terminal of the strip (a plain device, or a device that does not exist).
+        5 => {
+            let before = match rng.pick(&live.plain_devices) {
+                Some(d) if rng.chance(2) => d.clone(),
+                _ => json!(rng.uuid()),
+            };
+            Some(
+                cmd(json!({"strip": strip.id, "before": before, "fndef": fndef,
+                    "terminals": [{"designation": fresh(rng)}]}))
+                .refuse(),
+            )
+        }
+        _ => {
+            let n = 1 + rng.below(3);
+            let mut names: Vec<String> = Vec::new();
+            while names.len() < n {
+                let d = fresh(rng);
+                if !names.contains(&d) {
+                    names.push(d);
+                }
+            }
+            let terminals: Vec<Value> = names
+                .iter()
+                .map(|d| json!({"designation": d, "function_text": rng.word(4)}))
+                .collect();
+            let mut p = json!({"strip": strip.id, "fndef": fndef, "terminals": terminals});
+            if !strip.order.is_empty() && !rng.chance(4) {
+                p["before"] = rng.pick(&strip.order)?.1.clone();
+            }
+            let total = strip.order.len() + n;
+            let n = isize::try_from(n).unwrap_or(1);
+            let (strip_id, designations) = (strip.id.clone(), names);
+            let unique_before = strip.seqs.len() == strip.order.len();
+            Some(
+                cmd(p)
+                    .accept()
+                    .counts(&[(Table::Devices, n), (Table::Functions, n)])
+                    .check(move |_, after| {
+                        let strip = typed::<ew_schema::Device>(&strip_id).ok_or("a strip ID")?;
+                        let have: std::collections::BTreeSet<String> = after
+                            .idx()
+                            .terminals_of_strip(strip)
+                            .filter_map(|t| after.devices().get(t).and_then(|d| d.aspects.terminal.clone()))
+                            .map(|t| t.designation.as_str().to_owned())
+                            .collect();
+                        if !designations.iter().all(|d| have.contains(d)) {
+                            return Err("a new terminal is not in the strip afterwards".to_owned());
+                        }
+                        let order = mounting_order(after, &strip_id)?;
+                        let seqs: std::collections::BTreeSet<u32> = order.iter().map(|(s, _)| *s).collect();
+                        if order.len() != total {
+                            return Err(format!(
+                                "the strip has {} terminals, expected {total}",
+                                order.len()
+                            ));
+                        }
+                        if unique_before && seqs.len() != order.len() {
+                            return Err("the strip's sequence numbers are no longer unique".to_owned());
+                        }
+                        Ok(())
+                    }),
+            )
+        }
+    }
+}
+
+// WP-S2.07 part 1
+fn terminal_move(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let strips: Vec<&StripInfo> = live.strip_infos.iter().filter(|s| s.order.len() >= 2).collect();
+    let strip = *rng.pick(&strips)?;
+    let ids: Vec<Value> = strip.order.iter().map(|(_, t)| t.clone()).collect();
+    let cmd = |p: Value| Step::cmd("terminal.move", p);
+    match rng.below(12) {
+        // Refused: nothing to move.
+        0 => Some(cmd(json!({"terminals": []})).refuse()),
+        // Refused: a terminal listed twice.
+        1 => {
+            let t = rng.pick(&ids)?;
+            Some(cmd(json!({"terminals": [t, t]})).refuse())
+        }
+        // Refused: a device that is not a terminal.
+        2 => {
+            let d = rng.pick(&live.plain_devices)?;
+            Some(cmd(json!({"terminals": [ids[0], d]})).refuse())
+        }
+        // Refused: terminals of two strips.
+        3 => {
+            let other = strips.iter().find(|s| s.id != strip.id)?;
+            Some(cmd(json!({"terminals": [ids[0], other.order[0].1]})).refuse())
+        }
+        // Refused: `before` among the moved terminals.
+        4 => Some(cmd(json!({"terminals": [ids[0], ids[1]], "before": ids[1]})).refuse()),
+        // Refused: an order that does not change (a terminal before its successor, or the last to the end).
+        5 => {
+            let i = rng.below(ids.len());
+            Some(
+                match ids.get(i + 1) {
+                    Some(next) => cmd(json!({"terminals": [ids[i]], "before": next})),
+                    None => cmd(json!({"terminals": [ids[i]]})),
+                }
+                .refuse(),
+            )
+        }
+        _ => {
+            // One or two terminals, put before another terminal of the strip or at the end.
+            let mut moved: Vec<usize> = vec![rng.below(ids.len())];
+            if ids.len() >= 3 && rng.chance(3) {
+                let j = rng.below(ids.len());
+                if !moved.contains(&j) {
+                    moved.push(j);
+                }
+            }
+            let rest: Vec<usize> = (0..ids.len()).filter(|k| !moved.contains(k)).collect();
+            let before = if rng.chance(4) {
+                None
+            } else {
+                Some(*rng.pick(&rest)?)
+            };
+            let mut p = json!({"terminals": moved.iter().map(|&k| ids[k].clone()).collect::<Vec<_>>()});
+            if let Some(b) = before {
+                p["before"] = ids[b].clone();
+            }
+            // The new order, as the command computes it: no change is a refusal.
+            moved.sort_unstable();
+            let block: Vec<Value> = moved.iter().map(|&k| ids[k].clone()).collect();
+            let mut order: Vec<Value> = rest.iter().map(|&k| ids[k].clone()).collect();
+            let at = match before {
+                Some(b) => order.iter().position(|t| *t == ids[b])?,
+                None => order.len(),
+            };
+            order.splice(at..at, block.clone());
+            if order == ids {
+                return Some(cmd(p).refuse());
+            }
+            let seqs_before: Vec<u32> = strip.order.iter().map(|(s, _)| *s).collect();
+            let (strip_id, before_id) = (strip.id.clone(), before.map(|b| ids[b].clone()));
+            Some(
+                cmd(p)
+                    .accept()
+                    .counts(&[(Table::Devices, 0)])
+                    .check(move |_, after| {
+                        let now = mounting_order(after, &strip_id)?;
+                        let mut seqs: Vec<u32> = now.iter().map(|(s, _)| *s).collect();
+                        seqs.sort_unstable();
+                        if seqs != seqs_before {
+                            return Err(format!(
+                                "the strip's sequence numbers changed: {seqs:?}, were {seqs_before:?}"
+                            ));
+                        }
+                        let ids: Vec<&Value> = now.iter().map(|(_, t)| t).collect();
+                        let start = ids
+                            .iter()
+                            .position(|t| **t == block[0])
+                            .ok_or("a moved terminal is gone")?;
+                        let end = start + block.len();
+                        let together = ids
+                            .get(start..end)
+                            .is_some_and(|w| w.iter().copied().eq(block.iter()));
+                        let placed = match &before_id {
+                            Some(b) => ids.get(end).is_some_and(|t| *t == b),
+                            None => end == ids.len(),
+                        };
+                        if together && placed {
+                            Ok(())
+                        } else {
+                            Err(format!(
+                                "the moved terminals are not directly before {before_id:?}: order {ids:?}"
+                            ))
+                        }
+                    }),
             )
         }
     }
