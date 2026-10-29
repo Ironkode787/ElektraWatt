@@ -328,7 +328,10 @@ fn part4_dialogs_toasts_menu_palette_and_preview_in_light_and_dark() {
         ] {
             assert_eq!(shell.dispatch(action, &params), Outcome::Done, "{action}");
         }
-        let _ = shell.dispatch("file.close", &json!({}));
+        h.run_ok();
+        h.run_ok();
+        let before = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
+        let _ = h.state_mut().shell_mut().dispatch("file.close", &json!({}));
         h.run_ok();
         h.run_ok();
         let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
@@ -1105,6 +1108,16 @@ fn cp9_the_quick_fix_card_and_the_table_card_in_light_and_dark() {
         assert!(
             h.state().shell().properties().card().is_some(),
             "the quick-fix card"
+        );
+        // FT-567: the "Errors" group title drawn in the accent is the cursor row (a cursor row's title takes the
+        // selection colour, as the Pages list's), not a group title in the wrong colour.
+        let cursor = h
+            .state()
+            .shell()
+            .nav_cursor(ew_ui::ew_viewmodel::navigators::NavKind::Messages);
+        assert!(
+            cursor.as_deref().is_some_and(|k| k.ends_with("severity:error")),
+            "the Messages cursor is on the Errors group: {cursor:?}"
         );
         let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
         let mut parts = vec![messages_pane(&h)];

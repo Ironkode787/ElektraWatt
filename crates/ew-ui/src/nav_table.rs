@@ -212,9 +212,11 @@ impl TableUi {
             // near-white bar on the dark panel; the handle is a component boundary, so at rest it takes
             // `color.border.control` (3:1 on the panel in both themes) and `color.text.secondary` under the pointer
             // and while dragged. The grid's own texts are painted with explicit colours, so nothing else changes.
+            // FT-567: the bars sit inside the focus ring (inset `RING_INSET`, `focus_width` wide), not on it.
             ui.spacing_mut().scroll = egui::style::ScrollStyle {
                 foreground_color: true,
                 dormant_background_opacity: 0.0,
+                bar_outer_margin: RING_INSET + tokens.focus_width,
                 ..egui::style::ScrollStyle::thin()
             };
             let w = &mut ui.visuals_mut().widgets;

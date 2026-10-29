@@ -338,6 +338,13 @@ fn r30_double_clicking_a_paged_report_block_goes_to_its_first_folio() {
     settle(&mut h);
     dispatch(&mut h, "page.goto", json!({"folio": "102"}));
     dispatch(&mut h, "navigator.show", json!({"kind": "blocks"}));
+    // FT-567: the list ends on a whole row, so a row under the fold is not laid out at all (it was cut, and so in the
+    // tree); the filter brings the Wire List row up.
+    dispatch(
+        &mut h,
+        "navigator.filter",
+        json!({"kind": "blocks", "text": "Wire List"}),
+    );
     settle(&mut h);
     settle(&mut h);
     // WP-S2.17 part 1: rows of `size.row` (28 px) put the row under the pane's fold in this window; scroll it in.

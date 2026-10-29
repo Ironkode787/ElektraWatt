@@ -422,7 +422,13 @@ impl NavigatorPane {
         let row = row_height(ui.ctx());
         // The list keeps to that room: neither the rest of the pane nor egui's default minimum of 64 points may run
         // it under the Messages detail block, which the token sizes made reachable in a short pane.
-        let list_height = list_rect.height().max(0.0);
+        // FT-567: a list with more rows than room ends on a whole row, so its last row is never cut mid-glyph.
+        let room = list_rect.height().max(0.0);
+        let list_height = if visible.len() as f32 * row > room {
+            (room / row).floor() * row
+        } else {
+            room
+        };
         let mut area = egui::ScrollArea::vertical()
             .id_salt(("navigator-scroll", self.kind_word()))
             .auto_shrink([false, false])
@@ -976,7 +982,8 @@ fn table_card(ui: &mut Ui, shell: &ShellModel, kind: NavKind, events: &mut Vec<E
                         }
                     }
                 }
-                if button(ui, Kind::Subtle, strings::text("card-table-drop"), true, 0.0).clicked() {
+                // FT-567: Drop is a Secondary button beside the readings (doc 16a §6.21), not bare text.
+                if button(ui, Kind::Secondary, strings::text("card-table-drop"), true, 0.0).clicked() {
                     events.push(Event::Action("table.drop", json!({ "cell": i + 1 })));
                 }
             });
