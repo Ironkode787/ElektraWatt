@@ -656,3 +656,183 @@ fn dk9_row_and_header_heights_in_both_densities() {
         h.state_mut().shell_mut().shutdown();
     }
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// FT-532 and FT-536: the empty state, the grid's focus ring and the Columns menu's move icons
+
+/// Whether a `Group` node is named `name` (an empty state, doc 16a §6.17).
+fn group_named(h: &Harness<'static, App>, name: &str) -> bool {
+    h.get_all_by_role(egui::Role::Group)
+        .any(|n| n.accesskit_node().label().as_deref() == Some(name))
+}
+
+/// FT-532: a navigator in table mode without rows shows the empty state of the tree mode (CP5) in place of the grid:
+/// with a filter without hits "Nothing matches "…"" and Clear filter, which clears it and brings the grid back; on a
+/// new project the Terminal strips table says "No terminal strips yet".
+#[test]
+fn ft532_table_mode_without_rows_shows_the_empty_state() {
+    let tmp = Tmp::new();
+    let mut h = strips(&tmp);
+    assert!(
+        h.query_by_label("Sort by Terminal, sorted ascending").is_some(),
+        "the grid on show"
+    );
+    done(
+        h.state_mut().shell_mut(),
+        "navigator.filter",
+        json!({"kind": "strips", "text": "ft532nomatch"}),
+    );
+    settle(&mut h);
+    settle(&mut h);
+    assert!(
+        h.state().shell().nav(NavKind::Strips).unwrap().visible().is_empty(),
+        "no row matches"
+    );
+    assert!(
+        group_named(&h, "Nothing matches \"ft532nomatch\""),
+        "the filter's empty state"
+    );
+    assert!(
+        h.query_by_label("Sort by Terminal, sorted ascending").is_none(),
+        "no bare header"
+    );
+    h.get_all_by_role(egui::Role::Button)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Clear filter"))
+        .expect("Clear filter")
+        .click();
+    settle(&mut h);
+    settle(&mut h);
+    assert!(
+        !h.state().shell().nav(NavKind::Strips).unwrap().visible().is_empty(),
+        "the filter is cleared"
+    );
+    assert!(
+        h.query_by_label("Sort by Terminal, sorted ascending").is_some(),
+        "the grid is back"
+    );
+    support::assert_named(&h);
+    h.state_mut().shell_mut().shutdown();
+
+    // A new project: no terminal strip at all.
+    let tmp = Tmp::new();
+    let dir = tmp.0.join("blank.ew");
+    let mut shell = ShellModel::new(Mode::Gui, tmp.config());
+    done(
+        &mut shell,
+        "file.new",
+        json!({"dir": dir.to_string_lossy(), "template": "builtin"}),
+    );
+    let mut h: Harness<'static, App> = harness_with(shell, Scripted::default(), None);
+    h.set_size(egui::Vec2::new(1000.0, 900.0));
+    settle(&mut h);
+    wait_for_page(&mut h);
+    let shell = h.state_mut().shell_mut();
+    done(shell, "navigator.show", json!({"kind": "strips"}));
+    done(shell, "navigator.table", json!({"kind": "strips"}));
+    settle(&mut h);
+    settle(&mut h);
+    assert!(
+        h.state().shell().nav(NavKind::Strips).unwrap().table_mode().is_some(),
+        "in table mode"
+    );
+    assert!(
+        group_named(&h, "No terminal strips yet"),
+        "the navigator's empty state"
+    );
+    assert!(
+        h.query_by_label("Terminal strips table").is_some(),
+        "the grid node stays"
+    );
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// FT-532 (doc 16a §6.21): while the grid has the keyboard the focus ring of §6.1 (2-px `color.focus`, `radius.sm`)
+/// is drawn around the whole grid, inset 1 px into the pane; with the focus on the canvas it is gone.
+#[test]
+fn ft532_the_focus_ring_around_the_whole_grid() {
+    let tmp = Tmp::new();
+    let mut h = strips(&tmp);
+    let t = ew_ui::theme::current(&h.ctx);
+    let grid = h.get_by_label("Terminal strips table").rect();
+    let expected = grid.shrink(1.0);
+    let ring = |shapes: &[egui::Shape]| {
+        shapes.iter().any(|s| {
+            matches!(s, egui::Shape::Rect(r)
+                if same_rect(r.rect, expected)
+                    && r.stroke.width == t.focus_width
+                    && r.stroke.color == t.focus.color32()
+                    && r.stroke_kind == egui::StrokeKind::Inside
+                    && r.corner_radius == ew_ui::theme::radius(t.radius_sm))
+        })
+    };
+    assert!(ring(&painted(&h)), "the focus ring around {grid:?}");
+    done(
+        h.state_mut().shell_mut(),
+        "ui.focus",
+        json!({"area": "canvas", "group": 0}),
+    );
+    settle(&mut h);
+    assert!(!ring(&painted(&h)), "no ring with the focus elsewhere");
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// FT-536 (doc 16a §6.21): the Columns menu's move items are 24-px icon buttons painting `arrow-left` and
+/// `arrow-right`, named "Move <column> left" and "… right"; the first movable column's left and the last one's right
+/// are disabled (the icon in `color.text.disabled`); no text button "Move left" or "Move right" is left.
+#[test]
+fn ft536_the_move_items_are_arrow_icon_buttons() {
+    let tmp = Tmp::new();
+    let mut h = strips(&tmp);
+    let t = ew_ui::theme::current(&h.ctx);
+    h.get_by_label("Columns").click();
+    settle(&mut h);
+    let labels: Vec<String> = h
+        .get_all_by_role(egui::Role::Button)
+        .filter_map(|n| n.accesskit_node().label())
+        .collect();
+    assert!(
+        !labels.iter().any(|l| l == "Move left" || l == "Move right"),
+        "{labels:?}"
+    );
+    let shapes = painted(&h);
+    for (name, icon, enabled) in [
+        ("Move Function text left", ew_ui::icons::IconId::arrow_left, true),
+        ("Move Function text right", ew_ui::icons::IconId::arrow_right, true),
+        ("Move Terminal left", ew_ui::icons::IconId::arrow_left, false),
+        ("Move State right", ew_ui::icons::IconId::arrow_right, false),
+    ] {
+        let node = h.get_by_label(name);
+        assert_eq!(node.accesskit_node().is_disabled(), !enabled, "{name}");
+        let rect = node.rect();
+        assert!(
+            (rect.width() - t.size_control_inline).abs() < 0.5
+                && (rect.height() - t.size_control_inline).abs() < 0.5,
+            "{name}: 24 px {rect:?}"
+        );
+        let colour = if enabled {
+            t.text_secondary
+        } else {
+            t.text_disabled
+        };
+        assert!(
+            icon_in(&shapes, rect, icon, colour.color32(), t.icon_sm, t.icon_stroke),
+            "{name}: the {icon:?} icon"
+        );
+    }
+    h.get_by_label("Move Function text right").click();
+    settle(&mut h);
+    let n = h.state().shell().nav(NavKind::Strips).unwrap();
+    let table = n.table().unwrap();
+    let order: Vec<String> = n
+        .table_mode()
+        .unwrap()
+        .shown_columns(table)
+        .into_iter()
+        .map(|c| table.columns[c].label.clone())
+        .collect();
+    let f = order.iter().position(|l| l == "Function text").unwrap();
+    assert!(f > 2, "Function text moved right: {order:?}");
+    h.key_press(Key::Escape);
+    settle(&mut h);
+    h.state_mut().shell_mut().shutdown();
+}

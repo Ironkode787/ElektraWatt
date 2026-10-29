@@ -372,9 +372,15 @@ impl NavigatorPane {
             let writable =
                 ew_viewmodel::actions::find("table.edit").is_some_and(|a| (a.enabled)(shell).is_ok());
             let preview = shell.pattern_preview(self.kind).map(|(_, v)| v);
-            self.table
+            let has_rows = self
+                .table
                 .show(ui, nav, writable, preview, (list_id, ours), events);
             self.painted = self.table.painted;
+            // FT-532: table mode without rows says why, as the tree does (doc 16a §6.17, CP5).
+            if !has_rows {
+                self.view = 0..0;
+                self.empty_state(ui, false, events);
+            }
             return;
         }
         // WP-S2.17 part 4 (CP5, doc 16a §6.17; K32): an empty list says why and what to do, once its rows are built.

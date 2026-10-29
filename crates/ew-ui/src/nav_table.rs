@@ -68,7 +68,8 @@ fn column_key(table: &NavTable, shown: &[usize], i: usize) -> Option<String> {
 
 impl TableUi {
     /// Paints the table of navigator `nav` (in table mode) into `ui`; `focus` is the focusable table node and whether
-    /// the shell's focus is on this navigator.
+    /// the shell's focus is on this navigator. Returns `false` when the table has no row to show, so that the caller
+    /// paints its empty state (doc 16a §6.17, FT-532) where the grid would be.
     pub(crate) fn show(
         &mut self,
         ui: &mut Ui,
@@ -77,11 +78,11 @@ impl TableUi {
         preview: Option<Result<Vec<String>, String>>,
         focus: (egui::Id, bool),
         events: &mut Vec<Event>,
-    ) {
+    ) -> bool {
         let (table_id, ours) = focus;
         let kind = nav.kind;
         let (Some(table), Some(mode)) = (nav.table(), nav.table_mode()) else {
-            return;
+            return true;
         };
         let shown = mode.shown_columns(table);
         let rows = nav.visible();
@@ -104,6 +105,12 @@ impl TableUi {
         }
         // The pattern fill dialog (§8.5).
         self.pattern_dialog(ui, nav, preview, events);
+        // FT-532: no row (an empty navigator, or a filter without hits): the caller's empty state, not a bare header.
+        if rows.is_empty() {
+            self.painted = 0;
+            self.scrolled_to = None;
+            return false;
+        }
         // The cell editor's buffer follows the shell's while the editor does not have the keyboard.
         let edit = mode
             .edit()
@@ -224,6 +231,17 @@ impl TableUi {
             }
         });
         self.painted = delegate.painted;
+        // Doc 16a §6.21 (FT-532): the grid is the focusable node, so while it has the keyboard the focus ring of §6.1
+        // (2-px `color.focus`, `radius.sm`) is drawn around the whole grid, inset 1 px into the pane.
+        if focused {
+            ui.painter().rect_stroke(
+                area.shrink(1.0),
+                theme::radius(tokens.radius_sm),
+                theme::stroke(tokens.focus_width, tokens.focus),
+                StrokeKind::Inside,
+            );
+        }
+        true
     }
 }
 
@@ -269,9 +287,9 @@ pub(crate) fn chooser(ui: &mut Ui, nav: &Navigator, events: &mut Vec<Event>) {
                 }
                 if let Some(at) = movable.iter().position(|k| *k == c.key) {
                     let mut order = movable.clone();
-                    let left = ui.add_enabled(at > 0, egui::Button::new(strings::text("table-move-left")));
+                    // Doc 16a §6.21: two 24-px icon buttons, `arrow-left` and `arrow-right` (FT-536).
                     let name = strings::format("table-move-left-name", &[&c.label]);
-                    left.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, at > 0, &name));
+                    let left = crate::components::icon_toggle(ui, IconId::arrow_left, &name, at > 0, None);
                     if left.clicked() {
                         order.swap(at, at - 1);
                         events.push(Event::Action(
@@ -280,9 +298,8 @@ pub(crate) fn chooser(ui: &mut Ui, nav: &Navigator, events: &mut Vec<Event>) {
                         ));
                     }
                     let last = at + 1 < movable.len();
-                    let right = ui.add_enabled(last, egui::Button::new(strings::text("table-move-right")));
                     let name = strings::format("table-move-right-name", &[&c.label]);
-                    right.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, last, &name));
+                    let right = crate::components::icon_toggle(ui, IconId::arrow_right, &name, last, None);
                     if right.clicked() {
                         let mut order = movable.clone();
                         order.swap(at, at + 1);
