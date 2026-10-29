@@ -12,8 +12,8 @@ use ew_ids::{EntropyError, Id, IdSource, UnixTime, Uuid, V7Generator};
 use ew_model::{AnyKey, AnyRow, Asset, EndpointKey, Entity, Model, Op, Rev, RowId};
 use ew_schema::{
     AnyId, AssetError, AssetRef, Bond, Channel, Conductor, Connection, Device, Endpoint, ExternalRef, FnDef,
-    FormDef, Function, ImportLineage, Junction, Kind, LibCopy, Page, Part, PotentialDef, Project,
-    ReportBlock, Representation, Section, Sha256, StructureNode, SymbolDef,
+    FormDef, Function, ImportLineage, Junction, Kind, LibCopy, MacroInstance, Page, Part, PotentialDef,
+    Project, ReportBlock, Representation, Section, Sha256, StructureNode, SymbolDef,
 };
 use sha2::Digest;
 
@@ -58,6 +58,9 @@ pub enum IndexRead {
     /// `PageItem.kind.wire_marker.connections[]` → the wire markers listing a connection (the generic referrer
     /// index of the link).
     MarkersOfConnection(Id<Connection>),
+    /// `MacroInstance.members[][1]` → the macro instances listing a record as a member (the generic referrer index
+    /// of the kind-erased link, keyed under its nominal kind `Page`).
+    MacroInstancesOfMember(AnyId),
 }
 
 /// The referrers of `target` through the link `from.field`, in ID order (the generic referrer index serves
@@ -125,6 +128,9 @@ impl IndexRead {
                 "kind.wire_marker.connections[]",
                 (Kind::Connection, c.cast()),
             ),
+            IndexRead::MacroInstancesOfMember(m) => {
+                referrers_through(idx, Kind::MacroInstance, "members[][1]", (Kind::Page, m))
+            }
         };
         ids
     }
@@ -593,6 +599,14 @@ impl<'a> TxBuilder<'a> {
         })
     }
 
+    /// The macro instances that list `member` (a record of a kind of [`ew_model::MACRO_MEMBER_KINDS`]) among their
+    /// members, in ID order.
+    pub fn macro_instances_of_member(&self, member: AnyId) -> Vec<Id<MacroInstance>> {
+        self.indexed::<MacroInstance>(IndexRead::MacroInstancesOfMember(member), |mi| {
+            mi.members.iter().any(|(_, created)| *created == member)
+        })
+    }
+
     /// The next free counter for `letter` in `scope` (FR-NUM-007); see [`crate::numbering`].
     pub fn next_free_counter(&self, letter: &ew_mltext::Ident, scope: crate::numbering::CounterScope) -> u32 {
         crate::numbering::next_free_counter(self, letter, scope, None)
@@ -650,7 +664,10 @@ impl<'a> TxBuilder<'a> {
 
     /// Removes a row without consulting the delete policies. The caller guarantees that nothing still
     /// names it at the end of the transaction (the structural invariants check it anyway, and so does the
-    /// delete-time rule EW-INV-021 for a library copy named through a `LibRef`).
+    /// delete-time rule EW-INV-021 for a library copy named through a `LibRef`), with one exception it takes care
+    /// of itself: a record of a kind of [`ew_model::MACRO_MEMBER_KINDS`] leaves every macro instance that lists it
+    /// (the unlink policy of `macro_instance.members[][1]`, WP-S1.19 §6.1), so the normalisers' direct removals
+    /// (a dissolved junction, a merged connection, an emptied wire marker) do not each need to know the link.
     pub fn remove_row(&mut self, key: AnyKey) {
         if !self.pending.contains_key(&key) {
             let present = self.base.row(&key).is_some();
@@ -658,6 +675,23 @@ impl<'a> TxBuilder<'a> {
         }
         self.stale.insert(key);
         self.pending.insert(key, None);
+        if ew_model::MACRO_MEMBER_KINDS.contains(&key.0) {
+            self.unlink_macro_member(key.1);
+        }
+    }
+
+    /// Takes `member` out of every macro instance that lists it; the instance stays, even when left empty.
+    fn unlink_macro_member(&mut self, member: AnyId) {
+        for mi in self.macro_instances_of_member(member) {
+            let Some(row) = self.get::<MacroInstance>(mi) else {
+                continue;
+            };
+            let mut next = (*row).clone();
+            next.members.retain(|(_, created)| *created != member);
+            if next != *row {
+                self.put(next);
+            }
+        }
     }
 
     /// Takes `connection` out of the wire markers that list it, except those on `keep_on` (the page it lies on
@@ -924,6 +958,18 @@ mod tests {
                 "Channel.{field} is served by the generic referrer index"
             );
         }
+    }
+
+    /// The macro-member read keys the generic referrer index under the kind-erased link's nominal `to`.
+    #[test]
+    fn the_referrer_link_of_the_macro_member_read_exists() {
+        let link = ew_model::LINKS
+            .iter()
+            .find(|l| l.from == Kind::MacroInstance && l.field == "members[][1]")
+            .expect("MacroInstance.members[][1] is a declared link");
+        assert_eq!(link.to, Kind::Page);
+        assert_eq!(link.kind_erased, ew_model::MACRO_MEMBER_KINDS);
+        assert!(!link.indexed());
     }
 
     #[cfg(debug_assertions)]

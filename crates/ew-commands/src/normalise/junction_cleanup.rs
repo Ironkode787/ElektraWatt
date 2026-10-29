@@ -25,7 +25,8 @@
 //! Potential definitions and bonds at a removed junction are dropped, and bonds realised by a removed
 //! connection lose their `via`, as the delete policies prescribe (doc 03 §4.2). The removals are written
 //! directly rather than through `Model::delete_plan`, because the transaction is in a transient state
-//! here. Wire-number transfer to the kept member is normaliser #11 (not in v0).
+//! here; `TxBuilder::remove_row` takes every removed record out of the macro instances that list it (the unlink of
+//! `macro_instance.members[][1]`). Wire-number transfer to the kept member is normaliser #11 (not in v0).
 
 use std::collections::BTreeSet;
 

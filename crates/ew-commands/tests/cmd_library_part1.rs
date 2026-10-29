@@ -3,8 +3,9 @@
 
 //! WP-S1.19 part 1 (L1-4) at the command layer: `library.embed` of manufacturer and macro copies with the checks
 //! of the other kinds, and the links of a `macro_instance` under `page.delete` and `edit.delete` (the page
-//! cascades, a deleted member is unlinked, undo restores both). No command creates an instance yet: the tests
-//! load one with the model.
+//! cascades, a deleted member is unlinked, undo restores both), and the normaliser's direct removals (a dissolved
+//! junction, a merged connection, an emptied wire marker) under `connection.delete`. No command creates an instance
+//! yet: the tests load one with the model.
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
 
@@ -13,12 +14,16 @@ mod common;
 use common::fixture::*;
 use common::*;
 use ew_commands::commands::{
-    DeletePages, DeleteSelection, EmbedLibraryCopies, KindName, TargetRef, library_copy_hash,
+    DeleteConnections, DeletePages, DeleteSelection, EmbedLibraryCopies, KindName, TargetRef,
+    library_copy_hash,
 };
 use ew_commands::{CmdError, DynCommand, Engine, Origin, Receipt};
 use ew_ids::Id;
 use ew_model::{Entity, Model};
-use ew_schema::{AnyId, Kind, LibCopy, LibDocument, MacroDef, MacroInstance, Manufacturer, Record};
+use ew_schema::{
+    AnyId, Kind, LibCopy, LibDocument, MacroDef, MacroInstance, Manufacturer, MarkerField, PageItem,
+    PageItemKind, Record, WireMarker,
+};
 use serde_json::{Value, json};
 
 /// The library the copies of these tests come from (not the project's, so not project-local).
@@ -236,10 +241,19 @@ fn library_embed_checks_manufacturer_and_macro_copies_like_the_others() {
 /// The mini golden model plus the macro copy and an instance on page 102 whose members are the device
 /// `-G1` and the representation of `-F2`.
 fn model_with_instance() -> Model {
+    model_with_members(
+        vec![(id(LOCAL_G1), DEV_102G1.cast()), (id(LOCAL_F2), REP_102F2.cast())],
+        Vec::new(),
+    )
+}
+
+/// The mini golden model plus the macro copy, the `extra` records and an instance on page 102 listing `members`.
+fn model_with_members(members: Vec<(AnyId, AnyId)>, extra: Vec<Record>) -> Model {
     let (p, mut records, _) = mini_golden_parts();
     let (mac, mac_json) = macro_copy();
     let mut lib = library();
     lib.push(LibDocument::from_value(mac_json).expect("the macro copy"));
+    records.extend(extra);
     records.push(Record::MacroInstance(MacroInstance {
         id: INSTANCE,
         v: 1,
@@ -247,7 +261,7 @@ fn model_with_instance() -> Model {
         variant: ident("A"),
         value_set: Some(ident("1")),
         values: [("counter".to_owned(), json!(1))].into_iter().collect(),
-        members: vec![(id(LOCAL_G1), DEV_102G1.cast()), (id(LOCAL_F2), REP_102F2.cast())],
+        members,
         page: PAGE_102,
         extra: Default::default(),
     }));
@@ -322,6 +336,98 @@ fn edit_delete_of_a_member_unlinks_it_and_keeps_the_instance() {
     .expect("edit.delete");
     assert_eq!(instance(&e).expect("the instance stays").members, vec![]);
     e.undo(&Origin::Gui).expect("undo");
+    e.undo(&Origin::Gui).expect("undo");
+    assert_eq!(
+        lines(e.model()),
+        before,
+        "undo restores the members byte for byte"
+    );
+}
+
+/// A wire marker on page 102 listing `connections`.
+fn wire_marker(item: Id<PageItem>, connections: Vec<Id<ew_schema::Connection>>) -> Record {
+    Record::PageItem(PageItem {
+        id: item,
+        v: 1,
+        page: PAGE_102,
+        layer: None,
+        kind: PageItemKind::WireMarker(WireMarker {
+            connections,
+            at: pt(10_000_000, 10_000_000),
+            angle: ew_units::Angle2::ZERO,
+            fields: vec![MarkerField::Csa],
+            extra: Default::default(),
+        }),
+        extra: Default::default(),
+    })
+}
+
+/// Deleting a wire so a junction dissolves (normaliser #8 removes the junction and merges the second member into
+/// the kept one): the removed junction and connection leave the instance that lists them, the edit commits (no
+/// EW-INV-001), the instance and its other members stay, and undo restores everything (WP-S1.19 §6.1).
+#[test]
+fn a_dissolving_junction_leaves_the_instance_that_lists_it() {
+    let members = vec![
+        (id(0xb110), J5.cast()),
+        (id(0xb111), CON_W22.cast()),
+        (id(LOCAL_G1), DEV_102G1.cast()),
+    ];
+    let mut e = engine(model_with_members(members, Vec::new()));
+    let before = lines(e.model());
+    e.execute(&DeleteConnections {
+        connections: vec![CON_W27],
+    })
+    .expect("connection.delete commits although the instance lists the dissolved junction");
+    assert!(e.model().table::<ew_schema::Junction>().get(&J5).is_none());
+    assert!(e.model().table::<ew_schema::Connection>().get(&CON_W22).is_none());
+    assert_eq!(
+        instance(&e).expect("the instance stays").members,
+        vec![(id(LOCAL_G1), DEV_102G1.cast())],
+        "the junction and the merged connection leave the instance"
+    );
+    e.undo(&Origin::Gui).expect("undo");
+    assert_eq!(
+        lines(e.model()),
+        before,
+        "undo restores the members byte for byte"
+    );
+}
+
+/// Deleting two of a junction's three wires removes the junction with its last connection, and the wire marker
+/// that listed only that connection is removed as empty: all three leave the instance, which stays.
+#[test]
+fn a_removed_junction_its_last_wire_and_an_emptied_marker_leave_the_instance() {
+    let marker: Id<PageItem> = id(0xb120);
+    let members = vec![
+        (id(0xb110), J5.cast()),
+        (id(0xb111), CON_J5_IN.cast()),
+        (id(0xb112), marker.cast()),
+        (id(LOCAL_G1), DEV_102G1.cast()),
+    ];
+    let mut e = engine(model_with_members(
+        members,
+        vec![wire_marker(marker, vec![CON_J5_IN])],
+    ));
+    let before = lines(e.model());
+    e.execute(&DeleteConnections {
+        connections: vec![CON_W27, CON_W22],
+    })
+    .expect("connection.delete commits although the instance lists the removed records");
+    assert!(e.model().table::<ew_schema::Junction>().get(&J5).is_none());
+    assert!(
+        e.model()
+            .table::<ew_schema::Connection>()
+            .get(&CON_J5_IN)
+            .is_none()
+    );
+    assert!(
+        e.model().table::<PageItem>().get(&marker).is_none(),
+        "the marker left empty goes"
+    );
+    assert_eq!(
+        instance(&e).expect("the instance stays").members,
+        vec![(id(LOCAL_G1), DEV_102G1.cast())]
+    );
     e.undo(&Origin::Gui).expect("undo");
     assert_eq!(
         lines(e.model()),
