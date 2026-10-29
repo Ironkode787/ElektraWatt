@@ -187,7 +187,8 @@ fn a_list_imports_into_a_project_through_its_saved_map() {
 
     let input = read_input(&write_file(&root.0, "supplier-a.csv", LIST), &Limits::default()).unwrap();
     let master = catalog::manufacturer_master(s.libraries());
-    assert_eq!(master.len(), 2, "the company library's manufacturers");
+    // The company library's two manufacturers and the system library's "Generic" (WP-S2.18 D5).
+    assert_eq!(master.len(), 3, "the master list of every tier");
     let (import, cmd) = s
         .catalog_parts(&input, &loaded, &master, date("2026-10-29"))
         .unwrap();
