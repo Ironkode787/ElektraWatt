@@ -522,9 +522,8 @@ pub(super) fn record_title(q: &Q, id: Uuid, source: Option<&str>) -> Option<Stri
         // G-PP triage row 12: a page item is named by its kind in words (`wire marker`, `free text`), not `page_item`.
         Kind::PageItem => json
             .get("kind")
-            .and_then(|k| k.as_object())
-            .and_then(|k| k.keys().next().cloned())
-            .map_or_else(|| kind.name().to_owned(), |k| k.replace('_', " ")),
+            .and_then(page_item_kind_words)
+            .unwrap_or_else(|| kind.name().to_owned()),
         _ => json
             .get("name")
             .or_else(|| json.get("label"))
@@ -533,6 +532,18 @@ pub(super) fn record_title(q: &Q, id: Uuid, source: Option<&str>) -> Option<Stri
             .map(|v| ml_text(v, source))
             .unwrap_or_else(|| kind.name().to_owned()),
     })
+}
+
+/// A page item's kind in words (`wire marker`, `free text`) from its stored `kind`: the tag of the object form
+/// (`{"wire_marker": {…}}`) or the string form a variant without a body takes (`"underlay"`), as
+/// `PageItemKind::name` reads them. `None` for any other form.
+fn page_item_kind_words(kind: &Value) -> Option<String> {
+    let name = match kind {
+        Value::Object(m) if m.len() == 1 => m.keys().next()?.as_str(),
+        Value::String(s) => s.as_str(),
+        _ => return None,
+    };
+    Some(name.replace('_', " "))
 }
 
 /// The device's tag as displayed on its main page, else its short tag.
@@ -2050,6 +2061,23 @@ mod tests {
             vec![RowAction::Freeze],
         );
         assert_eq!(built.row.actions, [RowAction::Freeze]);
+    }
+
+    /// Cycle 33 review finding 13: a page item's kind in words from the object form and the string form.
+    #[test]
+    fn page_item_kinds_in_words() {
+        use serde_json::json;
+        assert_eq!(
+            page_item_kind_words(&json!({"wire_marker": {"connections": []}})).as_deref(),
+            Some("wire marker")
+        );
+        assert_eq!(
+            page_item_kind_words(&json!("surface_view")).as_deref(),
+            Some("surface view")
+        );
+        assert_eq!(page_item_kind_words(&json!({})), None);
+        assert_eq!(page_item_kind_words(&json!({"a": 1, "b": 2})), None);
+        assert_eq!(page_item_kind_words(&json!(7)), None);
     }
 
     #[test]
