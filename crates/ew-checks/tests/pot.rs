@@ -251,6 +251,35 @@ fn pot001_agreeing_definitions_have_no_finding() {
     assert!(findings_of(&m, "EW-POT-001").is_empty());
 }
 
+/// FT-587 (ID-677): the flow conflict names the pass-through function by its device tag, not by an ID, so the text
+/// is the same whichever IDs the records carry.
+#[test]
+fn ft587_the_flow_conflict_names_the_pass_through_by_its_tag() {
+    let mut messages = Vec::new();
+    for (a, b, pass) in [(0x1001, 0x1002, 0x1003), (0x1003, 0x1001, 0x1002)] {
+        let mut fx = Fx::base();
+        fx.func_tagged(a, 1, P1);
+        fx.func_tagged(b, 2, P1);
+        fx.pass_tagged(pass, 7, P1);
+        fx.conn(0x2001, P1, cp(a), Ep::Cp(pass, 0), &none());
+        fx.conn(0x2002, P1, Ep::Cp(pass, 1), cp(b), &none());
+        fx.def(0x5001, cp(a), &json!({"ptype": "l_plus"}));
+        fx.def(0x5002, cp(b), &json!({"ptype": "n"}));
+        let f = findings_of(&fx.build(), "EW-POT-001");
+        assert_eq!(f.len(), 1, "{f:#?}");
+        assert!(f[0].message.contains("K7"), "{}", f[0].message);
+        for n in [0x1001, 0x1002, 0x1003] {
+            assert!(
+                !f[0].message.contains(&us(n)),
+                "no ID in the text: {}",
+                f[0].message
+            );
+        }
+        messages.push(f[0].message.clone());
+    }
+    assert_eq!(messages[0], messages[1]);
+}
+
 #[test]
 fn pot001_flow_reports_a_pass_through_between_different_types() {
     let mut fx = Fx::base();

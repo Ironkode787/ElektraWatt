@@ -278,6 +278,13 @@ impl Fx {
         self.func_of(n, FNDEF_PASS, SYM_PASS, page);
     }
 
+    /// A pass-through function `n` drawn on `page`, whose device (`n + 0x20000`) is tagged `-K<counter>`.
+    pub fn pass_tagged(&mut self, n: u128, counter: u32, page: u128) {
+        self.device(n + 0x20_000, "K", Some(counter));
+        self.push(json!({"$k": "function", "id": us(n), "device": us(n + 0x20_000), "def": us(FNDEF_PASS)}));
+        self.rep(n, SYM_PASS, page);
+    }
+
     /// An interruption point `n` named `name` (direction `dir`) drawn on `page`, with a connection point.
     pub fn ip(&mut self, n: u128, page: u128, name: &str, dir: &str) {
         self.ip_of(n, (FNDEF_IP, SYM_IP), page, name, dir);

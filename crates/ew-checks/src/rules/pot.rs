@@ -343,14 +343,20 @@ impl Rule for TypeOrVoltageConflict {
         }
         let flow = q.get::<FlowBfs>(());
         for c in flow.conflicts.iter().filter(|c| c.a == p) {
+            // The device tag, never the function's ID: no finding text depends on IDs (WP-S1.16 §10.1, ID-677).
+            let tag = q
+                .functions()
+                .get(c.function)
+                .and_then(|f| f.device)
+                .map_or_else(|| "?".to_owned(), |d| full_tag(q, d, "?"));
             out.push(pt.finding(
                 &TYPE_OR_VOLTAGE_CONFLICT,
                 &[Target::new(Kind::Function, c.function)],
                 format!("flow{suffix}"),
                 potential_name(q, p),
                 format!(
-                    "pass-through of function {} joins type {} and type {} without a converting function",
-                    c.function, c.a_type, c.b_type
+                    "pass-through of function {tag} joins type {} and type {} without a converting function",
+                    c.a_type, c.b_type
                 ),
             ));
         }
