@@ -29,10 +29,7 @@ pub struct Tmp(pub PathBuf);
 
 impl Tmp {
     pub fn new() -> Tmp {
-        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
-        let dir = std::env::temp_dir().join(format!("ew-ui-test-{}-{n}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
-        Tmp(dir)
+        Tmp(fresh_dir(&std::env::temp_dir(), "ew-ui-test", &COUNTER))
     }
 
     pub fn config(&self) -> ShellConfig {
@@ -60,6 +57,23 @@ impl Tmp {
 impl Drop for Tmp {
     fn drop(&mut self) {
         let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
+
+/// A new, empty directory `<parent>/<stem>-<pid>-<n>` that this call created (FT-524, FT-538). A test process that is
+/// killed (a cancelled or timed-out run) leaves its directory behind with the project's lock, the journal, the
+/// settings and the dock layout in it; a later test process that gets the same PID (Windows and Linux reuse them)
+/// used to adopt it through `create_dir_all`, and opened the project read-only, with a recovery offer or another
+/// layout. `create_dir` fails on such a leftover, and the next number is taken instead; the leftover is not touched.
+pub fn fresh_dir(parent: &Path, stem: &str, counter: &AtomicU32) -> PathBuf {
+    loop {
+        let n = counter.fetch_add(1, Ordering::Relaxed);
+        let dir = parent.join(format!("{stem}-{}-{n}", std::process::id()));
+        match std::fs::create_dir(&dir) {
+            Ok(()) => return dir,
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(e) => panic!("cannot create the test directory {}: {e}", dir.display()),
+        }
     }
 }
 
@@ -121,6 +135,7 @@ pub fn settle(harness: &mut Harness<'_, App>) {
 /// Waits (bounded) for the render worker's image of the page on show.
 #[track_caller]
 pub fn wait_for_page(harness: &mut Harness<'_, App>) {
+    let started = ew_render2d::stats::now();
     for _ in 0..600 {
         harness.run_ok();
         if harness.state().page_view_ready() {
@@ -128,7 +143,15 @@ pub fn wait_for_page(harness: &mut Harness<'_, App>) {
         }
         std::thread::sleep(Duration::from_millis(20));
     }
-    panic!("the page image did not arrive");
+    // FT-524: what the next sighting needs to tell a slow worker from a project that opened otherwise.
+    let shell = harness.state().shell();
+    panic!(
+        "the page image did not arrive after {:?} (access {:?}, banner {:?}, folio {:?})",
+        started.elapsed(),
+        shell.access(),
+        shell.banner(),
+        shell.current_folio()
+    );
 }
 
 /// Waits (bounded) for the render worker's image of the wizard's preview.

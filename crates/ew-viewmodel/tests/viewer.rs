@@ -5,9 +5,12 @@
 //! V5, V9 and the model half of V10): the canvas area, walks, jumps and the per-tab history, the page navigator, the
 //! keyboard grid cursor, links, Go to, the transcript and describe members and the exact counts.
 
+#[path = "common/fresh_dir.rs"]
+mod fresh_dir;
+
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::AtomicU32;
 
 use ew_viewmodel::area::MAX_TABS;
 use ew_viewmodel::canvas::{AUTO_PAN_INSET, PageId, rect_centre};
@@ -18,17 +21,12 @@ use serde_json::{Value, json};
 
 const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
 
-static COUNTER: AtomicU32 = AtomicU32::new(0);
-
 /// A fresh temporary directory, removed on drop.
 struct Tmp(PathBuf);
 
 impl Tmp {
     fn new() -> Tmp {
-        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
-        let dir = std::env::temp_dir().join(format!("ew-vm-viewer-{}-{n}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
-        Tmp(dir)
+        Tmp(fresh_dir::fresh_dir("ew-vm-viewer"))
     }
 
     /// A headless shell with a copy of Golden A open (read-only unless `writable`).
@@ -944,4 +942,32 @@ fn a_tab_moved_across_the_groups_takes_its_new_groups_pane() {
     done(&mut shell, "tab.activate", json!({"group": 0, "index": last}));
     assert_eq!(shell.canvas_of(0).unwrap().pane(), (900.0, 700.0));
     shell.shutdown();
+}
+
+/// FT-524, FT-538 (the `v3` sighting): a killed test process leaves its directory behind with the project's lock in
+/// it; a later test process with the same PID used to adopt that directory (`create_dir_all`, and `Tmp::shell` skips
+/// the copy when the project exists), open the copy read-only and have its edits refused. A test directory is now
+/// always one this process created; the leftover is skipped and left alone.
+#[test]
+fn ft_524_a_leftover_of_a_killed_run_with_the_same_pid_is_not_adopted() {
+    let parent = Tmp::new();
+    // The killed run: its copy of Golden A open for editing, then gone without a shutdown (the lock stays).
+    let killed = Tmp(fresh_dir::fresh_dir_in(&parent.0, "run", &AtomicU32::new(0)));
+    Box::leak(Box::new(killed.shell(true)));
+    assert!(killed.0.join("J-E-2416.ew").join(".~ew.lock").is_file());
+    // Adopting the leftover (the old behaviour): the copy is read-only.
+    assert!(
+        !killed.shell(true).is_writable(),
+        "a leftover lock makes the copy read-only"
+    );
+    // The next process starts its numbers again: the leftover's name is skipped, the new directory is empty and its
+    // copy is writable.
+    let fresh = Tmp(fresh_dir::fresh_dir_in(&parent.0, "run", &AtomicU32::new(0)));
+    assert_ne!(fresh.0, killed.0);
+    assert_eq!(std::fs::read_dir(&fresh.0).unwrap().count(), 0);
+    assert!(fresh.shell(true).is_writable());
+    assert!(
+        killed.0.join("J-E-2416.ew").join(".~ew.lock").is_file(),
+        "the leftover is not touched"
+    );
 }

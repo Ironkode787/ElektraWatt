@@ -1421,8 +1421,7 @@ mod tests {
 
     #[test]
     fn the_logo_field_reads_its_file_and_reaches_the_company_command() {
-        let dir = std::env::temp_dir().join(format!("ew-wizard-logo-{}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
+        let dir = crate::shell::fresh_test_dir("ew-wizard-logo");
         let svg = dir.join("logo.svg");
         std::fs::write(
             &svg,
@@ -1495,8 +1494,7 @@ mod tests {
 
     #[test]
     fn a_refused_svg_logo_says_how_to_export_again() {
-        let dir = std::env::temp_dir().join(format!("ew-wizard-logo-svg-{}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
+        let dir = crate::shell::fresh_test_dir("ew-wizard-logo-svg");
         let cases = [
             (
                 r#"<?xml version="1.0"?><!DOCTYPE svg [ <!ENTITY ns_svg "http://www.w3.org/2000/svg"> ]><svg xmlns="&ns_svg;" viewBox="0 0 4 4"/>"#,

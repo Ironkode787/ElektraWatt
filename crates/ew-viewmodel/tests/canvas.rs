@@ -4,8 +4,10 @@
 //! The canvas model through the shell on a temporary copy of Golden A (WP-S2.02 part 1, acceptance checks A1, A2,
 //! A5, A8 and the model half of A9).
 
+#[path = "common/fresh_dir.rs"]
+mod fresh_dir;
+
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU32, Ordering};
 
 use ew_viewmodel::actions::{self, ACTIONS, Menu, Submenu};
 use ew_viewmodel::canvas::{CanvasBackend, ZOOM_MAX, ZOOM_MIN, rect_centre};
@@ -15,17 +17,12 @@ use serde_json::{Value, json};
 
 const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
 
-static COUNTER: AtomicU32 = AtomicU32::new(0);
-
 /// A fresh temporary directory, removed on drop.
 struct Tmp(PathBuf);
 
 impl Tmp {
     fn new() -> Tmp {
-        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
-        let dir = std::env::temp_dir().join(format!("ew-vm-canvas-{}-{n}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
-        Tmp(dir)
+        Tmp(fresh_dir::fresh_dir("ew-vm-canvas"))
     }
 
     /// A headless shell with Golden A (a copy) open read-only on folio 103.

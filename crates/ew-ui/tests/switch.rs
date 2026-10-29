@@ -7,13 +7,15 @@
 
 mod support;
 
+use std::sync::atomic::AtomicU32;
+
 use egui_kittest::Harness;
 use ew_ui::app::App;
 use ew_ui::ew_viewmodel::layout::PaneKind;
 use ew_ui::ew_viewmodel::shell::Outcome;
 use ew_ui::gpu::{AdapterSummary, DeviceKind, GpuApi, GpuError};
 use serde_json::json;
-use support::{Scripted, Tmp, harness, settle, wait_for_page};
+use support::{Scripted, Tmp, fresh_dir, harness, settle, wait_for_page};
 
 /// A harness with a copy of Golden A open on folio 103, its canvas drawn.
 fn on_103(tmp: &Tmp) -> Harness<'static, App> {
@@ -250,4 +252,44 @@ fn a_project_switch_at_the_same_revision_and_folio_is_a_new_tile_scene() {
     );
     wait_for_page(&mut h);
     assert!(h.state().page_view_ready());
+}
+
+/// FT-524, FT-538 (this file's `b5_warp…` sighting): `view.cpu_canvas` saves `canvas_backend = "cpu"` at once, so a
+/// run of `b5_an_injected_device_loss…` killed between its two toggles leaves that setting in its directory. A later
+/// test process with the same PID used to adopt the directory, and its WARP adapter then drew on the CPU. A test
+/// directory is now always one this process created; the leftover is skipped and left alone.
+#[test]
+fn ft_524_a_leftover_of_a_killed_run_with_the_same_pid_is_not_adopted() {
+    let parent = Tmp::new();
+    let warp = || AdapterSummary {
+        kind: DeviceKind::Cpu,
+        api: GpuApi::Dx12,
+        name: "Microsoft Basic Render Driver".into(),
+    };
+    // The killed run's directory, its CPU canvas setting saved.
+    let killed = Tmp(fresh_dir(&parent.0, "ew-ui-test", &AtomicU32::new(0)));
+    std::fs::create_dir_all(killed.0.join("config")).unwrap();
+    std::fs::write(
+        killed.0.join("config").join("settings.toml"),
+        "version = 1\ncanvas_backend = \"cpu\"\n",
+    )
+    .unwrap();
+    // Adopting it (the old behaviour): WARP is not chosen.
+    let mut adopted = on_103(&killed);
+    adopted.state_mut().gpu_host_mut().simulate(warp(), Ok(()));
+    settle(&mut adopted);
+    assert_eq!(backend(&adopted), "CPU", "the leftover's setting");
+    drop(adopted);
+    // The next process starts its numbers again: the leftover's name is skipped and the new directory is empty.
+    let fresh = Tmp(fresh_dir(&parent.0, "ew-ui-test", &AtomicU32::new(0)));
+    assert_ne!(fresh.0, killed.0);
+    assert_eq!(std::fs::read_dir(&fresh.0).unwrap().count(), 0);
+    let mut h = on_103(&fresh);
+    h.state_mut().gpu_host_mut().simulate(warp(), Ok(()));
+    settle(&mut h);
+    assert_eq!(backend(&h), "WARP");
+    assert!(
+        killed.0.join("config").join("settings.toml").is_file(),
+        "the leftover is not touched"
+    );
 }

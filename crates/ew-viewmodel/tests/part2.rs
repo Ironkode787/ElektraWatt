@@ -5,8 +5,10 @@
 //! QElectroTech import and the tutorials copy (FT-312), the journal discard (FT-313's first part), first run, the
 //! company-standard wizard with its preview (FT-308), workspaces (FT-309), F1 and the quick switches (FT-311).
 
+#[path = "common/fresh_dir.rs"]
+mod fresh_dir;
+
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU32, Ordering};
 
 use ew_viewmodel::ew_api::Session;
 use ew_viewmodel::shell::{AccessMode, Dialog, Mode, Outcome, Resources, ShellConfig, ShellModel};
@@ -16,17 +18,12 @@ const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-24
 const CONTENT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../content");
 const VERSION: &str = "0.0.0-test";
 
-static COUNTER: AtomicU32 = AtomicU32::new(0);
-
 /// A fresh temporary directory, removed on drop.
 struct Tmp(PathBuf);
 
 impl Tmp {
     fn new() -> Tmp {
-        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
-        let dir = std::env::temp_dir().join(format!("ew-vm2-test-{}-{n}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
-        Tmp(dir)
+        Tmp(fresh_dir::fresh_dir("ew-vm2-test"))
     }
 
     fn resources() -> Resources {

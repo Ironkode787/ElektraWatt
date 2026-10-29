@@ -802,6 +802,65 @@ fn keeps_link_preview(id: &str) -> bool {
     )
 }
 
+/// A new, empty directory `<temp>/<stem>-<pid>-<n>` that this call created (unit tests of this crate; FT-524,
+/// FT-538). A killed test process leaves its directory behind (settings, a journal, a project's lock); a later process
+/// with the same PID used to adopt it. `create_dir` fails on such a leftover and the next number is taken instead.
+#[cfg(test)]
+pub(crate) fn fresh_test_dir(stem: &str) -> PathBuf {
+    static N: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+    fresh_dir_in(&std::env::temp_dir(), stem, &N)
+}
+
+/// [`fresh_test_dir`] under `parent` with the numbers of `counter`.
+#[cfg(test)]
+fn fresh_dir_in(parent: &Path, stem: &str, counter: &std::sync::atomic::AtomicU32) -> PathBuf {
+    loop {
+        let n = counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let dir = parent.join(format!("{stem}-{}-{n}", std::process::id()));
+        match std::fs::create_dir(&dir) {
+            Ok(()) => return dir,
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(e) => panic!("cannot create the test directory {}: {e}", dir.display()),
+        }
+    }
+}
+
+#[cfg(test)]
+mod fresh_dir_tests {
+    use std::sync::atomic::AtomicU32;
+
+    use super::{fresh_dir_in, fresh_test_dir};
+
+    /// FT-524, FT-538: a leftover directory of the same PID and number (a killed run's settings and project lock) is
+    /// skipped, not adopted, and left as it was.
+    #[test]
+    fn a_leftover_directory_of_the_same_pid_is_not_adopted() {
+        let parent = fresh_test_dir("ew-fresh-dir");
+        let pid = std::process::id();
+        let leftover = parent.join(format!("t-{pid}-0"));
+        std::fs::create_dir_all(leftover.join("g.ew")).unwrap();
+        std::fs::write(leftover.join("g.ew").join(".~ew.lock"), "{}\n").unwrap();
+        std::fs::write(leftover.join("settings.toml"), "canvas_backend = \"cpu\"\n").unwrap();
+        let counter = AtomicU32::new(0);
+        let dir = fresh_dir_in(&parent, "t", &counter);
+        assert_eq!(dir, parent.join(format!("t-{pid}-1")));
+        assert_eq!(
+            std::fs::read_dir(&dir).unwrap().count(),
+            0,
+            "a new, empty directory"
+        );
+        assert!(
+            leftover.join("g.ew").join(".~ew.lock").is_file(),
+            "the leftover is not touched"
+        );
+        assert_eq!(
+            fresh_dir_in(&parent, "t", &counter),
+            parent.join(format!("t-{pid}-2"))
+        );
+        std::fs::remove_dir_all(&parent).unwrap();
+    }
+}
+
 /// Whether `EW_CONFIG_DIR` is set.
 fn config_dir_overridden() -> bool {
     settings::env_path("EW_CONFIG_DIR").is_some()
@@ -889,13 +948,7 @@ impl ShellModel {
     /// A headless shell with settings in a fresh temporary directory (unit tests of this crate).
     #[cfg(test)]
     pub(crate) fn for_tests() -> ShellModel {
-        use std::sync::atomic::{AtomicU32, Ordering};
-        static N: AtomicU32 = AtomicU32::new(0);
-        let dir = std::env::temp_dir().join(format!(
-            "ew-shell-test-{}-{}",
-            std::process::id(),
-            N.fetch_add(1, Ordering::Relaxed)
-        ));
+        let dir = fresh_test_dir("ew-shell-test");
         ShellModel::new(Mode::Headless, ShellConfig::in_dir(&dir, "0.0.0-test"))
     }
 

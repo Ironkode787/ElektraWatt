@@ -9,7 +9,6 @@
 mod common;
 
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU32, Ordering};
 
 use ew_viewmodel::navigator::{NavMode, PageNavigator, RowKind};
 use ew_viewmodel::navigators::{NavKind, NavRole};
@@ -19,17 +18,12 @@ use serde_json::{Value, json};
 const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
 const EXPECTED: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/expected");
 
-static COUNTER: AtomicU32 = AtomicU32::new(0);
-
 /// A fresh temporary directory, removed on drop.
 struct Tmp(PathBuf);
 
 impl Tmp {
     fn new() -> Tmp {
-        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
-        let dir = std::env::temp_dir().join(format!("ew-vm-navigators-{}-{n}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
-        Tmp(dir)
+        Tmp(common::fresh_dir::fresh_dir("ew-vm-navigators"))
     }
 
     /// A headless shell with a copy of Golden A open (read-only unless `writable`).

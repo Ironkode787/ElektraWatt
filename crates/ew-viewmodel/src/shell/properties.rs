@@ -1669,7 +1669,8 @@ mod tests {
     #[test]
     fn a_human_only_command_is_refused_before_its_preview() {
         let mut shell = ShellModel::for_tests();
-        let dir = std::env::temp_dir().join(format!("ew-d4-{}", std::process::id()));
+        let base = crate::shell::fresh_test_dir("ew-d4");
+        let dir = base.join("g.ew");
         let golden = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew");
         copy_dir(&golden, &dir);
         assert_eq!(
@@ -1735,7 +1736,7 @@ mod tests {
             "bad"
         );
         shell.shutdown();
-        let _ = std::fs::remove_dir_all(&dir);
+        let _ = std::fs::remove_dir_all(&base);
     }
 
     /// FT-404: the shell's undo and redo carry its origin. A `project.checks.set` step committed from the GUI is
@@ -1744,8 +1745,8 @@ mod tests {
     #[test]
     fn a_human_only_step_is_undone_only_in_the_window() {
         let mut shell = ShellModel::for_tests();
-        let dir = std::env::temp_dir().join(format!("ew-ft404-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&dir);
+        let base = crate::shell::fresh_test_dir("ew-ft404");
+        let dir = base.join("g.ew");
         let golden = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew");
         copy_dir(&golden, &dir);
         assert_eq!(
@@ -1792,6 +1793,6 @@ mod tests {
         assert_eq!(shell.dispatch("edit.redo", &Value::Null), Outcome::Done);
         assert_eq!(cursor(&shell), applied);
         shell.shutdown();
-        let _ = std::fs::remove_dir_all(&dir);
+        let _ = std::fs::remove_dir_all(&base);
     }
 }

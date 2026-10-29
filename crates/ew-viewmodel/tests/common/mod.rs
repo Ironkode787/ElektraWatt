@@ -7,7 +7,6 @@
 #![allow(dead_code)]
 
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU32, Ordering};
 
 use ew_viewmodel::canvas::{CanvasModel, HOVER_SLOP_PT, pick, rect_centre};
 use ew_viewmodel::script;
@@ -16,17 +15,14 @@ use serde_json::{Value, json};
 
 pub const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
 
-static COUNTER: AtomicU32 = AtomicU32::new(0);
+pub mod fresh_dir;
 
 /// A fresh temporary directory, removed on drop.
 pub struct Tmp(pub PathBuf);
 
 impl Tmp {
     pub fn new(tag: &str) -> Tmp {
-        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
-        let dir = std::env::temp_dir().join(format!("ew-vm-{tag}-{}-{n}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
-        Tmp(dir)
+        Tmp(fresh_dir::fresh_dir(&format!("ew-vm-{tag}")))
     }
 
     /// A shell in `mode` with a copy of Golden A open (read-only unless `writable`), showing `folio`.
