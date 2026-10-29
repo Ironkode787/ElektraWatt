@@ -1212,6 +1212,11 @@ pub(crate) trait ParseCx {
     fn company_codes(&self) -> Vec<(String, String)>;
     /// The part copies.
     fn part_copies(&self) -> Vec<PartCopyText>;
+    /// The system libraries' parts the project does not hold, which a Parts row may choose (WP-S2.18 D6); their `id`
+    /// is the copy ID choosing one gives. Empty by default.
+    fn library_parts(&self) -> Vec<PartCopyText> {
+        Vec::new()
+    }
     /// The structure nodes of the aspect of a slot named `member` (`location`): (ID, printed code path, aliases).
     fn slot_nodes(&self, member: &str) -> Vec<(String, String, Vec<String>)>;
 }
@@ -1616,6 +1621,7 @@ pub(crate) fn find_part(cx: &dyn ParseCx, text: &str, kinds: Option<&[&str]>) ->
     let copies: Vec<PartCopyText> = cx
         .part_copies()
         .into_iter()
+        .chain(cx.library_parts())
         .filter(|c| kinds.is_none_or(|k| k.contains(&c.kind.as_str())))
         .collect();
     if let Some(id) = t.strip_prefix("id:") {
@@ -1793,9 +1799,17 @@ pub(crate) fn choices(cx: &dyn ParseCx, ty: &FieldType, member: &str, filter: &s
 }
 
 /// The project's part copies as options, `<part number> (<manufacturer>)` in natural order, each writing `value(id)`.
+///
+/// The system libraries' parts the project does not hold follow, in the same order (WP-S2.18 D6: embedded first).
 fn part_choices(cx: &dyn ParseCx, value: impl Fn(&str) -> Value) -> Vec<FieldChoice> {
+    let order = |a: &PartCopyText, b: &PartCopyText| {
+        ew_mltext::natural_cmp(&a.number, &b.number).then_with(|| a.id.cmp(&b.id))
+    };
     let mut copies = cx.part_copies();
-    copies.sort_by(|a, b| ew_mltext::natural_cmp(&a.number, &b.number).then_with(|| a.id.cmp(&b.id)));
+    copies.sort_by(order);
+    let mut library = cx.library_parts();
+    library.sort_by(order);
+    copies.extend(library);
     copies
         .into_iter()
         .map(|c| FieldChoice {

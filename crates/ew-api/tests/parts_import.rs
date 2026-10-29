@@ -58,10 +58,24 @@ fn the_golden_parts_table_imports_into_a_new_project_once() {
         !cat.parts.is_empty(),
         "the picker lists the parts with a template"
     );
-    let numbers: Vec<&str> = cat.parts.iter().map(|p| p.part_number.as_str()).collect();
+    // The embedded parts by part number (FT-439), then the starter parts the project does not hold (WP-S2.18 D6).
+    let numbers: Vec<&str> = cat
+        .parts
+        .iter()
+        .filter(|p| p.library.is_none())
+        .map(|p| p.part_number.as_str())
+        .collect();
     let mut sorted = numbers.clone();
     sorted.sort_unstable();
     assert_eq!(numbers, sorted, "part-number order (FT-439)");
+    assert_eq!(
+        cat.parts[..numbers.len()]
+            .iter()
+            .filter(|p| p.library.is_none())
+            .count(),
+        numbers.len(),
+        "embedded first"
+    );
 }
 
 #[test]

@@ -102,11 +102,14 @@ pub struct CatalogueSymbol {
     pub allowed: bool,
 }
 
-/// A part row of the place catalogue: an embedded part copy with a function template.
+/// A part row of the place catalogue: an embedded part copy with a function template, or a system library's part the
+/// project does not hold yet (WP-S2.18 D6), which choosing embeds.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct CataloguePart {
-    /// The part copy's ID.
+    /// The part copy's ID (for a library part, the ID its copy will have: `v5(NS_LIBCOPY, library ‖ item)`).
     pub copy: Uuid,
+    /// `(library, item)` of a library part the project does not hold; `None` for an embedded copy.
+    pub library: Option<(Uuid, Uuid)>,
     /// The part number.
     pub part_number: String,
     /// The manufacturer's key.
@@ -230,6 +233,79 @@ fn fndef_of(q: &Q, r: &LibRef) -> Option<Arc<LibCopy<FnDef>>> {
         .or_else(|| starter_fndef(id).map(|c| Arc::new(c.clone())))
 }
 
+/// The catalogue row of part `part` with copy ID `copy` (the manufacturer left empty), or `None` without a function
+/// template. `library` names a library part the project does not hold: its template FnDefs that the project does not
+/// embed are read from the starter.
+fn catalogue_part(
+    q: &Q,
+    rows: &[(CatalogueSymbol, Id<FnDef>)],
+    copy: Uuid,
+    part: &Part,
+    library: Option<(Uuid, Uuid)>,
+) -> Option<CataloguePart> {
+    if part.function_template.is_empty() {
+        return None;
+    }
+    let functions = part
+        .function_template
+        .iter()
+        .enumerate()
+        .map(|(i, t)| {
+            let def_id = fndef_copy(&t.fndef);
+            let def = match library {
+                Some(_) => fndef_of(q, &t.fndef),
+                None => q.fndefs().get(def_id).cloned(),
+            };
+            let symbol = rows
+                .iter()
+                .find(|(r, f)| *f == def_id && r.allowed)
+                .map(|(r, _)| r.key.clone());
+            let cps = if t.cps.is_empty() {
+                let mut all: Vec<(u16, String)> = part
+                    .cp_pattern
+                    .iter()
+                    .map(|c| (c.idx, c.designation.as_str().to_owned()))
+                    .collect();
+                all.sort();
+                all
+            } else {
+                t.cps
+                    .iter()
+                    .map(|idx| {
+                        let d = part
+                            .cp_pattern
+                            .iter()
+                            .find(|c| c.idx == *idx)
+                            .map(|c| c.designation.as_str().to_owned())
+                            .unwrap_or_default();
+                        (*idx, d)
+                    })
+                    .collect()
+            };
+            CatalogueTemplateFn {
+                index: u16::try_from(i).unwrap_or(u16::MAX),
+                fndef_key: def
+                    .as_ref()
+                    .and_then(|d| d.item.meta.key.as_ref().map(|k| k.as_str().to_owned()))
+                    .unwrap_or_else(|| ref_key(&t.fndef)),
+                main: t.main,
+                symbol,
+                black_box: def
+                    .as_ref()
+                    .is_some_and(|d| d.item.contact_kind == ContactKind::BlackBox),
+                cps,
+            }
+        })
+        .collect();
+    Some(CataloguePart {
+        copy,
+        library,
+        part_number: part.part_number.as_str().to_owned(),
+        manufacturer: String::new(),
+        functions,
+    })
+}
+
 /// The letter the identifier set maps a FnDef's category to.
 fn letter_of(set: Option<&IdentifierSet>, def: Option<&LibCopy<FnDef>>) -> Option<String> {
     let (set, def) = (set?, def?);
@@ -335,68 +411,32 @@ impl Session {
         });
         let mut parts: Vec<CataloguePart> = Vec::new();
         for (id, copy) in q.parts().iter() {
-            let part: &Part = &copy.item;
-            if part.function_template.is_empty() {
-                continue;
+            if let Some(row) = catalogue_part(&q, &rows, id.as_uuid(), &copy.item, None) {
+                parts.push(CataloguePart {
+                    manufacturer: manufacturer_name(&q, &copy.item.manufacturer),
+                    ..row
+                });
             }
-            let functions = part
-                .function_template
-                .iter()
-                .enumerate()
-                .map(|(i, t)| {
-                    let def_id = fndef_copy(&t.fndef);
-                    let def = q.fndefs().get(def_id).cloned();
-                    let symbol = rows
-                        .iter()
-                        .find(|(r, f)| *f == def_id && r.allowed)
-                        .map(|(r, _)| r.key.clone());
-                    let cps = if t.cps.is_empty() {
-                        let mut all: Vec<(u16, String)> = part
-                            .cp_pattern
-                            .iter()
-                            .map(|c| (c.idx, c.designation.as_str().to_owned()))
-                            .collect();
-                        all.sort();
-                        all
-                    } else {
-                        t.cps
-                            .iter()
-                            .map(|idx| {
-                                let d = part
-                                    .cp_pattern
-                                    .iter()
-                                    .find(|c| c.idx == *idx)
-                                    .map(|c| c.designation.as_str().to_owned())
-                                    .unwrap_or_default();
-                                (*idx, d)
-                            })
-                            .collect()
-                    };
-                    CatalogueTemplateFn {
-                        index: u16::try_from(i).unwrap_or(u16::MAX),
-                        fndef_key: def
-                            .as_ref()
-                            .and_then(|d| d.item.meta.key.as_ref().map(|k| k.as_str().to_owned()))
-                            .unwrap_or_else(|| ref_key(&t.fndef)),
-                        main: t.main,
-                        symbol,
-                        black_box: def
-                            .as_ref()
-                            .is_some_and(|d| d.item.contact_kind == ContactKind::BlackBox),
-                        cps,
-                    }
-                })
-                .collect();
-            parts.push(CataloguePart {
-                copy: id.as_uuid(),
-                part_number: part.part_number.as_str().to_owned(),
-                manufacturer: manufacturer_name(&q, &part.manufacturer),
-                functions,
-            });
         }
         parts.sort_by(|a, b| {
             (&a.part_number, &a.manufacturer, a.copy).cmp(&(&b.part_number, &b.manufacturer, b.copy))
         });
+        // WP-S2.18 D6: the system libraries' parts the project does not hold, after the embedded copies.
+        let mut library: Vec<CataloguePart> = self
+            .library_parts()
+            .into_iter()
+            .filter(|c| !q.parts().contains(c.id))
+            .filter_map(|c| {
+                let manufacturer = self.library_manufacturer(&c.item.manufacturer);
+                let source = Some((c.library_id.as_uuid(), c.item_id.as_uuid()));
+                catalogue_part(&q, &rows, c.id.as_uuid(), &c.item, source)
+                    .map(|row| CataloguePart { manufacturer, ..row })
+            })
+            .collect();
+        library.sort_by(|a, b| {
+            (&a.part_number, &a.manufacturer, a.copy).cmp(&(&b.part_number, &b.manufacturer, b.copy))
+        });
+        parts.extend(library);
         Some(PlaceCatalogue {
             symbols: rows.into_iter().map(|(r, _)| r).collect(),
             parts,
@@ -437,13 +477,28 @@ impl Session {
     /// `part`. `Err(keys)` when an entry's FnDef is neither embedded nor in the starter library: `keys` lists those
     /// entries' FnDef keys in template order (the reference's `key` member, else the FnDef copy ID as lower-case
     /// UUID text), and nothing is to be embedded.
+    ///
+    /// `part` may name a system library's part the project does not hold (a catalogue row with `library`, WP-S2.18
+    /// D6): its closure (the part, its template FnDefs, its manufacturer; [`Session::embed_command`]'s reference form)
+    /// follows in the same parameters, so one host commit embeds everything the placement needs; a closure that does
+    /// not resolve is `Err` with the library's message.
     pub fn starter_embed_part(
         &self,
         part: Uuid,
         symbol: &str,
     ) -> Result<Option<serde_json::Value>, Vec<String>> {
         let q = self.query();
-        let Some(part) = q.parts().get(Id::from_uuid(part)).cloned() else {
+        let library = if q.parts().contains(Id::from_uuid(part)) {
+            None
+        } else {
+            self.library_part_ref(part)
+        };
+        let held = q.parts().get(Id::from_uuid(part)).map(|c| c.item.clone());
+        let from_library = library.as_ref().and_then(|r| match self.libraries().resolve(r) {
+            Ok(LibDocument::Part(c)) => Some(c.item),
+            _ => None,
+        });
+        let Some(part) = held.or(from_library) else {
             return Ok(None);
         };
         let item = |id: Uuid| starter::items().iter().find(|i| starter_id(i.json) == Some(id));
@@ -470,7 +525,7 @@ impl Session {
         }
         // The template's FnDefs, in template order: the first copy of an embedded one is not pushed twice.
         let mut missing: Vec<String> = Vec::new();
-        for entry in &part.item.function_template {
+        for entry in &part.function_template {
             let id = fndef_copy(&entry.fndef);
             if q.fndefs().contains(id) || seen.contains(&id.as_uuid()) {
                 continue;
@@ -490,6 +545,25 @@ impl Session {
         }
         if !missing.is_empty() {
             return Err(missing);
+        }
+        if let Some(r) = library {
+            let docs = self
+                .closure_docs(std::slice::from_ref(&r))
+                .map_err(|e| vec![e.to_string()])?;
+            for doc in docs {
+                let id = match &doc {
+                    LibDocument::Part(c) => c.id.as_uuid(),
+                    LibDocument::Fndef(c) => c.id.as_uuid(),
+                    LibDocument::Symbol(c) => c.id.as_uuid(),
+                    LibDocument::Manufacturer(c) => c.id.as_uuid(),
+                    LibDocument::Form(c) => c.id.as_uuid(),
+                    LibDocument::Macro(c) => c.id.as_uuid(),
+                    LibDocument::Unknown(_) => continue,
+                };
+                if seen.insert(id) {
+                    copies.push(serde_json::to_value(&doc).map_err(|e| vec![e.to_string()])?);
+                }
+            }
         }
         if copies.is_empty() {
             return Ok(None);

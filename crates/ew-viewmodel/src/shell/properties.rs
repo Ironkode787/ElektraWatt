@@ -1030,6 +1030,20 @@ impl ShellModel {
             ),
             crate::properties::EditRoute::ReadOnly(_) => (String::new(), Value::Null),
         };
+        // WP-S2.18 D6: a Parts row that chooses a system library's part the project does not hold assigns it with
+        // `part.assign`, which embeds the part with its closure in the same transaction.
+        let (name, params) = match self
+            .project
+            .as_ref()
+            .filter(|_| row.ty.is_part_uses())
+            .and_then(|p| {
+                p.session
+                    .part_uses_assign(&section.targets, &new)
+                    .and_then(Result::ok)
+            }) {
+            Some(cmd) => (cmd.name, cmd.params),
+            None => (name, params),
+        };
         PendingEdit {
             row: row.key.clone(),
             kind: section.kind.clone(),

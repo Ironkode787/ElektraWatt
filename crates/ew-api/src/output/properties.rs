@@ -373,12 +373,38 @@ pub(crate) fn path_segments(path: &str) -> Vec<Seg> {
 pub(crate) struct SheetCx<'q> {
     q: &'q Q,
     source: Option<String>,
+    /// The system libraries' parts the project does not hold, listed after its copies (the Parts row, WP-S2.18 D6).
+    library: Vec<super::fields::PartCopyText>,
 }
 
 impl<'q> SheetCx<'q> {
     pub(crate) fn new(q: &'q Q) -> SheetCx<'q> {
         let source = q.project().languages.as_ref().map(|l| l.source.to_string());
-        SheetCx { q, source }
+        SheetCx {
+            q,
+            source,
+            library: Vec::new(),
+        }
+    }
+
+    /// The context with the system libraries' parts that `q` does not hold among the part copies (WP-S2.18 D6).
+    fn with_library_parts(mut self, session: &crate::Session) -> SheetCx<'q> {
+        self.library = session
+            .library_parts()
+            .into_iter()
+            .filter(|c| !self.q.parts().contains(c.id))
+            .map(|c| super::fields::PartCopyText {
+                id: c.id.as_uuid().hyphenated().to_string(),
+                number: c.item.part_number.as_str().to_owned(),
+                manufacturer: session.library_manufacturer(&c.item.manufacturer),
+                kind: serde_json::to_value(&c.item.kind)
+                    .ok()
+                    .and_then(|v| v.as_str().map(str::to_owned))
+                    .unwrap_or_default(),
+                description: neutral_or_first(&c.item.description),
+            })
+            .collect();
+        self
     }
 
     fn part(&self, copy: &str) -> Option<(String, String)> {
@@ -485,6 +511,10 @@ impl ParseCx for SheetCx<'_> {
                 description: neutral_or_first(&p.item.description),
             })
             .collect()
+    }
+
+    fn library_parts(&self) -> Vec<super::fields::PartCopyText> {
+        self.library.clone()
     }
 
     fn slot_nodes(&self, member: &str) -> Vec<(String, String, Vec<String>)> {
@@ -1947,9 +1977,12 @@ impl Session {
             return parsed;
         }
         let q = self.query();
-        let cx = SheetCx::new(&q);
         let ty = row_type(kind, row_path)
             .ok_or_else(|| InputError::Invalid(format!("`{row_path}` is not a field of {kind}")))?;
+        let cx = match ty.is_part_uses() {
+            true => SheetCx::new(&q).with_library_parts(self),
+            false => SheetCx::new(&q),
+        };
         let member = last_member(row_path);
         super::fields::parse_input(&cx, &ty, &member, text)
     }
@@ -1961,7 +1994,10 @@ impl Session {
             return Vec::new();
         };
         let q = self.query();
-        let cx = SheetCx::new(&q);
+        let cx = match ty.is_part_uses() {
+            true => SheetCx::new(&q).with_library_parts(self),
+            false => SheetCx::new(&q),
+        };
         choices(&cx, &ty, &last_member(row_path), filter)
     }
 }

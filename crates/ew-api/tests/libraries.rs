@@ -63,16 +63,25 @@ fn the_starter_library_is_the_system_library() {
     );
 }
 
-/// Without tiers the session has the starter only, read from no file.
+/// Without tiers the session has the starter and the compiled-in starter parts (WP-S2.18 D5), read from no file.
 #[test]
 fn without_tiers_the_session_has_the_starter() {
     let s = session(None, Vec::new());
     let libs = s.libraries().libraries();
-    assert_eq!(libs.len(), 1);
+    assert_eq!(libs.len(), 2);
     assert_eq!((libs[0].key.as_str(), libs[0].tier), ("ew-starter", Tier::System));
+    assert_eq!(
+        (libs[1].id, libs[1].tier),
+        (library::starter_parts_library(), Tier::System)
+    );
     assert!(s.libraries().index_path().is_none());
     assert!(s.library_error().is_none());
-    assert!(s.part_search(&PartQuery::default()).is_empty());
+    let hits = s.part_search(&PartQuery::default());
+    assert!(!hits.is_empty());
+    assert!(
+        hits.iter().all(|h| h.library == library::starter_parts_library()),
+        "the starter parts only"
+    );
 }
 
 /// Tiers that cannot be opened: the session falls back to the starter and reports why.
@@ -85,7 +94,8 @@ fn tiers_that_cannot_be_opened_fall_back_to_the_starter() {
     t.cache = root.0.join("cache-is-a-file");
     std::fs::write(&t.cache, b"x").unwrap();
     let s = session(Some(t), Vec::new());
-    assert_eq!(s.libraries().libraries().len(), 1);
+    // The starter and the compiled-in starter parts (WP-S2.18 D5).
+    assert_eq!(s.libraries().libraries().len(), 2);
     assert!(s.library_error().is_some());
 }
 
@@ -111,12 +121,12 @@ fn part_search_ranks_held_parts_first() {
         text: "Maker00".into(),
         ..PartQuery::default()
     };
-    assert_eq!(s0.part_search(&q).len(), 1);
+    assert_eq!(fixture_hits(&s0, &q).len(), 1);
     let all = PartQuery {
         text: String::new(),
         ..PartQuery::default()
     };
-    let order: Vec<Uuid> = s0.part_search(&all).iter().map(|h| h.item).collect();
+    let order: Vec<Uuid> = fixture_hits(&s0, &all).iter().map(|h| h.item).collect();
     assert_eq!(order.len(), 2);
     // A project holding the second part: it comes first.
     let second = order[1];
@@ -126,10 +136,18 @@ fn part_search_ranks_held_parts_first() {
     .unwrap();
     let closure = s0.libraries().closure(&r).unwrap();
     let s1 = session(Some(t), closure);
-    let held: Vec<Uuid> = s1.part_search(&all).iter().map(|h| h.item).collect();
+    let held: Vec<Uuid> = fixture_hits(&s1, &all).iter().map(|h| h.item).collect();
     assert_eq!(held, [second, order[0]]);
     assert!(s1.library_error().is_none());
     assert_eq!(s1.libraries().libraries()[1].index, library::IndexState::Fresh);
+}
+
+/// The hits of `q` outside the compiled-in starter parts (WP-S2.18 D5), which every session's registry holds.
+fn fixture_hits(s: &Session, q: &PartQuery) -> Vec<library::PartHit> {
+    s.part_search(q)
+        .into_iter()
+        .filter(|h| h.library != library::starter_parts_library())
+        .collect()
 }
 
 /// IX-9 and NFR-PERF-21: the first 50 results within 100 ms and a full rebuild within 60 s over a 500,000-part

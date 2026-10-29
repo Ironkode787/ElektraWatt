@@ -44,16 +44,18 @@ fn place_terminal(s: &mut ShellModel, cell: &str) {
 // ---------------------------------------------------------------------------------------------------------------
 // Item 9: the Device button's picker on a fresh project.
 
-/// A fresh project has no part copies, so Draw ▸ Device (`tool.place_part`) lists nothing: the picker says so
-/// instead of "Nothing matches the filter" while the filter is empty; with a filter typed it is the filter's text.
+/// A fresh project has no part copies, but Draw ▸ Device (`tool.place_part`) lists the starter parts (WP-S2.18 D6),
+/// so it has no empty text; with a filter that matches nothing it is the filter's text. The parts' own empty text
+/// stays for a picker without part rows.
 #[test]
-fn the_device_picker_of_a_fresh_project_says_it_has_no_parts() {
+fn the_device_picker_of_a_fresh_project_lists_the_starter_parts() {
     let tmp = Tmp::new("c34-pick");
     let mut s = new_project(&tmp);
     done(&mut s, "tool.place_part", json!({}));
     let picker = s.picker().expect("the picker is open");
-    assert!(picker.rows.is_empty(), "a fresh project has no part rows");
-    assert_eq!(picker.empty_text(), Some("picker-empty-parts"));
+    assert!(!picker.rows.is_empty(), "the starter parts' rows");
+    assert_eq!(picker.empty_text(), None);
+    assert!(s.describe().contains("\"EW-GEN-RLY-1\""), "{}", s.describe());
     assert_eq!(
         ew_viewmodel::strings::text("picker-empty-parts"),
         "No parts in this project yet"

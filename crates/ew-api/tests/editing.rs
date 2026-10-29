@@ -98,13 +98,29 @@ fn the_catalogue_of_folio_102_keeps_the_grid_family_and_maps_the_letters() {
         cat.symbols.iter().any(|r| r.copy.is_none()),
         "starter rows beside the embedded ones"
     );
-    // Parts: every embedded part copy with a template, by part number; a template function names a symbol of the
-    // page that draws its FnDef.
-    let numbers: Vec<&str> = cat.parts.iter().map(|p| p.part_number.as_str()).collect();
-    let mut sorted = numbers.clone();
-    sorted.sort();
-    assert_eq!(numbers, sorted);
-    assert!(!cat.parts.is_empty());
+    // Parts: every embedded part copy with a template, by part number, then the system libraries' parts the project
+    // does not hold, by part number (WP-S2.18 D6); a template function names a symbol of the page that draws its FnDef.
+    let held: Vec<&str> = cat
+        .parts
+        .iter()
+        .take_while(|p| p.library.is_none())
+        .map(|p| p.part_number.as_str())
+        .collect();
+    let library: Vec<&str> = cat.parts[held.len()..]
+        .iter()
+        .map(|p| p.part_number.as_str())
+        .collect();
+    assert!(
+        cat.parts[held.len()..].iter().all(|p| p.library.is_some()),
+        "embedded first"
+    );
+    for numbers in [&held, &library] {
+        let mut sorted = numbers.clone();
+        sorted.sort();
+        assert_eq!(numbers, &sorted);
+    }
+    assert!(!held.is_empty());
+    assert!(library.iter().all(|n| n.starts_with("EW-GEN-")), "{library:?}");
     for p in &cat.parts {
         assert!(!p.functions.is_empty());
         for (i, f) in p.functions.iter().enumerate() {
@@ -127,7 +143,9 @@ fn a_new_project_lists_starter_rows_only_and_embeds_a_starter_symbol_once() {
     let cat = s.place_catalogue(&folio).unwrap();
     assert!(!cat.symbols.is_empty());
     assert!(cat.symbols.iter().all(|r| r.copy.is_none()), "starter rows only");
-    assert!(cat.parts.is_empty());
+    // The parts are the starter parts' rows, none embedded (WP-S2.18 D6).
+    assert!(!cat.parts.is_empty());
+    assert!(cat.parts.iter().all(|p| p.library.is_some()), "library rows only");
     // The page's grid family: the native edition on a page that is not on the QET grid.
     let qet = s.page_grid(&folio).unwrap().num_nm == 7_937_500;
     assert!(cat.symbols.iter().all(|r| r.key.ends_with("@qet10") == qet));

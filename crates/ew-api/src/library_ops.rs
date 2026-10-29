@@ -372,7 +372,7 @@ fn version_core(v: &str) -> Option<[u64; 3]> {
 impl Session {
     /// The documents of `refs` with their closures (D7, FT-274) that the project does not hold yet: a held copy with
     /// the same hash is left out; one with another hash is [`ApiError::OtherVersionHeld`].
-    fn closure_docs(&self, refs: &[LibRef]) -> Result<Vec<LibDocument>, ApiError> {
+    pub(crate) fn closure_docs(&self, refs: &[LibRef]) -> Result<Vec<LibDocument>, ApiError> {
         let q = self.query();
         let mut out = Vec::new();
         let mut seen = BTreeSet::new();
@@ -403,6 +403,80 @@ impl Session {
             }
         }
         Ok(out)
+    }
+
+    /// The parts of the system libraries (WP-S2.18 D6: the compiled-in generic starter parts, and any installed system
+    /// library), as library documents with copy metadata, in library then item ID order. The picker and the Parts row
+    /// list those the project does not hold after its embedded copies.
+    pub fn library_parts(&self) -> Vec<LibCopy<Part>> {
+        let reg = self.libraries();
+        reg.libraries()
+            .into_iter()
+            .filter(|l| l.tier == library::Tier::System)
+            .flat_map(|l| reg.documents(l.id, Kind::Part))
+            .filter_map(|d| match d {
+                LibDocument::Part(c) => Some(c),
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// The manufacturer a library part names, as the picker shows it: the held copy's name, else the library
+    /// record's key; empty when neither resolves.
+    pub fn library_manufacturer(&self, r: &LibRef) -> String {
+        let held = ew_derive::manufacturer_name(&self.query(), r);
+        if !held.is_empty() {
+            return held;
+        }
+        match self.libraries().resolve(r) {
+            Ok(LibDocument::Manufacturer(c)) => c.item.key.as_str().to_owned(),
+            _ => String::new(),
+        }
+    }
+
+    /// The reference to the library part whose copy would have ID `copy`, if a system library holds one
+    /// ([`Session::library_parts`]).
+    pub fn library_part_ref(&self, copy: Uuid) -> Option<LibRef> {
+        self.library_parts()
+            .into_iter()
+            .find(|c| c.id.as_uuid() == copy)
+            .map(|c| LibRef {
+                library: Id::from_uuid(c.library_id.as_uuid()),
+                item: Id::from_uuid(c.item_id.as_uuid()),
+                version_req: "*".to_owned(),
+                extra: ew_schema::Extra::new(),
+            })
+    }
+
+    /// The Parts row's edit as `part.assign` (WP-S2.18 D6): when the new part uses `value` (`[{part: {copy}, qty}]`, the
+    /// row's value) are exactly one use whose copy the project does not hold and a system library holds
+    /// ([`Session::library_part_ref`]), the command that embeds the part with its closure and makes it the devices'
+    /// only part use (`replace_all`, the use's quantity) in one transaction; `None` otherwise (the row's own
+    /// `fields.set`). A list that names a library part beside other uses stays `fields.set`, which refuses the copy the
+    /// project does not hold.
+    pub fn part_uses_assign(
+        &self,
+        devices: &[Uuid],
+        value: &serde_json::Value,
+    ) -> Option<Result<AnyCommand, ApiError>> {
+        let [one] = value.as_array()?.as_slice() else {
+            return None;
+        };
+        let copy = one.get("part")?.get("copy")?.as_str()?.parse::<Uuid>().ok()?;
+        if self.query().parts().contains(Id::from_uuid(copy)) {
+            return None;
+        }
+        let r = self.library_part_ref(copy)?;
+        let qty = match one.get("qty") {
+            None => Dec3::ONE,
+            Some(q) => q
+                .as_str()
+                .map(str::to_owned)
+                .unwrap_or_else(|| q.to_string())
+                .parse::<Dec3>()
+                .ok()?,
+        };
+        Some(self.assign_part(devices, &r, AssignMode::ReplaceAll, qty))
     }
 
     /// `library.embed` by reference (FT-274, WP-S1.19 §8): resolves each reference with its closure from
