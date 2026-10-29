@@ -6,11 +6,14 @@
 built panes, 1.5 pw) ∥ part 4 (cards, the Preview tab, toasts, dialogs, menus, palette, empty states, 0.9 pw); 5.9 pw
 against a PERT of 6.0 pw (amended 2026-10-28 for the widgets built alongside doc 16a, §2.1 and §15.1); M-PP, before
 G-PP; one independent Opus review per cycle (ID-667); **parts 1 and 6 delivered in cycle 31** (§5.1, §10.1; decision
-log ID-740, ID-737); D7 amended to an in-house pixel gate (ID-739) · **Date:** 2026-10-28 · **Work package:**
+log ID-740, ID-737); D7 amended to an in-house pixel gate (ID-739); **parts 2 to 5 delivered in cycle 32** (§6.1, §7.1,
+§8.1, §9.1; decision log ID-747 to ID-750), so the package is complete (ID-751) · **Date:** 2026-10-29 · **Work package:**
 [WP-S2.17](../02-work-packages.md#wp-s217-design-language-and-ui-polish) · **Design:**
 [16a design language](../../design/16a-design-language.md), [ADR-0031](../../adr/0031-design-language-and-task-ordered-command-bar.md)
 (Accepted) · **Visual reference:** the owner-approved [mockup](../../design/assets/design-language-mockup.html) · **Decision log:** the entries of §15.3, recorded as ID-724 to ID-727 and ID-739 at the cycle-31 design pass (part 6
-ID-737, part 1 ID-740; follow-ups FT-519 to FT-523, §15.4) · **Part of:** ElektraWatt plan, specifications
+ID-737, part 1 ID-740; follow-ups FT-519 to FT-523, §15.4); parts 2, 5, 3 and 4 as built ID-747 to ID-750 and the
+package's completion ID-751 at the cycle-32 design pass (follow-ups FT-526 to FT-534, FT-536 and FT-537) · **Part of:**
+ElektraWatt plan, specifications
 
 **Purpose.** This is the closed specification of the package that gives the window its design language: one token
 source with light, dark and high-contrast themes, the task-ordered command bar, the navigator rail with Properties
@@ -250,6 +253,16 @@ Where the build differs from the text above (each item is a deviation for the cy
 - **Pending commands** (no registry action yet) are drawn nowhere and listed by name in `command_bar::PENDING`.
 - **Placed actions** without a topic of their own link to the "project-view" documentation topic.
 
+**H32 (cycle 32, the seam to part 5 and CB7; recorded at the cycle-32 design pass, ID-747):**
+
+- **Chrome obstacles (OV2, OV6).** The window reports the HUD's and the zoom control's frames, as drawn in the
+  previous frame, through `CanvasHost::set_chrome_obstacles`, so `place_chip` keeps the chips off them. The OV2 window
+  test `ov2_the_chips_keep_off_the_hud_and_the_zoom_control` aims the Place ghost so that its label's preferred spot
+  lands on the HUD and the zoom control, and it was shown to fail without either half of the seam.
+- **CB7.** `snapshots.rs` blesses the command bar for each of the six tabs in light Comfortable and dark Compact
+  (`command-bar-<tab>-{light-comfortable,dark-compact}`, 12 gated images). Light Compact and dark Comfortable are not
+  taken (FT-533).
+
 ## 7. Part 3: docks, rails, rows, Properties and the status bar
 
 1. **Rails** (`ew-ui` `rail.rs`): left and right rails as views of their tab groups, whose own tab bars are not drawn
@@ -314,7 +327,8 @@ rail), `table_widget` TB7 (FT-523) and `command_surface` CB4 (65 % again).
 - **Tree rows:** the page rows' badges are caption chips (named `Label` nodes) after the text, not bracketed words;
   `ShownRow` gained `label` and `badges` (the describe lines keep `text` with brackets). The current page row is in
   `type.body.strong`. The expand glyphs stay "+" and "-" text, and the canvas tab titles keep their bracketed
-  badges (the canvas tab bar is not restyled).
+  badges (the canvas tab bar is not restyled). *(Later in cycle 32: J32 below made the canvas tab badges chips; the
+  chevron expanders are a window fix of W32, ID-756.)*
 - **Properties:** the Main group (the kind's primary fields: page number, section, title, description; device tag,
   function text, parts, location; connection number, potential, cross-section, colour) comes first; the Advanced rows
   (`$v`, `id`, `source_ref`, `tag.counter`, `form`, by row path) show after "Show advanced (n)" at the foot
@@ -334,10 +348,14 @@ rail), `table_widget` TB7 (FT-523) and `command_surface` CB4 (65 % again).
   decimal). FT-519 adds `Focus::History` to the F6 ring (last, while the panel is shown) and `ui.focus {area:
   history}`: with that focus Up and Down are `history.row` and Enter is `history.undo_to`; a click on a row moves the
   row cursor there. The row actions stay text buttons; on the other rows they keep their nodes (Tab reaches them) but
-  are not painted. The state icons, the badges and the dialog frame of doc 16a §6.24 are not built.
+  are not painted. The state icons, the badges and the dialog frame of doc 16a §6.24 are not built. *(Later in cycle
+  32: K32 below built them, with the row actions as icon buttons.)*
 - **Not built in this part:** Messages' restyle
   (DK10), History's icons (the rest of DK11), the DK12 snapshots, the dock tabs' restyle of doc 16a §6.4 and window
-  memory (DK6, the rest of FT-348): candidates for the next cycle.
+  memory (DK6, the rest of FT-348): candidates for the next cycle. *(Later in cycle 32: K32 built DK10, DK11's icons,
+  the DK12 snapshots of Messages and History, and DK6 except the position clamp at start, FT-526; L32 built DK9, whose
+  grid snapshots are FT-532. The dock tabs' restyle of doc 16a §6.4 and the Properties filter for more than twelve rows
+  are still not built.)*
 
 **J32 (cycle 32, the Properties, choice-list and canvas-tab side):**
 
@@ -357,7 +375,7 @@ rail), `table_widget` TB7 (FT-523) and `command_surface` CB4 (65 % again).
   SemiBold as written ("Main"), no longer `type.label` upper case. Main indents no row (its fields come from several
   levels without their parents); a category indents from its shallowest row. A row's error is the error icon and
   the message in `color.error`, `type.small` (no italics). Not done: the header's finding chips are still
-  "[severity] rule message" text, and the actions popup is still drawn inline under the row. Test: `ew-ui`
+  "[severity] rule message" text, and the actions popup is still drawn inline under the row (FT-530). Test: `ew-ui`
   `tests/properties.rs` `j32_property_rows_are_left_aligned_with_one_word_chips`; `ew-viewmodel`
   `the_chip_word_names_the_source`.
 - **The choice editor's option list** is a popup (`egui::Area`, foreground) with doc 16a §6.22's look
@@ -377,7 +395,7 @@ rail), `table_widget` TB7 (FT-523) and `command_surface` CB4 (65 % again).
 - **DK7 at 300 %:** `snapshots.rs` `the_main_window_at_300_percent_for_review` renders the main window (light,
   Comfortable, 1280 × 800 points) at 3 physical pixels per point, 3840 × 2400 pixels, for review and not gated (as the
   gallery at ppp 2). The setting `ui_scale` stops at 200 % (`UI_SCALES`), so the 300 % case is the system's display
-  scale. The image is about 0.56 MB; gating it would be one argument, left off to keep re-blesses small.
+  scale. The image is about 0.56 MB; gating it would be one argument, left off to keep re-blesses small (FT-537).
 - **Snapshots re-blessed:** `main-{light,dark}-{comfortable,compact}` and the eight `part4-*` images (their window
   shows Properties and the canvas tab); nothing else changed.
 
@@ -416,11 +434,12 @@ and colours), `history.rs` (DK11's state icons and undone tone) and `window_memo
   secondary. Show changes is a non-modal `egui::Window` in the dialog frame's tokens (`color.surface.raised`,
   `radius.lg`, `elevation.2`, `space.5`), 440 px, its title painted in `type.title` (the window's node carries the
   name), the records as `size.row` rows, Close as a Secondary button; Escape closes it as built. **Not built:** the
-  chip line's jump chips keep their as-built buttons (named "Open `<folio>-<cell>`"); their pill look is a follow-up.
+  chip line's jump chips keep their as-built buttons (named "Open `<folio>-<cell>`"); their pill look is a follow-up
+  (FT-531).
 - **Snapshots (DK12).** Gated, light and dark at both densities, each cropped to its pane: `dk12-messages-*` (the
   rows with an error and a pending finding), `dk12-messages-detail-*` (the cursor on the pending finding with its
   detail block) and `dk12-history-*` (three steps, the save marker, one undone): twelve new images; no other image
-  changed. The Terminal strips grid of DK12 is DK9's (lane L32), whose grid snapshots are not built.
+  changed. The Terminal strips grid of DK12 is DK9's (lane L32), whose grid snapshots are not built (FT-532).
 - **Window memory (DK6, FT-348).** `settings.toml` keeps `[window]` (`x`, `y`, `width`, `height` in whole points,
   `maximized`), written only once a window recorded it (at the end of the window, by `ShellModel::shutdown` in the GUI
   mode), so headless runs and tests keep their settings bytes; a table that cannot be read is dropped, not the file.
@@ -432,7 +451,7 @@ and colours), `history.rs` (DK11's state icons and undone tone) and `window_memo
   `elektrawatt` builds the viewport from the saved geometry. **Not built:** the position clamp at start runs with no
   monitor list (eframe 0.37 without its `persistence` feature exposes none before or after the window opens), so a
   window saved on a monitor that is gone opens off-screen until the list is wired; eframe still clamps the size to
-  the largest monitor. A follow-up FT.
+  the largest monitor. A follow-up: FT-526.
 
 **L32 (cycle 32, the data grid of doc 16a §6.21, DK9):**
 
@@ -478,7 +497,8 @@ and colours), `history.rs` (DK11's state icons and undone tone) and `window_memo
   menu button as a Subtle button with a chevron, the move items as `arrow-left`/`arrow-right` icon buttons, the
   error line's icon), the focus ring around the whole grid, the pattern-fill and table cards (§6.9, §6.23 own
   them), and the DK12 grid snapshots (the review image `table-history-{light,dark}` shows the Devices table and is not
-  gated; no gated snapshot changed).
+  gated; no gated snapshot changed). The tool line is FT-536; the focus ring, table mode's empty state and the grid
+  snapshots are FT-532.
 
 ## 8. Part 4: cards, toasts, dialogs, menus, palette and empty states
 
@@ -541,13 +561,16 @@ and colours), `history.rs` (DK11's state icons and undone tone) and `window_memo
 - **Empty states and outcomes.** Built for the Jobs pane ("No jobs yet"), the Preview tab ("No preview is open") and
   the notifications log; Jobs rows carry Done, Cancelled or Failed badges (FT-510). **Not built:** the empty states
   of Messages, Find, History and the navigators: their files are part 3's (same cycle, other lane); the strings exist
-  (`empty-find-*`, `empty-messages*`, `empty-history-text`) for that lane or a follow-up.
+  (`empty-find-*`, `empty-messages*`, `empty-history-text`) for that lane or a follow-up. *(Later in cycle 32: K32
+  built them, below; table mode's empty state is FT-532.)*
 - **Wording.** Every "..." in the strings, labels and tests became "…"; the quit prompt and the titles that ask end
   with "?". The lint's list of actions whose label ends with "…" is explicit in `tests/part4_dialogs.rs`
   (`OPENS_INPUT`). The banner and the floating Tool options card take the card frame and button kinds.
 - **Snapshots (CP6, CP9).** Gated, light and dark: the quit prompt over the edit toast, the app menu's File submenu,
   the palette, and the Preview tab with the property grid's card and its strip. **Not taken:** the other dialogs one
-  by one, the quick-fix card and the table card images.
+  by one, the quick-fix card and the table card images (FT-533). The dialog footer's order on Linux and macOS has no
+  test (FT-534). *(Integration: the palette shot was flaky behind the edit toast's wall-clock fade; the toast is
+  dismissed before the menu and palette shots, 6bd0dbff, and the four images re-blessed.)*
 
 **K32 (cycle 32, CP5's missing empty states):** `components::empty_state` now also serves the History panel
 ("Nothing to undo yet", `history` icon), the Messages pane ("No findings", `circle-check`), Find (before a search "Find
@@ -577,6 +600,55 @@ state of a navigator in table mode (the data grid, DK9's file).
 8. **The pick stack's hover** (FT-500, doc 16a §6.25): the hover outline of the stack's first entity in `canvas.hover`
    per doc 16a §7.1, and the walked selection in `canvas.selection`; the walk, the pick order and the drag rule stay
    as built. The chooser list of doc 16a §6.22 is not built here (§15.4).
+
+### 9.1 As built in cycle 32 (part 5)
+
+**Part 5 delivered in cycle 32 (lane B32, Opus/medium, one fix round; decision log ID-748; recorded at the cycle-32
+design pass).** Commits 2f6d90cc, 627f0de4 and 5769ceb2, with the test fix fc1fbd97; the chrome half of the obstacles
+is part 2's seam (§6.1, H32).
+
+- **Scale rule (FT-391, OV3).** `ew-render2d` `overlay::mark_scale` gives `s = max(1, ⌊ppp⌋)`: lines `s` px with 4s
+  dashes, grid cross and junction 6s + 1, CP ring 8s + 1, hover `s`, selection 2s, cursor arms `s` wide; at ppp 1 the
+  marks keep their sizes. Unit tests `ov3_the_scale_factor_is_the_whole_part_of_ppp`,
+  `ov3_every_mark_follows_the_scale_rule` and `ov3_at_ppp_1_the_marks_keep_their_sizes`.
+- **Selection (OV6).** A 2s-px outline in `canvas.selection` with an s-px white casing **on both sides** of it and four
+  8s-px handles (accent rim, white face). **Deviation:** doc 16a §7.1 puts the casing outside the outline; the mockup
+  draws it on both sides, and the mockup wins (ID-725).
+- **Canvas tokens.** `LIGHT` and `DARK` take doc 16a §4.6's canvas tokens (accent #0B63CE for selection, hover, snap,
+  cursor, and the ghost at 60 %); the window's canvas theme comes from the token module (`canvas_theme`); the page
+  bounds are drawn in `color.border.default`, and the surround and grid dots moved to their tokens (the four
+  main-window snapshots re-blessed).
+- **`place_chip` (D13, OV2; FT-507, FT-508).** `ew_viewmodel::canvas::chip::place_chip(target, size, obstacles,
+  pointer)` tries four candidates 8 points off the target, preferred above right, and rejects one that meets an
+  obstacle (the caller passes the outside of the canvas as four, `chip::outside`) or the pointer's 16-point box; when
+  all fail it returns the preferred anchor, faded.
+  `canvas_chips` plans every chip with it against the statistics panel and the chrome a host reports
+  (`CanvasHost::set_chrome_obstacles`). The Place ghost's label strips an earlier tag before appending the current one,
+  so it names the tag once. Unit tests `ov2_*` in `canvas/chip.rs` (each branch, each obstacle, chips inside the
+  canvas, successive chips never intersect).
+- **Highlights (D14).** The name chips take their slot's hue with a black label and radius 4
+  (`ov6_the_highlight_name_chips_take_their_hue_and_a_black_label`). They are drawn in the window only, not in the
+  `view.snapshot` PNGs, so OV6's chip clause is proven on the overlay model and the window's shapes.
+- **CP tooltip (FT-512's tooltip half, OV4).** The hovered CP's tooltip has the inverse look and reads
+  `<printed label> · <symbol name> · <potential>` (`ew_viewmodel::canvas::cp_tip`; `1X1:1/a · terminal · L` on Golden
+  A), a part the page tables do not know being left out. **Deviation:** doc 16a §7.2's example "-X1031 : 21 ·
+  terminal · 24VDC-1" and OV4's text use another label form; the build prints the label of ID-711 and the
+  representation's symbol name as the kind.
+- **Link preview (FT-390, OV4).** A named, non-focusable image node with the target folio and cell
+  (`ov4_the_link_preview_has_a_named_region`).
+- **Statistics panel (doc 16a §7.7).** The canvas chip's look (`canvas.chip`, `radius.sm`) at the canvas's top right,
+  `space.4` in. Its width follows its live text, so it jitters as the numbers change (FT-527).
+- **Pick stack (OV7).** The hover outlines the stack's first entity, dashed in `canvas.hover`; a repeated click selects
+  the next in `canvas.selection` (`ov7_the_pick_stacks_hover_outline_and_walk`); FT-500's tests pass unchanged.
+- **Snapshots (OV5).** `ov5_ov6_the_overlay_snapshots_of_folio_101` blesses four canvas images under
+  `tests/expected/canvas/` (`101-selection`, `101-selection-highlights`, `101-measure`, `101-ghost`), equal across two
+  runs and to the blessed image within a channel tolerance of 4/255 and at most one differing pixel in 2,000. The
+  test's `fn bless` (the `EW_BLESS` switch) is a reviewed `disallowed_methods` site.
+- **Fix round (OV2 on the merged tip).** OV2's window test failed after part 3 landed: the CPU canvas draws, and places
+  its chips, with the settled transform (dpi rounded, a whole-pixel origin), while the test mapped anchors with the
+  model's exact zoom. `CanvasHost::drawn_screen_of` (hidden from the docs) gives a point as the last frame drew it;
+  the OV2 and FT-502 tests use it, and OV2 checks the overlap condition on the same frame's statistics panel. The
+  product was unchanged.
 
 ## 10. Part 6: the icon set
 
@@ -861,7 +933,9 @@ window check by a model that reads screenshots, at 1280 × 800 and 1920 × 1080,
 ### 15.3 Decision-log entries (recorded at the cycle-31 design pass)
 
 Items 1, 3 to 11 and 13 are ID-726 (item 13's plan also ID-724); items 2, 12 and 14 are ID-725; item 15 is ID-727;
-item 5's D7 was rejected and amended by ID-739. Part 6 as built is ID-737; part 1 as built is ID-740.
+item 5's D7 was rejected and amended by ID-739. Part 6 as built is ID-737; part 1 as built is ID-740. At the cycle-32
+design pass: part 2 as built is ID-747, part 5 ID-748, part 3 ID-749 and part 4 ID-750; the package's completion and
+its follow-ups are ID-751.
 
 1. WP-S2.17 specified in six parts and three waves, 5.6 pw against a PERT of 5.7 pw, the de-scope rule (D1, §15).
 2. The design language (doc 16a) and ADR-0031 Accepted; the owner-approved mockup committed as the visual reference
@@ -907,6 +981,17 @@ group frame and the Preview list as the card strip of 16a §6.23 (`size.card_str
 but unused) (all part 4), the tool chip's padding, the statistics panel (16a §7.7), the highlight slot colours as tokens (D14) and `ew-render2d`'s overlay
 theme (all part 5). FT-514, the stale hint after a dialog while the window is inactive, is absorbed by part 2 with the
 HUD (ID-726).
+
+*Numbered at the cycle-32 design pass (ID-751; the parts' "not built" items and the integration):* **FT-526** the
+window's position clamp at start (DK6); **FT-527** tabular digits in the statistics panel (part 5); **FT-528**
+`navigator.row` into a collapsed Messages group; **FT-529** W31-1's scroll rule in every navigator; **FT-530** the
+Properties header's finding chips and actions popup; **FT-531** the chip line's jump chips; **FT-532** table mode's
+empty state, the grid's focus ring and the DK12 grid snapshots; **FT-533** CB7's other two combinations and the rest
+of CP6 and CP9; **FT-534** the dialog button order on Linux and macOS; **FT-536** the data grid's tool line;
+**FT-537** whether to gate DK7's 300 % image. Of the gaps assigned inside the package at the cycle-31 design pass,
+the statistics panel and the overlay theme from the tokens are built (§9.1); the lanes' notes do not say whether the
+others were built (the property-indent and dock tab tokens, the link preview as a popover, the pattern card's group
+frame, the Preview list as the card strip, the tool chip's padding, the highlight slot colours as tokens).
 
 ### 15.5 Decided (2026-10-28)
 

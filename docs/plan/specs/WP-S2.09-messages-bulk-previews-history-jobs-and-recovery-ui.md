@@ -6,7 +6,8 @@ dialog, 1.15 pw, D5), part 2 (the message panel on WP-S2.06's navigator framewor
 quick fixes, 0.85 pw, D3), part 3 (the bulk preview tab, the renumber dialogs, the history panel with context restore and
 the GUI purge step, 1.2 pw, D4); part 1 may start now, part 2 after WP-S2.06 part 1's delivery, part 3 after part 1's;
 one independent Opus review per cycle (ID-667); **part 1 delivered in cycle 30** (§6.9; decision log ID-714, ID-715), **parts 2
-and 3 delivered in cycle 31** (§7.7, §8.8; decision log ID-730 to ID-732, ID-736), so the package is complete · **Date:** 2026-10-28 · **Work package:**
+and 3 delivered in cycle 31** (§7.7, §8.8; decision log ID-730 to ID-732, ID-736), so the package is complete; FT-516, FT-518 and FT-519 built
+in cycle 32 (ID-749, ID-753) · **Date:** 2026-10-29 · **Work package:**
 [WP-S2.09](../02-work-packages.md#wp-s209-messages-bulk-previews-history-jobs-and-recovery-ui) · **Decision log:**
 ID-690 to ID-699, the ten entries of §15.3 in order (follow-ups FT-494 to FT-498, the five of §15.4 in order) · **Part
 of:** ElektraWatt plan, specifications
@@ -508,6 +509,8 @@ ID-741). Built as §7 says, with these points:
 - **Counts (§7.5).** No new `SessionCalls` counter: Run checks drops the table and refetches it, so `navigator_table`
   rises by exactly 1.
 - **Not built:** an `ew.uiscript/1` script test of the MS flows (§9 item 1), FT-516; the real window was not driven.
+  *(Built in cycle 32, ID-753: `bin/elektrawatt` `tests/messages/scripts.rs` runs MS1 with MS4, MS2 and MS3 through
+  the built binary twice, byte-identical, with the `--record` log replayed; FT-516 closed.)*
 
 ## 8. Part 3: the preview tab, the renumber dialogs, the history panel
 
@@ -669,7 +672,10 @@ tip, ID-741). Built as §8 says, with these points:
   Escape closes it. The Saved marker (`marker-saved`) sits at the save's revision; quick-fix origins come from
   `ShellModel::note_history_origin(rev, text)`, which is public. In the window each row has Undo to here and Show changes
   buttons and a double-click; arrow and Enter routing is not built (FT-519). The header shows "<n> steps · cursor at
-  <c>" instead of "oldest kept: step k · a MB of b MB" (FT-518).
+  <c>" instead of "oldest kept: step k · a MB of b MB" (FT-518). *(Built in cycle 32 by WP-S2.17 part 3, ID-749: the
+  header adds "oldest kept: step k · a MB of b MB", FT-518; with the panel focused (`ui.focus {area: history}`, F6)
+  Up and Down are `history.row` and Enter is `history.undo_to`, and the row actions show on the cursor row, on hover
+  and on focus only, FT-519.)*
 - **Context restore (§8.5).** On the same page only the viewport moves, so the keyboard grid cursor survives; otherwise
   the page is shown at the exact viewport with one back-history entry; the selection is filtered to items that resolve
   as `id:<uuid>`; contexts are kept with `or_insert` per revision (a nested action keeps the nearer one), at most 500
