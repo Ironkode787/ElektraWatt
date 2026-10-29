@@ -101,14 +101,16 @@ impl Rule for DeviceNotInSchematic {
         }
         let idx = q.idx();
         let functions: Vec<Id<Function>> = idx.functions_of_device(device).collect();
-        // Doc 15 §4.2: a *schematic* representation. A panel-front view, a contact image, a strip segment or a
-        // graphic does not draw the device in the schematic (cycle 33 review finding 8); a representation type of a
-        // newer format counts, so that a newer file raises no finding this release cannot judge.
+        // Doc 15 §4.2: a *schematic* representation. A panel-front view, a contact image or a strip segment is a
+        // derived or layout view and does not draw the device in the schematic (cycle 33 review finding 8). A graphic
+        // counts: a cable is drawn in the schematic as a graphic representation (Golden A's -106W1, -106W2, -3W1). A
+        // representation type of a newer format counts, so that a newer file raises no finding this release cannot
+        // judge.
         let schematic = |r| {
             q.reps().get(r).is_some_and(|r| {
                 !matches!(
                     r.rep_type,
-                    RepType::ContactImage | RepType::PanelFront | RepType::StripSegment | RepType::Graphic
+                    RepType::ContactImage | RepType::PanelFront | RepType::StripSegment
                 )
             })
         };
