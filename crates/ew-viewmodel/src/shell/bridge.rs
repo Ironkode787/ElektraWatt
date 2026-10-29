@@ -23,6 +23,7 @@ use serde_json::{Value, json};
 
 use super::interruption::natural_cmp;
 use super::{Outcome, ShellModel};
+use crate::strings;
 use crate::tools::{EntityKind, selection_kinds};
 
 /// A connection point: the function's ID text and the CP index.
@@ -265,7 +266,30 @@ impl ShellModel {
     /// terminals, consecutive in the strip's order, one undo step.
     pub(super) fn act_strip_bridge(&mut self) -> Outcome {
         match self.bridge_command() {
-            Ok(cmd) => self.commit_from_host(&cmd),
+            Ok(cmd) => {
+                // FT-549: the bridges and the terminals they join, counted from the command.
+                let connections: Vec<&Value> = match cmd.params.get("connections") {
+                    Some(Value::Array(many)) => many.iter().collect(),
+                    _ => vec![&cmd.params],
+                };
+                let terminals: std::collections::BTreeSet<String> = connections
+                    .iter()
+                    .flat_map(|c| [&c["a"]["cp"]["function"], &c["b"]["cp"]["function"]])
+                    .map(Value::to_string)
+                    .collect();
+                let outcome = self.commit_from_host(&cmd);
+                if matches!(outcome, Outcome::Done) {
+                    let bridges = connections.len();
+                    let key = if bridges == 1 {
+                        "toast-bridged-one"
+                    } else {
+                        "toast-bridged"
+                    };
+                    let text = strings::format(key, &[&bridges.to_string(), &terminals.len().to_string()]);
+                    self.notify(text, true);
+                }
+                outcome
+            }
             Err(reason_key) => Outcome::Refused { reason_key },
         }
     }

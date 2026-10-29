@@ -281,6 +281,14 @@ fn ms2_run_checks_ends_pending_and_a_conflict_is_never_pending() {
     );
     assert!(!shell.row_pending(NavKind::Messages, &row.key));
     assert_eq!(shell.messages_counts().unwrap().pending, 0);
+    // FT-549: the check reports its findings by severity, the same counts as the pane's header.
+    let c = shell.messages_counts().unwrap();
+    let toast = shell.toast().expect("the check toast").text.clone();
+    assert!(
+        toast.starts_with(&format!("Check: {} error", c.errors))
+            && toast.contains(&format!("{} warning", c.warnings)),
+        "{toast} / {c:?}"
+    );
     // A second source of an existing name on 101: EW-CORE-052 (conflict), never pending, while the new commit makes
     // 101 the editing page again (so MSGTEST's finding is pending once more).
     let e_before = errors(&shell);
@@ -676,4 +684,16 @@ fn ft528_navigator_row_into_a_collapsed_group_expands_its_path() {
         "the refused move left the group collapsed"
     );
     shell.shutdown();
+}
+
+/// FT-549: with the Messages pane closed, Run checks still reports what it found, errors and warnings always named
+/// (`Check: 0 errors, 1 warning`), and the summary text follows the singular and plural forms.
+#[test]
+fn ft549_check_reports_its_counts_with_the_pane_closed() {
+    let tmp = Tmp::new("msg-ft549");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    done(&mut shell, "messages.check", json!({}));
+    let toast = shell.toast().expect("the check toast").text.clone();
+    assert!(toast.starts_with("Check: "), "{toast}");
+    assert!(toast.contains("error") && toast.contains("warning"), "{toast}");
 }

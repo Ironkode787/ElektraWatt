@@ -22,6 +22,7 @@ use crate::layout::PaneKind;
 use crate::navigators::messages::{self, FindingDetail, MessageCounts};
 use crate::navigators::{NavRole, Navigator, Query, visible_rows};
 use crate::properties::{Card, CardOrigin, EditRoute, FieldReadOnly, PendingEdit};
+use crate::strings;
 use crate::tools::PreviewState;
 
 impl ShellModel {
@@ -219,6 +220,16 @@ impl ShellModel {
             n.table = None;
         }
         self.fetch_messages_table();
+        // FT-549: the outcome counted, `Check: 1 error, 0 warnings`, from the pane's table or, with the pane closed,
+        // from a table fetched for the count alone.
+        let counts = self.messages_counts().or_else(|| {
+            let project = self.project.as_ref()?;
+            let table = project.session.navigator_table(NavKind::Messages);
+            Some(messages::counts(&table, self.editing_folio().as_deref()))
+        });
+        if let Some(c) = counts {
+            self.notify(check_summary(c), false);
+        }
         Outcome::Done
     }
 
@@ -375,5 +386,49 @@ impl ShellModel {
             self.messages.annotations.insert((epoch, now), text);
         }
         out
+    }
+}
+
+/// The toast of `messages.check` (FT-549): the errors and warnings always, the infos, waived and pending findings when
+/// there are any: `Check: 1 error, 0 warnings`.
+pub(crate) fn check_summary(c: MessageCounts) -> String {
+    let count = |n: usize, one: &str, many: &str| match n {
+        1 => strings::text(one).to_owned(),
+        n => strings::format(many, &[&n.to_string()]),
+    };
+    let mut parts = vec![
+        count(c.errors, "check-error", "check-errors"),
+        count(c.warnings, "check-warning", "check-warnings"),
+    ];
+    for (n, one, many) in [
+        (c.infos, "check-info", "check-infos"),
+        (c.waived, "check-waived-one", "check-waived"),
+        (c.pending, "check-pending-one", "check-pending"),
+    ] {
+        if n > 0 {
+            parts.push(count(n, one, many));
+        }
+    }
+    strings::format("toast-check", &[&parts.join(", ")])
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn check_summary_names_errors_and_warnings_always_and_the_rest_when_present() {
+        let c = |errors, warnings, infos, waived, pending| MessageCounts {
+            errors,
+            warnings,
+            infos,
+            waived,
+            pending,
+        };
+        assert_eq!(check_summary(c(1, 0, 0, 0, 0)), "Check: 1 error, 0 warnings");
+        assert_eq!(check_summary(c(0, 1, 0, 0, 0)), "Check: 0 errors, 1 warning");
+        assert_eq!(
+            check_summary(c(2, 3, 1, 4, 1)),
+            "Check: 2 errors, 3 warnings, 1 info, 4 waived, 1 pending"
+        );
     }
 }

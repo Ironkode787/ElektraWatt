@@ -371,6 +371,11 @@ fn a_bridge_extends_the_group_of_an_existing_bridge() {
     done(&mut s, "strip.bridge", json!({}));
     let last = s.recorded_commands().last().expect("the commit");
     assert_eq!(last.params["kind"]["bridge"]["group"], 1, "{}", last.params);
+    // FT-549: one bridge counts its two terminals.
+    assert_eq!(
+        s.toast().expect("the bridge toast").text,
+        "Added 1 bridge between 2 terminals"
+    );
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -467,6 +472,11 @@ fn four_terminals_draw_the_chain_in_one_undo_step() {
     assert_eq!(last.cmd, "connection.draw_many");
     let connections = last.params["connections"].as_array().expect("the entries");
     assert_eq!(connections.len(), 3, "{}", last.params);
+    // FT-549: the outcome is counted in the toast.
+    assert_eq!(
+        s.toast().expect("the bridge toast").text,
+        "Added 3 bridges between 4 terminals"
+    );
     for (k, c) in connections.iter().enumerate() {
         assert_eq!(c["a"], json!({"cp": {"function": X1031[k], "idx": 3}}));
         assert_eq!(c["b"], json!({"cp": {"function": X1031[k + 1], "idx": 3}}));
@@ -511,6 +521,11 @@ fn a_chain_draws_only_the_pairs_not_bridged_yet() {
     assert_eq!(last.params["a"], json!({"cp": {"function": X1031[1], "idx": 3}}));
     assert_eq!(last.params["b"], json!({"cp": {"function": X1031[2], "idx": 3}}));
     assert_eq!(last.params["kind"]["bridge"]["group"], 1, "{}", last.params);
+    // FT-549: one bridge counts its two terminals.
+    assert_eq!(
+        s.toast().expect("the bridge toast").text,
+        "Added 1 bridge between 2 terminals"
+    );
 }
 
 // ---------------------------------------------------------------------------------------------------------------
