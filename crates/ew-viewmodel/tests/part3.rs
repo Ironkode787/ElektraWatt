@@ -894,6 +894,64 @@ fn ip_external_refuses_a_printed_text_two_references_share_and_takes_an_id() {
     assert_eq!(canvas(&s)["ghost"]["external"], Value::Null);
 }
 
+/// FT-619: an external connection point placed after an interruption point does not inherit the IP's name; it
+/// proposes its own (`IP`), and committing it leaves the IP series where it was.
+#[test]
+fn an_external_point_after_an_ip_does_not_inherit_its_name() {
+    let location = {
+        let (session, _) =
+            ew_viewmodel::ew_api::Session::open_read_only(std::path::Path::new(common::GOLDEN_A), "test")
+                .unwrap();
+        let q = session.query();
+        let id = q
+            .external_refs()
+            .iter()
+            .next()
+            .map(|(_, x)| x.location.to_string())
+            .expect("Golden A has external references");
+        drop(q);
+        id
+    };
+    let tmp = Tmp::new("ip-external-name");
+    let mut s = shell(&tmp, "102");
+    done(
+        &mut s,
+        "command.run",
+        json!({"cmd": "external_ref.create", "params": {
+            "location": location, "device": "NAME-DEV", "connection": "Y",
+        }}),
+    );
+    done(&mut s, "tool.ip", json!({}));
+    cursor_k(&mut s, (60, 3));
+    done(&mut s, "ip.name", json!({"text": "PE-1.1"}));
+    done(&mut s, "tool.ip_direction", json!({"direction": "target"}));
+    done(&mut s, "canvas.activate", json!({}));
+    // Off the placed point (its CP now carries a potential), the IP series goes on.
+    cursor_k(&mut s, (60, 9));
+    assert_eq!(canvas(&s)["ghost"]["name"], "PE-1.1-1", "the IP series goes on");
+    let id = s
+        .external_choices()
+        .into_iter()
+        .find(|(_, label)| label == "NAME-DEV:Y")
+        .map(|(id, _)| id)
+        .expect("the new external reference");
+    done(&mut s, "ip.external", json!({ "external": id }));
+    let name = canvas(&s)["ghost"]["name"].as_str().unwrap().to_owned();
+    assert!(
+        !name.starts_with("PE-1"),
+        "the external point's own proposal: {name}"
+    );
+    assert_eq!(name, "IP");
+    let rev = s.revision();
+    done(&mut s, "canvas.activate", json!({}));
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "the external point is placed");
+    // Back to an ordinary point: the series goes on from the IP, not from the external point.
+    done(&mut s, "ip.external", json!({"external": ""}));
+    done(&mut s, "tool.ip_direction", json!({"direction": "target"}));
+    cursor_k(&mut s, (60, 15));
+    assert_eq!(canvas(&s)["ghost"]["name"], "PE-1.1-1");
+}
+
 #[test]
 fn a_refused_grip_drag_keeps_its_notice_through_dwell_and_release() {
     let tmp = Tmp::new("grip-notice");

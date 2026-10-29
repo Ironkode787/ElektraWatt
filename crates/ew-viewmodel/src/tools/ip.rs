@@ -16,12 +16,12 @@
 //! | floating | `Escape` | — | `None` (the host returns to Select) |
 //!
 //! **The name** is the typed one, unchanged; else a proposal: (not for an external point) the derived potential name
-//! of the page's CP that lies exactly under the ghost's CP, else the last name this tool or the Wire tool's P
-//! committed, else `IP`; then, while an interruption point of the same direction on the page already has the
+//! of the page's CP that lies exactly under the ghost's CP, else (not for an external point either, FT-619) the last
+//! name this tool or the Wire tool's P committed, else `IP`; then, while an interruption point of the same direction on the page already has the
 //! proposal, the next name of its numbered series ([`next_in_series`]: `24VDC-1` → `24VDC-2`, `L` → `L-1`). **The direction** is the one D chose, else `target` for
 //! an external point, else `source` in the right or bottom quarter of the page's drawing area and `target` in the left
 //! or top quarter ([`quarter_direction`]: the horizontal quarters first), else the last committed one. After a commit
-//! the typed name and the star are cleared and the committed name and direction are remembered ([`IpMemory`], kept by
+//! the typed name and the star are cleared and the committed name and direction (an external point's are not) are remembered ([`IpMemory`], kept by
 //! the host across tools); **the chosen direction stays** for the next placements (FT-547: no flip after a placement)
 //! until D or `tool.ip_direction` chooses another, and setting an external reference clears it, so that the external
 //! point is a target.
@@ -333,15 +333,15 @@ impl IpTool {
             return typed.clone();
         }
         let tables = &cx.page.tables;
-        let potential = if self.external.is_some() {
+        // An external connection point proposes its own name, never the last interruption point's (FT-619).
+        let base = if self.external.is_some() {
             None
         } else {
             pos.and_then(|p| self.cp_at(p))
                 .and_then(|c| potential_at(tables, c))
+                .or_else(|| self.memory.last_name.clone())
         };
-        let base = potential
-            .or_else(|| self.memory.last_name.clone())
-            .unwrap_or_else(|| "IP".to_owned());
+        let base = base.unwrap_or_else(|| "IP".to_owned());
         unused_name(&base, direction, tables)
     }
 
@@ -474,10 +474,14 @@ impl Tool for IpTool {
     fn on_commit(&mut self, done: bool) {
         let pending = self.pending.take();
         if let (true, Some((name, direction))) = (done, pending) {
-            self.memory = IpMemory {
-                last_name: Some(name),
-                last_direction: direction,
-            };
+            // An external connection point is not remembered: the next interruption point's proposal goes on from
+            // the last one (FT-619).
+            if self.external.is_none() {
+                self.memory = IpMemory {
+                    last_name: Some(name),
+                    last_direction: direction,
+                };
+            }
             // The chosen direction stays (FT-547).
             self.typed = None;
             self.star = false;
