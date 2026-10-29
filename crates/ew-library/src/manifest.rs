@@ -177,16 +177,19 @@ impl LibManifest {
 
 /// `sha256:<64 lower-case hex digits>` as bytes.
 pub(crate) fn parse_hash(text: &str) -> Option<[u8; 32]> {
-    let hex = text.strip_prefix("sha256:")?;
+    let hex = text.strip_prefix("sha256:")?.as_bytes();
     if hex.len() != 64 {
         return None;
     }
+    // Each byte a digit or `a`-`f` itself: `u8::from_str_radix` would also take a sign (`+f`) or upper case.
+    let digit = |c: u8| match c {
+        b'0'..=b'9' => Some(c - b'0'),
+        b'a'..=b'f' => Some(c - b'a' + 10),
+        _ => None,
+    };
     let mut out = [0u8; 32];
-    for (i, b) in out.iter_mut().enumerate() {
-        *b = u8::from_str_radix(hex.get(2 * i..2 * i + 2)?, 16).ok()?;
-        if hex.as_bytes()[2 * i].is_ascii_uppercase() || hex.as_bytes()[2 * i + 1].is_ascii_uppercase() {
-            return None;
-        }
+    for (b, pair) in out.iter_mut().zip(hex.chunks_exact(2)) {
+        *b = digit(pair[0])? << 4 | digit(pair[1])?;
     }
     Some(out)
 }
@@ -277,6 +280,12 @@ mod tests {
             None
         );
         assert_eq!(parse_hash("sha256:00"), None);
+        // Review C35 nit: a sign is not a hex digit.
+        let plus = format!("sha256:+f{}", &hash_text(&h)["sha256:".len() + 2..]);
+        assert_eq!(plus.len(), hash_text(&h).len());
+        assert_eq!(parse_hash(&plus), None);
+        let space = format!("sha256: f{}", &hash_text(&h)["sha256:".len() + 2..]);
+        assert_eq!(parse_hash(&space), None);
         assert!(hash_matches(&h, b"x"));
         assert!(!hash_matches(&h, b"y"));
     }
