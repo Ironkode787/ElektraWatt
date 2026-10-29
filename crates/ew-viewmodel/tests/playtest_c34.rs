@@ -117,6 +117,54 @@ fn select_set_by_a_terminals_list_form_tag_then_mirror_mirrors_it() {
     );
 }
 
+/// FT-626: a refused transform key leaves a by-reference selection as it was. Shift+V with Select is refused
+/// `reason-place-only` and V on two drawn representations `reason-one-rep`; neither replaces the selected devices
+/// with their representations. An accepted key (V on one) still does.
+#[test]
+fn a_refused_transform_key_keeps_a_by_reference_selection() {
+    let tmp = Tmp::new("c34-sel-refused");
+    let (mut s, strip) = strip_with_two_terminals(&tmp);
+    done(&mut s, "select.set", json!({ "refs": [format!("{strip}:2")] }));
+    let before = s.selection().clone();
+    let rev = s.revision();
+    assert_eq!(
+        outcome(&mut s, "tool.next_rep_type", json!({})),
+        Outcome::Refused {
+            reason_key: "reason-place-only"
+        }
+    );
+    assert_eq!(
+        s.selection(),
+        &before,
+        "Shift+V refused: the selection is unchanged"
+    );
+    done(
+        &mut s,
+        "select.set",
+        json!({ "refs": [format!("{strip}:1"), format!("{strip}:2")] }),
+    );
+    let before = s.selection().clone();
+    assert_eq!(before.items.len(), 2);
+    assert_eq!(
+        outcome(&mut s, "tool.next_variant", json!({})),
+        Outcome::Refused {
+            reason_key: "reason-one-rep"
+        }
+    );
+    assert_eq!(s.selection(), &before, "V refused: the selection is unchanged");
+    assert_eq!(s.revision(), rev, "nothing was sent");
+    // Accepted: V on one terminal swaps the selection for its representation, as before.
+    done(&mut s, "select.set", json!({ "refs": [format!("{strip}:2")] }));
+    let device = s.selection().items[0];
+    done(&mut s, "tool.next_variant", json!({}));
+    assert_eq!(s.selection().items.len(), 1);
+    assert_ne!(
+        s.selection().items[0],
+        device,
+        "the selection is now the representation"
+    );
+}
+
 /// A reference that names nothing fails with the reason, and the selection is unchanged; it never reports done with
 /// an empty selection.
 #[test]

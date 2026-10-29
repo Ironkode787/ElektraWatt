@@ -839,16 +839,18 @@ impl ShellModel {
                 })
             };
             let mut reps = count_reps(self);
+            // A device or a function selected by reference (`select.set` with a tag, `-X1011:2`) is transformed as
+            // the representations the page shown draws of it, as Delete and Cut take it (FT-485 items 9 and 10):
+            // the selection becomes those representations, but only once the key is sent (FT-626): a refused key
+            // leaves the selection as it was.
+            let mut replace_with = None;
             if reps == 0 {
-                // A device or a function selected by reference (`select.set` with a tag, `-X1011:2`) is transformed as
-                // the representations the page shown draws of it, as Delete and Cut take it (FT-485 items 9 and 10):
-                // the selection becomes those representations.
                 let drawn = self.drawn_reps_of_selection();
                 if !drawn.is_empty() {
-                    self.tools
-                        .selection
-                        .apply(&crate::tools::SelectionChange::Replace(drawn));
-                    reps = count_reps(self);
+                    let mut probe = crate::tools::Selection::default();
+                    probe.apply(&crate::tools::SelectionChange::Replace(drawn.clone()));
+                    reps = probe.items.len();
+                    replace_with = Some(drawn);
                 }
             }
             match key {
@@ -868,6 +870,11 @@ impl ShellModel {
                     };
                 }
                 _ => {}
+            }
+            if let Some(drawn) = replace_with {
+                self.tools
+                    .selection
+                    .apply(&crate::tools::SelectionChange::Replace(drawn));
             }
         }
         if key == ToolKey::NextRepType && self.tools.tool.name() == "place" {
