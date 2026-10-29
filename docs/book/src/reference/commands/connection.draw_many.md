@@ -9,7 +9,9 @@ a strip with it (BR1 = 1-2, 2-3, 3-4).
 Each entry is applied exactly as `connection.draw` with those parameters would be, in order, on the records the
 earlier entries left. Rejected with `CmdError::InvalidParams` at `/connections`: no entry, or more than
 10,000; an entry's own parameter error keeps its message with its JSON Pointer prefixed by `/connections/<i>`,
-and its refusal keeps its reason prefixed by `entry <i>: `. Cost: `Bulk` above 500 entries (`BULK_ABOVE`), else
+and its refusal keeps its reason prefixed by `entry <i>: `. Every other error passes through unprefixed:
+`CmdError::NotFound` carries only the missing record's key (which names the record, not the entry), and a model
+or prevention error is the transaction's, not one entry's. Cost: `Bulk` above 500 entries (`BULK_ABOVE`), else
 interactive. Outcome: the first new connection.
 
 ## Registry entry
