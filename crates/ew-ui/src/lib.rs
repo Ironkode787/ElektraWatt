@@ -50,6 +50,7 @@ mod messages;
 mod nav_table;
 pub mod navigator;
 mod notifications;
+pub mod offscreen;
 pub mod page_view;
 // WP-S2.09 part 3
 mod palette;
