@@ -5,7 +5,7 @@ potential naming, the 0 V–PE bond quick fix of EW-POT-001 and the user-named p
 (0.5 pw, D3; FT-551, FT-577; lane F34 builds it in cycle 34), part 2 the EW-POT pack completed (1.0 pw, D4), part 3
 the EW-CORE rules of cables, parts and devices (1.1 pw, D4), part 4 pages, texts, designations, terminals and the rule
 system (1.0 pw, D4), part 5 Fluent messages, waivers, the AC-21 subset and the AC-24 rows (1.1 pw, D4); part 1 first;
-parts 2 to 4 after it in any order; part 5 last · **Parts 1 and 2 built in cycle 34** (lanes F34 and I34, decision log ID-801, ID-803; Golden A's data fixed to doc 08 by lane X34, ID-804); parts 3 to 5 open · **Date:** 2026-10-29 · **Work package:**
+parts 2 to 4 after it in any order; part 5 last · **Parts 1 and 2 built in cycle 34** (lanes F34 and I34, decision log ID-801, ID-803; Golden A's data fixed to doc 08 by lane X34, ID-804); **parts 3 and 4 built in cycle 35** (lanes E35, I35 and K35, ID-821, ID-823, ID-825; as built in §7 and §8's notes); part 5 open · **Date:** 2026-10-29 · **Work package:**
 [WP-S1.16](../02-work-packages.md#wp-s116-mvp-rule-packs-ew-core-ew-iec81346-ew-term-ew-pot) · **Decision log:**
 ID-784 · **Part of:** ElektraWatt plan, specifications
 
@@ -190,6 +190,14 @@ sizing table carries `verified = false` and the finding says so; P2-5 targeted c
 
 ## 7. Part 3: cables, parts and devices
 
+*As built (cycle 35, lane E35, decision log ID-821; e8db2844).* Built: EW-CORE-031 (live and prevent), -032, -034,
+-036 (prevent), -037, -041, -042, -043, -044, -045, -048, and EW-CORE-008 `form` (FT-368); FT-594's printed-key
+order with an ID-swap test. Golden A's pre-delivery check: 8 errors, 18 warnings, 10 infos. Interpretations
+accepted: -042 without the CP-pattern clause; -043 recognises `part_number == "TBD"`; -037 skips a cable with no
+assigned core; -045 counts main and auxiliary contacts. EW-CORE-041's 11 warnings beyond the expected rows are a
+recorded known gap (FT-638). Not built: -035 (FT-634), -046 (FT-635), -054 (FT-636), FT-190, FT-239 and FT-209's
+exemption; FT-260 is ruled onto EW-CORE-048; FT-261's "use BN" quick fix is FT-637. FT-595 is ruled (ID-828).
+
 **Scope.** EW-CORE-031 (live and prevent, FT-261), -032, -034, -035, -036 (prevent), -037, -041 (with the
 `supply_scope` exemption once FR-DEV-037's attribute exists; else the exemption is FT-209's and the lane reports it),
 -042, -043, -044, -045 (reads `Part.contacts` of WP-S1.19 part 1 when merged, else the FnDef's contact pattern), -046,
@@ -199,6 +207,18 @@ candidate and only it); P3-2 D-15 (the TBD address and the placeholder parts), D
 Golden A rows of these rules in `findings_mvp.csv`; P3-4 targeted checks.
 
 ## 8. Part 4: pages, texts, designations, terminals and the rule system
+
+*As built (cycle 35, lanes I35 and K35, decision log ID-823, ID-825; 27349a82, 6c60f4b2, c09fc27f).* Built:
+EW-CORE-021, -022 (prevent), -025, -026, -061, -063, -071, -083, -084; EW-CORE-008 `channel` (FT-229, its delete fix
+waiting for `channel.delete`, FT-645); EW-CORE-052's prevent mode (FT-194); EW-RDS-001, -002, -003, -007, -009
+(prevent), -010; EW-NUM-002; EW-TERM-003, -004 (prevent); EW-TERM-002's per-strip cache (FT-196). P4-2 holds (EF-12's
+two EW-CORE-061 findings) and EF-18 is exact. Interpretations accepted: EW-RDS-003 skips main functions of `Assembly`
+FnDefs; EW-CORE-061's cap height is em × 0.714 per style row, and **the rule reports only the styles a drawn text
+prints with** (K35, the orchestrator's ruling), the built-in `cp.small` and `marker` kept at 0.94 mm; EW-NUM-002 covers
+wire numbers only; a panic in a prevent run refuses the commit; EW-CORE-026 counts coverage per report kind; no quick
+fix where no single command exists; prevent refuses only findings not held before. Not built: -049 (FT-642), -066
+(FT-643), EW-NUM-001's warning half (FT-644), FT-195. EW-TERM-004's prevent mode refuses strip moves and inserts that
+break a bridge group (FT-641, WP-S2.07).
 
 **Scope.** EW-CORE-021, -022 (prevent), -025, -026, -049 (if the hand-drawn part-list data the rule needs is not in
 the model, the lane stops and reports instead of building it), -061 (one finding per style, FR-CHK-051), -063, -066,

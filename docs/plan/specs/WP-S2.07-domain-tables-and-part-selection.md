@@ -29,6 +29,19 @@ elsewhere** (the lead's ruling, built in the cycle's fix round, ce9bad22: the sh
 `strip.move` in that focus, so the keymap keeps one binding per chord). SE7's order is corrected below to the
 as-built natural order of the tags, which the tests assert.
 
+**As built (cycle 35).** **Part 2 is built** (lane C35, decision log ID-819), with §6.8 from part 1: the Cables
+table's derived potential, shield and pair columns after the report's columns, core, shield and pair editable on the
+conductor, the typed `cable.length` (`12.5 m`, `missing`, `from part`), `cable.swap_cores` in the Edit menu (the table
+has no row menu), Delete in navigator trees through the card (`navigator.delete`) and F2 rename on page titles and
+potential names only (`navigator.rename`; the structure-code and device-tag renames are FT-633), and §6.8's Enter and
+drag on an unplaced terminal row; FT-600 (`strip.add_accessory` with `before`), FT-605 and FT-618 (a terminal with no
+strip opens the strip chooser), FT-621 (bridges in `page.describe`). No part-2 specification pass ran (D15); the
+lane's choices are accepted as built. FT-622's stacking rule was built by the follow-up lane (ID-822): a terminal
+placed on a point of its strip's terminal moves two grid steps right until free, with no autoconnect wires. FT-608
+stays open. SE9's -X1031:15 is not unplaced (FT-630). Since WP-S1.16 part 4, EW-TERM-004 refuses a `terminal.move` or
+`terminal.insert` that leaves a bridge group over terminals that are not consecutive, so §5.2's move of -X1031:1 to
+the end is refused on Golden A (FT-641). 275 actions and 359 describe words at the cycle's tip.
+
 ---
 
 **Contents**

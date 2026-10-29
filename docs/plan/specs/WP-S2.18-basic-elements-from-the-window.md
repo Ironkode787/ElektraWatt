@@ -4,7 +4,7 @@
 existing device from the window (1.1 pw, D4), part 2 the generic starter parts and their reach from a new project
 (1.0 pw, D3, after WP-S1.19 parts 2 and 3), part 3 every starter symbol placeable and the briefs without embed lines
 (0.6 pw, D3), part 4 the brief `brief-plc-io` (0.3 pw, D2, after WP-S2.07 part 3 and WP-S1.21's channel assignment);
-part 1 first and alone of any dependency; parts 2 and 3 in that order; part 4 last · **Date:** 2026-10-29 ·
+part 1 first and alone of any dependency; parts 2 and 3 in that order; part 4 last · **Part 1 built in cycle 35** (lane A35, decision log ID-817; D3 deferred, FT-628); parts 2 and 3 building in cycle 35 (recorded by the orchestrator) · **Date:** 2026-10-29 ·
 **Work package:** [WP-S2.18](../02-work-packages.md#wp-s218-basic-elements-from-the-window-starter-symbols-parts-and-joined-functions)
 · **Decision log:** ID-812 · **Part of:** ElektraWatt plan, specifications
 
@@ -17,6 +17,16 @@ against the delivered Place tool (WP-S2.04 §7.2), the picker and the Parts row 
 `device.place` with its `join_device` and `existing_function` targets (WP-S1.13), the starter symbols (WP-S7.02) and
 WP-S1.19's library tiers, not against their code. A choice a lane meets that this document does not settle is
 escalated, never guessed (`CLAUDE.md`, rule 2).
+
+**As built (cycle 35, part 1).** Lane A35 (8863dde2, eb4e9ed6; decision log ID-817) built D1, D2 and D4: the Place
+tool's HUD offers "J Join device…" for an auxiliary symbol; the Join chooser lists "New device", the slots ("slot
+13-14") and the devices whose family takes auxiliary functions, in natural tag order with type-ahead; Enter arms the
+target (ghost label `join -K1`), which is sticky, Escape keeps it and "New device" restores the default; the active
+row's object takes the hover outline; the actions `place.join`, `chooser.row`, `chooser.type` and `chooser.choose`;
+`place.pick device=<tag>` and `function=<tag>[:<slot>]`. `brief-relays-valves` and `brief-valve-switch` are runnable
+(FT-599), the prelude's part line still in place. **D3 is not built:** the Tag row is read-only and no command moves
+a function to another device, so the proposal's button has nothing to commit; FT-628 (an editable Tag row and a core
+`function.move_to_device`, then D3). The documents of §7 are not yet updated for part 1.
 
 ## 1. Goal and non-goals
 

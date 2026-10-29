@@ -5,7 +5,7 @@ and macro data within format 0.1 (1.2 pw, D5), part 2 the library tiers and the 
 (1.4 pw, D5), part 3 embedding by reference, `part.assign`, update from library and the manufacturer copies (1.3 pw,
 D4), part 4 the CSV and XLSX parts import with column mapping and the basic-project backend (0.8 pw, D3), part 5 save
 and insert macros with value sets and include flags (1.5 pw, D5), part 6 the macro and library panes (0.6 pw, D3);
-part 1 first; parts 2 and 4 after it in any order; part 3 after part 2; part 5 after parts 1 and 3; part 6 last · **Part 1 built in cycle 34** (lane K34, decision log ID-806; as built, two details differ from §6: `MechData.rail_offset` is a `Pt2`, FT-604, and the one-cycle alias `BUILTIN_LIBRARY` has no `#[deprecated]` attribute so that the tests naming it stay warning-free, FT-596); WP-S2.18 part 2 fills the system library `ew-starter-parts` with the generic starter parts after parts 2 and 3 (ID-812) ·
+part 1 first; parts 2 and 4 after it in any order; part 3 after part 2; part 5 after parts 1 and 3; part 6 last · **Part 1 built in cycle 34** (lane K34, decision log ID-806; as built, two details differ from §6: `MechData.rail_offset` was a `Pt2`, now a `Vec2Nm` (FT-604, closed in cycle 35), and the one-cycle alias `BUILTIN_LIBRARY` has no `#[deprecated]` attribute so that the tests naming it stay warning-free, FT-596, removed in cycle 35); **Parts 2, 3 and 4 built in cycle 35** (lanes B35, D35 and J35, decision log ID-818, ID-820, ID-824; as built in §7, §8 and §9's notes: the lock's distinct `Stale` error, the manufacturer copies with Golden A re-blessed, 60 commands, and an own XLSX reader instead of calamine, ID-827); parts 5 and 6 open; WP-S2.18 part 2 fills the system library `ew-starter-parts` with the generic starter parts after parts 2 and 3 (ID-812) ·
 **Date:** 2026-10-29 · **Work package:** [WP-S1.19](../02-work-packages.md#wp-s119-parts-libraries-and-macros) ·
 **Decision log:** ID-783 · **Part of:** ElektraWatt plan, specifications
 
@@ -161,7 +161,7 @@ after each part).
 | D8 | **`part.assign` is the one assignment command** (FT-168). It embeds the missing copies of the closure (a held copy of the same version and hash is reused; another version is refused: "update from library first"), then sets the part uses of the devices in one of three modes: `append` (the default), `replace_all`, `replace {from}` (FR-PRT-023). It does not match template functions onto existing functions (doc 07 §3.3 steps 2 and 3 stay with part-first placement as built). **The main part (FT-208)** is the first part use whose copy's template has a `main` function with the device's main function's FnDef, else the first part use | One command per gesture and one undo step for the dialog of WP-S2.07 part 4; the template matching is a placement concern already served by part-first placement |
 | D9 | **`library.update` is Bulk and always previewed.** For each copy: same hash → nothing; else the record diff is classified patch, minor or major by doc 07 §4.5 regardless of the declared version; a major change needs a CP map (by index if the designation is unchanged, else by designation), and a connected CP without a mapping refuses the command with the list; the copy file is rewritten in place (same copy ID). The card shows the class, the field diff, the affected devices and representations and the BOM rows that change. FR-SYM-016 uses the same command | One mechanism for parts, symbols, FnDefs and forms; the "keep both" choice of a cross-project paste (FT-396) stays with WP-S2.07 part 4 |
 | D10 | **Manufacturer copies (FT-39).** `Manufacturer {key, name, aliases, brands}` is a library document (`lib/manufacturers/`); a part's `manufacturer` `LibRef` resolves to the embedded copy; `manufacturer_name` reads the copy's `name` and falls back to `extra["key"]` for files written before part 3. The importers and the golden emitter write manufacturer copies and stop writing `key`; **Golden A is re-blessed**: manufacturer copies added, the 29 part copies re-hashed, every exported output byte-equal (the test that proves it) | The design's master list (FR-PRT-002, D-18) replaces a stopgap that every reader had to know; the fallback keeps development files readable |
-| D11 | **One general parts import.** `ew-import-catalog` reads CSV and XLSX (calamine, read-only, no formulas evaluated) through a column map (`member ← header`, FT-463), saved per source in `<config dir>/imports/<source key>.toml`; it dedupes on (manufacturer key, `pn_norm`), resolves manufacturer aliases through the master list it is given, and returns part documents with a report of new, updated and rejected rows (FR-PRT-016). Two targets: the project through `parts.import` (as built, project-local copies) and a writable library through `ew lib import parts` (a library write, §7.3). `ew-interop-api` re-exports `ew_schema`, so the importer names the record types without a new edge. The golden dialect stays in `ew-import-tables` | One mapping step for every user file; the golden bootstrap keeps its exact, tested reader |
+| D11 | **One general parts import.** `ew-import-catalog` reads CSV and XLSX (calamine, read-only, no formulas evaluated; *as built, cycle 35: an own XLSX reader on `miniz_oxide` and `quick-xml`, not calamine, ID-827*) through a column map (`member ← header`, FT-463), saved per source in `<config dir>/imports/<source key>.toml`; it dedupes on (manufacturer key, `pn_norm`), resolves manufacturer aliases through the master list it is given, and returns part documents with a report of new, updated and rejected rows (FR-PRT-016). Two targets: the project through `parts.import` (as built, project-local copies) and a writable library through `ew lib import parts` (a library write, §7.3). `ew-interop-api` re-exports `ew_schema`, so the importer names the record types without a new edge. The golden dialect stays in `ew-import-tables` | One mapping step for every user file; the golden bootstrap keeps its exact, tested reader |
 | D12 | **A macro variant is a project fragment.** `MacroDef.variants[i].fragment` is the paste fragment of WP-S2.05 (`#ew-fragment v1`), widened for macros by the kinds `channel` and `device_link` and by the page records of a page macro; variables bind to field paths of the field catalogue (`SETTABLE`, WP-S2.05) and are checked when the macro is saved; value sets are typed; a placeholder group's `include` is a `Bool` variable; no rhai at MVP. Saving a macro is a **library write** (a Session operation, confirmed, not undoable, not a project command) | One fragment format for clipboard and macros, already parsed, validated and fuzzed |
 | D13 | **`macro.insert` is one command**, `Interactive`, with the macro document and its closure as parameters, the target page (window macro) or the page after which new pages go (page macro), position, orientation, a value set name or explicit values, and `instance` (a UUID minted by the caller and written to the command log). New IDs are `v5(instance, local ID)`. It refuses only for a missing variant for the page's representation type, a grid mismatch, a value that does not coerce, or a held macro copy of another version; tag, address, IP-name and process-tag conflicts are checks that the preview lists (FR-MAC-005), never refusals | Replays reproduce every ID; conflicts are information the user decides on, as the card shows them |
 | D14 | **The basic project is recorded and saved.** `Project.basic_project = {id, generation}` (the basic project's project ID and its manifest generation when copied; a basic project has no semantic version) is written by `Session::new_project` from a directory template; `Session::save_as_basic(dir, omit_pages, omit_devices)` writes a new directory of kind `Basic` with new IDs, keeping schemes, profiles, frames, sections, structure, report blocks and library copies | FR-PRJ-009 and FR-MAC-011 with the least new surface; a palette with pins is FT-591 |
@@ -309,6 +309,16 @@ All new members are optional, default-omitted and keep unknown members in their 
 
 ## 7. Part 2: library tiers and the search index
 
+*As built (cycle 35, lane B35, decision log ID-818; c7c77e75, 29b2674c).* As specified, with these differences: the lock
+has two errors, `LibraryError::Locked` for a live lock and `LibraryError::Stale` for a stale one, and a stale lock is
+taken over only on explicit confirmation through `Registry::take_over_stale` (doc 05 §7.4; §7.2 below named `Locked`
+alone); the CLI's `--take-over` came with part 4's `ew lib import parts` (ID-824); `ew-library` gains the edges to
+`ew-ids` (normal) and `ew-testdir` (dev). `SessionOptions.libraries` opens the tiers at the first
+`Session::libraries`, the starter alone when there are none or they cannot be opened (`library_error` says why);
+`Session::part_search` fills `held` from the project's copies. IX-1 to IX-8 pass in
+`crates/ew-library/tests/registry.rs`; IX-9's generator exists and its test is `#[ignore]`d, not run (the owner's
+rule). Follow-up FT-629 (a two-level compatibility rule, for WP-S2.07 part 4).
+
 **Scope.** D3 to D6, FR-PRT-012, FR-PRT-028, FR-PRT-034's filter, NFR-PERF-21's build. **1.4 pw, D5.**
 
 ### 7.1 The `.ewlib` directory
@@ -361,6 +371,19 @@ parts` are the CLI.
 
 ## 8. Part 3: embedding, assignment and update from library
 
+*As built (cycle 35, lane D35, decision log ID-820; 0618f4c0, 3e49c246, 27738cfe, a967a136, 702815c7).* `part.assign`
+and `library.update` bring the command count to 60; EM-1 to EM-10 pass; Golden A re-blessed through the fixture
+tooling (8 manufacturer copies, the 29 part copies re-hashed without `key`, every exported output byte-equal).
+The lane's choices, accepted: AC-14's evidence count moves from 172 to 180 files (D10's copies); `LocalFork` reads
+`meta.extra.source.fork_of`, and project-local copies that are not forks are left out of `library_status`;
+`part_confidence` reads the exact section key, then its head segment, else `Verified`; the patch and minor boundary as
+built; a connected CP blocks an update, an overridden one does not; `replace` keeps the quantity and `append` adds a
+second use; D9's major rules apply whether or not the item is in use; `library_status` covers no macros until part
+5. **Not built:** FT-262 (stopped: 195740's type designation would print on folio 201 through `ew.ovw.module`'s type
+slot, while folio 3's dp-port symbol has no type slot; it needs a ruling) and Golden C's step 4 below (FT-639, after
+FT-166). New: `library.update` does not embed the new version's missing closure (FT-640). EW-CORE-065's spelling half
+is unblocked (`Q::manufacturers`).
+
 **Scope.** D7 to D10, FT-39, FT-166, FT-167's rest, FT-168, FT-208, FT-262, FT-265, FT-274, FT-323's marker,
 FT-487's data. **1.3 pw, D4.**
 
@@ -404,6 +427,16 @@ result unchanged, the `lib/` diff only manufacturer copies added and part copies
 L1-6 plus `ew-derive`, `ew-library`, `ew-testkit`.
 
 ## 9. Part 4: parts import and the basic-project backend
+
+*As built (cycle 35, lane J35, decision log ID-824, ID-827; a0eb53e9, 7551b1e4, 37fe09d4, fedf59fe, 408f6f07,
+106e3a2c).* IM-1 to IM-6 and BP-1 to BP-3 pass. Differences: the XLSX reader is not calamine but an own reader in
+`ew-import-catalog` on `miniz_oxide =0.8.9` and `quick-xml =0.41.0`, with each entry inflated under a hard cap and the
+shared strings bounded by doc 05 §3.6's limits, because calamine's zip turned on flate2's zlib-rs backend and changed
+the PDF bytes (ID-827); a project import embeds the manufacturer copies it resolves and writes no `extra.key` (D10),
+while a library import names the master's records and writes only the created ones; `save_as_basic` takes
+`StoreOptions`, returns `SaveAsBasicError`, and keeps potential definitions, page items and structure boxes when
+devices are omitted, so the result opens with no integrity findings; the window's mapping step below is not built
+(FT-649). Follow-ups FT-650 (a fuzz arm), FT-651 (a library target's manufacturer references, ruled) and FT-652.
 
 **Scope.** D11, D14, FT-463, FR-MAC-011, FR-PRJ-009, FR-PRJ-010's check. **0.8 pw, D3.**
 
