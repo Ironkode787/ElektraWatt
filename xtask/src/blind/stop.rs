@@ -161,6 +161,20 @@ fn run_exports(run: &Run) -> Result<Exports> {
     Ok(ex)
 }
 
+/// The exports `stop` makes (the two PDFs, the parts list, the check reports) for a run whose project is in
+/// `work/project`, as the facts the score reads (used by `rescore`).
+///
+/// # Errors
+///
+/// A product that does not start.
+pub fn exports_of(run: &Run) -> Result<ExportFacts> {
+    let ex = run_exports(run)?;
+    Ok(ExportFacts {
+        pdfs_identical: ex.pdf_same,
+        ew_check_exit: ex.check_exit,
+    })
+}
+
 /// `stop <run> [--reason <r>]`.
 ///
 /// # Errors

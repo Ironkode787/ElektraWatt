@@ -435,6 +435,46 @@ fn h7_counts_the_drawing_lines_of_the_prelude() {
     assert!(by_id(&s, "H7").misses[0].contains("2 entries for 1 prelude steps"));
 }
 
+/// FT-555: S1 accepts a strip's terminal at any cell of the strip's column run from its anchor cell (n terminals, n
+/// columns of one row), and nothing else: another row, a column before the anchor or past the run, another folio, a
+/// device that is not a terminal.
+#[test]
+fn s1_accepts_a_terminal_in_its_strips_column_run() {
+    let r = |label: &str, symbol: &str, cell: &str| {
+        vec![
+            "101".to_owned(),
+            label.to_owned(),
+            symbol.to_owned(),
+            cell.to_owned(),
+        ]
+    };
+    let t = "ew.iec.terminal@qet10";
+    let want = vec![
+        r("1X1:1", t, "101-D2"),
+        r("1X1:2", t, "101-D2"),
+        r("1X1:PE", "ew.iec.terminal-pe@qet10", "101-D2"),
+        r("S51", "sym.a", "101-B2"),
+    ];
+    let got = vec![
+        r("1X1:1", t, "101-D2"),
+        r("1X1:2", t, "101-D3"),
+        r("1X1:PE", "ew.iec.terminal-pe@qet10", "101-D4"),
+        r("S51", "sym.a", "101-B3"),
+    ];
+    let folded = fold_column_runs(&want, got);
+    assert_eq!(
+        row_diff(&want, &folded),
+        [
+            "missing: 101 | S51 | sym.a | 101-B2",
+            "extra: 101 | S51 | sym.a | 101-B3"
+        ]
+    );
+    for cell in ["101-D5", "101-C2", "101-D1", "102-D3"] {
+        let folded = fold_column_runs(&want, vec![r("1X1:2", t, cell)]);
+        assert_eq!(folded[0][3], cell, "{cell} is outside the run");
+    }
+}
+
 /// S1 reads the cell of every representation from the epilogue's `page.describe` text (an interruption point and a
 /// device alike, as many as the page has) and leaves the terminals of folio 103 out on both sides.
 #[test]

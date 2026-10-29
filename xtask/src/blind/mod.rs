@@ -61,6 +61,7 @@ For the orchestrator:
   compose --kind <k> --task <t> [--persona <p>] [--folios <a,b>] --run <id>
   bless <run> --as <name> [--ci pr|nightly|none]
   replay <recording|run> [--bin <dir>] [--twice]
+  rescore <recording> [--bin <dir>] [--write] a recording scored again against its task's current oracle
   selftest [--no-build] [--bin <dir>] [--out <dir>]
   bless-oracle <task> [--bin <dir>]           the expected rows of a task's oracle, from a temporary copy of Golden A
   check-task <task>                           the task folder: files, prelude classes, gaps, the sheet against doc 20
@@ -445,6 +446,31 @@ pub fn run(args: &[String], root: &Path) -> Result<bool> {
             print!("{}", replay::replay_text(&report));
             Ok(report.ok())
         }
+        "rescore" => {
+            let mut f = Flags(rest);
+            let bin = f
+                .take_value("--bin")?
+                .map_or_else(|| root.join("target/debug"), PathBuf::from);
+            let write = f.take_flag("--write");
+            let args = f.rest();
+            let [name] = args.as_slice() else {
+                bail!("rescore <recording> [--bin <dir>] [--write]");
+            };
+            let (score, old) = replay::rescore(root, &bin, name, write)?;
+            let outcome = |json: &str| -> String {
+                serde_json::from_str::<serde_json::Value>(json)
+                    .ok()
+                    .and_then(|v| v["outcome"].as_str().map(str::to_owned))
+                    .unwrap_or_else(|| "none".to_owned())
+            };
+            let new = score::score_json(&score)?;
+            println!("recorded outcome {}, now {}", outcome(&old), outcome(&new));
+            print!("{}", score::score_markdown(&score));
+            if write {
+                println!("written: tools/blind/recordings/{name}/out/score.json and out/report.md");
+            }
+            Ok(true)
+        }
         "selftest" => {
             let mut f = Flags(rest);
             let a = selftest::Args {
@@ -624,6 +650,7 @@ mod tests {
             "compose",
             "replay",
             "bless-oracle",
+            "rescore",
             "check-task",
             "nonsense",
         ] {

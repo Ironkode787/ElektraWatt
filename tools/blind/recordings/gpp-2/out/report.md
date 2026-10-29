@@ -27,7 +27,7 @@ H4 (The parts list equals the oracle's (part number, description, quantity)):
 
 | ID | Check | Want | Got | Status |
 |---|---|---|---|---|
-| S1 | Anchor cells of every representation, by device tag and symbol | 49 rows | 49 rows | miss |
+| S1 | Anchor cells of every representation, by device tag and symbol | 49 rows | 49 rows | ok |
 | S2 | Endpoint labels of the drawn connections, up to orientation | 32 rows | 44 rows | miss |
 | S3 | Junction sequences by far-end labels | 6 rows | 6 rows | ok |
 | S4 | Cross-reference texts among the folios of the run | 23 rows | 23 rows | ok |
@@ -36,21 +36,8 @@ H4 (The parts list equals the oracle's (part number, description, quantity)):
 | S7 | Marker texts | 4 rows | 0 rows | miss |
 | S8 | Findings on the drawn devices (rule, severity, tag) | 7 rows | 7 rows | ok |
 
-S1 (Anchor cells of every representation, by device tag and symbol):
-
-- missing: 101 | 1X1:2 | ew.iec.terminal@qet10 | 101-D2
-- extra: 101 | 1X1:2 | ew.iec.terminal@qet10 | 101-D3
-- missing: 101 | 1X1:PE | ew.iec.terminal-pe@qet10 | 101-D2
-- extra: 101 | 1X1:PE | ew.iec.terminal-pe@qet10 | 101-D4
-
 S2 (Endpoint labels of the drawn connections, up to orientation):
 
-- missing: 101 | 1X1:1/a | ext J-E-206-L | 101
-- extra: 101 | 1X1:1/b | ext J-E-206-L | 101
-- missing: 101 | 1X1:2/a | ext J-E-206-N | 101
-- extra: 101 | 1X1:2/b | ext J-E-206-N | 101
-- missing: 101 | 1X1:PE/a | ext J-E-206-PE | 101
-- extra: 101 | 1X1:PE/b | ext J-E-206-PE | 101
 - extra: 103 | -X1031:1/b | ext 24VDC-AIR1 | 103
 - extra: 103 | -X1031:11/b | ext 0VDC-AIR1 | 103
 - extra: 103 | -X1031:12/b | ext 0VDC-AIR2 | 103

@@ -1051,6 +1051,68 @@ fn s1_left_out(row: &[String]) -> bool {
             .is_some_and(|s| s.contains("terminal") || s.contains("strip-segment"))
 }
 
+/// A frame cell `<folio>-<row letter><column>` as `(folio, row, column)`.
+fn split_cell(cell: &str) -> Option<(&str, u8, u32)> {
+    let (folio, rest) = cell.rsplit_once('-')?;
+    let mut chars = rest.chars();
+    let row = chars.next().filter(char::is_ascii_uppercase)?;
+    let column = chars.as_str().parse::<u32>().ok()?;
+    Some((folio, u8::try_from(row).ok()?, column))
+}
+
+/// The strip of an S1 row that is a terminal of a strip (`<strip>:<designation>` drawn with a terminal symbol).
+fn strip_of(row: &[String]) -> Option<&str> {
+    let label = row.get(1)?;
+    let symbol = row.get(2)?;
+    if !symbol.contains("terminal") {
+        return None;
+    }
+    label.split_once(':').map(|(strip, _)| strip)
+}
+
+/// FT-555: S1 accepts a strip's terminal at any cell of the strip's column run. The oracle anchors the `n` terminals of
+/// a strip at one cell (1X1's three at 101-D2); a terminal drawn in the same row of the frame, in the anchor's column or
+/// one of the `n - 1` columns after it (101-D2 to 101-D4), counts as drawn at the anchor. Every other row of `got` is
+/// returned as it is.
+pub fn fold_column_runs(want: &[Vec<String>], got: Vec<Vec<String>>) -> Vec<Vec<String>> {
+    // The number of terminals the oracle anchors per (folio, strip, cell).
+    let mut runs: BTreeMap<(String, String, String), u8> = BTreeMap::new();
+    for w in want {
+        if let (Some(strip), Some(folio), Some(cell)) = (strip_of(w), w.first(), w.get(3)) {
+            let n = runs
+                .entry((folio.clone(), strip.to_owned(), cell.clone()))
+                .or_default();
+            *n = n.saturating_add(1);
+        }
+    }
+    got.into_iter()
+        .map(|mut g| {
+            if want.contains(&g) {
+                return g;
+            }
+            let Some(strip) = strip_of(&g).map(str::to_owned) else {
+                return g;
+            };
+            let Some((gf, gr, gc)) = g.get(3).and_then(|c| split_cell(c)) else {
+                return g;
+            };
+            let at = want.iter().find_map(|w| {
+                if w.first() != g.first() || w.get(1) != g.get(1) || w.get(2) != g.get(2) {
+                    return None;
+                }
+                let cell = w.get(3)?;
+                let (wf, wr, wc) = split_cell(cell)?;
+                let n = runs.get(&(w[0].clone(), strip.clone(), cell.clone()))?;
+                (wf == gf && wr == gr && gc >= wc && gc - wc < u32::from(*n)).then(|| cell.clone())
+            });
+            if let Some(cell) = at {
+                g[3] = cell;
+            }
+            g
+        })
+        .collect()
+}
+
 /// The tag of a finding's subject among `tags`: the longest tag the subject ends with (after its sign).
 fn finding_tag(subject: &str, tags: &BTreeSet<String>) -> Option<String> {
     tags.iter()
@@ -1119,10 +1181,12 @@ fn soft_checks(task: &TaskDef, ev: &Evidence, run_folios: &[String]) -> Vec<Raw>
     let mut out = Vec::new();
     for (id, set, what) in SOFT {
         let (want, got): (Rows, RowsOrReason) = match set {
-            "cells" => (
-                want_set(set).into_iter().filter(|r| !s1_left_out(r)).collect(),
-                Ok(cells.iter().filter(|r| !s1_left_out(r)).cloned().collect()),
-            ),
+            "cells" => {
+                let want: Rows = want_set(set).into_iter().filter(|r| !s1_left_out(r)).collect();
+                let got =
+                    fold_column_runs(&want, cells.iter().filter(|r| !s1_left_out(r)).cloned().collect());
+                (want, Ok(got))
+            }
             "junctions" => (want_set(set), Ok(junctions.clone())),
             "markers" => (want_set(set), Ok(markers.clone())),
             "ends" => (

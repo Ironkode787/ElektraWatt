@@ -19,6 +19,7 @@ use serde_json::{Value, json};
 
 use super::normalise::{Normaliser, absolute_path_in, find_uuid_line, first_uuid};
 use super::run::{Run, RunJson, Turn, read_script, script_header, step_line};
+use super::score::{Score, score_json, score_markdown, score_run};
 
 /// The folder of the committed recordings.
 pub fn recordings_dir(root: &Path) -> PathBuf {
@@ -163,6 +164,8 @@ pub struct Replayed {
     pub uuid: Option<(usize, String)>,
     /// R3: the number of lines that differ from the run's own transcript, when it is at hand.
     pub r3: Option<usize>,
+    /// The product's standard output as written, its header line first (for `rescore`).
+    pub raw: Vec<String>,
 }
 
 impl Replayed {
@@ -203,6 +206,19 @@ fn scratch() -> PathBuf {
 /// The product does not start.
 pub fn replay_once(root: &Path, exe: &Path, inputs: &Inputs) -> Result<Replayed> {
     let dir = scratch();
+    let result = replay_in(root, exe, inputs, &dir);
+    let _ = std::fs::remove_dir_all(&dir);
+    result
+}
+
+/// Runs the combined script of `inputs` through `elektrawatt` in `dir` (its `work` folder the product's) and compares;
+/// the folder is kept.
+///
+/// # Errors
+///
+/// The product does not start.
+pub fn replay_in(root: &Path, exe: &Path, inputs: &Inputs, dir: &Path) -> Result<Replayed> {
+    let dir = dir.to_path_buf();
     std::fs::create_dir_all(dir.join("work"))?;
     std::fs::create_dir_all(dir.join("config"))?;
     std::fs::create_dir_all(dir.join("empty-sample"))?;
@@ -230,7 +246,10 @@ pub fn replay_once(root: &Path, exe: &Path, inputs: &Inputs) -> Result<Replayed>
     let normaliser = Normaliser::new(&dir);
     let text = String::from_utf8_lossy(&out.stdout).into_owned();
     let raw: Vec<&str> = text.lines().collect();
-    let mut result = Replayed::default();
+    let mut result = Replayed {
+        raw: raw.iter().map(|l| (*l).to_owned()).collect(),
+        ..Replayed::default()
+    };
     let body: Vec<&str> = raw.iter().skip(1).copied().collect();
     result.uuid = find_uuid_line(body.iter().copied());
     result.lines = body.iter().map(|l| normaliser.text(l)).collect();
@@ -289,7 +308,6 @@ pub fn replay_once(root: &Path, exe: &Path, inputs: &Inputs) -> Result<Replayed>
             + own.len().abs_diff(result.lines.len());
         result.r3 = Some(differing);
     }
-    let _ = std::fs::remove_dir_all(&dir);
     Ok(result)
 }
 
@@ -475,6 +493,91 @@ pub fn bless(root: &Path, run: &Run, name: &str, ci: &str) -> Result<PathBuf> {
     Ok(dest)
 }
 
+/// `rescore <recording> [--bin <dir>] [--write]` (FT-555): scores a committed recording again against its task's
+/// current oracle through the harness's own scoring path. The recording is replayed into a scratch run folder (R1 and
+/// R2 must hold), the run's exports are made with the built `ew` as `stop` makes them, and [`score_run`] scores the
+/// folder. With `write` the recording's `out/score.json` and the score section of its `out/report.md` are replaced.
+/// Returns the new score and the recorded `score.json` it replaces.
+///
+/// # Errors
+///
+/// A recording that does not load, a replay that fails R1 or R2, a binary that is not built.
+pub fn rescore(root: &Path, bin: &Path, name: &str, write: bool) -> Result<(Score, String)> {
+    let rec = recordings_dir(root).join(name);
+    let inputs = load_inputs(&rec)?;
+    if let Some(stale) = &inputs.stale {
+        bail!("recording `{name}` is stale ({stale}): it is not re-scored");
+    }
+    let exe = |n: &str| bin.join(format!("{n}{}", std::env::consts::EXE_SUFFIX));
+    for n in ["elektrawatt", "ew"] {
+        if !exe(n).is_file() {
+            bail!(
+                "{} is not built (cargo build -p elektrawatt -p ew)",
+                exe(n).display()
+            );
+        }
+    }
+    let dir = std::env::temp_dir().join("ew-blind-rescore").join(name);
+    if dir.exists() {
+        std::fs::remove_dir_all(&dir)?;
+    }
+    let result = (|| -> Result<(Score, String)> {
+        std::fs::create_dir_all(dir.join(".harness/bin"))?;
+        std::fs::create_dir_all(dir.join(".harness/empty-sample"))?;
+        for rel in ["run.json", "prelude.uiscript", "steps.uiscript", "turns.jsonl"] {
+            std::fs::copy(rec.join(rel), dir.join(rel)).with_context(|| format!("copying {rel}"))?;
+        }
+        std::fs::copy(
+            exe("ew"),
+            dir.join(format!(".harness/bin/ew{}", std::env::consts::EXE_SUFFIX)),
+        )?;
+        super::run::copy_dir(&root.join("content"), &dir.join(".harness/content"))?;
+        let replayed = replay_in(root, &exe("elektrawatt"), &inputs, &dir)?;
+        if !replayed.ok() {
+            bail!("the replay of `{name}` fails: {}", replayed.failures().join("; "));
+        }
+        let mut transcript = replayed.raw.join("\n");
+        transcript.push('\n');
+        std::fs::write(dir.join("transcript.jsonl"), transcript)?;
+        let run = Run { dir: dir.clone() };
+        std::fs::create_dir_all(run.path("out"))?;
+        let facts = super::stop::exports_of(&run)?;
+        let score = score_run(root, &run, facts)?;
+        let old = std::fs::read_to_string(rec.join("out/score.json")).unwrap_or_default();
+        if write {
+            let norm = Normaliser::new(&dir);
+            let json = norm.text(&score_json(&score)?);
+            if let Some(path) = absolute_path_in(&json) {
+                bail!("the new score holds an absolute path ({path})");
+            }
+            std::fs::write(rec.join("out/score.json"), json)?;
+            let report_path = rec.join("out/report.md");
+            let report = std::fs::read_to_string(&report_path)
+                .context("reading out/report.md")?
+                .replace("\r\n", "\n");
+            std::fs::write(&report_path, with_score_section(&report, &score_markdown(&score)))?;
+        }
+        Ok((score, old))
+    })();
+    let _ = std::fs::remove_dir_all(&dir);
+    result
+}
+
+/// `report` with its `## Score` section (up to the next `## ` heading) replaced by `section`; a report without one gets
+/// it after its first paragraph.
+pub fn with_score_section(report: &str, section: &str) -> String {
+    let Some(start) = report.find("## Score\n") else {
+        return match report.find("\n\n") {
+            Some(i) => format!("{}{section}{}", &report[..i + 2], &report[i + 2..]),
+            None => format!("{report}\n{section}"),
+        };
+    };
+    let end = report[start + 1..]
+        .find("\n## ")
+        .map_or(report.len(), |i| start + 1 + i + 1);
+    format!("{}{section}{}", &report[..start], &report[end..])
+}
+
 /// The refusal for a file that holds a raw UUID where none may be, or `None`. The agent's `steps.uiscript` holds none. The
 /// `prelude.uiscript` may hold the fixed IDs of the golden part copies (its `library.embed` line), but only when it is the
 /// task's committed prelude: `start` copies that file verbatim, so the run's prelude equals it.
@@ -655,6 +758,25 @@ mod tests {
         assert_eq!(
             raw_uuid_refusal("out/report.md", &format!("id {id}\n"), None),
             None
+        );
+    }
+
+    /// FT-555: `rescore --write` replaces only the report's score section.
+    #[test]
+    fn the_score_section_of_a_report_is_replaced_in_place() {
+        let report = "# Run r\n\nkind gate\n\n## Score\n\nold\n\n## Protocol\n\nturns 1\n";
+        assert_eq!(
+            with_score_section(report, "## Score\n\nnew\n\n"),
+            "# Run r\n\nkind gate\n\n## Score\n\nnew\n\n## Protocol\n\nturns 1\n"
+        );
+        // The last section, and a report without one.
+        assert_eq!(
+            with_score_section("# Run r\n\n## Score\n\nold\n", "## Score\n\nnew\n"),
+            "# Run r\n\n## Score\n\nnew\n"
+        );
+        assert_eq!(
+            with_score_section("# Run r\n\n## Protocol\n", "## Score\n\nnew\n\n"),
+            "# Run r\n\n## Score\n\nnew\n\n## Protocol\n"
         );
     }
 

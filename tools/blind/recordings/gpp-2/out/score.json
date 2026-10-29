@@ -71,13 +71,8 @@
       "what": "Anchor cells of every representation, by device tag and symbol",
       "want": "49 rows",
       "got": "49 rows",
-      "status": "miss",
-      "misses": [
-        "missing: 101 | 1X1:2 | ew.iec.terminal@qet10 | 101-D2",
-        "extra: 101 | 1X1:2 | ew.iec.terminal@qet10 | 101-D3",
-        "missing: 101 | 1X1:PE | ew.iec.terminal-pe@qet10 | 101-D2",
-        "extra: 101 | 1X1:PE | ew.iec.terminal-pe@qet10 | 101-D4"
-      ]
+      "status": "ok",
+      "misses": []
     },
     {
       "id": "S2",
@@ -86,12 +81,6 @@
       "got": "44 rows",
       "status": "miss",
       "misses": [
-        "missing: 101 | 1X1:1/a | ext J-E-206-L | 101",
-        "extra: 101 | 1X1:1/b | ext J-E-206-L | 101",
-        "missing: 101 | 1X1:2/a | ext J-E-206-N | 101",
-        "extra: 101 | 1X1:2/b | ext J-E-206-N | 101",
-        "missing: 101 | 1X1:PE/a | ext J-E-206-PE | 101",
-        "extra: 101 | 1X1:PE/b | ext J-E-206-PE | 101",
         "extra: 103 | -X1031:1/b | ext 24VDC-AIR1 | 103",
         "extra: 103 | -X1031:11/b | ext 0VDC-AIR1 | 103",
         "extra: 103 | -X1031:12/b | ext 0VDC-AIR2 | 103",

@@ -357,3 +357,18 @@ fn the_describe_script_and_the_row_files() {
         assert!(!header_of(set).is_empty(), "{set}");
     }
 }
+
+/// FT-555: the oracle of `gpp-101-103` ends 1X1's field wires (the external points) on clamp b and its internal wires on
+/// clamp a, as Golden A does since its terminals got their side-2 clamp (a feed-through terminal cannot carry the field
+/// cable and the internal wire on one side).
+#[test]
+fn the_gpp_oracle_ends_1x1s_field_side_on_clamp_b() {
+    let path = task_dir(&crate::workspace_root(), "gpp-101-103").join("oracle/rows/ends.csv");
+    let rows = parse_csv(&std::fs::read_to_string(path).unwrap().replace("\r\n", "\n"));
+    let on_1x1: Vec<&Vec<String>> = rows.iter().filter(|r| r[1].starts_with("1X1:")).collect();
+    assert_eq!(on_1x1.len(), 5, "{on_1x1:?}");
+    for r in on_1x1 {
+        let clamp = if r[2].starts_with("ext ") { "/b" } else { "/a" };
+        assert!(r[1].ends_with(clamp), "{r:?}");
+    }
+}
