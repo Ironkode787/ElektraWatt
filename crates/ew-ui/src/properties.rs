@@ -751,6 +751,15 @@ impl PropertiesPane {
                         .color(t.error.color32()),
                 );
             });
+            // FR-NUM-029: a refused tag-letter edit offers its proposal as one button (cycle 33, G-PP row 6).
+            if let Some(p) = props.tag_proposal().filter(|p| p.row == row.key) {
+                ui.horizontal(|ui| {
+                    ui.add_space(t.space_4 + t.icon_sm);
+                    if ui.button(strings::format("props-use-tag", &[&p.tag])).clicked() {
+                        events.push(Event::Action("props.accept_tag_proposal", json!({})));
+                    }
+                });
+            }
         }
         if let Some(c) = props.choices().filter(|c| c.row == row.key) {
             self.choices(ui, &t, &label, &row.key, rect, c, events);

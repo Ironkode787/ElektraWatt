@@ -967,6 +967,7 @@ impl ShellModel {
     /// The commit path of an edit (§6.6): the exposure guard, one preview, the policy, then the commit or the card.
     /// `card` forces the card (a rebuilt stale card).
     fn run_edit(&mut self, edit: PendingEdit, card: bool) -> Outcome {
+        self.props.tag_proposal = None;
         let row = edit.row.clone();
         let Some(project) = &self.project else {
             return Outcome::Refused {
@@ -1017,7 +1018,11 @@ impl ShellModel {
         let section = self.props_find(&row).map(|(s, _)| s);
         match (decision, result) {
             (Decision::Error, Err(e)) => {
-                let message = self.refusal(&e, section.as_ref());
+                let mut message = self.refusal(&e, section.as_ref());
+                if let Some(proposal) = self.tag_proposal_for(&edit, &message) {
+                    message = strings::format("props-tag-proposal", &[&message, &proposal.tag]);
+                    self.props.tag_proposal = Some(proposal);
+                }
                 self.props.error = Some((row, message.clone()));
                 self.props.card = None;
                 Outcome::Failed { message }
@@ -1137,6 +1142,124 @@ impl ShellModel {
             Outcome::Refused { .. } => {}
         }
         outcome
+    }
+
+    /// The proposal of a tag-letter edit refused for a colliding counter (FR-NUM-029: refused with the next free
+    /// counter proposed, never replaced silently): the letter with the counter cleared, which online numbering
+    /// (FR-NUM-007) fills with the next free one in the same transaction. `None` for any other refusal, several
+    /// targets, or a proposal whose preview fails.
+    fn tag_proposal_for(
+        &mut self,
+        edit: &PendingEdit,
+        message: &str,
+    ) -> Option<crate::properties::TagProposal> {
+        if edit.kind != "device" || edit.path != "tag.letter" || edit.targets.len() != 1 {
+            return None;
+        }
+        let counter = message
+            .split(", the next free counter")
+            .next()
+            .filter(|head| head.len() < message.len())?
+            .rsplit("use ")
+            .next()?
+            .trim();
+        if counter.is_empty() || !counter.bytes().all(|b| b.is_ascii_digit()) {
+            return None;
+        }
+        let letter = match edit.params.get("path").and_then(Value::as_str) {
+            Some("tag.letter") => edit.params.get("value")?.clone(),
+            Some("tag") => edit.params.get("value")?.get("letter")?.clone(),
+            _ => return None,
+        };
+        let target = &edit.targets[0];
+        let params = json!({"edits": [
+            {"kind": "device", "targets": [target], "path": "tag.counter", "value": null},
+            {"kind": "device", "targets": [target], "path": "tag.letter", "value": letter},
+        ]});
+        let cmd = AnyCommand {
+            name: "fields.set_many".to_owned(),
+            params: params.clone(),
+        };
+        let submit = self.props_submit();
+        let project = self.project.as_mut()?;
+        let preview = project.session.preview_with(&cmd, submit).ok()?;
+        let tag = project
+            .session
+            .derived_diff(&preview)
+            .tags
+            .into_iter()
+            .find(|t| t.key.to_string() == *target)?
+            .after;
+        Some(crate::properties::TagProposal {
+            row: edit.row.clone(),
+            tag,
+            counter: counter.to_owned(),
+            params,
+        })
+    }
+
+    /// `props.accept_tag_proposal` (the "Use -102F2" button under a refused tag-letter edit): commits the proposal
+    /// in one undo step; the tag stays unfrozen and the toast names the new tag and its counter.
+    pub(super) fn act_props_accept_tag_proposal(&mut self) -> Outcome {
+        let Some(proposal) = self.props.tag_proposal.take() else {
+            return Outcome::Refused {
+                reason_key: "reason-no-tag-proposal",
+            };
+        };
+        let section = self.props_find(&proposal.row).map(|(s, _)| s);
+        let outcome = self.run_logged_or_commit("fields.set_many", &proposal.params, section.as_ref());
+        if outcome == Outcome::Done {
+            self.props.edit = None;
+            self.props.error = None;
+            self.notify(
+                strings::format("toast-tag-proposal", &[&proposal.tag, &proposal.counter]),
+                true,
+            );
+        }
+        outcome
+    }
+
+    /// One command through the grid's commit path: a fresh preview, then [`ShellModel::commit_kept`].
+    fn run_logged_or_commit(
+        &mut self,
+        name: &str,
+        params: &Value,
+        section: Option<&SheetSection>,
+    ) -> Outcome {
+        let Some(rev) = self.revision() else {
+            return Outcome::Done;
+        };
+        if !self.is_writable() {
+            return Outcome::Refused {
+                reason_key: "reason-read-only",
+            };
+        }
+        let cmd = AnyCommand {
+            name: name.to_owned(),
+            params: params.clone(),
+        };
+        let submit = self.props_submit();
+        let Some(project) = &mut self.project else {
+            return Outcome::Done;
+        };
+        let result = project.session.preview_with(&cmd, submit);
+        let derived = match &result {
+            Ok(p) => project.session.derived_diff(p),
+            Err(_) => Default::default(),
+        };
+        let state = PreviewState {
+            base_rev: rev,
+            command: params.clone(),
+            name: name.to_owned(),
+            result: result.map_err(|e| self.refusal(&e, section)),
+            derived,
+        };
+        if let Err(message) = &state.result {
+            return Outcome::Failed {
+                message: message.clone(),
+            };
+        }
+        self.commit_kept(state, name, params, section)
     }
 
     /// `props.choose`: `index` of the choices under a field (an ambiguous reading, the multi-language switch, a choice

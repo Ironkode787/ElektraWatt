@@ -733,6 +733,7 @@ fn clears_banner(id: &str) -> bool {
             | "props.commit"
             | "props.cancel"
             | "props.set"
+            | "props.accept_tag_proposal"
             | "props.choose"
             | "props.row_menu"
             | "props.filter"
@@ -1657,6 +1658,7 @@ impl ShellModel {
             "props.commit" => self.act_props_commit(),
             "props.cancel" => self.act_props_cancel(),
             "props.set" => self.act_props_set(p),
+            "props.accept_tag_proposal" => self.act_props_accept_tag_proposal(),
             "props.choose" => self.act_props_choose(p),
             "props.row_menu" => self.act_props_row_menu(p),
             "props.filter" => self.act_props_filter(p),

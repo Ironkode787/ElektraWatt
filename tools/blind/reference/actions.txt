@@ -229,6 +229,7 @@ props.input View "Type into the property field" menu none shortcut none context 
 props.commit Command "Commit the property" menu none shortcut none context properties hidden params ""
 props.cancel View "Revert the property" menu none shortcut none context properties hidden params ""
 props.set Command "Set a property" menu none shortcut none context global hidden params "row?:text, value?:text, choice?:uint"
+props.accept_tag_proposal Command "Accept the proposed tag" menu none shortcut none context global hidden params ""
 props.choose Command "Choose" menu none shortcut none context properties hidden params "index?:uint, step?:int"
 props.row_menu View "Property actions" menu none shortcut "Shift+F10" context properties hidden params "step?:int"
 props.action Command "Run a property action" menu none shortcut none context properties hidden params "row?:text, action:enum(edit|clear|override|reset|freeze|unfreeze)"

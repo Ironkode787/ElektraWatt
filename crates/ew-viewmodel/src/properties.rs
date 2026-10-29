@@ -276,6 +276,23 @@ pub struct PropertiesState {
     pub(crate) selection_page: Option<(u64, Option<PageId>)>,
     /// FT-541: the text of the filter field (`props.filter`); it applies only while the field is on show.
     pub(crate) filter: String,
+    /// The proposal of a refused tag-letter edit (FR-NUM-029): accepted by `props.accept_tag_proposal`.
+    pub(crate) tag_proposal: Option<TagProposal>,
+}
+
+/// The proposal that comes with a tag-letter edit refused for a colliding counter (FR-NUM-029, ID-53; cycle 33 G-PP
+/// row 6): the same letter with the counter left to online numbering, which gives the next free one. Accepting it is
+/// one `fields.set_many` (the counter cleared, then the letter set), so the tag is not frozen.
+#[derive(Clone, PartialEq, Debug)]
+pub struct TagProposal {
+    /// The row the refusal stands under.
+    pub row: String,
+    /// The proposed tag as the page prints it (`-102F2`).
+    pub tag: String,
+    /// The counter online numbering gives (`2`), for the toast.
+    pub counter: String,
+    /// The `fields.set_many` parameters that accept it.
+    pub(crate) params: Value,
 }
 
 impl PropertiesState {
@@ -292,6 +309,11 @@ impl PropertiesState {
     /// The error under a field: (row key, message).
     pub fn error(&self) -> Option<(&str, &str)> {
         self.error.as_ref().map(|(r, m)| (r.as_str(), m.as_str()))
+    }
+
+    /// The proposal of a refused tag-letter edit, if any.
+    pub fn tag_proposal(&self) -> Option<&TagProposal> {
+        self.tag_proposal.as_ref()
     }
 
     /// The choices under a field.

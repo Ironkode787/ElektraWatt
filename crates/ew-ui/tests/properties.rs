@@ -759,3 +759,44 @@ fn ft541_the_properties_filter_for_more_than_twelve_rows() {
     assert_eq!(h.state().shell().properties().filter(), "");
     assert_eq!(row_names(&h), all, "every row again");
 }
+
+/// M33 (G-PP row 6, FR-NUM-029): the refused tag-letter edit of -102G1 to F shows "Use -102F3" under the field; a
+/// click commits it in one step and -102F3 is the device's tag.
+#[test]
+fn m33_a_refused_letter_edit_offers_use_tag_as_a_button() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "102");
+    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    settle(&mut h);
+    dispatch(&mut h, "select.set", json!({"refs": ["tag:-102G1"]}));
+    dispatch(&mut h, "props.show_advanced", json!({"on": true}));
+    let out = h
+        .state_mut()
+        .shell_mut()
+        .dispatch("props.set", &json!({"row": "device/tag.letter", "value": "F"}));
+    assert!(matches!(out, Outcome::Failed { .. }), "{out:?}");
+    settle(&mut h);
+    let before = h.state().shell().recorded_commands().len();
+    h.get_by_label("Use -102F3").scroll_to_me();
+    settle(&mut h);
+    h.get_by_label("Use -102F3").click();
+    settle(&mut h);
+    settle(&mut h);
+    assert_eq!(
+        h.state().shell().recorded_commands().len(),
+        before + 1,
+        "{:?} {:?} {:?}",
+        h.state().shell().properties().error(),
+        h.state().shell().properties().tag_proposal(),
+        h.state().shell().toast().map(|t| t.text.clone())
+    );
+    let last = h.state().shell().recorded_commands().last().unwrap().clone();
+    assert_eq!(last.cmd, "fields.set_many");
+    assert!(h.state().shell().properties().tag_proposal().is_none());
+    assert_eq!(
+        h.state_mut()
+            .shell_mut()
+            .dispatch("select.set", &json!({"refs": ["tag:-102F3"]})),
+        Outcome::Done
+    );
+}

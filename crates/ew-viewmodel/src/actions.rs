@@ -3643,6 +3643,15 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
         )),
     ),
+    hidden(act(
+        "props.accept_tag_proposal",
+        Command,
+        "action-props-accept-tag-proposal",
+        Menu::Edit,
+        &[],
+        grid_writable,
+        None,
+    )),
     with_params(
         "index?:uint, step?:int",
         hidden(in_properties(act(
@@ -4692,6 +4701,7 @@ mod tests {
     const PARAMETERLESS: &[&str] = &[
         // Screen controls and keys that read nothing.
         "first_run.next",
+        "props.accept_tag_proposal",
         "first_run.back",
         "wizard.next",
         "wizard.back",
