@@ -30,7 +30,7 @@ use ew_api::output::{EditRoute, FieldType, StripCell, Uuid, field_catalogue};
 
 /// The pseudo-route kind of a strip-editor cell (WP-S2.07 §6.3): its cells compile through `Session::strip_edit`, not
 /// through `parse_field_input`. The path is `group`, `bridge_part:<strip>:<bridge>` (one key per bridge group, so that
-/// two rows of one group setting different parts are a conflict, "same bridge as row <n>") or `accessory_part:<index>`.
+/// two rows of one group setting different parts are a conflict, "same bridge as row `<n>`") or `accessory_part:<index>`.
 pub const STRIP_ROUTE: &str = "@strip";
 
 /// The route of a strip-editor cell of `node` in `column` (WP-S2.07 §6.2): Group and Bridge part on a terminal row, the

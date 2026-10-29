@@ -158,7 +158,7 @@ pub struct LinkDecl {
     pub load_tolerant: bool,
     /// The kinds of a kind-erased link (module documentation), `to` first; empty for every other link. The
     /// target is a record of any of these kinds with the stored ID: EW-INV-001 looks the ID up in each, the
-    /// generic referrer index keys it under `to`, and [`links_to`] lists the link for each of the kinds.
+    /// generic referrer index keys it under `to`, and `links_to` lists the link for each of the kinds.
     pub kind_erased: &'static [Kind],
     pub(crate) targets: TargetsFn,
     pub(crate) unlink: Option<UnlinkFn>,
