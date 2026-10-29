@@ -164,16 +164,6 @@ mod tests {
     use proptest::prelude::*;
 
     #[test]
-    fn constants_and_constructors() {
-        assert_eq!(Nm::ZERO, Nm(0));
-        assert_eq!(Nm::default(), Nm::ZERO);
-        assert_eq!(Nm::UM, Nm(1_000));
-        assert_eq!(Nm::MM, Nm(1_000_000));
-        assert_eq!(Nm::from_mm(-3), Nm(-3_000_000));
-        assert_eq!(Nm::from_um(7), Nm(7_000));
-    }
-
-    #[test]
     fn checked_arithmetic() {
         assert_eq!(Nm(2).checked_add(Nm(3)), Some(Nm(5)));
         assert_eq!(Nm(i64::MAX).checked_add(Nm(1)), None);

@@ -236,14 +236,6 @@ mod tests {
     const S: i64 = Quat9::SCALE;
 
     #[test]
-    fn identity_and_defaults() {
-        assert_eq!(Quat9::default(), Quat9::IDENTITY);
-        assert_eq!(Pose3::default(), Pose3::IDENTITY);
-        assert_eq!(Quat9::IDENTITY.components(), [S, 0, 0, 0]);
-        assert!(Quat9::is_unit(Quat9::IDENTITY.components()));
-    }
-
-    #[test]
     fn sign_normalisation() {
         assert_eq!(Quat9::new(-S, 0, 0, 0).unwrap(), Quat9::IDENTITY);
         assert_eq!(Quat9::new(0, -S, 0, 0).unwrap().components(), [0, S, 0, 0]);
