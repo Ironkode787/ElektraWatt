@@ -6,9 +6,9 @@
 //! For the between-wave and fix-round verifies only; a cycle or milestone gate still runs the full suite
 //! (`cargo xtask ci`, CLAUDE.md "Testing policy").
 //!
-//! - **Changed files.** `git diff --name-only <merge-base>` (committed and uncommitted changes of tracked files
-//!   since the merge base of `--base`, default `main`, and `HEAD`) plus the untracked files that git does not
-//!   ignore.
+//! - **Changed files.** `git diff --name-only --no-renames -z <merge-base>` (committed and uncommitted changes of
+//!   tracked files since the merge base of `--base`, default `main`, and `HEAD`; a rename as its old and its new
+//!   path; paths verbatim, non-ASCII ones too) plus the untracked files that git does not ignore.
 //! - **Changed crates.** A file inside a member's directory belongs to that member (the deepest one). A file
 //!   that no test reads (`docs/`, `.github/`, `.claude/`, `LICENSES/`, a Markdown file at the root) touches no
 //!   crate; `ci/` is the policy data of `xtask`; any other file outside the members (`Cargo.toml`, `Cargo.lock`,
@@ -221,8 +221,8 @@ fn members_of(metadata: &cargo_metadata::Metadata) -> Result<Members> {
     Ok(members)
 }
 
-/// Runs git in `root` and returns its standard output as lines.
-fn git_lines(root: &Path, args: &[&str]) -> Result<Vec<String>> {
+/// Runs git in `root` and returns its standard output.
+fn git_output(root: &Path, args: &[&str]) -> Result<Vec<u8>> {
     let output = Command::new("git")
         .args(args)
         .current_dir(root)
@@ -235,7 +235,39 @@ fn git_lines(root: &Path, args: &[&str]) -> Result<Vec<String>> {
             String::from_utf8_lossy(&output.stderr).trim()
         );
     }
-    Ok(String::from_utf8_lossy(&output.stdout)
+    Ok(output.stdout)
+}
+
+/// The changed files since `merge_base`: the tracked files changed (committed or not) and the untracked files git
+/// does not ignore, sorted and without duplicates. A rename counts as the removal of the old path and the addition
+/// of the new one (`--no-renames`), so the crate a file moved out of is selected too; the paths come NUL-terminated
+/// (`-z`), so a non-ASCII path is not quoted (R1-9).
+fn changed_files(root: &Path, merge_base: &str) -> Result<Vec<String>> {
+    let mut files = nul_paths(&git_output(
+        root,
+        &["diff", "--name-only", "--no-renames", "-z", merge_base],
+    )?);
+    files.extend(nul_paths(&git_output(
+        root,
+        &["ls-files", "--others", "--exclude-standard", "-z"],
+    )?));
+    files.sort();
+    files.dedup();
+    Ok(files)
+}
+
+/// The paths of git's `-z` output (NUL-terminated, verbatim).
+fn nul_paths(stdout: &[u8]) -> Vec<String> {
+    stdout
+        .split(|b| *b == 0)
+        .filter(|p| !p.is_empty())
+        .map(|p| String::from_utf8_lossy(p).into_owned())
+        .collect()
+}
+
+/// Runs git in `root` and returns its standard output as lines.
+fn git_lines(root: &Path, args: &[&str]) -> Result<Vec<String>> {
+    Ok(String::from_utf8_lossy(&git_output(root, args)?)
         .lines()
         .map(str::trim)
         .filter(|l| !l.is_empty())
@@ -254,10 +286,7 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
         .into_iter()
         .next()
         .with_context(|| format!("no merge base of `{base}` and HEAD"))?;
-    let mut files = git_lines(root, &["diff", "--name-only", &merge_base])?;
-    files.extend(git_lines(root, &["ls-files", "--others", "--exclude-standard"])?);
-    files.sort();
-    files.dedup();
+    let files = changed_files(root, &merge_base)?;
 
     let members = members_of(&crate::metadata_all_features(root)?)?;
     let selection = select(&files, &members);
@@ -456,5 +485,60 @@ mod tests {
             members["ew-api"]
         );
         assert!(members.contains_key("xtask"));
+    }
+
+    /// `-z` output: NUL-terminated paths, verbatim (spaces and non-ASCII characters included).
+    #[test]
+    fn nul_separated_paths_are_read_verbatim() {
+        assert_eq!(
+            nul_paths("crates/na\u{ef}ve/x.rs\0docs/a b.md\0".as_bytes()),
+            ["crates/na\u{ef}ve/x.rs", "docs/a b.md"]
+        );
+        assert!(nul_paths(b"").is_empty());
+    }
+
+    /// R1-9: in a scratch repository, a staged rename lists its old and its new path, and a changed file under a
+    /// non-ASCII directory is listed unquoted. The user's own git configuration is not read.
+    #[test]
+    fn renames_list_both_paths_and_non_ascii_paths_are_unquoted() {
+        let dir = std::env::temp_dir().join(format!("ew-xtask-affected-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("crates/old/src")).unwrap();
+        std::fs::create_dir_all(dir.join("crates/na\u{ef}ve")).unwrap();
+        std::fs::write(dir.join("crates/old/src/lib.rs"), "// a\n").unwrap();
+        std::fs::write(dir.join("crates/na\u{ef}ve/x.rs"), "// b\n").unwrap();
+        let git = |args: &[&str]| {
+            let out = Command::new("git")
+                .args(["-c", "user.name=xtask", "-c", "user.email=xtask"])
+                .args(args)
+                .current_dir(&dir)
+                .env("GIT_CONFIG_GLOBAL", dir.join("no-global-config"))
+                .env("GIT_CONFIG_NOSYSTEM", "1")
+                .output()
+                .unwrap();
+            assert!(
+                out.status.success(),
+                "git {args:?}: {}",
+                String::from_utf8_lossy(&out.stderr)
+            );
+            String::from_utf8_lossy(&out.stdout).trim().to_owned()
+        };
+        git(&["init", "-q"]);
+        git(&["add", "."]);
+        git(&["commit", "-q", "-m", "base"]);
+        let base = git(&["rev-parse", "HEAD"]);
+        std::fs::create_dir_all(dir.join("crates/new/src")).unwrap();
+        git(&["mv", "crates/old/src/lib.rs", "crates/new/src/lib.rs"]);
+        std::fs::write(dir.join("crates/na\u{ef}ve/x.rs"), "// c\n").unwrap();
+        let files = changed_files(&dir, &base);
+        let _ = std::fs::remove_dir_all(&dir);
+        assert_eq!(
+            files.unwrap(),
+            [
+                "crates/na\u{ef}ve/x.rs",
+                "crates/new/src/lib.rs",
+                "crates/old/src/lib.rs"
+            ]
+        );
     }
 }
