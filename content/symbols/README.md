@@ -40,9 +40,9 @@ must not share an item id). A reference by key can be re-pointed (`LibRef.extra[
 
 ## Identity
 
-- `library_id` is the provisional system library `7202fd8b-1024-4bf1-9e99-670772eaa589` (`BUILTIN_LIBRARY` of
-  `ew-import-qet`), until the system library gets its own identity (WP-S1.19a).
-- `item_id = v5(BUILTIN_LIBRARY, meta.key)`: UUIDv5 over the key's UTF-8 bytes (the formula of
+- `library_id` is the system library `7202fd8b-1024-4bf1-9e99-670772eaa589` (`ew_interop_api::SYSTEM_LIBRARY`,
+  the compiled-in starter `ew-starter`; WP-S1.19 D4, FT-24).
+- `item_id = v5(SYSTEM_LIBRARY, meta.key)`: UUIDv5 over the key's UTF-8 bytes (the formula of
   `ew_ids::v5::imported_id`). The `@qet10` edition derives its ids from the suffixed key.
 - `id = v5(NS_LIBCOPY, library_id ‖ U+001F ‖ item_id)` (`ew_ids::v5::lib_copy_id`).
 - `version` is `0.1.0`; a symbol's `fndef` reference has `version_req` `^0.1` and carries the FnDef key in `key`.

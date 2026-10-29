@@ -110,10 +110,12 @@ pub const MAX_UNSUPPORTED_STYLE_PAIRS_KEPT: usize = 8;
 /// total. It bounds the size of the imported `SymbolDef` regardless of the number of primitives.
 pub const MAX_UNSUPPORTED_STYLE_PAIRS_PER_DEFINITION: usize = 1_000;
 
-/// **Provisional** library ID of EW's built-in system items (the FnDef `ew.fn.ip`, …), until the
-/// system library gets its own decided identity. References to built-in items also carry their key in
-/// `LibRef.extra["key"]`, so they can be re-pointed by key.
-pub const BUILTIN_LIBRARY: Uuid = Uuid::from_u128(0x7202fd8b_1024_4bf1_9e99_670772eaa589);
+/// **Deprecated** alias of [`ew_interop_api::SYSTEM_LIBRARY`], the library ID of EW's built-in system items
+/// (the FnDef `ew.fn.ip`, …), kept for one cycle because tests outside WP-S1.19 part 1's files still name it
+/// (FT-24); use `SYSTEM_LIBRARY`. It carries no `#[deprecated]` attribute so that those tests stay free of
+/// warnings until they move. References to built-in items also carry their key in `LibRef.extra["key"]`, so
+/// they can be re-pointed by key.
+pub const BUILTIN_LIBRARY: Uuid = ew_interop_api::SYSTEM_LIBRARY;
 
 /// The key of the built-in interruption-point FnDef that `next_report` and `previous_report` elements
 /// reference instead of a generated one (doc 07 §2.3, doc 14 §4.3). The FnDef is `ew.fn.ip`; `ew.gen.ip` is the
@@ -126,3 +128,23 @@ pub const BUILTIN_FNDEF_KEYS: [&str; 1] = [IP_FNDEF_KEY];
 
 /// The `version_req` of a reference to a built-in FnDef. The starter content items are version `0.1.0`.
 pub const BUILTIN_VERSION_REQ: &str = "^0.1";
+
+#[cfg(test)]
+mod tests {
+    use super::{BUILTIN_LIBRARY, IP_FNDEF_KEY};
+    use ew_ids::Uuid;
+    use ew_interop_api::SYSTEM_LIBRARY;
+
+    /// L1-5 (FT-24): the deprecated alias is the system library, and the built-in reference to `ew.fn.ip`
+    /// still points at the same library and item as before the constant moved (the starter's
+    /// `content/fndefs/ew.fn.ip.json` carries this `item_id`).
+    #[test]
+    fn the_builtin_references_are_unchanged_by_the_move_to_system_library() {
+        assert_eq!(BUILTIN_LIBRARY, SYSTEM_LIBRARY);
+        assert_eq!(SYSTEM_LIBRARY.to_string(), "7202fd8b-1024-4bf1-9e99-670772eaa589");
+        assert_eq!(
+            Uuid::new_v5(&SYSTEM_LIBRARY, IP_FNDEF_KEY.as_bytes()).to_string(),
+            "71f84e74-578d-5835-9a77-cfdaf8057ecd"
+        );
+    }
+}

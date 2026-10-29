@@ -3,18 +3,15 @@
 
 //! The built-in library the tables reference by key (doc 05 §13.2, doc 07 §9.1): starter symbols, FnDefs and
 //! forms as embedded copies. The host supplies the documents (`content/symbols/qet10`, `content/fndefs`,
-//! `content/forms`); the importer never reads files itself.
+//! `content/forms`); the importer never reads files itself. Their `library_id` is
+//! [`ew_interop_api::SYSTEM_LIBRARY`] (FT-24), and the references the tables emit carry the documents' own
+//! `library_id`.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 use ew_ids::{Id, Uuid};
 use ew_schema::{FnDef, FormDef, LibCopy, LibDocument, LibItem, LibRef, Library, SymbolDef};
-
-/// **Provisional** library ID of EW's built-in system items, the value of `ew_import_qet::BUILTIN_LIBRARY` and
-/// of the starter content's `library_id` (`content/symbols/README.md`), until the system library gets its own
-/// decided identity (WP-S1.19a). Repeated here because importers may not depend on each other.
-pub const BUILTIN_LIBRARY: Uuid = Uuid::from_u128(0x7202fd8b_1024_4bf1_9e99_670772eaa589);
 
 /// Why a set of documents is not a usable built-in library.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -213,11 +210,80 @@ fn caret(version: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::caret;
+    use super::{BuiltinLibrary, caret};
+    use ew_ids::Uuid;
+    use ew_interop_api::SYSTEM_LIBRARY;
+    use ew_schema::LibDocument;
+    use std::path::{Path, PathBuf};
 
     #[test]
     fn caret_requirements() {
         assert_eq!(caret("0.1.0"), "^0.1");
         assert_eq!(caret("1.0.0"), "^1");
+    }
+
+    /// The library documents of `content/<sub>`, sorted by file name.
+    fn content_docs(sub: &str) -> Vec<LibDocument> {
+        let dir = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../content")
+            .join(sub);
+        let mut paths: Vec<PathBuf> = std::fs::read_dir(&dir)
+            .unwrap_or_else(|e| panic!("{}: {e}", dir.display()))
+            .map(|e| e.expect("directory entry").path())
+            .filter(|p| p.extension().is_some_and(|e| e == "json"))
+            .collect();
+        paths.sort();
+        paths
+            .iter()
+            .map(|p| {
+                let text = std::fs::read_to_string(p).unwrap_or_else(|e| panic!("{}: {e}", p.display()));
+                LibDocument::from_json(&text).unwrap_or_else(|e| panic!("{}: {e}", p.display()))
+            })
+            .collect()
+    }
+
+    /// L1-5 (FT-24): the golden bootstrap's built-in library (the `@qet10` symbols, the FnDefs and the forms)
+    /// lives in [`SYSTEM_LIBRARY`], and a FnDef reference the tables emit points at it with the item ID
+    /// `v5(SYSTEM_LIBRARY, key)`, as before the importer's own constant was dropped.
+    #[test]
+    fn the_builtin_library_is_the_system_library() {
+        let mut docs = content_docs("symbols/qet10");
+        docs.extend(content_docs("fndefs"));
+        docs.extend(content_docs("forms"));
+        for d in &docs {
+            let (library, item, key) = match d {
+                LibDocument::Symbol(c) => (
+                    c.library_id.as_uuid(),
+                    c.item_id.as_uuid(),
+                    c.item.meta.key.clone(),
+                ),
+                LibDocument::Fndef(c) => (
+                    c.library_id.as_uuid(),
+                    c.item_id.as_uuid(),
+                    c.item.meta.key.clone(),
+                ),
+                LibDocument::Form(c) => (
+                    c.library_id.as_uuid(),
+                    c.item_id.as_uuid(),
+                    c.item.meta.key.clone(),
+                ),
+                other => panic!("unexpected starter document {:?}", other.kind()),
+            };
+            let key = key.expect("every starter document has a key").to_string();
+            assert_eq!(library, SYSTEM_LIBRARY, "{key}: library_id");
+            assert_eq!(
+                item,
+                Uuid::new_v5(&SYSTEM_LIBRARY, key.as_bytes()),
+                "{key}: item_id"
+            );
+        }
+        let lib = BuiltinLibrary::new(docs).expect("the starter content is a valid built-in library");
+        let r = lib
+            .fndef_ref("ew.fn.coil")
+            .expect("the coil FnDef is a starter document");
+        assert_eq!(r.library.as_uuid(), SYSTEM_LIBRARY);
+        assert_eq!(r.item.as_uuid(), Uuid::new_v5(&SYSTEM_LIBRARY, b"ew.fn.coil"));
+        assert_eq!(r.version_req, "^0.1");
+        assert_eq!(r.extra["key"], "ew.fn.coil");
     }
 }

@@ -306,11 +306,12 @@ pub(crate) fn read_on_stack(
     let resolution = fndef::resolve(&link_type, &kind, src.path(), parsed.terminals.len());
     let (fndef_ref, fndef_copy) = match resolution {
         Resolution::Builtin(builtin) => {
-            let item: Id<LibItem> = Id::from_uuid(Uuid::new_v5(&crate::BUILTIN_LIBRARY, builtin.as_bytes()));
+            let item: Id<LibItem> =
+                Id::from_uuid(Uuid::new_v5(&ew_interop_api::SYSTEM_LIBRARY, builtin.as_bytes()));
             let mut extra = BTreeMap::new();
             extra.insert("key".to_owned(), Value::String(builtin.to_owned()));
             let r = LibRef {
-                library: Id::from_uuid(crate::BUILTIN_LIBRARY),
+                library: Id::from_uuid(ew_interop_api::SYSTEM_LIBRARY),
                 item,
                 version_req: crate::BUILTIN_VERSION_REQ.to_owned(),
                 extra,
