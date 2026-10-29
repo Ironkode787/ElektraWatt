@@ -210,13 +210,16 @@ proptest! {
 #[test]
 fn every_edit_kind_applies_on_the_fixture() {
     // Guards the property test against edit kinds that silently never apply: over a grid of random numbers
-    // every kind must apply at least a few times.
+    // every kind must apply at least a few times. A kind stops at the third apply (test audit g7).
     let (vfs, root) = mem_project(DirSync::Explicit);
     let opened = Store::open(&root, options(&vfs, 1)).expect("opens");
     for kind in 0..6u8 {
         let (mut some, mut applied, mut first_err) = (0, 0, None);
-        for a in 0..30u32 {
+        'grid: for a in 0..30u32 {
             for b in 0..5u32 {
+                if applied >= 3 {
+                    break 'grid;
+                }
                 let mut fresh = 0;
                 let Some(ops) = ops_of(&opened.model, (kind, a, b), &mut fresh, 0) else {
                     continue;

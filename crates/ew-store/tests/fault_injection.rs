@@ -15,8 +15,8 @@ use std::path::Path;
 use std::sync::Arc;
 
 use common::{
-    TestProbe, edit, edit_device, fixture, mem_project, options, par_map, project_files, reopen, root, temps,
-    try_reopen,
+    TestProbe, edit, edit_device, file_kinds, fixture, mem_project, mem_project_of, options, par_map,
+    project_files, reopen, root, small_fixture, temps, try_reopen,
 };
 use ew_model::{AnyKey, AnyRow, ApplyOptions, Model, Op, Rev};
 use ew_store::ew_format::ew_schema::{FnDef, LibCopy, LibDocument, Sha256, SymbolDef};
@@ -40,7 +40,19 @@ struct Setup {
 
 /// The golden project opened as pid 1, and the edit batch.
 fn setup(mode: DirSync) -> Setup {
-    let (vfs, root) = mem_project(mode);
+    setup_of(mode, fixture())
+}
+
+/// The small fixture ([`small_fixture`]: a file of every kind Golden A has) opened as pid 1, and the edit batch:
+/// the per-case setup of the kill, power-loss and error sweeps, which open the project once per case (test audit
+/// g7). Every call of the save is still swept, in both directory-sync modes.
+fn sweep_setup(mode: DirSync) -> Setup {
+    setup_of(mode, small_fixture())
+}
+
+/// `files` opened as pid 1, and the edit batch.
+fn setup_of(mode: DirSync, files: BTreeMap<String, Vec<u8>>) -> Setup {
+    let (vfs, root) = mem_project_of(mode, files);
     let Opened { store, model, report } = Store::open(&root, options(&vfs, 1)).expect("the fixture opens");
     assert_eq!(report.access, Access::Edit);
     assert_eq!(report.generation, 1);
@@ -64,7 +76,15 @@ fn dry_run(mode: DirSync) -> (u64, BTreeMap<String, Vec<u8>>, SaveReport) {
 
 /// [`dry_run`] with the call trace (`<number>: <operation> <paths>`).
 fn dry_run_traced(mode: DirSync) -> (u64, BTreeMap<String, Vec<u8>>, SaveReport, Vec<String>) {
-    let mut s = setup(mode);
+    dry_run_of(setup(mode))
+}
+
+/// [`dry_run_traced`] on the sweeps' fixture ([`sweep_setup`]).
+fn sweep_dry_run(mode: DirSync) -> (u64, BTreeMap<String, Vec<u8>>, SaveReport, Vec<String>) {
+    dry_run_of(sweep_setup(mode))
+}
+
+fn dry_run_of(mut s: Setup) -> (u64, BTreeMap<String, Vec<u8>>, SaveReport, Vec<String>) {
     s.vfs.set_trace(true);
     s.vfs.reset_calls();
     let report = s
@@ -88,11 +108,40 @@ fn dry_run_traced(mode: DirSync) -> (u64, BTreeMap<String, Vec<u8>>, SaveReport,
     )
 }
 
+/// The sweeps' fixture has a file of every kind Golden A has (and is small; `small_fixture` asserts the same when it
+/// builds it), and the save of the edit batch on it makes the same sequence of `Vfs` operations as on Golden A, in
+/// both directory-sync modes (the same files written and removed: two device shards and a page written, a page
+/// removed): the sweeps over it reach every call that a sweep over Golden A would.
+#[test]
+fn the_sweep_fixture_has_every_file_kind_and_save_call_of_golden_a() {
+    let small = small_fixture();
+    assert_eq!(file_kinds(&small), file_kinds(&fixture()));
+    assert!(small.len() < fixture().len());
+    // `<number>: <operation> <paths>`: the operations, in order.
+    let operations = |trace: Vec<String>| -> Vec<String> {
+        trace
+            .iter()
+            .map(|line| line.split_whitespace().nth(1).unwrap_or_default().to_owned())
+            .collect()
+    };
+    for mode in MODES {
+        let (n_golden, _, golden_report, golden) = dry_run_traced(mode);
+        let (n_small, _, small_report, small) = sweep_dry_run(mode);
+        assert_eq!(n_small, n_golden, "{mode:?}: the number of calls");
+        assert_eq!(operations(small), operations(golden), "{mode:?}: the operations");
+        assert_eq!(
+            (small_report.written, small_report.removed),
+            (golden_report.written, golden_report.removed),
+            "{mode:?}: the files written and removed"
+        );
+    }
+}
+
 #[test]
 fn save_call_trace() {
-    // Documents the numbered calls of the fixture save, which the sweeps refer to.
+    // Documents the numbered calls of the sweeps' fixture save, which the sweeps refer to.
     for mode in MODES {
-        let (n, _, _, trace) = dry_run_traced(mode);
+        let (n, _, _, trace) = sweep_dry_run(mode);
         println!("save of the edit batch, {mode:?}: {n} calls");
         for line in trace {
             println!("  {line}");
@@ -160,12 +209,12 @@ fn diff(a: &BTreeMap<String, Vec<u8>>, b: &BTreeMap<String, Vec<u8>>) -> String 
 #[test]
 fn kill_at_every_call_yields_g_or_g1() {
     for mode in MODES {
-        let (n, final_files, _, trace) = dry_run_traced(mode);
-        let g_files = fixture();
+        let (n, final_files, _, trace) = sweep_dry_run(mode);
+        let g_files = small_fixture();
         println!("kill sweep {mode:?}: N = {n} calls");
         let results = par_map((1..=n).collect(), |k| {
             let mut failures: Vec<String> = Vec::new();
-            let mut s = setup(mode);
+            let mut s = sweep_setup(mode);
             s.vfs.reset_calls();
             s.vfs.set_fault(Fault::Kill { at: k });
             let saved = s.store.save(&s.g1, Changes::Keys(&s.keys));
@@ -248,23 +297,16 @@ fn kill_at_every_call_yields_g_or_g1() {
     }
 }
 
-#[test]
-fn power_loss_at_every_call_never_mixes() {
-    power_loss_sweep(false);
-}
-
-/// The strict form of the sweep: a project whose generation g is intact must never need the
-/// EW-CORE-002 "mixed generation" finding after a power loss, which makes the session read-only and asks
-/// the user to repair a project that has nothing wrong with it.
+/// A power loss at every call of a save (and after an acknowledged save), keeping 0, 1, 2 or all of the pending
+/// writes: the project opens at g or g1, never mixed, and a project whose generation g is intact never needs the
+/// EW-CORE-002 "mixed generation" finding, which makes the session read-only and asks the user to repair a project
+/// that has nothing wrong with it. (Its lax twin `power_loss_at_every_call_never_mixes`, which only printed the
+/// EW-CORE-002 cases, ran the same sweep and was removed by the test audit g7.)
 #[test]
 fn power_loss_never_needs_the_mixed_generation_finding() {
-    power_loss_sweep(true);
-}
-
-fn power_loss_sweep(strict: bool) {
     const ORPHAN: &str = "g1 + orphan of a removed file";
     for mode in MODES {
-        let (n, _, dry_report, trace) = dry_run_traced(mode);
+        let (n, _, dry_report, trace) = sweep_dry_run(mode);
         let removed: Vec<String> = dry_report.removed.iter().map(|p| p.as_str().to_owned()).collect();
         println!("power-loss sweep {mode:?}: N = {n} calls");
         let cases: Vec<(u64, usize)> = (1..=n + 1)
@@ -272,7 +314,7 @@ fn power_loss_sweep(strict: bool) {
             .collect();
         let results = par_map(cases, |(k, keep)| {
             let mut failures: Vec<String> = Vec::new();
-            let mut s = setup(mode);
+            let mut s = sweep_setup(mode);
             s.vfs.reset_calls();
             s.vfs.set_fault(Fault::PowerLoss { at: k, keep });
             let saved = s.store.save(&s.g1, Changes::Keys(&s.keys));
@@ -295,16 +337,7 @@ fn power_loss_sweep(strict: bool) {
                 .findings
                 .iter()
                 .any(|f| f.kind == FindingKind::MixedGeneration);
-            if mixed && !strict {
-                println!(
-                    "  EW-CORE-002 at {case} (`{}`): {}",
-                    trace
-                        .get(usize::try_from(k).expect("small") - 1)
-                        .map_or("after the save", String::as_str),
-                    describe(report).replace('\n', " ")
-                );
-            }
-            if mixed && strict {
+            if mixed {
                 failures.push(format!(
                     "{case} (`{}`): EW-CORE-002 although every file of generation 1 is intact: {}",
                     trace
@@ -371,16 +404,16 @@ const KINDS: [std::io::ErrorKind; 3] = [
 
 #[test]
 fn errors_before_the_commit_point_leave_g_intact() {
-    let g_files = fixture();
+    let g_files = small_fixture();
     for mode in MODES {
-        let (n, final_files, _, trace) = dry_run_traced(mode);
+        let (n, final_files, _, trace) = sweep_dry_run(mode);
         let cases: Vec<(std::io::ErrorKind, u64)> = KINDS
             .iter()
             .flat_map(|&kind| (1..=n).map(move |k| (kind, k)))
             .collect();
         let results = par_map(cases, |(kind, k)| {
             let mut failures: Vec<String> = Vec::new();
-            let mut s = setup(mode);
+            let mut s = sweep_setup(mode);
             s.vfs.reset_calls();
             s.vfs.set_fault(Fault::Error { at: k, kind });
             let case = format!("{mode:?} {kind:?} k={k}");
@@ -1138,13 +1171,6 @@ fn symlinked_page_file_is_not_followed() {
     }
 }
 
-#[test]
-fn vfs_trait_is_object_safe_for_the_harness() {
-    // The harness hands the store an `Arc<dyn Vfs>`; keep that coupling visible.
-    let vfs: Arc<dyn Vfs> = Arc::new(MemVfs::default());
-    assert!(vfs.stat(Path::new("/nothing")).is_err());
-}
-
 // ---------------------------------------------------------------------------------------------------------
 // FT-316: the `LibRef` keep-alive and the journal (EW-INV-021, ADR-0009 amendment 7)
 
@@ -1318,11 +1344,11 @@ fn replay_onto_a_moved_base_collides_on_a_removed_copy_that_a_lib_ref_names() {
 const LOGO: &[u8] =
     br#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 20"><rect width="80" height="20"/></svg>"#;
 
-/// The golden project opened as pid 1, and `g1`: the project row naming a logo asset that `g1` holds, journalled
-/// as committed (FT-337 fix round).
+/// The sweeps' small fixture ([`small_fixture`]) opened as pid 1, and `g1`: the project row naming a logo asset
+/// that `g1` holds, journalled as committed (FT-337 fix round).
 fn logo_setup(mode: DirSync) -> (Arc<MemVfs>, Store, Model, BTreeSet<AnyKey>, ew_model::Asset) {
     use ew_store::ew_format::ew_schema::{AssetRef, COMPANY_MEMBER, sniff};
-    let (vfs, root) = mem_project(mode);
+    let (vfs, root) = mem_project_of(mode, small_fixture());
     let Opened { mut store, model, .. } = Store::open(&root, options(&vfs, 1)).expect("the fixture opens");
     let (format, size) = sniff(LOGO).expect("an SVG");
     let asset = ew_model::Asset::new(

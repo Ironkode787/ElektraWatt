@@ -15,7 +15,10 @@ mod common;
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
-use common::{apply, edit, mem_project, options, par_map, project_files, reopen, root, try_reopen};
+use common::{
+    apply, edit, mem_project, mem_project_of, options, par_map, project_files, reopen, root, small_fixture,
+    try_reopen,
+};
 use ew_model::{AnyKey, AnyRow, Asset, Model, Op};
 use ew_store::ew_format::ew_schema::{AssetRef, COMPANY_MEMBER, Sha256, sniff};
 use ew_store::ew_format::{Manifest, Severity, sha256};
@@ -74,7 +77,11 @@ fn manifest(vfs: &MemVfs) -> Manifest {
 /// Then a foreign file mentions C and a kept unknown-kind line in `structure.jsonl` mentions D, a fourth asset saved
 /// before A.
 fn four_assets(mode: DirSync) -> (Arc<MemVfs>, [Asset; 4]) {
-    let (vfs, root) = mem_project(mode);
+    four_assets_in(mem_project(mode))
+}
+
+/// [`four_assets`] over the project in `vfs` at `root`.
+fn four_assets_in((vfs, root): (Arc<MemVfs>, std::path::PathBuf)) -> (Arc<MemVfs>, [Asset; 4]) {
     let o = Store::open(&root, options(&vfs, 1)).expect("the golden project opens");
     let (mut store, mut model) = (o.store, o.model);
     let assets = [logo(10), logo(20), logo(30), logo(40)];
@@ -254,10 +261,18 @@ fn a_purge_is_refused_while_lines_are_quarantined() {
 #[test]
 fn a_kill_at_every_call_of_a_purge_leaves_the_old_or_the_new_generation() {
     for mode in MODES {
+        // The four saves run once per mode, on the sweeps' small fixture (a file of every kind Golden A has; test
+        // audit g7); every case starts from a copy of the files they left (the project and the state directory).
+        let (built, assets) = four_assets_in(mem_project_of(mode, small_fixture()));
+        let state = std::path::Path::new("/state");
+        let (project, journal) = (built.files(&root()), built.files(state));
         let setup = || {
-            let (vfs, assets) = four_assets(mode);
+            let (vfs, _) = mem_project_of(mode, project.clone());
+            for (rel, bytes) in &journal {
+                vfs.put(&join(state, rel), bytes);
+            }
             let o = reopen(&vfs, 2);
-            (vfs, o.store, o.model, assets)
+            (vfs, o.store, o.model, assets.clone())
         };
         let (vfs, mut store, model, _) = setup();
         let g = store.generation();

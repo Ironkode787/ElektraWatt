@@ -77,9 +77,94 @@ pub fn fixture() -> BTreeMap<String, Vec<u8>> {
 
 /// A [`MemVfs`] holding the golden project under `/p`, durable, and an empty state directory `/state`.
 pub fn mem_project(dir_sync: DirSync) -> (Arc<MemVfs>, PathBuf) {
+    mem_project_of(dir_sync, fixture())
+}
+
+/// The kinds of file of a project: a top-level file by name, a sharded file by its directory and extension
+/// (`devices/*.jsonl`).
+pub fn file_kinds(files: &BTreeMap<String, Vec<u8>>) -> BTreeSet<String> {
+    files
+        .keys()
+        .map(|name| match name.rsplit_once('/') {
+            Some((dir, file)) => format!("{dir}/*.{}", file.rsplit_once('.').map_or("", |(_, ext)| ext)),
+            None => name.clone(),
+        })
+        .collect()
+}
+
+/// The rows of `T` past the first `keep` (ID order), except the last one, are deleted with their cascades, one at a
+/// time; a row whose deletion would take a row of a `kept` kind along, or whose deletion the model refuses (a
+/// `forbid` referrer, an invariant), stays. The last row stays because [`edit`] removes the page with the largest ID.
+fn thin<T: ew_model::Entity>(model: &mut Model, keep: usize, kept: &[Kind]) {
+    let mut keys: Vec<AnyKey> = model
+        .table::<T>()
+        .iter()
+        .skip(keep)
+        .map(|(_, row)| T::key(row.id()))
+        .collect();
+    keys.pop();
+    for key in keys {
+        let Ok(ops) = model.delete_plan(&key) else {
+            continue;
+        };
+        if ops.iter().any(|op| kept.contains(&op.key().0)) {
+            continue;
+        }
+        if let Ok(next) = apply(model, &ops, &mut BTreeSet::new()) {
+            *model = next;
+        }
+    }
+}
+
+/// A small project for the fault-injection sweeps, whose every case opens the project and saves it once: Golden A
+/// thinned to its first 2 pages and its last one, the devices drawn on them plus 5 others, and 2 library copies of each kind (and
+/// those the kept records name), written by `Store::create`. It has at least one file of every kind Golden A has
+/// (asserted), and a save of the edit batch ([`edit`]) makes the same sequence of `Vfs` calls as on Golden A (two
+/// device shards and a page written, a page removed), at a fraction of the open's parse cost (test audit g7).
+pub fn small_fixture() -> BTreeMap<String, Vec<u8>> {
+    use ew_store::ew_format::ew_schema::{FnDef, FormDef, LibCopy, Manufacturer, Part, SymbolDef};
+    static SMALL: std::sync::OnceLock<BTreeMap<String, Vec<u8>>> = std::sync::OnceLock::new();
+    SMALL
+        .get_or_init(|| {
+            let (vfs, root) = mem_project(DirSync::Explicit);
+            let Opened { store, model, .. } = Store::open(&root, options(&vfs, 1)).expect("Golden A opens");
+            store.close();
+            let mut m = model;
+            thin::<Page>(&mut m, 2, &[]);
+            thin::<Device>(&mut m, 4, &[Kind::Representation, Kind::Conductor, Kind::Bond]);
+            thin::<LibCopy<Part>>(&mut m, 2, &[]);
+            thin::<LibCopy<SymbolDef>>(&mut m, 2, &[]);
+            thin::<LibCopy<FnDef>>(&mut m, 2, &[]);
+            thin::<LibCopy<FormDef>>(&mut m, 2, &[]);
+            thin::<LibCopy<Manufacturer>>(&mut m, 2, &[]);
+            m.integrity_check().expect("the thinned model is valid");
+            let small = Arc::new(MemVfs::new(DirSync::Explicit));
+            small.put_dir(Path::new("/state"));
+            Store::create(&root, &m, options(&small, 1))
+                .expect("the small project is created")
+                .close();
+            let files = project_files(&small, &root);
+            assert_eq!(
+                file_kinds(&files),
+                file_kinds(&fixture()),
+                "the small fixture has a file of every kind Golden A has, and no other kind"
+            );
+            assert!(
+                files.len() * 2 < fixture().len(),
+                "the small fixture is small: {} files against Golden A's {}",
+                files.len(),
+                fixture().len()
+            );
+            files
+        })
+        .clone()
+}
+
+/// A [`MemVfs`] holding `files` under `/p`, durable, and an empty state directory `/state`.
+pub fn mem_project_of(dir_sync: DirSync, files: BTreeMap<String, Vec<u8>>) -> (Arc<MemVfs>, PathBuf) {
     let vfs = Arc::new(MemVfs::new(dir_sync));
     let root = root();
-    for (rel, bytes) in fixture() {
+    for (rel, bytes) in files {
         vfs.put(&ew_store::join(&root, &rel), &bytes);
     }
     vfs.put_dir(Path::new("/state"));
