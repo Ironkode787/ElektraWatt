@@ -17,9 +17,11 @@ the golden dialect), the command never sees a path. At least one part copy. Each
   invalid.
 
 **Duplicates.** A part copy whose key a project-local part copy of the project has already, or whose copy ID
-exists, is skipped and counted; a manufacturer copy whose copy ID exists is skipped; nothing is updated (updating a
-part is FR-PRT-014's previewed command). The rest are inserted in the given order, in one transaction (one undo
-step); when every copy is skipped the transaction is empty.
+exists, is skipped and counted; nothing is updated (updating a part is FR-PRT-014's previewed command). The rest
+are inserted in the given order, in one transaction (one undo step). A manufacturer copy is inserted only when an
+inserted part copy names it (its `library_id` and `item_id` are the part's `manufacturer` reference) and its copy
+ID does not exist yet, so no manufacturer copy is left without a part; when every part copy is skipped the
+transaction is empty.
 
 Cost `Bulk` (always previewed: the shell shows the card with the created and skipped counts), exposure `Edit` (the
 GUI, `ew import parts`, and a command log replayed by `ew apply`). Outcome: the first inserted part copy; the note
