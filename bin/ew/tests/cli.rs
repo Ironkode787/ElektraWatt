@@ -1790,3 +1790,104 @@ fn import_parts_with_a_bom_prefixed_table_creates_the_same_copies() {
         "the same part copies as without the BOM"
     );
 }
+
+/// `ew lib` (WP-S1.19 part 2): create a user library, list the tiers, search the starter, rebuild the index; the
+/// index lives in the cache directory.
+#[test]
+fn lib_create_list_search_and_rebuild() {
+    let tmp = Tmp::new();
+    let data = tmp.0.join("data");
+    let cache = tmp.0.join("cache");
+    let run = |args: &[&str]| {
+        Command::new(bin_exe())
+            .args(args)
+            .env("EW_CONTENT_DIR", CONTENT)
+            .env("EW_DATA_DIR", &data)
+            .env("EW_CACHE_DIR", &cache)
+            .output()
+            .unwrap()
+    };
+    let mine = data.join("libraries").join("mine.ewlib");
+    let mine_arg = mine.to_str().unwrap();
+    let o = run(&[
+        "lib",
+        "create",
+        mine_arg,
+        "--key",
+        "mine",
+        "--name",
+        "Mine",
+        "--licence",
+        "CC0-1.0",
+    ]);
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    assert!(stdout(&o).starts_with("created mine ("), "{}", stdout(&o));
+    assert!(mine.join("library.json").is_file());
+    // The same directory again: not empty.
+    let o = run(&[
+        "lib",
+        "create",
+        mine_arg,
+        "--key",
+        "mine",
+        "--name",
+        "Mine",
+        "--licence",
+        "CC0-1.0",
+    ]);
+    assert_eq!(o.status.code(), Some(2));
+    let o = run(&["lib", "list", "--json"]);
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    let list: serde_json::Value = serde_json::from_str(&stdout(&o)).unwrap();
+    let rows: Vec<(String, String, bool)> = list
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|l| {
+            (
+                l["key"].as_str().unwrap().to_owned(),
+                l["tier"].as_str().unwrap().to_owned(),
+                l["writable"].as_bool().unwrap(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        rows,
+        [
+            ("ew-starter".to_owned(), "system".to_owned(), false),
+            ("ew-starter-parts".to_owned(), "system".to_owned(), false),
+            ("mine".to_owned(), "user".to_owned(), true),
+        ]
+    );
+    let o = run(&["lib", "list"]);
+    assert!(stdout(&o).contains("user\tmine\t0.1.0\tMine\t"), "{}", stdout(&o));
+    let o = run(&["lib", "search", "ew.fn.mcb-1pn", "--kind", "fndef"]);
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    assert!(stdout(&o).starts_with("fndef\tew.fn.mcb-1pn\t"), "{}", stdout(&o));
+    let o = run(&["lib", "search", "A9P52610"]);
+    assert_eq!((o.status.code(), stdout(&o).as_str()), (Some(0), ""));
+    assert_eq!(stderr(&o).trim(), "nothing found");
+    let o = run(&["lib", "index", "--rebuild"]);
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    assert!(
+        stdout(&o).starts_with("index rebuilt: 0 parts, "),
+        "{}",
+        stdout(&o)
+    );
+    assert!(cache.join("library-index-v1.sqlite").is_file());
+    // A library in the system tier is refused.
+    let system = std::path::Path::new(CONTENT).join("libraries").join("new.ewlib");
+    let o = run(&[
+        "lib",
+        "create",
+        system.to_str().unwrap(),
+        "--key",
+        "n",
+        "--name",
+        "N",
+        "--licence",
+        "CC0-1.0",
+    ]);
+    assert_eq!(o.status.code(), Some(2));
+    assert!(!system.exists());
+}

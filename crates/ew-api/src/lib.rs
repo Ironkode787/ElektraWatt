@@ -105,6 +105,9 @@ pub use ew_checks as checks;
 pub use ew_derive::{BomMode, DeriveNote, MemoStore, Mismatch, NoteSeverity};
 /// The job runner (WP-S2.09 part 1, D3): the shell names it through `ew-api` (no workspace edge of its own).
 pub use ew_jobs;
+/// The libraries (WP-S1.19 part 2): tiers, the `.ewlib` reader and writer, the index and search. The shell and the
+/// CLI name them through `ew-api` (no workspace edge of their own).
+pub use ew_library as library;
 /// The row sources of `ew export cables|bom` (doc 17 §3.3): what to export and why it could not.
 pub use ew_reports::export::{Export, ExportError, Exported};
 /// Assets (doc 05 §13.3): the reference a record stores, the sniffer and the base64 form of command parameters.
@@ -147,6 +150,10 @@ pub struct SessionOptions {
     pub prevent: Option<Box<dyn PreventHook>>,
     /// Whether [`Session::query`] memoises across requests (ADR-0002 amendment 4), and with oracle mode.
     pub memo: MemoMode,
+    /// The library tiers [`Session::libraries`] opens (WP-S1.19 part 2); `None`: the compiled-in starter only, with
+    /// an in-memory index and no file read (tests, `ew apply`). The GUI and the CLI pass
+    /// [`library::LibraryTiers::for_user`].
+    pub libraries: Option<library::LibraryTiers>,
 }
 
 /// How a session's derived values are evaluated (ADR-0002 decisions 2–3, amendment 4).
@@ -171,6 +178,7 @@ impl Default for SessionOptions {
             ids: None,
             prevent: None,
             memo: MemoMode::default(),
+            libraries: None,
         }
     }
 }
@@ -181,6 +189,7 @@ impl std::fmt::Debug for SessionOptions {
             .field("origin", &self.origin)
             .field("history", &self.history)
             .field("memo", &self.memo)
+            .field("libraries", &self.libraries)
             .finish_non_exhaustive()
     }
 }
@@ -335,6 +344,10 @@ pub struct Session {
     origin: String,
     /// The origin of the session's own submissions (the exposure of `project.assets.purge` is judged by it).
     submit_origin: Origin,
+    /// The tiers of [`SessionOptions::libraries`], opened at the first [`Session::libraries`].
+    library_tiers: Option<library::LibraryTiers>,
+    /// The opened libraries, with the error that made [`Session::libraries`] fall back to the starter.
+    libraries: std::sync::OnceLock<(library::Registry, Option<library::LibraryError>)>,
 }
 
 impl std::fmt::Debug for Session {
@@ -368,6 +381,8 @@ impl Session {
             }
         };
         Session {
+            library_tiers: options.libraries,
+            libraries: std::sync::OnceLock::new(),
             submit_origin: options.origin.clone(),
             load_findings,
             reports,
@@ -409,6 +424,52 @@ impl Session {
             .model()
             .asset(sha256)
             .map(|a| (*a.reference(), Arc::clone(a.bytes())))
+    }
+
+    /// The libraries of [`SessionOptions::libraries`] (WP-S1.19 §5.2), opened (and reindexed where they changed) at
+    /// the first call. When they cannot be opened the session falls back to the compiled-in starter
+    /// ([`library::Registry::starter_only`]) and [`Session::library_error`] says why: a project never depends on
+    /// its libraries (NFR-REL-11).
+    pub fn libraries(&self) -> &library::Registry {
+        &self.opened_libraries().0
+    }
+
+    /// Why [`Session::libraries`] holds only the starter, if opening the tiers failed.
+    pub fn library_error(&self) -> Option<&library::LibraryError> {
+        self.opened_libraries().1.as_ref()
+    }
+
+    /// The libraries for a write ([`library::Registry::write`], `create`, `take_over_stale`, `rebuild_index`); a
+    /// library write is a Session operation, not a project command (WP-S1.19 D12).
+    pub fn libraries_mut(&mut self) -> &mut library::Registry {
+        self.opened_libraries();
+        &mut self.libraries.get_mut().expect("opened above").0
+    }
+
+    fn opened_libraries(&self) -> &(library::Registry, Option<library::LibraryError>) {
+        self.libraries.get_or_init(|| match &self.library_tiers {
+            None => (library::Registry::starter_only(), None),
+            Some(tiers) => match library::Registry::open(tiers) {
+                Ok(r) => (r, None),
+                Err(e) => (library::Registry::starter_only(), Some(e)),
+            },
+        })
+    }
+
+    /// The part search of WP-S1.19 D6 over [`Session::libraries`], with `held` filled from the project's part copies
+    /// (their library and item IDs; the caller's own `held` entries are kept).
+    pub fn part_search(&self, q: &library::PartQuery) -> Vec<library::PartHit> {
+        let mut q = q.clone();
+        let query = self.query();
+        q.held.extend(
+            query
+                .parts()
+                .iter()
+                .map(|(_, c)| (c.library_id.as_uuid(), c.item_id.as_uuid())),
+        );
+        q.held.sort_unstable();
+        q.held.dedup();
+        self.libraries().search(&q)
     }
 
     /// The current snapshot, O(1).

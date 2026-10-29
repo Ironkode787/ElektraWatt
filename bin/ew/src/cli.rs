@@ -30,6 +30,10 @@ pub const USAGE: &str = "usage:
   ew project checks set [<project-dir>] [--active <scheme>] [--release <scheme>]
   ew project assets purge [<project-dir>] [--preview]
   ew verify-derived [<project-dir>]
+  ew lib list [--company <dir>]... [--json]
+  ew lib search <text> [--kind <kind>]... [--all] [--limit <n>] [--company <dir>]... [--json]
+  ew lib index --rebuild [--company <dir>]...
+  ew lib create <dir> --key <key> --name <name> --licence <spdx> [--company <dir>]...
   ew help | --help | -h
 
 `import qet` exits 0 when the import completes, even with findings; `--strict` exits 1 on lost connections or
@@ -89,7 +93,19 @@ purged (or nothing to purge, or previewed), 1 when the purge is refused or not c
 and save errors.
 
 `verify-derived` opens a project with the memo oracle on, recomputes every derived value cold and compares it with
-the memoised one: exit 0 with no difference, 1 with differences, 2 on usage and open errors.";
+the memoised one: exit 0 with no difference, 1 with differences, 2 on usage and open errors.
+
+`lib` works on the libraries of the four tiers: system (the compiled-in starter, and `<content>/libraries` when
+`EW_CONTENT_DIR` names the starter content), community (`<data>/packs`), company (every `--company <dir>`: a
+library directory or a directory of `*.ewlib` libraries) and user (`<data>/libraries`), with the search index in
+the cache directory (`EW_DATA_DIR` and `EW_CACHE_DIR` override the OS directories). `lib list` prints each library
+(tier, key, version, name, ID, `rw` or `ro`, index state, directory) and what could not be read; `lib search`
+finds parts by part number, manufacturer and description (`--kind part`, the default), or symbols, FnDefs, forms,
+macros and manufacturers by key and name (`--kind symbol|fndef|form|macro|manufacturer`); `--all` includes
+deprecated and withdrawn items, `--limit` caps the hits (default 50, 0: all). `lib index --rebuild` rebuilds the
+index from the libraries. `lib create` makes an empty library in `<dir>` (absent or empty) with a new ID; it is
+listed when `<dir>` lies in the user tier or a `--company` directory. `--json` prints JSON. Exit 0 on success, 2 on
+everything else (usage, unreadable tiers, a refused write, an index error).";
 
 /// A parsed command line.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -122,6 +138,50 @@ pub enum Command {
     ChecksSet(ChecksSetArgs),
     /// Delete the asset files nothing names (`project assets purge`).
     AssetsPurge(AssetsPurgeArgs),
+    /// `ew lib`: list, search, reindex and create libraries.
+    Lib(LibArgs),
+}
+
+/// What `ew lib` does.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum LibAction {
+    /// `lib list`.
+    List,
+    /// `lib search`.
+    Search {
+        /// The typed text.
+        text: String,
+        /// The kinds (`--kind`); parts when empty.
+        kinds: Vec<String>,
+        /// Include deprecated and withdrawn items (`--all`).
+        all: bool,
+        /// The most hits (`--limit`, 0: all).
+        limit: u32,
+    },
+    /// `lib index --rebuild`.
+    IndexRebuild,
+    /// `lib create`.
+    Create {
+        /// The new library's directory.
+        dir: PathBuf,
+        /// `--key`.
+        key: String,
+        /// `--name`.
+        name: String,
+        /// `--licence`.
+        licence: String,
+    },
+}
+
+/// The arguments of `ew lib`.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct LibArgs {
+    /// The subcommand.
+    pub action: LibAction,
+    /// The company library paths (`--company`, repeatable).
+    pub company: Vec<PathBuf>,
+    /// Print JSON (`--json`).
+    pub json: bool,
 }
 
 /// The arguments of `ew project assets purge`.
@@ -329,6 +389,7 @@ pub fn parse<I: IntoIterator<Item = String>>(args: I) -> Result<Command, String>
             _ => Err("`project` takes `checks set` or `assets purge`".to_owned()),
         },
         "verify-derived" => parse_verify(it),
+        "lib" => parse_lib(it),
         other => Err(format!("unknown command `{other}`")),
     }
 }
@@ -736,6 +797,100 @@ fn parse_sql_dump(mut it: impl Iterator<Item = String>) -> Result<Command, Strin
     Ok(Command::SqlDump(SqlDumpArgs { project, out }))
 }
 
+fn parse_lib(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
+    let sub = it
+        .next()
+        .ok_or_else(|| "`lib` takes `list`, `search`, `index` or `create`".to_owned())?;
+    let mut company = Vec::new();
+    let mut json = false;
+    let mut positional: Vec<String> = Vec::new();
+    let mut kinds = Vec::new();
+    let mut all = false;
+    let mut limit = None;
+    let mut rebuild = false;
+    let (mut key, mut name, mut licence) = (None, None, None);
+    while let Some(a) = it.next() {
+        match (sub.as_str(), a.as_str()) {
+            (_, "--company") => company.push(PathBuf::from(value(&mut it, "--company")?)),
+            ("list" | "search", "--json") => json = true,
+            ("search", "--kind") => {
+                let k = value(&mut it, "--kind")?;
+                if ew_api::library::item_kind(&k).is_none() {
+                    return Err(format!(
+                        "unknown kind `{k}` (part, symbol, fndef, form, macro, manufacturer)"
+                    ));
+                }
+                kinds.push(k);
+            }
+            ("search", "--all") => all = true,
+            ("search", "--limit") => {
+                let v = value(&mut it, "--limit")?;
+                limit = Some(
+                    v.parse::<u32>()
+                        .map_err(|_| format!("`--limit` needs a number, not `{v}`"))?,
+                );
+            }
+            ("index", "--rebuild") => rebuild = true,
+            ("create", "--key") => key = Some(value(&mut it, "--key")?),
+            ("create", "--name") => name = Some(value(&mut it, "--name")?),
+            ("create", "--licence") => licence = Some(value(&mut it, "--licence")?),
+            (_, opt) if opt.starts_with("--") => return Err(format!("unknown option `{opt}`")),
+            _ => positional.push(a),
+        }
+    }
+    let one = |what: &str, positional: Vec<String>| -> Result<String, String> {
+        let mut p = positional.into_iter();
+        let first = p.next().ok_or_else(|| format!("`lib {sub}` needs {what}"))?;
+        match p.next() {
+            None => Ok(first),
+            Some(extra) => Err(format!("unexpected argument `{extra}`")),
+        }
+    };
+    let action = match sub.as_str() {
+        "list" => {
+            if let Some(extra) = positional.first() {
+                return Err(format!("unexpected argument `{extra}`"));
+            }
+            LibAction::List
+        }
+        "search" => LibAction::Search {
+            text: one("the text to search for", positional)?,
+            kinds,
+            all,
+            limit: limit.unwrap_or(50),
+        },
+        "index" => {
+            if let Some(extra) = positional.first() {
+                return Err(format!("unexpected argument `{extra}`"));
+            }
+            if !rebuild {
+                return Err("`lib index` needs `--rebuild`".to_owned());
+            }
+            LibAction::IndexRebuild
+        }
+        "create" => {
+            let dir = PathBuf::from(one("a directory", positional)?);
+            let need = |v: Option<String>, opt: &str| v.ok_or_else(|| format!("`lib create` needs `{opt}`"));
+            LibAction::Create {
+                dir,
+                key: need(key, "--key")?,
+                name: need(name, "--name")?,
+                licence: need(licence, "--licence")?,
+            }
+        }
+        other => {
+            return Err(format!(
+                "unknown `lib` command `{other}` (list, search, index, create)"
+            ));
+        }
+    };
+    Ok(Command::Lib(LibArgs {
+        action,
+        company,
+        json,
+    }))
+}
+
 fn value(it: &mut impl Iterator<Item = String>, opt: &str) -> Result<String, String> {
     it.next().ok_or_else(|| format!("`{opt}` needs a value"))
 }
@@ -763,6 +918,7 @@ pub fn run(cmd: Command) -> i32 {
         Command::Apply(a) => run_apply(&a),
         Command::ChecksSet(a) => run_checks_set(&a),
         Command::AssetsPurge(a) => run_assets_purge(&a),
+        Command::Lib(a) => run_lib(&a),
         Command::SqlSchema => {
             print!("{}", ew_api::sql::schema::schema_text());
             0
@@ -1633,6 +1789,222 @@ fn content_dir() -> Option<PathBuf> {
         .map(PathBuf::from)
 }
 
+/// Opens the tiers of `ew lib` (exit code 2 on failure).
+fn open_libraries(company: &[PathBuf]) -> Result<ew_api::library::Registry, i32> {
+    let system: Vec<PathBuf> = content_dir().map(|d| d.join("libraries")).into_iter().collect();
+    let Some(tiers) = ew_api::library::LibraryTiers::for_user(system, company.to_vec()) else {
+        eprintln!("error: no data and cache directories (set EW_DATA_DIR and EW_CACHE_DIR)");
+        return Err(2);
+    };
+    ew_api::library::Registry::open(&tiers).map_err(|e| {
+        eprintln!("error: the libraries cannot be opened: {e}");
+        2
+    })
+}
+
+fn index_state(s: &ew_api::library::IndexState) -> String {
+    match s {
+        ew_api::library::IndexState::Fresh => "fresh".to_owned(),
+        ew_api::library::IndexState::Rebuilt => "rebuilt".to_owned(),
+        ew_api::library::IndexState::Failed(m) => format!("failed: {m}"),
+    }
+}
+
+fn json_text(v: serde_json::Result<serde_json::Value>) -> String {
+    match v {
+        Ok(serde_json::Value::String(s)) => s,
+        Ok(other) => other.to_string(),
+        Err(_) => String::new(),
+    }
+}
+
+fn run_lib(a: &LibArgs) -> i32 {
+    use ew_api::library::{ItemQuery, PartQuery};
+    let mut reg = match open_libraries(&a.company) {
+        Ok(r) => r,
+        Err(code) => return code,
+    };
+    let libs = reg.libraries();
+    let keys: std::collections::BTreeMap<String, String> =
+        libs.iter().map(|l| (l.id.to_string(), l.key.clone())).collect();
+    let key_of = |id: &dyn std::fmt::Display| {
+        let id = id.to_string();
+        keys.get(&id).cloned().unwrap_or(id)
+    };
+    match &a.action {
+        LibAction::List => {
+            if a.json {
+                let rows: Vec<serde_json::Value> = libs
+                    .iter()
+                    .map(|l| {
+                        serde_json::json!({
+                            "id": l.id.to_string(), "key": l.key, "name": l.name, "tier": l.tier.name(),
+                            "version": l.version, "licence": l.licence, "writable": l.writable,
+                            "generation": l.generation, "index": index_state(&l.index),
+                            "path": l.path.as_ref().map(|p| p.display().to_string()), "findings": l.findings,
+                        })
+                    })
+                    .collect();
+                println!("{}", serde_json::Value::Array(rows));
+            } else {
+                for l in &libs {
+                    let path = l
+                        .path
+                        .as_ref()
+                        .map_or_else(|| "(compiled in)".to_owned(), |p| p.display().to_string());
+                    println!(
+                        "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{path}",
+                        l.tier.name(),
+                        l.key,
+                        l.version,
+                        l.name,
+                        l.id,
+                        if l.writable { "rw" } else { "ro" },
+                        index_state(&l.index)
+                    );
+                    for f in &l.findings {
+                        println!("  {f}");
+                    }
+                }
+            }
+            for f in reg.findings() {
+                eprintln!("warning: {f}");
+            }
+            0
+        }
+        LibAction::Search {
+            text,
+            kinds,
+            all,
+            limit,
+        } => {
+            let kinds: Vec<_> = kinds
+                .iter()
+                .filter_map(|k| ew_api::library::item_kind(k))
+                .collect();
+            let parts = kinds.is_empty() || kinds.iter().any(|k| k.name() == "part");
+            let others: Vec<_> = kinds.into_iter().filter(|k| k.name() != "part").collect();
+            let mut rows = Vec::new();
+            if parts {
+                let q = PartQuery {
+                    text: text.clone(),
+                    include_inactive: *all,
+                    limit: *limit,
+                    ..PartQuery::default()
+                };
+                let hits = match reg.try_search(&q) {
+                    Ok(h) => h,
+                    Err(e) => {
+                        eprintln!("error: {e}");
+                        return 2;
+                    }
+                };
+                for h in hits {
+                    rows.push((
+                        serde_json::json!({
+                            "kind": "part", "library": h.library.to_string(), "library_key": key_of(&h.library),
+                            "item": h.item.to_string(), "version": h.version, "tier": h.tier.name(),
+                            "part_number": h.part_number, "manufacturer": h.manufacturer,
+                            "description": h.description, "part_kind": json_text(serde_json::to_value(&h.kind)),
+                            "status": serde_json::to_value(&h.status).unwrap_or_default(), "rank_tier": h.rank_tier,
+                        }),
+                        format!(
+                            "part\t{}\t{}\t{}\t{}\t{}/{}@{}",
+                            h.part_number,
+                            h.manufacturer,
+                            h.description,
+                            json_text(serde_json::to_value(&h.status)),
+                            key_of(&h.library),
+                            h.item,
+                            h.version
+                        ),
+                    ));
+                }
+            }
+            if !others.is_empty() {
+                let q = ItemQuery {
+                    text: text.clone(),
+                    kinds: others,
+                    include_inactive: *all,
+                    limit: *limit,
+                    ..ItemQuery::default()
+                };
+                for h in reg.search_items(&q) {
+                    rows.push((
+                        serde_json::json!({
+                            "kind": h.kind.name(), "library": h.library.to_string(),
+                            "library_key": key_of(&h.library), "item": h.item.to_string(), "version": h.version,
+                            "tier": h.tier.name(), "key": h.key, "name": h.name,
+                            "status": serde_json::to_value(&h.status).unwrap_or_default(), "rank_tier": h.rank_tier,
+                        }),
+                        format!(
+                            "{}\t{}\t{}\t{}\t{}/{}@{}",
+                            h.kind.name(),
+                            h.key,
+                            h.name,
+                            json_text(serde_json::to_value(&h.status)),
+                            key_of(&h.library),
+                            h.item,
+                            h.version
+                        ),
+                    ));
+                }
+            }
+            if a.json {
+                println!(
+                    "{}",
+                    serde_json::Value::Array(rows.into_iter().map(|(j, _)| j).collect())
+                );
+            } else {
+                if rows.is_empty() {
+                    eprintln!("nothing found");
+                }
+                for (_, line) in rows {
+                    println!("{line}");
+                }
+            }
+            0
+        }
+        LibAction::IndexRebuild => {
+            if let Err(e) = reg.rebuild_index() {
+                eprintln!("error: the index cannot be rebuilt: {e}");
+                return 2;
+            }
+            match reg.index_counts() {
+                Ok((parts, items)) => {
+                    println!("index rebuilt: {parts} parts, {items} other items");
+                    0
+                }
+                Err(e) => {
+                    eprintln!("error: {e}");
+                    2
+                }
+            }
+        }
+        LibAction::Create {
+            dir,
+            key,
+            name,
+            licence,
+        } => match reg.create(dir, key, name, licence) {
+            Ok(id) => {
+                println!("created {key} ({id}) in {}", dir.display());
+                if !reg.libraries().iter().any(|l| l.id == id) {
+                    eprintln!(
+                        "note: {} lies in no library tier; pass it as `--company` to use it",
+                        dir.display()
+                    );
+                }
+                0
+            }
+            Err(e) => {
+                eprintln!("error: {e}");
+                2
+            }
+        },
+    }
+}
+
 fn run_import_parts(a: &ImportPartsArgs) -> i32 {
     let Some(dir) = project_dir(a.project.as_ref()) else {
         return 2;
@@ -1793,6 +2165,108 @@ mod tests {
 
     fn p(args: &[&str]) -> Result<Command, String> {
         parse(args.iter().map(|s| (*s).to_owned()))
+    }
+
+    #[test]
+    fn lib_commands() {
+        let lib = |action, company: &[&str], json| {
+            Ok(Command::Lib(LibArgs {
+                action,
+                company: company.iter().map(PathBuf::from).collect(),
+                json,
+            }))
+        };
+        assert_eq!(p(&["lib", "list"]), lib(LibAction::List, &[], false));
+        assert_eq!(
+            p(&["lib", "list", "--company", "a", "--json", "--company", "b"]),
+            lib(LibAction::List, &["a", "b"], true)
+        );
+        assert_eq!(
+            p(&["lib", "search", "A9P52610"]),
+            lib(
+                LibAction::Search {
+                    text: "A9P52610".into(),
+                    kinds: Vec::new(),
+                    all: false,
+                    limit: 50
+                },
+                &[],
+                false
+            )
+        );
+        assert_eq!(
+            p(&[
+                "lib", "search", "--kind", "symbol", "mcb", "--kind", "fndef", "--all", "--limit", "0",
+                "--json"
+            ]),
+            lib(
+                LibAction::Search {
+                    text: "mcb".into(),
+                    kinds: vec!["symbol".into(), "fndef".into()],
+                    all: true,
+                    limit: 0
+                },
+                &[],
+                true
+            )
+        );
+        assert_eq!(
+            p(&["lib", "index", "--rebuild"]),
+            lib(LibAction::IndexRebuild, &[], false)
+        );
+        assert_eq!(
+            p(&[
+                "lib",
+                "create",
+                "d",
+                "--key",
+                "k",
+                "--name",
+                "N",
+                "--licence",
+                "CC0-1.0",
+                "--company",
+                "c"
+            ]),
+            lib(
+                LibAction::Create {
+                    dir: PathBuf::from("d"),
+                    key: "k".into(),
+                    name: "N".into(),
+                    licence: "CC0-1.0".into()
+                },
+                &["c"],
+                false
+            )
+        );
+        for (args, error) in [
+            (&["lib"][..], "`lib` takes `list`, `search`, `index` or `create`"),
+            (
+                &["lib", "frob"],
+                "unknown `lib` command `frob` (list, search, index, create)",
+            ),
+            (&["lib", "list", "x"], "unexpected argument `x`"),
+            (&["lib", "search"], "`lib search` needs the text to search for"),
+            (&["lib", "search", "a", "b"], "unexpected argument `b`"),
+            (
+                &["lib", "search", "a", "--kind", "device"],
+                "unknown kind `device` (part, symbol, fndef, form, macro, manufacturer)",
+            ),
+            (
+                &["lib", "search", "a", "--limit", "x"],
+                "`--limit` needs a number, not `x`",
+            ),
+            (&["lib", "index"], "`lib index` needs `--rebuild`"),
+            (&["lib", "index", "--json"], "unknown option `--json`"),
+            (
+                &["lib", "create", "d", "--key", "k", "--name", "N"],
+                "`lib create` needs `--licence`",
+            ),
+            (&["lib", "create", "--key", "k"], "`lib create` needs a directory"),
+            (&["lib", "list", "--company"], "`--company` needs a value"),
+        ] {
+            assert_eq!(p(args), Err(error.to_owned()), "{args:?}");
+        }
     }
 
     #[test]

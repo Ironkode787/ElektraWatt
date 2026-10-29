@@ -9,4 +9,5 @@
 
 pub mod bench;
 pub mod golden;
+pub mod library;
 pub mod synth;
