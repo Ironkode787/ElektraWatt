@@ -488,6 +488,22 @@ pub struct ShellModel {
     // WP-S2.17 part 3
     /// Whether the left column is collapsed to its rail (`rail.show` on the shown entry); a session state.
     rail_collapsed: bool,
+    // WP-S6.13 part 4
+    /// Every `dispatch` since the log was last taken, in call order, while the log is on (a visual run's evidence;
+    /// off by default, so the window and the headless runner keep nothing).
+    dispatch_log: Option<Vec<DispatchEntry>>,
+}
+
+/// One `dispatch` in the dispatch log (WP-S6.13 part 4 §4.3): the action as given, the outcome's word (`done`,
+/// `refused`, `failed`) and a refusal's reason key. A failure's message is not kept (the log never carries a path).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct DispatchEntry {
+    /// The action ID as dispatched.
+    pub action: String,
+    /// `done`, `refused` or `failed`.
+    pub outcome: &'static str,
+    /// The reason key of a refusal.
+    pub reason: Option<&'static str>,
 }
 
 /// A maker of [`IdSource`]s for `ShellModel::set_id_source_for_tests` (feature `testkit`).
@@ -819,6 +835,53 @@ pub(crate) fn fresh_test_dir(stem: &str) -> PathBuf {
     ew_testdir::fresh_dir(stem)
 }
 
+#[cfg(test)]
+mod dispatch_log_tests {
+    use serde_json::json;
+
+    use super::{DispatchEntry, ShellModel};
+
+    fn entry(action: &str, outcome: &'static str, reason: Option<&'static str>) -> DispatchEntry {
+        DispatchEntry {
+            action: action.to_owned(),
+            outcome,
+            reason,
+        }
+    }
+
+    /// WP-S6.13 part 4 §4.3: the log is off by default; on, it keeps every dispatch in the order the calls started
+    /// (an action that dispatches another comes first), with the outcome's word and a refusal's reason key.
+    #[test]
+    fn the_dispatch_log_is_off_by_default_and_keeps_every_call_in_order() {
+        let mut shell = ShellModel::for_tests();
+        let _ = shell.dispatch("help.about", &json!({}));
+        assert!(shell.take_dispatch_log().is_empty(), "off by default");
+        shell.set_dispatch_log(true);
+        let _ = shell.dispatch("help.about", &json!({}));
+        let _ = shell.dispatch("no.such_action", &json!({}));
+        let refused = shell.dispatch("edit.undo", &json!({}));
+        let super::Outcome::Refused { reason_key } = refused else {
+            panic!("edit.undo without a project: {refused:?}");
+        };
+        shell.start_first_run_if_needed();
+        let _ = shell.dispatch("first_run.set", &json!({"field": "ui_scale", "value": 1.25}));
+        assert_eq!(
+            shell.take_dispatch_log(),
+            [
+                entry("help.about", "done", None),
+                entry("no.such_action", "failed", None),
+                entry("edit.undo", "refused", Some(reason_key)),
+                entry("first_run.set", "done", None),
+                entry("view.ui_scale", "done", None),
+            ]
+        );
+        assert!(shell.take_dispatch_log().is_empty(), "taken");
+        shell.set_dispatch_log(false);
+        let _ = shell.dispatch("help.about", &json!({}));
+        assert!(shell.take_dispatch_log().is_empty(), "off again");
+    }
+}
+
 /// Whether `EW_CONFIG_DIR` is set.
 fn config_dir_overridden() -> bool {
     settings::env_path("EW_CONFIG_DIR").is_some()
@@ -899,6 +962,7 @@ impl ShellModel {
             command_tab: crate::command_bar::Tab::Draw,
             command_bar_collapsed: false,
             rail_collapsed: false,
+            dispatch_log: None,
         };
         model.load_active_workspace();
         model
@@ -1297,6 +1361,38 @@ impl ShellModel {
     /// is [`Outcome::Refused`] with the reason key; a failing one is [`Outcome::Failed`] with an English message
     /// that carries no file system path.
     pub fn dispatch(&mut self, action: &actions::ActionId, params: &Value) -> Outcome {
+        // The dispatch log keeps the calls in the order they started (an action that dispatches another comes first).
+        let slot = self.dispatch_log.as_mut().map(|log| {
+            log.push(DispatchEntry {
+                action: action.to_owned(),
+                outcome: "done",
+                reason: None,
+            });
+            log.len() - 1
+        });
+        let outcome = self.dispatch_unlogged(action, params);
+        if let Some(entry) = slot.and_then(|i| self.dispatch_log.as_mut()?.get_mut(i)) {
+            (entry.outcome, entry.reason) = match &outcome {
+                Outcome::Done => ("done", None),
+                Outcome::Refused { reason_key } => ("refused", Some(*reason_key)),
+                Outcome::Failed { .. } => ("failed", None),
+            };
+        }
+        outcome
+    }
+
+    /// Turns the dispatch log on (an empty log) or off (WP-S6.13 part 4; the visual driver).
+    pub fn set_dispatch_log(&mut self, on: bool) {
+        self.dispatch_log = on.then(Vec::new);
+    }
+
+    /// The dispatches logged since the last call, oldest first; empty while the log is off.
+    pub fn take_dispatch_log(&mut self) -> Vec<DispatchEntry> {
+        self.dispatch_log.as_mut().map(std::mem::take).unwrap_or_default()
+    }
+
+    /// [`ShellModel::dispatch`] without the dispatch log.
+    fn dispatch_unlogged(&mut self, action: &actions::ActionId, params: &Value) -> Outcome {
         let Some(meta) = actions::find(action) else {
             return failed("error-unknown-action", &[action]);
         };
