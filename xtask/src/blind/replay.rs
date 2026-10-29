@@ -411,6 +411,11 @@ pub fn bless(root: &Path, run: &Run, name: &str, ci: &str) -> Result<PathBuf> {
         );
     }
     let norm = Normaliser::new(&run.dir);
+    // The task's committed prelude, normalised like the run's own prelude, so that the two compare like for like.
+    let task_prelude =
+        std::fs::read_to_string(root.join(format!("tools/blind/tasks/{}/prelude.uiscript", rj.task)))
+            .ok()
+            .map(|t| norm.text(&t.replace("\r\n", "\n")));
     let mut files: Vec<(String, String)> = Vec::new();
     let read = |rel: &str| std::fs::read_to_string(run.path(rel)).map(|t| t.replace("\r\n", "\n"));
     for rel in [
@@ -454,8 +459,8 @@ pub fn bless(root: &Path, run: &Run, name: &str, ci: &str) -> Result<PathBuf> {
         if let Some(path) = absolute_path_in(text) {
             bail!("{rel} holds an absolute path ({path}): a recording holds none");
         }
-        if first_uuid_in_steps(rel, text) {
-            bail!("{rel} holds a raw UUID: the agent's steps carry none");
+        if let Some(msg) = raw_uuid_refusal(rel, text, task_prelude.as_deref()) {
+            bail!("{msg}");
         }
     }
     let dest = recordings_dir(root).join(name);
@@ -470,9 +475,19 @@ pub fn bless(root: &Path, run: &Run, name: &str, ci: &str) -> Result<PathBuf> {
     Ok(dest)
 }
 
-/// Whether a file that must hold no ID does (`steps.uiscript`, `prelude.uiscript`).
-fn first_uuid_in_steps(rel: &str, text: &str) -> bool {
-    matches!(rel, "steps.uiscript" | "prelude.uiscript") && first_uuid(text).is_some()
+/// The refusal for a file that holds a raw UUID where none may be, or `None`. The agent's `steps.uiscript` holds none. The
+/// `prelude.uiscript` may hold the fixed IDs of the golden part copies (its `library.embed` line), but only when it is the
+/// task's committed prelude: `start` copies that file verbatim, so the run's prelude equals it.
+fn raw_uuid_refusal(rel: &str, text: &str, task_prelude: Option<&str>) -> Option<String> {
+    first_uuid(text)?;
+    match rel {
+        "steps.uiscript" => Some(format!("{rel} holds a raw UUID: the agent's steps carry none")),
+        "prelude.uiscript" if task_prelude == Some(text) => None,
+        "prelude.uiscript" => Some(format!(
+            "{rel} holds a raw UUID and is not the task's committed prelude"
+        )),
+        _ => None,
+    }
 }
 
 /// Replaces every UUID of `text` by `@n`, numbered in order of first appearance (the command log, which `--record`
@@ -598,6 +613,49 @@ mod tests {
             "{\"id\":\"@1\"}\n{\"id\":\"@2\",\"ref\":\"@1\"}\n"
         );
         assert_eq!(alias_uuids("no ids here"), "no ids here");
+    }
+
+    #[test]
+    fn a_uuid_in_the_agents_steps_is_refused() {
+        let text = "{\"id\":\"0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b\"}\n";
+        let msg = raw_uuid_refusal("steps.uiscript", text, None);
+        assert!(
+            msg.as_deref()
+                .is_some_and(|m| m.contains("the agent's steps carry none")),
+            "{msg:?}"
+        );
+    }
+
+    #[test]
+    fn the_tasks_own_prelude_may_hold_ids() {
+        let prelude = "library.embed \"0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b\"\n";
+        assert_eq!(raw_uuid_refusal("prelude.uiscript", prelude, Some(prelude)), None);
+    }
+
+    #[test]
+    fn a_changed_prelude_with_ids_is_refused() {
+        let prelude = "library.embed \"0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b\"\n";
+        let other = "library.embed \"0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5c\"\n";
+        for task in [Some(other), None] {
+            let msg = raw_uuid_refusal("prelude.uiscript", prelude, task);
+            assert!(
+                msg.as_deref()
+                    .is_some_and(|m| m.contains("not the task's committed prelude")),
+                "{msg:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn files_without_ids_pass() {
+        let plain = "step \"open\"\n";
+        assert_eq!(raw_uuid_refusal("steps.uiscript", plain, None), None);
+        assert_eq!(raw_uuid_refusal("prelude.uiscript", plain, None), None);
+        let id = "0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b";
+        assert_eq!(
+            raw_uuid_refusal("out/report.md", &format!("id {id}\n"), None),
+            None
+        );
     }
 
     #[test]
