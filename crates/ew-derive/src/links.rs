@@ -22,8 +22,8 @@ use ew_mltext::natural_cmp;
 use ew_model::EndpointKey;
 use ew_rds::Aspect;
 use ew_schema::{
-    Bond, ClampKey, Connection, ContactKind, Device, Function, FunctionKind, InternalKind, PotentialType,
-    Side, StructureNode,
+    Bond, ClampKey, Connection, ContactKind, Device, Function, FunctionKind, InternalKind, Open,
+    PotentialType, Side, StructureNode,
 };
 
 use crate::cps::pattern_origin;
@@ -199,14 +199,40 @@ fn function_links(q: &Q, fid: Id<Function>) -> FunctionLinks {
 // ---------------------------------------------------------------------------------------------------------
 // Rail bonding
 
+/// The location whose PE rail a rail-bonded terminal joins (doc 08 §3.7, §8.1).
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub enum RailLocation {
+    /// A location node: the terminal's own, or, for a terminal without one, the project's only own location.
+    Node(Id<StructureNode>),
+    /// The project's implicit main location: a terminal without a location in a project that has no own location
+    /// node (amended by cycle 33, G-PP ruling #20).
+    Main,
+}
+
+/// The project's own locations: the location-aspect structure nodes that no external reference names (an external
+/// reference's location is another installation's, such as `+J-E-206`), in ID order. Reads the structure nodes
+/// and the external references whole.
+fn own_locations(q: &Q) -> Vec<Id<StructureNode>> {
+    let external: BTreeSet<Id<StructureNode>> = q.external_refs().iter().map(|(_, x)| x.location).collect();
+    q.structure_nodes()
+        .iter()
+        .filter(|(id, node)| matches!(node.aspect, Open::Known(Aspect::Location)) && !external.contains(id))
+        .map(|(id, _)| id)
+        .collect()
+}
+
 /// The value of [`RailTerminalOf`]: one rail-bonded terminal.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct RailTerminal {
     /// Its PE CPs (rail-foot clamp, or potential role PE or PEN), in function and CP order; the rail joins
     /// those that are in the stitch graph.
     pub pe: Vec<CpRef>,
-    /// Its location; `None` without one (EW-POT-008). A structure cycle leaves it out entirely (`skipped`).
+    /// Its location; `None` without one. A structure cycle leaves it out entirely (`skipped`).
     pub location: Option<Id<StructureNode>>,
+    /// The location whose rail it joins: its own; without one, the project's only own location, or the implicit
+    /// main location when the project has none; `None` (EW-POT-008) when it has none and the project has two or
+    /// more own locations (amended by cycle 33, G-PP ruling #20).
+    pub rail: Option<RailLocation>,
     /// Its location could not be resolved (a structure cycle, noted as `cycle`): it joins nothing, unnoted.
     pub skipped: bool,
     /// Its EW-TERM-005 and EW-POT-008 notes, in the stitch graph's order.
@@ -269,13 +295,27 @@ impl Query for RailTerminalOf {
                         .into(),
                 });
             }
-            if location.is_none() {
-                out.notes.push(DeriveNote::Connectivity {
-                    code: "EW-POT-008",
-                    subject: dev.to_string(),
-                    detail: "the rail-bonded terminal has no location; it joins no location PE node".into(),
-                });
-            }
+            out.rail = match location {
+                Some(node) => Some(RailLocation::Node(node)),
+                // Amended by cycle 33 (G-PP ruling #20): without a location, the terminal belongs to the project's
+                // implicit main location while the project has at most one own location.
+                None => match own_locations(q).as_slice() {
+                    [] => Some(RailLocation::Main),
+                    [only] => Some(RailLocation::Node(*only)),
+                    many => {
+                        out.notes.push(DeriveNote::Connectivity {
+                            code: "EW-POT-008",
+                            subject: dev.to_string(),
+                            detail: format!(
+                                "the rail-bonded terminal has no location and the project has {} own locations; \
+                                 it joins no location PE node",
+                                many.len()
+                            ),
+                        });
+                        None
+                    }
+                },
+            };
             out.location = location;
             out
         }))
@@ -287,9 +327,9 @@ impl Query for RailTerminalOf {
 #[derive(Clone, Eq, Debug, Default)]
 pub struct RailBonds {
     /// Per location, the PE CPs of its rail-bonded terminals, sorted.
-    pub by_location: BTreeMap<Id<StructureNode>, Vec<CpRef>>,
+    pub by_location: BTreeMap<RailLocation, Vec<CpRef>>,
     /// The location of each of those PE CPs.
-    pub location_of: BTreeMap<CpRef, Id<StructureNode>>,
+    pub location_of: BTreeMap<CpRef, RailLocation>,
     /// The terminals' notes, in device order.
     pub notes: Vec<DeriveNote>,
     /// The terminals' cycle notes, in device order.
@@ -312,8 +352,7 @@ impl PartialEq for RailBonds {
 impl HeapBytes for RailBonds {
     fn heap_bytes(&self) -> usize {
         self.by_location.heap_bytes()
-            + self.location_of.len()
-                * (std::mem::size_of::<CpRef>() + std::mem::size_of::<Id<StructureNode>>())
+            + self.location_of.len() * (std::mem::size_of::<CpRef>() + std::mem::size_of::<RailLocation>())
             + self.notes.heap_bytes()
             + self.cycles.heap_bytes()
             + self.terminals.len() * 2 * std::mem::size_of::<usize>()
@@ -327,7 +366,7 @@ fn rail_bonds(q: &Q) -> RailBonds {
         let t = q.get::<RailTerminalOf>(dev);
         out.cycles.extend(t.cycle.iter().cloned());
         out.notes.extend(t.notes.iter().cloned());
-        if let Some(location) = t.location {
+        if let Some(location) = t.rail {
             out.by_location
                 .entry(location)
                 .or_default()

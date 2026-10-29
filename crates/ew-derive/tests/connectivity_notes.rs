@@ -14,7 +14,9 @@
 //! - `ip_without_a_connection_point_is_noted`: EW-CORE-051 for an IP whose definition has no CP.
 //! - `rail_bonding_joins_pe_cps_only`: only the PE CPs of the rail-bonded terminals of a location join.
 //! - `rail_bonded_terminal_without_pe_cp_is_noted`: EW-TERM-005, no rail bond.
-//! - `unlocated_rail_bonded_terminals_do_not_bond`: EW-POT-008, no rail bond.
+//! - `unlocated_rail_bonded_terminals_do_not_bond`: EW-POT-008, no rail bond, in a project with two own locations.
+//! - `unlocated_rail_bonded_terminals_join_the_only_own_location` and `..._join_the_implicit_main_location`:
+//!   cycle 33 (G-PP ruling #20), one own location or none: the rail joins them, no EW-POT-008.
 //! - `scoped_pairing_without_the_node_pairs_project_wide_and_notes`: F13, pages without a location node.
 //! - `scoped_pairing_keeps_locations_apart`: F13, different location nodes do not pair, the same node does.
 
@@ -24,12 +26,12 @@ use std::collections::BTreeSet;
 
 use common::{Fx, id, uid};
 use ew_derive::{
-    DeriveNote, EdgeKind, EndKind, PhysicalWiresOf, PotentialFlow, PotentialPartition, Q, StitchGraph,
-    StitchGraphQ, WirePropsOf,
+    DeriveNote, EdgeKind, EndKind, PhysicalWiresOf, PotentialFlow, PotentialPartition, Q, RailLocation,
+    StitchGraph, StitchGraphQ, WirePropsOf,
 };
 use ew_ids::Id;
 use ew_model::EndpointKey;
-use ew_schema::{Function, StructureNode};
+use ew_schema::Function;
 use serde_json::{Value, json};
 
 const FNDEF: u128 = 0x500;
@@ -284,7 +286,7 @@ fn ip_without_a_connection_point_is_noted() {
     assert!(found[0].1.contains("pairs with nothing"), "{}", found[0].1);
 }
 
-/// A strip, the terminal FnDefs (PE role, rail-foot clamp) and their symbols.
+/// A strip, the terminal FnDefs (PE role, rail-foot clamp) and their symbols, and the one location A.
 fn terminal_base() -> Fx {
     let mut fx = base();
     // CP 1 is "PE" by role in the first definition and by rail-foot clamp in the second.
@@ -335,7 +337,7 @@ fn terminal(fx: &mut Fx, dev: u128, f: u128, def: u128, symbol: u128, location: 
     fx.rep(f + 0x10_000, P1, symbol, &[f], 0, f as i64 * 1_000_000);
 }
 
-fn rail_bonds(g: &StitchGraph) -> Vec<(usize, usize, Id<StructureNode>)> {
+fn rail_bonds(g: &StitchGraph) -> Vec<(usize, usize, RailLocation)> {
     g.edges
         .iter()
         .filter_map(|e| match e.kind {
@@ -384,7 +386,7 @@ fn rail_bonding_joins_pe_cps_only() {
     assert_eq!(part.potential_count(), 3);
     let bonds = rail_bonds(&g);
     assert_eq!(bonds.len(), 1, "{bonds:?}");
-    assert_eq!(bonds[0].2, id(LOC_A));
+    assert_eq!(bonds[0].2, RailLocation::Node(id(LOC_A)));
     assert!(notes_with(&mut q, "EW-TERM-005", "").is_empty());
     assert!(notes_with(&mut q, "EW-POT-008", "").is_empty());
 }
@@ -412,11 +414,66 @@ fn rail_bonded_terminal_without_pe_cp_is_noted() {
     assert!(found[0].1.contains("joins no location PE node"), "{}", found[0].1);
 }
 
+/// Two unlocated rail-bonded PE terminals T1 and T2 (each PE CP wired to its own plain function) on `fx`.
+fn two_unlocated_terminals(mut fx: Fx) -> ew_model::Model {
+    terminal(&mut fx, 0x4001, 0x1001, FNDEF_PE, SYM_PE, None);
+    terminal(&mut fx, 0x4002, 0x1002, FNDEF_PE, SYM_PE, None);
+    for f in [0x1003, 0x1004] {
+        func(&mut fx, f, P1);
+    }
+    wire(&mut fx, 0x2001, P1, Ep::Cp(0x1001, 1), cp(0x1003));
+    wire(&mut fx, 0x2002, P1, Ep::Cp(0x1002, 1), cp(0x1004));
+    fx.build()
+}
+
+/// Amended by cycle 33 (G-PP ruling #20): with one own location (A), the unlocated terminals join A's rail; an
+/// external reference's location (B) is not an own location. No EW-POT-008.
+#[test]
+fn unlocated_rail_bonded_terminals_join_the_only_own_location() {
+    let mut fx = terminal_base();
+    fx.node(LOC_B, "location", "B", None);
+    fx.push(
+        json!({"$k": "external_ref", "id": uid(0x6100), "location": uid(LOC_B), "device": "JE",
+        "connection": "PE"}),
+    );
+    let m = two_unlocated_terminals(fx);
+    let mut q = Q::new(&m);
+    let g = q.get::<StitchGraphQ>(());
+    let bonds = rail_bonds(&g);
+    assert_eq!(bonds.len(), 1, "{bonds:?}");
+    assert_eq!(bonds[0].2, RailLocation::Node(id(LOC_A)));
+    let part = q.get::<PotentialPartition>(());
+    assert_eq!(
+        part.potential_count(),
+        1,
+        "both PE CPs and their wires are one potential"
+    );
+    assert!(notes_with(&mut q, "EW-POT-008", "").is_empty());
+}
+
+/// Amended by cycle 33 (G-PP ruling #20): with no location node at all, the unlocated terminals join the implicit
+/// main location's rail.
+#[test]
+fn unlocated_rail_bonded_terminals_join_the_implicit_main_location() {
+    let mut fx = terminal_base();
+    fx.records.retain(|r| r["$k"] != "structure_node");
+    let m = two_unlocated_terminals(fx);
+    let mut q = Q::new(&m);
+    let g = q.get::<StitchGraphQ>(());
+    let bonds = rail_bonds(&g);
+    assert_eq!(bonds.len(), 1, "{bonds:?}");
+    assert_eq!(bonds[0].2, RailLocation::Main);
+    assert_eq!(q.get::<PotentialPartition>(()).potential_count(), 1);
+    assert!(notes_with(&mut q, "EW-POT-008", "").is_empty());
+}
+
+/// With two own locations (A and B), an unlocated terminal joins no rail and is noted (EW-POT-008).
 #[test]
 fn unlocated_rail_bonded_terminals_do_not_bond() {
     const T1: u128 = 0x4001;
     const T2: u128 = 0x4002;
     let mut fx = terminal_base();
+    fx.node(LOC_B, "location", "B", None);
     terminal(&mut fx, T1, 0x1001, FNDEF_PE, SYM_PE, None);
     terminal(&mut fx, T2, 0x1002, FNDEF_PE, SYM_PE, None);
     for f in [0x1003, 0x1004] {

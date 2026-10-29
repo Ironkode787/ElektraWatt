@@ -73,6 +73,7 @@ no_heap!(
     Level,
     ShortSource,
     EdgeKind,
+    crate::links::RailLocation,
     PairMode,
     EndKind,
     WireEnd,

@@ -115,7 +115,7 @@ pub use items::{
 pub use joins::{JoinStyle, JoinWiring, JunctionJoin, WireJoin, cp_label, wire_join};
 pub use links::{
     BondPath, BondPaths, BondPathsQ, DeclaredLink, FunctionLinks, FunctionLinksOf, RailBonds, RailBondsQ,
-    RailTerminal, RailTerminalOf,
+    RailLocation, RailTerminal, RailTerminalOf,
 };
 pub use memo_keys::{MemoInput, PartKey};
 pub use memo_store::MemoStore;

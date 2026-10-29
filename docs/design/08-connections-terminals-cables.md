@@ -1,6 +1,6 @@
 # Connections, terminals and cables
 
-**Status:** Draft v0.1 · **Date:** 2026-10-23 (cycle 23: the shipped colour profiles and their limits as built, §4.3, decision log ID-577; the marker mode as a project setting for WP-S2.04, §4.5, ID-568; 2026-10-21: cycle 11: page token of segment-less strips as built, decision log ID-293; cycle 12: EW-TERM-002 as built, §6.8, and the cover size note, §4.2; cycle 13: the orientation of segment-only terminals, §3.8, the numbering order and the golden numbers as built, §5.2, and the segment wording, §6.7; 2026-10-27, cycle 29: the numbering order's tie-break by what is printed, §5.2 and §11, decision log ID-675; the fallback potential name's tie by its text and not by the CP ID, §3.5, decision log ID-677; amended 2026-10-28, cycle-30 design pass: `orient_wire`'s step 3 without minted IDs (FT-478), §3.8, decision log ID-704; the `#n` after a repeated clamp letter, §3.8, decision log ID-711) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-23 (cycle 23: the shipped colour profiles and their limits as built, §4.3, decision log ID-577; the marker mode as a project setting for WP-S2.04, §4.5, ID-568; 2026-10-21: cycle 11: page token of segment-less strips as built, decision log ID-293; cycle 12: EW-TERM-002 as built, §6.8, and the cover size note, §4.2; cycle 13: the orientation of segment-only terminals, §3.8, the numbering order and the golden numbers as built, §5.2, and the segment wording, §6.7; 2026-10-27, cycle 29: the numbering order's tie-break by what is printed, §5.2 and §11, decision log ID-675; the fallback potential name's tie by its text and not by the CP ID, §3.5, decision log ID-677; amended 2026-10-28, cycle-30 design pass: `orient_wire`'s step 3 without minted IDs (FT-478), §3.8, decision log ID-704; the `#n` after a repeated clamp letter, §3.8, decision log ID-711; amended 2026-10-29, cycle 33: bridges without a shaft and the chain of Bridge terminals, §2.3, G-PP ruling #4; rail bonding of terminals without a location, §3.7 and §8.1, G-PP ruling #20) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) turns drawn connections into electrical meaning. It covers
 connection points, connections and junctions, the three connectivity levels (net, signal, potential) with stable
@@ -375,6 +375,11 @@ potential_flow(potential):                              // memo per potential; t
   one PE potential although no wire runs between folio 101 and the -X1032 strip on folio 103 (D-21). Only CPs with
   clamp `RailFoot` or role PE or PEN join the location node (decision log ID-173). A rail-bonded terminal without
   any PE CP is EW-TERM-005; one without a location is skipped and reported as EW-POT-008 (ID-185).
+  *Amended by cycle 33 (G-PP ruling #20):* a terminal without a location belongs, for rail bonding, to the
+  project's implicit main location while the project has at most one own location (a location node that no
+  external reference names; `+J-E-206` of an external point is not one): it joins the only own location's PE node,
+  or an implicit main-location PE node when the project has none. It is skipped and reported as EW-POT-008 only
+  when the project has two or more own locations.
 - **Rail bonding at 1.0.** When a layout space exists for the location, the partition replaces the location node.
   A rail-bonded terminal then joins PE only through a carrier and surface that both declare `pe_bond` (FR-LAY-058).
   A difference between the two models is reported on migration ([03](03-domain-model.md) OQ10).
@@ -1018,7 +1023,7 @@ p = prevent and r = release.
 | EW-POT-005 | Exact code BU on a non-N conductor in a project with an N potential | FR-CHK-031 | o r | warning | EF-11: W36, W41 |
 | EW-POT-006 | PE cross-section below the sizing table for its associated line conductors | FR-CHK-020 | o r | error | EF-06: W6 |
 | EW-POT-007 | PE continuity to the main PE point through wires, bridges, rails, carriers (1.0) | FR-CHK-029 | f r | error | 0 (EF-23) |
-| EW-POT-008 | More than one PE potential in one location (PE island), or a rail-bonded terminal without a location (decision log ID-185) | FR-CHK-055 | o r | warning | 0 |
+| EW-POT-008 | More than one PE potential in one location (PE island), or a rail-bonded terminal without a location (decision log ID-185) in a project with two or more own locations (amended by cycle 33, G-PP ruling #20: with at most one, the terminal belongs to the implicit main location, §3.7) | FR-CHK-055 | o r | warning | 0 |
 | EW-POT-009 | Unconnected electrical CP of a placed function, not `unused` (fluid ports: EW-FL-001) | FR-CHK-018 | o r | warning; info if `unused` | EF-09: -102F2:13, :14 |
 | EW-POT-010 | Conductors or csa on a CP beyond its clamp data (1.0) | FR-CHK-021 | o r | error | 0 |
 | EW-POT-011 | Junction feed ambiguous (§3.2) | FR-CON-041 | o | warning | 0 |

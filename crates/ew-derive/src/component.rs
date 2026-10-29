@@ -36,12 +36,12 @@ use std::sync::Arc;
 
 use ew_ids::Id;
 use ew_model::EndpointKey;
-use ew_schema::{Function, Junction, Page, PotentialDef, StructureNode};
+use ew_schema::{Function, Junction, Page, PotentialDef};
 
 use crate::Q;
 use crate::index::{BondIndex, BondVias, DefPoints, PageIds, PagelessLinks};
 use crate::ip::IpPairingQ;
-use crate::links::{BondPathsQ, FunctionLinks, FunctionLinksOf, RailBondsQ};
+use crate::links::{BondPathsQ, FunctionLinks, FunctionLinksOf, RailBondsQ, RailLocation};
 use crate::memo_keys::PartKey;
 use crate::nets::{CpRef, Dsu, LocalNets, NetId, PageLocalNets};
 use crate::potentials::{Component, Partition, Potential, PotentialId, Signal, bond_links};
@@ -249,7 +249,7 @@ impl Ctx<'_> {
     }
 
     /// The PE CPs of `cp`'s rail location that are nodes now (the rail joins them all, doc 08 §3.7).
-    fn rail(&self, p: &Partition, cp: CpRef) -> Option<(Id<StructureNode>, Vec<CpRef>)> {
+    fn rail(&self, p: &Partition, cp: CpRef) -> Option<(RailLocation, Vec<CpRef>)> {
         let location = *self.inputs.rail.location_of.get(&cp)?;
         let cps = self.inputs.rail.by_location.get(&location)?;
         Some((
@@ -263,7 +263,7 @@ impl Ctx<'_> {
 fn search(w: &mut Work, cx: &mut Ctx<'_>) -> Vec<Vec<EndpointKey>> {
     let mut assigned: BTreeSet<EndpointKey> = BTreeSet::new();
     let mut seen_nets: BTreeSet<(Id<Page>, EndpointKey)> = BTreeSet::new();
-    let mut seen_rails: BTreeSet<Id<StructureNode>> = BTreeSet::new();
+    let mut seen_rails: BTreeSet<RailLocation> = BTreeSet::new();
     let mut shorts: BTreeMap<Id<Function>, Vec<(u16, u16)>> = BTreeMap::new();
     let mut out = Vec::new();
     let mut i = 0;
@@ -552,7 +552,7 @@ pub(crate) fn update(q: &Q, prev: &Partition, changes: Changes<'_>) -> Option<(P
     }
     if !Arc::ptr_eq(&old_inputs.rail, &inputs.rail) {
         let (o, n) = (&old_inputs.rail.by_location, &inputs.rail.by_location);
-        let locations: BTreeSet<Id<StructureNode>> = o.keys().chain(n.keys()).copied().collect();
+        let locations: BTreeSet<RailLocation> = o.keys().chain(n.keys()).copied().collect();
         for l in locations {
             if o.get(&l) != n.get(&l) {
                 for list in [o.get(&l), n.get(&l)].into_iter().flatten() {

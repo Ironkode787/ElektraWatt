@@ -69,7 +69,9 @@ where the documents leave the data open:
 - **Terminal levels (D3).** A terminal with a declared pass-through pair shorts the same-level CPs of each side and
   the pass-through links the sides; without one, all CPs of a level are one signal.
 - **Rail bonds (D5).** Rail bonding joins only CPs with clamp rail foot or role PE or PEN, chained per location. A
-  rail-bonded terminal without such a CP joins nothing (EW-TERM-005); one without a location is skipped (EW-POT-008).
+  rail-bonded terminal without such a CP joins nothing (EW-TERM-005); one without a location joins the only own
+  location, or the implicit main location when there is none, and is skipped (EW-POT-008) only when the project has
+  two or more own locations (cycle 33).
 - **External names (D6).** An external source IP may name an undefined potential: the name is the first definition,
   else the first non-external source IP, else the first external source IP, else the `<tag>:<designation>` fallback.
 - **Conflicts.** Nothing merges silently: differing type, voltage, environment or class between definitions, and a

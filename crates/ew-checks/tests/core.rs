@@ -245,6 +245,10 @@ fn a_run_is_deterministic() {
     fx.drawn_device(0x301, "Q", Some(1), P1);
     fx.drawn_device(0x302, "Q", Some(1), P1);
     fx.push(json!({"$k": "device", "id": us(0x400), "tag": {"letter": "X", "counter": 1}, "strip": {}}));
+    // Two own locations: an unlocated rail-bonded terminal is EW-POT-008 (amended by cycle 33).
+    for (n, code) in [(0x901u128, "A"), (0x902, "B")] {
+        fx.push(json!({"$k": "structure_node", "id": us(n), "aspect": "location", "code": code}));
+    }
     fx.rail_terminal(0x4001, 0x400, None, None);
     let m = fx.build();
     let first = run(&Q::new(&m), &FULL, CheckMode::Online);

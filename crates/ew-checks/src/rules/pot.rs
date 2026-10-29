@@ -157,7 +157,8 @@ pub const PE_ISLAND: RuleMeta = RuleMeta {
 };
 
 /// EW-POT-008, **partial**: only the half "a rail-bonded terminal without a location", from the
-/// `rail_terminal` notes (the terminal joins no location PE node). The other half, more than one PE
+/// `rail_terminal` notes (the terminal joins no location PE node; since cycle 33 only in a project with two or more
+/// own locations, else it joins the implicit main location). The other half, more than one PE
 /// potential in one location, is not derived yet. One finding per terminal, target the terminal.
 #[derive(Clone, Copy, Debug)]
 pub struct PeIsland;

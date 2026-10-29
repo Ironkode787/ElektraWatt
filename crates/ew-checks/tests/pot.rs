@@ -224,30 +224,73 @@ fn pot014_agreeing_constituents_are_silent() {
     assert!(findings_of(&conflict_fixture(0x6102, 0x6102), "EW-POT-014").is_empty());
 }
 
-/// A strip with the rail-bonded terminal 0x4001 in `location`, with a PE function `pe` when given.
-fn rail_model(location: Option<u128>, pe: Option<u128>) -> Model {
+/// The second own location of [`rail_model`]'s two-location project.
+const LOC2: u128 = 0x901;
+
+/// A strip with the rail-bonded terminal 0x4001 in `location`, with a PE function `pe` when given; the project has
+/// the location A, and a second own location B when `two_locations`.
+fn rail_model(location: Option<u128>, pe: Option<u128>, two_locations: bool) -> Model {
     let mut fx = Fx::base();
     fx.push(json!({"$k": "structure_node", "id": us(LOC), "aspect": "location", "code": "A"}));
+    if two_locations {
+        fx.push(json!({"$k": "structure_node", "id": us(LOC2), "aspect": "location", "code": "B"}));
+    }
     fx.push(json!({"$k": "device", "id": us(STRIP), "tag": {"letter": "X", "counter": 1}, "strip": {}}));
     fx.rail_terminal(0x4001, STRIP, location, pe);
     fx.build()
 }
 
+/// Amended by cycle 33 (G-PP ruling #20): the warning stays in a project with two or more own locations.
 #[test]
 fn pot008_reports_a_rail_bonded_terminal_without_a_location() {
-    let m = rail_model(None, Some(0x1001));
+    let m = rail_model(None, Some(0x1001), true);
     let f = findings_of(&m, "EW-POT-008");
     assert_eq!(f.len(), 1, "{f:#?}");
     assert_eq!(f[0].code, "005008");
     assert_eq!(f[0].severity, Severity::Warning);
     assert_eq!(f[0].targets, vec![target(Kind::Device, 0x4001)]);
     assert!(f[0].message.contains("no location"), "{}", f[0].message);
+    assert!(f[0].message.contains("2 own locations"), "{}", f[0].message);
 }
 
 #[test]
 fn pot008_a_located_terminal_has_no_finding() {
-    let m = rail_model(Some(LOC), Some(0x1001));
+    let m = rail_model(Some(LOC), Some(0x1001), true);
     assert!(findings_of(&m, "EW-POT-008").is_empty());
+}
+
+/// Cycle 33 (G-PP ruling #20), the -X1032:1-4 case of the G-PP run: in a project with one own location (an
+/// external reference's location does not count), unlocated rail-bonded terminals belong to it: no EW-POT-008, and
+/// their PE connection points join one PE potential through the rail.
+#[test]
+fn pot008_one_location_project_joins_unlocated_rail_terminals_to_pe() {
+    let mut fx = Fx::base();
+    fx.push(json!({"$k": "structure_node", "id": us(LOC), "aspect": "location", "code": "A"}));
+    fx.push(json!({"$k": "structure_node", "id": us(LOC2), "aspect": "location", "code": "J-E-206"}));
+    fx.push(
+        json!({"$k": "external_ref", "id": us(0x950), "location": us(LOC2), "device": "JE-N1000-03",
+        "connection": "PE"}),
+    );
+    fx.push(json!({"$k": "device", "id": us(STRIP), "tag": {"letter": "X", "counter": 1}, "strip": {}}));
+    for (k, n) in [0x4001u128, 0x4002, 0x4003, 0x4004].into_iter().enumerate() {
+        let pe = 0x1001 + k as u128;
+        fx.rail_terminal(n, STRIP, None, Some(pe));
+        // Each PE CP is wired to its own plain function, so it is a node of the stitch graph.
+        fx.func(pe + 0x100, P1);
+        fx.conn(0x2001 + k as u128, P1, Ep::Cp(pe, 1), cp(pe + 0x100), &none());
+    }
+    let m = fx.build();
+    assert!(findings_of(&m, "EW-POT-008").is_empty());
+    let q = ew_derive::Q::new(&m);
+    let part = q.get::<ew_derive::PotentialPartition>(());
+    let pe = |f: u128| {
+        part.potential_at(ew_model::EndpointKey::Cp(uid(f).cast(), 1))
+            .expect("the PE CP is in a potential")
+            .id
+    };
+    for f in [0x1002, 0x1003, 0x1004] {
+        assert_eq!(pe(f), pe(0x1001), "the rail joins {f:#x}'s PE CP");
+    }
 }
 
 /// Two potentials of two wires each: one on the wire of functions 0x1001 and 0x1003 (its definition `def`

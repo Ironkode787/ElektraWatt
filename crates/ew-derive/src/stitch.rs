@@ -45,7 +45,9 @@
 //!   of one location join one virtual location PE node, expressed as a chain of [`EdgeKind::RailBond`]
 //!   edges in CP order. A PE CP is a CP in the graph whose clamp is the rail foot or whose potential role
 //!   is `Pe` or `Pen`; there is no fallback to another CP. A rail-bonded terminal without a PE CP joins
-//!   nothing (EW-TERM-005); one without a location is skipped (EW-POT-008).
+//!   nothing (EW-TERM-005); one without a location joins the only own location (or the implicit main location,
+//!   [`RailLocation::Main`], when there is none), and is skipped (EW-POT-008) only when the project has two or
+//!   more own locations (amended by cycle 33).
 //! - **Cores** join as connections (net level); there is no separate conductor edge. CI-05 makes two
 //!   connections on one conductor parts of one physical wire, which their IP pair joins already.
 //!
@@ -63,7 +65,7 @@ use crate::Q;
 use crate::index::PagelessLinksV;
 use crate::index::{BondIndex, BondRec, BondVias, DefPoints, DefPointsV, Index, PageIds, PagelessLinks};
 use crate::ip::{IpPairing, IpPairingQ};
-use crate::links::{DeclaredLink, FunctionLinks, FunctionLinksOf, RailBonds, RailBondsQ};
+use crate::links::{DeclaredLink, FunctionLinks, FunctionLinksOf, RailBonds, RailBondsQ, RailLocation};
 use crate::nets::{CpRef, LocalNets, NetId, PageLocalNets};
 use crate::note::DeriveNote;
 use crate::query::{Policy, Query};
@@ -120,10 +122,11 @@ pub enum EdgeKind {
     },
     /// A `Bridge` connection.
     Bridge(Id<Connection>),
-    /// A rail bond through the location PE node of `location` (terminals without a location never bond).
+    /// A rail bond through the location PE node of `location` (a terminal without a location bonds on the implicit
+    /// main location or the only own location, amended by cycle 33; never when the project has two or more).
     RailBond {
-        /// The location node.
-        location: Id<StructureNode>,
+        /// The location.
+        location: RailLocation,
     },
     /// A bond (non-joining, doc 08 §3.7).
     Bond(Id<Bond>),

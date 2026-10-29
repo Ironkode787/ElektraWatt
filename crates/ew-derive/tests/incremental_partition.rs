@@ -9,7 +9,8 @@
 //! the cold value on every snapshot, whatever the edits and whatever the order the families are read in.
 //!
 //! - `incremental_partition_equals_cold`: a random sequence of edit batches (joins, splits, bridges, page-less
-//!   connections, definitions, interruption-point renames, representation moves, rail-bonding, a page
+//!   connections, definitions, interruption-point renames, representation moves, rail-bonding, a second own
+//!   location (cycle 33) and a page
 //!   added and removed) over a fixture with several pages, interruption-point pairs, a bond with a via
 //!   connection, terminals and a junction. After every batch the memoised partition, stitch graph, flow,
 //!   pairing, local nets and the per-potential families equal the cold ones, the notes equal, and a second
@@ -33,7 +34,9 @@ use ew_derive::{
 };
 use ew_ids::Id;
 use ew_model::{AnyKey, AnyRow, Entity, Model, Op};
-use ew_schema::{Connection, ConnectionKind, Device, Endpoint, Function, Page, PotentialDef, Representation};
+use ew_schema::{
+    Connection, ConnectionKind, Device, Endpoint, Function, Page, PotentialDef, Representation, StructureNode,
+};
 use proptest::collection::vec;
 use proptest::prelude::*;
 use proptest::test_runner::{Config, RngAlgorithm, TestCaseError, TestRng, TestRunner, contextualize_config};
@@ -65,6 +68,9 @@ const P4: u128 = 0x103;
 
 const STRIP: u128 = 0x5000;
 const LOC: u128 = 0x900;
+/// A second own location: added and removed by the edits (cycle 33: an unlocated rail-bonded terminal joins the
+/// only own location, and no rail once there are two).
+const LOC2: u128 = 0x901;
 const J1: u128 = 0x3001;
 
 /// Every function of the fixture with its number of CPs; the representation of function `f` is `f + REP`.
@@ -385,7 +391,7 @@ struct Step {
 }
 
 fn step() -> impl Strategy<Value = Step> {
-    let act = (0u8..13, 0u16..64, 0u16..64, 0u16..64).prop_map(|(kind, a, b, c)| Act { kind, a, b, c });
+    let act = (0u8..14, 0u16..64, 0u16..64, 0u16..64).prop_map(|(kind, a, b, c)| Act { kind, a, b, c });
     (vec(act, 1..=3), 0u64..=u64::MAX).prop_map(|(acts, order)| Step { acts, order })
 }
 
@@ -545,6 +551,16 @@ fn op_of(model: &Model, batch: &mut Batch, next: u128, act: &Act) -> Option<Op> 
                 }
             })
         }
+        // Cycle 33: a second own location added or removed (nothing is placed in it).
+        13 => {
+            let loc2: Id<StructureNode> = id(LOC2);
+            match model.row(&StructureNode::key(loc2)) {
+                Some(row) => Some(Op::delete(row)),
+                None => Some(Op::insert(typed::<StructureNode>(json!({
+                    "id": uid(LOC2), "aspect": "location", "code": "B",
+                })))),
+            }
+        }
         // The empty fourth page removed or added again.
         _ => {
             let p4: Id<Page> = id(P4);
@@ -587,7 +603,7 @@ fn ops_of(model: &Model, step: &Step, next: &mut u128, cover: &mut Coverage) -> 
 #[derive(Default, Debug)]
 struct Coverage {
     /// Edits applied, per kind.
-    applied: [usize; 13],
+    applied: [usize; 14],
     /// Steps after which the cold partition differs from the one before.
     partition_changed: usize,
     /// Steps run.
