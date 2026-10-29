@@ -628,47 +628,57 @@ fn assert_rewritten_only(loaded: &Loaded, path: &str) {
     assert_eq!(loaded.records.len(), 3, "{:?}", loaded.records);
 }
 
+/// A shard in a non-canonical shape is read and rewritten at the next save, one case per shape: a BOM, a missing
+/// final LF, a blank line and lines out of order are rewritten with no other effect (`assert_rewritten_only`); an
+/// empty file is rewritten with one non-canonical finding and one record left in the layout.
 #[test]
-fn bom_is_rewritten() {
-    let mut files = layout(dir());
-    let text = format!("\u{feff}{}", text_of(&files, SHARD_FILE));
-    put(&mut files, SHARD_FILE, &text);
-    assert_rewritten_only(&load_plain(&files), SHARD_FILE);
+fn rewritten() {
+    type Shape = fn(&str) -> String;
+    let cases: [(&str, Shape, bool); 5] = [
+        ("bom_is_rewritten", |t| format!("\u{feff}{t}"), true),
+        (
+            "missing_final_lf_is_rewritten",
+            |t| t.trim_end_matches('\n').to_owned(),
+            true,
+        ),
+        ("blank_line_is_rewritten", |t| t.replacen('\n', "\n\n", 1), true),
+        (
+            "lines_out_of_order_are_rewritten",
+            |_| format!("{FUNCTION}\n{DEVICE}\n"),
+            true,
+        ),
+        ("empty_file_is_rewritten", |_| String::new(), false),
+    ];
+    for (name, shape, only) in cases {
+        let mut files = layout(dir());
+        let text = shape(&text_of(&files, SHARD_FILE));
+        put(&mut files, SHARD_FILE, &text);
+        let loaded = load_plain(&files);
+        if only {
+            in_case(name, || assert_rewritten_only(&loaded, SHARD_FILE));
+        } else {
+            assert!(loaded.rewrite.contains(&p(SHARD_FILE)), "case {name}");
+            assert_eq!(
+                of_kind(&loaded, FindingKind::NonCanonical).len(),
+                1,
+                "case {name}"
+            );
+            assert_eq!(loaded.records.len(), 1, "case {name}");
+        }
+    }
 }
 
-#[test]
-fn missing_final_lf_is_rewritten() {
-    let mut files = layout(dir());
-    let text = text_of(&files, SHARD_FILE);
-    put(&mut files, SHARD_FILE, text.trim_end_matches('\n'));
-    assert_rewritten_only(&load_plain(&files), SHARD_FILE);
+/// Runs `check`, naming `case` in its failure message.
+fn in_case(case: &str, check: impl FnOnce()) {
+    if let Err(e) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(check)) {
+        let msg = e
+            .downcast_ref::<String>()
+            .map(String::as_str)
+            .or_else(|| e.downcast_ref::<&str>().copied())
+            .unwrap_or("a panic without a message");
+        panic!("case {case}: {msg}");
+    }
 }
-
-#[test]
-fn blank_line_is_rewritten() {
-    let mut files = layout(dir());
-    let text = text_of(&files, SHARD_FILE).replacen('\n', "\n\n", 1);
-    put(&mut files, SHARD_FILE, &text);
-    assert_rewritten_only(&load_plain(&files), SHARD_FILE);
-}
-
-#[test]
-fn lines_out_of_order_are_rewritten() {
-    let mut files = layout(dir());
-    put(&mut files, SHARD_FILE, &format!("{FUNCTION}\n{DEVICE}\n"));
-    assert_rewritten_only(&load_plain(&files), SHARD_FILE);
-}
-
-#[test]
-fn empty_file_is_rewritten() {
-    let mut files = layout(dir());
-    put(&mut files, SHARD_FILE, "");
-    let loaded = load_plain(&files);
-    assert!(loaded.rewrite.contains(&p(SHARD_FILE)));
-    assert_eq!(of_kind(&loaded, FindingKind::NonCanonical).len(), 1);
-    assert_eq!(loaded.records.len(), 1);
-}
-
 #[test]
 fn misplaced_record_is_ew_core_010() {
     let mut files = Files::new();
