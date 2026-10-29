@@ -50,22 +50,14 @@ pub(crate) fn icon_atom(id: IconId, size: f32, colour: Option<Rgba>, stroke: f32
     })
 }
 
-/// A button of `kind` labelled `label`, `size.control` high, `radius.md`; `min_width` is 72 px in dialogs (0
-/// elsewhere). Disabled buttons keep their place.
-pub(crate) fn button(ui: &mut Ui, kind: Kind, label: &str, enabled: bool, min_width: f32) -> Response {
-    button_with_icon(ui, kind, None, label, enabled, min_width)
-}
-
-/// [`button`] with an `icon.sm` icon at the left, `space.icon` before the label.
-pub(crate) fn button_with_icon(
-    ui: &mut Ui,
+/// The fill, text colour, border and font of a button of `kind` (doc 16a §6.2). Disabled, every kind takes
+/// `color.text.disabled`; a disabled Primary (or red Primary) loses its fill and draws as a Secondary (the
+/// `color.surface.panel` fill and the 1-px `color.border.default`), so its label stays legible (cycle 33 ruling).
+pub(crate) fn button_look(
+    t: &Tokens,
     kind: Kind,
-    icon: Option<IconId>,
-    label: &str,
     enabled: bool,
-    min_width: f32,
-) -> Response {
-    let t = tokens(ui);
+) -> (Rgba, Rgba, Option<Rgba>, &theme::TypeToken) {
     let (fill, text, border, font) = match kind {
         Kind::Primary => (t.accent, t.text_on_accent, None, &t.type_body_strong),
         Kind::DangerPrimary => (t.error, t.text_on_accent, None, &t.type_body_strong),
@@ -86,7 +78,30 @@ pub(crate) fn button_with_icon(
             &t.type_body,
         ),
     };
+    if !enabled && matches!(kind, Kind::Primary | Kind::DangerPrimary) {
+        return (t.surface_panel, t.text_disabled, Some(t.border_default), font);
+    }
     let text = if enabled { text } else { t.text_disabled };
+    (fill, text, border, font)
+}
+
+/// A button of `kind` labelled `label`, `size.control` high, `radius.md`; `min_width` is 72 px in dialogs (0
+/// elsewhere). Disabled buttons keep their place.
+pub(crate) fn button(ui: &mut Ui, kind: Kind, label: &str, enabled: bool, min_width: f32) -> Response {
+    button_with_icon(ui, kind, None, label, enabled, min_width)
+}
+
+/// [`button`] with an `icon.sm` icon at the left, `space.icon` before the label.
+pub(crate) fn button_with_icon(
+    ui: &mut Ui,
+    kind: Kind,
+    icon: Option<IconId>,
+    label: &str,
+    enabled: bool,
+    min_width: f32,
+) -> Response {
+    let t = tokens(ui);
+    let (fill, text, border, font) = button_look(&t, kind, enabled);
     let label = RichText::new(label).font(theme::font(font)).color(text.color32());
     let mut b = match icon {
         Some(id) => Button::new((icon_atom(id, t.icon_sm, Some(text), t.icon_stroke), label)),
@@ -100,7 +115,13 @@ pub(crate) fn button_with_icon(
         Some(c) => b.stroke(theme::stroke(t.border_width, c)),
         None => b.stroke(theme::stroke(0.0, t.border_default)),
     };
-    let response = ui.add_enabled(enabled, b);
+    // The disabled look is the colours above (doc 16a §6.1: `color.text.disabled`), not egui's extra fade.
+    let response = ui
+        .scope(|ui| {
+            ui.visuals_mut().disabled_alpha = 1.0;
+            ui.add_enabled(enabled, b)
+        })
+        .inner;
     // The state overlay (doc 16a §6.1): an explicit fill hides egui's own hover fill.
     crate::command_bar::state_overlay(ui, &t, &response, enabled, t.radius_md);
     response
@@ -922,4 +943,31 @@ pub(crate) fn section_header(
     child.set_clip_rect(rect);
     count_badge(&mut child, count);
     open
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Kind, button_look};
+    use crate::theme::{Density, Theme, contrast, tokens};
+
+    /// Cycle 33 ruling: a disabled Primary draws as a Secondary (panel fill, default border) with the disabled text
+    /// colour, in light and dark; enabled it keeps the accent fill.
+    #[test]
+    fn a_disabled_primary_draws_as_a_secondary_with_the_disabled_text() {
+        for theme in [Theme::Light, Theme::Dark] {
+            let t = tokens(theme, Density::Comfortable);
+            let (fill, text, border, _) = button_look(&t, Kind::Primary, false);
+            assert_eq!(fill, t.surface_panel, "{theme:?}");
+            assert_eq!(text, t.text_disabled, "{theme:?}");
+            assert_eq!(border, Some(t.border_default), "{theme:?}");
+            let (fill, text, border, _) = button_look(&t, Kind::Primary, true);
+            assert_eq!(
+                (fill, text, border),
+                (t.accent, t.text_on_accent, None),
+                "{theme:?}"
+            );
+            // Disabled controls are exempt from WCAG; the label still stands apart from its fill.
+            assert!(contrast(t.text_disabled, t.surface_panel) >= 2.0, "{theme:?}");
+        }
+    }
 }
