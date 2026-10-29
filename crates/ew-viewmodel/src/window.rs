@@ -5,8 +5,10 @@
 //! maximised state, kept in `settings.toml` as `[window]` and restored at the next start, clamped so that the window
 //! opens on a monitor the system still has.
 //!
-//! **Units.** Logical points of the desktop (egui's points at the UI scale 1), whole numbers in the file. The position
-//! is the outer top-left corner (title bar included), the size the inner size: the two values a window builder takes.
+//! **Units.** Logical points of the desktop (egui's points at the UI scale 1, that is the physical pixels divided by
+//! the native scale; the window records egui's reported points times its zoom factor), whole numbers in the file.
+//! The position is the outer top-left corner (title bar included), the size the inner size: the two values a window
+//! builder takes, which eframe applies at the zoom 1.
 //!
 //! **The clamp** ([`restore`]) is a pure function of the saved geometry and the monitors' areas: the size is at least
 //! [`MIN_SIZE`] and at most the largest monitor; the saved position stays when a grip of the title bar ([`GRIP`] wide

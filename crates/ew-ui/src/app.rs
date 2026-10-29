@@ -197,6 +197,8 @@ pub struct App {
     /// The `ui_scale` last given to egui: the zoom is set when the setting changes, not every frame, so that
     /// egui's own zoom keys keep working in between.
     applied_scale: Option<f32>,
+    /// The zoom factor of the previous frame, for the window memory (its report of a frame uses that zoom).
+    window_zoom: Option<f32>,
     /// The theme and density settings last given to egui.
     applied_theme: Option<(String, String)>,
     // WP-S2.05 part 3
@@ -276,6 +278,7 @@ impl App {
             dialog_was_open: false,
             pending_pick: None,
             applied_scale: None,
+            window_zoom: None,
             applied_theme: None,
             request_paste: false,
             ip_name: String::new(),
@@ -517,7 +520,7 @@ impl App {
         // CPU with one banner, and the status bar shows the result.
         self.canvas.update_backend(&mut self.shell);
         // WP-S2.17 part 3 (DK6, FT-348): the window's geometry, written at the end of the window.
-        crate::window_memory::remember(&ctx, &mut self.shell);
+        crate::window_memory::remember(&ctx, &mut self.shell, &mut self.window_zoom);
         if ctx.input(|i| i.viewport().close_requested()) && !self.shell.should_quit() {
             ctx.send_viewport_cmd(ViewportCommand::CancelClose);
             // While a file dialog is open nothing the user does reaches the shell (see below): the window stays open.

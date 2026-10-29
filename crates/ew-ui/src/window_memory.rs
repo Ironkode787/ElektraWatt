@@ -8,6 +8,14 @@
 //! reports neither), so a test's settings file keeps its bytes. A minimised or full-screen window records nothing; a
 //! maximised one keeps its last normal size and position with `maximized = true`.
 //!
+//! **Units: points at the zoom 1.** egui reports the window's rectangles in its points at the current zoom (the
+//! physical pixels divided by the native scale times egui's zoom factor, which is the UI scale), and eframe opens the
+//! window before the UI scale is applied, so the builder's size and position are taken at the zoom 1. The recorded
+//! geometry is therefore the reported one times the zoom factor of the frame the report was made with: a window
+//! keeps its size and place across starts at every UI scale. The report of a frame is made before the frame applies
+//! a new zoom factor (egui applies [`egui::Context::set_zoom_factor`] at the start of the next pass), so a frame whose
+//! zoom differs from the previous frame's records nothing.
+//!
 //! **The clamp at start.** [`ew_viewmodel::window::restore`] runs with the monitors the window knows before it opens,
 //! which is none: eframe 0.37 without its `persistence` feature exposes no monitor list, so the start applies the size
 //! bounds of the clamp and eframe's own clamp of the size to the largest monitor; the position clamp to a visible
@@ -28,13 +36,14 @@ pub fn restore(builder: ViewportBuilder, saved: Option<WindowGeometry>) -> Viewp
         .with_maximized(g.maximized)
 }
 
-/// The geometry a running window reports in `info`, given the last one recorded; `None` when there is nothing to
-/// record (no real window, minimised, full screen).
-pub fn observed(info: &ViewportInfo, last: Option<WindowGeometry>) -> Option<WindowGeometry> {
+/// The geometry a running window reports in `info`, its rectangles in points at the zoom factor `zoom`, given the last
+/// one recorded; in points at the zoom 1 (see the module documentation); `None` when there is nothing to record (no
+/// real window, minimised, full screen).
+pub fn observed(info: &ViewportInfo, zoom: f32, last: Option<WindowGeometry>) -> Option<WindowGeometry> {
     if info.monitor_size.is_none() || info.minimized == Some(true) || info.fullscreen == Some(true) {
         return None;
     }
-    let (outer, inner) = (info.outer_rect?, info.inner_rect?);
+    let (outer, inner) = (info.outer_rect? * zoom, info.inner_rect? * zoom);
     if info.maximized == Some(true) {
         // The size and position before it was maximised stay.
         let normal = last.unwrap_or(WindowGeometry {
@@ -58,10 +67,18 @@ pub fn observed(info: &ViewportInfo, last: Option<WindowGeometry>) -> Option<Win
     })
 }
 
-/// Records the geometry of the window of `ctx` in `shell` when it changed.
-pub(crate) fn remember(ctx: &egui::Context, shell: &mut ShellModel) {
+/// Records the geometry of the window of `ctx` in `shell` when it changed. `last_zoom` is the zoom factor of the
+/// previous frame (updated here): the viewport report of this frame was made with it, so a frame whose zoom differs
+/// records nothing.
+pub(crate) fn remember(ctx: &egui::Context, shell: &mut ShellModel, last_zoom: &mut Option<f32>) {
+    let zoom = ctx.zoom_factor();
+    let stable = *last_zoom == Some(zoom);
+    *last_zoom = Some(zoom);
+    if !stable {
+        return;
+    }
     let last = shell.settings().window;
-    if let Some(g) = ctx.input(|i| observed(i.viewport(), last))
+    if let Some(g) = ctx.input(|i| observed(i.viewport(), zoom, last))
         && Some(g) != last
     {
         shell.set_window(g);
@@ -87,7 +104,7 @@ mod tests {
     /// with `maximized`; a harness without a monitor and a minimised window record nothing.
     #[test]
     fn dk6_what_the_window_records() {
-        let normal = observed(&info(false), None).unwrap();
+        let normal = observed(&info(false), 1.0, None).unwrap();
         assert_eq!(
             normal,
             WindowGeometry {
@@ -98,7 +115,7 @@ mod tests {
                 maximized: false
             }
         );
-        let max = observed(&info(true), Some(normal)).unwrap();
+        let max = observed(&info(true), 1.0, Some(normal)).unwrap();
         assert_eq!(
             max,
             WindowGeometry {
@@ -106,12 +123,67 @@ mod tests {
                 ..normal
             }
         );
-        assert_eq!(observed(&ViewportInfo::default(), Some(normal)), None);
+        assert_eq!(observed(&ViewportInfo::default(), 1.0, Some(normal)), None);
         let minimised = ViewportInfo {
             minimized: Some(true),
             ..info(false)
         };
-        assert_eq!(observed(&minimised, Some(normal)), None);
+        assert_eq!(observed(&minimised, 1.0, Some(normal)), None);
+    }
+
+    /// R1-1: at the UI scale 2 egui reports a 1280 × 800 window at (100, 50) as 640 × 400 points at (50, 25); the
+    /// window records the zoom-1 points, which the builder takes back at the next start.
+    #[test]
+    fn dk6_the_window_records_points_at_the_zoom_1() {
+        let at_zoom_2 = ViewportInfo {
+            monitor_size: Some(vec2(960.0, 540.0)),
+            outer_rect: Some(Rect::from_min_size(pos2(50.0, 25.0), vec2(648.0, 419.5))),
+            inner_rect: Some(Rect::from_min_size(pos2(54.0, 40.5), vec2(640.0, 400.0))),
+            maximized: Some(false),
+            ..ViewportInfo::default()
+        };
+        assert_eq!(
+            observed(&at_zoom_2, 2.0, None),
+            Some(WindowGeometry {
+                x: 100.0,
+                y: 50.0,
+                width: 1280.0,
+                height: 800.0,
+                maximized: false
+            })
+        );
+    }
+
+    /// R1-1: a window restored at the zoom 1 and reported at the UI scale 1.25 records the geometry it was opened
+    /// with, start after start (it used to shrink 1280 → 1024 → 819 → …).
+    #[test]
+    fn dk6_a_round_trip_at_a_ui_scale_keeps_the_size() {
+        let zoom = 1.25;
+        let mut saved = WindowGeometry {
+            x: -2400.0,
+            y: 40.0,
+            width: 1280.0,
+            height: 800.0,
+            maximized: false,
+        };
+        for _ in 0..5 {
+            let b = restore(ViewportBuilder::default(), Some(saved));
+            // eframe opens the window at the zoom 1: the builder's points are the desktop's logical points.
+            let (pos, size) = (b.position.unwrap(), b.inner_size.unwrap());
+            // egui then reports them in points at the zoom 1.25.
+            let reported = ViewportInfo {
+                monitor_size: Some(vec2(2560.0, 1440.0) / zoom),
+                outer_rect: Some(Rect::from_min_size(pos, size + vec2(16.0, 39.0)) / zoom),
+                inner_rect: Some(Rect::from_min_size(pos + vec2(8.0, 31.0), size) / zoom),
+                maximized: Some(false),
+                ..ViewportInfo::default()
+            };
+            let next = observed(&reported, zoom, Some(saved)).unwrap();
+            assert!((next.width - 1280.0).abs() < 1e-3, "{next:?}");
+            assert!((next.height - 800.0).abs() < 1e-3, "{next:?}");
+            assert!((next.x + 2400.0).abs() < 1e-3, "{next:?}");
+            saved = next;
+        }
     }
 
     /// DK6: the builder takes the saved geometry, the size raised to the minimum; without one it is unchanged.
