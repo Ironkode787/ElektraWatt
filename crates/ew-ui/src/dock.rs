@@ -478,6 +478,38 @@ struct Header {
     segmented: Option<PaneKind>,
 }
 
+/// A dock tab's horizontal padding and its underline's inset (doc 16a §5.7: 10 px).
+const DOCK_TAB_PADDING: f32 = 10.0;
+
+/// How a dock tab draws its title (doc 16a §6.4).
+struct TabLook {
+    font: egui::FontId,
+    colour: crate::theme::Rgba,
+    /// The 2-px accent underline.
+    underline: bool,
+}
+
+/// A dock tab's look: `type.small`; active SemiBold in `color.text.primary` with the underline, else
+/// `color.text.secondary`.
+fn tab_look(t: &crate::theme::Tokens, active: bool) -> TabLook {
+    if active {
+        TabLook {
+            font: crate::theme::font(&crate::theme::TypeToken {
+                semibold: true,
+                ..t.type_small
+            }),
+            colour: t.text_primary,
+            underline: true,
+        }
+    } else {
+        TabLook {
+            font: crate::theme::font(&t.type_small),
+            colour: t.text_secondary,
+            underline: false,
+        }
+    }
+}
+
 /// What the dock draws around the panes (WP-S2.17 part 3).
 #[derive(Default)]
 struct Chrome {
@@ -672,50 +704,73 @@ impl egui_tiles::Behavior<PaneKind> for DockBehavior<'_> {
         self.tokens.surface_chrome.color32()
     }
 
-    fn tab_bg_color(
-        &self,
-        _visuals: &egui::Visuals,
-        _tiles: &Tiles<PaneKind>,
-        _tile_id: TileId,
-        state: &egui_tiles::TabState,
-    ) -> egui::Color32 {
-        if state.active {
-            self.tokens.surface_panel.color32()
-        } else {
-            crate::theme::NONE
-        }
-    }
-
-    fn tab_outline_stroke(
-        &self,
-        _visuals: &egui::Visuals,
-        _tiles: &Tiles<PaneKind>,
-        _tile_id: TileId,
-        state: &egui_tiles::TabState,
-    ) -> egui::Stroke {
-        if state.active {
-            crate::theme::stroke(self.tokens.border_width, self.tokens.border_default)
-        } else {
-            egui::Stroke::NONE
-        }
-    }
-
     fn tab_bar_hline_stroke(&self, _visuals: &egui::Visuals) -> egui::Stroke {
-        crate::theme::stroke(self.tokens.border_width, self.tokens.border_default)
+        crate::theme::stroke(self.tokens.border_width, self.tokens.border_subtle)
     }
 
-    fn tab_text_color(
-        &self,
-        _visuals: &egui::Visuals,
-        _tiles: &Tiles<PaneKind>,
-        _tile_id: TileId,
+    /// FT-540: a dock tab (doc 16a §6.4, §5.7): no box; `type.small` with 10-px padding, the inactive one in
+    /// `color.text.secondary` with the hover overlay, the active one SemiBold in `color.text.primary` with a 2-px
+    /// accent underline inset 10 px; the focus ring. A button node named by the title, selected while active, as
+    /// egui_tiles names it.
+    fn tab_ui(
+        &mut self,
+        tiles: &mut Tiles<PaneKind>,
+        ui: &mut Ui,
+        id: egui::Id,
+        tile_id: TileId,
         state: &egui_tiles::TabState,
-    ) -> egui::Color32 {
-        if state.active {
-            self.tokens.text_primary.color32()
+    ) -> egui::Response {
+        let t = self.tokens.clone();
+        let title = self.tab_title_for_tile(tiles, tile_id).text().to_owned();
+        let look = tab_look(&t, state.active);
+        let galley = ui
+            .painter()
+            .layout_no_wrap(title.clone(), look.font, look.colour.color32());
+        let (_, rect) = ui.allocate_space(vec2(
+            galley.size().x + 2.0 * DOCK_TAB_PADDING,
+            ui.available_height(),
+        ));
+        let draggable = self.is_tile_draggable(tiles, tile_id);
+        let sense = if draggable {
+            Sense::click_and_drag()
         } else {
-            self.tokens.text_secondary.color32()
+            Sense::click()
+        };
+        let response = ui.interact(rect, id, sense);
+        let response = if draggable {
+            response.on_hover_cursor(self.tab_hover_cursor_icon())
+        } else {
+            response
+        };
+        response.widget_info(|| {
+            egui::WidgetInfo::selected(egui::Role::Button, ui.is_enabled(), state.active, &title)
+        });
+        if ui.is_rect_visible(rect) && !state.is_being_dragged {
+            if !state.active {
+                crate::command_bar::state_overlay(ui, &t, &response, true, t.radius_sm);
+            }
+            let at = egui::Align2::CENTER_CENTER
+                .align_size_within_rect(galley.size(), rect)
+                .min;
+            ui.painter().galley(at, galley, look.colour.color32());
+            if look.underline {
+                let line = Rect::from_min_max(
+                    pos2(rect.left() + DOCK_TAB_PADDING, rect.bottom() - t.space_1),
+                    pos2(rect.right() - DOCK_TAB_PADDING, rect.bottom()),
+                );
+                ui.painter()
+                    .rect_filled(line, crate::theme::radius(t.radius_mark), t.accent.color32());
+            }
+            if response.has_focus() {
+                ui.painter().rect_stroke(
+                    rect,
+                    crate::theme::radius(t.radius_sm),
+                    crate::theme::stroke(t.focus_width, t.focus),
+                    egui::StrokeKind::Inside,
+                );
+            }
         }
+        response
     }
 
     fn resize_stroke(&self, _style: &egui::Style, resize_state: egui_tiles::ResizeState) -> egui::Stroke {
@@ -779,6 +834,21 @@ mod tests {
     use ew_viewmodel::navigators::NavKind;
 
     use super::*;
+
+    /// FT-540: the dock tabs follow doc 16a §6.4: `type.small`, the active one SemiBold in the primary text colour
+    /// with the accent underline, the others in the secondary colour without it.
+    #[test]
+    fn the_dock_tabs_follow_the_tab_family() {
+        let t = crate::theme::tokens(crate::theme::Theme::Light, crate::theme::Density::Comfortable);
+        let active = tab_look(&t, true);
+        let other = tab_look(&t, false);
+        assert_eq!(active.font.size, t.type_small.size);
+        assert_eq!(other.font, crate::theme::font(&t.type_small));
+        assert_ne!(active.font, other.font, "the active tab is SemiBold");
+        assert!(active.underline && !other.underline);
+        assert_eq!(active.colour, t.text_primary);
+        assert_eq!(other.colour, t.text_secondary);
+    }
 
     /// One frame of `dock` in a `w` × `h` window.
     fn frame(ctx: &egui::Context, dock: &mut Dock, w: f32, h: f32) {
