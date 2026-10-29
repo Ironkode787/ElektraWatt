@@ -194,6 +194,8 @@ pub struct App {
     palette_was_open: bool,
     /// Whether the picker was open in the previous frame (its filter field takes the focus when it opens).
     picker_was_open: bool,
+    /// The Join chooser's type-ahead text (WP-S2.18 D2).
+    chooser_typing: crate::chooser::TypeAhead,
     dialog_was_open: bool,
     /// The file dialog that is open off the window's thread, with the request it answers (FT-467).
     pending_pick: Option<(PromptRequest, Receiver<Pick>)>,
@@ -278,6 +280,7 @@ impl App {
             title: String::new(),
             palette_was_open: false,
             picker_was_open: false,
+            chooser_typing: crate::chooser::TypeAhead::default(),
             dialog_was_open: false,
             pending_pick: None,
             applied_scale: None,
@@ -824,6 +827,14 @@ impl App {
             &mut events,
         );
         self.picker_was_open = picker_open;
+        // WP-S2.18 D2: the Place tool's Join chooser (doc 16a §6.22).
+        crate::chooser::show(
+            &ctx,
+            &self.shell,
+            self.page_pane,
+            &mut self.chooser_typing,
+            &mut events,
+        );
         crate::junction::show(&ctx, &self.shell, &mut events);
         crate::text_popup::show(&ctx, &self.shell, &mut self.text_buffer, &mut events);
         crate::parts_card::show(&ctx, &self.shell, &mut events);
@@ -948,6 +959,8 @@ impl App {
         // The junction sequence editor is a popup like the picker (WP-S2.04 part 2): Escape closes it, its own keys
         // stay with it. The text popup is one too (WP-S2.04 part 4b §10.5).
         let picker_open = self.shell.picker().is_some()
+            // WP-S2.18 D2: the Join chooser is a popup too.
+            || self.shell.chooser().is_some()
             || self.shell.junction_editor().is_some()
             || self.shell.text_popup().is_some()
             // WP-S2.09 §6.5: the notifications log is a popup too.

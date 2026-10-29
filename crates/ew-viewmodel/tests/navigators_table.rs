@@ -775,8 +775,9 @@ fn tb8_describe_lines_words_and_counts() {
     // and FT-541 (`props.filter`), and the G-PP triage's Draw ▸ Bond (`bond.draw`).
     // WP-S2.07 part 1: the strip editor's word `accessory` and six actions.
     // WP-S1.19 part 1: the kind word `macro_instance`.
-    assert_eq!(VOCABULARY.len(), 357);
-    assert_eq!(ew_viewmodel::actions::ACTIONS.len(), 268);
+    // WP-S2.18 part 1: the Join chooser's word `chooser` and four actions (`place.join`, `chooser.*`).
+    assert_eq!(VOCABULARY.len(), 358);
+    assert_eq!(ew_viewmodel::actions::ACTIONS.len(), 272);
     for (id, keys) in [
         ("table.edit", &["F2"][..]),
         ("table.fill_down", &["Ctrl+D"]),

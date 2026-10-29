@@ -566,6 +566,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
             strip,
             tag,
             hints,
+            joinable,
             ..
         }) => {
             target = tag.or(strip);
@@ -580,13 +581,23 @@ pub fn hud(model: &ShellModel) -> HudModel {
                     strings::format("hud-place-wires", &[&count, &key_of("canvas.activate_alt")])
                 );
             }
-            format!(
-                "{what} \u{b7} {}",
+            // WP-S2.18 D2: "J Join device…" while the symbol can be an auxiliary function, before "Esc done".
+            let keys = if joinable {
+                strings::format(
+                    "hud-keys-place-join",
+                    &[
+                        &key_of("tool.rotate_cw"),
+                        &key_of("tool.next_variant"),
+                        &key_of("place.join"),
+                    ],
+                )
+            } else {
                 strings::format(
                     "hud-keys-place",
                     &[&key_of("tool.rotate_cw"), &key_of("tool.next_variant")],
                 )
-            )
+            };
+            format!("{what} \u{b7} {keys}")
         }
         Some(Ghost::Move { readout, .. }) => readout,
         Some(Ghost::Paste { records, .. }) => format!(

@@ -259,6 +259,8 @@ pub const ALIAS_PARAMS: &[(&str, &str, ParamForm)] = &[
     ("place.pick", "symbol", ParamForm::Whole),
     ("place.pick", "part", ParamForm::Whole),
     ("place.pick", "function", ParamForm::Whole),
+    // WP-S2.18 part 1 (D4): the device a placement joins.
+    ("place.pick", "device", ParamForm::Whole),
     ("place.pick", "strip", ParamForm::Whole),
     ("rep.exchange", "symbol", ParamForm::Whole),
     // WP-S2.04 part 3: the IP tool's external reference and the black box tool's `place.pick` parameters.

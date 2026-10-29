@@ -48,6 +48,8 @@ mod editing;
 // WP-S2.05 part 2
 mod find;
 mod interruption;
+// WP-S2.18 part 1: joining an existing device from the window.
+mod join;
 pub(crate) use interruption::natural_cmp;
 // WP-S2.09 part 1: the export job, the notifications, the recovery dialog.
 mod jobs;
@@ -690,6 +692,11 @@ fn clears_banner(id: &str) -> bool {
             | "picker.filter"
             | "picker.row"
             | "picker.choose"
+            // WP-S2.18 part 1: the Join chooser.
+            | "place.join"
+            | "chooser.row"
+            | "chooser.type"
+            | "chooser.choose"
             | "strip.new"
             | "tool.rotate_cw"
             | "tool.rotate_ccw"
@@ -1617,6 +1624,10 @@ impl ShellModel {
             "picker.filter" => self.act_picker_filter(p),
             "picker.row" => self.act_picker_row(p),
             "picker.choose" => self.act_picker_choose(p),
+            "place.join" => self.act_place_join(),
+            "chooser.row" => self.act_chooser_row(p),
+            "chooser.type" => self.act_chooser_type(p),
+            "chooser.choose" => self.act_chooser_choose(p),
             "strip.new" => self.act_strip_new(p),
             "tool.rotate_cw" => self.act_tool_key(crate::tools::ToolKey::RotateCw),
             "tool.rotate_ccw" => self.act_tool_key(crate::tools::ToolKey::RotateCcw),
@@ -2319,6 +2330,8 @@ impl ShellModel {
             // WP-S2.09 §8.4: so is Show changes.
             || self.history.changes.take().is_some()
             || self.tools.picker.take().is_some()
+            // WP-S2.18 D2: Escape closes the Join chooser and leaves the target as it was.
+            || self.tools.chooser.take().is_some()
             || self.tools.junction_editor.take().is_some()
             || self.tools.link_preview.take().is_some()
         {

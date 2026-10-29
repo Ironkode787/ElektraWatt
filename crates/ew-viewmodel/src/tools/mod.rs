@@ -43,6 +43,8 @@
 
 pub mod autoconnect;
 pub mod black_box;
+// WP-S2.18 part 1: the chooser list of doc 16a §6.22 (the Join chooser).
+mod chooser;
 mod exchange;
 pub mod graphic;
 mod host;
@@ -66,6 +68,7 @@ pub mod transform;
 pub mod wire;
 
 pub use black_box::{BlackBoxTool, BoxTarget};
+pub use chooser::{Chooser, ChooserRow, ChooserValue};
 pub use exchange::ExchangeTool;
 pub use graphic::{GraphicShape, GraphicTool};
 pub use image::{ImageAsset, ImageTool, fit_rect};
@@ -251,6 +254,8 @@ pub enum Ghost {
         /// The proposals as the describe text names them: the ghost CP's designation in quotes (two for a split) and
         /// the target CP's label (`None` for a split).
         proposals: Vec<(String, Option<String>)>,
+        /// Whether J offers the Join chooser: the symbol's FnDef can be an auxiliary function (WP-S2.18 D2).
+        joinable: bool,
     },
     /// A move of the selection in grid steps.
     Move {
@@ -335,6 +340,13 @@ pub enum Ghost {
         /// The asset's hash (`sha256:<64 hex>`); `None` before `image.pick`.
         asset: Option<String>,
     },
+}
+
+impl Ghost {
+    /// Whether J offers the Join chooser (a Place ghost whose symbol can be an auxiliary function, WP-S2.18 D2).
+    pub fn joinable(&self) -> bool {
+        matches!(self, Ghost::Place { joinable: true, .. })
+    }
 }
 
 /// A change of the selection (the Select tool's result; no command).

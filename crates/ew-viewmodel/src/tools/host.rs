@@ -13,7 +13,7 @@ use ew_api::output::{LinkTarget, PageTables, PlaceCatalogue, SymbolShape};
 use ew_api::{DerivedDiff, Preview};
 use serde_json::Value;
 
-use super::{IpMemory, JunctionEditor, Overlay, Picker, SelectTool, Selection, Tool};
+use super::{Chooser, IpMemory, JunctionEditor, Overlay, Picker, SelectTool, Selection, Tool};
 use crate::canvas::CanvasModel;
 
 /// The pane of the link hover preview, in logical points (WP-S2.03 §7.8).
@@ -108,6 +108,8 @@ pub(crate) struct ToolHost {
     pub last_cp: Option<(u64, u64, String, usize)>,
     /// The picker popup (WP-S2.04 §7.1, §6.4), while open.
     pub picker: Option<Picker>,
+    /// The Join chooser of the Place tool (WP-S2.18 D2, doc 16a §6.22), while open.
+    pub chooser: Option<Chooser>,
     /// The representation a picker in exchange mode changes the symbol of.
     pub exchange_rep: Option<EntityRef>,
     /// The letter `place.pick` or the window gave for the next placement.
@@ -183,6 +185,7 @@ impl ToolHost {
             context: None,
             last_cp: None,
             picker: None,
+            chooser: None,
             exchange_rep: None,
             pick_letter: None,
             catalogue: None,

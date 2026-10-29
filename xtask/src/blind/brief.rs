@@ -741,11 +741,10 @@ mod tests {
         );
     }
 
-    /// BV9 and the feasibility rule: the reference solutions replayed on the built product. `brief-valve-switch` is
-    /// runnable (every hard item met, the soft ones met or marked infeasible); `brief-relays-valves` gets as far as
-    /// the build goes: whatever blocks it is the relay's contact (A1, A2 and the contact lines of the solution), never
-    /// the supply, the protection, the field and door wiring, the check or the delivery. Needs `elektrawatt` and `ew`
-    /// built in `target/debug` (the workspace run builds them); without them the test says so and checks nothing.
+    /// BV9 and the feasibility rule: the reference solutions replayed on the built product. Both briefs are runnable
+    /// (every hard item met, the soft ones met or marked infeasible): `brief-relays-valves` since WP-S2.18 part 1, whose
+    /// `place.pick device=<tag>` puts each relay's contact on its relay (FT-599). Needs `elektrawatt` and `ew` built in
+    /// `target/debug` (the workspace run builds them); without them the test says so and checks nothing.
     #[test]
     fn bv9_check_brief_replays_the_reference_solutions() {
         let root = crate::workspace_root();
@@ -757,29 +756,16 @@ mod tests {
             eprintln!("bv9: elektrawatt and ew are not built in target/debug; the replay is not checked");
             return;
         }
-        let c = check_brief(&root, "brief-valve-switch", &bin).unwrap();
-        assert!(c.runnable(), "{}", c.text("brief-valve-switch"));
-        assert!(
-            c.items
-                .iter()
-                .filter(|(_, k, _)| k == "hard")
-                .all(|(_, _, d)| d == "met")
-        );
-
-        let c = check_brief(&root, "brief-relays-valves", &bin).unwrap();
-        let text = c.text("brief-relays-valves");
-        for (id, _, decision) in &c.items {
-            if ["A3", "A4", "A5", "A6", "A7", "A8"].contains(&id.as_str()) {
-                assert_eq!(decision, "met", "{id}\n{text}");
-            }
-        }
-        for p in &c.problems {
+        for brief in ["brief-valve-switch", "brief-relays-valves"] {
+            let c = check_brief(&root, brief, &bin).unwrap();
+            assert!(c.runnable(), "{}", c.text(brief));
             assert!(
-                p.starts_with("A1 ")
-                    || p.starts_with("A2 ")
-                    || p.contains("existing_function")
-                    || p.starts_with("the reference solution exits"),
-                "an unexpected blocker of brief-relays-valves: {p}\n{text}"
+                c.items
+                    .iter()
+                    .filter(|(_, k, _)| k == "hard")
+                    .all(|(_, _, d)| d == "met"),
+                "{}",
+                c.text(brief)
             );
         }
     }

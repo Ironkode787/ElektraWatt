@@ -552,6 +552,25 @@ fn page_describable(m: &ShellModel) -> Result<(), &'static str> {
     }
 }
 
+/// The Place tool is active and its symbol can be an auxiliary function (WP-S2.18 D2: J offers the Join chooser).
+fn place_joinable(m: &ShellModel) -> Result<(), &'static str> {
+    editable_page(m)?;
+    if m.place_joinable() {
+        Ok(())
+    } else {
+        Err("reason-join-not-auxiliary")
+    }
+}
+
+/// The Join chooser is open (WP-S2.18 D2).
+fn chooser_open(m: &ShellModel) -> Result<(), &'static str> {
+    if m.chooser().is_some() {
+        Ok(())
+    } else {
+        Err("reason-no-chooser")
+    }
+}
+
 /// The picker is open (WP-S2.04 §7.1).
 fn picker_open(m: &ShellModel) -> Result<(), &'static str> {
     if m.picker().is_some() {
@@ -1886,7 +1905,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         ),
     ),
     with_params(
-        "symbol?:text, part?:text, function?:ref, template?:uint, letter?:text, strip?:text, terminal_designation?:text, designation?:text",
+        "symbol?:text, part?:text, function?:ref, device?:ref, template?:uint, letter?:text, strip?:text, terminal_designation?:text, designation?:text",
         hidden(in_canvas(act(
             "place.pick",
             Command,
@@ -1935,6 +1954,53 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
         ),
     )),
+    // WP-S2.18 part 1 (D2): J opens the Place tool's Join chooser (doc 16a §6.22) while the armed symbol can be an
+    // auxiliary function; the chooser's own keys are its actions.
+    hidden(in_canvas(act(
+        "place.join",
+        Command,
+        "action-place-join",
+        Menu::Draw,
+        &["J"],
+        place_joinable,
+        None,
+    ))),
+    with_params(
+        "step?:int, to?:enum(first|last)",
+        hidden(act(
+            "chooser.row",
+            View,
+            "action-chooser-row",
+            Menu::Draw,
+            &[],
+            chooser_open,
+            None,
+        )),
+    ),
+    with_params(
+        "text:text",
+        hidden(act(
+            "chooser.type",
+            View,
+            "action-chooser-type",
+            Menu::Draw,
+            &[],
+            chooser_open,
+            None,
+        )),
+    ),
+    with_params(
+        "row?:uint",
+        hidden(act(
+            "chooser.choose",
+            Command,
+            "action-chooser-choose",
+            Menu::Draw,
+            &[],
+            chooser_open,
+            None,
+        )),
+    ),
     in_canvas(placed(
         place(Group::Arrange, 1, CommandSize::Small, Some("bar-rotate")),
         "rotate-clockwise",
@@ -4823,6 +4889,7 @@ mod tests {
     const PARAMETERLESS: &[&str] = &[
         // Screen controls and keys that read nothing.
         "first_run.next",
+        "place.join",
         "props.accept_tag_proposal",
         "first_run.back",
         "wizard.next",

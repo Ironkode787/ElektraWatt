@@ -434,6 +434,8 @@ pub const VOCABULARY: &[&str] = &[
     // WP-S1.19 part 1: the kind `macro_instance` is implemented, so the property grid has a catalogue for it and a
     // section of it names the kind.
     "macro_instance",
+    // WP-S2.18 part 1 (D2): the Join chooser's line (doc 16a §6.22), a reviewed vocabulary change.
+    "chooser",
 ];
 
 // WP-S2.07 part 1
@@ -2018,6 +2020,21 @@ fn ghost_lines(model: &ShellModel, lines: &mut Vec<String>) {
         for (i, row) in p.rows.iter().enumerate() {
             let mut line = format!("  {}", p.row_line(*row));
             if i == p.row {
+                line.push_str(" current");
+            }
+            lines.push(line);
+        }
+    }
+    // WP-S2.18 D2: the Join chooser while open (one line, then one line per row with its kind word; the active row
+    // ends with `current`).
+    if let Some(c) = model.chooser() {
+        lines.push(format!("canvas chooser \"{}\" rows {}", c.question, c.rows.len()));
+        for (i, row) in c.rows.iter().enumerate() {
+            let mut line = format!("  \"{}\"", row.name);
+            if !row.kind.is_empty() {
+                line.push_str(&format!(" \"{}\"", row.kind));
+            }
+            if i == c.row {
                 line.push_str(" current");
             }
             lines.push(line);

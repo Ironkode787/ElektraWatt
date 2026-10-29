@@ -1,5 +1,5 @@
+warning EW-POT-009 005009 -101K2:13: -101K2:13 is not connected; connect it or mark it unused
 warning EW-POT-009 005009 -101K2:14: -101K2:14 is not connected; connect it or mark it unused
 warning EW-POT-009 005009 -101K1:14: -101K1:14 is not connected; connect it or mark it unused
-warning EW-POT-009 005009 -101K2:13: -101K2:13 is not connected; connect it or mark it unused
 warning EW-POT-009 005009 -101K1:13: -101K1:13 is not connected; connect it or mark it unused
 0 errors, 4 warnings, 0 infos, 0 waived

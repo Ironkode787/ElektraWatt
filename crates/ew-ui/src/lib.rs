@@ -25,6 +25,8 @@ pub mod canvas_area;
 pub mod canvas_chips;
 pub mod clock;
 // WP-S2.17 part 2: the command bar and the tool HUD.
+// WP-S2.18 part 1: the Join chooser (doc 16a §6.22).
+mod chooser;
 mod command_bar;
 // WP-S2.17 part 4: the small components (buttons, badges, chips, empty states, cards) and the dialog frame.
 mod components;

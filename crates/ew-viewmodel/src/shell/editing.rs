@@ -35,6 +35,8 @@ enum Pick {
     PartFn(usize, usize),
     /// Another representation of a function, with a symbol row.
     Function(String, usize),
+    /// An existing device (WP-S2.18 D1, D4: `place.pick device=<tag>`), with a symbol row.
+    Join(super::join::JoinPick, usize),
 }
 
 /// The names of a terminal's designation in `place.pick` and `picker.choose`: `terminal_designation`, and
@@ -303,7 +305,7 @@ impl ShellModel {
         let mut part_copy = None;
         let mut part_cps: Vec<(u16, String)> = Vec::new();
         let (row_index, part) = match &pick {
-            Pick::Symbol(i) | Pick::Function(_, i) => (*i, None),
+            Pick::Symbol(i) | Pick::Function(_, i) | Pick::Join(_, i) => (*i, None),
             Pick::PartFn(pi, fi) => {
                 let part = &cat.parts[*pi];
                 let f = &part.functions[*fi];
@@ -345,7 +347,7 @@ impl ShellModel {
                 reason_key: "reason-not-black-box",
             };
         }
-        if is_box && matches!(pick, Pick::Function(..)) {
+        if is_box && matches!(pick, Pick::Function(..) | Pick::Join(..)) {
             return Outcome::Refused {
                 reason_key: "reason-black-box-tool",
             };
@@ -425,6 +427,11 @@ impl ShellModel {
             || TERMINAL_DESIGNATION.iter().any(|k| p.contains_key(*k));
         let target = match (pick, part) {
             (Pick::Function(function, _), _) => PlaceTarget::Function { function },
+            (Pick::Join(j, _), _) => PlaceTarget::Join {
+                device: j.device,
+                tag: j.tag,
+                slots: j.slots,
+            },
             (_, Some((part, template, number))) if !terminal => {
                 let Some(letter) = letter_param.or(row.letter.clone()) else {
                     return Outcome::Refused {
@@ -490,8 +497,15 @@ impl ShellModel {
         };
         self.tools.picker = None;
         let autoconnect = self.page_autoconnects();
+        // WP-S2.18 D2: J offers the Join chooser while the symbol's FnDef can be an auxiliary function.
+        let joinable = self
+            .project
+            .as_ref()
+            .is_some_and(|p| p.session.auxiliary_fndef(shape.fndef));
         self.activate_tool(Box::new(
-            PlaceTool::new(shape, target).with_autoconnect(autoconnect),
+            PlaceTool::new(shape, target)
+                .with_autoconnect(autoconnect)
+                .with_joinable(joinable),
         ));
         Outcome::Done
     }
@@ -650,7 +664,8 @@ impl ShellModel {
 
     /// `place.pick` (§7.6, headless): one of `symbol` (key or copy ID), `part` (part number or copy ID) with
     /// `template` (0-based), `function` (ID, with `symbol`); optional `letter`; for a terminal `strip` (tag or ID)
-    /// and `designation`.
+    /// and `designation`. WP-S2.18 D4: `device=<tag>` (with `symbol`) joins an existing device, and `function` also
+    /// takes `<tag>:<slot>` or `<tag>` (with `symbol`): see [`super::join`].
     pub(super) fn act_place_pick(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(cat) = self.catalogue() else {
             return Outcome::Refused {
@@ -669,8 +684,38 @@ impl ShellModel {
                 .iter()
                 .position(|r| r.key == s || r.copy.is_some_and(|c| c.to_string() == s))
         };
+        let device = match string_param(p, "device") {
+            Ok(v) => v.map(str::to_owned),
+            Err(e) => return e,
+        };
+        // WP-S2.18 D4: a device by its printed tag (or its ID) joins it.
+        if let Some(device) = device {
+            let Some(i) = symbol.as_deref().and_then(find) else {
+                return failed("error-missing-param", &["symbol"]);
+            };
+            return match self.pick_join_device(&cat, i, &device) {
+                Ok((cat, i, j)) => {
+                    self.tools.picker = None;
+                    self.arm(cat, Pick::Join(j, i), p)
+                }
+                Err(e) => e,
+            };
+        }
         let pick = match (string_param(p, "part"), string_param(p, "function")) {
             (Err(e), _) | (_, Err(e)) => return e,
+            // WP-S2.18 D4: a function by its device's printed tag (`-101K1`, `-101K1:13-14`); an ID keeps the path below.
+            (_, Ok(Some(function))) if function.trim().parse::<ew_api::output::Uuid>().is_err() => {
+                let Some(i) = symbol.as_deref().and_then(find) else {
+                    return failed("error-missing-param", &["symbol"]);
+                };
+                return match self.pick_function_tag(&cat, i, function) {
+                    Ok((cat, i, f)) => {
+                        self.tools.picker = None;
+                        self.arm(cat, Pick::Function(f, i), p)
+                    }
+                    Err(e) => e,
+                };
+            }
             (Ok(Some(part)), _) => {
                 let template = p.get("template").and_then(Value::as_u64).unwrap_or(0);
                 let Some(pi) = cat
@@ -1216,6 +1261,8 @@ impl ShellModel {
         self.after_paste();
         self.refresh_place_shape();
         self.refresh_strip_tag();
+        // WP-S2.18 D1: a sticky join target fills the next slot, then makes new auxiliary functions.
+        self.refresh_join_target();
         self.cancel_stale_move();
         let Some(before) = self.tools.before_commit.take() else {
             self.tools.result_note = None;

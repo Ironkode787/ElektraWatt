@@ -19,7 +19,8 @@
 //! target, except that a `new_device` target whose insertion point lies inside the outline of a black box on the
 //! page (even-odd, the boundary inside; the innermost by area, ties by ID) becomes `join_device {device: the box's
 //! device, role: aux}` (doc 06 §2.7). A `new_terminal` target advances its designation after each commit when it is
-//! decimal digits.
+//! decimal digits. A join target ([`PlaceTarget::Join`], WP-S2.18 D1) sends `existing_function` with the device's
+//! next unplaced slot of the symbol's FnDef, else `join_device {device, role: aux}`; its label reads `join -K1`.
 //!
 //! **Autoconnect** (WP-S2.04 part 2, §8.3): on a page whose type autoconnects, every move of the ghost computes the
 //! proposals of its free CPs from the page tables ([`super::autoconnect`]) and draws them as dashed stubs; Tab
@@ -57,6 +58,18 @@ pub enum PlaceTarget {
     Function {
         /// The function.
         function: String,
+    },
+    /// An existing device (WP-S2.18 D1): the next unplaced function of the symbol's FnDef on it (`existing_function`,
+    /// a part's template slot), else a new auxiliary function (`join_device {device, role: aux}`). Armed by the Join
+    /// chooser (J) or `place.pick device=<tag>`; sticky across placements, the host refreshes `slots` and `tag` after
+    /// each commit.
+    Join {
+        /// The device.
+        device: String,
+        /// The device's tag as printed (`-101K1`; the label's).
+        tag: String,
+        /// The device's unplaced functions of the symbol's FnDef, the one to fill first at the front.
+        slots: Vec<String>,
     },
     /// A device made from a part (part-first placement).
     Part {
@@ -107,6 +120,10 @@ pub struct PlaceTool {
     proposals: Proposals,
     /// Whether Alt was held at the last move (no proposal is shown or sent).
     suppressed: bool,
+    /// Whether the symbol's FnDef can be an auxiliary function, so that J offers the Join chooser (WP-S2.18 D2).
+    joinable: bool,
+    /// The target before the Join chooser set a [`PlaceTarget::Join`]: what its "New device" row restores.
+    base: Option<PlaceTarget>,
 }
 
 /// Whether `p` lies inside the polygon (even-odd rule, the boundary inside), exactly in `i128`.
@@ -178,6 +195,49 @@ impl PlaceTool {
             cycle: 0,
             proposals: Proposals::default(),
             suppressed: false,
+            joinable: false,
+            base: None,
+        }
+    }
+
+    /// The tool with the Join chooser offered or not (WP-S2.18 D2: the symbol's FnDef can be an auxiliary function).
+    pub fn with_joinable(mut self, on: bool) -> PlaceTool {
+        self.joinable = on;
+        self
+    }
+
+    /// Whether J offers the Join chooser for this symbol.
+    pub fn joinable(&self) -> bool {
+        self.joinable
+    }
+
+    /// Sets a join target (the Join chooser's row, WP-S2.18 D2), keeping the target it replaces for "New device";
+    /// answers the new overlay.
+    pub fn join(&mut self, target: PlaceTarget, cx: &ToolCx<'_>) -> ToolOutput {
+        if !matches!(self.target, PlaceTarget::Join { .. }) {
+            self.base = Some(self.target.clone());
+        }
+        self.target = target;
+        self.tag = None;
+        self.transient(cx)
+    }
+
+    /// The Join chooser's "New device" row: the target before the first join comes back; answers the new overlay.
+    pub fn unjoin(&mut self, cx: &ToolCx<'_>) -> ToolOutput {
+        if let Some(base) = self.base.take() {
+            self.target = base;
+        }
+        self.tag = None;
+        self.transient(cx)
+    }
+
+    /// A join target's slots and tag as the project has them after a commit (WP-S2.18 D1: the next slot, or none).
+    pub fn set_join_state(&mut self, new_slots: Vec<String>, new_tag: Option<String>) {
+        if let PlaceTarget::Join { slots, tag, .. } = &mut self.target {
+            *slots = new_slots;
+            if let Some(t) = new_tag {
+                *tag = t;
+            }
         }
     }
 
@@ -300,6 +360,15 @@ impl PlaceTool {
                 json!({"existing_function": {"function": function}}),
                 "function",
                 strings::text("place-target-function").to_owned(),
+            ),
+            // D1: a slot is filled before a new auxiliary function is made.
+            PlaceTarget::Join { device, tag, slots } => (
+                match slots.first() {
+                    Some(function) => json!({"existing_function": {"function": function}}),
+                    None => json!({"join_device": {"device": device, "role": "aux"}}),
+                },
+                "join",
+                strings::format("place-target-join", &[tag]),
             ),
             PlaceTarget::Part {
                 part,
@@ -569,6 +638,7 @@ impl Tool for PlaceTool {
                 (word, Some(letter.clone()))
             }
             PlaceTarget::Function { .. } => ("function", None),
+            PlaceTarget::Join { .. } => ("join", None),
             PlaceTarget::Part { letter, .. } => ("part", Some(letter.clone())),
             PlaceTarget::Terminal { .. } => ("terminal", None),
         };
@@ -580,9 +650,14 @@ impl Tool for PlaceTool {
             target,
             letter,
             strip,
-            tag: self.tag.clone(),
+            // A join names the device it joins (WP-S2.18 D2) until a preview predicts a tag.
+            tag: self.tag.clone().or_else(|| match &self.target {
+                PlaceTarget::Join { tag, .. } => Some(tag.clone()),
+                _ => None,
+            }),
             hints: self.proposals.list.len(),
             proposals: self.proposals.lines(),
+            joinable: self.joinable,
         })
     }
 

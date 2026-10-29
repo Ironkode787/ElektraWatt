@@ -420,8 +420,9 @@ fn np6_the_six_words_and_the_two_actions() {
     // View ▸ Bottom dock (`view.bottom_dock`).
     // WP-S2.07 part 1: the strip editor's word `accessory` and six actions.
     // WP-S1.19 part 1: the kind word `macro_instance`.
-    assert_eq!(VOCABULARY.len(), 357);
-    assert_eq!(ew_viewmodel::actions::ACTIONS.len(), 268);
+    // WP-S2.18 part 1: the Join chooser's word `chooser` and four actions (`place.join`, `chooser.*`).
+    assert_eq!(VOCABULARY.len(), 358);
+    assert_eq!(ew_viewmodel::actions::ACTIONS.len(), 272);
     let hl = ew_viewmodel::actions::ACTIONS
         .iter()
         .find(|a| a.id == "navigator.highlight")

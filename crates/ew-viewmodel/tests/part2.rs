@@ -2022,7 +2022,9 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
             // WP-S2.06 part 3: the table words need a navigator in table mode: `tests/navigators_table.rs` (TB8).
             || ew_viewmodel::describe::TABLE_WORDS.contains(*w)
             // WP-S2.07 part 1: `accessory` needs an accessory row in the strip editor: `tests/strip_editor.rs` (SE14).
-            || ew_viewmodel::describe::STRIP_EDITOR_WORDS.contains(*w)),
+            || ew_viewmodel::describe::STRIP_EDITOR_WORDS.contains(*w)
+            // WP-S2.18 part 1: `chooser` needs the Join chooser open on a writable project: `tests/join.rs`.
+            || **w == "chooser"),
         "words of the vocabulary no state used: {unused:?}"
     );
 }

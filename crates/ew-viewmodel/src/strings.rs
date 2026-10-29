@@ -52,6 +52,11 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "action-picker-filter" => "Filter the picker",
         "action-picker-row" => "Move the picker's row",
         "action-picker-choose" => "Choose the picker's row",
+        // WP-S2.18 part 1: the Join chooser (D2).
+        "action-place-join" => "Join device\u{2026}",
+        "action-chooser-row" => "Move the chooser's row",
+        "action-chooser-type" => "Type ahead in the chooser",
+        "action-chooser-choose" => "Choose the chooser's row",
         "action-strip-new" => "Terminal strip…",
         "action-tool-rotate-cw" => "Rotate clockwise",
         "action-tool-rotate-ccw" => "Rotate counter-clockwise",
@@ -104,6 +109,26 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "error-wire-ambiguous" => "Several wires of the page shown run \"{0}\"; click the one you mean",
         "reason-not-on-page" => "The selection is drawn on another page; go to that page to delete it",
         "reason-no-picker" => "The picker is not open",
+        // WP-S2.18 part 1.
+        "reason-no-chooser" => "No chooser is open",
+        "reason-join-not-auxiliary" => {
+            "Only a contact joins an existing device as an auxiliary function; this symbol is not one"
+        }
+        "chooser-join-question" => "Join device",
+        "chooser-new-device" => "New device",
+        "chooser-kind-slot" => "slot {0}",
+        "chooser-kind-auxiliary" => "auxiliary",
+        "hud-keys-place-join" => {
+            "{0} rotates \u{b7} {1} variant \u{b7} {2} Join device\u{2026} \u{b7} Esc done"
+        }
+        "error-join-device" => "Cannot join {0}: {1}",
+        "error-join-not-device" => "{0} is not a device",
+        "error-join-no-slot" => {
+            "{0} has no unplaced {1} function; device={0} adds one as an auxiliary function"
+        }
+        "error-join-slots" => "{0} has {1} unplaced {2} functions; name one of {3}",
+        "error-join-unknown-slot" => "{0} has no unplaced {2} function in slot {1}; its unplaced slots: {3}",
+        "error-join-none" => "none",
         "reason-rep-type-not-allowed" => "The page's type does not take this symbol",
         "reason-black-box-tool" => "Use the black box tool (B)",
         "reason-no-symbol-for-function" => "No symbol for this function on this page",
