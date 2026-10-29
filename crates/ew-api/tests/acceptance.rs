@@ -165,6 +165,12 @@ fn the_headless_report_equals_the_committed_report_shard_3_of_3() {
 /// with no oracle mismatch (each shard asserts its own mismatches are none), with the expected counts.
 #[test]
 fn the_headless_report_shards_cover_the_committed_report() {
+    // R1-7: under `EW_BLESS=1` shard 1 rewrites the committed report while nextest runs this test beside it, so a
+    // read here could see the file half-written. A bless run checks nothing (the shards also return early); the
+    // next ordinary run checks the blessed file. Without `EW_BLESS` (every gate and CI run) nothing changes.
+    if std::env::var_os("EW_BLESS").is_some_and(|v| v == "1") {
+        return;
+    }
     let listed = run_shard(headless(), &[]);
     assert!(
         listed.evaluated.iter().all(|e| !e),
