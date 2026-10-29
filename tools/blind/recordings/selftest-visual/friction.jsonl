@@ -1,0 +1,2 @@
+{"$schema":"ew.blindfriction/1"}
+{"n":1,"turn":2,"step":6,"frame":"t0002.png","region":[640,390,280,40],"wanted":"read the tags of the two contacts","expected":"tags I can read at the page's first zoom","saw":"the tags are small; I zoomed into the frame to read them","severity":"cosmetic","category":"layout-legibility","workaround":"look --zoom"}

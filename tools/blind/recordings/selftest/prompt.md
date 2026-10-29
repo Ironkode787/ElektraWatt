@@ -1,11 +1,11 @@
-<!-- file: tools/blind/tasks/selftest/task.md sha256 973376ea5c9193284ee9b3ee73ac6237cb334ac8d0b668d5f418aa895a8de6ab -->
+<!-- file: tools/blind/tasks/selftest/task.md sha256 8dc13e819e7de7afe56f8ee4a21719f1ec5a0825f13b9a1e442f13f0242afd0c -->
 # The self-test task
 
 This task is for the harness, not for an agent. A scripted agent (`agent.jsonl`) plays the part of a drafter and
 calls the run's copy of the harness exactly as a real agent would, through `«run»\bin/xtask.exe blind`: it looks at the interface and at
 the page, places two contactors on page 101 of a new project with the Place tool, makes one step that the product
-refuses (Redo with nothing to redo) and one that the harness refuses, changes some views, saves, exports the PDF and
-files its hand-back.
+refuses (Redo with nothing to redo) and one that the harness refuses, logs a friction entry about it, changes some
+views, saves, exports the PDF and files its hand-back.
 
 Run `selftest` is a `free` run with the caps 300 turns, 800 steps, 400 looks and 50 harness refusals.
 The prelude creates the new project and the page; the epilogue of `stop` describes page 101, saves nothing (the scripted
@@ -15,10 +15,10 @@ agent saves its own work) and quits.
 the recording `tools/blind/recordings/selftest/` and replays that recording twice. A change of the product that breaks
 the recording is repaired by running the self-test again in the same change.
 
-<!-- file: tools/blind/HELP.md sha256 3d17fdde0a1afb2ed430cdc2c0585852cde67bef813415690d488ce0bde262c8 -->
+<!-- file: tools/blind/HELP.md sha256 d05854152eb7dd672f84aa5d591cf6a5ec028c3b9aefc257981a68c38f236c2b -->
 ---
 prompt: blind-help
-version: 6
+version: 7
 ---
 # The harness: how to work with it
 
@@ -35,6 +35,7 @@ action with its parameters, a page at a time: each page ends with the line that 
 | `«run»\bin/xtask.exe blind look selftest [section ...] [--diff] [--menus]` | The interface as text, by sections (`title:`, `banner:`, `page`, `navigator`, `canvas`, `properties`, `card`, `toast`, `find`, `jobs`, `preview`, `history`, `clipboard`, `status`, `notifications`, `palette`, `dialog`, `wizard`, `first`, `start`, `workspace`, `help:`, `notices:`). `jobs` shows while View ▸ Jobs is open, `notifications` while View ▸ Notifications is, `preview` while the Preview tab is open (it opens with every preview card) and `history` while Edit ▸ History is. The menus are left out unless you ask with `--menus`. With `--diff` you get only the lines added (`+`) or removed (`-`) since your last look at the same sections. |
 | `«run»\bin/xtask.exe blind look selftest --page [<folio>]` | The content of a page as text: what is drawn on it, in reading order. |
 | `«run»\bin/xtask.exe blind note selftest "patience <0-10> flow <0-10> <text>"` | The note of your last turn. |
+| `«run»\bin/xtask.exe blind friction selftest --severity <s> --category <c> --wanted "…" --expected "…" --saw "…" [--workaround "…"]` | One entry of the friction log (see below). |
 | `«run»\bin/xtask.exe blind handback selftest -` | Your hand-back on standard input; it ends the run. |
 | `«run»\bin/xtask.exe blind report selftest <which>` | For reviewers (a check run) only: `<which>` is `check`, `bom` or `score`, the check report, the parts list and the score of the drafter's project. A drafter has nothing to read here. |
 
@@ -106,6 +107,26 @@ symbol and variant and its position, followed by its `cp` lines (the connection 
 drawn to each and the `potential` where there is one); `wire` lines name the two ends of a drawn connection; a
 `junction` line names its cell, style, wiring and the sequence of the far ends. Words inside quotation marks are the
 user's text (tags, titles, symbol keys); the rest are the application's own words.
+
+## The friction log
+
+Log a friction entry **every time** you are unsure, confused, surprised or stuck, have to guess, open the user guide,
+or work around something, at that moment and not afterwards. The note keeps the two scores and your mood; the friction
+entry keeps the facts. An entry needs:
+
+- `--severity`: `blocker` (you could not go on), `confusing` (you did not understand), `annoying` (it cost you steps or
+  patience), `cosmetic` (it read wrong but did not stop you).
+- `--category`: `discoverability` (you could not find how to do it), `feedback` (you could not tell what happened),
+  `layout-legibility` (you could not read or tell things apart), `wording` (the words misled you), `flow-dead-end` (you
+  got into a state you could not leave), `behaviour-bug` (it did something wrong), or `missing-feature` (the program
+  cannot do what the job needs, as far as you can tell).
+- `--wanted`, `--expected`, `--saw`: what you wanted to do, what you expected to happen and what you saw or did
+  instead, each at most 400 characters.
+
+The harness adds the turn and the last step you sent, which is the entry's reference. `--workaround` says how you got
+round it, if you did. The log takes at most 300 entries and cannot be edited; it needs no note and is not a turn. Its
+refusals: `harness: friction needs severity, category, wanted, expected and saw`, `harness: unknown severity <s>`,
+`harness: unknown category <c>`, `harness: friction cap`.
 
 ## The hand-back
 

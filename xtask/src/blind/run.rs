@@ -158,7 +158,52 @@ pub fn copy_dir(from: &Path, to: &Path) -> Result<()> {
     Ok(())
 }
 
-/// The kinds of run (D3 and the check run of §5.4).
+/// The pseudo-action of a visual input line (`{"input":…}`) in a parsed script: its parameters are the whole line.
+pub const INPUT_LINE: &str = "@input";
+/// The pseudo-action of a visual frame line (`{"frame":…}`) in a parsed script: its parameters are the whole line.
+pub const FRAME_LINE: &str = "@frame";
+
+/// Whether `action` is the pseudo-action of a visual input or frame line.
+pub fn is_visual_line(action: &str) -> bool {
+    action == INPUT_LINE || action == FRAME_LINE
+}
+
+/// What the agent perceives the product through (WP-S6.13 part 4, visual spec §2).
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum Senses {
+    /// `ui.describe` and `page.describe`: the base specification's text runs.
+    #[default]
+    Text,
+    /// Frames of the window and mouse and key inputs (`elektrawatt --headless --visual`).
+    Visual,
+}
+
+impl Senses {
+    /// The word on the command line and in `run.json`.
+    pub fn word(self) -> &'static str {
+        match self {
+            Senses::Text => "text",
+            Senses::Visual => "visual",
+        }
+    }
+
+    /// The senses of a word.
+    pub fn parse(word: &str) -> Result<Senses> {
+        match word {
+            "text" => Ok(Senses::Text),
+            "visual" => Ok(Senses::Visual),
+            other => bail!("unknown senses `{other}` (text or visual)"),
+        }
+    }
+}
+
+/// The window of a visual run in points, and its pixels per point (visual spec §3.1): frames are 1536 × 994 pixels with
+/// the title strip.
+pub const VISUAL_WINDOW: [u32; 2] = [1280, 800];
+/// The pixels per point of a visual run's frame.
+pub const VISUAL_PPP: f64 = 1.2;
+
+/// The kinds of run (D3, the check run of §5.4 and the open brief of the visual spec §6.1).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Kind {
     /// The agent chooses its own task.
@@ -167,6 +212,8 @@ pub enum Kind {
     Gate,
     /// A second agent audits a stopped gate run.
     Check,
+    /// An open design brief with an acceptance list (visual spec §6).
+    Brief,
 }
 
 impl Kind {
@@ -176,6 +223,7 @@ impl Kind {
             Kind::Free => "free",
             Kind::Gate => "gate",
             Kind::Check => "check",
+            Kind::Brief => "brief",
         }
     }
 
@@ -185,11 +233,29 @@ impl Kind {
             "free" => Ok(Kind::Free),
             "gate" => Ok(Kind::Gate),
             "check" => Ok(Kind::Check),
-            other => bail!("unknown kind `{other}` (free, gate or check)"),
+            "brief" => Ok(Kind::Brief),
+            other => bail!("unknown kind `{other}` (free, gate, check or brief)"),
         }
     }
 
-    /// The caps of the kind (§5.2.2 item 7).
+    /// The caps of the kind in a run of `senses`: a text run's of §5.2.2 item 7 (a text brief has a free run's), a
+    /// visual run's of the visual spec §4.2 (inputs count as steps; a check run is always text).
+    pub fn caps_for(self, senses: Senses) -> Caps {
+        let caps = |turns, steps, looks, refusals| Caps {
+            turns,
+            steps,
+            looks,
+            refusals,
+        };
+        match (senses, self) {
+            (Senses::Visual, Kind::Brief) => caps(250, 2000, 300, 50),
+            (Senses::Visual, Kind::Gate) => caps(600, 4000, 800, 100),
+            (Senses::Visual, Kind::Free) => caps(150, 1000, 200, 50),
+            (_, kind) => kind.caps(),
+        }
+    }
+
+    /// The caps of the kind in a text run (§5.2.2 item 7).
     pub fn caps(self) -> Caps {
         match self {
             Kind::Gate => Caps {
@@ -198,7 +264,7 @@ impl Kind {
                 looks: 1500,
                 refusals: 100,
             },
-            Kind::Free => Caps {
+            Kind::Free | Kind::Brief => Caps {
                 turns: 300,
                 steps: 800,
                 looks: 400,
@@ -247,7 +313,7 @@ pub struct Counts {
 }
 
 /// `run.json`, format `ew.blindrun/1` (additive within `/1`).
-#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 pub struct RunJson {
     /// `ew.blindrun/1`.
     #[serde(rename = "$schema")]
@@ -286,6 +352,15 @@ pub struct RunJson {
     /// Whether the run has no keeper (`--stateless`).
     #[serde(default)]
     pub stateless: bool,
+    /// `visual` for a visual run (visual spec §5.2); absent in a text run, whose `run.json` is unchanged.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub senses: Option<String>,
+    /// A visual run's frame scale: pixels per point (1.2).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ppp: Option<f64>,
+    /// A visual run's window in points (`[1280, 800]`); the frame adds the title strip.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub window: Option<[u32; 2]>,
     /// What the run has used.
     #[serde(default)]
     pub counts: Counts,
@@ -312,6 +387,13 @@ pub struct RunJson {
     /// After `stop`: whether `golden/` changed during the run (D16); such a run is never blessed.
     #[serde(default)]
     pub golden_changed: bool,
+}
+
+impl RunJson {
+    /// Whether the run is a visual run.
+    pub fn visual(&self) -> bool {
+        self.senses.as_deref() == Some("visual")
+    }
 }
 
 /// What a step the product did not do looked like (the broken rule of §5.2.2 item 4).
@@ -393,6 +475,9 @@ pub struct Turn {
     /// For `note`: the flow score.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub flow: Option<u8>,
+    /// In a visual run, for `do` and `look`: the frame the call wrote (`t0003.png`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub frame: Option<String>,
 }
 
 /// The directory of a run and the paths inside it.
@@ -507,7 +592,8 @@ pub fn read_script(path: &Path) -> Result<Vec<(String, Value)>> {
     parse_script(&text).with_context(|| path.display().to_string())
 }
 
-/// The steps of a UI script text after its header.
+/// The steps of a UI script text after its header. A visual input or frame line (WP-S6.13 part 4) is the pseudo-action
+/// [`INPUT_LINE`] or [`FRAME_LINE`] with the whole line as its parameters.
 pub fn parse_script(text: &str) -> Result<Vec<(String, Value)>> {
     let mut out = Vec::new();
     for (i, line) in text.lines().enumerate() {
@@ -516,6 +602,14 @@ pub fn parse_script(text: &str) -> Result<Vec<(String, Value)>> {
         }
         let v: Value = serde_json::from_str(line).with_context(|| format!("line {}", i + 1))?;
         if v.get("$schema").is_some() {
+            continue;
+        }
+        if v.get("input").is_some() {
+            out.push((INPUT_LINE.to_owned(), v));
+            continue;
+        }
+        if v.get("frame").is_some() {
+            out.push((FRAME_LINE.to_owned(), v));
             continue;
         }
         let action = v
@@ -532,8 +626,12 @@ pub fn parse_script(text: &str) -> Result<Vec<(String, Value)>> {
     Ok(out)
 }
 
-/// A UI script line for a step: `{"action":…,"params":{…}}` with the members of `params` in key order.
+/// A UI script line for a step: `{"action":…,"params":{…}}` with the members of `params` in key order; a visual input
+/// or frame line is its parameters, in key order.
 pub fn step_line(action: &str, params: &Value) -> String {
+    if is_visual_line(action) {
+        return canonical(params);
+    }
     format!(
         "{{\"action\":{},\"params\":{}}}",
         Value::from(action),
@@ -657,6 +755,9 @@ mod tests {
             app_version: "0.0.0".to_owned(),
             harness_version: HARNESS_VERSION.to_owned(),
             stateless: false,
+            senses: None,
+            ppp: None,
+            window: None,
             counts: Counts::default(),
             end: None,
             handed_back: false,

@@ -1,0 +1,20 @@
+{"look":{},"expect":["frames/t0000-l1.png"]}
+{"do":[{"input":"click","x":119,"y":104},{"input":"type","text":"contact-no"},{"input":"key","chord":"enter"}],"expect":["frame frames/t0001.png"]}
+{"note":"patience 9 flow 9 The Symbol button opened a picker; the filter and Enter armed the contact."}
+{"do":[{"input":"click","x":700,"y":400},{"input":"click","x":900,"y":400},{"input":"key","chord":"escape"}],"expect":["frame frames/t0002.png"]}
+{"note":"patience 9 flow 8 Two contacts are on the page; their tags are small."}
+{"look":{"zoom":[600,350,400,120]},"expect":["frames/t0002-z1.png"]}
+{"friction":["--severity","cosmetic","--category","layout-legibility","--wanted","read the tags of the two contacts","--expected","tags I can read at the page's first zoom","--saw","the tags are small; I zoomed into the frame to read them","--region","640,390,280,40","--workaround","look --zoom"],"expect":["friction 1 logged"]}
+{"do":[{"input":"key","chord":"ctrl+y"},{"input":"key","chord":"ctrl+z"},{"input":"key","chord":"ctrl+y"}],"expect":["frame frames/t0003.png"]}
+{"note":"patience 8 flow 8 Redo did nothing at first; Undo and Redo then took the second contact away and back."}
+{"do":[{"action":"file.save","params":{}}],"expect":["harness: in a visual run you act with the mouse and the keys"]}
+{"look":{"page":""},"expect":["harness: a visual run has no text view"]}
+{"do":[{"input":"hover","x":199,"y":53},{"input":"wait","ms":600}],"expect":["frame frames/t0004.png"]}
+{"note":"patience 8 flow 8 The harness refused the action line and the text look; the Save button shows its tooltip."}
+{"do":[{"input":"drag","x":600,"y":300,"to_x":1000,"to_y":500},{"input":"key","chord":"delete"},{"input":"key","chord":"ctrl+z"}],"expect":["frame frames/t0005.png"]}
+{"note":"patience 8 flow 8 The rubber band took both contacts; Delete and Undo brought them back."}
+{"do":[{"input":"scroll","x":900,"y":500,"dy":-2,"mods":"ctrl"},{"input":"key","chord":"ctrl+s"},{"input":"wait","ms":300}],"expect":["frame frames/t0006.png"]}
+{"note":"patience 9 flow 9 Ctrl and the wheel zoomed in; Ctrl+S saved."}
+{"kv":["click","x=1447","y=917"],"expect":["frame frames/t0007.png"]}
+{"note":"patience 9 flow 9 Fit page brought the whole page back."}
+{"handback":"## 1. Keep or drop\n8 - the self-test kept going.\n## 2. Where it lost me\nnone\n## 3. What the tool is\nA drawing program for control cabinets.\n## 4. Broken\nnone\n## 5. My design against the brief\nTwo contacts on page 101, saved.\n## 6. Flow chart\n```mermaid\nflowchart TD\n  A[Start] --> B[Place two contacts] --> C[Undo and redo] --> D[Save]\n```\n## 7. Good\nThe picker opened with one click.\n## 8. What I could not read\nThe contacts' tags at the first zoom (t0002, 640,390,280,40).\n","expect":["hand-back filed"]}

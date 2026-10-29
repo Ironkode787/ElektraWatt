@@ -1,0 +1,17 @@
+# An open design brief (WP-S6.13 part 4, visual spec section 6.1). `check-brief brief-valve-switch` proves it runnable
+# by replaying `solution.uiscript` and deciding `acceptance.toml` on its exports.
+kind = "brief"
+grade = 1
+version = 1
+turn_budget = 30
+senses = ["text", "visual"]
+requires = [
+    "symbol: ew.iec.fuse@qet10",
+    "symbol: ew.iec.switch-2p-manual@qet10",
+    "symbol: ew.iec.coil@qet10",
+    "symbol: ew.iec.terminal@qet10",
+    "action: strip.new",
+    "action: tool.wire",
+    "action: file.export_pdf",
+]
+areas = ["new page", "symbol picker", "terminal strips", "wiring", "save and export"]

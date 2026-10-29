@@ -12,6 +12,7 @@
 {"note":"patience 8 flow 7 Redo has nothing to redo, as expected; the second step was not sent."}
 {"do":[{"action":"help.tutorials"}],"expect":["harness: help.tutorials is not available to the drafter"]}
 {"note":"patience 8 flow 7 The harness refuses the tutorials, which would reach the sample."}
+{"friction":["--severity","annoying","--category","discoverability","--wanted","open the tutorials","--expected","a list of tutorials","--saw","the harness refused the step"],"expect":["friction 1 logged"]}
 {"look":{"page":"101"},"expect":["page \"101\" \"Selftest\" reps 2 connections 0 junctions 0","rep \"-101K2\" cell \"101-C7\""]}
 {"look":{"sections":["canvas"]},"expect":["canvas"]}
 {"look":{"sections":["canvas"],"diff":true},"expect":["no change"]}

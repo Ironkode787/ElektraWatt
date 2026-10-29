@@ -162,7 +162,8 @@ pub struct ProcessProduct {
 impl ProcessProduct {
     /// Starts `<run>/.harness/bin/elektrawatt --headless --script - --keep-going --record record.ewcmd --config-dir
     /// config` in `<run>/work`, with `EW_SAMPLE_DIR` at the empty folder, `EW_DOCS_DIR` at the copied guide and
-    /// `EW_CONTENT_DIR` at the copied starter content.
+    /// `EW_CONTENT_DIR` at the copied starter content. A visual run's child is the visual driver painting into
+    /// `<run>/frames` (`--visual --frames`, visual spec §5.4).
     ///
     /// # Errors
     ///
@@ -173,11 +174,16 @@ impl ProcessProduct {
         std::fs::create_dir_all(run.path("config"))?;
         let stderr = std::fs::File::create(run.path(".harness/product.stderr"))
             .context("creating the product's stderr file")?;
-        let mut child = Command::new(run.product_exe("elektrawatt"))
+        let mut command = Command::new(run.product_exe("elektrawatt"));
+        command
             .args(["--headless", "--script", "-", "--keep-going", "--record"])
             .arg(run.path(record))
             .arg("--config-dir")
-            .arg(run.path("config"))
+            .arg(run.path("config"));
+        if run.load().is_ok_and(|j| j.visual()) {
+            command.args(["--visual", "--frames"]).arg(run.path("frames"));
+        }
+        let mut child = command
             .current_dir(&work)
             .env("EW_SAMPLE_DIR", run.path(".harness/empty-sample"))
             .env("EW_DOCS_DIR", run.path("book"))
@@ -309,6 +315,10 @@ pub mod fake {
     /// What the fake does with an action: `edit.redo` and `refuse.me` are refused, `file.open` and `fail.me` fail,
     /// `change.me` is refused from the life `change_from` on (a changed product), `edit.undo` and `dirty.me` make the
     /// project dirty, `file.save` cleans it, `app.quit` ends the fake, everything else is done.
+    ///
+    /// A visual input line (`{"input":…}`) dispatches `fake.click` (refused left of x = 10) for a click, `edit.undo`
+    /// (dirty) for `ctrl+z` and closes the application on `alt+f4`; a frame line answers with a fixed hash, or `null`
+    /// with `"paint":false`.
     #[derive(Clone, Default)]
     pub struct FakeSpawner {
         /// Every line the fakes of this spawner were sent, for the tests to read.
@@ -335,6 +345,7 @@ pub mod fake {
                     changed,
                     quit: false,
                     selection: None,
+                    closed: false,
                 }),
                 "{\"$schema\":\"ew.uitranscript/1\",\"version\":\"0.0.0\"}".to_owned(),
             ))
@@ -349,6 +360,75 @@ pub mod fake {
         quit: bool,
         /// What `select.set` selected (its parameters), shown as the canvas selection (FT-582).
         selection: Option<String>,
+        /// A visual input closed the application.
+        closed: bool,
+    }
+
+    impl Fake {
+        /// The answer to a visual input or frame line.
+        fn visual(&mut self, v: &Value) -> Option<String> {
+            let closed = |tail: &str| {
+                if tail.is_empty() {
+                    String::new()
+                } else {
+                    tail.to_owned()
+                }
+            };
+            if let Some(file) = v.get("frame") {
+                let sha = if v["paint"] == Value::Bool(false) {
+                    "null".to_owned()
+                } else {
+                    format!("\"{}\"", "ab".repeat(32))
+                };
+                let tail = if self.closed {
+                    ",\"closed\":true"
+                } else {
+                    ",\"dispatched\":[]"
+                };
+                return Some(format!("{{\"frame\":{file},\"sha256\":{sha}{}}}", closed(tail)));
+            }
+            v.get("input")?;
+            self.step += 1;
+            if self.closed {
+                return Some(format!(
+                    "{{\"step\":{},\"input\":{v},\"dispatched\":[],\"closed\":true}}",
+                    self.step
+                ));
+            }
+            let entry = |a: &str, o: &str, r: Option<&str>| {
+                format!(
+                    "{{\"action\":\"{a}\",\"outcome\":\"{o}\",\"reason\":{}}}",
+                    r.map_or("null".to_owned(), |r| format!("\"{r}\""))
+                )
+            };
+            let dispatched = match (v["input"].as_str(), v["chord"].as_str()) {
+                (Some("click"), _) if v["x"].as_i64().is_some_and(|x| x < 10) => {
+                    vec![entry("fake.click", "refused", Some("reason-fake"))]
+                }
+                (Some("click"), _) => vec![entry("fake.click", "done", None)],
+                (Some("key"), Some("ctrl+z")) => {
+                    self.dirty = true;
+                    vec![entry("edit.undo", "done", None)]
+                }
+                (Some("key"), Some("alt+f4")) => {
+                    self.closed = true;
+                    vec![entry("app.quit", "done", None)]
+                }
+                _ => Vec::new(),
+            };
+            let dispatched = format!("[{}]", dispatched.join(","));
+            Some(if self.closed {
+                format!(
+                    "{{\"step\":{},\"input\":{v},\"dispatched\":{dispatched},\"closed\":true}}",
+                    self.step
+                )
+            } else {
+                format!(
+                    "{{\"step\":{},\"input\":{v},\"dispatched\":{dispatched},\"state\":{{\"title\":\"Fake\",\"dirty\":{},\"page\":\"101\"}}}}",
+                    self.step, self.dirty
+                )
+            })
+        }
     }
 
     impl Product for Fake {
@@ -357,8 +437,11 @@ pub mod fake {
                 return Err(Lost("the fake product ended".to_owned()).into());
             }
             self.log.lock().unwrap().push(line.to_owned());
-            self.step += 1;
             let v: Value = serde_json::from_str(line)?;
+            if let Some(answer) = self.visual(&v) {
+                return Ok(answer);
+            }
+            self.step += 1;
             let action = v["action"].as_str().unwrap_or("").to_owned();
             let (outcome, reason, message) = match action.as_str() {
                 "refuse.me" | "edit.redo" => ("refused", Some("reason-nothing-to-redo"), None),

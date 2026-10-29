@@ -9,6 +9,11 @@
 //! the recording `tools/blind/recordings/selftest/` (`ci = "pr"`, never stale) and replays that recording twice in
 //! fresh folders (R1 and R2). A second run with `--stateless` must leave the same files, the same transcript and the same
 //! outcomes as the keeper's.
+//!
+//! `selftest-visual` (WP-S6.13 part 4, BV11) does the same for a visual run: the scripted agent of
+//! `tools/blind/tasks/selftest-visual/agent.jsonl` clicks, types and presses keys through the copied harness and the
+//! visual driver, looks and zooms, and logs friction; the recording `tools/blind/recordings/selftest-visual/` replays
+//! without frames (R1v and R2), and on Windows once more with frames for R4.
 
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -18,7 +23,7 @@ use anyhow::{Context, Result, bail};
 use serde_json::Value;
 
 use super::replay::{self, load_inputs};
-use super::run::{Kind, Run, canonical};
+use super::run::{Kind, Run, Senses, canonical};
 use super::start::{StartArgs, start};
 
 /// The arguments of `selftest`.
@@ -29,6 +34,10 @@ pub struct Args {
     pub bin: Option<PathBuf>,
     /// Where the run folders go (default `<temp>/ew-blind-selftest`).
     pub out: Option<PathBuf>,
+    /// The visual self-test (`selftest-visual`).
+    pub visual: bool,
+    /// Keep the run folders (and a visual run's frames) after a passing self-test.
+    pub keep: bool,
 }
 
 /// One call of the scripted agent.
@@ -48,9 +57,13 @@ pub enum Call {
         diff: bool,
         /// `--menus`.
         menus: bool,
+        /// `--zoom <x> <y> <w> <h>` (a visual run).
+        zoom: Option<Vec<i64>>,
     },
     /// `note <run> "<text>"`.
     Note(String),
+    /// `friction <run> …` with its arguments.
+    Friction(Vec<String>),
     /// `handback <run> -`.
     Handback(String),
 }
@@ -86,13 +99,21 @@ pub fn parse_agent(text: &str) -> Result<Vec<(Call, Vec<String>)>> {
                 page: l.get("page").and_then(Value::as_str).map(str::to_owned),
                 diff: l["diff"].as_bool().unwrap_or(false),
                 menus: l["menus"].as_bool().unwrap_or(false),
+                zoom: l["zoom"]
+                    .as_array()
+                    .map(|a| a.iter().filter_map(Value::as_i64).collect()),
             }
         } else if let Some(n) = v.get("note").and_then(Value::as_str) {
             Call::Note(n.to_owned())
         } else if let Some(h) = v.get("handback").and_then(Value::as_str) {
             Call::Handback(h.to_owned())
+        } else if let Some(f) = v.get("friction") {
+            Call::Friction(strings(f))
         } else {
-            bail!("agent.jsonl line {}: not a do, kv, look, note or handback", i + 1);
+            bail!(
+                "agent.jsonl line {}: not a do, kv, look, note, friction or handback",
+                i + 1
+            );
         };
         out.push((call, strings(&v["expect"])));
     }
@@ -116,9 +137,14 @@ fn command_of(call: &Call) -> (Vec<String>, Option<String>) {
             page,
             diff,
             menus,
+            zoom,
         } => {
             let mut v = vec!["look".to_owned()];
             v.extend(sections.iter().cloned());
+            if let Some(z) = zoom {
+                v.push("--zoom".to_owned());
+                v.extend(z.iter().map(i64::to_string));
+            }
             if let Some(p) = page {
                 v.push("--page".to_owned());
                 if !p.is_empty() {
@@ -134,6 +160,11 @@ fn command_of(call: &Call) -> (Vec<String>, Option<String>) {
             (v, None)
         }
         Call::Note(text) => (vec!["note".to_owned(), text.clone()], None),
+        Call::Friction(args) => {
+            let mut v = vec!["friction".to_owned()];
+            v.extend(args.iter().cloned());
+            (v, None)
+        }
         Call::Handback(text) => (vec!["handback".to_owned(), "-".to_owned()], Some(text.clone())),
     }
 }
@@ -149,7 +180,7 @@ fn play(
     let mut failures = Vec::new();
     for (n, (call, expect)) in agent.iter().enumerate() {
         let (mut args, stdin) = command_of(call);
-        // The run ID is the first argument after the subcommand.
+        // The run ID is the first argument after the subcommand; a zoom's numbers follow it.
         args.insert(1, id.to_owned());
         if stateless && matches!(call, Call::Do(_) | Call::Kv(_) | Call::Look { .. }) {
             args.push("--stateless".to_owned());
@@ -216,13 +247,15 @@ fn one_run(
     bin: &Path,
     id: &str,
     stateless: bool,
+    visual: bool,
     agent: &[(Call, Vec<String>)],
 ) -> Result<Run> {
     let run = start(
         root,
         &StartArgs {
             kind: Kind::Free,
-            task: "selftest".to_owned(),
+            senses: if visual { Senses::Visual } else { Senses::Text },
+            task: task_of(visual).to_owned(),
             persona: None,
             of: None,
             folios: vec!["101".to_owned()],
@@ -255,6 +288,11 @@ fn one_run(
     Ok(run)
 }
 
+/// The task and the recording of the self-test.
+fn task_of(visual: bool) -> &'static str {
+    if visual { "selftest-visual" } else { "selftest" }
+}
+
 /// The normalised files two runs must share (the same files, the same transcript, the same outcomes).
 fn comparable(run: &Run) -> Result<Vec<(String, String)>> {
     let norm = super::normalise::Normaliser::new(&run.dir);
@@ -266,7 +304,12 @@ fn comparable(run: &Run) -> Result<Vec<(String, String)>> {
         "drafter.md",
         "handback.md",
         "out/report.md",
+        "friction.jsonl",
     ] {
+        // A text self-test logs no friction.
+        if rel == "friction.jsonl" && !run.path(rel).is_file() {
+            continue;
+        }
         let text = std::fs::read_to_string(run.path(rel))
             .with_context(|| rel.to_owned())?
             .replace("\r\n", "\n");
@@ -310,24 +353,42 @@ pub fn run(root: &Path, a: &Args) -> Result<bool> {
     if out.exists() {
         std::fs::remove_dir_all(&out).with_context(|| format!("clearing {}", out.display()))?;
     }
+    let task = task_of(a.visual);
     let agent = parse_agent(&std::fs::read_to_string(
-        root.join("tools/blind/tasks/selftest/agent.jsonl"),
+        root.join(format!("tools/blind/tasks/{task}/agent.jsonl")),
     )?)?;
 
     // With the keeper: the run that is blessed.
-    let keeper = one_run(root, &out, &bin, "selftest", false, &agent)?;
-    let dest = replay::bless(root, &keeper, "selftest", "pr")?;
+    let keeper = one_run(root, &out, &bin, task, false, a.visual, &agent)?;
+    let dest = replay::bless(root, &keeper, task, "pr")?;
     println!("blessed {}", dest.strip_prefix(root).unwrap_or(&dest).display());
-    let inputs = load_inputs(&dest)?;
+    let mut inputs = load_inputs(&dest)?;
     let exe = bin.join(format!("elektrawatt{}", std::env::consts::EXE_SUFFIX));
     let report = replay::replay(root, &exe, &inputs, true)?;
     print!("{}", replay::replay_text(&report));
     if !report.ok() {
         bail!("the blessed recording does not replay");
     }
+    // R4 (a report): the frames painted again on Windows, the snapshots' platform, against the recorded hashes.
+    if a.visual && cfg!(windows) {
+        let frames = out.join("replay-frames");
+        inputs.paint_into = Some(frames);
+        let painted = replay::replay_once(root, &exe, &inputs)?;
+        if let Some(n) = painted.r4 {
+            println!("R4 {n} frame(s) differ from the recording's frames.sha256 (a report)");
+        }
+    }
 
     // Without it: the same files, transcript and outcomes.
-    let stateless = one_run(root, &out, &bin, "selftest-stateless", true, &agent)?;
+    let stateless = one_run(
+        root,
+        &out,
+        &bin,
+        &format!("{task}-stateless"),
+        true,
+        a.visual,
+        &agent,
+    )?;
     let (a_files, b_files) = (comparable(&keeper)?, comparable(&stateless)?);
     for ((name, x), (_, y)) in a_files.iter().zip(&b_files) {
         if x != y {
@@ -340,7 +401,11 @@ pub fn run(root: &Path, a: &Args) -> Result<bool> {
         }
     }
     println!("--stateless leaves the same files, transcript and outcomes");
-    let _ = std::fs::remove_dir_all(&out);
+    if a.keep {
+        println!("the run folders are kept in {}", out.display());
+    } else {
+        let _ = std::fs::remove_dir_all(&out);
+    }
     println!("selftest ok");
     Ok(true)
 }
@@ -362,7 +427,7 @@ mod tests {
         for (call, _) in &agent {
             let (args, _) = command_of(call);
             assert!(
-                ["do", "look", "note", "handback"].contains(&args[0].as_str()),
+                ["do", "look", "note", "friction", "handback"].contains(&args[0].as_str()),
                 "{args:?}"
             );
         }
@@ -379,6 +444,7 @@ mod tests {
             page: Some(String::new()),
             diff: true,
             menus: false,
+            zoom: None,
         });
         assert_eq!(args, ["look", "canvas", "--page", "--diff"]);
         assert!(parse_agent("{\"nothing\":1}").is_err());

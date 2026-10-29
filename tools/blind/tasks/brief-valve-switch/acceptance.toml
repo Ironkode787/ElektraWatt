@@ -1,0 +1,74 @@
+# The acceptance list (visual spec section 6.2). The checker decides each item `ok`, `miss` or `unclear` from the
+# exports of the tester's run. `query` and `expect` prove the item on the reference solution (`check-brief`): a
+# read-only SELECT over the `api_v1_*` views and the row count it must give. `infeasible` marks a soft item the current
+# build cannot meet, with the reason and the package that brings it.
+
+[[item]]
+id = "A1"
+kind = "hard"
+what = "A fuse, a door switch and the valve's coil exist and are each connected into the circuit."
+how = "connections, pages"
+query = "SELECT d.tag FROM api_v1_device d WHERE d.letter IN ('F', 'S', 'Y') AND EXISTS (SELECT 1 FROM api_v1_wire w WHERE w.from_tag = d.tag OR w.to_tag = d.tag)"
+expect = ">= 3"
+
+[[item]]
+id = "A2"
+kind = "hard"
+what = "The switched +24 V reaches the valve's coil only through the fuse and the switch: the fuse follows the incoming +24 V terminal, and the switch follows the fuse."
+how = "connections"
+query = "SELECT w.seq FROM api_v1_wire w JOIN api_v1_device a ON a.tag = w.from_tag JOIN api_v1_device b ON b.tag = w.to_tag WHERE (a.kind = 'terminal' AND b.letter = 'F') OR (a.letter = 'F' AND b.letter = 'S') OR (a.letter = 'F' AND b.kind = 'terminal') OR (a.letter = 'S' AND b.letter = 'F')"
+expect = ">= 2"
+
+[[item]]
+id = "A3"
+kind = "hard"
+what = "Field wiring: both connections of the valve's coil go to terminals of the strip, none to a cabinet device."
+how = "connections, pages"
+query = "SELECT w.seq FROM api_v1_wire w JOIN api_v1_device a ON a.tag = w.from_tag JOIN api_v1_device b ON b.tag = w.to_tag WHERE (a.letter = 'Y' AND b.kind = 'terminal') OR (b.letter = 'Y' AND a.kind = 'terminal')"
+expect = ">= 2"
+
+[[item]]
+id = "A4"
+kind = "hard"
+what = "No connection of the valve's coil goes straight to a device in the cabinet."
+how = "connections"
+query = "SELECT w.seq FROM api_v1_wire w JOIN api_v1_device a ON a.tag = w.from_tag JOIN api_v1_device b ON b.tag = w.to_tag WHERE (a.letter = 'Y' AND COALESCE(b.kind, '') <> 'terminal') OR (b.letter = 'Y' AND COALESCE(a.kind, '') <> 'terminal')"
+expect = "== 0"
+
+[[item]]
+id = "A5"
+kind = "hard"
+what = "The check report is clean, or every remaining finding is explained in the tester's hand-back."
+how = "check, handback"
+
+[[item]]
+id = "A6"
+kind = "hard"
+what = "Delivered: the tester saved the project and exported the PDF itself."
+how = "pdf, work, outcomes"
+
+[[item]]
+id = "A7"
+kind = "soft"
+what = "The supply potentials are named and typed: +24 V DC and 0 V."
+how = "connections"
+query = "SELECT name FROM api_v1_potential WHERE ac_dc IS NOT NULL AND voltage IS NOT NULL"
+expect = ">= 2"
+infeasible = "the window cannot name or type a potential yet (potential naming, F34 lane of cycle 34)"
+
+[[item]]
+id = "A8"
+kind = "soft"
+what = "Every placed device carries a part, and the parts list has nothing foreign."
+how = "bom"
+query = "SELECT tag FROM api_v1_device WHERE has_part = 0 AND COALESCE(kind, '') NOT IN ('terminal', 'strip')"
+expect = "== 0"
+infeasible = "no starter parts library: the project has no part for a fuse, a switch or a valve (FT-592)"
+
+[[item]]
+id = "A9"
+kind = "soft"
+what = "The page carries a title that says what it shows."
+how = "pages"
+query = "SELECT folio FROM api_v1_page WHERE generated = 0 AND title IS NOT NULL AND title <> ''"
+expect = ">= 1"

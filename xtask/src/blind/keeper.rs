@@ -13,7 +13,7 @@
 
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{TcpListener, TcpStream};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::mpsc::{Receiver, channel};
 use std::time::Duration;
@@ -21,7 +21,7 @@ use std::time::Duration;
 use anyhow::{Context, Result, anyhow, bail};
 use serde_json::{Value, json};
 
-use super::run::{Run, parse_script, step_line, write_atomic};
+use super::run::{FRAME_LINE, Run, parse_script, step_line, write_atomic};
 use super::session::{Backend, Diverged, Lost, Product, Sent, Spawner, Step};
 
 /// The default idle period of a keeper, in minutes.
@@ -69,7 +69,8 @@ pub enum Mode {
 }
 
 /// The first line of a reply the product's transcript gave for a step, compared by what decides a replay: the action,
-/// the outcome and the reason (or message).
+/// the outcome and the reason (or message); for a visual input or frame line (visual spec §5.3, R1v) the input, the
+/// dispatched actions, the frame's name and whether the application has closed. A frame's SHA-256 is not compared.
 pub fn same_outcome(expected: &str, got: &str) -> Result<(), String> {
     let (Ok(a), Ok(b)) = (
         serde_json::from_str::<Value>(expected),
@@ -77,7 +78,16 @@ pub fn same_outcome(expected: &str, got: &str) -> Result<(), String> {
     ) else {
         return Err("a transcript line is not JSON".to_owned());
     };
-    for key in ["action", "outcome", "reason", "message"] {
+    for key in [
+        "action",
+        "outcome",
+        "reason",
+        "message",
+        "input",
+        "dispatched",
+        "frame",
+        "closed",
+    ] {
         if a[key] != b[key] {
             return Err(format!("{key} was {} and is now {}", a[key], b[key]));
         }
@@ -85,7 +95,9 @@ pub fn same_outcome(expected: &str, got: &str) -> Result<(), String> {
     Ok(())
 }
 
-/// Replays the prelude and the steps of `run` into `product` and compares each line with `expected`.
+/// Replays the prelude and the steps of `run` into `product` and compares each line with `expected`. A visual frame line
+/// whose file already exists in `frames` (or every frame line, without `frames`) is sent with `"paint":false`: the
+/// replay settles as the run did and paints only a frame it does not have yet (visual spec §5.4).
 ///
 /// # Errors
 ///
@@ -94,10 +106,21 @@ pub fn replay_steps(
     product: &mut dyn Product,
     steps: &[(String, Value)],
     expected: &[String],
+    frames: Option<&Path>,
 ) -> Result<Vec<String>> {
     let mut lines = Vec::new();
     for (i, (action, params)) in steps.iter().enumerate() {
-        let line = product.send(&step_line(action, params))?;
+        let mut params = params.clone();
+        if action == FRAME_LINE {
+            let have = match (frames, params["frame"].as_str()) {
+                (Some(dir), Some(file)) => dir.join(file).is_file(),
+                _ => true,
+            };
+            if have {
+                params["paint"] = Value::Bool(false);
+            }
+        }
+        let line = product.send(&step_line(action, &params))?;
         if let Some(want) = expected.get(i)
             && let Err(what) = same_outcome(want, &line)
         {
@@ -160,13 +183,21 @@ pub fn serve(
     )?;
     match mode {
         Mode::Fresh => {
-            let lines = replay_steps(product.as_mut(), &prelude, &[])?;
+            let mut lines = replay_steps(product.as_mut(), &prelude, &[], None)?;
             for (i, line) in lines.iter().enumerate() {
                 if !line.contains("\"outcome\":\"done\"") {
                     product.kill();
                     bail!("prelude step {} ({}) was not done: {line}", i + 1, prelude[i].0);
                 }
             }
+            // A visual run's start frame is the first line of its steps (`start` writes it).
+            let first = run.steps()?;
+            lines.extend(replay_steps(
+                product.as_mut(),
+                &first,
+                &[],
+                Some(&run.path("frames")),
+            )?);
             let mut text = format!("{header}\n");
             for l in &lines {
                 text.push_str(l);
@@ -178,7 +209,7 @@ pub fn serve(
             let mut all = prelude;
             all.extend(run.steps()?);
             let expected = run.transcript()?;
-            if let Err(e) = replay_steps(product.as_mut(), &all, &expected) {
+            if let Err(e) = replay_steps(product.as_mut(), &all, &expected, Some(&run.path("frames"))) {
                 product.kill();
                 return Err(e);
             }
@@ -752,5 +783,50 @@ mod tests {
         assert!(program.starts_with(&run.dir), "{}", program.display());
         assert!(program.ends_with(format!("bin/xtask{}", std::env::consts::EXE_SUFFIX)));
         assert!(!program.components().any(|c| c.as_os_str() == "target"));
+    }
+
+    /// BV5, visual spec §5.4: a replay paints only the frames it does not have; inputs and frame lines compare on
+    /// `dispatched`, and a different dispatch is a divergence.
+    #[test]
+    fn a_visual_replay_paints_only_missing_frames_and_compares_dispatched() {
+        let tmp = Tmp::new("keeper-visual");
+        let frames = tmp.0.join("frames");
+        std::fs::create_dir_all(&frames).unwrap();
+        std::fs::write(frames.join("t0000.png"), b"png").unwrap();
+        let spawner = FakeSpawner::default();
+        let run = test_run(&tmp);
+        let (mut product, _) = spawner.spawn(&run).unwrap();
+        let steps = vec![
+            (FRAME_LINE.to_owned(), json!({"frame": "t0000.png"})),
+            (
+                crate::blind::run::INPUT_LINE.to_owned(),
+                json!({"input": "key", "chord": "ctrl+z"}),
+            ),
+            (FRAME_LINE.to_owned(), json!({"frame": "t0001.png"})),
+        ];
+        let lines = replay_steps(product.as_mut(), &steps, &[], Some(&frames)).unwrap();
+        let log = spawner.log.lock().unwrap().clone();
+        assert!(log[0].contains("\"paint\":false"), "{}", log[0]);
+        assert!(!log[1].contains("paint"), "{}", log[1]);
+        assert!(
+            !log[2].contains("paint"),
+            "a missing frame is painted: {}",
+            log[2]
+        );
+        assert!(lines[0].contains("\"sha256\":null"), "{}", lines[0]);
+        assert!(lines[2].contains("\"sha256\":\"abab"), "{}", lines[2]);
+        // Without a frames folder nothing is painted, and the outcomes are the same.
+        let (mut product, _) = spawner.spawn(&run).unwrap();
+        let again = replay_steps(product.as_mut(), &steps, &lines, None).unwrap();
+        assert!(spawner.log.lock().unwrap()[5].contains("\"paint\":false"));
+        assert_eq!(again.len(), 3);
+        // A different dispatch diverges.
+        let mut other = lines.clone();
+        other[1] = other[1].replace("edit.undo", "edit.redo");
+        let (mut product, _) = spawner.spawn(&run).unwrap();
+        let err = replay_steps(product.as_mut(), &steps, &other, None).unwrap_err();
+        let d = err.downcast_ref::<Diverged>().unwrap();
+        assert_eq!(d.step, 2);
+        assert!(d.what.starts_with("dispatched was"), "{}", d.what);
     }
 }

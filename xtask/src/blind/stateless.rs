@@ -63,7 +63,7 @@ impl<'a> Stateless<'a> {
         let mut all = prelude.clone();
         all.extend(self.run.steps()?);
         let expected = self.run.transcript()?;
-        let lines = match replay_steps(product.as_mut(), &all, &expected) {
+        let lines = match replay_steps(product.as_mut(), &all, &expected, Some(&self.run.path("frames"))) {
             Ok(l) => l,
             Err(e) => {
                 product.kill();

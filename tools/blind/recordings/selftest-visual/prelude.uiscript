@@ -1,0 +1,4 @@
+{"$schema":"ew.uiscript/1","label":"selftest-visual prelude"}
+{"action":"file.new","params":{"dir":"project","template":"builtin"}}
+{"action":"command.run","params":{"cmd":"page.create","params":{"number":101,"title":"Selftest"}}}
+{"action":"page.goto","params":{"folio":"101"}}

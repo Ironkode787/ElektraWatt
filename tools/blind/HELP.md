@@ -1,6 +1,6 @@
 ---
 prompt: blind-help
-version: 6
+version: 7
 ---
 # The harness: how to work with it
 
@@ -17,6 +17,7 @@ action with its parameters, a page at a time: each page ends with the line that 
 | `{blind} look {run} [section ...] [--diff] [--menus]` | The interface as text, by sections (`title:`, `banner:`, `page`, `navigator`, `canvas`, `properties`, `card`, `toast`, `find`, `jobs`, `preview`, `history`, `clipboard`, `status`, `notifications`, `palette`, `dialog`, `wizard`, `first`, `start`, `workspace`, `help:`, `notices:`). `jobs` shows while View ▸ Jobs is open, `notifications` while View ▸ Notifications is, `preview` while the Preview tab is open (it opens with every preview card) and `history` while Edit ▸ History is. The menus are left out unless you ask with `--menus`. With `--diff` you get only the lines added (`+`) or removed (`-`) since your last look at the same sections. |
 | `{blind} look {run} --page [<folio>]` | The content of a page as text: what is drawn on it, in reading order. |
 | `{blind} note {run} "patience <0-10> flow <0-10> <text>"` | The note of your last turn. |
+| `{blind} friction {run} --severity <s> --category <c> --wanted "…" --expected "…" --saw "…" [--workaround "…"]` | One entry of the friction log (see below). |
 | `{blind} handback {run} -` | Your hand-back on standard input; it ends the run. |
 | `{blind} report {run} <which>` | For reviewers (a check run) only: `<which>` is `check`, `bom` or `score`, the check report, the parts list and the score of the drafter's project. A drafter has nothing to read here. |
 
@@ -88,6 +89,26 @@ symbol and variant and its position, followed by its `cp` lines (the connection 
 drawn to each and the `potential` where there is one); `wire` lines name the two ends of a drawn connection; a
 `junction` line names its cell, style, wiring and the sequence of the far ends. Words inside quotation marks are the
 user's text (tags, titles, symbol keys); the rest are the application's own words.
+
+## The friction log
+
+Log a friction entry **every time** you are unsure, confused, surprised or stuck, have to guess, open the user guide,
+or work around something, at that moment and not afterwards. The note keeps the two scores and your mood; the friction
+entry keeps the facts. An entry needs:
+
+- `--severity`: `blocker` (you could not go on), `confusing` (you did not understand), `annoying` (it cost you steps or
+  patience), `cosmetic` (it read wrong but did not stop you).
+- `--category`: `discoverability` (you could not find how to do it), `feedback` (you could not tell what happened),
+  `layout-legibility` (you could not read or tell things apart), `wording` (the words misled you), `flow-dead-end` (you
+  got into a state you could not leave), `behaviour-bug` (it did something wrong), or `missing-feature` (the program
+  cannot do what the job needs, as far as you can tell).
+- `--wanted`, `--expected`, `--saw`: what you wanted to do, what you expected to happen and what you saw or did
+  instead, each at most 400 characters.
+
+The harness adds the turn and the last step you sent, which is the entry's reference. `--workaround` says how you got
+round it, if you did. The log takes at most 300 entries and cannot be edited; it needs no note and is not a turn. Its
+refusals: `harness: friction needs severity, category, wanted, expected and saw`, `harness: unknown severity <s>`,
+`harness: unknown category <c>`, `harness: friction cap`.
 
 ## The hand-back
 

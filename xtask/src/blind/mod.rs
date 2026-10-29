@@ -19,8 +19,10 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, bail};
 
+pub mod brief;
 pub mod compose;
 pub mod filter;
+pub mod friction;
 pub mod keeper;
 pub mod normalise;
 pub mod oracle;
@@ -35,6 +37,7 @@ pub mod stateless;
 pub mod stop;
 #[cfg(test)]
 pub mod testkit;
+pub mod visual;
 
 use filter::{Reference, StepIn};
 use run::{Kind, Run};
@@ -52,17 +55,28 @@ For the agent:
   note <run> \"patience <0-10> flow <0-10> <text>\"
                                               the note of the last turn
   handback <run> -                            the fixed hand-back on stdin; it ends the run
+  friction <run> --severity <s> --category <c> --wanted \"…\" --expected \"…\" --saw \"…\"
+        [--frame <name>] [--region <x>,<y>,<w>,<h>] [--workaround \"…\"]
+                                              one entry of the friction log
+In a visual run (--senses visual) `do` takes mouse and key inputs (help prints HELP-VISUAL.md) and `look` paints:
+  do <run> <input> [key=value ...]            one input: click x=412 y=96, key chord=ctrl+s, …
+  do <run> -                                  1 to 12 inputs as JSON Lines on stdin
+  look <run> [--zoom <x> <y> <w> <h>]         the current frame again, or a region of it twice as large
 For the orchestrator:
-  start --kind free|gate|check --task <t> [--persona <p>] [--of <run>] [--folios <a,b>] --run <id>
-        [--out <dir>] [--bin <dir>] [--stateless]
+  start --kind free|gate|check|brief --task <t> [--senses text|visual] [--persona <p>] [--of <run>]
+        [--folios <a,b>] --run <id> [--out <dir>] [--bin <dir>] [--stateless]
   stop <run> [--reason <r>]                   the epilogue, the exports, the report
   report <run> check|bom|score                what the stop wrote
+  report <run> connections|pages|pdf          the wires and potentials, the page texts, the PDF (a check run's)
+  check-brief <task> [--bin <dir>]            a brief's files, and its reference solution replayed and scored
   resume <run>                                a lost session: replay and go on
-  compose --kind <k> --task <t> [--persona <p>] [--folios <a,b>] --run <id>
+  compose --kind <k> --task <t> [--senses text|visual] [--persona <p>] [--folios <a,b>] --run <id>
   bless <run> --as <name> [--ci pr|nightly|none]
-  replay <recording|run> [--bin <dir>] [--twice]
+  replay <recording|run> [--bin <dir>] [--twice] [--frames <dir>]
   rescore <recording> [--bin <dir>] [--write] a recording scored again against its task's current oracle
-  selftest [--no-build] [--bin <dir>] [--out <dir>]
+  selftest [--no-build] [--bin <dir>] [--out <dir>] [--keep]
+  selftest-visual [--no-build] [--bin <dir>] [--out <dir>] [--keep]
+                                              the visual self-test through the keeper and the visual driver
   bless-oracle <task> [--bin <dir>]           the expected rows of a task's oracle, from a temporary copy of Golden A
   check-task <task>                           the task folder: files, prelude classes, gaps, the sheet against doc 20
 ";
@@ -100,8 +114,8 @@ impl Flags {
 }
 
 /// The subcommands an agent may run from the run's copy of the harness; every other one is the orchestrator's.
-pub const AGENT_COMMANDS: [&str; 8] = [
-    "help", "do", "look", "note", "handback", "report", "resume", "serve",
+pub const AGENT_COMMANDS: [&str; 9] = [
+    "help", "do", "look", "note", "handback", "report", "resume", "serve", "friction",
 ];
 
 /// The run whose copy of the harness is `exe`: `<dir>/bin/xtask` beside `<dir>/run.json`.
@@ -231,6 +245,7 @@ pub fn run(args: &[String], root: &Path) -> Result<bool> {
             let mut f = Flags(rest);
             let a = start::StartArgs {
                 kind: Kind::parse(&f.take_value("--kind")?.context("--kind is needed")?)?,
+                senses: run::Senses::parse(&f.take_value("--senses")?.unwrap_or_else(|| "text".to_owned()))?,
                 task: f.take_value("--task")?.context("--task is needed")?,
                 persona: f.take_value("--persona")?,
                 of: f.take_value("--of")?,
@@ -265,8 +280,25 @@ pub fn run(args: &[String], root: &Path) -> Result<bool> {
             let run_arg = rest.next().context("do needs the run")?;
             let run = locate(&run_arg, out.as_deref())?;
             check_stateless_flag(&run, stateless_flag)?;
-            let reference = load_reference(Some(&run), repo)?;
             let first = rest.next().context("do needs an action or `-` for a batch")?;
+            if run.load()?.visual() {
+                // A visual run: mouse and key inputs, one frame per batch (visual spec §4).
+                let inputs = if first == "-" {
+                    let mut text = String::new();
+                    std::io::stdin().read_to_string(&mut text)?;
+                    visual::parse_inputs(&text)
+                } else {
+                    let args: Vec<String> = rest.collect();
+                    visual::parse_input_args(&first, &args).map(|o| vec![o])
+                };
+                let text = match inputs {
+                    Ok(inputs) => with_backend(&run, |b| visual::do_inputs(&run, b, &inputs))?,
+                    Err(refusal) => visual::refuse(&run, &refusal)?,
+                };
+                print!("{text}");
+                return Ok(true);
+            }
+            let reference = load_reference(Some(&run), repo)?;
             let steps: Vec<StepIn> = if first == "-" {
                 let mut text = String::new();
                 std::io::stdin().read_to_string(&mut text)?;
@@ -295,6 +327,29 @@ pub fn run(args: &[String], root: &Path) -> Result<bool> {
             let mut f = Flags(rest);
             let stateless_flag = f.take_flag("--stateless");
             let out = f.take_value("--out")?;
+            let zoom_at = f.0.iter().position(|a| a == "--zoom");
+            if let Some(i) = zoom_at {
+                // `look <run> --zoom <x> <y> <w> <h>`: only in a visual run.
+                let run_arg =
+                    f.0.first()
+                        .filter(|_| i > 0)
+                        .cloned()
+                        .context("look needs the run")?;
+                let run = locate(&run_arg, out.as_deref())?;
+                check_stateless_flag(&run, stateless_flag)?;
+                if !run.load()?.visual() {
+                    println!("harness: --zoom belongs to a visual run");
+                    return Ok(true);
+                }
+                let numbers: Vec<String> = f.0.iter().skip(i + 1).cloned().collect();
+                let text = match (f.0.len() == i + 5 && i == 1, visual::parse_zoom(&numbers)) {
+                    (true, Ok(z)) => with_backend(&run, |b| visual::look(&run, b, Some(z)))?,
+                    (_, Err(refusal)) => visual::refuse(&run, &refusal)?,
+                    (false, Ok(_)) => visual::refuse(&run, visual::NO_TEXT_VIEW)?,
+                };
+                print!("{text}");
+                return Ok(true);
+            }
             let diff = f.take_flag("--diff");
             let menus = f.take_flag("--menus");
             let page_at = f.0.iter().position(|a| a == "--page");
@@ -319,6 +374,16 @@ pub fn run(args: &[String], root: &Path) -> Result<bool> {
             opts.sections = args;
             let run = locate(&run_arg, out.as_deref())?;
             check_stateless_flag(&run, stateless_flag)?;
+            if run.load()?.visual() {
+                // Nothing textual in a visual run (§3.3): a plain look paints the frame again.
+                let text = if opts == protocol::LookOpts::default() {
+                    with_backend(&run, |b| visual::look(&run, b, None))?
+                } else {
+                    visual::refuse(&run, visual::NO_TEXT_VIEW)?
+                };
+                print!("{text}");
+                return Ok(true);
+            }
             let text = with_backend(&run, |b| protocol::look(&run, b, &opts))?;
             print!("{text}");
             Ok(true)
@@ -355,11 +420,47 @@ pub fn run(args: &[String], root: &Path) -> Result<bool> {
             let out = f.take_value("--out")?;
             let args = f.rest();
             let [run_arg, which] = args.as_slice() else {
-                bail!("report <run> check|bom|score");
+                bail!("report <run> check|bom|score|connections|pages|pdf");
             };
             let run = locate(run_arg, out.as_deref())?;
             print!("{}", protocol::report(&run, which)?);
             Ok(true)
+        }
+        "friction" => {
+            let mut f = Flags(rest);
+            let out = f.take_value("--out")?;
+            let a = friction::FrictionArgs {
+                severity: f.take_value("--severity")?,
+                category: f.take_value("--category")?,
+                wanted: f.take_value("--wanted")?,
+                expected: f.take_value("--expected")?,
+                saw: f.take_value("--saw")?,
+                frame: f.take_value("--frame")?,
+                region: f.take_value("--region")?,
+                workaround: f.take_value("--workaround")?,
+            };
+            let args = f.rest();
+            let [run_arg] = args.as_slice() else {
+                bail!(
+                    "friction <run> --severity <s> --category <c> --wanted \"…\" --expected \"…\" --saw \"…\""
+                );
+            };
+            let run = locate(run_arg, out.as_deref())?;
+            print!("{}", friction::friction(&run, &a)?);
+            Ok(true)
+        }
+        "check-brief" => {
+            let mut f = Flags(rest);
+            let bin = f
+                .take_value("--bin")?
+                .map_or_else(|| root.join("target/debug"), PathBuf::from);
+            let args = f.rest();
+            let [task] = args.as_slice() else {
+                bail!("check-brief <task> [--bin <dir>]");
+            };
+            let c = brief::check_brief(root, task, &bin)?;
+            print!("{}", c.text(task));
+            Ok(c.runnable())
         }
         "stop" => {
             let mut f = Flags(rest);
@@ -388,6 +489,7 @@ pub fn run(args: &[String], root: &Path) -> Result<bool> {
         "compose" => {
             let mut f = Flags(rest);
             let kind = Kind::parse(&f.take_value("--kind")?.context("--kind is needed")?)?;
+            let senses = run::Senses::parse(&f.take_value("--senses")?.unwrap_or_else(|| "text".to_owned()))?;
             let task = f.take_value("--task")?.context("--task is needed")?;
             let persona = f.take_value("--persona")?;
             let run_id = f.take_value("--run")?.context("--run is needed")?;
@@ -407,7 +509,9 @@ pub fn run(args: &[String], root: &Path) -> Result<bool> {
                 persona: persona.as_deref(),
                 run_id: &run_id,
                 blind: "<run>/bin/xtask blind",
-                caps: kind.caps(),
+                caps: kind.caps_for(senses),
+                senses,
+                frames: "<run>/frames",
                 folios: &folios,
             })?;
             print!("{}", c.text);
@@ -435,9 +539,10 @@ pub fn run(args: &[String], root: &Path) -> Result<bool> {
             let bin = f.take_value("--bin")?.map(PathBuf::from);
             let out = f.take_value("--out")?;
             let twice = f.take_flag("--twice");
+            let frames = f.take_value("--frames")?.map(PathBuf::from);
             let args = f.rest();
             let [what] = args.as_slice() else {
-                bail!("replay <recording|run> [--bin <dir>] [--twice]");
+                bail!("replay <recording|run> [--bin <dir>] [--twice] [--frames <dir>]");
             };
             let recording = replay::recordings_dir(root).join(what);
             let dir = if recording.join("run.json").is_file() {
@@ -445,7 +550,11 @@ pub fn run(args: &[String], root: &Path) -> Result<bool> {
             } else {
                 locate(what, out.as_deref())?.dir
             };
-            let inputs = replay::load_inputs(&dir)?;
+            let mut inputs = replay::load_inputs(&dir)?;
+            if frames.is_some() && !inputs.visual {
+                bail!("--frames belongs to the replay of a visual run");
+            }
+            inputs.paint_into = frames;
             if let Some(reason) = &inputs.stale {
                 println!("stale: {reason} (skipped)");
                 return Ok(true);
@@ -482,15 +591,17 @@ pub fn run(args: &[String], root: &Path) -> Result<bool> {
             }
             Ok(true)
         }
-        "selftest" => {
+        "selftest" | "selftest-visual" => {
             let mut f = Flags(rest);
             let a = selftest::Args {
                 build: !f.take_flag("--no-build"),
                 bin: f.take_value("--bin")?.map(PathBuf::from),
                 out: f.take_value("--out")?.map(PathBuf::from),
+                visual: command == "selftest-visual",
+                keep: f.take_flag("--keep"),
             };
             if let Some(extra) = f.rest().first() {
-                bail!("selftest: unexpected `{extra}`");
+                bail!("{command}: unexpected `{extra}`");
             }
             selftest::run(root, &a)
         }
@@ -558,7 +669,7 @@ pub fn resume(run: &Run) -> Result<String> {
     }
     if matches!(
         rj.end.as_deref(),
-        Some("handback" | "cap" | "quit" | "orchestrator")
+        Some("handback" | "cap" | "quit" | "orchestrator" | "app-closed")
     ) {
         return Ok(format!(
             "run `{}` has ended ({}): nothing to resume",
@@ -645,7 +756,8 @@ pub fn help_page(pages: &[String], k: usize) -> String {
     out
 }
 
-/// The text of `help`: the harness help, the vocabulary and the actions, and what the copied binaries print.
+/// The text of `help`: the harness help, the vocabulary and the actions, and what the copied binaries print; in a
+/// visual run only `HELP-VISUAL.md` (visual spec §3.3: no vocabulary, no action reference, no `--help`).
 fn help_text(repo: Option<&Path>, run: Option<&Run>) -> Result<String> {
     let read = |own: &str, rel: &str| -> Result<String> {
         let own = run.map(|r| r.path(own)).filter(|p| p.is_file());
@@ -658,6 +770,9 @@ fn help_text(repo: Option<&Path>, run: Option<&Run>) -> Result<String> {
             .with_context(|| format!("reading {}", path.display()))?
             .replace("\r\n", "\n"))
     };
+    if run.is_some_and(|r| r.load().is_ok_and(|j| j.visual())) {
+        return read(".harness/HELP-VISUAL.md", "tools/blind/HELP-VISUAL.md");
+    }
     let mut out = read(".harness/HELP.md", "tools/blind/HELP.md")?;
     out.push_str("\n== vocabulary ==\n");
     out.push_str(&read(

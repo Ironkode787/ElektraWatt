@@ -7,13 +7,17 @@
 //! persona, the task sheet and `tools/blind/HELP.md`, each preceded by a line `<!-- file: <path> sha256 <hex> -->`, with
 //! `{run}`, `{blind}`, `{kind}` and the cap values substituted. Equal inputs give equal bytes. The self-test task is
 //! scripted: its prompt is its task sheet and the help (a scripted agent reads no role).
+//!
+//! A visual run (WP-S6.13 part 4, visual spec §8) is composed of the play-tester's prompt `PLAYTESTER.md`, the persona,
+//! the task sheet and `HELP-VISUAL.md`, with `{frames}` the run's frames folder. A check run of a brief adds the brief's
+//! `acceptance.toml` after the task sheet: the checker decides the acceptance list.
 
 use std::collections::BTreeMap;
 use std::path::Path;
 
 use anyhow::{Context, Result, bail};
 
-use super::run::{Caps, Kind, sha256_hex};
+use super::run::{Caps, Kind, Senses, sha256_hex};
 
 /// What a prompt is made from.
 pub struct ComposeIn<'a> {
@@ -31,6 +35,10 @@ pub struct ComposeIn<'a> {
     pub blind: &'a str,
     /// The caps of the run.
     pub caps: Caps,
+    /// The run's senses.
+    pub senses: Senses,
+    /// What `{frames}` stands for: the run's frames folder.
+    pub frames: &'a str,
     /// The folios of the run (`--folios`): the blocks of the task sheet for other folios are left out. Empty: all.
     pub folios: &'a [String],
 }
@@ -93,9 +101,14 @@ fn read_text(root: &Path, rel: &str) -> Result<String> {
 /// A file of the prompt that does not exist.
 pub fn compose(inp: &ComposeIn) -> Result<Composed> {
     let mut rels: Vec<String> = Vec::new();
-    if inp.task != "selftest" {
+    let visual = inp.senses == Senses::Visual;
+    if visual && inp.kind == Kind::Check {
+        bail!("a check run reads the exports: it is a text run");
+    }
+    if !inp.task.starts_with("selftest") {
         rels.push(match inp.kind {
             Kind::Check => "tools/blind/CHECKER.md".to_owned(),
+            _ if visual => "tools/blind/PLAYTESTER.md".to_owned(),
             _ => "tools/blind/BLIND_DRAFTER.md".to_owned(),
         });
         if let Some(p) = inp.persona {
@@ -112,7 +125,19 @@ pub fn compose(inp: &ComposeIn) -> Result<Composed> {
         bail!("`{}` is not a task name", inp.task);
     }
     rels.push(format!("tools/blind/tasks/{}/task.md", inp.task));
-    rels.push("tools/blind/HELP.md".to_owned());
+    if inp.kind == Kind::Check
+        && inp
+            .root
+            .join(format!("tools/blind/tasks/{}/acceptance.toml", inp.task))
+            .is_file()
+    {
+        rels.push(format!("tools/blind/tasks/{}/acceptance.toml", inp.task));
+    }
+    rels.push(if visual {
+        "tools/blind/HELP-VISUAL.md".to_owned()
+    } else {
+        "tools/blind/HELP.md".to_owned()
+    });
     let mut text = String::new();
     let mut files = BTreeMap::new();
     for rel in rels {
@@ -130,7 +155,8 @@ pub fn compose(inp: &ComposeIn) -> Result<Composed> {
             .replace("{turns}", &inp.caps.turns.to_string())
             .replace("{steps}", &inp.caps.steps.to_string())
             .replace("{looks}", &inp.caps.looks.to_string())
-            .replace("{refusals}", &inp.caps.refusals.to_string());
+            .replace("{refusals}", &inp.caps.refusals.to_string())
+            .replace("{frames}", inp.frames);
         text.push_str(&format!("<!-- file: {rel} sha256 {sha} -->\n"));
         text.push_str(body.trim_end_matches('\n'));
         text.push_str("\n\n");
@@ -217,6 +243,8 @@ mod tests {
             run_id: "gpp-r1",
             blind: "/r/bin/xtask blind",
             caps: kind.caps(),
+            senses: Senses::Text,
+            frames: "/r/frames",
             folios: &[],
         }
     }
@@ -263,6 +291,9 @@ mod tests {
             ("tools/blind/BLIND_DRAFTER.md", "prompt", "blind-drafter"),
             ("tools/blind/CHECKER.md", "prompt", "blind-checker"),
             ("tools/blind/HELP.md", "prompt", "blind-help"),
+            ("tools/blind/HELP-VISUAL.md", "prompt", "blind-help-visual"),
+            ("tools/blind/PLAYTESTER.md", "prompt", "play-tester"),
+            ("tools/blind/personas/first-timer.md", "persona", "first-timer"),
             ("tools/blind/personas/qet-veteran.md", "persona", "qet-veteran"),
             ("tools/blind/personas/switcher.md", "persona", "switcher"),
         ];

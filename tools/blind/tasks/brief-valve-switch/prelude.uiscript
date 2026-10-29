@@ -1,0 +1,5 @@
+{"$schema":"ew.uiscript/1","label":"brief-valve-switch prelude"}
+{"action":"tools.company_standard","params":{}}
+{"action":"wizard.finish","params":{"dir":"company"}}
+{"action":"wizard.cancel","params":{}}
+{"action":"file.new","params":{"dir":"project"}}

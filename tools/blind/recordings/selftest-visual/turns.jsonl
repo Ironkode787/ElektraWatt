@@ -1,0 +1,21 @@
+{"$schema":"ew.blindturns/1"}
+{"n":1,"kind":"look","steps":[2,2],"frame":"t0000-l1.png"}
+{"n":2,"kind":"do","turn":1,"steps":[3,6],"frame":"t0001.png"}
+{"n":3,"kind":"note","turn":1,"patience":9,"flow":9}
+{"n":4,"kind":"do","turn":2,"steps":[7,10],"frame":"t0002.png"}
+{"n":5,"kind":"note","turn":2,"patience":9,"flow":8}
+{"n":6,"kind":"look","steps":[11,11],"frame":"t0002-z1.png"}
+{"n":7,"kind":"do","turn":3,"steps":[12,15],"frame":"t0003.png"}
+{"n":8,"kind":"note","turn":3,"patience":8,"flow":8}
+{"n":9,"kind":"refusal","refusal":"harness: in a visual run you act with the mouse and the keys"}
+{"n":10,"kind":"refusal","refusal":"harness: a visual run has no text view"}
+{"n":11,"kind":"do","turn":4,"steps":[16,18],"frame":"t0004.png"}
+{"n":12,"kind":"note","turn":4,"patience":8,"flow":8}
+{"n":13,"kind":"do","turn":5,"steps":[19,22],"frame":"t0005.png"}
+{"n":14,"kind":"note","turn":5,"patience":8,"flow":8}
+{"n":15,"kind":"do","turn":6,"steps":[23,26],"frame":"t0006.png"}
+{"n":16,"kind":"note","turn":6,"patience":9,"flow":9}
+{"n":17,"kind":"do","turn":7,"steps":[27,28],"frame":"t0007.png"}
+{"n":18,"kind":"note","turn":7,"patience":9,"flow":9}
+{"n":19,"kind":"handback"}
+{"n":20,"kind":"epilogue","steps":[29,30]}

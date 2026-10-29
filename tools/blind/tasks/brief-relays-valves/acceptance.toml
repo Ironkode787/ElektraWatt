@@ -1,0 +1,90 @@
+# The acceptance list (visual spec section 6.2). The checker decides each item `ok`, `miss` or `unclear` from the
+# exports of the tester's run. `query` and `expect` prove the item on the reference solution (`check-brief`): a
+# read-only SELECT over the `api_v1_*` views and the row count it must give. `infeasible` marks a soft item the current
+# build cannot meet, with the reason and the package that brings it.
+
+[[item]]
+id = "A1"
+kind = "hard"
+what = "Three relays, each with its coil and a normally open contact on the same device, both connected."
+how = "connections, pages"
+query = "SELECT DISTINCT a.tag FROM (SELECT from_tag AS tag, from_cp AS cp FROM api_v1_wire UNION SELECT to_tag, to_cp FROM api_v1_wire) a JOIN (SELECT from_tag AS tag, from_cp AS cp FROM api_v1_wire UNION SELECT to_tag, to_cp FROM api_v1_wire) b ON a.tag = b.tag WHERE a.cp = 'A1' AND b.cp = '13'"
+expect = ">= 3"
+
+[[item]]
+id = "A2"
+kind = "hard"
+what = "Each relay's contact switches its own valve through a terminal of the strip."
+how = "connections"
+query = "SELECT w.seq FROM api_v1_wire w JOIN api_v1_device a ON a.tag = w.from_tag JOIN api_v1_device b ON b.tag = w.to_tag WHERE (a.letter = 'K' AND w.from_cp = '14' AND b.kind = 'terminal') OR (b.letter = 'K' AND w.to_cp = '14' AND a.kind = 'terminal')"
+expect = ">= 3"
+
+[[item]]
+id = "A3"
+kind = "hard"
+what = "Field wiring: every connection of a valve goes to a terminal of the strip, none to a cabinet device."
+how = "connections, pages"
+query = "SELECT w.seq FROM api_v1_wire w JOIN api_v1_device a ON a.tag = w.from_tag JOIN api_v1_device b ON b.tag = w.to_tag WHERE (a.letter = 'Y' AND COALESCE(b.kind, '') <> 'terminal') OR (b.letter = 'Y' AND COALESCE(a.kind, '') <> 'terminal')"
+expect = "== 0"
+
+[[item]]
+id = "A4"
+kind = "hard"
+what = "Door wiring: every connection of a selector switch goes to a terminal of the strip, none straight to a cabinet device."
+how = "connections, pages"
+query = "SELECT w.seq FROM api_v1_wire w JOIN api_v1_device a ON a.tag = w.from_tag JOIN api_v1_device b ON b.tag = w.to_tag WHERE (a.letter = 'S' AND COALESCE(b.kind, '') <> 'terminal') OR (b.letter = 'S' AND COALESCE(a.kind, '') <> 'terminal')"
+expect = "== 0"
+
+[[item]]
+id = "A5"
+kind = "hard"
+what = "The three valves and the three selector switches are each connected at both ends."
+how = "connections"
+query = "SELECT w.seq FROM api_v1_wire w JOIN api_v1_device a ON a.tag = w.from_tag JOIN api_v1_device b ON b.tag = w.to_tag WHERE a.letter IN ('Y', 'S') OR b.letter IN ('Y', 'S')"
+expect = ">= 12"
+
+[[item]]
+id = "A6"
+kind = "hard"
+what = "Protection on both sides: the power supply unit is fed through a circuit breaker, and its 24 V output goes through a fuse."
+how = "connections, pages"
+query = "SELECT w.seq FROM api_v1_wire w JOIN api_v1_device a ON a.tag = w.from_tag JOIN api_v1_device b ON b.tag = w.to_tag WHERE (a.letter = 'F' AND b.has_part = 1) OR (b.letter = 'F' AND a.has_part = 1)"
+expect = ">= 3"
+
+[[item]]
+id = "A7"
+kind = "hard"
+what = "The check report is clean, or every remaining finding is explained in the tester's hand-back."
+how = "check, handback"
+
+[[item]]
+id = "A8"
+kind = "hard"
+what = "Delivered: the tester saved the project and exported the PDF itself."
+how = "pdf, work, outcomes"
+
+[[item]]
+id = "A9"
+kind = "soft"
+what = "The supply potentials are named and typed: L, N, PE, +24 V DC and 0 V."
+how = "connections"
+query = "SELECT name FROM api_v1_potential WHERE ac_dc IS NOT NULL AND voltage IS NOT NULL"
+expect = ">= 4"
+infeasible = "the window cannot name or type a potential yet (potential naming, F34 lane of cycle 34)"
+
+[[item]]
+id = "A10"
+kind = "soft"
+what = "Every placed device carries a part; the parts list has nothing foreign."
+how = "bom"
+query = "SELECT tag FROM api_v1_device WHERE has_part = 0 AND COALESCE(kind, '') NOT IN ('terminal', 'strip')"
+expect = "== 0"
+infeasible = "no starter parts library: the project has parts for the power supply unit only (FT-592)"
+
+[[item]]
+id = "A11"
+kind = "soft"
+what = "Each page the tester drew on carries a title that says what it shows."
+how = "pages"
+query = "SELECT p.folio FROM api_v1_page p WHERE p.generated = 0 AND (p.title IS NULL OR p.title = '') AND EXISTS (SELECT 1 FROM api_v1_device d WHERE d.main_folio = p.folio)"
+expect = "== 0"

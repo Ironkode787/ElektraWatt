@@ -12,6 +12,10 @@
 //! recording's) and **R2** (the epilogue's page texts equal `epilogue.txt` byte for byte). Outcomes and page texts carry
 //! no record ID (the product prints the alias `@n`), so the test needs no normaliser, and a raw UUID in a replayed line
 //! fails it. A recording with `stale` set is skipped with its reason; the self-test recording is never stale.
+//!
+//! A visual recording (`run.json` `senses = "visual"`, WP-S6.13 part 4) is replayed with `--visual --no-frames`: its
+//! input and frame lines are settled as in the run and no frame is painted, so it runs on every OS. R1 then compares
+//! each input's and each frame line's `dispatched` (and `closed`) too; the frames themselves are a report (§5.4).
 //! `blind_replay_long` (ignored) does the same for `ci = "nightly"`.
 
 use std::path::{Path, PathBuf};
@@ -57,6 +61,8 @@ struct Recording {
     dir: PathBuf,
     ci: String,
     stale: Option<String>,
+    /// A visual run's recording.
+    visual: bool,
     script: Vec<String>,
     outcomes: Vec<Value>,
     epilogue_text: String,
@@ -104,6 +110,7 @@ fn load(dir: &Path) -> Recording {
         dir: dir.to_path_buf(),
         ci: run["ci"].as_str().unwrap_or("none").to_owned(),
         stale: run["stale"].as_str().map(str::to_owned),
+        visual: run["senses"] == "visual",
         script,
         outcomes,
         epilogue_text: std::fs::read_to_string(dir.join("epilogue.txt"))
@@ -151,6 +158,11 @@ fn replay(rec: &Recording) -> Vec<String> {
         .arg(tmp.0.join("replay.uiscript"))
         .args(["--keep-going", "--config-dir"])
         .arg(tmp.0.join("config"))
+        .args(if rec.visual {
+            &["--visual", "--no-frames"][..]
+        } else {
+            &[]
+        })
         .current_dir(tmp.0.join("work"))
         .env("EW_SAMPLE_DIR", tmp.0.join("empty-sample"))
         .env("EW_DOCS_DIR", tmp.0.join("book"))
@@ -189,12 +201,26 @@ fn check(rec: &Recording, lines: &[String]) -> Vec<String> {
     for (i, want) in rec.outcomes.iter().enumerate() {
         let Some(line) = lines.get(i) else { break };
         let got: Value = serde_json::from_str(line).unwrap_or_else(|e| panic!("step {}: {line}: {e}", i + 1));
-        for key in ["action", "outcome", "reason"] {
+        // A text step's action, outcome and reason; a visual input's or frame line's dispatch (absent members of
+        // the other kind compare as equal nulls).
+        for key in [
+            "action",
+            "outcome",
+            "reason",
+            "input",
+            "dispatched",
+            "frame",
+            "closed",
+        ] {
             if got[key] != want[key] {
+                let what = want["action"]
+                    .as_str()
+                    .or_else(|| want["input"]["input"].as_str())
+                    .or_else(|| want["frame"].as_str())
+                    .unwrap_or("?");
                 failures.push(format!(
-                    "R1 step {} ({}): {key} was {} and is now {}",
+                    "R1 step {} ({what}): {key} was {} and is now {}",
                     i + 1,
-                    want["action"].as_str().unwrap_or("?"),
                     want[key],
                     got[key]
                 ));
@@ -329,6 +355,34 @@ fn the_self_test_recording_is_a_pr_recording_and_never_stale() {
     );
     // The recording holds the replay inputs and no full transcript.
     assert!(!selftest.dir.join("transcript.jsonl").exists());
+}
+
+/// BV10: the visual self-test recording runs in the PR jobs on every OS (replayed without painting), and a changed
+/// dispatch of one of its inputs fails R1 naming the input.
+#[test]
+fn the_visual_self_test_recording_replays_and_compares_the_dispatches() {
+    let all = recordings();
+    let visual = &all
+        .iter()
+        .find(|(n, _)| n == "selftest-visual")
+        .expect("tools/blind/recordings/selftest-visual is committed (`cargo xtask blind selftest-visual` writes it)")
+        .1;
+    assert!(visual.visual && visual.ci == "pr" && visual.stale.is_none());
+    let lines = replay(visual);
+    assert!(check(visual, &lines).is_empty(), "{:?}", check(visual, &lines));
+    let mut bad = load(&visual.dir);
+    let at = bad
+        .outcomes
+        .iter()
+        .position(|o| o["dispatched"][0]["outcome"] == "refused")
+        .expect("the visual self-test has an input whose action is refused");
+    bad.outcomes[at]["dispatched"][0]["outcome"] = Value::from("done");
+    let failures = check(&bad, &lines);
+    assert_eq!(failures.len(), 1, "{failures:?}");
+    assert!(
+        failures[0].starts_with(&format!("R1 step {} (key): dispatched was", at + 1)),
+        "{failures:?}"
+    );
 }
 
 /// A recording whose outcomes were corrupted fails R1, naming the step.

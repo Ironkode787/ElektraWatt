@@ -16,14 +16,16 @@ use anyhow::{Context, Result, bail};
 use super::compose::{ComposeIn, REFERENCE_FILES, compose, run_files};
 use super::run::{
     Counts, GOLDEN_PROJECT_DIR, GOLDEN_SCOPE_PROJECT, HARNESS_VERSION, Kind, RUN_SCHEMA, Run, RunJson,
-    copy_dir, golden_digest, script_header, turns_header, valid_run_id,
+    Senses, VISUAL_PPP, VISUAL_WINDOW, copy_dir, golden_digest, script_header, turns_header, valid_run_id,
 };
 
 /// The arguments of `start`.
 #[derive(Clone, Debug)]
 pub struct StartArgs {
-    /// `free`, `gate` or `check`.
+    /// `free`, `gate`, `check` or `brief`.
     pub kind: Kind,
+    /// `text` (the base specification) or `visual` (WP-S6.13 part 4).
+    pub senses: Senses,
     /// The task (`gpp-101-103`, `free`, `selftest`).
     pub task: String,
     /// The drafter's persona.
@@ -154,6 +156,12 @@ pub fn prepare(root: &Path, a: &StartArgs, version: &dyn Fn(&Path) -> Result<Str
     if a.kind != Kind::Check && a.of.is_some() {
         bail!("`--of` belongs to a check run");
     }
+    if a.kind == Kind::Brief && !a.task.starts_with("brief-") {
+        bail!("a brief run's task is a brief (`brief-<name>`)");
+    }
+    if a.kind != Kind::Brief && a.task.starts_with("brief-") && a.kind != Kind::Check {
+        bail!("the task `{}` is a brief: start it with `--kind brief`", a.task);
+    }
     // A check run audits a stopped drafter run.
     let drafter = if a.kind == Kind::Check {
         let of = a.of.as_deref().unwrap_or_default();
@@ -170,7 +178,8 @@ pub fn prepare(root: &Path, a: &StartArgs, version: &dyn Fn(&Path) -> Result<Str
     // Every option is validated here, before anything is created: the composition checks the persona, the task and the
     // kind (FT-484), and the sources are looked up now.
     let blind = run.blind_command();
-    let inp = compose_input(root, a, &blind, &folios);
+    let frames = run.path("frames").display().to_string();
+    let inp = compose_input(root, a, &blind, &frames, &folios);
     let composed = compose(&inp)?;
     let files = run_files(&inp, &composed)?;
     let bin = a.bin.clone().unwrap_or_else(|| root.join("target/debug"));
@@ -267,6 +276,14 @@ fn populate(
         )?;
     }
     copy_file(&root.join("tools/blind/HELP.md"), &run.path(".harness/HELP.md"))?;
+    let visual = a.senses == Senses::Visual;
+    if visual {
+        copy_file(
+            &root.join("tools/blind/HELP-VISUAL.md"),
+            &run.path(".harness/HELP-VISUAL.md"),
+        )?;
+        std::fs::create_dir_all(run.path("frames"))?;
+    }
 
     std::fs::write(run.path("prompt.md"), &composed.text)?;
 
@@ -288,9 +305,16 @@ fn populate(
         }
     };
     std::fs::write(run.path("prelude.uiscript"), prelude)?;
+    // A visual run's steps begin with its start frame (visual spec §3.1 item 4), which the keeper paints after the
+    // prelude.
+    let start_frame = if visual {
+        format!("{}\n", super::visual::start_frame_line())
+    } else {
+        String::new()
+    };
     std::fs::write(
         run.path("steps.uiscript"),
-        format!("{}\n", script_header("steps")),
+        format!("{}\n{start_frame}", script_header("steps")),
     )?;
     std::fs::write(run.path("turns.jsonl"), format!("{}\n", turns_header()))?;
     std::fs::write(run.path("drafter.md"), "")?;
@@ -303,13 +327,16 @@ fn populate(
         persona: a.persona.clone(),
         of: a.of.clone(),
         folios: folios.clone(),
-        caps: a.kind.caps(),
+        caps: a.kind.caps_for(a.senses),
         files: files.clone(),
         golden: golden.clone(),
         golden_scope: Some(GOLDEN_SCOPE_PROJECT.to_owned()),
         app_version,
         harness_version: HARNESS_VERSION.to_owned(),
         stateless: a.stateless,
+        senses: visual.then(|| a.senses.word().to_owned()),
+        ppp: visual.then_some(VISUAL_PPP),
+        window: visual.then_some(VISUAL_WINDOW),
         counts: Counts::default(),
         end: None,
         handed_back: false,
@@ -328,6 +355,7 @@ fn compose_input<'a>(
     root: &'a Path,
     a: &'a StartArgs,
     blind: &'a str,
+    frames: &'a str,
     folios: &'a [String],
 ) -> ComposeIn<'a> {
     ComposeIn {
@@ -337,7 +365,9 @@ fn compose_input<'a>(
         persona: a.persona.as_deref(),
         run_id: &a.run_id,
         blind,
-        caps: a.kind.caps(),
+        caps: a.kind.caps_for(a.senses),
+        senses: a.senses,
+        frames,
         folios,
     }
 }
@@ -368,7 +398,14 @@ pub fn run_folios(root: &Path, a: &StartArgs, drafter: Option<&Run>) -> Result<V
 /// where they are.
 fn copy_reports(drafter: &Run, run: &Run) -> Result<()> {
     std::fs::create_dir_all(run.path("reports"))?;
-    for name in ["check.txt", "bom.csv", "score.json", "report.md"] {
+    for name in [
+        "check.txt",
+        "bom.csv",
+        "score.json",
+        "report.md",
+        "connections.txt",
+        "pages.txt",
+    ] {
         let from = drafter.path(&format!("out/{name}"));
         if from.is_file() {
             std::fs::copy(&from, run.path(&format!("reports/{name}")))
@@ -397,13 +434,54 @@ pub fn read_version(exe: &Path) -> Result<String> {
     Ok(v.to_owned())
 }
 
-/// `start`: prepares the folder and, unless `--stateless`, starts the keeper.
+/// Whether the copied product can paint a frame here: it runs the visual driver over an empty script with a frames
+/// folder, which ends at once with exit 0, or with exit 2 when the host has no offscreen adapter.
+fn has_offscreen_adapter(run: &Run) -> bool {
+    let script = run.path(".harness/probe.uiscript");
+    if std::fs::write(&script, format!("{}\n", script_header("probe"))).is_err() {
+        return false;
+    }
+    let probe = run.path(".harness/probe");
+    let ok = std::process::Command::new(run.product_exe("elektrawatt"))
+        .args(["--headless", "--visual", "--script"])
+        .arg(&script)
+        .arg("--frames")
+        .arg(&probe)
+        .arg("--config-dir")
+        .arg(&probe)
+        .current_dir(run.path(".harness"))
+        .env("EW_CONTENT_DIR", run.path(".harness/content"))
+        .stdin(std::process::Stdio::null())
+        .output()
+        .is_ok_and(|o| o.status.success());
+    let _ = std::fs::remove_file(&script);
+    let _ = std::fs::remove_dir_all(&probe);
+    ok
+}
+
+/// `start`: for a brief, the proof that the current build can complete it (`check-brief`); then the folder, and, unless
+/// `--stateless`, the keeper. A visual run needs an offscreen adapter.
 ///
 /// # Errors
 ///
-/// See [`prepare`]; the keeper's failure.
+/// See [`prepare`]; a brief that is not runnable; no offscreen adapter; the keeper's failure.
 pub fn start(root: &Path, a: &StartArgs) -> Result<Run> {
+    if a.kind == Kind::Brief {
+        let bin = a.bin.clone().unwrap_or_else(|| root.join("target/debug"));
+        let c = super::brief::check_brief(root, &a.task, &bin)?;
+        if !c.runnable() {
+            bail!(
+                "harness: the brief `{}` is not runnable on this build:\n{}",
+                a.task,
+                c.problems.join("\n")
+            );
+        }
+    }
     let run = prepare(root, a, &read_version)?;
+    if a.senses == Senses::Visual && !has_offscreen_adapter(&run) {
+        let _ = std::fs::remove_dir_all(&run.dir);
+        bail!("{}", super::visual::NO_ADAPTER);
+    }
     if !a.stateless {
         super::keeper::spawn_keeper(&run, false, super::keeper::DEFAULT_IDLE_MINUTES)?;
     }
@@ -446,6 +524,7 @@ mod tests {
     fn args(tmp: &Tmp, id: &str) -> StartArgs {
         StartArgs {
             kind: Kind::Free,
+            senses: crate::blind::run::Senses::Text,
             task: "selftest".to_owned(),
             persona: None,
             of: None,
@@ -624,7 +703,7 @@ mod tests {
         assert!(
             report(&check, "nonsense")
                 .unwrap()
-                .starts_with("harness: report check, bom or score")
+                .starts_with("harness: report check, bom, score, connections, pages or pdf")
         );
         // A drafter run reads its own `out/`.
         assert_eq!(report(&drafter, "check").unwrap(), "no findings\n");

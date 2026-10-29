@@ -32,6 +32,18 @@ pub const HANDBACK_HEADINGS: [&str; 7] = [
     "7. Good",
 ];
 
+/// The headings of the play-tester's hand-back of a visual run, in order (visual spec §7.5).
+pub const PLAYTEST_HEADINGS: [&str; 8] = [
+    "1. Keep or drop",
+    "2. Where it lost me",
+    "3. What the tool is",
+    "4. Broken",
+    "5. My design against the brief",
+    "6. Flow chart",
+    "7. Good",
+    "8. What I could not read",
+];
+
 /// The longest a note's free text may be (characters, after the two scores).
 pub const NOTE_MAX: usize = 1200;
 
@@ -150,17 +162,17 @@ fn state_diff(before: &Value, after: &Value) -> Vec<String> {
 }
 
 /// What the end of a run is called in the message of a refused call.
-fn ended(end: &str) -> String {
+pub(super) fn ended(end: &str) -> String {
     format!("harness: the run has ended ({end})\n")
 }
 
-fn lost_message(run: &Run) -> String {
+pub(super) fn lost_message(run: &Run) -> String {
     let id = run.load().map_or_else(|_| String::new(), |j| j.run);
     format!("harness: session lost, run {} resume {id}\n", run.blind_command())
 }
 
 /// Marks the run lost in `run.json` (a keeper that does not answer).
-fn mark_lost(run: &Run) {
+pub(super) fn mark_lost(run: &Run) {
     let _ = run.update(|j| {
         if j.end.is_none() {
             j.end = Some("lost".to_owned());
@@ -169,7 +181,7 @@ fn mark_lost(run: &Run) {
 }
 
 /// Applies the caps to `run.json`: a counter that reached its cap ends the run.
-fn apply_caps(j: &mut RunJson, force: bool) {
+pub(super) fn apply_caps(j: &mut RunJson, force: bool) {
     let (c, k) = (j.counts, j.caps);
     if j.end.is_none()
         && (force
@@ -626,14 +638,17 @@ pub fn handback(run: &Run, text: &str) -> Result<String> {
         return Ok("harness: the hand-back is filed\n".to_owned());
     }
     if let Some(end) = &rj.end
-        && !matches!(end.as_str(), "quit" | "cap")
+        && !matches!(end.as_str(), "quit" | "cap" | "app-closed")
     {
         return Ok(ended(end));
     }
-    // A check run files the checker's audit (five headings, `checker.md`); the others the drafter's hand-back.
+    // A check run files the checker's audit (five headings, `checker.md`); a visual run the play-tester's hand-back
+    // (eight headings); the others the drafter's hand-back.
     let check = rj.kind == "check";
     let headings: &[&str] = if check {
         &CHECKER_HEADINGS
+    } else if rj.visual() {
+        &PLAYTEST_HEADINGS
     } else {
         &HANDBACK_HEADINGS
     };
@@ -671,7 +686,9 @@ pub fn handback(run: &Run, text: &str) -> Result<String> {
     Ok("hand-back filed; the run is over\n".to_owned())
 }
 
-/// `report <run> check|bom|score`: a file the stop wrote.
+/// `report <run> check|bom|score|connections|pages|pdf`: a file the stop wrote. `connections` (the wires and the
+/// potentials), `pages` (the epilogue's page texts) and `pdf` (the path of the harness's PDF) are the checker's (visual
+/// spec §6.2): a check run reads them, any other run is refused.
 ///
 /// # Errors
 ///
@@ -679,16 +696,35 @@ pub fn handback(run: &Run, text: &str) -> Result<String> {
 pub fn report(run: &Run, which: &str) -> Result<String> {
     // A check run reads the reports of the drafter run it audits, copied into its `reports/` by `start`; any other run
     // reads what its own `stop` wrote into `out/`.
-    let dir = if run.load()?.kind == "check" {
-        "reports"
-    } else {
-        "out"
-    };
+    let rj = run.load()?;
+    let check = rj.kind == "check";
+    let dir = if check { "reports" } else { "out" };
     let files: &[&str] = match which {
         "check" => &["check.txt"],
         "bom" => &["bom.csv"],
         "score" => &["score.json", "report.md"],
-        other => return Ok(format!("harness: report check, bom or score, not `{other}`\n")),
+        "connections" | "pages" | "pdf" if !check => {
+            return Ok("harness: report connections, pages and pdf are the checker's\n".to_owned());
+        }
+        "connections" => &["connections.txt"],
+        "pages" => &["pages.txt"],
+        "pdf" => {
+            // The drafter's PDF stays in the drafter's run folder; the checker reads it there, as images.
+            let pdf = rj
+                .of
+                .as_deref()
+                .and_then(|of| super::run::locate(of, run.dir.parent(), None).ok())
+                .map(|d| d.path("out/project-t1.pdf"));
+            return Ok(match pdf {
+                Some(p) if p.is_file() => format!("{}\n", p.display()),
+                _ => "harness: the drafter's out/project-t1.pdf does not exist\n".to_owned(),
+            });
+        }
+        other => {
+            return Ok(format!(
+                "harness: report check, bom, score, connections, pages or pdf, not `{other}`\n"
+            ));
+        }
     };
     let texts: Vec<String> = files
         .iter()

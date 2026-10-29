@@ -53,11 +53,58 @@ pub fn epilogue_steps(folios: &[String], dirty: bool, check: bool) -> Vec<Step> 
     steps
 }
 
-/// Whether the project was dirty after the last transcript line (`None` without one).
-fn last_dirty(run: &Run) -> Option<bool> {
-    let line = run.transcript().ok()?.into_iter().rev().find(|l| !l.is_empty())?;
-    let v: Value = serde_json::from_str(&line).ok()?;
-    v["state"]["dirty"].as_bool()
+/// Whether the project was dirty after the last transcript line (`None` without one). In a visual run the last line
+/// with a state counts (a frame line has none); an application that has closed has no project open (`None`).
+fn last_dirty(run: &Run, visual: bool) -> Option<bool> {
+    let lines = run.transcript().ok()?;
+    if !visual {
+        let line = lines.into_iter().rev().find(|l| !l.is_empty())?;
+        let v: Value = serde_json::from_str(&line).ok()?;
+        return v["state"]["dirty"].as_bool();
+    }
+    for line in lines.iter().rev() {
+        let v: Value = serde_json::from_str(line).ok()?;
+        if v["closed"].as_bool() == Some(true) {
+            return None;
+        }
+        if let Some(d) = v["state"]["dirty"].as_bool() {
+            return Some(d);
+        }
+    }
+    None
+}
+
+/// The wires and the potentials of a project for the checker (`report connections`, visual spec §6.2): a fixed `ew sql`
+/// over the wire and potential views, as two CSV sections.
+const WIRES_SQL: &str = "SELECT seq, number, kind, from_tag, from_cp, to_tag, to_cp, potential_name, csa, csa_unit, colour, pages FROM api_v1_wire ORDER BY seq";
+const POTENTIALS_SQL: &str = "SELECT name, aliases, ptype, voltage, ac_dc, circuit_class, protected_by_tag, member_count, pages FROM api_v1_potential ORDER BY name";
+/// The authored pages of a project in page order.
+const FOLIOS_SQL: &str = "SELECT folio FROM api_v1_page WHERE generated = 0 ORDER BY physical_index";
+
+/// Runs one `ew sql` over `work/project` and returns its CSV, `None` when it fails.
+fn sql(run: &Run, query: &str) -> Option<String> {
+    let ew = run.product_exe("ew");
+    let (code, out, _) = super::session::run_tool(
+        run,
+        &ew,
+        &["sql", "work/project", query, "--format", "csv"],
+        &run.dir,
+    )
+    .ok()?;
+    (code == Some(0)).then_some(out)
+}
+
+/// The folios of the saved project, for a brief's epilogue (a brief has no folios of its own).
+fn saved_folios(run: &Run) -> Vec<String> {
+    sql(run, FOLIOS_SQL)
+        .map(|csv| {
+            csv.lines()
+                .skip(1)
+                .map(|l| l.trim().trim_matches('"').to_owned())
+                .filter(|f| !f.is_empty())
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 /// What the copied `ew` produced, for the report.
@@ -175,6 +222,28 @@ pub fn exports_of(run: &Run) -> Result<ExportFacts> {
     })
 }
 
+/// The checker's text exports of a stopped run (visual spec §6.2): `out/connections.txt` (the wires and the potentials
+/// of the saved project) and `out/pages.txt` (the epilogue's page texts). They are not in a recording.
+fn write_checker_exports(run: &Run, range: [usize; 2]) -> Result<()> {
+    let mut text = String::from("== wires ==\n");
+    text.push_str(&sql(run, WIRES_SQL).unwrap_or_else(|| "(no project)\n".to_owned()));
+    text.push_str("\n== potentials ==\n");
+    text.push_str(&sql(run, POTENTIALS_SQL).unwrap_or_else(|| "(no project)\n".to_owned()));
+    std::fs::create_dir_all(run.path("out"))?;
+    super::run::write_atomic(&run.path("out/connections.txt"), &text)?;
+    let prelude = super::run::read_script(&run.path("prelude.uiscript"))?;
+    let pages = super::replay::epilogue_text(
+        &run.steps()?,
+        &run.transcript()?,
+        prelude.len(),
+        [
+            u32::try_from(range[0]).unwrap_or(u32::MAX),
+            u32::try_from(range[1]).unwrap_or(u32::MAX),
+        ],
+    );
+    super::run::write_atomic(&run.path("out/pages.txt"), &pages)
+}
+
 /// `stop <run> [--reason <r>]`.
 ///
 /// # Errors
@@ -191,11 +260,12 @@ pub fn stop(root: &Path, run: &Run, backend: &mut dyn Backend, reason: &str) -> 
         bail!("run `{}` is already stopped", rj.run);
     }
     let check = rj.kind == "check";
-    let dirty = last_dirty(run);
-    let steps = epilogue_steps(&rj.folios, dirty == Some(true), check);
+    // A visual run whose application has closed: the epilogue opens the saved project in the driver's fresh shell.
+    let closed = rj.end.as_deref() == Some("app-closed");
+    let dirty = last_dirty(run, rj.visual());
     let first = run.steps()?.len() + 1;
     let mut texts = 0usize;
-    for step in &steps {
+    let mut send = |step: &Step| -> Result<()> {
         let sent: Sent = backend.execute(step)?;
         append(
             &run.path("steps.uiscript"),
@@ -204,6 +274,34 @@ pub fn stop(root: &Path, run: &Run, backend: &mut dyn Backend, reason: &str) -> 
         append(&run.path("transcript.jsonl"), &format!("{}\n", sent.raw))?;
         if step.action == "page.describe" && sent.describe().is_some() {
             texts += 1;
+        }
+        Ok(())
+    };
+    if closed && run.path("work/project").is_dir() {
+        send(&Step {
+            action: "file.open".to_owned(),
+            params: json!({"dir": "project"}),
+        })?;
+    }
+    if rj.kind == "brief" {
+        // A brief names no folios: the project is saved first (when dirty) and every authored page is described.
+        let steps = epilogue_steps(&[], dirty == Some(true), false);
+        let (quit, save) = steps.split_last().map_or((None, &[][..]), |(q, s)| (Some(q), s));
+        for step in save {
+            send(step)?;
+        }
+        for folio in saved_folios(run) {
+            send(&Step {
+                action: "page.describe".to_owned(),
+                params: json!({ "folio": folio }),
+            })?;
+        }
+        if let Some(q) = quit {
+            send(q)?;
+        }
+    } else {
+        for step in &epilogue_steps(&rj.folios, dirty == Some(true), check) {
+            send(step)?;
         }
     }
     let last = run.steps()?.len();
@@ -225,6 +323,9 @@ pub fn stop(root: &Path, run: &Run, backend: &mut dyn Backend, reason: &str) -> 
     } else {
         run_exports(run)?
     };
+    if !check {
+        write_checker_exports(run, [first, last])?;
+    }
     let golden = check_golden(root, &rj);
     let rj = run.update(|j| {
         if reason == "orchestrator" && j.end.is_none() {

@@ -1,0 +1,2 @@
+{"$schema":"ew.blindfriction/1"}
+{"n":1,"turn":6,"step":8,"frame":null,"region":null,"wanted":"open the tutorials","expected":"a list of tutorials","saw":"the harness refused the step","severity":"annoying","category":"discoverability","workaround":null}

@@ -1,0 +1,53 @@
+{
+  "$schema": "ew.blindrun/1",
+  "run": "selftest-visual",
+  "kind": "free",
+  "task": "selftest-visual",
+  "persona": null,
+  "of": null,
+  "folios": [
+    "101"
+  ],
+  "caps": {
+    "turns": 150,
+    "steps": 1000,
+    "looks": 200,
+    "refusals": 50
+  },
+  "files": {
+    "tools/blind/HELP-VISUAL.md": "5c8f8ca4108289dc37d1061767d9c72c2619fe1b51267da3753e2c2bbedf45c4",
+    "tools/blind/reference/actions.txt": "1143edfa50e7273db26ba5ae8dc800f7dd3e5d3233e2b2d18f91cf868b93421e",
+    "tools/blind/reference/vocabulary.txt": "da778f925c7dbf3e469e81bbcb89885d1e226e91d1c670e855073e32777095d9",
+    "tools/blind/tasks/selftest-visual/agent.jsonl": "0a914be5b3e94b2a6d817a9f53f3200037e592d8bab5f5822fdf03f6ec0e10be",
+    "tools/blind/tasks/selftest-visual/prelude.uiscript": "b5d31b6c62a5cd9cc5eafd52acd517a3528027fcc1e85532bf67cf05fb256f48",
+    "tools/blind/tasks/selftest-visual/task.md": "803ac2aa72326c1d0ca1ac34ed25da98cd2a2bc853e3a96739e98343e68b4f72"
+  },
+  "golden": "124e802a1fab37f307aab01e83111f45afc8da1057e78459830e1165d1580a8d",
+  "golden_scope": "project",
+  "app_version": "0.0.0",
+  "harness_version": "0.0.0",
+  "stateless": false,
+  "senses": "visual",
+  "ppp": 1.2,
+  "window": [
+    1280,
+    800
+  ],
+  "counts": {
+    "turns": 7,
+    "steps": 18,
+    "looks": 2,
+    "refusals": 2,
+    "refused": 1,
+    "failed": 0,
+    "broken": 0
+  },
+  "end": "handback",
+  "handed_back": true,
+  "diverged_at": null,
+  "ci": "pr",
+  "stale": null,
+  "clean_before_epilogue": true,
+  "child_exit": 0,
+  "golden_changed": false
+}
