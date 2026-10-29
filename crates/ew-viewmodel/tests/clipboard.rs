@@ -176,7 +176,7 @@ fn a_device_selected_by_tag_is_copied_as_its_representation() {
     done(&mut shell, "edit.copy", json!({}));
     assert_eq!(
         state(&shell)["clipboard"],
-        json!({"kind": "fragment", "records": 4, "copies": 3})
+        json!({"kind": "fragment", "records": 4, "copies": 4})
     );
     let reps = shell.canvas().unwrap().page().tables.reps.len();
     done(&mut shell, "edit.cut", json!({}));
@@ -235,7 +235,7 @@ fn cb4_copy_and_paste_of_102f1_is_102f3_with_its_part_and_no_wire() {
     done(&mut shell, "edit.copy", json!({}));
     assert_eq!(
         state(&shell)["clipboard"],
-        json!({"kind": "fragment", "records": 4, "copies": 3})
+        json!({"kind": "fragment", "records": 4, "copies": 4})
     );
     let wires = shell.canvas().unwrap().page().tables.connections.len();
     let reps = shell.canvas().unwrap().page().tables.reps.len();
@@ -326,7 +326,7 @@ fn cb7_the_paste_tool_ghost_preview_and_escape() {
     );
     // The describe lines and their words.
     let d = shell.describe();
-    assert!(d.contains("clipboard fragment records 4 copies 3"), "{d}");
+    assert!(d.contains("clipboard fragment records 4 copies 4"), "{d}");
     let line = d
         .lines()
         .find(|l| l.starts_with("canvas ghost paste records 4 at "))
