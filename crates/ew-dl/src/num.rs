@@ -614,24 +614,20 @@ mod tests {
     }
 
     proptest! {
+        /// Rotation there and back returns within 1 nm (coordinates up to ±10¹² nm); at up to ±10⁹ nm it commutes
+        /// with translation and keeps the length within 1 nm.
         #[test]
-        fn rotate_there_and_back(x in -1_000_000_000_000i64..1_000_000_000_000, y in -1_000_000_000_000i64..1_000_000_000_000, a in any::<i32>(), cx in -1_000_000i64..1_000_000) {
+        fn rotate_there_and_back(x in -1_000_000_000_000i64..1_000_000_000_000, y in -1_000_000_000_000i64..1_000_000_000_000, a in any::<i32>(), cx in -1_000_000i64..1_000_000, tx in -1_000_000i64..1_000_000, ty in -1_000_000i64..1_000_000) {
             let q = p(x, y);
             let about = p(cx, -cx);
             let back = rotate(rotate(q, Angle2(a), about), Angle2(a.wrapping_neg()), about);
-            prop_assert!((back.x.0 - x).abs() <= 1 && (back.y.0 - y).abs() <= 1, "{q:?} → {back:?}");
-        }
-
-        #[test]
-        fn rotate_commutes_with_translation(x in -1_000_000_000i64..1_000_000_000, y in -1_000_000_000i64..1_000_000_000, a in any::<i32>(), tx in -1_000_000i64..1_000_000, ty in -1_000_000i64..1_000_000) {
+            prop_assert!((back.x.0 - x).abs() <= 1 && (back.y.0 - y).abs() <= 1, "there and back: {q:?} → {back:?}");
+            // The commutation and length properties over ±10⁹ nm.
+            let (x, y) = (x % 1_000_000_000, y % 1_000_000_000);
             let t = p(tx, ty);
-            prop_assert_eq!(rotate(p(x, y) + t, Angle2(a), t), rotate(p(x, y), Angle2(a), Pt2::ORIGIN) + t);
-        }
-
-        #[test]
-        fn rotate_preserves_length(x in -1_000_000_000i64..1_000_000_000, y in -1_000_000_000i64..1_000_000_000, a in any::<i32>()) {
+            prop_assert_eq!(rotate(p(x, y) + t, Angle2(a), t), rotate(p(x, y), Angle2(a), Pt2::ORIGIN) + t, "commutes with translation");
             let r = rotate(p(x, y), Angle2(a), Pt2::ORIGIN);
-            prop_assert!((length(r).0 - length(p(x, y)).0).abs() <= 1);
+            prop_assert!((length(r).0 - length(p(x, y)).0).abs() <= 1, "preserves length: {:?}", (x, y));
         }
 
         #[test]
@@ -669,16 +665,13 @@ mod tests {
             }
         }
 
+        /// nm → milli-pt is the nearest milli-pt, and milli-pt → nm → milli-pt is the identity.
         #[test]
-        fn milli_pt_round_trip(mpt in -1_000_000_000_000i64..1_000_000_000_000) {
-            prop_assert_eq!(nm_to_milli_pt(milli_pt_to_nm(mpt).unwrap()), mpt);
-        }
-
-        #[test]
-        fn milli_pt_is_nearest(nm in any::<i64>()) {
+        fn milli_pt_is_nearest(nm in any::<i64>(), mpt in -1_000_000_000_000i64..1_000_000_000_000) {
             let m = i128::from(nm_to_milli_pt(Nm(nm)));
             // |nm·9 − m·3175| ≤ 3175/2.
-            prop_assert!((i128::from(nm) * 9 - m * 3175).abs() * 2 <= 3175);
+            prop_assert!((i128::from(nm) * 9 - m * 3175).abs() * 2 <= 3175, "nearest: {}", nm);
+            prop_assert_eq!(nm_to_milli_pt(milli_pt_to_nm(mpt).unwrap()), mpt, "round trip");
         }
     }
 }

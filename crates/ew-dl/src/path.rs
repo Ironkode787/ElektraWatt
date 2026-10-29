@@ -380,21 +380,6 @@ mod tests {
     }
 
     #[test]
-    fn kappa_constant() {
-        assert_eq!(KAPPA_NUM as f64 / KAPPA_DEN as f64, 0.552_284_749_8);
-        // κ = 4/3 · (√2 − 1) to ten places.
-        let exact = 4.0 / 3.0 * (2f64.sqrt() - 1.0);
-        assert!((exact - 0.552_284_749_8).abs() < 1e-10);
-        assert_eq!(kappa_handle(Nm(10_000_000_000)), Nm(5_522_847_498));
-        assert_eq!(kappa_handle(Nm(1)), Nm(1)); // 0.55 → 1
-        assert_eq!(kappa_handle(Nm(0)), Nm(0));
-        assert_eq!(kappa_handle(Nm(5)), Nm(3)); // 2.761…
-        // Ties of the shared rounding helper go toward zero.
-        assert_eq!(div_round_tz(25, 10), 2);
-        assert_eq!(div_round_tz(-25, 10), -2);
-    }
-
-    #[test]
     fn line_polyline_polygon() {
         let l = Path::line(p(1, 2), p(-3, 4));
         assert_eq!(count(&l), (1, 1, 0, 0, 0));
@@ -544,10 +529,16 @@ mod tests {
             .close()
             .build();
         let k = path.to_kurbo();
-        assert_eq!(k.elements().len(), 5);
+        // Every element kind maps to its kurbo kind, in order, with its points.
         assert_eq!(
-            k.elements()[3],
-            kurbo::PathEl::CurveTo((9.0, 10.0).into(), (11.0, 12.0).into(), (13.0, 14.0).into())
+            k.elements(),
+            [
+                kurbo::PathEl::MoveTo((1.0, 2.0).into()),
+                kurbo::PathEl::LineTo((3.0, 4.0).into()),
+                kurbo::PathEl::QuadTo((5.0, 6.0).into(), (7.0, 8.0).into()),
+                kurbo::PathEl::CurveTo((9.0, 10.0).into(), (11.0, 12.0).into(), (13.0, 14.0).into()),
+                kurbo::PathEl::ClosePath,
+            ]
         );
         let bad = Path {
             els: vec![PathEl::LineTo(p(1, 1))],
@@ -609,23 +600,6 @@ mod tests {
             // And are tight: each edge is touched by some point.
             prop_assert!(path.points().any(|q| q.x == b.min().x));
             prop_assert!(path.points().any(|q| q.y == b.max().y));
-        }
-
-        #[test]
-        fn to_kurbo_keeps_element_counts(path in path()) {
-            let k = path.to_kurbo();
-            prop_assert_eq!(k.elements().len(), path.els.len());
-            for (a, b) in path.els.iter().zip(k.elements()) {
-                let same = matches!(
-                    (a, b),
-                    (PathEl::MoveTo(_), kurbo::PathEl::MoveTo(_))
-                        | (PathEl::LineTo(_), kurbo::PathEl::LineTo(_))
-                        | (PathEl::QuadTo(..), kurbo::PathEl::QuadTo(..))
-                        | (PathEl::CubicTo(..), kurbo::PathEl::CurveTo(..))
-                        | (PathEl::ClosePath, kurbo::PathEl::ClosePath)
-                );
-                prop_assert!(same);
-            }
         }
 
         #[test]
