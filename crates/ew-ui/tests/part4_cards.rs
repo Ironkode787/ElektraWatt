@@ -9,8 +9,6 @@
 
 mod support;
 
-use std::time::Duration;
-
 use egui::Key;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
@@ -27,16 +25,13 @@ fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
     );
 }
 
+/// Waits for the running jobs without running frames, then settles. Polling with frames ran the window's clock on for
+/// as long as the export took, so on a loaded machine the edit toast's 8 seconds ran out before the assertions
+/// (FT-524: `cp2_cp7` saw one toast). The window's own path (the job wakes it, a frame takes the end) is `jobs.rs`'s.
 fn run_until_jobs_end(h: &mut Harness<'_, App>) {
-    for _ in 0..3000 {
-        h.run_ok();
-        if h.state().shell().jobs().running() == 0 {
-            settle(h);
-            return;
-        }
-        std::thread::sleep(Duration::from_millis(10));
-    }
-    panic!("the job did not end");
+    h.state_mut().shell_mut().wait_jobs();
+    settle(h);
+    assert_eq!(h.state().shell().jobs().running(), 0);
 }
 
 fn group_named(h: &Harness<'_, App>, name: &str) -> bool {
@@ -293,4 +288,43 @@ fn cp8_a_stale_card_shows_its_badge_and_apply_stays_the_primary() {
     );
     assert!(h.query_all_by_label("Apply").next().is_some());
     h.state_mut().shell_mut().shutdown();
+}
+
+/// FT-524: a toast's 8 seconds (WP-S2.09 D6) run on the window's frame clock (egui's `input.time`), which is the wall
+/// clock in the window and the harness's steps here, so how long a loaded machine takes between two frames does not
+/// decide whether a test still sees a toast. The toast stays while less than 8 seconds of frames have passed since
+/// the frame that first painted it, and goes in the first frame at 8 seconds.
+#[test]
+fn ft_524_a_toast_lives_8_seconds_of_the_frame_clock() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let mut h = harness(&tmp, Scripted::default(), Some(dir));
+    settle(&mut h);
+    dispatch(&mut h, "page.goto", json!({"folio": "101"}));
+    dispatch(
+        &mut h,
+        "select.set",
+        json!({"refs": ["tag:-101F1", "tag:-102F1"]}),
+    );
+    dispatch(
+        &mut h,
+        "props.set",
+        json!({"row": "device/function_text", "value": "Spare"}),
+    );
+    h.step();
+    let shown = h.ctx.input(|i| i.time);
+    assert_eq!(h.state().shell().notifications().visible().len(), 1);
+    for _ in 0..1000 {
+        h.step();
+        let age = h.ctx.input(|i| i.time) - shown;
+        let visible = h.state().shell().notifications().visible().len();
+        if age < 8.0 {
+            assert_eq!(visible, 1, "on screen at {age} s");
+        } else {
+            assert_eq!(visible, 0, "gone at {age} s");
+            h.state_mut().shell_mut().shutdown();
+            return;
+        }
+    }
+    panic!("the frame clock did not reach 8 seconds");
 }

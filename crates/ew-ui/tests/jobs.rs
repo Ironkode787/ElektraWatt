@@ -40,6 +40,15 @@ fn run_until_jobs_end(h: &mut Harness<'_, App>) {
     panic!("the job did not end");
 }
 
+/// Waits for the running jobs without running frames, then settles: for a test of what the ends show, not of how the
+/// window takes them. Frames run the window's clock, so polling through a long export ran an earlier toast's 8 seconds
+/// out on a loaded machine (FT-524).
+fn wait_jobs_then_settle(h: &mut Harness<'_, App>) {
+    h.state_mut().shell_mut().wait_jobs();
+    settle(h);
+    assert_eq!(h.state().shell().jobs().running(), 0);
+}
+
 #[test]
 fn jb4_the_save_dialogs_answer_replaces_an_existing_file_through_a_job() {
     let tmp = Tmp::new();
@@ -145,7 +154,7 @@ fn jb6_the_toasts_stack_and_the_log_opens_from_the_status_bar() {
         "file.export_pdf",
         json!({ "path": tmp.0.join("a.pdf").to_string_lossy() }),
     );
-    run_until_jobs_end(&mut h);
+    wait_jobs_then_settle(&mut h);
     assert_eq!(
         h.state().shell().notifications().visible().len(),
         2,

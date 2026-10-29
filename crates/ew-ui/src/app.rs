@@ -150,8 +150,8 @@ impl Platform for NoPlatform {
     }
 }
 
-/// How long a toast stays on screen (WP-S2.09 D6), measured by the window.
-const TOAST_SECONDS: u64 = 8;
+/// How long a toast stays on screen (WP-S2.09 D6), measured by the window's frame clock.
+const TOAST_SECONDS: f64 = 8.0;
 
 /// A job younger than this shows no status-bar field (WP-S2.09 §6.4).
 const JOB_FIELD_AFTER: Duration = Duration::from_millis(200);
@@ -173,9 +173,11 @@ pub struct App {
     properties: PropertiesPane,
     /// The find pane (WP-S2.05 part 2).
     find: FindPane,
-    /// The visible toasts by serial and when the window first painted each: a toast goes after 8 seconds measured by
-    /// the window, never by the model (WP-S2.09 D6).
-    toast_since: std::collections::BTreeMap<u64, std::time::Instant>,
+    /// The visible toasts by serial and the frame time (egui's `input.time`, seconds) of the frame that first painted
+    /// each: a toast goes after 8 seconds measured by the window, never by the model (WP-S2.09 D6). The frame clock is
+    /// the wall clock in the window and the harness's steps in a test, so no test depends on how fast a loaded machine
+    /// runs (FT-524).
+    toast_since: std::collections::BTreeMap<u64, f64>,
     /// The running jobs by number and when the window first saw each (the elapsed time and the 200 ms rule, §6.4).
     job_started: std::collections::BTreeMap<u64, std::time::Instant>,
     /// Whether the shell has the window's repaint request as its jobs' waker.
@@ -857,9 +859,10 @@ impl App {
             .map(|n| n.serial)
             .collect();
         self.toast_since.retain(|s, _| visible.contains(s));
+        let frame_time = ctx.input(|i| i.time);
         for serial in visible {
-            let since = *self.toast_since.entry(serial).or_insert(now);
-            if now.saturating_duration_since(since) >= Duration::from_secs(TOAST_SECONDS) {
+            let since = *self.toast_since.entry(serial).or_insert(frame_time);
+            if frame_time - since >= TOAST_SECONDS {
                 events.push(Event::DismissToast(serial));
             } else {
                 ctx.request_repaint_after(Duration::from_millis(500));
