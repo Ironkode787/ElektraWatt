@@ -1,4 +1,4 @@
-# Run gpp-r1
+# Run gpp-r2
 
 kind gate, task gpp-101-103, end handback
 
@@ -13,27 +13,15 @@ Outcome: **pass-with-gaps**
 | H1 | Exact counts on folio 101 | reps 17 connections 21 junctions 2 | reps 17 connections 21 junctions 2 | ok |
 | H2 | Exact counts on folio 102 | reps 12 connections 19 junctions 4 | reps 12 connections 19 junctions 4 | ok |
 | H3 | Exact counts on folio 103 | reps 35 connections 20 junctions 0 terminals 15 strips 2 | reps 35 connections 20 junctions 0 terminals 15 strips 2 | ok |
-| H4 | The parts list equals the oracle's (part number, description, quantity) | 14 rows | 2 rows | gap (WP-S2.07) |
+| H4 | The parts list equals the oracle's (part number, description, quantity) | 14 rows | 12 rows | gap (WP-S2.07) |
 | H5 | The agent exported the PDF itself | a `file.export_pdf` step of the agent done, its file in work/ | 1 done, file present | ok |
 | H6 | The agent saved its work itself | a `file.save` step of the agent done and the project clean after its last step | 1 saves done, project clean | ok |
 | H7 | No prelude line of class drawing | 0 drawing lines | 0 drawing lines | ok |
 
 H4 (The parts list equals the oracle's (part number, description, quantity)):
 
-- missing: 2904602 | Power supply 1 AC / DC | 1
-- extra: 2904602 | Power supply 1 AC / DC | 2
-- missing: 533356 | Main switch, 2-pole | 1
-- missing: 5SY4204-7 | Miniature circuit breaker 1P+N | 1
-- missing: A9F78116 | Miniature circuit breaker 1P | 1
-- missing: A9P52610 | Miniature circuit breaker 1P+N | 1
-- missing: PT 2.5-TWIN | Feed-through terminal, 3 connections | 11
-- missing: PT 2.5-TWIN-PE | PE terminal, 3 connections | 4
-- missing: SK 3102.000 | Enclosure heater | 1
-- missing: SK 3110.000 | Thermostat | 1
 - missing: TBD | End bracket | 4
 - missing: TBD | Plug-in bridge | 3
-- missing: UK 5 N | Feed-through terminal | 2
-- missing: USLKG 5 | PE terminal | 1
 
 ### Soft checks
 
@@ -45,8 +33,8 @@ H4 (The parts list equals the oracle's (part number, description, quantity)):
 | S4 | Cross-reference texts among the folios of the run | 23 rows | 23 rows | ok |
 | S5 | Tags, frozen tags included | 49 rows | 49 rows | ok |
 | S6 | Page titles | 3 rows | 3 rows | ok |
-| S7 | Marker texts | 4 rows | 4 rows | miss |
-| S8 | Findings on the drawn devices (rule, severity, tag) | 7 rows | 8 rows | miss |
+| S7 | Marker texts | 4 rows | 0 rows | miss |
+| S8 | Findings on the drawn devices (rule, severity, tag) | 7 rows | 7 rows | ok |
 
 S1 (Anchor cells of every representation, by device tag and symbol):
 
@@ -57,12 +45,12 @@ S1 (Anchor cells of every representation, by device tag and symbol):
 
 S2 (Endpoint labels of the drawn connections, up to orientation):
 
-- missing: 101 | -XPE:PE | 1X1:PE/a | 101
-- extra: 101 | -XPE:PE | 1X1:PE/b | 101
-- missing: 101 | 1X1:1/a | S51:2 | 101
-- extra: 101 | 1X1:1/b | S51:2 | 101
-- missing: 101 | 1X1:2/a | S51:4 | 101
-- extra: 101 | 1X1:2/b | S51:4 | 101
+- missing: 101 | 1X1:1/a | ext J-E-206-L | 101
+- extra: 101 | 1X1:1/b | ext J-E-206-L | 101
+- missing: 101 | 1X1:2/a | ext J-E-206-N | 101
+- extra: 101 | 1X1:2/b | ext J-E-206-N | 101
+- missing: 101 | 1X1:PE/a | ext J-E-206-PE | 101
+- extra: 101 | 1X1:PE/b | ext J-E-206-PE | 101
 - extra: 103 | -X1031:1/b | ext 24VDC-AIR1 | 103
 - extra: 103 | -X1031:11/b | ext 0VDC-AIR1 | 103
 - extra: 103 | -X1031:12/b | ext 0VDC-AIR2 | 103
@@ -78,20 +66,14 @@ S2 (Endpoint labels of the drawn connections, up to orientation):
 
 S7 (Marker texts):
 
-- extra: 101 | 2.5 BK BK
 - missing: 101 | 2.5 BK BU
-- extra: 102 | 1.5 BK BK GNYE GNYE
-- extra: 102 | 1.5 BU GNYE GNYE
+- missing: 101 | 2.5 BK BU
 - missing: 102 | 1.5 DBU DBU
 - missing: 102 | 1.5 DBU DBU WH WH
 
-S8 (Findings on the drawn devices (rule, severity, tag)):
-
-- extra: EW-NUM-001 | info | -102F2
-
 ## Protocol
 
-turns 92, steps 632, looks 73, harness refusals 1, refused 4, failed 7, broken 1
+turns 68, steps 664, looks 25, harness refusals 0, refused 3, failed 1, broken 0
 
 ## Observations
 
@@ -112,8 +94,8 @@ turns 92, steps 632, looks 73, harness refusals 1, refused 4, failed 7, broken 1
 
 ## Broken steps
 
-- broken: strip.bridge {} refused reason-bridge-selection
+none
 
 ## Harness refusals
 
-- harness: marked broken, move on
+none

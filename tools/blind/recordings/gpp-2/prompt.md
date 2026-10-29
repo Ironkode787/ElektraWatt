@@ -10,7 +10,7 @@ work as a user works: you read what the program tells you, you try things, you g
 say honestly how it felt. Your persona below tells you who you are and what you are used to; it tells you nothing about
 EW, and you know nothing about EW except what EW itself and its user guide teach you.
 
-This is run `gpp-r1`, a `gate` run. Your job is on the task sheet below. After it comes the harness help, which says
+This is run `gpp-r2`, a `gate` run. Your job is on the task sheet below. After it comes the harness help, which says
 exactly how to work.
 
 ## You never see a picture
@@ -38,7 +38,7 @@ The details are in the harness help; in short:
 
 1. Send one `do` call: one step, or a batch of 1 to 20 steps. The harness sends them in order and stops at the first
    step that is not done (the rest are reported `skipped`). It prints what each step did and what changed.
-2. Give exactly one note for that turn with `«run»\bin/xtask.exe blind note gpp-r1 "patience <0-10> flow <0-10> <text>"` before your next
+2. Give exactly one note for that turn with `«run»\bin/xtask.exe blind note gpp-r2 "patience <0-10> flow <0-10> <text>"` before your next
    `do`.
 3. `look` calls are free and need no note, but at most 3 between two `do` calls.
 
@@ -63,7 +63,7 @@ Be honest with both. They are not a grade of EW to please anyone; they are your 
 
 ## What you hand back
 
-When you have finished the task, or cannot go on, file your hand-back with `«run»\bin/xtask.exe blind handback gpp-r1 -` and the text on
+When you have finished the task, or cannot go on, file your hand-back with `«run»\bin/xtask.exe blind handback gpp-r2 -` and the text on
 standard input. It has exactly these seven headings, in this order, each on a line of its own that starts with its
 number and title:
 
@@ -128,7 +128,7 @@ You are a draftsman on the control cabinet J-E-2416. A colleague has left you th
 schematic below, to draw in the new project that is already open, and the drawing set to hand in as a saved project
 and a PDF. Everything you need is on this sheet; draw what it says, where it says it.
 
-Run `gpp-r1` is a `gate` run with the caps 900 turns, 3000 steps, 1500 looks and 100 refused steps.
+Run `gpp-r2` is a `gate` run with the caps 900 turns, 3000 steps, 1500 looks and 100 refused steps.
 
 ## The project as you find it
 
@@ -384,10 +384,10 @@ does not place, so they stay undrawn; BR5 and BR6 join the placed terminals only
 | BR5 | -X1031 | 11-14 | 0V |
 | BR6 | -X1032 | 1-4 | PE |
 
-<!-- file: tools/blind/HELP.md sha256 6a7c6b74d854cd43cfdf5f1cdf4d3072da4171f0c6992c54a92b5cdbe327417b -->
+<!-- file: tools/blind/HELP.md sha256 02a8d131728790a8976fa4deaf145ef9bd9c37dd4fd8eeabef8eba93aca81c0f -->
 ---
 prompt: blind-help
-version: 4
+version: 5
 ---
 # The harness: how to work with it
 
@@ -399,13 +399,13 @@ action with its parameters.
 
 | Command | What it does |
 |---|---|
-| `«run»\bin/xtask.exe blind do gpp-r1 <action> [key=value ...]` | One step. A value is typed by the action's parameters: `x_mm=254` is a number, `shift=true` a switch, `folio=101` the text `101`; a list or an object is JSON (`fields='["tag","text"]'`). `key=null` leaves an optional parameter out. |
-| `«run»\bin/xtask.exe blind do gpp-r1 -` | A batch of 1 to 20 steps, one JSON object per line on standard input: `{"action":"canvas.press","params":{"x_mm":254,"y_mm":127}}`. |
-| `«run»\bin/xtask.exe blind look gpp-r1 [section ...] [--diff] [--menus]` | The interface as text, by sections (`title:`, `banner:`, `page`, `navigator`, `canvas`, `properties`, `card`, `toast`, `find`, `jobs`, `preview`, `history`, `clipboard`, `status`, `notifications`, `palette`, `dialog`, `wizard`, `first`, `start`, `workspace`, `help:`, `notices:`). `jobs` shows while View ▸ Jobs is open, `notifications` while View ▸ Notifications is, `preview` while the Preview tab is open (it opens with every preview card) and `history` while Edit ▸ History is. The menus are left out unless you ask with `--menus`. With `--diff` you get only the lines added (`+`) or removed (`-`) since your last look at the same sections. |
-| `«run»\bin/xtask.exe blind look gpp-r1 --page [<folio>]` | The content of a page as text: what is drawn on it, in reading order. |
-| `«run»\bin/xtask.exe blind note gpp-r1 "patience <0-10> flow <0-10> <text>"` | The note of your last turn. |
-| `«run»\bin/xtask.exe blind handback gpp-r1 -` | Your hand-back on standard input; it ends the run. |
-| `«run»\bin/xtask.exe blind report gpp-r1 <which>` | For reviewers (a check run) only: `<which>` is `check`, `bom` or `score`, the check report, the parts list and the score of the drafter's project. A drafter has nothing to read here. |
+| `«run»\bin/xtask.exe blind do gpp-r2 <action> [key=value ...]` | One step. A value is typed by the action's parameters: `x_mm=254` is a number, `shift=true` a switch, `folio=101` the text `101`; a list or an object is JSON (`fields='["tag","text"]'`). `key=null` leaves an optional parameter out. |
+| `«run»\bin/xtask.exe blind do gpp-r2 -` | A batch of 1 to 20 steps, one JSON object per line on standard input: `{"action":"canvas.press","params":{"x_mm":254,"y_mm":127}}`. |
+| `«run»\bin/xtask.exe blind look gpp-r2 [section ...] [--diff] [--menus]` | The interface as text, by sections (`title:`, `banner:`, `page`, `navigator`, `canvas`, `properties`, `card`, `toast`, `find`, `jobs`, `preview`, `history`, `clipboard`, `status`, `notifications`, `palette`, `dialog`, `wizard`, `first`, `start`, `workspace`, `help:`, `notices:`). `jobs` shows while View ▸ Jobs is open, `notifications` while View ▸ Notifications is, `preview` while the Preview tab is open (it opens with every preview card) and `history` while Edit ▸ History is. The menus are left out unless you ask with `--menus`. With `--diff` you get only the lines added (`+`) or removed (`-`) since your last look at the same sections. |
+| `«run»\bin/xtask.exe blind look gpp-r2 --page [<folio>]` | The content of a page as text: what is drawn on it, in reading order. |
+| `«run»\bin/xtask.exe blind note gpp-r2 "patience <0-10> flow <0-10> <text>"` | The note of your last turn. |
+| `«run»\bin/xtask.exe blind handback gpp-r2 -` | Your hand-back on standard input; it ends the run. |
+| `«run»\bin/xtask.exe blind report gpp-r2 <which>` | For reviewers (a check run) only: `<which>` is `check`, `bom` or `score`, the check report, the parts list and the score of the drafter's project. A drafter has nothing to read here. |
 
 ## A turn
 
@@ -415,7 +415,9 @@ need no note, but you may make at most 3 between two `do` calls.
 
 The harness sends the steps of a batch in order and stops at the first step that is not done; the rest are reported
 `skipped` and not sent. Each step prints `<n> <action> <outcome>`: `done`, `refused` (with the reason: the action is not
-possible now) or `failed` (with its message), and then the parts of the interface's state that changed.
+possible now) or `failed` (with its message), and then the parts of the interface's state that changed. A step that
+leaves a preview card open adds the line `  preview: <summary>; Apply or Cancel`: nothing is changed until you apply
+it (`preview.apply`) or cancel it (`preview.cancel`).
 
 If one step fails twice in a row with the same parameters, the harness marks it broken and refuses that exact step for the
 rest of the run (`harness: marked broken, move on`). Three notes in a row with patience 2 or less, or five with flow 2 or
@@ -443,8 +445,8 @@ A refused step is never sent. The texts are:
 Every step the application takes ends in one of three words:
 
 - `done`: the application did it.
-- `refused`: the application did not do it because it is not possible now; the reason follows (a word such as
-  `reason-no-project`: the text after `reason-` is the reason in short form).
+- `refused`: the application did not do it because it is not possible now; the reason follows: a key such as
+  `reason-no-project`, then a colon and the sentence the window shows (`reason-no-project: <sentence>`).
 - `failed`: the application tried and could not; the message says why.
 
 `skipped` is the harness's own word: the step was not sent because an earlier step of the batch was not done.
