@@ -1456,3 +1456,221 @@ fn the_save_tooltip_in_light_and_dark() {
     }
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
+
+/// FT-625 (FT-545): the Place tool holding a NO contact between two contacts on folio 101, its ghost facing both
+/// with the wires autoconnect will draw, and the HUD saying how many and how to place without them; cropped to the
+/// page pane, in light and dark, Comfortable, gated.
+#[test]
+fn ft625_the_place_ghost_wires_and_hud_hint_in_light_and_dark() {
+    let dev = device();
+    let mut failures = Vec::new();
+    for theme in ["light", "dark"] {
+        let (mut h, recorder, tmp) = main_window(theme, "comfortable");
+        let pick = json!({"symbol": "ew.iec.contact-no@qet10", "letter": "K"});
+        // Two contacts one above the other without wires (as `gpp_m34`'s FT-545 test places them).
+        for k in [(60, 38), (60, 52)] {
+            act(&mut h, "place.pick", pick.clone());
+            place_at(&mut h, k);
+            act(&mut h, "ui.dismiss", json!({}));
+        }
+        act(&mut h, "place.pick", pick);
+        let (_, s) = grid_points(&h, (60, 43));
+        act(
+            &mut h,
+            "cursor.set",
+            json!({"x_mm": s.0 as f64 / 1e6, "y_mm": s.1 as f64 / 1e6}),
+        );
+        let hud = ew_ui::ew_viewmodel::command_bar::hud(h.state().shell());
+        assert!(hud.prompt.contains("places without"), "{}", hud.prompt);
+        support::wait_for_page(&mut h);
+        dismiss_toasts(&mut h);
+        support::settle(&mut h);
+        h.run_ok();
+        let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
+        let (_, hud_rect, pane) = h.state().command_surface_rects();
+        let (hud_rect, pane) = (hud_rect.expect("the HUD"), pane.expect("the page pane"));
+        assert!(pane.contains_rect(hud_rect), "the HUD in the page pane");
+        failures.extend(record(
+            &format!("ft625-place-wires-{theme}-comfortable"),
+            &crop(&image, pane),
+            true,
+        ));
+        h.state_mut().shell_mut().shutdown();
+        drop(h);
+        drop(tmp);
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
+
+/// FT-625 (FT-549, FT-554): the counted toasts one after the other, Run checks by severity (`check`) and the
+/// marker-mode switch's count (`marker`), at the canvas's top right; cropped to the toast with its shadow, in light and
+/// dark, Comfortable, gated.
+#[test]
+fn ft625_the_counted_toasts_in_light_and_dark() {
+    let dev = device();
+    let mut failures = Vec::new();
+    for theme in ["light", "dark"] {
+        let (mut h, recorder, tmp) = main_window(theme, "comfortable");
+        for (name, action, params, text) in [
+            ("check", "messages.check", json!({}), "Check: "),
+            (
+                "marker",
+                "project.marker_mode",
+                json!({"mode": "explicit"}),
+                "10 wires carry a marker",
+            ),
+        ] {
+            dismiss_toasts(&mut h);
+            act(&mut h, action, params);
+            let toast = h.state().shell().toast().expect("a toast").text.clone();
+            assert!(toast.starts_with(text), "{toast}");
+            h.run_ok();
+            h.run_ok();
+            let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
+            // The toasts' area (`ew_ui`'s `notifications::TOASTS_AREA`, as `tests/part4_cards.rs` names it).
+            let area = egui::Id::unique("ew-toasts");
+            let toasts = h.ctx.memory(|m| m.area_rect(area)).expect("the toasts' area");
+            failures.extend(record(
+                &format!("ft625-toast-{name}-{theme}-comfortable"),
+                &crop(&image, toasts.expand(16.0)),
+                true,
+            ));
+        }
+        h.state_mut().shell_mut().shutdown();
+        drop(h);
+        drop(tmp);
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
+
+/// FT-625 (FT-554): Properties of the wire W29 on folio 103, the Main group with "Wire marker" right after the
+/// cross-section and the colour; cropped to those rows in the Properties pane, in light and dark, Comfortable, gated.
+#[test]
+fn ft625_the_wire_marker_row_in_light_and_dark() {
+    let dev = device();
+    let mut failures = Vec::new();
+    for theme in ["light", "dark"] {
+        let (mut h, recorder, tmp) = main_window(theme, "comfortable");
+        act(&mut h, "page.goto", json!({"folio": "103"}));
+        support::wait_for_page(&mut h);
+        act(
+            &mut h,
+            "select.set",
+            json!({"ids": ["9eb2d865-fca4-59b1-87bf-c073d7190ceb"]}),
+        );
+        act(&mut h, "props.show", json!({"on": true}));
+        dismiss_toasts(&mut h);
+        support::settle(&mut h);
+        support::wait_for_page(&mut h);
+        h.run_ok();
+        let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
+        let row = node_rect(&h, "Wire marker").expect("the Wire marker row");
+        let first = node_rect(&h, "Cross-section").expect("the cross-section row");
+        // The left column's right edge: its splitter with the page view.
+        let right = h
+            .get_all_by_role(egui::Role::Splitter)
+            .find(|n| {
+                use egui_kittest::kittest::NodeT as _;
+                n.accesskit_node()
+                    .label()
+                    .is_some_and(|l| l.ends_with(" and Page view"))
+            })
+            .map(|n| n.rect().left())
+            .expect("the left column's splitter");
+        let region = egui::Rect::from_min_max(
+            egui::pos2(row.left() - 12.0, first.top() - 40.0),
+            egui::pos2(right, row.bottom() + 40.0),
+        );
+        failures.extend(record(
+            &format!("ft625-wire-marker-{theme}-comfortable"),
+            &crop(&image, region),
+            true,
+        ));
+        h.state_mut().shell_mut().shutdown();
+        drop(h);
+        drop(tmp);
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
+
+/// FT-625 (FT-577): the Potentials table with a potential known only at its connection points (24VDC-4's definition
+/// deleted), its Name cell in the editor with a typed name; cropped to the grid, in light and dark, Comfortable,
+/// gated.
+#[test]
+fn ft625_the_potential_name_cell_in_light_and_dark() {
+    use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
+    let dev = device();
+    let mut failures = Vec::new();
+    for theme in ["light", "dark"] {
+        let (mut h, recorder, tmp) = main_window(theme, "comfortable");
+        // The editor's caret blinks on the wall clock: steady for a stable image.
+        h.ctx.all_styles_mut(|s| s.visuals.text_cursor.blink = false);
+        act(&mut h, "props.show", json!({"on": false}));
+        act(&mut h, "navigator.show", json!({"kind": "potentials"}));
+        act(&mut h, "navigator.table", json!({"kind": "potentials"}));
+        let def = {
+            let shell = h.state().shell();
+            let t = shell.nav(NavKind::Potentials).and_then(|n| n.table()).unwrap();
+            t.nodes
+                .iter()
+                .find(|n| n.role == NavRole::Potential && n.label == "24VDC-4")
+                .map(|n| n.records[0])
+                .expect("24VDC-4")
+        };
+        act(
+            &mut h,
+            "command.run",
+            json!({"cmd": "edit.delete", "params": {"targets": [{"kind": "potential_def", "id": def.to_string()}]}}),
+        );
+        let (key, label) = {
+            let shell = h.state().shell();
+            let t = shell.nav(NavKind::Potentials).and_then(|n| n.table()).unwrap();
+            let n = t
+                .nodes
+                .iter()
+                .find(|n| n.table_row && n.kinds == ["cp"])
+                .expect("a potential known only at a CP");
+            (n.key.clone(), n.label.clone())
+        };
+        act(
+            &mut h,
+            "navigator.filter",
+            json!({"kind": "potentials", "text": label}),
+        );
+        act(
+            &mut h,
+            "ui.focus",
+            json!({"area": "navigator", "kind": "potentials"}),
+        );
+        act(
+            &mut h,
+            "table.edit",
+            json!({"kind": "potentials", "row": key, "column": "potential"}),
+        );
+        act(
+            &mut h,
+            "table.input",
+            json!({"kind": "potentials", "text": "24VDC-9"}),
+        );
+        dismiss_toasts(&mut h);
+        support::settle(&mut h);
+        h.run_ok();
+        let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
+        let grid = node_rect(&h, "Potentials table").expect("the grid");
+        let top = node_rect(&h, "Table").map_or(grid.top(), |r| r.top());
+        // The tool line, the header and the two rows the filter leaves (the empty grid below them is cut).
+        let pane = egui::Rect::from_min_max(
+            egui::pos2(grid.left(), top - 4.0),
+            egui::pos2(grid.right(), grid.bottom().min(top + 140.0)),
+        );
+        failures.extend(record(
+            &format!("ft625-potential-name-{theme}-comfortable"),
+            &crop(&image, pane),
+            true,
+        ));
+        h.state_mut().shell_mut().shutdown();
+        drop(h);
+        drop(tmp);
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
