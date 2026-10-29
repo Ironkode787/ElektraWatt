@@ -230,8 +230,24 @@ struct Found {
     modified: Option<SystemTime>,
 }
 
+/// Runs `op`, retried for a short while when Windows refuses it with access denied: Windows reports a file whose
+/// deletion is pending (another session's takeover just unlinked it while a handle was open) that way, which is
+/// contention, not a read-only directory. Elsewhere `op` runs once.
+fn pending_retry<T>(mut op: impl FnMut() -> io::Result<T>) -> io::Result<T> {
+    let mut tries = 0;
+    loop {
+        match op() {
+            Err(e) if cfg!(windows) && e.kind() == io::ErrorKind::PermissionDenied && tries < 20 => {
+                tries += 1;
+                std::thread::sleep(Duration::from_millis(5));
+            }
+            r => return r,
+        }
+    }
+}
+
 fn read(path: &Path) -> io::Result<Option<Found>> {
-    let bytes = match std::fs::read(path) {
+    let bytes = match pending_retry(|| std::fs::read(path)) {
         Ok(b) => b,
         Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(None),
         Err(e) => return Err(e),
@@ -271,7 +287,7 @@ fn held_error(found: &Found, policy: &LockPolicy, me: &Identity) -> LibraryError
 }
 
 fn create(path: &Path, me: &Identity) -> io::Result<()> {
-    let mut f = OpenOptions::new().write(true).create_new(true).open(path)?;
+    let mut f = pending_retry(|| OpenOptions::new().write(true).create_new(true).open(path))?;
     f.write_all(me.record(now()).to_text().as_bytes())?;
     f.sync_all()
 }
@@ -327,8 +343,8 @@ pub fn release(dir: &Path, me: &Identity) -> Result<(), LibraryError> {
 /// Renames `from` to `to` without replacing an existing `to`: a hard link, then the unlink of `from`. Where the file
 /// system has no hard links, the plain rename (doc 05 §7.4 step 3; the re-read detects the loser).
 fn rename_no_replace(from: &Path, to: &Path) -> io::Result<()> {
-    match std::fs::hard_link(from, to) {
-        Ok(()) => match std::fs::remove_file(from) {
+    match pending_retry(|| std::fs::hard_link(from, to)) {
+        Ok(()) => match pending_retry(|| std::fs::remove_file(from)) {
             Ok(()) => Ok(()),
             Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(()),
             Err(e) => Err(e),
@@ -592,8 +608,15 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
+    /// The protocol assumes a contender's steps between its read of the stale lock and its create finish within the
+    /// settle time (2 s in production). The race runs with 250 ms rather than [`quick`]'s 10 ms, which a loaded test
+    /// runner can exceed between two system calls (review C35 M2).
     #[test]
     fn of_two_concurrent_takeovers_exactly_one_wins() {
+        let policy = LockPolicy {
+            settle: Duration::from_millis(250),
+            ..quick()
+        };
         for round in 0..5 {
             let dir = ew_testdir::fresh_dir("ew-library-lock-race");
             plant(&dir, &other("elsewhere"), Duration::from_secs(3600));
@@ -604,7 +627,7 @@ mod tests {
                     std::thread::spawn(move || {
                         let me = Identity::current("test");
                         barrier.wait();
-                        (take_over(&dir, &me, &quick()), me.session)
+                        (take_over(&dir, &me, &policy), me.session)
                     })
                 })
                 .collect();
